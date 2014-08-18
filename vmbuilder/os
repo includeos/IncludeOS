@@ -1,0 +1,20 @@
+#ifndef OS_H
+#define OS_H
+
+#include "globals.h"
+
+//The service- and os classes
+#include "class_service.h"
+#include "class_os.h"
+
+int main(){
+  OS::start();
+  //OBS: If this function returns, the consequences are UNDEFINED
+}
+
+extern "C" void _start(void){
+  main();
+}
+
+
+#endif //Include guard

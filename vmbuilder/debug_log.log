@@ -1,0 +1,19 @@
+Next at t=0
+(0) [0x0000fffffff0] f000:fff0 (unk. ctxt): jmpf 0xf000:e05b          ; ea5be000f0
+c
+(0) Magic breakpoint
+Next at t=8766565
+(0) [0x000000007c0c] 0000:7c0c (unk. ctxt): mov ax, 0x07c0            ; b8c007
+c
+(0) Magic breakpoint
+Next at t=8811240
+(0) [0x000000007d6f] 0008:00007d6f (unk. ctxt): jmp ecx                   ; ffe1
+c
+(0) Magic breakpoint
+Next at t=8811246
+(0) [0x00000000807d] 0008:0000807d (unk. ctxt): mov dword ptr ss:[esp+12], 0x00133700 ; c744240c00371300
+c
+(0) Magic breakpoint
+Next at t=8811248
+(0) [0x000000008088] 0008:00008088 (unk. ctxt): mov cl, 0x43              ; b143
+c
