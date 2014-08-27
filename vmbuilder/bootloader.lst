@@ -1,0 +1,352 @@
+     1                                  USE16
+     2                                  	;; Memory layout, 16-bit
+     3                                  	%define _boot_segment 0x7c0 
+     4                                  	%define _os_segment 0x800
+     5                                  	%define _os_pointer 0x0
+     6                                  
+     7                                  	;; Memory layout, 32-bit
+     8                                  	%define _mode32_code_segment 0x08
+     9                                  	%define _mode32_data_segment 0x10
+    10                                  
+    11                                  	%define _kernel_loc 0x8000
+    12                                  	%define _kernel_stack 0x800000
+    13                                  	
+    14                                  	;; We don't really need a stack, except for calls
+    15                                  	%define _stack_segment 0x7000
+    16                                  	%define _stack_pointer 0xfffe ;Within the ss, for 16 bit
+    17                                  
+    18                                  	;; Char helpers
+    19                                  	%define _CR 0x0D
+    20                                  	%define _LF 0x0A
+    21                                  
+    22                                  	;; ELF offset of _start in text section
+    23                                  	%define _elf_start 0x34
+    24                                  	
+    25                                  ;;; START
+    26                                  ;;; We'll start at the beginning, but jump over some data
+    27                                  _start:
+    28 00000000 EB46                    	jmp boot
+    29                                  
+    30                                  ;;; The size of the service on disk, to be loaded at boot. (Convenient to 
+    31                                  ;;; have it at the beginning, so it remains at a fixed location. )
+    32                                  srv_size:
+    33 00000002 00000000                	dd 0			
+    34                                  
+    35                                  srv_offs:
+    36 00000006 00000000                	dd 0
+    37                                  %include "./asm/check_a20_16bit.asm"
+    38                              <1> ;;; Code from osdev:
+    39                              <1> ;;; http://wiki.osdev.org/A20_Line#Testing_the_A20_line
+    40                              <1> 
+    41                              <1> ;;; Licence: Assumed public domain
+    42                              <1> 
+    43                              <1> ;;; A general disclaimer is provided:
+    44                              <1> 	
+    45                              <1> ;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    46                              <1> ;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    47                              <1> ;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    48                              <1> ;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    49                              <1> ;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    50                              <1> ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    51                              <1> ;;; THE SOFTWARE.
+    52                              <1> 
+    53                              <1> ;;; from  http://wiki.osdev.org/OSDev_Wiki:General_disclaimer
+    54                              <1> 
+    55                              <1> check_a20:
+    56 0000000A 9C                  <1> 	    pushf
+    57 0000000B 1E                  <1> 	    push ds
+    58 0000000C 06                  <1> 	    push es
+    59 0000000D 57                  <1> 	    push di
+    60 0000000E 56                  <1> 	    push si
+    61                              <1> 
+    62 0000000F FA                  <1> 	    cli
+    63                              <1> 
+    64 00000010 31C0                <1> 	    xor ax, ax 		; ax = 0
+    65 00000012 8EC0                <1> 	    mov es, ax
+    66                              <1> 
+    67 00000014 F7D0                <1> 	    not ax 		; ax = 0xFFFF
+    68 00000016 8ED8                <1> 	    mov ds, ax
+    69                              <1> 
+    70 00000018 BF0005              <1> 	    mov di, 0x0500
+    71 0000001B BE1005              <1> 	    mov si, 0x0510
+    72                              <1> 
+    73 0000001E 268A05              <1> 	    mov al, byte [es:di]
+    74 00000021 50                  <1> 	    push ax
+    75                              <1> 
+    76 00000022 3E8A04              <1> 	    mov al, byte [ds:si]
+    77 00000025 50                  <1> 	    push ax
+    78                              <1> 
+    79 00000026 26C60500            <1> 	    mov byte [es:di], 0x00
+    80 0000002A 3EC604FF            <1> 	    mov byte [ds:si], 0xFF
+    81                              <1> 
+    82 0000002E 26803DFF            <1> 	    cmp byte [es:di], 0xFF
+    83                              <1> 
+    84 00000032 58                  <1> 	    pop ax
+    85 00000033 3E8804              <1> 	    mov byte [ds:si], al
+    86                              <1> 
+    87 00000036 58                  <1> 	    pop ax
+    88 00000037 268805              <1> 	    mov byte [es:di], al
+    89                              <1> 
+    90 0000003A B80000              <1> 	    mov ax, 0
+    91 0000003D 7403                <1> 	    je check_a20__exit
+    92                              <1> 
+    93 0000003F B80100              <1> 	    mov ax, 1
+    94                              <1> 
+    95                              <1> check_a20__exit:
+    96 00000042 5E                  <1> 	    pop si
+    97 00000043 5F                  <1> 	    pop di
+    98 00000044 07                  <1> 	    pop es
+    99 00000045 1F                  <1> 	    pop ds
+   100 00000046 9D                  <1> 	    popf
+   101                              <1> 
+   102 00000047 C3                  <1> 	    ret
+   103                                  ;;; Actual start
+   104                                  boot:
+   105                                  
+   106                                  	;; Need to set data segment, to access strings
+   107 00000048 B8C007                  	mov ax, _boot_segment	
+   108 0000004B 8ED8                    	mov ds, ax		
+   109                                  
+   110 0000004D 66BE[9F000000]          	mov esi,str_boot
+   111 00000053 E83100                  	call printstr
+   112                                  	
+   113 00000056 E8B1FF                  	call check_a20
+   114 00000059 A800                    	test al,0
+   115 0000005B 740B                    	jz .a20_ok
+   116                                  	
+   117                                  	;; NOT OK
+   118 0000005D 66BE[B6000000]          	mov esi,str_a20_fail
+   119 00000063 E82100                  	call printstr	
+   120 00000066 FA                      	cli
+   121 00000067 F4                      	hlt
+   122                                  .a20_ok:
+   123 00000068 66BE[AC000000]          	mov esi,str_a20_ok
+   124 0000006E E81600                  	call printstr
+   125                                  
+   126                                  	
+   127                                  	
+   128 00000071 E80000                  	call protected_mode	
+   129                                  	
+   130                                  protected_mode:
+   131                                  	;xchg bx,bx
+   132 00000074 FA                      	cli
+   133                                  	;; Load global descriptor table register
+   134 00000075 0F0116[E000]            	lgdt [gdtr] ;;Bochs seems to allready have one
+   135                                  	;; Set the 2n'd bit in cr0
+   136 0000007A 0F20C0                  	mov eax,cr0
+   137 0000007D 0C01                    	or al,1
+   138 0000007F 0F22C0                  	mov cr0,eax
+   139                                  	
+   140                                  	;xchg bx,bx
+   141                                  	;; 	jmp 0x8:$+3
+   142 00000082 EA[207D]0800            	jmp _mode32_code_segment:mode32+(_boot_segment<<4)
+   143                                  
+   144                                  USE16
+   145                                  
+   146                                  	;; %include "asm/load_os_16bit.asm"
+   147                                  			
+   148                                  ;;; 16-bit code
+   149                                  USE16
+   150                                  	
+   151                                  printstr:
+   152 00000087 B40E                    	mov ah,0eh
+   153                                  .repeat:	
+   154 00000089 AC                      	lodsb
+   155 0000008A 3C00                    	cmp al,0
+   156 0000008C 7404                    	je .done
+   157 0000008E CD10                    	int 10h
+   158 00000090 EBF7                    	jmp .repeat
+   159                                  .done:
+   160 00000092 C3                      	ret
+   161                                  	
+   162                                  ;;; Print the char in %al to serial port, via BIOS int.
+   163                                  ;;; OBS: Only works in real mode.
+   164                                  ;;; OBS: In Bochs, looks like serial port must be initialized first
+   165                                  print_al_serial:
+   166 00000093 6631D2                  	xor edx,edx
+   167 00000096 B401                    	mov ah,1
+   168 00000098 CD14                    	int 14h
+   169 0000009A C3                      	ret
+   170                                  	
+   171                                  print_al_scr:
+   172 0000009B B40E                    	mov ah,0x0e
+   173 0000009D CD10                    	int 0x10	
+   174                                  
+   175                                  str_boot:
+   176 0000009F 496E636C7564654F53-     	db `IncludeOS!\n\r`,0
+   177 000000A8 210A0D00           
+   178                                  str_a20_ok:
+   179 000000AC 413230204F4B210A0D-     	db `A20 OK!\n\r`,0
+   180 000000B5 00                 
+   181                                  str_a20_fail:
+   182 000000B6 413230204E4F54204F-     	db `A20 NOT OK\n\r`,0
+   183 000000BF 4B0A0D00           
+   184                                  
+   185                                  	
+   186                                  USE32
+   187 000000C3 90<rept>                ALIGN 32
+   188                                  ;; Global descriptor table
+   189                                  gdtr:
+   190 000000E0 1700                    	dw gdt32_end -gdt32 -1
+   191 000000E2 [EA7C000000000000]      	dq gdt32+(_boot_segment<<4)
+   192                                  gdt32:
+   193                                  	;; Entry 0x0: Null desriptor
+   194 000000EA 0000000000000000        	dq 0x0 
+   195                                  	;; Entry 0x8: Code segment
+   196 000000F2 FFFF                    	dw 0xffff		       ;Limit
+   197 000000F4 0000                    	dw 0x0000		       ;Base 15:00
+   198 000000F6 00                      	db 0x00			       ;Base 23:16
+   199 000000F7 9AC0                    	dw 0xc09a		       ;Flags
+   200 000000F9 00                      	db 0x00			       ;Base 32:24
+   201                                  	;; Entry 0x10: Data segment
+   202 000000FA FFFF                    	dw 0xffff		       ;Limit
+   203 000000FC 0000                    	dw 0x0000		       ;Base 15:00
+   204 000000FE 00                      	db 0x00			       ;Base 23:16
+   205 000000FF 92C0                    	dw 0xc092		       ;Flags
+   206 00000101 00                      	db 0x00			       ;Base 32:24	
+   207                                  gdt32_end:
+   208 00000102 3332                    	db `32`
+   209                                  ;;; GDT done
+   210                                  	
+   211                                  ;;; 32-bit code
+   212                                  USE32				
+   213 00000104 90<rept>                ALIGN 32
+   214                                  mode32:
+   215                                  	;; Set up 32-bit data segment	
+   216 00000120 B810000000              	mov eax,_mode32_data_segment
+   217                                  	;; Set up stack
+   218 00000125 8ED0                    	mov ss,eax
+   219 00000127 BC00008000              	mov esp,_kernel_stack
+   220                                  	;; mov esi,_kernel_stack 	;Was e00c3
+   221 0000012C BD00008000              	mov ebp,_kernel_stack
+   222                                  	
+   223                                  	;; Set up data segment
+   224 00000131 8ED8                    	mov ds,eax
+   225 00000133 8EC0                    	mov es,eax
+   226 00000135 8EE0                    	mov fs,eax
+   227 00000137 8EE8                    	mov gs,eax
+   228                                  
+   229                                  	
+   230                                  	;; Load LBA params
+   231                                  	%define CYL 0
+   232                                  	%define HEAD 0
+   233                                  	%define SECT 2	
+   234                                  	%define HPC 1
+   235                                  	%define SPT 63	
+   236                                  	
+   237 00000139 B801000000              	mov eax,((CYL*HPC)+HEAD)*SPT+SECT-1		;
+   238 0000013E B180                    	mov cl,128
+   239 00000140 BF00800000              	mov edi,_kernel_loc
+   240                                  
+   241 00000145 6687DB                  	xchg bx,bx	
+   242                                  	;; Do the loading
+   243 00000148 E81A000000              	call ata_lba_read
+   244 0000014D 6687DB                  	xchg bx,bx	
+   245                                  	
+   246                                  	;; Compute service address (kernel entry + elf-offset)
+   247                                  	;; Putting this in ecx... Good idea? Don't know.
+   248                                  	;; TODO: Check gnu calling conventions to see if ecx is preserved
+   249 00000150 31C9                    	xor ecx,ecx
+   250 00000152 8B0D[067C0000]          	mov ecx,[srv_offs+(_boot_segment<<4)]
+   251 00000158 81C100800000            	add ecx,_kernel_loc
+   252                                  
+   253                                  	;; A20 test
+   254 0000015E C6050000010021          	mov byte [0x10000],'!'
+   255                                  	
+   256                                  
+   257                                  	;; GERONIMO!
+   258                                  	;; Jump to service
+   259 00000165 FFE1                    	jmp ecx
+   260                                  	
+   261                                  	%include "asm/disk_read_lba.asm"
+   262                              <1> ;; =============================================================================
+   263                              <1> ;;  ATA read sectors (LBA mode)
+   264                              <1> ;; 
+   265                              <1> ;;  Modification/rewrite of code found at osdev:
+   266                              <1> ;;  http://wiki.osdev.org/ATA_read/write_sectors#Read_in_LBA_mode
+   267                              <1> ;;
+   268                              <1> ;; 	Licence: ...assumed to be in public domain 
+   269                              <1> ;;
+   270                              <1> ;;  @param EAX Logical Block Address of sector
+   271                              <1> ;;  @param CL  Number of sectors to read
+   272                              <1> ;;  @param EDI The address of buffer to put data obtained from disk
+   273                              <1> ;;
+   274                              <1> ;;  @return None
+   275                              <1> ;; =============================================================================
+   276                              <1> ata_lba_read:
+   277 00000167 60                  <1> 	pusha
+   278                              <1> 	
+   279 00000168 25FFFFFF0F          <1> 	and eax, 0x0FFFFFFF
+   280                              <1> 	
+   281 0000016D 89C3                <1> 	mov ebx, eax ; Save LBA in RBX
+   282                              <1> 
+   283 0000016F BAF6010000          <1> 	mov edx, 0x01F6 ; Port to send drive and bit 24 - 27 of LBA
+   284 00000174 C1E818              <1> 	shr eax, 24     ; Get bit 24 - 27 in al
+   285 00000177 0CE0                <1> 	or al, 11100000b	; Set bit 6 in al for LBA mode
+   286 00000179 EE                  <1> 	out dx, al
+   287                              <1> 	
+   288 0000017A BAF2010000          <1> 	mov edx, 0x01F2 ; Port to send number of sectors
+   289 0000017F 88C8                <1> 	mov al, cl      ; Get number of sectors from CL
+   290 00000181 EE                  <1> 	out dx, al
+   291                              <1> 	
+   292 00000182 BAF3010000          <1> 	mov edx, 0x1F3 ; Port to send bit 0 - 7 of LBA
+   293 00000187 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   294 00000189 EE                  <1> 	out dx, al
+   295                              <1> 	
+   296 0000018A BAF4010000          <1> 	mov edx, 0x1F4 ; Port to send bit 8 - 15 of LBA
+   297 0000018F 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   298 00000191 C1E808              <1> 	shr eax, 8     ; Get bit 8 - 15 in AL
+   299 00000194 EE                  <1> 	out dx, al
+   300                              <1> 	
+   301                              <1> 	
+   302 00000195 BAF5010000          <1> 	mov edx, 0x1F5 ; Port to send bit 16 - 23 of LBA
+   303 0000019A 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   304 0000019C C1E810              <1> 	shr eax, 16    ; Get bit 16 - 23 in AL
+   305 0000019F EE                  <1> 	out dx, al
+   306                              <1> 	
+   307 000001A0 BAF7010000          <1> 	mov edx, 0x1F7 ; Command port
+   308 000001A5 B020                <1> 	mov al, 0x20   ; Read with retry.
+   309 000001A7 EE                  <1> 	out dx, al
+   310                              <1> 
+   311                              <1> 	;; Check for errors
+   312 000001A8 EC                  <1> 	in al,dx
+   313 000001A9 A801                <1> 	test al,1
+   314 000001AB 7407                <1> 	jz .fetch_data
+   315                              <1> 	
+   316                              <1> 	;; There was a read error...
+   317 000001AD B8ADDBBA00          <1> 	mov eax,0x00BADBAD
+   318 000001B2 FA                  <1> 	cli
+   319 000001B3 F4                  <1> 	hlt
+   320                              <1> 	
+   321                              <1> 	
+   322                              <1> .fetch_data:
+   323 000001B4 B800010000          <1> 	mov eax, 256 ; to read 256 words = 1 sector
+   324 000001B9 6631DB              <1> 	xor bx, bx
+   325 000001BC 88CB                <1> 	mov bl, cl ; read CL sectors
+   326 000001BE 66F7E3              <1> 	mul bx
+   327 000001C1 89C1                <1> 	mov ecx, eax ; RCX is counter for INSW
+   328 000001C3 BAF0010000          <1> 	mov edx, 0x1F0 ; Data port, in and out
+   329                              <1> 	
+   330                              <1> .drive_buffering:
+   331 000001C8 EC                  <1> 	in al, dx
+   332 000001C9 A808                <1> 	test al, 8 ; the sector buffer requires servicing.
+   333 000001CB 74FB                <1> 	jz .drive_buffering ; until the sector buffer is ready.	
+   334                              <1> 
+   335 000001CD 6687DB              <1> 	xchg bx,bx	
+   336                              <1> 	;; Repeatedly read words to memory
+   337                              <1> 	;; from drive buffer
+   338 000001D0 F3666D              <1> 	rep insw	      ; in to [RDI]
+   339                              <1> 
+   340                              <1> .drive_busy:
+   341 000001D3 EC                  <1> 	in al,dx
+   342 000001D4 A840                <1> 	test al,64
+   343 000001D6 74FB                <1> 	jz .drive_busy
+   344                              <1> 	
+   345 000001D8 61                  <1> 	popa
+   346 000001D9 C3                  <1> 	ret
+   347                              <1> 	
+   348                                  	
+   349                                  	
+   350                                  ;; BOOT SIGNATURE
+   351 000001DA 00<rept>                	times 510-($-$$) db 0	;
+   352 000001FE 55AA                    	dw 0xAA55

@@ -9,7 +9,7 @@ USE16
 	%define _mode32_data_segment 0x10
 
 	%define _kernel_loc 0x8000
-	%define _kernel_stack 0x80000
+	%define _kernel_stack 0x800000
 	
 	;; We don't really need a stack, except for calls
 	%define _stack_segment 0x7000
@@ -34,26 +34,33 @@ srv_size:
 
 srv_offs:
 	dd 0
+%include "./asm/check_a20_16bit.asm"
 ;;; Actual start
 boot:
-	xchg bx,bx
+
 	;; Need to set data segment, to access strings
 	mov ax, _boot_segment	
 	mov ds, ax		
 
-	;; Verify the offsets (for debugging)
-	mov ax,[srv_size]
-	mov bx,[srv_offs]
-
-	;; Print bootloader string
-	mov si, str_boot
-	call printstr 
+	mov esi,str_boot
+	call printstr
 	
-	;; Load os from disk, enter protected mode, and jump	
-	call load_os
+	call check_a20
+	test al,0
+	jz .a20_ok
+	
+	;; NOT OK
+	mov esi,str_a20_fail
+	call printstr	
+	cli
+	hlt
+.a20_ok:
+	mov esi,str_a20_ok
+	call printstr
+
+	
+	
 	call protected_mode	
-	call start_os
-	call never
 	
 protected_mode:
 	;xchg bx,bx
@@ -71,46 +78,8 @@ protected_mode:
 
 USE16
 
-load_os:
-	;xchg bx,bx	
-	mov bx,_os_segment
-	mov es,bx
-	mov bx,_os_pointer
-
-	mov ch,0
-	mov cl,2		;Sector to start load
-	mov dh,0		;Which head
-	mov dl,0x80		;Which disk
-	mov al,[srv_size]	;Size (Now max 256 sectors)
-	mov ah,2
-
-	int 0x13
-	cmp ah,0
-	je success
-
-read_error:
-	mov si,str_err_disk
-	call printstr
-	ret
-
-success:
-	mov si,str_success
-	call printstr
-	ret
-	
-start_os:
-	ret
-
-
-;;; Should never get here
-never:
-	;; 	sti
-	cli
-	hlt
-	mov eax,0xf0010000	;"Fool"
-	jmp never
-		
-	
+	;; %include "asm/load_os_16bit.asm"
+			
 ;;; 16-bit code
 USE16
 	
@@ -136,21 +105,16 @@ print_al_serial:
 	
 print_al_scr:
 	mov ah,0x0e
-	int 0x10
-	
-;;; DATA 
+	int 0x10	
+
 str_boot:
-	db `IncludeOS Booting...\n\r`,0
+	db `IncludeOS!\n\r`,0
+str_a20_ok:
+	db `A20 OK!\n\r`,0
+str_a20_fail:
+	db `A20 NOT OK\n\r`,0
 
-str_success:
-	db `Service successfully loaded - starting\n\r`,0
-
-str_mode32:
-	db `Now in 32-bit mode...\n\r`,0
-
-str_err_disk:
-	db `Disk read error\n\r`,0
-
+	
 USE32
 ALIGN 32
 ;; Global descriptor table
@@ -175,25 +139,11 @@ gdt32:
 gdt32_end:
 	db `32`
 ;;; GDT done
-
+	
 ;;; 32-bit code
 USE32				
 ALIGN 32
 mode32:
-
-
-	mov eax,0x123abc00
-	;; 	mov si,mode32_string
-	;; 	call printstr
-	;; sti ;Only after installing an IDT.
-	
-	;; Compute service address (kernel entry + elf-offset)
-	;; Putting this in ecx... Good idea? Don't know.
-	;; TODO: Check gnu calling conventions to see if ecx is preserved
-	xor ecx,ecx
-	mov ecx,[srv_offs]
-	add ecx,_kernel_loc
-	
 	;; Set up 32-bit data segment	
 	mov eax,_mode32_data_segment
 	;; Set up stack
@@ -201,22 +151,48 @@ mode32:
 	mov esp,_kernel_stack
 	;; mov esi,_kernel_stack 	;Was e00c3
 	mov ebp,_kernel_stack
-
 	
 	;; Set up data segment
 	mov ds,eax
 	mov es,eax
 	mov fs,eax
 	mov gs,eax
+
 	
-	xchg bx,bx
+	;; Load LBA params
+	%define CYL 0
+	%define HEAD 0
+	%define SECT 2	
+	%define HPC 1
+	%define SPT 63	
 	
+	mov eax,((CYL*HPC)+HEAD)*SPT+SECT-1		;
+	mov cl,128
+	mov edi,_kernel_loc
+
+	xchg bx,bx	
+	;; Do the loading
+	call ata_lba_read
+	xchg bx,bx	
+	
+	;; Compute service address (kernel entry + elf-offset)
+	;; Putting this in ecx... Good idea? Don't know.
+	;; TODO: Check gnu calling conventions to see if ecx is preserved
+	xor ecx,ecx
+	mov ecx,[srv_offs+(_boot_segment<<4)]
+	add ecx,_kernel_loc
+
+	;; A20 test
+	mov byte [0x10000],'!'
+	
+
+	;; GERONIMO!
 	;; Jump to service
 	jmp ecx
 	
-	;; NEVER
-	jmp mode32
-
+	%include "asm/disk_read_lba.asm"
+	
+	
 ;; BOOT SIGNATURE
 	times 510-($-$$) db 0	;
 	dw 0xAA55

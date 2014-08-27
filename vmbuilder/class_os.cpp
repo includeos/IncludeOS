@@ -1,16 +1,94 @@
-#include "class_os.h"
+#include <os>
+#include <malloc.h>
+#include <stdio.h>
+
+//C++ stuff
+void* operator new(size_t size){
+  return malloc(size);
+}
 
 
-void OS::start(){
-    rsprint(boot_msg);
-    rsprint("[PASS]\t OS class 'start' running - OK\n");
+// A private class to handle IRQ
+#include "class_irq_handler.h"
+
+/*
+char huge_array[200]; //{'!'}; Initialize it, puts all the data into the binary.
+
+class global_test
+{
+  int calls=0;
+ public:
+  global_test(){
+    calls++;
+    if(calls==3)
+      OS::rsprint("[PASS]\t Global constructors 1 called 3 times");
+  }
+}globtest1,globtest2,globtest3;
+
+//TODO
+class global_test2{
+ public:
+  global_test2(){
+    OS::rsprint("[PASS]\t Global constructors 2 called once");
+  }  
+}globtest4;
+
+*/
+
+class new_obj{
+  const char* str="NEW OBJECT: I'm a new, dynamic object!\n";
+public:
+  new_obj(){
+    OS::rsprint(str);
+  }
+};
+
+extern char _end;
+extern int _includeos;
+void OS::start(){  
+  char test_end='!';
+  rsprint(boot_msg);
+  if(&_end<&test_end)
+    rsprint("[FAIL]\t _end symbol is less than 'here' \n");
+  else
+    rsprint("[PASS]\t _end symbol is > 'here'\n");
+  rsprint("[PASS]\t OS class 'start' is running - OK\n");
+  
+  _includeos=100;
+  if(&_includeos!=(int*)0xf000 && _includeos==100)
+    rsprint("[FAIL]\t _includeos is NOT a cool tool \n");
+  else
+    rsprint("[PASS]\t _includeos IS a cool tool'\n");
+
+  IRQ_handler::set_IDT();
+    
+    //Dynamic memory allocation, malloc
+    void* mem=0;
+    mem=malloc(1000);
+    //size_t size=0;
+    if(mem>NULL)
+      rsprint("[PASS]\t Memory allocation using malloc - seems OK\n");
+    else
+      rsprint("[FAIL]\t Memory allocation using malloc - FAILED\n");
+    
+    //Dynamic memory allocation, new
+    new_obj* obj=new new_obj();        
+    
+    int i=55;
+    char str[100];
+    const char* sprintf_ok="[PASS]\t";
+    sprintf(str,"%s sprintf-statement, with an int 55==%i \n",sprintf_ok,i);
+    rsprint(str);
+    printf("%s Printf is working too... 55==%i\n",sprintf_ok,i);
     Service::start();
+
+    printf("\nMalloced variable mem, is at 0x%x \n",mem);
+    printf("\n_end is 0x%x, *_end is 0x%x and _includeos is %x \n",_end,&_end,_includeos);
     halt();    
 };
 
-
 void OS::halt(){
-  rsprint("[PASS]\t System halting - OK.\n");
+  rsprint("[PASS]\t System halting - OK. Done.\n");
   __asm__ volatile("hlt; jmp _start;");
 }
 
@@ -55,3 +133,5 @@ int OS::rswrite(char c) {
 
 
 const char* OS::boot_msg="[PASS]\t Include OS successfully booted (32-bit protected mode)\n"; 
+
+

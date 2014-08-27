@@ -55,9 +55,10 @@ int main(){
        << stat_srv.st_size 
        << " bytes, => " << srv_sect
        << " sectors. "<< endl;
-  
+
+  int img_size=(boot_sect+srv_sect)*SECT_SIZE;
   cout << "Total disk size: \t" 
-       << (boot_sect+srv_sect)*SECT_SIZE 
+       << img_size
        << " bytes, => "
        << boot_sect+srv_sect
        << " sectors. " 
@@ -68,8 +69,17 @@ int main(){
      Bochs requires old-school disk specifications. 
      sectors=cyls*heads*spt (sectors per track)
   */
-  int cylinders=306, heads=4, spt=17;
+  int cylinders=32, heads=1, spt=63;
   int disksize=cylinders*heads*spt*SECT_SIZE;
+  
+  if(disksize<img_size){
+    cout << endl << " ---- ERROR ----" << endl
+	 << "Image is too big for the disk! " << endl
+	 << "Image size: " << img_size << " B" << endl
+	 << "Disk size: " << disksize << " B" << endl;
+    exit(999);
+  }
+
   cout << "Creating disk of size: "
        << "Cyls: " << cylinders << endl
        << "Heads: " << heads << endl
@@ -77,7 +87,7 @@ int main(){
        << "=> " << disksize/SECT_SIZE << "sectors" << endl
        << "=> " << disksize << " bytes" << endl;
   char* disk=new char[disksize];
-        
+  
   //Load the boot loader into memory
   FILE* file_boot=fopen(bootloc,"r");  
   cout << "Read " << fread(disk,1,stat_boot.st_size,file_boot) 
@@ -135,12 +145,21 @@ int main(){
   Elf32_Phdr* prog_hdr=(Elf32_Phdr*)(srv_imgloc+elf_header->e_phoff);
   cout << "Pheader 1, location: " << prog_hdr->p_offset << endl;
   int srv_start=prog_hdr->p_offset;
+  //int srv_start=0;
   
   //Write OS/Service size to the bootloader
   *((int*)(disk+offs_srvsize))=srv_sect;
   *((int*)(disk+offs_srvoffs))=srv_start;
+    
+  int* magic_loc=(int*)(disk+img_size);
+		  
+  cout << "Applying magic signature: 0xFA7CA7" << endl
+       << "Data currently at location: " << img_size << endl
+       << "Location on image: 0x" << hex << img_size << endl
+       << "Computed memory location: " 
+       << hex << img_size + 0x8000 << endl;
+  *magic_loc=0xFA7CA7;
   
-
   //Write the image
   FILE* image=fopen(imgloc,"w");
   int wrote=fwrite((void*)disk,1,disksize,image);
@@ -148,6 +167,7 @@ int main(){
        << wrote
        << " bytes => " << wrote / SECT_SIZE
        <<" sectors to "<< imgloc << endl;
+
   
 
   //Cleanup

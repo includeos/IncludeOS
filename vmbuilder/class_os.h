@@ -1,11 +1,15 @@
 #ifndef CLASS_OS_H
 #define CLASS_OS_H
 
-#include "globals.h"
-#include "class_service.h"
+#include <os>
+
+
+//#include "globals.h"
+//#include "class_service.h"
 
 class OS{
- private:
+  
+ private:  
   static const char* boot_msg;
   //Receive a byte from port
   static uint8_t inb(int port);
@@ -17,7 +21,7 @@ class OS{
   static int rswrite(char c);
     
   //Call halt - i.e. wait for interrupts
-  static void halt();
+  static void halt();  
   
  public:
   //Write a cstring to serial port
@@ -26,5 +30,6 @@ class OS{
   static void start();
   
 };
+
 
 #endif

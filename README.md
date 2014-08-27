@@ -5,10 +5,12 @@ Scripts or whatever needed to set up an IncludeOS development environment
 
 
 # Prerequisites 
-
+  * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB)
   * Ubuntu 14.04 LTS, Vanilla (I use lubuntu, to support VM graphics if necessary)
   * Git
-  
+
+(I'm using an Ubuntu VM, running virtualbox inside a mac.)
+
 # Installation
 
 Once you have a system with the prereqs (virtual or not), everything should be set up by:
