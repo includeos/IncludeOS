@@ -1,7 +1,7 @@
 #include <os>
 #include <malloc.h>
 #include <stdio.h>
-
+#include <assert.h>
 //C++ stuff
 void* operator new(size_t size){
   return malloc(size);
@@ -11,29 +11,30 @@ void* operator new(size_t size){
 // A private class to handle IRQ
 #include "class_irq_handler.h"
 
-/*
-char huge_array[200]; //{'!'}; Initialize it, puts all the data into the binary.
+
+//char huge_array[200]; //{'!'}; Initialize it, puts all the data into the binary.
 
 class global_test
 {
-  int calls=0;
- public:
+  static int calls;
+public:
   global_test(){
     calls++;
     if(calls==3)
-      OS::rsprint("[PASS]\t Global constructors 1 called 3 times");
+      OS::rsprint("[PASS]\t Global constructors 1 called 3 times \n");
   }
-}globtest1,globtest2,globtest3;
+}globtest1, globtest3,globtest4;
+
+int global_test::calls=0;
 
 //TODO
 class global_test2{
  public:
   global_test2(){
-    OS::rsprint("[PASS]\t Global constructors 2 called once");
+    OS::rsprint("[PASS]\t Global constructors 2 called once \n");
   }  
-}globtest4;
+};
 
-*/
 
 class new_obj{
   const char* str="NEW OBJECT: I'm a new, dynamic object!\n";
@@ -46,6 +47,7 @@ public:
 extern char _end;
 extern int _includeos;
 void OS::start(){  
+  //assert(7==8);
   char test_end='!';
   rsprint(boot_msg);
   if(&_end<&test_end)
@@ -62,17 +64,20 @@ void OS::start(){
 
   IRQ_handler::set_IDT();
     
+    //Dynamic memory allocation, new
+    new_obj* obj=new new_obj();        
+
+    OS::rsprint(">>> Dynamic allocation using malloc \n");
     //Dynamic memory allocation, malloc
     void* mem=0;
-    mem=malloc(1000);
+    mem=malloc(400);
+    OS::rsprint(">>> Malloc done \n");
     //size_t size=0;
     if(mem>NULL)
       rsprint("[PASS]\t Memory allocation using malloc - seems OK\n");
     else
       rsprint("[FAIL]\t Memory allocation using malloc - FAILED\n");
     
-    //Dynamic memory allocation, new
-    new_obj* obj=new new_obj();        
     
     int i=55;
     char str[100];
@@ -130,6 +135,7 @@ int OS::rswrite(char c) {
 
   return 1;
 }
+
 
 
 const char* OS::boot_msg="[PASS]\t Include OS successfully booted (32-bit protected mode)\n"; 

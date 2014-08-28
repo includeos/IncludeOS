@@ -144,7 +144,8 @@ int main(){
   
   Elf32_Phdr* prog_hdr=(Elf32_Phdr*)(srv_imgloc+elf_header->e_phoff);
   cout << "Pheader 1, location: " << prog_hdr->p_offset << endl;
-  int srv_start=prog_hdr->p_offset;
+  //int srv_start=prog_hdr->p_offset;
+  int srv_start=elf_header->e_entry; //prog_hdr->p_offset;
   //int srv_start=0;
   
   //Write OS/Service size to the bootloader

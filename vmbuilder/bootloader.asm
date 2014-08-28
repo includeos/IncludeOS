@@ -180,7 +180,7 @@ mode32:
 	;; TODO: Check gnu calling conventions to see if ecx is preserved
 	xor ecx,ecx
 	mov ecx,[srv_offs+(_boot_segment<<4)]
-	add ecx,_kernel_loc
+	;; add ecx,_kernel_loc // We've now placed the exact address in srv_offs.
 
 	;; A20 test
 	mov byte [0x10000],'!'

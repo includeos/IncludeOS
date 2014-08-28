@@ -1,9 +1,12 @@
 #ifndef OS_H
 #define OS_H
 
+
 #if !defined(__cplusplus)
 #include <stdbool.h> /* C doesn't have booleans by default. */
+#error "THIS IS SUPPOSED TO BE C++"
 #endif
+
 #include <stddef.h>
 #include <stdint.h>
 

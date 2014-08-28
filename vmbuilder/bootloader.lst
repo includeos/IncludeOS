@@ -240,7 +240,7 @@
    240                                  
    241 00000145 6687DB                  	xchg bx,bx	
    242                                  	;; Do the loading
-   243 00000148 E81A000000              	call ata_lba_read
+   243 00000148 E814000000              	call ata_lba_read
    244 0000014D 6687DB                  	xchg bx,bx	
    245                                  	
    246                                  	;; Compute service address (kernel entry + elf-offset)
@@ -248,15 +248,15 @@
    248                                  	;; TODO: Check gnu calling conventions to see if ecx is preserved
    249 00000150 31C9                    	xor ecx,ecx
    250 00000152 8B0D[067C0000]          	mov ecx,[srv_offs+(_boot_segment<<4)]
-   251 00000158 81C100800000            	add ecx,_kernel_loc
+   251                                  	;; add ecx,_kernel_loc // We've now placed the exact address in srv_offs.
    252                                  
    253                                  	;; A20 test
-   254 0000015E C6050000010021          	mov byte [0x10000],'!'
+   254 00000158 C6050000010021          	mov byte [0x10000],'!'
    255                                  	
    256                                  
    257                                  	;; GERONIMO!
    258                                  	;; Jump to service
-   259 00000165 FFE1                    	jmp ecx
+   259 0000015F FFE1                    	jmp ecx
    260                                  	
    261                                  	%include "asm/disk_read_lba.asm"
    262                              <1> ;; =============================================================================
@@ -274,79 +274,79 @@
    274                              <1> ;;  @return None
    275                              <1> ;; =============================================================================
    276                              <1> ata_lba_read:
-   277 00000167 60                  <1> 	pusha
+   277 00000161 60                  <1> 	pusha
    278                              <1> 	
-   279 00000168 25FFFFFF0F          <1> 	and eax, 0x0FFFFFFF
+   279 00000162 25FFFFFF0F          <1> 	and eax, 0x0FFFFFFF
    280                              <1> 	
-   281 0000016D 89C3                <1> 	mov ebx, eax ; Save LBA in RBX
+   281 00000167 89C3                <1> 	mov ebx, eax ; Save LBA in RBX
    282                              <1> 
-   283 0000016F BAF6010000          <1> 	mov edx, 0x01F6 ; Port to send drive and bit 24 - 27 of LBA
-   284 00000174 C1E818              <1> 	shr eax, 24     ; Get bit 24 - 27 in al
-   285 00000177 0CE0                <1> 	or al, 11100000b	; Set bit 6 in al for LBA mode
-   286 00000179 EE                  <1> 	out dx, al
+   283 00000169 BAF6010000          <1> 	mov edx, 0x01F6 ; Port to send drive and bit 24 - 27 of LBA
+   284 0000016E C1E818              <1> 	shr eax, 24     ; Get bit 24 - 27 in al
+   285 00000171 0CE0                <1> 	or al, 11100000b	; Set bit 6 in al for LBA mode
+   286 00000173 EE                  <1> 	out dx, al
    287                              <1> 	
-   288 0000017A BAF2010000          <1> 	mov edx, 0x01F2 ; Port to send number of sectors
-   289 0000017F 88C8                <1> 	mov al, cl      ; Get number of sectors from CL
-   290 00000181 EE                  <1> 	out dx, al
+   288 00000174 BAF2010000          <1> 	mov edx, 0x01F2 ; Port to send number of sectors
+   289 00000179 88C8                <1> 	mov al, cl      ; Get number of sectors from CL
+   290 0000017B EE                  <1> 	out dx, al
    291                              <1> 	
-   292 00000182 BAF3010000          <1> 	mov edx, 0x1F3 ; Port to send bit 0 - 7 of LBA
-   293 00000187 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
-   294 00000189 EE                  <1> 	out dx, al
+   292 0000017C BAF3010000          <1> 	mov edx, 0x1F3 ; Port to send bit 0 - 7 of LBA
+   293 00000181 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   294 00000183 EE                  <1> 	out dx, al
    295                              <1> 	
-   296 0000018A BAF4010000          <1> 	mov edx, 0x1F4 ; Port to send bit 8 - 15 of LBA
-   297 0000018F 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
-   298 00000191 C1E808              <1> 	shr eax, 8     ; Get bit 8 - 15 in AL
-   299 00000194 EE                  <1> 	out dx, al
+   296 00000184 BAF4010000          <1> 	mov edx, 0x1F4 ; Port to send bit 8 - 15 of LBA
+   297 00000189 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   298 0000018B C1E808              <1> 	shr eax, 8     ; Get bit 8 - 15 in AL
+   299 0000018E EE                  <1> 	out dx, al
    300                              <1> 	
    301                              <1> 	
-   302 00000195 BAF5010000          <1> 	mov edx, 0x1F5 ; Port to send bit 16 - 23 of LBA
-   303 0000019A 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
-   304 0000019C C1E810              <1> 	shr eax, 16    ; Get bit 16 - 23 in AL
-   305 0000019F EE                  <1> 	out dx, al
+   302 0000018F BAF5010000          <1> 	mov edx, 0x1F5 ; Port to send bit 16 - 23 of LBA
+   303 00000194 89D8                <1> 	mov eax, ebx   ; Get LBA from EBX
+   304 00000196 C1E810              <1> 	shr eax, 16    ; Get bit 16 - 23 in AL
+   305 00000199 EE                  <1> 	out dx, al
    306                              <1> 	
-   307 000001A0 BAF7010000          <1> 	mov edx, 0x1F7 ; Command port
-   308 000001A5 B020                <1> 	mov al, 0x20   ; Read with retry.
-   309 000001A7 EE                  <1> 	out dx, al
+   307 0000019A BAF7010000          <1> 	mov edx, 0x1F7 ; Command port
+   308 0000019F B020                <1> 	mov al, 0x20   ; Read with retry.
+   309 000001A1 EE                  <1> 	out dx, al
    310                              <1> 
    311                              <1> 	;; Check for errors
-   312 000001A8 EC                  <1> 	in al,dx
-   313 000001A9 A801                <1> 	test al,1
-   314 000001AB 7407                <1> 	jz .fetch_data
+   312 000001A2 EC                  <1> 	in al,dx
+   313 000001A3 A801                <1> 	test al,1
+   314 000001A5 7407                <1> 	jz .fetch_data
    315                              <1> 	
    316                              <1> 	;; There was a read error...
-   317 000001AD B8ADDBBA00          <1> 	mov eax,0x00BADBAD
-   318 000001B2 FA                  <1> 	cli
-   319 000001B3 F4                  <1> 	hlt
+   317 000001A7 B8ADDBBA00          <1> 	mov eax,0x00BADBAD
+   318 000001AC FA                  <1> 	cli
+   319 000001AD F4                  <1> 	hlt
    320                              <1> 	
    321                              <1> 	
    322                              <1> .fetch_data:
-   323 000001B4 B800010000          <1> 	mov eax, 256 ; to read 256 words = 1 sector
-   324 000001B9 6631DB              <1> 	xor bx, bx
-   325 000001BC 88CB                <1> 	mov bl, cl ; read CL sectors
-   326 000001BE 66F7E3              <1> 	mul bx
-   327 000001C1 89C1                <1> 	mov ecx, eax ; RCX is counter for INSW
-   328 000001C3 BAF0010000          <1> 	mov edx, 0x1F0 ; Data port, in and out
+   323 000001AE B800010000          <1> 	mov eax, 256 ; to read 256 words = 1 sector
+   324 000001B3 6631DB              <1> 	xor bx, bx
+   325 000001B6 88CB                <1> 	mov bl, cl ; read CL sectors
+   326 000001B8 66F7E3              <1> 	mul bx
+   327 000001BB 89C1                <1> 	mov ecx, eax ; RCX is counter for INSW
+   328 000001BD BAF0010000          <1> 	mov edx, 0x1F0 ; Data port, in and out
    329                              <1> 	
    330                              <1> .drive_buffering:
-   331 000001C8 EC                  <1> 	in al, dx
-   332 000001C9 A808                <1> 	test al, 8 ; the sector buffer requires servicing.
-   333 000001CB 74FB                <1> 	jz .drive_buffering ; until the sector buffer is ready.	
+   331 000001C2 EC                  <1> 	in al, dx
+   332 000001C3 A808                <1> 	test al, 8 ; the sector buffer requires servicing.
+   333 000001C5 74FB                <1> 	jz .drive_buffering ; until the sector buffer is ready.	
    334                              <1> 
-   335 000001CD 6687DB              <1> 	xchg bx,bx	
+   335 000001C7 6687DB              <1> 	xchg bx,bx	
    336                              <1> 	;; Repeatedly read words to memory
    337                              <1> 	;; from drive buffer
-   338 000001D0 F3666D              <1> 	rep insw	      ; in to [RDI]
+   338 000001CA F3666D              <1> 	rep insw	      ; in to [RDI]
    339                              <1> 
    340                              <1> .drive_busy:
-   341 000001D3 EC                  <1> 	in al,dx
-   342 000001D4 A840                <1> 	test al,64
-   343 000001D6 74FB                <1> 	jz .drive_busy
+   341 000001CD EC                  <1> 	in al,dx
+   342 000001CE A840                <1> 	test al,64
+   343 000001D0 74FB                <1> 	jz .drive_busy
    344                              <1> 	
-   345 000001D8 61                  <1> 	popa
-   346 000001D9 C3                  <1> 	ret
+   345 000001D2 61                  <1> 	popa
+   346 000001D3 C3                  <1> 	ret
    347                              <1> 	
    348                                  	
    349                                  	
    350                                  ;; BOOT SIGNATURE
-   351 000001DA 00<rept>                	times 510-($-$$) db 0	;
+   351 000001D4 00<rept>                	times 510-($-$$) db 0	;
    352 000001FE 55AA                    	dw 0xAA55

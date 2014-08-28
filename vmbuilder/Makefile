@@ -1,12 +1,12 @@
-# Objects & Options
+# Compiler/Linker
 ###################################################
+CC = /usr/local/cross/bin/i686-elf-gcc #gcc
+CPP= /usr/local/cross/bin/i686-elf-g++ #g++
+LD= /usr/local/cross/bin/i686-elf-ld #ld
 
 
-SERVICE_OBJECTS=service.o # Feel free to add more...
-
-OS_START=kernel_start.o syscalls.o
-OS_OBJECTS=class_os.o class_irq_handler.o 
-
+# Options
+###################################################
 # Physical address of service / kernel
 # - Needed by the linker to set appropriate offsets 
 # - since our segment is 0x0, but our code is loaded at 0x8000
@@ -14,15 +14,10 @@ OS_OBJECTS=class_os.o class_irq_handler.o
 # TODO: 
 # - This should be inferred by inspeciting the elf-binary. 
 # - ... but that's not ready until this makefile has run
-#SERVICE_LOCATION = 0x8000
+SERVICE_LOCATION = 0x8080
 
 DEBUG_OPTS= -g
 
-# Compiler/Linker
-###################################################
-CC = /usr/local/cross/bin/i686-elf-gcc #gcc
-CPP= /usr/local/cross/bin/i686-elf-g++ #g++
-LD= /usr/local/cross/bin/i686-elf-ld #ld
 
 # Optional options:
 # -fno-defer-pop: 
@@ -33,12 +28,36 @@ LD= /usr/local/cross/bin/i686-elf-ld #ld
 #	- Here, we use the inverse, -fno-stack-protector, but it might be useful
 # -To link with IncludeOS-ABI: -I../../IncludeOS-ABI
 # 
-CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I. -I/usr/local/cross/i686-elf/include/ 
+CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I. -I/usr/local/cross/i686-elf/include/ -lgcc
 #-I ../../src/newlib-2.1.0/newlib/libc/include/ #-I../../dlmalloc
 
 CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -O2 -Wall -Wextra -fno-exceptions -fno-rtti -I. -I/usr/local/cross/i686-elf/include/
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostartfiles -nostdlib -melf_i386 -N --script=linker.ld
+LDOPTS = -nostdlib -melf_i386 -N --script=linker.ld  # -nostartfiles  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000
+
+
+# Objects
+###################################################
+
+
+CRTI_OBJ=crti.o
+CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+CRTN_OBJ=crtn.o 
+
+SERVICE_OBJECTS=service.o # Feel free to add more...
+OS_WRAP=crti.o crtn.o
+OS_OBJECTS=kernel_start.o syscalls.o class_os.o class_irq_handler.o
+
+
+LIBC_OBJ=/usr/local/cross/i686-elf/lib/libc.a
+LIBG_OBJ=/usr/local/cross/i686-elf/lib/libg.a 
+LIBM_OBJ=/usr/local/cross/i686-elf/lib/libm.a 
+
+# Full link list
+OBJ_LIST:=$(CRTI_OBJ) $(CRTBEGIN_OBJ) \
+	$(OS_OBJECTS) $(SERVICE_OBJECTS) $(LIBC_OBJ) $(LIBM_OBJ) \
+	\$(CRTEND_OBJ) $(CRTN_OBJ)
 
 
 # Complete bulid
@@ -47,13 +66,22 @@ LDOPTS = -nostartfiles -nostdlib -melf_i386 -N --script=linker.ld
 # - a bootloader
 # - a "service", to be linked with OS-objects (OS included)
 # - a vmbuilder, to assemble the bootable image
-all:  bootloader vmbuilder service
+
+all: LDOPTS += -S #strip debug
+all: bootloader vmbuilder service
+
+stripped: LDOPTS += -s #strip all
+stripped: bootloader vmbuilder service
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: all
+debug: LDOPTS += -M --verbose
+
+debug: OBJ_LIST += $(LIBG_OBJ)
+
+debug: bootloader vmbuilder service #Don't wanna call 'all', since it strips debug info
 
 # Service
 ###################################################
@@ -63,11 +91,9 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OS_START) $(OS_OBJECTS) $(SERVICE_OBJECTS) 		
+service: $(OS_WRAP) $(OS_OBJECTS) $(SERVICE_OBJECTS) 		
 	@echo "\n>> Linking service with OS and finalizing"
-#-Ttext $(SERVICE_LOCATION)
-	$(LD) $(LDOPTS)  $(OS_START) $(OS_OBJECTS) /usr/local/cross/i686-elf/lib/libc.a service.o -o service
-
+	$(LD) $(LDOPTS) $(OBJ_LIST) -o $@
 
 
 # C standard
@@ -91,6 +117,11 @@ malloc.o: ../../newlib-2.1.0/newlib/libc/stdlib/malloc.c #../../dlmalloc/malloc.
 %.o: %.cpp
 	@echo "\n>> Compiling OS object without header"
 	$(CPP) $(CPPOPTS) -o $@ $< 
+
+# AS-assembled object files
+%.o: %.s
+	@echo "\n>> Assembling GNU 'as' files"
+	$(CPP) $(CPPOPTS) $<
 
 # Bootloader
 ###################################################

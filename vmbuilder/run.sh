@@ -9,7 +9,7 @@ DEBUG=0
 if [ $DEBUG -ne 0 ]
 then
     echo "Building system..."
-    make clean debug
+    make -B debug
     ./vmbuilder
     echo "Starting VM: '$1'"
     echo "-----------------------"
@@ -29,5 +29,5 @@ else
     qemu-system-i386 -hda $1 -nographic
 fi
 
-reset
+#reset
 #bochs
