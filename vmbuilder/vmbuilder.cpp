@@ -87,6 +87,10 @@ int main(){
        << "=> " << disksize/SECT_SIZE << "sectors" << endl
        << "=> " << disksize << " bytes" << endl;
   char* disk=new char[disksize];
+ 
+  //Zero-initialize:
+  for(int i=0;i<disksize;i++)
+    disk[i]=0;
   
   //Load the boot loader into memory
   FILE* file_boot=fopen(bootloc,"r");  

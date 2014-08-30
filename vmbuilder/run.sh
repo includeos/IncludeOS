@@ -2,7 +2,14 @@
 
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
-DEBUG=0
+
+if [ $2 = "debug" ]
+then
+    
+    DEBUG=1
+else
+    DEBUG=0
+fi
 
 # Qemu with gdb debugging:
 
@@ -20,7 +27,7 @@ then
     echo "-----------------------"  
     qemu-system-i386 -s -S -hda $1 -nographic
 else    
-    make
+    make -B
     ./vmbuilder
     echo "-----------------------"
     echo "Starting VM: '$1'"

@@ -1,0 +1,64 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           Intel 80386
+  Version:                           0x1
+  Entry point address:               0x8080
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          143612 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         1
+  Size of section headers:           40 (bytes)
+  Number of section headers:         29
+  Section header string table index: 26
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .text.start       PROGBITS        00008080 000080 000026 00  AX  0   0 16
+  [ 2] .text             PROGBITS        000080b0 0000b0 007802 00 WAX  0   0 16
+  [ 3] .text.startup     PROGBITS        0000f8c0 0078c0 000059 00  AX  0   0 16
+  [ 4] .fini             PROGBITS        0000f919 007919 00000a 00  AX  0   0  1
+  [ 5] .text._ZN11global PROGBITS        0000f930 007930 00006b 00  AX  0   0 16
+  [ 6] .init             PROGBITS        0000f99b 00799b 00000f 00  AX  0   0  1
+  [ 7] .ctors            PROGBITS        0000f9ac 0079ac 00000c 00  WA  0   0  4
+  [ 8] .rodata           PROGBITS        0000f9c0 0079c0 0004cc 00   A  0   0 64
+  [ 9] .rodata.str1.4    PROGBITS        0000fe8c 007e8c 0003b4 01 AMS  0   0  4
+  [10] .eh_frame         PROGBITS        00010240 008240 001988 00   A  0   0  4
+  [11] .rodata.str1.1    PROGBITS        00011bc8 009bc8 000177 01 AMS  0   0  1
+  [12] .rodata.cst4      PROGBITS        00011d40 009d40 000018 04  AM  0   0  4
+  [13] .rodata.cst8      PROGBITS        00011d58 009d58 000018 08  AM  0   0  8
+  [14] .data             PROGBITS        00011d80 009d80 0009bc 00  WA  0   0 64
+  [15] .jcr              PROGBITS        0001273c 00a73c 000004 00  WA  0   0  4
+  [16] .bss              NOBITS          00012740 00a740 000080 00  WA  0   0 32
+  [17] .comment          PROGBITS        00000000 00a740 000011 01  MS  0   0  1
+  [18] .dtors            PROGBITS        0000f9b8 0079b8 000008 00  WA  0   0  4
+  [19] .debug_info       PROGBITS        00000000 00a751 00ae8b 00      0   0  1
+  [20] .debug_abbrev     PROGBITS        00000000 0155dc 002265 00      0   0  1
+  [21] .debug_aranges    PROGBITS        00000000 017848 000298 00      0   0  8
+  [22] .debug_line       PROGBITS        00000000 017ae0 003293 00      0   0  1
+  [23] .debug_str        PROGBITS        00000000 01ad73 001101 01  MS  0   0  1
+  [24] .debug_loc        PROGBITS        00000000 01be74 006e11 00      0   0  1
+  [25] .debug_ranges     PROGBITS        00000000 022c85 000348 00      0   0  1
+  [26] .shstrtab         STRTAB          00000000 022fcd 00012c 00      0   0  1
+  [27] .symtab           SYMTAB          00000000 023584 000dc0 10     28  89  4
+  [28] .strtab           STRTAB          00000000 024344 0008e1 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  LOAD           0x000080 0x00008080 0x00008080 0x0a6c0 0x0a740 RWE 0x40
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .text.start .text .text.startup .fini .text._ZN11global_testC2Ev .init .ctors .rodata .rodata.str1.4 .eh_frame .rodata.str1.1 .rodata.cst4 .rodata.cst8 .data .jcr .bss .dtors 

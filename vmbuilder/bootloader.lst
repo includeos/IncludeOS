@@ -235,7 +235,7 @@
    235                                  	%define SPT 63	
    236                                  	
    237 00000139 B801000000              	mov eax,((CYL*HPC)+HEAD)*SPT+SECT-1		;
-   238 0000013E B180                    	mov cl,128
+   238 0000013E B1FF                    	mov cl,255
    239 00000140 BF00800000              	mov edi,_kernel_loc
    240                                  
    241 00000145 6687DB                  	xchg bx,bx	

@@ -3,15 +3,24 @@ Next at t=0
 c
 (0) Magic breakpoint
 Next at t=8781091
-(0) [0x000000007d48] 0008:00007d48 (unk. ctxt): call .+26 (0x00007d67)    ; e81a000000
+(0) [0x000000007d48] 0008:00007d48 (unk. ctxt): call .+20 (0x00007d61)    ; e814000000
 c
 (0) Magic breakpoint
 Next at t=8781129
-(0) [0x000000007dd0] 0008:00007dd0 (unk. ctxt): rep insw word ptr es:[edi], dx ; f3666d
+(0) [0x000000007dca] 0008:00007dca (unk. ctxt): rep insw word ptr es:[edi], dx ; f3666d
 c
 (0) Magic breakpoint
-Next at t=8813903
+Next at t=8846415
 (0) [0x000000007d50] 0008:00007d50 (unk. ctxt): xor ecx, ecx              ; 31c9
+Next at t=8846416
+(0) [0x000000007d52] 0008:00007d52 (unk. ctxt): mov ecx, dword ptr ds:0x00007c06 ; 8b0d067c0000
+Next at t=8846417
+(0) [0x000000007d58] 0008:00007d58 (unk. ctxt): mov byte ptr ds:0x00010000, 0x21 ; c6050000010021
+Next at t=8846418
+(0) [0x000000007d5f] 0008:00007d5f (unk. ctxt): jmp ecx                   ; ffe1
+Next at t=8846419
+(0) [0x000000008080] 0008:00008080 (unk. ctxt): sub esp, 0x00000018       ; 83ec18
 c
-Next at t=63000004
-(0) [0x000000008238] 0008:00008238 (unk. ctxt): jmp .-445 (0x00008080)    ; e943feffff
+Next at t=63854003
+(0) [0x0000000084b8] 0008:000084b8 (unk. ctxt): jmp .-1085 (0x00008080)   ; e9c3fbffff
+(0).[63854003] [0x0000000084b8] 0008:000084b8 (unk. ctxt): jmp .-1085 (0x00008080)   ; e9c3fbffff

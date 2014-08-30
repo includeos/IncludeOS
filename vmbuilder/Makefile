@@ -31,9 +31,9 @@ DEBUG_OPTS= -g
 CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I. -I/usr/local/cross/i686-elf/include/ -lgcc
 #-I ../../src/newlib-2.1.0/newlib/libc/include/ #-I../../dlmalloc
 
-CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -O2 -Wall -Wextra -fno-exceptions -fno-rtti -I. -I/usr/local/cross/i686-elf/include/
+CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti -I. -I/usr/local/cross/i686-elf/include/
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N --script=linker.ld  # -nostartfiles  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000
+LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
 
 
 # Objects
@@ -45,9 +45,12 @@ CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
 CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 CRTN_OBJ=crtn.o 
 
+TEST_OBJ=tests/tests.o
+
 SERVICE_OBJECTS=service.o # Feel free to add more...
 OS_WRAP=crti.o crtn.o
-OS_OBJECTS=kernel_start.o syscalls.o class_os.o class_irq_handler.o
+OS_OBJECTS=kernel_start.o syscalls.o class_os.o class_irq_handler.o $(TEST_OBJ)
+
 
 
 LIBC_OBJ=/usr/local/cross/i686-elf/lib/libc.a
@@ -67,7 +70,7 @@ OBJ_LIST:=$(CRTI_OBJ) $(CRTBEGIN_OBJ) \
 # - a "service", to be linked with OS-objects (OS included)
 # - a vmbuilder, to assemble the bootable image
 
-all: LDOPTS += -S #strip debug
+#all: LDOPTS += -S #strip debug
 all: bootloader vmbuilder service
 
 stripped: LDOPTS += -s #strip all
@@ -144,8 +147,10 @@ vmbuilder: vmbuilder.cpp
 # Cleanup
 ###################################################
 clean: 
-	rm *.o
-	rm service
-	rm bootloader
-	rm vmbuilder
+	-rm *.o
+	-rm tests/*.o
+	-rm service
+	-rm bootloader
+	-rm vmbuilder
+	-rm image
 

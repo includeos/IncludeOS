@@ -167,7 +167,7 @@ mode32:
 	%define SPT 63	
 	
 	mov eax,((CYL*HPC)+HEAD)*SPT+SECT-1		;
-	mov cl,128
+	mov cl,255
 	mov edi,_kernel_loc
 
 	xchg bx,bx	

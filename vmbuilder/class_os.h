@@ -3,6 +3,7 @@
 
 #include <os>
 
+extern char _BSS_START_, _BSS_END_;
 
 //#include "globals.h"
 //#include "class_service.h"

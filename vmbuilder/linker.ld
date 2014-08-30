@@ -12,39 +12,37 @@ SECTIONS
     *(.text)
    _TEXT_END_ = .;
   }
-  .init : {
+
+  .init : {	
   	_INIT_START_ = .;
 	*(.init)
 	_INIT_END_ = .;	
   }  	
-
+  
   .ctors : {
-	*(.ctors)
-  }  	
-
+  	 *(.ctors)
+  }
   .dtors : {
-	*(.ctors)
-  }  	
-
-
+  	 *(.dtors)
+  }
    .rodata :  {
-_RODATAZ_START_ = .;
+_RODATA_START_ = .;
     *(.rodata)
-_RODATAZ_END_ = .;
+_RODATA_END_ = .;
   }
 
-  _end = .;
+  
   .data :  {
 _DATA_START_ = .;
     *(.data)
 _DATA_END_ = .;
   }
 
-
-  .bss :  { _BSS_START_ = .;  *(.bss) _BSS_END_ = .;  }
   
+   .bss :  { _BSS_START_ = .;  *(.bss) _BSS_END_ = .;  }
+   _includeos = .;
+  _end = .;  
 }
 
-_includeos = 0xf0000;
 
 

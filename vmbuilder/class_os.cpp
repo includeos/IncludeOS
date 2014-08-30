@@ -2,6 +2,9 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <assert.h>
+
+
+
 //C++ stuff
 void* operator new(size_t size){
   return malloc(size);
@@ -16,12 +19,14 @@ void* operator new(size_t size){
 
 class global_test
 {
-  static int calls;
 public:
+  static int calls;
   global_test(){
     calls++;
-    if(calls==3)
-      OS::rsprint("[PASS]\t Global constructors 1 called 3 times \n");
+      test_print_result("Global constructor 1 is called",calls);
+    if(calls>=3)
+      test_print_result("Global constructor 1 should be called 3 times",calls==3);
+      
   }
 }globtest1, globtest3,globtest4;
 
@@ -31,69 +36,48 @@ int global_test::calls=0;
 class global_test2{
  public:
   global_test2(){
-    OS::rsprint("[PASS]\t Global constructors 2 called once \n");
+    test_print_result("Global constructor 2 is called once",true);
   }  
-};
+}globtest2;
 
 
-class new_obj{
-  const char* str="NEW OBJECT: I'm a new, dynamic object!\n";
-public:
-  new_obj(){
-    OS::rsprint(str);
-  }
-};
 
 extern char _end;
 extern int _includeos;
+
+static int stat1=0;
+static int stat2=7777;
+int glob1=0;
+int glob2=8888;
+
 void OS::start(){  
-  //assert(7==8);
-  char test_end='!';
-  rsprint(boot_msg);
-  if(&_end<&test_end)
-    rsprint("[FAIL]\t _end symbol is less than 'here' \n");
-  else
-    rsprint("[PASS]\t _end symbol is > 'here'\n");
-  rsprint("[PASS]\t OS class 'start' is running - OK\n");
+
+  rsprint(">>> OS class started\n");
+
+  //char buf[100];
+  test_print_hdr("Global variables");
+  //sprintf(buf,"(Statics: stat1 %i stat2 %i local-static: %i )\n",stat1,stat2,global_test::calls);
+  //rsprint(buf);
+  test_print_result("Static variables have been properly initialized",stat1==0 && stat2==7777);
+  test_print_result("Global variables have been properly initialized",glob1==0 && glob2==8888);  
+  //sprintf(buf,"(Globals: glob1 %i glob2 %i )\n",glob1,glob2);
+  //rsprint(buf);
+
+
   
-  _includeos=100;
-  if(&_includeos!=(int*)0xf000 && _includeos==100)
-    rsprint("[FAIL]\t _includeos is NOT a cool tool \n");
-  else
-    rsprint("[PASS]\t _includeos IS a cool tool'\n");
-
-  IRQ_handler::set_IDT();
-    
-    //Dynamic memory allocation, new
-    new_obj* obj=new new_obj();        
-
-    OS::rsprint(">>> Dynamic allocation using malloc \n");
-    //Dynamic memory allocation, malloc
-    void* mem=0;
-    mem=malloc(400);
-    OS::rsprint(">>> Malloc done \n");
-    //size_t size=0;
-    if(mem>NULL)
-      rsprint("[PASS]\t Memory allocation using malloc - seems OK\n");
-    else
-      rsprint("[FAIL]\t Memory allocation using malloc - FAILED\n");
-    
-    
-    int i=55;
-    char str[100];
-    const char* sprintf_ok="[PASS]\t";
-    sprintf(str,"%s sprintf-statement, with an int 55==%i \n",sprintf_ok,i);
-    rsprint(str);
-    printf("%s Printf is working too... 55==%i\n",sprintf_ok,i);
-    Service::start();
-
-    printf("\nMalloced variable mem, is at 0x%x \n",mem);
-    printf("\n_end is 0x%x, *_end is 0x%x and _includeos is %x \n",_end,&_end,_includeos);
-    halt();    
+#ifdef TESTS_H
+  test_malloc();
+  test_new();
+#endif
+  //IRQ_handler::set_IDT();        
+  //Service::start();
+  
+  halt();
 };
 
 void OS::halt(){
-  rsprint("[PASS]\t System halting - OK. Done.\n");
+  rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  rsprint(">>> System halting - OK. Done.\n");
   __asm__ volatile("hlt; jmp _start;");
 }
 
