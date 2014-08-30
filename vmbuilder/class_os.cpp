@@ -53,21 +53,18 @@ int glob2=8888;
 void OS::start(){  
 
   rsprint(">>> OS class started\n");
-
-  //char buf[100];
-  test_print_hdr("Global variables");
-  //sprintf(buf,"(Statics: stat1 %i stat2 %i local-static: %i )\n",stat1,stat2,global_test::calls);
-  //rsprint(buf);
+#ifdef TESTS_H
   test_print_result("Static variables have been properly initialized",stat1==0 && stat2==7777);
   test_print_result("Global variables have been properly initialized",glob1==0 && glob2==8888);  
-  //sprintf(buf,"(Globals: glob1 %i glob2 %i )\n",glob1,glob2);
-  //rsprint(buf);
-
+#endif
 
   
 #ifdef TESTS_H
   test_malloc();
   test_new();
+  test_string();
+  test_sprintf();
+  test_printf();
 #endif
   //IRQ_handler::set_IDT();        
   //Service::start();

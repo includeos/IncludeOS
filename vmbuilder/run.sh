@@ -27,7 +27,7 @@ then
     echo "-----------------------"  
     qemu-system-i386 -s -S -hda $1 -nographic
 else    
-    make -B
+    make clean stripped 
     ./vmbuilder
     echo "-----------------------"
     echo "Starting VM: '$1'"

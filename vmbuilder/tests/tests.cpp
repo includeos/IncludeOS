@@ -46,5 +46,6 @@ void test_print_result(const char* teststep, const bool passed){
 
 #include "tests/test_malloc.cpp"
 #include "tests/test_new.cpp"
+#include "tests/test_stdio_string.cpp"
 //#include "tests/test_stdio.cpp"
 

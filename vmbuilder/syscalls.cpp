@@ -77,7 +77,7 @@ int write(int file, char *ptr, int len){
   //sprintf(str,"\n\t\tWRITE: file: %i debug: %i syscall_fd: %i \n",file,debug_syscalls,syscall_fd);
   //OS::rsprint(str);
     //}
-   
+  
   OS::rsprint(ptr);
   return len;
 };

@@ -14,5 +14,7 @@ void test_print_result(const char* teststep, const bool passed);
 
 void test_malloc();
 void test_new();
-void test_stdio();
+void test_string();
+void test_sprintf();
+void test_printf();
 #endif
