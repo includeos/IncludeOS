@@ -1,7 +1,7 @@
-IncludeOS-DevEnv
-================
+IncludeOS Development Environment
+================================================
 
-Scripts or whatever needed to set up an IncludeOS development environment
+Scripts or whatever needed to set up an **Include**OS development environment
 
 
 ## Prerequisites 
@@ -49,18 +49,18 @@ Feel free! A few things to note:
 * Right now all the IncludeOS code is inside the `./vmbuilder` directory
 * The user is supposed to start implementation by implementing the `start` function in the `service` class, located in [./vmbuilder/service.cpp](./vmbuilder/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
 * The whole boot sequence consists of the following steps:
-  1. BIOS loads `bootloader.asm`, starting at `_start`. 
-  2. The bootloader sets up segments, switches to protected mode, loades the service (a binary `service` consisting of the OS classes and the service) from disk.
+  1. BIOS loads [bootloader.asm](./vmbuilder/bootloader.asm), starting at `_start`. 
+  2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
   3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](kernel_boot.cpp). 
-  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start`, which again (is supposed to) set up interrupts +++, etc. 
+  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./vmbuilder/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
   5. Finally the OS class (still `OS::start`) calls `Service::start()`, handing over control to the user.
-* Inspect the [Makefile](./vmbuilder/Makefile) and [linker script, linker.ld](./vmbuilder/linker.ld) to get an idea of how the whole thing is built.
 * The build sequence consists of the following steps:
   1. Assemble [bootloader.asm](./vmbuilder/bootloader.asm), into a boot sector `bootloader`.
   2. Compile the service and everything it needs, except pre-compiled libraries (such as newlib), into object files (.o)
   3. Statically link all the parts together into one elf-binary, the `service`.
   4. Use `./vmbuilder` (Which was also compiled if needed) to combine the `bootloader` and `service` into a disk image called `image`. At this point the bootloader gets the size- and location of the service hardcoded into it.
   5. Run qemu with the image as hard disk.
+* Inspect the [Makefile](./vmbuilder/Makefile) and [linker script, linker.ld](./vmbuilder/linker.ld) for more information about how the build happens, and [vmbuilder.cpp](./vmbuilder/vmbuilder.cpp) for how the image gets constructed.
 
 ### Helper scripts
-There's a convenience script, [./vmbuilder/run.sh](./vmbuilder/run.sh), which has the "Make-vmbuilder-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.)
+There's a convenience script, [./vmbuilder/run.sh](./vmbuilder/run.sh), which has the "Make-vmbuilder-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
