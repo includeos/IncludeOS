@@ -17,14 +17,14 @@ class OS{
   
   //Send a byte to port
   static void outb(int port, uint8_t data);
-  
-  //Write a character to serial port
-  static int rswrite(char c);
-    
+      
   //Call halt - i.e. wait for interrupts
   static void halt();  
   
  public:
+  //Write a character to serial port
+  static int rswrite(char c);
+
   //Write a cstring to serial port
   static int rsprint(const char* ptr);
 

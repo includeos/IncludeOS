@@ -56,10 +56,10 @@ void test_printf(){
   test_print_hdr("printf");
   OS::rsprint("   (these has to be verified externally)\n");
   printf("\t >> printf: This is printf speaking \n");
-  OS::rsprint("\t >>   <==>  This is printf speaking \n");
+  OS::rsprint("\t >> expect: This is printf speaking \n");
   int i=48879;
   printf("\t >> printf: Beef is 0x%x \n",i);
-  OS::rsprint("\t >>   <==>  Beef is 0xbeef \n");
+  OS::rsprint("\t >> expect: Beef is 0xbeef \n");
 };  
 
 

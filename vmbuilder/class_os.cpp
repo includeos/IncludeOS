@@ -66,8 +66,10 @@ void OS::start(){
   test_sprintf();
   test_printf();
 #endif
-  //IRQ_handler::set_IDT();        
-  //Service::start();
+  IRQ_handler::set_IDT();
+  
+  //Everything is ready
+  Service::start();
   
   halt();
 };
