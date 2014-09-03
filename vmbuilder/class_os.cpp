@@ -69,15 +69,20 @@ void OS::start(){
   IRQ_handler::set_IDT();
   
   //Everything is ready
-  Service::start();
+  //Service::start();
   
   halt();
 };
 
+extern "C" void halt_loop(){
+  __asm__ volatile("sti");
+  __asm__ volatile("hlt; jmp halt_loop;");
+}
+
 void OS::halt(){
-  rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  rsprint(">>> System halting - OK. Done.\n");
-  __asm__ volatile("hlt; jmp _start;");
+  OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  OS::rsprint(">>> System halting - OK. Done.\n");
+  halt_loop();
 }
 
 int OS::rsprint(const char* str){

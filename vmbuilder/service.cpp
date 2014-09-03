@@ -1,20 +1,29 @@
 #include <os>
+#include <string.h>
 
 //#include <iostream>
 //#include <functional>
+#include "tests/tests.h"
+
+static const char* static_glob="Scoped variable accessed from Lambda";
 
 void Service::start(){
   // int* i=new int(5); //Requires operator new.
-  const char* secret="[PASS]\t Scoped variable accessed from Lambda - OK\n";
   
-  OS::rsprint("[PASS]\t C++ service class with OS included - OK!\n");
-  
+  char* local1="Local variables are created during runtime";
+  test_print_hdr("Lambdas");
+    
   //Lambda, accessing parent scope
   [&](){
-    OS::rsprint(secret);
-  }();  
+    test_print_result("Lambda accessing global static var",
+		      strcmp(static_glob,
+			     "Scoped variable accessed from Lambda")==0);
+    test_print_result("Lambda accessing external local var",
+		      strcmp(local1,
+			     "Local variables are created during runtime")==0);
+  }();
 
-
+  
   
   /*
     //Exceptions will NOT be working for a while (__cxa_throw, etc. missing)
@@ -27,6 +36,8 @@ void Service::start(){
       OS::rsprint("[FAIL]\t Basic exceptions NOT working");
   }
   */
-  sbrk(44);
+
+  //TODO: This works fine - should it? Should services be able to use syscalls directly?  
+  //sbrk(44);
   
 }

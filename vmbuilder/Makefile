@@ -49,7 +49,7 @@ TEST_OBJ=tests/tests.o
 
 SERVICE_OBJECTS=service.o # Feel free to add more...
 OS_WRAP=crti.o crtn.o
-OS_OBJECTS=kernel_start.o syscalls.o class_os.o class_irq_handler.o $(TEST_OBJ)
+OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o class_irq_handler.o $(TEST_OBJ)
 
 
 
@@ -124,7 +124,7 @@ malloc.o: ../../newlib-2.1.0/newlib/libc/stdlib/malloc.c #../../dlmalloc/malloc.
 # AS-assembled object files
 %.o: %.s
 	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) $<
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
 # Bootloader
 ###################################################

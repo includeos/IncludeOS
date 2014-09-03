@@ -12,16 +12,18 @@ class OS{
   
  private:  
   static const char* boot_msg;
-  //Receive a byte from port
+  
+  //Call halt - i.e. wait for interrupts
+  static void halt();  
+        
+ public:
+
+//Receive a byte from port
   static uint8_t inb(int port);
   
   //Send a byte to port
   static void outb(int port, uint8_t data);
-      
-  //Call halt - i.e. wait for interrupts
-  static void halt();  
   
- public:
   //Write a character to serial port
   static int rswrite(char c);
 

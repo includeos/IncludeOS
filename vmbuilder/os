@@ -31,6 +31,9 @@ const int SBRK_MAX=0x10000;
 #include "class_os.h"
 #include "syscalls.h"
 
+//BOCHS Break point
+#define BREAK __asm__ volatile("xchg %bx,%bx");
+
 //TEST SUITE. REMOVE FOR PROD.
 #include "tests/tests.h"
 
