@@ -5,71 +5,87 @@
 
 .global default_irq_entry
 .global timer_irq_entry
-.global irq_0_entry
-.global irq_1_entry	
-.global irq_2_entry
-.global irq_3_entry
-.global irq_4_entry
-.global irq_5_entry	
-.global irq_6_entry
-.global irq_7_entry
-.global irq_8_entry
-.global irq_9_entry
-.global irq_10_entry
-.global irq_11_entry
-.global irq_12_entry
-.global irq_13_entry
-.global irq_14_entry
-.global irq_15_entry	
+
+.global exception_0_entry
+.global exception_1_entry	
+.global exception_2_entry
+.global exception_3_entry
+.global exception_4_entry
+.global exception_5_entry	
+.global exception_6_entry
+.global exception_7_entry
+.global exception_8_entry
+.global exception_9_entry
+.global exception_10_entry
+.global exception_11_entry
+.global exception_12_entry
+.global exception_13_entry
+.global exception_14_entry
+.global exception_15_entry
+.global exception_16_entry
+.global exception_17_entry
+.global exception_18_entry
+.global exception_19_entry
+.global exception_20_entry
+//21-29 are reserved
+
+.global exception_30_entry
+.global exception_31_entry	
+
 
 /*
 	IRQ entry Skeleton
 	Default behavior for IRQ handling
 */	
-.macro irq name call
+.macro EXPT name call
 \name:
 	cli
 	pusha
 
 	//Send EOI for the timer
-	movb	$PIC1, %al
-	movw	$PIC1, %dx
-	outb	%al, %dx
-	sti
-	
+//	movb	$PIC1, %al
+//	movw	$PIC1, %dx
+//	outb	%al, %dx
+
+
 	call \call
+	sti
+
 	popa
 	iret
 .endm
 
-IRQ irq_0_entry irq_0_handler
-IRQ irq_1_entry irq_1_handler
-IRQ irq_2_entry irq_2_handler
-IRQ irq_3_entry irq_3_handler
-IRQ irq_4_entry irq_4_handler
-IRQ irq_5_entry irq_5_handler
-IRQ irq_6_entry irq_6_handler
-IRQ irq_7_entry irq_7_handler		
-IRQ irq_8_entry irq_8_handler	
-IRQ irq_9_entry irq_9_handler
-IRQ irq_10_entry irq_10_handler	
-IRQ irq_11_entry irq_11_handler
-IRQ irq_12_entry irq_12_handler
-IRQ irq_13_entry irq_13_handler
-IRQ irq_14_entry irq_14_handler
-IRQ irq_15_entry irq_15_handler	
-	
+EXPT exception_0_entry exception_0_handler
+EXPT exception_1_entry exception_1_handler
+EXPT exception_2_entry exception_2_handler
+EXPT exception_3_entry exception_3_handler
+EXPT exception_4_entry exception_4_handler
+EXPT exception_5_entry exception_5_handler
+EXPT exception_6_entry exception_6_handler
+EXPT exception_7_entry exception_7_handler		
+EXPT exception_8_entry exception_8_handler	
+EXPT exception_9_entry exception_9_handler
+EXPT exception_10_entry exception_10_handler	
+EXPT exception_11_entry exception_11_handler
+EXPT exception_12_entry exception_12_handler
+EXPT exception_13_entry exception_13_handler
+EXPT exception_14_entry exception_14_handler
+EXPT exception_15_entry exception_15_handler
+EXPT exception_16_entry exception_16_handler
+EXPT exception_17_entry exception_17_handler
+EXPT exception_18_entry exception_18_handler
+EXPT exception_19_entry exception_19_handler
+EXPT exception_20_entry exception_20_handler
+//   exception 21 - 29 are reserved	
+EXPT exception_30_entry exception_30_handler
+EXPT exception_31_entry exception_31_handler	
+
+
 	
 default_irq_entry:	
 	cli
 	
 	pusha
-
-	sub $8,%esp
-	mov %cr0,%eax
-	mov %eax, 0(%esp)
-	movl $0xbeef, 4(%esp)
-	movl $0xb055, 8(%esp)
 	
 	//push $'d'
 	call default_irq_handler
@@ -78,8 +94,6 @@ default_irq_entry:
 	movb	PIC_PORT, %al
 	movw	SIG_EOI, %dx
 	outb	%al, %dx
-
-	add $8,%esp
 	
 	popa
 	sti

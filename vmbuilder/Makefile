@@ -49,7 +49,7 @@ TEST_OBJ=tests/tests.o
 
 SERVICE_OBJECTS=service.o # Feel free to add more...
 OS_WRAP=crti.o crtn.o
-OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o class_irq_handler.o $(TEST_OBJ)
+OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o class_irq_handler.o hw/pic.o $(TEST_OBJ)
 
 
 
