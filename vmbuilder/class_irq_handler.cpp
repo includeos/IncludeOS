@@ -61,7 +61,7 @@ uint16_t pic_get_isr(void)
    */
 #define EXCEPTION_HANDLER(I) \
   void exception_##I##_handler(){ \
-    printf("CPU EXCEPTION %i \n",I);  \
+    printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n",I);	\
     kill(1,9); \
   }
   
@@ -71,6 +71,8 @@ uint16_t pic_get_isr(void)
 #define REG_DEFAULT_GATE(I) create_gate(&(idt[I]),exception_##I##_entry, \
 					default_sel, default_attr );
 
+ /* EXCEPTIONS */
+#define EXCEPTION_PAIR(I) void exception_##I##_entry(); EXCEPTION_HANDLER(I);
 /*
   IRQ HANDLERS, 
   ! extern: must be visible from assembler
@@ -81,14 +83,13 @@ uint16_t pic_get_isr(void)
   > void irq/exception_i_handler() - defined here.
 */
 extern "C"{
-  void default_irq_handler();
-  void default_irq_entry();
+  void irq_default_handler();
+  void irq_default_entry();
 
-  void timer_irq_entry();
-  void timer_irq_handler();
+  void irq_timer_entry();
+  void irq_timer_handler();
 
- /* EXCEPTIONS */
-#define EXCEPTION_PAIR(I) void exception_##I##_entry(); EXCEPTION_HANDLER(I);
+
   EXCEPTION_PAIR(0);
   EXCEPTION_PAIR(1);
   EXCEPTION_PAIR(2);
@@ -116,8 +117,8 @@ extern "C"{
 
 } //End extern
 
-void IRQ_handler::set_IDT(){
-  printf("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
+void IRQ_handler::init(){
+  //printf("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
   if(idt_is_set){
     printf("ERROR: Trying to reset IDT");
     kill(1,9);
@@ -127,15 +128,9 @@ void IRQ_handler::set_IDT(){
   idt_reg.limit=(256*sizeof(IDTDescr))-1;
   idt_reg.base=(uint32_t)idt;
   
-  printf("\n** IRQ handler setting idt \n");
+  printf("\n>>> IRQ handler setting idt \n");
     
-  //Set all gates to the default handler
-  //for(int i=16;i<256;i++){
-  for(int i=32;i<256;i++){
-    create_gate(&(idt[i]),default_irq_entry,default_sel,default_attr);
-  }
-  
-  //Assign the lower 32 IRQ's : Exceptions
+   //Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_GATE(0);
   REG_DEFAULT_GATE(1);
   REG_DEFAULT_GATE(2);
@@ -160,9 +155,18 @@ void IRQ_handler::set_IDT(){
   // GATES 21-29 are reserved
   REG_DEFAULT_GATE(30);
   REG_DEFAULT_GATE(31);
-
-  //Register the timer 
-  //create_gate(&(idt[32]),timer_irq_entry, default_sel, default_attr);
+  
+  printf(">>> Exception gates set for irq < 32 \n");
+  
+  //Set all irq-gates (>= 32) to the default handler
+  for(int i=32;i<256;i++){
+    create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
+  }
+  printf(">>> Default interrupt gates set for irq >= 32 \n");
+  
+  //Register the timer and enable / unmask it in the pic
+  create_gate(&(idt[32]),irq_timer_entry, default_sel, default_attr);
+  enable_irq(32); 
 
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
@@ -170,9 +174,8 @@ void IRQ_handler::set_IDT(){
   //Initialize the interrupt controller
   init_pic();
   
-  //enable_irq(32); //Timer
-  enable_irq(33); //Keyboard
-  //enable_interrupts();
+  //enable_irq(33); //Keyboard
+  enable_interrupts();
   
   //Test zero-division exception
   //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
@@ -206,13 +209,13 @@ int IRQ_handler::timer_interrupts=0;
 static int glob_timer_interrupts=0;
 
 
-void default_irq_handler(){ 
+void irq_default_handler(){ 
   uint16_t irr=pic_get_irr();
   uint16_t isr=pic_get_irr();
   printf("UNEXPECTED IRQ: ISR: %i, IRR: %i \n",isr,irr);     
 }  
 
-void timer_irq_handler(){
+void irq_timer_handler(){
   glob_timer_interrupts++;
   if(glob_timer_interrupts%16==0){
     printf("\nGot %i timer interrupts \n",
@@ -228,3 +231,5 @@ inline void disable_pic(){
 	       "out %al,$0xa1; "\
 	       "out %al,$0x21; ");
 }
+
+

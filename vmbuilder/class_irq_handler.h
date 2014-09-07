@@ -60,7 +60,8 @@ class IRQ_handler{
 			  char attributes
 			  );
  public:
-  static void set_IDT();
+  //Initialize the PIC and load IDT
+  static void init();
   
 };
 

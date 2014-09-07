@@ -3,8 +3,8 @@
 #define PIC_PORT $0x20
 #define SIG_EOI $0x20
 
-.global default_irq_entry
-.global timer_irq_entry
+.global irq_default_entry
+.global irq_timer_entry
 
 .global exception_0_entry
 .global exception_1_entry	
@@ -82,13 +82,13 @@ EXPT exception_31_entry exception_31_handler
 
 
 	
-default_irq_entry:	
+irq_default_entry:	
 	cli
 	
 	pusha
 	
 	//push $'d'
-	call default_irq_handler
+	call irq_default_handler
 
 	//Send EOI for the timer
 	movb	PIC_PORT, %al
@@ -100,12 +100,12 @@ default_irq_entry:
 	
 	iret
 
-timer_irq_entry:	
+irq_timer_entry:	
 	cli
 	
 	pusha	
 	//push $'d'
-	call timer_irq_handler
+	call irq_timer_handler
 
 	//Send EOI for the timer
 	movb	$PIC1, %al

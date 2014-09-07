@@ -10,12 +10,11 @@ void* operator new(size_t size){
   return malloc(size);
 }
 
-
 // A private class to handle IRQ
 #include "class_irq_handler.h"
 
-
-//char huge_array[200]; //{'!'}; Initialize it, puts all the data into the binary.
+//char huge_array[200]; //{'!'}; 
+//Initialize it, puts all the data into the binary.
 
 class global_test
 {
@@ -23,9 +22,11 @@ public:
   static int calls;
   global_test(){
     calls++;
-      test_print_result("Global constructor 1 is called",calls);
+      test_print_result("Global constructor 1 is called",
+			calls);
     if(calls>=3)
-      test_print_result("Global constructor 1 should be called 3 times",calls==3);
+      test_print_result("Global constructor 1 should be called 3 times",
+			calls==3);
       
   }
 }globtest1, globtest3,globtest4;
@@ -54,8 +55,10 @@ void OS::start(){
 
   rsprint(">>> OS class started\n");
 #ifdef TESTS_H
-  test_print_result("Static variables have been properly initialized",stat1==0 && stat2==7777);
-  test_print_result("Global variables have been properly initialized",glob1==0 && glob2==8888);  
+  test_print_result("Static variables have been properly initialized",
+		    stat1==0 && stat2==7777);
+  test_print_result("Global variables have been properly initialized",
+		    glob1==0 && glob2==8888);  
 #endif
 
   
@@ -66,16 +69,15 @@ void OS::start(){
   test_sprintf();
   test_printf();
 #endif
-  IRQ_handler::set_IDT();
+  IRQ_handler::init();
   
   //Everything is ready
-  //Service::start();
+  Service::start();
   
   halt();
 };
 
 extern "C" void halt_loop(){
-  __asm__ volatile("sti");
   __asm__ volatile("hlt; jmp halt_loop;");
 }
 
@@ -104,7 +106,7 @@ uint8_t OS::inb(int port) {
 }
 
 
-/* STEAL: Write byte to I/O address space */
+/*  Write byte to I/O address space */
 void OS::outb(int port, uint8_t data) {
   __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
 }
