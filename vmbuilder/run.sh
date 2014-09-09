@@ -3,13 +3,7 @@
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
 
-if [ $2 = "debug" ]
-then
-    
-    DEBUG=1
-else
-    DEBUG=0
-fi
+[[ $2 = "debug" ]] && DEBUG=1 || DEBUG = 0
 
 # Qemu with gdb debugging:
 

@@ -1,9 +1,7 @@
 # Compiler/Linker
 ###################################################
-CC = /usr/local/cross/bin/i686-elf-gcc #gcc
-CPP= /usr/local/cross/bin/i686-elf-g++ #g++
-LD= /usr/local/cross/bin/i686-elf-ld #ld
-
+CROSS = /home/gonzo/cross/i686-elf-4.9.0
+CROSSLIB = $(CROSS)/i686-elf
 
 # Options
 ###################################################
@@ -16,8 +14,13 @@ LD= /usr/local/cross/bin/i686-elf-ld #ld
 # - ... but that's not ready until this makefile has run
 SERVICE_LOCATION = 0x8080
 
-DEBUG_OPTS= -g
+DEBUG_OPTS = -ggdb3
 
+CC  = $(CROSS)/bin/i686-elf-gcc #gcc
+CPP = $(CROSS)/bin/i686-elf-g++ #g++
+LD  = $(CROSS)/bin/i686-elf-ld #ld
+INCLUDES = $(CROSSLIB)/include
+LIBS     = $(CROSSLIB)/lib
 
 # Optional options:
 # -fno-defer-pop: 
@@ -28,10 +31,10 @@ DEBUG_OPTS= -g
 #	- Here, we use the inverse, -fno-stack-protector, but it might be useful
 # -To link with IncludeOS-ABI: -I../../IncludeOS-ABI
 # 
-CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I. -I/usr/local/cross/i686-elf/include/ -lgcc
+CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I. -I$(INCLUDES) -lgcc
 #-I ../../src/newlib-2.1.0/newlib/libc/include/ #-I../../dlmalloc
 
-CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti -I. -I/usr/local/cross/i686-elf/include/
+CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti -I. -I$(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
 
@@ -53,10 +56,9 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	class_irq_handler.o class_pci_manager.o hw/pic.o hw/pci.o $(TEST_OBJ)
 
 
-
-LIBC_OBJ=/usr/local/cross/i686-elf/lib/libc.a
-LIBG_OBJ=/usr/local/cross/i686-elf/lib/libg.a 
-LIBM_OBJ=/usr/local/cross/i686-elf/lib/libm.a 
+LIBC_OBJ = $(CROSSLIB)/lib/libc.a
+LIBG_OBJ = $(CROSSLIB)/lib/libg.a 
+LIBM_OBJ = $(CROSSLIB)/lib/libm.a 
 
 # Full link list
 OBJ_LIST:=$(CRTI_OBJ) $(CRTBEGIN_OBJ) \
@@ -79,9 +81,9 @@ stripped: bootloader vmbuilder service
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
-debug: CCOPTS += $(DEBUG_OPTS)
+debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: LDOPTS += -M --verbose
+debug: LDOPTS  += -M --verbose
 
 debug: OBJ_LIST += $(LIBG_OBJ)
 
@@ -107,8 +109,9 @@ service: $(OS_WRAP) $(OS_OBJECTS) $(SERVICE_OBJECTS)
 	@echo "\n>>Building C libraries"
 	$(CC) $(CCOPTS) -o $@ $<
 
-malloc.o: ../../newlib-2.1.0/newlib/libc/stdlib/malloc.c #../../dlmalloc/malloc.c
-	$(CC) $(CCOPTS) -o $@ $<
+#malloc.o: ../../newlib-2.1.0/newlib/libc/stdlib/malloc.c #../../dlmalloc/malloc.c
+#	@echo "\n>>Building malloc.c"
+#	$(CC) $(CCOPTS) -o $@ $<
 
 
 # Object files
