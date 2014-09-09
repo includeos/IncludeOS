@@ -9,7 +9,7 @@ static const char* static_glob="Scoped variable accessed from Lambda";
 
 void Service::start(){
   // int* i=new int(5); //Requires operator new.
-  
+
   char* local1="Local variables are created during runtime";
   test_print_hdr("Lambdas");
     

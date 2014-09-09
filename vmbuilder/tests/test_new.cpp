@@ -20,8 +20,12 @@ void test_new(){
   new_obj* obj1=new new_obj();
   new_obj* obj2=new new_obj();
   new_obj* obj3=new new_obj();
-  test_print_result("Constructor should be called 3 times", \
+  
+  test_print_result("Constructor should be called 3 times", 
 		    new_obj::calls==3);
+  test_print_result("New objects are in OK locations", 
+		    &obj2 >= &obj1+sizeof(new_obj) && 
+		    &obj3 >= &obj2+sizeof(new_obj));
   
   /*
   char buf[100];

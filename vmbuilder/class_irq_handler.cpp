@@ -128,7 +128,7 @@ void IRQ_handler::init(){
   idt_reg.limit=(256*sizeof(IDTDescr))-1;
   idt_reg.base=(uint32_t)idt;
   
-  printf("\n>>> IRQ handler setting idt \n");
+  printf("\n>>> IRQ handler initializing \n");
     
    //Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_GATE(0);
@@ -156,17 +156,17 @@ void IRQ_handler::init(){
   REG_DEFAULT_GATE(30);
   REG_DEFAULT_GATE(31);
   
-  printf(">>> Exception gates set for irq < 32 \n");
+  printf(" >> Exception gates set for irq < 32 \n");
   
   //Set all irq-gates (>= 32) to the default handler
   for(int i=32;i<256;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
-  printf(">>> Default interrupt gates set for irq >= 32 \n");
+  printf(" >> Default interrupt gates set for irq >= 32 \n");
   
   //Register the timer and enable / unmask it in the pic
-  create_gate(&(idt[32]),irq_timer_entry, default_sel, default_attr);
-  enable_irq(32); 
+  //  create_gate(&(idt[32]),irq_timer_entry, default_sel, default_attr);
+  //enable_irq(32); 
 
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );

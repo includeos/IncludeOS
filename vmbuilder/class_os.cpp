@@ -12,6 +12,7 @@ void* operator new(size_t size){
 
 // A private class to handle IRQ
 #include "class_irq_handler.h"
+#include "class_pci_manager.h"
 
 //char huge_array[200]; //{'!'}; 
 //Initialize it, puts all the data into the binary.
@@ -70,9 +71,9 @@ void OS::start(){
   test_printf();
 #endif
   IRQ_handler::init();
-  
+  PCI_manager::init();
   //Everything is ready
-  Service::start();
+  //Service::start();
   
   halt();
 };

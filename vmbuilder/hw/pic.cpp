@@ -33,8 +33,8 @@
 // SUCH DAMAGE.
 // 
 
-#include "pic.h"
 #include <os>
+#include "pic.h"
 
 // All IRQs disabled initially except cascade
 

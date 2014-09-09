@@ -49,7 +49,8 @@ TEST_OBJ=tests/tests.o
 
 SERVICE_OBJECTS=service.o # Feel free to add more...
 OS_WRAP=crti.o crtn.o
-OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o class_irq_handler.o hw/pic.o $(TEST_OBJ)
+OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
+	class_irq_handler.o class_pci_manager.o hw/pic.o hw/pci.o $(TEST_OBJ)
 
 
 
@@ -149,6 +150,7 @@ vmbuilder: vmbuilder.cpp
 clean: 
 	-rm *.o
 	-rm tests/*.o
+	-rm hw/*.o
 	-rm service
 	-rm bootloader
 	-rm vmbuilder

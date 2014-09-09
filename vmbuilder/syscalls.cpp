@@ -9,14 +9,14 @@ static bool debug_syscalls=true;
 
 
 //Syscall logger
-void syswrite(char* name,char* str){ 
-  static char* hdr="\tSYSCALL ";
-  static char* term="\n";
-  write(syscall_fd,hdr,strlen(hdr));
+void syswrite(const char* name,const char* str){ 
+  static const char* hdr="\tSYSCALL ";
+  static const char* term="\n";
+  write(syscall_fd,(char*)hdr,strlen(hdr));
   write(syscall_fd,(char*)name,strlen(name));
-  write(syscall_fd,": ",2);
+  write(syscall_fd,(char*)": ",2);
   write(syscall_fd,(char*)str,strlen(str));
-  write(syscall_fd,term,strlen(term));
+  write(syscall_fd,(char*)term,strlen(term));
 };
 
 
@@ -26,7 +26,7 @@ void _exit(){
   syswrite("EXIT","Not implemented");
 };
 
-int close(int file){
+int close(int UNUSED(file)){  
   syswrite("CLOSE","Dummy, returning -1");
   return -1;
 };
@@ -35,7 +35,7 @@ int close(int file){
 int errno=0; //Is this right? 
 //Not like in http://wiki.osdev.org/Porting_Newlib
 
-int execve(char *name, char **argv, char **env){
+int execve(char* UNUSED(name), char** UNUSED(argv), char** UNUSED(env)){
   syswrite((char*)"EXECVE","NOT SUPPORTED");
   errno=ENOMEM;
   return -1;
@@ -47,7 +47,7 @@ int fork(){
   return -1;
 };
 
-int fstat(int file, struct stat *st){
+int fstat(int UNUSED(file), struct stat *st){
   syswrite("FSTAT","Returning OK 0");
   st->st_mode = S_IFCHR;  
   return 0;
@@ -57,27 +57,30 @@ int getpid(){
   return 1;
 };
 
-int isatty(int file){
+int isatty(int UNUSED(file)){
   syswrite("ISATTY","RETURNING 1");
   return 1;
 };
-int kill(int pid, int sig){
+int kill(int UNUSED(pid), int UNUSED(sig)){
   syswrite("KILL","HALTING");
   __asm__("cli;hlt;");
+  return -1;
 };
-int link(char *old, char *_new){
+int link(char* UNUSED(old), char* UNUSED(_new)){
   syswrite("LINK","CAN'T DO THAT!");
   kill(1,9);
+  return -1;
 };
-int lseek(int file, int ptr, int dir){
+int lseek(int UNUSED(file), int UNUSED(ptr), int UNUSED(dir)){
   syswrite("LSEEK","RETURNING 0");
   return 0;
 };
-int open(const char *name, int flags, ...){
+int open(const char* UNUSED(name), int UNUSED(flags), ...){
+
   syswrite("OPEN","NOT SUPPORTED - RETURNING -1");
   return -1;
 };
-int read(int file, char *ptr, int len){
+int read(int UNUSED(file), char* UNUSED(ptr), int UNUSED(len)){
   syswrite("READ","CAN'T DO THAT - RETURNING 0");
   return 0;
 };
@@ -103,9 +106,9 @@ int write(int file, char *ptr, int len){
 };
 
 extern char _end; // Defined by the linker 
-static void* heap_end=(void*)&_end;//(void*)0x1;
+caddr_t heap_end=(caddr_t)&_end;//(void*)0x1;
 caddr_t sbrk(int incr){
-  char buf[200]={0};
+  //char buf[200]={0};
   syswrite("SBRK","Allocating memory");
   
 
@@ -156,24 +159,24 @@ caddr_t sbrk(int incr){
 }
 
 
-int stat(const char *file, struct stat *st){
+int stat(const char* UNUSED(file), struct stat *st){
   syswrite((char*)"STAT","DUMMY");
   st->st_mode = S_IFCHR;
   return 0;
 };
 
-clock_t times(struct tms *buf){
+clock_t times(struct tms* UNUSED(buf)){
   syswrite((char*)"TIMES","DUMMY, RETURNING -1");
   //__asm__("rdtsc");
   return -1;
 };
 
-int unlink(char *name){
+int unlink(char* UNUSED(name)){
   syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
   return -1;
 };
 
-int wait(int *status){
+int wait(int* UNUSED(status)){
   syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
   return -1;
 };
