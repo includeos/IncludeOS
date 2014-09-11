@@ -1,6 +1,6 @@
 # Compiler/Linker
 ###################################################
-CROSS = /home/gonzo/cross/i686-elf-4.9.0
+CROSS = /usr/local/cross
 CROSSLIB = $(CROSS)/i686-elf
 
 # Options

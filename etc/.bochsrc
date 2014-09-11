@@ -20,7 +20,7 @@
 #vgaromimage: file=/hom/inf3151/tools/bochs/VGABIOS-lgpl-latest
 
 # Use UHCI standard to access USB 
-plugin_ctrl: usb_uhci=1, serial=1
+plugin_ctrl: usb_uhci=1
 
 # The UHCI chip is embedded  in i440fx chip
 # Seabios requires pcivga adapter
