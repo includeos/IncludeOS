@@ -16,8 +16,17 @@ const char* imgloc="./image";
 const int offs_srvsize=2;
 const int offs_srvoffs=6;
 
-int main(){
+bool test=false;
+
+int main(int argc, char** argv){
+
   cout << endl << "Creating VM disk image" << endl << endl;
+
+  if(argc > 1 && string(argv[1])=="test"){
+    test=true;
+    cout << "*** TEST MODE *** " << endl;
+  }
+
   
   struct stat stat_boot;
   struct stat stat_srv;
@@ -104,7 +113,7 @@ int main(){
   char* srv_imgloc=disk+(boot_sect*SECT_SIZE);  
   cout << "Read " << fread(srv_imgloc,
 			   1,stat_srv.st_size,file_srv)
-       << " sectors from service image"<< endl;  
+       << " bytes from service image"<< endl;  
   
   /* 
      ELF Header summary
@@ -147,9 +156,10 @@ int main(){
   cout << endl << "Fetching offset of section .text (the service starting point)" << endl;
   
   Elf32_Phdr* prog_hdr=(Elf32_Phdr*)(srv_imgloc+elf_header->e_phoff);
-  cout << "Pheader 1, location: " << prog_hdr->p_offset << endl;
-  //int srv_start=prog_hdr->p_offset;
-  int srv_start=elf_header->e_entry; //prog_hdr->p_offset;
+  cout << "Starting at pheader 1, phys.addr: 0x" << hex << prog_hdr->p_paddr << endl;
+  //int srv_start=prog_hdr->p_offset; //The offset
+  // prog_hdr->p_paddr; //The physical address
+  int srv_start=  elf_header->e_entry;
   //int srv_start=0;
   
   //Write OS/Service size to the bootloader
@@ -162,8 +172,15 @@ int main(){
        << "Data currently at location: " << img_size << endl
        << "Location on image: 0x" << hex << img_size << endl
        << "Computed memory location: " 
-       << hex << img_size + 0x8000 << endl;
+       << hex << img_size -512 + 0x8000  << endl;
   *magic_loc=0xFA7CA7;
+
+  if(test){
+    cout << endl << "TEST overwriting service with testdata" << endl;
+    for(int i=0;i<img_size-512;i++)
+      disk[512+i]=i%256;
+  }
+
   
   //Write the image
   FILE* image=fopen(imgloc,"w");
@@ -173,7 +190,6 @@ int main(){
        << " bytes => " << wrote / SECT_SIZE
        <<" sectors to "<< imgloc << endl;
 
-  
 
   //Cleanup
   fclose(file_boot);

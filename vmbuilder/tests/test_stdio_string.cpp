@@ -11,9 +11,10 @@ void test_string(){
   test_print_result("strerror",strcmp(strerror(10),"No children")==0);
   
   char* buf=(char*)malloc(100);
+  memset((void*)buf,0,100);
   memcpy((void*)buf,(void*)s1,strlen(s1));
   test_print_result("memcpy",strcmp(s1,buf)==0);
-
+  
   memset((void*)buf,'!',100);
   test_print_result("memset",buf[50]=='!');
   

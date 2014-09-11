@@ -3,7 +3,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  .text.start (0x8080) : {
+  .text.start (0x8000+SIZEOF_HEADERS) : {
     kernel_start.o( .text )
   }
 

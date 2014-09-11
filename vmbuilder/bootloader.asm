@@ -165,29 +165,60 @@ mode32:
 	%define SECT 2	
 	%define HPC 1
 	%define SPT 63	
+
+	;;  OBS: By default, Qemu handles only 1 sector pr. read	
+	%define LOAD_SIZE 1 
 	
-	mov eax,((CYL*HPC)+HEAD)*SPT+SECT-1		;
-	mov cl,255
+	xor edx,edx
+	
+	
+	mov edx,[srv_size+(_boot_segment<<4)]
+	mov eax,1	;== ((CYL*HPC)+HEAD)*SPT+SECT-1		;
+
+	
+	;; Number of sectors to read (lets do one sector at a time)
+
 	mov edi,_kernel_loc
 
-	xchg bx,bx	
+.more:
+	xor ecx, ecx
+	mov cl,LOAD_SIZE
+
 	;; Do the loading
 	call ata_lba_read
-	xchg bx,bx	
+	
+	;; Increase LBA by 63 sectors
+	add eax,LOAD_SIZE
+
+	;; Increase destination by 63 sect. * sect.size
+	add edi,LOAD_SIZE*512
+
+	;; Decrement counter (srv_size) by load size
+	sub edx,LOAD_SIZE
+
+	;; If all sectors loaded, move on, else get .more
+	cmp edx,0
+	jge .more
 	
 	;; Compute service address (kernel entry + elf-offset)
 	;; Putting this in ecx... Good idea? Don't know.
 	;; TODO: Check gnu calling conventions to see if ecx is preserved
+	xor eax,eax
+	xor ebx,ebx
 	xor ecx,ecx
+	xor edx,edx
+	xor edi,edi
 	mov ecx,[srv_offs+(_boot_segment<<4)]
 	;; add ecx,_kernel_loc // We've now placed the exact address in srv_offs.
 
 	;; A20 test
-	mov byte [0x10000],'!'
+	;; mov byte [0x10000],'!'
 	
 
 	;; GERONIMO!
 	;; Jump to service
+	xchg bx,bx
+	;; 	hlt
 	jmp ecx
 	
 	%include "asm/disk_read_lba.asm"

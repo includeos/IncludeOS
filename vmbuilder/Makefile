@@ -48,12 +48,12 @@ CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
 CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 CRTN_OBJ=crtn.o 
 
-TEST_OBJ=tests/tests.o
+TEST_OBJ= tests/tests.o
 
 SERVICE_OBJECTS=service.o # Feel free to add more...
 OS_WRAP=crti.o crtn.o
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	class_irq_handler.o class_pci_manager.o hw/pic.o hw/pci.o $(TEST_OBJ)
+	class_irq_handler.o class_pci_manager.o hw/pci.o hw/pic.o  $(TEST_OBJ) #
 
 
 LIBC_OBJ = $(CROSSLIB)/lib/libc.a

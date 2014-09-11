@@ -14,7 +14,7 @@
 ;; =============================================================================
 ata_lba_read:
 	pusha
-	
+
 	and eax, 0x0FFFFFFF
 	
 	mov ebx, eax ; Save LBA in RBX
@@ -44,42 +44,39 @@ ata_lba_read:
 	out dx, al
 	
 	mov edx, 0x1F7 ; Command port
-	mov al, 0x20   ; Read with retry.
+	mov al, 0x20   ;0x20 Read with retry.
 	out dx, al
 
 	;; Check for errors
 	in al,dx
-	test al,1
-	jz .fetch_data
+
+.drive_buffering:
+	in al, dx
+	test al, 8 		; the sector buffer requires servicing.
+	jz .drive_buffering 	; until the sector buffer is ready.	
+	test al, 64		; Drive executing command
+	jz .drive_buffering	
+	test al, 6
+	jnz .drive_buffering
 	
+	test al,1		; There was an error
+	jz .fetch_data	
 	;; There was a read error...
 	mov eax,0x00BADBAD
 	cli
 	hlt
-	
-	
+
 .fetch_data:
-	mov eax, 256 ; to read 256 words = 1 sector
+	mov eax, 128 ; to read 256 words = 1 sector
 	xor bx, bx
 	mov bl, cl ; read CL sectors
 	mul bx
-	mov ecx, eax ; RCX is counter for INSW
+	mov ecx, eax ; ECX is counter for INSW
 	mov edx, 0x1F0 ; Data port, in and out
-	
-.drive_buffering:
-	in al, dx
-	test al, 8 ; the sector buffer requires servicing.
-	jz .drive_buffering ; until the sector buffer is ready.	
 
-	xchg bx,bx	
 	;; Repeatedly read words to memory
 	;; from drive buffer
-	rep insw	      ; in to [RDI]
-
-.drive_busy:
-	in al,dx
-	test al,64
-	jz .drive_busy
+	rep insd	      ; in to [RDI]		
 	
 	popa
 	ret

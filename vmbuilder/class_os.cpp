@@ -6,9 +6,10 @@
 
 
 //C++ stuff
+
 void* operator new(size_t size){
   return malloc(size);
-}
+  }
 
 // A private class to handle IRQ
 #include "class_irq_handler.h"
@@ -16,7 +17,7 @@ void* operator new(size_t size){
 
 //char huge_array[200]; //{'!'}; 
 //Initialize it, puts all the data into the binary.
-
+#ifdef TESTS_H
 class global_test
 {
 public:
@@ -42,7 +43,7 @@ class global_test2{
   }  
 }globtest2;
 
-
+#endif //TESTS_H
 
 extern char _end;
 extern int _includeos;
@@ -60,10 +61,6 @@ void OS::start(){
 		    stat1==0 && stat2==7777);
   test_print_result("Global variables have been properly initialized",
 		    glob1==0 && glob2==8888);  
-#endif
-
-  
-#ifdef TESTS_H
   test_malloc();
   test_new();
   test_string();
@@ -72,8 +69,9 @@ void OS::start(){
 #endif
   IRQ_handler::init();
   PCI_manager::init();
+  
   //Everything is ready
-  //Service::start();
+  Service::start();
   
   halt();
 };

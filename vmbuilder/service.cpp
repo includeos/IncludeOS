@@ -11,6 +11,7 @@ void Service::start(){
   // int* i=new int(5); //Requires operator new.
 
   char* local1="Local variables are created during runtime";
+#ifdef TEST_H
   test_print_hdr("Lambdas");
     
   //Lambda, accessing parent scope
@@ -23,7 +24,7 @@ void Service::start(){
 			     "Local variables are created during runtime")==0);
   }();
 
-  
+#endif //TESTS_H
   
   /*
     //Exceptions will NOT be working for a while (__cxa_throw, etc. missing)

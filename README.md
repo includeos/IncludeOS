@@ -20,8 +20,7 @@ Once you have a system with the prereqs (virtual or not), everything should be s
     $cd IncludeOS-DevEnv
     $sudo ./install.sh
 
-### But not really:
-You also have to
+### The script is supposed to...:
 * Build a cross compiler according to [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler) - I do it exactly like that, except that I use `/usr/local/cross/` as path, instead of `/opt/cross`. 
 * Build [Redhat's newlib](https://sourceware.org/newlib/), using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it, to the `exported` location.
 * If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/). See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
