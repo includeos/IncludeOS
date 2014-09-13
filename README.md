@@ -87,7 +87,7 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
 
 ## Q&A
 
-   * Why can't we just start with implementing `int main(...)`?
-         * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
-   * Why can't we have more than one process? 
-         * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
+* Why can't we just start with implementing `int main(...)`?
+      * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
+* Why can't we have more than one process? 
+       * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
