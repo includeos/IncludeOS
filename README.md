@@ -49,15 +49,16 @@ Once you've run a successful test (i.e. you got some boot messages from Qemu, a 
 ### Start developing
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
-2. Enter the name of your serice in the first line of the [seed Makefile](./seed/Makefile).
+2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
 
 Example: 
+```
                     $ cp seed ~/my_service
                     $ cd ~/my_service
                     $ emacs service.cpp
                     ... add your code
                     $ ./run.sh my_service.img
-
+```
 
 
 #### Limitations
