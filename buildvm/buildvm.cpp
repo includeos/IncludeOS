@@ -3,26 +3,39 @@
 #include <errno.h>
 #include <stdio.h>
 #include <elf.h>
+#include <stdlib.h>
 
 #define SECT_SIZE 512
 
 
 using namespace std;
 
-const char* bootloc="./bootloader";
-const char* srvloc="./service";
-const char* imgloc="./image";
-
 const int offs_srvsize=2;
 const int offs_srvoffs=6;
 
 bool test=false;
 
+const string info="Create a bootable disk image for IncludeOS.";
+const string usage="Usage: buildvm <bootloader> <service_binary> [test=false]";
+
 int main(int argc, char** argv){
+  
+  if(argc < 3){
+    cout << info << endl << usage << endl; 
+    exit(0);
+  }
+  
+  const char* bootloc=argv[1];
+  const string srvloc=string(argv[2]);
+  string img_name=srvloc.substr(srvloc.find_last_of("/")+1,string::npos)+".img";
 
-  cout << endl << "Creating VM disk image" << endl << endl;
+  //const char* imgloc=img_name.c_str();
+  
 
-  if(argc > 1 && string(argv[1])=="test"){
+  cout << endl << "Creating VM disk image './" << img_name << "'" << endl << endl;
+
+
+  if(argc > 3 && string(argv[3])=="test"){
     test=true;
     cout << "*** TEST MODE *** " << endl;
   }
@@ -53,7 +66,7 @@ int main(int argc, char** argv){
 
   
   //Verifying service 
-  if(stat(srvloc, &stat_srv)==-1){
+  if(stat(srvloc.c_str(), &stat_srv)==-1){
     cout << "Could not open " << srvloc << " - exiting. " << endl;
     return errno;
   }
@@ -73,7 +86,6 @@ int main(int argc, char** argv){
        << " sectors. " 
        << endl;
 
-  //int disksize=boot_sect*SECT_SIZE + srv_sect*SECT_SIZE;
   /* 
      Bochs requires old-school disk specifications. 
      sectors=cyls*heads*spt (sectors per track)
@@ -107,7 +119,7 @@ int main(int argc, char** argv){
        << " bytes from boot image"<< endl;
 
   //Load the service into memory
-  FILE* file_srv=fopen(srvloc,"r");
+  FILE* file_srv=fopen(srvloc.c_str(),"r");
   
   //Location of service code within the image
   char* srv_imgloc=disk+(boot_sect*SECT_SIZE);  
@@ -129,7 +141,7 @@ int main(int argc, char** argv){
   switch(elf_header->e_machine){
   case(EM_386): cout <<  "Intel 80386";
     break;
-  case(EM_X86_64) : "Intel x86_64" ;
+  case(EM_X86_64): cout << "Intel x86_64" ;
     break;
   default:
     cout << "UNKNOWN (" << elf_header->e_machine << ")";
@@ -183,12 +195,12 @@ int main(int argc, char** argv){
 
   
   //Write the image
-  FILE* image=fopen(imgloc,"w");
+  FILE* image=fopen(img_name.c_str(),"w");
   int wrote=fwrite((void*)disk,1,disksize,image);
   cout << "Wrote " 
-       << wrote
+       << dec << wrote
        << " bytes => " << wrote / SECT_SIZE
-       <<" sectors to "<< imgloc << endl;
+       <<" sectors to "<< img_name << endl;
 
 
   //Cleanup
