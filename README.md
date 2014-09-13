@@ -49,7 +49,7 @@ Once you've run a successful test (i.e. you got some boot messages from Qemu, a 
 ### Start tinkering
 Feel free! A few things to note:
 
-* The user is supposed to start implementation by copying the "./seed" directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
+* The user is supposed to start implementation by copying the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
 * The whole boot sequence consists of the following steps:
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
