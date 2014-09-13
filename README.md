@@ -25,11 +25,6 @@ Once you have a system with the prereqs (virtual or not), everything should be s
 * Build [Redhat's newlib](https://sourceware.org/newlib/), using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it, to the `exported` location.
 * Build and install the IncludeOS library, which your service will be linked with
 
-
-NOTE: 
-* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/). See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
-
-
 ### Testing the installation
 
 A successful setup should enable you to build and run a virtual machine. Some code for a very simple one is provided. The command
@@ -38,14 +33,6 @@ A successful setup should enable you to build and run a virtual machine. Some co
 
 will build and run a VM for you, and let you know if everything worked out. 
 
-### VirtualBox config
-  * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module, but you can use Qemu directly. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
-  * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
-
-
-### Now what?
-Once you've run a successful test (i.e. you got some boot messages from Qemu, a simple hello from the demo service, followed by `>>> System idle - everything seems OK` ) you know IncludeOS works on your machine, and you can go ahead and develop your service. 
-
 ## Start developing
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
@@ -53,13 +40,12 @@ Once you've run a successful test (i.e. you got some boot messages from Qemu, a 
 
 Example: 
 ```
-                    $ cp seed ~/my_service
-                    $ cd ~/my_service
-                    $ emacs service.cpp
-                    ... add your code
-                    $ ./run.sh my_service.img
+     $ cp seed ~/my_service
+     $ cd ~/my_service
+     $ emacs service.cpp
+     ... add your code
+     $ ./run.sh my_service.img
 ```
-
 
 #### Limitations
 * No support for exceptions or runtime type information (rtti)
@@ -70,20 +56,38 @@ Example:
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
 
+## The build & boot process
+
 ### The build process is like this:
-  1. Assemble [bootloader.asm](./src/bootloader.asm), into a boot sector `bootloader`.
-  2. Compile the service and everything it needs, except pre-compiled libraries (such as newlib), into object files (.o)
-  3. Statically link all the parts together into one elf-binary, `your_service`.
-  4. Use `./vmbuild` (Which was also compiled if needed) to combine the `bootloader` and `your_service` into a disk image called `your_service.img`. At this point the bootloader gets the size- and location of the service hardcoded into it.
-  5. Run qemu with the image as hard disk.
+  1. Installing IncludeOS means building a static library `os.a`, and putting it (usually) in `/usr/local/IncludeOS` along with all the public os-headers (the "IncludeOS ABI"), which is what you'll be including in the service.
+  2. When the service gets built it will turn into object files, which gets statically linked with the os-library and other libraries. Only the objects actually needed by the service will be linked, turning it all into one minimal elf-binary, `your_service`, with OS included.
+  4. The utility `./vmbuild` (which was also compiled if needed) combines the installed bootloader and `your_service` into a disk image called `your_service.img`. At this point the bootloader gets the size and location of the service hardcoded into it.
+  5. Now Qemu can start with that image as hard disk.
 
 Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
 
 ### The boot process goes like this:
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
-  3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
-  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
+  3. The bootloader hands over control to the OS, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
+  4. The OS initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
   5. Finally the OS class (still `OS::start`) calls `Service::start()`, inside your service, handing over control to you.
 
 
+## Tools 
+
+### Debugging with bochs
+* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/), since `gdb` only works for objects with debugging symbols, which we don't have for our bootloader . See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
+
+
+### Using VirtualBox for development
+  * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
+  * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
+
+
+## Q&A
+
+   * Why can't we just start with implementing `int main(...)`?
+         * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
+   * Why can't we have more than one process? 
+         * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
