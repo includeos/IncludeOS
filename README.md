@@ -16,13 +16,17 @@ IncludeOS is an includable operating system for C++ services running in cloud. B
 Once you have a system with the prereqs (virtual or not), everything should be set up by:
 
     $sudo apt-get install git
-    $git clone https://github.com/hioa-cs/IncludeOS-DevEnv
-    $cd IncludeOS-DevEnv
+    $git clone https://github.com/hioa-cs/IncludeOS
+    $cd IncludeOS
     $sudo ./install.sh
 
 ### The script is supposed to...:
 * Build a cross compiler according to [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler) - I do it exactly like that, except that I use `/usr/local/cross/` as path, instead of `/opt/cross`. 
 * Build [Redhat's newlib](https://sourceware.org/newlib/), using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it, to the `exported` location.
+* Build and install the IncludeOS library, which your service will be linked with
+
+
+NOTE: 
 * If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/). See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
 
 
@@ -40,26 +44,25 @@ will build and run a VM for you, and let you know if everything worked out.
 
 
 ## Now what?
-Once you've run a successful test (i.e. you got a lot of `....[PASS]` lines from Qemu followed by `>>> System halting - OK. Done.` ) you know IncludeOS works on your machine, and you can go ahead and tinker. 
+Once you've run a successful test (i.e. you got some boot messages from Qemu, a simple hello from the demo service, followed by `>>> System idle - everything seems OK` ) you know IncludeOS works on your machine, and you can go ahead and tinker. 
 
 ### Start tinkering
 Feel free! A few things to note:
 
-* Right now all the IncludeOS code is inside the `./vmbuilder` directory
-* The user is supposed to start implementation by implementing the `start` function in the `service` class, located in [./vmbuilder/service.cpp](./vmbuilder/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
+* The user is supposed to start implementation by copying the "./seed" directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
 * The whole boot sequence consists of the following steps:
-  1. BIOS loads [bootloader.asm](./vmbuilder/bootloader.asm), starting at `_start`. 
+  1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
   3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](kernel_boot.cpp). 
-  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./vmbuilder/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
+  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
   5. Finally the OS class (still `OS::start`) calls `Service::start()`, handing over control to the user.
 * The build sequence consists of the following steps:
-  1. Assemble [bootloader.asm](./vmbuilder/bootloader.asm), into a boot sector `bootloader`.
+  1. Assemble [bootloader.asm](./src/bootloader.asm), into a boot sector `bootloader`.
   2. Compile the service and everything it needs, except pre-compiled libraries (such as newlib), into object files (.o)
-  3. Statically link all the parts together into one elf-binary, the `service`.
-  4. Use `./vmbuilder` (Which was also compiled if needed) to combine the `bootloader` and `service` into a disk image called `image`. At this point the bootloader gets the size- and location of the service hardcoded into it.
+  3. Statically link all the parts together into one elf-binary, `your_service`.
+  4. Use `./vmbuild` (Which was also compiled if needed) to combine the `bootloader` and `your_service` into a disk image called `your_service.img`. At this point the bootloader gets the size- and location of the service hardcoded into it.
   5. Run qemu with the image as hard disk.
-* Inspect the [Makefile](./vmbuilder/Makefile) and [linker script, linker.ld](./vmbuilder/linker.ld) for more information about how the build happens, and [vmbuilder.cpp](./vmbuilder/vmbuilder.cpp) for how the image gets constructed.
+* Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
 
 ### Helper scripts
-There's a convenience script, [./vmbuilder/run.sh](./vmbuilder/run.sh), which has the "Make-vmbuilder-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
+There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.

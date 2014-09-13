@@ -3,10 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-
-
 //C++ stuff
-
 void* operator new(size_t size){
   return malloc(size);
   }
@@ -82,7 +79,7 @@ extern "C" void halt_loop(){
 
 void OS::halt(){
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System halting - OK. Done.\n");
+  OS::rsprint(">>> System idle - everything seems OK \n");
   halt_loop();
 }
 
