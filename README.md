@@ -1,7 +1,7 @@
-IncludeOS Development Environment
+IncludeOS 
 ================================================
 
-Scripts or whatever needed to set up an **Include**OS development environment
+IncludeOS is an includable operating system for C++ services running in cloud. By "includable" we mean that `#include <os>` will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
 
 ## Prerequisites 
