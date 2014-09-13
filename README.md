@@ -44,19 +44,32 @@ will build and run a VM for you, and let you know if everything worked out.
 
 
 ## Now what?
-Once you've run a successful test (i.e. you got some boot messages from Qemu, a simple hello from the demo service, followed by `>>> System idle - everything seems OK` ) you know IncludeOS works on your machine, and you can go ahead and tinker. 
+Once you've run a successful test (i.e. you got some boot messages from Qemu, a simple hello from the demo service, followed by `>>> System idle - everything seems OK` ) you know IncludeOS works on your machine, and you can go ahead and develop your service. 
 
-### Start tinkering
-Feel free! A few things to note:
+### Start developing
 
-* The user is supposed to start implementation by copying the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running. 
-* The whole boot sequence consists of the following steps:
-  1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
-  2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
-  3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](kernel_boot.cpp). 
-  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
-  5. Finally the OS class (still `OS::start`) calls `Service::start()`, handing over control to the user.
-* The build sequence consists of the following steps:
+* The user is supposed to start implementation by copying the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
+* After copying, enter the name of your serice in the first line of the seed Makefile.
+
+Example: 
+           $ cp seed ~/my_service
+           $ cd ~/my_service
+           $ emacs service.cpp
+           ... add your code
+           $ ./run.sh my_service.img
+
+
+
+#### Limitations
+* No support for exceptions or runtime type information (rtti)
+* No C++ standard library (but a C standard library is included)
+* Only serial port I/O
+
+### Helper scripts
+There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
+
+
+## The build process is like this:
   1. Assemble [bootloader.asm](./src/bootloader.asm), into a boot sector `bootloader`.
   2. Compile the service and everything it needs, except pre-compiled libraries (such as newlib), into object files (.o)
   3. Statically link all the parts together into one elf-binary, `your_service`.
@@ -64,5 +77,11 @@ Feel free! A few things to note:
   5. Run qemu with the image as hard disk.
 * Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
 
-### Helper scripts
-There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
+## The boot process goes like this:
+  1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
+  2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
+  3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](kernel_boot.cpp). 
+  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
+  5. Finally the OS class (still `OS::start`) calls `Service::start()`, handing over control to the user.
+
+
