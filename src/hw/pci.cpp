@@ -34,7 +34,7 @@
 // 
 
 #include <os>
-#include "pci.h"
+#include <hw/pci.h>
 struct
 {
   int classcode;

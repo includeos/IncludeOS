@@ -1,23 +1,16 @@
 #! /bin/bash
 
-cd test/c_code
+cd seed
 make
-./c_cpp
-cd ..
 
-#cd bootload
-#echo -e "Building VM with simple boot loader...\n"
-#make 
-cd ../vmbuilder/
-make
-./vmbuilder
-cd ..
 echo -e "Build complete \n"
 echo -e "Starting VM with Qemu. "
 echo -e "(Once inside Qemu, 'Ctrl+a c' will enter the Qemu console, from which you can type 'q' to quit.)\n"
 echo -e "You should now get a boot message from the virtual machine:"
-qemu-system-x86_64 -hda vmbuilder/image -nographic
+qemu-system-x86_64 -hda IncludeOS_tests.img -nographic
 
 echo -e "\nTest complete. If you saw a boot message, it worked.\n"
 
-cd ../..
+make clean
+
+cd ../

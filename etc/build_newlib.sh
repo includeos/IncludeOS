@@ -1,6 +1,6 @@
 # Configure for an "unspecified x86 elf" target, 
 # (using no prefix to denote location, we'll levave the libs here for now)
-export PREFIX="/usr/local/cross"
+export PREFIX="/usr/local/IncludeOS"
 export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 

@@ -1,7 +1,7 @@
 
 #include <malloc.h>
 
-
+extern char _BSS_START_, _BSS_END_;
 
 void test_malloc(){
   test_print_hdr("malloc");

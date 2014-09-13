@@ -1,10 +1,16 @@
 #! /bin/bash
 
-#Enough stuff to create a basic image and run it
-sudo apt-get install -y gcc g++ build-essential emacs qemu-kvm make nasm
+OSDIR=/usr/local/IncludeOS/
 
-echo -e ">>> BUILDING CROSS COMPILER \n"
-./etc/cross_compiler.sh
+echo ">>> Installing vmbuilder"
+cd vmbuild
+make
+sudo cp vmbuild $OSDIR/
 
-echo -e ">>> BUILDING NEWLIB \n"
-./etc/bulid_newlib.sh
+echo ">>> Installing IncludeOS"
+cd ../src
+make 
+sudo make install
+
+echo ">>> Done. Test the installation by running ./test.sh"
+

@@ -12,8 +12,8 @@ void* operator new(size_t size){
   }
 
 // A private class to handle IRQ
-#include "class_irq_handler.h"
-#include "class_pci_manager.h"
+#include "class_irq_handler.hpp"
+#include "class_pci_manager.hpp"
 
 //char huge_array[200]; //{'!'}; 
 //Initialize it, puts all the data into the binary.
@@ -127,6 +127,6 @@ int OS::rswrite(char c) {
 
 
 
-const char* OS::boot_msg="[PASS]\t Include OS successfully booted (32-bit protected mode)\n"; 
+
 
 

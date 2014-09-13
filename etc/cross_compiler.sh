@@ -1,4 +1,4 @@
-export PREFIX="/usr/local/cross"
+export PREFIX="/usr/local/IncludeOS"
 export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 

@@ -1,8 +1,10 @@
-#include "class_os.h"
+#include <class_os.hpp>
+
 
 int main();
 
 extern "C" {
+  char _BSS_START_, _BSS_END_;
   void _init();
   uint8_t inb(int port);
   void outb(int port, uint8_t data);

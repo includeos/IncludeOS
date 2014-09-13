@@ -1,4 +1,4 @@
-#include "class_pci_manager.h"
+#include "class_pci_manager.hpp"
 #include <assert.h>
 #include "hw/pci.h"
 

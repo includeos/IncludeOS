@@ -1,4 +1,4 @@
-#include "tests/tests.h"
+#include "tests.hpp"
 
 void test_print_hdr(const char* testname){
   OS::rsprint("\n** TESTING: [");
@@ -44,8 +44,9 @@ void test_print_result(const char* teststep, const bool passed){
   //OS::rsprint("\n");
 }
 
-#include "tests/test_malloc.cpp"
-#include "tests/test_new.cpp"
-#include "tests/test_stdio_string.cpp"
+#include "test_malloc.cpp"
+#include "test_new.cpp"
+#include "test_stdio_string.cpp"
+#include "test_lambdas.cpp"
 //#include "tests/test_stdio.cpp"
 

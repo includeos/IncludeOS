@@ -86,7 +86,6 @@ int read(int UNUSED(file), char* UNUSED(ptr), int UNUSED(len)){
 };
 
 int write(int file, char *ptr, int len){
-  //char str[100];
   
   if(file==syscall_fd and not debug_syscalls){
     return len;
@@ -95,13 +94,6 @@ int write(int file, char *ptr, int len){
   for(int i=0;i<len;i++)
     OS::rswrite(*ptr++);
 
-  /*
-    if(debug_syscalls){*/
-  //sprintf(str,"\n\t\tWRITE: file: %i debug: %i syscall_fd: %i \n",file,debug_syscalls,syscall_fd);
-  //OS::rsprint(str);
-    //}
-    
-  //OS::rsprint(ptr);
   return len;
 };
 
