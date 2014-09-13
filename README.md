@@ -76,13 +76,14 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
   3. Statically link all the parts together into one elf-binary, `your_service`.
   4. Use `./vmbuild` (Which was also compiled if needed) to combine the `bootloader` and `your_service` into a disk image called `your_service.img`. At this point the bootloader gets the size- and location of the service hardcoded into it.
   5. Run qemu with the image as hard disk.
-* Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
+
+Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
 
 ## The boot process goes like this:
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
-  2. The bootloader sets up segments, switches to protected mode, loads the service (a binary `service` consisting of the OS classes and the service) from disk.
-  3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](kernel_boot.cpp). 
-  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again (is supposed to) set up interrupts, initialize devices +++, etc. etc.
-  5. Finally the OS class (still `OS::start`) calls `Service::start()`, handing over control to the user.
+  2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
+  3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
+  4. The kernel initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
+  5. Finally the OS class (still `OS::start`) calls `Service::start()`, inside your service, handing over control to you.
 
 
