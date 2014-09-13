@@ -30,7 +30,7 @@ NOTE:
 * If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/). See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
 
 
-## Testing the installation
+### Testing the installation
 
 A successful setup should enable you to build and run a virtual machine. Some code for a very simple one is provided. The command
 
@@ -38,15 +38,15 @@ A successful setup should enable you to build and run a virtual machine. Some co
 
 will build and run a VM for you, and let you know if everything worked out. 
 
-## VirtualBox config
+### VirtualBox config
   * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module, but you can use Qemu directly. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
 
-## Now what?
+### Now what?
 Once you've run a successful test (i.e. you got some boot messages from Qemu, a simple hello from the demo service, followed by `>>> System idle - everything seems OK` ) you know IncludeOS works on your machine, and you can go ahead and develop your service. 
 
-### Start developing
+## Start developing
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
 2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
@@ -70,7 +70,7 @@ Example:
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
 
-## The build process is like this:
+### The build process is like this:
   1. Assemble [bootloader.asm](./src/bootloader.asm), into a boot sector `bootloader`.
   2. Compile the service and everything it needs, except pre-compiled libraries (such as newlib), into object files (.o)
   3. Statically link all the parts together into one elf-binary, `your_service`.
@@ -79,7 +79,7 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 
 Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
 
-## The boot process goes like this:
+### The boot process goes like this:
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
   3. The bootloader hands over control to the kernel, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
