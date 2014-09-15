@@ -49,9 +49,7 @@
 * ~~`virt2phys(void*)`~~
   * Convert virtual address to physical. Nothing we need.
 
-5. Decide on how we're gonna approach this in IncludeOS.
-
-## IncludeOS requirements
+## What we'll need to do in IncludeOS
 
 1. Make an equivalent of the whole DPC-system
   - This can be much simpler for us, since we're not multithreaded. The fact that Sanos uses DPC actually makes everything easier for us; this means that the only place we need to deal with concurrency is in our interrupt handler, exactly when we queue a task. When we're back in the wait-loop, we can single-threadedly call all the dpc-functions, which then won't be concurrent. 
