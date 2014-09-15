@@ -10,7 +10,7 @@
 3. `[x]` Once all the definitions exists, `$(CPP) -c` works (virtio.o and virtionet.o were added to Makfile objectlist), and we're left with the missing references from the linker.
 (output from  `$ make |& grep "undefined reference" | cut -d: -f3 | sort | uniq | cut -d' ' \f5-` below)
 
-4. `[ ]` Explain what all of these do - ~~strikethrough~~ means we don't need it:
+4. `[x]` Explain what all of these do - ~~strikethrough~~ means we don't need it:
 
 * `dev_make(char*, driver*, unit*, void*)`
   * "Constructor" for the 'dev' struct, attaching a 'unit' to a 'driver'. We'll make an OOP-version
@@ -48,4 +48,14 @@
   * Used by: `virtio_enqueue()` in `virtio.cpp` to wait for free buffers in the virtio queue. When signalled, add data to the queue. If there's still free space after adding, signal again by calling `set_event(&vq->bufavail)`.
 * ~~`virt2phys(void*)`~~
   * Convert virtual address to physical. Nothing we need.
+
+5. Decide on how we're gonna approach this in IncludeOS.
+
+## IncludeOS requirements
+
+1. Make an equivalent of the whole DPC-system
+  - This can be much simpler for us, since we're not multithreaded. The fact that Sanos uses DPC actually makes everything easier for us; this means that the only place we need to deal with concurrency is in our interrupt handler, exactly when we queue a task. When we're back in the wait-loop, we can single-threadedly call all the dpc-functions, which then won't be concurrent. 
+
+2. Consider OOP'ing the whole unit/device system. Its a bit of work, but it will give us a much better understanding of what's going on, plus allow us to remove everything we don't need.
+
 
