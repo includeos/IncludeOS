@@ -34,6 +34,8 @@
 #ifndef VIRTIO_H
 #define VIRTIO_H
 
+#include "object.h"
+
 //
 // PCI virtio I/O registers.
 //
@@ -71,7 +73,7 @@
 
 struct vring_desc 
 {
-  unsigned __int64 addr;
+  uint64_t addr;
   unsigned long len;
   unsigned short flags;
   unsigned short next;

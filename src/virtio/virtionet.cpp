@@ -34,6 +34,11 @@
 //#include <os/krnl.h>
 #include <os>
 #include "virtio.h"
+#include "ether.h"
+#include "pbuf.h"
+#include "hw/dev.h"
+#include <string.h>
+#include <malloc.h>
 
 #define MTUSIZE 1514
 #define MAXSEGS 4
@@ -115,7 +120,7 @@ static int add_receive_buffer(struct virtionet *vnet)
 
   struct pbuf *p = pbuf_alloc(PBUF_RAW, MTUSIZE + sizeof(struct virtio_net_hdr), PBUF_RW);
   if (!p) return -ENOMEM;
-  hdr = p->payload;
+  hdr = (virtio_net_hdr*)p->payload;
   pbuf_header(p, -(int) sizeof(struct virtio_net_hdr));
   sg[0].data = hdr;
   sg[0].size = sizeof(struct virtio_net_hdr);
@@ -140,7 +145,7 @@ static int virtionet_rx_callback(struct virtio_queue *vq)
 
   // Drain receive queue
   received = 0;
-  while ((p = virtio_dequeue(vq, &len)) != NULL)
+  while ((p = (pbuf*)virtio_dequeue(vq, &len)) != NULL)
   {
     pbuf_realloc(p, len);
     rc = dev_receive(vnet->devno, p);
@@ -168,7 +173,7 @@ static int virtionet_tx_callback(struct virtio_queue *vq)
   unsigned int len;
 
   // Deallocate packets buffers after they have been transmitted.
-  while ((hdr = virtio_dequeue(vq, &len)) != NULL)
+  while ((hdr = (pbuf*)virtio_dequeue(vq, &len)) != NULL)
   {
     data = pbuf_dechain(hdr);
     pbuf_free(hdr);
@@ -180,7 +185,7 @@ static int virtionet_tx_callback(struct virtio_queue *vq)
 
 int virtionet_attach(struct dev *dev, struct eth_addr *hwaddr)
 {
-  struct virtionet *vnet = dev->privdata;
+  struct virtionet *vnet = (virtionet*)dev->privdata;
   *hwaddr = vnet->config.mac;
 
   return 0;
@@ -193,7 +198,7 @@ int virtionet_detach(struct dev *dev)
 
 int virtionet_transmit(struct dev *dev, struct pbuf *p)
 {
-  struct virtionet *vnet = dev->privdata;
+  struct virtionet *vnet = (virtionet*)dev->privdata;
   struct pbuf *hdr;
   struct pbuf *q;
   int i;
@@ -230,7 +235,7 @@ struct driver virtionet_driver =
   virtionet_transmit
 };
 
-int __declspec(dllexport) install(struct unit *unit, char *opts)
+int install(struct unit *unit, char *opts)
 {
   struct virtionet *vnet;
   int rc, size, i;
@@ -241,7 +246,7 @@ int __declspec(dllexport) install(struct unit *unit, char *opts)
   unit->productname = "VIRTIO Virtual Network Device";
   
   // Allocate memory for device
-  vnet = kmalloc(sizeof(struct virtionet));
+  vnet = (virtionet*)kmalloc(sizeof(struct virtionet));
   if (vnet == NULL) return -ENOMEM;
   memset(vnet, 0, sizeof(struct virtionet));
 
@@ -271,7 +276,3 @@ int __declspec(dllexport) install(struct unit *unit, char *opts)
   return 0;
 }
 
-int __stdcall start(hmodule_t hmod, int reason, void *reserved2)
-{
-  return 1;
-}
