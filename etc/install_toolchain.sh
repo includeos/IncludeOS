@@ -4,7 +4,7 @@
 sudo apt-get install -y gcc g++ build-essential emacs qemu-kvm make nasm
 
 echo -e ">>> BUILDING CROSS COMPILER \n"
-./etc/cross_compiler.sh
+sudo ./etc/cross_compiler.sh
 
 echo -e ">>> BUILDING NEWLIB \n"
-./etc/bulid_newlib.sh
+sudo ./etc/bulid_newlib.sh
