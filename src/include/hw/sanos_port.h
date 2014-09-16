@@ -52,10 +52,16 @@ typedef unsigned int sigset_t;
 #define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
 #define PAGESIZE 4096
 
-//From pdir.h - now implemented in class_os.cpp
-unsigned long virt2phys(void *vaddr);
+//unsigned long virt2phys(void *vaddr);
+//We don't need this, so just return the physical address
+#define virt2phys(X) (uint32_t)X
+
 
 //From trap.h
+
+#define IRQBASE       0x20
+#define IRQ2INTR(irq) (IRQBASE + (irq))
+
 typedef int (*intrproc_t)(struct context *ctxt, void *arg);
 void register_interrupt(struct interrupt *intr, int intrno, intrproc_t f, void *arg);
 

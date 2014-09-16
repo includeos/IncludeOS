@@ -144,7 +144,7 @@ struct _pci_vendor{
   {0x8086,"Intel Corp."},
   {0x1013,"Cirrus Logic"},
   {0x10EC,"Realtek Semi.Corp."},
-  {0x1AF4,"Rusty Russell"}, //Virtio creator
+  {0x1AF4,"Virtio (Rusty Russell)"}, //Virtio creator
   {0x1022,"AMD"},
   {0x0000,NULL}
 };
@@ -401,6 +401,8 @@ void enum_pci_bus(struct bus *bus)
     {
       // Vendor and device ids
       value = pci_read_dword(bus->busno, devno, funcno, PCI_CONFIG_VENDOR);
+      //printf("Reading PCI: busno: 0x%x devno: 0x%x, funcno: 0x%x, addr: 0x%x\n", \
+      //bus->busno,devno,funcno,PCI_CONFIG_VENDOR);
       vendorid = value & 0xFFFF;
       deviceid = value >> 16;
       
@@ -413,7 +415,6 @@ void enum_pci_bus(struct bus *bus)
       classcode = value >> 8;
       revision = value & 0xFF;
 
-      
       
       // Register new unit, host bridge is a special case
       if (bus->busno == 0 && devno == 0 && funcno == 0 && bus->self)

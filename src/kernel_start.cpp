@@ -14,21 +14,15 @@ extern "C" {
   void rswrite(char c);  
   void rsprint(const char* ptr);
 
-  char q='?';
-  const char* test_msg="TEST MESSAGE";
-  
-  int test=0x1badbeef;  
   void _start(void){    
     
 
     __asm__ volatile ("cli");
-    __asm__ volatile ("mov $0x1badbeef,%eax");
-    __asm__ volatile ("mov $0x1badbeef,%ebx");
-    __asm__ volatile ("mov $0x1badbeef,%ecx");
     
     init_serial();    
 
     OS::rsprint(" \n\n *** IncludeOS Initializing *** \n\n");    
+    
     //Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
     
@@ -41,17 +35,16 @@ extern "C" {
     #ifdef TESTS_H
     test_print_hdr("Global constructors");
     #endif
+
     //Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
 
     
-    OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");
-    
+    OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    
     main();
     
     //Will only work if any destructors are called (I think?)
     //    _fini();
-    
   }
   
   uint8_t inb(int port) {  

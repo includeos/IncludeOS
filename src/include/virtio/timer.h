@@ -34,7 +34,7 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include "../hw/sanos_port.h"
+#include <hw/sanos_port.h>
 
 #define time_after(a, b)     ((long) (b) - (long) (a) < 0)
 #define time_before(a, b)    time_after(b, a)

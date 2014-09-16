@@ -34,7 +34,7 @@
 // 
 
 #include <os>
-#include "pic.h"
+#include <hw/pic.h>
 
 // All IRQs disabled initially except cascade
 

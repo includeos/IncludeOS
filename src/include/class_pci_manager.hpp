@@ -10,7 +10,7 @@ resource* add_resource(unit* unit, unsigned short type, unsigned short flags, un
 bus* add_bus(unit* self, unsigned long bustype, unsigned long busno);
 
 class PCI_manager{
-
+  
  public:
   static void init();
 };

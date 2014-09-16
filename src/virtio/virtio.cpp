@@ -34,10 +34,10 @@
 #define KERNEL //In order to get func-defs in object.h
 
 #include <os>
-#include "virtio.h"
+#include <virtio/virtio.h>
 
-#include "../hw/pic.h"
-#include "../hw/dev.h"
+#include <hw/pic.h>
+#include <hw/dev.h>
 #include <malloc.h>
 #include <string.h>
 

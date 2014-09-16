@@ -113,7 +113,6 @@ struct virtionet
   dev_t devno;
 };
 
-/*
 static int add_receive_buffer(struct virtionet *vnet)
 {
   struct virtio_net_hdr *hdr;
@@ -166,7 +165,7 @@ static int virtionet_rx_callback(struct virtio_queue *vq)
 
   return 0;
 }
-*/
+
 static int virtionet_tx_callback(struct virtio_queue *vq)
 {
   struct pbuf *hdr;
@@ -184,7 +183,6 @@ static int virtionet_tx_callback(struct virtio_queue *vq)
   return 0;
 }
 
-
 int virtionet_attach(struct dev *dev, struct eth_addr *hwaddr)
 {
   struct virtionet *vnet = (virtionet*)dev->privdata;
@@ -198,7 +196,6 @@ int virtionet_detach(struct dev *dev)
   return 0;
 }
 
-/*
 int virtionet_transmit(struct dev *dev, struct pbuf *p)
 {
   struct virtionet *vnet = (virtionet*)dev->privdata;
@@ -238,8 +235,7 @@ struct driver virtionet_driver =
   virtionet_transmit
 };
 
-*/
-extern "C" {
+extern "C"{
 int virtio_install(struct unit *unit, char *opts)
 {
   struct virtionet *vnet;
@@ -262,23 +258,19 @@ int virtio_install(struct unit *unit, char *opts)
   // Get block device configuration
   virtio_get_config(&vnet->vd, &vnet->config, sizeof(vnet->config));
   
-  // Initialize transmit and receive queues  
-  /*rc = virtio_queue_init(&vnet->rxqueue, &vnet->vd, 0, virtionet_rx_callback);
+  // Initialize transmit and receive queues
+  rc = virtio_queue_init(&vnet->rxqueue, &vnet->vd, 0, virtionet_rx_callback);
   if (rc < 0) return rc;
   rc = virtio_queue_init(&vnet->txqueue, &vnet->vd, 1, virtionet_tx_callback);
   if (rc < 0) return rc;
-
+  
   // Fill receive queue
   size = virtio_queue_size(&vnet->rxqueue) / 2;
   for (i = 0; i < size; ++i) add_receive_buffer(vnet);
-
-  */
   virtio_kick(&vnet->rxqueue);
 
   // Create device
-  /*
   vnet->devno = dev_make("eth#", &virtionet_driver, unit, vnet);
-  */
   virtio_setup_complete(&vnet->vd, 1);
   kprintf(KERN_INFO "%s: virtio net, mac %la\n", device(vnet->devno)->name, &vnet->config.mac);
 
