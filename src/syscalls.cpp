@@ -174,5 +174,10 @@ int wait(int* UNUSED(status)){
 };
 
 
+void panic(const char* why){
+  printf("\n\t **** PANIC: **** %s\n",why);
+  kill(9,1);
+}
+
 //Compiler says this is allready declared in <sys/time.h>
 //int gettimeofday(struct timeval *p, struct timezone *z);

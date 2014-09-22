@@ -26,6 +26,8 @@ extern "C"{
   int unlink(char *name);
   int wait(int *status);
   int write(int file, char *ptr, int len);
+    
+  void panic(const char* why);
 }
 
 //Compiler says this is allready declared in <sys/time.h>

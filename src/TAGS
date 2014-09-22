@@ -1,0 +1,385 @@
+
+virtio/virtio.cpp,518
+#define KERNEL 34,1680
+void virtio_dpc(46,1873
+int virtio_handler(59,2134
+void virtio_get_config(75,2577
+int virtio_device_init(83,2813
+void virtio_setup_complete(109,3609
+static unsigned int vring_size(115,3859
+static void vring_init(121,4116
+static int init_queue(129,4469
+int virtio_queue_init(155,5052
+int virtio_queue_size(191,6077
+int virtio_enqueue(196,6159
+static void virtio_release(246,7553
+void virtio_kick(270,8117
+static int more_used(283,8426
+void *virtio_dequeue(virtio_dequeue288,8533
+
+virtio/virtionet.cpp,2009
+#define MTUSIZE 43,1859
+#define MAXSEGS 44,1881
+#define VIRTIO_NET_F_CSUM 50,1929
+#define VIRTIO_NET_F_GUEST_CSUM 51,2018
+#define VIRTIO_NET_F_MAC 52,2108
+#define VIRTIO_NET_F_GSO 53,2180
+#define VIRTIO_NET_F_GUEST_TSO4 54,2267
+#define VIRTIO_NET_F_GUEST_TSO6 55,2344
+#define VIRTIO_NET_F_GUEST_ECN 56,2421
+#define VIRTIO_NET_F_GUEST_UFO 57,2508
+#define VIRTIO_NET_F_HOST_TSO4 58,2583
+#define VIRTIO_NET_F_HOST_TSO6 59,2659
+#define VIRTIO_NET_F_HOST_ECN 60,2735
+#define VIRTIO_NET_F_HOST_UFO 61,2819
+#define VIRTIO_NET_F_MRG_RXBUF 62,2893
+#define VIRTIO_NET_F_STATUS 63,2975
+#define VIRTIO_NET_F_CTRL_VQ 64,3061
+#define VIRTIO_NET_F_CTRL_RX 65,3138
+#define VIRTIO_NET_F_CTRL_VLAN 66,3221
+#define VIRTIO_NET_S_LINK_UP 72,3351
+struct virtio_net_config 74,3415
+  struct eth_addr mac;virtio_net_config::mac76,3445
+  unsigned short status;virtio_net_config::status77,3469
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM 84,3548
+#define VIRTIO_NET_HDR_F_DATA_VALID 85,3628
+#define VIRTIO_NET_HDR_GSO_NONE 87,3696
+#define VIRTIO_NET_HDR_GSO_TCPV4 88,3764
+#define VIRTIO_NET_HDR_GSO_UDP 89,3842
+#define VIRTIO_NET_HDR_GSO_TCPV6 90,3920
+#define VIRTIO_NET_HDR_GSO_ECN 91,3992
+struct virtio_net_hdr93,4062
+  unsigned char flags;virtio_net_hdr::flags95,4088
+  unsigned char gso_type;virtio_net_hdr::gso_type96,4112
+  unsigned short hdr_len;virtio_net_hdr::hdr_len97,4139
+  unsigned short gso_size;virtio_net_hdr::gso_size98,4210
+  unsigned short csum_start;virtio_net_hdr::csum_start99,4286
+  unsigned short csum_offset;virtio_net_hdr::csum_offset100,4361
+struct virtionet107,4484
+  struct virtio_device vd;virtionet::vd109,4505
+  struct virtio_net_config config;virtionet::config110,4533
+  struct virtio_queue rxqueue;virtionet::rxqueue111,4569
+  struct virtio_queue txqueue;virtionet::txqueue112,4601
+  dev_t devno;virtionet::devno113,4633
+static int virtionet_tx_callback(170,5920
+int virtionet_attach(188,6280
+int virtionet_detach(196,6453
+int virtio_install(243,7420
+
+virtio/virtionet_orig.cpp,2203
+#define MTUSIZE 43,1859
+#define MAXSEGS 44,1881
+#define VIRTIO_NET_F_CSUM 50,1929
+#define VIRTIO_NET_F_GUEST_CSUM 51,2018
+#define VIRTIO_NET_F_MAC 52,2108
+#define VIRTIO_NET_F_GSO 53,2180
+#define VIRTIO_NET_F_GUEST_TSO4 54,2267
+#define VIRTIO_NET_F_GUEST_TSO6 55,2344
+#define VIRTIO_NET_F_GUEST_ECN 56,2421
+#define VIRTIO_NET_F_GUEST_UFO 57,2508
+#define VIRTIO_NET_F_HOST_TSO4 58,2583
+#define VIRTIO_NET_F_HOST_TSO6 59,2659
+#define VIRTIO_NET_F_HOST_ECN 60,2735
+#define VIRTIO_NET_F_HOST_UFO 61,2819
+#define VIRTIO_NET_F_MRG_RXBUF 62,2893
+#define VIRTIO_NET_F_STATUS 63,2975
+#define VIRTIO_NET_F_CTRL_VQ 64,3061
+#define VIRTIO_NET_F_CTRL_RX 65,3138
+#define VIRTIO_NET_F_CTRL_VLAN 66,3221
+#define VIRTIO_NET_S_LINK_UP 72,3351
+struct virtio_net_config 74,3415
+  struct eth_addr mac;virtio_net_config::mac76,3445
+  unsigned short status;virtio_net_config::status77,3469
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM 84,3548
+#define VIRTIO_NET_HDR_F_DATA_VALID 85,3628
+#define VIRTIO_NET_HDR_GSO_NONE 87,3696
+#define VIRTIO_NET_HDR_GSO_TCPV4 88,3764
+#define VIRTIO_NET_HDR_GSO_UDP 89,3842
+#define VIRTIO_NET_HDR_GSO_TCPV6 90,3920
+#define VIRTIO_NET_HDR_GSO_ECN 91,3992
+struct virtio_net_hdr93,4062
+  unsigned char flags;virtio_net_hdr::flags95,4088
+  unsigned char gso_type;virtio_net_hdr::gso_type96,4112
+  unsigned short hdr_len;virtio_net_hdr::hdr_len97,4139
+  unsigned short gso_size;virtio_net_hdr::gso_size98,4210
+  unsigned short csum_start;virtio_net_hdr::csum_start99,4286
+  unsigned short csum_offset;virtio_net_hdr::csum_offset100,4361
+struct virtionet107,4484
+  struct virtio_device vd;virtionet::vd109,4505
+  struct virtio_net_config config;virtionet::config110,4533
+  struct virtio_queue rxqueue;virtionet::rxqueue111,4569
+  struct virtio_queue txqueue;virtionet::txqueue112,4601
+  dev_t devno;virtionet::devno113,4633
+static int add_receive_buffer(116,4655
+static int virtionet_ioctl(134,5177
+static int virtionet_rx_callback(139,5283
+static int virtionet_tx_callback(169,5914
+int virtionet_attach(186,6272
+int virtionet_detach(194,6445
+int virtionet_transmit(199,6505
+struct driver virtionet_driver 226,7209
+int virtio_install(239,7403
+
+include/class_irq_handler.hpp,956
+#define CLASS_IRQ_HANDLER_H2,28
+const char TRAP_GATE=13,163
+const char TASK_GATE=14,189
+const char INT_GATE=15,215
+const char BIT_STOR_SEG=19,282
+const char BIT_DPL1=22,377
+const char BIT_DPL2=23,403
+const char BIT_PRESENT=26,462
+struct IDTDescr{IDTDescr30,506
+  uint16_t offset_1;IDTDescr::offset_131,523
+  uint16_t selector;IDTDescr::selector32,565
+  uint8_t zero;IDTDescr::zero33,627
+  uint8_t type_attr;IDTDescr::type_attr34,668
+  uint16_t offset_2;IDTDescr::offset_235,723
+struct idt_loc{idt_loc38,770
+  uint16_t limit;idt_loc::limit39,786
+  uint32_t base;idt_loc::base40,804
+class IRQ_handler{IRQ_handler48,889
+  static int timer_interrupts;IRQ_handler::timer_interrupts50,918
+  static IDTDescr idt[IRQ_handler::idt51,949
+  static const char default_attr=IRQ_handler::default_attr53,1012
+  static const uint16_t default_sel=IRQ_handler::default_sel54,1051
+  static bool idt_is_set;IRQ_handler::idt_is_set55,1092
+
+include/class_pci_manager.hpp,65
+#define PCI_MANAGER_H2,22
+class PCI_manager{PCI_manager12,355
+
+include/hw/class_pci_device.hpp,1385
+#define CLASS_PCI_DEVICE_HPP2,29
+#define PCI_WTF 7,111
+class PCI_Device:PCI_Device10,142
+  union pci_msg{PCI_Device::pci_msg14,237
+    uint32_t data;PCI_Device::pci_msg::data15,254
+      uint8_t msg;PCI_Device::pci_msg::msg18,396
+      uint16_t addr;PCI_Device::pci_msg::addr19,415
+      uint8_t code;PCI_Device::pci_msg::code20,436
+  uint16_t pci_addr;PCI_Device::pci_addr25,498
+  uint8_t devno=PCI_Device::devno28,556
+  uint8_t funcno=PCI_Device::funcno29,575
+  union vendor_product{PCI_Device::vendor_product32,642
+    uint32_t __value;PCI_Device::vendor_product::__value33,666
+      uint16_t vendor;PCI_Device::vendor_product::vendor35,724
+      uint16_t product;PCI_Device::vendor_product::product36,747
+  } device_id;PCI_Device::device_id38,778
+  uint32_t classcode;PCI_Device::classcode41,827
+  const char *classname;PCI_Device::classname44,870
+  const char *vendorname;PCI_Device::vendorname45,895
+  const char *productname;PCI_Device::productname46,921
+  inline uint32_t read_dword(PCI_Device::read_dword49,1001
+  static inline uint32_t read_dword(PCI_Device::read_dword62,1285
+class Virtio 91,2004
+  int irq;Virtio::irq92,2038
+  int iobase;Virtio::iobase93,2049
+  unsigned long features;Virtio::features94,2063
+class Nic 98,2096
+  char* rxbuf;Nic::rxbuf99,2127
+  char* txbuf;Nic::txbuf100,2142
+class Virtio_Nic 103,2161
+
+include/hw/class_device.hpp,506
+#define CLASS_DEVICE_HPP2,25
+#define LEN_DEVNAME 6,66
+class Device{Device10,129
+  enum bus_t{Device::bus_t13,152
+  enum bus_t{PCI,Device::bus_t::PCI13,152
+  enum bus_t{PCI,IDE,Device::bus_t::IDE13,152
+  enum bus_t{PCI,IDE,ISA,Device::bus_t::ISA13,152
+  enum bus_t{PCI,IDE,ISA,SCSI}Device::bus_t::SCSI13,152
+  bus_t bustype;Device::bustype33,483
+  int busnumber;Device::busnumber34,502
+  char name[Device::name36,522
+  int reads;Device::reads37,550
+  int writes;Device::writes38,563
+
+class_pci_manager.cpp,175
+#define NUM_BUSES 8,137
+bus* buses=9,158
+unit* units=10,172
+const int MAX_UNITS=12,188
+unit unitlist[unitlist13,212
+int unitcount=14,238
+void PCI_manager::init(24,329
+
+class_os.cpp,672
+void* operator new(operator new7,86
+class global_test18,348
+  static int calls;global_test::calls21,376
+  global_test(global_test::global_test22,396
+}globtest1,globtest131,610
+}globtest1, globtest3,31,610
+}globtest1, globtest3,globtest4;31,610
+int global_test::calls=33,644
+class global_test2{global_test236,678
+  global_test2(global_test2::global_test238,707
+}globtest2;globtest241,798
+static int stat1=48,871
+static int stat2=49,891
+int glob1=50,914
+int glob2=51,927
+void OS::start(53,944
+extern "C" void halt_loop(76,1425
+void OS::halt(80,1500
+int OS::rsprint(86,1656
+uint8_t OS::inb(95,1821
+void OS::outb(106,2019
+int OS::rswrite(115,2171
+
+tests/test_stdio_string.cpp,75
+void test_string(5,41
+void test_sprintf(33,918
+void test_printf(56,1467
+
+tests/test_malloc.cpp,23
+void test_malloc(6,59
+
+tests/test_lambdas.cpp,81
+static const char* static_glob=3,22
+char* local1=6,95
+void test_lambdas(8,155
+
+tests/tests.cpp,170
+void test_print_hdr(3,22
+const char* str_intro=9,152
+const char* str_pass=10,184
+const char* str_fail=11,215
+const int BUFSIZE=12,246
+void test_print_result(14,269
+
+tests/tests.hpp,21
+#define TESTS_H2,16
+
+tests/test_new.cpp,173
+static int calls=3,15
+class new_obj{new_obj5,36
+  static int calls;new_obj::calls7,59
+  new_obj(new_obj::new_obj8,79
+int new_obj::calls=15,173
+void test_new(17,196
+
+syscalls.cpp,555
+char *__env[__env4,35
+char **environ environ5,59
+static const int syscall_fd=7,84
+static bool debug_syscalls=8,117
+void syswrite(12,169
+void _exit(25,512
+int close(29,568
+#undef errno34,659
+int errno=35,672
+int execve(38,755
+int fork(44,906
+int fstat(50,987
+int getpid(55,1113
+int isatty(60,1180
+int kill(64,1261
+int link(69,1374
+int lseek(74,1489
+int open(78,1602
+int read(83,1730
+int write(88,1860
+caddr_t heap_end=101,2087
+caddr_t sbrk(102,2133
+int stat(154,3214
+clock_t times(160,3343
+int unlink(166,3472
+int wait(171,3572
+
+kernel_start.cpp,309
+  char _BSS_START_,7,52
+  char _BSS_START_, _BSS_END_;7,52
+  void _start(17,299
+  uint8_t inb(50,999
+  void outb(59,1175
+  #define PORT 63,1284
+  void init_serial(64,1307
+  int is_transmit_empty(75,1792
+  void write_serial(79,1860
+  void rswrite(85,1956
+  void rsprint(93,2140
+  int main(100,2257
+
+class_irq_handler.cpp,982
+bool IRQ_handler::idt_is_set=4,54
+IDTDescr IRQ_handler::idt[IRQ_handler::idt5,90
+void IRQ_handler::enable_interrupts(7,123
+  CPUID_FEAT_EDX_APIC ::CPUID_FEAT_EDX_APIC14,226
+static inline void cpuid(17,261
+bool cpuHasAPIC(24,419
+#define PIC1_CMD 31,523
+#define PIC2_CMD 32,564
+#define PIC_READ_IRR 33,605
+#define PIC_READ_ISR 34,684
+static uint16_t __pic_get_irq_reg(37,785
+uint16_t pic_get_irr(47,1164
+uint16_t pic_get_isr(53,1313
+#define EXCEPTION_HANDLER(62,1465
+#define REG_DEFAULT_GATE(71,1671
+#define EXCEPTION_PAIR(75,1799
+void IRQ_handler::init(120,2783
+union addr_union{addr_union185,4542
+  uint32_t whole;addr_union::whole186,4560
+    uint16_t lo16;addr_union::lo16188,4589
+    uint16_t hi16;addr_union::hi16189,4608
+void IRQ_handler::create_gate(193,4638
+int IRQ_handler::timer_interrupts=208,5057
+static int glob_timer_interrupts=209,5094
+void irq_default_handler(212,5132
+void irq_timer_handler(218,5288
+inline void disable_pic(229,5474
+
+hw/class_pci_device.cpp,88
+PCI_Device::PCI_Device(4,112
+  classcode=8,271
+PCI_Device* PCI_Device::Create(18,631
+
+hw/pci.cpp,1435
+  int classcode;::classcode40,1753
+  const char *name;::name41,1771
+} pci_classnames[pci_classnames42,1792
+struct _pci_vendor{_pci_vendor140,5155
+  uint16_t id;_pci_vendor::id141,5176
+  const char* name;_pci_vendor::name142,5192
+} _pci_vendorlist[_pci_vendorlist143,5213
+struct _pci_device{_pci_device162,5727
+  uint16_t id;_pci_device::id163,5748
+  const char* name;_pci_device::name164,5764
+} _pci_devicelist[_pci_devicelist165,5785
+static __inline unsigned char pci_read_byte(182,6359
+static __inline unsigned short pci_read_word(188,6600
+static __inline unsigned long pci_read_dword(194,6843
+static __inline void pci_write_byte(200,7086
+static __inline void pci_write_word(206,7341
+static __inline void pci_write_dword(212,7598
+unsigned char pci_read_config_byte(218,7855
+unsigned short pci_read_config_word(223,8029
+unsigned long pci_read_config_dword(228,8204
+void pci_write_config_byte(233,8380
+void pci_write_config_word(238,8568
+void pci_write_config_dword(243,8757
+void pci_read_buffer(248,8947
+void pci_write_buffer(274,9555
+int pci_find_capability(300,10164
+void pci_enable_busmastering(323,10731
+static const char* get_pci_vendor_name(333,10962
+static const char* get_pci_device_name(343,11211
+static const char *get_pci_class_name(get_pci_class_name354,11467
+static unsigned long pci_size(368,11807
+void enum_pci_bus(379,12056
+unsigned long get_pci_hostbus_unitcode(495,15709
+
+hw/pic.cpp,159
+unsigned int irq_mask 41,1824
+static void set_intr_mask(47,1893
+void init_pic(57,2122
+void enable_irq(75,2538
+void disable_irq(89,2811
+void eoi(100,3015
+
+hw/class_device.cpp,45
+int Device::busno(3,32
+Device::Device(5,72
