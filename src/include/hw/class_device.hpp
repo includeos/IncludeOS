@@ -9,11 +9,12 @@
 
 class Nic;
 class Disk;
+class Serial;
 
 /**
-  Public ABI class for device access
+   Access point for devices
   
-  Get a nic by calling `Dev::eth(n)`, a disk by calling `Dev::disk(n)` etc.
+   Get a nic by calling `Dev::eth(n)`, a disk by calling `Dev::disk(n)` etc.
  */
 class Dev{
   
@@ -28,6 +29,9 @@ public:
   
   //! Get disk n
   static Disk& disk(int n);  
+
+  //! Get serial port n
+  static Serial& serial(int n);
   
   //! Add a nic
   static void add(Nic* n);

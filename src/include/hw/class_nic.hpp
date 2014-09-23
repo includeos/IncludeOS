@@ -3,20 +3,33 @@
 
 #include <hw/class_pci_device.hpp>
 
-/*
-  @brief A public interface for Network cards
+/** A public interface for Network cards
   
-  TODO(alfred): 
-  We should probably inherit something here, but I still don't know what the common denominators are between a Nic and other devices, except that they should have a "name". When do we ever need/want to treat all devices similarly? I don't want to introduce vtables/polymorphism unless I know it's really useful.
-*/
-
+  @todo(Alfred): We should probably inherit something here, but I still don't know what the common denominators are between a Nic and other devices, except that they should have a "name". When do we ever need/want to treat all devices similarly? I don't want to introduce vtables/polymorphism unless I know it's really useful. */
 class Nic{ 
+  
+public:
+  /** Constructor. @todo How do we best keep users from calling this? */
+  Nic(PCI_Device* d);
+  
+  /** Get a readable name. @todo Replace the dummy with something useful. */
+  const char* name(); 
+
+  /** Event types */
+  enum event_t {EthData, TCPConnection, TCPData, 
+                UDPConnection, UDPData, HttpRequest};
+  
+  /** Attach event handlers to Nic-events. 
+      
+      @todo Decide between delegates and function pointers*/
+  void on(event_t ev, (void)(callback*)(...));
+
+private:
   PCI_Device* pcidev;
   char* rxbuf;
   char* txbuf;  
-public:
-  Nic(PCI_Device* d);
-  const char* name(); //But never use polymorphically
+  
+
 };
 
 
