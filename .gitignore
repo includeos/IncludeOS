@@ -6,3 +6,5 @@
 \*.*
 \.\#*
 *.iso
+*.tmp
+nbproject
