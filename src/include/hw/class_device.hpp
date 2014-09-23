@@ -11,10 +11,10 @@ class Nic;
 class Disk;
 
 /**
-  @brief Public ABI class for device access
-  Get a nic by Device::eth(n).down()
+  Public ABI class for device access
+  
+  Get a nic by calling `Dev::eth(n)`, a disk by calling `Dev::disk(n)` etc.
  */
-
 class Dev{
   
   //Private pointer to the device lists
@@ -23,13 +23,16 @@ class Dev{
   
 public:
   
-  //@brief Get ethernet device n
+  //! Get ethernet device n
   static Nic& eth(int n);
   
-  //@brief Get disk n
+  //! Get disk n
   static Disk& disk(int n);  
   
+  //! Add a nic
   static void add(Nic* n);
+  
+  //! Add a disk
   static void add(Disk* d);
   
 };
@@ -40,7 +43,10 @@ enum bus_t{PCI,IDE,ISA,SCSI};
 
 
 /**
-   @brief Device specialization class
+   TODO: Device specialization class
+
+   Don't know if we'll need this. What's **important** *and common* 
+   for all devices anyway?
 */
 template<class DEV_T>
 class Device{

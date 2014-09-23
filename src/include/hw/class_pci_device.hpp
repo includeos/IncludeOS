@@ -6,34 +6,54 @@
 
 #define PCI_WTF 0xffffffff
 
-/**
-   \brief Parent class for all PCI devices
-   
-   All low level communication with PCI devices should go here.
-*/
-class PCI_Device
-  //:public Device //Why not? A PCI device is too general to be accessible?
-{  
 
-  //@brief PCI device message format
+/** 
+    @brief PCI device message format
+    
+    Used to communicate with PCI devices
+*/
   union pci_msg{
+
+    //! The whole message
     uint32_t data;
+    
+    /** Packed attribtues, ordered low to high. 
+        @note Doxygen thinks this is a function - it's not 
+        it's a GCC-directive.*/
     struct __attribute__((packed)){
-      //Ordered low to high                                                           
+
+      //! The PCI register
       uint8_t reg;
+      
+      //! The 16-bit PCI-address @see pci_addr()
       uint16_t addr;
       uint8_t code;
     };
   };
+
+
+/**
+   @brief Communication class for all PCI devices
+   
+   All low level communication with PCI devices should (ideally) go here.
+   
+   @todo 
+   - Consider if we ever need to separate the address into 'bus/dev/func' parts.
+   - Do we ever need anything but PCI Devices?
+*/
+class PCI_Device
+  //:public Device //Why not? A PCI device is too general to be accessible?
+{  
   
-  //@brief The 2-part PCI address
+  //@brief The 3-part PCI address
   uint16_t pci_addr_;
   
-  //The parts derived (if needed)
-  uint8_t devno_=0;
-  uint8_t funcno_=0;
+  //@brief The three address parts derived (if needed)      
+  uint8_t busno_ = 0;
+  uint8_t devno_ = 0;
+  uint8_t funcno_ = 0;
   
-  //The 2-part ID retrieved from the device
+  // @brief The 2-part ID retrieved from the device
   union vendor_product{
     uint32_t __value;
     struct __attribute__((packed)){
@@ -42,7 +62,7 @@ class PCI_Device
     };
   }device_id_;
 
-  //The class code (device type)
+  // @brief The class code (device type)
   union class_revision{
     uint32_t reg;
     struct __attribute__((packed)){
@@ -59,7 +79,7 @@ class PCI_Device
   }devtype_;
 
   
-  //Printable names
+  // @brief Printable names
   const char *classname_;
   const char *vendorname_;
   const char *productname_;
@@ -68,10 +88,10 @@ class PCI_Device
     Device Resources
    */
   
-  //@brief Resource types, "Memory" or "I/O"
+  //! @brief Resource types, "Memory" or "I/O"
   enum resource_t{RES_MEM,RES_IO};
   
-  //@brief A resource - possibly a list
+  //! @brief A resource - possibly a list
   template<resource_t RT>
   struct Resource{
     const resource_t type = RT;
@@ -81,12 +101,12 @@ class PCI_Device
     Resource<RT>(uint32_t start,uint32_t len):start_(start),len_(len){};
   };
 
-  //@brief Resource lists. Members added by add_resource();
+  //! @brief Resource lists. Members added by add_resource();
   Resource<RES_MEM>* res_mem_ = 0;
   Resource<RES_IO>* res_io_ = 0;
    
    
-  //@brief Read from device with implicit pci_address (e.g. used by Nic)
+  //! @brief Read from device with implicit pci_address (e.g. used by Nic)
   inline uint32_t read_dword(uint8_t reg){
     pci_msg req;
     req.data=0x80000000;
@@ -97,7 +117,7 @@ class PCI_Device
     return inpd(PCI_CONFIG_DATA);
   };
 
-  //@brief Write to device with implicit pci_address (e.g. used by Nic)
+  //! @brief Write to device with implicit pci_address (e.g. used by Nic)
   inline void write_dword(uint8_t reg,uint32_t value){
     pci_msg req;
     req.data=0x80000000;
@@ -108,19 +128,18 @@ class PCI_Device
     outpd(PCI_CONFIG_DATA, value);
   };
 
-  //@brief add a resource to a resource queue
-  //(This seems pretty dirty; private class, reference to pointer etc.)
+  //!   @brief Add a resource to a resource queue.
+  //!   (This seems pretty dirty; private class, reference to pointer etc.)
   template<resource_t R_T>
   void add_resource(Resource<R_T>* res,Resource<R_T>*& Q){
     Resource<R_T>* q;
     if (Q) {
       q = Q;
       while (q->next) q=q->next;
-      q->next=res;
+      q->next = res;
     } else {
-      Q=res;
+      Q = res;
     }
-      
   };
 
 public:
@@ -128,7 +147,7 @@ public:
     Static functions
   */  
   
-  //@brief Read from device with explicit pci_addr
+  //! @brief Read from device with explicit pci_addr
   static inline uint32_t read_dword(uint16_t pci_addr, uint8_t reg){
     pci_msg req;
     req.data=0x80000000;
@@ -139,35 +158,49 @@ public:
     return inpd(PCI_CONFIG_DATA);
   };  
 
-  //
 
-  //DROP: We got performance degradation when using this in the probing
-  //Probe for a device on the given address
+  /** Probe for a device on the given address
+      
+      DROP: We got performance degradation when using this in the probing 
+      @see PCI_Device()
+  */
   static PCI_Device* Create(uint16_t pci_addr);  
 
-  //Get a device by address
+  // @brief Get a device by address. @see pci_addr().
   static PCI_Device* get(uint16_t pci_addr);
 
-  //Get a device by individual address parts
+  // @brief Get a device by individual address parts. @todo Will we ever need this?  
   static PCI_Device* get(int busno, int devno,int funcno);
   
   
-  /*
-    Member functions
-   */  
-  //@brief PCI Device Constructor
-  PCI_Device(uint16_t pci_addr,uint32_t _id);
+  /** Constructor
+      
+      @param pci_addr: A 16-bit PCI address. 
+      @param id: A device ID, consisting of PCI vendor- and product- ID's. 
+      @see pci_addr() for more about the address  
+   */
+  PCI_Device(uint16_t pci_addr,uint32_t id);
 
-  //@brief A descriptive name
+  
+  /** @brief A descriptive name  */
   const char* name();
   
-  //@brief Get the PCI address (composite of bus, device and function)
+  
+  /** @brief Get the PCI address of device.
+     
+     The address is a composite of 'bus', 'device' and 'function', usually used
+     (i.e. by Linux) to designate a PCI device.  */
   uint16_t pci_addr();
     
-  //@brief Parse all Base Address Registers (BAR's)
+  
+  /** @brief Parse all Base Address Registers (BAR's)
+      
+      Used to determine how to communicate with the device. 
+      This function adds Resources to the PCI_Device.
+   */
   void probe_resources();
   
-  //@brief the base address of the (first) I/O resource
+  /** The base address of the (first) I/O resource */
   uint32_t iobase();
   
   
@@ -175,10 +208,11 @@ public:
 
 
 
-/*
-  TODO: Subclases, something like this.
- */
+/** Virtio subclass... possibly
+  
+    @todo How do we do subclassing without losing performance?
 
+ */
 class Virtio : public PCI_Device{
   int irq;
   int iobase;
