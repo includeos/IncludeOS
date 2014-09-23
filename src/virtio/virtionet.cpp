@@ -276,7 +276,7 @@ int virtio_install(struct unit *unit, char *opts)
   virtio_kick(&vnet->rxqueue);
 
   // Create device
-  /*
+  /*o
   vnet->devno = dev_make("eth#", &virtionet_driver, unit, vnet);
   */
   virtio_setup_complete(&vnet->vd, 1);

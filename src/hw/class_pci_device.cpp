@@ -64,6 +64,16 @@ static unsigned long pci_size(unsigned long base, unsigned long mask)
 }
 
 
+void virtio_get_config(uint32_t iobase, void *buf, int len)
+{
+  unsigned char *ptr = (unsigned char*)buf;
+  uint32_t ioaddr = iobase + VIRTIO_PCI_CONFIG;//vd->iobase + VIRTIO_PCI_CONFIG;
+  int i;
+  for (i = 0; i < len; i++) *ptr++ = inp(ioaddr + i);
+  }
+
+
+
 uint32_t PCI_Device::iobase(){
   if(!res_io_)
     panic("Didn't get any IO-resource from PCI device");
@@ -84,9 +94,12 @@ void PCI_Device::probe_resources(){
 
     if (!value) continue;
 
-    //Write all 1's to the register, to get the "Real" value (osdev)
+    //Write all 1's to the register, to get the length value (osdev)
     write_dword(reg,0xFFFFFFFF);
     len = read_dword(reg);
+    
+    //Put the value back
+    write_dword(reg,value);
     
     uint32_t unmasked_val=0, pci_size_=0;
 
@@ -97,9 +110,7 @@ void PCI_Device::probe_resources(){
       
       //Add it to resource list
       add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val,pci_size_),res_io_);
-      assert(res_io_ != 0);
-
-      printf("Added IO resource, start addres: '0x%lx' \n",res_io_->start_);
+      assert(res_io_ != 0);            
       
     } else { //Resource type Mem
 
@@ -109,53 +120,75 @@ void PCI_Device::probe_resources(){
       //Add it to resource list
       add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val,pci_size_),res_mem_);
       assert(res_io_ != 0);
-}    
-
+    }    
+    
           
     //DEBUG: Print
-    printf("\n\t BAR %i \n"\
-           "\t Value: 0x%lx Unmasked:  0x%lx \n "\
-           "\t Size: 0x%lx pci_size: 0x%lx \n"\
+    printf("\n\t Resource @ BAR %i \n"        \
+           "\t Address:  0x%lx Size: 0x%lx \n"\
            "\t Type: %s\n",
            bar,
-           value,
            unmasked_val,
-           len,           
            pci_size_,
            value & 1 ? "IO Resource" : "Memory Resource");
 
 }
-  
 
-  //We should now be able to get the right iobase
-  printf("\n\t IO-base: 0x%lx \n",iobase());
 
-  //TRY virtio stuff
-  
-  //Reset device
-  /*
-  outp(iobase() + VIRTIO_PCI_STATUS, 0);
-  outp(iobase() + VIRTIO_PCI_STATUS, inp(iobase() + VIRTIO_PCI_STATUS) | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
-  
-  uint32_t features=inpd(iobase()+VIRTIO_PCI_HOST_FEATURES);
-  printf("\t VIRTIO Features: 0x%lx \n",features);
-  */
-  
-  printf("VIRTIO Mac 1: 0x%lx \n",inpd(iobase() + 0x14));
-
-  uint32_t irq=0,intrpin=0;
+  uint32_t irq=0;//,intrpin=0;
 
   //Get device IRQ 
   value = read_dword(PCI_CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    intrpin = (value >> 8) & 0xFF;
+    //intrpin = (value >> 8) & 0xFF;
     irq = value & 0xFF;
   }
   
   if(irq)
-    printf("\n\t IRQ: %li, intrpin: %li \n",irq,intrpin);
+    printf("\t IRQ: %li \n",irq);
+
+  
+  //TRY virtio stuff
+  printf("\n >> Probing VIRTIO device: \n\n");
+  
+  //We should now be able to get the right iobase
+  printf("\t IO-base: 0x%lx \n",iobase());  
+  
+  unsigned long iobase_=iobase();
+  uint32_t features=inpd(iobase_+VIRTIO_PCI_HOST_FEATURES);
+  
+  //Expect 0x799f8064
+
+  printf("\t VIRTIO Device Features (from iobase 0x%lx): 0x%lx \n",iobase_,features);
+  printf("\t VIRTIO Queue Size (from iobase 0x%lx): 0x%lx \n",iobase_,inpd(iobase_+0x0C));
+  printf("\t VIRTIO Status (from iobase 0x%lx): 0x%lx \n",iobase_,inpd(iobase_+0x12));
+  
+  /*
+  printf("\t VIRTIO Mac addresses: \n");
+  for (int i=0; i<6; i++)
+    printf("\t * Mac %i: 0x%lx \n",i+1,inpd(iobase() + 0x14 + i));
+  */
+  
+  /* Getting the MAC */
+  struct config{
+    char mac[6];
+    uint16_t status;
+  }conf;
+  
+  virtio_get_config(iobase(),&conf,sizeof(config));
+  printf("\t VIRTIO Mac: ");  
+  for (int i=0; i<6; i++)
+    printf(i<5 ? "%1x." : "%1x\n",(unsigned char)conf.mac[i]);
+  printf("\t VIRTIO Status: 0x%x \n",conf.status);
   
   
+  
+
+  
+  //Reset device
+  
+  //outp(iobase() + VIRTIO_PCI_STATUS, 0);
+  //outp(iobase() + VIRTIO_PCI_STATUS, inp(iobase() + VIRTIO_PCI_STATUS) | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
   
 }
 
@@ -183,8 +216,10 @@ PCI_Device::PCI_Device(uint16_t _pci_addr,uint32_t _id)
            classcodes[devtype.classcode],devtype.subclass); 
     printf("\t |  |    \n" );    
     
-    if (device_id.vendor!=VENDOR_VIRTIO)
+    if (device_id.vendor!=VENDOR_VIRTIO){
+      printf("Vendor id: 0x%x \n",device_id.vendor);
       panic("Only virtio supported");
+    }
     
     printf("\t |  +-o (Vendor: Virtio, Product: 0x%x)\n",
            device_id.product);

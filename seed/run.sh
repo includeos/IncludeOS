@@ -3,12 +3,11 @@
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
 
-[[ $2 = "debug" ]] && DEBUG=1 || DEBUG = 0
+DEBUG=0
 
-DEV_NET="-net nic,model=virtio"
-DEV_GRAPHICS="-nographic"
-DEV_HDD="-hda $1"
-QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
+[[ $2 = "debug" ]] && DEBUG=1 
+
+. ./qemu_cmd.sh
 
 # Qemu with gdb debugging:
 
@@ -23,14 +22,14 @@ then
     echo " - M+x gdb, Enter, then start with command"
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
-    qemu-system-x86_64 -s -S $QEMU_OPTS
+    $QEMU -s -S $QEMU_OPTS
 else    
     make clean stripped 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
     echo "-----------------------"
     
-    qemu-system-x86_64 $QEMU_OPTS 
+    $QEMU $QEMU_OPTS 
 fi
 
 #reset

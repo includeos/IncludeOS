@@ -119,7 +119,6 @@ class PCI_Device
       while (q->next) q=q->next;
       q->next=res;
     } else {
-      printf("Q is now res \n");
       Q=res;
     }
       

@@ -57,3 +57,28 @@
 2. Consider OOP'ing the whole unit/device system. Its a bit of work, but it will give us a much better understanding of what's going on, plus allow us to remove everything we don't need.
 
 
+## Getting on with it
+
+* Made a rudimentary OOP-structure
+* I'm getting some virtio-specific data as expected from the PCI device
+
+### How to get the mac address
+In SanOS, it's quite horribly like this:
+
+ 1. `virtio_install` in `virtionet.c` calls:
+    `virtio_get_config(struct virtio_device *vd, void *buf, int len)` like so:
+    `virtio_get_config(&vnet->vd, &vnet->config, sizeof(vnet->config));`
+
+    So, the "&bnet->config" struct gets filled into a buffer `buf`
+     
+ 2. `virtio_install` calls `dev_make` from `dev.h`:
+     `dev_make(char *name, struct driver *driver, struct unit *unit, void *privdata)`
+     like so:
+     `vnet->devno = dev_make("eth#", &virtionet_driver, unit, vnet);`
+     
+     In other words, the `vnet->config` struct ends up "serialized" in `dev->privdata`.
+     
+     That's where the mac-address is.
+
+####Plan: Make a new version of `virtio_get_config`. 
+OK, that worked really well. Turns out Ringaard has this virtio-stuff down much better than OSdev. (The mac-address is located at iobase + 0x20, together with the status)
