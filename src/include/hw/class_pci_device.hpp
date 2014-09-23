@@ -15,8 +15,7 @@ class PCI_Device
   //:public Device //Why not? A PCI device is too general to be accessible?
 {  
 
-  //The 2-part PCI Bus address (The bus nr. is on Device)
-
+  //@brief PCI device message format
   union pci_msg{
     uint32_t data;
     struct __attribute__((packed)){
@@ -27,12 +26,12 @@ class PCI_Device
     };
   };
   
-  //The 2-part PCI address
-  uint16_t pci_addr;
+  //@brief The 2-part PCI address
+  uint16_t pci_addr_;
   
   //The parts derived (if needed)
-  uint8_t devno=0;
-  uint8_t funcno=0;
+  uint8_t devno_=0;
+  uint8_t funcno_=0;
   
   //The 2-part ID retrieved from the device
   union vendor_product{
@@ -41,7 +40,7 @@ class PCI_Device
       uint16_t vendor;
       uint16_t product;
     };
-  } device_id;
+  }device_id_;
 
   //The class code (device type)
   union class_revision{
@@ -54,16 +53,16 @@ class PCI_Device
     };
     struct __attribute__((packed)){
       uint16_t class_subclass;
-      uint8_t __prog_if;
+      uint8_t __prog_if; //Overlaps the above
       uint8_t revision;        
     };
-  }devtype;
+  }devtype_;
 
   
   //Printable names
-  const char *classname;
-  const char *vendorname;
-  const char *productname;
+  const char *classname_;
+  const char *vendorname_;
+  const char *productname_;
   
   /*
     Device Resources
@@ -91,7 +90,7 @@ class PCI_Device
   inline uint32_t read_dword(uint8_t reg){
     pci_msg req;
     req.data=0x80000000;
-    req.addr=pci_addr;
+    req.addr=pci_addr_;
     req.reg=reg;
     
     outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
@@ -102,7 +101,7 @@ class PCI_Device
   inline void write_dword(uint8_t reg,uint32_t value){
     pci_msg req;
     req.data=0x80000000;
-    req.addr=pci_addr;
+    req.addr=pci_addr_;
     req.reg=reg;
     
     outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
@@ -163,7 +162,7 @@ public:
   const char* name();
   
   //@brief Get the PCI address (composite of bus, device and function)
-  uint16_t get_pci_addr();
+  uint16_t pci_addr();
     
   //@brief Parse all Base Address Registers (BAR's)
   void probe_resources();

@@ -192,43 +192,43 @@ void PCI_Device::probe_resources(){
   
 }
 
-PCI_Device::PCI_Device(uint16_t _pci_addr,uint32_t _id)
-  : pci_addr(_pci_addr), device_id{_id}
+PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
+  : pci_addr_(pci_addr), device_id_{_id}
 //,Device(Device::PCI) //Why not inherit Device? Well, I think "PCI devices" are too general to be useful by itself, and the "Device" class is Public ABI, so it should only know about stuff that's relevant for the user.
 {
   //We have device, so probe for details
-  devtype.reg=read_dword(_pci_addr,PCI_CONFIG_CLASS_REV);
+  devtype_.reg=read_dword(pci_addr,PCI_CONFIG_CLASS_REV);
   //printf("\t * New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
   //device_id.vendor,device_id.product,classcode);
   
   printf("\t |\n");  
   
-  switch (devtype.classcode) {
+  switch (devtype_.classcode) {
     
   case CL_BRIDGE:
     printf("\t +--+ %s %s (0x%x)\n",
-           bridge_subclasses[devtype.subclass < SS_BR ? devtype.subclass : SS_BR-1],
-           classcodes[devtype.classcode],devtype.subclass);
+           bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
+           classcodes[devtype_.classcode],devtype_.subclass);
     break;
   case CL_NIC:
     printf("\t +--+ %s %s (0x%x)\n",
-           nic_subclasses[devtype.subclass < SS_NIC ? devtype.subclass : SS_NIC-1],
-           classcodes[devtype.classcode],devtype.subclass); 
+           nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
+           classcodes[devtype_.classcode],devtype_.subclass); 
     printf("\t |  |    \n" );    
     
-    if (device_id.vendor!=VENDOR_VIRTIO){
-      printf("Vendor id: 0x%x \n",device_id.vendor);
+    if (device_id_.vendor!=VENDOR_VIRTIO){
+      printf("Vendor id: 0x%x \n",device_id_.vendor);
       panic("Only virtio supported");
     }
     
     printf("\t |  +-o (Vendor: Virtio, Product: 0x%x)\n",
-           device_id.product);
+           device_id_.product);
     
     Dev::add(new Nic(this));
     
     break;
   default:
-    printf("\t +--+ %s \n",classcodes[devtype.classcode]);
+    printf("\t +--+ %s \n",classcodes[devtype_.classcode]);
   }
 
   
@@ -239,7 +239,7 @@ PCI_Device::PCI_Device(uint16_t _pci_addr,uint32_t _id)
 
 
 
-uint16_t PCI_Device::get_pci_addr(){return pci_addr;};
+uint16_t PCI_Device::pci_addr(){return pci_addr_;};
 
   
   //TODO: Subclass this (or add it as member to a class) into device types.

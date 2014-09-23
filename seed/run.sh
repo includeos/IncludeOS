@@ -7,6 +7,8 @@ DEBUG=0
 
 [[ $2 = "debug" ]] && DEBUG=1 
 
+
+# Get the Qemu-command (in-source, so we can use it elsewhere)
 . ./qemu_cmd.sh
 
 # Qemu with gdb debugging:
@@ -31,6 +33,9 @@ else
     
     $QEMU $QEMU_OPTS 
 fi
+
+# Convert the image into VirtualBox / Qemu native formats
+. convert_image.sh
 
 #reset
 #bochs

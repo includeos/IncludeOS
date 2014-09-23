@@ -1,7 +1,7 @@
 #ifndef CLASS_IRQ_HANDLER_H
 #define CLASS_IRQ_HANDLER_H
 
-#include "class_os.hpp"
+#include <class_os.hpp>
 #include "irq/pic_defs.h"
 
 
