@@ -32,7 +32,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "My Project"
+PROJECT_NAME           = 
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -51,14 +51,14 @@ PROJECT_BRIEF          = "A minimal, service oriented, includable operating syst
 # and the maximum width should not exceed 200 pixels. Doxygen will copy the logo
 # to the output directory.
 
-PROJECT_LOGO           = "/Users/alfreb/Dropbox/FoU/PhD/IncludeOS/doc/IncludeOS logo.png"
+PROJECT_LOGO           = IncludeOS_logo.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/doc
+OUTPUT_DIRECTORY       = ./doc
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -162,7 +162,7 @@ FULL_PATH_NAMES        = YES
 # will be relative from the directory where doxygen is started.
 # This tag requires that the tag FULL_PATH_NAMES is set to YES.
 
-STRIP_FROM_PATH        = 
+STRIP_FROM_PATH        = ../
 
 # The STRIP_FROM_INC_PATH tag can be used to strip a user-defined part of the
 # path mentioned in the documentation of a class, which tells the reader which
@@ -763,7 +763,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../ \
+INPUT                  = . \
                          ../abi/class_os.hpp \
                          ../abi/class_service.hpp \
                          ../abi/os \
@@ -843,30 +843,30 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/hw/pci.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/hw/pic.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/hw/dev.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/hw/pci.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/hw/pic.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/hw/sanos_port.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/virtio/virtionet.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/virtio/virtio.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/virtio/virtioblk.c \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/virtio/virtionet_orig.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/virtio/virtionet.c \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/elf/elf.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/elf/features.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/virtio/ether.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/virtio/fpu.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/virtio/object.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/virtio/pbuf.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/include/virtio/timer.h \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/test_lambdas.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/test_malloc.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/test_new.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/test_stdio_string.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/tests.cpp \
-                         /Users/alfreb/Dropbox/FoU/PhD/IncludeOS/src/tests/tests.hpp
+EXCLUDE                = ./src/hw/pic.cpp \
+                         ./src/include/hw/dev.h \
+                         ./src/include/hw/pci.h \
+                         ./src/include/hw/pic.h \
+                         ./src/include/hw/sanos_port.h \
+                         ./src/virtio/virtionet.cpp \
+                         ./src/virtio/virtio.cpp \
+                         ./src/virtio/virtioblk.c \
+                         ./src/virtio/virtionet_orig.cpp \
+                         ./src/virtio/virtionet.c \
+                         ./src/elf/elf.h \
+                         ./src/elf/features.h \
+                         ./src/include/virtio/ether.h \
+                         ./src/include/virtio/fpu.h \
+                         ./src/include/virtio/object.h \
+                         ./src/include/virtio/pbuf.h \
+                         ./src/include/virtio/timer.h \
+                         ./src/tests/test_lambdas.cpp \
+                         ./src/tests/test_malloc.cpp \
+                         ./src/tests/test_new.cpp \
+                         ./src/tests/test_stdio_string.cpp \
+                         ./src/tests/tests.cpp \
+                         ./src/tests/tests.hpp \
+                         ./src/hw/pci.cpp
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
