@@ -16,7 +16,7 @@ LIBS     = $(OSLIB)/lib
 # 
 CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 $(INCLUDES)  -lgcc
 
-CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti $(INCLUDES) 
+CPPOPTS = -std=c++11 -c  -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti $(INCLUDES) 
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
 
@@ -31,10 +31,16 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	hw/pic.o  $(TEST_OBJ) virtio/virtionet.o virtio/virtio.o \
 	class_pci_manager.o #hw/pci.o class_pci_manager_sanos.o 	#\
 
-
+# Libraries
+###################################################
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
+
+
+# Header dependencies (rebuild if header changed)
+###################################################
+OS_DEPS=$(OS_OBJECTS:.o=.d)
 
 
 # Complete bulid
@@ -59,7 +65,7 @@ debug: bootloader os  #Don't wanna call 'all', since it strips debug info
 
 # OS
 os.a: $(OS_OBJECTS)
-	@echo "\n>> Compiling the OS"
+	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
 
 install: os.a
@@ -75,13 +81,10 @@ install: os.a
 # Object files
 ###################################################
 # General C++-files to object files. The OS is compiled here.
-%.o: %.cpp %.h
-	@echo "\n>> Compiling " $@
-	$(CPP) $(CPPOPTS) -o $@ $< 
 
-%.o: %.cpp
+%.o: %.cpp 
 	@echo "\n>> Compiling " $@
-	$(CPP) $(CPPOPTS) -o $@ $< 
+	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
@@ -103,11 +106,9 @@ bootloader_s: bootloader.s
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(OS_OBJECTS)
+	$(RM) $(OS_OBJECTS) $(OS_DEPS)
 	$(RM) $(SERVICE)*
 	$(RM) os.a
-	$(RM) bootloader
+	$(RM) bootloader	
 
-
-
-
+-include $(OS_DEPS)

@@ -7,4 +7,5 @@
 \.\#*
 *.iso
 *.tmp
+*.d
 nbproject
