@@ -34,7 +34,7 @@
 #ifndef DEV_H
 #define DEV_H
 
-#include "sanos_port.h"
+#include <hw/sanos_port.h>
 
 struct devfile;
 

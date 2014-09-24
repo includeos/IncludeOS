@@ -1,7 +1,8 @@
 #ifndef CLASS_PCI_DEVICE_HPP
 #define CLASS_PCI_DEVICE_HPP
 
-#include <class_dev.hpp>
+#include <stdio.h>
+//#include <syscalls.hpp>
 #include <hw/pci.h>
 
 #define PCI_WTF 0xffffffff
@@ -31,6 +32,9 @@
     };
   };
 
+/** Relevant class codes (many more) */
+enum classcode_t {CL_OLD,CL_STORAGE,CL_NIC,CL_DISPLAY,
+                  CL_MULTIMEDIA,CL_MEMORY,CL_BRIDGE};
 
 /**
    @brief Communication class for all PCI devices
@@ -193,7 +197,10 @@ public:
      (i.e. by Linux) to designate a PCI device.  */
   uint16_t pci_addr();
     
-  
+
+  /** Get the pci class code. */
+  classcode_t classcode();
+
   /** Parse all Base Address Registers (BAR's)
       
       Used to determine how to communicate with the device. 

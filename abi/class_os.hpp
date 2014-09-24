@@ -1,7 +1,8 @@
 #ifndef CLASS_OS_H
 #define CLASS_OS_H
 
-#include <os>
+#include <common>
+
 
 /** The entrypoint for OS services
     

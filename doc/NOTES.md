@@ -97,7 +97,7 @@ For each call through the stack, add 5 memory lookups if there's indirection at 
 ```
 
 
-So, do we have to do like STM32Plusnet?
+So, do we have to do like [STM32Plusnet](https://github.com/andysworkshop/stm32plus)?
 
 i.e. `HTTPHandler<TCPHandler<IPHandler<Virtio>>>` ?
 
@@ -108,7 +108,16 @@ Other options, disadvantages / advantages?
 
 * How do we allow a user to subscribe to events from somewhere down in the stack? Probably by having the Nic have independent pointers to each layer. 
 
-So far it seems fine to have a `Nic<DRIVER>` template class, and then build a stack like `layerA< layerB<DRIVER> ... >`.
+* So far it seems fine to have a `Nic<DRIVER>` template class, and then build a stack like `layerA< layerB<DRIVER> ... >`. But, we also want private constructor; just to make sure there's some governance. If you instantiate `Nic<DRIVER> nic1` and `Nic<DRIVER> nic2`, they would either register on the same PCI-Nic, or they would have to register at a common class (like Dev) anyway, in which case Nic would have to be a friend of Dev, or Dev would have to have a public registry-function.
+
+
+* Drawbacks: 
+  * Much of the stack has to be in header files. (But, we can write all the specializations ourselves if we want)
+  * We can't overload names in `Dev` (like Dev::eth) without templatizing either the `Dev` class or the name (like `Dev<VirtioNet>::eth()` or `Dev::eth<VirtioNet>(n)`
+
+* Where to templatize: **A)** `Dev::eth<VIRTIO>(0)` or **B)** `Nic<Virtio> Dev::eth(0)` ? 
+    * A) Con: Is ugiler - you always have to specify the type. 
+    * B) What happens with just `Dev::eth(0).name?`
 
 
 
@@ -140,13 +149,11 @@ Devices are C++ objects, with the following hierarchy:
 
 Template solution:
 
- Dev::eth(0).name()
- Dev::disk(0).name()
- 
- Dev::disk(0).open("./myFile.txt",[](File f){printf(f.name());
-
- Dev::eth(0).on(NicEvent::req, []{printf("A new TCP event")});
- => No compiler support
+`Dev::eth(0).name()`
+`Dev::disk(0).name()`
+`Dev::disk(0).open("./myFile.txt",[](File f){printf(f.name());`
+`Dev::eth(0).on(NicEvent::req, []{ printf("A new TCP event") });`
+ => No compiler support. Well. 
 
  Dev::eth(0).onTCPReq([]{printf("A new TCP event")});
  => Compiler support - but requires Dev::eth(0) to implement onTCPReq(callback);

@@ -1,4 +1,5 @@
-#include "class_irq_handler.hpp"
+#include <os>
+#include <class_irq_handler.hpp>
 #include "hw/pic.h"
 
 bool IRQ_handler::idt_is_set=false;

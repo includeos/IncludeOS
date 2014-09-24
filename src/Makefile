@@ -111,4 +111,4 @@ clean:
 	$(RM) os.a
 	$(RM) bootloader	
 
--include $(OS_DEPS)
+#-include $(OS_DEPS)

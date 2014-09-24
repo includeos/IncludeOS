@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <class_dev.hpp>
+#include <class_service.hpp>
+
 //C++ stuff
 void* operator new(size_t size){
   return malloc(size);
@@ -10,7 +13,7 @@ void* operator new(size_t size){
 
 // A private class to handle IRQ
 #include "class_irq_handler.hpp"
-#include "class_pci_manager.hpp"
+#include <class_pci_manager.hpp>
 
 //char huge_array[200]; //{'!'}; 
 //Initialize it, puts all the data into the binary.
@@ -63,7 +66,8 @@ void OS::start(){
   test_printf();
 #endif
   IRQ_handler::init();
-  PCI_manager::init();
+  Dev::init();
+
   
   //Everything is ready
   Service::start();

@@ -1,52 +1,13 @@
 #ifndef OS_H
 #define OS_H
 
-
-#if !defined(__cplusplus)
-#include <stdbool.h> /* C doesn't have booleans by default. */
-#error "THIS IS SUPPOSED TO BE C++"
-#endif
-
-#include <stddef.h>
-#include <stdint.h>
-
-
-/* We're not building for linux */
-#if defined(__linux__)
-#error "You are not using a cross-compiler!"
-#endif
-
-/* We're only donig 32-bit ix86 targets. */
-#if !defined(__i386__)
-#error "This project needs to be compiled with an ix86-elf compiler"
-#endif
-
-//Unused parameters (necessary for syscall warnings)
-#ifdef __GNUC__
-#  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
-#else
-#  define UNUSED(x) UNUSED_ ## x
-#endif
-
-
-/* LIMITS */
-const int SBRK_MAX=0x10000;
-
+#include <common>
 
 //The service- and os classes
 #include "class_service.hpp"
 #include "class_os.hpp"
-#include "syscalls.hpp"
 #include "class_dev.hpp"
-
-//Ringaard stuff (For SanOS ports)
-//unit
-//bus ... etc.
-
-
-
-//BOCHS Break point
-#define BREAK __asm__ volatile("xchg %bx,%bx");
+#include "syscalls.hpp"
 
 
 #endif //Include guard

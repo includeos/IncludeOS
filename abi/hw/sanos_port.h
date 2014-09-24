@@ -1,7 +1,7 @@
 #ifndef SANOS_PORT_H
 #define SANOS_PORT_H
 
-#include <os>
+#include <common>
 
 //From kmalloc.h
 #define kmalloc(X) malloc(X)
@@ -40,6 +40,19 @@ typedef int handle_t;
 #define _SIGSET_T_DEFINED
 typedef unsigned int sigset_t;
 #endif
+
+
+#ifndef _UID_T_DEFINED
+#define _UID_T_DEFINED
+typedef unsigned short uid_t;
+#endif
+
+
+#ifndef _GID_T_DEFINED
+#define _GID_T_DEFINED
+typedef unsigned short gid_t;
+#endif
+
 
 //From os.h
 #define INFINITE  0xFFFFFFFF

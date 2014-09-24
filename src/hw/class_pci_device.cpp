@@ -1,5 +1,7 @@
-#include <hw/class_pci_device.hpp>
-#include <class_nic.hpp>
+
+#include <class_pci_device.hpp>
+#include <syscalls.hpp>
+//#include <class_nic.hpp>
 #include <assert.h>
 
 //TODO: Virtio stuff might be separate
@@ -9,7 +11,7 @@
 
 //Private constructor; only called if "Create" finds a device on this addr.
 
-enum{CL_OLD,CL_STORAGE,CL_NIC,CL_DISPLAY,CL_MULTIMEDIA,CL_MEMORY,CL_BRIDGE};
+
 
 static const char* classcodes[]={
   "Too-Old-To-Tell",
@@ -216,15 +218,18 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
            classcodes[devtype_.classcode],devtype_.subclass); 
     printf("\t |  |    \n" );    
     
+    /*
     if (device_id_.vendor!=VENDOR_VIRTIO){
       printf("Vendor id: 0x%x \n",device_id_.vendor);
       panic("Only virtio supported");
-    }
+      }*/
     
     printf("\t |  +-o (Vendor: Virtio, Product: 0x%x)\n",
            device_id_.product);
     
-    Dev::add(new Nic(this));
+    //@todo Fix nic
+    //Dev::add(new Nic<E1000>(this));
+    
     
     break;
   default:
@@ -235,11 +240,8 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 }
 
 
-
-
-
-
-uint16_t PCI_Device::pci_addr(){return pci_addr_;};
+uint16_t PCI_Device::pci_addr(){ return pci_addr_; };
+classcode_t PCI_Device::classcode(){ return static_cast<classcode_t>(devtype_.classcode); };
 
   
   //TODO: Subclass this (or add it as member to a class) into device types.

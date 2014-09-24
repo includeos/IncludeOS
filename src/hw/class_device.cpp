@@ -1,21 +1,57 @@
 #include <class_dev.hpp>
-
+#include <class_pci_manager.hpp>
 //int Device::busno(){return busnumber;}
 
 /*Device::Device(bus_t _bustype, int _busno)
   : bustype(_bustype),busnumber(_busno){};*/
 
-Nic* Dev::nics[MAX_NICS]={0}; //Should be zeroed by .bss ...?
+Nic_t* Dev::nics[MAX_NICS]={0}; //Should be zeroed by .bss ...
 
-Nic& Dev::eth(int n){
-  if(n>=MAX_NICS or not nics[n])  
-    panic("Ethernet device not found!");
+
+//! Get ethernet device n
+Nic_t& Dev::eth(int n){
+  if (n >= MAX_NICS)
+      panic("Ethernet device not found!");
+  
+  PCI_Device* pcidev = PCI_manager::nic(n);
+  
+  if (!pcidev)
+    panic("No PCI device found for nic!");
+  
+  if (!nics[n])
+    nics[n] = new Nic_t(pcidev);
   
   return *nics[n];
+};
+
+  
+void Dev::init(){
+  
+  PCI_manager::init();
+  printf("Initializing %s \n", (char*)eth(0).name());
 }
 
 
-void Dev::add(Nic* nic){
+/*
+Nic<E1000>& Dev::eth(int n){
+  if(n>=MAX_NICS)
+    panic("Ethernet device not found!");
+  
+  PCI_Device* pcidev=PCI_manager::nic(n);
+  
+  if(!pcidev)
+    panic("No PCI device found for nic!");
+  
+  if(!nics[n])
+    nics[n]=new Nic<E1000>(pcidev);
+
+  return *nics[n];
+}
+
+*/
+
+/*
+void Dev::add(Nic<E1000>* nic){
   int i=0;
 
   //Register device
@@ -27,5 +63,5 @@ void Dev::add(Nic* nic){
   nics[i]=nic;
   printf("\n>>> Nic available at Device::eth(%i)\n",i);
 
-}
+  }*/
 
