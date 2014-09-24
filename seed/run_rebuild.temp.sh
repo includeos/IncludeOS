@@ -1,11 +1,11 @@
 # Rebuild IncludeOS
-cd ../src/
+cd ~/IncludeOS/src/
 make clean all
 
 # Reinstall
 sudo make install
 
 # Back here, build and run
-cd ../seed/
+cd ~/IncludeOS/seed/
 make
-./run.sh IncludeOS_tests.img 
+sudo ./run.sh IncludeOS_tests.img 

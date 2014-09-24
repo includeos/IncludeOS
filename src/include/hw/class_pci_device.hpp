@@ -1,8 +1,8 @@
 #ifndef CLASS_PCI_DEVICE_HPP
 #define CLASS_PCI_DEVICE_HPP
 
+#include <class_dev.hpp>
 #include <hw/pci.h>
-#include <hw/class_device.hpp>
 
 #define PCI_WTF 0xffffffff
 
@@ -91,7 +91,7 @@ class PCI_Device
   //! @brief Resource types, "Memory" or "I/O"
   enum resource_t{RES_MEM,RES_IO};
   
-  //! @brief A resource - possibly a list
+  /** A device resource - possibly a list */
   template<resource_t RT>
   struct Resource{
     const resource_t type = RT;
@@ -128,8 +128,9 @@ class PCI_Device
     outpd(PCI_CONFIG_DATA, value);
   };
 
-  //!   @brief Add a resource to a resource queue.
-  //!   (This seems pretty dirty; private class, reference to pointer etc.)
+  /**   Add a resource to a resource queue.
+         
+        (This seems pretty dirty; private class, reference to pointer etc.) */
   template<resource_t R_T>
   void add_resource(Resource<R_T>* res,Resource<R_T>*& Q){
     Resource<R_T>* q;
@@ -161,8 +162,8 @@ public:
 
   /** Probe for a device on the given address
       
-      DROP: We got performance degradation when using this in the probing 
-      @see PCI_Device()
+      @deprecated We got a 20% performance degradation using this for probing
+      @see PCI_Device() 
   */
   static PCI_Device* Create(uint16_t pci_addr);  
 
@@ -178,22 +179,22 @@ public:
       @param pci_addr: A 16-bit PCI address. 
       @param id: A device ID, consisting of PCI vendor- and product- ID's. 
       @see pci_addr() for more about the address  
-   */
+  */
   PCI_Device(uint16_t pci_addr,uint32_t id);
 
   
-  /** @brief A descriptive name  */
+  /** A descriptive name  */
   const char* name();
   
   
-  /** @brief Get the PCI address of device.
+  /** Get the PCI address of device.
      
      The address is a composite of 'bus', 'device' and 'function', usually used
      (i.e. by Linux) to designate a PCI device.  */
   uint16_t pci_addr();
     
   
-  /** @brief Parse all Base Address Registers (BAR's)
+  /** Parse all Base Address Registers (BAR's)
       
       Used to determine how to communicate with the device. 
       This function adds Resources to the PCI_Device.

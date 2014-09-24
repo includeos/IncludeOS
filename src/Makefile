@@ -64,12 +64,12 @@ os.a: $(OS_OBJECTS)
 
 install: os.a
 	@echo "\n>> Installing..."
-	cp os.a $(OS)/lib
-	cp bootloader $(OS)/bootloader
-	mkdir -p $(OS)/crt
-	cp crt/crt*.s $(OS)/crt
-	cp -r ../abi $(OS)/abi
-	cp linker.ld $(OS)
+	sudo cp os.a $(OS)/lib
+	sudo cp bootloader $(OS)/
+	sudo mkdir -p $(OS)/crt
+	sudo cp crt/crt*.s $(OS)/crt
+	sudo cp -r ../abi $(OS)/
+	sudo cp linker.ld $(OS)/
 	@echo "\nDone!"
 
 # Object files

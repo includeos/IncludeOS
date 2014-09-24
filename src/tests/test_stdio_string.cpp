@@ -18,7 +18,7 @@ void test_string(){
   memset((void*)buf,'!',100);
   test_print_result("memset",buf[50]=='!');
   
-  char* cat="Strcat combines nine eggplants";
+  char* cat=(char*)"Strcat combines nine eggplants";
   strncpy(buf,cat,16);
   *(buf+16)=0;
   
@@ -36,7 +36,7 @@ void test_sprintf(){
   test_print_hdr("sprintf");
   char sprintbuf[100];
   memset((void*)sprintbuf,0,100);
-  char* adjective="just dandy";
+  char* adjective=(char*)"just dandy";
   sprintf(sprintbuf,"Beef is 0x%x and that's %s",0xbeef,adjective);
 
   //Hex & string

@@ -1,4 +1,4 @@
-#include <hw/class_device.hpp>
+#include <class_dev.hpp>
 
 //int Device::busno(){return busnumber;}
 
@@ -8,9 +8,10 @@
 Nic* Dev::nics[MAX_NICS]={0}; //Should be zeroed by .bss ...?
 
 Nic& Dev::eth(int n){
-  if(n<MAX_NICS-1 and nics[n])
-    return *nics[n];
-  panic("Ethernet device not found!");
+  if(n>=MAX_NICS or not nics[n])  
+    panic("Ethernet device not found!");
+  
+  return *nics[n];
 }
 
 

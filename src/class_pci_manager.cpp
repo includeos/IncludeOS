@@ -3,7 +3,7 @@
 
 #include <class_pci_manager.hpp>
 #include <hw/class_pci_device.hpp>
-#include <hw/class_nic.hpp>
+#include <class_nic.hpp>
 #include <virtio/virtio.h>
 
 

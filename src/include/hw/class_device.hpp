@@ -1,46 +1,7 @@
 #ifndef CLASS_DEVICE_HPP
 #define CLASS_DEVICE_HPP
 
-#include <os>
-
-#define LEN_DEVNAME 50
-#define MAX_NICS 4
-#define MAX_DISKS 4 
-
-class Nic;
-class Disk;
-class Serial;
-
-/**
-   Access point for devices
-  
-   Get a nic by calling `Dev::eth(n)`, a disk by calling `Dev::disk(n)` etc.
- */
-class Dev{
-  
-  //Private pointer to the device lists
-  static Nic* nics[MAX_NICS];
-  static Disk* disks[MAX_DISKS];
-  
-public:
-  
-  //! Get ethernet device n
-  static Nic& eth(int n);
-  
-  //! Get disk n
-  static Disk& disk(int n);  
-
-  //! Get serial port n
-  static Serial& serial(int n);
-  
-  //! Add a nic
-  static void add(Nic* n);
-  
-  //! Add a disk
-  static void add(Disk* d);
-  
-};
-
+#include <class_dev.hpp>
 
 //Bus types
 enum bus_t{PCI,IDE,ISA,SCSI};

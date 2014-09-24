@@ -3,7 +3,7 @@
 static const char* static_glob="Scoped variable accessed from Lambda";
 
 
-char* local1="Local variables are created during runtime";
+char* local1=(char*)"Local variables are created during runtime";
 
 void test_lambdas(){
   test_print_hdr("Lambdas");

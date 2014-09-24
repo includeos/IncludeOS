@@ -3,19 +3,118 @@
 
 ## Device management
 
+
 ### Constraints:
 
-    1. We want this notation: 
-    `Dev::eth(0)->onData.ip(callback); //Ethernet frames`
-    `Dev::eth(0)->on.IPData(callback)`
+1. **Notation:** We want notation like this:
+   * A) `Dev::eth(0).on(IP::data, callback)`
+   
+   * Or something like
+     * B) `Dev::eth(0).port(80).on(
+     * C) `Dev::eth(0).onData.ip(callback); //Ethernet frames`
+     * D) `Dev::eth(0).on.IPData(callback)`
 
+
+2. **Private constructors**: We don't want the Nic constructor to be available for the user (but it has to be available in the ABI). 
     
+3. **No-cost Polymorphism**: We want a Nic to have several events, implemented accross several drivers. (The normal way would be to just have a Nic superclass, and polymorphically make subclasses, but then there's a chance of polymorphism overhead. ... allthough we could make sure never to use- or return general "Nic" pointers). 
+
+4. **No Overhead principle**: If I don't use a driver, I don't pay for one, i.e. it does not get included into the code.
+
+5. (**Failsafe operation**): It should ... kind of ... be possible for one to ask for a device that doesn't exist. Should it though? If your program wants to write to a file but there's no disk - do you want to continue? Well, throwing an exception if they asked for the wrong Nic would be nice.
+
+#### Example: 
+  
+  We want the IP stack to be able to subscribe to Nic-events as well. So, when we say:
+
+   ```
+   Dev::eth(0).port(80).on(HttpRequest,callback(...));
+    
+   ```
+  
+  We want:
+
+  A) `Dev` to create a Nic - if it doesn't exist (1 and 2 OK)
+  B) The event subscription to propagate all the way down to the Nic DRIVER like so:
+  
+    ```
+     HttpHandler: port(80).on(TCP::Data,this->notify);
+       |
+       +-> TCPHandler: port(80).on(IP::Data, this->notify);
+             |
+             +-> IPHandler: DRIVER.on(Eth::Data, this->notify); //Driver == EthHandler
+                   |
+                   +-> DRIVER: EnableIRQ if not done & register 
+                         |
+                         +-> PIC::IRQ(16, delegate(this.data));
+    ```
+    
+    The callback propagation will then look like this:
+
+    ```
+    Calls: 
+
+            IRQ
+             |
+     1       +-> DRIVER::data(buf*)
+                   |
+     2             +-> IPHandler.data(frames*) // i.e. foreach(callback) callback(); 
+                         : (if valid)
+                         |
+     3                   +-> TCPHandler.data(packet*) // i.e. foreach(callback) callback();
+                               : (if valid)
+                               |
+     4                         +-> HttpHandler.data(contents*)
+                                     : (if valid)
+                                     |
+     5                               +-> onRequest(HttpRequest req, HttpResp resp);
+
+    ```
+
+### Conclusions:
+
+What's the minimum number of function calls? Well, 5, but we're not *always* going to notify the layer above, right? So there's either a flag check, or a pointer check, and then a function call. 
+
+* Is `if(callback) callback(); ` slower than `if(notify_layer_n) notify_n()` ? Yes - one cycle or something, since it's indirection (callback is a pointer).
+
+* Is `foreach(callbacks call) call()` slower than `if(notify_layer_n) notify_n(); if(notify_layer_m) notify_m()`? Probably, again there's indirection.
+
+So: Is indirection a problem? And, is it at all avoidable? It's avoidable if we don't mind never replacing or decoupling the layer instances. Problem? Well, if it is, we can have it both ways; a tight coupling for layer2layer, and then an extra event-queue for each layers events, for external subscriptions. We can start with the loose coupling, and tighten later.
+
+
+For each call through the stack, add 5 memory lookups if there's indirection at every step. 5 `mov`s...
+
+```
+ +-------------+  
+ | HTTPHandler |
+ +-------------+     +-------------+                        Virtio  Intel ...
+ |             +<--->| TCPHandler  |                            \   /
+ +-------------+     +-------------+     +-------------+         \ /
+                     |             +<--->+ IPHandler   |          V
+                     +-------------+     +-------------+          |
+                                         |             +<--->[ DRIVER ] 
+                                         +-------------+              
+```
+
+
+So, do we have to do like STM32Plusnet?
+
+i.e. `HTTPHandler<TCPHandler<IPHandler<Virtio>>>` ?
+
+Other options, disadvantages / advantages?
+
+* We're getting compile-time polymorphism
+  * But we're also getting overhead (including more drivers than necessary), if we're doing runtime detection of NIC's. ... But there's no way to get runtime detection without including all (both) the drivers.
+
+* How do we allow a user to subscribe to events from somewhere down in the stack? Probably by having the Nic have independent pointers to each layer. 
+
+So far it seems fine to have a `Nic<DRIVER>` template class, and then build a stack like `layerA< layerB<DRIVER> ... >`.
 
 
 
 ## Draft 1
 Devices are C++ objects, with the following hierarchy:
-
+(Forget looking at this in Doxygen)
 
 **Notation:**
 * `[ABI]` - accessible via the ABI

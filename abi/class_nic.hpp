@@ -1,7 +1,9 @@
 #ifndef CLASS_PCI_NIC_HPP
 #define CLASS_PCI_NIC_HPP
 
-#include <hw/class_pci_device.hpp>
+//#include <hw/class_pci_device.hpp>
+
+class PCI_Device;
 
 /** A public interface for Network cards
   
@@ -22,7 +24,7 @@ public:
   /** Attach event handlers to Nic-events. 
       
       @todo Decide between delegates and function pointers*/
-  void on(event_t ev, (void)(callback*)(...));
+  void on(event_t ev, void(*callback)());
 
 private:
   PCI_Device* pcidev;
@@ -33,12 +35,10 @@ private:
 };
 
 
-#endif //Class Nic
-
-
-
 //Driver instead? And delegate everything to it with a delegate?
 class Virtio_Nic :  public Nic /* public Driver */{
   
 };
 
+
+#endif //Class Nic

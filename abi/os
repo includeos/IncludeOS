@@ -37,6 +37,7 @@ const int SBRK_MAX=0x10000;
 #include "class_service.hpp"
 #include "class_os.hpp"
 #include "syscalls.hpp"
+#include "class_dev.hpp"
 
 //Ringaard stuff (For SanOS ports)
 //unit

@@ -1,5 +1,5 @@
-#include <hw/class_nic.hpp>
-
+#include <class_nic.hpp>
+#include <hw/class_pci_device.hpp>
 
 
 const char* Nic::name(){

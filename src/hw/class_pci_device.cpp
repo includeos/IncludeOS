@@ -1,5 +1,5 @@
 #include <hw/class_pci_device.hpp>
-#include <hw/class_nic.hpp>
+#include <class_nic.hpp>
 #include <assert.h>
 
 //TODO: Virtio stuff might be separate

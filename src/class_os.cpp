@@ -45,8 +45,6 @@ class global_test2{
 extern char _end;
 extern int _includeos;
 
-static int stat1=0;
-static int stat2=7777;
 int glob1=0;
 int glob2=8888;
 

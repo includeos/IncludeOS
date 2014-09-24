@@ -26,7 +26,7 @@ then
     echo "-----------------------"  
     $QEMU -s -S $QEMU_OPTS
 else    
-    make clean stripped 
+    make clean all #stripped 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
     echo "-----------------------"
