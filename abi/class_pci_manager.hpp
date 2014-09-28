@@ -37,7 +37,7 @@ private:
     for (int i=0; i<MAX_Q; i++)
       if(not Q[i]){
         Q[i]=dev;
-        ::printf("Added PCI device to Q[%i]\n",i); 
+        ::printf("\t |  +--[ SAVED ]\n"); 
         return;
       }
     

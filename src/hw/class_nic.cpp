@@ -29,7 +29,7 @@ template <> Nic<VirtioNet>::Nic(PCI_Device* _dev)
 template <> const char* Nic<E1000>::name(){
   return "Specialized E1000 No.1";
 }
-*/
+
 
 template <> Nic<E1000>::Nic(PCI_Device* _dev)
   : pcidev(_dev) //Device(this)
@@ -40,3 +40,4 @@ template <> Nic<E1000>::Nic(PCI_Device* _dev)
   _dev->probe_resources();
   
 }
+*/

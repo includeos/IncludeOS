@@ -109,17 +109,6 @@ class PCI_Device
   Resource<RES_MEM>* res_mem_ = 0;
   Resource<RES_IO>* res_io_ = 0;
    
-   
-  //! @brief Read from device with implicit pci_address (e.g. used by Nic)
-  inline uint32_t read_dword(uint8_t reg){
-    pci_msg req;
-    req.data=0x80000000;
-    req.addr=pci_addr_;
-    req.reg=reg;
-    
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    return inpd(PCI_CONFIG_DATA);
-  };
 
   //! @brief Write to device with implicit pci_address (e.g. used by Nic)
   inline void write_dword(uint8_t reg,uint32_t value){
@@ -151,7 +140,22 @@ public:
   /*
     Static functions
   */  
+  enum{VENDOR_INTEL=0x8086,VENDOR_CIRRUS=0x1013,VENDOR_REALTEK=0x10EC,
+       VENDOR_VIRTIO=0x1AF4,VENDOR_AMD=0x1022};
   
+  
+  //! @brief Read from device with implicit pci_address (e.g. used by Nic)
+  inline uint32_t read_dword(uint8_t reg){
+    pci_msg req;
+    req.data=0x80000000;
+    req.addr=pci_addr_;
+    req.reg=reg;
+    
+    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+    return inpd(PCI_CONFIG_DATA);
+  };
+
+
   //! @brief Read from device with explicit pci_addr
   static inline uint32_t read_dword(uint16_t pci_addr, uint8_t reg){
     pci_msg req;
@@ -188,18 +192,22 @@ public:
 
   
   /** A descriptive name  */
-  const char* name();
+  inline const char* name();
   
   
   /** Get the PCI address of device.
      
      The address is a composite of 'bus', 'device' and 'function', usually used
      (i.e. by Linux) to designate a PCI device.  */
-  uint16_t pci_addr();
+  inline uint16_t pci_addr() { return pci_addr_; };
     
 
   /** Get the pci class code. */
-  classcode_t classcode();
+  inline classcode_t classcode() 
+  { return static_cast<classcode_t>(devtype_.classcode); }
+
+  /** Get the pci vendor id */
+  inline uint16_t vendor_id() { return device_id_.vendor; }
 
   /** Parse all Base Address Registers (BAR's)
       
@@ -214,19 +222,6 @@ public:
   
 };
 
-
-
-/** Virtio subclass... possibly
-  
-    @todo How do we do subclassing without losing performance?
-
- */
-class Virtio : public PCI_Device{
-  int irq;
-  int iobase;
-  unsigned long features;
-  
-};
 
 
 #endif

@@ -26,10 +26,11 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	hw/class_device.o hw/class_pci_device.o hw/class_nic.o\
-	class_irq_handler.o \
-	hw/pic.o  $(TEST_OBJ) virtio/virtionet.o virtio/virtio.o \
-	class_pci_manager.o #hw/pci.o class_pci_manager_sanos.o 	#\
+	hw/class_device.o hw/class_pci_device.o \
+	class_irq_handler.o class_pci_manager.o \
+	virtio/class_virtio.o virtio/class_virtionet.o\
+	  $(TEST_OBJ) #virtio/virtionet.o virtio/virtio.o	 \
+	 #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o\ hw/pic.o
 
 # Libraries
 ###################################################
@@ -48,7 +49,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # A complete build includes:
 # - a bootloader
 # - an OS library for the service to link against
-all: bootloader os.a
+all: bootloader os.a etags
 
 stripped: LDOPTS += -s #strip all
 stripped: bootloader os.a
@@ -103,6 +104,13 @@ bootloader_s: bootloader.s
 	$(CC) $(CCOPTS) -o $@ $<
 
 
+# Etags
+###################################################
+etags:
+	@echo "\n>> Updating emacs tags "
+	- find ../ -name "*.[hc]pp" | grep -v ".*\#.*" | etags -
+
+
 # Cleanup
 ###################################################
 clean: 
@@ -111,4 +119,4 @@ clean:
 	$(RM) os.a
 	$(RM) bootloader	
 
-#-include $(OS_DEPS)
+-include $(OS_DEPS)

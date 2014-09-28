@@ -31,6 +31,8 @@
 #define MAX_DISKS 4 
 #define MAX_SERIALS 4
 
+//Mac
+typedef unsigned char mac_t[6];
 
 /* LIMITS */
 #define SBRK_MAX 0x10000

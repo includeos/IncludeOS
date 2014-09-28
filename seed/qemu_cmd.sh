@@ -1,4 +1,5 @@
-QEMU="kvm" #qemu-system-x86_64
+
+QEMU="sudo kvm" #qemu-system-x86_64 # No sudo for "qemy-system-x"
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor

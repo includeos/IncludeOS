@@ -4,10 +4,19 @@
 #include <class_pci_device.hpp>
 #include <stdio.h>
 
-/** Possible driver types */
-class VirtioNet{
-public: const char* name(){ return "VirtioNet Driver"; };
-};
+
+
+/*
+class mac_t{
+  unsigned char[6];
+  const char* _str;
+  
+public:
+  const char* c_str(){
+    
+  }
+  }*/
+
 
 class E1000{
 public: const char* name(){ return "E1000 Driver"; };
@@ -29,10 +38,14 @@ public:
   //const char* name(); 
   
   /** @note If we add this while there's a specialization, this overrides. */
-  inline const char* name(){return driver.name();}; 
+  inline const char* name() { return driver.name(); }; 
 
-  /** Event types */
-  enum event_t {EthData, TCPConnection, TCPData, 
+  /** The actual mac address. */
+  inline const mac_t& mac() { return driver.mac(); };
+
+  
+    /** Event types */
+    enum event_t {EthData, TCPConnection, TCPData, 
                 UDPConnection, UDPData, HttpRequest};
   
   /** Attach event handlers to Nic-events. 
@@ -42,21 +55,13 @@ public:
 
 private:
 
-  PCI_Device* pcidev;
   DRIVER_T driver;
-  char* rxbuf;
-  char* txbuf;  
   
-  /** Constructor. The Dev-class is a friend and can call this */
-  
-  Nic(PCI_Device* d) 
-    : pcidev(d) //Device(this)
-  {
-    
-    printf("\n Nic at PCI addr 0x%x scanning for resources\n",d->pci_addr());
-    
-    d->probe_resources();
-  };
+  /** Constructor. 
+      
+      Just a wrapper around the driver constructor.
+      @note The Dev-class is a friend and will call this */
+  Nic(PCI_Device* d): driver(d){};
   
   friend class Dev;
 

@@ -4,6 +4,8 @@
 
 #include <common>
 #include <class_nic.hpp>
+#include <virtio/class_virtionet.hpp>
+
 //#include <class_pci_manager.hpp>
 
 /** @todo Impement */

@@ -38,8 +38,6 @@ static const char* nic_subclasses[SS_NIC]={
 };
 
 
-enum{VENDOR_INTEL=0x8086,VENDOR_CIRRUS=0x1013,VENDOR_REALTEK=0x10EC,
-     VENDOR_VIRTIO=0x1AF4,VENDOR_AMD=0x1022};
 
 struct _pci_vendor{
   uint16_t id;
@@ -66,19 +64,8 @@ static unsigned long pci_size(unsigned long base, unsigned long mask)
 }
 
 
-void virtio_get_config(uint32_t iobase, void *buf, int len)
-{
-  unsigned char *ptr = (unsigned char*)buf;
-  uint32_t ioaddr = iobase + VIRTIO_PCI_CONFIG;//vd->iobase + VIRTIO_PCI_CONFIG;
-  int i;
-  for (i = 0; i < len; i++) *ptr++ = inp(ioaddr + i);
-  }
-
-
-
 uint32_t PCI_Device::iobase(){
-  if(!res_io_)
-    panic("Didn't get any IO-resource from PCI device");
+  assert(res_io_ != 0);
   return res_io_->start_;  
 };
 
@@ -121,76 +108,23 @@ void PCI_Device::probe_resources(){
 
       //Add it to resource list
       add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val,pci_size_),res_mem_);
-      assert(res_io_ != 0);
+      assert(res_mem_ != 0);
     }    
     
           
     //DEBUG: Print
-    printf("\n\t Resource @ BAR %i \n"        \
-           "\t Address:  0x%lx Size: 0x%lx \n"\
-           "\t Type: %s\n",
+    printf("\n"\
+           "\t    * Resource @ BAR %i \n"          \
+           "\t      Address:  0x%lx Size: 0x%lx \n"\
+           "\t      Type: %s\n",
            bar,
            unmasked_val,
            pci_size_,
            value & 1 ? "IO Resource" : "Memory Resource");
-
-}
-
-
-  uint32_t irq=0;//,intrpin=0;
-
-  //Get device IRQ 
-  value = read_dword(PCI_CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    //intrpin = (value >> 8) & 0xFF;
-    irq = value & 0xFF;
+    
   }
   
-  if(irq)
-    printf("\t IRQ: %li \n",irq);
-
-  
-  //TRY virtio stuff
-  printf("\n >> Probing VIRTIO device: \n\n");
-  
-  //We should now be able to get the right iobase
-  printf("\t IO-base: 0x%lx \n",iobase());  
-  
-  unsigned long iobase_=iobase();
-  uint32_t features=inpd(iobase_+VIRTIO_PCI_HOST_FEATURES);
-  
-  //Expect 0x799f8064
-
-  printf("\t VIRTIO Device Features (from iobase 0x%lx): 0x%lx \n",iobase_,features);
-  printf("\t VIRTIO Queue Size (from iobase 0x%lx): 0x%lx \n",iobase_,inpd(iobase_+0x0C));
-  printf("\t VIRTIO Status (from iobase 0x%lx): 0x%lx \n",iobase_,inpd(iobase_+0x12));
-  
-  /*
-  printf("\t VIRTIO Mac addresses: \n");
-  for (int i=0; i<6; i++)
-    printf("\t * Mac %i: 0x%lx \n",i+1,inpd(iobase() + 0x14 + i));
-  */
-  
-  /* Getting the MAC */
-  struct config{
-    char mac[6];
-    uint16_t status;
-  }conf;
-  
-  virtio_get_config(iobase(),&conf,sizeof(config));
-  printf("\t VIRTIO Mac: ");  
-  for (int i=0; i<6; i++)
-    printf(i<5 ? "%1x." : "%1x\n",(unsigned char)conf.mac[i]);
-  printf("\t VIRTIO Status: 0x%x \n",conf.status);
-  
-  
-  
-
-  
-  //Reset device
-  
-  //outp(iobase() + VIRTIO_PCI_STATUS, 0);
-  //outp(iobase() + VIRTIO_PCI_STATUS, inp(iobase() + VIRTIO_PCI_STATUS) | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
+  printf("\n");
   
 }
 
@@ -215,21 +149,7 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
   case CL_NIC:
     printf("\t +--+ %s %s (0x%x)\n",
            nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
-           classcodes[devtype_.classcode],devtype_.subclass); 
-    printf("\t |  |    \n" );    
-    
-    /*
-    if (device_id_.vendor!=VENDOR_VIRTIO){
-      printf("Vendor id: 0x%x \n",device_id_.vendor);
-      panic("Only virtio supported");
-      }*/
-    
-    printf("\t |  +-o (Vendor: Virtio, Product: 0x%x)\n",
-           device_id_.product);
-    
-    //@todo Fix nic
-    //Dev::add(new Nic<E1000>(this));
-    
+           classcodes[devtype_.classcode],devtype_.subclass);             
     
     break;
   default:
@@ -240,8 +160,13 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 }
 
 
-uint16_t PCI_Device::pci_addr(){ return pci_addr_; };
-classcode_t PCI_Device::classcode(){ return static_cast<classcode_t>(devtype_.classcode); };
+/** INLINED */
+
+//uint16_t PCI_Device::pci_addr(){ return pci_addr_; }; //Inlined
+
+//classcode_t PCI_Device::classcode(){ return static_cast<classcode_t>(devtype_.classcode); };
+
+//uint16_t PCI_Device::vendor_id(){ return device_id_.vendor; }
 
   
   //TODO: Subclass this (or add it as member to a class) into device types.

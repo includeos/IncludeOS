@@ -5,7 +5,8 @@
 
 .global irq_default_entry
 .global irq_timer_entry
-
+.global irq_virtio_entry
+    
 .global exception_0_entry
 .global exception_1_entry	
 .global exception_2_entry
@@ -117,3 +118,22 @@ irq_timer_entry:
 	sti
 	
 	iret
+
+irq_virtio_entry:	
+	cli
+	
+	pusha	
+	//push $'d'
+	call irq_virtio_handler
+
+	//Send EOI for the timer
+	movb	$PIC1, %al
+	movw	$PIC1, %dx
+	outb	%al, %dx
+
+	
+	popa
+	sti
+	
+	iret
+    

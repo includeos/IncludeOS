@@ -12,7 +12,7 @@ bus* buses=0;
 unit* units=0;
 
 const int MAX_UNITS=10;
-unit unitlist[MAX_UNITS];
+//unit unitlist[MAX_UNITS];
 int unitcount=0;
 
 
@@ -22,6 +22,7 @@ extern "C" {
 }
 
 PCI_Device* PCI_manager::nics[MAX_Q];
+PCI_Device* PCI_manager::disks[MAX_Q];
 
 
 void PCI_manager::init(){
@@ -38,20 +39,21 @@ void PCI_manager::init(){
     if (id != PCI_WTF) {
       dev = new PCI_Device(pci_addr,id);
       
+      // Keep the devices we might need
       switch (dev->classcode()) {
       case CL_NIC : add<nics>(dev); break;
+      case CL_STORAGE : add<disks>(dev) ; break;
       default: break;
-        //Add cases for other devices we want to keep.
+        // Add cases for others as needed
       }        
     }
   }
   
-  
-  //printf("\n>>> Eth0: %s \n",Dev::eth<E1000>(0).name());
-  
-    
-  //PORTING virtio: this is not supposed to work yet.
-  //virtio_install(&unitlist[virtionet],"some_opts" );
+  // Pretty printing, end of device tree
+  // @todo should probably be moved, or optionally non-printed
+  printf("\t | \n");
+  printf("\t o \n");
+      
   
 
 }

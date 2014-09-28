@@ -4,6 +4,8 @@
 
 bool IRQ_handler::idt_is_set=false;
 IDTDescr IRQ_handler::idt[256];
+unsigned int IRQ_handler::irq_mask = 0xFFFB; 
+
 
 void IRQ_handler::enable_interrupts(){
   __asm__ volatile("sti");
@@ -84,6 +86,9 @@ uint16_t pic_get_isr(void)
   > void irq/exception_i_handler() - defined here.
 */
 extern "C"{
+  //Array of custom IRQ-handlers
+  void (*custom_handlers[256])();
+
   void irq_default_handler();
   void irq_default_entry();
 
@@ -165,16 +170,18 @@ void IRQ_handler::init(){
   }
   printf(" >> Default interrupt gates set for irq >= 32 \n");
   
-  //Register the timer and enable / unmask it in the pic
-  //  create_gate(&(idt[32]),irq_timer_entry, default_sel, default_attr);
-  //enable_irq(32); 
 
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
 
   //Initialize the interrupt controller
   init_pic();
-  
+
+
+  //Register the timer and enable / unmask it in the pic
+  //set_handler(32,irq_timer_entry);
+  //enable_irq(32); 
+    
   //enable_irq(33); //Keyboard
   enable_interrupts();
   
@@ -206,6 +213,28 @@ void IRQ_handler::create_gate(IDTDescr* idt_entry,
   idt_entry->zero=0;  
 }
 
+
+void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){
+  create_gate(&idt[irq],function_addr,default_sel,default_attr);
+}
+
+
+
+static void set_intr_mask(unsigned long mask)
+{
+  OS::outb(PIC_MSTR_MASK, (unsigned char) mask);
+  OS::outb(PIC_SLV_MASK, (unsigned char) (mask >> 8));
+}
+
+
+void IRQ_handler::enable_irq(uint8_t irq){
+  printf(">>> Enabling IRQ %i, old mask: 0x%x ",irq,irq_mask);
+  irq_mask &= ~(1 << irq);
+  if (irq >= 8) irq_mask &= ~(1 << 2);
+  set_intr_mask(irq_mask);
+  printf(" new mask: 0x%x \n",irq_mask);  
+};
+
 int IRQ_handler::timer_interrupts=0;
 static int glob_timer_interrupts=0;
 
@@ -215,6 +244,8 @@ void irq_default_handler(){
   uint16_t isr=pic_get_irr();
   printf("UNEXPECTED IRQ: ISR: %i, IRR: %i \n",isr,irr);     
 }  
+
+
 
 void irq_timer_handler(){
   glob_timer_interrupts++;

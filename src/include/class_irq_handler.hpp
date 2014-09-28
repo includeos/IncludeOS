@@ -47,6 +47,7 @@ struct idt_loc{
  */
 class IRQ_handler{
  private:
+  static unsigned int irq_mask;
   static int timer_interrupts;
   static IDTDescr idt[256];
   static void enable_interrupts();
@@ -62,7 +63,8 @@ class IRQ_handler{
  public:
   //Initialize the PIC and load IDT
   static void init();
-  
+  static void set_handler(uint8_t irq, void(*function_addr)());
+  static void enable_irq(uint8_t irq);
 };
 
 

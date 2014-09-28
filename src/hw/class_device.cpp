@@ -1,5 +1,6 @@
 #include <class_dev.hpp>
 #include <class_pci_manager.hpp>
+
 //int Device::busno(){return busnumber;}
 
 /*Device::Device(bus_t _bustype, int _busno)
@@ -26,9 +27,12 @@ Nic_t& Dev::eth(int n){
 
   
 void Dev::init(){
-  
+
+  printf("\n>>> Dev:: initializing devices \n");  
   PCI_manager::init();
-  printf("Initializing %s \n", (char*)eth(0).name());
+
+  //Calling eth(n) constructs it, if there's a corresponding PCI-dev.
+  //printf("    * %s \n", (char*)eth(0).name());
 }
 
 
