@@ -3,7 +3,7 @@
 
 #include <class_os.hpp>
 #include "irq/pic_defs.h"
-
+//#include <delegate.hpp>
 
 /*
   IDT Type flags  
@@ -47,6 +47,54 @@ extern "C" {
   void irq_default_handler();
 }
 
+/** A simple IRQ delegate. 
+
+    Modified version of:
+    http://www.codeproject.com/Articles/11015/The-Impossibly-Fast-C-Delegates
+    
+    Original author: Sergey Ryazanov
+    
+    @todo Templatize, or use his (or someone elses) full version
+ */
+class delegate
+{
+public:
+  delegate()
+    : object_ptr(0)
+    , stub_ptr(0)
+  {}
+
+  template <class T, void (T::*TMethod)()>
+  static delegate from_method(T* object_ptr)
+  {
+    delegate d;
+    d.object_ptr = object_ptr;
+    d.stub_ptr = &method_stub<T, TMethod>; // #1
+    return d;
+  }
+
+  void operator()() const
+  {
+    return (*stub_ptr)(object_ptr);
+  }
+
+private:
+  typedef void (*stub_type)(void* object_ptr);
+
+  void* object_ptr;
+  stub_type stub_ptr;
+
+  template <class T, void (T::*TMethod)()>
+  static void method_stub(void* object_ptr)
+  {
+    T* p = static_cast<T*>(object_ptr);
+    return (p->*TMethod)(); // #2
+  }
+};
+
+
+
+
 /** A class to handle interrupts. 
   
     Anyone can subscribe to IRQ's, but the will be indireclty called via the
@@ -68,6 +116,7 @@ private:
   static irq_bitfield irq_subscriptions;
   
   static void(*irq_subscribers[sizeof(irq_bitfield)*8])();
+  static delegate irq_delegates[sizeof(irq_bitfield)*8];
   
   /** STI */
   static void enable_interrupts();
@@ -105,6 +154,9 @@ private:
       Attaches @param notify to the IRQ DPC-system, i.e. it will be called
       a.s.a.p. after @param irq gets triggered.
       @todo Implies enable_irq(irq)? */
+    
+  static void subscribe(uint8_t irq, delegate del);
+  
   static void subscribe(uint8_t irq, void(*notify)());
 
 };

@@ -9,6 +9,7 @@ irq_bitfield IRQ_handler::irq_pending = 0;
 irq_bitfield IRQ_handler::irq_subscriptions = 0;
 
 void(*IRQ_handler::irq_subscribers[sizeof(irq_bitfield)*8])() = {0};
+delegate IRQ_handler::irq_delegates[sizeof(irq_bitfield)*8];// = {};
 
 void IRQ_handler::enable_interrupts(){
   __asm__ volatile("sti");
@@ -245,7 +246,7 @@ static int glob_timer_interrupts=0;
 /** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
     as bitfield for setting / checking IRQ's. 
 */
-void IRQ_handler::subscribe(uint8_t irq,void(*notify)()){  
+void IRQ_handler::subscribe(uint8_t irq, delegate del){   //void(*notify)()
   
   if (irq > sizeof(irq_bitfield)*8)
     panic("Too high IRQ: only IRQ 0 - 32 are subscribable \n");
@@ -254,7 +255,9 @@ void IRQ_handler::subscribe(uint8_t irq,void(*notify)()){
   irq_subscriptions |= (1 << irq);
   
   // Add callback to subscriber list (for now overwriting any previous)
-  irq_subscribers[irq] = notify;
+  //irq_subscribers[irq] = notify;
+  irq_delegates[irq] = del;
+
   
   printf(">>> IRQ subscriptions: 0x%lx irq: 0x%x\n",irq_subscriptions,irq);
 }
@@ -282,8 +285,9 @@ void IRQ_handler::notify(){
     irq = bsr(todo); 
     
     // Notify
-    irq_subscribers[irq]();    
-    
+    //irq_subscribers[irq]();    
+    irq_delegates[irq]();
+
     // Remove the IRQ from pending list
     irq_pending=btr(irq_pending,irq);
     

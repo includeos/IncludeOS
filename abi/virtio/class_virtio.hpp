@@ -14,12 +14,18 @@ class Virtio{
   uint32_t _features;
 
   void set_irq();
+
+  //TEST
+  int calls = 0;
   
 public:
   /** Get the Virtio config registers from the PCI device.
       
       @note it varies how these are structured, hence a void* buf */
   void get_config(void* buf, int len);
+
+  void irq_handler();
+  void irq_handler(int i);
   
   /** Get the (saved) device IRQ */
   inline uint8_t irq();
