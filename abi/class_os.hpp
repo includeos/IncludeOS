@@ -11,6 +11,8 @@
 class OS{
   
  private:  
+
+  static bool power;
   
   /** The OS will call halt (i.e. wait for interrupts) once the 
       service is started */

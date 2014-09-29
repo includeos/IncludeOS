@@ -92,17 +92,16 @@ void Virtio::negotiate_features(uint32_t features){
 }
 
 
-extern "C" {
-  void irq_virtio_entry();
-  
-  void irq_virtio_handler(){
+void irq_virtio_handler(){
     printf("VIRTIO IRQ! \n");
-  };
-}
+};
+
 
 void Virtio::enable_irq_handler(){
-  //  _irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-  IRQ_handler::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
+  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
+  //IRQ_handler::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
+ 
+  IRQ_handler::subscribe(_irq,irq_virtio_handler);
   IRQ_handler::enable_irq(_irq);
 }
 

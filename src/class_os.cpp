@@ -45,6 +45,8 @@ class global_test2{
 
 #endif //TESTS_H
 
+bool OS::power = true;
+
 extern char _end;
 extern int _includeos;
 
@@ -82,7 +84,10 @@ extern "C" void halt_loop(){
 void OS::halt(){
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
-  halt_loop();
+  while(power){
+    __asm__ volatile("hlt;");
+    IRQ_handler::notify();
+  }
 }
 
 int OS::rsprint(const char* str){

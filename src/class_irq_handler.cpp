@@ -5,7 +5,10 @@
 bool IRQ_handler::idt_is_set=false;
 IDTDescr IRQ_handler::idt[256];
 unsigned int IRQ_handler::irq_mask = 0xFFFB; 
+irq_bitfield IRQ_handler::irq_pending = 0;
+irq_bitfield IRQ_handler::irq_subscriptions = 0;
 
+void(*IRQ_handler::irq_subscribers[sizeof(irq_bitfield)*8])() = {0};
 
 void IRQ_handler::enable_interrupts(){
   __asm__ volatile("sti");
@@ -239,10 +242,62 @@ int IRQ_handler::timer_interrupts=0;
 static int glob_timer_interrupts=0;
 
 
+/** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
+    as bitfield for setting / checking IRQ's. 
+*/
+void IRQ_handler::subscribe(uint8_t irq,void(*notify)()){  
+  
+  if (irq > sizeof(irq_bitfield)*8)
+    panic("Too high IRQ: only IRQ 0 - 32 are subscribable \n");
+  
+  // Mark IRQ as subscribed to
+  irq_subscriptions |= (1 << irq);
+  
+  // Add callback to subscriber list (for now overwriting any previous)
+  irq_subscribers[irq] = notify;
+  
+  printf(">>> IRQ subscriptions: 0x%lx irq: 0x%x\n",irq_subscriptions,irq);
+}
+
+
+inline int bsr(irq_bitfield b){
+  int ret=0;
+  __asm__ volatile("bsr %1,%0":"=r"(ret):"r"(b));
+  return ret;
+}
+
+inline irq_bitfield btr(irq_bitfield b, int bit){
+  __asm__ volatile("btr %1,%0":"=r"(b):"r"(bit));
+  return b;
+}
+
+void IRQ_handler::notify(){
+
+  // Get the IRQ's that are both pending and subscribed to
+  irq_bitfield todo = irq_subscriptions & irq_pending;;
+  int irq = 0;
+  
+  while(todo){
+    // Select the first IRQ to notify
+    irq = bsr(todo); 
+    
+    // Notify
+    irq_subscribers[irq]();    
+    
+    // Remove the IRQ from pending list
+    irq_pending=btr(irq_pending,irq);
+    
+    // Find remaining IRQ's both pending and subscribed to
+    todo = irq_subscriptions & irq_pending;    
+  }
+}
+
 void irq_default_handler(){ 
+  // Find which IRQ is pending
   uint16_t irr=pic_get_irr();
-  uint16_t isr=pic_get_irr();
-  printf("UNEXPECTED IRQ: ISR: %i, IRR: %i \n",isr,irr);     
+  
+  // Mark as pending
+  IRQ_handler::irq_pending |= (1 << irr);   
 }  
 
 

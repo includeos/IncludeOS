@@ -40,31 +40,73 @@ struct idt_loc{
   uint32_t base;
 }__attribute__ ((packed));
 
+/** We'll limit the number of subscribable IRQ lines to this.  */
+typedef uint32_t irq_bitfield;
 
+extern "C" {
+  void irq_default_handler();
+}
 
-/*
-  A class to handle interrupts
+/** A class to handle interrupts. 
+  
+    Anyone can subscribe to IRQ's, but the will be indireclty called via the
+    Deferred Procedure Call (DPC) system, i.e. when the system is in a 
+    wait-loop with nothing else to do.
  */
 class IRQ_handler{
- private:
+
+private:
   static unsigned int irq_mask;
   static int timer_interrupts;
   static IDTDescr idt[256];
-  static void enable_interrupts();
   static const char default_attr=0x8e;
   static const uint16_t default_sel=0x8;
   static bool idt_is_set;
+  
+  /** bit n set means IRQ n has fired since last check */
+  static irq_bitfield irq_pending;
+  static irq_bitfield irq_subscriptions;
+  
+  static void(*irq_subscribers[sizeof(irq_bitfield)*8])();
+  
+  /** STI */
+  static void enable_interrupts();
+  
+  /** @deprecated A default handler */
   static void handle_IRQ_default();
+  
+  /** Create an IDT-gate. Use "set_handler" for a simpler version 
+      using defaults */
   static void create_gate(IDTDescr* idt_entry,
 			  void (*function_addr)(),
 			  uint16_t segment_sel,
 			  char attributes
 			  );
- public:
-  //Initialize the PIC and load IDT
+  
+  /** The OS will call the following : */
+  friend class OS;
+  friend void ::irq_default_handler();
+  
+  /** Initialize. Only the OS can initialize the IRQ manager */
   static void init();
-  static void set_handler(uint8_t irq, void(*function_addr)());
+  
+  static void notify();
+    
+ public:
+  
+  /** Enable an IRQ line.  If no handler is set a default will be used */
   static void enable_irq(uint8_t irq);
+  
+  /** Directly set an IRQ handler in IDT */
+  static void set_handler(uint8_t irq, void(*function_addr)());
+    
+  /** Subscribe to an IRQ. 
+      
+      Attaches @param notify to the IRQ DPC-system, i.e. it will be called
+      a.s.a.p. after @param irq gets triggered.
+      @todo Implies enable_irq(irq)? */
+  static void subscribe(uint8_t irq, void(*notify)());
+
 };
 
 

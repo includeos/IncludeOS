@@ -84,7 +84,7 @@ const mac_t& VirtioNet::mac(6,145
 const char* VirtioNet::mac_str(7,198
 VirtioNet::VirtioNet(9,252
 
-virtio/class_virtio.cpp,310
+virtio/class_virtio.cpp,308
 void Virtio::set_irq(6,120
 Virtio::Virtio(16,312
 void Virtio::get_config(66,1577
@@ -92,8 +92,8 @@ void Virtio::reset(74,1782
 void Virtio::sig_driver_found(78,1847
 uint32_t Virtio::probe_features(84,2011
 void Virtio::negotiate_features(88,2100
-  void irq_virtio_handler(98,2337
-void Virtio::enable_irq_handler(103,2404
+void irq_virtio_handler(95,2294
+void Virtio::enable_irq_handler(100,2356
 
 virtio/virtionet_orig.cpp,2203
 #define MTUSIZE 43,1859
@@ -149,7 +149,7 @@ int virtionet_transmit(199,6505
 struct driver virtionet_driver 226,7209
 int virtio_install(239,7403
 
-include/class_irq_handler.hpp,1017
+include/class_irq_handler.hpp,1207
 #define CLASS_IRQ_HANDLER_H2,28
 const char TRAP_GATE=13,163
 const char TASK_GATE=14,189
@@ -167,13 +167,16 @@ struct IDTDescr{IDTDescr30,506
 struct idt_loc{idt_loc38,770
   uint16_t limit;idt_loc::limit39,786
   uint32_t base;idt_loc::base40,804
-class IRQ_handler{IRQ_handler48,889
-  static unsigned int irq_mask;IRQ_handler::irq_mask50,918
-  static int timer_interrupts;IRQ_handler::timer_interrupts51,950
-  static IDTDescr idt[IRQ_handler::idt52,981
-  static const char default_attr=IRQ_handler::default_attr54,1044
-  static const uint16_t default_sel=IRQ_handler::default_sel55,1083
-  static bool idt_is_set;IRQ_handler::idt_is_set56,1124
+typedef uint32_t irq_bitfield;44,915
+class IRQ_handler{IRQ_handler56,1223
+  static unsigned int irq_mask;IRQ_handler::irq_mask59,1252
+  static int timer_interrupts;IRQ_handler::timer_interrupts60,1284
+  static IDTDescr idt[IRQ_handler::idt61,1315
+  static const char default_attr=IRQ_handler::default_attr62,1343
+  static const uint16_t default_sel=IRQ_handler::default_sel63,1382
+  static bool idt_is_set;IRQ_handler::idt_is_set64,1423
+  static irq_bitfield irq_pending;IRQ_handler::irq_pending67,1510
+  static irq_bitfield irq_subscriptions;IRQ_handler::irq_subscriptions68,1545
 
 include/hw/class_device.hpp,413
 #define CLASS_DEVICE_HPP2,25
@@ -199,7 +202,7 @@ PCI_Device* PCI_manager::nics[PCI_manager::nics24,352
 PCI_Device* PCI_manager::disks[PCI_manager::disks25,390
 void PCI_manager::init(28,431
 
-class_os.cpp,624
+class_os.cpp,648
 void* operator new(operator new10,141
 class global_test21,403
   static int calls;global_test::calls24,431
@@ -211,15 +214,16 @@ int global_test::calls=36,699
 class global_test2{global_test239,733
   global_test2(global_test2::global_test241,762
 }globtest2;globtest244,853
-int glob1=51,926
-int glob2=52,939
-void OS::start(54,956
-extern "C" void halt_loop(78,1430
-void OS::halt(82,1505
-int OS::rsprint(88,1661
-uint8_t OS::inb(97,1826
-void OS::outb(108,2024
-int OS::rswrite(117,2176
+bool OS::power 48,884
+int glob1=53,950
+int glob2=54,963
+void OS::start(56,980
+extern "C" void halt_loop(80,1454
+void OS::halt(84,1529
+int OS::rsprint(93,1747
+uint8_t OS::inb(102,1912
+void OS::outb(113,2110
+int OS::rswrite(122,2262
 
 class_pci_manager_sanos.cpp,251
 #define NUM_BUSES 6,101
@@ -308,38 +312,44 @@ kernel_start.cpp,309
   void rsprint(93,2140
   int main(100,2257
 
-class_irq_handler.cpp,1141
+class_irq_handler.cpp,1370
 bool IRQ_handler::idt_is_set=5,68
 IDTDescr IRQ_handler::idt[IRQ_handler::idt6,104
 unsigned int IRQ_handler::irq_mask 7,136
-void IRQ_handler::enable_interrupts(11,216
-  CPUID_FEAT_EDX_APIC ::CPUID_FEAT_EDX_APIC18,319
-static inline void cpuid(21,354
-bool cpuHasAPIC(28,512
-#define PIC1_CMD 35,616
-#define PIC2_CMD 36,657
-#define PIC_READ_IRR 37,698
-#define PIC_READ_ISR 38,777
-static uint16_t __pic_get_irq_reg(41,878
-uint16_t pic_get_irr(51,1257
-uint16_t pic_get_isr(57,1406
-#define EXCEPTION_HANDLER(66,1558
-#define REG_DEFAULT_GATE(75,1764
-#define EXCEPTION_PAIR(79,1892
-void IRQ_handler::init(124,2876
-union addr_union{addr_union191,4602
-  uint32_t whole;addr_union::whole192,4620
-    uint16_t lo16;addr_union::lo16194,4649
-    uint16_t hi16;addr_union::hi16195,4668
-void IRQ_handler::create_gate(199,4698
-void IRQ_handler::set_handler(215,5118
-static void set_intr_mask(221,5256
-void IRQ_handler::enable_irq(228,5412
-int IRQ_handler::timer_interrupts=236,5658
-static int glob_timer_interrupts=237,5695
-void irq_default_handler(240,5733
-void irq_timer_handler(248,5891
-inline void disable_pic(259,6077
+irq_bitfield IRQ_handler::irq_pending 8,182
+irq_bitfield IRQ_handler::irq_subscriptions 9,225
+void IRQ_handler::enable_interrupts(13,345
+  CPUID_FEAT_EDX_APIC ::CPUID_FEAT_EDX_APIC20,448
+static inline void cpuid(23,483
+bool cpuHasAPIC(30,641
+#define PIC1_CMD 37,745
+#define PIC2_CMD 38,786
+#define PIC_READ_IRR 39,827
+#define PIC_READ_ISR 40,906
+static uint16_t __pic_get_irq_reg(43,1007
+uint16_t pic_get_irr(53,1386
+uint16_t pic_get_isr(59,1535
+#define EXCEPTION_HANDLER(68,1687
+#define REG_DEFAULT_GATE(77,1893
+#define EXCEPTION_PAIR(81,2021
+void IRQ_handler::init(129,3073
+union addr_union{addr_union196,4799
+  uint32_t whole;addr_union::whole197,4817
+    uint16_t lo16;addr_union::lo16199,4846
+    uint16_t hi16;addr_union::hi16200,4865
+void IRQ_handler::create_gate(204,4895
+void IRQ_handler::set_handler(220,5315
+static void set_intr_mask(226,5453
+void IRQ_handler::enable_irq(233,5609
+int IRQ_handler::timer_interrupts=241,5855
+static int glob_timer_interrupts=242,5892
+void IRQ_handler::subscribe(248,6054
+inline int bsr(263,6481
+inline irq_bitfield btr(269,6593
+void IRQ_handler::notify(274,6708
+void irq_default_handler(295,7198
+void irq_timer_handler(305,7364
+inline void disable_pic(316,7550
 
 hw/class_pci_device.cpp,561
 static const char* classcodes[classcodes16,274
@@ -530,9 +540,10 @@ class PCI_manager{PCI_manager21,459
   static PCI_Device* disk(PCI_manager::disk53,1120
 public:PCI_manager::public62,1224
 
-../abi/class_os.hpp,44
+../abi/class_os.hpp,82
 #define CLASS_OS_H2,19
 class OS{OS11,140
+  static bool power;OS::power15,166
 
 ../abi/syscalls.hpp,0
 
