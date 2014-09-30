@@ -3,7 +3,8 @@
 
 #include <class_os.hpp>
 #include "irq/pic_defs.h"
-//#include <delegate.hpp>
+#include <class_delegate.hpp>
+
 
 /*
   IDT Type flags  
@@ -43,55 +44,12 @@ struct idt_loc{
 /** We'll limit the number of subscribable IRQ lines to this.  */
 typedef uint32_t irq_bitfield;
 
+
+//irq_bitfield irq_pending;
+
 extern "C" {
   void irq_default_handler();
 }
-
-/** A simple IRQ delegate. 
-
-    Modified version of:
-    http://www.codeproject.com/Articles/11015/The-Impossibly-Fast-C-Delegates
-    
-    Original author: Sergey Ryazanov
-    
-    @todo Templatize, or use his (or someone elses) full version
- */
-class delegate
-{
-public:
-  delegate()
-    : object_ptr(0)
-    , stub_ptr(0)
-  {}
-
-  template <class T, void (T::*TMethod)()>
-  static delegate from_method(T* object_ptr)
-  {
-    delegate d;
-    d.object_ptr = object_ptr;
-    d.stub_ptr = &method_stub<T, TMethod>; // #1
-    return d;
-  }
-
-  void operator()() const
-  {
-    return (*stub_ptr)(object_ptr);
-  }
-
-private:
-  typedef void (*stub_type)(void* object_ptr);
-
-  void* object_ptr;
-  stub_type stub_ptr;
-
-  template <class T, void (T::*TMethod)()>
-  static void method_stub(void* object_ptr)
-  {
-    T* p = static_cast<T*>(object_ptr);
-    return (p->*TMethod)(); // #2
-  }
-};
-
 
 
 
@@ -103,6 +61,27 @@ private:
  */
 class IRQ_handler{
 
+ public:
+  
+  typedef delegate irq_delegate;
+  
+  /** Enable an IRQ line.  If no handler is set a default will be used */
+  static void enable_irq(uint8_t irq);
+  
+  /** Directly set an IRQ handler in IDT */
+  static void set_handler(uint8_t irq, void(*function_addr)());
+    
+  /** Subscribe to an IRQ. 
+      
+      Attaches @param notify to the IRQ DPC-system, i.e. it will be called
+      a.s.a.p. after @param irq gets triggered.
+      @todo Implies enable_irq(irq)? */
+    
+  static void subscribe(uint8_t irq, irq_delegate del);
+  
+  static void subscribe(uint8_t irq, void(*notify)());
+ 
+
 private:
   static unsigned int irq_mask;
   static int timer_interrupts;
@@ -112,11 +91,11 @@ private:
   static bool idt_is_set;
   
   /** bit n set means IRQ n has fired since last check */
-  static irq_bitfield irq_pending;
+  //static irq_bitfield irq_pending;
   static irq_bitfield irq_subscriptions;
   
   static void(*irq_subscribers[sizeof(irq_bitfield)*8])();
-  static delegate irq_delegates[sizeof(irq_bitfield)*8];
+  static irq_delegate irq_delegates[sizeof(irq_bitfield)*8];
   
   /** STI */
   static void enable_interrupts();
@@ -139,26 +118,11 @@ private:
   /** Initialize. Only the OS can initialize the IRQ manager */
   static void init();
   
+  /** Notify all delegates waiting for interrupts */
   static void notify();
-    
- public:
   
-  /** Enable an IRQ line.  If no handler is set a default will be used */
-  static void enable_irq(uint8_t irq);
+  static void eoi(uint8_t irq);
   
-  /** Directly set an IRQ handler in IDT */
-  static void set_handler(uint8_t irq, void(*function_addr)());
-    
-  /** Subscribe to an IRQ. 
-      
-      Attaches @param notify to the IRQ DPC-system, i.e. it will be called
-      a.s.a.p. after @param irq gets triggered.
-      @todo Implies enable_irq(irq)? */
-    
-  static void subscribe(uint8_t irq, delegate del);
-  
-  static void subscribe(uint8_t irq, void(*notify)());
-
 };
 
 

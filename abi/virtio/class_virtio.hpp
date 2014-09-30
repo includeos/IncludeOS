@@ -2,7 +2,7 @@
 #define CLASS_VIRTIO_HPP
 
 #include <class_pci_device.hpp>
-
+//#include <class_irq_handler.hpp>
 class Virtio{
   
   //PCI memer as reference (so no indirection overhead)
@@ -18,17 +18,19 @@ class Virtio{
   //TEST
   int calls = 0;
   
+  void default_irq_handler();
+
 public:
   /** Get the Virtio config registers from the PCI device.
       
       @note it varies how these are structured, hence a void* buf */
   void get_config(void* buf, int len);
 
-  void irq_handler();
-  void irq_handler(int i);
+  
+  
   
   /** Get the (saved) device IRQ */
-  inline uint8_t irq();
+  inline uint8_t irq(){ return _irq; };
 
   /** Reset the virtio device */
   void reset();
@@ -40,6 +42,7 @@ public:
   void negotiate_features(uint32_t features);
   
   /** Register interrupt handler & enable IRQ */
+  //void enable_irq_handler(IRQ_handler::irq_delegate d);
   void enable_irq_handler();
 
   /** Probe PCI device for features */

@@ -6,6 +6,8 @@
 #include <class_pci_device.hpp>
 #include <virtio/class_virtio.hpp>
 
+#define VIRTIO_NET_S_LINK_UP    1              // Link is up
+
 /** Possible driver types */
 class VirtioNet : Virtio {
 
@@ -22,6 +24,8 @@ class VirtioNet : Virtio {
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;
   
+  void irq_handler();
+
   
 public: 
   const char* name();  

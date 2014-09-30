@@ -1,5 +1,6 @@
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
+#include <class_irq_handler.hpp>
 #include <stdio.h>
 
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
@@ -48,11 +49,37 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   printf("\t [*] Virtio Q %i needs %i pointers (%li bytes) \n",
          index, size, size * sizeof(void*));
+
+  sig_driver_found();
   
   
+  printf("\t [*] Signalled driver found \n");
+
+  //__asm__("int $0x36");
   
+
+
+  auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
+  //IRQ_handler::subscribe(irq(),del);
+  //IRQ_handler::enable_irq(irq());
+  
+  IRQ_handler::subscribe(1,del);
+  IRQ_handler::enable_irq(1);
+  printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
   // Done
   printf("\n >> Driver initialization complete \n\n");
   
+  __asm__("int $80");
   
 };  
+
+void VirtioNet::irq_handler(){
+  printf("VirtioNet IRQ Handler! \n");
+  printf("Old status: 0x%x \n",_conf.status);
+    
+  // Getting the MAC + status 
+  get_config(&_conf,sizeof(config));
+
+  printf("New status: 0x%x \n",_conf.status);
+  
+}
