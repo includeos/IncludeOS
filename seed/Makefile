@@ -1,5 +1,6 @@
 # The name of your service
-SERVICE="IncludeOS_tests"
+SERVICE = "IncludeOS_tests"
+OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Compiler/Linker
 ###################################################
@@ -16,8 +17,7 @@ INCLUDES = -I$(OSDIR)/abi/ -I./
 
 LIBS     = $(OSLIB)/lib
 
-
-CPPOPTS = -std=c++11 -c -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = -std=c++11 -c $(OPTIONS) -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
 

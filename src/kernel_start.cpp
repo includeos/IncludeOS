@@ -9,29 +9,52 @@ extern "C" {
   uint8_t inb(int port);
   void outb(int port, uint8_t data);
   void init_serial();
-  int is_transmit_empty();
+  int  is_transmit_empty();
   void write_serial(char a);
   void rswrite(char c);  
   void rsprint(const char* ptr);
 
-  void _start(void){    
-    
-
+  void enableSSE()
+  {
+	/*
+	 * mov eax, cr0
+	 * and ax, 0xFFFB	;clear coprocessor emulation CR0.EM
+	 * or ax, 0x2		;set coprocessor monitoring  CR0.MP
+	 * mov cr0, eax
+	 * mov eax, cr4
+	 * or ax, 3 << 9	;set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+	 * mov cr4, eax 
+	*/
+    // enable Streaming SIMD Extensions
+	__asm__ ("mov %cr0, %eax");
+	__asm__ ("and $0xFFFB,%ax");
+	__asm__ ("or  $0x2,   %ax");
+	__asm__ ("mov %eax, %cr0");
+	
+	__asm__ ("mov %cr4, %eax");
+	__asm__ ("or  $0x600,%ax");
+	__asm__ ("mov %eax, %cr4");
+  }
+  
+  void _start(void)
+  {    
     __asm__ volatile ("cli");
     
     init_serial();    
 
     OS::rsprint(" \n\n *** IncludeOS Initializing *** \n\n");    
     
+    // enable SSE extensions bitmask in CR4 register
+    enableSSE();
+    
     //Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
-    
     
     char* bss=&_BSS_START_;
     *bss=0;
     while(++bss < &_BSS_END_)
       *bss=0;
-  
+    
     #ifdef TESTS_H
     test_print_hdr("Global constructors");
     #endif
