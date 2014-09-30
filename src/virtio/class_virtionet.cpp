@@ -59,10 +59,9 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
 
 
-  //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
-  //IRQ_handler::subscribe(irq(),del);
-  //IRQ_handler::enable_irq(irq());
-  
+  auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
+  IRQ_handler::subscribe(irq(),del);
+  IRQ_handler::enable_irq(irq());  
   //IRQ_handler::subscribe(1,del);
   //IRQ_handler::enable_irq(1);
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
@@ -73,13 +72,20 @@ VirtioNet::VirtioNet(PCI_Device* d)
 
 void VirtioNet::irq_handler(){
   printf("VirtioNet IRQ Handler! \n");
+  
   printf("Old status: 0x%x \n",_conf.status);
     
   // Getting the MAC + status 
   get_config(&_conf,sizeof(config));
-
   printf("New status: 0x%x \n",_conf.status);
   
+  
+  unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
+  printf("Virtio ISR: 0x%i \n",isr);
+  isr = inp(iobase() + VIRTIO_PCI_ISR);
+  printf("Virtio ISR: 0x%i \n",isr);
+
+
   eoi(irq());
   
 }

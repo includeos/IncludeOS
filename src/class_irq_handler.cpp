@@ -277,15 +277,11 @@ void IRQ_handler::subscribe(uint8_t irq, irq_delegate del){   //void(*notify)()
 }
 
 
+/** Get most significant bit of b. */
 inline int bsr(irq_bitfield b){
   int ret=0;
   __asm__ volatile("bsr %1,%0":"=r"(ret):"r"(b));
   return ret;
-}
-
-inline irq_bitfield btr(irq_bitfield b, int bit){
-  __asm__ volatile("btr %1,%0":"=r"(b):"r"(bit));
-  return b;
 }
 
 void IRQ_handler::notify(){
@@ -293,9 +289,7 @@ void IRQ_handler::notify(){
   // Get the IRQ's that are both pending and subscribed to
   irq_bitfield todo = irq_subscriptions & irq_pending;;
   int irq = 0;
-  
-  printf("Notifying all \n");
-  
+    
   if(irq_pending){
     printf("<Notify> IRQ's pending: 0x%lx\n",irq_pending);  
     printf("<Notify> subscriptions: 0x%lx\n",irq_subscriptions);
@@ -310,7 +304,7 @@ void IRQ_handler::notify(){
     irq_delegates[irq]();
     
     // Remove the IRQ from pending list
-    irq_pending=btr(irq_pending,irq);
+    irq_pending &= ~(1 << irq);
     
     // Find remaining IRQ's both pending and subscribed to
     todo = irq_subscriptions & irq_pending;    
