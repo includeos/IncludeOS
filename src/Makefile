@@ -14,9 +14,10 @@ LD  = $(OS)/bin/i686-elf-ld
 INCLUDES = -I$(OSLIB)/include -I../abi/ -I./include
 LIBS     = $(OSLIB)/lib
 # 
-CCOPTS	= -O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 $(INCLUDES)  -lgcc
-
-CPPOPTS = -std=c++11 -c  -ffreestanding -nostdlib -fno-builtin -O2 -Wall -Wextra -fno-exceptions -fno-rtti $(INCLUDES) 
+CAPABS  = -O2 -msse3
+WARNS   = -Wall -Wextra
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i386 $(INCLUDES) -lgcc
+CPPOPTS = $(CAPABS) $(WARNS) -c -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
 
@@ -71,12 +72,12 @@ os.a: $(OS_OBJECTS)
 
 install: os.a
 	@echo "\n>> Installing..."
-	sudo cp os.a $(OS)/lib
-	sudo cp bootloader $(OS)/
-	sudo mkdir -p $(OS)/crt
-	sudo cp crt/crt*.s $(OS)/crt
-	sudo cp -r ../abi $(OS)/
-	sudo cp linker.ld $(OS)/
+	cp os.a $(OS)/lib
+	cp bootloader $(OS)/
+	mkdir -p $(OS)/crt
+	cp crt/crt*.s $(OS)/crt
+	cp -r ../abi $(OS)/
+	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
 # Object files
