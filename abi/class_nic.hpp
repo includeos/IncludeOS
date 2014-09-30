@@ -42,8 +42,12 @@ public:
 
   /** The actual mac address. */
   inline const mac_t& mac() { return driver.mac(); };
+  
+  /** Mac address string. */
+  inline const char* mac_str() { return driver.mac_str(); };
 
   
+
     /** Event types */
     enum event_t {EthData, TCPConnection, TCPData, 
                 UDPConnection, UDPData, HttpRequest};
