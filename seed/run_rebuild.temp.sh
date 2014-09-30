@@ -1,6 +1,6 @@
 # Rebuild IncludeOS
 cd ~/IncludeOS/src/
-make clean all
+make 
 
 # Reinstall
 sudo make install
@@ -9,3 +9,6 @@ sudo make install
 cd ~/IncludeOS/seed/
 make
 sudo ./run.sh IncludeOS_tests.img 
+
+# Copy to virtual box shared folder (for running in virtualbox)
+cp ./run.sh IncludeOS_tests.img.vdi vbox_share

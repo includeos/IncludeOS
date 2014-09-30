@@ -35,7 +35,7 @@ else
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
-. convert_image.sh
+ . convert_image.sh
 
 #reset
 #bochs

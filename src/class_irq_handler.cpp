@@ -39,10 +39,10 @@ bool cpuHasAPIC()
 
 #define PIC1 0x20
 #define PIC2 0xA0
-#define PIC1_CMD                    PIC1
-#define PIC2_CMD                    PIC2
-#define PIC_READ_IRR                0x0a    /* OCW3 irq ready next CMD read */
-#define PIC_READ_ISR                0x0b    /* OCW3 irq service next CMD read */
+#define PIC1_CMD PIC1
+#define PIC2_CMD PIC2
+#define PIC_READ_IRR 0x0a    /* OCW3 irq ready next CMD read */
+#define PIC_READ_ISR 0x0b    /* OCW3 irq service next CMD read */
 #define PIC_EOI 0x20
 
  
@@ -84,7 +84,7 @@ uint16_t pic_get_isr(void)
   void irq_##I##_handler(){                                     \
     irq_pending |=  (1 << (I-IRQ_BASE));                        \
     printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);       \
-    eoi(I-IRQ_BASE);                                            \
+    eoi(I);                                            \
   }
 
 
@@ -284,6 +284,8 @@ void IRQ_handler::notify(){
   // Get the IRQ's that are both pending and subscribed to
   irq_bitfield todo = irq_subscriptions & irq_pending;;
   int irq = 0;
+  
+  printf("Notifying all \n");
   
   if(irq_pending){
     printf("<Notify> IRQ's pending: 0x%lx\n",irq_pending);  
