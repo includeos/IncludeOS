@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = "IncludeOS_tests"
+SERVICE = "IncludeOS_sse"
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Compiler/Linker
