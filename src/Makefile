@@ -28,9 +28,9 @@ TEST_OBJ= tests/tests.o
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	hw/class_device.o hw/class_pci_device.o \
 	class_irq_handler.o class_pci_manager.o \
-	virtio/class_virtio.o virtio/class_virtionet.o\
+	virtio/class_virtio.o virtio/class_virtionet.o hw/pic.o\
 	  $(TEST_OBJ) #virtio/virtionet.o virtio/virtio.o	 \
-	 #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o\ hw/pic.o
+	 #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o\ 
 
 # Libraries
 ###################################################

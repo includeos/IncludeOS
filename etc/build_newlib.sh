@@ -20,6 +20,9 @@ echo -e "\n\n >>> Configuring \n"
 mkdir -p build_newlib
 cd build_newlib
 
+# Clean out config cache in case the cross-compiler has changed
+make distclean
+
 ../newlib-2.1.0/configure --target=$TARGET --prefix=$PREFIX
 
 #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
@@ -32,3 +35,4 @@ echo -e "\n\n---------- STARTING BUILD --------------\n\n"
 
 #i686-elf-cc --version
 make all install
+
