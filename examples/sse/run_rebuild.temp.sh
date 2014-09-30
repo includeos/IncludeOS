@@ -6,9 +6,7 @@ make
 sudo make install
 
 # Back here, build and run
-cd ~/IncludeOS/seed/
+cd ~/IncludeOS/examples/sse
 make
-sudo ./run.sh IncludeOS_tests.img 
+sudo ./run.sh IncludeOS_sse.img 
 
-# Copy to virtual box shared folder (for running in virtualbox)
-cp ./run.sh IncludeOS_tests.img.vdi vbox_share
