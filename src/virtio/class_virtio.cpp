@@ -94,6 +94,9 @@ void Virtio::negotiate_features(uint32_t features){
 
 
 
+
+
+
 void Virtio::default_irq_handler(){
   printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
   printf("Old Features : 0x%lx \n",_features);
@@ -103,19 +106,22 @@ void Virtio::default_irq_handler(){
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
   
+  eoi(_irq);
   
-  //InterruptACK (0x064)
 }
+
+
 
 void Virtio::enable_irq_handler(){
   //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-  //IRQ_handler::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
+
   
   auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);  
   
   IRQ_handler::subscribe(_irq,del);
   
   IRQ_handler::enable_irq(_irq);
+  
 }
 
 /** void Virtio::enable_irq_handler(IRQ_handler::irq_delegate d){

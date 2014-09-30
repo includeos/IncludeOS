@@ -4,7 +4,7 @@
 #include <class_os.hpp>
 #include "irq/pic_defs.h"
 #include <class_delegate.hpp>
-
+#include <hw/pic.h>
 
 /*
   IDT Type flags  
@@ -68,15 +68,26 @@ class IRQ_handler{
   /** Enable an IRQ line.  If no handler is set a default will be used */
   static void enable_irq(uint8_t irq);
   
-  /** Directly set an IRQ handler in IDT */
+  /** Directly set an IRQ handler in IDT.       
+      @param irq : The IRQ to handle
+      @param function_addr : A proper IRQ handler
+      @warning{ 
+      This has to be a function that properly returns with `iret`.
+      Failure to do so will keep the interrupt from firing and cause a 
+      stack overflow or similar badness.
+      }
+  */
   static void set_handler(uint8_t irq, void(*function_addr)());
     
   /** Subscribe to an IRQ. 
       
-      Attaches @param notify to the IRQ DPC-system, i.e. it will be called
-      a.s.a.p. after @param irq gets triggered.
-      @todo Implies enable_irq(irq)? */
-    
+      @param del a delegate to attach to the IRQ DPC-system, 
+      
+      the delagete will be called a.s.a.p. after @param irq gets triggered.
+      @warning The delegate is responsible for signalling a proper EOI.
+      @todo Implies enable_irq(irq)? 
+      @todo Create a public member IRQ_handler::eoi for delegates to use
+  */
   static void subscribe(uint8_t irq, irq_delegate del);
   
   static void subscribe(uint8_t irq, void(*notify)());

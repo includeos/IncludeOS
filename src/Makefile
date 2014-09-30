@@ -13,7 +13,7 @@ CPP = $(OS)/bin/i686-elf-g++
 LD  = $(OS)/bin/i686-elf-ld 
 INCLUDES = -I$(OSLIB)/include -I../abi/ -I./include
 LIBS     = $(OSLIB)/lib
-# 
+
 CAPABS  = -O2 -msse3
 WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i386 $(INCLUDES) -lgcc
@@ -27,11 +27,12 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	hw/class_device.o hw/class_pci_device.o \
-	class_irq_handler.o class_pci_manager.o \
-	virtio/class_virtio.o virtio/class_virtionet.o hw/pic.o\
-	  $(TEST_OBJ) #virtio/virtionet.o virtio/virtio.o	 \
-	 #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o\ 
+	hw/class_device.o hw/class_pci_device.o hw/pic.o\
+	class_irq_handler.o class_pci_manager.o\
+	virtio/class_virtio.o virtio/class_virtionet.o\
+	$(TEST_OBJ) 
+#virtio/virtionet.o virtio/virtio.o
+ #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o
 
 # Libraries
 ###################################################

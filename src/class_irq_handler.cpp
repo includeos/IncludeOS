@@ -78,16 +78,25 @@ uint16_t pic_get_isr(void)
   }
 
 
+void eoi2(uint8_t irq){
+  if (irq >= 8)
+    OS::outb(PIC2_COMMAND,PIC_EOI);
+  OS::outb(PIC1_COMMAND,PIC_EOI);
+}
+
+
+
+
 /** Default IRQ Handler
  */
 #define IRQ_HANDLER(I)                                          \
   void irq_##I##_handler(){                                     \
     irq_pending |=  (1 << (I-IRQ_BASE));                        \
     printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);       \
-    eoi(I);                                            \
   }
 
-
+//eoi(I-IRQ_BASE);                              
+  
 
   /*
     Macro magic to register default gates

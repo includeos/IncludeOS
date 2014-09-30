@@ -59,18 +59,16 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
 
 
-  auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
+  //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
   //IRQ_handler::subscribe(irq(),del);
   //IRQ_handler::enable_irq(irq());
   
-  IRQ_handler::subscribe(1,del);
-  IRQ_handler::enable_irq(1);
+  //IRQ_handler::subscribe(1,del);
+  //IRQ_handler::enable_irq(1);
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
   // Done
-  printf("\n >> Driver initialization complete \n\n");
-  
-  __asm__("int $80");
-  
+  printf("\n >> Driver initialization complete. \n\n");
+    
 };  
 
 void VirtioNet::irq_handler(){
@@ -81,5 +79,7 @@ void VirtioNet::irq_handler(){
   get_config(&_conf,sizeof(config));
 
   printf("New status: 0x%x \n",_conf.status);
+  
+  eoi(irq());
   
 }
