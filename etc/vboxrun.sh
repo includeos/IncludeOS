@@ -34,9 +34,16 @@
 # 
 # 3. Make your changes, and repeat 1.
 
+
 export VM_NAME="IncludeOS_test1"
 export DISK_RAW="./IncludeOS_tests.img"
 export DISK="./IncludeOS_tests.img.vdi"
+
+if [ "$1" != "" ]
+then
+    export DISK=$1
+fi
+
 export UUID="4c29f994-ce59-4ddf-ba6b-46bcff01c321"
 export SERIAL_FILE="~/serial_virtualbox.out"
 
@@ -44,7 +51,6 @@ export SERIAL_FILE="~/serial_virtualbox.out"
 export vbox="VBoxManage"
 echo `ls *.vdi`
 
-# We're 
 # Convert the image, keeping the UUID intact
 #$vbox convertfromraw $DISK_RAW $DISK --uuid $UUID
 
