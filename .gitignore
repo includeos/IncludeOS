@@ -1,4 +1,5 @@
 *~
+*.a
 *.o
 *.out
 *.log
@@ -9,3 +10,6 @@
 *.tmp
 *.d
 nbproject
+
+src/bootloader
+src/TAGS
