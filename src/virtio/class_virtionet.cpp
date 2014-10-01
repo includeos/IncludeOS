@@ -8,7 +8,7 @@ const mac_t& VirtioNet::mac(){ return _conf.mac; }
 const char* VirtioNet::mac_str(){ return _mac_str; }
 
 VirtioNet::VirtioNet(PCI_Device* d)
-  : Virtio(d)
+  : Virtio(d),rx_q(256),tx_q(256)
 {
 
   

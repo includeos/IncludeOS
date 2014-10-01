@@ -24,8 +24,8 @@ class VirtioNet : Virtio {
 
   PCI_Device* dev;
   
-  Virtio::Queue& rx_q;
-  Virtio::Queue& tx_q;
+  const Virtio::Queue& rx_q;
+  const Virtio::Queue& tx_q;
   
   // From Virtio 1.01, 5.1.4
   struct config{

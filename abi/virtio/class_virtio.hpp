@@ -27,6 +27,7 @@ public:
     typedef uint16_t le16;
     typedef uint16_t u16;
     typedef uint8_t u8;
+
     
     /** Virtio Ring Descriptor. Virtio std. §2.4.5  */
     struct virtq_desc { 
@@ -53,7 +54,7 @@ public:
 #define VIRTQ_AVAIL_F_NO_INTERRUPT      1 
       le16 flags; 
       le16 idx; 
-      le16 ring[ /* Queue Size */ ]; 
+      le16 ring[/* Queue Size */];  
       le16 used_event; /* Only if VIRTIO_F_EVENT_IDX */ 
     };
     
@@ -83,23 +84,22 @@ public:
       virtq_desc* desc;// [ /* Queue Size*/  ]; 
       
       // A ring of available descriptor heads with free-running index. 
-      struct virtq_avail avail; 
+      virtq_avail* avail; 
       
       // Padding to the next PAGE_SIZE boundary. 
       u8 pad[ /* Padding */ ]; 
  
       // A ring of used descriptor heads with free-running index. 
-      struct virtq_used used; 
+      virtq_used* used; 
     };
     
     /** Virtque size calculation. Virtio std. §2.4.2 */
-#define ALIGN(x) (((x) + PAGE_SIZE) & PAGE_SIZE) 
     static inline unsigned virtq_size(unsigned int qsz);
     
     //Actual size in bytes - virtq_size(size)
-    int _size;
+    int _size_bytes;
     virtq* _queue;
-    void init_queue(int size);
+    void init_queue(int size, void* buf);
   public:
     Queue(int size);
   };
