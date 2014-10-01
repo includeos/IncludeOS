@@ -1,6 +1,13 @@
 #include <os>
 #include <class_dev.hpp>
 
+/** Example VGA code. 
+
+    The VGA functions are fetched from OSDEV
+    Link: http://wiki.osdev.org/Bare_Bones
+    License: Assumed to be BSD / Public domain.
+*/
+
 enum vga_color
   {
     COLOR_BLACK = 0,
@@ -99,13 +106,6 @@ void terminal_writestring(const char* data)
 
 void Service::start(){
   printf("\n *** Service is up - with OS Included! *** \n");
-  
-  auto eth1=Dev::eth(0);
-  //auto eth2=Dev::eth<VirtioNet>(1);
-  
-  printf("Using ethernet device: %s \n", eth1.name());
-
-  printf("Mac: %s \n",eth1.mac_str());
   
   printf("Testing video memory \n");
   
