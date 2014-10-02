@@ -2,6 +2,7 @@
 #include <syscalls.hpp>
 #include <virtio/virtio.h>
 #include <class_irq_handler.hpp>
+#include <assert.h>
 
 void Virtio::set_irq(){
   
@@ -13,20 +14,44 @@ void Virtio::set_irq(){
   
 }
 
+
 Virtio::Virtio(PCI_Device* dev)
-  : _pcidev(*dev)
+  : _pcidev(*dev), _virtio_device_id(dev->product_id() + 0x1040)
 {
   printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
   
-  if(_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
+  /** PCI Device discovery. Virtio std. §4.1.2 */
+  
+  // Match vendor ID and Device ID : §4.1.2.2
+  if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
-  
-  
   printf("\t [x] Vendor ID is VIRTIO \n");
+  
+  bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
+  bool _LEGACY_ID = _pcidev.product_id() >= 0x1000 
+    and _pcidev.product_id() <= 0x103f;
+  
+  printf("\t [%s] Device ID 0x%x is in a valid range (%s)\n",
+          _STD_ID or _LEGACY_ID ? "x" : " ",
+         _pcidev.product_id(), _STD_ID ? ">= Virtio 1.0" : 
+         (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+    
+  assert(_STD_ID or _LEGACY_ID);
+  
+  // Match Device revision ID. Virtio Std. §4.1.2.2
+  bool rev_id_ok = ((_LEGACY_ID and _pcidev.rev_id() == 0) or
+                    (_STD_ID and _pcidev.rev_id() > 0));
+    
+  
+  printf("\t [%s] Device Revision ID (0x%x) supported. \n",
+         rev_id_ok and version_supported(_pcidev.rev_id()) ? "x" 
+         : " ",_pcidev.rev_id());
+  
+  assert(rev_id_ok); // We'll try to continue if it's newer than supported.
   
   //Fetch IRQ from PCI resource
   set_irq();
-  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [0] NO IRQ on device \n",_irq);
+  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
 
   _pcidev.probe_resources();
   _iobase=_pcidev.iobase();
@@ -35,15 +60,18 @@ Virtio::Virtio(PCI_Device* dev)
          "\n [ ] NO I/O Base on device \n",_iobase);
 
 
+  //@note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
   uint32_t queue_size = inpd(_iobase + 0x0C);
   
   printf(queue_size > 0 and queue_size != PCI_WTF ?
          "\t [x] Queue Size : 0x%lx \n" :
          "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size);
 
-  // Do stuf in the order described in Virtio standard v.1, sect. 3.1:
+
+  // Do stuff in the order described in Virtio standard v.1, sect. 3.1:
+  // ...Points 1-6. 
   
-  // 1. Reset
+  // 1. Reset device
   reset();
   printf("\t [*] Reset device \n");
   

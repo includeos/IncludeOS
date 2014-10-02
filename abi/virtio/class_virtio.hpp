@@ -139,7 +139,20 @@ public:
    
       Will notify the host (Qemu/Virtualbox etc.) about pending data  */
   inline void kick();
+
+
+  /** Indicate which Virtio version (PCI revision ID) is supported. 
+      
+      Currently only Legacy is supported (partially the 1.0 standard)
+   */
+  static inline bool version_supported(uint16_t i) { return i <= 0; }
+
   
+  /** Virtio device constructor. 
+      
+      Should conform to Virtio std. §3.1.1, steps 1-6  
+      (Step 7 is "Device specific" which a subclass will handle)
+  */
   Virtio(PCI_Device* pci);
 
 private:
@@ -148,9 +161,15 @@ private:
   
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase;  
+  
   uint8_t _irq = 0;
   uint32_t _features;
-
+  uint16_t _virtio_device_id;
+  
+  // Indicate if virtio device ID is legacy or standard
+  bool _LEGACY_ID = 0;
+  bool _STD_ID = 0;
+  
   void set_irq();
 
   //TEST

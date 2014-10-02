@@ -12,15 +12,26 @@
 //Private constructor; only called if "Create" finds a device on this addr.
 
 
-
-static const char* classcodes[]={
-  "Too-Old-To-Tell",
-  "Mass Storage Controller",
-  "Network Controller",
-  "Display Controller",
-  "Multimedia Controller",
-  "Memory Controller",
-  "Bridge",
+#define NUM_CLASSCODES 19
+static const char* classcodes[NUM_CLASSCODES]={
+  "Too-Old-To-Tell",           // 0
+  "Mass Storage Controller",   // 1
+  "Network Controller",        // 2
+  "Display Controller",        // 3
+  "Multimedia Controller",     // 4
+  "Memory Controller",         // 5
+  "Bridge",                    // 6
+  "Simple communications controllers",
+  "Base system peripherals",   // 8
+  "Inupt device",              // 9
+  "Docking Station",
+  "Processor",
+  "Serial Bus Controller",
+  "Wireless Controller",
+  "Intelligent I/O Controller",
+  "Satellite Communication Controller", // 15
+  "Encryption/Decryption Controller",   // 16
+  "Data Acquisition and Signal Processing Controller",  // 17
   NULL
 };
 
@@ -153,7 +164,10 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
     
     break;
   default:
-    printf("\t +--+ %s \n",classcodes[devtype_.classcode]);
+    if (devtype_.classcode < NUM_CLASSCODES)
+      printf("\t +--+ %s \n",classcodes[devtype_.classcode]);
+    else printf("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
+      
   }
 
   

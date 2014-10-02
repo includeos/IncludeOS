@@ -205,10 +205,15 @@ public:
   /** Get the pci class code. */
   inline classcode_t classcode() 
   { return static_cast<classcode_t>(devtype_.classcode); }
+  
+  inline uint16_t rev_id(){ return devtype_.rev_id; }
 
-  /** Get the pci vendor id */
+  
+  /** Get the pci  vendor- and product id */
   inline uint16_t vendor_id() { return device_id_.vendor; }
-
+  inline uint16_t product_id() { return device_id_.product; }
+  
+  
   /** Parse all Base Address Registers (BAR's)
       
       Used to determine how to communicate with the device. 
