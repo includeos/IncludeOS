@@ -20,9 +20,12 @@ Virtio::Virtio(PCI_Device* dev)
 {
   printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
   
-  /** PCI Device discovery. Virtio std. §4.1.2 */
+
+  /** PCI Device discovery. Virtio std. §4.1.2  */
   
-  // Match vendor ID and Device ID : §4.1.2.2
+  /** 
+      Match vendor ID and Device ID : §4.1.2.2 
+  */
   if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
   printf("\t [x] Vendor ID is VIRTIO \n");
@@ -38,7 +41,9 @@ Virtio::Virtio(PCI_Device* dev)
     
   assert(_STD_ID or _LEGACY_ID);
   
-  // Match Device revision ID. Virtio Std. §4.1.2.2
+  /** 
+      Match Device revision ID. Virtio Std. §4.1.2.2 
+  */
   bool rev_id_ok = ((_LEGACY_ID and _pcidev.rev_id() == 0) or
                     (_STD_ID and _pcidev.rev_id() > 0));
     
@@ -49,45 +54,59 @@ Virtio::Virtio(PCI_Device* dev)
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
   
-  //Fetch IRQ from PCI resource
-  set_irq();
-  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
-
-  _pcidev.probe_resources();
-  _iobase=_pcidev.iobase();
-
-  printf(_irq ? "\t [x] Unit I/O base 0x%lx \n " : 
-         "\n [ ] NO I/O Base on device \n",_iobase);
-
-
-  //@note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
-  uint32_t queue_size = inpd(_iobase + 0x0C);
-  
-  printf(queue_size > 0 and queue_size != PCI_WTF ?
-         "\t [x] Queue Size : 0x%lx \n" :
-         "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size);
-
-
-  // Do stuff in the order described in Virtio standard v.1, sect. 3.1:
-  // ...Points 1-6. 
+    
+  /** Device initialization. Virtio Std. v.1, sect. 3.1: */
   
   // 1. Reset device
   reset();
   printf("\t [*] Reset device \n");
   
-  // 2. Set driver status bit
-  // TODO
+  // 2. Set ACKNOWLEGE status bit, and
+  // 3. Set DRIVER status bit
+  outp(_iobase + VIRTIO_PCI_STATUS, 
+       inp(_iobase + VIRTIO_PCI_STATUS) | 
+       VIRTIO_CONFIG_S_ACKNOWLEDGE | 
+       VIRTIO_CONFIG_S_DRIVER);
+
+  // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
+  // 4. Negotiate features (Read, write, read)
+  //    => In the subclass (i.e. Only the Nic driver knows if it wants a mac)  
+  // 5. @todo IF >= Virtio 1.0, set FEATURES_OK status bit 
+  // 6. @todo IF >= Virtio 1.0, Re-read Device Status to ensure features are OK  
+  // 7. Device specifig setup. 
   
-  negotiate_features(0);
-  printf("\t [*] Negotiate features \n");
+  // Where the standard isn't clear, we'll do our best to separate work 
+  // between this class and subclasses.
+  
+  
+  _pcidev.probe_resources();
+  _iobase=_pcidev.iobase();
+
+  printf(_iobase ? "\t [x] Unit I/O base 0x%lx \n " : 
+         "\t [ ] NO I/O Base on device \n",_iobase);
+  
+  
+  //Fetch IRQ from PCI resource
+  set_irq();
+  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
+  
+
   enable_irq_handler();
   printf("\t [*] Enable IRQ Handler \n");
+
   
   printf("\n  >> Virtio initialization complete \n\n");
   
+  // It would be nice if we new that all queues were the same size. 
+  // Then we could pass this size on to the device-specific constructor
+  // But, it seems there aren't any guarantees in the standard.
   
-  //OSdev lists this as a status field, but Ringaard does not.
-  //uint32_t status1 = inpd(_iobase + 0x12);
+  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
+  // uint32_t queue_size = inpd(_iobase + 0x0C);
+  
+  /* printf(queue_size > 0 and queue_size != PCI_WTF ?
+         "\t [x] Queue Size : 0x%lx \n" :
+         "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */  
   
 }
 
@@ -103,11 +122,16 @@ void Virtio::reset(){
   outp(_iobase + VIRTIO_PCI_STATUS, 0);
 }
 
-void Virtio::sig_driver_found(){
-  outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
-
+uint32_t Virtio::queue_size(uint16_t index){  
+  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  return inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
+bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
+  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, queue_desc);
+  return inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == queue_desc;
+}
 
 uint32_t Virtio::probe_features(){
   return inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
@@ -120,8 +144,10 @@ void Virtio::negotiate_features(uint32_t features){
   _features = probe_features();
 }
 
-
-
+void Virtio::setup_complete(bool ok){
+  uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
+  outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | status);
+}
 
 
 

@@ -55,7 +55,7 @@ public:
       le16 flags; 
       le16 idx; 
       le16 ring[/* Queue Size */];  
-      le16 used_event; /* Only if VIRTIO_F_EVENT_IDX */ 
+      /*le16 used_event;  Only if VIRTIO_F_EVENT_IDX */ 
     };
     
     
@@ -74,7 +74,7 @@ public:
       le16 flags; 
       le16 idx; 
       struct virtq_used_elem ring[ /* Queue Size */]; 
-      le16 avail_event; /* Only if VIRTIO_F_EVENT_IDX */ 
+       /*le16 avail_event; Only if VIRTIO_F_EVENT_IDX */ 
     }; 
     
     
@@ -96,12 +96,31 @@ public:
     /** Virtque size calculation. Virtio std. §2.4.2 */
     static inline unsigned virtq_size(unsigned int qsz);
     
+    // The size as read from the PCI device
+    int _size;
+    
     //Actual size in bytes - virtq_size(size)
     int _size_bytes;
-    virtq* _queue;
+    
+    int num_free;
+    int free_head;
+    int num_added;
+    int last_used_idx;
+    int pci_index;
+    void **data;
+    
+    // The actual queue struct
+    virtq _queue;
+    
+    /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
+    
   public:
-    Queue(int size);
+    Queue(uint16_t size);
+    virtq_desc* queue_desc() const { return _queue.desc; }
+    
+    /** Notify the queue of IRQ */
+    void notify();
   };
   
 
@@ -116,9 +135,6 @@ public:
   /** Reset the virtio device */
   void reset();
   
-  /** Signal "Driver found" */
-  void sig_driver_found();
-
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
   
@@ -130,10 +146,19 @@ public:
   uint32_t probe_features();
   
   /** Get locally stored features */
-  uint32_t features();
+  inline uint32_t features(){ return _features; };
   
   /** Get iobase. Wrapper around PCI_Device::iobase */
   inline uint32_t iobase(){ return _iobase; }
+
+  /** Get queue size. @param index - the Virtio queue index */
+  uint32_t queue_size(uint16_t index);      
+  
+  /** Assign a queue descriptor to a PCI queue index */
+  bool assign_queue(uint16_t index, uint32_t queue_desc);
+  
+  /** Tell Virtio device if we're OK or not. Virtio Std. § 3.1.1,step 8*/
+  void setup_complete(bool ok);
 
   /** Kick hypervisor.
    
