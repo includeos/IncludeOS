@@ -92,8 +92,9 @@ void eoi2(uint8_t irq){
 #define IRQ_HANDLER(I)                                          \
   void irq_##I##_handler(){                                     \
     irq_pending |=  (1 << (I-IRQ_BASE));                        \
-    printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);       \
   }
+
+    //printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
 
 //eoi(I-IRQ_BASE);                              
   

@@ -127,9 +127,10 @@ uint32_t Virtio::queue_size(uint16_t index){
   return inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
+#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)  
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, queue_desc);
+  outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
   return inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == queue_desc;
 }
 
@@ -139,9 +140,13 @@ uint32_t Virtio::probe_features(){
 
 void Virtio::negotiate_features(uint32_t features){
   _features = inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
-  _features &= features;
+  //_features &= features; SanOS just adds features
+  _features = features;
+  printf("Wanted features: 0x%lx \n",_features);
   outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
+  printf("Got features: 0x%lx \n",_features);
+
 }
 
 void Virtio::setup_complete(bool ok){
@@ -175,6 +180,7 @@ void Virtio::enable_irq_handler(){
   IRQ_handler::subscribe(_irq,del);
   
   IRQ_handler::enable_irq(_irq);
+  
   
 }
 

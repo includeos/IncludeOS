@@ -1,18 +1,34 @@
 /**  
-     STANDARD:      
+     @note A lot of this stuff is taken from SanOS, (C) Michael Ringgaard. 
+     
+     All due respect.
+     
+     STANDARD:
+     
+     We're aiming to become standards compilant according to this one:
+     
      Virtio 1.0, OASIS Committee Specification Draft 03
      (http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
      
-     In the following abbreviated to Virtio 1.03 or Virtio std.
+     In the following abbreviated to Virtio 1.03 or Virtio std.          
 */
 
 #ifndef CLASS_VIRTIO_HPP
 #define CLASS_VIRTIO_HPP
 #include <class_pci_device.hpp>
-
+//#include <virtio/virtio.h>
 
 #define PAGE_SIZE 4096
 
+#define VIRTIO_F_VERSION_1 32
+
+
+struct scatterlist;
+/** A simple scatter-gather list used for Queue::enqueue. 
+struct scatterlist {
+  void* data;
+  int size;
+};*/
 
 //#include <class_irq_handler.hpp>
 class Virtio{
@@ -97,30 +113,59 @@ public:
     static inline unsigned virtq_size(unsigned int qsz);
     
     // The size as read from the PCI device
-    int _size;
+    uint16_t _size;
     
-    //Actual size in bytes - virtq_size(size)
-    int _size_bytes;
+    // Actual size in bytes - virtq_size(size)
+    uint32_t _size_bytes;    
     
-    int num_free;
-    int free_head;
-    int num_added;
-    int last_used_idx;
-    int pci_index;
-    void **data;
+    uint16_t _iobase;
+    uint16_t _num_free;
+    uint16_t _free_head;
+    uint16_t _num_added;
+    uint16_t _last_used_idx;
+    uint16_t _pci_index;
+    void **_data;
     
     // The actual queue struct
     virtq _queue;
     
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
-    
+        
   public:
-    Queue(uint16_t size);
-    virtq_desc* queue_desc() const { return _queue.desc; }
+    /** Kick hypervisor.
+      
+        Will notify the host (Qemu/Virtualbox etc.) about pending data  */
+    void kick();
+
+    /** Constructor. @param size shuld be fetched from PCI device. */
+    Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
     
+    /** Get the queue descriptor. To be written to the Virtio device. */
+    virtq_desc* queue_desc() const { return _queue.desc; }
+        
     /** Notify the queue of IRQ */
     void notify();
+    
+    /** Push data tokens onto the queue. 
+        @param sg : A scatterlist of tokens
+        @param out : The number of outbound tokens (device-readable - TX)
+        @param in : The number of tokens to be inbound (device-writable RX)
+    */
+    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data));
+    
+    /** Dequeue a received packet. From SanOS */
+    void* dequeue(uint32_t* len);
+    
+
+    
+    
+    void release(uint32_t head);
+
+    
+
+    inline uint16_t size(){ return _size; };
+    
   };
   
 
@@ -159,11 +204,6 @@ public:
   
   /** Tell Virtio device if we're OK or not. Virtio Std. § 3.1.1,step 8*/
   void setup_complete(bool ok);
-
-  /** Kick hypervisor.
-   
-      Will notify the host (Qemu/Virtualbox etc.) about pending data  */
-  inline void kick();
 
 
   /** Indicate which Virtio version (PCI revision ID) is supported. 

@@ -113,7 +113,7 @@ struct virtionet
   dev_t devno;
 };
 
-/*
+
 static int add_receive_buffer(struct virtionet *vnet)
 {
   struct virtio_net_hdr *hdr;
@@ -198,7 +198,7 @@ int virtionet_detach(struct dev *dev)
   return 0;
 }
 
-/*
+
 int virtionet_transmit(struct dev *dev, struct pbuf *p)
 {
   struct virtionet *vnet = (virtionet*)dev->privdata;

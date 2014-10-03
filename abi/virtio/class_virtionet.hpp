@@ -85,25 +85,48 @@
 #define VIRTIO_NET_S_ANNOUNCE 2
 
 
+#define MTUSIZE 1514
+
 /** Virtio-net device driver.  */
 class VirtioNet : Virtio {
+  
+  struct virtio_net_hdr
+  {
+    uint8_t flags;
+    uint8_t gso_type;
+    uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
+    uint16_t gso_size;         // Bytes to append to hdr_len per frame
+    uint16_t csum_start;       // Position to start checksumming from
+    uint16_t csum_offset;      // Offset after that to place checksum
+    uint16_t num_buffers;
+  };
+  
 
   PCI_Device* dev;
   
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
+  Virtio::Queue ctrl_q;
   
   // From Virtio 1.01, 5.1.4
   struct config{
     mac_t mac = {0};
     uint16_t status;
+    
+    //Only valid if VIRTIO_NET_F_MQ
+    uint16_t max_virtq_pairs = 0; 
   }_conf;
   
+  //sizeof(config) if VIRTIO_NET_F_MQ, else sizeof(config) - sizeof(uint16_t)
+  int _config_length = sizeof(config);
+  
+  void get_config();
+
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;
   
   void irq_handler();
-
+  int add_receive_buffer();
   
 public: 
   const char* name();  
