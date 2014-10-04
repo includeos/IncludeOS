@@ -72,11 +72,11 @@ void OS::start(){
   __asm__("cli");  
   IRQ_handler::init();
   Dev::init();  
-  __asm__("sti");
   
   //Everything is ready
   Service::start();
   
+  __asm__("sti");
   halt();
 };
 
@@ -87,14 +87,13 @@ extern "C" void halt_loop(){
 void OS::halt(){
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
-  while(power){    
-    __asm__ volatile("hlt;");
-    printf("OS Woke up! \n");
-    
+  while(power){        
     //DEBUG Disable interrupts while notifying
     //__asm__ volatile("cli");
     IRQ_handler::notify(); 
     //__asm__ volatile("sti");
+    __asm__ volatile("hlt;");
+    printf("OS Woke up! \n");
   }
 }
 

@@ -1,6 +1,7 @@
 #include <os>
 #include <class_irq_handler.hpp>
 #include "hw/pic.h"
+#include <assert.h>
 
 #define IRQ_BASE 32
 
@@ -84,14 +85,28 @@ void eoi2(uint8_t irq){
   OS::outb(PIC1_COMMAND,PIC_EOI);
 }
 
+/** Atomically increment i.  */
+inline void ainc(uint32_t& i){
+  __asm__ volatile ("LOCK incl (%0)"::"r"(&i));
+}
 
+/** Atomically decrement i. */
+inline void adec(uint32_t& i){
+  __asm__ volatile ("LOCK decl (%0)"::"r"(&i));
+}
 
 
 /** Default IRQ Handler
+    - Set pending flag
+    - Increment counter
  */
+static uint32_t __irqueues[256]{0};
 #define IRQ_HANDLER(I)                                          \
   void irq_##I##_handler(){                                     \
     irq_pending |=  (1 << (I-IRQ_BASE));                        \
+    ainc(__irqueues[I-IRQ_BASE]);                               \
+    printf("<IRQ !> IRQ %i. Pending: 0x%lx. Count: %li\n",I,    \
+           irq_pending,__irqueues[I-IRQ_BASE]);                 \
   }
 
     //printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
@@ -206,6 +221,21 @@ void IRQ_handler::init(){
   
   //Test zero-division exception
   //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
+
+  //TEST Atomic increment
+  uint32_t i=0;
+  ainc(i);
+  ainc(i);
+  ainc(i);
+  printf("ATOMIC Increment 3 times: %li \n",i);
+  assert(i==3);
+  adec(i);
+  adec(i);
+  adec(i);
+  printf("ATOMIC Decrement 3 times: %li \n",i);
+  assert(i==0);
+  printf("ATOMIC Decrement 3 times: %li \n",i);
+
 };
 
 //A union to be able to extract the lower and upper part of an address
@@ -292,9 +322,9 @@ void IRQ_handler::notify(){
   int irq = 0;
     
   if(irq_pending){
-    printf("<Notify> IRQ's pending: 0x%lx\n",irq_pending);  
-    printf("<Notify> subscriptions: 0x%lx\n",irq_subscriptions);
-    printf("<Notify> IRQ to notify: 0x%lx\n",todo);
+    printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
+    printf("             subscriptions: 0x%lx\n",irq_subscriptions);
+    printf("             IRQ to notify: 0x%lx\n",todo);
   }
   
   while(todo){
@@ -302,11 +332,17 @@ void IRQ_handler::notify(){
     irq = bsr(todo);    
     
     // Notify
+    printf("__irqueue Count: %li \n",__irqueues[irq]);
     irq_delegates[irq]();
     
-    // Remove the IRQ from pending list
-    irq_pending &= ~(1 << irq);
+    // Decrement the counter
+    adec(__irqueues[irq]);
     
+    if (!__irqueues[irq]) {
+        // Remove the IRQ from pending list      
+        irq_pending &= ~(1 << irq);
+        printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
+    }
     // Find remaining IRQ's both pending and subscribed to
     todo = irq_subscriptions & irq_pending;    
   }
@@ -325,7 +361,7 @@ void irq_default_handler(){
   uint16_t isr=pic_get_isr();
   //uint16_t irr=pic_get_irr(); //IRR would give us more than we want
   
-  printf("\n <!!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x \n",isr,bsr(isr));  
+  printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x \n",isr,bsr(isr));  
   IRQ_handler::eoi(bsr(isr));
   
 }  
