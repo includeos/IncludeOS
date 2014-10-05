@@ -1,9 +1,11 @@
 #include <os>
 #include <class_dev.hpp>
 
-void sse_testing();
+#include <assert.h>
+#include <stdio.h>
 
-void Service::start(){
+void Service::start()
+{
   printf("\n *** Service is up - with OS Included! *** \n");
   
   auto eth1=Dev::eth(0);
@@ -15,4 +17,3 @@ void Service::start(){
   
   printf("Service out! \n");
 }
-

@@ -1,0 +1,10 @@
+#ifndef _ICXXABI_HPP
+#define _ICXXABI_HPP
+
+////////////////////////////////
+// See:                       //
+// http://wiki.osdev.org/C++  //
+////////////////////////////////
+
+
+#endif
