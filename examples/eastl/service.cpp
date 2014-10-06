@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
+
+#include <functional>
 
 class TestStream
 {
@@ -18,6 +21,18 @@ std::ostream& operator << (std::ostream& out, const TestStream&)
 	return out << std::string("Test Stream");
 }
 TestStream testStream;
+
+struct PrintNum
+{
+    void operator()(int i) const
+    {
+        std::cout << i << std::endl;
+    }
+};
+void testFunction()
+{
+	std::cout << "called void testFunction()" << std::endl;
+}
 
 void Service::start()
 {
@@ -43,6 +58,16 @@ void Service::start()
 	
 	std::cin >> str;
 	std::cout << "You wrote: " << str << std::endl;
+	
+	std::function<void()> 
+	testLambda = []
+	{
+		std::cout << "std::function<void()> testLambda" << std::endl;
+	};
+	testLambda();
+	
+	std::function<void()> test = testFunction;
+	test();
 	
 	std::cout << "Service out!" << std::endl;
 }

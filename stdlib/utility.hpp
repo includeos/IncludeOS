@@ -17,6 +17,15 @@ namespace std
 		return static_cast<T&&>(u);
 	}
 	
+	// std::swap
+	template <class T>
+	inline void swap(T& t1, T& t2)
+	{
+		T t3 = t1;
+		t1 = t2;
+		t2 = t3;
+	}
+	
 }
 
 #endif

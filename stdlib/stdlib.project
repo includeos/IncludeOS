@@ -153,6 +153,9 @@
     <File Name="utility.hpp"/>
     <File Name="iostream.hpp"/>
     <File Name="vector"/>
+    <File Name="functional.hpp"/>
+    <File Name="functional"/>
+    <File Name="memory.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
