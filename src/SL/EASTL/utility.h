@@ -38,7 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <EASTL/internal/config.h>
-#include <utility.h>
+#include <utility.hpp>
 
 #ifdef _MSC_VER
     #pragma warning(push)           // VC++ generates a bogus warning that you cannot code away.

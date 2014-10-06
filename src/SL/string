@@ -1,0 +1,10 @@
+#ifndef STD_STRING_HEADER
+#define STD_STRING_HEADER
+
+#include "EASTL/string.h"
+namespace std
+{
+	using string = eastl::string;
+}
+
+#endif

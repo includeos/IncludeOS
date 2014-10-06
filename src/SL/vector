@@ -1,0 +1,11 @@
+#ifndef STD_VECTOR_HEADER
+#define STD_VECTOR_HEADER
+
+#include "EASTL/vector.h"
+namespace std
+{
+	template <class T>
+	using vector = eastl::vector<T>;
+}
+
+#endif

@@ -104,7 +104,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EASTL_ALGORITHM_H
 #define EASTL_ALGORITHM_H
 
-
 #include <EASTL/internal/config.h>
 #include <EASTL/utility.h>
 #include <EASTL/iterator.h>
@@ -116,15 +115,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #pragma warning(push, 0)
 #endif
 #include <stddef.h>
-#ifdef __MWERKS__
-    #include <../Include/string.h> // Force the compiler to use the std lib header.
-#else
-    #include <string.h> // memcpy, memcmp, memmove
-#endif
+#include <string.h> // memcpy, memcmp, memmove
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // min/max workaround
@@ -505,15 +499,15 @@ namespace eastl
     template <typename T>
     inline void swap(T& a, T& b)
     {
-#ifdef EA_COMPILER_HAS_MOVE_SEMANTICS
+/*#ifdef EA_COMPILER_HAS_MOVE_SEMANTICS
         T temp = std::move(a);
         a = std::move(b);
         b = std::move(temp);
-#else
+#else*/
         T temp(a);
         a = b;
         b = temp;
-#endif
+//#endif
     }
 
 
