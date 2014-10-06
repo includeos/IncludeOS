@@ -28,14 +28,16 @@ void OS::start()
   //Everything is ready
   Service::start();
   
-  eastl::vector<int> vec;
-  vec.resize(500);
-  vec[499] = 500;
-  
-  printf("Vector[499] = %d, ", vec[499]);
-  vec.resize(1);
-  vec[0] = 500;
-  printf("Vector[0] = %d\n", vec[0]);
+  ;{
+	eastl::vector<int> vec;
+	vec.resize(500);
+	vec[499] = 500;
+	
+	printf("Vector[499] = %d, ", vec[499]);
+	vec.resize(1);
+	vec[0] = 500;
+	printf("Vector[0] = %d\n", vec[0]);
+  }
   
   __asm__("sti");
   halt();
