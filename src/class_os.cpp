@@ -54,7 +54,7 @@ void OS::halt(){
     IRQ_handler::notify(); 
     //__asm__ volatile("sti");
     __asm__ volatile("hlt;");
-    printf("OS Woke up! \n");
+    printf("<OS> Woke up! \n");
   }
 }
 

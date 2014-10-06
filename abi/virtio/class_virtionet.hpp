@@ -121,6 +121,8 @@ class VirtioNet : Virtio {
   int _config_length = sizeof(config);
   
   void get_config();
+  
+  void receive_data(void* data, uint32_t len);
 
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;

@@ -160,7 +160,7 @@ int VirtioNet::add_receive_buffer(){
 void VirtioNet::irq_handler(){
 
 
-  printf("VirtioNet IRQ Handler! \n");
+  printf("<VirtioNet> handling IRQ \n");
   
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
@@ -169,19 +169,19 @@ void VirtioNet::irq_handler(){
   
   // Step 2. A)
   if (isr & 1){
-    printf("\t VIRTIO Queue acrtivity. Checking queues \n");
+    printf("\t <VirtioNet> Queue activity; checking \n");
     rx_q.notify();
     tx_q.notify();
   }
   
   // Step 2. B)
   if (isr & 2){
-    printf("\t VIRTIO Configuration change: ");
+    printf("\t <VirtioNet> Configuration change:\n");
     
     // Getting the MAC + status 
-    printf("Old status: 0x%x ",_conf.status);      
+    printf("\t             Old status: 0x%x\n",_conf.status);      
     get_config();
-    printf("New status: 0x%x \n",_conf.status);
+    printf("\t             New status: 0x%x \n",_conf.status);
   }
   
   // ISR should now be 0

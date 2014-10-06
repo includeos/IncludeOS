@@ -332,17 +332,23 @@ void IRQ_handler::notify(){
     irq = bsr(todo);    
     
     // Notify
-    printf("__irqueue Count: %li \n",__irqueues[irq]);
+    printf("<IRQ notify> __irqueue %i Count: %li \n",irq,__irqueues[irq]);
     irq_delegates[irq]();
     
     // Decrement the counter
     adec(__irqueues[irq]);
     
+    // Critical section start
+    // Spinlock? Well, we can't lock out the IRQ-handler
+    // ... and we don't have a timer interrupt so we can't do blocking locks.
     if (!__irqueues[irq]) {
-        // Remove the IRQ from pending list      
+        // Remove the IRQ from pending list            
         irq_pending &= ~(1 << irq);
         printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
     }
+    // Critical section end
+    
+
     // Find remaining IRQ's both pending and subscribed to
     todo = irq_subscriptions & irq_pending;    
   }
