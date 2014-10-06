@@ -6,7 +6,7 @@
 #include <assert.h>
 
 /** 
-    Nested Virtio Queue class inside Virtio 
+    Virtio Queue class, nested inside Virtio.
  */
 #define ALIGN(x) (((x) + PAGE_SIZE) & ~PAGE_SIZE) 
 unsigned Virtio::Queue::virtq_size(unsigned int qsz) 
@@ -52,7 +52,7 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   
   printf("\t * Chaining buffers \n");  
    // Chain buffers
-  for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
+  //for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
   
   // Allocate space for actual data tokens
   //_data = (void**) malloc(sizeof(void*) * size);
@@ -117,13 +117,12 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
 }
 
 void Virtio::Queue::release(uint32_t head){
-  unsigned int i;
   
   // Clear callback data token
   //vq->data[head] = NULL;
 
   // Put buffers back on the free list; first find the end
-  i = head;
+  uint32_t i = head;
   while (_queue.desc[i].flags & VRING_DESC_F_NEXT) 
   {
     i = _queue.desc[i].next;
@@ -197,63 +196,66 @@ char *ether2str(struct eth_addr *hwaddr, char *s) {
 }
 
 void Virtio::Queue::notify(){
-  printf("\t Queue notified. Checking buffers.... \n");
-  printf("\t Used idx: %i, Avail idx: %i \n",
+  printf("\t <VirtQueue> Notified, checking buffers.... \n");
+  printf("\t             Used idx: %i, Avail idx: %i \n",
            _queue.used->idx, _queue.avail->idx );
   
   int new_packets = _queue.used->idx - _last_used_idx;
-  if (new_packets){
-    printf("\t %i new packets: \n", new_packets);
+  if (!new_packets) return;
+  
+  printf("\t <VirtQueue> %i new packets: \n", new_packets);
     
-    // For each token
-    for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
-      auto id = _queue.used->ring[_last_used_idx % _size].id;
-      auto len = _queue.used->ring[_last_used_idx % _size].len;
-      printf("\tPacket id: 0x%lx len: 0x%lx \n",id,len);
-      
-      
+  // For each token
+  for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
+    auto id = _queue.used->ring[_last_used_idx % _size].id;
+    auto len = _queue.used->ring[_last_used_idx % _size].len;
+    printf("\t             Packet id: 0x%lx len: 0x%lx \n",id,len);
+    
+    
       // The first token should be a virtio header
-      auto chunksize =  _queue.desc[id].len;
-      assert(chunksize == sizeof(virtio_net_hdr));
-      
-      //auto addr = _queue.desc[id].addr;      
-      /** Extract the Virtio header     
-      virtio_net_hdr* hdr = (virtio_net_hdr*)addr;
-      // Print it 
-      printf("VirtioNet Header: \n"             \
-             "Flags: 0x%x \n"                   \
+    auto chunksize =  _queue.desc[id].len;
+    assert(chunksize == sizeof(virtio_net_hdr));
+    
+    //auto addr = _queue.desc[id].addr;      
+    /** Extract the Virtio header     
+        virtio_net_hdr* hdr = (virtio_net_hdr*)addr;
+        // Print it 
+        printf("VirtioNet Header: \n"           \
+        "Flags: 0x%x \n"                        \
              "GSO Type: 0x%x \n"                \
              "Header length: %i \n"             \
              "GSO Size: %i \n"                  \
              "Csum.start: %i \n"                \
              "Csum. offset: %i \n"              \
              "Num. Buffers: %i \n",
-               hdr->flags,hdr->gso_type,hdr->hdr_len,
+             hdr->flags,hdr->gso_type,hdr->hdr_len,
                hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);
-      */
-
-      // Extract the next token which should be the ethernet frame
-      if (_queue.desc[id].flags & VRING_DESC_F_NEXT){
-        auto next =  _queue.desc[id].next;
-        auto next_addr = _queue.desc[next].addr;
-        eth_hdr* eth = (eth_hdr*) next_addr;
-        
-        char addr[] = "00:00:00:00:00:00";
-        printf("Eth. Source: %s \n",ether2str(&eth->src,addr));
-        printf("Eth. Dest. : %s \n",ether2str(&eth->dest,addr));
-        printf("Eth. Type  : 0x%x\n",eth->type); 
-        
-      }else 
-        printf("!... The packet STOPS at this token \n"); 
-      
-    }
-  }
- 
+    */
+    
+    // This can't only be a header
+    assert(_queue.desc[id].flags & VRING_DESC_F_NEXT);
+    
+    // Extract the next token which should be the ethernet frame
+    auto next =  _queue.desc[id].next;
+    auto next_addr = _queue.desc[next].addr;
+    
+    handle((void*)next_addr,_queue.desc[next].len);
+    
+    /*
+    eth_hdr* eth = (eth_hdr*) next_addr;
+    
+    char addr[] = "00:00:00:00:00:00";
+    printf("\t             Eth. Source: %s \n",ether2str(&eth->src,addr));
+    printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,addr));
+    printf("\t             Eth. Type  : 0x%x\n",eth->type); 
+    */
+    
   /** DEBUG: These are the Device's available packages 
-  printf("\t Avail packet 0: %s \n",
+      printf("\t Avail packet 0: %s \n",
          (char*)_queue.desc[_queue.avail->idx].addr);
-  printf("\t Avail packet 1: %s \n",
+         printf("\t Avail packet 1: %s \n",
   (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);*/
+  }
 }
 
 

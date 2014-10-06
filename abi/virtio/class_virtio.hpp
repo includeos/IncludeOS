@@ -131,7 +131,10 @@ public:
     
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
-        
+    
+    /** Data handler - will get all the data from this queue */
+    void (&handle)(void* data,uint32_t len);
+    
   public:
     /** Kick hypervisor.
       
@@ -157,7 +160,6 @@ public:
     /** Dequeue a received packet. From SanOS */
     void* dequeue(uint32_t* len);
     
-
     
     
     void release(uint32_t head);
