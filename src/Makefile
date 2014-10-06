@@ -11,7 +11,7 @@ DEBUG_OPTS = -ggdb3
 CC  = $(OS)/bin/i686-elf-gcc 
 CPP = $(OS)/bin/i686-elf-g++ 
 LD  = $(OS)/bin/i686-elf-ld 
-INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -Iinc
+INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -ISL
 LIBS     = $(OSLIB)/lib
 
 CAPABS  = -O2 -msse3
