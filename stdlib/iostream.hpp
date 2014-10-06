@@ -36,7 +36,15 @@ namespace std
 	};
 	class istream
 	{
-		
+	public:
+		istream& operator >> (string& str)
+		{
+			char strvar[100];
+			fgets (strvar, 100, stdin);
+			
+			str = string(strvar);
+			return *this;
+		}
 	};
 	extern ostream cout;
 	extern istream cin;

@@ -41,5 +41,8 @@ void Service::start()
 	
 	std::cout << "class: " << testStream << std::endl;
 	
+	std::cin >> str;
+	std::cout << "You wrote: " << str << std::endl;
+	
 	std::cout << "Service out!" << std::endl;
 }

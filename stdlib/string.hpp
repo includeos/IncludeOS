@@ -29,14 +29,14 @@ namespace std
 	
 	inline string to_string(char c)
 	{
-		string result(6, 0);
+		string result(8, 0);
 		sprintf( (char*) result.data(), "%hhd", c);
 		
 		return result;
 	}
 	inline string to_string(unsigned char c)
 	{
-		string result(6, 0);
+		string result(8, 0);
 		sprintf( (char*) result.data(), "%hhu", c);
 		
 		return result;
@@ -44,14 +44,14 @@ namespace std
 	
 	inline string to_string(short x)
 	{
-		string result(6, 0);
+		string result(8, 0);
 		sprintf( (char*) result.data(), "%hd", x);
 		
 		return result;
 	}
 	inline string to_string(unsigned short x)
 	{
-		string result(6, 0);
+		string result(8, 0);
 		sprintf( (char*) result.data(), "%hu", x);
 		
 		return result;
@@ -98,6 +98,28 @@ namespace std
 	{
 		string result(32, 0);
 		sprintf( (char*) result.data(), "%llu", x);
+		
+		return result;
+	}
+	
+	inline string to_string(float x)
+	{
+		string result(18, 0);
+		sprintf( (char*) result.data(), "%f", x);
+		
+		return result;
+	}
+	inline string to_string(double x)
+	{
+		string result(32, 0);
+		sprintf( (char*) result.data(), "%f", x);
+		
+		return result;
+	}
+	inline string to_string(long double x)
+	{
+		string result(38, 0);
+		sprintf( (char*) result.data(), "%Lf", x);
 		
 		return result;
 	}
