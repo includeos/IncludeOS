@@ -6,11 +6,6 @@
 #include <class_dev.hpp>
 #include <class_service.hpp>
 
-//C++ stuff
-void* operator new(size_t size){
-  return malloc(size);
-  }
-
 // A private class to handle IRQ
 #include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
@@ -22,18 +17,21 @@ class global_test
 {
 public:
   static int calls;
-  global_test(){
-    calls++;
-      test_print_result("Global constructor 1 is called",
-			calls);
-    if(calls>=3)
-      test_print_result("Global constructor 1 should be called 3 times",
-			calls==3);
-      
+  
+  global_test()
+  {
+	calls++;
+	test_print_result("Global constructor 1 is called", calls);
+	if (calls >= 3)
+	{
+	  test_print_result(
+		"Global constructor 1 should be called 3 times", calls == 3);
+	}
   }
-}globtest1, globtest3,globtest4;
+  
+} globtest1, globtest3, globtest4;
 
-int global_test::calls=0;
+int global_test::calls = 0;
 
 //TODO
 class global_test2{
@@ -53,8 +51,8 @@ extern int _includeos;
 int glob1=0;
 int glob2=8888;
 
-void OS::start(){  
-
+void OS::start()
+{
   rsprint(">>> OS class started\n");
 #ifdef TESTS_H
   test_print_result("Static variables have been properly initialized",
@@ -68,7 +66,6 @@ void OS::start(){
   test_printf();
 #endif
   
-
   __asm__("cli");  
   IRQ_handler::init();
   Dev::init();  

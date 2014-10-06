@@ -13,3 +13,7 @@ nbproject
 
 src/bootloader
 src/TAGS
+
+.codelite/
+IncludeOS.project
+IncludeOS.workspace
