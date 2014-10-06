@@ -513,7 +513,7 @@ namespace eastl
     #elif defined(__MWERKS__)
         #define EASTL_CT_ASSERT(expression)  enum { EASTL_PREPROCESSOR_JOIN(EASTL_CT_ASSERT_FAILURE_, __LINE__) = sizeof(EASTL_CT_ASSERTION_FAILURE< (bool)(expression) >) }
     #else // GCC, etc.
-        #define EASTL_CT_ASSERT(expression)  typedef EASTL_CT_ASSERTION_TEST< sizeof(EASTL_CT_ASSERTION_FAILURE< (bool)(expression) >)> EASTL_PREPROCESSOR_JOIN1(EASTL_CT_ASSERT_FAILURE_, __LINE__)
+        //#define EASTL_CT_ASSERT(expression)  typedef EASTL_CT_ASSERTION_TEST< sizeof(EASTL_CT_ASSERTION_FAILURE< (bool)(expression) >)> EASTL_PREPROCESSOR_JOIN1(EASTL_CT_ASSERT_FAILURE_, __LINE__)
     #endif
 #else
     #define EASTL_CT_ASSERT(expression)

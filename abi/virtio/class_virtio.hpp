@@ -133,7 +133,8 @@ public:
     void init_queue(int size, void* buf);
     
     /** Data handler - will get all the data from this queue */
-    void (&handle)(void* data,uint32_t len);
+	// NOTE: was (&handle) uninitialized reference
+    void (*handle)(void* data,uint32_t len);
     
   public:
     /** Kick hypervisor.
