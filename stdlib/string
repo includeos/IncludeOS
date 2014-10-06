@@ -2,9 +2,6 @@
 #define STD_STRING_HEADER
 
 #include "EASTL/string.h"
-namespace std
-{
-	using string = eastl::string;
-}
+#include "string.hpp"
 
 #endif

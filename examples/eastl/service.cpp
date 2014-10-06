@@ -8,6 +8,17 @@
 #include <vector>
 #include <map>
 
+class TestStream
+{
+public:
+	friend std::ostream& operator << (std::ostream& out, const TestStream& test);
+};
+std::ostream& operator << (std::ostream& out, const TestStream&)
+{
+	return out << std::string("Test Stream");
+}
+TestStream testStream;
+
 void Service::start()
 {
 	std::cout << "*** Service is up - with OS Included! ***" << std::endl;
@@ -24,7 +35,11 @@ void Service::start()
 	std::map<int, int> testMap;
 	
 	eastl::string str("test string");
-	std::cout << str << " test number: " << 52 << std::endl;
+	std::cout << str << " int: " << 52 << " long: " << 52L << std::endl;
+	std::cout << "short: " << (short)52 << " char: " << 'C' << std::endl;
+	std::cout << "pointer: " << &str << std::endl;
+	
+	std::cout << "class: " << testStream << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
 }

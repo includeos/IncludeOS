@@ -16,9 +16,7 @@ CC  = $(OSDIR)/bin/i686-elf-gcc
 CPP = $(OSDIR)/bin/i686-elf-g++ 
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include
-
-LIBS     = $(OSLIB)/lib
+INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
@@ -32,7 +30,7 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-DIRS  = . SL
+DIRS  = .
 FILES = $(foreach dir, $(SOURCE_DIRS), $(dir)/*.cpp)
 # Full link list
 OBJS  = $(SERV_OBJS) $(FILES:.cpp=.o) crti.o crtn.o

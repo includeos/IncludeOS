@@ -2,7 +2,7 @@
 #define STD_IOSTREAM_HPP
 
 #include <stdio.h>
-#include <utility>
+#include <string>
 
 namespace std
 {
@@ -11,10 +11,10 @@ namespace std
 		endl
 	};
 	
-	class OutputStream
+	class ostream
 	{
 	public:
-		inline OutputStream& 
+		inline ostream& 
 		operator << (StreamToken token)
 		{
 			switch (token)
@@ -27,20 +27,19 @@ namespace std
 		}
 		
 		template <class T>
-		inline OutputStream& 
+		inline ostream& 
 		operator << (const T& type)
 		{
 			printf("%s", to_string(type).data());
 			return *this;
 		}
 	};
-	class InputStream
+	class istream
 	{
 		
 	};
-	extern OutputStream cout;
-	extern InputStream  cin;
-	
+	extern ostream cout;
+	extern istream cin;
 }
 
 #endif
