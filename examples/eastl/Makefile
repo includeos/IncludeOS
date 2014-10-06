@@ -3,7 +3,7 @@ SERVICE = IncludeOS_eastl
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
-SERV_OBJS = service.o
+FILES = service.cpp
 
 # Compiler/Linker
 ###################################################
@@ -30,10 +30,8 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-DIRS  = .
-FILES = $(foreach dir, $(SOURCE_DIRS), $(dir)/*.cpp)
 # Full link list
-OBJS  = $(SERV_OBJS) $(FILES:.cpp=.o) crti.o crtn.o
+OBJS  = $(FILES:.cpp=.o) crti.o crtn.o
 LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ)
 
 DEPS = $(OBJS:.o=.d)

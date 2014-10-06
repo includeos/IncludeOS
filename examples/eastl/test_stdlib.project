@@ -1,62 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="stdlib" InternalType="">
-  <VirtualDirectory Name="EASTL">
-    <VirtualDirectory Name="internal">
-      <File Name="EASTL/internal/type_pod.h"/>
-      <File Name="EASTL/internal/eastl_rw.h"/>
-      <File Name="EASTL/internal/type_fundamental.h"/>
-      <File Name="EASTL/internal/generic_iterator.h"/>
-      <File Name="EASTL/internal/red_black_tree.h"/>
-      <File Name="EASTL/internal/type_properties.h"/>
-      <File Name="EASTL/internal/config.h"/>
-      <File Name="EASTL/internal/fixed_pool.h"/>
-      <File Name="EASTL/internal/type_compound.h"/>
-      <File Name="EASTL/internal/hashtable.h"/>
-      <File Name="EASTL/internal/type_transformations.h"/>
-    </VirtualDirectory>
-    <VirtualDirectory Name="bonus">
-      <File Name="EASTL/bonus/sort_extra.h"/>
-    </VirtualDirectory>
-    <File Name="EASTL/fixed_hash_set.h"/>
-    <File Name="EASTL/fixed_allocator.h"/>
-    <File Name="EASTL/fixed_hash_map.h"/>
-    <File Name="EASTL/fixed_map.h"/>
-    <File Name="EASTL/list.h"/>
-    <File Name="EASTL/iterator.h"/>
-    <File Name="EASTL/fixed_set.h"/>
-    <File Name="EASTL/vector.h"/>
-    <File Name="EASTL/fixed_list.h"/>
-    <File Name="EASTL/hash_set.h"/>
-    <File Name="EASTL/fixed_vector.h"/>
-    <File Name="EASTL/map.h"/>
-    <File Name="EASTL/allocator.h"/>
-    <File Name="EASTL/vector_map.h"/>
-    <File Name="EASTL/string.h"/>
-    <File Name="EASTL/algorithm.h"/>
-    <File Name="EASTL/fixed_string.h"/>
-    <File Name="EASTL/bitset.h"/>
-    <File Name="EASTL/memory.h"/>
-    <File Name="EASTL/sort.h"/>
-    <File Name="EASTL/utility.h"/>
-    <File Name="EASTL/heap.h"/>
-    <File Name="EASTL/functional.h"/>
-    <File Name="EASTL/type_traits.h"/>
-    <File Name="EASTL/core_allocator_adapter.h"/>
-    <File Name="EASTL/fixed_substring.h"/>
-    <File Name="EASTL/hash_map.h"/>
-    <File Name="EASTL/set.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="EABase">
-    <VirtualDirectory Name="config">
-      <File Name="EABase/config/eacompilertraits.h"/>
-      <File Name="EABase/config/eacompiler.h"/>
-      <File Name="EABase/config/eaplatform.h"/>
-    </VirtualDirectory>
-    <File Name="EABase/eabase.h"/>
-    <File Name="EABase/earesult.h"/>
-  </VirtualDirectory>
+<CodeLite_Project Name="test_stdlib" InternalType="">
+  <Plugins>
+    <Plugin Name="CMakePlugin">
+      <![CDATA[[{
+  "name": "Debug",
+  "enabled": false,
+  "buildDirectory": "build",
+  "sourceDirectory": "$(ProjectPath)",
+  "generator": "",
+  "buildType": "",
+  "arguments": [],
+  "parentProject": ""
+ }]]]>
+    </Plugin>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
   <Description/>
   <Dependencies/>
+  <VirtualDirectory Name="eastl">
+    <File Name="Makefile"/>
+    <File Name="service.cpp"/>
+  </VirtualDirectory>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -87,12 +53,12 @@
       <CustomBuild Enabled="yes">
         <RebuildCommand/>
         <CleanCommand>make clean</CleanCommand>
-        <BuildCommand>make</BuildCommand>
+        <BuildCommand>make stripped -j4</BuildCommand>
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>
         <ThirdPartyToolName>None</ThirdPartyToolName>
-        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+        <WorkingDirectory>$(ProjectPath)</WorkingDirectory>
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
@@ -144,16 +110,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="stdlib">
-    <File Name="map"/>
-    <File Name="string"/>
-    <File Name="string.hpp"/>
-    <File Name="iostream"/>
-    <File Name="utility"/>
-    <File Name="utility.hpp"/>
-    <File Name="iostream.hpp"/>
-    <File Name="vector"/>
-  </VirtualDirectory>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>
