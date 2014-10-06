@@ -1,6 +1,12 @@
 #ifndef STD_MEMORY_HPP
 #define STD_MEMORY_HPP
 
+// 
+// From:
+// http://www.thradams.com/codeblog/sharedptr.htm
+// (but doesn't work now, so I can't attribute the code)
+// 
+
 #include "utility.hpp"
 
 namespace std
@@ -14,9 +20,10 @@ namespace std
 			shared_count(long use, long weak)
 				: use_count(use), weak_count(weak)
 			{}
+			virtual ~shared_count() {}
 			
 			virtual void call_deleter(void *) = 0;
-			virtual void * get_deleter(const type_info &) {  return 0; }
+			virtual void *get_deleter(const type_info &) {  return 0; }
 			
 			void operator ++ (int)
 			{
