@@ -68,6 +68,10 @@ void Service::start()
 {
 	std::cout << "*** Service is up - with OS Included! ***" << std::endl;
 	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::vector
+	/////////////////////////////////////////////////////////////////////////////
+	
 	std::vector<int> vec;
 	vec.resize(500);
 	vec[0] = 500;
@@ -77,7 +81,15 @@ void Service::start()
 	vec.resize(1);
 	assert(vec[0] == 500);
 	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::map
+	/////////////////////////////////////////////////////////////////////////////
+	
 	std::map<int, int> testMap;
+	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::ostream, std::istream
+	/////////////////////////////////////////////////////////////////////////////
 	
 	eastl::string str("test string");
 	std::cout << str << " int: " << 52 << " long: " << 52L << std::endl;
@@ -89,6 +101,30 @@ void Service::start()
 	std::cin >> str;
 	std::cout << "You wrote: " << str << std::endl;
 	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::function
+	/////////////////////////////////////////////////////////////////////////////
+	
+	std::function<void()> test = testFunction;
+	
+	std::cout << "calling std::function:" << std::endl;
+	test();
+	
+	/////////////////////////////////////////////////////////////////////////////
+	//// vector<std::function>
+	/////////////////////////////////////////////////////////////////////////////
+	
+	std::vector<std::function<void()>> fvec;
+	fvec.push_back(testFunction);
+	fvec.push_back(testFunction);
+	
+	std::cout << "vector[0] == " << &fvec[0] << std::endl;
+	std::cout << "vector[1] == " << &fvec[1] << std::endl;
+	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::function + lambda
+	/////////////////////////////////////////////////////////////////////////////
+	
 	std::cout << "calling std::function lambda:" << std::endl;
 	std::function<int* ()> 
 	testLambda = []
@@ -98,11 +134,9 @@ void Service::start()
 	};
 	std::cout << "result: " << testLambda() << std::endl;
 	
-	
-	std::function<void()> test = testFunction;
-	
-	std::cout << "calling std::function:" << std::endl;
-	test();
+	/////////////////////////////////////////////////////////////////////////////
+	//// signal
+	/////////////////////////////////////////////////////////////////////////////
 	
 	TestSignal testSignal;
 	testSignal.test.connect(
@@ -115,12 +149,9 @@ void Service::start()
 	std::cout << "emitting signal:" << std::endl;
 	testSignal.test.emit();
 	
-	std::vector<std::function<void()>> fvec;
-	fvec.push_back(testFunction);
-	fvec.push_back(testFunction);
-	
-	std::cout << "vector[0] == " << &fvec[0] << std::endl;
-	std::cout << "vector[1] == " << &fvec[1] << std::endl;
+	/////////////////////////////////////////////////////////////////////////////
+	//// delegate
+	/////////////////////////////////////////////////////////////////////////////
 	
 	delegate<void()> delgStatic = testFunction;
 	delegate<void()> delgDynamic = test;
@@ -131,6 +162,41 @@ void Service::start()
 	delgDynamic();
 	std::cout << "result: " << delgFunctor() << std::endl;
 	
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::shared_ptr, std::make_shared
+	/////////////////////////////////////////////////////////////////////////////
+	
+	std::cout << "creating shared pointers:" << std::endl;
+	struct Song
+	{
+		Song(std::string art, std::string tit)
+			: artist(art), title(tit) {}
+		
+		std::string artist;
+		std::string title;
+	};
+	
+	std::vector<std::shared_ptr<Song>> sv;
+	
+	sv.push_back(std::make_shared<Song>("Bob Dylan", "The Times They Are A Changing"));
+	sv.push_back(std::make_shared<Song>("Aretha Franklin", "Bridge Over Troubled Water"));
+	sv.push_back(std::make_shared<Song>("Thal�a", "Entre El Mar y Una Estrella"));
+	
+	/*std::vector<std::shared_ptr<Song>> v2;
+	std::remove_copy_if(v.begin(), v.end(), back_inserter(v2), 
+	[] (std::shared_ptr<Song> s) 
+	{
+		return s->artist.compare(L"Bob Dylan") == 0;		
+	});*/
+	
+	for (const auto& s : sv)
+	{
+		std::cout << s->artist << ":" << s->title << std::endl;
+	}
+	std::cout << "result: " << sv[0]->artist << " (usage: " << sv[0].use_count() << ")" << std::endl;
+	
+	std::shared_ptr<Song> shared2(sv[0]);
+	std::cout << "result: " << shared2->artist << " (usage: " << sv[0].use_count() << " == " << shared2.use_count() << ")" << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
 }
