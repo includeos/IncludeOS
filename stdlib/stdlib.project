@@ -158,6 +158,8 @@
     <File Name="memory.hpp"/>
     <File Name="type_traits.hpp"/>
     <File Name="tuple.hpp"/>
+    <File Name="forward.hpp"/>
+    <File Name="result_of.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>

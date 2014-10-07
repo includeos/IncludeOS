@@ -3,6 +3,8 @@
 
 namespace std
 {
+	typedef unsigned size_t;
+	
 	// helpers
 	template <typename T>
 	struct id { using type = T; };
