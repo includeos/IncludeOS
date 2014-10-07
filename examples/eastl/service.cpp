@@ -7,9 +7,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <memory>
 
-#include <functional>
+#include <tuple.hpp>
+#include <signal>
+#include <delegate>
 
 class TestStream
 {
@@ -34,8 +35,6 @@ void testFunction()
 	std::cout << "called void testFunction()" << std::endl;
 }
 
-#include <tuple.hpp>
-#include <utility>
 
 namespace std
 {
@@ -58,15 +57,12 @@ namespace std
 	};
 }
 
-#include <signal>
-
 class TestSignal
 {
 public:
 	signal<void()> test;
 };
 
-#include <delegate>
 
 void Service::start()
 {
