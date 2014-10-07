@@ -46,7 +46,7 @@ namespace std
 				deleter(p);
 			}
 			
-			void* get_deleter(const type_info &inf)
+			void* get_deleter(const type_info&)
 			{
 				//return inf == typeid(D) ? &deleter : 0;
 				return &deleter;
@@ -252,7 +252,7 @@ namespace std
 		template<class Y, class D>
 		shared_ptr(Y * p, D d)
 		{
-			try
+			/*try
 			{
 				m_pCount = new detail::shared_count_imp<T,D>(1,0, d);
 				m_p = p;
@@ -261,7 +261,10 @@ namespace std
 			{
 				d(p); //If an exception is thrown, d(p) is called.
 				throw;
-			}
+			}*/
+			m_pCount = new detail::shared_count_imp<T,D>(1,0, d);
+			m_p = p;
+			
 			assert(use_count() == 1 && get() == p);
 		}
 
@@ -400,16 +403,19 @@ namespace std
 		{
 			return get() != 0;
 		}
-
+		
 		// [2.2.3.10] shared_ptr get_deleter
-		template<class D, class T2> friend D * get_deleter(shared_ptr<T2> const& p)
+		// NOTE: DOES NOT WORK WITH -fno-rtti
+		/*template<class D, class T2>
+		friend void*
+		get_deleter(shared_ptr<T2> const& p)
 		{
 			if (!p.m_pCount)
 				return 0;
 
 			//return reinterpret_cast<D*>(p.m_pCount->get_deleter(typeid(D)));
 			return reinterpret_cast<D*>(p.m_pCount->get_deleter());
-		}
+		}*/
 	};
 
 	// [2.2.3.6] shared_ptr comparisons

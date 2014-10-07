@@ -11,10 +11,8 @@
 #ifndef OSABI_DELEGATE_HPP
 #define OSABI_DELEGATE_HPP
 
-//#include <cassert>
 #include <memory>
-//#include <new>
-//#include <type_traits>
+#include <new>
 #include <utility>
 
 template <typename T> class delegate;
