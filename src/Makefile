@@ -11,7 +11,7 @@ DEBUG_OPTS = -ggdb3
 CC  = $(OS)/bin/i686-elf-gcc 
 CPP = $(OS)/bin/i686-elf-g++ 
 LD  = $(OS)/bin/i686-elf-ld 
-INCLUDES = -I$(OSLIB)/include -I../abi/ -I./include
+INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib
 
 CAPABS  = -O2 -msse3
@@ -27,7 +27,9 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	crt/cxx_abi.o crt/string.o \
+	crt/cxx_abi.o crt/string.o crt/iostream.o crt/EASTL/allocator.o \
+	crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
+	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
 	hw/class_device.o hw/class_pci_device.o hw/pic.o \
 	class_irq_handler.o class_pci_manager.o \
 	virtio/class_virtio.o virtio/class_virtionet.o \
@@ -80,6 +82,7 @@ install: os.a
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
 	cp -r ../abi $(OS)/
+	cp -r ../stdlib $(OS)/
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 

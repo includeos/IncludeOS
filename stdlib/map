@@ -1,0 +1,11 @@
+#ifndef STD_MAP_HEADER
+#define STD_MAP_HEADER
+
+#include "EASTL/map.h"
+namespace std
+{
+	template <class R, class S>
+	using map = eastl::map<R, S>;
+}
+
+#endif

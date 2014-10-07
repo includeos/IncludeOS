@@ -1,0 +1,7 @@
+#ifndef STD_STRING_HEADER
+#define STD_STRING_HEADER
+
+#include "EASTL/string.h"
+#include "string.hpp"
+
+#endif

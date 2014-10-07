@@ -65,7 +65,7 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 /** Ported more or less directly from SanOS. */
 int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data)){
   
-  int i,avail,head,prev;
+  int i,avail,head, prev = _free_head;
   
 
   while (_num_free < out + in) //@todo wait... or something.

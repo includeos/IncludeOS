@@ -1,0 +1,6 @@
+#ifndef OSABI_DELEGATE_HEADER
+#define OSABI_DELEGATE_HEADER
+
+#include "utility/delegate.hpp"
+
+#endif
