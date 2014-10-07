@@ -1,19 +1,15 @@
 #include <os>
-#include <class_dev.hpp>
+#include <iostream>
 
-#include <assert.h>
-#include <stdio.h>
+using namespace std;
 
 void Service::start()
 {
-  printf("\n *** Service is up - with OS Included! *** \n");
-  
+  cout << "*** Service is up - with OS Included! ***" << endl;
+    
   auto eth1=Dev::eth(0);
-  //auto eth2=Dev::eth<VirtioNet>(1);
   
-  printf("Using ethernet device: %s \n", eth1.name());
-
-  printf("Mac: %s \n",eth1.mac_str());
-  
-  printf("Service out! \n");
+  cout << "Using ethernet device:" << eth1.name() << endl;  
+  cout << "Mac: " << eth1.mac_str() << endl;
+  cout << "Service out! " << endl;
 }
