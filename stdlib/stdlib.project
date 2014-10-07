@@ -157,6 +157,7 @@
     <File Name="functional"/>
     <File Name="memory.hpp"/>
     <File Name="type_traits.hpp"/>
+    <File Name="tuple.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>

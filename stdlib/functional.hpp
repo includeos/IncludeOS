@@ -6,9 +6,8 @@
 
 namespace std
 {
-	template <typename UnusedType>
-	class function;
-
+	template <typename> class function;
+	
 	template <typename ReturnType, typename... ArgumentTypes>
 	class function <ReturnType (ArgumentTypes...)>
 	{
@@ -108,72 +107,8 @@ namespace std
 		invoker_t mInvoker;
 	};
 	
-	//the Main std::bind movable replacement
-	template <typename ...P>
-	class bind
-	{
-	private:
-		//A helper class for storage and stitching params together
-		template <typename A, typename ...Args>
-		struct BindHelper : public BindHelper<Args...>
-		{
-			A a_;
-		 
-			BindHelper(A&& a, Args&& ...args) :
-				BindHelper<Args...>(std::forward<Args>(args)...),
-				a_(std::forward<A>(a))
-			{}
-		 
-			template <typename Func, typename ...InArgs>
-			void call(Func& f, InArgs && ...args)
-			{
-				BindHelper<Args...>::call(f,
-					std::forward(args)...,
-					std::move(a_));
-			}
-		};
-		 
-		//The helpers terminal case
-		template <typename A>
-		struct BindHelper<A>
-		{
-			A a_;
-			
-			BindHelper(A&& a) :
-				a_(std::forward<A>(a))
-			{}
-			
-			template <typename Func, typename ...InArgs>
-			void call(Func& f, InArgs && ...args)
-			{
-				f(std::forward<A>(args)...,
-					std::forward<A>(a_));
-			}
-		};
-		
-		typedef void (*F)(P&&...);
 	
-		F func_;
-		BindHelper<P...> help_;
-	 
-	public:
-		bind(F func, P&& ...p) :
-			func_(func),
-			help_(std::forward<P>(p)...)
-		{}
-		
-		bind(F func, P& ...p) :
-			func_(func),
-			help_(p...)
-		{}
-		 
-		~bind() {}
-		
-		void operator() ()
-		{
-			help_.call(func_);
-		}
-	};
+	
 }
 
 #endif

@@ -34,6 +34,31 @@ void testFunction()
 	std::cout << "called void testFunction()" << std::endl;
 }
 
+#include <tuple.hpp>
+#include <type_traits.hpp>
+#include <utility.hpp>
+
+namespace std
+{
+	template <typename F, typename... Args>
+	class bind
+	{
+	private:
+		std::function<F> func;
+		std::tuple<Args...> elem;
+		
+	public:
+		bind(F function, Args... args)
+			: func(function), elem(args...)
+		{}
+		
+		void operator() ()
+		{
+			//func(elem...);
+		}
+	};
+}
+
 void Service::start()
 {
 	std::cout << "*** Service is up - with OS Included! ***" << std::endl;
@@ -68,6 +93,9 @@ void Service::start()
 	
 	std::function<void()> test = testFunction;
 	test();
+	
+	auto testBind = std::bind<void()>(testFunction);
+	testBind();
 	
 	std::cout << "Service out!" << std::endl;
 }
