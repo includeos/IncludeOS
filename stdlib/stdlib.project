@@ -160,7 +160,6 @@
     <File Name="tuple.hpp"/>
     <File Name="forward.hpp"/>
     <File Name="result_of.hpp"/>
-    <File Name="signal.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
