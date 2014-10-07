@@ -66,7 +66,7 @@ public:
 	signal<void()> test;
 };
 
-//#include <delegate>
+#include <delegate>
 
 void Service::start()
 {
