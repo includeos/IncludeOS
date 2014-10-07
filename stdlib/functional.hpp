@@ -119,6 +119,28 @@ namespace std
 		invoker_t mInvoker;
 	};
 	
+	// std::hash
+	// superbad implementation
+	
+	template <class Key>
+	struct hash
+	{
+		hash() {}
+		size_t operator() (const Key& arg) noexcept
+		{
+			// computes the hash of an employee using a variant 
+			// of the Fowler-Noll-Vo hash function
+			size_t result = 2166136261;
+			
+			for (size_t i = 0; i < sizeof(arg); i += 8)
+			{
+				result = (result * 16777619) ^ ((arg >> i) & 255);
+			}
+			
+			return result ^ (arg << 1);
+		}
+	};
+	
 }
 
 template <class F>

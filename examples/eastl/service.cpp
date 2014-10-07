@@ -66,7 +66,7 @@ public:
 	signal<void()> test;
 };
 
-//#include <delegate>
+#include <delegate>
 
 void Service::start()
 {
@@ -93,14 +93,19 @@ void Service::start()
 	std::cin >> str;
 	std::cout << "You wrote: " << str << std::endl;
 	
-	std::function<void()> 
+	std::cout << "calling std::function lambda:" << std::endl;
+	std::function<int* ()> 
 	testLambda = []
 	{
-		std::cout << "std::function<void()> testLambda" << std::endl;
+		std::cout << "std::function<int* ()> called" << std::endl;
+		return nullptr;
 	};
-	testLambda();
+	std::cout << "result: " << testLambda() << std::endl;
+	
 	
 	std::function<void()> test = testFunction;
+	
+	std::cout << "calling std::function:" << std::endl;
 	test();
 	
 	TestSignal testSignal;
@@ -111,6 +116,7 @@ void Service::start()
 	testSignal.test.connect(testFunction);
 	testSignal.test.connect(testFunction);
 	
+	std::cout << "emitting signal:" << std::endl;
 	testSignal.test.emit();
 	
 	std::vector<std::function<void()>> fvec;
@@ -119,6 +125,16 @@ void Service::start()
 	
 	std::cout << "vector[0] == " << &fvec[0] << std::endl;
 	std::cout << "vector[1] == " << &fvec[1] << std::endl;
+	
+	delegate<void()> delgStatic = testFunction;
+	delegate<void()> delgDynamic = test;
+	delegate<int*()> delgFunctor = testLambda;
+	
+	std::cout << "calling delegates:" << std::endl;
+	delgStatic();
+	delgDynamic();
+	std::cout << "result: " << delgFunctor() << std::endl;
+	
 	
 	std::cout << "Service out!" << std::endl;
 }

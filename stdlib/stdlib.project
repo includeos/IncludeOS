@@ -45,6 +45,7 @@
     <File Name="EASTL/fixed_substring.h"/>
     <File Name="EASTL/hash_map.h"/>
     <File Name="EASTL/set.h"/>
+    <File Name="../src/include/class_delegate.hpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="EABase">
     <VirtualDirectory Name="config">
@@ -160,6 +161,7 @@
     <File Name="tuple.hpp"/>
     <File Name="forward.hpp"/>
     <File Name="result_of.hpp"/>
+    <File Name="new"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
