@@ -93,12 +93,15 @@ void Service::start()
 	std::cin >> str;
 	std::cout << "You wrote: " << str << std::endl;
 	
-	std::function<void()> 
+	std::cout << "calling std::function lambda:" << std::endl;
+	std::function<int* ()> 
 	testLambda = []
 	{
-		std::cout << "std::function<void()> testLambda" << std::endl;
+		std::cout << "std::function<int* ()> called" << std::endl;
+		return nullptr;
 	};
-	testLambda();
+	std::cout << "result: " << testLambda() << std::endl;
+	
 	
 	std::function<void()> test = testFunction;
 	
@@ -125,10 +128,13 @@ void Service::start()
 	
 	delegate<void()> delgStatic = testFunction;
 	delegate<void()> delgDynamic = test;
+	delegate<int*()> delgFunctor = testLambda;
 	
 	std::cout << "calling delegates:" << std::endl;
 	delgStatic();
 	delgDynamic();
+	std::cout << "result: " << delgFunctor() << std::endl;
+	
 	
 	std::cout << "Service out!" << std::endl;
 }
