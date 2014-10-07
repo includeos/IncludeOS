@@ -1,0 +1,6 @@
+#ifndef OSABI_SIGNAL_HEADER
+#define OSABI_SIGNAL_HEADER
+
+#include "utility/signal.hpp"
+
+#endif

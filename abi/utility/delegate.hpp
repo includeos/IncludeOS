@@ -8,18 +8,13 @@
 
  */
 
-#pragma once
-#ifndef DELEGATE_HPP
-# define DELEGATE_HPP
+#ifndef OSABI_DELEGATE_HPP
+#define OSABI_DELEGATE_HPP
 
-#include <cassert>
-
+//#include <cassert>
 #include <memory>
-
-#include <new>
-
-#include <type_traits>
-
+//#include <new>
+//#include <type_traits>
 #include <utility>
 
 template <typename T> class delegate;

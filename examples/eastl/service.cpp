@@ -66,6 +66,8 @@ public:
 	std::signal<void()> test;
 };
 
+//#include <delegate>
+
 void Service::start()
 {
 	std::cout << "*** Service is up - with OS Included! ***" << std::endl;

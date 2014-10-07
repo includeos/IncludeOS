@@ -1,0 +1,6 @@
+#ifndef STD_MEMORY_HEADER
+#define STD_MEMORY_HEADER
+
+#include "memory.hpp"
+
+#endif
