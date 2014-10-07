@@ -1,12 +1,12 @@
 IncludeOS 
 ================================================
 
-IncludeOS is an includable, minimal operating system for C++ services running in cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
+IncludeOS is an includeable, minimal library operating system for C++ services running in cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
 
 ## Prerequisites 
-  * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB)
-  * Ubuntu 14.04 LTS, Vanilla (I use lubuntu, to support VM graphics if necessary)
+  * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
+  * Ubuntu 14.04 LTS, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
   * Git
 
 (I'm using an Ubuntu VM, running virtualbox inside a mac.)
@@ -15,15 +15,17 @@ IncludeOS is an includable, minimal operating system for C++ services running in
 
 Once you have a system with the prereqs (virtual or not), everything should be set up by:
 
-    $sudo apt-get install git
-    $git clone https://github.com/hioa-cs/IncludeOS
-    $cd IncludeOS
-    $sudo ./install.sh
+    $ sudo apt-get install git
+    $ git clone https://github.com/hioa-cs/IncludeOS
+    $ cd IncludeOS
+    $ sudo ./install.sh
 
 ### The script is supposed to...:
-* Build a cross compiler according to [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler) - I do it exactly like that, except that I use `/usr/local/cross/` as path, instead of `/opt/cross`. 
-* Build [Redhat's newlib](https://sourceware.org/newlib/), using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it, to the `exported` location.
-* Build and install the IncludeOS library, which your service will be linked with
+* Install any tools required for building and running IncludeOS, including GCC and Qemu. 
+* Build a cross compiler along the lines of [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler). The cross compiler toolchain will be installed to `/usr/local/IncludeOS/` where the OS library will end up as well.
+* Build [Redhat's newlib](https://sourceware.org/newlib/) using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it to the mentioned location.
+* Build and install the IncludeOS library, which your service will be linked with.
+* Build and install the `vmbuild` tool, which attaches a bootloader to your service and makes a bootable disk image out of it.
 
 ### Testing the installation
 
@@ -35,7 +37,7 @@ will build and run a VM for you, and let you know if everything worked out.
 
 ## Start developing
 
-1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `start` function in the `service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
+1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
 2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
 
 Example: 
@@ -46,15 +48,26 @@ Example:
      ... add your code
      $ ./run.sh my_service.img
 ```
-
-#### Limitations
-* No support for exceptions or runtime type information (rtti)
-* No C++ standard library (but a C standard library is included)
-* Only serial port I/O
+Take a look at the [examples](./examples). These all started out as copies of the same seed.
 
 ### Helper scripts
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
+
+## Features
+* Virtio ethernet driver with non-blocking asynchronous I/O
+* Everything happens in one thread
+* Delegated IRQ handling makes race conditions in userspace impossible 
+* No virtual memory overhead
+* (A tcp/ip stack)
+* (A http server class)
+
+### Limitations 
+* No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
+* No support for exceptions or runtime type information (rtti). Exceptions will be added, rtti, we don't know.
+* Only partial C++ standard library based on [EASTL](https://github.com/paulhodge/EASTL). (Also the [https://sourceware.org/newlib/](newlib) C standard library is included)
+* No file system (we might add one, but TCP/IP comes first)
+* No memory protection. If you want to overwrite the kernel, feel free, it's just a part of your own process. 
 
 ## The build & boot process
 
