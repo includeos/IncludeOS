@@ -100,7 +100,9 @@ namespace std
 			assert(use_count() == 0);
 		}
 
-		template<class Y> weak_ptr(shared_ptr<Y> const& r) : m_pCount(r.m_pCount), m_p(r.m_p)
+		template<class Y>
+		weak_ptr(shared_ptr<Y> const& r)
+			: m_pCount(r.m_pCount), m_p(r.m_p)
 		{
 			if (m_pCount)
 			{
@@ -110,7 +112,8 @@ namespace std
 			assert(use_count() == r.use_count());
 		}
 
-		weak_ptr(weak_ptr const& r): m_pCount(r.m_pCount), m_p(r.m_p)
+		weak_ptr(weak_ptr const& r)
+			: m_pCount(r.m_pCount), m_p(r.m_p)
 		{
 			if (m_pCount)
 			{
@@ -119,7 +122,9 @@ namespace std
 			assert(use_count() == r.use_count());
 		}
 
-		template<class Y> weak_ptr(weak_ptr<Y> const& r) : m_pCount(r.m_pCount), m_p(r.m_p)
+		template<class Y>
+		weak_ptr(weak_ptr<Y> const& r)
+			: m_pCount(r.m_pCount), m_p(r.m_p)
 		{
 			if (m_pCount)
 			{
@@ -146,13 +151,15 @@ namespace std
 			return *this;
 		}
 
-		template<class Y> weak_ptr& operator=(weak_ptr<Y> const& r)
+		template<class Y>
+		weak_ptr& operator= (weak_ptr<Y> const& r)
 		{
 			weak_ptr(r).swap(*this);
 			return *this;
 		}
 
-		template<class Y> weak_ptr& operator=(shared_ptr<Y> const& r)
+		template<class Y>
+		weak_ptr& operator= (shared_ptr<Y> const& r)
 		{
 			weak_ptr(r).swap(*this);
 			return *this;
@@ -218,7 +225,8 @@ namespace std
 			assert(use_count() == 0 && get() == 0);
 		}
 
-		template<class Y> explicit shared_ptr(Y* p)
+		template<class Y> explicit
+		shared_ptr(Y* p)
 		{
 			/*try
 			{
@@ -241,7 +249,8 @@ namespace std
 		//The copy constructor and destructor of D shall
 		// not throw exceptions. The expression d(p) shall be well-formed,
 		// shall have well defined behavior, and shall not throw exceptions.
-		template<class Y, class D> shared_ptr(Y * p, D d)
+		template<class Y, class D>
+		shared_ptr(Y * p, D d)
 		{
 			try
 			{
@@ -265,7 +274,8 @@ namespace std
 			assert(get() == r.get() && use_count() == r.use_count());
 		}
 
-		template<class Y> shared_ptr(shared_ptr<Y> const& r)
+		template<class Y>
+		shared_ptr(shared_ptr<Y> const& r)
 		{
 			m_pCount = r.m_pCount;
 			m_p = r.m_p;
@@ -274,7 +284,8 @@ namespace std
 			assert(get() == r.get() && use_count() == r.use_count());
 		}
 
-		template<class Y> explicit shared_ptr(weak_ptr<Y> const& r)
+		template<class Y> explicit
+		shared_ptr(weak_ptr<Y> const& r)
 		{
 			if (r.expired())
 				throw bad_weak_ptr();
@@ -361,30 +372,31 @@ namespace std
 		{
 			return m_p;
 		}
-
-		T& operator*() const
+		
+		typename add_lvalue_reference<T>::type
+		operator*() const noexcept
 		{
 			return *m_p;
 		}
-
-		T* operator->() const
+		
+		T* operator->() const noexcept
 		{
 			return m_p;
 		}
-
-		long use_count() const
+		
+		long use_count() const noexcept
 		{
 			if (m_pCount)
 				return m_pCount->use_count;
 			return 0;
 		}
 
-		bool unique() const
+		bool unique() const noexcept
 		{
 			return use_count() == 0;
 		}
 
-		operator bool() const
+		operator bool() const noexcept
 		{
 			return get() != 0;
 		}
