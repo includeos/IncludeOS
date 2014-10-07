@@ -9,7 +9,7 @@ class signal
 {
 public:
 	//! \brief Connect a function to this signal
-	void connect(function<F> fn)
+	void connect(std::function<F> fn)
 	{
 		funcs.push_back(fn);
 	}
@@ -23,7 +23,7 @@ public:
 	}
 	
 private:
-	vector<function<F>> funcs;
+	std::vector<std::function<F>> funcs;
 };
 
 #endif

@@ -63,7 +63,7 @@ namespace std
 class TestSignal
 {
 public:
-	std::signal<void()> test;
+	signal<void()> test;
 };
 
 //#include <delegate>
