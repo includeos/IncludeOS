@@ -310,10 +310,16 @@ namespace eastl
 		template< class... Args >
 		void emplace_back(Args&&... args)
 		{
+			/*
 			if(mpEnd < mpCapacity)
-				::new(mpEnd++) value_type(new T(args...));
+				::new(mpEnd++) value_type(std::forward<T>(value));
 			else
-				DoInsertValue(mpEnd, new T(args...));
+				DoInsertValue(mpEnd, std::forward<T>(value));
+			*/
+			if (mpEnd < mpCapacity)
+				::new(mpEnd++) value_type(args...);
+			else
+				DoInsertValue(mpEnd, value_type(args...));
 		}
 		
         void      pop_back();
