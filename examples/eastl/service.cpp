@@ -104,10 +104,19 @@ void Service::start()
 	TestSignal testSignal;
 	testSignal.test.connect(
 	[] {
-		std::cout << "std::signal test" << std::endl;
+		std::cout << "std::signal lambda test" << std::endl;
 	});
+	testSignal.test.connect(testFunction);
+	testSignal.test.connect(testFunction);
 	
 	testSignal.test.emit();
+	
+	std::vector<std::function<void()>> fvec;
+	fvec.push_back(testFunction);
+	fvec.push_back(testFunction);
+	
+	std::cout << "vector[0] == " << &fvec[0] << std::endl;
+	std::cout << "vector[1] == " << &fvec[1] << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
 }
