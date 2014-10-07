@@ -7,10 +7,10 @@
 namespace std
 {
 	// std::move
-	template <class X>
-	inline X&& move(X& a) noexcept
+	template<class T>
+	constexpr remove_reference_t<T>&& move(T&& t)
 	{
-		return static_cast<X&&>(a);
+		return static_cast<T&&>(t);
 	}
 	
 	// std::swap
