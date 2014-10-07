@@ -14,6 +14,7 @@
 #include <memory>
 #include <new>
 #include <utility>
+#include <functional>
 
 template <typename T> class delegate;
 
