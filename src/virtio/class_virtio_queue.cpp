@@ -239,16 +239,17 @@ void Virtio::Queue::notify(){
     auto next =  _queue.desc[id].next;
     auto next_addr = _queue.desc[next].addr;
     
-    handle((void*)next_addr,_queue.desc[next].len);
+    // Push data to a handler
+    //handle((void*)next_addr,_queue.desc[next].len);
     
-    /*
+    
     eth_hdr* eth = (eth_hdr*) next_addr;
     
     char addr[] = "00:00:00:00:00:00";
     printf("\t             Eth. Source: %s \n",ether2str(&eth->src,addr));
     printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,addr));
     printf("\t             Eth. Type  : 0x%x\n",eth->type); 
-    */
+    
     
   /** DEBUG: These are the Device's available packages 
       printf("\t Avail packet 0: %s \n",

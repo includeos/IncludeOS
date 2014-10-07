@@ -109,10 +109,11 @@ static uint32_t __irqueues[256]{0};
            irq_pending,__irqueues[I-IRQ_BASE]);                 \
   }
 
-    //printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
+//printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
 
-//eoi(I-IRQ_BASE);                              
-  
+// The delegates will handle EOI
+// eoi(I-IRQ_BASE);  
+
 
   /*
     Macro magic to register default gates
@@ -320,12 +321,6 @@ void IRQ_handler::notify(){
   // Get the IRQ's that are both pending and subscribed to
   irq_bitfield todo = irq_subscriptions & irq_pending;;
   int irq = 0;
-    
-  if(irq_pending){
-    printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
-    printf("             subscriptions: 0x%lx\n",irq_subscriptions);
-    printf("             IRQ to notify: 0x%lx\n",todo);
-  }
   
   while(todo){
     // Select the first IRQ to notify
@@ -344,7 +339,7 @@ void IRQ_handler::notify(){
     if (!__irqueues[irq]) {
         // Remove the IRQ from pending list            
         irq_pending &= ~(1 << irq);
-        printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
+        //printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
     }
     // Critical section end
     
@@ -352,6 +347,9 @@ void IRQ_handler::notify(){
     // Find remaining IRQ's both pending and subscribed to
     todo = irq_subscriptions & irq_pending;    
   }
+  
+  //hlt
+  __asm__ volatile("hlt;");
 }
 
 
