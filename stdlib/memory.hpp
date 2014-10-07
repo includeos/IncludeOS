@@ -201,8 +201,9 @@ namespace std
 		a.swap(b);
 	}
 
-	template<class T> class shared_ptr {
-
+	template<class T>
+	class shared_ptr
+	{
 		friend class weak_ptr<T>;
 
 		T *m_p;
@@ -311,25 +312,26 @@ namespace std
 		}
 
 		// [2.2.3.3] assignment
-		shared_ptr& operator=(shared_ptr const& r)
+		shared_ptr& operator= (shared_ptr const& r)
 		{
-			shared_ptr(r).swap(this);
+			shared_ptr(r).swap(*this);
 			return *this;
 		}
-
-		template<class Y> shared_ptr& operator=(shared_ptr<Y> const& r)
+		
+		template<class Y>
+		shared_ptr& operator= (shared_ptr<Y> const& r)
 		{
-			shared_ptr(r).swap(this);
+			shared_ptr(r).swap(*this);
 			return *this;
 		}
-
-		/*template<class Y> shared_ptr& operator= (auto_ptr<Y>& r)
+		
+		/*template<class Y>
+		shared_ptr& operator= (auto_ptr<Y>& r)
 		{
-			shared_ptr(r).swap(this);
+			shared_ptr(r).swap(*this);
 			return *this;
 		}*/
-
-
+		
 		// [2.2.3.4] modifiers
 		void swap(shared_ptr& r)
 		{

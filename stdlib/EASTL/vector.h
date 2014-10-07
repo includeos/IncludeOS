@@ -306,7 +306,16 @@ namespace eastl
         void      push_back(const value_type& value);
         reference push_back();
         void*     push_back_uninitialized();
-
+		
+		template< class... Args >
+		void emplace_back(Args&&... args)
+		{
+			if(mpEnd < mpCapacity)
+				::new(mpEnd++) value_type(new T(args...));
+			else
+				DoInsertValue(mpEnd, new T(args...));
+		}
+		
         void      pop_back();
 
         iterator insert(iterator position, const value_type& value);

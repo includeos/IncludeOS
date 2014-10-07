@@ -6,7 +6,13 @@
 
 namespace std
 {
+	// See:
+	// http://en.cppreference.com/w/cpp/utility/functional/function
+	
 	template <typename> class function;
+	
+	class allocator_arg_t {};
+	constexpr allocator_arg_t allocator_arg = allocator_arg_t();
 	
 	template <typename ReturnType, typename... ArgumentTypes>
 	class function <ReturnType (ArgumentTypes...)>
@@ -36,9 +42,15 @@ namespace std
 		{
 		}
 		
+		template <class Fn, class Alloc>
+		function (allocator_arg_t aa, const Alloc& alloc, Fn fn)
+		{
+		}
+		
 		function& operator= (const function& other)
 		{
 			mInvoker = other.mInvoker->clone();
+			return *this;
 		}
 		
 	private:
@@ -107,8 +119,12 @@ namespace std
 		invoker_t mInvoker;
 	};
 	
-	
-	
+}
+
+template <class F>
+void* operator new(size_t size, std::function<F>* func) throw()
+{
+	return new std::function<F>(*func);
 }
 
 #endif

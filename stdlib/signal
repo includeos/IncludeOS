@@ -1,0 +1,6 @@
+#ifndef STD_SIGNAL_HEADER
+#define STD_SIGNAL_HEADER
+
+#include "signal.hpp"
+
+#endif

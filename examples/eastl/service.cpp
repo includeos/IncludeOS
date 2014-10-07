@@ -35,8 +35,7 @@ void testFunction()
 }
 
 #include <tuple.hpp>
-#include <type_traits.hpp>
-#include <utility.hpp>
+#include <utility>
 
 namespace std
 {
@@ -58,6 +57,14 @@ namespace std
 		}
 	};
 }
+
+#include <signal>
+
+class TestSignal
+{
+public:
+	std::signal<void()> test;
+};
 
 void Service::start()
 {
@@ -94,8 +101,13 @@ void Service::start()
 	std::function<void()> test = testFunction;
 	test();
 	
-	auto testBind = std::bind<void()>(testFunction);
-	testBind();
+	TestSignal testSignal;
+	testSignal.test.connect(
+	[] {
+		std::cout << "std::signal test" << std::endl;
+	});
+	
+	testSignal.test.emit();
 	
 	std::cout << "Service out!" << std::endl;
 }
