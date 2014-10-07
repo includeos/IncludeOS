@@ -37,10 +37,16 @@ void OS::halt(){
     //DEBUG Disable interrupts while notifying
     //__asm__ volatile("cli");
     IRQ_handler::notify(); 
-    //__asm__ volatile("sti");
-    __asm__ volatile("hlt;");
+    //__asm__ volatile("sti");    
+    
+    // Pending clear
+    // ! IRQ! -> Flag set
+        
     printf("<OS> Woke up! \n");
   }
+  
+  //Cleanup
+  //Service::stop();
 }
 
 int OS::rsprint(const char* str){
