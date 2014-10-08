@@ -63,6 +63,21 @@ public:
 	signal<void()> test;
 };
 
+// test showing that constructor is called only once for emplace_back
+struct EmplTest
+{
+	EmplTest()
+	{
+		std::cout << "EmplTest Constructor " << ++cnt << std::endl;
+	}
+	EmplTest(const EmplTest&)
+	{
+		std::cout << "EmplTest CopyConstr " << ++cnt << std::endl;
+	}
+	
+	static int cnt;
+};
+int EmplTest::cnt = 0;
 
 void Service::start()
 {
@@ -115,14 +130,10 @@ void Service::start()
 	//// std::vector::emplace_back
 	/////////////////////////////////////////////////////////////////////////////
 	{
-		std::vector<Song> empl_test;
-		empl_test.emplace_back("Bob Dylan", "The Times They Are A Changing");
+		std::vector<EmplTest> empl_test;
+		empl_test.emplace_back();
 		
-		for (const auto& s : empl_test)
-		{
-			std::cout << s.artist << ":" << s.title << std::endl;
-		}
-		
+		assert(EmplTest::cnt == 0);
 	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::map
