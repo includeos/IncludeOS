@@ -18,3 +18,8 @@ src/TAGS
 src/.codelite/
 src/IncludeOS.project
 src/IncludeOS.workspace
+
+examples/eastl/IncludeOS_eastl
+examples/eastl/IncludeOS_eastl.img.qcow2
+examples/eastl/IncludeOS_eastl.img.vdi
+examples/eastl/IncludeOS_eastl.img.vmdk
