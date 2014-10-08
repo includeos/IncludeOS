@@ -7,6 +7,7 @@
 // (but doesn't work now, so I can't attribute the code)
 // 
 
+#include "allocator.hpp"
 #include "utility.hpp"
 
 namespace std
@@ -224,9 +225,9 @@ namespace std
 		{
 			assert(use_count() == 0 && get() == 0);
 		}
-
-		template<class Y> explicit
-		shared_ptr(Y* p)
+		
+		template<class Y>
+		explicit shared_ptr(Y* p)
 		{
 			/*try
 			{
@@ -245,12 +246,12 @@ namespace std
 			
 			assert(use_count() == 1 && get() == p);
 		}
-
+		
 		//The copy constructor and destructor of D shall
 		// not throw exceptions. The expression d(p) shall be well-formed,
 		// shall have well defined behavior, and shall not throw exceptions.
 		template<class Y, class D>
-		shared_ptr(Y * p, D d)
+		shared_ptr(Y* p, D d)
 		{
 			/*try
 			{
@@ -503,6 +504,26 @@ namespace std
 
 		mutable weak_ptr< T > _internal_weak_this;
 	};
+	
+	struct _Sp_make_shared_tag {};
+	
+	template<typename T, typename Alloc, typename... Args>
+	inline shared_ptr<T>
+	allocate_shared(const Alloc& a, Args&&... args)
+	{
+		return shared_ptr<T>(_Sp_make_shared_tag(), a,
+				std::forward<Args>(args)...);
+	}
+	
+	template<class T, class... Args>
+	inline shared_ptr<T> make_shared(Args&&... args)
+	{
+		typedef typename std::remove_const<T>::type Tnc;
+		//return std::allocate_shared<T>(std::allocator<Tnc>(),
+		//		       std::forward<Args>(args)...);
+		return std::shared_ptr<T>(new Tnc(args...));
+	}
+	
 }
 
 #endif

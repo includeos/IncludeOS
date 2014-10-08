@@ -162,6 +162,7 @@
     <File Name="forward.hpp"/>
     <File Name="result_of.hpp"/>
     <File Name="new"/>
+    <File Name="allocator.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
