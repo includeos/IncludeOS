@@ -8,8 +8,8 @@ namespace std
 {
 	using string = eastl::string;
 	
-	// std::to_string
-	inline string to_string(string s)
+	// std::to_string variants
+	inline string to_string(const string& s)
 	{
 		return s;
 	}
@@ -21,7 +21,8 @@ namespace std
 	template <class T>
 	inline string to_string(T* t)
 	{
-		string result(32, 0);
+		// "0x" + (2 per byte as hex value) + zero
+		string result(sizeof(T*) * 2 + 3, 0);
 		sprintf( (char*) result.data(), "%p", t);
 		
 		return result;

@@ -107,6 +107,9 @@ void Service::start()
 		std::cout << str << " int: " << 52 << " long: " << 52L << std::endl;
 		std::cout << "short: " << (short)52 << " char: " << 'C' << std::endl;
 		std::cout << "pointer: " << &str << std::endl;
+		uintptr_t* long_pointer = (uintptr_t*) UINTPTR_MAX;
+		std::cout << "pointer: " << long_pointer << std::endl;
+		printf("compare: %p\n", long_pointer);
 		
 		std::cout << "class: " << testStream << std::endl;
 		
@@ -162,11 +165,10 @@ void Service::start()
 		
 		std::vector<IndexTest> idx;
 		
-		std::cout << "Testing vector::emplace" << std::endl;
-		
 		for (int i = 0; i < 20; i++)
 			idx.emplace_back(i);
 		
+		std::cout << "Testing vector::emplace" << std::endl;
 		idx.clear();
 		
 		for (int i = 0; i < 20; i++)
@@ -177,21 +179,20 @@ void Service::start()
 		std::cout << "checking if emplace is working" << std::endl;
 		for (unsigned i = 0; i < idx.size(); i++)
 		{
-			assert(idx[i].index == ((20 + i) % 21));
-			std::cout << "idx[i] == " << idx[i].index << std::endl;
+			assert(idx[i].index == (int)((20 + i) % 21));
+			//std::cout << "idx[i] == " << idx[i].index << std::endl;
 		}
 		
-		idx.clear();
-		//idx.emplace_back(20);
-		
 		std::cout << "emplacing at begin()" << std::endl;
+		idx.clear();
 		
 		for (int i = 0; i < 20; i++)
 			idx.emplace(idx.begin(), i);
 		
 		for (unsigned i = 0; i < idx.size(); i++)
 		{
-			std::cout << "idx[i] == " << idx[i].index << std::endl;
+			//std::cout << "idx[i] == " << idx[i].index << std::endl;
+			assert(19 - idx[i].index == (int) i);
 		}
 		assert(idx[0].index == 19);
 		
