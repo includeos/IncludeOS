@@ -7,6 +7,9 @@
 /** IP6 layer skeleton */
 class IP6 {
   
+  // Outbound data goes through here
+  Ethernet& _eth;
+
 public:
 
   /** Handle IPv6 packet. */

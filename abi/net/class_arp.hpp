@@ -6,6 +6,9 @@
 
 class Arp {
   
+  // Outbound data goes through here
+  Ethernet& _eth;
+
 public:
   
   /** Handle ARP packet. */

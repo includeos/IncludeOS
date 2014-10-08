@@ -8,6 +8,9 @@
 /** IP4 layer skeleton */
 class IP4 {
   
+  // Outbound data goes through here
+  Ethernet& _eth;
+
 public:
   
   /** Handle IPv4 packet. */
