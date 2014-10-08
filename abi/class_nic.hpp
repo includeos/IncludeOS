@@ -11,30 +11,29 @@
 #include <net/class_ip6.hpp>
 
 
-
-/*
-class mac_t{
-  unsigned char[6];
-  const char* _str;
-  
-public:
-  const char* c_str(){
-    
-  }
-  }*/
-
-
+/** Future drivers may start out like so, */
 class E1000{
-public: const char* name(){ return "E1000 Driver"; };
+public: 
+  const char* name(){ return "E1000 Driver"; }
+  //...whatever the Nic class implicitly needs
+  
 };
 
+/** Or so, etc. 
+    
+    They'll have to provide anything the Nic class calls from them.
+    @note{ There's no virtual interface, we'll need to call every function from 
+    he Nic class in order to make sure all members exist }
+ */
 class RTL8139;
 
 
-
 /** A public interface for Network cards
-  
-  @todo(Alfred): We should probably inherit something here, but I still don't know what the common denominators are between a Nic and other devices, except that they should have a "name". When do we ever need/want to treat all devices similarly? I don't want to introduce vtables/polymorphism unless I know it's really useful. */
+    
+    We're using compile-time polymorphism for now, so the "inheritance" 
+    requirements for a driver is implicily given by how it's used below,
+    rather than explicitly by proper inheritance.
+ */
 template<class DRIVER_T>
 class Nic{ 
    
@@ -64,6 +63,12 @@ public:
   void on(event_t ev, void(*callback)());
 
 private:
+  
+  /** An IP stack (a skeleton for now).
+      
+      @todo We might consider adding the stack from the outside to save some 
+      overhead for services who only wants a few layers. (I.e. a bridge
+      might not need the whole stack) */              
   Ethernet _eth;
   Arp _arp;
   IP4 _ip4;
@@ -77,23 +82,16 @@ private:
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
   Nic(PCI_Device* d): 
-    _eth(),
-    _arp(_eth),_ip4(_eth),_ip6(_eth),
+    
+    // Hook up the IP stack 
+    _eth(), _arp(_eth),_ip4(_eth),_ip6(_eth),
+    
+    // Add PCI and ethernet layer to the driver
     driver(d,_eth)
   {};
   
   friend class Dev;
 
 };
-
-
-//Driver instead? And delegate everything to it with a delegate?
-
-/**
-class Virtio_Nic :  public Nic /{
-  
-};
-
-**/
 
 #endif //Class Nic
