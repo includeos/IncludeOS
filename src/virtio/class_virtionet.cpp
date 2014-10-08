@@ -117,7 +117,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   
   // Hook up IRQ handler
-  auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
+  //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
+  auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
   IRQ_handler::subscribe(irq(),del);
   IRQ_handler::enable_irq(irq());  
   

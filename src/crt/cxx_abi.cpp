@@ -45,13 +45,14 @@ void* operator new[](size_t size, size_t, size_t, const char*, int, unsigned, co
 
 extern "C"
 {
-	void __cxa_pure_virtual()
-	{
-		// Do nothing or print an error message.
-		printf("@cxa_pure_virtual: Pure virtual function missing\n");
-	}
-	
-	// NOTE: newlib implements __cxa_atexit & __cxa_finalize
-	
-	
+  void *__dso_handle = 0;
+  void __cxa_pure_virtual()
+  {
+    // Do nothing or print an error message.
+    printf("@cxa_pure_virtual: Pure virtual function missing\n");
+  }
+    
+  // NOTE: newlib implements __cxa_atexit & __cxa_finalize
+  
+  
 } // extern

@@ -209,45 +209,64 @@ void Virtio::Queue::notify(){
   for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
     auto id = _queue.used->ring[_last_used_idx % _size].id;
     auto len = _queue.used->ring[_last_used_idx % _size].len;
-    printf("\t             Packet id: 0x%lx len: 0x%lx \n",id,len);
+    printf("\t             Packet id: 0x%lx len: %li \n",id,len);
     
     
       // The first token should be a virtio header
-    auto chunksize =  _queue.desc[id].len;
-    assert(chunksize == sizeof(virtio_net_hdr));
+    auto chunksize =  _queue.desc[id].len;    
+    printf("Chunk size: %li \n", chunksize);
+    //assert(chunksize == sizeof(virtio_net_hdr));    
+    auto tok_addr = _queue.desc[id].addr;      
+    auto tok_next = _queue.desc[id].next;
     
-    //auto addr = _queue.desc[id].addr;      
-    /** Extract the Virtio header     
-        virtio_net_hdr* hdr = (virtio_net_hdr*)addr;
-        // Print it 
-        printf("VirtioNet Header: \n"           \
-        "Flags: 0x%x \n"                        \
-             "GSO Type: 0x%x \n"                \
-             "Header length: %i \n"             \
-             "GSO Size: %i \n"                  \
-             "Csum.start: %i \n"                \
-             "Csum. offset: %i \n"              \
-             "Num. Buffers: %i \n",
-             hdr->flags,hdr->gso_type,hdr->hdr_len,
-               hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);
-    */
+    printf("Next token: %i \n",tok_next);
+    
+    //Extract the Virtio header     
+    virtio_net_hdr* hdr = (virtio_net_hdr*)tok_addr;
+    // Print it 
+    printf("VirtioNet Header: \n"               \
+           "Flags: 0x%x \n"                     \
+           "GSO Type: 0x%x \n"                  \
+           "Header length: %i \n"               \
+           "GSO Size: %i \n"                    \
+           "Csum.start: %i \n"                  \
+           "Csum. offset: %i \n"                \
+           "Num. Buffers: %i \n",
+           hdr->flags,hdr->gso_type,hdr->hdr_len,
+           hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);
+    
+    
+    if (_queue.desc[id].flags & VRING_DESC_F_NEXT)
+      printf("Token continues to the next \n");
+    else 
+      printf("Token stops here\n");
     
     // This can't only be a header
-    assert(_queue.desc[id].flags & VRING_DESC_F_NEXT);
+    //assert(_queue.desc[id].flags & VRING_DESC_F_NEXT);
     
     // Extract the next token which should be the ethernet frame
-    auto next =  _queue.desc[id].next;
-    auto next_addr = _queue.desc[next].addr;
+    // auto next =  _queue.desc[id].next;
     
+    // Print the buffer: 
+    /*
+    char* buf = (char*)hdr + sizeof(virtio_net_hdr);
+    printf("BUFFER: \n");
+    printf ("_____________________________________________\n");
+    for (uint32_t i = 0; i<len; i++)
+      printf("0x%1x ",(unsigned)(unsigned char)buf[i]);
+    printf ("\n_____________________________________________\n");
+    */
+    
+    uint8_t* data = (uint8_t*)hdr + sizeof(virtio_net_hdr); 
     // Push data to a handler
     //handle((void*)next_addr,_queue.desc[next].len);
     
+    eth_hdr* eth = (eth_hdr*) data;    
+
     
-    eth_hdr* eth = (eth_hdr*) next_addr;
-    
-    char addr[] = "00:00:00:00:00:00";
-    printf("\t             Eth. Source: %s \n",ether2str(&eth->src,addr));
-    printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,addr));
+    char eaddr[] = "00:00:00:00:00:00";
+    printf("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
+    printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
     printf("\t             Eth. Type  : 0x%x\n",eth->type); 
     
     
