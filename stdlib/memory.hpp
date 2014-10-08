@@ -7,6 +7,7 @@
 // (but doesn't work now, so I can't attribute the code)
 // 
 
+#include <assert.h>
 #include "allocator.hpp"
 #include "utility.hpp"
 

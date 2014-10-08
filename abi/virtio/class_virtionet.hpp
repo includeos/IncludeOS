@@ -1,9 +1,14 @@
 /**  
      STANDARD:      
+     
+     We're aiming for standard compliance:
+     
      Virtio 1.0, OASIS Committee Specification Draft 01
      (http://docs.oasis-open.org/virtio/virtio/v1.0/csd01/virtio-v1.0-csd01.pdf)
      
      In the following abbreviated to Virtio 1.01
+     
+     ...Alas, nobody's using it yet, so we're stuck with "legacy" for now.
 */
      
 
@@ -14,7 +19,7 @@
 #include <common>
 #include <class_pci_device.hpp>
 #include <virtio/class_virtio.hpp>
-
+#include <delegate>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -129,6 +134,7 @@ class VirtioNet : Virtio {
   
   void irq_handler();
   int add_receive_buffer();
+
   
 public: 
   const char* name();  

@@ -173,9 +173,9 @@ void Virtio::default_irq_handler(){
 
 void Virtio::enable_irq_handler(){
   //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-
   
-  auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);  
+  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);  
+  auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
   
   IRQ_handler::subscribe(_irq,del);
   

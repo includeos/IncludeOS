@@ -1,5 +1,5 @@
 /**  
-     @note A lot of this stuff is taken from SanOS, (C) Michael Ringgaard. 
+     @note A lot of this stuff is snipped from SanOS, (C) Michael Ringgaard. 
      
      All due respect.
      
@@ -17,6 +17,7 @@
 #define CLASS_VIRTIO_HPP
 #include <class_pci_device.hpp>
 //#include <virtio/virtio.h>
+#include <delegate>
 
 #define PAGE_SIZE 4096
 
@@ -163,7 +164,7 @@ public:
     /** Dequeue a received packet. From SanOS */
     void* dequeue(uint32_t* len);
     
-    
+    delegate<void(char* data,int len)> dataHandler;
     
     void release(uint32_t head);
 

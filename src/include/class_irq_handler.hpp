@@ -3,7 +3,8 @@
 
 #include <class_os.hpp>
 #include "irq/pic_defs.h"
-#include <class_delegate.hpp>
+
+#include <delegate>
 #include <hw/pic.h>
 
 /*
@@ -63,7 +64,7 @@ class IRQ_handler{
 
  public:
   
-  typedef delegate irq_delegate;
+  typedef delegate<void()> irq_delegate;
   
   /** Enable an IRQ line.  If no handler is set a default will be used */
   static void enable_irq(uint8_t irq);
