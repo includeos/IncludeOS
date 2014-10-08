@@ -93,16 +93,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  endif
 #endif
 
-#ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4530)  // C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
-#  pragma warning(disable: 4345)  // Behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized
-#  pragma warning(disable: 4244)  // Argument: conversion from 'int' to 'const eastl::vector<T>::value_type', possible loss of data
-#  pragma warning(disable: 4127)  // Conditional expression is constant
-#  pragma warning(disable: 4480)  // nonstandard extension used: specifying underlying type for enum
-#endif
-
-
 namespace eastl
 {
 
@@ -307,19 +297,72 @@ namespace eastl
         reference push_back();
         void*     push_back_uninitialized();
 		
-		template< class... Args >
+		template<class... Args>
+		void emplace(const_iterator pos, Args&& ... args)
+		{
+			if ((mpEnd == mpCapacity) || (pos != mpEnd))
+				DoInsertArgs(pos, std::forward<Args>(args)...);
+			else
+				::new(mpEnd++) value_type(std::forward<Args>(args)...);
+		}
+		template<class... Args>
 		void emplace_back(Args&&... args)
 		{
-			/*
-			if(mpEnd < mpCapacity)
-				::new(mpEnd++) value_type(std::forward<T>(value));
-			else
-				DoInsertValue(mpEnd, std::forward<T>(value));
-			*/
 			if (mpEnd < mpCapacity)
-				::new(mpEnd++) value_type(args...);
+				::new(mpEnd++) value_type(std::forward<Args>(args)...);
 			else
-				DoInsertValue(mpEnd, value_type(args...));
+				DoInsertEndArgs(std::forward<Args>(args)...);
+		}
+		template<class... Args>
+		void DoInsertEndArgs(Args... args)
+		{
+			const size_type nPrevSize = size_type(mpEnd - mpBegin);
+			const size_type nNewSize  = GetNewCapacity(nPrevSize);
+			pointer const   pNewData  = DoAllocate(nNewSize);
+			
+			pointer pNewEnd = eastl::uninitialized_copy_ptr(mpBegin, mpEnd, pNewData);
+			::new(pNewEnd++) value_type(args...);
+			
+			DoDestroyValues(mpBegin, mpEnd);
+			DoFree(mpBegin, (size_type)(mpCapacity - mpBegin));
+			
+			mpBegin    = pNewData;
+			mpEnd      = pNewEnd;
+			mpCapacity = pNewData + nNewSize;
+		}
+		template<class... Args>
+		void DoInsertArgs(const_iterator pos, Args... args)
+		{
+	#if EASTL_ASSERT_ENABLED
+				if(EASTL_UNLIKELY((position < mpBegin) || (position > mpEnd)))
+					EASTL_FAIL_MSG("vector::insert -- invalid position");
+	#endif
+			iterator position = const_cast<iterator>(pos);
+			
+			if(mpEnd != mpCapacity) // If size < capacity ...
+			{
+				::new(mpEnd) value_type(*(mpEnd - 1));
+				eastl::copy_backward(position, mpEnd - 1, mpEnd); // We need copy_backward because of potential overlap issues.
+				::new(position) value_type(args...);
+				++mpEnd;
+			}
+			else // else (size == capacity)
+			{
+				const size_type nPrevSize = size_type(mpEnd - mpBegin);
+				const size_type nNewSize  = GetNewCapacity(nPrevSize);
+				pointer const   pNewData  = DoAllocate(nNewSize);
+				
+				pointer pNewEnd = eastl::uninitialized_copy_ptr(mpBegin, position, pNewData);
+				::new(pNewEnd++) value_type(args...);
+				pNewEnd = eastl::uninitialized_copy_ptr(position, mpEnd, pNewEnd);
+				
+				DoDestroyValues(mpBegin, mpEnd);
+				DoFree(mpBegin, (size_type)(mpCapacity - mpBegin));
+				
+				mpBegin    = pNewData;
+				mpEnd      = pNewEnd;
+				mpCapacity = pNewData + nNewSize;
+			}
 		}
 		
         void      pop_back();

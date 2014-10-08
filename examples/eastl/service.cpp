@@ -127,13 +127,75 @@ void Service::start()
 		assert(vec[0] == 500);
 	}
 	/////////////////////////////////////////////////////////////////////////////
-	//// std::vector::emplace_back
+	//// std::vector::emplace_back, std::vector::emplace
 	/////////////////////////////////////////////////////////////////////////////
 	{
 		std::vector<EmplTest> empl_test;
-		empl_test.emplace_back();
+		EmplTest et;
+		std::cout << "creating (count should be 1)" << std::endl;
+		assert(EmplTest::cnt == 1);
 		
-		assert(EmplTest::cnt == 0);
+		std::cout << "emplacing (count should be 2)" << std::endl;
+		empl_test.emplace_back();
+		assert(EmplTest::cnt == 2);
+		
+		std::cout << "pushing (count should be 4)" << std::endl;
+		empl_test.push_back(et);
+		assert(EmplTest::cnt == 4);
+		
+		struct IndexTest
+		{
+			IndexTest(int i)
+				: index(i) {}
+			
+			IndexTest(const IndexTest& i)
+				: index(i.index) {}
+			
+			IndexTest& operator= (const IndexTest& i)
+			{
+				this->index = i.index;
+				return *this;
+			}
+			
+			int index;
+		};
+		
+		std::vector<IndexTest> idx;
+		
+		std::cout << "Testing vector::emplace" << std::endl;
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace_back(i);
+		
+		idx.clear();
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace_back(i);
+		
+		idx.emplace(idx.begin(), 20);
+		
+		std::cout << "checking if emplace is working" << std::endl;
+		for (unsigned i = 0; i < idx.size(); i++)
+		{
+			assert(idx[i].index == ((20 + i) % 21));
+			std::cout << "idx[i] == " << idx[i].index << std::endl;
+		}
+		
+		idx.clear();
+		//idx.emplace_back(20);
+		
+		std::cout << "emplacing at begin()" << std::endl;
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace(idx.begin(), i);
+		
+		for (unsigned i = 0; i < idx.size(); i++)
+		{
+			std::cout << "idx[i] == " << idx[i].index << std::endl;
+		}
+		assert(idx[0].index == 19);
+		
+		std::cout << "success!" << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::map
