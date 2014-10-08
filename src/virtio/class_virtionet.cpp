@@ -122,7 +122,11 @@ VirtioNet::VirtioNet(PCI_Device* d)
   IRQ_handler::subscribe(irq(),del);
   IRQ_handler::enable_irq(irq());  
   
+
+  auto etherdel(delegate<void(uint8_t*,int)>::from<Ethernet,
+                &Ethernet::handler>(eth));
   
+  rx_q.set_data_handler(etherdel);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
   

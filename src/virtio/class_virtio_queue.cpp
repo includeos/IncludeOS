@@ -35,10 +35,21 @@ void Virtio::Queue::init_queue(int size, void* buf){
   
 }
 
+
+
+/** A default handler doing nothing. 
+    
+    It's here because we might not want to look at the data, e.g. for 
+    the VirtioNet TX-queue which will get used buffers in. */
+void empty_handler(uint8_t* UNUSED(data),int size) {
+  printf("Empty handler just peaking at %i bytes. \n",size);
+};
+
 /** Constructor */
 Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   : _size(size),_size_bytes(virtq_size(size)),_iobase(iobase),_num_free(size),
-    _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index)
+    _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index),
+    _data_handler(delegate<void(uint8_t*,int)>(empty_handler))
 {
   //Allocate space for the queue and clear it out
   void* buffer = memalign(PAGE_SIZE,_size_bytes);
@@ -57,7 +68,7 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   // Allocate space for actual data tokens
   //_data = (void**) malloc(sizeof(void*) * size);
   
-    
+  
   printf(" >> Virtio Queue setup complete. \n");
 }
 
@@ -174,26 +185,6 @@ struct virtio_net_hdr
   };
 
 
-// TEMP. REMOVE - This belongs to ... well, ethernet.
-#define ETHER_ADDR_LEN 6
-struct eth_addr 
-{
-  unsigned char addr[ETHER_ADDR_LEN];
-};
-  
-struct eth_hdr 
-{
-  struct eth_addr dest;
-  struct eth_addr src;
-  unsigned short type;
-};
-
-char *ether2str(struct eth_addr *hwaddr, char *s) {
-  sprintf(s, "%02x:%02x:%02x:%02x:%02x:%02x",  
-          hwaddr->addr[0], hwaddr->addr[1], hwaddr->addr[2], 
-          hwaddr->addr[3], hwaddr->addr[4], hwaddr->addr[5]);
-  return s;
-}
 
 void Virtio::Queue::notify(){
   printf("\t <VirtQueue> Notified, checking buffers.... \n");
@@ -259,15 +250,7 @@ void Virtio::Queue::notify(){
     
     uint8_t* data = (uint8_t*)hdr + sizeof(virtio_net_hdr); 
     // Push data to a handler
-    //handle((void*)next_addr,_queue.desc[next].len);
-    
-    eth_hdr* eth = (eth_hdr*) data;    
-
-    
-    char eaddr[] = "00:00:00:00:00:00";
-    printf("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
-    printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
-    printf("\t             Eth. Type  : 0x%x\n",eth->type); 
+    _data_handler(data, len);
     
     
   /** DEBUG: These are the Device's available packages 
@@ -277,6 +260,11 @@ void Virtio::Queue::notify(){
   (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);*/
   }
 }
+
+
+void Virtio::Queue::set_data_handler(delegate<void(uint8_t* data,int len)> del){
+  _data_handler=del;
+};
 
 
 void Virtio::Queue::kick(){

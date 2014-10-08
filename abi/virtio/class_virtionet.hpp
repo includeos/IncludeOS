@@ -20,6 +20,7 @@
 #include <class_pci_device.hpp>
 #include <virtio/class_virtio.hpp>
 #include <delegate>
+#include <net/class_ethernet.hpp>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -112,6 +113,8 @@ class VirtioNet : Virtio {
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
   Virtio::Queue ctrl_q;
+
+  Ethernet eth;
   
   // From Virtio 1.01, 5.1.4
   struct config{
@@ -131,6 +134,7 @@ class VirtioNet : Virtio {
 
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;
+  
   
   void irq_handler();
   int add_receive_buffer();
