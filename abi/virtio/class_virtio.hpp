@@ -129,16 +129,13 @@ public:
     
     // The actual queue struct
     virtq _queue;
+        
+    /** Handler for data coming in on virtq.used. */
+    delegate<void(uint8_t* data, int len)> _data_handler;
     
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
-    
-    /** Data handler - will get all the data from this queue 
-     
-        @todo Make this a delegate
-     */
-    //void (&handle)(void* data,uint32_t len);
-    
+
   public:
     /** Kick hypervisor.
       
@@ -163,11 +160,11 @@ public:
     
     /** Dequeue a received packet. From SanOS */
     void* dequeue(uint32_t* len);
-    
-    delegate<void(char* data,int len)> dataHandler;
+        
+    void set_data_handler(delegate<void(uint8_t* data,int len)> dataHandler);
     
     void release(uint32_t head);
-
+    
     
 
     inline uint16_t size(){ return _size; };
