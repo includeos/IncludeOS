@@ -26,6 +26,13 @@ namespace std
 			return *this;
 		}
 		
+		inline ostream& 
+		operator << (char type)
+		{
+			printf("%c", type);
+			return *this;
+		}
+		
 		template <class T>
 		inline ostream& 
 		operator << (const T& type)

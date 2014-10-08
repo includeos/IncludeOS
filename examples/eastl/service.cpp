@@ -222,18 +222,17 @@ void Service::start()
 		std::cout << "result: " << shared2->artist << 
 			" (usage: " << sv[0].use_count() << " == " << shared2.use_count() << ")" << std::endl;
 	}
-        
-        /////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
 	//// std::string
 	/////////////////////////////////////////////////////////////////////////////
-
+	{
         std::string s("A string!");
         
         std::cout << s << std::endl;
         for(auto it = s.begin(); it != s.end(); ++it)
           std::cout << *it;
         std::cout << std::endl;
-        
-        
+	}
+	
 	std::cout << "Service out!" << std::endl;
 }
