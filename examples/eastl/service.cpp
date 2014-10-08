@@ -200,7 +200,9 @@ void Service::start()
 		sv.push_back(
 			std::make_shared<Song>("Aretha Franklin", "Bridge Over Troubled Water"));
 		sv.push_back(
-			std::make_shared<Song>("Thal�a", "Entre El Mar y Una Estrella"));
+			std::make_shared<Song>("Thalia", "Entre El Mar y Una Estrella"));
+		sv.push_back(
+                             std::make_shared<Song>("Alf Prøysen", "Blåbærturen")); //æøå
 		
 		/*std::vector<std::shared_ptr<Song>> v2;
 		std::remove_copy_if(v.begin(), v.end(), back_inserter(v2), 
