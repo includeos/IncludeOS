@@ -235,13 +235,20 @@ void Service::start()
 	//// signal
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::function<void()> test = testFunction;
+		
 		TestSignal testSignal;
+		
+		// lambda function
 		testSignal.test.connect(
 		[] {
 			std::cout << "std::signal lambda test" << std::endl;
 		});
+		// explicit function
 		testSignal.test.connect(testFunction);
-		testSignal.test.connect(testFunction);
+		// std::function reference
+		std::function<void()>& tfCopy = test;
+		testSignal.test.connect(tfCopy);
 		
 		std::cout << "emitting signal:" << std::endl;
 		testSignal.test.emit();
@@ -251,14 +258,21 @@ void Service::start()
 	/////////////////////////////////////////////////////////////////////////////
 	{
 		std::function<void()> test = testFunction;
+		std::function<void()>& testRef = test;
 		
+		// explicit function
 		delegate<void()> delgStatic = testFunction;
+		// std::function
 		delegate<void()> delgDynamic = test;
+		// std::function reference
+		delegate<void()> delgDynRef = testRef;
+		// lambda function
 		delegate<int*()> delgFunctor = testLambda;
 		
 		std::cout << "calling delegates:" << std::endl;
 		delgStatic();
 		delgDynamic();
+		delgDynRef();
 		std::cout << "result: " << delgFunctor() << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
