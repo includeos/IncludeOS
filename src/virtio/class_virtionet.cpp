@@ -14,7 +14,7 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-VirtioNet::VirtioNet(PCI_Device* d)
+VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   : Virtio(d),     
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
@@ -123,10 +123,13 @@ VirtioNet::VirtioNet(PCI_Device* d)
   IRQ_handler::enable_irq(irq());  
   
 
-  auto etherdel(delegate<void(uint8_t*,int)>::from<Ethernet,
+  // Create an ethernet handler delegate for the RX Queue
+  auto etherdelg(delegate<void(uint8_t*,int)>::from<Ethernet,
                 &Ethernet::handler>(eth));
   
-  rx_q.set_data_handler(etherdel);
+  
+  // Assign Ethernet handler to RX Queue
+  rx_q.set_data_handler(etherdelg);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
   

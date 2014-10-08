@@ -4,6 +4,12 @@
 #include <class_pci_device.hpp>
 #include <stdio.h>
 
+// The nic knows about the IP stack
+#include <net/class_ethernet.hpp>
+#include <net/class_arp.hpp>
+#include <net/class_ip4.hpp>
+#include <net/class_ip6.hpp>
+
 
 
 /*
@@ -58,14 +64,23 @@ public:
   void on(event_t ev, void(*callback)());
 
 private:
+  Ethernet _eth;
+  Arp _arp;
+  IP4 _ip4;
+  IP6 _ip6;
 
+  
   DRIVER_T driver;
   
   /** Constructor. 
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
-  Nic(PCI_Device* d): driver(d){};
+  Nic(PCI_Device* d): 
+    _eth(),
+    _arp(_eth),_ip4(_eth),_ip6(_eth),
+    driver(d,_eth)
+  {};
   
   friend class Dev;
 

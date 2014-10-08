@@ -203,17 +203,20 @@ void Virtio::Queue::notify(){
     printf("\t             Packet id: 0x%lx len: %li \n",id,len);
     
     
-      // The first token should be a virtio header
-    auto chunksize =  _queue.desc[id].len;    
-    printf("Chunk size: %li \n", chunksize);
-    //assert(chunksize == sizeof(virtio_net_hdr));    
-    auto tok_addr = _queue.desc[id].addr;      
-    auto tok_next = _queue.desc[id].next;
+    // The first token should be a virtio header
+    // auto chunksize =  _queue.desc[id].len;    
+    // printf("Chunk size: %li \n", chunksize);
+    // assert(chunksize == sizeof(virtio_net_hdr));    
+    auto tok_addr = _queue.desc[id].addr;  
     
-    printf("Next token: %i \n",tok_next);
+    // Is there a next token?
+    // auto tok_next = _queue.desc[id].next;    
+    // printf("Next token: %i \n",tok_next);
     
-    //Extract the Virtio header     
+    //Extract the Virtio header
     virtio_net_hdr* hdr = (virtio_net_hdr*)tok_addr;
+    
+    /*
     // Print it 
     printf("VirtioNet Header: \n"               \
            "Flags: 0x%x \n"                     \
@@ -224,14 +227,19 @@ void Virtio::Queue::notify(){
            "Csum. offset: %i \n"                \
            "Num. Buffers: %i \n",
            hdr->flags,hdr->gso_type,hdr->hdr_len,
-           hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);
+           hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);*/
     
     
+    /* 
+       We might have to handle the case where the token continues. 
+       Before, there were always two tokens, one with header, one with data. 
+       Now only one... 
     if (_queue.desc[id].flags & VRING_DESC_F_NEXT)
       printf("Token continues to the next \n");
     else 
       printf("Token stops here\n");
-    
+    */
+
     // This can't only be a header
     //assert(_queue.desc[id].flags & VRING_DESC_F_NEXT);
     
@@ -252,6 +260,9 @@ void Virtio::Queue::notify(){
     // Push data to a handler
     _data_handler(data, len);
     
+    // Now we should probably dequeue. But, we still haven't figured out how
+    // to accumulate packets in memory. Probably need a pool. 
+
     
   /** DEBUG: These are the Device's available packages 
       printf("\t Avail packet 0: %s \n",
