@@ -9,9 +9,10 @@ class signal
 {
 public:
 	//! \brief Connect a function to this signal
-	void connect(std::function<F> fn)
+	template <class Fn>
+	void connect(Fn fn)
 	{
-		funcs.push_back(fn);
+		funcs.emplace_back(fn);
 	}
 	
 	//! \brief Emit this signal by executing all the connected functions

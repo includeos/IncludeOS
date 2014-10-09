@@ -42,6 +42,11 @@ void* operator new[](size_t size, size_t, size_t, const char*, int, unsigned, co
 	return malloc(size);
 }
 
+void EASTL_DEBUG_BREAK()
+{
+	printf("EASTL_DEBUG_BREAK called");
+	asm volatile ("hlt");
+}
 
 extern "C"
 {

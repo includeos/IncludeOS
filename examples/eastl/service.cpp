@@ -63,6 +63,21 @@ public:
 	signal<void()> test;
 };
 
+// test showing that constructor is called only once for emplace_back
+struct EmplTest
+{
+	EmplTest()
+	{
+		std::cout << "EmplTest Constructor " << ++cnt << std::endl;
+	}
+	EmplTest(const EmplTest&)
+	{
+		std::cout << "EmplTest CopyConstr " << ++cnt << std::endl;
+	}
+	
+	static int cnt;
+};
+int EmplTest::cnt = 0;
 
 void Service::start()
 {
@@ -92,6 +107,9 @@ void Service::start()
 		std::cout << str << " int: " << 52 << " long: " << 52L << std::endl;
 		std::cout << "short: " << (short)52 << " char: " << 'C' << std::endl;
 		std::cout << "pointer: " << &str << std::endl;
+		uintptr_t* long_pointer = (uintptr_t*) UINTPTR_MAX;
+		std::cout << "pointer: " << long_pointer << std::endl;
+		printf("compare: %p\n", long_pointer);
 		
 		std::cout << "class: " << testStream << std::endl;
 		
@@ -112,17 +130,73 @@ void Service::start()
 		assert(vec[0] == 500);
 	}
 	/////////////////////////////////////////////////////////////////////////////
-	//// std::vector::emplace_back
+	//// std::vector::emplace_back, std::vector::emplace
 	/////////////////////////////////////////////////////////////////////////////
 	{
-		std::vector<Song> empl_test;
-		empl_test.emplace_back("Bob Dylan", "The Times They Are A Changing");
+		std::vector<EmplTest> empl_test;
+		EmplTest et;
+		std::cout << "creating (count should be 1)" << std::endl;
+		assert(EmplTest::cnt == 1);
 		
-		for (const auto& s : empl_test)
+		std::cout << "emplacing (count should be 2)" << std::endl;
+		empl_test.emplace_back();
+		assert(EmplTest::cnt == 2);
+		
+		std::cout << "pushing (count should be 4)" << std::endl;
+		empl_test.push_back(et);
+		assert(EmplTest::cnt == 4);
+		
+		struct IndexTest
 		{
-			std::cout << s.artist << ":" << s.title << std::endl;
+			IndexTest(int i)
+				: index(i) {}
+			
+			IndexTest(const IndexTest& i)
+				: index(i.index) {}
+			
+			IndexTest& operator= (const IndexTest& i)
+			{
+				this->index = i.index;
+				return *this;
+			}
+			
+			int index;
+		};
+		
+		std::vector<IndexTest> idx;
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace_back(i);
+		
+		std::cout << "Testing vector::emplace" << std::endl;
+		idx.clear();
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace_back(i);
+		
+		idx.emplace(idx.begin(), 20);
+		
+		std::cout << "checking if emplace is working" << std::endl;
+		for (unsigned i = 0; i < idx.size(); i++)
+		{
+			assert(idx[i].index == (int)((20 + i) % 21));
+			//std::cout << "idx[i] == " << idx[i].index << std::endl;
 		}
 		
+		std::cout << "emplacing at begin()" << std::endl;
+		idx.clear();
+		
+		for (int i = 0; i < 20; i++)
+			idx.emplace(idx.begin(), i);
+		
+		for (unsigned i = 0; i < idx.size(); i++)
+		{
+			//std::cout << "idx[i] == " << idx[i].index << std::endl;
+			assert(19 - idx[i].index == (int) i);
+		}
+		assert(idx[0].index == 19);
+		
+		std::cout << "success!" << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::map
@@ -161,13 +235,20 @@ void Service::start()
 	//// signal
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::function<void()> test = testFunction;
+		
 		TestSignal testSignal;
+		
+		// lambda function
 		testSignal.test.connect(
 		[] {
 			std::cout << "std::signal lambda test" << std::endl;
 		});
+		// explicit function
 		testSignal.test.connect(testFunction);
-		testSignal.test.connect(testFunction);
+		// std::function reference
+		std::function<void()>& tfCopy = test;
+		testSignal.test.connect(tfCopy);
 		
 		std::cout << "emitting signal:" << std::endl;
 		testSignal.test.emit();
@@ -177,14 +258,21 @@ void Service::start()
 	/////////////////////////////////////////////////////////////////////////////
 	{
 		std::function<void()> test = testFunction;
+		std::function<void()>& testRef = test;
 		
+		// explicit function
 		delegate<void()> delgStatic = testFunction;
+		// std::function
 		delegate<void()> delgDynamic = test;
+		// std::function reference
+		delegate<void()> delgDynRef = testRef;
+		// lambda function
 		delegate<int*()> delgFunctor = testLambda;
 		
 		std::cout << "calling delegates:" << std::endl;
 		delgStatic();
 		delgDynamic();
+		delgDynRef();
 		std::cout << "result: " << delgFunctor() << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////

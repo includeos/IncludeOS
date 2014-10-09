@@ -536,27 +536,8 @@ namespace eastl
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef EASTL_DEBUG_BREAK
-    #if defined(_MSC_VER) && (_MSC_VER >= 1300)
-        #define EASTL_DEBUG_BREAK() __debugbreak()    // This is a compiler intrinsic which will map to appropriate inlined asm for the platform.
-    #elif defined(EA_PROCESSOR_MIPS)                  // 
-        #define EASTL_DEBUG_BREAK() asm("break")
-    #elif defined(__SNC__)
-        #define EASTL_DEBUG_BREAK() *(int*)(0) = 0
-    #elif defined(EA_PLATFORM_PS3)
-        #define EASTL_DEBUG_BREAK() asm volatile("tw 31,1,1")
-    #elif defined(EA_PROCESSOR_POWERPC)               // Generic PowerPC. 
-        #define EASTL_DEBUG_BREAK() asm(".long 0")    // This triggers an exception by executing opcode 0x00000000.
-    #elif (defined(EA_PROCESSOR_X86) || defined(EA_PROCESSOR_X86_64)) && defined(EA_ASM_STYLE_INTEL)
-        #define EASTL_DEBUG_BREAK() { __asm int 3 }
-    #elif (defined(EA_PROCESSOR_X86) || defined(EA_PROCESSOR_X86_64)) && (defined(EA_ASM_STYLE_ATT) || defined(__GNUC__))
-        #define EASTL_DEBUG_BREAK() asm("int3") 
-    #else
-        void EASTL_DEBUG_BREAK(); // User must define this externally.
-    #endif
-#else
-    void EASTL_DEBUG_BREAK(); // User must define this externally.
+	void EASTL_DEBUG_BREAK(); // User must define this externally.
 #endif
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
