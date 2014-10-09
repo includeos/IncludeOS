@@ -41,15 +41,16 @@ void Virtio::Queue::init_queue(int size, void* buf){
     
     It's here because we might not want to look at the data, e.g. for 
     the VirtioNet TX-queue which will get used buffers in. */
-void empty_handler(uint8_t* UNUSED(data),int size) {
+int empty_handler(uint8_t* UNUSED(data),int size) {
   printf("Empty handler just peaking at %i bytes. \n",size);
+  return -1;
 };
 
 /** Constructor */
 Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   : _size(size),_size_bytes(virtq_size(size)),_iobase(iobase),_num_free(size),
     _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index),
-    _data_handler(delegate<void(uint8_t*,int)>(empty_handler))
+    _data_handler(delegate<int(uint8_t*,int)>(empty_handler))
 {
   //Allocate space for the queue and clear it out
   void* buffer = memalign(PAGE_SIZE,_size_bytes);
@@ -273,7 +274,7 @@ void Virtio::Queue::notify(){
 }
 
 
-void Virtio::Queue::set_data_handler(delegate<void(uint8_t* data,int len)> del){
+void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
   _data_handler=del;
 };
 

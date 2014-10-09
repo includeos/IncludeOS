@@ -10,7 +10,7 @@ char *ether2str(Ethernet::addr *hwaddr, char *s) {
 }
 
 
-void Ethernet::handler(uint8_t* data, int len){  
+int Ethernet::physical_in(uint8_t* data, int len){  
   assert(len > 0);
 
   printf("<Ethernet handler> parsing packet. \n ");  
@@ -33,18 +33,15 @@ void Ethernet::handler(uint8_t* data, int len){
 
   case ETH_IP4:
     printf("\t             IPv4 packet \n");
-    _ip4_handler(data,len);
-    break;
+    return _ip4_handler(data,len);
 
   case ETH_IP6:
     printf("\t             IPv6 packet \n");
-    _ip6_handler(data,len);
-    break;
+    return _ip6_handler(data,len);
     
   case ETH_ARP:
     printf("\t             ARP packet \n");
-    _arp_handler(data,len);
-    break;
+    return _arp_handler(data,len);
     
   case ETH_WOL:
     printf("\t             Wake-on-LAN packet \n");
@@ -52,18 +49,21 @@ void Ethernet::handler(uint8_t* data, int len){
     
   default:
     printf("\t             UNKNOWN ethertype \n");
+    break;
     
   }
   
+  return -1;
 }
 
-void ignore(uint8_t* UNUSED(data), int UNUSED(len)){
+int ignore(uint8_t* UNUSED(data), int UNUSED(len)){
   printf("<Ethernet handler> Ignoring data (no real handler)\n");
+  return -1;
 };
 
 Ethernet::Ethernet() :
   /** Default initializing to the empty handler. */
-  _ip4_handler(delegate<void(uint8_t*,int)>(ignore)),
-  _ip6_handler(delegate<void(uint8_t*,int)>(ignore)),
-  _arp_handler(delegate<void(uint8_t*,int)>(ignore))
+  _ip4_handler(delegate<int(uint8_t*,int)>(ignore)),
+  _ip6_handler(delegate<int(uint8_t*,int)>(ignore)),
+  _arp_handler(delegate<int(uint8_t*,int)>(ignore))
 {}

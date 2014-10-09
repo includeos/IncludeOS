@@ -143,13 +143,19 @@ class VirtioNet : Virtio {
   void irq_handler();
   int add_receive_buffer();
 
-  
+  delegate<int(uint8_t*,int)> _link_out;
+
 public: 
   const char* name();  
   const mac_t& mac();
   const char* mac_str();
+  inline void set_linklayer_out(delegate<int(uint8_t*,int)> link_out){
+    _link_out = link_out;
+    rx_q.set_data_handler(link_out);
+  };
   
-  VirtioNet(PCI_Device* pcidev, Ethernet& eth);
+  VirtioNet(PCI_Device* pcidev);
+    
 
 
 };

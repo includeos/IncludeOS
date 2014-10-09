@@ -8,8 +8,10 @@
 class Arp {
   
   // Outbound data goes through here
-  Ethernet& _eth;
-
+  // delegate<void(...)> bottom;
+  
+  IP4::addr my_ip; //{192,168,0,11};
+  
 public:
   
   struct __attribute__((packed)) header {
@@ -25,11 +27,13 @@ public:
   };
 
   
-  /** Handle ARP packet. */
-  void handler(uint8_t* data, int len);
+  /** Handle incoming ARP packet. */
+  int bottom(uint8_t* data, int len);
 
-  /** Constructor. Requires ethernet to latch on to. */
-  Arp(Ethernet& eth);
+  /** Constructor. Requires an IP address to answer to. */
+  Arp(IP4::addr& ip);
+  Arp(uint32_t ip);
+  
   
 };
 

@@ -131,7 +131,7 @@ public:
     virtq _queue;
         
     /** Handler for data coming in on virtq.used. */
-    delegate<void(uint8_t* data, int len)> _data_handler;
+    delegate<int(uint8_t* data, int len)> _data_handler;
     
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
@@ -161,7 +161,7 @@ public:
     /** Dequeue a received packet. From SanOS */
     void* dequeue(uint32_t* len);
         
-    void set_data_handler(delegate<void(uint8_t* data,int len)> dataHandler);
+    void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
     
     void release(uint32_t head);
     

@@ -14,11 +14,17 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
+int drop(uint8_t* UNUSED(data), int len){
+  printf("<VirtioNet> Dropping %ib link-layer output. No delegate\n",len);
+  return -1;
+}
+
+VirtioNet::VirtioNet(PCI_Device* d)
   : Virtio(d),     
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
-    ctrl_q(queue_size(2),2,iobase())
+    ctrl_q(queue_size(2),2,iobase()),
+    _link_out(delegate<int(uint8_t*,int)>(drop))
 {
   
   printf("\n>>> VirtioNet driver initializing \n");
@@ -122,14 +128,9 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   IRQ_handler::subscribe(irq(),del);
   IRQ_handler::enable_irq(irq());  
   
-
-  // Create an ethernet handler delegate for the RX Queue
-  auto etherdelg(delegate<void(uint8_t*,int)>::from<Ethernet,
-                &Ethernet::handler>(eth));
-  
-  
-  // Assign Ethernet handler to RX Queue
-  rx_q.set_data_handler(etherdelg);
+   
+  // Assign Link-layer output to RX Queue
+  rx_q.set_data_handler(_link_out);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
   
@@ -164,6 +165,7 @@ int VirtioNet::add_receive_buffer(){
   
   return 0;
 }
+
 
 void VirtioNet::irq_handler(){
 
