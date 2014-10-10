@@ -146,17 +146,28 @@ class VirtioNet : Virtio {
   delegate<int(uint8_t*,int)> _link_out;
 
 public: 
+  
+  /** Human readable name. */
   const char* name();  
+  
+  /** Mac address. */
   const mac_t& mac();
+  
+  /** Human readable mac address. */
   const char* mac_str();
+
+  /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(delegate<int(uint8_t*,int)> link_out){
     _link_out = link_out;
     rx_q.set_data_handler(link_out);
   };
+    
+  /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
+  int linklayer_in(uint8_t* data,int len);
   
+  /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(PCI_Device* pcidev);
     
-
 
 };
 

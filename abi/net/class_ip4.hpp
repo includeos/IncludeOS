@@ -24,7 +24,7 @@ public:
     uint32_t whole;
     
     // Constructor
-    addr(uint32_t ip){ whole=ip; };    
+    //addr(uint32_t ip){ whole=ip; };    
         
     inline bool operator==(addr& src)
     {

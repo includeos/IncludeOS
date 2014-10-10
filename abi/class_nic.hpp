@@ -39,13 +39,13 @@ public:
   //const char* name(); 
   
   /** @note If we add this while there's a specialization, this overrides. */
-  inline const char* name() { return driver.name(); }; 
+  inline const char* name() { return _driver.name(); }; 
 
   /** The actual mac address. */
-  inline const mac_t& mac() { return driver.mac(); };
+  inline const mac_t& mac() { return _driver.mac(); };
   
   /** Mac address string. */
-  inline const char* mac_str() { return driver.mac_str(); };
+  inline const char* mac_str() { return _driver.mac_str(); };
 
   
 
@@ -65,7 +65,7 @@ private:
       @todo We might want to construct this from the outside.*/
   IP_stack _net;
   
-  DRIVER_T driver;
+  DRIVER_T _driver;
   
   /** Constructor. 
       
@@ -73,12 +73,18 @@ private:
       @note The Dev-class is a friend and will call this */
   Nic(PCI_Device* d): 
     // Add PCI and ethernet layer to the driver
-    driver(d)
+    _driver(d)
   {
-    auto stack_in=delegate<int(uint8_t*,int)>::from<IP_stack,
-                                               &IP_stack::physical_in>(_net);
-    driver.set_linklayer_out(stack_in);
-
+    // Upstream
+    auto stack_bottom=delegate<int(uint8_t*,int)>::from<IP_stack,
+                                                    &IP_stack::physical_in>(_net);
+    
+    _driver.set_linklayer_out(stack_bottom);
+    
+    // Downstream
+    auto driver_top=delegate<int(uint8_t*,int)>::from<DRIVER_T,
+                                                      &DRIVER_T::linklayer_in>(_driver);    
+    _net.set_physical_out(driver_top);
   };
   
   friend class Dev;

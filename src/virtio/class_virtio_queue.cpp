@@ -91,9 +91,11 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // (implicitly) Mark all outbound tokens as device-readable
   for (i = _free_head; out; i = _queue.desc[i].next, out--) 
   {
+
     _queue.desc[i].flags = VRING_DESC_F_NEXT;
     _queue.desc[i].addr = (uint64_t)sg->data;
     _queue.desc[i].len = sg->size;
+    printf("<Q> Enqueuing outbound, bufsize %i (%li) \n",sg->size,_queue.desc[i].len);
     prev = i;
     sg++;
   }
@@ -101,6 +103,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // Mark all inbound tokens as device-writable
   for (; in; i = _queue.desc[i].next, in--) 
   {
+    //printf("<Q> Enqueuing inbound \n");
     _queue.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
     _queue.desc[i].addr = (uint64_t)sg->data;
     _queue.desc[i].len = sg->size;
@@ -192,8 +195,9 @@ void Virtio::Queue::notify(){
   printf("\t             Used idx: %i, Avail idx: %i \n",
            _queue.used->idx, _queue.avail->idx );
   
+
   int new_packets = _queue.used->idx - _last_used_idx;
-  if (!new_packets) return;
+  //if (!new_packets) return;
   
   printf("\t <VirtQueue> %i new packets: \n", new_packets);
     
@@ -264,13 +268,18 @@ void Virtio::Queue::notify(){
     // Now we should probably dequeue. But, we still haven't figured out how
     // to accumulate packets in memory. Probably need a pool. 
 
-    
-  /** DEBUG: These are the Device's available packages 
-      printf("\t Avail packet 0: %s \n",
-         (char*)_queue.desc[_queue.avail->idx].addr);
-         printf("\t Avail packet 1: %s \n",
-  (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);*/
   }
+  
+
+  /** DEBUG: These are the Device's available packages **/
+  
+  printf("\t Avail packet 0, size: %li, content: %s \n",
+         _queue.desc[_queue.avail->idx].len,
+         (char*)_queue.desc[_queue.avail->idx].addr);
+  printf("\t Avail packet 1, size: %li, content: %s \n",
+         _queue.desc[_queue.desc[_queue.avail->idx].next].len,
+         (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);
+  
 }
 
 

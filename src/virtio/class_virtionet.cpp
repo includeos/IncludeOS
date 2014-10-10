@@ -33,7 +33,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
     | (1 << VIRTIO_NET_F_MAC)
     | (1 << VIRTIO_NET_F_STATUS)
     | (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
-  uint32_t wanted_features = needed_features; /*
+  uint32_t wanted_features = needed_features; /*; 
+    | (1 << VIRTIO_NET_F_CSUM);
     | (1 << VIRTIO_NET_F_CTRL_VQ)
     | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
     | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
@@ -61,7 +62,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
    
   if (features() & (1 << VIRTIO_NET_F_MQ))
     printf("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
- 
+  
 
   printf("\t [%s] Merge RX buffers  \n",
          features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
@@ -133,9 +134,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   rx_q.set_data_handler(_link_out);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
-  
-  
-  
+    
   rx_q.kick();
   
   // Done
@@ -148,7 +147,7 @@ int VirtioNet::add_receive_buffer(){
   scatterlist sg[2];  
   
   // Virtio Std. § 5.1.6.3
-  void* buf = malloc(MTUSIZE + sizeof(virtio_net_hdr));  
+  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
 
   strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
@@ -157,7 +156,7 @@ int VirtioNet::add_receive_buffer(){
   hdr = (virtio_net_hdr*)buf;
   sg[0].data = hdr;
   sg[0].size = sizeof(struct virtio_net_hdr);
-  sg[1].data = (void*)((int32_t)buf + sizeof(virtio_net_hdr));
+  sg[1].data = buf + sizeof(virtio_net_hdr);
   sg[1].size = MTUSIZE; // + sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,buf);
   
@@ -179,8 +178,9 @@ void VirtioNet::irq_handler(){
   
   // Step 2. A)
   if (isr & 1){
-    printf("\t <VirtioNet> Queue activity; checking \n");
+    printf("\t <VirtioNet> Queue activity; checking RX Queue \n");
     rx_q.notify();
+    printf("\t <VirtioNet> Queue activity; checking TX Queue \n");
     tx_q.notify();
   }
   
@@ -199,4 +199,61 @@ void VirtioNet::irq_handler(){
 
   eoi(irq());
   
+}
+
+
+//TEMP for pretty printing 
+extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
+
+int VirtioNet::linklayer_in(uint8_t* data, int len){
+  printf("<VirtioNet> Enqueuing %ib of data. \n",len);
+
+
+  Ethernet::header* ehdr = (Ethernet::header*)data;
+  
+  char* mac = (char*)"00:00:00:00:00:00";
+  printf("DATA: Source: %s \n",  ether2str(&(ehdr->src),mac));
+  printf("DATA: Dest: %s \n",  ether2str(&(ehdr->dest),mac));
+
+  
+  /** @note We have to send a virtio header first, then the packet.
+      
+      From Virtio std. §5.1.6.6: 
+      "When using legacy interfaces, transitional drivers which have not negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct virtio_net_hdr on both transmit and receive, with the network data in the following descriptors." */
+
+  // A scatterlist for virtio-header + data
+  scatterlist sg[2];  
+
+  
+  //Allocate a buffer
+  int BUFSIZE = sizeof(virtio_net_hdr)+MTUSIZE; //+len
+  uint32_t* buf = (uint32_t*)malloc(BUFSIZE);
+  memset(buf,0,BUFSIZE);
+  
+  //The header (unused for now)
+  virtio_net_hdr* hdr = (virtio_net_hdr*)buf;
+  
+  
+  //UGLY copy data to buffer
+  memcpy((buf+sizeof(virtio_net_hdr)),data, len);
+
+  ehdr = (Ethernet::header*)(buf+sizeof(virtio_net_hdr));
+
+  printf("BUF: Source: %s \n",  ether2str(&(ehdr->src),mac));
+  printf("BUF: Dest: %s \n",  ether2str(&(ehdr->dest),mac));
+    
+  sg[0].data = hdr;
+  sg[0].size = sizeof(virtio_net_hdr);
+  sg[1].data = ehdr;
+  sg[1].size = MTUSIZE;
+
+  //sg[1].data = (void*)data;
+  //sg[1].size = len; // + sizeof(virtio_net_hdr);
+  
+  // Enqueue scatterlist, 2 pieces readable, 0 writable.
+  tx_q.enqueue(sg, 2, 0, 0);
+  
+  tx_q.kick();
+  
+  return 0;
 }

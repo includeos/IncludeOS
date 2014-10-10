@@ -28,14 +28,18 @@ public:
   
 #define ETHER_ADDR_LEN 6
   
-  struct addr {
-    uint8_t addr[ETHER_ADDR_LEN];
-  };
+  union addr{
+    uint8_t part[ETHER_ADDR_LEN];
+    struct {
+      uint32_t major;
+      uint16_t minor;
+    } __attribute__((packed));   
+  }__attribute__((packed));
   
   struct header 
   {
-    struct addr dest;
-    struct addr src;
+    addr dest;
+    addr src;
     unsigned short type;
   };
   
