@@ -79,10 +79,10 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   
   int i,avail,head, prev = _free_head;
   
-
+  
   while (_num_free < out + in) //@todo wait... or something.
     panic("Trying to enqueue, but NO FREE BUFFERS");
-    // Remove buffers from the free list
+  // Remove buffers from the free list
   
   _num_free -= out + in;
   head = _free_head;
@@ -90,30 +90,30 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   
   // (implicitly) Mark all outbound tokens as device-readable
   for (i = _free_head; out; i = _queue.desc[i].next, out--) 
-  {
-
-    _queue.desc[i].flags = VRING_DESC_F_NEXT;
-    _queue.desc[i].addr = (uint64_t)sg->data;
-    _queue.desc[i].len = sg->size;
-    printf("<Q> Enqueuing outbound, bufsize %i (%li) \n",sg->size,_queue.desc[i].len);
-    prev = i;
-    sg++;
-  }
+    {
+      
+      _queue.desc[i].flags = VRING_DESC_F_NEXT;
+      _queue.desc[i].addr = (uint64_t)sg->data;
+      _queue.desc[i].len = sg->size;
+      printf("<Q> Enqueuing outbound, bufsize %i (%li) \n",sg->size,_queue.desc[i].len);
+      prev = i;
+      sg++;
+    }
   
   // Mark all inbound tokens as device-writable
   for (; in; i = _queue.desc[i].next, in--) 
-  {
-    //printf("<Q> Enqueuing inbound \n");
-    _queue.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-    _queue.desc[i].addr = (uint64_t)sg->data;
-    _queue.desc[i].len = sg->size;
-    prev = i;
-    sg++;
-  }
+    {
+      //printf("<Q> Enqueuing inbound \n");
+      _queue.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
+      _queue.desc[i].addr = (uint64_t)sg->data;
+      _queue.desc[i].len = sg->size;
+      prev = i;
+      sg++;
+    }
   
   // No continue on last buffer
   _queue.desc[prev].flags &= ~VRING_DESC_F_NEXT;
-
+  
   // Update free pointer
   _free_head = i;
 
@@ -289,7 +289,12 @@ void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
 
 
 void Virtio::Queue::kick(){
+  __sync_synchronize ();
+
   _queue.avail->idx += _num_added;
+  
+  __sync_synchronize ();
+
   _num_added = 0;
   
   if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){

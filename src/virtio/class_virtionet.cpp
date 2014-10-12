@@ -59,14 +59,20 @@ VirtioNet::VirtioNet(PCI_Device* d)
 
   printf("\t [%s] There are multiple queue pairs \n",
          features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
-   
+
+  printf("\t [%s] We can use indirect descriptors \n",
+         features() & (1 << VIRTIO_F_RING_INDIRECT_DESC) ? "x" : "0" );
+  
+  printf("\t [%s] There's a Ring Event Index to use \n",
+         features() & (1 << VIRTIO_F_RING_EVENT_IDX) ? "x" : "0" );
+     
   if (features() & (1 << VIRTIO_NET_F_MQ))
     printf("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
   
 
   printf("\t [%s] Merge RX buffers  \n",
          features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
-
+  
 
    
   // Step 1 - Initialize RX/TX queues
@@ -139,6 +145,17 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   // Done
   printf("\n >> Driver initialization complete. \n\n");  
+
+  // Test stransmission
+  uint8_t buf[100] = {0};
+  memset(buf,0,100);
+  Ethernet::header* hdr = (Ethernet::header*)buf;
+  hdr->src = {0x8,0x0,0x27,0x9d,0x86,0xe8};
+  hdr->dest = {0x8,0x0,0x27,0xac,0x54,0x90};
+  hdr->type = Ethernet::ETH_ARP;
+  
+  linklayer_in(buf,100);
+  
 };  
 
 /** Port-ish from SanOS */
