@@ -1,8 +1,19 @@
 #ifndef CLASS_UDP_HPP
 #define CLASS_UDP_HPP
 
+#include <net/class_ip4.hpp>
+
 class UDP{
 public:
+
+  /** UDP Header */
+  struct header{
+    IP4::header ip_hdr;
+    uint16_t sport;
+    uint16_t dport;
+    uint16_t length;
+    uint16_t checksum;
+  }__attribute__((packed));
 
   /** Input from network layer */
   int bottom(uint8_t* data, int len);

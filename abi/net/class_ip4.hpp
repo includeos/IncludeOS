@@ -34,6 +34,7 @@ public:
   
   /** IP4 header */
   struct header{
+    Ethernet::header eth_hdr;
     uint8_t version:4,ihl:4;
     uint8_t tos;
     uint16_t tot_len;

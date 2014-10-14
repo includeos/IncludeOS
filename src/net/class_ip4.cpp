@@ -6,7 +6,7 @@
 int IP4::bottom(uint8_t* data, int len){
   printf("<IP4 handler> got the data. I'm incompetent but I'll try:\n");
   
-  header* hdr = (header*)((uint8_t*)data+sizeof(Ethernet::header));
+  header* hdr = (header*)data;
   
   printf("\t Source IP: %1i.%1i.%1i.%1i Dest.IP: %1i.%1i.%1i.%1i  \n",
          hdr->saddr.part[0],hdr->saddr.part[1],hdr->saddr.part[2],hdr->saddr.part[3],
