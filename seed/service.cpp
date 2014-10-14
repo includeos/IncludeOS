@@ -11,5 +11,8 @@ void Service::start()
   
   cout << "Using ethernet device:" << eth1.name() << endl;  
   cout << "Mac: " << eth1.mac_str() << endl;
-  cout << "Service out! " << endl;
+  
+  // Hook up to I/O events and do something useful ...
+  
+  cout << "Service out! " << endl; 
 }

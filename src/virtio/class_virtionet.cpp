@@ -73,7 +73,6 @@ VirtioNet::VirtioNet(PCI_Device* d)
   printf("\t [%s] Merge RX buffers  \n",
          features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
   
-
    
   // Step 1 - Initialize RX/TX queues
   printf("\t [%s] RX queue assigned (0x%lx) to device \n ",
@@ -83,6 +82,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   printf("\t [%s] TX queue assigned (0x%lx) to device \n ",
          assign_queue(1, (uint32_t)tx_q.queue_desc()) ? "x":" ",
          (uint32_t)tx_q.queue_desc());
+
   
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ))
@@ -147,6 +147,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   printf("\n >> Driver initialization complete. \n\n");  
 
   // Test stransmission
+  /*
   uint8_t buf[100] = {0};
   memset(buf,0,100);
   Ethernet::header* hdr = (Ethernet::header*)buf;
@@ -155,6 +156,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
   hdr->type = Ethernet::ETH_ARP;
   
   linklayer_in(buf,100);
+  //add_send_buffer();
+  tx_q.kick();*/
   
 };  
 
@@ -222,7 +225,33 @@ void VirtioNet::irq_handler(){
 //TEMP for pretty printing 
 extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
-int VirtioNet::linklayer_in(uint8_t* data, int len){
+int VirtioNet::add_send_buffer()
+{ 
+  virtio_net_hdr* hdr;
+  scatterlist sg[2];  
+  
+  // Virtio Std. § 5.1.6.3
+  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
+  if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
+
+  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
+  
+  strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
+  //printf("Buffer data: %s \n",str);
+  
+  hdr = (virtio_net_hdr*)buf;
+  
+  
+  sg[0].data = hdr;
+  sg[0].size = sizeof(struct virtio_net_hdr);
+  sg[1].data = buf; //sizeof(virtio_net_hdr);
+  sg[1].size = MTUSIZE + sizeof(virtio_net_hdr);
+  tx_q.enqueue(sg, 2, 0,buf);
+  return 0;
+}
+
+
+int VirtioNet::transmit(uint8_t* data, int len){
   printf("<VirtioNet> Enqueuing %ib of data. \n",len);
 
 
@@ -244,25 +273,30 @@ int VirtioNet::linklayer_in(uint8_t* data, int len){
   
   //Allocate a buffer
   int BUFSIZE = sizeof(virtio_net_hdr)+MTUSIZE; //+len
-  uint32_t* buf = (uint32_t*)malloc(BUFSIZE);
+  uint8_t* buf = (uint8_t*)malloc(BUFSIZE);
+  
+  
   memset(buf,0,BUFSIZE);
   
   //The header (unused for now)
-  virtio_net_hdr* hdr = (virtio_net_hdr*)buf;
+  //virtio_net_hdr* hdr = (virtio_net_hdr*)buf;
   
   
   //UGLY copy data to buffer
-  memcpy((buf+sizeof(virtio_net_hdr)),data, len);
-
-  ehdr = (Ethernet::header*)(buf+sizeof(virtio_net_hdr));
+  memcpy((char*)buf+sizeof(virtio_net_hdr),data, len);
+  
+  
+  ehdr = (Ethernet::header*)((char*)buf+sizeof(virtio_net_hdr));
 
   printf("BUF: Source: %s \n",  ether2str(&(ehdr->src),mac));
   printf("BUF: Dest: %s \n",  ether2str(&(ehdr->dest),mac));
-    
-  sg[0].data = hdr;
+  
+  //*((uint32_t*)buf+(MTUSIZE -4))=0xac2f54c4;
+  
+  sg[0].data = buf;
   sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = ehdr;
-  sg[1].size = MTUSIZE;
+  sg[1].data = buf; // + sizeof(virtio_net_hdr);
+  sg[1].size = len;//MTUSIZE + sizeof(virtio_net_hdr);
 
   //sg[1].data = (void*)data;
   //sg[1].size = len; // + sizeof(virtio_net_hdr);

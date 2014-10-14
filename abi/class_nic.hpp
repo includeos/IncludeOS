@@ -83,7 +83,7 @@ private:
     
     // Downstream
     auto driver_top=delegate<int(uint8_t*,int)>::from<DRIVER_T,
-                                                      &DRIVER_T::linklayer_in>(_driver);    
+                                                      &DRIVER_T::transmit>(_driver);    
     _net.set_physical_out(driver_top);
   };
   

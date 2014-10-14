@@ -58,7 +58,7 @@ extern "C" {
 }
 
 int Arp::arp_respond(header* hdr_in){
-  printf("\t Constructing ARP Reply \n");
+  printf("\t IP Match. Constructing ARP Reply \n");
   printf("\t ARP header size: %li \n",sizeof(header));
   
   int bufsize = sizeof(header) + 12;

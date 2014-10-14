@@ -267,7 +267,8 @@ void Virtio::Queue::notify(){
     
     // Now we should probably dequeue. But, we still haven't figured out how
     // to accumulate packets in memory. Probably need a pool. 
-
+    
+    
   }
   
 
@@ -289,17 +290,19 @@ void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
 
 
 void Virtio::Queue::kick(){
-  __sync_synchronize ();
+  //__sync_synchronize ();
 
   _queue.avail->idx += _num_added;
   
-  __sync_synchronize ();
+  //__sync_synchronize ();
 
   _num_added = 0;
-  
+ 
+
   if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){
     printf("Kicking virtio. Iobase 0x%x, Queue index %i \n",
            _iobase,_pci_index);
+    //outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);
     outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
   }
 }

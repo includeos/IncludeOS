@@ -4,21 +4,18 @@
 #include <delegate>
 #include <net/class_ethernet.hpp>
 
+#include <iostream>
+#include <string>
 
 /** IP4 layer skeleton */
 class IP4 {  
-  
-  // Outbound data goes through here
-  //Ethernet& _eth;
-  
-  typedef delegate<int(uint8_t* data,int len)> subscriber;
-  
-  subscriber below;
-  subscriber above;
-  
-
 public:
   
+  enum proto{IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6};
+  
+  // Signature for output-delegates
+  typedef delegate<int(uint8_t* data,int len)> subscriber;  
+
   union __attribute__((packed)) addr{
     uint8_t part[4];
     uint32_t whole;
@@ -30,6 +27,20 @@ public:
     {
       return src.whole == whole; 
     }
+    
+  };
+
+  struct header{
+    uint8_t version:4,ihl:4;
+    uint8_t tos;
+    uint16_t tot_len;
+    uint16_t id;
+    uint16_t frag_off;
+    uint8_t ttl;
+    uint8_t protocol;
+    uint16_t check;
+    addr saddr;
+    addr daddr;
   };
   
   /** Handle IPv4 packet. */
@@ -37,8 +48,16 @@ public:
 
   void upstream(subscriber s);
   void downstream(subscriber s);
+
+private:  
   
+  // Outbound data goes through here
+  //Ethernet& _eth;  
   
+  subscriber below;
+  subscriber above;
+  
+
   /** IP stack sketch
         
   class IP_stack {

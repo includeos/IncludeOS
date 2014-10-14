@@ -142,6 +142,7 @@ class VirtioNet : Virtio {
   
   void irq_handler();
   int add_receive_buffer();
+  int add_send_buffer();
 
   delegate<int(uint8_t*,int)> _link_out;
 
@@ -163,7 +164,7 @@ public:
   };
     
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int linklayer_in(uint8_t* data,int len);
+  int transmit(uint8_t* data,int len);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(PCI_Device* pcidev);
