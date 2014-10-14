@@ -11,11 +11,13 @@
 class IP4 {  
 public:
   
+  /** Known transport layer protocols. */
   enum proto{IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6};
   
-  // Signature for output-delegates
+  /** Signature for output-delegates. */
   typedef delegate<int(uint8_t* data,int len)> subscriber;  
 
+  /** IP4 address */
   union __attribute__((packed)) addr{
     uint8_t part[4];
     uint32_t whole;
@@ -29,7 +31,8 @@ public:
     }
     
   };
-
+  
+  /** IP4 header */
   struct header{
     uint8_t version:4,ihl:4;
     uint8_t tos;
@@ -43,19 +46,40 @@ public:
     addr daddr;
   };
   
-  /** Handle IPv4 packet. */
+  /** Upstream: Input from link layer. */
   int bottom(uint8_t* data, int len);
-
-  void upstream(subscriber s);
-  void downstream(subscriber s);
-
+  
+  /** Upstream: Outputs to transport layer*/
+  inline void set_icmp_handler(subscriber s)
+  { _icmp_handler = s; }
+  
+  inline void set_udp_handler(subscriber s)
+  { _udp_handler = s; }
+    
+  
+  inline void set_tcp_handler(subscriber s)
+  { _tcp_handler = s; }
+    
+  
+  /** Downstream: Delegate linklayer out */
+  void set_linklayer_out(subscriber s)
+  { _linklayer_out = s; };
+  
+  /** Downstream: Receive data from above. */
+  int top(uint8_t* data, int len);
+  
+  IP4();
+  
+  
 private:  
   
-  // Outbound data goes through here
-  //Ethernet& _eth;  
+  /** Downstream: Linklayer output delegate */
+  subscriber _linklayer_out;
   
-  subscriber below;
-  subscriber above;
+  /** Upstream delegates */
+  subscriber _icmp_handler;
+  subscriber _udp_handler;
+  subscriber _tcp_handler;
   
 
   /** IP stack sketch

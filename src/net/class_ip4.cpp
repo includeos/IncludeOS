@@ -13,23 +13,31 @@ int IP4::bottom(uint8_t* data, int len){
          hdr->daddr.part[0],hdr->daddr.part[1],hdr->daddr.part[2],hdr->daddr.part[3]
          );
   
-  printf("\t Protocol: ");
   switch(hdr->protocol){
   case IP4_ICMP:
-    printf("ICMP");
+    _icmp_handler(data, len);
     break;
   case IP4_UDP:
-    printf("UDP");
+    _udp_handler(data, len);
     break;
   case IP4_TCP:
-    printf("TCP");
+    _tcp_handler(data, len);
     break;
   default:
     printf("UNKNOWN");
     break;
   }
-  printf("\n \t...No idea what do do with that.\n");
-
+  
   return -1;
 };
 
+int ignore_ip4(uint8_t* UNUSED(data), int UNUSED(len)){
+  printf("<IP4> Empty handler. Ignoring.\n");
+  return -1;
+}
+
+IP4::IP4() :
+  _icmp_handler(delegate<int(uint8_t*,int)>(ignore_ip4)),
+  _udp_handler(delegate<int(uint8_t*,int)>(ignore_ip4)),
+  _tcp_handler(delegate<int(uint8_t*,int)>(ignore_ip4))
+{}
