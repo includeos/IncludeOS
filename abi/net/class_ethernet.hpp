@@ -4,25 +4,6 @@
 #include <delegate>
 
 class Ethernet{
-
-  // Upstream OUTPUT connections
-  delegate<int(uint8_t* data, int len)> _ip4_handler;
-  delegate<int(uint8_t* data, int len)> _ip6_handler;
-  delegate<int(uint8_t* data, int len)> _arp_handler;
-  
-  // Downstream OUTPUT connection
-  delegate<int(uint8_t* data, int len)> _physical_out;
-  
-  
-  /*
-    
-    +--|IP4|---|ARP|---|IP6|---+
-    |                          |
-    |        Ethernet          |
-    |                          |
-    +---------|Phys|-----------+
-    
-  */
   
 public:
   
@@ -71,7 +52,35 @@ public:
   inline void set_physical_out(delegate<int(uint8_t* data,int len)> del)
   { _physical_out = del; }
   
-  Ethernet();
+  inline addr mac()
+  { return _mac; }
+
+  /** Transmit data, with preallocated space for eth.header */
+  int transmit(addr mac, Ethernet::ethertype type,uint8_t* data, int len);
+  
+  Ethernet(addr mac);
+
+private:
+  addr _mac;
+
+  // Upstream OUTPUT connections
+  delegate<int(uint8_t* data, int len)> _ip4_handler;
+  delegate<int(uint8_t* data, int len)> _ip6_handler;
+  delegate<int(uint8_t* data, int len)> _arp_handler;
+  
+  // Downstream OUTPUT connection
+  delegate<int(uint8_t* data, int len)> _physical_out;
+  
+  
+  /*
+    
+    +--|IP4|---|ARP|---|IP6|---+
+    |                          |
+    |        Ethernet          |
+    |                          |
+    +---------|Phys|-----------+
+    
+  */
   
 };
 

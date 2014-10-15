@@ -1,3 +1,5 @@
+#define NDEBUG
+
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
 #include <class_irq_handler.hpp>
@@ -15,7 +17,7 @@ void VirtioNet::get_config(){
 };
 
 int drop(uint8_t* UNUSED(data), int len){
-  printf("<VirtioNet> Dropping %ib link-layer output. No delegate\n",len);
+  debug("<VirtioNet> Dropping %ib link-layer output. No delegate\n",len);
   return -1;
 }
 
@@ -42,10 +44,10 @@ VirtioNet::VirtioNet(PCI_Device* d)
   negotiate_features(wanted_features);
   
   
-  printf("\t [%s] Netotiated needed features \n",
+  printf("\t [%s] Negotiated needed features \n",
          (features() & needed_features) == needed_features ? "x" : " " );
   
-  printf("\t [%s] Netotiated wanted features \n",
+  printf("\t [%s] Negotiated wanted features \n",
          (features() & wanted_features) == wanted_features ? "x" : " " );
 
   printf("\t [%s] Device handles packets w. partial checksum \n",
@@ -189,7 +191,7 @@ int VirtioNet::add_receive_buffer(){
 void VirtioNet::irq_handler(){
 
 
-  printf("<VirtioNet> handling IRQ \n");
+  debug("<VirtioNet> handling IRQ \n");
   
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
@@ -198,20 +200,20 @@ void VirtioNet::irq_handler(){
   
   // Step 2. A)
   if (isr & 1){
-    printf("\t <VirtioNet> Queue activity; checking RX Queue \n");
+    debug("\t <VirtioNet> Queue activity; checking RX Queue \n");
     rx_q.notify();
-    printf("\t <VirtioNet> Queue activity; checking TX Queue \n");
+    debug("\t <VirtioNet> Queue activity; checking TX Queue \n");
     tx_q.notify();
   }
   
   // Step 2. B)
   if (isr & 2){
-    printf("\t <VirtioNet> Configuration change:\n");
+    debug("\t <VirtioNet> Configuration change:\n");
     
     // Getting the MAC + status 
-    printf("\t             Old status: 0x%x\n",_conf.status);      
+    debug("\t             Old status: 0x%x\n",_conf.status);      
     get_config();
-    printf("\t             New status: 0x%x \n",_conf.status);
+    debug("\t             New status: 0x%x \n",_conf.status);
   }
   
   // ISR should now be 0
@@ -237,7 +239,7 @@ int VirtioNet::add_send_buffer()
   memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
   
   strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
-  //printf("Buffer data: %s \n",str);
+  //debug("Buffer data: %s \n",str);
   
   hdr = (virtio_net_hdr*)buf;
   
@@ -252,14 +254,15 @@ int VirtioNet::add_send_buffer()
 
 
 int VirtioNet::transmit(uint8_t* data, int len){
-  printf("<VirtioNet> Enqueuing %ib of data. \n",len);
+  debug("<VirtioNet> Enqueuing %ib of data. \n",len);
 
 
   Ethernet::header* ehdr = (Ethernet::header*)data;
-  
   char* mac = (char*)"00:00:00:00:00:00";
-  printf("DATA: Source: %s \n",  ether2str(&(ehdr->src),mac));
-  printf("DATA: Dest: %s \n",  ether2str(&(ehdr->dest),mac));
+
+  /*
+  debug("DATA: Source: %s \n",  ether2str(&(ehdr->src),mac));
+  debug("DATA: Dest: %s \n",  ether2str(&(ehdr->dest),mac));*/
 
   
   /** @note We have to send a virtio header first, then the packet.
@@ -288,8 +291,8 @@ int VirtioNet::transmit(uint8_t* data, int len){
   
   ehdr = (Ethernet::header*)((char*)buf+sizeof(virtio_net_hdr));
 
-  printf("BUF: Source: %s \n",  ether2str(&(ehdr->src),mac));
-  printf("BUF: Dest: %s \n",  ether2str(&(ehdr->dest),mac));
+  debug("\tSource: %s \n",  ether2str(&(ehdr->src),mac));
+  debug("\tDest: %s \n",  ether2str(&(ehdr->dest),mac));
   
   //*((uint32_t*)buf+(MTUSIZE -4))=0xac2f54c4;
   

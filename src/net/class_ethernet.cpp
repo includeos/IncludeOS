@@ -1,3 +1,5 @@
+#define NDEBUG // Supress debugging
+
 #include <os>
 #include <net/class_ethernet.hpp>
 
@@ -35,11 +37,19 @@ extern "C" {
   
 }
 
+int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
+  header* hdr = (header*)data;
+  memcpy((void*)&hdr->src, (void*)&_mac, 6);
+  memcpy((void*)&hdr->dest, (void*)&mac, 6);
+  hdr->type = type;
+  
+  return _physical_out(data, len);
+}
 
 int Ethernet::physical_in(uint8_t* data, int len){  
   assert(len > 0);
 
-  printf("<Ethernet handler> parsing packet. \n ");  
+  debug("<Ethernet handler> parsing packet. \n ");  
   header* eth = (header*) data;
 
   /** Do we pass on ethernet headers? Probably.
@@ -50,34 +60,34 @@ int Ethernet::physical_in(uint8_t* data, int len){
   
   // Print, for verification
   char eaddr[] = "00:00:00:00:00:00";
-  printf("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
-  printf("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
-  printf("\t             Eth. Type  : 0x%x\n",eth->type); 
+  debug("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
+  debug("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
+  debug("\t             Eth. Type  : 0x%x\n",eth->type); 
 
-  printf("\t             Eth. CRC   : 0x%lx == 0x%lx \n",
+  debug("\t             Eth. CRC   : 0x%lx == 0x%lx \n",
          *((uint32_t*)&data[len-4]),ether_crc(len - sizeof(header) - 4, data + sizeof(header)));
 
 
   switch(eth->type){ 
 
   case ETH_IP4:
-    printf("\t             IPv4 packet \n");
+    debug("\t             IPv4 packet \n");
     return _ip4_handler(data,len);
 
   case ETH_IP6:
-    printf("\t             IPv6 packet \n");
+    debug("\t             IPv6 packet \n");
     return _ip6_handler(data,len);
     
   case ETH_ARP:
-    printf("\t             ARP packet \n");
+    debug("\t             ARP packet \n");
     return _arp_handler(data,len);
     
   case ETH_WOL:
-    printf("\t             Wake-on-LAN packet \n");
+    debug("\t             Wake-on-LAN packet \n");
     break;
     
   default:
-    printf("\t             UNKNOWN ethertype \n");
+    debug("\t             UNKNOWN ethertype \n");
     break;
     
   }
@@ -86,11 +96,12 @@ int Ethernet::physical_in(uint8_t* data, int len){
 }
 
 int ignore(uint8_t* UNUSED(data), int UNUSED(len)){
-  printf("<Ethernet handler> Ignoring data (no real handler)\n");
+  debug("<Ethernet handler> Ignoring data (no real handler)\n");
   return -1;
 };
 
-Ethernet::Ethernet() :
+Ethernet::Ethernet(addr mac) :
+  _mac(mac),
   /** Default initializing to the empty handler. */
   _ip4_handler(delegate<int(uint8_t*,int)>(ignore)),
   _ip6_handler(delegate<int(uint8_t*,int)>(ignore)),

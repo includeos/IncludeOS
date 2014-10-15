@@ -39,15 +39,16 @@ public:
   //const char* name(); 
   
   /** @note If we add this while there's a specialization, this overrides. */
-  inline const char* name() { return _driver.name(); }; 
+  inline const char* name() { return _driver.name(); }
 
   /** The actual mac address. */
-  inline const mac_t& mac() { return _driver.mac(); };
+  inline const mac_t& mac() { return _driver.mac(); }
   
   /** Mac address string. */
-  inline const char* mac_str() { return _driver.mac_str(); };
+  inline const char* mac_str() { return _driver.mac_str(); }
 
-  
+  /** Get the ip stack (later the stack will stand alone) */
+  IP_stack& ip_stack(){ return _net; }
 
     /** Event types */
     enum event_t {EthData, TCPConnection, TCPData, 

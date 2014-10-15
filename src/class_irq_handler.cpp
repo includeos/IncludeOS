@@ -1,3 +1,5 @@
+#define NDEBUG // Supress debug
+
 #include <os>
 #include <class_irq_handler.hpp>
 #include "hw/pic.h"
@@ -105,11 +107,11 @@ static uint32_t __irqueues[256]{0};
   void irq_##I##_handler(){                                     \
     irq_pending |=  (1 << (I-IRQ_BASE));                        \
     ainc(__irqueues[I-IRQ_BASE]);                               \
-    printf("<IRQ !> IRQ %i. Pending: 0x%lx. Count: %li\n",I,    \
+    debug("<IRQ !> IRQ %i. Pending: 0x%lx. Count: %li\n",I,    \
            irq_pending,__irqueues[I-IRQ_BASE]);                 \
   }
 
-//printf("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
+//debug("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
 
 // The delegates will handle EOI
 // eoi(I-IRQ_BASE);  
@@ -164,7 +166,7 @@ extern "C"{
 } //End extern
 
 void IRQ_handler::init(){
-  //printf("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
+  //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
   if(idt_is_set){
     printf("ERROR: Trying to reset IDT");
     kill(1,9);
@@ -228,14 +230,14 @@ void IRQ_handler::init(){
   ainc(i);
   ainc(i);
   ainc(i);
-  printf("ATOMIC Increment 3 times: %li \n",i);
+  debug("ATOMIC Increment 3 times: %li \n",i);
   assert(i==3);
   adec(i);
   adec(i);
   adec(i);
-  printf("ATOMIC Decrement 3 times: %li \n",i);
+  debug("ATOMIC Decrement 3 times: %li \n",i);
   assert(i==0);
-  printf("ATOMIC Decrement 3 times: %li \n",i);
+  debug("ATOMIC Decrement 3 times: %li \n",i);
 
 };
 
@@ -327,7 +329,7 @@ void IRQ_handler::notify(){
     irq = bsr(todo);    
     
     // Notify
-    printf("<IRQ notify> __irqueue %i Count: %li \n",irq,__irqueues[irq]);
+    debug("<IRQ notify> __irqueue %i Count: %li \n",irq,__irqueues[irq]);
     irq_delegates[irq]();
     
     // Decrement the counter
@@ -339,7 +341,7 @@ void IRQ_handler::notify(){
     if (!__irqueues[irq]) {
         // Remove the IRQ from pending list            
         irq_pending &= ~(1 << irq);
-        //printf("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
+        //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);  
     }
     // Critical section end
     

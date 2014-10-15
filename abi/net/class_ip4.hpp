@@ -69,11 +69,17 @@ public:
   /** Downstream: Receive data from above. */
   int top(uint8_t* data, int len);
   
-  IP4();
+  inline addr ip(){
+    return _ip;
+  }
+
+  IP4(addr ip);
   
   
 private:  
   
+  IP4::addr _ip; //{192,168,0,11};
+
   /** Downstream: Linklayer output delegate */
   subscriber _linklayer_out;
   

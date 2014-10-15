@@ -29,23 +29,24 @@ public:
   /** Handle incoming ARP packet. */
   int bottom(uint8_t* data, int len);
   
-  /** Constructor. Requires an IP address to answer to. */
-  Arp(IP4::addr ip, Ethernet::addr mac);
-  Arp(uint32_t ip);
   
   /** Delegate link-layer output. */
-  inline void set_linklayer_out(delegate<int(uint8_t*,int)> link){
+  inline void set_linklayer_out(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> link){
     _linklayer_out = link;
   };
                            
+  Arp(Ethernet::addr,IP4::addr);
   
 private: 
   
-  IP4::addr my_ip; //{192,168,0,11};
-  Ethernet::addr my_mac;
+  // Needs to know which mac address to put in header->swhaddr
+  Ethernet::addr _mac;
+
+  // Needs to know which IP to respond to
+  IP4::addr _ip;
   
   // Outbound data goes through here
-  delegate<int(uint8_t*,int)> _linklayer_out;
+  delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> _linklayer_out;
   
   int arp_respond(header* hdr_in);
   int arp_request(IP4::addr ip);

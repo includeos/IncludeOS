@@ -31,18 +31,32 @@ public:
   /** Delegate physical layer output. */
   inline void set_physical_out(delegate<int(uint8_t*,int)> phys){
     _eth.set_physical_out(phys);
-    
-    // Temp: Routing arp directly to physical.
-    _arp.set_linklayer_out(phys);
+
+auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>::from<Ethernet,&Ethernet::transmit>(_eth));
+// Temp: Routing arp directly to physical.
+_arp.set_linklayer_out(eth_top);
     
     // Maybe not necessary
     _physical_out = phys;
   };
+
+  inline void udp_listen(uint16_t port, UDP::listener l)
+  { _udp.listen(port,l); }
+
+  // Don't know that we *want* copy construction....
+  IP_stack(IP_stack& cpy):
+    _eth(cpy._eth),_arp(cpy._arp),_ip4(cpy._ip4)
+  {    
+    printf("<IP Stack> Copy-constructing\n");
+  }
   
   IP_stack() :
-    _arp(IP4::addr({192,168,0,11}),
-         Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8}))
+    _eth(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8})),
+    _arp(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8}),IP4::addr({192,168,0,11})),
+    _ip4(IP4::addr({192,168,0,11}))
   {
+    
+    printf("<IP Stack> constructing \n");
     /** Make delegates for bottom of layers */
     
     auto arp_bottom(delegate<int(uint8_t*,int)>::from<Arp,&Arp::bottom>(_arp));
@@ -61,10 +75,7 @@ public:
     
     _ip4.set_icmp_handler(icmp_bottom);
     _ip4.set_udp_handler(udp_bottom);
-
-    // Downstream:
-    // Handled in set_physical_out. Everybody has to provide their own default
-    // default downstream "gutter", i.e. a delegate to a function doing nothing.
+    
     
   }
   

@@ -1,10 +1,11 @@
+#define NDEBUG // Supress debugging
 #include <os>
 #include <net/class_ip6.hpp>
 
 
 
 int IP6::bottom(uint8_t* data, int len){
-  printf("<IP6 handler> got the data, but I'm clueless: DROP! \n");
+  debug("<IP6 handler> got the data, but I'm clueless: DROP! \n");
   return -1;
 };
 
