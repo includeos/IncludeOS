@@ -39,13 +39,14 @@ extern "C" {
   void _start(void)
   {    
     __asm__ volatile ("cli");
+
+    // enable SSE extensions bitmask in CR4 register
+    enableSSE();
     
     init_serial();    
 
     OS::rsprint(" \n\n *** IncludeOS Initializing *** \n\n");    
     
-    // enable SSE extensions bitmask in CR4 register
-    enableSSE();
     
     //Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
