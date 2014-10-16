@@ -107,12 +107,12 @@ class VirtioNet : Virtio {
     uint16_t csum_start;       // Position to start checksumming from
     uint16_t csum_offset;      // Offset after that to place checksum
     uint16_t num_buffers;
-  };
+  }__attribute__((packed));
   
   /** An empty header.      
       It's ok to use as long as we don't need checksum offloading
       or other 'fancier' virtio features. */
-  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0,0};
+  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0,0}; 
 
   PCI_Device* dev;
   

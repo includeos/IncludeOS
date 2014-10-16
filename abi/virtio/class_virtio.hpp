@@ -163,7 +163,7 @@ public:
     int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data));
     
     /** Dequeue a received packet. From SanOS */
-    void* dequeue(uint32_t* len);
+    uint8_t* dequeue(uint32_t* len);
         
     void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
     

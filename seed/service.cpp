@@ -26,6 +26,9 @@ void Service::start()
       
       debug("<APP SERVER> Got %i b of data! (%i b frame) \n",data_len,len);
       printf("%s",data_loc);
+      
+      // Free the buffer
+      free(data);
       return 0;
     });
   

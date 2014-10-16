@@ -175,9 +175,6 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
-
-  strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
-  //printf("Buffer data: %s \n",str);
   
   hdr = (virtio_net_hdr*)buf;
   sg[0].data = hdr;
@@ -225,10 +222,23 @@ void VirtioNet::irq_handler(){
 void VirtioNet::service_RX(){
   debug("<RX Queue> %i new packets, %i available tokens \n",
         rx_q.new_incoming(),rx_q.num_avail());
+  
+  
+  /** For RX, we dequeue, add new buffers and let receiver is responsible for 
+      memory management (they know when they're done with the packet.) */
+  
+  int i = 0;
+  uint32_t len = 0;
+  uint8_t* data;
   while(rx_q.new_incoming()){
-    rx_q.notify();
-    
+    data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
+    add_receive_buffer();
+    _link_out(data,len); 
+    i++;
   }
+  
+  if (i)
+    rx_q.kick();
 }
 
 void VirtioNet::service_TX(){
@@ -237,11 +247,15 @@ void VirtioNet::service_TX(){
   
   uint32_t len = 0;
   int i = 0;  
-  /*
-  for (;i < tx_q.new_incoming(); i++)
-  tx_q.dequeue(&len);*/
   
-  debug("\t Dequeued %i packets (%li bytes) \n",i,len);
+  /** For TX, just dequeue all incoming tokens.      
+      
+      Sender allocated the buffer and is responsible for memory management. 
+      @todo Sender doesn't know when the packet is transmitted; deal with it. */
+  for (;i < tx_q.new_incoming(); i++)
+    tx_q.dequeue(&len);
+  
+  debug("\t Dequeued %i packets \n",i);
   // Deallocate buffer. 
 }
 
@@ -289,7 +303,11 @@ int VirtioNet::transmit(uint8_t* data, int len){
       "When using legacy interfaces, transitional drivers which have not 
       negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct
       virtio_net_hdr on both transmit and receive, with the network data in the 
-      following descriptors." */
+      following descriptors." 
+      
+      VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to 
+      support VirtualBox (allthough VirtualBox won't eat my packets anyway)
+  */
 
   // A scatterlist for virtio-header + data
   scatterlist sg[2];  
@@ -297,11 +315,8 @@ int VirtioNet::transmit(uint8_t* data, int len){
   // This setup requires all tokens to be pre-chained like in SanOS
   sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = data;//buf + sizeof(virtio_net_hdr);
-  sg[1].size = len;//MTUSIZE + sizeof(virtio_net_hdr);
-
-  //sg[1].data = (void*)data;
-  //sg[1].size = len; // + sizeof(virtio_net_hdr);
+  sg[1].data = data;
+  sg[1].size = len;
   
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(sg, 2, 0, 0);

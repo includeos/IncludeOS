@@ -62,6 +62,7 @@ extern "C" {
 int Arp::arp_respond(header* hdr_in){
   debug("\t IP Match. Constructing ARP Reply \n");
   
+  // Allocate send buffer
   int bufsize = sizeof(header) + 12;
   uint8_t* buffer = (uint8_t*)malloc(bufsize);
   header* hdr = (header*)buffer;

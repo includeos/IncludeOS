@@ -1,4 +1,4 @@
-#define NDEBUG // Supress debug
+// #define NDEBUG // Supress debug
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>
@@ -163,21 +163,20 @@ void Virtio::Queue::release(uint32_t head){
   //if (_num_free > 0) set_event(&vq->bufavail);
 }
 
-void* Virtio::Queue::dequeue(uint32_t* len){
-  struct virtq_used_elem *e;
-  void *data;
+uint8_t* Virtio::Queue::dequeue(uint32_t* len){
 
   // Return NULL if there are no more completed buffers in the queue
-  if (! _last_used_idx != _queue.used->idx){
-    debug("...Supposedly there are no used buffers \n");
+  if (_last_used_idx == _queue.used->idx){
+    debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
     return NULL;
   }
 
   // Get next completed buffer
-  e = &_queue.used->ring[_last_used_idx % _size];
+  auto* e = &_queue.used->ring[_last_used_idx % _size];
   *len = e->len;
-  
-  //data = vq->data[e->id];
+
+  debug("<Q %i> Releasing token %li. Len: %li\n",_pci_index,e->id, e->len);
+  uint8_t* data = (uint8_t*)_queue.desc[e->id].addr;
   
   // Release buffer
   release(e->id);
@@ -214,89 +213,20 @@ void Virtio::Queue::notify(){
   
   debug("\t <VirtQueue> %i new packets: \n", new_packets);
     
-  // For each token
+  // For each token, extract data. We're merging RX-buffers, so no chaining 
   for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
     auto id = _queue.used->ring[_last_used_idx % _size].id;
     auto len = _queue.used->ring[_last_used_idx % _size].len;
     debug("\tHandling packet id: 0x%lx len: %li last used: %i Q used idx: %i\n",
-          id,len,_last_used_idx, _queue.used->idx);
-    
-    
-    // The first token should be a virtio header
-    // auto chunksize =  _queue.desc[id].len;    
-    // debug("Chunk size: %li \n", chunksize);
-    // assert(chunksize == sizeof(virtio_net_hdr));    
-    auto tok_addr = _queue.desc[id].addr;  
-    
-    // Is there a next token?
-    // auto tok_next = _queue.desc[id].next;    
-    // debug("Next token: %i \n",tok_next);
-    
-    //Extract the Virtio header
-    virtio_net_hdr* hdr = (virtio_net_hdr*)tok_addr;
-    
-    /*
-    // Print it 
-    debug("VirtioNet Header: \n"               \
-           "Flags: 0x%x \n"                     \
-           "GSO Type: 0x%x \n"                  \
-           "Header length: %i \n"               \
-           "GSO Size: %i \n"                    \
-           "Csum.start: %i \n"                  \
-           "Csum. offset: %i \n"                \
-           "Num. Buffers: %i \n",
-           hdr->flags,hdr->gso_type,hdr->hdr_len,
-           hdr->gso_size,hdr->csum_start,hdr->csum_offset,hdr->num_buffers);*/
-    
-    
-    /* 
-       We might have to handle the case where the token continues. 
-       Before, there were always two tokens, one with header, one with data. 
-       Now only one... 
-    if (_queue.desc[id].flags & VRING_DESC_F_NEXT)
-      debug("Token continues to the next \n");
-    else 
-      debug("Token stops here\n");
-    */
+          id,len,_last_used_idx, _queue.used->idx);        
 
-    // This can't only be a header
-    //assert(_queue.desc[id].flags & VRING_DESC_F_NEXT);
-    
-    // Extract the next token which should be the ethernet frame
-    // auto next =  _queue.desc[id].next;
-    
-    // Print the buffer: 
-    /*
-    char* buf = (char*)hdr + sizeof(virtio_net_hdr);
-    debug("BUFFER: \n");
-    debug ("_____________________________________________\n");
-    for (uint32_t i = 0; i<len; i++)
-      debug("0x%1x ",(unsigned)(unsigned char)buf[i]);
-    debug ("\n_____________________________________________\n");
-    */
-    
-    uint8_t* data = (uint8_t*)hdr + sizeof(virtio_net_hdr); 
+    auto tok_addr = _queue.desc[id].addr;    
+    uint8_t* data = (uint8_t*)tok_addr + sizeof(virtio_net_hdr); 
     
     // Push data to a handler
     _data_handler(data, len);
     
-    // Now we should probably dequeue. But, we still haven't figured out how
-    // to accumulate packets in memory. Probably need a pool. 
-
-    //uint32_t head = 0;
-    //dequeue(&head);
-    
   }
-  
-
-  /** DEBUG: These are the Device's available packages **/
-  /**
-  debug("\t Avail packet 0, size: %li, content: %s \n",
-         _queue.desc[_queue.avail->idx].len,
-         (char*)_queue.desc[_queue.avail->idx].addr);
-  debug("\t Avail packet 1, size: %li, content: %s \n",
-         _queue.desc[_queue.desc[_queue.avail->idx].next].len,
-         (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);*/
   
 }
 

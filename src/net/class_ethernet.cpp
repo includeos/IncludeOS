@@ -1,5 +1,6 @@
 #define NDEBUG // Supress debugging
 
+
 #include <os>
 #include <net/class_ethernet.hpp>
 
