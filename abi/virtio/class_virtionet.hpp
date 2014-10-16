@@ -109,6 +109,10 @@ class VirtioNet : Virtio {
     uint16_t num_buffers;
   };
   
+  /** An empty header.      
+      It's ok to use as long as we don't need checksum offloading
+      or other 'fancier' virtio features. */
+  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0,0};
 
   PCI_Device* dev;
   
@@ -134,7 +138,13 @@ class VirtioNet : Virtio {
   
   void get_config();
   
-  void receive_data(void* data, uint32_t len);
+  //  void receive_data(void* data, uint32_t len);
+  
+  /** Service the RX Queue */
+  void service_RX();
+  
+  /** Service the TX Queue */
+  void service_TX();
 
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;

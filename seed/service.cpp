@@ -1,3 +1,4 @@
+#define NDEBUG
 #include <os>
 #include <iostream>
 
@@ -11,15 +12,20 @@ void Service::start()
   auto& net = Dev::eth(0).ip_stack();
   /** @note: "auto net" would cause copy-construction (!) 
       since auto drops reference, const and volatile qualifiers. */
-  
+    
   //A one-way UDP server (a primitive test)
   net.udp_listen(8080,[](uint8_t* const data,int len){
       
+      UDP::header* hdr = (UDP::header*)data;      
+      
       // stringify (might mess up the ethernet trailer; oh well)
-      data[sizeof(UDP::header)+len] = 0; 
-
-      printf("<APP SERVER> Got %i b of data! \n\tPayload: %s \n",
-             len, data + sizeof(UDP::header));
+      int data_len = __builtin_bswap16(hdr->length) - 8;
+      auto data_loc = data + sizeof(UDP::header);
+      auto data_end = data + sizeof(UDP::header) + data_len;
+      *data_end = 0; 
+      
+      debug("<APP SERVER> Got %i b of data! (%i b frame) \n",data_len,len);
+      printf("%s",data_loc);
       return 0;
     });
   

@@ -1,4 +1,4 @@
-#define NDEBUG
+#define NDEBUG // Supress debug
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>
@@ -68,8 +68,10 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   init_queue(size,buffer);
   
   debug("\t * Chaining buffers \n");  
-   // Chain buffers
-  //for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
+  // Chain buffers  
+  for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
+  //_queue.desc[size -1].next = 0;
+
   
   // Allocate space for actual data tokens
   //_data = (void**) malloc(sizeof(void*) * size);
@@ -96,10 +98,13 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // (implicitly) Mark all outbound tokens as device-readable
   for (i = _free_head; out; i = _queue.desc[i].next, out--) 
     {
-      
       _queue.desc[i].flags = VRING_DESC_F_NEXT;
       _queue.desc[i].addr = (uint64_t)sg->data;
       _queue.desc[i].len = sg->size;
+
+      debug("<Q %i> Enqueueing outbound: index %i len %li, next %i\n",
+            _pci_index,i,_queue.desc[i].len,_queue.desc[i].next);
+
       prev = i;
       sg++;
     }
@@ -117,6 +122,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   
   // No continue on last buffer
   _queue.desc[prev].flags &= ~VRING_DESC_F_NEXT;
+  
   
   // Update free pointer
   _free_head = i;
@@ -195,13 +201,16 @@ struct virtio_net_hdr
 
 
 void Virtio::Queue::notify(){
-  debug("\t <VirtQueue> Notified, checking buffers.... \n");
+  debug("\t <Q %i> Notified, checking buffers.... \n",_pci_index);
   debug("\t             Used idx: %i, Avail idx: %i \n",
-           _queue.used->idx, _queue.avail->idx );
+        _queue.used->idx, _queue.avail->idx );
   
-
   int new_packets = _queue.used->idx - _last_used_idx;
-  //if (!new_packets) return;
+  
+  if (new_packets && _queue.used->idx >= _queue.avail->idx)
+    printf("<Q %i> !!! BUFER FULL !!!  \n",_pci_index);
+
+
   
   debug("\t <VirtQueue> %i new packets: \n", new_packets);
     
@@ -209,7 +218,8 @@ void Virtio::Queue::notify(){
   for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
     auto id = _queue.used->ring[_last_used_idx % _size].id;
     auto len = _queue.used->ring[_last_used_idx % _size].len;
-    debug("\t             Packet id: 0x%lx len: %li \n",id,len);
+    debug("\tHandling packet id: 0x%lx len: %li last used: %i Q used idx: %i\n",
+          id,len,_last_used_idx, _queue.used->idx);
     
     
     // The first token should be a virtio header
@@ -266,25 +276,27 @@ void Virtio::Queue::notify(){
     */
     
     uint8_t* data = (uint8_t*)hdr + sizeof(virtio_net_hdr); 
+    
     // Push data to a handler
     _data_handler(data, len);
     
     // Now we should probably dequeue. But, we still haven't figured out how
     // to accumulate packets in memory. Probably need a pool. 
-    int head = 0;
-    release(head);
+
+    //uint32_t head = 0;
+    //dequeue(&head);
     
   }
   
 
   /** DEBUG: These are the Device's available packages **/
-  
+  /**
   debug("\t Avail packet 0, size: %li, content: %s \n",
          _queue.desc[_queue.avail->idx].len,
          (char*)_queue.desc[_queue.avail->idx].addr);
   debug("\t Avail packet 1, size: %li, content: %s \n",
          _queue.desc[_queue.desc[_queue.avail->idx].next].len,
-         (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);
+         (char*)_queue.desc[_queue.desc[_queue.avail->idx].next].addr);*/
   
 }
 
@@ -305,8 +317,8 @@ void Virtio::Queue::kick(){
  
 
   if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){
-    debug("Kicking virtio. Iobase 0x%x, Queue index %i \n",
-           _iobase,_pci_index);
+    debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
+          _pci_index, _iobase);
     //outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);
     outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
   }

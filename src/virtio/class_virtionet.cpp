@@ -1,4 +1,4 @@
-#define NDEBUG
+//#define NDEBUG
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
@@ -36,7 +36,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
     | (1 << VIRTIO_NET_F_STATUS)
     | (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features; /*; 
-    | (1 << VIRTIO_NET_F_CSUM);
+    | (1 << VIRTIO_NET_F_CSUM)
+    | (1 << VIRTIO_F_ANY_LAYOUT)
     | (1 << VIRTIO_NET_F_CTRL_VQ)
     | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
     | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
@@ -59,14 +60,17 @@ VirtioNet::VirtioNet(PCI_Device* d)
   printf("\t [%s] There's a control queue \n",
          features() & (1 << VIRTIO_NET_F_CTRL_VQ) ? "x" : "0" );
 
-  printf("\t [%s] There are multiple queue pairs \n",
-         features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
+  printf("\t [%s] Queue can handle any header/data layout \n",
+         features() & (1 << VIRTIO_F_ANY_LAYOUT) ? "x" : "0" );
 
   printf("\t [%s] We can use indirect descriptors \n",
          features() & (1 << VIRTIO_F_RING_INDIRECT_DESC) ? "x" : "0" );
   
   printf("\t [%s] There's a Ring Event Index to use \n",
          features() & (1 << VIRTIO_F_RING_EVENT_IDX) ? "x" : "0" );
+
+  printf("\t [%s] There are multiple queue pairs \n",
+         features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
      
   if (features() & (1 << VIRTIO_NET_F_MQ))
     printf("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
@@ -200,10 +204,8 @@ void VirtioNet::irq_handler(){
   
   // Step 2. A)
   if (isr & 1){
-    debug("\t <VirtioNet> Queue activity; checking RX Queue \n");
-    rx_q.notify();
-    debug("\t <VirtioNet> Queue activity; checking TX Queue \n");
-    tx_q.notify();
+    service_RX();
+    service_TX();
   }
   
   // Step 2. B)
@@ -216,16 +218,38 @@ void VirtioNet::irq_handler(){
     debug("\t             New status: 0x%x \n",_conf.status);
   }
   
-  // ISR should now be 0
-  //isr = inp(iobase() + VIRTIO_PCI_ISR);
-
   eoi(irq());
   
+}
+
+void VirtioNet::service_RX(){
+  debug("<RX Queue> %i new packets, %i available tokens \n",
+        rx_q.new_incoming(),rx_q.num_avail());
+  while(rx_q.new_incoming()){
+    rx_q.notify();
+    
+  }
+}
+
+void VirtioNet::service_TX(){
+  debug("<TX Queue> %i transmitted, %i waiting packets\n",
+        tx_q.new_incoming(),tx_q.num_avail());
+  
+  uint32_t len = 0;
+  int i = 0;  
+  /*
+  for (;i < tx_q.new_incoming(); i++)
+  tx_q.dequeue(&len);*/
+  
+  debug("\t Dequeued %i packets (%li bytes) \n",i,len);
+  // Deallocate buffer. 
 }
 
 
 //TEMP for pretty printing 
 extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
+
+
 
 int VirtioNet::add_send_buffer()
 { 
@@ -253,52 +277,27 @@ int VirtioNet::add_send_buffer()
 }
 
 
+constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
+
 int VirtioNet::transmit(uint8_t* data, int len){
   debug("<VirtioNet> Enqueuing %ib of data. \n",len);
-
-
-  Ethernet::header* ehdr = (Ethernet::header*)data;
-  char* mac = (char*)"00:00:00:00:00:00";
-
-  /*
-  debug("DATA: Source: %s \n",  ether2str(&(ehdr->src),mac));
-  debug("DATA: Dest: %s \n",  ether2str(&(ehdr->dest),mac));*/
 
   
   /** @note We have to send a virtio header first, then the packet.
       
       From Virtio std. §5.1.6.6: 
-      "When using legacy interfaces, transitional drivers which have not negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct virtio_net_hdr on both transmit and receive, with the network data in the following descriptors." */
+      "When using legacy interfaces, transitional drivers which have not 
+      negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct
+      virtio_net_hdr on both transmit and receive, with the network data in the 
+      following descriptors." */
 
   // A scatterlist for virtio-header + data
   scatterlist sg[2];  
-
   
-  //Allocate a buffer
-  int BUFSIZE = sizeof(virtio_net_hdr)+MTUSIZE; //+len
-  uint8_t* buf = (uint8_t*)malloc(BUFSIZE);
-  
-  
-  memset(buf,0,BUFSIZE);
-  
-  //The header (unused for now)
-  //virtio_net_hdr* hdr = (virtio_net_hdr*)buf;
-  
-  
-  //UGLY copy data to buffer
-  memcpy((char*)buf+sizeof(virtio_net_hdr),data, len);
-  
-  
-  ehdr = (Ethernet::header*)((char*)buf+sizeof(virtio_net_hdr));
-
-  debug("\tSource: %s \n",  ether2str(&(ehdr->src),mac));
-  debug("\tDest: %s \n",  ether2str(&(ehdr->dest),mac));
-  
-  //*((uint32_t*)buf+(MTUSIZE -4))=0xac2f54c4;
-  
-  sg[0].data = buf;
+  // This setup requires all tokens to be pre-chained like in SanOS
+  sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = buf; // + sizeof(virtio_net_hdr);
+  sg[1].data = data;//buf + sizeof(virtio_net_hdr);
   sg[1].size = len;//MTUSIZE + sizeof(virtio_net_hdr);
 
   //sg[1].data = (void*)data;
