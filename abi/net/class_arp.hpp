@@ -27,6 +27,9 @@ public:
     IP4::addr dipaddr;         // Target ip
   };
 
+  /** Temporary type of protocol buffer. @todo encapsulate.*/
+  typedef uint8_t* pbuf;
+
   
   /** Handle incoming ARP packet. */
   int bottom(uint8_t* data, int len);
@@ -35,7 +38,12 @@ public:
   inline void set_linklayer_out(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> link){
     _linklayer_out = link;
   };
-                           
+
+  /** Downstream transmission. */
+  int transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len);
+  
+  inline IP4::addr& ip() { return _ip; }
+
   Arp(Ethernet::addr,IP4::addr);
   
 private: 

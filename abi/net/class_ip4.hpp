@@ -17,6 +17,7 @@ public:
   /** Signature for output-delegates. */
   typedef delegate<int(uint8_t* data,int len)> subscriber;  
 
+  
   /** IP4 address */
   union __attribute__((packed)) addr{
     uint8_t part[4];
@@ -31,24 +32,28 @@ public:
     inline bool operator<(const addr src) const
     { return src.whole < whole; }
 
+    inline bool operator!=(const addr src) const
+    { return src.whole != whole; }
+    
     std::string str() const {
       char _str[15];
       sprintf(_str,"%1i.%1i.%1i.%1i",part[0],part[1],part[2],part[3]);
       return std::string(_str);
-    }
-    
-    
+    }        
     
   };
+  
+  /** Delegate type for linklayer out */
+  typedef delegate<int(addr,addr,uint8_t* data,int len)> link_out;      
   
   /** IP4 header */
   struct header{
     Ethernet::header eth_hdr;
-    uint8_t version:4,ihl:4;
+    uint8_t version_ihl;
     uint8_t tos;
     uint16_t tot_len;
     uint16_t id;
-    uint16_t frag_off;
+    uint16_t frag_off_flags;
     uint8_t ttl;
     uint8_t protocol;
     uint16_t check;
@@ -72,12 +77,12 @@ public:
     
   
   /** Downstream: Delegate linklayer out */
-  void set_linklayer_out(subscriber s)
+  void set_linklayer_out(link_out s)
   { _linklayer_out = s; };
   
   /** Downstream: Receive data from above. */
-  int top(uint8_t* data, int len);
-  
+  int transmit(addr source, addr dest, proto p,uint8_t* data, uint32_t len);
+
   inline addr ip(){
     return _ip;
   }
@@ -90,7 +95,7 @@ private:
   IP4::addr _ip; //{192,168,0,11};
 
   /** Downstream: Linklayer output delegate */
-  subscriber _linklayer_out;
+  link_out _linklayer_out;
   
   /** Upstream delegates */
   subscriber _icmp_handler;
@@ -134,6 +139,8 @@ private:
 };
 
 
-std::ostream& operator<<(std::ostream& out,IP4::addr& ip);
+///std::ostream& operator<<(std::ostream& out, IP4::addr& ip);
+std::ostream& operator<<(std::ostream& out, const IP4::addr& ip);
+
 
 #endif

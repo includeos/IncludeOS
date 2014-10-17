@@ -44,6 +44,6 @@ typedef unsigned char mac_t[6];
 #ifdef NDEBUG
 #define debug(X,...) 
 #else 
-#define debug(X,...)  printf(X,##__VA_ARGS__);
+#define debug(X,...)  printf("\n" X,##__VA_ARGS__);
 #endif
 

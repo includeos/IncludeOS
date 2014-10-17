@@ -11,7 +11,7 @@ int Arp::bottom(uint8_t* data, int len){
   header* hdr= (header*) data;
   //debug("\t OPCODE: 0x%x \n",hdr->opcode);
   //std::cout << "Chaching IP " << hdr->sipaddr << " for " << hdr->shwaddr << std::endl;  
-  printf("Have valid cache? %s \n",is_valid_cached(hdr->sipaddr) ? "YES":"NO");
+  debug("Have valid cache? %s \n",is_valid_cached(hdr->sipaddr) ? "YES":"NO");
   cache(hdr->sipaddr, hdr->shwaddr);
   
   switch(hdr->opcode){
@@ -54,9 +54,11 @@ void Arp::cache(IP4::addr& ip, Ethernet::addr& mac){
     
     debug("Cached entry found: %s recorded @ %li. Updating timestamp \n",
           entry->second._mac.str().c_str(), entry->second._t);
+    
+    // Update
     entry->second.update();
     
-  }else _cache[ip] = mac;
+  }else _cache[ip] = mac; // Insert
   
 }
 
@@ -111,6 +113,28 @@ static int ignore(Ethernet::addr UNUSED(mac),Ethernet::ethertype UNUSED(etype),
   debug("<ARP -> linklayer> Ignoring %ib output - no handler\n",len);
   return -1;
 }
+
+
+int Arp::transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len){
+  debug("<ARP -> physical> Transmitting %li bytes to %s \n",
+        len,dip.str().c_str());
+
+  if (sip != _ip) {
+    debug("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
+          sip.str().c_str(), _ip.str().c_str());            
+    return -1;
+  }
+  
+  if (!is_valid_cached(dip))
+    panic("ARP cache missing for destination IP - and I don't know how to reslove yet\n");    
+
+  auto mac = _cache[dip]._mac;
+  debug("<ARP -> physical> Sending packet to %s \n",mac.str().c_str());
+
+  return _linklayer_out(mac,Ethernet::ETH_IP4,data,len);
+  
+  return 0;
+};
 
 // Initialize
 Arp::Arp(Ethernet::addr mac,IP4::addr ip): 

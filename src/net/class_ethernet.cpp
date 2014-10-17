@@ -1,4 +1,4 @@
-#define NDEBUG // Supress debugging
+//#define NDEBUG // Supress debugging
 
 
 #include <os>
@@ -43,6 +43,9 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
   memcpy((void*)&hdr->src, (void*)&_mac, 6);
   memcpy((void*)&hdr->dest, (void*)&mac, 6);
   hdr->type = type;
+
+  debug("<Ethernet->Phys> Transmitting %i b, from %s -> %s. Type: %i \n",
+        len,hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
   
   return _physical_out(data, len);
 }
