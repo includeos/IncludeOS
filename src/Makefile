@@ -11,8 +11,12 @@ DEBUG_OPTS = -ggdb3
 CC  = $(OS)/bin/i686-elf-gcc 
 CPP = $(OS)/bin/i686-elf-g++ 
 LD  = $(OS)/bin/i686-elf-ld 
+
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+
 INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -I../stdlib
-LIBS     = $(OSLIB)/lib
+LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -O2 -msse3
 WARNS   = -Wall -Wextra

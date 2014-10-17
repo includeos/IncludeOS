@@ -26,13 +26,17 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVIC
 # Objects
 ###################################################
 
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
+
 # Full link list
 OBJS  = $(FILES:.cpp=.o) crti.o crtn.o
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ)
+LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 DEPS = $(OBJS:.o=.d)
 
