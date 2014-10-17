@@ -2,6 +2,8 @@
 #define CLASS_ETHERNET_HPP
 
 #include <delegate>
+#include <string>
+#include <iostream>
 
 class Ethernet{
   
@@ -15,6 +17,18 @@ public:
       uint32_t major;
       uint16_t minor;
     } __attribute__((packed));   
+    
+    inline std::string str() const {
+      char _str[17];
+      sprintf(_str,"%1x:%1x:%1x:%1x:%1x:%1x",
+              part[0],part[1],part[2],
+              part[3],part[4],part[5]);
+      return std::string(_str);
+    }
+    
+    inline bool operator == (addr& mac)
+    { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
+    
   }__attribute__((packed));
   
   struct header 
@@ -83,6 +97,9 @@ private:
   */
   
 };
+
+std::ostream& operator<<(std::ostream& out,Ethernet::addr& mac);
+
 
 #endif
 

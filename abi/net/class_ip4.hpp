@@ -25,10 +25,19 @@ public:
     // Constructor
     //addr(uint32_t ip){ whole=ip; };    
         
-    inline bool operator==(addr& src)
-    {
-      return src.whole == whole; 
+    inline bool operator==(addr& src) const
+    { return src.whole == whole; }
+    
+    inline bool operator<(const addr src) const
+    { return src.whole < whole; }
+
+    std::string str() const {
+      char _str[15];
+      sprintf(_str,"%1i.%1i.%1i.%1i",part[0],part[1],part[2],part[3]);
+      return std::string(_str);
     }
+    
+    
     
   };
   
@@ -123,5 +132,8 @@ private:
   //IP4(Ethernet& eth);
 
 };
+
+
+std::ostream& operator<<(std::ostream& out,IP4::addr& ip);
 
 #endif

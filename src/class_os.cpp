@@ -10,11 +10,14 @@
 #include <class_pci_manager.hpp>
 
 bool OS::power = true;
+uint32_t OS::_CPU_mhz = 2500;
 
 void OS::start()
 {
   rsprint(">>> OS class started\n");
-  
+
+  printf("UPTIME: %li \n",uptime());
+
   __asm__("cli");  
   IRQ_handler::init();
   Dev::init();  
@@ -34,15 +37,10 @@ void OS::halt(){
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
   while(power){        
-    //DEBUG Disable interrupts while notifying
-    //__asm__ volatile("cli");
-    IRQ_handler::notify(); 
-    //__asm__ volatile("sti");    
     
-    // Pending clear
-    // ! IRQ! -> Flag set
-        
-    printf("<OS> Woke up! \n");
+    IRQ_handler::notify(); 
+    
+    printf("<OS> Woke up @ t = %li \n",uptime());
   }
   
   //Cleanup

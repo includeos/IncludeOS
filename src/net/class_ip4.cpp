@@ -43,3 +43,7 @@ IP4::IP4(addr ip) :
   _udp_handler(delegate<int(uint8_t*,int)>(ignore_ip4)),
   _tcp_handler(delegate<int(uint8_t*,int)>(ignore_ip4))
 {}
+
+std::ostream& operator<<(std::ostream& out,IP4::addr& ip){
+  return out << ip.str();
+}

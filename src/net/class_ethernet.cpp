@@ -108,3 +108,8 @@ Ethernet::Ethernet(addr mac) :
   _ip6_handler(delegate<int(uint8_t*,int)>(ignore)),
   _arp_handler(delegate<int(uint8_t*,int)>(ignore))
 {}
+
+
+std::ostream& operator<<(std::ostream& out,Ethernet::addr& mac) {
+  return out << mac.str();
+}
