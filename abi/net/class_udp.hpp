@@ -6,17 +6,26 @@
 
 class UDP{
 public:
-
+  
+  /** UDP port number */
   typedef uint16_t port;
+  
+  /** A protocol buffer temporary type. Later we might encapsulate.*/
   typedef uint8_t* pbuf;
   
-  /** UDP Header */
-  struct header{
-    IP4::full_header ip_hdr;
+  /** UDP header */
+  struct udp_header {
     port sport;
     port dport;
     uint16_t length;
     uint16_t checksum;
+  };
+  
+  /** Full UDP Header with all sub-headers */
+  struct full_header{
+    Ethernet::header eth;
+    IP4::ip_header ip;
+    udp_header udp;
   }__attribute__((packed));
 
   /** Input from network layer */

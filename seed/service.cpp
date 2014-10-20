@@ -23,48 +23,47 @@ void Service::start()
     
   //A one-way UDP server (a primitive test)
   net.udp_listen(8080,[&net](uint8_t* const data,int len){
-
-      UDP::header* hdr = (UDP::header*)data;      
       
+      UDP::full_header* full_hdr = (UDP::full_header*)data;
+      UDP::udp_header* hdr = &full_hdr->udp;
 
       int data_len = __builtin_bswap16(hdr->length);
-      auto data_loc = data + sizeof(UDP::header);
-      auto data_end = data + sizeof(UDP::header) + data_len;
+      auto data_loc = data + sizeof(UDP::full_header);
+      auto data_end = data + sizeof(UDP::full_header) + data_len;
       *data_end = 0; 
       // stringify (might mess up the ethernet trailer; oh well)
      
       debug("<APP SERVER> Got %i b of data (%i b frame) from %s:%i -> %s:%i\n",
-            data_len, len, hdr->ip_hdr.ip.saddr.str().c_str(), 
+            data_len, len, full_hdr->ip.saddr.str().c_str(), 
             __builtin_bswap16(hdr->sport),
-            hdr->ip_hdr.ip.daddr.str().c_str(), 
+            full_hdr->ip.daddr.str().c_str(), 
             __builtin_bswap16(hdr->dport));
 
       printf("%s", data_loc);                  
       
       // Craft response
       string response("Hello to you too!\n\n");
-      bufsize = response.size() + sizeof(UDP::header);
+      bufsize = response.size() + sizeof(UDP::full_header);
       
-      // Ethernet padding if necessary 
+      // Ethernet padding if necessary
       if (bufsize < Ethernet::minimum_payload)
         bufsize = Ethernet::minimum_payload;
       
-      buf = new uint8_t[bufsize];      
-      strcpy((char*)buf + sizeof(UDP::header),response.c_str());
+      
+      if(buf)
+        delete[] buf;
+      
+      buf = new uint8_t[bufsize]; 
+      strcpy((char*)buf + sizeof(UDP::full_header),response.c_str());
       
       
       // Respond
       debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
             response.size(),bufsize);
       
-      net.udp_send(hdr->ip_hdr.ip.daddr, hdr->dport, 
-                   hdr->ip_hdr.ip.saddr, hdr->sport, buf, bufsize);
+      net.udp_send(full_hdr->ip.daddr, hdr->dport, 
+                   full_hdr->ip.saddr, hdr->sport, buf, bufsize);
       
-      // Free the buffer the next time around
-      if (prev_data){
-        free(prev_data);
-      }
-      prev_data = data;
           
       return 0;
     });

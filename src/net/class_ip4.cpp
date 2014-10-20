@@ -7,7 +7,7 @@
 int IP4::bottom(uint8_t* data, int len){
   debug("<IP4 handler> got the data. I'm incompetent but I'll try:\n");
     
-  ip_header* hdr = &((full_header*)data)->ip;
+  ip_header* hdr = &((full_header*)data)->ip_hdr;
   
   debug("\t Source IP: %s Dest.IP: %s \n",
         hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
@@ -55,7 +55,7 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
   assert(len > sizeof(IP4::full_header));
   
   full_header* full_hdr = (full_header*) data;
-  ip_header* hdr = &full_hdr->ip;
+  ip_header* hdr = &full_hdr->ip_hdr;
 
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused

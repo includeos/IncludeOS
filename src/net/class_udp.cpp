@@ -5,7 +5,9 @@
 int UDP::bottom(uint8_t* data, int len){
   debug("<UDP handler> Got data \n");
   
-  header* hdr = (header*)data;
+  
+  udp_header* hdr = &((full_header*)data)->udp;
+  
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
          __builtin_bswap16(hdr->sport),__builtin_bswap16(hdr->dport), 
          __builtin_bswap16(hdr->length));
@@ -35,9 +37,9 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
                   uint8_t* data, int len){
   
 
-  assert((uint32_t)len >= sizeof(UDP::header));
+  assert((uint32_t)len >= sizeof(UDP::full_header));
   
-  UDP::header* hdr = (UDP::header*)data;
+  udp_header* hdr = &((full_header*)data)->udp;
   hdr->dport = dport;
   hdr->sport = sport;
   
@@ -46,7 +48,7 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
-        (uint16_t)(len -sizeof(header)),
+        (uint16_t)(len -sizeof(full_header)),
         hdr->length,dip.str().c_str(),
         dport);
   return _network_layer_out(sip,dip,IP4::IP4_UDP,data,len);
