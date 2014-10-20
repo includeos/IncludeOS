@@ -93,8 +93,7 @@ int ignore_transmission(IP4::addr UNUSED(src),IP4::addr UNUSED(dst),
   return 0;
 }
 
-IP4::IP4(addr ip) :
-  _ip(ip),
+IP4::IP4() :
   _linklayer_out(link_out(ignore_transmission)),
   _icmp_handler(subscriber(ignore_ip4)),
   _udp_handler(subscriber(ignore_ip4)),

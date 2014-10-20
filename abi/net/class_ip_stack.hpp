@@ -33,24 +33,29 @@ public:
       This rewires the whole stack downstream.
    */
   inline void set_physical_out(delegate<int(uint8_t*,int)> phys){
+    
+    // Eth -> Physical out
     _eth.set_physical_out(phys);
     
+    
+    // Arp -> Eth
     auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>
                  ::from<Ethernet,&Ethernet::transmit>(_eth));
-    //auto arp_top(
-    // Temp: Routing arp directly to physical.
     _arp.set_linklayer_out(eth_top);
     
+    // IP4 -> Arp
     auto arp_top(delegate<int(IP4::addr, IP4::addr, uint8_t*, uint32_t)>
                  ::from<Arp,&Arp::transmit>(_arp));
     
     _ip4.set_linklayer_out(arp_top);
     
+    
+    // UDP -> IP4
     auto ip4_top(delegate<int(IP4::addr,IP4::addr,IP4::proto,uint8_t*,uint32_t)>
                  ::from<IP4,&IP4::transmit>(_ip4));
     _udp.set_network_out(ip4_top);
     
-    // Maybe not necessary
+    // Maybe not necessary - for later rewiring
     _physical_out = phys;
   };
   
@@ -75,8 +80,7 @@ public:
   IP_stack() :
     _eth(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8})),
     _arp(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8}),
-         IP4::addr({(uint8_t)192,(uint8_t)168,(uint8_t)0,(uint8_t)11})),
-    _ip4(IP4::addr({(uint8_t)192,(uint8_t)168,(uint8_t)0,(uint8_t)11}))
+         IP4::addr({(uint8_t)192,(uint8_t)168,(uint8_t)0,(uint8_t)11}))
   {
     
     printf("<IP Stack> constructing \n");

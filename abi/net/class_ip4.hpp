@@ -91,17 +91,14 @@ public:
   /** Compute the IP4 header checksum */
   uint16_t checksum(ip_header* hdr);
   
-  inline addr ip(){
-    return _ip;
-  }
 
-  IP4(addr ip);
+  IP4();
   
   
 private:  
   
-  IP4::addr _ip; //{192,168,0,11};
-
+  //IP4::addr _ip; //{192,168,0,11};
+  
   /** Downstream: Linklayer output delegate */
   link_out _linklayer_out;
   

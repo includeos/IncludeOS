@@ -4,7 +4,7 @@
 
 
 
-int IP6::bottom(uint8_t* data, int len){
+int IP6::bottom(uint8_t* UNUSED(data), int UNUSED(len)){
   debug("<IP6 handler> got the data, but I'm clueless: DROP! \n");
   return -1;
 };
