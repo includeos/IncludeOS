@@ -11,6 +11,8 @@
 #include <tuple.hpp>
 #include <signal>
 #include <delegate>
+#include <sort>
+#include <vector_map>
 
 class TestStream
 {
@@ -321,6 +323,8 @@ void Service::start()
           std::cout << *it;
         std::cout << std::endl;
 	}
+	
+	std::vector_map<int, int> testMap;
 	
 	std::cout << "Service out!" << std::endl;
 }
