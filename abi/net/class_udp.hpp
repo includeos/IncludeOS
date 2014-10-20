@@ -24,8 +24,8 @@ public:
   /** Full UDP Header with all sub-headers */
   struct full_header{
     Ethernet::header eth;
-    IP4::ip_header ip;
-    udp_header udp;
+    IP4::ip_header ip_hdr;
+    udp_header udp_hdr;
   }__attribute__((packed));
 
   /** Input from network layer */

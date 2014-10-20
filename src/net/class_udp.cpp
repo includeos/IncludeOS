@@ -6,7 +6,7 @@ int UDP::bottom(uint8_t* data, int len){
   debug("<UDP handler> Got data \n");
   
   
-  udp_header* hdr = &((full_header*)data)->udp;
+  udp_header* hdr = &((full_header*)data)->udp_hdr;
   
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
          __builtin_bswap16(hdr->sport),__builtin_bswap16(hdr->dport), 
@@ -39,7 +39,7 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
 
   assert((uint32_t)len >= sizeof(UDP::full_header));
   
-  udp_header* hdr = &((full_header*)data)->udp;
+  udp_header* hdr = &((full_header*)data)->udp_hdr;
   hdr->dport = dport;
   hdr->sport = sport;
   
