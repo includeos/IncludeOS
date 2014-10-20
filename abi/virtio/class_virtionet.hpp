@@ -107,8 +107,12 @@ class VirtioNet : Virtio {
     uint16_t csum_start;       // Position to start checksumming from
     uint16_t csum_offset;      // Offset after that to place checksum
     uint16_t num_buffers;
-  };
+  }__attribute__((packed));
   
+  /** An empty header.      
+      It's ok to use as long as we don't need checksum offloading
+      or other 'fancier' virtio features. */
+  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0,0}; 
 
   PCI_Device* dev;
   
@@ -134,7 +138,13 @@ class VirtioNet : Virtio {
   
   void get_config();
   
-  void receive_data(void* data, uint32_t len);
+  //  void receive_data(void* data, uint32_t len);
+  
+  /** Service the RX Queue */
+  void service_RX();
+  
+  /** Service the TX Queue */
+  void service_TX();
 
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;
@@ -142,15 +152,33 @@ class VirtioNet : Virtio {
   
   void irq_handler();
   int add_receive_buffer();
+  int add_send_buffer();
 
-  
+  delegate<int(uint8_t*,int)> _link_out;
+
 public: 
-  const char* name();  
-  const mac_t& mac();
-  const char* mac_str();
   
-  VirtioNet(PCI_Device* pcidev, Ethernet& eth);
+  /** Human readable name. */
+  const char* name();  
+  
+  /** Mac address. */
+  const mac_t& mac();
+  
+  /** Human readable mac address. */
+  const char* mac_str();
 
+  /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
+  inline void set_linklayer_out(delegate<int(uint8_t*,int)> link_out){
+    _link_out = link_out;
+    rx_q.set_data_handler(link_out);
+  };
+    
+  /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
+  int transmit(uint8_t* data,int len);
+  
+  /** Constructor. @param pcidev an initialized PCI device. */
+  VirtioNet(PCI_Device* pcidev);
+    
 
 };
 

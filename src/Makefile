@@ -11,8 +11,12 @@ DEBUG_OPTS = -ggdb3
 CC  = $(OS)/bin/i686-elf-gcc 
 CPP = $(OS)/bin/i686-elf-g++ 
 LD  = $(OS)/bin/i686-elf-ld 
+
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+
 INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -I../stdlib
-LIBS     = $(OSLIB)/lib
+LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -O2 -msse3
 WARNS   = -Wall -Wextra
@@ -34,6 +38,7 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	class_irq_handler.o class_pci_manager.o \
 	virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
+	net/class_udp.o net/class_icmp.o\
 	$(TEST_OBJ) 
 #virtio/virtionet.o virtio/virtio.o
  #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o

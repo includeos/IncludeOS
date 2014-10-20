@@ -9,8 +9,12 @@ export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 #DEV_NET=$NETDEV "-device virtio-net,netdev=hostnet0,id=net0,mac=fa:16:3e:db:40:3a,bus=pci.0,addr=0x3"
 
 #export DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a -net user"
-export DEV_NET="-netdev user,id=user.0,hostfwd=tcp::5555-:22 -device virtio-net,netdev=user.0"
 
+# WORKING "user" Networking
+#export DEV_NET="-netdev user,id=user.0,hostfwd=tcp::5555-:22 -device virtio-net,netdev=user.0"
+
+export macaddress="08:00:27:9d:86:e8"
+export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
 
 export DEV_GRAPHICS="-nographic"
 export DEV_HDD="-hda $1"

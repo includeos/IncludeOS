@@ -1,3 +1,5 @@
+//#define NDEBUG
+
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
 #include <class_irq_handler.hpp>
@@ -14,11 +16,17 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
+int drop(uint8_t* UNUSED(data), int len){
+  debug("<VirtioNet> Dropping %ib link-layer output. No delegate\n",len);
+  return -1;
+}
+
+VirtioNet::VirtioNet(PCI_Device* d)
   : Virtio(d),     
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
-    ctrl_q(queue_size(2),2,iobase())
+    ctrl_q(queue_size(2),2,iobase()),
+    _link_out(delegate<int(uint8_t*,int)>(drop))
 {
   
   printf("\n>>> VirtioNet driver initializing \n");
@@ -27,7 +35,9 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
     | (1 << VIRTIO_NET_F_MAC)
     | (1 << VIRTIO_NET_F_STATUS)
     | (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
-  uint32_t wanted_features = needed_features; /*
+  uint32_t wanted_features = needed_features; /*; 
+    | (1 << VIRTIO_NET_F_CSUM)
+    | (1 << VIRTIO_F_ANY_LAYOUT)
     | (1 << VIRTIO_NET_F_CTRL_VQ)
     | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
     | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
@@ -35,10 +45,10 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   negotiate_features(wanted_features);
   
   
-  printf("\t [%s] Netotiated needed features \n",
+  printf("\t [%s] Negotiated needed features \n",
          (features() & needed_features) == needed_features ? "x" : " " );
   
-  printf("\t [%s] Netotiated wanted features \n",
+  printf("\t [%s] Negotiated wanted features \n",
          (features() & wanted_features) == wanted_features ? "x" : " " );
 
   printf("\t [%s] Device handles packets w. partial checksum \n",
@@ -50,17 +60,25 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   printf("\t [%s] There's a control queue \n",
          features() & (1 << VIRTIO_NET_F_CTRL_VQ) ? "x" : "0" );
 
+  printf("\t [%s] Queue can handle any header/data layout \n",
+         features() & (1 << VIRTIO_F_ANY_LAYOUT) ? "x" : "0" );
+
+  printf("\t [%s] We can use indirect descriptors \n",
+         features() & (1 << VIRTIO_F_RING_INDIRECT_DESC) ? "x" : "0" );
+  
+  printf("\t [%s] There's a Ring Event Index to use \n",
+         features() & (1 << VIRTIO_F_RING_EVENT_IDX) ? "x" : "0" );
+
   printf("\t [%s] There are multiple queue pairs \n",
          features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
-   
+     
   if (features() & (1 << VIRTIO_NET_F_MQ))
     printf("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
- 
+  
 
   printf("\t [%s] Merge RX buffers  \n",
          features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
-
-
+  
    
   // Step 1 - Initialize RX/TX queues
   printf("\t [%s] RX queue assigned (0x%lx) to device \n ",
@@ -70,6 +88,7 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   printf("\t [%s] TX queue assigned (0x%lx) to device \n ",
          assign_queue(1, (uint32_t)tx_q.queue_desc()) ? "x":" ",
          (uint32_t)tx_q.queue_desc());
+
   
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ))
@@ -122,23 +141,30 @@ VirtioNet::VirtioNet(PCI_Device* d, Ethernet& eth)
   IRQ_handler::subscribe(irq(),del);
   IRQ_handler::enable_irq(irq());  
   
-
-  // Create an ethernet handler delegate for the RX Queue
-  auto etherdelg(delegate<void(uint8_t*,int)>::from<Ethernet,
-                &Ethernet::handler>(eth));
-  
-  
-  // Assign Ethernet handler to RX Queue
-  rx_q.set_data_handler(etherdelg);
+   
+  // Assign Link-layer output to RX Queue
+  rx_q.set_data_handler(_link_out);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
-  
-  
-  
+    
   rx_q.kick();
   
   // Done
   printf("\n >> Driver initialization complete. \n\n");  
+
+  // Test stransmission
+  /*
+  uint8_t buf[100] = {0};
+  memset(buf,0,100);
+  Ethernet::header* hdr = (Ethernet::header*)buf;
+  hdr->src = {0x8,0x0,0x27,0x9d,0x86,0xe8};
+  hdr->dest = {0x8,0x0,0x27,0xac,0x54,0x90};
+  hdr->type = Ethernet::ETH_ARP;
+  
+  linklayer_in(buf,100);
+  //add_send_buffer();
+  tx_q.kick();*/
+  
 };  
 
 /** Port-ish from SanOS */
@@ -147,16 +173,13 @@ int VirtioNet::add_receive_buffer(){
   scatterlist sg[2];  
   
   // Virtio Std. § 5.1.6.3
-  void* buf = malloc(MTUSIZE + sizeof(virtio_net_hdr));  
+  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
-
-  strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
-  //printf("Buffer data: %s \n",str);
   
   hdr = (virtio_net_hdr*)buf;
   sg[0].data = hdr;
   sg[0].size = sizeof(struct virtio_net_hdr);
-  sg[1].data = (void*)((int32_t)buf + sizeof(virtio_net_hdr));
+  sg[1].data = buf + sizeof(virtio_net_hdr);
   sg[1].size = MTUSIZE; // + sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,buf);
   
@@ -165,10 +188,11 @@ int VirtioNet::add_receive_buffer(){
   return 0;
 }
 
+
 void VirtioNet::irq_handler(){
 
 
-  printf("<VirtioNet> handling IRQ \n");
+  debug("<VirtioNet> handling IRQ \n");
   
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
@@ -177,24 +201,127 @@ void VirtioNet::irq_handler(){
   
   // Step 2. A)
   if (isr & 1){
-    printf("\t <VirtioNet> Queue activity; checking \n");
-    rx_q.notify();
-    tx_q.notify();
+    service_RX();
+    service_TX();
   }
   
   // Step 2. B)
   if (isr & 2){
-    printf("\t <VirtioNet> Configuration change:\n");
+    debug("\t <VirtioNet> Configuration change:\n");
     
     // Getting the MAC + status 
-    printf("\t             Old status: 0x%x\n",_conf.status);      
+    debug("\t             Old status: 0x%x\n",_conf.status);      
     get_config();
-    printf("\t             New status: 0x%x \n",_conf.status);
+    debug("\t             New status: 0x%x \n",_conf.status);
   }
   
-  // ISR should now be 0
-  //isr = inp(iobase() + VIRTIO_PCI_ISR);
-
   eoi(irq());
   
+}
+
+void VirtioNet::service_RX(){
+  debug("<RX Queue> %i new packets, %i available tokens \n",
+        rx_q.new_incoming(),rx_q.num_avail());
+  
+  
+  /** For RX, we dequeue, add new buffers and let receiver is responsible for 
+      memory management (they know when they're done with the packet.) */
+  
+  int i = 0;
+  uint32_t len = 0;
+  uint8_t* data;
+  while(rx_q.new_incoming()){
+    data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
+    add_receive_buffer();
+    _link_out(data,len); 
+    i++;
+  }
+  
+  if (i)
+    rx_q.kick();
+}
+
+void VirtioNet::service_TX(){
+  debug("<TX Queue> %i transmitted, %i waiting packets\n",
+        tx_q.new_incoming(),tx_q.num_avail());
+  
+  uint32_t len = 0;
+  int i = 0;  
+  
+  /** For TX, just dequeue all incoming tokens.      
+      
+      Sender allocated the buffer and is responsible for memory management. 
+      @todo Sender doesn't know when the packet is transmitted; deal with it. */
+  for (;i < tx_q.new_incoming(); i++)
+    tx_q.dequeue(&len);
+  
+  debug("\t Dequeued %i packets \n",i);
+  // Deallocate buffer. 
+}
+
+
+//TEMP for pretty printing 
+extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
+
+
+
+int VirtioNet::add_send_buffer()
+{ 
+  virtio_net_hdr* hdr;
+  scatterlist sg[2];  
+  
+  // Virtio Std. § 5.1.6.3
+  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
+  if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
+
+  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
+  
+  strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
+  //debug("Buffer data: %s \n",str);
+  
+  hdr = (virtio_net_hdr*)buf;
+  
+  
+  sg[0].data = hdr;
+  sg[0].size = sizeof(struct virtio_net_hdr);
+  sg[1].data = buf; //sizeof(virtio_net_hdr);
+  sg[1].size = MTUSIZE + sizeof(virtio_net_hdr);
+  tx_q.enqueue(sg, 2, 0,buf);
+  return 0;
+}
+
+
+constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
+
+int VirtioNet::transmit(uint8_t* data, int len){
+  debug("<VirtioNet> Enqueuing %ib of data. \n",len);
+
+  
+  /** @note We have to send a virtio header first, then the packet.
+      
+      From Virtio std. §5.1.6.6: 
+      "When using legacy interfaces, transitional drivers which have not 
+      negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct
+      virtio_net_hdr on both transmit and receive, with the network data in the 
+      following descriptors." 
+      
+      VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to 
+      support VirtualBox (allthough VirtualBox won't eat my packets anyway)
+  */
+
+  // A scatterlist for virtio-header + data
+  scatterlist sg[2];  
+  
+  // This setup requires all tokens to be pre-chained like in SanOS
+  sg[0].data = (void*)&empty_header;
+  sg[0].size = sizeof(virtio_net_hdr);
+  sg[1].data = data;
+  sg[1].size = len;
+  
+  // Enqueue scatterlist, 2 pieces readable, 0 writable.
+  tx_q.enqueue(sg, 2, 0, 0);
+  
+  tx_q.kick();
+  
+  return 0;
 }

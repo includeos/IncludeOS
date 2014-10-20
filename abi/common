@@ -41,3 +41,9 @@ typedef unsigned char mac_t[6];
 //BOCHS Break point
 #define BREAK __asm__ volatile("xchg %bx,%bx");
 
+#ifdef NDEBUG
+#define debug(X,...) 
+#else 
+#define debug(X,...)  printf("\n" X,##__VA_ARGS__);
+#endif
+

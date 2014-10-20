@@ -5,11 +5,7 @@
 #include <stdio.h>
 
 // The nic knows about the IP stack
-#include <net/class_ethernet.hpp>
-#include <net/class_arp.hpp>
-#include <net/class_ip4.hpp>
-#include <net/class_ip6.hpp>
-
+#include <net/class_ip_stack.hpp>
 
 /** Future drivers may start out like so, */
 class E1000{
@@ -43,15 +39,16 @@ public:
   //const char* name(); 
   
   /** @note If we add this while there's a specialization, this overrides. */
-  inline const char* name() { return driver.name(); }; 
+  inline const char* name() { return _driver.name(); }
 
   /** The actual mac address. */
-  inline const mac_t& mac() { return driver.mac(); };
+  inline const mac_t& mac() { return _driver.mac(); }
   
   /** Mac address string. */
-  inline const char* mac_str() { return driver.mac_str(); };
+  inline const char* mac_str() { return _driver.mac_str(); }
 
-  
+  /** Get the ip stack (later the stack will stand alone) */
+  IP_stack& ip_stack(){ return _net; }
 
     /** Event types */
     enum event_t {EthData, TCPConnection, TCPData, 
@@ -66,29 +63,30 @@ private:
   
   /** An IP stack (a skeleton for now).
       
-      @todo We might consider adding the stack from the outside to save some 
-      overhead for services who only wants a few layers. (I.e. a bridge
-      might not need the whole stack) */              
-  Ethernet _eth;
-  Arp _arp;
-  IP4 _ip4;
-  IP6 _ip6;
-
+      @todo We might want to construct this from the outside.*/
+  IP_stack _net;
   
-  DRIVER_T driver;
+  DRIVER_T _driver;
   
   /** Constructor. 
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
   Nic(PCI_Device* d): 
-    
-    // Hook up the IP stack 
-    _eth(), _arp(_eth),_ip4(_eth),_ip6(_eth),
-    
     // Add PCI and ethernet layer to the driver
-    driver(d,_eth)
-  {};
+    _driver(d)
+  {
+    // Upstream
+    auto stack_bottom=delegate<int(uint8_t*,int)>::from<IP_stack,
+                                                    &IP_stack::physical_in>(_net);
+    
+    _driver.set_linklayer_out(stack_bottom);
+    
+    // Downstream
+    auto driver_top=delegate<int(uint8_t*,int)>::from<DRIVER_T,
+                                                      &DRIVER_T::transmit>(_driver);    
+    _net.set_physical_out(driver_top);
+  };
   
   friend class Dev;
 

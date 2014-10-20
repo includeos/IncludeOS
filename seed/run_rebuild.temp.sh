@@ -1,6 +1,6 @@
 # Rebuild IncludeOS
 cd ~/IncludeOS/src/
-make clean all
+make 
 
 # Reinstall
 sudo make install

@@ -21,6 +21,10 @@
 
 #define PAGE_SIZE 4096
 
+#define VIRTIO_F_NOTIFY_ON_EMPTY 24
+#define VIRTIO_F_ANY_LAYOUT 27
+#define VIRTIO_F_RING_INDIRECT_DESC 28
+#define VIRTIO_F_RING_EVENT_IDX 29
 #define VIRTIO_F_VERSION_1 32
 
 
@@ -119,19 +123,19 @@ public:
     // Actual size in bytes - virtq_size(size)
     uint32_t _size_bytes;    
     
-    uint16_t _iobase;
-    uint16_t _num_free;
-    uint16_t _free_head;
-    uint16_t _num_added;
-    uint16_t _last_used_idx;
-    uint16_t _pci_index;
+    uint16_t _iobase; // Device PCI location
+    uint16_t _num_free; // Number of free descriptors
+    uint16_t _free_head; // First available descriptor
+    uint16_t _num_added; // Entries to be added to _queue.avail->idx
+    uint16_t _last_used_idx; // Last entry inserted by device
+    uint16_t _pci_index; // Queue nr.
     void **_data;
     
     // The actual queue struct
     virtq _queue;
         
     /** Handler for data coming in on virtq.used. */
-    delegate<void(uint8_t* data, int len)> _data_handler;
+    delegate<int(uint8_t* data, int len)> _data_handler;
     
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
@@ -159,15 +163,22 @@ public:
     int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data));
     
     /** Dequeue a received packet. From SanOS */
-    void* dequeue(uint32_t* len);
+    uint8_t* dequeue(uint32_t* len);
         
-    void set_data_handler(delegate<void(uint8_t* data,int len)> dataHandler);
+    void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
     
+    /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);
     
-    
+    /** Get number of free tokens in Queue */
+    inline uint16_t num_free(){ return _num_free; }
 
-    inline uint16_t size(){ return _size; };
+    /** Get number of new incoming buffers */
+    inline uint16_t new_incoming(){ return _queue.used->idx - _last_used_idx; }
+
+    inline uint16_t num_avail(){ return _queue.avail->idx - _queue.used->idx; }
+    
+    inline uint16_t size(){ return _size; }
     
   };
   

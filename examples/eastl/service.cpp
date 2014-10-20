@@ -310,21 +310,39 @@ void Service::start()
 		
 		std::shared_ptr<Song> shared2(sv[0]);
 		std::cout << "result: " << shared2->artist << 
-			" (usage: " << sv[0].use_count() << " == " << shared2.use_count() << ")" << std::endl;
+                  " (usage: " << sv[0].use_count() << " == " << shared2.use_count() << ")" << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::string
 	/////////////////////////////////////////////////////////////////////////////
 	{
-        std::string s("A string!");
-        
-        std::cout << s << std::endl;
-        for(auto it = s.begin(); it != s.end(); ++it)
-          std::cout << *it;
-        std::cout << std::endl;
+          std::string s("A string!");
+          
+          std::cout << s << std::endl;
+          for(auto it = s.begin(); it != s.end(); ++it)
+            std::cout << *it;
+          std::cout << std::endl;
 	}
-	
-	std::vector_map<int, int> testMap;
-	
+	/////////////////////////////////////////////////////////////////////////////
+	//// eastl::vector_map
+	/////////////////////////////////////////////////////////////////////////////
+	{
+		std::vector_map<int, int> testMap;
+	}
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::initializer_list
+	/////////////////////////////////////////////////////////////////////////////
+	{
+	  struct IP4 {
+		union addr{
+		  uint8_t part[4];
+		  uint32_t whole;
+		};
+	  };
+	  
+	  IP4::addr ip {192,168,0,11};
+	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
+				<< ip.part[2] << "." << ip.part[3] << std::endl;
+	}
 	std::cout << "Service out!" << std::endl;
 }

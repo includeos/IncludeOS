@@ -103,10 +103,7 @@ int write(int file, char *ptr, int len){
 extern char _end; // Defined by the linker 
 caddr_t heap_end=(caddr_t)&_end;//(void*)0x1;
 caddr_t sbrk(int incr){
-  //char buf[200]={0};
-  syswrite("SBRK","Allocating memory");
-  
-
+    
   //Get the stack pointer
   caddr_t stack_ptr;
   __asm__ ("movl %%esp, %%eax;"
@@ -117,8 +114,6 @@ caddr_t sbrk(int incr){
 	   );       
   
   void* prev_heap_end;
-  /*sprintf(buf,"\t\tSBRK heap_end==0x%x, incr==0x%x, _end==0x%x, stack_ptr=0x%x \n",(void*)heap_end,incr,&_end,stack_ptr);
-    OS::rsprint(buf);*/
   if (heap_end == (void*)0x0) {
     heap_end = &_end;
   }
@@ -128,28 +123,19 @@ caddr_t sbrk(int incr){
 #ifdef TESTS_H
   test_print_result("SBRK increment <= SBRK_MAX",incr <= SBRK_MAX);
 #endif
-
-
-
+  
   //Don't exceed the limit
-  incr = incr > SBRK_MAX ? SBRK_MAX : incr;
-    
+  //incr = incr > SBRK_MAX ? SBRK_MAX : incr;
+  
   if (heap_end + incr > stack_ptr)
     {
       write (1, (char*)"\t\tERROR: Heap and stack collision\n", 25);
       //abort ();
     }
   
-  //Give'm some more!
-  /*
-  if(incr<0xffff)
-  incr=0xffff;*/
-
-  
   heap_end += incr;
-  //sprintf(buf,"\t\tSBRK changed heap_end to 0x%x \n",heap_end);
-  //OS::rsprint(buf);
-
+  //printf("SYSCALL SBRK allocated %i bytes. Heap end @ 0x%lx\n",
+  //incr,(int32_t)heap_end);  
   return (caddr_t) prev_heap_end;
 }
 
@@ -177,8 +163,11 @@ int wait(int* UNUSED(status)){
 };
 
 
+//#define panic(X,...) printf(X,##__VA_ARGS__); kill(9,1);
+
 void panic(const char* why){
   printf("\n\t **** PANIC: **** %s\n",why);
+  printf("\tHeap end: 0x%lx \n",(uint32_t)heap_end);
   kill(9,1);
 }
 
