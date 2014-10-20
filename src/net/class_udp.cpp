@@ -43,7 +43,8 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
   
   // Our UDP header is nested (IP included - which includes ethernet)
   hdr->length =  __builtin_bswap16((uint16_t)(len -sizeof(IP4::full_header)));
-
+  hdr->checksum = 0; // This field is optional (must be 0 if not used)
+  
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
         (uint16_t)(len -sizeof(header)),
         hdr->length,dip.str().c_str(),
