@@ -9,10 +9,8 @@ int IP4::bottom(uint8_t* data, int len){
   
   header* hdr = (header*)data;
   
-  debug("\t Source IP: %1i.%1i.%1i.%1i Dest.IP: %1i.%1i.%1i.%1i  \n",
-         hdr->saddr.part[0],hdr->saddr.part[1],hdr->saddr.part[2],hdr->saddr.part[3],
-         hdr->daddr.part[0],hdr->daddr.part[1],hdr->daddr.part[2],hdr->daddr.part[3]
-         );
+  debug("\t Source IP: %s Dest.IP: %s \n",
+        hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
   
   switch(hdr->protocol){
   case IP4_ICMP:
@@ -41,7 +39,7 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
 
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
-  hdr->tot_len = __builtin_bswap16(len);
+  hdr->tot_len = __builtin_bswap16(len - sizeof(Ethernet::header));
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
   hdr->protocol = p; 

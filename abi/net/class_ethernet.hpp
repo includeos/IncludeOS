@@ -47,6 +47,9 @@ public:
   enum ethertype {ETH_IP4 = 0x8, ETH_ARP = 0x608, ETH_WOL = 0x4208,
                   ETH_IP6 = 0xdd86, ETH_FLOW = 0x888, ETH_JUMBO = 0x7088};
   
+  // Minimum payload
+  static constexpr int minimum_payload = 46;
+  
   /** Handle raw ethernet buffer. */
   int physical_in(uint8_t* data, int len);
   

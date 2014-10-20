@@ -34,13 +34,20 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
                   IP4::addr dip,UDP::port dport,
                   uint8_t* data, int len){
   
-  debug("<UDP> Transmitting %i bytes to %s:%i \n",len,dip.str().c_str(),dport);
+
   assert((uint32_t)len >= sizeof(UDP::header));
   
   UDP::header* hdr = (UDP::header*)data;
   hdr->dport = dport;
   hdr->sport = sport;
+  
+  // Our UDP header is nested (IP included - which includes ethernet)
+  hdr->length =  __builtin_bswap16((uint16_t)(len -sizeof(IP4::header)));
 
+  debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
+        (uint16_t)(len -sizeof(header)),
+        hdr->length,dip.str().c_str(),
+        dport);
   return _network_layer_out(sip,dip,IP4::IP4_UDP,data,len);
 
 };
