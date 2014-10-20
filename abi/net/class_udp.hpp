@@ -12,7 +12,7 @@ public:
   
   /** UDP Header */
   struct header{
-    IP4::header ip_hdr;
+    IP4::full_header ip_hdr;
     port sport;
     port dport;
     uint16_t length;

@@ -47,8 +47,7 @@ public:
   typedef delegate<int(addr,addr,uint8_t* data,int len)> link_out;      
   
   /** IP4 header */
-  struct header{
-    Ethernet::header eth_hdr;
+  struct ip_header{
     uint8_t version_ihl;
     uint8_t tos;
     uint16_t tot_len;
@@ -60,6 +59,12 @@ public:
     addr saddr;
     addr daddr;
   };
+
+  struct full_header{
+    Ethernet::header eth_hdr;
+    ip_header ip;
+  };
+
   
   /** Upstream: Input from link layer. */
   int bottom(uint8_t* data, int len);
@@ -83,6 +88,9 @@ public:
   /** Downstream: Receive data from above. */
   int transmit(addr source, addr dest, proto p,uint8_t* data, uint32_t len);
 
+  /** Compute the IP4 header checksum */
+  uint16_t checksum(ip_header* hdr);
+  
   inline addr ip(){
     return _ip;
   }

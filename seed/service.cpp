@@ -34,9 +34,9 @@ void Service::start()
       // stringify (might mess up the ethernet trailer; oh well)
      
       debug("<APP SERVER> Got %i b of data (%i b frame) from %s:%i -> %s:%i\n",
-            data_len, len, hdr->ip_hdr.saddr.str().c_str(), 
+            data_len, len, hdr->ip_hdr.ip.saddr.str().c_str(), 
             __builtin_bswap16(hdr->sport),
-            hdr->ip_hdr.daddr.str().c_str(), 
+            hdr->ip_hdr.ip.daddr.str().c_str(), 
             __builtin_bswap16(hdr->dport));
 
       printf("%s", data_loc);                  
@@ -57,8 +57,8 @@ void Service::start()
       debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
             response.size(),bufsize);
       
-      net.udp_send(hdr->ip_hdr.daddr, hdr->dport, 
-                   hdr->ip_hdr.saddr, hdr->sport, buf, bufsize);
+      net.udp_send(hdr->ip_hdr.ip.daddr, hdr->dport, 
+                   hdr->ip_hdr.ip.saddr, hdr->sport, buf, bufsize);
       
       // Free the buffer the next time around
       if (prev_data){
