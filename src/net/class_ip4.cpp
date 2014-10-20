@@ -40,9 +40,11 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
   hdr->tot_len = __builtin_bswap16(len - sizeof(Ethernet::header));
+  hdr->id = 0; // Fragment ID (we don't fragment yet)
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
   hdr->protocol = p; 
+  hdr->check = 0;
   
   hdr->saddr.whole = source.whole;
   hdr->daddr.whole = dest.whole;  
@@ -57,6 +59,8 @@ int ignore_ip4(uint8_t* UNUSED(data), int UNUSED(len)){
   return -1;
 }
 
+
+/** Empty handler for delegate initialization */
 int ignore_transmission(IP4::addr UNUSED(src),IP4::addr UNUSED(dst),
                         uint8_t* UNUSED(data), uint32_t UNUSED(len)){
 
