@@ -86,8 +86,6 @@ install: os.a
 	cp bootloader $(OS)/
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
-	cp -r ../abi $(OS)/
-	cp -r ../stdlib $(OS)/
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
