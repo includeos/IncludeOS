@@ -136,23 +136,35 @@ class VirtioNet : Virtio {
   //sizeof(config) if VIRTIO_NET_F_MQ, else sizeof(config) - sizeof(uint16_t)
   int _config_length = sizeof(config);
   
+  /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
   
-  //  void receive_data(void* data, uint32_t len);
   
-  /** Service the RX Queue */
+  /** Service the RX Queue. 
+      Push incoming data up to linklayer, dequeue RX buffers. */
   void service_RX();
   
-  /** Service the TX Queue */
+  /** Service the TX Queue 
+      Dequeue used TX buffers. @note: This function does not take any 
+      responsibility for memory management. */
   void service_TX();
 
   char* _mac_str=(char*)"00:00:00:00:00:00";
   int _irq = 0;
   
-  
+  /** Handle device IRQ. 
+      
+      Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
+  
+  /** Allocate and queue MTU-sized buffer in RX queue. */
   int add_receive_buffer();
-  int add_send_buffer();
+  
+  /** Queue the given buffer in RX queue. 
+      @note This function doesn't allocate anyhting and expects the buffer
+      to be a valid VirtioNet receive buffer. Used to requeue. */
+  int add_receive_buffer(uint8_t* buf, int len);
+
 
   delegate<int(uint8_t*,int)> _link_out;
 

@@ -1,4 +1,4 @@
-// #define NDEBUG // Supress debug
+//#define DEBUG // Allow debug
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>

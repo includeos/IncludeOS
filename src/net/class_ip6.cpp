@@ -1,4 +1,4 @@
-#define NDEBUG // Supress debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_ip6.hpp>
 
