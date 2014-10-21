@@ -27,25 +27,28 @@ void Service::start()
       UDP::full_header* full_hdr = (UDP::full_header*)data;
       UDP::udp_header* hdr = &full_hdr->udp_hdr;
 
-      int data_len = __builtin_bswap16(hdr->length);
+      int data_len = __builtin_bswap16(hdr->length) - sizeof(UDP::udp_header);
       auto data_loc = data + sizeof(UDP::full_header);
       
-      // There seems to be one byte extra given by length. Padding?
-      auto data_end = data + hdr->length - sizeof(UDP::udp_header) -1;
-
-      // Don't know if 
-      //*data_end = 0; 
+      // Netcat doesn't necessariliy zero-pad the string in UDP
+      // ... But this buffer is const
+      // auto data_end = data + hdr->length - sizeof(UDP::udp_header);
+      // *data_end = 0; 
       
       debug("<APP SERVER> Got %i b of data (%i b frame) from %s:%i -> %s:%i\n",
             data_len, len, full_hdr->ip_hdr.saddr.str().c_str(), 
             __builtin_bswap16(hdr->sport),
             full_hdr->ip_hdr.daddr.str().c_str(), 
             __builtin_bswap16(hdr->dport));
-
-      printf("%s", data_loc);                  
+      
+      
+      for (int i = 0; i < data_len; i++)
+        printf("%c", data_loc[i]);
       
       // Craft response
-      string response("You said: '"+string((const char*)data_loc)+"' \n");
+      string response("You said: '"+
+                      string((const char*)data_loc,data_len)+
+                      "' \n");
       bufsize = response.size() + sizeof(UDP::full_header);
       
       // Ethernet padding if necessary

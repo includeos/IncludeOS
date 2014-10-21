@@ -1,4 +1,4 @@
-//#define NDEBUG // Supress debugging
+#define NDEBUG // Supress debugging
 #include <os>
 #include <net/class_arp.hpp>
 

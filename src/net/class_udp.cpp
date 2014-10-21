@@ -1,4 +1,4 @@
-//#define NDEBUG // Supress debugging
+#define NDEBUG // Supress debugging
 #include <os>
 #include <net/class_udp.hpp>
 
@@ -40,10 +40,11 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
   assert((uint32_t)len >= sizeof(UDP::full_header));
   
   udp_header* hdr = &((full_header*)data)->udp_hdr;
-  hdr->dport = dport;
-  hdr->sport = sport;
   
-  // Our UDP header is nested (IP included - which includes ethernet)
+  // Populate all UDP header fields
+  hdr->dport = dport;
+  hdr->sport = sport; 
+
   hdr->length =  __builtin_bswap16((uint16_t)(len -sizeof(IP4::full_header)));
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
   
