@@ -87,7 +87,7 @@ install: os.a
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
 	cp -r ../abi $(OS)/
--	cp -r ../stdlib $(OS)/
+	cp -r ../stdlib $(OS)/
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
