@@ -71,7 +71,7 @@ service: $(OBJS) $(LIBS)
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OBJS) $(LIBS) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
-	$(OSDIR)/vmbuild/vmbuild $(OSDIR)/bootloader $(SERVICE)
+	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
 
 # Object files
 ###################################################
