@@ -3,13 +3,13 @@
 OSDIR=/usr/local/IncludeOS/
 
 echo -e "\n>>> Looking for toolchain"
-if [ ! -f $OSDIR/bin/i686-elf-c++ ] 
-then
+#if [ ! -f $OSDIR/bin/i686-elf-c++ ] 
+#then
     echo "  * Toolchain missing - installing..."
     ./etc/install_toolchain.sh
-else
-    echo "  * Toolchain seems OK "
-fi
+#else
+#    echo "  * Toolchain seems OK "
+#fi
 
 echo -e "\n>>> Installing vmbuilder"
 cd vmbuild

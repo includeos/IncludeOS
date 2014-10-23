@@ -31,7 +31,7 @@ else
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
     echo "-----------------------"
     
-    $QEMU $QEMU_OPTS 
+    sudo $QEMU $QEMU_OPTS 
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
