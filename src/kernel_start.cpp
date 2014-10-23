@@ -1,5 +1,5 @@
 #include <class_os.hpp>
-
+#include <assert.h>
 
 int main();
 
@@ -35,6 +35,8 @@ extern "C" {
 	__asm__ ("or  $0x600,%ax");
 	__asm__ ("mov %eax, %cr4");
   }
+
+  int _test_glob = 1;
   
   void _start(void)
   {    
@@ -55,13 +57,10 @@ extern "C" {
     *bss=0;
     while(++bss < &_BSS_END_)
       *bss=0;
-    
-    #ifdef TESTS_H
-    test_print_hdr("Global constructors");
-    #endif
 
     //Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
+    assert(_test_glob == 1);
 
     
     OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    

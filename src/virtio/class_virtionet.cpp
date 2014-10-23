@@ -1,4 +1,5 @@
-#define DEBUG // Allow debuging 
+//#define DEBUG // Allow debuging 
+//#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
@@ -18,8 +19,8 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-int drop(uint8_t* UNUSED(data), int len){
-  debug("<VirtioNet> Dropping %ib link-layer output. No delegate\n",len);
+int drop(uint8_t* UNUSED(data), int UNUSED(len)){
+  debug("<VirtioNet->link-layer> No delegate. DROP!\n");
   return -1;
 }
 
@@ -257,10 +258,10 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   while(rx_q.new_incoming()){
     data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
+    _link_out(data,len); 
     
     // Requeue the buffer
     add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
-    _link_out(data,len); 
     i++;
   }
   

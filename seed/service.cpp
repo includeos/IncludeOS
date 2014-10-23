@@ -10,11 +10,39 @@ uint8_t* buf = 0;
 int bufsize = 0;
 uint8_t* prev_data = 0;
 
+class global {
+  static int i;
+public:
+  global(){
+    printf("GLOBAL CONSTRUCTOR IN SERVICE %i \n",++i);
+  }
+  
+  void test(){
+    printf("I have %i instances \n",i);
+  }
+};
+
+int global::i = 0;
+
+global glob1;
+
+int _test_glob2 = 1;
+
+__attribute__ ((constructor)) void foo(void)
+{
+  printf("foo is running and printf is available at this point\n");
+}
+
 
 void Service::start()
 {
+  
+  assert(_test_glob2 == 1);
+  
   cout << "*** Service is up - with OS Included! ***" << endl;    
- 
+  //global glob2;
+  //global glob3;
+  glob1.test();
   cout << "...Starting UDP server" << endl;
 
   //IP_stack& net = Dev::eth(0).ip_stack();

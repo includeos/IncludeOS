@@ -75,7 +75,7 @@ namespace net {
     std::map<IP4::addr,cache_entry> _cache;
   
     // Arp cache expires after cache_exp_t seconds
-    uint16_t cache_exp_t = 60 * 5;
+    uint16_t cache_exp_t = 60 * 60 * 12;
 
     /** Cache IP resolution. */
     void cache(IP4::addr&, Ethernet::addr&);

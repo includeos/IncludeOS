@@ -123,16 +123,17 @@ public:
     // Actual size in bytes - virtq_size(size)
     uint32_t _size_bytes;    
     
+    // The actual queue struct
+    virtq _queue;
+    
     uint16_t _iobase; // Device PCI location
     uint16_t _num_free; // Number of free descriptors
     uint16_t _free_head; // First available descriptor
     uint16_t _num_added; // Entries to be added to _queue.avail->idx
     uint16_t _last_used_idx; // Last entry inserted by device
     uint16_t _pci_index; // Queue nr.
-    void **_data;
+    //void **_data;
     
-    // The actual queue struct
-    virtq _queue;
         
     /** Handler for data coming in on virtq.used. */
     delegate<int(uint8_t* data, int len)> _data_handler;
@@ -174,9 +175,11 @@ public:
     inline uint16_t num_free(){ return _num_free; }
 
     /** Get number of new incoming buffers */
-    inline uint16_t new_incoming(){ return _queue.used->idx - _last_used_idx; }
+    inline uint16_t new_incoming()
+    { return _queue.used->idx - _last_used_idx; }
 
-    inline uint16_t num_avail(){ return _queue.avail->idx - _queue.used->idx; }
+    inline uint16_t num_avail()
+    { return _queue.avail->idx - _queue.used->idx; }
     
     inline uint16_t size(){ return _size; }
     
