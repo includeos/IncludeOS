@@ -1,29 +1,33 @@
-//#define NDEBUG // Supress debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_ip4.hpp>
 
+using namespace net;
 
 
 int IP4::bottom(uint8_t* data, int len){
-  debug("<IP4 handler> got the data. I'm incompetent but I'll try:\n");
+  debug("<IP4 handler> got the data. \n");
     
-  ip_header* hdr = &((full_header*)data)->ip;
+  ip_header* hdr = &((full_header*)data)->ip_hdr;
   
-  debug("\t Source IP: %s Dest.IP: %s \n",
+  debug("\t Source IP: %s Dest.IP: %s type: ",
         hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
   
   switch(hdr->protocol){
   case IP4_ICMP:
+    debug("\t ICMP");
     _icmp_handler(data, len);
     break;
   case IP4_UDP:
+    debug("\t UDP");
     _udp_handler(data, len);
     break;
   case IP4_TCP:
     _tcp_handler(data, len);
+    debug("\t TCP");
     break;
   default:
-    debug("UNKNOWN");
+    debug("\t UNKNOWN");
     break;
   }
   
@@ -37,8 +41,8 @@ uint16_t IP4::checksum(ip_header* hdr){
   union sum{
     uint32_t whole;    
     uint16_t part[2];
-  }sum32;
-  sum32.whole = 0;
+  }sum32{0};
+
     
   for (uint16_t* i = (uint16_t*)hdr; i < (uint16_t*)hdr + (sizeof(ip_header)/2); i++){
     sum32.whole += *i;
@@ -55,7 +59,7 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
   assert(len > sizeof(IP4::full_header));
   
   full_header* full_hdr = (full_header*) data;
-  ip_header* hdr = &full_hdr->ip;
+  ip_header* hdr = &full_hdr->ip_hdr;
 
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused

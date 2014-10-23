@@ -1,9 +1,9 @@
-//#define NDEBUG // Supress debugging
-
+#define DEBUG // Allow debugging
 
 #include <os>
 #include <net/class_ethernet.hpp>
 
+using namespace net;
 
 // FROM SanOS
 //
@@ -44,7 +44,7 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
   memcpy((void*)&hdr->dest, (void*)&mac, 6);
   hdr->type = type;
 
-  debug("<Ethernet->Phys> Transmitting %i b, from %s -> %s. Type: %i \n",
+  debug2("<Ethernet->Phys> Transmitting %i b, from %s -> %s. Type: %i \n",
         len,hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
   
   return _physical_out(data, len);
@@ -53,7 +53,7 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
 int Ethernet::physical_in(uint8_t* data, int len){  
   assert(len > 0);
 
-  debug("<Ethernet handler> parsing packet. \n ");  
+  debug2("<Ethernet handler> parsing packet. \n ");  
   header* eth = (header*) data;
 
   /** Do we pass on ethernet headers? Probably.
@@ -63,35 +63,34 @@ int Ethernet::physical_in(uint8_t* data, int len){
   
   
   // Print, for verification
+  #ifdef DEBUG2
   char eaddr[] = "00:00:00:00:00:00";
-  debug("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
-  debug("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
-  debug("\t             Eth. Type  : 0x%x\n",eth->type); 
-
-  debug("\t             Eth. CRC   : 0x%lx == 0x%lx \n",
-         *((uint32_t*)&data[len-4]),ether_crc(len - sizeof(header) - 4, data + sizeof(header)));
+  #endif
+  debug2("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
+  debug2("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
+  debug2("\t             Eth. Type  : 0x%x\n",eth->type); 
 
 
   switch(eth->type){ 
 
   case ETH_IP4:
-    debug("\t             IPv4 packet \n");
+    debug2("\t             IPv4 packet \n");
     return _ip4_handler(data,len);
 
   case ETH_IP6:
-    debug("\t             IPv6 packet \n");
+    debug2("\t             IPv6 packet \n");
     return _ip6_handler(data,len);
     
   case ETH_ARP:
-    debug("\t             ARP packet \n");
+    debug2("\t             ARP packet \n");
     return _arp_handler(data,len);
     
   case ETH_WOL:
-    debug("\t             Wake-on-LAN packet \n");
+    debug2("\t             Wake-on-LAN packet \n");
     break;
     
   default:
-    debug("\t             UNKNOWN ethertype \n");
+    debug("<Ethernet> UNKNOWN ethertype \n");
     break;
     
   }

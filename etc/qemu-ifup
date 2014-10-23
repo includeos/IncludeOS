@@ -1,0 +1,49 @@
+#! /bin/sh
+
+# An example 'qemu-ifup' 
+# 
+# When Qemu is set up with 'tap' networking (the fastest) it will automatically
+# call /etc/qemu-ifup, and expects that script to set up the necessary network
+# infrastructure and wiring
+
+
+# To get brctl path
+PATH=$PATH:/sbin:/usr/sbin
+
+set -x
+
+# The name of our virtual bridge
+switch=br0
+
+# Some hardcoded networking data
+NETWORK=192.168.0.0
+NETMASK=255.255.255.0
+GATEWAY=192.168.0.1
+
+# Unused for now
+DHCPRANGE=192.168.53.2,192.168.53.254
+
+if [ -n "$1" ];then
+    # Create the tap interface
+    sudo tunctl -u `whoami` -t $1
+    
+    # Assign it an IP and bring it up
+    sudo ifconfig $1 192.168.0.12 up
+    
+    # Set up the bridge
+    sudo ifconfig br0 $GATEWAY netmask $NETMASK up
+    
+    # Add a route to our VM (which is fixed at this IP in this example)
+    route add -host 192.168.0.11 dev br0
+    
+    # Give it some time
+    sleep 0.5s
+    
+    # Add the tap interface to the bridge
+    sudo brctl addif $switch $1
+    exit 0
+else
+    echo "Error: no interface specified"
+    exit 1
+fi
+

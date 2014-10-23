@@ -34,10 +34,8 @@ cd bochs-$bochs_version
 # ... But this caused a linking error, so switched to x11, which works fine after all
 
 #PATCH Makefile:
-echo "NOW UPDATE MAKEFILE: (then type anything except EOF to continue)"
-echo "Under 'LIBS', add '-lpthread'"
-echo "(Ref.: http://askubuntu.com/questions/376204/bochs-compiling-error-again)"
-read INPUT
+cat Makefile | sed s/lfreetype/"lfreetype -lpthread"/ > Makefile.tmp
+mv Makefile.tmp Makefile
 
 make
 sudo make install

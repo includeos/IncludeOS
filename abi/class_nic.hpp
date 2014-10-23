@@ -48,7 +48,7 @@ public:
   inline const char* mac_str() { return _driver.mac_str(); }
 
   /** Get the ip stack (later the stack will stand alone) */
-  IP_stack& ip_stack(){ return _net; }
+  net::IP_stack& ip_stack(){ return _net; }
 
     /** Event types */
     enum event_t {EthData, TCPConnection, TCPData, 
@@ -64,7 +64,7 @@ private:
   /** An IP stack (a skeleton for now).
       
       @todo We might want to construct this from the outside.*/
-  IP_stack _net;
+  net::IP_stack _net;
   
   DRIVER_T _driver;
   
@@ -77,14 +77,14 @@ private:
     _driver(d)
   {
     // Upstream
-    auto stack_bottom=delegate<int(uint8_t*,int)>::from<IP_stack,
-                                                    &IP_stack::physical_in>(_net);
+    auto stack_bottom=delegate<int(uint8_t*,int)>
+      ::from<net::IP_stack,&net::IP_stack::physical_in>(_net);
     
     _driver.set_linklayer_out(stack_bottom);
     
     // Downstream
-    auto driver_top=delegate<int(uint8_t*,int)>::from<DRIVER_T,
-                                                      &DRIVER_T::transmit>(_driver);    
+    auto driver_top=delegate<int(uint8_t*,int)>
+      ::from<DRIVER_T,&DRIVER_T::transmit>(_driver);    
     _net.set_physical_out(driver_top);
   };
   

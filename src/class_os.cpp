@@ -1,3 +1,4 @@
+#define NDEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>
@@ -40,7 +41,7 @@ void OS::halt(){
     
     IRQ_handler::notify(); 
     
-    printf("<OS> Woke up @ t = %li \n",uptime());
+    debug("<OS> Woke up @ t = %li \n",uptime());
   }
   
   //Cleanup

@@ -1,11 +1,15 @@
-//#define NDEBUG // Supress debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_udp.hpp>
+
+using namespace net;
 
 int UDP::bottom(uint8_t* data, int len){
   debug("<UDP handler> Got data \n");
   
-  header* hdr = (header*)data;
+  
+  udp_header* hdr = &((full_header*)data)->udp_hdr;
+  
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
          __builtin_bswap16(hdr->sport),__builtin_bswap16(hdr->dport), 
          __builtin_bswap16(hdr->length));
@@ -35,18 +39,19 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
                   uint8_t* data, int len){
   
 
-  assert((uint32_t)len >= sizeof(UDP::header));
+  assert((uint32_t)len >= sizeof(UDP::full_header));
   
-  UDP::header* hdr = (UDP::header*)data;
+  udp_header* hdr = &((full_header*)data)->udp_hdr;
+  
+  // Populate all UDP header fields
   hdr->dport = dport;
-  hdr->sport = sport;
-  
-  // Our UDP header is nested (IP included - which includes ethernet)
+  hdr->sport = sport; 
+
   hdr->length =  __builtin_bswap16((uint16_t)(len -sizeof(IP4::full_header)));
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
-        (uint16_t)(len -sizeof(header)),
+        (uint16_t)(len -sizeof(full_header)),
         hdr->length,dip.str().c_str(),
         dport);
   return _network_layer_out(sip,dip,IP4::IP4_UDP,data,len);
@@ -54,7 +59,7 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
 };
 
 int ignore_udp(IP4::addr UNUSED(sip),IP4::addr UNUSED(dip),IP4::proto UNUSED(p),
-               UDP::pbuf& UNUSED(buf),uint32_t UNUSED(len)){
+               UDP::pbuf UNUSED(buf),uint32_t UNUSED(len)){
   debug("<UDP->Network> No handler - DROP!\n");
   return 0;
 }

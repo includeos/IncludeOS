@@ -1,9 +1,10 @@
-//#define NDEBUG // Supress debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_arp.hpp>
 
 #include <vector>
 
+using namespace net;
 
 int Arp::bottom(uint8_t* data, int len){
   debug("<ARP handler> got %i bytes of data \n",len);
@@ -109,8 +110,8 @@ int Arp::arp_respond(header* hdr_in){
 
 
 static int ignore(Ethernet::addr UNUSED(mac),Ethernet::ethertype UNUSED(etype),
-                  uint8_t* UNUSED(data),int len){
-  debug("<ARP -> linklayer> Ignoring %ib output - no handler\n",len);
+                  uint8_t* UNUSED(data),int UNUSED(len)){
+  debug("<ARP -> linklayer> Empty handler - DROP!\n");
   return -1;
 }
 

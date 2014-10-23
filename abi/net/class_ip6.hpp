@@ -4,20 +4,24 @@
 #include <delegate>
 #include <net/class_ethernet.hpp>
 
-/** IP6 layer skeleton */
-class IP6 {
-  
-  // Outbound data goes through here
-  //Ethernet& _eth;
+namespace net {
 
-public:
+  /** IP6 layer skeleton */
+  class IP6 {
+    
+    // Outbound data goes through here
+    //Ethernet& _eth;
+    
+  public:
+    
+    /** Handle IPv6 packet. */
+    int bottom(uint8_t* data, int len);
+    
+    /** Constructor. Requires ethernet to latch on to. */
+    //IP6(Ethernet& eth);
+    
+  };
 
-  /** Handle IPv6 packet. */
-  int bottom(uint8_t* data, int len);
-  
-  /** Constructor. Requires ethernet to latch on to. */
-  //IP6(Ethernet& eth);
-  
-};
+} // ~net
 
 #endif

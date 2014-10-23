@@ -1,4 +1,4 @@
-// #define NDEBUG // Supress debug
+//#define DEBUG // Allow debug
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>
@@ -46,8 +46,8 @@ void Virtio::Queue::init_queue(int size, void* buf){
     
     It's here because we might not want to look at the data, e.g. for 
     the VirtioNet TX-queue which will get used buffers in. */
-int empty_handler(uint8_t* UNUSED(data),int size) {
-  debug("Empty handler just peaking at %i bytes. \n",size);
+int empty_handler(uint8_t* UNUSED(data),int UNUSED(size)) {
+  debug("<Virtio::Queue> Empty handler. DROP! ");
   return -1;
 };
 

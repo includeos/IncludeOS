@@ -1,7 +1,8 @@
-#define NDEBUG // Supress debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_ip6.hpp>
 
+using namespace net;
 
 
 int IP6::bottom(uint8_t* UNUSED(data), int UNUSED(len)){
@@ -9,13 +10,3 @@ int IP6::bottom(uint8_t* UNUSED(data), int UNUSED(len)){
   return -1;
 };
 
-
-/*
-IP6::IP6(Ethernet& eth)
-  : _eth(eth)
-{
-  // Assign myself as ARP handler for eth
-  eth.set_ip6_handler(delegate<void(uint8_t*,int)>::from<IP6,
-               &IP6::handler>(this));
-
-               }*/

@@ -1,4 +1,4 @@
-//#define NDEBUG
+#define DEBUG // Allow debuging 
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
@@ -7,6 +7,8 @@
 #include <syscalls.hpp>
 #include <malloc.h>
 #include <string.h>
+
+using namespace net;
 
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const mac_t& VirtioNet::mac(){ return _conf.mac; }  
@@ -174,11 +176,16 @@ int VirtioNet::add_receive_buffer(){
   
   // Virtio Std. § 5.1.6.3
   uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
+  //uint8_t* buf = (uint8_t*)malloc(MTUSIZE);
+  
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
   
   hdr = (virtio_net_hdr*)buf;
   sg[0].data = hdr;
-  sg[0].size = sizeof(struct virtio_net_hdr);
+  
+  //Wow, using separate empty header doesn't work for RX, but it works for TX...
+  //sg[0].data = (void*)&empty_header; 
+  sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = buf + sizeof(virtio_net_hdr);
   sg[1].size = MTUSIZE; // + sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,buf);
@@ -188,11 +195,29 @@ int VirtioNet::add_receive_buffer(){
   return 0;
 }
 
+int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
+  
+  scatterlist sg[2];  
+  
+  // Wow, see above; separate empty header only works for TX in Qemu
+  //sg[0].data = (void*)&empty_header;
+  sg[0].data = buf;
+  sg[0].size = sizeof(virtio_net_hdr);
+  sg[1].data = buf + sizeof(virtio_net_hdr);
+  sg[1].size = len - sizeof(virtio_net_hdr);
+  rx_q.enqueue(sg, 0, 2,0);
+  
+  //printf("Buffer data: %s \n",(char*)sg[1].data);
+  
+  return 0;
+}
+
+
 
 void VirtioNet::irq_handler(){
 
 
-  debug("<VirtioNet> handling IRQ \n");
+  debug2("<VirtioNet> handling IRQ \n");
   
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
@@ -220,7 +245,7 @@ void VirtioNet::irq_handler(){
 }
 
 void VirtioNet::service_RX(){
-  debug("<RX Queue> %i new packets, %i available tokens \n",
+  debug2("<RX Queue> %i new packets, %i available tokens \n",
         rx_q.new_incoming(),rx_q.num_avail());
   
   
@@ -232,7 +257,9 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   while(rx_q.new_incoming()){
     data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-    add_receive_buffer();
+    
+    // Requeue the buffer
+    add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
     _link_out(data,len); 
     i++;
   }
@@ -242,7 +269,7 @@ void VirtioNet::service_RX(){
 }
 
 void VirtioNet::service_TX(){
-  debug("<TX Queue> %i transmitted, %i waiting packets\n",
+  debug2("<TX Queue> %i transmitted, %i waiting packets\n",
         tx_q.new_incoming(),tx_q.num_avail());
   
   uint32_t len = 0;
@@ -255,7 +282,7 @@ void VirtioNet::service_TX(){
   for (;i < tx_q.new_incoming(); i++)
     tx_q.dequeue(&len);
   
-  debug("\t Dequeued %i packets \n",i);
+  debug2("\t Dequeued %i packets \n",i);
   // Deallocate buffer. 
 }
 
@@ -264,37 +291,10 @@ void VirtioNet::service_TX(){
 extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 
-
-int VirtioNet::add_send_buffer()
-{ 
-  virtio_net_hdr* hdr;
-  scatterlist sg[2];  
-  
-  // Virtio Std. § 5.1.6.3
-  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
-  if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
-
-  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
-  
-  strcpy ((char*)buf+sizeof(virtio_net_hdr),"Hello World! \n");
-  //debug("Buffer data: %s \n",str);
-  
-  hdr = (virtio_net_hdr*)buf;
-  
-  
-  sg[0].data = hdr;
-  sg[0].size = sizeof(struct virtio_net_hdr);
-  sg[1].data = buf; //sizeof(virtio_net_hdr);
-  sg[1].size = MTUSIZE + sizeof(virtio_net_hdr);
-  tx_q.enqueue(sg, 2, 0,buf);
-  return 0;
-}
-
-
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 int VirtioNet::transmit(uint8_t* data, int len){
-  debug("<VirtioNet> Enqueuing %ib of data. \n",len);
+  debug2("<VirtioNet> Enqueuing %ib of data. \n",len);
 
   
   /** @note We have to send a virtio header first, then the packet.
