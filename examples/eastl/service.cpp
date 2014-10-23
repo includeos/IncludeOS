@@ -11,6 +11,8 @@
 #include <tuple.hpp>
 #include <signal>
 #include <delegate>
+#include <sort>
+#include <vector_map>
 
 class TestStream
 {
@@ -321,23 +323,26 @@ void Service::start()
             std::cout << *it;
           std::cout << std::endl;
 	}
-        
+	/////////////////////////////////////////////////////////////////////////////
+	//// eastl::vector_map
+	/////////////////////////////////////////////////////////////////////////////
+	{
+		std::vector_map<int, int> testMap;
+	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::initializer_list
 	/////////////////////////////////////////////////////////////////////////////
-        {
-          struct IP4 {
-            union addr{
-              uint8_t part[4];
-              uint32_t whole;
-            };
-          };
-          
-          IP4::addr ip {192,168,0,11};
-          std::cout << ip.part[0] << "." << ip.part[1] << "." 
-                    << ip.part[2] << "." << ip.part[3] << std::endl;
-        }
-        
-        
+	{
+	  struct IP4 {
+		union addr{
+		  uint8_t part[4];
+		  uint32_t whole;
+		};
+	  };
+	  
+	  IP4::addr ip {192,168,0,11};
+	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
+				<< ip.part[2] << "." << ip.part[3] << std::endl;
+	}
 	std::cout << "Service out!" << std::endl;
 }

@@ -1,0 +1,22 @@
+#ifndef STD_SORT_HEADER
+#define STD_SORT_HEADER
+
+#include "EASTL/sort.h"
+namespace std
+{
+	// iterator
+    template <typename RandomAccessIterator>
+    inline void sort(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        eastl::quick_sort<RandomAccessIterator>(first, last);
+    }
+	
+	// iterator, compare
+    template <typename RandomAccessIterator, typename Compare>
+    inline void sort(RandomAccessIterator first, RandomAccessIterator last, Compare compare)
+    {
+        eastl::quick_sort<RandomAccessIterator, Compare>(first, last, compare);
+    }
+}
+
+#endif
