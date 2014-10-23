@@ -126,7 +126,7 @@ class VirtioNet : Virtio {
 
   // From Virtio 1.01, 5.1.4
   struct config{
-    mac_t mac = {0};
+    net::Ethernet::addr mac;
     uint16_t status;
     
     //Only valid if VIRTIO_NET_F_MQ
@@ -174,7 +174,7 @@ public:
   const char* name();  
   
   /** Mac address. */
-  const mac_t& mac();
+  const net::Ethernet::addr& mac();
   
   /** Human readable mac address. */
   const char* mac_str();

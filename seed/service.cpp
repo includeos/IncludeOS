@@ -44,7 +44,7 @@ void Service::start()
   //global glob3;
   glob1.test();
   cout << "...Starting UDP server" << endl;
-
+  
   //IP_stack& net = Dev::eth(0).ip_stack();
   auto& net = Dev::eth(0).ip_stack();
   /** @note: "auto net" would cause copy-construction (!) 

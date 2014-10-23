@@ -73,10 +73,8 @@ public:
       @todo For now, mac- and IP-addresses are hardcoded here. 
       They should be user-definable
    */
-  IP_stack() :
-    _eth(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8})),
-    _arp(Ethernet::addr({0x08,0x00,0x27,0x9D,0x86,0xE8}),
-         IP4::addr({192,168,0,11}))
+  IP_stack(Ethernet::addr mac, IP4::addr ip) :
+    _eth(mac),_arp(mac,ip)
   {
     
     printf("<IP Stack> constructing \n");

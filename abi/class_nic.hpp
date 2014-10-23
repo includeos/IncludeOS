@@ -4,6 +4,9 @@
 #include <class_pci_device.hpp>
 #include <stdio.h>
 
+
+#include <net/class_ethernet.hpp>
+
 // The nic knows about the IP stack
 #include <net/class_ip_stack.hpp>
 
@@ -42,7 +45,7 @@ public:
   inline const char* name() { return _driver.name(); }
 
   /** The actual mac address. */
-  inline const mac_t& mac() { return _driver.mac(); }
+  inline const net::Ethernet::addr mac() { return _driver.mac(); }
   
   /** Mac address string. */
   inline const char* mac_str() { return _driver.mac_str(); }
@@ -61,12 +64,12 @@ public:
 
 private:
   
+  DRIVER_T _driver;
+
   /** An IP stack (a skeleton for now).
       
       @todo We might want to construct this from the outside.*/
-  net::IP_stack _net;
-  
-  DRIVER_T _driver;
+  net::IP_stack _net; 
   
   /** Constructor. 
       
@@ -74,7 +77,7 @@ private:
       @note The Dev-class is a friend and will call this */
   Nic(PCI_Device* d): 
     // Add PCI and ethernet layer to the driver
-    _driver(d)
+    _driver(d),_net(_driver.mac(),{192,168,0,11})
   {
     // Upstream
     auto stack_bottom=delegate<int(uint8_t*,int)>

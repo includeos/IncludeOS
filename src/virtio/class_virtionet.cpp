@@ -12,7 +12,7 @@
 using namespace net;
 
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
-const mac_t& VirtioNet::mac(){ return _conf.mac; }  
+const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }  
 const char* VirtioNet::mac_str(){ return _mac_str; }
 
 void VirtioNet::get_config(){
@@ -118,13 +118,9 @@ VirtioNet::VirtioNet(PCI_Device* d)
   // Step 5 - get the mac address (we're demanding this feature)
   // Step 6 - get the status - demanding this as well.
   // Getting the MAC + status 
-  get_config(); 
-  sprintf(_mac_str,"%1x:%1x:%1x:%1x:%1x:%1x", 
-          _conf.mac[0],_conf.mac[1], _conf.mac[2],
-          _conf.mac[3],_conf.mac[4],_conf.mac[5]);
- 
-  printf((uint32_t)_conf.mac > 0 ? "\t [*] Mac address: %s \n" :
-         "\t [ ] No mac address? : \n",_mac_str);
+  get_config();  
+  printf((uint32_t)_conf.mac.major > 0 and _conf.mac.minor > 0 ? "\t [*] Mac address: %s \n" :
+         "\t [ ] No mac address? : \n",_conf.mac.str().c_str());
 
  
   // Step 7 - 9 - GSO: @todo Not using GSO features yet. 
