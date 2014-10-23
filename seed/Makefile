@@ -33,10 +33,15 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
+CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) crti.o crtn.o
+OBJS  = $(FILES:.cpp=.o)
 LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+OS_PRE = $(CRTBEGIN_OBJ) crti.o
+OS_POST = $(CRTEND_OBJ) crtn.o
 
 DEPS = $(OBJS:.o=.d)
 
@@ -69,7 +74,7 @@ service.o: service.cpp
 # Link the service with the os
 service: $(OBJS) $(LIBS)
 	@echo "\n>> Linking service with OS"
-	$(LD) $(LDOPTS) $(OBJS) $(LIBS) -o $(SERVICE)
+	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
 

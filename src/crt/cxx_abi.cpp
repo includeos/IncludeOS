@@ -50,7 +50,7 @@ void EASTL_DEBUG_BREAK()
 
 extern "C"
 {
-  void *__dso_handle = 0;
+  //void *__dso_handle = 0;
   void __cxa_pure_virtual()
   {
     // Do nothing or print an error message.
