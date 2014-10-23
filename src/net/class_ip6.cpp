@@ -2,6 +2,7 @@
 #include <os>
 #include <net/class_ip6.hpp>
 
+using namespace net;
 
 
 int IP6::bottom(uint8_t* UNUSED(data), int UNUSED(len)){

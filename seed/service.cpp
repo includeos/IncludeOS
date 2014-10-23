@@ -4,6 +4,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace net;
 
 uint8_t* buf = 0;
 int bufsize = 0;

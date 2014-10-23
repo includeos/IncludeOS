@@ -1,13 +1,14 @@
 #ifndef CLASS_IP_STACK_HPP
 #define CLASS_IP_STACK_HPP
 
-
 #include <net/class_ethernet.hpp>
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>
 #include <net/class_ip6.hpp>
 #include <net/class_icmp.hpp>
 #include <net/class_udp.hpp>
+
+namespace net {
 
 class IP_stack {
   
@@ -123,6 +124,9 @@ public:
     // UDP -> IP4
     _udp.set_network_out(ip4_top);
     
+    // ICMP -> IP4
+    _icmp.set_network_out(ip4_top);
+    
     // IP4 -> Arp    
     _ip4.set_linklayer_out(arp_top);
     
@@ -138,5 +142,6 @@ public:
   
 };
 
+}
 
 #endif

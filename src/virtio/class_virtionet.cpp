@@ -8,6 +8,8 @@
 #include <malloc.h>
 #include <string.h>
 
+using namespace net;
+
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const mac_t& VirtioNet::mac(){ return _conf.mac; }  
 const char* VirtioNet::mac_str(){ return _mac_str; }

@@ -2,6 +2,8 @@
 #include <os>
 #include <net/class_udp.hpp>
 
+using namespace net;
+
 int UDP::bottom(uint8_t* data, int len){
   debug("<UDP handler> Got data \n");
   
@@ -57,7 +59,7 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
 };
 
 int ignore_udp(IP4::addr UNUSED(sip),IP4::addr UNUSED(dip),IP4::proto UNUSED(p),
-               UDP::pbuf& UNUSED(buf),uint32_t UNUSED(len)){
+               UDP::pbuf UNUSED(buf),uint32_t UNUSED(len)){
   debug("<UDP->Network> No handler - DROP!\n");
   return 0;
 }

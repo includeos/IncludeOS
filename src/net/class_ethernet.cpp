@@ -3,6 +3,7 @@
 #include <os>
 #include <net/class_ethernet.hpp>
 
+using namespace net;
 
 // FROM SanOS
 //
@@ -62,7 +63,9 @@ int Ethernet::physical_in(uint8_t* data, int len){
   
   
   // Print, for verification
+  #ifdef DEBUG2
   char eaddr[] = "00:00:00:00:00:00";
+  #endif
   debug2("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
   debug2("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
   debug2("\t             Eth. Type  : 0x%x\n",eth->type); 
