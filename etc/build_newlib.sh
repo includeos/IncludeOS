@@ -27,7 +27,7 @@ make distclean
 
 #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
 shopt -s expand_aliases
-alias i686-elf-cc="/usr/local/cross/bin/i686-elf-gcc"
+alias i686-elf-cc="$PREFIX/bin/i686-elf-gcc"
 
 echo ""
 echo $PATH

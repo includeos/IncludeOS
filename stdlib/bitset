@@ -1,0 +1,10 @@
+#ifndef STD_BITSET_HEADER
+#define STD_BITSET_HEADER
+
+#include "EASTL/bitset.h"
+namespace std
+{
+	using bitset = eastl::bitset;
+}
+
+#endif

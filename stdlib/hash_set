@@ -1,0 +1,11 @@
+#ifndef STD_HASH_SET_HEADER
+#define STD_HASH_SET_HEADER
+
+#include "EASTL/hash_set.h"
+namespace std
+{
+	using hash_set = eastl::hash_set;
+	using hash_multiset = eastl::hash_multiset;
+}
+
+#endif
