@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# Installation script for IncludeOS toolchain + IncludeOS libraries
+
 OSDIR=/usr/local/IncludeOS/
 
 echo -e "\n>>> Looking for toolchain"
