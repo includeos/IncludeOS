@@ -37,6 +37,7 @@ void testFunction()
 	std::cout << "called void testFunction()" << std::endl;
 }
 
+#include <sqlite>
 
 namespace std
 {
@@ -344,5 +345,9 @@ void Service::start()
 	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
 				<< ip.part[2] << "." << ip.part[3] << std::endl;
 	}
+	
+	//database::SQLite sqlite;
+	//std::cout << "Database good(): " << sqlite.good() << std::endl;
+	
 	std::cout << "Service out!" << std::endl;
 }

@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = IncludeOS_eastl
+SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
@@ -26,13 +26,22 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVIC
 # Objects
 ###################################################
 
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
+CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+
 # Full link list
-OBJS  = $(FILES:.cpp=.o) crti.o crtn.o
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ)
+OBJS  = $(FILES:.cpp=.o)
+LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+OS_PRE = $(CRTBEGIN_OBJ) crti.o
+OS_POST = $(CRTEND_OBJ) crtn.o
 
 DEPS = $(OBJS:.o=.d)
 
@@ -65,7 +74,7 @@ service.o: service.cpp
 # Link the service with the os
 service: $(OBJS) $(LIBS)
 	@echo "\n>> Linking service with OS"
-	$(LD) $(LDOPTS) $(OBJS) $(LIBS) -o $(SERVICE)
+	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
 

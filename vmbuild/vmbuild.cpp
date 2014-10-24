@@ -90,7 +90,7 @@ int main(int argc, char** argv){
      Bochs requires old-school disk specifications. 
      sectors=cyls*heads*spt (sectors per track)
   */
-  int cylinders=32, heads=1, spt=63;
+  int cylinders=32, heads=2, spt=63;
   int disksize=cylinders*heads*spt*SECT_SIZE;
   
   if(disksize<img_size){

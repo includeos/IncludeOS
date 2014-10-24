@@ -1,11 +1,11 @@
-#! /bin/bash
+#!/bin/bash
+image=IncludeOS_tests.img
 
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
-
 DEBUG=0
 
-[[ $2 = "debug" ]] && DEBUG=1 
+[[ $1 = "debug" ]] && DEBUG=1 
 
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
@@ -17,7 +17,7 @@ if [ $DEBUG -ne 0 ]
 then
     echo "Building system..."
     make -B debug
-    echo "Starting VM: '$1'"
+    echo "Starting VM: '$image'"
     echo "-----------------------"
     
     echo "VM started in DEBUG mode. Connect with gdb/emacs:"
@@ -25,17 +25,14 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
     $QEMU -s -S $QEMU_OPTS
-else    
+else
     make clean all #stripped 
     echo "-----------------------"
-    echo "Starting VM: '$1'", "Options: ", $QEMU_OPTS
+    echo "Starting VM: '$image'", "Options: ", $QEMU_OPTS
     echo "-----------------------"
     
-    $QEMU $QEMU_OPTS 
+    $QEMU $QEMU_OPTS
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
  . convert_image.sh
-
-#reset
-#bochs
