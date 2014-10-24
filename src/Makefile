@@ -1,5 +1,6 @@
-# The name of your service
-SERVICE="IncludeOS_tests"
+  #################################################
+ #              IncludeOS makefile               #
+#################################################
 
 # Compiler/Linker
 ###################################################
@@ -20,7 +21,7 @@ LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -O2 -msse3
 WARNS   = -Wall -Wextra
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i386 $(INCLUDES) -lgcc
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
@@ -41,8 +42,6 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	net/class_udp.o net/class_icmp.o net/inet.o \
 	SQLite/sqlite.o SQLite/sqlite3.o SQLite/sqlite_fixes.o \
 	$(TEST_OBJ) 
-#virtio/virtionet.o virtio/virtio.o
- #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o
 
 # Libraries
 ###################################################
@@ -56,7 +55,7 @@ LIBM_OBJ = $(OSLIB)/lib/libm.a
 OS_DEPS=$(OS_OBJECTS:.o=.d)
 
 
-# Complete bulid
+# Complete build
 ###################################################
 # A complete build includes:
 # - a bootloader
@@ -94,9 +93,10 @@ install: os.a
 
 # Object files
 ###################################################
-# General C++-files to object files. The OS is compiled here.
+%.o: %.c
+	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
-%.o: %.cpp 
+%.o: %.cpp
 	@echo "\n>> Compiling " $@
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
@@ -128,7 +128,6 @@ etags:
 ###################################################
 clean: 
 	$(RM) $(OS_OBJECTS) $(OS_DEPS)
-	$(RM) $(SERVICE)*
 	$(RM) os.a
 	$(RM) bootloader	
 

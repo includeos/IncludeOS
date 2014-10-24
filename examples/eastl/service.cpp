@@ -345,7 +345,9 @@ void Service::start()
 	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
 				<< ip.part[2] << "." << ip.part[3] << std::endl;
 	}
-	
+	/////////////////////////////////////////////////////////////////////////////
+	//// SQLite in-memory database
+	/////////////////////////////////////////////////////////////////////////////
 	database::SQLite sqlite;
 	std::cout << "Database good(): " << sqlite.good() << std::endl;
 	
