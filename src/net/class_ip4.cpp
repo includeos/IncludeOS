@@ -37,20 +37,7 @@ int IP4::bottom(uint8_t* data, int len){
 
 
 uint16_t IP4::checksum(ip_header* hdr){
-  
-  union sum{
-    uint32_t whole;    
-    uint16_t part[2];
-  }sum32{0};
-
-    
-  for (uint16_t* i = (uint16_t*)hdr; i < (uint16_t*)hdr + (sizeof(ip_header)/2); i++){
-    sum32.whole += *i;
-  }
-  
-  // We're not checking for the odd-length case, since our heder is fixed @ 20b
-  
-  return ~(sum32.part[0]+sum32.part[1]);
+  return net::checksum((uint16_t*)hdr,sizeof(ip_header));
 }
 
 

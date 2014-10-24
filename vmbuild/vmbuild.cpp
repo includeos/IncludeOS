@@ -78,9 +78,10 @@ int main(int argc, char** argv){
        << " bytes, => " << srv_sect
        << " sectors. "<< endl;
 
-  int img_size=(boot_sect+srv_sect)*SECT_SIZE;
+  int img_size_sect = boot_sect+srv_sect;
+  int img_size_bytes =(boot_sect+srv_sect)*SECT_SIZE;
   cout << "Total disk size: \t" 
-       << img_size
+       << img_size_bytes
        << " bytes, => "
        << boot_sect+srv_sect
        << " sectors. " 
@@ -90,25 +91,31 @@ int main(int argc, char** argv){
      Bochs requires old-school disk specifications. 
      sectors=cyls*heads*spt (sectors per track)
   */
-  int cylinders=32, heads=2, spt=63;
-  int disksize=cylinders*heads*spt*SECT_SIZE;
+  int heads = 1, spt = 63; // These can be constant (now the simplest defaults)
+  int cylinders = (img_size_sect % spt) == 0 ? 
+    (img_size_sect / spt) : // Sector count is a multiple of 63
+    (img_size_sect / spt) + 1; // There's a remainder, so we add one track
+  int disksize = cylinders * heads * spt * SECT_SIZE;
+  //int disksize = img_size;
   
-  if(disksize<img_size){
+  if(disksize<img_size_bytes){
     cout << endl << " ---- ERROR ----" << endl
 	 << "Image is too big for the disk! " << endl
-	 << "Image size: " << img_size << " B" << endl
+	 << "Image size: " << img_size_bytes << " B" << endl
 	 << "Disk size: " << disksize << " B" << endl;
     exit(999);
   }
-
+  
   cout << "Creating disk of size: "
        << "Cyls: " << cylinders << endl
        << "Heads: " << heads << endl
        << "Sec/Tr:" << spt << endl
        << "=> " << disksize/SECT_SIZE << "sectors" << endl
        << "=> " << disksize << " bytes" << endl;
+  
   char* disk=new char[disksize];
- 
+  
+  
   //Zero-initialize:
   for(int i=0;i<disksize;i++)
     disk[i]=0;
@@ -178,18 +185,18 @@ int main(int argc, char** argv){
   *((int*)(disk+offs_srvsize))=srv_sect;
   *((int*)(disk+offs_srvoffs))=srv_start;
     
-  int* magic_loc=(int*)(disk+img_size);
+  int* magic_loc=(int*)(disk+img_size_bytes);
 		  
   cout << "Applying magic signature: 0xFA7CA7" << endl
-       << "Data currently at location: " << img_size << endl
-       << "Location on image: 0x" << hex << img_size << endl
+       << "Data currently at location: " << img_size_bytes << endl
+       << "Location on image: 0x" << hex << img_size_bytes << endl
        << "Computed memory location: " 
-       << hex << img_size -512 + 0x8000  << endl;
+       << hex << img_size_bytes -512 + 0x8000  << endl;
   *magic_loc=0xFA7CA7;
 
   if(test){
     cout << endl << "TEST overwriting service with testdata" << endl;
-    for(int i=0;i<img_size-512;i++)
+    for(int i=0;i<img_size_bytes-512;i++)
       disk[512+i]=i%256;
   }
 

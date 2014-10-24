@@ -86,9 +86,11 @@ namespace net {
     /** Arp resolution. */
     Ethernet::addr& resolve(IP4::addr&);
   
+    
     int arp_respond(header* hdr_in);
     int arp_request(IP4::addr ip);
-
+    
+    
   };
 
 } // ~net

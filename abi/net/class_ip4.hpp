@@ -3,6 +3,7 @@
 
 #include <delegate>
 #include <net/class_ethernet.hpp>
+#include <net/inet.hpp>
 
 #include <iostream>
 #include <string>

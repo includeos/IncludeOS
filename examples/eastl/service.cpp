@@ -346,8 +346,8 @@ void Service::start()
 				<< ip.part[2] << "." << ip.part[3] << std::endl;
 	}
 	
-	//database::SQLite sqlite;
-	//std::cout << "Database good(): " << sqlite.good() << std::endl;
+	database::SQLite sqlite;
+	std::cout << "Database good(): " << sqlite.good() << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
 }
