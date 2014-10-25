@@ -73,15 +73,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EASTL/algorithm.h>
 #include <EASTL/memory.h>
 
-#ifdef _MSC_VER
-#  pragma warning(push, 0)
-//#  include <new>
-#  include <stddef.h>
-#  pragma warning(pop)
-#else
-//#  include <new>
-#  include <stddef.h>
-#endif
+#include <new>
+#include <stddef.h>
 
 #if EASTL_EXCEPTIONS_ENABLED
 #  ifdef _MSC_VER

@@ -143,12 +143,4 @@ namespace std
 	
 }
 
-template <class F>
-//void* operator new(size_t size, std::function<F>* func) throw()
-void* operator new(size_t, std::function<F>* func) throw()
-{
-	//return new std::function<F>(*func);
-	return func;
-}
-
 #endif
