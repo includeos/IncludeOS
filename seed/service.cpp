@@ -33,20 +33,49 @@ __attribute__ ((constructor)) void foo(void)
   printf("foo is running and printf is available at this point\n");
 }
 
+/* @todo - make configuration happen here
+void Service::init(){
+
+  
+  IP_stack net;
+  auto eth0 = Dev::eth(0);
+  auto mac = eth0.mac();
+  
+  net.ifconfig(ETH0,{192,168,mac.part[4],mac.part[5]},{255,255,0,0});
+  //net.ifconfig(ETH0,{192,168,0,10}); => netmask == 255.255.255.0.
+  //net.route("*",{192.168.0.1});
+  
+  
+  Dev::eth(ETH0)
+        
+  //Dev::eth(1).dhclient();
+  
+  }*/
 
 void Service::start()
 {
+
   
+
   assert(_test_glob2 == 1);
   
   cout << "*** Service is up - with OS Included! ***" << endl;    
   //global glob2;
   //global glob3;
   glob1.test();
-  cout << "...Starting UDP server" << endl;
   
   //IP_stack& net = Dev::eth(0).ip_stack();
   auto& net = Dev::eth(0).ip_stack();
+  
+  auto mac = Dev::eth(0).mac();
+  net.ifconfig(net::ETH0,{192,168,mac.part[4],mac.part[5]},{255,255,0,0});
+
+
+  cout << "...Starting UDP server on IP " 
+       << net.ip4().str()
+       << endl;
+
+  
   /** @note: "auto net" would cause copy-construction (!) 
       since auto drops reference, const and volatile qualifiers. */
     

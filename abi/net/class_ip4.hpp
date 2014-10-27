@@ -104,7 +104,9 @@ namespace net {
 
     /** Compute the IP4 header checksum */
     uint16_t checksum(ip_header* hdr);
-  
+    
+    
+    
     /** Initialize. Sets a dummy linklayer out. */
     IP4();
   
@@ -118,7 +120,7 @@ namespace net {
     subscriber _icmp_handler;
     subscriber _udp_handler;
     subscriber _tcp_handler;  
-
+        
   };
 
 

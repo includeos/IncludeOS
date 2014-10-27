@@ -43,7 +43,12 @@ namespace net {
 
     /** Downstream transmission. */
     int transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len);
-  
+    
+    
+    /** Set IP4 address */
+    inline void set_ip(IP4::addr ip)
+    { _ip = ip; }
+    
     inline IP4::addr& ip() { return _ip; }
 
     Arp(Ethernet::addr,IP4::addr);
@@ -55,7 +60,7 @@ namespace net {
 
     // Needs to know which IP to respond to
     IP4::addr _ip;
-  
+    
     // Outbound data goes through here
     delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> _linklayer_out;
 
