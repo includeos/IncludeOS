@@ -37,7 +37,7 @@ CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
 CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o)
+OBJS  = $(FILES:.cpp=.o) 
 LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
@@ -72,7 +72,7 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS)
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
