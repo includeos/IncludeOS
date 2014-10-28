@@ -1,0 +1,6 @@
+#ifndef STD_INITIALIZER_LIST_HEADER
+#define STD_INITIALIZER_LIST_HEADER
+
+#include "initializer_list.hpp"
+
+#endif

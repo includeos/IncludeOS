@@ -13,6 +13,7 @@
 #include <delegate>
 #include <sort>
 #include <vector_map>
+#include <initializer_list>
 
 class TestStream
 {
@@ -333,16 +334,23 @@ void Service::start()
 	//// std::initializer_list
 	/////////////////////////////////////////////////////////////////////////////
 	{
-	  struct IP4 {
-		union addr{
-		  uint8_t part[4];
-		  uint32_t whole;
+		struct IP4
+		{
+			union addr
+			{
+				uint8_t  part[4];
+				uint32_t whole;
+			};
 		};
-	  };
-	  
-	  IP4::addr ip {192,168,0,11};
-	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
-				<< ip.part[2] << "." << ip.part[3] << std::endl;
+		
+		IP4::addr ip {192,168,0,11};
+		std::cout << ip.part[0] << "." << ip.part[1] << "." 
+				  << ip.part[2] << "." << ip.part[3] << std::endl;
+		
+		std::vector<int> test1 (std::initializer_list<int>({1, 2, 3, 4}));
+		std::vector<int> test2 {1, 2, 3, 4};
+		
+		std::cout << test2[0] << ", " << test2[1] << ", " << test2[2] << ", " << test2[3] << std::endl;
 	}
 	
 	std::cout << "Service out!" << std::endl;

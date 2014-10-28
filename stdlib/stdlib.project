@@ -163,6 +163,8 @@
     <File Name="result_of.hpp"/>
     <File Name="new"/>
     <File Name="allocator.hpp"/>
+    <File Name="initializer_list"/>
+    <File Name="initializer_list.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
