@@ -1,12 +1,6 @@
-#ifndef STD_VECTORMAP_HEADER
-#define STD_VECTORMAP_HEADER
+#ifndef EASTL_VECTORMAP_HEADER
+#define EASTL_VECTORMAP_HEADER
 
 #include "EASTL/vector_map.h"
-namespace std
-{
-	// key, value, compare
-	template<class K, class V, class C = eastl::less<K>>
-	using vector_map = eastl::vector_map<K, V, C>;
-}
 
 #endif

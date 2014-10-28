@@ -8,12 +8,12 @@
 #include <vector>
 #include <map>
 
-#include <tuple.hpp>
 #include <signal>
 #include <delegate>
 #include <sort>
 #include <vector_map>
 #include <initializer_list>
+#include <tuple.hpp>
 
 class TestStream
 {
@@ -328,7 +328,7 @@ void Service::start()
 	//// eastl::vector_map
 	/////////////////////////////////////////////////////////////////////////////
 	{
-		std::vector_map<int, int> testMap;
+		eastl::vector_map<int, int> testMap;
 	}
 	/////////////////////////////////////////////////////////////////////////////
 	//// std::initializer_list

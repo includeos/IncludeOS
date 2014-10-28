@@ -165,6 +165,10 @@
     <File Name="allocator.hpp"/>
     <File Name="initializer_list"/>
     <File Name="initializer_list.hpp"/>
+    <File Name="hash_set"/>
+    <File Name="vector_map"/>
+    <File Name="sort"/>
+    <File Name="declval.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
