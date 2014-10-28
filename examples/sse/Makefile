@@ -1,6 +1,9 @@
 # The name of your service
-SERVICE = "IncludeOS_sse"
+SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
+
+# Modules
+FILES = service.cpp
 
 # Compiler/Linker
 ###################################################
@@ -13,39 +16,34 @@ CC  = $(OSDIR)/bin/i686-elf-gcc
 CPP = $(OSDIR)/bin/i686-elf-g++ 
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi/ -I./
+INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
 
-LIBS     = $(OSLIB)/lib
-
-CPPOPTS = -std=c++11 -c $(OPTIONS) -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 
 # Objects
 ###################################################
 
-CRTI_OBJ=crti.o
-CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
-CRTN_OBJ=crtn.o 
-
-OS_WRAP=crti.o crtn.o
-
-TEST_OBJ= tests/tests.o
-
-SERVICE_OBJECTS=service.o # Feel free to add more...
-
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-# Full link list
-OBJ_LIST:=$(CRTI_OBJ) $(CRTBEGIN_OBJ) \
-	$(OSDIR)/lib/os.a $(SERVICE_OBJECTS) $(LIBC_OBJ) $(LIBM_OBJ) \
-	\$(CRTEND_OBJ) $(CRTN_OBJ)
+CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 
+# Full link list
+OBJS  = $(FILES:.cpp=.o)
+LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+OS_PRE = $(CRTBEGIN_OBJ) crti.o
+OS_POST = $(CRTEND_OBJ) crtn.o
+
+DEPS = $(OBJS:.o=.d)
 
 # Complete bulid
 ###################################################
@@ -63,7 +61,7 @@ debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: LDOPTS  += -M --verbose
 
-debug: OBJ_LIST += $(LIBG_OBJ)
+debug: OBJS += $(LIBG_OBJ)
 
 debug: service #Don't wanna call 'all', since it strips debug info
 
@@ -74,9 +72,9 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OS_WRAP) $(SERVICE_OBJECTS) 	
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
-	$(LD) $(LDOPTS) $(OBJ_LIST) -o $(SERVICE)
+	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
 
@@ -88,11 +86,7 @@ crt%.o: $(OSDIR)/crt/crt%.s
 	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
-# General C++-files to object files. The OS is compiled here.
-%.o: %.cpp %.h
-	@echo "\n>> Compiling OS-objects"
-	$(CPP) $(CPPOPTS) -o $@ $< 
-
+# General C++-files to object files
 %.o: %.cpp
 	@echo "\n>> Compiling OS object without header"
 	$(CPP) $(CPPOPTS) -o $@ $< 
@@ -105,6 +99,6 @@ crt%.o: $(OSDIR)/crt/crt%.s
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(SERVICE_OBJECTS) $(SERVICE) $(OS_WRAP) $(SERVICE).img
+	$(RM) $(OBJS) crti.* crtn.* $(DEPS) $(SERVICE) $(SERVICE).img
 
-
+-include $(DEPS)

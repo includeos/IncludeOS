@@ -20,7 +20,7 @@ INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 
 # Objects
@@ -72,7 +72,7 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS)
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img

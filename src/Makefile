@@ -39,12 +39,8 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	class_irq_handler.o class_pci_manager.o \
 	virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-<<<<<<< HEAD
-	net/class_udp.o net/class_icmp.o net/inet.o \
-	SQLite/sqlite.o SQLite/sqlite3.o SQLite/sqlite_fixes.o \
-=======
 	net/class_udp.o net/class_icmp.o net/class_ip_stack.o net/inet.o\
->>>>>>> 3591102b0438e9762b9dd6fc8472829902c7ca9c
+	SQLite/sqlite.o SQLite/sqlite3.o SQLite/sqlite_fixes.o \
 	$(TEST_OBJ) 
 
 # Libraries

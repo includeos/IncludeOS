@@ -72,7 +72,7 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS)
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
