@@ -19,15 +19,15 @@ namespace std
 		constexpr initializer_list()
 			: m_array(0), m_size(0) {}
 		
-		// Number of elements.
+		//! Returns number of elements
 		constexpr size_type
 		size() const noexcept { return m_size; }
 		
-		// First element.
+		//! Returns iterator for first element
 		constexpr const_iterator
 		begin() const noexcept { return m_array; }
 		
-		// One past the last element.
+		//! Returns end iterator
 		constexpr const_iterator
 		end() const noexcept { return begin() + size(); }
 		
