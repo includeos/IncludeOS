@@ -1,6 +1,7 @@
 #ifndef CLASS_IP_STACK_HPP
 #define CLASS_IP_STACK_HPP
 
+
 #include <net/class_ethernet.hpp>
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>
@@ -10,6 +11,10 @@
 
 namespace net {
 
+  /** Nic names. Only used to bind nic to IP. */
+  enum netdev {ETH0,ETH1,ETH2,ETH3,ETH4,ETH5,ETH6,ETH7,ETH8,ETH9};
+
+  
 class IP_stack {
   
   /** Physical layer output */
@@ -58,6 +63,14 @@ public:
 
   
   inline IP4::addr& ip4() { return _arp.ip(); }
+    
+  
+  /** Bind an IP and a netmask to a given device. 
+      
+      The function expects the given device to exist.*/
+  int ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
+  
+  
   
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
@@ -107,7 +120,6 @@ public:
     
     // IP4 -> UDP
     _ip4.set_udp_handler(udp_bottom);
-    
     
     /** Downstream delegates */
     auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>

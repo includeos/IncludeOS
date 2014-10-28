@@ -33,8 +33,8 @@ typedef Nic<VirtioNet> Nic_t;
 class Dev{
 
 public:
-    
-   
+      
+  
   //! Get ethernet device n
   static Nic_t& eth(int n);
   

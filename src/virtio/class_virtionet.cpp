@@ -119,7 +119,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   // Step 6 - get the status - demanding this as well.
   // Getting the MAC + status 
   get_config();  
-  printf((uint32_t)_conf.mac.major > 0 and _conf.mac.minor > 0 ? "\t [*] Mac address: %s \n" :
+  printf((uint32_t)_conf.mac.major > 0 ? "\t [*] Mac address: %s \n" : 
          "\t [ ] No mac address? : \n",_conf.mac.str().c_str());
 
  

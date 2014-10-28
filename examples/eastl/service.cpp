@@ -37,8 +37,6 @@ void testFunction()
 	std::cout << "called void testFunction()" << std::endl;
 }
 
-#include <sqlite>
-
 namespace std
 {
 	template <typename F, typename... Args>
@@ -81,6 +79,7 @@ struct EmplTest
 	static int cnt;
 };
 int EmplTest::cnt = 0;
+
 
 void Service::start()
 {
@@ -345,11 +344,6 @@ void Service::start()
 	  std::cout << ip.part[0] << "." << ip.part[1] << "." 
 				<< ip.part[2] << "." << ip.part[3] << std::endl;
 	}
-	/////////////////////////////////////////////////////////////////////////////
-	//// SQLite in-memory database
-	/////////////////////////////////////////////////////////////////////////////
-	database::SQLite sqlite;
-	std::cout << "Database good(): " << sqlite.good() << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
 }
