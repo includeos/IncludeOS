@@ -40,7 +40,7 @@ __attribute__ ((constructor)) void foo(void)
 void Service::init(){
 
   
-  IP_stack net;
+  Inet net;
   auto eth0 = Dev::eth(0);
   auto mac = eth0.mac();
   
@@ -71,14 +71,14 @@ void Service::start()
   assert(glob1.instances() == 1);
   
   auto& mac = Dev::eth(0).mac();
-  IP_stack::ifconfig(net::ETH0,{10,0,mac.part[4],mac.part[5]},{255,255,0,0});
+  Inet::ifconfig(net::ETH0,{10,0,mac.part[4],mac.part[5]},{255,255,0,0});
   
   /** Trying to access non-existing nic will cause a panic */
   //auto& mac1 = Dev::eth(1).mac();
-  //IP_stack::ifconfig(net::ETH1,{192,168,mac1.part[4],mac1.part[5]},{255,255,0,0});
+  //Inet::ifconfig(net::ETH1,{192,168,mac1.part[4],mac1.part[5]},{255,255,0,0});
   
-  //IP_stack* net 
-  shared_ptr<IP_stack> net(IP_stack::up());
+  //Inet* net 
+  shared_ptr<Inet> net(Inet::up());
   
 
   cout << "...Starting UDP server on IP " 

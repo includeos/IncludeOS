@@ -19,7 +19,7 @@ namespace net {
   enum netdev {ETH0,ETH1,ETH2,ETH3,ETH4,ETH5,ETH6,ETH7,ETH8,ETH9};
 
   
-class IP_stack {
+class Inet {
   
 public:
   
@@ -46,11 +46,11 @@ public:
   static inline IP4::addr ip4(netdev nic)
   { return ip4_list[nic]; }
   
-  static IP_stack* up(){
+  static Inet* up(){
     if (ip4_list.size() < 1)
       panic("<Inet> Can't bring up IP stack without any IP addresses");
     if (!instance)
-      instance = new IP_stack();
+      instance = new Inet();
     
     return instance;
       
@@ -63,7 +63,7 @@ private:
   static std::map<uint16_t,Ethernet*> ethernet_list;
   static std::map<uint16_t,Arp*> arp_list;
   
-  static IP_stack* instance;  
+  static Inet* instance;  
   
   // This is the actual stack
   IP4 _ip4;
@@ -76,20 +76,20 @@ private:
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
    */
-  IP_stack(IP_stack& cpy)
+  Inet(Inet& cpy)
   {    
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
     panic("Trying to copy-construct IP stack");
   }
   
-  IP_stack(std::vector<IP4::addr> ips);
+  Inet(std::vector<IP4::addr> ips);
 
   /** Initialize. For now IP and mac is passed on to Ethernet and Arp.
       @todo For now, mac- and IP-addresses are hardcoded here. 
       They should be user-definable
    */
-  IP_stack()
+  Inet()
     //_eth(eth0.mac()),_arp(eth0.mac(),ip)
   {
     
