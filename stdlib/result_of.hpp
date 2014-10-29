@@ -1,6 +1,7 @@
 #ifndef STD_RESULT_OF_HPP
 #define STD_RESULT_OF_HPP
 
+#include "declval.hpp"
 #include "forward.hpp"
 
 namespace std

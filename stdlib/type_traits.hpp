@@ -244,10 +244,6 @@ namespace std
 		typedef typename remove_reference<T>::type* type;
 	};
 	
-	// std::declval
-	template <typename T>
-	typename add_rvalue_reference<T>::type declval();
-	
 	// std::conditional
 	template<bool B, class T, class F>
 	struct conditional { typedef T type; };
@@ -273,7 +269,6 @@ namespace std
 	};
 }
 
-#include "forward.hpp"
 #include "result_of.hpp"
 
 #endif

@@ -1,8 +1,9 @@
 #ifndef STD_UTILITY_HPP
 #define STD_UTILITY_HPP
 
-#include "type_traits.hpp"
+#include "declval.hpp"
 #include "forward.hpp"
+#include "type_traits.hpp"
 
 namespace std
 {
@@ -11,6 +12,15 @@ namespace std
 	constexpr remove_reference_t<T>&& move(T&& t)
 	{
 		return static_cast<T&&>(t);
+	}
+	
+	// std::exchange
+	template<class T, class U = T>
+	T exchange(T& obj, U&& new_value)
+	{
+		T old_value = std::move(obj);
+		obj = std::forward<U>(new_value);
+		return old_value;
 	}
 	
 	// std::swap
@@ -47,8 +57,8 @@ namespace std
 		template <class U, class V>
 		pair& operator= (pair<U, V>&& pr)
 		{
-			first  = std::move(pr.first);
-			second = std::move(pr.second);
+			first  = move(pr.first);
+			second = move(pr.second);
 		}
 		
 		// members
@@ -60,8 +70,9 @@ namespace std
 	template <class T1, class T2>
 	pair<T1, T2> make_pair (T1&& x, T2&& y)
 	{
-		return pair<T1, T2>(std::forward<T1>(x), std::forward<T2>(y));
+		return pair<T1, T2>(forward<T1>(x), forward<T2>(y));
 	}
+	
 }
 
 #endif

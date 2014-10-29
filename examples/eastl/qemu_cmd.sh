@@ -13,7 +13,7 @@ export DEV_NET="-netdev user,id=user.0,hostfwd=tcp::5555-:22 -device virtio-net,
 
 
 export DEV_GRAPHICS="-nographic"
-export DEV_HDD="-hda $1"
+export DEV_HDD="-hda $image"
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
 

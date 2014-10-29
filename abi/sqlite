@@ -1,0 +1,6 @@
+#ifndef OSABI_SQLITE_HEADER
+#define OSABI_SQLITE_HEADER
+
+#include "SQLite/sqlite.hpp"
+
+#endif

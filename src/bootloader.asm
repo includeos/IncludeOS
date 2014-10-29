@@ -160,12 +160,12 @@ mode32:
 
 	
 	;; Load LBA params
-	%define CYL 0
-	%define HEAD 0
-	%define SECT 2	
-	%define HPC 1
-	%define SPT 63	
-
+	%define CYL   0
+	%define HEAD  0
+	%define SECT  2
+	%define HPC   1
+	%define SPT  63
+	
 	;;  OBS: By default, Qemu handles only 1 sector pr. read	
 	%define LOAD_SIZE 1 
 	

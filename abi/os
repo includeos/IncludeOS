@@ -1,5 +1,5 @@
-#ifndef OS_H
-#define OS_H
+#ifndef OSABI_OS_HEADER
+#define OSABI_OS_HEADER
 
 #include <common>
 
