@@ -73,15 +73,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EASTL/algorithm.h>
 #include <EASTL/memory.h>
 
-#ifdef _MSC_VER
-#  pragma warning(push, 0)
-//#  include <new>
-#  include <stddef.h>
-#  pragma warning(pop)
-#else
-//#  include <new>
-#  include <stddef.h>
-#endif
+#include <new>
+#include <initializer_list>
+
+#include <stddef.h>
 
 #if EASTL_EXCEPTIONS_ENABLED
 #  ifdef _MSC_VER
@@ -246,7 +241,10 @@ namespace eastl
 
         template <typename InputIterator>
         vector(InputIterator first, InputIterator last); // allocator arg removed because VC7.1 fails on the default arg. To do: Make a second version of this function without a default arg.
-
+		template <typename InputType>
+		vector(std::initializer_list<InputType> t)
+			: vector(t.begin(), t.end()) {}
+		
        ~vector();
 
         this_type& operator=(const this_type& x);

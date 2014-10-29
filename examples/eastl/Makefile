@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = IncludeOS_eastl
+SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
@@ -20,19 +20,28 @@ INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 
 # Objects
 ###################################################
 
+GCC_VER = $(shell $(CC) -dumpversion)
+LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
+CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+
 # Full link list
-OBJS  = $(FILES:.cpp=.o) crti.o crtn.o
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ)
+OBJS  = $(FILES:.cpp=.o)
+LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+OS_PRE = $(CRTBEGIN_OBJ) crti.o
+OS_POST = $(CRTEND_OBJ) crtn.o
 
 DEPS = $(OBJS:.o=.d)
 
@@ -63,9 +72,9 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS)
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
-	$(LD) $(LDOPTS) $(OBJS) $(LIBS) -o $(SERVICE)
+	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
 
@@ -90,6 +99,6 @@ crt%.o: $(OSDIR)/crt/crt%.s
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(OBJS) $(DEPS) $(SERVICE) $(SERVICE).img
+	$(RM) $(OBJS) crti.* crtn.* $(DEPS) $(SERVICE) $(SERVICE).img
 
 -include $(DEPS)

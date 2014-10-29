@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "type_traits.hpp"
+typedef signed __INTPTR_TYPE__ ptrdiff_t;
 
 namespace std
 {

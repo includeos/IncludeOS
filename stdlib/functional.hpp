@@ -3,13 +3,14 @@
 
 #include "memory.hpp"
 #include "type_traits.hpp"
+#include "reference_wrapper.hpp"
 
 namespace std
 {
-	// See:
+	// std::function
 	// http://en.cppreference.com/w/cpp/utility/functional/function
-	
-	template <typename> class function;
+	template <typename>
+	class function;
 	
 	class allocator_arg_t {};
 	constexpr allocator_arg_t allocator_arg = allocator_arg_t();
@@ -22,15 +23,11 @@ namespace std
 		
 		template <typename FunctionT>
 		function(FunctionT f)
-			: mInvoker(new free_function_holder<FunctionT>(f))
-		{
-		}
+			: mInvoker(new free_function_holder<FunctionT>(f)) {}
 		
 		template <typename FunctionType, typename ClassType>
 		function(FunctionType ClassType::* f)
-			: mInvoker(new member_function_holder<FunctionType, ArgumentTypes ...>(f))
-		{
-		}
+			: mInvoker(new member_function_holder<FunctionType, ArgumentTypes ...>(f)) {}
 		
 		ReturnType operator() (ArgumentTypes... args)
 		{
@@ -38,14 +35,10 @@ namespace std
 		}
 		
 		function(const function& other)
-			: mInvoker(other.mInvoker->clone())
-		{
-		}
+			: mInvoker(other.mInvoker->clone()) {}
 		
 		template <class Fn, class Alloc>
-		function (allocator_arg_t aa, const Alloc& alloc, Fn fn)
-		{
-		}
+		function (allocator_arg_t aa, const Alloc& alloc, Fn fn) {}
 		
 		function& operator= (const function& other)
 		{
@@ -141,14 +134,6 @@ namespace std
 		}
 	};
 	
-}
-
-template <class F>
-//void* operator new(size_t size, std::function<F>* func) throw()
-void* operator new(size_t, std::function<F>* func) throw()
-{
-	//return new std::function<F>(*func);
-	return func;
 }
 
 #endif

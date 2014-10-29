@@ -1,6 +1,6 @@
+#pragma once
 
 #if !defined(__cplusplus)
-#include <stdbool.h> /* C doesn't have booleans by default. */
 #error "THIS IS SUPPOSED TO BE C++"
 #endif
 
@@ -14,7 +14,7 @@
 #error "You are not using a cross-compiler!"
 #endif
 
-/* We're only donig 32-bit ix86 targets. */
+/* We're only doing 32-bit ix86 targets. */
 #if !defined(__i386__)
 #error "This project needs to be compiled with an ix86-elf compiler"
 #endif
@@ -52,4 +52,3 @@ typedef unsigned char mac_t[6];
 #else 
 #define debug2(X,...) 
 #endif
-

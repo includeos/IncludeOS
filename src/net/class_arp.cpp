@@ -6,10 +6,11 @@
 
 using namespace net;
 
-int Arp::bottom(uint8_t* data, int len){
-  debug("<ARP handler> got %i bytes of data \n",len);
+int Arp::bottom(uint8_t* data, int len)
+{
+  debug("<ARP handler> got %d bytes of data \n", len);
 
-  header* hdr= (header*) data;
+  header* hdr = (header*) data;
   //debug("\t OPCODE: 0x%x \n",hdr->opcode);
   //std::cout << "Chaching IP " << hdr->sipaddr << " for " << hdr->shwaddr << std::endl;  
   debug("Have valid cache? %s \n",is_valid_cached(hdr->sipaddr) ? "YES":"NO");
@@ -42,7 +43,7 @@ int Arp::bottom(uint8_t* data, int len){
   // @todo Freeing here corrupts the outgoing frame. Why?
   //free(data);
   
-  return 0;
+  return 0 + 0 * len; // yep, it's what you think it is
 };
   
 

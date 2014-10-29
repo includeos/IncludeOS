@@ -1,5 +1,6 @@
-# The name of your service
-SERVICE="IncludeOS_tests"
+  #################################################
+ #              IncludeOS makefile               #
+#################################################
 
 # Compiler/Linker
 ###################################################
@@ -20,7 +21,7 @@ LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -O2 -msse3
 WARNS   = -Wall -Wextra
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i386 $(INCLUDES) -lgcc
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
@@ -31,8 +32,8 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	crt/cxx_abi.o crt/string.o crt/iostream.o crt/EASTL/allocator.o \
-	crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
+	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
+	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
 	hw/class_device.o hw/class_pci_device.o hw/pic.o \
 	class_irq_handler.o class_pci_manager.o \
@@ -40,8 +41,6 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
 	net/class_udp.o net/class_icmp.o net/class_ip_stack.o net/inet.o\
 	$(TEST_OBJ) 
-#virtio/virtionet.o virtio/virtio.o
- #hw/pci.o class_pci_manager_sanos.o  hw/class_nic.o
 
 # Libraries
 ###################################################
@@ -55,7 +54,7 @@ LIBM_OBJ = $(OSLIB)/lib/libm.a
 OS_DEPS=$(OS_OBJECTS:.o=.d)
 
 
-# Complete bulid
+# Complete build
 ###################################################
 # A complete build includes:
 # - a bootloader
@@ -80,7 +79,7 @@ os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
 
-install: os.a
+install: os.a bootloader
 	@echo "\n>> Installing..."
 	cp os.a $(OS)/lib
 	cp bootloader $(OS)/
@@ -93,9 +92,10 @@ install: os.a
 
 # Object files
 ###################################################
-# General C++-files to object files. The OS is compiled here.
+%.o: %.c
+	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
-%.o: %.cpp 
+%.o: %.cpp
 	@echo "\n>> Compiling " $@
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
@@ -127,7 +127,6 @@ etags:
 ###################################################
 clean: 
 	$(RM) $(OS_OBJECTS) $(OS_DEPS)
-	$(RM) $(SERVICE)*
 	$(RM) os.a
 	$(RM) bootloader	
 

@@ -13,8 +13,8 @@ int ICMP::bottom(uint8_t* data, int len){
   full_header* full_hdr = (full_header*)data;
   icmp_header* hdr = &full_hdr->icmp_hdr;
   
-  switch(hdr->type){
-  
+  switch(hdr->type)
+  {
   case (ICMP_ECHO):
     debug("<ICMP> PING from %s \n",full_hdr->ip_hdr.saddr.str().c_str());
     ping_reply(full_hdr);
@@ -23,7 +23,6 @@ int ICMP::bottom(uint8_t* data, int len){
     debug("<ICMP> PING Reply from %s \n",full_hdr->ip_hdr.saddr.str().c_str());
     break;
   }
-  
   
   return 0;
 }
