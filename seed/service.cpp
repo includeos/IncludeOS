@@ -21,6 +21,8 @@ public:
   void test(){
     printf("I have %i instances \n",i);
   }
+  
+  int instances(){ return i; }
 };
 
 int global::i = 0;
@@ -66,10 +68,10 @@ void Service::start()
   //global glob2;
   //global glob3;
   glob1.test();
-
+  assert(glob1.instances() == 1);
   
   auto& mac = Dev::eth(0).mac();
-  IP_stack::ifconfig(net::ETH0,{192,168,mac.part[4],mac.part[5]},{255,255,0,0});
+  IP_stack::ifconfig(net::ETH0,{10,0,mac.part[4],mac.part[5]},{255,255,0,0});
   
   /** Trying to access non-existing nic will cause a panic */
   //auto& mac1 = Dev::eth(1).mac();
