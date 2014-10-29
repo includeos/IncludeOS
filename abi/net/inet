@@ -1,0 +1,7 @@
+#ifndef INET
+#define INET
+
+#include <net/class_ip_stack.hpp>
+
+
+#endif
