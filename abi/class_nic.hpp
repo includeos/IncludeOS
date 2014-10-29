@@ -4,11 +4,7 @@
 #include <class_pci_device.hpp>
 #include <stdio.h>
 
-
 #include <net/class_ethernet.hpp>
-
-// The nic knows about the IP stack
-#include <net/class_ip_stack.hpp>
 
 /** Future drivers may start out like so, */
 class E1000{
@@ -50,9 +46,13 @@ public:
   /** Mac address string. */
   inline const char* mac_str() { return _driver.mac_str(); }
 
-  /** Get the ip stack (later the stack will stand alone) */
-  net::IP_stack& ip_stack(){ return _net; }
+  inline void set_linklayer_out(delegate<int(uint8_t*,int)> del)
+  { _driver.set_linklayer_out(del); }
+  
+  inline int transmit(uint8_t* data,int len)
+  { return _driver.transmit(data,len); }
 
+  
     /** Event types */
     enum event_t {EthData, TCPConnection, TCPData, 
                 UDPConnection, UDPData, HttpRequest};
@@ -66,30 +66,12 @@ private:
   
   DRIVER_T _driver;
 
-  /** An IP stack (a skeleton for now).
-      
-      @todo We might want to construct this from the outside.*/
-  net::IP_stack _net; 
   
   /** Constructor. 
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
-  Nic(PCI_Device* d): 
-    // Add PCI and ethernet layer to the driver
-    _driver(d),_net(_driver.mac(),{192,168,0,11})
-  {
-    // Upstream
-    auto stack_bottom=delegate<int(uint8_t*,int)>
-      ::from<net::IP_stack,&net::IP_stack::physical_in>(_net);
-    
-    _driver.set_linklayer_out(stack_bottom);
-    
-    // Downstream
-    auto driver_top=delegate<int(uint8_t*,int)>
-      ::from<DRIVER_T,&DRIVER_T::transmit>(_driver);    
-    _net.set_physical_out(driver_top);
-  };
+  Nic(PCI_Device* d): _driver(d){}
   
   friend class Dev;
 

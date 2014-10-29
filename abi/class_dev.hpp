@@ -57,8 +57,6 @@ private:
   static void init();
 
   friend class OS;
-
-
     
 };
 

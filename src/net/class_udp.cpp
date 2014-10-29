@@ -54,6 +54,10 @@ int UDP::transmit(IP4::addr sip,UDP::port sport,
         (uint16_t)(len -sizeof(full_header)),
         hdr->length,dip.str().c_str(),
         dport);
+  
+  debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
+        sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,len
+        );
   return _network_layer_out(sip,dip,IP4::IP4_UDP,data,len);
 
 };

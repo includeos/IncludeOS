@@ -2,6 +2,7 @@
 
 #include <os>
 #include <iostream>
+#include <net/inet>
 
 using namespace std;
 using namespace net;
@@ -52,10 +53,12 @@ void Service::init(){
   
   }*/
 
+
+
 void Service::start()
 {
 
-  
+
 
   assert(_test_glob2 == 1);
   
@@ -63,24 +66,26 @@ void Service::start()
   //global glob2;
   //global glob3;
   glob1.test();
-  
-  //IP_stack& net = Dev::eth(0).ip_stack();
-  auto& net = Dev::eth(0).ip_stack();
-  
-  auto mac = Dev::eth(0).mac();
-  net.ifconfig(net::ETH0,{192,168,mac.part[4],mac.part[5]},{255,255,0,0});
 
+  
+  auto& mac = Dev::eth(0).mac();
+  IP_stack::ifconfig(net::ETH0,{192,168,mac.part[4],mac.part[5]},{255,255,0,0});
+  
+  /** Trying to access non-existing nic will cause a panic */
+  //auto& mac1 = Dev::eth(1).mac();
+  //IP_stack::ifconfig(net::ETH1,{192,168,mac1.part[4],mac1.part[5]},{255,255,0,0});
+  
+  //IP_stack* net 
+  shared_ptr<IP_stack> net(IP_stack::up());
+  
 
   cout << "...Starting UDP server on IP " 
-       << net.ip4().str()
+       << net->ip4(net::ETH0).str()
        << endl;
 
-  
-  /** @note: "auto net" would cause copy-construction (!) 
-      since auto drops reference, const and volatile qualifiers. */
     
   //A one-way UDP server (a primitive test)
-  net.udp_listen(8080,[&net](uint8_t* const data,int len){
+  net->udp_listen(8080,[net](uint8_t* const data,int len){
       
       UDP::full_header* full_hdr = (UDP::full_header*)data;
       UDP::udp_header* hdr = &full_hdr->udp_hdr;
@@ -125,7 +130,7 @@ void Service::start()
       debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
             response.size(),bufsize);
       
-      net.udp_send(full_hdr->ip_hdr.daddr, hdr->dport, 
+      net->udp_send(full_hdr->ip_hdr.daddr, hdr->dport, 
                    full_hdr->ip_hdr.saddr, hdr->sport, buf, bufsize);
       
           

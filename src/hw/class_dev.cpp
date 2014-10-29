@@ -16,8 +16,10 @@ Nic_t& Dev::eth(int n){
   
   PCI_Device* pcidev = PCI_manager::nic(n);
   
-  if (!pcidev)
-    panic("No PCI device found for nic!");
+  if (!pcidev){
+    printf("<Dev> Trying to acess Nic %i\n",n);
+    panic("No PCI device found for this nic!");
+  }
   
   if (!nics[n])
     nics[n] = new Nic_t(pcidev);

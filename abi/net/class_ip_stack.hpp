@@ -9,6 +9,10 @@
 #include <net/class_icmp.hpp>
 #include <net/class_udp.hpp>
 
+#include <vector>
+
+#include <class_nic.hpp>
+
 namespace net {
 
   /** Nic names. Only used to bind nic to IP. */
@@ -17,35 +21,7 @@ namespace net {
   
 class IP_stack {
   
-  /** Physical layer output */
-  delegate<int(uint8_t*,int)> _physical_out;
-  
-  // Ethernet and ARP will be removed from the stack and bound to interfaces
-  Ethernet _eth;
-  Arp _arp;
-  
-  // This is the actual stack
-  IP4 _ip4;
-  IP6 _ip6;
-  ICMP _icmp;
-  UDP _udp;
-  
 public:
-  
-  /** Physical layer input. */
-  inline int physical_in(uint8_t* data,int len){
-    return _eth.physical_in(data,len);
-  };
-  
-  /** Delegate physical layer output. This completes the  downstream wiring.*/
-  inline void set_physical_out(delegate<int(uint8_t*,int)> phys){
-            
-    // Eth -> Physical out
-    _eth.set_physical_out(phys);
-    
-    // Maybe not necessary - for later rewiring
-    _physical_out = phys;
-  };
   
   /** Listen to a UDP port. 
       This is just a simple forwarder. @see UDP::listen.  */
@@ -60,39 +36,82 @@ public:
                        IP4::addr dip,UDP::port dport,
                        uint8_t* data, int len)
   { return _udp.transmit(sip,sport,dip,dport,data,len); }
-
-  
-  inline IP4::addr& ip4() { return _arp.ip(); }
     
   
   /** Bind an IP and a netmask to a given device. 
       
       The function expects the given device to exist.*/
-  int ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
+  static void ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
+
+  static inline IP4::addr ip4(netdev nic)
+  { return ip4_list[nic]; }
   
+  static IP_stack* up(){
+    if (ip4_list.size() < 1)
+      panic("<Inet> Can't bring up IP stack without any IP addresses");
+    if (!instance)
+      instance = new IP_stack();
+    
+    return instance;
+      
+  };
+
+private:
+  
+  /** Physical routes. These map 1-1 with Dev:: interfaces. */
+  static std::map<uint16_t,IP4::addr> ip4_list;
+  static std::map<uint16_t,Ethernet*> ethernet_list;
+  static std::map<uint16_t,Arp*> arp_list;
+  
+  static IP_stack* instance;  
+  
+  // This is the actual stack
+  IP4 _ip4;
+  IP6 _ip6;
+  ICMP _icmp;
+  UDP _udp;
+
   
   
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
    */
-  IP_stack(IP_stack& cpy):
-    _eth(cpy._eth),_arp(cpy._arp),_ip4(cpy._ip4)
+  IP_stack(IP_stack& cpy)
   {    
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
+    panic("Trying to copy-construct IP stack");
   }
   
+  IP_stack(std::vector<IP4::addr> ips);
+
   /** Initialize. For now IP and mac is passed on to Ethernet and Arp.
       @todo For now, mac- and IP-addresses are hardcoded here. 
       They should be user-definable
    */
-  IP_stack(Ethernet::addr mac, IP4::addr ip) :
-    _eth(mac),_arp(mac,ip)
+  IP_stack()
+    //_eth(eth0.mac()),_arp(eth0.mac(),ip)
   {
     
     printf("<IP Stack> constructing \n");
     
+    // For now we're just using the one interface
+    auto& eth0 = Dev::eth(0);
+    
+    
+    /** Create arp- and ethernet objects for the interfaces.
+        
+        @warning: Careful not to copy these objects */
+    arp_list[0] = new Arp(eth0.mac(),ip4_list[0]);
+    ethernet_list[0] = new Ethernet(eth0.mac());
+    
+    Arp& _arp = *(arp_list[0]);
+    Ethernet& _eth = *(ethernet_list[0]);
+
+    
     /** Upstream delegates */ 
+    auto eth_bottom(delegate<int(uint8_t*,int)>
+                    ::from<Ethernet,&Ethernet::physical_in>(_eth));
     auto arp_bottom(delegate<int(uint8_t*,int)>
                     ::from<Arp,&Arp::bottom>(_arp));
     auto ip4_bottom(delegate<int(uint8_t*,int)>
@@ -105,6 +124,9 @@ public:
                     ::from<UDP,&UDP::bottom>(_udp));
 
     /** Upstream wiring  */
+    
+    // Phys -> Eth (Later, this will be passed through router)
+    eth0.set_linklayer_out(eth_bottom);
     
     // Eth -> Arp
     _eth.set_arp_handler(arp_bottom);
@@ -122,6 +144,8 @@ public:
     _ip4.set_udp_handler(udp_bottom);
     
     /** Downstream delegates */
+    auto phys_top(delegate<int(uint8_t*,int)>
+                  ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(eth0));
     auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>
                  ::from<Ethernet,&Ethernet::transmit>(_eth));    
     auto arp_top(delegate<int(IP4::addr, IP4::addr, uint8_t*, uint32_t)>
@@ -130,23 +154,22 @@ public:
                  ::from<IP4,&IP4::transmit>(_ip4));
     
     /** Downstream wiring. */
-    
-    // UDP -> IP4
-    _udp.set_network_out(ip4_top);
-    
+        
     // ICMP -> IP4
     _icmp.set_network_out(ip4_top);
     
+    // UDP -> IP4
+    _udp.set_network_out(ip4_top);
+
     // IP4 -> Arp    
     _ip4.set_linklayer_out(arp_top);
     
     // Arp -> Eth
     _arp.set_linklayer_out(eth_top);
     
+    // Eth -> Phys
+    _eth.set_physical_out(phys_top);
     
-    // Eth -> Physial out
-    /** This can't be done until the physical interface is ready, so 
-        downstream wiring must be completed with a call to "set_linklayer_out"*/
     
   }
   

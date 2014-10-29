@@ -1,4 +1,5 @@
 #define DEBUG // Allow debugging
+//#define DEBUG2
 
 #include <os>
 #include <net/class_ethernet.hpp>
@@ -90,7 +91,14 @@ int Ethernet::physical_in(uint8_t* data, int len){
     break;
     
   default:
-    debug("<Ethernet> UNKNOWN ethertype \n");
+
+    // This might be 802.3 LLC traffic
+    if (__builtin_bswap16(eth->type) > 1500){
+      debug("<Ethernet> UNKNOWN ethertype 0x%x\n",__builtin_bswap16(eth->type));
+    }else{
+      debug("\t IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
+    }
+    debug("\t %s -> %s", eth->src.str().c_str(),eth->dest.str().c_str());
     break;
     
   }
