@@ -169,6 +169,7 @@
     <File Name="vector_map"/>
     <File Name="sort"/>
     <File Name="declval.hpp"/>
+    <File Name="reference_wrapper.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>

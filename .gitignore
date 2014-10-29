@@ -18,6 +18,7 @@ src/TAGS
 src/.codelite/
 src/IncludeOS.project
 src/IncludeOS.workspace
+src/compile_commands.json
 *.project
 *.workspace
 
