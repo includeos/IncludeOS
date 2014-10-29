@@ -7,7 +7,7 @@
 \*.*
 \.\#*
 *.iso
-*.img
+*.img*
 *.tmp
 *.d
 nbproject
@@ -16,8 +16,6 @@ src/bootloader
 src/TAGS
 
 src/.codelite/
-src/IncludeOS.project
-src/IncludeOS.workspace
 src/compile_commands.json
 *.project
 *.workspace
@@ -28,4 +26,4 @@ seed/IncludeOS_tests
 seed/IncludeOS_tests.img*
 
 examples/eastl/IncludeOS_tests
-examples/eastl/IncludeOS_tests.img*
+examples/dhclient/IncludeOS_tests

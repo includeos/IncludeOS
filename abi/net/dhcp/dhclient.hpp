@@ -5,7 +5,18 @@ namespace includeOS
 {
 namespace net
 {
+	class DHCP4;
+	class DHCP6;
+	
+	class dhclient_base
+	{
+	public:
+		void negotiate() = 0;
+	}
+	
+	template <class DHCP4>
 	class dhclient
+		: public dhclient_base
 	{
 	public:
 		dhclient();
@@ -13,8 +24,9 @@ namespace net
 		void negotiate();
 		
 	private:
-		
+		DHCP4 dhcp;
 	};
+	
 }
 }
 
