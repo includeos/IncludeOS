@@ -19,6 +19,7 @@ BRIDGE=include0
 #
 # NOTE: Please make sure the BRIDGE actually exists and is up. 
 #       We're not doing this in this script, since it adds overhead.
+#       You can use "<repo>/etc/create_bridge.sh" as a starting point.
 
 # NETWORK=10.0.0.0
 # NETMASK=255.255.0.0
