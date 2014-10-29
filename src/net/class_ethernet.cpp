@@ -96,9 +96,9 @@ int Ethernet::physical_in(uint8_t* data, int len){
     if (__builtin_bswap16(eth->type) > 1500){
       debug("<Ethernet> UNKNOWN ethertype 0x%x\n",__builtin_bswap16(eth->type));
     }else{
-      debug("\t IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
+      debug2("\t IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
     }
-    debug("\t %s -> %s", eth->src.str().c_str(),eth->dest.str().c_str());
+    debug2("\t %s -> %s\n", eth->src.str().c_str(),eth->dest.str().c_str());
     break;
     
   }

@@ -5,6 +5,7 @@ make -j4
 make install
 
 cd ../seed
+make
 
 echo -e "Build complete \n"
 echo -e "Starting VM with Qemu. "
