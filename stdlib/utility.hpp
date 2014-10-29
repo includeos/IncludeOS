@@ -14,6 +14,15 @@ namespace std
 		return static_cast<T&&>(t);
 	}
 	
+	// std::exchange
+	template<class T, class U = T>
+	T exchange(T& obj, U&& new_value)
+	{
+		T old_value = std::move(obj);
+		obj = std::forward<U>(new_value);
+		return old_value;
+	}
+	
 	// std::swap
 	template <class T>
 	inline void swap(T& t1, T& t2)
