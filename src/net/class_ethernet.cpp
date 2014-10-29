@@ -89,6 +89,9 @@ int Ethernet::physical_in(uint8_t* data, int len){
   case ETH_WOL:
     debug2("\t             Wake-on-LAN packet \n");
     break;
+
+  case ETH_VLAN:
+    debug("<Ethernet> VLAN tagged frames not (yet) supported");
     
   default:
 
@@ -98,6 +101,7 @@ int Ethernet::physical_in(uint8_t* data, int len){
     }else{
       debug2("\t IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
     }
+
     debug2("\t %s -> %s\n", eth->src.str().c_str(),eth->dest.str().c_str());
     break;
     
