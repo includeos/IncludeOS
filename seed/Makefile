@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = IncludeOS_tests
+SERVICE = My_IncludeOS_Service
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
