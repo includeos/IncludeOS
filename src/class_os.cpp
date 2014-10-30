@@ -34,9 +34,19 @@ extern "C" void halt_loop(){
   __asm__ volatile("hlt; jmp halt_loop;");
 }
 
+  
+union intstr{
+  int i;
+  char part[4];
+};
+
 void OS::halt(){
+  intstr eof{EOF};
+  
+
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
+  OS::rsprint(eof.part);
   while(power){        
     
     IRQ_handler::notify(); 

@@ -52,7 +52,7 @@ namespace net {
   public:
     /** Where header ends and "next layer" / data starts */
     uint32_t data_start();    
-  }
+  };
   
   class IP4_Packet : public Packet {
   public:
@@ -70,9 +70,11 @@ namespace net {
   
   
   class UDP_Packet : public Packet {
-    UDP::udp_header* hdr = 0;
     
-    UDP_Packet(IP4_packet pckt);
+  public:
+    UDP_Packet(IP4_Packet pckt);
+    UDP::udp_header* hdr = 0;
+
     
   };
     

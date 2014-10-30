@@ -65,10 +65,9 @@ void Service::start()
   assert(_test_glob2 == 1);
   
   cout << "*** Service is up - with OS Included! ***" << endl;    
-  //global glob2;
-  //global glob3;
+  global glob2;
   glob1.test();
-  assert(glob1.instances() == 1);
+  assert(glob1.instances() == 2);
   
   auto& mac = Dev::eth(0).mac();
   Inet::ifconfig(net::ETH0,{10,0,mac.part[4],mac.part[5]},{255,255,0,0});
