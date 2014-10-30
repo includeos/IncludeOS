@@ -99,6 +99,9 @@ crt%.o: $(OSDIR)/crt/crt%.s
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(OBJS) $(DEPS) $(SERVICE) $(SERVICE).img
+	$(RM) $(OBJS) $(DEPS) $(SERVICE) 
+	$(RM) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
+	$(RM) crti.o crtn.o 
+	$(RM) $(DEPS) crti.d crtn.d
 
 -include $(DEPS)
