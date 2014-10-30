@@ -25,5 +25,8 @@ vmbuild/vmbuild
 seed/IncludeOS_tests
 seed/IncludeOS_tests.img*
 
+test/IncludeOS_tests_DIRTY
+test/IncludeOS_tests_DIRTY.img*
+
 examples/eastl/IncludeOS_tests
 examples/dhclient/IncludeOS_tests

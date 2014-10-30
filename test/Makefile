@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = IncludeOS_tests_$(shell git rev-parse --short HEAD)
+SERVICE = IncludeOS_tests_$(shell ./img_name.sh)
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules

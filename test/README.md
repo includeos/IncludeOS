@@ -5,5 +5,5 @@ This is a special "seed" (i.e. something that started as a copy of <repo>/seed) 
 ## Image names
 The images created here will have a hashed appendix. That's the short version of the latest git commit hash, given by `git rev-parse --short HEAD`. This way we can differentiate between generations. 
 
-**Note:** We want each image built from one commit to be identical. So if you try to build an image while there are uncommitted changes in the repo, the makefile should try to give that image a different name.
+**Note:** We want each image built from one commit to be identical. So if you try to build an image while there are uncommitted changes in the repo, the makefile (using `./img_name.sh`) will call your image "DIRTY".
 
