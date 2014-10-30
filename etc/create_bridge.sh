@@ -8,6 +8,7 @@ GATEWAY=10.0.0.1
 NETWORK=10.0.0.0
 DHCPRANGE=10.0.0.2,10.0.0.254
 
-sudo brctl addbr $BRIDGE
-sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up
+brctl addbr $BRIDGE
+ifconfig $BRIDGE $GATEWAY netmask $NETMASK up 
+ifconfig include0 hw ether c0:01:70:01:00:01
 
