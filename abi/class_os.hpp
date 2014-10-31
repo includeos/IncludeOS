@@ -30,6 +30,8 @@ class OS{
     return ret;
   }
 
+  static void disable_PIT();
+  
   /** Uptime in seconds. */
   static inline uint32_t uptime()
   { return (rdtsc() / _CPU_mhz) / 1000000; }

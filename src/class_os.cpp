@@ -13,11 +13,12 @@
 bool OS::power = true;
 uint32_t OS::_CPU_mhz = 2500;
 
+
 void OS::start()
 {
   rsprint(">>> OS class started\n");
-
-  printf("UPTIME: %li \n",uptime());
+  disable_PIT();
+  printf("<OS> UPTIME: %li \n",uptime());
 
   __asm__("cli");  
   IRQ_handler::init();
@@ -30,6 +31,24 @@ void OS::start()
   halt();
 };
 
+void OS::disable_PIT(){
+  
+#define PIT_one_shot 0x30
+#define PIT_mode_chan 0x43
+#define PIT_chan0 0x40
+  
+  // Enable 1-shot mode
+  OS::outb(PIT_mode_chan,PIT_one_shot);
+  
+  // Set a frequency for "first shot"
+  OS::outb(PIT_chan0,1);
+  OS::outb(PIT_chan0,0);
+  debug("<PIT> Switching to 1-shot mode (0x%b) \n",PIT_1shot);
+  
+  
+};
+
+
 extern "C" void halt_loop(){
   __asm__ volatile("hlt; jmp halt_loop;");
 }
@@ -41,12 +60,12 @@ union intstr{
 };
 
 void OS::halt(){
-  intstr eof{EOF};
+  //intstr eof{EOF};
   
 
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
-  OS::rsprint(eof.part);
+  //OS::rsprint(eof.part);
   while(power){        
     
     IRQ_handler::notify(); 

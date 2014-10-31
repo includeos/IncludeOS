@@ -216,8 +216,8 @@ void IRQ_handler::init(){
 
 
   //Register the timer and enable / unmask it in the pic
-  //set_handler(32,irq_timer_entry);
-  //enable_irq(32); 
+  set_handler(32,irq_timer_entry);
+  enable_irq(32); 
     
   enable_irq(33); //Keyboard - now people can subscribe
   enable_interrupts();
