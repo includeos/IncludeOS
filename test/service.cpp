@@ -63,6 +63,8 @@ void Service::start()
 
 
   assert(_test_glob2 == 1);
+
+  printf("[%s] This test should fail\n", true ?" ":"x");
   
   cout << "*** Service is up - with OS Included! ***" << endl;    
   global glob2;
