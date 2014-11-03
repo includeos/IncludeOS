@@ -1,10 +1,8 @@
-
 #include <os>
 
 #include <syscalls.hpp>
 #include <string.h>
-
-
+#include <vga.hpp>
 
 char *__env[1] = { 0 };
 char **environ = __env;
@@ -90,16 +88,19 @@ int read(int UNUSED(file), char* UNUSED(ptr), int UNUSED(len)){
   return 0;
 };
 
-int write(int file, char *ptr, int len){
-  
-  if(file==syscall_fd and not debug_syscalls){
-    return len;
-  }
-  
-  for(int i=0;i<len;i++)
-    OS::rswrite(*ptr++);
-
-  return len;
+int write(int file, char *ptr, int len)
+{
+	if (file == syscall_fd and not debug_syscalls)
+		return len;
+	
+	// VGA console output
+	consoleVGA.write(ptr, len);
+	
+	// serial output
+	for(int i = 0; i < len; i++)
+		OS::rswrite(ptr[i]);
+	
+	return len;
 };
 
 extern char _end; // Defined by the linker 

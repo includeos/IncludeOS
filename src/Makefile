@@ -16,7 +16,7 @@ LD  = $(OS)/bin/i686-elf-ld
 GCC_VER = $(shell $(CC) -dumpversion)
 LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I$(OSLIB)/include -I../abi/ -Iinclude -I../stdlib
+INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -O2 -msse3
@@ -31,7 +31,7 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 ###################################################
 TEST_OBJ= tests/tests.o
 
-OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
+OS_OBJECTS=kernel_start.o syscalls.o interrupts.o vga.o class_os.o \
 	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
 	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
