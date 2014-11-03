@@ -72,7 +72,7 @@ void Service::start()
   assert(glob1.instances() == 2);
   
   auto& mac = Dev::eth(0).mac();
-  Inet::ifconfig(net::ETH0,{10,0,mac.part[4],mac.part[5]},{255,255,0,0});
+  Inet::ifconfig(net::ETH0,{mac.part[2],mac.part[3],mac.part[4],mac.part[5]},{255,255,0,0});
   
   /** Trying to access non-existing nic will cause a panic */
   //auto& mac1 = Dev::eth(1).mac();
