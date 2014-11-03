@@ -1,3 +1,4 @@
+fasd
 #define NDEBUG
 #include <os>
 #include <stdio.h>
