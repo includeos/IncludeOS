@@ -35,7 +35,7 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
 	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
-	hw/class_dev.o hw/class_pci_device.o \
+	hw/class_dev.o hw/class_pci_device.o hw/pic.o \
 	class_irq_handler.o class_pci_manager.o \
 	virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
