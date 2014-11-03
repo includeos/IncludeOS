@@ -1,5 +1,4 @@
-fasd and more errors for testing
-#define NDEBUG
+// #define DEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>
