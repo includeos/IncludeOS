@@ -21,7 +21,7 @@ echo -e "\n\n >>> Building binutils"
 mkdir -p build-binutils
 cd build-binutils
 ../binutils-$binutils_version/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --disable-werror
-make
+make -j8
 make install
 
 
@@ -81,8 +81,8 @@ mkdir -p build-gcc
 cd build-gcc
 ../gcc-$gcc_version/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
 
-make all-gcc
-make all-target-libgcc
+make all-gcc -j8
+make all-target-libgcc -j8
 
 echo -e "\n\n >>> Installing GCC"
 sudo make install-gcc
