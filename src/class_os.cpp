@@ -1,4 +1,4 @@
-fasd
+fasd and more errors for testing
 #define NDEBUG
 #include <os>
 #include <stdio.h>
