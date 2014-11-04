@@ -15,11 +15,11 @@ class global {
   static int i;
 public:
   global(){
-    printf("GLOBAL CONSTRUCTOR IN SERVICE %i \n",++i);
+    printf("[*] Global constructor printing %i \n",++i);
   }
   
   void test(){
-    printf("I have %i instances \n",i);
+    printf("[*] Global constructor has %i instances \n",i);
   }
   
   int instances(){ return i; }
@@ -30,10 +30,11 @@ int global::i = 0;
 global glob1;
 
 int _test_glob2 = 1;
+int _test_glob3 = 1;
 
 __attribute__ ((constructor)) void foo(void)
 {
-  printf("foo is running and printf is available at this point\n");
+  _test_glob3 = 0xfa7ca7;
 }
 
 /* @todo - make configuration happen here
@@ -60,16 +61,20 @@ void Service::init(){
 void Service::start()
 {
 
+  cout << "*** Service is up - with OS Included! ***" << endl;    
 
-
-  assert(_test_glob2 == 1);
+  printf("[%s] Global C constructors in service \n", 
+         _test_glob3 == 0xfa7ca7 ? "x" : " ");
+  
+    printf("[%s] Global int initialization in service \n", 
+         _test_glob2 == 1 ? "x" : " ");
 
   printf("[%s] This test should fail\n", true ?" ":"x");
   
-  cout << "*** Service is up - with OS Included! ***" << endl;    
+
   global glob2;
   glob1.test();
-  assert(glob1.instances() == 2);
+  printf("[%s] Glocal C++ constructors in service \n", glob1.instances() == 2 ? "x" : " ");
   
   auto& mac = Dev::eth(0).mac();
   Inet::ifconfig(net::ETH0,{mac.part[2],mac.part[3],mac.part[4],mac.part[5]},{255,255,0,0});
