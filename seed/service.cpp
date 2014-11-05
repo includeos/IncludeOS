@@ -3,8 +3,6 @@
 
 using namespace std;
 
-#include <vga.hpp>
-
 void Service::start()
 {
   
