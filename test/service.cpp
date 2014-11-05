@@ -68,8 +68,6 @@ void Service::start()
   
     printf("[%s] Global int initialization in service \n", 
          _test_glob2 == 1 ? "x" : " ");
-
-  printf("[%s] This test should fail\n", true ?" ":"x");
   
 
   global glob2;
