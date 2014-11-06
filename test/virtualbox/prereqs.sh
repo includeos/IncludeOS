@@ -1,3 +1,14 @@
+#
+# Prerequisites for building VirtualBox from source
+#
+# Target platform: Ubuntu 14.04 x86_64
+#
+# Based on https://www.virtualbox.org/wiki/Linux%20build%20instructions
+# ...but lots of this was added by following error messages from configure/kmk
+
+apt-get update
+
+# Standard stuff (It needs Texlive - omg!)
 apt-get install gcc g++ bcc iasl xsltproc uuid-dev zlib1g-dev libidl-dev \
                 libsdl1.2-dev libxcursor-dev libasound2-dev libstdc++5 \
                 libhal-dev libpulse-dev libxml2-dev libxslt1-dev \
@@ -10,11 +21,19 @@ apt-get install gcc g++ bcc iasl xsltproc uuid-dev zlib1g-dev libidl-dev \
                 texlive-latex-extra texlive-latex-recommended \
                 texlive-fonts-extra texlive-fonts-recommended
 
-apt-get install ia32-libs 
+# To get ia32-libs 
+cd /etc/apt/sources.list.d
+echo "deb http://old-releases.ubuntu.com/ubuntu/ raring main restricted universe multiverse" >ia32-libs-raring.list
+
+apt-get install ia32-libs
+
+# 64-bit specific (I think)
 apt-get install libc6-dev-i386 
 apt-get install lib32gcc1 gcc-multilib 
 apt-get install lib32stdc++6 
 apt-get install g++-multilib
 apt-get install subversion
-svn co http://www.virtualbox.org/svn/vbox/trunk vbox
 apt-get install libvpx-dev
+
+# ...Yes, it needs old java 6
+apt-get install openjdk-6-jdk
