@@ -1,4 +1,3 @@
-Error on purpose in class_virtionet.cpp in order to test testing.....
 #define DEBUG // Allow debuging 
 //#define DEBUG2
 
