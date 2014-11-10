@@ -1,5 +1,5 @@
 #define DEBUG // Allow debuging 
-//#define DEBUG2
+#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
@@ -36,8 +36,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   uint32_t needed_features = 0 
     | (1 << VIRTIO_NET_F_MAC)
-    | (1 << VIRTIO_NET_F_STATUS)
-    | (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
+    | (1 << VIRTIO_NET_F_STATUS);
+  //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features; /*; 
     | (1 << VIRTIO_NET_F_CSUM)
     | (1 << VIRTIO_F_ANY_LAYOUT)
@@ -101,7 +101,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  printf("Adding %i receive buffers \n", rx_q.size() / 2);
+  printf("Adding %i receive buffers of size %i \n", 
+         rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   //add_receive_buffer();
 
@@ -174,10 +175,16 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   //uint8_t* buf = (uint8_t*)malloc(MTUSIZE);
+  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
   
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
   
   hdr = (virtio_net_hdr*)buf;
+  
+  //hdr->hdr_len = sizeof(virtio_net_hdr);
+  //hdr->num_buffers = 1;
+  
+  
   sg[0].data = hdr;
   
   //Wow, using separate empty header doesn't work for RX, but it works for TX...
@@ -215,7 +222,7 @@ void VirtioNet::irq_handler(){
 
 
   debug2("<VirtioNet> handling IRQ \n");
-  
+  eoi(irq());  
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
@@ -237,7 +244,7 @@ void VirtioNet::irq_handler(){
     debug("\t             New status: 0x%x \n",_conf.status);
   }
   
-  eoi(irq());
+
   
 }
 
@@ -293,7 +300,7 @@ constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 int VirtioNet::transmit(uint8_t* data, int len){
   debug2("<VirtioNet> Enqueuing %ib of data. \n",len);
 
-  
+
   /** @note We have to send a virtio header first, then the packet.
       
       From Virtio std. §5.1.6.6: 

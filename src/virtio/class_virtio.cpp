@@ -53,7 +53,14 @@ Virtio::Virtio(PCI_Device* dev)
          : " ",_pcidev.rev_id());
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
-  
+
+  // Probe PCI resources and fetch I/O-base for device
+  _pcidev.probe_resources();
+  _iobase=_pcidev.iobase();  
+
+  printf(_iobase ? "\t [x] Unit I/O base 0x%lx \n " : 
+         "\t [ ] NO I/O Base on device \n",_iobase);
+
     
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
   
@@ -63,10 +70,13 @@ Virtio::Virtio(PCI_Device* dev)
   
   // 2. Set ACKNOWLEGE status bit, and
   // 3. Set DRIVER status bit
+  
   outp(_iobase + VIRTIO_PCI_STATUS, 
        inp(_iobase + VIRTIO_PCI_STATUS) | 
        VIRTIO_CONFIG_S_ACKNOWLEDGE | 
        VIRTIO_CONFIG_S_DRIVER);
+  //setup_complete(true);
+  
 
   // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
   // 4. Negotiate features (Read, write, read)
@@ -77,15 +87,7 @@ Virtio::Virtio(PCI_Device* dev)
   
   // Where the standard isn't clear, we'll do our best to separate work 
   // between this class and subclasses.
-  
-  
-  _pcidev.probe_resources();
-  _iobase=_pcidev.iobase();
-
-  printf(_iobase ? "\t [x] Unit I/O base 0x%lx \n " : 
-         "\t [ ] NO I/O Base on device \n",_iobase);
-  
-  
+    
   //Fetch IRQ from PCI resource
   set_irq();
   printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
@@ -140,8 +142,8 @@ uint32_t Virtio::probe_features(){
 
 void Virtio::negotiate_features(uint32_t features){
   _features = inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
-  //_features &= features; SanOS just adds features
-  _features = features;
+  _features &= features; //SanOS just adds features
+  //_features = features;
   printf("Wanted features: 0x%lx \n",_features);
   outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
@@ -151,6 +153,7 @@ void Virtio::negotiate_features(uint32_t features){
 
 void Virtio::setup_complete(bool ok){
   uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
+  printf("<VIRTIO> status: %i ",status);
   outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | status);
 }
 

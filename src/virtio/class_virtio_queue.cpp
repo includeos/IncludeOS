@@ -1,4 +1,4 @@
-//#define DEBUG // Allow debug
+#define DEBUG // Allow debug
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>
@@ -6,8 +6,6 @@
 #include <syscalls.hpp>
 #include <virtio/virtio.h>
 #include <assert.h>
-
-//#define DEBUG 0
 
 
 /** 
@@ -258,10 +256,12 @@ void Virtio::Queue::kick(){
   _num_added = 0;
  
 
-  if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){
+  //  if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
           _pci_index, _iobase);
     //outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);
     outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
-  }
+    // }else{
+    debug("<VirtioQueue>Virtio device says we can't kick!");
+    // }
 }

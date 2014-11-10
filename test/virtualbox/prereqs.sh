@@ -9,7 +9,7 @@
 apt-get update
 
 # Standard stuff (It needs Texlive - omg!)
-apt-get install gcc g++ bcc iasl xsltproc uuid-dev zlib1g-dev libidl-dev \
+apt-get install -y gcc g++ bcc iasl xsltproc uuid-dev zlib1g-dev libidl-dev \
                 libsdl1.2-dev libxcursor-dev libasound2-dev libstdc++5 \
                 libhal-dev libpulse-dev libxml2-dev libxslt1-dev \
                 python-dev libqt4-dev qt4-dev-tools libcap-dev \
@@ -25,15 +25,15 @@ apt-get install gcc g++ bcc iasl xsltproc uuid-dev zlib1g-dev libidl-dev \
 cd /etc/apt/sources.list.d
 echo "deb http://old-releases.ubuntu.com/ubuntu/ raring main restricted universe multiverse" >ia32-libs-raring.list
 
-apt-get install ia32-libs
+apt-get install -y ia32-libs
 
 # 64-bit specific (I think)
-apt-get install libc6-dev-i386 
-apt-get install lib32gcc1 gcc-multilib 
-apt-get install lib32stdc++6 
-apt-get install g++-multilib
-apt-get install subversion
-apt-get install libvpx-dev
+apt-get install -y libc6-dev-i386 
+apt-get install -y lib32gcc1 gcc-multilib 
+apt-get install -y lib32stdc++6 
+apt-get install -y g++-multilib
+apt-get install -y subversion
+apt-get install -y libvpx-dev
 
 # ...Yes, it needs old java 6
-apt-get install openjdk-6-jdk
+apt-get install -y openjdk-6-jdk
