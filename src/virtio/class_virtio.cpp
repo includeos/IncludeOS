@@ -142,12 +142,12 @@ uint32_t Virtio::probe_features(){
 
 void Virtio::negotiate_features(uint32_t features){
   _features = inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
-  _features &= features; //SanOS just adds features
-  //_features = features;
-  printf("Wanted features: 0x%lx \n",_features);
+  //_features &= features; //SanOS just adds features
+  _features = features;
+  debug("<Virtio> Wanted features: 0x%lx \n",_features);
   outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
-  printf("Got features: 0x%lx \n",_features);
+  debug("<Virtio> Got features: 0x%lx \n",_features);
 
 }
 

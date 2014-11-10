@@ -1,5 +1,5 @@
 #define DEBUG // Allow debuging 
-#define DEBUG2
+// #define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>

@@ -45,7 +45,7 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
   memcpy((void*)&hdr->dest, (void*)&mac, 6);
   hdr->type = type;
 
-  debug2("<Ethernet->Phys> Transmitting %i b, from %s -> %s. Type: %i \n",
+  debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i \n",
         len,hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
   
   return _physical_out(data, len);
@@ -54,7 +54,6 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
 int Ethernet::physical_in(uint8_t* data, int len){  
   assert(len > 0);
 
-  debug2("<Ethernet handler> parsing packet. \n ");  
   header* eth = (header*) data;
 
   /** Do we pass on ethernet headers? Probably.
@@ -67,31 +66,31 @@ int Ethernet::physical_in(uint8_t* data, int len){
   #ifdef DEBUG2
   char eaddr[] = "00:00:00:00:00:00";
   #endif
-  debug2("\t             Eth. Source: %s \n",ether2str(&eth->src,eaddr));
-  debug2("\t             Eth. Dest. : %s \n",ether2str(&eth->dest,eaddr));
-  debug2("\t             Eth. Type  : 0x%x\n",eth->type); 
+  debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
+         ether2str(&eth->src,eaddr),
+         ether2str(&eth->dest,eaddr),eth->type); 
 
 
   switch(eth->type){ 
 
   case ETH_IP4:
-    debug2("\t             IPv4 packet \n");
+    debug2("IPv4 packet \n");
     return _ip4_handler(data,len);
 
   case ETH_IP6:
-    debug2("\t             IPv6 packet \n");
+    debug2("IPv6 packet \n");
     return _ip6_handler(data,len);
     
   case ETH_ARP:
-    debug2("\t             ARP packet \n");
+    debug2("ARP packet \n");
     return _arp_handler(data,len);
     
   case ETH_WOL:
-    debug2("\t             Wake-on-LAN packet \n");
+    debug2("Wake-on-LAN packet \n");
     break;
 
   case ETH_VLAN:
-    debug("<Ethernet> VLAN tagged frames not (yet) supported");
+    debug("VLAN tagged frame (not yet supported)");
     
   default:
 
@@ -99,10 +98,9 @@ int Ethernet::physical_in(uint8_t* data, int len){
     if (__builtin_bswap16(eth->type) > 1500){
       debug("<Ethernet> UNKNOWN ethertype 0x%x\n",__builtin_bswap16(eth->type));
     }else{
-      debug2("\t IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
+      debug2("IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
     }
 
-    debug2("\t %s -> %s\n", eth->src.str().c_str(),eth->dest.str().c_str());
     break;
     
   }
