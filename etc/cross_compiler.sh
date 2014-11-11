@@ -3,7 +3,7 @@ export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 
 binutils_version=2.24
-gcc_version=4.9.1
+gcc_version=4.9.2
 
 mkdir -p $HOME/src
 cd $HOME/src
@@ -12,7 +12,7 @@ echo -e "\n\n >>> Getting binutils"
 wget -c --trust-server-name http://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.gz
 
 echo -e "\n\n >>> Getting GCC"
-wget -c --trust-server-name ftp://ftp.nluug.nl/mirror/languages/gcc/releases/gcc-4.9.1/gcc-4.9.1.tar.gz
+wget -c --trust-server-name ftp://ftp.nluug.nl/mirror/languages/gcc/releases/gcc-$gcc_version/gcc-$gcc_version.tar.gz
 
 echo -e "\n\n >>> Extracting binutils \n"
 tar -xf binutils-$binutils_version.tar.gz
