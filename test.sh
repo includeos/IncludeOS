@@ -15,7 +15,7 @@ echo -e "You should now get a boot message from the virtual machine:"
 
 echo -e "\nTest complete. If you saw a boot message, it worked.\n"
 
-# Alfred: I'm using this for virtualbox testing
+# Alfred: I'm using this for virtualbox testing 
 if [ -d .vbox_share ]
 then
     cp *.vdi .vbox_share
