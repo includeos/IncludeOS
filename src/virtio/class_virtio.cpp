@@ -54,6 +54,8 @@ Virtio::Virtio(PCI_Device* dev)
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
 
+
+  
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
   _iobase=_pcidev.iobase();  
@@ -75,7 +77,6 @@ Virtio::Virtio(PCI_Device* dev)
        inp(_iobase + VIRTIO_PCI_STATUS) | 
        VIRTIO_CONFIG_S_ACKNOWLEDGE | 
        VIRTIO_CONFIG_S_DRIVER);
-  //setup_complete(true);
   
 
   // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS

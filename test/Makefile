@@ -104,4 +104,14 @@ clean:
 	$(RM) crti.o crtn.o 
 	$(RM) $(DEPS) crti.d crtn.d
 
+distclean: clean
+	$(RM) *.vdi
+	$(RM) *.img
+	$(RM) *.vmdk
+	$(RM) *.qcow2
+	$(RM) *~
+	$(RM) *.log
+	$(RM) IncludeOS_tests*
+
+
 -include $(DEPS)
