@@ -4,11 +4,11 @@
 
 using namespace net;
 
-int UDP::bottom(uint8_t* data, int len){
+int UDP::bottom(std::shared_ptr<Packet> pckt){
   debug("<UDP handler> Got data \n");
   
   
-  udp_header* hdr = &((full_header*)data)->udp_hdr;
+  udp_header* hdr = &((full_header*)pckt->buffer())->udp_hdr;
   
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
          __builtin_bswap16(hdr->sport),__builtin_bswap16(hdr->dport), 
@@ -17,7 +17,7 @@ int UDP::bottom(uint8_t* data, int len){
   auto l = ports.find(__builtin_bswap16(hdr->dport));
   if (l != ports.end()){
     debug("<UDP> Someone's listening to this port. Let them hear it.\n");
-    return l->second(data,len);
+    return l->second(pckt);
   }
   
   debug("<UDP> Nobody's listening to this port. Drop!\n");

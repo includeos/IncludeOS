@@ -1,4 +1,4 @@
-//#define DEBUG // Allow debugging
+#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_arp.hpp>
 
@@ -6,11 +6,11 @@
 
 using namespace net;
 
-int Arp::bottom(uint8_t* data, int len)
+int Arp::bottom(std::shared_ptr<Packet> pckt)
 {
-  debug("<ARP handler> got %d bytes of data \n", len);
+  debug("<ARP handler> got %li bytes of data \n", pckt->len());
 
-  header* hdr = (header*) data;
+  header* hdr = (header*) pckt->buffer();
   //debug("\t OPCODE: 0x%x \n",hdr->opcode);
   //std::cout << "Chaching IP " << hdr->sipaddr << " for " << hdr->shwaddr << std::endl;  
   debug("Have valid cache? %s \n",is_valid_cached(hdr->sipaddr) ? "YES":"NO");
@@ -43,7 +43,7 @@ int Arp::bottom(uint8_t* data, int len)
   // @todo Freeing here corrupts the outgoing frame. Why?
   //free(data);
   
-  return 0 + 0 * len; // yep, it's what you think it is
+  return 0 + 0 * pckt->len(); // yep, it's what you think it is (and what's that?!)
 };
   
 

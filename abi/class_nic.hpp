@@ -6,6 +6,8 @@
 
 #include <net/class_ethernet.hpp>
 
+#include <net/inet.hpp>
+
 /** Future drivers may start out like so, */
 class E1000{
 public: 
@@ -46,7 +48,7 @@ public:
   /** Mac address string. */
   inline const char* mac_str() { return _driver.mac_str(); }
 
-  inline void set_linklayer_out(delegate<int(uint8_t*,int)> del)
+  inline void set_linklayer_out(net::upstream del)
   { _driver.set_linklayer_out(del); }
   
   inline int transmit(uint8_t* data,int len)

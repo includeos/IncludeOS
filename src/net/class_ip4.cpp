@@ -5,9 +5,10 @@
 using namespace net;
 
 
-int IP4::bottom(uint8_t* data, int len){
+int IP4::bottom(std::shared_ptr<Packet> pckt){
   debug("<IP4 handler> got the data. \n");
     
+  const uint8_t* data = pckt->buffer();
   ip_header* hdr = &((full_header*)data)->ip_hdr;
   
   debug("\t Source IP: %s Dest.IP: %s type: ",
@@ -16,14 +17,14 @@ int IP4::bottom(uint8_t* data, int len){
   switch(hdr->protocol){
   case IP4_ICMP:
     debug("\t ICMP");
-    _icmp_handler(data, len);
+    _icmp_handler(pckt);
     break;
   case IP4_UDP:
     debug("\t UDP");
-    _udp_handler(data, len);
+    _udp_handler(pckt);
     break;
   case IP4_TCP:
-    _tcp_handler(data, len);
+    _tcp_handler(pckt);
     debug("\t TCP");
     break;
   default:
@@ -72,7 +73,7 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
 
 
 /** Empty handler for delegates initialization */
-int ignore_ip4(uint8_t* UNUSED(data), int UNUSED(len)){
+int ignore_ip4(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<IP4> Empty handler. Ignoring.\n");
   return -1;
 }
@@ -86,9 +87,9 @@ int ignore_transmission(IP4::addr UNUSED(src),IP4::addr UNUSED(dst),
 
 IP4::IP4() :
   _linklayer_out(link_out(ignore_transmission)),
-  _icmp_handler(subscriber(ignore_ip4)),
-  _udp_handler(subscriber(ignore_ip4)),
-  _tcp_handler(subscriber(ignore_ip4))
+  _icmp_handler(upstream(ignore_ip4)),
+  _udp_handler(upstream(ignore_ip4)),
+  _tcp_handler(upstream(ignore_ip4))
 {}
 
 std::ostream& operator<<(std::ostream& out,const IP4::addr& ip)  {

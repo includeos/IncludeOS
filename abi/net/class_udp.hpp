@@ -31,10 +31,10 @@ namespace net {
     }__attribute__((packed));
 
     /** Input from network layer */
-    int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet> pckt);
   
     /** Delegate type for listening to UDP ports. */
-    typedef delegate<int(uint8_t* data,int len)> listener;
+    typedef upstream listener;
   
     /** Delegate type for downstream transmissions */
     typedef IP4::transmitter network_out;

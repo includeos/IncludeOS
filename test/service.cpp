@@ -19,10 +19,15 @@ public:
   }
   
   void test(){
-    printf("[*] Global constructor has %i instances \n",i);
+    printf("[*] C++ constructor finds %i instances \n",i);
   }
   
   int instances(){ return i; }
+  
+  ~global(){
+    printf("[*] C++ destructor deleted 1 instance,  %i remains \n",--i);
+  }
+  
 };
 
 int global::i = 0;
@@ -60,20 +65,26 @@ void Service::init(){
 
 void Service::start()
 {
-
+  
   cout << "*** Service is up - with OS Included! ***" << endl;    
-
+  
   printf("[%s] Global C constructors in service \n", 
          _test_glob3 == 0xfa7ca7 ? "x" : " ");
   
-    printf("[%s] Global int initialization in service \n", 
+  printf("[%s] Global int initialization in service \n", 
          _test_glob2 == 1 ? "x" : " ");
   
-
-  global glob2;
-  glob1.test();
-  printf("[%s] Glocal C++ constructors in service \n", glob1.instances() == 2 ? "x" : " ");
   
+  global* glob2 = new global();;
+  glob1.test();
+  printf("[%s] Local C++ constructors in service \n", glob1.instances() == 2 ? "x" : " ");
+
+  
+  delete glob2;
+  printf("[%s] C++ destructors in service \n", glob1.instances() == 1 ? "x" : " ");
+  
+  
+
   auto& mac = Dev::eth(0).mac();
   Inet::ifconfig(net::ETH0,{mac.part[2],mac.part[3],mac.part[4],mac.part[5]},{255,255,0,0});
   
@@ -91,13 +102,13 @@ void Service::start()
 
     
   //A one-way UDP server (a primitive test)
-  net->udp_listen(8080,[net](uint8_t* const data,int len){
+  net->udp_listen(8080,[net](std::shared_ptr<net::Packet> pckt){
       
-      UDP::full_header* full_hdr = (UDP::full_header*)data;
+      UDP::full_header* full_hdr = (UDP::full_header*)pckt->buffer();
       UDP::udp_header* hdr = &full_hdr->udp_hdr;
 
       int data_len = __builtin_bswap16(hdr->length) - sizeof(UDP::udp_header);
-      auto data_loc = data + sizeof(UDP::full_header);
+      auto data_loc = pckt->buffer() + sizeof(UDP::full_header);
       
       // Netcat doesn't necessariliy zero-pad the string in UDP
       // ... But this buffer is const

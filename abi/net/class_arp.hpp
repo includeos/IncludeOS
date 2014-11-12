@@ -1,3 +1,4 @@
+
 #ifndef CLASS_ARP_HPP
 #define CLASS_ARP_HPP
 
@@ -5,6 +6,8 @@
 #include <delegate>
 #include <net/class_ethernet.hpp>
 #include <net/class_ip4.hpp>
+#include <net/class_packet.hpp>
+
 #include <map>
 
 namespace net {
@@ -34,8 +37,9 @@ namespace net {
 
   
     /** Handle incoming ARP packet. */
-    int bottom(uint8_t* data, int len);
-    
+    //int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet> pkt);
+
     /** Delegate link-layer output. */
     inline void set_linklayer_out(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> link){
       _linklayer_out = link;

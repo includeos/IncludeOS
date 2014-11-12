@@ -56,6 +56,10 @@ public:
       
   };
 
+  //typedef delegate<int(uint8_t*,int)> upstream_delg;
+
+  
+  
 private:
   
   /** Physical routes. These map 1-1 with Dev:: interfaces. */
@@ -76,7 +80,7 @@ private:
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
    */
-  Inet(Inet& cpy)
+  Inet(Inet& UNUSED(cpy))
   {    
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
@@ -108,20 +112,16 @@ private:
     Arp& _arp = *(arp_list[0]);
     Ethernet& _eth = *(ethernet_list[0]);
 
+
+    
     
     /** Upstream delegates */ 
-    auto eth_bottom(delegate<int(uint8_t*,int)>
-                    ::from<Ethernet,&Ethernet::physical_in>(_eth));
-    auto arp_bottom(delegate<int(uint8_t*,int)>
-                    ::from<Arp,&Arp::bottom>(_arp));
-    auto ip4_bottom(delegate<int(uint8_t*,int)>
-                    ::from<IP4,&IP4::bottom>(_ip4));
-    auto ip6_bottom(delegate<int(uint8_t*,int)>
-                    ::from<IP6,&IP6::bottom>(_ip6));    
-    auto icmp_bottom(delegate<int(uint8_t*,int)>
-                     ::from<ICMP,&ICMP::bottom>(_icmp));
-    auto udp_bottom(delegate<int(uint8_t*,int)>
-                    ::from<UDP,&UDP::bottom>(_udp));
+    auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(_eth));
+    auto arp_bottom(upstream::from<Arp,&Arp::bottom>(_arp));
+    auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(_ip4));
+    auto ip6_bottom(upstream::from<IP6,&IP6::bottom>(_ip6));    
+    auto icmp_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
+    auto udp_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
 
     /** Upstream wiring  */
     

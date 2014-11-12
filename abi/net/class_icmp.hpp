@@ -24,7 +24,7 @@ namespace net {
     enum icmp_types {ICMP_ECHO_REPLY,ICMP_ECHO = 8};
   
     /** Input from network layer */
-    int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet> pckt);
   
     /** Delegate type for network layer output. */
     typedef IP4::transmitter network_out;

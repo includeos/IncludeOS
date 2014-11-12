@@ -19,7 +19,7 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-int drop(uint8_t* UNUSED(data), int UNUSED(len)){
+int drop(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
   return -1;
 }
@@ -29,7 +29,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
     ctrl_q(queue_size(2),2,iobase()),
-    _link_out(delegate<int(uint8_t*,int)>(drop))
+    _link_out(net::upstream(drop))
 {
   
   printf("\n>>> VirtioNet driver initializing \n");
@@ -101,7 +101,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  printf("Adding %i receive buffers of size %i \n", 
+  printf("Adding %i receive buffers of size %li \n", 
          rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   //add_receive_buffer();
@@ -143,7 +143,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
    
   // Assign Link-layer output to RX Queue
-  rx_q.set_data_handler(_link_out);
+  //rx_q.set_data_handler(_link_out);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
     
@@ -261,7 +261,8 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   while(rx_q.new_incoming()){
     data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-    _link_out(data,len); 
+    Packet pckt(data,len);
+    _link_out(std::shared_ptr<Packet>(&pckt)); 
     
     // Requeue the buffer
     add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));

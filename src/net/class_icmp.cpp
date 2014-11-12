@@ -5,12 +5,12 @@
 
 using namespace net;
 
-int ICMP::bottom(uint8_t* data, int len){
+int ICMP::bottom(std::shared_ptr<Packet> pckt){
 
-  if ((uint32_t)len < sizeof(full_header)) //Drop if not a full header.
+  if (pckt->len() < sizeof(full_header)) //Drop if not a full header.
     return -1;
   
-  full_header* full_hdr = (full_header*)data;
+  full_header* full_hdr = (full_header*)pckt->buffer();
   icmp_header* hdr = &full_hdr->icmp_hdr;
   
   switch(hdr->type)

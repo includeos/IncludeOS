@@ -2,8 +2,9 @@
 #define CLASS_IP4_HPP
 
 #include <delegate>
-#include <net/class_ethernet.hpp>
+
 #include <net/inet.hpp>
+#include <net/class_ethernet.hpp>
 
 #include <iostream>
 #include <string>
@@ -18,7 +19,7 @@ namespace net {
     enum proto{IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6};
   
     /** Signature for output-delegates. */
-    typedef delegate<int(uint8_t* data,int len)> subscriber;  
+    //typedef delegate<int(uint8_t* data,int len)> subscriber;  
   
     /** Temporary protocol buffer. Might encapsulate later.*/
     typedef uint8_t* pbuf;
@@ -81,17 +82,17 @@ namespace net {
 
   
     /** Upstream: Input from link layer. */
-    int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet> pckt);
   
     /** Upstream: Outputs to transport layer*/
-    inline void set_icmp_handler(subscriber s)
+    inline void set_icmp_handler(upstream s)
     { _icmp_handler = s; }
   
-    inline void set_udp_handler(subscriber s)
+    inline void set_udp_handler(upstream s)
     { _udp_handler = s; }
     
   
-    inline void set_tcp_handler(subscriber s)
+    inline void set_tcp_handler(upstream s)
     { _tcp_handler = s; }
     
   
@@ -117,9 +118,9 @@ namespace net {
     link_out _linklayer_out;
   
     /** Upstream delegates */
-    subscriber _icmp_handler;
-    subscriber _udp_handler;
-    subscriber _tcp_handler;  
+    upstream _icmp_handler;
+    upstream _udp_handler;
+    upstream _tcp_handler;  
         
   };
 

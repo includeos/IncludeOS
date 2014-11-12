@@ -179,7 +179,8 @@ class VirtioNet : Virtio {
   int add_receive_buffer(uint8_t* buf, int len);
 
 
-  delegate<int(uint8_t*,int)> _link_out;
+  /** Upstream delegate for linklayer output */
+  net::upstream _link_out;
 
 public: 
   
@@ -193,9 +194,9 @@ public:
   const char* mac_str();
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
-  inline void set_linklayer_out(delegate<int(uint8_t*,int)> link_out){
+  inline void set_linklayer_out(net::upstream link_out){
     _link_out = link_out;
-    rx_q.set_data_handler(link_out);
+    //rx_q.set_data_handler(link_out);
   };
     
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/

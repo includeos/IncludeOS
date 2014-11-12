@@ -1,9 +1,15 @@
 #ifndef CLASS_PACKET_H
 #define CLASS_PACKET_H
 
-#include <os>
+//#include <os>
 
-#include <net/inet>
+//#include <net/inet>
+
+#include <net/class_ethernet.hpp>
+//#include <net/class_arp.hpp>
+//#include <net/class_ip4.hpp>
+//#include <net/class_udp.hpp>
+
 
 namespace net {
   
@@ -12,7 +18,7 @@ namespace net {
     
     enum packet_status{ AVAILABLE, IN_TRANSIT };
     
-    const std::shared_ptr<uint8_t> buffer() const
+    inline const uint8_t* buffer() const
     { return _data; }
     
     uint32_t len() const
@@ -24,7 +30,7 @@ namespace net {
     ~Packet();
   
   private:
-    std::shared_ptr<uint8_t> _data;
+    uint8_t* _data;
     uint32_t _len;
     packet_status _status;
     
@@ -32,51 +38,51 @@ namespace net {
     
   };
   
-  
-  class Ethernet_Packet : public Packet {      
-  public:    
+
+  // class Ethernet_Packet : public Packet {      
+  // public:    
     
-    /** Where header ends and "next layer" / data starts */
-    uint32_t data_start();
+  //   /** Where header ends and "next layer" / data starts */
+  //   uint32_t data_start();
       
-    /** Initialize. Sets the header to point to the right place inside data. */
-    Ethernet_Packet(Packet p);
+  //   /** Initialize. Sets the header to point to the right place inside data. */
+  //   Ethernet_Packet(Packet p);
     
-  private:
-    Ethernet::header* hdr = 0;
+  // private:
+  //   Ethernet::header* hdr = 0;
     
     
-  };
+  // };
   
-  class IP_Packet : public Packet {
-  public:
-    /** Where header ends and "next layer" / data starts */
-    uint32_t data_start();    
-  };
+  // class IP_Packet : public Packet {
+  // public:
+  //   /** Where header ends and "next layer" / data starts */
+  //   uint32_t data_start();    
+  // };
   
-  class IP4_Packet : public Packet {
-  public:
-    /** Where header ends and "next layer" / data starts */
-    uint32_t data_start();
+  // class IP4_Packet : public Packet {
+  // public:
+  //   /** Where header ends and "next layer" / data starts */
+  //   uint32_t data_start();
     
-    /** Initialize. Sets the header to point to the right place inside data. */
-    IP4_Packet(Ethernet_Packet p);
+  //   /** Initialize. Sets the header to point to the right place inside data. */
+  //   IP4_Packet(Ethernet_Packet p);
     
-  private:
-    IP4::ip_header* hdr = 0;
+  // private:
+  //   IP4::ip_header* hdr = 0;
     
     
-  };
+  // };
   
   
-  class UDP_Packet : public Packet {
+  // class UDP_Packet : public Packet {
     
-  public:
-    UDP_Packet(IP4_Packet pckt);
-    UDP::udp_header* hdr = 0;
+  // public:
+  //   UDP_Packet(IP4_Packet pckt);
+  //   UDP::udp_header* hdr = 0;
 
     
-  };
+  // };
     
 
 }

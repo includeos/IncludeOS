@@ -15,7 +15,7 @@ namespace net {
   public:
     
     /** Handle IPv6 packet. */
-    int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet> pckt);
     
     /** Constructor. Requires ethernet to latch on to. */
     //IP6(Ethernet& eth);

@@ -5,7 +5,7 @@
 using namespace net;
 
 
-int IP6::bottom(uint8_t* UNUSED(data), int UNUSED(len)){
+int IP6::bottom(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<IP6 handler> got the data, but I'm clueless: DROP! \n");
   return -1;
 };

@@ -51,10 +51,11 @@ int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
   return _physical_out(data, len);
 }
 
-int Ethernet::physical_in(uint8_t* data, int len){  
-  assert(len > 0);
 
-  header* eth = (header*) data;
+int Ethernet::bottom(std::shared_ptr<net::Packet> pckt){  
+  assert(pckt->len() > 0);
+
+  header* eth = (header*) pckt->buffer();
 
   /** Do we pass on ethernet headers? Probably.
     data += sizeof(header);
@@ -75,15 +76,15 @@ int Ethernet::physical_in(uint8_t* data, int len){
 
   case ETH_IP4:
     debug2("IPv4 packet \n");
-    return _ip4_handler(data,len);
+    return _ip4_handler(pckt);
 
   case ETH_IP6:
     debug2("IPv6 packet \n");
-    return _ip6_handler(data,len);
+    return _ip6_handler(pckt);
     
   case ETH_ARP:
     debug2("ARP packet \n");
-    return _arp_handler(data,len);
+    return _arp_handler(pckt);
     
   case ETH_WOL:
     debug2("Wake-on-LAN packet \n");
@@ -108,7 +109,7 @@ int Ethernet::physical_in(uint8_t* data, int len){
   return -1;
 }
 
-int ignore(uint8_t* UNUSED(data), int UNUSED(len)){
+int ignore(std::shared_ptr<net::Packet> UNUSED(pckt)){
   debug("<Ethernet handler> Ignoring data (no real handler)\n");
   return -1;
 };
@@ -116,9 +117,9 @@ int ignore(uint8_t* UNUSED(data), int UNUSED(len)){
 Ethernet::Ethernet(addr mac) :
   _mac(mac),
   /** Default initializing to the empty handler. */
-  _ip4_handler(delegate<int(uint8_t*,int)>(ignore)),
-  _ip6_handler(delegate<int(uint8_t*,int)>(ignore)),
-  _arp_handler(delegate<int(uint8_t*,int)>(ignore))
+  _ip4_handler(upstream(ignore)),
+  _ip6_handler(upstream(ignore)),
+  _arp_handler(upstream(ignore))
 {}
 
 
