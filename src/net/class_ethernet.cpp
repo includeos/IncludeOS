@@ -6,42 +6,17 @@
 
 using namespace net;
 
-// FROM SanOS
-//
-// ether_crc
-//
-
-#define ETHERNET_POLYNOMIAL 0x04c11db7U
-
-extern "C" {
-  unsigned long ether_crc(int length, unsigned char *data) {
-    int crc = -1;
-    
-    while (--length >= 0) {
-      unsigned char current_octet = *data++;
-    int bit;
-    for (bit = 0; bit < 8; bit++, current_octet >>= 1) {
-      crc = (crc << 1) ^ ((crc < 0) ^ (current_octet & 1) ? ETHERNET_POLYNOMIAL : 0);
-    }
-    }
-    
-    return crc;
-  }
-    
-}
 
 int Ethernet::transmit(std::shared_ptr<Packet> pckt){
   header* hdr = (header*)pckt->buffer();
+
+  // Verify ethernet header
+  assert(hdr->dest.major != 0 || hdr->dest.minor !=0);
+  assert(hdr->type != 0);
   
-  // @todo: Move to upper layer (Arp)
+  // Add source address
   hdr->src.major = _mac.major;
   hdr->src.minor = _mac.minor;
-
-
-  // memcpy((void*)&hdr->dest, (void*)&mac, 6);
-  // hdr->type = type;
-
-  // @todo: Verify ethernet header
 
   debug2("<Ethernet OUT> Transmitting %li b, from %s -> %s. Type: %i \n",
          pckt->len(),hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
