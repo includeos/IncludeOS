@@ -76,7 +76,7 @@ static unsigned long pci_size(unsigned long base, unsigned long mask)
 
 
 uint32_t PCI_Device::iobase(){
-  assert(res_io_ != 0);
+  ASSERT(res_io_ != 0);
   return res_io_->start_;  
 };
 
@@ -110,7 +110,7 @@ void PCI_Device::probe_resources(){
       
       //Add it to resource list
       add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val,pci_size_),res_io_);
-      assert(res_io_ != 0);            
+      ASSERT(res_io_ != 0);            
       
     } else { //Resource type Mem
 
@@ -119,7 +119,7 @@ void PCI_Device::probe_resources(){
 
       //Add it to resource list
       add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val,pci_size_),res_mem_);
-      assert(res_mem_ != 0);
+      ASSERT(res_mem_ != 0);
     }    
     
           

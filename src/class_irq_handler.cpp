@@ -225,20 +225,6 @@ void IRQ_handler::init(){
   //Test zero-division exception
   //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
 
-  //TEST Atomic increment
-  uint32_t i=0;
-  ainc(i);
-  ainc(i);
-  ainc(i);
-  debug("ATOMIC Increment 3 times: %li \n",i);
-  assert(i==3);
-  adec(i);
-  adec(i);
-  adec(i);
-  debug("ATOMIC Decrement 3 times: %li \n",i);
-  assert(i==0);
-  debug("ATOMIC Decrement 3 times: %li \n",i);
-
 };
 
 //A union to be able to extract the lower and upper part of an address

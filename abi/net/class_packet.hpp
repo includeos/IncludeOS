@@ -5,9 +5,9 @@
 
 //#include <net/inet>
 
-#include <net/class_ethernet.hpp>
+//#include <net/class_ethernet.hpp>
 //#include <net/class_arp.hpp>
-//#include <net/class_ip4.hpp>
+#include <net/class_ip4.hpp>
 //#include <net/class_udp.hpp>
 
 
@@ -33,7 +33,7 @@ namespace net {
     uint8_t* _data;
     uint32_t _len;
     packet_status _status;
-    
+    IP4::addr _next_hop4;
     
     
   };

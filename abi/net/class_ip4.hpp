@@ -11,6 +11,8 @@
 
 namespace net {
 
+  class Packet;
+
   /** IP4 layer skeleton */
   class IP4 {  
   public:
@@ -51,14 +53,7 @@ namespace net {
       }        
     
     };
-  
-    /** Delegate type for linklayer out. */
-    //typedef delegate<int(addr,addr,uint8_t* data,int len)> link_out;      
-  
-    /** Delegate type for input from upper layers. */
-    typedef delegate<int(IP4::addr sip,IP4::addr dip, IP4::proto, 
-                         pbuf buf, uint32_t len)> transmitter;
-  
+    
 
     /** IP4 header */
     struct ip_header{
@@ -103,8 +98,16 @@ namespace net {
     void set_linklayer_out(downstream s)
     { _linklayer_out = s; };
   
-    /** Downstream: Receive data from above. */
-    //int transmit(addr source, addr dest, proto p,uint8_t* data, uint32_t len);
+    /** Downstream: Receive data from above and transmit. 
+        
+        @note The following *must be set* in the packet:
+        
+        * Destination IP
+        * Protocol
+        
+        Source IP *can* be set - if it's not, IP4 will set it.
+        
+     */
     int transmit(std::shared_ptr<Packet> pckt);
 
     /** Compute the IP4 header checksum */

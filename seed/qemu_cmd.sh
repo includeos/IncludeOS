@@ -17,7 +17,9 @@ export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 export macaddress="08:00:00:00:00:02"
 export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
 
-export DEV_GRAPHICS="-vga std"
+#export DEV_GRAPHICS="-vga std"
+export DEV_GRAPHICS="--nographic"
+
 export DEV_HDD="-hda $1"
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
