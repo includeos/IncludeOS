@@ -51,8 +51,8 @@ public:
   inline void set_linklayer_out(net::upstream del)
   { _driver.set_linklayer_out(del); }
   
-  inline int transmit(uint8_t* data,int len)
-  { return _driver.transmit(data,len); }
+  inline int transmit(std::shared_ptr<net::Packet> pckt)
+  { return _driver.transmit(pckt); }
 
   
     /** Event types */

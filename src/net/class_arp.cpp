@@ -1,4 +1,4 @@
-#define DEBUG // Allow debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_arp.hpp>
 
@@ -83,7 +83,7 @@ int Arp::arp_respond(header* hdr_in){
   uint8_t* buffer = (uint8_t*)malloc(bufsize);
   header* hdr = (header*)buffer;
   
-  // Populate header
+  // Populate ARP-header
   
   // Scalar 
   hdr->htype = hdr_in->htype;
@@ -104,23 +104,38 @@ int Arp::arp_respond(header* hdr_in){
   debug("\t My IP: %s belongs to My Mac: %s \n ",
         hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
    
-  _linklayer_out(hdr->dhwaddr, Ethernet::ETH_ARP, buffer, bufsize);
+  // (partially) Populate Ethernet header
+  hdr->ethhdr.dest.minor = hdr->dhwaddr.minor;
+  hdr->ethhdr.dest.major = hdr->dhwaddr.major;
+  hdr->ethhdr.type = Ethernet::ETH_ARP;    
+  Packet pckt(buffer, bufsize);
+  
+  _linklayer_out(std::shared_ptr<Packet>(&pckt));
   
   return 0;
 }
 
 
-static int ignore(Ethernet::addr UNUSED(mac),Ethernet::ethertype UNUSED(etype),
-                  uint8_t* UNUSED(data),int UNUSED(len)){
+static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<ARP -> linklayer> Empty handler - DROP!\n");
   return -1;
 }
 
 
-int Arp::transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len){
-  debug("<ARP -> physical> Transmitting %li bytes to %s \n",
-        len,dip.str().c_str());
+int Arp::transmit(std::shared_ptr<Packet> pckt){
+  
+  /** Get destination IP from IP header 
+      
+      @todo: This should be "next hop".
+   */
+  IP4::ip_header* iphdr = (IP4::ip_header*)(pckt->buffer() 
+                                            + sizeof(Ethernet::header));
+  IP4::addr sip = iphdr->saddr;
+  IP4::addr dip = iphdr->daddr;
 
+  debug("<ARP -> physical> Transmitting %li bytes to %s \n",
+        pckt->len(),dip.str().c_str());
+  
   if (sip != _ip) {
     debug("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
           sip.str().c_str(), _ip.str().c_str());            
@@ -130,10 +145,19 @@ int Arp::transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len){
   if (!is_valid_cached(dip))
     panic("ARP cache missing for destination IP - and I don't know how to reslove yet\n");    
 
+
+  // Get mac from cache
   auto mac = _cache[dip]._mac;
+  
+  /** Attach next-hop mac and ethertype to ethernet header  */  
+  Ethernet::header* ethhdr = (Ethernet::header*)pckt->buffer();    
+  ethhdr->dest.major = mac.major;
+  ethhdr->dest.minor = mac.minor;
+  ethhdr->type = Ethernet::ETH_IP4;
+  
   debug("<ARP -> physical> Sending packet to %s \n",mac.str().c_str());
 
-  return _linklayer_out(mac,Ethernet::ETH_IP4,data,len);
+  return _linklayer_out(pckt);
   
   return 0;
 };
@@ -141,6 +165,5 @@ int Arp::transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len){
 // Initialize
 Arp::Arp(Ethernet::addr mac,IP4::addr ip): 
   _mac(mac), _ip(ip),
-  _linklayer_out(delegate<int(Ethernet::addr,
-                              Ethernet::ethertype,uint8_t*,int)>(ignore))
+  _linklayer_out(downstream(ignore))
 {}

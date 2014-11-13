@@ -58,30 +58,31 @@ namespace net {
     // Minimum payload
     static constexpr int minimum_payload = 46;
   
-    /** Handle raw ethernet buffer. */
+    /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     int bottom(std::shared_ptr<Packet> pckt);
   
-    /** Set ARP handler. */
+    /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
     { _arp_handler = del; };
   
-    /** Set IPv4 handler. */
+    /** Delegate upstream IPv4 handler. */
     inline void set_ip4_handler(upstream del)
     { _ip4_handler = del; };
   
-    /** Set IPv6 handler. */
+    /** Delegate upstream IPv6 handler. */
     inline void set_ip6_handler(upstream del)
     { _ip6_handler = del; };
   
-  
-    inline void set_physical_out(delegate<int(uint8_t* data,int len)> del)
+    
+    /** Delegate downstream */
+    inline void set_physical_out(downstream del)
     { _physical_out = del; }
   
     inline addr mac()
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(addr mac, Ethernet::ethertype type,uint8_t* data, int len);
+    int transmit(std::shared_ptr<Packet> pckt);
   
     Ethernet(addr mac);
 
@@ -94,7 +95,7 @@ namespace net {
     upstream _arp_handler;
   
     // Downstream OUTPUT connection
-    delegate<int(uint8_t* data, int len)> _physical_out;
+    downstream _physical_out;
   
   
     /*

@@ -1,5 +1,5 @@
 #define DEBUG // Allow debugging
-#define DEBUG2
+//#define DEBUG2
 
 #include <os>
 #include <net/class_ethernet.hpp>
@@ -27,28 +27,26 @@ extern "C" {
     
     return crc;
   }
-  
-
-
-  char *ether2str(Ethernet::addr *hwaddr, char *s) {
-    sprintf(s, "%02x:%02x:%02x:%02x:%02x:%02x",  
-            hwaddr->part[0], hwaddr->part[1], hwaddr->part[2], 
-            hwaddr->part[3], hwaddr->part[4], hwaddr->part[5]);
-    return s;
-  }
-  
+    
 }
 
-int Ethernet::transmit(addr mac, ethertype type, uint8_t* data, int len){
-  header* hdr = (header*)data;
-  memcpy((void*)&hdr->src, (void*)&_mac, 6);
-  memcpy((void*)&hdr->dest, (void*)&mac, 6);
-  hdr->type = type;
-
-  debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i \n",
-        len,hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
+int Ethernet::transmit(std::shared_ptr<Packet> pckt){
+  header* hdr = (header*)pckt->buffer();
   
-  return _physical_out(data, len);
+  // @todo: Move to upper layer (Arp)
+  hdr->src.major = _mac.major;
+  hdr->src.minor = _mac.minor;
+
+
+  // memcpy((void*)&hdr->dest, (void*)&mac, 6);
+  // hdr->type = type;
+
+  // @todo: Verify ethernet header
+
+  debug2("<Ethernet OUT> Transmitting %li b, from %s -> %s. Type: %i \n",
+         pckt->len(),hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
+  
+  return _physical_out(pckt);
 }
 
 
@@ -61,15 +59,10 @@ int Ethernet::bottom(std::shared_ptr<net::Packet> pckt){
     data += sizeof(header);
     len -= sizeof(header);
   */
-  
-  
-  // Print, for verification
-  #ifdef DEBUG2
-  char eaddr[] = "00:00:00:00:00:00";
-  #endif
+    
   debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
-         ether2str(&eth->src,eaddr),
-         ether2str(&eth->dest,eaddr),eth->type); 
+         eth->src.str().c_str(),
+         eth->dest.str().c_str(),eth->type); 
 
 
   switch(eth->type){ 

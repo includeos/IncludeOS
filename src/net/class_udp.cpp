@@ -34,38 +34,50 @@ void UDP::listen(uint16_t port, listener l){
   
 };
 
-int UDP::transmit(IP4::addr sip,UDP::port sport,
+/*int UDP::transmit(IP4::addr sip,UDP::port sport,
                   IP4::addr dip,UDP::port dport,
-                  uint8_t* data, int len){
+                  uint8_t* data, int len){*/
+
+int UDP::transmit(std::shared_ptr<Packet> pckt){
   
 
-  assert((uint32_t)len >= sizeof(UDP::full_header));
+  assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
   
-  udp_header* hdr = &((full_header*)data)->udp_hdr;
+  full_header* full_hdr = (full_header*)pckt->buffer();
+  udp_header* hdr = &(full_hdr->udp_hdr);
   
   // Populate all UDP header fields
+  /**
   hdr->dport = dport;
-  hdr->sport = sport; 
+  hdr->sport = sport; */
 
-  hdr->length =  __builtin_bswap16((uint16_t)(len -sizeof(IP4::full_header)));
+  hdr->length =  __builtin_bswap16((uint16_t)(pckt->len() 
+                                              - sizeof(IP4::full_header)));
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
+
+  IP4::addr sip = full_hdr->ip_hdr.saddr;
+  IP4::addr dip = full_hdr->ip_hdr.daddr;
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
-        (uint16_t)(len -sizeof(full_header)),
+        (uint16_t)(pckt->len() -sizeof(full_header)),
         hdr->length,dip.str().c_str(),
         dport);
+
+  assert(sip != 0 && dip != 0 &&
+         full_hdr->ip_hdr.protocol == IP4::IP4_UDP);
   
   debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
         sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,len
         );
-  return _network_layer_out(sip,dip,IP4::IP4_UDP,data,len);
+
+
+  return _network_layer_out(pckt);
 
 };
 
-int ignore_udp(IP4::addr UNUSED(sip),IP4::addr UNUSED(dip),IP4::proto UNUSED(p),
-               UDP::pbuf UNUSED(buf),uint32_t UNUSED(len)){
+int ignore_udp(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<UDP->Network> No handler - DROP!\n");
   return 0;
 }
 
-UDP::UDP() : _network_layer_out(UDP::network_out(ignore_udp)) {};
+UDP::UDP() : _network_layer_out(downstream(ignore_udp)) {};

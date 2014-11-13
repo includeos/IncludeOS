@@ -41,12 +41,12 @@ namespace net {
     int bottom(std::shared_ptr<Packet> pkt);
 
     /** Delegate link-layer output. */
-    inline void set_linklayer_out(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> link){
+    inline void set_linklayer_out(downstream link){
       _linklayer_out = link;
     };
 
     /** Downstream transmission. */
-    int transmit(IP4::addr sip, IP4::addr dip, pbuf data, uint32_t len);
+    int transmit(std::shared_ptr<Packet> pckt);
     
     
     /** Set IP4 address */
@@ -66,7 +66,7 @@ namespace net {
     IP4::addr _ip;
     
     // Outbound data goes through here
-    delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)> _linklayer_out;
+    downstream _linklayer_out;
 
     /** Cache entries are just macs and timestamps */
     struct cache_entry{

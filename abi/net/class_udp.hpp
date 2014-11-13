@@ -35,12 +35,9 @@ namespace net {
   
     /** Delegate type for listening to UDP ports. */
     typedef upstream listener;
-  
-    /** Delegate type for downstream transmissions */
-    typedef IP4::transmitter network_out;
-  
+    
     /** Delegate output to network layer */
-    inline void set_network_out(network_out del)
+    inline void set_network_out(downstream del)
     { _network_layer_out = del; }
   
     /** Listen to a port. 
@@ -54,15 +51,13 @@ namespace net {
         @param sport source port; replies might come back here
         @param dip Destination IP
         @param dport Destination port   */
-    int transmit(IP4::addr sip,UDP::port sport,
-                 IP4::addr dip,UDP::port dport,
-                 uint8_t* data, int len);
+    int transmit(std::shared_ptr<Packet> pckt);
   
     UDP();
   
   private: 
   
-    network_out _network_layer_out;
+    downstream _network_layer_out;
     std::map<uint16_t, listener> ports;
   
   };

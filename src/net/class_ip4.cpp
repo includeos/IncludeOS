@@ -41,23 +41,26 @@ uint16_t IP4::checksum(ip_header* hdr){
   return net::checksum((uint16_t*)hdr,sizeof(ip_header));
 }
 
-
-int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
+//int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
+int IP4::transmit(std::shared_ptr<Packet> pckt){
   
-  assert(len > sizeof(IP4::full_header));
+  assert(pckt->len() > sizeof(IP4::full_header));
   
-  full_header* full_hdr = (full_header*) data;
+  full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
 
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
-  hdr->tot_len = __builtin_bswap16(len - sizeof(Ethernet::header));
+  hdr->tot_len = __builtin_bswap16(pckt->len() - sizeof(Ethernet::header));
   hdr->id = 0; // Fragment ID (we don't fragment yet)
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
-  hdr->protocol = p;   
-  hdr->saddr.whole = source.whole;
-  hdr->daddr.whole = dest.whole;  
+
+  /** @todo  Move to upper layers, i.e. pass in-packet instead of as parameter.
+    hdr->protocol = p;   
+    hdr->saddr.whole = source.whole;
+    hdr->daddr.whole = dest.whole;  
+  */
   
   // Checksum is 0 while calculating
   hdr->check = 0;
@@ -68,7 +71,7 @@ int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
 
 
   debug("<IP4 TOP> - passing transmission to linklayer \n");
-  return _linklayer_out(source,dest,data,len);
+  return _linklayer_out(pckt);
 };
 
 
@@ -78,15 +81,14 @@ int ignore_ip4(std::shared_ptr<Packet> UNUSED(pckt)){
   return -1;
 }
 
-int ignore_transmission(IP4::addr UNUSED(src),IP4::addr UNUSED(dst),
-                        uint8_t* UNUSED(data), uint32_t UNUSED(len)){
+int ignore_transmission(std::shared_ptr<Packet> UNUSED(pckt)){
 
   debug("<IP4->Link layer> No handler - DROP!\n");
   return 0;
 }
 
 IP4::IP4() :
-  _linklayer_out(link_out(ignore_transmission)),
+  _linklayer_out(downstream(ignore_transmission)),
   _icmp_handler(upstream(ignore_ip4)),
   _udp_handler(upstream(ignore_ip4)),
   _tcp_handler(upstream(ignore_ip4))

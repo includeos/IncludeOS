@@ -298,8 +298,8 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-int VirtioNet::transmit(uint8_t* data, int len){
-  debug2("<VirtioNet> Enqueuing %ib of data. \n",len);
+int VirtioNet::transmit(std::shared_ptr<net::Packet> pckt){
+  debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->len());
 
 
   /** @note We have to send a virtio header first, then the packet.
@@ -320,8 +320,8 @@ int VirtioNet::transmit(uint8_t* data, int len){
   // This setup requires all tokens to be pre-chained like in SanOS
   sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = data;
-  sg[1].size = len;
+  sg[1].data = (void*)pckt->buffer();
+  sg[1].size = pckt->len();
   
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(sg, 2, 0, 0);

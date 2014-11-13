@@ -32,10 +32,8 @@ public:
       
       @note the data buffer is the *whole* ethernet frame, so don't overwrite 
       headers unless you own them (i.e. you *are* the IP object)  */
-  inline int udp_send(IP4::addr sip,UDP::port sport,
-                       IP4::addr dip,UDP::port dport,
-                       uint8_t* data, int len)
-  { return _udp.transmit(sip,sport,dip,dport,data,len); }
+  inline int udp_send(std::shared_ptr<Packet> pckt)
+  { return _udp.transmit(pckt); }
     
   
   /** Bind an IP and a netmask to a given device. 
@@ -144,13 +142,13 @@ private:
     _ip4.set_udp_handler(udp_bottom);
     
     /** Downstream delegates */
-    auto phys_top(delegate<int(uint8_t*,int)>
+    auto phys_top(downstream
                   ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(eth0));
-    auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>
+    auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(_eth));    
-    auto arp_top(delegate<int(IP4::addr, IP4::addr, uint8_t*, uint32_t)>
+    auto arp_top(downstream
                  ::from<Arp,&Arp::transmit>(_arp));
-    auto ip4_top(delegate<int(IP4::addr,IP4::addr,IP4::proto,uint8_t*,uint32_t)>
+    auto ip4_top(downstream
                  ::from<IP4,&IP4::transmit>(_ip4));
     
     /** Downstream wiring. */

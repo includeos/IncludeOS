@@ -200,7 +200,7 @@ public:
   };
     
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int transmit(uint8_t* data,int len);
+  int transmit(std::shared_ptr<net::Packet> pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(PCI_Device* pcidev);

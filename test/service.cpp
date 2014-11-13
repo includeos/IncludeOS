@@ -147,8 +147,20 @@ void Service::start()
       debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
             response.size(),bufsize);
       
-      net->udp_send(full_hdr->ip_hdr.daddr, hdr->dport, 
-                   full_hdr->ip_hdr.saddr, hdr->sport, buf, bufsize);
+      /** Populate outgoing UDP header */
+      UDP::full_header* full_hdr_out = (UDP::full_header*)buf;
+      full_hdr_out->udp_hdr.dport = hdr->sport;
+      full_hdr_out->udp_hdr.sport = hdr->dport;
+
+      
+      /** Populate outgoing IP header */
+      full_hdr_out->ip_hdr.saddr = full_hdr->ip_hdr.daddr;
+      full_hdr_out->ip_hdr.daddr = full_hdr->ip_hdr.saddr;
+      full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
+      
+      Packet pckt_out(buf,bufsize);
+            
+      net->udp_send(std::shared_ptr<Packet>(&pckt_out));
       
           
       return 0;
