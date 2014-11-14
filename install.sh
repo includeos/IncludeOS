@@ -3,7 +3,7 @@
 OSDIR=/usr/local/IncludeOS/
 
 echo -e "\n>>> Looking for toolchain"
-#if [ ! -f $OSDIR/bin/i686-elf-c++ ] 
+#if [ ! -f $OSDIR/bin/i686-elf-c++ ]  
 #then
     echo "  * Toolchain missing - installing..."
     ./etc/install_toolchain.sh
