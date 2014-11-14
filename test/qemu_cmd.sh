@@ -14,8 +14,8 @@ export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 #export DEV_NET="-netdev user,id=user.0,hostfwd=tcp::5555-:22 -device virtio-net,netdev=user.0"
 
 #export macaddress="08:00:27:9d:86:e8"
-#export macaddress="08:00:0a:00:00:0a"
-export macaddress="08:00:c0.a8:7a:0a" # 192.168.122.10 adapted to default virsh network 
+#export macaddress="08:00:c0.a8:7a:0a" # 192.168.122.10 adapted to default virsh network 
+export macaddress="08:00:0a:00:00:0a"
 
 export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
 

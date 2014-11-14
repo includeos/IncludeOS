@@ -11,6 +11,10 @@ echo -e "\n>>> Looking for toolchain"
 #    echo "  * Toolchain seems OK "
 #fi
 
+echo -e "\n>>> Creates IncludeOS-bridge"
+./etc/create_bridge.sh
+cp ./etc/qemu-ifup /etc
+
 echo -e "\n>>> Installing vmbuilder"
 cd vmbuild
 make
