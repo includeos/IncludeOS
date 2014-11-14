@@ -41,10 +41,9 @@ uint16_t IP4::checksum(ip_header* hdr){
   return net::checksum((uint16_t*)hdr,sizeof(ip_header));
 }
 
-//int IP4::transmit(addr source, addr dest, proto p, uint8_t* data, uint32_t len){
 int IP4::transmit(std::shared_ptr<Packet> pckt){
   
-  assert(pckt->len() > sizeof(IP4::full_header));
+  ASSERT(pckt->len() > sizeof(IP4::full_header));
   
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
@@ -55,19 +54,13 @@ int IP4::transmit(std::shared_ptr<Packet> pckt){
   hdr->id = 0; // Fragment ID (we don't fragment yet)
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
-
-  /** @todo  Move to upper layers, i.e. pass in-packet instead of as parameter.
-    hdr->protocol = p;   
-    hdr->saddr.whole = source.whole;
-    hdr->daddr.whole = dest.whole;  
-  */
   
   // Checksum is 0 while calculating
   hdr->check = 0;
   hdr->check = checksum(hdr);
   
   // Make sure it's right
-  assert(checksum(hdr) == 0);
+  ASSERT(checksum(hdr) == 0);
 
 
   debug("<IP4 TOP> - passing transmission to linklayer \n");

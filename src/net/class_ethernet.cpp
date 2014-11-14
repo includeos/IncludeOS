@@ -11,8 +11,8 @@ int Ethernet::transmit(std::shared_ptr<Packet> pckt){
   header* hdr = (header*)pckt->buffer();
 
   // Verify ethernet header
-  assert(hdr->dest.major != 0 || hdr->dest.minor !=0);
-  assert(hdr->type != 0);
+  ASSERT(hdr->dest.major != 0 || hdr->dest.minor !=0);
+  ASSERT(hdr->type != 0);
   
   // Add source address
   hdr->src.major = _mac.major;
@@ -26,7 +26,7 @@ int Ethernet::transmit(std::shared_ptr<Packet> pckt){
 
 
 int Ethernet::bottom(std::shared_ptr<net::Packet> pckt){  
-  assert(pckt->len() > 0);
+  ASSERT(pckt->len() > 0);
 
   header* eth = (header*) pckt->buffer();
 

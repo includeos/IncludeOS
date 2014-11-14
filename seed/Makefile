@@ -52,7 +52,7 @@ DEPS = $(OBJS:.o=.d)
 
 all: service
 
-stripped: LDOPTS += -s #strip all
+stripped: LDOPTS += -S #strip all
 stripped: service
 
 

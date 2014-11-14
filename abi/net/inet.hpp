@@ -3,10 +3,13 @@
 #define INET_HPP
 
 #include <delegate>
-#include <net/class_packet.hpp>
 
 namespace net {
-
+  
+  /** Packet must be forward declared to avoid circular dependency.
+      (i.e. IP uses packet, and packet uses IP headers) */
+  class Packet;
+  
   /** Upstream delegate */
   typedef delegate<int(std::shared_ptr<Packet>)> upstream;
 

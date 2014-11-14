@@ -41,7 +41,7 @@ void UDP::listen(uint16_t port, listener l){
 int UDP::transmit(std::shared_ptr<Packet> pckt){
   
 
-  assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
+  ASSERT((uint32_t)pckt->len() >= sizeof(UDP::full_header));
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   udp_header* hdr = &(full_hdr->udp_hdr);
@@ -63,7 +63,7 @@ int UDP::transmit(std::shared_ptr<Packet> pckt){
         hdr->length,dip.str().c_str(),
         dport);
 
-  assert(sip != 0 && dip != 0 &&
+  ASSERT(sip != 0 && dip != 0 &&
          full_hdr->ip_hdr.protocol == IP4::IP4_UDP);
   
   debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
