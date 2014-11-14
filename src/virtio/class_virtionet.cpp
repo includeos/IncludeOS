@@ -84,24 +84,24 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
    
   // Step 1 - Initialize RX/TX queues
-  printf("\t [%s] RX queue assigned (0x%lx) to device \n ",
+  printf("\t [%s] RX queue assigned (0x%lx) to device \n",
          assign_queue(0, (uint32_t)rx_q.queue_desc()) ? "x":" ",
          (uint32_t)rx_q.queue_desc());
   
-  printf("\t [%s] TX queue assigned (0x%lx) to device \n ",
+  printf("\t [%s] TX queue assigned (0x%lx) to device \n",
          assign_queue(1, (uint32_t)tx_q.queue_desc()) ? "x":" ",
          (uint32_t)tx_q.queue_desc());
 
   
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ))
-    printf("\t [%s] CTRL queue assigned (0x%lx) to device \n ",
+    printf("\t [%s] CTRL queue assigned (0x%lx) to device \n",
            assign_queue(2, (uint32_t)tx_q.queue_desc()) ? "x":" ",
            (uint32_t)ctrl_q.queue_desc());
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  printf("Adding %i receive buffers of size %li \n", 
+  printf(" >> Adding %i receive buffers of size %li \n", 
          rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   //add_receive_buffer();

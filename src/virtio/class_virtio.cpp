@@ -154,7 +154,7 @@ void Virtio::negotiate_features(uint32_t features){
 
 void Virtio::setup_complete(bool ok){
   uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
-  printf("<VIRTIO> status: %i ",status);
+  debug("<VIRTIO> status: %i ",status);
   outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | status);
 }
 
