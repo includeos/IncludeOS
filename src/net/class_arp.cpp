@@ -1,4 +1,4 @@
-//#define DEBUG // Allow debugging
+#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_arp.hpp>
 
@@ -146,7 +146,7 @@ int Arp::transmit(std::shared_ptr<Packet>& pckt){
     debug("ARP cache missing for dest. IP. Creating Mac from next-hop IP");
 
     // Fixed mac prefix
-    mac.minor = 0xc001;
+    mac.minor = 0x01c0; //Big-endian c001
     // Destination IP
     mac.major = dip.whole;
     
