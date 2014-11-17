@@ -42,10 +42,10 @@ public:
   static void ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
 
   static inline IP4::addr ip4(netdev nic)
-  { return ip4_list[nic]; }
+  { return _ip4_list[nic]; }
   
   static Inet* up(){
-    if (ip4_list.size() < 1)
+    if (_ip4_list.size() < 1)
       panic("<Inet> Can't bring up IP stack without any IP addresses");
     if (!instance)
       instance = new Inet();
@@ -61,9 +61,10 @@ public:
 private:
   
   /** Physical routes. These map 1-1 with Dev:: interfaces. */
-  static std::map<uint16_t,IP4::addr> ip4_list;
-  static std::map<uint16_t,Ethernet*> ethernet_list;
-  static std::map<uint16_t,Arp*> arp_list;
+  static std::map<uint16_t,IP4::addr> _ip4_list;
+  static std::map<uint16_t,IP4::addr> _netmask_list;
+  static std::map<uint16_t,Ethernet*> _ethernet_list;
+  static std::map<uint16_t,Arp*> _arp_list;
   
   static Inet* instance;  
   
@@ -78,7 +79,8 @@ private:
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
    */
-  Inet(Inet& UNUSED(cpy))
+  Inet(Inet& UNUSED(cpy)) :
+    _ip4(_ip4_list[0],_netmask_list[0])
   {    
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
@@ -91,8 +93,9 @@ private:
       @todo For now, mac- and IP-addresses are hardcoded here. 
       They should be user-definable
    */
-  Inet()
+  Inet() :
     //_eth(eth0.mac()),_arp(eth0.mac(),ip)
+    _ip4(_ip4_list[0],_netmask_list[0])
   {
     
     printf("<IP Stack> constructing \n");
@@ -104,11 +107,11 @@ private:
     /** Create arp- and ethernet objects for the interfaces.
         
         @warning: Careful not to copy these objects */
-    arp_list[0] = new Arp(eth0.mac(),ip4_list[0]);
-    ethernet_list[0] = new Ethernet(eth0.mac());
+    _arp_list[0] = new Arp(eth0.mac(),_ip4_list[0]);
+    _ethernet_list[0] = new Ethernet(eth0.mac());
     
-    Arp& _arp = *(arp_list[0]);
-    Ethernet& _eth = *(ethernet_list[0]);
+    Arp& _arp = *(_arp_list[0]);
+    Ethernet& _eth = *(_ethernet_list[0]);
 
 
     

@@ -7,7 +7,7 @@
 using namespace net;
 
 
-int Ethernet::transmit(std::shared_ptr<Packet> pckt){
+int Ethernet::transmit(std::shared_ptr<Packet>& pckt){
   header* hdr = (header*)pckt->buffer();
 
   // Verify ethernet header
@@ -25,7 +25,7 @@ int Ethernet::transmit(std::shared_ptr<Packet> pckt){
 }
 
 
-int Ethernet::bottom(std::shared_ptr<net::Packet> pckt){  
+int Ethernet::bottom(std::shared_ptr<net::Packet>& pckt){  
   ASSERT(pckt->len() > 0);
 
   header* eth = (header*) pckt->buffer();

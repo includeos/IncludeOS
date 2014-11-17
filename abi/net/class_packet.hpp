@@ -16,19 +16,37 @@ namespace net {
   class Packet {
   public:
     
-    enum packet_status{ AVAILABLE, IN_TRANSIT };
-    
-    inline const uint8_t* buffer() const
+    /** Get the buffer */
+    const uint8_t* buffer() const
     { return _data; }
     
-    uint32_t len() const
+    /** Get the buffer length */
+    inline uint32_t len() const
     { return _len; }
 
+    /** Status of the buffer.
+        AVAILABLE : It's just sitting there, free for use
+        UPSTREAM : travelling upstream
+        DOWNSTREAM : travelling downstream          */
+    enum packet_status{ AVAILABLE, UPSTREAM, DOWNSTREAM };
+    
+    /** Get the packet status */
     packet_status status();
     
-    Packet(uint8_t* data, uint32_t len);
+    /** Set next-hop ip4. */
+    void next_hop(IP4::addr ip);
+    
+    /** Get next-hop ip4. */
+    IP4::addr next_hop();
+    
+    /** Construct. */
+    Packet(uint8_t* data, uint32_t len, packet_status stat);
+
+    /** Destruct. */
     ~Packet();
-  
+    
+    
+    
   private:
     uint8_t* _data;
     uint32_t _len;

@@ -11,7 +11,7 @@ namespace net {
   class Packet;
   
   /** Upstream delegate */
-  typedef delegate<int(std::shared_ptr<Packet>)> upstream;
+  typedef delegate<int(std::shared_ptr<Packet>&)> upstream;
 
   /** Downstream delegate 
 

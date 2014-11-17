@@ -10,5 +10,5 @@ DHCPRANGE=10.0.0.2,10.0.0.254
 
 brctl addbr $BRIDGE
 ifconfig $BRIDGE $GATEWAY netmask $NETMASK up 
-ifconfig include0 hw ether c0:01:70:01:00:01
+ifconfig include0 hw ether c0:01:00:00:00:01
 

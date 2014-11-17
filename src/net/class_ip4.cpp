@@ -5,7 +5,7 @@
 using namespace net;
 
 
-int IP4::bottom(std::shared_ptr<Packet> pckt){
+int IP4::bottom(std::shared_ptr<Packet>& pckt){
   debug("<IP4 handler> got the data. \n");
     
   const uint8_t* data = pckt->buffer();
@@ -41,7 +41,7 @@ uint16_t IP4::checksum(ip_header* hdr){
   return net::checksum((uint16_t*)hdr,sizeof(ip_header));
 }
 
-int IP4::transmit(std::shared_ptr<Packet> pckt){
+int IP4::transmit(std::shared_ptr<Packet>& pckt){
   
   ASSERT(pckt->len() > sizeof(IP4::full_header));
   
@@ -61,8 +61,24 @@ int IP4::transmit(std::shared_ptr<Packet> pckt){
   
   // Make sure it's right
   ASSERT(checksum(hdr) == 0);
+    
+  // Calculate next-hop
+  ASSERT(pckt->next_hop().whole == 0);
+  
+  addr target_net;
+  addr local_net;
+  target_net.whole = hdr->daddr.whole & _netmask.whole;
+  local_net.whole = _local_ip.whole & _netmask.whole;  
 
-
+  debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s ",
+        hdr->daddr.str().c_str(), 
+        _netmask.str().c_str(), 
+        _local_ip.str().c_str(),
+        _gateway.str().c_str(),
+        target_net == local_net ? "DIRECT" : "GATEWAY");
+  
+  pckt->next_hop(target_net == local_net ? hdr->daddr : _gateway);
+  
   debug("<IP4 TOP> - passing transmission to linklayer \n");
   return _linklayer_out(pckt);
 };
@@ -80,12 +96,19 @@ int ignore_transmission(std::shared_ptr<Packet> UNUSED(pckt)){
   return 0;
 }
 
-IP4::IP4() :
+IP4::IP4(addr ip, addr netmask) :
+  _local_ip(ip),
+  _netmask(netmask),
+  _gateway(),
   _linklayer_out(downstream(ignore_transmission)),
   _icmp_handler(upstream(ignore_ip4)),
   _udp_handler(upstream(ignore_ip4)),
   _tcp_handler(upstream(ignore_ip4))
-{}
+{
+  // Default gateway is addr 1 in the subnet.
+  _gateway.whole = (ip.whole & netmask.whole) + __builtin_bswap32(1);
+
+}
 
 std::ostream& operator<<(std::ostream& out,const IP4::addr& ip)  {
   return out << ip.str();

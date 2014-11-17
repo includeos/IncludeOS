@@ -20,8 +20,8 @@ namespace net {
     union addr{
       uint8_t part[ETHER_ADDR_LEN];
       struct {
-        uint32_t major;
         uint16_t minor;
+        uint32_t major;
       } __attribute__((packed));   
     
       inline std::string str() const {
@@ -59,7 +59,7 @@ namespace net {
     static constexpr int minimum_payload = 46;
   
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    int bottom(std::shared_ptr<Packet> pckt);
+    int bottom(std::shared_ptr<Packet>& pckt);
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
@@ -82,7 +82,7 @@ namespace net {
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(std::shared_ptr<Packet> pckt);
+    int transmit(std::shared_ptr<Packet>& pckt);
   
     Ethernet(addr mac);
 

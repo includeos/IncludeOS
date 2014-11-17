@@ -24,7 +24,7 @@ namespace net {
     enum icmp_types {ICMP_ECHO_REPLY,ICMP_ECHO = 8};
   
     /** Input from network layer */
-    int bottom(std::shared_ptr<Packet> pckt);
+    int bottom(std::shared_ptr<Packet>& pckt);
   
     /** Delegate output to network layer */
     inline void set_network_out(downstream s)

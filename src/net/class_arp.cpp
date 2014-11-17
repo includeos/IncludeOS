@@ -6,7 +6,7 @@
 
 using namespace net;
 
-int Arp::bottom(std::shared_ptr<Packet> pckt)
+int Arp::bottom(std::shared_ptr<Packet>& pckt)
 {
   debug("<ARP handler> got %li bytes of data \n", pckt->len());
 
@@ -108,9 +108,9 @@ int Arp::arp_respond(header* hdr_in){
   hdr->ethhdr.dest.minor = hdr->dhwaddr.minor;
   hdr->ethhdr.dest.major = hdr->dhwaddr.major;
   hdr->ethhdr.type = Ethernet::ETH_ARP;    
-  Packet pckt(buffer, bufsize);
-  
-  _linklayer_out(std::shared_ptr<Packet>(&pckt));
+  Packet pckt(buffer, bufsize, Packet::DOWNSTREAM);
+  std::shared_ptr<Packet> packet_ptr(&pckt);
+  _linklayer_out(packet_ptr);
   
   return 0;
 }
@@ -122,16 +122,13 @@ static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
 }
 
 
-int Arp::transmit(std::shared_ptr<Packet> pckt){
+int Arp::transmit(std::shared_ptr<Packet>& pckt){
   
-  /** Get destination IP from IP header 
-      
-      @todo: This should be "next hop".
-   */
+  /** Get destination IP from IP header   */
   IP4::ip_header* iphdr = (IP4::ip_header*)(pckt->buffer() 
                                             + sizeof(Ethernet::header));
   IP4::addr sip = iphdr->saddr;
-  IP4::addr dip = iphdr->daddr;
+  IP4::addr dip = pckt->next_hop();
 
   debug("<ARP -> physical> Transmitting %li bytes to %s \n",
         pckt->len(),dip.str().c_str());
@@ -142,12 +139,21 @@ int Arp::transmit(std::shared_ptr<Packet> pckt){
     return -1;
   }
   
-  if (!is_valid_cached(dip))
-    panic("ARP cache missing for destination IP - and I don't know how to reslove yet\n");    
+  Ethernet::addr mac;
 
+  // If we don't have a cached IP, get mac from next-hop (Håreks c001 hack)
+  if (!is_valid_cached(dip)){
+    debug("ARP cache missing for dest. IP. Creating Mac from next-hop IP");
 
-  // Get mac from cache
-  auto mac = _cache[dip]._mac;
+    // Fixed mac prefix
+    mac.minor = 0xc001;
+    // Destination IP
+    mac.major = dip.whole;
+    
+  }else{
+    // Get mac from cache
+    mac = _cache[dip]._mac;
+  }
   
   /** Attach next-hop mac and ethertype to ethernet header  */  
   Ethernet::header* ethhdr = (Ethernet::header*)pckt->buffer();    

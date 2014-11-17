@@ -261,8 +261,9 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   while(rx_q.new_incoming()){
     data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-    Packet pckt(data,len);
-    _link_out(std::shared_ptr<Packet>(&pckt)); 
+    Packet pckt(data, len, Packet::UPSTREAM);
+    std::shared_ptr<Packet> pckt_ptr(&pckt);
+    _link_out(pckt_ptr); 
     
     // Requeue the buffer
     add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
@@ -298,7 +299,7 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-int VirtioNet::transmit(std::shared_ptr<net::Packet> pckt){
+int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
   debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->len());
 
 
