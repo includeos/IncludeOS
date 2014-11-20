@@ -156,21 +156,27 @@ void Virtio::Queue::release(uint32_t head){
   // Clear callback data token
   //vq->data[head] = NULL;
 
-  // Put buffers back on the free list; first find the end
+  // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
+  
+  //It's at least one token...
+  _num_free++;
+
+  //...possibly with a tail
   while (_queue.desc[i].flags & VRING_DESC_F_NEXT) 
   {
     i = _queue.desc[i].next;
     _num_free++;
   }
-  _num_free++;
-
+  
   // Add buffers back to free list
   _queue.desc[i].next = _free_head;
   _free_head = head;
 
-  // Notify about free buffers
-  //if (_num_free > 0) set_event(&vq->bufavail);
+  // SanOS: Notify about free buffers
+  // Now this thread can wake up threads waiting to enqueue...
+  // But IncludeOS doesn't have threads, so we have to defer transmissions
+  // if (_num_free > 0) set_event(&vq->bufavail);
 }
 
 uint8_t* Virtio::Queue::dequeue(uint32_t* len){

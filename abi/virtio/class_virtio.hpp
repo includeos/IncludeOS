@@ -180,6 +180,7 @@ public:
 
     inline uint16_t num_avail()
     { return _queue.avail->idx - _queue.used->idx; }
+        
     
     inline uint16_t size(){ return _size; }
     

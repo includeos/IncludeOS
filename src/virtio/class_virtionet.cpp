@@ -228,10 +228,16 @@ void VirtioNet::irq_handler(){
   // Step 1. read ISR
   unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
   
-  // Step 2. A)
+  // Step 2. A) - one of the queues have changed
   if (isr & 1){
+    
+    // This now means service RX & TX interchangeably
     service_RX();
-    service_TX();
+    
+    // We need a zipper-solution; we can't receive n packets before sending 
+    // anything - that's unfair.
+    
+    //service_TX();
   }
   
   // Step 2. B)
@@ -259,19 +265,31 @@ void VirtioNet::service_RX(){
   int i = 0;
   uint32_t len = 0;
   uint8_t* data;
-  while(rx_q.new_incoming()){
-    data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-    Packet pckt(data, len, Packet::UPSTREAM);
-    std::shared_ptr<Packet> pckt_ptr(&pckt);
-    _link_out(pckt_ptr); 
-    
-    // Requeue the buffer
-    add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
-    i++;
-  }
   
-  if (i)
-    rx_q.kick();
+  // We need a zipper
+  while(rx_q.new_incoming() or tx_q.new_incoming()){
+    
+    // Do one RX-packet
+    if (rx_q.new_incoming() ){
+      data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
+      Packet pckt(data, len, Packet::UPSTREAM);
+      std::shared_ptr<Packet> pckt_ptr(&pckt);
+      _link_out(pckt_ptr); 
+    
+      // Requeue the buffer
+      add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
+      i++;
+    }
+  
+    if (i)
+      rx_q.kick();
+    
+    // Do one TX-packet
+    if (tx_q.new_incoming()){
+      tx_q.dequeue(&len);      
+    }
+        
+  }
 }
 
 void VirtioNet::service_TX(){

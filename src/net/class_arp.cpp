@@ -1,4 +1,4 @@
-#define DEBUG // Allow debugging
+//#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_arp.hpp>
 
