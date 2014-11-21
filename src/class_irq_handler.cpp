@@ -1,4 +1,5 @@
-#define NDEBUG // Supress debug
+//#define DEBUG // Enable debugging
+//#define DEBUG2
 
 #include <os>
 #include <class_irq_handler.hpp>
@@ -72,11 +73,14 @@ uint16_t pic_get_isr(void)
 }
 
 
+extern char _end;
+
 /** Default Exception-handler, which just prints its number
  */
 #define EXCEPTION_HANDLER(I) \
   void exception_##I##_handler(){ \
     printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n",I);	\
+    printf("Heap end: 0x%lx \n",(uint32_t)&_end);               \
     kill(1,9); \
   }
 
@@ -305,6 +309,7 @@ inline int bsr(irq_bitfield b){
 }
 
 void IRQ_handler::notify(){
+  __asm__("cli");  
 
   // Get the IRQ's that are both pending and subscribed to
   irq_bitfield todo = irq_subscriptions & irq_pending;;
@@ -315,7 +320,7 @@ void IRQ_handler::notify(){
     irq = bsr(todo);    
     
     // Notify
-    debug("<IRQ notify> __irqueue %i Count: %li \n",irq,__irqueues[irq]);
+    debug2("<IRQ notify> __irqueue %i Count: %li \n",irq,__irqueues[irq]);
     irq_delegates[irq]();
     
     // Decrement the counter
@@ -337,6 +342,8 @@ void IRQ_handler::notify(){
   }
   
   //hlt
+  debug("<IRQ notify> Done. OS going to sleep. \n");
+  __asm__("sti");  
   __asm__ volatile("hlt;");
 }
 

@@ -1,4 +1,4 @@
-// #define DEBUG
+//#define DEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>
@@ -43,7 +43,7 @@ void OS::disable_PIT(){
   // Set a frequency for "first shot"
   OS::outb(PIT_chan0,1);
   OS::outb(PIT_chan0,0);
-  debug("<PIT> Switching to 1-shot mode (0x%b) \n",PIT_1shot);
+  debug("<PIT> Switching to 1-shot mode (0x%x) \n",PIT_one_shot);
   
   
 };

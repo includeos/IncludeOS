@@ -128,9 +128,7 @@ void Service::start()
       
       
       // Craft response
-      string response("You said: '"+
-                      string((const char*)data_loc,data_len)+
-                      "' \n");
+      string response(string((const char*)data_loc,data_len));
       bufsize = response.size() + sizeof(UDP::full_header);
       
       // Ethernet padding if necessary

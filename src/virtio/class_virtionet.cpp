@@ -1,5 +1,5 @@
-#define DEBUG // Allow debuging 
-// #define DEBUG2
+//#define DEBUG // Allow debuging 
+//#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
 #include <virtio/virtio.h>
@@ -220,9 +220,8 @@ int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
 
 void VirtioNet::irq_handler(){
 
-
   debug2("<VirtioNet> handling IRQ \n");
-  eoi(irq());  
+
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
@@ -249,8 +248,7 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  
-
+  eoi(irq());    
   
 }
 
@@ -318,7 +316,7 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
-  debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->len());
+  debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
 
 
   /** @note We have to send a virtio header first, then the packet.
