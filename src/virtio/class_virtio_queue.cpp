@@ -94,13 +94,8 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
                );
         panic("Buffer full");
   }
-  /*
-  { //@todo wait... or something.
-    printf("<Q #%i >", _pci_index);
-    panic("Trying to enqueue, but NO FREE BUFFERS");
-    }*/
-  // Remove buffers from the free list
-  
+
+  // Remove buffers from the free list  
   _num_free -= out + in;
   head = _free_head;
   

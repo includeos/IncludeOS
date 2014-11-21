@@ -139,6 +139,7 @@ caddr_t sbrk(int incr){
   heap_end += incr;
   //printf("SYSCALL SBRK allocated %i bytes. Heap end @ 0x%lx\n",
   //incr,(int32_t)heap_end);  
+  OS::rsprint("SBRK\n");
   return (caddr_t) prev_heap_end;
 }
 
