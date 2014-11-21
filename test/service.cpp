@@ -122,7 +122,7 @@ void Service::start()
             __builtin_bswap16(hdr->dport));
       
       
-      printf("%s : ",full_hdr->ip_hdr.saddr.str().c_str());
+      //printf("%s : ",full_hdr->ip_hdr.saddr.str().c_str());
       for (int i = 0; i < data_len; i++)
         printf("%c", data_loc[i]);
       
