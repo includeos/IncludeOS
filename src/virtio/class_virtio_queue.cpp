@@ -250,7 +250,8 @@ void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
 void Virtio::Queue::kick(){
   //__sync_synchronize ();
 
-  __sync_add_and_fetch(_queue.avail->idx,_num_added);// += _num_added;
+  // Atomically increment (maybe not necessary?)
+  __sync_add_and_fetch(&(_queue.avail->idx),_num_added);
   //_queue.avail->idx += _num_added;
   //__sync_synchronize ();
 
