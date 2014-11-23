@@ -175,6 +175,7 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   //uint8_t* buf = (uint8_t*)malloc(MTUSIZE);
+  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n",(uint32_t)buf);
   memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
   
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
@@ -269,8 +270,8 @@ void VirtioNet::service_RX(){
     
     // Do one RX-packet
     if (rx_q.new_incoming() ){
-      data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-      Packet pckt(data, len, Packet::UPSTREAM);
+      data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
+      Packet pckt(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM);
       std::shared_ptr<Packet> pckt_ptr(&pckt);
       _link_out(pckt_ptr); 
     

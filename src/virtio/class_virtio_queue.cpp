@@ -1,4 +1,5 @@
 //#define DEBUG // Allow debug
+//#define DEBUG2
 
 #include <virtio/class_virtio.hpp>
 #include <malloc.h>
@@ -57,6 +58,11 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 {
   //Allocate space for the queue and clear it out
   void* buffer = memalign(PAGE_SIZE,_size_bytes);
+  
+  // The queues has to be page-aligned, so this crashes:
+  // void* buffer = malloc(_size_bytes);
+  
+  
   //void* buffer = malloc(_size_bytes);
   if (!buffer) panic("Could not allocate space for Virtio::Queue");
   memset(buffer,0,_size_bytes);    
@@ -66,9 +72,10 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   init_queue(size,buffer);
   
   debug("\t * Chaining buffers \n");  
+  
   // Chain buffers  
   for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
-  //_queue.desc[size -1].next = 0;
+  _queue.desc[size -1].next = 0;
 
   
   // Allocate space for actual data tokens
@@ -82,16 +89,16 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 /** Ported more or less directly from SanOS. */
 int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data)){
   
-  int i,avail,head, prev = _free_head;
+  uint16_t i,avail,head, prev = _free_head;
   
   
   while (_num_free < out + in){ // Queue is full (we think)
     //while( num_avail() >= _size) // Wait for Virtio
-        printf("<Q %i>Buffer full (%i avail,"\
-               " used.idx: %i, avail.idx: %i )\n",
-               _pci_index,num_avail(),
-               _queue.used->idx,_queue.avail->idx
-               );
+    printf("<Q %i>Buffer full (%i avail,"               \
+           " used.idx: %i, avail.idx: %i )\n",
+           _pci_index,num_avail(),
+           _queue.used->idx,_queue.avail->idx
+           );
         panic("Buffer full");
   }
 
@@ -138,7 +145,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // SanOS: Put entry in available array, but do not update avail->idx until sync
   avail = (_queue.avail->idx + _num_added++) % _size;
   _queue.avail->ring[avail] = head;
-  
+  debug("<Q %i> avail: %i \n",_pci_index,avail);
   
   // Notify about free buffers
   //if (_num_free > 0) set_event(&vq->bufavail);
@@ -152,7 +159,7 @@ void Virtio::Queue::release(uint32_t head){
   //vq->data[head] = NULL;
 
   // Mark queue element "head" as free (the whole token chain)
-  uint32_t i = head;
+  uint16_t i = head;
   
   //It's at least one token...
   _num_free++;
@@ -165,8 +172,17 @@ void Virtio::Queue::release(uint32_t head){
   }
   
   // Add buffers back to free list
-  _queue.desc[i].next = _free_head;
-  _free_head = head;
+  
+  // What happens here?
+  debug2("<Q %i> desc[%i].next : %i \n",_pci_index,i,_queue.desc[i].next);
+  
+  // SanOS resets _free_head to this one and builds a "free list". 
+  // ...but that list never has an end, so is there any point? It keeps the 
+  // TX-tokens from rotating.
+  
+  // 
+  //_queue.desc[i].next = _free_head;
+  //_free_head = head;
 
   // SanOS: Notify about free buffers
   // Now this thread can wake up threads waiting to enqueue...
@@ -186,7 +202,7 @@ uint8_t* Virtio::Queue::dequeue(uint32_t* len){
   auto* e = &_queue.used->ring[_last_used_idx % _size];
   *len = e->len;
 
-  debug("<Q %i> Releasing token %li. Len: %li\n",_pci_index,e->id, e->len);
+  debug2("<Q %i> Releasing token %li. Len: %li\n",_pci_index,e->id, e->len);
   uint8_t* data = (uint8_t*)_queue.desc[e->id].addr;
   
   // Release buffer
@@ -251,8 +267,8 @@ void Virtio::Queue::kick(){
   //__sync_synchronize ();
 
   // Atomically increment (maybe not necessary?)
-  __sync_add_and_fetch(&(_queue.avail->idx),_num_added);
-  //_queue.avail->idx += _num_added;
+  //__sync_add_and_fetch(&(_queue.avail->idx),_num_added); 
+  _queue.avail->idx += _num_added;
   //__sync_synchronize ();
 
   _num_added = 0;

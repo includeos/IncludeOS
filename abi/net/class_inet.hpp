@@ -47,9 +47,11 @@ public:
   static Inet* up(){
     if (_ip4_list.size() < 1)
       panic("<Inet> Can't bring up IP stack without any IP addresses");
-    if (!instance)
-      instance = new Inet();
     
+    if (!instance){
+      instance = new Inet();
+      printf("<Inet> instance constructed @ 0x%lx\n",(uint32_t)instance);
+    }
     return instance;
       
   };

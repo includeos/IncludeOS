@@ -122,45 +122,51 @@ void Service::start()
             __builtin_bswap16(hdr->dport));
       
       
-      //printf("%s : ",full_hdr->ip_hdr.saddr.str().c_str());
-      for (int i = 0; i < data_len; i++)
-        printf("%c", data_loc[i]);
+      //printf("buf@0x%lx ",(uint32_t)buf);
+      //printf("UDP from %s ", full_hdr->ip_hdr.saddr.str().c_str());
       
+      /*
+      // Print the input
+      for (int i = 0; i < data_len; i++)
+      printf("%c", data_loc[i]);*/
+      
+      //printf("UDP from %s \n", full_hdr->ip_hdr.saddr.str().c_str());
       
       // Craft response
-      string response(string((const char*)data_loc,data_len));
-      bufsize = response.size() + sizeof(UDP::full_header);
       
-      // Ethernet padding if necessary
-      if (bufsize < Ethernet::minimum_payload)
-        bufsize = Ethernet::minimum_payload;
+       string response(string((const char*)data_loc,data_len));
+       bufsize = response.size() + sizeof(UDP::full_header);
+      
+       // Ethernet padding if necessary
+       if (bufsize < Ethernet::minimum_payload)
+         bufsize = Ethernet::minimum_payload;
+       
+      
+       if(buf)
+         delete[] buf;
+      
+       buf = new uint8_t[bufsize]; 
+       strcpy((char*)buf + sizeof(UDP::full_header),response.c_str());
       
       
-      if(buf)
-        delete[] buf;
-      
-      buf = new uint8_t[bufsize]; 
-      strcpy((char*)buf + sizeof(UDP::full_header),response.c_str());
-      
-      
-      // Respond
-      debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
-            response.size(),bufsize);
-      
-      /** Populate outgoing UDP header */
-      UDP::full_header* full_hdr_out = (UDP::full_header*)buf;
-      full_hdr_out->udp_hdr.dport = hdr->sport;
-      full_hdr_out->udp_hdr.sport = hdr->dport;
-
-      
-      /** Populate outgoing IP header */
-      full_hdr_out->ip_hdr.saddr = full_hdr->ip_hdr.daddr;
-      full_hdr_out->ip_hdr.daddr = full_hdr->ip_hdr.saddr;
-      full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
-      
-      Packet pckt_out(buf,bufsize,Packet::DOWNSTREAM);
-            
-      net->udp_send(std::shared_ptr<Packet>(&pckt_out));
+       // Respond
+       debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
+             response.size(),bufsize);
+         
+       /** Populate outgoing UDP header */
+       UDP::full_header* full_hdr_out = (UDP::full_header*)buf;
+       full_hdr_out->udp_hdr.dport = hdr->sport;
+       full_hdr_out->udp_hdr.sport = hdr->dport;
+       
+       
+       /** Populate outgoing IP header */
+       full_hdr_out->ip_hdr.saddr = full_hdr->ip_hdr.daddr;
+       full_hdr_out->ip_hdr.daddr = full_hdr->ip_hdr.saddr;
+       full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
+       
+       Packet pckt_out(buf,bufsize,Packet::DOWNSTREAM);
+       
+       net->udp_send(std::shared_ptr<Packet>(&pckt_out));
       
           
       return 0;
