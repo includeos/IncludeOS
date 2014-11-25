@@ -14,7 +14,7 @@ bool OS::_power = true;
 uint32_t OS::_CPU_mhz = 2500;
 
 // The heap starts @ 1MB
-caddr_t OS::_heap_start = (caddr_t)0x100000;
+caddr_t OS::_heap_start = &_end;//(caddr_t)0x100000;
 
 void OS::start()
 {

@@ -9,7 +9,7 @@ USE16
 	%define _mode32_data_segment 0x10
 
 	%define _kernel_loc 0x8000
-	%define _kernel_stack 0x800000
+	%define _kernel_stack 0x80000
 	
 	;; We don't really need a stack, except for calls
 	%define _stack_segment 0x7000

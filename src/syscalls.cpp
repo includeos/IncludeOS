@@ -131,16 +131,22 @@ caddr_t sbrk(int incr){
   //Don't exceed the limit
   //incr = incr > SBRK_MAX ? SBRK_MAX : incr;
   
+  /** 
+      Check if heap collides with stack
+      
+      NOTE: Since we moved the stack to OS-location, growing towards addr. 0, 
+      this is no longer necessary.
+      
   if (heap_end + incr > stack_ptr)
     {
       write (1, (char*)"\t\tERROR: Heap and stack collision\n", 25);
       //abort ();
-    }
+      } **/
   
   heap_end += incr;
   //printf("SYSCALL SBRK allocated %i bytes. Heap end @ 0x%lx\n",
   //incr,(int32_t)heap_end);  
-  OS::rsprint("SBRK\n");
+  //OS::rsprint("SBRK\n");
   return (caddr_t) prev_heap_end;
 }
 
