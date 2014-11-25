@@ -45,8 +45,6 @@ uint16_t IP4::checksum(ip_header* hdr){
 int IP4::transmit(std::shared_ptr<Packet>& pckt){
 
   //DEBUG Issue #102 :
-  ASSERT(_netmask.whole == addr({255,255,0,0}).whole);
-  ASSERT(_local_ip.whole == addr({10,0,0,10}).whole);
   // Now _local_ip fails first, while _netmask fails if we remove local ip
   
   ASSERT(pckt->len() > sizeof(IP4::full_header));
