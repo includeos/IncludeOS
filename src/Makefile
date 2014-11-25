@@ -14,7 +14,7 @@ CPP = $(OS)/bin/i686-elf-g++
 LD  = $(OS)/bin/i686-elf-ld 
 
 GCC_VER = $(shell $(CC) -dumpversion)
-LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
 INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
@@ -61,6 +61,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # - a bootloader
 # - an OS library for the service to link against
 all: bootloader os.a etags
+	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
 stripped: bootloader os.a
