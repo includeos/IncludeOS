@@ -10,14 +10,23 @@
 #include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
 
-bool OS::power = true;
+bool OS::_power = true;
 uint32_t OS::_CPU_mhz = 2500;
 
+// The heap starts @ 1MB
+caddr_t OS::_heap_start = (caddr_t)0x100000;
 
 void OS::start()
 {
   rsprint(">>> OS class started\n");
+  
+  // Disable the timer interrupt completely
   disable_PIT();
+  
+  // Set heap to an appropriate location
+  if (&_end > _heap_start)
+    _heap_start = &_end;
+        
   printf("<OS> UPTIME: %li \n",uptime());
 
   __asm__("cli");  
@@ -66,7 +75,7 @@ void OS::halt(){
   OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - everything seems OK \n");
   //OS::rsprint(eof.part);
-  while(power){        
+  while(_power){        
     
     IRQ_handler::notify(); 
     

@@ -2,7 +2,8 @@
 #define CLASS_OS_H
 
 #include <common>
-
+#include <assert.h>
+extern char _end; // Defined by the linker 
 
 /** The entrypoint for OS services
     
@@ -11,8 +12,13 @@
 class OS{
   
  private:  
-
-  static bool power;
+  
+  /** Indicate if the OS is running. */
+  static bool _power;
+  
+  /** The heap start address. Used by sbrk/malloc */
+  static caddr_t _heap_start;
+  
   
   /** The OS will call halt (i.e. wait for interrupts) once the 
       service is started */
@@ -23,7 +29,7 @@ class OS{
  public: 
 
   /** Clock cycles since boot. */
-  static inline uint64_t rdtsc()
+  static inline uint64_t cycles_since_boot()
   {
     uint64_t ret;
     __asm__ volatile ("rdtsc":"=A"(ret));
@@ -34,7 +40,7 @@ class OS{
   
   /** Uptime in seconds. */
   static inline uint32_t uptime()
-  { return (rdtsc() / _CPU_mhz) / 1000000; }
+  { return (cycles_since_boot() / _CPU_mhz) / 1000000; }
   
   /** Receive a byte from port. @todo Should be moved */
   static uint8_t inb(int port);
@@ -47,6 +53,11 @@ class OS{
 
   /** Write a character to serial port. @todo Should be moved Dev::serial(n) */
   static int rswrite(char c);
+
+  static caddr_t heap_start(){
+    return _heap_start;
+  }
+  
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();

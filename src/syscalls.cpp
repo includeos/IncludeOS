@@ -104,7 +104,7 @@ int write(int file, char *ptr, int len)
 };
 
 extern char _end; // Defined by the linker 
-caddr_t heap_end=(caddr_t)&_end;//(void*)0x1;
+caddr_t heap_end=OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
 caddr_t sbrk(int incr){
     
   //Get the stack pointer
@@ -117,9 +117,10 @@ caddr_t sbrk(int incr){
 	   );       
   
   void* prev_heap_end;
+  /*
   if (heap_end == (void*)0x0) {
     heap_end = &_end;
-  }
+    }*/
   
   prev_heap_end = heap_end;
 
@@ -175,5 +176,6 @@ void panic(const char* why){
   kill(9,1);
 }
 
-//Compiler says this is allready declared in <sys/time.h>
-//int gettimeofday(struct timeval *p, struct timezone *z);
+int gettimeofday(struct timeval* UNUSED(p), void* UNUSED(z)){
+  return 5;
+}
