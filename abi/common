@@ -39,11 +39,16 @@
 //BOCHS Break point
 #define BREAK __asm__ volatile("xchg %bx,%bx");
 
+// Supress asserts while in production
+#define PRODUCTION
+
 #ifndef PRODUCTION
 #define ASSERT(X) assert(X)
 #else
 #define ASSERT(X)
 #endif
+
+
 
 #ifdef DEBUG
 #define debug(X,...)  printf("\n" X,##__VA_ARGS__);
