@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = IncludeOS_tests_$(shell git describe --dirty)
-OPTIONS = -Ofast -msse3 -Wall -Wextra
+OPTIONS = -O -Wall -Wextra #-msse3
 
 # Modules
 FILES = service.cpp

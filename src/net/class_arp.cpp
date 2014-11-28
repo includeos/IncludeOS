@@ -1,5 +1,5 @@
-//#define DEBUG // Allow debugging
-//#define DEBUG2 // Allow debugging
+#define DEBUG // Allow debugging
+#define DEBUG2 // Allow debugging
 
 #include <os>
 #include <net/class_arp.hpp>

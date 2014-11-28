@@ -2,7 +2,7 @@
 
 #include <syscalls.hpp>
 #include <string.h>
-#include <vga.hpp>
+//#include <vga.hpp>
 
 char *__env[1] = { 0 };
 char **environ = __env;
@@ -94,7 +94,7 @@ int write(int file, char *ptr, int len)
 		return len;
 	
 	// VGA console output
-	consoleVGA.write(ptr, len);
+	//consoleVGA.write(ptr, len);
 	
 	// serial output
 	for(int i = 0; i < len; i++)
@@ -105,6 +105,7 @@ int write(int file, char *ptr, int len)
 
 extern char _end; // Defined by the linker 
 caddr_t heap_end=OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
+
 caddr_t sbrk(int incr){
     
   //Get the stack pointer
@@ -178,10 +179,14 @@ int wait(int* UNUSED(status)){
 
 void panic(const char* why){
   printf("\n\t **** PANIC: **** %s\n",why);
-  printf("\tHeap end: 0x%lx \n",(uint32_t)heap_end);
+  printf("\tHeap end: %p \n",heap_end);
   kill(9,1);
 }
 
-int gettimeofday(struct timeval* UNUSED(p), void* UNUSED(z)){
+
+int gettimeofday(struct timeval* p, void* UNUSED(z)){
+  float seconds = OS::uptime();
+  p->tv_sec = int(seconds);
+  p->tv_usec = (seconds - p->tv_sec) * 1000000;
   return 5;
 }

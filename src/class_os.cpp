@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>
@@ -11,23 +11,26 @@
 #include <class_pci_manager.hpp>
 
 bool OS::_power = true;
-uint32_t OS::_CPU_mhz = 2500;
+float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 
 // The heap starts @ 1MB
-caddr_t OS::_heap_start = &_end;//(caddr_t)0x100000;
+caddr_t OS::_heap_start = (caddr_t)0x100000;//&_end;//
 
 void OS::start()
 {
-  rsprint(">>> OS class started\n");
-  
-  // Disable the timer interrupt completely
-  disable_PIT();
-  
   // Set heap to an appropriate location
   if (&_end > _heap_start)
     _heap_start = &_end;
-        
-  printf("<OS> UPTIME: %li \n",uptime());
+
+  rsprint(">>> OS class started\n");
+  srand(time(NULL));
+  
+  // Disable the timer interrupt completely
+  disable_PIT();
+
+  timeval t;
+  gettimeofday(&t,0);
+  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",t.tv_sec,t.tv_usec,uptime());
 
   __asm__("cli");  
   IRQ_handler::init();

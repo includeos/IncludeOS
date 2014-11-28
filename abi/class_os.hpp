@@ -24,7 +24,7 @@ class OS{
       service is started */
   static void halt();  
   
-  static uint32_t _CPU_mhz;
+  static float _CPU_mhz;
 
  public: 
 
@@ -39,7 +39,7 @@ class OS{
   static void disable_PIT();
   
   /** Uptime in seconds. */
-  static inline uint32_t uptime()
+  static inline float uptime()
   { return (cycles_since_boot() / _CPU_mhz) / 1000000; }
   
   /** Receive a byte from port. @todo Should be moved */

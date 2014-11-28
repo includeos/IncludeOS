@@ -43,7 +43,7 @@ extern "C" {
     __asm__ volatile ("cli");
 
     // enable SSE extensions bitmask in CR4 register
-    enableSSE();
+    //enableSSE();
     
     init_serial();    
 
