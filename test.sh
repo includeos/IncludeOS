@@ -18,6 +18,7 @@ echo -e "\nTest complete. If you saw a boot message, it worked.\n"
 # Alfred: I'm using this for virtualbox testing 
 if [ -d .vbox_share ]
 then
+    echo "Copying virtualbox image"
     cp *.vdi .vbox_share
 fi
 

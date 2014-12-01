@@ -14,7 +14,7 @@ bool OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 
 // The heap starts @ 1MB
-caddr_t OS::_heap_start = (caddr_t)0x100000;//&_end;//
+caddr_t OS::_heap_start = (caddr_t)0x200000;//&_end;//
 
 void OS::start()
 {
