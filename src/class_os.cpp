@@ -75,8 +75,9 @@ void OS::halt(){
   //intstr eof{EOF};
   
 
-  OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System idle - everything seems OK \n");
+  OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  OS::rsprint(">>> System idle - waiting for interrupts \n");
+  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   //OS::rsprint(eof.part);
   while(_power){        
     
