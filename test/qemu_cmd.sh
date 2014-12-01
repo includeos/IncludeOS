@@ -26,7 +26,7 @@ export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=ne
 
 export DEV_GRAPHICS="-nographic" 
 export DEV_HDD="-hda $1 --enable-kvm"
-#export DEV_HDD="-hda $1 "
+#export DEV_HDD="-hda $1" 
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
 
