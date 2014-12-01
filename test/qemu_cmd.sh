@@ -21,10 +21,12 @@ export macaddress="c0:01:0a:00:00:0a"
 #export macaddress="08:00:27:9d:86:e8"
 #export macaddress="08:00:c0:a8:7a:0a" # 192.168.122.10 adapted to default virsh network 
 
-export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
+
+export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0 -m 8 "
 
 export DEV_GRAPHICS="-nographic"
-export DEV_HDD="-hda $1"
+#export DEV_HDD="-hda $1 --enable-kvm"
+export DEV_HDD="-hda $1 "
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
 
