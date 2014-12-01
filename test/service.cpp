@@ -164,9 +164,10 @@ void Service::start()
        full_hdr_out->ip_hdr.daddr = full_hdr->ip_hdr.saddr;
        full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
        
-       Packet pckt_out(buf,bufsize,Packet::DOWNSTREAM);
+       auto pckt_out = std::make_shared<Packet>
+         (Packet(buf,bufsize,Packet::DOWNSTREAM));
        
-       net->udp_send(std::shared_ptr<Packet>(&pckt_out));
+       net->udp_send(pckt_out);
       
           
       return 0;

@@ -1,5 +1,5 @@
-#define DEBUG // Allow debugging
-#define DEBUG2 // Allow debugging
+//#define DEBUG // Allow debugging
+//#define DEBUG2 // Allow debugging
 
 #include <os>
 #include <net/class_arp.hpp>
@@ -110,8 +110,12 @@ int Arp::arp_respond(header* hdr_in){
   hdr->ethhdr.dest.minor = hdr->dhwaddr.minor;
   hdr->ethhdr.dest.major = hdr->dhwaddr.major;
   hdr->ethhdr.type = Ethernet::ETH_ARP;    
-  Packet pckt(buffer, bufsize, Packet::DOWNSTREAM);
-  std::shared_ptr<Packet> packet_ptr(&pckt);
+  
+  // We're passing a stack-pointer here. That's dangerous if the packet 
+  // is supposed to be kept, somewhere up the stack. 
+  auto packet_ptr = std::make_shared<Packet>
+    (Packet(buffer, bufsize, Packet::DOWNSTREAM));
+  
   _linklayer_out(packet_ptr);
   
   return 0;

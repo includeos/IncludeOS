@@ -124,7 +124,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // Mark all inbound tokens as device-writable
   for (; in; i = _queue.desc[i].next, in--) 
     {
-      //debug("<Q> Enqueuing inbound \n");
+      debug("<Q> Enqueuing inbound \n");
       _queue.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
       _queue.desc[i].addr = (uint64_t)sg->data;
       _queue.desc[i].len = sg->size;

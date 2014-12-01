@@ -212,7 +212,7 @@ int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
   sg[1].size = len - sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,0);
   
-  //printf("Buffer data: %s \n",(char*)sg[1].data);
+  debug2("<VirtioNet> Added receive buffer \n");
   
   return 0;
 }
@@ -271,15 +271,21 @@ void VirtioNet::service_RX(){
     // Do one RX-packet
     if (rx_q.new_incoming() ){
       data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
-      Packet pckt(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM);
-      std::shared_ptr<Packet> pckt_ptr(&pckt);
+      
+      // We're passing a stack-pointer here. That's dangerous if the packet 
+      // is supposed to be kept, somewhere up the stack. 
+      auto pckt_ptr = std::make_shared<Packet>
+        (Packet(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM));
+      
       _link_out(pckt_ptr); 
     
       // Requeue the buffer
       add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
       i++;
+
     }
-  
+    debug2("<VirtioNet> Service loop about to kick RX if %i \n",i);
+
     if (i)
       rx_q.kick();
     
@@ -289,6 +295,8 @@ void VirtioNet::service_RX(){
     }
         
   }
+  
+  debug2("<VirtioNet> Done servicing queues\n");
 }
 
 void VirtioNet::service_TX(){

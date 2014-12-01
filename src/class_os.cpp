@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>

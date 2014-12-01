@@ -104,7 +104,7 @@ int write(int file, char *ptr, int len)
 };
 
 extern char _end; // Defined by the linker 
-caddr_t heap_end=OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
+caddr_t heap_end= OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
 
 caddr_t sbrk(int incr){
     

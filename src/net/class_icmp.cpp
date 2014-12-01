@@ -53,8 +53,9 @@ void ICMP::ping_reply(full_header* full_hdr){
   dst_ip_hdr->protocol = IP4::IP4_ICMP;
   
   /** Create packet */
-  Packet pckt(buf, sizeof(full_header), Packet::DOWNSTREAM);
-  std::shared_ptr<Packet> packet_ptr(&pckt);
+  auto packet_ptr = std::make_shared<Packet>
+    (Packet(buf, sizeof(full_header), Packet::DOWNSTREAM));
+
   _network_layer_out(packet_ptr);
 }
 
