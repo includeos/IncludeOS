@@ -17,7 +17,7 @@ namespace net {
   public:
     
     /** Get the buffer */
-    const uint8_t* buffer() const
+    uint8_t* buffer() const
     { return _data; }
     
     /** Get the buffer length */
@@ -39,9 +39,13 @@ namespace net {
     /** Get next-hop ip4. */
     IP4::addr next_hop();
     
-    /** Construct. */
+    /** Construct, using existing buffer. */
     Packet(uint8_t* data, uint32_t len, packet_status stat);
 
+    /** Construct, allocating new buffer. */
+    //Packet(uint32_t len);
+    
+    
     /** Destruct. */
     ~Packet();
     

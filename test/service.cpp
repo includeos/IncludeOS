@@ -1,8 +1,9 @@
 //#define NDEBUG // Debug supression
 
 #include <os>
-#include <iostream>
+#include <EASTL/list.h>
 #include <net/inet>
+#include <vector>
 
 using namespace std;
 using namespace net;
@@ -61,6 +62,39 @@ void Service::init(){
   
   }*/
 
+
+class PacketStore {
+public:
+  shared_ptr<Packet> getPacket(){
+    if(_queue.empty())
+      panic("Packet store is out of packets");
+    auto elt = *_queue.begin();
+    _queue.pop_front();
+    _queue.push_back(elt);
+    return elt;
+  };
+  
+  
+  PacketStore(uint16_t n, uint32_t size):
+    _n(n), _bufsize(size)
+  {       
+    _pool = new uint8_t[n*size];
+    for(int i = 0; i < _n; i++){
+      _queue.push_back
+        (make_shared<Packet>(Packet(&_pool[i*size],size,Packet::AVAILABLE)));
+    }
+        
+    printf("<PacketStore> Allocated %li byte buffer pool for packets \n",n*size);
+  };
+
+  //PacketStore(int n, int size, caddr_t pool);
+  
+private:
+  uint16_t _n = 100;
+  uint32_t _bufsize = 1500;
+  uint8_t* _pool = 0;
+  eastl::list<shared_ptr<Packet> > _queue;
+}UDP_store(100,1500);
 
 
 void Service::start()
@@ -126,15 +160,19 @@ void Service::start()
       //printf("UDP from %s ", full_hdr->ip_hdr.saddr.str().c_str());
       
       /*
+      printf("Got '");
       // Print the input
       for (int i = 0; i < data_len; i++)
-      printf("%c", data_loc[i]);*/
+        printf("%c", data_loc[i]);
       
-      //printf("UDP from %s \n", full_hdr->ip_hdr.saddr.str().c_str());
-      
+      printf("' UDP data  from %s. (str: %s) \n", 
+             full_hdr->ip_hdr.saddr.str().c_str(),data_loc);
+      */
       // Craft response
       
        string response(string((const char*)data_loc,data_len));
+       
+       /*
        bufsize = response.size() + sizeof(UDP::full_header);
       
        // Ethernet padding if necessary
@@ -146,9 +184,17 @@ void Service::start()
          delete[] buf;
       
        buf = new uint8_t[bufsize]; 
-       strcpy((char*)buf + sizeof(UDP::full_header),response.c_str());
-      
-      
+
+       */
+       
+       auto pckt_out = UDP_store.getPacket();
+       auto buf = pckt_out->buffer();
+       
+       strncpy((char*)buf + sizeof(UDP::full_header),response.c_str(),data_len);
+       buf[data_len-1]=0;
+       debug("Reply: '%s' \n",buf+sizeof(UDP::full_header));
+
+       
        // Respond
        debug("<APP SERVER> Sending %li b wrapped in %i b buffer \n",
              response.size(),bufsize);
@@ -157,15 +203,15 @@ void Service::start()
        UDP::full_header* full_hdr_out = (UDP::full_header*)buf;
        full_hdr_out->udp_hdr.dport = hdr->sport;
        full_hdr_out->udp_hdr.sport = hdr->dport;
-       
+       full_hdr_out->udp_hdr.length = __builtin_bswap16(data_len);
        
        /** Populate outgoing IP header */
        full_hdr_out->ip_hdr.saddr = full_hdr->ip_hdr.daddr;
        full_hdr_out->ip_hdr.daddr = full_hdr->ip_hdr.saddr;
        full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
        
-       auto pckt_out = std::make_shared<Packet>
-         (Packet(buf,bufsize,Packet::DOWNSTREAM));
+       /*auto pckt_out = std::make_shared<Packet>
+         (Packet(buf,bufsize,Packet::DOWNSTREAM));*/
        
        net->udp_send(pckt_out);
       

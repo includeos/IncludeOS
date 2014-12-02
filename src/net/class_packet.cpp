@@ -9,11 +9,14 @@ Packet::packet_status Packet::status()
 { return _status; }
 
 Packet::~Packet(){
-  debug("DESTRUCT packet, buf@0x%lx \n",(uint32_t)_data);
+  debug("<Packet> DESTRUCT packet, buf@0x%lx \n",(uint32_t)_data);
 }
 
 Packet::Packet(uint8_t* buf, uint32_t len, packet_status s):
-  _data(buf),_len(len),_status(s),_next_hop4(){}
+  _data(buf),_len(len),_status(s),_next_hop4(){
+
+  debug("<Packet> Constructed. Buf @ %p \n",buf);
+}
 
 
 IP4::addr Packet::next_hop(){
