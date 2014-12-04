@@ -19,10 +19,10 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  = -O2 #-msse3
+CAPABS  = -Ofast -msse3
 WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
 

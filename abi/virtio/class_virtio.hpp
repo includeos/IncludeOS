@@ -165,7 +165,10 @@ public:
     
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
-        
+    
+    void disable_interrupts();
+    void enable_interrupts();
+    
     void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
     
     /** Release token. @param head : the token ID to release*/

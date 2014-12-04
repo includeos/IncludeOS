@@ -263,6 +263,14 @@ void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
 };
 
 
+void Virtio::Queue::disable_interrupts(){
+  _queue.avail->flags |= (1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
+}
+
+void Virtio::Queue::enable_interrupts(){
+  _queue.avail->flags &= ~(1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
+}
+
 void Virtio::Queue::kick(){
   //__sync_synchronize ();
 

@@ -265,6 +265,7 @@ void VirtioNet::service_RX(){
   uint32_t len = 0;
   uint8_t* data;
   
+  rx_q.disable_interrupts();
   // We need a zipper
   while(rx_q.new_incoming() or tx_q.new_incoming()){
     
@@ -293,7 +294,8 @@ void VirtioNet::service_RX(){
     if (tx_q.new_incoming()){
       tx_q.dequeue(&len);      
     }
-        
+    
+    rx_q.enable_interrupts();
   }
   
   debug2("<VirtioNet> Done servicing queues\n");

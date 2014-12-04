@@ -309,8 +309,8 @@ inline int bsr(irq_bitfield b){
 }
 
 void IRQ_handler::notify(){
-  __asm__("cli");  
-
+  //__asm__("cli");  
+  
   // Get the IRQ's that are both pending and subscribed to
   irq_bitfield todo = irq_subscriptions & irq_pending;;
   int irq = 0;
@@ -343,7 +343,7 @@ void IRQ_handler::notify(){
   
   //hlt
   debug("<IRQ notify> Done. OS going to sleep. \n");
-  __asm__("sti");  
+  //__asm__("sti");  
   __asm__ volatile("hlt;");
 }
 
