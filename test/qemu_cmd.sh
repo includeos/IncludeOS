@@ -1,7 +1,7 @@
 
 #export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 #export QEMU="sudo kvm" # No sudo for "qemy-system-x" # sudo kvm
-export QEMU="qemu-system-x86_64 -enable-kvm"
+export QEMU="qemu-system-x86_64 -enable-kvm "
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor
