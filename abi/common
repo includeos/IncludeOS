@@ -31,15 +31,24 @@
 #define MAX_DISKS 4 
 #define MAX_SERIALS 4
 
-//Mac
-typedef unsigned char mac_t[6];
 
 /* LIMITS */
-#define SBRK_MAX 0x10000
+//#define SBRK_MAX 0x10000
 
 
 //BOCHS Break point
 #define BREAK __asm__ volatile("xchg %bx,%bx");
+
+// Supress asserts while in production
+#define PRODUCTION
+
+#ifndef PRODUCTION
+#define ASSERT(X) assert(X)
+#else
+#define ASSERT(X)
+#endif
+
+
 
 #ifdef DEBUG
 #define debug(X,...)  printf("\n" X,##__VA_ARGS__);

@@ -1,12 +1,16 @@
 #ifndef CLASS_ETHERNET_HPP
 #define CLASS_ETHERNET_HPP
 
+#include <net/inet.hpp>
 #include <delegate>
 #include <string>
 #include <iostream>
+//#include <net/class_packet.hpp>
+
 
 namespace net {
-
+  class Packet;
+  
   class Ethernet{
   
   public:
@@ -16,8 +20,8 @@ namespace net {
     union addr{
       uint8_t part[ETHER_ADDR_LEN];
       struct {
-        uint32_t major;
         uint16_t minor;
+        uint32_t major;
       } __attribute__((packed));   
     
       inline std::string str() const {
@@ -54,30 +58,31 @@ namespace net {
     // Minimum payload
     static constexpr int minimum_payload = 46;
   
-    /** Handle raw ethernet buffer. */
-    int physical_in(uint8_t* data, int len);
+    /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
+    int bottom(std::shared_ptr<Packet>& pckt);
   
-    /** Set ARP handler. */
-    inline void set_arp_handler(delegate<int(uint8_t* data, int len)> del)
+    /** Delegate upstream ARP handler. */
+    inline void set_arp_handler(upstream del)
     { _arp_handler = del; };
   
-    /** Set IPv4 handler. */
-    inline void set_ip4_handler(delegate<int(uint8_t* data, int len)> del)
+    /** Delegate upstream IPv4 handler. */
+    inline void set_ip4_handler(upstream del)
     { _ip4_handler = del; };
   
-    /** Set IPv6 handler. */
-    inline void set_ip6_handler(delegate<int(uint8_t* data, int len)> del)
+    /** Delegate upstream IPv6 handler. */
+    inline void set_ip6_handler(upstream del)
     { _ip6_handler = del; };
   
-  
-    inline void set_physical_out(delegate<int(uint8_t* data,int len)> del)
+    
+    /** Delegate downstream */
+    inline void set_physical_out(downstream del)
     { _physical_out = del; }
   
     inline addr mac()
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(addr mac, Ethernet::ethertype type,uint8_t* data, int len);
+    int transmit(std::shared_ptr<Packet>& pckt);
   
     Ethernet(addr mac);
 
@@ -85,12 +90,12 @@ namespace net {
     addr _mac;
 
     // Upstream OUTPUT connections
-    delegate<int(uint8_t* data, int len)> _ip4_handler;
-    delegate<int(uint8_t* data, int len)> _ip6_handler;
-    delegate<int(uint8_t* data, int len)> _arp_handler;
+    upstream _ip4_handler;
+    upstream _ip6_handler;
+    upstream _arp_handler;
   
     // Downstream OUTPUT connection
-    delegate<int(uint8_t* data, int len)> _physical_out;
+    downstream _physical_out;
   
   
     /*

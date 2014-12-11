@@ -1,15 +1,16 @@
 USE16
 	;; Memory layout, 16-bit
 	%define _boot_segment 0x7c0 
-	%define _os_segment 0x800
-	%define _os_pointer 0x0
+    ;; %define _os_segment 0x800
+    ;; 	%define _os_pointer 0x0
 
 	;; Memory layout, 32-bit
 	%define _mode32_code_segment 0x08
 	%define _mode32_data_segment 0x10
 
-	%define _kernel_loc 0x8000
-	%define _kernel_stack 0x800000
+	%define _kernel_loc 0x200000
+        ;; %define _kernel_stack 0x800000
+        %define _kernel_stack 0x200000
 	
 	;; We don't really need a stack, except for calls
 	%define _stack_segment 0x7000

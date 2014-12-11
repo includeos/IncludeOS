@@ -2,13 +2,16 @@
 #define CLASS_IP4_HPP
 
 #include <delegate>
-#include <net/class_ethernet.hpp>
+
 #include <net/inet.hpp>
+#include <net/class_ethernet.hpp>
 
 #include <iostream>
 #include <string>
 
 namespace net {
+
+  class Packet;
 
   /** IP4 layer skeleton */
   class IP4 {  
@@ -18,7 +21,7 @@ namespace net {
     enum proto{IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6};
   
     /** Signature for output-delegates. */
-    typedef delegate<int(uint8_t* data,int len)> subscriber;  
+    //typedef delegate<int(uint8_t* data,int len)> subscriber;  
   
     /** Temporary protocol buffer. Might encapsulate later.*/
     typedef uint8_t* pbuf;
@@ -39,7 +42,10 @@ namespace net {
 
       inline bool operator!=(const addr src) const
       { return src.whole != whole; }
-    
+      
+      inline bool operator!=(const uint32_t src) const
+      { return src != whole; }
+      
       std::string str() const {
         char _str[15];
         sprintf(_str,"%1i.%1i.%1i.%1i",part[0],part[1],part[2],part[3]);
@@ -47,14 +53,7 @@ namespace net {
       }        
     
     };
-  
-    /** Delegate type for linklayer out. */
-    typedef delegate<int(addr,addr,uint8_t* data,int len)> link_out;      
-  
-    /** Delegate type for input from upper layers. */
-    typedef delegate<int(IP4::addr sip,IP4::addr dip, IP4::proto, 
-                         pbuf buf, uint32_t len)> transmitter;
-  
+    
 
     /** IP4 header */
     struct ip_header{
@@ -81,26 +80,35 @@ namespace net {
 
   
     /** Upstream: Input from link layer. */
-    int bottom(uint8_t* data, int len);
+    int bottom(std::shared_ptr<Packet>& pckt);
   
     /** Upstream: Outputs to transport layer*/
-    inline void set_icmp_handler(subscriber s)
+    inline void set_icmp_handler(upstream s)
     { _icmp_handler = s; }
   
-    inline void set_udp_handler(subscriber s)
+    inline void set_udp_handler(upstream s)
     { _udp_handler = s; }
     
   
-    inline void set_tcp_handler(subscriber s)
+    inline void set_tcp_handler(upstream s)
     { _tcp_handler = s; }
     
   
     /** Downstream: Delegate linklayer out */
-    void set_linklayer_out(link_out s)
+    void set_linklayer_out(downstream s)
     { _linklayer_out = s; };
   
-    /** Downstream: Receive data from above. */
-    int transmit(addr source, addr dest, proto p,uint8_t* data, uint32_t len);
+    /** Downstream: Receive data from above and transmit. 
+        
+        @note The following *must be set* in the packet:
+        
+        * Destination IP
+        * Protocol
+        
+        Source IP *can* be set - if it's not, IP4 will set it.
+        
+     */
+    int transmit(std::shared_ptr<Packet>& pckt);
 
     /** Compute the IP4 header checksum */
     uint16_t checksum(ip_header* hdr);
@@ -108,18 +116,21 @@ namespace net {
     
     
     /** Initialize. Sets a dummy linklayer out. */
-    IP4();
+    IP4(addr ip, addr netmask);
   
   
   private:    
-  
+    addr _local_ip;
+    addr _netmask;
+    addr _gateway;
+    
     /** Downstream: Linklayer output delegate */
-    link_out _linklayer_out;
+    downstream _linklayer_out;
   
     /** Upstream delegates */
-    subscriber _icmp_handler;
-    subscriber _udp_handler;
-    subscriber _tcp_handler;  
+    upstream _icmp_handler;
+    upstream _udp_handler;
+    upstream _tcp_handler;  
         
   };
 

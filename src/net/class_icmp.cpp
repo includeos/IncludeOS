@@ -5,12 +5,12 @@
 
 using namespace net;
 
-int ICMP::bottom(uint8_t* data, int len){
+int ICMP::bottom(std::shared_ptr<Packet>& pckt){
 
-  if ((uint32_t)len < sizeof(full_header)) //Drop if not a full header.
+  if (pckt->len() < sizeof(full_header)) //Drop if not a full header.
     return -1;
   
-  full_header* full_hdr = (full_header*)data;
+  full_header* full_hdr = (full_header*)pckt->buffer();
   icmp_header* hdr = &full_hdr->icmp_hdr;
   
   switch(hdr->type)
@@ -45,19 +45,27 @@ void ICMP::ping_reply(full_header* full_hdr){
         full_hdr->icmp_hdr.rest, hdr->rest);
   
   debug("<ICMP> Transmitting answer\n");
-  _network_layer_out(full_hdr->ip_hdr.daddr,full_hdr->ip_hdr.saddr,
-                     IP4::IP4_ICMP,buf,sizeof(full_header));
+
+  /** Populate response IP header */
+  IP4::ip_header* dst_ip_hdr = (IP4::ip_header*)(buf + sizeof(Ethernet::header));
+  dst_ip_hdr->saddr = full_hdr->ip_hdr.daddr;
+  dst_ip_hdr->daddr = full_hdr->ip_hdr.saddr;
+  dst_ip_hdr->protocol = IP4::IP4_ICMP;
+  
+  /** Create packet */
+  auto packet_ptr = std::make_shared<Packet>
+    (Packet(buf, sizeof(full_header), Packet::DOWNSTREAM));
+
+  _network_layer_out(packet_ptr);
 }
 
-int icmp_ignore(IP4::addr UNUSED(sip),IP4::addr UNUSED(dip), 
-                IP4::proto UNUSED(p), IP4::pbuf UNUSED(buf), 
-                uint32_t UNUSED(len)){
+int icmp_ignore(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<ICMP IGNORE> No handler. DROP!\n");
   return -1;
 }
 
 ICMP::ICMP() : 
-  _network_layer_out(IP4::transmitter(icmp_ignore))
+  _network_layer_out(downstream(icmp_ignore))
 {
-buf = (uint8_t*)malloc(sizeof(full_header));
+  buf = (uint8_t*)malloc(sizeof(full_header));
 }

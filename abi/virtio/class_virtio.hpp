@@ -126,12 +126,12 @@ public:
     // The actual queue struct
     virtq _queue;
     
-    uint16_t _iobase; // Device PCI location
-    uint16_t _num_free; // Number of free descriptors
-    uint16_t _free_head; // First available descriptor
-    uint16_t _num_added; // Entries to be added to _queue.avail->idx
-    uint16_t _last_used_idx; // Last entry inserted by device
-    uint16_t _pci_index; // Queue nr.
+    uint16_t _iobase = 0; // Device PCI location
+    uint16_t _num_free = 0; // Number of free descriptors
+    uint16_t _free_head = 0; // First available descriptor
+    uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
+    uint16_t _last_used_idx = 0; // Last entry inserted by device
+    uint16_t _pci_index = 0; // Queue nr.
     //void **_data;
     
         
@@ -165,7 +165,10 @@ public:
     
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
-        
+    
+    void disable_interrupts();
+    void enable_interrupts();
+    
     void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
     
     /** Release token. @param head : the token ID to release*/
@@ -180,6 +183,7 @@ public:
 
     inline uint16_t num_avail()
     { return _queue.avail->idx - _queue.used->idx; }
+        
     
     inline uint16_t size(){ return _size; }
     
@@ -242,11 +246,11 @@ private:
   PCI_Device& _pcidev;
   
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
-  uint32_t _iobase;  
+  uint32_t _iobase = 0;  
   
   uint8_t _irq = 0;
-  uint32_t _features;
-  uint16_t _virtio_device_id;
+  uint32_t _features = 0;
+  uint16_t _virtio_device_id = 0;
   
   // Indicate if virtio device ID is legacy or standard
   bool _LEGACY_ID = 0;

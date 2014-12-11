@@ -14,15 +14,15 @@ CPP = $(OS)/bin/i686-elf-g++
 LD  = $(OS)/bin/i686-elf-ld 
 
 GCC_VER = $(shell $(CC) -dumpversion)
-LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
 INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  = -O2 -msse3
+CAPABS  = -Ofast -msse3
 WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
 
@@ -31,7 +31,7 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 ###################################################
 TEST_OBJ= tests/tests.o
 
-OS_OBJECTS=kernel_start.o syscalls.o interrupts.o vga.o class_os.o \
+OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
 	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
@@ -41,7 +41,7 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o vga.o class_os.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
 	net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
 	net/class_packet.o\
-	$(TEST_OBJ) 
+	$(TEST_OBJ) #vga.o
 
 # Libraries
 ###################################################
@@ -61,6 +61,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # - a bootloader
 # - an OS library for the service to link against
 all: bootloader os.a etags
+	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
 stripped: bootloader os.a

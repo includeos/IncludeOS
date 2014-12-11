@@ -60,7 +60,7 @@ extern "C" {
 
     //Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
-    assert(_test_glob == 1);
+    ASSERT(_test_glob == 1);
 
     
     OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    

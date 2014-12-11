@@ -2,7 +2,7 @@
 
 #include <syscalls.hpp>
 #include <string.h>
-#include <vga.hpp>
+//#include <vga.hpp>
 
 char *__env[1] = { 0 };
 char **environ = __env;
@@ -94,7 +94,7 @@ int write(int file, char *ptr, int len)
 		return len;
 	
 	// VGA console output
-	consoleVGA.write(ptr, len);
+	//consoleVGA.write(ptr, len);
 	
 	// serial output
 	for(int i = 0; i < len; i++)
@@ -104,7 +104,8 @@ int write(int file, char *ptr, int len)
 };
 
 extern char _end; // Defined by the linker 
-caddr_t heap_end=(caddr_t)&_end;//(void*)0x1;
+caddr_t heap_end= OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
+
 caddr_t sbrk(int incr){
     
   //Get the stack pointer
@@ -117,9 +118,10 @@ caddr_t sbrk(int incr){
 	   );       
   
   void* prev_heap_end;
+  /*
   if (heap_end == (void*)0x0) {
     heap_end = &_end;
-  }
+    }*/
   
   prev_heap_end = heap_end;
 
@@ -130,15 +132,22 @@ caddr_t sbrk(int incr){
   //Don't exceed the limit
   //incr = incr > SBRK_MAX ? SBRK_MAX : incr;
   
+  /** 
+      Check if heap collides with stack
+      
+      NOTE: Since we moved the stack to OS-location, growing towards addr. 0, 
+      this is no longer necessary.
+      
   if (heap_end + incr > stack_ptr)
     {
       write (1, (char*)"\t\tERROR: Heap and stack collision\n", 25);
       //abort ();
-    }
+      } **/
   
   heap_end += incr;
   //printf("SYSCALL SBRK allocated %i bytes. Heap end @ 0x%lx\n",
   //incr,(int32_t)heap_end);  
+  //OS::rsprint("SBRK\n");
   return (caddr_t) prev_heap_end;
 }
 
@@ -170,9 +179,14 @@ int wait(int* UNUSED(status)){
 
 void panic(const char* why){
   printf("\n\t **** PANIC: **** %s\n",why);
-  printf("\tHeap end: 0x%lx \n",(uint32_t)heap_end);
+  printf("\tHeap end: %p \n",heap_end);
   kill(9,1);
 }
 
-//Compiler says this is allready declared in <sys/time.h>
-//int gettimeofday(struct timeval *p, struct timezone *z);
+
+int gettimeofday(struct timeval* p, void* UNUSED(z)){
+  float seconds = OS::uptime();
+  p->tv_sec = int(seconds);
+  p->tv_usec = (seconds - p->tv_sec) * 1000000;
+  return 5;
+}

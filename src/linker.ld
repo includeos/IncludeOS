@@ -3,7 +3,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  .text.start (0x8000+SIZEOF_HEADERS) : {
+  .text.start (0x200000+SIZEOF_HEADERS) : {
     /usr/local/IncludeOS/lib/os.a:kernel_start.o( .text )
   }
 

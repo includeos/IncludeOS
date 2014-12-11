@@ -1,4 +1,4 @@
-#define DEBUG // Allow debuging 
+//#define DEBUG // Allow debuging 
 //#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
@@ -19,7 +19,7 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-int drop(uint8_t* UNUSED(data), int UNUSED(len)){
+int drop(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
   return -1;
 }
@@ -29,15 +29,15 @@ VirtioNet::VirtioNet(PCI_Device* d)
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
     ctrl_q(queue_size(2),2,iobase()),
-    _link_out(delegate<int(uint8_t*,int)>(drop))
+    _link_out(net::upstream(drop))
 {
   
   printf("\n>>> VirtioNet driver initializing \n");
   
   uint32_t needed_features = 0 
     | (1 << VIRTIO_NET_F_MAC)
-    | (1 << VIRTIO_NET_F_STATUS)
-    | (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
+    | (1 << VIRTIO_NET_F_STATUS);
+  //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features; /*; 
     | (1 << VIRTIO_NET_F_CSUM)
     | (1 << VIRTIO_F_ANY_LAYOUT)
@@ -84,24 +84,25 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
    
   // Step 1 - Initialize RX/TX queues
-  printf("\t [%s] RX queue assigned (0x%lx) to device \n ",
+  printf("\t [%s] RX queue assigned (0x%lx) to device \n",
          assign_queue(0, (uint32_t)rx_q.queue_desc()) ? "x":" ",
          (uint32_t)rx_q.queue_desc());
   
-  printf("\t [%s] TX queue assigned (0x%lx) to device \n ",
+  printf("\t [%s] TX queue assigned (0x%lx) to device \n",
          assign_queue(1, (uint32_t)tx_q.queue_desc()) ? "x":" ",
          (uint32_t)tx_q.queue_desc());
 
   
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ))
-    printf("\t [%s] CTRL queue assigned (0x%lx) to device \n ",
+    printf("\t [%s] CTRL queue assigned (0x%lx) to device \n",
            assign_queue(2, (uint32_t)tx_q.queue_desc()) ? "x":" ",
            (uint32_t)ctrl_q.queue_desc());
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  printf("Adding %i receive buffers \n", rx_q.size() / 2);
+  printf(" >> Adding %i receive buffers of size %li \n", 
+         rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   //add_receive_buffer();
 
@@ -142,7 +143,7 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
    
   // Assign Link-layer output to RX Queue
-  rx_q.set_data_handler(_link_out);
+  //rx_q.set_data_handler(_link_out);
   
   printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
     
@@ -174,10 +175,17 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
   //uint8_t* buf = (uint8_t*)malloc(MTUSIZE);
+  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n",(uint32_t)buf);
+  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
   
   if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
   
   hdr = (virtio_net_hdr*)buf;
+  
+  //hdr->hdr_len = sizeof(virtio_net_hdr);
+  //hdr->num_buffers = 1;
+  
+  
   sg[0].data = hdr;
   
   //Wow, using separate empty header doesn't work for RX, but it works for TX...
@@ -204,7 +212,7 @@ int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
   sg[1].size = len - sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,0);
   
-  //printf("Buffer data: %s \n",(char*)sg[1].data);
+  debug2("<VirtioNet> Added receive buffer \n");
   
   return 0;
 }
@@ -213,18 +221,23 @@ int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
 
 void VirtioNet::irq_handler(){
 
-
   debug2("<VirtioNet> handling IRQ \n");
-  
+
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
   unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
   
-  // Step 2. A)
+  // Step 2. A) - one of the queues have changed
   if (isr & 1){
+    
+    // This now means service RX & TX interchangeably
     service_RX();
-    service_TX();
+    
+    // We need a zipper-solution; we can't receive n packets before sending 
+    // anything - that's unfair.
+    
+    //service_TX();
   }
   
   // Step 2. B)
@@ -236,8 +249,7 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  
-  eoi(irq());
+  eoi(irq());    
   
 }
 
@@ -252,17 +264,41 @@ void VirtioNet::service_RX(){
   int i = 0;
   uint32_t len = 0;
   uint8_t* data;
-  while(rx_q.new_incoming()){
-    data = rx_q.dequeue(&len) + sizeof(virtio_net_hdr);
-    _link_out(data,len); 
+  
+  rx_q.disable_interrupts();
+  // We need a zipper
+  while(rx_q.new_incoming() or tx_q.new_incoming()){
     
-    // Requeue the buffer
-    add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
-    i++;
+    // Do one RX-packet
+    if (rx_q.new_incoming() ){
+      data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
+      
+      // We're passing a stack-pointer here. That's dangerous if the packet 
+      // is supposed to be kept, somewhere up the stack. 
+      auto pckt_ptr = std::make_shared<Packet>
+        (Packet(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM));
+      
+      _link_out(pckt_ptr); 
+    
+      // Requeue the buffer
+      add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
+      i++;
+
+    }
+    debug2("<VirtioNet> Service loop about to kick RX if %i \n",i);
+
+    if (i)
+      rx_q.kick();
+    
+    // Do one TX-packet
+    if (tx_q.new_incoming()){
+      tx_q.dequeue(&len);      
+    }
+    
+    rx_q.enable_interrupts();
   }
   
-  if (i)
-    rx_q.kick();
+  debug2("<VirtioNet> Done servicing queues\n");
 }
 
 void VirtioNet::service_TX(){
@@ -290,10 +326,10 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-int VirtioNet::transmit(uint8_t* data, int len){
-  debug2("<VirtioNet> Enqueuing %ib of data. \n",len);
+int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
+  debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
 
-  
+
   /** @note We have to send a virtio header first, then the packet.
       
       From Virtio std. §5.1.6.6: 
@@ -312,8 +348,8 @@ int VirtioNet::transmit(uint8_t* data, int len){
   // This setup requires all tokens to be pre-chained like in SanOS
   sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = data;
-  sg[1].size = len;
+  sg[1].data = (void*)pckt->buffer();
+  sg[1].size = pckt->len();
   
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(sg, 2, 0, 0);

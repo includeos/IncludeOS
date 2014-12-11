@@ -10,5 +10,9 @@ DHCPRANGE=10.0.0.2,10.0.0.254
 
 brctl addbr $BRIDGE
 ifconfig $BRIDGE $GATEWAY netmask $NETMASK up 
-ifconfig include0 hw ether c0:01:70:01:00:01
+
+# Håreks cool hack:
+# - First two bytes is fixed to "c001" because it's cool
+# - Last four is the gateway IP, 10.0.0.1
+ifconfig include0 hw ether c0:01:0a:00:00:01
 

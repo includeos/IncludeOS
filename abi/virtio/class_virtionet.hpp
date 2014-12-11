@@ -106,13 +106,26 @@ class VirtioNet : Virtio {
     uint16_t gso_size;         // Bytes to append to hdr_len per frame
     uint16_t csum_start;       // Position to start checksumming from
     uint16_t csum_offset;      // Offset after that to place checksum
+  }__attribute__((packed));
+
+  /** Virtio std. § 5.1.6.1: 
+      "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
+  struct virtio_net_hdr_nomerge
+  {
+    uint8_t flags;
+    uint8_t gso_type;
+    uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
+    uint16_t gso_size;         // Bytes to append to hdr_len per frame
+    uint16_t csum_start;       // Position to start checksumming from
+    uint16_t csum_offset;      // Offset after that to place checksum
     uint16_t num_buffers;
   }__attribute__((packed));
+
   
   /** An empty header.      
       It's ok to use as long as we don't need checksum offloading
       or other 'fancier' virtio features. */
-  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0,0}; 
+  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0}; 
 
   PCI_Device* dev;
   
@@ -166,7 +179,8 @@ class VirtioNet : Virtio {
   int add_receive_buffer(uint8_t* buf, int len);
 
 
-  delegate<int(uint8_t*,int)> _link_out;
+  /** Upstream delegate for linklayer output */
+  net::upstream _link_out;
 
 public: 
   
@@ -180,13 +194,13 @@ public:
   const char* mac_str();
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
-  inline void set_linklayer_out(delegate<int(uint8_t*,int)> link_out){
+  inline void set_linklayer_out(net::upstream link_out){
     _link_out = link_out;
-    rx_q.set_data_handler(link_out);
+    //rx_q.set_data_handler(link_out);
   };
     
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int transmit(uint8_t* data,int len);
+  int transmit(std::shared_ptr<net::Packet>& pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(PCI_Device* pcidev);

@@ -32,10 +32,8 @@ public:
       
       @note the data buffer is the *whole* ethernet frame, so don't overwrite 
       headers unless you own them (i.e. you *are* the IP object)  */
-  inline int udp_send(IP4::addr sip,UDP::port sport,
-                       IP4::addr dip,UDP::port dport,
-                       uint8_t* data, int len)
-  { return _udp.transmit(sip,sport,dip,dport,data,len); }
+  inline int udp_send(std::shared_ptr<Packet> pckt)
+  { return _udp.transmit(pckt); }
     
   
   /** Bind an IP and a netmask to a given device. 
@@ -44,24 +42,31 @@ public:
   static void ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
 
   static inline IP4::addr ip4(netdev nic)
-  { return ip4_list[nic]; }
+  { return _ip4_list[nic]; }
   
   static Inet* up(){
-    if (ip4_list.size() < 1)
+    if (_ip4_list.size() < 1)
       panic("<Inet> Can't bring up IP stack without any IP addresses");
-    if (!instance)
-      instance = new Inet();
     
+    if (!instance){
+      instance = new Inet();
+      printf("<Inet> instance constructed @ 0x%lx\n",(uint32_t)instance);
+    }
     return instance;
       
   };
 
+  //typedef delegate<int(uint8_t*,int)> upstream_delg;
+
+  
+  
 private:
   
   /** Physical routes. These map 1-1 with Dev:: interfaces. */
-  static std::map<uint16_t,IP4::addr> ip4_list;
-  static std::map<uint16_t,Ethernet*> ethernet_list;
-  static std::map<uint16_t,Arp*> arp_list;
+  static std::map<uint16_t,IP4::addr> _ip4_list;
+  static std::map<uint16_t,IP4::addr> _netmask_list;
+  static std::map<uint16_t,Ethernet*> _ethernet_list;
+  static std::map<uint16_t,Arp*> _arp_list;
   
   static Inet* instance;  
   
@@ -76,7 +81,8 @@ private:
   /** Don't think we *want* copy construction.
       @todo: Fix this with a singleton or something.
    */
-  Inet(Inet& cpy)
+  Inet(Inet& UNUSED(cpy)) :
+    _ip4(_ip4_list[0],_netmask_list[0])
   {    
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
@@ -89,8 +95,9 @@ private:
       @todo For now, mac- and IP-addresses are hardcoded here. 
       They should be user-definable
    */
-  Inet()
+  Inet() :
     //_eth(eth0.mac()),_arp(eth0.mac(),ip)
+    _ip4(_ip4_list[0],_netmask_list[0])
   {
     
     printf("<IP Stack> constructing \n");
@@ -102,26 +109,22 @@ private:
     /** Create arp- and ethernet objects for the interfaces.
         
         @warning: Careful not to copy these objects */
-    arp_list[0] = new Arp(eth0.mac(),ip4_list[0]);
-    ethernet_list[0] = new Ethernet(eth0.mac());
+    _arp_list[0] = new Arp(eth0.mac(),_ip4_list[0]);
+    _ethernet_list[0] = new Ethernet(eth0.mac());
     
-    Arp& _arp = *(arp_list[0]);
-    Ethernet& _eth = *(ethernet_list[0]);
+    Arp& _arp = *(_arp_list[0]);
+    Ethernet& _eth = *(_ethernet_list[0]);
+
 
     
+    
     /** Upstream delegates */ 
-    auto eth_bottom(delegate<int(uint8_t*,int)>
-                    ::from<Ethernet,&Ethernet::physical_in>(_eth));
-    auto arp_bottom(delegate<int(uint8_t*,int)>
-                    ::from<Arp,&Arp::bottom>(_arp));
-    auto ip4_bottom(delegate<int(uint8_t*,int)>
-                    ::from<IP4,&IP4::bottom>(_ip4));
-    auto ip6_bottom(delegate<int(uint8_t*,int)>
-                    ::from<IP6,&IP6::bottom>(_ip6));    
-    auto icmp_bottom(delegate<int(uint8_t*,int)>
-                     ::from<ICMP,&ICMP::bottom>(_icmp));
-    auto udp_bottom(delegate<int(uint8_t*,int)>
-                    ::from<UDP,&UDP::bottom>(_udp));
+    auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(_eth));
+    auto arp_bottom(upstream::from<Arp,&Arp::bottom>(_arp));
+    auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(_ip4));
+    auto ip6_bottom(upstream::from<IP6,&IP6::bottom>(_ip6));    
+    auto icmp_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
+    auto udp_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
 
     /** Upstream wiring  */
     
@@ -144,13 +147,13 @@ private:
     _ip4.set_udp_handler(udp_bottom);
     
     /** Downstream delegates */
-    auto phys_top(delegate<int(uint8_t*,int)>
+    auto phys_top(downstream
                   ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(eth0));
-    auto eth_top(delegate<int(Ethernet::addr,Ethernet::ethertype,uint8_t*,int)>
+    auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(_eth));    
-    auto arp_top(delegate<int(IP4::addr, IP4::addr, uint8_t*, uint32_t)>
+    auto arp_top(downstream
                  ::from<Arp,&Arp::transmit>(_arp));
-    auto ip4_top(delegate<int(IP4::addr,IP4::addr,IP4::proto,uint8_t*,uint32_t)>
+    auto ip4_top(downstream
                  ::from<IP4,&IP4::transmit>(_ip4));
     
     /** Downstream wiring. */

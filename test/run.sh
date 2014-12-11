@@ -26,9 +26,10 @@ then
     echo "-----------------------"  
     $QEMU -s -S $QEMU_OPTS
 else    
-    #make clean all #stripped 
+    rm *.img
+    make clean all #stripped 
     echo "-----------------------"
-    echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
+    echo "Starting VM: '$1'", "Command: " $QEMU $QEMU_OPTS
     echo "-----------------------"
     
     sudo $QEMU $QEMU_OPTS 

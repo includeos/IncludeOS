@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = IncludeOS_tests_$(shell git describe --dirty)
-OPTIONS = -Ofast -msse3 -Wall -Wextra
+OPTIONS = -Ofast -Wall -Wextra -msse3 -m32
 
 # Modules
 FILES = service.cpp
@@ -103,5 +103,15 @@ clean:
 	$(RM) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
 	$(RM) crti.o crtn.o 
 	$(RM) $(DEPS) crti.d crtn.d
+
+distclean: clean
+	$(RM) *.vdi
+	$(RM) *.img
+	$(RM) *.vmdk
+	$(RM) *.qcow2
+	$(RM) *~
+	$(RM) *.log
+	$(RM) IncludeOS_tests*
+
 
 -include $(DEPS)

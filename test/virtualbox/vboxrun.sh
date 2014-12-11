@@ -37,21 +37,56 @@
 
 export VM_NAME="IncludeOS_test1"
 export DISK_RAW="./IncludeOS_tests.img"
-export DISK="./IncludeOS_tests.img.vdi"
+
+IncludeOS="/home/alfred/IncludeOS"
+export back=`pwd`
+echo "Running @ $back"
+
+cd "$IncludeOS/src/"
+make
+make install
+
+cd $IncludeOS/test
+make
+
+export IMG=`ls -v IncludeOS_*.img | tail -n 1`
+./run.sh $IMG
+export DISK=$IncludeOS/test/$IMG.vdi
+
+if [ ! -f $DISK ]
+then
+    echo "Disk $DISK not found!"
+    exit -1
+fi
 
 if [ "$1" != "" ]
 then
     export DISK=$1
 fi
 
+cd $back
+
 export UUID="4c29f994-ce59-4ddf-ba6b-46bcff01c321"
 export SERIAL_FILE="./virtualbox_serial.out"
 
 #"981C60DF-F54C-4244-868E-52EA87AC1E8A"
-export vbox="./VBoxManage_debug"
+export vbox="./VBoxManage"
 
-# Clear logs
-rm *.log
+
+# VirtualBox LOGGING
+# Documented here: https://www.virtualbox.org/wiki/VBoxLogging
+# 
+#export VBOX_LOG="dev_virtio_net.e.l.f+dev_virtio.e.l.f"
+export VBOX_LOG="all"
+export VBOX_LOG_FLAGS="msprog"
+#export VBOX_LOG_DEST="nofile stderr"
+export VBOX_LOG_DEST="dir=/tmp"
+#VBOX_RELEASE_LOG="+dev_vmm.e.l.f+main.e.l.f"
+#VBOX_DEBUG_LOG="+dev_virtio_net.e.l.f+main.e.l.f"
+
+
+##  Clear logs
+# rm /tmp/*.log
 
 # Convert the image, keeping the UUID intact
 #$vbox convertfromraw $DISK_RAW $DISK --uuid $UUID
@@ -78,4 +113,5 @@ watch tail $SERIAL_FILE
 # Power off VM
 $vbox controlvm $VM_NAME poweroff 
 
-cat *.log
+cat /tmp/*VirtualBox*.log | grep virtio
+# cat *.log

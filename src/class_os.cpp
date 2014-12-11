@@ -1,4 +1,4 @@
-// #define DEBUG
+//#define DEBUG
 #include <os>
 #include <stdio.h>
 #include <assert.h>
@@ -10,15 +10,27 @@
 #include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
 
-bool OS::power = true;
-uint32_t OS::_CPU_mhz = 2500;
+bool OS::_power = true;
+float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 
+// The heap starts @ 1MB
+caddr_t OS::_heap_start = (caddr_t)0x300000;//&_end;//
 
 void OS::start()
 {
+  // Set heap to an appropriate location
+  if (&_end > _heap_start)
+    _heap_start = &_end;
+
   rsprint(">>> OS class started\n");
+  srand(time(NULL));
+  
+  // Disable the timer interrupt completely
   disable_PIT();
-  printf("<OS> UPTIME: %li \n",uptime());
+
+  timeval t;
+  gettimeofday(&t,0);
+  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",t.tv_sec,t.tv_usec,uptime());
 
   __asm__("cli");  
   IRQ_handler::init();
@@ -43,7 +55,7 @@ void OS::disable_PIT(){
   // Set a frequency for "first shot"
   OS::outb(PIT_chan0,1);
   OS::outb(PIT_chan0,0);
-  debug("<PIT> Switching to 1-shot mode (0x%b) \n",PIT_1shot);
+  debug("<PIT> Switching to 1-shot mode (0x%x) \n",PIT_one_shot);
   
   
 };
@@ -63,10 +75,11 @@ void OS::halt(){
   //intstr eof{EOF};
   
 
-  OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System idle - everything seems OK \n");
+  OS::rsprint("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  OS::rsprint(">>> System idle - waiting for interrupts \n");
+  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   //OS::rsprint(eof.part);
-  while(power){        
+  while(_power){        
     
     IRQ_handler::notify(); 
     
