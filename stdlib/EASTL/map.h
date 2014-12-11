@@ -44,8 +44,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EASTL/internal/red_black_tree.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
-
-
+#include <utility>
 
 namespace eastl
 {
@@ -126,35 +125,21 @@ namespace eastl
         using base_type::upper_bound;
         using base_type::mCompare;
 
-        #if !defined(__GNUC__) || (__GNUC__ >= 3) // GCC 2.x has a bug which we work around.
-        using base_type::insert;
-        using base_type::erase;
-        #endif
-
     public:
         map(const allocator_type& allocator = EASTL_MAP_DEFAULT_ALLOCATOR);
         map(const Compare& compare, const allocator_type& allocator = EASTL_MAP_DEFAULT_ALLOCATOR);
         map(const this_type& x);
-
+		
         template <typename Iterator>
         map(Iterator itBegin, Iterator itEnd); // allocator arg removed because VC7.1 fails on the default arg. To consider: Make a second version of this function without a default arg.
-
+		
     public:
         /// This is an extension to the C++ standard. We insert a default-constructed 
         /// element with the given key. The reason for this is that we can avoid the 
         /// potentially expensive operation of creating and/or copying a mapped_type
         /// object on the stack.
         insert_return_type insert(const Key& key);
-
-        #if defined(__GNUC__) && (__GNUC__ < 3) // If using old GCC (GCC 2.x has a bug which we work around)
-            template <typename InputIterator>
-            void               insert(InputIterator first, InputIterator last)     { return base_type::insert(first, last);     }
-            insert_return_type insert(const value_type& value)                     { return base_type::insert(value);           }
-            iterator           insert(iterator position, const value_type& value)  { return base_type::insert(position, value); }
-            iterator           erase(iterator position)                            { return base_type::erase(position);         }
-            iterator           erase(iterator first, iterator last)                { return base_type::erase(first, last);      }
-        #endif
-
+		
         size_type erase(const Key& key);
         size_type count(const Key& key) const;
 
@@ -164,12 +149,10 @@ namespace eastl
         T& operator[](const Key& key); // Of map, multimap, set, and multimap, only map has operator[].
 
     }; // map
-
-
-
-
-
-
+	
+	
+	
+	
     /// multimap
     ///
     /// Implements a canonical multimap.
@@ -214,11 +197,6 @@ namespace eastl
         using base_type::upper_bound;
         using base_type::mCompare;
 
-        #if !defined(__GNUC__) || (__GNUC__ >= 3) // GCC 2.x has a bug which we work around.
-        using base_type::insert;
-        using base_type::erase;
-        #endif
-
     public:
         multimap(const allocator_type& allocator = EASTL_MULTIMAP_DEFAULT_ALLOCATOR);
         multimap(const Compare& compare, const allocator_type& allocator = EASTL_MULTIMAP_DEFAULT_ALLOCATOR);
@@ -233,15 +211,6 @@ namespace eastl
         /// potentially expensive operation of creating and/or copying a mapped_type
         /// object on the stack.
         insert_return_type insert(const Key& key);
-
-        #if defined(__GNUC__) && (__GNUC__ < 3) // If using old GCC (GCC 2.x has a bug which we work around)
-            template <typename InputIterator>
-            void               insert(InputIterator first, InputIterator last)     { return base_type::insert(first, last);     }
-            insert_return_type insert(const value_type& value)                     { return base_type::insert(value);           }
-            iterator           insert(iterator position, const value_type& value)  { return base_type::insert(position, value); }
-            iterator           erase(iterator position)                            { return base_type::erase(position);         }
-            iterator           erase(iterator first, iterator last)                { return base_type::erase(first, last);      }
-        #endif
 
         size_type erase(const Key& key);
         size_type count(const Key& key) const;
@@ -292,8 +261,7 @@ namespace eastl
     {
         return base_type::DoInsertKey(key, true_type());
     }
-
-
+	
     template <typename Key, typename T, typename Compare, typename Allocator>
     inline typename map<Key, T, Compare, Allocator>::size_type
     map<Key, T, Compare, Allocator>::erase(const Key& key)

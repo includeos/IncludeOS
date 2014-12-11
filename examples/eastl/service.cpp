@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <map>
 
 #include <signal>
@@ -58,12 +59,6 @@ namespace std
 		}
 	};
 }
-
-class TestSignal
-{
-public:
-	signal<void()> test;
-};
 
 // test showing that constructor is called only once for emplace_back
 struct EmplTest
@@ -123,6 +118,7 @@ void Service::start()
 	//// std::vector
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::cout << "checking std::vector..." << std::endl;
 		std::vector<int> vec;
 		vec.resize(500);
 		vec[0] = 500;
@@ -136,6 +132,7 @@ void Service::start()
 	//// std::vector::emplace_back, std::vector::emplace
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::cout << "checking std::vector::emplace..." << std::endl;
 		std::vector<EmplTest> empl_test;
 		EmplTest et;
 		std::cout << "creating (count should be 1)" << std::endl;
@@ -199,25 +196,55 @@ void Service::start()
 		}
 		assert(idx[0].index == 19);
 		
-		std::cout << "success!" << std::endl;
+		std::cout << "std::vector passed" << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
-	//// std::map
+	//// std::list<T>
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::cout << "checking std::list..." << std::endl;
+		std::list<int> testList;
+		
+		testList.push_back(1);
+		
+		assert(testList.front() == 1);
+		std::cout << "std::list passed" << std::endl;
+	}
+	/////////////////////////////////////////////////////////////////////////////
+	//// std::map<K, V>
+	/////////////////////////////////////////////////////////////////////////////
+	{
+		std::cout << "checking std::map..." << std::endl;
+		
 		std::map<int, int> testMap;
+		
+		// there should be no such element
+		assert(testMap.find(1) == testMap.end());
+		
+		// insert the key 1 with value 1
+		testMap[1] = 1;
+		assert(testMap[1] == 1);
+		
+		// verify that it is the first and only key
+		assert(testMap.find(1) == testMap.begin());
+		
+		testMap[1] = 2;
+		assert(testMap[1] == 2);
+		
+		std::cout << "std::map passed" << std::endl;
 	}
 	/////////////////////////////////////////////////////////////////////////////
-	//// std::function
+	//// std::function<()>
 	/////////////////////////////////////////////////////////////////////////////
 	{
+		std::cout << "checking std::function..." << std::endl;
 		std::function<void()> test = testFunction;
 		
 		std::cout << "calling std::function:" << std::endl;
 		test();
 	}
 	/////////////////////////////////////////////////////////////////////////////
-	//// vector<std::function>
+	//// std::vector<std::function>
 	/////////////////////////////////////////////////////////////////////////////
 	{
 		std::vector<std::function<void()>> fvec;
@@ -240,6 +267,11 @@ void Service::start()
 	{
 		std::function<void()> test = testFunction;
 		
+		class TestSignal
+		{
+		public:
+			signal<void()> test;
+		};
 		TestSignal testSignal;
 		
 		// lambda function
