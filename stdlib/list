@@ -1,0 +1,11 @@
+#ifndef STD_LIST_HEADER
+#define STD_LIST_HEADER
+
+#include "EASTL/list.h"
+namespace std
+{
+	template <class T>
+	using list = eastl::list<T>;
+}
+
+#endif

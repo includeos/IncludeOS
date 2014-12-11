@@ -170,6 +170,8 @@
     <File Name="sort"/>
     <File Name="declval.hpp"/>
     <File Name="reference_wrapper.hpp"/>
+    <File Name="list"/>
+    <File Name="list.hpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
