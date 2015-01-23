@@ -27,11 +27,13 @@ int rmdir(const char *pathname)
 	return 0;
 }
 
+/*
 int gettimeofday(struct timeval *__restrict tv,
 				 void *__restrict tz)
 {
 	return 0;
-}
+}*/
+
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
 	return 0;

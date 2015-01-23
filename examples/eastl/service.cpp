@@ -8,6 +8,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <deque>
 
 #include <signal>
 #include <delegate>
