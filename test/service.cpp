@@ -81,7 +81,7 @@ public:
     _pool = new uint8_t[n*size];
     for(int i = 0; i < _n; i++){
       _queue.push_back
-        (make_shared<Packet>(Packet(&_pool[i*size],size,Packet::AVAILABLE)));
+        (make_shared<Packet>(&_pool[i*size],size,Packet::AVAILABLE));
     }
         
     printf("<PacketStore> Allocated %li byte buffer pool for packets \n",n*size);
