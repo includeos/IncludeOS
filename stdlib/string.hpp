@@ -124,6 +124,47 @@ namespace std
 		
 		return result;
 	}
+	
+	inline int stoi(const string& str, size_t* idx = 0, int base = 10)
+	{
+		int result = 0;
+		
+		if (str.empty())
+		{
+			if (idx) *idx = 0;
+			// TODO: set errno properly (?)
+			return result;
+		}
+		
+		string::const_iterator i = str.begin();
+		bool negative = (*i == '-');
+		
+		if (negative)
+		{
+			++i;
+			if (i == str.end())
+			{
+				if (idx) *idx = 0;
+				// TODO: set errno properly
+				return result;
+			}
+		}
+		
+		for (; i != str.end(); ++i)
+		{
+			if (*i < '0' || *i > '9')
+			{
+				if (idx) *idx = str.begin() - i;
+				// TODO: set errno properly
+				return result;
+			}
+
+			result *= base;
+			result += *i - '0';
+		}
+		
+		return (negative) ? -result : result;
+    }
 }
 
 #endif

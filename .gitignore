@@ -33,4 +33,5 @@ test/IncludeOS_tests_DIRTY
 test/IncludeOS_tests_DIRTY.img*
 
 examples/eastl/IncludeOS_tests
+examples/eastl/IncludeOS_tests.*
 examples/dhclient/IncludeOS_tests
