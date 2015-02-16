@@ -118,7 +118,3 @@ IP4::IP4(addr ip, addr netmask) :
         (uint32_t)&_local_ip,
         (uint32_t)&_netmask);
 }
-
-std::ostream& operator<<(std::ostream& out,const IP4::addr& ip)  {
-  return out << ip.str();
-}

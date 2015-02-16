@@ -136,7 +136,10 @@ namespace net {
 
 
   /** Pretty printing to stream */
-  std::ostream& operator<<(std::ostream& out, const IP4::addr& ip);
+  inline std::ostream& operator<<(std::ostream& out, const IP4::addr& ip)
+  {
+    return out << ip.str();
+  }
 
 } // ~net
 #endif

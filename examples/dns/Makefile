@@ -3,7 +3,7 @@ SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
-FILES = service.cpp packet.cpp SimplifiedDnsServer.cpp SimplifiedDnsClient.cpp
+FILES = service.cpp packet.cpp SimplifiedDnsServer.cpp
 
 # Compiler/Linker
 ###################################################

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <string>
+#include <net/inet>
 
 #include "SimplifiedDnsClient.hpp"
 #include "SimplifiedDnsServer.hpp"
@@ -103,7 +104,9 @@ SimplifiedDnsClient::requestNames(uint32_t numberOfRequests)
     // SEND PACKET!
     dnsServer->receive(dnsPacket);
     // int UDP::transmit(std::shared_ptr<Packet>& pckt){...
-
+	std::shared_ptr<Packet> pckt(dnsPacket);
+	net->udp_send(pckt);
+	
     responsesReceived++;
   }
   std::cout << "SimplifiedDnsClient::requestNames: Finished...\n";
@@ -120,13 +123,8 @@ SimplifiedDnsClient::receive(Packet* pckt)
   uint32_t resolvedIP = getArecordIPaddress(pckt);
   
   // DEBUG (output to screen
-  std::cout << "SimplifiedDnsClient::receive: Resolved servername by DNS, and got IP address: " + std::to_string(resolvedIP) + "(";
+  std::cout << "SimplifiedDnsClient::receive: Resolved servername by DNS, and got IP address: " << std::to_string(resolvedIP) << " (";
   
   // Print out IP
-  for (uint32_t j = 0; j < 4; j++)
-  {
-    std::cout << std::to_string((resolvedIP >> (8*j)) & 0xFF) + ".";
-  }
-  std::cout << ")\n";
-  // END (DEBUG)
+  std::cout << IP4::addr { whole: resolvedIP }.str() << ")" << std::endl;
 }

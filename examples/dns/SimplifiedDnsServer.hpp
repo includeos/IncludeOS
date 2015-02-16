@@ -13,7 +13,6 @@
 
 //struct DnsQuery;
 struct DnsResponse;
-class SimplifiedDnsClient;
 
 class SimplifiedDnsServer
 {
@@ -21,16 +20,15 @@ public:
 	SimplifiedDnsServer();
 	~SimplifiedDnsServer();
 	
-	//uint32_t receive(std::shared_ptr<Packet>& pckt);
-	uint32_t receive(net::Packet* pckt);
-	void setDnsClient(SimplifiedDnsClient * _dnsClient);
+	void     start  (std::shared_ptr<net::Inet>&   network);
+	uint32_t receive(std::shared_ptr<net::Packet>& pckt);
 	
 private:
-	void setServerNumber(uint32_t serverNo, net::Packet* pckt);
-	uint32_t getServerNumber(net::Packet* pckt);
+	void setServerNumber(uint32_t serverNo, net::Packet& pckt);
+	uint32_t getServerNumber(net::Packet& pckt);
 	
-	void setArecordIPaddress(uint32_t serverNo, net::Packet* pckt);
-	uint32_t getArecordIPaddress(net::Packet* pckt);
+	void setArecordIPaddress(uint32_t serverNo, net::Packet& pckt);
+	uint32_t getArecordIPaddress(net::Packet& pckt);
 	
 	//Response packet
 	net::Packet* dnsPacket;
@@ -46,8 +44,8 @@ private:
 	uint32_t questionNumberStop;
 	
 	// uint32_t packetObjectLength;
-	SimplifiedDnsClient* dnsClient;
 	uint8_t* dnsResponseRepository;
+	std::shared_ptr<net::Inet> network;
 };
 
 #endif

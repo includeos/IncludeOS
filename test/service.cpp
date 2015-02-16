@@ -134,7 +134,6 @@ void Service::start()
        << net->ip4(net::ETH0).str()
        << endl;
 
-    
   //A one-way UDP server (a primitive test)
   net->udp_listen(8080,[net](std::shared_ptr<net::Packet> pckt){
       
