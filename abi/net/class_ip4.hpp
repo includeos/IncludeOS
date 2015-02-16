@@ -113,7 +113,15 @@ namespace net {
     /** Compute the IP4 header checksum */
     uint16_t checksum(ip_header* hdr);
     
-    
+    /**
+     * \brief
+     * Returns the IPv4 address associated with this interface
+     * 
+    **/
+    addr local_ip() const
+    {
+		return _local_ip;
+	}
     
     /** Initialize. Sets a dummy linklayer out. */
     IP4(addr ip, addr netmask);
