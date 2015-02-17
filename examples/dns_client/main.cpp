@@ -28,7 +28,7 @@ Inet* network;
 
 void Service::start()
 {
-	IP4::addr nameserver {10, 0, 0, 1};
+	IP4::addr nameserver {192, 168, 1, 1};
 	
 	std::cout << "addr: " << nameserver.str() << std::endl;
 	
@@ -43,9 +43,8 @@ void Service::start()
 	dns.set_ns(nameserver.whole);
 	
 	// dig up some dirt
-	dns.request("www.google.com");
-	dns.request("www.fwsnet.net");
-	dns.request("www.vg.no");
+	dns.request("gonzo-All-Series");
+	dns.request("Vaffelrouter");
 	
 }
 

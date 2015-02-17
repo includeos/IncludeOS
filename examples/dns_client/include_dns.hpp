@@ -60,6 +60,7 @@ public:
 		network->udp_listen(DNS_PORT,
 		[this] (std::shared_ptr<net::Packet>& pckt)
 		{
+			printf("Reading data from DNS server:\n");
 			auto data_loc = pckt->buffer() + sizeof(UDP::full_header);
 			
 			// parse incoming data
@@ -83,25 +84,27 @@ private:
 		printf("Resolving %s...", hostname.c_str());
 		
 		int len = sizeof(UDP::full_header) + messageSize;
-		unsigned char* buf = new unsigned char[len]();
-		
-		//memset(buf, 0, sizeof(UDP::full_header));
-		memcpy(buf + sizeof(UDP::full_header), this->buffer, len);
+		uint8_t* buf = new uint8_t[len]();
 		
 		std::shared_ptr<Packet> pckt(
-			new Packet((uint8_t*) this->buffer, messageSize, Packet::DOWNSTREAM));
+			new Packet((uint8_t*) buf, messageSize, Packet::DOWNSTREAM));
 		
 		// Populate outgoing UDP header
 		UDP::full_header* full_hdr_out = (UDP::full_header*) pckt->buffer();
 		full_hdr_out->udp_hdr.dport = DNS_PORT;
 		full_hdr_out->udp_hdr.sport = DNS_PORT;
-		full_hdr_out->udp_hdr.length = __builtin_bswap16(messageSize);
+		full_hdr_out->udp_hdr.length = __builtin_bswap16(len);
 		
 		// Populate outgoing IP header
-		full_hdr_out->ip_hdr.saddr = IP4::addr { whole: this->nameserver };
-		full_hdr_out->ip_hdr.daddr = network->ip4(ETH0);
+		full_hdr_out->ip_hdr.saddr = network->ip4(ETH0);
+		full_hdr_out->ip_hdr.daddr = IP4::addr { whole: this->nameserver };
 		full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
 		
+		// packet payload
+		memcpy(pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
+		
+		printf("Sending DNS query...\n");
+		network->udp_send(pckt);
 		return true;
 	}
 	bool read()
