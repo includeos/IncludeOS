@@ -1,7 +1,8 @@
 #ifndef CLASS_IP_STACK_HPP
 #define CLASS_IP_STACK_HPP
 
-
+#include <syscalls.hpp> // panic()
+#include <class_dev.hpp> // 107: auto& eth0 = Dev::eth(0);
 #include <net/class_ethernet.hpp>
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>

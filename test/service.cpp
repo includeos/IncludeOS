@@ -81,7 +81,7 @@ public:
     _pool = new uint8_t[n*size];
     for(int i = 0; i < _n; i++){
       _queue.push_back
-        (make_shared<Packet>(Packet(&_pool[i*size],size,Packet::AVAILABLE)));
+        (make_shared<Packet>(&_pool[i*size],size,Packet::AVAILABLE));
     }
         
     printf("<PacketStore> Allocated %li byte buffer pool for packets \n",n*size);
@@ -134,7 +134,6 @@ void Service::start()
        << net->ip4(net::ETH0).str()
        << endl;
 
-    
   //A one-way UDP server (a primitive test)
   net->udp_listen(8080,[net](std::shared_ptr<net::Packet> pckt){
       
