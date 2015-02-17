@@ -36,10 +36,10 @@ namespace net {
     
       inline bool operator==(addr& src) const
       { return src.whole == whole; }
-    
+      
       inline bool operator<(const addr src) const
       { return src.whole < whole; }
-
+      
       inline bool operator!=(const addr src) const
       { return src.whole != whole; }
       
@@ -77,19 +77,19 @@ namespace net {
       Ethernet::header eth_hdr;
       ip_header ip_hdr;
     };
-
-  
+    
+    
     /** Upstream: Input from link layer. */
     int bottom(std::shared_ptr<Packet>& pckt);
-  
+    
     /** Upstream: Outputs to transport layer*/
     inline void set_icmp_handler(upstream s)
     { _icmp_handler = s; }
-  
+    
     inline void set_udp_handler(upstream s)
     { _udp_handler = s; }
     
-  
+    
     inline void set_tcp_handler(upstream s)
     { _tcp_handler = s; }
     
@@ -107,7 +107,7 @@ namespace net {
         
         Source IP *can* be set - if it's not, IP4 will set it.
         
-     */
+    */
     int transmit(std::shared_ptr<Packet>& pckt);
 
     /** Compute the IP4 header checksum */
@@ -117,15 +117,15 @@ namespace net {
      * \brief
      * Returns the IPv4 address associated with this interface
      * 
-    **/
+     **/
     addr local_ip() const
     {
-		return _local_ip;
-	}
+      return _local_ip;
+    }
     
     /** Initialize. Sets a dummy linklayer out. */
     IP4(addr ip, addr netmask);
-  
+    
   
   private:    
     addr _local_ip;
