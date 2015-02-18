@@ -153,9 +153,11 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   udp.ip_hdr.protocol = IP4::IP4_UDP;
   
   // packet length (??)
-  pckt->set_len(packetlen);
-  std::cout << "Returning " << packetlen << "b to " << udp.ip_hdr.daddr.str() << std::endl;
-  
+  int res = pckt->set_len(packetlen + sizeof(IP4::full_header)); 
+  if(!res)
+    cout << "<DNS_SERVER> ERROR setting packet length failed" << endl;
+  std::cout << "Returning " << packetlen << "b to " << udp.ip_hdr.daddr.str() << std::endl;  
+  std::cout << "Full packet size: " << pckt->len() << endl;
   // return packet (as DNS response)
   network->udp_send(pckt);
   

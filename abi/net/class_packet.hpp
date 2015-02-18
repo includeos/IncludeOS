@@ -60,7 +60,7 @@ namespace net {
   private:
     uint8_t* _data;
     uint32_t _len;
-    uint32_t _bufsize;
+    uint32_t _bufsize = 1500;
     packet_status _status;
     IP4::addr _next_hop4;
     

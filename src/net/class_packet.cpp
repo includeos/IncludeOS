@@ -30,7 +30,8 @@ void Packet::next_hop(IP4::addr ip){
 
 int Packet::set_len(uint32_t l){
   // Upstream packets have length set by the interface
-  if(_status == UPSTREAM or l > _bufsize)
+  // if(_status == UPSTREAM ) return 0; ... well. DNS reuses packet.
+  if(l > _bufsize)
     return 0;
   _len = l;
   return _len;
