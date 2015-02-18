@@ -32,16 +32,12 @@
  * 
  **/
 
+#include <net/class_udp.hpp> // UDP headers
 #include <string>
 #include <vector>
 
-#include <stdio.h>
-#include <string.h>
-
-namespace net{
-
-#define DNS_PORT         53
-
+namespace net
+{
 #define DNS_QR_QUERY     0
 #define DNS_QR_RESPONSE  1
 
@@ -61,10 +57,10 @@ namespace net{
 #define DNS_Z_RESERVED   0
 
 
-  class DNS{
-    
+  class DNS
+  {
   public:
-    
+    static const unsigned short DNS_SERVICE_PORT = 53;
     
     struct header
     {
@@ -101,28 +97,41 @@ namespace net{
     };
 #pragma pack(pop)
     
-    
     enum resp_code
-      {
-	NO_ERROR     = 0,
-	FORMAT_ERROR = 1,
-	SERVER_FAIL  = 2,
-	NAME_ERROR   = 3,
-	NOT_IMPL     = 4, // unimplemented feature
-	OP_REFUSED   = 5, // for political reasons
-      };
-          
-  
-    struct full_header{
+    {
+      NO_ERROR     = 0,
+      FORMAT_ERROR = 1,
+      SERVER_FAIL  = 2,
+      NAME_ERROR   = 3,
+      NOT_IMPL     = 4, // unimplemented feature
+      OP_REFUSED   = 5, // for political reasons
+    };
+    
+    struct full_header
+    {
       UDP::full_header full_udp_header;
       header dns_header;
     };
     
+    static std::string question_string(unsigned short type)
+    {
+      switch (type)
+      {
+      case DNS_TYPE_A:
+        return "IPv4 address";
+      case DNS_TYPE_ALIAS:
+        return "Alias";
+      case DNS_TYPE_MX:
+        return "Mail exchange";
+      case DNS_TYPE_NS:
+        return "Name server";
+      default:
+        return "Fixme std::string question_string(type = " + std::to_string(type) + ")";
+      }
+    }
+    
   };
   
 }
-
-
-
 
 #endif
