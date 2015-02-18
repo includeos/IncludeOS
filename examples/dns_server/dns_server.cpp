@@ -88,11 +88,12 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   //////////////////////////
   
   // initial response size
-  unsigned short packetlen = sizeof(DNS::full_header) + 
+  unsigned short packetlen = sizeof(DNS::header) + 
       sizeof(DNS::question) + parsed_query.size() + 1;
   
   // set DNS QR to RESPONSE
   hdr.qr = DNS_QR_RESPONSE;
+  hdr.aa = 1; // authoritah
   
   // auth & additional = 0, for now
   hdr.auth_count = 0;
@@ -104,6 +105,7 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
     // not found
     cout << "*** Could not find: " << parsed_query << endl;
     hdr.ans_count = 0;
+    hdr.rcode     = DNS::OP_REFUSED;
   }
   else
   {
@@ -124,8 +126,8 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
       
       data->type     = htons(DNS_TYPE_A);
       data->_class   = htons(DNS_CLASS_INET);
-      data->ttl      = 0xFFFF; // just because
-      data->data_len = sizeof(IP4::addr);
+      data->ttl      = htons(0x7FFF); // just because
+      data->data_len = htons(sizeof(IP4::addr));
       buffer += sizeof(DNS::rr_data);
       
       // add resource itself
@@ -136,7 +138,8 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
     } // addr
     
     // set dns header answer count (!)
-    hdr.ans_count = addrs.size();
+    hdr.ans_count = htons((addrs.size() & 0xFFFF));
+    hdr.rcode     = DNS::NO_ERROR;
   }
   
   // send response back to client
@@ -145,7 +148,7 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   // set source & return address
   udp.udp_hdr.dport = htons(DNS::DNS_SERVICE_PORT);
   udp.udp_hdr.sport = htons(DNS::DNS_SERVICE_PORT);
-  udp.udp_hdr.length = htons(packetlen);
+  udp.udp_hdr.length = htons(sizeof(DNS::full_header) + packetlen);
   
   // Populate outgoing IP header
   udp.ip_hdr.daddr = udp.ip_hdr.saddr;
@@ -153,7 +156,7 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   udp.ip_hdr.protocol = IP4::IP4_UDP;
   
   // packet length (??)
-  int res = pckt->set_len(packetlen + sizeof(IP4::full_header)); 
+  int res = pckt->set_len(sizeof(UDP::full_header) + packetlen); 
   if(!res)
     cout << "<DNS_SERVER> ERROR setting packet length failed" << endl;
   std::cout << "Returning " << packetlen << "b to " << udp.ip_hdr.daddr.str() << std::endl;  
