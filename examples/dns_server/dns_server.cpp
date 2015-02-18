@@ -42,7 +42,7 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   UDP::full_header& udp = full_hdr->full_udp_header;
   
   // set source & return address
-  udp.udp_hdr.dport = htons(DNS::DNS_SERVICE_PORT);
+  udp.udp_hdr.dport = udp.udp_hdr.sport;
   udp.udp_hdr.sport = htons(DNS::DNS_SERVICE_PORT);
   udp.udp_hdr.length = htons(sizeof(DNS::full_header) + packetlen);
   

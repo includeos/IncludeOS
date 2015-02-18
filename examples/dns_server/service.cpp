@@ -54,12 +54,17 @@ void Service::start()
 	std::cout << "Starting DNS prototype\n";
 	
 	using namespace net;
-	
-	//auto& mac = Dev::eth(0).mac();
+        
+	auto& mac = Dev::eth(0).mac();
+        Inet::ifconfig(net::ETH0, // Interface
+                       {mac.part[2],mac.part[3],mac.part[4],mac.part[5]}, // IP
+                       {255,255,0,0}); // Netmask
+        
+        /**
 	Inet::ifconfig(
                        net::ETH0,
-                       {  10,   0,   0,  2 },  // IP
-                       { 255, 255, 240,  0 }); // Netmask
+                       {  mac.part[1,   0,   0,  2 },  // IP
+                       { 255, 255, 255,  0 }); // Netmask*/
 	
         
 	
