@@ -35,6 +35,7 @@
 #include <net/class_udp.hpp> // UDP headers
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace net
 {
@@ -113,6 +114,10 @@ namespace net
       header dns_header;
     };
     
+    typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
+    
+    static int createResponse(header& hdr, lookup_func func);
+    
     static std::string question_string(unsigned short type)
     {
       switch (type)
@@ -126,7 +131,7 @@ namespace net
       case DNS_TYPE_NS:
         return "Name server";
       default:
-        return "Fixme std::string question_string(type = " + std::to_string(type) + ")";
+        return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
       }
     }
     

@@ -7,7 +7,7 @@
 
 // Locals
 #include "dns_server.hpp"
-
+/*
 class PacketStore
 {
 public:
@@ -45,7 +45,7 @@ private:
 };
 
 PacketStore         UDP_store(100,1500);
-//SimplifiedDnsServer myDnsServer;
+*/
 DNS_server myDnsServer;
 
 void Service::start()
