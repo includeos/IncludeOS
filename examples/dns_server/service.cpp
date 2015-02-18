@@ -67,6 +67,20 @@ void Service::start()
 	std::cout << "...Starting UDP server on IP " 
 			<< inet->ip4(net::ETH0).str() << std::endl;
 	
+  /// www.google.com ///
+  std::vector<IP4::addr> mapping1;
+  mapping1.push_back( {213, 155, 151, 187 } );
+  mapping1.push_back( {213, 155, 151, 185 } );
+  mapping1.push_back( {213, 155, 151, 180 } );
+  mapping1.push_back( {213, 155, 151, 183 } );
+  mapping1.push_back( {213, 155, 151, 186 } );
+  mapping1.push_back( {213, 155, 151, 184 } );
+  mapping1.push_back( {213, 155, 151, 181 } );
+  mapping1.push_back( {213, 155, 151, 182 } );
+  
+  myDnsServer.addMapping("www.google.com.", mapping1);
+  ///               ///
+  
 	myDnsServer.start(inet);
 	std::cout << "<DNS SERVER> Listening on UDP port 53" << std::endl;
 	
