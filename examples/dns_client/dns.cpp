@@ -132,7 +132,7 @@ int DnsRequest::createRequest(char* buffer, const std::string& hostname)
 	
 	// fill with DNS request data
 	dns_header_t* dns = (dns_header_t*) buffer;
-	dns->id = generateID();
+	dns->id = htons(generateID());
 	dns->qr = DNS_QR_QUERY;
 	dns->opcode = 0;       // standard query
 	dns->aa = 0;           // not Authoritative
