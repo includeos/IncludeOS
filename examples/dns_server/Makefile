@@ -1,9 +1,9 @@
 # The name of your service
-SERVICE = IncludeOS_tests
+SERVICE = IncludeOS_dns_server
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
-FILES = service.cpp packet.cpp SimplifiedDnsServer.cpp
+FILES = service.cpp dns_server.cpp
 
 # Compiler/Linker
 ###################################################

@@ -1,65 +1,8 @@
 #ifndef DNSFORMAT_HPP
 #define DNSFORMAT_HPP
 
-#include <stdint.h>
-
-union macaddr{
-  uint8_t part[6];
-  struct {
-    uint16_t minor;
-    uint32_t major;
-  } __attribute__((packed));
-}__attribute__((packed));
-
-// 14 bytes (...!)
-struct header {
-  macaddr dest;
-  macaddr src;
-  unsigned short type;
-}__attribute__((packed));
-
-union __attribute__((packed)) v4addr{
-  uint8_t part[4];
-  uint32_t whole;
-};
-
-// 20 bytes
-/** IP4 header */
-struct ip_header {
-  uint8_t version_ihl;
-  uint8_t tos;
-  uint16_t tot_len;
-  uint16_t id;
-  uint16_t frag_off_flags;
-  uint8_t ttl;
-  uint8_t protocol;
-  uint16_t check;
-  v4addr saddr;
-  v4addr daddr;
-}__attribute__((packed));
-
-/** UDP port number */
-typedef uint16_t port;
-
-/** A protocol buffer temporary type. Later we might encapsulate.*/
-//typedef uint8_t* pbuf;
-
-// 8 bytes
-/** UDP header */
-struct udp_header {
-  port sport;
-  port dport;
-  uint16_t length;
-  uint16_t checksum;
-}__attribute__((packed));
-
-// 40 bytes
-/** Full UDP Header with all sub-headers */
-struct full_header{
-  header eth_hdr;
-  ip_header ip_hdr;
-  udp_header udp_hdr;
-}__attribute__((packed));
+#include <os>
+#include <net/inet>
 
 // Note shifted byte order (endianness)
 #define DNS_QUERY    0x0001 // Can alternatively use ntohs(0x0000)
@@ -149,12 +92,12 @@ struct __attribute__ ((packed)) DnsResponse {
 };
 
 struct __attribute__ ((packed)) DnsQueryPacket {
-  full_header fullHeader; 
-  DnsQuery dnsQuery;
+net::UDP::full_header fullHeader; 
+DnsQuery dnsQuery;
 };
 
 struct __attribute__ ((packed)) DnsResponsePacket {
-  full_header fullHeader; 
+  net::UDP::full_header fullHeader; 
   DnsResponse dnsResponse;
 };
 

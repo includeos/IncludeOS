@@ -5,8 +5,8 @@
 #include <list>
 #include <memory>
 
-#include "SimplifiedDnsServer.hpp"
-#include "SimplifiedDnsClient.hpp"
+// Locals
+#include "dns_server.hpp"
 
 class PacketStore
 {
@@ -45,7 +45,8 @@ private:
 };
 
 PacketStore         UDP_store(100,1500);
-SimplifiedDnsServer myDnsServer;
+//SimplifiedDnsServer myDnsServer;
+DNS_server myDnsServer;
 
 void Service::start()
 {
@@ -56,17 +57,17 @@ void Service::start()
 	
 	//auto& mac = Dev::eth(0).mac();
 	Inet::ifconfig(
-		net::ETH0,
-		{  10,   0,   0,  2 },  // IP
-		{ 255, 255, 240,  0 }); // Netmask
+                       net::ETH0,
+                       {  10,   0,   0,  2 },  // IP
+                       { 255, 255, 240,  0 }); // Netmask
 	
-	//Inet* net 
-	std::shared_ptr<Inet> net(Inet::up());
+        
 	
+	Inet* inet = Inet::up();
 	std::cout << "...Starting UDP server on IP " 
-			<< net->ip4(net::ETH0).str() << std::endl;
+			<< inet->ip4(net::ETH0).str() << std::endl;
 	
-	myDnsServer.start(net);
+	myDnsServer.start(inet);
 	std::cout << "<DNS SERVER> Listening on UDP port 53" << std::endl;
 	
 	std::cout << "Service out!" << std::endl;
