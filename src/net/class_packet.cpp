@@ -26,3 +26,12 @@ IP4::addr Packet::next_hop(){
 void Packet::next_hop(IP4::addr ip){
   _next_hop4 = ip;
 }
+
+
+int Packet::set_len(uint32_t l){
+  // Upstream packets have length set by the interface
+  if(_status == UPSTREAM or l > _bufsize)
+    return 0;
+  _len = l;
+  return _len;
+}

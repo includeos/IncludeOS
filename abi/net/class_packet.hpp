@@ -20,10 +20,16 @@ namespace net {
     uint8_t* buffer() const
     { return _data; }
     
-    /** Get the buffer length */
+    /** Get the network packet length - i.e. the number of populated bytes  */
     inline uint32_t len() const
     { return _len; }
-
+    
+    /** Get the size of the buffer. This is >= len(), usually MTU-size */
+    inline uint32_t bufsize() const
+    { return _bufsize; }
+    
+    int set_len(uint32_t l);
+    
     /** Status of the buffer.
         AVAILABLE : It's just sitting there, free for use
         UPSTREAM : travelling upstream
@@ -54,6 +60,7 @@ namespace net {
   private:
     uint8_t* _data;
     uint32_t _len;
+    uint32_t _bufsize;
     packet_status _status;
     IP4::addr _next_hop4;
     
