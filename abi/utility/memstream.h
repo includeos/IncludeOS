@@ -2,6 +2,7 @@
 #define UTILITY_MEMSTREAM_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #define SSE_SIZE 16
 #define SSE_ALIGNED __attribute__ (( aligned (SSE_SIZE) ))
@@ -14,14 +15,15 @@
  * 
  * Returns an aligned pointer to allocated memory area.
 **/
-extern void* stream_alloc(size_t n);
+extern void* aligned_alloc(size_t n, size_t alignment);
+#define sse_alloc(n)  aligned_alloc(n, SSE_SIZE)
 
 /**
  * Free SSE-aligned memory
  * 
- * Frees memory allocated by stream_alloc().
+ * Frees memory allocated by aligned_alloc().
 **/
-extern void stream_free(void* ptr);
+extern void aligned_free(void* ptr);
 
 /**
  * Copy from aligned block of memory
@@ -53,6 +55,9 @@ extern void* streamucpy(void* dest, const void* usrc, size_t n);
  * 
  * Returns a pointer to the memory area dest + n.
 **/
-extern void* streamset(void* dest, char value, size_t n);
+extern void* streamset8(void* dest, int8_t value, size_t n);
+extern void* streamset16(void* dest, int16_t value, size_t n);
+extern void* streamset32(void* dest, int32_t value, size_t n);
+#define streamset(x, y, z) streamset8(x, y, z)
 
 #endif

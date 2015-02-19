@@ -13,17 +13,16 @@ void Service::start()
   // results in general protection fault if not enabled
   sse_testing();
   
-  std::cout << "Testing SSE allocation" << std::endl;
+  std::cout << "\nTesting aligned allocation" << std::endl;
   const int BUFSIZE = 1610;
   
-  void* FIRST = stream_alloc(BUFSIZE);
-  std::cout << "First pointer: " << FIRST << std::endl;
-  stream_free(FIRST);
+  void* FIRST = aligned_alloc(BUFSIZE, 128);
+  aligned_free(FIRST);
   
   for (int i = 0; i < 1000; i++)
   {
     // allocate
-    void* test = stream_alloc(BUFSIZE);
+    void* test = sse_alloc(BUFSIZE);
     
     // set to 0xFF
     streamset((char*) test, 0xFF, BUFSIZE);
@@ -32,7 +31,7 @@ void Service::start()
       assert( ((unsigned char*) test)[j] == 0xFF);
     
     // allocate 2
-    void* test2 = stream_alloc(BUFSIZE);
+    void* test2 = sse_alloc(BUFSIZE);
     
     // set to 0xFF
     streamcpy((char*) test2, (char*) test, BUFSIZE);
@@ -41,14 +40,17 @@ void Service::start()
       assert( ((unsigned char*) test2)[j] == 0xFF);
     
     // free
-    stream_free(test);
-    stream_free(test2);
+    aligned_free(test);
+    aligned_free(test2);
   }
-  std::cout << "SSE allocation done" << std::endl;
+  std::cout << "* Alignment verification success!" << std::endl;
   
-  void* LAST = stream_alloc(BUFSIZE);
-  std::cout << "Last pointer: " << LAST << std::endl;
-  stream_free(LAST);
+  void* LAST = aligned_alloc(BUFSIZE, 128);
+  aligned_free(LAST);
+  
+  std::cout << "First " << FIRST << " vs Last " << LAST << std::endl;
+  assert(FIRST == LAST);
+  std::cout << "* Pointers matched, no missing memory space" << std::endl;
   
   printf("Service out! \n");
 }
