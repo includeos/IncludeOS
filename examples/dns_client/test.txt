@@ -1,0 +1,137 @@
+qemu-system-x86_64 -hda IncludeOS_tests.img -device virtio-net,netdev=net0,mac=c0:01:0a:00:00:0a -netdev tap,id=net0 -m 50 -nographic
+-----------------------
+Starting VM: 'IncludeOS_tests.img', Options: , -hda IncludeOS_tests.img -device virtio-net,netdev=net0,mac=c0:01:0a:00:00:0a -netdev tap,id=net0 -m 50 -nographic
+-----------------------
+ 
+
+ *** IncludeOS Initializing *** 
+
+>>> Initializing .bss... 
+	SYSCALL FSTAT: Returning OK 0
+	SYSCALL ISATTY: RETURNING 1
+<PacketStore> Allocated 75000 byte buffer pool for packets
+
+>>> IncludeOS Initialized. Calling main
+>>> OS class started
+<OS> TimeOfDay: 0.253034 Uptime: 0.253074 
+
+>>> IRQ handler initializing 
+ >> Exception gates set for irq < 32 
+ >> Default interrupt gates set for irq >= 32 
+>>> Enabling IRQ 32, old mask: 0xfffb  new mask: 0xfffb 
+>>> Enabling IRQ 33, old mask: 0xfffb  new mask: 0xfffb 
+
+>>> Dev:: initializing devices 
+
+>>> PCI Manager initializing 
+	 |
+	 +--+ Host Bridge (0x0)
+	 |
+	 +--+ ISA Bridge (0x1)
+	 |
+	 +--+ Mass Storage Controller 
+	 |  +--[ SAVED ]
+	 |
+	 +--+ Other Bridge (0x80)
+	 |
+	 +--+ Display Controller 
+	 |
+	 +--+ Ethernet Network Controller (0x0)
+	 |  +--[ SAVED ]
+	 | 
+	 o 
+addr: 192.168.1.1
+
+<Inet> I now have 1 IP's
+
+<IP4> Local IP @ 0x313788, Netmask @ 0x31378c 
+<IP Stack> constructing 
+
+>>> Virtio attaching to  PCI addr 0x18 
+	 [x] Vendor ID is VIRTIO 
+	 [x] Device ID 0x1000 is in a valid range (Virtio LEGACY)
+	 [x] Device Revision ID (0x0) supported. 
+
+	    * Resource @ BAR 0 
+	      Address:  0xc000 Size: 0x20 
+	      Type: IO Resource
+
+	    * Resource @ BAR 1 
+	      Address:  0xfebd1000 Size: 0x1000 
+	      Type: Memory Resource
+
+	 [x] Unit I/O base 0xc000 
+ 	 [*] Reset device 
+	 [x] Unit IRQ 11 
+ >>> IRQ subscriptions: 0x800 irq: 0xb
+>>> Enabling IRQ 11, old mask: 0xfffb  new mask: 0xf7fb 
+	 [*] Enable IRQ Handler 
+
+  >> Virtio initialization complete 
+
+
+>>> VirtioNet driver initializing 
+	 [x] Negotiated needed features 
+	 [x] Negotiated wanted features 
+	 [x] Device handles packets w. partial checksum 
+	 [x] Guest handles packets w. partial checksum 
+	 [x] There's a control queue 
+	 [x] Queue can handle any header/data layout 
+	 [x] We can use indirect descriptors 
+	 [x] There's a Ring Event Index to use 
+	 [0] There are multiple queue pairs 
+	 [x] Merge RX buffers  
+	 [x] RX queue assigned (0x314000) to device 
+	 [x] TX queue assigned (0x317000) to device 
+	 [x] CTRL queue assigned (0x31a000) to device 
+ >> Adding 128 receive buffers of size 1524 
+	 [*] Mac address: c0:1:a:0:0:a 
+	 [*] Signalled driver OK 
+>>> IRQ subscriptions: 0x800 irq: 0xb
+>>> Enabling IRQ 11, old mask: 0xf7fb  new mask: 0xf7fb 
+	 [*] Link up 
+
+ >> Driver initialization complete. 
+
+<Inet> instance constructed @ 0x313788
+Resolving gonzo-All-series...
+Sending DNS query...
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>>> System idle - waiting for interrupts 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*** Response from DNS server:
+*** Printing results:
+ 1 questions
+ 1 answers
+ 0 authoritative servers
+ 0 additional records
+
+Name:  has unknown resource type: 256
+Name:  has unknown resource type: 65251
+Name:  has unknown resource type: 58472
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 0
+Name: (null) has unknown resource type: 21503
+Name:  has unknown resource type: 21206
+Name: (null) has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 21503
+Name:  has unknown resource type: 512
+Name: (null) has unknown resource type: 0
+Name:  has unknown resource type: 49831
+Name: All-series has unknown resource type: 0
+Name: (null) has unknown resource type: 0
