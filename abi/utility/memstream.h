@@ -24,35 +24,35 @@ extern void* stream_alloc(size_t n);
 extern void stream_free(void* ptr);
 
 /**
- * Copy block of memory
- * Copies the values of num bytes from the location pointed by source
- * directly to the memory block pointed by destination.
+ * Copy from aligned block of memory
+ * Copies the values of n bytes from the SSE-aligned location pointed
+ * by source directly to the memory block pointed by destination.
  * 
  * Source and destination cannot overlap by SSE_SIZE bytes.
  * 
  * Returns a pointer to the memory area dest + n.
 **/
-extern void* streamcpy(char* dest, const char* src, size_t n);
+extern void* streamcpy(void* dest, const void* src, size_t n);
 
 /**
  * Copy from unaligned block of memory
- * Copies the values of num bytes from the unaligned location pointed
- * by source directly to the aligned memory block pointed by destination.
+ * Copies the values of n bytes from the unaligned location pointed
+ * by source directly to the memory block pointed by destination.
  * 
  * Source and destination cannot overlap by SSE_SIZE bytes.
  * 
  * Returns a pointer to the memory area dest + n.
 **/
-extern void* streamucpy(char* dest, const char* usrc, size_t n);
+extern void* streamucpy(void* dest, const void* usrc, size_t n);
 
 /**
  * Fill memory with a constant byte
  * 
  * The streamset() function fills the first n bytes of the memory area
- * pointed to by s with the constant byte c.
+ * pointed to by dest with the constant byte value.
  * 
  * Returns a pointer to the memory area dest + n.
 **/
-extern void* streamset(char* dest, char value, size_t n);
+extern void* streamset(void* dest, char value, size_t n);
 
 #endif

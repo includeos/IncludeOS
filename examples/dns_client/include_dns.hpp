@@ -11,6 +11,8 @@
 #include <memory>
 #include <iostream>
 
+#include <memstream>
+
 extern net::Inet* network;
 extern unsigned short ntohs(unsigned short sh);
 #define htons ntohs
@@ -100,7 +102,7 @@ private:
 		header.ip_hdr.protocol = IP4::IP4_UDP;
 		
 		// packet payload
-		memcpy(pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
+		streamucpy((char*) pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
 		
 		std::cout << "Sending DNS query..." << std::endl;
 		network->udp_send(pckt);

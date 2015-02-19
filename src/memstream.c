@@ -23,56 +23,85 @@ void stream_free(void* ptr)
   if (ptr) free(((void**) ptr)[-1]);
 }
 
-void* streamcpy(char* dest, const char* src, size_t n)
+void* streamcpy(void* dest, const void* srce, size_t n)
 {
+  char* dst       = (char*) dest;
+  const char* src = (const char*) srce;
+  
+  // copy up to 15 bytes until SSE-aligned
+  while (((intptr_t) dst & (SSE_SIZE-1)) && n)
+  {
+    *dst++ = *src++; n--;
+  }
+  // copy SSE-aligned
   while (n >= SSE_SIZE)
   {
     __m128i data = _mm_load_si128((__m128i*) src);
-    _mm_stream_si128((__m128i*) dest, data);
+    _mm_stream_si128((__m128i*) dst, data);
     
-    dest += SSE_SIZE;
-    src  += SSE_SIZE;
+    dst += SSE_SIZE;
+    src += SSE_SIZE;
     
     n -= SSE_SIZE;
   }
+  // copy remainder
   while (n--)
   {
-    *dest++ = *src++;
+    *dst++ = *src++;
   }
-  return dest;
+  return dst;
 }
-void* streamucpy(char* dest, const char* usrc, size_t n)
+void* streamucpy(void* dest, const void* usrc, size_t n)
 {
+  char* dst       = (char*) dest;
+  const char* src = (const char*) usrc;
+  
+  // copy up to 15 bytes until SSE-aligned
+  while (((intptr_t) dst & (SSE_SIZE-1)) && n)
+  {
+    *dst++ = *src++; n--;
+  }
+  // copy SSE-aligned
   while (n >= SSE_SIZE)
   {
-    __m128i data = _mm_loadu_si128((__m128i*) usrc);
-    _mm_stream_si128((__m128i*) dest, data);
+    __m128i data = _mm_loadu_si128((__m128i*) src);
+    _mm_stream_si128((__m128i*) dst, data);
     
-    dest += SSE_SIZE;
-    usrc += SSE_SIZE;
+    dst  += SSE_SIZE;
+    src += SSE_SIZE;
     
     n -= SSE_SIZE;
   }
+  // copy remainder
   while (n--)
   {
-    *dest++ = *usrc++;
+    *dst++ = *src++;
   }
-  return dest;
+  return dst;
 }
 
-void* streamset(char* dest, char value, size_t n)
+void* streamset(void* dest, char value, size_t n)
 {
+  char* dst = dest;
+  
+  // memset up to 15 bytes until SSE-aligned
+  while (((intptr_t) dst & (SSE_SIZE-1)) && n)
+  {
+    *dst++ = value; n--;
+  }
+  // memset SSE-aligned
   __m128i data = _mm_set1_epi8(value);
   while (n >= SSE_SIZE)
   {
-    _mm_stream_si128((__m128i*) dest, data);
+    _mm_stream_si128((__m128i*) dst, data);
     
-    dest += SSE_SIZE;
-    n    -= SSE_SIZE;
+    dst += SSE_SIZE;
+    n   -= SSE_SIZE;
   }
+  // memset remainder
   while (n--)
   {
-    *dest++ = value;
+    *dst++ = value;
   }
-  return dest;
+  return dst;
 }
