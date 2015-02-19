@@ -1,0 +1,6 @@
+#ifndef MEMSTREAM_HEADER
+#define MEMSTREAM_HEADER
+
+#include "utility/memstream.h"
+
+#endif
