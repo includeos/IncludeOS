@@ -25,6 +25,7 @@ int main(void)
 
 using namespace net;
 Inet* network;
+PacketStore packetStore(50, 1500);
 
 void Service::start()
 {
@@ -40,12 +41,12 @@ void Service::start()
 	
 	IncludeDNS dns;
 	// set nameserver
-	dns.set_ns(nameserver.whole);
+  dns.set_ns(nameserver.whole);
 	
 	// dig up some dirt
-	dns.request("gonzo-All-Series");
-	dns.request("Vaffelrouter");
-	
+	//dns.request("www.google.com");
+	//dns.request("www.vg.no");
+  dns.request("gonzo-All-series");
 }
 
 #endif

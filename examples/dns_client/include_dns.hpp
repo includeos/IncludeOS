@@ -9,8 +9,11 @@
 #include <list>
 #include <string>
 #include <memory>
+#include <iostream>
 
 extern net::Inet* network;
+extern unsigned short ntohs(unsigned short sh);
+#define htons ntohs
 
 class PacketStore
 {
@@ -19,14 +22,15 @@ public:
   {
     if (_queue.empty())
        panic("Packet store: out of packets");
+    
     auto elt = *_queue.begin();
     _queue.pop_front();
     _queue.push_back(elt);
     return elt;
   }
   
-  PacketStore(uint16_t n, uint32_t size):
-    _n(n), _bufsize(size), _pool(nullptr)
+  PacketStore(uint16_t n, uint32_t size)
+    : _n(n), _bufsize(size), _pool(nullptr)
   {       
     this->_pool = new uint8_t[n * size];
     
@@ -35,11 +39,9 @@ public:
       _queue.push_back
         (std::make_shared<net::Packet>(&_pool[i * size], size, net::Packet::AVAILABLE));
     }
-        
-    printf("<PacketStore> Allocated %li byte buffer pool for packets \n",n*size);
+    
+    std::cout << "<PacketStore> Allocated " << n*size << " byte buffer pool for packets" << std::endl;
   }
-
-  //PacketStore(int n, int size, caddr_t pool);
   
 private:
 	uint16_t _n;
@@ -47,6 +49,7 @@ private:
 	uint8_t* _pool;
 	std::list<std::shared_ptr<net::Packet> > _queue;
 };
+extern PacketStore packetStore;
 
 class IncludeDNS : public AbstractRequest
 {
@@ -60,7 +63,7 @@ public:
 		network->udp_listen(DNS_PORT,
 		[this] (std::shared_ptr<net::Packet>& pckt)
 		{
-			printf("Reading data from DNS server:\n");
+			std::cout << "*** Response from DNS server:" << std::endl;
 			auto data_loc = pckt->buffer() + sizeof(UDP::full_header);
 			
 			// parse incoming data
@@ -81,29 +84,25 @@ private:
 		using namespace net;
 		
 		// send request to nameserver
-		printf("Resolving %s...", hostname.c_str());
+		std::cout << "Resolving " << hostname << "..." << std::endl;
 		
-		int len = sizeof(UDP::full_header) + messageSize;
-		uint8_t* buf = new uint8_t[len]();
-		
-		std::shared_ptr<Packet> pckt(
-			new Packet((uint8_t*) buf, messageSize, Packet::DOWNSTREAM));
+		auto pckt = packetStore.getPacket();
+		UDP::full_header& header = *(UDP::full_header*) pckt->buffer();
 		
 		// Populate outgoing UDP header
-		UDP::full_header* full_hdr_out = (UDP::full_header*) pckt->buffer();
-		full_hdr_out->udp_hdr.dport = DNS_PORT;
-		full_hdr_out->udp_hdr.sport = DNS_PORT;
-		full_hdr_out->udp_hdr.length = __builtin_bswap16(len);
-		
+		header.udp_hdr.dport = htons(DNS_PORT);
+		header.udp_hdr.sport = htons(DNS_PORT);
+		header.udp_hdr.length = htons(sizeof(UDP::udp_header) + messageSize);
+    
 		// Populate outgoing IP header
-		full_hdr_out->ip_hdr.saddr = network->ip4(ETH0);
-		full_hdr_out->ip_hdr.daddr = IP4::addr { whole: this->nameserver };
-		full_hdr_out->ip_hdr.protocol = IP4::IP4_UDP;
+		header.ip_hdr.saddr = network->ip4(ETH0);
+		header.ip_hdr.daddr = IP4::addr { whole: this->nameserver };
+		header.ip_hdr.protocol = IP4::IP4_UDP;
 		
 		// packet payload
 		memcpy(pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
 		
-		printf("Sending DNS query...\n");
+		std::cout << "Sending DNS query..." << std::endl;
 		network->udp_send(pckt);
 		return true;
 	}
