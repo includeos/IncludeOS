@@ -23,7 +23,8 @@ namespace std
 	{
 		// "0x" + (2 per byte as hex value) + zero
 		string result(sizeof(T*) * 2 + 3, 0);
-		sprintf( (char*) result.data(), "%p", t);
+		int len = sprintf( (char*) result.data(), "%p", t);
+    result.resize(len);
 		
 		return result;
 	}
@@ -31,14 +32,16 @@ namespace std
 	inline string to_string(char c)
 	{
 		string result(8, 0);
-		sprintf( (char*) result.data(), "%hhd", c);
+		int len = sprintf( (char*) result.data(), "%hhd", c);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(unsigned char c)
 	{
 		string result(8, 0);
-		sprintf( (char*) result.data(), "%hhu", c);
+		int len = sprintf( (char*) result.data(), "%hhu", c);
+    result.resize(len);
 		
 		return result;
 	}
@@ -46,14 +49,16 @@ namespace std
 	inline string to_string(short x)
 	{
 		string result(8, 0);
-		sprintf( (char*) result.data(), "%hd", x);
+		int len = sprintf( (char*) result.data(), "%hd", x);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(unsigned short x)
 	{
 		string result(8, 0);
-		sprintf( (char*) result.data(), "%hu", x);
+		int len = sprintf( (char*) result.data(), "%hu", x);
+    result.resize(len);
 		
 		return result;
 	}
@@ -61,14 +66,16 @@ namespace std
 	inline string to_string(int x)
 	{
 		string result(12, 0);
-		sprintf( (char*) result.data(), "%d", x);
-		
+		int len = sprintf( (char*) result.data(), "%d", x);
+    result.resize(len);
+    
 		return result;
 	}
 	inline string to_string(unsigned int x)
 	{
 		string result(12, 0);
-		sprintf( (char*) result.data(), "%u", x);
+		int len = sprintf( (char*) result.data(), "%u", x);
+    result.resize(len);
 		
 		return result;
 	}
@@ -76,14 +83,16 @@ namespace std
 	inline string to_string(long x)
 	{
 		string result(22, 0);
-		sprintf( (char*) result.data(), "%ld", x);
+		int len = sprintf( (char*) result.data(), "%ld", x);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(unsigned long x)
 	{
 		string result(22, 0);
-		sprintf( (char*) result.data(), "%lu", x);
+		int len = sprintf( (char*) result.data(), "%lu", x);
+    result.resize(len);
 		
 		return result;
 	}
@@ -91,14 +100,16 @@ namespace std
 	inline string to_string(long long x)
 	{
 		string result(32, 0);
-		sprintf( (char*) result.data(), "%lld", x);
+		int len = sprintf( (char*) result.data(), "%lld", x);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(unsigned long long x)
 	{
 		string result(32, 0);
-		sprintf( (char*) result.data(), "%llu", x);
+		int len = sprintf( (char*) result.data(), "%llu", x);
+    result.resize(len);
 		
 		return result;
 	}
@@ -106,21 +117,24 @@ namespace std
 	inline string to_string(float x)
 	{
 		string result(18, 0);
-		sprintf( (char*) result.data(), "%f", x);
+		int len = sprintf( (char*) result.data(), "%f", x);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(double x)
 	{
 		string result(32, 0);
-		sprintf( (char*) result.data(), "%f", x);
+		int len = sprintf( (char*) result.data(), "%f", x);
+    result.resize(len);
 		
 		return result;
 	}
 	inline string to_string(long double x)
 	{
 		string result(38, 0);
-		sprintf( (char*) result.data(), "%Lf", x);
+		int len = sprintf( (char*) result.data(), "%Lf", x);
+    result.resize(len);
 		
 		return result;
 	}
