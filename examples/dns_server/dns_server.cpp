@@ -4,6 +4,7 @@ using namespace net;
 using namespace std;
 eastl::map<eastl::string, eastl::vector<IP4::addr>> DNS_server::repository;
 
+const int NUM=10000;
 
 void DNS_server::init(){
     /// www.google.com ///
@@ -17,6 +18,17 @@ void DNS_server::init(){
   mapping1.push_back( { 213, 155, 151, 181 } );
   mapping1.push_back( { 213, 155, 151, 182 } );
   addMapping("www.google.com.", mapping1);  
+  
+  for (int i=0; i<NUM; i++){
+    std::vector<IP4::addr> mapping1;
+    mapping1.push_back( {10,0,(i >> 8) & 0xFF, i & 0xFF } );
+    
+    string key = (string("server")+to_string(i))+string(".local.org.");
+    //cout << "Adding entry " << key << endl;
+    addMapping(key,mapping1);
+    
+  }
+    
   
 }
 
