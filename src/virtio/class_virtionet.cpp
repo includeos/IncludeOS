@@ -2,7 +2,7 @@
 //#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
-#include <virtio/virtio.h>
+//#include <virtio/virtio.h>
 #include <class_irq_handler.hpp>
 #include <stdio.h>
 #include <syscalls.hpp>

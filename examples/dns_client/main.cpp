@@ -29,13 +29,14 @@ PacketStore packetStore(50, 1500);
 
 void Service::start()
 {
-	IP4::addr nameserver {192, 168, 1, 1};
-	
-	std::cout << "addr: " << nameserver.str() << std::endl;
-	
-	Inet::ifconfig(net::ETH0,
-		{ 10,  0, 0, 2},
-		{255,255, 0, 0});
+  IP4::addr nameserver {8, 8, 8, 8};
+  //IP4::addr nameserver {10, 0, 0, 10};
+  
+  std::cout << "addr: " << nameserver.str() << std::endl;
+  
+  Inet::ifconfig(net::ETH0,
+                 { 10,  0, 0, 2},
+                 {255,255, 0, 0});
 	
 	network = Inet::up();
 	
@@ -44,9 +45,9 @@ void Service::start()
   dns.set_ns(nameserver.whole);
 	
 	// dig up some dirt
-	//dns.request("www.google.com");
-	//dns.request("www.vg.no");
-  dns.request("gonzo-All-series");
+  dns.request("www.google.com");
+  //dns.request("www.vg.no");
+  //dns.request("gonzo-All-series");
 }
 
 #endif

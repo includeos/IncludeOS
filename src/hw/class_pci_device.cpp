@@ -1,15 +1,8 @@
-
+#include <common>
 #include <class_pci_device.hpp>
 #include <syscalls.hpp>
 //#include <class_nic.hpp>
 #include <assert.h>
-
-//TODO: Virtio stuff might be separate
-#include <virtio/virtio.h>
-
-//enum{CLASS_NIC=,CLA
-
-//Private constructor; only called if "Create" finds a device on this addr.
 
 
 #define NUM_CLASSCODES 19
@@ -172,6 +165,39 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 
   
 }
+
+
+void PCI_Device::write_dword(uint8_t reg,uint32_t value){
+  pci_msg req;
+  req.data=0x80000000;
+  req.addr=pci_addr_;
+  req.reg=reg;
+  
+  outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+  outpd(PCI_CONFIG_DATA, value);
+};
+
+uint32_t PCI_Device::read_dword(uint8_t reg){
+    pci_msg req;
+    req.data=0x80000000;
+    req.addr=pci_addr_;
+    req.reg=reg;
+    
+    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+    return inpd(PCI_CONFIG_DATA);
+  };
+
+uint32_t PCI_Device::read_dword(uint16_t pci_addr, uint8_t reg){
+    pci_msg req;
+    req.data=0x80000000;
+    req.addr=pci_addr;
+    req.reg=reg;
+    
+    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+    return inpd(PCI_CONFIG_DATA);
+  };  
+
+
 
 
 /** INLINED */

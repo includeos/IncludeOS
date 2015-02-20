@@ -81,7 +81,7 @@ os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
 
-install: os.a bootloader
+install: #os.a bootloader
 	@echo "\n>> Installing..."
 	cp os.a $(OS)/lib
 	cp bootloader $(OS)/

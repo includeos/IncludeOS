@@ -62,6 +62,7 @@ private:
 
 
 
+
 /*
   A generic getter, in case we wanted two nics of different types.
   //! Get ethernet device n

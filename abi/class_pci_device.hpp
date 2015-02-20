@@ -2,11 +2,25 @@
 #define CLASS_PCI_DEVICE_HPP
 
 #include <stdio.h>
+#include <common>
 //#include <syscalls.hpp>
-#include <hw/pci.h>
+//#include <hw/pci.h>
 
+
+// From sanos, pci.h
 #define PCI_WTF 0xffffffff
 
+#define PCI_CONFIG_ADDR 0xCF8
+#define PCI_CONFIG_DATA 0xCFC
+#define PCI_CONFIG_INTR                 0x3C
+
+#define PCI_CONFIG_VENDOR               0x00
+#define PCI_CONFIG_CLASS_REV            0x08
+
+#define PCI_CONFIG_BASE_ADDR_0 0x10
+
+#define PCI_BASE_ADDRESS_MEM_MASK       (~0x0FUL)
+#define PCI_BASE_ADDRESS_IO_MASK        (~0x03UL)
 
 /** 
     @brief PCI device message format
@@ -93,16 +107,17 @@ class PCI_Device
    */
   
   //! @brief Resource types, "Memory" or "I/O"
-  enum resource_t{RES_MEM,RES_IO};
+  enum resource_t{RES_MEM, RES_IO};
   
   /** A device resource - possibly a list */
   template<resource_t RT>
-  struct Resource{
+  struct Resource {
     const resource_t type = RT;
     uint32_t start_;
     uint32_t len_;
     Resource<RT>* next = 0;
     Resource<RT>(uint32_t start,uint32_t len):start_(start),len_(len){};
+    //Resource() : type(RT) {}
   };
 
   //! @brief Resource lists. Members added by add_resource();
@@ -111,15 +126,7 @@ class PCI_Device
    
 
   //! @brief Write to device with implicit pci_address (e.g. used by Nic)
-  inline void write_dword(uint8_t reg,uint32_t value){
-    pci_msg req;
-    req.data=0x80000000;
-    req.addr=pci_addr_;
-    req.reg=reg;
-    
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    outpd(PCI_CONFIG_DATA, value);
-  };
+  void write_dword(uint8_t reg,uint32_t value);
 
   /**   Add a resource to a resource queue.
          
@@ -145,28 +152,11 @@ public:
   
   
   //! @brief Read from device with implicit pci_address (e.g. used by Nic)
-  inline uint32_t read_dword(uint8_t reg){
-    pci_msg req;
-    req.data=0x80000000;
-    req.addr=pci_addr_;
-    req.reg=reg;
-    
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    return inpd(PCI_CONFIG_DATA);
-  };
-
+  uint32_t read_dword(uint8_t reg);
+  
 
   //! @brief Read from device with explicit pci_addr
-  static inline uint32_t read_dword(uint16_t pci_addr, uint8_t reg){
-    pci_msg req;
-    req.data=0x80000000;
-    req.addr=pci_addr;
-    req.reg=reg;
-    
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    return inpd(PCI_CONFIG_DATA);
-  };  
-
+  static  uint32_t read_dword(uint16_t pci_addr, uint8_t reg);
 
   /** Probe for a device on the given address
       

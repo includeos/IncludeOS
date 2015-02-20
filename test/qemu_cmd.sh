@@ -1,7 +1,7 @@
 
-#export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
+export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 #export QEMU="sudo kvm" # No sudo for "qemy-system-x" # sudo kvm
-export QEMU="qemu-system-x86_64 -enable-kvm"
+#export QEMU="qemu-system-x86_64 -enable-kvm"
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor
@@ -25,8 +25,8 @@ export macaddress="c0:01:0a:00:00:0a"
 export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0 -m 50 "
 
 export DEV_GRAPHICS="-nographic" 
-export DEV_HDD="-hda $1 -smp 1 -cpu host"
-#export DEV_HDD="-hda $1" 
+#export DEV_HDD="-hda $1 -smp 1 -cpu host"
+export DEV_HDD="-hda $1" 
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
 

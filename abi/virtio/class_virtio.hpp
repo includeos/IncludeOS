@@ -27,13 +27,34 @@
 #define VIRTIO_F_RING_EVENT_IDX 29
 #define VIRTIO_F_VERSION_1 32
 
+// From sanos virtio.h
+#define VIRTIO_PCI_HOST_FEATURES        0   // Features supported by the host
+#define VIRTIO_PCI_GUEST_FEATURES       4   // Features activated by the guest
+#define VIRTIO_PCI_QUEUE_PFN            8   // PFN for the currently selected queue
+#define VIRTIO_PCI_QUEUE_SIZE           12  // Queue size for the currently selected queue
+#define VIRTIO_PCI_QUEUE_SEL            14  // Queue selector
+#define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
+#define VIRTIO_PCI_STATUS               18  // Device status register
+#define VIRTIO_PCI_ISR                  19  // Interrupt status register
+#define VIRTIO_PCI_CONFIG               20  // Configuration data block
 
-struct scatterlist;
+
+#define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
+#define VIRTIO_CONFIG_S_DRIVER          2
+#define VIRTIO_CONFIG_S_DRIVER_OK       4
+#define VIRTIO_CONFIG_S_FAILED          0x80
+
+
+
+
+
 /** A simple scatter-gather list used for Queue::enqueue. 
+    ( From sanos, virtio.h  - probably Linux originally)
+ */
 struct scatterlist {
   void* data;
   int size;
-};*/
+};
 
 //#include <class_irq_handler.hpp>
 class Virtio{

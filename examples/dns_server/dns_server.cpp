@@ -10,6 +10,7 @@ void DNS_server::start(Inet* net)
   
   auto del(upstream::from<DNS_server, &DNS_server::listener>(this));
   net->udp_listen(DNS::DNS_SERVICE_PORT, del);
+  cout << " ------------- Done. DNS server listening. " << endl;
 }
 
 // cheap implementation of ntohs/htons

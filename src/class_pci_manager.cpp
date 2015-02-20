@@ -1,15 +1,14 @@
 #include <assert.h>
-#include <hw/pci.h>
+#include <common>
 
 #include <class_pci_manager.hpp>
 #include <class_pci_device.hpp>
 #include <class_nic.hpp>
-#include <virtio/virtio.h>
 
 
 #define NUM_BUSES 2;
-bus* buses=0;
-unit* units=0;
+//bus* buses=0;
+//unit* units=0;
 
 const int MAX_UNITS=10;
 //unit unitlist[MAX_UNITS];

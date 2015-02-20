@@ -64,7 +64,9 @@ extern "C" {
 
     
     OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    
-    main();
+    
+    //main();
+    OS::start();
     
     //Will only work if any destructors are called (I think?)
     //    _fini();
@@ -120,11 +122,11 @@ extern "C" {
   }
   
 
-  int main(){
+  /*  int main(){
     OS::start();
     //OBS: If this function returns, the consequences are UNDEFINED
     return 0;
-  }
+    }*/
   
 }
 

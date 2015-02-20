@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <syscalls.hpp>
-#include <virtio/virtio.h>
+//#include <virtio/virtio.h>
 #include <assert.h>
 
 
@@ -110,7 +110,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   // (implicitly) Mark all outbound tokens as device-readable
   for (i = _free_head; out; i = _queue.desc[i].next, out--) 
     {
-      _queue.desc[i].flags = VRING_DESC_F_NEXT;
+      _queue.desc[i].flags = VIRTQ_DESC_F_NEXT;
       _queue.desc[i].addr = (uint64_t)sg->data;
       _queue.desc[i].len = sg->size;
 
@@ -125,7 +125,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   for (; in; i = _queue.desc[i].next, in--) 
     {
       debug("<Q> Enqueuing inbound \n");
-      _queue.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
+      _queue.desc[i].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
       _queue.desc[i].addr = (uint64_t)sg->data;
       _queue.desc[i].len = sg->size;
       prev = i;
@@ -133,7 +133,7 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
     }
   
   // No continue on last buffer
-  _queue.desc[prev].flags &= ~VRING_DESC_F_NEXT;
+  _queue.desc[prev].flags &= ~VIRTQ_DESC_F_NEXT;
   
   
   // Update free pointer
@@ -165,7 +165,7 @@ void Virtio::Queue::release(uint32_t head){
   _num_free++;
 
   //...possibly with a tail
-  while (_queue.desc[i].flags & VRING_DESC_F_NEXT) 
+  while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT) 
   {
     i = _queue.desc[i].next;
     _num_free++;
@@ -282,7 +282,7 @@ void Virtio::Queue::kick(){
   _num_added = 0;
  
 
-  if (!(_queue.used->flags & VRING_USED_F_NO_NOTIFY)){
+  if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
           _pci_index, _iobase);
     //outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);

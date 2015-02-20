@@ -90,9 +90,18 @@ crt%.o: $(OSDIR)/crt/crt%.s
 	@echo "\n>> Assembling GNU 'as' files"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
+# Linux!
+###################################################
+LINUX_GPP=g++-4.9 -std=c++11
+LINUX_OPT=-m32 -fno-exceptions -fno-rtti #-nostdlib -lgcc
+linux:	
+	$(LINUX_GPP) $(LINUX_OPT)  linux_dns.cpp dns_server.o $(OSDIR)/lib/os.a -o linux_dns $(INCLUDES)
+
+
 # Cleanup
 ###################################################
 clean: 
 	$(RM) $(OBJS) crti.* crtn.* $(DEPS) $(SERVICE) $(SERVICE).img $(SERVICE).img.* $(SERVICE).vmdk $(SERVICE).vdi $(SERVICE).qcow2
+
 
 -include $(DEPS)

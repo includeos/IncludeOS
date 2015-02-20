@@ -17,7 +17,7 @@ export QEMU="qemu-system-x86_64" # No sudo for "qemy-system-x" # sudo kvm
 
 # OBS: The mac-prefix must be c001 (which is cool) for Håreks Mac <-> IP hack to work
 #      The last 4 bytes can (and should) be changed to match the IP range of the bridge
-export macaddress="c0:01:0a:00:00:0a"
+export macaddress="c0:01:0a:00:00:02"
 #export macaddress="08:00:27:9d:86:e8"
 #export macaddress="08:00:c0:a8:7a:0a" # 192.168.122.10 adapted to default virsh network 
 
