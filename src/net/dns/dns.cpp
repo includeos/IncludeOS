@@ -75,7 +75,7 @@ namespace net
       // not found
       cout << "*** Could not find: " << parsed_query << endl;
       hdr.ans_count = 0;
-      hdr.rcode     = DNS::OP_REFUSED;
+      hdr.rcode     = DNS::NO_ERROR;
     }
     else
     {
@@ -107,10 +107,7 @@ namespace net
       } // addr
       
       // set dns header answer count (!)
-      if (addrs)
-        hdr.ans_count = htons((addrs->size() & 0xFFFF));
-      else
-        hdr.ans_count = 0;
+      hdr.ans_count = htons((addrs->size() & 0xFFFF));
       hdr.rcode     = DNS::NO_ERROR;
     }
     return packetlen;

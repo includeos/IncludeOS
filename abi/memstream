@@ -1,0 +1,9 @@
+#ifndef MEMSTREAM_HEADER
+#define MEMSTREAM_HEADER
+
+extern "C"
+{
+#include "utility/memstream.h"
+}
+
+#endif
