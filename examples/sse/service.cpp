@@ -1,14 +1,56 @@
 #include <os>
+#include <iostream>
+#include <memstream>
 
 void sse_testing();
 
-void Service::start(){
+void Service::start()
+{
   printf("\n *** Service is up - with OS Included! *** \n");
   
-  printf("\n Running some SSE Examples \n");
+  printf("\nRunning some SSE tests\n");
   // SSE test
   // results in general protection fault if not enabled
   sse_testing();
+  
+  std::cout << "\nTesting aligned allocation" << std::endl;
+  const int BUFSIZE = 1610;
+  
+  void* FIRST = aligned_alloc(BUFSIZE, 128);
+  aligned_free(FIRST);
+  
+  for (int i = 0; i < 1000; i++)
+  {
+    // allocate
+    void* test = sse_alloc(BUFSIZE);
+    
+    // set to 0xFF
+    streamset((char*) test, 0xFF, BUFSIZE);
+    // verify
+    for (int j = 0; j < BUFSIZE; j++)
+      assert( ((unsigned char*) test)[j] == 0xFF);
+    
+    // allocate 2
+    void* test2 = sse_alloc(BUFSIZE);
+    
+    // set to 0xFF
+    streamcpy((char*) test2, (char*) test, BUFSIZE);
+    // verify again
+    for (int j = 0; j < BUFSIZE; j++)
+      assert( ((unsigned char*) test2)[j] == 0xFF);
+    
+    // free
+    aligned_free(test);
+    aligned_free(test2);
+  }
+  std::cout << "* Alignment verification success!" << std::endl;
+  
+  void* LAST = aligned_alloc(BUFSIZE, 128);
+  aligned_free(LAST);
+  
+  std::cout << "First " << FIRST << " vs Last " << LAST << std::endl;
+  assert(FIRST == LAST);
+  std::cout << "* Pointers matched, no missing memory space" << std::endl;
   
   printf("Service out! \n");
 }
@@ -28,13 +70,10 @@ void print_row4f(float* buffer)
 
 void sse_testing()
 {
-	#define SSE  __attribute__ (( aligned (16) ))
-	#define SSE_VALIDATE(buffer)  (assert(((intptr_t) sse_buffer & 15) == 0))
-	
 	const int BUFFER_SIZE = 16;
-	float sse_buffer[BUFFER_SIZE] SSE;
+	float sse_buffer[BUFFER_SIZE] SSE_ALIGNED;
 	
-	SSE_VALIDATE(sse_buffer);
+	assert(SSE_VALIDATE(sse_buffer));
 	printf("assertion OK: SSE buffer was aligned!\n");
 	
 	for (int i = 0; i < BUFFER_SIZE; i++)

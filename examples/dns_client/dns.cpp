@@ -174,15 +174,15 @@ bool DnsRequest::parseResponse(char* buffer)
 	char* reader = ((char*) this->qinfo) + sizeof(dns_question_t);
 	
 	// parse answers
-    for(int i = 0; i < ntohs(dns->ans_count); i++)
+  for(int i = 0; i < ntohs(dns->ans_count); i++)
 		answers.emplace_back(reader, buffer);
 	
-    // parse authorities
-    for (int i = 0; i < ntohs(dns->auth_count); i++)
-        auth.emplace_back(reader, buffer);
+  // parse authorities
+  for (int i = 0; i < ntohs(dns->auth_count); i++)
+    auth.emplace_back(reader, buffer);
 	
     // parse additional
-    for (int i = 0; i < ntohs(dns->add_count); i++)
+  for (int i = 0; i < ntohs(dns->add_count); i++)
 		addit.emplace_back(reader, buffer);
 	
 	return true;

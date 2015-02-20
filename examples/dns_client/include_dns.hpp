@@ -11,6 +11,8 @@
 #include <memory>
 #include <iostream>
 
+#include <memstream>
+
 extern net::Inet* network;
 extern unsigned short ntohs(unsigned short sh);
 #define htons ntohs
@@ -56,7 +58,7 @@ class IncludeDNS : public AbstractRequest
 public:
 	IncludeDNS() : AbstractRequest() {}
 	
-	void set_ns(unsigned nameserver)
+	virtual void set_ns(unsigned nameserver)
 	{
 		using namespace net;
 		
@@ -65,10 +67,16 @@ public:
 		{
 			std::cout << "*** Response from DNS server:" << std::endl;
 			auto data_loc = pckt->buffer() + sizeof(UDP::full_header);
+			auto data_len = pckt->len() - sizeof(UDP::full_header);
 			
-			// parse incoming data
-			this->buffer = (char*) data_loc;
-			read();
+      // parse incoming data
+			//this->buffer = (char*) data_loc;
+      streamucpy(this->buffer, data_loc, data_len);
+			
+      //read();
+      req.parseResponse(this->buffer);
+      
+      std::cout << "*** Printing results:" << std::endl;
 			// print results
 			print();
 			
@@ -79,7 +87,7 @@ public:
 	}
 	
 private:
-	bool send(const std::string& hostname, int messageSize)
+	virtual bool send(const std::string& hostname, int messageSize)
 	{
 		using namespace net;
 		
@@ -100,18 +108,19 @@ private:
 		header.ip_hdr.protocol = IP4::IP4_UDP;
 		
 		// packet payload
-		memcpy(pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
-		
+		//streamucpy((char*) pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
+    memcpy(pckt->buffer() + sizeof(UDP::full_header), this->buffer, messageSize);
+		pckt->set_len(sizeof(UDP::full_header) + messageSize);
+    
 		std::cout << "Sending DNS query..." << std::endl;
 		network->udp_send(pckt);
 		return true;
 	}
-	bool read()
+	virtual bool read()
 	{
+    std::cout << "IM INSIDE READ" << std::endl;
 		// parse response from nameserver
-		req.parseResponse(buffer);
-		
-		print();
+		//req.parseResponse(buffer);
 		return true;
 	}
 	
