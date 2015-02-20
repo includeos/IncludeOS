@@ -11,17 +11,23 @@
 class DNS_server
 {
 public:
-  void addMapping(const std::string& key, std::vector<net::IP4::addr> values)
+  static void addMapping(const std::string& key, std::vector<net::IP4::addr> values)
   {
-    lookup[key] = values;
+    repository[key] = values;
   }
   
   void start(net::Inet*);
   int listener(std::shared_ptr<net::Packet>&);
   
+  /// @brief Populate the registry 
+  static void init();  
+  
+  /// @brief Do a lookup, using a lookup function
+  static std::vector<net::IP4::addr>* lookup(const std::string& name);
+
 private:
   net::Inet* network;
-  std::map<std::string, std::vector<net::IP4::addr>> lookup;
+  static std::map<std::string, std::vector<net::IP4::addr>> repository;
   
 };
   

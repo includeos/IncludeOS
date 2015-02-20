@@ -41,25 +41,18 @@ extern "C" void __assert_func(int){};
 
 using namespace net;
 
-int main()
+int main(int argc, char** argv)
 {
+  
+  if(argc < 2){
+    std::cout << "USAGE: " << (const char*)argv[0] << " <interface IP>" << std::endl;
+    return 0;
+  }
+  
   std::cout << "*** Service is up - with OS Included! ***" << std::endl;
   std::cout << "Starting DNS prototype\n";
     
-  /// www.google.com ///
-  std::vector<IP4::addr> mapping1;
-  mapping1.push_back( { 213, 155, 151, 187 } );
-  mapping1.push_back( { 213, 155, 151, 185 } );
-  mapping1.push_back( { 213, 155, 151, 180 } );
-  mapping1.push_back( { 213, 155, 151, 183 } );
-  mapping1.push_back( { 213, 155, 151, 186 } );
-  mapping1.push_back( { 213, 155, 151, 184 } );
-  mapping1.push_back( { 213, 155, 151, 181 } );
-  mapping1.push_back( { 213, 155, 151, 182 } );
-  
-  eastl::map<eastl::string, eastl::vector<IP4::addr>> lookup;
-  lookup["www.google.com."] = mapping1;
-  ///               ///
+  DNS_server::init();
   
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0)
@@ -70,7 +63,7 @@ int main()
   
   
   in_addr lan_addr;
-  inet_pton(AF_INET, "128.39.74.243", &lan_addr);
+  inet_pton(AF_INET, "10.0.0.1", &lan_addr);
   
   struct sockaddr_in myaddr;
   myaddr.sin_family = AF_INET;
@@ -79,8 +72,8 @@ int main()
   
   if (bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) < 0)
   {
-	perror("bind failed");
-	return -1;
+    perror("bind failed");
+    return -1;
   }
   std::cout << "<DNS SERVER> Listening on UDP port 53" << std::endl;
   
@@ -91,27 +84,33 @@ int main()
   socklen_t addrlen = sizeof(remote);
   
   //int recvfrom(int socket, void *restrict buffer, size_t length, int flags, struct sockaddr *restrict src_addr, socklen_t *restrict *src_len)
-  int bytes = recvfrom(fd, buffer, BUFSIZE, 0, (sockaddr*) &remote, &addrlen);
   
-  if (bytes > 0)
-  {
-	printf("Received %d boats.\n", bytes);
+  while(1){
+    int bytes = recvfrom(fd, buffer, BUFSIZE, 0, (sockaddr*) &remote, &addrlen);
+    
+    if (bytes > 0)
+      {
+        printf("Received %d boats.\n", bytes);
 	
-	int packetlen = DNS::createResponse(*(DNS::header*) buffer,
-	
-		[&lookup] (const std::string& name) ->
-		std::vector<net::IP4::addr>*
-		{
-			auto it = lookup.find(name);
-			if (it == lookup.end()) return nullptr;
-			return &lookup[name];
-		});
+	int packetlen = 
+          DNS::createResponse(*(DNS::header*) buffer,
+                              [] (const std::string& name) ->
+                              std::vector<net::IP4::addr>*
+                              {
+                                return DNS_server::lookup(name);
+                              });
 	
 	int sent = sendto(fd, buffer, packetlen, 0,
-               (sockaddr*) &remote, addrlen);
+                          (sockaddr*) &remote, addrlen);
 	
 	printf("Wrote %d boats.\n", sent);
+      }
+    
+  
   }
   
   std::cout << "Service out!" << std::endl;
 }
+  
+  
+  

@@ -2,6 +2,26 @@
 
 using namespace net;
 using namespace std;
+eastl::map<eastl::string, eastl::vector<IP4::addr>> DNS_server::repository;
+
+
+void DNS_server::init(){
+    /// www.google.com ///
+  std::vector<IP4::addr> mapping1;
+  mapping1.push_back( { 213, 155, 151, 187 } );
+  mapping1.push_back( { 213, 155, 151, 185 } );
+  mapping1.push_back( { 213, 155, 151, 180 } );
+  mapping1.push_back( { 213, 155, 151, 183 } );
+  mapping1.push_back( { 213, 155, 151, 186 } );
+  mapping1.push_back( { 213, 155, 151, 184 } );
+  mapping1.push_back( { 213, 155, 151, 181 } );
+  mapping1.push_back( { 213, 155, 151, 182 } );
+  addMapping("www.google.com.", mapping1);  
+  
+}
+
+
+
 
 void DNS_server::start(Inet* net)
 {
@@ -34,9 +54,9 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   [this] (const std::string& name) ->
   std::vector<IP4::addr>*
   {
-    auto it = lookup.find(name);
-    if (it == lookup.end()) return nullptr;
-    return &lookup[name];
+    auto it = repository.find(name);
+    if (it == repository.end()) return nullptr;
+    return &repository[name];
   });
   
   // send response back to client
@@ -62,4 +82,12 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
   network->udp_send(pckt);
   
   return 0;
+}
+
+std::vector<net::IP4::addr>* 
+DNS_server::lookup(const string& name){
+  auto it = repository.find(name);
+  if (it == repository.end()) return nullptr;
+  return &repository[name];
+    
 }
