@@ -3,7 +3,7 @@ SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
-FILES = service.cpp dns.cpp
+FILES = service.cpp
 
 # Compiler/Linker
 ###################################################

@@ -1,7 +1,7 @@
 #ifndef DNS_REQUEST_HPP
 #define DNS_REQUEST_HPP
 
-#include "dns.hpp"
+#include <net/dns/dns.hpp>
 
 class AbstractRequest
 {
@@ -22,7 +22,7 @@ public:
 	bool request(const std::string& hostname)
 	{
 		// create request to nameserver
-		int messageSize = req.createRequest(buffer, hostname);
+		int messageSize = req.create(buffer, hostname);
 		
 		// send request
 		return send(hostname, messageSize);
@@ -37,8 +37,8 @@ protected:
 	virtual bool send(const std::string& hostname, int messageSize) = 0;
 	virtual bool read() = 0;
 	
-	DnsRequest req;
-	char*      buffer;
+	net::DNS::Request req;
+	char* buffer;
 };
 
 #endif

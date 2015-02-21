@@ -6,6 +6,9 @@ eastl::map<eastl::string, eastl::vector<IP4::addr>> DNS_server::repository;
 
 const int NUM=10000;
 
+extern unsigned short ntohs(unsigned short sh);
+#define htons ntohs
+
 void DNS_server::init(){
     /// www.google.com ///
   std::vector<IP4::addr> mapping1;
@@ -28,12 +31,8 @@ void DNS_server::init(){
     addMapping(key,mapping1);
     
   }
-    
   
 }
-
-
-
 
 void DNS_server::start(Inet* net)
 {
@@ -45,22 +44,14 @@ void DNS_server::start(Inet* net)
   cout << " ------------- Done. DNS server listening. " << endl;
 }
 
-// cheap implementation of ntohs/htons
-unsigned short ntohs(unsigned short sh)
-{
-	unsigned char* B = (unsigned char*) &sh;
-	
-	return  ((0xff & B[0]) << 8) |
-			((0xff & B[1]));
-}
-#define htons ntohs
-
 int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
 {
   cout << "<DNS SERVER> got packet..." << endl;
   
-  DNS::full_header* full_hdr = (DNS::full_header*)pckt->buffer();
-  DNS::header& hdr = full_hdr->dns_header;
+  UDP::full_header& udp = *(UDP::full_header*) pckt->buffer();
+  DNS::header& hdr      = *(DNS::header*) (pckt->buffer() + sizeof(UDP::full_header));
+  
+  /// create response ///
   
   int packetlen = DNS::createResponse(hdr,
   [this] (const std::string& name) ->
@@ -71,13 +62,12 @@ int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
     return &repository[name];
   });
   
-  // send response back to client
-  UDP::full_header& udp = full_hdr->full_udp_header;
+  /// send response back to client ///
   
   // set source & return address
   udp.udp_hdr.dport = udp.udp_hdr.sport;
   udp.udp_hdr.sport = htons(DNS::DNS_SERVICE_PORT);
-  udp.udp_hdr.length = htons(sizeof(DNS::full_header) + packetlen);
+  udp.udp_hdr.length = htons(sizeof(UDP::udp_header) + packetlen);
   
   // Populate outgoing IP header
   udp.ip_hdr.daddr = udp.ip_hdr.saddr;
