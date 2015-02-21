@@ -127,15 +127,15 @@ gdt32:
 	dq 0x0 
 	;; Entry 0x8: Code segment
 	dw 0xffff		       ;Limit
-	dw 0x0000		       ;Base 15:00
+        dw 0x0000		       ;Base 15:00
 	db 0x00			       ;Base 23:16
-	dw 0xc09a		       ;Flags
+	dw 0xcf9a		       ;Flags
 	db 0x00			       ;Base 32:24
 	;; Entry 0x10: Data segment
 	dw 0xffff		       ;Limit
 	dw 0x0000		       ;Base 15:00
 	db 0x00			       ;Base 23:16
-	dw 0xc092		       ;Flags
+	dw 0xcf92		       ;Flags
 	db 0x00			       ;Base 32:24	
 gdt32_end:
 	db `32`
