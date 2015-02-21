@@ -8,12 +8,16 @@ namespace std
 {
 	using string = eastl::string;
 	
-	// std::to_string variants
+	///  std::to_string variants  ///
 	inline string to_string(const string& s)
 	{
 		return s;
 	}
 	inline string to_string(const char* c)
+	{
+		return string(c);
+	}
+	inline string to_string(char* c)
 	{
 		return string(c);
 	}
