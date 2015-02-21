@@ -368,11 +368,23 @@ namespace eastl
         void      push_front(const value_type& value);
         reference push_front();
         void*     push_front_uninitialized();
-
+        template <class... Args>
+        void      emplace_front(Args&&... args)
+        {
+          /// NOTE: this implementation doesn't benefit from placement new
+          DoInsertValue((ListNodeBase*)mNode.mpNext, T(args...));
+        }
+        
         void      push_back(const value_type& value);
         reference push_back();
         void*     push_back_uninitialized();
-
+        template <class... Args>
+        void      emplace_back(Args&&... args)
+        {
+          /// NOTE: this implementation doesn't benefit from placement new
+          DoInsertValue((ListNodeBase*)&mNode, T(args...));
+        }
+        
         void pop_front();
         void pop_back();
 
