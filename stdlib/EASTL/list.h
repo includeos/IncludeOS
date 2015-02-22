@@ -372,7 +372,7 @@ namespace eastl
         void      emplace_front(Args&&... args)
         {
           /// NOTE: this implementation doesn't benefit from placement new
-          DoInsertValue((ListNodeBase*)mNode.mpNext, T(args...));
+          DoInsertValue((ListNodeBase*)mNode.mpNext, args...);
         }
         
         void      push_back(const value_type& value);
@@ -382,7 +382,7 @@ namespace eastl
         void      emplace_back(Args&&... args)
         {
           /// NOTE: this implementation doesn't benefit from placement new
-          DoInsertValue((ListNodeBase*)&mNode, T(args...));
+          DoInsertValue((ListNodeBase*)&mNode, args...);
         }
         
         void pop_front();
@@ -444,6 +444,8 @@ namespace eastl
     protected:
         node_type* DoCreateNode();
         node_type* DoCreateNode(const value_type& value);
+        template <class... Args>
+        node_type* DoEmplaceNode(Args&&... args);
 
         template <typename Integer>
         void DoAssign(Integer n, Integer value, true_type);
@@ -462,6 +464,8 @@ namespace eastl
         void DoInsertValues(ListNodeBase* pNode, size_type n, const value_type& value);
 
         void DoInsertValue(ListNodeBase* pNode, const value_type& value);
+        template <class... Args>
+        void DoInsertValue(ListNodeBase* pNode, Args&&... args);
 
         void DoErase(ListNodeBase* pNode);
 
@@ -1612,6 +1616,15 @@ namespace eastl
 
         return pNode;
     }
+    template <typename T, typename Allocator>
+    template <class... Args>
+    inline typename list<T, Allocator>::node_type*
+    list<T, Allocator>::DoEmplaceNode(Args&&... args)
+    {
+        node_type* const pNode = DoAllocateNode();
+        ::new(&pNode->mValue) value_type(args...);
+        return pNode;
+    }
 
 
     template <typename T, typename Allocator>
@@ -1712,6 +1725,16 @@ namespace eastl
     inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, const value_type& value)
     {
         node_type* const pNodeNew = DoCreateNode(value);
+        ((ListNodeBase*)pNodeNew)->insert((ListNodeBase*)pNode);
+        #if EASTL_LIST_SIZE_CACHE
+            ++mSize;
+        #endif
+    }
+    template <typename T, typename Allocator>
+    template <class... Args>
+    inline void list<T, Allocator>::DoInsertValue(ListNodeBase* pNode, Args&&... args)
+    {
+        node_type* const pNodeNew = DoEmplaceNode(args...);
         ((ListNodeBase*)pNodeNew)->insert((ListNodeBase*)pNode);
         #if EASTL_LIST_SIZE_CACHE
             ++mSize;
