@@ -108,12 +108,6 @@ namespace net
       OP_REFUSED   = 5, // for political reasons
     };
     
-    struct full_header
-    {
-      UDP::full_header full_udp_header;
-      header dns_header;
-    };
-    
     typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
     
     static int createResponse(header& hdr, lookup_func func);
@@ -134,6 +128,49 @@ namespace net
         return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
       }
     }
+    
+    class Request
+    {
+    public:
+      int  create(char* buffer, const std::string& hostname);
+      bool parseResponse(char* buffer);
+      void print(char* buffer);
+      
+      const std::string& getHostname() const
+      {
+        return this->hostname;
+      }
+      
+    private:
+      struct rr_t // resource record
+      {
+        rr_t(char*& reader, char* buffer);
+        
+        std::string name;
+        std::string rdata;
+        rr_data resource;
+        
+        void print();
+        
+      private:
+        // decompress names in 3www6google3com format
+        std::string readName(char* reader, char* buffer, int& count);
+      };
+      
+      unsigned short generateID()
+      {
+        static unsigned short id = 0;
+        return ++id;
+      }
+      void dnsNameFormat(char* dns);
+      
+      std::string hostname;
+      question* qinfo;
+      
+      std::vector<rr_t> answers;
+      std::vector<rr_t> auth;
+      std::vector<rr_t> addit;
+    };
     
   };
   

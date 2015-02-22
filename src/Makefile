@@ -33,6 +33,7 @@ TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	memstream.o crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
+	crt/deque.o \
 	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
 	hw/class_dev.o hw/class_pci_device.o hw/pic.o \

@@ -2,7 +2,16 @@
 
 #include <string>
 
-extern unsigned short ntohs(unsigned short sh);
+unsigned short ntohs(unsigned short sh)
+{
+  return __builtin_bswap16(sh);
+  /*
+	unsigned char* B = (unsigned char*) &sh;
+	
+	return  ((0xff & B[0]) << 8) |
+			((0xff & B[1]));
+  */
+}
 #define htons ntohs
 using namespace std;
 
@@ -112,5 +121,218 @@ namespace net
     }
     return packetlen;
   }
+  
+
+  int DNS::Request::create(char* buffer, const std::string& hostname)
+  {
+    this->hostname = hostname;
+    this->answers.clear();
+    this->auth.clear();
+    this->addit.clear();
+    
+    // fill with DNS request data
+    DNS::header* dns = (DNS::header*) buffer;
+    dns->id = htons(generateID());
+    dns->qr = DNS_QR_QUERY;
+    dns->opcode = 0;       // standard query
+    dns->aa = 0;           // not Authoritative
+    dns->tc = DNS_TC_NONE; // not truncated
+    dns->rd = 1; // recursion Desired
+    dns->ra = 0; // recursion not available
+    dns->z  = DNS_Z_RESERVED;
+    dns->ad = 0;
+    dns->cd = 0;
+    dns->rcode = DNS::resp_code::NO_ERROR;
+    dns->q_count = htons(1); // only 1 question
+    dns->ans_count  = 0;
+    dns->auth_count = 0;
+    dns->add_count  = 0;
+    
+      // point to the query portion
+    char* qname = buffer + sizeof(DNS::header);
+    
+    // convert host to dns name format
+    dnsNameFormat(qname);
+    // length of dns name
+    int namelen = strlen(qname) + 1;
+    
+    // set question to Internet A record
+    this->qinfo   = (DNS::question*) (qname + namelen);
+    qinfo->qtype  = htons(DNS_TYPE_A); // ipv4 address
+    qinfo->qclass = htons(DNS_CLASS_INET);
+    
+    // return the size of the message to be sent
+    return sizeof(header) + namelen + sizeof(question);
+  }
+
+  // parse received message (as put into buffer)
+  bool DNS::Request::parseResponse(char* buffer)
+  {
+    header* dns = (header*) buffer;
+    
+    // move ahead of the dns header and the query field
+    char* reader = ((char*) this->qinfo) + sizeof(question);
+    
+    // parse answers
+    for(int i = 0; i < ntohs(dns->ans_count); i++)
+      answers.emplace_back(reader, buffer);
+    
+    // parse authorities
+    for (int i = 0; i < ntohs(dns->auth_count); i++)
+      auth.emplace_back(reader, buffer);
+    
+      // parse additional
+    for (int i = 0; i < ntohs(dns->add_count); i++)
+      addit.emplace_back(reader, buffer);
+    
+    return true;
+  }
+  
+  void DNS::Request::print(char* buffer)
+  {
+    header* dns = (header*) buffer;
+    
+    printf(" %d questions\n", ntohs(dns->q_count));
+    printf(" %d answers\n",   ntohs(dns->ans_count));
+    printf(" %d authoritative servers\n", ntohs(dns->auth_count));
+    printf(" %d additional records\n\n",  ntohs(dns->add_count));
+    
+    // print answers
+    for (auto& answer : answers)
+      answer.print();
+    
+    // print authorities
+    for (auto& a : auth)
+      a.print();
+    
+    // print additional resource records
+    for (auto& a : addit)
+      a.print();
+    
+    printf("\n");
+  }
+  
+  // convert www.google.com to 3www6google3com
+  void DNS::Request::dnsNameFormat(char* dns)
+  {
+      int lock = 0;
+    
+      std::string copy = this->hostname + ".";
+      int len = copy.size();
+      
+      for(int i = 0; i < len; i++)
+      {
+          if (copy[i] == '.')
+          {
+              *dns++ = i - lock;
+              for(; lock < i; lock++)
+              {
+                  *dns++ = copy[lock];
+              }
+              lock++;
+          }
+      }
+      *dns++ = '\0';
+  }
+  
+  DNS::Request::rr_t::rr_t(char*& reader, char* buffer)
+  {
+    int stop;
+    
+    this->name = readName(reader, buffer, stop);
+    reader += stop;
+    
+    this->resource = *(rr_data*) reader;
+    reader += sizeof(rr_data);
+    
+    // if its an ipv4 address
+    if (ntohs(resource.type) == DNS_TYPE_A)
+    {
+      int len = ntohs(resource.data_len);
+      
+      this->rdata = std::string(reader, len);
+      reader += len;
+    }
+    else
+    {
+      this->rdata = readName(reader, buffer, stop);
+      reader += stop;
+    }
+  }
+  
+  void DNS::Request::rr_t::print()
+  {
+    printf("Name: %s ", name.c_str());
+    switch (ntohs(resource.type))
+    {
+    case DNS_TYPE_A:
+      {
+        IP4::addr* addr = (IP4::addr*) rdata.c_str();
+        printf("has IPv4 address: %s", addr->str().c_str());
+      }
+      break;
+    case DNS_TYPE_ALIAS:
+      printf("has alias: %s", rdata.c_str());
+      break;
+    case DNS_TYPE_NS:
+      printf("has authoritative nameserver : %s", rdata.c_str());
+      break;
+    default:
+      printf("has unknown resource type: %d", ntohs(resource.type));
+    }
+    printf("\n");
+  }
+  
+  std::string DNS::Request::rr_t::readName(char* reader, char* buffer, int& count)
+  {
+    std::string name(256, '\0');
+    unsigned p = 0;
+    unsigned offset = 0;
+    bool jumped = false;
+    
+    count = 1;
+    unsigned char* ureader = (unsigned char*) reader;
+    
+    while (*ureader)
+    {
+      if (*ureader >= 192)
+      {
+        offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
+        ureader = (unsigned char*) buffer + offset - 1;
+        jumped = true; // we have jumped to another location so counting wont go up!
+      }
+      else
+      {
+        name[p++] = *ureader;
+      }
+      ureader++;
+      
+      // if we havent jumped to another location then we can count up
+      if (jumped == false) count++;
+    }
+    name.resize(p);
+    
+    // number of steps we actually moved forward in the packet
+    if (jumped)
+      count++;
+    
+    // now convert 3www6google3com0 to www.google.com
+    int len = p; // same as name.size()
+    int i;
+    for(i = 0; i < len; i++)
+    {
+      p = name[i];
+      
+      for(unsigned j = 0; j < p; j++)
+      {
+        name[i] = name[i+1];
+        i++;
+      }
+      name[i] = '.';
+    }
+    name[i - 1] = '\0'; // remove the last dot
+    return name;
+    
+  } // readName()
   
 }

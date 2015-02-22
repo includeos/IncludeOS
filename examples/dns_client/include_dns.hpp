@@ -62,7 +62,7 @@ public:
 	{
 		using namespace net;
 		
-		network->udp_listen(DNS_PORT,
+		network->udp_listen(DNS::DNS_SERVICE_PORT,
 		[this] (std::shared_ptr<net::Packet>& pckt)
 		{
 			std::cout << "*** Response from DNS server:" << std::endl;
@@ -98,8 +98,8 @@ private:
 		UDP::full_header& header = *(UDP::full_header*) pckt->buffer();
 		
 		// Populate outgoing UDP header
-		header.udp_hdr.dport = htons(DNS_PORT);
-		header.udp_hdr.sport = htons(DNS_PORT);
+		header.udp_hdr.dport = htons(DNS::DNS_SERVICE_PORT);
+		header.udp_hdr.sport = htons(DNS::DNS_SERVICE_PORT);
 		header.udp_hdr.length = htons(sizeof(UDP::udp_header) + messageSize);
     
 		// Populate outgoing IP header
