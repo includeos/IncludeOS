@@ -66,7 +66,7 @@ namespace net
         return dest;
       }
       
-    private:
+    //private:
       uint32_t scanline[2];
       addr     source;
       addr     dest;
