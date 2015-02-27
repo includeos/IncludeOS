@@ -182,7 +182,10 @@ namespace std
 		}
 		
 		return (negative) ? -result : result;
-    }
+  }
+  
+  
+  
 }
 
 #endif

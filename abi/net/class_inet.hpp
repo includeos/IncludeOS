@@ -46,6 +46,13 @@ public:
   static inline IP4::addr ip4(netdev nic)
   { return _ip4_list[nic]; }
   
+  /// FIXME ///
+  const IP6::addr& ip6(netdev nic)
+  {
+    return _ip6.getIP();
+  }
+  /// FIXME ///
+  
   static Inet* up(){
     if (_ip4_list.size() < 1)
       panic("<Inet> Can't bring up IP stack without any IP addresses");
@@ -84,8 +91,9 @@ private:
       @todo: Fix this with a singleton or something.
    */
   Inet(Inet& UNUSED(cpy)) :
-    _ip4(_ip4_list[0],_netmask_list[0])
-  {    
+    _ip4(_ip4_list[0],_netmask_list[0]),
+    _ip6({0, 0, 0, _ip4_list[0].whole})
+  {
     printf("<IP Stack> WARNING: Copy-constructing the stack won't work."\
            "It should be pased by reference.\n");
     panic("Trying to copy-construct IP stack");
@@ -99,7 +107,8 @@ private:
    */
   Inet() :
     //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-    _ip4(_ip4_list[0],_netmask_list[0])
+    _ip4(_ip4_list[0],_netmask_list[0]),
+    _ip6({0, 0, 0, _ip4_list[0].whole})
   {
     
     printf("<IP Stack> constructing \n");

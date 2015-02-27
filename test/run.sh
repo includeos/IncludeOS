@@ -26,8 +26,7 @@ then
     echo "-----------------------"  
     $QEMU -s -S $QEMU_OPTS
 else    
-    rm *.img
-    make clean all #stripped 
+    #make clean all #stripped 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Command: " $QEMU $QEMU_OPTS
     echo "-----------------------"
