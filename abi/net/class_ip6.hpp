@@ -105,6 +105,49 @@ namespace net
       addr     src;
       addr     dst;
     };
+    
+    struct options_header
+    {
+      uint8_t  next_header;
+      uint8_t  hdr_ext_len;
+      uint16_t opt_1;
+      uint32_t opt_2;
+      
+      uint8_t next() const
+      {
+        return next_header;
+      }
+      uint8_t size() const
+      {
+        return sizeof(options_header) + hdr_ext_len;
+      }
+      uint8_t extended() const
+      {
+        return hdr_ext_len;
+      }
+    };
+    
+    struct icmp_header
+    {
+      uint8_t  type_;
+      uint8_t  code_;
+      uint16_t checksum_;
+      
+      uint8_t type() const
+      {
+        return type_;
+      }
+      uint8_t code() const
+      {
+        return code_;
+      }
+      uint16_t checksum() const
+      {
+        return __builtin_bswap16( checksum_ );
+      }
+      
+    };
+    
     #pragma pack(pop)
     
     struct full_header
@@ -120,6 +163,8 @@ namespace net
     {
       return local;
     }
+    
+    uint8_t parse6(uint8_t*& reader, uint8_t next);
     
     std::string protocol_name(uint8_t protocol)
     {
