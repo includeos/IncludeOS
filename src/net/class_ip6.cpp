@@ -27,23 +27,22 @@ namespace net
   
 	int IP6::bottom(std::shared_ptr<Packet>& pckt)
 	{
-		//debug("<IP6 handler> got the data, but I'm clueless: DROP! \n");
-		
     std::cout << ">>> IPv6 packet:" << std::endl;
     
     full_header& full = *(full_header*) pckt->buffer();
     
     header& hdr = full.ip6_hdr;
     
-    //fix(hdr.source);
-    //fix(hdr.dest);
+    std::cout << "version: " << hdr.version() << " \t";
+    std::cout << "class: " << hdr.tclass() << std::endl;
     
-    std::cout << "version: " << hdr.getVersion() << " \t";
-    std::cout << "class: " << hdr.getClass() << std::endl;
+    std::cout << "payload: " << hdr.size() << " bytes" << std::endl;
     
-    std::cout << "src: " << hdr.getSource().to_string() << std::endl;
-    std::cout << "dst: " << hdr.getDest().to_string() << std::endl;
+    std::cout << "next hdr: " << protocol_name(hdr.next()) << std::endl;
+    std::cout << "hoplimit: " << hdr.hoplimit() << " hops" << std::endl;
     
+    std::cout << "a src: " << hdr.source() << std::endl;
+    std::cout << "a dst: " << hdr.dest() << std::endl;
     
     return 0;
 	};

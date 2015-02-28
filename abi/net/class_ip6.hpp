@@ -19,7 +19,18 @@ namespace net
   {
   public:
     /** Known transport layer protocols. */
-    enum proto{PROTO_ICMP=1, PROTO_UDP=17, PROTO_TCP=6};
+    enum proto
+    {
+      PROTO_HOPOPT =  0, // IPv6 hop-by-hop
+      
+      PROTO_ICMPv4 =  1,
+      PROTO_TCP    =  6,
+      PROTO_UDP    = 17,
+      
+      PROTO_ICMPv6 = 58, // IPv6 ICMP
+      PROTO_NoNext = 59, // no next-header
+      PROTO_OPTSv6 = 60, // dest options
+    };
     
     /** Handle IPv6 packet. */
     int bottom(std::shared_ptr<Packet>& pckt);
@@ -27,9 +38,16 @@ namespace net
     class addr
     {
     public:
+      // constructors
       addr(unsigned a, unsigned b, unsigned c, unsigned d)
         : i32{a, b, c, d} {}
-      addr(const addr& a) : i128(a.i128) {}
+      addr(uint64_t top, uint64_t bot)
+        : i64{top, bot} {}
+      addr(__m128i address)
+        : i128(address) {}
+      // copy-constructor
+      addr(const addr& a)
+        : i128(a.i128) {}
       
       union
       {
@@ -47,29 +65,45 @@ namespace net
     class header
     {
     public:
-      uint8_t getVersion() const
+      uint8_t version() const
       {
         return (scanline[0] & 0xF0) >> 4;
       }
-      uint8_t getClass() const
+      uint8_t tclass() const
       {
-        return ((scanline[0] & 0xF000) >> 12) + (scanline[0] & 0xF);
+        return ((scanline[0] & 0xF000) >> 12) + 
+                (scanline[0] & 0xF);
+      }
+      
+      uint16_t size() const
+      {
+        return ((scanline[1] & 0x00FF) << 8) +
+               ((scanline[1] & 0xFF00) >> 8);
+      }
+      
+      uint8_t next() const
+      {
+        return (scanline[1] >> 16) & 0xFF;
+      }
+      uint8_t hoplimit() const
+      {
+        return (scanline[1] >> 24) & 0xFF;
       }
       
       // 128-bit is probably not good as "by value"
-      const addr& getSource() const
+      const addr& source() const
       {
-        return source;
+        return src;
       }
-      const addr& getDest() const
+      const addr& dest() const
       {
-        return dest;
+        return dst;
       }
       
-    //private:
+    private:
       uint32_t scanline[2];
-      addr     source;
-      addr     dest;
+      addr     src;
+      addr     dst;
     };
     #pragma pack(pop)
     
@@ -87,10 +121,39 @@ namespace net
       return local;
     }
     
+    std::string protocol_name(uint8_t protocol)
+    {
+      switch (protocol)
+      {
+      case PROTO_HOPOPT:
+        return "IPv6 Hop-By-Hop (0)";
+        
+      case PROTO_TCP:
+        return "TCP (6)";
+      case PROTO_UDP:
+        return "UDP (17)";
+        
+      case PROTO_ICMPv6:
+        return "ICMPv6 (58)";
+      case PROTO_NoNext:
+        return "No next header (59)";
+      case PROTO_OPTSv6:
+        return "IPv6 destination options (60)";
+        
+      default:
+        return "Unknown: " + std::to_string(protocol);
+      }
+    }
+    
   private:
     addr local;
     
   };
+  
+  inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)
+  {
+    return out << ip.to_string();
+  }
   
 } // namespace net
 
