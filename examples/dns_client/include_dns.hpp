@@ -4,6 +4,7 @@
 #include "dns_request.hpp"
 
 #include <net/inet>
+#include <net/util.hpp>
 #include <net/class_packet.hpp>
 #include <net/class_udp.hpp>
 #include <list>
@@ -14,8 +15,6 @@
 #include <memstream>
 
 extern net::Inet* network;
-extern unsigned short ntohs(unsigned short sh);
-#define htons ntohs
 
 class PacketStore
 {

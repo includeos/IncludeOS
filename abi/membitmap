@@ -1,0 +1,6 @@
+#ifndef MEMBITMAP_HEADER
+#define MEMBITMAP_HEADER
+
+#include "utility/membitmap.hpp"
+
+#endif

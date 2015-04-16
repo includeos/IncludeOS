@@ -1,18 +1,9 @@
 #include <net/dns/dns.hpp>
+#include <net/util.hpp>
 
 #include <string>
+//#include <iostream>
 
-unsigned short ntohs(unsigned short sh)
-{
-  return __builtin_bswap16(sh);
-  /*
-	unsigned char* B = (unsigned char*) &sh;
-	
-	return  ((0xff & B[0]) << 8) |
-			((0xff & B[1]));
-  */
-}
-#define htons ntohs
 using namespace std;
 
 namespace net

@@ -174,9 +174,9 @@ namespace net
         return "IPv6 Hop-By-Hop (0)";
         
       case PROTO_TCP:
-        return "TCP (6)";
+        return "TCPv6 (6)";
       case PROTO_UDP:
-        return "UDP (17)";
+        return "UDPv6 (17)";
         
       case PROTO_ICMPv6:
         return "ICMPv6 (58)";
@@ -193,6 +193,13 @@ namespace net
   private:
     addr local;
     
+    /** Downstream: Linklayer output delegate */
+    downstream _linklayer_out;
+    
+    /** Upstream delegates */
+    upstream _icmp_handler;
+    upstream _udp_handler;
+    upstream _tcp_handler;
   };
   
   inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)

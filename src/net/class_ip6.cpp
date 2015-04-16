@@ -157,6 +157,9 @@ namespace net
         return PROTO_NoNext;
         
       } break;
+    case PROTO_UDP:
+        break;
+        
     default:
       std::cout << "Not parsing " << protocol_name(next) << std::endl;
     }
@@ -202,7 +205,7 @@ namespace net
     std::string ret(48, '0');
     int counter = 0;
     
-    uint8_t* octet = (uint8_t*) i8;
+    const uint8_t* octet = i8;
     
     for (int i = 0; i < 16; i++)
     {

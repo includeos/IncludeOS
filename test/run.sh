@@ -31,7 +31,9 @@ else
     echo "Starting VM: '$1'", "Command: " $QEMU $QEMU_OPTS
     echo "-----------------------"
     
+    sudo /etc/qemu/qemu-ifup include0 tap0
     sudo $QEMU $QEMU_OPTS 
+    sudo /etc/qemu/qemu-ifdown include0
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
