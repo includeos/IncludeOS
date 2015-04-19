@@ -20,69 +20,66 @@ namespace fs
     MemBitmap() {}
     MemBitmap(void* location, index_t chunks)
     {
-      this->data = (word*) location;
-      this->size = chunks;
+      _data = (word*) location;
+      _size = chunks;
     }
     
     // returns the boolean value of the bit located at @n
-    bool operator[] (index_t n) const
+    inline bool operator[] (index_t n) const
     {
       return get(n);
     }
-    bool get(index_t b) const
+    inline bool get(index_t b) const
     {
-      return data[windex(b)] & (1 << woffset(b));
+      return _data[windex(b)] & (1 << woffset(b));
     }
     // return the bit-index of the first clear bit
     index_t first_free() const
     {
-      for (index_t i = 0; i < this->size; i++)
+      for (index_t i = 0; i < _size; i++)
+      if (_data[i])
       {
-        if (data[i])
+        for (index_t b = 0; b < CHUNK_SIZE; b++)
         {
-          for (index_t b = 0; b < CHUNK_SIZE; b++)
-          {
-            if (data[i] & (1 << b))
-              return i * CHUNK_SIZE + b;
-          } // bit
-        }
+          if (_data[i] & (1 << b))
+            return i * CHUNK_SIZE + b;
+        } // bit
       } // chunk
       return -1;
-      
     } // first_free()
     
     void zero_all()
     {
-      streamset32(data, 0, size_bytes());
+      streamset32(_data, 0, size());
     }
     void set(index_t b)
     {
-      data[windex(b)] |= 1 << (woffset(b)); 
+      _data[windex(b)] |= 1 << (woffset(b)); 
     }
     void clear(index_t b)
     {
-      data[windex(b)] &= ~(1 << (woffset(b)));
+      _data[windex(b)] &= ~(1 << (woffset(b)));
     }
     void flip(index_t b)
     {
-      data[windex(b)] ^= 1 << (woffset(b)); 
+      _data[windex(b)] ^= 1 << (woffset(b)); 
     }
     
-    char* location() const
+    inline char* data() const
     {
-      return (char*) data;
+      return (char*) _data;
     }
-    size_t size_bytes() const
+    inline size_t size() const
     {
-      return size * CHUNK_SIZE;
+      return _size * CHUNK_SIZE;
     }
     
   private:
-    inline index_t windex(index_t b)  const { return b / CHUNK_SIZE; }
+    inline index_t windex (index_t b) const { return b / CHUNK_SIZE; }
     inline index_t woffset(index_t b) const { return b % CHUNK_SIZE; }
     
-    word*   data;
-    index_t size;
+    word*   _data;
+    index_t _size;
   };
   
 }

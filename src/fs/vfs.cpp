@@ -32,7 +32,7 @@ namespace fs
     // bitmap for tracking free inodes
     new (&node_bitmap) MemBitmap(nodetable + entries, nb_chunks);
     // bitmap for tracking free data segments
-    new (&data_bitmap) MemBitmap(node_bitmap.location() + node_bitmap.size_bytes(), db_chunks);
+    new (&data_bitmap) MemBitmap(node_bitmap.data() + node_bitmap.size(), db_chunks);
     // filesystem data pointer
     diskdata = filesystem + total_notdata;
     
