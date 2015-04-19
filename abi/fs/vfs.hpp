@@ -20,7 +20,8 @@ namespace fs
   // 32-byte index node contains fs metadata
   struct VFSnode
   {
-    static const int POINTERS = 4;
+    static const int POINTERS   = 4;
+    static const int BLOCK_SIZE = 4096;
     
     enum type_t
     {
@@ -45,10 +46,35 @@ namespace fs
       return (type & TYPE_MASK) == SYMLINK;
     }
     
+    int mapping(int filepos, 
+        int* dbl_indirect_idx, int* indirect_idx, int* block_offset)
+    {
+      *dbl_indirect_idx = 0;
+      *indirect_idx = 0;
+      
+      if (filepos >= (dsize + indsize))
+      {
+        // double-indirect blocks
+        filepos -= dsize + indsize;
+        *dbl_indirect_idx = filepos / indsize;
+      }
+      if (filepos >= indsize)
+      {
+        // indirect blocks
+        filepos -= *dbl_indirect_idx * indsize;
+        *indirect_idx = filepos / BLOCK_SIZE;
+      }
+      
+      // offset in data block
+      filepos -= *indirect_idx * BLOCK_SIZE;
+      *block_offset = filepos;
+    }
+    
     inode_t  id;
     uint8_t  type;
     uint8_t  hardlinks;
-    uint32_t size;
+    uint32_t dsize;   // direct size
+    uint32_t indsize; // indirect size
     
     int data[POINTERS];
   };
@@ -59,7 +85,7 @@ namespace fs
     typedef VFSnode       Inode;
     typedef VFSsuperblock Superblock;
     static const int ROOT_ID    = 1;
-    static const int BLOCK_SIZE = 512;
+    static const int BLOCK_SIZE = VFSnode::BLOCK_SIZE;
     
     VFS()
       : filesystem(nullptr)  {}
@@ -110,7 +136,21 @@ namespace fs
     MemBitmap data_bitmap;
     char*     diskdata;
     
-    std::vector<inode_t> opened;
+    std::vector<File> opened;
+  };
+  
+  // indirect data segment structure
+  struct VFSindirect
+  {
+    static const int BLOCKS = VFS::BLOCK_SIZE / sizeof(int);
+    
+    VFSindirect()
+    {
+      streamset32(segments, 0, sizeof(segments));
+    }
+    
+    // list of segments
+    int segments[BLOCKS];
   };
   
   struct VFSdir

@@ -1,6 +1,8 @@
 //#define DEBUG // Allow debugging
 #include <os>
 #include <net/class_ip6.hpp>
+#include <net/ip6/icmp6.hpp>
+#include <net/ip6/udp6.hpp>
 
 #include <assert.h>
 
@@ -191,7 +193,19 @@ namespace net
     
     while (next != PROTO_NoNext)
     {
-      next = parse6(reader, next);
+      switch (next)
+      {
+      case PROTO_UDP:
+          pckt->_payload = reader;
+          UDPv6::handler(*reinterpret_cast<std::shared_ptr<PacketUDP6>*> (&pckt));
+          break;
+      case PROTO_ICMPv6:
+          next = parse6(reader, next);
+          break;
+      default:
+          // just print information
+          next = parse6(reader, next);
+      }
     }
     
     std::cout << std::endl;

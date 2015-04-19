@@ -139,7 +139,7 @@ namespace fs
     n->id   = index;
     n->type = Inode::DIR;
     n->hardlinks = 0;
-    n->size      = 0;
+    n->dsize = n->indsize = 0;
     
     for (int i = 0; i < Inode::POINTERS; i++)
       n->data[i] = 0;

@@ -197,9 +197,9 @@ namespace net
     downstream _linklayer_out;
     
     /** Upstream delegates */
-    upstream _icmp_handler;
-    upstream _udp_handler;
-    upstream _tcp_handler;
+    upstream icmp_handler;
+    upstream udp_handler;
+    upstream tcp_handler;
   };
   
   inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)

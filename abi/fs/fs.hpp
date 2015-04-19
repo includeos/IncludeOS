@@ -43,4 +43,11 @@ namespace fs
     mkdir(const std::string& path) = 0;
     
   };
+  
+  class File
+  {
+    inode_t node;
+    
+  };
+  
 }
