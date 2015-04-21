@@ -92,11 +92,14 @@ namespace fs
   {
     return -EINVAL;
   }
+  
   int VFS::rmdir(const std::string& path)
   {
     Inode*      node = nullptr;
     inode_t     current;
     std::string name;
+    
+    std::cout << "rmdir: path = " << path << std::endl;
     
     int res = walk_path(path, current, name);
     if (res)
@@ -105,6 +108,8 @@ namespace fs
       return res;
     }
     
+    std::cout << "rmdir: current = " << current << " name = " << name << std::endl;
+    
     // find Inode
     res = directory_find(current, node, name);
     if (res)
@@ -112,7 +117,7 @@ namespace fs
       std::cout << ">>> VFS::rmdir() directory_find result (" << res << "): " << fs_error_string(res) << std::endl;
       return res;
     }
-    
+    std::cout << "rmdir: removing " << node->id << " from " << current << std::endl;
     res = directory_rem(current, node->id);
     if (res)
     {
@@ -154,6 +159,7 @@ namespace fs
     init_directory(newnode, new_name);
     
     // add directory to current
+    std::cout << "****** ADDING " << newnode << " TO " << current << std::endl;
     directory_add(current, newnode);
     return 0;
   }
@@ -259,16 +265,14 @@ namespace fs
       VFSdir* dir = (VFSdir*) getseg(n->data[i]);
       // find free link
       for (int L = 0; L < VFSdir::LINKS; L++)
+      if (dir->nodes[L] == UNUSED_NODE)
       {
-        if (dir->nodes[L] == UNUSED_NODE)
-        {
-          // one more link from this node
-          n->hardlinks++;
-          // add directory in free link slot
-          dir->nodes[L] = child;
-          //std::cout << ">>> VFS::directory_add() added " << child << std::endl;
-          return 0;
-        }
+        // one more link from this node
+        n->hardlinks++;
+        // add directory in free link slot
+        dir->nodes[L] = child;
+        std::cout << ">>> VFS::directory_add() added " << child << " to " << n->id << std::endl;
+        return 0;
       }
     } // next data pointer
     
@@ -333,14 +337,14 @@ namespace fs
   {
     // retrieve node from node table
     Inode* n = get(node);
-    if (n == nullptr)
+    if (unlikely(n == nullptr))
     {
       std::cout << ">>> VFS::directory_find() bogus inode (nullptr)" << std::endl;
       return -ENOENT;
     }
     
     // verify node is directory
-    if (!n->isDir())
+    if (unlikely(!n->isDir()))
     {
       std::cout << ">>> VFS::directory_find() not a directory" << std::endl;
       return -ENOTDIR;
@@ -348,11 +352,13 @@ namespace fs
     
     // read directory contents, find @name
     std::vector<inode_t> list = directory_list(n);
+    std::cout << ">>> VFS::directory_find() list size " << n->id << ": " << list.size() << std::endl;
     for (inode_t child : list)
     {
       Inode* c = get(child);
       if (c)
       {
+        std::cout << "Testing " << c->name << " (" << c->id << ") vs " << name << std::endl;
         if (c->name == name)
         {
           result = c;
@@ -360,7 +366,7 @@ namespace fs
         }
       }
     }
-    //std::cout << ">>> VFS::directory_find() not found: " << name << std::endl;
+    std::cout << ">>> VFS::directory_find() not found: " << name << std::endl;
     return -ENOENT;
   }
   
@@ -386,14 +392,16 @@ namespace fs
   int VFS::walk_path(Path path, inode_t& current, std::string& new_name)
   {
     // validate path
-    if (path.getState()) return path.getState();
+    if (unlikely(path.getState() != 0))
+      return path.getState();
     
     // path must have at least one in the stack
-    if (path.size() == 0)
+    if (unlikely(path.size() == 0))
       return -EINVAL;
     
     // save top of stack for later
     new_name = path[path.size()-1];
+    // FIXME: new_name cannot be empty
     
     // go one up in the path
     path.up();
@@ -404,15 +412,13 @@ namespace fs
     // walk filesystem tree
     for (size_t i = 0; i < path.size(); i++)
     {
-      const std::string& dir = path[i];
-      
       Inode* result = nullptr;
       int res = directory_find(current, result, path[i]);
       std::cout << "find " << path[i] << ": " << fs_error_string(res) << std::endl;
       
       if (res) return res;
       
-      if (result == nullptr)
+      if (unlikely(result == nullptr))
       {
         std::cout << ">>> VFS::walk_path() bogus result (nullptr)" << std::endl;
         return -ENOENT;
@@ -425,6 +431,7 @@ namespace fs
         return -ENOTDIR;
       }
       
+      std::cout << "current old: " << current << " new: " << result->id << std::endl;
       current = result->id;
     }
     return 0;

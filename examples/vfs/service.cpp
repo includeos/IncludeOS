@@ -24,21 +24,26 @@ void Service::start()
   
   fs::VFS filesystem(64, 128);
   
-  assert(0 ==
+  assert(0 ==  // 2
     verbose_mkdir(filesystem, "/test"));
-  assert(0 ==
+  assert(0 ==  // 3
     verbose_mkdir(filesystem, "/test/test"));
   
-  assert(-ENOTEMPTY ==
+  std::cout << std::endl;
+  
+  assert(-ENOTEMPTY == // 2
     verbose_rmdir(filesystem, "/test"));
-  assert(0 == 
+  
+  std::cout << std::endl;
+  
+  assert(0 ==  // 3
     verbose_rmdir(filesystem, "/test/test"));
   
-  assert(0 ==
-    verbose_rmdir(filesystem, "/test"));
+  //assert(0 ==
+  //  verbose_rmdir(filesystem, "/test"));
   
-  assert(-ENOENT == 
-    verbose_mkdir(filesystem, "/test/test/test"));
+  //assert(-ENOENT == 
+  //  verbose_mkdir(filesystem, "/test/test/test"));
   
   std::cout << "Service out!" << std::endl;
 }

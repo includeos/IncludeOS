@@ -5,6 +5,9 @@
 // Index node
 typedef int16_t inode_t;
 
+#define likely(x)   __builtin_expect(!!(x), true)
+#define unlikely(x) __builtin_expect(!!(x), false) 
+
 #include <sys/errno.h>
 
 /*
