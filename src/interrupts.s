@@ -77,7 +77,7 @@ IRQ exception_9_entry exception_9_handler
 IRQ exception_10_entry exception_10_handler	
 IRQ exception_11_entry exception_11_handler
 IRQ exception_12_entry exception_12_handler
-IRQ exception_13_entry exception_13_handler
+// IRQ exception_13_entry exception_13_handler
 IRQ exception_14_entry exception_14_handler
 IRQ exception_15_entry exception_15_handler
 IRQ exception_16_entry exception_16_handler
@@ -104,6 +104,9 @@ IRQ irq_42_entry irq_42_handler
 IRQ irq_43_entry irq_43_handler
 
 
+exception_13_entry:
+	cli
+	call exception_13_handler
 
     
 irq_default_entry:	
