@@ -7,6 +7,7 @@
 #include <membitmap>
 #include <memstream>
 #include "fs.hpp"
+#include "path.hpp"
 
 namespace fs
 {
@@ -68,6 +69,7 @@ namespace fs
       // offset in data block
       filepos -= *indirect_idx * BLOCK_SIZE;
       *block_offset = filepos;
+      return 0;
     }
     
     inode_t  id;
@@ -77,6 +79,7 @@ namespace fs
     uint32_t indsize; // indirect size
     
     int data[POINTERS];
+    std::string name;
   };
   
   class VFS : public FilesystemBase
@@ -84,8 +87,10 @@ namespace fs
   public:
     typedef VFSnode       Inode;
     typedef VFSsuperblock Superblock;
-    static const int ROOT_ID    = 1;
-    static const int BLOCK_SIZE = VFSnode::BLOCK_SIZE;
+    static const int ROOT_ID     =  1;
+    static const int BLOCK_SIZE  =  VFSnode::BLOCK_SIZE;
+    static const int UNUSED_NODE =  0;
+    static const int UNUSED_SEG  = -1;
     
     VFS()
       : filesystem(nullptr)  {}
@@ -109,9 +114,17 @@ namespace fs
     {
       return nodetable + ROOT_ID;
     }
-    Superblock* superblock()
+    inline Superblock* superblock()
     {
       return (Superblock*) filesystem;
+    }
+    inline static bool validate(inode_t index)
+    {
+      return index >= ROOT_ID;
+    }
+    inline static bool validate_seg(int seg)
+    {
+      return seg >= 0;
     }
     
     // returns pointer to node at @node, or nullptr on failure
@@ -126,17 +139,19 @@ namespace fs
     // mark used and return a new data segment for node
     int create_segment();
     
-    int create_directory(inode_t node);
+    int init_directory(inode_t node, const std::string& name);
     int directory_add(inode_t node, inode_t child);
     int directory_rem(inode_t node, inode_t child);
+    int directory_find(inode_t node, Inode*& result, const std::string& name);
+    std::vector<inode_t> directory_list(Inode*);
+    
+    int walk_path(Path path, inode_t& current, std::string& stack_top);
     
     char*     filesystem;
     Inode*    nodetable;
     MemBitmap node_bitmap;
     MemBitmap data_bitmap;
     char*     diskdata;
-    
-    std::vector<File> opened;
   };
   
   // indirect data segment structure
@@ -160,7 +175,8 @@ namespace fs
     // guarantee that the directory is initalized empty
     VFSdir()
     {
-      streamset16(nodes, 0, sizeof(nodes));
+      streamset8(nodes, 0, VFS::BLOCK_SIZE);
+      //memset(nodes, 0, VFS::BLOCK_SIZE);
     }
     
     // list of inodes as contents

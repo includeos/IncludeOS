@@ -2,21 +2,10 @@
 
 #include <stdint.h>
 #include <string>
+#include "common.hpp"
 
 namespace fs
 {
-  // Index node
-  typedef int16_t inode_t;
-  
-  // No such file or directory
-  #define ENOENT   2
-  // Not a directory
-  #define ENOTDIR 20
-  // Invalid argument
-  #define EINVAL  22
-  // No space left on device
-  #define ENOSPC  28
-  
   #pragma interface   // __declspec(novtable)
   class FilesystemBase
   {
@@ -41,12 +30,6 @@ namespace fs
     rmdir(const std::string& path) = 0;
     virtual int
     mkdir(const std::string& path) = 0;
-    
-  };
-  
-  class File
-  {
-    inode_t node;
     
   };
   

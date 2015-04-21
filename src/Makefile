@@ -42,7 +42,7 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
 	net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
 	net/class_packet.o net/ip6/udp6.o net/dns/dns.o \
-	fs/vfs.o util/memstream.o \
+	fs/fs.o fs/vfs.o fs/path.o util/memstream.o \
 	$(TEST_OBJ) #vga.o
 
 # Libraries

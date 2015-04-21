@@ -14,6 +14,7 @@ namespace fs
   {
   public:
     typedef uint64_t word;
+    static const word WORD_MAX = UINT64_MAX;
     typedef int32_t  index_t;
     static const int CHUNK_SIZE = sizeof(word) * 8;
     
@@ -36,14 +37,16 @@ namespace fs
     // return the bit-index of the first clear bit
     index_t first_free() const
     {
+      // each word
       for (index_t i = 0; i < _size; i++)
-      if (_data[i])
+      if (_data[i] != WORD_MAX)
       {
+        // each bit
         for (index_t b = 0; b < CHUNK_SIZE; b++)
+        if (!(_data[i] & (1 << b)))
         {
-          if (_data[i] & (1 << b))
-            return i * CHUNK_SIZE + b;
-        } // bit
+          return i * CHUNK_SIZE + b;
+        }
       } // chunk
       return -1;
     } // first_free()

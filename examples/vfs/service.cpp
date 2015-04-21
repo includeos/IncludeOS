@@ -3,8 +3,20 @@
 #include <fs/vfs>
 
 #include <assert.h>
-
 #include <iostream>
+
+int verbose_mkdir(fs::VFS& fs, const std::string& path)
+{
+  int res = fs.mkdir(path);
+  std::cout << "mkdir(" << path << "): " << res << " [" << fs_error_string(res) << "]" << std::endl;
+  return res;
+}
+int verbose_rmdir(fs::VFS& fs, const std::string& path)
+{
+  int res = fs.rmdir(path);
+  std::cout << "rmdir(" << path << "): " << res << " [" << fs_error_string(res) << "]" << std::endl;
+  return res;
+}
 
 void Service::start()
 {
@@ -12,6 +24,21 @@ void Service::start()
   
   fs::VFS filesystem(64, 128);
   
+  assert(0 ==
+    verbose_mkdir(filesystem, "/test"));
+  assert(0 ==
+    verbose_mkdir(filesystem, "/test/test"));
+  
+  assert(-ENOTEMPTY ==
+    verbose_rmdir(filesystem, "/test"));
+  assert(0 == 
+    verbose_rmdir(filesystem, "/test/test"));
+  
+  assert(0 ==
+    verbose_rmdir(filesystem, "/test"));
+  
+  assert(-ENOENT == 
+    verbose_mkdir(filesystem, "/test/test/test"));
   
   std::cout << "Service out!" << std::endl;
 }
