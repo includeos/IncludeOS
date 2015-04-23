@@ -159,9 +159,19 @@ extern "C"{
   EXCEPTION_PAIR(0) EXCEPTION_PAIR(1) EXCEPTION_PAIR(2) EXCEPTION_PAIR(3)
   EXCEPTION_PAIR(4) EXCEPTION_PAIR(5) EXCEPTION_PAIR(6) EXCEPTION_PAIR(7)
   EXCEPTION_PAIR(8) EXCEPTION_PAIR(9) EXCEPTION_PAIR(10) EXCEPTION_PAIR(11)
-  EXCEPTION_PAIR(12) EXCEPTION_PAIR(13) EXCEPTION_PAIR(14) EXCEPTION_PAIR(15)
+  EXCEPTION_PAIR(12) /*EXCEPTION_PAIR(13)*/ EXCEPTION_PAIR(14) EXCEPTION_PAIR(15)
   EXCEPTION_PAIR(16) EXCEPTION_PAIR(17) EXCEPTION_PAIR(18) EXCEPTION_PAIR(19)
   EXCEPTION_PAIR(20) /*21-29 Reserved*/ EXCEPTION_PAIR(30) EXCEPTION_PAIR(31);
+
+  void exception_13_entry(); 
+  void exception_13_handler(int i){
+    printf("\n>>>>!!!! CPU Exception 13 !!!! \n");
+    printf("\t >> General protection fault. Error code: 0x%x \n",i);
+    if(i == 0)
+      printf("\t >> Error code is 0, so not segment related \n");
+    printf("\t >> Stack address: %p \n",&i);
+    kill(1,9);
+  }
   
   //Redirected IRQ 0 - 12  
   IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(34) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37);

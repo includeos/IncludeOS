@@ -39,6 +39,8 @@ namespace net
     {
     public:
       // constructors
+      addr()
+        : i64{0, 0} {}
       addr(unsigned a, unsigned b, unsigned c, unsigned d)
         : i32{a, b, c, d} {}
       addr(uint64_t top, uint64_t bot)
