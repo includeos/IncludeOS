@@ -197,8 +197,7 @@ namespace net
       {
       case PROTO_UDP:
           pckt->_payload = reader;
-          UDPv6::handler(*reinterpret_cast<std::shared_ptr<PacketUDP6>*> (&pckt));
-          break;
+          return UDPv6::handler(*reinterpret_cast<std::shared_ptr<PacketUDP6>*> (&pckt));
       case PROTO_ICMPv6:
           next = parse6(reader, next);
           break;
