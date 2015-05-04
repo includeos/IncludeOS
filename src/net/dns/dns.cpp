@@ -1,3 +1,5 @@
+//#define DEBUG
+#include <common>
 #include <net/dns/dns.hpp>
 #include <net/util.hpp>
 
@@ -25,11 +27,11 @@ namespace net
   
   int DNS::createResponse(DNS::header& hdr, DNS::lookup_func lookup)
   {
-    cout << "Request ID: " << htons(hdr.id);
-    cout << "\t Type: " << (hdr.qr ? "RESPONSE" : "QUERY") << endl;  
+    debug("Request ID: %i \n", htons(hdr.id));
+    debug("\t Type: %s \n", (hdr.qr ? "RESPONSE" : "QUERY"));
     
     unsigned short qno = ntohs(hdr.q_count);
-    cout << "Questions: " << qno << endl;
+    debug("Questions: %i \n ", qno);
     
     char* buffer = (char*) &hdr + sizeof(header);
     
@@ -37,7 +39,7 @@ namespace net
     char* query = buffer;
     
     std::string parsed_query = parse_dns_query((unsigned char*) query);
-    cout << "Question: " << parsed_query << endl;
+    debug("Question: %s", parsed_query.c_str());
     
     buffer += parsed_query.size() + 1; // zero-terminated
     
@@ -46,9 +48,8 @@ namespace net
     unsigned short qtype  = ntohs(q.qtype);
     unsigned short qclass = ntohs(q.qclass);
     
-    cout << "Type: " << DNS::question_string(qtype) << " (" << qtype << ")";
-    cout << "\t Class: " << ((qclass == 1) ? "INET" : "Unknown class") << 
-        " (" << qclass << ")" << endl;
+    debug("Type:  %s (%i)",DNS::question_string(qtype).c_str(), qtype);
+    debug("\t Class: %s (%i)",((qclass == 1) ? "INET" : "Unknown class"),qclass);
     
     // go to next question (assuming 1 question!!!!)
     buffer += sizeof(question);
@@ -73,17 +74,17 @@ namespace net
     if (addrs == nullptr)
     {
       // not found
-      cout << "*** Could not find: " << parsed_query << endl;
+      debug("*** Could not find: %s", parsed_query.c_str());
       hdr.ans_count = 0;
       hdr.rcode     = DNS::NO_ERROR;
     }
     else
     {
-      cout << "*** Found " << addrs->size() << " results for: " << parsed_query << endl;
+      debug("*** Found %lu results for %s", addrs->size(), parsed_query.c_str());
       // append answers
       for (auto addr : *addrs)
       {
-        cout << "*** Result: " << addr.str() << endl;
+        debug("*** Result: %s", addr.str().c_str());
         // add query
         int qlen = parsed_query.size() + 1;
         memcpy(buffer, query, qlen);
