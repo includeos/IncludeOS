@@ -83,7 +83,8 @@ namespace net {
     IP6 _ip6;
     ICMP _icmp;
     UDP _udp;
-    
+    ICMPv6 _icmp6;
+    UDPv6  _udp6;
     
     
     /** Don't think we *want* copy construction.

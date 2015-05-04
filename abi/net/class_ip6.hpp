@@ -3,8 +3,9 @@
 
 #include <delegate>
 #include <net/inet.hpp>
-
 #include <net/class_ethernet.hpp>
+#include <net/ip6/icmp6.hpp>
+#include <net/ip6/udp6.hpp>
 
 #include <iostream>
 #include <string>
@@ -128,28 +129,6 @@ namespace net
         return hdr_ext_len;
       }
     };
-    
-    struct icmp_header
-    {
-      uint8_t  type_;
-      uint8_t  code_;
-      uint16_t checksum_;
-      
-      uint8_t type() const
-      {
-        return type_;
-      }
-      uint8_t code() const
-      {
-        return code_;
-      }
-      uint16_t checksum() const
-      {
-        return __builtin_bswap16( checksum_ );
-      }
-      
-    };
-    
     #pragma pack(pop)
     
     struct full_header
@@ -168,7 +147,7 @@ namespace net
     
     uint8_t parse6(uint8_t*& reader, uint8_t next);
     
-    std::string protocol_name(uint8_t protocol)
+    static std::string protocol_name(uint8_t protocol)
     {
       switch (protocol)
       {
@@ -190,6 +169,20 @@ namespace net
       default:
         return "Unknown: " + std::to_string(protocol);
       }
+    }
+    
+    // modify upstream handlers
+    inline void set_icmp_handler(upstream& handler)
+    {
+      icmp_handler = handler;
+    }
+    inline void set_udp_handler(upstream& handler)
+    {
+      udp_handler = handler;
+    }
+    inline void set_tcp_handler(upstream& handler)
+    {
+      tcp_handler = handler;
     }
     
   private:

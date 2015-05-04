@@ -2,7 +2,6 @@
 
 #include <x86intrin.h>
 #include <net/class_packet.hpp>
-#include <net/class_ip6.hpp>
 #include <net/util.hpp>
 #include <map>
 
@@ -24,9 +23,13 @@ namespace net
       uint16_t chksum;
     };
     
+    // packet from IP6 layer
+    int bottom(std::shared_ptr<Packet>& pckt);
+    
+  protected:
     std::map<port_t, listener_t> listeners;
     
-    static int handler(std::shared_ptr<PacketUDP6>& pckt);
+    friend class PacketUDP6;
   };
   
   class PacketUDP6 : public Packet
@@ -63,6 +66,5 @@ namespace net
       return (char*) payload() + sizeof(UDPv6::udp6_header);
     }
     
-    friend class UDPv6;
   };
 }
