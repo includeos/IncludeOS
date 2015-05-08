@@ -78,9 +78,9 @@ Inet::Inet() :
     // Eth -> IP6
     _eth.set_ip6_handler(ip6_bottom);
     // IP6 -> ICMP
-    _ip6.set_icmp_handler(icmp6_bottom);
+    _ip6.set_handler(IP6::PROTO_ICMPv6, icmp6_bottom);
     // IP6 -> UDP
-    _ip6.set_udp_handler(udp6_bottom);
+    _ip6.set_handler(IP6::PROTO_UDP, udp6_bottom);
     
     /** Downstream delegates */
     auto phys_top(downstream

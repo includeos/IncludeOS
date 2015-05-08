@@ -82,18 +82,15 @@ namespace net
     
     while (next != PROTO_NoNext)
     {
-      switch (next)
+      auto it = proto_handlers.find(next);
+      if (it != proto_handlers.end())
       {
-      case PROTO_UDP:
           pckt->_payload = reader;
-          return this->udp_handler(pckt);
-      case PROTO_ICMPv6:
-          pckt->_payload = reader;
-          return this->icmp_handler(pckt);
-      default:
+          return it->second(pckt);
+      }
+      else
           // just print information
           next = parse6(reader, next);
-      }
     }
     
     std::cout << std::endl;

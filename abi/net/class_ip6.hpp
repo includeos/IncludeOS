@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 #include <x86intrin.h>
 
 namespace net
@@ -172,17 +173,9 @@ namespace net
     }
     
     // modify upstream handlers
-    inline void set_icmp_handler(upstream& handler)
+    inline void set_handler(uint8_t proto, upstream& handler)
     {
-      icmp_handler = handler;
-    }
-    inline void set_udp_handler(upstream& handler)
-    {
-      udp_handler = handler;
-    }
-    inline void set_tcp_handler(upstream& handler)
-    {
-      tcp_handler = handler;
+      proto_handlers[proto] = handler;
     }
     
   private:
@@ -192,9 +185,7 @@ namespace net
     downstream _linklayer_out;
     
     /** Upstream delegates */
-    upstream icmp_handler;
-    upstream udp_handler;
-    upstream tcp_handler;
+    std::map<uint8_t, upstream> proto_handlers;
   };
   
   inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)
