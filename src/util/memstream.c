@@ -112,43 +112,13 @@ void* streamset8(void* dest, int8_t value, size_t n)
 }
 void* streamset16(void* dest, int16_t value, size_t n)
 {
-  char* dst = dest;
-  
-  // memset up to 15 bytes until SSE-aligned
-  while (((intptr_t) dst & (SSE_SIZE-1)) && n)
-  {
-    *dst++ = value;
-    n -= sizeof(int16_t);
-  }
   // memset SSE-aligned
   const __m128i data = _mm_set1_epi16(value);
-  dst = stream_fill(dst, &n, data);
-  // memset remainder
-  while (n)
-  {
-    *dst++ = value;
-    n -= sizeof(int16_t);
-  }
-  return dst;
+  return stream_fill((char*) dest, &n, data);
 }
 void* streamset32(void* dest, int32_t value, size_t n)
 {
-  char* dst = dest;
-  
-  // memset up to 15 bytes until SSE-aligned
-  while (((intptr_t) dst & (SSE_SIZE-1)) && n)
-  {
-    *dst++ = value;
-    n -= sizeof(int32_t);
-  }
   // memset SSE-aligned
   const __m128i data = _mm_set1_epi32(value);
-  dst = stream_fill(dst, &n, data);
-  // memset remainder
-  while (n)
-  {
-    *dst++ = value;
-    n -= sizeof(int32_t);
-  }
-  return dst;
+  return stream_fill((char*) dest, &n, data);
 }

@@ -147,7 +147,21 @@ namespace eastl
         eastl::pair<const_iterator, const_iterator> equal_range(const Key& key) const;
 
         T& operator[](const Key& key); // Of map, multimap, set, and multimap, only map has operator[].
-
+        
+        template< class... Args >
+        T& emplace( Args&&... args )
+        {
+          return DoEmplace(args...);
+        }
+        
+        template <class R, class S>
+        S& DoEmplace(const R& key, const S& value)
+        {
+          return (*this)[key] = value;
+          //insert_return_type it = base_type::DoInsertKey(key, true_type());
+          //return base_type::insert(it, pair<const Key, T>(key, value));
+        }
+        
     }; // map
 	
 	

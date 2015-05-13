@@ -46,12 +46,14 @@ namespace net {
       inline bool operator!=(const uint32_t src) const
       { return src != whole; }
       
-      std::string str() const {
-        char _str[15];
-        sprintf(_str,"%1i.%1i.%1i.%1i",part[0],part[1],part[2],part[3]);
-        return std::string(_str);
-      }        
-    
+      std::string str() const
+      {
+        std::string s; s.resize(16);
+        sprintf((char*) s.c_str(), "%1i.%1i.%1i.%1i", 
+                part[0], part[1], part[2], part[3]);
+        return s;
+      }
+      
     };
     
 
@@ -134,12 +136,12 @@ namespace net {
     
     /** Downstream: Linklayer output delegate */
     downstream _linklayer_out;
-  
+    
     /** Upstream delegates */
     upstream _icmp_handler;
     upstream _udp_handler;
-    upstream _tcp_handler;  
-        
+    upstream _tcp_handler;
+    
   };
 
 

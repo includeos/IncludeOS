@@ -235,6 +235,34 @@ void Service::start()
     std::cout << "std::map passed" << std::endl;
   }
   /////////////////////////////////////////////////////////////////////////////
+  //// std::map::emplace
+  /////////////////////////////////////////////////////////////////////////////
+  {
+    static int cnt;
+    struct ETEST
+    {
+      ETEST()
+      {
+        cnt++;
+      }
+      ETEST(ETEST&)
+      {
+        cnt++;
+      }
+    };
+    
+    std::cout << "checking std::map::emplace..." << std::endl;
+    std::map<int, int> empl_test;
+    
+    assert(cnt == 0);
+    
+    std::cout << "emplacing (count should be 1)" << std::endl;
+    empl_test.emplace(1, 2);
+    assert(EmplTest::cnt == 1);
+    
+    std::cout << "std::map::emplace passed" << std::endl;
+  }
+  /////////////////////////////////////////////////////////////////////////////
   //// std::deque<T>
   /////////////////////////////////////////////////////////////////////////////
   {

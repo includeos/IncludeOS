@@ -46,10 +46,13 @@ namespace std
 	public:
 		istream& operator >> (string& str)
 		{
-			char strvar[100];
-			fgets (strvar, 100, stdin);
-			
-			str = string(strvar);
+			// reserve enough for sizeable stream input
+      str.reserve(100);
+			// read from stream
+      fgets ((char*) str.c_str(), 100, stdin);
+			// downsize (without realloc)
+      str.resize(strlen(str.c_str()));
+      
 			return *this;
 		}
 	};

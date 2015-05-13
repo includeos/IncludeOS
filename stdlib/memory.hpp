@@ -360,15 +360,15 @@ namespace std
 			shared_ptr().swap(this);
 		}
 
-		template<class Y> void reset(Y * p)
+		template<class Y> void reset(Y* p)
 		{
 			shared_ptr(p).swap(this);
 		}
 
-		template<class Y, class D> void reset(Y * p, D d)
+		template<class Y, class D>
+    void reset(Y* p, D d)
 		{
 			shared_ptr(p, d).swap(*this);
-			return *this;
 		}
 
 

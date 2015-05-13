@@ -8,19 +8,27 @@ Inet* Inet::instance = 0;
 
 std::map<uint16_t,IP4::addr> Inet::_ip4_list;
 std::map<uint16_t,IP4::addr> Inet::_netmask_list;
+std::map<uint16_t,IP6::addr> Inet::_ip6_list;
 std::map<uint16_t,Ethernet*> Inet::_ethernet_list;
 std::map<uint16_t,Arp*> Inet::_arp_list;
 
-void Inet::ifconfig(netdev i, IP4::addr ip, IP4::addr netmask){  
+void Inet::ifconfig(
+    netdev i,
+    IP4::addr ip,
+    IP4::addr netmask,
+    IP6::addr ip6)
+{  
   _ip4_list[i] = ip;
   _netmask_list[i] = netmask;
+  _ip6_list[i] = ip6;
   debug("<Inet> I now have %li IP's\n", _ip4_list.size());
 };
 
 
 Inet::Inet() :
     //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-    _ip4(_ip4_list[0],_netmask_list[0])
+    _ip4(_ip4_list[0],_netmask_list[0]),
+    _ip6(_ip6_list[0])
   {
     
     printf("<IP Stack> constructing \n");
@@ -45,10 +53,13 @@ Inet::Inet() :
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(_eth));
     auto arp_bottom(upstream::from<Arp,&Arp::bottom>(_arp));
     auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(_ip4));
-    auto ip6_bottom(upstream::from<IP6,&IP6::bottom>(_ip6));    
-    auto icmp_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
-    auto udp_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
-
+    auto icmp4_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
+    auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
+    
+    auto ip6_bottom  (upstream::from<IP6,   &IP6::bottom>   (_ip6));    
+    auto icmp6_bottom(upstream::from<ICMPv6,&ICMPv6::bottom>(_icmp6));
+    auto udp6_bottom (upstream::from<UDPv6, &UDPv6::bottom> (_udp6));
+    
     /** Upstream wiring  */
     
     // Phys -> Eth (Later, this will be passed through router)
@@ -59,15 +70,17 @@ Inet::Inet() :
     
     // Eth -> IP4
     _eth.set_ip4_handler(ip4_bottom);
+    // IP4 -> ICMP
+    _ip4.set_icmp_handler(icmp4_bottom);
+    // IP4 -> UDP
+    _ip4.set_udp_handler(udp4_bottom);
     
     // Eth -> IP6
     _eth.set_ip6_handler(ip6_bottom);
-    
-    // IP4 -> ICMP
-    _ip4.set_icmp_handler(icmp_bottom);
-    
-    // IP4 -> UDP
-    _ip4.set_udp_handler(udp_bottom);
+    // IP6 -> ICMP
+    _ip6.set_handler(IP6::PROTO_ICMPv6, icmp6_bottom);
+    // IP6 -> UDP
+    _ip6.set_handler(IP6::PROTO_UDP, udp6_bottom);
     
     /** Downstream delegates */
     auto phys_top(downstream

@@ -22,9 +22,7 @@ namespace net {
 
   
   class Inet {
-    
   public:
-    
     /** Listen to a UDP port. 
 	This is just a simple forwarder. @see UDP::listen.  */
     inline void udp_listen(uint16_t port, UDP::listener l)
@@ -39,12 +37,19 @@ namespace net {
     
     
     /** Bind an IP and a netmask to a given device. 
-	
-	The function expects the given device to exist.*/
-    static void ifconfig(netdev nic, IP4::addr ip, IP4::addr netmask);
+      The function expects the given device to exist.*/
+    static void
+    ifconfig(
+        netdev nic,
+        IP4::addr ip,
+        IP4::addr netmask,
+        IP6::addr ip6);
     
-    static inline IP4::addr ip4(netdev nic)
+    inline static IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
+    
+    inline static IP6::addr ip6(netdev nic)
+    { return _ip6_list[nic]; }
     
     static Inet* up(){
       if (_ip4_list.size() < 1)
@@ -67,6 +72,7 @@ namespace net {
     /** Physical routes. These map 1-1 with Dev:: interfaces. */
     static std::map<uint16_t,IP4::addr> _ip4_list;
     static std::map<uint16_t,IP4::addr> _netmask_list;
+    static std::map<uint16_t,IP6::addr> _ip6_list;
     static std::map<uint16_t,Ethernet*> _ethernet_list;
     static std::map<uint16_t,Arp*> _arp_list;
     
@@ -77,14 +83,16 @@ namespace net {
     IP6 _ip6;
     ICMP _icmp;
     UDP _udp;
-    
+    ICMPv6 _icmp6;
+    UDPv6  _udp6;
     
     
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
    */
     Inet(Inet& UNUSED(cpy)) :
-      _ip4(_ip4_list[0],_netmask_list[0])
+      _ip4(_ip4_list[0],_netmask_list[0]),
+      _ip6(ip6(ETH0))
     {    
       printf("<IP Stack> WARNING: Copy-constructing the stack won't work." \
 	     "It should be pased by reference.\n");

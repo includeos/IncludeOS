@@ -32,7 +32,7 @@ LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld
 TEST_OBJ= tests/tests.o
 
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	memstream.o crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
+	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
 	crt/deque.o \
 	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
 	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
@@ -41,7 +41,8 @@ OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
 	virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
 	net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
-	net/class_packet.o net/dns/dns.o \
+	net/class_packet.o net/ip6/udp6.o net/ip6/icmp6.o net/dns/dns.o \
+	fs/fs.o fs/vfs.o fs/path.o util/memstream.o \
 	$(TEST_OBJ) #vga.o
 
 # Libraries
