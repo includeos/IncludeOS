@@ -4,14 +4,16 @@ export PREFIX="/usr/local/IncludeOS"
 export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 
-mkdir -p $HOME/src
-cd $HOME/src
+LIBVER=2.2.0-1
+
+mkdir -p $HOME/cross-dev
+cd $HOME/cross-dev
 
 echo -e "\n\n >>> Getting newlib \n"
-wget -c --trust-server-name ftp://sourceware.org/pub/newlib/newlib-2.1.0.tar.gz
+wget -c --trust-server-name ftp://sourceware.org/pub/newlib/newlib-$LIBVER.tar.gz
 
 echo -e "\n\n >>> Extracting "
-tar -xf newlib-2.1.0.tar.gz
+tar -xf newlib-$LIBVER.tar.gz
 
 echo -e "\n\n >>> Installing dependencies"
 sudo apt-get install -y texinfo
@@ -23,7 +25,7 @@ cd build_newlib
 # Clean out config cache in case the cross-compiler has changed
 make distclean
 
-../newlib-2.1.0/configure --target=$TARGET --prefix=$PREFIX
+../newlib-$LIBVER/configure --target=$TARGET --prefix=$PREFIX
 
 #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
 shopt -s expand_aliases
