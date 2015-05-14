@@ -19,6 +19,10 @@
 #error "This project needs to be compiled with an ix86-elf compiler"
 #endif
 
+#ifndef __includeOS__
+#define __includeOS__
+#endif
+
 //Unused parameters (necessary for syscall warnings)
 #ifdef __GNUC__
 #  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
