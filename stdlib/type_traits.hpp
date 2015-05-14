@@ -3,7 +3,7 @@
 
 namespace std
 {
-	typedef unsigned size_t;
+	typedef decltype (sizeof (int)) size_t;
 	typedef size_t size_type;
 	
 	typedef decltype(nullptr) nullptr_t;

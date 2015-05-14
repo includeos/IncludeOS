@@ -172,6 +172,8 @@
     <File Name="reference_wrapper.hpp"/>
     <File Name="list"/>
     <File Name="list.hpp"/>
+    <File Name="deque.hpp"/>
+    <File Name="deque"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
