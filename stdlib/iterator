@@ -1,0 +1,17 @@
+#pragma once
+#include "EASTL/iterator.h"
+
+namespace std
+{
+    template <typename Category, typename T, typename Distance = ptrdiff_t, 
+              typename Pointer = T*, typename Reference = T&>
+    using iterator = eastl::iterator<Category, T, Distance, Pointer, Reference>;
+    
+    using input_iterator_tag = eastl::input_iterator_tag;
+    using output_iterator_tag = eastl::output_iterator_tag;
+    using forward_iterator_tag = eastl::forward_iterator_tag;
+    using bidirectional_iterator_tag = eastl::bidirectional_iterator_tag;
+    using random_access_iterator_tag = eastl::random_access_iterator_tag;
+    using contiguous_iterator_tag = eastl::contiguous_iterator_tag;
+    
+}

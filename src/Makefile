@@ -91,6 +91,8 @@ install: #os.a bootloader
 	cp crt/crt*.s $(OS)/crt
 	cp -r ../abi $(OS)/
 	cp -r ../stdlib $(OS)/
+	mkdir -p $(OS)/mod
+	cp -r ../mod/rapidjson $(OS)/mod
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
