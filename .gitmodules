@@ -1,0 +1,4 @@
+
+[submodule "mod/rapidjson"]
+  path = mod/rapidjson
+  url = git@github.com:fwsGonzo/rapidjson.git
