@@ -16,7 +16,7 @@ CC  = $(OSDIR)/bin/i686-elf-gcc
 CPP = $(OSDIR)/bin/i686-elf-g++ 
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib -I$(OSDIR)/mod
+INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib -I$(OSDIR)/mod/rapidjson/include
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
