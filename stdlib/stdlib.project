@@ -172,6 +172,14 @@
     <File Name="reference_wrapper.hpp"/>
     <File Name="list"/>
     <File Name="list.hpp"/>
+    <File Name="deque.hpp"/>
+    <File Name="deque"/>
+    <File Name="bitset"/>
+    <File Name="cstdlib"/>
+    <File Name="cstring"/>
+    <File Name="iterator"/>
+    <File Name="memory"/>
+    <File Name="cassert"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>

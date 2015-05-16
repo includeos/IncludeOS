@@ -1,5 +1,3 @@
-#define __includeOS__
-
 #include <os>
 #include <string>
 #include <iostream>
@@ -20,7 +18,8 @@ void Service::start()
 ]  
   )";
   
-  std::cout << "*** parsing JSON string:" << text << std::endl;  
+  std::cout << "*** parsing JSON string:" << text << std::endl;
+  
   json_error_t error;
   json_t* root = 
     json_loads(text.c_str(), 0, &error);
@@ -58,5 +57,6 @@ void Service::start()
     
     std::cout << title_text << std::endl;
   }
+  
   std::cout << "*** done" << std::endl;
 }
