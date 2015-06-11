@@ -10,7 +10,7 @@
 #include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
 
-bool OS::_power = true;
+bool  OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 
 // The heap starts @ 1MB

@@ -3,7 +3,7 @@ SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra
 
 # Modules
-FILES = service.cpp
+FILES = service.cpp stream.cpp
 
 # Compiler/Linker
 ###################################################

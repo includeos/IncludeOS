@@ -158,7 +158,9 @@ int stat(const char* UNUSED(file), struct stat *st){
   return 0;
 };
 
-clock_t times(struct tms* UNUSED(buf)){
+clock_t times(struct tms* UNUSED(buf))
+{
+  printf("Syscall: times(tms) returning -1\n");
   syswrite((char*)"TIMES","DUMMY, RETURNING -1");
   //__asm__("rdtsc");
   return -1;

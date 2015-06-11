@@ -22,6 +22,8 @@
   <VirtualDirectory Name="eastl">
     <File Name="Makefile"/>
     <File Name="service.cpp"/>
+    <File Name="tests.cpp"/>
+    <File Name="stream.cpp"/>
   </VirtualDirectory>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
