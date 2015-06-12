@@ -1,6 +1,8 @@
 # The name of your service
+SIZE=10000000
+TYPE=double
 SERVICE = IncludeOS_tests
-OPTIONS = -Ofast -msse3 -Wall -Wextra #-DSTREAM_TYPE=float
+OPTIONS = -Ofast -msse3 -Wall -Wextra -DSTREAM_ARRAY_SIZE=$(SIZE) -DSTREAM_TYPE=$(TYPE)
 
 # Modules
 FILES = service.cpp stream.cpp
