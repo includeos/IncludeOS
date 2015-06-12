@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = IncludeOS_tests
-OPTIONS = -O0 -Wall -Wextra -DSTREAM_TYPE=float
+OPTIONS = -Ofast -msse3 -Wall -Wextra #-DSTREAM_TYPE=float
 
 # Modules
 FILES = service.cpp stream.cpp
