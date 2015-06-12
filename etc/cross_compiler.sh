@@ -47,5 +47,5 @@ make all-gcc -j8
 make all-target-libgcc -j8
 
 echo -e "\n\n >>> Installing GCC"
-make install-gcc
-make install-target-libgcc
+sudo make install-gcc
+sudo make install-target-libgcc
