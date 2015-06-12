@@ -9,7 +9,7 @@ char **environ = __env;
 
 static const int syscall_fd=999;
 static bool debug_syscalls=true;
-
+caddr_t heap_end;
 
 //Syscall logger
 void syswrite(const char* name,const char* str){ 
@@ -103,51 +103,10 @@ int write(int file, char *ptr, int len)
 	return len;
 };
 
-extern char _end; // Defined by the linker 
-caddr_t heap_end= OS::heap_start();//(caddr_t)&_end;//(void*)0x1;
-
-caddr_t sbrk(int incr){
-    
-  //Get the stack pointer
-  caddr_t stack_ptr;
-  __asm__ ("movl %%esp, %%eax;"
-	   "movl %%eax, %0;"
-	   :"=r"(stack_ptr)        /* output */
-	   :
-	   :"%eax"         /* clobbered register */
-	   );       
-  
-  void* prev_heap_end;
-  /*
-  if (heap_end == (void*)0x0) {
-    heap_end = &_end;
-    }*/
-  
-  prev_heap_end = heap_end;
-
-#ifdef TESTS_H
-  test_print_result("SBRK increment <= SBRK_MAX",incr <= SBRK_MAX);
-#endif
-  
-  //Don't exceed the limit
-  //incr = incr > SBRK_MAX ? SBRK_MAX : incr;
-  
-  /** 
-      Check if heap collides with stack
-      
-      NOTE: Since we moved the stack to OS-location, growing towards addr. 0, 
-      this is no longer necessary.
-      
-  if (heap_end + incr > stack_ptr)
-    {
-      write (1, (char*)"\t\tERROR: Heap and stack collision\n", 25);
-      //abort ();
-      } **/
-  
+caddr_t sbrk(int incr)
+{
+  void* prev_heap_end = heap_end;
   heap_end += incr;
-  //printf("SYSCALL SBRK allocated %i bytes. Heap end @ 0x%lx\n",
-  //incr,(int32_t)heap_end);  
-  //OS::rsprint("SBRK\n");
   return (caddr_t) prev_heap_end;
 }
 
@@ -158,7 +117,9 @@ int stat(const char* UNUSED(file), struct stat *st){
   return 0;
 };
 
-clock_t times(struct tms* UNUSED(buf)){
+clock_t times(struct tms* UNUSED(buf))
+{
+  printf("Syscall: times(tms) returning -1\n");
   syswrite((char*)"TIMES","DUMMY, RETURNING -1");
   //__asm__("rdtsc");
   return -1;

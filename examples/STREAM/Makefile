@@ -1,7 +1,7 @@
 # The name of your service
 SIZE=10000000
 TYPE=double
-SERVICE = IncludeOS_tests
+SERVICE = IncludeOS_STREAM
 OPTIONS = -Ofast -msse3 -Wall -Wextra -DSTREAM_ARRAY_SIZE=$(SIZE) -DSTREAM_TYPE=$(TYPE)
 
 # Modules
@@ -101,6 +101,6 @@ crt%.o: $(OSDIR)/crt/crt%.s
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(OBJS) crti.* crtn.* $(DEPS) $(SERVICE) $(SERVICE).img
+	$(RM) $(OBJS) crti.* crtn.* $(DEPS) $(SERVICE) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
 
 -include $(DEPS)

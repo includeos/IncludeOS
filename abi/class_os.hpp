@@ -16,10 +16,6 @@ class OS{
   /** Indicate if the OS is running. */
   static bool _power;
   
-  /** The heap start address. Used by sbrk/malloc */
-  static caddr_t _heap_start;
-  
-  
   /** The OS will call halt (i.e. wait for interrupts) once the 
       service is started */
   static void halt();  
@@ -53,11 +49,6 @@ class OS{
 
   /** Write a character to serial port. @todo Should be moved Dev::serial(n) */
   static int rswrite(char c);
-
-  static caddr_t heap_start(){
-    return _heap_start;
-  }
-  
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();

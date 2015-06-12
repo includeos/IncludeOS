@@ -1,5 +1,6 @@
 #include <class_os.hpp>
 #include <assert.h>
+#include <memstream>
 
 int main();
 
@@ -13,7 +14,9 @@ extern "C" {
   void write_serial(char a);
   void rswrite(char c);  
   void rsprint(const char* ptr);
-
+  
+  const int _test_glob = 1;
+  
   void enableSSE()
   {
 	/*
@@ -35,8 +38,6 @@ extern "C" {
 	__asm__ ("or  $0x600,%ax");
 	__asm__ ("mov %eax, %cr4");
   }
-
-  int _test_glob = 1;
   
   void _start(void)
   {    
@@ -44,28 +45,34 @@ extern "C" {
 
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
-    
+    // init serial port
     init_serial();    
-
-    OS::rsprint(" \n\n *** IncludeOS Initializing *** \n\n");    
     
+    OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    
     
     //Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
+    streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+    {
+      char* ptr = &_BSS_START_;
+      while (ptr < &_BSS_END_)
+      {
+        if (*ptr)
+        {
+          rsprint("[ERROR] .bss was not initialized properly with streamset\n");
+          //panic(".bss was not initialized");
+          asm("cli; hlt;");
+        }
+        ptr++;
+      }
+    }
     
-    char* bss=&_BSS_START_;
-    *bss=0;
-    while(++bss < &_BSS_END_)
-      *bss=0;
-
-    //Call global constructors (relying on .crtbegin to be inserted by gcc)
+    // Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
+    // verify that global constructors were called
     ASSERT(_test_glob == 1);
-
     
     OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    
-    
-    //main();
     OS::start();
     
     //Will only work if any destructors are called (I think?)
@@ -85,49 +92,40 @@ extern "C" {
     __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
   }
   
-  #define PORT 0x3f8  
+  #define SERIAL_PORT 0x3f8  
   void init_serial() {
-    outb(PORT + 1, 0x00);    // Disable all interrupts
-    outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-    outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-    outb(PORT + 1, 0x00);    //                  (hi byte)
-    outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
-    outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-    outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+    outb(SERIAL_PORT + 1, 0x00);    // Disable all interrupts
+    outb(SERIAL_PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+    outb(SERIAL_PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+    outb(SERIAL_PORT + 1, 0x00);    //                  (hi byte)
+    outb(SERIAL_PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+    outb(SERIAL_PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
   }
   
 
   int is_transmit_empty() {
-    return inb(PORT + 5) & 0x20;
+    return inb(SERIAL_PORT + 5) & 0x20;
   }
   
   void write_serial(char a) {
     while (is_transmit_empty() == 0);
     
-    outb(PORT,a);
+    outb(SERIAL_PORT, a);
   }
-
-  void rswrite(char c) {
+  
+  void rswrite(char c)
+  {
     /* Wait for the previous character to be sent */
     while ((inb(0x3FD) & 0x20) != 0x20);
     
     /* Send the character */
     outb(0x3F8, c);
   }
-      
-  void rsprint(const char* ptr){
-    while(*ptr)
-    //for(int i=0;i<10;i++)
+  
+  void rsprint(const char* ptr)
+  {
+    while (*ptr)
       write_serial(*(ptr++));  
   }
-  
-
-  /*  int main(){
-    OS::start();
-    //OBS: If this function returns, the consequences are UNDEFINED
-    return 0;
-    }*/
-  
 }
-
-
