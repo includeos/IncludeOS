@@ -5,7 +5,7 @@ SERVICE = IncludeOS_tests
 OPTIONS = -Ofast -msse3 -Wall -Wextra -DSTREAM_ARRAY_SIZE=$(SIZE) -DSTREAM_TYPE=$(TYPE)
 
 # Modules
-FILES = service.cpp stream.cpp
+FILES = service.cpp eastl_tests.cpp
 
 # Compiler/Linker
 ###################################################
