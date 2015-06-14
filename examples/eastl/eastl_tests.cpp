@@ -16,6 +16,7 @@
 #include <tuple.hpp>
 
 #include <cassert>
+#include "test.hpp"
 
 class TestStream
 {

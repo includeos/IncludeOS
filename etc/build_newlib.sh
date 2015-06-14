@@ -37,4 +37,3 @@ echo -e "\n\n---------- STARTING BUILD --------------\n\n"
 
 #i686-elf-cc --version
 make all install
-

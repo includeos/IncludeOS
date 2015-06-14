@@ -3,7 +3,7 @@
 
 namespace std
 {
-	typedef unsigned size_t;
+	typedef decltype (sizeof(int)) size_t;
 	
 	// helpers
 	template <typename T>
