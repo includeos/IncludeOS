@@ -50,33 +50,20 @@ extern "C" {
     
     OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    
     
-    //Initialize .bss secion (It's garbage in qemu)
+    // Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
     streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-    {
-      char* ptr = &_BSS_START_;
-      while (ptr < &_BSS_END_)
-      {
-        if (*ptr)
-        {
-          rsprint("[ERROR] .bss was not initialized properly with streamset\n");
-          //panic(".bss was not initialized");
-          asm("cli; hlt;");
-        }
-        ptr++;
-      }
-    }
     
     // Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
     // verify that global constructors were called
     ASSERT(_test_glob == 1);
     
-    OS::rsprint("\n>>> IncludeOS Initialized. Calling main\n");    
+    // Initialize some OS functionality
     OS::start();
     
-    //Will only work if any destructors are called (I think?)
-    //    _fini();
+    // Will only work if any destructors are called (I think?)
+    //_fini();
   }
   
   uint8_t inb(int port) {  

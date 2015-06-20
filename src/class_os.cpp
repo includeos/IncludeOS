@@ -32,16 +32,20 @@ void OS::start()
   
   timeval t;
   gettimeofday(&t,0);
-  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",t.tv_sec,t.tv_usec,uptime());
+  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",
+      t.tv_sec, t.tv_usec, uptime());
   
   asm("cli");  
+  //OS::rsprint(">>> IRQ handler\n");
   IRQ_handler::init();
-  Dev::init();  
+  //OS::rsprint(">>> Dev init\n");
+  Dev::init();
   
-  //Everything is ready
+  // Everything is ready
+  printf(">>> IncludeOS initialized - calling Service::start()\n");
   Service::start();
   
-  __asm__("sti");
+  asm("sti");
   halt();
 };
 

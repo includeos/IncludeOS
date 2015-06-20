@@ -28,13 +28,11 @@ Nic_t& Dev::eth(int n){
 };
 
   
-void Dev::init(){
-
-  printf("\n>>> Dev:: initializing devices \n");  
+void Dev::init()
+{
+  printf(">>> Dev::init - initializing devices\n");
   PCI_manager::init();
-
-  //Calling eth(n) constructs it, if there's a corresponding PCI-dev.
-  //printf("    * %s \n", (char*)eth(0).name());
+  printf(">>> Dev::init - completed\n");
 }
 
 

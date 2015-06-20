@@ -2,36 +2,43 @@
 #include <os>
 #include <net/class_inet.hpp>
 
-using namespace net;
+namespace net
+{
+  Inet* Inet::instance = nullptr;
 
-Inet* Inet::instance = 0;
+  std::map<uint16_t,IP4::addr> Inet::_ip4_list;
+  std::map<uint16_t,IP4::addr> Inet::_netmask_list;
+  std::map<uint16_t,IP6::addr> Inet::_ip6_list;
+  std::map<uint16_t,Ethernet*> Inet::_ethernet_list;
+  std::map<uint16_t,Arp*> Inet::_arp_list;
 
-std::map<uint16_t,IP4::addr> Inet::_ip4_list;
-std::map<uint16_t,IP4::addr> Inet::_netmask_list;
-std::map<uint16_t,IP6::addr> Inet::_ip6_list;
-std::map<uint16_t,Ethernet*> Inet::_ethernet_list;
-std::map<uint16_t,Arp*> Inet::_arp_list;
-
-void Inet::ifconfig(
-    netdev i,
-    IP4::addr ip,
-    IP4::addr netmask,
-    IP6::addr ip6)
-{  
-  _ip4_list[i] = ip;
-  _netmask_list[i] = netmask;
-  _ip6_list[i] = ip6;
-  debug("<Inet> I now have %li IP's\n", _ip4_list.size());
-};
-
-
-Inet::Inet() :
-    //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-    _ip4(_ip4_list[0],_netmask_list[0]),
-    _ip6(_ip6_list[0])
+  void Inet::ifconfig(
+      netdev i,
+      IP4::addr ip,
+      IP4::addr netmask,
+      IP6::addr ip6)
   {
+    _ip4_list[i]     = ip;
+    _netmask_list[i] = netmask;
     
-    printf("<IP Stack> constructing \n");
+    //_ip6_list.insert(i);
+    
+    register intptr_t sp asm ("sp");
+    printf("ifconfig stack: %p\n", sp);
+    
+    _ip6_list[i]     = ip6;
+    printf("ifconfig ipv6 %s\n", _ip6_list[0].to_string().c_str());
+    
+    debug("<Inet> I now have %lu IP's\n", _ip4_list.size());
+  };
+
+
+  Inet::Inet() :
+      //_eth(eth0.mac()),_arp(eth0.mac(),ip)
+      _ip4(_ip4_list[0],_netmask_list[0]),
+      _ip6(_ip6_list[0])
+  {
+    printf("<IP Stack> Constructor\n");
     
     // For now we're just using the one interface
     auto& eth0 = Dev::eth(0);
@@ -40,13 +47,11 @@ Inet::Inet() :
     /** Create arp- and ethernet objects for the interfaces.
         
         @warning: Careful not to copy these objects */
-    _arp_list[0] = new Arp(eth0.mac(),_ip4_list[0]);
+    _arp_list[0]      = new Arp(eth0.mac(),_ip4_list[0]);
     _ethernet_list[0] = new Ethernet(eth0.mac());
     
-    Arp& _arp = *(_arp_list[0]);
-    Ethernet& _eth = *(_ethernet_list[0]);
-
-
+    Arp&      _arp = *_arp_list[0];
+    Ethernet& _eth = *_ethernet_list[0];
     
     
     /** Upstream delegates */ 
@@ -108,6 +113,5 @@ Inet::Inet() :
     
     // Eth -> Phys
     _eth.set_physical_out(phys_top);
-    
-    
   }
+}

@@ -57,7 +57,7 @@ namespace net {
       
       if (!instance){
 	instance = new Inet();
-	printf("<Inet> instance constructed @ 0x%lx\n",(uint32_t)instance);
+	printf("<Inet> instance constructed @ %p\n", instance);
       }
       return instance;
       
@@ -79,10 +79,10 @@ namespace net {
     static Inet* instance;  
     
     // This is the actual stack
-    IP4 _ip4;
-    IP6 _ip6;
+    IP4  _ip4;
     ICMP _icmp;
-    UDP _udp;
+    UDP  _udp;
+    IP6    _ip6;
     ICMPv6 _icmp6;
     UDPv6  _udp6;
     

@@ -9,23 +9,17 @@
 namespace net
 {
   IP6::IP6(const IP6::addr& lo)
-    : local(lo)
+  //  : local(lo)
   {
+    int ttt;
+    printf("IP6: stack: %p\n", &ttt);
+    
+    printf("IP6 constructor, addr = %s\n", lo.to_string().c_str());
     assert(sizeof(addr)   == 16);
     assert(sizeof(header) == 40);
     assert(sizeof(options_header) == 8);
     
-  }
-  
-  void fix(IP6::addr& a)
-  {
-    for (int i = 0; i < 16; i += 2)
-    {
-      uint8_t s = a.i8[i];
-      
-      a.i8[i]   = a.i8[i+1];
-      a.i8[i+1] = s;
-    }
+    this->local = lo;
   }
   
   uint8_t IP6::parse6(uint8_t*& reader, uint8_t next)
