@@ -5,13 +5,13 @@
 namespace net
 {
   Inet* Inet::instance = nullptr;
-
-  std::map<uint16_t,IP4::addr> Inet::_ip4_list;
-  std::map<uint16_t,IP4::addr> Inet::_netmask_list;
-  std::map<uint16_t,IP6::addr> Inet::_ip6_list;
-  std::map<uint16_t,Ethernet*> Inet::_ethernet_list;
-  std::map<uint16_t,Arp*> Inet::_arp_list;
-
+  
+  std::map<uint16_t, IP4::addr> Inet::_ip4_list;
+  std::map<uint16_t, IP4::addr> Inet::_netmask_list;
+  std::map<uint16_t, IP6::addr> Inet::_ip6_list;
+  std::map<uint16_t, Ethernet*> Inet::_ethernet_list;
+  std::map<uint16_t, Arp*> Inet::_arp_list;
+  
   void Inet::ifconfig(
       netdev i,
       IP4::addr ip,
@@ -23,15 +23,14 @@ namespace net
     
     //_ip6_list.insert(i);
     
-    register intptr_t sp asm ("sp");
+    register void* sp asm ("sp");
     printf("ifconfig stack: %p\n", sp);
     
     _ip6_list[i]     = ip6;
-    printf("ifconfig ipv6 %s\n", _ip6_list[0].to_string().c_str());
+    printf("ifconfig ipv6 %s\n", _ip6_list[i].to_string().c_str());
     
     debug("<Inet> I now have %lu IP's\n", _ip4_list.size());
-  };
-
+  }
 
   Inet::Inet() :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)

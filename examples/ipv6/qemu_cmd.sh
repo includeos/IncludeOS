@@ -1,4 +1,4 @@
-
+#!/bin/bash
 export QEMU="kvm -smp 1"
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"

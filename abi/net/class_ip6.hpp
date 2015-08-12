@@ -54,7 +54,8 @@ namespace net
       // copy-constructor
       addr(const addr& a)
       {
-        printf("IPv6::addr copy constructor %s\n", a.to_string().c_str());
+        printf("IPv6::addr copy constructor\n");
+        printf("IPv6::addr %s\n", a.to_string().c_str());
         //i128 = a.i128;
         this->i64[0] = a.i64[0];
         this->i64[1] = a.i64[1];
@@ -62,7 +63,8 @@ namespace net
       // move constructor
       addr& operator= (const addr& a)
       {
-        printf("IPv6::addr move constructor %s\n", a.to_string().c_str());
+        printf("IPv6::addr move constructor\n");
+        printf("IPv6::addr %s\n", a.to_string().c_str());
         //i128 = a.i128;
         this->i64[0] = a.i64[0];
         this->i64[1] = a.i64[1];
@@ -80,7 +82,7 @@ namespace net
         uint8_t  i8[16];
       };
       
-    } __attribute__((aligned(16)));
+    }; // __attribute__((aligned(16)));
     
     #pragma pack(push, 1)
     class header

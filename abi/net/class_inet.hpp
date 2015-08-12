@@ -1,6 +1,5 @@
-
-#ifndef CLASS_IP_STACK_HPP
-#define CLASS_IP_STACK_HPP
+#ifndef NET_INET_HPP
+#define NET_INET_HPP
 
 #include <syscalls.hpp> // panic()
 #include <class_dev.hpp> // 107: auto& eth0 = Dev::eth(0);
