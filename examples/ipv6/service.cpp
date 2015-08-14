@@ -1,7 +1,10 @@
 #include <os>
 #include <iostream>
+#include <x86intrin.h>
 
 using namespace std;
+
+#define SSE_ALIGNED   alignof(__m128i)
 
 struct TestAddr
 {
@@ -41,27 +44,28 @@ struct TestAddr
   uint16_t i16[8];
   uint8_t  i8[16];
   
-};
+}; // __attribute__((aligned(SSE_ALIGNED)));
 
 const std::string lut = "0123456789abcdef";
+const std::string test = ""; // uncommenting this makes the image work
 
 std::string TestAddr::to_string() const
 {
-  //const std::string lut = "0123456789abcdef";
+  //static const std::string lut = "0123456789abcdef";
   std::string ret(40, '\0');
   int counter = 0;
   
   const uint8_t* octet = i8;
   
-  for (int i = 0; i < 16; i++)
+  for (size_t i = 0; i < sizeof(i8); i++)
   {
-    ret[counter++] = 'c'; //lut[(octet[i] & 0xF0) >> 4];
-    ret[counter++] = 'd'; //lut[(octet[i] & 0x0F) >> 0];
+    ret[counter++] = lut[(octet[i] & 0xF0) >> 4];
+    ret[counter++] = lut[(octet[i] & 0x0F) >> 0];
     if (i & 1)
       ret[counter++] = ':';
   }
-  printf("string: %s  len: %d\n", ret.c_str(), counter);
   ret[counter-1] = 0;
+  //printf("string: %s  len: %d\n", ret.c_str(), counter);
   return ret;
 }
 
