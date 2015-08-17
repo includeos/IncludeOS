@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = IPv6_Tests
-OPTIONS = -Ofast -msse3 -Wall -Wextra
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp

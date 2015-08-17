@@ -1,34 +1,22 @@
 #include <os>
 #include <iostream>
-#include "testaddr.hpp"
+#include <x86intrin.h>
 
-const std::string lut = "0123456789abcdef";
-const std::string T = ""; // uncommenting this makes the image work
+//volatile int xxx = 333;
 
-std::string TestAddr::to_string() const
-{
-  //static const std::string lut = "0123456789abcdef";
-  std::string ret(40, '\0');
-  int counter = 0;
-  
-  const uint8_t* octet = i8;
-  
-  for (size_t i = 0; i < sizeof(i8); i++)
-  {
-    ret[counter++] = lut[(octet[i] & 0xF0) >> 4];
-    ret[counter++] = lut[(octet[i] & 0x0F) >> 0];
-    if (i & 1)
-      ret[counter++] = ':';
-  }
-  ret[counter-1] = 0;
-  return ret;
-}
-
+#define SSE_ALIGNED  __attribute__((aligned(16)))
 
 void Service::start()
 {
-  TestAddr ip6(1234, 1234);
-  TestAddr test = ip6;
+  volatile __m128i test1 SSE_ALIGNED;
+  test1 = _mm_set1_epi32(333);
   
-  std::cout << "ip6 = " << test.to_string() << std::endl;
+  volatile __m128i test2 SSE_ALIGNED;
+  test2 = _mm_set1_epi32(111);
+  
+  volatile __m128i test SSE_ALIGNED;
+  test = _mm_add_epi32(test1, test2);  
+  
+  volatile int* ints = (int*) &test;
+  std::cout << ints[0] << std::endl;
 }
