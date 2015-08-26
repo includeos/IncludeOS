@@ -1,2 +1,19 @@
 #pragma once
 #include <stddef.h>
+
+namespace std
+{
+	typedef decltype (sizeof (int)) size_t;
+  typedef int                     ptrdiff_t;
+  typedef decltype(nullptr)       nullptr_t;
+  typedef long double             max_align_t;
+}
+
+#ifndef NULL
+  // ANSI baggage train
+  #define NULL  nullptr
+#endif
+
+#ifndef offsetof
+  #define offsetof(type,member) ((std::size_t) &(((type*)0)->member))
+#endif

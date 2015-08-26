@@ -93,7 +93,8 @@ install: #os.a bootloader
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
 	cp -r ../mod/rapidjson $(OS)/mod
-	cp ../mod/libprotobuf.a $(OS)/mod
+	cp -r ../mod/protobuf $(OS)/mod
+	#cp ../mod/libprotobuf.a $(OS)/mod
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
