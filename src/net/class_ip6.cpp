@@ -91,9 +91,10 @@ namespace net
     return 0;
 	};
   
+  static const std::string lut = "0123456789abcdef";
+  
   std::string IP6::addr::to_string() const
   {
-    static const std::string lut = "0123456789abcdef";
     std::string ret(40, 0);
     int counter = 0;
     
