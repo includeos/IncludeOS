@@ -12,6 +12,9 @@
 #include <map>
 #include <x86intrin.h>
 
+#include <stdint.h>
+#include <assert.h>
+
 namespace net
 {
   class Packet;
@@ -37,33 +40,49 @@ namespace net
     /** Handle IPv6 packet. */
     int bottom(std::shared_ptr<Packet>& pckt);
     
-    class addr
+    struct addr
     {
-    public:
       // constructors
       addr()
         : i64{0, 0} {}
-      addr(unsigned a, unsigned b, unsigned c, unsigned d)
+      addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
         : i32{a, b, c, d} {}
       addr(uint64_t top, uint64_t bot)
         : i64{top, bot} {}
-      addr(__m128i address)
-        : i128(address) {}
+      //addr(__m128i address)
+      //  : i128(address) {}
       // copy-constructor
       addr(const addr& a)
-        : i128(a.i128) {}
+      {
+        printf("IPv6::addr copy constructor\n");
+        printf("IPv6::addr %s\n", a.to_string().c_str());
+        //i128 = a.i128;
+        this->i64[0] = a.i64[0];
+        this->i64[1] = a.i64[1];
+      }
+      // move constructor
+      addr& operator= (const addr& a)
+      {
+        printf("IPv6::addr move constructor\n");
+        printf("IPv6::addr %s\n", a.to_string().c_str());
+        //i128 = a.i128;
+        this->i64[0] = a.i64[0];
+        this->i64[1] = a.i64[1];
+        return *this;
+      }
+      // returns this IPv6 address as a string
+      std::string to_string() const;
       
       union
       {
-        __m128i  i128;
+        //__m128i  i128;
         uint64_t i64[2];
         uint32_t i32[4];
         uint16_t i16[8];
         uint8_t  i8[16];
       };
       
-      std::string to_string() const;
-    };
+    }; // __attribute__((aligned(16)));
     
     #pragma pack(push, 1)
     class header

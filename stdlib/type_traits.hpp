@@ -1,12 +1,11 @@
 #ifndef STD_TYPE_TRAITS_HPP
 #define STD_TYPE_TRAITS_HPP
 
+#include <cstddef>
+
 namespace std
 {
-	typedef decltype (sizeof (int)) size_t;
 	typedef size_t size_type;
-	
-	typedef decltype(nullptr) nullptr_t;
 	
 	// http://en.cppreference.com/w/cpp/types/integral_constant
 	template<class T, T v>

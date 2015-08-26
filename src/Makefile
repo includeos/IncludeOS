@@ -9,9 +9,9 @@ OSLIB = $(OS)/i686-elf
 
 DEBUG_OPTS = -ggdb3
 
-CC  = $(OS)/bin/i686-elf-gcc 
-CPP = $(OS)/bin/i686-elf-g++ 
-LD  = $(OS)/bin/i686-elf-ld 
+CC  = $(OS)/bin/i686-elf-gcc
+CPP = $(OS)/bin/i686-elf-g++
+LD  = $(OS)/bin/i686-elf-ld
 
 GCC_VER = $(shell $(CC) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
@@ -19,7 +19,7 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  = -Ofast -msse3
+CAPABS  = -Ofast -msse3 -mstackrealign  # Needed for 16-byte stack alignment (SSE)
 WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
@@ -93,6 +93,8 @@ install: #os.a bootloader
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
 	cp -r ../mod/rapidjson $(OS)/mod
+	cp -r ../mod/protobuf $(OS)/mod
+	#cp ../mod/libprotobuf.a $(OS)/mod
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 

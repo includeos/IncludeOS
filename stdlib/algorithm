@@ -1,0 +1,45 @@
+#pragma once
+#include "EASTL/algorithm.h"
+
+namespace std
+{
+  template <typename T>
+  inline const T&
+  min(const T& a, const T& b)
+  {
+      return b < a ? b : a;
+  }
+  
+  template <typename T, typename Compare>
+  inline const T&
+  min(const T& a, const T& b, Compare compare)
+  {
+      return compare(b, a) ? b : a;
+  }
+  
+  template <typename T>
+  inline const T&
+  max(const T& a, const T& b)
+  {
+      return a < b ? b : a;
+  }
+  
+  template <typename T, typename Compare>
+  inline const T&
+  max(const T& a, const T& b, Compare compare)
+  {
+      return compare(a, b) ? b : a;
+  }
+  
+  template <typename T>
+  inline void swap(T& a, T& b)
+  {
+    T temp = std::move(a);
+    a = std::move(b);
+    b = std::move(temp);
+  }
+  
+  template <typename T>
+  using fill<T> = eastl::fill<T>;
+  
+}

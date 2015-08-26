@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package proto;
+
+
+
+enum MessageType {
+  ACTION = 0;
+  REQUEST_GAME_STATE = 1;
+  LOGIN = 2;
+}
+
+// General poker message wrapper... Good idea?
+message PokerMessage {
+  MessageType type = 1;
+  oneof content {
+    Action action = 2;
+    GameState gamestate = 3;
+    // ... More possible message types
+  }
+  int32 byte_size = 5;
+}
+
+
+message Action {
+  
+  enum ActionType{
+    NONE = 0;
+    FOLD = 1;
+    CHECK = 2;
+    CALL = 3;
+    RAISE = 4;
+    ALLIN = 5;
+  }
+  
+  ActionType type = 1;
+  int32 bet = 2;
+
+  int32 table_id = 3;
+  
+}
+
+
+/*
+message Hand {
+        repeated string cards = 1;
+}*/
+
+
+// We encode 16 ranks, so they get one bit each, in a 16-bit short
+enum Rank {
+     BACKSIDE = 0;
+     ONE = 1; TWO = 2; THREE = 3; FOUR = 4; FIVE = 5; SIX = 6; SEVEN = 7; EIGHT = 8; NINE = 9; 
+     T = 10;
+     J = 11;
+     Q = 12;
+     K = 13;
+     A = 14;
+     JOKER = 15;
+}
+
+
+/** 
+    Four suites of 16 ranks makes for one 64-bit number, with one bit set per card.
+    Now each card has one bit in a 64-bit number (and we waste a few bits), and we get the 
+    bit number by:
+    (Suite * 16) + Rank
+**/
+enum Suite {
+     SPADES = 0;
+     HEARTS = 1;
+     DIAMONDS = 2;
+     CLUBS = 3;
+}
+
+
+
+message Card {
+        Suite suite = 1;
+        Rank rank = 2;
+}
+
+
+message Player {
+  int32 id = 1;
+  int32 stack = 2;
+  Action latest_action = 3;
+  uint64 hand = 5;
+  string name = 6; 
+}
+
+
+message GameState {
+  
+  repeated Player players = 1;
+ 
+  // Money 
+  int32 smallblind = 2;
+  int32 bigblind = 3;
+  int32 minimum_bet = 4;
+  int32 pot = 5;
+  
+  // Indices to players 
+  int32 button = 6;
+  int32 me = 7;
+  int32 whos_turn = 8;
+
+  // General
+  int32 table_id = 9;
+
+  // Cards
+  // uint64 flop = 10;
+  // uint64 turn = 11;
+  // uint64 river = 12;
+  repeated Card community_cards = 10;
+
+}

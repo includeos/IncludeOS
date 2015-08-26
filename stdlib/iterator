@@ -1,5 +1,6 @@
 #pragma once
 #include "EASTL/iterator.h"
+#include <cstddef>
 
 namespace std
 {
@@ -13,5 +14,7 @@ namespace std
     using bidirectional_iterator_tag = eastl::bidirectional_iterator_tag;
     using random_access_iterator_tag = eastl::random_access_iterator_tag;
     using contiguous_iterator_tag = eastl::contiguous_iterator_tag;
-    
+  
+  
+  
 }
