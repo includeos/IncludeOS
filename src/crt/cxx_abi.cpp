@@ -1,5 +1,3 @@
-#include "cxx_abi.hpp"
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,20 +39,3 @@ void* operator new[](size_t size, size_t, size_t, const char*, int, unsigned, co
 	//printf("[new:%lu] %s %d %d from %s:%d\n", size, pName, flags, debugFlags, file, line);
 	return malloc(size);
 }
-
-void EASTL_DEBUG_BREAK()
-{
-	printf("EASTL_DEBUG_BREAK called");
-	asm volatile ("hlt");
-}
-
-extern "C"
-{
-	void __cxa_pure_virtual()
-	{
-		// Do nothing or print an error message.
-		printf("@cxa_pure_virtual: Pure virtual function missing\n");
-	}
-	// NOTE: newlib implements __cxa_atexit & __cxa_finalize
-	
-} // extern

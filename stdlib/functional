@@ -1,6 +1,0 @@
-#ifndef STD_FUNCTIONAL_HEADER
-#define STD_FUNCTIONAL_HEADER
-
-#include "functional.hpp"
-
-#endif

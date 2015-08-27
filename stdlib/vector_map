@@ -1,6 +1,0 @@
-#ifndef EASTL_VECTORMAP_HEADER
-#define EASTL_VECTORMAP_HEADER
-
-#include "EASTL/vector_map.h"
-
-#endif

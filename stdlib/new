@@ -1,6 +1,0 @@
-#ifndef STD_NEW_HEADER
-#define STD_NEW_HEADER
-
-extern void* operator new(size_t size, void* p);
-
-#endif

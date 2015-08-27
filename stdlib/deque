@@ -1,6 +1,0 @@
-#ifndef STD_DEQUE_HEADER
-#define STD_DEQUE_HEADER
-
-#include "deque.hpp"
-
-#endif

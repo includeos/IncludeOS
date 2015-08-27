@@ -24,33 +24,25 @@ WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
 
-LDOPTS = -nostdlib -melf_i386 -N  --script=linker.ld 
+LDOPTS = -ffreestanding -nostdlib -melf_i386 -N --script=linker.ld 
 
 
 # Objects
 ###################################################
-TEST_OBJ= tests/tests.o
-
 OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	crt/c_abi.o crt/cxx_abi.o crt/string.o crt/iostream.o \
-	crt/deque.o \
-	crt/EASTL/allocator.o crt/EASTL/assert.o crt/EASTL/fixed_pool.o \
-	crt/EASTL/hashtable.o crt/EASTL/red_black_tree.o crt/EASTL/string.o \
-	hw/class_dev.o hw/class_pci_device.o hw/pic.o \
-	class_irq_handler.o class_pci_manager.o \
-	virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-	net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-	net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
-	net/class_packet.o net/ip6/udp6.o net/ip6/icmp6.o net/dns/dns.o \
-	fs/fs.o fs/vfs.o fs/path.o util/memstream.o \
-	$(TEST_OBJ) #vga.o
+	crt/c_abi.o crt/cxx_abi.o \
+	hw/pic.o hw/class_pci_device.o \
+	util/memstream.o
+	
+	# FIXME:
+	# hw/class_dev.o \
+	# class_irq_handler.o class_pci_manager.o \
 
 # Libraries
 ###################################################
 LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
-
 
 # Header dependencies (rebuild if header changed)
 ###################################################
@@ -90,11 +82,10 @@ install: #os.a bootloader
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
 	cp -r ../abi $(OS)/
-	cp -r ../stdlib $(OS)/
+	#cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
-	cp -r ../mod/rapidjson $(OS)/mod
-	cp -r ../mod/protobuf $(OS)/mod
-	#cp ../mod/libprotobuf.a $(OS)/mod
+	#cp -r ../mod/rapidjson $(OS)/mod
+	#cp -r ../mod/protobuf $(OS)/mod
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 

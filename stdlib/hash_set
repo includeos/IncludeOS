@@ -1,6 +1,0 @@
-#ifndef EASTL_HASH_SET_HEADER
-#define EASTL_HASH_SET_HEADER
-
-#include "EASTL/hash_set.h"
-
-#endif

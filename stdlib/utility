@@ -1,7 +1,0 @@
-#ifndef STD_UTILITY_HEADER
-#define STD_UTILITY_HEADER
-
-#include "utility.hpp"
-#include "EASTL/utility.h"
-
-#endif

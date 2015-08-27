@@ -3,11 +3,10 @@
 
 #include <common>
 
-//The service- and os classes
+// The service- and os classes
 #include "class_service.hpp"
 #include "class_os.hpp"
-#include "class_dev.hpp"
 #include "syscalls.hpp"
+    // FIXME (class_dev)
 
-
-#endif //Include guard
+#endif

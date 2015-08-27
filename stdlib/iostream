@@ -1,6 +1,0 @@
-#ifndef STD_IOSTREAM_HEADER
-#define STD_IOSTREAM_HEADER
-
-#include "iostream.hpp"
-
-#endif

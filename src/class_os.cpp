@@ -3,12 +3,13 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <class_dev.hpp>
 #include <class_service.hpp>
 
 // A private class to handle IRQ
-#include "class_irq_handler.hpp"
+    // FIXME
+//#include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
+#include <stdlib.h>
 
 bool  OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
@@ -37,9 +38,11 @@ void OS::start()
   
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
-  IRQ_handler::init();
+    // FIXME
+  //IRQ_handler::init();
   //OS::rsprint(">>> Dev init\n");
-  Dev::init();
+    // FIXME
+  //Dev::init();
   
   // Everything is ready
   printf(">>> IncludeOS initialized - calling Service::start()\n");
@@ -47,25 +50,22 @@ void OS::start()
   
   asm("sti");
   halt();
-};
+}
 
-void OS::disable_PIT(){
-  
-#define PIT_one_shot 0x30
-#define PIT_mode_chan 0x43
-#define PIT_chan0 0x40
+void OS::disable_PIT()
+{
+  #define PIT_one_shot 0x30
+  #define PIT_mode_chan 0x43
+  #define PIT_chan0 0x40
   
   // Enable 1-shot mode
-  OS::outb(PIT_mode_chan,PIT_one_shot);
+  OS::outb(PIT_mode_chan, PIT_one_shot);
   
   // Set a frequency for "first shot"
-  OS::outb(PIT_chan0,1);
-  OS::outb(PIT_chan0,0);
+  OS::outb(PIT_chan0, 1);
+  OS::outb(PIT_chan0, 0);
   debug("<PIT> Switching to 1-shot mode (0x%x) \n",PIT_one_shot);
-  
-  
-};
-
+}
 
 extern "C" void halt_loop(){
   __asm__ volatile("hlt; jmp halt_loop;");
@@ -76,10 +76,11 @@ void OS::halt()
   OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - waiting for interrupts \n");
   OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  //OS::rsprint(eof.part);
-  while(_power){        
-    
-    IRQ_handler::notify(); 
+  
+  while (_power)
+  {
+    // FIXME
+    //IRQ_handler::notify(); 
     
     debug("<OS> Woke up @ t = %li \n",uptime());
   }
@@ -99,27 +100,25 @@ int OS::rsprint(const char* str)
 
 
 /* STEAL: Read byte from I/O address space */
-uint8_t OS::inb(int port) {  
+uint8_t OS::inb(int port)
+{
   int ret;
-
   __asm__ volatile ("xorl %eax,%eax");
   __asm__ volatile ("inb %%dx,%%al":"=a" (ret):"d"(port));
 
   return ret;
 }
 
-
 /*  Write byte to I/O address space */
 void OS::outb(int port, uint8_t data) {
   __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
 }
 
-
-
 /* 
  * STEAL: Print to serial port 0x3F8
  */
-int OS::rswrite(char c) {
+int OS::rswrite(char c)
+{
   /* Wait for the previous character to be sent */
   while ((inb(0x3FD) & 0x20) != 0x20);
 
@@ -128,9 +127,3 @@ int OS::rswrite(char c) {
 
   return 1;
 }
-
-
-
-
-
-

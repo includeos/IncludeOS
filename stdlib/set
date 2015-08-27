@@ -1,9 +1,0 @@
-#pragma once
-
-#include "EASTL/set.h"
-
-namespace std
-{
-  template <typename Key, typename Comp = eastl::less<Key>, typename Alloc = EASTLAllocatorType>
-  using set = eastl::set<Key, Comp, Alloc>;
-}
