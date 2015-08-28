@@ -163,3 +163,9 @@ void panic(const char* why)
   printf("\tHeap end: %p \n",heap_end);
   kill(1, 1);
 }
+
+static int __errno__;
+
+extern "C" {
+  int * __errno_location(void){ return &__errno__; }
+}
