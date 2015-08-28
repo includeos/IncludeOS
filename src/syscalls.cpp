@@ -12,22 +12,22 @@ static bool debug_syscalls=true;
 caddr_t heap_end;
 
 //Syscall logger
-void syswrite(const char* name,const char* str){ 
-  static const char* hdr="\tSYSCALL ";
-  static const char* term="\n";
-  write(syscall_fd,(char*)hdr,strlen(hdr));
-  write(syscall_fd,(char*)name,strlen(name));
-  write(syscall_fd,(char*)": ",2);
-  write(syscall_fd,(char*)str,strlen(str));
-  write(syscall_fd,(char*)term,strlen(term));
+void syswrite(const char* name, const char* str)
+{
+  static const char* hdr  = "\tSYSCALL ";
+  static const char* term = "\n";
+  write(syscall_fd, (char*) hdr,  strlen(hdr));
+  write(syscall_fd, (char*) name, strlen(name));
+  write(syscall_fd, (char*) ": ", 2);
+  write(syscall_fd, (char*) str,  strlen(str));
+  write(syscall_fd, (char*) term, strlen(term));
 };
 
-
-
-
-void _exit(){
-  syswrite("EXIT","Not implemented");
-};
+void _exit(int status)
+{
+  printf("EXIT: status == %d\n", status);
+  panic("EXIT: Not implemented");
+}
 
 int close(int UNUSED(file)){  
   syswrite("CLOSE","Dummy, returning -1");
@@ -38,9 +38,12 @@ int close(int UNUSED(file)){
 int errno=0; //Is this right? 
 //Not like in http://wiki.osdev.org/Porting_Newlib
 
-int execve(char* UNUSED(name), char** UNUSED(argv), char** UNUSED(env)){
-  syswrite((char*)"EXECVE","NOT SUPPORTED");
-  errno=ENOMEM;
+int execve(const char* UNUSED(name), 
+           char* const* UNUSED(argv), 
+           char* const* UNUSED(env))
+{
+  syswrite((char*) "EXECVE", "NOT SUPPORTED");
+  errno = ENOMEM;
   return -1;
 };
 
@@ -69,26 +72,35 @@ int kill(int UNUSED(pid), int UNUSED(sig)){
   __asm__("cli;hlt;");
   return -1;
 };
-int link(char* UNUSED(old), char* UNUSED(_new)){
+
+int link(const char* UNUSED(old), const char* UNUSED(_new))
+{
   syswrite("LINK","CAN'T DO THAT!");
   kill(1,9);
   return -1;
 };
-int lseek(int UNUSED(file), int UNUSED(ptr), int UNUSED(dir)){
+int unlink(const char* UNUSED(name)){
+  syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
+  return -1;
+};
+
+off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir))
+{
   syswrite("LSEEK","RETURNING 0");
   return 0;
-};
+}
 int open(const char* UNUSED(name), int UNUSED(flags), ...){
 
   syswrite("OPEN","NOT SUPPORTED - RETURNING -1");
   return -1;
 };
-int read(int UNUSED(file), char* UNUSED(ptr), int UNUSED(len)){
+
+int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len))
+{
   syswrite("READ","CAN'T DO THAT - RETURNING 0");
   return 0;
-};
-
-int write(int file, char *ptr, int len)
+}
+int write(int file, const void* ptr, size_t len)
 {
 	if (file == syscall_fd and not debug_syscalls)
 		return len;
@@ -97,13 +109,13 @@ int write(int file, char *ptr, int len)
 	//consoleVGA.write(ptr, len);
 	
 	// serial output
-	for(int i = 0; i < len; i++)
-		OS::rswrite(ptr[i]);
+	for(size_t i = 0; i < len; i++)
+		OS::rswrite( ((char*) ptr)[i] );
 	
 	return len;
-};
+}
 
-caddr_t sbrk(int incr)
+void* sbrk(ptrdiff_t incr)
 {
   void* prev_heap_end = heap_end;
   heap_end += incr;
@@ -122,11 +134,6 @@ clock_t times(struct tms* UNUSED(buf))
   printf("Syscall: times(tms) returning -1\n");
   syswrite((char*)"TIMES","DUMMY, RETURNING -1");
   //__asm__("rdtsc");
-  return -1;
-};
-
-int unlink(char* UNUSED(name)){
-  syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
   return -1;
 };
 
