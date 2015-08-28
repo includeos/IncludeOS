@@ -1,6 +1,5 @@
 #include <os>
 #include <iostream>
-
 #include <exception>
 
 using namespace std;
@@ -11,6 +10,6 @@ void Service::start()
   
   [] (void) { printf("Hello lambda\n"); } ();
   
-  throw "hei";
+  //throw "hei";
   
 }

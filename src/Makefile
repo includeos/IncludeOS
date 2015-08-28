@@ -32,7 +32,7 @@ LDOPTS = -ffreestanding -nostdlib -melf_i386 -N --script=linker.ld
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
-						 crt/c_abi.o $(CXXABI:.cpp=.o) util/memstream.o \
+						 crt/c_abi.o util/memstream.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
@@ -56,7 +56,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # A complete build includes:
 # - a bootloader
 # - an OS library for the service to link against
-all: bootloader os.a etags
+all: bootloader libc++abi.a os.a etags
 	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
@@ -73,6 +73,10 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: bootloader os  #Don't wanna call 'all', since it strips debug info
 
 # OS
+
+libc++abi.a: $(CXXABI:.cpp=.o)
+	ar rcs $@ $(CXXABI:.cpp=.o)
+
 os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
@@ -81,6 +85,7 @@ install: #os.a bootloader
 	@echo "\n>> Installing..."
 	cp bootloader $(OS)/
 	cp os.a $(OS)/lib
+	cp libc++abi.a $(OS)/lib
 	cp libc++.a $(OS)/lib
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
