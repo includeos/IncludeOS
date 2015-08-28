@@ -62,7 +62,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # A complete build includes:
 # - a bootloader
 # - an OS library for the service to link against
-all: bootloader os.a etags
+all: bootloader os.a 
 	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
