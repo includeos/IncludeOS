@@ -2,6 +2,7 @@
 
 #include <syscalls.hpp>
 #include <string.h>
+#include <signal.h>
 //#include <vga.hpp>
 
 char *__env[1] = { 0 };
@@ -63,15 +64,11 @@ int getpid(){
   return 1;
 };
 
-int isatty(int UNUSED(file)){
+int isatty(int UNUSED(file))
+{
   syswrite("ISATTY","RETURNING 1");
   return 1;
-};
-int kill(int UNUSED(pid), int UNUSED(sig)){
-  syswrite("KILL","HALTING");
-  __asm__("cli;hlt;");
-  return -1;
-};
+}
 
 int link(const char* UNUSED(old), const char* UNUSED(_new))
 {
@@ -142,19 +139,27 @@ int wait(int* UNUSED(status)){
   return -1;
 };
 
-
-//#define panic(X,...) printf(X,##__VA_ARGS__); kill(9,1);
-
-void panic(const char* why){
-  printf("\n\t **** PANIC: **** %s\n",why);
-  printf("\tHeap end: %p \n",heap_end);
-  kill(9,1);
-}
-
-
 int gettimeofday(struct timeval* p, void* UNUSED(z)){
   float seconds = OS::uptime();
   p->tv_sec = int(seconds);
   p->tv_usec = (seconds - p->tv_sec) * 1000000;
   return 5;
+}
+
+int kill(pid_t pid, int sig)
+{
+  if (pid == 1)
+  {
+    syswrite("KILL", "HALTING");
+    __asm__("cli; hlt;");
+    _exit(sig);
+  }
+  return -1;
+}
+
+void panic(const char* why)
+{
+  printf("\n\t **** PANIC: **** %s\n",why);
+  printf("\tHeap end: %p \n",heap_end);
+  kill(1, 1);
 }

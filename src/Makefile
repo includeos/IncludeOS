@@ -20,7 +20,7 @@ INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -Ofast -msse3 -mstackrealign  # Needed for 16-byte stack alignment (SSE)
-WARNS   = -Wall -Wextra
+WARNS   = -Wall -Wextra -pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
 
@@ -33,11 +33,12 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 crt/c_abi.o $(CXXABI:.cpp=.o) util/memstream.o \
-						 hw/pic.o hw/class_pci_device.o
-	
-	# FIXME:
-	# hw/class_dev.o \
-	# class_irq_handler.o class_pci_manager.o \
+						 class_irq_handler.o class_pci_manager.o \
+						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
+						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
+						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
+						 net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
+						 net/class_packet.o net/dns/dns.o
 
 # Libraries
 ###################################################

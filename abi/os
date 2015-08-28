@@ -7,6 +7,6 @@
 #include "class_service.hpp"
 #include "class_os.hpp"
 #include "syscalls.hpp"
-    // FIXME (class_dev)
+#include "class_dev.hpp"
 
 #endif

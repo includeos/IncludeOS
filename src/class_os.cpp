@@ -7,7 +7,7 @@
 
 // A private class to handle IRQ
     // FIXME
-//#include "class_irq_handler.hpp"
+#include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
 #include <stdlib.h>
 
@@ -37,12 +37,12 @@ void OS::start()
       t.tv_sec, t.tv_usec, uptime());
   
   asm("cli");  
-  //OS::rsprint(">>> IRQ handler\n");
+  OS::rsprint(">>> IRQ handler\n");
     // FIXME
-  //IRQ_handler::init();
-  //OS::rsprint(">>> Dev init\n");
+  IRQ_handler::init();
+  OS::rsprint(">>> Dev init\n");
     // FIXME
-  //Dev::init();
+  Dev::init();
   
   // Everything is ready
   printf(">>> IncludeOS initialized - calling Service::start()\n");
@@ -80,7 +80,7 @@ void OS::halt()
   while (_power)
   {
     // FIXME
-    //IRQ_handler::notify(); 
+    IRQ_handler::notify(); 
     
     debug("<OS> Woke up @ t = %li \n",uptime());
   }

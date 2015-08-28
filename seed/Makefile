@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
+OPTIONS = -Ofast -msse3 -Wall -Wextra -pedantic -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -38,7 +38,7 @@ CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS = $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS = $(OSDIR)/lib/libc++.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o

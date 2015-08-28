@@ -4,7 +4,8 @@
 
 int main();
 
-extern "C" {
+extern "C"
+{
   char _BSS_START_, _BSS_END_;
   void _init();
   uint8_t inb(int port);
@@ -49,7 +50,7 @@ extern "C" {
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
 	
-	// init serial port
+    // init serial port
     init_serial();    
     
     OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    

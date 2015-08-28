@@ -25,7 +25,7 @@ extern "C" {
 // needed for wcstold_l
 static inline long double wcstold (const wchar_t* str, wchar_t** endptr)
 {
-  return 0.0;
+  return wcstod(str, endptr);
 }
 
 // needed for ctype<T>::is(mask, char_type)

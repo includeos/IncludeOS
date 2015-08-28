@@ -132,8 +132,8 @@ static uint32_t __irqueues[256]{0};
 
 
  /* EXCEPTIONS */
-#define EXCEPTION_PAIR(I) void exception_##I##_entry(); EXCEPTION_HANDLER(I);
-#define IRQ_PAIR(I) void irq_##I##_entry(); IRQ_HANDLER(I);
+#define EXCEPTION_PAIR(I) void exception_##I##_entry(); EXCEPTION_HANDLER(I)
+#define IRQ_PAIR(I) void irq_##I##_entry(); IRQ_HANDLER(I)
 
 /*
   IRQ HANDLERS, 
@@ -161,27 +161,29 @@ extern "C"{
   EXCEPTION_PAIR(8) EXCEPTION_PAIR(9) EXCEPTION_PAIR(10) EXCEPTION_PAIR(11)
   EXCEPTION_PAIR(12) /*EXCEPTION_PAIR(13)*/ EXCEPTION_PAIR(14) EXCEPTION_PAIR(15)
   EXCEPTION_PAIR(16) EXCEPTION_PAIR(17) EXCEPTION_PAIR(18) EXCEPTION_PAIR(19)
-  EXCEPTION_PAIR(20) /*21-29 Reserved*/ EXCEPTION_PAIR(30) EXCEPTION_PAIR(31);
+  EXCEPTION_PAIR(20) /*21-29 Reserved*/ EXCEPTION_PAIR(30) EXCEPTION_PAIR(31)
 
   void exception_13_entry(); 
   void exception_13_handler(int i){
     printf("\n>>>>!!!! CPU Exception 13 !!!! \n");
     printf("\t >> General protection fault. Error code: 0x%x \n",i);
-    if(i == 0)
+    if (i == 0)
       printf("\t >> Error code is 0, so not segment related \n");
-    printf("\t >> Stack address: %p \n",&i);
+    printf("\t >> Stack address: %p\n", (void*) &i);
     kill(1,9);
   }
   
   //Redirected IRQ 0 - 12  
-  IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(34) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37);
-  IRQ_PAIR(38) IRQ_PAIR(39) IRQ_PAIR(40) IRQ_PAIR(41) IRQ_PAIR(42) IRQ_PAIR(43);
+  IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(34) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37)
+  IRQ_PAIR(38) IRQ_PAIR(39) IRQ_PAIR(40) IRQ_PAIR(41) IRQ_PAIR(42) IRQ_PAIR(43)
   
 } //End extern
 
-void IRQ_handler::init(){
+void IRQ_handler::init()
+{
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
-  if(idt_is_set){
+  if (idt_is_set)
+  {
     printf("ERROR: Trying to reset IDT");
     kill(1,9);
   }
@@ -193,21 +195,21 @@ void IRQ_handler::init(){
   printf("\n>>> IRQ handler initializing \n");
     
    //Assign the lower 32 IRQ's : Exceptions
-  REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2);
-  REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5);
-  REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8);
-  REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11);
-  REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14);
-  REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17);
-  REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20);
+  REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
+  REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
+  REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8)
+  REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11)
+  REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
+  REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
+  REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
   // GATES 21-29 are reserved
-  REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31);
+  REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
   
   //Redirected IRQ 0 - 12
-  REG_DEFAULT_IRQ(32) REG_DEFAULT_IRQ(33) REG_DEFAULT_IRQ(34);
-  REG_DEFAULT_IRQ(35) REG_DEFAULT_IRQ(36) REG_DEFAULT_IRQ(37);
-  REG_DEFAULT_IRQ(38) REG_DEFAULT_IRQ(39) REG_DEFAULT_IRQ(40);
-  REG_DEFAULT_IRQ(41) REG_DEFAULT_IRQ(42) REG_DEFAULT_IRQ(43);
+  REG_DEFAULT_IRQ(32) REG_DEFAULT_IRQ(33) REG_DEFAULT_IRQ(34)
+  REG_DEFAULT_IRQ(35) REG_DEFAULT_IRQ(36) REG_DEFAULT_IRQ(37)
+  REG_DEFAULT_IRQ(38) REG_DEFAULT_IRQ(39) REG_DEFAULT_IRQ(40)
+  REG_DEFAULT_IRQ(41) REG_DEFAULT_IRQ(42) REG_DEFAULT_IRQ(43)
 
   
   // Default gates for "real IRQ lines", 32-64
@@ -238,8 +240,7 @@ void IRQ_handler::init(){
   
   //Test zero-division exception
   //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
-
-};
+}
 
 //A union to be able to extract the lower and upper part of an address
 union addr_union{
@@ -279,13 +280,14 @@ static void set_intr_mask(unsigned long mask)
 }
 
 
-void IRQ_handler::enable_irq(uint8_t irq){
+void IRQ_handler::enable_irq(uint8_t irq)
+{
   printf(">>> Enabling IRQ %i, old mask: 0x%x ",irq,irq_mask);
   irq_mask &= ~(1 << irq);
   if (irq >= 8) irq_mask &= ~(1 << 2);
   set_intr_mask(irq_mask);
   printf(" new mask: 0x%x \n",irq_mask);  
-};
+}
 
 int IRQ_handler::timer_interrupts=0;
 static int glob_timer_interrupts=0;
