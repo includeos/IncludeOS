@@ -22,17 +22,18 @@ LIBS     = $(OSLIB)/lib $(LIBGCC)
 CAPABS  = -Ofast -msse3 -mstackrealign  # Needed for 16-byte stack alignment (SSE)
 WARNS   = -Wall -Wextra
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
 
 LDOPTS = -ffreestanding -nostdlib -melf_i386 -N --script=linker.ld 
 
 
 # Objects
 ###################################################
-OS_OBJECTS=kernel_start.o syscalls.o interrupts.o class_os.o \
-	crt/c_abi.o crt/cxx_abi.o \
-	hw/pic.o hw/class_pci_device.o \
-	util/memstream.o
+CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
+
+OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
+						 crt/c_abi.o $(CXXABI:.cpp=.o) util/memstream.o \
+						 hw/pic.o hw/class_pci_device.o
 	
 	# FIXME:
 	# hw/class_dev.o \
@@ -77,12 +78,13 @@ os.a: $(OS_OBJECTS)
 
 install: #os.a bootloader
 	@echo "\n>> Installing..."
-	cp os.a $(OS)/lib
 	cp bootloader $(OS)/
+	cp os.a $(OS)/lib
+	cp libc++.a $(OS)/lib
 	mkdir -p $(OS)/crt
 	cp crt/crt*.s $(OS)/crt
 	cp -r ../abi $(OS)/
-	#cp -r ../stdlib $(OS)/
+	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
 	#cp -r ../mod/rapidjson $(OS)/mod
 	#cp -r ../mod/protobuf $(OS)/mod

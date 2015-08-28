@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Ofast -msse3 -Wall -Wextra
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -18,9 +18,9 @@ LD  = $(OSDIR)/bin/i686-elf-ld
 
 INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
 
-CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
+CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
 #-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 
 # Objects
@@ -38,7 +38,7 @@ CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS = $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o
