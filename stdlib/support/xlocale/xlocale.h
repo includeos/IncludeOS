@@ -22,11 +22,13 @@
 extern "C" {
 #endif
 
-// needed for wcstold_l
+// needed for wcstold_l 
+/* We can't have it inlined, since libc++.a wants to link against it
 static inline long double wcstold (const wchar_t* str, wchar_t** endptr)
 {
   return wcstod(str, endptr);
-}
+  } */
+long double wcstold (const wchar_t* str, wchar_t** endptr);
 
 // needed for ctype<T>::is(mask, char_type)
 static inline int isascii(int ch)

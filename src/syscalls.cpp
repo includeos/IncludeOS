@@ -164,8 +164,13 @@ void panic(const char* why)
   kill(1, 1);
 }
 
-static int __errno__;
-
+  /** Added for supporting libc++ */
 extern "C" {
+  static int __errno__;
   int * __errno_location(void){ return &__errno__; }
+  
+  long double wcstold (const wchar_t* str, wchar_t** endptr)
+  {
+    return wcstod(str, endptr);
+  }
 }
