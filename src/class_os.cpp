@@ -42,7 +42,7 @@ void OS::start()
   IRQ_handler::init();
   OS::rsprint(">>> Dev init\n");
     // FIXME
-  Dev::init();
+  //Dev::init();
   
   // Everything is ready
   printf(">>> IncludeOS initialized - calling Service::start()\n");
