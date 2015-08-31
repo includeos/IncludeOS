@@ -3,8 +3,6 @@
 #include <exception>
 #include <stdio.h>
 
-template class std::basic_string <char>;
-
 #include <iostream>
 void test_iostream()
 {

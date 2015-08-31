@@ -32,7 +32,7 @@ LDOPTS = -ffreestanding -nostdlib -melf_i386 -N --script=linker.ld
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
-						 crt/c_abi.o util/memstream.o \
+						 crt/c_abi.o crt/cxx_abi.o util/memstream.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
