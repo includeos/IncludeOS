@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Ofast -msse3 -Wall -Wextra -pedantic -mstackrealign
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -16,10 +16,9 @@ CC  = $(OSDIR)/bin/i686-elf-gcc
 CPP = $(OSDIR)/bin/i686-elf-g++ 
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
+INCLUDES = -I$(OSDIR)/abi -I$(OSLIB)/include -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
-#-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 

@@ -16,11 +16,11 @@ LD  = $(OS)/bin/i686-elf-ld
 GCC_VER = $(shell $(CC) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I$(OSLIB)/include -I../abi -Iinclude -I../stdlib
+INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  = -Ofast -msse3 -mstackrealign  # Needed for 16-byte stack alignment (SSE)
-WARNS   = -Wall -Wextra -pedantic
+WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
 

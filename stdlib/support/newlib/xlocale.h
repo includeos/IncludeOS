@@ -23,20 +23,10 @@ extern "C" {
 
 // Patch over newlib's lack of extended locale support
 typedef void *locale_t;
-static inline locale_t duplocale(locale_t) {
-  return NULL;
-}
-
-static inline void freelocale(locale_t) {
-}
-
-static inline locale_t newlocale(int, const char *, locale_t) {
-  return NULL;
-}
-
-static inline locale_t uselocale(locale_t) {
-  return NULL;
-}
+locale_t duplocale(locale_t);
+void     freelocale(locale_t);
+locale_t newlocale(int, const char *, locale_t);
+locale_t uselocale(locale_t);
 
 #define LC_COLLATE_MASK  (1 << LC_COLLATE)
 #define LC_CTYPE_MASK    (1 << LC_CTYPE)
