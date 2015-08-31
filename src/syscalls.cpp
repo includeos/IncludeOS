@@ -26,8 +26,8 @@ void syswrite(const char* name, const char* str)
 
 void _exit(int status)
 {
-  printf("EXIT: status == %d\n", status);
-  panic("EXIT: Not implemented");
+  printf("\tSYSCALL EXIT: status %d\n", status);
+  asm("cli; hlt;");
 }
 
 int close(int UNUSED(file)){  
@@ -148,6 +148,7 @@ int gettimeofday(struct timeval* p, void* UNUSED(z)){
 
 int kill(pid_t pid, int sig)
 {
+  return -1;
   if (pid == 1)
   {
     syswrite("KILL", "HALTING");
@@ -162,6 +163,12 @@ void panic(const char* why)
   printf("\n\t **** PANIC: **** %s\n",why);
   printf("\tHeap end: %p \n",heap_end);
   kill(1, 1);
+}
+
+// to keep our sanity, we need a reason for the abort
+void abort_ex(const char* why)
+{
+  panic(why);
 }
 
   /** Added for supporting libc++ */

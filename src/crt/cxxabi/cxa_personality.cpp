@@ -273,7 +273,8 @@ readEncodedPointer(const uint8_t** data, uint8_t encoding)
         break;
     default:
         // not supported 
-        abort();
+        abort_ex("cxa_personality readEncodedPointer: unsupported encoding value");
+        //abort();
         break;
     }
     // then add relative offset 
@@ -292,7 +293,8 @@ readEncodedPointer(const uint8_t** data, uint8_t encoding)
     case DW_EH_PE_aligned:
     default:
         // not supported 
-        abort();
+        abort_ex("cxa_personality readEncodedPointer: unsupported offset type");
+        //abort();
         break;
     }
     // then apply indirection 

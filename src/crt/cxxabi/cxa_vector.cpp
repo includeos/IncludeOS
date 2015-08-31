@@ -13,8 +13,7 @@
 
 #include "cxxabi.h"
 
-//#include <exception>        // for std::terminate
-extern void abort();
+#include <exception>        // for std::terminate
 
 namespace __cxxabiv1 {
 
@@ -98,8 +97,8 @@ namespace {
     class st_terminate {
     public:
         st_terminate ( bool enabled = true ) : enabled_ ( enabled ) {}
-        // NOTE: ~st_terminate () { if ( enabled_ ) std::terminate (); }
-        ~st_terminate () { if ( enabled_ ) abort(); }
+        ~st_terminate () { if ( enabled_ ) std::terminate (); }
+        //~st_terminate () { if ( enabled_ ) abort_ex("cxa_vector: std::terminate()"); }
         void release () { enabled_ = false; }
     private:
         bool enabled_ ;
