@@ -175,32 +175,4 @@ void abort_ex(const char* why)
 extern "C" {
   static int __errno__;
   int * __errno_location(void){ return &__errno__; }
-  
-  long double wcstold (const wchar_t* str, wchar_t** endptr)
-  {
-    return wcstod(str, endptr);
-  }
-  
-  char _IO_getc()
-  {
-    return 'f';
-  }
-  
-  // patch over newlibs lack of locale support
-  typedef void *locale_t;
-  
-  locale_t duplocale(locale_t)
-  {
-    return NULL;
-  }
-  locale_t newlocale(int, const char *, locale_t)
-  {
-    return NULL;
-  }
-  void freelocale(locale_t) {}
-  
-  locale_t uselocale(locale_t)
-  {
-    return NULL;
-  }
 }

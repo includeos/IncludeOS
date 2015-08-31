@@ -6,7 +6,7 @@
 #include <iostream>
 void test_iostream()
 {
-  //std::cout << "std::cout TEST" << std::endl;
+  std::cout << "std::cout TEST" << std::endl;
 }
 
 void Service::start()
