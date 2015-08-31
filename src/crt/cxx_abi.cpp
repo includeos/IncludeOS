@@ -6,11 +6,15 @@
  * 
 **/
 
-template class std::basic_string <char>;
-
 #include <support/newlib/xlocale.h>
 #include <time.h>
 #include <stdio.h>
+
+namespace std
+{
+  template class basic_string <char>;
+  
+}
 
 // needed for <iostream>
 extern "C"
@@ -27,7 +31,16 @@ extern "C"
   }
   
   typedef int nl_catd;
-  /// IMPLEMENT:
+  
+  /// IMPLEMENTATION OF Newlib I/O:
+  #undef stdin
+  #undef stdout
+  #undef stderr
+  // why can't these files be located in c_abi.c? linker issue
+  FILE* stdin;
+  FILE* stdout;
+  FILE* stderr;
+  
   //nl_catd catopen (const char *cat_name, int flag)
   nl_catd catopen (const char*, int)
   {
