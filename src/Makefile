@@ -19,12 +19,12 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  = -Ofast -msse3 -mstackrealign  # Needed for 16-byte stack alignment (SSE)
+CAPABS  =  -msse3 -O2 #-Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
 
-LDOPTS = -ffreestanding -nostdlib -melf_i386 -N --script=linker.ld 
+LDOPTS =  -nostdlib -melf_i386 -N --script=linker.ld #-ffreestanding
 
 
 # Objects
@@ -56,7 +56,7 @@ OS_DEPS=$(OS_OBJECTS:.o=.d)
 # A complete build includes:
 # - a bootloader
 # - an OS library for the service to link against
-all: bootloader libc++abi.a os.a etags
+all: bootloader libc++abi.a os.a 
 	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
@@ -70,10 +70,31 @@ debug: LDOPTS  += -M --verbose
 
 debug: OBJ_LIST += $(LIBG_OBJ)
 
-debug: bootloader os  #Don't wanna call 'all', since it strips debug info
+debug: all  #Don't wanna call 'all', since it strips debug info
+
+# Runtime for the (test) service
+CRTBEGIN:=$(shell $(CPP) -print-file-name=crtbegin.o)
+CRTEND:=$(shell $(CPP) -print-file-name=crtend.o)
+crt%.o: crt/crt%.s
+	@echo "\n>> Assembling C runtime:" $@
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+
+LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
+LIBCPP = $(OS)/lib/libc++.a $(OS)/lib/libc++abi.a 
+LIBS_OBJ =  os.a $(OS)/lib/libc++.a $(OS)/lib/libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+test_service.o: test_service.cpp
+	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 
+
+# AS-assembled object files
+%.o: %.s
+	@echo "\n>> Assembling GNU 'as' files"
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+
+test:  debug crti.o crtn.o test_service.o
+	$(LD) $(LDOPTS) $(CRTBEGIN) crti.o test_service.o $(LIBS_OBJ) $(CRTEND) crtn.o -o test_service
 
 # OS
-
 libc++abi.a: $(CXXABI:.cpp=.o)
 	ar rcs $@ $(CXXABI:.cpp=.o)
 
@@ -136,5 +157,6 @@ clean:
 	$(RM) $(OS_OBJECTS) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
+	$(RM) test_service.o test_service.img
 
 -include $(OS_DEPS)
