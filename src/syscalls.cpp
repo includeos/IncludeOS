@@ -12,6 +12,13 @@ static const int syscall_fd=999;
 static bool debug_syscalls=true;
 caddr_t heap_end;
 
+#undef errno
+extern "C"
+{
+  //Not like in http://wiki.osdev.org/Porting_Newlib
+  int errno = 0; //Is this right?
+}
+
 //Syscall logger
 void syswrite(const char* name, const char* str)
 {
@@ -26,7 +33,7 @@ void syswrite(const char* name, const char* str)
 
 void _exit(int status)
 {
-  printf("\tSYSCALL EXIT: status %d\n", status);
+  printf("\tSYSCALL EXIT: status %d. Nothing more we can do.\n", status);
   printf("\tSTOPPING EXECUTION\n");
   while (1)
     asm("cli; hlt;");
@@ -36,10 +43,6 @@ int close(int UNUSED(file)){
   syswrite("CLOSE","Dummy, returning -1");
   return -1;
 };
-
-#undef errno
-int errno=0; //Is this right? 
-//Not like in http://wiki.osdev.org/Porting_Newlib
 
 int execve(const char* UNUSED(name), 
            char* const* UNUSED(argv), 
@@ -70,11 +73,11 @@ int isatty(int file)
 {
   if (file == 1 || file == 2 || file == 3)
   {
-    syswrite("ISATTY","GOOD, RETURNING 1");
+    syswrite("ISATTY", "GOOD, RETURNING 1");
     return 1;
   }
   // not stdxxx, error out
-  syswrite("ISATTY","BAD, RETURNING 0");
+  syswrite("ISATTY", "BAD, RETURNING 0");
   errno = EBADF;
   return 0;
 }
@@ -84,11 +87,12 @@ int link(const char* UNUSED(old), const char* UNUSED(_new))
   syswrite("LINK","CAN'T DO THAT!");
   kill(1,9);
   return -1;
-};
-int unlink(const char* UNUSED(name)){
+}
+int unlink(const char* UNUSED(name))
+{
   syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
   return -1;
-};
+}
 
 off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir))
 {
@@ -155,34 +159,38 @@ int gettimeofday(struct timeval* p, void* UNUSED(z)){
   return 5;
 }
 
+
+
 int kill(pid_t pid, int sig)
-{
-  return -1;
-  if (pid == 1)
-  {
-    syswrite("KILL", "HALTING");
-    __asm__("cli; hlt;");
-    _exit(sig);
-  }
+{  
+  printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
+  
+  if (sig == 6ul)
+    printf("/ ABORT \n");
+  
+  panic("\tKilling a process doesn't make sense in IncludeOS. Panic.");
+  errno = ESRCH;
   return -1;
 }
 
+// No continuation from here
 void panic(const char* why)
 {
-  printf("\n\t **** PANIC: **** %s\n",why);
-  printf("\tHeap end: %p \n",heap_end);
-  kill(1, 1);
+  printf("\n\t **** PANIC: ****\n %s \n", why);
+  printf("\tHeap end: %p \n", heap_end);
+  __asm__("cli; hlt;");
+
 }
 
 // to keep our sanity, we need a reason for the abort
 void abort_ex(const char* why)
 {
-  printf("abort_ex: %s\n", why);
+  printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
 }
 
   /** Added for supporting libc++ */
 extern "C" {
-  static int __errno__;
-  int * __errno_location(void){ return &__errno__; }
+  extern int errno;
+  int* __errno_location(void){ return &errno; }
 }

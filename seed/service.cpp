@@ -33,8 +33,8 @@ void Service::start()
   validate();
   
   // try writing newline
-  std::cout.write("\r\n", (int) 2);
-  validate();
+  //std::cout.write("\r\n", (int) 2);
+  //validate();
   
   // and...
   std::cout << std::endl;
