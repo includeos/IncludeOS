@@ -27,7 +27,9 @@ void syswrite(const char* name, const char* str)
 void _exit(int status)
 {
   printf("\tSYSCALL EXIT: status %d\n", status);
-  asm("cli; hlt;");
+  printf("\tSTOPPING EXECUTION\n");
+  while (1)
+    asm("cli; hlt;");
 }
 
 int close(int UNUSED(file)){  
@@ -64,10 +66,17 @@ int getpid(){
   return 1;
 };
 
-int isatty(int UNUSED(file))
+int isatty(int file)
 {
-  syswrite("ISATTY","RETURNING 1");
-  return 1;
+  if (file == 1 || file == 2 || file == 3)
+  {
+    syswrite("ISATTY","GOOD, RETURNING 1");
+    return 1;
+  }
+  // not stdxxx, error out
+  syswrite("ISATTY","BAD, RETURNING 0");
+  errno = EBADF;
+  return 0;
 }
 
 int link(const char* UNUSED(old), const char* UNUSED(_new))
@@ -99,7 +108,7 @@ int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len))
 }
 int write(int file, const void* ptr, size_t len)
 {
-	if (file == syscall_fd and not debug_syscalls)
+  if (file == syscall_fd and not debug_syscalls)
 		return len;
 	
 	// VGA console output
@@ -135,7 +144,7 @@ clock_t times(struct tms* UNUSED(buf))
 };
 
 int wait(int* UNUSED(status)){
-  syswrite((char*)"UNLINK","DUMMY, RETURNING -1");
+  syswrite((char*)"WAIT","DUMMY, RETURNING -1");
   return -1;
 };
 
@@ -168,6 +177,7 @@ void panic(const char* why)
 // to keep our sanity, we need a reason for the abort
 void abort_ex(const char* why)
 {
+  printf("abort_ex: %s\n", why);
   panic(why);
 }
 

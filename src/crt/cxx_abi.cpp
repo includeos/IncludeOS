@@ -9,6 +9,7 @@
 #include <support/newlib/xlocale.h>
 #include <time.h>
 #include <stdio.h>
+#include <sys/reent.h>
 
 namespace std
 {
@@ -33,17 +34,21 @@ extern "C"
   typedef int nl_catd;
   
   /// IMPLEMENTATION OF Newlib I/O:
+  struct _reent stuff _REENT_INIT(stuff);
+  
   #undef stdin
   #undef stdout
   #undef stderr
   // why can't these files be located in c_abi.c? linker issue
-  FILE* stdin;
-  FILE* stdout;
-  FILE* stderr;
+  __FILE* stdin;
+  __FILE* stdout;
+  __FILE* stderr;
   
   //nl_catd catopen (const char *cat_name, int flag)
-  nl_catd catopen (const char*, int)
+  nl_catd catopen (const char* f, int flag)
   {
+    printf("catopen: %s, flag=%d\n", f, flag);
+    
     return (nl_catd) -1;
   }
   //char * catgets (nl_catd catalog_desc, int set, int message, const char *string)

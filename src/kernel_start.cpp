@@ -16,7 +16,7 @@ extern "C"
   void rswrite(char c);  
   void rsprint(const char* ptr);
   
-  const int _test_glob = 1;
+  const int _test_glob = 123;
   
   void enableSSE()
   {
@@ -62,7 +62,7 @@ extern "C"
     // Call global constructors (relying on .crtbegin to be inserted by gcc)
     _init();
     // verify that global constructors were called
-    ASSERT(_test_glob == 1);
+    ASSERT(_test_glob == 123);
     
     // Initialize some OS functionality
     OS::start();

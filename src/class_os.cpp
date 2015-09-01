@@ -6,7 +6,6 @@
 #include <class_service.hpp>
 
 // A private class to handle IRQ
-    // FIXME
 #include "class_irq_handler.hpp"
 #include <class_pci_manager.hpp>
 #include <stdlib.h>
@@ -15,6 +14,18 @@ bool  OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 // used by SBRK:
 extern caddr_t heap_end;
+
+extern "C"
+{
+  #undef stdin
+  #undef stdout
+  #undef stderr
+  extern __FILE* stdin;
+  extern __FILE* stdout;
+  extern __FILE* stderr;
+  
+  extern struct _reent stuff;
+}
 
 void OS::start()
 {
@@ -28,6 +39,14 @@ void OS::start()
   // Disable the timer interrupt completely
   disable_PIT();
   
+  // initialize C-library?
+  // this part im not sure about
+  _REENT = &stuff;
+  // this part is correct
+  stdin  = _REENT->_stdin;
+  stdout = _REENT->_stdout;
+  stderr = _REENT->_stderr;
+  
   // heap
   printf("<OS> Heap start: %p\n", heap_end);
   
@@ -37,12 +56,10 @@ void OS::start()
       t.tv_sec, t.tv_usec, uptime());
   
   asm("cli");  
-  OS::rsprint(">>> IRQ handler\n");
-    // FIXME
+  //OS::rsprint(">>> IRQ handler\n");
   IRQ_handler::init();
-  OS::rsprint(">>> Dev init\n");
-    // FIXME
-  //Dev::init();
+  //OS::rsprint(">>> Dev init\n");
+  Dev::init();
   
   // Everything is ready
   printf(">>> IncludeOS initialized - calling Service::start()\n");
@@ -79,7 +96,6 @@ void OS::halt()
   
   while (_power)
   {
-    // FIXME
     IRQ_handler::notify(); 
     
     debug("<OS> Woke up @ t = %li \n",uptime());
