@@ -26,8 +26,7 @@ void syswrite(const char* name, const char* str)
 
 void _exit(int status)
 {
-  printf("\tSYSCALL EXIT: status %d\n", status);
-  asm("cli; hlt;");
+  printf("\tSYSCALL EXIT: status %d. Nothing more we can do.\n", status);
 }
 
 int close(int UNUSED(file)){  
@@ -146,28 +145,31 @@ int gettimeofday(struct timeval* p, void* UNUSED(z)){
   return 5;
 }
 
+
+
 int kill(pid_t pid, int sig)
-{
-  return -1;
-  if (pid == 1)
-  {
-    syswrite("KILL", "HALTING");
-    __asm__("cli; hlt;");
-    _exit(sig);
-  }
+
+{  
+  printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
+  if (sig == (unsigned int)6) printf("/ ABORT \n");
+  panic("\t Killing a process doesn't make in IncludeOS. Panic.");
   return -1;
 }
 
+
+// No continuation from here
 void panic(const char* why)
 {
-  printf("\n\t **** PANIC: **** %s\n",why);
+  printf("\n\t **** PANIC: ****\n %s \n",why);
   printf("\tHeap end: %p \n",heap_end);
-  kill(1, 1);
+  __asm__("cli; hlt;");
+
 }
 
 // to keep our sanity, we need a reason for the abort
 void abort_ex(const char* why)
 {
+  printf("\n\t !!! abort_ex. Why: %s",why);
   panic(why);
 }
 
