@@ -10,7 +10,7 @@ OSLIB = $(OS)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OS)/bin/i686-elf-gcc
-CPP = $(OS)/bin/i686-elf-g++
+CPP = clang++ -target i686-elf #$(OS)/bin/i686-elf-g++
 LD  = $(OS)/bin/i686-elf-ld
 
 GCC_VER = $(shell $(CC) -dumpversion)
@@ -24,7 +24,7 @@ WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
 
-LDOPTS =  -nostdlib -melf_i386 -N --script=linker.ld #-ffreestanding
+LDOPTS =  -nostdlib -melf_i386 -N --script=linker.ld --eh-frame-hdr
 
 
 # Objects
@@ -73,15 +73,16 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: all  #Don't wanna call 'all', since it strips debug info
 
 # Runtime for the (test) service
-CRTBEGIN:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND:=$(shell $(CPP) -print-file-name=crtend.o)
+GPP = $(OS)/bin/i686-elf-g++
+CRTBEGIN = $(shell $(GPP) -print-file-name=crtbegin.o)
+CRTEND   = $(shell $(GPP) -print-file-name=crtend.o)
 crt%.o: crt/crt%.s
 	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ =  os.a $(OS)/lib/libc++.a libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 test_service.o: test_service.cpp
 	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 

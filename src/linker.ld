@@ -3,47 +3,66 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /*
-  .text.start (0x200000+SIZEOF_HEADERS) : {
-    /usr/local/IncludeOS/lib/os.a:kernel_start.o( .text )
-  }*/
-
-  .text (0x200000+SIZEOF_HEADERS) : {
-   _TEXT_START_ = .;
+  .text (0x200000+SIZEOF_HEADERS) :
+  {
+    _TEXT_START_ = .;
     *(.text)
-   _TEXT_END_ = .;
+    *(.text.*)
+    *(.gnu.linkonce.t*)
+    _TEXT_END_ = .;
   }
-
-  .init : {	
+  
+  .init :
+  {
   	_INIT_START_ = .;
-	*(.init)
-	_INIT_END_ = .;	
-  }  	
+    *(.init)
+    _INIT_END_ = .;	
+  }
   
-  .ctors : {
-  	 *(.ctors)
+  .ctors :
+  {
+    *(.ctors)
+    LONG(0);
   }
-  .dtors : {
-  	 *(.dtors)
+  .dtors :
+  {
+    *(.dtors)
+    LONG(0);
   }
-   .rodata :  {
-_RODATA_START_ = .;
-    *(.rodata)
-_RODATA_END_ = .;
-  }
-
   
-  .data :  {
-_DATA_START_ = .;
+  .rodata :
+  {
+    _RODATA_START_ = .;
+    *(.rodata*)
+    *(.gnu.linkonce.r*)
+    _RODATA_END_ = .;
+    
+    /* this will make the image bigger, but maybe give it some speed too */
+    . = ALIGN(4096);
+  }
+  
+  .eh_frame_hdr : { *(.eh_frame_hdr) }
+  .eh_frame         : { KEEP (*(.eh_frame)) }
+  .gcc_except_table : { *(.gcc_except_table .gcc_except_table.*) }
+  
+  .data :
+  {
+    _DATA_START_ = .;
     *(.data)
-_DATA_END_ = .;
+    *(.data.*)
+    *(.gnu.linkonce.d*)
+    _DATA_END_ = .;
   }
-
   
-   .bss :  { _BSS_START_ = .;  *(.bss) _BSS_END_ = .;  }
-   _includeos = .;
+  .bss :
+  {
+    _BSS_START_ = .;
+    *(.bss)
+    *(.bss.*)
+    *(.gnu.linkonce.b.*)
+    _BSS_END_ = .;
+  }
+  
+  _includeos = .;
   _end = .;  
 }
-
-
-
