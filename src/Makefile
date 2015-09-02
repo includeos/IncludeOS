@@ -19,7 +19,7 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  =  -msse3 -O2 #-Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
+CAPABS  =  -O -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
@@ -80,8 +80,8 @@ crt%.o: crt/crt%.s
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
-LIBCPP = $(OS)/lib/libc++.a $(OS)/lib/libc++abi.a 
-LIBS_OBJ =  os.a $(OS)/lib/libc++.a $(OS)/lib/libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
+LIBS_OBJ =  os.a $(OS)/lib/libc++.a libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 test_service.o: test_service.cpp
 	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 

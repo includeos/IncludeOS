@@ -5,7 +5,7 @@
 
 DEBUG=0
 
-[[ $2 = "debug" ]] && DEBUG=1 
+[[ $1 = "debug" ]] && DEBUG=1 
 
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
@@ -43,7 +43,7 @@ else
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
- . convert_image.sh
+# . convert_image.sh
 
 #reset
 #bochs
