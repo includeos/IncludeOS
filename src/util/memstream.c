@@ -79,7 +79,7 @@ void* streamucpy(void* dest, const void* usrc, size_t n)
   return dst;
 }
 
-inline char* stream_fill(char* dst, size_t* n, const __m128i data)
+static inline char* stream_fill(char* dst, size_t* n, const __m128i data)
 {
   while (*n >= SSE_SIZE)
   {
