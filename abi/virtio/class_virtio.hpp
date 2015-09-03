@@ -129,7 +129,7 @@ public:
       virtq_avail* avail; 
       
       // Padding to the next PAGE_SIZE boundary. 
-      u8 pad[ /* Padding */ ]; 
+      u8* pad; //[ /* Padding */ ]; 
  
       // A ring of used descriptor heads with free-running index. 
       virtq_used* used; 
