@@ -15,7 +15,7 @@
 
 namespace std
 {
-  typedef long int ptrdiff_t;
+  typedef __PTRDIFF_TYPE__ ptrdiff_t;
 }
 
 

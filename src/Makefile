@@ -159,7 +159,7 @@ etags:
 # Cleanup
 ###################################################
 clean: 
-	$(RM) $(OS_OBJECTS) $(OS_DEPS)
+	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
 	$(RM) test_service.o test_service.img

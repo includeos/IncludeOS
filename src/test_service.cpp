@@ -7,14 +7,14 @@ std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::s
 
 void Service::start()
 {
-  std::cout << "test " << std::endl;
+  //std::cout << "test " << std::endl;
 
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
   std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
 
   //std::__1::basic_ostream<char, std::__1::char_traits<char> >::write(char const*, long);
-  std::cout.write("test", 4l);
+  //std::cout.write("test", 4l);
  
   printf("BUILT WITH CLANG \n");
   
