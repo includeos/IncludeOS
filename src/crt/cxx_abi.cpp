@@ -11,12 +11,6 @@
 #include <stdio.h>
 #include <sys/reent.h>
 
-namespace std
-{
-  template class basic_string <char>;
-  
-}
-
 // needed for <iostream>
 extern "C"
 {

@@ -8,6 +8,8 @@
 #undef stdout
 extern __FILE* stdout;
 
+template class std::basic_string<char>;
+
 /*
 template class
 std::basic_ostream<char, std::char_traits<char> >&
@@ -24,6 +26,7 @@ void validate()
 
 void Service::start()
 {
+  /*
   printf("fflush test: ");
   fflush(stdout);
   
@@ -51,6 +54,7 @@ void Service::start()
   std::cout << std::endl;
   validate();
   return;
+  */
   
   std::vector<int> integers={1,2,3};
   std::map<const char*, int> map_of_ints={std::make_pair("First",42) , std::make_pair("Second",43)};
@@ -67,15 +71,13 @@ void Service::start()
   printf("%s\n", str.c_str());
   
   printf("before exception\n");
-  /*
   try
   {
     throw std::string("hei");
   }
-  catch (...)
+  catch ( const std::string& str )
   {
     printf("Caught exception: %s \n", str.c_str());
-  }*/
-  throw "hei";
+  }
   printf("after exception\n");
 }

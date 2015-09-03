@@ -14,35 +14,40 @@ SECTIONS
   
   .init :
   {
-  	_INIT_START_ = .;
+    _INIT_START_ = .;
     *(.init)
-    _INIT_END_ = .;	
+    _INIT_END_ = .; 
   }
   
   .ctors :
   {
     *(.ctors)
+    LONG(0);
   }
   .dtors :
   {
     *(.dtors)
+    LONG(0);
   }
-  
   
   /* For stack unwinding (Required by exception handling)  */
-   .eh_frame ALIGN(0x4):
-    { 
-      PROVIDE (__eh_frame_start = .);
-      KEEP(*(.eh_frame))
-      LONG (0);
-    } 
-
-   .rodata :  {
-_RODATA_START_ = .;
-    *(.rodata)
-_RODATA_END_ = .;
+  eh_frame ALIGN(0x4):
+  {
+    PROVIDE (__eh_frame_start = .);
+    KEEP(*(.eh_frame))
+    LONG (0);
   }
   
+  .rodata :
+  {
+    _RODATA_START_ = .;
+    *(.rodata*)
+    *(.gnu.linkonce.r*)
+    _RODATA_END_ = .;
+    
+    /* this will make the image bigger, but maybe give it some speed too */
+    /*. = ALIGN(4096);*/
+  }
   
   .data :
   {

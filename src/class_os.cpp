@@ -12,8 +12,6 @@
 
 bool  OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
-// used by SBRK:
-extern caddr_t heap_end;
 
 extern "C"
 {
@@ -29,10 +27,6 @@ extern "C"
 
 void OS::start()
 {
-  // Set heap to an appropriate location
-  if (&_end > heap_end)
-    heap_end = &_end;
-  
   rsprint(">>> OS class started\n");
   srand(time(NULL));
   
@@ -48,7 +42,10 @@ void OS::start()
   stderr = _REENT->_stderr;
   
   // heap
+  extern caddr_t heap_end;
+  extern char    _end;
   printf("<OS> Heap start: %p\n", heap_end);
+  printf("<OS> Current end is: %p\n", &_end);
   
   timeval t;
   gettimeofday(&t,0);

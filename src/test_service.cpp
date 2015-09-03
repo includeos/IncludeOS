@@ -1,12 +1,12 @@
 #include <os>
 
-/*template
+/*template class
 std::basic_ostream<char, std::char_traits<char> >&
-std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n); */
-/*extern "C" void*  __eh_frame_start;
-  extern "C" void __register_frame ( void * );*/
-void Service::start() {
-  
+std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
+*/
+
+void Service::start()
+{
   std::cout << "test " << std::endl;
 
   // Wonder when these are used...?
@@ -36,6 +36,4 @@ void Service::start() {
   }
   
   printf("*** DONE *** \n");
- 
-
 }

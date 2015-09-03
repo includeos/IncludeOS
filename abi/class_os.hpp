@@ -3,7 +3,6 @@
 
 #include <common>
 #include <assert.h>
-extern char _end; // Defined by the linker 
 
 /** The entrypoint for OS services
     

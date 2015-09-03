@@ -13,12 +13,13 @@ OSLIB = $(OSDIR)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OSDIR)/bin/i686-elf-gcc 
-CPP = $(OSDIR)/bin/i686-elf-g++ 
+CPP = clang++ -target i686-elf
+GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
 INCLUDES = -I$(OSDIR)/abi -I$(OSLIB)/include -I$(OSDIR)/stdlib
 
-CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin $(INCLUDES)
+CPPOPTS = -std=c++11 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
 
 
@@ -32,8 +33,8 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+CRTBEGIN_OBJ:=$(shell $(GPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 

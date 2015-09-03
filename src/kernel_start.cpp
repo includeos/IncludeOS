@@ -1,13 +1,8 @@
 #include <class_os.hpp>
 #include <assert.h>
-#include <memstream>
-
-int main();
 
 extern "C"
 {
-  char _BSS_START_, _BSS_END_;
-  void _init();
   void _init_c_runtime();
   uint8_t inb(int port);
   void outb(int port, uint8_t data);
@@ -18,6 +13,7 @@ extern "C"
   void rsprint(const char* ptr);
   
   const int _test_glob = 123;
+  int _test_constructor = 0;
   
   void enableSSE()
   {
@@ -31,18 +27,21 @@ extern "C"
 	 * mov cr4, eax 
 	*/
     // enable Streaming SIMD Extensions
-	__asm__ ("mov %cr0, %eax");
-	__asm__ ("and $0xFFFB,%ax");
-	__asm__ ("or  $0x2,   %ax");
-	__asm__ ("mov %eax, %cr0");
-	
-	__asm__ ("mov %cr4, %eax");
-	__asm__ ("or  $0x600,%ax");
-	__asm__ ("mov %eax, %cr4");
+    __asm__ ("mov %cr0, %eax");
+    __asm__ ("and $0xFFFB,%ax");
+    __asm__ ("or  $0x2,   %ax");
+    __asm__ ("mov %eax, %cr0");
+    
+    __asm__ ("mov %cr4, %eax");
+    __asm__ ("or  $0x600,%ax");
+    __asm__ ("mov %eax, %cr4");
   }
   
-#include <x86intrin.h>
-#define SSE_ALIGNED  __attribute__((aligned(16)))
+  __attribute__((constructor)) void test_constr()
+  {
+    OS::rsprint(">>> C constructor was called!\n");
+    _test_constructor = 1;
+  }
   
   void _start(void)
   {    
@@ -56,19 +55,17 @@ extern "C"
     
     OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    
     
-    // Initialize .bss secion (It's garbage in qemu)
-    OS::rsprint(">>> Initializing .bss... \n");
-    streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-    
     // Initialize stack-unwinder, call global constructors etc.
+    OS::rsprint(">>> Initializing C-environment... \n");
     _init_c_runtime();
     
     // verify that global constructors were called
     ASSERT(_test_glob == 123);
+    ASSERT(_test_constructor == 1);
     
     // Initialize some OS functionality
     OS::start();
-	
+    
     // Will only work if any destructors are called (I think?)
     //_fini();
   }

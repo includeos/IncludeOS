@@ -10,8 +10,7 @@ OSLIB = $(OS)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OS)/bin/i686-elf-gcc
-
-GCCPP = $(OS)/bin/i686-elf-g++
+GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++ -target i686-elf
 
 LD  = $(OS)/bin/i686-elf-ld
@@ -34,6 +33,7 @@ LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-ffreestand
 # Objects
 ###################################################
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
+CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 crt/c_abi.o crt/cxx_abi.o util/memstream.o \
@@ -52,7 +52,7 @@ LIBM_OBJ = $(OSLIB)/lib/libm.a
 
 # Header dependencies (rebuild if header changed)
 ###################################################
-OS_DEPS=$(OS_OBJECTS:.o=.d)
+OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 
 # Complete build
@@ -78,8 +78,8 @@ debug: all  #Don't wanna call 'all', since it strips debug info
 
 # Runtime for the (test) service
 
-CRTBEGIN:=$(shell $(GCCPP) -print-file-name=crtbegin.o)
-CRTEND:=$(shell $(GCCPP) -print-file-name=crtend.o)
+CRTBEGIN:=$(shell $(GPP) -print-file-name=crtbegin.o)
+CRTEND:=$(shell $(GPP) -print-file-name=crtend.o)
 crt%.o: crt/crt%.s
 	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
@@ -100,8 +100,8 @@ test:  debug crti.o crtn.o test_service.o
 	$(LD) $(LDOPTS) $(CRTBEGIN) crti.o test_service.o $(LIBS_OBJ) $(CRTEND) crtn.o -o test_service
 
 # OS
-libc++abi.a: $(CXXABI:.cpp=.o)
-	ar rcs $@ $(CXXABI:.cpp=.o)
+libc++abi.a: $(CXXABI_OBJ)
+	ar rcs $@ $(CXXABI_OBJ)
 
 os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
