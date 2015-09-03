@@ -10,7 +10,8 @@ OSLIB = $(OS)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OS)/bin/i686-elf-gcc
-CPP = $(OS)/bin/i686-elf-g++
+GCCPP = $(OS)/bin/i686-elf-g++
+CPP = clang++ -target i686-elf
 LD  = $(OS)/bin/i686-elf-ld
 
 GCC_VER = $(shell $(CC) -dumpversion)
@@ -19,12 +20,12 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  =  -O -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
+CAPABS  =  -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
 
-LDOPTS =  -nostdlib -melf_i386 -N --script=linker.ld #-ffreestanding
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-ffreestanding
 
 
 # Objects
@@ -73,8 +74,8 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: all  #Don't wanna call 'all', since it strips debug info
 
 # Runtime for the (test) service
-CRTBEGIN:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND:=$(shell $(CPP) -print-file-name=crtend.o)
+CRTBEGIN:=$(shell $(GCCPP) -print-file-name=crtbegin.o)
+CRTEND:=$(shell $(GCCPP) -print-file-name=crtend.o)
 crt%.o: crt/crt%.s
 	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<

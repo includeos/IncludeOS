@@ -38,3 +38,22 @@ int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
 	return 0;
 }
+
+
+// We expect the linker script to tell us where eception headers are
+void*  __eh_frame_start;
+
+// This is provided by ... I think libgcc
+void __register_frame ( void * );
+
+void _init_c_runtime(){
+  
+  // Tell the stack unwinder where exception frames are located
+  __register_frame( &__eh_frame_start );  
+  
+    // Call global constructors (relying on .crtbegin to be inserted by gcc)
+  _init();
+  
+
+
+}

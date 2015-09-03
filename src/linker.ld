@@ -26,6 +26,15 @@ SECTIONS
   .dtors : {
   	 *(.dtors)
   }
+  
+  /* For stack unwinding (Required by exception handling)  */
+   .eh_frame ALIGN(0x4):
+    { 
+      PROVIDE (__eh_frame_start = .);
+      KEEP(*(.eh_frame))
+      LONG (0);
+    } 
+
    .rodata :  {
 _RODATA_START_ = .;
     *(.rodata)

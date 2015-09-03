@@ -8,6 +8,7 @@ extern "C"
 {
   char _BSS_START_, _BSS_END_;
   void _init();
+  void _init_c_runtime();
   uint8_t inb(int port);
   void outb(int port, uint8_t data);
   void init_serial();
@@ -58,9 +59,10 @@ extern "C"
     // Initialize .bss secion (It's garbage in qemu)
     OS::rsprint(">>> Initializing .bss... \n");
     streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-	
-    // Call global constructors (relying on .crtbegin to be inserted by gcc)
-    _init();
+    
+    // Initialize stack-unwinder, call global constructors etc.
+    _init_c_runtime();
+    
     // verify that global constructors were called
     ASSERT(_test_glob == 123);
     
