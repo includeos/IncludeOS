@@ -9,13 +9,13 @@ OSLIB = $(OS)/i686-elf
 
 DEBUG_OPTS = -ggdb3
 
-CC  = $(OS)/bin/i686-elf-gcc
+CC  = clang -target i686-elf
 GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++ -target i686-elf
 
 LD  = $(OS)/bin/i686-elf-ld
 
-GCC_VER = $(shell $(CC) -dumpversion)
+GCC_VER = $(shell $(GPP) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
@@ -23,11 +23,10 @@ LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS  =  -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
 WARNS   = -Wall -Wextra #-pedantic
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
 
-
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-ffreestanding
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 
 
 # Objects
@@ -76,13 +75,9 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 
 debug: all  #Don't wanna call 'all', since it strips debug info
 
-# Runtime for the (test) service
-
-CRTBEGIN:=$(shell $(GPP) -print-file-name=crtbegin.o)
-CRTEND:=$(shell $(GPP) -print-file-name=crtend.o)
-crt%.o: crt/crt%.s
-	@echo "\n>> Assembling C runtime:" $@
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+##################################
+# Runtime for the "Test service" #
+##################################
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
@@ -96,8 +91,8 @@ test_service.o: test_service.cpp
 	@echo "\n>> Assembling GNU 'as' files"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
-test:  debug crti.o crtn.o test_service.o
-	$(LD) $(LDOPTS) $(CRTBEGIN) crti.o test_service.o $(LIBS_OBJ) $(CRTEND) crtn.o -o test_service
+test:  debug test_service.o #crti.o crtn.o 
+	$(LD) $(LDOPTS) test_service.o $(LIBS_OBJ) -o test_service
 
 # OS
 libc++abi.a: $(CXXABI_OBJ)

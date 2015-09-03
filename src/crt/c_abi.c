@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <utility/memstream.h>
+#include <stdio.h>
 
 void _init_c_runtime()
 {
@@ -27,6 +28,31 @@ void _init_c_runtime()
   _init();
 }
 
+// global/static objects should never be destructed here, so ignore this
+void* __dso_handle;
+// run global constructors
+typedef void (*constr_func)();
+void _init()
+{
+  extern constr_func _GCONSTR_START;
+  extern constr_func _GCONSTR_END;
+  
+  printf("Calling global constructors from %p to %p\n", 
+      &_GCONSTR_START, &_GCONSTR_END);
+  
+  for(constr_func* gc = &_GCONSTR_START; gc != &_GCONSTR_END; gc++)
+  {
+    (*gc)();
+  }
+}
+
+// old function result system
+int errno = 0;
+int* __errno_location(void)
+{
+  return &errno;
+}
+
 int access(const char *pathname, int mode)
 {
 	return 0;
@@ -35,7 +61,7 @@ char* getcwd(char *buf, size_t size)
 {
 	return 0;
 }
-int fcntl(int fd, int cmd, _VA_LIST_...)
+int fcntl(int fd, int cmd, ...)
 {
 	return 0;
 }

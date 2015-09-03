@@ -43,6 +43,8 @@ extern "C"
     _test_constructor = 1;
   }
   
+  
+  
   void _start(void)
   {    
     __asm__ volatile ("cli");
