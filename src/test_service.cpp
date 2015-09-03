@@ -5,10 +5,26 @@ std::basic_ostream<char, std::char_traits<char> >&
 std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
 */
 
+class Test
+{
+public:
+  Test()
+  {
+    printf("Test() constructor called\n");
+  }
+  Test(int t)
+  {
+    printf("Test(%d) constructor called\n", t);
+  }
+};
+Test test;
+Test test2(2);
+
 void Service::start()
 {
   //std::cout << "test " << std::endl;
-
+  
+  
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
   std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });

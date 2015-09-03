@@ -23,28 +23,13 @@ void _init_c_runtime()
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);  
   
-  // Call global constructors (relying on .crtbegin to be inserted by gcc)
+  // call global constructors emitted by compiler
   extern void _init();
   _init();
 }
 
 // global/static objects should never be destructed here, so ignore this
 void* __dso_handle;
-// run global constructors
-typedef void (*constr_func)();
-void _init()
-{
-  extern constr_func _GCONSTR_START;
-  extern constr_func _GCONSTR_END;
-  
-  printf("Calling global constructors from %p to %p\n", 
-      &_GCONSTR_START, &_GCONSTR_END);
-  
-  for(constr_func* gc = &_GCONSTR_START; gc != &_GCONSTR_END; gc++)
-  {
-    (*gc)();
-  }
-}
 
 // old function result system
 int errno = 0;

@@ -35,7 +35,7 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
-						 crt/c_abi.o crt/cxx_abi.o util/memstream.o \
+						 crt/c_abi.o crt/string.o crt/cxx_abi.o util/memstream.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
@@ -75,25 +75,26 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 
 debug: all  #Don't wanna call 'all', since it strips debug info
 
-##################################
-# Runtime for the "Test service" #
-##################################
+# Test service
+###################################################
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
 LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
+CRTI_OBJ     = $(OS)/crt/crti.o
+CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
+CRTEND_OBJ   = $(OS)/crt/crtend.o
+CRTN_OBJ     = $(OS)/crt/crtn.o
+
 test_service.o: test_service.cpp
-	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 
+	$(CPP) -v -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $<
 
-# AS-assembled object files
-%.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+test: debug test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
-test:  debug test_service.o #crti.o crtn.o 
-	$(LD) $(LDOPTS) test_service.o $(LIBS_OBJ) -o test_service
-
+# OS libraries
+###################################################
 # OS
 libc++abi.a: $(CXXABI_OBJ)
 	ar rcs $@ $(CXXABI_OBJ)
@@ -109,7 +110,7 @@ install: #os.a bootloader
 	cp libc++abi.a $(OS)/lib
 	cp libc++.a $(OS)/lib
 	mkdir -p $(OS)/crt
-	cp crt/crt*.s $(OS)/crt
+	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
 	cp -r ../abi $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
@@ -118,19 +119,19 @@ install: #os.a bootloader
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
-# Object files
+# Makefile recipes
 ###################################################
 %.o: %.c
 	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
 %.o: %.cpp
-	@echo "\n>> Compiling " $@
+	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+	@echo "\n"
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
 
 # Bootloader
 ###################################################
