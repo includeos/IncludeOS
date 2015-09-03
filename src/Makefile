@@ -10,8 +10,10 @@ OSLIB = $(OS)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OS)/bin/i686-elf-gcc
+
 GCCPP = $(OS)/bin/i686-elf-g++
 CPP = clang++ -target i686-elf
+
 LD  = $(OS)/bin/i686-elf-ld
 
 GCC_VER = $(shell $(CC) -dumpversion)
@@ -24,6 +26,7 @@ CAPABS  =  -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignm
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
+
 
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-ffreestanding
 
@@ -74,6 +77,7 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: all  #Don't wanna call 'all', since it strips debug info
 
 # Runtime for the (test) service
+
 CRTBEGIN:=$(shell $(GCCPP) -print-file-name=crtbegin.o)
 CRTEND:=$(shell $(GCCPP) -print-file-name=crtend.o)
 crt%.o: crt/crt%.s
@@ -82,7 +86,7 @@ crt%.o: crt/crt%.s
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ =  os.a $(OS)/lib/libc++.a libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 test_service.o: test_service.cpp
 	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 

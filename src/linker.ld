@@ -3,29 +3,31 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /*
-  .text.start (0x200000+SIZEOF_HEADERS) : {
-    /usr/local/IncludeOS/lib/os.a:kernel_start.o( .text )
-  }*/
-
-  .text (0x200000+SIZEOF_HEADERS) : {
-   _TEXT_START_ = .;
+  .text (0x200000+SIZEOF_HEADERS) :
+  {
+    _TEXT_START_ = .;
     *(.text)
-   _TEXT_END_ = .;
+    *(.text.*)
+    *(.gnu.linkonce.t*)
+    _TEXT_END_ = .;
   }
-
-  .init : {	
-  	_INIT_START_ = .;
-	*(.init)
-	_INIT_END_ = .;	
-  }  	
   
-  .ctors : {
-  	 *(.ctors)
+  .init :
+  {
+  	_INIT_START_ = .;
+    *(.init)
+    _INIT_END_ = .;	
   }
-  .dtors : {
-  	 *(.dtors)
+  
+  .ctors :
+  {
+    *(.ctors)
   }
+  .dtors :
+  {
+    *(.dtors)
+  }
+  
   
   /* For stack unwinding (Required by exception handling)  */
    .eh_frame ALIGN(0x4):
@@ -40,19 +42,26 @@ _RODATA_START_ = .;
     *(.rodata)
 _RODATA_END_ = .;
   }
-
   
-  .data :  {
-_DATA_START_ = .;
+  
+  .data :
+  {
+    _DATA_START_ = .;
     *(.data)
-_DATA_END_ = .;
+    *(.data.*)
+    *(.gnu.linkonce.d*)
+    _DATA_END_ = .;
   }
-
   
-   .bss :  { _BSS_START_ = .;  *(.bss) _BSS_END_ = .;  }
-   _includeos = .;
+  .bss :
+  {
+    _BSS_START_ = .;
+    *(.bss)
+    *(.bss.*)
+    *(.gnu.linkonce.b.*)
+    _BSS_END_ = .;
+  }
+  
+  _includeos = .;
   _end = .;  
 }
-
-
-

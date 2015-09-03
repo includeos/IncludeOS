@@ -18,6 +18,7 @@
 #include <class_pci_device.hpp>
 //#include <virtio/virtio.h>
 #include <delegate>
+#include <stdint.h>
 
 #define PAGE_SIZE 4096
 
@@ -57,18 +58,18 @@ struct scatterlist {
 };
 
 //#include <class_irq_handler.hpp>
-class Virtio{
-  
+class Virtio
+{
 public:    
-  
   /** Virtio Queue class. */
-  class Queue {
+  class Queue
+  {
     /** @note Using typedefs in order to keep the standard notation. */
     typedef uint64_t le64;
     typedef uint32_t le32;
     typedef uint16_t le16;
     typedef uint16_t u16;
-    typedef uint8_t u8;
+    typedef uint8_t  u8;
 
     
     /** Virtio Ring Descriptor. Virtio std. §2.4.5  */

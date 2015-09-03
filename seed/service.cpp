@@ -8,6 +8,12 @@
 #undef stdout
 extern __FILE* stdout;
 
+/*
+template class
+std::basic_ostream<char, std::char_traits<char> >&
+std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
+*/
+
 void validate()
 {
   if ( (std::cout.rdstate() & std::ios::failbit ) != 0 )
@@ -21,6 +27,7 @@ void Service::start()
   printf("fflush test: ");
   fflush(stdout);
   
+  // try newline
   std::cout << "testing std::cout\n";
   validate();
   
@@ -28,15 +35,19 @@ void Service::start()
   std::cout.flush();
   validate();
   
-  // try ending line
+  // try manually appending newline char
   std::cout.put('\n');
   validate();
   
-  // try writing newline
-  //std::cout.write("\r\n", (int) 2);
-  //validate();
+  // writing newline string to stream
+  std::cout.write("\r\n", 2l);
+  validate();
   
-  // and...
+  // flushing indirectly
+  std::cout << std::flush;
+  validate();
+  
+  // .. and the one that crashes for some unknown reason
   std::cout << std::endl;
   validate();
   return;
