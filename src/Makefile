@@ -21,8 +21,12 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS  =  -msse3 #-O2 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
+all: CAPABS  =  -msse3 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
+debug: CAPABS = -msse3 -O0
+stripped: CAPABS = -msse3 -Os
+
 WARNS   = -Wall -Wextra #-pedantic
+
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
 
@@ -64,17 +68,17 @@ all: bootloader libc++abi.a os.a
 	echo "TEST: OSLIB: '"$(OS)"'"
 
 stripped: LDOPTS += -s #strip all
-stripped: bootloader os.a
+stripped: bootloader libc++abi.a os.a
+stripped: test
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: LDOPTS  += -M --verbose
-
+#debug: LDOPTS  += #-M #--verbose
 debug: OBJ_LIST += $(LIBG_OBJ)
-
-debug: all  #Don't wanna call 'all', since it strips debug info
+debug: bootloader libc++abi.a os.a # Can't call all, since it changes capabs
+debug: test
 
 # Runtime for the (test) service
 
@@ -89,14 +93,16 @@ LIBCPP = $(OS)/lib/libc++.a libc++abi.a
 LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 test_service.o: test_service.cpp
-	$(CPP) -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $< 
+	@echo "\n>> Building test service"
+	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
 	@echo "\n>> Assembling GNU 'as' files"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
-test:  debug crti.o crtn.o test_service.o
+test:  crti.o crtn.o test_service.o
+	@echo "\n>> Linking test service"
 	$(LD) $(LDOPTS) $(CRTBEGIN) crti.o test_service.o $(LIBS_OBJ) $(CRTEND) crtn.o -o test_service
 
 # OS
@@ -162,6 +168,6 @@ clean:
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
-	$(RM) test_service.o test_service.img
+	$(RM) test_service.o test_service test_service.img
 
 -include $(OS_DEPS)
