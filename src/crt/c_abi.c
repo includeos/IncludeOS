@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <utility/memstream.h>
+#include <stdio.h>
 
 void _init_c_runtime()
 {
@@ -22,9 +23,19 @@ void _init_c_runtime()
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);  
   
-  // Call global constructors (relying on .crtbegin to be inserted by gcc)
+  // call global constructors emitted by compiler
   extern void _init();
   _init();
+}
+
+// global/static objects should never be destructed here, so ignore this
+void* __dso_handle;
+
+// old function result system
+int errno = 0;
+int* __errno_location(void)
+{
+  return &errno;
 }
 
 int access(const char *pathname, int mode)
@@ -35,7 +46,7 @@ char* getcwd(char *buf, size_t size)
 {
 	return 0;
 }
-int fcntl(int fd, int cmd, _VA_LIST_...)
+int fcntl(int fd, int cmd, ...)
 {
 	return 0;
 }

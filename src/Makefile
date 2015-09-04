@@ -9,13 +9,13 @@ OSLIB = $(OS)/i686-elf
 
 DEBUG_OPTS = -ggdb3
 
-CC  = $(OS)/bin/i686-elf-gcc
+CC  = clang -target i686-elf
 GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++ -target i686-elf
 
 LD  = $(OS)/bin/i686-elf-ld
 
-GCC_VER = $(shell $(CC) -dumpversion)
+GCC_VER = $(shell $(GPP) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
 INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
@@ -26,12 +26,11 @@ debug: CAPABS = -msse3 -O0
 stripped: CAPABS = -msse3 -Os
 
 WARNS   = -Wall -Wextra #-pedantic
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
 
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES) -lgcc
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector  $(INCLUDES) #-ffreestanding -nostdlib -fno-builtin
 
-
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-ffreestanding
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 
 
 # Objects
@@ -40,7 +39,7 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
-						 crt/c_abi.o crt/cxx_abi.o util/memstream.o \
+						 crt/c_abi.o crt/string.o crt/cxx_abi.o util/memstream.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
@@ -80,31 +79,33 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: bootloader libc++abi.a os.a # Can't call all, since it changes capabs
 debug: test
 
-# Runtime for the (test) service
-
-CRTBEGIN:=$(shell $(GPP) -print-file-name=crtbegin.o)
-CRTEND:=$(shell $(GPP) -print-file-name=crtend.o)
-crt%.o: crt/crt%.s
-	@echo "\n>> Assembling C runtime:" $@
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+# Test service
+###################################################
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
 LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
+
 test_service.o: test_service.cpp
 	@echo "\n>> Building test service"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
-# AS-assembled object files
-%.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+CRTI_OBJ     = $(OS)/crt/crti.o
+CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
+CRTEND_OBJ   = $(OS)/crt/crtend.o
+CRTN_OBJ     = $(OS)/crt/crtn.o
 
-test:  crti.o crtn.o test_service.o
+
+test_service.o: test_service.cpp
+	$(CPP) -v -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $<
+
+test: debug test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
-	$(LD) $(LDOPTS) $(CRTBEGIN) crti.o test_service.o $(LIBS_OBJ) $(CRTEND) crtn.o -o test_service
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
+# OS libraries
+###################################################
 # OS
 libc++abi.a: $(CXXABI_OBJ)
 	ar rcs $@ $(CXXABI_OBJ)
@@ -120,7 +121,7 @@ install: #os.a bootloader
 	cp libc++abi.a $(OS)/lib
 	cp libc++.a $(OS)/lib
 	mkdir -p $(OS)/crt
-	cp crt/crt*.s $(OS)/crt
+	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
 	cp -r ../abi $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
@@ -129,19 +130,19 @@ install: #os.a bootloader
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
-# Object files
+# Makefile recipes
 ###################################################
 %.o: %.c
 	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
 %.o: %.cpp
-	@echo "\n>> Compiling " $@
+	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+	@echo "\n"
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
 
 # Bootloader
 ###################################################

@@ -12,12 +12,8 @@ static const int syscall_fd=999;
 static bool debug_syscalls=true;
 caddr_t heap_end;
 
-#undef errno
-extern "C"
-{
-  //Not like in http://wiki.osdev.org/Porting_Newlib
-  int errno = 0; //Is this right?
-}
+//#undef errno
+//extern "C" int errno;
 
 //Syscall logger
 void syswrite(const char* name, const char* str)
@@ -187,10 +183,4 @@ void abort_ex(const char* why)
 {
   printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
-}
-
-  /** Added for supporting libc++ */
-extern "C" {
-  extern int errno;
-  int* __errno_location(void){ return &errno; }
 }

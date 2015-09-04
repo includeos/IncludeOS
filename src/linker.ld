@@ -19,23 +19,18 @@ SECTIONS
     _INIT_END_ = .; 
   }
   
+  /* Global constructor array */
   .ctors :
   {
+    _GCONSTR_START = .;
     *(.ctors)
+    _GCONSTR_END = .;
     LONG(0);
   }
   .dtors :
   {
     *(.dtors)
     LONG(0);
-  }
-  
-  /* For stack unwinding (Required by exception handling)  */
-  eh_frame ALIGN(0x4):
-  {
-    PROVIDE (__eh_frame_start = .);
-    KEEP(*(.eh_frame))
-    LONG (0);
   }
   
   .rodata :
@@ -47,6 +42,18 @@ SECTIONS
     
     /* this will make the image bigger, but maybe give it some speed too */
     /*. = ALIGN(4096);*/
+  }
+  
+  /* For stack unwinding (Required by exception handling)  */
+  eh_frame ALIGN(0x4):
+  {
+    PROVIDE (__eh_frame_start = .);
+    KEEP(*(.eh_frame))
+    LONG (0);
+  }
+  .gcc_except_table :
+  {
+    *(.gcc_except_table)
   }
   
   .data :
