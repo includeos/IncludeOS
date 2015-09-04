@@ -1,0 +1,7 @@
+#ifndef INET4
+#define INET4
+
+#include <net/class_inet4.hpp>
+
+
+#endif
