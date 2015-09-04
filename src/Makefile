@@ -44,7 +44,7 @@ OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-						 net/class_udp.o net/class_icmp.o net/class_inet.o net/inet.o\
+						 net/class_udp.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
 						 net/class_packet.o net/dns/dns.o
 
 # Libraries
@@ -87,10 +87,6 @@ LIBCPP = $(OS)/lib/libc++.a libc++abi.a
 LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-test_service.o: test_service.cpp
-	@echo "\n>> Building test service"
-	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
-
 CRTI_OBJ     = $(OS)/crt/crti.o
 CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
 CRTEND_OBJ   = $(OS)/crt/crtend.o
@@ -98,7 +94,8 @@ CRTN_OBJ     = $(OS)/crt/crtn.o
 
 
 test_service.o: test_service.cpp
-	$(CPP) -v -MMD $(CPPOPTS) $(DEBUG_OPTS) -o $@ $<
+	@echo "\n>> Building test service"
+	$(CPP) -v -MMD $(CPPOPTS) -o $@ $<
 
 test: debug test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
