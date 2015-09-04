@@ -1,4 +1,6 @@
 #include <os>
+#include <net/inet4>
+
 
 /*template class
 std::basic_ostream<char, std::char_traits<char> >&
@@ -22,8 +24,14 @@ Test test2(2);
 
 void Service::start()
 {
+  
+  auto& mac = Dev::eth(0).mac();
+  net::Inet4::ifconfig(net::ETH0, 
+		  {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
+		  {{ 255,255,0,0 }} );
   //std::cout << "test " << std::endl;
   
+  net::Inet4* inet = net::Inet4::up();
   
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
