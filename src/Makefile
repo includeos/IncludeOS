@@ -65,7 +65,7 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # - an OS library for the service to link against
 
 all: bootloader libc++abi.a os.a 
-	echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
+	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
 
 stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
@@ -98,7 +98,7 @@ test_service.o: test_service.cpp
 	@echo "\n>> Building test service"
 	$(CPP) -v -MMD $(CPPOPTS) -o $@ $<
 
-test: debug test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
+test: test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
