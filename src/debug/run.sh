@@ -11,6 +11,9 @@ DEBUG=0
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . ./qemu_cmd.sh
 
+# Build the image 
+../vmbuild/vmbuild bootloader test_service
+
 
 # Qemu with gdb debugging:
 if [ $DEBUG -ne 0 ]
@@ -20,9 +23,6 @@ then
     echo "Starting VM: '$1'"
     echo "-----------------------"    
     
-    # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
-
     echo "VM started in DEBUG mode. Connect with gdb/emacs:"
     echo " - M+x gdb, Enter, then start with command"
     echo "   gdb -i=mi service -x service.gdb"
