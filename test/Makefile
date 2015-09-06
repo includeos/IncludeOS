@@ -72,7 +72,7 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS) crti.o crtn.o
+service: $(OBJS) crti.o crtn.o # $(LIBS) - libs include libgcc.a - can't build that
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img

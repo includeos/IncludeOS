@@ -63,8 +63,9 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # A complete build includes:
 # - a bootloader
 # - an OS library for the service to link against
+
 all: bootloader libc++abi.a os.a 
-	echo "TEST: OSLIB: '"$(OS)"'"
+	echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
 
 stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
