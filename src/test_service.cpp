@@ -1,7 +1,7 @@
 #include <os>
 #include <net/inet4>
 
-
+#include <c11.h>
 /*template class
 std::basic_ostream<char, std::char_traits<char> >&
 std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
@@ -21,6 +21,10 @@ public:
 };
 Test test;
 Test test2(2);
+
+void my_exit(){
+  printf("This service has it's own exit routine");
+}
 
 void Service::start()
 {
@@ -58,6 +62,10 @@ void Service::start()
     printf("Caught int %i \n",i);
   
   }
+  
+  // at_quick_exit(my_exit);
+  at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });
+  quick_exit(0);
   
   printf("*** DONE *** \n");
 }
