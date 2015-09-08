@@ -83,7 +83,8 @@ OPTS+=-DLIBCXX_BUILD_32_BITS=ON" "
 OPTS+=-DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON" "
 
 OPTS+=-DLIBCXX_CXX_ABI=libcxxabi" "
-OPTS+=-DLIBCXX_CXX_ABI_INCLUDE_PATHS=/home/alfred/IncludeOS/src/include" "
+OPTS+=-DLIBCXX_CXX_ABI_INCLUDE_PATHS=/home/gonzo/github/IncludeOS/src/include" "
+
 
 # libunwind-specific options
 OPTS+=-DLIBUNWIND_ENABLE_SHARED=OFF" "
