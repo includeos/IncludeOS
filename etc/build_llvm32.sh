@@ -1,45 +1,51 @@
 llvm=llvm
 llvm_build=llvm_build
 
-# Dependencies
-sudo apt-get install cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
+if [ ! -z $install_llvm_dependencies ]; then
+    # Dependencies
+    sudo apt-get install cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
+fi
 
-# Clone LLVM   
-svn co http://llvm.org/svn/llvm-project/llvm/trunk $llvm
-# git clone http://llvm.org/git/llvm 
-
-# Clone CLANG - not necessary to build only libc++ and libc++abi
-# cd llvm/tools              
-# svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
-# svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
-
-# Clone libc++, libc++abi, and some extra stuff (recommended / required for clang)
-cd $llvm/projects
-
-# Compiler-rt
-svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
-# git clone http://llvm.org/git/llvm compiler-rt
-
-# libc++abi
-svn co http://llvm.org/svn/llvm-project/libcxxabi/trunk libcxxabi
-# git clone http://llvm.org/git/libcxxabi
-
-# libc++
-svn co http://llvm.org/svn/llvm-project/libcxx/trunk libcxx
-# git clone http://llvm.org/git/libcxx
-
-# libunwind
-svn co http://llvm.org/svn/llvm-project/libunwind/trunk libunwind
-#git clone http://llvm.org/git/libunwind
- 
-# Back to start
-cd ../../
+if [ ! -z $download_llvm ]; then
+    # Clone LLVM   
+    svn co http://llvm.org/svn/llvm-project/llvm/trunk $llvm
+    # git clone http://llvm.org/git/llvm 
+    
+    # Clone CLANG - not necessary to build only libc++ and libc++abi
+    # cd llvm/tools              
+    # svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
+    # svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
+    
+    # Clone libc++, libc++abi, and some extra stuff (recommended / required for clang)
+    cd $llvm/projects
+    
+    # Compiler-rt
+    svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
+    # git clone http://llvm.org/git/llvm compiler-rt
+    
+    # libc++abi
+    svn co http://llvm.org/svn/llvm-project/libcxxabi/trunk libcxxabi
+    # git clone http://llvm.org/git/libcxxabi
+    
+    # libc++
+    svn co http://llvm.org/svn/llvm-project/libcxx/trunk libcxx
+    # git clone http://llvm.org/git/libcxx
+    
+    # libunwind
+    svn co http://llvm.org/svn/llvm-project/libunwind/trunk libunwind
+    #git clone http://llvm.org/git/libunwind
+    
+    # Back to start
+    cd ../../
+fi
 
 # Make a build-directory
 mkdir -p $llvm_build
 cd $llvm_build
 
-rm CMakeCache.txt
+if [ ! -z $clear_llvm_build_cache ]; then
+    rm CMakeCache.txt
+fi
 
 # General options
 OPTS=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" "
