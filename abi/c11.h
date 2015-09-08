@@ -1,6 +1,7 @@
 #ifndef C11_H
 #define C11_H
 
+// More C11 requirements here
 #include <quick_exit>
 
 #ifdef __cplusplus
