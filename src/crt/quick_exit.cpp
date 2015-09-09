@@ -1,4 +1,4 @@
-#include <c11.h>
+#include <quick_exit>
 #include <stdlib.h>
 #include <malloc.h>
 

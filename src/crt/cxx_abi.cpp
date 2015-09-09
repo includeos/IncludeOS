@@ -81,18 +81,6 @@ locale_t uselocale(locale_t)
   return NULL;
 }
 
-// dont know why all these are "hard" linked to from libc++
-long double wcstold (const wchar_t* str, wchar_t** endptr)
-{
-  return wcstod(str, endptr);
-}
-
-// needed for ctype<T>::is(mask, char_type)
-int isascii(int ch)
-{
-  return ch >= 0 && ch < 128;
-}
-
 int isalnum_l(int c, locale_t) {
   return isalnum(c);
 }

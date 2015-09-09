@@ -1,7 +1,7 @@
 #include <os>
 #include <net/inet4>
+#include <math.h>
 
-#include <c11.h>
 /*template class
 std::basic_ostream<char, std::char_traits<char> >&
 std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
@@ -33,9 +33,12 @@ void Service::start()
   net::Inet4::ifconfig(net::ETH0, 
 		  {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
 		  {{ 255,255,0,0 }} );
-  //std::cout << "test " << std::endl;
+  
+  std::cout << "test " << std::endl;
   
   net::Inet4* inet = net::Inet4::up();
+  
+  //auto sine = sinl(42);
   
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });

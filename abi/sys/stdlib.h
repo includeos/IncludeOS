@@ -2,6 +2,8 @@
 #ifndef SYS_STDLIB_H
 #define SYS_STDLIB_H
 
+#include_next <stdlib.h>
+
 // More C11 requirements here
 #include "quick_exit"
 
@@ -18,4 +20,4 @@ void *aligned_alloc( size_t alignment, size_t size );
 #endif 
 #endif //SYS_STDLIB_H
 
-#include_next <stdlib.h>
+

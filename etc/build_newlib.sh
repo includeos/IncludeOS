@@ -19,7 +19,7 @@ mkdir -p build_newlib
 cd build_newlib
 
 # Clean out config cache in case the cross-compiler has changed
-make distclean
+# make distclean
 ../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX AS_FOR_TARGET=$PREFIX/bin/$TARGET-as LD_FOR_TARGET=$PREFIX/bin/$TARGET-ld AR_FOR_TARGET=$PREFIX/bin/$TARGET-ar RANLIB_FOR_TARGET=$PREFIX/bin/$TARGET-ranlib #CC_FOR_TARGET="clang -ffreestanding --target=i686-elf -ccc-gcc-name "$PREFIX/bin/$TARGET"-gcc"
 
 #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
