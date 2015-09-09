@@ -71,6 +71,21 @@ void Service::start()
   std::cout << "be" << std::endl;
   std::cout << "working" << std::endl;
   std::cout << "!" << std::endl;
+
+
+  std::vector<int> integers={1,2,3};
+  std::map<const char*, int> map_of_ints={std::make_pair("First",42) , std::make_pair("Second",43)};
+  
+  [] (void) { printf("Hello lambda\n"); } ();
+  
+  for (auto i : integers)
+    printf("Integer %i \n",i);
+  
+  printf("First from map: %i \n", map_of_ints["First"]);
+  printf("Second from map: %i \n", map_of_ints["Second"]);
+  
+  std::string str = "Hello std::string";
+  printf("%s\n", str.c_str());
   
   // TODO: find some implementation for long double, or not... or use double
   //auto sine = sinl(42);

@@ -6,6 +6,7 @@
 DEBUG=0
 
 [[ $1 = "debug" ]] && DEBUG=1 
+[[ $1 = "stripped" ]] && STRIPPED=1 
 
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
@@ -28,10 +29,20 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
     sudo $QEMU -s -S $QEMU_OPTS
-else    
+elif [ $STRIPPED -ne 0 ]; then
     #make clean all #stripped 
-    make test
+    make stripped
 
+    # Build the image 
+    ../vmbuild/vmbuild bootloader test_service
+
+    echo "-----------------------"
+    echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
+    echo "-----------------------"
+    
+    sudo $QEMU $QEMU_OPTS 
+else
+    make 
     # Build the image 
     ../vmbuild/vmbuild bootloader test_service
 
