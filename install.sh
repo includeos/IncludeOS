@@ -72,6 +72,9 @@ cd $BUILD_DIR
 echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
 $IncludeOS_src/etc/build_llvm32.sh
 
+echo -e "\n\n >>> INSTALLING libc++ \n"
+cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
+
 
 if [ ! -z $do_newlib ]; then
     echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
