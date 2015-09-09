@@ -30,7 +30,7 @@ CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i68
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
 
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld -flto
 
 
 # Objects
@@ -85,7 +85,7 @@ debug: test
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCPP) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
 CRTI_OBJ     = $(OS)/crt/crti.o
