@@ -1,11 +1,7 @@
 #include <os>
 #include <net/inet4>
 #include <math.h>
-
-/*template class
-std::basic_ostream<char, std::char_traits<char> >&
-std::basic_ostream<char, std::char_traits<char> >::write(const char* __s, std::streamsize __n);
-*/
+#include <iostream>
 
 class Test
 {
@@ -28,7 +24,6 @@ void my_exit(){
 
 void Service::start()
 {
-  
   auto& mac = Dev::eth(0).mac();
   net::Inet4::ifconfig(net::ETH0, 
 		  {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
@@ -37,8 +32,6 @@ void Service::start()
   std::cout << "test " << std::endl;
   
   net::Inet4* inet = net::Inet4::up();
-  
-  //auto sine = sinl(42);
   
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
@@ -65,6 +58,22 @@ void Service::start()
     printf("Caught int %i \n",i);
   
   }
+  
+  std::cout << "If" << std::endl;
+  std::cout << "you" << std::endl;
+  std::cout << "can" << std::endl;
+  std::cout << "see" << std::endl;
+  std::cout << "this" << std::endl;
+  std::cout << "then" << std::endl;
+  std::cout << "std::cout" << std::endl;
+  std::cout << "may" << std::endl;
+  std::cout << "just" << std::endl;
+  std::cout << "be" << std::endl;
+  std::cout << "working" << std::endl;
+  std::cout << "!" << std::endl;
+  
+  // TODO: find some implementation for long double, or not... or use double
+  //auto sine = sinl(42);
   
   // at_quick_exit(my_exit);
   at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });

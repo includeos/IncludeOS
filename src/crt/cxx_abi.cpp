@@ -9,7 +9,6 @@
 #include <support/newlib/xlocale.h>
 #include <time.h>
 #include <stdio.h>
-#include <sys/reent.h>
 
 // needed for <iostream>
 extern "C"
@@ -26,17 +25,6 @@ extern "C"
   }
   
   typedef int nl_catd;
-  
-  /// IMPLEMENTATION OF Newlib I/O:
-  struct _reent stuff _REENT_INIT(stuff);
-  
-  #undef stdin
-  #undef stdout
-  #undef stderr
-  // why can't these files be located in c_abi.c? linker issue
-  __FILE* stdin;
-  __FILE* stdout;
-  __FILE* stderr;
   
   //nl_catd catopen (const char *cat_name, int flag)
   nl_catd catopen (const char* f, int flag)
@@ -59,6 +47,7 @@ extern "C"
   char _IO_getc()
   {
     /// NOTE: IMPLEMENT ME
+    printf("_IO_getc(): returning bogus character as input from stdin\n");
     return 'f';
   }
 }
@@ -81,6 +70,7 @@ locale_t uselocale(locale_t)
   return NULL;
 }
 
+/*
 int isalnum_l(int c, locale_t) {
   return isalnum(c);
 }
@@ -244,3 +234,4 @@ long double wcstold_l(const wchar_t *nptr, wchar_t **endptr, locale_t)
 {
   return wcstold(nptr, endptr);
 }
+*/
