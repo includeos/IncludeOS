@@ -1,5 +1,20 @@
-llvm=llvm
-llvm_build=llvm_build
+#
+# NOTE THE FOLLOWING VARIABLES HAS TO BE DEFINED:
+#
+# llvm_src -> path to clone llvm repo
+# llvm_build-> path to build llvm-libs. (must beoutside of llvm)
+# IncludeOS_src -> InclueOS git source (i.e =$HOME/IncludeOS)
+
+
+# OPTIONALS (required the first time, but optional later):
+#
+# $install_llvm_dependencies: required paackages, cmake, ninja etc. 
+# $download_llvm: Clone llvm svn sources
+
+
+IncludeOS_sys=$IncludeOS_src/abi/sys
+
+
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
@@ -8,7 +23,7 @@ fi
 
 if [ ! -z $download_llvm ]; then
     # Clone LLVM   
-    svn co http://llvm.org/svn/llvm-project/llvm/trunk $llvm
+    svn co http://llvm.org/svn/llvm-project/llvm/trunk $llvm_src
     # git clone http://llvm.org/git/llvm 
     
     # Clone CLANG - not necessary to build only libc++ and libc++abi
@@ -17,7 +32,7 @@ if [ ! -z $download_llvm ]; then
     # svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
     
     # Clone libc++, libc++abi, and some extra stuff (recommended / required for clang)
-    cd $llvm/projects
+    cd $llvm_src/projects
     
     # Compiler-rt
     svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
@@ -92,8 +107,6 @@ OPTS+=-LIBCXXABI_USE_LLVM_UNWINDER=ON" "
 
 echo "LLVM CMake Build options:" $OPTS
 
-IncludeOS_repo=$HOME/IncludeOS
-IncludeOS_cstdlib=/usr/local/IncludeOS/i686-elf/include
 
 #
 # WARNING: The following will cause the "requires std::atomic" error. 
@@ -109,10 +122,13 @@ IncludeOS_cstdlib=/usr/local/IncludeOS/i686-elf/include
 # CONFIGURE
 #
 # Using makefiles
-# time cmake -G"Unix Makefiles" $OPTS  ../$llvm
+# time cmake -G"Unix Makefiles" $OPTS  ../$llvm_src
+
+llvm_src_verbose=-v
+libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
 
 # Using Ninja (slightly faster, but not by much)
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 -I$IncludeOS_cstdlib -I$IncludeOS_repo/src/include/ -I$IncludeOS_repo/abi -I$IncludeOS_repo/stdlib/support/newlib/  " ../$llvm #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys  -I$IncludeOS_src/abi -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ -I$libcxx_inc " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
 
 
 #
