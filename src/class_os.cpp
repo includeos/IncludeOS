@@ -13,18 +13,6 @@
 bool  OS::_power = true;
 float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
 
-extern "C"
-{
-  #undef stdin
-  #undef stdout
-  #undef stderr
-  extern __FILE* stdin;
-  extern __FILE* stdout;
-  extern __FILE* stderr;
-  
-  extern struct _reent stuff;
-}
-
 void OS::start()
 {
   rsprint(">>> OS class started\n");
@@ -32,14 +20,6 @@ void OS::start()
   
   // Disable the timer interrupt completely
   disable_PIT();
-  
-  // initialize C-library?
-  // this part im not sure about
-  _REENT = &stuff;
-  // this part is correct
-  stdin  = _REENT->_stdin;
-  stdout = _REENT->_stdout;
-  stderr = _REENT->_stderr;
   
   // heap
   extern caddr_t heap_end;
