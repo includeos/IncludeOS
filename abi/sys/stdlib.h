@@ -1,8 +1,9 @@
-#ifndef C11_H
-#define C11_H
+// Our patches / additions to newlibs partial implementation
+#ifndef SYS_STDLIB_H
+#define SYS_STDLIB_H
 
 // More C11 requirements here
-#include <quick_exit>
+#include "quick_exit"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,5 +16,6 @@ void *aligned_alloc( size_t alignment, size_t size );
 #ifdef __cplusplus
 }
 #endif 
+#endif //SYS_STDLIB_H
 
-#endif //C11_H
+#incude_next <stdlib.h>
