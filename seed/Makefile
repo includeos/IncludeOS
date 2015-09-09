@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
+OPTIONS = -Os -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -20,7 +20,7 @@ LD  = $(OSDIR)/bin/i686-elf-ld
 INCLUDES = -I$(OSDIR)/abi -I$(OSLIB)/include -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++11 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld -flto
 
 
 # Objects
@@ -38,7 +38,7 @@ CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o
