@@ -18,7 +18,7 @@ LD  = $(OS)/bin/i686-elf-ld
 GCC_VER = $(shell $(GPP) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
+INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 all: CAPABS  =  -msse3 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
@@ -39,7 +39,7 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
-						 crt/c_abi.o crt/c11.o crt/string.o crt/cxx_abi.o util/memstream.o \
+						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
@@ -133,7 +133,7 @@ install: #os.a bootloader
 %.o: %.c
 	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
-%.o: %.cpp
+%.o: %.cpp 
 	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
