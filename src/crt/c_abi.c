@@ -61,26 +61,38 @@ int* __errno_location(void)
 
 int access(const char *pathname, int mode)
 {
-	return 0;
+	(void) pathname;
+  (void) mode;
+  
+  return 0;
 }
 char* getcwd(char *buf, size_t size)
 {
+  (void) buf;
+  (void) size;
 	return 0;
 }
 int fcntl(int fd, int cmd, ...)
 {
+  (void) fd;
+  (void) cmd;
 	return 0;
 }
-int fchmod(int fildes, mode_t mode)
+int fchmod(int fd, mode_t mode)
 {
+  (void) fd;
+  (void) mode;
 	return 0;
 }
 int mkdir(const char *pathname, mode_t mode)
 {
+  (void) pathname;
+  (void) mode;
 	return 0;
 }
 int rmdir(const char *pathname)
 {
+  (void) pathname;
 	return 0;
 }
 
@@ -93,5 +105,7 @@ int gettimeofday(struct timeval *__restrict tv,
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
+  (void) tv;
+  (void) tz;
 	return 0;
 }
