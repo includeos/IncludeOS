@@ -31,7 +31,7 @@ namespace net
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
       _ip4(_ip4_list[0],_netmask_list[0])
   {
-    printf("<IP Stack> Constructor\n");
+    debug("<IP Stack> Constructor\n");
     
     // For now we're just using the one interface
     auto& eth0 = Dev::eth(0);
@@ -53,6 +53,7 @@ namespace net
     auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(_ip4));
     auto icmp4_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
     auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
+    auto tcp_bottom(upstream::from<TCP,&TCP::bottom>(_tcp));
     
     /** Upstream wiring  */
     
@@ -66,8 +67,12 @@ namespace net
     _eth.set_ip4_handler(ip4_bottom);
     // IP4 -> ICMP
     _ip4.set_icmp_handler(icmp4_bottom);
+    
     // IP4 -> UDP
     _ip4.set_udp_handler(udp4_bottom);
+    
+    // IP4 -> UDP
+    _ip4.set_tcp_handler(tcp_bottom);
     
    
     /** Downstream delegates */
@@ -85,7 +90,7 @@ namespace net
     // ICMP -> IP4
     _icmp.set_network_out(ip4_top);
     
-    // UDP -> IP4
+    // UDP4 -> IP4
     _udp.set_network_out(ip4_top);
 
     // IP4 -> Arp    

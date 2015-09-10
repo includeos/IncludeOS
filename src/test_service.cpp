@@ -15,6 +15,7 @@ public:
     printf("Test(%d) constructor called\n", t);
   }
 };
+
 Test test;
 Test test2(2);
 
@@ -32,6 +33,7 @@ void Service::start()
   std::cout << "test " << std::endl;
   
   net::Inet4* inet = net::Inet4::up();
+  std::cout << "Service IP address: " << net::Inet4::ip4(net::ETH0) << std::endl;
   
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
@@ -92,7 +94,7 @@ void Service::start()
   
   // at_quick_exit(my_exit);
   at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });
-  quick_exit(0);
+  //quick_exit(0);
   
-  printf("*** DONE *** \n");
+  printf("*** SERVICE STARTED *** \n");
 }

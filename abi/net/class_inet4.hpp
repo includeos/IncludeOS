@@ -8,6 +8,7 @@
 #include <net/class_ip4.hpp>
 #include <net/class_icmp.hpp>
 #include <net/class_udp.hpp>
+#include <net/class_tcp.hpp>
 
 #include <vector>
 
@@ -75,7 +76,7 @@ namespace net {
     IP4  _ip4;
     ICMP _icmp;
     UDP  _udp;
-    
+    TCP _tcp;
     
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
