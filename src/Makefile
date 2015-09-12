@@ -117,7 +117,7 @@ install: #os.a bootloader
 	cp bootloader $(OS)/
 	cp os.a $(OS)/lib
 	cp libc++abi.a $(OS)/lib
-	cp libc++.a $(OS)/lib
+	#cp libc++.a $(OS)/lib # This is now handled by ../install.sh 
 	mkdir -p $(OS)/crt
 	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
 	cp -r ../abi $(OS)/
