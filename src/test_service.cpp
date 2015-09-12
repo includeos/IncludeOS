@@ -61,19 +61,8 @@ void Service::start()
   
   }
   
-  std::cout << "If" << std::endl;
-  std::cout << "you" << std::endl;
-  std::cout << "can" << std::endl;
-  std::cout << "see" << std::endl;
-  std::cout << "this" << std::endl;
-  std::cout << "then" << std::endl;
-  std::cout << "std::cout" << std::endl;
-  std::cout << "may" << std::endl;
-  std::cout << "just" << std::endl;
-  std::cout << "be" << std::endl;
-  std::cout << "working" << std::endl;
-  std::cout << "!" << std::endl;
-
+  std::cout << "std::cout works and so does" << std::endl;
+  std::cout << "std::endl" << std::endl;
 
   std::vector<int> integers={1,2,3};
   std::map<const char*, int> map_of_ints={std::make_pair("First",42) , std::make_pair("Second",43)};
@@ -95,6 +84,9 @@ void Service::start()
   // at_quick_exit(my_exit);
   at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });
   //quick_exit(0);
+  
+  
+  net::TCP::Socket sock =  inet->tcp().bind(80);
   
   printf("*** SERVICE STARTED *** \n");
 }

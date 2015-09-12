@@ -43,10 +43,10 @@ namespace net {
         IP4::addr ip,
         IP4::addr netmask);
     
-    inline static IP4::addr ip4(netdev nic)
+    static inline IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
         
-    static Inet4* up(){
+    static inline Inet4* up(){
       if (_ip4_list.size() < 1)
 	panic("<Inet> Can't bring up IP stack without any IP addresses");
       
@@ -57,6 +57,8 @@ namespace net {
       return instance;
       
     };
+    
+    inline TCP& tcp(){ return _tcp; }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
     
