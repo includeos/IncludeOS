@@ -44,7 +44,49 @@ namespace net {
       IP4::ip_header ip_hdr;
       tcp_header tcp_hdr;      
     }__attribute__((packed));
+        
     
+    class Socket {
+    public:
+      enum State {
+	CLOSED, LISTEN, SYN_SENT, SYN_RECIEVED, ESTABLISHED, CLOSE_WAIT, LAST_ACK, FIN_WAIT1, FIN_WAIT2,CLOSING,TIME_WAIT
+      };
+      
+      void write(std::string s);
+      std::string read(int n=0);
+      void close();
+      Socket& accept();
+      
+      void listen(int backlog);
+      
+      inline State poll(){ return state_; }
+
+      Socket(TCP& stack);
+
+      // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
+      int bottom(std::shared_ptr<Packet>& pckt); 
+      
+    private:      
+      size_t backlog_ = 1000;
+      State state_ = CLOSED;
+      
+      // Local end (Local IP is determined by the TCP-object)
+      port local_port_;      
+      TCP& local_stack_;
+      
+      // Remote end
+      IP4::addr dest_;
+      port dport_;
+            
+      //int transmit(std::shared_ptr<Packet>& pckt);
+
+      std::map<std::pair<IP4::addr,port>, Socket > connections;
+      
+    }; // Socket class end
+    
+    
+    Socket& bind(port);
+    Socket& connect(IP4::addr, port);
     
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)
@@ -56,6 +98,10 @@ namespace net {
     TCP();
     
   private:
+    size_t socket_backlog = 1000;
+    // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
+    // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
+    std::map<port, Socket> listeners;
     downstream _network_layer_out;
     
   };
