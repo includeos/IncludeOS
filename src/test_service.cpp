@@ -84,9 +84,10 @@ void Service::start()
   // at_quick_exit(my_exit);
   at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });
   //quick_exit(0);
-  
-  
+  net::TCP& tcp = inet->tcp();
+  printf("SERVICE: %i open ports in TCP @ %p \n",tcp.openPorts(), &tcp);
   net::TCP::Socket sock =  inet->tcp().bind(80);
-  
+  printf("SERVICE: %i open ports in TCP @ %p \n",inet->tcp().openPorts(), &(inet->tcp()));
+
   printf("*** SERVICE STARTED *** \n");
 }

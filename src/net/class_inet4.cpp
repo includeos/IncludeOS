@@ -29,9 +29,9 @@ namespace net
 
   Inet4::Inet4() :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-      _ip4(_ip4_list[0],_netmask_list[0])
+    _ip4(_ip4_list[0],_netmask_list[0]), _tcp()
   {
-    debug("<IP Stack> Constructor\n");
+    debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());
     
     // For now we're just using the one interface
     auto& eth0 = Dev::eth(0);

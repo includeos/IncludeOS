@@ -34,7 +34,7 @@ void PCI_manager::init()
   uint32_t id = PCI_WTF;
   PCI_Device* dev = nullptr;
   
-  for (uint16_t pci_addr = 0; pci_addr < 256; pci_addr++)
+  for (uint16_t pci_addr = 0; pci_addr < 255; pci_addr++)
   {
     id = PCI_Device::read_dword(pci_addr, PCI_CONFIG_VENDOR);
     if (id != PCI_WTF)

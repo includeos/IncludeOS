@@ -28,14 +28,14 @@ namespace net {
     };
     
     enum flags {
-      NS = 8,
-      CWR = 7,
-      ECE = 6,
-      URG = 5,
-      ACK = 4,
-      PSH = 3,
-      RST = 2,
-      SYN = 1,
+      NS = (1 << 8),
+      CWR = (1 << 7),
+      ECE = (1 << 6),
+      URG = (1 << 5),
+      ACK = (1 << 4),
+      PSH = (1 << 3),
+      RST = (1 << 2),
+      SYN = (1 << 1),
       FIN = 0,
     };
     
@@ -44,29 +44,39 @@ namespace net {
       IP4::ip_header ip_hdr;
       tcp_header tcp_hdr;      
     }__attribute__((packed));
-        
+
+    
+    TCP(TCP&) = delete;
+    TCP(TCP&&) = delete;
     
     class Socket {
     public:
       enum State {
-	CLOSED, LISTEN, SYN_SENT, SYN_RECIEVED, ESTABLISHED, CLOSE_WAIT, LAST_ACK, FIN_WAIT1, FIN_WAIT2,CLOSING,TIME_WAIT
+	CLOSED, LISTEN, SYN_SENT, SYN_RECIEVED, ESTABLISHED, 
+	CLOSE_WAIT, LAST_ACK, FIN_WAIT1, FIN_WAIT2,CLOSING,TIME_WAIT
       };
       
-      void write(std::string s);
+      // Common parts
       std::string read(int n=0);
+      void write(std::string s);
       void close();
-      Socket& accept();
-      
-      void listen(int backlog);
-      
       inline State poll(){ return state_; }
-
+      
+      // Server parts
+      Socket& accept();     
+      void listen(int backlog);      
+      
+      // Constructor
       Socket(TCP& stack);
 
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
       int bottom(std::shared_ptr<Packet>& pckt); 
       
     private:      
+      
+      // A private constructor for allowing a listening socket to create connections
+      Socket(TCP& local_stack, port local_port, IP4::addr rempte_ip, port remote_port, State state);
+
       size_t backlog_ = 1000;
       State state_ = CLOSED;
       
@@ -75,11 +85,13 @@ namespace net {
       TCP& local_stack_;
       
       // Remote end
-      IP4::addr dest_;
-      port dport_;
-            
+      IP4::addr remote_addr_;
+      port remote_port_;
+      
+      void ack(std::shared_ptr<Packet>& pckt); 
+      
+      // Transmission happens out through TCP& object
       //int transmit(std::shared_ptr<Packet>& pckt);
-
       std::map<std::pair<IP4::addr,port>, Socket > connections;
       
     }; // Socket class end
@@ -87,6 +99,7 @@ namespace net {
     
     Socket& bind(port);
     Socket& connect(IP4::addr, port);
+    inline size_t openPorts(){ return listeners.size(); }
     
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)

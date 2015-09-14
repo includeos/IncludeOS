@@ -14,6 +14,8 @@
 
 #include <class_nic.hpp>
 
+#define DEBUG 1
+
 namespace net {
 
   /** Nic names. Only used to bind nic to IP. */
@@ -58,7 +60,7 @@ namespace net {
       
     };
     
-    inline TCP& tcp(){ return _tcp; }
+    inline TCP& tcp(){ printf("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
     
