@@ -3,6 +3,8 @@
 
 #include <net/class_ip4.hpp>
 
+#define DEBUG 1
+
 namespace net {
 
 
@@ -63,7 +65,24 @@ namespace net {
       inline State poll(){ return state_; }
       
       // Server parts
-      Socket& accept();     
+      // Posix-style accept doesn't really make sense here, as we don't block
+      // Socket& accept();     
+      
+      // Connections (accepted sockets) will be delegated to this kind of handler
+      typedef delegate<void(Socket&)> connection_handler;
+      
+      // This is the default handler
+      inline void drop(Socket&){ debug("<Socket::drop> Default handler dropping connection \n"); }
+      
+      // Assign the "accept-delegate" to the default handler
+      connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
+      
+      // Our version of "Accept"
+      inline void onConnect(connection_handler handler){
+	debug("<TCP::Socket> Registered new connection handler \n");
+	accept_handler_ = handler;
+      }      
+      
       void listen(int backlog);      
       
       // Constructor
@@ -89,6 +108,7 @@ namespace net {
       port remote_port_;
       
       void ack(std::shared_ptr<Packet>& pckt); 
+      void syn_ack(std::shared_ptr<Packet>& pckt); 
       
       // Transmission happens out through TCP& object
       //int transmit(std::shared_ptr<Packet>& pckt);
@@ -104,9 +124,14 @@ namespace net {
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)
     { _network_layer_out = del; }
+    
+    inline int transmit(std::shared_ptr<Packet>& pckt){
+      // Sockets are doing the actual work
+      return _network_layer_out(pckt);
+    };
   
     int bottom(std::shared_ptr<Packet>& pckt);    
-    int transmit(std::shared_ptr<Packet>& pckt);
+
     
     TCP();
     

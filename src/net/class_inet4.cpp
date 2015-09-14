@@ -65,13 +65,14 @@ namespace net
     
     // Eth -> IP4
     _eth.set_ip4_handler(ip4_bottom);
+    
     // IP4 -> ICMP
     _ip4.set_icmp_handler(icmp4_bottom);
     
     // IP4 -> UDP
     _ip4.set_udp_handler(udp4_bottom);
     
-    // IP4 -> UDP
+    // IP4 -> TCP
     _ip4.set_tcp_handler(tcp_bottom);
     
    
@@ -92,6 +93,10 @@ namespace net
     
     // UDP4 -> IP4
     _udp.set_network_out(ip4_top);
+    
+    // TCP -> IP4
+    _tcp.set_network_out(ip4_top);
+
 
     // IP4 -> Arp    
     _ip4.set_linklayer_out(arp_top);

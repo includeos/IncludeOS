@@ -60,7 +60,7 @@ namespace net {
       
     };
     
-    inline TCP& tcp(){ printf("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
+    inline TCP& tcp(){ debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
     
