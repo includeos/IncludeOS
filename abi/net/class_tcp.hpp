@@ -20,14 +20,32 @@ namespace net {
       uint32_t ack_nr;
       union {
 	uint16_t whole;
-	uint8_t offset;
-	uint8_t flags;
+	struct{
+	  uint8_t offs_res;
+	  uint8_t flags;
+	};
       }offs_flags;
       uint16_t win_size;
       uint16_t checksum;
       uint16_t urg_ptr;
-      uint32_t options[1]; // 1 to 10 32-bit words  
-    };
+      uint32_t options[0]; // 0 to 10 32-bit words  
+    }__attribute__((packed));
+
+    /** TCP Pseudo header, for checksum calculation */
+    struct pseudo_header{
+      IP4::addr saddr;
+      IP4::addr daddr;
+      uint8_t zero;
+      uint8_t proto;
+      uint16_t tcp_length;      
+    }__attribute__((packed));
+    
+    /** TCP Checksum-header (TCP-header + pseudo-header */    
+    struct checksum_header{
+      pseudo_header pseudo_hdr;
+      tcp_header tcp_hdr;
+    }__attribute__((packed));
+
     
     enum flags {
       NS = (1 << 8),
@@ -86,15 +104,17 @@ namespace net {
       void listen(int backlog);      
       
       // Constructor
-      Socket(TCP& stack);
-
+      Socket(TCP& stack);      
+      Socket(TCP& local_stack, port local_port, State state);
+      
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
       int bottom(std::shared_ptr<Packet>& pckt); 
-      
+
     private:      
       
       // A private constructor for allowing a listening socket to create connections
       Socket(TCP& local_stack, port local_port, IP4::addr rempte_ip, port remote_port, State state);
+
 
       size_t backlog_ = 1000;
       State state_ = CLOSED;
@@ -125,10 +145,7 @@ namespace net {
     inline void set_network_out(downstream del)
     { _network_layer_out = del; }
     
-    inline int transmit(std::shared_ptr<Packet>& pckt){
-      // Sockets are doing the actual work
-      return _network_layer_out(pckt);
-    };
+    int transmit(std::shared_ptr<Packet>& pckt);
   
     int bottom(std::shared_ptr<Packet>& pckt);    
 
@@ -141,6 +158,9 @@ namespace net {
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
     std::map<port, Socket> listeners;
     downstream _network_layer_out;
+    uint16_t checksum(full_header* hdr);
+    
+    static void set_offset(tcp_header* hdr, uint8_t offset);
     
   };
   
