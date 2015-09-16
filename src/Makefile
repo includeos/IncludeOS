@@ -21,16 +21,18 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-all: CAPABS  =  -msse3 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
-debug: CAPABS = -msse3 -O0
-stripped: CAPABS = -msse3 -Os
+CAPABS_COMMON =  -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE) -Ofast
+
+all: CAPABS  =  $(CAPABS_COMMON) -O2  
+debug: CAPABS = $(CAPABS_COMMON) -O0
+stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
 
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld -flto
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 
 
 # Objects
@@ -44,7 +46,7 @@ OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-						 net/class_udp.o net/class_tcp.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
+						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
 						 net/class_packet.o net/dns/dns.o
 
 # Libraries
@@ -66,8 +68,9 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 all: bootloader libc++abi.a os.a 
 	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
+all: test
 
-stripped: LDOPTS += -s #strip all
+#stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
 stripped: test
 

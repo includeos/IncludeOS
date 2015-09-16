@@ -1,3 +1,8 @@
+#! /bin/bash
+set -e # Exit immediately on error (we're trapping the exit signal)
+trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
+trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
+
 #
 # NOTE THE FOLLOWING VARIABLES HAS TO BE DEFINED:
 #
@@ -148,3 +153,6 @@ cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS
 # make cxx
 # make cxxabi
 # unwind
+
+
+trap - EXIT

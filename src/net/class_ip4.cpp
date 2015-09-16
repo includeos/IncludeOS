@@ -1,5 +1,5 @@
 #define DEBUG // Allow debugging
-//#define DEBUG2 // Allow debug lvl 2
+#define DEBUG2 // Allow debug lvl 2
 #include <os>
 #include <net/class_ip4.hpp>
 
