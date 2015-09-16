@@ -21,15 +21,11 @@ namespace net
     _ip4_list[i]     = ip;
     _netmask_list[i] = netmask;
     
-    //_ip6_list.insert(i);
-    
-    register void* sp asm ("sp");
-    printf("ifconfig stack: %p\n", sp);
-    
     _ip6_list[i]     = ip6;
-    printf("ifconfig ipv6 %s\n", _ip6_list[i].to_string().c_str());
+    debug("ifconfig ipv6 addr: %s\n", _ip6_list[i].to_string().c_str());
     
-    debug("<Inet> I now have %lu IP's\n", _ip4_list.size());
+    debug("<Inet> I now have %lu IPv4's\n", _ip4_list.size());
+    debug("<Inet> I now have %lu IPv6's\n", _ip6_list.size());
   }
 
   Inet::Inet() :

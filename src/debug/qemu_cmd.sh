@@ -1,5 +1,5 @@
 
-export QEMU="qemu-system-i386 -smp 1"
+export QEMU="kvm -smp 1"  #"qemu-system-i386 -smp 1"
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor
@@ -20,7 +20,7 @@ export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=ne
 #export DEV_GRAPHICS="-vga std"
 export DEV_GRAPHICS="--nographic"
 
-export DEV_HDD="-hda test_service.img" #"-hda $1"
+export DEV_HDD="-hda $IMAGE" #"-hda $1"
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
 
 

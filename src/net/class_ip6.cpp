@@ -11,9 +11,6 @@ namespace net
   IP6::IP6(const IP6::addr& lo)
   //  : local(lo)
   {
-    int ttt;
-    printf("IP6: stack: %p\n", &ttt);
-    
     printf("IP6 constructor, addr = %s\n", lo.to_string().c_str());
     assert(sizeof(addr)   == 16);
     assert(sizeof(header) == 40);
@@ -28,23 +25,23 @@ namespace net
     {
     case PROTO_HOPOPT:
     case PROTO_OPTSv6:
-      {
-        std::cout << ">>> IPv6 options header " << protocol_name(next) << std::endl;
-        
-        options_header& opts = *(options_header*) reader;
-        reader += opts.size();
-        
-        std::cout << "OPTSv6 size: " << opts.size() << std::endl;
-        std::cout << "OPTSv6 ext size: " << opts.extended() << std::endl;
-        
-        next = opts.next();
-        std::cout << "OPTSv6 next: " << protocol_name(next) << std::endl;
-      } break;
+    {
+      std::cout << ">>> IPv6 options header " << protocol_name(next) << std::endl;
+      
+      options_header& opts = *(options_header*) reader;
+      reader += opts.size();
+      
+      std::cout << "OPTSv6 size: " << opts.size() << std::endl;
+      std::cout << "OPTSv6 ext size: " << opts.extended() << std::endl;
+      
+      next = opts.next();
+      std::cout << "OPTSv6 next: " << protocol_name(next) << std::endl;
+    } break;
     case PROTO_ICMPv6:
-        break;
+      break;
     case PROTO_UDP:
-        break;
-        
+      break;
+      
     default:
       std::cout << "Not parsing " << protocol_name(next) << std::endl;
     }
@@ -79,12 +76,13 @@ namespace net
       auto it = proto_handlers.find(next);
       if (it != proto_handlers.end())
       {
-          pckt->_payload = reader;
-          return it->second(pckt);
+        // forward packet to handler
+        pckt->_payload = reader;
+        return it->second(pckt);
       }
       else
-          // just print information
-          next = parse6(reader, next);
+        // just print information
+        next = parse6(reader, next);
     }
     
     std::cout << std::endl;

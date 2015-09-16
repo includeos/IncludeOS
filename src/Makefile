@@ -47,7 +47,7 @@ OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
 						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
-						 net/class_packet.o net/dns/dns.o
+						 net/class_packet.o net/dns/dns.o net/ip6/icmp6.o net/ip6/udp6.o
 
 # Libraries
 ###################################################
@@ -104,6 +104,10 @@ test_service.o: test_service.cpp
 test: test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
+
+test6: test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test IPv6 service"
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
 # OS libraries
 ###################################################
@@ -170,6 +174,6 @@ clean:
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
-	$(RM) test_service.o test_service test_service.img
+	$(RM) test_service.o test_ipv6.o test_service test_service.img
 
 -include $(OS_DEPS)
