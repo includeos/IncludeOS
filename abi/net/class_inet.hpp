@@ -6,9 +6,12 @@
 #include <net/class_ethernet.hpp>
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>
-#include <net/class_ip6.hpp>
 #include <net/class_icmp.hpp>
 #include <net/class_udp.hpp>
+#include "ip6/ip6.hpp"
+#include "ip6/icmp6.hpp"
+#include "ip6/udp6.hpp"
+
 
 #include <vector>
 

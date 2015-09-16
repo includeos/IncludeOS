@@ -1,14 +1,17 @@
 #pragma once
 
-#include <x86intrin.h>
-#include <net/class_packet.hpp>
-#include <net/util.hpp>
+#include "../class_packet.hpp"
+#include "../util.hpp"
+#include "ip6.hpp"
 
 namespace net
 {
   class ICMPv6
   {
   public:
+    //ICMPv6(IP6& ip6_parent)
+    //  : ip6(ip6_parent) {}
+    
     struct icmp6_header
     {
       uint8_t  type_;
@@ -18,7 +21,6 @@ namespace net
     
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
-    
   };
   
   class PacketICMP6 : public Packet

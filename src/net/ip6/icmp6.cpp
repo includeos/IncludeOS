@@ -1,7 +1,5 @@
 #include <net/ip6/icmp6.hpp>
 
-#include <net/class_ip6.hpp>
-#include <net/util.hpp>
 #include <iostream>
 
 namespace net

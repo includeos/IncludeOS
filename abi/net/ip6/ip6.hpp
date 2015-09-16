@@ -1,11 +1,9 @@
-#ifndef CLASS_IP6_HPP
-#define CLASS_IP6_HPP
+#ifndef NET_IP6_IP6_HPP
+#define NET_IP6_IP6_HPP
 
 #include <delegate>
-#include <net/inet.hpp>
-#include <net/class_ethernet.hpp>
-#include <net/ip6/icmp6.hpp>
-#include <net/ip6/udp6.hpp>
+//#include "../inet.hpp"
+#include "../class_ethernet.hpp"
 
 #include <iostream>
 #include <string>
@@ -36,9 +34,6 @@ namespace net
       PROTO_NoNext = 59, // no next-header
       PROTO_OPTSv6 = 60, // dest options
     };
-    
-    /** Handle IPv6 packet. */
-    int bottom(std::shared_ptr<Packet>& pckt);
     
     struct addr
     {
@@ -176,6 +171,9 @@ namespace net
         return "Unknown: " + std::to_string(protocol);
       }
     }
+    
+    // handler for upstream IPv6 packets
+    int bottom(std::shared_ptr<Packet>& pckt);
     
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)

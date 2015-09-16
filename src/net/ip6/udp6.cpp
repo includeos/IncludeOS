@@ -17,10 +17,13 @@ namespace net
     std::cout << "length: " << P6->getLength() << "b" << std::endl;
     printf("chksum: 0x%x\n", P6->getChecksum());
     
+    /*
     uint16_t length = P6->getLength();
     const char* data = P6->getData();
     
     std::cout << "data: " << std::string(data, length) << std::endl;
+    */
+    
     return -1;
   }
 }

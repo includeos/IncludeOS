@@ -1,8 +1,8 @@
 #pragma once
 
-#include <x86intrin.h>
-#include <net/class_packet.hpp>
-#include <net/util.hpp>
+#include "../class_packet.hpp"
+#include "../util.hpp"
+#include "ip6.hpp"
 #include <map>
 
 namespace net
@@ -25,6 +25,15 @@ namespace net
     
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
+    
+    bool listen(port_t port, listener_t func)
+    {
+      if (listeners.find(port) != listeners.end())
+        return false;
+      
+      listeners[port] = func;
+      return true;
+    }
     
   protected:
     std::map<port_t, listener_t> listeners;

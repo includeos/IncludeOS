@@ -1,7 +1,7 @@
-#ifndef INET
-#define INET
+#ifndef NET_INET
+#define NET_INET
 
-#include <net/class_inet.hpp>
+#include "class_inet.hpp"
 
 
 #endif

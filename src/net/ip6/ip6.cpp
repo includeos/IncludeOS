@@ -1,22 +1,17 @@
 //#define DEBUG // Allow debugging
 #include <os>
-#include <net/class_ip6.hpp>
-#include <net/ip6/icmp6.hpp>
-#include <net/ip6/udp6.hpp>
+#include <net/ip6/ip6.hpp>
 
 #include <assert.h>
 
 namespace net
 {
   IP6::IP6(const IP6::addr& lo)
-  //  : local(lo)
+    : local(lo)
   {
-    printf("IP6 constructor, addr = %s\n", lo.to_string().c_str());
     assert(sizeof(addr)   == 16);
     assert(sizeof(header) == 40);
     assert(sizeof(options_header) == 8);
-    
-    this->local = lo;
   }
   
   uint8_t IP6::parse6(uint8_t*& reader, uint8_t next)
@@ -59,14 +54,14 @@ namespace net
     
     header& hdr = full.ip6_hdr;
     
-    std::cout << "IPv6 v: " << hdr.version() << " \t";
-    std::cout << "class: " << hdr.tclass() << " \t";
+    std::cout << "IPv6 v: " << (int) hdr.version() << " \t";
+    std::cout << "class: "  << (int) hdr.tclass()  << " \t";
     
     std::cout << "size: " << hdr.size() << " bytes" << std::endl;
     
     uint8_t next = hdr.next();
-    std::cout << "IPv6 next hdr: " << protocol_name(next) << std::endl;
-    std::cout << "IPv6 hoplimit: " << hdr.hoplimit() << " hops" << std::endl;
+    std::cout << "IPv6 next hdr: " << protocol_name(next)  << std::endl;
+    std::cout << "IPv6 hoplimit: " << (int) hdr.hoplimit() << " hops" << std::endl;
     
     std::cout << "IPv6 src: " << hdr.source() << std::endl;
     std::cout << "IPv6 dst: " << hdr.dest() << std::endl;
