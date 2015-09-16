@@ -66,8 +66,8 @@ void TCP::Socket::syn_ack(std::shared_ptr<Packet>& pckt){
   full_hdr->ip_hdr.daddr = dest_addr;
   
   debug("<TCP::Socket::syn_ack> Source port: %i, Destination port: %i (Local port is %i) \n", hdr->sport, hdr->dport, local_port_);
-
   
+  pckt->set_len(sizeof(full_header));
   local_stack_.transmit(pckt);
   
 }
@@ -84,14 +84,18 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
   auto raw_flags = hdr->offs_flags.flags;
   auto raw_offset = hdr->offs_flags.offs_res;
   
+  auto dest_addr = full_hdr->ip_hdr.saddr;
+  auto dest_port = hdr->sport;
+  auto remote = std::make_pair(dest_addr,dest_port);
+  
   
   debug("<TCP::Socket::bottom> Source port %i, Dest. port: %i, Flags raw: 0x%x, Flags reversed: 0x%x \n",
 	ntohs(hdr->sport), ntohs(hdr->dport),raw_flags,flags);
   
   
-debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", raw_offset,(int)offset, offset*4);
+  debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", raw_offset,(int)offset, offset*4);
+  
   if (flags & SYN) {       
-
     
     if (! (flags & ACK)) {
       debug("<TCP::Socket::bottom> SYN-packet; new connection \n");
@@ -103,10 +107,6 @@ debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", 
       }
       
       // New connection 
-      // (or pick out existing one - no need to que up multiple connections from same client)
-      auto dest_addr = full_hdr->ip_hdr.saddr;
-      auto dest_port = hdr->sport;
-      auto remote = std::make_pair(dest_addr,dest_port);
       
       if (connections.find(remote) != connections.end()){
 	debug("<TCP::Socket::bottom> Remote host allready queued. \n");
@@ -123,7 +123,8 @@ debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", 
       // ACCEPT
       syn_ack(pckt);
       //accept_handler_(connections.at(remote));
-      
+
+
       return 0;
       
     }else {
@@ -134,7 +135,32 @@ debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", 
   
   if (flags & ACK) {
     debug("<TCP::Socket::bottom> ACK \n");
-    assert(state_ == SYN_RECIEVED);
+    // assert(state_ == SYN_RECIEVED);
+    
+    switch (state_) {
+      
+    case LISTEN: 
+      {
+	auto conn_it = connections.find(remote);
+	
+	if (conn_it == connections.end()){
+	  debug("<TCP::Socket::bottom> ACK-packet for non-connected remote host (incomplete handshake) \n");
+	  return 0;
+	}
+	
+	(*conn_it).second.bottom(pckt);
+	
+	
+      break;
+      }
+    case SYN_RECIEVED:
+      debug("<TCP::Socket::bottom> SYN, SYN-ACK and now ACK. CONNECTED! \n");
+      panic("SUCCESS! ... just can't write more code right now");
+      break;
+      
+      
+    }
+    
   }
   
   return 0;

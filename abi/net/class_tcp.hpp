@@ -150,17 +150,20 @@ namespace net {
     int bottom(std::shared_ptr<Packet>& pckt);    
 
     
-    TCP();
+    TCP(IP4::addr);
     
   private:
     size_t socket_backlog = 1000;
+    IP4::addr local_ip_;
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
     std::map<port, Socket> listeners;
     downstream _network_layer_out;
-    uint16_t checksum(full_header* hdr);
+    uint16_t checksum(std::shared_ptr<net::Packet>&);
     
     static void set_offset(tcp_header* hdr, uint8_t offset);
+    static uint8_t get_offset(tcp_header* hdr);
+    static uint8_t header_len(tcp_header* hdr);
     
   };
   

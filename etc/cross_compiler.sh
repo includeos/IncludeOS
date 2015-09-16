@@ -55,27 +55,24 @@ fi
 
 cd $BUILD_DIR
 
-if [ ! -d build_gcc ]; then
-    mkdir -p build_gcc
-    cd build_gcc
 
-    echo -e "\n\n >>> Configuring GCC \n"
-    ../gcc-$gcc_version/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
+mkdir -p build_gcc
+cd build_gcc
 
-    echo -e "\n\n >>> Building GCC \n"
-    make all-gcc $num_jobs
+echo -e "\n\n >>> Configuring GCC \n"
+../gcc-$gcc_version/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
 
-    echo -e "\n\n >>> Installing GCC (Might require sudo) \n"
-    sudo -E make install-gcc
+echo -e "\n\n >>> Building GCC \n"
+make all-gcc $num_jobs
 
-    echo -e "\n\n >>> Building libgcc for target $TARGET \n"
-    make all-target-libgcc $num_jobs
+echo -e "\n\n >>> Installing GCC (Might require sudo) \n"
+sudo -E make install-gcc
 
-    echo -e "\n\n >>> Installing libgcc (Might require sudo) \n"
-    sudo -E make install-target-libgcc
+echo -e "\n\n >>> Building libgcc for target $TARGET \n"
+make all-target-libgcc $num_jobs
 
-else
-    echo -e "\n\n >>> SKIP: Building / Installing GCC + libgcc. Seems to be ok \n" 
-fi
+echo -e "\n\n >>> Installing libgcc (Might require sudo) \n"
+sudo -E make install-target-libgcc
+
 
 trap - EXIT

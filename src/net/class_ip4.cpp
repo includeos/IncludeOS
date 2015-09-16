@@ -1,5 +1,5 @@
-#define DEBUG // Allow debugging
-#define DEBUG2 // Allow debug lvl 2
+// #define DEBUG // Allow debugging
+// #define DEBUG2 // Allow debug lvl 2
 #include <os>
 #include <net/class_ip4.hpp>
 
@@ -51,7 +51,7 @@ int IP4::transmit(std::shared_ptr<Packet>& pckt){
   
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
-
+  
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
   hdr->tot_len = __builtin_bswap16(pckt->len() - sizeof(Ethernet::header));
@@ -69,6 +69,14 @@ int IP4::transmit(std::shared_ptr<Packet>& pckt){
   // Calculate next-hop
   ASSERT(pckt->next_hop().whole == 0);
   
+  // Set destination address to "my ip" 
+  // @TODO Don't know if this is good for routing...
+  hdr->saddr.whole = _local_ip.whole;
+  //ASSERT(! hdr->saddr.whole)
+  
+  
+
+
   addr target_net;
   addr local_net;
   target_net.whole = hdr->daddr.whole & _netmask.whole;
@@ -80,7 +88,7 @@ int IP4::transmit(std::shared_ptr<Packet>& pckt){
         _local_ip.str().c_str(),
         _gateway.str().c_str(),
         target_net == local_net ? "DIRECT" : "GATEWAY");
-    
+        
   pckt->next_hop(target_net == local_net ? hdr->daddr : _gateway);
   debug2("<IP4 transmit> my ip: %s, Next hop: %s \n",
         _local_ip.str().c_str(),

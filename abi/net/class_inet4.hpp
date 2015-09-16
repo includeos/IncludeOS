@@ -85,13 +85,8 @@ namespace net {
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
    */
-    Inet4(Inet4& UNUSED(cpy)) :
-      _ip4(_ip4_list[0],_netmask_list[0])
-    {    
-      printf("<IP Stack> WARNING: Copy-constructing the stack won't work." \
-	     "It should be pased by reference.\n");
-      panic("Trying to copy-construct IP stack");
-    }
+    Inet4(Inet4&) = delete;
+    Inet4(Inet4&&) = delete;
     
     Inet4(std::vector<IP4::addr> ips);
     
