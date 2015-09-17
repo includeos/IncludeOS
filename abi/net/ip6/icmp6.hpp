@@ -19,8 +19,21 @@ namespace net
       uint16_t checksum_;
     };
     
+    // handles ICMP type 128 (echo requests)
+    void echo_request(std::shared_ptr<Packet>& pckt);
+    
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
+    
+    // set the downstream delegate
+    inline void set_ip6_out(downstream del)
+    {
+      this->ip6_out = del;
+    }
+    
+  private:
+    // connection to IP6 layer
+    downstream ip6_out;
   };
   
   class PacketICMP6 : public Packet

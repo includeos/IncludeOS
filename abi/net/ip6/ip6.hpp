@@ -106,6 +106,7 @@ namespace net
       
     private:
       uint32_t scanline[2];
+    public:
       addr     src;
       addr     dst;
     };
@@ -175,10 +176,18 @@ namespace net
     // handler for upstream IPv6 packets
     int bottom(std::shared_ptr<Packet>& pckt);
     
+    // transmit packets to the ether
+    int transmit(std::shared_ptr<Packet>& pckt);
+    
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)
     {
       proto_handlers[proto] = handler;
+    }
+    
+    inline void set_linklayer_out(downstream func)
+    {
+      _linklayer_out = func;
     }
     
   private:

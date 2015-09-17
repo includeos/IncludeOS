@@ -1,6 +1,7 @@
 #include <net/ip6/icmp6.hpp>
 
 #include <iostream>
+#include <net/ip6/ip6.hpp>
 
 namespace net
 {
@@ -8,7 +9,7 @@ namespace net
   {
     std::cout << ">>> IPv6 -> ICMPv6 bottom" << std::endl;
     
-    auto icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
+    auto& icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
     std::cout << "ICMPv6 type: " << icmp->type() << " --> ";
     
     switch (icmp->type())
@@ -68,6 +69,7 @@ namespace net
       /// echo feature ///
     case 128:
       std::cout << "Echo request";
+      echo_request(pckt);
       break;
     case 129:
       std::cout << "Echo reply";
@@ -114,4 +116,29 @@ namespace net
     std::cout << "ICMPv6 checksum: " << (void*) chksum << std::endl;
     return -1;
   }
+  
+  void ICMPv6::echo_request(std::shared_ptr<Packet>& pckt)
+  {
+    uint8_t* reader = pckt->buffer();
+    IP6::full_header& full = *(IP6::full_header*) reader;
+    reader += sizeof(IP6::full_header);
+    
+    IP6::header& hdr = full.ip6_hdr;
+    
+    // retrieve source and destination addresses
+    IP6::addr src = hdr.source();
+    IP6::addr dst = hdr.dest();
+    
+    // switch them around!
+    hdr.src = dst;
+    hdr.dst = src;
+    
+    auto icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
+    // set to ICMP Echo Reply (129)
+    icmp->header().type_ = 129;
+    
+    // send packet downstream
+    ip6_out(pckt);
+  }
+  
 }

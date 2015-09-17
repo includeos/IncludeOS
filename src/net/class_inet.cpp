@@ -75,12 +75,19 @@ namespace net
     // IP4 -> UDP
     _ip4.set_udp_handler(udp4_bottom);
     
-    // Eth -> IP6
+    // Ethernet -> IP6
     _eth.set_ip6_handler(ip6_bottom);
+    // IP6 packet transmission
+    auto ip6_transmit(downstream::from<IP6,&IP6::transmit>(_ip6));
     // IP6 -> ICMP
     _ip6.set_handler(IP6::PROTO_ICMPv6, icmp6_bottom);
+    _icmp6.set_ip6_out(ip6_transmit);
     // IP6 -> UDP
     _ip6.set_handler(IP6::PROTO_UDP, udp6_bottom);
+    
+    // IP6 -> Ethernet
+    auto ip6_to_eth(downstream::from<Ethernet, &Ethernet::transmit>(_eth));
+    _ip6.set_linklayer_out(ip6_to_eth);
     
     /** Downstream delegates */
     auto phys_top(downstream

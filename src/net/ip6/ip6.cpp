@@ -104,4 +104,22 @@ namespace net
     return ret;
   }
   
+  int IP6::transmit(std::shared_ptr<Packet>& pckt)
+  {
+    full_header& full = *(full_header*) pckt->buffer();
+    header& hdr = full.ip6_hdr;
+    
+    // verify that it is IPv6 packet
+    //ASSERT(hdr->dest.major != 0 || hdr->dest.minor !=0);
+    //ASSERT(hdr->type != 0);
+    
+    // set source IPv6-address directly (?)
+    hdr.src = this->local;
+    
+    debug2("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
+           pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
+    
+    return _linklayer_out(pckt);
+  }
+  
 }
