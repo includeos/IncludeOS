@@ -276,7 +276,7 @@ void VirtioNet::service_RX(){
       // We're passing a stack-pointer here. That's dangerous if the packet 
       // is supposed to be kept, somewhere up the stack. 
       auto pckt_ptr = std::make_shared<Packet>
-        (Packet(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM));
+        (Packet(data+sizeof(virtio_net_hdr), len - sizeof(virtio_net_hdr), Packet::UPSTREAM));
       
       _link_out(pckt_ptr); 
     
