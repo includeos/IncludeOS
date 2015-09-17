@@ -121,21 +121,24 @@ namespace net
   {
     uint8_t* reader = pckt->buffer();
     IP6::full_header& full = *(IP6::full_header*) reader;
-    reader += sizeof(IP6::full_header);
-    
     IP6::header& hdr = full.ip6_hdr;
     
     // retrieve source and destination addresses
     IP6::addr src = hdr.source();
-    IP6::addr dst = hdr.dest();
+    //IP6::addr dst = hdr.dest();
     
     // switch them around!
-    hdr.src = dst;
+    hdr.src = this->localIP;
     hdr.dst = src;
     
     auto icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
     // set to ICMP Echo Reply (129)
     icmp->header().type_ = 129;
+    icmp->header().checksum_ = 0;
+    
+    uint16_t* checksum_start = (uint16_t*) &hdr.src;
+    uint16_t  len = pckt->len() - sizeof(Ethernet) - offsetof(IP6::header, src);
+    icmp->header().checksum_ = net::checksum(checksum_start, len);
     
     // send packet downstream
     ip6_out(pckt);

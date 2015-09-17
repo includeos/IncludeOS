@@ -39,11 +39,25 @@ namespace net
     {
       // constructors
       addr()
-        : i64{0, 0} {}
+        : i32{0, 0, 0, 0} {}
+      addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2, 
+           uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
+      {
+        i128 = _mm_set_epi16(
+            //d2, d1, c2, c1, b2, b1, a2, a1);
+            __builtin_bswap16(d2), 
+            __builtin_bswap16(d1), 
+            __builtin_bswap16(c2), 
+            __builtin_bswap16(c1), 
+            __builtin_bswap16(b2), 
+            __builtin_bswap16(b1), 
+            __builtin_bswap16(a2), 
+            __builtin_bswap16(a1));
+      }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-        : i32{a, b, c, d} {}
-      addr(uint64_t top, uint64_t bot)
-        : i64{top, bot} {}
+      {
+        i128 = _mm_set_epi32(a, b, c, d);
+      }
       addr(const addr& a)
         : i128(a.i128) {}
       // move constructor
@@ -58,10 +72,8 @@ namespace net
       union
       {
         __m128i  i128;
-        uint64_t i64[2];
-        uint32_t i32[4];
-        uint16_t i16[8];
-        uint8_t  i8[16];
+        uint32_t  i32[ 4];
+        uint8_t    i8[16];
       };
     } __attribute__((aligned(alignof(__m128i))));
     

@@ -114,7 +114,7 @@ namespace net
     //ASSERT(hdr->type != 0);
     
     // set source IPv6-address directly (?)
-    hdr.src = this->local;
+    //hdr.src = this->local;
     
     debug2("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
            pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());

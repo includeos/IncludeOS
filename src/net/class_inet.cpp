@@ -24,17 +24,16 @@ namespace net
     _ip6_list[i]     = ip6;
     debug("ifconfig ipv6 addr: %s\n", _ip6_list[i].to_string().c_str());
     
-    debug("<Inet> I now have %lu IPv4's", _ip4_list.size());
-    debug("<Inet> I now have %lu IPv6's", _ip6_list.size());
+    debug("<Inet> I now have %lu IPv4's\n", _ip4_list.size());
+    debug("<Inet> I now have %lu IPv6's\n", _ip6_list.size());
   }
 
   Inet::Inet() :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
       _ip4(_ip4_list[0],_netmask_list[0]),
-      _ip6(_ip6_list[0])
+      _ip6(_ip6_list[0]),
+      _icmp6(_ip6_list[0])
   {
-    printf("<IP Stack> Constructor\n");
-    
     // For now we're just using the one interface
     auto& eth0 = Dev::eth(0);
     

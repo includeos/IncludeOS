@@ -53,17 +53,15 @@ namespace net {
     inline static IP6::addr ip6(netdev nic)
     { return _ip6_list[nic]; }
     
-    static Inet* up(){
+    static Inet* up()
+    {
       if (_ip4_list.size() < 1)
-	panic("<Inet> Can't bring up IP stack without any IP addresses");
+        panic("<Inet> Can't bring up IP stack without any IP addresses");
       
-      if (!instance){
-	instance = new Inet();
-	printf("<Inet> instance constructed @ %p\n", instance);
-      }
+      if (!instance)
+          instance = new Inet();
       return instance;
-      
-    };
+    }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
     
@@ -92,14 +90,7 @@ namespace net {
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
    */
-    Inet(Inet& UNUSED(cpy)) :
-      _ip4(_ip4_list[0],_netmask_list[0]),
-      _ip6(ip6(ETH0))
-    {    
-      printf("<IP Stack> WARNING: Copy-constructing the stack won't work." \
-	     "It should be pased by reference.\n");
-      panic("Trying to copy-construct IP stack");
-    }
+    Inet(Inet& UNUSED(cpy)) = delete;
     
     Inet(std::vector<IP4::addr> ips);
     

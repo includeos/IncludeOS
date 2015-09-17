@@ -9,8 +9,8 @@ namespace net
   class ICMPv6
   {
   public:
-    //ICMPv6(IP6& ip6_parent)
-    //  : ip6(ip6_parent) {}
+    ICMPv6(IP6::addr& local_ip)
+      : localIP(local_ip) {}
     
     struct icmp6_header
     {
@@ -34,6 +34,8 @@ namespace net
   private:
     // connection to IP6 layer
     downstream ip6_out;
+    // IP6 instance
+    IP6::addr localIP;
   };
   
   class PacketICMP6 : public Packet
