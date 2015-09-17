@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <net/ip6/ip6.hpp>
+#include <alloca.h>
 
 namespace net
 {
@@ -117,6 +118,34 @@ namespace net
     return -1;
   }
   
+  uint16_t ICMPv6::checksum(std::shared_ptr<Packet>& pckt)
+  {
+    IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
+    IP6::header& hdr = full.ip6_hdr;
+    
+    // ICMP message length + pseudo header
+    uint16_t datalen = sizeof(pseudo_header) + hdr.size() - sizeof(IP6::header);
+    
+    // allocate it on stack
+    char* data = (char*) alloca(datalen);
+    
+    pseudo_header& phdr = *(pseudo_header*) data;
+    phdr.src = hdr.src;
+    phdr.dst = hdr.dst;
+    phdr.zeroes[0] = 0;
+    phdr.zeroes[1] = 0;
+    phdr.zeroes[2] = 0;
+    phdr.next = hdr.next();
+    
+    // normally we would start at &icmp_echo::type, but
+    // it is the first element of the icmp message
+    memcpy(data + sizeof(pseudo_header), pckt->payload(),
+        datalen - sizeof(pseudo_header));
+    
+    // calculate csum and free it on return
+    return net::checksum((uint16_t*) data, datalen);
+  }
+  
   void ICMPv6::echo_request(std::shared_ptr<Packet>& pckt)
   {
     uint8_t* reader = pckt->buffer();
@@ -131,14 +160,17 @@ namespace net
     hdr.src = this->localIP;
     hdr.dst = src;
     
-    auto icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
-    // set to ICMP Echo Reply (129)
-    icmp->header().type_ = 129;
-    icmp->header().checksum_ = 0;
+    auto icmp_packet = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
     
-    uint16_t* checksum_start = (uint16_t*) &hdr.src;
-    uint16_t  len = pckt->len() - sizeof(Ethernet) - offsetof(IP6::header, src);
-    icmp->header().checksum_ = net::checksum(checksum_start, len);
+    icmp6_echo* icmp = (icmp6_echo*) &icmp_packet->header();
+    printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
+    
+    // set to ICMP Echo Reply (129)
+    icmp->type     = 129;
+    icmp->checksum =   0;
+    
+    // calculate and set checksum
+    icmp->checksum = htons(checksum(pckt));
     
     // send packet downstream
     ip6_out(pckt);

@@ -12,11 +12,29 @@ namespace net
     ICMPv6(IP6::addr& local_ip)
       : localIP(local_ip) {}
     
-    struct icmp6_header
+    struct header
     {
       uint8_t  type_;
       uint8_t  code_;
       uint16_t checksum_;
+    };
+    struct pseudo_header
+    {
+      IP6::addr src;
+      IP6::addr dst;
+      uint32_t  len;
+      uint8_t   zeroes[3];
+      uint8_t   next;
+    };
+    
+    struct icmp6_echo
+    {
+      uint8_t  type;
+      uint8_t  code;
+      uint16_t checksum;
+      uint16_t identifier;
+      uint16_t sequence;
+      uint8_t  data[0];
     };
     
     // handles ICMP type 128 (echo requests)
@@ -31,6 +49,9 @@ namespace net
       this->ip6_out = del;
     }
     
+    // calculate checksum of any ICMP message
+    static uint16_t checksum(std::shared_ptr<Packet>& pckt);
+    
   private:
     // connection to IP6 layer
     downstream ip6_out;
@@ -41,13 +62,13 @@ namespace net
   class PacketICMP6 : public Packet
   {
   public:
-    inline ICMPv6::icmp6_header& header()
+    inline ICMPv6::header& header()
     {
-      return *(ICMPv6::icmp6_header*) this->payload();
+      return *(ICMPv6::header*) this->payload();
     }
-    inline const ICMPv6::icmp6_header& header() const
+    inline const ICMPv6::header& header() const
     {
-      return *(ICMPv6::icmp6_header*) this->payload();
+      return *(ICMPv6::header*) this->payload();
     }
     
     uint8_t type() const

@@ -69,7 +69,6 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 all: bootloader libc++abi.a os.a 
 	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
-all: test
 
 #stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
