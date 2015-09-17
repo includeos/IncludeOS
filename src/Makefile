@@ -21,7 +21,7 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS_COMMON =  -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE) -Ofast
+CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2  
 debug: CAPABS = $(CAPABS_COMMON) -O0
@@ -72,7 +72,6 @@ all: bootloader libc++abi.a os.a
 
 #stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
-stripped: test
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)

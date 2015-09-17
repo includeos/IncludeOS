@@ -6,119 +6,126 @@
 
 namespace net
 {
-  int ICMPv6::bottom(std::shared_ptr<Packet>& pckt)
+  std::string ICMPv6::code_string(uint8_t type, uint8_t code)
   {
-    std::cout << ">>> IPv6 -> ICMPv6 bottom" << std::endl;
-    
-    auto& icmp = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
-    std::cout << "ICMPv6 type: " << icmp->type() << " --> ";
-    
-    switch (icmp->type())
+    switch (type)
     {
       /// error codes ///
     case 1:
-      std::cout << "Destination Unreachable " << icmp->code() << ": ";
-      switch (icmp->code())
+      /// delivery problems ///
+      switch (code)
       {
       case 0:
-        std::cout << "No route to destination"; break;
+        return "No route to destination";
       case 1:
-        std::cout << "Communication with dest administratively prohibited"; break;
+        return "Communication with dest administratively prohibited";
       case 2:
-        std::cout << "Beyond scope of source address"; break;
+        return "Beyond scope of source address";
       case 3:
-        std::cout << "Address unreachable"; break;
+        return "Address unreachable";
       case 4:
-        std::cout << "Port unreachable"; break;
+        return "Port unreachable";
       case 5:
-        std::cout << "Source address failed ingress/egress policy"; break;
+        return "Source address failed ingress/egress policy";
       case 6:
-        std::cout << "Reject route to destination"; break;
+        return "Reject route to destination";
       case 7:
-        std::cout << "Error in source routing header"; break;
+        return "Error in source routing header";
       default:
-        std::cout << "ERROR Invalid ICMP type";
-      } break;
+        return "ERROR Invalid ICMP type";
+      }
     case 2:
-      std::cout << "Packet too big";
-      break;
+      /// size problems ///
+      return "Packet too big";
+      
     case 3:
-      std::cout << "Time exceeded " << icmp->code() << ": ";
-      switch (icmp->code())
+      /// time problems ///
+      switch (code)
       {
       case 0:
-        std::cout << "Hop limit exceeded in traffic"; break;
+        return "Hop limit exceeded in traffic";
       case 1:
-        std::cout << "Fragment reassembly time exceeded"; break;
+        return "Fragment reassembly time exceeded";
       default:
-        std::cout << "ERROR Invalid ICMP type";
-      } break;
+        return "ERROR Invalid ICMP code";
+      }
     case 4:
-      std::cout << "Parameter problem " << icmp->code() << ": ";
-      switch (icmp->code())
+      /// parameter problems ///
+      switch (code)
       {
       case 0:
-        std::cout << "Erroneous header field"; break;
+        return "Erroneous header field";
       case 1:
-        std::cout << "Unrecognized next header"; break;
+        return "Unrecognized next header";
       case 2:
-        std::cout << "Unrecognized IPv6 option"; break;
+        return "Unrecognized IPv6 option";
       default:
-        std::cout << "ERROR Invalid ICMP type";
-      } break;
+        return "ERROR Invalid ICMP code";
+      }
       
       /// echo feature ///
     case 128:
-      std::cout << "Echo request";
-      echo_request(pckt);
-      break;
+      return "Echo request";
     case 129:
-      std::cout << "Echo reply";
-      break;
+      return "Echo reply";
       
       /// multicast feature ///
     case 130:
-      std::cout << "Multicast listener query";
-      break;
+      return "Multicast listener query";
     case 131:
-      std::cout << "Multicast listener report";
-      break;
+      return "Multicast listener report";
     case 132:
-      std::cout << "Multicast listener done";
-      break;
+      return "Multicast listener done";
       
       /// neighbor discovery protocol ///
     case 133:
-      std::cout << "NDP Router solicitation request";
-      break;
+      return "NDP Router solicitation request";
     case 134:
-      std::cout << "NDP Router advertisement";
-      break;
+      return "NDP Router advertisement";
     case 135:
-      std::cout << "NDP Neighbor solicitation request";
-      break;
+      return "NDP Neighbor solicitation request";
     case 136:
-      std::cout << "NDP Neighbor advertisement";
-      break;
+      return "NDP Neighbor advertisement";
     case 137:
-      std::cout << "NDP Redirect message";
-      break;
+      return "NDP Redirect message";
       
     case 143:
-      std::cout << "Multicast Listener Discovery (MLDv2) reports (RFC 3810)";
-      break;
+      return "Multicast Listener Discovery (MLDv2) reports (RFC 3810)";
       
     default:
-      std::cout << "Unknown type, code = " << icmp->code();
+      return "Unknown type: " + std::to_string((int) type);
     }
-    std::cout << std::endl;
-    
-    intptr_t chksum = icmp->checksum();
-    std::cout << "ICMPv6 checksum: " << (void*) chksum << std::endl;
-    return -1;
   }
   
-  uint16_t ICMPv6::checksum(std::shared_ptr<Packet>& pckt)
+  
+  int ICMPv6::bottom(std::shared_ptr<Packet>& pckt)
+  {
+    auto icmp = std::static_pointer_cast<PacketICMP6>(pckt); //*reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
+    
+    switch (icmp->type())
+    {
+    case ECHO_REQUEST:
+      echo_request(icmp);
+      return -1;
+      
+    default:
+      return -1;
+      std::cout << ">>> IPv6 -> ICMPv6 bottom" << std::endl;
+      std::cout << "ICMPv6 type " << (int) icmp->type() << ": " << code_string(icmp->type(), icmp->code()) << std::endl;
+      
+      // show correct checksum
+      intptr_t chksum = icmp->checksum();
+      std::cout << "ICMPv6 checksum: " << (void*) chksum << std::endl;
+      
+      // show our recalculated checksum
+      icmp->header().checksum_ = 0;
+      chksum = checksum(icmp);
+      std::cout << "ICMPv6 our estimate: " << (void*) chksum << std::endl;
+      return -1;
+    }
+  }
+  
+  uint16_t ICMPv6::checksum(std::shared_ptr<PacketICMP6>& pckt)
   {
     IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
     IP6::header& hdr = full.ip6_hdr;
@@ -127,7 +134,13 @@ namespace net
     uint16_t datalen = sizeof(pseudo_header) + hdr.size() - sizeof(IP6::header);
     
     // allocate it on stack
-    char* data = (char*) alloca(datalen);
+    char* data = (char*) alloca(datalen + 16);
+    
+    // unfortunately we also need to guarantee SSE aligned
+    #define	P2ALIGN  (x, align)    ((x) & -(align))
+    #define	P2ROUNDUP(x, align)    (-(-(x) & -(align)))
+    
+    data = (char*) P2ROUNDUP((intptr_t) data, 16);
     
     pseudo_header& phdr = *(pseudo_header*) data;
     phdr.src = hdr.src;
@@ -143,10 +156,12 @@ namespace net
         datalen - sizeof(pseudo_header));
     
     // calculate csum and free it on return
-    return net::checksum((uint16_t*) data, datalen);
+    uint16_t chksum = net::checksum((uint16_t*) data, datalen);
+    
+    return chksum;
   }
   
-  void ICMPv6::echo_request(std::shared_ptr<Packet>& pckt)
+  int ICMPv6::echo_request(std::shared_ptr<PacketICMP6>& pckt)
   {
     uint8_t* reader = pckt->buffer();
     IP6::full_header& full = *(IP6::full_header*) reader;
@@ -160,20 +175,21 @@ namespace net
     hdr.src = this->localIP;
     hdr.dst = src;
     
-    auto icmp_packet = *reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
-    
-    icmp6_echo* icmp = (icmp6_echo*) &icmp_packet->header();
+    icmp6_echo* icmp = (icmp6_echo*) &pckt->header();
     printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set to ICMP Echo Reply (129)
-    icmp->type     = 129;
-    icmp->checksum =   0;
+    icmp->type     = ECHO_REPLY;
+    icmp->checksum = 0;
     
     // calculate and set checksum
     icmp->checksum = htons(checksum(pckt));
     
     // send packet downstream
-    ip6_out(pckt);
+    // NOTE: *** ALLOCATED ON STACK *** -->
+    auto original = std::static_pointer_cast<Packet>(pckt);
+    // NOTE: *** ALLOCATED ON STACK *** <--
+    return ip6_out(original);
   }
   
 }

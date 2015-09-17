@@ -6,9 +6,15 @@
 
 namespace net
 {
+  class PacketICMP6;
+  
   class ICMPv6
   {
   public:
+    static const int ECHO_REQUEST = 128;
+    static const int ECHO_REPLY   = 129;
+    
+    
     ICMPv6(IP6::addr& local_ip)
       : localIP(local_ip) {}
     
@@ -38,7 +44,7 @@ namespace net
     };
     
     // handles ICMP type 128 (echo requests)
-    void echo_request(std::shared_ptr<Packet>& pckt);
+    int echo_request(std::shared_ptr<PacketICMP6>& pckt);
     
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
@@ -49,8 +55,15 @@ namespace net
       this->ip6_out = del;
     }
     
+    // message types & codes
+    static inline bool is_error(uint8_t type)
+    {
+      return type < 128;
+    }
+    static std::string code_string(uint8_t type, uint8_t code);
+    
     // calculate checksum of any ICMP message
-    static uint16_t checksum(std::shared_ptr<Packet>& pckt);
+    static uint16_t checksum(std::shared_ptr<PacketICMP6>& pckt);
     
   private:
     // connection to IP6 layer
@@ -82,6 +95,12 @@ namespace net
     uint16_t checksum() const
     {
       return ntohs(header().checksum_);
+    }
+    
+    // transformed back to normal packet
+    std::shared_ptr<Packet>& packet()
+    {
+      return *reinterpret_cast<std::shared_ptr<Packet>*>(this);
     }
  };
   
