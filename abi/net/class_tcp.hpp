@@ -27,6 +27,21 @@ namespace net {
       uint16_t checksum;
       uint16_t urg_ptr;
       uint32_t options[0]; // 0 to 10 32-bit words  
+      
+      // Get the raw tcp offset, in quadruples
+      inline  uint8_t offset(){ return (uint8_t)(offs_flags.offs_res >> 4); }
+      
+      // Set raw TCP offset in quadruples
+      inline void set_offset(uint8_t offset){ offs_flags.offs_res = (offset << 4); }
+    
+      // Get tcp header length including options (offset) in bytes
+      inline uint8_t size(){ return offset() * 4; }
+      
+      // Calculate the full header lenght, down to linklayer, in bytes
+      uint8_t all_headers_len(){
+	return (sizeof(full_header) - sizeof(tcp_header)) + size();
+      };
+
     }__attribute__((packed));
 
     /** TCP Pseudo header, for checksum calculation */
@@ -164,36 +179,15 @@ namespace net {
     
     // Compute the TCP checksum
     uint16_t checksum(std::shared_ptr<net::Packet>&);
-        
-    // Get the raw tcp offset, in quadruples
-    static inline  uint8_t get_offset(tcp_header* hdr){
-      return (uint8_t)(hdr->offs_flags.offs_res >> 4);
-    };
-    
-    // Set raw TCP offset in quadruples
-    static inline void set_offset(tcp_header* hdr, uint8_t offset){
-      offset <<= 4;
-      hdr->offs_flags.offs_res = offset;
-    };
-    
-    // Get tcp header length including options (offset) in bytes
-    static inline uint8_t header_len(tcp_header* hdr){
-        return get_offset(hdr) * 4;
-    };
-    
-    // Calculate the full header lenght, down to linklayer, in bytes
-    static uint8_t all_headers_len(tcp_header* hdr){
-      return (sizeof(full_header) - sizeof(tcp_header)) + header_len(hdr);  
-    };
-    
+            
     // Get the length of actual data in bytes
     static inline uint16_t data_length(std::shared_ptr<Packet>& pckt){
-      return pckt->len() - all_headers_len(&((full_header*)pckt->buffer())->tcp_hdr);
+      return pckt->len() - tcp_hdr(pckt)->all_headers_len();
     }
     
     // Get the length of the TCP-segment including header and data
     static inline uint16_t tcp_length(std::shared_ptr<Packet>& pckt){
-      return data_length(pckt) + header_len(&((full_header*)pckt->buffer())->tcp_hdr);
+      return data_length(pckt) + tcp_hdr(pckt)->size();
     }
     
     // Get the TCP header from a packet
@@ -203,12 +197,12 @@ namespace net {
     
     static inline void* data_location(std::shared_ptr<Packet>& pckt){
       tcp_header* hdr = tcp_hdr(pckt);
-      return (void*)((char*)hdr + header_len(hdr));
+      return (void*)((char*)hdr + hdr->size());
     }
     
   };
   
-  
 }
+
 
 #endif

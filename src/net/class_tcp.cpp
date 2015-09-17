@@ -83,7 +83,7 @@ int TCP::transmit(std::shared_ptr<Packet>& pckt){
   // Set source address
   full_hdr->ip_hdr.saddr.whole = local_ip_.whole;
   
-  set_offset(hdr, 5);
+  hdr->set_offset(5);
   hdr->checksum = 0;  
   hdr->checksum = checksum(pckt);
   return _network_layer_out(pckt);
