@@ -14,8 +14,6 @@
 
 #include <class_nic.hpp>
 
-#define DEBUG 1
-
 namespace net {
 
   /** Nic names. Only used to bind nic to IP. */

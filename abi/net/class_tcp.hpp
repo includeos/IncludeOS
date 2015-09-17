@@ -3,8 +3,6 @@
 
 #include <net/class_ip4.hpp>
 
-#define DEBUG 1
-
 namespace net {
 
 
@@ -92,9 +90,6 @@ namespace net {
       // This is the default handler
       inline void drop(Socket&){ debug("<Socket::drop> Default handler dropping connection \n"); }
       
-      // Assign the "accept-delegate" to the default handler
-      connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
-      
       // Our version of "Accept"
       inline void onConnect(connection_handler handler){
 	debug("<TCP::Socket> Registered new connection handler \n");
@@ -113,22 +108,28 @@ namespace net {
     private:      
       
       // A private constructor for allowing a listening socket to create connections
-      Socket(TCP& local_stack, port local_port, IP4::addr rempte_ip, port remote_port, State state);
-
+      Socket(TCP& local_stack, port local, IP4::addr remote_ip, port remote_port, State, connection_handler);
 
       size_t backlog_ = 1000;
-      State state_ = CLOSED;
       
       // Local end (Local IP is determined by the TCP-object)
-      port local_port_;      
       TCP& local_stack_;
-      
+      port local_port_;      
       // Remote end
       IP4::addr remote_addr_;
       port remote_port_;
       
+      State state_ = CLOSED;
+      
+      // Assign the "accept-delegate" to the default handler
+      connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
+      
+
+
       void ack(std::shared_ptr<Packet>& pckt); 
       void syn_ack(std::shared_ptr<Packet>& pckt); 
+      
+      std::shared_ptr<Packet> current_packet_;
       
       // Transmission happens out through TCP& object
       //int transmit(std::shared_ptr<Packet>& pckt);
@@ -155,15 +156,55 @@ namespace net {
   private:
     size_t socket_backlog = 1000;
     IP4::addr local_ip_;
+    
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
     std::map<port, Socket> listeners;
     downstream _network_layer_out;
-    uint16_t checksum(std::shared_ptr<net::Packet>&);
     
-    static void set_offset(tcp_header* hdr, uint8_t offset);
-    static uint8_t get_offset(tcp_header* hdr);
-    static uint8_t header_len(tcp_header* hdr);
+    // Compute the TCP checksum
+    uint16_t checksum(std::shared_ptr<net::Packet>&);
+        
+    // Get the raw tcp offset, in quadruples
+    static inline  uint8_t get_offset(tcp_header* hdr){
+      return (uint8_t)(hdr->offs_flags.offs_res >> 4);
+    };
+    
+    // Set raw TCP offset in quadruples
+    static inline void set_offset(tcp_header* hdr, uint8_t offset){
+      offset <<= 4;
+      hdr->offs_flags.offs_res = offset;
+    };
+    
+    // Get tcp header length including options (offset) in bytes
+    static inline uint8_t header_len(tcp_header* hdr){
+        return get_offset(hdr) * 4;
+    };
+    
+    // Calculate the full header lenght, down to linklayer, in bytes
+    static uint8_t all_headers_len(tcp_header* hdr){
+      return (sizeof(full_header) - sizeof(tcp_header)) + header_len(hdr);  
+    };
+    
+    // Get the length of actual data in bytes
+    static inline uint16_t data_length(std::shared_ptr<Packet>& pckt){
+      return pckt->len() - all_headers_len(&((full_header*)pckt->buffer())->tcp_hdr);
+    }
+    
+    // Get the length of the TCP-segment including header and data
+    static inline uint16_t tcp_length(std::shared_ptr<Packet>& pckt){
+      return data_length(pckt) + header_len(&((full_header*)pckt->buffer())->tcp_hdr);
+    }
+    
+    // Get the TCP header from a packet
+    static inline tcp_header* tcp_hdr(std::shared_ptr<Packet>& pckt){
+      return &((full_header*)pckt->buffer())->tcp_hdr;
+    }
+    
+    static inline void* data_location(std::shared_ptr<Packet>& pckt){
+      tcp_header* hdr = tcp_hdr(pckt);
+      return (void*)((char*)hdr + header_len(hdr));
+    }
     
   };
   

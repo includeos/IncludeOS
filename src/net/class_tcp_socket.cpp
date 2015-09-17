@@ -13,13 +13,14 @@ TCP::Socket::Socket(TCP& local_stack) : local_stack_(local_stack)
 TCP::Socket::Socket(TCP& local_stack, port local_port, State state)
   : local_stack_(local_stack), local_port_(local_port), state_(state)
 {
-  debug("<Socket::Socket> Constructing socket, local port: %i \n",local_port_);
+  debug("<Socket::Socket> Constructing socket, local port: %i, State: %i \n",local_port_, state_);
 }
 
 
-TCP::Socket::Socket(TCP& local_stack, port local_port, IP4::addr remote_ip, port remote_port, State state)
+TCP::Socket::Socket(TCP& local_stack, port local_port, 
+		    IP4::addr remote_ip, port remote_port, State state, connection_handler handler)
   : local_stack_(local_stack), local_port_(local_port), 
-    remote_addr_(remote_ip), remote_port_(remote_port), state_(state)
+    remote_addr_(remote_ip), remote_port_(remote_port), state_(state), accept_handler_(handler)
 {
   debug("<Socket::Socket> Constructing CONNECTION, local port: %i , remote IP: %s, remote port: %i\n",
 	local_port_, remote_ip.str().c_str(), remote_port);
@@ -31,6 +32,11 @@ void TCP::Socket::listen(int backlog){
   backlog_ = backlog;
   printf("<TCP::Socket::listen> Listening. (%i)\n",state_);
   // Possibly allocate connectoin pointers (but for now we're using map)  
+}
+
+
+void TCP::Socket::ack(std::shared_ptr<Packet>& pckt){
+  
 }
 
 void TCP::Socket::syn_ack(std::shared_ptr<Packet>& pckt){
@@ -72,8 +78,10 @@ void TCP::Socket::syn_ack(std::shared_ptr<Packet>& pckt){
   
 }
 
-std::string TCP::Socket::read(int SIZE){  
-  return "SOCKETS CAN'T READ YET!";
+
+
+std::string TCP::Socket::read(int SIZE){
+  return std::string((const char*) data_location(current_packet_), data_length(current_packet_));
 }
 
 int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
@@ -89,11 +97,11 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
   auto remote = std::make_pair(dest_addr,dest_port);
   
   
-  debug("<TCP::Socket::bottom> Source port %i, Dest. port: %i, Flags raw: 0x%x, Flags reversed: 0x%x \n",
-	ntohs(hdr->sport), ntohs(hdr->dport),raw_flags,flags);
+  debug("<TCP::Socket::bottom> State: %i, Source port %i, Dest. port: %i, Flags raw: 0x%x, Flags reversed: 0x%x \n",
+	state_, ntohs(hdr->sport), ntohs(hdr->dport),raw_flags,flags);
   
   
-  debug("<TCP::Socket::bottom> Raw offset: %p Header size: %i x 4 = %i bytes \n", raw_offset,(int)offset, offset*4);
+  debug("<TCP::Socket::bottom> Raw offset: 0x%x Header size: %i x 4 = %i bytes \n", raw_offset,(int)offset, offset*4);
   
   if (flags & SYN) {       
     
@@ -106,32 +114,31 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
 	return 0;
       }
       
-      // New connection 
-      
+      // New connection attempt
+      // Is it a retransmit?
       if (connections.find(remote) != connections.end()){
 	debug("<TCP::Socket::bottom> Remote host allready queued. \n");
 	return 0;
       }
       
+      // Set up the connection socket
       connections.emplace(remote,
-			  TCP::Socket(local_stack_, local_port_, dest_addr, dest_port, SYN_RECIEVED));
+			  TCP::Socket(local_stack_, local_port_, dest_addr, dest_port, SYN_RECIEVED, accept_handler_));
       
       //auto conn = connections[std::make_pair(dest_addr,dest_port)];
       debug("<TCP::Socket::bottom> Connection queued to %s : %i \n",dest_addr.str().c_str(),ntohs(dest_port));
-      
-      
+            
       // ACCEPT
       syn_ack(pckt);
       //accept_handler_(connections.at(remote));
-
-
+      
       return 0;
       
     }else {
       debug("<TCP::Socket::bottom> SYN-ACK; \n");
       assert(state_ == SYN_SENT);
     }    
-  }     
+  }  
   
   if (flags & ACK) {
     debug("<TCP::Socket::bottom> ACK \n");
@@ -148,16 +155,24 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
 	  return 0;
 	}
 	
-	(*conn_it).second.bottom(pckt);
+	(*conn_it).second.bottom(pckt);	
 	
-	
-      break;
+	break;
       }
     case SYN_RECIEVED:
-      debug("<TCP::Socket::bottom> SYN, SYN-ACK and now ACK. CONNECTED! \n");
-      panic("SUCCESS! ... just can't write more code right now");
-      break;
+      debug("<TCP::Socket::bottom> SYN, SYN-ACK and now ACK. CONNECTED! \n");  
+      state_ = ESTABLISHED;            
+      // Fall through to established
+    case ESTABLISHED:
+         
+      debug("<TCP::Socket::bottom> CONNECTED ACK. Packet size: %i, Data size: %i \n", pckt->len(), TCP::data_length(pckt));
       
+      if (TCP::data_length(pckt)){
+	current_packet_ = pckt;
+	accept_handler_(*this);
+	
+	ack(pckt);
+      }
       
     }
     
