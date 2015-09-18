@@ -13,9 +13,10 @@ namespace net
   public:
     static const int ECHO_REQUEST = 128;
     static const int ECHO_REPLY   = 129;
+    typedef uint8_t type_t;
+    typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
     
-    ICMPv6(IP6::addr& local_ip)
-      : localIP(local_ip) {}
+    ICMPv6(IP6::addr& local_ip);
     
     struct header
     {
@@ -33,7 +34,7 @@ namespace net
       uint8_t   next;
     } __attribute__((packed));
     
-    struct icmp6_echo
+    struct echo_header
     {
       uint8_t  type;
       uint8_t  code;
@@ -42,9 +43,6 @@ namespace net
       uint16_t sequence;
       uint8_t  data[0];
     } __attribute__((packed));
-    
-    // handles ICMP type 128 (echo requests)
-    int echo_request(std::shared_ptr<PacketICMP6>& pckt);
     
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
@@ -65,11 +63,21 @@ namespace net
     // calculate checksum of any ICMP message
     static uint16_t checksum(std::shared_ptr<PacketICMP6>& pckt);
     
+    // provide a handler for a @type of ICMPv6 message
+    void listen(type_t type, handler_t func)
+    {
+      listeners[type] = func;
+    }
+    
+    // transmit packet downstream
+    int transmit(std::shared_ptr<PacketICMP6>& pckt);
+    
   private:
+    std::map<type_t, handler_t> listeners;
     // connection to IP6 layer
     downstream ip6_out;
-    // IP6 instance
-    IP6::addr localIP;
+    // this network stacks IPv6 address
+    IP6::addr& localIP;
   };
   
   class PacketICMP6 : public Packet

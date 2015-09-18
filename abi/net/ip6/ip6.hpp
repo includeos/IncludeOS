@@ -159,7 +159,7 @@ namespace net
     /** Constructor. Requires ethernet to latch on to. */
     IP6(const addr& local);
     
-    const IP6::addr& getIP() const
+    const IP6::addr& local_ip() const
     {
       return local;
     }

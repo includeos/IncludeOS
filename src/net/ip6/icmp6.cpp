@@ -7,6 +7,16 @@
 
 namespace net
 {
+  // internal implementation of handler for ICMP type 128 (echo requests)
+  int echo_request(ICMPv6&, std::shared_ptr<PacketICMP6>& pckt);
+  
+  ICMPv6::ICMPv6(IP6::addr& local_ip)
+    : localIP(local_ip)
+  {
+    // install default handler for echo requests
+    listen(ECHO_REQUEST, echo_request);
+  }
+  
   std::string ICMPv6::code_string(uint8_t type, uint8_t code)
   {
     switch (type)
@@ -102,15 +112,15 @@ namespace net
   {
     auto icmp = std::static_pointer_cast<PacketICMP6>(pckt);
     
-    switch (icmp->type())
+    type_t type = icmp->type();
+    
+    if (listeners.find(type) != listeners.end())
     {
-    case ECHO_REQUEST:
-      echo_request(icmp);
-      return -1;
-      
-    default:
-      //return -1;
-      std::cout << ">>> IPv6 -> ICMPv6 bottom" << std::endl;
+      return listeners[type](*this, icmp);
+    }
+    else
+    {
+      std::cout << ">>> IPv6 -> ICMPv6 bottom (no handler installed)" << std::endl;
       std::cout << "ICMPv6 type " << (int) icmp->type() << ": " << code_string(icmp->type(), icmp->code()) << std::endl;
       
       /*
@@ -123,8 +133,15 @@ namespace net
       chksum = checksum(icmp);
       std::cout << "ICMPv6 our estimate: " << (void*) chksum << std::endl;
       */
+      return -1;
     }
-    return -1;
+  }
+  int ICMPv6::transmit(std::shared_ptr<PacketICMP6>& pckt)
+  {
+    // NOTE: *** OBJECT CREATED ON STACK *** -->
+    auto original = std::static_pointer_cast<Packet>(pckt);
+    // NOTE: *** OBJECT CREATED ON STACK *** <--
+    return ip6_out(original);
   }
   
   uint16_t ICMPv6::checksum(std::shared_ptr<PacketICMP6>& pckt)
@@ -164,34 +181,21 @@ namespace net
     return net::checksum(data, datalen);
   }
   
-  int ICMPv6::echo_request(std::shared_ptr<PacketICMP6>& pckt)
+  // internal implementation of handler for ICMP type 128 (echo requests)
+  int echo_request(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
   {
-    IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
-    IP6::header& hdr = full.ip6_hdr;
-    
-    // retrieve source and destination addresses
-    //IP6::addr src = hdr.source();
-    //IP6::addr dst = hdr.dest();
-    
-    // switch them around!
-    //hdr.src = this->localIP;
-    //hdr.dst = src;
-    
-    icmp6_echo* icmp = (icmp6_echo*) pckt->payload();
-    printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
+    ICMPv6::echo_header* icmp = (ICMPv6::echo_header*) pckt->payload();
+    printf("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set to ICMP Echo Reply (129)
-    icmp->type     = ECHO_REPLY;
+    icmp->type     = ICMPv6::ECHO_REPLY;
     
     // calculate and set checksum
     icmp->checksum = 0;
-    icmp->checksum = checksum(pckt);
+    icmp->checksum = ICMPv6::checksum(pckt);
     
     // send packet downstream
-    // NOTE: *** OBJECT CREATED ON STACK *** -->
-    auto original = std::static_pointer_cast<Packet>(pckt);
-    // NOTE: *** OBJECT CREATED ON STACK *** <--
-    return ip6_out(original);
+    return caller.transmit(pckt);
   }
   
 }

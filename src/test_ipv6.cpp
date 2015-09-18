@@ -14,7 +14,8 @@ void Service::start()
   
   net::Inet* inet = net::Inet::up();
   
-  printf("Service IP address: %s\n", net::Inet::ip4(net::ETH0).str().c_str());
+  printf("Service IP4 address: %s\n", net::Inet::ip4(net::ETH0).str().c_str());
+  printf("Service IP6 address: %s\n", net::Inet::ip6(net::ETH0).to_string().c_str());
   
   static const int UDP_PORT = 64;
   inet->udp6_listen(UDP_PORT,

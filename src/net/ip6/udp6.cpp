@@ -28,8 +28,6 @@ namespace net
   
   int UDPv6::transmit(std::shared_ptr<Packet>& pckt)
   {
-    printf("UDPv6::transmit(): not implemented\n");
-    (void) pckt;
-    return -1;
+    return ip6_out(pckt);
   }
 }

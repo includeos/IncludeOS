@@ -23,6 +23,15 @@ namespace net
       uint16_t chksum;
     };
     
+    UDPv6(IP6::addr& local_ip)
+      : localIP(local_ip) {}
+    
+    // set the downstream delegate
+    inline void set_ip6_out(downstream del)
+    {
+      this->ip6_out = del;
+    }
+    
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
     
@@ -36,8 +45,10 @@ namespace net
     
   protected:
     std::map<port_t, listener_t> listeners;
-    
-    friend class PacketUDP6;
+    // connection to IP6 layer
+    downstream ip6_out;
+    // this network stacks IPv6 address
+    IP6::addr& localIP;
   };
   
   class PacketUDP6 : public Packet
@@ -53,11 +64,11 @@ namespace net
     }
     
     /// TODO: move to PacketIP6 for common interface
-    IP6::addr& src() const
+    const IP6::addr& src() const
     {
       return ((IP6::full_header*) buffer())->ip6_hdr.src;
     }
-    IP6::addr& dst() const
+    const IP6::addr& dst() const
     {
       return ((IP6::full_header*) buffer())->ip6_hdr.dst;
     }
@@ -81,7 +92,7 @@ namespace net
     
     uint16_t data_length() const
     {
-      return htons(header().length) - sizeof(UDPv6::udp6_header);
+      return length() - sizeof(UDPv6::udp6_header);
     }
     char* data()
     {
