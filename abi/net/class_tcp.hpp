@@ -2,6 +2,7 @@
 #define CLASS_TCP_HPP
 
 #include <net/class_ip4.hpp>
+#include <net/util.hpp> // htons / noths
 
 namespace net {
 
@@ -9,6 +10,19 @@ namespace net {
   class TCP{
   public:
     typedef uint16_t port;
+
+    enum Flag {
+      NS = (1 << 8),
+      CWR = (1 << 7),
+      ECE = (1 << 6),
+      URG = (1 << 5),
+      ACK = (1 << 4),
+      PSH = (1 << 3),
+      RST = (1 << 2),
+      SYN = (1 << 1),
+      FIN = 1,
+    };
+
     
     /** TCP header */    
     struct tcp_header {
@@ -41,6 +55,12 @@ namespace net {
       uint8_t all_headers_len(){
 	return (sizeof(full_header) - sizeof(tcp_header)) + size();
       };
+      
+      inline void set_flag(Flag f){ offs_flags.whole |= htons(f); }
+      inline void set_flags(uint16_t f){ offs_flags.whole |= htons(f); }
+      inline void clear_flag(Flag f){ offs_flags.whole &= ~ htons(f); }
+      inline void clear_flags(){ offs_flags.whole = 0; }
+      
 
     }__attribute__((packed));
 
@@ -59,19 +79,7 @@ namespace net {
       tcp_header tcp_hdr;
     }__attribute__((packed));
 
-    
-    enum flags {
-      NS = (1 << 8),
-      CWR = (1 << 7),
-      ECE = (1 << 6),
-      URG = (1 << 5),
-      ACK = (1 << 4),
-      PSH = (1 << 3),
-      RST = (1 << 2),
-      SYN = (1 << 1),
-      FIN = 0,
-    };
-    
+   
     struct full_header {
       Ethernet::header eth_hdr;
       IP4::ip_header ip_hdr;
@@ -123,7 +131,8 @@ namespace net {
     private:      
       
       // A private constructor for allowing a listening socket to create connections
-      Socket(TCP& local_stack, port local, IP4::addr remote_ip, port remote_port, State, connection_handler);
+      Socket(TCP& local_stack, port local, IP4::addr remote_ip, port remote_port, 
+	     State, connection_handler, uint32_t initial_seq_nr_);
 
       size_t backlog_ = 1000;
       
@@ -134,15 +143,24 @@ namespace net {
       IP4::addr remote_addr_;
       port remote_port_;
       
+      
+      // Initial outbound sequence number
+      uint32_t initial_seq_out_ = 42;      
+      // Initial inbound sequence number
+      uint32_t initial_seq_in_ = 0;      
+
+
+      uint32_t bytes_transmitted_ = 0;
+      uint32_t bytes_received_ = 0;
+      
       State state_ = CLOSED;
       
       // Assign the "accept-delegate" to the default handler
       connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
       
-
-
-      void ack(std::shared_ptr<Packet>& pckt); 
-      void syn_ack(std::shared_ptr<Packet>& pckt); 
+      
+      // General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want.
+      void ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS = ACK);
       
       std::shared_ptr<Packet> current_packet_;
       

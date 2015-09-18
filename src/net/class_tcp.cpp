@@ -1,5 +1,5 @@
-#define DEBUG
-#define DEBUG2
+// #define DEBUG
+// #define DEBUG2
 
 #include <os>
 #include <net/class_tcp.hpp>
@@ -97,6 +97,9 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &full_hdr->tcp_hdr;
+
+  if (checksum(pckt))
+    debug("<TCP::bottom> WARNING: Incoming TCP Packet checksum is not 0. Continuing.\n");
   
   debug("<TCP::bottom> Incoming packet TCP-checksum: 0x%x \n", ntohs(checksum(pckt)));
   
@@ -113,6 +116,7 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
   
   debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket",listener->second.poll());
   
+  // Pass the packet up to the listening socket
   (*listener).second.bottom(pckt);
   
   
