@@ -1,5 +1,5 @@
-// #define DEBUG
-// #define DEBUG2
+#define DEBUG
+#define DEBUG2
 
 #include <os>
 #include <net/class_tcp.hpp>
@@ -60,12 +60,24 @@ uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){
     
   // Compute sum of pseudo header
   for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-    sum.whole += *it;
+    sum.whole += *it;       
   
   // Compute sum sum the actual header and data
   for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length_/2; it++)
     sum.whole+= *it;
-      
+
+  // The odd-numbered case
+  if (tcp_length_ & 1) {
+    debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
+    union {
+      uint16_t whole;
+      uint8_t part[2];
+    }last_chunk;
+    last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length_ - 1];
+    last_chunk.part[1] = 0;
+    sum.whole += last_chunk.whole;
+  }
+  
   debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
 	 sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
   
