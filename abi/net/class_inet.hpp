@@ -37,6 +37,17 @@ namespace net {
     inline int udp_send(std::shared_ptr<Packet> pckt)
     { return _udp.transmit(pckt); }
     
+    /// listen for UDPv6 packets on @port
+    /// replaces existing listeners on the same port
+    void udp6_listen(UDPv6::port_t port, UDPv6::listener_t func)
+    {
+      _udp6.listen(port, func);
+    }
+    /// send an UDPv6 packet, hopefully (please dont lie!)
+    int udp6_send(std::shared_ptr<Packet> pckt)
+    {
+      return _udp6.transmit(pckt);
+    }
     
     /** Bind an IP and a netmask to a given device. 
       The function expects the given device to exist.*/

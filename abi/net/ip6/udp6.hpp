@@ -26,13 +26,12 @@ namespace net
     // packet from IP6 layer
     int bottom(std::shared_ptr<Packet>& pckt);
     
-    bool listen(port_t port, listener_t func)
+    // packet back TO IP6 layer for transmission
+    int transmit(std::shared_ptr<Packet>& pckt);
+    
+    void listen(port_t port, listener_t func)
     {
-      if (listeners.find(port) != listeners.end())
-        return false;
-      
       listeners[port] = func;
-      return true;
     }
     
   protected:
@@ -53,27 +52,40 @@ namespace net
       return *(UDPv6::udp6_header*) payload();
     }
     
-    UDPv6::port_t getSourcePort() const
+    /// TODO: move to PacketIP6 for common interface
+    IP6::addr& src() const
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr.src;
+    }
+    IP6::addr& dst() const
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr.dst;
+    }
+    
+    UDPv6::port_t src_port() const
     {
       return htons(header().src_port);
     }
-    UDPv6::port_t getDestPort() const
+    UDPv6::port_t dst_port() const
     {
-      return htons(header().src_port);
+      return htons(header().dst_port);
     }
-    uint16_t getLength() const
+    uint16_t length() const
     {
       return htons(header().length);
     }
-    uint16_t getChecksum() const
+    uint16_t checksum() const
     {
       return htons(header().chksum);
     }
     
-    const char* getData() const
+    uint16_t data_length() const
+    {
+      return htons(header().length) - sizeof(UDPv6::udp6_header);
+    }
+    char* data()
     {
       return (char*) payload() + sizeof(UDPv6::udp6_header);
     }
-    
   };
 }
