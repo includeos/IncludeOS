@@ -59,7 +59,7 @@ namespace net {
       inline void set_flag(Flag f){ offs_flags.whole |= htons(f); }
       inline void set_flags(uint16_t f){ offs_flags.whole |= htons(f); }
       inline void clear_flag(Flag f){ offs_flags.whole &= ~ htons(f); }
-      inline void clear_flags(){ offs_flags.whole = 0; }
+      inline void clear_flags(){ offs_flags.whole &= 0x00ff; }
       
 
     }__attribute__((packed));

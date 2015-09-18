@@ -1,5 +1,5 @@
-#define DEBUG
-#define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 
 #include <os>
 #include <net/class_tcp.hpp>

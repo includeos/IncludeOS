@@ -41,6 +41,7 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   
   // Reset flags
+  hdr->clear_flags();
   hdr->set_flags(FLAGS);
   
   // Set destination ip / port
@@ -58,7 +59,7 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
   else if (bytes_transmitted_ == 0) 
       hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + 1);
   else
-      hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + bytes_transmitted_);
+    hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + bytes_transmitted_ + 1);
   
   // Set ack-nr. 
   if (bytes_received_ == 0) {
@@ -121,11 +122,12 @@ int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
   // Copy the data
   memcpy(out_buf, (void*)buffer_.data(), bytecount);
   
-  // Shrink the buffer
+  // Shrink the buffer, update packet-length and transmitted byte count
   buffer_.resize(buffer_.size() - bytecount);
-
-  debug("<TCP::Socket::fill> FILLING packet with %i bytes \n", bytecount);
+  bytes_transmitted_ += bytecount;  
   pckt->set_len(pckt->len() + bytecount);
+  
+  debug("<TCP::Socket::fill> FILLING packet with %i bytes \n", bytecount);
   return bytecount;
   
 };
@@ -214,24 +216,30 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
       if (data_size){
 	bytes_received_ += data_size;
 	current_packet_ = pckt;	
+	
+	// Call application. Might result in a close().
 	accept_handler_(*this);
       }
       
-      // He wants to close the connection. Let's just do it.
-      if ((flags & FIN) and !data_size ){
-	bytes_received_++;
+      // PASSIVE CLOSE:
+      // He wants to close the connection. 
+      if (flags & FIN){
+	
+	if (! data_size)
+	  bytes_received_++;
 	
 	state_ = CLOSE_WAIT;
-	// @TODO: Warn the application	
+	// @TODO: Warn the application		
+	// if (buffer_.size() > pckt.capacity()) ... flush
 	
 	// Close
-	ack(pckt, FIN | ACK);
+	ack(pckt, ACK);
 	state_ = LAST_ACK;
 	return 0;
-      }
       
-      if (data_size)
+      }else if (data_size) {
 	ack(pckt); 
+      }
       
       break;
       

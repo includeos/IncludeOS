@@ -2,6 +2,7 @@
 #include <net/inet4>
 #include <math.h>
 #include <iostream>
+#include <sstream>
 
 class Test
 {
@@ -90,15 +91,36 @@ void Service::start()
 
   net::TCP::Socket& sock =  inet->tcp().bind(80);
 
-  printf("SERVICE: %i open ports in TCP @ %p \n",inet->tcp().openPorts(), &(inet->tcp()));
-
-   
+  printf("SERVICE: %i open ports in TCP @ %p \n",inet->tcp().openPorts(), &(inet->tcp())); 
   
+  srand(time(NULL));
+
   sock.onConnect([](net::TCP::Socket& conn){
-      printf("SERVICE Connection handler: got it\n");
-      printf("Got data: %s \n",conn.read(1024).c_str());
+      printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
-      conn.write("<html><body><h1>Hello HTTP! </h1></html>\n");
+      int color = rand();
+      std::stringstream stream;
+      stream << "#" << std::hex << (color >> 8);
+      
+      std::string html = "<html><body>"		\
+	"<h1 style='color: "+stream.str()+"'> IncludeOS speaks TCP!</h1>" \
+	"</body></html>\n";
+      
+      std::string header="HTTP/1.1 200 OK \n "				\
+	"Date: Mon, 01 Jan 1970 00:00:01 GMT \n"			\
+	"Server: IncludeOS prototype 4.0 \n"				\
+	"Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"		\
+	"Content-Type: text/html; charset=UTF-8 \n"			\
+	"Content-Length: "+std::to_string(html.size())+"\n"		\
+	"Accept-Ranges: bytes\n"					\
+	"Connection: close\n\n";
+      
+      conn.write(header);
+      conn.write(html);
+
+      // We don't have to actively close when the http-header says "Connection: close"
+      //conn.close();
+      
     });
   
   
