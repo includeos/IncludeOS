@@ -108,7 +108,10 @@ namespace net
     void set_length(uint16_t newlen)
     {
       // new total UDPv6 payload length
-      header().length = htons(newlen);
+      header().length = htons(sizeof(UDPv6::header) + newlen);
+      // new total IPv6 payload length
+      ((IP6::full_header*) buffer())->ip6_hdr.set_size(
+          sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
       // new total packet length
       _len = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }

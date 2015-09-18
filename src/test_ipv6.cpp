@@ -37,7 +37,7 @@ void Service::start()
       std::shared_ptr<net::PacketUDP6> newpacket = 
           inet->udp6_create(ether_src, pckt->dst(), UDP_PORT);
       
-      const char* text = "This is the response packet!\n\0";
+      const char* text = "This is the response packet!";
       // copy text into UDP data section
       memcpy( newpacket->data(),  text,  strlen(text) );
       // set new length
