@@ -90,6 +90,11 @@ namespace net
         return ((scanline[0] & 0xF000) >> 12) + 
                 (scanline[0] & 0xF);
       }
+      // initializes the first scanline with the IPv6 version
+      void init_scan0()
+      {
+        scanline[0] = 6u >> 4;
+      }
       
       uint16_t size() const
       {
@@ -106,9 +111,19 @@ namespace net
       {
         return (scanline[1] >> 16) & 0xFF;
       }
+      void set_next(uint8_t next)
+      {
+        scanline[1] &= 0xFF00FFFF;
+        scanline[1] |= next << 16;
+      }
       uint8_t hoplimit() const
       {
         return (scanline[1] >> 24) & 0xFF;
+      }
+      void set_hoplimit(uint8_t limit = 64)
+      {
+        scanline[1] &= 0x00FFFFFF;
+        scanline[1] |= limit << 24;
       }
       
       // 128-bit is probably not good as "by value"

@@ -39,11 +39,6 @@ namespace net {
     /** Get the packet status */
     packet_status status();
     
-    uint8_t* payload() const
-    {
-      return _payload;
-    }
-    
     /** Set next-hop ip4. */
     void next_hop(IP4::addr ip);
     
@@ -60,17 +55,22 @@ namespace net {
     /** Destruct. */
     ~Packet();
     
+    inline void set_payload(uint8_t* location)
+    {
+      this->_payload = location;
+    }
+    inline uint8_t* payload() const
+    {
+      return _payload;
+    }
     
-    
-  private:
+  protected:
     uint8_t* _payload;
     uint8_t* _data;
     uint32_t _len;
     uint32_t _bufsize = 1500;
     packet_status _status;
     IP4::addr _next_hop4;
-    
-    friend class IP6;
   };
   
 

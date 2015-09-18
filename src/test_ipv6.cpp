@@ -19,7 +19,7 @@ void Service::start()
   
   static const int UDP_PORT = 64;
   inet->udp6_listen(UDP_PORT,
-    [] (std::shared_ptr<net::PacketUDP6>& pckt)
+    [=] (std::shared_ptr<net::PacketUDP6>& pckt) -> int
     {
       printf("Received UDP6 packet from %s to my listener on port %d\n",
           pckt->src().to_string().c_str(), pckt->dst_port());
@@ -27,6 +27,23 @@ void Service::start()
       std::string data((const char*) pckt->data(), pckt->data_length());
       
       printf("Contents (len=%d):\n%s\n", pckt->data_length(), data.c_str());
+      
+      // unfortunately,
+      // copy the ether src field of the incoming packet
+      net::Ethernet::addr ether_src = 
+          ((net::Ethernet::header*) pckt->buffer())->src;
+      
+      // create a response packet
+      std::shared_ptr<net::PacketUDP6> newpacket = 
+          inet->udp6_create(ether_src, pckt->dst(), UDP_PORT);
+      
+      const char* text = "This is the response packet!\n\0";
+      // copy text into UDP data section
+      memcpy( newpacket->data(),  text,  strlen(text) );
+      // set new length
+      newpacket->set_length(strlen(text));
+      // ship it
+      inet->udp6_send(newpacket);
       return -1;
     }
   );

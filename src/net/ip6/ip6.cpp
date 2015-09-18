@@ -74,7 +74,7 @@ namespace net
       if (it != proto_handlers.end())
       {
         // forward packet to handler
-        pckt->_payload = reader;
+        pckt->set_payload(reader);
         return it->second(pckt);
       }
       else
