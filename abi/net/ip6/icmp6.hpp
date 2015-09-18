@@ -22,7 +22,8 @@ namespace net
       uint8_t  type_;
       uint8_t  code_;
       uint16_t checksum_;
-    };
+    } __attribute__((packed));
+    
     struct pseudo_header
     {
       IP6::addr src;
@@ -30,7 +31,7 @@ namespace net
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
-    };
+    } __attribute__((packed));
     
     struct icmp6_echo
     {
@@ -40,7 +41,7 @@ namespace net
       uint16_t identifier;
       uint16_t sequence;
       uint8_t  data[0];
-    };
+    } __attribute__((packed));
     
     // handles ICMP type 128 (echo requests)
     int echo_request(std::shared_ptr<PacketICMP6>& pckt);

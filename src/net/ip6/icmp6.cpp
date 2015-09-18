@@ -172,16 +172,17 @@ namespace net
     //IP6::addr dst = hdr.dest();
     
     // switch them around!
-    hdr.src = this->localIP;
-    hdr.dst = src;
-    hdr.set_size(sizeof(ICMPv6::icmp6_echo));
-    pckt->set_len(sizeof(IP6::full_header) + sizeof(ICMPv6::icmp6_echo));
+    //hdr.src = this->localIP;
+    //hdr.dst = src;
+    //hdr.set_size(sizeof(ICMPv6::icmp6_echo));
+    //pckt->set_len(sizeof(IP6::full_header) + sizeof(ICMPv6::icmp6_echo));
     
     icmp6_echo* icmp = (icmp6_echo*) pckt->payload();
     printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set to ICMP Echo Reply (129)
     icmp->type     = ECHO_REPLY;
+    //icmp->sequence = htons(htons(icmp->sequence)+1);
     
     // calculate and set checksum
     icmp->checksum = 0;
