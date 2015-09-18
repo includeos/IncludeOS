@@ -35,13 +35,13 @@ namespace net
     return ip6_out(original);
   }
   
-  uint16_t PacketUDP6::gen_checksum() const
+  uint16_t PacketUDP6::gen_checksum()
   {
     IP6::full_header& full = *(IP6::full_header*) this->buffer();
     IP6::header& hdr = full.ip6_hdr;
     
-    // ICMP message + pseudo header
-    uint16_t datalen = hdr.size() + sizeof(UDPv6::pseudo_header);
+    // UDPv6 message + pseudo header
+    uint16_t datalen = this->length() + sizeof(UDPv6::pseudo_header);
     
     // allocate it on stack
     char* data = (char*) alloca(datalen + 16);
@@ -54,13 +54,14 @@ namespace net
     // consisting of src addr, dst addr, message length (32bits)
     // 3 zeroes (8bits each) and id of the next header
     UDPv6::pseudo_header& phdr = *(UDPv6::pseudo_header*) data;
-    phdr.src = hdr.src;
-    phdr.dst = hdr.dst;
-    phdr.len = htonl(hdr.size());
-    phdr.zeros[0] = 0;
-    phdr.zeros[1] = 0;
-    phdr.zeros[2] = 0;
-    phdr.next = hdr.next();
+    phdr.src  = hdr.src;
+    phdr.dst  = hdr.dst;
+    phdr.zero = 0;
+    phdr.protocol = IP6::PROTO_UDP;
+    phdr.length   = htons(this->length());
+    
+    // reset old checksum
+    header().chksum = 0;
     
     // normally we would start at &icmp_echo::type, but
     // it is after all the first element of the icmp message
@@ -68,7 +69,8 @@ namespace net
         datalen - sizeof(UDPv6::pseudo_header));
     
     // calculate csum and free data on return
-    return net::checksum(data, datalen);
+    header().chksum = net::checksum(data, datalen);
+    return header().chksum;
   }
   
   std::shared_ptr<PacketUDP6> UDPv6::create(

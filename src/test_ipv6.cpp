@@ -42,7 +42,11 @@ void Service::start()
       memcpy( newpacket->data(),  text,  strlen(text) );
       // set new length
       newpacket->set_length(strlen(text));
-      // ship it
+      
+      // generate checksum for packet before sending
+      newpacket->gen_checksum();
+      
+      // ship it to the ether
       inet->udp6_send(newpacket);
       return -1;
     }

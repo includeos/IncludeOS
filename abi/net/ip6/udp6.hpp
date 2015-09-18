@@ -28,9 +28,9 @@ namespace net
     {
       IP6::addr src;
       IP6::addr dst;
-      uint32_t  len;
-      uint8_t   zeros[3];
-      uint8_t   next;
+      uint8_t   zero;
+      uint8_t   protocol;
+      uint16_t  length;
     } __attribute__((packed));
     
     UDPv6(IP6::addr& local_ip)
@@ -73,9 +73,14 @@ namespace net
     {
       return *(UDPv6::header*) payload();
     }
-    const UDPv6::header& header() const
+    const UDPv6::header& cheader() const
     {
       return *(UDPv6::header*) payload();
+    }
+    
+    IP6::header& ip6_header()
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr;
     }
     
     /// TODO: move to PacketIP6 for common interface
@@ -90,19 +95,19 @@ namespace net
     
     UDPv6::port_t src_port() const
     {
-      return htons(header().src_port);
+      return htons(cheader().src_port);
     }
     UDPv6::port_t dst_port() const
     {
-      return htons(header().dst_port);
+      return htons(cheader().dst_port);
     }
     uint16_t length() const
     {
-      return htons(header().length);
+      return htons(cheader().length);
     }
     uint16_t checksum() const
     {
-      return htons(header().chksum);
+      return htons(cheader().chksum);
     }
     
     void set_length(uint16_t newlen)
@@ -110,14 +115,15 @@ namespace net
       // new total UDPv6 payload length
       header().length = htons(sizeof(UDPv6::header) + newlen);
       // new total IPv6 payload length
-      ((IP6::full_header*) buffer())->ip6_hdr.set_size(
+      ip6_header().set_size(
           sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
       // new total packet length
       _len = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }
     
-    // generates a checksum for this UDPv6 packet
-    uint16_t gen_checksum() const;
+    // generates a new checksum onto this UDPv6 packet
+    // returns the new generated checksum after modifying packet
+    uint16_t gen_checksum();
     
     uint16_t data_length() const
     {
