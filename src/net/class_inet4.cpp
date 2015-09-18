@@ -21,10 +21,10 @@ namespace net
     
     //_ip6_list.insert(i);
     
-    register void* sp asm ("sp");
-    printf("ifconfig stack: %p\n", sp);
+    // register void* sp asm ("sp");
+    // printf("ifconfig stack: %p\n", sp);
        
-    debug("<Inet4> I now have %lu IP's\n", _ip4_list.size());
+    debug("<Inet4> I now have %u IP's\n", _ip4_list.size());
   }
 
   Inet4::Inet4() :

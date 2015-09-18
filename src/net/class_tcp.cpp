@@ -1,5 +1,5 @@
-#define DEBUG
-#define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 
 #include <os>
 #include <net/class_tcp.hpp>
@@ -26,6 +26,7 @@ TCP::Socket& TCP::bind(port p){
   listeners.emplace(p,TCP::Socket(*this, p, TCP::Socket::CLOSED));
 
   listeners.at(p).listen(socket_backlog);
+  
   debug("<TCP bind> Socket created and emplaced. State: %i\nThere are %i open ports. \n",
 	listeners.at(p).poll(), listeners.size());
   return listeners.at(p);
@@ -41,59 +42,50 @@ uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){
   tcp_header* tcp_hdr = &hdr->tcp_hdr;
   pseudo_header pseudo_hdr;
   
-  int tcp_header_size = header_len(tcp_hdr);
-  int all_headers_size = (sizeof(full_header) - sizeof(tcp_header)) + tcp_header_size;
-  int data_size = pckt->len() - all_headers_size;
-  int tcp_length = tcp_header_size + data_size;
+  int tcp_length_ = tcp_length(pckt);
   
+  // Populate pseudo header
   pseudo_hdr.saddr.whole = ip_hdr->saddr.whole;
   pseudo_hdr.daddr.whole = ip_hdr->daddr.whole;
   pseudo_hdr.zero = 0;
-  pseudo_hdr.proto = IP4::IP4_TCP;
-
-  debug2("<TCP::checksum> Packet size: %i, TCP_hdr_len: %i, sizeof(full_header): %i, sizeof(tcp_header): %i, all_hdrs_len: %i, data_len: %i, tcp_seg_size %i \n",
-	 pckt->len(),tcp_header_size, sizeof(full_header), sizeof(tcp_header),all_headers_size, data_size, tcp_length);
-  debug("Proto TCP::IP4_TCP = %p, Proto on wire = %p \n",IP4::IP4_TCP, ip_hdr->protocol);
-
-  
-  pseudo_hdr.tcp_length = htons(tcp_length);
-  
-  
+  pseudo_hdr.proto = IP4::IP4_TCP;	 
+  pseudo_hdr.tcp_length = htons(tcp_length_);
+    
   union {
     uint32_t whole;
     uint16_t part[2];
   }sum;
   
   sum.whole = 0;
-  
-  // Compute sum for pseudo header
+    
+  // Compute sum of pseudo header
   for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-    sum.whole += *it;
+    sum.whole += *it;       
   
-  // Compute sum for the actual header (and data, but none for now)
-  for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
+  // Compute sum sum the actual header and data
+  for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length_/2; it++)
     sum.whole+= *it;
-      
-  debug2("<TCP::checksum: sum: %p, half+halp: %p, TCP checksum: %p, TCP checksum big-endian: %p \n",
+
+  // The odd-numbered case
+  if (tcp_length_ & 1) {
+    debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
+    union {
+      uint16_t whole;
+      uint8_t part[2];
+    }last_chunk;
+    last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length_ - 1];
+    last_chunk.part[1] = 0;
+    sum.whole += last_chunk.whole;
+  }
+  
+  debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
 	 sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
+  
   return ~(sum.part[0] + sum.part[1]);
   
 }
 
 
-uint8_t TCP::get_offset(tcp_header* hdr){
-  return (uint8_t)(hdr->offs_flags.offs_res >> 4);
-}
-
-uint8_t TCP::header_len(tcp_header* hdr){
-  return get_offset(hdr) * 4;
-}
-
-
-void TCP::set_offset(tcp_header* hdr, uint8_t offset){  
-  offset <<= 4;
-  hdr->offs_flags.offs_res = offset;
-}
 
 int TCP::transmit(std::shared_ptr<Packet>& pckt){
   
@@ -103,7 +95,7 @@ int TCP::transmit(std::shared_ptr<Packet>& pckt){
   // Set source address
   full_hdr->ip_hdr.saddr.whole = local_ip_.whole;
   
-  set_offset(hdr, 5);
+  hdr->set_offset(5);
   hdr->checksum = 0;  
   hdr->checksum = checksum(pckt);
   return _network_layer_out(pckt);
@@ -117,8 +109,11 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &full_hdr->tcp_hdr;
+
+  if (checksum(pckt))
+    debug("<TCP::bottom> WARNING: Incoming TCP Packet checksum is not 0. Continuing.\n");
   
-  debug("<TCP::bottom> Incoming packet TCP-checksum: %p \n", ntohs(checksum(pckt)));
+  debug("<TCP::bottom> Incoming packet TCP-checksum: 0x%x \n", ntohs(checksum(pckt)));
   
   debug("<TCP::bottom> Destination port: %i, Source port: %i \n", 
 	ntohs(hdr->dport), ntohs(hdr->sport));
@@ -131,8 +126,9 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
     return 0;
   }
   
-  debug("<TCP::bottom> Somebody's listening to this port. Passing it up to the socket");
+  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket",listener->second.poll());
   
+  // Pass the packet up to the listening socket
   (*listener).second.bottom(pckt);
   
   
