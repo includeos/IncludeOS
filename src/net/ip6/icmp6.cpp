@@ -3,6 +3,10 @@
 #include <iostream>
 #include <net/ip6/ip6.hpp>
 #include <alloca.h>
+#include <assert.h>
+
+#define	P2ALIGN  (x, align)    ((x) & -(align))
+#define	P2ROUNDUP(x, align)    (-(-(x) & -(align)))
 
 namespace net
 {
@@ -97,10 +101,9 @@ namespace net
     }
   }
   
-  
   int ICMPv6::bottom(std::shared_ptr<Packet>& pckt)
   {
-    auto icmp = std::static_pointer_cast<PacketICMP6>(pckt); //*reinterpret_cast<std::shared_ptr<PacketICMP6>*>(&pckt);
+    auto icmp = std::static_pointer_cast<PacketICMP6>(pckt);
     
     switch (icmp->type())
     {
@@ -121,8 +124,8 @@ namespace net
       icmp->header().checksum_ = 0;
       chksum = checksum(icmp);
       std::cout << "ICMPv6 our estimate: " << (void*) chksum << std::endl;
-      return -1;
     }
+    return -1;
   }
   
   uint16_t ICMPv6::checksum(std::shared_ptr<PacketICMP6>& pckt)
@@ -130,25 +133,24 @@ namespace net
     IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
     IP6::header& hdr = full.ip6_hdr;
     
-    // ICMP message length + pseudo header
-    uint16_t datalen = sizeof(pseudo_header) + hdr.size() - sizeof(IP6::header);
+    // ICMP message length + pseudo header size
+    uint16_t datalen = hdr.size() - sizeof(IP6::header) + sizeof(pseudo_header);
     
     // allocate it on stack
     char* data = (char*) alloca(datalen + 16);
-    
     // unfortunately we also need to guarantee SSE aligned
-    #define	P2ALIGN  (x, align)    ((x) & -(align))
-    #define	P2ROUNDUP(x, align)    (-(-(x) & -(align)))
-    
     data = (char*) P2ROUNDUP((intptr_t) data, 16);
     
     pseudo_header& phdr = *(pseudo_header*) data;
     phdr.src = hdr.src;
     phdr.dst = hdr.dst;
-    phdr.zeroes[0] = 0;
-    phdr.zeroes[1] = 0;
-    phdr.zeroes[2] = 0;
+    phdr.len = htonl(hdr.size());
+    phdr.zeros[0] = 0;
+    phdr.zeros[1] = 0;
+    phdr.zeros[2] = 0;
     phdr.next = hdr.next();
+    
+    assert(hdr.next() == 58); // ICMPv6
     
     // normally we would start at &icmp_echo::type, but
     // it is the first element of the icmp message
@@ -156,15 +158,12 @@ namespace net
         datalen - sizeof(pseudo_header));
     
     // calculate csum and free it on return
-    uint16_t chksum = net::checksum((uint16_t*) data, datalen);
-    
-    return chksum;
+    return net::checksum((uint16_t*) data, datalen);
   }
   
   int ICMPv6::echo_request(std::shared_ptr<PacketICMP6>& pckt)
   {
-    uint8_t* reader = pckt->buffer();
-    IP6::full_header& full = *(IP6::full_header*) reader;
+    IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
     IP6::header& hdr = full.ip6_hdr;
     
     // retrieve source and destination addresses
@@ -180,10 +179,10 @@ namespace net
     
     // set to ICMP Echo Reply (129)
     icmp->type     = ECHO_REPLY;
-    icmp->checksum = 0;
     
     // calculate and set checksum
-    icmp->checksum = htons(checksum(pckt));
+    icmp->checksum = 0;
+    icmp->checksum = checksum(pckt);
     
     // send packet downstream
     // NOTE: *** ALLOCATED ON STACK *** -->

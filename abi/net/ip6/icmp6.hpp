@@ -14,7 +14,6 @@ namespace net
     static const int ECHO_REQUEST = 128;
     static const int ECHO_REPLY   = 129;
     
-    
     ICMPv6(IP6::addr& local_ip)
       : localIP(local_ip) {}
     
@@ -29,7 +28,7 @@ namespace net
       IP6::addr src;
       IP6::addr dst;
       uint32_t  len;
-      uint8_t   zeroes[3];
+      uint8_t   zeros[3];
       uint8_t   next;
     };
     
