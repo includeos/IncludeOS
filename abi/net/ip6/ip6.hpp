@@ -2,8 +2,8 @@
 #define NET_IP6_IP6_HPP
 
 #include <delegate>
-//#include "../inet.hpp"
 #include "../class_ethernet.hpp"
+#include "../util.hpp"
 
 #include <iostream>
 #include <string>
@@ -95,6 +95,11 @@ namespace net
       {
         return ((scanline[1] & 0x00FF) << 8) +
                ((scanline[1] & 0xFF00) >> 8);
+      }
+      void set_size(uint16_t newsize)
+      {
+        scanline[1] &= 0xFFFF0000;
+        scanline[1] |= htons(newsize);
       }
       
       uint8_t next() const

@@ -46,25 +46,27 @@ namespace net
   
 	int IP6::bottom(std::shared_ptr<Packet>& pckt)
 	{
-    std::cout << ">>> IPv6 packet:" << std::endl;
+    debug(">>> IPv6 packet:");
     
     uint8_t* reader = pckt->buffer();
     full_header& full = *(full_header*) reader;
     reader += sizeof(full_header);
     
     header& hdr = full.ip6_hdr;
-    
+    /*
     std::cout << "IPv6 v: " << (int) hdr.version() << " \t";
     std::cout << "class: "  << (int) hdr.tclass()  << " \t";
     
     std::cout << "size: " << hdr.size() << " bytes" << std::endl;
-    
+    */
     uint8_t next = hdr.next();
+    /*
     std::cout << "IPv6 next hdr: " << protocol_name(next)  << std::endl;
     std::cout << "IPv6 hoplimit: " << (int) hdr.hoplimit() << " hops" << std::endl;
     
     std::cout << "IPv6 src: " << hdr.source() << std::endl;
     std::cout << "IPv6 dst: " << hdr.dest() << std::endl;
+    */
     
     while (next != PROTO_NoNext)
     {

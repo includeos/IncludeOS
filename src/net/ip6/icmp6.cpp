@@ -5,9 +5,6 @@
 #include <alloca.h>
 #include <assert.h>
 
-#define	P2ALIGN  (x, align)    ((x) & -(align))
-#define	P2ROUNDUP(x, align)    (-(-(x) & -(align)))
-
 namespace net
 {
   std::string ICMPv6::code_string(uint8_t type, uint8_t code)
@@ -133,14 +130,19 @@ namespace net
     IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
     IP6::header& hdr = full.ip6_hdr;
     
-    // ICMP message length + pseudo header size
-    uint16_t datalen = hdr.size() - sizeof(IP6::header) + sizeof(pseudo_header);
+    // ICMP message + pseudo header
+    uint16_t datalen = hdr.size() + sizeof(pseudo_header);
     
     // allocate it on stack
     char* data = (char*) alloca(datalen + 16);
     // unfortunately we also need to guarantee SSE aligned
-    data = (char*) P2ROUNDUP((intptr_t) data, 16);
+    data = (char*) ((intptr_t) (data+16) & ~15); // P2ROUNDUP((intptr_t) data, 16);
+    // verify that its SSE aligned
+    assert(((intptr_t) data & 15) == 0);
     
+    // ICMP checksum is done with a pseudo header
+    // consisting of src addr, dst addr, message length (32bits)
+    // 3 zeroes (8bits each) and id of the next header
     pseudo_header& phdr = *(pseudo_header*) data;
     phdr.src = hdr.src;
     phdr.dst = hdr.dst;
@@ -149,16 +151,15 @@ namespace net
     phdr.zeros[1] = 0;
     phdr.zeros[2] = 0;
     phdr.next = hdr.next();
-    
-    assert(hdr.next() == 58); // ICMPv6
+    //assert(hdr.next() == 58); // ICMPv6
     
     // normally we would start at &icmp_echo::type, but
-    // it is the first element of the icmp message
+    // it is after all the first element of the icmp message
     memcpy(data + sizeof(pseudo_header), pckt->payload(),
         datalen - sizeof(pseudo_header));
     
-    // calculate csum and free it on return
-    return net::checksum((uint16_t*) data, datalen);
+    // calculate csum and free data on return
+    return net::checksum(data, datalen);
   }
   
   int ICMPv6::echo_request(std::shared_ptr<PacketICMP6>& pckt)
@@ -173,8 +174,10 @@ namespace net
     // switch them around!
     hdr.src = this->localIP;
     hdr.dst = src;
+    hdr.set_size(sizeof(ICMPv6::icmp6_echo));
+    pckt->set_len(sizeof(IP6::full_header) + sizeof(ICMPv6::icmp6_echo));
     
-    icmp6_echo* icmp = (icmp6_echo*) &pckt->header();
+    icmp6_echo* icmp = (icmp6_echo*) pckt->payload();
     printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set to ICMP Echo Reply (129)
@@ -185,9 +188,9 @@ namespace net
     icmp->checksum = checksum(pckt);
     
     // send packet downstream
-    // NOTE: *** ALLOCATED ON STACK *** -->
+    // NOTE: *** OBJECT CREATED ON STACK *** -->
     auto original = std::static_pointer_cast<Packet>(pckt);
-    // NOTE: *** ALLOCATED ON STACK *** <--
+    // NOTE: *** OBJECT CREATED ON STACK *** <--
     return ip6_out(original);
   }
   
