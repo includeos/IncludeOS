@@ -109,10 +109,11 @@ namespace net
       return -1;
       
     default:
-      return -1;
+      //return -1;
       std::cout << ">>> IPv6 -> ICMPv6 bottom" << std::endl;
       std::cout << "ICMPv6 type " << (int) icmp->type() << ": " << code_string(icmp->type(), icmp->code()) << std::endl;
       
+      /*
       // show correct checksum
       intptr_t chksum = icmp->checksum();
       std::cout << "ICMPv6 checksum: " << (void*) chksum << std::endl;
@@ -121,6 +122,7 @@ namespace net
       icmp->header().checksum_ = 0;
       chksum = checksum(icmp);
       std::cout << "ICMPv6 our estimate: " << (void*) chksum << std::endl;
+      */
     }
     return -1;
   }
@@ -168,21 +170,18 @@ namespace net
     IP6::header& hdr = full.ip6_hdr;
     
     // retrieve source and destination addresses
-    IP6::addr src = hdr.source();
+    //IP6::addr src = hdr.source();
     //IP6::addr dst = hdr.dest();
     
     // switch them around!
     //hdr.src = this->localIP;
     //hdr.dst = src;
-    //hdr.set_size(sizeof(ICMPv6::icmp6_echo));
-    //pckt->set_len(sizeof(IP6::full_header) + sizeof(ICMPv6::icmp6_echo));
     
     icmp6_echo* icmp = (icmp6_echo*) pckt->payload();
     printf("\n*** RECEIVED ECHO type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set to ICMP Echo Reply (129)
     icmp->type     = ECHO_REPLY;
-    //icmp->sequence = htons(htons(icmp->sequence)+1);
     
     // calculate and set checksum
     icmp->checksum = 0;
