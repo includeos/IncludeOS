@@ -78,7 +78,7 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
 	expected_seq_nr_ != hdr->seq_nr && ! (FLAGS & SYN) ? " DIFFERS FROM " : "EQUALS");
   
   
-// Set source port
+  // Set source port
   hdr->sport = htons(local_port_);  
   
   // Try to let the underlying stack set the source IP (We don't know it here)
@@ -91,7 +91,14 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
   debug2("<TCP::Socket::syn_ack> Source port: %i, Destination port: %i (Local port is %i) \n", 
 	 hdr->sport, hdr->dport, local_port_);
   
+  
+  // Shrink-wrap the packet around the header
   pckt->set_len(sizeof(full_header));
+
+  // Fill up with data from the buffer
+  if (buffer_.size())
+    fill(pckt);
+  
   local_stack_.transmit(pckt);
   
 }
@@ -99,6 +106,29 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
 std::string TCP::Socket::read(int SIZE){
   return std::string((const char*) data_location(current_packet_), data_length(current_packet_));
 }
+
+
+void TCP::Socket::write(std::string data){
+  // Just buffer up the data and let the state-machine (i.e. void ack()) decide when it goes out.
+  buffer_ += data;
+}
+
+int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
+  int capacity = pckt->bufsize() - pckt->len();
+  void* out_buf = (char*) data_location(pckt);
+  int bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
+  
+  // Copy the data
+  memcpy(out_buf, (void*)buffer_.data(), bytecount);
+  
+  // Shrink the buffer
+  buffer_.resize(buffer_.size() - bytecount);
+
+  debug("<TCP::Socket::fill> FILLING packet with %i bytes \n", bytecount);
+  pckt->set_len(pckt->len() + bytecount);
+  return bytecount;
+  
+};
 
 int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
   full_header* full_hdr = (full_header*)pckt->buffer();
@@ -192,7 +222,7 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
 	bytes_received_++;
 	
 	state_ = CLOSE_WAIT;
-	// @TODO: Warn the application
+	// @TODO: Warn the application	
 	
 	// Close
 	ack(pckt, FIN | ACK);
@@ -202,8 +232,10 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
       
       if (data_size)
 	ack(pckt); 
+      
+      break;
+      
     }
-    break;
     
   case LAST_ACK:
     {

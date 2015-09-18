@@ -158,9 +158,14 @@ namespace net {
       // Assign the "accept-delegate" to the default handler
       connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
       
+      // A pretty simple data buffer
+      std::string buffer_;
       
       // General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want.
       void ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS = ACK);
+      
+      // Fill the packet with buffered data. 
+      int fill(std::shared_ptr<Packet>& pckt);
       
       std::shared_ptr<Packet> current_packet_;
       

@@ -98,7 +98,10 @@ void Service::start()
       printf("SERVICE Connection handler: got it\n");
       printf("Got data: %s \n",conn.read(1024).c_str());
       
+      conn.write("<html><body><h1>Hello HTTP! </h1></html>\n");
     });
+  
+  
   printf("SERVICE changed connection handler for socket \n");
   
   printf("*** SERVICE STARTED *** \n");
