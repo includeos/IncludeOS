@@ -104,12 +104,6 @@ namespace net
     {
       return ntohs(header().checksum_);
     }
-    
-    // transformed back to normal packet
-    std::shared_ptr<Packet>& packet()
-    {
-      return *reinterpret_cast<std::shared_ptr<Packet>*>(this);
-    }
  };
   
 }
