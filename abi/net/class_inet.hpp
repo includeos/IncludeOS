@@ -6,9 +6,12 @@
 #include <net/class_ethernet.hpp>
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>
-#include <net/class_ip6.hpp>
 #include <net/class_icmp.hpp>
 #include <net/class_udp.hpp>
+#include "ip6/ip6.hpp"
+#include "ip6/icmp6.hpp"
+#include "ip6/udp6.hpp"
+
 
 #include <vector>
 
@@ -34,6 +37,24 @@ namespace net {
     inline int udp_send(std::shared_ptr<Packet> pckt)
     { return _udp.transmit(pckt); }
     
+    /// listen for UDPv6 packets on @port
+    /// replaces existing listeners on the same port
+    void udp6_listen(UDPv6::port_t port, UDPv6::listener_t func)
+    {
+      _udp6.listen(port, func);
+    }
+    /// send an UDPv6 packet, hopefully (please dont lie!)
+    std::shared_ptr<PacketUDP6> udp6_create(
+        Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
+    {
+      return _udp6.create(ether_dest, ip_dest, port);
+    }
+    
+    /// send an UDPv6 packet, hopefully (please dont lie!)
+    int udp6_send(std::shared_ptr<PacketUDP6> pckt)
+    {
+      return _udp6.transmit(pckt);
+    }
     
     /** Bind an IP and a netmask to a given device. 
       The function expects the given device to exist.*/
@@ -50,17 +71,15 @@ namespace net {
     inline static IP6::addr ip6(netdev nic)
     { return _ip6_list[nic]; }
     
-    static Inet* up(){
+    static Inet* up()
+    {
       if (_ip4_list.size() < 1)
-	panic("<Inet> Can't bring up IP stack without any IP addresses");
+        panic("<Inet> Can't bring up IP stack without any IP addresses");
       
-      if (!instance){
-	instance = new Inet();
-	printf("<Inet> instance constructed @ %p\n", instance);
-      }
+      if (!instance)
+          instance = new Inet();
       return instance;
-      
-    };
+    }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
     
@@ -89,14 +108,7 @@ namespace net {
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
    */
-    Inet(Inet& UNUSED(cpy)) :
-      _ip4(_ip4_list[0],_netmask_list[0]),
-      _ip6(ip6(ETH0))
-    {    
-      printf("<IP Stack> WARNING: Copy-constructing the stack won't work." \
-	     "It should be pased by reference.\n");
-      panic("Trying to copy-construct IP stack");
-    }
+    Inet(Inet& UNUSED(cpy)) = delete;
     
     Inet(std::vector<IP4::addr> ips);
     

@@ -4,8 +4,10 @@
 # (0 means no, anything else yes.)
 
 DEBUG=0
+STRIPPED=0
 JOBS=-j12
-IMAGE=test_service.img
+KERNEL=test_service
+IMAGE=test_ipv6.img
 
 [[ $1 = "debug" ]] && DEBUG=1 
 [[ $1 = "stripped" ]] && STRIPPED=1 
@@ -22,7 +24,7 @@ then
     make $JOBS test
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
 
 
     echo "Starting VM: '$1'"
@@ -33,22 +35,24 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
     sudo $QEMU -s -S $QEMU_OPTS
+    
 elif [ "$STRIPPED" -ne 0 ]; then
     #make clean all #stripped 
     make $JOBS stripped
 
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
     echo "-----------------------"
     
     sudo $QEMU $QEMU_OPTS 
+    
 else
     #make $JOBS all test    
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS

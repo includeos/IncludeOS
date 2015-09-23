@@ -25,7 +25,8 @@ namespace net {
   
 
   /** Compute the internet checksum for the buffer / buffer part provided */
-  uint16_t checksum(uint16_t* buf, uint32_t len); 
+  //uint16_t checksum(uint16_t* buf, uint32_t len); 
+  uint16_t checksum(void* data, size_t len); 
   
 }
 

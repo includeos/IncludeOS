@@ -1,6 +1,6 @@
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Os -msse3 -Wall -Wextra -mstackrealign
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -52,7 +52,8 @@ DEPS = $(OBJS:.o=.d)
 
 all: service
 
-stripped: LDOPTS += -S #strip all
+stripped: LDOPTS  += -S #strip all
+stripped: CPPOPTS += -Oz
 stripped: service
 
 

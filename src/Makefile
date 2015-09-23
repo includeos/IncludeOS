@@ -21,7 +21,7 @@ LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-CAPABS_COMMON =  -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE) -Ofast
+CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2  
 debug: CAPABS = $(CAPABS_COMMON) -O0
@@ -45,9 +45,10 @@ OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 class_irq_handler.o class_pci_manager.o \
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
-						 net/class_packet.o net/dns/dns.o
+						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
+						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o\
+						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o \
+						 net/class_packet.o net/dns/dns.o 
 
 # Libraries
 ###################################################
@@ -68,11 +69,9 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 all: bootloader libc++abi.a os.a 
 	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
-all: test
 
 #stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a
-stripped: test
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
@@ -104,6 +103,10 @@ test_service.o: test_service.cpp
 test: test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
+
+test6: test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test IPv6 service"
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
 # OS libraries
 ###################################################
@@ -170,6 +173,6 @@ clean:
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
-	$(RM) test_service.o test_service test_service.img
+	$(RM) test_service.o test_ipv6.o test_service test_service.img
 
 -include $(OS_DEPS)

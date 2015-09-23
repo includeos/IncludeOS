@@ -1,11 +1,9 @@
-#ifndef CLASS_IP6_HPP
-#define CLASS_IP6_HPP
+#ifndef NET_IP6_IP6_HPP
+#define NET_IP6_IP6_HPP
 
 #include <delegate>
-#include <net/inet.hpp>
-#include <net/class_ethernet.hpp>
-#include <net/ip6/icmp6.hpp>
-#include <net/ip6/udp6.hpp>
+#include "../class_ethernet.hpp"
+#include "../util.hpp"
 
 #include <iostream>
 #include <string>
@@ -37,37 +35,35 @@ namespace net
       PROTO_OPTSv6 = 60, // dest options
     };
     
-    /** Handle IPv6 packet. */
-    int bottom(std::shared_ptr<Packet>& pckt);
-    
     struct addr
     {
       // constructors
       addr()
-        : i64{0, 0} {}
-      addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-        : i32{a, b, c, d} {}
-      addr(uint64_t top, uint64_t bot)
-        : i64{top, bot} {}
-      //addr(__m128i address)
-      //  : i128(address) {}
-      // copy-constructor
-      addr(const addr& a)
+        : i32{0, 0, 0, 0} {}
+      addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2, 
+           uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
       {
-        printf("IPv6::addr copy constructor\n");
-        printf("IPv6::addr %s\n", a.to_string().c_str());
-        //i128 = a.i128;
-        this->i64[0] = a.i64[0];
-        this->i64[1] = a.i64[1];
+        i128 = _mm_set_epi16(
+            //d2, d1, c2, c1, b2, b1, a2, a1);
+            __builtin_bswap16(d2), 
+            __builtin_bswap16(d1), 
+            __builtin_bswap16(c2), 
+            __builtin_bswap16(c1), 
+            __builtin_bswap16(b2), 
+            __builtin_bswap16(b1), 
+            __builtin_bswap16(a2), 
+            __builtin_bswap16(a1));
       }
+      addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+      {
+        i128 = _mm_set_epi32(a, b, c, d);
+      }
+      addr(const addr& a)
+        : i128(a.i128) {}
       // move constructor
       addr& operator= (const addr& a)
       {
-        printf("IPv6::addr move constructor\n");
-        printf("IPv6::addr %s\n", a.to_string().c_str());
-        //i128 = a.i128;
-        this->i64[0] = a.i64[0];
-        this->i64[1] = a.i64[1];
+        i128 = a.i128;
         return *this;
       }
       // returns this IPv6 address as a string
@@ -75,14 +71,11 @@ namespace net
       
       union
       {
-        //__m128i  i128;
-        uint64_t i64[2];
-        uint32_t i32[4];
-        uint16_t i16[8];
-        uint8_t  i8[16];
+        __m128i  i128;
+        uint32_t  i32[ 4];
+        uint8_t    i8[16];
       };
-      
-    }; // __attribute__((aligned(16)));
+    } __attribute__((aligned(alignof(__m128i))));
     
     #pragma pack(push, 1)
     class header
@@ -97,20 +90,40 @@ namespace net
         return ((scanline[0] & 0xF000) >> 12) + 
                 (scanline[0] & 0xF);
       }
+      // initializes the first scanline with the IPv6 version
+      void init_scan0()
+      {
+        scanline[0] = 6u >> 4;
+      }
       
       uint16_t size() const
       {
         return ((scanline[1] & 0x00FF) << 8) +
                ((scanline[1] & 0xFF00) >> 8);
       }
+      void set_size(uint16_t newsize)
+      {
+        scanline[1] &= 0xFFFF0000;
+        scanline[1] |= htons(newsize);
+      }
       
       uint8_t next() const
       {
         return (scanline[1] >> 16) & 0xFF;
       }
+      void set_next(uint8_t next)
+      {
+        scanline[1] &= 0xFF00FFFF;
+        scanline[1] |= next << 16;
+      }
       uint8_t hoplimit() const
       {
         return (scanline[1] >> 24) & 0xFF;
+      }
+      void set_hoplimit(uint8_t limit = 64)
+      {
+        scanline[1] &= 0x00FFFFFF;
+        scanline[1] |= limit << 24;
       }
       
       // 128-bit is probably not good as "by value"
@@ -125,6 +138,7 @@ namespace net
       
     private:
       uint32_t scanline[2];
+    public:
       addr     src;
       addr     dst;
     };
@@ -160,7 +174,7 @@ namespace net
     /** Constructor. Requires ethernet to latch on to. */
     IP6(const addr& local);
     
-    const IP6::addr& getIP() const
+    const IP6::addr& local_ip() const
     {
       return local;
     }
@@ -191,10 +205,21 @@ namespace net
       }
     }
     
+    // handler for upstream IPv6 packets
+    int bottom(std::shared_ptr<Packet>& pckt);
+    
+    // transmit packets to the ether
+    int transmit(std::shared_ptr<Packet>& pckt);
+    
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)
     {
       proto_handlers[proto] = handler;
+    }
+    
+    inline void set_linklayer_out(downstream func)
+    {
+      _linklayer_out = func;
     }
     
   private:
