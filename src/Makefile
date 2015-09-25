@@ -29,7 +29,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES)
 
 
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
@@ -42,8 +42,8 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 class_irq_handler.o class_pci_manager.o \
-						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
+						 class_irq_handler.o class_pci_manager.o class_pit.o\
+						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o\
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
 						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o\
@@ -71,7 +71,7 @@ all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
-stripped: bootloader libc++abi.a os.a
+stripped: bootloader libc++abi.a os.a test # Included test to get a stripped version
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)

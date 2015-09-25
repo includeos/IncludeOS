@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 bool  OS::_power = true;
-float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
+double OS::_CPU_mhz = 0; //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
 
 void OS::start()
 {
@@ -19,7 +19,8 @@ void OS::start()
   srand(time(NULL));
   
   // Disable the timer interrupt completely
-  disable_PIT();
+  //pit.disable();
+  
   
   // heap
   extern caddr_t heap_end;
@@ -35,37 +36,38 @@ void OS::start()
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
   IRQ_handler::init();
+
+  
+  // Initialize the Interval Timer
+  PIT::init();
+
   //OS::rsprint(">>> Dev init\n");
   Dev::init();
+
+  printf(">>> IncludeOS initialized - calling Service::start()\n");
+
+  asm("sti");
+  
+  _CPU_mhz = PIT::CPUFrequency();
+  
   
   // Everything is ready
-  printf(">>> IncludeOS initialized - calling Service::start()\n");
   Service::start();
   
-  asm("sti");
-  halt();
+
+  event_loop();
 }
 
-void OS::disable_PIT()
-{
-  #define PIT_one_shot 0x30
-  #define PIT_mode_chan 0x43
-  #define PIT_chan0 0x40
-  
-  // Enable 1-shot mode
-  OS::outb(PIT_mode_chan, PIT_one_shot);
-  
-  // Set a frequency for "first shot"
-  OS::outb(PIT_chan0, 1);
-  OS::outb(PIT_chan0, 0);
-  debug("<PIT> Switching to 1-shot mode (0x%x) \n",PIT_one_shot);
-}
-
+/*
 extern "C" void halt_loop(){
   __asm__ volatile("hlt; jmp halt_loop;");
+ }*/
+
+void OS::halt(){
+  __asm__ volatile("hlt;");
 }
 
-void OS::halt()
+void OS::event_loop()
 {
   OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - waiting for interrupts \n");

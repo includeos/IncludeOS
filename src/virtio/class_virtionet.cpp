@@ -249,7 +249,7 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  eoi(irq());    
+  IRQ_handler::eoi(irq());    
   
 }
 

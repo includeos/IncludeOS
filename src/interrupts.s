@@ -46,7 +46,9 @@
 .global irq_41_entry
 .global irq_42_entry
 .global irq_43_entry    
-     
+
+.global cpu_sampling_irq_entry
+	
 /*
 	IRQ entry wrapper
 	Default behavior for IRQ- and exception handling
@@ -108,7 +110,16 @@ exception_13_entry:
 	cli
 	call exception_13_handler
 
-    
+
+cpu_sampling_irq_entry:
+	cli
+	pusha
+	call cpu_sampling_irq_handler
+	popa
+	sti
+	iret
+	
+	
 irq_default_entry:	
 	cli
 	pusha

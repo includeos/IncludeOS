@@ -205,7 +205,9 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
     
     debug("<TCP::Socket::bottom> IN (State 2): ACK - CONNECTED! \n");  
     state_ = ESTABLISHED;                
-    // Fall through to established
+    
+    // We're not going to ack the last ack of the handshake
+    break;
     
   case ESTABLISHED:
     {
@@ -237,9 +239,18 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
 	state_ = LAST_ACK;
 	return 0;
       
-      }else if (data_size) {
-	ack(pckt); 
+      } 
+      
+      // If no data, this is (most likely) a keepalive-ack
+      if (is_keepalive(pckt)){
+	debug ("\tKEEPALIVE %s \n",ack_keepalive_ ? "Ack." : "DROP");
+	
+	if (! ack_keepalive_) return 0;
       }
+      
+      // Ack
+      ack(pckt); 
+      
       
       break;
       

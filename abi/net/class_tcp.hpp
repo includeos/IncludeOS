@@ -102,10 +102,11 @@ namespace net {
       void write(std::string s);
       void close();
       inline State poll(){ return state_; }
-      
+            
       // Server parts
       // Posix-style accept doesn't really make sense here, as we don't block
       // Socket& accept();     
+      inline void ack_keepalive(bool ack){ ack_keepalive_ = ack; }
       
       // Connections (accepted sockets) will be delegated to this kind of handler
       typedef delegate<void(Socket&)> connection_handler;
@@ -158,6 +159,9 @@ namespace net {
       // Assign the "accept-delegate" to the default handler
       connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
       
+      // Respond to keepalive packets?
+      bool ack_keepalive_ = false;
+      
       // A pretty simple data buffer
       std::string buffer_;
       
@@ -167,6 +171,10 @@ namespace net {
       // Fill the packet with buffered data. 
       int fill(std::shared_ptr<Packet>& pckt);
       
+      inline bool is_keepalive(std::shared_ptr<Packet>& pckt){
+	return tcp_hdr(pckt)->seq_nr == htonl(initial_seq_in_ + bytes_received_ );
+      }
+
       std::shared_ptr<Packet> current_packet_;
       
       // Transmission happens out through TCP& object
@@ -222,6 +230,7 @@ namespace net {
       tcp_header* hdr = tcp_hdr(pckt);
       return (void*)((char*)hdr + hdr->size());
     }
+    
     
   };
   

@@ -3,6 +3,7 @@
 
 #include <common>
 #include <assert.h>
+#include <class_pit.hpp>
 
 /** The entrypoint for OS services
     
@@ -10,19 +11,16 @@
  */
 class OS{
   
- private:  
+ public:     
   
-  /** Indicate if the OS is running. */
-  static bool _power;
+  // No copy or move
+  OS(OS&) = delete;
+  OS(OS&&) = delete;
   
-  /** The OS will call halt (i.e. wait for interrupts) once the 
-      service is started */
-  static void halt();  
-  
-  static float _CPU_mhz;
+  // No construction
+  OS() = delete;
 
- public: 
-
+  
   /** Clock cycles since boot. */
   static inline uint64_t cycles_since_boot()
   {
@@ -30,8 +28,6 @@ class OS{
     __asm__ volatile ("rdtsc":"=A"(ret));
     return ret;
   }
-
-  static void disable_PIT();
   
   /** Uptime in seconds. */
   static inline float uptime()
@@ -52,7 +48,26 @@ class OS{
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();
 
+  
+  /** Halt until next inerrupt. 
+      @Warning If there is no regular timer interrupt (i.e. from PIT / APIC) 
+      we'll stay asleep. 
+   */
+  static void halt();  
 
+
+  // PRIVATE
+private:  
+  
+  /** Indicate if the OS is running. */
+  static bool _power;
+  
+  /** The main event loop.  Check interrupts, timers etc., and do callbacks. */
+  static void event_loop();
+  
+  static double _CPU_mhz;
+
+  
   
 };
 

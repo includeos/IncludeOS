@@ -1,3 +1,5 @@
 #!/bin/bash
-du -bch *.o */*.o | sort -h -r
+
+# Go to depth 3
+du -bch **/*.o **/**/*.o | sort -hr
 

@@ -169,7 +169,7 @@ void Virtio::default_irq_handler(){
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
   
-  eoi(_irq);
+  IRQ_handler::eoi(_irq);
   
 }
 

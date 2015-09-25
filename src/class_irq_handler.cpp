@@ -1,5 +1,5 @@
-//#define DEBUG // Enable debugging
-//#define DEBUG2
+// #define DEBUG // Enable debugging
+// #define DEBUG2
 
 #include <os>
 #include <class_irq_handler.hpp>
@@ -80,7 +80,7 @@ extern char _end;
 #define EXCEPTION_HANDLER(I) \
   void exception_##I##_handler(){ \
     printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n",I);	\
-    printf("Heap end: 0x%lx \n",(uint32_t)&_end);               \
+    printf("Heap end: %#x \n",(uint32_t)&_end);               \
     kill(1,9); \
   }
 
@@ -137,7 +137,7 @@ static uint32_t __irqueues[256]{0};
 
 /*
   IRQ HANDLERS, 
-  ! extern: must be visible from assembler
+  extern: must be visible from assembler
   
   We define two functions for each IRQ/Exception i :
 
@@ -147,14 +147,16 @@ static uint32_t __irqueues[256]{0};
 extern "C"{
   void _irq_20_entry(int i);
   //Array of custom IRQ-handlers
-  void (*custom_handlers[256])();
-
+  void (*custom_handlers[256])();  
+  
   void irq_default_handler();
   void irq_default_entry();
 
   void irq_timer_entry();
   void irq_timer_handler();
-
+  
+  // CPU-sampling irq-handler is defined in the PIT-implementation
+  void cpu_sampling_irq_entry();
 
   EXCEPTION_PAIR(0) EXCEPTION_PAIR(1) EXCEPTION_PAIR(2) EXCEPTION_PAIR(3)
   EXCEPTION_PAIR(4) EXCEPTION_PAIR(5) EXCEPTION_PAIR(6) EXCEPTION_PAIR(7)
@@ -213,8 +215,6 @@ void IRQ_handler::init()
 
   
   // Default gates for "real IRQ lines", 32-64
-  
-  
   printf(" >> Exception gates set for irq < 32 \n");
   
   //Set all irq-gates (>= 44) to the default handler
@@ -232,8 +232,9 @@ void IRQ_handler::init()
 
 
   //Register the timer and enable / unmask it in the pic
-  set_handler(32,irq_timer_entry);
-  enable_irq(32); 
+  //set_handler(32,irq_timer_entry);
+
+  
     
   enable_irq(33); //Keyboard - now people can subscribe
   enable_interrupts();
@@ -271,7 +272,18 @@ void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){
   create_gate(&idt[irq],function_addr,default_sel,default_attr);
 }
 
+void (* IRQ_handler::get_handler(uint8_t irq)) (){
+  
+  addr_union addr;
+  addr.lo16 = idt[irq].offset_1;
+  addr.hi16 = idt[irq].offset_2;
+  
+  return (void (*)()) addr.whole;
+};
 
+IRQ_handler::irq_delegate IRQ_handler::get_subscriber(uint8_t irq){
+  return irq_delegates[irq];
+};
 
 static void set_intr_mask(unsigned long mask)
 {
@@ -309,7 +321,7 @@ void IRQ_handler::subscribe(uint8_t irq, irq_delegate del){   //void(*notify)()
   irq_delegates[irq] = del;
 
   
-  printf(">>> IRQ subscriptions: 0x%lx irq: 0x%x\n",irq_subscriptions,irq);
+  printf(">>> IRQ subscriptions: %#x irq: 0x%x\n",irq_subscriptions,irq);
 }
 
 

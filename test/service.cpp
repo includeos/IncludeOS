@@ -1,7 +1,8 @@
 //#define NDEBUG // Debug supression
 
 #include <os>
-#include <EASTL/list.h>
+//#include <EASTL/list.h>
+#include <list>
 #include <net/inet>
 #include <vector>
 
@@ -93,7 +94,7 @@ private:
   uint16_t _n = 100;
   uint32_t _bufsize = 1500;
   uint8_t* _pool = 0;
-  eastl::list<shared_ptr<Packet> > _queue;
+  std::list<shared_ptr<Packet> > _queue;
 }UDP_store(100,1500);
 
 

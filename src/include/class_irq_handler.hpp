@@ -5,7 +5,7 @@
 #include "irq/pic_defs.h"
 
 #include <delegate>
-#include <hw/pic.h>
+//#include <hw/pic.h>
 
 /*
   IDT Type flags  
@@ -26,7 +26,6 @@ const char BIT_DPL2=0x40;
 
 //Bit 7, "Present" (BIT NUMBER)
 const char BIT_PRESENT=0x80;
-
 
 //From osdev
 struct IDTDescr{
@@ -53,12 +52,24 @@ extern "C" {
 }
 
 
-
-/** A class to handle interrupts. 
+/** A class to manage interrupt handlers
   
     Anyone can subscribe to IRQ's, but the will be indireclty called via the
-    Deferred Procedure Call (DPC) system, i.e. when the system is in a 
+    Deferred Procedure Call / Callback system, i.e. when the system is in a 
     wait-loop with nothing else to do.
+    
+    NOTES:
+    * All IRQ-callbacks are in charge of calling End-Of-Interrupt - eoi. 
+        Why? Because this makes it possible to prevent further interrupts until 
+        a condition of your choice is met. And, interrupts are costly as they 
+	always cause vm-exit.
+    
+    * IRQ-numbering: 0 or 32?
+        
+        
+    @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
+
+    
  */
 class IRQ_handler{
 
@@ -79,7 +90,10 @@ class IRQ_handler{
       }
   */
   static void set_handler(uint8_t irq, void(*function_addr)());
-    
+  
+  /** Get handler from inside the IDT. */
+  static void (*get_handler(uint8_t irq))();
+  
   /** Subscribe to an IRQ. 
       
       @param del a delegate to attach to the IRQ DPC-system, 
@@ -91,9 +105,17 @@ class IRQ_handler{
   */
   static void subscribe(uint8_t irq, irq_delegate del);
   
-  static void subscribe(uint8_t irq, void(*notify)());
- 
+  /** Get the current subscriber of an IRQ-line. */
+  static irq_delegate get_subscriber(uint8_t irq);
+  
+  /** End of Interrupt. 
+      @param irq : The interrupt number
+      Indicate to the IRQ-controller that the IRQ is handled, allowing new irq.
+      @note Until this is called, no furter IRQ's will be triggered on this line      
+      @warning This function is only supposed to be called inside an IRQ-handler   */ 
+  static void eoi(uint8_t irq);
 
+  
 private:
   static unsigned int irq_mask;
   static int timer_interrupts;
@@ -133,7 +155,7 @@ private:
   /** Notify all delegates waiting for interrupts */
   static void notify();
   
-  static void eoi(uint8_t irq);
+
   
 };
 
