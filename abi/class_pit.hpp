@@ -18,8 +18,8 @@ public:
   
   void onTimeout_ms(uint64_t ms, timeout_handler);
   void onTimeout_sec(uint32_t sec, timeout_handler);
-  void onRepeatedTimeout_sec(uint64_t ms, timeout_handler);
-  void onRepeatedTimeout_ms(uint32_t sec, timeout_handler);
+  void onRepeatedTimeout_ms(uint64_t ms, timeout_handler);
+  void onRepeatedTimeout_sec(uint32_t sec, timeout_handler);
   
   // No copy or move. The OS owns one instance forever.
   PIT(PIT&) = delete;
@@ -42,7 +42,8 @@ public:
   
   /** Get the last estimated CPU frequency. */
   static double CPUFrequency();
-  
+
+  static inline double freq_mhz(){ return freq_mhz_; }; 
   
 private: 
   enum Mode { ONE_SHOT = 0, 
@@ -67,7 +68,9 @@ private:
   // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org
   static constexpr double freq_mhz_ = 14.31818 / 12;   // ~ 1.1931816666666666 MHz
   static constexpr double ticks_pr_sec_ = freq_mhz_ * 1'000'000;   // ~ 1.1931816666666666 MHz
+  static constexpr double max_interval_sec_ = freq_mhz_ / 0xffff;
   
+
   static PIT* pit_;
   
   PIT();

@@ -232,7 +232,7 @@ void IRQ_handler::init()
   init_pic();
 
   //Register the timer and enable / unmask it in the pic
-  set_handler(32,irq_timer_entry);
+  //set_handler(32,irq_timer_entry);
 
   
     
@@ -268,8 +268,14 @@ void IRQ_handler::create_gate(IDTDescr* idt_entry,
 }
 
 
-void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){
+void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){  
   create_gate(&idt[irq],function_addr,default_sel,default_attr);
+  
+  /** 
+      The default handlers don't send EOI. If we don't do it here, Previous 
+      interrupts won't have reported EOI and new handler will never get called
+  */
+  eoi(irq);
 }
 
 void (* IRQ_handler::get_handler(uint8_t irq)) (){

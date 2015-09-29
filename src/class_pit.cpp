@@ -1,4 +1,4 @@
-#define DEBUG 
+//#define DEBUG 
 #include <os>
 #include <class_pit.hpp>
 #include <class_irq_handler.hpp>
@@ -20,7 +20,7 @@ uint64_t PIT::prev_timestamp_ = 0;
 
 extern "C" double ticks_pr_sec_;
 extern "C" double _CPUFreq_;
-extern "C" uint16_t _cpu_sampling_freq_divider_ = ticks_pr_sec_ * 10;
+extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 uint16_t PIT::current_freq_divider_ = 0;
 uint16_t PIT::temp_freq_divider_ = 0;
@@ -29,13 +29,8 @@ extern "C" void irq_timer_entry();
 
 
 void PIT::disable_regular_interrupts()
-{ 
-  
-  // Set one-shot mode, without setting a frequency
-  set_mode(HW_ONESHOT);
-  
-  //set_freq(temp_freq_divider_);
-  
+{   
+  oneshot(1);
 }
 
 PIT::~PIT(){
@@ -49,7 +44,7 @@ PIT::PIT(){
 
 void PIT::estimateCPUFrequency(){
 
-  debug("<PIT EstimateCPUFreq> Saving state\n");
+  debug("<PIT EstimateCPUFreq> Saving state: curr_freq_div %i \n",current_freq_divider_);
   // Save PIT-state
   temp_mode_ = current_mode_;
   temp_freq_divider_ = current_freq_divider_;
@@ -59,18 +54,15 @@ void PIT::estimateCPUFrequency(){
   // Initialize CPU sampling. This 
   _CPUFreq_ = 0;  
 
-  
   debug("<PIT EstimateCPUFreq> Sampling\n");
   IRQ_handler::set_handler(32, cpu_sampling_irq_entry);
 
   // GO!
   set_mode(RATE_GEN);  
-  set_freq(_cpu_sampling_freq_divider_); 
-  
-  read_back(1);
+  set_freq(_cpu_sampling_freq_divider_);   
   
   while (_CPUFreq_ == 0) {
-    debug("<PIT EstimateCPUFreq> CPUFreq_ is %f \n", _CPUFreq_);
+    debug2("<PIT EstimateCPUFreq> CPUFreq_ is %f \n", _CPUFreq_);
     OS::halt();
   }
     
@@ -90,12 +82,30 @@ double PIT::CPUFrequency(){
   return _CPUFreq_;
 }
 
-void PIT::onRepeatedTimeout_sec(uint64_t ms, timeout_handler){
-  debug("<PIT sec> SORRY, timers aren't done yet \n");
+void PIT::onTimeout_ms(uint64_t ms, timeout_handler){
+  
+  if (ms < 1) panic("Can't wait less than 1 ms. ");
+  
+  debug("<PIT sec> setting a %i ms. timer \n", ms);
+  
+  /*
+    @Todo
+    * Queue the timer
+    * Make sure there's an appropriate interrupt coming
+  
+  if (current_mode_ != RATE_GEN)
+    set_mode(RATE_GEN);
+  
+  if (current_freq_divider_ != freq_mhz_ * 1000)
+    set_freq(freq_mhz_ * 1000);
+  
+  */
+  
 };
 
-void PIT::onRepeatedTimeout_ms(uint32_t sec, timeout_handler){
-  debug("<PIT ms> SORRY, timers aren't done yet \n");
+void PIT::onTimeout_sec(uint32_t sec, timeout_handler){
+  debug("<PIT sec> setting a %i sec. timer \n", sec);
+  
 };
 
 
@@ -116,72 +126,53 @@ void PIT::irq_handler(){
 
   IRQ_counter_ ++;
 
-  uint16_t freq_devider =  0x0;
-  double adjusted_ticks_pr_sec = freq_devider == 0 ? ticks_pr_sec_ / 0xffff : ticks_pr_sec_ / freq_devider;  
+  double adjusted_ticks_pr_sec = current_freq_divider_ == 0 ? 
+    ticks_pr_sec_ / 0xffff : ticks_pr_sec_ / current_freq_divider_;  
+  
   double time_between_ticks = 1 / adjusted_ticks_pr_sec;
 
   
-  OS::rsprint("#");
+  OS::rsprint(".");
   if (IRQ_counter_ % (int)adjusted_ticks_pr_sec == 0) {
-    debug("<PIT> One-shot ordered, with t= %i expected in %f seconds. Current ticks pr. sec: %f \n", 
-	  freq_devider, time_between_ticks, adjusted_ticks_pr_sec );
-    read_back(1);
+    debug("<PIT soft IRQ_handler>  with freq.Div. %i expected in %f seconds. Current ticks pr. sec: %f \n", 
+	  current_freq_divider_, time_between_ticks, adjusted_ticks_pr_sec );
   }
-  //oneshot(freq_devider);
-  set_mode(HW_ONESHOT);  
   IRQ_handler::eoi(0);
 
 }
 
 void PIT::init(){
   debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", freq_mhz_);  
-  read_back(1);
   PIT::disable_regular_interrupts();
-  IRQ_handler::enable_irq(32);
+  //IRQ_handler::enable_irq(32);
   IRQ_handler::subscribe(0, irq_handler);
-  read_back(1);
 }
 
 void PIT::set_mode(Mode mode){
-  
-  /*if (mode == current_mode_){
-    debug("<PIT::set_mode> Allready set. IGNORING \n");
-    return;
-    
-    }*/
-
   // Channel is the last two bits in the PIT mode register
   // ...we always use channel 0
   auto channel = 0x00;  
   uint8_t config = mode | LO_HI | channel;
   debug("<PIT::set_mode> Setting mode %#x, config: %#x \n", mode, config);
   
-  //asm("cli");
   OS::outb(PIT_mode_register, config);
-  //asm("sti");   
   current_mode_ = mode;
 
 }
 
-
-
-void PIT::set_freq(uint16_t freq_devider){
-  
-  //if (freq_devider == current_freq_divider_)
-  //return;
-  
+void PIT::set_freq(uint16_t freq_divider){    
   union{
     uint16_t whole;
     uint8_t part[2];
-  }data{freq_devider};
-  
-  // Set a frequency 
-  //asm("cli");
+  }data{freq_divider};  
+
+  // Send frequency hi/lo to PIT
   OS::outb(PIT_chan0, data.part[0]);
   OS::outb(PIT_chan0, data.part[1]);
-  //asm("sti");
-}
 
+  current_freq_divider_ = freq_divider;
+
+}
 
 void PIT::oneshot(uint16_t t){
     

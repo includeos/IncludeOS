@@ -161,12 +161,12 @@ void Service::start()
 
   auto& time = PIT::instance();
     
-  
-  // Write a dot every half second
-  time.onRepeatedTimeout_ms(500, [](){ printf("."); });
 
   // Write some more every now and then
-  time.onRepeatedTimeout_sec(3, [](){ printf("3 seconds passed..."); });
+  time.onTimeout_sec(3, [](){ printf("3 seconds passed..."); });
+  
+  // Write a dot every half second
+  time.onTimeout_ms(500, [](){ printf("."); });
   
   printf("*** SERVICE STARTED *** \n");
 }
