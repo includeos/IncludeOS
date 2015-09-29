@@ -56,7 +56,7 @@ private:
   static Mode temp_mode_;
   static uint16_t temp_freq_divider_;
   static uint64_t prev_timestamp_;
-  static uint16_t sampling_freq_divider_;
+
   
   /** Disable regular timer interrupts- which are turned on at boot-time. */
   static void disable_regular_interrupts();
@@ -101,6 +101,7 @@ private:
   static void set_freq(uint16_t);
   static void oneshot(uint16_t t);
   
+  static uint8_t read_back(uint8_t channel);
   
 };
 

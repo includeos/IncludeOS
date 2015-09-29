@@ -1,6 +1,8 @@
-#define DEBUG
+//#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
 #include <common>
+#include <vector>
+#include <algorithm>
 #include <os>
 #include <class_irq_handler.hpp>
 
@@ -12,23 +14,25 @@ static uint32_t sample_counter_ = 0;
 
 // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org
 static constexpr double freq_mhz_ = 14.31818 / 12;   // ~ 1.1931816666666666 MHz
-static constexpr double ticks_pr_sec_ = freq_mhz_ * 1'000'000;   // ~ 1.1931816666666
+extern "C" constexpr double ticks_pr_sec_ = freq_mhz_ * 1'000'000;   // ~ 1.1931816666666
 
 extern "C" double _CPUFreq_ = 0;
 extern "C" uint64_t _cpu_prev_timestamp_ = 0;
-extern "C" uint64_t _cpu_sampling_freq_divider_ = 0xffff;
+extern "C" uint64_t _cpu_sampling_freq_divider_;
 
-static constexpr int do_samples_ = 10;
+static constexpr int do_samples_ = 20;
+
+std::vector<double>samples;
 
 void cpu_sampling_irq_handler(){
 
   auto t2 = OS::cycles_since_boot();
-  OS::rsprint(".");
+
   sample_counter_++;
   
   
-  // Skip first couple of samples
-  if (sample_counter_ < 2){
+  // Skip first couple of (3) samples
+  if (sample_counter_ < 3){
     IRQ_handler::eoi(0);
     return;
   }   
@@ -42,18 +46,35 @@ void cpu_sampling_irq_handler(){
   double time_between_ticks = 1 / adjusted_ticks_pr_sec;
   
   
-  double freq = (cycles * time_between_ticks) / 1'000'000;
+  double freq = (cycles / time_between_ticks) / 1'000'000;
 
-  if (sample_counter_ >= do_samples_ + 2){
-    _CPUFreq_ = freq;
+  if (freq > 1000 && freq < 10000)
+    samples.push_back(freq);
+  
+  if (sample_counter_ >= do_samples_ + 3 and freq > 10){
+    double sum = 0;
+    
+    for(int i = 5; i<samples.size(); i++){
+      sum += samples[i];
+      debug("\t Sample: %f \n",samples[i]);
+    }
+    
+    std::sort(samples.begin(),samples.end());
+    
+    double avg = sum / (samples.size() - 5);
+    double median = samples[samples.size() / 2];
+    double median_avg = (samples[(samples.size() / 2)-1] + median + samples[(samples.size() / 2) +1]) / 3;
+    debug ("<PIT CPU Freq.Sampler> AVERAGE Freq.: %f  MEDIAN Freq.: %f MEDIAN/AVG: %f \n",
+	   avg, median, median_avg );
+    _CPUFreq_ = median;
     IRQ_handler::eoi(0);
     return;
   }
 
-
-  debug("<PIT CPU Freq. Sampler> Sample %i. PIT freq./Hz: %f  time_window: %f ticks/sec: %f \n", 
+  
+  debug("<PIT CPU Freq. Sampler> Sample %i. tics_pr_sec: %f  time_between_ticks: %f adjusted_ticks_pr_sec: %f \n", 
 	sample_counter_, ticks_pr_sec_, time_between_ticks, adjusted_ticks_pr_sec);
-  debug("<PIT CPU Freq. Sampler> Cycles  %u, Freq: %f MHz\n", (uint32_t)cycles, freq); 
+  debug("<PIT CPU Freq. Sampler> Cycles  %u in %f sec., Freq: %f MHz\n", (uint32_t)cycles, time_between_ticks, freq); 
   
   
   IRQ_handler::eoi(0);

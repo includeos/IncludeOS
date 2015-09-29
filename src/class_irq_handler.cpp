@@ -1,5 +1,6 @@
-// #define DEBUG // Enable debugging
+//#define DEBUG // Enable debugging
 // #define DEBUG2
+
 
 #include <os>
 #include <class_irq_handler.hpp>
@@ -230,9 +231,8 @@ void IRQ_handler::init()
   //Initialize the interrupt controller
   init_pic();
 
-
   //Register the timer and enable / unmask it in the pic
-  //set_handler(32,irq_timer_entry);
+  set_handler(32,irq_timer_entry);
 
   
     

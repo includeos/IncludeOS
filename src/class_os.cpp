@@ -44,12 +44,16 @@ void OS::start()
   //OS::rsprint(">>> Dev init\n");
   Dev::init();
 
-  printf(">>> IncludeOS initialized - calling Service::start()\n");
+
 
   asm("sti");
   
+  printf(">>> Estimating CPU-frequency\n");  
+
   _CPU_mhz = PIT::CPUFrequency();
   
+  
+  printf(">>> IncludeOS initialized - calling Service::start()\n");  
   
   // Everything is ready
   Service::start();
