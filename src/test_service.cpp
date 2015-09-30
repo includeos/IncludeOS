@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 
+//#include <thread> => <thread> is not supported on this single threaded system
+
 class Test
 {
 public:
@@ -23,6 +25,8 @@ Test test2(2);
 void my_exit(){
   printf("This service has it's own exit routine");
 }
+
+using namespace std::chrono;
 
 void Service::start()
 {
@@ -160,13 +164,17 @@ void Service::start()
   printf("Checksum (0x%x) took: %llu cycles. \n",sum,(uint32_t)t2);
 
   auto& time = PIT::instance();
-    
-
-  // Write some more every now and then
-  time.onTimeout_sec(3, [](){ printf("3 seconds passed..."); });
+  
+  // Write something in a while
+  time.onTimeout(7s, [](){ printf("7 seconds passed...\n"); });
   
   // Write a dot every half second
-  time.onTimeout_ms(500, [](){ printf("."); });
+  time.onTimeout(1s, [](){ printf("One second passed...\n"); });
+
+  // Write something in half a second
+  time.onTimeout(500ms, [](){ printf("Half a second passed...\n"); });
+  
+  
   
   printf("*** SERVICE STARTED *** \n");
 }

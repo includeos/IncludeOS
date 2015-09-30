@@ -30,8 +30,8 @@ class OS{
   }
   
   /** Uptime in seconds. */
-  static inline float uptime()
-  { return (cycles_since_boot() / _CPU_mhz) / 1000000; }
+  static inline double uptime()
+  { return (cycles_since_boot() / _CPU_mhz.count() ); }
   
   /** Receive a byte from port. @todo Should be moved */
   static uint8_t inb(int port);
@@ -65,7 +65,7 @@ private:
   /** The main event loop.  Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
   
-  static double _CPU_mhz;
+  static MHz _CPU_mhz;
 
   
   

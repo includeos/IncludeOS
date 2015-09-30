@@ -1,4 +1,4 @@
-//#define DEBUG 
+#define DEBUG 
 #include <os>
 #include <class_pit.hpp>
 #include <class_irq_handler.hpp>
@@ -26,6 +26,8 @@ uint16_t PIT::current_freq_divider_ = 0;
 uint16_t PIT::temp_freq_divider_ = 0;
 
 extern "C" void irq_timer_entry();
+
+using namespace std::chrono;
 
 
 void PIT::disable_regular_interrupts()
@@ -59,7 +61,7 @@ void PIT::estimateCPUFrequency(){
 
   // GO!
   set_mode(RATE_GEN);  
-  set_freq(_cpu_sampling_freq_divider_);   
+  set_freq_divider(_cpu_sampling_freq_divider_);   
   
   while (_CPUFreq_ == 0) {
     debug2("<PIT EstimateCPUFreq> CPUFreq_ is %f \n", _CPUFreq_);
@@ -69,25 +71,29 @@ void PIT::estimateCPUFrequency(){
   debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
   
   set_mode(temp_mode_);
-  set_freq(temp_freq_divider_);
+  set_freq_divider(temp_freq_divider_);
 
   IRQ_handler::set_handler(32, prev_irq_handler);
 
 }
 
-double PIT::CPUFrequency(){
+MHz PIT::CPUFrequency(){
   if (! _CPUFreq_)
     estimateCPUFrequency();
   
-  return _CPUFreq_;
+  return MHz(_CPUFreq_);
 }
 
-void PIT::onTimeout_ms(uint64_t ms, timeout_handler){
+
+
+
+
+void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler){
   
-  if (ms < 1) panic("Can't wait less than 1 ms. ");
+  if (msec < 1ms) panic("Can't wait less than 1 ms. ");
   
-  debug("<PIT sec> setting a %i ms. timer \n", ms);
-  
+  debug("<PIT sec> setting a %i ms. timer \n", msec);
+    
   /*
     @Todo
     * Queue the timer
@@ -97,15 +103,26 @@ void PIT::onTimeout_ms(uint64_t ms, timeout_handler){
     set_mode(RATE_GEN);
   
   if (current_freq_divider_ != freq_mhz_ * 1000)
-    set_freq(freq_mhz_ * 1000);
+    set_freq_divider_divider(freq_mhz_ * 1000);
   
   */
   
-};
-
-void PIT::onTimeout_sec(uint32_t sec, timeout_handler){
-  debug("<PIT sec> setting a %i sec. timer \n", sec);
+  //auto ticks = duration_cast<Ticks>(msec);
+  //auto adj_ticks = ticks.count() / current_freq_divider_;
   
+  /*
+  debug("<PIT timeout> Current freq_divider: %i, Number of PIT-ticks: %i, divided ticks: %i \n",
+	current_freq_divider_, (uint32_t)ticks.count(), adj_ticks );
+  */
+
+  auto freq = CPUFrequency();
+  printf("CPUFrequency: MHz: %f KHz: %f Hz: %f \n", freq, KHz(freq), Hz(freq));
+  
+  auto cycles_pr_millisec = KHz(freq);
+  printf("KHz: %f Cycles to wait: %f \n",cycles_pr_millisec, cycles_pr_millisec.count() * msec);
+  
+  //timestamp_on_timeout = OS::cycles_since_boot() + 
+        
 };
 
 
@@ -142,7 +159,7 @@ void PIT::irq_handler(){
 }
 
 void PIT::init(){
-  debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", freq_mhz_);  
+  debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());  
   PIT::disable_regular_interrupts();
   //IRQ_handler::enable_irq(32);
   IRQ_handler::subscribe(0, irq_handler);
@@ -160,7 +177,7 @@ void PIT::set_mode(Mode mode){
 
 }
 
-void PIT::set_freq(uint16_t freq_divider){    
+void PIT::set_freq_divider(uint16_t freq_divider){    
   union{
     uint16_t whole;
     uint8_t part[2];
@@ -180,6 +197,6 @@ void PIT::oneshot(uint16_t t){
   set_mode(ONE_SHOT);  
   
   // Set a frequency for shot
-  set_freq(t);
+  set_freq_divider(t);
 }
 

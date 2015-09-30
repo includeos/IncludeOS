@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 bool  OS::_power = true;
-double OS::_CPU_mhz = 0; //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
+MHz OS::_CPU_mhz = MHz(0); //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
@@ -51,7 +51,7 @@ void OS::start()
   
   printf(">>> Estimating CPU-frequency\n");    
   printf("    | \n");  
-  printf("    +--(10 samples, %f sec. interval)\n", PIT::freq_mhz() / _cpu_sampling_freq_divider_ );
+  printf("    +--(10 samples, %f sec. interval)\n", PIT::frequency() / _cpu_sampling_freq_divider_ );
   printf("    | \n");  
   _CPU_mhz = PIT::CPUFrequency();
   printf("    +--> %f MHz \n\n", _CPU_mhz);  

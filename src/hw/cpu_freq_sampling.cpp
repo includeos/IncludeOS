@@ -1,3 +1,4 @@
+
 //#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
 #include <common>
@@ -22,6 +23,8 @@ extern "C" uint16_t _cpu_sampling_freq_divider_  = freq_mhz_ * 1000;
 
 static constexpr int do_samples_ = 10;
 
+static const int SKIP = 5;
+
 std::vector<double>samples;
 
 void cpu_sampling_irq_handler(){
@@ -32,7 +35,7 @@ void cpu_sampling_irq_handler(){
   
   
   // Skip first couple of (3) samples
-  if (sample_counter_ < 3){
+  if (sample_counter_ < SKIP){
     IRQ_handler::eoi(0);
     return;
   }   
@@ -51,17 +54,17 @@ void cpu_sampling_irq_handler(){
   if (freq > 1000 && freq < 10000)
     samples.push_back(freq);
   
-  if (sample_counter_ >= do_samples_ + 3 and freq > 10){
+  if (sample_counter_ >= do_samples_ + SKIP and freq > 10){
     double sum = 0;
     
-    for(int i = 5; i<samples.size(); i++){
+    for(int i = SKIP; i<samples.size(); i++){
       sum += samples[i];
       //debug("\t Sample: %f \n",samples[i]);
     }
     
     std::sort(samples.begin(),samples.end());
     
-    double avg = sum / (samples.size() - 5);
+    double avg = sum / (samples.size() - SKIP);
     double median = samples[samples.size() / 2];
     double median_avg = (samples[(samples.size() / 2)-1] + median + samples[(samples.size() / 2) +1]) / 3;
     debug ("<PIT CPU Freq.Sampler> AVERAGE Freq.: %f  MEDIAN Freq.: %f MEDIAN/AVG: %f \n",
@@ -76,7 +79,7 @@ void cpu_sampling_irq_handler(){
 	sample_counter_, ticks_pr_sec_, adjusted_ticks_pr_sec, sec_between_ticks, _cpu_sampling_freq_divider_);
   debug("<PIT CPU Freq. Sampler> Cycles  %u in %f sec., Freq: %f MHz\n", (uint32_t)cycles, sec_between_ticks, freq); 
   
-  
+  // End of interrupt (The IRQ-handler require us to be in charge of this)
   IRQ_handler::eoi(0);
     
 }
