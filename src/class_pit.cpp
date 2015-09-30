@@ -18,7 +18,7 @@ PIT::Mode PIT::temp_mode_ = NONE;
 uint64_t PIT::IRQ_counter_ = 0;
 uint64_t PIT::prev_timestamp_ = 0;
 
-extern "C" double ticks_pr_sec_;
+
 extern "C" double _CPUFreq_;
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
@@ -53,20 +53,21 @@ void PIT::estimateCPUFrequency(){
   
   auto prev_irq_handler = IRQ_handler::get_handler(32);
 
-  // Initialize CPU sampling. This 
-  _CPUFreq_ = 0;  
 
   debug("<PIT EstimateCPUFreq> Sampling\n");
   IRQ_handler::set_handler(32, cpu_sampling_irq_entry);
 
   // GO!
   set_mode(RATE_GEN);  
-  set_freq_divider(_cpu_sampling_freq_divider_);   
+  set_freq_divider(_cpu_sampling_freq_divider_);    
   
+  /*
   while (_CPUFreq_ == 0) {
     debug2("<PIT EstimateCPUFreq> CPUFreq_ is %f \n", _CPUFreq_);
     OS::halt();
-  }
+    }*/
+  //_CPUFreq_ = 
+  calculate_cpu_frequency();
     
   debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
   
@@ -142,18 +143,7 @@ uint8_t PIT::read_back(uint8_t channel){
 void PIT::irq_handler(){
 
   IRQ_counter_ ++;
-
-  double adjusted_ticks_pr_sec = current_freq_divider_ == 0 ? 
-    ticks_pr_sec_ / 0xffff : ticks_pr_sec_ / current_freq_divider_;  
   
-  double time_between_ticks = 1 / adjusted_ticks_pr_sec;
-
-  
-  OS::rsprint(".");
-  if (IRQ_counter_ % (int)adjusted_ticks_pr_sec == 0) {
-    debug("<PIT soft IRQ_handler>  with freq.Div. %i expected in %f seconds. Current ticks pr. sec: %f \n", 
-	  current_freq_divider_, time_between_ticks, adjusted_ticks_pr_sec );
-  }
   IRQ_handler::eoi(0);
 
 }

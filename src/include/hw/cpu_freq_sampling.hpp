@@ -1,4 +1,5 @@
 #pragma once
+#include <hertz>
 
 /** Proper IRQ-handler for CPU frequency sampling - implemented in interrupts.s
     @Note 
@@ -10,3 +11,5 @@ extern "C" void cpu_sampling_irq_handler();
 extern "C" void cpu_sampling_irq_entry();
 
 extern "C" void irq_32_entry();
+
+extern "C" MHz calculate_cpu_frequency();

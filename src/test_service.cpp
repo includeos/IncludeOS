@@ -101,7 +101,8 @@ void Service::start()
   printf("SERVICE: %i open ports in TCP @ %p \n",
 	 inet->tcp().openPorts(), &(inet->tcp()));   
   
-  // Assign asynchronous connection handler
+  
+  //assume I wrota a C-handler above  
   sock.onConnect([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
@@ -131,7 +132,7 @@ void Service::start()
 	"Content-Type: text/html; charset=UTF-8 \n"			\
 	"Content-Length: "+std::to_string(html.size())+"\n"		\
 	"Accept-Ranges: bytes\n"					\
-	"Connection: keep-alive\n\n";
+	"Connection: close\n\n";
       
       conn.write(header);
       conn.write(html);
@@ -165,6 +166,7 @@ void Service::start()
 
   auto& time = PIT::instance();
   
+  int timeofday;
   // Write something in a while
   time.onTimeout(7s, [](){ printf("7 seconds passed...\n"); });
   

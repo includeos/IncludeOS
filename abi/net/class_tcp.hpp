@@ -36,7 +36,7 @@ namespace net {
 	  uint8_t offs_res;
 	  uint8_t flags;
 	};
-      }offs_flags;
+      }offs_flags; 
       uint16_t win_size;
       uint16_t checksum;
       uint16_t urg_ptr;

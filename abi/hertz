@@ -1,5 +1,6 @@
-
 #pragma once
+
+#include <chrono>
 
 using Hz = std::chrono::duration<double>; 
 using KHz = std::chrono::duration<double, std::kilo>;
