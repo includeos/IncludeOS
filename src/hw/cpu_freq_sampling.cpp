@@ -11,6 +11,9 @@
     The hardware expects a pure function pointer, and asm can't (easily) 
     call class member functions.  */
 
+// This is how you provide storage for a static constexpr variable.
+constexpr MHz PIT::frequency_;
+
 extern "C" double _CPUFreq_ = 0;
 extern "C" constexpr uint16_t _cpu_sampling_freq_divider_  = KHz(PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
 

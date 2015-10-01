@@ -1,7 +1,7 @@
 #pragma once
 #include <delegate>
 #include <chrono>
-#include <list>
+#include <map>
 #include <hertz>
 
 /**
@@ -34,8 +34,7 @@ public:
   static void init();    
   
   // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org
-  static constexpr MHz frequency() { return MHz(14.31818 / 12);  }
-
+  static constexpr MHz frequency() { return frequency_; }
   
   /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc. 
       @Note This is an asynchronous function. Once finished the result can be 
@@ -55,6 +54,8 @@ private:
 	      HW_STROBE = 5 << 1, 
 	      NONE = 256};
   
+  static constexpr MHz frequency_ = MHz(14.31818 / 12);
+
   static Mode temp_mode_;
   static uint16_t temp_freq_divider_;
   static uint64_t prev_timestamp_;
@@ -64,7 +65,7 @@ private:
   static void disable_regular_interrupts();
   
   // The default handler for timer interrupts
-  static void irq_handler();
+  void irq_handler();
   
   //static constexpr MHz lowest_freq_ = frequency() / 0xffff;  
 
@@ -79,7 +80,8 @@ private:
   */
   struct Timer {
     timeout_handler handler;
-    uint64_t timeout;
+    uint64_t timestamp_start;
+    uint64_t timestamp_end;
   };
   
   // This is now extern, since a proper IRQ-handler needs to write to it.
@@ -93,8 +95,11 @@ private:
   /** A sorted list of timers.
       @note This is why we want to instantiate, and why it's a singleton: 
       If you don't use PIT-timers, you won't pay for them. */
-  std::list<Timer> timers_;
+  std::map<uint64_t,Timer> timers_;
   
+  static constexpr uint16_t  millisec_interval = KHz(frequency_).count();
+  static uint64_t millisec_counter;
+
   // Access mode bits are bits 4- and 5 in the Mode register
   enum AccessMode { LATCH_COUNT = 0x0, LO_ONLY=0x10, HI_ONLY=0x20, LO_HI=0x30 };
   
