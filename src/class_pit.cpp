@@ -1,4 +1,5 @@
-#define DEBUG 
+//#define DEBUG 
+//#define DEBUG2
 #include <os>
 #include <class_pit.hpp>
 #include <class_irq_handler.hpp>
@@ -29,8 +30,19 @@ uint64_t PIT::millisec_counter = 0;
 
 extern "C" void irq_timer_entry();
 
+std::function<bool()> PIT::forever = []{ return true; };
+
+uint32_t PIT::Timer::timers_count_ = 0;
+
 using namespace std::chrono;
 
+
+
+PIT::Timer::Timer(Type t, timeout_handler handler, std::chrono::milliseconds ms, repeat_condition cond)
+  : id_{++timers_count_}, type_{t}, handler_{handler}, duration_{ms}, cond_{cond} {};
+
+
+PIT::Timer::Timer(Type t, timeout_handler h, std::chrono::milliseconds ms) : Timer(t, h, ms, forever) {};
 
 void PIT::disable_regular_interrupts()
 {   
@@ -85,20 +97,8 @@ MHz PIT::CPUFrequency(){
 }
 
 
-
-
-
-void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
-  
-  if (msec < 1ms) panic("Can't wait less than 1 ms. ");
-  
-  debug("<PIT sec> setting a %i ms. timer \n", msec);
-    
-  /**
-    @Todo
-    * Queue the timer
-    * Make sure there's an appropriate interrupt coming */  
-  
+void PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
+  if (in_msecs < 1ms) panic("Can't wait less than 1 ms. ");
   
   if (current_mode_ != RATE_GEN)
     set_mode(RATE_GEN);
@@ -106,18 +106,39 @@ void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
   if (current_freq_divider_ != millisec_interval)
     set_freq_divider(millisec_interval);
   
+  auto cycles_pr_millisec = KHz(CPUFrequency());
+  debug("<PIT start_timer> KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
+      
+  t.setStart(OS::cycles_since_boot());
+  t.setEnd(t.start() + uint64_t(cycles_pr_millisec.count() * in_msecs.count()));
+
+  auto key = millisec_counter + in_msecs.count();  
   
-  auto freq = CPUFrequency();
-  debug("CPUFrequency: MHz: %f KHz: %f Hz: %f \n", freq, KHz(freq), Hz(freq));
+  // We could emplace, but the timer exists allready, and might be a reused one
+  timers_.insert(std::make_pair(key, t));
   
-  auto cycles_pr_millisec = KHz(freq);
-  debug("KHz: %f Cycles to wait: %f \n",cycles_pr_millisec, cycles_pr_millisec.count() * msec);
+  debug("<PIT start_timer> Key: %i id: %i, t.cond()(): %s There are %i timers\n", 
+	(uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
+
+
+}
+
+void PIT::onRepeatedTimeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
+  debug("<PIT repeated> setting a %i ms. repeating timer \n", (uint32_t)ms.count());
   
-  auto now = OS::cycles_since_boot();
-  Timer t {handler, now, now + uint64_t(cycles_pr_millisec.count() * msec.count())};
+  Timer t(Timer::REPEAT_WHILE, handler, ms, cond);
+  start_timer(t, ms);  
+};
+
+
+void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){        
+  Timer t(Timer::ONE_SHOT, handler, msec);
   
-  timers_[millisec_counter + msec.count()] = t;   
-        
+  debug("<PIT timeout> setting a %i ms. one-shot timer. Id: %i \n", 
+	(uint32_t)msec.count(), t.id());
+  
+  start_timer(t, msec);
+
 };
 
 
@@ -141,23 +162,58 @@ void PIT::irq_handler(){
   if (current_freq_divider_ == millisec_interval)
     millisec_counter++;
   
-  if (millisec_counter % 100 == 0)
-    OS::rsprint(".");
- 
+  #ifdef DEBUG
+  if (millisec_counter % 100 == 0) 
+    OS::rsprint(".");   
+  #endif
   
-  for (auto it = timers_.begin(); it != timers_.end(); it++)
-    if (it->first <= millisec_counter) {
-      // Timer expired - run its handler
-      it->second.handler();      
-      timers_.erase(it);
+  // Iterate over expired timers (we break on the first non-expired)
+  for (auto it = timers_.begin(); it != timers_.end(); it++) {
       
-      if (timers_.size() == 0){	
-	// Reset the timer	
-	oneshot(1);	
-	// Escape iterator death
-	break;
-      }
-    } 
+    // Map-keys are sorted. If this timer isn't expired, neither are the rest
+    if (it->first > millisec_counter)
+      break; 
+    
+    debug2 ("\n**** Timer type %i, id: %i expired. Running handler **** \n", 
+	    it->second.type(), it->second.id());
+
+    // Execute the handler
+    it->second.handler()(); 
+    
+    if (it->second.type() == Timer::REPEAT) {
+      debug2 ("<Timer IRQ> REPEAT: Requeuing the timer \n");
+      start_timer(it->second, it->second.duration());
+      
+    }else if (it->second.type() == Timer::REPEAT_WHILE and it->second.cond()()) {
+      debug2 ("<Timer IRQ> REPEAT_WHILE: Requeuing the timer COND \n");
+      start_timer(it->second, it->second.duration());
+    }
+    
+    debug2 ("Timer done. Erasing.  \n");    
+    
+    // Escape iterator death
+    auto remove = it;
+    it++;
+    
+    // Erase the timer
+    timers_.erase(remove);  
+    
+    if (timers_.empty()){	
+      // Disable the PIT
+      oneshot(1);	
+      
+      debug2 ("Timers done. PIT disabled for now. \n");
+      // Escape iterator death
+      break;
+    }    
+    
+    debug2 ("Timers left: %i \n", timers_.size());
+    
+    for (auto t : timers_)
+      debug2("Key: %i , id: %i, Type: %i", (uint32_t)t.first, t.second.id(), t.second.type());        
+    
+    debug2("\n---------------------------\n\n");
+  }    
   
   IRQ_handler::eoi(0);
 
