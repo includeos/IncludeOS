@@ -7,31 +7,29 @@
 
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"
 // Bit 4-5: Both set, access mode "Lobyte / Hibyte"
-const uint8_t PIT_one_shot = 0x30;  
 const uint8_t PIT_mode_register = 0x43;
 const uint8_t  PIT_chan0 = 0x40;
 
-// Private, singular instance
-PIT* PIT::pit_ = 0;
-
+// PIT state
 PIT::Mode PIT::current_mode_ = NONE;
 PIT::Mode PIT::temp_mode_ = NONE;
-uint64_t PIT::IRQ_counter_ = 0;
-uint64_t PIT::prev_timestamp_ = 0;
-
-
-extern "C" double _CPUFreq_;
-extern "C" uint16_t _cpu_sampling_freq_divider_;
-
 uint16_t PIT::current_freq_divider_ = 0;
 uint16_t PIT::temp_freq_divider_ = 0;
 
-uint64_t PIT::millisec_counter = 0;
+uint64_t PIT::IRQ_counter_ = 0;
 
+// Used for cpu frequency sampling
+extern "C" double _CPUFreq_;
+extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern "C" void irq_timer_entry();
 
+// Time keeping
+uint64_t PIT::millisec_counter = 0;
+
+// The default recurring timer condition
 std::function<bool()> PIT::forever = []{ return true; };
 
+// Timer ID's
 uint32_t PIT::Timer::timers_count_ = 0;
 
 using namespace std::chrono;
@@ -39,19 +37,15 @@ using namespace std::chrono;
 
 
 PIT::Timer::Timer(Type t, timeout_handler handler, std::chrono::milliseconds ms, repeat_condition cond)
-  : id_{++timers_count_}, type_{t}, handler_{handler}, duration_{ms}, cond_{cond} {};
+  : type_{t}, id_{++timers_count_}, handler_{handler}, interval_{ms}, cond_{cond} {};
 
-
-PIT::Timer::Timer(Type t, timeout_handler h, std::chrono::milliseconds ms) : Timer(t, h, ms, forever) {};
 
 void PIT::disable_regular_interrupts()
 {   
   oneshot(1);
 }
 
-PIT::~PIT(){
-  delete pit_;
-}
+PIT::~PIT(){}
 
 PIT::PIT(){
   debug("<PIT> Instantiating. \n");
@@ -142,7 +136,7 @@ void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
 };
 
 
-uint8_t PIT::read_back(uint8_t channel){
+uint8_t PIT::read_back(uint8_t){
   const uint8_t READ_BACK_CMD = 0xc2;
   
   OS::outb(PIT_mode_register, READ_BACK_CMD );
@@ -179,14 +173,15 @@ void PIT::irq_handler(){
 
     // Execute the handler
     it->second.handler()(); 
-    
+
+    // Re-queue repeating timers
     if (it->second.type() == Timer::REPEAT) {
       debug2 ("<Timer IRQ> REPEAT: Requeuing the timer \n");
-      start_timer(it->second, it->second.duration());
+      start_timer(it->second, it->second.interval());
       
     }else if (it->second.type() == Timer::REPEAT_WHILE and it->second.cond()()) {
       debug2 ("<Timer IRQ> REPEAT_WHILE: Requeuing the timer COND \n");
-      start_timer(it->second, it->second.duration());
+      start_timer(it->second, it->second.interval());
     }
     
     debug2 ("Timer done. Erasing.  \n");    
@@ -196,8 +191,9 @@ void PIT::irq_handler(){
     it++;
     
     // Erase the timer
-    timers_.erase(remove);  
+    timers_.erase(remove);
     
+    // If this was the last timer, we can turn off the clock
     if (timers_.empty()){	
       // Disable the PIT
       oneshot(1);	
@@ -209,12 +205,15 @@ void PIT::irq_handler(){
     
     debug2 ("Timers left: %i \n", timers_.size());
     
+    #ifdef DEBUG2
     for (auto t : timers_)
       debug2("Key: %i , id: %i, Type: %i", (uint32_t)t.first, t.second.id(), t.second.type());        
+    #endif    
     
     debug2("\n---------------------------\n\n");
   }    
   
+  // All IRQ-handlers has to send EOI
   IRQ_handler::eoi(0);
 
 }

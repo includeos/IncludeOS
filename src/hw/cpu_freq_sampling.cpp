@@ -1,5 +1,4 @@
-
-#define DEBUG
+//#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
 #include <common>
 #include <vector>
@@ -40,13 +39,11 @@ MHz calculate_cpu_frequency(){
   
   // Subtract the time it takes to measure time :-)
   auto t1 = OS::cycles_since_boot();
-  auto t2 = OS::cycles_since_boot();
+  volatile auto t2 = OS::cycles_since_boot();
   auto t3 = OS::cycles_since_boot();
   auto overhead = (t3 - t1) * 2;
   
   debug ("Overhead: %lu \n", (uint32_t)overhead);
-  
-  
   
   for (int i = 1; i < _cpu_timestamps.size(); i++){
     // Compute delta in cycles
@@ -60,15 +57,17 @@ MHz calculate_cpu_frequency(){
   }
   
   
+#ifdef DEBUG
   double sum = 0;  
   for (auto freq : _cpu_freq_samples)
     sum += freq;  
   double mean = sum / _cpu_freq_samples.size();
+#endif
   
   std::sort(_cpu_freq_samples.begin(), _cpu_freq_samples.end());
   double median = _cpu_freq_samples[_cpu_freq_samples.size() / 2];
   
-  printf("<cpu_freq> MEAN: %f MEDIAN: %f \n",mean, median);
+  debug("<cpu_freq> MEAN: %f MEDIAN: %f \n",mean, median);
   _CPUFreq_ = median;
   
   return MHz(median);

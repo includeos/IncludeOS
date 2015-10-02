@@ -51,10 +51,10 @@ void OS::start()
   
   printf(">>> Estimating CPU-frequency\n");    
   printf("    | \n");  
-  printf("    +--(10 samples, %f sec. interval)\n", PIT::frequency() / _cpu_sampling_freq_divider_ );
+  printf("    +--(10 samples, %f sec. interval)\n", (PIT::frequency() / _cpu_sampling_freq_divider_).count() );
   printf("    | \n");  
   _CPU_mhz = PIT::CPUFrequency();
-  printf("    +--> %f MHz \n\n", _CPU_mhz);  
+  printf("    +--> %f MHz \n\n", _CPU_mhz.count());  
     
   printf(">>> IncludeOS initialized - calling Service::start()\n");  
   
