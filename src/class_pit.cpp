@@ -1,5 +1,5 @@
-//#define DEBUG 
-//#define DEBUG2
+// #define DEBUG 
+// #define DEBUG2
 #include <os>
 #include <class_pit.hpp>
 #include <class_irq_handler.hpp>
@@ -101,17 +101,22 @@ void PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
     set_freq_divider(millisec_interval);
   
   auto cycles_pr_millisec = KHz(CPUFrequency());
-  debug("<PIT start_timer> KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
-      
+  debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
+  
+  auto ticks = in_msecs / KHz(current_frequency()).count();
+  debug("<PIT start_timer> PIT KHz: %f * %i = %f ms. \n",
+	KHz(current_frequency()).count(), (uint32_t)ticks.count(), ((uint32_t)ticks.count() * KHz(current_frequency()).count()));
+  
   t.setStart(OS::cycles_since_boot());
   t.setEnd(t.start() + uint64_t(cycles_pr_millisec.count() * in_msecs.count()));
-
-  auto key = millisec_counter + in_msecs.count();  
+  
+  
+  auto key = millisec_counter + ticks.count();  
   
   // We could emplace, but the timer exists allready, and might be a reused one
   timers_.insert(std::make_pair(key, t));
   
-  debug("<PIT start_timer> Key: %i id: %i, t.cond()(): %s There are %i timers\n", 
+  debug("<PIT start_timer> Key: %i id: %i, t.cond()(): %s There are %i timers. \n", 
 	(uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
 
 

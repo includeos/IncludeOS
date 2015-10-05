@@ -46,6 +46,8 @@ public:
   /** The constant frequency of the PIT-hardware, before frequency dividers */
   static constexpr MHz frequency() { return frequency_; }
   
+  static inline MHz current_frequency(){ return frequency() / current_freq_divider_; }
+  
   /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc. 
       @Note This is an asynchronous function. Once finished the result can be 
             fetched by CPUFrequency() (below)  */
@@ -69,7 +71,6 @@ private:
   // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org */
   static constexpr MHz frequency_ = MHz(14.31818 / 12);
 
-  
   /** Disable regular timer interrupts- which are turned on at boot-time. */
   static void disable_regular_interrupts();
   
