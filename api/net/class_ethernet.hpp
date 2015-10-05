@@ -11,6 +11,7 @@
 namespace net {
   class Packet;
   
+  /** Ethernet packet handling. */
   class Ethernet{
   
   public:

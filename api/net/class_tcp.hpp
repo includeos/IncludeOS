@@ -6,7 +6,7 @@
 
 namespace net {
 
-
+  /** TCP support. @note Most TCP state logic is implemented inside the TCP::Socket. */
   class TCP{
   public:
     typedef uint16_t port;
@@ -90,6 +90,7 @@ namespace net {
     TCP(TCP&) = delete;
     TCP(TCP&&) = delete;
     
+    /** TCP Sockets, implementing most of the TCP state-machine logic. */
     class Socket {
     public:
       enum State {

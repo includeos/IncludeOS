@@ -6,6 +6,7 @@
 
 namespace net {
 
+  /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP{
   public:
   

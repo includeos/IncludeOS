@@ -10,7 +10,8 @@
 #include <map>
 
 namespace net {
-
+  
+  /** Arp manager, including arp-cache. */
   class Arp {
      
   public:

@@ -764,10 +764,11 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = . \
-                         ../abi/class_os.hpp \
-                         ../abi/class_service.hpp \
-                         ../abi/os \
-                         ../abi/syscalls.hpp
+                         ../api/ \
+                         ../api/class_os.hpp \
+                         ../api/class_service.hpp \
+                         ../api/os \
+                         ../api/syscalls.hpp
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
