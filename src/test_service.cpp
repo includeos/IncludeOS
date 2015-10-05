@@ -6,26 +6,6 @@
 
 //#include <thread> => <thread> is not supported on this single threaded system
 
-class Test
-{
-public:
-  Test()
-  {
-    printf("Test() constructor called\n");
-  }
-  Test(int t)
-  {
-    printf("Test(%d) constructor called\n", t);
-  }
-};
-
-Test test;
-Test test2(2);
-
-void my_exit(){
-  printf("This service has it's own exit routine");
-}
-
 using namespace std::chrono;
 
 void Service::start()
@@ -35,58 +15,14 @@ void Service::start()
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
   std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
 
-  //std::__1::basic_ostream<char, std::__1::char_traits<char> >::write(char const*, long);
-  //std::cout.write("test", 4l);
- 
   printf("BUILT WITH CLANG \n");
   
-  try {
-    printf("TRY \n");
-    if (OS::uptime() > 0.1){
-      std::runtime_error myexception("Crazy Error!");
-      printf("My exception: %s \n",myexception.what());
-      throw myexception;
-    }
-  }catch(std::runtime_error e){
-    
-    printf("Caught runtime error: %s \n",e.what());
-    
-  }catch(int i) {
-    
-    printf("Caught int %i \n",i);
-    
-  }
-  
-  std::cout << "std::cout works and so does" << std::endl;
-  std::cout << "std::endl" << std::endl;
-  
-  std::vector<int> integers={1,2,3};
-  std::map<const char*, int> map_of_ints={std::make_pair("First",42) , std::make_pair("Second",43)};
-  
-  [] (void) { printf("Hello lambda\n"); } ();
-  
-  for (auto i : integers)
-    printf("Integer %i \n",i);
-  
-  printf("First from map: %i \n", map_of_ints["First"]);
-  printf("Second from map: %i \n", map_of_ints["Second"]);
-  
-  std::string str = "Hello std::string";
-  printf("%s\n", str.c_str());
   
   // TODO: find some implementation for long double, or not... or use double
   //auto sine = sinl(42);
-  
-  // at_quick_exit(my_exit);
-  at_quick_exit([](){ printf("My exit-function uses lambdas! \n"); return; });
-  //quick_exit(0);
-
-  srand(OS::cycles_since_boot());
-
-  // Get mac-address
-  auto& mac = Dev::eth(0).mac();
-  
-  // Assign an IP-address, using Hårek-mapping :-)
+    
+    // Assign an IP-address, using Hårek-mapping :-)
+  auto& mac = Dev::eth(0).mac(); 
   net::Inet4::ifconfig(net::ETH0, 
 		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
 		       {{ 255,255,0,0 }} );
@@ -102,7 +38,8 @@ void Service::start()
 	 inet->tcp().openPorts(), &(inet->tcp()));   
   
   
-  //assume I wrota a C-handler above  
+  srand(OS::cycles_since_boot());
+  
   sock.onConnect([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
@@ -156,51 +93,6 @@ void Service::start()
   uint64_t my_llu = 42;
   printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);  
   
-  auto t1 = OS::cycles_since_boot();
-  uint16_t sum = net::checksum(((uint16_t*)buf) , 1024);
-  auto t2 = OS::cycles_since_boot() - t1;
-
-  assert(t2 < uint32_t(-1));
-  
-  printf("Checksum (0x%x) took: %llu cycles. \n",sum,(uint32_t)t2);
-
-  auto& time = PIT::instance();
-  
-  int timeofday;
-  // Write something in a while
-  time.onTimeout(7s, [](){ printf("7 seconds passed...\n"); });
-  
-  // Write a dot in a second
-  time.onTimeout(1s, [](){ printf("One second passed...\n"); });
-  
-  // Write something in half a second
-  time.onTimeout(500ms, [](){ printf("Half a second passed...\n"); });
-  
-
-  time.onTimeout(3s, [](){ printf("Three second passed...\n"); });
-
-   
-  // You can also use the std::function interface (which is great)
-  std::function<void()> in_a_second = [integers](){  
-    std::cout << "Hey - this is a std::function - it knows about integers:" << std::endl;
-    for (auto i : integers)
-      std::cout << i << std::endl;    
-  };
-  
-  time.onTimeout(1s, in_a_second);
- 
-  time.onRepeatedTimeout(1s, []{ printf("1sec. PULSE \n"); });
-  time.onRepeatedTimeout(2s, []{ printf("2sec. PULSE, "); }, 
-			 
-			 // A continue-condition. The timer stops when false is returned
-			 []{ 
-			   static int i = 0; i++; 
-			   printf("%i / 10 times \n", i);
-			   if (i >= 10) {
-			     printf("2sec. pulse DONE!");
-			     return false; 
-			   }
-			   return true;  });
   
   printf("*** SERVICE STARTED *** \n");
 }

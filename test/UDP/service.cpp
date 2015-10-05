@@ -1,9 +1,8 @@
 //#define NDEBUG // Debug supression
 
 #include <os>
-//#include <EASTL/list.h>
 #include <list>
-#include <net/inet>
+#include <net/inet4>
 #include <vector>
 
 using namespace std;
@@ -12,37 +11,6 @@ using namespace net;
 uint8_t* buf = 0;
 int bufsize = 0;
 uint8_t* prev_data = 0;
-
-class global {
-  static int i;
-public:
-  global(){
-    printf("[*] Global constructor printing %i \n",++i);
-  }
-  
-  void test(){
-    printf("[*] C++ constructor finds %i instances \n",i);
-  }
-  
-  int instances(){ return i; }
-  
-  ~global(){
-    printf("[*] C++ destructor deleted 1 instance,  %i remains \n",--i);
-  }
-  
-};
-
-int global::i = 0;
-
-global glob1;
-
-int _test_glob2 = 1;
-int _test_glob3 = 1;
-
-__attribute__ ((constructor)) void foo(void)
-{
-  _test_glob3 = 0xfa7ca7;
-}
 
 /* @todo - make configuration happen here
 void Service::init(){
@@ -85,7 +53,7 @@ public:
         (make_shared<Packet>(&_pool[i*size],size,Packet::AVAILABLE));
     }
         
-    printf("<PacketStore> Allocated %li byte buffer pool for packets \n",n*size);
+    printf("<PacketStore> Allocated %ul byte buffer pool for packets \n",n*size);
   };
 
   //PacketStore(int n, int size, caddr_t pool);
@@ -101,38 +69,20 @@ private:
 void Service::start()
 {
   
-  cout << "*** Service is up - with OS Included! ***" << endl;    
-  
-  printf("[%s] Global C constructors in service \n", 
-         _test_glob3 == 0xfa7ca7 ? "x" : " ");
-  
-  printf("[%s] Global int initialization in service \n", 
-         _test_glob2 == 1 ? "x" : " ");
-  
-  
-  global* glob2 = new global();;
-  glob1.test();
-  printf("[%s] Local C++ constructors in service \n", glob1.instances() == 2 ? "x" : " ");
-
-  
-  delete glob2;
-  printf("[%s] C++ destructors in service \n", glob1.instances() == 1 ? "x" : " ");
-  
   
 
   auto& mac = Dev::eth(0).mac();
-  //Inet::ifconfig(net::ETH0,{mac.part[2],mac.part[3],mac.part[4],mac.part[5]},{255,255,0,0});
-  Inet::ifconfig(net::ETH0,
+  //Inet4::ifconfig(net::ETH0,{mac.part[2],mac.part[3],mac.part[4],mac.part[5]},{255,255,0,0});
+  Inet4::ifconfig(net::ETH0,
     {10, 0, 0, 10},
-    {255,255,0,0},
-    {0, 0});
+    {255,255,0,0});
   
   /** Trying to access non-existing nic will cause a panic */
   //auto& mac1 = Dev::eth(1).mac();
-  //Inet::ifconfig(net::ETH1,{192,168,mac1.part[4],mac1.part[5]},{255,255,0,0});
+  //Inet4::ifconfig(net::ETH1,{192,168,mac1.part[4],mac1.part[5]},{255,255,0,0});
   
-  //Inet* net 
-  shared_ptr<Inet> net(Inet::up());
+  //Inet4* net 
+  shared_ptr<Inet4> net(Inet4::up());
   
 
   cout << "...Starting UDP server on IP " 
@@ -144,7 +94,7 @@ void Service::start()
       
       UDP::full_header* full_hdr = (UDP::full_header*)pckt->buffer();
       UDP::udp_header* hdr = &full_hdr->udp_hdr;
-
+      
       int data_len = __builtin_bswap16(hdr->length) - sizeof(UDP::udp_header);
       auto data_loc = pckt->buffer() + sizeof(UDP::full_header);
       
@@ -167,10 +117,10 @@ void Service::start()
       printf("Got '");
       // Print the input
       for (int i = 0; i < data_len; i++)
-        printf("%c", data_loc[i]);
-      
-      printf("' UDP data  from %s. (str: %s) \n", 
-             full_hdr->ip_hdr.saddr.str().c_str(),data_loc);
+      printf("%c", data_loc[i]);
+	
+	printf("' UDP data  from %s. (str: %s) \n", 
+	full_hdr->ip_hdr.saddr.str().c_str(),data_loc);
       */
       // Craft response
       

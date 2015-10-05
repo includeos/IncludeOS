@@ -1,4 +1,4 @@
-//#define DEBUG // Enable debugging
+#define DEBUG // Enable debugging
 // #define DEBUG2
 
 

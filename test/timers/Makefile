@@ -1,6 +1,6 @@
 # The name of your service
-SERVICE = IncludeOS_tests_$(shell git describe --dirty)
-OPTIONS = -Ofast -Wall -Wextra -msse3 -m32
+SERVICE = Test_Timers
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
 FILES = service.cpp
@@ -13,14 +13,14 @@ OSLIB = $(OSDIR)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OSDIR)/bin/i686-elf-gcc 
-CPP = $(OSDIR)/bin/i686-elf-g++ 
+CPP = clang++ -target i686-elf
+GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib
+INCLUDES = -I$(OSDIR)/abi -I$(OSLIB)/include -I$(OSDIR)/stdlib
 
-CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
-#-O2 -Wall -c -m32 -fno-stack-protector  -fno-builtin -march=i386 -I.  -std=c++11
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld #  -Ttext $(SERVICE_LOCATION) -e '_start' --defsym _includeos=0xf0000 -nostartfiles
+CPPOPTS = -std=c++14 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld -flto
 
 
 # Objects
@@ -33,12 +33,12 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+CRTBEGIN_OBJ:=$(shell $(GPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o
@@ -52,7 +52,8 @@ DEPS = $(OBJS:.o=.d)
 
 all: service
 
-stripped: LDOPTS += -s #strip all
+stripped: LDOPTS  += -S #strip all
+stripped: CPPOPTS += -Oz
 stripped: service
 
 
@@ -72,7 +73,7 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) crti.o crtn.o # $(LIBS) - libs include libgcc.a - can't build that
+service: $(OBJS) $(LIBS) crti.o crtn.o
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
@@ -103,15 +104,5 @@ clean:
 	$(RM) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
 	$(RM) crti.o crtn.o 
 	$(RM) $(DEPS) crti.d crtn.d
-
-distclean: clean
-	$(RM) *.vdi
-	$(RM) *.img
-	$(RM) *.vmdk
-	$(RM) *.qcow2
-	$(RM) *~
-	$(RM) *.log
-	$(RM) IncludeOS_tests*
-
 
 -include $(DEPS)

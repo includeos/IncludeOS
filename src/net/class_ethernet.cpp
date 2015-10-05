@@ -1,4 +1,4 @@
-// #define DEBUG // Allow debugging
+#define DEBUG // Allow debugging
 // #define DEBUG2
 
 #include <os>

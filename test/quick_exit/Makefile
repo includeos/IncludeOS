@@ -1,5 +1,5 @@
 # The name of your service
-SERVICE = My_IncludeOS_Service
+SERVICE = Test_Quick_Exit
 OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
