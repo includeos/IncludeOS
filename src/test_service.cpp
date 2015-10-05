@@ -14,9 +14,6 @@ void Service::start()
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
   std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
-
-  printf("BUILT WITH CLANG \n");
-  
   
   // TODO: find some implementation for long double, or not... or use double
   //auto sine = sinl(42);
@@ -79,16 +76,6 @@ void Service::start()
       
     });
 
-
-
-  printf("Checking checksum algs. \n");
-  
-  const int BUFLEN = 512;
-  uint16_t buf[BUFLEN];
-  for (int i=0; i<BUFLEN; i++){
-    buf[i] = rand();
-    
-  }
 
   uint64_t my_llu = 42;
   printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);  

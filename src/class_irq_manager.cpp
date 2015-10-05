@@ -1,5 +1,5 @@
-#define DEBUG // Enable debugging
-// #define DEBUG2
+//#define DEBUG // Enable debugging
+//#define DEBUG2
 
 
 #include <os>
@@ -233,9 +233,7 @@ void IRQ_manager::init()
 
   //Register the timer and enable / unmask it in the pic
   //set_handler(32,irq_timer_entry);
-
   
-    
   enable_irq(33); //Keyboard - now people can subscribe
   enable_interrupts();
   
@@ -326,7 +324,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del){   //void(*notify)()
   //irq_subscribers[irq] = notify;
   irq_delegates[irq] = del;
 
-  
+  eoi(irq);
   printf(">>> IRQ subscriptions: %#x irq: 0x%x\n",irq_subscriptions,irq);
 }
 
