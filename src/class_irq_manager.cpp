@@ -3,22 +3,22 @@
 
 
 #include <os>
-#include <class_irq_handler.hpp>
+#include <class_irq_manager.hpp>
 #include "hw/pic.h"
 #include <assert.h>
 
 #define IRQ_BASE 32
 
-bool IRQ_handler::idt_is_set=false;
-IDTDescr IRQ_handler::idt[256];
-unsigned int IRQ_handler::irq_mask = 0xFFFB; 
+bool IRQ_manager::idt_is_set=false;
+IDTDescr IRQ_manager::idt[256];
+unsigned int IRQ_manager::irq_mask = 0xFFFB; 
 irq_bitfield irq_pending = 0;
-irq_bitfield IRQ_handler::irq_subscriptions = 0;
+irq_bitfield IRQ_manager::irq_subscriptions = 0;
 
-void(*IRQ_handler::irq_subscribers[sizeof(irq_bitfield)*8])() = {0};
-IRQ_handler::irq_delegate IRQ_handler::irq_delegates[sizeof(irq_bitfield)*8];
+void(*IRQ_manager::irq_subscribers[sizeof(irq_bitfield)*8])() = {0};
+IRQ_manager::irq_delegate IRQ_manager::irq_delegates[sizeof(irq_bitfield)*8];
 
-void IRQ_handler::enable_interrupts(){
+void IRQ_manager::enable_interrupts(){
   __asm__ volatile("sti");
 }
 
@@ -182,7 +182,7 @@ extern "C"{
   
 } //End extern
 
-void IRQ_handler::init()
+void IRQ_manager::init()
 {
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
   if (idt_is_set)
@@ -252,7 +252,7 @@ union addr_union{
   };  
 };
 
-void IRQ_handler::create_gate(IDTDescr* idt_entry,
+void IRQ_manager::create_gate(IDTDescr* idt_entry,
 			      void (*function_addr)(),
 			      uint16_t segment_sel,
 			      char attributes
@@ -268,7 +268,7 @@ void IRQ_handler::create_gate(IDTDescr* idt_entry,
 }
 
 
-void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){  
+void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()){  
   create_gate(&idt[irq],function_addr,default_sel,default_attr);
   
   /** 
@@ -278,7 +278,7 @@ void IRQ_handler::set_handler(uint8_t irq, void(*function_addr)()){
   eoi(irq);
 }
 
-void (* IRQ_handler::get_handler(uint8_t irq)) (){
+void (* IRQ_manager::get_handler(uint8_t irq)) (){
   
   addr_union addr;
   addr.lo16 = idt[irq].offset_1;
@@ -287,7 +287,7 @@ void (* IRQ_handler::get_handler(uint8_t irq)) (){
   return (void (*)()) addr.whole;
 };
 
-IRQ_handler::irq_delegate IRQ_handler::get_subscriber(uint8_t irq){
+IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq){
   return irq_delegates[irq];
 };
 
@@ -298,7 +298,7 @@ static void set_intr_mask(unsigned long mask)
 }
 
 
-void IRQ_handler::enable_irq(uint8_t irq)
+void IRQ_manager::enable_irq(uint8_t irq)
 {
   printf(">>> Enabling IRQ %i, old mask: 0x%x ",irq,irq_mask);
   irq_mask &= ~(1 << irq);
@@ -307,14 +307,14 @@ void IRQ_handler::enable_irq(uint8_t irq)
   printf(" new mask: 0x%x \n",irq_mask);  
 }
 
-int IRQ_handler::timer_interrupts=0;
+int IRQ_manager::timer_interrupts=0;
 static int glob_timer_interrupts=0;
 
 
 /** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
     as bitfield for setting / checking IRQ's. 
 */
-void IRQ_handler::subscribe(uint8_t irq, irq_delegate del){   //void(*notify)()
+void IRQ_manager::subscribe(uint8_t irq, irq_delegate del){   //void(*notify)()
   
   if (irq > sizeof(irq_bitfield)*8)
     panic("Too high IRQ: only IRQ 0 - 32 are subscribable \n");
@@ -338,7 +338,7 @@ inline int bsr(irq_bitfield b){
   return ret;
 }
 
-void IRQ_handler::notify(){
+void IRQ_manager::notify(){
   //__asm__("cli");  
   
   // Get the IRQ's that are both pending and subscribed to
@@ -378,7 +378,7 @@ void IRQ_handler::notify(){
 }
 
 
-void IRQ_handler::eoi(uint8_t irq){
+void IRQ_manager::eoi(uint8_t irq){
   if (irq >= 8)
     OS::outb(PIC2_COMMAND,PIC_EOI);
   OS::outb(PIC1_COMMAND,PIC_EOI);
@@ -391,7 +391,7 @@ void irq_default_handler(){
   //uint16_t irr=pic_get_irr(); //IRR would give us more than we want
   
   printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x \n",isr,bsr(isr));  
-  IRQ_handler::eoi(bsr(isr));
+  IRQ_manager::eoi(bsr(isr));
   
 }  
 

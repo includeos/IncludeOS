@@ -1,8 +1,8 @@
-// #define DEBUG 
+#define DEBUG 
 // #define DEBUG2
 #include <os>
 #include <class_pit.hpp>
-#include <class_irq_handler.hpp>
+#include <class_irq_manager.hpp>
 #include <hw/cpu_freq_sampling.hpp>
 
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"
@@ -50,9 +50,9 @@ PIT::~PIT(){}
 PIT::PIT(){
   debug("<PIT> Instantiating. \n");
   
-  auto handler(IRQ_handler::irq_delegate::from<PIT,&PIT::irq_handler>(this));
+  auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(this));
   
-  IRQ_handler::subscribe(0, handler);
+  IRQ_manager::subscribe(0, handler);
 }
 
 
@@ -63,10 +63,10 @@ void PIT::estimateCPUFrequency(){
   temp_mode_ = current_mode_;
   temp_freq_divider_ = current_freq_divider_;
   
-  auto prev_irq_handler = IRQ_handler::get_handler(32);
+  auto prev_irq_handler = IRQ_manager::get_handler(32);
 
   debug("<PIT EstimateCPUFreq> Sampling\n");
-  IRQ_handler::set_handler(32, cpu_sampling_irq_entry);
+  IRQ_manager::set_handler(32, cpu_sampling_irq_entry);
 
   // GO!
   set_mode(RATE_GEN);  
@@ -80,7 +80,7 @@ void PIT::estimateCPUFrequency(){
   set_mode(temp_mode_);
   set_freq_divider(temp_freq_divider_);
 
-  IRQ_handler::set_handler(32, prev_irq_handler);
+  IRQ_manager::set_handler(32, prev_irq_handler);
 }
 
 MHz PIT::CPUFrequency(){
@@ -219,14 +219,14 @@ void PIT::irq_handler(){
   }    
   
   // All IRQ-handlers has to send EOI
-  IRQ_handler::eoi(0);
+  IRQ_manager::eoi(0);
 
 }
 
 void PIT::init(){
   debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());  
   PIT::disable_regular_interrupts();
-  //IRQ_handler::enable_irq(32);
+  //IRQ_manager::enable_irq(32);
 }
 
 void PIT::set_mode(Mode mode){

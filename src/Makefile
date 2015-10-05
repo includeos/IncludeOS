@@ -42,7 +42,7 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 class_irq_handler.o class_pci_manager.o class_pit.o\
+						 class_irq_manager.o class_pci_manager.o class_pit.o\
 						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o\
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \

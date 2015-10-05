@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <os>
-#include <class_irq_handler.hpp>
+#include <class_irq_manager.hpp>
 
 /** @note C-style code here, since we're dealing with interrupt handling. 
     The hardware expects a pure function pointer, and asm can't (easily) 
@@ -81,6 +81,6 @@ void cpu_sampling_irq_handler(){
   if (_cpu_timestamps.size() < do_samples_)
     _cpu_timestamps.push_back(t2);
   
-  IRQ_handler::eoi(0);
+  IRQ_manager::eoi(0);
   return;
 }  

@@ -6,7 +6,7 @@
 #include <class_service.hpp>
 
 // A private class to handle IRQ
-#include "class_irq_handler.hpp"
+#include <class_irq_manager.hpp>
 #include <class_pci_manager.hpp>
 #include <stdlib.h>
 
@@ -36,7 +36,7 @@ void OS::start()
   
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
-  IRQ_handler::init();
+  IRQ_manager::init();
 
   
   // Initialize the Interval Timer
@@ -82,7 +82,7 @@ void OS::event_loop()
   
   while (_power)
   {
-    IRQ_handler::notify(); 
+    IRQ_manager::notify(); 
     
     debug("<OS> Woke up @ t = %li \n",uptime());
   }

@@ -1,5 +1,5 @@
-#ifndef CLASS_IRQ_HANDLER_H
-#define CLASS_IRQ_HANDLER_H
+#ifndef CLASS_IRQ_MANAGER_H
+#define CLASS_IRQ_MANAGER_H
 
 #include <class_os.hpp>
 #include "irq/pic_defs.h"
@@ -71,7 +71,7 @@ extern "C" {
 
     
  */
-class IRQ_handler{
+class IRQ_manager{
 
  public:
   
@@ -101,7 +101,7 @@ class IRQ_handler{
       the delagete will be called a.s.a.p. after @param irq gets triggered.
       @warning The delegate is responsible for signalling a proper EOI.
       @todo Implies enable_irq(irq)? 
-      @todo Create a public member IRQ_handler::eoi for delegates to use
+      @todo Create a public member IRQ_manager::eoi for delegates to use
   */
   static void subscribe(uint8_t irq, irq_delegate del);
   
