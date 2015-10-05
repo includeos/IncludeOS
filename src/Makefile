@@ -18,7 +18,7 @@ LD  = $(OS)/bin/i686-elf-ld
 GCC_VER = $(shell $(GPP) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
+INCLUDES = -I../api/sys -I$(OSLIB)/include -Iinclude -I../api -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
@@ -126,7 +126,7 @@ install: #os.a bootloader
 	#cp libc++.a $(OS)/lib # This is now handled by ../install.sh 
 	mkdir -p $(OS)/crt
 	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
-	cp -r ../abi $(OS)/
+	cp -r ../api $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
 	#cp -r ../mod/rapidjson $(OS)/mod

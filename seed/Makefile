@@ -17,7 +17,7 @@ CPP = clang++ -target i686-elf
 GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi/sys -I$(OSLIB)/include -I$(OSDIR)/abi -I$(OSDIR)/stdlib
+INCLUDES = -I$(OSDIR)/api/sys -I$(OSLIB)/include -I$(OSDIR)/api -I$(OSDIR)/stdlib
 
 CPPOPTS = -std=c++14 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld -flto
