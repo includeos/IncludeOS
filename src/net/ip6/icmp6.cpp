@@ -188,6 +188,9 @@ namespace net
     ICMPv6::echo_header* icmp = (ICMPv6::echo_header*) pckt->payload();
     printf("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
+    // set the hoplimit manually to the very standard 64 hops
+    pckt->ip6_header().set_hoplimit(64);
+    
     // set to ICMP Echo Reply (129)
     icmp->type     = ICMPv6::ECHO_REPLY;
     
@@ -207,7 +210,6 @@ namespace net
       pckt->set_dst(pckt->src());
       pckt->set_src(caller.local_ip());
     }
-    
     // calculate and set checksum
     // NOTE: do this after changing packet contents!
     icmp->checksum = 0;
