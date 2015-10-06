@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../class_packet.hpp"
 #include "../util.hpp"
 #include "ip6.hpp"
 #include <map>
@@ -66,7 +65,7 @@ namespace net
     IP6::addr& localIP;
   };
   
-  class PacketUDP6 : public Packet
+  class PacketUDP6 : public PacketIP6
   {
   public:
     UDPv6::header& header()
@@ -76,21 +75,6 @@ namespace net
     const UDPv6::header& cheader() const
     {
       return *(UDPv6::header*) payload();
-    }
-    
-    IP6::header& ip6_header()
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr;
-    }
-    
-    /// TODO: move to PacketIP6 for common interface
-    const IP6::addr& src() const
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr.src;
-    }
-    const IP6::addr& dst() const
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr.dst;
     }
     
     UDPv6::port_t src_port() const
@@ -132,6 +116,10 @@ namespace net
     char* data()
     {
       return (char*) payload() + sizeof(UDPv6::header);
+    }
+    const char* data() const
+    {
+      return (const char*) payload() + sizeof(UDPv6::header);
     }
   };
 }

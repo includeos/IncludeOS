@@ -3,6 +3,7 @@
 
 #include <delegate>
 #include "../class_ethernet.hpp"
+#include "../class_packet.hpp"
 #include "../util.hpp"
 
 #include <iostream>
@@ -126,16 +127,6 @@ namespace net
         scanline[1] |= limit << 24;
       }
       
-      // 128-bit is probably not good as "by value"
-      const addr& source() const
-      {
-        return src;
-      }
-      const addr& dest() const
-      {
-        return dst;
-      }
-      
     private:
       uint32_t scanline[2];
     public:
@@ -236,6 +227,34 @@ namespace net
   {
     return out << ip.to_string();
   }
+  
+  class PacketIP6 : public Packet
+  {
+  public:
+    IP6::header& ip6_header()
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr;
+    }
+    
+    const IP6::addr& src() const
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr.src;
+    }
+    void set_src(const IP6::addr& src)
+    {
+      ((IP6::full_header*) buffer())->ip6_hdr.src = src;
+    }
+    
+    const IP6::addr& dst() const
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr.dst;
+    }
+    void set_dst(const IP6::addr& dst)
+    {
+      ((IP6::full_header*) buffer())->ip6_hdr.dst = dst;
+    }
+    
+  };
   
 } // namespace net
 

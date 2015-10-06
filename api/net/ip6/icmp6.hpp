@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../class_packet.hpp"
 #include "../util.hpp"
 #include "ip6.hpp"
 
@@ -16,13 +15,13 @@ namespace net
     typedef uint8_t type_t;
     typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
     
-    ICMPv6(IP6::addr& local_ip);
+    ICMPv6(IP6::addr& ip6);
     
     struct header
     {
-      uint8_t  type_;
-      uint8_t  code_;
-      uint16_t checksum_;
+      uint8_t  type;
+      uint8_t  code;
+      uint16_t checksum;
     } __attribute__((packed));
     
     struct pseudo_header
@@ -53,6 +52,11 @@ namespace net
       this->ip6_out = del;
     }
     
+    inline const IP6::addr& local_ip()
+    {
+      return localIP;
+    }
+    
     // message types & codes
     static inline bool is_error(uint8_t type)
     {
@@ -64,7 +68,7 @@ namespace net
     static uint16_t checksum(std::shared_ptr<PacketICMP6>& pckt);
     
     // provide a handler for a @type of ICMPv6 message
-    void listen(type_t type, handler_t func)
+    inline void listen(type_t type, handler_t func)
     {
       listeners[type] = func;
     }
@@ -80,7 +84,7 @@ namespace net
     IP6::addr& localIP;
   };
   
-  class PacketICMP6 : public Packet
+  class PacketICMP6 : public PacketIP6
   {
   public:
     inline ICMPv6::header& header()
@@ -92,17 +96,17 @@ namespace net
       return *(ICMPv6::header*) this->payload();
     }
     
-    uint8_t type() const
+    inline uint8_t type() const
     {
-      return header().type_;
+      return header().type;
     }
-    uint8_t code() const
+    inline uint8_t code() const
     {
-      return header().code_;
+      return header().code;
     }
-    uint16_t checksum() const
+    inline uint16_t checksum() const
     {
-      return ntohs(header().checksum_);
+      return ntohs(header().checksum);
     }
  };
   

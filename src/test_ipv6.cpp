@@ -17,6 +17,9 @@ void Service::start()
   printf("Service IP4 address: %s\n", net::Inet::ip4(net::ETH0).str().c_str());
   printf("Service IP6 address: %s\n", net::Inet::ip6(net::ETH0).to_string().c_str());
   
+  // using multicast we can see the packet from Linux:
+  // nc -6u ff02::2%include0 64
+  
   static const int UDP_PORT = 64;
   inet->udp6_listen(UDP_PORT,
     [=] (std::shared_ptr<net::PacketUDP6>& pckt) -> int
@@ -33,7 +36,7 @@ void Service::start()
       net::Ethernet::addr ether_src = 
           ((net::Ethernet::header*) pckt->buffer())->src;
       
-      // create a response packet
+      // create a response packet with destination [ether_src] dst()
       std::shared_ptr<net::PacketUDP6> newpacket = 
           inet->udp6_create(ether_src, pckt->dst(), UDP_PORT);
       

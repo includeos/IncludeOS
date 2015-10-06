@@ -194,6 +194,8 @@ namespace net
     icmp->checksum = 0;
     icmp->checksum = ICMPv6::checksum(pckt);
     
+    pckt->set_src(caller.local_ip());
+    
     // send packet downstream
     return caller.transmit(pckt);
   }
