@@ -120,8 +120,9 @@ namespace net
     }
     else
     {
-      std::cout << ">>> IPv6 -> ICMPv6 bottom (no handler installed)" << std::endl;
-      std::cout << "ICMPv6 type " << (int) icmp->type() << ": " << code_string(icmp->type(), icmp->code()) << std::endl;
+      debug(">>> IPv6 -> ICMPv6 bottom (no handler installed)\n");
+      debug("ICMPv6 type %d: %s\n", 
+          (int) icmp->type(), code_string(icmp->type(), icmp->code()).c_str());
       
       /*
       // show correct checksum

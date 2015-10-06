@@ -67,8 +67,31 @@ namespace net
         i128 = a.i128;
         return *this;
       }
+      
+      // comparison functions
+      bool operator== (const addr& a) const
+      {
+        // i128 == a.i128:
+        __m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
+        return _mm_cvtsi128_si32(cmp);
+      }
+      bool operator!= (const addr& a) const
+      {
+        return !this->operator==(a);
+      }
+      
       // returns this IPv6 address as a string
-      std::string to_string() const;
+      std::string str() const;
+      
+      // multicast IPv6 addresses
+      static const addr mcast1;
+      static const addr mcast2;
+      
+      // returns true if this addr is a IPv6 multicast address
+      inline bool is_multicast() const
+      {
+        return (*this == mcast1) || (*this == mcast2);
+      }
       
       union
       {
@@ -225,7 +248,7 @@ namespace net
   
   inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)
   {
-    return out << ip.to_string();
+    return out << ip.str();
   }
   
   class PacketIP6 : public Packet

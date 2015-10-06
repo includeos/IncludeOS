@@ -1,6 +1,6 @@
+//#define DEBUG
 #include <net/ip6/udp6.hpp>
 
-#include <net/util.hpp>
 #include <alloca.h>
 #include <stdio.h>
 
@@ -8,11 +8,11 @@ namespace net
 {
   int UDPv6::bottom(std::shared_ptr<Packet>& pckt)
   {
-    printf(">>> IPv6 -> UDPv6 bottom\n");
+    debug(">>> IPv6 -> UDPv6 bottom\n");
     auto P6 = std::static_pointer_cast<PacketUDP6>(pckt);
     
-    printf(">>> src port: %u \t dst port: %u\n", P6->src_port(), P6->dst_port());
-    printf(">>> length: %d   \t chksum: 0x%x\n", P6->length(), P6->checksum());
+    debug(">>> src port: %u \t dst port: %u\n", P6->src_port(), P6->dst_port());
+    debug(">>> length: %d   \t chksum: 0x%x\n", P6->length(), P6->checksum());
     
     port_t port = P6->dst_port();
     
@@ -23,7 +23,7 @@ namespace net
       return listeners[port](P6);
     }
     // was not forwarded, so just return -1
-    printf("... dumping packet, no listeners\n");
+    debug("... dumping packet, no listeners\n");
     return -1;
   }
   

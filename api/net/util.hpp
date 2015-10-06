@@ -1,6 +1,12 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef DEBUG
+#define debug(X,...)  printf(X,##__VA_ARGS__);
+#else 
+#define debug(X,...) 
+#endif
+
 namespace net
 {
   /*

@@ -1,11 +1,13 @@
-//#define DEBUG // Allow debugging
-#include <os>
+//#define DEBUG
 #include <net/ip6/ip6.hpp>
 
 #include <assert.h>
 
 namespace net
 {
+  const IP6::addr IP6::addr::mcast1(0xFF00, 0x02, 0, 0, 0, 0, 0, 1);
+  const IP6::addr IP6::addr::mcast2(0xFF00, 0x02, 0, 0, 0, 0, 0, 2);
+  
   IP6::IP6(const IP6::addr& lo)
     : local(lo)
   {
@@ -21,16 +23,16 @@ namespace net
     case PROTO_HOPOPT:
     case PROTO_OPTSv6:
     {
-      std::cout << ">>> IPv6 options header " << protocol_name(next) << std::endl;
+      debug(">>> IPv6 options header %s", protocol_name(next).c_str());
       
       options_header& opts = *(options_header*) reader;
       reader += opts.size();
       
-      std::cout << "OPTSv6 size: " << opts.size() << std::endl;
-      std::cout << "OPTSv6 ext size: " << opts.extended() << std::endl;
+      debug("OPTSv6 size: %d\n", opts.size());
+      debug("OPTSv6 ext size: %d\n", opts.extended());
       
       next = opts.next();
-      std::cout << "OPTSv6 next: " << protocol_name(next) << std::endl;
+      debug("OPTSv6 next: %s\n", protocol_name(next).c_str());
     } break;
     case PROTO_ICMPv6:
       break;
@@ -38,7 +40,7 @@ namespace net
       break;
       
     default:
-      std::cout << "Not parsing " << protocol_name(next) << std::endl;
+      debug("Not parsing: %s\n", protocol_name(next).c_str());
     }
     
     return next;
@@ -88,7 +90,7 @@ namespace net
   
   static const std::string lut = "0123456789abcdef";
   
-  std::string IP6::addr::to_string() const
+  std::string IP6::addr::str() const
   {
     std::string ret(40, 0);
     int counter = 0;
@@ -118,7 +120,7 @@ namespace net
     // set source IPv6-address directly (?)
     //hdr.src = this->local;
     
-    debug2("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
+    debug("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
            pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
     
     return _linklayer_out(pckt);
