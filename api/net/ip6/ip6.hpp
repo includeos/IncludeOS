@@ -57,7 +57,7 @@ namespace net
       }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
       {
-        i128 = _mm_set_epi32(a, b, c, d);
+        i128 = _mm_set_epi32(d, c, b, a);
       }
       addr(const addr& a)
         : i128(a.i128) {}

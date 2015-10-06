@@ -5,7 +5,8 @@
 void Service::start()
 {
   auto& mac = Dev::eth(0).mac();
-  net::IP6::addr ip6(1, 2, 3, 4, 5, 6, 7, 8);
+  net::IP4::addr ip4{{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }};
+  net::IP6::addr ip6(0, 0, 0x0000FFFF, ip4.whole);
   
   // verify equality operators
   net::IP6::addr test1(9, 2, 3, 4, 5, 6, 7, 8);
@@ -23,8 +24,7 @@ void Service::start()
   // basic UDP service
   net::Inet::ifconfig(
       net::ETH0, 
-      {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, 
-      {{255, 255, 255, 0}}, 
+      ip4, {{255, 255, 255, 0}}, 
       ip6);
   
   net::Inet* inet = net::Inet::up();
