@@ -191,11 +191,27 @@ namespace net
     // set to ICMP Echo Reply (129)
     icmp->type     = ICMPv6::ECHO_REPLY;
     
+    if (pckt->dst().is_multicast())
+    {
+      // We won't be changing source address for multicast ping
+      printf("Multicast ping6: no change for source and dest\n");
+    }
+    else
+    {
+      printf("Normal ping6: source is us\n");
+      printf("src is %s\n", pckt->src().str().c_str());
+      printf("dst is %s\n", pckt->dst().str().c_str());
+      
+      printf("multicast is %s\n", IP6::addr::mcast2.str().c_str());
+      // normal ping: send packet to source, from us
+      pckt->set_dst(pckt->src());
+      pckt->set_src(caller.local_ip());
+    }
+    
     // calculate and set checksum
+    // NOTE: do this after changing packet contents!
     icmp->checksum = 0;
     icmp->checksum = ICMPv6::checksum(pckt);
-    
-    pckt->set_src(caller.local_ip());
     
     // send packet downstream
     return caller.transmit(pckt);

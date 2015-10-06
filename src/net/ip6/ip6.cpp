@@ -5,8 +5,8 @@
 
 namespace net
 {
-  const IP6::addr IP6::addr::mcast1(0xFF00, 0x02, 0, 0, 0, 0, 0, 1);
-  const IP6::addr IP6::addr::mcast2(0xFF00, 0x02, 0, 0, 0, 0, 0, 2);
+  const IP6::addr IP6::addr::mcast1(0xFF02, 0, 0, 0, 0, 0, 0, 1);
+  const IP6::addr IP6::addr::mcast2(0xFF02, 0, 0, 0, 0, 0, 0, 2);
   
   IP6::IP6(const IP6::addr& lo)
     : local(lo)
