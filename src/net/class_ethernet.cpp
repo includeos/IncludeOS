@@ -6,6 +6,9 @@
 
 using namespace net;
 
+const Ethernet::addr Ethernet::addr::multicast_frame{minor: 0x0000, major: 0x00000001};
+const Ethernet::addr Ethernet::addr::broadcast_frame{minor: 0xFFFF, major: 0xFFFFFFFF};
+
 
 int Ethernet::transmit(std::shared_ptr<Packet>& pckt){
   header* hdr = (header*)pckt->buffer();

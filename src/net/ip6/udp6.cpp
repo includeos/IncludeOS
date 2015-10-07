@@ -30,7 +30,7 @@ namespace net
   int UDPv6::transmit(std::shared_ptr<PacketUDP6>& pckt)
   {
     // NOTE: *** OBJECT CREATED ON STACK *** -->
-    auto original = std::static_pointer_cast<Packet>(pckt);
+    auto original = std::static_pointer_cast<PacketIP6>(pckt);
     // NOTE: *** OBJECT CREATED ON STACK *** <--
     return ip6_out(original);
   }
@@ -74,36 +74,18 @@ namespace net
   }
   
   std::shared_ptr<PacketUDP6> UDPv6::create(
-      Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
+      Ethernet::addr ether_dest, const IP6::addr& ip6_dest, UDPv6::port_t port)
   {
-    // arbitrarily big buffer
-    uint8_t* data = new uint8_t[1500];
-    Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
-    
-    IP6::full_header& full = *(IP6::full_header*) packet->buffer();
-    // people dont think that it be, but it do
-    full.eth_hdr.type = Ethernet::ETH_IP6;
-    full.eth_hdr.dest = ether_dest;
-    
-    IP6::header& hdr = full.ip6_hdr;
-    
-    // set IPv6 packet parameters
-    hdr.src = this->localIP;
-    hdr.dst = ip_dest;
-    hdr.init_scan0();
-    hdr.set_next(IP6::PROTO_UDP);
-    hdr.set_hoplimit(64);
-    
-    // offset of UDPv6 packet
-    packet->set_payload(packet->buffer() + sizeof(IP6::full_header));
-    UDPv6::header& udp = *(UDPv6::header*) packet->payload();
+    auto packet = IP6::create(ether_dest, ip6_dest);
+    auto udp_packet = std::static_pointer_cast<PacketUDP6> (packet);
     
     // set UDPv6 parameters
-    udp.src_port = htons(666); /// FIXME: use free local port
-    udp.dst_port = htons(port);
-    udp.chksum   = 0;
+    udp_packet->set_src_port(666); /// FIXME: use free local port
+    udp_packet->set_dst_port(port);
+    udp_packet->header().chksum = 0;
     
-    auto udp_packet = std::static_pointer_cast<PacketUDP6> ( std::shared_ptr<Packet> (packet) );
+    // set default source IP to this interface
+    udp_packet->set_src(this->localIP);
     
     // make the packet empty
     udp_packet->set_length(0);

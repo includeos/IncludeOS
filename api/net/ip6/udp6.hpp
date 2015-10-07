@@ -36,7 +36,7 @@ namespace net
       : localIP(local_ip) {}
     
     // set the downstream delegate
-    inline void set_ip6_out(downstream del)
+    inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
     }
@@ -60,7 +60,7 @@ namespace net
   private:
     std::map<port_t, listener_t> listeners;
     // connection to IP6 layer
-    downstream ip6_out;
+    IP6::downstream6 ip6_out;
     // this network stacks IPv6 address
     IP6::addr& localIP;
   };
@@ -81,9 +81,17 @@ namespace net
     {
       return htons(cheader().src_port);
     }
+    void set_src_port(UDPv6::port_t port)
+    {
+      header().src_port = htons(port);
+    }
     UDPv6::port_t dst_port() const
     {
       return htons(cheader().dst_port);
+    }
+    void set_dst_port(UDPv6::port_t port)
+    {
+      header().dst_port = htons(port);
     }
     uint16_t length() const
     {

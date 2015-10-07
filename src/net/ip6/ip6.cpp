@@ -55,6 +55,8 @@ namespace net
 	{
     debug(">>> IPv6 packet:");
     
+    
+    
     uint8_t* reader = pckt->buffer();
     full_header& full = *(full_header*) reader;
     reader += sizeof(full_header);
@@ -113,22 +115,46 @@ namespace net
     return ret;
   }
   
-  int IP6::transmit(std::shared_ptr<Packet>& pckt)
+  int IP6::transmit(std::shared_ptr<PacketIP6>& ip6_packet)
   {
-    full_header& full = *(full_header*) pckt->buffer();
-    header& hdr = full.ip6_hdr;
+    auto packet = *reinterpret_cast<std::shared_ptr<Packet>*> (&ip6_packet);
     
-    // verify that it is IPv6 packet
-    //ASSERT(hdr->dest.major != 0 || hdr->dest.minor !=0);
-    //ASSERT(hdr->type != 0);
+    //debug("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
+    //       pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
     
-    // set source IPv6-address directly (?)
-    //hdr.src = this->local;
+    return _linklayer_out(packet);
+  }
+  
+  std::shared_ptr<PacketIP6> IP6::create(
+      Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
+  {
+    // arbitrarily big buffer
+    uint8_t* data = new uint8_t[1500];
+    Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
     
-    debug("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
-           pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
+    IP6::full_header& full = *(IP6::full_header*) packet->buffer();
+    // people dont think that it be, but it do
+    full.eth_hdr.type = Ethernet::ETH_IP6;
+    full.eth_hdr.dest = ether_dest;
     
-    return _linklayer_out(pckt);
+    IP6::header& hdr = full.ip6_hdr;
+    
+    // set IPv6 packet parameters
+    //hdr.src = local_ip();
+    hdr.dst = ip6_dest;
+    hdr.init_scan0();
+    
+    /// ---> defaults
+    hdr.set_next(IP6::PROTO_UDP);
+    hdr.set_hoplimit(64);
+    /// <--- defaults
+    
+    // common offset of payload
+    packet->set_payload(packet->buffer() + sizeof(IP6::full_header));
+    
+    auto ip6_packet = std::shared_ptr<PacketIP6> ((PacketIP6*) packet);
+    // now, free to use :)
+    return ip6_packet;
   }
   
 }

@@ -41,6 +41,9 @@ void Service::start()
   /// Regular ping:
   /// > 
   
+  // IPv6 NDP autoconf testing
+  inet->ip6_ndp_discovery();
+  
   // basic UDP service
   static const int UDP_PORT = 64;
   inet->udp6_listen(UDP_PORT,

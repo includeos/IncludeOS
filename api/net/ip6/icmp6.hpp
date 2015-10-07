@@ -12,6 +12,7 @@ namespace net
   public:
     static const int ECHO_REQUEST = 128;
     static const int ECHO_REPLY   = 129;
+    static const int ROUTER_SOL   = 133;
     typedef uint8_t type_t;
     typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
     
@@ -47,7 +48,7 @@ namespace net
     int bottom(std::shared_ptr<Packet>& pckt);
     
     // set the downstream delegate
-    inline void set_ip6_out(downstream del)
+    inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
     }
@@ -76,10 +77,13 @@ namespace net
     // transmit packet downstream
     int transmit(std::shared_ptr<PacketICMP6>& pckt);
     
+    // send NDP router solicitation
+    void discover();
+    
   private:
     std::map<type_t, handler_t> listeners;
     // connection to IP6 layer
-    downstream ip6_out;
+    IP6::downstream6 ip6_out;
     // this network stacks IPv6 address
     IP6::addr& localIP;
   };
@@ -108,6 +112,15 @@ namespace net
     {
       return ntohs(header().checksum);
     }
+    
+    void set_length(uint32_t icmp_len)
+    {
+      // new total IPv6 payload length
+      ip6_header().set_size(sizeof(IP6::header) + icmp_len);
+      // new total packet length
+      _len = sizeof(IP6::full_header) + icmp_len;
+    }
+    
  };
   
 }

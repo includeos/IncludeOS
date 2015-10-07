@@ -1,4 +1,6 @@
+#define DEBUG
 #include <net/ip6/icmp6.hpp>
+#include <net/ip6/ndp.hpp>
 
 #include <iostream>
 #include <net/ip6/ip6.hpp>
@@ -140,7 +142,7 @@ namespace net
   int ICMPv6::transmit(std::shared_ptr<PacketICMP6>& pckt)
   {
     // NOTE: *** OBJECT CREATED ON STACK *** -->
-    auto original = std::static_pointer_cast<Packet>(pckt);
+    auto original = std::static_pointer_cast<PacketIP6>(pckt);
     // NOTE: *** OBJECT CREATED ON STACK *** <--
     return ip6_out(original);
   }
@@ -192,7 +194,7 @@ namespace net
     pckt->ip6_header().set_hoplimit(64);
     
     // set to ICMP Echo Reply (129)
-    icmp->type     = ICMPv6::ECHO_REPLY;
+    icmp->type = ICMPv6::ECHO_REPLY;
     
     if (pckt->dst().is_multicast())
     {
@@ -217,6 +219,38 @@ namespace net
     
     // send packet downstream
     return caller.transmit(pckt);
+  }
+  
+  void ICMPv6::discover()
+  {
+    // ether-broadcast an IPv6 packet to all routers
+    auto pckt = 
+      IP6::create(Ethernet::addr::broadcast_frame, IP6::addr::node_all_routers);
+    
+    // RFC4861 4.1. Router Solicitation Message Format
+    pckt->ip6_header().set_next(IP6::PROTO_ICMPv6);
+    pckt->ip6_header().set_hoplimit(255);
+    
+    NDP::solicitation_header* ndp = (NDP::solicitation_header*) pckt->payload();
+    // set to Router Solicitation Request
+    ndp->type = ICMPv6::ROUTER_SOL;
+    ndp->code = 0;
+    ndp->checksum = 0;
+    ndp->reserved = 0;
+    
+    auto icmp = std::static_pointer_cast<PacketICMP6> (pckt);
+    // source and destination addresses
+    icmp->set_dst(IP6::addr::link_all_routers);
+    icmp->set_src(this->local_ip());
+    
+    // ICMP header length field
+    icmp->set_length(sizeof(NDP::solicitation_header));
+    
+    // calculate and set checksum
+    // NOTE: do this after changing packet contents!
+    ndp->checksum = ICMPv6::checksum(icmp);
+    
+    this->transmit(icmp);
   }
   
 }

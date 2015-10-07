@@ -76,7 +76,7 @@ namespace net
     // Ethernet -> IP6
     _eth.set_ip6_handler(ip6_bottom);
     // IP6 packet transmission
-    auto ip6_transmit(downstream::from<IP6,&IP6::transmit>(_ip6));
+    auto ip6_transmit(IP6::downstream6::from<IP6,&IP6::transmit>(_ip6));
     // IP6 -> ICMP6
     _ip6.set_handler(IP6::PROTO_ICMPv6, icmp6_bottom);
     // IP6 <- ICMP6

@@ -16,7 +16,7 @@
 
 namespace net
 {
-  class Packet;
+  class PacketIP6;
   
   /** IP6 layer skeleton */
   class IP6
@@ -205,6 +205,10 @@ namespace net
       IP6::header      ip6_hdr;
     };
     
+    // downstream delegate for transmit()
+    typedef delegate<int(std::shared_ptr<PacketIP6>&)> downstream6;
+    typedef downstream6 upstream6;
+    
     /** Constructor. Requires ethernet to latch on to. */
     IP6(const addr& local);
     
@@ -243,7 +247,7 @@ namespace net
     int bottom(std::shared_ptr<Packet>& pckt);
     
     // transmit packets to the ether
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(std::shared_ptr<PacketIP6>& pckt);
     
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)
@@ -255,6 +259,10 @@ namespace net
     {
       _linklayer_out = func;
     }
+    
+    // creates a new IPv6 packet to be sent over the ether
+    static std::shared_ptr<PacketIP6> create(
+        Ethernet::addr ether_dest, const IP6::addr& dest);
     
   private:
     addr local;
@@ -277,6 +285,10 @@ namespace net
     IP6::header& ip6_header()
     {
       return ((IP6::full_header*) buffer())->ip6_hdr;
+    }
+    Ethernet::header& eth_header()
+    {
+      return *(Ethernet::header*) buffer();
     }
     
     const IP6::addr& src() const
