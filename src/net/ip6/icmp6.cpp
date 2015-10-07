@@ -205,7 +205,7 @@ namespace net
       printf("src is %s\n", pckt->src().str().c_str());
       printf("dst is %s\n", pckt->dst().str().c_str());
       
-      printf("multicast is %s\n", IP6::addr::mcast2.str().c_str());
+      printf("multicast is %s\n", IP6::addr::link_all_nodes.str().c_str());
       // normal ping: send packet to source, from us
       pckt->set_dst(pckt->src());
       pckt->set_src(caller.local_ip());

@@ -47,7 +47,7 @@ OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
 						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o\
-						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o \
+						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 						 net/class_packet.o net/dns/dns.o 
 
 # Libraries

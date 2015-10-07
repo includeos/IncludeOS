@@ -18,8 +18,8 @@ void Service::start()
   assert(test1 == test2);
   
   // verify that multicast addresses are multicast
-  assert(net::IP6::addr::mcast1.is_multicast());
-  assert(net::IP6::addr::mcast2.is_multicast());
+  assert(net::IP6::addr::node_all_nodes.is_multicast());
+  assert(net::IP6::addr::link_all_nodes.is_multicast());
   
   // basic UDP service
   net::Inet::ifconfig(

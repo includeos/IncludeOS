@@ -84,13 +84,33 @@ namespace net
       std::string str() const;
       
       // multicast IPv6 addresses
-      static const addr mcast1;
-      static const addr mcast2;
+      static const addr node_all_nodes;     // RFC 4921
+      static const addr node_all_routers;   // RFC 4921
+      static const addr node_mDNSv6;        // RFC 6762 (multicast DNSv6)
+      
+      // RFC 4291  2.4.6:
+      // Link-Local addresses are designed to be used for addressing on a
+      // single link for purposes such as automatic address configuration,
+      // neighbor discovery, or when no routers are present.
+      static const addr link_all_nodes;     // RFC 4921
+      static const addr link_all_routers;   // RFC 4921
+      static const addr link_mDNSv6;        // RFC 6762
       
       // returns true if this addr is a IPv6 multicast address
-      inline bool is_multicast() const
+      bool is_multicast() const
       {
-        return (*this == mcast1) || (*this == mcast2);
+        /**
+          RFC 4291 2.7 Multicast Addresses
+          
+          An IPv6 multicast address is an identifier for a group of interfaces
+          (typically on different nodes). An interface may belong to any
+          number of multicast groups. Multicast addresses have the following format:
+          |   8    |  4 |  4 |                  112 bits                   |
+          +------ -+----+----+---------------------------------------------+
+          |11111111|flgs|scop|                  group ID                   |
+          +--------+----+----+---------------------------------------------+
+        **/
+        return i8[0] == 0xFF;
       }
       
       union
