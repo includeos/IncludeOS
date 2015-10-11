@@ -99,6 +99,9 @@ namespace net
       static const addr link_all_routers;   // RFC 4921
       static const addr link_mDNSv6;        // RFC 6762
       
+      static const addr link_dhcp_servers;  // RFC 3315
+      static const addr site_dhcp_servers;  // RFC 3315
+      
       // returns true if this addr is a IPv6 multicast address
       bool is_multicast() const
       {

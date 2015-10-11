@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 #include <net/ip6/icmp6.hpp>
 #include <net/ip6/ndp.hpp>
 
@@ -154,46 +154,70 @@ namespace net
   
   uint16_t ICMPv6::checksum(std::shared_ptr<PacketICMP6>& pckt)
   {
-    IP6::full_header& full = *(IP6::full_header*) pckt->buffer();
-    IP6::header& hdr = full.ip6_hdr;
+    IP6::header& hdr = pckt->ip6_header();
     
-    // ICMP message + pseudo header
-    uint16_t datalen = hdr.size() + sizeof(pseudo_header);
-    
-    // allocate it on stack
-    char* data = (char*) alloca(datalen + 16);
-    // unfortunately we also need to guarantee SSE aligned
-    data = (char*) ((intptr_t) (data+16) & ~15); // P2ROUNDUP((intptr_t) data, 16);
-    // verify that its SSE aligned
-    assert(((intptr_t) data & 15) == 0);
+    uint16_t datalen = hdr.size();
+    pseudo_header phdr;
     
     // ICMP checksum is done with a pseudo header
     // consisting of src addr, dst addr, message length (32bits)
     // 3 zeroes (8bits each) and id of the next header
-    pseudo_header& phdr = *(pseudo_header*) data;
     phdr.src = hdr.src;
     phdr.dst = hdr.dst;
-    phdr.len = htonl(hdr.size());
+    phdr.len = htonl(datalen);
     phdr.zeros[0] = 0;
     phdr.zeros[1] = 0;
     phdr.zeros[2] = 0;
     phdr.next = hdr.next();
     //assert(hdr.next() == 58); // ICMPv6
     
-    // normally we would start at &icmp_echo::type, but
-    // it is after all the first element of the icmp message
-    memcpy(data + sizeof(pseudo_header), pckt->payload(),
-        datalen - sizeof(pseudo_header));
+    /**
+      RFC 4443
+      2.3. Message Checksum Calculation
+      
+      The checksum is the 16-bit one's complement of the one's complement
+      sum of the entire ICMPv6 message, starting with the ICMPv6 message
+      type field, and prepended with a "pseudo-header" of IPv6 header
+      fields, as specified in [IPv6, Section 8.1].  The Next Header value
+      used in the pseudo-header is 58.  (The inclusion of a pseudo-header
+      in the ICMPv6 checksum is a change from IPv4; see [IPv6] for the
+      rationale for this change.)
+      
+      For computing the checksum, the checksum field is first set to zero.
+    **/
+    union
+    {
+      uint32_t whole;
+      uint16_t part[2];
+    } sum;
+    sum.whole = 0;
     
-    // calculate csum and free data on return
-    return net::checksum(data, datalen);
+    // compute sum of pseudo header
+    uint16_t* it = (uint16_t*) &phdr;
+    uint16_t* it_end = it + sizeof(pseudo_header) / 2;
+    
+    while (it < it_end)
+        sum.whole += *(it++);
+    
+    // compute sum of data
+    it = (uint16_t*) pckt->payload();
+    it_end = it + datalen / 2;
+    
+    while (it < it_end)
+      sum.whole += *(it++);
+    
+    // odd-numbered case
+    if (datalen & 1)
+      sum.whole += *(uint8_t*) it;
+    
+    return ~(sum.part[0] + sum.part[1]);
   }
   
   // internal implementation of handler for ICMP type 128 (echo requests)
   int echo_request(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
   {
     ICMPv6::echo_header* icmp = (ICMPv6::echo_header*) pckt->payload();
-    printf("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
+    debug("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set the hoplimit manually to the very standard 64 hops
     pckt->set_hoplimit(64);
@@ -204,7 +228,7 @@ namespace net
     if (pckt->dst().is_multicast())
     {
       // We won't be changing source address for multicast ping
-      printf("Multicast ping6: no change for source and dest\n");
+      debug("Was multicast ping6: no change for source and dest\n");
     }
     else
     {
@@ -263,7 +287,7 @@ namespace net
     auto icmp = std::static_pointer_cast<PacketICMP6> (pckt);
     
     // source and destination addresses
-    icmp->set_src(IP6::addr::link_unspecified);
+    icmp->set_src(this->local_ip()); //IP6::addr::link_unspecified);
     icmp->set_dst(IP6::addr::link_all_routers);
     
     // ICMP header length field
@@ -274,6 +298,13 @@ namespace net
     ndp->checksum = ICMPv6::checksum(icmp);
     
     this->transmit(icmp);
+    
+    /// DHCPv6 test ///
+    // ether-broadcast an IPv6 packet to all routers
+    //pckt = IP6::create(
+    //    IP6::PROTO_UDP,
+    //    Ethernet::addr::IPv6mcast_02, 
+    //    IP6::addr::link_unspecified);
   }
   
   

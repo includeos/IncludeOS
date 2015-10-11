@@ -16,6 +16,9 @@ namespace net
   const IP6::addr IP6::addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
   const IP6::addr IP6::addr::link_mDNSv6(0xFF02, 0, 0, 0, 0, 0, 0, 0xFB);
   
+  const IP6::addr IP6::addr::link_dhcp_servers(0xFF02, 0, 0, 0, 0, 0, 0x01, 0x02);
+  const IP6::addr IP6::addr::site_dhcp_servers(0xFF05, 0, 0, 0, 0, 0, 0x01, 0x03);
+  
   IP6::IP6(const IP6::addr& lo)
     : local(lo)
   {
