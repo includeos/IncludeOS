@@ -11,14 +11,19 @@ namespace net
 {
   // internal implementation of handler for ICMP type 128 (echo requests)
   int echo_request(ICMPv6&, std::shared_ptr<PacketICMP6>& pckt);
+  int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt);
   
   ICMPv6::ICMPv6(IP6::addr& local_ip)
     : localIP(local_ip)
   {
     // install default handler for echo requests
     listen(ECHO_REQUEST, echo_request);
+    // install default handler for neighbor solicitation requests
+    listen(ND_NEIGHB_SOL, neighbor_solicitation);
   }
   
+  // static function that returns a textual representation of
+  // the @code and @type of an ICMP message
   std::string ICMPv6::code_string(uint8_t type, uint8_t code)
   {
     switch (type)
@@ -77,9 +82,9 @@ namespace net
       }
       
       /// echo feature ///
-    case 128:
+    case ECHO_REQUEST:
       return "Echo request";
-    case 129:
+    case ECHO_REPLY:
       return "Echo reply";
       
       /// multicast feature ///
@@ -91,15 +96,15 @@ namespace net
       return "Multicast listener done";
       
       /// neighbor discovery protocol ///
-    case 133:
+    case ND_ROUTER_SOL:
       return "NDP Router solicitation request";
-    case 134:
+    case ND_ROUTER_ADV:
       return "NDP Router advertisement";
-    case 135:
+    case ND_NEIGHB_SOL:
       return "NDP Neighbor solicitation request";
-    case 136:
+    case ND_NEIGHB_ADV:
       return "NDP Neighbor advertisement";
-    case 137:
+    case ND_REDIRECT:
       return "NDP Redirect message";
       
     case 143:
@@ -191,7 +196,7 @@ namespace net
     printf("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
     
     // set the hoplimit manually to the very standard 64 hops
-    pckt->ip6_header().set_hoplimit(64);
+    pckt->set_hoplimit(64);
     
     // set to ICMP Echo Reply (129)
     icmp->type = ICMPv6::ECHO_REPLY;
@@ -220,31 +225,49 @@ namespace net
     // send packet downstream
     return caller.transmit(pckt);
   }
+  int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
+  {
+    NDP::neighbor_sol* sol = (NDP::neighbor_sol*) pckt->payload();
+    
+    printf("ICMPv6 NDP Neighbor solicitation request\n");
+    printf(">> target: %s\n", sol->target.str().c_str());
+    printf(">>\n");
+    printf(">> source: %s\n", pckt->src().str().c_str());
+    printf(">> dest:   %s\n", pckt->dst().str().c_str());
+    
+    // perhaps we should answer
+    
+    
+    return -1;
+  }
   
   void ICMPv6::discover()
   {
     // ether-broadcast an IPv6 packet to all routers
-    auto pckt = 
-      IP6::create(Ethernet::addr::broadcast_frame, IP6::addr::node_all_routers);
+    // IPv6mcast_02: 33:33:00:00:00:02
+    auto pckt = IP6::create(
+        IP6::PROTO_ICMPv6,
+        Ethernet::addr::IPv6mcast_02, 
+        IP6::addr::link_unspecified);
     
     // RFC4861 4.1. Router Solicitation Message Format
-    pckt->ip6_header().set_next(IP6::PROTO_ICMPv6);
-    pckt->ip6_header().set_hoplimit(255);
+    pckt->set_hoplimit(255);
     
-    NDP::solicitation_header* ndp = (NDP::solicitation_header*) pckt->payload();
+    NDP::router_sol* ndp = (NDP::router_sol*) pckt->payload();
     // set to Router Solicitation Request
-    ndp->type = ICMPv6::ROUTER_SOL;
+    ndp->type = ICMPv6::ND_ROUTER_SOL;
     ndp->code = 0;
     ndp->checksum = 0;
     ndp->reserved = 0;
     
     auto icmp = std::static_pointer_cast<PacketICMP6> (pckt);
+    
     // source and destination addresses
+    icmp->set_src(IP6::addr::link_unspecified);
     icmp->set_dst(IP6::addr::link_all_routers);
-    icmp->set_src(this->local_ip());
     
     // ICMP header length field
-    icmp->set_length(sizeof(NDP::solicitation_header));
+    icmp->set_length(sizeof(NDP::router_sol));
     
     // calculate and set checksum
     // NOTE: do this after changing packet contents!
@@ -252,5 +275,6 @@ namespace net
     
     this->transmit(icmp);
   }
+  
   
 }

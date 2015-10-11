@@ -9,6 +9,8 @@ namespace net
   const IP6::addr IP6::addr::node_all_routers(0xFF01, 0, 0, 0, 0, 0, 0, 2);
   const IP6::addr IP6::addr::node_mDNSv6(0xFF01, 0, 0, 0, 0, 0, 0, 0xFB);
   
+  const IP6::addr IP6::addr::link_unspecified(0, 0, 0, 0, 0, 0, 0, 0);
+  
   const IP6::addr IP6::addr::link_all_nodes(0xFF02, 0, 0, 0, 0, 0, 0, 1);
   const IP6::addr IP6::addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
   const IP6::addr IP6::addr::link_mDNSv6(0xFF02, 0, 0, 0, 0, 0, 0, 0xFB);
@@ -125,9 +127,20 @@ namespace net
     return _linklayer_out(packet);
   }
   
-  std::shared_ptr<PacketIP6> IP6::create(
+  std::shared_ptr<PacketIP6> IP6::create(uint8_t proto,
       Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
   {
+    // payload length: 8
+    // next header: ICMPv6
+    // hop limit: 255
+    // source: <actual IPv6>
+    // dest: ff02::2 (all-routers)
+    // 
+    // ICMP type 133
+    // code 0
+    // correct checksum
+    // reserved: 0
+    
     // arbitrarily big buffer
     uint8_t* data = new uint8_t[1500];
     Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
@@ -140,12 +153,13 @@ namespace net
     IP6::header& hdr = full.ip6_hdr;
     
     // set IPv6 packet parameters
-    //hdr.src = local_ip();
+    hdr.src = addr::link_unspecified;
     hdr.dst = ip6_dest;
+    // default header frame
     hdr.init_scan0();
     
     /// ---> defaults
-    hdr.set_next(IP6::PROTO_UDP);
+    hdr.set_next(proto);
     hdr.set_hoplimit(64);
     /// <--- defaults
     

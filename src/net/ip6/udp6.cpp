@@ -76,7 +76,7 @@ namespace net
   std::shared_ptr<PacketUDP6> UDPv6::create(
       Ethernet::addr ether_dest, const IP6::addr& ip6_dest, UDPv6::port_t port)
   {
-    auto packet = IP6::create(ether_dest, ip6_dest);
+    auto packet = IP6::create(IP6::PROTO_UDP, ether_dest, ip6_dest);
     auto udp_packet = std::static_pointer_cast<PacketUDP6> (packet);
     
     // set UDPv6 parameters

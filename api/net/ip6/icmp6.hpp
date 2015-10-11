@@ -12,7 +12,13 @@ namespace net
   public:
     static const int ECHO_REQUEST = 128;
     static const int ECHO_REPLY   = 129;
-    static const int ROUTER_SOL   = 133;
+    
+    static const int ND_ROUTER_SOL = 133;
+    static const int ND_ROUTER_ADV = 134;
+    static const int ND_NEIGHB_SOL = 135;
+    static const int ND_NEIGHB_ADV = 136;
+    static const int ND_REDIRECT   = 137;
+    
     typedef uint8_t type_t;
     typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
     
@@ -116,7 +122,7 @@ namespace net
     void set_length(uint32_t icmp_len)
     {
       // new total IPv6 payload length
-      ip6_header().set_size(sizeof(IP6::header) + icmp_len);
+      ip6_header().set_size(icmp_len);
       // new total packet length
       _len = sizeof(IP6::full_header) + icmp_len;
     }

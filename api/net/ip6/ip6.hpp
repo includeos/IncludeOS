@@ -88,6 +88,9 @@ namespace net
       static const addr node_all_routers;   // RFC 4921
       static const addr node_mDNSv6;        // RFC 6762 (multicast DNSv6)
       
+      // unspecified link-local address
+      static const addr link_unspecified;
+      
       // RFC 4291  2.4.6:
       // Link-Local addresses are designed to be used for addressing on a
       // single link for purposes such as automatic address configuration,
@@ -261,7 +264,7 @@ namespace net
     }
     
     // creates a new IPv6 packet to be sent over the ether
-    static std::shared_ptr<PacketIP6> create(
+    static std::shared_ptr<PacketIP6> create(uint8_t proto,
         Ethernet::addr ether_dest, const IP6::addr& dest);
     
   private:
@@ -286,6 +289,10 @@ namespace net
     {
       return ((IP6::full_header*) buffer())->ip6_hdr;
     }
+    const IP6::header& ip6_header() const
+    {
+      return ((IP6::full_header*) buffer())->ip6_hdr;
+    }
     Ethernet::header& eth_header()
     {
       return *(Ethernet::header*) buffer();
@@ -293,20 +300,39 @@ namespace net
     
     const IP6::addr& src() const
     {
-      return ((IP6::full_header*) buffer())->ip6_hdr.src;
+      return ip6_header().src;
     }
     void set_src(const IP6::addr& src)
     {
-      ((IP6::full_header*) buffer())->ip6_hdr.src = src;
+      ip6_header().src = src;
     }
     
     const IP6::addr& dst() const
     {
-      return ((IP6::full_header*) buffer())->ip6_hdr.dst;
+      return ip6_header().dst;
     }
     void set_dst(const IP6::addr& dst)
     {
-      ((IP6::full_header*) buffer())->ip6_hdr.dst = dst;
+      ip6_header().dst = dst;
+    }
+    
+    uint8_t hoplimit() const
+    {
+      return ip6_header().hoplimit();
+    }
+    void set_hoplimit(uint8_t limit)
+    {
+      ip6_header().set_hoplimit(limit);
+    }
+    
+    // returns the protocol type of the next header
+    uint8_t next() const
+    {
+      return ip6_header().next();
+    }
+    void set_next(uint8_t next)
+    {
+      ip6_header().set_next(next);
     }
     
   };
