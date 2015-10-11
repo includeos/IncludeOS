@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <net/ip6/ip6.hpp>
+#include "ip6.hpp"
 
 namespace net
 {

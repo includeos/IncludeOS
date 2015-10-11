@@ -1,5 +1,6 @@
 //#define DEBUG
 #include <net/ip6/ip6.hpp>
+#include <net/ip6/packet_ip6.hpp>
 
 #include <assert.h>
 
@@ -130,17 +131,6 @@ namespace net
   std::shared_ptr<PacketIP6> IP6::create(uint8_t proto,
       Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
   {
-    // payload length: 8
-    // next header: ICMPv6
-    // hop limit: 255
-    // source: <actual IPv6>
-    // dest: ff02::2 (all-routers)
-    // 
-    // ICMP type 133
-    // code 0
-    // correct checksum
-    // reserved: 0
-    
     // arbitrarily big buffer
     uint8_t* data = new uint8_t[1500];
     Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
@@ -157,11 +147,10 @@ namespace net
     hdr.dst = ip6_dest;
     // default header frame
     hdr.init_scan0();
-    
-    /// ---> defaults
+    // protocol for next header
     hdr.set_next(proto);
+    // default hoplimit
     hdr.set_hoplimit(64);
-    /// <--- defaults
     
     // common offset of payload
     packet->set_payload(packet->buffer() + sizeof(IP6::full_header));

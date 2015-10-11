@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../util.hpp"
-#include "ip6.hpp"
+#include "packet_ip6.hpp"
 #include <map>
 
 namespace net
