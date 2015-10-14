@@ -133,7 +133,7 @@ llvm_src_verbose=-v
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
 
 # Using Ninja (slightly faster, but not by much)
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys  -I$IncludeOS_src/api -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ -I$libcxx_inc " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$IncludeOS_src/api -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
 
 
 #
