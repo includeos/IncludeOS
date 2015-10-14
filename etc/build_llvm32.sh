@@ -23,7 +23,7 @@ IncludeOS_sys=$IncludeOS_src/api/sys
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
-    sudo apt-get install cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
+    sudo apt-get install -y cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
 fi
 
 if [ ! -z $download_llvm ]; then
