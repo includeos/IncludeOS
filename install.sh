@@ -15,7 +15,6 @@ export num_jobs=-j6
 export binutils_version=2.25
 export gcc_version=5.1.0
 export newlib_version=2.2.0-1
-export clang_version=3.6
 
 export IncludeOS_src=`pwd`
 export newlib_inc=$INSTALL_DIR/i686-elf/include
@@ -50,7 +49,7 @@ fi
 
 
 # BUILDING IncludeOS
-PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang-$clang_version"
+PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang"
 
 # Get prerequisite packages, such as a compiler, GNU Make, etc.
 echo -e "\n\n >>> Updating APT \n"
@@ -59,18 +58,6 @@ sudo apt-get update
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
-
-
-# CLANG setup. For some reason apt-get install clang doesn't always produce these symlinks.
-if ! command clang --version; then
-    echo -e "\n\n >>> SYMLINKING CLANG (requires sudo) \n"
-    sudo ln -s /usr/bin/clang-$clang_version /usr/bin/clang
-fi
-
-if ! command clang++ --version; then
-    echo -e "\n\n >>> SYMLINKING CLANG++ (requires sudo) \n"
-    sudo ln -s /usr/bin/clang++-$clang_version /usr/bin/clang++
-fi
 
 #
 # DEPRECATED: We're building with clang now. Keeping it until newlib can be built with clang
