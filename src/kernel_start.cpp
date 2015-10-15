@@ -1,5 +1,6 @@
 #include <class_os.hpp>
 #include <assert.h>
+#define DEBUG
 
 extern "C"
 {
@@ -51,7 +52,7 @@ extern "C"
 
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
-	
+    
     // init serial port
     init_serial();    
     
