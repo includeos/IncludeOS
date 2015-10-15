@@ -3,7 +3,7 @@
 
 void Service::start()
 {
-  
+ 
   printf("Hello world - OS included!\n");
-
+  __asm__("cli");
 }

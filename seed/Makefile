@@ -13,7 +13,7 @@ OSLIB = $(OSDIR)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OSDIR)/bin/i686-elf-gcc 
-CPP = clang++ -target i686-elf
+CPP = clang++-3.6 -target i686-elf
 GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 

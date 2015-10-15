@@ -52,10 +52,6 @@ fi
 # BUILDING IncludeOS
 PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang-$clang_version"
 
-# Get prerequisite packages, such as a compiler, GNU Make, etc.
-echo -e "\n\n >>> Updating APT \n"
-sudo apt-get update
-
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
@@ -90,7 +86,7 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n >>> Installing vmbuilder"
     pushd $IncludeOS_src/vmbuild
     make
-    sudo cp vmbuild $OSDIR/
+    sudo cp vmbuild $INSTALL_DIR/
     popd
     
     echo -e "\n >>> Building IncludeOS"
