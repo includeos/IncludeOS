@@ -1,5 +1,5 @@
 #! /bin/bash
-
+. ./etc/set_traps.sh
 
 INSTALL_DIR=/usr/local/IncludeOS/
 export BUILD_DIR=$HOME/IncludeOS_build
@@ -26,6 +26,11 @@ if [ ! -v do_newlib ]; then
     do_newlib=1
 fi
 
+if [ ! -v do_gcc ]; then
+    do_gcc=1
+fi
+
+
 if [ ! -v do_includeos ]; then
     do_includeos=1
 fi
@@ -40,9 +45,6 @@ if [ ! -v download_llvm ]; then
 fi
 
 
-# Utilities
-. ./etc/bash_functions.sh
-
 
 # TODO: Implement checks to see which steps can be skipped!
 
@@ -55,29 +57,32 @@ PREREQS_BUILD="gcc g++ build-essential make nasm texinfo"
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
-or_die "Couldn't install required packages"
 
 
 #
-# DEPRECATED: We're building with clang now
+# DEPRECATED: We're building with clang now. Keeping it until newlib can be built with clang
 #
 # Get and build the actual toolchain
-# echo -e "\n\n >>> GETTING / BUILDING CROSS COMPILER \n"
-# ./etc/cross_compiler.sh
-# or_die "Couldn't install cross compiler"
+if [ ! -z $do_gcc ]; then
+    echo -e "\n\n >>> GETTING / BUILDING CROSS COMPILER \n"
+    ./etc/cross_compiler.sh
+fi
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
-$IncludeOS_src/etc/build_llvm32.sh
-
-
 if [ ! -z $do_newlib ]; then
     echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
     $IncludeOS_src/etc/build_newlib.sh
-    or_die "Couldn't install newlib"
 fi
+
+
+echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
+$IncludeOS_src/etc/build_llvm32.sh
+
+echo -e "\n\n >>> INSTALLING libc++ \n"
+sudo cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
+
 
 if [ ! -z $do_includeos ]; then
     # Build and install the vmbuilder 
@@ -85,17 +90,14 @@ if [ ! -z $do_includeos ]; then
     pushd $IncludeOS_src/vmbuild
     make
     sudo cp vmbuild $OSDIR/
-    or_die "Couldn't install vmbuilder"
     popd
     
     echo -e "\n >>> Building IncludeOS"
     pushd $IncludeOS_src/src
     make 
-    or_die "Couldn't build IncludeOS"
     
     echo -e "\n >>> Installing IncludeOS"
     sudo make install
-    or_die "Couldn't install IncludeOS"
     popd
     
     # RUNNING IncludeOS
@@ -103,14 +105,13 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n\n >>> Trying to install prerequisites for *running* IncludeOS"
     echo -e   "        Packages: $PREREQS_RUN \n"
     sudo apt-get install -y $PREREQS_RUN
-    or_die "Couldn't install packages needed to run IncludeOS"
     
     # Set up the IncludeOS network bridge
     echo -e "\n\n >>> Create IncludeOS network bridge "`pwd`"\n"
     sudo $IncludeOS_src/etc/create_bridge.sh
     sudo cp $IncludeOS_src/etc/qemu-ifup /etc
-    or_die "Couldn't set up the network bridge"
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"
 
+trap - EXIT

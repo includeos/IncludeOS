@@ -1,10 +1,15 @@
-//#define DEBUG // Allow debugging
-//#define DEBUG2
+// #define DEBUG // Allow debugging
+// #define DEBUG2
 
 #include <os>
 #include <net/class_ethernet.hpp>
 
 using namespace net;
+
+const Ethernet::addr Ethernet::addr::MULTICAST_FRAME{minor: 0x0000, major: 0x01000000};
+const Ethernet::addr Ethernet::addr::BROADCAST_FRAME{minor: 0xFFFF, major: 0xFFFFFFFF};
+const Ethernet::addr Ethernet::addr::IPv6mcast_01{minor: 0x3333, major: 0x01000000};
+const Ethernet::addr Ethernet::addr::IPv6mcast_02{minor: 0x3333, major: 0x02000000};
 
 
 int Ethernet::transmit(std::shared_ptr<Packet>& pckt){

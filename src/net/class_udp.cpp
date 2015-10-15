@@ -61,13 +61,13 @@ int UDP::transmit(std::shared_ptr<Packet>& pckt){
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
         (uint16_t)(pckt->len() -sizeof(full_header)),
         hdr->length,dip.str().c_str(),
-        dport);
+        hdr->dport);
   
   ASSERT(sip != 0 && dip != 0 &&
          full_hdr->ip_hdr.protocol == IP4::IP4_UDP);
   
   debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
-        sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,len
+        sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,pckt->len()
         );
   
   

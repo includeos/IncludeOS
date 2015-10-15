@@ -1,5 +1,5 @@
-  #################################################
- #              IncludeOS makefile               #
+#################################################
+#              IncludeOS makefile               #
 #################################################
 
 # Compiler/Linker
@@ -18,19 +18,21 @@ LD  = $(OS)/bin/i686-elf-ld
 GCC_VER = $(shell $(GPP) -dumpversion)
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I../abi/sys -I$(OSLIB)/include -Iinclude -I../abi -I../stdlib
+INCLUDES = -I../api/sys -I$(OSLIB)/include -Iinclude -I../api -I../stdlib
 LIBS     = $(OSLIB)/lib $(LIBGCC)
 
-all: CAPABS  =  -msse3 -Ofast -mstackrealign   # Needed for 16-byte stack alignment (SSE) -Ofast
-debug: CAPABS = -msse3 -O0
-stripped: CAPABS = -msse3 -Os
+CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
+
+all: CAPABS  =  $(CAPABS_COMMON) -O2  
+debug: CAPABS = $(CAPABS_COMMON) -O0
+stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++11 -fno-stack-protector $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES)
 
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 
 
 # Objects
@@ -40,12 +42,13 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
 						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 class_irq_handler.o class_pci_manager.o \
-						 hw/pic.o hw/class_pci_device.o hw/class_dev.o \
+						 class_irq_manager.o class_pci_manager.o class_pit.o\
+						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o\
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-						 net/class_ethernet.o net/class_arp.o net/class_ip4.o net/class_ip6.o\
-						 net/class_udp.o net/class_icmp.o net/class_inet.o net/class_inet4.o net/inet.o\
-						 net/class_packet.o net/dns/dns.o
+						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
+						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o\
+						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
+						 net/class_packet.o net/dns/dns.o 
 
 # Libraries
 ###################################################
@@ -67,9 +70,8 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 all: bootloader libc++abi.a os.a 
 	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
 
-stripped: LDOPTS += -s #strip all
-stripped: bootloader libc++abi.a os.a
-stripped: test
+#stripped: LDOPTS += -s #strip all
+stripped: bootloader libc++abi.a os.a test # Included test to get a stripped version
 
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
@@ -85,7 +87,7 @@ debug: test
 
 LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ = os.a $(LIBCPP) $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCPP) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
 CRTI_OBJ     = $(OS)/crt/crti.o
@@ -102,6 +104,10 @@ test: test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
 
+test6: test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test IPv6 service"
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
+
 # OS libraries
 ###################################################
 # OS
@@ -117,10 +123,10 @@ install: #os.a bootloader
 	cp bootloader $(OS)/
 	cp os.a $(OS)/lib
 	cp libc++abi.a $(OS)/lib
-	cp libc++.a $(OS)/lib
+	#cp libc++.a $(OS)/lib # This is now handled by ../install.sh 
 	mkdir -p $(OS)/crt
 	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
-	cp -r ../abi $(OS)/
+	cp -r ../api $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
 	#cp -r ../mod/rapidjson $(OS)/mod
@@ -167,6 +173,6 @@ clean:
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
-	$(RM) test_service.o test_service test_service.img
+	$(RM) test_service.o test_ipv6.o test_service test_service.img
 
 -include $(OS_DEPS)

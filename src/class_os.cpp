@@ -6,24 +6,13 @@
 #include <class_service.hpp>
 
 // A private class to handle IRQ
-#include "class_irq_handler.hpp"
+#include <class_irq_manager.hpp>
 #include <class_pci_manager.hpp>
 #include <stdlib.h>
 
 bool  OS::_power = true;
-float OS::_CPU_mhz = 2399.928; //For Trident3, reported by /proc/cpuinfo
-
-extern "C"
-{
-  #undef stdin
-  #undef stdout
-  #undef stderr
-  extern __FILE* stdin;
-  extern __FILE* stdout;
-  extern __FILE* stderr;
-  
-  extern struct _reent stuff;
-}
+MHz OS::_CPU_mhz = MHz(0); //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
+extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
@@ -31,15 +20,8 @@ void OS::start()
   srand(time(NULL));
   
   // Disable the timer interrupt completely
-  disable_PIT();
+  //pit.disable();
   
-  // initialize C-library?
-  // this part im not sure about
-  _REENT = &stuff;
-  // this part is correct
-  stdin  = _REENT->_stdin;
-  stdout = _REENT->_stdout;
-  stderr = _REENT->_stderr;
   
   // heap
   extern caddr_t heap_end;
@@ -54,38 +36,45 @@ void OS::start()
   
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
-  IRQ_handler::init();
+  IRQ_manager::init();
+
+  
+  // Initialize the Interval Timer
+  PIT::init();
+
   //OS::rsprint(">>> Dev init\n");
   Dev::init();
+
+
+
+  asm("sti");
+  
+  printf(">>> Estimating CPU-frequency\n");    
+  printf("    | \n");  
+  printf("    +--(10 samples, %f sec. interval)\n", (PIT::frequency() / _cpu_sampling_freq_divider_).count() );
+  printf("    | \n");  
+  _CPU_mhz = PIT::CPUFrequency();
+  printf("    +--> %f MHz \n\n", _CPU_mhz.count());  
+    
+  printf(">>> IncludeOS initialized - calling Service::start()\n");  
   
   // Everything is ready
-  printf(">>> IncludeOS initialized - calling Service::start()\n");
   Service::start();
   
-  asm("sti");
-  halt();
+
+  event_loop();
 }
 
-void OS::disable_PIT()
-{
-  #define PIT_one_shot 0x30
-  #define PIT_mode_chan 0x43
-  #define PIT_chan0 0x40
-  
-  // Enable 1-shot mode
-  OS::outb(PIT_mode_chan, PIT_one_shot);
-  
-  // Set a frequency for "first shot"
-  OS::outb(PIT_chan0, 1);
-  OS::outb(PIT_chan0, 0);
-  debug("<PIT> Switching to 1-shot mode (0x%x) \n",PIT_one_shot);
-}
-
+/*
 extern "C" void halt_loop(){
   __asm__ volatile("hlt; jmp halt_loop;");
+ }*/
+
+void OS::halt(){
+  __asm__ volatile("hlt;");
 }
 
-void OS::halt()
+void OS::event_loop()
 {
   OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   OS::rsprint(">>> System idle - waiting for interrupts \n");
@@ -93,7 +82,7 @@ void OS::halt()
   
   while (_power)
   {
-    IRQ_handler::notify(); 
+    IRQ_manager::notify(); 
     
     debug("<OS> Woke up @ t = %li \n",uptime());
   }

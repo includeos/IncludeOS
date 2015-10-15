@@ -3,6 +3,18 @@
 #include <sys/time.h>
 #include <utility/memstream.h>
 #include <stdio.h>
+#include <sys/reent.h>
+
+/// IMPLEMENTATION OF Newlib I/O:
+struct _reent newlib_reent;
+
+#undef stdin
+#undef stdout
+#undef stderr
+// instantiate the Unix standard streams
+__FILE* stdin;
+__FILE* stdout;
+__FILE* stderr;
 
 void _init_c_runtime()
 {
@@ -17,13 +29,22 @@ void _init_c_runtime()
   if (&_end > heap_end)
     heap_end = &_end;
   
-  // Initialize exceptions before we can run constructors
+  /// initialize newlib I/O
+  newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);
+  // set newlibs internal structure to ours
+  _REENT = &newlib_reent;
+  // Unix standard streams
+  stdin  = _REENT->_stdin;  // stdin  == 1
+  stdout = _REENT->_stdout; // stdout == 2
+  stderr = _REENT->_stderr; // stderr == 3
+  
+  /// initialize exceptions before we can run constructors
   extern void* __eh_frame_start;
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);  
   
-  // call global constructors emitted by compiler
+  /// call global constructors emitted by compiler
   extern void _init();
   _init();
 }
@@ -40,26 +61,38 @@ int* __errno_location(void)
 
 int access(const char *pathname, int mode)
 {
-	return 0;
+	(void) pathname;
+  (void) mode;
+  
+  return 0;
 }
 char* getcwd(char *buf, size_t size)
 {
+  (void) buf;
+  (void) size;
 	return 0;
 }
 int fcntl(int fd, int cmd, ...)
 {
+  (void) fd;
+  (void) cmd;
 	return 0;
 }
-int fchmod(int fildes, mode_t mode)
+int fchmod(int fd, mode_t mode)
 {
+  (void) fd;
+  (void) mode;
 	return 0;
 }
 int mkdir(const char *pathname, mode_t mode)
 {
+  (void) pathname;
+  (void) mode;
 	return 0;
 }
 int rmdir(const char *pathname)
 {
+  (void) pathname;
 	return 0;
 }
 
@@ -72,5 +105,7 @@ int gettimeofday(struct timeval *__restrict tv,
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
+  (void) tv;
+  (void) tz;
 	return 0;
 }

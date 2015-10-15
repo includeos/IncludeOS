@@ -1,9 +1,9 @@
-//#define DEBUG // Allow debuging 
+#define DEBUG // Allow debuging 
 //#define DEBUG2
 
 #include <virtio/class_virtionet.hpp>
 //#include <virtio/virtio.h>
-#include <class_irq_handler.hpp>
+#include <class_irq_manager.hpp>
 #include <stdio.h>
 #include <syscalls.hpp>
 #include <malloc.h>
@@ -138,8 +138,8 @@ VirtioNet::VirtioNet(PCI_Device* d)
   // Hook up IRQ handler
   //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
   auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-  IRQ_handler::subscribe(irq(),del);
-  IRQ_handler::enable_irq(irq());  
+  IRQ_manager::subscribe(irq(),del);
+  IRQ_manager::enable_irq(irq());  
   
    
   // Assign Link-layer output to RX Queue
@@ -249,7 +249,7 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  eoi(irq());    
+  IRQ_manager::eoi(irq());    
   
 }
 
@@ -276,7 +276,7 @@ void VirtioNet::service_RX(){
       // We're passing a stack-pointer here. That's dangerous if the packet 
       // is supposed to be kept, somewhere up the stack. 
       auto pckt_ptr = std::make_shared<Packet>
-        (Packet(data+sizeof(virtio_net_hdr), len, Packet::UPSTREAM));
+        (Packet(data+sizeof(virtio_net_hdr), len - sizeof(virtio_net_hdr), Packet::UPSTREAM));
       
       _link_out(pckt_ptr); 
     

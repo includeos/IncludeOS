@@ -17,10 +17,10 @@ CPP = clang++ -target i686-elf
 GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSLIB)/include -I$(OSDIR)/stdlib
+INCLUDES = -I$(OSDIR)/api/sys -I$(OSLIB)/include -I$(OSDIR)/api -I$(OSDIR)/stdlib
 
-CPPOPTS = -std=c++11 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
+CPPOPTS = -std=c++14 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld -flto
 
 
 # Objects
@@ -38,7 +38,7 @@ CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o
@@ -52,7 +52,8 @@ DEPS = $(OBJS:.o=.d)
 
 all: service
 
-stripped: LDOPTS += -S #strip all
+stripped: LDOPTS  += -S #strip all
+stripped: CPPOPTS += -Oz
 stripped: service
 
 

@@ -4,22 +4,27 @@
 # (0 means no, anything else yes.)
 
 DEBUG=0
+JOBS=-j12
+IMAGE=test_service.img
 
 [[ $1 = "debug" ]] && DEBUG=1 
+[[ $1 = "stripped" ]] && STRIPPED=1 
 
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . ./qemu_cmd.sh
 
-# Build the image 
-../vmbuild/vmbuild bootloader test_service
-
 
 # Qemu with gdb debugging:
-if [ $DEBUG -ne 0 ]
+if [ "$DEBUG" -ne 0 ]
 then
     echo "Building system..."
-    make test
+    make $JOBS test
+    
+    # Build the image 
+    ../vmbuild/vmbuild bootloader test_service
+
+
     echo "Starting VM: '$1'"
     echo "-----------------------"    
     
@@ -28,10 +33,20 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
     sudo $QEMU -s -S $QEMU_OPTS
-else    
+elif [ "$STRIPPED" -ne 0 ]; then
     #make clean all #stripped 
-    make test
+    make $JOBS stripped
 
+    # Build the image 
+    ../vmbuild/vmbuild bootloader test_service
+
+    echo "-----------------------"
+    echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
+    echo "-----------------------"
+    
+    sudo $QEMU $QEMU_OPTS 
+else
+    #make $JOBS all test    
     # Build the image 
     ../vmbuild/vmbuild bootloader test_service
 
