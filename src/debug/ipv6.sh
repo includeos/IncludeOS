@@ -7,14 +7,14 @@ DEBUG=0
 STRIPPED=0
 JOBS=-j12
 KERNEL=test_service
-IMAGE=test_ipv6.img
+IMAGE=test_service.img
 
 [[ $1 = "debug" ]] && DEBUG=1 
 [[ $1 = "stripped" ]] && STRIPPED=1 
 
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
-. ./qemu_cmd.sh
+. debug/qemu_cmd.sh
 
 
 # Qemu with gdb debugging:

@@ -1,11 +1,24 @@
-//#define DEBUG // Allow debugging
-#include <os>
+//#define DEBUG
 #include <net/ip6/ip6.hpp>
+#include <net/ip6/packet_ip6.hpp>
 
 #include <assert.h>
 
 namespace net
 {
+  const IP6::addr IP6::addr::node_all_nodes(0xFF01, 0, 0, 0, 0, 0, 0, 1);
+  const IP6::addr IP6::addr::node_all_routers(0xFF01, 0, 0, 0, 0, 0, 0, 2);
+  const IP6::addr IP6::addr::node_mDNSv6(0xFF01, 0, 0, 0, 0, 0, 0, 0xFB);
+  
+  const IP6::addr IP6::addr::link_unspecified(0, 0, 0, 0, 0, 0, 0, 0);
+  
+  const IP6::addr IP6::addr::link_all_nodes(0xFF02, 0, 0, 0, 0, 0, 0, 1);
+  const IP6::addr IP6::addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
+  const IP6::addr IP6::addr::link_mDNSv6(0xFF02, 0, 0, 0, 0, 0, 0, 0xFB);
+  
+  const IP6::addr IP6::addr::link_dhcp_servers(0xFF02, 0, 0, 0, 0, 0, 0x01, 0x02);
+  const IP6::addr IP6::addr::site_dhcp_servers(0xFF05, 0, 0, 0, 0, 0, 0x01, 0x03);
+  
   IP6::IP6(const IP6::addr& lo)
     : local(lo)
   {
@@ -21,16 +34,16 @@ namespace net
     case PROTO_HOPOPT:
     case PROTO_OPTSv6:
     {
-      std::cout << ">>> IPv6 options header " << protocol_name(next) << std::endl;
+      debug(">>> IPv6 options header %s", protocol_name(next).c_str());
       
       options_header& opts = *(options_header*) reader;
       reader += opts.size();
       
-      std::cout << "OPTSv6 size: " << opts.size() << std::endl;
-      std::cout << "OPTSv6 ext size: " << opts.extended() << std::endl;
+      debug("OPTSv6 size: %d\n", opts.size());
+      debug("OPTSv6 ext size: %d\n", opts.extended());
       
       next = opts.next();
-      std::cout << "OPTSv6 next: " << protocol_name(next) << std::endl;
+      debug("OPTSv6 next: %s\n", protocol_name(next).c_str());
     } break;
     case PROTO_ICMPv6:
       break;
@@ -38,7 +51,7 @@ namespace net
       break;
       
     default:
-      std::cout << "Not parsing " << protocol_name(next) << std::endl;
+      debug("Not parsing: %s\n", protocol_name(next).c_str());
     }
     
     return next;
@@ -47,6 +60,8 @@ namespace net
 	int IP6::bottom(std::shared_ptr<Packet>& pckt)
 	{
     debug(">>> IPv6 packet:");
+    
+    
     
     uint8_t* reader = pckt->buffer();
     full_header& full = *(full_header*) reader;
@@ -88,7 +103,7 @@ namespace net
   
   static const std::string lut = "0123456789abcdef";
   
-  std::string IP6::addr::to_string() const
+  std::string IP6::addr::str() const
   {
     std::string ret(40, 0);
     int counter = 0;
@@ -106,22 +121,46 @@ namespace net
     return ret;
   }
   
-  int IP6::transmit(std::shared_ptr<Packet>& pckt)
+  int IP6::transmit(std::shared_ptr<PacketIP6>& ip6_packet)
   {
-    full_header& full = *(full_header*) pckt->buffer();
-    header& hdr = full.ip6_hdr;
+    auto packet = *reinterpret_cast<std::shared_ptr<Packet>*> (&ip6_packet);
     
-    // verify that it is IPv6 packet
-    //ASSERT(hdr->dest.major != 0 || hdr->dest.minor !=0);
-    //ASSERT(hdr->type != 0);
+    //debug("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
+    //       pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
     
-    // set source IPv6-address directly (?)
-    //hdr.src = this->local;
+    return _linklayer_out(packet);
+  }
+  
+  std::shared_ptr<PacketIP6> IP6::create(uint8_t proto,
+      Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
+  {
+    // arbitrarily big buffer
+    uint8_t* data = new uint8_t[1500];
+    Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
     
-    debug2("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
-           pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
+    IP6::full_header& full = *(IP6::full_header*) packet->buffer();
+    // people dont think that it be, but it do
+    full.eth_hdr.type = Ethernet::ETH_IP6;
+    full.eth_hdr.dest = ether_dest;
     
-    return _linklayer_out(pckt);
+    IP6::header& hdr = full.ip6_hdr;
+    
+    // set IPv6 packet parameters
+    hdr.src = addr::link_unspecified;
+    hdr.dst = ip6_dest;
+    // default header frame
+    hdr.init_scan0();
+    // protocol for next header
+    hdr.set_next(proto);
+    // default hoplimit
+    hdr.set_hoplimit(64);
+    
+    // common offset of payload
+    packet->set_payload(packet->buffer() + sizeof(IP6::full_header));
+    
+    auto ip6_packet = std::shared_ptr<PacketIP6> ((PacketIP6*) packet);
+    // now, free to use :)
+    return ip6_packet;
   }
   
 }

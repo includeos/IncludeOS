@@ -56,6 +56,11 @@ namespace net {
       return _udp6.transmit(pckt);
     }
     
+    void ip6_ndp_discovery()
+    {
+      _icmp6.discover();
+    }
+    
     /** Bind an IP and a netmask to a given device. 
       The function expects the given device to exist.*/
     static void

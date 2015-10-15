@@ -7,7 +7,6 @@ using namespace net;
 int UDP::bottom(std::shared_ptr<Packet>& pckt){
   debug("<UDP handler> Got data \n");
   
-  
   udp_header* hdr = &((full_header*)pckt->buffer())->udp_hdr;
   
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
@@ -21,8 +20,6 @@ int UDP::bottom(std::shared_ptr<Packet>& pckt){
   }
   
   debug("<UDP> Nobody's listening to this port. Drop!\n");
-  
-  
   return -1;
 }
 
@@ -38,10 +35,9 @@ void UDP::listen(uint16_t port, listener l){
   IP4::addr dip,UDP::port dport,
   uint8_t* data, int len){*/
 
-int UDP::transmit(std::shared_ptr<Packet>& pckt){
-  
-  
-  ASSERT((uint32_t)pckt->len() >= sizeof(UDP::full_header));
+int UDP::transmit(std::shared_ptr<Packet>& pckt)
+{
+  assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   udp_header* hdr = &(full_hdr->udp_hdr);
@@ -63,13 +59,12 @@ int UDP::transmit(std::shared_ptr<Packet>& pckt){
         hdr->length,dip.str().c_str(),
         hdr->dport);
   
-  ASSERT(sip != 0 && dip != 0 &&
+  assert(sip != 0 && dip != 0 &&
          full_hdr->ip_hdr.protocol == IP4::IP4_UDP);
   
   debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
         sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,pckt->len()
         );
-  
   
   return _network_layer_out(pckt);
   

@@ -47,7 +47,7 @@ int IP4::transmit(std::shared_ptr<Packet>& pckt){
   //DEBUG Issue #102 :
   // Now _local_ip fails first, while _netmask fails if we remove local ip
   
-  ASSERT(pckt->len() > sizeof(IP4::full_header));
+  assert(pckt->len() > sizeof(IP4::full_header));
   
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
@@ -64,10 +64,10 @@ int IP4::transmit(std::shared_ptr<Packet>& pckt){
   hdr->check = checksum(hdr);
   
   // Make sure it's right
-  ASSERT(checksum(hdr) == 0);
+  assert(checksum(hdr) == 0);
     
   // Calculate next-hop
-  ASSERT(pckt->next_hop().whole == 0);
+  assert(pckt->next_hop().whole == 0);
   
   // Set destination address to "my ip" 
   // @TODO Don't know if this is good for routing...
@@ -120,7 +120,9 @@ IP4::IP4(addr ip, addr netmask) :
   _tcp_handler(upstream(ignore_ip4))
 {
   // Default gateway is addr 1 in the subnet.
-  _gateway.whole = (ip.whole & netmask.whole) + __builtin_bswap32(1);
+  const uint32_t DEFAULT_GATEWAY = __builtin_bswap32(1);
+  
+  _gateway.whole = (ip.whole & netmask.whole) | DEFAULT_GATEWAY;
   
   debug("<IP4> Local IP @ 0x%lx, Netmask @ 0x%lx \n",
         (uint32_t)&_local_ip,

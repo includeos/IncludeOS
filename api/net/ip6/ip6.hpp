@@ -3,7 +3,10 @@
 
 #include <delegate>
 #include "../class_ethernet.hpp"
+#include "../class_packet.hpp"
 #include "../util.hpp"
+
+#include <debug>
 
 #include <iostream>
 #include <string>
@@ -15,7 +18,7 @@
 
 namespace net
 {
-  class Packet;
+  class PacketIP6;
   
   /** IP6 layer skeleton */
   class IP6
@@ -56,7 +59,7 @@ namespace net
       }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
       {
-        i128 = _mm_set_epi32(a, b, c, d);
+        i128 = _mm_set_epi32(d, c, b, a);
       }
       addr(const addr& a)
         : i128(a.i128) {}
@@ -66,8 +69,57 @@ namespace net
         i128 = a.i128;
         return *this;
       }
+      
+      // comparison functions
+      bool operator== (const addr& a) const
+      {
+        // i128 == a.i128:
+        __m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
+        return _mm_cvtsi128_si32(cmp);
+      }
+      bool operator!= (const addr& a) const
+      {
+        return !this->operator==(a);
+      }
+      
       // returns this IPv6 address as a string
-      std::string to_string() const;
+      std::string str() const;
+      
+      // multicast IPv6 addresses
+      static const addr node_all_nodes;     // RFC 4921
+      static const addr node_all_routers;   // RFC 4921
+      static const addr node_mDNSv6;        // RFC 6762 (multicast DNSv6)
+      
+      // unspecified link-local address
+      static const addr link_unspecified;
+      
+      // RFC 4291  2.4.6:
+      // Link-Local addresses are designed to be used for addressing on a
+      // single link for purposes such as automatic address configuration,
+      // neighbor discovery, or when no routers are present.
+      static const addr link_all_nodes;     // RFC 4921
+      static const addr link_all_routers;   // RFC 4921
+      static const addr link_mDNSv6;        // RFC 6762
+      
+      static const addr link_dhcp_servers;  // RFC 3315
+      static const addr site_dhcp_servers;  // RFC 3315
+      
+      // returns true if this addr is a IPv6 multicast address
+      bool is_multicast() const
+      {
+        /**
+          RFC 4291 2.7 Multicast Addresses
+          
+          An IPv6 multicast address is an identifier for a group of interfaces
+          (typically on different nodes). An interface may belong to any
+          number of multicast groups. Multicast addresses have the following format:
+          |   8    |  4 |  4 |                  112 bits                   |
+          +------ -+----+----+---------------------------------------------+
+          |11111111|flgs|scop|                  group ID                   |
+          +--------+----+----+---------------------------------------------+
+        **/
+        return i8[0] == 0xFF;
+      }
       
       union
       {
@@ -126,16 +178,6 @@ namespace net
         scanline[1] |= limit << 24;
       }
       
-      // 128-bit is probably not good as "by value"
-      const addr& source() const
-      {
-        return src;
-      }
-      const addr& dest() const
-      {
-        return dst;
-      }
-      
     private:
       uint32_t scanline[2];
     public:
@@ -170,6 +212,10 @@ namespace net
       Ethernet::header eth_hdr;
       IP6::header      ip6_hdr;
     };
+    
+    // downstream delegate for transmit()
+    typedef delegate<int(std::shared_ptr<PacketIP6>&)> downstream6;
+    typedef downstream6 upstream6;
     
     /** Constructor. Requires ethernet to latch on to. */
     IP6(const addr& local);
@@ -209,7 +255,7 @@ namespace net
     int bottom(std::shared_ptr<Packet>& pckt);
     
     // transmit packets to the ether
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(std::shared_ptr<PacketIP6>& pckt);
     
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)
@@ -221,6 +267,10 @@ namespace net
     {
       _linklayer_out = func;
     }
+    
+    // creates a new IPv6 packet to be sent over the ether
+    static std::shared_ptr<PacketIP6> create(uint8_t proto,
+        Ethernet::addr ether_dest, const IP6::addr& dest);
     
   private:
     addr local;
@@ -234,7 +284,7 @@ namespace net
   
   inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)
   {
-    return out << ip.to_string();
+    return out << ip.str();
   }
   
 } // namespace net

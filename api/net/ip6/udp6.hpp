@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../class_packet.hpp"
 #include "../util.hpp"
-#include "ip6.hpp"
+#include "packet_ip6.hpp"
 #include <map>
 
 namespace net
@@ -37,7 +36,7 @@ namespace net
       : localIP(local_ip) {}
     
     // set the downstream delegate
-    inline void set_ip6_out(downstream del)
+    inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
     }
@@ -61,12 +60,12 @@ namespace net
   private:
     std::map<port_t, listener_t> listeners;
     // connection to IP6 layer
-    downstream ip6_out;
+    IP6::downstream6 ip6_out;
     // this network stacks IPv6 address
     IP6::addr& localIP;
   };
   
-  class PacketUDP6 : public Packet
+  class PacketUDP6 : public PacketIP6
   {
   public:
     UDPv6::header& header()
@@ -78,28 +77,21 @@ namespace net
       return *(UDPv6::header*) payload();
     }
     
-    IP6::header& ip6_header()
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr;
-    }
-    
-    /// TODO: move to PacketIP6 for common interface
-    const IP6::addr& src() const
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr.src;
-    }
-    const IP6::addr& dst() const
-    {
-      return ((IP6::full_header*) buffer())->ip6_hdr.dst;
-    }
-    
     UDPv6::port_t src_port() const
     {
       return htons(cheader().src_port);
     }
+    void set_src_port(UDPv6::port_t port)
+    {
+      header().src_port = htons(port);
+    }
     UDPv6::port_t dst_port() const
     {
       return htons(cheader().dst_port);
+    }
+    void set_dst_port(UDPv6::port_t port)
+    {
+      header().dst_port = htons(port);
     }
     uint16_t length() const
     {
@@ -132,6 +124,10 @@ namespace net
     char* data()
     {
       return (char*) payload() + sizeof(UDPv6::header);
+    }
+    const char* data() const
+    {
+      return (const char*) payload() + sizeof(UDPv6::header);
     }
   };
 }

@@ -15,10 +15,10 @@ namespace net {
   class Ethernet{
   
   public:
-  
-#define ETHER_ADDR_LEN 6
-  
-    union addr{
+    static const int ETHER_ADDR_LEN = 6;
+    
+    union addr
+    {
       uint8_t part[ETHER_ADDR_LEN];
       struct {
         uint16_t minor;
@@ -32,12 +32,16 @@ namespace net {
                 part[3],part[4],part[5]);
         return std::string(_str);
       }
-    
+      
       inline bool operator == (addr& mac)
       { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
+      
+      static const addr MULTICAST_FRAME;
+      static const addr BROADCAST_FRAME;
+      static const addr IPv6mcast_01, IPv6mcast_02;
+      
+    } __attribute__((packed));
     
-    }__attribute__((packed));
-  
     struct header 
     {
       addr dest;

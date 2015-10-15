@@ -62,8 +62,8 @@ extern "C"
     _init_c_runtime();
     
     // verify that global constructors were called
-    ASSERT(_test_glob == 123);
-    ASSERT(_test_constructor == 1);
+    assert(_test_glob == 123);
+    assert(_test_constructor == 1);
     
     // Initialize some OS functionality
     OS::start();

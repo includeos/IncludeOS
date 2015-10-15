@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../class_packet.hpp"
 #include "../util.hpp"
-#include "ip6.hpp"
+#include "packet_ip6.hpp"
 
 namespace net
 {
@@ -13,16 +12,23 @@ namespace net
   public:
     static const int ECHO_REQUEST = 128;
     static const int ECHO_REPLY   = 129;
+    
+    static const int ND_ROUTER_SOL = 133;
+    static const int ND_ROUTER_ADV = 134;
+    static const int ND_NEIGHB_SOL = 135;
+    static const int ND_NEIGHB_ADV = 136;
+    static const int ND_REDIRECT   = 137;
+    
     typedef uint8_t type_t;
     typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
     
-    ICMPv6(IP6::addr& local_ip);
+    ICMPv6(IP6::addr& ip6);
     
     struct header
     {
-      uint8_t  type_;
-      uint8_t  code_;
-      uint16_t checksum_;
+      uint8_t  type;
+      uint8_t  code;
+      uint16_t checksum;
     } __attribute__((packed));
     
     struct pseudo_header
@@ -48,9 +54,14 @@ namespace net
     int bottom(std::shared_ptr<Packet>& pckt);
     
     // set the downstream delegate
-    inline void set_ip6_out(downstream del)
+    inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
+    }
+    
+    inline const IP6::addr& local_ip()
+    {
+      return localIP;
     }
     
     // message types & codes
@@ -64,7 +75,7 @@ namespace net
     static uint16_t checksum(std::shared_ptr<PacketICMP6>& pckt);
     
     // provide a handler for a @type of ICMPv6 message
-    void listen(type_t type, handler_t func)
+    inline void listen(type_t type, handler_t func)
     {
       listeners[type] = func;
     }
@@ -72,15 +83,18 @@ namespace net
     // transmit packet downstream
     int transmit(std::shared_ptr<PacketICMP6>& pckt);
     
+    // send NDP router solicitation
+    void discover();
+    
   private:
     std::map<type_t, handler_t> listeners;
     // connection to IP6 layer
-    downstream ip6_out;
+    IP6::downstream6 ip6_out;
     // this network stacks IPv6 address
     IP6::addr& localIP;
   };
   
-  class PacketICMP6 : public Packet
+  class PacketICMP6 : public PacketIP6
   {
   public:
     inline ICMPv6::header& header()
@@ -92,18 +106,27 @@ namespace net
       return *(ICMPv6::header*) this->payload();
     }
     
-    uint8_t type() const
+    inline uint8_t type() const
     {
-      return header().type_;
+      return header().type;
     }
-    uint8_t code() const
+    inline uint8_t code() const
     {
-      return header().code_;
+      return header().code;
     }
-    uint16_t checksum() const
+    inline uint16_t checksum() const
     {
-      return ntohs(header().checksum_);
+      return ntohs(header().checksum);
     }
+    
+    void set_length(uint32_t icmp_len)
+    {
+      // new total IPv6 payload length
+      ip6_header().set_size(icmp_len);
+      // new total packet length
+      _len = sizeof(IP6::full_header) + icmp_len;
+    }
+    
  };
   
 }
