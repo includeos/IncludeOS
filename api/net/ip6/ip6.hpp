@@ -6,6 +6,8 @@
 #include "../class_packet.hpp"
 #include "../util.hpp"
 
+#include <debug>
+
 #include <iostream>
 #include <string>
 #include <map>

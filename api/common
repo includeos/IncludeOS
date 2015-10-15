@@ -11,7 +11,10 @@
 
 /* We're not building for linux */
 #if defined(__linux__)
-#warning "You are compiling for Linux"
+#warning "You are compiling for Linux target"
+#endif
+#if defined(_WIN32)
+#warning "You are compiling for Win32 target"
 #endif
 
 /* We're only doing 32-bit ix86 targets. */
@@ -43,27 +46,8 @@
 //BOCHS Break point
 #define BREAK __asm__ volatile("xchg %bx,%bx");
 
-// Supress asserts while in production
-#define PRODUCTION
-
-#ifndef PRODUCTION
-#define ASSERT(X) assert(X)
-#else
-#define ASSERT(X)
-#endif
-
-
-#ifdef DEBUG
-#define debug(X,...)  printf("\n" X,##__VA_ARGS__);
-#else 
-#define debug(X,...) 
-#endif
-
-#ifdef DEBUG2
-#define debug2(X,...)  printf("\n" X,##__VA_ARGS__);
-#else 
-#define debug2(X,...) 
-#endif
+// debugging macros
+#include "debug"
 
 #ifndef __linux__
 typedef uint16_t port_t;

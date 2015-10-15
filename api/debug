@@ -1,0 +1,13 @@
+#pragma once
+
+#ifdef DEBUG
+#define debug(X,...)  printf("\n" X,##__VA_ARGS__);
+#else 
+#define debug(X,...) 
+#endif
+
+#ifdef DEBUG2
+#define debug2(X,...)  printf("\n" X,##__VA_ARGS__);
+#else 
+#define debug2(X,...) 
+#endif
