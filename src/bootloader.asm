@@ -1,16 +1,13 @@
 USE16
 	;; Memory layout, 16-bit
 	%define _boot_segment 0x7c0 
-    ;; %define _os_segment 0x800
-    ;; 	%define _os_pointer 0x0
-
-	;; Memory layout, 32-bit
-	%define _mode32_code_segment 0x08
-	%define _mode32_data_segment 0x10
-
-	%define _kernel_loc 0x200000
-        ;; %define _kernel_stack 0x800000
-        %define _kernel_stack 0x200000
+  
+  ;; Memory layout, 32-bit
+  %define _mode32_code_segment 0x08
+  %define _mode32_data_segment 0x10
+  
+  %define _kernel_loc   0x200000
+  %define _kernel_stack 0x200000
 	
 	;; We don't really need a stack, except for calls
 	%define _stack_segment 0x7000
@@ -35,7 +32,6 @@ srv_size:
 
 srv_offs:
 	dd 0
-%include "./asm/check_a20_16bit.asm"
 ;;; Actual start
 boot:
 
@@ -45,8 +41,13 @@ boot:
 
 	mov esi,str_boot
 	call printstr
-	
-	call check_a20
+  
+  ; fast a20 enable
+  in al, 0x92
+  or al, 2
+  out 0x92, al
+  
+  ; check that it was enabled
 	test al,0
 	jz .a20_ok
 	
@@ -127,7 +128,7 @@ gdt32:
 	dq 0x0 
 	;; Entry 0x8: Code segment
 	dw 0xffff		       ;Limit
-        dw 0x0000		       ;Base 15:00
+  dw 0x0000		       ;Base 15:00
 	db 0x00			       ;Base 23:16
 	dw 0xcf9a		       ;Flags
 	db 0x00			       ;Base 32:24
