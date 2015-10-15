@@ -50,11 +50,14 @@ fi
 
 
 # BUILDING IncludeOS
-PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang-$clang_version"
+PREREQS_BUILD="gcc g++ build-essential make nasm texinfo"
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
+
+echo -e "\n\n >>> Trying to install Clang (it's a separate step to avoid dependency issues)"
+sudo apt-get install -y clang-$clang_version clang++-$clang_version
 
 #
 # DEPRECATED: We're building with clang now. Keeping it until newlib can be built with clang
