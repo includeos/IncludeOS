@@ -20,6 +20,7 @@ export IncludeOS_src=`pwd`
 export newlib_inc=$INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=llvm_build
+export clang_version=3.6
 
 if [ ! -v do_newlib ]; then
     do_newlib=1
@@ -49,7 +50,7 @@ fi
 
 
 # BUILDING IncludeOS
-PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang"
+PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang-$clang_version"
 
 # Get prerequisite packages, such as a compiler, GNU Make, etc.
 echo -e "\n\n >>> Updating APT \n"

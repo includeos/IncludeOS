@@ -9,9 +9,9 @@ OSLIB = $(OS)/i686-elf
 
 DEBUG_OPTS = -ggdb3
 
-CC  = clang -target i686-elf
+CC  = clang-3.6 -target i686-elf
 GPP = $(OS)/bin/i686-elf-g++
-CPP = clang++ -target i686-elf
+CPP = clang++-3.6 -target i686-elf
 
 LD  = $(OS)/bin/i686-elf-ld
 
