@@ -10,17 +10,17 @@ export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
 
 # Multitask-parameter to make
-export num_jobs=-j8
+export num_jobs=-j6
 
 export binutils_version=2.25
 export gcc_version=5.1.0
 export newlib_version=2.2.0-1
 
-
 export IncludeOS_src=`pwd`
 export newlib_inc=$INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=llvm_build
+export clang_version=3.6
 
 if [ ! -v do_newlib ]; then
     do_newlib=1
@@ -50,14 +50,11 @@ fi
 
 
 # BUILDING IncludeOS
+PREREQS_BUILD="gcc g++ build-essential make nasm texinfo clang-$clang_version"
 
-PREREQS_BUILD="gcc g++ build-essential make nasm texinfo"
-
-# Get prerequisite packages, such as a compiler, GNU Make, etc.
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
-
 
 #
 # DEPRECATED: We're building with clang now. Keeping it until newlib can be built with clang
@@ -89,7 +86,7 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n >>> Installing vmbuilder"
     pushd $IncludeOS_src/vmbuild
     make
-    sudo cp vmbuild $OSDIR/
+    sudo cp vmbuild $INSTALL_DIR/
     popd
     
     echo -e "\n >>> Building IncludeOS"

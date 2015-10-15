@@ -17,13 +17,13 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 # $download_llvm: Clone llvm svn sources
 
 
-IncludeOS_sys=$IncludeOS_src/abi/sys
+IncludeOS_sys=$IncludeOS_src/api/sys
 
 
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
-    sudo apt-get install cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
+    sudo apt-get install -y cmake ninja-build subversion zlib1g-dev:i386 libtinfo-dev:i386
 fi
 
 if [ ! -z $download_llvm ]; then
@@ -76,8 +76,8 @@ OPTS+=-DCMAKE_BUILD_TYPE=MinSizeRel" "
 #OPTS+=-DCMAKE_BUILD_TYPE=Release" "
 
 # Can't build libc++ with g++ unless it's a cross compiler (need to specify target)
-OPTS+=-DCMAKE_C_COMPILER=clang" "
-OPTS+=-DCMAKE_CXX_COMPILER=clang++" " # -std=c++11" "
+OPTS+=-DCMAKE_C_COMPILER=clang-$clang_version" "
+OPTS+=-DCMAKE_CXX_COMPILER=clang++-$clang_version" " # -std=c++11" "
 
 #
 # WARNING: It seems imossible to pass in cxx-flags like this; I've tried \' \\" \\\" etc.
@@ -133,7 +133,7 @@ llvm_src_verbose=-v
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
 
 # Using Ninja (slightly faster, but not by much)
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys  -I$IncludeOS_src/abi -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ -I$libcxx_inc " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$IncludeOS_src/api -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
 
 
 #
