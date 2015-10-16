@@ -124,7 +124,7 @@ install: #os.a bootloader
 	cp os.a $(OS)/lib
 	cp libc++abi.a $(OS)/lib
 	mkdir -p $(OS)/crt
-	cp -t$(OS)/crt crt/crt*.s crt/crtbegin.o crt/crtend.o
+	cp -t$(OS)/crt crt/crti.* crt/crtn.* crt/crtbegin.o crt/crtend.o
 	cp -r ../api $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
