@@ -4,7 +4,7 @@ pushd src
 make -j4
 make test_service
 
-ln -s debug/run.sh
+#ln -s debug/run.sh
 ln -s debug/qemu_cmd.sh
 
 echo -e "Build complete \n"
