@@ -166,7 +166,7 @@ etags:
 # Cleanup
 ###################################################
 clean_tests:
-	$(RM) debug/*.o debug/*.d test_service.img test_ipv6.img debug/test_service debug/test_ipv6
+	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6
 
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
