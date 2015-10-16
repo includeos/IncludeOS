@@ -1,5 +1,5 @@
 #!/bin/bash
-IMAGE=debug/$KERNEL.img
+IMAGE=debug/$SERVICE.img
 
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
@@ -17,11 +17,11 @@ echo "Building system $KERNEL..."
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]
 then
-    make -j$JOBS debug $KERNEL
+    make -j$JOBS debug $SERVICE
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader debug/$KERNEL
-    mv $KERNEL.img debug/
+    ../vmbuild/vmbuild bootloader debug/$SERVICE
+    mv $SERVICE.img debug/
     
     echo "Starting VM: '$IMAGE'"
     echo "-----------------------"    
@@ -35,11 +35,11 @@ then
     
 elif [ "$STRIPPED" -ne 0 ]
 then
-    make -j$JOBS stripped $KERNEL
+    make -j$JOBS stripped $SERVICE
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader debug/$KERNEL
-    mv $KERNEL.img debug/
+    ../vmbuild/vmbuild bootloader debug/$SERVICE
+    mv $SERVICE.img debug/
     
     echo "-----------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
@@ -47,11 +47,11 @@ then
     
     sudo $QEMU $QEMU_OPTS 
 else
-    make -j$JOBS all $KERNEL
+    make -j$JOBS all $SERVICE
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader debug/$KERNEL
-    mv $KERNEL.img debug/
+    ../vmbuild/vmbuild bootloader debug/$SERVICE
+    mv $SERVICE.img debug/
     
     echo "-----------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
