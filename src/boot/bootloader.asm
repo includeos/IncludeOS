@@ -223,7 +223,7 @@ mode32:
 	;; 	hlt
 	jmp ecx
 	
-	%include "asm/disk_read_lba.asm"
+	%include "boot/disk_read_lba.asm"
 	
 	
 ;; BOOT SIGNATURE
