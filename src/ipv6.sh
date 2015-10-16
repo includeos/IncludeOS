@@ -5,9 +5,9 @@
 
 DEBUG=0
 STRIPPED=0
-JOBS=-j12
-KERNEL=test_service
-IMAGE=test_service.img
+JOBS=12
+KERNEL=test_ipv6
+IMAGE=$KERNEL.img
 
 [[ $1 = "debug" ]] && DEBUG=1 
 [[ $1 = "stripped" ]] && STRIPPED=1 
@@ -21,11 +21,11 @@ IMAGE=test_service.img
 if [ "$DEBUG" -ne 0 ]
 then
     echo "Building system..."
-    make $JOBS test
+    make -j$JOBS all $KERNEL
     
     # Build the image 
     ../vmbuild/vmbuild bootloader $KERNEL
-
+    mv $KERNEL $KERNEL.img debug/
 
     echo "Starting VM: '$1'"
     echo "-----------------------"    
@@ -37,9 +37,10 @@ then
     sudo $QEMU -s -S $QEMU_OPTS
     
 elif [ "$STRIPPED" -ne 0 ]; then
-    #make clean all #stripped 
-    make $JOBS stripped
-
+    
+    make -j$JOBS stripped $KERNEL
+    mv $KERNEL $KERNEL.img debug/
+    
     # Build the image 
     ../vmbuild/vmbuild bootloader $KERNEL
 
@@ -50,10 +51,13 @@ elif [ "$STRIPPED" -ne 0 ]; then
     sudo $QEMU $QEMU_OPTS 
     
 else
-    #make $JOBS all test    
+    
+    make -j$JOBS all $KERNEL
+    
     # Build the image 
     ../vmbuild/vmbuild bootloader $KERNEL
-
+    mv $KERNEL $KERNEL.img debug/
+    
     echo "-----------------------"
     echo "Starting VM: '$1'", "Options: ",$QEMU_OPTS
     echo "-----------------------"

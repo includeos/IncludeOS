@@ -5,24 +5,24 @@
 
 DEBUG=0
 JOBS=12
-IMAGE=test_service.img
+KERNEL=test_service
+IMAGE=$KERNEL.img
 
 [[ $1 = "debug" ]] && DEBUG=1 
 [[ $1 = "stripped" ]] && STRIPPED=1 
 
-
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . debug/qemu_cmd.sh
-
 
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]
 then
     echo "Building system..."
-    make $JOBS test
+    make -j$JOBS debug test
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
+    mv $KERNEL $KERNEL.img debug/
     
     echo "Starting VM: '$IMAGE'"
     echo "-----------------------"    
@@ -36,10 +36,11 @@ then
     
 elif [ "$STRIPPED" -ne 0 ]; then
     #make clean all #stripped 
-    make $JOBS stripped
+    make -j$JOBS stripped test
     
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
+    mv $KERNEL $KERNEL.img debug/
     
     echo "-----------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
@@ -47,9 +48,11 @@ elif [ "$STRIPPED" -ne 0 ]; then
     
     sudo $QEMU $QEMU_OPTS 
 else
-    #make $JOBS all test    
+    make -j$JOBS all $KERNEL
+    
     # Build the image 
-    ../vmbuild/vmbuild bootloader test_service
+    ../vmbuild/vmbuild bootloader $KERNEL
+    mv $KERNEL $KERNEL.img debug/
     
     echo "-----------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS

@@ -1,8 +1,8 @@
 #! /bin/bash
 
-cd src
+pushd src
 make -j4
-make test
+make test_service
 
 ln -s debug/run.sh
 ln -s debug/qemu_cmd.sh
@@ -22,4 +22,4 @@ then
     cp *.vdi .vbox_share
 fi
 
-cd ../
+popd
