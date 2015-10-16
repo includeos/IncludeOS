@@ -31,22 +31,20 @@ WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES)
 
-
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
-
 
 # Objects
 ###################################################
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = kernel_start.o syscalls.o interrupts.o class_os.o \
+OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/interrupts.o kernel/os.o \
+						 kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
 						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 class_irq_manager.o class_pci_manager.o class_pit.o\
-						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o\
+						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
 						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
-						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o\
+						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
 						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 						 net/class_packet.o net/dns/dns.o 
 
@@ -95,18 +93,15 @@ CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
 CRTEND_OBJ   = $(OS)/crt/crtend.o
 CRTN_OBJ     = $(OS)/crt/crtn.o
 
-
-test_service.o: test_service.cpp
-	@echo "\n>> Building test service"
-	$(CPP) -v -MMD $(CPPOPTS) -o $@ $<
-
-test: test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
+test_service: debug/test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
-	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
 
-test6: test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
+test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test IPv6 service"
-	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o test_service
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+
+test: test_service
 
 # OS libraries
 ###################################################
@@ -150,14 +145,9 @@ install: #os.a bootloader
 # Bootloader
 ###################################################
 # Nasm-based bootloader
-bootloader: bootloader.asm
+bootloader: boot/bootloader.asm
 	@echo "\n>> Assembling bootloader"
-	nasm -f bin -o bootloader bootloader.asm
-
-# Optional, for gcc-assembled bootloader
-bootloader_s: bootloader.s
-	$(CC) $(CCOPTS) -o $@ $<
-
+	nasm -f bin -o bootloader $<
 
 # Etags
 ###################################################
@@ -168,10 +158,12 @@ etags:
 
 # Cleanup
 ###################################################
-clean: 
+clean_tests:
+	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6
+
+clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) bootloader	
-	$(RM) test_service.o test_ipv6.o test_service test_service.img
 
 -include $(OS_DEPS)

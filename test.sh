@@ -1,11 +1,8 @@
 #! /bin/bash
 
-cd src
+pushd src
 make -j4
-make test
-
-ln -s debug/run.sh
-ln -s debug/qemu_cmd.sh
+make test_service
 
 echo -e "Build complete \n"
 echo -e "Starting VM with Qemu. "
@@ -22,4 +19,4 @@ then
     cp *.vdi .vbox_share
 fi
 
-cd ../
+popd
