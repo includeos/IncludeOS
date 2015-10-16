@@ -4,9 +4,6 @@ pushd src
 make -j4
 make test_service
 
-#ln -s debug/run.sh
-ln -s debug/qemu_cmd.sh
-
 echo -e "Build complete \n"
 echo -e "Starting VM with Qemu. "
 echo -e "(Once inside Qemu, 'Ctrl+a c' will enter the Qemu console, from which you can type 'q' to quit.)\n"
