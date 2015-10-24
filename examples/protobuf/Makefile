@@ -1,9 +1,9 @@
 # The name of your service
-SERVICE = Protobuf
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign -DGOOGLE_PROTOBUF_NO_RTTI
+SERVICE = protobuf_port
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
 # Modules
-FILES = service.cpp poker.pb.cpp
+FILES = service.o poker.pb.o
 
 # Compiler/Linker
 ###################################################
@@ -13,13 +13,15 @@ OSLIB = $(OSDIR)/i686-elf
 DEBUG_OPTS = -ggdb3
 
 CC  = $(OSDIR)/bin/i686-elf-gcc 
-CPP = $(OSDIR)/bin/i686-elf-g++ 
+CPP = clang++-3.6 -target i686-elf
+GPP = $(OSDIR)/bin/i686-elf-g++
 LD  = $(OSDIR)/bin/i686-elf-ld 
 
-INCLUDES = -I$(OSDIR)/abi -I$(OSDIR)/include -I$(OSDIR)/stdlib -Iinclude
+INCLUDES = -I$(OSDIR)/api/sys -I$(OSLIB)/include -I$(OSDIR)/api -I$(OSDIR)/stdlib -Iinclude
 
-CPPOPTS = -std=c++11 -c $(OPTIONS) -MMD -ffreestanding -nostdlib -fno-builtin -fno-exceptions -fno-rtti $(INCLUDES)
-LDOPTS  = -nostdlib -melf_i386 -N --script=$(OSDIR)/linker.ld
+CPPOPTS = -std=c++14 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES)
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld
+
 
 # Objects
 ###################################################
@@ -31,12 +33,12 @@ LIBC_OBJ = $(OSLIB)/lib/libc.a
 LIBG_OBJ = $(OSLIB)/lib/libg.a 
 LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
-CRTBEGIN_OBJ:=$(shell $(CPP) -print-file-name=crtbegin.o)
-CRTEND_OBJ:=$(shell $(CPP) -print-file-name=crtend.o)
+CRTBEGIN_OBJ:=$(shell $(GPP) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) 
-LIBS = $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC) $(OSDIR)/mod/libprotobuf.a
+OBJS = $(FILES:.cpp=.o) 
+LIBS = libprotobuf.a $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) crti.o
 OS_POST = $(CRTEND_OBJ) crtn.o
@@ -50,7 +52,8 @@ DEPS = $(OBJS:.o=.d)
 
 all: service
 
-stripped: LDOPTS += -S #strip all
+stripped: LDOPTS  += -S #strip all
+stripped: CPPOPTS += -Oz
 stripped: service
 
 
@@ -86,13 +89,10 @@ crt%.o: $(OSDIR)/crt/crt%.s
 
 # General C++-files to object files
 %.o: %.cpp
-	@echo "\n>> Compiling OS object without header"
 	$(CPP) $(CPPOPTS) -o $@ $< 
 
-# AS-assembled object files
-%.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+%.o: %.cc
+	$(CPP) $(CPPOPTS) -o $@ $< 
 
 # Cleanup
 ###################################################
