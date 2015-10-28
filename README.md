@@ -55,17 +55,18 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 
 
 ## Features
-* Virtio ethernet driver with non-blocking asynchronous I/O
-* Everything happens in one thread
-* Delegated IRQ handling makes race conditions in userspace impossible 
-* No virtual memory overhead
-* (A tcp/ip stack)
-* (A http server class)
+* Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
+* Standard C library [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
+* Node.js-style callback-based programming - everything happens in one efficient thread (No I/O blocking)
+* [Virtio](http://www.linux-kvm.org/page/Virtio) ethernet driver with DMA. Currently in "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+* Delegated IRQ handling makes race conditions in "userspace" impossible. ...Until the day we add threads.
+* No virtual memory overhead - everything happens in a single address space.
+* A highly modular tcp/ip stack, still under heavy development.
+* (A http server)
+* (A RESTful API framework)
 
 ### Limitations 
 * No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
-* No support for exceptions or runtime type information (rtti). Exceptions will be added, rtti, we don't know.
-* Only partial C++ standard library based on [EASTL](https://github.com/paulhodge/EASTL). (Also the [https://sourceware.org/newlib/](newlib) C standard library is included)
 * No file system (we might add one, but TCP/IP comes first)
 * No memory protection. If you want to overwrite the kernel, feel free, it's just a part of your own process. 
 
