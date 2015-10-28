@@ -9,7 +9,7 @@ STRIPPED=0
 [[ $1 = "stripped" ]] && STRIPPED=1
 [[ $2 = "stripped" ]] && STRIPPED=1
 
-echo "Building system $KERNEL..."
+echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . debug/qemu_cmd.sh
@@ -36,6 +36,9 @@ then
 elif [ "$STRIPPED" -ne 0 ]
 then
     make -j$JOBS stripped $SERVICE
+    
+    echo ">>> Stripping $SERVICE"
+    strip --strip-all debug/$SERVICE
     
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE
