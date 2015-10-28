@@ -1,7 +1,7 @@
 #! /bin/bash
 
 pushd src
-make -j4
+make -j4 
 make test_service
 
 echo -e "Build complete \n"
