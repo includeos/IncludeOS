@@ -1,4 +1,5 @@
-export QEMU="qemu-system-i386 -smp 1"
+export QEMU="qemu-system-x86_64 --enable-kvm -smp 1"
+#export QEMU="qemu-system-i386 -smp 1"
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor
