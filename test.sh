@@ -1,6 +1,7 @@
 #! /bin/bash
 
 pushd src
+make clean
 make -j4
 make test_service
 
