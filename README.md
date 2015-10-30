@@ -6,7 +6,7 @@ IncludeOS is an includeable, minimal library operating system for C++ services r
 
 ## Prerequisites 
   * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
-  * Ubuntu 14.04 LTS, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
+  * Ubuntu 14.04 LTS x86_64, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
   * Git
 
 (I'm using an Ubuntu VM, running virtualbox inside a mac.)
