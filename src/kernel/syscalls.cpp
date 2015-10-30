@@ -3,7 +3,6 @@
 #include <syscalls.hpp>
 #include <string.h>
 #include <signal.h>
-//#include <vga.hpp>
 
 char *__env[1] = { 0 };
 char **environ = __env;
