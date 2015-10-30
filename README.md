@@ -97,6 +97,8 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
+### C++ Guidelines
+We are currently far from it, but in time we'd like to adhere to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Counsil](https://isocpp.org/). When (not if) you find code in IncludeOS, which don't adhere, please let us know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request.
 
 ## Q&A
 
