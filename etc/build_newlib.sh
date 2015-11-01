@@ -22,6 +22,10 @@ fi
 # echo -e "\n\n >>> Installing dependencies"
 # sudo apt-get install -y texinfo
 
+# PATCH newlib, to be compatible with clang.
+echo -e "\n\n >>> Patching newlib, to build with clang \n"
+patch -p0 < $IncludeOS_src/etc/newlib_clang.patch
+
 
 if [ ! -d build_newlib ]; then
     echo -e "\n\n >>> Configuring newlib \n"
