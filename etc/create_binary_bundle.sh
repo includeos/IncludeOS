@@ -2,8 +2,8 @@ INSTALL_DIR=/usr/local/IncludeOS
 newlib=$INSTALL_DIR/i686-elf/lib
 
 
-FOLDER="bin_bundle"
-OUTFILE="IncludeOS_bin_libs.tar.gz"
+FOLDER="IncludeOS_bin"
+OUTFILE="$FOLDER.tar.gz"
 
 # Libraries
 libc=$newlib/libc.a
@@ -19,23 +19,26 @@ libgcc=$INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/libgcc.a
 include_newlib=$INSTALL_DIR/i686-elf/include
 include_libcxx=$INSTALL_DIR/stdlib
 
+
+# Make directory-tree
 mkdir -p $FOLDER
 mkdir -p $FOLDER/newlib
 mkdir -p $FOLDER/libcxx
 mkdir -p $FOLDER/libgcc
 mkdir -p $FOLDER/crt
 
+# Copy binaries
 cp $libcpp $FOLDER/libcxx/
 cp $libm $FOLDER/newlib/
 cp $libc $FOLDER/newlib/
 cp $libgcc $FOLDER/libgcc/
 cp $INSTALL_DIR/crt/*.o $FOLDER/crt/
 
-# Includes
+# Copy includes
 cp -r $include_newlib $FOLDER/newlib/
 cp -r $include_libcxx $FOLDER/libcxx/include
 
-
+# Zip it
 tar -czvf $OUTFILE $FOLDER
 
-echo ">>> Bundle created as $OUTFILE"
+echo ">>> Bundle created as $FOLDER and gzipped into $OUTFILE"

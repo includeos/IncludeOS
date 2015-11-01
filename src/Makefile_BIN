@@ -4,7 +4,7 @@
 
 # Compiler/Linker
 ###################################################
-LIBS = ../etc/bin_bundle
+LIBS = ../../IncludeOS_bin
 
 
 # External Libraries
