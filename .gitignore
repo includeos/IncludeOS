@@ -26,3 +26,5 @@ vmbuild/vmbuild
 
 *.img
 *.img.*
+
+*.gz
