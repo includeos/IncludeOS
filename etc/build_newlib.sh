@@ -1,8 +1,11 @@
+#! /bin/bash
 . $IncludeOS_src/etc/set_traps.sh
+
+
 # Configure for an "unspecified x86 elf" target, 
-# (using no prefix to denote location, we'll levave the libs here for now)
 
 cd $BUILD_DIR
+NEWLIB_DIR="build_newlib"
 
 if [ ! -d newlib-$newlib_version ]; then
     
@@ -18,45 +21,21 @@ else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"
 fi
 
-# MOVED UP to IncludeOS prereqs. Gcc asks for texinfo as well
-# echo -e "\n\n >>> Installing dependencies"
-# sudo apt-get install -y texinfo
-
 # PATCH newlib, to be compatible with clang.
 echo -e "\n\n >>> Patching newlib, to build with clang \n"
 patch -p0 < $IncludeOS_src/etc/newlib_clang.patch
 
+echo -e "\n\n >>> Configuring newlib \n"
+mkdir -p $NEWLIB_DIR
+pushd build_newlib
 
-if [ ! -d build_newlib ]; then
-    echo -e "\n\n >>> Configuring newlib \n"
-    mkdir -p build_newlib
-    cd build_newlib
+# Clean out config cache in case the cross-compiler has changed
+# make distclean
+../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX --enable-newlib-io-long-long CC_FOR_TARGET="clang-3.6 -ffreestanding --target=i686-elf -Wno-return-type" AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
 
-    # Clean out config cache in case the cross-compiler has changed
-    # make distclean
-    ../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX --enable-newlib-io-long-long CC_FOR_TARGET="clang-3.6 -ffreestanding --target=i686-elf -Wno-return-type" AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
-    
-# -ccc-gcc-name "$PREFIX/bin/$TARGET"-gcc"
-    
-    #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
-    shopt -s expand_aliases
-    alias i686-elf-cc="$PREFIX/bin/i686-elf-gcc"
+echo -e "\n\n >>> BUILDING NEWLIB \n\n"    
+make $num_jobs all 
 
-
-    echo ""
-    echo $PATH
-    export PATH=$PATH:$PREFIX/bin
-    
-    echo -e "\n\n >>> BUILDING NEWLIB \n\n"
-    
-    #i686-elf-cc --version
-    make $num_jobs all 
-
-    echo -e "\n\n >>> INSTALLING NEWLIB \n\n"
-    #shopt -s expand_aliases
-    sudo -E PATH=$PATH:$PREFIX/bin make install
-else
-    echo -e "\n\n >>> SKIP:  build newlib. Found build-folder newlib_build \n"
-fi
+popd
 
 trap - EXIT
