@@ -30,7 +30,9 @@ if [ ! -d build_newlib ]; then
 
     # Clean out config cache in case the cross-compiler has changed
     # make distclean
-    ../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX AS_FOR_TARGET=$PREFIX/bin/$TARGET-as LD_FOR_TARGET=$PREFIX/bin/$TARGET-ld AR_FOR_TARGET=$PREFIX/bin/$TARGET-ar RANLIB_FOR_TARGET=$PREFIX/bin/$TARGET-ranlib --enable-newlib-io-long-long #CC_FOR_TARGET="clang -ffreestanding --target=i686-elf -ccc-gcc-name "$PREFIX/bin/$TARGET"-gcc"
+    ../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX --enable-newlib-io-long-long CC_FOR_TARGET="clang-3.6 -ffreestanding --target=i686-elf -Wno-return-type" AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
+    
+# -ccc-gcc-name "$PREFIX/bin/$TARGET"-gcc"
     
     #It expects the c compiler to be called 'i686-elf-cc', but ours is called gcc.
     shopt -s expand_aliases
