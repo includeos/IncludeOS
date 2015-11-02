@@ -4,7 +4,7 @@
 
 # Configure for an "unspecified x86 elf" target, 
 
-cd $BUILD_DIR
+pushd $BUILD_DIR
 NEWLIB_DIR="build_newlib"
 
 if [ ! -d newlib-$newlib_version ]; then
@@ -17,17 +17,19 @@ if [ ! -d newlib-$newlib_version ]; then
     fi
     echo -e "\n\n >>> Extracting newlib \n"
     tar -xf newlib-$newlib_version.tar.gz
+
+
+    # PATCH newlib, to be compatible with clang.
+    echo -e "\n\n >>> Patching newlib, to build with clang \n"
+    patch -p0 < $IncludeOS_src/etc/newlib_clang.patch
+
 else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"
 fi
 
-# PATCH newlib, to be compatible with clang.
-echo -e "\n\n >>> Patching newlib, to build with clang \n"
-patch -p0 < $IncludeOS_src/etc/newlib_clang.patch
-
 echo -e "\n\n >>> Configuring newlib \n"
 mkdir -p $NEWLIB_DIR
-pushd build_newlib
+pushd $NEWLIB_DIR
 
 # Clean out config cache in case the cross-compiler has changed
 # make distclean
@@ -35,7 +37,9 @@ pushd build_newlib
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"    
 make $num_jobs all 
+make install
 
-popd
+popd # NEWLIB_DIR
+popd # BUILD_DIR
 
 trap - EXIT

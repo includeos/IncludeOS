@@ -1,8 +1,8 @@
 #! /bin/bash
 . ./etc/set_traps.sh
 
-INSTALL_DIR=IncludeOS_install
 export BUILD_DIR=$HOME/IncludeOS_build
+INSTALL_DIR=$BUILD_DIR/IncludeOS_install
 
 export PREFIX=$INSTALL_DIR
 export TARGET=i686-elf
@@ -10,7 +10,7 @@ export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
 
 # Multitask-parameter to make
-export num_jobs=-j6
+export num_jobs=-j4
 
 export newlib_version=2.2.0-1
 
@@ -19,6 +19,9 @@ export newlib_inc=$INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=llvm_build
 export clang_version=3.6
+
+export gcc_version=5.1.0
+export binutils_version=2.25
 
 # Options to skip steps
 [ ! -v do_newlib ] && do_newlib=1
@@ -41,7 +44,7 @@ cd $BUILD_DIR
 
 if [ ! -z $do_gcc ]; then
     echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
-    ./etc/cross_compiler.sh
+    $IncludeOS_src/etc/cross_compiler.sh
 fi
 
 if [ ! -z $do_newlib ]; then
