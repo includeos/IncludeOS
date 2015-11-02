@@ -23,7 +23,7 @@ if [ ! -d build_binutils ]; then
     make $num_jobs
     
     echo -e "\n\n >>> Installing binutils \n"    
-    sudo -E  make install
+    make install
 
 else
     echo -e "\n\n >>> SKIP: Configure / build binutils. Seems to be there  \n"

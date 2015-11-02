@@ -82,7 +82,7 @@ if [ ! -z $do_includeos ]; then
     
     echo -e "\n >>> Building IncludeOS"
     pushd $IncludeOS_src/src
-    make -f Makefile_BIN $num_jobs
+    make $num_jobs
     
     echo -e "\n >>> Installing IncludeOS"
     make install
@@ -90,7 +90,7 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n >>> Linking IncludeOS test-service"
     make $INSTALL_DIR/crt/crti.o
     make $INSTALL_DIR/crt/crtn.o
-    make -f Makefile_BIN test
+    make test
     
     popd
    
