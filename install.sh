@@ -10,7 +10,7 @@ export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
 
 # Multitask-parameter to make
-export num_jobs=-j4
+export num_jobs=-j48
 
 export newlib_version=2.2.0-1
 
@@ -24,6 +24,8 @@ export gcc_version=5.1.0
 export binutils_version=2.25
 
 # Options to skip steps
+[ ! -v do_binutils ] && do_binutils=1
+[ ! -v do_gcc ] && do_gcc=1
 [ ! -v do_newlib ] && do_newlib=1
 [ ! -v do_includeos ] &&  do_includeos=1
 # TODO: These should be determined by inspecting if local llvm repo is up-to-date
@@ -41,6 +43,11 @@ sudo apt-get install -y $PREREQS_BUILD
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
+
+if [ ! -z $do_binutils ]; then
+    echo -e "\n\n >>> GETTING / BUILDING binutils (Required for libgcc / unwind / crt) \n"
+    $IncludeOS_src/etc/build_binutils.sh
+fi
 
 if [ ! -z $do_gcc ]; then
     echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"

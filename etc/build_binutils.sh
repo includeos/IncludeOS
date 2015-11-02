@@ -1,14 +1,10 @@
-pusd $BUILD_DIR
+pushd $BUILD_DIR
 
 if [ ! -f binutils-$binutils_version.tar.gz ]; then
     echo -e "\n\n >>> Getting binutils into `pwd` \n"
     wget -c --trust-server-name ftp://ftp.uninett.no/pub/gnu/binutils/binutils-$binutils_version.tar.gz
 fi
 
-if [ ! -f gcc-$gcc_version.tar.gz ]; then
-    echo -e "\n\n >>> Getting GCC \n"
-    wget -c --trust-server-name ftp://ftp.uninett.no/pub/gnu/gcc/gcc-$gcc_version/gcc-$gcc_version.tar.gz
-fi
 
 if [ ! -d binutils-$binutils_version ]; then
     echo -e "\n\n >>> Extracting binutils \n"
