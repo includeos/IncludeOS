@@ -1,7 +1,7 @@
 #! /bin/bash
 . ./etc/set_traps.sh
 
-INSTALL_DIR=/usr/local/IncludeOS
+INSTALL_DIR=/usr/local/IncludeOS/
 export BUILD_DIR=$HOME/IncludeOS_build
 
 export PREFIX=$INSTALL_DIR
@@ -12,6 +12,8 @@ export build_dir=$HOME/cross-dev
 # Multitask-parameter to make
 export num_jobs=-j6
 
+export binutils_version=2.25
+export gcc_version=5.1.0
 export newlib_version=2.2.0-1
 
 export IncludeOS_src=`pwd`
@@ -20,21 +22,51 @@ export llvm_src=llvm
 export llvm_build=llvm_build
 export clang_version=3.6
 
-# Options to skip steps
-[ ! -v do_newlib ] && do_newlib=1
-[ ! -v do_includeos ] &&  do_includeos=1
-# TODO: These should be determined by inspecting if local llvm repo is up-to-date
-[ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
-[ ! -v download_llvm ] && export download_llvm=1
+if [ ! -v do_newlib ]; then
+    do_newlib=1
+fi
 
+if [ ! -v do_gcc ]; then
+    do_gcc=1
+fi
+
+
+if [ ! -v do_includeos ]; then
+    do_includeos=1
+fi
+
+# TODO: These should be determined by inspecting if local llvm repo is up-to-date
+if [ ! -v install_llvm_dependencies ]; then
+    export install_llvm_dependencies=1
+fi
+
+if [ ! -v download_llvm ]; then
+    export download_llvm=1
+fi
+
+
+
+# TODO: Implement checks to see which steps can be skipped!
 
 
 # BUILDING IncludeOS
-PREREQS_BUILD="build-essential make nasm clang-$clang_version clang++-$clang_version"
+PREREQS_BUILD="gcc g++ build-essential make nasm texinfo"
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
 sudo apt-get install -y $PREREQS_BUILD
+
+echo -e "\n\n >>> Trying to install Clang (it's a separate step to avoid dependency issues)"
+sudo apt-get install -y clang-$clang_version clang++-$clang_version
+
+#
+# DEPRECATED: We're building with clang now. Keeping it until we've removed libgcc dependencies
+#
+# Get and build the actual toolchain
+if [ ! -z $do_gcc ]; then
+    echo -e "\n\n >>> GETTING / BUILDING CROSS COMPILER \n"
+    ./etc/cross_compiler.sh
+fi
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
@@ -43,6 +75,7 @@ if [ ! -z $do_newlib ]; then
     echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
     $IncludeOS_src/etc/build_newlib.sh
 fi
+
 
 echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
 $IncludeOS_src/etc/build_llvm32.sh
@@ -72,7 +105,8 @@ if [ ! -z $do_includeos ]; then
     make test
     
     popd
-   
+
+    
     
     # RUNNING IncludeOS
     PREREQS_RUN="bridge-utils qemu-kvm"
