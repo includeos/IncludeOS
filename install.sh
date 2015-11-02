@@ -10,14 +10,14 @@ export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
 
 # Multitask-parameter to make
-export num_jobs=-j48
+export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 
 export newlib_version=2.2.0-1
 
 export IncludeOS_src=`pwd`
 export newlib_inc=$INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
-export llvm_build=llvm_build
+export llvm_build=build_llvm
 export clang_version=3.6
 
 export gcc_version=5.1.0
@@ -28,7 +28,9 @@ export binutils_version=2.25
 [ ! -v do_gcc ] && do_gcc=1
 [ ! -v do_newlib ] && do_newlib=1
 [ ! -v do_includeos ] &&  do_includeos=1
+[ ! -v do_llvm ] &&  do_llvm=1
 # TODO: These should be determined by inspecting if local llvm repo is up-to-date
+
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
@@ -59,11 +61,15 @@ if [ ! -z $do_newlib ]; then
     $IncludeOS_src/etc/build_newlib.sh
 fi
 
-echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
-$IncludeOS_src/etc/build_llvm32.sh
+if [ ! -z $do_llvm ]; then
+    echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
+    $IncludeOS_src/etc/build_llvm32.sh
+    echo -e "\n\n >>> INSTALLING libc++ \n"
+    cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
+fi
 
-echo -e "\n\n >>> INSTALLING libc++ \n"
-sudo cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
+echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
+$IncludeOS_src/etc/create_binary_bundle.sh
 
 
 if [ ! -z $do_includeos ]; then
@@ -71,20 +77,20 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n >>> Installing vmbuilder"
     pushd $IncludeOS_src/vmbuild
     make 
-    sudo cp vmbuild $INSTALL_DIR/
+    cp vmbuild $INSTALL_DIR/
     popd
     
     echo -e "\n >>> Building IncludeOS"
     pushd $IncludeOS_src/src
-    make $num_jobs
+    make -f Makefile_BIN $num_jobs
     
     echo -e "\n >>> Installing IncludeOS"
-    sudo make install
+    make install
     
     echo -e "\n >>> Linking IncludeOS test-service"
-    sudo make $INSTALL_DIR/crt/crti.o
-    sudo make $INSTALL_DIR/crt/crtn.o
-    make test
+    make $INSTALL_DIR/crt/crti.o
+    make $INSTALL_DIR/crt/crtn.o
+    make -f Makefile_BIN test
     
     popd
    

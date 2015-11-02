@@ -4,8 +4,20 @@
 
 # Compiler/Linker
 ###################################################
-OS = /usr/local/IncludeOS
-OSLIB = $(OS)/i686-elf
+LIBS = ../../IncludeOS_build/IncludeOS_bundle
+
+
+# External Libraries
+###################################################
+LIBC_OBJ = $(LIBS)/newlib/libc.a
+LIBG_OBJ = $(LIBS)/newlib/libg.a
+LIBM_OBJ = $(LIBS)/newlib/libm.a 
+
+LIBGCC = $(LIBS)/libgcc/libgcc.a
+LIBCXX = $(LIBS)/libcxx/libc++.a libc++abi.a
+
+
+INC_NEWLIB=$(LIBS)/newlib/include
 
 DEBUG_OPTS = -ggdb3
 
@@ -13,13 +25,11 @@ CC  = clang-3.6 -target i686-elf
 GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++-3.6 -target i686-elf
 
-LD  = $(OS)/bin/i686-elf-ld
+LD  = ld #../../IncludeOS_build/IncludeOS_install/i686-elf/bin/ld
 
 GCC_VER = $(shell $(GPP) -dumpversion)
-LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
 
-INCLUDES = -I../api/sys -I$(OSLIB)/include -Iinclude -I../api -I../stdlib
-LIBS     = $(OSLIB)/lib $(LIBGCC)
+INCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api -I../stdlib
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -47,12 +57,6 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/interrupts.o kernel/
 						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
 						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 						 net/class_packet.o net/dns/dns.o 
-
-# Libraries
-###################################################
-LIBC_OBJ = $(OSLIB)/lib/libc.a
-LIBG_OBJ = $(OSLIB)/lib/libg.a 
-LIBM_OBJ = $(OSLIB)/lib/libm.a 
 
 # Header dependencies (rebuild if header changed)
 ###################################################
@@ -82,16 +86,13 @@ debug: test
 
 # Test service
 ###################################################
-
-LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
-LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ = os.a $(LIBCPP) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-CRTI_OBJ     = $(OS)/crt/crti.o
-CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
-CRTEND_OBJ   = $(OS)/crt/crtend.o
-CRTN_OBJ     = $(OS)/crt/crtn.o
+CRTI_OBJ     = crt/crti.o
+CRTBEGIN_OBJ = $(LIBS)/crt/crtbegin.o
+CRTEND_OBJ   = $(LIBS)/crt/crtend.o
+CRTN_OBJ     = crt/crtn.o
 
 test_service: debug/test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
@@ -123,8 +124,6 @@ install: #os.a bootloader
 	cp -r ../api $(OS)/
 	cp -r ../stdlib $(OS)/
 	mkdir -p $(OS)/mod
-	#cp -r ../mod/rapidjson $(OS)/mod
-	#cp -r ../mod/protobuf $(OS)/mod
 	cp linker.ld $(OS)/
 	@echo "\nDone!"
 
