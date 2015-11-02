@@ -1,7 +1,7 @@
 #! /bin/bash
 . ./etc/set_traps.sh
 
-INSTALL_DIR=/usr/local/IncludeOS
+INSTALL_DIR=IncludeOS_install
 export BUILD_DIR=$HOME/IncludeOS_build
 
 export PREFIX=$INSTALL_DIR
@@ -30,7 +30,7 @@ export clang_version=3.6
 
 
 # BUILDING IncludeOS
-PREREQS_BUILD="build-essential make nasm clang-$clang_version clang++-$clang_version"
+PREREQS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $PREREQS_BUILD \n"
@@ -38,6 +38,11 @@ sudo apt-get install -y $PREREQS_BUILD
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
+
+if [ ! -z $do_gcc ]; then
+    echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
+    ./etc/cross_compiler.sh
+fi
 
 if [ ! -z $do_newlib ]; then
     echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
