@@ -1,47 +1,65 @@
+#################################################
+#          IncludeOS SERVICE makefile           #
+#################################################
+
 # The name of your service
 SERVICE = My_IncludeOS_Service
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
-# Modules
+# Your service parts
 FILES = service.cpp
 
 # Compiler/Linker
 ###################################################
-OSDIR = /usr/local/IncludeOS
-OSLIB = $(OSDIR)/i686-elf
+INSTALL = ../../IncludeOS_build/IncludeOS_bundle
 
-DEBUG_OPTS = -ggdb3
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
-CC  = $(OSDIR)/bin/i686-elf-gcc 
+# External Libraries
+###################################################
+LIBC_OBJ = $(INSTALL)/newlib/libc.a
+LIBG_OBJ = $(INSTALL)/newlib/libg.a
+LIBM_OBJ = $(INSTALL)/newlib/libm.a 
+
+LIBGCC = $(INSTALL)/libgcc/libgcc.a
+LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
+
+
+INC_NEWLIB=$(INSTALL)/newlib/include
+INC_LIBCXX=$(
+
+DEBUG_OPTS = -ggdb3 -v
+
 CPP = clang++-3.6 -target i686-elf
-GPP = $(OSDIR)/bin/i686-elf-g++
-LD  = $(OSDIR)/bin/i686-elf-ld 
+LD  = ld 
 
-INCLUDES = -I$(OSDIR)/api/sys -I$(OSLIB)/include -I$(OSDIR)/api -I$(OSDIR)/stdlib
+INCLUDES = -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/libcxx/include
 
-CPPOPTS = -std=c++14 -c $(OPTIONS) -nostdlib -MMD -fno-stack-protector $(INCLUDES) # -ffreestanding -nostdlib -fno-builtin
-LDOPTS = -nostdlib -melf_i386 -N  --script=$(OSDIR)/linker.ld -flto
+CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
+
+all: CAPABS  =  $(CAPABS_COMMON) -O2  
+debug: CAPABS = $(CAPABS_COMMON) -O0
+stripped: CAPABS = $(CAPABS_COMMON) -Oz
+
+WARNS   = -Wall -Wextra #-pedantic
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-flto -fno-exceptions
+
+LDOPTS = -nostdlib -melf_i386 -N  --script=$(INSTALL)/linker.ld -flto
 
 
 # Objects
 ###################################################
 
-GCC_VER = $(shell $(CC) -dumpversion)
-LIBGCC = $(OSDIR)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
-
-LIBC_OBJ = $(OSLIB)/lib/libc.a
-LIBG_OBJ = $(OSLIB)/lib/libg.a 
-LIBM_OBJ = $(OSLIB)/lib/libm.a 
-
-CRTBEGIN_OBJ:=$(shell $(GPP) -print-file-name=crtbegin.o)
-CRTEND_OBJ:=$(shell $(GPP) -print-file-name=crtend.o)
+CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ = $(INSTALL)/crt/crtend.o
+CRTI_OBJ = $(INSTALL)/crt/crti.o
+CRTN_OBJ = $(INSTALL)/crt/crtn.o
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) 
-LIBS =  $(OSDIR)/lib/os.a $(OSDIR)/lib/libc++.a $(OSDIR)/lib/libc++abi.a $(OSDIR)/lib/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
-OS_PRE = $(CRTBEGIN_OBJ) crti.o
-OS_POST = $(CRTEND_OBJ) crtn.o
+OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
+OS_POST = $(CRTEND_OBJ) $(CRTN_OBJ)
 
 DEPS = $(OBJS:.o=.d)
 
@@ -73,17 +91,17 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS) crti.o crtn.o
+service: $(OBJS) $(LIBS) 
 	@echo "\n>> Linking service with OS"
 	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
-	$(OSDIR)/vmbuild $(OSDIR)/bootloader $(SERVICE)
+	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
 
 # Object files
 ###################################################
 
 # Runtime
-crt%.o: $(OSDIR)/crt/crt%.s
+crt%.o: $(INSTALL)/crt/crt%.s
 	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 

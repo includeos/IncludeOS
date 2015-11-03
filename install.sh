@@ -88,8 +88,6 @@ if [ ! -z $do_includeos ]; then
     make install
     
     echo -e "\n >>> Linking IncludeOS test-service"
-    make $INSTALL_DIR/crt/crti.o
-    make $INSTALL_DIR/crt/crtn.o
     make test
     
     popd

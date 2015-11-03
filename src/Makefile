@@ -2,34 +2,30 @@
 #              IncludeOS makefile               #
 #################################################
 
-# Compiler/Linker
-###################################################
-LIBS = ../../IncludeOS_build/IncludeOS_bundle
-
+INSTALL = ../../IncludeOS_build/IncludeOS_bundle
 
 # External Libraries
 ###################################################
-LIBC_OBJ = $(LIBS)/newlib/libc.a
-LIBG_OBJ = $(LIBS)/newlib/libg.a
-LIBM_OBJ = $(LIBS)/newlib/libm.a 
+LIBC_OBJ = $(INSTALL)/newlib/libc.a
+LIBG_OBJ = $(INSTALL)/newlib/libg.a
+LIBM_OBJ = $(INSTALL)/newlib/libm.a 
 
-LIBGCC = $(LIBS)/libgcc/libgcc.a
-LIBCXX = $(LIBS)/libcxx/libc++.a libc++abi.a
+LIBGCC = $(INSTALL)/libgcc/libgcc.a
+LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
 
 
-INC_NEWLIB=$(LIBS)/newlib/include
+INC_NEWLIB=$(INSTALL)/newlib/include
 
 DEBUG_OPTS = -ggdb3
 
+# Compiler/Linker
+###################################################
+
 CC  = clang-3.6 -target i686-elf
-GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++-3.6 -target i686-elf
+LD  = ld # Yes - we use the default linker
 
-LD  = ld #../../IncludeOS_build/IncludeOS_install/i686-elf/bin/ld
-
-GCC_VER = $(shell $(GPP) -dumpversion)
-
-INCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api -I../stdlib
+INCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api -I../stdlib #-I$(INSTALL)/libcxx/include 
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -39,9 +35,9 @@ stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-fno-exceptions
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-flto -fno-exceptions
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
 
 # Objects
 ###################################################
@@ -64,7 +60,7 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 
-# Complete build
+# Complete OS build
 ###################################################
 # A complete build includes:
 # - a bootloader
@@ -91,8 +87,8 @@ LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
 CRTI_OBJ     = crt/crti.o
-CRTBEGIN_OBJ = $(LIBS)/crt/crtbegin.o
-CRTEND_OBJ   = $(LIBS)/crt/crtend.o
+CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ   = $(INSTALL)/crt/crtend.o
 CRTN_OBJ     = crt/crtn.o
 
 test_service: debug/test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
@@ -117,15 +113,12 @@ os.a: $(OS_OBJECTS)
 
 install: #os.a bootloader
 	@echo "\n>> Installing..."
-	cp bootloader $(OS)/
-	cp os.a $(OS)/lib
-	cp libc++abi.a $(OS)/lib
-	mkdir -p $(OS)/crt
-	cp -t$(OS)/crt crt/crti.* crt/crtn.* crt/crtbegin.o crt/crtend.o
-	cp -r ../api $(OS)/
-	cp -r ../stdlib $(OS)/
-	mkdir -p $(OS)/mod
-	cp linker.ld $(OS)/
+	cp bootloader $(INSTALL)
+	cp os.a $(INSTALL)
+	cp libc++abi.a $(INSTALL)/libcxx
+	cp -t$(INSTALL)/crt crt/crti.o crt/crtn.o
+	cp -r ../api $(INSTALL)/
+	cp linker.ld $(INSTALL)/
 	@echo "\nDone!"
 
 # Makefile recipes
