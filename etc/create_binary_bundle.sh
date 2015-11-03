@@ -1,13 +1,18 @@
 #! /bin/bash
 
+# Where to place the installation bundle
+DIR_NAME="IncludeOS_install"
+
+[ ! -v INSTALL_DIR ] && INSTALL_DIR=$HOME/$DIR_NAME
 [ ! -v BUILD_DIR ] && BUILD_DIR=$HOME/IncludeOS_build
-[ ! -v INSTALL_DIR ] && INSTALL_DIR=$BUILD_DIR/IncludeOS_install
+[ ! -v TEMP_INSTALL_DIR ] && TEMP_INSTALL_DIR=$BUILD_DIR/IncludeOS_TEMP_install
 
-newlib=$INSTALL_DIR/i686-elf/lib
+echo ">>> Creating Installation Bundle as $INSTALL_DIR"
+
+OUTFILE="$DIR_NAME.tar.gz"
+
+newlib=$TEMP_INSTALL_DIR/i686-elf/lib
 llvm=$BUILD_DIR/build_llvm
-
-FOLDER="IncludeOS_bundle"
-OUTFILE="$FOLDER.tar.gz"
 
 # Libraries
 libc=$newlib/libc.a
@@ -15,36 +20,34 @@ libm=$newlib/libm.a
 libg=$newlib/libg.a
 libcpp=$llvm/lib/libc++.a
 
-GPP=$INSTALL_DIR/bin/i686-elf-g++
+GPP=$TEMP_INSTALL_DIR/bin/i686-elf-g++
 GCC_VER=`$GPP -dumpversion`
-libgcc=$INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/libgcc.a
+libgcc=$TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/libgcc.a
 
 # Includes
-include_newlib=$INSTALL_DIR/i686-elf/include
+include_newlib=$TEMP_INSTALL_DIR/i686-elf/include
 include_libcxx=$llvm/include/c++/v1
 
-
-
 # Make directory-tree
-mkdir -p $FOLDER
-mkdir -p $FOLDER/newlib
-mkdir -p $FOLDER/libcxx
-mkdir -p $FOLDER/crt
-mkdir -p $FOLDER/libgcc
+mkdir -p $INSTALL_DIR
+mkdir -p $INSTALL_DIR/newlib
+mkdir -p $INSTALL_DIR/libcxx
+mkdir -p $INSTALL_DIR/crt
+mkdir -p $INSTALL_DIR/libgcc
 
 # Copy binaries
-cp $libcpp $FOLDER/libcxx/
-cp $libm $FOLDER/newlib/
-cp $libc $FOLDER/newlib/
-cp $libg $FOLDER/newlib/
-cp $libgcc $FOLDER/libgcc/
-cp $INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $FOLDER/crt/
+cp $libcpp $INSTALL_DIR/libcxx/
+cp $libm $INSTALL_DIR/newlib/
+cp $libc $INSTALL_DIR/newlib/
+cp $libg $INSTALL_DIR/newlib/
+cp $libgcc $INSTALL_DIR/libgcc/
+cp $TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $INSTALL_DIR/crt/
 
 # Copy includes
-cp -r $include_newlib $FOLDER/newlib/
-cp -r $include_libcxx $FOLDER/libcxx/include
+cp -r $include_newlib $INSTALL_DIR/newlib/
+cp -r $include_libcxx $INSTALL_DIR/libcxx/include
 
 # Zip it
-tar -czvf $OUTFILE $FOLDER
+tar -czvf $OUTFILE $INSTALL_DIR
 
-echo ">>> IncludeOS Installation Bundle created as $FOLDER and gzipped into $OUTFILE"
+echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"

@@ -2,7 +2,7 @@
 #              IncludeOS makefile               #
 #################################################
 
-INSTALL = ../../IncludeOS_build/IncludeOS_bundle
+INSTALL = ../../IncludeOS_install
 
 # External Libraries
 ###################################################

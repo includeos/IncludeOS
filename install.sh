@@ -2,9 +2,10 @@
 . ./etc/set_traps.sh
 
 export BUILD_DIR=$HOME/IncludeOS_build
-INSTALL_DIR=$BUILD_DIR/IncludeOS_install
+export TEMP_INSTALL_DIR=$BUILD_DIR/IncludeOS_TEMP_install
 
-export PREFIX=$INSTALL_DIR
+export INSTALL_DIR=$HOME/IncludeOS_install
+export PREFIX=$TEMP_INSTALL_DIR
 export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
@@ -15,7 +16,7 @@ export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 export newlib_version=2.2.0-1
 
 export IncludeOS_src=`pwd`
-export newlib_inc=$INSTALL_DIR/i686-elf/include
+export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
 export clang_version=3.6
@@ -64,8 +65,8 @@ fi
 if [ ! -z $do_llvm ]; then
     echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
     $IncludeOS_src/etc/build_llvm32.sh
-    echo -e "\n\n >>> INSTALLING libc++ \n"
-    cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
+    #echo -e "\n\n >>> INSTALLING libc++ \n"
+    #cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
 fi
 
 echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
