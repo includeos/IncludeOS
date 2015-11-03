@@ -84,13 +84,13 @@ if [ ! -z $do_includeos ]; then
     echo -e "\n >>> Building IncludeOS"
     pushd $IncludeOS_src/src
     make $num_jobs
-    
-    echo -e "\n >>> Installing IncludeOS"
-    make install
-    
+        
     echo -e "\n >>> Linking IncludeOS test-service"
     make test
     
+    echo -e "\n >>> Installing IncludeOS"
+    make install
+
     popd
    
     
