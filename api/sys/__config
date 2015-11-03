@@ -1,3 +1,4 @@
 // -*- C++ -*-
-#define _LIBCPP_HAS_NO_THREADS 1
+// This breaks libc++ build, but is required to build seed.
+//#define _LIBCPP_HAS_NO_THREADS 1
 #include_next <__config>

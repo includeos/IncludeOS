@@ -10,7 +10,7 @@ FILES = service.cpp
 
 # Compiler/Linker
 ###################################################
-INSTALL = ../../IncludeOS_build/IncludeOS_bundle
+INSTALL = ../../IncludeOS_install
 
 OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
@@ -41,7 +41,7 @@ debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-flto -fno-exceptions
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 #-flto -fno-exceptions
 
 LDOPTS = -nostdlib -melf_i386 -N  --script=$(INSTALL)/linker.ld -flto
 
