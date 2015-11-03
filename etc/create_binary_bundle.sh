@@ -48,6 +48,6 @@ cp -r $include_newlib $INSTALL_DIR/newlib/
 cp -r $include_libcxx $INSTALL_DIR/libcxx/include
 
 # Zip it
-tar -czvf $OUTFILE $INSTALL_DIR
+tar -czvf $OUTFILE --directory=$INSTALL_DIR/../ $DIR_NAME
 
 echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
