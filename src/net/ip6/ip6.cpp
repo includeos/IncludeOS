@@ -69,19 +69,10 @@ namespace net
     
     header& hdr = full.ip6_hdr;
     /*
-    std::cout << "IPv6 v: " << (int) hdr.version() << " \t";
-    std::cout << "class: "  << (int) hdr.tclass()  << " \t";
-    
-    std::cout << "size: " << hdr.size() << " bytes" << std::endl;
+      debug("IPv6 v: %i \t class: %i  size: %i \n", 
+      (int) hdr.version(), (int) hdr.tclass(), hdr.size() )";
     */
     uint8_t next = hdr.next();
-    /*
-    std::cout << "IPv6 next hdr: " << protocol_name(next)  << std::endl;
-    std::cout << "IPv6 hoplimit: " << (int) hdr.hoplimit() << " hops" << std::endl;
-    
-    std::cout << "IPv6 src: " << hdr.source() << std::endl;
-    std::cout << "IPv6 dst: " << hdr.dest() << std::endl;
-    */
     
     while (next != PROTO_NoNext)
     {
@@ -97,7 +88,6 @@ namespace net
         next = parse6(reader, next);
     }
     
-    std::cout << std::endl;
     return 0;
 	};
   

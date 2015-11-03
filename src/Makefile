@@ -39,7 +39,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-fno-exceptions
 
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 
@@ -48,15 +48,16 @@ LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/interrupts.o kernel/os.o \
-						 kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
-						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
-						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
-						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
-						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-						 net/class_packet.o net/dns/dns.o 
+OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
+		kernel/interrupts.o kernel/os.o \
+		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
+		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
+		hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
+		virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
+		net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
+		net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
+		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
+		net/class_packet.o net/dns/dns.o 
 
 # Header dependencies (rebuild if header changed)
 ###################################################
