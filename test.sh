@@ -2,7 +2,7 @@
 
 pushd src
 make -j4
-make test_service
+make test_service 
 
 echo -e "Build complete \n"
 echo -e "Starting VM with Qemu. "
