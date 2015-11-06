@@ -57,10 +57,17 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 ## Features
 * Virtio ethernet driver with non-blocking asynchronous I/O
 * Everything happens in one thread
-* Delegated IRQ handling makes race conditions in userspace impossible 
+* Delegated IRQ handling makes race conditions in userspace impossible (but we'll allow more knives and guns later)
 * No virtual memory overhead
 * (A tcp/ip stack)
 * (A http server class)
+* All the guns and all the knives: 
+  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
+  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
+    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
+    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
+    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
+   
 
 ### Limitations 
 * No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
@@ -98,11 +105,7 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
 ### C++ Guidelines
-We are currently far from it, but in time we'd like to adhere to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Counsil](https://isocpp.org/). When (not if) you find code in IncludeOS, which don't adhere, please let us know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request.
+We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request. 
 
 ## Q&A
-
-* Why can't we just start with implementing `int main(...)`?
-      * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
-* Why can't we have more than one process? 
-       * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
+We're trying to grow a Wiki, and some questions might allready be [answered here](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
