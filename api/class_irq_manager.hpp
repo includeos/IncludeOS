@@ -54,7 +54,7 @@ extern "C" {
 
 /** A class to manage interrupt handlers
   
-    Anyone can subscribe to IRQ's, but the will be indireclty called via the
+    Anyone can subscribe to IRQ's, but they will be indirectly called via the
     Deferred Procedure Call / Callback system, i.e. when the system is in a 
     wait-loop with nothing else to do.
     
@@ -77,7 +77,9 @@ class IRQ_manager{
   
   typedef delegate<void()> irq_delegate;
   
-  /** Enable an IRQ line.  If no handler is set a default will be used */
+  /** Enable an IRQ line.  If no handler is set a default will be used
+      @param irq : the IRQ to enable
+  */
   static void enable_irq(uint8_t irq);
   
   /** Directly set an IRQ handler in IDT.       
@@ -96,16 +98,19 @@ class IRQ_manager{
   
   /** Subscribe to an IRQ. 
       
-      @param del a delegate to attach to the IRQ DPC-system, 
+      @param irq : the IRQ to subscribe to
+	  @param del : a delegate to attach to the IRQ DPC-system, 
       
-      the delagete will be called a.s.a.p. after @param irq gets triggered.
+      The delegate will be called a.s.a.p. after @param irq gets triggered.
       @warning The delegate is responsible for signalling a proper EOI.
       @todo Implies enable_irq(irq)? 
       @todo Create a public member IRQ_manager::eoi for delegates to use
   */
   static void subscribe(uint8_t irq, irq_delegate del);
   
-  /** Get the current subscriber of an IRQ-line. */
+  /** Get the current subscriber of an IRQ-line. 
+      @param irq : The IRQ to get subscriber for
+  */
   static irq_delegate get_subscriber(uint8_t irq);
   
   /** End of Interrupt. 

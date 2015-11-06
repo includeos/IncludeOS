@@ -33,16 +33,25 @@ class OS{
   static inline double uptime()
   { return (cycles_since_boot() / _CPU_mhz.count() ); }
   
-  /** Receive a byte from port. @todo Should be moved */
+  /** Receive a byte from port. @todo Should be moved 
+      @param port : The port number to receive from
+  */
   static uint8_t inb(int port);
   
-  /** Send a byte to port. @todo Should be moved to hw/...something */
+  /** Send a byte to port. @todo Should be moved to hw/...something 
+      @param port : The port to send to
+	  @param data : One byte of data to send to @param port
+  */
   static void outb(int port, uint8_t data);
     
-  /** Write a cstring to serial port. @todo Should be moved to Dev::serial(n).*/
+  /** Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
+      @param ptr : the string to write to serial port
+  */
   static int rsprint(const char* ptr);
 
-  /** Write a character to serial port. @todo Should be moved Dev::serial(n) */
+  /** Write a character to serial port. @todo Should be moved Dev::serial(n) 
+      @param c : The character to print to serial port
+  */
   static int rswrite(char c);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */

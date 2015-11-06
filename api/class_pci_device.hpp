@@ -159,7 +159,7 @@ public:
   static  uint32_t read_dword(uint16_t pci_addr, uint8_t reg);
 
   /** Probe for a device on the given address
-      
+      @param pci_addr the address to probe      
       @deprecated We got a 20% performance degradation using this for probing
       @see PCI_Device() 
   */
@@ -188,7 +188,9 @@ public:
   /** Get the PCI address of device.
      
      The address is a composite of 'bus', 'device' and 'function', usually used
-     (i.e. by Linux) to designate a PCI device.  */
+     (i.e. by Linux) to designate a PCI device.  
+	 @return pci_addr_ : The address of the device
+  */
   inline uint16_t pci_addr() { return pci_addr_; };
     
 
