@@ -1,7 +1,7 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
 
-IncludeOS is an includeable, minimal library operating system for C++ services running in cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
+IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
 
 ## Prerequisites 
