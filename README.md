@@ -20,6 +20,7 @@ Once you have a system with the prereqs (virtual or not), everything should be s
     $ cd IncludeOS
     $ ./install.sh
 Note: install.sh will install many packages, and as such parts will require sudo access.
+On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 33 minutes, depending on bandwidth.
 
 ### The script is supposed to...:
 * Install any tools required for building and running IncludeOS, including GCC and Qemu. 
