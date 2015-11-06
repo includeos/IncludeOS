@@ -18,7 +18,7 @@ Once you have a system with the prereqs (virtual or not), everything should be s
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ sudo ./install.sh
+    $ ./install.sh
 
 ### The script is supposed to...:
 * Install any tools required for building and running IncludeOS, including GCC and Qemu. 
