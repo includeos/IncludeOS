@@ -2,24 +2,30 @@
 #              IncludeOS makefile               #
 #################################################
 
-# Compiler/Linker
+INSTALL = ../../IncludeOS_install
+
+# External Libraries
 ###################################################
-OS = /usr/local/IncludeOS
-OSLIB = $(OS)/i686-elf
+LIBC_OBJ = $(INSTALL)/newlib/libc.a
+LIBG_OBJ = $(INSTALL)/newlib/libg.a
+LIBM_OBJ = $(INSTALL)/newlib/libm.a 
+
+LIBGCC = $(INSTALL)/libgcc/libgcc.a
+LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
+
+
+INC_NEWLIB=$(INSTALL)/newlib/include
 
 DEBUG_OPTS = -ggdb3
 
+# Compiler/Linker
+###################################################
+
 CC  = clang-3.6 -target i686-elf
-GPP = $(OS)/bin/i686-elf-g++
 CPP = clang++-3.6 -target i686-elf
+LD  = ld # Yes - we use the default linker
 
-LD  = $(OS)/bin/i686-elf-ld
-
-GCC_VER = $(shell $(GPP) -dumpversion)
-LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
-
-INCLUDES = -I../api/sys -I$(OSLIB)/include -Iinclude -I../api -I../stdlib
-LIBS     = $(OSLIB)/lib $(LIBGCC)
+INCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api -I../stdlib #-I$(INSTALL)/libcxx/include 
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -29,37 +35,32 @@ stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES)
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-flto -fno-exceptions
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
+LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
 
 # Objects
 ###################################################
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/interrupts.o kernel/os.o \
-						 kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
-						 crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-						 hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
-						 virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-						 net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
-						 net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
-						 net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-						 net/class_packet.o net/dns/dns.o 
-
-# Libraries
-###################################################
-LIBC_OBJ = $(OSLIB)/lib/libc.a
-LIBG_OBJ = $(OSLIB)/lib/libg.a 
-LIBM_OBJ = $(OSLIB)/lib/libm.a 
+OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
+		kernel/interrupts.o kernel/os.o \
+		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
+		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
+		hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
+		virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
+		net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
+		net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
+		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
+		net/class_packet.o net/dns/dns.o 
 
 # Header dependencies (rebuild if header changed)
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
 
-# Complete build
+# Complete OS build
 ###################################################
 # A complete build includes:
 # - a bootloader
@@ -82,16 +83,13 @@ debug: test
 
 # Test service
 ###################################################
-
-LIBGCC = $(OS)/lib/gcc/i686-elf/$(GCC_VER)/libgcc.a
-LIBCPP = $(OS)/lib/libc++.a libc++abi.a 
-LIBS_OBJ = os.a $(LIBCPP) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-CRTI_OBJ     = $(OS)/crt/crti.o
-CRTBEGIN_OBJ = $(OS)/crt/crtbegin.o
-CRTEND_OBJ   = $(OS)/crt/crtend.o
-CRTN_OBJ     = $(OS)/crt/crtn.o
+CRTI_OBJ     = crt/crti.o
+CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ   = $(INSTALL)/crt/crtend.o
+CRTN_OBJ     = crt/crtn.o
 
 test_service: debug/test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
@@ -115,17 +113,12 @@ os.a: $(OS_OBJECTS)
 
 install: #os.a bootloader
 	@echo "\n>> Installing..."
-	cp bootloader $(OS)/
-	cp os.a $(OS)/lib
-	cp libc++abi.a $(OS)/lib
-	mkdir -p $(OS)/crt
-	cp -t$(OS)/crt crt/crti.* crt/crtn.* crt/crtbegin.o crt/crtend.o
-	cp -r ../api $(OS)/
-	cp -r ../stdlib $(OS)/
-	mkdir -p $(OS)/mod
-	#cp -r ../mod/rapidjson $(OS)/mod
-	#cp -r ../mod/protobuf $(OS)/mod
-	cp linker.ld $(OS)/
+	cp bootloader $(INSTALL)
+	cp os.a $(INSTALL)
+	cp libc++abi.a $(INSTALL)/libcxx
+	cp -t$(INSTALL)/crt crt/crti.o crt/crtn.o
+	cp -r ../api $(INSTALL)/
+	cp linker.ld $(INSTALL)/
 	@echo "\nDone!"
 
 # Makefile recipes

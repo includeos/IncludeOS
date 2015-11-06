@@ -14,7 +14,7 @@ int Arp::bottom(std::shared_ptr<Packet>& pckt)
 
   header* hdr = (header*) pckt->buffer();
   //debug2("\t OPCODE: 0x%x \n",hdr->opcode);
-  //std::cout << "Chaching IP " << hdr->sipaddr << " for " << hdr->shwaddr << std::endl;  
+  //debug2("Chaching IP %s for %s \n", hdr->sipaddr.str().c_str() , hdr->shwaddr.str().c_str())
   debug2("Have valid cache? %s \n",is_valid_cached(hdr->sipaddr) ? "YES":"NO");
   cache(hdr->sipaddr, hdr->shwaddr);
   

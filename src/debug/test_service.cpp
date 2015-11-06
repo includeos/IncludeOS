@@ -26,7 +26,7 @@ void Service::start()
    
   // Bring up the interface
   net::Inet4* inet = net::Inet4::up();
-  std::cout << "Service IP address: " << net::Inet4::ip4(net::ETH0) << std::endl;
+  printf("Service IP address: %s \n", net::Inet4::ip4(net::ETH0).str().c_str());
   
   // Set up a server on port 80
   net::TCP::Socket& sock =  inet->tcp().bind(80);

@@ -134,12 +134,12 @@ namespace net
       /*
       // show correct checksum
       intptr_t chksum = icmp->checksum();
-      std::cout << "ICMPv6 checksum: " << (void*) chksum << std::endl;
+      debug("ICMPv6 checksum: %p \n",(void*) chksum);
       
       // show our recalculated checksum
       icmp->header().checksum_ = 0;
       chksum = checksum(icmp);
-      std::cout << "ICMPv6 our estimate: " << (void*) chksum << std::endl;
+      debug("ICMPv6 our estimate: %p \n", (void*) chksum );
       */
       return -1;
     }
