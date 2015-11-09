@@ -24,6 +24,7 @@ sudo apt-get update
 sudo apt-get install $DEPENDENCIES
 
 
+echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
 git pull --tags
@@ -36,9 +37,10 @@ filename="IncludeOS_install_"$filename_tag".tar.gz"
 # If the tarball exists, use that 
 if [ -e $filename ] 
 then
-    echo ">>> IncludeOS tarball exists - extracting..."
+    echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename
 else    
+    echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
     # Download from GitHub API    
     # IF PRIVATE:
     echo -n "Enter github username: "
@@ -52,22 +54,24 @@ else
 
     curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user $ASSET_URL
     
-    echo ">>> Fetched IncludeOS tarball from GitHub - extracting..."
+    echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
 fi
 
-echo ">>> Compiling the vmbuilder"
+echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
 pushd $INCLUDEOS_SRC/vmbuild
 make
 cp vmbuild $INCLUDEOS_HOME/
 popd
 
-echo ">>> Creating a virtual network, i.e. a bridge. (Requires sudo)"
+echo -e "\n\n>>> Creating a virtual network, i.e. a bridge. (Requires sudo)"
 sudo $INCLUDEOS_SRC/etc/create_bridge.sh
 
 mkdir -p $INCLUDEOS_HOME/etc
 cp $INCLUDEOS_SRC/etc/qemu-ifup $INCLUDEOS_HOME/etc/
 
+
+echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 
 
 
