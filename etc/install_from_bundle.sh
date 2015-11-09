@@ -47,11 +47,12 @@ else
     export git_user="git"
     read git_user
     
-    
+    echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
     JSON=`curl -u $git_user https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
     ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
     ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
+    echo -e "\n\n>>> Getting the latest release bundle from GitHub"
     curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user $ASSET_URL
     
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
