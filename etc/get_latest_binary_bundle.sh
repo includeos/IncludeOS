@@ -20,13 +20,13 @@ filename_tag=`echo $tag | tr . -`
 
 filename="IncludeOS_install_"$filename_tag".tar.gz"
 
-URL="https://github.com/hioa-cs/IncludeOS/releases/download/$tag/$filename"
+#URL="https://github.com/hioa-cs/IncludeOS/releases/download/$tag/$filename"
 
 ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
 echo "Fetching asset from: $ASSET_URL"
 
-curl -H "Accept: application/octet-stream" -S  -O -u $git_user $ASSET_URL #
+curl -H "Accept: application/octet-stream" -L -O -u $git_user $ASSET_URL
 
 #curl $URL
 
