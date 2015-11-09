@@ -22,7 +22,7 @@ filename="IncludeOS_install_"$filename_tag".tar.gz"
 
 URL="https://github.com/hioa-cs/IncludeOS/releases/download/$tag/$filename"
 
-curl -u $git_user -H "Content-Type: application/octet-stream"  https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
+curl -u $git_user -H "Content-Type: application/octet-stream" -L -O https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
 echo "    Latest tag: $tag"
 echo "    Fetching: $URL ..."
