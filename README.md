@@ -1,7 +1,7 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
 
-IncludeOS is an includeable, minimal library operating system for C++ services running in cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
+IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
 
 ## Prerequisites 
@@ -18,7 +18,9 @@ Once you have a system with the prereqs (virtual or not), everything should be s
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ sudo ./install.sh
+    $ ./install.sh
+Note: install.sh will install many packages, and as such parts will require sudo access.
+On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 33 minutes, depending on bandwidth.
 
 ### The script is supposed to...:
 * Install any tools required for building and running IncludeOS, including GCC and Qemu. 
@@ -57,10 +59,17 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 ## Features
 * Virtio ethernet driver with non-blocking asynchronous I/O
 * Everything happens in one thread
-* Delegated IRQ handling makes race conditions in userspace impossible 
+* Delegated IRQ handling makes race conditions in userspace impossible (but we'll allow more knives and guns later)
 * No virtual memory overhead
 * (A tcp/ip stack)
 * (A http server class)
+* All the guns and all the knives: 
+  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
+  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
+    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
+    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
+    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
+   
 
 ### Limitations 
 * No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
@@ -83,7 +92,7 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
   3. The bootloader hands over control to the OS, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
-  4. The OS initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
+  4. The OS initializes `.bss`, calls global constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
   5. Finally the OS class (still `OS::start`) calls `Service::start()`, inside your service, handing over control to you.
 
 
@@ -98,11 +107,7 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
 ### C++ Guidelines
-We are currently far from it, but in time we'd like to adhere to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Counsil](https://isocpp.org/). When (not if) you find code in IncludeOS, which don't adhere, please let us know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request.
+We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request. 
 
 ## Q&A
-
-* Why can't we just start with implementing `int main(...)`?
-      * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
-* Why can't we have more than one process? 
-       * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
+We're trying to grow a Wiki, and some questions might allready be [answered here](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
