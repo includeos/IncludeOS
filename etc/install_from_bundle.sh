@@ -16,6 +16,14 @@
 [ ! -v INCLUDEOS_INSTALL_LOC ] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
+# Install dependencies
+DEPENDENCIES="curl make clang-3.6 nasm bridge-utils qemu"
+echo ">>> Installing dependencies (requires sudo):"
+echo "    Packages: $DEPENDENCIES"
+sudo apt-get update
+sudo apt-get install $DEPENDENCIES
+
+
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
 git pull --tags
@@ -47,12 +55,6 @@ else
     echo ">>> Fetched IncludeOS tarball from GitHub - extracting..."
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
 fi
-
-# Install dependencies
-DEPENDENCIES="make clang-3.6 nasm bridge-utils qemu"
-echo ">>> Installing dependencies (requires sudo):"
-echo "    Packages: $DEPENDENCIES"
-sudo apt-get install $DEPENDENCIES
 
 echo ">>> Compiling the vmbuilder"
 pushd $INCLUDEOS_SRC/vmbuild
