@@ -37,11 +37,11 @@ void protobuf_AddDesc_poker_2eproto();
 void protobuf_AssignDesc_poker_2eproto();
 void protobuf_ShutdownFile_poker_2eproto();
 
-class PokerMessage;
 class Action;
 class Card;
-class Player;
 class GameState;
+class Player;
+class PokerMessage;
 
 enum Action_ActionType {
   Action_ActionType_NONE = 0,
@@ -655,10 +655,10 @@ class GameState : public ::google::protobuf::Message {
   const ::proto::Player& players(int index) const;
   ::proto::Player* mutable_players(int index);
   ::proto::Player* add_players();
-  const ::google::protobuf::RepeatedPtrField< ::proto::Player >&
-      players() const;
   ::google::protobuf::RepeatedPtrField< ::proto::Player >*
       mutable_players();
+  const ::google::protobuf::RepeatedPtrField< ::proto::Player >&
+      players() const;
 
   // optional int32 smallblind = 2;
   void clear_smallblind();
@@ -715,10 +715,10 @@ class GameState : public ::google::protobuf::Message {
   const ::proto::Card& community_cards(int index) const;
   ::proto::Card* mutable_community_cards(int index);
   ::proto::Card* add_community_cards();
-  const ::google::protobuf::RepeatedPtrField< ::proto::Card >&
-      community_cards() const;
   ::google::protobuf::RepeatedPtrField< ::proto::Card >*
       mutable_community_cards();
+  const ::google::protobuf::RepeatedPtrField< ::proto::Card >&
+      community_cards() const;
 
   // @@protoc_insertion_point(class_scope:proto.GameState)
  private:
@@ -778,10 +778,11 @@ inline void PokerMessage::clear_action() {
     clear_has_content();
   }
 }
-inline const ::proto::Action& PokerMessage::action() const {
+inline  const ::proto::Action& PokerMessage::action() const {
   // @@protoc_insertion_point(field_get:proto.PokerMessage.action)
-  return has_action() ? *content_.action_
-                      : ::proto::Action::default_instance();
+  return has_action()
+      ? *content_.action_
+      : ::proto::Action::default_instance();
 }
 inline ::proto::Action* PokerMessage::mutable_action() {
   if (!has_action()) {
@@ -824,10 +825,11 @@ inline void PokerMessage::clear_gamestate() {
     clear_has_content();
   }
 }
-inline const ::proto::GameState& PokerMessage::gamestate() const {
+inline  const ::proto::GameState& PokerMessage::gamestate() const {
   // @@protoc_insertion_point(field_get:proto.PokerMessage.gamestate)
-  return has_gamestate() ? *content_.gamestate_
-                      : ::proto::GameState::default_instance();
+  return has_gamestate()
+      ? *content_.gamestate_
+      : ::proto::GameState::default_instance();
 }
 inline ::proto::GameState* PokerMessage::mutable_gamestate() {
   if (!has_gamestate()) {
@@ -1107,15 +1109,15 @@ inline ::proto::Player* GameState::add_players() {
   // @@protoc_insertion_point(field_add:proto.GameState.players)
   return players_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::proto::Player >&
-GameState::players() const {
-  // @@protoc_insertion_point(field_list:proto.GameState.players)
-  return players_;
-}
 inline ::google::protobuf::RepeatedPtrField< ::proto::Player >*
 GameState::mutable_players() {
   // @@protoc_insertion_point(field_mutable_list:proto.GameState.players)
   return &players_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::proto::Player >&
+GameState::players() const {
+  // @@protoc_insertion_point(field_list:proto.GameState.players)
+  return players_;
 }
 
 // optional int32 smallblind = 2;
@@ -1249,15 +1251,15 @@ inline ::proto::Card* GameState::add_community_cards() {
   // @@protoc_insertion_point(field_add:proto.GameState.community_cards)
   return community_cards_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::proto::Card >&
-GameState::community_cards() const {
-  // @@protoc_insertion_point(field_list:proto.GameState.community_cards)
-  return community_cards_;
-}
 inline ::google::protobuf::RepeatedPtrField< ::proto::Card >*
 GameState::mutable_community_cards() {
   // @@protoc_insertion_point(field_mutable_list:proto.GameState.community_cards)
   return &community_cards_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::proto::Card >&
+GameState::community_cards() const {
+  // @@protoc_insertion_point(field_list:proto.GameState.community_cards)
+  return community_cards_;
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
