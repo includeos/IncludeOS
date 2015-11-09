@@ -23,8 +23,13 @@ fi
 
 #export macaddress="08:00:27:9d:86:e8"
 export macaddress="c0:01:0a:00:00:2a"
-export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
+[ ! -v INCLUDEOS_INSTALL ] && INCLUDEOS_INSTALL=$HOME/IncludeOS_install
+export qemu_ifup="$INCLUDEOS_INSTALL/etc/qemu-ifup"
+
+export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
 export SMP="-smp 1"
+
+
 #export DEV_GRAPHICS="-vga std"
 export DEV_GRAPHICS="--nographic"
 
