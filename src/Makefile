@@ -2,7 +2,13 @@
 #              IncludeOS makefile               #
 #################################################
 
-INSTALL = ../../IncludeOS_install
+ifndef INCLUDEOS_INSTALL
+	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+	#$(error IncludeOS installation folder not set!)
+endif
+# shorter name
+INSTALL = $(INCLUDEOS_INSTALL)
+
 
 # External Libraries
 ###################################################
@@ -21,7 +27,7 @@ DEBUG_OPTS = -ggdb3
 # Compiler/Linker
 ###################################################
 
-CC  = clang-3.6 -target i686-elf
+CC  = clang-3.6 -target i686-elf -v
 CPP = clang++-3.6 -target i686-elf
 LD  = ld # Yes - we use the default linker
 
@@ -111,7 +117,7 @@ os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
 
-install: #os.a bootloader
+install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
 	cp os.a $(INSTALL)
