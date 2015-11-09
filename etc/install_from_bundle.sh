@@ -21,7 +21,7 @@ DEPENDENCIES="curl make clang-3.6 nasm bridge-utils qemu"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
 sudo apt-get update
-sudo apt-get install $DEPENDENCIES
+sudo apt-get install -y $DEPENDENCIES
 
 
 echo ">>> Updating git-tags "
