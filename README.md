@@ -3,6 +3,7 @@
 
 IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
+# Installation
 
 ## Prerequisites 
   * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
@@ -11,23 +12,44 @@ IncludeOS is an includeable, minimal library operating system for C++ services r
 
 (I'm using an Ubuntu VM, running virtualbox inside a mac.)
 
-## Installation
-
 Once you have a system with the prereqs (virtual or not), everything should be set up by:
 
+## A) Install libraries from binary bundle (fast)
+    $ sudo apt-get install git
+    $ git clone https://github.com/hioa-cs/IncludeOS
+    $ cd IncludeOS
+    $ ./etc/install_from_bundle.sh
+
+**The script will:**
+* Install the required dependencies: `curl make clang-3.6 nasm bridge-utils qemu`
+* Download the latest binary release bundle from github, using the github API.
+* Unzip the bundle to `$INCLUDEOS_INSTALL_LOC` - which you can set in advance, or which defaults to `$HOME`
+* Create a network bridge called `include0`, for tap-networking
+* Build the vmbuilder, which turns your service into a bootable image
+* Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`
+
+**Time:**
+About a miniute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBook Air)
+
+## B) Completely build everything from source (slow)
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
     $ ./install.sh
-Note: install.sh will install many packages, and as such parts will require sudo access.
+    
+**The script will:**
+* Install all the tools required for building IncludeOS, and all libraries it depends on:
+  * `build-essential make nasm texinfo clang-3.6 cmake ninja-build subversion zlib1g-dev libtinfo-dev`
+* Build a GCC cross compiler along the lines of the [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler) which we really only need to build `libgcc` and `newlib`.
+* Build [Redhat's newlib](https://sourceware.org/newlib/) using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it to the mentioned location.
+* Build a 32-bit version of [LLVM's libc++](http://libcxx.llvm.org/) tailored for IncludeOS. 
+* Build and install the IncludeOS library, which your service will be linked with.
+* Build and install the `vmbuild` tool, which turns your service into a bootable disk image.
+
+**Time:** 
 On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 33 minutes, depending on bandwidth.
 
-### The script is supposed to...:
-* Install any tools required for building and running IncludeOS, including GCC and Qemu. 
-* Build a cross compiler along the lines of [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler). The cross compiler toolchain will be installed to `/usr/local/IncludeOS/` where the OS library will end up as well.
-* Build [Redhat's newlib](https://sourceware.org/newlib/) using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it to the mentioned location.
-* Build and install the IncludeOS library, which your service will be linked with.
-* Build and install the `vmbuild` tool, which attaches a bootloader to your service and makes a bootable disk image out of it.
+**NOTE:** Both scripts will install packages, and as such parts will require sudo access.
 
 ### Testing the installation
 
