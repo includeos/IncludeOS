@@ -13,11 +13,8 @@ IncludeOS is not production ready, not feature complete, and very much a work in
     * Standard C++ library** (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
     * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html))
     * *Note:* Certain language features, such as threads and filestreams are currently missing backend support. 
-* **Standard C library** [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
-* **Node.js-style callback-based programming** - everything happens in one efficient thread with no I/O blocking or unnecessary guest-side context switching.
+* **Standard C library** using [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
 * **Virtio Network driver** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. Like most implementations IncludeOS currently uses "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
-* **No race conditions**. Delegated IRQ handling makes race conditions in "userspace" "impossible". ...unless you implement threads your self (you have the access) or we do.
-* **No virtual memory overhead** One service pr. VM means no need for virtual address spaces, and no overead due to address translation. Everything happens in a single, ring 0 address space. This has high impact on memory performance on some systems, but less so on newer CPU's with good hardware support for [nested paging](https://en.wikipedia.org/wiki/Second_Level_Address_Translation).
 * **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
     * TCP: Just enough to serve HTTP
     * UDP: Enough to support a high performance DNS service
@@ -25,6 +22,10 @@ IncludeOS is not production ready, not feature complete, and very much a work in
     * ARP
     * Ethernet
     * IPv6 support under active development
+* **Completely silent while idling**. As we documented in our [IEEE CloudCom 2013 paper](http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6753801), running a regular interval timer for concurrency inside a virtual machine will impose a significant CPU-load on hypervisors running many virtual machines. IncludeOS disables the timer interrupts completely when idle, making it use no CPU at all. This makes IncludeOS services well suited for resource saving through overbooking schemes. 
+* **Node.js-style callback-based programming** - everything happens in one efficient thread with no I/O blocking or unnecessary guest-side context switching.
+* **No race conditions**. Delegated IRQ handling makes race conditions in "userspace" "impossible". ...unless you implement threads yourself (you have the access) or we do.
+* **No virtual memory overhead** One service pr. VM means no need for virtual address spaces, and no overead due to address translation. Everything happens in a single, ring 0 address space. This has high impact on memory performance on some systems, but less so on newer CPU's with good hardware support for [nested paging](https://en.wikipedia.org/wiki/Second_Level_Address_Translation).
 * **All the guns and all the knives:** 
   * IncludeOS services run in ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try `asm("hlt")` in a normal userspace program - then try it in IncludeOS. Explain to the duck exactly what's going on ... and it will tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
   * *Hold your forces! I and James Gosling strongly object to guns and knives!*
