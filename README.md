@@ -3,7 +3,36 @@
 
 IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
-# Installation
+# It's a research prototype!
+
+### Key features
+* **KVM and VirtualBox support** with fully hardware assisted virtualization
+* **C++11/14 support**
+    * Standard C++ library** (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
+* Standard C library [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
+* Node.js-style callback-based programming - everything happens in one efficient thread (No I/O blocking)
+* [Virtio](http://www.linux-kvm.org/page/Virtio) ethernet driver with DMA. Currently in "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+* Delegated IRQ handling makes race conditions in "userspace" impossible. ...Until the day we add threads.
+* No virtual memory overhead - everything happens in a single address space.
+* A highly modular tcp/ip stack, still under heavy development.
+* (A http server)
+* (A RESTful API framework)
+* No virtual memory overhead
+* (A tcp/ip stack)
+* All the guns and all the knives: 
+  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
+  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
+    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
+    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
+    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
+
+### Limitations 
+* No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
+* No file system (we might add one, but TCP/IP comes first)
+* No memory protection. If you want to overwrite the kernel, feel free, it's just a part of your own process. 
+
+
+# Try it out!
 
 ## Prerequisites 
   * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
@@ -77,33 +106,7 @@ Take a look at the [examples](./examples). These all started out as copies of th
 ### Helper scripts
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
-
-## Features
-* Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
-* Standard C library [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
-* Node.js-style callback-based programming - everything happens in one efficient thread (No I/O blocking)
-* [Virtio](http://www.linux-kvm.org/page/Virtio) ethernet driver with DMA. Currently in "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
-* Delegated IRQ handling makes race conditions in "userspace" impossible. ...Until the day we add threads.
-* No virtual memory overhead - everything happens in a single address space.
-* A highly modular tcp/ip stack, still under heavy development.
-* (A http server)
-* (A RESTful API framework)
-* No virtual memory overhead
-* (A tcp/ip stack)
-* All the guns and all the knives: 
-  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
-  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
-    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
-    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
-    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
-
-### Limitations 
-* No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
-* No file system (we might add one, but TCP/IP comes first)
-* No memory protection. If you want to overwrite the kernel, feel free, it's just a part of your own process. 
-
 ## The build & boot process
-
 ### The build process is like this:
   1. Installing IncludeOS means building a static library `os.a`, and putting it (usually) in `/usr/local/IncludeOS` along with all the public os-headers (the "IncludeOS ABI"), which is what you'll be including in the service.
   2. When the service gets built it will turn into object files, which gets statically linked with the os-library and other libraries. Only the objects actually needed by the service will be linked, turning it all into one minimal elf-binary, `your_service`, with OS included.
