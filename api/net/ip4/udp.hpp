@@ -63,6 +63,8 @@ namespace net
     using Socket = net::SocketUDP;
     friend class net::SocketUDP;
     
+    Socket& bind(port port);
+    
   private: 
     
     downstream _network_layer_out;
