@@ -1,36 +1,39 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
 
-IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
+IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. Starting a program with `#include <os>`, will literally include a whole little operating system into your service during link-time. The build system will link your service and only the necessary OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. In other owrds, it's a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch, employing x86 hardware virtualization, with no dependencies except for the virtual hardware.
 
 # It's a research prototype!
+IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/IncludeOS_IEEE CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 ### Key features
 * **KVM and VirtualBox support** with fully hardware assisted virtualization
 * **C++11/14 support**
+    * Full C++11/14 language support with [clang](http://clang.llvm.org) v3.6 and later.
     * Standard C++ library** (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
-* Standard C library [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
-* Node.js-style callback-based programming - everything happens in one efficient thread (No I/O blocking)
-* [Virtio](http://www.linux-kvm.org/page/Virtio) ethernet driver with DMA. Currently in "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
-* Delegated IRQ handling makes race conditions in "userspace" impossible. ...Until the day we add threads.
-* No virtual memory overhead - everything happens in a single address space.
-* A highly modular tcp/ip stack, still under heavy development.
-* (A http server)
-* (A RESTful API framework)
-* No virtual memory overhead
-* (A tcp/ip stack)
-* All the guns and all the knives: 
-  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
+    * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html))
+    * *Note:* Certain language features, such as threads and filestreams are currently missing backend support. 
+* **Standard C library** [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
+* **Node.js-style callback-based programming** - everything happens in one efficient thread with no I/O blocking or unnecessary guest-side context switching.
+* **Virtio Network driver** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. Like most implementations IncludeOS currently uses "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+* **No race conditions**. Delegated IRQ handling makes race conditions in "userspace" "impossible". ...unless you implement threads your self (you have the access) or we do.
+* **No virtual memory overhead** One service pr. VM means no need for virtual address spaces, and no overead due to address translation. Everything happens in a single, ring 0 address space. This has high impact on memory performance on some systems, but less so on newer CPU's with good hardware support for [nested paging](https://en.wikipedia.org/wiki/Second_Level_Address_Translation).
+* **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
+    * TCP: Just enough to serve HTTP
+    * UDP: Enough to support a high performance DNS service
+    * ICMP: Enough to answer ping
+    * ARP
+    * Ethernet
+    * IPv6 support under active development
+* **All the guns and all the knives:** 
+  * IncludeOS services run in ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try `asm("hlt")` in a normal userspace program - then try it in IncludeOS. Explain to the duck exactly what's going on ... and it will tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
   * *Hold your forces! I and James Gosling strongly object to guns and knives!*
-    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
-    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
-    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
+    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md). 
+    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from our friends at [Mirage](http://mirage.io) ;-) 
+    * *Are the extra guns and knives really features?* For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
 
 ### Limitations 
-* No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
-* No file system (we might add one, but TCP/IP comes first)
-* No memory protection. If you want to overwrite the kernel, feel free, it's just a part of your own process. 
-
+If it's not listed under features, you can pretty much assume we don't have it yet. See the [Roadmap](https://github.com/hioa-cs/IncludeOS/wiki/Roadmap) for our current plan.
 
 # Try it out!
 
@@ -86,7 +89,7 @@ A successful setup should enable you to build and run a virtual machine. Some co
 
     $./test.sh 
 
-will build and run a VM for you, and let you know if everything worked out. 
+will build and run a VM for you - running [this example service](./src/debug/test_service.cpp), and let you know if everything worked out. 
 
 ## Start developing
 
