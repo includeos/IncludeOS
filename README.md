@@ -7,7 +7,7 @@ IncludeOS is an includeable, minimal library operating system for C++ services r
 IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/IncludeOS_IEEE CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 ### Key features
-* **KVM and VirtualBox support** with fully hardware assisted virtualization
+* **KVM and VirtualBox support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization) whenever available (it is on most modern x86 CPU's). In principle IncludeOS should run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), which power the [OpenStack IaaS cloud](https://www.openstack.org/), and [VirtualBox](https://www.virtualbox.org), which means that you can run your IncludeOS service on both Linux, Microsoft Windows and Apple OS X. 
 * **C++11/14 support**
     * Full C++11/14 language support with [clang](http://clang.llvm.org) v3.6 and later.
     * Standard C++ library** (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/)
@@ -38,10 +38,14 @@ If it's not listed under features, you can pretty much assume we don't have it y
 
 # Try it out!
 
-## Prerequisites 
-  * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
-  * Ubuntu 14.04 LTS x86_64, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
-  * Git
+## Prerequisites for building IncludeOS VM's
+  * A machine with at least 1024 MB memory - a VirtualBox VM will work fine
+     * (At least for the full compilation from source, we've found 512 MB to be insufficient). 
+  * Ubuntu 14.04 LTS x86_64, Vanilla 
+     * In order to support VGA graphics inside the VM, we recommend a lightweight GUI, such as  [lubuntu](http://lubuntu.net/blog/lubuntu-1404-trusty-tahr-released) which runs great inside a virtual machine.
+         * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu, that ends up right on `stdout`.
+     * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
+  * You'll need `git` to clone from github.
 
 (I'm using an Ubuntu VM, running virtualbox inside a mac.)
 
