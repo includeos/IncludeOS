@@ -30,6 +30,13 @@ namespace net {
     
     int set_len(uint32_t l);
     
+    //! Returns the remaining bytes we can fill into this packet,
+    //! before the packet is completely full
+    inline uint32_t capacity() const
+    {
+      return bufsize() - len();
+    }
+    
     /** Status of the buffer.
         AVAILABLE : It's just sitting there, free for use
         UPSTREAM : travelling upstream

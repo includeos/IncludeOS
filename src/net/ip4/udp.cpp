@@ -1,6 +1,6 @@
 //#define DEBUG // Allow debugging
 #include <os>
-#include <net/class_udp.hpp>
+#include <net/ip4/udp.hpp>
 
 using namespace net;
 

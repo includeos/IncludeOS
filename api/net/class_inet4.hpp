@@ -7,7 +7,7 @@
 #include <net/class_arp.hpp>
 #include <net/class_ip4.hpp>
 #include <net/class_icmp.hpp>
-#include <net/class_udp.hpp>
+#include <net/ip4/udp.hpp>
 #include <net/class_tcp.hpp>
 
 #include <vector>

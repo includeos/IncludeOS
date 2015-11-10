@@ -1,13 +1,16 @@
-#ifndef CLASS_UDP_HPP
-#define CLASS_UDP_HPP
+#ifndef NET_IP4_UDP_HPP
+#define NET_IP4_UDP_HPP
 
-#include <net/class_ip4.hpp>
 #include <map>
+#include "../class_ip4.hpp"
 
-namespace net {
-
+namespace net
+{
+  class SocketUDP;
+  
   /** Basic UDP support. @todo Implement UDP sockets.  */
-  class UDP{
+  class UDP
+  {
   public:
   
     /** UDP port number */
@@ -55,14 +58,21 @@ namespace net {
     int transmit(std::shared_ptr<Packet>& pckt);
   
     UDP();
-  
+    
+    // the UDP::Socket class
+    using Socket = net::SocketUDP;
+    friend class net::SocketUDP;
+    
   private: 
-  
+    
     downstream _network_layer_out;
     std::map<uint16_t, listener> ports;
-  
+    
+    
   };
 
 }
+
+#include "udp_socket.hpp"
 
 #endif

@@ -57,7 +57,8 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
 		virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
 		net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
-		net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
+		net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
+		net/ip4/udp.o net/ip4/udp_socket.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/class_packet.o net/dns/dns.o 
 
@@ -73,7 +74,7 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # - an OS library for the service to link against
 
 all: bootloader libc++abi.a os.a 
-	@echo "\n>>> Built OS-library. Install to'"$(OS)"' using 'make install'"
+	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
 stripped: bootloader libc++abi.a os.a test # Included test to get a stripped version
