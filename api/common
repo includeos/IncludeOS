@@ -1,7 +1,9 @@
+// -*-C++-*-
+
 #pragma once
 
 #if !defined(__cplusplus)
-#error "THIS IS SUPPOSED TO BE C++"
+#error "IncludeOS must be built with a  C++ compiler"
 #endif
 
 #include <sys/types.h>
@@ -48,6 +50,7 @@
 
 // debugging macros
 #include "debug"
+#include "warn"
 
 #ifndef __linux__
 typedef uint16_t port_t;
