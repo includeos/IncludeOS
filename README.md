@@ -85,13 +85,14 @@ On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 
 
 ### Testing the installation
 
-A successful setup should enable you to build and run a virtual machine. Some code for a very simple one is provided. The command
+A successful setup should enable you to build and run a virtual machine. Running the test-script:
 
-    $./test.sh 
+    IncludeOS$ ./test.sh 
 
-will build and run a VM for you - running [this example service](./src/debug/test_service.cpp), and let you know if everything worked out. 
+will build and run a [this example service](./src/debug/test_service.cpp), and let you know if everything worked out. 
+*NOTE:* The test script is written for Linux/KVM. For VirtualBox, see instructions below.
 
-## Start developing
+## Write a service
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
 2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
@@ -109,23 +110,6 @@ Take a look at the [examples](./examples). These all started out as copies of th
 ### Helper scripts
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
-## The build & boot process
-### The build process is like this:
-  1. Installing IncludeOS means building a static library `os.a`, and putting it (usually) in `/usr/local/IncludeOS` along with all the public os-headers (the "IncludeOS ABI"), which is what you'll be including in the service.
-  2. When the service gets built it will turn into object files, which gets statically linked with the os-library and other libraries. Only the objects actually needed by the service will be linked, turning it all into one minimal elf-binary, `your_service`, with OS included.
-  4. The utility `./vmbuild` (which was also compiled if needed) combines the installed bootloader and `your_service` into a disk image called `your_service.img`. At this point the bootloader gets the size and location of the service hardcoded into it.
-  5. Now Qemu can start with that image as hard disk.
-
-Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/linker.ld) for more information about how the build happens, and [vmbuild/vmbuild.cpp](./vmbuild/vmbuild.cpp) for how the image gets constructed.
-
-### The boot process goes like this:
-  1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
-  2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
-  3. The bootloader hands over control to the OS, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
-  4. The OS initializes `.bss`, calls global constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
-  5. Finally the OS class (still `OS::start`) calls `Service::start()`, inside your service, handing over control to you.
-
-
 ## Tools 
 
 ### Debugging with bochs
@@ -139,5 +123,10 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
 ### C++ Guidelines
 We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request. 
 
-## Q&A
-We're trying to grow a Wiki, and some questions might allready be [answered here](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
+## Read more on the wiki
+We're trying to grow a Wiki, and some questions might allready be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
+
+See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guies.
+
+
+
