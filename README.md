@@ -1,31 +1,55 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
 
-IncludeOS is an includeable, minimal library operating system for C++ services running in cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
+IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. By "includeable" we mean that your service will start by saying `#include <os>`, which will literally include a whole little operating system ABI into your service. The build system will then link your service and the OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. 
 
+# Installation
 
 ## Prerequisites 
   * A machine with at least 1024 MB memory. (At least for ubuntu I ran out during compilation of toolchain with 512 MB). 
-  * Ubuntu 14.04 LTS, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
+  * Ubuntu 14.04 LTS x86_64, Vanilla (I use lubuntu, to support VM graphics if necessary). You should be able to develop for IncludeOS on any platform with gcc, but the build system is currently targeted for- and tested on Ubuntu.
   * Git
 
 (I'm using an Ubuntu VM, running virtualbox inside a mac.)
 
-## Installation
-
 Once you have a system with the prereqs (virtual or not), everything should be set up by:
 
+## A) Install libraries from binary bundle (fast)
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ sudo ./install.sh
+    $ ./etc/install_from_bundle.sh
 
-### The script is supposed to...:
-* Install any tools required for building and running IncludeOS, including GCC and Qemu. 
-* Build a cross compiler along the lines of [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler). The cross compiler toolchain will be installed to `/usr/local/IncludeOS/` where the OS library will end up as well.
+**The script will:**
+* Install the required dependencies: `curl make clang-3.6 nasm bridge-utils qemu`
+* Download the latest binary release bundle from github, using the github API.
+* Unzip the bundle to `$INCLUDEOS_INSTALL_LOC` - which you can set in advance, or which defaults to `$HOME`
+* Create a network bridge called `include0`, for tap-networking
+* Build the vmbuilder, which turns your service into a bootable image
+* Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`
+
+**Time:**
+About a miniute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBook Air)
+
+## B) Completely build everything from source (slow)
+    $ sudo apt-get install git
+    $ git clone https://github.com/hioa-cs/IncludeOS
+    $ cd IncludeOS
+    $ ./install.sh
+    
+**The script will:**
+* Install all the tools required for building IncludeOS, and all libraries it depends on:
+  * `build-essential make nasm texinfo clang-3.6 cmake ninja-build subversion zlib1g-dev libtinfo-dev`
+* Build a GCC cross compiler along the lines of the [osdev howto](http://wiki.osdev.org/GCC_Cross-Compiler) which we really only need to build `libgcc` and `newlib`.
 * Build [Redhat's newlib](https://sourceware.org/newlib/) using the cross compiler, and install it according to `./etc/build_newlib.sh`. The script will also install it to the mentioned location.
+* Build a 32-bit version of [LLVM's libc++](http://libcxx.llvm.org/) tailored for IncludeOS. 
 * Build and install the IncludeOS library, which your service will be linked with.
-* Build and install the `vmbuild` tool, which attaches a bootloader to your service and makes a bootable disk image out of it.
+* Build and install the `vmbuild` tool, which turns your service into a bootable disk image.
+
+**Time:** 
+On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 33 minutes, depending on bandwidth.
+
+**NOTE:** Both scripts will install packages, and as such parts will require sudo access.
 
 ### Testing the installation
 
@@ -64,6 +88,14 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 * A highly modular tcp/ip stack, still under heavy development.
 * (A http server)
 * (A RESTful API framework)
+* No virtual memory overhead
+* (A tcp/ip stack)
+* All the guns and all the knives: 
+  * You're ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try to `asm("hlt")` the CPU in a normal userspace program (or even Baby Freeze with `asm("cli;hlt")`) - then try it in IncludeOS. Explain to the duck exactly what's going on ... and he'll tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
+  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
+    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md).  
+    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from [Mirage](http://mirage.io) ;-). 
+    * But are the extra guns and knives really features? For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
 
 ### Limitations 
 * No threading by design. You want more processors? Start more VM's - they're extremely lightweight.
@@ -84,7 +116,7 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   1. BIOS loads [bootloader.asm](./src/bootloader.asm), starting at `_start`. 
   2. The bootloader sets up segments, switches to protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk.
   3. The bootloader hands over control to the OS, which starts at the `_start` symbol inside [kernel_boot.cpp](src/kernel_boot.cpp). 
-  4. The OS initializes `.bss`, calls clobal constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
+  4. The OS initializes `.bss`, calls global constructors (`_init`), and then calls `main` which just calls `OS::start` in [class_os.cpp](./src/class_os.cpp), which again sets up interrupts, initializes devices +++, etc. etc.
   5. Finally the OS class (still `OS::start`) calls `Service::start()`, inside your service, handing over control to you.
 
 
@@ -98,10 +130,8 @@ Inspect the [Makefile](./src/Makefile) and [linker script, linker.ld](./src/link
   * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
+### C++ Guidelines
+We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request. 
 
 ## Q&A
-
-* Why can't we just start with implementing `int main(...)`?
-      * We could, but the function signature wouldn't make any sense; we have only one process and no shell, so there's no place to return to, or to pass in arguments from.
-* Why can't we have more than one process? 
-       * IncludeOS is intended to be the "elastic" part of an elastic cloud service. That means we might want a whole lot of IncludeVM's going up and down, and adding any feature *x* to a vm *v* will give us *(vm+x)\*n* instad of just *vm\*n*. And we don't want to pay for anything more than we need, especially not inside the part that's supposed to scale.
+We're trying to grow a Wiki, and some questions might allready be [answered here](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 

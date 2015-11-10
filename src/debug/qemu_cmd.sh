@@ -1,4 +1,13 @@
-export QEMU="qemu-system-i386 -smp 1"
+
+# Check for hardware-virtualization support
+if [ `egrep '^flags.*(vmx|svm)' /proc/cpuinfo` ]
+then
+    echo ">>> KVM: ON "
+    export QEMU="qemu-system-x86_64 --enable-kvm"
+else
+    echo ">>> KVM: OFF "
+    export QEMU="qemu-system-i386"
+fi
 
 #DEV_NET="-net nic,model=virtio,macaddr=fa:16:3e:db:40:3a"
 #OPENSTACK="-netdev tap,fd=29,id=hostnet0 " #Bad file descriptor
@@ -14,13 +23,18 @@ export QEMU="qemu-system-i386 -smp 1"
 
 #export macaddress="08:00:27:9d:86:e8"
 export macaddress="c0:01:0a:00:00:2a"
-export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0"
+[ ! -v INCLUDEOS_INSTALL ] && INCLUDEOS_INSTALL=$HOME/IncludeOS_install
+export qemu_ifup="$INCLUDEOS_INSTALL/etc/qemu-ifup"
+
+export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
+export SMP="-smp 1"
+
 
 #export DEV_GRAPHICS="-vga std"
 export DEV_GRAPHICS="--nographic"
 
 export DEV_HDD="-hda $IMAGE"
-export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS"
+export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP"
 
 
 echo $QEMU $QEMU_OPTS
