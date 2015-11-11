@@ -8,9 +8,16 @@ SERVICE = My_IncludeOS_Service
 # Your service parts
 FILES = service.cpp
 
+# IncludeOS location
+ifndef INCLUDEOS_INSTALL
+	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+endif
+
+# Shorter name
+INSTALL = $(INCLUDEOS_INSTALL)
+
 # Compiler/Linker
 ###################################################
-INSTALL = ../../IncludeOS_install
 
 OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
 
@@ -119,8 +126,6 @@ crt%.o: $(INSTALL)/crt/crt%.s
 ###################################################
 clean: 
 	$(RM) $(OBJS) $(DEPS) $(SERVICE) 
-	$(RM) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
-	$(RM) crti.o crtn.o 
-	$(RM) $(DEPS) crti.d crtn.d
+	$(RM) $(SERVICE).img
 
 -include $(DEPS)
