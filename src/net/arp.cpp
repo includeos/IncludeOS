@@ -114,7 +114,7 @@ int Arp::arp_respond(header* hdr_in){
   // We're passing a stack-pointer here. That's dangerous if the packet 
   // is supposed to be kept, somewhere up the stack. 
   auto packet_ptr = std::make_shared<Packet>
-    (Packet(buffer, bufsize, Packet::DOWNSTREAM));
+    (buffer, bufsize, Packet::DOWNSTREAM);
   
   _linklayer_out(packet_ptr);
   

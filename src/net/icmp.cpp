@@ -54,7 +54,7 @@ void ICMP::ping_reply(full_header* full_hdr){
   
   /** Create packet */
   auto packet_ptr = std::make_shared<Packet>
-    (Packet(buf, sizeof(full_header), Packet::DOWNSTREAM));
+    (buf, sizeof(full_header), Packet::DOWNSTREAM);
 
   _network_layer_out(packet_ptr);
 }
