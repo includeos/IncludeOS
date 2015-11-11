@@ -76,13 +76,11 @@ namespace net {
     inline static IP6::addr ip6(netdev nic)
     { return _ip6_list[nic]; }
     
-    static Inet* up()
+    static Inet& up()
     {
       if (_ip4_list.size() < 1)
-        panic("<Inet> Can't bring up IP stack without any IP addresses");
-      
-      if (!instance)
-          instance = new Inet();
+        WARN("<Inet> Is bringing up an IP stack without any IP addresses");      
+      static Inet instance;
       return instance;
     }
     
@@ -97,9 +95,7 @@ namespace net {
     static std::map<uint16_t,IP4::addr> _netmask_list;
     static std::map<uint16_t,IP6::addr> _ip6_list;
     static std::map<uint16_t,Ethernet*> _ethernet_list;
-    static std::map<uint16_t,Arp*> _arp_list;
-    
-    static Inet* instance;  
+    static std::map<uint16_t,Arp*> _arp_list;    
     
     // This is the actual stack
     IP4  _ip4;

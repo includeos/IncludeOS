@@ -4,7 +4,6 @@
 
 namespace net
 {
-  Inet* Inet::instance = nullptr;
   
   std::map<uint16_t, IP4::addr> Inet::_ip4_list;
   std::map<uint16_t, IP4::addr> Inet::_netmask_list;
