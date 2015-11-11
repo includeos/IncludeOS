@@ -1,12 +1,12 @@
-#ifndef OSABI_OS_HEADER
-#define OSABI_OS_HEADER
+#ifndef OS_HEADER
+#define OS_HEADER
 
 #include <common>
 
 // The service- and os classes
-#include "class_service.hpp"
-#include "class_os.hpp"
+#include "service.hpp"
+#include "os.hpp"
 #include "syscalls.hpp"
-#include "class_dev.hpp"
+#include "dev.hpp"
 
 #endif
