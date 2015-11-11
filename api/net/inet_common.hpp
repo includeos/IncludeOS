@@ -10,19 +10,12 @@ namespace net {
       (i.e. IP uses packet, and packet uses IP headers) */
   class Packet;
   
-  /** Upstream delegate */
-  typedef delegate<int(std::shared_ptr<Packet>&)> upstream;
 
-  /** Downstream delegate 
+  using Packet_ptr = std::shared_ptr<Packet>;
 
-      @note We used to have meta-info like destination mac, dest.IP etc. as 
-      parameters. When we remove this we get a weakness; it's possible to 
-      pass packets without the proper parameters. On the upside; much cleaner
-      interfaces.      
-      
-   */
-  typedef upstream downstream;
-  
+  /** Downstream / upstream delegates */
+  using downstream = delegate<int(Packet_ptr)>;
+  using upstream = downstream;
 
   /** Compute the internet checksum for the buffer / buffer part provided */
   //uint16_t checksum(uint16_t* buf, uint32_t len); 

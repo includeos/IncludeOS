@@ -64,7 +64,7 @@ namespace net {
     static constexpr int minimum_payload = 46;
   
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
@@ -87,7 +87,7 @@ namespace net {
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
   
     Ethernet(addr mac);
 

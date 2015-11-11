@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 // #define DEBUG2
 
 #include <os>
@@ -36,7 +36,7 @@ void TCP::Socket::listen(int backlog){
   // Possibly allocate connectoin pointers (but for now we're using map)  
 }
 
-void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
+void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   
@@ -114,7 +114,7 @@ void TCP::Socket::write(std::string data){
   buffer_ += data;
 }
 
-int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
+int TCP::Socket::fill(Packet_ptr pckt){
   int capacity = pckt->bufsize() - pckt->len();
   void* out_buf = (char*) data_location(pckt);
   int bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
@@ -132,7 +132,7 @@ int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
   
 };
 
-int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
+int TCP::Socket::bottom(Packet_ptr pckt){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   auto flags = ntohs(hdr->offs_flags.whole);

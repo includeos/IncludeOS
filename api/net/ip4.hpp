@@ -82,7 +82,7 @@ namespace net {
     
     
     /** Upstream: Input from link layer. */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
     
     /** Upstream: Outputs to transport layer*/
     inline void set_icmp_handler(upstream s)
@@ -110,7 +110,7 @@ namespace net {
         Source IP *can* be set - if it's not, IP4 will set it.
         
     */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
 
     /** Compute the IP4 header checksum */
     uint16_t checksum(ip_header* hdr);

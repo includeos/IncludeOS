@@ -4,7 +4,7 @@
 
 using namespace net;
 
-int UDP::bottom(std::shared_ptr<Packet>& pckt){
+int UDP::bottom(Packet_ptr pckt){
   debug("<UDP handler> Got data \n");
   
   udp_header* hdr = &((full_header*)pckt->buffer())->udp_hdr;
@@ -35,7 +35,7 @@ void UDP::listen(uint16_t port, listener l){
   IP4::addr dip,UDP::port dport,
   uint8_t* data, int len){*/
 
-int UDP::transmit(std::shared_ptr<Packet>& pckt)
+int UDP::transmit(Packet_ptr pckt)
 {
   assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
   

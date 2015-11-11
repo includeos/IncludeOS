@@ -8,7 +8,7 @@
 
 using namespace net;
 
-int Arp::bottom(std::shared_ptr<Packet>& pckt)
+int Arp::bottom(Packet_ptr pckt)
 {
   debug2("<ARP handler> got %li bytes of data \n", pckt->len());
 
@@ -128,7 +128,7 @@ static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
 }
 
 
-int Arp::transmit(std::shared_ptr<Packet>& pckt){
+int Arp::transmit(Packet_ptr pckt){
   
   /** Get destination IP from IP header   */
   IP4::ip_header* iphdr = (IP4::ip_header*)(pckt->buffer() 

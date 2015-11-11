@@ -6,7 +6,7 @@
 using namespace net;
 
 
-int IP4::bottom(std::shared_ptr<Packet>& pckt){
+int IP4::bottom(Packet_ptr pckt){
   debug2("<IP4 handler> got the data. \n");
     
   const uint8_t* data = pckt->buffer();
@@ -42,7 +42,7 @@ uint16_t IP4::checksum(ip_header* hdr){
   return net::checksum((uint16_t*)hdr,sizeof(ip_header));
 }
 
-int IP4::transmit(std::shared_ptr<Packet>& pckt){
+int IP4::transmit(Packet_ptr pckt){
 
   //DEBUG Issue #102 :
   // Now _local_ip fails first, while _netmask fails if we remove local ip

@@ -12,7 +12,7 @@ const Ethernet::addr Ethernet::addr::IPv6mcast_01{minor: 0x3333, major: 0x010000
 const Ethernet::addr Ethernet::addr::IPv6mcast_02{minor: 0x3333, major: 0x02000000};
 
 
-int Ethernet::transmit(std::shared_ptr<Packet>& pckt){
+int Ethernet::transmit(Packet_ptr pckt){
   header* hdr = (header*)pckt->buffer();
 
   // Verify ethernet header
@@ -30,7 +30,7 @@ int Ethernet::transmit(std::shared_ptr<Packet>& pckt){
 }
 
 
-int Ethernet::bottom(std::shared_ptr<net::Packet>& pckt)
+int Ethernet::bottom(Packet_ptr pckt)
 {
   assert(pckt->len() > 0);
 

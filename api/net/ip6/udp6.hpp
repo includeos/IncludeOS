@@ -42,7 +42,7 @@ namespace net
     }
     
     // packet from IP6 layer
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
     
     // packet back TO IP6 layer for transmission
     int transmit(std::shared_ptr<PacketUDP6>& pckt);

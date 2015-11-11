@@ -5,7 +5,7 @@
 
 using namespace net;
 
-int ICMP::bottom(std::shared_ptr<Packet>& pckt){
+int ICMP::bottom(Packet_ptr pckt){
 
   if (pckt->len() < sizeof(full_header)) //Drop if not a full header.
     return -1;

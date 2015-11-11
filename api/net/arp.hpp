@@ -38,7 +38,7 @@ namespace net {
   
     /** Handle incoming ARP packet. */
     //int bottom(uint8_t* data, int len);
-    int bottom(std::shared_ptr<Packet>& pkt);
+    int bottom(Packet_ptr pckt);
 
     /** Delegate link-layer output. */
     inline void set_linklayer_out(downstream link){
@@ -46,7 +46,7 @@ namespace net {
     };
 
     /** Downstream transmission. */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
     
     
     /** Set IP4 address */

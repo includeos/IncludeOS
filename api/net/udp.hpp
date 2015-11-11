@@ -32,7 +32,7 @@ namespace net {
     }__attribute__((packed));
 
     /** Input from network layer */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
   
     /** Delegate type for listening to UDP ports. */
     typedef upstream listener;
@@ -52,7 +52,7 @@ namespace net {
         @param sport source port; replies might come back here
         @param dip Destination IP
         @param dport Destination port   */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
   
     UDP();
   
