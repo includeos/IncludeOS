@@ -3,7 +3,7 @@
 
 
 #include <os>
-#include <class_irq_manager.hpp>
+#include <irq_manager.hpp>
 #include "hw/pic.h"
 #include <assert.h>
 
