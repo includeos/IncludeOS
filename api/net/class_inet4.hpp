@@ -47,16 +47,12 @@ namespace net {
     static inline IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
         
-    static inline Inet4* up(){
+    static inline Inet4& up(){
       if (_ip4_list.size() < 1)
-	panic("<Inet> Can't bring up IP stack without any IP addresses");
+	WARN("<Inet> Can't bring up IP stack without any IP addresses");
       
-      if (!instance){
-	instance = new Inet4();
-	printf("<Inet> instance constructed @ %p\n", instance);
-      }
-      return instance;
-      
+      static Inet4 instance;
+      return instance; 
     };
     
     inline TCP& tcp(){ debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
