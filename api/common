@@ -51,7 +51,7 @@
 // debugging macros
 #include "debug"
 #include "warn"
-
+#include "info"
 #ifndef __linux__
 typedef uint16_t port_t;
 
