@@ -115,7 +115,7 @@ namespace net
     }
   }
   
-  int ICMPv6::bottom(std::shared_ptr<Packet>& pckt)
+  int ICMPv6::bottom(Packet_ptr pckt)
   {
     auto icmp = std::static_pointer_cast<PacketICMP6>(pckt);
     

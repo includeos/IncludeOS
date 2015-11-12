@@ -34,8 +34,4 @@ else
     sudo $QEMU $QEMU_OPTS 
 fi
 
-# Convert the image into VirtualBox / Qemu native formats
- . convert_image.sh
-
-#reset
-#bochs
+echo "NOTE: To run you image on another platform such as virtualbox, check out IncludeOS/etc/convert_image.sh"

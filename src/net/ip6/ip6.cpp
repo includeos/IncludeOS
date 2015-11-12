@@ -57,7 +57,7 @@ namespace net
     return next;
   }
   
-	int IP6::bottom(std::shared_ptr<Packet>& pckt)
+	int IP6::bottom(Packet_ptr pckt)
 	{
     debug(">>> IPv6 packet:");
     

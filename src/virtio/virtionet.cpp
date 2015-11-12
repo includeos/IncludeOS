@@ -266,7 +266,7 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   
   rx_q.disable_interrupts();
-  // We need a zipper
+  // A zipper, alternating between sending and receiving
   while(rx_q.new_incoming() or tx_q.new_incoming()){
     
     // Do one RX-packet
@@ -276,7 +276,7 @@ void VirtioNet::service_RX(){
       // We're passing a stack-pointer here. That's dangerous if the packet 
       // is supposed to be kept, somewhere up the stack. 
       auto pckt_ptr = std::make_shared<Packet>
-        (Packet(data+sizeof(virtio_net_hdr), len - sizeof(virtio_net_hdr), Packet::UPSTREAM));
+        (data+sizeof(virtio_net_hdr), len - sizeof(virtio_net_hdr), Packet::UPSTREAM);
       
       _link_out(pckt_ptr); 
     
@@ -326,7 +326,7 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
+int VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
 
 

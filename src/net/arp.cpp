@@ -8,7 +8,7 @@
 
 using namespace net;
 
-int Arp::bottom(std::shared_ptr<Packet>& pckt)
+int Arp::bottom(Packet_ptr pckt)
 {
   debug2("<ARP handler> got %li bytes of data \n", pckt->len());
 
@@ -114,7 +114,7 @@ int Arp::arp_respond(header* hdr_in){
   // We're passing a stack-pointer here. That's dangerous if the packet 
   // is supposed to be kept, somewhere up the stack. 
   auto packet_ptr = std::make_shared<Packet>
-    (Packet(buffer, bufsize, Packet::DOWNSTREAM));
+    (buffer, bufsize, Packet::DOWNSTREAM);
   
   _linklayer_out(packet_ptr);
   
@@ -128,7 +128,7 @@ static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
 }
 
 
-int Arp::transmit(std::shared_ptr<Packet>& pckt){
+int Arp::transmit(Packet_ptr pckt){
   
   /** Get destination IP from IP header   */
   IP4::ip_header* iphdr = (IP4::ip_header*)(pckt->buffer() 

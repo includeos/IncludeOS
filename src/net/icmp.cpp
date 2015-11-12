@@ -5,7 +5,7 @@
 
 using namespace net;
 
-int ICMP::bottom(std::shared_ptr<Packet>& pckt){
+int ICMP::bottom(Packet_ptr pckt){
 
   if (pckt->len() < sizeof(full_header)) //Drop if not a full header.
     return -1;
@@ -54,7 +54,7 @@ void ICMP::ping_reply(full_header* full_hdr){
   
   /** Create packet */
   auto packet_ptr = std::make_shared<Packet>
-    (Packet(buf, sizeof(full_header), Packet::DOWNSTREAM));
+    (buf, sizeof(full_header), Packet::DOWNSTREAM);
 
   _network_layer_out(packet_ptr);
 }

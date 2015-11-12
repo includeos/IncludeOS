@@ -60,7 +60,7 @@ namespace net {
     
     
     /** Destruct. */
-    ~Packet();
+    virtual ~Packet();
     
     // for a UPDv6 packet, the payload location is
     // the start of the UDPv6 header, and so on
@@ -76,7 +76,7 @@ namespace net {
     // transformed back to normal packet
     // unfortunately, we can't downcast with std::static_pointer_cast
     // however, all classes derived from Packet should be good to use
-    std::shared_ptr<Packet>& packet()
+    std::shared_ptr<Packet> packet()
     {
       return *(std::shared_ptr<Packet>*)this;
     }

@@ -16,7 +16,7 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
-  rsprint(">>> OS class started\n");
+  debug(">>> OS class started\n");
   srand(time(NULL));
   
   // Disable the timer interrupt completely
@@ -26,14 +26,8 @@ void OS::start()
   // heap
   extern caddr_t heap_end;
   extern char    _end;
-  printf("<OS> Heap start: %p\n", heap_end);
-  printf("<OS> Current end is: %p\n", &_end);
-  
-  timeval t;
-  gettimeofday(&t,0);
-  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",
-      t.tv_sec, t.tv_usec, uptime());
-  
+  INFO("<OS> Heap start: %p\n", heap_end);
+  INFO("<OS> Current end is: %p\n", &_end);
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
   IRQ_manager::init();
@@ -49,19 +43,22 @@ void OS::start()
 
   asm("sti");
   
-  printf(">>> Estimating CPU-frequency\n");    
-  printf("    | \n");  
-  printf("    +--(10 samples, %f sec. interval)\n", (PIT::frequency() / _cpu_sampling_freq_divider_).count() );
-  printf("    | \n");  
-  _CPU_mhz = PIT::CPUFrequency();
-  printf("    +--> %f MHz \n\n", _CPU_mhz.count());  
-    
-  printf(">>> IncludeOS initialized - calling Service::start()\n");  
+  
+  INFO(">>> Estimating CPU-frequency\n");    
+  INFO("    | \n");  
+  INFO("    +--(10 samples, %f sec. interval)\n", 
+       (PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO("    | \n");  
+  
+  // TODO: Debug why this sometimes causes problems. Issue #246. 
+  _CPU_mhz = MHz(2200); //PIT::CPUFrequency();
+  INFO("    +--> %f MHz \n\n", _CPU_mhz.count());
+  
+  INFO(">>> IncludeOS initialized - calling Service::start()\n");  
   
   // Everything is ready
   Service::start();
   
-
   event_loop();
 }
 
@@ -72,6 +69,11 @@ extern "C" void halt_loop(){
 
 void OS::halt(){
   __asm__ volatile("hlt;");
+}
+
+
+double OS::uptime(){  
+  return cycles_since_boot() / _CPU_mhz.count(); 
 }
 
 void OS::event_loop()

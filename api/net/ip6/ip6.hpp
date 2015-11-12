@@ -252,7 +252,7 @@ namespace net
     }
     
     // handler for upstream IPv6 packets
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
     
     // transmit packets to the ether
     int transmit(std::shared_ptr<PacketIP6>& pckt);

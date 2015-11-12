@@ -30,8 +30,7 @@ class OS{
   }
   
   /** Uptime in seconds. */
-  static inline double uptime()
-  { return (cycles_since_boot() / _CPU_mhz.count() ); }
+  static double uptime();
   
   /** Receive a byte from port. @todo Should be moved 
       @param port : The port number to receive from

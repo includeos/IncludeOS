@@ -51,7 +51,7 @@ namespace net
     } __attribute__((packed));
     
     // packet from IP6 layer
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
     
     // set the downstream delegate
     inline void set_ip6_out(IP6::downstream6 del)

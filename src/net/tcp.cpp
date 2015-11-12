@@ -33,7 +33,7 @@ TCP::Socket& TCP::bind(port p){
 }
 
 
-uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){  
+uint16_t TCP::checksum(Packet_ptr pckt){  
   // Size has to be fetched from the frame
   
   full_header* hdr = (full_header*)pckt->buffer();
@@ -87,7 +87,7 @@ uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){
 
 
 
-int TCP::transmit(std::shared_ptr<Packet>& pckt){
+int TCP::transmit(Packet_ptr pckt){
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr->tcp_hdr);
@@ -102,7 +102,7 @@ int TCP::transmit(std::shared_ptr<Packet>& pckt){
 };
 
 
-int TCP::bottom(std::shared_ptr<Packet>& pckt){
+int TCP::bottom(Packet_ptr pckt){
  
   debug("<TCP::bottom> Upstream TCP-packet received, to TCP @ %p \n", this);
   debug("<TCP::bottom> There are %i open ports \n", listeners.size());

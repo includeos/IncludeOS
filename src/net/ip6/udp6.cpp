@@ -6,7 +6,7 @@
 
 namespace net
 {
-  int UDPv6::bottom(std::shared_ptr<Packet>& pckt)
+  int UDPv6::bottom(Packet_ptr pckt)
   {
     debug(">>> IPv6 -> UDPv6 bottom\n");
     auto P6 = std::static_pointer_cast<PacketUDP6>(pckt);
