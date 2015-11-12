@@ -15,7 +15,7 @@ namespace net
     
     
     SocketUDP(UDP&);
-    SocketUDP(UDP&, IP4::addr addr, port_t port);
+    SocketUDP(UDP&, port_t port);
     
     int read(std::string& data);
     int write(const std::string& data);
@@ -43,6 +43,8 @@ namespace net
     }
     
   private:
+    void internal_recv(std::shared_ptr<Packet> pckt);
+    
     IP4::addr l_addr;
     port_t    l_port;
     IP4::addr p_addr;

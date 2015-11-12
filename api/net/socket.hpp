@@ -1,6 +1,6 @@
 #pragma once
 
-#include "class_packet.hpp"
+#include "packet.hpp"
 #include <memory>
 #include <string>
 

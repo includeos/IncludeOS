@@ -2,7 +2,7 @@
 #define NET_IP4_UDP_HPP
 
 #include <map>
-#include "../class_ip4.hpp"
+#include "../ip4.hpp"
 
 namespace net
 {

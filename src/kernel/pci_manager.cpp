@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <common>
 
-#include <class_pci_manager.hpp>
-#include <class_pci_device.hpp>
-#include <class_nic.hpp>
+#include <pci_manager.hpp>
+#include <pci_device.hpp>
+#include <nic.hpp>
 
 
 #define NUM_BUSES 2;

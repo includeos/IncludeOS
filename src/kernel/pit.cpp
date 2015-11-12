@@ -1,8 +1,8 @@
 //#define DEBUG 
 // #define DEBUG2
 #include <os>
-#include <class_pit.hpp>
-#include <class_irq_manager.hpp>
+#include <pit.hpp>
+#include <irq_manager.hpp>
 #include <hw/cpu_freq_sampling.hpp>
 
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"

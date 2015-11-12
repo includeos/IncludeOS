@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <class_service.hpp>
+#include <service.hpp>
 
 // A private class to handle IRQ
-#include <class_irq_manager.hpp>
-#include <class_pci_manager.hpp>
+#include <irq_manager.hpp>
+#include <pci_manager.hpp>
 #include <stdlib.h>
 
 bool  OS::_power = true;
