@@ -27,7 +27,7 @@ void Service::start()
 	network = Inet::up();
 	
   network->udp_listen(SERVICE_PORT,
-  [] (std::shared_ptr<net::Packet>& pckt)
+  [] (net::Packet_ptr pckt)
   {
     std::cout << "*** Received data on port " << SERVICE_PORT << std::endl;
     reflect(network, pckt);

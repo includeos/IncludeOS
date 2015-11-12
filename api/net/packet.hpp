@@ -53,7 +53,7 @@ namespace net {
     
     
     /** Destruct. */
-    ~Packet();
+    virtual ~Packet();
     
     // for a UPDv6 packet, the payload location is
     // the start of the UDPv6 header, and so on

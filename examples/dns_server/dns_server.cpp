@@ -44,7 +44,7 @@ void DNS_server::start(Inet* net)
   cout << " ------------- Done. DNS server listening. " << endl;
 }
 
-int DNS_server::listener(std::shared_ptr<net::Packet>& pckt)
+int DNS_server::listener(net::Packet_ptr pckt)
 {
   cout << "<DNS SERVER> got packet..." << endl;
   
