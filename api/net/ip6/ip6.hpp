@@ -2,8 +2,8 @@
 #define NET_IP6_IP6_HPP
 
 #include <delegate>
-#include "../class_ethernet.hpp"
-#include "../class_packet.hpp"
+#include "../ethernet.hpp"
+#include "../packet.hpp"
 #include "../util.hpp"
 
 #include <debug>

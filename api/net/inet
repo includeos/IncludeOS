@@ -1,3 +1,4 @@
+//-*- C++ -*-
 #ifndef NET_INET
 #define NET_INET
 
