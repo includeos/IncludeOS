@@ -1,8 +1,8 @@
 //#define DEBUG 
 // #define DEBUG2
 #include <os>
-#include <class_pit.hpp>
-#include <class_irq_manager.hpp>
+#include <pit.hpp>
+#include <irq_manager.hpp>
 #include <hw/cpu_freq_sampling.hpp>
 
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"
@@ -73,7 +73,8 @@ void PIT::estimateCPUFrequency(){
   set_freq_divider(_cpu_sampling_freq_divider_);    
 
   // BLOCKING call to external measurment. 
-  calculate_cpu_frequency();
+  //calculate_cpu_frequency();
+  _CPUFreq_ = 2200;
     
   debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
   

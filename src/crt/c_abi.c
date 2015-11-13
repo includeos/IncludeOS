@@ -59,6 +59,27 @@ int* __errno_location(void)
   return &errno;
 }
 
+/// assert() interface of ISO POSIX (2003)
+void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
+{
+  if (function)
+    printf("%s:%u  %s: Assertion %s failed.", file, line, function, assertion);
+  else
+    printf("%s:%u  Assertion %s failed.", file, line, assertion);
+}
+
+/// sched_yield() causes the calling thread to relinquish the CPU.  The
+///               thread is moved to the end of the queue for its static priority
+///               and a new thread gets to run.
+int sched_yield(void)
+{
+  // On success, sched_yield() returns 0.  On error, -1 is returned, and
+  // errno is set appropriately.
+  //errno = ...;
+  return -1;
+}
+
+
 int access(const char *pathname, int mode)
 {
 	(void) pathname;

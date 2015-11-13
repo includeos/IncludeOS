@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <os>
-#include <class_irq_manager.hpp>
+#include <irq_manager.hpp>
 
 /** @note C-style code here, since we're dealing with interrupt handling. 
     The hardware expects a pure function pointer, and asm can't (easily) 

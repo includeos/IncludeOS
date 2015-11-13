@@ -2,7 +2,13 @@
 #              IncludeOS makefile               #
 #################################################
 
-INSTALL = ../../IncludeOS_install
+ifndef INCLUDEOS_INSTALL
+	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+	#$(error IncludeOS installation folder not set!)
+endif
+# shorter name
+INSTALL = $(INCLUDEOS_INSTALL)
+
 
 # External Libraries
 ###################################################
@@ -21,7 +27,7 @@ DEBUG_OPTS = -ggdb3
 # Compiler/Linker
 ###################################################
 
-CC  = clang-3.6 -target i686-elf
+CC  = clang-3.6 -target i686-elf -v
 CPP = clang++-3.6 -target i686-elf
 LD  = ld # Yes - we use the default linker
 
@@ -48,12 +54,12 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o \
 		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-		hw/pic.o hw/class_pci_device.o hw/class_dev.o hw/cpu_freq_sampling.o \
-		virtio/class_virtio.o virtio/class_virtionet.o virtio/class_virtio_queue.o \
-		net/class_ethernet.o net/inet.o net/class_inet.o net/class_arp.o net/class_ip4.o \
-		net/class_udp.o net/class_tcp.o net/class_tcp_socket.o net/class_icmp.o net/class_inet4.o \
+		hw/pic_sanos.o hw/pci_device.o hw/dev.o hw/cpu_freq_sampling.o \
+		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
+		net/ethernet.o net/inet.o net/inet_common.o net/arp.o net/ip4.o \
+		net/udp.o net/tcp.o net/tcp_socket.o net/icmp.o net/inet4.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/class_packet.o net/dns/dns.o 
+		net/packet.o net/dns/dns.o #hw/pic.o
 
 # Header dependencies (rebuild if header changed)
 ###################################################
@@ -111,7 +117,7 @@ os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
 	ar rcs $@ $(OS_OBJECTS)
 
-install: #os.a bootloader
+install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
 	cp os.a $(INSTALL)

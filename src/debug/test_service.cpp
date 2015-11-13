@@ -25,14 +25,14 @@ void Service::start()
 		       {{ 255,255,0,0 }} );
    
   // Bring up the interface
-  net::Inet4* inet = net::Inet4::up();
+  net::Inet4& inet = net::Inet4::up();
   printf("Service IP address: %s \n", net::Inet4::ip4(net::ETH0).str().c_str());
   
   // Set up a server on port 80
-  net::TCP::Socket& sock =  inet->tcp().bind(80);
+  net::TCP::Socket& sock =  inet.tcp().bind(80);
 
   printf("SERVICE: %i open ports in TCP @ %p \n",
-	 inet->tcp().openPorts(), &(inet->tcp()));   
+	 inet.tcp().openPorts(), &(inet.tcp()));   
   
   
   srand(OS::cycles_since_boot());

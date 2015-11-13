@@ -1,0 +1,8 @@
+// -*-C++-*-
+#pragma once
+
+#ifdef WARN
+#define WARN(X,...)  printf("\nWARNING: " X,##__VA_ARGS__);
+#else 
+#define WARN(X,...) 
+#endif
