@@ -42,18 +42,30 @@ then
 else    
     echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
     # Download from GitHub API    
-    # IF PRIVATE:
-    echo -n "Enter github username: "
-    export git_user="git"
-    read git_user
-    
-    echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-    JSON=`curl -u $git_user https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
+    if [ $1 = "-oauthToken" ]
+    then
+        oauthToken=$2
+        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
+        JSON=`curl -u $git_user:$oauthToken https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
+    else
+        # IF PRIVATE:
+        echo -n "Enter github username: "
+        export git_user="git"
+        read git_user
+
+        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
+        JSON=`curl -u $git_user https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
+    fi
     ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
     ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
     echo -e "\n\n>>> Getting the latest release bundle from GitHub"
-    curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user $ASSET_URL
+    if [ $1 = "-oauthToken" ]
+    then
+        curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user:$oauthToken $ASSET_URL
+    else
+        curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user $ASSET_URL
+    fi
     
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
