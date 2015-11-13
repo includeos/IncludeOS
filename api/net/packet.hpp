@@ -1,18 +1,10 @@
 #ifndef CLASS_PACKET_H
 #define CLASS_PACKET_H
 
-//#include <os>
-
-//#include <net/inet>
-
-//#include <net/class_ethernet.hpp>
-//#include <net/class_arp.hpp>
 #include <net/ip4.hpp>
-//#include <net/class_udp.hpp>
 
-
-namespace net {
-  
+namespace net
+{
   class Packet {
   public:
     
@@ -35,6 +27,11 @@ namespace net {
     inline uint32_t capacity() const
     {
       return bufsize() - len();
+    }
+    //! Returns true if the packets internal buffer is full
+    bool full() const
+    {
+      return capacity() == 0;
     }
     
     /** Status of the buffer.
@@ -73,8 +70,8 @@ namespace net {
       return _payload;
     }
     
-    // transformed back to normal packet
-    // unfortunately, we can't downcast with std::static_pointer_cast
+    // Upcast back to normal packet
+    // unfortunately, we can't upcast with std::static_pointer_cast
     // however, all classes derived from Packet should be good to use
     std::shared_ptr<Packet> packet()
     {
@@ -90,54 +87,6 @@ namespace net {
     IP4::addr _next_hop4;
   };
   
-
-  // class Ethernet_Packet : public Packet {      
-  // public:    
-    
-  //   /** Where header ends and "next layer" / data starts */
-  //   uint32_t data_start();
-      
-  //   /** Initialize. Sets the header to point to the right place inside data. */
-  //   Ethernet_Packet(Packet p);
-    
-  // private:
-  //   Ethernet::header* hdr = 0;
-    
-    
-  // };
-  
-  // class IP_Packet : public Packet {
-  // public:
-  //   /** Where header ends and "next layer" / data starts */
-  //   uint32_t data_start();    
-  // };
-  
-  // class IP4_Packet : public Packet {
-  // public:
-  //   /** Where header ends and "next layer" / data starts */
-  //   uint32_t data_start();
-    
-  //   /** Initialize. Sets the header to point to the right place inside data. */
-  //   IP4_Packet(Ethernet_Packet p);
-    
-  // private:
-  //   IP4::ip_header* hdr = 0;
-    
-    
-  // };
-  
-  
-  // class UDP_Packet : public Packet {
-    
-  // public:
-  //   UDP_Packet(IP4_Packet pckt);
-  //   UDP::udp_header* hdr = 0;
-
-    
-  // };
-    
-
 }
-
 
 #endif

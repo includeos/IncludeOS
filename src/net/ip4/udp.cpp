@@ -1,20 +1,23 @@
 //#define DEBUG // Allow debugging
 #include <os>
 #include <net/ip4/udp.hpp>
+#include <net/util.hpp>
+#include <memory>
 
 using namespace net;
 
-int UDP::bottom(Packet_ptr pckt){
+int UDP::bottom(Packet_ptr pckt)
+{
   debug("<UDP handler> Got data \n");
-  
-  udp_header* hdr = &((full_header*)pckt->buffer())->udp_hdr;
+  std::shared_ptr<PacketUDP> udp = 
+      std::static_pointer_cast<PacketUDP> (pckt);
   
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
-        __builtin_bswap16(hdr->sport),__builtin_bswap16(hdr->dport), 
-        __builtin_bswap16(hdr->length));
+        udp->src_port(), udp->dst_port(), udp->length());
   
-  auto l = ports.find(__builtin_bswap16(hdr->dport));
-  if (l != ports.end()){
+  auto l = ports.find(udp->dst_port());
+  if (l != ports.end())
+  {
     debug("<UDP> Someone's listening to this port. Let them hear it.\n");
     return l->second(pckt);
   }
@@ -23,8 +26,9 @@ int UDP::bottom(Packet_ptr pckt){
   return -1;
 }
 
-void UDP::listen(uint16_t port, listener l){
-  debug("<UDP> Listening to port %i \n",port);
+void UDP::listen(UDP::port port, listener l)
+{
+  debug("<UDP> Listening to port %i \n", port);
   
   // any previous listeners will be evicted.
   ports[port] = l;
@@ -47,8 +51,7 @@ int UDP::transmit(Packet_ptr pckt)
      hdr->dport = dport;
      hdr->sport = sport; */
   
-  hdr->length =  __builtin_bswap16((uint16_t)(pckt->len() 
-                                              - sizeof(IP4::full_header)));
+  hdr->length = htons((uint16_t)(pckt->len() - sizeof(IP4::full_header)));
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
 
   IP4::addr sip = full_hdr->ip_hdr.saddr;

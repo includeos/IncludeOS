@@ -66,15 +66,13 @@ namespace net
     Socket& bind(port port);
     
   private: 
-    
     downstream _network_layer_out;
     std::map<uint16_t, listener> ports;
-    
-    
   };
 
 }
 
+#include "packet_udp.hpp"
 #include "udp_socket.hpp"
 
 #endif
