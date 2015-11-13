@@ -94,8 +94,18 @@ A successful setup should enable you to build and run a virtual machine. Running
 
     IncludeOS$ ./test.sh 
 
-will build and run a [this example service](./src/debug/test_service.cpp), and let you know if everything worked out. 
-*NOTE:* The test script is written for Linux/KVM. For VirtualBox, see instructions below.
+will build and run a [this example service](./src/debug/test_service.cpp). 
+
+**Things to note**
+* The defalut test script will only work on Linux, and uses Qemu (with KVM if available). To run IncludeOS directly on virtualbox, see `etc/vboxrun.sh`
+* There is no shell! IncludeOS is a unikernel, meaning it will only run one process. Think of an IncludeOS VM as a local process.
+* You should be able to ping the vm. Its IP-address will be stated in the boot-time output from IncldueOS (10.0.0.42 by default)
+   * To change the IP-address of the test-service, you can modify the source code in [./src/debug/test_service.cpp](./src/debug/test_service.cpp), or just edit the last four bytes of the mac-address using [./src/debug/qemu_cmd.sh](./src/debug/qemu_cmd.sh).
+* You should also be able to open a simple webpage on the vm, by entering the IP into a browser, inside the development machine.
+* How to get out? IncludeOS starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default rerout stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `ctrl+a x`. 
+   * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to virtualbox on windows), please let us know so we can update the wiki.
+
+
 
 ## Write a service
 
