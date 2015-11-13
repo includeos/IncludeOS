@@ -43,7 +43,6 @@ $VB storageattach $vmName --storagectl 'IDE Controller' --port 0 --device 0 --ty
 
 
 # Some management
-$VB modifyvm $vmName --ioapic on
 $VB modifyvm $vmName --boot1 disk
 
 # Serial port configuration to receive output
