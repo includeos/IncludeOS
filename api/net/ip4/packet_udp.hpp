@@ -1,30 +1,17 @@
 #pragma once
 
 #include "udp.hpp"
-#include "../packet.hpp"
-#include "../util.hpp"
+#include "packet_ip4.hpp"
 #include <cassert>
 
 namespace net
 {
-  class PacketUDP : public Packet, // might work as upcast:
+  class PacketUDP : public PacketIP4, // might work as upcast:
                     public std::enable_shared_from_this<PacketUDP>
   {
   public:
     static const int DEFAULT_TTL = 64;
     
-    Ethernet::header& eth_header()
-    {
-      return *(Ethernet::header*) buffer();
-    }
-    const IP4::ip_header& ip4_header() const
-    {
-      return ((UDP::full_header*) buffer())->ip_hdr;
-    }
-    IP4::ip_header& ip4_header()
-    {
-      return ((UDP::full_header*) buffer())->ip_hdr;
-    }
     UDP::udp_header& header() const
     {
       return ((UDP::full_header*) buffer())->udp_hdr;
@@ -49,24 +36,6 @@ namespace net
       header().checksum = 0;
       // set UDP payload location
       _payload = _data + sizeof(UDP::full_header);
-    }
-    
-    const IP4::addr& src() const
-    {
-      return ip4_header().saddr;
-    }
-    void set_src(const IP4::addr& addr)
-    {
-      ip4_header().saddr = addr;
-    }
-    
-    const IP4::addr& dst() const
-    {
-      return ip4_header().daddr;
-    }
-    void set_dst(const IP4::addr& addr)
-    {
-      ip4_header().daddr = addr;
     }
     
     UDP::port src_port() const
@@ -117,6 +86,7 @@ namespace net
       memcpy(data() + data_length(), buffer.data(), total);
       // set new packet length
       set_length(data_length() + total);
+      return total;
     }
   };
 }
