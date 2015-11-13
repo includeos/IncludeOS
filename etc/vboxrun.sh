@@ -1,75 +1,65 @@
-#! /bin/bash
+#!/bin/bash
 
-#
-# Run and re-run an Include OS vm after compilation, properly replacing the disk.
-#
-# MOTIVATION: 
-# When you replace a virtual box disk image with a newer version (such as one 
-# newly created by ./test.sh) any VM using this image file will fail. For this 
-# reason you could replace the image file manually, but then virtualbox
-# will complain about the UUID not matching the UUID in the image registry. 
-# This script properly replaces the disk attached to a VM with a new one.
-# 
-# PREREQUISITES:
-# 1. Create a new VirtualBox VM, called whatever you set in $VM_NAME
-# 2. Add an existing disk, and point to the image created by "IncludeOS/test.sh"
-#    usually IncludeOS/seed/IncludeOS_tests.img.vdi
-# 4. Set up a serial port for the VM under "Settings->Ports" and:
-#    - Check Enable serial port
-#    - Com1, defaults
-#    - Port mode: Raw file
-#    - Port/File path: whatever you put in $SERIAL_FILE below
-# 3. Run the VM and make sure it works
-# 4. After this you should be able to use this script
-#
-# USAGE: 
-# 1. Compile / build an image, for instance with $ <IncludeOS>/test.sh
-# (Now make the script copy <IncludeOS>/seed/IncludeOS_test.img.vdi to wherever
-# you're running this script.)
-# 
-# 2. $ ./vboxrun.sh
-# (now the VM should start, and the serial port output be displayed)
-# C^ c
-# (now the VM should stop)
-# 
-# 3. Make your changes, and repeat 1.
+# Creates a trap for CTRL+C so that the VM
+# powers off when the watch command gets interrupted
+function control_c
+{
+        # Shut down the VM
+        echo "Shutting down VM: $vmName..."
+        $VB controlvm $vmName poweroff
+	echo "Goodbye!"
+}
 
+trap control_c INT
 
-export VM_NAME="IncludeOS_test1"
-export DISK_RAW="./IncludeOS_tests.img"
-export DISK="./IncludeOS_tests.img.vdi"
+VB=VBoxManage
+vmName=IncludeOS_test
 
-if [ "$1" != "" ]
+homeDir=$(eval echo ~${SUDO_USER})
+
+disk="$homeDir/IncludeOS/seed/My_IncludeOS_Service.img"
+targetLoc="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
+
+echo -e "\nCreating virtual harddrive...\n"
+# CONVERT IMAGE TO VDI HERE
+if [ $(ls $homeDir/IncludeOS/seed/ | grep .vdi) ];
 then
-    export DISK=$1
+	echo -e "\nVDI image aldready exists, moving on...\n"
+else
+	$VB convertfromraw $disk $targetLoc
+	echo -e "\nCreating VDI image...\n"
 fi
 
-export UUID="4c29f994-ce59-4ddf-ba6b-46bcff01c321"
-export SERIAL_FILE="~/serial_virtualbox.out"
+#echo $disk
+#echo $targetLoc
 
-#"981C60DF-F54C-4244-868E-52EA87AC1E8A"
-export vbox="VBoxManage"
-echo `ls *.vdi`
 
-# Convert the image, keeping the UUID intact
-#$vbox convertfromraw $DISK_RAW $DISK --uuid $UUID
+# Creating and registering the VM and adding a virtual IDE drive to it,
+# then attaching the hdd image.
+echo -e "\nCreating VM ...\n"
+$VB createvm --name IncludeOS_test --ostype 'Other' --register
+$VB storagectl $vmName --name 'IDE Controller' --add ide --bootable on
+$VB storageattach $vmName --storagectl 'IDE Controller' --port 0 --device 0 --type 'hdd' --medium $targetLoc
 
-# Detach the IDE disk
-$vbox storageattach $VM_NAME --storagectl "IDE" --port 0 --device 0 \
-    --medium "none"
 
-# Remove from media registry
-$vbox closemedium disk $DISK 
+# Some management
+$VB modifyvm $vmName --boot1 disk
 
-# Reattach 
-$vbox storageattach $VM_NAME --storagectl "IDE" --port 0 --device 0 \
-    --medium $DISK --type "hdd" --setuuid $UUID
+# Serial port configuration to receive output
+$VB modifyvm $vmName --uart1 0x3F8 4 --uartmode1 file /tmp/IncludeOS.console.pipe
 
-# Start the VM
-$vbox startvm $VM_NAME
+# NETWORK
+#$VB hostonlyif create
+$VB modifyvm $vmName --nic1 hostonly --nictype1 virtio --hostonlyadapter1 include0
+$VB modifyvm $vmName --macaddress1 c001A0A0A0A0
 
-# Watch the serial port log (requires setting up a serial to file)
-watch tail $SERIAL_FILE
+# START VM
+$VB startvm $vmName --type headless &
+echo -e "\nVM $VmName started, processID is $!\n"
 
-# Power off VM
-$vbox controlvm $VM_NAME poweroff 
+echo "--------------------------------------------"
+echo "Checking serial output file, CTRL+C to exit."
+echo "--------------------------------------------"
+
+# Checks the serialfile produced by the VM
+watch tail /tmp/IncludeOS.console.pipe
