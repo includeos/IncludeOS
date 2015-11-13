@@ -42,7 +42,7 @@ then
 else    
     echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
     # Download from GitHub API    
-    if [ $1 = "-oauthToken" ]
+    if [ "$1" = "-oauthToken" ]
     then
         oauthToken=$2
         echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
@@ -60,7 +60,7 @@ else
     ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
     echo -e "\n\n>>> Getting the latest release bundle from GitHub"
-    if [ $1 = "-oauthToken" ]
+    if [ "$1" = "-oauthToken" ]
     then
         curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user:$oauthToken $ASSET_URL
     else
