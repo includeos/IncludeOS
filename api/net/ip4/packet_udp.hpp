@@ -68,6 +68,7 @@ namespace net
       // new total IP4 payload length
       ip4_header().tot_len =
           sizeof(IP4::ip_header) + sizeof(UDP::udp_header) + newlen;
+      ip4_header().tot_len = htons(ip4_header().tot_len);
       // new total packet length
       _len = sizeof(UDP::full_header) + newlen;
     }
