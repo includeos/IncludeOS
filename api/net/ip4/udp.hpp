@@ -13,7 +13,7 @@ namespace net
   class UDP
   {
   public:
-  
+    typedef IP4::addr addr_t;
     /** UDP port number */
     typedef uint16_t port;
   
@@ -34,13 +34,22 @@ namespace net
       IP4::ip_header ip_hdr;
       udp_header udp_hdr;
     }__attribute__((packed));
-
+    
+    ////////////////////////////////////////////
+    
+    inline addr_t local_ip() const
+    {
+      return _local_ip;
+    }
+    
     /** Input from network layer */
     int bottom(Packet_ptr pckt);
   
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)
-    { _network_layer_out = del; }
+    {
+      _network_layer_out = del;
+    }
     
     /** Send UDP datagram from source ip/port to destination ip/port. 
       
@@ -50,7 +59,7 @@ namespace net
         @param dport Remote port   */
     int transmit(std::shared_ptr<PacketUDP> udp);
   
-    UDP();
+    UDP(addr_t);
     
     // the UDP::Socket class
     using Socket = SocketUDP;
@@ -62,6 +71,7 @@ namespace net
   private: 
     downstream _network_layer_out;
     std::map<port, Socket> ports;
+    addr_t _local_ip;
   };
 
 }

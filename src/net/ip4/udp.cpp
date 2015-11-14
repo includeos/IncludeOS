@@ -63,4 +63,8 @@ int ignore_udp(std::shared_ptr<Packet> UNUSED(pckt))
   return 0;
 }
 
-UDP::UDP() : _network_layer_out(downstream(ignore_udp)) {};
+UDP::UDP(addr_t addr)
+  : _network_layer_out(downstream(ignore_udp))
+{
+  this->_local_ip = addr;
+}

@@ -9,48 +9,50 @@ namespace net
   {
   public:
     typedef UDP::port port_t;
+    typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
     
-    typedef delegate<void(Socket&, const std::string&)> recvfrom_handler;
-    typedef delegate<void(Socket&, const std::string&)> sendto_handler;
+    typedef delegate<int(SocketUDP&, addr_t, port_t, const std::string&)> recvfrom_handler;
+    typedef delegate<int(SocketUDP&, addr_t, port_t, const std::string&)> sendto_handler;
     
-    
+    // constructors
     SocketUDP(UDP&);
     SocketUDP(UDP&, port_t port);
     SocketUDP(const SocketUDP&) = delete;
     
-    void onRead(recvfrom_handler func);
-    void onWrite(sendto_handler func);
+    // functions
+    inline void onRead(recvfrom_handler func)
+    {
+      on_read = func;
+    }
+    inline void onWrite(sendto_handler func)
+    {
+      on_send = func;
+    }
+    int write(addr_t destIP, port_t port, 
+              const std::string& buffer);
     void close();
     
     void join(multicast_group_addr&);
     void leave(multicast_group_addr&);
     
-    
-    IP4::addr local_addr() const
+    // stuff
+    addr_t local_addr() const
     {
-      return l_addr;
+      return stack.local_ip();
     }
     port_t local_port() const
     {
       return l_port;
     }
-    IP4::addr peer_addr() const
-    {
-      return p_addr;
-    }
-    port_t peer_port() const
-    {
-      return p_port;
-    }
     
   private:
     int internal_read(std::shared_ptr<PacketUDP> udp);
     
-    IP4::addr l_addr;
-    port_t    l_port;
-    IP4::addr p_addr;
-    port_t    p_port;
+    UDP&   stack;
+    port_t l_port;
+    recvfrom_handler on_read;
+    sendto_handler   on_send;
     
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender

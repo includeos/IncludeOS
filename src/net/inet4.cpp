@@ -29,7 +29,7 @@ namespace net
 
   Inet4::Inet4() :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-    _ip4(_ip4_list[0],_netmask_list[0]), _tcp(_ip4_list[0])
+    _ip4(_ip4_list[0],_netmask_list[0]), _udp(_ip4_list[0]), _tcp(_ip4_list[0])
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());
     
