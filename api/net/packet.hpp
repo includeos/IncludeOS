@@ -7,6 +7,7 @@ namespace net
 {
   class Packet {
   public:
+    static const int MTU = 1500;
     
     /** Get the buffer */
     uint8_t* buffer() const
@@ -82,7 +83,7 @@ namespace net
     uint8_t* _payload;
     uint8_t* _data;
     uint32_t _len;
-    uint32_t _bufsize = 1500;
+    uint32_t _bufsize = MTU;
     packet_status _status;
     IP4::addr _next_hop4;
   };

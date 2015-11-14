@@ -47,7 +47,8 @@ namespace net
     }
     
   private:
-    int internal_read(std::shared_ptr<PacketUDP> udp);
+    void packet_init(std::shared_ptr<PacketUDP>, addr_t, port_t, uint16_t);
+    int  internal_read(std::shared_ptr<PacketUDP> udp);
     
     UDP&   stack;
     port_t l_port;

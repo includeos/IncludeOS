@@ -17,6 +17,8 @@ namespace net
       return ((UDP::full_header*) buffer())->udp_hdr;
     }
     
+    static const size_t HEADERS_SIZE = sizeof(UDP::full_header);
+    
     //! initializes to a default, empty UDP packet, given
     //! a valid MTU-sized buffer
     void init()

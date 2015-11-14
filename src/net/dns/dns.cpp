@@ -29,8 +29,10 @@ namespace net
     debug("Request ID: %i \n", htons(hdr.id));
     debug("\t Type: %s \n", (hdr.qr ? "RESPONSE" : "QUERY"));
     
+#ifdef DEBUG
     unsigned short qno = ntohs(hdr.q_count);
     debug("Questions: %i \n ", qno);
+#endif
     
     char* buffer = (char*) &hdr + sizeof(header);
     
@@ -38,17 +40,18 @@ namespace net
     char* query = buffer;
     
     std::string parsed_query = parse_dns_query((unsigned char*) query);
-    debug("Question: %s", parsed_query.c_str());
+    debug("Question: %s\n", parsed_query.c_str());
     
     buffer += parsed_query.size() + 1; // zero-terminated
     
+#ifdef DEBUG
     question& q = *(question*) buffer;
-    
     unsigned short qtype  = ntohs(q.qtype);
     unsigned short qclass = ntohs(q.qclass);
     
     debug("Type:  %s (%i)",DNS::question_string(qtype).c_str(), qtype);
     debug("\t Class: %s (%i)",((qclass == 1) ? "INET" : "Unknown class"),qclass);
+#endif
     
     // go to next question (assuming 1 question!!!!)
     buffer += sizeof(question);
