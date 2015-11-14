@@ -1,3 +1,4 @@
+// -*-C++-*-
 #pragma once
 
 #ifdef DEBUG
@@ -11,3 +12,4 @@
 #else 
 #define debug2(X,...) 
 #endif
+
