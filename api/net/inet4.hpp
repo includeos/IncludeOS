@@ -25,15 +25,19 @@ namespace net {
   public:
     /** Listen to a UDP port. 
 	This is just a simple forwarder. @see UDP::listen.  */
-    inline void udp_listen(uint16_t port, UDP::listener l)
-    { _udp.listen(port,l); }
+    inline UDP::Socket& udp_bind(UDP::port port)
+    {
+      return _udp.bind(port);
+    }
     
     /** Send a UDP datagram. 
 	
 	@note the data buffer is the *whole* ethernet frame, so don't overwrite 
 	headers unless you own them (i.e. you *are* the IP object)  */
-    inline int udp_send(std::shared_ptr<Packet> pckt)
-    { return _udp.transmit(pckt); }
+    inline int udp_send(std::shared_ptr<PacketUDP> udp)
+    {
+      return _udp.transmit(udp);
+    }
     
     
     /** Bind an IP and a netmask to a given device. 

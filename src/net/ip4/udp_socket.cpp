@@ -4,9 +4,11 @@ namespace net
 {
   using port_t = SocketUDP::port_t;
   
-  SocketUDP& bind(port_t port)
+  SocketUDP::SocketUDP(UDP&, port_t port)
   {
-    /// ... !!!
-    
+    // create/retrieve packet
+    const uint8_t* buffer = new 
+    auto p = std::make_shared<PacketUDP> (buffer,
   }
+  
 }

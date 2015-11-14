@@ -6,6 +6,7 @@
 
 namespace net
 {
+  class PacketUDP;
   class SocketUDP;
   
   /** Basic UDP support. @todo Implement UDP sockets.  */
@@ -37,37 +38,30 @@ namespace net
     /** Input from network layer */
     int bottom(Packet_ptr pckt);
   
-    /** Delegate type for listening to UDP ports. */
-    typedef upstream listener;
-    
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)
     { _network_layer_out = del; }
-  
-    /** Listen to a port. 
-      
-        @note Any previous listener will be evicted (it's all your service) */
-    void listen(uint16_t port, listener s);
-
+    
     /** Send UDP datagram from source ip/port to destination ip/port. 
       
-        @param sip Source IP address - must be bound to a local interface.
-        @param sport source port; replies might come back here
-        @param dip Destination IP
-        @param dport Destination port   */
-    int transmit(Packet_ptr pckt);
+        @param sip   Local IP-address
+        @param sport Local port
+        @param dip   Remote IP-address
+        @param dport Remote port   */
+    int transmit(std::shared_ptr<PacketUDP> udp);
   
     UDP();
     
     // the UDP::Socket class
-    using Socket = net::SocketUDP;
-    friend class net::SocketUDP;
+    using Socket = SocketUDP;
+    friend class SocketUDP;
     
+    //! @param port local port
     Socket& bind(port port);
     
   private: 
     downstream _network_layer_out;
-    std::map<uint16_t, listener> ports;
+    std::map<port, Socket> ports;
   };
 
 }

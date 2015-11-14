@@ -260,7 +260,7 @@ namespace net
     printf(">> dest:   %s\n", pckt->dst().str().c_str());
     
     // perhaps we should answer
-    
+    (void) caller;
     
     return -1;
   }

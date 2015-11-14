@@ -15,65 +15,50 @@ int UDP::bottom(Packet_ptr pckt)
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
         udp->src_port(), udp->dst_port(), udp->length());
   
-  auto l = ports.find(udp->dst_port());
-  if (l != ports.end())
+  auto it = ports.find(udp->dst_port());
+  if (it != ports.end())
   {
-    debug("<UDP> Someone's listening to this port. Let them hear it.\n");
-    return l->second(pckt);
+    debug("<UDP> Someone's listening to this port. Forwarding...\n");
+    return it->second.internal_read(udp);
   }
   
   debug("<UDP> Nobody's listening to this port. Drop!\n");
   return -1;
 }
 
-void UDP::listen(UDP::port port, listener l)
+SocketUDP& UDP::bind(port_t port)
 {
-  debug("<UDP> Listening to port %i \n", port);
-  
-  // any previous listeners will be evicted.
-  ports[port] = l;
-  
-};
+  debug("<UDP> Listening to port %i\n", port);
+  /// ... !!!
+  auto it = ports.find(port);
+  if (it == ports.end())
+  {
+    // create new socket
+    auto res = ports.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(port),
+        std::forward_as_tuple(*this, port));
+    it = res.first;
+  }
+  return it->second;
+}
 
-/*int UDP::transmit(IP4::addr sip,UDP::port sport,
-  IP4::addr dip,UDP::port dport,
-  uint8_t* data, int len){*/
-
-int UDP::transmit(Packet_ptr pckt)
+int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 {
-  assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
-  
-  full_header* full_hdr = (full_header*)pckt->buffer();
-  udp_header* hdr = &(full_hdr->udp_hdr);
-  
-  // Populate all UDP header fields
-  /**
-     hdr->dport = dport;
-     hdr->sport = sport; */
-  
-  hdr->length = htons((uint16_t)(pckt->len() - sizeof(IP4::full_header)));
-  hdr->checksum = 0; // This field is optional (must be 0 if not used)
-
-  IP4::addr sip = full_hdr->ip_hdr.saddr;
-  IP4::addr dip = full_hdr->ip_hdr.daddr;
+  assert(udp->length() >= sizeof(UDP::full_header));
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
-        (uint16_t)(pckt->len() -sizeof(full_header)),
-        hdr->length,dip.str().c_str(),
-        hdr->dport);
+        udp->length(), udp->ip4_header()->length,
+        udp->dst().str().c_str(), udp->dst_port());
   
-  assert(sip != 0 && dip != 0 &&
-         full_hdr->ip_hdr.protocol == IP4::IP4_UDP);
+  assert(udp->protocol() == IP4::IP4_UDP);
   
-  debug("<UDP> sip: %s dip: %s, type: %i, len: %i  \n ",
-        sip.str().c_str(),dip.str().c_str(),IP4::IP4_UDP,pckt->len()
-        );
-  
+  Packet_ptr pckt = udp->packet();
   return _network_layer_out(pckt);
-  
-};
+}
 
-int ignore_udp(std::shared_ptr<Packet> UNUSED(pckt)){
+int ignore_udp(std::shared_ptr<Packet> UNUSED(pckt))
+{
   debug("<UDP->Network> No handler - DROP!\n");
   return 0;
 }

@@ -42,5 +42,10 @@ namespace net
       ip4_header().daddr = addr;
     }
     
+    uint8_t protocol() const
+    {
+      return ip4_header().protocol;
+    }
+    
   };
 }

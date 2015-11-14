@@ -17,8 +17,8 @@
 
 #include <nic.hpp>
 
-namespace net {
-
+namespace net
+{
   /** Nic names. Only used to bind nic to IP. */
   enum netdev {ETH0,ETH1,ETH2,ETH3,ETH4,ETH5,ETH6,ETH7,ETH8,ETH9};
 
@@ -26,16 +26,20 @@ namespace net {
   class Inet {
   public:
     /** Listen to a UDP port. 
-	This is just a simple forwarder. @see UDP::listen.  */
-    inline void udp_listen(uint16_t port, UDP::listener l)
-    { _udp.listen(port,l); }
+      Returns a socket bound to @port.  */
+    inline UDP::Socket& udp_bind(UDP::port port)
+    {
+      return _udp.bind(port);
+    }
     
     /** Send a UDP datagram. 
 	
 	@note the data buffer is the *whole* ethernet frame, so don't overwrite 
 	headers unless you own them (i.e. you *are* the IP object)  */
-    inline int udp_send(std::shared_ptr<Packet> pckt)
-    { return _udp.transmit(pckt); }
+    inline int udp_send(std::shared_ptr<PacketUDP> udp)
+    {
+      return _udp.transmit(udp);
+    }
     
     /// listen for UDPv6 packets on @port
     /// replaces existing listeners on the same port

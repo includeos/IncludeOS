@@ -1,6 +1,7 @@
 #pragma once
 #include "udp.hpp"
 #include "../socket.hpp"
+#include <string>
 
 namespace net
 {
@@ -10,15 +11,16 @@ namespace net
     typedef UDP::port port_t;
     typedef IP4::addr multicast_group_addr;
     
-    typedef delegate<void(Socket&)> recvfrom_handler;
-    typedef delegate<void(Socket&)> sendto_handler;
+    typedef delegate<void(Socket&, const std::string&)> recvfrom_handler;
+    typedef delegate<void(Socket&, const std::string&)> sendto_handler;
     
     
     SocketUDP(UDP&);
     SocketUDP(UDP&, port_t port);
+    SocketUDP(const SocketUDP&) = delete;
     
-    int read(std::string& data);
-    int write(const std::string& data);
+    void onRead(recvfrom_handler func);
+    void onWrite(sendto_handler func);
     void close();
     
     void join(multicast_group_addr&);
@@ -43,7 +45,7 @@ namespace net
     }
     
   private:
-    void internal_recv(std::shared_ptr<Packet> pckt);
+    int internal_read(std::shared_ptr<PacketUDP> udp);
     
     IP4::addr l_addr;
     port_t    l_port;
