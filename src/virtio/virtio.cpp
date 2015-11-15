@@ -7,7 +7,7 @@
 void Virtio::set_irq(){
   
   //Get device IRQ 
-  uint32_t value = _pcidev.read_dword(PCI_CONFIG_INTR);
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
     _irq = value & 0xFF;    
   }
@@ -15,8 +15,8 @@ void Virtio::set_irq(){
 }
 
 
-Virtio::Virtio(PCI_Device* dev)
-  : _pcidev(*dev), _virtio_device_id(dev->product_id() + 0x1040)
+Virtio::Virtio(PCI_Device& dev)
+  : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
   printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
   

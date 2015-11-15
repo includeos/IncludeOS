@@ -77,13 +77,13 @@ uint32_t PCI_Device::iobase()
 void PCI_Device::probe_resources(){
 
   //Find resources on this PCI device (scan the BAR's)
-  uint32_t value=PCI_WTF;
+  uint32_t value=PCI::WTF;
   
   uint32_t reg{0},len{0};
   for(int bar=0; bar<6; bar++){
 
     //Read the current BAR register   
-    reg = PCI_CONFIG_BASE_ADDR_0 + (bar << 2);
+    reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
     value = read_dword(reg);
 
     if (!value) continue;
@@ -99,8 +99,8 @@ void PCI_Device::probe_resources(){
 
     if (value & 1) {  // Resource type IO
 
-      unmasked_val = value & PCI_BASE_ADDRESS_IO_MASK;
-      pci_size_ = pci_size(len,PCI_BASE_ADDRESS_IO_MASK & 0xFFFF );
+      unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
+      pci_size_ = pci_size(len,PCI::BASE_ADDRESS_IO_MASK & 0xFFFF );
       
       //Add it to resource list
       add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val,pci_size_),res_io_);
@@ -108,8 +108,8 @@ void PCI_Device::probe_resources(){
       
     } else { //Resource type Mem
 
-      unmasked_val = value & PCI_BASE_ADDRESS_MEM_MASK;
-      pci_size_ = pci_size(len,PCI_BASE_ADDRESS_MEM_MASK);
+      unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
+      pci_size_ = pci_size(len,PCI::BASE_ADDRESS_MEM_MASK);
 
       //Add it to resource list
       add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val,pci_size_),res_mem_);
@@ -138,7 +138,7 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 //,Device(Device::PCI) //Why not inherit Device? Well, I think "PCI devices" are too general to be useful by itself, and the "Device" class is Public ABI, so it should only know about stuff that's relevant for the user.
 {
   //We have device, so probe for details
-  devtype_.reg=read_dword(pci_addr,PCI_CONFIG_CLASS_REV);
+  devtype_.reg=read_dword(pci_addr,PCI::CONFIG_CLASS_REV);
   //printf("\t * New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
   //device_id.vendor,device_id.product,classcode);
   
@@ -146,12 +146,12 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
   
   switch (devtype_.classcode) {
     
-  case CL_BRIDGE:
+  case PCI::BRIDGE:
     printf("\t +--+ %s %s (0x%x)\n",
            bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
            classcodes[devtype_.classcode],devtype_.subclass);
     break;
-  case CL_NIC:
+  case PCI::NIC:
     printf("\t +--+ %s %s (0x%x)\n",
            nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
            classcodes[devtype_.classcode],devtype_.subclass);             
@@ -169,33 +169,33 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 
 
 void PCI_Device::write_dword(uint8_t reg,uint32_t value){
-  pci_msg req;
+  PCI::msg req;
   req.data=0x80000000;
   req.addr=pci_addr_;
   req.reg=reg;
   
-  outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-  outpd(PCI_CONFIG_DATA, value);
+  outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+  outpd(PCI::CONFIG_DATA, value);
 };
 
 uint32_t PCI_Device::read_dword(uint8_t reg){
-    pci_msg req;
-    req.data=0x80000000;
-    req.addr=pci_addr_;
-    req.reg=reg;
+  PCI::msg req;
+  req.data=0x80000000;
+  req.addr=pci_addr_;
+  req.reg=reg;
     
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    return inpd(PCI_CONFIG_DATA);
-  };
+  outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+  return inpd(PCI::CONFIG_DATA);
+};
 
 uint32_t PCI_Device::read_dword(uint16_t pci_addr, uint8_t reg){
-    pci_msg req;
+  PCI::msg req;
     req.data=0x80000000;
     req.addr=pci_addr;
     req.reg=reg;
     
-    outpd(PCI_CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
-    return inpd(PCI_CONFIG_DATA);
+    outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
+    return inpd(PCI::CONFIG_DATA);
   };  
 
 

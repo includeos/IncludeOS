@@ -33,7 +33,7 @@ namespace net
       _icmp6(_ip6_list[0]), _udp6(_ip6_list[0])
   {
     // For now we're just using the one interface
-    auto& eth0 = Dev::eth(0);
+    auto& eth0 = Dev::eth<0,VirtioNet>();
     
     
     /** Create arp- and ethernet objects for the interfaces.

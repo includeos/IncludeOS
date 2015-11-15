@@ -4,14 +4,21 @@
 
 namespace net
 {
-  Inet4* Inet4::instance = nullptr;
   
-  std::map<uint16_t, IP4::addr> Inet4::_ip4_list;
-  std::map<uint16_t, IP4::addr> Inet4::_netmask_list;
-  std::map<uint16_t, Ethernet*> Inet4::_ethernet_list;
-  std::map<uint16_t, Arp*> Inet4::_arp_list;
+  template <typename T>  
+  std::map<uint16_t, IP4::addr> Inet4<T>::_ip4_list;
   
-  void Inet4::ifconfig(
+  template <typename T>  
+  std::map<uint16_t, IP4::addr> Inet4<T>::_netmask_list;
+  
+  template <typename T>  
+  std::map<uint16_t, Ethernet*> Inet4<T>::_ethernet_list;    
+  
+  template <typename T> 
+  std::map<uint16_t, Arp*> Inet4<T>::_arp_list;
+
+  template <typename T>  
+  void Inet4<T>::ifconfig(
       netdev i,
       IP4::addr ip,
       IP4::addr netmask )
@@ -27,14 +34,13 @@ namespace net
     debug("<Inet4> I now have %u IP's\n", _ip4_list.size());
   }
 
-  Inet4::Inet4() :
+  template <typename T>  
+  Inet4<T>::Inet4(Nic<T>& eth0) :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
     _ip4(_ip4_list[0],_netmask_list[0]), _tcp(_ip4_list[0])
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());
     
-    // For now we're just using the one interface
-    auto& eth0 = Dev::eth(0);
     
     
     /** Create arp- and ethernet objects for the interfaces.

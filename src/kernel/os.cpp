@@ -37,7 +37,8 @@ void OS::start()
   PIT::init();
 
   //OS::rsprint(">>> Dev init\n");
-  Dev::init();
+  //Dev::init();
+  PCI_manager::init();
 
 
 

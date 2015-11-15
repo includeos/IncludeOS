@@ -21,6 +21,7 @@ namespace net {
 
 
   /** A complete IP4 network stack */
+  template <typename DRIVER>
   class Inet4 {
   public:
     /** Listen to a UDP port. 
@@ -46,12 +47,12 @@ namespace net {
     
     static inline IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
-        
-    static inline Inet4& up(){
+    
+    static inline Inet4& up(Nic<DRIVER>& nic){
       if (_ip4_list.size() < 1)
 	WARN("<Inet> Can't bring up IP stack without any IP addresses");
       
-      static Inet4 instance;
+      static Inet4<DRIVER> instance(nic);
       return instance; 
     };
     
@@ -67,9 +68,7 @@ namespace net {
     static std::map<uint16_t,IP4::addr> _ip4_list;
     static std::map<uint16_t,IP4::addr> _netmask_list;
     static std::map<uint16_t,Ethernet*> _ethernet_list;
-    static std::map<uint16_t,Arp*> _arp_list;
-    
-    static Inet4* instance;  
+    static std::map<uint16_t,Arp*> _arp_list;    
     
     // This is the actual stack
     IP4  _ip4;
@@ -89,7 +88,7 @@ namespace net {
 	@todo For now, mac- and IP-addresses are hardcoded here. 
 	They should be user-definable
     */
-    Inet4();
+    Inet4(Nic<DRIVER>& eth);
     
   };
 

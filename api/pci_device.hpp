@@ -1,33 +1,29 @@
-#ifndef CLASS_PCI_DEVICE_HPP
-#define CLASS_PCI_DEVICE_HPP
+#pragma once 
 
 #include <stdio.h>
 #include <common>
-//#include <syscalls.hpp>
-//#include <hw/pci.h>
 
+namespace PCI {
+  const uint32_t  WTF = 0xffffffff;
+  
+  const uint16_t CONFIG_ADDR = 0xCF8;
+  const uint16_t  CONFIG_DATA = 0xCFC;
+  const uint8_t  CONFIG_INTR = 0x3C;
+  
+  const uint8_t  CONFIG_VENDOR = 0x00;
+  const uint8_t CONFIG_CLASS_REV = 0x08;
+  
+  const uint8_t CONFIG_BASE_ADDR_0 = 0x10;
 
-// From sanos, pci.h
-#define PCI_WTF 0xffffffff
-
-#define PCI_CONFIG_ADDR 0xCF8
-#define PCI_CONFIG_DATA 0xCFC
-#define PCI_CONFIG_INTR                 0x3C
-
-#define PCI_CONFIG_VENDOR               0x00
-#define PCI_CONFIG_CLASS_REV            0x08
-
-#define PCI_CONFIG_BASE_ADDR_0 0x10
-
-#define PCI_BASE_ADDRESS_MEM_MASK       (~0x0FUL)
-#define PCI_BASE_ADDRESS_IO_MASK        (~0x03UL)
+  const uint32_t BASE_ADDRESS_MEM_MASK = (~0x0FUL);
+  const uint32_t BASE_ADDRESS_IO_MASK = (~0x03UL);
 
 /** 
     @brief PCI device message format
     
     Used to communicate with PCI devices
 */
-  union pci_msg{
+  union msg{
 
     //! The whole message
     uint32_t data;
@@ -46,9 +42,11 @@
     };
   };
 
-/** Relevant class codes (many more) */
-enum classcode_t {CL_OLD,CL_STORAGE,CL_NIC,CL_DISPLAY,
-                  CL_MULTIMEDIA,CL_MEMORY,CL_BRIDGE};
+  /** Relevant class codes (many more) */
+  enum classcode_t {OLD,STORAGE,NIC,DISPLAY,
+		    MULTIMEDIA,MEMORY,BRIDGE, OTHER=255};
+  
+}
 
 /**
    @brief Communication class for all PCI devices
@@ -195,8 +193,8 @@ public:
     
 
   /** Get the pci class code. */
-  inline classcode_t classcode() 
-  { return static_cast<classcode_t>(devtype_.classcode); }
+  inline PCI::classcode_t classcode() 
+  { return static_cast<PCI::classcode_t>(devtype_.classcode); }
   
   inline uint16_t rev_id(){ return devtype_.rev_id; }
 
@@ -220,5 +218,3 @@ public:
 };
 
 
-
-#endif

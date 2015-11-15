@@ -24,8 +24,8 @@ int drop(std::shared_ptr<Packet> UNUSED(pckt)){
   return -1;
 }
 
-VirtioNet::VirtioNet(PCI_Device* d)
-  : Virtio(d),     
+VirtioNet::VirtioNet(PCI_Device& d)
+  : Virtio(d), dev(d),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
     ctrl_q(queue_size(2),2,iobase()),
@@ -151,19 +151,6 @@ VirtioNet::VirtioNet(PCI_Device* d)
   
   // Done
   printf("\n >> Driver initialization complete. \n\n");  
-
-  // Test stransmission
-  /*
-  uint8_t buf[100] = {0};
-  memset(buf,0,100);
-  Ethernet::header* hdr = (Ethernet::header*)buf;
-  hdr->src = {0x8,0x0,0x27,0x9d,0x86,0xe8};
-  hdr->dest = {0x8,0x0,0x27,0xac,0x54,0x90};
-  hdr->type = Ethernet::ETH_ARP;
-  
-  linklayer_in(buf,100);
-  //add_send_buffer();
-  tx_q.kick();*/
   
 };  
 
@@ -182,20 +169,14 @@ int VirtioNet::add_receive_buffer(){
   
   hdr = (virtio_net_hdr*)buf;
   
-  //hdr->hdr_len = sizeof(virtio_net_hdr);
-  //hdr->num_buffers = 1;
-  
-  
   sg[0].data = hdr;
   
-  //Wow, using separate empty header doesn't work for RX, but it works for TX...
+  //NOTE: using separate empty header doesn't work for RX, but it works for TX...
   //sg[0].data = (void*)&empty_header; 
   sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = MTUSIZE; // + sizeof(virtio_net_hdr);
-  rx_q.enqueue(sg, 0, 2,buf);
-  
-  //printf("Buffer data: %s \n",(char*)sg[1].data);
+  sg[1].size = MTUSIZE; 
+  rx_q.enqueue(sg, 0, 2,buf);  
   
   return 0;
 }
@@ -204,7 +185,7 @@ int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
   
   scatterlist sg[2];  
   
-  // Wow, see above; separate empty header only works for TX in Qemu
+  // NOTE: see above; separate empty header only works for TX in Qemu
   //sg[0].data = (void*)&empty_header;
   sg[0].data = buf;
   sg[0].size = sizeof(virtio_net_hdr);

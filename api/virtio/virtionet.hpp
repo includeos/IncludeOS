@@ -127,7 +127,7 @@ class VirtioNet : Virtio {
       or other 'fancier' virtio features. */
   constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0}; 
 
-  PCI_Device* dev;
+  PCI_Device& dev;
   
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
@@ -203,7 +203,7 @@ public:
   int transmit(net::Packet_ptr pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(PCI_Device* pcidev);
+  VirtioNet(PCI_Device& pcidev);
     
 
 };

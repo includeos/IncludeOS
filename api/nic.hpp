@@ -64,6 +64,8 @@ public:
       @todo Decide between delegates and function pointers*/
   void on(event_t ev, void(*callback)());
 
+
+
 private:
   
   DRIVER_T _driver;
@@ -73,7 +75,7 @@ private:
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
-  Nic(PCI_Device* d): _driver(d){}
+  Nic(PCI_Device& d): _driver(d){}
   
   friend class Dev;
 
