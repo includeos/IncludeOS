@@ -23,7 +23,7 @@ void Service::start()
   net::Inet4::ifconfig(net::ETH0, 
 		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
 		       {{ 255,255,0,0 }} );
-   
+  
   // Bring up the interface
   net::Inet4& inet = net::Inet4::up();
   printf("Service IP address: %s \n", net::Inet4::ip4(net::ETH0).str().c_str());
@@ -78,8 +78,11 @@ void Service::start()
 
 
   uint64_t my_llu = 42;
-  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);  
+  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);
   
+  auto& bufstore = net::Packet::bufstore();
+  net::Packet pckt(net::Packet::DOWNSTREAM);
+  printf("Service made a packet! Size: %i \n", pckt.len());
   
   printf("*** SERVICE STARTED *** \n");
 }

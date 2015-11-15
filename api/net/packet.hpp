@@ -9,9 +9,13 @@
 //#include <net/class_arp.hpp>
 #include <net/ip4.hpp>
 //#include <net/class_udp.hpp>
-
+#include <net/buffer_store.hpp>
 
 namespace net {
+
+  /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
+  void default_release(net::buffer);
+
   
   class Packet {
   public:
@@ -48,19 +52,41 @@ namespace net {
     /** Construct, using existing buffer. */
     Packet(uint8_t* data, uint32_t len, packet_status stat);
 
-    /** Construct, allocating new buffer. */
-    //Packet(uint32_t len);
+    /** Construct, allocating new buffer from buffer store. */
+    Packet(packet_status s);
     
     
     /** Destruct. */
     virtual ~Packet();
+            
+    /** Copy constructor. 
+	Deleted because we want Packets and buffers to be 1 to 1. 
+	(Well, we really deleted this to avoid accidental copying)
+	The idea is to use Packet_ptr (i.e. shared_ptr<Packet>) for passing packets.
+	@todo Add an explicit way to copy packets. 
+     */
+    Packet(Packet&) = delete;
     
+    /** Move constructor.  Deleted. See Packet(Packet&). */
+    Packet(Packet&&) = delete;
+
+    /** Default constructor Deleted. See Packet(Packet&). */
+    Packet() = delete;
+    
+    /** Copy assignment operator Deleted. See Packet(Packet&). */
+    Packet& operator=(Packet) = delete;
+    
+    /** Move assignment operator Deleted. See Packet(Packet&). */
+    Packet operator=(Packet&&) = delete;
+        
+
     // for a UPDv6 packet, the payload location is
     // the start of the UDPv6 header, and so on
     inline void set_payload(uint8_t* location)
     {
       this->_payload = location;
     }
+    
     inline uint8_t* payload() const
     {
       return _payload;
@@ -73,7 +99,14 @@ namespace net {
     {
       return *(std::shared_ptr<Packet>*)this;
     }
-    
+
+    static BufferStore& bufstore(){      
+      static BufferStore bufstore_(INITIAL_BUFCOUNT, MTUSIZE);
+      return bufstore_;
+    }
+
+
+    /** @todo Avoid Protected Data. (Jedi Council CG, C.133) **/
   protected:
     uint8_t* _payload;
     uint8_t* _data;
@@ -81,7 +114,14 @@ namespace net {
     uint32_t _bufsize = 1500;
     packet_status _status;
     IP4::addr _next_hop4;
+    
+  private:
+    
+    /** Send the buffer back home, after destruction */
+    delegate<void(net::buffer)> release = default_release;
+    
   };
+  
   
 
   // class Ethernet_Packet : public Packet {      

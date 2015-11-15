@@ -59,7 +59,7 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		net/ethernet.o net/inet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/udp.o net/tcp.o net/tcp_socket.o net/icmp.o net/inet4.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/packet.o net/dns/dns.o #hw/pic.o
+		net/packet.o net/dns/dns.o net/buffer_store.o #hw/pic.o
 
 # Header dependencies (rebuild if header changed)
 ###################################################

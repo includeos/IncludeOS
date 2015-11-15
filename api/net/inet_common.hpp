@@ -10,7 +10,11 @@ namespace net {
       (i.e. IP uses packet, and packet uses IP headers) */
   class Packet;
   
-
+  const int MTUSIZE = 1500;
+  const int INITIAL_BUFCOUNT = 512;
+  
+  using buffer = uint8_t*;
+  
   using Packet_ptr = std::shared_ptr<Packet>;
 
   /** Downstream / upstream delegates */
