@@ -31,11 +31,13 @@ class RTL8139;
     requirements for a driver is implicily given by how it's used below,
     rather than explicitly by proper inheritance.
  */
-template<class DRIVER_T>
+template<class DRIVER>
 class Nic{ 
    
 public:
- 
+
+  typedef DRIVER driver; 
+  
   /** Get a readable name. @todo Replace the dummy with something useful.*/
   //const char* name(); 
   
@@ -68,7 +70,7 @@ public:
 
 private:
   
-  DRIVER_T _driver;
+  DRIVER _driver;
 
   
   /** Constructor. 

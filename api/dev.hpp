@@ -14,16 +14,6 @@ class PIT;
 class APIC;
 
 
-//#define LEN_DEVNAME 50
-
-
-/** The type of Nic to use. 
-
-Any number of drivers can be created, but only one is implemnted atm.  */
-//typedef Nic<VirtioNet> Nic_t;
-//typedef Nic<E1000> Nic_t;
-
-
 /**
    Access point for devices
   
@@ -35,7 +25,7 @@ public:
       
   
   /** Get ethernet device n */
-  template <int N, typename DRIVER>
+  template <int N, typename DRIVER = VirtioNet>
   static Nic<DRIVER>& eth(){ 
     static Nic<DRIVER> eth_( PCI_manager::device<PCI::NIC> (N) );
     return eth_;
@@ -46,7 +36,7 @@ public:
   static PCI_Device& disk(int n){
     
   }
-
+  
   /** Get serial port n */
   template <typename DRIVER>
   static PCI_Device& serial(int n);
@@ -55,31 +45,6 @@ public:
   
 };
 
-
-
-
-/*
-  A generic getter, in case we wanted two nics of different types.
-  //! Get ethernet device n
-  template<class DRIVER>
-  static Nic<DRIVER>& eth(int n){
-    if (n >= MAX_NICS)
-      panic("Ethernet device not found!");
-    
-    PCI_Device* pcidev = PCI_manager::nic(n);
-    
-    if (!pcidev)
-      panic("No PCI device found for nic!");
-    
-    if (!nics[n])
-      nics[n] = new Nic<DRIVER>(pcidev);
-    
-    return *nics[n];
-  };
-  
-
-
- */
 
 
 #endif

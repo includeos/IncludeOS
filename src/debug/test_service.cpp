@@ -21,6 +21,7 @@ void Service::start()
     // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac(); 
+  
   net::Inet4<VirtioNet>::ifconfig(net::ETH0, 
 		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
 		       {{ 255,255,0,0 }} );
@@ -85,5 +86,5 @@ void Service::start()
   net::Packet pckt(net::Packet::DOWNSTREAM);
   printf("Service made a packet! Size: %i \n", pckt.len());
   
-  printf("*** SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE v0.6.3-proto STARTED *** \n");
 }

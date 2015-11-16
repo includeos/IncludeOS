@@ -9,6 +9,8 @@
 #define NUM_BUSES 2;
 
 
+std::unordered_map<PCI::classcode_t, std::vector<PCI_Device> > PCI_manager::devices;
+
 void PCI_manager::init()
 {
   printf(">>> PCI Manager initializing \n");

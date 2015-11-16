@@ -19,7 +19,7 @@ namespace net {
   /** Nic names. Only used to bind nic to IP. */
   enum netdev {ETH0,ETH1,ETH2,ETH3,ETH4,ETH5,ETH6,ETH7,ETH8,ETH9};
 
-
+  
   /** A complete IP4 network stack */
   template <typename DRIVER>
   class Inet4 {
@@ -88,10 +88,10 @@ namespace net {
 	@todo For now, mac- and IP-addresses are hardcoded here. 
 	They should be user-definable
     */
-    Inet4(Nic<DRIVER>& eth);
-    
+    Inet4(Nic<DRIVER>& eth); 
   };
-
 }
+
+#include "inet4.inc"
 
 #endif
