@@ -57,14 +57,8 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
   return _network_layer_out(pckt);
 }
 
-int ignore_udp(std::shared_ptr<Packet> UNUSED(pckt))
+int ignore_udp(Packet_ptr UNUSED(pckt))
 {
   debug("<UDP->Network> No handler - DROP!\n");
   return 0;
-}
-
-UDP::UDP(addr_t addr)
-  : _network_layer_out(downstream(ignore_udp))
-{
-  this->_local_ip = addr;
 }

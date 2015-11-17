@@ -3,6 +3,7 @@
 
 #include <map>
 #include "../ip4.hpp"
+#include "../inet.hpp"
 
 namespace net
 {
@@ -59,7 +60,7 @@ namespace net
         @param dport Remote port   */
     int transmit(std::shared_ptr<PacketUDP> udp);
   
-    UDP(addr_t);
+    UDP(Inet<LinkLayer,IP4>&);
     
     // the UDP::Socket class
     using Socket = SocketUDP;
@@ -76,6 +77,7 @@ namespace net
 
 }
 
+#include "udp.inl"
 #include "packet_udp.hpp"
 #include "udp_socket.hpp"
 
