@@ -5,12 +5,20 @@
 #include <delegate>
 
 namespace net {
+
+  class Packet;
+  class Ethernet;
+
+  using LinkLayer = Ethernet;
   
   /** Packet must be forward declared to avoid circular dependency.
-      (i.e. IP uses packet, and packet uses IP headers) */
-  class Packet;
+      (i.e. IP uses packet, and packet uses IP headers) */  
+  const int MTUSIZE = 1500;
+  const int INITIAL_BUFCOUNT = 512;
   
-
+  /** Bundle the two - they're always together */
+  using buffer = uint8_t*;
+  
   using Packet_ptr = std::shared_ptr<Packet>;
 
   /** Downstream / upstream delegates */

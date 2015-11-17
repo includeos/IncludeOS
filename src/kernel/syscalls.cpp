@@ -158,8 +158,8 @@ void panic(const char* why)
 {
   printf("\n\t **** PANIC: ****\n %s \n", why);
   printf("\tHeap end: %p \n", heap_end);
-  __asm__("cli; hlt;");
-
+  while(1) __asm__("cli; hlt;");
+  
 }
 
 // to keep our sanity, we need a reason for the abort

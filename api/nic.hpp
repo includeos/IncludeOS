@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include <net/ethernet.hpp>
-
 #include <net/inet_common.hpp>
+#include <net/buffer_store.hpp>
 
 /** Future drivers may start out like so, */
 class E1000{
@@ -31,49 +31,45 @@ class RTL8139;
     requirements for a driver is implicily given by how it's used below,
     rather than explicitly by proper inheritance.
  */
-template<class DRIVER_T>
+template<class DRIVER>
 class Nic{ 
    
 public:
- 
+
+  typedef DRIVER driver; 
+  
   /** Get a readable name. @todo Replace the dummy with something useful.*/
   //const char* name(); 
   
   /** @note If we add this while there's a specialization, this overrides. */
   inline const char* name() { return _driver.name(); }
 
-  /** The actual mac address. */
-  inline const net::Ethernet::addr mac() { return _driver.mac(); }
+  /** The mac address. */
+  inline const net::Ethernet::addr& mac() { return _driver.mac(); }
   
-  /** Mac address string. */
-  inline const char* mac_str() { return _driver.mac_str(); }
 
   inline void set_linklayer_out(net::upstream del)
   { _driver.set_linklayer_out(del); }
   
   inline int transmit(net::Packet_ptr pckt)
   { return _driver.transmit(pckt); }
-
   
-    /** Event types */
-    enum event_t {EthData, TCPConnection, TCPData, 
-                UDPConnection, UDPData, HttpRequest};
+  inline uint16_t MTU () const 
+  { return _driver.MTU(); }
   
-  /** Attach event handlers to Nic-events. 
-      
-      @todo Decide between delegates and function pointers*/
-  void on(event_t ev, void(*callback)());
-
+  inline net::BufferStore& bufstore()
+  { return _driver.bufstore(); }
+  
 private:
   
-  DRIVER_T _driver;
+  DRIVER _driver;
 
   
   /** Constructor. 
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
-  Nic(PCI_Device* d): _driver(d){}
+  Nic(PCI_Device& d): _driver(d){}
   
   friend class Dev;
 

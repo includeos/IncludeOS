@@ -3,10 +3,8 @@
 
 #include <os.hpp>
 #include <delegate>
-#include <net/ethernet.hpp>
 #include <net/ip4.hpp>
-#include <net/packet.hpp>
-
+#include <net/inet.hpp>
 #include <map>
 
 namespace net {
@@ -15,11 +13,11 @@ namespace net {
   class Arp {
      
   public:
-  
+    
     // Arp opcodes (Big-endian)
 #define ARP_OP_REQUEST 0x100
 #define ARP_OP_REPLY 0x200
-  
+    
     struct __attribute__((packed)) header {
       Ethernet::header ethhdr;   // Ethernet header
       uint16_t htype;            // Hardware type
@@ -55,10 +53,12 @@ namespace net {
     
     inline IP4::addr& ip() { return _ip; }
 
-    Arp(Ethernet::addr,IP4::addr);
+    Arp(Inet<Ethernet,IP4>& inet);
   
   private: 
   
+    Inet<Ethernet,IP4>& inet_;
+    
     // Needs to know which mac address to put in header->swhaddr
     Ethernet::addr _mac;
 

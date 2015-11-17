@@ -83,7 +83,7 @@ namespace net {
     inline void set_physical_out(downstream del)
     { _physical_out = del; }
   
-    inline addr mac()
+    inline const addr& mac()
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */

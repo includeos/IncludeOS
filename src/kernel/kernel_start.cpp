@@ -13,7 +13,9 @@ extern "C"
   void rswrite(char c);  
   void rsprint(const char* ptr);
   
+#ifdef DEBUG
   const int _test_glob = 123;
+#endif
   int _test_constructor = 0;
   
   void enableSSE()

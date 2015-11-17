@@ -1,7 +1,7 @@
 // -*-C++-*-
 #pragma once
 
-#ifdef INFO
+#ifdef PRINT_INFO
 #define INFO(X,...)  printf(X,##__VA_ARGS__);
 #else 
 #define INFO(X,...) 

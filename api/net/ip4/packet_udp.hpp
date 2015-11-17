@@ -36,8 +36,8 @@ namespace net
       set_length(0);
       // zero the optional checksum
       header().checksum = 0;
-      // set UDP payload location
-      _payload = _data + sizeof(UDP::full_header);
+      // set UDP payload location (!?)
+      payload_ = buffer() + sizeof(UDP::full_header);
     }
     
     UDP::port src_port() const
@@ -72,7 +72,7 @@ namespace net
           sizeof(IP4::ip_header) + sizeof(UDP::udp_header) + newlen;
       ip4_header().tot_len = htons(ip4_header().tot_len);
       // new total packet length
-      _len = sizeof(UDP::full_header) + newlen;
+      set_size( sizeof(UDP::full_header) + newlen );
     }
     
     // generates a new checksum and sets it for this UDP packet

@@ -19,14 +19,14 @@ void Service::start()
   //auto sine = sinl(42);
     
     // Assign an IP-address, using Hårek-mapping :-)
-  auto& mac = Dev::eth(0).mac(); 
-  net::Inet4::ifconfig(net::ETH0, 
-		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
-		       {{ 255,255,0,0 }} );
-   
-  // Bring up the interface
-  net::Inet4& inet = net::Inet4::up();
-  printf("Service IP address: %s \n", net::Inet4::ip4(net::ETH0).str().c_str());
+  auto& eth0 = Dev::eth<0,VirtioNet>();
+  auto& mac = eth0.mac(); 
+  
+  auto& inet = *new net::Inet4<VirtioNet>(eth0, 
+    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
+    {{ 255,255,0,0 }} );
+  
+  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
   
   // Set up a server on port 80
   net::TCP::Socket& sock =  inet.tcp().bind(80);
@@ -78,8 +78,17 @@ void Service::start()
 
 
   uint64_t my_llu = 42;
-  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);  
+  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);
   
+  /*//auto& bufstore = net::Packet::bufstore();
   
-  printf("*** SERVICE STARTED *** \n");
+  printf("Buffer store w. %u sized buffers. MTUSIZE: %u \n",
+	 bufstore.bufsize(), MTUSIZE);
+  assert (bufstore.bufsize() >= MTUSIZE);
+  
+  char packet_buf[10];
+  net::Packet pckt(packet_buf, 10);
+  printf("Service made a packet! Size: %i \n", pckt.len());
+  */
+  printf("*** TEST SERVICE v0.6.3-proto3 STARTED *** \n");
 }

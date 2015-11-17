@@ -7,7 +7,7 @@
 void Virtio::set_irq(){
   
   //Get device IRQ 
-  uint32_t value = _pcidev.read_dword(PCI_CONFIG_INTR);
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
     _irq = value & 0xFF;    
   }
@@ -15,8 +15,8 @@ void Virtio::set_irq(){
 }
 
 
-Virtio::Virtio(PCI_Device* dev)
-  : _pcidev(*dev), _virtio_device_id(dev->product_id() + 0x1040)
+Virtio::Virtio(PCI_Device& dev)
+  : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
   printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
   
@@ -60,8 +60,10 @@ Virtio::Virtio(PCI_Device* dev)
   _pcidev.probe_resources();
   _iobase=_pcidev.iobase();  
 
-  printf(_iobase ? "\t [x] Unit I/O base 0x%lx \n " : 
-         "\t [ ] NO I/O Base on device \n",_iobase);
+  if (_iobase) 
+    printf("\t [x] Unit I/O base 0x%x \n ", _iobase);
+  else
+    printf("\t [ ] NO I/O Base on device \n");
 
     
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
@@ -91,7 +93,11 @@ Virtio::Virtio(PCI_Device* dev)
     
   //Fetch IRQ from PCI resource
   set_irq();
-  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
+
+  if(_irq)
+    printf( "\t [x] Unit IRQ %i \n ",_irq);
+  else
+    printf("\n [ ] NO IRQ on device \n");
   
 
   enable_irq_handler();
@@ -162,8 +168,8 @@ void Virtio::setup_complete(bool ok){
 
 void Virtio::default_irq_handler(){
   printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
-  printf("Old Features : 0x%lx \n",_features);
-  printf("New Features : 0x%lx \n",probe_features());
+  printf("Old Features : 0x%x \n",_features);
+  printf("New Features : 0x%x \n",probe_features());
   
   unsigned char isr = inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);

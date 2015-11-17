@@ -1,16 +1,23 @@
-// #define DEBUG // Allow debugging
-// #define DEBUG2
+#define DEBUG // Allow debugging
+#define DEBUG2
 
 #include <os>
 #include <net/ethernet.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 
-const Ethernet::addr Ethernet::addr::MULTICAST_FRAME{minor: 0x0000, major: 0x01000000};
-const Ethernet::addr Ethernet::addr::BROADCAST_FRAME{minor: 0xFFFF, major: 0xFFFFFFFF};
-const Ethernet::addr Ethernet::addr::IPv6mcast_01{minor: 0x3333, major: 0x01000000};
-const Ethernet::addr Ethernet::addr::IPv6mcast_02{minor: 0x3333, major: 0x02000000};
+// uint16_t(0x0000), uint32_t(0x01000000) };
+const Ethernet::addr Ethernet::addr::MULTICAST_FRAME{{ 0,0,0x01,0,0,0 }}; 
 
+// uint16_t(0xFFFF), uint32_t(0xFFFFFFFF) };
+const Ethernet::addr Ethernet::addr::BROADCAST_FRAME{{ 0xff,0xff,0xff,0xff,0xff,0xff }};
+
+//uint16_t(0x3333), uint32_t(0x01000000) };
+const Ethernet::addr Ethernet::addr::IPv6mcast_01{{ 0x33, 0x33, 0x01, 0, 0, 0 }};
+
+//uint16_t(0x3333), uint32_t(0x02000000) };
+const Ethernet::addr Ethernet::addr::IPv6mcast_02{{ 0x33, 0x33, 0x02, 0, 0, 0 }};
 
 int Ethernet::transmit(Packet_ptr pckt){
   header* hdr = (header*)pckt->buffer();
@@ -23,8 +30,8 @@ int Ethernet::transmit(Packet_ptr pckt){
   hdr->src.major = _mac.major;
   hdr->src.minor = _mac.minor;
 
-  debug2("<Ethernet OUT> Transmitting %li b, from %s -> %s. Type: %i \n",
-         pckt->len(),hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
+  debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i \n",
+         pckt->size(),hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
   
   return _physical_out(pckt);
 }
@@ -32,7 +39,7 @@ int Ethernet::transmit(Packet_ptr pckt){
 
 int Ethernet::bottom(Packet_ptr pckt)
 {
-  assert(pckt->len() > 0);
+  assert(pckt->size() > 0);
 
   header* eth = (header*) pckt->buffer();
 

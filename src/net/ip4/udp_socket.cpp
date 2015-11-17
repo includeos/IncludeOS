@@ -47,6 +47,8 @@ namespace net
       memcpy(pbuf + PacketUDP::HEADERS_SIZE, buffer, WRITE_MAX);
       
       // create some packet p (and convert it to PacketUDP)
+      // TODO: UDP& or Inet& stack into SocketUDP
+      /*
       auto p = std::make_shared<Packet>(
           pbuf, Packet::MTU, Packet::DOWNSTREAM);
       auto p2 = std::static_pointer_cast<PacketUDP>(p);
@@ -57,6 +59,7 @@ namespace net
       
       // next buffer part
       buffer += WRITE_MAX;  rem -= WRITE_MAX;
+      */
     }
     if (rem)
     {
@@ -66,6 +69,7 @@ namespace net
       memcpy(pbuf + PacketUDP::HEADERS_SIZE, buffer, rem);
       
       // create some packet p
+      /*
       auto p = std::make_shared<Packet>(
           pbuf, size, Packet::DOWNSTREAM);
       auto p2 = std::static_pointer_cast<PacketUDP>(p);
@@ -73,6 +77,7 @@ namespace net
       packet_init(p2, destIP, port, rem);
       // ship the packet
       stack.transmit(p2);
+      */
     }
     return -1;
   } // write()

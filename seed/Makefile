@@ -32,14 +32,14 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
 
 
 INC_NEWLIB=$(INSTALL)/newlib/include
-INC_LIBCXX=$(
+INC_LIBCXX=$(INSTALL)/libcxx/include
 
 DEBUG_OPTS = -ggdb3 -v
 
 CPP = clang++-3.6 -target i686-elf
 LD  = ld 
 
-INCLUDES = -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/libcxx/include
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api 
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 

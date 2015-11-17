@@ -1,48 +1,34 @@
-#ifndef CLASS_PACKET_H
-#define CLASS_PACKET_H
+#ifndef NET_PACKET_HPP
+#define NET_PACKET_HPP
 
+#include <net/inet_common.hpp>
+#include <net/buffer_store.hpp>
 #include <net/ip4.hpp>
 
-namespace net
-{
+namespace net {
+
+  /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
+  void default_release(net::buffer, size_t);
+  
   class Packet {
   public:
     static const int MTU = 1500;
     
+    using release_del = BufferStore::release_del;
+    
     /** Get the buffer */
-    uint8_t* buffer() const
-    { return _data; }
+    net::buffer buffer() const
+    { return buf_; }
     
     /** Get the network packet length - i.e. the number of populated bytes  */
-    inline uint32_t len() const
-    { return _len; }
+    inline uint32_t size() const
+    { return size_; }
     
     /** Get the size of the buffer. This is >= len(), usually MTU-size */
-    inline uint32_t bufsize() const
-    { return _bufsize; }
-    
-    int set_len(uint32_t l);
-    
-    //! Returns the remaining bytes we can fill into this packet,
-    //! before the packet is completely full
     inline uint32_t capacity() const
-    {
-      return bufsize() - len();
-    }
-    //! Returns true if the packets internal buffer is full
-    bool full() const
-    {
-      return capacity() == 0;
-    }
+    { return capacity_; }
     
-    /** Status of the buffer.
-        AVAILABLE : It's just sitting there, free for use
-        UPSTREAM : travelling upstream
-        DOWNSTREAM : travelling downstream          */
-    enum packet_status{ AVAILABLE, UPSTREAM, DOWNSTREAM };
-    
-    /** Get the packet status */
-    packet_status status();
+    int set_size(size_t);
     
     /** Set next-hop ip4. */
     void next_hop(IP4::addr ip);
@@ -50,25 +36,48 @@ namespace net
     /** Get next-hop ip4. */
     IP4::addr next_hop();
     
-    /** Construct, using existing buffer. */
-    Packet(uint8_t* data, uint32_t len, packet_status stat);
-
-    /** Construct, allocating new buffer. */
-    //Packet(uint32_t len);
-    
+    /** Construct, using existing buffer.
+	@param buf : The buffer
+	@param bufsize : size of the buffer
+	@param datalen : Length of data in the buffer
+	@WARNING : There are two adjacent parameters of the same type, violating CG I.24. 
+     */    
+    Packet(const net::buffer buf, size_t bufsize, size_t datalen, release_del d = default_release);
     
     /** Destruct. */
     virtual ~Packet();
+            
+    /** Copy constructor. 
+	Deleted because we want Packets and buffers to be 1 to 1. 
+	(Well, we really deleted this to avoid accidental copying)
+	The idea is to use Packet_ptr (i.e. shared_ptr<Packet>) for passing packets.
+	@todo Add an explicit way to copy packets. 
+     */
+    Packet(Packet&) = delete;
     
+    /** Move constructor.  Deleted. See Packet(Packet&). */
+    Packet(Packet&&) = delete;
+
+    /** Default constructor Deleted. See Packet(Packet&). */
+    Packet() = delete;
+    
+    /** Copy assignment operator Deleted. See Packet(Packet&). */
+    Packet& operator=(Packet) = delete;
+    
+    /** Move assignment operator Deleted. See Packet(Packet&). */
+    Packet operator=(Packet&&) = delete;
+        
+
     // for a UPDv6 packet, the payload location is
     // the start of the UDPv6 header, and so on
     inline void set_payload(uint8_t* location)
     {
-      this->_payload = location;
+      this->payload_ = location;
     }
+    
     inline uint8_t* payload() const
     {
-      return _payload;
+      return payload_;
     }
     
     // Upcast back to normal packet
@@ -79,13 +88,18 @@ namespace net
       return *(std::shared_ptr<Packet>*)this;
     }
     
+    /** @todo Avoid Protected Data. (Jedi Council CG, C.133) **/
   protected:
-    uint8_t* _payload;
-    uint8_t* _data;
-    uint32_t _len;
-    uint32_t _bufsize = MTU;
-    packet_status _status;
-    IP4::addr _next_hop4;
+    uint8_t* payload_ = nullptr;
+    net::buffer buf_ = 0;
+    uint32_t capacity_ = MTUSIZE;
+    uint32_t size_ = 0;
+    IP4::addr next_hop4_ {};
+    
+  private:
+    
+    /** Send the buffer back home, after destruction */
+    release_del release_ = default_release;
   };
   
 }

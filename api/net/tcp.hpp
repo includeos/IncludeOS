@@ -1,8 +1,10 @@
 #ifndef CLASS_TCP_HPP
 #define CLASS_TCP_HPP
 
-#include <net/ip4.hpp>
 #include <net/util.hpp> // htons / noths
+#include <net/packet.hpp>
+#include <net/ip4.hpp>
+#include <map>
 
 namespace net {
 
@@ -198,11 +200,14 @@ namespace net {
     int bottom(Packet_ptr pckt);    
 
     
-    TCP(IP4::addr);
+    TCP(Inet<LinkLayer,IP4>&);
     
   private:
+    
+    Inet<LinkLayer,IP4>& inet_;
+    
     size_t socket_backlog = 1000;
-    IP4::addr local_ip_;
+    const IP4::addr& local_ip_;
     
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
@@ -214,7 +219,7 @@ namespace net {
             
     // Get the length of actual data in bytes
     static inline uint16_t data_length(Packet_ptr pckt){
-      return pckt->len() - tcp_hdr(pckt)->all_headers_len();
+      return pckt->size() - tcp_hdr(pckt)->all_headers_len();
     }
     
     // Get the length of the TCP-segment including header and data
