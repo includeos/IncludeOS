@@ -18,19 +18,19 @@ int IP4::bottom(Packet_ptr pckt){
   
   switch(hdr->protocol){
   case IP4_ICMP:
-    debug2("\t ICMP");
-    _icmp_handler(pckt);
+    debug2("\t ICMP \n");
+    icmp_handler_(pckt);
     break;
   case IP4_UDP:
-    debug2("\t UDP");
-    _udp_handler(pckt);
+    debug2("\t UDP \n");
+    udp_handler_(pckt);
     break;
   case IP4_TCP:
-    _tcp_handler(pckt);
-    debug2("\t TCP");
+    tcp_handler_(pckt);
+    debug2("\t TCP \n");
     break;
   default:
-    debug("\t UNKNOWN");
+    debug("\t UNKNOWN %i \n", hdr->protocol);
     break;
   }
   
@@ -72,7 +72,7 @@ int IP4::transmit(Packet_ptr pckt){
   
   // Set destination address to "my ip" 
   // @TODO Don't know if this is good for routing...
-  hdr->saddr.whole = _local_ip.whole;
+  hdr->saddr.whole = local_ip_.whole;
   //ASSERT(! hdr->saddr.whole)
   
   
@@ -80,52 +80,47 @@ int IP4::transmit(Packet_ptr pckt){
 
   addr target_net;
   addr local_net;
-  target_net.whole = hdr->daddr.whole & _netmask.whole;
-  local_net.whole = _local_ip.whole & _netmask.whole;  
+  target_net.whole = hdr->daddr.whole & netmask_.whole;
+  local_net.whole = local_ip_.whole & netmask_.whole;  
 
   debug2("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s ",
         hdr->daddr.str().c_str(), 
-        _netmask.str().c_str(), 
-        _local_ip.str().c_str(),
-        _gateway.str().c_str(),
+        netmask_.str().c_str(), 
+        local_ip_.str().c_str(),
+        gateway_.str().c_str(),
         target_net == local_net ? "DIRECT" : "GATEWAY");
         
-  pckt->next_hop(target_net == local_net ? hdr->daddr : _gateway);
+  pckt->next_hop(target_net == local_net ? hdr->daddr : gateway_);
   debug2("<IP4 transmit> my ip: %s, Next hop: %s \n",
-        _local_ip.str().c_str(),
-        pckt->next_hop().str().c_str());
+        local_ip_.str().c_str(),
+	 pckt->next_hop().str().c_str());
   //debug("<IP4 TOP> - passing transmission to linklayer \n");
-  return _linklayer_out(pckt);
+  return linklayer_out_(pckt);
 };
 
 
 /** Empty handler for delegates initialization */
-int ignore_ip4(std::shared_ptr<Packet> UNUSED(pckt)){
+int net::ignore_ip4_up(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<IP4> Empty handler. Ignoring.\n");
   return -1;
 }
 
-int ignore_transmission(std::shared_ptr<Packet> UNUSED(pckt)){
+int net::ignore_ip4_down(std::shared_ptr<Packet> UNUSED(pckt)){
 
   debug("<IP4->Link layer> No handler - DROP!\n");
   return 0;
 }
 
-IP4::IP4(addr ip, addr netmask) :
-  _local_ip(ip),
-  _netmask(netmask),
-  _gateway(),
-  _linklayer_out(downstream(ignore_transmission)),
-  _icmp_handler(upstream(ignore_ip4)),
-  _udp_handler(upstream(ignore_ip4)),
-  _tcp_handler(upstream(ignore_ip4))
+IP4::IP4(Inet<LinkLayer, IP4>& inet) :
+  local_ip_(inet.ip_addr()),
+  netmask_(inet.netmask())
 {
   // Default gateway is addr 1 in the subnet.
   const uint32_t DEFAULT_GATEWAY = __builtin_bswap32(1);
   
-  _gateway.whole = (ip.whole & netmask.whole) | DEFAULT_GATEWAY;
+  gateway_.whole = (local_ip_.whole & netmask_.whole) | DEFAULT_GATEWAY;
   
   debug("<IP4> Local IP @ %p, Netmask @ %p \n",
-        (void*) &_local_ip,
-        (void*) &_netmask);
+        (void*) &local_ip_,
+        (void*) &netmask_);
 }

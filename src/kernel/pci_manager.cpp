@@ -3,8 +3,8 @@
 
 #include <pci_manager.hpp>
 #include <pci_device.hpp>
-#include <nic.hpp>
-#include <net/buffer_store.hpp>
+
+
 
 #define NUM_BUSES 2;
 

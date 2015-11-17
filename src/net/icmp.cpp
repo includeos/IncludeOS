@@ -31,11 +31,9 @@ int ICMP::bottom(Packet_ptr pckt){
 
 
 void ICMP::ping_reply(full_header* full_hdr){
-
   
-  /** @todo we're now reusing the same buffer every time. 
-      If the last reply isn't sent by now, it will get overwritten*/
-  memset(buf,0,sizeof(full_header));
+  auto packet_ptr = inet_.createPacket(sizeof(full_header));
+  auto buf = packet_ptr->buffer();
   
   icmp_header* hdr = &((full_header*)buf)->icmp_hdr;
   hdr->type = ICMP_ECHO_REPLY;  
@@ -54,20 +52,13 @@ void ICMP::ping_reply(full_header* full_hdr){
   dst_ip_hdr->daddr = full_hdr->ip_hdr.saddr;
   dst_ip_hdr->protocol = IP4::IP4_ICMP;
   
-  /** Create packet */
-  auto packet_ptr = std::make_shared<Packet>
-    (buf, sizeof(full_header), sizeof(full_header));
-
   _network_layer_out(packet_ptr);
 }
 
-int icmp_ignore(std::shared_ptr<Packet> UNUSED(pckt)){
+int net::icmp_default_out(std::shared_ptr<Packet> UNUSED(pckt)){
   debug("<ICMP IGNORE> No handler. DROP!\n");
   return -1;
 }
 
-ICMP::ICMP() : 
-  _network_layer_out(downstream(icmp_ignore))
-{
-  buf = (uint8_t*)malloc(sizeof(full_header));
-}
+ICMP::ICMP(Inet<LinkLayer,IP4>& inet) 
+  : inet_(inet) {}

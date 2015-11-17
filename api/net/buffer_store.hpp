@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BUFFER_STORE_HPP
+#define BUFFER_STORE_HPP
 
 #include <vector>
 #include <stdexcept>
@@ -12,7 +13,7 @@ namespace net{
     size_t bufcount_ = INITIAL_BUFCOUNT;
     const size_t bufsize_ = MTUSIZE;
     size_t device_offset_ = 0;
-    buffer pool_ = 0;
+    net::buffer pool_ = 0;
     std::vector<buffer> available_buffers_;    
 
   public:
@@ -25,13 +26,14 @@ namespace net{
     BufferStore operator=(BufferStore&& mv) = delete;
     BufferStore() = delete;
     
-    inline size_t bufsize(){ return bufsize_; }
+    inline size_t raw_bufsize(){ return bufsize_; }
+    inline size_t offset_bufsize(){ return bufsize_ - device_offset_; }
     
     /** Free all the buffers **/
     ~BufferStore();
-  
+    
     BufferStore(int num, size_t bufsize, size_t device_offset);
-  
+    
     /** Get a free buffer */    
     buffer get_raw_buffer();
     
@@ -57,7 +59,7 @@ namespace net{
     inline bool address_is_offset_bufstart(buffer addr)
     { return (addr - pool_ - device_offset_) % bufsize_ == 0; }
 
-    		
+    
   private:
     
     void increaseStorage();
@@ -67,3 +69,5 @@ namespace net{
   
 
 }
+
+#endif

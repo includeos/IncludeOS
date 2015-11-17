@@ -1,4 +1,5 @@
 #define DEBUG
+#define DEBUG2
 #include <os>
 #include <vector>
 #include <malloc.h>
@@ -49,7 +50,8 @@ buffer BufferStore::get_offset_buffer(){
   auto buf = get_raw_buffer();
   buf += device_offset_;
   
-  debug2("<BufferStore> Provisioned an offset buffer. %p + %i == %p \n");
+  debug2("<BufferStore> Provisioned an offset buffer. %p + %i == %p \n",
+	 buf - device_offset_, device_offset_, buf);
   
   return buf;
 }
@@ -72,11 +74,11 @@ void BufferStore::release_raw_buffer(buffer b, size_t bufsize){
 }
 
 void BufferStore::release_offset_buffer(buffer b, size_t bufsize){
-  debug2("<BufferStore> Trying to release %i + %i sized buffer  %p.  \n", bufsize, offset_, b);
+  debug2("<BufferStore> Trying to release %i + %i sized buffer  %p.  \n", bufsize, device_offset_, b);
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
       and address_is_offset_bufstart(b)
-      and bufsize == bufsize_ - device_offset_)
+      )//and bufsize == bufsize_ - device_offset_)
     {
       available_buffers_.push_back(b - device_offset_);
       

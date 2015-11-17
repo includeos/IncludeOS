@@ -8,8 +8,8 @@
 
 using namespace net;
 
-TCP::TCP(IP4::addr ip)
-  : local_ip_(ip), listeners()
+TCP::TCP(Inet<LinkLayer,IP4>& inet)
+  : inet_(inet), local_ip_(inet.ip_addr()), listeners()
 {
   debug2("<TCP::TCP> Instantiating. Open ports: %i \n", listeners.size()); 
 }

@@ -1,5 +1,5 @@
-//#define DEBUG // Allow debugging
-//#define DEBUG2
+#define DEBUG // Allow debugging
+#define DEBUG2
 
 #include <os>
 #include <net/ethernet.hpp>

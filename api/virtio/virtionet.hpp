@@ -157,8 +157,6 @@ class VirtioNet : Virtio {
       responsibility for memory management. */
   void service_TX();
 
-  char* _mac_str=(char*)"00:00:00:00:00:00";
-  
   /** Handle device IRQ. 
       
       Will look for config. changes and service RX/TX queues as necessary.*/
@@ -184,9 +182,6 @@ public:
   /** Mac address. */
   const net::Ethernet::addr& mac();
   
-  /** Human readable mac address. */
-  const char* mac_str();
-
   constexpr uint16_t MTU() const { 
     return 1500 + sizeof(virtio_net_hdr); }
   

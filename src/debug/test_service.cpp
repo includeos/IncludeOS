@@ -22,13 +22,11 @@ void Service::start()
   auto& eth0 = Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac(); 
   
-  net::Inet4<VirtioNet>::ifconfig(net::ETH0, 
-		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
-		       {{ 255,255,0,0 }} );
+  auto& inet = *new net::Inet4<VirtioNet>(eth0, 
+    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
+    {{ 255,255,0,0 }} );
   
-  // Bring up the interface
-  net::Inet4<VirtioNet>& inet = net::Inet4<VirtioNet>::up(eth0);
-  printf("Service IP address: %s \n", net::Inet4<VirtioNet>::ip4(net::ETH0).str().c_str());
+  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
   
   // Set up a server on port 80
   net::TCP::Socket& sock =  inet.tcp().bind(80);

@@ -1,9 +1,9 @@
-#ifndef CLASS_PACKET_H
-#define CLASS_PACKET_H
+#ifndef NET_PACKET_HPP
+#define NET_PACKET_HPP
 
-#include <net/ip4.hpp>
 #include <net/inet_common.hpp>
 #include <net/buffer_store.hpp>
+#include <net/ip4.hpp>
 
 namespace net {
 

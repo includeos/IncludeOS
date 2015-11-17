@@ -3,8 +3,9 @@
 
 #include <os>
 #include <net/arp.hpp>
-
+#include <net/packet.hpp>
 #include <vector>
+#include <net/inet4.hpp>
 
 using namespace net;
 
@@ -80,9 +81,10 @@ extern "C" {
 int Arp::arp_respond(header* hdr_in){
   debug2("\t IP Match. Constructing ARP Reply \n");
   
+  auto packet_ptr = inet_.createPacket(sizeof(header));
+
   // Allocate send buffer
-  int bufsize = sizeof(header);
-  uint8_t* buffer = (uint8_t*)malloc(bufsize);
+  uint8_t* buffer = packet_ptr->buffer();
   header* hdr = (header*)buffer;
   
   // Populate ARP-header
@@ -111,10 +113,8 @@ int Arp::arp_respond(header* hdr_in){
   hdr->ethhdr.dest.major = hdr->dhwaddr.major;
   hdr->ethhdr.type = Ethernet::ETH_ARP;    
   
-  // We're passing a stack-pointer here. That's dangerous if the packet 
-  // is supposed to be kept, somewhere up the stack. 
-  auto packet_ptr = std::make_shared<Packet>
-    (buffer, bufsize, sizeof(header));
+  /*auto packet_ptr = std::make_shared<Packet>
+    (buffer, bufsize, sizeof(header));*/
   
   _linklayer_out(packet_ptr);
   
@@ -178,7 +178,7 @@ int Arp::transmit(Packet_ptr pckt){
 };
 
 // Initialize
-Arp::Arp(Ethernet::addr mac,IP4::addr ip): 
-  _mac(mac), _ip(ip),
+Arp::Arp(net::Inet<Ethernet,IP4>& inet): 
+  inet_(inet), _mac(inet.link_addr()), _ip(inet.ip_addr()),
   _linklayer_out(downstream(ignore))
 {}
