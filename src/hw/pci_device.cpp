@@ -120,7 +120,7 @@ void PCI_Device::probe_resources(){
     //DEBUG: Print
     printf("\n"\
            "\t    * Resource @ BAR %i \n"          \
-           "\t      Address:  0x%lx Size: 0x%lx \n"\
+           "\t      Address:  0x%x Size: 0x%x \n"\
            "\t      Type: %s\n",
            bar,
            unmasked_val,
