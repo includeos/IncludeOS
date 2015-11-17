@@ -1,13 +1,15 @@
 //#define DEBUG
 #include <os>
+#include <net/packet.hpp>
 #include <net/inet_common.hpp>
 #include <net/icmp.hpp>
+
 
 using namespace net;
 
 int ICMP::bottom(Packet_ptr pckt){
 
-  if (pckt->len() < sizeof(full_header)) //Drop if not a full header.
+  if (pckt->size() < sizeof(full_header)) //Drop if not a full header.
     return -1;
   
   full_header* full_hdr = (full_header*)pckt->buffer();
@@ -54,7 +56,7 @@ void ICMP::ping_reply(full_header* full_hdr){
   
   /** Create packet */
   auto packet_ptr = std::make_shared<Packet>
-    (buf, sizeof(full_header), Packet::DOWNSTREAM);
+    (buf, sizeof(full_header), sizeof(full_header));
 
   _network_layer_out(packet_ptr);
 }

@@ -45,7 +45,7 @@ int Arp::bottom(Packet_ptr pckt)
   // @todo Freeing here corrupts the outgoing frame. Why?
   //free(data);
   
-  return 0 + 0 * pckt->len(); // yep, it's what you think it is (and what's that?!)
+  return 0 + 0 * pckt->size(); // yep, it's what you think it is (and what's that?!)
 };
   
 
@@ -114,7 +114,7 @@ int Arp::arp_respond(header* hdr_in){
   // We're passing a stack-pointer here. That's dangerous if the packet 
   // is supposed to be kept, somewhere up the stack. 
   auto packet_ptr = std::make_shared<Packet>
-    (buffer, bufsize, Packet::DOWNSTREAM);
+    (buffer, bufsize, sizeof(header));
   
   _linklayer_out(packet_ptr);
   
@@ -129,6 +129,8 @@ static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
 
 
 int Arp::transmit(Packet_ptr pckt){
+  
+  assert(pckt->size());
   
   /** Get destination IP from IP header   */
   IP4::ip_header* iphdr = (IP4::ip_header*)(pckt->buffer() 

@@ -4,6 +4,7 @@
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 
@@ -48,7 +49,9 @@ void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   auto dest_addr = full_hdr->ip_hdr.saddr;
   auto dest_port = hdr->sport;
   
+  #ifdef DEBUG
   auto expected_seq_nr_ = hdr->ack_nr;  
+  #endif 
   auto incoming_seq_nr_ = hdr->seq_nr;
   
   // WARNING: We're currently just modifying the same packet, and returning it
@@ -94,7 +97,7 @@ void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   
   
   // Shrink-wrap the packet around the header
-  pckt->set_len(sizeof(full_header));
+  pckt->set_size(sizeof(full_header));
 
   // Fill up with data from the buffer
   if (buffer_.size())
@@ -105,6 +108,7 @@ void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
 }
 
 std::string TCP::Socket::read(int SIZE){
+  (void) SIZE;
   return std::string((const char*) data_location(current_packet_), data_length(current_packet_));
 }
 
@@ -115,9 +119,9 @@ void TCP::Socket::write(std::string data){
 }
 
 int TCP::Socket::fill(Packet_ptr pckt){
-  int capacity = pckt->bufsize() - pckt->len();
+  size_t capacity = pckt->capacity() - pckt->size();
   void* out_buf = (char*) data_location(pckt);
-  int bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
+  size_t bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
   
   // Copy the data
   memcpy(out_buf, (void*)buffer_.data(), bytecount);
@@ -125,7 +129,7 @@ int TCP::Socket::fill(Packet_ptr pckt){
   // Shrink the buffer, update packet-length and transmitted byte count
   buffer_.resize(buffer_.size() - bytecount);
   bytes_transmitted_ += bytecount;  
-  pckt->set_len(pckt->len() + bytecount);
+  pckt->set_size(pckt->size() + bytecount);
   
   debug("<TCP::Socket::fill> FILLING packet with %i bytes \n", bytecount);
   return bytecount;
@@ -136,9 +140,9 @@ int TCP::Socket::bottom(Packet_ptr pckt){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   auto flags = ntohs(hdr->offs_flags.whole);
-  uint8_t offset = (uint8_t)(hdr->offs_flags.offs_res) >> 4;
-  auto raw_flags = hdr->offs_flags.flags;
-  auto raw_offset = hdr->offs_flags.offs_res;
+  //uint8_t offset = (uint8_t)(hdr->offs_flags.offs_res) >> 4;
+  //auto raw_flags = hdr->offs_flags.flags;
+  //auto raw_offset = hdr->offs_flags.offs_res;
   
   auto dest_addr = full_hdr->ip_hdr.saddr;
   auto dest_port = hdr->sport;
@@ -264,7 +268,10 @@ int TCP::Socket::bottom(Packet_ptr pckt){
       }else{
 	debug("WARNING: LAST_ACK received a non-ack packet. Flags: %i \n", flags);
       }
+      break;
     }
+    
+  default:
     break;
     // Don't think we have to ack every packet 
   }

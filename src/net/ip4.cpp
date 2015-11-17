@@ -2,6 +2,7 @@
 // #define DEBUG2 // Allow debug lvl 2
 #include <os>
 #include <net/ip4.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 
@@ -47,14 +48,14 @@ int IP4::transmit(Packet_ptr pckt){
   //DEBUG Issue #102 :
   // Now _local_ip fails first, while _netmask fails if we remove local ip
   
-  assert(pckt->len() > sizeof(IP4::full_header));
+  assert(pckt->size() > sizeof(IP4::full_header));
   
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
   
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
-  hdr->tot_len = __builtin_bswap16(pckt->len() - sizeof(Ethernet::header));
+  hdr->tot_len = __builtin_bswap16(pckt->size() - sizeof(Ethernet::header));
   hdr->id = 0; // Fragment ID (we don't fragment yet)
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
@@ -124,7 +125,7 @@ IP4::IP4(addr ip, addr netmask) :
   
   _gateway.whole = (ip.whole & netmask.whole) | DEFAULT_GATEWAY;
   
-  debug("<IP4> Local IP @ 0x%lx, Netmask @ 0x%lx \n",
-        (uint32_t)&_local_ip,
-        (uint32_t)&_netmask);
+  debug("<IP4> Local IP @ %p, Netmask @ %p \n",
+        (void*) &_local_ip,
+        (void*) &_netmask);
 }

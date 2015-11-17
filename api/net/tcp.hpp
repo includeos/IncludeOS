@@ -3,6 +3,7 @@
 
 #include <net/ip4.hpp>
 #include <net/util.hpp> // htons / noths
+#include <net/packet.hpp>
 
 namespace net {
 
@@ -214,7 +215,7 @@ namespace net {
             
     // Get the length of actual data in bytes
     static inline uint16_t data_length(Packet_ptr pckt){
-      return pckt->len() - tcp_hdr(pckt)->all_headers_len();
+      return pckt->size() - tcp_hdr(pckt)->all_headers_len();
     }
     
     // Get the length of the TCP-segment including header and data

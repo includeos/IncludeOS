@@ -251,6 +251,7 @@ namespace net
   }
   int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
   {
+    (void) caller;
     NDP::neighbor_sol* sol = (NDP::neighbor_sol*) pckt->payload();
     
     printf("ICMPv6 NDP Neighbor solicitation request\n");

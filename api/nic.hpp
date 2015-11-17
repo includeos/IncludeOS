@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include <net/ethernet.hpp>
-
 #include <net/inet_common.hpp>
+#include <net/buffer_store.hpp>
 
 /** Future drivers may start out like so, */
 class E1000{
@@ -55,19 +55,13 @@ public:
   
   inline int transmit(net::Packet_ptr pckt)
   { return _driver.transmit(pckt); }
-
   
-    /** Event types */
-    enum event_t {EthData, TCPConnection, TCPData, 
-                UDPConnection, UDPData, HttpRequest};
+  inline uint16_t MTU () const 
+  { return _driver.MTU(); }
   
-  /** Attach event handlers to Nic-events. 
-      
-      @todo Decide between delegates and function pointers*/
-  void on(event_t ev, void(*callback)());
-
-
-
+  inline net::BufferStore& bufstore()
+  { return _driver.bufstore(); }
+  
 private:
   
   DRIVER _driver;

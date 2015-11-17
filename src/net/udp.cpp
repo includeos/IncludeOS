@@ -1,6 +1,7 @@
 //#define DEBUG // Allow debugging
 #include <os>
 #include <net/udp.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 
@@ -37,7 +38,7 @@ void UDP::listen(uint16_t port, listener l){
 
 int UDP::transmit(Packet_ptr pckt)
 {
-  assert((uint32_t)pckt->len() >= sizeof(UDP::full_header));
+  assert((uint32_t)pckt->size() >= sizeof(UDP::full_header));
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   udp_header* hdr = &(full_hdr->udp_hdr);
@@ -47,7 +48,7 @@ int UDP::transmit(Packet_ptr pckt)
      hdr->dport = dport;
      hdr->sport = sport; */
   
-  hdr->length =  __builtin_bswap16((uint16_t)(pckt->len() 
+  hdr->length =  __builtin_bswap16((uint16_t)(pckt->size() 
                                               - sizeof(IP4::full_header)));
   hdr->checksum = 0; // This field is optional (must be 0 if not used)
 

@@ -1,3 +1,4 @@
+//-*- C++ -*-
 #define DEBUG
 #include <os>
 #include <net/inet4.hpp>
@@ -37,7 +38,7 @@ namespace net
   template <typename T>  
   Inet4<T>::Inet4(Nic<T>& eth0) :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-    _ip4(_ip4_list[0],_netmask_list[0]), _tcp(_ip4_list[0])
+    _ip4(_ip4_list[0],_netmask_list[0]), _tcp(_ip4_list[0]), MTU(eth0.MTU()), bufstore_(eth0.bufstore())
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());
     

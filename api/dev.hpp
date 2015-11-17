@@ -31,9 +31,9 @@ public:
     return eth_;
   }
   
-  /** Get disk n */
+  /** @todo Get disk n */
   template <typename DRIVER>
-  static PCI_Device& disk(int n){
+  static PCI_Device& disk(int){
     
   }
   

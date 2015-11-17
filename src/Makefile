@@ -31,7 +31,8 @@ CC  = clang-3.6 -target i686-elf -v
 CPP = clang++-3.6 -target i686-elf
 LD  = ld # Yes - we use the default linker
 
-INCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api -I../stdlib #-I$(INSTALL)/libcxx/include 
+INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api  #
+CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -40,8 +41,8 @@ debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(INCLUDES)
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) #-flto -fno-exceptions
+CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 #-flto -fno-exceptions
 
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
 

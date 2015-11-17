@@ -22,8 +22,8 @@ namespace net
     _ip6_list[i]     = ip6;
     //debug("ifconfig ipv6 addr: %s\n", _ip6_list[i].to_string().c_str());
     
-    debug("<Inet> I now have %lu IPv4's\n", _ip4_list.size());
-    debug("<Inet> I now have %lu IPv6's\n", _ip6_list.size());
+    debug("<Inet> I now have %u IPv4's\n", _ip4_list.size());
+    debug("<Inet> I now have %u IPv6's\n", _ip6_list.size());
   }
 
   Inet::Inet() :

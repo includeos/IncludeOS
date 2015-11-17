@@ -4,6 +4,7 @@
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 

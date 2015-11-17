@@ -59,9 +59,7 @@ namespace net {
     inline TCP& tcp(){ debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
     
     //typedef delegate<int(uint8_t*,int)> upstream_delg;
-    
-    
-  
+     
   private:
     
     /** Physical routes. These map 1-1 with Dev:: interfaces. */
@@ -75,7 +73,12 @@ namespace net {
     ICMP _icmp;
     UDP  _udp;
     TCP _tcp;
+
+    // We have to ask the Nic for the MTU
+    uint16_t MTU = 0;
     
+    BufferStore& bufstore_;
+
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
    */

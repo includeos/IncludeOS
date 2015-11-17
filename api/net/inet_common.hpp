@@ -13,6 +13,7 @@ namespace net {
   const int MTUSIZE = 1500;
   const int INITIAL_BUFCOUNT = 512;
   
+  /** Bundle the two - they're always together */
   using buffer = uint8_t*;
   
   using Packet_ptr = std::shared_ptr<Packet>;

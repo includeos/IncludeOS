@@ -110,7 +110,7 @@ namespace net
       ip6_header().set_size(
           sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
       // new total packet length
-      _len = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
+      size_ = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }
     
     // generates a new checksum onto this UDPv6 packet

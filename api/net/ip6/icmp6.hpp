@@ -124,7 +124,7 @@ namespace net
       // new total IPv6 payload length
       ip6_header().set_size(icmp_len);
       // new total packet length
-      _len = sizeof(IP6::full_header) + icmp_len;
+      size_ = sizeof(IP6::full_header) + icmp_len;
     }
     
  };

@@ -82,9 +82,15 @@ void Service::start()
   uint64_t my_llu = 42;
   printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);
   
-  auto& bufstore = net::Packet::bufstore();
-  net::Packet pckt(net::Packet::DOWNSTREAM);
-  printf("Service made a packet! Size: %i \n", pckt.len());
+  /*//auto& bufstore = net::Packet::bufstore();
   
-  printf("*** TEST SERVICE v0.6.3-proto STARTED *** \n");
+  printf("Buffer store w. %u sized buffers. MTUSIZE: %u \n",
+	 bufstore.bufsize(), MTUSIZE);
+  assert (bufstore.bufsize() >= MTUSIZE);
+  
+  char packet_buf[10];
+  net::Packet pckt(packet_buf, 10);
+  printf("Service made a packet! Size: %i \n", pckt.len());
+  */
+  printf("*** TEST SERVICE v0.6.3-proto3 STARTED *** \n");
 }
