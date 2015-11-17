@@ -57,8 +57,11 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
   return _network_layer_out(pckt);
 }
 
-int ignore_udp(Packet_ptr UNUSED(pckt))
+namespace net
 {
-  debug("<UDP->Network> No handler - DROP!\n");
-  return 0;
+  int ignore_udp(Packet_ptr UNUSED(pckt))
+  {
+    debug("<UDP->Network> No handler - DROP!\n");
+    return 0;
+  }
 }
