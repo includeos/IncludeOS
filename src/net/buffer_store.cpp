@@ -6,8 +6,8 @@
 
 using namespace net;
 
-BufferStore::BufferStore(int num, size_t bufsize, size_t offset ) :
-  bufcount_(num), bufsize_(bufsize),  offset_(offset),
+BufferStore::BufferStore(int num, size_t bufsize, size_t device_offset ) :
+  bufcount_(num), bufsize_(bufsize),  device_offset_(device_offset),
   pool_((buffer) memalign(PAGE_SIZE, num * bufsize))
 {
   
@@ -35,7 +35,7 @@ void BufferStore::increaseStorage(){
   panic("Storage full!");
 }
 
-buffer BufferStore::get(){
+buffer BufferStore::get_raw_buffer(){
   if (available_buffers_.empty())
     increaseStorage();
   auto buf = available_buffers_.back();
@@ -45,7 +45,18 @@ buffer BufferStore::get(){
   return buf;
 }
 
-void BufferStore::release(buffer b, size_t bufsize){
+buffer BufferStore::get_offset_buffer(){
+  auto buf = get_raw_buffer();
+  buf += device_offset_;
+  
+  debug2("<BufferStore> Provisioned an offset buffer. %p + %i == %p \n");
+  
+  return buf;
+}
+
+
+
+void BufferStore::release_raw_buffer(buffer b, size_t bufsize){
   debug2("<BufferStore> Trying to release %i sized buffer  %p. \n", bufsize, b);
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
@@ -60,14 +71,14 @@ void BufferStore::release(buffer b, size_t bufsize){
   debug("<BufferStore> IGNORING buffer %p. It isn't mine.  \n", b);
 }
 
-void BufferStore::release_offset(buffer b, size_t bufsize){
+void BufferStore::release_offset_buffer(buffer b, size_t bufsize){
   debug2("<BufferStore> Trying to release %i + %i sized buffer  %p.  \n", bufsize, offset_, b);
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
       and address_is_offset_bufstart(b)
-      and bufsize == bufsize_ - offset_)
+      and bufsize == bufsize_ - device_offset_)
     {
-      available_buffers_.push_back(b - offset_);
+      available_buffers_.push_back(b - device_offset_);
       
       debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
       return;

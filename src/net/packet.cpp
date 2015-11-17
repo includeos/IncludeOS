@@ -7,7 +7,7 @@ using namespace net;
 
 
 Packet::~Packet(){
-  debug("<Packet> DESTRUCT packet, buf@%p \n",(uint32_t)buf_);
+  debug("<Packet> DESTRUCT packet, buf@%p \n", buf_);
   release_(buf_, capacity_);
 }
 

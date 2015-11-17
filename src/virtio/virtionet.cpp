@@ -168,7 +168,7 @@ int VirtioNet::add_receive_buffer(){
   scatterlist sg[2];  
   
   // Virtio Std. § 5.1.6.3
-  auto buf = bufstore_.get();
+  auto buf = bufstore_.get_raw_buffer();
   
   debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n", (uint32_t)buf);
   

@@ -173,7 +173,8 @@ class VirtioNet : Virtio {
   /** 20-bit / 1MB of buffers to start with */
   net::BufferStore bufstore_{ 0xfffff / MTU(),  MTU(), sizeof(virtio_net_hdr) };
   net::BufferStore::release_del release_buffer = 
-    net::BufferStore::release_del::from<net::BufferStore, &net::BufferStore::release_offset>(bufstore_);
+    net::BufferStore::release_del::from
+    <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
   
 public:     
   

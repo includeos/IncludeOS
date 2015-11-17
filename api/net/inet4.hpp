@@ -15,10 +15,10 @@
 #include <nic.hpp>
 
 namespace net {
-
+  
   /** Nic names. Only used to bind nic to IP. */
   enum netdev {ETH0,ETH1,ETH2,ETH3,ETH4,ETH5,ETH6,ETH7,ETH8,ETH9};
-
+  
   
   /** A complete IP4 network stack */
   template <typename DRIVER>
@@ -38,7 +38,7 @@ namespace net {
     
     
     /** Bind an IP and a netmask to a given device. 
-      The function expects the given device to exist.*/
+	The function expects the given device to exist.*/
     static void
     ifconfig(
         netdev nic,
@@ -56,17 +56,22 @@ namespace net {
       return instance; 
     };
     
+    /** Get the TCP-object belonging to this stack */
     inline TCP& tcp(){ debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return _tcp; }
     
-    //typedef delegate<int(uint8_t*,int)> upstream_delg;
-     
+    /** Create a Packet, with a preallocated buffer */
+    inline Packet_ptr createPacket(){      
+      return std::make_shared<Packet>(bufstore_.get_offset_buffer(), bufstore_.bufsize(), 0, bufstore_.release_offset_buffer());
+    }      
+    
+    
   private:
     
     /** Physical routes. These map 1-1 with Dev:: interfaces. */
     static std::map<uint16_t,IP4::addr> _ip4_list;
     static std::map<uint16_t,IP4::addr> _netmask_list;
     static std::map<uint16_t,Ethernet*> _ethernet_list;
-    static std::map<uint16_t,Arp*> _arp_list;    
+    static std::map<uint16_t,Arp*> _arp_list;
     
     // This is the actual stack
     IP4  _ip4;

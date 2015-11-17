@@ -11,7 +11,7 @@ namespace net{
   class BufferStore {
     size_t bufcount_ = INITIAL_BUFCOUNT;
     const size_t bufsize_ = MTUSIZE;
-    size_t offset_ = 0;
+    size_t device_offset_ = 0;
     buffer pool_ = 0;
     std::vector<buffer> available_buffers_;    
 
@@ -30,16 +30,19 @@ namespace net{
     /** Free all the buffers **/
     ~BufferStore();
   
-    BufferStore(int num, size_t bufsize, size_t offset);
+    BufferStore(int num, size_t bufsize, size_t device_offset);
   
-    /** Get a free buffer */
-    buffer get();
+    /** Get a free buffer */    
+    buffer get_raw_buffer();
+    
+    /** Get a free buffer, offset by device-offset */ 
+    buffer get_offset_buffer();    
   
     /** Return a buffer. */
-    void release(buffer b, size_t);
+    void release_raw_buffer(buffer b, size_t);
     
     /** Return a buffer, offset by offset_ bytes from actual buffer. */
-    void release_offset(buffer b, size_t);
+    void release_offset_buffer(buffer b, size_t);
     
     
     /** Check if a buffer belongs here */
@@ -52,7 +55,7 @@ namespace net{
     
     /** Check if an address is the start of a buffer */
     inline bool address_is_offset_bufstart(buffer addr)
-    { return (addr - pool_ - offset_) % bufsize_ == 0; }
+    { return (addr - pool_ - device_offset_) % bufsize_ == 0; }
 
     		
   private:
