@@ -2,7 +2,7 @@
 #ifndef DEBUG_HEADER
 #define DEBUG_HEADER
 
-#ifdef DEBUG
+#if defined(DEBUG) && ! defined(NO_DEBUG)
 #define debug(X,...)  printf("* " X,##__VA_ARGS__);
 #else 
 #define debug(X,...) 
