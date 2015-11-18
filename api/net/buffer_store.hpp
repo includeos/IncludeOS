@@ -14,7 +14,7 @@ namespace net{
     const size_t bufsize_ = MTUSIZE;
     size_t device_offset_ = 0;
     net::buffer pool_ = 0;
-    std::deque<buffer> available_buffers_;    
+    std::deque<buffer> available_buffers_; 
 
   public:
     

@@ -2,9 +2,12 @@
 #pragma once
 
 #ifdef DEBUG
+#ifndef NO_DEBUG
 #define debug(X,...)  printf("* " X,##__VA_ARGS__);
 #else 
+#endif
 #define debug(X,...) 
+
 #endif
 
 #ifdef DEBUG2

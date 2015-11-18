@@ -62,6 +62,7 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/dns/dns.o net/buffer_store.o
 
+
 # Header dependencies (rebuild if header changed)
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)

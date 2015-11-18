@@ -39,31 +39,37 @@ namespace net {
     
     /** Get the TCP-object belonging to this stack */
     inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return tcp_; }        
+
+    /** Get the UDP-object belonging to this stack */
+    inline UDP& udp() override { return udp_; };
     
     /** Create a Packet, with a preallocated buffer.
 	@param size : the "size" reported by the allocated packet. 
 	@note as of v0.6.3 this has no effect other than to force the size to be
-	set explicitly by the caller.
+	set explicitly by the caller. 
+	@todo make_shared will allocate with new. This is fast in IncludeOS,
+	(no context switch for sbrk) but consider overloading operator new.
     */
-    inline Packet_ptr createPacket(size_t size) override {       
+    inline Packet_ptr createPacket(size_t size) override {
+      // Create a release delegate, for returning buffers
+      auto release = BufferStore::release_del::from
+	<BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
+      // Create the packet, using  buffer and .
       return std::make_shared<Packet>(bufstore_.get_offset_buffer(), 
-				      bufstore_.offset_bufsize(), size, 
-				      BufferStore::release_del::from<BufferStore, &BufferStore::release_offset_buffer> (nic_.bufstore()));
+				      bufstore_.offset_bufsize(), size, release);
     }
     
-    inline UDP& udp() override { return udp_; };
+    // We have to ask the Nic for the MTU
+    constexpr uint16_t& MTU(){ return nic_.MTU(); };
+
     
-    /** Don't think we *want* copy construction.
-	@todo: Fix this with a singleton or something.
-   */
+    /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
     Inet4(Inet4&&) = delete;
+    Inet4& operator=(Inet4) = delete;
+    Inet4 operator=(Inet4&&) = delete;
     
-    
-    /** Initialize. For now IP and mac is passed on to Ethernet and Arp.
-	@todo For now, mac- and IP-addresses are hardcoded here. 
-	They should be user-definable
-    */
+    /** Initialize.  */
     Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
     
   private:
@@ -79,9 +85,6 @@ namespace net {
     ICMP icmp_;
     UDP  udp_;
     TCP tcp_;
-
-    // We have to ask the Nic for the MTU
-    uint16_t MTU = 0;
     
     BufferStore& bufstore_;
 
