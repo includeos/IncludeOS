@@ -9,14 +9,6 @@
 using namespace std::chrono;
 
 void Service::start()
-{
-
-  // Wonder when these are used...?
-  std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
-  std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
-  
-  // TODO: find some implementation for long double, or not... or use double
-  //auto sine = sinl(42);
     
     // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = Dev::eth<0,VirtioNet>();
@@ -28,13 +20,12 @@ void Service::start()
   
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
   
-  // Set up a server on port 80
+  // Set up a TCP server on port 80
   net::TCP::Socket& sock =  inet.tcp().bind(80);
 
   printf("SERVICE: %i open ports in TCP @ %p \n",
 	 inet.tcp().openPorts(), &(inet.tcp()));   
-  
-  
+
   srand(OS::cycles_since_boot());
   
   sock.onConnect([](net::TCP::Socket& conn){
@@ -76,19 +67,5 @@ void Service::start()
       
     });
 
-
-  uint64_t my_llu = 42;
-  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);
-  
-  /*//auto& bufstore = net::Packet::bufstore();
-  
-  printf("Buffer store w. %u sized buffers. MTUSIZE: %u \n",
-	 bufstore.bufsize(), MTUSIZE);
-  assert (bufstore.bufsize() >= MTUSIZE);
-  
-  char packet_buf[10];
-  net::Packet pckt(packet_buf, 10);
-  printf("Service made a packet! Size: %i \n", pckt.len());
-  */
-  printf("*** TEST SERVICE v0.6.3-proto3 STARTED *** \n");
+  printf("*** TEST SERVICE STARTED *** \n");
 }
