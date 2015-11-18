@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_Timers
+SERVICE = Test_timers
 
 # Your service parts
 FILES = service.cpp
@@ -19,7 +19,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 # Compiler/Linker
 ###################################################
 
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign 
 
 # External Libraries
 ###################################################
@@ -62,7 +62,7 @@ CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) 
+OBJS  = $(FILES:.cpp=.o) .service_name.o
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
@@ -96,6 +96,9 @@ debug: service #Don't wanna call 'all', since it strips debug info
 service.o: service.cpp
 	@echo "\n>> Compiling the service"
 	$(CPP) $(CPPOPTS) -o $@ $<
+
+.service_name.o: $(INSTALL)/service_name.cpp
+	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE)\"" -o $@ $<
 
 # Link the service with the os
 service: $(OBJS) $(LIBS) 

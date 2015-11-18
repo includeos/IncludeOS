@@ -43,7 +43,7 @@ extern "C"
 #ifdef DEBUG
   __attribute__((constructor)) void test_constr()
   {    
-    OS::rsprint(">>> C constructor was called!\n");
+    OS::rsprint("\t * C constructor was called!\n");
     _test_constructor = 1;
   }
 #endif
@@ -59,10 +59,10 @@ extern "C"
     // init serial port
     init_serial();    
     
-    OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    
+    OS::rsprint("\n\n  #include <os> // literally \n\n");
     
     // Initialize stack-unwinder, call global constructors etc.
-    debug(">>> Initializing C-environment... \n");
+    debug("\t * Initializing C-environment... \n");
     _init_c_runtime();
     
     // verify that global constructors were called

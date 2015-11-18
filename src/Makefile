@@ -36,13 +36,13 @@ CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
-all: CAPABS  =  $(CAPABS_COMMON) -O2  
-debug: CAPABS = $(CAPABS_COMMON) -O0
+all: CAPABS  =  $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
+debug: CAPABS = $(CAPABS_COMMON) -O0 
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 #-flto -fno-exceptions
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\"" 
 
 LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
 
@@ -99,10 +99,14 @@ CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ   = $(INSTALL)/crt/crtend.o
 CRTN_OBJ     = crt/crtn.o
 
-test_service: debug/test_service.o $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Linking test service"
-	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_service.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+TEST_OBJ = debug/test_service.o util/service_name.o
 
+test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
+test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test service"
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+
+test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test IPv6 service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
@@ -127,6 +131,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	cp -t$(INSTALL)/crt crt/crti.o crt/crtn.o
 	cp -r ../api $(INSTALL)/
 	cp linker.ld $(INSTALL)/
+	cp util/service_name.cpp $(INSTALL)
 	@echo "\nDone!"
 
 # Makefile recipes
