@@ -185,17 +185,15 @@ extern "C"{
 void IRQ_manager::init()
 {
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
-  if (idt_is_set)
-  {
-    printf("ERROR: Trying to reset IDT");
-    kill(1,9);
-  }
+  if (idt_is_set)    
+    panic(">>> ERROR: Trying to reset IDT");
+
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
   idt_reg.limit=(256*sizeof(IDTDescr))-1;
   idt_reg.base=(uint32_t)idt;
   
-  printf("\n>>> IRQ handler initializing \n");
+  printf("  > IRQ handler initializing \n");
     
    //Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
@@ -216,13 +214,13 @@ void IRQ_manager::init()
 
   
   // Default gates for "real IRQ lines", 32-64
-  printf(" >> Exception gates set for irq < 32 \n");
+  printf("\t * Exception gates set for irq < 32 \n");
   
   //Set all irq-gates (>= 44) to the default handler
   for(int i=44;i<256;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
-  printf(" >> Default interrupt gates set for irq >= 32 \n");
+  printf("\t * Default interrupt gates set for irq >= 32 \n");
   
 
   //Load IDT
@@ -298,7 +296,7 @@ static void set_intr_mask(unsigned long mask)
 
 void IRQ_manager::enable_irq(uint8_t irq)
 {
-  printf(">>> Enabling IRQ %i, old mask: 0x%x ",irq,irq_mask);
+  printf("\t * Enabling IRQ %i, old mask: 0x%x ",irq,irq_mask);
   irq_mask &= ~(1 << irq);
   if (irq >= 8) irq_mask &= ~(1 << 2);
   set_intr_mask(irq_mask);

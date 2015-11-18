@@ -8,7 +8,7 @@
 #define debug(X,...) 
 #endif
 
-#ifdef DEBUG2
+#if defined(DEBUG2) && ! defined(NO_DEBUG)
 #define debug2(X,...)  printf("** " X,##__VA_ARGS__);
 #else 
 #define debug2(X,...) 

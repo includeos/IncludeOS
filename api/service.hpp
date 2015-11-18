@@ -1,6 +1,9 @@
-#ifndef CLASS_SERVICE_H
-#define CLASS_SERVICE_H
+#ifndef SERVICE_H
+#define SERVICE_H
 
+extern "C" const char* service_name__;
+
+#include <string>
 /** This is where you take over
 
     The service gets started whenever the OS is done initializing
@@ -8,6 +11,10 @@
 class Service{
 
  public:
+  
+  static const std::string name() {
+    return service_name__;
+  }
   
   /** The service entry point
       
@@ -31,6 +38,7 @@ class Service{
       @todo This is not implemented
    */
   static void stop();
+  
 };
 
 #endif

@@ -16,7 +16,7 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
-  debug(">>> OS class started\n");
+  debug("  * OS class started\n");
   srand(time(NULL));
   
   // heap
@@ -25,19 +25,18 @@ void OS::start()
   INFO("<OS> Heap start: %p\n", heap_end);
   INFO("<OS> Current end is: %p\n", &_end);
   asm("cli");  
-  //OS::rsprint(">>> IRQ handler\n");
+  //OS::rsprint("  * IRQ handler\n");
   IRQ_manager::init();
   
   // Initialize the Interval Timer
   PIT::init();
 
-  //OS::rsprint(">>> Dev init\n");
+  //OS::rsprint("  * Dev init\n");
   //Dev::init();
   PCI_manager::init();
   
   // measure CPU frequency
-  asm("sti");
-  INFO(">>> Estimating CPU-frequency\n");    
+  INFO("  * Estimating CPU-frequency\n");    
   INFO("    | \n");  
   INFO("    +--(10 samples, %f sec. interval)\n", 
        (PIT::frequency() / _cpu_sampling_freq_divider_).count());
@@ -47,8 +46,9 @@ void OS::start()
   _CPU_mhz = MHz(2200); //PIT::CPUFrequency();
   INFO("    +--> %f MHz \n\n", _CPU_mhz.count());
   
-  INFO(">>> IncludeOS initialized - calling Service::start()\n");  
-  
+
+  printf("  > Starting %s... \n", Service::name().c_str());
+  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   // Everything is ready
   Service::start();
   
@@ -65,9 +65,12 @@ double OS::uptime(){
 
 void OS::event_loop()
 {
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System idle - waiting for interrupts \n");
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+  printf("\n");
+  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  printf(" IncludeOS %s \n",version().c_str());
+  printf(" +--> Running [ %s ] \n", Service::name().c_str());
+
   
   while (_power)
   {

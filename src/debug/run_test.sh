@@ -50,7 +50,8 @@ then
     
     sudo $QEMU $QEMU_OPTS 
 else
-    make -j$JOBS all $SERVICE
+    make -j$JOBS all 
+    make $SERVICE
     
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE

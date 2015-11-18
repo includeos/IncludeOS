@@ -4,13 +4,11 @@
 #include <iostream>
 #include <sstream>
 
-//#include <thread> => <thread> is not supported on this single threaded system
-
 using namespace std::chrono;
 
-void Service::start()
-    
-    // Assign an IP-address, using Hårek-mapping :-)
+void Service::start() {
+  
+  // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac(); 
   
