@@ -22,9 +22,9 @@ void Service::start()
   auto& eth0 = Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac(); 
   
-  auto& inet = *new net::Inet4<VirtioNet>(eth0, 
-    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
-    {{ 255,255,0,0 }} );
+  auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
+    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
+    {{ 255,255,0,0 }} );  // Netmask
   
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
   

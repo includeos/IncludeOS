@@ -31,32 +31,28 @@ BufferStore::~BufferStore(){
   free(pool_);
 }
 
-/** @todo Decide on a policy for how / when to increase storage */
+/** @todo : We (think we) want a list of pools, that we increase as needed.
+ */
 void BufferStore::increaseStorage(){
-  panic("Storage full!");
+  panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.");
 }
 
 buffer BufferStore::get_raw_buffer(){
   if (available_buffers_.empty())
     increaseStorage();
+  
   auto buf = available_buffers_.front();
   available_buffers_.pop_front();  
+  
   debug2("<BufferStore> Provisioned a buffer. %i buffers remaining\n", 
 	available_buffers_.size());
-  return buf;
-}
-
-buffer BufferStore::get_offset_buffer(){
-  auto buf = get_raw_buffer();
-  buf += device_offset_;
-  
-  debug2("<BufferStore> Provisioned an offset buffer. %p + %i == %p \n",
-	 buf - device_offset_, device_offset_, buf);
   
   return buf;
 }
 
-
+buffer BufferStore::get_offset_buffer(){  
+  return get_raw_buffer() + device_offset_;
+}
 
 void BufferStore::release_raw_buffer(buffer b, size_t bufsize){
   debug2("<BufferStore> Trying to release %i sized buffer  %p. \n", bufsize, b);

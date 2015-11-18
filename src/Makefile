@@ -55,12 +55,12 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o \
 		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-		hw/pic_sanos.o hw/pci_device.o hw/dev.o hw/cpu_freq_sampling.o \
+		hw/pic_sanos.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
-		net/udp.o net/tcp.o net/tcp_socket.o net/icmp.o  \
+		net/ip4/udp.o net/tcp.o net/tcp_socket.o net/icmp.o  \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/packet.o net/dns/dns.o net/buffer_store.o #hw/pic.o
+		net/packet.o net/dns/dns.o net/buffer_store.o 
 
 # Header dependencies (rebuild if header changed)
 ###################################################
