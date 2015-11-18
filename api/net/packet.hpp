@@ -10,9 +10,9 @@ namespace net {
   /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
   void default_release(net::buffer, size_t);
   
-  
   class Packet {
   public:
+    static const int MTU = 1500;
     
     using release_del = BufferStore::release_del;
     
@@ -80,15 +80,14 @@ namespace net {
       return payload_;
     }
     
-    // transformed back to normal packet
-    // unfortunately, we can't downcast with std::static_pointer_cast
+    // Upcast back to normal packet
+    // unfortunately, we can't upcast with std::static_pointer_cast
     // however, all classes derived from Packet should be good to use
     std::shared_ptr<Packet> packet()
     {
       return *(std::shared_ptr<Packet>*)this;
     }
-
-
+    
     /** @todo Avoid Protected Data. (Jedi Council CG, C.133) **/
   protected:
     uint8_t* payload_ = nullptr;
@@ -101,10 +100,8 @@ namespace net {
     
     /** Send the buffer back home, after destruction */
     release_del release_ = default_release;
-    
   };
   
 }
-
 
 #endif
