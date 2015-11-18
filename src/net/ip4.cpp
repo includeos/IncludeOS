@@ -75,9 +75,6 @@ int IP4::transmit(Packet_ptr pckt){
   hdr->saddr.whole = local_ip_.whole;
   //ASSERT(! hdr->saddr.whole)
   
-  
-
-
   addr target_net;
   addr local_net;
   target_net.whole = hdr->daddr.whole & netmask_.whole;
@@ -89,11 +86,12 @@ int IP4::transmit(Packet_ptr pckt){
         local_ip_.str().c_str(),
         gateway_.str().c_str(),
         target_net == local_net ? "DIRECT" : "GATEWAY");
-        
+  
   pckt->next_hop(target_net == local_net ? hdr->daddr : gateway_);
   debug2("<IP4 transmit> my ip: %s, Next hop: %s \n",
         local_ip_.str().c_str(),
-	 pckt->next_hop().str().c_str());
+        pckt->next_hop().str().c_str());
+  
   //debug("<IP4 TOP> - passing transmission to linklayer \n");
   return linklayer_out_(pckt);
 };

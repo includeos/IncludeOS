@@ -45,7 +45,7 @@ SocketUDP& UDP::bind(port_t port)
 
 int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 {
-  assert(udp->length() >= sizeof(UDP::full_header));
+  assert(udp->length() >= sizeof(UDP::udp_header));
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
         udp->length(), htons(udp->ip4_header().tot_len),

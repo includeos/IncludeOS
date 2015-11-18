@@ -23,8 +23,8 @@ namespace net
       std::shared_ptr<PacketUDP> p, addr_t destIP, port_t port, uint16_t length)
   {
     p->init();
-    p->header().sport = this->l_port; //<some random number>
-    p->header().dport = port;
+    p->header().sport = htons(this->l_port);
+    p->header().dport = htons(port);
     p->set_src(stack.ip_addr());
     p->set_dst(destIP);
     p->set_length(length);

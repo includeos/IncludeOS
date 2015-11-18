@@ -30,7 +30,7 @@ void Service::start()
     printf("Getting UDP data from %s: %i: %s\n", 
           addr.str().c_str(), port, data.c_str());
     // send the same thing right back!
-    conn.write(addr, port, data);
+    //conn.write(addr, port, data);
     return 0;
   });
   

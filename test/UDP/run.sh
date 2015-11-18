@@ -6,7 +6,6 @@ export IMAGE=$1
 
 [ ! -v INCLUDEOS_HOME ] && INCLUDEOS_HOME=$HOME/IncludeOS_install
 
-IMAGE=$1
 DEBUG=0
 
 [[ $2 = "debug" ]] && DEBUG=1 
