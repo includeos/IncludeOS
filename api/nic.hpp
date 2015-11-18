@@ -1,47 +1,25 @@
-#ifndef CLASS_PCI_NIC_HPP
-#define CLASS_PCI_NIC_HPP
+#ifndef NIC_HPP
+#define NIC_HPP
 
 #include <pci_device.hpp>
-#include <stdio.h>
 
 #include <net/ethernet.hpp>
 #include <net/inet_common.hpp>
 #include <net/buffer_store.hpp>
 
-/** Future drivers may start out like so, */
-class E1000{
-public: 
-  const char* name(){ return "E1000 Driver"; }
-  //...whatever the Nic class implicitly needs
-  
-};
-
-/** Or so, etc. 
-    
-    They'll have to provide anything the Nic class calls from them.
-    @note{ There's no virtual interface, we'll need to call every function from 
-    he Nic class in order to make sure all members exist }
- */
-class RTL8139;
-
-
 /** A public interface for Network cards
     
-    We're using compile-time polymorphism for now, so the "inheritance" 
-    requirements for a driver is implicily given by how it's used below,
+    The requirements for a driver is implicitly given by how it's used below,
     rather than explicitly by proper inheritance.
  */
-template<class DRIVER>
+template <typename DRIVER>
 class Nic{ 
    
 public:
 
   typedef DRIVER driver; 
-  
-  /** Get a readable name. @todo Replace the dummy with something useful.*/
-  //const char* name(); 
-  
-  /** @note If we add this while there's a specialization, this overrides. */
+
+/** Get a readable name. */
   inline const char* name() { return _driver.name(); }
 
   /** The mac address. */
@@ -63,16 +41,26 @@ public:
 private:
   
   DRIVER _driver;
-
   
   /** Constructor. 
       
       Just a wrapper around the driver constructor.
       @note The Dev-class is a friend and will call this */
-  Nic(PCI_Device& d): _driver(d){}
+  Nic(PCI_Device& d): _driver(d) {}
   
   friend class Dev;
 
 };
 
-#endif //Class Nic
+/** Future drivers may start out like so, */
+class E1000{
+public: 
+  const char* name(){ return "E1000 Driver"; }
+  //...whatever the Nic class implicitly needs
+  
+};
+
+/** Hopefully somebody will port a driver for this one */
+class RTL8139;
+
+#endif // NIC_HPP
