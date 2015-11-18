@@ -1,5 +1,5 @@
 #define DEBUG // Allow debugging
-// #define DEBUG2 // Allow debug lvl 2
+#define DEBUG2 // Allow debug lvl 2
 #include <os>
 #include <net/ip4.hpp>
 #include <net/packet.hpp>
@@ -49,7 +49,6 @@ int IP4::transmit(Packet_ptr pckt)
   // Now _local_ip fails first, while _netmask fails if we remove local ip
   assert(pckt->size() > sizeof(IP4::full_header));
   
-  /*
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
   
@@ -64,6 +63,7 @@ int IP4::transmit(Packet_ptr pckt)
   hdr->check = 0;
   hdr->check = checksum(hdr);
   
+  /*
   // Make sure it's right
   //assert(checksum(hdr) == 0);
     
@@ -74,27 +74,28 @@ int IP4::transmit(Packet_ptr pckt)
   // @TODO Don't know if this is good for routing...
   hdr->saddr.whole = local_ip_.whole;
   //ASSERT(! hdr->saddr.whole)
+  */
   
-  addr target_net;
-  addr local_net;
-  target_net.whole = hdr->daddr.whole & netmask_.whole;
-  local_net.whole = local_ip_.whole & netmask_.whole;  
-
-  debug2("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s ",
+  // create local and target subnets
+  addr target, local;
+  target.whole = hdr->daddr.whole & netmask_.whole;
+  local.whole  = local_ip_.whole  & netmask_.whole;  
+  // compare subnets to know where to send packet
+  pckt->next_hop(target == local ? hdr->daddr : gateway_);
+  
+  debug2("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
         hdr->daddr.str().c_str(), 
         netmask_.str().c_str(), 
         local_ip_.str().c_str(),
         gateway_.str().c_str(),
-        target_net == local_net ? "DIRECT" : "GATEWAY");
+        target == local ? "DIRECT" : "GATEWAY");
   
-  pckt->next_hop(target_net == local_net ? hdr->daddr : gateway_);
-  debug2("<IP4 transmit> my ip: %s, Next hop: %s \n",
+  debug2("<IP4 transmit> my ip: %s, Next hop: %s\n",
         local_ip_.str().c_str(),
         pckt->next_hop().str().c_str());
-  */
-  //debug("<IP4 TOP> - passing transmission to linklayer \n");
+  
   return linklayer_out_(pckt);
-};
+}
 
 
 /** Empty handler for delegates initialization */
