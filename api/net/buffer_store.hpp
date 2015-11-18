@@ -1,7 +1,7 @@
 #ifndef BUFFER_STORE_HPP
 #define BUFFER_STORE_HPP
 
-#include <vector>
+#include <deque>
 #include <stdexcept>
 #include <net/inet_common.hpp>
 
@@ -14,7 +14,7 @@ namespace net{
     const size_t bufsize_ = MTUSIZE;
     size_t device_offset_ = 0;
     net::buffer pool_ = 0;
-    std::vector<buffer> available_buffers_;    
+    std::deque<buffer> available_buffers_;    
 
   public:
     
