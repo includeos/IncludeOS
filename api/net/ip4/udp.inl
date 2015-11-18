@@ -1,13 +1,15 @@
+//-*- C++ -*-
 #include <debug>
 
 namespace net
 {
   int ignore_udp(Packet_ptr);
   
-  inline UDP::UDP(Inet<LinkLayer,IP4>& inet)
-      : _network_layer_out(downstream(ignore_udp))
+  inline UDP::UDP(Stack& inet_stack)
+      : _network_layer_out(downstream(ignore_udp)),
+        stack(inet_stack)
   {
-    this->_local_ip = inet.ip_addr();
+    
   }
   
 }

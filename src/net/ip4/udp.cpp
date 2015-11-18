@@ -1,4 +1,3 @@
-//#define DEBUG // Allow debugging
 #include <os>
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
@@ -37,7 +36,7 @@ SocketUDP& UDP::bind(port_t port)
     auto res = ports.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(port),
-        std::forward_as_tuple(*this, port));
+        std::forward_as_tuple(stack, port));
     it = res.first;
   }
   return it->second;

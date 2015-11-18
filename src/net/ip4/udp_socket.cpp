@@ -5,10 +5,11 @@ namespace net
 {
   using port_t = SocketUDP::port_t;
   
-  SocketUDP::SocketUDP(UDP& _stack, port_t port)
-    : stack(_stack), l_port(port)
-  {
-  }
+  SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack)
+    : stack(_stack), l_port(0)  {}
+  
+  SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack, port_t port)
+    : stack(_stack), l_port(port) {}
   
   int SocketUDP::internal_read(std::shared_ptr<PacketUDP> udp)
   {
@@ -24,7 +25,7 @@ namespace net
     p->init();
     p->header().sport = this->l_port; //<some random number>
     p->header().dport = port;
-    p->set_src(stack.local_ip());
+    p->set_src(stack.ip_addr());
     p->set_dst(destIP);
     p->set_length(length);
     
@@ -38,46 +39,38 @@ namespace net
     // source buffer
     uint8_t* buffer = (uint8_t*) string_buffer.data();
     // the maximum we can write per packet:
-    const int WRITE_MAX = Packet::MTU - PacketUDP::HEADERS_SIZE;
+    const int WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
     
     while (rem >= WRITE_MAX)
     {
-      // create and fill buffer (at payload position)
-      uint8_t* pbuf = new uint8_t[Packet::MTU];
-      memcpy(pbuf + PacketUDP::HEADERS_SIZE, buffer, WRITE_MAX);
-      
       // create some packet p (and convert it to PacketUDP)
-      // TODO: UDP& or Inet& stack into SocketUDP
-      /*
-      auto p = std::make_shared<Packet>(
-          pbuf, Packet::MTU, Packet::DOWNSTREAM);
-      auto p2 = std::static_pointer_cast<PacketUDP>(p);
+      auto p = stack.createPacket(stack.MTU());
+      // fill buffer (at payload position)
+      memcpy(p->buffer() + PacketUDP::HEADERS_SIZE, buffer, WRITE_MAX);
+      
       // initialize packet with several infos
+      auto p2 = std::static_pointer_cast<PacketUDP>(p);
       packet_init(p2, destIP, port, WRITE_MAX);
       // ship the packet
-      stack.transmit(p2);
+      stack.udp().transmit(p2);
       
       // next buffer part
       buffer += WRITE_MAX;  rem -= WRITE_MAX;
-      */
     }
     if (rem)
     {
       // copy remainder
-      size_t size   = PacketUDP::HEADERS_SIZE + rem;
-      uint8_t* pbuf = new uint8_t[size];
-      memcpy(pbuf + PacketUDP::HEADERS_SIZE, buffer, rem);
+      size_t size = PacketUDP::HEADERS_SIZE + rem;
       
       // create some packet p
-      /*
-      auto p = std::make_shared<Packet>(
-          pbuf, size, Packet::DOWNSTREAM);
-      auto p2 = std::static_pointer_cast<PacketUDP>(p);
+      auto p = stack.createPacket(size);
+      memcpy(p->buffer() + PacketUDP::HEADERS_SIZE, buffer, rem);
+      
       // initialize packet with several infos
+      auto p2 = std::static_pointer_cast<PacketUDP>(p);
       packet_init(p2, destIP, port, rem);
       // ship the packet
-      stack.transmit(p2);
-      */
+      stack.udp().transmit(p2);
     }
     return -1;
   } // write()

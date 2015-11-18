@@ -60,8 +60,7 @@ namespace net {
     }
     
     // We have to ask the Nic for the MTU
-    constexpr uint16_t& MTU(){ return nic_.MTU(); };
-
+    virtual inline uint16_t MTU() const { return nic_.MTU(); }
     
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;

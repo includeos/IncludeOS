@@ -10,18 +10,14 @@
 #include <pci_manager.hpp>
 #include <stdlib.h>
 
-bool  OS::_power = true;
-MHz OS::_CPU_mhz = MHz(0); //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
+bool OS::_power = true;
+MHz  OS::_CPU_mhz(0);
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
   debug(">>> OS class started\n");
   srand(time(NULL));
-  
-  // Disable the timer interrupt completely
-  //pit.disable();
-  
   
   // heap
   extern caddr_t heap_end;
@@ -31,7 +27,6 @@ void OS::start()
   asm("cli");  
   //OS::rsprint(">>> IRQ handler\n");
   IRQ_manager::init();
-
   
   // Initialize the Interval Timer
   PIT::init();
@@ -39,12 +34,9 @@ void OS::start()
   //OS::rsprint(">>> Dev init\n");
   //Dev::init();
   PCI_manager::init();
-
-
-
+  
+  // measure CPU frequency
   asm("sti");
-  
-  
   INFO(">>> Estimating CPU-frequency\n");    
   INFO("    | \n");  
   INFO("    +--(10 samples, %f sec. interval)\n", 
@@ -63,15 +55,9 @@ void OS::start()
   event_loop();
 }
 
-/*
-extern "C" void halt_loop(){
-  __asm__ volatile("hlt; jmp halt_loop;");
- }*/
-
 void OS::halt(){
   __asm__ volatile("hlt;");
 }
-
 
 double OS::uptime(){  
   return cycles_since_boot() / _CPU_mhz.count(); 

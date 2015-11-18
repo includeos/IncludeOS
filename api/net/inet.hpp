@@ -21,6 +21,8 @@ namespace net {
     virtual TCP& tcp() = 0;
     virtual UDP& udp() = 0;
     
+    virtual uint16_t MTU() const;
+    
     virtual Packet_ptr createPacket(size_t size) = 0;
     
   };
