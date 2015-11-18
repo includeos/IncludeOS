@@ -1,5 +1,5 @@
 #define DEBUG
-#define DEBUG2
+//#define DEBUG2
 #include <os>
 #include <vector>
 #include <malloc.h>
@@ -39,8 +39,8 @@ void BufferStore::increaseStorage(){
 buffer BufferStore::get_raw_buffer(){
   if (available_buffers_.empty())
     increaseStorage();
-  auto buf = available_buffers_.back();
-  available_buffers_.pop_back();  
+  auto buf = available_buffers_.front();
+  available_buffers_.pop_front();  
   debug2("<BufferStore> Provisioned a buffer. %i buffers remaining\n", 
 	available_buffers_.size());
   return buf;
@@ -78,10 +78,9 @@ void BufferStore::release_offset_buffer(buffer b, size_t bufsize){
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
       and address_is_offset_bufstart(b)
-      )//and bufsize == bufsize_ - device_offset_)
+      and bufsize == bufsize_ - device_offset_)
     {
-      available_buffers_.push_back(b - device_offset_);
-      
+      available_buffers_.push_back(b - device_offset_);      
       debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
       return;
     }
