@@ -12,7 +12,7 @@ STRIPPED=0
 echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
-. debug/qemu_cmd.sh
+. ../etc/qemu_cmd.sh
 
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]
