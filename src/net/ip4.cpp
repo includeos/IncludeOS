@@ -2,6 +2,7 @@
 #define DEBUG2 // Allow debug lvl 2
 #include <os>
 #include <net/ip4.hpp>
+#include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
 
 using namespace net;
@@ -52,6 +53,7 @@ int IP4::transmit(Packet_ptr pckt)
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
   
+  /*
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
   hdr->tot_len = __builtin_bswap16(pckt->size() - sizeof(Ethernet::header));
@@ -63,7 +65,6 @@ int IP4::transmit(Packet_ptr pckt)
   hdr->check = 0;
   hdr->check = checksum(hdr);
   
-  /*
   // Make sure it's right
   //assert(checksum(hdr) == 0);
     
@@ -74,6 +75,13 @@ int IP4::transmit(Packet_ptr pckt)
   // @TODO Don't know if this is good for routing...
   hdr->saddr.whole = local_ip_.whole;
   //ASSERT(! hdr->saddr.whole)
+  
+  std::shared_ptr<PacketIP4> p4 = 
+      std::static_pointer_cast<PacketIP4> (pckt);
+  
+  debug2("<IP4 TOP> Dest: %s, Source: %s\n",
+        p4->dst().str().c_str(), 
+        p4->src().str().c_str());
   */
   
   // create local and target subnets

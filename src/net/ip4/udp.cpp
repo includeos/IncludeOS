@@ -53,7 +53,7 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
   
   assert(udp->protocol() == IP4::IP4_UDP);
   
-  Packet_ptr pckt = udp->packet();
+  Packet_ptr pckt = Packet::packet(udp);
   return _network_layer_out(pckt);
 }
 

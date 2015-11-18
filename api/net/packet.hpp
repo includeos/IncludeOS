@@ -83,9 +83,9 @@ namespace net {
     // Upcast back to normal packet
     // unfortunately, we can't upcast with std::static_pointer_cast
     // however, all classes derived from Packet should be good to use
-    std::shared_ptr<Packet> packet()
+    static std::shared_ptr<Packet> packet(Packet_ptr pckt)
     {
-      return *(std::shared_ptr<Packet>*)this;
+      return *(Packet_ptr*) &pckt;
     }
     
     /** @todo Avoid Protected Data. (Jedi Council CG, C.133) **/

@@ -31,8 +31,7 @@ namespace net
   
     /** Full UDP Header with all sub-headers */
     struct full_header{
-      Ethernet::header eth_hdr;
-      IP4::ip_header ip_hdr;
+      IP4::full_header full_hdr;
       udp_header udp_hdr;
     }__attribute__((packed));
     
