@@ -1,3 +1,4 @@
+#define DEBUG
 #include <os>
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
@@ -47,7 +48,7 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
   assert(udp->length() >= sizeof(UDP::full_header));
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
-        udp->length(), udp->ip4_header()->length,
+        udp->length(), htons(udp->ip4_header().tot_len),
         udp->dst().str().c_str(), udp->dst_port());
   
   assert(udp->protocol() == IP4::IP4_UDP);

@@ -3,6 +3,7 @@
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
 
+IMAGE=$1
 DEBUG=0
 
 [[ $2 = "debug" ]] && DEBUG=1 
@@ -25,15 +26,13 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "-----------------------"  
     $QEMU -s -S $QEMU_OPTS
-else    
+else
     #make clean all #stripped 
     echo "-----------------------"
     echo "Starting VM: '$1'", "Command: " $QEMU $QEMU_OPTS
     echo "-----------------------"
     
-    sudo /etc/qemu/qemu-ifup include0 tap0
     sudo $QEMU $QEMU_OPTS 
-    sudo /etc/qemu/qemu-ifdown include0
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
