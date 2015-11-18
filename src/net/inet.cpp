@@ -4,11 +4,9 @@
 
 namespace net
 {
-  
-  
   Inet::Inet() :
       //_eth(eth0.mac()),_arp(eth0.mac(),ip)
-      _ip4(_ip4_list[0],_netmask_list[0]),
+      _ip4(_ip4_list[0],_netmask_list[0]), _udp(_ip4_list[0]),
       _ip6(_ip6_list[0]),
       _icmp6(_ip6_list[0]), _udp6(_ip6_list[0])
   {

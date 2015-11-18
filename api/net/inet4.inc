@@ -9,7 +9,7 @@ namespace net
   template <typename T>  
   Inet4<T>::Inet4(Nic<T>& nic, IP4::addr ip, IP4::addr netmask) :
     ip4_addr_(ip), netmask_(netmask), nic_(nic), eth_(nic.mac()), arp_(*this), 
-    ip4_(*this), icmp_(*this), tcp_(*this), bufstore_(nic.bufstore())
+    ip4_(*this), icmp_(*this), udp_(*this), tcp_(*this), bufstore_(nic.bufstore())
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());          
     
