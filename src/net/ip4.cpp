@@ -38,18 +38,18 @@ int IP4::bottom(Packet_ptr pckt){
 };
 
 
-
-uint16_t IP4::checksum(ip_header* hdr){
-  return net::checksum((uint16_t*)hdr,sizeof(ip_header));
+uint16_t IP4::checksum(ip_header* hdr)
+{
+  return net::checksum((uint16_t*) hdr, sizeof(ip_header));
 }
 
-int IP4::transmit(Packet_ptr pckt){
-
+int IP4::transmit(Packet_ptr pckt)
+{
   //DEBUG Issue #102 :
   // Now _local_ip fails first, while _netmask fails if we remove local ip
-  
   assert(pckt->size() > sizeof(IP4::full_header));
   
+  /*
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
   
@@ -65,10 +65,10 @@ int IP4::transmit(Packet_ptr pckt){
   hdr->check = checksum(hdr);
   
   // Make sure it's right
-  assert(checksum(hdr) == 0);
+  //assert(checksum(hdr) == 0);
     
   // Calculate next-hop
-  assert(pckt->next_hop().whole == 0);
+  //assert(pckt->next_hop().whole == 0);
   
   // Set destination address to "my ip" 
   // @TODO Don't know if this is good for routing...
@@ -91,7 +91,7 @@ int IP4::transmit(Packet_ptr pckt){
   debug2("<IP4 transmit> my ip: %s, Next hop: %s \n",
         local_ip_.str().c_str(),
         pckt->next_hop().str().c_str());
-  
+  */
   //debug("<IP4 TOP> - passing transmission to linklayer \n");
   return linklayer_out_(pckt);
 };
