@@ -3,6 +3,7 @@
 #include <math.h>
 #include <iostream>
 #include <sstream>
+#include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
 
@@ -17,6 +18,9 @@ void Service::start() {
     {{ 255,255,0,0 }} );  // Netmask
   
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
+  
+  net::DHClient dhclient(inet);
+  
   
   // Set up a TCP server on port 80
   net::TCP::Socket& sock =  inet.tcp().bind(80);
