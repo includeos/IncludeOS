@@ -11,18 +11,14 @@
 #include <pci_manager.hpp>
 #include <stdlib.h>
 
-bool  OS::_power = true;
-MHz OS::_CPU_mhz = MHz(0); //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
+bool OS::_power = true;
+MHz  OS::_CPU_mhz(0);
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
   debug("  * OS class started\n");
   srand(time(NULL));
-  
-  // Disable the timer interrupt completely
-  //pit.disable();
-  
   
   // heap
   extern caddr_t heap_end;
@@ -64,7 +60,6 @@ void OS::start()
 void OS::halt(){
   __asm__ volatile("hlt;");
 }
-
 
 double OS::uptime(){  
   return cycles_since_boot() / _CPU_mhz.count(); 

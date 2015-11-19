@@ -42,11 +42,11 @@ namespace net
     
     UDP::port src_port() const
     {
-      return header().sport;
+      return htons(header().sport);
     }
     UDP::port dst_port() const
     {
-      return header().dport;
+      return htons(header().dport);
     }
     
     uint16_t length() const
@@ -59,7 +59,7 @@ namespace net
     }
     inline char* data()
     {
-      return (char*) payload();
+      return (char*) (buffer() + sizeof(UDP::full_header));
     }
     
     // sets the correct length for all the protocols up to IP4
