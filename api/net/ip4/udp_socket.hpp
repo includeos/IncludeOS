@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NET_IP4_UDP_SOCKET_HPP
+#define NET_IP4_UDP_SOCKET_HPP
 #include "udp.hpp"
 #include "../socket.hpp"
 #include <string>
@@ -16,8 +17,8 @@ namespace net
     typedef delegate<int(SocketUDP&, addr_t, port_t, const std::string&)> sendto_handler;
     
     // constructors
-    SocketUDP(UDP&);
-    SocketUDP(UDP&, port_t port);
+    SocketUDP(Inet<LinkLayer,IP4>&);
+    SocketUDP(Inet<LinkLayer,IP4>&, port_t port);
     SocketUDP(const SocketUDP&) = delete;
     
     // functions
@@ -39,7 +40,7 @@ namespace net
     // stuff
     addr_t local_addr() const
     {
-      return stack.local_ip();
+      return stack.ip_addr();
     }
     port_t local_port() const
     {
@@ -50,7 +51,7 @@ namespace net
     void packet_init(std::shared_ptr<PacketUDP>, addr_t, port_t, uint16_t);
     int  internal_read(std::shared_ptr<PacketUDP> udp);
     
-    UDP&   stack;
+    Inet<LinkLayer,IP4>& stack;
     port_t l_port;
     recvfrom_handler on_read;
     sendto_handler   on_send;
@@ -61,3 +62,5 @@ namespace net
     friend class UDP;
   };
 }
+
+#endif

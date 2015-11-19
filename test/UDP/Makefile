@@ -78,7 +78,7 @@ DEPS = $(OBJS:.o=.d)
 all: service
 
 stripped: LDOPTS  += -S #strip all
-stripped: CPPOPTS += -Oz
+stripped: CPPOPTS += -Oz -DDEBUG
 stripped: service
 
 

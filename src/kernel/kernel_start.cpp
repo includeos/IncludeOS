@@ -1,5 +1,6 @@
 #include <os.hpp>
 #include <assert.h>
+#include <debug>
 //#define DEBUG
 
 extern "C"

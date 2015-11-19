@@ -17,11 +17,11 @@ namespace net
     }
     const IP4::ip_header& ip4_header() const
     {
-      return ((UDP::full_header*) buffer())->ip_hdr;
+      return ((IP4::full_header*) buffer())->ip_hdr;
     }
     IP4::ip_header& ip4_header()
     {
-      return ((UDP::full_header*) buffer())->ip_hdr;
+      return ((IP4::full_header*) buffer())->ip_hdr;
     }
     
     const IP4::addr& src() const

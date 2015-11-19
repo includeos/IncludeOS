@@ -1,5 +1,6 @@
 // -*-C++-*-
-#pragma once
+#ifndef DEBUG_HEADER
+#define DEBUG_HEADER
 
 #if defined(DEBUG) && ! defined(NO_DEBUG)
 #define debug(X,...)  printf("* " X,##__VA_ARGS__);
@@ -13,3 +14,4 @@
 #define debug2(X,...) 
 #endif
 
+#endif

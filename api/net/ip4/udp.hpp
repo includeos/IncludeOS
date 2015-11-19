@@ -17,9 +17,9 @@ namespace net
     typedef IP4::addr addr_t;
     /** UDP port number */
     typedef uint16_t port;
-  
-    /** A protocol buffer temporary type. Later we might encapsulate.*/
-    typedef uint8_t* pbuf;
+    
+    using Socket = SocketUDP;
+    using Stack  = Inet<LinkLayer,IP4>;
   
     /** UDP header */
     struct udp_header {
@@ -31,8 +31,7 @@ namespace net
   
     /** Full UDP Header with all sub-headers */
     struct full_header{
-      Ethernet::header eth_hdr;
-      IP4::ip_header ip_hdr;
+      IP4::full_header full_hdr;
       udp_header udp_hdr;
     }__attribute__((packed));
     
@@ -40,7 +39,7 @@ namespace net
     
     inline addr_t local_ip() const
     {
-      return _local_ip;
+      return stack.ip_addr();
     }
     
     /** Input from network layer */
@@ -59,20 +58,19 @@ namespace net
         @param dip   Remote IP-address
         @param dport Remote port   */
     int transmit(std::shared_ptr<PacketUDP> udp);
-  
-    UDP(Inet<LinkLayer,IP4>&);
-    
-    // the UDP::Socket class
-    using Socket = SocketUDP;
-    friend class SocketUDP;
     
     //! @param port local port
     Socket& bind(port port);
     
+    //! construct this UDP module with @inet
+    UDP(Stack& inet);
+    
   private: 
     downstream _network_layer_out;
+    Stack& stack;
     std::map<port, Socket> ports;
-    addr_t _local_ip;
+    
+    friend class SocketUDP;
   };
 
 }
