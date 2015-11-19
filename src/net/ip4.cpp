@@ -53,18 +53,20 @@ int IP4::transmit(Packet_ptr pckt)
   full_header* full_hdr = (full_header*) pckt->buffer();
   ip_header* hdr = &full_hdr->ip_hdr;
   
-  /*
+  /*  
   hdr->version_ihl = 0x45; // IPv.4, Size 5 x 32-bit
   hdr->tos = 0; // Unused
   hdr->tot_len = __builtin_bswap16(pckt->size() - sizeof(Ethernet::header));
   hdr->id = 0; // Fragment ID (we don't fragment yet)
   hdr->frag_off_flags = 0x40; // "No fragment" flag set, nothing else
   hdr->ttl = 64; // What Linux / netcat does
+  */
   
   // Checksum is 0 while calculating
   hdr->check = 0;
   hdr->check = checksum(hdr);
   
+  /*
   // Make sure it's right
   //assert(checksum(hdr) == 0);
     
