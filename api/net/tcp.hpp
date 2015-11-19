@@ -92,6 +92,7 @@ namespace net {
     TCP(TCP&) = delete;
     TCP(TCP&&) = delete;
     
+    //////////////////////////////////////////////////////////////////
     /** TCP Sockets, implementing most of the TCP state-machine logic. */
     class Socket {
     public:
@@ -125,12 +126,15 @@ namespace net {
       
       void listen(int backlog);      
       
-      // Constructor
+      /** Constructor for server socket */
       Socket(TCP& stack);      
+      
+      /** Constructor for connections */
       Socket(TCP& local_stack, port local_port, State state);
       
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
       int bottom(Packet_ptr pckt); 
+
 
     private:      
       
@@ -185,7 +189,7 @@ namespace net {
       std::map<std::pair<IP4::addr,port>, Socket > connections;
       
     }; // Socket class end
-    
+    //////////////////////////////////////////////////////////////////
     
     Socket& bind(port);
     Socket& connect(IP4::addr, port);

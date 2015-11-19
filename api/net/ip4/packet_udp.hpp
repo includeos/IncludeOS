@@ -10,7 +10,6 @@ namespace net
                     public std::enable_shared_from_this<PacketUDP>
   {
   public:
-    static const int DEFAULT_TTL = 64;
     
     UDP::udp_header& header() const
     {
@@ -22,13 +21,8 @@ namespace net
     //! initializes to a default, empty UDP packet, given
     //! a valid MTU-sized buffer
     void init()
-    {
-      ip4_header().version_ihl = 0x45;
-      ip4_header().tos = 0;
-      ip4_header().id  = 0;
-      ip4_header().frag_off_flags = 0;
-      ip4_header().ttl = DEFAULT_TTL;
-      ip4_header().protocol = IP4::IP4_UDP;
+    {            
+      PacketIP4::init();
       // source and destination ports
       header().sport = 0;
       header().dport = 0;
@@ -38,6 +32,7 @@ namespace net
       header().checksum = 0;
       // set UDP payload location (!?)
       payload_ = buffer() + sizeof(UDP::full_header);
+      set_protocol(IP4::IP4_UDP);
     }
     
     UDP::port src_port() const
@@ -67,10 +62,7 @@ namespace net
     {
       // new total UDPv6 payload length
       header().length = htons(sizeof(UDP::udp_header) + newlen);
-      // new total IP4 payload length
-      ip4_header().tot_len =
-          sizeof(IP4::ip_header) + sizeof(UDP::udp_header) + newlen;
-      ip4_header().tot_len = htons(ip4_header().tot_len);
+      
       // new total packet length
       set_size( sizeof(UDP::full_header) + newlen );
     }
