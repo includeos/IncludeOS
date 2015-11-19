@@ -1,4 +1,5 @@
 //#define DEBUG
+#define MYINFO(X,...) INFO("Kernel",X,##__VA_ARGS__)
 #include <os>
 #include <stdio.h>
 #include <assert.h>
@@ -26,48 +27,39 @@ void OS::start()
   // heap
   extern caddr_t heap_end;
   extern char    _end;
-  INFO("<OS> Heap start: %p\n", heap_end);
-  INFO("<OS> Current end is: %p\n", &_end);
+  MYINFO("Heap start: %p", heap_end);
+  MYINFO("Current end is: %p", &_end);
   asm("cli");  
   //OS::rsprint("  * IRQ handler\n");
   IRQ_manager::init();
-
   
   // Initialize the Interval Timer
   PIT::init();
 
-  //OS::rsprint("  * Dev init\n");
-  //Dev::init();
+  // Initialize PCI devices
   PCI_manager::init();
-
-
 
   asm("sti");
   
   
-  INFO("  * Estimating CPU-frequency\n");    
-  INFO("    | \n");  
-  INFO("    +--(10 samples, %f sec. interval)\n", 
-       (PIT::frequency() / _cpu_sampling_freq_divider_).count());
-  INFO("    | \n");  
+  MYINFO("Estimating CPU-frequency");
+  INFO2("|");
+  INFO2("+--(10 samples, %f sec. interval)", 
+	(PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO2("|");
   
-  // TODO: Debug why this sometimes causes problems. Issue #246. 
+  // TODO: Debug why actual measurments sometimes causes problems. Issue #246. 
   _CPU_mhz = MHz(2200); //PIT::CPUFrequency();
-  INFO("    +--> %f MHz \n\n", _CPU_mhz.count());
-  
 
-  printf("  > Starting %s... \n", Service::name().c_str());
-  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
+  INFO2("+--> %f MHz", _CPU_mhz.count());
+    
+  MYINFO("Starting %s",Service::name().c_str());
+  FILLINE('=');
   // Everything is ready
   Service::start();
   
   event_loop();
 }
-
-/*
-extern "C" void halt_loop(){
-  __asm__ volatile("hlt; jmp halt_loop;");
- }*/
 
 void OS::halt(){
   __asm__ volatile("hlt;");
@@ -81,10 +73,11 @@ double OS::uptime(){
 void OS::event_loop()
 {
 
-  printf("\n");
-  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  FILLINE('=');
   printf(" IncludeOS %s \n",version().c_str());
   printf(" +--> Running [ %s ] \n", Service::name().c_str());
+  FILLINE('~');
+
 
   
   while (_power)

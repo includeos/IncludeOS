@@ -115,21 +115,13 @@ void PCI_Device::probe_resources(){
       add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val,pci_size_),res_mem_);
       assert(res_mem_ != 0);
     }    
-    
-          
-    //DEBUG: Print
-    printf("\n"\
-           "\t    * Resource @ BAR %i \n"          \
-           "\t      Address:  0x%x Size: 0x%x \n"\
-           "\t      Type: %s\n",
-           bar,
-           unmasked_val,
-           pci_size_,
-           value & 1 ? "IO Resource" : "Memory Resource");
-    
+    INFO2("");
+    INFO2("[ Resource @ BAR %i ]", bar);
+    INFO2("  Address:  0x%x Size: 0x%x", unmasked_val, pci_size_);
+    INFO2("  Type: %s", value & 1 ? "IO Resource" : "Memory Resource");    
   }
   
-  printf("\n");
+  INFO2("");
   
 }
 
@@ -142,25 +134,28 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
   //printf("\t * New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
   //device_id.vendor,device_id.product,classcode);
   
-  printf("\t |\n");  
+  INFO2("|");  
   
   switch (devtype_.classcode) {
     
   case PCI::BRIDGE:
-    printf("\t +--+ %s %s (0x%x)\n",
+    INFO2("+--+ %s %s (0x%x)",
            bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
            classcodes[devtype_.classcode],devtype_.subclass);
     break;
   case PCI::NIC:
-    printf("\t +--+ %s %s (0x%x)\n",
+    INFO2("+--+ %s %s (0x%x)",
            nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
            classcodes[devtype_.classcode],devtype_.subclass);             
     
     break;
   default:
-    if (devtype_.classcode < NUM_CLASSCODES)
-      printf("\t +--+ %s \n",classcodes[devtype_.classcode]);
-    else printf("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
+    
+    if (devtype_.classcode < NUM_CLASSCODES) {
+      INFO2("+--+ %s ",classcodes[devtype_.classcode]);
+    } else {
+      INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
+    }
       
   }
 

@@ -18,7 +18,7 @@ void Virtio::set_irq(){
 Virtio::Virtio(PCI_Device& dev)
   : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
-  printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
+  INFO("Virtio","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
   
 
   /** PCI Device discovery. Virtio std. §4.1.2  */
@@ -28,16 +28,15 @@ Virtio::Virtio(PCI_Device& dev)
   */
   if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
-  printf("\t [x] Vendor ID is VIRTIO \n");
+  CHECK(true, "Vendor ID is VIRTIO");
   
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   bool _LEGACY_ID = _pcidev.product_id() >= 0x1000 
     and _pcidev.product_id() <= 0x103f;
   
-  printf("\t [%s] Device ID 0x%x is in a valid range (%s)\n",
-          _STD_ID or _LEGACY_ID ? "x" : " ",
-         _pcidev.product_id(), _STD_ID ? ">= Virtio 1.0" : 
-         (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+  CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
+	_pcidev.product_id(), 
+	_STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
     
   assert(_STD_ID or _LEGACY_ID);
   
@@ -48,29 +47,22 @@ Virtio::Virtio(PCI_Device& dev)
                     (_STD_ID and _pcidev.rev_id() > 0));
     
   
-  printf("\t [%s] Device Revision ID (0x%x) supported. \n",
-         rev_id_ok and version_supported(_pcidev.rev_id()) ? "x" 
-         : " ",_pcidev.rev_id());
+  CHECK(rev_id_ok and version_supported(_pcidev.rev_id()), 
+	"Device Revision ID (0x%x) supported", _pcidev.rev_id());
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
-
-
   
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
   _iobase=_pcidev.iobase();  
-
-  if (_iobase) 
-    printf("\t [x] Unit I/O base 0x%x \n ", _iobase);
-  else
-    printf("\t [ ] NO I/O Base on device \n");
-
-    
+  
+  CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
+  
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
   
   // 1. Reset device
   reset();
-  printf("\t [*] Reset device \n");
+  INFO2("[*] Reset device");
   
   // 2. Set ACKNOWLEGE status bit, and
   // 3. Set DRIVER status bit
@@ -94,17 +86,13 @@ Virtio::Virtio(PCI_Device& dev)
   //Fetch IRQ from PCI resource
   set_irq();
 
-  if(_irq)
-    printf( "\t [x] Unit IRQ %i \n ",_irq);
-  else
-    printf("\n [ ] NO IRQ on device \n");
-  
-
+  CHECK(_irq, "Unit has IRQ %i", _irq);
+  INFO("Virtio","Enabling IRQ Handler");
   enable_irq_handler();
-  printf("\t [*] Enable IRQ Handler \n");
+
 
   
-  printf("\n  >> Virtio initialization complete \n\n");
+  INFO("Virtio", "Initialization complete");
   
   // It would be nice if we new that all queues were the same size. 
   // Then we could pass this size on to the device-specific constructor

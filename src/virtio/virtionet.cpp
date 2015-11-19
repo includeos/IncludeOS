@@ -33,7 +33,7 @@ VirtioNet::VirtioNet(PCI_Device& d)
     _link_out(net::upstream(drop))
 {
   
-  INFO("\n>>> VirtioNet driver initializing \n");
+  INFO("VirtioNet", "Driver initializing");
   
   uint32_t needed_features = 0 
     | (1 << VIRTIO_NET_F_MAC)
@@ -49,67 +49,62 @@ VirtioNet::VirtioNet(PCI_Device& d)
   negotiate_features(wanted_features);
   
   
-  INFO("\t [%s] Negotiated needed features \n",
-         (features() & needed_features) == needed_features ? "x" : " " );
+  CHECK ((features() & needed_features) == needed_features,
+	 "Negotiated needed features");
   
-  INFO("\t [%s] Negotiated wanted features \n",
-         (features() & wanted_features) == wanted_features ? "x" : " " );
+  CHECK ((features() & wanted_features) == wanted_features,
+	 "Negotiated wanted features");
 
-  INFO("\t [%s] Device handles packets w. partial checksum \n",
-         features() & (1 << VIRTIO_NET_F_CSUM) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_CSUM),
+	"Device handles packets w. partial checksum");
 
-  INFO("\t [%s] Guest handles packets w. partial checksum \n",
-         features() & (1 << VIRTIO_NET_F_GUEST_CSUM) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_GUEST_CSUM),
+	"Guest handles packets w. partial checksum");
 
-  INFO("\t [%s] There's a control queue \n",
-         features() & (1 << VIRTIO_NET_F_CTRL_VQ) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_CTRL_VQ),
+       "There's a control queue");
 
-  INFO("\t [%s] Queue can handle any header/data layout \n",
-         features() & (1 << VIRTIO_F_ANY_LAYOUT) ? "x" : "0" );
-
-  INFO("\t [%s] We can use indirect descriptors \n",
-         features() & (1 << VIRTIO_F_RING_INDIRECT_DESC) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_F_ANY_LAYOUT), 
+       "Queue can handle any header/data layout");
   
-  INFO("\t [%s] There's a Ring Event Index to use \n",
-         features() & (1 << VIRTIO_F_RING_EVENT_IDX) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_F_RING_INDIRECT_DESC),
+	"We can use indirect descriptors");
+  
+  CHECK(features() & (1 << VIRTIO_F_RING_EVENT_IDX),
+	"There's a Ring Event Index to use");
 
-  INFO("\t [%s] There are multiple queue pairs \n",
-         features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_MQ),
+	"There are multiple queue pairs")
      
   if (features() & (1 << VIRTIO_NET_F_MQ))
-    INFO("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
-  
-
-  INFO("\t [%s] Merge RX buffers  \n",
-         features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
+    printf("\t\t* max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);
+    
+  CHECK(features() & (1 << VIRTIO_NET_F_MRG_RXBUF),
+	"Merge RX buffers");
   
    
   // Step 1 - Initialize RX/TX queues
   auto success = assign_queue(0, (uint32_t)rx_q.queue_desc());
-  INFO("\t [%s] RX queue assigned (0x%x) to device \n",
-       success ? "x":" ",(uint32_t)rx_q.queue_desc());
+  CHECK(success, "RX queue assigned (0x%x) to device",
+	(uint32_t)rx_q.queue_desc());
   
   success = assign_queue(1, (uint32_t)tx_q.queue_desc()); 
-  INFO("\t [%s] TX queue assigned (0x%x) to device \n",
-       success ? "x":" ",(uint32_t)tx_q.queue_desc());
-
+  CHECK(success, "TX queue assigned (0x%x) to device",
+	(uint32_t)tx_q.queue_desc());
   
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ)) {
     success = assign_queue(2, (uint32_t)tx_q.queue_desc());
-      INFO("\t [%s] CTRL queue assigned (0x%x) to device \n", 
-	   success ? "x":" ", (uint32_t)ctrl_q.queue_desc());
+    CHECK(success, "CTRL queue assigned (0x%x) to device",
+	  (uint32_t)ctrl_q.queue_desc());
   }
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  INFO(" >> Adding %i receive buffers of size %i \n", 
+  INFO("VirtioNet", "Adding %i receive buffers of size %i",
        rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
-  //add_receive_buffer();
-
-  
   
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -124,41 +119,27 @@ VirtioNet::VirtioNet(PCI_Device& d)
   // Getting the MAC + status 
   get_config();  
   
-  if (_conf.mac.major > 0) {
-    INFO( "\t [*] Mac address: %s \n", _conf.mac.str().c_str() ); 
-  }else{
-    INFO("\t [ ] No mac address? \n");
-  }
+  CHECK(_conf.mac.major > 0, "Valid Mac address: %s", 
+	_conf.mac.str().c_str());
 
  
   // Step 7 - 9 - GSO: @todo Not using GSO features yet. 
 
   // Signal setup complete. 
-  
-  // DEBUG - disable this
   setup_complete((features() & needed_features) == needed_features);
-
-  INFO("\t [%s] Signalled driver OK \n",
-         (features() & needed_features) == needed_features ? "*": " ");
-  
+  CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
   
   // Hook up IRQ handler
-  //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
   auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
   IRQ_manager::subscribe(irq(),del);
   IRQ_manager::enable_irq(irq());  
-  
-   
-  // Assign Link-layer output to RX Queue
-  //rx_q.set_data_handler(_link_out);
-  
-  INFO("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
     
+  // Done
+  INFO("VirtioNet", "Driver initialization complete");
+  CHECK(_conf.status & 1, "Link up\n");    
   rx_q.kick();
   
-  // Done
-  INFO("\n >> Driver initialization complete. \n\n");  
-  
+
 };  
 
 /** Port-ish from SanOS */

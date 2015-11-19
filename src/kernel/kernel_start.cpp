@@ -59,13 +59,19 @@ extern "C"
     // init serial port
     init_serial();    
     
-    OS::rsprint("\n\n  #include <os> // literally \n\n");
+    // @note: Printing before the c-runtime is initialized can only be done like so:
+    // OS::rsprint("Booting...");
     
     // Initialize stack-unwinder, call global constructors etc.
     debug("\t * Initializing C-environment... \n");
     _init_c_runtime();
+
+    FILLINE('=');
+    CAPTION("#include<os> // Literally");
+    FILLINE('=');
+ 
     
-    // verify that global constructors were called
+// verify that global constructors were called
 #ifdef DEBUG
     assert(_test_glob == 123);
     assert(_test_constructor == 1);

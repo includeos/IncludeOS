@@ -13,7 +13,7 @@ std::unordered_map<PCI::classcode_t, std::vector<PCI_Device> > PCI_manager::devi
 
 void PCI_manager::init()
 {
-  printf("  > PCI Manager initializing \n");
+  INFO("PCI Manager","Probing PCI bus");
   
   /* 
      Probe the PCI bus
@@ -35,7 +35,7 @@ void PCI_manager::init()
   
   // Pretty printing, end of device tree
   // @todo should probably be moved, or optionally non-printed
-  printf("\t | \n");
-  printf("\t o \n");
+  INFO2("|");
+  INFO2("o");
   
 }
