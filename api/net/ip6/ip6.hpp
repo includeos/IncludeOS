@@ -2,8 +2,8 @@
 #define NET_IP6_IP6_HPP
 
 #include <delegate>
-#include "../class_ethernet.hpp"
-#include "../class_packet.hpp"
+#include "../ethernet.hpp"
+#include "../packet.hpp"
 #include "../util.hpp"
 
 #include <debug>
@@ -48,14 +48,10 @@ namespace net
       {
         i128 = _mm_set_epi16(
             //d2, d1, c2, c1, b2, b1, a2, a1);
-            __builtin_bswap16(d2), 
-            __builtin_bswap16(d1), 
-            __builtin_bswap16(c2), 
-            __builtin_bswap16(c1), 
-            __builtin_bswap16(b2), 
-            __builtin_bswap16(b1), 
-            __builtin_bswap16(a2), 
-            __builtin_bswap16(a1));
+            htons(d2), htons(d1), 
+            htons(c2), htons(c1), 
+            htons(b2), htons(b1), 
+            htons(a2), htons(a1));
       }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
       {
@@ -252,7 +248,7 @@ namespace net
     }
     
     // handler for upstream IPv6 packets
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
     
     // transmit packets to the ether
     int transmit(std::shared_ptr<PacketIP6>& pckt);

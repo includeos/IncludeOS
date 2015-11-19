@@ -4,37 +4,26 @@
 #include <iostream>
 #include <sstream>
 
-//#include <thread> => <thread> is not supported on this single threaded system
-
 using namespace std::chrono;
 
-void Service::start()
-{
-
-  // Wonder when these are used...?
-  std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
-  std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
+void Service::start() {
   
-  // TODO: find some implementation for long double, or not... or use double
-  //auto sine = sinl(42);
-    
-    // Assign an IP-address, using Hårek-mapping :-)
-  auto& mac = Dev::eth(0).mac(); 
-  net::Inet4::ifconfig(net::ETH0, 
-		       {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
-		       {{ 255,255,0,0 }} );
-   
-  // Bring up the interface
-  net::Inet4* inet = net::Inet4::up();
-  printf("Service IP address: %s \n", net::Inet4::ip4(net::ETH0).str().c_str());
+  // Assign an IP-address, using Hårek-mapping :-)
+  auto& eth0 = Dev::eth<0,VirtioNet>();
+  auto& mac = eth0.mac(); 
   
-  // Set up a server on port 80
-  net::TCP::Socket& sock =  inet->tcp().bind(80);
+  auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
+    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
+    {{ 255,255,0,0 }} );  // Netmask
+  
+  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
+  
+  // Set up a TCP server on port 80
+  net::TCP::Socket& sock =  inet.tcp().bind(80);
 
   printf("SERVICE: %i open ports in TCP @ %p \n",
-	 inet->tcp().openPorts(), &(inet->tcp()));   
-  
-  
+	 inet.tcp().openPorts(), &(inet.tcp()));   
+
   srand(OS::cycles_since_boot());
   
   sock.onConnect([](net::TCP::Socket& conn){
@@ -76,10 +65,5 @@ void Service::start()
       
     });
 
-
-  uint64_t my_llu = 42;
-  printf("BUG? My llu is: %llu, and 42 == %i \n",my_llu, 42);  
-  
-  
-  printf("*** SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE STARTED *** \n");
 }

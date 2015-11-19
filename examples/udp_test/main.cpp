@@ -13,7 +13,7 @@ using namespace net;
 Inet* network;
 PacketStore packetStore(50, 1500);
 
-void reflect(Inet*, std::shared_ptr<Packet>&);
+void reflect(Inet*, Packet_ptr);
 
 static const int SERVICE_PORT = 12345;
 
@@ -27,7 +27,7 @@ void Service::start()
 	network = Inet::up();
 	
   network->udp_listen(SERVICE_PORT,
-  [] (std::shared_ptr<net::Packet>& pckt)
+  [] (net::Packet_ptr pckt)
   {
     std::cout << "*** Received data on port " << SERVICE_PORT << std::endl;
     reflect(network, pckt);
@@ -36,7 +36,7 @@ void Service::start()
   });
 }
 
-void reflect(Inet* network, std::shared_ptr<Packet>& packet)
+void reflect(Inet* network, Packet_ptr packet)
 {
   //auto pckt = packetStore.getPacket();
   UDP::full_header& header = *(UDP::full_header*) packet->buffer();

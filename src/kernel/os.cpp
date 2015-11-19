@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <class_service.hpp>
+#include <service.hpp>
 
 // A private class to handle IRQ
-#include <class_irq_manager.hpp>
-#include <class_pci_manager.hpp>
+#include <irq_manager.hpp>
+#include <pci_manager.hpp>
 #include <stdlib.h>
 
 bool  OS::_power = true;
@@ -16,7 +16,7 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
-  rsprint(">>> OS class started\n");
+  debug("  * OS class started\n");
   srand(time(NULL));
   
   // Disable the timer interrupt completely
@@ -26,42 +26,41 @@ void OS::start()
   // heap
   extern caddr_t heap_end;
   extern char    _end;
-  printf("<OS> Heap start: %p\n", heap_end);
-  printf("<OS> Current end is: %p\n", &_end);
-  
-  timeval t;
-  gettimeofday(&t,0);
-  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",
-      t.tv_sec, t.tv_usec, uptime());
-  
+  INFO("<OS> Heap start: %p\n", heap_end);
+  INFO("<OS> Current end is: %p\n", &_end);
   asm("cli");  
-  //OS::rsprint(">>> IRQ handler\n");
+  //OS::rsprint("  * IRQ handler\n");
   IRQ_manager::init();
 
   
   // Initialize the Interval Timer
   PIT::init();
 
-  //OS::rsprint(">>> Dev init\n");
-  Dev::init();
+  //OS::rsprint("  * Dev init\n");
+  //Dev::init();
+  PCI_manager::init();
 
 
 
   asm("sti");
   
-  printf(">>> Estimating CPU-frequency\n");    
-  printf("    | \n");  
-  printf("    +--(10 samples, %f sec. interval)\n", (PIT::frequency() / _cpu_sampling_freq_divider_).count() );
-  printf("    | \n");  
-  _CPU_mhz = PIT::CPUFrequency();
-  printf("    +--> %f MHz \n\n", _CPU_mhz.count());  
-    
-  printf(">>> IncludeOS initialized - calling Service::start()\n");  
   
+  INFO("  * Estimating CPU-frequency\n");    
+  INFO("    | \n");  
+  INFO("    +--(10 samples, %f sec. interval)\n", 
+       (PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO("    | \n");  
+  
+  // TODO: Debug why this sometimes causes problems. Issue #246. 
+  _CPU_mhz = MHz(2200); //PIT::CPUFrequency();
+  INFO("    +--> %f MHz \n\n", _CPU_mhz.count());
+  
+
+  printf("  > Starting %s... \n", Service::name().c_str());
+  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   // Everything is ready
   Service::start();
   
-
   event_loop();
 }
 
@@ -74,11 +73,19 @@ void OS::halt(){
   __asm__ volatile("hlt;");
 }
 
+
+double OS::uptime(){  
+  return cycles_since_boot() / _CPU_mhz.count(); 
+}
+
 void OS::event_loop()
 {
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System idle - waiting for interrupts \n");
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+  printf("\n");
+  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  printf(" IncludeOS %s \n",version().c_str());
+  printf(" +--> Running [ %s ] \n", Service::name().c_str());
+
   
   while (_power)
   {
