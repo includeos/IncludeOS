@@ -3,6 +3,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-extern int RDRAND(uint8_t* buff, size_t bsize);
+extern int RDRAND(void* buff, size_t bsize);
 
 #endif

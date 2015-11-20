@@ -2,11 +2,12 @@
 #include <kernel/cpuid.hpp>
 #include <cstring>
 
-int RDRAND(uint8_t* buff, size_t bsize)
+int RDRAND(void* __buff, size_t bsize)
 {
   if (!CPUID::hasRDRAND())
     return -1;
   
+  uint8_t* buff = (uint8_t*) __buff;
   size_t idx = 0, rem = bsize;
   size_t safety = bsize / sizeof(unsigned int) + 4;
   

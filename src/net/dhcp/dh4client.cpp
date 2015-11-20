@@ -1,5 +1,6 @@
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
+#include <kernel/rdrand.hpp>
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -135,7 +136,7 @@ namespace net
     // create DHCP discover packet
     debug("* Negotiating IP address through DHCP discover\n");
     // create a random session ID
-    this->xid = 2343534;
+    RDRAND(&this->xid, sizeof(this->xid));
     
     std::string packet;
     packet.reserve(sizeof(dhcp_packet_t));
