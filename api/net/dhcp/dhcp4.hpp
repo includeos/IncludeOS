@@ -3,7 +3,7 @@
 #ifndef NET_DHCP_DHCP4_HPP
 #define NET_DHCP_DHCP4_HPP
 
-#define DHCP_VEND_LEN	      308
+#define DHCP_VEND_LEN	      304
 #define BOOTP_MIN_LEN       300
 #define DHCP_MIN_LEN        548
 // some clients silently ignore responses less than 300 bytes
@@ -31,7 +31,7 @@ namespace net
     uint8_t  chaddr[CHADDR_LEN];  // client hardware address
     uint8_t  sname[SNAME_LEN];    // server name
     uint8_t  file[FILE_LEN];      // BOOT filename
-    uint32_t option_format;
+    uint8_t  magic[4];            // option_format aka magic
     uint8_t  options[DHCP_VEND_LEN];
   };
   
@@ -39,6 +39,7 @@ namespace net
   {
     uint8_t code;
     uint8_t length;
+    uint8_t val[0];
   };
   
 }

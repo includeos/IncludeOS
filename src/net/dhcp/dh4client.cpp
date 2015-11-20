@@ -8,7 +8,7 @@
 #define BOOTREPLY   2
  
 // Possible values for flags field
-#define BOOTP_BROADCAST 32768L
+#define BOOTP_BROADCAST 0x8000
  
 // Possible values for hardware type (htype) field
 #define HTYPE_ETHER     1  // Ethernet 10Mbps
@@ -76,7 +76,7 @@
 #define DHO_DHCP_MESSAGE_TYPE       53
 #define DHO_DHCP_SERVER_IDENTIFIER  54
 #define DHO_DHCP_PARAMETER_REQUEST_LIST 55
-#define DHO_DHCP_MESSAGE        56
+#define DHO_DHCP_MESSAGE            56
 #define DHO_DHCP_MAX_MESSAGE_SIZE   57
 #define DHO_DHCP_RENEWAL_TIME       58
 #define DHO_DHCP_REBINDING_TIME     59
@@ -128,8 +128,13 @@
 
 namespace net
 {
-  static const IP4::addr INADDR_NONE  {{0}};
+  static const IP4::addr INADDR_ANY   {{0}};
   static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
+  
+  inline dhcp_option_t* get_option(uint8_t* option)
+  {
+    return (dhcp_option_t*) option;
+  }
   
 	void DHClient::negotiate()
   {
@@ -151,20 +156,36 @@ namespace net
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_BROADCAST);
-    dhcp->ciaddr = INADDR_NONE;
-    dhcp->yiaddr = INADDR_NONE;
-    dhcp->siaddr = INADDR_NONE;
-    dhcp->giaddr = INADDR_NONE;
+    dhcp->ciaddr = INADDR_ANY;
+    dhcp->yiaddr = INADDR_ANY;
+    dhcp->siaddr = INADDR_ANY;
+    dhcp->giaddr = INADDR_ANY;
+    
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
     memcpy(dhcp->chaddr, &stack.link_addr(), ETH_ALEN);
     // zero server, file and options
-    memset(dhcp->sname, 0, dhcp_packet_t::SNAME_LEN + 
-          dhcp_packet_t::FILE_LEN + DHCP_VEND_LEN);
+    memset(dhcp->sname, 0, dhcp_packet_t::SNAME_LEN + dhcp_packet_t::FILE_LEN);
+    
+    dhcp->magic[0] =  99;
+    dhcp->magic[1] = 130;
+    dhcp->magic[2] =  83;
+    dhcp->magic[3] =  99;
+    
+    dhcp_option_t* opt = get_option(dhcp->options + 0);
+    // DHCP discover
+    opt->code   = DHO_DHCP_MESSAGE_TYPE;
+    opt->length = 1;
+    opt->val[0] = DHCPDISCOVER;
+    // END
+    opt = get_option(dhcp->options + 3);
+    opt->code   = DHO_END;
+    opt->length = 0;
+    
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0
-    socket.bcast(INADDR_NONE, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
     [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
@@ -197,6 +218,6 @@ namespace net
     memcpy(resp, dhcp, sizeof(dhcp_packet_t));
     
     // send response
-    sock.bcast(INADDR_NONE, DHCP_DEST_PORT, packet, datalen);
+    sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, datalen);
   }
 }
