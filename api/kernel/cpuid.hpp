@@ -3,7 +3,7 @@
 
 struct CPUID
 {
-  struct CPUIDinfo
+  struct cpuid_t
   {
     unsigned int EAX;
     unsigned int EBX;

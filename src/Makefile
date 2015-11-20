@@ -34,7 +34,9 @@ LD  = ld # Yes - we use the default linker
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api  #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
+# stackrealign is needed to guarantee 16-byte stack alignment for SSE
+# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
+CAPABS_COMMON = -mrdrnd -msse3 -mstackrealign
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 debug: CAPABS = $(CAPABS_COMMON) -O0 

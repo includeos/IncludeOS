@@ -8,7 +8,9 @@
 
 namespace net
 {
-	class DHClient
+	class SocketUDP;
+  
+  class DHClient
 	{
 	public:
 		using Stack = Inet<LinkLayer, IP4>;
@@ -17,7 +19,7 @@ namespace net
 		void negotiate(); // --> offer
     
 	private:
-		void offer(const std::string& data);
+		void offer(SocketUDP&, const std::string& data);
 		void request();   // --> acknowledge
     void acknowledge(Packet_ptr packet);
     

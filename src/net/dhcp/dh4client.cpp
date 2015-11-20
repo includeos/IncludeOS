@@ -1,6 +1,5 @@
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
-#include <kernel/rdrand.hpp>
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -136,7 +135,9 @@ namespace net
     // create DHCP discover packet
     debug("* Negotiating IP address through DHCP discover\n");
     // create a random session ID
-    RDRAND(&this->xid, sizeof(this->xid));
+    uint32_t xxxxxx;
+    this->xid = xxxxxx;
+    debug("* DHCP session ID %u (size=%u)\n", xid, sizeof(xid));
     
     std::string packet;
     packet.reserve(sizeof(dhcp_packet_t));
@@ -171,16 +172,29 @@ namespace net
           DHCP_SOURCE_PORT, addr.str().c_str(), port, DHCP_DEST_PORT);
       
       if (addr == INADDR_BCAST && port == DHCP_DEST_PORT)
-          this->offer(data);
+          this->offer(sock, data);
       
       return -1;
     });
   }
   
-  void DHClient::offer(const std::string& data)
+  void DHClient::offer(SocketUDP& sock, const std::string& data)
   {
     printf("Reading offered DHCP information\n");
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data.data();
     
+    printf("Session ID: %u", dhcp->xid);
+    printf("DHCP IP: %s  NETMASK: %s", 
+        dhcp->ciaddr.str().c_str(), dhcp->yiaddr.str().c_str());
+    
+    // form a response
+    std::string packet;
+    packet.reserve(sizeof(dhcp_packet_t));
+    dhcp_packet_t* resp = (dhcp_packet_t*) packet.data();
+    // copy most of the offer into our response
+    memcpy(resp, dhcp, sizeof(dhcp_packet_t));
+    
+    // send response
+    sock.bcast(INADDR_NONE, DHCP_DEST_PORT, packet);
   }
 }

@@ -2,7 +2,7 @@
 #define KERNEL_RDRAND_HPP
 
 #include <cstdint>
-#include <cstdlib>
-extern int RDRAND(void* buff, size_t bsize);
+extern bool rdrand16(uint16_t* result);
+extern bool rdrand32(uint32_t* result);
 
 #endif
