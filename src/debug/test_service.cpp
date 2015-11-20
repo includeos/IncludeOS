@@ -76,6 +76,7 @@ void Service::start() {
   pckt->init();
   pckt->next_hop({{ 10,0,0,1 }});  
   pckt->set_src(inet.ip_addr());
+  pckt->set_dst(pckt->next_hop());
   pckt->set_protocol(net::IP4::IP4_UDP);
   inet.ip_obj().transmit(pckt);
 

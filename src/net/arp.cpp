@@ -33,8 +33,17 @@ int Arp::bottom(Packet_ptr pckt)
     break;
     
   case H_reply:
-    debug2("\t ARP REPLY: %s belongs to %s\n",
-          hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str())
+    {
+      debug2("\t ARP REPLY: %s belongs to %s\n",
+	     hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
+      auto waiting = waiting_packets_.find(hdr->sipaddr);
+      if (waiting != waiting_packets_.end()) {
+	debug ("Had a packet waiting for this IP. Sending\n");
+	transmit(waiting->second);
+	waiting_packets_.erase(waiting);
+      }
+    }
+    
     break;
     
   default:
