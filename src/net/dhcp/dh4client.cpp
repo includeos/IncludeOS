@@ -8,6 +8,7 @@
 #define BOOTREPLY   2
  
 // Possible values for flags field
+#define BOOTP_UNICAST   0x0000
 #define BOOTP_BROADCAST 0x8000
  
 // Possible values for hardware type (htype) field
@@ -123,8 +124,8 @@
 #define FQDN_SUBOPTION_COUNT  8
 
 #define ETH_ALEN           6  // octets in one ethernet header
-#define DHCP_SOURCE_PORT  68
 #define DHCP_DEST_PORT    67
+#define DHCP_SOURCE_PORT  68
 
 namespace net
 {
@@ -145,8 +146,8 @@ namespace net
     this->xid = xxxxxx;
     debug("* DHCP session ID %u (size=%u)\n", xid, sizeof(xid));
     
-    char packet[sizeof(dhcp_packet_t)];
-    const int packetlen = sizeof(dhcp_packet_t);
+    const size_t packetlen = sizeof(dhcp_packet_t);
+    char packet[packetlen];
     
     dhcp_packet_t* dhcp = (dhcp_packet_t*) packet;
     dhcp->op    = BOOTREQUEST;
@@ -155,7 +156,7 @@ namespace net
     dhcp->hops  = 0;
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
-    dhcp->flags = htons(BOOTP_BROADCAST);
+    dhcp->flags = htons(BOOTP_UNICAST);
     dhcp->ciaddr = INADDR_ANY;
     dhcp->yiaddr = INADDR_ANY;
     dhcp->siaddr = INADDR_ANY;
@@ -177,14 +178,28 @@ namespace net
     opt->code   = DHO_DHCP_MESSAGE_TYPE;
     opt->length = 1;
     opt->val[0] = DHCPDISCOVER;
-    // END
+    // DHCP client identifier
     opt = get_option(dhcp->options + 3);
+    opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
+    opt->length = 7;
+    opt->val[0] = HTYPE_ETHER;
+    memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
+    // Parameter Request List
+    opt = get_option(dhcp->options + 12);
+    opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
+    opt->length = 4;
+    opt->val[0] = 0x01;
+    opt->val[1] = 0x0f;
+    opt->val[2] = 0x03;
+    opt->val[3] = 0x06;
+    // END
+    opt = get_option(dhcp->options + 18);
     opt->code   = DHO_END;
     opt->length = 0;
     
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
-    /// broadcast our DHCP plea as 0.0.0.0
+    /// broadcast our DHCP plea as 0.0.0.0:67
     socket.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
@@ -211,13 +226,14 @@ namespace net
         dhcp->ciaddr.str().c_str(), dhcp->yiaddr.str().c_str());
     
     // form a response
-    char packet[sizeof(dhcp_packet_t)];
+    const size_t packetlen = sizeof(dhcp_packet_t);
+    char packet[packetlen];
     
     dhcp_packet_t* resp = (dhcp_packet_t*) packet;
     // copy most of the offer into our response
     memcpy(resp, dhcp, sizeof(dhcp_packet_t));
     
     // send response
-    sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, datalen);
+    sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
 }
