@@ -1,3 +1,4 @@
+#define DEBUG
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
 #include <debug>
@@ -122,8 +123,8 @@
 #define FQDN_SUBOPTION_COUNT  8
 
 #define ETH_ALEN           6  // octets in one ethernet header
-#define DHCP_SOURCE_PORT  67
-#define DHCP_DEST_PORT    68
+#define DHCP_SOURCE_PORT  68
+#define DHCP_DEST_PORT    67
 
 namespace net
 {
@@ -139,10 +140,10 @@ namespace net
     this->xid = xxxxxx;
     debug("* DHCP session ID %u (size=%u)\n", xid, sizeof(xid));
     
-    std::string packet;
-    packet.reserve(sizeof(dhcp_packet_t));
+    char packet[sizeof(dhcp_packet_t)];
+    const int packetlen = sizeof(dhcp_packet_t);
     
-    dhcp_packet_t* dhcp = (dhcp_packet_t*) packet.data();
+    dhcp_packet_t* dhcp = (dhcp_packet_t*) packet;
     dhcp->op    = BOOTREQUEST;
     dhcp->htype = HTYPE_ETHER;
     dhcp->hlen  = ETH_ALEN;
@@ -163,38 +164,39 @@ namespace net
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0
-    socket.bcast(INADDR_NONE, DHCP_DEST_PORT, packet);
+    socket.bcast(INADDR_NONE, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
-    [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, const std::string& data) -> int
+    [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
+            const char* data, int len) -> int
     {
       printf("Received data on %d from %s:%d (should be %d)\n",
           DHCP_SOURCE_PORT, addr.str().c_str(), port, DHCP_DEST_PORT);
       
       if (addr == INADDR_BCAST && port == DHCP_DEST_PORT)
-          this->offer(sock, data);
+          this->offer(sock, data, len);
       
       return -1;
     });
   }
   
-  void DHClient::offer(SocketUDP& sock, const std::string& data)
+  void DHClient::offer(SocketUDP& sock, const char* data, int datalen)
   {
     printf("Reading offered DHCP information\n");
-    const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data.data();
+    const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
     
-    printf("Session ID: %u", dhcp->xid);
+    printf("Offer xid: %u  Our xid: %u", dhcp->xid, this->xid);
     printf("DHCP IP: %s  NETMASK: %s", 
         dhcp->ciaddr.str().c_str(), dhcp->yiaddr.str().c_str());
     
     // form a response
-    std::string packet;
-    packet.reserve(sizeof(dhcp_packet_t));
-    dhcp_packet_t* resp = (dhcp_packet_t*) packet.data();
+    char packet[sizeof(dhcp_packet_t)];
+    
+    dhcp_packet_t* resp = (dhcp_packet_t*) packet;
     // copy most of the offer into our response
     memcpy(resp, dhcp, sizeof(dhcp_packet_t));
     
     // send response
-    sock.bcast(INADDR_NONE, DHCP_DEST_PORT, packet);
+    sock.bcast(INADDR_NONE, DHCP_DEST_PORT, packet, datalen);
   }
 }

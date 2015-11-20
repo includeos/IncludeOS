@@ -17,18 +17,17 @@ void Service::start() {
     {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
     {{ 255,255,0,0 }} );  // Netmask
   
+  // negotiate with terrorists
+  net::DHClient dhclient(inet);
   
   printf("Size of IP-stack: %i bytes \n",sizeof(inet));
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
-  
-  net::DHClient dhclient(inet);
-  
   
   // Set up a TCP server on port 80
   net::TCP::Socket& sock =  inet.tcp().bind(80);
   
   printf("SERVICE: %i open ports in TCP @ %p \n",
-	 inet.tcp().openPorts(), &(inet.tcp()));   
+      inet.tcp().openPorts(), &(inet.tcp()));   
 
   srand(OS::cycles_since_boot());
   
@@ -75,7 +74,7 @@ void Service::start() {
   
   
   /** TEST ARP-resolution 
-      @todo move to separate location */
+      @todo move to separate location
   auto pckt = std::static_pointer_cast<net::PacketIP4>(inet.createPacket(50));
   pckt->init();
   pckt->next_hop({{ 10,0,0,1 }});  
@@ -83,7 +82,7 @@ void Service::start() {
   pckt->set_dst(pckt->next_hop());
   pckt->set_protocol(net::IP4::IP4_UDP);
   inet.ip_obj().transmit(pckt);
-
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");    
 

@@ -19,7 +19,7 @@ namespace net
 		void negotiate(); // --> offer
     
 	private:
-		void offer(SocketUDP&, const std::string& data);
+		void offer(SocketUDP&, const char* data, int len);
 		void request();   // --> acknowledge
     void acknowledge(Packet_ptr packet);
     

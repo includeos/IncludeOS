@@ -45,6 +45,9 @@ SocketUDP& UDP::bind(port_t port)
 
 int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 {
+  printf("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
+          udp->length(), udp->ip4_segment_size(),
+          udp->dst().str().c_str(), udp->dst_port());
   assert(udp->length() >= sizeof(UDP::udp_header));
   
   debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i \n",
@@ -59,7 +62,7 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 
 namespace net
 {
-  int ignore_udp(Packet_ptr UNUSED(pckt))
+  int ignore_udp(Packet_ptr)
   {
     debug("<UDP->Network> No handler - DROP!\n");
     return 0;

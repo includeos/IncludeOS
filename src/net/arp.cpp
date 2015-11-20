@@ -136,33 +136,49 @@ int Arp::transmit(Packet_ptr pckt){
   debug2("<ARP -> physical> Transmitting %i bytes to %s \n",
         pckt->size(),dip.str().c_str());
   
-  if (sip != ip_) {
-    debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
-          sip.str().c_str(), ip_.str().c_str());
-    return -1;
-  }
-  
   Ethernet::addr mac;
-
-  // If we don't have a cached IP, get mac from next-hop (Håreks c001 hack)
-  if (!is_valid_cached(dip))  
-    return arp_resolver_(pckt);
   
-  // Get mac from cache
-  mac = cache_[dip].mac_;
+  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
+  if (iphdr->daddr == INADDR_BCAST)
+  {
+    // when broadcasting our source IP should be either
+    // our own IP or 0.0.0.0
+    static const IP4::addr INADDR_NONE  {{0}};
+    if (sip != ip_ && sip != INADDR_NONE)
+    {
+      debug2("<ARP> Dropping outbound broadcast packet due to "
+             "invalid source IP %s\n",  sip.str().c_str());
+      return -1;
+    }
+    mac = Ethernet::addr::BROADCAST_FRAME;
+  }
+  else
+  {
+    if (sip != ip_)
+    {
+      debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
+            sip.str().c_str(), ip_.str().c_str());
+      return -1;
+    }
+    
+    // If we don't have a cached IP, get mac from next-hop (Håreks c001 hack)
+    if (!is_valid_cached(dip))  
+        return arp_resolver_(pckt);
+    
+    // Get mac from cache
+    mac = cache_[dip].mac_;
+  }
   
   /** Attach next-hop mac and ethertype to ethernet header  */  
   Ethernet::header* ethhdr = (Ethernet::header*)pckt->buffer();    
+  ethhdr->src = mac_;
   ethhdr->dest.major = mac.major;
   ethhdr->dest.minor = mac.minor;
   ethhdr->type = Ethernet::ETH_IP4;
   
   debug2("<ARP -> physical> Sending packet to %s \n",mac.str().c_str());
-
   return linklayer_out_(pckt);
-  
-  return 0;
-};
+}
 
 void Arp::await_resolution(Packet_ptr pckt, IP4::addr){
   auto queue =  waiting_packets_.find(pckt->next_hop());

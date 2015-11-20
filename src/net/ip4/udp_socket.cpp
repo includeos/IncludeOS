@@ -14,10 +14,7 @@ namespace net
   
   int SocketUDP::internal_read(std::shared_ptr<PacketUDP> udp)
   {
-    const std::string buffer(
-        udp->data(), 
-        udp->data_length());
-    return on_read(*this, udp->src(), udp->src_port(), buffer);
+    return on_read(*this, udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
   
   void SocketUDP::packet_init(std::shared_ptr<PacketUDP> p, 
@@ -34,13 +31,12 @@ namespace net
   }
   
   int SocketUDP::internal_write(addr_t srcIP, addr_t destIP,
-      port_t port, const std::string& string_buffer)
+      port_t port, const uint8_t* buffer, int length)
   {
-    int rem = string_buffer.size();
-    // source buffer
-    uint8_t* buffer = (uint8_t*) string_buffer.data();
     // the maximum we can write per packet:
     const int WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
+    // the bytes remaining to be written
+    int rem = length;
     
     while (rem >= WRITE_MAX)
     {
@@ -73,17 +69,20 @@ namespace net
       // ship the packet
       stack.udp().transmit(p2);
     }
-    return -1;
+    return length;
   } // internal_write()
   
   int SocketUDP::write(addr_t destIP, port_t port, 
-                       const std::string& buffer)
+                       const void* buffer, int len)
   {
-    return internal_write(local_addr(), destIP, port, buffer);
+    return internal_write(local_addr(), destIP, port, 
+                          (const uint8_t*) buffer, len);
   }
-  int SocketUDP::bcast(addr_t srcIP, port_t port, const std::string& buffer)
+  int SocketUDP::bcast(addr_t srcIP, port_t port, 
+                       const void* buffer, int len)
   {
-    return internal_write(srcIP, INADDR_BCAST, port, buffer);
+    return internal_write(srcIP, INADDR_BCAST, port, 
+                          (const uint8_t*) buffer, len);
   }
   
 }
