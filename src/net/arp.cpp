@@ -1,9 +1,9 @@
-// #define DEBUG // Allow debugging
-// #define DEBUG2 // Allow debugging
+#define DEBUG // Allow debugging
+#define DEBUG2 // Allow debugging
 
 #include <os>
 #include <net/arp.hpp>
-#include <net/packet.hpp>
+#include <net/ip4/packet_arp.hpp>
 #include <vector>
 #include <net/inet4.hpp>
 
@@ -11,7 +11,7 @@ using namespace net;
 
 int Arp::bottom(Packet_ptr pckt)
 {
-  debug2("<ARP handler> got %li bytes of data \n", pckt->len());
+  debug2("<ARP handler> got %i bytes of data \n", pckt->size());
 
   header* hdr = (header*) pckt->buffer();
   //debug2("\t OPCODE: 0x%x \n",hdr->opcode);
@@ -21,18 +21,18 @@ int Arp::bottom(Packet_ptr pckt)
   
   switch(hdr->opcode){
     
-  case ARP_OP_REQUEST:
+  case H_request:
     debug2("\t ARP REQUEST: ");
     debug2("%s is looking for %s \n",
           hdr->sipaddr.str().c_str(),hdr->dipaddr.str().c_str());
     
-    if (hdr->dipaddr == _ip)
+    if (hdr->dipaddr == ip_)
       arp_respond(hdr);    
     else{ debug2("\t NO MATCH for My IP. DROP!\n"); }
         
     break;
     
-  case ARP_OP_REPLY:    
+  case H_reply:
     debug2("\t ARP REPLY: %s belongs to %s\n",
           hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str())
     break;
@@ -54,69 +54,55 @@ void Arp::cache(IP4::addr& ip, Ethernet::addr& mac){
   
   debug2("Chaching IP %s for %s \n",ip.str().c_str(),mac.str().c_str());
   
-  auto entry = _cache.find(ip);
-  if (entry != _cache.end()){
+  auto entry = cache_.find(ip);
+  if (entry != cache_.end()){
     
-    debug2("Cached entry found: %s recorded @ %li. Updating timestamp \n",
-          entry->second._mac.str().c_str(), entry->second._t);
+    debug2("Cached entry found: %s recorded @ %llu. Updating timestamp \n",
+          entry->second.mac_.str().c_str(), entry->second.t_);
     
     // Update
     entry->second.update();
     
-  }else _cache[ip] = mac; // Insert
+  }else cache_[ip] = mac; // Insert
   
 }
 
 
 bool Arp::is_valid_cached(IP4::addr& ip){
-  auto entry = _cache.find(ip);
-  return entry != _cache.end() 
-    and (entry->second._t + cache_exp_t > OS::uptime());
+  auto entry = cache_.find(ip);
+  
+  
+  if (entry != cache_.end()){
+    debug("Cached entry, mac: %s time: %llu Expiry: %llu\n", 
+	  entry->second.mac_.str().c_str(), entry->second.t_, entry->second.t_ + cache_exp_t_ );
+    debug("Time now: %llu \n",(uint64_t)OS::uptime());
+  }
+  
+  return entry != cache_.end() 
+    and (entry->second.t_ + cache_exp_t_ > (uint64_t)OS::uptime());
 }
 
 extern "C" {
   unsigned long ether_crc(int length, unsigned char *data);
 }
 
+
+
 int Arp::arp_respond(header* hdr_in){
   debug2("\t IP Match. Constructing ARP Reply \n");
   
-  auto packet_ptr = inet_.createPacket(sizeof(header));
-
-  // Allocate send buffer
-  uint8_t* buffer = packet_ptr->buffer();
-  header* hdr = (header*)buffer;
-  
   // Populate ARP-header
+  auto res = std::static_pointer_cast<PacketArp>(inet_.createPacket(sizeof(header)));
+  res->init(mac_, ip_);
   
-  // Scalar 
-  hdr->htype = hdr_in->htype;
-  hdr->ptype = hdr_in->ptype;
-  hdr->hlen_plen = hdr_in->hlen_plen;  
-  hdr->opcode = ARP_OP_REPLY;
+  res->set_dest_mac(hdr_in->shwaddr);
+  res->set_dest_ip(hdr_in->sipaddr);
+  res->set_opcode(H_reply);
+    
+  debug2("\t My IP: %s belongs to My Mac: %s \n",
+	 res->source_ip().str().c_str(), res->source_mac().str().c_str());
   
-  hdr->dipaddr.whole = hdr_in->sipaddr.whole;
-  hdr->sipaddr.whole = _ip.whole;
-  
-  // Composite  
-  hdr->shwaddr.minor = _mac.minor;
-  hdr->shwaddr.major = _mac.major;
-  
-  hdr->dhwaddr.minor = hdr_in->shwaddr.minor;
-  hdr->dhwaddr.major = hdr_in->shwaddr.major;
-  
-  debug2("\t My IP: %s belongs to My Mac: %s \n ",
-        hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
-   
-  // (partially) Populate Ethernet header
-  hdr->ethhdr.dest.minor = hdr->dhwaddr.minor;
-  hdr->ethhdr.dest.major = hdr->dhwaddr.major;
-  hdr->ethhdr.type = Ethernet::ETH_ARP;    
-  
-  /*auto packet_ptr = std::make_shared<Packet>
-    (buffer, bufsize, sizeof(header));*/
-  
-  _linklayer_out(packet_ptr);
+  linklayer_out_(res);
   
   return 0;
 }
@@ -138,31 +124,23 @@ int Arp::transmit(Packet_ptr pckt){
   IP4::addr sip = iphdr->saddr;
   IP4::addr dip = pckt->next_hop();
 
-  debug2("<ARP -> physical> Transmitting %li bytes to %s \n",
-        pckt->len(),dip.str().c_str());
+  debug2("<ARP -> physical> Transmitting %i bytes to %s \n",
+        pckt->size(),dip.str().c_str());
   
-  if (sip != _ip) {
+  if (sip != ip_) {
     debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
-          sip.str().c_str(), _ip.str().c_str());            
+          sip.str().c_str(), ip_.str().c_str());
     return -1;
   }
   
   Ethernet::addr mac;
 
   // If we don't have a cached IP, get mac from next-hop (Håreks c001 hack)
-  if (!is_valid_cached(dip)){
-
-    // Fixed mac prefix
-    mac.minor = 0x01c0; //Big-endian c001
-    // Destination IP
-    mac.major = dip.whole;
-    debug("ARP cache missing. Guessing Mac %s from next-hop IP: %s (dest.ip: %s)",
-          mac.str().c_str(), dip.str().c_str(), iphdr->daddr.str().c_str());
-    
-  }else{
-    // Get mac from cache
-    mac = _cache[dip]._mac;
-  }
+  if (!is_valid_cached(dip))  
+    return arp_resolver_(pckt);
+  
+  // Get mac from cache
+  mac = cache_[dip].mac_;
   
   /** Attach next-hop mac and ethertype to ethernet header  */  
   Ethernet::header* ethhdr = (Ethernet::header*)pckt->buffer();    
@@ -172,13 +150,55 @@ int Arp::transmit(Packet_ptr pckt){
   
   debug2("<ARP -> physical> Sending packet to %s \n",mac.str().c_str());
 
-  return _linklayer_out(pckt);
+  return linklayer_out_(pckt);
   
   return 0;
 };
 
+void Arp::await_resolution(Packet_ptr pckt, IP4::addr){
+  auto queue =  waiting_packets_.find(pckt->next_hop());
+  if (queue != waiting_packets_.end()) {
+    debug("<ARP Resolve> Packets allready queueing for this IP\n");
+    queue->second->chain(pckt);    
+  } else {
+    debug("<ARP Resolve> This is the first packet going to that IP\n");
+    waiting_packets_.emplace(std::make_pair(pckt->next_hop(), pckt));
+  }            
+}
+
+int Arp::arp_resolve(Packet_ptr pckt){
+  debug("<ARP RESOLVE> %s \n", pckt->next_hop().str().c_str());
+  
+  await_resolution(pckt, pckt->next_hop());
+  
+  auto req = std::static_pointer_cast<PacketArp>(inet_.createPacket(sizeof(header)));
+  req->init(mac_, ip_);
+  
+  req->set_dest_mac(Ethernet::addr::BROADCAST_FRAME);
+  req->set_dest_ip(pckt->next_hop());
+  req->set_opcode(H_request);
+  
+  linklayer_out_(req);
+  
+  return 0;
+}
+
 // Initialize
 Arp::Arp(net::Inet<Ethernet,IP4>& inet): 
-  inet_(inet), _mac(inet.link_addr()), _ip(inet.ip_addr()),
-  _linklayer_out(downstream(ignore))
+  inet_(inet), mac_(inet.link_addr()), ip_(inet.ip_addr()), 
+  linklayer_out_(downstream(ignore))
 {}
+
+int Arp::hh_map(Packet_ptr pckt){
+  (void) pckt;
+  debug("ARP-resolution using the HH-hack");
+  return 0;
+    /**
+     // Fixed mac prefix
+     mac.minor = 0x01c0; //Big-endian c001
+     // Destination IP
+     mac.major = dip.whole;
+     debug("ARP cache missing. Guessing Mac %s from next-hop IP: %s (dest.ip: %s)",
+     mac.str().c_str(), dip.str().c_str(), iphdr->daddr.str().c_str());
+    **/
+}

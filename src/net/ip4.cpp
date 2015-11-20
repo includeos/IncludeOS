@@ -87,7 +87,6 @@ int net::ignore_ip4_up(std::shared_ptr<Packet> UNUSED(pckt)){
 }
 
 int net::ignore_ip4_down(std::shared_ptr<Packet> UNUSED(pckt)){
-
   debug("<IP4->Link layer> No handler - DROP!\n");
   return 0;
 }

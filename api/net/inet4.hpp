@@ -38,7 +38,7 @@ namespace net {
     { return ip4_; }
     
     /** Get the TCP-object belonging to this stack */
-    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&_tcp); return tcp_; }        
+    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }        
 
     /** Get the UDP-object belonging to this stack */
     inline UDP& udp() override { return udp_; };
