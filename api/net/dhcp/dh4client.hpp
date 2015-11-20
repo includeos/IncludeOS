@@ -3,7 +3,7 @@
 
 #define DEBUG
 #include "../packet.hpp"
-#include "dhcp4.hpp"
+#include "../inet4.hpp"
 #include <debug>
 
 namespace net
@@ -28,6 +28,7 @@ namespace net
     : stack(inet)
   {
     printf("DHClient requesting IP4 address");
+    negotiate();
   }
 }
 

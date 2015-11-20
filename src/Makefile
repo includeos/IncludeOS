@@ -59,6 +59,7 @@ OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
 		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
+		net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/dns/dns.o net/buffer_store.o
 
