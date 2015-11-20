@@ -127,36 +127,31 @@
 
 namespace net
 {
-  static const IP4::addr INVALID_ADDR   {{0}};
-  static const IP4::addr BROADCAST_ADDR {{0xFF, 0xFF, 0xFF, 0xFF}};
+  static const IP4::addr INADDR_NONE  {{0}};
+  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
   
 	void DHClient::negotiate()
   {
     // create DHCP discover packet
     debug("* Negotiating IP address through DHCP discover\n");
+    // create a random session ID
+    this->xid = 2343534;
     
-    Packet_ptr pptr = stack.createPacket(stack.MTU());
-    auto udp = std::static_pointer_cast<PacketUDP> (pptr);
+    std::string packet;
+    packet.reserve(sizeof(dhcp_packet_t));
     
-    udp->init();
-    udp->header().sport = htons(DHCP_SOURCE_PORT);
-    udp->header().dport = htons(DHCP_DEST_PORT);
-    udp->set_src(INVALID_ADDR);
-    udp->set_dst(BROADCAST_ADDR);
-    
-    udp->set_length(sizeof(dhcp_packet_t));
-    
-    dhcp_packet_t* dhcp = (dhcp_packet_t*) udp->data();
+    dhcp_packet_t* dhcp = (dhcp_packet_t*) packet.data();
     dhcp->op    = BOOTREQUEST;
     dhcp->htype = HTYPE_ETHER;
     dhcp->hlen  = ETH_ALEN;
     dhcp->hops  = 0;
+    dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_BROADCAST);
-    dhcp->ciaddr = INVALID_ADDR;
-    dhcp->yiaddr = INVALID_ADDR;
-    dhcp->siaddr = INVALID_ADDR;
-    dhcp->giaddr = INVALID_ADDR;
+    dhcp->ciaddr = INADDR_NONE;
+    dhcp->yiaddr = INADDR_NONE;
+    dhcp->siaddr = INADDR_NONE;
+    dhcp->giaddr = INADDR_NONE;
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
     memcpy(dhcp->chaddr, &stack.link_addr(), ETH_ALEN);
@@ -164,8 +159,27 @@ namespace net
     memset(dhcp->sname, 0, dhcp_packet_t::SNAME_LEN + 
           dhcp_packet_t::FILE_LEN + DHCP_VEND_LEN);
     ////////////////////////////////////////////////////////
-    /// -->
-    stack.udp().transmit(udp);
-    /// <--
+    auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
+    /// broadcast our DHCP plea as 0.0.0.0
+    socket.bcast(INADDR_NONE, DHCP_DEST_PORT, packet);
+    
+    socket.onRead(
+    [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, const std::string& data) -> int
+    {
+      printf("Received data on %d from %s:%d (should be %d)\n",
+          DHCP_SOURCE_PORT, addr.str().c_str(), port, DHCP_DEST_PORT);
+      
+      if (addr == INADDR_BCAST && port == DHCP_DEST_PORT)
+          this->offer(data);
+      
+      return -1;
+    });
+  }
+  
+  void DHClient::offer(const std::string& data)
+  {
+    printf("Reading offered DHCP information\n");
+    const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data.data();
+    
   }
 }

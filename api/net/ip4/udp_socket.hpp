@@ -32,6 +32,8 @@ namespace net
     }
     int write(addr_t destIP, port_t port, 
               const std::string& buffer);
+    int bcast(addr_t srcIP, port_t port, 
+              const std::string& buffer);
     void close();
     
     void join(multicast_group_addr&);
@@ -48,8 +50,9 @@ namespace net
     }
     
   private:
-    void packet_init(std::shared_ptr<PacketUDP>, addr_t, port_t, uint16_t);
-    int  internal_read(std::shared_ptr<PacketUDP> udp);
+    void packet_init(std::shared_ptr<PacketUDP>, addr_t, addr_t, port_t, uint16_t);
+    int  internal_read(std::shared_ptr<PacketUDP>);
+    int  internal_write(addr_t, addr_t, port_t, const std::string&);
     
     Inet<LinkLayer,IP4>& stack;
     port_t l_port;

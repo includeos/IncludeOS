@@ -17,17 +17,21 @@ namespace net
 		void negotiate(); // --> offer
     
 	private:
-		int  offer(Packet_ptr packet);
+		void offer(const std::string& data);
 		void request();   // --> acknowledge
-    int  acknowledge(Packet_ptr packet);
+    void acknowledge(Packet_ptr packet);
+    
+    uint32_t xid;
+    uint32_t ipaddr, netmask, router;
+    uint32_t server;
     
     Stack& stack;
 	};
 	
-  DHClient::DHClient(Stack& inet)
+  inline DHClient::DHClient(Stack& inet)
     : stack(inet)
   {
-    printf("DHClient requesting IP4 address");
+    printf("DHClient requesting IP4 address\n");
     negotiate();
   }
 }
