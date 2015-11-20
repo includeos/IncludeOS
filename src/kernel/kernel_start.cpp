@@ -1,6 +1,7 @@
 #include <os.hpp>
 #include <assert.h>
-#define DEBUG
+#include <debug>
+//#define DEBUG
 
 extern "C"
 {
@@ -13,7 +14,9 @@ extern "C"
   void rswrite(char c);  
   void rsprint(const char* ptr);
   
+#ifdef DEBUG
   const int _test_glob = 123;
+#endif
   int _test_constructor = 0;
   
   void enableSSE()
@@ -38,12 +41,13 @@ extern "C"
     __asm__ ("mov %eax, %cr4");
   }
   
+#ifdef DEBUG
   __attribute__((constructor)) void test_constr()
-  {
-    OS::rsprint(">>> C constructor was called!\n");
+  {    
+    OS::rsprint("\t * C constructor was called!\n");
     _test_constructor = 1;
   }
-  
+#endif
   
   
   void _start(void)
@@ -56,16 +60,23 @@ extern "C"
     // init serial port
     init_serial();    
     
-    OS::rsprint("\n\n *** IncludeOS Initializing *** \n\n");    
+    // @note: Printing before the c-runtime is initialized can only be done like so:
+    // OS::rsprint("Booting...");
     
     // Initialize stack-unwinder, call global constructors etc.
-    OS::rsprint(">>> Initializing C-environment... \n");
+    debug("\t * Initializing C-environment... \n");
     _init_c_runtime();
+
+    FILLINE('=');
+    CAPTION("#include<os> // Literally");
+    FILLINE('=');
+ 
     
-    // verify that global constructors were called
+// verify that global constructors were called
+#ifdef DEBUG
     assert(_test_glob == 123);
     assert(_test_constructor == 1);
-    
+#endif
     // Initialize some OS functionality
     OS::start();
     

@@ -17,7 +17,7 @@ public:
   }
   
   void start(net::Inet*);
-  int listener(std::shared_ptr<net::Packet>&);
+  int listener(net::Packet_ptr);
   
   /// @brief Populate the registry 
   static void init();  

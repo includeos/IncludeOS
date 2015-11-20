@@ -115,7 +115,7 @@ namespace net
     }
   }
   
-  int ICMPv6::bottom(std::shared_ptr<Packet>& pckt)
+  int ICMPv6::bottom(Packet_ptr pckt)
   {
     auto icmp = std::static_pointer_cast<PacketICMP6>(pckt);
     
@@ -251,6 +251,7 @@ namespace net
   }
   int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
   {
+    (void) caller;
     NDP::neighbor_sol* sol = (NDP::neighbor_sol*) pckt->payload();
     
     printf("ICMPv6 NDP Neighbor solicitation request\n");
@@ -260,7 +261,7 @@ namespace net
     printf(">> dest:   %s\n", pckt->dst().str().c_str());
     
     // perhaps we should answer
-    
+    (void) caller;
     
     return -1;
   }

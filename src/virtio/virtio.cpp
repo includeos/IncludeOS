@@ -7,7 +7,7 @@
 void Virtio::set_irq(){
   
   //Get device IRQ 
-  uint32_t value = _pcidev.read_dword(PCI_CONFIG_INTR);
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
     _irq = value & 0xFF;    
   }
@@ -15,10 +15,10 @@ void Virtio::set_irq(){
 }
 
 
-Virtio::Virtio(PCI_Device* dev)
-  : _pcidev(*dev), _virtio_device_id(dev->product_id() + 0x1040)
+Virtio::Virtio(PCI_Device& dev)
+  : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
-  printf("\n>>> Virtio attaching to  PCI addr 0x%x \n",_pcidev.pci_addr());
+  INFO("Virtio","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
   
 
   /** PCI Device discovery. Virtio std. §4.1.2  */
@@ -28,16 +28,15 @@ Virtio::Virtio(PCI_Device* dev)
   */
   if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
-  printf("\t [x] Vendor ID is VIRTIO \n");
+  CHECK(true, "Vendor ID is VIRTIO");
   
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   bool _LEGACY_ID = _pcidev.product_id() >= 0x1000 
     and _pcidev.product_id() <= 0x103f;
   
-  printf("\t [%s] Device ID 0x%x is in a valid range (%s)\n",
-          _STD_ID or _LEGACY_ID ? "x" : " ",
-         _pcidev.product_id(), _STD_ID ? ">= Virtio 1.0" : 
-         (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+  CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
+	_pcidev.product_id(), 
+	_STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
     
   assert(_STD_ID or _LEGACY_ID);
   
@@ -48,27 +47,22 @@ Virtio::Virtio(PCI_Device* dev)
                     (_STD_ID and _pcidev.rev_id() > 0));
     
   
-  printf("\t [%s] Device Revision ID (0x%x) supported. \n",
-         rev_id_ok and version_supported(_pcidev.rev_id()) ? "x" 
-         : " ",_pcidev.rev_id());
+  CHECK(rev_id_ok and version_supported(_pcidev.rev_id()), 
+	"Device Revision ID (0x%x) supported", _pcidev.rev_id());
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
-
-
   
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
   _iobase=_pcidev.iobase();  
-
-  printf(_iobase ? "\t [x] Unit I/O base 0x%lx \n " : 
-         "\t [ ] NO I/O Base on device \n",_iobase);
-
-    
+  
+  CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
+  
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
   
   // 1. Reset device
   reset();
-  printf("\t [*] Reset device \n");
+  INFO2("[*] Reset device");
   
   // 2. Set ACKNOWLEGE status bit, and
   // 3. Set DRIVER status bit
@@ -91,14 +85,14 @@ Virtio::Virtio(PCI_Device* dev)
     
   //Fetch IRQ from PCI resource
   set_irq();
-  printf(_irq ? "\t [x] Unit IRQ %i \n " : "\n [ ] NO IRQ on device \n",_irq);
-  
 
+  CHECK(_irq, "Unit has IRQ %i", _irq);
+  INFO("Virtio","Enabling IRQ Handler");
   enable_irq_handler();
-  printf("\t [*] Enable IRQ Handler \n");
+
 
   
-  printf("\n  >> Virtio initialization complete \n\n");
+  INFO("Virtio", "Initialization complete");
   
   // It would be nice if we new that all queues were the same size. 
   // Then we could pass this size on to the device-specific constructor
@@ -162,8 +156,8 @@ void Virtio::setup_complete(bool ok){
 
 void Virtio::default_irq_handler(){
   printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
-  printf("Old Features : 0x%lx \n",_features);
-  printf("New Features : 0x%lx \n",probe_features());
+  printf("Old Features : 0x%x \n",_features);
+  printf("New Features : 0x%x \n",probe_features());
   
   unsigned char isr = inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);

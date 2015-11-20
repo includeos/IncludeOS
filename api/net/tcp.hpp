@@ -1,8 +1,10 @@
 #ifndef CLASS_TCP_HPP
 #define CLASS_TCP_HPP
 
-#include <net/ip4.hpp>
 #include <net/util.hpp> // htons / noths
+#include <net/packet.hpp>
+#include <net/ip4.hpp>
+#include <map>
 
 namespace net {
 
@@ -90,6 +92,7 @@ namespace net {
     TCP(TCP&) = delete;
     TCP(TCP&&) = delete;
     
+    //////////////////////////////////////////////////////////////////
     /** TCP Sockets, implementing most of the TCP state-machine logic. */
     class Socket {
     public:
@@ -123,12 +126,15 @@ namespace net {
       
       void listen(int backlog);      
       
-      // Constructor
+      /** Constructor for server socket */
       Socket(TCP& stack);      
+      
+      /** Constructor for connections */
       Socket(TCP& local_stack, port local_port, State state);
       
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
-      int bottom(std::shared_ptr<Packet>& pckt); 
+      int bottom(Packet_ptr pckt); 
+
 
     private:      
       
@@ -167,23 +173,23 @@ namespace net {
       std::string buffer_;
       
       // General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want.
-      void ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS = ACK);
+      void ack(Packet_ptr pckt, uint16_t FLAGS = ACK);
       
       // Fill the packet with buffered data. 
-      int fill(std::shared_ptr<Packet>& pckt);
+      int fill(Packet_ptr pckt);
       
-      inline bool is_keepalive(std::shared_ptr<Packet>& pckt){
+      inline bool is_keepalive(Packet_ptr pckt){
 	return tcp_hdr(pckt)->seq_nr == htonl(initial_seq_in_ + bytes_received_ );
       }
 
       std::shared_ptr<Packet> current_packet_;
       
       // Transmission happens out through TCP& object
-      //int transmit(std::shared_ptr<Packet>& pckt);
+      //int transmit(Packet_ptr pckt);
       std::map<std::pair<IP4::addr,port>, Socket > connections;
       
     }; // Socket class end
-    
+    //////////////////////////////////////////////////////////////////
     
     Socket& bind(port);
     Socket& connect(IP4::addr, port);
@@ -193,16 +199,19 @@ namespace net {
     inline void set_network_out(downstream del)
     { _network_layer_out = del; }
     
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
   
-    int bottom(std::shared_ptr<Packet>& pckt);    
+    int bottom(Packet_ptr pckt);    
 
     
-    TCP(IP4::addr);
+    TCP(Inet<LinkLayer,IP4>&);
     
   private:
+    
+    Inet<LinkLayer,IP4>& inet_;
+    
     size_t socket_backlog = 1000;
-    IP4::addr local_ip_;
+    const IP4::addr& local_ip_;
     
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
@@ -210,24 +219,24 @@ namespace net {
     downstream _network_layer_out;
     
     // Compute the TCP checksum
-    uint16_t checksum(std::shared_ptr<net::Packet>&);
+    uint16_t checksum(Packet_ptr);
             
     // Get the length of actual data in bytes
-    static inline uint16_t data_length(std::shared_ptr<Packet>& pckt){
-      return pckt->len() - tcp_hdr(pckt)->all_headers_len();
+    static inline uint16_t data_length(Packet_ptr pckt){
+      return pckt->size() - tcp_hdr(pckt)->all_headers_len();
     }
     
     // Get the length of the TCP-segment including header and data
-    static inline uint16_t tcp_length(std::shared_ptr<Packet>& pckt){
+    static inline uint16_t tcp_length(Packet_ptr pckt){
       return data_length(pckt) + tcp_hdr(pckt)->size();
     }
     
     // Get the TCP header from a packet
-    static inline tcp_header* tcp_hdr(std::shared_ptr<Packet>& pckt){
+    static inline tcp_header* tcp_hdr(Packet_ptr pckt){
       return &((full_header*)pckt->buffer())->tcp_hdr;
     }
     
-    static inline void* data_location(std::shared_ptr<Packet>& pckt){
+    static inline void* data_location(Packet_ptr pckt){
       tcp_header* hdr = tcp_hdr(pckt);
       return (void*)((char*)hdr + hdr->size());
     }

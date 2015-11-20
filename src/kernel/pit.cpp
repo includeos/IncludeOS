@@ -73,8 +73,7 @@ void PIT::estimateCPUFrequency(){
   set_freq_divider(_cpu_sampling_freq_divider_);    
 
   // BLOCKING call to external measurment. 
-  //calculate_cpu_frequency();
-  _CPUFreq_ = 2200;
+  calculate_cpu_frequency();
     
   debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
   

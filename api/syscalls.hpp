@@ -12,7 +12,7 @@
 extern "C"
 {
   int  kill(pid_t pid, int sig);
-  void panic(const char* why);
+  void panic(const char* why) __attribute__((noreturn));
 }
 
 //Compiler says this is already declared in <sys/time.h>

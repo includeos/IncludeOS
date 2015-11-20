@@ -1,9 +1,10 @@
 #define DEBUG
-// #define DEBUG2
+#define DEBUG2
 
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
+#include <net/packet.hpp>
 
 using namespace net;
 
@@ -36,7 +37,7 @@ void TCP::Socket::listen(int backlog){
   // Possibly allocate connectoin pointers (but for now we're using map)  
 }
 
-void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
+void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   
@@ -48,7 +49,9 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
   auto dest_addr = full_hdr->ip_hdr.saddr;
   auto dest_port = hdr->sport;
   
+  #ifdef DEBUG
   auto expected_seq_nr_ = hdr->ack_nr;  
+  #endif 
   auto incoming_seq_nr_ = hdr->seq_nr;
   
   // WARNING: We're currently just modifying the same packet, and returning it
@@ -94,7 +97,7 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
   
   
   // Shrink-wrap the packet around the header
-  pckt->set_len(sizeof(full_header));
+  pckt->set_size(sizeof(full_header));
 
   // Fill up with data from the buffer
   if (buffer_.size())
@@ -105,6 +108,7 @@ void TCP::Socket::ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS){
 }
 
 std::string TCP::Socket::read(int SIZE){
+  (void) SIZE;
   return std::string((const char*) data_location(current_packet_), data_length(current_packet_));
 }
 
@@ -114,10 +118,10 @@ void TCP::Socket::write(std::string data){
   buffer_ += data;
 }
 
-int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
-  int capacity = pckt->bufsize() - pckt->len();
+int TCP::Socket::fill(Packet_ptr pckt){
+  size_t capacity = pckt->capacity() - pckt->size();
   void* out_buf = (char*) data_location(pckt);
-  int bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
+  size_t bytecount = capacity > buffer_.size() ? buffer_.size() : capacity;
   
   // Copy the data
   memcpy(out_buf, (void*)buffer_.data(), bytecount);
@@ -125,31 +129,33 @@ int TCP::Socket::fill(std::shared_ptr<Packet>& pckt){
   // Shrink the buffer, update packet-length and transmitted byte count
   buffer_.resize(buffer_.size() - bytecount);
   bytes_transmitted_ += bytecount;  
-  pckt->set_len(pckt->len() + bytecount);
+  pckt->set_size(pckt->size() + bytecount);
   
   debug("<TCP::Socket::fill> FILLING packet with %i bytes \n", bytecount);
   return bytecount;
   
 };
 
-int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
+int TCP::Socket::bottom(Packet_ptr pckt){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   auto flags = ntohs(hdr->offs_flags.whole);
-  uint8_t offset = (uint8_t)(hdr->offs_flags.offs_res) >> 4;
+  //uint8_t offset = (uint8_t)(hdr->offs_flags.offs_res) >> 4;
+  
+  #ifdef DEBUG2
   auto raw_flags = hdr->offs_flags.flags;
-  auto raw_offset = hdr->offs_flags.offs_res;
+  //auto raw_offset = hdr->offs_flags.offs_res;
+  #endif
   
   auto dest_addr = full_hdr->ip_hdr.saddr;
   auto dest_port = hdr->sport;
   auto remote = std::make_pair(dest_addr,dest_port);
   
-  debug2("<TCP::Socket::bottom> State: %i, Source port %i, Dest. port: %i, Flags raw: 0x%x, Flags reversed: 0x%x \n", 
-	 state_, ntohs(hdr->sport), ntohs(hdr->dport),raw_flags,flags);
+  debug2("<TCP::Socket::bottom> State: %i, Source port %i, Dest. port: %i, Flags raw: 0x%x, Flags reversed: 0x%x \n", state_, ntohs(hdr->sport), ntohs(hdr->dport),raw_flags,flags);
   
   
-  debug2("<TCP::Socket::bottom> IN: Seq_nr: %u, Ack-number: %u  (little-endian)\n", 
-	 ntohl(hdr->seq_nr), ntohl(hdr->ack_nr));
+  debug2("<TCP::Socket::bottom> IN: Seq_nr: %u, Ack-number: %u  (little-endian) Packet size: %i \n", 
+	 ntohl(hdr->seq_nr), ntohl(hdr->ack_nr), pckt->size());
   
   switch (state_) {
     
@@ -179,11 +185,11 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
 	  return 0;
 	}
 	
-	  // Set up the connection socket
+	// Set up the connection socket
 	connections.emplace(remote, TCP::Socket(local_stack_, local_port_, 
 						dest_addr, dest_port, 
 						SYN_RECIEVED, accept_handler_, ntohl(hdr->seq_nr)));
-		
+	
 	// ACCEPT
 	ack(pckt, SYN | ACK ); 
 	return 0;
@@ -213,7 +219,7 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
     {
       auto data_size = TCP::data_length(pckt);
       debug("<TCP::Socket::bottom> IN (State 3): %s ACK. Packet size: %i, Data size: %i, seq_nr: %u, ack_nr: %u \n", 
-	    flags & FIN ? "FIN" : "", pckt->len(), data_size, ntohl(tcp_hdr(pckt)->seq_nr), ntohl(tcp_hdr(pckt)->ack_nr));
+	    flags & FIN ? "FIN" : "", pckt->size(), data_size, ntohl(tcp_hdr(pckt)->seq_nr), ntohl(tcp_hdr(pckt)->ack_nr));
       
       if (data_size){
 	bytes_received_ += data_size;
@@ -264,7 +270,10 @@ int TCP::Socket::bottom(std::shared_ptr<Packet>& pckt){
       }else{
 	debug("WARNING: LAST_ACK received a non-ack packet. Flags: %i \n", flags);
       }
+      break;
     }
+    
+  default:
     break;
     // Don't think we have to ack every packet 
   }

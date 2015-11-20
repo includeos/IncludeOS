@@ -1,7 +1,12 @@
 #ifndef CLASS_OS_H
 #define CLASS_OS_H
 
+#ifndef OS_VERSION
+#define OS_VERSION "v?.?.?"
+#endif
+
 #include <common>
+#include <string>
 #include <assert.h>
 #include <pit.hpp>
 
@@ -20,6 +25,9 @@ class OS{
   // No construction
   OS() = delete;
 
+  static inline std::string version(){
+    return std::string(OS_VERSION);
+  }
   
   /** Clock cycles since boot. */
   static inline uint64_t cycles_since_boot()
@@ -30,8 +38,7 @@ class OS{
   }
   
   /** Uptime in seconds. */
-  static inline double uptime()
-  { return (cycles_since_boot() / _CPU_mhz.count() ); }
+  static double uptime();
   
   /** Receive a byte from port. @todo Should be moved 
       @param port : The port number to receive from

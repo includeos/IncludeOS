@@ -4,9 +4,10 @@
 IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. Starting a program with `#include <os>`, will literally include a whole little operating system into your service during link-time. The build system will link your service and only the necessary OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. In other owrds, it's a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch, employing x86 hardware virtualization, with no dependencies except for the virtual hardware.
 
 # It's a research prototype!
-IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/IncludeOS_IEEE CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
+IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 ### Key features
+* **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 693K when optimized for size.
 * **KVM and VirtualBox support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization) whenever available (it is on most modern x86 CPU's). In principle IncludeOS should run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), which power the [OpenStack IaaS cloud](https://www.openstack.org/), and [VirtualBox](https://www.virtualbox.org), which means that you can run your IncludeOS service on both Linux, Microsoft Windows and Apple OS X. 
 * **C++11/14 support**
     * Full C++11/14 language support with [clang](http://clang.llvm.org) v3.6 and later.
@@ -94,8 +95,19 @@ A successful setup should enable you to build and run a virtual machine. Running
 
     IncludeOS$ ./test.sh 
 
-will build and run a [this example service](./src/debug/test_service.cpp), and let you know if everything worked out. 
-*NOTE:* The test script is written for Linux/KVM. For VirtualBox, see instructions below.
+will build and run a [this example service](./src/debug/test_service.cpp). 
+
+**Things to note**
+* The defalut test script will only work on Linux, and uses Qemu (with KVM if available). To run IncludeOS directly on virtualbox, see `etc/vboxrun.sh`
+* There is no shell! IncludeOS is a unikernel, meaning it will only run one process. Think of an IncludeOS VM as a local process.
+* There is no VGA! So, nothong will show up on the "screen" if you're using a GUI (i.e. if you run IncludeOS directly in virtualbox) We did write a vga module at one point, but we never use it; output to serial port works very well. We'll add VGA support in the future, as a package.
+* You should be able to ping the vm. Its IP-address will be stated in the boot-time output from IncldueOS (10.0.0.42 by default)
+   * How to change the IP-address of the test-service? The test service just maps the IP-address to the last bytes of the mac-address by default. This way you can start several instances of the same VM, and give them static IP-addresses by changing the mac-address. You can either undo this (fun, controversial) mapping by setting a static IP in [./src/debug/test_service.cpp](./src/debug/test_service.cpp), or keep it, and just edit the last four bytes of the mac-address in [./src/etc/qemu_cmd.sh](./src/etc/qemu_cmd.sh), to the hex-version of your desired IP. 
+* You should also be able to open a simple webpage on the vm, by entering the IP into a browser, inside the development machine.
+* How to get out? The test script starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default reroute stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `ctrl+a x`. 
+   * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to virtualbox on windows), please let us know so we can update the wiki.
+
+
 
 ## Write a service
 

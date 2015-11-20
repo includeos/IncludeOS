@@ -107,6 +107,7 @@ if [ ! -z $do_includeos ]; then
     # Copy qemu-ifup til install loc.
     mkdir -p $INSTALL_DIR/etc
     cp $IncludeOS_src/etc/qemu-ifup $INSTALL_DIR/etc/
+    cp $IncludeOS_src/etc/qemu_cmd.sh $INSTALL_DIR/etc/
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"
