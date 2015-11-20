@@ -36,6 +36,12 @@ namespace net {
       inline bool operator == (addr& mac)
       { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
       
+      inline addr& operator=(addr cpy){ 
+	minor = cpy.minor;
+	major = cpy.major;
+	return *this;
+      }
+      
       static const addr MULTICAST_FRAME;
       static const addr BROADCAST_FRAME;
       static const addr IPv6mcast_01, IPv6mcast_02;

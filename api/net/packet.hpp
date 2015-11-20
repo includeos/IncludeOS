@@ -66,8 +66,28 @@ namespace net {
     
     /** Move assignment operator Deleted. See Packet(Packet&). */
     Packet operator=(Packet&&) = delete;
-        
+    
+    /** Add a packet to this packet chain. 
+	@Warning : Let's hope this recursion won't smash the stack
+     */
+    void chain(Packet_ptr p){
+      if (!chain_) chain_ = p;
+      else chain_->chain(p); 
+    }
 
+    /** Get the next packet in the chain. 
+	@Todo : Make chain iterators (i.e. begin / end) */
+    Packet_ptr unchain(){
+      return chain_;
+    }
+    
+    /** Get the the total number of packets in the chain */
+    size_t chain_length(){
+      if (!chain_) 
+	return 1;
+      return 1 + chain_->chain_length();
+    }
+    
     // for a UPDv6 packet, the payload location is
     // the start of the UDPv6 header, and so on
     inline void set_payload(uint8_t* location)
@@ -100,6 +120,10 @@ namespace net {
     
     /** Send the buffer back home, after destruction */
     release_del release_ = default_release;
+    
+    //! Let's chain packets
+    Packet_ptr chain_{};
+    
   };
   
 }

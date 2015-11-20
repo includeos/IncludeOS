@@ -62,7 +62,7 @@ void OS::halt(){
 }
 
 double OS::uptime(){  
-  return cycles_since_boot() / _CPU_mhz.count(); 
+  return (cycles_since_boot() / Hz(_CPU_mhz).count()) ; 
 }
 
 void OS::event_loop()

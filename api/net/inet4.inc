@@ -11,7 +11,7 @@ namespace net
     ip4_addr_(ip), netmask_(netmask), nic_(nic), eth_(nic.mac()), arp_(*this), 
     ip4_(*this), icmp_(*this), udp_(*this), tcp_(*this), bufstore_(nic.bufstore())
   {
-    debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &_tcp, _tcp.openPorts());          
+    debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());          
     
     /** Upstream delegates */ 
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
