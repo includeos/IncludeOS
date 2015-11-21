@@ -15,27 +15,25 @@ namespace net
 	public:
 		using Stack = Inet<LinkLayer, IP4>;
     
+    DHClient() = delete;
+    DHClient(DHClient&) = delete;
     DHClient(Stack&);
+    
+    Stack& stack;
 		void negotiate(); // --> offer
     
 	private:
 		void offer(SocketUDP&, const char* data, int len);
-		void request();   // --> acknowledge
-    void acknowledge(Packet_ptr packet);
+		void request(SocketUDP&);   // --> acknowledge
+    void acknowledge(const char* data, int len);
     
-    uint32_t xid;
-    uint32_t ipaddr, netmask, router;
-    uint32_t server;
-    
-    Stack& stack;
+    uint32_t  xid;
+    IP4::addr ipaddr, netmask, router;
+    uint32_t  lease_time;
 	};
 	
   inline DHClient::DHClient(Stack& inet)
-    : stack(inet)
-  {
-    printf("DHClient requesting IP4 address\n");
-    negotiate();
-  }
+    : stack(inet)  {}
 }
 
 #endif

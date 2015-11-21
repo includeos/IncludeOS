@@ -130,9 +130,8 @@
 namespace net
 {
   static const IP4::addr INADDR_ANY   {{0}};
-  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
   
-  inline dhcp_option_t* get_option(uint8_t* option)
+  inline dhcp_option_t* conv_option(uint8_t* option)
   {
     return (dhcp_option_t*) option;
   }
@@ -140,11 +139,10 @@ namespace net
 	void DHClient::negotiate()
   {
     // create DHCP discover packet
-    debug("* Negotiating IP address through DHCP discover\n");
+    printf("* Negotiating IP address through DHCP discover\n");
     // create a random session ID
-    uint32_t xxxxxx;
-    this->xid = xxxxxx;
-    debug("* DHCP session ID %u (size=%u)\n", xid, sizeof(xid));
+    this->xid = 123456;
+    printf("* DHCP session ID %u (size=%u)\n", this->xid, sizeof(xid));
     
     const size_t packetlen = sizeof(dhcp_packet_t);
     char packet[packetlen];
@@ -173,27 +171,27 @@ namespace net
     dhcp->magic[2] =  83;
     dhcp->magic[3] =  99;
     
-    dhcp_option_t* opt = get_option(dhcp->options + 0);
+    dhcp_option_t* opt = conv_option(dhcp->options + 0);
     // DHCP discover
     opt->code   = DHO_DHCP_MESSAGE_TYPE;
     opt->length = 1;
     opt->val[0] = DHCPDISCOVER;
     // DHCP client identifier
-    opt = get_option(dhcp->options + 3);
+    opt = conv_option(dhcp->options + 3);
     opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
     memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
     // Parameter Request List
-    opt = get_option(dhcp->options + 12);
+    /*opt = conv_option(dhcp->options + 12);
     opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
     opt->length = 4;
     opt->val[0] = 0x01;
     opt->val[1] = 0x0f;
     opt->val[2] = 0x03;
-    opt->val[3] = 0x06;
+    opt->val[3] = 0x06;*/
     // END
-    opt = get_option(dhcp->options + 18);
+    opt = conv_option(dhcp->options + 12); // 18
     opt->code   = DHO_END;
     opt->length = 0;
     
@@ -206,34 +204,185 @@ namespace net
     [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
             const char* data, int len) -> int
     {
-      printf("Received data on %d from %s:%d (should be %d)\n",
-          DHCP_SOURCE_PORT, addr.str().c_str(), port, DHCP_DEST_PORT);
-      
-      if (addr == INADDR_BCAST && port == DHCP_DEST_PORT)
-          this->offer(sock, data, len);
-      
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have got a DHCP Offer
+        printf("Received DHCP OFFER from %s:%d\n",
+            addr.str().c_str(), DHCP_DEST_PORT);
+        this->offer(sock, data, len);
+      }
       return -1;
     });
+    
+    printf("this->xid == %u,   xid == %u\n", this->xid, xid);
+  }
+  
+  const dhcp_option_t* get_option(const uint8_t* options, uint8_t code)
+  {
+    const dhcp_option_t* opt = (const dhcp_option_t*) options;
+    while (opt->code != code && opt->code != DHO_END)
+    {
+      // go to next option
+      opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
+    }
+    return opt;
   }
   
   void DHClient::offer(SocketUDP& sock, const char* data, int datalen)
   {
-    printf("Reading offered DHCP information\n");
+    (void) datalen;
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
-    
-    printf("Offer xid: %u  Our xid: %u", dhcp->xid, this->xid);
-    printf("DHCP IP: %s  NETMASK: %s", 
-        dhcp->ciaddr.str().c_str(), dhcp->yiaddr.str().c_str());
-    
+    {
+      uint32_t xid = htonl(dhcp->xid);
+      // silently ignore transactions not our own
+      if (xid != this->xid) return;
+      
+      // check if the BOOTP message is a DHCP OFFER
+      const dhcp_option_t* opt;
+      opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
+      
+      if (opt->code == DHO_DHCP_MESSAGE_TYPE)
+      {
+        // verify that the type is indeed DHCPOFFER
+        printf("Found DHCP message type %d  (DHCP Offer = %d)\n",
+             opt->val[0], DHCPOFFER);
+        
+        // ignore when not a DHCP Offer
+        if (opt->val[0] != DHCPOFFER) return;
+      }
+      // ignore message when DHCP message type is missing
+      else return;
+      
+      // now validate the offer, checking for minimum information
+      opt = get_option(dhcp->options, DHO_ROUTERS);
+      if (opt->code == DHO_ROUTERS)
+      {
+        this->router.whole = *(uint32_t*) opt->val;
+        printf("\tROUTER: \t%s\n",
+            this->router.str().c_str());
+      }
+      // ignore message when SUBNET MASK is missing
+      else return;
+      
+      // the offered IP address:
+      this->ipaddr = dhcp->yiaddr;
+      printf("\tIP ADDRESS: \t%s\n",
+          this->ipaddr.str().c_str());
+      
+      opt = get_option(dhcp->options, DHO_SUBNET_MASK);
+      if (opt->code == DHO_SUBNET_MASK)
+      {
+        this->netmask.whole = *(uint32_t*) opt->val;
+        printf("\tSUBNET MASK: \t%s\n",
+            this->netmask.str().c_str());
+      }
+      // ignore message when SUBNET MASK is missing
+      else return;
+    }
+    // we can accept the offer now by requesting the IP!
+    this->request(sock);
+  }
+  
+  void DHClient::request(SocketUDP& sock)
+  {
     // form a response
     const size_t packetlen = sizeof(dhcp_packet_t);
     char packet[packetlen];
     
     dhcp_packet_t* resp = (dhcp_packet_t*) packet;
-    // copy most of the offer into our response
-    memcpy(resp, dhcp, sizeof(dhcp_packet_t));
+    resp->op    = BOOTREQUEST;
+    resp->htype = HTYPE_ETHER;
+    resp->hlen  = ETH_ALEN;
+    resp->hops  = 0;
+    resp->xid   = htonl(this->xid);
+    resp->secs  = 0;
+    resp->flags = htons(BOOTP_UNICAST);
     
-    // send response
+    resp->ciaddr = INADDR_ANY;
+    resp->yiaddr = INADDR_ANY;
+    resp->siaddr = INADDR_ANY;
+    resp->giaddr = INADDR_ANY;
+    
+    // copy our hardware address to chaddr field
+    memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
+    memcpy(resp->chaddr, &stack.link_addr(), ETH_ALEN);
+    // zero server, file and options
+    memset(resp->sname, 0, dhcp_packet_t::SNAME_LEN + dhcp_packet_t::FILE_LEN);
+    // magic DHCP bootp values
+    resp->magic[0] =  99;
+    resp->magic[1] = 130;
+    resp->magic[2] =  83;
+    resp->magic[3] =  99;
+    
+    dhcp_option_t* opt = conv_option(resp->options + 0);
+    // DHCP Request
+    opt->code   = DHO_DHCP_MESSAGE_TYPE;
+    opt->length = 1;
+    opt->val[0] = DHCPREQUEST;
+    // DHCP client identifier
+    opt = conv_option(resp->options + 3);
+    opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
+    opt->length = 7;
+    opt->val[0] = HTYPE_ETHER;
+    memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
+    // DHCP Requested Address
+    opt = conv_option(resp->options + 12);
+    opt->code   = DHO_DHCP_REQUESTED_ADDRESS;
+    opt->length = 4;
+    memcpy(&opt->val[0], &this->ipaddr, sizeof(IP4::addr));
+    // END
+    opt = conv_option(resp->options + 18);
+    opt->code   = DHO_END;
+    opt->length = 0;
+    
+    // set our onRead function to point to a hopeful DHCP ACK!
+    sock.onRead(
+    [this] (SocketUDP&, IP4::addr addr, UDP::port port, 
+            const char* data, int len) -> int
+    {
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have hopefully got a DHCP Ack
+        printf("\tReceived DHCP ACK from %s:%d\n",
+            addr.str().c_str(), DHCP_DEST_PORT);
+        this->acknowledge(data, len);
+      }
+      return -1;
+    });
+    
+    // send our DHCP Request
     sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+  }
+  
+  void DHClient::acknowledge(const char* data, int datalen)
+  {
+    (void) datalen;
+    const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
+    
+    uint32_t xid = htonl(dhcp->xid);
+    // silently ignore transactions not our own
+    if (xid != this->xid) return;
+    
+    // check if the BOOTP message is a DHCP OFFER
+    const dhcp_option_t* opt;
+    opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
+    
+    if (opt->code == DHO_DHCP_MESSAGE_TYPE)
+    {
+      // verify that the type is indeed DHCPOFFER
+      printf("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+           opt->val[0], DHCPACK);
+      
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPACK) return;
+    }
+    // ignore message when DHCP message type is missing
+    else return;
+    
+    // configure our network stack
+    printf("\tDHCP Acknowledged our IP request!\n");
+    stack.network_config(this->ipaddr, this->netmask, this->router);
+    // run some post-DHCP event to release the hounds
+    //...
   }
 }

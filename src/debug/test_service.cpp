@@ -6,6 +6,7 @@
 #include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
+net::DHClient* dhclient;
 
 void Service::start() {
   
@@ -18,7 +19,8 @@ void Service::start() {
     {{ 255,255,0,0 }} );  // Netmask
   
   // negotiate with terrorists
-  net::DHClient dhclient(inet);
+  dhclient = new net::DHClient(inet);
+  dhclient->negotiate();
   
   printf("Size of IP-stack: %i bytes \n",sizeof(inet));
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
