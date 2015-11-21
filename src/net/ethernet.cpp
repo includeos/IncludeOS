@@ -102,8 +102,3 @@ Ethernet::Ethernet(addr mac) :
   _ip6_handler(upstream(ignore)),
   _arp_handler(upstream(ignore))
 {}
-
-
-std::ostream& operator<<(std::ostream& out,Ethernet::addr& mac) {
-  return out << mac.str();
-}
