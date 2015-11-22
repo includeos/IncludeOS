@@ -1,15 +1,13 @@
 #include <string>
+#include <debug>
 
 /**
  * This header is for instantiating and implementing
  * missing functionality gluing libc++ to the kernel
  * 
 **/
-#include <time.h>
-#include <support/newlib/xlocale.h>
 #include <stdio.h>
 
-// needed for <iostream>
 extern "C"
 {
   /// Linux standard base (locale)
@@ -25,15 +23,13 @@ extern "C"
   
   typedef int nl_catd;
   
-  //nl_catd catopen (const char *cat_name, int flag)
-  nl_catd catopen (const char* f, int flag)
+  nl_catd catopen (const char* name, int flag)
   {
-    printf("catopen: %s, flag=%d\n", f, flag);
-    
+    printf("catopen: %s, flag=0x%x\n", name, flag);
     return (nl_catd) -1;
   }
-  //char * catgets (nl_catd catalog_desc, int set, int message, const char *string)
-  char * catgets (nl_catd, int, int, const char*)
+  //char* catgets (nl_catd catalog_desc, int set, int message, const char *string)
+  char* catgets (nl_catd, int, int, const char*)
   {
     return NULL;
   }
@@ -46,27 +42,7 @@ extern "C"
   char _IO_getc()
   {
     /// NOTE: IMPLEMENT ME
-    printf("_IO_getc(): returning bogus character as input from stdin\n");
-    return 'f';
+    debug("_IO_getc(): returning bogus character as input from stdin\n");
+    return 'x';
   }
 }
-
-// patch over newlibs lack of locale support
-/*
-typedef void *locale_t;
-
-locale_t duplocale(locale_t)
-{
-  return NULL;
-}
-locale_t newlocale(int, const char *, locale_t)
-{
-  return NULL;
-}
-void freelocale(locale_t) {}
-
-locale_t uselocale(locale_t)
-{
-  return NULL;
-}
-*/
