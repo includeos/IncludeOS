@@ -127,16 +127,19 @@ namespace fs
       return seg >= 0;
     }
     
-    // returns pointer to node at @node, or nullptr on failure
+    /** returns pointer to node at @node, or nullptr on failure
+	@param the node to get a pointer to
+	@return pointer to the requested node, or nullpointer if failure
+	*/
     Inode*  get(inode_t node);
-    // returns the first free node, or -1 on failure
+    /** @return the first free node, or -1 on failure */
     inode_t free_node() const;
     
-    // returns pointer to segment or nullptr on failure
+    /** @return pointer to segment or nullptr on failure */
     char* getseg(int seg);
-    // returns the first free segment, or -1 on failure
+    /** @return the first free segment, or -1 on failure */
     int free_segment() const;
-    // mark used and return a new data segment for node
+    /** mark used and return a new data segment for node */
     int create_segment();
     
     int init_directory(inode_t node, const std::string& name);
@@ -154,7 +157,7 @@ namespace fs
     char*     diskdata;
   };
   
-  // indirect data segment structure
+  /** indirect data segment structure */
   struct VFSindirect
   {
     static const int BLOCKS = VFS::BLOCK_SIZE / sizeof(int);
@@ -164,7 +167,7 @@ namespace fs
       streamset32(segments, 0, sizeof(segments));
     }
     
-    // list of segments
+    /** list of segments */
     int segments[BLOCKS];
   };
   
@@ -172,14 +175,14 @@ namespace fs
   {
     static const int LINKS = VFS::BLOCK_SIZE / sizeof(inode_t);
     
-    // guarantee that the directory is initalized empty
+    /** guarantee that the directory is initalized empty */
     VFSdir()
     {
       streamset8(nodes, 0, VFS::BLOCK_SIZE);
       //memset(nodes, 0, VFS::BLOCK_SIZE);
     }
     
-    // list of inodes as contents
+    /** list of inodes as contents */
     inode_t nodes[LINKS];
   };
   

@@ -25,7 +25,8 @@ namespace fs
       _size = chunks;
     }
     
-    // returns the boolean value of the bit located at @n
+    /** @return the boolean value of the bit located at @n 
+	@param n the location of the bit*/
     inline bool operator[] (index_t n) const
     {
       return get(n);
@@ -34,7 +35,7 @@ namespace fs
     {
       return _data[windex(b)] & (1 << woffset(b));
     }
-    // return the bit-index of the first clear bit
+    /** @return the bit-index of the first clear bit */
     index_t first_free() const
     {
       // each word

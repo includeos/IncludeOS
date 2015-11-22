@@ -21,7 +21,7 @@ class OS{
   OS() = delete;
 
   
-  /** Clock cycles since boot. */
+  /** @return Clock cycles since boot. */
   static inline uint64_t cycles_since_boot()
   {
     uint64_t ret;
@@ -29,12 +29,13 @@ class OS{
     return ret;
   }
   
-  /** Uptime in seconds. */
+  /** @return Uptime in seconds. */
   static inline double uptime()
   { return (cycles_since_boot() / _CPU_mhz.count() ); }
   
   /** Receive a byte from port. @todo Should be moved 
       @param port : The port number to receive from
+	  @return the byte received
   */
   static uint8_t inb(int port);
   
@@ -59,7 +60,7 @@ class OS{
 
   
   /** Halt until next inerrupt. 
-      @Warning If there is no regular timer interrupt (i.e. from PIT / APIC) 
+      @warning If there is no regular timer interrupt (i.e. from PIT / APIC) 
       we'll stay asleep. 
    */
   static void halt();  

@@ -43,14 +43,14 @@ namespace net {
     {
       _udp6.listen(port, func);
     }
-    /// send an UDPv6 packet, hopefully (please dont lie!)
+    /** send an UDPv6 packet, hopefully (please dont lie!) */
     std::shared_ptr<PacketUDP6> udp6_create(
         Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
     {
       return _udp6.create(ether_dest, ip_dest, port);
     }
     
-    /// send an UDPv6 packet, hopefully (please dont lie!)
+    /** send an UDPv6 packet, hopefully (please dont lie!) */
     int udp6_send(std::shared_ptr<PacketUDP6> pckt)
     {
       return _udp6.transmit(pckt);
@@ -101,7 +101,7 @@ namespace net {
     
     static Inet* instance;  
     
-    // This is the actual stack
+    /** This is the actual stack */
     IP4  _ip4;
     ICMP _icmp;
     UDP  _udp;

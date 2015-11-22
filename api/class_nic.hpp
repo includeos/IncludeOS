@@ -39,13 +39,15 @@ public:
   /** Get a readable name. @todo Replace the dummy with something useful.*/
   //const char* name(); 
   
-  /** @note If we add this while there's a specialization, this overrides. */
+  /** @note If we add this while there's a specialization, this overrides. 
+      @return Name of the driver
+  */
   inline const char* name() { return _driver.name(); }
 
-  /** The actual mac address. */
+  /** @return The actual mac address. */
   inline const net::Ethernet::addr mac() { return _driver.mac(); }
   
-  /** Mac address string. */
+  /** @return Mac address string. */
   inline const char* mac_str() { return _driver.mac_str(); }
 
   inline void set_linklayer_out(net::upstream del)

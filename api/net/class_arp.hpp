@@ -80,10 +80,10 @@ namespace net {
       void update() { _t = OS::uptime(); }
     };
   
-    // The arp cache
+    /** The arp cache */
     std::map<IP4::addr,cache_entry> _cache;
   
-    // Arp cache expires after cache_exp_t seconds
+    /** Arp cache expires after cache_exp_t seconds */
     uint16_t cache_exp_t = 60 * 60 * 12;
 
     /** Cache IP resolution. */

@@ -8,14 +8,14 @@ template<typename F>
 class signal
 {
 public:
-	//! \brief Connect a function to this signal
+	/** \brief Connect a function to this signal */
 	template <class Fn>
 	void connect(Fn fn)
 	{
 		funcs.emplace_back(fn);
 	}
 	
-	//! \brief Emit this signal by executing all the connected functions
+	/** \brief Emit this signal by executing all the connected functions */
 	template<typename... Args>
 	void emit(Args... args)
 	{

@@ -42,7 +42,8 @@ namespace net {
     { _network_layer_out = del; }
   
     /** Listen to a port. 
-      
+        @param port : the port to listen to
+		@param s : the listener
         @note Any previous listener will be evicted (it's all your service) */
     void listen(uint16_t port, listener s);
 
