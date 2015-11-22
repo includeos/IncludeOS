@@ -1,6 +1,7 @@
 #define DEBUG
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
+#include <os.hpp>
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -138,12 +139,11 @@ namespace net
   
 	void DHClient::negotiate()
   {
-    // create DHCP discover packet
-    printf("* Negotiating IP address through DHCP discover\n");
     // create a random session ID
-    this->xid = 123456;
-    printf("* DHCP session ID %u (size=%u)\n", this->xid, sizeof(xid));
+    this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
+    printf("     [ DHCPv4 ] Negotiating IP-address (xid=%u)\n", xid);
     
+    // create DHCP discover packet
     const size_t packetlen = sizeof(dhcp_packet_t);
     char packet[packetlen];
     
@@ -204,17 +204,16 @@ namespace net
     [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
             const char* data, int len) -> int
     {
+      (void) addr;
       if (port == DHCP_DEST_PORT)
       {
         // we have got a DHCP Offer
-        printf("Received DHCP OFFER from %s:%d\n",
+        debug("Received possible DHCP OFFER from %s:%d\n",
             addr.str().c_str(), DHCP_DEST_PORT);
         this->offer(sock, data, len);
       }
       return -1;
     });
-    
-    printf("this->xid == %u,   xid == %u\n", this->xid, xid);
   }
   
   const dhcp_option_t* get_option(const uint8_t* options, uint8_t code)
@@ -244,7 +243,7 @@ namespace net
       if (opt->code == DHO_DHCP_MESSAGE_TYPE)
       {
         // verify that the type is indeed DHCPOFFER
-        printf("Found DHCP message type %d  (DHCP Offer = %d)\n",
+        debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
              opt->val[0], DHCPOFFER);
         
         // ignore when not a DHCP Offer
@@ -253,28 +252,28 @@ namespace net
       // ignore message when DHCP message type is missing
       else return;
       
-      // now validate the offer, checking for minimum information
-      opt = get_option(dhcp->options, DHO_ROUTERS);
-      if (opt->code == DHO_ROUTERS)
-      {
-        this->router.whole = *(uint32_t*) opt->val;
-        printf("\tROUTER: \t%s\n",
-            this->router.str().c_str());
-      }
-      // ignore message when SUBNET MASK is missing
-      else return;
-      
       // the offered IP address:
       this->ipaddr = dhcp->yiaddr;
-      printf("\tIP ADDRESS: \t%s\n",
+      printf("     [ DHCPv4 ] IP ADDRESS: \t%s\n",
           this->ipaddr.str().c_str());
       
       opt = get_option(dhcp->options, DHO_SUBNET_MASK);
       if (opt->code == DHO_SUBNET_MASK)
       {
         this->netmask.whole = *(uint32_t*) opt->val;
-        printf("\tSUBNET MASK: \t%s\n",
+        printf("     [ DHCPv4 ] SUBNET MASK: \t%s\n",
             this->netmask.str().c_str());
+      }
+      // ignore message when SUBNET MASK is missing
+      else return;
+      
+      // now validate the offer, checking for minimum information
+      opt = get_option(dhcp->options, DHO_ROUTERS);
+      if (opt->code == DHO_ROUTERS)
+      {
+        this->router.whole = *(uint32_t*) opt->val;
+        printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+            this->router.str().c_str());
       }
       // ignore message when SUBNET MASK is missing
       else return;
@@ -340,10 +339,11 @@ namespace net
     [this] (SocketUDP&, IP4::addr addr, UDP::port port, 
             const char* data, int len) -> int
     {
+      (void) addr;
       if (port == DHCP_DEST_PORT)
       {
         // we have hopefully got a DHCP Ack
-        printf("\tReceived DHCP ACK from %s:%d\n",
+        debug("\tReceived DHCP ACK from %s:%d\n",
             addr.str().c_str(), DHCP_DEST_PORT);
         this->acknowledge(data, len);
       }
@@ -370,7 +370,7 @@ namespace net
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
     {
       // verify that the type is indeed DHCPOFFER
-      printf("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+      debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
            opt->val[0], DHCPACK);
       
       // ignore when not a DHCP Offer
@@ -380,9 +380,9 @@ namespace net
     else return;
     
     // configure our network stack
-    printf("\tDHCP Acknowledged our IP request!\n");
+    printf("     [ DHCPv4 ] Server acknowledged our request!\n");
     stack.network_config(this->ipaddr, this->netmask, this->router);
     // run some post-DHCP event to release the hounds
-    //...
+    this->onConfig(stack);
   }
 }

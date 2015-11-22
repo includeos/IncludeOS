@@ -14,6 +14,7 @@ namespace net
 	{
 	public:
 		using Stack = Inet<LinkLayer, IP4>;
+    using on_config = delegate<void(Stack&)>;
     
     DHClient() = delete;
     DHClient(DHClient&) = delete;
@@ -21,6 +22,7 @@ namespace net
     
     Stack& stack;
 		void negotiate(); // --> offer
+    on_config onConfig;
     
 	private:
 		void offer(SocketUDP&, const char* data, int len);
