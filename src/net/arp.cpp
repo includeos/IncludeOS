@@ -28,8 +28,11 @@ int Arp::bottom(Packet_ptr pckt)
     
     if (hdr->dipaddr == ip_)
       arp_respond(hdr);    
-    else{ debug2("\t NO MATCH for My IP. DROP!\n"); }
-        
+    else
+    {
+      debug2("\t NO MATCH for My IP (%s). DROP!\n",
+          ip().str().c_str());
+    }
     break;
     
   case H_reply:
@@ -61,7 +64,7 @@ int Arp::bottom(Packet_ptr pckt)
 
 void Arp::cache(IP4::addr& ip, Ethernet::addr& mac){
   
-  debug2("Chaching IP %s for %s \n",ip.str().c_str(),mac.str().c_str());
+  debug2("Caching IP %s for %s \n",ip.str().c_str(),mac.str().c_str());
   
   auto entry = cache_.find(ip);
   if (entry != cache_.end()){

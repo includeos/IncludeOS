@@ -7,14 +7,13 @@
 
 using namespace net;
 
-
 int IP4::bottom(Packet_ptr pckt){
   debug2("<IP4 handler> got the data. \n");
     
   const uint8_t* data = pckt->buffer();
   ip_header* hdr = &((full_header*)data)->ip_hdr;
   
-  debug2("\t Source IP: %s Dest.IP: %sbpa \n",
+  debug2("\t Source IP: %s Dest.IP: %s\n",
         hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
   
   switch(hdr->protocol){
@@ -36,8 +35,7 @@ int IP4::bottom(Packet_ptr pckt){
   }
   
   return -1;
-};
-
+}
 
 uint16_t IP4::checksum(ip_header* hdr)
 {
@@ -96,7 +94,7 @@ IP4::IP4(Inet<LinkLayer, IP4>& inet) :
   netmask_(inet.netmask())
 {
   // Default gateway is addr 1 in the subnet.
-  const uint32_t DEFAULT_GATEWAY = __builtin_bswap32(1);
+  const uint32_t DEFAULT_GATEWAY = htonl(1);
   
   gateway_.whole = (local_ip_.whole & netmask_.whole) | DEFAULT_GATEWAY;
   

@@ -1,5 +1,5 @@
-#ifndef CLASS_ICMP_HPP
-#define CLASS_ICMP_HPP
+#ifndef NET_IP4_ICMP_HPP
+#define NET_IP4_ICMP_HPP
 
 namespace net {
   
@@ -13,7 +13,9 @@ namespace net {
       uint8_t type;
       uint8_t code;
       uint16_t checksum;
-      uint32_t rest;
+      uint16_t identifier;
+      uint16_t sequence;
+      uint8_t  payload[0];
     }__attribute__((packed));
     
     struct full_header {
@@ -41,7 +43,7 @@ namespace net {
     Inet<LinkLayer,IP4>& inet_;
     
     downstream _network_layer_out = icmp_default_out;
-    void ping_reply(full_header* full_hdr);
+    void ping_reply(full_header* full_hdr, uint16_t size);
   
   };
 
