@@ -37,10 +37,7 @@ CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mrdrnd -msse3 -mstackrealign
-
-all: CAPABS  =  $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
-debug: CAPABS = $(CAPABS_COMMON) -O0 
-stripped: CAPABS = $(CAPABS_COMMON) -Oz
+CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
@@ -81,16 +78,15 @@ all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
-stripped: bootloader libc++abi.a os.a test # Included test to get a stripped version
-
+stripped: CAPABS += -Oz
+stripped: all test
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-#debug: LDOPTS  += #-M #--verbose
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: bootloader libc++abi.a os.a # Can't call all, since it changes capabs
-debug: test
+debug: CAPABS += -O0 -UNO_DEBUG
+debug: all test
 
 # Test service
 ###################################################
