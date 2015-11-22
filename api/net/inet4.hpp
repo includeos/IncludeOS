@@ -34,6 +34,9 @@ namespace net {
     inline const IP4::addr& netmask() override 
     { return netmask_; }
     
+    inline const IP4::addr& router() override 
+    { return router_; }
+    
     inline IP4& ip_obj() override
     { return ip4_; }
     
@@ -73,9 +76,17 @@ namespace net {
     Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
     
   private:
+    virtual void 
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router) override
+    {
+      this->ip4_addr_ = addr;
+      this->netmask_  = nmask;
+      this->router_   = router;
+    }
     
-    const IP4::addr ip4_addr_;
-    const IP4::addr netmask_;
+    IP4::addr ip4_addr_;
+    IP4::addr netmask_;
+    IP4::addr router_;
     
     // This is the actual stack
     Nic<DRIVER>& nic_;
@@ -87,7 +98,7 @@ namespace net {
     TCP tcp_;
     
     BufferStore& bufstore_;
-
+    friend class DHClient;
   };
 }
 

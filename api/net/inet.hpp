@@ -15,6 +15,7 @@ namespace net {
     
     virtual const typename IPV::addr& ip_addr() = 0;
     virtual const typename IPV::addr& netmask() = 0;
+    virtual const typename IPV::addr& router() = 0;
     virtual const typename LINKLAYER::addr& link_addr() = 0;
     virtual LINKLAYER& link() = 0;
     virtual IPV& ip_obj() = 0;
@@ -25,6 +26,12 @@ namespace net {
     
     virtual Packet_ptr createPacket(size_t size) = 0;
     
+  private:
+    virtual void network_config(
+        typename IPV::addr ip, 
+        typename IPV::addr nmask, 
+        typename IPV::addr router) = 0;
+    friend class DHClient;
   };
 
 }
