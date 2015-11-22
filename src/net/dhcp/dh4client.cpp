@@ -182,16 +182,15 @@ namespace net
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
     memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
-    // Parameter Request List
-    /*opt = conv_option(dhcp->options + 12);
+    // DHCP Parameter Request Field
+    opt = conv_option(dhcp->options + 12);
     opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
-    opt->length = 4;
-    opt->val[0] = 0x01;
-    opt->val[1] = 0x0f;
-    opt->val[2] = 0x03;
-    opt->val[3] = 0x06;*/
+    opt->length = 3;
+    opt->val[0] = DHO_ROUTERS;
+    opt->val[1] = DHO_SUBNET_MASK;
+    opt->val[2] = DHO_DOMAIN_NAME_SERVERS;
     // END
-    opt = conv_option(dhcp->options + 12); // 18
+    opt = conv_option(dhcp->options + 17);
     opt->code   = DHO_END;
     opt->length = 0;
     
@@ -231,51 +230,66 @@ namespace net
   {
     (void) datalen;
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
+    
+    uint32_t xid = htonl(dhcp->xid);
+    // silently ignore transactions not our own
+    if (xid != this->xid) return;
+    
+    // check if the BOOTP message is a DHCP OFFER
+    const dhcp_option_t* opt;
+    opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
+    
+    if (opt->code == DHO_DHCP_MESSAGE_TYPE)
     {
-      uint32_t xid = htonl(dhcp->xid);
-      // silently ignore transactions not our own
-      if (xid != this->xid) return;
+      // verify that the type is indeed DHCPOFFER
+      debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
+           opt->val[0], DHCPOFFER);
       
-      // check if the BOOTP message is a DHCP OFFER
-      const dhcp_option_t* opt;
-      opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
-      
-      if (opt->code == DHO_DHCP_MESSAGE_TYPE)
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPOFFER) return;
+    }
+    // ignore message when DHCP message type is missing
+    else return;
+    
+    // the offered IP address:
+    this->ipaddr = dhcp->yiaddr;
+    printf("     [ DHCPv4 ] IP ADDRESS: \t%s\n",
+        this->ipaddr.str().c_str());
+    
+    opt = get_option(dhcp->options, DHO_SUBNET_MASK);
+    if (opt->code == DHO_SUBNET_MASK)
+    {
+      memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
+      printf("     [ DHCPv4 ] SUBNET MASK: \t%s\n",
+          this->netmask.str().c_str());
+    }
+    
+    opt = get_option(dhcp->options, DHO_DHCP_LEASE_TIME);
+    if (opt->code == DHO_DHCP_LEASE_TIME)
+    {
+      memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
+      printf("     [ DHCPv4 ] LEASE TIME: \t%u mins\n", this->lease_time / 60);
+    }
+    
+    // now validate the offer, checking for minimum information
+    opt = get_option(dhcp->options, DHO_ROUTERS);
+    if (opt->code == DHO_ROUTERS)
+    {
+      memcpy(&this->router, opt->val, sizeof(IP4::addr));
+      printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+          this->router.str().c_str());
+    }
+    // assume that the server we received the request from is the gateway
+    else
+    {
+      opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
+      if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
       {
-        // verify that the type is indeed DHCPOFFER
-        debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
-             opt->val[0], DHCPOFFER);
-        
-        // ignore when not a DHCP Offer
-        if (opt->val[0] != DHCPOFFER) return;
-      }
-      // ignore message when DHCP message type is missing
-      else return;
-      
-      // the offered IP address:
-      this->ipaddr = dhcp->yiaddr;
-      printf("     [ DHCPv4 ] IP ADDRESS: \t%s\n",
-          this->ipaddr.str().c_str());
-      
-      opt = get_option(dhcp->options, DHO_SUBNET_MASK);
-      if (opt->code == DHO_SUBNET_MASK)
-      {
-        this->netmask.whole = *(uint32_t*) opt->val;
-        printf("     [ DHCPv4 ] SUBNET MASK: \t%s\n",
-            this->netmask.str().c_str());
-      }
-      // ignore message when SUBNET MASK is missing
-      else return;
-      
-      // now validate the offer, checking for minimum information
-      opt = get_option(dhcp->options, DHO_ROUTERS);
-      if (opt->code == DHO_ROUTERS)
-      {
-        this->router.whole = *(uint32_t*) opt->val;
+        memcpy(&this->router, opt->val, sizeof(IP4::addr));
         printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
             this->router.str().c_str());
       }
-      // ignore message when SUBNET MASK is missing
+      // silently ignore when both ROUTER and SERVER_ID is missing
       else return;
     }
     // we can accept the offer now by requesting the IP!
@@ -324,13 +338,25 @@ namespace net
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
     memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
-    // DHCP Requested Address
+    // DHCP server identifier
     opt = conv_option(resp->options + 12);
+    opt->code   = DHO_DHCP_SERVER_IDENTIFIER;
+    opt->length = 4;
+    memcpy(&opt->val[0], &this->router, sizeof(IP4::addr));
+    // DHCP Requested Address
+    opt = conv_option(resp->options + 18);
     opt->code   = DHO_DHCP_REQUESTED_ADDRESS;
     opt->length = 4;
     memcpy(&opt->val[0], &this->ipaddr, sizeof(IP4::addr));
+    // DHCP Parameter Request Field
+    opt = conv_option(resp->options + 24);
+    opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
+    opt->length = 3;
+    opt->val[0] = DHO_ROUTERS;
+    opt->val[1] = DHO_SUBNET_MASK;
+    opt->val[2] = DHO_DOMAIN_NAME_SERVERS;
     // END
-    opt = conv_option(resp->options + 18);
+    opt = conv_option(resp->options + 29);
     opt->code   = DHO_END;
     opt->length = 0;
     
