@@ -71,32 +71,33 @@ vmAlive=$($VB list vms | grep $VMNAME)
 if [ "$vmAlive" == "$VMNAME" ]
 then
 	echo -e "\nVM already exists, replacing it...\n"
-	$VB controlvm $VMNAME poweroff
+	$VB controlvm "$VMNAME" poweroff
 
 # We need to remove the disk and reattach it with a different UUID to calm VirtualBox
-	$VB modifyvm $VMNAME --hda none
-	$VB closemedium disk $targetLoc
-	$VB internalcommands sethduuid $targetLoc
-	$VB modifyvm $VMNAME --hda $targetLoc
+	$VB modifyvm "$VMNAME" --hda none
+	$VB closemedium disk "$targetLoc"
+	$VB internalcommands sethduuid "$targetLoc"
+	$VB modifyvm "$VMNAME" --hda "$targetLoc"
 else
+	$(rm "$homeDir/VirtualBox VMs/$VMNAME/$VMNAME.vbox")
 # Creating and registering the VM and adding a virtual IDE drive to it,
 # then attaching the hdd image.
 	echo -e "\nCreating VM: $VMNAME ...\n"
-	$VB createvm --name $VMNAME --ostype 'Other' --register
-	$VB storagectl $VMNAME --name 'IDE Controller' --add ide --bootable on
-	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0 --type 'hdd' --medium $targetLoc
+	$VB createvm --name "$VMNAME" --ostype "Other" --register
+	$VB storagectl "$VMNAME" --name "IDE Controller" --add ide --bootable on
+	$VB storageattach "$VMNAME" --storagectl "IDE Controller" --port 0 --device 0 --type 'hdd' --medium "$targetLoc"
 
 # Set the boot disk
-	$VB modifyvm $VMNAME --boot1 disk
+	$VB modifyvm "$VMNAME" --boot1 disk
 
 # Serial port configuration to receive output
-	$VB modifyvm $VMNAME --uart1 0x3F8 4 --uartmode1 file $SERIAL_FILE
+	$VB modifyvm "$VMNAME" --uart1 0x3F8 4 --uartmode1 file $SERIAL_FILE
 
 # NETWORK
-	$VB modifyvm $VMNAME --nic1 hostonly --nictype1 virtio --hostonlyadapter1 include0
+	$VB modifyvm "$VMNAME" --nic1 hostonly --nictype1 virtio --hostonlyadapter1 include0
 fi
 # START VM
-$VB startvm $VMNAME --type headless &
+$VB startvm "$VMNAME" --type headless &
 echo -e "\nVM $VMNAME started, processID is $!\n"
 
 echo "--------------------------------------------"
@@ -107,6 +108,6 @@ echo "--------------------------------------------"
 watch tail $SERIAL_FILE
 
 # Shut down the VM
-echo "Shutting down VM: $vmName..."
-$VB controlvm $VMNAME poweroff
+echo "Shutting down VM: $VMNAME..."
+$VB controlvm "$VMNAME" poweroff
 echo "Goodbye!"
