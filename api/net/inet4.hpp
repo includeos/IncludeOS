@@ -82,7 +82,7 @@ namespace net {
     }
     
     inline virtual void
-    set_dns_server(IP4::addr server)
+    set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
