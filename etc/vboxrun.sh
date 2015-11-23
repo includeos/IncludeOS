@@ -47,7 +47,7 @@ function control_c
 trap control_c INT
 
 VB=VBoxManage
-VMNAME=IncludeOS_test
+VMNAME="IncludeOS_test"
 SERIAL_FILE="/tmp/IncludeOS.console.pipe"
 
 homeDir=$(eval echo ~${SUDO_USER})
@@ -57,7 +57,7 @@ targetLoc="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
 
 # Checks if the VM name parameter $2 is set if not,
 # replace the default VM created by this script
-if [ $2!="" ]
+if [ "$2" != "" ]
 then
 	VMNAME=$2
 fi
@@ -65,98 +65,103 @@ fi
 # Check if VM exists, if yes remove disk and re-attach with a legitimate UUID
 # asks user if the VM should be replaced, if not then exits. Run again with
 # different NAME_OF_VM
-# TODO: ADD LOGIC TO ALLOW USER TO REPLACE VM NAME ON THE FLY
+# TODO: MAKE THIS LOGIC WORK & ADD LOGIC TO ALLOW USER TO REPLACE VM NAME ON THE FLY
 if [ "$VB list vms | grep $VMNAME" ]
 then
-	echo -e "\nVM already exists, do you want to replace it?\n"
-	while read -n1 -p "[y,n]" vmReplace && [[ "$vmReplace" != "y" ]] || [[  "$vmReplace" != "n" ]]
-	do
-		if [ "$vmReplace" == "y" ] || [ "$vmReplace" == "n"]
-		then
-			break
-		fi
-		echo -e "\nUnexpected input, please try again\n"
-	done
-
-	if [ "$vmReplace" == "y" ]
-	then
-		echo -e "\nREPLACING $VMNAME with current setup...\n"
+	echo -e "\nVM already exists, replacing it...\n"
+	$VB controlvm $VMNAME poweroff
+#	echo -e "\nVM already exists, do you want to replace it?\n"
+#	while read -n1 -p "[y,n]" vmReplace && [[ "$vmReplace" != "y" ]] || [[  "$vmReplace" != "n" ]]
+#	do
+#		if [ "$vmReplace" == "y" ] || [ "$vmReplace" == "n" ]
+#		then
+#			break
+#		fi
+#		echo -e "\nUnexpected input, please try again\n"
+#	done
+#
+#	if [ "$vmReplace" == "y" ]
+#	then
+#		echo -e "\nREPLACING VM: $VMNAME with current setup...\n"
+#		$VB controlvm $VMNAME poweroff
 # Take a virtual disk as an input argument
 # if none is given, use the default. Then
 # checks if the drive exists in .vdi format,
 # if not we convert it to one
-		if [ $1!="" ]
-		then
-                        echo -e "\nCREATING VM: $VMNAME WITH A CUSTOM VIRTUAL DISK...\n"
-			disk=$1
-			if [ $disk!=*".vdi"* ]
-			then
-				targetLoc=${disk%.*}
-#				targetLoc=${disk##*/}
-				targetLoc+=".vdi"
-#				targetLoc="./$targetLoc"
-				displayLoc=${targetLoc#*/}
-				echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
-				$VB convertfromraw $disk $targetLoc
-			fi
-		else
-                        echo -e "\nCREATING VM: $VMNAME WITH THE DEFAULT CONFIGURATION...\n"
-			if [ $disk!=*".vdi"* ]
-			then
-#                               targetLoc=${disk##*/}
-                                targetLoc+=".vdi"
-#                               targetLoc="./$targetLoc"
-                                displayLoc=${targetLoc#*/}
-                                echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
-                                $VB convertfromraw $disk $targetLoc
-                        fi
-	elif [ "$vmReplace" == "n" ]
+	if [ "$1" != "" ]
 	then
-		echo -e "\nNOT replacing $VMNAME please select a different VM name, exiting...\n"
-		exit 0
+		echo -e "\nCREATING VM: $VMNAME WITH A CUSTOM VIRTUAL DISK...\n"
+		disk=$1
+		if [ "$disk" != *".vdi"* ]
+		then
+			targetLoc=${disk%.*}
+			targetLoc=${targetLoc##*/}
+			targetLoc+=".vdi"
+			targetLoc="./$targetLoc"
+			displayLoc=${targetLoc##*/}
+			echo -e "\nTEST1 Creating VDI image in $(pwd)/$displayLoc...\n"
+			$VB convertfromraw $disk $targetLoc
+		fi
+	else
+		echo -e "\nCREATING VM: $VMNAME WITH THE DEFAULT CONFIGURATION...\n"
+		if [ ! -f "$targetLoc" ]
+		then
+			targetLoc=$disk
+			targetLoc=${disk%.*}
+#			targetLoc=${disk##*/}
+			targetLoc+=".vdi"
+#			targetLoc="./$targetLoc"
+			echo -e "\nTEST 2Creating VDI image in $targetLoc...\n"
+			$VB convertfromraw $disk $targetLoc
+		fi
 	fi
+#	elif [ "$vmReplace" == "n" ]
+#	then
+#		echo -e "\nNOT replacing $VMNAME please select a different VM name, exiting...\n"
+#		exit 0
+#	fi
 # We need to remove the disk and reattach it with a different UUID to calm VirtualBox
-	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0 --medium 'none'
-	$VB internalcommands sethduuid $disk NOT SURE IF NEEDED YET
-	$VB closemedium $disk
-	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0, --type 'hdd' --medium $disk
+	$VB modifyvm $VMNAME --hda none
+	$VB closemedium disk $targetLoc
+	$VB internalcommands sethduuid $targetLoc
+	$VB modifyvm $VMNAME --hda $targetLoc
 else
 # Take a virtual disk as an input argument
 # if none is given, use the default. Then
 # checks if the drive exists in .vdi format,
 # if not we convert it to one
-	if [ $1!="" ]
+	if [ "$1" != "" ]
 	then
 		echo -e "\nCREATING VM: $VMNAME WITH A CUSTOM VIRTUAL DISK...\n"
         	disk=$1
-	        if [ $disk!=*".vdi"* ]
+	        if [ "$disk" != *".vdi"* ]
         	then
                 	targetLoc=${disk%.*}
-#			targetLoc=${disk##*/}
+			targetLoc=${targetLoc##*/}
         	        targetLoc+=".vdi"
-#	                targetLoc="./$targetLoc"
-         	       displayLoc=${targetLoc#*/}
-                	echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
+	                targetLoc="./$targetLoc"
+			displayLoc=${targetLoc#*/}
+                	echo -e "\nTEST 3Creating VDI image in $(pwd)/$displayLoc...\n"
 	                $VB convertfromraw $disk $targetLoc
         	fi
 	else
 		echo -e "\nCREATING VM: $VMNAME WITH THE DEFAULT CONFIGURATION...\n"
-        	if [ $disk!=*".vdi"* ]
+        	if [ ! -f "$targetLoc" ]
 	        then
+			targetLoc=$disk
         	        targetLoc=${disk%.*}
-#               	targetLoc=${disk##*/}
+#        	       	targetLoc=${disk##*/}
 	                targetLoc+=".vdi"
-#       	        targetLoc="./$targetLoc"
-                	displayLoc=${targetLoc#*/}
-	                echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
+#	       	        targetLoc="./$targetLoc"
+	                echo -e "\nTEST 4Creating VDI image in $targetLoc...\n"
         	        $VB convertfromraw $disk $targetLoc
 	        fi
 	fi
 
 # Creating and registering the VM and adding a virtual IDE drive to it,
 # then attaching the hdd image.
-	echo -e "\nCreating VM ...\n"
-	$VB createvm --name IncludeOS_test --ostype 'Other' --register
+	echo -e "\nCreating VM: $VMNAME ...\n"
+	$VB createvm --name $VMNAME --ostype 'Other' --register
 	$VB storagectl $VMNAME --name 'IDE Controller' --add ide --bootable on
 	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0 --type 'hdd' --medium $targetLoc
 
@@ -167,13 +172,12 @@ else
 	$VB modifyvm $VMNAME --uart1 0x3F8 4 --uartmode1 file $SERIAL_FILE
 
 # NETWORK
-#$VB hostonlyif create
 	$VB modifyvm $VMNAME --nic1 hostonly --nictype1 virtio --hostonlyadapter1 include0
 	$VB modifyvm $VMNAME --macaddress1 c001A0A0A0A0
 fi
 # START VM
 $VB startvm $VMNAME --type headless &
-echo -e "\nVM $VmName started, processID is $!\n"
+echo -e "\nVM $VMNAME started, processID is $!\n"
 
 echo "--------------------------------------------"
 echo "Checking serial output file, CTRL+C to exit."
