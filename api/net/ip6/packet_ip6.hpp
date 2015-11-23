@@ -47,7 +47,7 @@ namespace net
       ip6_header().set_hoplimit(limit);
     }
     
-    /** @return the protocol type of the next header */
+    // returns the protocol type of the next header
     uint8_t next() const
     {
       return ip6_header().next();

@@ -74,20 +74,20 @@ public:
     
     /** Virtio Ring Descriptor. Virtio std. §2.4.5  */
     struct virtq_desc { 
-      /** Address (guest-physical). */ 
+      /* Address (guest-physical). */ 
       le64 addr; 
-      /** Length. */ 
+      /* Length. */ 
       le32 len; 
       
-      /** This marks a buffer as continuing via the next field. */ 
+      /* This marks a buffer as continuing via the next field. */ 
 #define VIRTQ_DESC_F_NEXT   1 
-      /** This marks a buffer as device write-only (otherwise device read-only). */ 
+      /* This marks a buffer as device write-only (otherwise device read-only). */ 
 #define VIRTQ_DESC_F_WRITE     2 
-      /** This means the buffer contains a list of buffer descriptors. */ 
+      /* This means the buffer contains a list of buffer descriptors. */ 
 #define VIRTQ_DESC_F_INDIRECT   4 
-      /** The flags as indicated above. */ 
+      /* The flags as indicated above. */ 
       le16 flags; 
-      /** Next field if flags & NEXT */ 
+      /* Next field if flags & NEXT */ 
       le16 next; 
     };
     
@@ -104,10 +104,10 @@ public:
     
     /** Virtio Used ring elements. Virtio std. §2.4.8 */
     struct virtq_used_elem { 
-      /** le32 is used here for ids for padding reasons. */ 
-      /** Index of start of used descriptor chain. */ 
+      /* le32 is used here for ids for padding reasons. */ 
+      /* Index of start of used descriptor chain. */ 
       le32 id; 
-      /** Total length of the descriptor chain which was used (written to) */ 
+      /* Total length of the descriptor chain which was used (written to) */ 
       le32 len; 
     };
     
@@ -117,7 +117,7 @@ public:
       le16 flags; 
       le16 idx; 
       struct virtq_used_elem ring[ /* Queue Size */]; 
-       /**le16 avail_event; Only if VIRTIO_F_EVENT_IDX */ 
+       /*le16 avail_event; Only if VIRTIO_F_EVENT_IDX */ 
     }; 
     
     
@@ -139,13 +139,13 @@ public:
     /** Virtque size calculation. Virtio std. §2.4.2 */
     static inline unsigned virtq_size(unsigned int qsz);
     
-    /** The size as read from the PCI device */
+    // The size as read from the PCI device
     uint16_t _size;
     
-    /** Actual size in bytes - virtq_size(size) */
+    // Actual size in bytes - virtq_size(size)
     uint32_t _size_bytes;    
     
-    /** The actual queue struct */
+    // The actual queue struct
     virtq _queue;
     
     uint16_t _iobase = 0; // Device PCI location
@@ -217,15 +217,13 @@ public:
       @note it varies how these are structured, hence a void* buf */
   void get_config(void* buf, int len);
   
-  /** Get the (saved) device IRQ 
-  @return device IRQ */
+  /** Get the (saved) device IRQ */
   inline uint8_t irq(){ return _irq; };
 
   /** Reset the virtio device */
   void reset();
   
-  /** Negotiate supported features with host 
-  @param features*/
+  /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
   
   /** Register interrupt handler & enable IRQ */

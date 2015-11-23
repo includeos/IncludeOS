@@ -61,15 +61,15 @@ class PCI_Device
   //:public Device //Why not? A PCI device is too general to be accessible?
 {  
   
-  /** @brief The 3-part PCI address */
+  //@brief The 3-part PCI address
   uint16_t pci_addr_;
   
-  /** @brief The three address parts derived (if needed) */      
+  //@brief The three address parts derived (if needed)      
   uint8_t busno_ = 0;
   uint8_t devno_ = 0;
   uint8_t funcno_ = 0;
   
-  /** @brief The 2-part ID retrieved from the device */
+  // @brief The 2-part ID retrieved from the device
   union vendor_product{
     uint32_t __value;
     struct __attribute__((packed)){
@@ -78,7 +78,7 @@ class PCI_Device
     };
   }device_id_;
 
-  /** @brief The class code (device type) */
+  // @brief The class code (device type)
   union class_revision{
     uint32_t reg;
     struct __attribute__((packed)){
@@ -163,10 +163,10 @@ public:
   */
   static PCI_Device* Create(uint16_t pci_addr);  
 
-  /** @brief Get a device by address. @see pci_addr(). */
+  // @brief Get a device by address. @see pci_addr().
   static PCI_Device* get(uint16_t pci_addr);
 
-  /** @brief Get a device by individual address parts. @todo Will we ever need this?  */
+  // @brief Get a device by individual address parts. @todo Will we ever need this?  
   static PCI_Device* get(int busno, int devno,int funcno);
   
   
@@ -199,9 +199,8 @@ public:
   inline uint16_t rev_id(){ return devtype_.rev_id; }
 
   
-  /** Get the pci  vendor id */
+  /** Get the pci  vendor- and product id */
   inline uint16_t vendor_id() { return device_id_.vendor; }
-  /** Get the pci product id */
   inline uint16_t product_id() { return device_id_.product; }
   
   
