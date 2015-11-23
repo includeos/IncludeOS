@@ -3,6 +3,7 @@
 
 namespace net
 {
+  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
   using port_t = SocketUDP::port_t;
   
   SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack)
@@ -13,33 +14,29 @@ namespace net
   
   int SocketUDP::internal_read(std::shared_ptr<PacketUDP> udp)
   {
-    const std::string buffer(
-        udp->data(), 
-        udp->data_length());
-    return on_read(*this, udp->src(), udp->src_port(), buffer);
+    return on_read(*this, udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
   
-  void SocketUDP::packet_init(
-      std::shared_ptr<PacketUDP> p, addr_t destIP, port_t port, uint16_t length)
+  void SocketUDP::packet_init(std::shared_ptr<PacketUDP> p, 
+      addr_t srcIP, addr_t destIP, port_t port, uint16_t length)
   {
     p->init();
     p->header().sport = htons(this->l_port);
     p->header().dport = htons(port);
-    p->set_src(stack.ip_addr());
+    p->set_src(srcIP);
     p->set_dst(destIP);
     p->set_length(length);
     
     assert(p->data_length() == length);
   }
   
-  int SocketUDP::write(addr_t destIP, port_t port,
-                       const std::string& string_buffer)
+  int SocketUDP::internal_write(addr_t srcIP, addr_t destIP,
+      port_t port, const uint8_t* buffer, int length)
   {
-    int rem = string_buffer.size();
-    // source buffer
-    uint8_t* buffer = (uint8_t*) string_buffer.data();
     // the maximum we can write per packet:
     const int WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
+    // the bytes remaining to be written
+    int rem = length;
     
     while (rem >= WRITE_MAX)
     {
@@ -50,7 +47,7 @@ namespace net
       
       // initialize packet with several infos
       auto p2 = std::static_pointer_cast<PacketUDP>(p);
-      packet_init(p2, destIP, port, WRITE_MAX);
+      packet_init(p2, srcIP, destIP, port, WRITE_MAX);
       // ship the packet
       stack.udp().transmit(p2);
       
@@ -68,11 +65,24 @@ namespace net
       
       // initialize packet with several infos
       auto p2 = std::static_pointer_cast<PacketUDP>(p);
-      packet_init(p2, destIP, port, rem);
+      packet_init(p2, srcIP, destIP, port, rem);
       // ship the packet
       stack.udp().transmit(p2);
     }
-    return -1;
-  } // write()
+    return length;
+  } // internal_write()
+  
+  int SocketUDP::write(addr_t destIP, port_t port, 
+                       const void* buffer, int len)
+  {
+    return internal_write(local_addr(), destIP, port, 
+                          (const uint8_t*) buffer, len);
+  }
+  int SocketUDP::bcast(addr_t srcIP, port_t port, 
+                       const void* buffer, int len)
+  {
+    return internal_write(srcIP, INADDR_BCAST, port, 
+                          (const uint8_t*) buffer, len);
+  }
   
 }

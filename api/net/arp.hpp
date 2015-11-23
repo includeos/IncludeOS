@@ -75,11 +75,8 @@ namespace net {
     int transmit(Packet_ptr pckt);
     
     
-    /** Set IP4 address */
-    inline void set_ip(IP4::addr ip)
-    { ip_ = ip; }
-    
-    inline IP4::addr& ip() { return ip_; }
+    /** Get IP4 address */
+    inline const IP4::addr& ip() { return ip_; }
 
     
     Arp(Inet<Ethernet,IP4>& inet);
@@ -92,7 +89,7 @@ namespace net {
     Ethernet::addr mac_;
 
     // Needs to know which IP to respond to
-    IP4::addr ip_;
+    const IP4::addr& ip_;
     
     // Outbound data goes through here
     downstream linklayer_out_;

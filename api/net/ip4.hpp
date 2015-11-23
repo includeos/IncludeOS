@@ -31,7 +31,7 @@ namespace net {
     
       // Constructors:
       // Can't have them - that removes the packed-attribute    
-      inline bool operator==(addr& rhs) const
+      inline bool operator==(addr rhs) const
       { return whole == rhs.whole; }
       
       inline bool operator<(const addr rhs) const

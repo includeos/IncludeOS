@@ -34,11 +34,10 @@ LD  = ld # Yes - we use the default linker
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api  #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
-
-all: CAPABS  =  $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
-debug: CAPABS = $(CAPABS_COMMON) -O0 
-stripped: CAPABS = $(CAPABS_COMMON) -Oz
+# stackrealign is needed to guarantee 16-byte stack alignment for SSE
+# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
+CAPABS_COMMON = -mrdrnd -msse3 -mstackrealign
+CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 
 WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
@@ -52,13 +51,14 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
-		kernel/interrupts.o kernel/os.o \
+		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/rdrand.o \
 		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
 		hw/pic_sanos.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
+		net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/dns/dns.o net/buffer_store.o
 
@@ -78,16 +78,15 @@ all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
-stripped: bootloader libc++abi.a os.a test # Included test to get a stripped version
-
+stripped: CAPABS += -Oz
+stripped: all test
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-#debug: LDOPTS  += #-M #--verbose
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: bootloader libc++abi.a os.a # Can't call all, since it changes capabs
-debug: test
+debug: CAPABS += -O0 -UNO_DEBUG
+debug: all test
 
 # Test service
 ###################################################

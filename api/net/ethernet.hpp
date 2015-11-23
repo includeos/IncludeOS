@@ -4,7 +4,6 @@
 #include <net/inet_common.hpp>
 #include <delegate>
 #include <string>
-#include <iostream>
 //#include <net/class_packet.hpp>
 
 
@@ -120,8 +119,6 @@ namespace net {
     */
   
 };
-
-std::ostream& operator<<(std::ostream& out,Ethernet::addr& mac);
 
 } // ~net
 

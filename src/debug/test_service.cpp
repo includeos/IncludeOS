@@ -3,8 +3,10 @@
 #include <math.h>
 #include <iostream>
 #include <sstream>
+#include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
+net::DHClient* dhclient;
 
 void Service::start() {
   
@@ -16,6 +18,23 @@ void Service::start() {
     {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
     {{ 255,255,0,0 }} );  // Netmask
   
+  // negotiate with terrorists
+  dhclient = new net::DHClient(inet);
+  dhclient->negotiate();
+  
+  dhclient->onConfig =
+  [] (net::DHClient::Stack& stack)
+  {
+    net::IP4::addr addr{{172,17,42,1}};
+    int port = 4444;
+    printf("Sending UDP data to %s:%d\n",
+        addr.str().c_str(), port);
+    
+    std::string data = "Hallo test!";
+    
+    auto& sock = stack.udp().bind(port);
+    sock.write(addr, port, data.c_str(), data.size());
+  };
   
   printf("Size of IP-stack: %i bytes \n",sizeof(inet));
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
@@ -24,7 +43,7 @@ void Service::start() {
   net::TCP::Socket& sock =  inet.tcp().bind(80);
   
   printf("SERVICE: %i open ports in TCP @ %p \n",
-	 inet.tcp().openPorts(), &(inet.tcp()));   
+      inet.tcp().openPorts(), &(inet.tcp()));   
 
   srand(OS::cycles_since_boot());
   
@@ -71,7 +90,7 @@ void Service::start() {
   
   
   /** TEST ARP-resolution 
-      @todo move to separate location */
+      @todo move to separate location
   auto pckt = std::static_pointer_cast<net::PacketIP4>(inet.createPacket(50));
   pckt->init();
   pckt->next_hop({{ 10,0,0,1 }});  
@@ -79,7 +98,7 @@ void Service::start() {
   pckt->set_dst(pckt->next_hop());
   pckt->set_protocol(net::IP4::IP4_UDP);
   inet.ip_obj().transmit(pckt);
-
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");    
 
