@@ -13,6 +13,9 @@ namespace net {
   template <typename LINKLAYER, typename IPV >
   class Inet {
   public:
+    using Stack = Inet<LINKLAYER, IPV>;
+    template <typename IPv>
+    using resolve_func = delegate<void(Stack&, const std::string&, typename IPv::addr)>;
     
     virtual const typename IPV::addr& ip_addr() = 0;
     virtual const typename IPV::addr& netmask() = 0;
@@ -28,11 +31,14 @@ namespace net {
     
     virtual Packet_ptr createPacket(size_t size) = 0;
     
+    virtual void
+    resolve(const std::string& hostname,
+            resolve_func<IPV>  func) = 0;
+    
     virtual void network_config(
         typename IPV::addr ip, 
         typename IPV::addr nmask, 
         typename IPV::addr router) = 0;
-    
   };
 
 }

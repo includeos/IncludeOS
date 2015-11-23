@@ -12,15 +12,15 @@
 namespace net {
   
   class Packet;
-
+  
   // Default delegate assignments
   int ignore_ip4_up(std::shared_ptr<Packet>);
   int ignore_ip4_down(std::shared_ptr<Packet>);
   
   /** IP4 layer */
-  class IP4 {  
+  class IP4 {
   public:
-  
+    
     /** Known transport layer protocols. */
     enum proto{IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6};
     
@@ -28,12 +28,12 @@ namespace net {
     union __attribute__((packed)) addr{
       uint8_t part[4];
       uint32_t whole;
-    
+      
       // Constructors:
       // Can't have them - that removes the packed-attribute    
       inline addr& operator=(addr cpy){
-	whole = cpy.whole;
-	return *this;
+        whole = cpy.whole;
+        return *this;
       }
       
       // Standard operators 
@@ -62,6 +62,7 @@ namespace net {
     };
     
     static const addr INADDR_ANY;
+    static const addr INADDR_BCAST;
     
     /** IP4 header */
     struct ip_header{
@@ -78,7 +79,7 @@ namespace net {
     };
 
     /** The full header including IP. 
-	@Note : This might be removed if we decide to isolate layers more.
+     *  @Note : This might be removed if we decide to isolate layers more.
      */
     struct full_header{
       uint8_t link_hdr [sizeof(typename LinkLayer::header)];
@@ -95,11 +96,9 @@ namespace net {
     inline void set_udp_handler(upstream s)
     { udp_handler_ = s; }
     
-    
     inline void set_tcp_handler(upstream s)
     { tcp_handler_ = s; }
     
-  
     /** Downstream: Delegate linklayer out */
     void set_linklayer_out(downstream s)
     { linklayer_out_ = s; };
@@ -126,17 +125,14 @@ namespace net {
      **/
     const addr& local_ip() const
     {
-      return local_ip_;
+      return stack.ip_addr();
     }
     
     /** Initialize. Sets a dummy linklayer out. */
     IP4(Inet<LinkLayer,IP4>&);
-    
   
-  private:    
-    addr local_ip_{};
-    addr netmask_{};
-    addr gateway_{};
+  private:
+    Inet<LinkLayer,IP4>& stack;
     
     /** Downstream: Linklayer output delegate */
     downstream linklayer_out_ = downstream(ignore_ip4_down);;
@@ -145,15 +141,7 @@ namespace net {
     upstream icmp_handler_ = upstream(ignore_ip4_up);
     upstream udp_handler_ = upstream(ignore_ip4_up);
     upstream tcp_handler_ = upstream(ignore_ip4_up);
-    
   };
-
   
-  /** Pretty printing to stream */
-  inline std::ostream& operator<<(std::ostream& out, const IP4::addr& ip)
-  {
-    return out << ip.str();
-  }
-
 } // ~net
 #endif

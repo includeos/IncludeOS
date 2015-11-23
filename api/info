@@ -10,9 +10,9 @@
 #endif
 
 #ifndef NO_INFO
-#define INFO(FROM, TEXT, ...) printf("\n%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__);
+#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__);
 #define INFO2(TEXT, ...) printf("%16s" TEXT "\n"," ", ##__VA_ARGS__);
-#define CAPTION(TEXT) printf("\n%*s%*s\n\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
+#define CAPTION(TEXT) printf("\n%*s%*s\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
 #include <string>
 #define FILLINE(CHAR) printf("%s\n",std::string(LINEWIDTH,CHAR).c_str());
 #else

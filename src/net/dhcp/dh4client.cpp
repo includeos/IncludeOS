@@ -409,7 +409,7 @@ namespace net
     else return;
     
     // configure our network stack
-    MYINFO("Server acknowledged our request! Reconfiguring network.");
+    MYINFO("Server acknowledged our request!");
     stack.network_config(this->ipaddr, this->netmask, this->router);
     // run some post-DHCP event to release the hounds
     this->config_handler(stack);

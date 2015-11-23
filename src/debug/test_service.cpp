@@ -20,6 +20,46 @@ void Service::start() {
   // Bring up a network stack, attached to the nic
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
+  // after DHCP we would like to do some networking
+  inet->dhclient()->on_config(
+  [] (net::DHClient::Stack& stack)
+  {
+    std::string hostname = "minecraft.fwsnet.net";
+    printf("*** Resolving %s\n", hostname.c_str());
+    
+    // after configuring our device, we will be
+    // resolving some hostname
+    stack.resolve(hostname,
+    [] (net::DNSClient::Stack& stack,
+        const std::string& hostname,
+        net::IP4::addr addr)
+    {
+      // the answer has come through,
+      // verify that the hostname was resolved
+      if (addr == net::IP4::INADDR_ANY)
+      {
+          printf("Failed to resolve %s!\n",
+              hostname.c_str());
+          return;
+      }
+      printf("*** Resolved %s to %s!\n",
+          hostname.c_str(), addr.str().c_str());
+      
+      // we will be sending UDP data to the resolved IP-address
+      int port = 4444;
+      // as part of our trade scamming operation we are everyones brother
+      std::string data = "Sir, it's me, your brother\n";
+      
+      printf("Sending %u bytes of UDP data to %s:%d\n",
+          data.size(), addr.str().c_str(), port);
+      
+      auto& sock = stack.udp().bind(port);
+      sock.write(addr, port, data.c_str(), data.size());
+      
+      printf("Done (You can Ctrl+A, X now\n");
+    });
+  });
+  
   printf("Size of IP-stack: %i bytes \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
