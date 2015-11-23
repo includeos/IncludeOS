@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# MOTIVATION:
+# When you replace a virtual box disk image with a newer version (such as one
+# newly created by ./test.sh) any VM using this image will fail. For this
+# reason you could replace the image file manually, but then virtualbox will
+# complain about UUID not matching the UUID in the image registry.
+# This script properly replaces the disk attached to a VM with a new one.
+
+# PREREQUISITES
+# 1. Create a new VirtualBox VM, called whatever you set in $vmName
+# 2. Add an existing disk, and point to the image created by "IncludeOS/test.sh"
+# usually IncludeOS/seed/IncludeOS_tests.img.vdi
+# 3. Set up a serial port for the VM under "Settings->Ports" and:
+#    - Check Enable serial port
+#    - Com1, defaults
+#    - Port mode: Raw file
+#    - Port/File path: Whatever you put in $SERIAL_FILE below
+# 4. Run the VM and make sure it works
+# 5. After this you should be able to use this script
+
+# USAGE:
+# 1. Compile/build an image, for instance with $<IncludeOS>/test.sh
+# (Now make the script copy <IncludeOS/seed/IncludeOS_test.img.vdi to
+# wherever you're running this script)
+#
+# 2. $ ./vboxrun.sh
+# (Now the VM should start, and the serial port output be displayed)
+# C^c
+# (Now the VM should stop)
+#
+# 3. Make your changes, and repeat 1.
+
+
+# Creates a trap for CTRL+C so that the VM
+# powers off when the watch command gets interrupted
+
+function control_c
+{
+        # Shut down the VM
+        echo "Shutting down VM: $vmName..."
+        $VB controlvm $VMNAME poweroff
+	echo "Goodbye!"
+}
+
+trap control_c INT
+
+VB=VBoxManage
+VMNAME=IncludeOS_test
+SERIAL_FILE="/tmp/IncludeOS.console.pipe"
+#UUID="4c29f994-ce59-4ddf-ba6b-46bcff01c321" NOT NECESSARILY NEEDED
+
+homeDir=$(eval echo ~${SUDO_USER})
+
+disk="$homeDir/IncludeOS/seed/My_IncludeOS_Service.img"
+targetLoc="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
+
+# Take a virtual disk as an input argument
+# if none is given, use the default
+#if [ $1!="" ]
+#then
+#	disk=$1
+#fi
+
+echo -e "\nCreating virtual harddrive...\n"
+# CONVERT IMAGE TO VDI HERE
+if [ "$(ls $homeDir/IncludeOS/seed/ | grep .vdi)" ];
+then
+	echo -e "\nVDI image aldready exists, moving on...\n"
+else
+	echo -e "\nCreating VDI image...\n"
+	$VB convertfromraw $disk $targetLoc
+fi
+
+# Check if VM exists, if yes remove disk and re-attach with a legitimate UUID
+if [ "$VB list vms | grep $VMNAME" ]
+then
+	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0 --medium 'none'
+#	$VB internalcommands sethduuid $disk NOT SURE IF NEEDED YET
+	$VB closemedium $disk
+	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0, --type 'hdd' --medium $disk
+else
+# Creating and registering the VM and adding a virtual IDE drive to it,
+# then attaching the hdd image.
+	echo -e "\nCreating VM ...\n"
+	$VB createvm --name IncludeOS_test --ostype 'Other' --register
+	$VB storagectl $VMNAME --name 'IDE Controller' --add ide --bootable on
+	$VB storageattach $VMNAME --storagectl 'IDE Controller' --port 0 --device 0 --type 'hdd' --medium $targetLoc
+
+# Some management
+	$VB modifyvm $VMNAME --boot1 disk
+
+# Serial port configuration to receive output
+	$VB modifyvm $VMNAME --uart1 0x3F8 4 --uartmode1 file $SERIAL_FILE
+
+# NETWORK
+#$VB hostonlyif create
+	$VB modifyvm $VMNAME --nic1 hostonly --nictype1 virtio --hostonlyadapter1 include0
+	$VB modifyvm $VMNAME --macaddress1 c001A0A0A0A0
+fi
+# START VM
+$VB startvm $VMNAME --type headless &
+echo -e "\nVM $VmName started, processID is $!\n"
+
+echo "--------------------------------------------"
+echo "Checking serial output file, CTRL+C to exit."
+echo "--------------------------------------------"
+
+# Checks the serialfile produced by the VM
+watch tail $SERIAL_FILE
