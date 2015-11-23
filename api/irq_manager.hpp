@@ -67,7 +67,7 @@ extern "C" {
     * IRQ-numbering: 0 or 32?
         
         
-    @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
+    @todo: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
 
     
  */
@@ -110,6 +110,7 @@ class IRQ_manager{
   
   /** Get the current subscriber of an IRQ-line. 
       @param irq : The IRQ to get subscriber for
+	  @return irq_delegate : The delegate that subscribes to the specified IRQ
   */
   static irq_delegate get_subscriber(uint8_t irq);
   

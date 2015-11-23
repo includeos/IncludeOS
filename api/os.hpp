@@ -29,7 +29,7 @@ class OS{
     return std::string(OS_VERSION);
   }
   
-  /** Clock cycles since boot. */
+  /** @return Clock cycles since boot. */
   static inline uint64_t cycles_since_boot()
   {
     uint64_t ret;
@@ -37,11 +37,18 @@ class OS{
     return ret;
   }
   
+<<<<<<< HEAD:api/class_os.hpp
+  /** @return Uptime in seconds. */
+  static inline double uptime()
+  { return (cycles_since_boot() / _CPU_mhz.count() ); }
+=======
   /** Uptime in seconds. */
   static double uptime();
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2:api/os.hpp
   
   /** Receive a byte from port. @todo Should be moved 
       @param port : The port number to receive from
+	  @return the byte received
   */
   static uint8_t inb(int port);
   
@@ -66,7 +73,7 @@ class OS{
 
   
   /** Halt until next inerrupt. 
-      @Warning If there is no regular timer interrupt (i.e. from PIT / APIC) 
+      @warning If there is no regular timer interrupt (i.e. from PIT / APIC) 
       we'll stay asleep. 
    */
   static void halt();  

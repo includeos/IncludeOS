@@ -109,12 +109,15 @@ namespace net {
     */
     int transmit(Packet_ptr pckt);
 
-    /** Compute the IP4 header checksum */
+    /** Compute the IP4 header checksum 
+	    @param IP4 header
+		@return Checksum of the IP4 header
+	*/
     uint16_t checksum(ip_header* hdr);
     
     /**
      * \brief
-     * Returns the IPv4 address associated with this interface
+     * @return the IPv4 address associated with this interface
      * 
      **/
     const addr& local_ip() const

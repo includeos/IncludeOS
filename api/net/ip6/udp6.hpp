@@ -35,25 +35,33 @@ namespace net
     UDPv6(IP6::addr& local_ip)
       : localIP(local_ip) {}
     
-    // set the downstream delegate
+    /** set the downstream delegate */
     inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
     }
     
+<<<<<<< HEAD
+    /** packet from IP6 layer */
+    int bottom(std::shared_ptr<Packet>& pckt);
+=======
     // packet from IP6 layer
     int bottom(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2
     
-    // packet back TO IP6 layer for transmission
+    /** packet back TO IP6 layer for transmission */
     int transmit(std::shared_ptr<PacketUDP6>& pckt);
     
-    // register a listener function on @port
+    /** register a listener function on @port 
+	    @param port : port to listen to
+		@param func : listener
+	*/
     void listen(port_t port, listener_t func)
     {
       listeners[port] = func;
     }
     
-    // creates a new packet to be sent over the ether
+    /** creates a new packet to be sent over the ether */
     std::shared_ptr<PacketUDP6> create(
         Ethernet::addr ether_dest, const IP6::addr& dest, port_t port);
     
@@ -113,8 +121,8 @@ namespace net
       size_ = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }
     
-    // generates a new checksum onto this UDPv6 packet
-    // returns the new generated checksum after modifying packet
+    /// generates a new checksum onto this UDPv6 packet
+    /// returns the new generated checksum after modifying packet
     uint16_t gen_checksum();
     
     uint16_t data_length() const

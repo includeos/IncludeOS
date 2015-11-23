@@ -78,21 +78,21 @@ namespace net
         return !this->operator==(a);
       }
       
-      // returns this IPv6 address as a string
+      /** @return this IPv6 address as a string */
       std::string str() const;
       
-      // multicast IPv6 addresses
+      /** multicast IPv6 addresses */
       static const addr node_all_nodes;     // RFC 4921
       static const addr node_all_routers;   // RFC 4921
       static const addr node_mDNSv6;        // RFC 6762 (multicast DNSv6)
       
-      // unspecified link-local address
+      /** unspecified link-local address */
       static const addr link_unspecified;
       
-      // RFC 4291  2.4.6:
-      // Link-Local addresses are designed to be used for addressing on a
-      // single link for purposes such as automatic address configuration,
-      // neighbor discovery, or when no routers are present.
+      /// RFC 4291  2.4.6:
+      /// Link-Local addresses are designed to be used for addressing on a
+      /// single link for purposes such as automatic address configuration,
+      /// neighbor discovery, or when no routers are present.
       static const addr link_all_nodes;     // RFC 4921
       static const addr link_all_routers;   // RFC 4921
       static const addr link_mDNSv6;        // RFC 6762
@@ -100,7 +100,7 @@ namespace net
       static const addr link_dhcp_servers;  // RFC 3315
       static const addr site_dhcp_servers;  // RFC 3315
       
-      // returns true if this addr is a IPv6 multicast address
+      /** returns true if this addr is a IPv6 multicast address */
       bool is_multicast() const
       {
         /**
@@ -138,7 +138,7 @@ namespace net
         return ((scanline[0] & 0xF000) >> 12) + 
                 (scanline[0] & 0xF);
       }
-      // initializes the first scanline with the IPv6 version
+      /** initializes the first scanline with the IPv6 version */
       void init_scan0()
       {
         scanline[0] = 6u >> 4;
@@ -209,7 +209,7 @@ namespace net
       IP6::header      ip6_hdr;
     };
     
-    // downstream delegate for transmit()
+    /** downstream delegate for transmit() */
     typedef delegate<int(std::shared_ptr<PacketIP6>&)> downstream6;
     typedef downstream6 upstream6;
     
@@ -247,13 +247,18 @@ namespace net
       }
     }
     
+<<<<<<< HEAD
+    /** handler for upstream IPv6 packets */
+    int bottom(std::shared_ptr<Packet>& pckt);
+=======
     // handler for upstream IPv6 packets
     int bottom(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2
     
-    // transmit packets to the ether
+    /** transmit packets to the ether */
     int transmit(std::shared_ptr<PacketIP6>& pckt);
     
-    // modify upstream handlers
+    /** modify upstream handlers */
     inline void set_handler(uint8_t proto, upstream& handler)
     {
       proto_handlers[proto] = handler;
@@ -264,7 +269,7 @@ namespace net
       _linklayer_out = func;
     }
     
-    // creates a new IPv6 packet to be sent over the ether
+    /** creates a new IPv6 packet to be sent over the ether */
     static std::shared_ptr<PacketIP6> create(uint8_t proto,
         Ethernet::addr ether_dest, const IP6::addr& dest);
     

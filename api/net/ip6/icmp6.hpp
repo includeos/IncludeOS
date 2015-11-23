@@ -50,10 +50,15 @@ namespace net
       uint8_t  data[0];
     } __attribute__((packed));
     
+<<<<<<< HEAD
+    /** packet from IP6 layer */
+    int bottom(std::shared_ptr<Packet>& pckt);
+=======
     // packet from IP6 layer
     int bottom(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2
     
-    // set the downstream delegate
+    /** set the downstream delegate */
     inline void set_ip6_out(IP6::downstream6 del)
     {
       this->ip6_out = del;
@@ -64,26 +69,26 @@ namespace net
       return localIP;
     }
     
-    // message types & codes
+    /** message types & codes */
     static inline bool is_error(uint8_t type)
     {
       return type < 128;
     }
     static std::string code_string(uint8_t type, uint8_t code);
     
-    // calculate checksum of any ICMP message
+    /** calculate checksum of any ICMP message */
     static uint16_t checksum(std::shared_ptr<PacketICMP6>& pckt);
     
-    // provide a handler for a @type of ICMPv6 message
+    /** provide a handler for a @type of ICMPv6 message */
     inline void listen(type_t type, handler_t func)
     {
       listeners[type] = func;
     }
     
-    // transmit packet downstream
+    /** transmit packet downstream */
     int transmit(std::shared_ptr<PacketICMP6>& pckt);
     
-    // send NDP router solicitation
+    /** send NDP router solicitation */
     void discover();
     
   private:

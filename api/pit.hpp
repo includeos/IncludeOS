@@ -7,7 +7,7 @@
 /**
    Programmable Interval Timer class. A singleton.
    
-   @TODO
+   @todo
    ...It has timer-functionality, which should probably be super-classed, 
    so that i.e. the HPET could be used with the same interface.
 */
@@ -49,7 +49,7 @@ public:
   static inline MHz current_frequency(){ return frequency() / current_freq_divider_; }
   
   /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc. 
-      @Note This is an asynchronous function. Once finished the result can be 
+      @note This is an asynchronous function. Once finished the result can be 
             fetched by CPUFrequency() (below)  */
   static void estimateCPUFrequency();
   
@@ -68,7 +68,7 @@ private:
 	      HW_STROBE = 5 << 1, 
 	      NONE = 256};
   
-  // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org */
+  /** The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org */
   static constexpr MHz frequency_ = MHz(14.31818 / 12);
 
   /** Disable regular timer interrupts- which are turned on at boot-time. */
@@ -91,13 +91,13 @@ private:
   static uint64_t IRQ_counter_;
 
   
-  // The closest we can get to a millisecond interval, with the PIT-frequency
+  /// The closest we can get to a millisecond interval, with the PIT-frequency
   static constexpr uint16_t  millisec_interval = KHz(frequency_).count();
   
-  // Count the "milliseconds"
+  /// Count the "milliseconds"
   static uint64_t millisec_counter;
 
-  // Access mode bits are bits 4- and 5 in the Mode register
+  /// Access mode bits are bits 4- and 5 in the Mode register
   enum AccessMode { LATCH_COUNT = 0x0, LO_ONLY=0x10, HI_ONLY=0x20, LO_HI=0x30 };
   
   /** Physically set the PIT-mode */

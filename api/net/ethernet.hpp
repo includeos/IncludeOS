@@ -65,26 +65,34 @@ namespace net {
                     ETH_IP6 = 0xdd86, ETH_FLOW = 0x888, ETH_JUMBO = 0x7088,
                     ETH_VLAN =0x81};
   
-    // Minimum payload
+    /** Minimum payload */
     static constexpr int minimum_payload = 46;
   
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     int bottom(Packet_ptr pckt);
   
-    /** Delegate upstream ARP handler. */
+    /** Delegate upstream ARP handler. 
+	    @param delegate
+	*/
     inline void set_arp_handler(upstream del)
     { _arp_handler = del; };
   
-    /** Delegate upstream IPv4 handler. */
+    /** Delegate upstream IPv4 handler.
+        @param delegate	
+	*/
     inline void set_ip4_handler(upstream del)
     { _ip4_handler = del; };
   
-    /** Delegate upstream IPv6 handler. */
+    /** Delegate upstream IPv6 handler. 
+	    @param delegate
+	*/
     inline void set_ip6_handler(upstream del)
     { _ip6_handler = del; };
   
     
-    /** Delegate downstream */
+    /** Delegate downstream 
+	    @param delegate
+	*/
     inline void set_physical_out(downstream del)
     { _physical_out = del; }
   

@@ -44,16 +44,16 @@ namespace net {
       uint16_t urg_ptr;
       uint32_t options[0]; // 0 to 10 32-bit words  
       
-      // Get the raw tcp offset, in quadruples
+      /** Get the raw tcp offset, in quadruples */
       inline  uint8_t offset(){ return (uint8_t)(offs_flags.offs_res >> 4); }
       
-      // Set raw TCP offset in quadruples
+      /** Set raw TCP offset in quadruples */
       inline void set_offset(uint8_t offset){ offs_flags.offs_res = (offset << 4); }
     
-      // Get tcp header length including options (offset) in bytes
+      /** Get tcp header length including options (offset) in bytes */
       inline uint8_t size(){ return offset() * 4; }
       
-      // Calculate the full header lenght, down to linklayer, in bytes
+      /** Calculate the full header lenght, down to linklayer, in bytes */
       uint8_t all_headers_len(){
 	return (sizeof(full_header) - sizeof(tcp_header)) + size();
       };
@@ -107,18 +107,18 @@ namespace net {
       void close();
       inline State poll(){ return state_; }
             
-      // Server parts
-      // Posix-style accept doesn't really make sense here, as we don't block
-      // Socket& accept();     
+      /// Server parts
+      /// Posix-style accept doesn't really make sense here, as we don't block
+      /// Socket& accept();     
       inline void ack_keepalive(bool ack){ ack_keepalive_ = ack; }
       
-      // Connections (accepted sockets) will be delegated to this kind of handler
+      /** Connections (accepted sockets) will be delegated to this kind of handler */
       typedef delegate<void(Socket&)> connection_handler;
       
-      // This is the default handler
+      /** This is the default handler */
       inline void drop(Socket&){ debug("<Socket::drop> Default handler dropping connection \n"); }
       
-      // Our version of "Accept"
+      /** Our version of "Accept" */
       inline void onConnect(connection_handler handler){
 	debug("<TCP::Socket> Registered new connection handler \n");
 	accept_handler_ = handler;
@@ -126,35 +126,44 @@ namespace net {
       
       void listen(int backlog);      
       
+<<<<<<< HEAD:api/net/class_tcp.hpp
+      /** Constructor */
+=======
       /** Constructor for server socket */
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2:api/net/tcp.hpp
       Socket(TCP& stack);      
       
       /** Constructor for connections */
       Socket(TCP& local_stack, port local_port, State state);
       
+<<<<<<< HEAD:api/net/class_tcp.hpp
+      /** IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects */
+      int bottom(std::shared_ptr<Packet>& pckt); 
+=======
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
       int bottom(Packet_ptr pckt); 
 
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2:api/net/tcp.hpp
 
     private:      
       
-      // A private constructor for allowing a listening socket to create connections
+      /** A private constructor for allowing a listening socket to create connections */
       Socket(TCP& local_stack, port local, IP4::addr remote_ip, port remote_port, 
 	     State, connection_handler, uint32_t initial_seq_nr_);
 
       size_t backlog_ = 1000;
       
-      // Local end (Local IP is determined by the TCP-object)
+      /** Local end (Local IP is determined by the TCP-object) */
       TCP& local_stack_;
       port local_port_;      
-      // Remote end
+      /** Remote end */
       IP4::addr remote_addr_;
       port remote_port_;
       
       
-      // Initial outbound sequence number
+      /** Initial outbound sequence number */
       uint32_t initial_seq_out_ = 42;      
-      // Initial inbound sequence number
+      /** Initial inbound sequence number */
       uint32_t initial_seq_in_ = 0;      
 
 
@@ -163,20 +172,28 @@ namespace net {
       
       State state_ = CLOSED;
       
-      // Assign the "accept-delegate" to the default handler
+      /** Assign the "accept-delegate" to the default handler */
       connection_handler accept_handler_  = connection_handler::from<Socket,&Socket::drop>(this);
       
-      // Respond to keepalive packets?
+      /** Respond to keepalive packets? */
       bool ack_keepalive_ = false;
       
-      // A pretty simple data buffer
+      /** A pretty simple data buffer */
       std::string buffer_;
       
+<<<<<<< HEAD:api/net/class_tcp.hpp
+      /** General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want. */
+      void ack(std::shared_ptr<Packet>& pckt, uint16_t FLAGS = ACK);
+      
+      /** Fill the packet with buffered data. */
+      int fill(std::shared_ptr<Packet>& pckt);
+=======
       // General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want.
       void ack(Packet_ptr pckt, uint16_t FLAGS = ACK);
       
       // Fill the packet with buffered data. 
       int fill(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2:api/net/tcp.hpp
       
       inline bool is_keepalive(Packet_ptr pckt){
 	return tcp_hdr(pckt)->seq_nr == htonl(initial_seq_in_ + bytes_received_ );
@@ -213,11 +230,28 @@ namespace net {
     size_t socket_backlog = 1000;
     const IP4::addr& local_ip_;
     
-    // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
-    // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
+    /// For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
+    /// It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
     std::map<port, Socket> listeners;
     downstream _network_layer_out;
     
+<<<<<<< HEAD:api/net/class_tcp.hpp
+    /** Compute the TCP checksum */
+    uint16_t checksum(std::shared_ptr<net::Packet>&);
+            
+    /** Get the length of actual data in bytes */
+    static inline uint16_t data_length(std::shared_ptr<Packet>& pckt){
+      return pckt->len() - tcp_hdr(pckt)->all_headers_len();
+    }
+    
+    /** Get the length of the TCP-segment including header and data */
+    static inline uint16_t tcp_length(std::shared_ptr<Packet>& pckt){
+      return data_length(pckt) + tcp_hdr(pckt)->size();
+    }
+    
+    /** Get the TCP header from a packet */
+    static inline tcp_header* tcp_hdr(std::shared_ptr<Packet>& pckt){
+=======
     // Compute the TCP checksum
     uint16_t checksum(Packet_ptr);
             
@@ -233,6 +267,7 @@ namespace net {
     
     // Get the TCP header from a packet
     static inline tcp_header* tcp_hdr(Packet_ptr pckt){
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2:api/net/tcp.hpp
       return &((full_header*)pckt->buffer())->tcp_hdr;
     }
     
