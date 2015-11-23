@@ -35,10 +35,14 @@ namespace net {
     resolve(const std::string& hostname,
             resolve_func<IPV>  func) = 0;
     
+    virtual void
+    set_dns_server(typename IPV::addr server) = 0;
+    
     virtual void network_config(
         typename IPV::addr ip, 
         typename IPV::addr nmask, 
-        typename IPV::addr router) = 0;
+        typename IPV::addr router,
+        typename IPV::addr dnssrv) = 0;
   };
 
 }

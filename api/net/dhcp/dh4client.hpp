@@ -36,7 +36,7 @@ namespace net
     void acknowledge(const char* data, int len);
     
     uint32_t  xid;
-    IP4::addr ipaddr, netmask, router;
+    IP4::addr ipaddr, netmask, router, dns_server;
     uint32_t  lease_time;
     On_config config_handler = [](Stack&){ INFO("DHCPv4::On_config","Config complete"); };
   };
