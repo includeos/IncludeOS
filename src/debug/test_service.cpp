@@ -6,23 +6,22 @@
 #include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
-net::DHClient* dhclient;
+
+// An IP-stack object
+std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 void Service::start() {
   
-  // Assign an IP-address, using Hårek-mapping :-)
-  auto& eth0 = Dev::eth<0,VirtioNet>();
-  auto& mac = eth0.mac(); 
+  // Assign a driver (VirtioNet) to a network interface (eth0)
+  // @note: We could determine the appropirate driver dynamically, but then we'd
+  // have to include all the drivers into the image, which  we want to avoid.
+  Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
   
-  auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
-    {{ 255,255,0,0 }} );  // Netmask
+  // Bring up a network stack, attached to the nic
+  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
-  // negotiate with terrorists
-  dhclient = new net::DHClient(inet);
-  dhclient->negotiate();
-  
-  dhclient->onConfig =
+  // after DHCP we would like to do some networking
+  inet->dhclient()->on_config(
   [] (net::DHClient::Stack& stack)
   {
     std::string hostname = "minecraft.fwsnet.net";
@@ -30,15 +29,14 @@ void Service::start() {
     
     // after configuring our device, we will be
     // resolving some hostname
-    stack.resolve(
-        hostname,
+    stack.resolve(hostname,
     [] (net::DNSClient::Stack& stack,
         const std::string& hostname,
         net::IP4::addr addr)
     {
       // the answer has come through,
       // verify that the hostname was resolved
-      if (addr == net::IP4::addr{{0}}) //IP4::INADDR_ANY)
+      if (addr == net::IP4::INADDR_ANY)
       {
           printf("Failed to resolve %s!\n",
               hostname.c_str());
@@ -50,7 +48,7 @@ void Service::start() {
       // we will be sending UDP data to the resolved IP-address
       int port = 4444;
       // as part of our trade scamming operation we are everyones brother
-      std::string data = "Sir, it's me, your brother";
+      std::string data = "Sir, it's me, your brother\n";
       
       printf("Sending %u bytes of UDP data to %s:%d\n",
           data.size(), addr.str().c_str(), port);
@@ -58,33 +56,33 @@ void Service::start() {
       auto& sock = stack.udp().bind(port);
       sock.write(addr, port, data.c_str(), data.size());
       
-      printf("Done (You can Ctrl+A -> x now\n");
+      printf("Done (You can Ctrl+A, X now\n");
     });
-  };
+  });
   
   printf("Size of IP-stack: %i bytes \n",sizeof(inet));
-  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
+  printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
-  net::TCP::Socket& sock =  inet.tcp().bind(80);
+  net::TCP::Socket& sock =  inet->tcp().bind(80);
   
   printf("SERVICE: %i open ports in TCP @ %p \n",
-      inet.tcp().openPorts(), &(inet.tcp()));   
+      inet->tcp().openPorts(), &(inet->tcp()));
 
   srand(OS::cycles_since_boot());
-  
-  
   
   sock.onConnect([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
       int color = rand();
       std::stringstream stream;
-      
+ 
+      /* HTML Fonts */
       std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
       std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
       std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
       
+      /* HTML */
       stream << "<html><head>"
 	     << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
 	     << "</head><body>"
@@ -96,6 +94,7 @@ void Service::start() {
 	     << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
 	     << "</body></html>\n";
       
+      /* HTTP-header */
       std::string html = stream.str();
       std::string header="HTTP/1.1 200 OK \n "				\
 	"Date: Mon, 01 Jan 1970 00:00:01 GMT \n"			\
@@ -113,18 +112,6 @@ void Service::start() {
       //conn.close();
       
     });
-  
-  
-  /** TEST ARP-resolution 
-      @todo move to separate location
-  auto pckt = std::static_pointer_cast<net::PacketIP4>(inet.createPacket(50));
-  pckt->init();
-  pckt->next_hop({{ 10,0,0,1 }});  
-  pckt->set_src(inet.ip_addr());
-  pckt->set_dst(pckt->next_hop());
-  pckt->set_protocol(net::IP4::IP4_UDP);
-  inet.ip_obj().transmit(pckt);
-  */
   
   printf("*** TEST SERVICE STARTED *** \n");    
 

@@ -7,12 +7,12 @@ namespace net
 {
   void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
   {
-    int port = 33314; // <-- FIXME: should be automatic port
+    UDP::port port = 33314; // <-- FIXME: should be automatic port
     auto& sock = stack.udp().bind(port);
     
     // create DNS request
     DNS::Request request;
-    char* data = new char[100];
+    char* data = new char[256];
     int   len  = request.create(data, hostname);
     
     // send request to DNS server
@@ -22,7 +22,7 @@ namespace net
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
     sock.onRead( [this, hostname, request, func]
-    (SocketUDP& sock, IP4::addr addr, UDP::port, const char* data, int) mutable -> int
+    (SocketUDP&, IP4::addr, UDP::port, const char* data, int) mutable -> int
     {
       // original request ID = this->id;
       request.parseResponse(data);
