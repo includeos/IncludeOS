@@ -9,6 +9,7 @@
 #include <net/ip4.hpp>
 #include <net/icmp.hpp>
 #include "ip4/udp.hpp"
+#include "dns/client.hpp"
 #include <net/tcp.hpp>
 
 #include <vector>
@@ -66,6 +67,20 @@ namespace net {
     virtual inline uint16_t MTU() const override
     { return nic_.MTU(); }
     
+    /**
+     * @func  a delegate that provides a hostname and its address, which is 0 if the
+     * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
+    **/
+    inline virtual void
+    resolve(const std::string& hostname,
+            resolve_func<IP4>  func) override
+    {
+      // FIXME: add dns server into stack, as a list of servers
+      // also, DNS server is almost always part of response from DHCP
+      IP4::addr dns_server{{ 192, 168, 1, 1 }};
+      dns.resolve(dns_server, hostname, func);
+    }
+    
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
     Inet4(Inet4&&) = delete;
@@ -96,6 +111,8 @@ namespace net {
     ICMP icmp_;
     UDP  udp_;
     TCP tcp_;
+    // we need this to store the cache per-stack
+    DNSClient dns;
     
     BufferStore& bufstore_;
     friend class DHClient;
