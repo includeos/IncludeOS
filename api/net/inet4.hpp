@@ -78,10 +78,13 @@ namespace net {
     resolve(const std::string& hostname,
             resolve_func<IP4>  func) override
     {
-      // FIXME: add dns server into stack, as a list of servers
-      // also, DNS server is almost always part of response from DHCP
-      IP4::addr dns_server{{ 192, 168, 1, 1 }};
-      dns.resolve(dns_server, hostname, func);
+      dns.resolve(this->dns_server, hostname, func);
+    }
+    
+    inline virtual void
+    set_dns_server(IP4::addr server)
+    {
+      this->dns_server = server;
     }
     
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
@@ -95,22 +98,22 @@ namespace net {
     
     /** Initialize with DHCP  */
     Inet4(Nic<DRIVER>& nic); 
-
     
   private:
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
     {
-      //INFO("Inet4", "Reconfiguring network. New IP: %s",addr.str().c_str());
-      printf("Inet4  Reconfiguring network. New IP: %s\n",addr.str().c_str());
-      this->ip4_addr_ = addr;
-      this->netmask_  = nmask;
-      this->router_   = router;
+      INFO("Inet4", "Reconfiguring network. New IP: %s", addr.str().c_str());
+      this->ip4_addr_  = addr;
+      this->netmask_   = nmask;
+      this->router_    = router;
+      this->dns_server = dns;
     }
     
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr router_;
+    IP4::addr dns_server;
     
     // This is the actual stack
     Nic<DRIVER>& nic_;

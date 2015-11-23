@@ -295,6 +295,18 @@ namespace net
       // silently ignore when both ROUTER and SERVER_ID is missing
       else return;
     }
+    
+    opt = get_option(dhcp->options, DHO_DOMAIN_NAME_SERVERS);
+    if (opt->code == DHO_DOMAIN_NAME_SERVERS)
+    {
+      memcpy(&this->dns_server, opt->val, sizeof(IP4::addr));
+    }
+    else
+    { // just try using ROUTER as DNS server
+      this->dns_server = this->router;
+    }
+    MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
+    
     // we can accept the offer now by requesting the IP!
     this->request(sock);
   }
@@ -410,7 +422,8 @@ namespace net
     
     // configure our network stack
     MYINFO("Server acknowledged our request!");
-    stack.network_config(this->ipaddr, this->netmask, this->router);
+    stack.network_config(this->ipaddr, this->netmask, 
+                         this->router, this->dns_server);
     // run some post-DHCP event to release the hounds
     this->config_handler(stack);
   }

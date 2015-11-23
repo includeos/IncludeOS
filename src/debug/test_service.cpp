@@ -56,7 +56,7 @@ void Service::start() {
       auto& sock = stack.udp().bind(port);
       sock.write(addr, port, data.c_str(), data.size());
       
-      printf("Done (You can Ctrl+A, X now\n");
+      printf("Done. You can Ctrl-A + X now.\n");
     });
   });
   
