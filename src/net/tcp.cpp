@@ -1,14 +1,16 @@
-//#define DEBUG
-//#define DEBUG2
+#define DEBUG
+#define DEBUG2
 
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
+#include <net/packet.hpp>
+#include <net/ip4/packet_ip4.hpp>
 
 using namespace net;
 
-TCP::TCP(IP4::addr ip)
-  : local_ip_(ip), listeners()
+TCP::TCP(Inet<LinkLayer,IP4>& inet)
+  : inet_(inet), local_ip_(inet.ip_addr()), listeners()
 {
   debug2("<TCP::TCP> Instantiating. Open ports: %i \n", listeners.size()); 
 }
@@ -33,7 +35,7 @@ TCP::Socket& TCP::bind(port p){
 }
 
 
-uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){  
+uint16_t TCP::checksum(Packet_ptr pckt){  
   // Size has to be fetched from the frame
   
   full_header* hdr = (full_header*)pckt->buffer();
@@ -87,7 +89,11 @@ uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){
 
 
 
-int TCP::transmit(std::shared_ptr<Packet>& pckt){
+int TCP::transmit(Packet_ptr pckt){
+  
+  auto tcp_pckt = std::static_pointer_cast<PacketIP4> (pckt);
+  
+  //pckt->init();  
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr->tcp_hdr);
@@ -102,8 +108,8 @@ int TCP::transmit(std::shared_ptr<Packet>& pckt){
 };
 
 
-int TCP::bottom(std::shared_ptr<Packet>& pckt){
- 
+int TCP::bottom(Packet_ptr pckt){
+  
   debug("<TCP::bottom> Upstream TCP-packet received, to TCP @ %p \n", this);
   debug("<TCP::bottom> There are %i open ports \n", listeners.size());
   
@@ -126,7 +132,7 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
     return 0;
   }
   
-  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket",listener->second.poll());
+  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket \n",listener->second.poll());
   
   // Pass the packet up to the listening socket
   (*listener).second.bottom(pckt);

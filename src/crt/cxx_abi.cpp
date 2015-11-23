@@ -5,9 +5,8 @@
  * missing functionality gluing libc++ to the kernel
  * 
 **/
-
-#include <support/newlib/xlocale.h>
 #include <time.h>
+#include <support/newlib/xlocale.h>
 #include <stdio.h>
 
 // needed for <iostream>

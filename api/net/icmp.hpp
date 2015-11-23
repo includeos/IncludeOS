@@ -2,7 +2,9 @@
 #define CLASS_ICMP_HPP
 
 namespace net {
-
+  
+  int icmp_default_out(Packet_ptr);
+  
   class ICMP{
   
   public:
@@ -15,7 +17,7 @@ namespace net {
     }__attribute__((packed));
     
     struct full_header {
-      Ethernet::header eth_hdr;
+      LinkLayer::header link_hdr;
       IP4::ip_header ip_hdr;
       icmp_header icmp_hdr;
     }__attribute__((packed));
@@ -24,21 +26,21 @@ namespace net {
     enum icmp_types {ICMP_ECHO_REPLY,ICMP_ECHO = 8};
   
     /** Input from network layer */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
   
     /** Delegate output to network layer */
     inline void set_network_out(downstream s)
     { _network_layer_out = s;  };
   
-    /** Initialize. Sets a dummy handler for network layer out.*/
-    ICMP();
+    /** Initialize. 
+     */
+    ICMP(Inet<LinkLayer,IP4>& inet);
   
   private: 
-  
-    //TEMP Reply buffer pointer
-    uint8_t* buf = 0;
-
-    downstream _network_layer_out;
+    
+    Inet<LinkLayer,IP4>& inet_;
+    
+    downstream _network_layer_out = icmp_default_out;
     void ping_reply(full_header* full_hdr);
   
   };

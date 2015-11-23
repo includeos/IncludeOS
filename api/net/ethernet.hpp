@@ -36,6 +36,12 @@ namespace net {
       inline bool operator == (addr& mac)
       { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
       
+      inline addr& operator=(addr cpy){ 
+	minor = cpy.minor;
+	major = cpy.major;
+	return *this;
+      }
+      
       static const addr MULTICAST_FRAME;
       static const addr BROADCAST_FRAME;
       static const addr IPv6mcast_01, IPv6mcast_02;
@@ -64,7 +70,7 @@ namespace net {
     static constexpr int minimum_payload = 46;
   
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
@@ -83,11 +89,11 @@ namespace net {
     inline void set_physical_out(downstream del)
     { _physical_out = del; }
   
-    inline addr mac()
+    inline const addr& mac()
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
   
     Ethernet(addr mac);
 

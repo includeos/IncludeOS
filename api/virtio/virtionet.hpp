@@ -22,7 +22,7 @@
 #include <delegate>
 
 #include <net/ethernet.hpp>
-#include <net/arp.hpp>
+#include <net/buffer_store.hpp>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -92,9 +92,6 @@
 #define VIRTIO_NET_S_LINK_UP  1
 #define VIRTIO_NET_S_ANNOUNCE 2
 
-
-#define MTUSIZE 1514
-
 /** Virtio-net device driver.  */
 class VirtioNet : Virtio {
   
@@ -126,8 +123,6 @@ class VirtioNet : Virtio {
       It's ok to use as long as we don't need checksum offloading
       or other 'fancier' virtio features. */
   constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0}; 
-
-  PCI_Device* dev;
   
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
@@ -162,27 +157,24 @@ class VirtioNet : Virtio {
       responsibility for memory management. */
   void service_TX();
 
-  char* _mac_str=(char*)"00:00:00:00:00:00";
-  int _irq = 0;
-  
   /** Handle device IRQ. 
       
       Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
   
-  /** Allocate and queue MTU-sized buffer in RX queue. */
-  int add_receive_buffer();
-  
-  /** Queue the given buffer in RX queue. 
-      @note This function doesn't allocate anyhting and expects the buffer
-      to be a valid VirtioNet receive buffer. Used to requeue. */
-  int add_receive_buffer(uint8_t* buf, int len);
-
+  /** Allocate and queue buffer from bufstore_ in RX queue. */
+  int add_receive_buffer();  
 
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
 
-public: 
+  /** 20-bit / 1MB of buffers to start with */
+  net::BufferStore bufstore_{ 0xfffff / MTU(),  MTU(), sizeof(virtio_net_hdr) };
+  net::BufferStore::release_del release_buffer = 
+    net::BufferStore::release_del::from
+    <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
+  
+public:     
   
   /** Human readable name. */
   const char* name();  
@@ -190,20 +182,22 @@ public:
   /** Mac address. */
   const net::Ethernet::addr& mac();
   
-  /** Human readable mac address. */
-  const char* mac_str();
-
+  constexpr uint16_t MTU() const { 
+    return 1500 + sizeof(virtio_net_hdr); }
+  
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
     _link_out = link_out;
     //rx_q.set_data_handler(link_out);
   };
     
+  inline net::BufferStore& bufstore() { return bufstore_; }
+  
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int transmit(std::shared_ptr<net::Packet>& pckt);
+  int transmit(net::Packet_ptr pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(PCI_Device* pcidev);
+  VirtioNet(PCI_Device& pcidev);
     
 
 };

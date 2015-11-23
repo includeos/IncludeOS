@@ -62,7 +62,7 @@ public:
 		using namespace net;
 		
 		network->udp_listen(DNS::DNS_SERVICE_PORT,
-		[this] (std::shared_ptr<net::Packet>& pckt)
+		[this] (net::Packet_ptr pckt)
 		{
 			std::cout << "*** Response from DNS server:" << std::endl;
 			auto data_loc = pckt->buffer() + sizeof(UDP::full_header);

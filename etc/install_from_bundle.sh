@@ -82,7 +82,7 @@ sudo $INCLUDEOS_SRC/etc/create_bridge.sh
 
 mkdir -p $INCLUDEOS_HOME/etc
 cp $INCLUDEOS_SRC/etc/qemu-ifup $INCLUDEOS_HOME/etc/
-
+cp $INCLUDEOS_SRC/etc/qemu_cmd.sh $INCLUDEOS_HOME/etc/
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 

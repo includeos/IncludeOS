@@ -261,7 +261,7 @@ public:
       Should conform to Virtio std. §3.1.1, steps 1-6  
       (Step 7 is "Device specific" which a subclass will handle)
   */
-  Virtio(PCI_Device* pci);
+  Virtio(PCI_Device& pci);
 
 private:
   //PCI memer as reference (so no indirection overhead)
