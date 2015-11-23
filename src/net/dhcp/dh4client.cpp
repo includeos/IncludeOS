@@ -1,4 +1,7 @@
 #define DEBUG
+#include <info>
+#define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
+
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
 #include <os.hpp>
@@ -137,11 +140,11 @@ namespace net
     return (dhcp_option_t*) option;
   }
   
-	void DHClient::negotiate()
+  void DHClient::negotiate()
   {
     // create a random session ID
     this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
-    printf("     [ DHCPv4 ] Negotiating IP-address (xid=%u)\n", xid);
+    MYINFO("Negotiating IP-address (xid=%u)", xid);
     
     // create DHCP discover packet
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -253,14 +256,14 @@ namespace net
     
     // the offered IP address:
     this->ipaddr = dhcp->yiaddr;
-    printf("     [ DHCPv4 ] IP ADDRESS: \t%s\n",
+    MYINFO("IP ADDRESS: \t%s",
         this->ipaddr.str().c_str());
     
     opt = get_option(dhcp->options, DHO_SUBNET_MASK);
     if (opt->code == DHO_SUBNET_MASK)
     {
       memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
-      printf("     [ DHCPv4 ] SUBNET MASK: \t%s\n",
+      MYINFO("SUBNET MASK: \t%s",
           this->netmask.str().c_str());
     }
     
@@ -268,7 +271,7 @@ namespace net
     if (opt->code == DHO_DHCP_LEASE_TIME)
     {
       memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
-      printf("     [ DHCPv4 ] LEASE TIME: \t%u mins\n", this->lease_time / 60);
+      MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
     
     // now validate the offer, checking for minimum information
@@ -276,7 +279,7 @@ namespace net
     if (opt->code == DHO_ROUTERS)
     {
       memcpy(&this->router, opt->val, sizeof(IP4::addr));
-      printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+      MYINFO("GATEWAY: \t%s",
           this->router.str().c_str());
     }
     // assume that the server we received the request from is the gateway
@@ -286,7 +289,7 @@ namespace net
       if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
       {
         memcpy(&this->router, opt->val, sizeof(IP4::addr));
-        printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+        MYINFO("GATEWAY: \t%s",
             this->router.str().c_str());
       }
       // silently ignore when both ROUTER and SERVER_ID is missing
@@ -406,9 +409,9 @@ namespace net
     else return;
     
     // configure our network stack
-    printf("     [ DHCPv4 ] Server acknowledged our request!\n");
+    MYINFO("Server acknowledged our request! Reconfiguring network.");
     stack.network_config(this->ipaddr, this->netmask, this->router);
     // run some post-DHCP event to release the hounds
-    this->onConfig(stack);
+    this->config_handler(stack);
   }
 }

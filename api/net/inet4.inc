@@ -12,6 +12,7 @@ namespace net
     ip4_(*this), icmp_(*this), udp_(*this), tcp_(*this), bufstore_(nic.bufstore())
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());          
+    INFO("Inet4","Bringing up the IP stack");
     
     /** Upstream delegates */ 
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
@@ -72,4 +73,14 @@ namespace net
     // Eth -> Phys
     eth_.set_physical_out(phys_top);
   }
+  
+  template <typename T>
+  Inet4<T>::Inet4(Nic<T>& nic)
+    : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
+  {
+    INFO("Inet4","Applying DHCP client");
+    dhcp_ = std::make_shared<DHClient>(*this);
+    dhcp_->negotiate();
+  }
+  
 }

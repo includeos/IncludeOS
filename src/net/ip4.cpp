@@ -7,6 +7,8 @@
 
 using namespace net;
 
+const IP4::addr IP4::INADDR_ANY{{0,0,0,0}};
+
 int IP4::bottom(Packet_ptr pckt){
   debug2("<IP4 handler> got the data. \n");
     

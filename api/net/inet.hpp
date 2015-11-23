@@ -7,7 +7,8 @@ namespace net {
   
   class TCP;
   class UDP;
-
+  class DHClient;
+  
   /** An abstract IP-stack interface  */  
   template <typename LINKLAYER, typename IPV >
   class Inet {
@@ -21,17 +22,17 @@ namespace net {
     virtual IPV& ip_obj() = 0;
     virtual TCP& tcp() = 0;
     virtual UDP& udp() = 0;
+    virtual std::shared_ptr<DHClient> dhclient() = 0;
     
     virtual uint16_t MTU() const = 0;
     
     virtual Packet_ptr createPacket(size_t size) = 0;
     
-  private:
     virtual void network_config(
         typename IPV::addr ip, 
         typename IPV::addr nmask, 
         typename IPV::addr router) = 0;
-    friend class DHClient;
+    
   };
 
 }

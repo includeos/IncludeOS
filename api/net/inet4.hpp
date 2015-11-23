@@ -10,13 +10,13 @@
 #include <net/icmp.hpp>
 #include "ip4/udp.hpp"
 #include <net/tcp.hpp>
-
+#include <net/dhcp/dh4client.hpp>
 #include <vector>
 
 #include <nic.hpp>
 
 namespace net {
-     
+  
   /** A complete IP4 network stack */
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
@@ -41,10 +41,13 @@ namespace net {
     { return ip4_; }
     
     /** Get the TCP-object belonging to this stack */
-    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }        
-
+    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }
+        
     /** Get the UDP-object belonging to this stack */
-    inline UDP& udp() override { return udp_; };
+    inline UDP& udp() override { return udp_; }
+
+    /** Get the DHCP client (if any) */
+    inline std::shared_ptr<DHClient> dhclient() override { return dhcp_;  }
     
     /** Create a Packet, with a preallocated buffer.
 	@param size : the "size" reported by the allocated packet. 
@@ -72,13 +75,18 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
     
-    /** Initialize.  */
+    /** Initialize with static IP / netmask */
     Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
     
+    /** Initialize with DHCP  */
+    Inet4(Nic<DRIVER>& nic); 
+
+    
   private:
-    virtual void 
+    virtual void
     network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router) override
     {
+      INFO("Inet4", "Reconfiguring network. New IP: %s",addr.str().c_str());
       this->ip4_addr_ = addr;
       this->netmask_  = nmask;
       this->router_   = router;
@@ -96,9 +104,10 @@ namespace net {
     ICMP icmp_;
     UDP  udp_;
     TCP tcp_;
-    
+    std::shared_ptr<net::DHClient> dhcp_{};
+
     BufferStore& bufstore_;
-    friend class DHClient;
+
   };
 }
 

@@ -31,6 +31,12 @@ namespace net {
     
       // Constructors:
       // Can't have them - that removes the packed-attribute    
+      inline addr& operator=(addr cpy){
+	whole = cpy.whole;
+	return *this;
+      }
+      
+      // Standard operators 
       inline bool operator==(addr rhs) const
       { return whole == rhs.whole; }
       
@@ -55,7 +61,8 @@ namespace net {
       }      
     };
     
-
+    static const addr INADDR_ANY;
+    
     /** IP4 header */
     struct ip_header{
       uint8_t version_ihl;

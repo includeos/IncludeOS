@@ -9,8 +9,11 @@
 
 /** A public interface for Network cards
     
-    The requirements for a driver is implicitly given by how it's used below,
-    rather than explicitly by proper inheritance.
+    @note: The requirements for a driver is implicitly given by how it's used below,
+    rather than explicitly by inheritance. This avoids vtables.
+    
+    @note: Drivers are passed in as template paramter so that only the drivers
+    we actually need will be added to our project. 
  */
 template <typename DRIVER>
 class Nic{ 
