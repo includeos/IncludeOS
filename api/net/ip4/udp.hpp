@@ -62,6 +62,9 @@ namespace net
     //! @param port local port
     Socket& bind(port port);
     
+    //! returns a new UDP socket bound to a random port
+    Socket& bind();
+    
     //! construct this UDP module with @inet
     UDP(Stack& inet);
     
@@ -69,6 +72,7 @@ namespace net
     downstream _network_layer_out;
     Stack& stack;
     std::map<port, Socket> ports;
+    port currentPort = 1024;
     
     friend class SocketUDP;
   };

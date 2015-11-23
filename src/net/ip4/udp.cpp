@@ -42,6 +42,19 @@ SocketUDP& UDP::bind(port_t port)
   }
   return it->second;
 }
+SocketUDP& UDP::bind()
+{
+  while (true)
+  {
+    auto it = ports.find(currentPort);
+    // if the spot is empty, use it for our socket
+    if (it == ports.end())
+        return bind(currentPort);
+    // otherwise increment the automatic port counter
+    currentPort += 1;
+    currentPort |= 0x400; // prevent automatic ports under 1024
+  }
+}
 
 int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 {
