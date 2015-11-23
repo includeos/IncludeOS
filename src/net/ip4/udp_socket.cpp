@@ -72,8 +72,8 @@ namespace net
     return length;
   } // internal_write()
   
-  int SocketUDP::write(addr_t destIP, port_t port, 
-                       const void* buffer, int len)
+  int SocketUDP::sendto(addr_t destIP, port_t port, 
+                        const void* buffer, int len)
   {
     return internal_write(local_addr(), destIP, port, 
                           (const uint8_t*) buffer, len);
