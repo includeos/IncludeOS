@@ -56,8 +56,8 @@ namespace net
     
     Inet<LinkLayer,IP4>& stack;
     port_t l_port;
-    recvfrom_handler on_read = [](SocketUDP& s, addr_t a, port_t p, const char* c, int i)->int{ };
-    sendto_handler   on_send = [](SocketUDP& s, addr_t a, port_t p, const char* c, int i)->int{ };
+    recvfrom_handler on_read = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
+    sendto_handler   on_send = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
     
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender
