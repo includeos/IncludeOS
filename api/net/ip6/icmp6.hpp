@@ -50,8 +50,13 @@ namespace net
       uint8_t  data[0];
     } __attribute__((packed));
     
+<<<<<<< HEAD
     /** packet from IP6 layer */
     int bottom(std::shared_ptr<Packet>& pckt);
+=======
+    // packet from IP6 layer
+    int bottom(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2
     
     /** set the downstream delegate */
     inline void set_ip6_out(IP6::downstream6 del)
@@ -124,7 +129,7 @@ namespace net
       // new total IPv6 payload length
       ip6_header().set_size(icmp_len);
       // new total packet length
-      _len = sizeof(IP6::full_header) + icmp_len;
+      size_ = sizeof(IP6::full_header) + icmp_len;
     }
     
  };

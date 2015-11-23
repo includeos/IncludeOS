@@ -101,9 +101,13 @@ if [ ! -z $do_includeos ]; then
     sudo apt-get install -y $PREREQS_RUN
     
     # Set up the IncludeOS network bridge
-    echo -e "\n\n >>> Create IncludeOS network bridge "`pwd`"\n"
+    echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
     sudo $IncludeOS_src/etc/create_bridge.sh
-    sudo cp $IncludeOS_src/etc/qemu-ifup /etc
+    
+    # Copy qemu-ifup til install loc.
+    mkdir -p $INSTALL_DIR/etc
+    cp $IncludeOS_src/etc/qemu-ifup $INSTALL_DIR/etc/
+    cp $IncludeOS_src/etc/qemu_cmd.sh $INSTALL_DIR/etc/
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"

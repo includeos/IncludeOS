@@ -1,306 +1,196 @@
-//
-// virtio.c
-//
-// Interface to virtual I/O devices (virtio)
-//
-// Copyright (C) 2011 Michael Ringgaard. All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 
-// 1. Redistributions of source code must retain the above copyright 
-//    notice, this list of conditions and the following disclaimer.  
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.  
-// 3. Neither the name of the project nor the names of its contributors
-//    may be used to endorse or promote products derived from this software
-//    without specific prior written permission. 
-// 
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-// OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF 
-// SUCH DAMAGE.
-// 
+#include <virtio/virtio.hpp>
+#include <syscalls.hpp>
+//#include <virtio/virtio.h>
+#include <irq_manager.hpp>
+#include <assert.h>
 
-#define KERNEL //In order to get func-defs in object.h
-
-#include <os>
-#include <virtio/virtio.h>
-
-#include <hw/pic.h>
-#include <hw/dev.h>
-#include <malloc.h>
-#include <string.h>
-
-
-
-void virtio_dpc(void *arg)
-{  
-  struct virtio_device *vd = (struct virtio_device *) arg;
-  struct virtio_queue *vq = vd->queues;
+void Virtio::set_irq(){
   
-  // Notify all queues for device.
-  while (vq)
-  {
-    if (vq->callback(vq) > 0) break;
-    vq = vq->next;
+  //Get device IRQ 
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
+  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+    _irq = value & 0xFF;    
   }
+  
 }
 
-int virtio_handler(struct context *ctxt, void *arg)
+
+Virtio::Virtio(PCI_Device& dev)
+  : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
-  struct virtio_device *vd = (struct virtio_device *) arg;
-  unsigned char isr;
+  INFO("Virtio","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
+  
 
-  // Check if there is any work on this interrupt. Reading the interrupt
-  // register also clears it.
-  isr = inp(vd->iobase + VIRTIO_PCI_ISR);
-  if (!isr) return 0;
+  /** PCI Device discovery. Virtio std. §4.1.2  */
+  
+  /** 
+      Match vendor ID and Device ID : §4.1.2.2 
+  */
+  if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
+    panic("This is not a Virtio device");
+  CHECK(true, "Vendor ID is VIRTIO");
+  
+  bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
+  bool _LEGACY_ID = _pcidev.product_id() >= 0x1000 
+    and _pcidev.product_id() <= 0x103f;
+  
+  CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
+	_pcidev.product_id(), 
+	_STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+    
+  assert(_STD_ID or _LEGACY_ID);
+  
+  /** 
+      Match Device revision ID. Virtio Std. §4.1.2.2 
+  */
+  bool rev_id_ok = ((_LEGACY_ID and _pcidev.rev_id() == 0) or
+                    (_STD_ID and _pcidev.rev_id() > 0));
+    
+  
+  CHECK(rev_id_ok and version_supported(_pcidev.rev_id()), 
+	"Device Revision ID (0x%x) supported", _pcidev.rev_id());
+  
+  assert(rev_id_ok); // We'll try to continue if it's newer than supported.
+  
+  // Probe PCI resources and fetch I/O-base for device
+  _pcidev.probe_resources();
+  _iobase=_pcidev.iobase();  
+  
+  CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
+  
+  /** Device initialization. Virtio Std. v.1, sect. 3.1: */
+  
+  // 1. Reset device
+  reset();
+  INFO2("[*] Reset device");
+  
+  // 2. Set ACKNOWLEGE status bit, and
+  // 3. Set DRIVER status bit
+  
+  outp(_iobase + VIRTIO_PCI_STATUS, 
+       inp(_iobase + VIRTIO_PCI_STATUS) | 
+       VIRTIO_CONFIG_S_ACKNOWLEDGE | 
+       VIRTIO_CONFIG_S_DRIVER);
+  
 
-  // Queue DPC to read the queues for the device.
-  queue_irq_dpc(&vd->dpc, virtio_dpc, vd);
-  eoi(vd->irq);
-  return 1;
+  // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
+  // 4. Negotiate features (Read, write, read)
+  //    => In the subclass (i.e. Only the Nic driver knows if it wants a mac)  
+  // 5. @todo IF >= Virtio 1.0, set FEATURES_OK status bit 
+  // 6. @todo IF >= Virtio 1.0, Re-read Device Status to ensure features are OK  
+  // 7. Device specifig setup. 
+  
+  // Where the standard isn't clear, we'll do our best to separate work 
+  // between this class and subclasses.
+    
+  //Fetch IRQ from PCI resource
+  set_irq();
+
+  CHECK(_irq, "Unit has IRQ %i", _irq);
+  INFO("Virtio","Enabling IRQ Handler");
+  enable_irq_handler();
+
+
+  
+  INFO("Virtio", "Initialization complete");
+  
+  // It would be nice if we new that all queues were the same size. 
+  // Then we could pass this size on to the device-specific constructor
+  // But, it seems there aren't any guarantees in the standard.
+  
+  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
+  // uint32_t queue_size = inpd(_iobase + 0x0C);
+  
+  /* printf(queue_size > 0 and queue_size != PCI_WTF ?
+         "\t [x] Queue Size : 0x%lx \n" :
+         "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */  
+  
 }
 
-void virtio_get_config(struct virtio_device *vd, void *buf, int len)
-{
-  unsigned char *ptr = (unsigned char*)buf;
-  int ioaddr = vd->iobase + VIRTIO_PCI_CONFIG;
+void Virtio::get_config(void* buf, int len){
+  unsigned char* ptr = (unsigned char*)buf;
+  uint32_t ioaddr = _iobase + VIRTIO_PCI_CONFIG;
   int i;
   for (i = 0; i < len; i++) *ptr++ = inp(ioaddr + i);
 }
 
-int virtio_device_init(struct virtio_device *vd, struct unit *unit, int features)
-{
-  // Get device resources.
-  vd->unit = unit;
-  vd->irq = get_unit_irq(unit);
-  vd->iobase = get_unit_iobase(unit);
-  vd->queues = NULL;
 
-  // Reset device
-  outp(vd->iobase + VIRTIO_PCI_STATUS, 0);
-
-  // Indicate that driver has been found
-  outp(vd->iobase + VIRTIO_PCI_STATUS, inp(vd->iobase + VIRTIO_PCI_STATUS) | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
-
-  // Negotiate features
-  vd->features = inpd(vd->iobase + VIRTIO_PCI_HOST_FEATURES);
-  vd->features &= features;
-  outpd(vd->iobase + VIRTIO_PCI_GUEST_FEATURES, vd->features);
-
-  // Enable interrupts
-  register_interrupt(&vd->intr, IRQ2INTR(vd->irq), virtio_handler, vd);
-  enable_irq(vd->irq);
-
-  return 0;
+void Virtio::reset(){
+  outp(_iobase + VIRTIO_PCI_STATUS, 0);
 }
 
-void virtio_setup_complete(struct virtio_device *vd, int success)
-{
-  unsigned char status = success ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
-  outp(vd->iobase + VIRTIO_PCI_STATUS, inp(vd->iobase + VIRTIO_PCI_STATUS) | status);
+uint32_t Virtio::queue_size(uint16_t index){  
+  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  return inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
-static unsigned int vring_size(unsigned int size)
-{
-  return ((sizeof(struct vring_desc) * size + sizeof(unsigned short) * (3 + size) + PAGESIZE - 1) & ~(PAGESIZE - 1)) +
-         sizeof(unsigned short) * 3 + sizeof(struct vring_used_elem) * size;
+#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)  
+bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
+  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
+  return inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == BTOP(queue_desc);
 }
 
-static void vring_init(struct vring *vr, unsigned int size, void *p)
-{
-  vr->size = size;
-  vr->desc = (vring_desc*)p;
-  vr->avail = (struct vring_avail *) ((char *) p + size * sizeof(struct vring_desc));
-  vr->used = (struct vring_used *) (((unsigned long) &vr->avail->ring[size] + sizeof(unsigned short) + PAGESIZE - 1) & ~(PAGESIZE - 1));
+uint32_t Virtio::probe_features(){
+  return inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
 }
 
-static int init_queue(struct virtio_queue *vq, int index, int size)
-{
-  unsigned int len;
-  char *buffer;
-  int i;
+void Virtio::negotiate_features(uint32_t features){
+  _features = inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+  //_features &= features; //SanOS just adds features
+  _features = features;
+  debug("<Virtio> Wanted features: 0x%lx \n",_features);
+  outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
+  _features = probe_features();
+  debug("<Virtio> Got features: 0x%lx \n",_features);
+
+}
+
+void Virtio::setup_complete(bool ok){
+  uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
+  debug("<VIRTIO> status: %i ",status);
+  outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | status);
+}
+
+
+
+void Virtio::default_irq_handler(){
+  printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
+  printf("Old Features : 0x%x \n",_features);
+  printf("New Features : 0x%x \n",probe_features());
   
-  // Initialize vring structure.
-  len = vring_size(size);
-  buffer = (char*)kmalloc(len);
-  if (!buffer) return -ENOMEM;
-  memset(buffer, 0, len);
-  vring_init(&vq->vring, size, buffer);
+  unsigned char isr = inp(_iobase + VIRTIO_PCI_ISR);
+  printf("Virtio ISR: 0x%i \n",isr);
+  printf("Virtio ISR: 0x%i \n",isr);
   
-  // Setup queue.
-  vq->index = index;
-  vq->last_used_idx = 0;
-  vq->num_added = 0;
-
-  // Put everything on the free list
-  vq->num_free = size;
-  vq->free_head = 0;
-  for (i = 0; i < size - 1; i++) vq->vring.desc[i].next = i + 1;
-
-  return 0;
-}
-
-int virtio_queue_init(struct virtio_queue *vq, struct virtio_device *vd, int index, virtio_callback_t callback)
-{
-  unsigned short size;
-  int rc;
-
-  // Select the queue
-  outpw(vd->iobase + VIRTIO_PCI_QUEUE_SEL, index);
-
-  // Check if queue is either not available or already active
-  size = inpw(vd->iobase + VIRTIO_PCI_QUEUE_SIZE);
-  if (!size || inpd(vd->iobase + VIRTIO_PCI_QUEUE_PFN)) return -ENOENT;
-
-  // Initialize virtual queue
-  rc = init_queue(vq, index, size);
-  if (rc < 0) return rc;
+  IRQ_manager::eoi(_irq);
   
-  // Allocate space for callback data tokens
-  vq->data = (void **) kmalloc(sizeof(void *) * size);
-  if (!vq->data) return -ENOSPC;
-  memset(vq->data, 0, sizeof(void *) * size);
-
-  // Initialize buffer available event
-  init_event(&vq->bufavail, 0, 1);
-
-  // Attach queue to device
-  vq->vd = vd;
-  vq->next = vd->queues;
-  vd->queues = vq;
-  vq->callback = callback;
-
-  // Activate the queue
-  outpd(vd->iobase + VIRTIO_PCI_QUEUE_PFN, BTOP(virt2phys(vq->vring.desc)));
-
-  return 0;
 }
 
-int virtio_queue_size(struct virtio_queue *vq)
-{
-  return vq->vring.size;
-}
 
-int virtio_enqueue(struct virtio_queue *vq, struct scatterlist sg[], unsigned int out, unsigned int in, void *data)
-{
-  int i, avail;
-  int head, prev;
 
-  // Wait for available buffers
-  while (vq->num_free < out + in)
-  {
-    if (wait_for_object(&vq->bufavail, INFINITE) < 0) return -ENOSPC;
-  }
-
-  // Remove buffers from the free list
-  vq->num_free -= out + in;
-  head = vq->free_head;
-  for (i = vq->free_head; out; i = vq->vring.desc[i].next, out--) 
-  {
-    vq->vring.desc[i].flags = VRING_DESC_F_NEXT;
-    vq->vring.desc[i].addr = virt2phys(sg->data);
-    vq->vring.desc[i].len = sg->size;
-    prev = i;
-    sg++;
-  }
-  for (; in; i = vq->vring.desc[i].next, in--) 
-  {
-    vq->vring.desc[i].flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-    vq->vring.desc[i].addr = virt2phys(sg->data);
-    vq->vring.desc[i].len = sg->size;
-    prev = i;
-    sg++;
-  }
+void Virtio::enable_irq_handler(){
+  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
   
-  // No continue on last buffer
-  vq->vring.desc[prev].flags &= ~VRING_DESC_F_NEXT;
-
-  // Update free pointer
-  vq->free_head = i;
-
-  // Set callback token
-  vq->data[head] = data;
-
-  // Put entry in available array, but do not update avail->idx until sync
-  avail = (vq->vring.avail->idx + vq->num_added++) % vq->vring.size;
-  vq->vring.avail->ring[avail] = head;
-
-  // Notify about free buffers
-  if (vq->num_free > 0) set_event(&vq->bufavail);
-    
-  return vq->num_free;
-}
-
-static void virtio_release(struct virtio_queue *vq, unsigned int head)
-{
-  unsigned int i;
-
-  // Clear callback data token
-  vq->data[head] = NULL;
-
-  // Put buffers back on the free list; first find the end
-  i = head;
-  while (vq->vring.desc[i].flags & VRING_DESC_F_NEXT) 
-  {
-    i = vq->vring.desc[i].next;
-    vq->num_free++;
-  }
-  vq->num_free++;
-
-  // Add buffers back to free list
-  vq->vring.desc[i].next = vq->free_head;
-  vq->free_head = head;
-
-  // Notify about free buffers
-  if (vq->num_free > 0) set_event(&vq->bufavail);
-}
-
-void virtio_kick(struct virtio_queue *vq)
-{
-  // Make new entries available to host
-  vq->vring.avail->idx += vq->num_added;
-  vq->num_added = 0;
-
-  // Notify host
-  if (!(vq->vring.used->flags & VRING_USED_F_NO_NOTIFY))
-  {
-    outpw(vq->vd->iobase + VIRTIO_PCI_QUEUE_NOTIFY, vq->index);
-  }
-}
-
-static int more_used(struct virtio_queue *vq)
-{
-  return vq->last_used_idx != vq->vring.used->idx;
-}
-
-void *virtio_dequeue(struct virtio_queue *vq, unsigned int *len)
-{
-  struct vring_used_elem *e;
-  void *data;
-
-  // Return NULL if there are no more completed buffers in the queue
-  if (!more_used(vq)) return NULL;
-
-  // Get next completed buffer
-  e = &vq->vring.used->ring[vq->last_used_idx % vq->vring.size];
-  *len = e->len;
-  data = vq->data[e->id];
+  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);  
+  auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
   
-  // Release buffer
-  virtio_release(vq, e->id);
-  vq->last_used_idx++;
-
-  return data;
+  IRQ_manager::subscribe(_irq,del);
+  
+  IRQ_manager::enable_irq(_irq);
+  
+  
 }
+
+/** void Virtio::enable_irq_handler(IRQ_manager::irq_delegate d){
+  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
+  //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
+  
+  IRQ_manager::subscribe(_irq,d);
+  
+  IRQ_manager::enable_irq(_irq);
+  }*/
+
+
+
+

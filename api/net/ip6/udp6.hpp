@@ -41,8 +41,13 @@ namespace net
       this->ip6_out = del;
     }
     
+<<<<<<< HEAD
     /** packet from IP6 layer */
     int bottom(std::shared_ptr<Packet>& pckt);
+=======
+    // packet from IP6 layer
+    int bottom(Packet_ptr pckt);
+>>>>>>> 0c91f1078f64f4b18dfbb2307194ec29d30d52d2
     
     /** packet back TO IP6 layer for transmission */
     int transmit(std::shared_ptr<PacketUDP6>& pckt);
@@ -113,7 +118,7 @@ namespace net
       ip6_header().set_size(
           sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
       // new total packet length
-      _len = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
+      size_ = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }
     
     /// generates a new checksum onto this UDPv6 packet

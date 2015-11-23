@@ -1,9 +1,39 @@
-# Include OS test service
+#! /bin/bash
 
-Each subfolder contains a special "seed" (i.e. something that started as a copy of <repo>/seed) which is supposed to build into an authorative test image for IncludeOS. The goal is that whenever you build the test image, it will tell you everything that's rigth and everything that's wrong with the current IncludeOS build.
+# Start as a GDB service, for debugging
+# (0 means no, anything else yes.)
+export IMAGE=$1
 
-## Image names
-The images created here will have a hashed appendix. That's the short version of the latest git commit hash, given by `git rev-parse --short HEAD`. This way we can differentiate between generations. 
+[ ! -v INCLUDEOS_HOME ] && INCLUDEOS_HOME=$HOME/IncludeOS_install
 
-**Note:** We want each image built from one commit to be identical. So if you try to build an image while there are uncommitted changes in the repo, the makefile (using `./img_name.sh`) will call your image "DIRTY".
+DEBUG=0
 
+[[ $2 = "debug" ]] && DEBUG=1 
+
+# Get the Qemu-command (in-source, so we can use it elsewhere)
+. $INCLUDEOS_HOME/etc/qemu_cmd.sh
+
+# Qemu with gdb debugging:
+
+if [ $DEBUG -ne 0 ]
+then
+    echo "Building system..."
+    make -B debug
+    echo "Starting VM: '$1'"
+    echo "Command: $QEMU $QEMU_OPTS"
+    echo "------------------------------------------------------------"    
+    echo "VM started in DEBUG mode. Connect with gdb/emacs:"
+    echo " - M+x gdb, Enter, then start with command"
+    echo "   gdb -i=mi service -x service.gdb"
+    echo "------------------------------------------------------------"    
+
+    sudo $QEMU -s -S $QEMU_OPTS
+else    
+
+    echo "------------------------------------------------------------"    
+    echo "Starting VM: '$1'"
+    echo "------------------------------------------------------------"        
+    sudo $QEMU $QEMU_OPTS 
+fi
+
+echo "NOTE: To run you image on another platform such as virtualbox, check out IncludeOS/etc/convert_image.sh"

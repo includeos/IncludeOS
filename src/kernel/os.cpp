@@ -1,84 +1,79 @@
 //#define DEBUG
+#define MYINFO(X,...) INFO("Kernel",X,##__VA_ARGS__)
 #include <os>
 #include <stdio.h>
 #include <assert.h>
 
-#include <class_service.hpp>
+#include <service.hpp>
 
 // A private class to handle IRQ
-#include <class_irq_manager.hpp>
-#include <class_pci_manager.hpp>
+#include <irq_manager.hpp>
+#include <pci_manager.hpp>
 #include <stdlib.h>
 
-bool  OS::_power = true;
-MHz OS::_CPU_mhz = MHz(0); //2399.928; //For Trident3, reported by /proc/cpuinfo PIT::CPUFrequency(); 
+bool OS::_power = true;
+MHz  OS::_CPU_mhz(0);
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
 {
-  rsprint(">>> OS class started\n");
+  debug("  * OS class started\n");
   srand(time(NULL));
-  
-  // Disable the timer interrupt completely
-  //pit.disable();
-  
   
   // heap
   extern caddr_t heap_end;
   extern char    _end;
-  printf("<OS> Heap start: %p\n", heap_end);
-  printf("<OS> Current end is: %p\n", &_end);
-  
-  timeval t;
-  gettimeofday(&t,0);
-  printf("<OS> TimeOfDay: %li.%li Uptime: %f \n",
-      t.tv_sec, t.tv_usec, uptime());
-  
+  MYINFO("Heap start: %p", heap_end);
+  MYINFO("Current end is: %p", &_end);
   asm("cli");  
-  //OS::rsprint(">>> IRQ handler\n");
+  //OS::rsprint("  * IRQ handler\n");
   IRQ_manager::init();
-
   
   // Initialize the Interval Timer
   PIT::init();
 
-  //OS::rsprint(">>> Dev init\n");
-  Dev::init();
-
-
+  // Initialize PCI devices
+  PCI_manager::init();
 
   asm("sti");
   
-  printf(">>> Estimating CPU-frequency\n");    
-  printf("    | \n");  
-  printf("    +--(10 samples, %f sec. interval)\n", (PIT::frequency() / _cpu_sampling_freq_divider_).count() );
-  printf("    | \n");  
-  _CPU_mhz = PIT::CPUFrequency();
-  printf("    +--> %f MHz \n\n", _CPU_mhz.count());  
-    
-  printf(">>> IncludeOS initialized - calling Service::start()\n");  
   
+  MYINFO("Estimating CPU-frequency");
+  INFO2("|");
+  INFO2("+--(10 samples, %f sec. interval)", 
+	(PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO2("|");
+  
+  // TODO: Debug why actual measurments sometimes causes problems. Issue #246. 
+  _CPU_mhz = MHz(2200); //PIT::CPUFrequency();
+
+  INFO2("+--> %f MHz", _CPU_mhz.count());
+    
+  MYINFO("Starting %s",Service::name().c_str());
+  FILLINE('=');
   // Everything is ready
   Service::start();
   
-
   event_loop();
 }
-
-/*
-extern "C" void halt_loop(){
-  __asm__ volatile("hlt; jmp halt_loop;");
- }*/
 
 void OS::halt(){
   __asm__ volatile("hlt;");
 }
 
+double OS::uptime(){  
+  return (cycles_since_boot() / Hz(_CPU_mhz).count()) ; 
+}
+
 void OS::event_loop()
 {
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  OS::rsprint(">>> System idle - waiting for interrupts \n");
-  OS::rsprint("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+  FILLINE('=');
+  printf(" IncludeOS %s \n",version().c_str());
+  printf(" +--> Running [ %s ] \n", Service::name().c_str());
+  FILLINE('~');
+
+
   
   while (_power)
   {

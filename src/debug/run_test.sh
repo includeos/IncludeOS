@@ -12,7 +12,7 @@ STRIPPED=0
 echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
-. debug/qemu_cmd.sh
+. ../etc/qemu_cmd.sh
 
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]
@@ -22,14 +22,13 @@ then
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE
     mv $SERVICE.img debug/
-    
+
     echo "Starting VM: '$IMAGE'"
-    echo "-----------------------"    
-    
+    echo "---------------------------------------------------------------------------------"
     echo "VM started in DEBUG mode. Connect with gdb/emacs:"
     echo " - M+x gdb, Enter, then start with command"
     echo "   gdb -i=mi service -x service.gdb"
-    echo "-----------------------"  
+    echo "---------------------------------------------------------------------------------"
     
     sudo $QEMU -s -S $QEMU_OPTS
     
@@ -43,23 +42,20 @@ then
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE
     mv $SERVICE.img debug/
-    
-    echo "-----------------------"
+    echo "---------------------------------------------------------------------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
-    echo "-----------------------"
-    
+    echo "---------------------------------------------------------------------------------"
     sudo $QEMU $QEMU_OPTS 
 else
-    make -j$JOBS all $SERVICE
+    make -j$JOBS all 
+    make $SERVICE
     
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE
     mv $SERVICE.img debug/
-    
-    echo "-----------------------"
+    echo "---------------------------------------------------------------------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
-    echo "-----------------------"
-    
+    echo "---------------------------------------------------------------------------------"
     sudo $QEMU $QEMU_OPTS 
 fi
 
