@@ -99,7 +99,7 @@ then
 			targetLoc+=".vdi"
 			targetLoc="./$targetLoc"
 			displayLoc=${targetLoc##*/}
-			echo -e "\nTEST1 Creating VDI image in $(pwd)/$displayLoc...\n"
+			echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
 			$VB convertfromraw $disk $targetLoc
 		fi
 	else
@@ -111,7 +111,7 @@ then
 #			targetLoc=${disk##*/}
 			targetLoc+=".vdi"
 #			targetLoc="./$targetLoc"
-			echo -e "\nTEST 2Creating VDI image in $targetLoc...\n"
+			echo -e "\nCreating VDI image in $targetLoc...\n"
 			$VB convertfromraw $disk $targetLoc
 		fi
 	fi
@@ -141,7 +141,7 @@ else
         	        targetLoc+=".vdi"
 	                targetLoc="./$targetLoc"
 			displayLoc=${targetLoc#*/}
-                	echo -e "\nTEST 3Creating VDI image in $(pwd)/$displayLoc...\n"
+                	echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
 	                $VB convertfromraw $disk $targetLoc
         	fi
 	else
@@ -153,7 +153,7 @@ else
 #        	       	targetLoc=${disk##*/}
 	                targetLoc+=".vdi"
 #	       	        targetLoc="./$targetLoc"
-	                echo -e "\nTEST 4Creating VDI image in $targetLoc...\n"
+	                echo -e "\nCreating VDI image in $targetLoc...\n"
         	        $VB convertfromraw $disk $targetLoc
 	        fi
 	fi
