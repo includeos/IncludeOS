@@ -16,7 +16,7 @@ namespace net
     int   len  = request.create(data, hostname);
     
     // send request to DNS server
-    sock.write(dns_server, DNS::DNS_SERVICE_PORT, data, len);
+    sock.sendto(dns_server, DNS::DNS_SERVICE_PORT, data, len);
     delete[] data;
     
     // wait for response

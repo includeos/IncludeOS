@@ -30,8 +30,8 @@ namespace net
     {
       on_send = func;
     }
-    int write(addr_t destIP, port_t port, 
-              const void* buffer, int length);
+    int sendto(addr_t destIP, port_t port, 
+               const void* buffer, int length);
     int bcast(addr_t srcIP, port_t port, 
               const void* buffer, int length);
     void close();
