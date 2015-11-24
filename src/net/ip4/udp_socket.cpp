@@ -3,7 +3,6 @@
 
 namespace net
 {
-  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
   using port_t = SocketUDP::port_t;
   
   SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack)
@@ -81,7 +80,7 @@ namespace net
   int SocketUDP::bcast(addr_t srcIP, port_t port, 
                        const void* buffer, int len)
   {
-    return internal_write(srcIP, INADDR_BCAST, port, 
+    return internal_write(srcIP, IP4::INADDR_BCAST, port, 
                           (const uint8_t*) buffer, len);
   }
   

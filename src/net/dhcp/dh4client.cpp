@@ -133,8 +133,6 @@
 
 namespace net
 {
-  static const IP4::addr INADDR_ANY   {{0}};
-  
   inline dhcp_option_t* conv_option(uint8_t* option)
   {
     return (dhcp_option_t*) option;
@@ -158,10 +156,10 @@ namespace net
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_UNICAST);
-    dhcp->ciaddr = INADDR_ANY;
-    dhcp->yiaddr = INADDR_ANY;
-    dhcp->siaddr = INADDR_ANY;
-    dhcp->giaddr = INADDR_ANY;
+    dhcp->ciaddr = IP4::INADDR_ANY;
+    dhcp->yiaddr = IP4::INADDR_ANY;
+    dhcp->siaddr = IP4::INADDR_ANY;
+    dhcp->giaddr = IP4::INADDR_ANY;
     
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -200,7 +198,7 @@ namespace net
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
     [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
@@ -326,10 +324,10 @@ namespace net
     resp->secs  = 0;
     resp->flags = htons(BOOTP_UNICAST);
     
-    resp->ciaddr = INADDR_ANY;
-    resp->yiaddr = INADDR_ANY;
-    resp->siaddr = INADDR_ANY;
-    resp->giaddr = INADDR_ANY;
+    resp->ciaddr = IP4::INADDR_ANY;
+    resp->yiaddr = IP4::INADDR_ANY;
+    resp->siaddr = IP4::INADDR_ANY;
+    resp->giaddr = IP4::INADDR_ANY;
     
     // copy our hardware address to chaddr field
     memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -392,7 +390,7 @@ namespace net
     });
     
     // send our DHCP Request
-    sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
   
   void DHClient::acknowledge(const char* data, int datalen)
