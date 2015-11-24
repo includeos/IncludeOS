@@ -35,7 +35,7 @@ We're working towards automating everything with our Jenkins CI server at [jenki
     * TCP: Just enough to serve HTTP
     * UDP: Enough to support a high performance DNS service
     * DHCP: Basic support, tested on VirtualBox and KVM
-    * ICMP: Enough to answer ping
+    * ICMP: Enough to answer ping, control messages yet
     * ARP
     * Ethernet
     * IPv6 support under active development
@@ -69,7 +69,7 @@ Once you have a system with the prereqs (virtual or not), you can choose a full 
 * Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`
 
 **Time:**
-About a miniute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBook Air)
+About a minute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBook Air)
 
 ## B) Completely build everything from source (slow)
     $ sudo apt-get install git
@@ -87,7 +87,7 @@ About a miniute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBo
 * Build and install the `vmbuild` tool, which turns your service into a bootable disk image.
 
 **Time:** 
-On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, install.sh takes about 33 minutes, depending on bandwidth.
+On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, running ./install.sh takes about 33 minutes depending on bandwidth.
 
 **NOTE:** Both scripts will install packages, and as such parts will require sudo access.
 
@@ -100,18 +100,18 @@ A successful setup should enable you to build and run a virtual machine. Running
 will build and run a [this example service](./examples/demo_service/service.cpp). 
 
 **Things to note**
-* The defalut test script will only work on Linux, and uses Qemu (with KVM if available). To run IncludeOS directly on virtualbox, see `etc/vboxrun.sh`
-* There is no shell! IncludeOS is a unikernel, meaning it will only run one process. Think of an IncludeOS VM as a local process.
-* There is no VGA! So, nothong will show up on the "screen" if you're using a GUI (i.e. if you run IncludeOS directly in virtualbox) We did write a vga module at one point, but we never use it; output to serial port works very well. We'll add VGA support in the future, as a package.
-* You should be able to ping the vm. Its IP-address will be stated in the boot-time output from IncldueOS 
-* You should also be able to open a simple webpage on the vm, by entering the IP into a browser, inside the development machine.
-* How to get out? The test script starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default reroute stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `ctrl+a x`. 
-   * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to virtualbox on windows), please let us know so we can update the wiki.
+* The default test script will only work on Linux, and uses Qemu (with KVM if available). To run IncludeOS directly on VirtualBox, see `etc/vboxrun.sh`
+* There is no shell! IncludeOS is a unikernel, and so it will only run one process. Think of an IncludeOS VM as a local process.
+* There is no VGA! So, nothing will show up on the "screen" if you're using a GUI (i.e. if you run IncludeOS directly in virtualbox) We did write a vga module at one point, but we never use it; output to serial port works very well. We'll add VGA support in the future, as a package.
+* You should be able to ping the VM. Its IP-address will be stated in the boot-time output from IncldueOS 
+* You should also be able to open a simple webpage on the VM, by entering the IP into a browser, inside the development machine.
+* How to get out? The test script starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default reroute stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `Ctrl+a x`.
+   * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to VirtualBox on Windows), please let us know so we can update our wiki.
 
 ## Writing a service
-Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INNCLUDEOS_HOME` directory (`$HOMOE/IncludeOS_install by default`). The [./seed](./seed) directory contains everything a service needs to build, and link with IncludeOS. 
+Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INNCLUDEOS_HOME` directory (`$HOMOE/IncludeOS_install by default`). The [./seed](./seed) directory contains everything a service needs to build and link with IncludeOS. 
 
-*NOTE: Don't develop inside the seed directory; the point is to be able to reuse the seed for other projects*
+*NOTE: Don't develop inside the seed directory; the point is to be able to reuse the seed to create new blank services*
 
 ### Create a new service by copying the seed
 
@@ -120,7 +120,7 @@ Developing IncludeOS services should be done completely separately from IncludeO
 
 **Example:**
 ```
-     $ cp seed ~/my_service
+     $ cp -r seed ~/my_service
      $ cd ~/my_service
      $ emacs service.cpp
      ... add your code
@@ -135,17 +135,15 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
   * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
-### Debugging with bochs
-* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/), since `gdb` only works for objects with debugging symbols, which we don't have for our bootloader . See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
+### Debugging with Bochs
+* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [Bochs](http://bochs.sourceforge.net/). This is because `gdb` only works for objects with debugging symbols, which we don't have for our bootloader. See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example configuration file (which specifies a <1MB disk).
 
 ## C++ Guidelines
-We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
+We are currently far from it, but in time we'd like to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
   * *Note: We're not using the Guidelines Support Library, but we probably will at some point. This means we're not ready to follow guidelines that requires this library yet.*
 
 ## Read more on the wiki
 We're trying to grow a Wiki, and some questions might allready be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
 
 See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guies.
-
-
 
