@@ -22,6 +22,7 @@ IncludeOS is not production ready, not feature complete, and very much a work in
 * **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
     * TCP: Just enough to serve HTTP
     * UDP: Enough to support a high performance DNS service
+    * DHCP: Basic support, tested on VirtualBox and KVM
     * ICMP: Enough to answer ping
     * ARP
     * Ethernet
