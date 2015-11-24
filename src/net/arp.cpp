@@ -141,8 +141,7 @@ int Arp::transmit(Packet_ptr pckt){
   
   Ethernet::addr mac;
   
-  static const IP4::addr INADDR_BCAST {{0xFF, 0xFF, 0xFF, 0xFF}};
-  if (iphdr->daddr == INADDR_BCAST)
+  if (iphdr->daddr == IP4::INADDR_BCAST)
   {
     // when broadcasting our source IP should be either
     // our own IP or 0.0.0.0
