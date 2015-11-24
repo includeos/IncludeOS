@@ -1,6 +1,6 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
-IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. Starting a program with `#include <os>`, will literally include a whole little operating system into your service during link-time. The build system will link your service and only the necessary OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. In other words, it's a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch, employing x86 hardware virtualization, with no dependencies except for the virtual hardware.
+IncludeoS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki).
 
 ## Build status
 We're working towards automating everything with our Jenkins CI server at [jenkins.includeos.org](http://jenkins.includeos.org/). Jenkins is currently only testing on KVM/Linux, but more platforms will come. We do manual tests on virtualbox, before releases.
@@ -32,19 +32,8 @@ IncludeOS is not production ready, not feature complete, and very much a work in
     * ARP
     * Ethernet
     * IPv6 support under active development
-* **Completely silent while idling**. As we documented in our [IEEE CloudCom 2013 paper](http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6753801), running a regular interval timer for concurrency inside a virtual machine will impose a significant CPU-load on hypervisors running many virtual machines. IncludeOS disables the timer interrupts completely when idle, making it use no CPU at all. This makes IncludeOS services well suited for resource saving through overbooking schemes. 
-* **Node.js-style callback-based programming** - everything happens in one efficient thread with no I/O blocking or unnecessary guest-side context switching.
-* **No race conditions**. Delegated IRQ handling makes race conditions in "userspace" "impossible". ...unless you implement threads yourself (you have the access) or we do.
-* **No virtual memory overhead** One service pr. VM means no need for virtual address spaces, and no overead due to address translation. Everything happens in a single, ring 0 address space. This has high positive impact on memory performance on some systems, but less so on newer CPU's with good hardware support for [nested paging](https://en.wikipedia.org/wiki/Second_Level_Address_Translation).
-* **All the guns and all the knives:** 
-  * IncludeOS services run in ring 0, in a single address space without protection. That's a lot of power to play with. For example: Try `asm("hlt")` in a normal userspace program - then try it in IncludeOS. Explain to the duck exactly what's going on ... and it will tell you why Intel made VT-x (Yes IBM was way behind Alan Turing). That's a virtualization gold nugget, in reward of your mischief. If you believe in these kinds of lessons, there's always more [Fun with Guns and Knives](https://github.com/hioa-cs/IncludeOS/wiki/Fun-with-Guns-and-Knives).
-  * *Hold your forces! I and James Gosling strongly object to guns and knives!*
-    * For good advice on how not to use these powers, look to the [Wisdom of the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md). 
-    * If you found the gold nugget above, you'll know that the physical CPU protects you from others - and others from you. And that's a pretty solid protection compared to, say, [openssl](https://xkcd.com/1354/). If you need protection from yourself, that too can be gained by aquiring the 10 000 lines of [Wisdom from the Jedi Council](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md), or also from our friends at [Mirage](http://mirage.io) ;-) 
-    * *Are the extra guns and knives really features?* For explorers, yes. For a Joint Strike Fighter autopilot? Noooo. You need [even more wisdom](http://www.stroustrup.com/JSF-AV-rules.pdf) for that.
 
-### Limitations 
-If it's not listed under features, you can pretty much assume we don't have it yet. See the [Roadmap](https://github.com/hioa-cs/IncludeOS/wiki/Roadmap) for our current plan.
+A longer list of features and limitations is on the [wiki feature list](https://github.com/hioa-cs/IncludeOS/wiki/Features)
 
 # Try it out!
 
