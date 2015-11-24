@@ -1,6 +1,17 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
-IncludeoS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki).
+IncludeOS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
+
+## It's a research prototype!
+IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
+
+IncludeOS is free software, with "no warranties or restrictions of any kind".
+
+[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.6.3--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+
+**Note:** *Anything may change at any time. The public API should not be considered stable.* This is the meaning of the 0 in the version number, as intended by [Semver](http://semver.org/).
+
 
 ## Build status
 We're working towards automating everything with our Jenkins CI server at [jenkins.includeos.org](http://jenkins.includeos.org/). Jenkins is currently only testing on KVM/Linux, but more platforms will come. We do manual tests on virtualbox, before releases.
@@ -9,10 +20,6 @@ We're working towards automating everything with our Jenkins CI server at [jenki
 |--------|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | Master | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_master/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_master/) | [![Build Status](http://jenkins.includeos.org/job/complete_source_master/badge/icon)](http://jenkins.includeos.org/job/complete_source_master/) |
 | Dev    | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_dev/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_dev/)       | [![Build Status](http://jenkins.includeos.org/job/complete_source_dev/badge/icon)](http://jenkins.includeos.org/job/complete_source_dev/)       |
-
-## It's a research prototype!
-IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
-
 
 ### Key features
 * **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 693K when optimized for size.
