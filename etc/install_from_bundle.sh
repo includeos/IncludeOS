@@ -71,6 +71,12 @@ else
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
 fi
 
+echo -e "\n\n>>> Building IncludeOS"
+pushd $INCLUDEOS_SRC/src
+make -j
+make install
+popd
+
 echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
 pushd $INCLUDEOS_SRC/vmbuild
 make
