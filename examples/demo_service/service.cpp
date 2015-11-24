@@ -20,7 +20,13 @@ void Service::start() {
   // Bring up a network stack, attached to the nic
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
-  printf("Size of IP-stack: %i bytes \n",sizeof(inet));
+  // Static configuration, until we (possibly) get DHCP
+  inet->network_config( {{ 10,0,0,42 }},      // IP
+			{{ 255,255,255,0 }},  // Netmask
+			{{ 10,0,0,1 }},       // Gateway
+			{{ 8,8,8,8 }} );      // DNS
+  
+  printf("Size of IP-stack: %i b \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
