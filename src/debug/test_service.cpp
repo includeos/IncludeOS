@@ -24,7 +24,7 @@ void Service::start() {
   inet->dhclient()->on_config(
   [] (net::DHClient::Stack& stack)
   {
-    std::string hostname = "minecraft.fwsnet.net";
+    const std::string hostname = "includeos.org";
     printf("*** Resolving %s\n", hostname.c_str());
     
     // after configuring our device, we will be
@@ -46,14 +46,14 @@ void Service::start() {
           hostname.c_str(), addr.str().c_str());
       
       // we will be sending UDP data to the resolved IP-address
-      int port = 4444;
-      // as part of our trade scamming operation we are everyones brother
-      std::string data = "Sir, it's me, your brother\n";
+      const int port = 4444;
+      // sending messages into the ether is important, for science
+      std::string data = "Is anyone there?\n";
       
-      printf("Sending %u bytes of UDP data to %s:%d\n",
-          data.size(), addr.str().c_str(), port);
+      auto& sock = stack.udp().bind();
+      printf("Sending %u bytes of UDP data to %s:%d from local port %d\n",
+          data.size(), addr.str().c_str(), port, sock.local_port());
       
-      auto& sock = stack.udp().bind(port);
       sock.sendto(addr, port, data.c_str(), data.size());
       
       printf("Done. You can Ctrl-A + X now.\n");
