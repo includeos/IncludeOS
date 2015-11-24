@@ -1,5 +1,8 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
+[![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](LICENSE.md)
+[![Build Status](http://jenkins.includeos.org/job/complete_bundle_master/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_master/)
+
 
 IncludeOS is an includeable, minimal library operating system for C++ services running in the cloud. Starting a program with `#include <os>`, will literally include a whole little operating system into your service during link-time. The build system will link your service and only the necessary OS objects into a single binary, attach a boot loader and combine all that into a self-contained bootable disk image, ready to run on a modern hypervisor. In other words, it's a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch, employing x86 hardware virtualization, with no dependencies except for the virtual hardware.
 
@@ -19,6 +22,7 @@ IncludeOS is not production ready, not feature complete, and very much a work in
 * **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
     * TCP: Just enough to serve HTTP
     * UDP: Enough to support a high performance DNS service
+    * DHCP: Basic support, tested on VirtualBox and KVM
     * ICMP: Enough to answer ping
     * ARP
     * Ethernet

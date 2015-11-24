@@ -88,6 +88,9 @@ debug: OBJ_LIST += $(LIBG_OBJ)
 debug: CAPABS += -O0 -UNO_DEBUG
 debug: all test
 
+silent: CPPOPTS += -DNO_INFO=1
+silent: all test
+
 # Test service
 ###################################################
 LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)

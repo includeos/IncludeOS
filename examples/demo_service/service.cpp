@@ -18,9 +18,17 @@ void Service::start() {
   Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
   
   // Bring up a network stack, attached to the nic
+  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
-  printf("Size of IP-stack: %i bytes \n",sizeof(inet));
+  // Static IP configuration, until we (possibly) get DHCP
+  // @note : Mostly to get a robust demo service that it works with and without DHCP
+  inet->network_config( {{ 10,0,0,42 }},      // IP
+			{{ 255,255,255,0 }},  // Netmask
+			{{ 10,0,0,1 }},       // Gateway
+			{{ 8,8,8,8 }} );      // DNS
+  
+  printf("Size of IP-stack: %i b \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
@@ -31,6 +39,7 @@ void Service::start() {
 
   srand(OS::cycles_since_boot());
   
+  // Add a TCP connection handler - here a hardcoded HTTP-service
   sock.onConnect([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       

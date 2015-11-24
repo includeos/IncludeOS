@@ -99,7 +99,6 @@ namespace net {
     /** Initialize with DHCP  */
     Inet4(Nic<DRIVER>& nic); 
     
-  private:
     virtual void
     network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
     {
@@ -109,7 +108,9 @@ namespace net {
       this->router_    = router;
       this->dns_server = dns;
     }
-    
+
+  private:    
+
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr router_;
