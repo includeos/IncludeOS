@@ -10,7 +10,7 @@ We're working towards automating everything with our Jenkins CI server at [jenki
 | Master | [![Build Status](http://jenkins.doublecheck.xyz/job/complete_bundle_master/badge/icon)](http://jenkins.doublecheck.xyz/job/complete_bundle_master/) | [![Build Status](http://jenkins.doublecheck.xyz/job/complete_source_master/badge/icon)](http://jenkins.doublecheck.xyz/job/complete_source_master/) |
 | Dev    | [![Build Status](http://jenkins.doublecheck.xyz/job/complete_bundle_dev/badge/icon)](http://jenkins.doublecheck.xyz/job/complete_bundle_dev/)       | [![Build Status](http://jenkins.doublecheck.xyz/job/complete_source_dev/badge/icon)](http://jenkins.doublecheck.xyz/job/complete_source_dev/)       |
 
-# It's a research prototype!
+## It's a research prototype!
 IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 
@@ -38,17 +38,14 @@ A longer list of features and limitations is on the [wiki feature list](https://
 # Try it out!
 
 ## Prerequisites for building IncludeOS VM's
-  * A machine with at least 1024 MB memory - a VirtualBox VM will work fine
-     * (At least for the full compilation from source, we've found 512 MB to be insufficient). 
-  * Ubuntu 14.04 LTS x86_64, Vanilla 
-     * In order to support VGA graphics inside the VM, we recommend a lightweight GUI, such as  [lubuntu](http://lubuntu.net/blog/lubuntu-1404-trusty-tahr-released) which runs great inside a virtual machine.
+  * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
+     * For the full source build, you'll need at least 1024 MB memory
+     * In order to support VGA graphics inside a VM, we recommend a lightweight GUI, such as  [lubuntu](http://lubuntu.net/blog/lubuntu-1404-trusty-tahr-released) which runs great inside a virtual machine.
          * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu, that ends up right on `stdout`.
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
   * You'll need `git` to clone from github.
 
-(I'm using an Ubuntu VM, running virtualbox inside a mac.)
-
-Once you have a system with the prereqs (virtual or not), everything should be set up by:
+Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
 
 ## A) Install libraries from binary bundle (fast)
     $ sudo apt-get install git
@@ -104,12 +101,17 @@ will build and run a [this example service](./examples/demo_service/service.cpp)
 * How to get out? The test script starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default reroute stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `ctrl+a x`. 
    * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to virtualbox on windows), please let us know so we can update the wiki.
 
-## Write a service
+## Writing a service
+Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INNCLUDEOS_HOME` directory (`$HOMOE/IncludeOS_install by default`). The [./seed](./seed) directory contains everything a service needs to build, and link with IncludeOS. 
+
+*NOTE: Don't develop inside the seed directory; the point is to be able to reuse the seed for other projects*
+
+### Create a new service by copying the seed
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. You can then start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.  
 2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
 
-Example: 
+**Example:**
 ```
      $ cp seed ~/my_service
      $ cd ~/my_service
@@ -122,18 +124,16 @@ Take a look at the [examples](./examples). These all started out as copies of th
 ### Helper scripts
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
-## Tools 
-
-### Debugging with bochs
-* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/), since `gdb` only works for objects with debugging symbols, which we don't have for our bootloader . See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
-
-
 ### Using VirtualBox for development
   * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
   * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
 
-### C++ Guidelines
-We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issute-tracker - or even better, fix it in your own fork, and send us a pull-request. 
+### Debugging with bochs
+* If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [bochs](http://bochs.sourceforge.net/), since `gdb` only works for objects with debugging symbols, which we don't have for our bootloader . See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example config. file, (which specifies a <1MB disk).
+
+## C++ Guidelines
+We are currently far from it, but in time we'd like to adhere more or less to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
+  * *Note: We're not using the Guidelines Support Library, but we probably will at some point. This means we're not ready to follow guidelines that requires this library yet.*
 
 ## Read more on the wiki
 We're trying to grow a Wiki, and some questions might allready be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
