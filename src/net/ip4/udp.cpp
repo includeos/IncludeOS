@@ -28,32 +28,32 @@ int UDP::bottom(Packet_ptr pckt)
 
 SocketUDP& UDP::bind(port_t port)
 {
-  debug("<UDP> Listening to port %i\n", port);
+  debug("<UDP> Binding to port %i\n", port);
   /// ... !!!
   auto it = ports.find(port);
   if (it == ports.end())
   {
     // create new socket
     auto res = ports.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(port),
-        std::forward_as_tuple(stack, port));
+			     std::piecewise_construct,
+			     std::forward_as_tuple(port),
+			     std::forward_as_tuple(stack, port));
     it = res.first;
   }
   return it->second;
 }
 SocketUDP& UDP::bind()
-{
-  while (true)
-  {
-    auto it = ports.find(currentPort);
-    // if the spot is empty, use it for our socket
-    if (it == ports.end())
-        return bind(currentPort);
-    // otherwise increment the automatic port counter
-    currentPort += 1;
-    currentPort |= 0x400; // prevent automatic ports under 1024
-  }
+{  
+
+  if (ports.size() >= 0xfc00)
+    panic("UPD Socket: All ports taken!");  
+
+  debug("UDP finding free ephemeral port\n");  
+  while (ports.find(++currentPort) != ports.end())
+    if (++currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
+  
+  debug("UDP binding to %i port\n", currentPort);
+  return bind(currentPort);
 }
 
 int UDP::transmit(std::shared_ptr<PacketUDP> udp)
