@@ -93,7 +93,7 @@ void Service::start() {
 
   srand(OS::cycles_since_boot());
   
-  sock.onConnect([](net::TCP::Socket& conn){
+  sock.onAccept([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
       int color = rand();

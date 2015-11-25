@@ -1,3 +1,4 @@
+
 #ifndef CLASS_TCP_HPP
 #define CLASS_TCP_HPP
 
@@ -119,7 +120,7 @@ namespace net {
       inline void drop(Socket&){ debug("<Socket::drop> Default handler dropping connection \n"); }
       
       // Our version of "Accept"
-      inline void onConnect(connection_handler handler){
+      inline void onAccept(connection_handler handler){
 	debug("<TCP::Socket> Registered new connection handler \n");
 	accept_handler_ = handler;
       }      
