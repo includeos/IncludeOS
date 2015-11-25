@@ -84,7 +84,7 @@ int Ethernet::bottom(Packet_ptr pckt)
     if (net::ntohs(eth->type) > 1500){
       debug("<Ethernet> UNKNOWN ethertype 0x%x\n",ntohs(eth->type));
     }else{
-      debug2("IEEE802.3 Length field: 0x%x\n",ntosh(eth->type));
+      debug2("IEEE802.3 Length field: 0x%x\n",ntohs(eth->type));
     }
 
     break;
