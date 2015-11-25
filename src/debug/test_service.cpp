@@ -19,8 +19,20 @@ void Service::start() {
   
   // Bring up a network stack, attached to the nic
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+
+  // Static IP configuration, until we (possibly) get DHCP
+  // @note : Mostly to get a robust demo service that it works with and without DHCP
+  inet->network_config( {{ 10,0,0,42 }},      // IP
+			{{ 255,255,255,0 }},  // Netmask
+			{{ 10,0,0,1 }},       // Gateway
+			{{ 8,8,8,8 }} );      // DNS
+
+  inet->link().set_packet_filter([](net::Packet_ptr pckt){      
+      printf("Custom Ethernet Packet filter got %i bytes\n",pckt->size());
+      return pckt;
+    });
   
-  // after DHCP we would like to do some networking
+    // after DHCP we would like to do some networking
   inet->dhclient()->on_config(
   [] (net::DHClient::Stack& stack)
   {

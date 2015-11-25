@@ -4,6 +4,7 @@
 #include <os>
 #include <net/ethernet.hpp>
 #include <net/packet.hpp>
+#include <net/util.hpp>
 
 using namespace net;
 
@@ -33,7 +34,7 @@ int Ethernet::transmit(Packet_ptr pckt){
   debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i \n",
          pckt->size(),hdr->src.str().c_str(), hdr->dest.str().c_str(),hdr->type);
   
-  return _physical_out(pckt);
+  return physical_out_(pckt);
 }
 
 
@@ -41,13 +42,16 @@ int Ethernet::bottom(Packet_ptr pckt)
 {
   assert(pckt->size() > 0);
 
-  header* eth = (header*) pckt->buffer();
-
-  /** Do we pass on ethernet headers? Probably.
+  pckt = filter_(pckt);
+  if (not pckt)
+    return -1;
+  
+  header* eth = (header*) pckt->buffer();  
+  
+  /** Do we pass on ethernet headers? As for now, yes.
     data += sizeof(header);
     len -= sizeof(header);
-  */
-    
+  */    
   debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
          eth->src.str().c_str(),
          eth->dest.str().c_str(),eth->type); 
@@ -57,15 +61,15 @@ int Ethernet::bottom(Packet_ptr pckt)
 
   case ETH_IP4:
     debug2("IPv4 packet \n");
-    return _ip4_handler(pckt);
+    return ip4_handler_(pckt);
 
   case ETH_IP6:
     debug2("IPv6 packet \n");
-    return _ip6_handler(pckt);
+    return ip6_handler_(pckt);
     
   case ETH_ARP:
     debug2("ARP packet \n");
-    return _arp_handler(pckt);
+    return arp_handler_(pckt);
     
   case ETH_WOL:
     debug2("Wake-on-LAN packet \n");
@@ -77,10 +81,10 @@ int Ethernet::bottom(Packet_ptr pckt)
   default:
 
     // This might be 802.3 LLC traffic
-    if (__builtin_bswap16(eth->type) > 1500){
-      debug("<Ethernet> UNKNOWN ethertype 0x%x\n",__builtin_bswap16(eth->type));
+    if (net::ntohs(eth->type) > 1500){
+      debug("<Ethernet> UNKNOWN ethertype 0x%x\n",ntohs(eth->type));
     }else{
-      debug2("IEEE802.3 Length field: 0x%x\n",__builtin_bswap16(eth->type));
+      debug2("IEEE802.3 Length field: 0x%x\n",ntosh(eth->type));
     }
 
     break;
@@ -98,7 +102,7 @@ int ignore(std::shared_ptr<net::Packet> UNUSED(pckt)){
 Ethernet::Ethernet(addr mac) :
   _mac(mac),
   /** Default initializing to the empty handler. */
-  _ip4_handler(upstream(ignore)),
-  _ip6_handler(upstream(ignore)),
-  _arp_handler(upstream(ignore))
+  ip4_handler_(upstream(ignore)),
+  ip6_handler_(upstream(ignore)),
+  arp_handler_(upstream(ignore))
 {}

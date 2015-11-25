@@ -73,21 +73,27 @@ namespace net {
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
-    { _arp_handler = del; };
+    { arp_handler_ = del; };
   
     /** Delegate upstream IPv4 handler. */
     inline void set_ip4_handler(upstream del)
-    { _ip4_handler = del; };
+    { ip4_handler_ = del; };
   
     /** Delegate upstream IPv6 handler. */
     inline void set_ip6_handler(upstream del)
-    { _ip6_handler = del; };
-  
+    { ip6_handler_ = del; };  
     
     /** Delegate downstream */
     inline void set_physical_out(downstream del)
-    { _physical_out = del; }
-  
+    { physical_out_ = del; }
+    
+    /** Assign a packet filter. 
+	@note : The filter function will be called as early as possible., 
+	i.e. in bottom */
+    inline void set_packet_filter(Packet_filter f)
+    { filter_ = f; }
+    
+    /** @return Mac address of the underlying device */
     inline const addr& mac()
     { return _mac; }
 
@@ -100,12 +106,13 @@ namespace net {
     addr _mac;
 
     // Upstream OUTPUT connections
-    upstream _ip4_handler;
-    upstream _ip6_handler;
-    upstream _arp_handler;
-  
+    upstream ip4_handler_ = [](Packet_ptr)->int{ return 0; };
+    upstream ip6_handler_ = [](Packet_ptr)->int{ return 0; };
+    upstream arp_handler_ = [](Packet_ptr)->int{ return 0; };
+    Packet_filter filter_ = [](Packet_ptr p)->Packet_ptr{ return p; };
+    
     // Downstream OUTPUT connection
-    downstream _physical_out;
+    downstream physical_out_ = [](Packet_ptr)->int{ return 0; };
   
   
     /*
