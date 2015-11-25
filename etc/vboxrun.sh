@@ -43,35 +43,57 @@ targetLoc="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
 # use the default image located in /seed
 [ "$1" != "" ] && disk=$1
 
+# Checks if the VM name parameter $2 is set if not,
+# replace the default VM created by this script
+[ "$2" != "" ] && VMNAME=$2
+
 # Checks if the disk in question is of the .vdi format.
-# if not, we convert it and save it in current dir
+# if not, we convert it and save it in current dir.
+# If the disk is in use by the VM that is selected in $2
+# then we skip and handle the disk exchange later.
+# Else we clone the disk and use it
+DISKUSED="$(VBoxManage list hdds -l | grep "Location:" | awk '{print $2}')"
+DISKUSEDBY="$(VBoxManage list hdds -l | grep "In use by VMs" | awk '{print $5}')"
+
 if [ "$disk" != *".vdi"* ]
 then
 	targetLoc=${disk%.*}
 	targetLoc=${targetLoc##*/}
 	targetLoc+=".vdi"
 	displayLoc=$targetLoc
-	targetLoc="./$targetLoc"
+	targetLoc="$(pwd)/$targetLoc"
 	echo -e "\nCreating VDI image in $(pwd)/$displayLoc...\n"
 	$VB convertfromraw $disk $targetLoc
+elif [ "$DISKUSED" == "$(pwd)/$disk" ] && [ "$DISKUSEDBY" != "$VMNAME" ]
+then
+	targetLoc=${DISKUSED##*/}
+	targetLoc="$(pwd)/$VMNAME-$targetLoc"
+	$VB clonehd "$DISKUSED" "$targetLoc" --format VDI
+else
+	targetLoc="$disk"
 fi
 
-# Checks if the VM name parameter $2 is set if not,
-# replace the default VM created by this script
-[ "$2" != "" ] && VMNAME=$2
+SERIAL_FILE="./$VMNAME.console.pipe"
+if [ -f "./$VMNAME.console.pipe" ]
+then
+	mv "./$VMNAME.console.pipe" "./$VMNAME.console.pipe.old"
+fi
 
-SERIAL_FILE="/tmp/$VMNAME.console.pipe"
+# Checks if the virtualdisk image is in use by another VM
+# if it is, detach it from the VM and replace UUID
+
 
 # Check if VM exists, if yes remove disk and re-attach with a legitimate UUID
 # asks user if the VM should be replaced, if not then exits. Run again with
 # different NAME_OF_VM
 # TODO: MAKE THIS LOGIC WORK & ADD LOGIC TO ALLOW USER TO REPLACE VM NAME ON THE FLY
-vmAlive=$($VB list vms | grep $VMNAME)
+vmAlive=$($VB list vms | grep "$VMNAME")
 
-if [ "$vmAlive" == "$VMNAME" ]
+if [ "$vmAlive" != "" ]
 then
-	echo -e "\nVM already exists, replacing it...\n"
-	$VB controlvm "$VMNAME" poweroff
+	echo -e "\nVM already exists or in use, replacing it...\n"
+# Not sure if needed as the script powers off the VM by default when it finishes
+#	$VB controlvm "$VMNAME" poweroff
 
 # We need to remove the disk and reattach it with a different UUID to calm VirtualBox
 	$VB modifyvm "$VMNAME" --hda none
@@ -79,7 +101,7 @@ then
 	$VB internalcommands sethduuid "$targetLoc"
 	$VB modifyvm "$VMNAME" --hda "$targetLoc"
 else
-	$(rm "$homeDir/VirtualBox VMs/$VMNAME/$VMNAME.vbox")
+	$(rm $homeDir/VirtualBox\ VMs/$VMNAME/$VMNAME.vbox)
 # Creating and registering the VM and adding a virtual IDE drive to it,
 # then attaching the hdd image.
 	echo -e "\nCreating VM: $VMNAME ...\n"
