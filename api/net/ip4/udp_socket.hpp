@@ -30,8 +30,8 @@ namespace net
     {
       on_send = func;
     }
-    int write(addr_t destIP, port_t port, 
-              const void* buffer, int length);
+    int sendto(addr_t destIP, port_t port, 
+               const void* buffer, int length);
     int bcast(addr_t srcIP, port_t port, 
               const void* buffer, int length);
     void close();
@@ -56,8 +56,8 @@ namespace net
     
     Inet<LinkLayer,IP4>& stack;
     port_t l_port;
-    recvfrom_handler on_read;
-    sendto_handler   on_send;
+    recvfrom_handler on_read = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
+    sendto_handler   on_send = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
     
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender

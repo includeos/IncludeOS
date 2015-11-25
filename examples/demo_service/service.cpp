@@ -18,8 +18,9 @@ void Service::start() {
   Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
   
   // Bring up a network stack, attached to the nic
+  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-
+  
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
   inet->network_config( {{ 10,0,0,42 }},      // IP
@@ -27,62 +28,7 @@ void Service::start() {
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
-  // Set a custom packet filter for ethernet
-  inet->link().set_packet_filter([](net::Packet_ptr pckt){      
-      printf("Custom Ethernet Packet filter got %i bytes\n",pckt->size());
-      return pckt;
-    });
-  
-  // Set a custom packet filter for IP
-  inet->ip_obj().set_packet_filter([](net::Packet_ptr pckt){      
-      auto pckt4 = std::static_pointer_cast<net::PacketIP4>(pckt);
-      printf("Custom IP-level Packet filter got %i bytes from %s \n",
-	     pckt->size(), pckt4->src().str().c_str());
-      return pckt;
-    });
-  
-  
-    // after DHCP we would like to do some networking
-  inet->dhclient()->on_config(
-  [] (net::DHClient::Stack& stack)
-  {
-    const std::string hostname = "includeos.org";
-    printf("*** Resolving %s\n", hostname.c_str());
-    
-    // after configuring our device, we will be
-    // resolving some hostname
-    stack.resolve(hostname,
-    [] (net::DNSClient::Stack& stack,
-        const std::string& hostname,
-        net::IP4::addr addr)
-    {
-      // the answer has come through,
-      // verify that the hostname was resolved
-      if (addr == net::IP4::INADDR_ANY)
-      {
-          printf("Failed to resolve %s!\n",
-              hostname.c_str());
-          return;
-      }
-      printf("*** Resolved %s to %s!\n",
-          hostname.c_str(), addr.str().c_str());
-      
-      // we will be sending UDP data to the resolved IP-address
-      const int port = 4444;
-      // sending messages into the ether is important, for science
-      std::string data = "Is anyone there?\n";
-      
-      auto& sock = stack.udp().bind();
-      printf("Sending %u bytes of UDP data to %s:%d from local port %d\n",
-          data.size(), addr.str().c_str(), port, sock.local_port());
-      
-      sock.sendto(addr, port, data.c_str(), data.size());
-      
-      printf("Done. You can Ctrl-A + X now.\n");
-    });
-  });
-  
-  printf("Size of IP-stack: %i bytes \n",sizeof(inet));
+  printf("Size of IP-stack: %i b \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
@@ -93,6 +39,7 @@ void Service::start() {
 
   srand(OS::cycles_since_boot());
   
+  // Add a TCP connection handler - here a hardcoded HTTP-service
   sock.onConnect([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       

@@ -25,6 +25,10 @@ namespace net {
   using downstream = delegate<int(Packet_ptr)>;
   using upstream = downstream;
 
+  
+  /** Packet filter delebgate */
+  using Packet_filter = delegate<Packet_ptr(Packet_ptr)>;
+  
   /** Compute the internet checksum for the buffer / buffer part provided */
   //uint16_t checksum(uint16_t* buf, uint32_t len); 
   uint16_t checksum(void* data, size_t len); 

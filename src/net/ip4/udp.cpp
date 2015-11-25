@@ -28,25 +28,39 @@ int UDP::bottom(Packet_ptr pckt)
 
 SocketUDP& UDP::bind(port_t port)
 {
-  debug("<UDP> Listening to port %i\n", port);
+  debug("<UDP> Binding to port %i\n", port);
   /// ... !!!
   auto it = ports.find(port);
   if (it == ports.end())
   {
     // create new socket
     auto res = ports.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(port),
-        std::forward_as_tuple(stack, port));
+			     std::piecewise_construct,
+			     std::forward_as_tuple(port),
+			     std::forward_as_tuple(stack, port));
     it = res.first;
   }
   return it->second;
 }
+SocketUDP& UDP::bind()
+{  
+
+  if (ports.size() >= 0xfc00)
+    panic("UPD Socket: All ports taken!");  
+
+  debug("UDP finding free ephemeral port\n");  
+  while (ports.find(++currentPort) != ports.end())
+    if (++currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
+  
+  debug("UDP binding to %i port\n", currentPort);
+  return bind(currentPort);
+}
 
 int UDP::transmit(std::shared_ptr<PacketUDP> udp)
 {
-  debug("<UDP> Transmitting %i bytes (big-endian 0x%x) to %s:%i\n",
+  debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
         udp->length(), udp->ip4_segment_size(),
+        udp->src().str().c_str(),
         udp->dst().str().c_str(), udp->dst_port());
   
   assert(udp->length() >= sizeof(UDP::udp_header));

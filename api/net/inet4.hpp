@@ -9,14 +9,15 @@
 #include <net/ip4.hpp>
 #include <net/icmp.hpp>
 #include "ip4/udp.hpp"
+#include "dns/client.hpp"
 #include <net/tcp.hpp>
-
+#include <net/dhcp/dh4client.hpp>
 #include <vector>
 
 #include <nic.hpp>
 
 namespace net {
-     
+  
   /** A complete IP4 network stack */
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
@@ -41,10 +42,13 @@ namespace net {
     { return ip4_; }
     
     /** Get the TCP-object belonging to this stack */
-    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }        
-
+    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }
+        
     /** Get the UDP-object belonging to this stack */
-    inline UDP& udp() override { return udp_; };
+    inline UDP& udp() override { return udp_; }
+
+    /** Get the DHCP client (if any) */
+    inline std::shared_ptr<DHClient> dhclient() override { return dhcp_;  }
     
     /** Create a Packet, with a preallocated buffer.
 	@param size : the "size" reported by the allocated packet. 
@@ -66,27 +70,51 @@ namespace net {
     virtual inline uint16_t MTU() const override
     { return nic_.MTU(); }
     
+    /**
+     * @func  a delegate that provides a hostname and its address, which is 0 if the
+     * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
+    **/
+    inline virtual void
+    resolve(const std::string& hostname,
+            resolve_func<IP4>  func) override
+    {
+      dns.resolve(this->dns_server, hostname, func);
+    }
+    
+    inline virtual void
+    set_dns_server(IP4::addr server) override
+    {
+      this->dns_server = server;
+    }
+    
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
     Inet4(Inet4&&) = delete;
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
     
-    /** Initialize.  */
+    /** Initialize with static IP / netmask */
     Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
     
-  private:
-    virtual void 
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router) override
-    {
-      this->ip4_addr_ = addr;
-      this->netmask_  = nmask;
-      this->router_   = router;
-    }
+    /** Initialize with DHCP  */
+    Inet4(Nic<DRIVER>& nic); 
     
+    virtual void
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
+    {
+      INFO("Inet4", "Reconfiguring network. New IP: %s", addr.str().c_str());
+      this->ip4_addr_  = addr;
+      this->netmask_   = nmask;
+      this->router_    = router;
+      this->dns_server = dns;
+    }
+
+  private:    
+
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr router_;
+    IP4::addr dns_server;
     
     // This is the actual stack
     Nic<DRIVER>& nic_;
@@ -96,9 +124,11 @@ namespace net {
     ICMP icmp_;
     UDP  udp_;
     TCP tcp_;
+    // we need this to store the cache per-stack
+    DNSClient dns;
     
+    std::shared_ptr<net::DHClient> dhcp_{};
     BufferStore& bufstore_;
-    friend class DHClient;
   };
 }
 

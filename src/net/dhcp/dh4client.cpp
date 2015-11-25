@@ -1,4 +1,7 @@
 #define DEBUG
+#include <info>
+#define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
+
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
 #include <os.hpp>
@@ -130,18 +133,16 @@
 
 namespace net
 {
-  static const IP4::addr INADDR_ANY   {{0}};
-  
   inline dhcp_option_t* conv_option(uint8_t* option)
   {
     return (dhcp_option_t*) option;
   }
   
-	void DHClient::negotiate()
+  void DHClient::negotiate()
   {
     // create a random session ID
     this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
-    printf("     [ DHCPv4 ] Negotiating IP-address (xid=%u)\n", xid);
+    MYINFO("Negotiating IP-address (xid=%u)", xid);
     
     // create DHCP discover packet
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -155,10 +156,10 @@ namespace net
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_UNICAST);
-    dhcp->ciaddr = INADDR_ANY;
-    dhcp->yiaddr = INADDR_ANY;
-    dhcp->siaddr = INADDR_ANY;
-    dhcp->giaddr = INADDR_ANY;
+    dhcp->ciaddr = IP4::INADDR_ANY;
+    dhcp->yiaddr = IP4::INADDR_ANY;
+    dhcp->siaddr = IP4::INADDR_ANY;
+    dhcp->giaddr = IP4::INADDR_ANY;
     
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -197,7 +198,7 @@ namespace net
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
     [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
@@ -253,14 +254,14 @@ namespace net
     
     // the offered IP address:
     this->ipaddr = dhcp->yiaddr;
-    printf("     [ DHCPv4 ] IP ADDRESS: \t%s\n",
+    MYINFO("IP ADDRESS: \t%s",
         this->ipaddr.str().c_str());
     
     opt = get_option(dhcp->options, DHO_SUBNET_MASK);
     if (opt->code == DHO_SUBNET_MASK)
     {
       memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
-      printf("     [ DHCPv4 ] SUBNET MASK: \t%s\n",
+      MYINFO("SUBNET MASK: \t%s",
           this->netmask.str().c_str());
     }
     
@@ -268,7 +269,7 @@ namespace net
     if (opt->code == DHO_DHCP_LEASE_TIME)
     {
       memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
-      printf("     [ DHCPv4 ] LEASE TIME: \t%u mins\n", this->lease_time / 60);
+      MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
     
     // now validate the offer, checking for minimum information
@@ -276,7 +277,7 @@ namespace net
     if (opt->code == DHO_ROUTERS)
     {
       memcpy(&this->router, opt->val, sizeof(IP4::addr));
-      printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+      MYINFO("GATEWAY: \t%s",
           this->router.str().c_str());
     }
     // assume that the server we received the request from is the gateway
@@ -286,12 +287,24 @@ namespace net
       if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
       {
         memcpy(&this->router, opt->val, sizeof(IP4::addr));
-        printf("     [ DHCPv4 ] GATEWAY: \t%s\n",
+        MYINFO("GATEWAY: \t%s",
             this->router.str().c_str());
       }
       // silently ignore when both ROUTER and SERVER_ID is missing
       else return;
     }
+    
+    opt = get_option(dhcp->options, DHO_DOMAIN_NAME_SERVERS);
+    if (opt->code == DHO_DOMAIN_NAME_SERVERS)
+    {
+      memcpy(&this->dns_server, opt->val, sizeof(IP4::addr));
+    }
+    else
+    { // just try using ROUTER as DNS server
+      this->dns_server = this->router;
+    }
+    MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
+    
     // we can accept the offer now by requesting the IP!
     this->request(sock);
   }
@@ -311,10 +324,10 @@ namespace net
     resp->secs  = 0;
     resp->flags = htons(BOOTP_UNICAST);
     
-    resp->ciaddr = INADDR_ANY;
-    resp->yiaddr = INADDR_ANY;
-    resp->siaddr = INADDR_ANY;
-    resp->giaddr = INADDR_ANY;
+    resp->ciaddr = IP4::INADDR_ANY;
+    resp->yiaddr = IP4::INADDR_ANY;
+    resp->siaddr = IP4::INADDR_ANY;
+    resp->giaddr = IP4::INADDR_ANY;
     
     // copy our hardware address to chaddr field
     memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -377,7 +390,7 @@ namespace net
     });
     
     // send our DHCP Request
-    sock.bcast(INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
   
   void DHClient::acknowledge(const char* data, int datalen)
@@ -406,9 +419,10 @@ namespace net
     else return;
     
     // configure our network stack
-    printf("     [ DHCPv4 ] Server acknowledged our request!\n");
-    stack.network_config(this->ipaddr, this->netmask, this->router);
+    MYINFO("Server acknowledged our request!");
+    stack.network_config(this->ipaddr, this->netmask, 
+                         this->router, this->dns_server);
     // run some post-DHCP event to release the hounds
-    this->onConfig(stack);
+    this->config_handler(stack);
   }
 }
