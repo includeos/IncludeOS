@@ -5,6 +5,7 @@
 #include <net/ethernet.hpp>
 #include <net/packet.hpp>
 #include <net/util.hpp>
+#include <cassert>
 
 using namespace net;
 

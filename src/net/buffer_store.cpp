@@ -4,6 +4,7 @@
 #include <vector>
 #include <malloc.h>
 #include <net/buffer_store.hpp>
+#include <cassert>
 
 using namespace net;
 

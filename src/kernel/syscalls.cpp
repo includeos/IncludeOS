@@ -95,14 +95,7 @@ int write(int file, const void* ptr, size_t len)
   if (file == syscall_fd and not debug_syscalls)
 		return len;
 	
-	// VGA console output
-	//consoleVGA.write(ptr, len);
-	
-	// serial output
-	for(size_t i = 0; i < len; i++)
-		OS::rswrite( ((char*) ptr)[i] );
-	
-	return len;
+  return OS::rsprint((const char*) ptr, len);
 }
 
 void* sbrk(ptrdiff_t incr)
