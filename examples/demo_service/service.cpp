@@ -40,7 +40,7 @@ void Service::start() {
   srand(OS::cycles_since_boot());
   
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  sock.onConnect([](net::TCP::Socket& conn){
+  sock.onAccept([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
       int color = rand();
