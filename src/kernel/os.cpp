@@ -12,7 +12,10 @@
 
 bool OS::_power = true;
 MHz  OS::_CPU_mhz(0);
-OS::rsprint_func OS::rsprint_handler;
+// we have to initialize delegates?
+OS::rsprint_func OS::rsprint_handler =
+  [](const char*, size_t) {};
+
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
@@ -85,17 +88,12 @@ void OS::event_loop()
 
 size_t OS::rsprint(const char* str)
 {
-  int len = 0;
+  size_t len = 0;
+	// measure length
+  while (str[len++]);
   
-	// serial output
-  while (str[len])
-    rswrite(str[len++]);
-  
-  // call external handler for secondary outputs
-  OS::rsprint_handler(str, len);
-  
-  // return the number of bytes written
-  return len;
+  // call rsprint again with length
+  return rsprint(str, len);
 }
 size_t OS::rsprint(const char* str, size_t len)
 {

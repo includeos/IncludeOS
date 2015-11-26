@@ -1,6 +1,6 @@
 #include <kernel/vga.hpp>
 
-#include <string.h>
+#include <cstring>
 #include <x86intrin.h>
 
 uint16_t make_vgaentry(char c, uint8_t color)
@@ -28,6 +28,11 @@ void ConsoleVGA::putEntryAt(char c, uint8_t color, size_t x, size_t y)
 	const size_t index = y * VGA_WIDTH + x;
 	this->buffer[index] = make_vgaentry(c, color);
 }
+void ConsoleVGA::putEntryAt(char c, size_t x, size_t y)
+{
+	const size_t index = y * VGA_WIDTH + x;
+	this->buffer[index] = make_vgaentry(c, this->color);
+}
 
 void ConsoleVGA::increment(int step)
 {
@@ -39,25 +44,27 @@ void ConsoleVGA::increment(int step)
 }
 void ConsoleVGA::newline()
 {
-	this->column = 0;
+  // reset back to left side
+  this->column = 0;
+  // and finally move everything up one line, if necessary
 	if (++this->row == VGA_HEIGHT)
 	{
 		this->row--;
 		
-		unsigned total = VGA_WIDTH * (VGA_HEIGHT-1);
+    unsigned total = VGA_WIDTH * (VGA_HEIGHT-1);
 		__m128i scan;
 		
 		// copy rows upwards
-		for (unsigned n = 0; n < total; n += 8)
+    for (size_t n = 0; n < total; n += 8)
 		{
 			scan = _mm_load_si128((__m128i*) &buffer[n + VGA_WIDTH]);
 			_mm_store_si128((__m128i*) &buffer[n], scan);
 		}
 		
 		// clear out the last row
-		scan = _mm_set1_epi16(make_vgaentry(' ', this->color));
+    scan = _mm_set1_epi16(32);
 		
-		for (unsigned n = 0; n < VGA_WIDTH; n += 8)
+		for (size_t n = 0; n < VGA_WIDTH; n += 8)
 		{
 			_mm_store_si128((__m128i*) &buffer[total + n], scan);
 		}
@@ -67,9 +74,8 @@ void ConsoleVGA::clear()
 {
 	this->row    = 0;
 	this->column = 0;
-	
-	__m128i scan = _mm_set1_epi16(make_vgaentry(' ', this->color));
-	
+	__m128i scan = _mm_set1_epi16(32);
+  
 	for (size_t y = 0; y < VGA_HEIGHT; y++)
 	for (size_t x = 0; x < VGA_WIDTH;  x += 8)
 	{
@@ -81,14 +87,8 @@ void ConsoleVGA::clear()
 void ConsoleVGA::write(char c)
 {
 	static const char NEWLINE   = '\n';
-	static const char TABULATOR = '\t';
-	//static const char SPACE     = ' ';
 	
-	if (c == TABULATOR)
-	{
-		increment(4);
-	}
-	else if (c == NEWLINE)
+	if (c == NEWLINE)
 	{
 		newline();
 	}
@@ -99,8 +99,8 @@ void ConsoleVGA::write(char c)
 	}
 }
 
-void ConsoleVGA::write(const char* data, int len)
+void ConsoleVGA::write(const char* data, size_t len)
 {
-	for (int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 		write(data[i]);
 }
