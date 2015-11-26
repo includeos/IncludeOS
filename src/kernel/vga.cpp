@@ -44,6 +44,11 @@ void ConsoleVGA::increment(int step)
 }
 void ConsoleVGA::newline()
 {
+  // use whitespace to forceblank the remainder of the line
+  while (this->column < VGA_WIDTH)
+  {
+    putEntryAt(32, this->column++, this->row);
+  }
   // reset back to left side
   this->column = 0;
   // and finally move everything up one line, if necessary

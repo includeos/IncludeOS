@@ -28,8 +28,9 @@ void OS::start()
   extern char    _end;
   MYINFO("Heap start: %p", heap_end);
   MYINFO("Current end is: %p", &_end);
-  asm("cli");  
+  
   //OS::rsprint("  * IRQ handler\n");
+  asm("cli");  
   IRQ_manager::init();
   
   // Initialize the Interval Timer

@@ -1,6 +1,9 @@
 #include <os>
 
 #include <kernel/syscalls.hpp>
+#include <sys/errno.h>
+#include <sys/stat.h>
+#include <fcntl.h> // open()
 #include <string.h>
 #include <signal.h>
 
