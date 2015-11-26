@@ -4,9 +4,9 @@
 #include <common>
 
 // The service- and os classes
-#include "service.hpp"
-#include "os.hpp"
-#include "syscalls.hpp"
-#include "dev.hpp"
+#include "kernel/os.hpp"
+#include "service"
+#include "kernel/syscalls.hpp"
+#include "hw/dev.hpp"
 
 #endif
