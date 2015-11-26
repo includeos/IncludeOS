@@ -10,7 +10,18 @@ using namespace std::chrono;
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-void Service::start() {
+// our VGA output module
+#include <kernel/vga.hpp>
+ConsoleVGA vga;
+
+void Service::start()
+{
+  // set secondary serial output to VGA console module
+  OS::set_rsprint_secondary(
+  [] (const char* string, size_t len)
+  {
+    vga.write(string, len);
+  });
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd

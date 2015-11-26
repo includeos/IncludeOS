@@ -52,6 +52,5 @@ private:
 	uint8_t color;
 	uint16_t* buffer;
 };
-extern ConsoleVGA consoleVGA;
 
 #endif
