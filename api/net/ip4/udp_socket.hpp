@@ -1,25 +1,28 @@
 #ifndef NET_IP4_UDP_SOCKET_HPP
 #define NET_IP4_UDP_SOCKET_HPP
 #include "udp.hpp"
-#include "../socket.hpp"
 #include <string>
 
 namespace net
 {
-  class SocketUDP //: public Socket
+  template <class T>
+  class Socket;
+  
+  template<>
+  class Socket<UDP>
   {
   public:
     typedef UDP::port port_t;
     typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
     
-    typedef delegate<int(SocketUDP&, addr_t, port_t, const char*, int)> recvfrom_handler;
-    typedef delegate<int(SocketUDP&, addr_t, port_t, const char*, int)> sendto_handler;
+    typedef delegate<int(Socket<UDP>&, addr_t, port_t, const char*, int)> recvfrom_handler;
+    typedef delegate<int(Socket<UDP>&, addr_t, port_t, const char*, int)> sendto_handler;
     
     // constructors
-    SocketUDP(Inet<LinkLayer,IP4>&);
-    SocketUDP(Inet<LinkLayer,IP4>&, port_t port);
-    SocketUDP(const SocketUDP&) = delete;
+    Socket<UDP>(Inet<LinkLayer,IP4>&);
+    Socket<UDP>(Inet<LinkLayer,IP4>&, port_t port);
+    Socket<UDP>(const Socket<UDP>&) = delete;
     
     // functions
     inline void onRead(recvfrom_handler func)
@@ -56,8 +59,8 @@ namespace net
     
     Inet<LinkLayer,IP4>& stack;
     port_t l_port;
-    recvfrom_handler on_read = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
-    sendto_handler   on_send = [](SocketUDP&, addr_t, port_t, const char*, int)->int{ return 0; };
+    recvfrom_handler on_read = [](Socket<UDP>&, addr_t, port_t, const char*, int)->int{ return 0; };
+    sendto_handler   on_send = [](Socket<UDP>&, addr_t, port_t, const char*, int)->int{ return 0; };
     
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender

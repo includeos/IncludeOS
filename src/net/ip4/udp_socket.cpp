@@ -3,20 +3,20 @@
 
 namespace net
 {
-  using port_t = SocketUDP::port_t;
+  using port_t = Socket<UDP>::port_t;
   
-  SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack)
+  Socket<UDP>::Socket(Inet<LinkLayer,IP4>& _stack)
     : stack(_stack), l_port(0)  {}
   
-  SocketUDP::SocketUDP(Inet<LinkLayer,IP4>& _stack, port_t port)
+  Socket<UDP>::Socket(Inet<LinkLayer,IP4>& _stack, port_t port)
     : stack(_stack), l_port(port) {}
   
-  int SocketUDP::internal_read(std::shared_ptr<PacketUDP> udp)
+  int Socket<UDP>::internal_read(std::shared_ptr<PacketUDP> udp)
   {
     return on_read(*this, udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
   
-  void SocketUDP::packet_init(std::shared_ptr<PacketUDP> p, 
+  void Socket<UDP>::packet_init(std::shared_ptr<PacketUDP> p, 
       addr_t srcIP, addr_t destIP, port_t port, uint16_t length)
   {
     p->init();
@@ -29,7 +29,7 @@ namespace net
     assert(p->data_length() == length);
   }
   
-  int SocketUDP::internal_write(addr_t srcIP, addr_t destIP,
+  int Socket<UDP>::internal_write(addr_t srcIP, addr_t destIP,
       port_t port, const uint8_t* buffer, int length)
   {
     // the maximum we can write per packet:
@@ -71,13 +71,13 @@ namespace net
     return length;
   } // internal_write()
   
-  int SocketUDP::sendto(addr_t destIP, port_t port, 
+  int Socket<UDP>::sendto(addr_t destIP, port_t port, 
                         const void* buffer, int len)
   {
     return internal_write(local_addr(), destIP, port, 
                           (const uint8_t*) buffer, len);
   }
-  int SocketUDP::bcast(addr_t srcIP, port_t port, 
+  int Socket<UDP>::bcast(addr_t srcIP, port_t port, 
                        const void* buffer, int len)
   {
     return internal_write(srcIP, IP4::INADDR_BCAST, port, 

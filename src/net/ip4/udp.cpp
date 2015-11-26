@@ -26,7 +26,7 @@ int UDP::bottom(Packet_ptr pckt)
   return -1;
 }
 
-SocketUDP& UDP::bind(port_t port)
+UDP::Socket& UDP::bind(port_t port)
 {
   debug("<UDP> Binding to port %i\n", port);
   /// ... !!!
@@ -42,7 +42,7 @@ SocketUDP& UDP::bind(port_t port)
   }
   return it->second;
 }
-SocketUDP& UDP::bind()
+UDP::Socket& UDP::bind()
 {  
 
   if (ports.size() >= 0xfc00)
