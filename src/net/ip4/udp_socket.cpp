@@ -3,9 +3,6 @@
 
 namespace net
 {
-  Socket<UDP>::Socket(Inet<LinkLayer,IP4>& _stack)
-    : stack(_stack), l_port(0)  {}
-  
   Socket<UDP>::Socket(Inet<LinkLayer,IP4>& _stack, port port)
     : stack(_stack), l_port(port) {}
   

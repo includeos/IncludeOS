@@ -20,9 +20,12 @@ namespace net
     typedef delegate<int(Socket<UDP>&, addr, port, const char*, int)> sendto_handler;
     
     // constructors
-    Socket<UDP>(Inet<LinkLayer,IP4>&);
     Socket<UDP>(Inet<LinkLayer,IP4>&, port port);
     Socket<UDP>(const Socket<UDP>&) = delete;
+    // ^ DON'T USE THESE. We could create our own allocators just to prevent
+    // you from creating sockets, but then everyone is wasting time.
+    // These are public to allow us to use emplace(...).
+    // Use Stack.udp().bind(port) to get a valid Socket<UDP> reference.
     
     // functions
     inline void onRead(recvfrom_handler func)
@@ -66,6 +69,7 @@ namespace net
     bool loopback; // true means multicast data is looped back to sender
     
     friend class UDP;
+    friend class std::allocator<Socket>;
   };
 }
 
