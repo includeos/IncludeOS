@@ -1,7 +1,7 @@
-#ifndef CLASS_DISK_HPP
-#define CLASS_DISK_HPP
+#ifndef HW_DISK_HPP
+#define HW_DISK_HPP
 
-#include <pci_device.hpp>
+#include "pci_device.hpp"
 
 /** @Todo : Implement */
 class Block { };
@@ -55,8 +55,6 @@ private:
 
 };
 
-#endif //Class Nic
-
 /** @todo : At least implement virtio block devices. */
 class Virtio_block{
 public: 
@@ -68,4 +66,4 @@ public:
 /** Hopefully somebody will port a driver for this one */
 class IDE;
 
-
+#endif

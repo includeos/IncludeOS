@@ -1,10 +1,8 @@
 //#define DEBUG // Enable debugging
 //#define DEBUG2
-
-
 #include <os>
-#include <irq_manager.hpp>
-#include "hw/pic.hpp"
+#include <kernel/irq_manager.hpp>
+#include <hw/pic.hpp>
 #include <assert.h>
 
 #define IRQ_BASE 32

@@ -22,7 +22,7 @@ namespace net
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
     sock.onRead( [this, hostname, request, func]
-    (SocketUDP&, IP4::addr, UDP::port, const char* data, int) mutable -> int
+    (Socket<UDP>&, IP4::addr, UDP::port, const char* data, int) mutable -> int
     {
       // original request ID = this->id;
       request.parseResponse(data);

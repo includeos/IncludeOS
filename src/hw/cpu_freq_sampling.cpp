@@ -1,10 +1,10 @@
 //#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
+#include <kernel/irq_manager.hpp>
 #include <common>
 #include <vector>
 #include <algorithm>
 #include <os>
-#include <irq_manager.hpp>
 
 /** @note C-style code here, since we're dealing with interrupt handling. 
     The hardware expects a pure function pointer, and asm can't (easily) 

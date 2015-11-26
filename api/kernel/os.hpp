@@ -7,7 +7,7 @@
 
 #include <common>
 #include <string>
-#include <pit.hpp>
+#include "../hw/pit.hpp"
 
 /** The entrypoint for OS services
     

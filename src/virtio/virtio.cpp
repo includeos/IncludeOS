@@ -1,7 +1,6 @@
 #include <virtio/virtio.hpp>
-#include <syscalls.hpp>
-//#include <virtio/virtio.h>
-#include <irq_manager.hpp>
+#include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
 #include <assert.h>
 
 void Virtio::set_irq(){

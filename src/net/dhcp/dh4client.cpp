@@ -4,7 +4,7 @@
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
-#include <os.hpp>
+#include <kernel/os.hpp> // OS::cycles_since_boot()
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -201,7 +201,7 @@ namespace net
     socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
-    [this] (SocketUDP& sock, IP4::addr addr, UDP::port port, 
+    [this] (Socket<UDP>& sock, IP4::addr addr, UDP::port port, 
             const char* data, int len) -> int
     {
       (void) addr;
@@ -227,7 +227,7 @@ namespace net
     return opt;
   }
   
-  void DHClient::offer(SocketUDP& sock, const char* data, int datalen)
+  void DHClient::offer(Socket<UDP>& sock, const char* data, int datalen)
   {
     (void) datalen;
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
@@ -309,7 +309,7 @@ namespace net
     this->request(sock);
   }
   
-  void DHClient::request(SocketUDP& sock)
+  void DHClient::request(Socket<UDP>& sock)
   {
     // form a response
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -375,7 +375,7 @@ namespace net
     
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.onRead(
-    [this] (SocketUDP&, IP4::addr addr, UDP::port port, 
+    [this] (Socket<UDP>&, IP4::addr addr, UDP::port port, 
             const char* data, int len) -> int
     {
       (void) addr;

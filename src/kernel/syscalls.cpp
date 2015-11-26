@@ -1,6 +1,6 @@
 #include <os>
 
-#include <syscalls.hpp>
+#include <kernel/syscalls.hpp>
 #include <string.h>
 #include <signal.h>
 
