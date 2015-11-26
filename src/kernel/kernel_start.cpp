@@ -11,26 +11,15 @@ extern "C"
   void init_serial();
   int  is_transmit_empty();
   void write_serial(char a);
-  void rswrite(char c);  
-  void rsprint(const char* ptr);
   
 #ifdef DEBUG
   const int _test_glob = 123;
-#endif
   int _test_constructor = 0;
+#endif
   
-  void enableSSE()
+  // enables Streaming SIMD Extensions
+  static void enableSSE(void)
   {
-	/*
-	 * mov eax, cr0
-	 * and ax, 0xFFFB	;clear coprocessor emulation CR0.EM
-	 * or ax, 0x2		;set coprocessor monitoring  CR0.MP
-	 * mov cr0, eax
-	 * mov eax, cr4
-	 * or ax, 3 << 9	;set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-	 * mov cr4, eax 
-	*/
-    // enable Streaming SIMD Extensions
     __asm__ ("mov %cr0, %eax");
     __asm__ ("and $0xFFFB,%ax");
     __asm__ ("or  $0x2,   %ax");
@@ -49,11 +38,10 @@ extern "C"
   }
 #endif
   
-  
   void _start(void)
   {    
     __asm__ volatile ("cli");
-
+    
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
@@ -64,9 +52,13 @@ extern "C"
     // OS::rsprint("Booting...");
     
     // Initialize stack-unwinder, call global constructors etc.
-    debug("\t * Initializing C-environment... \n");
+    #ifdef DEBUG
+      OS::rsprint("\t * Initializing C-environment... \n");
+    #endif
     _init_c_runtime();
-
+    // we can't initialize it before we are here
+    OS::set_rsprint_secondary([] (const char*, size_t) {});
+    
     FILLINE('=');
     CAPTION("#include<os> // Literally");
     FILLINE('=');
@@ -108,7 +100,6 @@ extern "C"
     outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
   }
   
-
   int is_transmit_empty() {
     return inb(SERIAL_PORT + 5) & 0x20;
   }
@@ -117,20 +108,5 @@ extern "C"
     while (is_transmit_empty() == 0);
     
     outb(SERIAL_PORT, a);
-  }
-  
-  void rswrite(char c)
-  {
-    /* Wait for the previous character to be sent */
-    while ((inb(0x3FD) & 0x20) != 0x20);
-    
-    /* Send the character */
-    outb(0x3F8, c);
-  }
-  
-  void rsprint(const char* ptr)
-  {
-    while (*ptr)
-      write_serial(*(ptr++));  
   }
 }

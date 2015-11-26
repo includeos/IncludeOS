@@ -1,9 +1,7 @@
-#include <vga.hpp>
+#include <kernel/vga.hpp>
 
 #include <string.h>
 #include <x86intrin.h>
-
-ConsoleVGA consoleVGA;
 
 uint16_t make_vgaentry(char c, uint8_t color)
 {
