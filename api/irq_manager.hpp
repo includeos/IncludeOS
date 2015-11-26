@@ -2,10 +2,8 @@
 #define CLASS_IRQ_MANAGER_H
 
 #include <os.hpp>
-#include "irq/pic_defs.h"
-
 #include <delegate>
-//#include <hw/pic.h>
+#include <hw/pic.hpp>
 
 /*
   IDT Type flags  
