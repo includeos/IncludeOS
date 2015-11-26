@@ -1,7 +1,6 @@
 #include <common>
-#include <pci_device.hpp>
-#include <syscalls.hpp>
-//#include <class_nic.hpp>
+#include <hw/pci_device.hpp>
+#include <kernel/syscalls.hpp>
 #include <assert.h>
 
 

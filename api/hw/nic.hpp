@@ -1,11 +1,10 @@
-#ifndef NIC_HPP
-#define NIC_HPP
+#ifndef HW_NIC_HPP
+#define HW_NIC_HPP
 
-#include <pci_device.hpp>
-
-#include <net/ethernet.hpp>
-#include <net/inet_common.hpp>
-#include <net/buffer_store.hpp>
+#include "pci_device.hpp"
+#include "../net/ethernet.hpp"
+#include "../net/inet_common.hpp"
+#include "../net/buffer_store.hpp"
 
 /** A public interface for Network cards
     

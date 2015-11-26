@@ -2,10 +2,9 @@
 //#define DEBUG2
 
 #include <virtio/virtio.hpp>
+#include <kernel/syscalls.hpp>
 #include <malloc.h>
 #include <string.h>
-#include <syscalls.hpp>
-//#include <virtio/virtio.h>
 #include <assert.h>
 
 

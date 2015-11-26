@@ -1,12 +1,11 @@
 #ifndef CLASS_DEV_H
 #define CLASS_DEV_H
 
-
 #include <common>
-#include <pci_manager.hpp>
-#include <nic.hpp>
-#include <pit.hpp>
-#include <disk.hpp>
+#include "pci_manager.hpp"
+#include "nic.hpp"
+#include "pit.hpp"
+#include "disk.hpp"
 #include <virtio/virtionet.hpp>
 
 /** @todo Impement */

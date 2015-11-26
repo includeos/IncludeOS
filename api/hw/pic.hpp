@@ -1,8 +1,7 @@
 #ifndef HW_PIC_HPP
 #define HW_PIC_HPP
 
-#include <os.hpp>
-
+#include "../kernel/os.hpp"
 
 class PIC {
   static const uint8_t master_ctrl = 0x20;
