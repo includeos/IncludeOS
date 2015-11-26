@@ -99,7 +99,7 @@ void Service::start()
     });
   });
   
-  printf("Size of IP-stack: %i bytes \n",sizeof(inet));
+  printf("Size of IP-stack: %i bytes \n",sizeof(*inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
