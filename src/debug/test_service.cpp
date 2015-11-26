@@ -41,6 +41,12 @@ void Service::start() {
       return pckt;
     });
   
+  inet->tcp().connect({{ 10,0,0,1 }}, 4242, [](net::TCP::Socket& conn){
+      printf("TCP Connected to .... some IP. Data: '%s'\n", conn.read(1024).c_str()); 
+      conn.write("Hello!\n");
+      conn.close();
+  });
+    
   
     // after DHCP we would like to do some networking
   inet->dhclient()->on_config(

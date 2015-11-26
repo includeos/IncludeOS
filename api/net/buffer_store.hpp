@@ -15,7 +15,7 @@ namespace net{
     size_t device_offset_ = 0;
     net::buffer pool_ = 0;
     std::deque<buffer> available_buffers_; 
-
+    
   public:
     
     using release_del = delegate<void(net::buffer, size_t)>;
@@ -46,6 +46,10 @@ namespace net{
     /** Return a buffer, offset by offset_ bytes from actual buffer. */
     void release_offset_buffer(buffer b, size_t);
     
+    /** @return the total buffer capacity in bytes */
+    inline size_t capacity(){
+      return available_buffers_.size() * bufsize_;
+    }
     
     /** Check if a buffer belongs here */
     inline bool address_is_from_pool(buffer addr)

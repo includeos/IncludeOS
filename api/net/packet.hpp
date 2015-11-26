@@ -10,7 +10,7 @@ namespace net {
   /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
   void default_release(net::buffer, size_t);
   
-  class Packet {
+  class Packet : public std::enable_shared_from_this<Packet> {
   public:
     static const int MTU = 1500;
     

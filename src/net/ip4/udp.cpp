@@ -50,7 +50,7 @@ SocketUDP& UDP::bind()
 
   debug("UDP finding free ephemeral port\n");  
   while (ports.find(++currentPort) != ports.end())
-    if (++currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
+    if (currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
   
   debug("UDP binding to %i port\n", currentPort);
   return bind(currentPort);

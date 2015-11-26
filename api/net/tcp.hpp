@@ -12,8 +12,13 @@ namespace net {
   /** TCP support. @note Most TCP state logic is implemented inside the TCP::Socket. */
   class TCP{
   public:
-    typedef uint16_t port;
+    using Port =  uint16_t;
 
+    struct Designation {
+      IP4::addr ip;
+      Port port;
+    };
+    
     enum Flag {
       NS = (1 << 8),
       CWR = (1 << 7),
@@ -26,11 +31,12 @@ namespace net {
       FIN = 1,
     };
 
+    static constexpr uint16_t default_window_size = 0xffff;
     
     /** TCP header */    
     struct tcp_header {
-      port sport;
-      port dport;
+      Port sport;
+      Port dport;
       uint32_t seq_nr;
       uint32_t ack_nr;
       union {
@@ -93,6 +99,8 @@ namespace net {
     TCP(TCP&) = delete;
     TCP(TCP&&) = delete;
     
+    using IPStack = Inet<LinkLayer,IP4>;
+    
     //////////////////////////////////////////////////////////////////
     /** TCP Sockets, implementing most of the TCP state-machine logic. */
     class Socket {
@@ -101,7 +109,7 @@ namespace net {
 	CLOSED, LISTEN, SYN_SENT, SYN_RECIEVED, ESTABLISHED, 
 	CLOSE_WAIT, LAST_ACK, FIN_WAIT1, FIN_WAIT2,CLOSING,TIME_WAIT
       };
-      
+            
       // Common parts
       std::string read(int n=0);
       void write(std::string s);
@@ -114,43 +122,48 @@ namespace net {
       inline void ack_keepalive(bool ack){ ack_keepalive_ = ack; }
       
       // Connections (accepted sockets) will be delegated to this kind of handler
-      typedef delegate<void(Socket&)> connection_handler;
+      using connection_handler = delegate<void(Socket&)> ;
       
-      // This is the default handler
+      // This is the default handlero
       inline void drop(Socket&){ debug("<Socket::drop> Default handler dropping connection \n"); }
       
       // Our version of "Accept"
       inline void onAccept(connection_handler handler){
 	debug("<TCP::Socket> Registered new connection handler \n");
 	accept_handler_ = handler;
-      }      
+      }
       
       void listen(int backlog);      
       
       /** Constructor for server socket */
-      Socket(TCP& stack);      
+      Socket(IPStack& stack);      
       
       /** Constructor for connections */
-      Socket(TCP& local_stack, port local_port, State state);
+      Socket(IPStack& local_stack_, Port local_port, State state);
       
       // IP-stack wiring, analogous to the rest of IncludeOS IP-stack objects
       int bottom(Packet_ptr pckt); 
-
+      
+      
+      // Initiate a connection, by sending a SYN-packet.
+      // @Warning : This is intended for internal use by the TCP stack
+      void syn(IP4::addr, Port);
+            
 
     private:      
       
       // A private constructor for allowing a listening socket to create connections
-      Socket(TCP& local_stack, port local, IP4::addr remote_ip, port remote_port, 
+      Socket(IPStack& local_stack_, Port local, IP4::addr remote_ip, Port remote_port, 
 	     State, connection_handler, uint32_t initial_seq_nr_);
 
       size_t backlog_ = 1000;
       
       // Local end (Local IP is determined by the TCP-object)
-      TCP& local_stack_;
-      port local_port_;      
+      IPStack& local_stack_;
+      Port local_port_;      
       // Remote end
       IP4::addr remote_addr_;
-      port remote_port_;
+      Port remote_port_;
       
       
       // Initial outbound sequence number
@@ -175,7 +188,7 @@ namespace net {
       
       // General ack-function- for syn-ack, fin-ack, ack etc. Pass in the flags you want.
       void ack(Packet_ptr pckt, uint16_t FLAGS = ACK);
-      
+            
       // Fill the packet with buffered data. 
       int fill(Packet_ptr pckt);
       
@@ -187,13 +200,13 @@ namespace net {
       
       // Transmission happens out through TCP& object
       //int transmit(Packet_ptr pckt);
-      std::map<std::pair<IP4::addr,port>, Socket > connections;
+      std::map<std::pair<IP4::addr,Port>, Socket > connections;
       
     }; // Socket class end
     //////////////////////////////////////////////////////////////////
     
-    Socket& bind(port);
-    Socket& connect(IP4::addr, port);
+    Socket& bind(Port);
+    Socket& connect(IP4::addr, Port, Socket::connection_handler);
     inline size_t openPorts(){ return listeners.size(); }
     
     /** Delegate output to network layer */
@@ -205,23 +218,25 @@ namespace net {
     int bottom(Packet_ptr pckt);    
 
     
+    // Compute the TCP checksum
+    static uint16_t checksum(const Packet_ptr);
+            
+    
     TCP(Inet<LinkLayer,IP4>&);
     
   private:
     
-    Inet<LinkLayer,IP4>& inet_;
+    IPStack& inet_;
     
     size_t socket_backlog = 1000;
     const IP4::addr& local_ip_;
     
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object
-    std::map<port, Socket> listeners;
+    std::map<Port, Socket> listeners;
     downstream _network_layer_out;
     
-    // Compute the TCP checksum
-    uint16_t checksum(Packet_ptr);
-            
+    Port current_ephemeral_ = 1024;
     // Get the length of actual data in bytes
     static inline uint16_t data_length(Packet_ptr pckt){
       return pckt->size() - tcp_hdr(pckt)->all_headers_len();
