@@ -1,6 +1,7 @@
 #include <os>
 #include <stdio.h>
 #include <vector>
+#include <iostream>
 
 using namespace std::chrono;
 
@@ -10,11 +11,13 @@ void Service::start()
   std::vector<int> integers={1,2,3};
   
   printf("TESTING Timers \n");
-    auto& time = PIT::instance();
+  auto& time = PIT::instance();
   
-
+  
+  int x = 42;
+  
   // Write something in a while
-  time.onTimeout(7s, [](){ printf("7 seconds passed...\n"); });
+  time.onTimeout(7s, [x](){ printf("7 seconds passed...%i \n",x); });
   
   // Write a dot in a second
   time.onTimeout(1s, [](){ printf("One second passed...\n"); });

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-extern "C" void panic(const char*);
+extern "C" void panic(const char*) __attribute__((noreturn));
 
 
 void __default_quick_exit(){

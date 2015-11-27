@@ -1,20 +1,22 @@
-//#define DEBUG
-//#define DEBUG2
+#define DEBUG
+#define DEBUG2
 
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
+#include <net/packet.hpp>
+#include <net/ip4/packet_tcp.hpp>
 
 using namespace net;
 
-TCP::TCP(IP4::addr ip)
-  : local_ip_(ip), listeners()
+TCP::TCP(Inet<LinkLayer,IP4>& inet)
+  : inet_(inet), local_ip_(inet.ip_addr()), listeners()
 {
   debug2("<TCP::TCP> Instantiating. Open ports: %i \n", listeners.size()); 
 }
 
 
-TCP::Socket& TCP::bind(port p){
+TCP::Socket& TCP::bind(Port p){
   auto listener = listeners.find(p);
   
   if (listener != listeners.end())
@@ -23,7 +25,7 @@ TCP::Socket& TCP::bind(port p){
   debug("<TCP bind> listening to port %i \n",p);
   // Create a socket and allow it to know about this stack
   
-  listeners.emplace(p,TCP::Socket(*this, p, TCP::Socket::CLOSED));
+  listeners.emplace(p,TCP::Socket(inet_, p, TCP::Socket::CLOSED));
 
   listeners.at(p).listen(socket_backlog);
   
@@ -32,8 +34,29 @@ TCP::Socket& TCP::bind(port p){
   return listeners.at(p);
 }
 
+TCP::Socket& TCP::connect(IP4::addr ip, Port p, net::TCP::Socket::connection_handler handler){
+  debug("<TCP connect> Connecting to %s : %i \n", ip.str().c_str(), p);
+  
+  if (listeners.size() >= 0xfc00)
+    panic("TCP Socket: All ports taken!");  
 
-uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){  
+  debug("<TCP> finding free ephemeral port\n");  
+  while (listeners.find(++current_ephemeral_) != listeners.end())
+    if (current_ephemeral_  == 0) current_ephemeral_ = 1025; // prevent automatic ports under 1024
+  
+  debug("<TCP> Picked ephemeral port %i \n", current_ephemeral_);
+  auto& sock = bind(current_ephemeral_);
+  
+  sock.onAccept(handler);
+  
+  sock.syn(ip, p);
+  
+  return sock;
+  
+}
+
+
+uint16_t TCP::checksum(Packet_ptr pckt){  
   // Size has to be fetched from the frame
   
   full_header* hdr = (full_header*)pckt->buffer();
@@ -86,8 +109,11 @@ uint16_t TCP::checksum(std::shared_ptr<Packet>& pckt){
 }
 
 
-
-int TCP::transmit(std::shared_ptr<Packet>& pckt){
+int TCP::transmit(Packet_ptr pckt){
+  
+  auto tcp_pckt = std::static_pointer_cast<PacketIP4> (pckt);
+  
+  //pckt->init();  
   
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr->tcp_hdr);
@@ -102,23 +128,21 @@ int TCP::transmit(std::shared_ptr<Packet>& pckt){
 };
 
 
-int TCP::bottom(std::shared_ptr<Packet>& pckt){
- 
+int TCP::bottom(Packet_ptr pckt){
+  
+  auto pckt4 = std::static_pointer_cast<TCP_packet>(pckt);
   debug("<TCP::bottom> Upstream TCP-packet received, to TCP @ %p \n", this);
   debug("<TCP::bottom> There are %i open ports \n", listeners.size());
   
-  full_header* full_hdr = (full_header*)pckt->buffer();
-  tcp_header* hdr = &full_hdr->tcp_hdr;
-
   if (checksum(pckt))
     debug("<TCP::bottom> WARNING: Incoming TCP Packet checksum is not 0. Continuing.\n");
   
-  debug("<TCP::bottom> Incoming packet TCP-checksum: 0x%x \n", ntohs(checksum(pckt)));
+  debug("<TCP::bottom> Incoming packet TCP-checksum: 0x%x \n", pckt4->gen_checksum());
   
   debug("<TCP::bottom> Destination port: %i, Source port: %i \n", 
-	ntohs(hdr->dport), ntohs(hdr->sport));
+	pckt4->dst_port(), pckt4->src_port());
   
-  auto listener = listeners.find(ntohs(hdr->dport));
+  auto listener = listeners.find(pckt4->dst_port());
   
   if (listener == listeners.end()){
     debug("<TCP::bottom> Nobody's listening to this port. Ignoring");
@@ -126,8 +150,16 @@ int TCP::bottom(std::shared_ptr<Packet>& pckt){
     return 0;
   }
   
-  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket",listener->second.poll());
+  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket \n",listener->second.poll());
   
+  // If reset flag is set, delete the connection.
+  // @todo publish an onClose-event here
+  if (pckt4->isset(TCP::RST)) {
+    debug("<TCP::bottom> But it's a RESET-packet, so closing \n");
+    listeners.erase(listener);
+    return 0;    
+  }
+          
   // Pass the packet up to the listening socket
   (*listener).second.bottom(pckt);
   

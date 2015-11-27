@@ -1,8 +1,19 @@
 // -*-C++-*-
 #pragma once
 
-#ifdef INFO
-#define INFO(X,...)  printf(X,##__VA_ARGS__);
-#else 
-#define INFO(X,...) 
+#define LINEWIDTH 80
+
+#ifndef NO_INFO
+#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__);
+#define INFO2(TEXT, ...) printf("%16s" TEXT "\n"," ", ##__VA_ARGS__);
+#define CAPTION(TEXT) printf("\n%*s%*s\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
+#include <string>
+#define FILLINE(CHAR) printf("%s\n",std::string(LINEWIDTH,CHAR).c_str());
+#define CHECK(TEST, TEXT, ...) printf("%16s[%s] " TEXT "\n","", TEST ? "x" : " ",  ##__VA_ARGS__);
+#else
+#define INFO(X,...)
+#define INFO2(X,...)
+#define CAPTION(TEXT,...)
+#define FILLINE(CHAR) 
+#define CHECK(X,...)
 #endif

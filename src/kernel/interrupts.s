@@ -1,5 +1,5 @@
 //Macros require compilation with the '-x assembler-with-cpp' option
-#include "irq/pic_defs.h"
+#include "pic_defs.h"
 #define PIC_PORT $0x20
 #define SIG_EOI $0x20
 

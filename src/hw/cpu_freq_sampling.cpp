@@ -1,10 +1,10 @@
 //#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
+#include <kernel/irq_manager.hpp>
 #include <common>
 #include <vector>
 #include <algorithm>
 #include <os>
-#include <irq_manager.hpp>
 
 /** @note C-style code here, since we're dealing with interrupt handling. 
     The hardware expects a pure function pointer, and asm can't (easily) 
@@ -39,13 +39,13 @@ MHz calculate_cpu_frequency(){
   
   // Subtract the time it takes to measure time :-)
   auto t1 = OS::cycles_since_boot();
-  volatile auto t2 = OS::cycles_since_boot();
+  OS::cycles_since_boot();
   auto t3 = OS::cycles_since_boot();
   auto overhead = (t3 - t1) * 2;
   
   debug ("Overhead: %lu \n", (uint32_t)overhead);
   
-  for (int i = 1; i < _cpu_timestamps.size(); i++){
+  for (size_t i = 1; i < _cpu_timestamps.size(); i++){
     // Compute delta in cycles
     auto cycles = _cpu_timestamps[i] - _cpu_timestamps[i-1] + overhead;
     // Cycles pr. second == Hertz

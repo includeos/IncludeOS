@@ -71,6 +71,12 @@ else
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
 fi
 
+echo -e "\n\n>>> Building IncludeOS"
+pushd $INCLUDEOS_SRC/src
+make -j
+make install
+popd
+
 echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
 pushd $INCLUDEOS_SRC/vmbuild
 make
@@ -82,7 +88,7 @@ sudo $INCLUDEOS_SRC/etc/create_bridge.sh
 
 mkdir -p $INCLUDEOS_HOME/etc
 cp $INCLUDEOS_SRC/etc/qemu-ifup $INCLUDEOS_HOME/etc/
-
+cp $INCLUDEOS_SRC/etc/qemu_cmd.sh $INCLUDEOS_HOME/etc/
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 

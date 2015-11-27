@@ -4,7 +4,6 @@
 #include <net/inet_common.hpp>
 #include <delegate>
 #include <string>
-#include <iostream>
 //#include <net/class_packet.hpp>
 
 
@@ -36,6 +35,12 @@ namespace net {
       inline bool operator == (addr& mac)
       { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
       
+      inline addr& operator=(addr cpy){ 
+	minor = cpy.minor;
+	major = cpy.major;
+	return *this;
+      }
+      
       static const addr MULTICAST_FRAME;
       static const addr BROADCAST_FRAME;
       static const addr IPv6mcast_01, IPv6mcast_02;
@@ -64,30 +69,36 @@ namespace net {
     static constexpr int minimum_payload = 46;
   
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    int bottom(std::shared_ptr<Packet>& pckt);
+    int bottom(Packet_ptr pckt);
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
-    { _arp_handler = del; };
+    { arp_handler_ = del; };
   
     /** Delegate upstream IPv4 handler. */
     inline void set_ip4_handler(upstream del)
-    { _ip4_handler = del; };
+    { ip4_handler_ = del; };
   
     /** Delegate upstream IPv6 handler. */
     inline void set_ip6_handler(upstream del)
-    { _ip6_handler = del; };
-  
+    { ip6_handler_ = del; };  
     
     /** Delegate downstream */
     inline void set_physical_out(downstream del)
-    { _physical_out = del; }
-  
-    inline addr mac()
+    { physical_out_ = del; }
+    
+    /** Assign a packet filter. 
+	@note : The filter function will be called as early as possible., 
+	i.e. in bottom */
+    inline void set_packet_filter(Packet_filter f)
+    { filter_ = f; }
+    
+    /** @return Mac address of the underlying device */
+    inline const addr& mac()
     { return _mac; }
 
     /** Transmit data, with preallocated space for eth.header */
-    int transmit(std::shared_ptr<Packet>& pckt);
+    int transmit(Packet_ptr pckt);
   
     Ethernet(addr mac);
 
@@ -95,12 +106,13 @@ namespace net {
     addr _mac;
 
     // Upstream OUTPUT connections
-    upstream _ip4_handler;
-    upstream _ip6_handler;
-    upstream _arp_handler;
-  
+    upstream ip4_handler_ = [](Packet_ptr)->int{ return 0; };
+    upstream ip6_handler_ = [](Packet_ptr)->int{ return 0; };
+    upstream arp_handler_ = [](Packet_ptr)->int{ return 0; };
+    Packet_filter filter_ = [](Packet_ptr p)->Packet_ptr{ return p; };
+    
     // Downstream OUTPUT connection
-    downstream _physical_out;
+    downstream physical_out_ = [](Packet_ptr)->int{ return 0; };
   
   
     /*
@@ -114,8 +126,6 @@ namespace net {
     */
   
 };
-
-std::ostream& operator<<(std::ostream& out,Ethernet::addr& mac);
 
 } // ~net
 

@@ -1,0 +1,6 @@
+#ifndef SERVICE_HEADER
+#define SERVICE_HEADER
+
+#include "kernel/service.hpp"
+
+#endif

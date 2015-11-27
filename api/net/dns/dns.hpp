@@ -32,7 +32,7 @@
  * 
  **/
 
-#include <net/udp.hpp> // UDP headers
+#include <net/ip4.hpp> // UDP headers
 #include <string>
 #include <vector>
 #include <functional>
@@ -133,28 +133,36 @@ namespace net
     {
     public:
       int  create(char* buffer, const std::string& hostname);
-      bool parseResponse(char* buffer);
+      bool parseResponse(const char* buffer);
       void print(char* buffer);
       
       const std::string& getHostname() const
       {
         return this->hostname;
       }
+      IP4::addr getFirstIP4() const
+      {
+        IP4::addr result{{0}};
+        if (answers.size())
+            result = answers[0].getIP4();
+        return result;
+      }
       
     private:
       struct rr_t // resource record
       {
-        rr_t(char*& reader, char* buffer);
+        rr_t(const char*& reader, const char* buffer);
         
         std::string name;
         std::string rdata;
         rr_data resource;
         
-        void print();
+        IP4::addr getIP4() const;
+        void      print();
         
       private:
         // decompress names in 3www6google3com format
-        std::string readName(char* reader, char* buffer, int& count);
+        std::string readName(const char* reader, const char* buffer, int& count);
       };
       
       unsigned short generateID()
@@ -164,8 +172,8 @@ namespace net
       }
       void dnsNameFormat(char* dns);
       
-      std::string hostname;
-      question* qinfo;
+      unsigned short id;
+      std::string    hostname;
       
       std::vector<rr_t> answers;
       std::vector<rr_t> auth;

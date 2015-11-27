@@ -12,11 +12,10 @@
      
      In the following abbreviated to Virtio 1.03 or Virtio std.          
 */
+#ifndef VIRTIO_VIRTIO_HPP
+#define VIRTIO_VIRTIO_HPP
 
-#ifndef CLASS_VIRTIO_HPP
-#define CLASS_VIRTIO_HPP
-#include <pci_device.hpp>
-//#include <virtio/virtio.h>
+#include "../hw/pci_device.hpp"
 #include <delegate>
 #include <stdint.h>
 
@@ -261,7 +260,7 @@ public:
       Should conform to Virtio std. §3.1.1, steps 1-6  
       (Step 7 is "Device specific" which a subclass will handle)
   */
-  Virtio(PCI_Device* pci);
+  Virtio(PCI_Device& pci);
 
 private:
   //PCI memer as reference (so no indirection overhead)

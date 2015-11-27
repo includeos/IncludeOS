@@ -57,7 +57,7 @@ namespace net
     return next;
   }
   
-	int IP6::bottom(std::shared_ptr<Packet>& pckt)
+	int IP6::bottom(Packet_ptr pckt)
 	{
     debug(">>> IPv6 packet:");
     
@@ -126,7 +126,9 @@ namespace net
   {
     // arbitrarily big buffer
     uint8_t* data = new uint8_t[1500];
-    Packet* packet = new Packet(data, sizeof(data), Packet::AVAILABLE);
+    
+    // @WARNING: Initializing packet as "full", i.e. size == capacity
+    Packet* packet = new Packet(data, sizeof(data),sizeof(data));
     
     IP6::full_header& full = *(IP6::full_header*) packet->buffer();
     // people dont think that it be, but it do

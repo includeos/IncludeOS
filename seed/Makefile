@@ -8,11 +8,18 @@ SERVICE = My_IncludeOS_Service
 # Your service parts
 FILES = service.cpp
 
+# IncludeOS location
+ifndef INCLUDEOS_INSTALL
+	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+endif
+
+# Shorter name
+INSTALL = $(INCLUDEOS_INSTALL)
+
 # Compiler/Linker
 ###################################################
-INSTALL = ../../IncludeOS_install
 
-OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign
+OPTIONS = -Ofast -msse3 -Wall -Wextra -mstackrealign 
 
 # External Libraries
 ###################################################
@@ -25,14 +32,14 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
 
 
 INC_NEWLIB=$(INSTALL)/newlib/include
-INC_LIBCXX=$(
+INC_LIBCXX=$(INSTALL)/libcxx/include
 
 DEBUG_OPTS = -ggdb3 -v
 
 CPP = clang++-3.6 -target i686-elf
 LD  = ld 
 
-INCLUDES = -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/libcxx/include
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api 
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -55,7 +62,7 @@ CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) 
+OBJS  = $(FILES:.cpp=.o) .service_name.o
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
@@ -90,6 +97,9 @@ service.o: service.cpp
 	@echo "\n>> Compiling the service"
 	$(CPP) $(CPPOPTS) -o $@ $<
 
+.service_name.o: $(INSTALL)/service_name.cpp
+	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE)\"" -o $@ $<
+
 # Link the service with the os
 service: $(OBJS) $(LIBS) 
 	@echo "\n>> Linking service with OS"
@@ -119,8 +129,6 @@ crt%.o: $(INSTALL)/crt/crt%.s
 ###################################################
 clean: 
 	$(RM) $(OBJS) $(DEPS) $(SERVICE) 
-	$(RM) $(SERVICE).img $(SERVICE).img.vdi $(SERVICE).img.vmdk $(SERVICE).img.qcow2
-	$(RM) crti.o crtn.o 
-	$(RM) $(DEPS) crti.d crtn.d
+	$(RM) $(SERVICE).img
 
 -include $(DEPS)

@@ -1,6 +1,6 @@
 #pragma once
 #include <hertz>
-#include <pit.hpp>
+#include <hw/pit.hpp>
 /** Proper IRQ-handler for CPU frequency sampling - implemented in interrupts.s
     @Note 
     PIT::estimateCPUFrequency() will register- /de-register this as needed */

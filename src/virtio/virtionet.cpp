@@ -1,11 +1,13 @@
+#define PRINT_INFO
 #define DEBUG // Allow debuging 
 //#define DEBUG2
 
 #include <virtio/virtionet.hpp>
-//#include <virtio/virtio.h>
-#include <irq_manager.hpp>
+#include <net/packet.hpp>
+
+#include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
 #include <stdio.h>
-#include <syscalls.hpp>
 #include <malloc.h>
 #include <string.h>
 
@@ -13,7 +15,6 @@ using namespace net;
 
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }  
-const char* VirtioNet::mac_str(){ return _mac_str; }
 
 void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
@@ -24,15 +25,15 @@ int drop(std::shared_ptr<Packet> UNUSED(pckt)){
   return -1;
 }
 
-VirtioNet::VirtioNet(PCI_Device* d)
-  : Virtio(d),     
+VirtioNet::VirtioNet(PCI_Device& d)
+  : Virtio(d),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(net::upstream(drop))
 {
   
-  printf("\n>>> VirtioNet driver initializing \n");
+  INFO("VirtioNet", "Driver initializing");
   
   uint32_t needed_features = 0 
     | (1 << VIRTIO_NET_F_MAC)
@@ -48,65 +49,62 @@ VirtioNet::VirtioNet(PCI_Device* d)
   negotiate_features(wanted_features);
   
   
-  printf("\t [%s] Negotiated needed features \n",
-         (features() & needed_features) == needed_features ? "x" : " " );
+  CHECK ((features() & needed_features) == needed_features,
+	 "Negotiated needed features");
   
-  printf("\t [%s] Negotiated wanted features \n",
-         (features() & wanted_features) == wanted_features ? "x" : " " );
+  CHECK ((features() & wanted_features) == wanted_features,
+	 "Negotiated wanted features");
 
-  printf("\t [%s] Device handles packets w. partial checksum \n",
-         features() & (1 << VIRTIO_NET_F_CSUM) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_CSUM),
+	"Device handles packets w. partial checksum");
 
-  printf("\t [%s] Guest handles packets w. partial checksum \n",
-         features() & (1 << VIRTIO_NET_F_GUEST_CSUM) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_GUEST_CSUM),
+	"Guest handles packets w. partial checksum");
 
-  printf("\t [%s] There's a control queue \n",
-         features() & (1 << VIRTIO_NET_F_CTRL_VQ) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_CTRL_VQ),
+       "There's a control queue");
 
-  printf("\t [%s] Queue can handle any header/data layout \n",
-         features() & (1 << VIRTIO_F_ANY_LAYOUT) ? "x" : "0" );
-
-  printf("\t [%s] We can use indirect descriptors \n",
-         features() & (1 << VIRTIO_F_RING_INDIRECT_DESC) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_F_ANY_LAYOUT), 
+       "Queue can handle any header/data layout");
   
-  printf("\t [%s] There's a Ring Event Index to use \n",
-         features() & (1 << VIRTIO_F_RING_EVENT_IDX) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_F_RING_INDIRECT_DESC),
+	"We can use indirect descriptors");
+  
+  CHECK(features() & (1 << VIRTIO_F_RING_EVENT_IDX),
+	"There's a Ring Event Index to use");
 
-  printf("\t [%s] There are multiple queue pairs \n",
-         features() & (1 << VIRTIO_NET_F_MQ) ? "x" : "0" );
+  CHECK(features() & (1 << VIRTIO_NET_F_MQ),
+	"There are multiple queue pairs")
      
   if (features() & (1 << VIRTIO_NET_F_MQ))
-    printf("\t      max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);  
-  
-
-  printf("\t [%s] Merge RX buffers  \n",
-         features() & (1 << VIRTIO_NET_F_MRG_RXBUF) ? "x" : "0" );
+    printf("\t\t* max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);
+    
+  CHECK(features() & (1 << VIRTIO_NET_F_MRG_RXBUF),
+	"Merge RX buffers");
   
    
   // Step 1 - Initialize RX/TX queues
-  printf("\t [%s] RX queue assigned (0x%lx) to device \n",
-         assign_queue(0, (uint32_t)rx_q.queue_desc()) ? "x":" ",
-         (uint32_t)rx_q.queue_desc());
+  auto success = assign_queue(0, (uint32_t)rx_q.queue_desc());
+  CHECK(success, "RX queue assigned (0x%x) to device",
+	(uint32_t)rx_q.queue_desc());
   
-  printf("\t [%s] TX queue assigned (0x%lx) to device \n",
-         assign_queue(1, (uint32_t)tx_q.queue_desc()) ? "x":" ",
-         (uint32_t)tx_q.queue_desc());
-
+  success = assign_queue(1, (uint32_t)tx_q.queue_desc()); 
+  CHECK(success, "TX queue assigned (0x%x) to device",
+	(uint32_t)tx_q.queue_desc());
   
   // Step 2 - Initialize Ctrl-queue if it exists
-  if (features() & (1 << VIRTIO_NET_F_CTRL_VQ))
-    printf("\t [%s] CTRL queue assigned (0x%lx) to device \n",
-           assign_queue(2, (uint32_t)tx_q.queue_desc()) ? "x":" ",
-           (uint32_t)ctrl_q.queue_desc());
+  if (features() & (1 << VIRTIO_NET_F_CTRL_VQ)) {
+    success = assign_queue(2, (uint32_t)tx_q.queue_desc());
+    CHECK(success, "CTRL queue assigned (0x%x) to device",
+	  (uint32_t)ctrl_q.queue_desc());
+  }
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  printf(" >> Adding %i receive buffers of size %li \n", 
-         rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
-  for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
-  //add_receive_buffer();
-
+  INFO("VirtioNet", "Adding %i receive buffers of size %i",
+       rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
   
+  for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -120,51 +118,28 @@ VirtioNet::VirtioNet(PCI_Device* d)
   // Step 6 - get the status - demanding this as well.
   // Getting the MAC + status 
   get_config();  
-  printf((uint32_t)_conf.mac.major > 0 ? "\t [*] Mac address: %s \n" : 
-         "\t [ ] No mac address? : \n",_conf.mac.str().c_str());
+  
+  CHECK(_conf.mac.major > 0, "Valid Mac address: %s", 
+	_conf.mac.str().c_str());
 
  
   // Step 7 - 9 - GSO: @todo Not using GSO features yet. 
 
   // Signal setup complete. 
-  
-  // DEBUG - disable this
   setup_complete((features() & needed_features) == needed_features);
-
-  printf("\t [%s] Signalled driver OK \n",
-         (features() & needed_features) == needed_features ? "*": " ");
-  
+  CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
   
   // Hook up IRQ handler
-  //auto del=delegate::from_method<VirtioNet,&VirtioNet::irq_handler>(this);  
   auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
   IRQ_manager::subscribe(irq(),del);
   IRQ_manager::enable_irq(irq());  
-  
-   
-  // Assign Link-layer output to RX Queue
-  //rx_q.set_data_handler(_link_out);
-  
-  printf("\t [%s] Link up \n",_conf.status & 1 ? "*":" ");
     
+  // Done
+  INFO("VirtioNet", "Driver initialization complete");
+  CHECK(_conf.status & 1, "Link up\n");    
   rx_q.kick();
   
-  // Done
-  printf("\n >> Driver initialization complete. \n\n");  
 
-  // Test stransmission
-  /*
-  uint8_t buf[100] = {0};
-  memset(buf,0,100);
-  Ethernet::header* hdr = (Ethernet::header*)buf;
-  hdr->src = {0x8,0x0,0x27,0x9d,0x86,0xe8};
-  hdr->dest = {0x8,0x0,0x27,0xac,0x54,0x90};
-  hdr->type = Ethernet::ETH_ARP;
-  
-  linklayer_in(buf,100);
-  //add_send_buffer();
-  tx_q.kick();*/
-  
 };  
 
 /** Port-ish from SanOS */
@@ -173,46 +148,20 @@ int VirtioNet::add_receive_buffer(){
   scatterlist sg[2];  
   
   // Virtio Std. § 5.1.6.3
-  uint8_t* buf = (uint8_t*)malloc(MTUSIZE + sizeof(virtio_net_hdr));  
-  //uint8_t* buf = (uint8_t*)malloc(MTUSIZE);
-  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n",(uint32_t)buf);
-  memset(buf,0,MTUSIZE+sizeof(virtio_net_hdr));
+  auto buf = bufstore_.get_raw_buffer();
   
-  if(!buf) panic("Couldn't allocate memory for VirtioNet RX buffer");
+  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n", (uint32_t)buf);
   
   hdr = (virtio_net_hdr*)buf;
   
-  //hdr->hdr_len = sizeof(virtio_net_hdr);
-  //hdr->num_buffers = 1;
-  
-  
   sg[0].data = hdr;
   
-  //Wow, using separate empty header doesn't work for RX, but it works for TX...
+  //NOTE: using separate empty header doesn't work for RX, but it works for TX...
   //sg[0].data = (void*)&empty_header; 
   sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = MTUSIZE; // + sizeof(virtio_net_hdr);
-  rx_q.enqueue(sg, 0, 2,buf);
-  
-  //printf("Buffer data: %s \n",(char*)sg[1].data);
-  
-  return 0;
-}
-
-int VirtioNet::add_receive_buffer(uint8_t* buf, int len){
-  
-  scatterlist sg[2];  
-  
-  // Wow, see above; separate empty header only works for TX in Qemu
-  //sg[0].data = (void*)&empty_header;
-  sg[0].data = buf;
-  sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = len - sizeof(virtio_net_hdr);
-  rx_q.enqueue(sg, 0, 2,0);
-  
-  debug2("<VirtioNet> Added receive buffer \n");
+  sg[1].size = MTUSIZE; 
+  rx_q.enqueue(sg, 0, 2,buf);  
   
   return 0;
 }
@@ -266,24 +215,25 @@ void VirtioNet::service_RX(){
   uint8_t* data;
   
   rx_q.disable_interrupts();
-  // We need a zipper
+  // A zipper, alternating between sending and receiving
   while(rx_q.new_incoming() or tx_q.new_incoming()){
     
     // Do one RX-packet
     if (rx_q.new_incoming() ){
       data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
       
-      // We're passing a stack-pointer here. That's dangerous if the packet 
-      // is supposed to be kept, somewhere up the stack. 
       auto pckt_ptr = std::make_shared<Packet>
-        (Packet(data+sizeof(virtio_net_hdr), len - sizeof(virtio_net_hdr), Packet::UPSTREAM));
+        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offset)
+	 MTU()-sizeof(virtio_net_hdr), // Capacity
+	 len - sizeof(virtio_net_hdr), release_buffer); // Size
       
       _link_out(pckt_ptr); 
     
-      // Requeue the buffer
-      add_receive_buffer(data,MTUSIZE + sizeof(virtio_net_hdr));
+      // Requeue a new buffer 
+      add_receive_buffer();
+      
       i++;
-
+      
     }
     debug2("<VirtioNet> Service loop about to kick RX if %i \n",i);
 
@@ -326,7 +276,7 @@ extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
 
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
+int VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
 
 
@@ -339,7 +289,7 @@ int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
       following descriptors." 
       
       VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to 
-      support VirtualBox (allthough VirtualBox won't eat my packets anyway)
+      support VirtualBox 
   */
 
   // A scatterlist for virtio-header + data
@@ -349,7 +299,7 @@ int VirtioNet::transmit(std::shared_ptr<net::Packet>& pckt){
   sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = (void*)pckt->buffer();
-  sg[1].size = pckt->len();
+  sg[1].size = pckt->size();
   
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(sg, 2, 0, 0);

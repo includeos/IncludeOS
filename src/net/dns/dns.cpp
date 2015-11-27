@@ -4,7 +4,6 @@
 #include <net/util.hpp>
 
 #include <string>
-//#include <iostream>
 
 using namespace std;
 
@@ -30,8 +29,10 @@ namespace net
     debug("Request ID: %i \n", htons(hdr.id));
     debug("\t Type: %s \n", (hdr.qr ? "RESPONSE" : "QUERY"));
     
+#ifdef DEBUG
     unsigned short qno = ntohs(hdr.q_count);
     debug("Questions: %i \n ", qno);
+#endif
     
     char* buffer = (char*) &hdr + sizeof(header);
     
@@ -39,17 +40,18 @@ namespace net
     char* query = buffer;
     
     std::string parsed_query = parse_dns_query((unsigned char*) query);
-    debug("Question: %s", parsed_query.c_str());
+    debug("Question: %s\n", parsed_query.c_str());
     
     buffer += parsed_query.size() + 1; // zero-terminated
     
+#ifdef DEBUG
     question& q = *(question*) buffer;
-    
     unsigned short qtype  = ntohs(q.qtype);
     unsigned short qclass = ntohs(q.qclass);
     
     debug("Type:  %s (%i)",DNS::question_string(qtype).c_str(), qtype);
     debug("\t Class: %s (%i)",((qclass == 1) ? "INET" : "Unknown class"),qclass);
+#endif
     
     // go to next question (assuming 1 question!!!!)
     buffer += sizeof(question);
@@ -121,10 +123,11 @@ namespace net
     this->answers.clear();
     this->auth.clear();
     this->addit.clear();
+    this->id = generateID();
     
     // fill with DNS request data
     DNS::header* dns = (DNS::header*) buffer;
-    dns->id = htons(generateID());
+    dns->id = htons(this->id);
     dns->qr = DNS_QR_QUERY;
     dns->opcode = 0;       // standard query
     dns->aa = 0;           // not Authoritative
@@ -149,7 +152,8 @@ namespace net
     int namelen = strlen(qname) + 1;
     
     // set question to Internet A record
-    this->qinfo   = (DNS::question*) (qname + namelen);
+    DNS::question* qinfo;
+    qinfo   = (DNS::question*) (qname + namelen);
     qinfo->qtype  = htons(DNS_TYPE_A); // ipv4 address
     qinfo->qclass = htons(DNS_CLASS_INET);
     
@@ -158,12 +162,15 @@ namespace net
   }
 
   // parse received message (as put into buffer)
-  bool DNS::Request::parseResponse(char* buffer)
+  bool DNS::Request::parseResponse(const char* buffer)
   {
-    header* dns = (header*) buffer;
+    const header* dns = (const header*) buffer;
     
     // move ahead of the dns header and the query field
-    char* reader = ((char*) this->qinfo) + sizeof(question);
+    const char* reader = buffer + sizeof(DNS::header);
+    while (*reader) reader++;
+    // .. and past the original question
+    reader += sizeof(DNS::question);
     
     // parse answers
     for(int i = 0; i < ntohs(dns->ans_count); i++)
@@ -227,7 +234,7 @@ namespace net
       *dns++ = '\0';
   }
   
-  DNS::Request::rr_t::rr_t(char*& reader, char* buffer)
+  DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer)
   {
     int stop;
     
@@ -252,6 +259,21 @@ namespace net
     }
   }
   
+  IP4::addr DNS::Request::rr_t::getIP4() const
+  {
+    switch (ntohs(resource.type))
+    {
+    case DNS_TYPE_A:
+    {
+      IP4::addr* addr = (IP4::addr*) rdata.c_str();
+      return *addr;
+    }
+    case DNS_TYPE_ALIAS:
+    case DNS_TYPE_NS:
+    default:
+      return IP4::addr{{0}};
+    }
+  }
   void DNS::Request::rr_t::print()
   {
     printf("Name: %s ", name.c_str());
@@ -275,7 +297,7 @@ namespace net
     printf("\n");
   }
   
-  std::string DNS::Request::rr_t::readName(char* reader, char* buffer, int& count)
+  std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, int& count)
   {
     std::string name(256, '\0');
     unsigned p = 0;
