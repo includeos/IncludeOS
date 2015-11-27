@@ -1,11 +1,5 @@
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/fcntl.h>
-#include <sys/times.h>
-#include <sys/errno.h>
-#include <sys/time.h>
-#include <stdio.h>
+#ifndef KERNEL_SYSCALLS_HPP
+#define KERNEL_SYSCALLS_HPP
 
 #include <sys/unistd.h>
 
@@ -15,5 +9,4 @@ extern "C"
   void panic(const char* why) __attribute__((noreturn));
 }
 
-//Compiler says this is already declared in <sys/time.h>
-//int gettimeofday(struct timeval *p, struct timezone *z);
+#endif
