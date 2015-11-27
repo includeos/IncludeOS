@@ -32,7 +32,7 @@ class delegate<R (A...)>
 
 public:
   delegate() {
-    *this = [](A...)->R{};
+    *this = [](A...)->R{ return R(); };
   }
 
   delegate(delegate const&) = default;
