@@ -186,6 +186,7 @@ clean_tests:
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
+	$(RM) libc++abi.a
 	$(RM) bootloader	
 
 -include $(OS_DEPS)
