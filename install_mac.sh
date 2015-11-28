@@ -84,31 +84,39 @@ mkdir -p $INCLUDEOS_BUILD
 ## Download
 BINUTILS_RELEASE=binutils-2.25
 filename_binutils=$BINUTILS_RELEASE".tar.gz"
-echo -e "\n>> Downloading $BINUTILS_RELEASE"
-curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils # IncludeOS_build/binutils-2.25.tar.gz
-
-## Unzip
-pushd $INCLUDEOS_BUILD
-gzip -c $filename_binutils | tar xopf -
+if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
+then 
+    echo -e "\n>> $BINUTILS_RELEASE already downloaded."
+else
+    echo -e "\n>> Downloading $BINUTILS_RELEASE"
+    curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils # IncludeOS_build/binutils-2.25.tar.gz
+    ## Unzip
+    gzip -c $INCLUDEOS_BUILD/$filename_binutils | tar xopf - -C $INCLUDEOS_BUILD
+fi
 
 export BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
-## Configure
 LINKER_PREFIX=i686-elf-
-pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE # cd IncludeOS_build/binutils-2.25/
-echo -e "\n>> Installing binutils in $BINUTILS_DIR"
-./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
-## Install
-make --silent
-make install
-
 # Export variables
 BINUTILS_BIN=$BINUTILS_DIR/bin
 export INCLUDEOS_LINKER=$BINUTILS_BIN/$LINKER_PREFIX"ld"
 export INCLUDEOS_ARCHIVER=$BINUTILS_BIN/$LINKER_PREFIX"ar"
-echo -e "\n>> Done installing Binutils."
 
-popd
-popd
+if [ -e $INCLUDEOS_LINKER ]
+then
+    echo -e "\n>> Found linker, assuming $BINUTILS_RELEASE is already installed."
+else
+    ## Configure
+    pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE # cd IncludeOS_build/binutils-2.25/
+    echo -e "\n>> Installing binutils in $BINUTILS_DIR"
+    ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
+    ## Install
+    make -j4 --silent
+    make install
+    popd
+fi
+
+
+echo -e "\n>> Done installing Binutils."
 
 ### End Binutils ###
 
