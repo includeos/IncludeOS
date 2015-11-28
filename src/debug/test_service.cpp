@@ -10,7 +10,18 @@ using namespace std::chrono;
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-void Service::start() {
+// our VGA output module
+#include <kernel/vga.hpp>
+ConsoleVGA vga;
+
+void Service::start()
+{
+  // set secondary serial output to VGA console module
+  OS::set_rsprint_secondary(
+  [] (const char* string, size_t len)
+  {
+    vga.write(string, len);
+  });
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -41,6 +52,12 @@ void Service::start() {
       return pckt;
     });
   
+  inet->tcp().connect({{ 10,0,0,1 }}, 4242, [](net::TCP::Socket& conn){
+      printf("TCP Connected to .... some IP. Data: '%s'\n", conn.read(1024).c_str()); 
+      conn.write("Hello!\n");
+      conn.close();
+  });
+    
   
     // after DHCP we would like to do some networking
   inet->dhclient()->on_config(
@@ -82,7 +99,7 @@ void Service::start() {
     });
   });
   
-  printf("Size of IP-stack: %i bytes \n",sizeof(inet));
+  printf("Size of IP-stack: %i bytes \n",sizeof(*inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
@@ -93,7 +110,7 @@ void Service::start() {
 
   srand(OS::cycles_since_boot());
   
-  sock.onConnect([](net::TCP::Socket& conn){
+  sock.onAccept([](net::TCP::Socket& conn){
       printf("SERVICE got data: %s \n",conn.read(1024).c_str());
       
       int color = rand();

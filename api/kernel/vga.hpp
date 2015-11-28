@@ -34,7 +34,7 @@ public:
 	
 	ConsoleVGA();
 	
-	void write(const char* data, int len);
+	void write(const char* data, size_t len);
 	void setColor(uint8_t color);
 	void clear();
 	
@@ -44,6 +44,7 @@ public:
 private:
 	void write(char);
 	void putEntryAt(char, uint8_t color, size_t x, size_t y);
+  void putEntryAt(char, size_t x, size_t y);
 	void increment(int step);
 	void newline();
 	
@@ -52,6 +53,5 @@ private:
 	uint8_t color;
 	uint16_t* buffer;
 };
-extern ConsoleVGA consoleVGA;
 
 #endif

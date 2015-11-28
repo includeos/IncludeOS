@@ -10,19 +10,15 @@
      
      ...Alas, nobody's using it yet, so we're stuck with "legacy" for now.
 */
-     
-
-#ifndef CLASS_VIRTIONET_H
-#define CLASS_VIRTIONET_H
-
+#ifndef VIRTIO_VIRTIONET_HPP
+#define VIRTIO_VIRTIONET_HPP
 
 #include <common>
-#include <pci_device.hpp>
-#include <virtio/virtio.hpp>
+#include "../hw/pci_device.hpp"
+#include "virtio.hpp"
+#include "../net/ethernet.hpp"
+#include "../net/buffer_store.hpp"
 #include <delegate>
-
-#include <net/ethernet.hpp>
-#include <net/buffer_store.hpp>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 

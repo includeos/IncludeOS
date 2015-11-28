@@ -1,12 +1,10 @@
-#pragma once
+#ifndef HW_PCI_MANAGER_HPP
+#define HW_PCI_MANAGER_HPP
 
+#include "pci_device.hpp"
 #include <vector>
 #include <unordered_map>
-
-#include <pci_device.hpp>
-
-#include <stdio.h>
-#include <syscalls.hpp>
+#include <cstdio>
 
   
 class PCI_Device;
@@ -37,3 +35,5 @@ public:
   friend class OS;  
   
 };
+
+#endif

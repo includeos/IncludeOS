@@ -1,5 +1,5 @@
-#ifndef CLASS_OS_H
-#define CLASS_OS_H
+#ifndef KERNEL_OS_HPP
+#define KERNEL_OS_HPP
 
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
@@ -7,8 +7,7 @@
 
 #include <common>
 #include <string>
-#include <assert.h>
-#include <pit.hpp>
+#include "../hw/pit.hpp"
 
 /** The entrypoint for OS services
     
@@ -17,6 +16,7 @@
 class OS{
   
  public:     
+  typedef delegate<void(const char*, size_t)> rsprint_func;
   
   // No copy or move
   OS(OS&) = delete;
@@ -54,12 +54,13 @@ class OS{
   /** Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
       @param ptr : the string to write to serial port
   */
-  static int rsprint(const char* ptr);
-
+  static size_t rsprint(const char* ptr);
+  static size_t rsprint(const char* ptr, size_t len);
+  
   /** Write a character to serial port. @todo Should be moved Dev::serial(n) 
       @param c : The character to print to serial port
   */
-  static int rswrite(char c);
+  static void rswrite(char c);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();
@@ -70,9 +71,15 @@ class OS{
       we'll stay asleep. 
    */
   static void halt();  
-
-
-  // PRIVATE
+  
+  /** Set handler for secondary serial output.
+      This handler is called in addition to writing to the serial port.
+   */
+  static void set_rsprint_secondary(rsprint_func func)
+  {
+    rsprint_handler = func;
+  }
+  
 private:  
   
   /** Indicate if the OS is running. */
@@ -82,9 +89,8 @@ private:
   static void event_loop();
   
   static MHz _CPU_mhz;
-
   
-  
+  static rsprint_func rsprint_handler;
 };
 
 

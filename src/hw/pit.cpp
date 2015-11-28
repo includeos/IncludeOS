@@ -1,9 +1,9 @@
 //#define DEBUG 
 // #define DEBUG2
+#include <hw/pit.hpp>
 #include <os>
-#include <pit.hpp>
-#include <irq_manager.hpp>
 #include <hw/cpu_freq_sampling.hpp>
+#include <kernel/irq_manager.hpp>
 
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"
 // Bit 4-5: Both set, access mode "Lobyte / Hibyte"

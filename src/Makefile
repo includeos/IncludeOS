@@ -63,11 +63,11 @@ LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = 	kernel/kernel_start.o kernel/syscalls.o \
+OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/rdrand.o \
-		kernel/irq_manager.o kernel/pci_manager.o kernel/pit.o \
+		kernel/irq_manager.o kernel/pci_manager.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
-		hw/pic_sanos.o hw/pci_device.o hw/cpu_freq_sampling.o \
+		hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \

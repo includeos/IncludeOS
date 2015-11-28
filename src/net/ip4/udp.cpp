@@ -26,7 +26,7 @@ int UDP::bottom(Packet_ptr pckt)
   return -1;
 }
 
-SocketUDP& UDP::bind(port_t port)
+UDP::Socket& UDP::bind(port_t port)
 {
   debug("<UDP> Binding to port %i\n", port);
   /// ... !!!
@@ -42,7 +42,7 @@ SocketUDP& UDP::bind(port_t port)
   }
   return it->second;
 }
-SocketUDP& UDP::bind()
+UDP::Socket& UDP::bind()
 {  
 
   if (ports.size() >= 0xfc00)
@@ -50,7 +50,7 @@ SocketUDP& UDP::bind()
 
   debug("UDP finding free ephemeral port\n");  
   while (ports.find(++currentPort) != ports.end())
-    if (++currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
+    if (currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
   
   debug("UDP binding to %i port\n", currentPort);
   return bind(currentPort);

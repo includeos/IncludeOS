@@ -1,10 +1,8 @@
 //#define DEBUG // Enable debugging
 //#define DEBUG2
-
-
 #include <os>
-#include <irq_manager.hpp>
-#include "hw/pic.h"
+#include <kernel/irq_manager.hpp>
+#include <hw/pic.hpp>
 #include <assert.h>
 
 #define IRQ_BASE 32
@@ -42,38 +40,6 @@ bool cpuHasAPIC()
   return edx & CPUID_FEAT_EDX_APIC;
 }
 
-#define PIC1 0x20
-#define PIC2 0xA0
-#define PIC1_CMD PIC1
-#define PIC2_CMD PIC2
-#define PIC_READ_IRR 0x0a    /* OCW3 irq ready next CMD read */
-#define PIC_READ_ISR 0x0b    /* OCW3 irq service next CMD read */
-#define PIC_EOI 0x20
-
- 
-/* Helper func */
-static uint16_t __pic_get_irq_reg(int ocw3)
-{
-  /* OCW3 to PIC CMD to get the register values.  PIC2 is chained, and
-   * represents IRQs 8-15.  PIC1 is IRQs 0-7, with 2 being the chain */
-  OS::outb(PIC1_CMD, ocw3);
-  OS::outb(PIC2_CMD, ocw3);
-  return (OS::inb(PIC2_CMD) << 8) | OS::inb(PIC1_CMD);
-}
- 
-/* Returns the combined value of the cascaded PICs irq request register */
-uint16_t pic_get_irr(void)
-{
-  return __pic_get_irq_reg(PIC_READ_IRR);
-}
- 
-/* Returns the combined value of the cascaded PICs in-service register */
-uint16_t pic_get_isr(void)
-{
-  return __pic_get_irq_reg(PIC_READ_ISR);
-}
-
-
 extern char _end;
 
 /** Default Exception-handler, which just prints its number
@@ -85,12 +51,6 @@ extern char _end;
     kill(1,9); \
   }
 
-
-void eoi2(uint8_t irq){
-  if (irq >= 8)
-    OS::outb(PIC2_COMMAND,PIC_EOI);
-  OS::outb(PIC1_COMMAND,PIC_EOI);
-}
 
 /** Atomically increment i.  */
 inline void ainc(uint32_t& i){
@@ -223,7 +183,7 @@ void IRQ_manager::init()
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
      
   //Initialize the interrupt controller
-  init_pic();
+  PIC::init();
      
   //Register the timer and enable / unmask it in the pic
   //set_handler(32,irq_timer_entry);
@@ -278,16 +238,9 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
   return irq_delegates[irq];
 };
 
-static void set_intr_mask(unsigned long mask) {
-  OS::outb(PIC_MSTR_MASK, (unsigned char) mask);
-  OS::outb(PIC_SLV_MASK, (unsigned char) (mask >> 8));
-}
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  irq_mask &= ~(1 << irq);
-  if (irq >= 8) irq_mask &= ~(1 << 2);
-  set_intr_mask(irq_mask);
-  INFO2("+ Enabling IRQ %i, mask: 0x%x",irq, irq_mask);
+  PIC::enable_irq(irq);
 }
 
 int IRQ_manager::timer_interrupts=0;
@@ -358,15 +311,13 @@ void IRQ_manager::notify(){
 
 
 void IRQ_manager::eoi(uint8_t irq){
-  if (irq >= 8)
-    OS::outb(PIC2_COMMAND,PIC_EOI);
-  OS::outb(PIC1_COMMAND,PIC_EOI);
+  PIC::eoi(irq);
 }
 
 void irq_default_handler(){ 
   // Now we don't really know the IRQ number, 
   // but we can guess by looking at ISR
-  uint16_t isr=pic_get_isr();
+  uint16_t isr=PIC::get_isr();
   //uint16_t irr=pic_get_irr(); //IRR would give us more than we want
   
   printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x \n",isr,bsr(isr));  

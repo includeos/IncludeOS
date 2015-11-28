@@ -1,7 +1,6 @@
-#ifndef CLASS_ARP_HPP
-#define CLASS_ARP_HPP
+#ifndef NET_ARP_HPP
+#define NET_ARP_HPP
 
-#include <os.hpp>
 #include <delegate>
 #include <net/ip4.hpp>
 #include <net/inet.hpp>

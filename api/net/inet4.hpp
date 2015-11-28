@@ -1,20 +1,19 @@
 #ifndef NET_INET4_HPP
 #define NET_INET4_HPP
 
-#include <syscalls.hpp> // panic()
-#include <dev.hpp> // 107: auto& eth0 = Dev::eth(0);
-#include <net/inet.hpp>
-#include <net/ethernet.hpp>
-#include <net/arp.hpp>
-#include <net/ip4.hpp>
-#include <net/icmp.hpp>
+#include <kernel/syscalls.hpp> // panic()
+#include <hw/dev.hpp> // 107: auto& eth0 = Dev::eth(0);
+#include <hw/nic.hpp>
+#include "inet.hpp"
+#include "ethernet.hpp"
+#include "arp.hpp"
+#include "ip4.hpp"
+#include "icmp.hpp"
 #include "ip4/udp.hpp"
 #include "dns/client.hpp"
-#include <net/tcp.hpp>
-#include <net/dhcp/dh4client.hpp>
+#include "tcp.hpp"
+#include "dhcp/dh4client.hpp"
 #include <vector>
-
-#include <nic.hpp>
 
 namespace net {
   

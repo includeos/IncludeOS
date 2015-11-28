@@ -1,13 +1,10 @@
 #include <assert.h>
 #include <common>
 
-#include <pci_manager.hpp>
-#include <pci_device.hpp>
-
-
+#include <hw/pci_manager.hpp>
+#include <hw/pci_device.hpp>
 
 #define NUM_BUSES 2;
-
 
 std::unordered_map<PCI::classcode_t, std::vector<PCI_Device> > PCI_manager::devices;
 

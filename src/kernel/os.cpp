@@ -4,15 +4,18 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <service.hpp>
-
 // A private class to handle IRQ
-#include <irq_manager.hpp>
-#include <pci_manager.hpp>
+#include <kernel/irq_manager.hpp>
+#include <hw/pci_manager.hpp>
+#include <service>
 #include <stdlib.h>
 
 bool OS::_power = true;
 MHz  OS::_CPU_mhz(0);
+// we have to initialize delegates?
+OS::rsprint_func OS::rsprint_handler =
+  [](const char*, size_t) {};
+
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start()
@@ -25,8 +28,9 @@ void OS::start()
   extern char    _end;
   MYINFO("Heap start: %p", heap_end);
   MYINFO("Current end is: %p", &_end);
-  asm("cli");  
+  
   //OS::rsprint("  * IRQ handler\n");
+  asm("cli");  
   IRQ_manager::init();
   
   // Initialize the Interval Timer
@@ -67,13 +71,10 @@ double OS::uptime(){
 
 void OS::event_loop()
 {
-
   FILLINE('=');
   printf(" IncludeOS %s \n",version().c_str());
   printf(" +--> Running [ %s ] \n", Service::name().c_str());
   FILLINE('~');
-
-
   
   while (_power)
   {
@@ -86,15 +87,26 @@ void OS::event_loop()
   //Service::stop();
 }
 
-int OS::rsprint(const char* str)
+size_t OS::rsprint(const char* str)
 {
-  int len = 0;
-  while (str[len])
-    rswrite(str[len++]);
+  size_t len = 0;
+	// measure length
+  while (str[len++]);
   
-  return len;
+  // call rsprint again with length
+  return rsprint(str, len);
 }
-
+size_t OS::rsprint(const char* str, size_t len)
+{
+	// serial output
+	for(size_t i = 0; i < len; i++)
+		rswrite(str[i]);
+	
+  // call external handler for secondary outputs
+  OS::rsprint_handler(str, len);
+	
+	return len;
+}
 
 /* STEAL: Read byte from I/O address space */
 uint8_t OS::inb(int port)
@@ -114,13 +126,11 @@ void OS::outb(int port, uint8_t data) {
 /* 
  * STEAL: Print to serial port 0x3F8
  */
-int OS::rswrite(char c)
+void OS::rswrite(char c)
 {
   /* Wait for the previous character to be sent */
   while ((inb(0x3FD) & 0x20) != 0x20);
 
   /* Send the character */
   outb(0x3F8, c);
-
-  return 1;
 }

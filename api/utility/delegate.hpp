@@ -1,11 +1,12 @@
 /*
-  C++ Delegates
+  "The fastest possible C++ Delegates" in C++11
   From http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
   Retreived: 18.09.2014
   Author: 'user1095108' (http://codereview.stackexchange.com/users/15768/user1095108)
   
   Licence: Assumed to be public domain.
 
+  ...It's just awesome how people make great stuff and just post it  
  */
 
 #ifndef OSABI_DELEGATE_HPP
@@ -30,7 +31,9 @@ class delegate<R (A...)>
   }
 
 public:
-  delegate() = default;
+  delegate() {
+    *this = [](A...)->R{ return R(); };
+  }
 
   delegate(delegate const&) = default;
 

@@ -5,9 +5,9 @@
 #include <virtio/virtionet.hpp>
 #include <net/packet.hpp>
 
-#include <irq_manager.hpp>
+#include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
 #include <stdio.h>
-#include <syscalls.hpp>
 #include <malloc.h>
 #include <string.h>
 

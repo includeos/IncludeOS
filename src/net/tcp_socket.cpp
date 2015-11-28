@@ -1,32 +1,33 @@
-#define DEBUG
+#define DEBUG 1
 #define DEBUG2
 
 #include <os>
 #include <net/tcp.hpp>
 #include <net/util.hpp>
 #include <net/packet.hpp>
+#include <net/ip4/packet_tcp.hpp>
 
 using namespace net;
 
-TCP::Socket::Socket(TCP& local_stack) : local_stack_(local_stack)
+TCP::Socket::Socket(IPStack& local_stack) : local_stack_(local_stack)
 {}
 
-TCP::Socket::Socket(TCP& local_stack, port local_port, State state)
+TCP::Socket::Socket(IPStack& local_stack, Port local_port, State state)
   : local_stack_(local_stack), local_port_(local_port), state_(state)
 {
   debug2("<Socket::Socket> Constructing socket, local port: %i, State: %i \n",local_port_, state_);
 }
 
 
-TCP::Socket::Socket(TCP& local_stack, port local_port, 
-		    IP4::addr remote_ip, port remote_port, 
+TCP::Socket::Socket(IPStack& local_stack, Port local_port, 
+		    IP4::addr remote_ip, Port remote_port, 
 		    State state, connection_handler handler, uint32_t initial_seq)
   : local_stack_(local_stack), local_port_(local_port), 
     remote_addr_(remote_ip), remote_port_(remote_port), 
     initial_seq_in_(initial_seq), state_(state), accept_handler_(handler)
 {
   debug2("<Socket::Socket> Constructing CONNECTION, local port: %i , remote IP: %s, remote port: %i\n",
-	local_port_, remote_ip.str().c_str(), remote_port);
+	 local_port_, remote_ip.str().c_str(), remote_port);
 }
 
 
@@ -35,6 +36,32 @@ void TCP::Socket::listen(int backlog){
   backlog_ = backlog;
   debug2("<TCP::Socket::listen> Listening. (%i)\n",state_);
   // Possibly allocate connectoin pointers (but for now we're using map)  
+}
+
+void TCP::Socket::close(){
+  debug("<TCP::Socket::close> Closing connection\n");
+}
+
+
+void TCP::Socket::syn(IP4::addr ip, TCP::Port p){
+  debug("<TCP::Socket::syn> Sending SYN-packet\n");
+  auto pckt4 =  std::static_pointer_cast<TCP_packet>(local_stack_.createPacket(sizeof(TCP::full_header)));
+
+  pckt4->init();
+  
+  // Set quadruple
+  pckt4->set_dst(ip);
+  pckt4->set_src(local_stack_.ip_addr());
+  pckt4->set_sport(local_port_);
+  pckt4->set_dport(p);
+  
+  // Set TCP fields
+  initial_seq_out_ = rand();
+  pckt4->set_seqnr(initial_seq_out_);
+  pckt4->set_flag(SYN);
+  
+  local_stack_.tcp().transmit(pckt4);
+  state_ = SYN_SENT;
 }
 
 void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
@@ -49,18 +76,18 @@ void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   auto dest_addr = full_hdr->ip_hdr.saddr;
   auto dest_port = hdr->sport;
   
-  #ifdef DEBUG
+  #ifndef NO_DEBUG
   auto expected_seq_nr_ = hdr->ack_nr;  
   #endif 
   auto incoming_seq_nr_ = hdr->seq_nr;
   
   // WARNING: We're currently just modifying the same packet, and returning it
- 
+  
   // Set sequence number
   if (FLAGS & SYN)
     hdr->seq_nr = htonl(initial_seq_out_); //htonl(0xfafafafa); // Random  
   else if (bytes_transmitted_ == 0) 
-      hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + 1);
+    hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + 1);
   else
     hdr->seq_nr = hdr->seq_nr = htonl(initial_seq_out_ + bytes_transmitted_ + 1);
   
@@ -103,7 +130,7 @@ void TCP::Socket::ack(Packet_ptr pckt, uint16_t FLAGS){
   if (buffer_.size())
     fill(pckt);
   
-  local_stack_.transmit(pckt);
+  local_stack_.tcp().transmit(pckt);
   
 }
 
@@ -135,14 +162,15 @@ int TCP::Socket::fill(Packet_ptr pckt){
   return bytecount;
   
 };
-
+ 
+ 
 int TCP::Socket::bottom(Packet_ptr pckt){
   full_header* full_hdr = (full_header*)pckt->buffer();
   tcp_header* hdr = &(full_hdr)->tcp_hdr;
   auto flags = ntohs(hdr->offs_flags.whole);
   //uint8_t offset = (uint8_t)(hdr->offs_flags.offs_res) >> 4;
   
-  #ifdef DEBUG2
+  #ifndef NO_DEBUG
   auto raw_flags = hdr->offs_flags.flags;
   //auto raw_offset = hdr->offs_flags.offs_res;
   #endif
@@ -206,10 +234,24 @@ int TCP::Socket::bottom(Packet_ptr pckt){
       (*conn_it).second.bottom(pckt);	      
       break;
     }
-  
+  case SYN_SENT:
+    {
+      if (! (flags & SYN and flags & ACK)) {
+	debug2("<TCP::Socket::bottom> IN (State SYN_SENT) Expected SYN-ACK. Dropping.\n");
+	return 0;
+      }
+      state_ = ESTABLISHED;                
+      hdr->clear_flag(SYN);
+      ack(pckt);
+      break;
+    }
   case SYN_RECIEVED:
+      if (! flags & ACK) {
+	debug2("<TCP::Socket::bottom> IN (State SYN_RECEIVED)")
+	return 0;
+      }
     
-    debug("<TCP::Socket::bottom> IN (State 2): ACK - CONNECTED! \n");  
+    debug("<TCP::Socket::bottom> IN (State SYN_RECIEVED): ACK - CONNECTED! \n");  
     state_ = ESTABLISHED;                
     
     // We're not going to ack the last ack of the handshake
@@ -255,9 +297,7 @@ int TCP::Socket::bottom(Packet_ptr pckt){
       }
       
       // Ack
-      ack(pckt); 
-      
-      
+      ack(pckt);             
       break;
       
     }

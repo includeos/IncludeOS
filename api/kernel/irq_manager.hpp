@@ -1,11 +1,9 @@
-#ifndef CLASS_IRQ_MANAGER_H
-#define CLASS_IRQ_MANAGER_H
+#ifndef KERNEL_IRQ_MANAGER_HPP
+#define KERNEL_IRQ_MANAGER_HPP
 
-#include <os.hpp>
-#include "irq/pic_defs.h"
-
+#include "os.hpp"
+#include "../hw/pic.hpp"
 #include <delegate>
-//#include <hw/pic.h>
 
 /*
   IDT Type flags  

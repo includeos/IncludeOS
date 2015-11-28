@@ -8,7 +8,8 @@
 namespace net
 {
   class PacketUDP;
-  class SocketUDP;
+  template <typename T>
+  class Socket;
   
   /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP
@@ -18,7 +19,7 @@ namespace net
     /** UDP port number */
     typedef uint16_t port;
     
-    using Socket = SocketUDP;
+    using Socket = Socket<UDP>;
     using Stack  = Inet<LinkLayer,IP4>;
   
     /** UDP header */
