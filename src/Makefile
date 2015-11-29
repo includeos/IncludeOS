@@ -26,12 +26,25 @@ DEBUG_OPTS = -ggdb3
 
 # Compiler/Linker
 ###################################################
+# Set defaults if not defined
+ifndef CC
+	CC = clang-3.6
+endif
+ifndef CPP
+	CPP = clang++-3.6
+endif
+ifndef LD
+	LD = ld
+endif
+ifndef AR
+	AR = ar
+endif
 
-CC  = clang-3.6 -target i686-elf -v
-CPP = clang++-3.6 -target i686-elf
-LD  = ld # Yes - we use the default linker
+# Compiler options
+CCOPTS = -target i686-elf -v
+CPPOPTS = -target i686-elf
 
-INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api  #
+INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
@@ -40,10 +53,10 @@ CAPABS_COMMON = -mrdrnd -msse3 -mstackrealign
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 
 WARNS   = -Wall -Wextra #-pedantic
-CCOPTS	= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\"" 
+CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
+CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\"" 
 
-LDOPTS =  -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
 
 # Objects
 ###################################################
@@ -119,18 +132,19 @@ test: test_service
 ###################################################
 # OS
 libc++abi.a: $(CXXABI_OBJ)
-	ar rcs $@ $(CXXABI_OBJ)
+	$(AR) rcs $@ $(CXXABI_OBJ)
 
 os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
-	ar rcs $@ $(OS_OBJECTS)
+	$(AR) rcs $@ $(OS_OBJECTS)
 
 install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
 	cp os.a $(INSTALL)
 	cp libc++abi.a $(INSTALL)/libcxx
-	cp -t$(INSTALL)/crt crt/crti.o crt/crtn.o
+	cp crt/crti.o $(INSTALL)/crt
+	cp crt/crtn.o $(INSTALL)/crt
 	cp -r ../api $(INSTALL)/
 	cp linker.ld $(INSTALL)/
 	cp util/service_name.cpp $(INSTALL)
@@ -172,6 +186,7 @@ clean_tests:
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
+	$(RM) libc++abi.a
 	$(RM) bootloader	
 
 -include $(OS_DEPS)
