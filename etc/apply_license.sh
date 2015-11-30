@@ -1,20 +1,18 @@
 #!/bin/bash
 licenselen=$(wc -l < license.txt)
-extensions="hpp cpp h c"
+extensions="hpp cpp h c s"
 
 # Enable recursive wildcards
 shopt -s globstar
-donotcheck="$(echo  ../src/crt/cxxabi/* ../src/include/cxxabi.h ../src/include/__cxxabi_config.h *sanos* ../doc ../mod/protobuf/include/**/* ../mod/SQLite/* ../examples/jansson/jansson/* ../examples/STREAM/stream.cpp ../src/elf/* ../examples/tcc/libtcc.h *poker.pb.h ../examples/protobuf/**/* ../mod/protobuf/api.pb.h ../api/utility/delegate.hpp)"
-
-echo "IGNORE: $donotcheck"
+donotcheck="$(echo  ../src/crt/cxxabi/**/* ../src/include/cxxabi.h ../src/include/__cxxabi_config.h *sanos* ../doc ../mod/protobuf/include/**/* ../mod/SQLite/* ../examples/jansson/jansson/* ../examples/STREAM/stream.cpp ../src/elf/* ../examples/tcc/libtcc.h *poker.pb.h ../examples/protobuf/**/* ../mod/protobuf/api.pb.h ../api/utility/delegate.hpp ../src/crt/crtn.s ../src/crt/crti.s ../examples/tcc/setjmp.s)"
 
 license_txt=$(cat license.txt);
 
 for extension in $extensions ; do
     echo "Processing extension $extension"
-    file_list=$(find .. -iname "*.$extension")
+    file_list="$(find .. -iname "*.$extension") $(find ../api -maxdepth 1 -type f)"
     for line in $file_list; do 
-	echo "Now processing file: $line"
+	echo -e "\nFILE: $line"
 	bypass=""
 	for item in $donotcheck; do
 	    [[ $line ==  $item ]] && bypass=1 && break;
