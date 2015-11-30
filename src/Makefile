@@ -27,11 +27,11 @@ DEBUG_OPTS = -ggdb3
 # Compiler/Linker
 ###################################################
 # Set defaults if not defined
-ifndef CC
-	CC = clang-3.6
+ifndef CC_INC
+	CC_INC = clang-3.6
 endif
-ifndef CPP
-	CPP = clang++-3.6
+ifndef CPP_INC
+	CPP_INC = clang++-3.6
 endif
 ifndef LD
 	LD = ld
@@ -153,16 +153,16 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 # Makefile recipes
 ###################################################
 %.o: %.c
-	$(CC) -MMD $(CCOPTS) -o $@ $< 
+	$(CC_INC) -MMD $(CCOPTS) -o $@ $< 
 
 %.o: %.cpp 
 	@echo "\n"
-	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
+	$(CPP_INC) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
 	@echo "\n"
-	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
+	$(CPP_INC) $(CPPOPTS) -x assembler-with-cpp $< -o $@
 
 # Bootloader
 ###################################################
