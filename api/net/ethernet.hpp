@@ -73,12 +73,20 @@ namespace net {
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
-    { arp_handler_ = del; };
-  
+    { arp_handler_ = del; }
+
+    inline upstream get_arp_handler()
+    { return arp_handler_; }
+        
     /** Delegate upstream IPv4 handler. */
     inline void set_ip4_handler(upstream del)
-    { ip4_handler_ = del; };
+    { ip4_handler_ = del; }
+    
+    /** Delegate upstream IPv4 handler. */
+    inline upstream get_ip4_handler()
+    { return ip4_handler_; }
   
+
     /** Delegate upstream IPv6 handler. */
     inline void set_ip6_handler(upstream del)
     { ip6_handler_ = del; };  

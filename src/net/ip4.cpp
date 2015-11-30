@@ -12,14 +12,10 @@ const IP4::addr IP4::INADDR_BCAST{{0xff,0xff,0xff,0xff}};
 
 int IP4::bottom(Packet_ptr pckt){
   debug2("<IP4 handler> got the data. \n");
- 
-  pckt = filter_(pckt);
-  if (not pckt)
-    return -1;
-  
+    
   const uint8_t* data = pckt->buffer();
   ip_header* hdr = &((full_header*)data)->ip_hdr;
-   
+  
   debug2("\t Source IP: %s Dest.IP: %s\n",
         hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
   
