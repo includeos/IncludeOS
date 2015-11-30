@@ -1,12 +1,16 @@
 #!/bin/bash
-licenselen=$(wc -l < license.txt)
+LICENSE_FILE=license_header.txt
+LICENSE_FILE_OLD=license_header_old.txt
+licenselen=$(wc -l < $LICENSE_FILE)
+licenselen_old=$(wc -l < $LICENSE_FILE_OLD)
 extensions="hpp cpp h c s"
 
 # Enable recursive wildcards
 shopt -s globstar
 donotcheck="$(echo  ../src/crt/cxxabi/**/* ../src/include/cxxabi.h ../src/include/__cxxabi_config.h *sanos* ../doc ../mod/protobuf/include/**/* ../mod/SQLite/* ../examples/jansson/jansson/* ../examples/STREAM/stream.cpp ../src/elf/* ../examples/tcc/libtcc.h *poker.pb.h ../examples/protobuf/**/* ../mod/protobuf/api.pb.h ../api/utility/delegate.hpp ../src/crt/crtn.s ../src/crt/crti.s ../examples/tcc/setjmp.s)"
 
-license_txt=$(cat license.txt);
+license_txt=$(cat $LICENSE_FILE);
+license_txt_old=$(cat $LICENSE_FILE_OLD);
 
 for extension in $extensions ; do
     echo "Processing extension $extension"
@@ -21,17 +25,25 @@ for extension in $extensions ; do
 	# Break and continue if 
 	[ ! -z $bypass ] && echo "Bypassing file" && continue
 	
-
 	current_head=$(head -n $licenselen $line)
-	[[ $license_txt == $current_head ]] && echo "License OK" && continue;
+	
+	[[ $current_head == $license_txt  ]] && echo "License OK" && continue
+	
+	# Replace old licenses
+	if [[ $current_head == $license_txt_old ]] 
+	then	    
+	    echo "License is OLD. Replacing" 	    
+	    ( cat $LICENSE_FILE; echo; tail -n+$licenselen_old $line ) > /tmp/file; 
+	    mv /tmp/file $line
+	fi
 	
 	head -n 10 $line; 
 	PS3='What would you like to do? (1-2)? '; 
-	select answer in "Add license text from license.txt" "Do nothing and proceed to next file"; do
-	    if [[ $answer = "Add license text from license.txt" ]]; 
+	select answer in "Add license text from $LICENSE_FILE" "Do nothing and proceed to next file"; do
+	    if [[ $answer = "Add license text from $LICENSE_FILE" ]]; 
 	    then
 		echo Adding license;
-		( cat license.txt; echo; cat $line ) > /tmp/file; 
+		( cat $LICENSE_FILE; echo; cat $line ) > /tmp/file; 
 		mv /tmp/file $line 
 		break; 
 	    elif [[ $answer = "Do nothing and proceed to next file" ]]; then 
