@@ -43,7 +43,7 @@ for extension in $extensions ; do
 	    if [[ $answer = "Add license text from $LICENSE_FILE" ]]; 
 	    then
 		echo Adding license;
-		( cat $LICENSE_FILE; echo; cat $line ) > /tmp/file; 
+		( cat $LICENSE_FILE; cat $line ) > /tmp/file; 
 		mv /tmp/file $line 
 		break; 
 	    elif [[ $answer = "Do nothing and proceed to next file" ]]; then 
