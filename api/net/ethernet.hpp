@@ -1,3 +1,20 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef CLASS_ETHERNET_HPP
 #define CLASS_ETHERNET_HPP
 
@@ -73,12 +90,20 @@ namespace net {
   
     /** Delegate upstream ARP handler. */
     inline void set_arp_handler(upstream del)
-    { arp_handler_ = del; };
-  
+    { arp_handler_ = del; }
+
+    inline upstream get_arp_handler()
+    { return arp_handler_; }
+        
     /** Delegate upstream IPv4 handler. */
     inline void set_ip4_handler(upstream del)
-    { ip4_handler_ = del; };
+    { ip4_handler_ = del; }
+    
+    /** Delegate upstream IPv4 handler. */
+    inline upstream get_ip4_handler()
+    { return ip4_handler_; }
   
+
     /** Delegate upstream IPv6 handler. */
     inline void set_ip6_handler(upstream del)
     { ip6_handler_ = del; };  

@@ -1,3 +1,20 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <os>
 #include <net/inet4>
 #include <math.h>
@@ -37,19 +54,19 @@ void Service::start()
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
-  
-  // Set a custom packet filter for ethernet
+
   inet->link().set_packet_filter([](net::Packet_ptr pckt){      
       printf("Custom Ethernet Packet filter got %i bytes\n",pckt->size());
       return pckt;
     });
   
   // Set a custom packet filter for IP
-  inet->ip_obj().set_packet_filter([](net::Packet_ptr pckt){      
+  auto current_handler = inet->link().get_ip4_handler();
+  inet->link().set_ip4_handler([current_handler](net::Packet_ptr pckt)->int{
       auto pckt4 = std::static_pointer_cast<net::PacketIP4>(pckt);
       printf("Custom IP-level Packet filter got %i bytes from %s \n",
 	     pckt->size(), pckt4->src().str().c_str());
-      return pckt;
+      return current_handler(pckt);
     });
   
   inet->tcp().connect({{ 10,0,0,1 }}, 4242, [](net::TCP::Socket& conn){
@@ -58,8 +75,7 @@ void Service::start()
       conn.close();
   });
     
-  
-    // after DHCP we would like to do some networking
+      // after DHCP we would like to do some networking
   inet->dhclient()->on_config(
   [] (net::DHClient::Stack& stack)
   {

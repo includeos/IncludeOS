@@ -1,3 +1,20 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
 #include <os>
@@ -12,14 +29,10 @@ const IP4::addr IP4::INADDR_BCAST{{0xff,0xff,0xff,0xff}};
 
 int IP4::bottom(Packet_ptr pckt){
   debug2("<IP4 handler> got the data. \n");
- 
-  pckt = filter_(pckt);
-  if (not pckt)
-    return -1;
-  
+    
   const uint8_t* data = pckt->buffer();
   ip_header* hdr = &((full_header*)data)->ip_hdr;
-   
+  
   debug2("\t Source IP: %s Dest.IP: %s\n",
         hdr->saddr.str().c_str(), hdr->daddr.str().c_str() );
   
