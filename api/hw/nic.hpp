@@ -44,9 +44,11 @@ public:
   /** The mac address. */
   inline const net::Ethernet::addr& mac() { return _driver.mac(); }
   
-
   inline void set_linklayer_out(net::upstream del)
   { _driver.set_linklayer_out(del); }
+  
+  inline net::upstream get_linklayer_out(){
+    return _driver.get_linklayer_out(); }
   
   inline int transmit(net::Packet_ptr pckt)
   { return _driver.transmit(pckt); }

@@ -206,7 +206,10 @@ public:
     _link_out = link_out;
     //rx_q.set_data_handler(link_out);
   };
-    
+
+  inline net::upstream get_linklayer_out()
+  { return _link_out; }
+  
   inline net::BufferStore& bufstore() { return bufstore_; }
   
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
