@@ -1,7 +1,7 @@
 // Part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and  Alfred Bratterud
+// and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
