@@ -55,18 +55,20 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
 
-  inet->link().set_packet_filter([](net::Packet_ptr pckt){      
-      printf("Custom Ethernet Packet filter got %i bytes\n",pckt->size());
-      return pckt;
+  // Inject a custom packet filter, to between the device and Ethernet 
+  auto current_eth_handler = eth0.get_linklayer_out();
+  eth0.set_linklayer_out([current_eth_handler](net::Packet_ptr pckt){
+      printf("Custom Ethernet Packet filter - got %i bytes\n",pckt->size());
+      return current_eth_handler(pckt);
     });
   
-  // Set a custom packet filter for IP
-  auto current_handler = inet->link().get_ip4_handler();
-  inet->link().set_ip4_handler([current_handler](net::Packet_ptr pckt)->int{
+  // Inject a custom IP packet filter, between IP and Ethernet (upstream)
+  auto current_ip4_handler = inet->link().get_ip4_handler();
+  inet->link().set_ip4_handler([current_ip4_handler](net::Packet_ptr pckt)->int{
       auto pckt4 = std::static_pointer_cast<net::PacketIP4>(pckt);
-      printf("Custom IP-level Packet filter got %i bytes from %s \n",
+      printf("Custom IP-level Packet filter - got %i bytes from %s \n",
 	     pckt->size(), pckt4->src().str().c_str());
-      return current_handler(pckt);
+      return current_ip4_handler(pckt);
     });
   
   inet->tcp().connect({{ 10,0,0,1 }}, 4242, [](net::TCP::Socket& conn){

@@ -59,10 +59,6 @@ int Ethernet::transmit(Packet_ptr pckt){
 int Ethernet::bottom(Packet_ptr pckt)
 {
   assert(pckt->size() > 0);
-
-  pckt = filter_(pckt);
-  if (not pckt)
-    return -1;
   
   header* eth = (header*) pckt->buffer();  
   
