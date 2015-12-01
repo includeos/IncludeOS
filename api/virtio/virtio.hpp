@@ -16,9 +16,8 @@
 // limitations under the License.
 
 /**  
-     @note A lot of this stuff is snipped from SanOS, (C) Michael Ringgaard. 
-     
-     All due respect.
+     @note This virtio implementation was very much inspired by 
+     SanOS, (C) Michael Ringgaard. All due respect.
      
      STANDARD:
      
@@ -60,9 +59,6 @@
 #define VIRTIO_CONFIG_S_DRIVER          2
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
-
-
-
 
 
 /** A simple scatter-gather list used for Queue::enqueue. 

@@ -16,6 +16,9 @@
 // limitations under the License.
 
 /**  
+     @note This virtionet implementation was very much inspired by 
+     SanOS, (C) Michael Ringgaard. All due respect.
+     
      STANDARD:      
      
      We're aiming for standard compliance:
