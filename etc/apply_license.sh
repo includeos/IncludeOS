@@ -5,6 +5,9 @@ licenselen=$(wc -l < $LICENSE_FILE)
 licenselen_old=$(wc -l < $LICENSE_FILE_OLD)
 extensions="hpp cpp h c s"
 
+SILENT=0
+[[ $1 == "-s" ]] && SILENT=1 && echo "SILENT MODE"
+
 # Enable recursive wildcards
 shopt -s globstar
 donotcheck="$(echo  ../src/crt/cxxabi/**/* ../src/include/cxxabi.h ../src/include/__cxxabi_config.h *sanos* ../doc ../mod/protobuf/include/**/* ../mod/SQLite/* ../examples/jansson/jansson/* ../examples/STREAM/stream.cpp ../src/elf/* ../examples/tcc/libtcc.h *poker.pb.h ../examples/protobuf/**/* ../mod/protobuf/api.pb.h ../api/utility/delegate.hpp ../src/crt/crtn.s ../src/crt/crti.s ../examples/tcc/setjmp.s)"
@@ -36,7 +39,10 @@ for extension in $extensions ; do
 	
 	current_head=$(head -n $licenselen $line)	
 	[[ $current_head == $license_txt  ]] && echo "License OK" && continue
-
+	
+	# If silent option, just fail on missing license (For jenkins)
+	[[ $SILENT -eq 1 ]] && echo "ERROR: License missing or wrong. " && exit 42;
+	
 	head -n $licenselen $line; 
 	PS3='What would you like to do? (1-2)? '; 
 	select answer in "Add license text from $LICENSE_FILE" "Do nothing and proceed to next file"; do
