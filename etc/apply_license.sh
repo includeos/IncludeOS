@@ -24,19 +24,19 @@ for extension in $extensions ; do
 	
 	# Break and continue if 
 	[ ! -z $bypass ] && echo "Bypassing file" && continue
-	
-	current_head=$(head -n $licenselen $line)
-	
-	[[ $current_head == $license_txt  ]] && echo "License OK" && continue
-	
+		
 	# Replace old licenses
+	current_head=$(head -n $licenselen_old $line) 
 	if [[ $current_head == $license_txt_old ]] 
 	then	    
 	    echo "License is OLD. Replacing" 	    
-	    ( cat $LICENSE_FILE; echo; tail -n+$licenselen_old $line ) > /tmp/file; 
+	    ( cat $LICENSE_FILE; tail -n+$licenselen_old $line ) > /tmp/file;
 	    mv /tmp/file $line
 	fi
 	
+	current_head=$(head -n $licenselen $line)	
+	[[ $current_head == $license_txt  ]] && echo "License OK" && continue
+
 	head -n 10 $line; 
 	PS3='What would you like to do? (1-2)? '; 
 	select answer in "Add license text from $LICENSE_FILE" "Do nothing and proceed to next file"; do
