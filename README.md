@@ -7,7 +7,7 @@ IncludeOS is not production ready, not feature complete, and very much a work in
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.6.3--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.7.0--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 **Note:** *Anything may change at any time. The public API should not be considered stable.* This is the meaning of the 0 in the version number, as intended by [Semver](http://semver.org/).
@@ -48,8 +48,9 @@ A longer list of features and limitations is on the [wiki feature list](https://
   * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
      * For the full source build, you'll need at least 1024 MB memory
      * In order to support VGA graphics inside a VM, we recommend a lightweight GUI, such as  [lubuntu](http://lubuntu.net/blog/lubuntu-1404-trusty-tahr-released) which runs great inside a virtual machine.
-         * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu, that ends up right on `stdout`.
+         * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu,
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
+     * **Building on a Mac:** we have done a successful build from bundle, directly on a Mac. It's a work in progress, but see [./etc/install_osx.sh](./etc/install_osx.sh) for details.
   * You'll need `git` to clone from github.
 
 Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
