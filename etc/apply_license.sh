@@ -26,18 +26,18 @@ for extension in $extensions ; do
 	[ ! -z $bypass ] && echo "Bypassing file" && continue
 		
 	# Replace old licenses
-	current_head=$(head -n $licenselen_old $line) 
+	current_head=$(head -n $(($licenselen_old)) $line) 
 	if [[ $current_head == $license_txt_old ]] 
 	then	    
 	    echo "License is OLD. Replacing" 	    
-	    ( cat $LICENSE_FILE; tail -n+$licenselen_old $line ) > /tmp/file;
+	    ( cat $LICENSE_FILE; tail -n+$(($licenselen_old + 2)) $line ) > /tmp/file;
 	    mv /tmp/file $line
 	fi
 	
 	current_head=$(head -n $licenselen $line)	
 	[[ $current_head == $license_txt  ]] && echo "License OK" && continue
 
-	head -n 10 $line; 
+	head -n $licenselen $line; 
 	PS3='What would you like to do? (1-2)? '; 
 	select answer in "Add license text from $LICENSE_FILE" "Do nothing and proceed to next file"; do
 	    if [[ $answer = "Add license text from $LICENSE_FILE" ]]; 
