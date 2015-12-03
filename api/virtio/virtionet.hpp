@@ -1,4 +1,24 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /**  
+     @note This virtionet implementation was very much inspired by 
+     SanOS, (C) Michael Ringgaard. All due respect.
+     
      STANDARD:      
      
      We're aiming for standard compliance:
@@ -186,7 +206,10 @@ public:
     _link_out = link_out;
     //rx_q.set_data_handler(link_out);
   };
-    
+
+  inline net::upstream get_linklayer_out()
+  { return _link_out; }
+  
   inline net::BufferStore& bufstore() { return bufstore_; }
   
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/

@@ -1,3 +1,20 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef CLASS_IP4_HPP
 #define CLASS_IP4_HPP
 
@@ -85,7 +102,7 @@ namespace net {
       uint8_t link_hdr [sizeof(typename LinkLayer::header)];
       ip_header ip_hdr;
     };
-    
+        
     /** Upstream: Input from link layer. */
     int bottom(Packet_ptr pckt);
     
@@ -100,13 +117,9 @@ namespace net {
     { tcp_handler_ = s; }
     
     /** Downstream: Delegate linklayer out */
-    inline void set_linklayer_out(downstream s)
-    { linklayer_out_ = s; }
-    
-    inline void set_packet_filter(Packet_filter f)
-    { filter_ = f; }
-      
-    
+    void set_linklayer_out(downstream s)
+    { linklayer_out_ = s; };
+  
     /** Downstream: Receive data from above and transmit. 
         
         @note The following *must be set* in the packet:
@@ -145,8 +158,6 @@ namespace net {
     upstream icmp_handler_ = upstream(ignore_ip4_up);
     upstream udp_handler_ = upstream(ignore_ip4_up);
     upstream tcp_handler_ = upstream(ignore_ip4_up);
-    Packet_filter filter_ = [](Packet_ptr p)->Packet_ptr { return p; };
-			   
   };
   
 } // ~net

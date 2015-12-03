@@ -15,3 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <os>
+#include <iostream>
+extern int  main();
+
+void Service::start()
+{
+  std::cout << "*** Service is up - with OS Included! ***" << std::endl;
+  
+  // do the STREAM test here
+  main();
+  
+  std::cout << "Service out!" << std::endl;
+}

@@ -1,4 +1,4 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
+// Part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -14,4 +14,3 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
