@@ -98,8 +98,8 @@ namespace fs
     inline index_t windex (index_t b) const { return b / CHUNK_SIZE; }
     inline index_t woffset(index_t b) const { return b % CHUNK_SIZE; }
     
-    word*   _data;
-    index_t _size;
+    word*   _data{nullptr};
+    index_t _size{};
   };
   
 }
