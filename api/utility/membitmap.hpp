@@ -32,7 +32,7 @@ namespace fs
   public:
     typedef uint64_t word;
     static const word WORD_MAX = UINT64_MAX;
-    typedef int32_t  index_t;
+    typedef uint32_t  index_t;
     static const int CHUNK_SIZE = sizeof(word) * 8;
     
     MemBitmap() = default;
