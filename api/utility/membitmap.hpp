@@ -35,7 +35,7 @@ namespace fs
     typedef uint32_t  index_t;
     static const int CHUNK_SIZE = sizeof(word) * 8;
     
-    MemBitmap() {}
+    MemBitmap() = default;
     MemBitmap(void* location, index_t chunks)
     {
       _data = (word*) location;
