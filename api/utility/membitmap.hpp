@@ -38,7 +38,7 @@ namespace fs
     MemBitmap() = default;
     MemBitmap(void* location, index_t chunks)
     {
-      _data = (word*) location;
+      _data = reinterpret_cast<word*>(location);
       _size = chunks;
     }
     
