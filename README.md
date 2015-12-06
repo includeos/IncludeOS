@@ -44,6 +44,10 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 # Try it out!
 
+Here is a video showing how to set it up and get started with IncludeOS:
+
+[![Getting started with IncludeOS video](http://img.youtube.com/vi/b2D6loApw3o/0.jpg)](http://www.youtube.com/watch?v=b2D6loApw3o)
+
 ## Prerequisites for building IncludeOS VM's
   * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
      * For the full source build, you'll need at least 1024 MB memory
@@ -52,6 +56,7 @@ A longer list of features and limitations is on the [wiki feature list](https://
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
      * **Building on a Mac:** we have done a successful build from bundle, directly on a Mac. It's a work in progress, but see [./etc/install_osx.sh](./etc/install_osx.sh) for details.
   * You'll need `git` to clone from github.
+
 
 Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
 
