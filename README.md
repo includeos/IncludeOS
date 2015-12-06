@@ -1,13 +1,13 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
-IncludeOS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
+IncludeOS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed for x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 ## It's a research prototype!
 IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS appeared in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications seciton](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.6.3--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.7.0--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 **Note:** *Anything may change at any time. The public API should not be considered stable.* This is the meaning of the 0 in the version number, as intended by [Semver](http://semver.org/).
@@ -30,12 +30,12 @@ We're working towards automating everything with our Jenkins CI server at [jenki
     * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html))
     * *Note:* Certain language features, such as threads and filestreams are currently missing backend support. 
 * **Standard C library** using [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
-* **Virtio Network driver** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. Like most implementations IncludeOS currently uses "lecacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+* **Virtio Network driver** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. Like most implementations IncludeOS currently uses "legacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
 * **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
     * TCP: Just enough to serve HTTP
     * UDP: Enough to support a high performance DNS service
     * DHCP: Basic support, tested on VirtualBox and KVM
-    * ICMP: Enough to answer ping, control messages yet
+    * ICMP: Enough to answer ping, no control messages yet
     * ARP
     * Ethernet
     * IPv6 support under active development
@@ -44,13 +44,19 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 # Try it out!
 
+Here is a video showing how to set it up and get started with IncludeOS:
+
+[![Getting started with IncludeOS video](http://img.youtube.com/vi/b2D6loApw3o/0.jpg)](http://www.youtube.com/watch?v=b2D6loApw3o)
+
 ## Prerequisites for building IncludeOS VM's
   * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
      * For the full source build, you'll need at least 1024 MB memory
      * In order to support VGA graphics inside a VM, we recommend a lightweight GUI, such as  [lubuntu](http://lubuntu.net/blog/lubuntu-1404-trusty-tahr-released) which runs great inside a virtual machine.
-         * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu, that ends up right on `stdout`.
+         * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu,
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
+     * **Building on a Mac:** we have done a successful build from bundle, directly on a Mac. It's a work in progress, but see [./etc/install_osx.sh](./etc/install_osx.sh) for details.
   * You'll need `git` to clone from github.
+
 
 Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
 
@@ -132,14 +138,14 @@ Take a look at the [examples](./examples). These all started out as copies of th
 There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Make-vmbuild-qemu" sequence laid out, with special options for debugging (It will add debugging symbols to the elf-binary and start qemu in debugging mode, ready for connection with `gdb`. More on this inside the script.). I use this script to run the code, where I'd normally just run the program from a shell. Don't worry, it's fast, even in nested/emulated mode.
 
 ### Using VirtualBox for development
-  * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside vritualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox vm works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
-  * You might want to install Virtual box vbox additions, if want screen scaling. The above provides the requisites for this (compiler stuff). 
+  * VirtualBox does not support nested virtualization (a [ticket](https://www.virtualbox.org/ticket/4032) has been open for 5 years). This means you can't use the kvm module to run IncludeOS from inside virtualbox, but you can use Qemu directly, so developing for IncludeOS in a virtualbox VM works. It will be slower, but a small VM still boots in no time. For this reason, this install script does not require kvm or nested virtualization.
+  * You might want to install Virtual box vbox additions, if you want screen scaling. The above provides the prerequisites for this (compiler stuff). 
 
 ### Debugging with Bochs
 * If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [Bochs](http://bochs.sourceforge.net/). This is because `gdb` only works for objects with debugging symbols, which we don't have for our bootloader. See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example configuration file (which specifies a <1MB disk).
 
 ## C++ Guidelines
-We are currently far from it, but in time we'd like to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS, which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
+We are currently far from it, but in time we'd like to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
   * *Note: We're not using the Guidelines Support Library, but we probably will at some point. This means we're not ready to follow guidelines that requires this library yet.*
 
 ## Read more on the wiki
