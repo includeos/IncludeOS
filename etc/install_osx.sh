@@ -16,14 +16,8 @@
 [[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
-# Install dependencies
-#DEPENDENCIES="curl make clang-3.6 nasm bridge-utils qemu"
-#echo ">>> Installing dependencies (requires sudo):"
-#echo "    Packages: $DEPENDENCIES"
-#sudo apt-get update
-#sudo apt-get install -y $DEPENDENCIES
 
-
+### Get binary release ###
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
@@ -39,7 +33,6 @@ filename="IncludeOS_install_"$filename_tag".tar.gz"
 if [ -e $filename ] 
 then
     echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
-    #gzip -c $filename | tar -C $INCLUDEOS_INSTALL_LOC xopf -
 else    
     echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
     # Download from GitHub API    
@@ -49,13 +42,8 @@ else
         echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
         JSON=`curl -u $git_user:$oauthToken https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
     else
-        # IF PRIVATE:
-        echo -n "Enter github username: "
-        export git_user="git"
-        read git_user
-
         echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-        JSON=`curl -u $git_user https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
+        JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
     fi
     ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
     ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
@@ -65,24 +53,46 @@ else
     then
         curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user:$oauthToken $ASSET_URL
     else
-        curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user $ASSET_URL
+        curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
     fi
     
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
-    #gzip -c $filename | tar -C $INCLUDEOS_INSTALL_LOC xopf -     
 fi
 
 # Install
 gzip -c $filename | tar xopf - -C $INCLUDEOS_INSTALL_LOC
 
-### Install Binutils - needed for linking ###
+### End binary release ###
 
-echo -e "\n\n>>> Installing Binutils (archiver and linker)"
+
+### Install LLVM with Brew - clang/clang++ ###
+BREW_LLVM=llvm
+BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
+BREW_CLANG_CC=$BREW_LLVM_DIR/bin/clang
+BREW_CLANG_CPP=$BREW_LLVM_DIR/bin/clang++
+echo -e "\n\n>>> Installing $BREW_LLVM (clang compiler)"
+if [ -e $BREW_CLANG_CPP ]
+then
+    echo -e "\n>> Found clang++."
+else
+    # Check if brew is installed
+    command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
+    # Install llvm
+    echo -e "\n>> Install $BREW_LLVM with brew"
+    brew install $BREW_LLVM
+fi
+
+echo -e "\n>> Done installing llvm."
+### End Brew LLVM ###
+
+
+### Install Binutils - needed for linking ###
+BINUTILS_RELEASE=binutils-2.25
+echo -e "\n\n>>> Installing $BINUTILS_RELEASE (archiver and linker)"
 export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
 mkdir -p $INCLUDEOS_BUILD
 
 ## Download
-BINUTILS_RELEASE=binutils-2.25
 filename_binutils=$BINUTILS_RELEASE".tar.gz"
 if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
 then 
@@ -93,6 +103,7 @@ else
     ## Unzip
     gzip -c $INCLUDEOS_BUILD/$filename_binutils | tar xopf - -C $INCLUDEOS_BUILD
 fi
+
 
 export BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
 LINKER_PREFIX=i686-elf-
@@ -107,7 +118,7 @@ then
 else
     ## Configure
     pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE # cd IncludeOS_build/binutils-2.25/
-    echo -e "\n>> Installing binutils in $BINUTILS_DIR"
+    echo -e "\n>> Installing $BINUTILS_RELEASE in $BINUTILS_DIR"
     ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
     ## Install
     make -j4 --silent
@@ -115,16 +126,13 @@ else
     popd
 fi
 
-
-echo -e "\n>> Done installing Binutils."
-
+echo -e "\n>> Done installing binutils."
 ### End Binutils ###
 
 # Define compiler, linker and archiver
-export CC=/usr/local/Cellar/llvm/3.6.2/bin/clang # Hardcoded for now, put your clang here
-export CPP=/usr/local/Cellar/llvm/3.6.2/bin/clang++ # Hardcoded for now, put your clang++ here
-#export CC=clang
-#export CPP=clang++
+# Brew clang
+export CC_INC=$BREW_CLANG_CC
+export CPP_INC=$BREW_CLANG_CPP
 export LD=$INCLUDEOS_LINKER
 export AR=$INCLUDEOS_ARCHIVER
 
@@ -137,14 +145,9 @@ export AR=$INCLUDEOS_ARCHIVER
 
 ### End nasm
 
-# STOLEN FROM install.sh
-# Multitask-parameter to make
-#export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
-#sysctl hw == lscpu on mac
-
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
-make -j
+make -j4
 make install
 popd
 
@@ -153,13 +156,6 @@ pushd $INCLUDEOS_SRC/vmbuild
 make
 cp vmbuild $INCLUDEOS_HOME/
 popd
-
-echo -e "\n\n>>> Creating a virtual network, i.e. a bridge. (NOT AVAILABLE ON MAC) Ignoring..."
-#sudo $INCLUDEOS_SRC/etc/create_bridge.sh
-
-#mkdir -p $INCLUDEOS_HOME/etc
-#cp $INCLUDEOS_SRC/etc/qemu-ifup $INCLUDEOS_HOME/etc/
-#cp $INCLUDEOS_SRC/etc/qemu_cmd.sh $INCLUDEOS_HOME/etc/
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 
