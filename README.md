@@ -44,7 +44,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 # Try it out!
 
-## Getting started with IncludeOS video
 Here is a video showing how to set it up and get started with IncludeOS:
 
 [![Getting started with IncludeOS video](http://img.youtube.com/vi/b2D6loApw3o/0.jpg)](http://www.youtube.com/watch?v=b2D6loApw3o)
