@@ -32,13 +32,13 @@ namespace fs
   public:
     typedef uint64_t word;
     static const word WORD_MAX = UINT64_MAX;
-    typedef int32_t  index_t;
+    typedef uint32_t  index_t;
     static const int CHUNK_SIZE = sizeof(word) * 8;
     
-    MemBitmap() {}
+    MemBitmap() = default;
     MemBitmap(void* location, index_t chunks)
     {
-      _data = (word*) location;
+      _data = reinterpret_cast<word*>(location);
       _size = chunks;
     }
     
@@ -98,8 +98,8 @@ namespace fs
     inline index_t windex (index_t b) const { return b / CHUNK_SIZE; }
     inline index_t woffset(index_t b) const { return b % CHUNK_SIZE; }
     
-    word*   _data;
-    index_t _size;
+    word*   _data{nullptr};
+    index_t _size{};
   };
   
 }
