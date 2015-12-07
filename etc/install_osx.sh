@@ -15,19 +15,140 @@
 [[ -z $INCLUDEOS_SRC ]] && export INCLUDEOS_SRC=`pwd`
 [[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
+export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
 
 
-### Get binary release ###
+echo -e "###################################"
+echo -e "\nIncludeOS installation for Mac OS X"
+echo -e "\n###################################"
+
+### DEPENDENCIES ###
+
+echo -e "\n\n# Dependencies"
+
+## LLVM ##
+echo -e "\nllvm (clang/clang++ 3.6) - required for compiling"
+DEPENDENCY_LLVM=false
+
+BREW_LLVM=llvm
+BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
+BREW_CLANG_CC=$BREW_LLVM_DIR/bin/clang
+BREW_CLANG_CPP=$BREW_LLVM_DIR/bin/clang++
+
+[ -e $BREW_CLANG_CPP ] && DEPENDENCY_LLVM=true
+if ($DEPENDENCY_LLVM); then echo -e "> Found"; else echo -e "> Not Found"; fi
+
+function install_llvm {
+    echo -e "\n>>> Installing: llvm"
+    # Check if brew is installed
+    command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
+    # Install llvm
+    echo -e "\n> Install $BREW_LLVM with brew"
+    brew install $BREW_LLVM
+    echo -e "\n>>> Done installing: llvm"
+}
+
+
+## BINUTILS ##
+echo -e "\nbinutils (ld, ar) - required for linker and building archives"
+DEPENDENCY_BINUTILS=false
+
+BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
+LINKER_PREFIX=i686-elf-
+BINUTILS_LD=$BINUTILS_DIR/bin/$LINKER_PREFIX"ld"
+BINUTILS_AR=$BINUTILS_DIR/bin/$LINKER_PREFIX"ar"
+
+[[ -e $BINUTILS_LD && -e $BINUTILS_AR ]] && DEPENDENCY_BINUTILS=true
+if ($DEPENDENCY_BINUTILS); then echo -e "> Found"; else echo -e "> Not Found"; fi
+
+function install_binutils {
+    echo -e "\n>>> Installing: binutils"
+
+    # Create build directory if not exist
+    mkdir -p $INCLUDEOS_BUILD
+    
+    # Decide filename (release)
+    BINUTILS_RELEASE=binutils-2.25
+    filename_binutils=$BINUTILS_RELEASE".tar.gz"
+
+    # Check if file is downloaded
+    if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
+    then 
+        echo -e "\n> $BINUTILS_RELEASE already downloaded."
+    else
+        # Download binutils
+        echo -e "\n> Downloading $BINUTILS_RELEASE."
+        curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils 
+    fi
+
+    ## Unzip
+    echo -e "\n> Unzip $filename_binutils to $INCLUDEOS_BUILD"
+    gzip -c $INCLUDEOS_BUILD/$filename_binutils | tar xopf - -C $INCLUDEOS_BUILD
+
+    ## Configure
+    pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE
+    
+    ## Install
+    echo -e "\n> Installing $BINUTILS_RELEASE to $BINUTILS_DIR"
+    ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
+    make -j4 --silent
+    make install
+    popd
+
+    echo -e "\n>>> Done installing: binutils"
+}
+
+## NASM ##
+echo -e "\nnasm (assembler) - required for assemble bootloader"
+NASM_VERSION=`nasm -v`
+echo -e "> Will try to install with brew."
+DEPENDENCY_NASM=false
+
+function install_nasm {
+    echo -e "\n>>> Installing: nasm"
+    # Check if brew is installed
+    command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
+    # Install llvm
+    echo -e "\n> Try to install nasm with brew"
+    brew install nasm
+    echo -e "\n>>> Done installing: nasm"
+}
+
+## BINARY RELEASE ##
+
+### INSTALL ###
+echo
+read -p "Install missing dependencies? " -n 1 -r
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    echo -e "\n\n# Installing dependencies"
+
+    if (! $DEPENDENCY_LLVM); then
+        install_llvm
+    fi
+
+    if (! $DEPENDENCY_BINUTILS); then
+        install_binutils
+    fi
+
+    install_nasm
+
+    echo -e "\n>>> Done installing dependencies."
+fi
+
+
+### INSTALL BINARY RELEASE ###
+
+echo -e "\n\n# Installing binary release"
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
-git pull --tags
+git fetch --tags
 tag=`git describe --abbrev=0`
 popd 
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
-
 
 # If the tarball exists, use that 
 if [ -e $filename ] 
@@ -62,88 +183,16 @@ fi
 # Install
 gzip -c $filename | tar xopf - -C $INCLUDEOS_INSTALL_LOC
 
-### End binary release ###
 
+### Define compiler, linker and archiver
 
-### Install LLVM with Brew - clang/clang++ ###
-BREW_LLVM=llvm
-BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
-BREW_CLANG_CC=$BREW_LLVM_DIR/bin/clang
-BREW_CLANG_CPP=$BREW_LLVM_DIR/bin/clang++
-echo -e "\n\n>>> Installing $BREW_LLVM (clang compiler)"
-if [ -e $BREW_CLANG_CPP ]
-then
-    echo -e "\n>> Found clang++."
-else
-    # Check if brew is installed
-    command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
-    # Install llvm
-    echo -e "\n>> Install $BREW_LLVM with brew"
-    brew install $BREW_LLVM
-fi
-
-echo -e "\n>> Done installing llvm."
-### End Brew LLVM ###
-
-
-### Install Binutils - needed for linking ###
-BINUTILS_RELEASE=binutils-2.25
-echo -e "\n\n>>> Installing $BINUTILS_RELEASE (archiver and linker)"
-export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
-mkdir -p $INCLUDEOS_BUILD
-
-## Download
-filename_binutils=$BINUTILS_RELEASE".tar.gz"
-if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
-then 
-    echo -e "\n>> $BINUTILS_RELEASE already downloaded."
-else
-    echo -e "\n>> Downloading $BINUTILS_RELEASE"
-    curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils # IncludeOS_build/binutils-2.25.tar.gz
-    ## Unzip
-    gzip -c $INCLUDEOS_BUILD/$filename_binutils | tar xopf - -C $INCLUDEOS_BUILD
-fi
-
-
-export BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
-LINKER_PREFIX=i686-elf-
-# Export variables
-BINUTILS_BIN=$BINUTILS_DIR/bin
-export INCLUDEOS_LINKER=$BINUTILS_BIN/$LINKER_PREFIX"ld"
-export INCLUDEOS_ARCHIVER=$BINUTILS_BIN/$LINKER_PREFIX"ar"
-
-if [ -e $INCLUDEOS_LINKER ]
-then
-    echo -e "\n>> Found linker, assuming $BINUTILS_RELEASE is already installed."
-else
-    ## Configure
-    pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE # cd IncludeOS_build/binutils-2.25/
-    echo -e "\n>> Installing $BINUTILS_RELEASE in $BINUTILS_DIR"
-    ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
-    ## Install
-    make -j4 --silent
-    make install
-    popd
-fi
-
-echo -e "\n>> Done installing binutils."
-### End Binutils ###
-
-# Define compiler, linker and archiver
 # Brew clang
 export CC_INC=$BREW_CLANG_CC
 export CPP_INC=$BREW_CLANG_CPP
-export LD=$INCLUDEOS_LINKER
-export AR=$INCLUDEOS_ARCHIVER
 
-### Install nasm # Not sure if needed yet
-
-#echo -e "\n\n>>> Updating nasm (bootloader)" 
-
-# Install with brew
-#brew install nasm
-
-### End nasm
+# Binutils ld & ar
+export LD=$BINUTILS_LD
+export AR=$BINUTILS_AR
 
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
