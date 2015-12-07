@@ -30,10 +30,10 @@ echo -e "\n\n# Dependencies"
 echo -e "\nllvm (clang/clang++ 3.6) - required for compiling"
 DEPENDENCY_LLVM=false
 
-BREW_LLVM=llvm
-BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
-BREW_CLANG_CC=$BREW_LLVM_DIR/bin/clang
-BREW_CLANG_CPP=$BREW_LLVM_DIR/bin/clang++
+BREW_LLVM=llvm36
+#BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
+BREW_CLANG_CC=/usr/local/bin/clang-3.6
+BREW_CLANG_CPP=/usr/local/bin/clang++-3.6
 
 [ -e $BREW_CLANG_CPP ] && DEPENDENCY_LLVM=true
 if ($DEPENDENCY_LLVM); then echo -e "> Found"; else echo -e "> Not Found"; fi
@@ -114,7 +114,6 @@ function install_nasm {
     echo -e "\n>>> Done installing: nasm"
 }
 
-## BINARY RELEASE ##
 
 ### INSTALL ###
 echo
@@ -187,8 +186,8 @@ gzip -c $filename | tar xopf - -C $INCLUDEOS_INSTALL_LOC
 ### Define compiler, linker and archiver
 
 # Brew clang
-export CC_INC=$BREW_CLANG_CC
-export CPP_INC=$BREW_CLANG_CPP
+#export CC_INC=$BREW_CLANG_CC
+#export CPP_INC=$BREW_CLANG_CPP
 
 # Binutils ld & ar
 export LD=$BINUTILS_LD
