@@ -114,6 +114,18 @@ function install_nasm {
     echo -e "\n>>> Done installing: nasm"
 }
 
+## elf.h ##
+echo -e "\nelf.h (/usr/local/include/) - required for vmbuild"
+DEPENDENCY_ELF_H=false
+ELF_H=/usr/local/include/elf.h
+[ -e $ELF_H ] && DEPENDENCY_ELF_H=true
+if ($DEPENDENCY_ELF_H); then echo -e "> Found"; else echo -e "> Not Found"; fi
+
+function fetch_elf_h {
+    echo -e "\n>>> Downloading elf.h"
+    curl https://gist.githubusercontent.com/mlafeldt/3885346/raw/2ee259afd8407d635a9149fcc371fccf08b0c05b/elf.h -o $ELF_H
+    echo -e "\n>>> Done fetching elf.h"
+}
 
 ### INSTALL ###
 echo
@@ -128,6 +140,10 @@ then
 
     if (! $DEPENDENCY_BINUTILS); then
         install_binutils
+    fi
+
+    if (! $DEPENDENCY_ELF_H); then
+        fetch_elf_h
     fi
 
     install_nasm
