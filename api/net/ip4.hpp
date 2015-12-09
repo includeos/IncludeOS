@@ -71,10 +71,10 @@ namespace net {
       
       std::string str() const
       {
-        std::string s; s.resize(16);
-        sprintf((char*) s.c_str(), "%1i.%1i.%1i.%1i", 
+        char ip_addr[16];
+        sprintf(ip_addr, "%1i.%1i.%1i.%1i",
                 part[0], part[1], part[2], part[3]);
-        return s;
+        return ip_addr;
       }      
     };
     
