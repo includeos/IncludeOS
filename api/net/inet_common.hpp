@@ -43,7 +43,7 @@ namespace net {
   using upstream = downstream;
 
   
-  /** Packet filter delebgate */
+  /** Packet filter delegate */
   using Packet_filter = delegate<Packet_ptr(Packet_ptr)>;
   
   /** Compute the internet checksum for the buffer / buffer part provided */
