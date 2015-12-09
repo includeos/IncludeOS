@@ -146,7 +146,7 @@ namespace net {
     }
     
     /** Initialize. Sets a dummy linklayer out. */
-    IP4(Inet<LinkLayer,IP4>&);
+    explicit IP4(Inet<LinkLayer,IP4>&);
   
   private:
     Inet<LinkLayer,IP4>& stack;
