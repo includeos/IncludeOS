@@ -1,7 +1,7 @@
 ifndef CPP_INC
 	CPP_INC=clang++-3.6
 endif
-CPPOPTS = -std=c++11 -c -Wall -Wextra -O3
+CPPOPTS = -std=c++11 -c -Wall -Wextra -O3 -I.
 OBJS = vmbuild.o
 OUT = vmbuild
 
