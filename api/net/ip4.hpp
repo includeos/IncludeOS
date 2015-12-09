@@ -31,8 +31,8 @@ namespace net {
   class Packet;
   
   // Default delegate assignments
-  int ignore_ip4_up(std::shared_ptr<Packet>);
-  int ignore_ip4_down(std::shared_ptr<Packet>);
+  int ignore_ip4_up(Packet_ptr);
+  int ignore_ip4_down(Packet_ptr);
   
   /** IP4 layer */
   class IP4 {
