@@ -31,8 +31,8 @@ namespace net {
   class Packet;
   
   // Default delegate assignments
-  int ignore_ip4_up(std::shared_ptr<Packet>);
-  int ignore_ip4_down(std::shared_ptr<Packet>);
+  int ignore_ip4_up(Packet_ptr);
+  int ignore_ip4_down(Packet_ptr);
   
   /** IP4 layer */
   class IP4 {
@@ -71,10 +71,10 @@ namespace net {
       
       std::string str() const
       {
-        std::string s; s.resize(16);
-        sprintf((char*) s.c_str(), "%1i.%1i.%1i.%1i", 
+        char ip_addr[16];
+        sprintf(ip_addr, "%1i.%1i.%1i.%1i",
                 part[0], part[1], part[2], part[3]);
-        return s;
+        return ip_addr;
       }      
     };
     
@@ -146,7 +146,7 @@ namespace net {
     }
     
     /** Initialize. Sets a dummy linklayer out. */
-    IP4(Inet<LinkLayer,IP4>&);
+    explicit IP4(Inet<LinkLayer,IP4>&);
   
   private:
     Inet<LinkLayer,IP4>& stack;
