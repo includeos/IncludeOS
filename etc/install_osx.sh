@@ -18,20 +18,24 @@ export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
 
 
-echo -e "###################################"
-echo -e "\nIncludeOS installation for Mac OS X"
 echo -e "\n###################################"
+echo -e "IncludeOS installation for Mac OS X"
+echo -e "###################################"
+
+echo -e "\n# Prequisites:\n 
+    - homebrew (OSX package manager - https://brew.sh) 
+    - \`/usr/local\` directory with write access
+    - \`/usr/local/bin\` added to your PATH"
 
 ### DEPENDENCIES ###
 
-echo -e "\n\n# Dependencies"
+echo -e "\n# Dependencies"
 
 ## LLVM ##
-echo -e "\nllvm (clang/clang++ 3.6) - required for compiling"
+echo -e "\nllvm36 (clang/clang++ 3.6) - required for compiling"
 DEPENDENCY_LLVM=false
 
 BREW_LLVM=llvm36
-#BREW_LLVM_DIR=/usr/local/opt/$BREW_LLVM
 BREW_CLANG_CC=/usr/local/bin/clang-3.6
 BREW_CLANG_CPP=/usr/local/bin/clang++-3.6
 
@@ -58,7 +62,11 @@ LINKER_PREFIX=i686-elf-
 BINUTILS_LD=$BINUTILS_DIR/bin/$LINKER_PREFIX"ld"
 BINUTILS_AR=$BINUTILS_DIR/bin/$LINKER_PREFIX"ar"
 
-[[ -e $BINUTILS_LD && -e $BINUTILS_AR ]] && DEPENDENCY_BINUTILS=true
+# For copying ld into /usr/local/bin
+LD_INCLUDEOS=ld-i686
+LD_INCLUDEOS_FULL_PATH=/usr/local/bin/$LD_INCLUDEOS
+LD_EXISTS=`command -v $LD_INCLUDEOS`
+[[ -e  $LD_EXISTS && -e $BINUTILS_AR ]] && DEPENDENCY_BINUTILS=true
 if ($DEPENDENCY_BINUTILS); then echo -e "> Found"; else echo -e "> Not Found"; fi
 
 function install_binutils {
@@ -94,6 +102,14 @@ function install_binutils {
     make -j4 --silent
     make install
     popd
+
+    ## Clean up
+    echo -e "\n> Cleaning up..."
+    rm -rf $INCLUDEOS_BUILD/$BINUTILS_RELEASE
+
+    ## Create link
+    echo -e "\n> Copying linker ($BINUTILS_LD) => $LD_INCLUDEOS_FULL_PATH"
+    cp $BINUTILS_LD $LD_INCLUDEOS_FULL_PATH
 
     echo -e "\n>>> Done installing: binutils"
 }
@@ -183,15 +199,11 @@ fi
 gzip -c $filename | tar xopf - -C $INCLUDEOS_INSTALL_LOC
 
 
-### Define compiler, linker and archiver
-
-# Brew clang
-#export CC_INC=$BREW_CLANG_CC
-#export CPP_INC=$BREW_CLANG_CPP
+### Define linker and archiver
 
 # Binutils ld & ar
-export LD=$BINUTILS_LD
-export AR=$BINUTILS_AR
+export LD_INC=$LD_INCLUDEOS
+export AR_INC=$BINUTILS_AR
 
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
@@ -206,4 +218,10 @@ cp vmbuild $INCLUDEOS_HOME/
 popd
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
+
+echo -e "\n### OSX installation done. ###"
+echo -e "\nTo build services and run tests, use the following before building:"
+echo -e "export LD_INC=$LD_INCLUDEOS"
+
+echo -e "\nTo run services, see: ./etc/vboxrun.sh. (VirtualBox needs to be installed)\n"
 

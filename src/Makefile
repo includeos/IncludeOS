@@ -26,18 +26,14 @@ DEBUG_OPTS = -ggdb3
 
 # Compiler/Linker
 ###################################################
+CC  = clang-3.6
+CPP = clang++-3.6
 # Set defaults if not defined
-ifndef CC_INC
-	CC_INC = clang-3.6
+ifndef LD_INC
+	LD_INC = ld
 endif
-ifndef CPP_INC
-	CPP_INC = clang++-3.6
-endif
-ifndef LD
-	LD = ld
-endif
-ifndef AR
-	AR = ar
+ifndef AR_INC
+	AR_INC = ar
 endif
 
 # Compiler options
@@ -119,12 +115,12 @@ TEST_OBJ = debug/test_service.o util/service_name.o
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
-	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test IPv6 service"
-	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
 
 test: test_service
 
@@ -132,11 +128,11 @@ test: test_service
 ###################################################
 # OS
 libc++abi.a: $(CXXABI_OBJ)
-	$(AR) rcs $@ $(CXXABI_OBJ)
+	$(AR_INC) rcs $@ $(CXXABI_OBJ)
 
 os.a: $(OS_OBJECTS)
 	@echo "\n>> Building the OS library"
-	$(AR) rcs $@ $(OS_OBJECTS)
+	$(AR_INC) rcs $@ $(OS_OBJECTS)
 
 install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
@@ -153,16 +149,16 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 # Makefile recipes
 ###################################################
 %.o: %.c
-	$(CC_INC) -MMD $(CCOPTS) -o $@ $< 
+	$(CC) -MMD $(CCOPTS) -o $@ $< 
 
 %.o: %.cpp 
 	@echo "\n"
-	$(CPP_INC) -MMD $(CPPOPTS) -o $@ $< 
+	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
 
 # AS-assembled object files
 %.o: %.s
 	@echo "\n"
-	$(CPP_INC) $(CPPOPTS) -x assembler-with-cpp $< -o $@
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
 
 # Bootloader
 ###################################################
