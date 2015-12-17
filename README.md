@@ -48,6 +48,21 @@ Here is a video showing how to set it up and get started with IncludeOS:
 
 [![Getting started with IncludeOS video](http://img.youtube.com/vi/b2D6loApw3o/0.jpg)](http://www.youtube.com/watch?v=b2D6loApw3o)
 
+## Building with Vagrant
+
+You can use
+[Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant) to set up
+a virtual machine with the correct environment for building
+IncludeOS. The following commands will build and install IncludeOS
+into your home directory (`~/IncludeOS_install/`).
+
+```
+     $ git clone https://github.com/hioa-cs/IncludeOS.git
+     $ cd IncludeOS
+     $ vagrant up
+     $ vagrant ssh --command=/IncludeOS/etc/install_from_bundle.sh
+```
+
 ## Prerequisites for building IncludeOS VM's
   * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
      * For the full source build, you'll need at least 1024 MB memory
@@ -56,7 +71,6 @@ Here is a video showing how to set it up and get started with IncludeOS:
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
      * **Building on a Mac:** we have done a successful build from bundle, directly on a Mac. It's a work in progress, but see [./etc/install_osx.sh](./etc/install_osx.sh) for details.
   * You'll need `git` to clone from github.
-
 
 Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
 

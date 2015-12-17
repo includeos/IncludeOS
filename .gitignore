@@ -30,3 +30,5 @@ vmbuild/vmbuild
 *.gz
 
 .DS_Store
+
+/.vagrant
