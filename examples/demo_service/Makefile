@@ -37,7 +37,9 @@ INC_LIBCXX=$(INSTALL)/libcxx/include
 DEBUG_OPTS = -ggdb3 -v
 
 CPP = clang++-3.6 -target i686-elf
-LD  = ld 
+ifndef LD_INC
+	LD_INC = ld
+endif
 
 INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api 
 
@@ -103,7 +105,7 @@ service.o: service.cpp
 # Link the service with the os
 service: $(OBJS) $(LIBS) 
 	@echo "\n>> Linking service with OS"
-	$(LD) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
 

@@ -3,7 +3,7 @@
 IncludeOS is a [Unikernel](https://en.wikipedia.org/wiki/Unikernel) written from scratch in C++, designed for x86 hardware virtualization, with no dependencies except for the virtual hardware. [Read more on the wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 ## It's a research prototype!
-IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS will appear in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications section](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
+IncludeOS is not production ready, not feature complete, and very much a work in progress. However, it has been shown to outperform Linux virtual machines in terms of CPU usage by 5-20%, and memory usage by orders of magnitude, running a simple DNS service (both platforms ran the same binary). Preliminary performance results and a (now outdated) overview of IncludeOS appeared in an [IEEE CloudCom 2015](http://2015.cloudcom.org/) paper, titled *IncludeOS: A resource efficient unikernel for cloud services*. A [preprint is available here](doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf), but for any [citations please refer to the publications section](https://github.com/hioa-cs/IncludeOS/wiki/Publications) in the [Wiki](https://github.com/hioa-cs/IncludeOS/wiki). 
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
@@ -43,6 +43,25 @@ We're working towards automating everything with our Jenkins CI server at [jenki
 A longer list of features and limitations is on the [wiki feature list](https://github.com/hioa-cs/IncludeOS/wiki/Features)
 
 # Try it out!
+
+Here is a video showing how to set it up and get started with IncludeOS:
+
+[![Getting started with IncludeOS video](http://img.youtube.com/vi/b2D6loApw3o/0.jpg)](http://www.youtube.com/watch?v=b2D6loApw3o)
+
+## Building with Vagrant
+
+You can use
+[Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant) to set up
+a virtual machine with the correct environment for building
+IncludeOS. The following commands will build and install IncludeOS
+into your home directory (`~/IncludeOS_install/`).
+
+```
+     $ git clone https://github.com/hioa-cs/IncludeOS.git
+     $ cd IncludeOS
+     $ vagrant up
+     $ vagrant ssh --command=/IncludeOS/etc/install_from_bundle.sh
+```
 
 ## Prerequisites for building IncludeOS VM's
   * **Ubuntu 14.04 LTS x86_64**, Vanilla, either on a physical or virtual machine (A virtualbox VM works fine)
@@ -103,7 +122,7 @@ will build and run a [this example service](./examples/demo_service/service.cpp)
 **Things to note**
 * The default test script will only work on Linux, and uses Qemu (with KVM if available). To run IncludeOS directly on VirtualBox, see `etc/vboxrun.sh`
 * There is no shell! IncludeOS is a unikernel, and so it will only run one process. Think of an IncludeOS VM as a local process.
-* There is no VGA! So, nothing will show up on the "screen" if you're using a GUI (i.e. if you run IncludeOS directly in virtualbox) We did write a vga module at one point, but we never use it; output to serial port works very well. We'll add VGA support in the future, as a package.
+* There is no default VGA! So, nothing will show up on the "screen" if you're using a GUI (i.e. if you run IncludeOS directly in virtualbox). To enable VGA you will need to connect `OS::set_rsprint_secondary` to a lambda that calls `ConsoleVGA::write` (see: [api/kernel/vga.hpp](api/kernel/vga.hpp) and the [test service](src/debug/test_service.cpp) for an example), as well as enable graphical output in the emulator, such as qemu. We'll add VGA support in the future, as a package.
 * You should be able to ping the VM. Its IP-address will be stated in the boot-time output from IncldueOS 
 * You should also be able to open a simple webpage on the VM, by entering the IP into a browser, inside the development machine.
 * How to get out? The test script starts [qemu](http://wiki.qemu.org/Main_Page) with the `--nographics`-option. This will by default reroute stdin and stdout to the terminal. To exit the virtual machine, you can go via the [Qemu monitor](https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine). The command for entering the monitor is `Ctrl+a c`, or to exit directly, `Ctrl+a x`.
@@ -140,11 +159,11 @@ There's a convenience script, [./seed/run.sh](./seed/run.sh), which has the "Mak
 * If you want to debug the bootloader, or inspect memory, registers, flags etc. using a GUI, you need to install [Bochs](http://bochs.sourceforge.net/). This is because `gdb` only works for objects with debugging symbols, which we don't have for our bootloader. See `./etc/bochs_installation.sh` for build options, and `./etc/.bochsrc` for an example configuration file (which specifies a <1MB disk).
 
 ## C++ Guidelines
-We are currently far from it, but in time we'd like to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork, and send us a pull-request. 
+We are currently far from it, but in time we'd like to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines), maintained by the [Jedi Council](https://isocpp.org/). When (not if) you find code in IncludeOS which doesn't adhere, please let us padawans know, in the issue-tracker - or even better, fix it in your own fork and send us a pull-request. 
   * *Note: We're not using the Guidelines Support Library, but we probably will at some point. This means we're not ready to follow guidelines that requires this library yet.*
 
 ## Read more on the wiki
-We're trying to grow a Wiki, and some questions might allready be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
+We're trying to grow a Wiki, and some questions might already be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
 
 See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guies.
 
