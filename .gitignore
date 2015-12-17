@@ -32,3 +32,4 @@ vmbuild/vmbuild
 .DS_Store
 
 /.vagrant
+/examples/demo_service/IncludeOS_Demo_Service
