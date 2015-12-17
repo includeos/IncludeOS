@@ -1,11 +1,16 @@
 #! /bin/bash
 
-# Start as a GDB service, for debugging
-# (0 means no, anything else yes.)
+if [[ $# -lt 1 ]]; then
+    echo "Usage: IMAGE.img [debug]"
+    exit $1
+fi
+
 export IMAGE=$1
 
 [ ! -v INCLUDEOS_HOME ] && INCLUDEOS_HOME=$HOME/IncludeOS_install
 
+# Start as a GDB service, for debugging
+# (0 means no, anything else yes.)
 DEBUG=0
 
 [[ $2 = "debug" ]] && DEBUG=1 
