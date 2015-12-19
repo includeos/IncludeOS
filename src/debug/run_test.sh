@@ -56,7 +56,7 @@ else
     echo "---------------------------------------------------------------------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
     echo "---------------------------------------------------------------------------------"
-    sudo $QEMU $QEMU_OPTS 
+    sudo $QEMU $QEMU_OPTS -drive file=./smalldisk,if=virtio
 fi
 
 # Convert the image into VirtualBox / Qemu native formats

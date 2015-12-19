@@ -68,7 +68,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
 		hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
+		virtio/virtio.o virtio/virtionet.o virtio/virtio_blk.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
@@ -123,8 +123,11 @@ test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Linking test IPv6 service"
 	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+
+test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+	$(LD) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
 
 test: test_service
 

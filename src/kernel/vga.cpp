@@ -28,6 +28,7 @@ uint16_t make_vgaentry(char c, uint8_t color)
 }
 
 ConsoleVGA::ConsoleVGA()
+  : row(0), column(0)
 {
 	this->color = make_color(COLOR_WHITE, COLOR_BLACK);
 	this->buffer = (uint16_t*) 0xB8000;
@@ -96,14 +97,18 @@ void ConsoleVGA::clear()
 {
 	this->row    = 0;
 	this->column = 0;
-	__m128i scan = _mm_set1_epi16(32);
+	/*
+  __m128i scan = _mm_set1_epi16(32);
   
 	for (size_t y = 0; y < VGA_HEIGHT; y++)
 	for (size_t x = 0; x < VGA_WIDTH;  x += 8)
 	{
 		const size_t index = y * VGA_WIDTH + x;
 		_mm_store_si128((__m128i*) &buffer[index], scan);
-	}
+	}*/
+	
+	for (size_t x = 0; x < VGA_WIDTH * VGA_HEIGHT; x++)
+		buffer[x] = 32;
 }
 
 void ConsoleVGA::write(char c)

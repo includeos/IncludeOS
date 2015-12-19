@@ -21,19 +21,19 @@
 #include <common>
 
 namespace PCI {
-  const uint32_t  WTF = 0xffffffff;
+  static const uint32_t  WTF = 0xffffffff;
   
-  const uint16_t CONFIG_ADDR = 0xCF8;
-  const uint16_t  CONFIG_DATA = 0xCFC;
-  const uint8_t  CONFIG_INTR = 0x3C;
+  static const uint16_t CONFIG_ADDR = 0xCF8;
+  static const uint16_t  CONFIG_DATA = 0xCFC;
+  static const uint8_t  CONFIG_INTR = 0x3C;
   
-  const uint8_t  CONFIG_VENDOR = 0x00;
-  const uint8_t CONFIG_CLASS_REV = 0x08;
+  static const uint8_t  CONFIG_VENDOR = 0x00;
+  static const uint8_t CONFIG_CLASS_REV = 0x08;
   
-  const uint8_t CONFIG_BASE_ADDR_0 = 0x10;
+  static const uint8_t CONFIG_BASE_ADDR_0 = 0x10;
 
-  const uint32_t BASE_ADDRESS_MEM_MASK = (~0x0FUL);
-  const uint32_t BASE_ADDRESS_IO_MASK = (~0x03UL);
+  static const uint32_t BASE_ADDRESS_MEM_MASK = (~0x0FUL);
+  static const uint32_t BASE_ADDRESS_IO_MASK = (~0x03UL);
 
 /** 
     @brief PCI device message format
@@ -58,11 +58,19 @@ namespace PCI {
       uint8_t code;
     };
   };
-
-  /** Relevant class codes (many more) */
-  enum classcode_t {OLD,STORAGE,NIC,DISPLAY,
-		    MULTIMEDIA,MEMORY,BRIDGE, OTHER=255};
   
+  /** Relevant class codes (many more) */
+  enum classcode_t
+  {
+    OLD,
+    STORAGE,
+    NIC,
+    DISPLAY,
+    MULTIMEDIA,
+    MEMORY,
+    BRIDGE,
+    OTHER=255
+  };
 }
 
 /**
@@ -76,8 +84,7 @@ namespace PCI {
 */
 class PCI_Device
   //:public Device //Why not? A PCI device is too general to be accessible?
-{  
-  
+{
   //@brief The 3-part PCI address
   uint16_t pci_addr_;
   
@@ -233,5 +240,3 @@ public:
   
   
 };
-
-

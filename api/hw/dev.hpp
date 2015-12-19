@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CLASS_DEV_H
-#define CLASS_DEV_H
+#ifndef KERNEL_DEV_HPP
+#define KERNEL_DEV_HPP
 
 #include <common>
 #include "pci_manager.hpp"
@@ -24,6 +24,7 @@
 #include "pit.hpp"
 #include "disk.hpp"
 #include <virtio/virtionet.hpp>
+#include <virtio/virtio_blk.hpp>
 
 /** @todo Impement */
 class Serial;
@@ -41,14 +42,16 @@ public:
         
   /** Get ethernet device n */
   template <int N, typename DRIVER = VirtioNet>
-  static Nic<DRIVER>& eth(){ 
+  static Nic<DRIVER>& eth()
+  {
     static Nic<DRIVER> eth_( PCI_manager::device<PCI::NIC> (N) );
     return eth_;
   }
   
-  /** @todo Get disk n */
+  /** Get disk N using driver DRIVER */
   template <int N, typename DRIVER>
-  static PCI_Device& disk(int){
+  static Disk<DRIVER>& disk()
+  {
     static Disk<DRIVER> disk_( PCI_manager::device<PCI::STORAGE> (N) );
     return disk_;
   }
