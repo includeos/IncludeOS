@@ -27,8 +27,8 @@
 class VirtioBlk : Virtio
 {
 public:
-  typedef delegate<void(int err, const char*)> on_read_func;
   typedef uint64_t block_t;
+  typedef delegate<void(int, block_t, const char*)> on_read_func;
   static const int SECTOR_SIZE = 512;
   
   /** Human readable name. */

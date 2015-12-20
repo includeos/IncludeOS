@@ -38,7 +38,7 @@ public:
   
   inline void read_block(block_t blk, on_read_func on_read)
   {
-    return driver_.read(blk, on_read);
+    driver_.read(blk, on_read);
   }
   
   /*inline void write_block(block_t blk, const char* data, on_error_func on_error)
