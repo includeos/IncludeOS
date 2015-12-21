@@ -59,11 +59,10 @@ private:
   struct virtio_blk_config_t
   {
     uint64_t capacity;
-    /*
     uint32_t size_max;
     uint32_t seg_max;
     virtio_blk_geometry_t geometry;
-    uint32_t blk_size; */
+    uint32_t blk_size;
   };
   
   struct virtio_blk_request_t
@@ -71,7 +70,6 @@ private:
     uint32_t type;
     uint32_t ioprio;
     uint64_t sector;
-    char     data[SECTOR_SIZE];
     uint8_t  status;
   };
   

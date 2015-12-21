@@ -23,6 +23,8 @@
 #define VIRTIO_BLK_S_IOERR     1
 #define VIRTIO_BLK_S_UNSUPP    2
 
+#define FEAT(x)  (1 << x)
+
 void drop_disk_event(const char*) {}
 
 VirtioBlk::VirtioBlk(PCI_Device& d)
@@ -31,26 +33,39 @@ VirtioBlk::VirtioBlk(PCI_Device& d)
 {
   INFO("VirtioBlk", "Driver initializing");
   
-  uint32_t needed_features = 0 
-  //  | (1 << VIRTIO_BLK_F_SIZE_MAX)
-  //  | (1 << VIRTIO_BLK_F_SEG_MAX)
-    | (1 << VIRTIO_BLK_F_RO);
+  uint32_t needed_features =
+      FEAT(VIRTIO_BLK_F_BLK_SIZE);
   negotiate_features(needed_features);
+  
+  CHECK(features() & FEAT(VIRTIO_BLK_F_BARRIER),
+    "Barrier is enabled");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_SIZE_MAX),
+    "Size-max is known");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_SEG_MAX),
+    "Seg-max is known");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_GEOMETRY),
+    "Geometry structure is used");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_RO),
+    "Device is read-only");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_BLK_SIZE),
+    "Block-size is known");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_SCSI),
+    "SCSI is enabled :(");
+  CHECK(features() & FEAT(VIRTIO_BLK_F_FLUSH),
+    "Flush enabled");
   
   
   CHECK ((features() & needed_features) == needed_features,
     "Negotiated needed features");
-  
-  CHECK(features() & (1 << VIRTIO_BLK_F_RO),
-    "Device is read-only");
   
   // Step 1 - Initialize RX/TX queues
   auto success = assign_queue(0, (uint32_t) req.queue_desc());
   CHECK(success, "Request queue assigned (0x%x) to device",
     (uint32_t) req.queue_desc());
   
-  for (int i = 0; i < req.size() / 2; i++)
-    add_receive_buffer();
+  // have to use half the size here for some reason...
+  //for (int i = 0; i < req.size() / 2; i++)
+  // add_receive_buffer();
   
   // Get device configuration
   get_config();  
@@ -72,7 +87,7 @@ VirtioBlk::VirtioBlk(PCI_Device& d)
 
 int VirtioBlk::add_receive_buffer()
 {
-  scatterlist sg[2];  
+  scatterlist sg[2];
   const block_t total = block_size() + sizeof(virtio_blk_request_t);
   
   // Virtio Std. § 5.1.6.3
@@ -81,13 +96,10 @@ int VirtioBlk::add_receive_buffer()
   
   virtio_blk_request_t* vbr = (virtio_blk_request_t*) buf;
   sg[0].data = vbr;
-  
-  //NOTE: using separate empty header doesn't work for RX, but it works for TX...
-  //sg[0].data = (void*)&empty_header; 
   sg[0].size = sizeof(virtio_blk_request_t);
   sg[1].data = buf + sizeof(virtio_blk_request_t);
-  sg[1].size = total; 
-  req.enqueue(sg, 0, 2,buf);  
+  sg[1].size = total;
+  req.enqueue(sg, 0, 2,buf);
   return 0;
 }
 
@@ -127,11 +139,42 @@ void VirtioBlk::irq_handler()
 
 void VirtioBlk::service_RX()
 {
+  req.disable_interrupts();
   printf("Received some data from VirtioBlk device\n");
   printf("I'm going to lie down and pretend I'm dead now\n");
+  
+  while (req.new_incoming())
+  {
+    uint32_t len;
+    uint8_t* data = req.dequeue(&len);
+    
+    printf("DATA: %u bytes\n", len);
+  }
+  
+  req.enable_interrupts();
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func)
 {
   printf("Sending read request for block %llu\n", blk);
+  scatterlist sg[3];
+  
+  // Virtio Std. § 5.1.6.3
+  const block_t total = block_size();
+  char* buf = new char[total];
+  
+  virtio_blk_request_t vbr;
+  vbr.type  = VIRTIO_BLK_T_IN;
+  vbr.ioprio = 0;
+  vbr.sector = blk;
+  vbr.status = VIRTIO_BLK_S_OK;
+  
+  sg[0].data = &vbr;
+  sg[0].size = sizeof(virtio_blk_request_t);
+  sg[1].data = buf;
+  sg[1].size = 1;
+  sg[2].data = &vbr.status;
+  sg[2].size = sizeof(vbr.status);
+  req.enqueue(sg, 1, 2, buf);
+  req.kick();
 }
