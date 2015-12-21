@@ -29,6 +29,7 @@ class VirtioBlk : Virtio
 public:
   typedef uint64_t block_t;
   typedef delegate<void(int, block_t, const char*)> on_read_func;
+  typedef delegate<void(int, block_t, block_t)> on_write_func;
   static const int SECTOR_SIZE = 512;
   
   /** Human readable name. */
@@ -54,7 +55,7 @@ private:
     uint16_t cyls;
     uint8_t  heds;
     uint8_t  sect;
-  };
+  } __attribute__((packed));
   
   struct virtio_blk_config_t
   {
@@ -62,8 +63,12 @@ private:
     uint32_t size_max;
     uint32_t seg_max;
     virtio_blk_geometry_t geometry;
-    uint32_t blk_size;
-  };
+    uint32_t blk_size;           // Block size of device
+    uint8_t physical_block_exp;  // Exponent for physical block per logical block
+    uint8_t alignment_offset;    // Alignment offset in logical blocks
+    uint16_t min_io_size;        // Minimum I/O size without performance penalty in logical blocks
+    uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks    
+  } __attribute__((packed));
   
   struct virtio_blk_request_t
   {
@@ -71,7 +76,7 @@ private:
     uint32_t ioprio;
     uint64_t sector;
     uint8_t  status;
-  };
+  } __attribute__((packed));
   
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
@@ -89,9 +94,6 @@ private:
       
       Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
-  
-  /** Allocate and queue buffer from bufstore_ in RX queue. */
-  int add_receive_buffer();  
   
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;

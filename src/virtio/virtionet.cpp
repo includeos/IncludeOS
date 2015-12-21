@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #define PRINT_INFO
-#define DEBUG // Allow debuging 
+//#define DEBUG // Allow debuging 
 //#define DEBUG2
 
 #include <virtio/virtionet.hpp>
@@ -24,6 +24,7 @@
 #include <kernel/irq_manager.hpp>
 
 using namespace net;
+constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }  
@@ -280,13 +281,6 @@ void VirtioNet::service_TX(){
   debug2("\t Dequeued %i packets \n",i);
   // Deallocate buffer. 
 }
-
-
-//TEMP for pretty printing 
-extern "C"  char *ether2str(Ethernet::addr *hwaddr, char *s);
-
-
-constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 int VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());

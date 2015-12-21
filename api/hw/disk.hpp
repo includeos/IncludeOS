@@ -27,6 +27,7 @@ public:
   typedef DRIVER  driver; 
   typedef typename driver::block_t       block_t;
   typedef typename driver::on_read_func  on_read_func;
+  typedef typename driver::on_write_func on_write_func;
   
   /** Get a readable name. */
   inline const char* name() { return driver_.name(); }
@@ -41,10 +42,10 @@ public:
     driver_.read(blk, on_read);
   }
   
-  /*inline void write_block(block_t blk, const char* data, on_error_func on_error)
+  inline void write_block(block_t, const char*, on_write_func)
   {
-    return driver_.write(blk, data, on_error);
-  }*/
+    //return driver_.write(blk, data, on_write);
+  }
   
 private:
   DRIVER driver_;

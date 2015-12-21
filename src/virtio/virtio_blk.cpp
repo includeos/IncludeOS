@@ -29,7 +29,7 @@ void drop_disk_event(const char*) {}
 
 VirtioBlk::VirtioBlk(PCI_Device& d)
   : Virtio(d),
-    req(queue_size(0),0, iobase())
+    req(queue_size(0), 0, iobase())
 {
   INFO("VirtioBlk", "Driver initializing");
   
@@ -58,14 +58,10 @@ VirtioBlk::VirtioBlk(PCI_Device& d)
   CHECK ((features() & needed_features) == needed_features,
     "Negotiated needed features");
   
-  // Step 1 - Initialize RX/TX queues
+  // Step 1 - Initialize REQ queue
   auto success = assign_queue(0, (uint32_t) req.queue_desc());
   CHECK(success, "Request queue assigned (0x%x) to device",
     (uint32_t) req.queue_desc());
-  
-  // have to use half the size here for some reason...
-  //for (int i = 0; i < req.size() / 2; i++)
-  // add_receive_buffer();
   
   // Get device configuration
   get_config();  
@@ -85,24 +81,6 @@ VirtioBlk::VirtioBlk(PCI_Device& d)
   req.kick();
 }
 
-int VirtioBlk::add_receive_buffer()
-{
-  scatterlist sg[2];
-  const block_t total = block_size() + sizeof(virtio_blk_request_t);
-  
-  // Virtio Std. § 5.1.6.3
-  //auto buf = bufstore_.get_raw_buffer();
-  char* buf = new char[total];
-  
-  virtio_blk_request_t* vbr = (virtio_blk_request_t*) buf;
-  sg[0].data = vbr;
-  sg[0].size = sizeof(virtio_blk_request_t);
-  sg[1].data = buf + sizeof(virtio_blk_request_t);
-  sg[1].size = total;
-  req.enqueue(sg, 0, 2,buf);
-  return 0;
-}
-
 void VirtioBlk::get_config()
 {
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
@@ -110,7 +88,7 @@ void VirtioBlk::get_config()
 
 void VirtioBlk::irq_handler()
 {
-  debug2("<VirtioNet> handling IRQ \n");
+  debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
@@ -137,6 +115,8 @@ void VirtioBlk::irq_handler()
   IRQ_manager::eoi(irq());
 }
 
+static char* buf;
+
 void VirtioBlk::service_RX()
 {
   req.disable_interrupts();
@@ -145,10 +125,12 @@ void VirtioBlk::service_RX()
   
   while (req.new_incoming())
   {
-    uint32_t len;
+    uint32_t len  = 0;
     uint8_t* data = req.dequeue(&len);
     
-    printf("DATA: %u bytes\n", len);
+    printf("DATA  1: %u:\t2: %u \n", len, (&len)[1]);
+    printf("%s\n", buf + sizeof(virtio_blk_request_t));
+    break;
   }
   
   req.enable_interrupts();
@@ -160,21 +142,23 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   scatterlist sg[3];
   
   // Virtio Std. § 5.1.6.3
-  const block_t total = block_size();
-  char* buf = new char[total];
+  const block_t total = sizeof(virtio_blk_request_t) + block_size();
+  buf = new char[total];
   
-  virtio_blk_request_t vbr;
-  vbr.type  = VIRTIO_BLK_T_IN;
-  vbr.ioprio = 0;
-  vbr.sector = blk;
-  vbr.status = VIRTIO_BLK_S_OK;
+  virtio_blk_request_t* vbr = (virtio_blk_request_t*) buf;
+  char* data = buf + sizeof(virtio_blk_request_t);
   
-  sg[0].data = &vbr;
+  vbr->type   = VIRTIO_BLK_T_IN;
+  vbr->ioprio = 0;
+  vbr->sector = blk;
+  vbr->status = VIRTIO_BLK_S_OK;
+  
+  sg[0].data = vbr;
   sg[0].size = sizeof(virtio_blk_request_t);
-  sg[1].data = buf;
-  sg[1].size = 1;
-  sg[2].data = &vbr.status;
-  sg[2].size = sizeof(vbr.status);
+  sg[1].data = data;
+  sg[1].size = block_size();
+  sg[2].data = &vbr->status;
+  sg[2].size = sizeof(vbr->status);
   req.enqueue(sg, 1, 2, buf);
   req.kick();
 }
