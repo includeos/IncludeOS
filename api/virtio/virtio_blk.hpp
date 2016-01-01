@@ -38,7 +38,7 @@ public:
   // returns the optimal block size for this device
   constexpr block_t block_size() const
   {
-    return SECTOR_SIZE; // some multiple of sector size
+    return 4096; // some multiple of sector size
   }
   
   void read (block_t blk, on_read_func func);
@@ -70,13 +70,23 @@ private:
     uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks    
   } __attribute__((packed));
   
-  struct virtio_blk_request_t
+  struct scsi_header_t
   {
     uint32_t type;
     uint32_t ioprio;
     uint64_t sector;
-    uint8_t  status;
-  } __attribute__((packed));
+    /// SCSI ///
+    //char* cmd = nullptr;
+  };
+  
+  struct virtio_blk_request_t
+  {
+    scsi_header_t hdr;
+    char    sector[512];
+    uint8_t status;
+    uint16_t req_id;
+  };
+  
   
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
@@ -97,6 +107,7 @@ private:
   
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
+  uint16_t request_counter;
 };
 
 #endif
