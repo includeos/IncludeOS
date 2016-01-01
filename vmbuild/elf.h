@@ -19,13 +19,13 @@
 #ifndef _ELF_H
 #define	_ELF_H 1
 
-#include <features.h>
-
-__BEGIN_DECLS
-
 /* Standard ELF types.  */
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Type for a 16-bit quantity.  */
 typedef uint16_t Elf32_Half;
@@ -972,7 +972,6 @@ typedef struct
     } a_un;
 } Elf64_auxv_t;
 
-#include <bits/auxv.h>
 /* Note section contents.  Each entry in the note section begins with
    a header of a fixed form.  */
 
@@ -3298,7 +3297,8 @@ typedef Elf32_Addr Elf32_Conflict;
 
 #define R_TILEGX_NUM		130
 
-
-__END_DECLS
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif	/* elf.h */

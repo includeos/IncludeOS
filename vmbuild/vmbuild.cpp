@@ -19,8 +19,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdio.h>
-#include <elf.h>
 #include <stdlib.h>
+#include "elf.h"
 
 #define SECT_SIZE 512
 
