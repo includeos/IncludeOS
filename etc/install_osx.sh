@@ -15,6 +15,7 @@
 [[ -z $INCLUDEOS_SRC ]] && export INCLUDEOS_SRC=`pwd`
 [[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
+mkdir -p $INCLUDEOS_HOME
 
 # Install dependencies
 #DEPENDENCIES="curl make clang-3.6 nasm bridge-utils qemu"
@@ -121,19 +122,20 @@ echo -e "\n>> Done installing Binutils."
 ### End Binutils ###
 
 # Define compiler, linker and archiver
-export CC=/usr/local/Cellar/llvm/3.6.2/bin/clang # Hardcoded for now, put your clang here
-export CPP=/usr/local/Cellar/llvm/3.6.2/bin/clang++ # Hardcoded for now, put your clang++ here
-#export CC=clang
-#export CPP=clang++
+export CC=clang-3.6
+export CPP=clang++-3.6
+export CC_INC=$CC
+export CPP_INC=$CPP
 export LD=$INCLUDEOS_LINKER
 export AR=$INCLUDEOS_ARCHIVER
+
 
 ### Install nasm # Not sure if needed yet
 
 #echo -e "\n\n>>> Updating nasm (bootloader)" 
 
 # Install with brew
-#brew install nasm
+brew install nasm
 
 ### End nasm
 
