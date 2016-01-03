@@ -1,5 +1,5 @@
 #! /bin/bash
-. $IncludeOS_src/etc/set_traps.sh
+. $INCLUDEOS_SRC/etc/set_traps.sh
 
 
 # Configure for an "unspecified x86 elf" target, 
@@ -21,7 +21,7 @@ if [ ! -d newlib-$newlib_version ]; then
 
     # PATCH newlib, to be compatible with clang.
     echo -e "\n\n >>> Patching newlib, to build with clang \n"
-    patch -p0 < $IncludeOS_src/etc/newlib_clang.patch
+    patch -p0 < $INCLUDEOS_SRC/etc/newlib_clang.patch
 
 else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"

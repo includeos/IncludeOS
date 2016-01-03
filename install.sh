@@ -15,7 +15,7 @@ export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 
 export newlib_version=2.2.0-1
 
-export IncludeOS_src=`pwd`
+export INCLUDEOS_SRC=`pwd`
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
@@ -49,40 +49,40 @@ cd $BUILD_DIR
 
 if [ ! -z $do_binutils ]; then
     echo -e "\n\n >>> GETTING / BUILDING binutils (Required for libgcc / unwind / crt) \n"
-    $IncludeOS_src/etc/build_binutils.sh
+    $INCLUDEOS_SRC/etc/build_binutils.sh
 fi
 
 if [ ! -z $do_gcc ]; then
     echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
-    $IncludeOS_src/etc/cross_compiler.sh
+    $INCLUDEOS_SRC/etc/cross_compiler.sh
 fi
 
 if [ ! -z $do_newlib ]; then
     echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
-    $IncludeOS_src/etc/build_newlib.sh
+    $INCLUDEOS_SRC/etc/build_newlib.sh
 fi
 
 if [ ! -z $do_llvm ]; then
     echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
-    $IncludeOS_src/etc/build_llvm32.sh
+    $INCLUDEOS_SRC/etc/build_llvm32.sh
     #echo -e "\n\n >>> INSTALLING libc++ \n"
     #cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
 fi
 
 echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
-$IncludeOS_src/etc/create_binary_bundle.sh
+$INCLUDEOS_SRC/etc/create_binary_bundle.sh
 
 
 if [ ! -z $do_includeos ]; then
     # Build and install the vmbuilder 
     echo -e "\n >>> Installing vmbuilder"
-    pushd $IncludeOS_src/vmbuild
+    pushd $INCLUDEOS_SRC/vmbuild
     make 
     cp vmbuild $INSTALL_DIR/
     popd
     
     echo -e "\n >>> Building IncludeOS"
-    pushd $IncludeOS_src/src
+    pushd $INCLUDEOS_SRC/src
     make $num_jobs
         
     echo -e "\n >>> Linking IncludeOS test-service"
@@ -102,12 +102,10 @@ if [ ! -z $do_includeos ]; then
     
     # Set up the IncludeOS network bridge
     echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
-    sudo $IncludeOS_src/etc/create_bridge.sh
+    sudo $INCLUDEOS_SRC/etc/create_bridge.sh
     
     # Copy qemu-ifup til install loc.
-    mkdir -p $INSTALL_DIR/etc
-    cp $IncludeOS_src/etc/qemu-ifup $INSTALL_DIR/etc/
-    cp $IncludeOS_src/etc/qemu_cmd.sh $INSTALL_DIR/etc/
+    $INCLUDEOS_SRC/etc/copy-scripts.sh
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"
