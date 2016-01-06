@@ -36,8 +36,6 @@ targetImg="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
 diskname="${disk%.*}"
 targetLoc=$diskname.vdi
 
-echo -e "$diskname"
-
 # Remove disk if already exists
 if [[ -e $targetLoc ]]
 then
