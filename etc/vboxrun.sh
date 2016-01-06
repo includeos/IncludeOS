@@ -36,11 +36,17 @@ targetImg="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
 diskname="${disk%.*}"
 targetLoc=$diskname.vdi
 
-# Convert the disk to .vdi if needed
-if [[ $disk != *.vdi && ! -e $diskname.vdi ]]
+echo -e "$diskname"
+
+# Remove disk if already exists
+if [[ -e $targetLoc ]]
 then
-    $VB convertfromraw $disk $targetLoc
+    echo -e "\n>>> Disk already exists, removing...\n"
+    rm $diskname.vdi
 fi
+
+# Convert the disk to .vdi
+$VB convertfromraw $disk $targetLoc
 
 SERIAL_FILE="$(pwd)/$VMNAME.console.pipe"
 
