@@ -36,8 +36,23 @@ targetImg="$homeDir/IncludeOS/seed/My_IncludeOS_Service.vdi"
 diskname="${disk%.*}"
 targetLoc=$diskname.vdi
 
-# Convert the disk to .vdi if needed
-if [[ $disk != *.vdi && ! -e $diskname.vdi ]]
+# Exit script if disk can not be found.
+if [[ ! -e $disk ]]
+then
+    echo -e "\n>>> '$disk' does not exist. Exiting... "
+    exit 1
+fi
+
+# Remove disk if already exists, but not if its equal input
+if [[ -e $targetLoc && $disk != $targetLoc ]]
+then
+    echo -e "\n>>> Disk already exists, removing...\n"
+    rm $targetLoc
+fi
+
+# Convert the disk to .vdi.
+# If input == output, no conversion is needed.
+if [[ $disk != $targetLoc ]]
 then
     $VB convertfromraw $disk $targetLoc
 fi
