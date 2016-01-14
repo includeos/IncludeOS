@@ -105,22 +105,20 @@ silent: all test
 LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-CRTI_OBJ     = crt/crti.o
-CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
-CRTEND_OBJ   = $(INSTALL)/crt/crtend.o
-CRTN_OBJ     = crt/crtn.o
+CRTBEGIN_OBJ = crt/crti.o $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ   = $(INSTALL)/crt/crtend.o crt/crtn.o
 
 TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
-	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test IPv6 service"
-	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test: test_service
 
@@ -163,7 +161,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 # Bootloader
 ###################################################
 # Nasm-based bootloader
-bootloader: boot/bootloader.asm
+bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
 
