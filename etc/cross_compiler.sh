@@ -1,5 +1,5 @@
 # Bash utils
-. $IncludeOS_src/etc/set_traps.sh
+. $INCLUDEOS_SRC/etc/set_traps.sh
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR

@@ -9,7 +9,7 @@ else
 fi
 
 export macaddress="c0:01:0a:00:00:2a"
-[ ! -v INCLUDEOS_HOME ] && INCLUDEOS_HOME=$HOME/IncludeOS_install
+INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 
 export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
