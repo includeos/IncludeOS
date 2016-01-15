@@ -28,8 +28,8 @@ class VirtioBlk : Virtio
 {
 public:
   typedef uint64_t block_t;
-  typedef delegate<void(int, block_t, const char*)> on_read_func;
-  typedef delegate<void(int, block_t, block_t)> on_write_func;
+  typedef delegate<void(block_t, const char*)> on_read_func;
+  typedef delegate<void(block_t, block_t)> on_write_func;
   static const int SECTOR_SIZE = 512;
   
   /** Human readable name. */
@@ -38,7 +38,7 @@ public:
   // returns the optimal block size for this device
   constexpr block_t block_size() const
   {
-    return 4096; // some multiple of sector size
+    return 512; // some multiple of sector size
   }
   
   void read (block_t blk, on_read_func func);
@@ -77,16 +77,19 @@ private:
     uint64_t sector;
     /// SCSI ///
     //char* cmd = nullptr;
-  };
-  
-  struct virtio_blk_request_t
+  } __attribute__((packed));
+  struct blk_data_t
   {
-    scsi_header_t hdr;
     char    sector[512];
     uint8_t status;
-    uint16_t req_id;
-  };
+    on_read_func handler{[](block_t,const char*) {}};
+  } __attribute__((packed));
   
+  struct request_t
+  {
+    scsi_header_t hdr;
+    blk_data_t    data;
+  } __attribute__((packed));
   
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
@@ -108,6 +111,7 @@ private:
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
   uint16_t request_counter;
+  static request_t* buf;
 };
 
 #endif

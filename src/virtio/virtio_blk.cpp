@@ -27,8 +27,6 @@
 
 #define FEAT(x)  (1 << x)
 
-void drop_disk_event(const char*) {}
-
 VirtioBlk::VirtioBlk(PCI_Device& d)
   : Virtio(d),
     req(queue_size(0), 0, iobase()),
@@ -69,7 +67,7 @@ VirtioBlk::VirtioBlk(PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioBlk", "Queue size: %i\tRequest size: %u\n",
-       req.size(), sizeof(virtio_blk_request_t));
+       req.size(), sizeof(request_t));
   
   // Get device configuration
   get_config();
@@ -117,37 +115,31 @@ void VirtioBlk::irq_handler()
     debug("\t <VirtioBlk> Configuration change:\n");
     
     // Getting the MAC + status 
-    debug("\t             Old status: 0x%x\n",_conf.status);      
+    //debug("\t             Old status: 0x%x\n", config.status);      
     get_config();
-    debug("\t             New status: 0x%x \n",_conf.status);
+    //debug("\t             New status: 0x%x \n", config.status);
   }
   IRQ_manager::eoi(irq());
 }
 
-static char* buf;
+VirtioBlk::request_t* VirtioBlk::buf;
 
 void VirtioBlk::service_RX()
 {
   req.disable_interrupts();
   
-  while (req.new_incoming())
+  uint32_t received = 0;
+  uint32_t len;
+  blk_data_t* vbr;
+  while ((vbr = (blk_data_t*) req.dequeue(&len)) != nullptr)
   {
-    static int XX = 6;
-    XX--;
-    if (XX == 0) break;
-    
-    uint32_t len;
-    char* sector = (char*) req.dequeue(&len);
-    char* data = sector + sizeof(scsi_header_t);
-    
-    printf("Correct: %p, Actual: %p, diff: %ld\n",
-        buf, sector, buf-sector);
-    assert(buf - sector == 0);
-    printf("Data: %s\n", data);
-    
-    std::string DATA(data);
-    printf("LENGTH: %u\n", DATA.size());
-    break;
+    printf("service_RX() received %u bytes from virtioblk device\n", len);
+    vbr->handler(0, vbr->sector);
+    received++;
+  }
+  if (received == 0)
+  {
+    printf("service_RX() error processing requests\n");
   }
   
   req.enable_interrupts();
@@ -159,25 +151,21 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   scatterlist sg[3];
   
   // Virtio Std. § 5.1.6.3
-  const uint32_t total = sizeof(virtio_blk_request_t);
-  buf = new char[total];
-  
-  virtio_blk_request_t* vbr = (virtio_blk_request_t*) buf;
+  auto* vbr = new request_t();
+  buf = vbr;
   
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
-  vbr->req_id = 322; //++request_counter;
-  vbr->status = VIRTIO_BLK_S_OK;
+  vbr->data.status  = VIRTIO_BLK_S_OK;
+  vbr->data.handler = func;
   
   sg[0].data = &vbr->hdr;
   sg[0].size = sizeof(scsi_header_t);
-  sg[1].data = &vbr->sector;
-  sg[1].size = SECTOR_SIZE;
-  sg[2].data = &vbr->status;
-  sg[2].size = 4;
-  printf("sg lists:  %u, %u\n", sg[0].size, sg[1].size);
   
-  req.enqueue(sg, 1, 2, vbr);
+  sg[1].data = &vbr->data;
+  sg[1].size = sizeof(blk_data_t);
+  
+  req.enqueue(sg, 1, 1, vbr);
   req.kick();
 }

@@ -37,12 +37,12 @@ public:
     return driver_.block_size();
   }
   
-  inline void read_block(block_t blk, on_read_func on_read)
+  inline void read(block_t blk, on_read_func on_read)
   {
     driver_.read(blk, on_read);
   }
   
-  inline void write_block(block_t, const char*, on_write_func)
+  inline void write(block_t, const char*, on_write_func)
   {
     //return driver_.write(blk, data, on_write);
   }
