@@ -105,7 +105,7 @@ if [ ! -z $do_includeos ]; then
     sudo $INCLUDEOS_SRC/etc/create_bridge.sh
     
     # Copy qemu-ifup til install loc.
-    $INCLUDEOS_SRC/etc/copy-scripts.sh
+    $INCLUDEOS_SRC/etc/copy_scripts.sh
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"

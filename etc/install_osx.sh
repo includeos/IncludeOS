@@ -217,7 +217,7 @@ make
 cp vmbuild $INCLUDEOS_HOME/
 popd
 
-$INCLUDEOS_SRC/etc/copy-scripts.sh
+$INCLUDEOS_SRC/etc/copy_scripts.sh
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 
