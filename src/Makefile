@@ -71,6 +71,8 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o
 
+CRTI_OBJ = crt/crti.o
+CRTN_OBJ = crt/crtn.o
 
 # Header dependencies (rebuild if header changed)
 ###################################################
@@ -105,8 +107,8 @@ silent: all test
 LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-CRTBEGIN_OBJ = crt/crti.o $(INSTALL)/crt/crtbegin.o
-CRTEND_OBJ   = $(INSTALL)/crt/crtend.o crt/crtn.o
+CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 
 TEST_OBJ = debug/test_service.o util/service_name.o
 
