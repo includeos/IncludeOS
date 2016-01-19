@@ -130,7 +130,7 @@ int main(int argc, char** argv){
        << "=> "      << disksize  << " bytes\n";
   
   vector<char> disk (disksize);
-  auto* disk_head {disk.data()};
+  auto* disk_head = disk.data();
   memset(disk.data(), 0, disk.size());
   
   // Load the boot loader into memory
