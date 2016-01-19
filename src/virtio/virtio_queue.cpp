@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Allow debug
-//#define DEBUG2
+#define DEBUG // Allow debug
+#define DEBUG2
 
 #include <virtio/virtio.hpp>
 #include <kernel/syscalls.hpp>
@@ -72,31 +72,18 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
     _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index),
     _data_handler(delegate<int(uint8_t*,int)>(empty_handler))
 {
-  //Allocate space for the queue and clear it out
-  void* buffer = memalign(PAGE_SIZE,_size_bytes);
+  // Allocate page-aligned size and clear it
+  void* buffer = memalign(PAGE_SIZE, _size_bytes);
+  memset(buffer, 0, _size_bytes);    
   
-  // The queues has to be page-aligned, so this crashes:
-  // void* buffer = malloc(_size_bytes);
-  
-  
-  //void* buffer = malloc(_size_bytes);
-  if (!buffer) panic("Could not allocate space for Virtio::Queue");
-  memset(buffer,0,_size_bytes);    
-
   debug(">>> Virtio Queue of size %i (%li bytes) initializing \n",
-         _size,_size_bytes);  
+         _size,_size_bytes);
   init_queue(size,buffer);
   
-  debug("\t * Chaining buffers \n");  
-  
   // Chain buffers  
-  for (int i=0; i<size; i++) _queue.desc[i].next = i +1;
+  debug("\t * Chaining buffers \n");  
+  for (int i=0; i<size; i++) _queue.desc[i].next = i+1;
   _queue.desc[size -1].next = 0;
-
-  
-  // Allocate space for actual data tokens
-  //_data = (void**) malloc(sizeof(void*) * size);
-  
   
   debug(" >> Virtio Queue setup complete. \n");
 }

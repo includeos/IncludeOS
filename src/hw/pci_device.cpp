@@ -179,7 +179,8 @@ PCI_Device::PCI_Device(uint16_t pci_addr,uint32_t _id)
 }
 
 
-void PCI_Device::write_dword(uint8_t reg,uint32_t value){
+void PCI_Device::write_dword(uint8_t reg,uint32_t value)
+{
   PCI::msg req;
   req.data=0x80000000;
   req.addr=pci_addr_;
@@ -187,9 +188,10 @@ void PCI_Device::write_dword(uint8_t reg,uint32_t value){
   
   outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
   outpd(PCI::CONFIG_DATA, value);
-};
+}
 
-uint32_t PCI_Device::read_dword(uint8_t reg){
+uint32_t PCI_Device::read_dword(uint8_t reg)
+{
   PCI::msg req;
   req.data=0x80000000;
   req.addr=pci_addr_;
@@ -197,9 +199,10 @@ uint32_t PCI_Device::read_dword(uint8_t reg){
     
   outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
   return inpd(PCI::CONFIG_DATA);
-};
+}
 
-uint32_t PCI_Device::read_dword(uint16_t pci_addr, uint8_t reg){
+uint32_t PCI_Device::read_dword(uint16_t pci_addr, uint8_t reg)
+{
   PCI::msg req;
     req.data=0x80000000;
     req.addr=pci_addr;
@@ -207,21 +210,4 @@ uint32_t PCI_Device::read_dword(uint16_t pci_addr, uint8_t reg){
     
     outpd(PCI::CONFIG_ADDR,(uint32_t)0x80000000 | req.data );
     return inpd(PCI::CONFIG_DATA);
-  };  
-
-
-
-
-/** INLINED */
-
-//uint16_t PCI_Device::pci_addr(){ return pci_addr_; }; //Inlined
-
-//classcode_t PCI_Device::classcode(){ return static_cast<classcode_t>(devtype_.classcode); };
-
-//uint16_t PCI_Device::vendor_id(){ return device_id_.vendor; }
-
-  
-  //TODO: Subclass this (or add it as member to a class) into device types.
-  //...At least for NICs and HDDs
-  
-
+}

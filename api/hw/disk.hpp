@@ -20,46 +20,34 @@
 
 #include "pci_device.hpp"
 
-/** @Todo : Implement */
-class Block { };
-
-/** @Todo : Implement */
-class DiskError;
-
-/** A public interface for block devices
-    
-    @Todo: This is just a stub. 
-    Currently (v0.6.3-proto) only the bootloader access disks.
-    
-    The requirements for a driver is implicitly given by how it's used below,
-    rather than explicitly by proper inheritance.  */
-
 template <typename DRIVER>
 class Disk{ 
   
 public:
-
-  typedef DRIVER driver; 
-  using Blocknr = uint32_t;
- 
-  
-  using On_read = delegate<void(Block& b)>;
-  using On_error = delegate<void(DiskError)>;
+  typedef DRIVER  driver; 
+  typedef typename driver::block_t       block_t;
+  typedef typename driver::on_read_func  on_read_func;
+  typedef typename driver::on_write_func on_write_func;
   
   /** Get a readable name. */
   inline const char* name() { return driver_.name(); }
   
-  inline uint32_t block_size () const 
-  { return driver_.block_size(); }    
+  inline block_t block_size() const 
+  {
+    return driver_.block_size();
+  }
   
-  inline void read_block(Blocknr nr, On_read onread, On_error onerr)
-  { return driver_.read_block(nr, onread, onerr); }
+  inline void read(block_t blk, on_read_func on_read)
+  {
+    driver_.read(blk, on_read);
+  }
   
-  inline void write_block(Blocknr nr, Block blk, On_error onerr)
-  { return driver_.write_block(nr, blk, onerr); }
+  inline void write(block_t, const char*, on_write_func)
+  {
+    //return driver_.write(blk, data, on_write);
+  }
   
 private:
-  
   DRIVER driver_;
   
   /** Constructor. 
@@ -69,15 +57,6 @@ private:
   Disk(PCI_Device& d): driver_(d) {}
   
   friend class Dev;
-
-};
-
-/** @todo : At least implement virtio block devices. */
-class Virtio_block{
-public: 
-  const char* name(){ return "E1000 Driver"; }
-  //...whatever the Nic class implicitly needs
-  
 };
 
 /** Hopefully somebody will port a driver for this one */

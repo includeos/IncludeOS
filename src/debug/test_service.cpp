@@ -171,5 +171,4 @@ void Service::start()
     });
   
   printf("*** TEST SERVICE STARTED *** \n");    
-
 }

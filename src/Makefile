@@ -45,7 +45,7 @@ CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mrdrnd -msse3 -mstackrealign
+CAPABS_COMMON = -msse3 -mstackrealign
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 
 WARNS   = -Wall -Wextra #-pedantic
@@ -60,11 +60,11 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
-		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/rdrand.o \
+		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
 		hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		virtio/virtio.o virtio/virtionet.o virtio/virtio_queue.o \
+		virtio/virtio.o virtio/virtionet.o virtio/virtio_blk.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
@@ -105,22 +105,25 @@ silent: all test
 LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 
-CRTI_OBJ     = crt/crti.o
-CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
-CRTEND_OBJ   = $(INSTALL)/crt/crtend.o
-CRTN_OBJ     = crt/crtn.o
+CRTBEGIN_OBJ = crt/crti.o $(INSTALL)/crt/crtbegin.o
+CRTEND_OBJ   = $(INSTALL)/crt/crtend.o crt/crtn.o
 
 TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
-	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test IPv6 service"
-	$(LD_INC) -v $(LDOPTS) $(CRTI_OBJ) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) $(CRTN_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+
+test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test VirtioBlk service"
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test: test_service
 
@@ -163,7 +166,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 # Bootloader
 ###################################################
 # Nasm-based bootloader
-bootloader: boot/bootloader.asm
+bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
 

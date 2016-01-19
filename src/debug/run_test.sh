@@ -13,6 +13,7 @@ echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . ../etc/qemu_cmd.sh
+QEMU_OPTS+=" -drive file=./smalldisk,if=virtio,index=1,media=disk"
 
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]
@@ -56,7 +57,7 @@ else
     echo "---------------------------------------------------------------------------------"
     echo "Starting VM: '$IMAGE'", "Options: ",$QEMU_OPTS
     echo "---------------------------------------------------------------------------------"
-    sudo $QEMU $QEMU_OPTS 
+    sudo $QEMU $QEMU_OPTS
 fi
 
 # Convert the image into VirtualBox / Qemu native formats
