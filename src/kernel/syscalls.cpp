@@ -55,7 +55,7 @@ int execve(const char* UNUSED(name),
 
 int fork(){
   debug("SYSCALL FORK NOT SUPPORTED");
-  errno=ENOMEM;
+  errno=ENOSYS;
   return -1;
 };
 
