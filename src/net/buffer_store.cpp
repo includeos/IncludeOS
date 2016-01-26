@@ -24,7 +24,7 @@
 
 using namespace net;
 
-BufferStore::BufferStore(int num, size_t bufsize, size_t device_offset ) :
+BufferStore::BufferStore(size_t num, size_t bufsize, size_t device_offset ) :
   bufcount_      {num},
   bufsize_       {bufsize},
   device_offset_ {device_offset},
