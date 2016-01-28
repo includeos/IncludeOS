@@ -20,10 +20,9 @@
 
 #include <sys/unistd.h>
 
-extern "C"
-{
+extern "C" {
   int  kill(pid_t pid, int sig);
   void panic(const char* why) __attribute__((noreturn));
 }
 
-#endif
+#endif //< KERNEL_SYSCALLS_HPP

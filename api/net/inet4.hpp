@@ -25,12 +25,13 @@
 #include "ethernet.hpp"
 #include "arp.hpp"
 #include "ip4.hpp"
-#include "icmp.hpp"
 #include "ip4/udp.hpp"
 #include "dns/client.hpp"
 #include "tcp.hpp"
 #include "dhcp/dh4client.hpp"
 #include <vector>
+
+#include "ip4/icmpv4.hpp"
 
 namespace net {
   
@@ -137,7 +138,7 @@ namespace net {
     Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
-    ICMP icmp_;
+    ICMPv4 icmp_;
     UDP  udp_;
     TCP tcp_;
     // we need this to store the cache per-stack

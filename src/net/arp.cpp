@@ -15,20 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG // Allow debugging
+#define DEBUG  // Allow debugging
 #define DEBUG2 // Allow debugging
+
+#include <vector>
 
 #include <os>
 #include <net/arp.hpp>
-#include <net/ip4/packet_arp.hpp>
-#include <vector>
 #include <net/inet4.hpp>
+#include <net/ip4/packet_arp.hpp>
 
 using namespace net;
 
-int Arp::bottom(Packet_ptr pckt)
+void Arp::bottom(Packet_ptr pckt)
 {
-  debug2("<ARP handler> got %i bytes of data \n", pckt->size());
+  debug2("<ARP handler> got %i bytes of data\n", pckt->size());
 
   header* hdr = (header*) pckt->buffer();
   //debug2("\t OPCODE: 0x%x \n",hdr->opcode);
@@ -74,8 +75,6 @@ int Arp::bottom(Packet_ptr pckt)
   // Free the buffer (We're leaf node for this one's path)
   // @todo Freeing here corrupts the outgoing frame. Why?
   //free(data);
-  
-  return 0 + 0 * pckt->size(); // yep, it's what you think it is (and what's that?!)
 };
   
 
@@ -117,8 +116,8 @@ extern "C" {
 
 
 
-int Arp::arp_respond(header* hdr_in){
-  debug2("\t IP Match. Constructing ARP Reply \n");
+void Arp::arp_respond(header* hdr_in){
+  debug2("\t IP Match. Constructing ARP Reply\n");
   
   // Populate ARP-header
   auto res = std::static_pointer_cast<PacketArp>(inet_.createPacket(sizeof(header)));
@@ -132,18 +131,15 @@ int Arp::arp_respond(header* hdr_in){
 	 res->source_ip().str().c_str(), res->source_mac().str().c_str());
   
   linklayer_out_(res);
-  
-  return 0;
 }
 
 
-static int ignore(std::shared_ptr<Packet> UNUSED(pckt)){
+static void ignore(Packet_ptr UNUSED(pckt)) {
   debug2("<ARP -> linklayer> Empty handler - DROP!\n");
-  return -1;
 }
 
 
-int Arp::transmit(Packet_ptr pckt){
+void Arp::transmit(Packet_ptr pckt){
   
   assert(pckt->size());
   
@@ -167,7 +163,6 @@ int Arp::transmit(Packet_ptr pckt){
     {
       debug2("<ARP> Dropping outbound broadcast packet due to "
              "invalid source IP %s\n",  sip.str().c_str());
-      return -1;
     }
     mac = Ethernet::addr::BROADCAST_FRAME;
   }
@@ -177,12 +172,11 @@ int Arp::transmit(Packet_ptr pckt){
     {
       debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
             sip.str().c_str(), ip_.str().c_str());
-      return -1;
     }
     
     // If we don't have a cached IP, get mac from next-hop (Håreks c001 hack)
     if (!is_valid_cached(dip))  
-        return arp_resolver_(pckt);
+        arp_resolver_(pckt);
     
     // Get mac from cache
     mac = cache_[dip].mac_;
@@ -196,7 +190,7 @@ int Arp::transmit(Packet_ptr pckt){
   ethhdr->type = Ethernet::ETH_IP4;
   
   debug2("<ARP -> physical> Sending packet to %s \n",mac.str().c_str());
-  return linklayer_out_(pckt);
+  linklayer_out_(pckt);
 }
 
 void Arp::await_resolution(Packet_ptr pckt, IP4::addr){
@@ -230,7 +224,7 @@ int Arp::arp_resolve(Packet_ptr pckt){
 // Initialize
 Arp::Arp(net::Inet<Ethernet,IP4>& inet): 
   inet_(inet), mac_(inet.link_addr()), ip_(inet.ip_addr()), 
-  linklayer_out_(downstream(ignore))
+  linklayer_out_(ignore)
 {}
 
 int Arp::hh_map(Packet_ptr pckt){

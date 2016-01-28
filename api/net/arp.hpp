@@ -63,7 +63,7 @@ namespace net {
   
     /** Handle incoming ARP packet. */
     //int bottom(uint8_t* data, int len);
-    int bottom(Packet_ptr pckt);
+    void bottom(Packet_ptr pckt);
 
     /** Roll your own arp-resolution system. */
     void set_resolver(Arp_resolver ar){
@@ -88,7 +88,7 @@ namespace net {
     };
 
     /** Downstream transmission. */
-    int transmit(Packet_ptr pckt);
+    void transmit(Packet_ptr pckt);
     
     
     /** Get IP4 address */
@@ -138,7 +138,7 @@ namespace net {
     Ethernet::addr& resolve(IP4::addr&);
   
     
-    int arp_respond(header* hdr_in);    
+    void arp_respond(header* hdr_in);    
         
     int hh_map(Packet_ptr packet);
     int arp_resolve(Packet_ptr packet);

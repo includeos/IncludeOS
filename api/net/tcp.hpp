@@ -230,9 +230,9 @@ namespace net {
     inline void set_network_out(downstream del)
     { _network_layer_out = del; }
     
-    int transmit(Packet_ptr pckt);
+    void transmit(Packet_ptr pckt);
   
-    int bottom(Packet_ptr pckt);    
+    void bottom(Packet_ptr pckt);    
 
     
     // Compute the TCP checksum
