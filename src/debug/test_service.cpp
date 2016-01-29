@@ -28,8 +28,8 @@ using namespace std::chrono;
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // our VGA output module
-#include <kernel/vga.hpp>
-ConsoleVGA vga;
+//#include <kernel/vga.hpp>
+//ConsoleVGA vga;
 
 void Service::start()
 {
@@ -37,7 +37,7 @@ void Service::start()
   OS::set_rsprint_secondary(
   [] (const char* string, size_t len)
   {
-    vga.write(string, len);
+    //vga.write(string, len);
   });
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
