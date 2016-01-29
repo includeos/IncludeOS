@@ -65,6 +65,13 @@ SECTIONS
     _DATA_END_ = .;
   }
   
+  .memdisk :
+  {
+    _DISK_START_ = .;
+    *(.diskdata)
+    _DISK_END_ = .;
+  }
+  
   .bss :
   {
     _BSS_START_ = .;

@@ -114,9 +114,9 @@ CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
-test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
+test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking test service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
@@ -168,10 +168,15 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 
 # Bootloader
 ###################################################
-# Nasm-based bootloader
 bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
+
+# Disk image as a section
+###################################################
+memdisk: memdisk.asm
+	@echo "\n>> Assembling memdisk"
+	nasm -f elf -o memdisk.o $<
 
 # Etags
 ###################################################
@@ -189,6 +194,6 @@ clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) libc++abi.a
-	$(RM) bootloader	
+	$(RM) bootloader memdisk.o
 
 -include $(OS_DEPS)
