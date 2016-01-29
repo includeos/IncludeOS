@@ -73,6 +73,10 @@ public:
 			return os.str();
 		}
 
+		/*
+			TODO: Add compare for use in map/vector.
+		*/
+
 	private:
 		//SocketID id_; // Maybe a hash or something. Not sure if needed (yet)
 		Address address_;
@@ -140,6 +144,25 @@ public:
       	uint16_t checksum;				// Checksum
       	uint16_t urgent;				// Urgent pointer offset
       	uint32_t options[0];			// Options
+
+      	// Get the raw tcp offset, in quadruples
+		inline uint8_t offset() { return (uint8_t)(offs_flags.offset_reserved >> 4); }
+
+		// Set raw TCP offset in quadruples
+		inline void set_offset(uint8_t offset){ offs_flags.offset_reserved = (offset << 4); }
+
+		// Get tcp header length including options (offset) in bytes
+		inline uint8_t size() { return offset() * 4; }
+
+		// Calculate the full header lenght, down to linklayer, in bytes
+		uint8_t all_headers_len(){
+		return (sizeof(TCP::Full_header) - sizeof(TCP::Header)) + size();
+		};
+
+		inline void set_flag(Flag f){ offset_flags.whole |= htons(f); }
+		inline void set_flags(uint16_t f){ offs_flags.whole |= htons(f); }
+		inline void clear_flag(Flag f){ offset_flags.whole &= ~ htons(f); }
+		inline void clear_flags(){ offset_flags.whole &= 0x00ff; }
 	}__attribute__((packed)); // << struct TCP::Header
 
 	/*
@@ -200,13 +223,13 @@ public:
     		return header().seq_nr;
     	}
 
-    	inline TCP::Packet& set_dst_port(TCP::Port p) { 
-    		header().destination_port = htons(p);
+    	inline TCP::Packet& set_src_port(TCP::Port p) { 
+    		header().source_port = htons(p);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_src_port(TCP::Port p) { 
-    		header().source_port = htons(p);
+    	inline TCP::Packet& set_dst_port(TCP::Port p) { 
+    		header().destination_port = htons(p);
     		return *this;
     	}
 
@@ -286,6 +309,11 @@ public:
     	}
 	}; // << class TCP::Packet
 
+	// Maybe this is a very stupid alias....
+	using Packet_ptr = std::shared_ptr<TCP::Packet>;
+	// Even more stupid?
+	// TCP::Packet::ptr
+
 
 	/*
 		A connection between two Sockets (local and remote).
@@ -294,15 +322,21 @@ public:
 	*/
 	class Connection {
 	public:
+		struct Tuple {
+			Socket& local;
+			Socket& remote;
+
+			// @TODO: Add compare for lookup in map/vector.
+		};
 		/*
 			Creates a connection without a remote.
 		*/
-		Connection(IPStack& local_stack, Socket& local, TCP::Seq iss);
+		Connection(TCP& parent, Socket& local, TCP::Seq iss);
 
 		/*
 			Creates a connection with a remote.
 		*/
-		Connection(IPStack& local_stack, Socket& local, Socket remote, TCP::Seq iss);
+		Connection(TCP& parent, Socket& local, Socket&& remote, TCP::Seq iss);
 
 		/*
 			The local Socket bound to this connection.
@@ -315,21 +349,6 @@ public:
 		TCP::Socket& remote();
 
 		/*
-			Callback for success
-		*/
-		void onSuccess(SuccessCallback callback);
-
-		/*
-			Callback for close()
-		*/
-		void onClose(SuccessCallback callback);
-
-		/*
-			Callback for errors.
-		*/
-		void onError(ErrorCallback callback);
-
-		/*
 			Read content from remote.
 		*/
 		std::string read(uint16_t buffer_size);
@@ -338,6 +357,26 @@ public:
 			Write content to remote.
 		*/
 		void write(std::string data);
+
+		/*
+			Open connection.
+		*/
+		void open(bool active = false);
+
+		/*
+			Callback for success
+		*/
+		Connection& onSuccess(SuccessCallback callback);
+
+		/*
+			Callback for close()
+		*/
+		Connection& onClose(SuccessCallback callback);
+
+		/*
+			Callback for errors.
+		*/
+		Connection& onError(ErrorCallback callback);
 
 		/*
 			The same as status()
@@ -349,7 +388,12 @@ public:
 
 			@WARNING: Public, for use in sub-state.
 		*/
-		TCP::TCB& tcb() const;
+		Connection::TCB& tcb() const;
+
+		/*
+			Return the id (TUPLE) of the connection.
+		*/
+		Connection::Tuple tuple();
 
 		/*
 			Receive a TCP Packet.
@@ -369,10 +413,10 @@ public:
 		TCP::Socket& local_;
 		TCP::Socket& remote_;
 
-		TCP::Packet& incoming_;
-		TCP::Packet& outgoing_;
+		//TCP::Packet& incoming_;
+		//TCP::Packet& outgoing_;
 
-		IPStack& local_stack_;
+		TCP& parent_;
 		/*
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
@@ -409,11 +453,6 @@ public:
 			TCB() : SND_UNA(0), SND_NXT(0), SND_WND(0), SND_UP(0), SND_WL1(0), SND_WL2(0), ISS(0),
 					RCV_NXT(0), RCV_UP(0), IRS(0) {};
 		} control_block; // < struct TCP::Connection::TCB*/
-		
-		/*
-			Transmit outgoing packet.
-		*/
-		void transmit();
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -425,6 +464,8 @@ public:
 			/*
 				Open a Connection.
 				OPEN
+
+				@TODO: Add support for PASSIVE/OPEN
 			*/
 			virtual void open(Connection&);
 
@@ -470,6 +511,16 @@ public:
 
 		State& state_;
 
+		/*
+			Transmit outgoing packet.
+		*/
+		void transmit(TCP::Packet);
+
+		/*
+			Return a new outgoing packet.
+		*/
+		TCP::Packet_ptr createPacket();
+
 	}; // < class TCP::Connection
 
 
@@ -508,7 +559,7 @@ public:
 	/*
 		Receive packet from transport layer (IP).
 	*/
-	void bottom(Packet_ptr);
+	void bottom(net::Packet_ptr);
 
 	/*
 		Show all connections for TCP as a string.
@@ -517,8 +568,8 @@ public:
 
 private:
 	IPStack& inet_;
-	std::map<Port, Socket&> listeneres_;
-	std::map<Connection::Tuple, Connection> connections_;
+	std::vector<Socket&> listeners;
+	std::map<Connection::Tuple, Connection> connections;
 
 	downstream _network_layer_out;
 	
@@ -526,12 +577,17 @@ private:
 	/*
 		Transmit packet to transport layer (IP).
 	*/
-	void transmit(TCP::Packet&);
+	void transmit(TCP::Packet_ptr);
 
 	/*
-		
+		Generate a unique initial sequence number (ISS).
 	*/
+	TCP::Seq generate_iss();
 
+	/*
+		Generate a free port for outgoing connections.
+	*/
+	TCP::Port generate_port();
 
 
 }; // < class TCP

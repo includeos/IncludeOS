@@ -42,28 +42,28 @@ string State::to_string() const {
 
 // CLOSED
 
-int Closed::handle(Connection& tcp, Packet& p) {
-	if(p.isset(RST)) {
+int Closed::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
+	if(in->isset(RST)) {
 		return 0;
 	}
-	if(!p.isset(ACK)) {
-		p.set_seq(0).set_ack(p.seq()+p.data_length()).set_flags(RST | ACK);
+	if(!in->isset(ACK)) {
+		out->set_seq(0)->set_ack(in->seq() + in->data_length())->set_flags(RST | ACK);
 	} else {
-		p.set_seq(p.ack()).set_flag(RST);
+		out->set_seq(in->ack())->set_flag(RST);
 	}
 	return 1;
 }
 
 // LISTEN
 
-int Listen::handle(Connection& tcp, Packet& p) {
+int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
-	if(p.isset(RST)) {
+	if(in->isset(RST)) {
 		// ignore
 		return 0;
 	}
-	if(p.isset(ACK)) {
-		p.set_seq(p.ack()).set_flag(RST);
+	if(in->isset(ACK)) {
+		out->set_seq(in->ack())->set_flag(RST);
 		return 1;
 	}
 	if(p.isset(SYN)) {		
@@ -72,12 +72,12 @@ int Listen::handle(Connection& tcp, Packet& p) {
 		if(p.PRC > tcb.PRC)
 			tcb.PRC = p.PRC;
 		*/
-		tcb.RCV_NEXT = p.seq()+1;
-		tcb.IRS = p.seq();
+		tcb.RCV_NEXT = p->seq()+1;
+		tcb.IRS = p->seq();
 		// select ISS; already there.
 		tcb.SND_NXT = tcb.ISS+1;
 		tcb.SND_UNA = tcb.ISS;
-		p.set_seq(tcb.ISS).set_ack(tcb.RCV_NXT).set_flags(SYN | ACK);
+		p->set_seq(tcb.ISS)->set_ack(tcb.RCV_NXT)->set_flags(SYN | ACK);
 		// SEND SEGMENT/PACKET
 		set_state(tcp, SynReceived::instance());
 		return 1;
@@ -86,20 +86,20 @@ int Listen::handle(Connection& tcp, Packet& p) {
 
 // SYN-SENT
 
-void SynSent::handle(Connection& tcp, Packet& p) {
+void SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
-	if(p.isset(ACK)) {
-		if(p.ack() =< tcb.ISS or p.ack() > tcb.SND_NEXT) {
-			if(p.isset(RST)) {
-				drop();
+	if(in->isset(ACK)) {
+		if(in->ack() =< tcb.ISS or in->ack() > tcb.SND_NXT) {
+			if(in->isset(RST)) {
+				//drop();
 			} else {
 				// send reset
 			}
-		} else if (tcb.SND_UNA =< p.ack() =< tcb.SND_NXT) {
+		} else if (tcb.SND_UNA =< in->ack() =< tcb.SND_NXT) {
 			// Acceptable ACK, continue.
 		}
 	}
-	if(p.isset(RST)) {
+	if(in->isset(RST)) {
 		/*
 			If the ACK was acceptable then signal the user "error:
           	connection reset", drop the segment, enter CLOSED state,
