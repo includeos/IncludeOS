@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,172 +15,219 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
-#define DEBUG2
-
-#include <os>
 #include <net/tcp.hpp>
-#include <net/util.hpp>
-#include <net/packet.hpp>
-#include <net/ip4/packet_tcp.hpp>
 
-using namespace net;
+using namespace std;
 
-TCP::TCP(Inet<LinkLayer,IP4>& inet)
-  : inet_(inet), local_ip_(inet.ip_addr()), listeners()
+TCP::TCP(IPStack& inet) : 
+	inet_(inet),
+	listeners(),
+	connections(), 
 {
-  debug2("<TCP::TCP> Instantiating. Open ports: %i \n", listeners.size()); 
+
+}
+
+/*
+	Note: There is different approaches to how to handle listeners & connections.
+	Need to discuss and decide for the best one.
+
+	Best solution(?): 
+	Preallocate a pool with listening connections. 
+	When threshold is reach, remove/add new ones, similar to TCP window.
+
+	Current solution:
+	Simple.
+*/
+TCP::Connection& TCP::bind(Port port) {
+	TCP::Socket local{inet_.ip_addr(), port};
+	
+	auto listener = listener.find(local);
+	// Already a listening socket.
+	if(listener != listener.end()) {
+		panic("Can't bind, already taken.");
+	}
+
+	listener = listeners.push_back(local);
+
+	Connection conn{*this, &listener, generate_iss()};
+	auto& connection = (connections.emplace_back({conn.tuple(),conn}))->second;
+	connection.open();
+	return connection;
+}
+
+/*
+	Bind a new connection to a given Port with a Callback.
+*/
+void TCP::bind(Port port, Connection::SuccessCallback success) {
+	bind(port).onSuccess(success);
+}
+
+/*
+	Active open a new connection to the given remote.
+
+	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
+	and open() is called before callback is added.
+*/
+TCP::Connection& TCP::connect(Socket& remote) {
+	TCP::Socket local{inet_.ip_addr(), free_port()};
+	Tuple tuple = {
+		local = local;
+		remote = remote;
+	}
+	Connection& connection = 
+		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
+	connection.open(true);
+	return connection;
+}
+
+/*
+	Active open a new connection to the given remote.
+*/
+void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
+	TCP::Socket local{inet_.ip_addr(), free_port()};
+	Tuple tuple = {
+		local = local;
+		remote = remote;
+	}
+	Connection& connection =
+		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
+	connection.onSuccess(callback).open(true);
+	return connection;
+}
+
+TCP::Seq generate_iss() {
+	// Do something to get a iss.
+	return rand();
+}
+
+TCP::Port free_port() {
+	// Check what ports are taken, get a new random one.
+	return 1337;
 }
 
 
-TCP::Socket& TCP::bind(Port p){
-  auto listener = listeners.find(p);
-  
-  if (listener != listeners.end())
-    panic("Port busy!");
-  
-  debug("<TCP bind> listening to port %i \n",p);
-  // Create a socket and allow it to know about this stack
-  
-  listeners.emplace(p,TCP::Socket(inet_, p, TCP::Socket::CLOSED));
+uint16_t TCP::checksum(TCP::Packet_ptr packet){  
+	// TCP header
+	TCP::Header* tcp_hdr = &(packet->header());
+	// Pseudo header
+	TCP::Pseudo_header pseudo_hdr;
 
-  listeners.at(p).listen(socket_backlog);
-  
-  debug("<TCP bind> Socket created and emplaced. State: %i\nThere are %i open ports. \n",
-	listeners.at(p).poll(), listeners.size());
-  return listeners.at(p);
-}
+	int tcp_length = packet->tcp_length();
 
-TCP::Socket& TCP::connect(IP4::addr ip, Port p, net::TCP::Socket::connection_handler handler){
-  debug("<TCP connect> Connecting to %s : %i \n", ip.str().c_str(), p);
-  
-  if (listeners.size() >= 0xfc00)
-    panic("TCP Socket: All ports taken!");  
+	pseudo_hdr.saddr.whole = packet->src().whole;
+	pseudo_hdr.daddr.whole = packet->dst().whole;
+	pseudo_hdr.zero = 0;
+	pseudo_hdr.proto = IP4::IP4_TCP;	 
+	pseudo_hdr.tcp_length = htons(tcp_length);
 
-  debug("<TCP> finding free ephemeral port\n");  
-  while (listeners.find(++current_ephemeral_) != listeners.end())
-    if (current_ephemeral_  == 0) current_ephemeral_ = 1025; // prevent automatic ports under 1024
-  
-  debug("<TCP> Picked ephemeral port %i \n", current_ephemeral_);
-  auto& sock = bind(current_ephemeral_);
-  
-  sock.onAccept(handler);
-  
-  sock.syn(ip, p);
-  
-  return sock;
-  
-}
+	union {
+		uint32_t whole;
+		uint16_t part[2];
+	} sum;
 
+	sum.whole = 0;
 
-uint16_t TCP::checksum(Packet_ptr pckt){  
-  // Size has to be fetched from the frame
-  
-  full_header* hdr = (full_header*)pckt->buffer();
-  
-  IP4::ip_header* ip_hdr = &hdr->ip_hdr;
-  tcp_header* tcp_hdr = &hdr->tcp_hdr;
-  pseudo_header pseudo_hdr;
-  
-  int tcp_length_ = tcp_length(pckt);
-  
-  // Populate pseudo header
-  pseudo_hdr.saddr.whole = ip_hdr->saddr.whole;
-  pseudo_hdr.daddr.whole = ip_hdr->daddr.whole;
-  pseudo_hdr.zero = 0;
-  pseudo_hdr.proto = IP4::IP4_TCP;	 
-  pseudo_hdr.tcp_length = htons(tcp_length_);
-    
-  union {
-    uint32_t whole;
-    uint16_t part[2];
-  }sum;
-  
-  sum.whole = 0;
-    
-  // Compute sum of pseudo header
-  for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-    sum.whole += *it;       
-  
-  // Compute sum sum the actual header and data
-  for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length_/2; it++)
-    sum.whole+= *it;
+	// Compute sum of pseudo header
+	for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
+		sum.whole += *it;       
 
-  // The odd-numbered case
-  if (tcp_length_ & 1) {
-    debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
-    union {
-      uint16_t whole;
-      uint8_t part[2];
-    }last_chunk;
-    last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length_ - 1];
-    last_chunk.part[1] = 0;
-    sum.whole += last_chunk.whole;
-  }
-  
-  debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
+	// Compute sum sum the actual header and data
+	for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
+		sum.whole+= *it;
+
+	// The odd-numbered case
+	if (tcp_length & 1) {
+		debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
+		union {
+			uint16_t whole;
+			uint8_t part[2];
+		} last_chunk;
+		last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length - 1];
+		last_chunk.part[1] = 0;
+		sum.whole += last_chunk.whole;
+	}
+
+	debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
 	 sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
-  
-  return ~(sum.part[0] + sum.part[1]);
-  
+
+	return ~(sum.part[0] + sum.part[1]);
 }
 
 
-int TCP::transmit(Packet_ptr pckt){
-  
-  auto tcp_pckt = std::static_pointer_cast<PacketIP4> (pckt);
-  
-  //pckt->init();  
-  
-  full_header* full_hdr = (full_header*)pckt->buffer();
-  tcp_header* hdr = &(full_hdr->tcp_hdr);
-  
-  // Set source address
-  full_hdr->ip_hdr.saddr.whole = local_ip_.whole;
-  
-  hdr->set_offset(5);
-  hdr->checksum = 0;  
-  hdr->checksum = checksum(pckt);
-  return _network_layer_out(pckt);
-};
+void TCP::bottom(net::Packet_ptr pckt_ptr) {
+	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
+	auto packet = net2tcp(pckt_ptr);
+	
+	// Do checksum
+	if(checksum(packet)) {
+		// drop?
+	}
 
+	Connection& connection;
+	Connection::Tuple tuple = {
+		local = packet.destination();
+		remote = packet.source();
+	}
+	// Try to found the receiver
+	auto conn_it = connections.find(tuple);
+	// Connection found
+	if(conn_it != connections.end()) {
+		connection = *(conn_it->second);
+	}
+	// No connection found 
+	else {
+		// Is there a listener?
+		auto sock_it = listeners.find({packet.destination()});
+		// Listener found => Create listening Connection
+		if(sock_it != listeners.end()) {
+			// Tuple : Connection(TCP, listening socket, destination from packet, ISS)
+			conn_it = connections.emplace({ tuple , {*this, *sock_it, packet.destination(), generate_iss()} });
+			connection = *(conn_it->second);
+			// Change to listening state.
+			connection.open();
+		}
+		// No listener found
+		else {
+			drop(packet);
+			return; // TODO: Remove silent return.
+		}
+	}
+	// Only go here if we havent dropped packet.
+	connection.receive(packet);
+}
 
-int TCP::bottom(Packet_ptr pckt){
-  
-  auto pckt4 = std::static_pointer_cast<TCP_packet>(pckt);
-  debug("<TCP::bottom> Upstream TCP-packet received, to TCP @ %p \n", this);
-  debug("<TCP::bottom> There are %i open ports \n", listeners.size());
-  
-  if (checksum(pckt))
-    debug("<TCP::bottom> WARNING: Incoming TCP Packet checksum is not 0. Continuing.\n");
-  
-  debug("<TCP::bottom> Incoming packet TCP-checksum: 0x%x \n", pckt4->gen_checksum());
-  
-  debug("<TCP::bottom> Destination port: %i, Source port: %i \n", 
-	pckt4->dst_port(), pckt4->src_port());
-  
-  auto listener = listeners.find(pckt4->dst_port());
-  
-  if (listener == listeners.end()){
-    debug("<TCP::bottom> Nobody's listening to this port. Ignoring");
-    debug("<TCP::bottom> There are %i open ports \n", listeners.size());
-    return 0;
-  }
-  
-  debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket \n",listener->second.poll());
-  
-  // If reset flag is set, delete the connection.
-  // @todo publish an onClose-event here
-  if (pckt4->isset(TCP::RST)) {
-    debug("<TCP::bottom> But it's a RESET-packet, so closing \n");
-    listeners.erase(listener);
-    return 0;    
-  }
-          
-  // Pass the packet up to the listening socket
-  (*listener).second.bottom(pckt);
-  
-  
-  return 0;
-  
+TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
+	return std::static_pointer_cast<TCP::Packet>(pckt_ptr);
+}
+
+/*
+	Show all connections for TCP as a string.
+
+	Format:
+	[Protocol][Recv][Send][Local][Remote][State]
+*/
+string TCP::status() const {
+	// Write all connections in a cute list.
+	ostringstream os;
+	os << "LISTENING SOCKETS:\n"
+	for(auto sock : listeners) {
+		os << sock << "\n";
+	}
+	os << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
+	for(auto& conn : connections) {
+		os << "tcp4\t0\t0\t" << conn.local() << "\t" << conn.remote() << "\t" << conn.state().to_string() << "\n";
+	}
+	return os.str();
+}
+
+void TCP::drop(TCP::Packet_ptr packet) {
+	// Packet is dropped.
+}
+
+void TCP::transmit(TCP::Packet_ptr packet) {
+	// Translate into a net::Packet_ptr and send away.
+	// Generate checksum.
+	packet->gen_checksum();
+	//packet->set_checksum(checksum(packet));
+	_network_layer_out.transmit(pckt_ptr);
 }
