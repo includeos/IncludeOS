@@ -63,7 +63,7 @@ public:
 	*/
 	virtual void open(TCP::Connection&);
 
-	virtual int handle(TCP::Connection&, const TCP::Packet& in, TCP::Packet& out);
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "CLOSED";
@@ -89,7 +89,7 @@ public:
 
 		=> SynReceived.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "LISTENING";
@@ -114,7 +114,7 @@ public:
 
 		=> Established.
 	*/
-	virtual void handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "SYN-SENT";
@@ -140,7 +140,7 @@ public:
 
 		=> Established.
 	*/
-	virtual void handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "SYN-RCV";
@@ -160,9 +160,9 @@ public:
 		return instance;
 	}
 	/*
-		Every data come with a ACK, right?
+		
 	*/
-	virtual void handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	/*
 		-> Receive FIN.

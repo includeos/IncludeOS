@@ -72,12 +72,12 @@ int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 		if(p.PRC > tcb.PRC)
 			tcb.PRC = p.PRC;
 		*/
-		tcb.RCV_NEXT = p->seq()+1;
+		tcb.RCV.NXT = p->seq()+1;
 		tcb.IRS = p->seq();
 		// select ISS; already there.
-		tcb.SND_NXT = tcb.ISS+1;
-		tcb.SND_UNA = tcb.ISS;
-		p->set_seq(tcb.ISS)->set_ack(tcb.RCV_NXT)->set_flags(SYN | ACK);
+		tcb.SND.NXT = tcb.ISS+1;
+		tcb.SND.UNA = tcb.ISS;
+		p->set_seq(tcb.ISS)->set_ack(tcb.RCV.NXT)->set_flags(SYN | ACK);
 		// SEND SEGMENT/PACKET
 		set_state(tcp, SynReceived::instance());
 		return 1;
@@ -89,13 +89,13 @@ int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 void SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
 	if(in->isset(ACK)) {
-		if(in->ack() =< tcb.ISS or in->ack() > tcb.SND_NXT) {
+		if(in->ack() =< tcb.ISS or in->ack() > tcb.SND.NXT) {
 			if(in->isset(RST)) {
 				//drop();
 			} else {
 				// send reset
 			}
-		} else if (tcb.SND_UNA =< in->ack() =< tcb.SND_NXT) {
+		} else if (tcb.SND.UNA =< in->ack() =< tcb.SND.NXT) {
 			// Acceptable ACK, continue.
 		}
 	}

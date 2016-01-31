@@ -69,7 +69,7 @@ void TCP::bind(Port port, Connection::SuccessCallback success) {
 	and open() is called before callback is added.
 */
 TCP::Connection& TCP::connect(Socket& remote) {
-	TCP::Socket local{inet_.ip_addr(), generate_port()};
+	TCP::Socket local{inet_.ip_addr(), free_port()};
 
 	Connection conn{*this, local, remote, generate_iss()};
 	auto& connection = (connections.emplace_back({conn.tuple(), conn}))->second;
@@ -81,7 +81,7 @@ TCP::Connection& TCP::connect(Socket& remote) {
 	Active open a new connection to the given remote.
 */
 void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
-	TCP::Socket local{inet_.ip_addr(), generate_port()};
+	TCP::Socket local{inet_.ip_addr(), free_port()};
 
 	Connection conn{*this, local, remote, generate_iss()};
 	auto& connection = (connections.emplace_back({conn.tuple(), conn}))->second;
@@ -91,28 +91,78 @@ void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
 
 TCP::Seq generate_iss() {
 	// Do something to get a iss.
-	return 42;
+	return rand();
 }
 
-TCP::Port generate_port() {
+TCP::Port free_port() {
 	// Check what ports are taken, get a new random one.
 	return 1337;
 }
 
-/*
-	Receive packet from transport layer (IP).
-*/
+
+uint16_t TCP::checksum(TCP::Packet_ptr packet){  
+	// TCP header
+	TCP::Header* tcp_hdr = &(packet->header());
+	// Pseudo header
+	TCP::Pseudo_header pseudo_hdr;
+
+	int tcp_length = packet->tcp_length();
+
+	pseudo_hdr.saddr.whole = packet->src().whole;
+	pseudo_hdr.daddr.whole = packet->dst().whole;
+	pseudo_hdr.zero = 0;
+	pseudo_hdr.proto = IP4::IP4_TCP;	 
+	pseudo_hdr.tcp_length = htons(tcp_length);
+
+	union {
+		uint32_t whole;
+		uint16_t part[2];
+	} sum;
+
+	sum.whole = 0;
+
+	// Compute sum of pseudo header
+	for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
+		sum.whole += *it;       
+
+	// Compute sum sum the actual header and data
+	for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
+		sum.whole+= *it;
+
+	// The odd-numbered case
+	if (tcp_length & 1) {
+		debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
+		union {
+			uint16_t whole;
+			uint8_t part[2];
+		} last_chunk;
+		last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length - 1];
+		last_chunk.part[1] = 0;
+		sum.whole += last_chunk.whole;
+	}
+
+	debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
+	 sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
+
+	return ~(sum.part[0] + sum.part[1]);
+}
+
+
 void TCP::bottom(net::Packet_ptr pckt_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
 	auto packet = std::static_pointer_cast<TCP::Packet>(local_stack_.createPacket(sizeof(pckt_ptr)));
 	
+	// Do checksum
+	checksum(pckt);
+
 	// Who's the receiver?
 	packet->destination();
 
 	// Who sent it?
 	packet->source();
-	
 }
+
+
 
 /*
 	Show all connections for TCP as a string.
@@ -127,6 +177,8 @@ string TCP::status() const {
 
 void TCP::transmit(TCP::Packet_ptr packet) {
 	// Translate into a net::Packet_ptr and send away.
-	auto pckt_ptr;
-	inet_.transmit(pckt_ptr);
+	// Generate checksum.
+	packet->gen_checksum();
+	//packet->set_checksum(checksum(packet));
+	_network_layer_out.transmit(pckt_ptr);
 }

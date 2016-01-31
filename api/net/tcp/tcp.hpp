@@ -27,6 +27,7 @@ namespace net {
 
 class TCP {
 private:
+	using Address = IP4::addr;
 	using Port = uint16_t;
 	/*
 		A Sequence number (SYN/ACK) (32 bits)
@@ -72,6 +73,12 @@ public:
 			os << address_ << ":" << port_;
 			return os.str();
 		}
+
+		inline static bool empty(const Socket& socket) {
+			return (socket.address() == 0 and socket.port()) == 0;
+		}
+
+		inline bool empty() const { return (address_ == 0 and port_ == 0); }
 
 		/*
 			TODO: Add compare for use in map/vector.
@@ -165,6 +172,26 @@ public:
 		inline void clear_flags(){ offset_flags.whole &= 0x00ff; }
 	}__attribute__((packed)); // << struct TCP::Header
 
+
+	/* 
+		TCP Pseudo header, for checksum calculation
+	*/
+    struct Pseudo_header {
+		IP4::addr saddr;
+		IP4::addr daddr;
+		uint8_t zero;
+		uint8_t proto;
+		uint16_t tcp_length;
+    }__attribute__((packed));
+    
+    /*
+    	TCP Checksum-header (TCP-header + pseudo-header
+	*/
+    struct Checksum_header {
+		TCP::Pseudo_header pseudo;
+		TCP::Header tcp;
+    }__attribute__((packed));
+
 	/*
 		To extract the TCP part from a Packet_ptr and calculate size. (?)
 	*/
@@ -243,17 +270,17 @@ public:
     		return *this;
     	}
 
-    	inline Packet& set_flag(TCP::Flag f) { 
+    	inline TCP::Packet& set_flag(TCP::Flag f) { 
     		header().set_flag(f);
     		return *this;
     	}
 
-    	inline Packet& set_flags(uint16_t f) { 
+    	inline TCP::Packet& set_flags(uint16_t f) { 
     		header().set_flags(f);
     		return *this;
     	}
 
-    	inline Packet& set_win_size(uint16_t size) { 
+    	inline TCP::Packet& set_win_size(uint16_t size) { 
     		header().window_size = htons(size);
     		return *this;
     	}
@@ -284,7 +311,15 @@ public:
     	}
     
     	// generates a new checksum and sets it for this TCP packet
-    	uint16_t gen_checksum(){ return TCP::checksum(Packet::shared_from_this()); }
+    	uint16_t gen_checksum() { 
+    		header().checksum =TCP::checksum(Packet::shared_from_this());
+    		return header().checksum;
+    	}
+
+    	inline TCP::Packet& set_checksum(uint16_t checksum) {
+    		header().checksum = checksum;
+    		return *this;
+    	}
 
 	    //! assuming the packet has been properly initialized,
 	    //! this will fill bytes from @buffer into this packets buffer,
@@ -304,15 +339,26 @@ public:
     		return {src(), src_port()};
     	}
 
+    	inline TCP::Packet& set_source(const TCP::Socket& src) {
+    		set_src(src.address()); // PacketIP4::set_src
+    		header()->source_port = src.port();
+    		return *this;
+    	}
+
     	inline TCP::Socket& destination() const {
     		return {dst(), dst_port()};
+    	}
+
+    	inline TCP::Packet& set_destination(const TCP::Socket& dest) {
+    		set_dst(dest.address()); // PacketIP4::set_dst
+    		header()->destination_port = dest.port();
+    		return *this;
     	}
 	}; // << class TCP::Packet
 
 	// Maybe this is a very stupid alias....
 	using Packet_ptr = std::shared_ptr<TCP::Packet>;
-	// Even more stupid?
-	// TCP::Packet::ptr
+	// Even more stupid? => TCP::Packet::ptr
 
 
 	/*
@@ -331,22 +377,27 @@ public:
 		/*
 			Creates a connection without a remote.
 		*/
-		Connection(TCP& parent, Socket& local, TCP::Seq iss);
+		Connection(TCP& host, Socket& local, TCP::Seq iss);
 
 		/*
 			Creates a connection with a remote.
 		*/
-		Connection(TCP& parent, Socket& local, Socket&& remote, TCP::Seq iss);
+		Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss);
 
 		/*
 			The local Socket bound to this connection.
 		*/
-		TCP::Socket& local();
+		inline TCP::Socket& local() const { return local_; }
 
 		/*
 			The remote Socket bound to this connection.
 		*/
-		TCP::Socket& remote();
+		inline TCP::Socket& remote() const { return remote_; }
+
+		/*
+			Set remote Socket bound to this connection.
+		*/
+		inline void set_remote(Socket&& remote) { remote_ = remote; }
 
 		/*
 			Read content from remote.
@@ -366,17 +417,17 @@ public:
 		/*
 			Callback for success
 		*/
-		Connection& onSuccess(SuccessCallback callback);
+		inline Connection& onSuccess(SuccessCallback callback) { on_success_handler_ = callback; }
 
 		/*
 			Callback for close()
 		*/
-		Connection& onClose(SuccessCallback callback);
+		//Connection& onClose(SuccessCallback callback);
 
 		/*
 			Callback for errors.
 		*/
-		Connection& onError(ErrorCallback callback);
+		//Connection& onError(ErrorCallback callback);
 
 		/*
 			The same as status()
@@ -388,7 +439,7 @@ public:
 
 			@WARNING: Public, for use in sub-state.
 		*/
-		Connection::TCB& tcb() const;
+		inline Connection::TCB& tcb() const { return control_block; }
 
 		/*
 			Return the id (TUPLE) of the connection.
@@ -411,12 +462,11 @@ public:
 
 	private:
 		TCP::Socket& local_;
-		TCP::Socket& remote_;
+		TCP::Socket remote_;
 
-		//TCP::Packet& incoming_;
-		//TCP::Packet& outgoing_;
+		TCP& host_;
 
-		TCP& parent_;
+		SuccessCallback on_success_handler_;
 		/*
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
@@ -436,23 +486,27 @@ public:
 		*/
 		struct TCB {
 			/* Send Sequence Variables */
-			TCP::Seq SND_UNA;	// send unacknowledged
-			TCP::Seq SND_NXT;	// send next
-			uint16_t SND_WND;	// send window
-			uint16_t SND_UP;	// send urgent pointer
-			TCP::Seq SND_WL1;	// segment sequence number used for last window update
-			TCP::Seq SND_WL2;	// segment acknowledgment number used for last window update
+			struct {
+				TCP::Seq UNA;	// send unacknowledged
+				TCP::Seq NXT;	// send next
+				uint16_t WND;	// send window
+				uint16_t UP;	// send urgent pointer
+				TCP::Seq WL1;	// segment sequence number used for last window update
+				TCP::Seq WL2;	// segment acknowledgment number used for last window update
+			} SND; // <<
 			TCP::Seq ISS;		// initial send sequence number
 
 			/* Receive Sequence Variables */
-			TCP::Seq RCV_NXT;	// receive next
-			uint16_t RCV_WND;	// receive window
-			uint16_t RCV_UP;	// receive urgent pointer
+			struct {
+				TCP::Seq NXT;	// receive next
+				uint16_t WND;	// receive window
+				uint16_t UP;	// receive urgent pointer
+			} RCV; // <<
 			TCP::Seq IRS;		// initial receive sequence number
 
-			TCB() : SND_UNA(0), SND_NXT(0), SND_WND(0), SND_UP(0), SND_WL1(0), SND_WL2(0), ISS(0),
-					RCV_NXT(0), RCV_UP(0), IRS(0) {};
-		} control_block; // < struct TCP::Connection::TCB*/
+			TCB() : SND.UNA(0), SND.NXT(0), SND.WND(0), SND.UP(0), SND.WL1(0), SND.WL2(0), ISS(0),
+					RCV.NXT(0), RCV.UP(0), IRS(0) {};
+		} control_block; // < struct TCP::Connection::TCB
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -491,7 +545,7 @@ public:
 				Handle a Packet
 				SEGMENT ARRIVES
 			*/
-			virtual int handle(Connection&, Packet&);
+			virtual int handle(Connection&, TCP::Packet_ptr);
 
 			/*
 				The current state represented as a string.
@@ -514,12 +568,12 @@ public:
 		/*
 			Transmit outgoing packet.
 		*/
-		void transmit(TCP::Packet);
+		void transmit(TCP::Packet_ptr);
 
 		/*
 			Return a new outgoing packet.
 		*/
-		TCP::Packet_ptr createPacket();
+		TCP::Packet_ptr create_outgoing_packet();
 
 	}; // < class TCP::Connection
 
@@ -557,9 +611,19 @@ public:
 	void connect(Socket& remote, Connection::SuccessCallback);
 
 	/*
-		Receive packet from transport layer (IP).
+		Receive packet from network layer (IP).
 	*/
 	void bottom(net::Packet_ptr);
+
+	/* 
+		Delegate output to network layer
+	*/
+	inline void set_network_out(downstream del) { _network_layer_out = del; }
+
+	/*
+		Compute the TCP checksum
+	*/
+    static uint16_t checksum(const TCP::Packet_ptr);
 
 	/*
 		Show all connections for TCP as a string.
@@ -573,9 +637,8 @@ private:
 
 	downstream _network_layer_out;
 	
-
 	/*
-		Transmit packet to transport layer (IP).
+		Transmit packet to network layer (IP).
 	*/
 	void transmit(TCP::Packet_ptr);
 
@@ -585,9 +648,9 @@ private:
 	TCP::Seq generate_iss();
 
 	/*
-		Generate a free port for outgoing connections.
+		Returns a free port for outgoing connections.
 	*/
-	TCP::Port generate_port();
+	TCP::Port free_port();
 
 
 }; // < class TCP
