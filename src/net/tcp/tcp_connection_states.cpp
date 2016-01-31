@@ -42,6 +42,25 @@ string State::to_string() const {
 
 // CLOSED
 
+void Closed::open(Connection& tcp, TCP::Packet_ptr out = nullptr) {
+	// Packet out == ACTIVE open
+	if(out) {
+		// There is a remote host
+		if(!tcp.remote().is_empty()) {
+			auto tcb = tcp.tcb();
+			out->seq(tcb.ISS)->set_flag(SYN);
+			tcb.SND.UNA = tcb.ISS;
+			tcb.SND.NXT = tcb.ISS+1;
+			set_state(tcp, SynSent::instance());	
+		} else {
+			// throw error
+			return; // TODO: Remove silent return
+		}
+	} else {
+		set_state(tcp, Listen::instance());
+	}
+}
+
 int Closed::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	if(in->isset(RST)) {
 		return 0;
@@ -55,6 +74,19 @@ int Closed::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 }
 
 // LISTEN
+
+void Listen::open(Connection& tcp, TCP::Packet_ptr out) {
+	if(!tcp.remote().is_empty()) {
+		auto tcb = tcp.tcb();
+		out->seq(tcb.ISS)->set_flag(SYN);
+		tcb.SND.UNA = tcb.ISS;
+		tcb.SND.NXT = tcb.ISS+1;
+		set_state(tcp, SynSent::instance());	
+	} else {
+		// throw error
+		return; // TODO: Remove silent return
+	}
+}
 
 int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
@@ -86,7 +118,7 @@ int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 
 // SYN-SENT
 
-void SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
+int SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
 	if(in->isset(ACK)) {
 		if(in->ack() =< tcb.ISS or in->ack() > tcb.SND.NXT) {
@@ -95,7 +127,7 @@ void SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 			} else {
 				// send reset
 			}
-		} else if (tcb.SND.UNA =< in->ack() =< tcb.SND.NXT) {
+		} else if (tcb.SND.UNA =< in->ack() and in->ack() =< tcb.SND.NXT) {
 			// Acceptable ACK, continue.
 		}
 	}
