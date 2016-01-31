@@ -176,29 +176,29 @@ public:
 	/* 
 		TCP Pseudo header, for checksum calculation
 	*/
-    struct Pseudo_header {
+	struct Pseudo_header {
 		IP4::addr saddr;
 		IP4::addr daddr;
 		uint8_t zero;
 		uint8_t proto;
 		uint16_t tcp_length;
-    }__attribute__((packed));
+	}__attribute__((packed));
     
-    /*
-    	TCP Checksum-header (TCP-header + pseudo-header
+	/*
+		TCP Checksum-header (TCP-header + pseudo-header
 	*/
-    struct Checksum_header {
+	struct Checksum_header {
 		TCP::Pseudo_header pseudo;
 		TCP::Header tcp;
-    }__attribute__((packed));
+	}__attribute__((packed));
 
 	/*
 		To extract the TCP part from a Packet_ptr and calculate size. (?)
 	*/
 	struct Full_header {
 		Ethernet::header ethernet;
-     	IP4::ip_header ip4;
-      	TCP::Header tcp; 
+		IP4::ip_header ip4;
+		TCP::Header tcp; 
 	}__attribute__((packed));
 
 
@@ -630,6 +630,12 @@ public:
 	*/
 	std::string status() const;
 
+	/*
+		Translate net::Packet_ptr to TCP::Packet_ptr
+		TODO: Come up with a real name..
+	*/
+	static TCP::Packet_ptr net2tcp(net::Packet_ptr);
+
 private:
 	IPStack& inet_;
 	std::vector<Socket&> listeners;
@@ -651,6 +657,11 @@ private:
 		Returns a free port for outgoing connections.
 	*/
 	TCP::Port free_port();
+
+	/*
+		Packet is dropped.
+	*/
+	void drop(TCP::Packet_ptr);
 
 
 }; // < class TCP

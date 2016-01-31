@@ -105,7 +105,7 @@ Connection::~Connection() {
 
 TCP::Packet_ptr Connection::create_outgoing_packet() {
 	auto pckt_ptr = (host_.inet_).createPacket(TCP::Packet::HEADERS_SIZE);
-	auto packet = std::static_pointer_cast<TCP::Packet>(pckt_ptr);
+	auto packet = TCP::net2tcp(pckt_ptr);
 	
 	packet->init();
 	// Set Source (local == the current connection)

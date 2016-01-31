@@ -150,19 +150,48 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet){
 
 void TCP::bottom(net::Packet_ptr pckt_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
-	auto packet = std::static_pointer_cast<TCP::Packet>(local_stack_.createPacket(sizeof(pckt_ptr)));
+	auto packet = net2tcp(pckt_ptr);
 	
 	// Do checksum
-	checksum(pckt);
+	if(checksum(packet)) {
+		// drop?
+	}
 
-	// Who's the receiver?
-	packet->destination();
-
-	// Who sent it?
-	packet->source();
+	Connection& connection;
+	Connection::Tuple tuple = {
+		local = packet.destination();
+		remote = packet.source();
+	}
+	// Try to found the receiver
+	auto conn_it = connections.find(tuple);
+	// Connection found
+	if(conn_it != connections.end()) {
+		connection = *(conn_it->second);
+	}
+	// No connection found 
+	else {
+		// Is there a listener?
+		auto sock_it = listeners.find({packet.destination()});
+		// Listener found => Create listening Connection
+		if(sock_it != listeners.end()) {
+			// Tuple : Connection(TCP, listening socket, destination from packet, ISS)
+			conn_it = connections.emplace({ tuple , {*this, *sock_it, packet.destination(), generate_iss()} });
+			connection = *(conn_it->second);
+			// Change to listening state.
+			connection.open();
+		}
+		// No listener found
+		else {
+			drop(packet);
+		}
+	}
+	// Only go here if we havent dropped packet.
+	connection.receive(packet);
 }
 
-
+TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
+	return std::static_pointer_cast<TCP::Packet>(pckt_ptr);
+}
 
 /*
 	Show all connections for TCP as a string.
@@ -173,6 +202,10 @@ void TCP::bottom(net::Packet_ptr pckt_ptr) {
 string TCP::status() const {
 	// Write all connections in a cute list.
 
+}
+
+void TCP::drop(TCP::Packet_ptr packet) {
+	// Packet is dropped.
 }
 
 void TCP::transmit(TCP::Packet_ptr packet) {
