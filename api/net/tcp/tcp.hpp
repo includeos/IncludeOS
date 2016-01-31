@@ -74,11 +74,11 @@ public:
 			return os.str();
 		}
 
-		inline static bool empty(const Socket& socket) {
+		inline static bool is_empty(const Socket& socket) {
 			return (socket.address() == 0 and socket.port()) == 0;
 		}
 
-		inline bool empty() const { return (address_ == 0 and port_ == 0); }
+		inline bool is_empty() const { return (address_ == 0 and port_ == 0); }
 
 		/*
 			TODO: Add compare for use in map/vector.
@@ -433,6 +433,11 @@ public:
 			The same as status()
 		*/
 		std::string to_string() const;
+
+		/*
+			Returns the current state of the connection.
+		*/
+		Connection::State& state() const { return state_; }
 
 		/*
 			Returns the control_block.

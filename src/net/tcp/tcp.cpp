@@ -70,9 +70,12 @@ void TCP::bind(Port port, Connection::SuccessCallback success) {
 */
 TCP::Connection& TCP::connect(Socket& remote) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-
-	Connection conn{*this, local, remote, generate_iss()};
-	auto& connection = (connections.emplace_back({conn.tuple(), conn}))->second;
+	Tuple tuple = {
+		local = local;
+		remote = remote;
+	}
+	Connection& connection = 
+		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
 	connection.open(true);
 	return connection;
 }
@@ -82,9 +85,12 @@ TCP::Connection& TCP::connect(Socket& remote) {
 */
 void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-
-	Connection conn{*this, local, remote, generate_iss()};
-	auto& connection = (connections.emplace_back({conn.tuple(), conn}))->second;
+	Tuple tuple = {
+		local = local;
+		remote = remote;
+	}
+	Connection& connection =
+		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
 	connection.onSuccess(callback).open(true);
 	return connection;
 }
@@ -183,6 +189,7 @@ void TCP::bottom(net::Packet_ptr pckt_ptr) {
 		// No listener found
 		else {
 			drop(packet);
+			return; // TODO: Remove silent return.
 		}
 	}
 	// Only go here if we havent dropped packet.
@@ -201,7 +208,16 @@ TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
 */
 string TCP::status() const {
 	// Write all connections in a cute list.
-
+	ostringstream os;
+	os << "LISTENING SOCKETS:\n"
+	for(auto sock : listeners) {
+		os << sock << "\n";
+	}
+	os << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
+	for(auto& conn : connections) {
+		os << "tcp4\t0\t0\t" << conn.local() << "\t" << conn.remote() << "\t" << conn.state().to_string() << "\n";
+	}
+	return os.str();
 }
 
 void TCP::drop(TCP::Packet_ptr packet) {

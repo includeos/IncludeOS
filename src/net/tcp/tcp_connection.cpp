@@ -60,14 +60,32 @@ void Connection::write(std::string data) {
 	// Implement
 }
 
+/*
+	If ACTIVE: 
+	Need a remote Socket and also a packet to be sent out.
+*/
 void Connection::open(bool active = false) {
 	// TODO: Add support for OPEN/PASSIVE
-	state_.open(*this, active);
+	if(active) {
+		// No remote host - can't make a ACTIVE open
+		if(remote_.is_empty()) {
+			// throw exception - missing remote host.
+		}
+		// Remote host - make an ACTIVE open
+		else {
+			auto outgoing = create_outgoing_packet();
+			state_.open(*this, outgoing); // throw exception from State::open()?
+			transmit(outgoing);	
+		}
+	}
+	else {
+		state_.open(*this);
+	}
 }
 
 string Connection::to_string() const {
 	ostringstream os;
-	os << local_ << "\t" << remote_ << "\t" << state_;
+	os << local_.to_string() << "\t" << remote_.to_string() << "\t" << state_.to_string();
 	return os.str();
 }
 

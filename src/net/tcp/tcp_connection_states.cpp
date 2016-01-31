@@ -22,7 +22,7 @@ using namespace std;
 // STATE - Fallback if not implemented in state.
 
 void State::open(Connection& tcp) {
-	// Cannot open
+	// Connection already exists
 }
 
 void State::close(Connection& tcp) {
