@@ -37,7 +37,7 @@ namespace net{
   public:
     using release_del = delegate<void(buffer, size_t)>;
 
-    BufferStore(int num, size_t bufsize, size_t device_offset);
+    BufferStore(size_t num, size_t bufsize, size_t device_offset);
 
     /** Free all the buffers **/
     ~BufferStore();
