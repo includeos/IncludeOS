@@ -18,11 +18,12 @@
 #include <net/tcp.hpp>
 
 using namespace std;
+using namespace net;
 
 TCP::TCP(IPStack& inet) : 
 	inet_(inet),
 	listeners(),
-	connections(), 
+	connections()
 {
 
 }
@@ -41,16 +42,14 @@ TCP::TCP(IPStack& inet) :
 TCP::Connection& TCP::bind(Port port) {
 	TCP::Socket local{inet_.ip_addr(), port};
 	
-	auto listener = listener.find(local);
+	auto sock_it = find(listeners.begin(), listeners.end(), local);
 	// Already a listening socket.
-	if(listener != listener.end()) {
+	if(sock_it != listeners.end()) {
 		panic("Can't bind, already taken.");
 	}
+	listeners.push_back(local);
 
-	listener = listeners.push_back(local);
-
-	Connection conn{*this, &listener, generate_iss()};
-	auto& connection = (connections.emplace_back({conn.tuple(),conn}))->second;
+	auto& connection = add_connection(listeners.back(), Socket{});
 	connection.open();
 	return connection;
 }
@@ -68,14 +67,9 @@ void TCP::bind(Port port, Connection::SuccessCallback success) {
 	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
 	and open() is called before callback is added.
 */
-TCP::Connection& TCP::connect(Socket& remote) {
+TCP::Connection& TCP::connect(Socket&& remote) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	Tuple tuple = {
-		local = local;
-		remote = remote;
-	}
-	Connection& connection = 
-		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
+	TCP::Connection& connection = add_connection(local, forward<TCP::Socket>(remote));
 	connection.open(true);
 	return connection;
 }
@@ -85,14 +79,8 @@ TCP::Connection& TCP::connect(Socket& remote) {
 */
 void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	Tuple tuple = {
-		local = local;
-		remote = remote;
-	}
-	Connection& connection =
-		(connections.emplace_back({ tuple, {*this, local, remote, generate_iss()} }))->second;
+	TCP::Connection& connection = add_connection(local, forward<TCP::Socket>(remote));
 	connection.onSuccess(callback).open(true);
-	return connection;
 }
 
 TCP::Seq generate_iss() {
@@ -154,37 +142,33 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet){
 }
 
 
-void TCP::bottom(net::Packet_ptr pckt_ptr) {
+void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
-	auto packet = net2tcp(pckt_ptr);
+	auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
 	
 	// Do checksum
 	if(checksum(packet)) {
 		// drop?
 	}
 
-	Connection& connection;
-	Connection::Tuple tuple = {
-		local = packet.destination();
-		remote = packet.source();
-	}
-	// Try to found the receiver
+	Connection::Tuple tuple { packet->destination(), packet->source() };
+
+	// Try to find the receiver
 	auto conn_it = connections.find(tuple);
 	// Connection found
 	if(conn_it != connections.end()) {
-		connection = *(conn_it->second);
+		conn_it->second.receive(packet);
 	}
 	// No connection found 
 	else {
 		// Is there a listener?
-		auto sock_it = listeners.find({packet.destination()});
+		auto sock_it = find(listeners.begin(), listeners.end(), packet->destination());
 		// Listener found => Create listening Connection
 		if(sock_it != listeners.end()) {
-			// Tuple : Connection(TCP, listening socket, destination from packet, ISS)
-			conn_it = connections.emplace({ tuple , {*this, *sock_it, packet.destination(), generate_iss()} });
-			connection = *(conn_it->second);
+			auto connection = add_connection(*sock_it, packet->destination());
 			// Change to listening state.
 			connection.open();
+			connection.receive(packet);
 		}
 		// No listener found
 		else {
@@ -192,12 +176,10 @@ void TCP::bottom(net::Packet_ptr pckt_ptr) {
 			return; // TODO: Remove silent return.
 		}
 	}
-	// Only go here if we havent dropped packet.
-	connection.receive(packet);
 }
 
 TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
-	return std::static_pointer_cast<TCP::Packet>(pckt_ptr);
+	return std::static_pointer_cast<TCP::Packet>(packet_ptr);
 }
 
 /*
@@ -208,16 +190,29 @@ TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
 */
 string TCP::status() const {
 	// Write all connections in a cute list.
-	ostringstream os;
-	os << "LISTENING SOCKETS:\n"
+	stringstream ss;
+	ss << "LISTENING SOCKETS:\n";
 	for(auto sock : listeners) {
-		os << sock << "\n";
+		ss << sock.to_string() << "\n";
 	}
-	os << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
-	for(auto& conn : connections) {
-		os << "tcp4\t0\t0\t" << conn.local() << "\t" << conn.remote() << "\t" << conn.state().to_string() << "\n";
+	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
+	for(auto con_it : connections) {
+		auto conn = con_it.second;
+		ss << "tcp4\t0\t0\t" << conn.local().to_string() << "\t" << conn.remote().to_string() << "\t" << conn.state().to_string() << "\n";
 	}
-	return os.str();
+	return ss.str();
+}
+
+/*TCP::Socket& TCP::add_listener(TCP::Socket&& socket) {
+
+}*/
+
+TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket&& remote) {
+	return 	(connections.emplace(
+				Connection::Tuple{ local, remote }, 
+				Connection{*this, local, forward<TCP::Socket>(remote), 
+				generate_iss()})
+			).first->second;
 }
 
 void TCP::drop(TCP::Packet_ptr packet) {
@@ -227,7 +222,7 @@ void TCP::drop(TCP::Packet_ptr packet) {
 void TCP::transmit(TCP::Packet_ptr packet) {
 	// Translate into a net::Packet_ptr and send away.
 	// Generate checksum.
-	packet->gen_checksum();
+	packet->set_checksum(TCP::checksum(packet));
 	//packet->set_checksum(checksum(packet));
-	_network_layer_out.transmit(pckt_ptr);
+	_network_layer_out(packet);
 }

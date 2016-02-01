@@ -18,6 +18,7 @@
 #include <net/tcp.hpp>
 #include <net/tcp_connection_states.hpp>
 
+using namespace net;
 using Connection = TCP::Connection;
 
 using namespace std;
@@ -32,7 +33,7 @@ Connection::Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss) 
 	state_(Connection::Closed::instance()),
 	control_block()
 {
-	control_block_.ISS = iss;
+	control_block.ISS = iss;
 
 	// Always open a new Connection????
 	//state_->open(*this);
@@ -64,7 +65,7 @@ void Connection::write(std::string data) {
 	If ACTIVE: 
 	Need a remote Socket and also a packet to be sent out.
 */
-void Connection::open(bool active = false) {
+void Connection::open(bool active) {
 	// TODO: Add support for OPEN/PASSIVE
 	if(active) {
 		// No remote host - can't make a ACTIVE open
@@ -89,12 +90,8 @@ string Connection::to_string() const {
 	return os.str();
 }
 
-Connection::Tuple& Connection::tuple() {
-	Tuple tuple = {
-		local = local_;
-		remote = remote_;
-	}
-	return tuple;
+Connection::Tuple Connection::tuple() {
+	return {local_, remote_};
 }
 
 /*
@@ -138,8 +135,8 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 	return packet;
 }
 
-void Connection::transmit(TCP::Packet out) {
-	parent.transmit(out);
+void Connection::transmit(TCP::Packet_ptr out) {
+	host_.transmit(out);
 }
 
 

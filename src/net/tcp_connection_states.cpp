@@ -21,19 +21,19 @@ using namespace std;
 
 // STATE - Fallback if not implemented in state.
 
-void State::open(Connection& tcp) {
+void Connection::State::open(Connection& tcp, TCP::Packet_ptr out) {
 	// Connection already exists
 }
 
-void State::close(Connection& tcp) {
+void Connection::State::close(Connection& tcp, TCP::Packet_ptr out) {
 	// Dirty close
 }
 
-void State::handle(Connection& tcp, Packet& p) {
+int Connection::State::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	// Drop packet
 	//p.die();
 	//p.drop();
-	close(tcp);
+	close(tcp, out);
 }
 
 string State::to_string() const {
@@ -42,13 +42,13 @@ string State::to_string() const {
 
 // CLOSED
 
-void Closed::open(Connection& tcp, TCP::Packet_ptr out = nullptr) {
+void Connection::Closed::open(Connection& tcp, TCP::Packet_ptr out) {
 	// Packet out == ACTIVE open
 	if(out) {
 		// There is a remote host
 		if(!tcp.remote().is_empty()) {
 			auto tcb = tcp.tcb();
-			out->seq(tcb.ISS)->set_flag(SYN);
+			out->set_seq(tcb.ISS).set_flag(SYN);
 			tcb.SND.UNA = tcb.ISS;
 			tcb.SND.NXT = tcb.ISS+1;
 			set_state(tcp, SynSent::instance());	
@@ -61,24 +61,24 @@ void Closed::open(Connection& tcp, TCP::Packet_ptr out = nullptr) {
 	}
 }
 
-int Closed::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
+int Connection::Closed::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	if(in->isset(RST)) {
 		return 0;
 	}
 	if(!in->isset(ACK)) {
-		out->set_seq(0)->set_ack(in->seq() + in->data_length())->set_flags(RST | ACK);
+		out->set_seq(0).set_ack(in->seq() + in->data_length()).set_flags(RST | ACK);
 	} else {
-		out->set_seq(in->ack())->set_flag(RST);
+		out->set_seq(in->ack()).set_flag(RST);
 	}
 	return 1;
 }
 
 // LISTEN
 
-void Listen::open(Connection& tcp, TCP::Packet_ptr out) {
+void Connection::Listen::open(Connection& tcp, TCP::Packet_ptr out) {
 	if(!tcp.remote().is_empty()) {
 		auto tcb = tcp.tcb();
-		out->seq(tcb.ISS)->set_flag(SYN);
+		out->set_seq(tcb.ISS).set_flag(SYN);
 		tcb.SND.UNA = tcb.ISS;
 		tcb.SND.NXT = tcb.ISS+1;
 		set_state(tcp, SynSent::instance());	
@@ -88,28 +88,28 @@ void Listen::open(Connection& tcp, TCP::Packet_ptr out) {
 	}
 }
 
-int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
+int Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
 	if(in->isset(RST)) {
 		// ignore
 		return 0;
 	}
 	if(in->isset(ACK)) {
-		out->set_seq(in->ack())->set_flag(RST);
+		out->set_seq(in->ack()).set_flag(RST);
 		return 1;
 	}
-	if(p.isset(SYN)) {		
+	if(in->isset(SYN)) {		
 		/*
 		// Security stuff, don't know yet.
 		if(p.PRC > tcb.PRC)
 			tcb.PRC = p.PRC;
 		*/
-		tcb.RCV.NXT = p->seq()+1;
-		tcb.IRS = p->seq();
+		tcb.RCV.NXT = in->seq()+1;
+		tcb.IRS = in->seq();
 		// select ISS; already there.
 		tcb.SND.NXT = tcb.ISS+1;
 		tcb.SND.UNA = tcb.ISS;
-		p->set_seq(tcb.ISS)->set_ack(tcb.RCV.NXT)->set_flags(SYN | ACK);
+		out->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 		// SEND SEGMENT/PACKET
 		set_state(tcp, SynReceived::instance());
 		return 1;
@@ -118,16 +118,16 @@ int Listen::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 
 // SYN-SENT
 
-int SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
+int Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in, TCP::Packet_ptr out) {
 	auto tcb = tcp.tcb();
 	if(in->isset(ACK)) {
-		if(in->ack() =< tcb.ISS or in->ack() > tcb.SND.NXT) {
+		if(in->ack() <= tcb.ISS or in->ack() > tcb.SND.NXT) {
 			if(in->isset(RST)) {
 				//drop();
 			} else {
 				// send reset
 			}
-		} else if (tcb.SND.UNA =< in->ack() and in->ack() =< tcb.SND.NXT) {
+		} else if (tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
 			// Acceptable ACK, continue.
 		}
 	}
