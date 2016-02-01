@@ -18,18 +18,16 @@
 #ifndef NET_TCP_CONNECTION_STATES_HPP
 #define NET_TCP_CONNECTION_STATES_HPP
 
+#include <net/tcp.hpp>
 ///////////////// CONCRETE STATES /////////////////
-namespace net {
-	namespace tcp {
-		namespace state {
+using TCP = net::TCP;
+using Connection = TCP::Connection;
+using State = TCP::Connection::State;
 
-		}
-	}
-}
 /*
 	CLOSED
 */
-class Closed : public State {
+class Connection::Closed : public State {
 public:
 	inline static State& instance() {
 		static Closed instance;
@@ -61,7 +59,7 @@ public:
 
 		=> SynSent
 	*/
-	virtual void open(TCP::Connection&);
+	virtual void open(TCP::Connection&, TCP::Packet_ptr out) override;
 
 	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
@@ -75,13 +73,13 @@ private:
 /*
 	LISTEN
 */
-class Listen : public State {
+class Connection::Listen : public State {
 public:
 	inline static State& instance() {
 		static Listen instance;
 		return instance;
 	}
-	virtual void open(TCP::Connection&);
+	virtual void open(TCP::Connection&, TCP::Packet_ptr out) override;
 	/*
 		-> Receive SYN.
 
@@ -101,7 +99,7 @@ private:
 /*
 	SYN-SENT
 */
-class SynSent : public State {
+class Connection::SynSent : public State {
 public:
 	inline static State& instance() {
 		static SynSent instance;
@@ -126,7 +124,7 @@ private:
 /*
 	SYN-RCV
 */
-class SynReceived : public State {
+class Connection::SynReceived : public State {
 public:
 	inline static State& instance() {
 		static SynReceived instance;
@@ -153,7 +151,7 @@ private:
 /*
 	ESTABLISHED
 */
-class Established : public State {
+class Connection::Established : public State {
 public:
 	inline static State& instance() {
 		static Established instance;
@@ -172,7 +170,7 @@ public:
 		=> CloseWait
 	*/
 	// What if we wanna close?? => FinWait1
-	virtual void close(TCP::Connection&, TCP::Packet&) override;
+	virtual void close(TCP::Connection&, TCP::Packet_ptr) override;
 
 	inline std::string to_string() const override {
 		return "ESTABLISHED";
@@ -185,7 +183,7 @@ private:
 /*
 	CLOSE-WAIT
 */
-class CloseWait : public State {
+class Connection::CloseWait : public State {
 public:
 	inline static State& instance() {
 		static CloseWait instance;
@@ -198,7 +196,7 @@ public:
 		
 		=> LastAck
 	*/
-	virtual void close(TCP::Connection&) override;
+	virtual void close(TCP::Connection&, TCP::Packet_ptr) override;
 
 	inline std::string to_string() const override {
 		return "CLOSE-WAIT";
@@ -211,7 +209,7 @@ private:
 /*
 	FIN-WAIT-1
 */
-class FinWait1 : public State {
+class Connection::FinWait1 : public State {
 public:
 	inline static State& instance() {
 		static FinWait1 instance;
@@ -222,7 +220,7 @@ public:
 
 		=> FinWait2.
 	*/
-	virtual void handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "FIN-WAIT-1";
@@ -235,7 +233,7 @@ private:
 /*
 	FIN-WAIT-1
 */
-class FinWait2 : public State {
+class Connection::FinWait2 : public State {
 public:
 	inline static State& instance() {
 		static FinWait2 instance;
@@ -255,7 +253,7 @@ private:
 /*
 	LAST-ACK
 */
-class LastAck : public State {
+class Connection::LastAck : public State {
 public:
 	inline static State& instance() {
 		static LastAck instance;
@@ -268,7 +266,7 @@ public:
 
 		=> Closed (Tell TCP to remove this connection)
 	*/
-	virtual void handle(TCP::Connection&, TCP::Packet&) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "LAST-ACK";
@@ -281,7 +279,7 @@ private:
 /*
 	CLOSING
 */
-class Closing : public State {
+class Connection::Closing : public State {
 public:
 	inline static State& instance() {
 		static Closing instance;
@@ -292,7 +290,7 @@ public:
 
 		=> TimeWait (Guess this isnt needed, just start a Close-timer)
 	*/
-	virtual void acknowledge(TCP::Connection* conn, Packet& p) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
 
 	inline std::string to_string() const override {
 		return "CLOSING";
@@ -305,7 +303,7 @@ private:
 /*
 	TIME-WAIT
 */
-class TimeWait : public State {
+class Connection::TimeWait : public State {
 public:
 	inline static State& instance() {
 		static TimeWait instance;

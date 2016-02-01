@@ -18,22 +18,25 @@
 #ifndef NET_TCP_HPP
 #define NET_TCP_HPP
 
+#include <os>
 #include <net/ip4.hpp> // IP4::Addr
 #include <net/ip4/packet_ip4.hpp> // PacketIP4
 #include <net/util.hpp> // net::Packet_ptr, htons / noths
+#include <vector>
 #include <map>
+#include <sstream>
 
 namespace net {
 
 class TCP {
-private:
+public:
 	using Address = IP4::addr;
 	using Port = uint16_t;
 	/*
 		A Sequence number (SYN/ACK) (32 bits)
 	*/
 	using Seq = uint32_t;
-
+private:
 	using IPStack = Inet<LinkLayer,IP4>;
 
 public:
@@ -48,7 +51,7 @@ public:
 		/*
 			Intialize an empty socket.
 		*/
-		inline Socket() : address_(0), port_(0) {};
+		inline Socket() : address_(), port_(0) { address_.whole = 0; };
 
 		/*
 			Create a socket with a Address and Port.
@@ -69,20 +72,32 @@ public:
 			Returns a string in the format "Address:Port".
 		*/
 		std::string to_string() const {
-			std::ostringstream os;
-			os << address_ << ":" << port_;
-			return os.str();
+			std::stringstream ss;
+			ss << address_.str() << ":" << port_;
+			return ss.str();
 		}
 
 		inline static bool is_empty(const Socket& socket) {
-			return (socket.address() == 0 and socket.port()) == 0;
+			return (socket.address().whole == 0 and socket.port()) == 0;
 		}
 
-		inline bool is_empty() const { return (address_ == 0 and port_ == 0); }
+		inline bool is_empty() const { return (address_.whole == 0 and port_ == 0); }
 
 		/*
-			TODO: Add compare for use in map/vector.
+			Comparator used for vector.
 		*/
+		inline friend bool operator== ( const Socket &s1, const Socket &s2) {
+			return s1.address().whole == s2.address().whole 
+					and s1.port() == s2.port();
+		}
+
+		/*
+			Comparator used for map.
+		*/
+		inline friend bool operator <(const Socket& s1, const Socket& s2) {
+        	return s1.address().whole < s2.address().whole
+        		or (s1.address().whole == s2.address().whole and s1.port() < s2.port());
+    	}
 
 	private:
 		//SocketID id_; // Maybe a hash or something. Not sure if needed (yet)
@@ -152,22 +167,20 @@ public:
       	uint16_t urgent;				// Urgent pointer offset
       	uint32_t options[0];			// Options
 
-      	// Get the raw tcp offset, in quadruples
-		inline uint8_t offset() { return (uint8_t)(offs_flags.offset_reserved >> 4); }
+			// Get the raw tcp offset, in quadruples
+		inline uint8_t offset() { return (uint8_t)(offset_flags.offset_reserved >> 4); }
 
 		// Set raw TCP offset in quadruples
-		inline void set_offset(uint8_t offset){ offs_flags.offset_reserved = (offset << 4); }
+		inline void set_offset(uint8_t offset){ offset_flags.offset_reserved = (offset << 4); }
 
 		// Get tcp header length including options (offset) in bytes
 		inline uint8_t size() { return offset() * 4; }
 
 		// Calculate the full header lenght, down to linklayer, in bytes
-		uint8_t all_headers_len(){
-		return (sizeof(TCP::Full_header) - sizeof(TCP::Header)) + size();
-		};
+		uint8_t all_headers_len() { return (sizeof(TCP::Full_header) - sizeof(TCP::Header)) + size(); }
 
 		inline void set_flag(Flag f){ offset_flags.whole |= htons(f); }
-		inline void set_flags(uint16_t f){ offs_flags.whole |= htons(f); }
+		inline void set_flags(uint16_t f){ offset_flags.whole |= htons(f); }
 		inline void clear_flag(Flag f){ offset_flags.whole &= ~ htons(f); }
 		inline void clear_flags(){ offset_flags.whole &= 0x00ff; }
 	}__attribute__((packed)); // << struct TCP::Header
@@ -311,10 +324,10 @@ public:
     	}
     
     	// generates a new checksum and sets it for this TCP packet
-    	uint16_t gen_checksum() { 
-    		header().checksum =TCP::checksum(Packet::shared_from_this());
+    	/*uint16_t gen_checksum() { 
+    		header().checksum = TCP::checksum(net::Packet::shared_from_this());
     		return header().checksum;
-    	}
+    	}*/
 
     	inline TCP::Packet& set_checksum(uint16_t checksum) {
     		header().checksum = checksum;
@@ -335,23 +348,19 @@ public:
     		return total;
     	}
 
-    	inline TCP::Socket& source() const {
-    		return {src(), src_port()};
-    	}
+    	inline TCP::Socket source() const { return TCP::Socket {src(), src_port()}; }
 
     	inline TCP::Packet& set_source(const TCP::Socket& src) {
     		set_src(src.address()); // PacketIP4::set_src
-    		header()->source_port = src.port();
+    		header().source_port = src.port();
     		return *this;
     	}
 
-    	inline TCP::Socket& destination() const {
-    		return {dst(), dst_port()};
-    	}
+    	inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
 
     	inline TCP::Packet& set_destination(const TCP::Socket& dest) {
     		set_dst(dest.address()); // PacketIP4::set_dst
-    		header()->destination_port = dest.port();
+    		header().destination_port = dest.port();
     		return *this;
     	}
 	}; // << class TCP::Packet
@@ -368,110 +377,89 @@ public:
 	*/
 	class Connection {
 	public:
-		struct Tuple {
-			Socket& local;
-			Socket& remote;
+		using SuccessCallback = delegate<void(Connection&)>;
+		/*struct Tuple {
+			Socket local;
+			Socket remote;
 
 			// @TODO: Add compare for lookup in map/vector.
-		};
-		/*
-			Creates a connection without a remote.
-		*/
-		Connection(TCP& host, Socket& local, TCP::Seq iss);
+			Tuple(TCP::Socket local, TCP::Socket remote) : local(local), remote(remote) {};
+
+			inline friend bool operator<(const Tuple& l, const Tuple& r) {
+     			return (l.x<r.x || (l.x==r.x && l.y<r.y));
+			}
+		};*/
+		using Tuple = std::pair<TCP::Socket, TCP::Socket>;
 
 		/*
-			Creates a connection with a remote.
+			Interface for one of the many states a Connection can have.
 		*/
-		Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss);
+		class State {
+		protected:
+			using Packet = TCP::Packet;
+		public:
+			/*
+				Open a Connection.
+				OPEN
+
+				@TODO: Add support for PASSIVE/OPEN
+			*/
+			virtual void open(Connection&, TCP::Packet_ptr out = nullptr);
+
+			/*
+				Write to a Connection.
+				SEND
+			*/
+			//virtual void send(Connection&);
+
+			/*
+				Read from a Connection.
+				RECEIVE
+			*/
+			//virtual void receive(Connection&);
+			
+			/*
+				Close a Connection.
+				CLOSE
+			*/
+			virtual void close(Connection&, TCP::Packet_ptr out);
+			
+			/*
+				Handle a Packet
+				SEGMENT ARRIVES
+			*/
+			virtual int handle(Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out);
+
+			/*
+				The current state represented as a string.
+				STATUS
+			*/
+			virtual std::string to_string() const;
+
+		protected:		
+			/*
+				Set the state on the Connection.
+			*/
+			virtual void set_state(Connection&, State&);
+
+		}; // < class TCP::Connection::State
 
 		/*
-			The local Socket bound to this connection.
+			Forward declaration of concrete states.
+			Definition in "tcp_connection_states.hpp"
 		*/
-		inline TCP::Socket& local() const { return local_; }
+		class Closed;
+		class Listen;
+		class SynSent;
+		class SynReceived;
+		class Established;
+		class CloseWait;
+		class FinWait1;
+		class FinWait2;
+		class LastAck;
+		class Closing;
+		class TimeWait;
 
-		/*
-			The remote Socket bound to this connection.
-		*/
-		inline TCP::Socket& remote() const { return remote_; }
-
-		/*
-			Set remote Socket bound to this connection.
-		*/
-		inline void set_remote(Socket&& remote) { remote_ = remote; }
-
-		/*
-			Read content from remote.
-		*/
-		std::string read(uint16_t buffer_size);
-
-		/*
-			Write content to remote.
-		*/
-		void write(std::string data);
-
-		/*
-			Open connection.
-		*/
-		void open(bool active = false);
-
-		/*
-			Callback for success
-		*/
-		inline Connection& onSuccess(SuccessCallback callback) { on_success_handler_ = callback; }
-
-		/*
-			Callback for close()
-		*/
-		//Connection& onClose(SuccessCallback callback);
-
-		/*
-			Callback for errors.
-		*/
-		//Connection& onError(ErrorCallback callback);
-
-		/*
-			The same as status()
-		*/
-		std::string to_string() const;
-
-		/*
-			Returns the current state of the connection.
-		*/
-		Connection::State& state() const { return state_; }
-
-		/*
-			Returns the control_block.
-
-			@WARNING: Public, for use in sub-state.
-		*/
-		inline Connection::TCB& tcb() const { return control_block; }
-
-		/*
-			Return the id (TUPLE) of the connection.
-		*/
-		Connection::Tuple tuple();
-
-		/*
-			Receive a TCP Packet.
-
-			@WARNING: Public, for use in TCP::bottom
-		*/
-		void receive(Packet&);
-
-		/*
-			Destroy the Connection.
-
-			Clean up.
-		*/
-		~Connection();
-
-	private:
-		TCP::Socket& local_;
-		TCP::Socket remote_;
-
-		TCP& host_;
-
-		SuccessCallback on_success_handler_;
 		/*
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
@@ -509,62 +497,115 @@ public:
 			} RCV; // <<
 			TCP::Seq IRS;		// initial receive sequence number
 
-			TCB() : SND.UNA(0), SND.NXT(0), SND.WND(0), SND.UP(0), SND.WL1(0), SND.WL2(0), ISS(0),
-					RCV.NXT(0), RCV.UP(0), IRS(0) {};
+			TCB() {
+				SND = { 0, 0, 0, 0, 0, 0, };
+				ISS = 0;
+				RCV = { 0,0,0 };
+				IRS = 0;
+			};
 		} control_block; // < struct TCP::Connection::TCB
 
 		/*
-			Interface for one of the many states a Connection can have.
+			Creates a connection without a remote.
 		*/
-		class State {
-		protected:
-			using Packet = TCP::Packet;
-		public:
-			/*
-				Open a Connection.
-				OPEN
+		Connection(TCP& host, Socket& local, TCP::Seq iss);
 
-				@TODO: Add support for PASSIVE/OPEN
-			*/
-			virtual void open(Connection&);
+		/*
+			Creates a connection with a remote.
+		*/
+		Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss);
 
-			/*
-				Write to a Connection.
-				SEND
-			*/
-			//virtual void send(Connection&);
+		/*
+			The local Socket bound to this connection.
+		*/
+		inline TCP::Socket& local() const { return local_; }
 
-			/*
-				Read from a Connection.
-				RECEIVE
-			*/
-			//virtual void receive(Connection&);
-			
-			/*
-				Close a Connection.
-				CLOSE
-			*/
-			virtual void close(Connection&);
-			
-			/*
-				Handle a Packet
-				SEGMENT ARRIVES
-			*/
-			virtual int handle(Connection&, TCP::Packet_ptr);
+		/*
+			The remote Socket bound to this connection.
+		*/
+		inline TCP::Socket& remote() { return remote_; }
 
-			/*
-				The current state represented as a string.
-				STATUS
-			*/
-			virtual std::string to_string() const;
+		/*
+			Set remote Socket bound to this connection.
+		*/
+		inline void set_remote(Socket&& remote) { remote_ = remote; }
 
-		protected:		
-			/*
-				Set the state on the Connection.
-			*/
-			virtual void set_state(Connection&, State&);
+		/*
+			Read content from remote.
+		*/
+		std::string read(uint16_t buffer_size);
 
-		}; // < class TCP::Connection::State
+		/*
+			Write content to remote.
+		*/
+		void write(std::string data);
+
+		/*
+			Open connection.
+		*/
+		void open(bool active = false);
+
+		/*
+			Callback for success
+		*/
+		inline Connection& onSuccess(SuccessCallback callback) { 
+			on_success_handler_ = callback;
+			return *this;
+		}
+
+		/*
+			Callback for close()
+		*/
+		//Connection& onClose(SuccessCallback callback);
+
+		/*
+			Callback for errors.
+		*/
+		//Connection& onError(ErrorCallback callback);
+
+		/*
+			The same as status()
+		*/
+		std::string to_string() const;
+
+		/*
+			Returns the current state of the connection.
+		*/
+		Connection::State& state() const { return state_; }
+
+		/*
+			Returns the control_block.
+
+			@WARNING: Public, for use in sub-state.
+		*/
+		inline Connection::TCB& tcb() { return control_block; }
+
+		/*
+			Return the id (TUPLE) of the connection.
+		*/
+		Connection::Tuple tuple();
+
+		/*
+			Receive a TCP Packet.
+
+			@WARNING: Public, for use in TCP::bottom
+		*/
+		void receive(TCP::Packet_ptr);
+
+		/*
+			Destroy the Connection.
+
+			Clean up.
+		*/
+		~Connection();
+
+	private:
+		TCP::Socket& local_;
+		TCP::Socket remote_;
+
+		TCP& host_;
+
+		SuccessCallback on_success_handler_;
 
 		//friend State; // No need for friendship when inner class(?)
 
@@ -588,7 +629,7 @@ public:
 		Callback for Connection
 	*/
 	using ConnectionCallback = Connection::SuccessCallback;
-	using ConnectionErrorCallback = Connection::ErrorCallback;
+	//using ConnectionErrorCallback = Connection::ErrorCallback;
 
 	/*
 		Constructor
@@ -608,7 +649,7 @@ public:
 	/*
 		Active open a new connection to the given remote.
 	*/
-	Connection& connect(Socket& remote);
+	Connection& connect(Socket&& remote);
 
 	/*
 		Active open a new connection to the given remote.
@@ -643,7 +684,7 @@ public:
 
 private:
 	IPStack& inet_;
-	std::vector<Socket&> listeners;
+	std::vector<TCP::Socket> listeners;
 	std::map<Connection::Tuple, Connection> connections;
 
 	downstream _network_layer_out;
@@ -667,6 +708,16 @@ private:
 		Packet is dropped.
 	*/
 	void drop(TCP::Packet_ptr);
+
+	/*
+		Adds a Socket as listener
+	*/
+	//TCP::Socket& add_listener(TCP::Socket&& socket);
+
+	/*
+		Add a Connection.
+	*/
+	TCP::Connection& add_connection(TCP::Socket& local, TCP::Socket&& remote);
 
 
 }; // < class TCP
