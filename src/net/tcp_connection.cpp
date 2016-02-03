@@ -26,31 +26,27 @@ using namespace std;
 /*
 	This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss) :
+Connection::Connection(TCP& host, Socket& local, Socket&& remote) :
 	host_(host),
 	local_(local), 
-	remote_(remote_),
+	remote_(remote),
 	state_(Connection::Closed::instance()),
 	control_block()
 {
-	control_block.ISS = iss;
 
-	// Always open a new Connection????
-	//state_->open(*this);
 }
 
 /*
 	This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, Socket& local, TCP::Seq iss) :
+Connection::Connection(TCP& host, Socket& local) :
 	host_(host),
 	local_(local), 
 	remote_(TCP::Socket()),
 	state_(Connection::Closed::instance()),
 	control_block()
 {
-	control_block.ISS = iss;
-	// I can also say: host.generate_iss(), and drop iss from constructor.
+	
 }
 
 string Connection::read(uint16_t buffer_size) {
@@ -67,21 +63,14 @@ void Connection::write(std::string data) {
 */
 void Connection::open(bool active) {
 	// TODO: Add support for OPEN/PASSIVE
-	if(active) {
-		// No remote host - can't make a ACTIVE open
-		if(remote_.is_empty()) {
-			// throw exception - missing remote host.
-		}
-		// Remote host - make an ACTIVE open
-		else {
-			auto outgoing = create_outgoing_packet();
-			state_.open(*this, outgoing); // throw exception from State::open()?
-			transmit(outgoing);	
-		}
+	try {
+		state_.open(*this, active);
 	}
-	else {
-		state_.open(*this);
+	// No remote host, or state isnt valid for opening.
+	catch (...) {
+		//on_error_handler(error)
 	}
+	
 }
 
 string Connection::to_string() const {
@@ -99,13 +88,10 @@ Connection::Tuple Connection::tuple() {
 */
 void Connection::receive(TCP::Packet_ptr incoming) {
 	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-	//auto outgoing = create_outgoing_packet(incoming.source());
-	auto outgoing = create_outgoing_packet();
-	if(state_.handle(*this, incoming, outgoing)) {
+	if(state_.handle(*this, incoming)) {
 		/*if(is_connected()) {
 			on_sucess_handler(*this);
 		}*/
-		transmit(outgoing);
 	} else {
 		//drop(packet);
 		//error handler
@@ -119,8 +105,7 @@ Connection::~Connection() {
 
 
 TCP::Packet_ptr Connection::create_outgoing_packet() {
-	auto pckt_ptr = (host_.inet_).createPacket(TCP::Packet::HEADERS_SIZE);
-	auto packet = TCP::net2tcp(pckt_ptr);
+	auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(TCP::Packet::HEADERS_SIZE));
 	
 	packet->init();
 	// Set Source (local == the current connection)
@@ -139,4 +124,10 @@ void Connection::transmit(TCP::Packet_ptr out) {
 	host_.transmit(out);
 }
 
+TCP::Seq Connection::generate_iss() {
+	return host_.generate_iss();
+}
 
+void Connection::drop(TCP::Packet_ptr packet) {
+	host_.drop(packet);
+}

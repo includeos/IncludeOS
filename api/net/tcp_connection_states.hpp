@@ -59,11 +59,11 @@ public:
 
 		=> SynSent
 	*/
-	virtual void open(TCP::Connection&, TCP::Packet_ptr out) override;
+	virtual void open(TCP::Connection&, bool active = false) override;
 
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "CLOSED";
 	};
 private:
@@ -79,7 +79,7 @@ public:
 		static Listen instance;
 		return instance;
 	}
-	virtual void open(TCP::Connection&, TCP::Packet_ptr out) override;
+	virtual void open(TCP::Connection&, bool active = false) override;
 	/*
 		-> Receive SYN.
 
@@ -87,9 +87,9 @@ public:
 
 		=> SynReceived.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "LISTENING";
 	};
 private:
@@ -112,9 +112,9 @@ public:
 
 		=> Established.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "SYN-SENT";
 	};
 private:
@@ -138,9 +138,9 @@ public:
 
 		=> Established.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "SYN-RCV";
 	};
 
@@ -160,7 +160,7 @@ public:
 	/*
 		
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	/*
 		-> Receive FIN.
@@ -170,9 +170,9 @@ public:
 		=> CloseWait
 	*/
 	// What if we wanna close?? => FinWait1
-	virtual void close(TCP::Connection&, TCP::Packet_ptr) override;
+	virtual void close(TCP::Connection&) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "ESTABLISHED";
 	};
 
@@ -196,9 +196,9 @@ public:
 		
 		=> LastAck
 	*/
-	virtual void close(TCP::Connection&, TCP::Packet_ptr) override;
+	virtual void close(TCP::Connection&) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "CLOSE-WAIT";
 	};
 
@@ -220,9 +220,9 @@ public:
 
 		=> FinWait2.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-1";
 	};
 
@@ -243,7 +243,7 @@ public:
 		
 	*/
 	
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-2";
 	};
 private:
@@ -266,9 +266,9 @@ public:
 
 		=> Closed (Tell TCP to remove this connection)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "LAST-ACK";
 	};
 
@@ -290,9 +290,9 @@ public:
 
 		=> TimeWait (Guess this isnt needed, just start a Close-timer)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out) override;
+	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "CLOSING";
 	};
 
@@ -314,7 +314,7 @@ public:
 	*/
 
 
-	inline std::string to_string() const override {
+	inline virtual std::string to_string() const override {
 		return "TIME-WAIT";
 	};
 

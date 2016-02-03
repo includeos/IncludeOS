@@ -42,14 +42,12 @@ TCP::TCP(IPStack& inet) :
 TCP::Connection& TCP::bind(Port port) {
 	TCP::Socket local{inet_.ip_addr(), port};
 	
-	auto sock_it = find(listeners.begin(), listeners.end(), local);
+	auto listen_conn_it = listeners.find(local);
 	// Already a listening socket.
-	if(sock_it != listeners.end()) {
+	if(listen_conn_it != listeners.end()) {
 		panic("Can't bind, already taken.");
 	}
-	listeners.push_back(local);
-
-	auto& connection = add_connection(listeners.back(), Socket{});
+	auto& connection = (listeners.emplace(local, Connection{*this, local})).first->second;
 	connection.open();
 	return connection;
 }
@@ -83,14 +81,15 @@ void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
 	connection.onSuccess(callback).open(true);
 }
 
-TCP::Seq generate_iss() {
+TCP::Seq TCP::generate_iss() {
 	// Do something to get a iss.
 	return rand();
 }
 
-TCP::Port free_port() {
-	// Check what ports are taken, get a new random one.
-	return 1337;
+TCP::Port TCP::free_port() {
+	if(++current_ephemeral_ == 0)
+		current_ephemeral_ = 1025;
+	return current_ephemeral_;
 }
 
 
@@ -162,10 +161,12 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// No connection found 
 	else {
 		// Is there a listener?
-		auto sock_it = find(listeners.begin(), listeners.end(), packet->destination());
+		auto listen_conn_it = listeners.find(packet->destination());
 		// Listener found => Create listening Connection
-		if(sock_it != listeners.end()) {
-			auto connection = add_connection(*sock_it, packet->destination());
+		if(listen_conn_it != listeners.end()) {
+			//Connection connection{listening_conn_it};
+			auto& listen_conn = listen_conn_it->second;
+			auto connection = (connections.emplace(tuple, Connection{listen_conn})).first->second;
 			// Change to listening state.
 			connection.open();
 			connection.receive(packet);
@@ -192,8 +193,8 @@ string TCP::status() const {
 	// Write all connections in a cute list.
 	stringstream ss;
 	ss << "LISTENING SOCKETS:\n";
-	for(auto sock : listeners) {
-		ss << sock.to_string() << "\n";
+	for(auto listen_it : listeners) {
+		ss << listen_it.second.to_string() << "\n";
 	}
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
 	for(auto con_it : connections) {
@@ -210,13 +211,12 @@ string TCP::status() const {
 TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket&& remote) {
 	return 	(connections.emplace(
 				Connection::Tuple{ local, remote }, 
-				Connection{*this, local, forward<TCP::Socket>(remote), 
-				generate_iss()})
+				Connection{*this, local, forward<TCP::Socket>(remote)})
 			).first->second;
 }
 
 void TCP::drop(TCP::Packet_ptr packet) {
-	// Packet is dropped.
+	
 }
 
 void TCP::transmit(TCP::Packet_ptr packet) {

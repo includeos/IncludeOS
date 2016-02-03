@@ -36,6 +36,8 @@ public:
 		A Sequence number (SYN/ACK) (32 bits)
 	*/
 	using Seq = uint32_t;
+	class Packet;
+	using Packet_ptr = std::shared_ptr<Packet>;
 private:
 	using IPStack = Inet<LinkLayer,IP4>;
 
@@ -44,9 +46,6 @@ public:
 		An IP address and a Port.
 	*/
 	class Socket {
-	private:
-		using Address = IP4::addr;
-		
 	public:
 		/*
 			Intialize an empty socket.
@@ -56,17 +55,17 @@ public:
 		/*
 			Create a socket with a Address and Port.
 		*/
-		inline Socket(Address address, TCP::Port port) : address_(address), port_(port) {};
+		inline Socket(Address address, Port port) : address_(address), port_(port) {};
 
 		/*
 			Returns the Socket's address.
 		*/
-		inline const Socket::Address& address() const { return address_; }
+		inline const TCP::Address address() const { return address_; }
 
 		/*
 			Returns the Socket's port.
 		*/
-		inline const TCP::Port& port() const { return port_; }
+		inline TCP::Port port() const { return port_; }
 
 		/*
 			Returns a string in the format "Address:Port".
@@ -77,14 +76,11 @@ public:
 			return ss.str();
 		}
 
-		inline static bool is_empty(const Socket& socket) {
-			return (socket.address().whole == 0 and socket.port()) == 0;
-		}
-
 		inline bool is_empty() const { return (address_.whole == 0 and port_ == 0); }
 
 		/*
 			Comparator used for vector.
+			TODO: Make member compare (const)
 		*/
 		inline friend bool operator== ( const Socket &s1, const Socket &s2) {
 			return s1.address().whole == s2.address().whole 
@@ -93,6 +89,7 @@ public:
 
 		/*
 			Comparator used for map.
+			TODO: Make member compare (const)
 		*/
 		inline friend bool operator <(const Socket& s1, const Socket& s2) {
         	return s1.address().whole < s2.address().whole
@@ -101,7 +98,7 @@ public:
 
 	private:
 		//SocketID id_; // Maybe a hash or something. Not sure if needed (yet)
-		Address address_;
+		TCP::Address address_;
 		TCP::Port port_;
 
 	}; // << class TCP::Socket
@@ -123,7 +120,7 @@ public:
 		PSH 	= (1 << 3),		// Push
 		RST 	= (1 << 2),		// Reset
 		SYN 	= (1 << 1),		// Syn(chronize)
-		FIN 	= 1,			// Fin
+		FIN 	= 1,			// Fin(ish)
     };
 
     /*
@@ -198,7 +195,7 @@ public:
 	}__attribute__((packed));
     
 	/*
-		TCP Checksum-header (TCP-header + pseudo-header
+		TCP Checksum-header (TCP-header + pseudo-header)
 	*/
 	struct Checksum_header {
 		TCP::Pseudo_header pseudo;
@@ -260,7 +257,7 @@ public:
     	}
 
     	inline TCP::Seq ack() const {
-    		return header().seq_nr;
+    		return header().ack_nr;
     	}
 
     	inline TCP::Packet& set_src_port(TCP::Port p) { 
@@ -365,10 +362,6 @@ public:
     	}
 	}; // << class TCP::Packet
 
-	// Maybe this is a very stupid alias....
-	using Packet_ptr = std::shared_ptr<TCP::Packet>;
-	// Even more stupid? => TCP::Packet::ptr
-
 
 	/*
 		A connection between two Sockets (local and remote).
@@ -404,7 +397,7 @@ public:
 
 				@TODO: Add support for PASSIVE/OPEN
 			*/
-			virtual void open(Connection&, TCP::Packet_ptr out = nullptr);
+			virtual void open(Connection&, bool active = false);
 
 			/*
 				Write to a Connection.
@@ -422,13 +415,13 @@ public:
 				Close a Connection.
 				CLOSE
 			*/
-			virtual void close(Connection&, TCP::Packet_ptr out);
+			virtual void close(Connection&);
 			
 			/*
 				Handle a Packet
 				SEGMENT ARRIVES
 			*/
-			virtual int handle(Connection&, TCP::Packet_ptr in, TCP::Packet_ptr out);
+			virtual int handle(Connection&, TCP::Packet_ptr in);
 
 			/*
 				The current state represented as a string.
@@ -508,17 +501,17 @@ public:
 		/*
 			Creates a connection without a remote.
 		*/
-		Connection(TCP& host, Socket& local, TCP::Seq iss);
+		Connection(TCP& host, Socket& local);
 
 		/*
 			Creates a connection with a remote.
 		*/
-		Connection(TCP& host, Socket& local, Socket&& remote, TCP::Seq iss);
+		Connection(TCP& host, Socket& local, Socket&& remote);
 
 		/*
 			The local Socket bound to this connection.
 		*/
-		inline TCP::Socket& local() const { return local_; }
+		inline TCP::Socket& local() { return local_; }
 
 		/*
 			The remote Socket bound to this connection.
@@ -593,6 +586,11 @@ public:
 		void receive(TCP::Packet_ptr);
 
 		/*
+			Drop a packet. Used for debug/callback.
+		*/
+		void drop(TCP::Packet_ptr);
+
+		/*
 			Destroy the Connection.
 
 			Clean up.
@@ -600,16 +598,14 @@ public:
 		~Connection();
 
 	private:
-		TCP::Socket& local_;
-		TCP::Socket remote_;
-
 		TCP& host_;
 
-		SuccessCallback on_success_handler_;
-
-		//friend State; // No need for friendship when inner class(?)
-
+		TCP::Socket local_;
+		TCP::Socket remote_;
 		State& state_;
+
+		SuccessCallback on_success_handler_;
+		//SuccessCallback on_connect_handler_;
 
 		/*
 			Transmit outgoing packet.
@@ -620,6 +616,19 @@ public:
 			Return a new outgoing packet.
 		*/
 		TCP::Packet_ptr create_outgoing_packet();
+
+		/*
+			Generate a new ISS.
+		*/
+		TCP::Seq generate_iss();
+
+		/*
+			Set state.
+			Used by substates.
+		*/
+		inline void set_state(State& state) {
+			state_ = state;
+		} 
 
 	}; // < class TCP::Connection
 
@@ -684,10 +693,12 @@ public:
 
 private:
 	IPStack& inet_;
-	std::vector<TCP::Socket> listeners;
+	std::map<TCP::Socket, Connection> listeners;
 	std::map<Connection::Tuple, Connection> connections;
 
 	downstream _network_layer_out;
+
+	TCP::Port current_ephemeral_ = 1024;
 	
 	/*
 		Transmit packet to network layer (IP).
