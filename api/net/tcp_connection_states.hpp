@@ -32,23 +32,8 @@ public:
 	inline static State& instance() {
 		static Closed instance;
 		return instance;
-	}
+	}	
 	/*
-		<- Do nothing (Start listening).
-
-		=> Listen.
-	*/
-	//virtual void passive_open(TCP::Connection*);
-	/*
-		<- Send SYN.
-
-		=> SynSent.
-	*/
-	//virtual void active_open(TCP::Connection*);
-	
-	/*
-		(Do we need a parameter for ACTIVE/PASSIVE close, or always transit from Closed -> Listen -> SynSent.)
-		
 		PASSIVE:		
 		<- Do nothing (Start listening).
 
@@ -79,6 +64,7 @@ public:
 		static Listen instance;
 		return instance;
 	}
+
 	virtual void open(TCP::Connection&, bool active = false) override;
 	/*
 		-> Receive SYN.
@@ -105,6 +91,8 @@ public:
 		static SynSent instance;
 		return instance;
 	}
+
+	virtual void send(TCP::Connection&, const std::string& data, bool push) override;
 	/*
 		-> Receive SYN+ACK
 
@@ -131,6 +119,7 @@ public:
 		return instance;
 	}
 
+	virtual void send(TCP::Connection&, const std::string& data, bool push) override;
 	/*
 		-> Receive ACK.
 

@@ -55,8 +55,8 @@ TCP::Connection& TCP::bind(Port port) {
 /*
 	Bind a new connection to a given Port with a Callback.
 */
-void TCP::bind(Port port, Connection::SuccessCallback success) {
-	bind(port).onSuccess(success);
+void TCP::bind(Port port, Connection::ConnectCallback success) {
+	bind(port).onConnect(success);
 }
 
 /*
@@ -75,10 +75,10 @@ TCP::Connection& TCP::connect(Socket&& remote) {
 /*
 	Active open a new connection to the given remote.
 */
-void TCP::connect(Socket& remote, Connection::SuccessCallback callback) {
+void TCP::connect(Socket& remote, Connection::ConnectCallback callback) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
 	TCP::Connection& connection = add_connection(local, forward<TCP::Socket>(remote));
-	connection.onSuccess(callback).open(true);
+	connection.onConnect(callback).open(true);
 }
 
 TCP::Seq TCP::generate_iss() {
@@ -89,6 +89,10 @@ TCP::Seq TCP::generate_iss() {
 TCP::Port TCP::free_port() {
 	if(++current_ephemeral_ == 0)
 		current_ephemeral_ = 1025;
+	// Avoid giving a port that is bound to a service.
+	while(listeners.find(Socket{inet_.ip_addr(), current_ephemeral_}) != listeners.end())
+		current_ephemeral_++;
+
 	return current_ephemeral_;
 }
 
@@ -167,6 +171,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 			//Connection connection{listening_conn_it};
 			auto& listen_conn = listen_conn_it->second;
 			auto connection = (connections.emplace(tuple, Connection{listen_conn})).first->second;
+			// Set remote
+			connection.set_remote(packet->destination());
 			// Change to listening state.
 			connection.open();
 			connection.receive(packet);
@@ -174,13 +180,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 		// No listener found
 		else {
 			drop(packet);
-			return; // TODO: Remove silent return.
 		}
 	}
-}
-
-TCP::Packet_ptr TCP::net2tcp(net::Packet_ptr packet_ptr) {
-	return std::static_pointer_cast<TCP::Packet>(packet_ptr);
 }
 
 /*
