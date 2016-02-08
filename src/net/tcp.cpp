@@ -45,7 +45,7 @@ TCP::Connection& TCP::bind(Port port) {
 	auto listen_conn_it = listeners.find(local);
 	// Already a listening socket.
 	if(listen_conn_it != listeners.end()) {
-		panic("Can't bind, already taken.");
+		throw TCPException{"Port is already taken."};
 	}
 	auto& connection = (listeners.emplace(local, Connection{*this, local})).first->second;
 	connection.open();
@@ -97,7 +97,7 @@ TCP::Port TCP::free_port() {
 }
 
 
-uint16_t TCP::checksum(TCP::Packet_ptr packet){  
+uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 	// TCP header
 	TCP::Header* tcp_hdr = &(packet->header());
 	// Pseudo header
@@ -200,7 +200,10 @@ string TCP::status() const {
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
 	for(auto con_it : connections) {
 		auto conn = con_it.second;
-		ss << "tcp4\t0\t0\t" << conn.local().to_string() << "\t" << conn.remote().to_string() << "\t" << conn.state().to_string() << "\n";
+		ss << "tcp4\t" 
+			<< conn.bytes_received() << "\t" << conn.bytes_transmitted() << "\t" 
+			<< conn.local().to_string() << "\t" << conn.remote().to_string() << "\t" 
+			<< conn.state().to_string() << "\n";
 	}
 	return ss.str();
 }

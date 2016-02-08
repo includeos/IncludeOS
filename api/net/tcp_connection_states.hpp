@@ -32,7 +32,9 @@ public:
 	inline static State& instance() {
 		static Closed instance;
 		return instance;
-	}	
+	}
+
+	virtual void open(TCP::Connection&, bool active = false) override;
 	/*
 		PASSIVE:		
 		<- Do nothing (Start listening).
@@ -44,8 +46,6 @@ public:
 
 		=> SynSent
 	*/
-	virtual void open(TCP::Connection&, bool active = false) override;
-
 	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
@@ -146,6 +146,8 @@ public:
 		static Established instance;
 		return instance;
 	}
+
+	virtual void send(TCP::Connection&, const std::string& data, bool push) override;
 	/*
 		
 	*/

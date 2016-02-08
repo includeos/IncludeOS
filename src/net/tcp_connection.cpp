@@ -31,6 +31,7 @@ Connection::Connection(TCP& host, Socket& local, Socket&& remote) :
 	local_(local), 
 	remote_(remote),
 	state_(Connection::Closed::instance()),
+	prev_state_(state_),
 	control_block(),
 	outgoing_packet_(nullptr)
 {
@@ -45,6 +46,7 @@ Connection::Connection(TCP& host, Socket& local) :
 	local_(local), 
 	remote_(TCP::Socket()),
 	state_(Connection::Closed::instance()),
+	prev_state_(state_),
 	control_block(),
 	outgoing_packet_(nullptr)
 {
@@ -56,7 +58,7 @@ string Connection::read(uint16_t buffer_size) {
 	return "implement me";
 }
 
-void Connection::write(std::string data) {
+void Connection::write(const std::string& data) {
 	state_.send(*this, data);
 	/*int remaining{data.size()};
 
@@ -90,11 +92,29 @@ int Connection::queue_receive(const std::string& data) {
 }
 
 void Connection::push_data(bool push) {
-	unsigned int remaining{send_buffer_.size()};
-	// TODO: ACK and TCB stuff.
+	unsigned int remaining{send_buffer_.size()};	
+	/*
+		The sender of data keeps track of the next sequence number to use in
+		the variable SND.NXT.  The receiver of data keeps track of the next
+		sequence number to expect in the variable RCV.NXT.  The sender of data
+		keeps track of the oldest unacknowledged sequence number in the
+		variable SND.UNA.  If the data flow is momentarily idle and all data
+		sent has been acknowledged then the three variables will be equal.
+
+		When the sender creates a segment and transmits it the sender advances
+		SND.NXT.  When the receiver accepts a segment it advances RCV.NXT and
+		sends an acknowledgment.  When the data sender receives an
+		acknowledgment it advances SND.UNA.  The extent to which the values of
+		these variables differ is a measure of the delay in the communication.
+		The amount by which the variables are advanced is the length of the
+		data in the segment.  Note that once in the ESTABLISHED state all
+		segments must carry current acknowledgment information.
+  */
+
+
 	do {
 		auto packet = outgoing_packet();
-		remaining -= packet->fill(send_buffer_);
+		remaining -= packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK).fill(send_buffer_);
 		if(!remaining and push)
 			packet->set_flag(PSH);
 		transmit();
@@ -103,7 +123,7 @@ void Connection::push_data(bool push) {
 
 /*
 	If ACTIVE: 
-	Need a remote Socket and also a packet to be sent out.
+	Need a remote Socket.
 */
 void Connection::open(bool active) {
 	// TODO: Add support for OPEN/PASSIVE
@@ -136,7 +156,6 @@ Connection::Tuple Connection::tuple() {
 void Connection::receive(TCP::Packet_ptr incoming) {
 	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
 	if(state_.handle(*this, incoming)) {
-		bytes_received_ += incoming->data_length();
 		/*if(is_connected()) {
 			on_sucess_handler(*this);
 		}*/
@@ -162,13 +181,15 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 	packet->set_destination(remote_);
 	// Clear flags (Is this needed...?)
 	packet->header().clear_flags();
+	//packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
+	debug2("<TCP::Connection::create_outgoing_packet> Outgoing packet created.");
 
 	return packet;
 }
 
 void Connection::transmit() {
 	host_.transmit(outgoing_packet_);
-	bytes_transmitted_ += outgoing_packet_->data_length();
+	// Packet is gone. (retransmit timer will still keep a copy)
 	outgoing_packet_ = nullptr;
 }
 

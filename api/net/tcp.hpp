@@ -448,9 +448,11 @@ public:
 
 		protected:		
 			/*
-				Set the state on the Connection.
+				Helper functions
 			*/
-			virtual void set_state(Connection&, State&);
+			bool check_sequence(Connection&, TCP::Packet_ptr);
+
+			bool unallowed_syn_reset_connection(Connection&, TCP::Packet_ptr);
 
 		}; // < class TCP::Connection::State
 
@@ -548,7 +550,7 @@ public:
 		/*
 			Write content to remote.
 		*/
-		void write(std::string data);
+		void write(const std::string& data);
 
 		/*
 			Open connection.
@@ -616,7 +618,12 @@ public:
 		/*
 			Returns the current state of the connection.
 		*/
-		Connection::State& state() const { return state_; }
+		inline Connection::State& state() const { return state_; }
+
+		/*
+			Returns the previous state of the connection.
+		*/
+		inline Connection::State& prev_state() const { return prev_state_; }
 
 		/*
 			Returns the control_block.
@@ -624,6 +631,20 @@ public:
 			@WARNING: Public, for use in sub-state.
 		*/
 		inline Connection::TCB& tcb() { return control_block; }
+
+		/*
+			Calculates and return bytes transmitted.
+		*/
+		inline uint32_t bytes_transmitted() const {
+			return control_block.SND.NXT - control_block.ISS;
+		}
+
+		/*
+			Calculates and return bytes received.
+		*/
+		inline uint32_t bytes_received() const {
+			return control_block.RCV.NXT - control_block.IRS;
+		}
 
 		/*
 			Return the id (TUPLE) of the connection.
@@ -664,13 +685,11 @@ public:
 
 		/* The current state the Connection is in. Handles most of the logic. */
 		State& state_;			// 4 B
+		// Used for SYN-RECV if RST isset.
+		State& prev_state_;		// 4 B
 		
 		/* Keep tracks of all sequence variables */
 		TCB control_block;		// 36 B
-
-		/* Stats */
-		uint32_t bytes_transmitted_ = 0; 	// 4B
-		uint32_t bytes_received_ = 0;		// 4B
 
 		/* "User" buffers. */
 		std::vector<unsigned char> receive_buffer_;
@@ -724,7 +743,12 @@ public:
 		/*
 			Set state. (used by substates)
 		*/
-		inline void set_state(State& state) { state_ = state; }
+		inline void set_state(State& state) {
+			prev_state_ = state_;
+			state_ = state;
+			debug2("<TCP::Connection::set_state> State changed: %s => %s", 
+					prev_state_.to_string().c_str(), state.to_string().c_str());
+		}
 
 		/*
 			Invoke/signal the diffrent TCP events.
@@ -762,9 +786,7 @@ public:
 		/*
 			Drop a packet. Used for debug/callback.
 		*/
-		inline void drop(TCP::Packet_ptr packet) {
-			signal_packet_dropped(packet);
-		}
+		inline void drop(TCP::Packet_ptr packet) { signal_packet_dropped(packet); }
 
 		/*
 			Helper function for state checks.
