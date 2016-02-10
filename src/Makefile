@@ -70,7 +70,9 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/packet.o net/buffer_store.o
+		net/packet.o net/buffer_store.o \
+		fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
+		fs/ext4.o fs/fat.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -124,9 +126,9 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking test VirtioBlk service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test: test_service
 
