@@ -2,5 +2,6 @@
 
 namespace fs
 {
+  error_t no_error = false;
   
 }

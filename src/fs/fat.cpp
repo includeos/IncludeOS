@@ -146,7 +146,7 @@ namespace fs
       }
       
       // on_mount callback
-      on_mount(true);
+      on_mount(no_error);
     });
   }
   
@@ -272,7 +272,7 @@ namespace fs
         if (!data)
         {
           // could not read sector
-          callback(false, dirents);
+          callback(true, dirents);
           return;
         }
         
@@ -281,7 +281,7 @@ namespace fs
         if (done)
         {
           // execute callback
-          callback(true, dirents);
+          callback(no_error, dirents);
         }
         else
         {
@@ -340,10 +340,10 @@ namespace fs
       int_ls(S, dirents,
       [name, dirents, &next, S, callback] (error_t error, dirvec_t ents)
       {
-        if (unlikely(!error))
+        if (unlikely(error))
         {
           debug("Could not find: %s\n", name.c_str());
-          callback(false, S, dirents);
+          callback(true, S, dirents);
           return;
         }
         
@@ -360,13 +360,13 @@ namespace fs
             if (e.type == DIR)
               next(e.block);
             else
-              callback(false, S, dirents);
+              callback(true, S, dirents);
             return;
           }
         } // for (ents)
         
         debug("NO MATCH for %s\n", name.c_str());
-        callback(false, S, dirents);
+        callback(true, S, dirents);
       });
       
     };
@@ -410,7 +410,7 @@ namespace fs
         // report back to HQ
         debug("DONE SIZE: %lu  (current=%lu, total=%lu)\n", 
             ent.size, current, total);
-        callback(true, buffer, ent.size);
+        callback(no_error, buffer, ent.size);
         // cleanup (after callback)
         delete next;
         delete[] buffer;
@@ -421,11 +421,12 @@ namespace fs
       {
         if (!data)
         {
+          // general I/O error occurred
           debug("Failed to read sector %u for read()", sector);
           // cleanup
           delete next;
           delete[] buffer;
-          callback(false, nullptr, 0);
+          callback(true, nullptr, 0);
           return;
         }
         
@@ -446,7 +447,7 @@ namespace fs
     if (unlikely(path->empty()))
     {
       // there is no possible file to read where path is empty
-      callback(false, nullptr, 0);
+      callback(true, nullptr, 0);
       return;
     }
     debug("readFile: %s\n", path->back().c_str());
@@ -457,10 +458,10 @@ namespace fs
     traverse(path,
     [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
     {
-      if (unlikely(!error))
+      if (unlikely(error))
       {
         // no path, no file!
-        callback(false, nullptr, 0);
+        callback(error, nullptr, 0);
         return;
       }
       
@@ -483,7 +484,7 @@ namespace fs
     if (unlikely(path->empty()))
     {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      callback(false, Dirent());
+      callback(true, Dirent());
       return;
     }
     
@@ -495,10 +496,10 @@ namespace fs
     traverse(path,
     [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
     {
-      if (unlikely(!error))
+      if (unlikely(error))
       {
         // no path, no file!
-        callback(false, Dirent());
+        callback(error, Dirent());
         return;
       }
       
@@ -508,13 +509,13 @@ namespace fs
         if (unlikely(e.name == filename))
         {
           // read this file
-          callback(true, e);
+          callback(no_error, e);
           return;
         }
       }
       
       // not found
-      callback(false, Dirent());
+      callback(true, Dirent());
     });
   }
 }

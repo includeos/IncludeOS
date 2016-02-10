@@ -12,24 +12,24 @@ using namespace fs;
 void Service::start()
 {
   // mount FAT32 on partition 0 (MBR)
-  using MountedDisk = fs::Disk<0, EXT4>;
+  using MountedDisk = fs::Disk<0, FAT32>;
   auto device = std::make_shared<MemDisk> ();
   auto disk   = std::make_shared<MountedDisk> (device);
   
   // mount the partition described by the Master Boot Record
   disk->fs().mount(MountedDisk::PART_MBR,
-  [disk] (fs::error_t good)
+  [disk] (fs::error_t err)
   {
-    if (!good)
+    if (err)
     {
       printf("Could not mount filesystem\n");
       return;
     }
     
     disk->fs().ls("/",
-    [disk] (fs::error_t good, FileSystem::dirvec_t ents)
+    [disk] (fs::error_t err, FileSystem::dirvec_t ents)
     {
-      if (!good)
+      if (err)
       {
         printf("Could not list root directory");
         return;
@@ -48,16 +48,16 @@ void Service::start()
           disk->fs().readFile(e,
           [e] (fs::error_t err, const uint8_t* buffer, size_t len)
           {
-            if (!err)
+            if (err)
             {
               printf("Failed to read file %s!\n",
-                  e.name().c_str());
+                  e.name.c_str());
               return;
             }
             
             std::string contents((const char*) buffer, len);
             printf("[%s contents]:\n%s\nEOF\n\n", 
-                e.name().c_str(), contents.c_str());
+                e.name.c_str(), contents.c_str());
           });
         }
       }
@@ -66,7 +66,7 @@ void Service::start()
     disk->fs().stat("/test",
     [] (fs::error_t err, const FileSystem::Dirent& e)
     {
-      if (!err)
+      if (err)
       {
         printf("Could not stat the directory /test\n");
         return;

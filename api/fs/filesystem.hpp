@@ -28,6 +28,7 @@
 namespace fs
 {
   typedef bool error_t;
+  extern error_t no_error;
   
   class FileSystem
   {
