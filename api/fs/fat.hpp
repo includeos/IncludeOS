@@ -158,7 +158,7 @@ namespace fs
     // initialize filesystem by providing base sector
     void init(const void* base_sector);
     // return a list of entries from directory entries at @sector
-    typedef std::function<void(bool, dirvec_t)> on_internal_ls_func;
+    typedef std::function<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
     bool int_dirent(uint32_t sector, const void* data, dirvec_t);
     

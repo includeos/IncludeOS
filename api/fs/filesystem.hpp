@@ -27,6 +27,8 @@
 
 namespace fs
 {
+  typedef bool error_t;
+  
   class FileSystem
   {
   public:
@@ -70,13 +72,12 @@ namespace fs
       
     };
     
-    typedef bool fserr_t;
     typedef std::shared_ptr<std::vector<Dirent>> dirvec_t;
     
-    typedef std::function<void(fserr_t)> on_mount_func;
-    typedef std::function<void(fserr_t, dirvec_t)> on_ls_func;
-    typedef std::function<void(fserr_t, uint8_t*, size_t)> on_read_func;
-    typedef std::function<void(fserr_t, const Dirent&)> on_stat_func;
+    typedef std::function<void(error_t)> on_mount_func;
+    typedef std::function<void(error_t, dirvec_t)> on_ls_func;
+    typedef std::function<void(error_t, uint8_t*, size_t)> on_read_func;
+    typedef std::function<void(error_t, const Dirent&)> on_stat_func;
     
     
     // 0   = Mount MBR

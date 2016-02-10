@@ -120,8 +120,8 @@ namespace fs
       assert(mbr != nullptr);
       
       // verify image signature
-      printf("OEM name: \t%s\n", mbr->oem_name);
-      printf("MBR signature: \t0x%x\n", mbr->magic);
+      debug("OEM name: \t%s\n", mbr->oem_name);
+      debug("MBR signature: \t0x%x\n", mbr->magic);
       assert(mbr->magic == 0xAA55);
       
       /// the mount partition id tells us the LBA offset to the volume
@@ -319,9 +319,9 @@ namespace fs
         auto dirents = std::make_shared<std::vector<Dirent>> ();
         
         int_ls(S, dirents,
-        [S, callback] (bool good, dirvec_t ents)
+        [S, callback] (error_t error, dirvec_t ents)
         {
-          callback(good, S, ents);
+          callback(error, S, ents);
         });
         return;
       }
@@ -338,9 +338,9 @@ namespace fs
       
       // list directory contents
       int_ls(S, dirents,
-      [name, dirents, &next, S, callback] (bool good, dirvec_t ents)
+      [name, dirents, &next, S, callback] (error_t error, dirvec_t ents)
       {
-        if (unlikely(!good))
+        if (unlikely(!error))
         {
           debug("Could not find: %s\n", name.c_str());
           callback(false, S, dirents);
@@ -381,9 +381,9 @@ namespace fs
     auto pstk = std::make_shared<Path> (path);
     
     traverse(pstk, 
-    [on_ls] (bool good, uint32_t, dirvec_t dirents)
+    [on_ls] (error_t error, uint32_t, dirvec_t dirents)
     {
-      on_ls(good, dirents);
+      on_ls(error, dirents);
     });
   }
   
@@ -455,9 +455,9 @@ namespace fs
     path->pop_back();
     
     traverse(path,
-    [this, filename, &callback] (bool good, uint32_t, dirvec_t dirents)
+    [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
     {
-      if (unlikely(!good))
+      if (unlikely(!error))
       {
         // no path, no file!
         callback(false, nullptr, 0);
@@ -493,9 +493,9 @@ namespace fs
     path->pop_back();
     
     traverse(path,
-    [this, filename, &callback] (bool good, uint32_t, dirvec_t dirents)
+    [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
     {
-      if (unlikely(!good))
+      if (unlikely(!error))
       {
         // no path, no file!
         callback(false, Dirent());

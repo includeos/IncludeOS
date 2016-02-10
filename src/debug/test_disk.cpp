@@ -6,18 +6,19 @@ const char* service_name__ = "...";
 #include <fs/disk.hpp>    // the device
 #include <fs/memdisk.hpp> // the driver
 #include <fs/fat.hpp>     // the filesystem
+#include <fs/ext4.hpp>    // the filesystem
 using namespace fs;
 
 void Service::start()
 {
   // mount FAT32 on partition 0 (MBR)
-  using MountedDisk = fs::Disk<0, FAT32>;
+  using MountedDisk = fs::Disk<0, EXT4>;
   auto device = std::make_shared<MemDisk> ();
   auto disk   = std::make_shared<MountedDisk> (device);
   
   // mount the partition described by the Master Boot Record
   disk->fs().mount(MountedDisk::PART_MBR,
-  [disk] (bool good)
+  [disk] (fs::error_t good)
   {
     if (!good)
     {
@@ -26,7 +27,7 @@ void Service::start()
     }
     
     disk->fs().ls("/",
-    [disk] (bool good, FileSystem::dirvec_t ents)
+    [disk] (fs::error_t good, FileSystem::dirvec_t ents)
     {
       if (!good)
       {
@@ -45,25 +46,27 @@ void Service::start()
         {
           printf("*** Attempting to read: %s\n", e.name.c_str());
           disk->fs().readFile(e,
-          [e] (bool good, const uint8_t* buffer, size_t len)
+          [e] (fs::error_t err, const uint8_t* buffer, size_t len)
           {
-            if (!good)
+            if (!err)
             {
-              printf("Failed to read file!\n");
+              printf("Failed to read file %s!\n",
+                  e.name().c_str());
               return;
             }
             
             std::string contents((const char*) buffer, len);
-            printf("File contents:\n%s\nEOF\n\n", contents.c_str());
+            printf("[%s contents]:\n%s\nEOF\n\n", 
+                e.name().c_str(), contents.c_str());
           });
         }
       }
     });
     
     disk->fs().stat("/test",
-    [] (bool good, const FileSystem::Dirent& e)
+    [] (fs::error_t err, const FileSystem::Dirent& e)
     {
-      if (!good)
+      if (!err)
       {
         printf("Could not stat the directory /test\n");
         return;
@@ -71,7 +74,6 @@ void Service::start()
       
       printf("stat: /test is a %s on cluster %llu\n", 
           e.type_string().c_str(), e.block);
-      
     });
     
   });
