@@ -28,13 +28,8 @@ using namespace std::chrono;
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // our VGA output module
-//#include <kernel/vga.hpp>
-//ConsoleVGA vga;
-
-extern "C" {
-  char _DISK_START_;
-  char _DISK_END_;
-}
+#include <kernel/vga.hpp>
+ConsoleVGA vga;
 
 void Service::start()
 {
@@ -42,21 +37,8 @@ void Service::start()
   OS::set_rsprint_secondary(
   [] (const char* string, size_t len)
   {
-    //vga.write(string, len);
+    vga.write(string, len);
   });
-  
-  printf("DISK START: %p\n", &_DISK_START_);
-  printf("DISK END:   %p\n",   &_DISK_END_);
-  const ptrdiff_t DISK_SIZE = &_DISK_END_ - &_DISK_START_;
-  const char* disk_data = &_DISK_START_;
-  
-  printf("DISK SIZE:  %u\n",   DISK_SIZE);
-  
-  std::string disk(disk_data, DISK_SIZE);
-  // !!!
-  //printf("DISK CONTENTS:\n\n%s\n\nEOF\n", disk.c_str());
-  // !!!
-  return;
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
