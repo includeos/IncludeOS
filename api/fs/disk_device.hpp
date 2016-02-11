@@ -16,32 +16,23 @@
 // limitations under the License.
 
 #pragma once
-#include <stdint.h>
-#include <string>
+#ifndef DISK_DEVICE_HPP
+#define DISK_DEVICE_HPP
 
-// Index node
-typedef int16_t inode_t;
+#include <cstdint>
+#include <functional>
+#include <memory>
 
-#define likely(x)   __builtin_expect(!!(x), true)
-#define unlikely(x) __builtin_expect(!!(x), false) 
+class IDiskDevice
+{
+public:
+  // To be used by caching mechanism for disk drivers
+  typedef std::shared_ptr<void*> buffer;
+  // Delegate for result of reading a disk sector
+  typedef std::function<void(const void*)> on_read_func;
+  
+  virtual void read_sector(uint32_t blk, on_read_func func) = 0;
+  
+};
 
-#include <sys/errno.h>
-
-/*
-// No such file or directory
-#define ENOENT   2
-// I/O Error
-#define EIO      5
-// File already exists
-#define EEXIST  17
-// Not a directory
-#define ENOTDIR 20
-// Invalid argument
-#define EINVAL  22
-// No space left on device
-#define ENOSPC  28
-// Directory not empty
-#define ENOTEMPTY 39
-*/
-
-extern std::string fs_error_string(int error);
+#endif

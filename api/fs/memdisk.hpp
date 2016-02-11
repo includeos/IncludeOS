@@ -16,38 +16,28 @@
 // limitations under the License.
 
 #pragma once
+#ifndef MEMDISK_HPP
+#define MEMDISK_HPP
 
-#include <stdint.h>
-#include <string>
-#include "common.hpp"
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include "disk_device.hpp"
 
 namespace fs
 {
-  #pragma interface   // __declspec(novtable)
-  class FilesystemBase
+  class MemDisk : public IDiskDevice
   {
   public:
-    virtual inode_t
-    open(const std::string& name, int flags, ...) = 0;
-    virtual int
-    read(inode_t file, const std::string& ptr, int len) = 0;
-    virtual int
-    write(inode_t file, const std::string& ptr, int len) = 0;
-    virtual int
-    close(inode_t file) = 0;
+    MemDisk();
     
-    virtual inode_t
-    symlink(const std::string& from, const std::string& to) = 0;
-    virtual int
-    stat(const std::string& path, void* buf) = 0;
+    virtual void read_sector(uint32_t blk, on_read_func func) override;
     
-    virtual int
-    readdir(const std::string& path, void* ptr) = 0;
-    virtual int
-    rmdir(const std::string& path) = 0;
-    virtual int
-    mkdir(const std::string& path) = 0;
-    
+  private:
+    void*  image_start;
+    void*  image_end;
   };
   
 }
+
+#endif

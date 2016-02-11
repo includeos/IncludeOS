@@ -62,14 +62,17 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
-		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o util/memstream.o \
+		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
+		util/memstream.o \
 		hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		virtio/virtio.o virtio/virtionet.o virtio/virtio_blk.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
 		net/tcp.o net/tcp_socket.o net/icmp.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/packet.o net/buffer_store.o
+		net/packet.o net/buffer_store.o \
+		fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
+		fs/ext4.o fs/fat.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -113,9 +116,9 @@ CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
-test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
+test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking test service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
 test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
@@ -123,9 +126,9 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking test VirtioBlk service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test: test_service
 
@@ -167,10 +170,15 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 
 # Bootloader
 ###################################################
-# Nasm-based bootloader
 bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
+
+# Disk image as a section
+###################################################
+memdisk: memdisk.asm
+	@echo "\n>> Assembling memdisk"
+	nasm -f elf -o memdisk.o $<
 
 # Etags
 ###################################################
@@ -188,6 +196,6 @@ clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a
 	$(RM) libc++abi.a
-	$(RM) bootloader	
+	$(RM) bootloader memdisk.o
 
 -include $(OS_DEPS)
