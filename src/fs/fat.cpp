@@ -21,7 +21,7 @@ inline std::string trim_right_copy(
 
 namespace fs
 {
-  FAT32::FAT32(std::shared_ptr<IDiskDevice> dev)
+  FAT32::FAT32(IDiskDevice& dev)
     : device(dev)
   {
     
@@ -113,7 +113,7 @@ namespace fs
   void FAT32::mount(uint8_t partid, on_mount_func on_mount)
   {
     // read Master Boot Record (sector 0)
-    device->read_sector(0,
+    device.read_sector(0,
     [this, partid, on_mount] (const void* data)
     {
       auto* mbr = (MBR::mbr*) data;
@@ -266,7 +266,7 @@ namespace fs
     next = [this, sector, callback, &dirents, next] (uint32_t sector)
     {
       //printf("int_ls: sec=%u\n", sector);
-      device->read_sector(sector,
+      device.read_sector(sector,
       [this, sector, callback, &dirents, next] (const void* data)
       {
         if (!data)
@@ -416,7 +416,7 @@ namespace fs
         delete[] buffer;
         return;
       }
-      device->read_sector(sector,
+      device.read_sector(sector,
       [this, current, total, buffer, ent, &callback, sector, next] (const void* data)
       {
         if (!data)

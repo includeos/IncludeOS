@@ -54,7 +54,7 @@ namespace fs
     /// ----------------------------------------------------- ///
     
     // constructor
-    FAT32(std::shared_ptr<IDiskDevice> idev);
+    FAT32(IDiskDevice& idev);
     ~FAT32() {}
     
   private:
@@ -167,7 +167,7 @@ namespace fs
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     
     // device we can read and write sectors to
-    std::shared_ptr<IDiskDevice> device;
+    IDiskDevice& device;
     
     // private members
     uint16_t sector_size; // from bytes_per_sector

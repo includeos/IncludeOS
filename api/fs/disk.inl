@@ -6,7 +6,7 @@ namespace fs
   void Disk<P, FS>::partitions(on_parts_func func)
   {
     // read Master Boot Record (sector 0)
-    device->read_sector(0,
+    device.read_sector(0,
     [this, func] (const void* data)
     {
       std::vector<Partition> parts;

@@ -62,7 +62,7 @@ namespace fs
     typedef std::function<void(bool)> on_init_func;
     
     /// initialization ///
-    Disk(std::shared_ptr<IDiskDevice> dev);
+    Disk(IDiskDevice& dev);
     
     /// filesystem functions
     FileSystem& fs()
@@ -76,12 +76,12 @@ namespace fs
     void partitions(on_parts_func func);
     
   private:
-    std::shared_ptr<IDiskDevice> device;
+    IDiskDevice& device;
     std::unique_ptr<FS> filesys;
   };
 
   template <int P, typename FS>
-  Disk<P, FS>::Disk(std::shared_ptr<IDiskDevice> dev)
+  Disk<P, FS>::Disk(IDiskDevice& dev)
     : device(dev)
   {
     filesys.reset(new FS(device));

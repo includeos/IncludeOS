@@ -65,7 +65,7 @@ namespace fs
     }
     
     // constructor
-    EXT4(std::shared_ptr<IDiskDevice> idev);
+    EXT4(IDiskDevice& idev);
     ~EXT4() {}
     
   private:
@@ -517,7 +517,7 @@ namespace fs
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     
     // device we can read and write sectors to
-    std::shared_ptr<IDiskDevice> device;
+    IDiskDevice& device;
     
     // system fields
     
