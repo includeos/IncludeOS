@@ -218,7 +218,7 @@ namespace net
     socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
     
     socket.onRead(
-    [this] (Socket<UDP>& sock, IP4::addr addr, UDP::port port, 
+    [this] (Socket<UDP>& sock, IP4::addr addr, UDP::port_t port, 
             const char* data, int len) -> int
     {
       (void) addr;
@@ -392,7 +392,7 @@ namespace net
     
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.onRead(
-    [this] (Socket<UDP>&, IP4::addr addr, UDP::port port, 
+    [this] (Socket<UDP>&, IP4::addr addr, UDP::port_t port, 
             const char* data, int len) -> int
     {
       (void) addr;

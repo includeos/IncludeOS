@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,11 +16,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// -*-C++-*-
-#pragma once
+#ifndef ___API_WARN___
+#define ___API_WARN___
 
 #ifdef WARN
-#define WARN(X,...)  printf("\nWARNING: " X,##__VA_ARGS__);
+#define WARN(X,...)  printf("\nWARNING: " X, ##__VA_ARGS__);
 #else 
 #define WARN(X,...) 
 #endif
+
+#endif //< ___API_WARN___

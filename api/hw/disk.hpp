@@ -20,46 +20,43 @@
 
 #include "pci_device.hpp"
 
-template <typename DRIVER>
-class Disk{ 
-  
-public:
-  typedef DRIVER  driver; 
-  typedef typename driver::block_t       block_t;
-  typedef typename driver::on_read_func  on_read_func;
-  typedef typename driver::on_write_func on_write_func;
-  
-  /** Get a readable name. */
-  inline const char* name() { return driver_.name(); }
-  
-  inline block_t block_size() const 
-  {
-    return driver_.block_size();
-  }
-  
-  inline void read(block_t blk, on_read_func on_read)
-  {
-    driver_.read(blk, on_read);
-  }
-  
-  inline void write(block_t, const char*, on_write_func)
-  {
-    //return driver_.write(blk, data, on_write);
-  }
-  
-private:
-  DRIVER driver_;
-  
-  /** Constructor. 
-      
-      Just a wrapper around the driver constructor.
-      @note The Dev-class is a friend and will call this */
-  Disk(PCI_Device& d): driver_(d) {}
-  
-  friend class Dev;
-};
-
 /** Hopefully somebody will port a driver for this one */
 class IDE;
 
-#endif
+template <typename DRIVER>
+class Disk {
+public:
+  using driver_t      = DRIVER;
+  using block_t       = typename driver_t::block_t;
+  using on_read_func  = typename driver_t::on_read_func;
+  using on_write_func = typename driver_t::on_write_func;
+  
+  /** Get a readable name. */
+  inline const char* name() const noexcept
+  { return driver_.name(); }
+  
+  inline block_t block_size() const noexcept
+  { return driver_.block_size(); }
+  
+  inline void read(block_t blk, on_read_func on_read)
+  { driver_.read(blk, on_read); }
+  
+  inline void write(block_t, const char*, on_write_func)
+  { /*return driver_.write(blk, data, on_write);*/ }
+  
+private:
+  driver_t driver_;
+  
+  /**
+   *  Constructor
+   *  
+   *  Just a wrapper around the driver constructor
+   *
+   *  @note The Dev-class is a friend and will call this
+   */
+  explicit Disk(PCI_Device& d): driver_{d} {}
+  
+  friend class Dev;
+}; //< class Disk
+
+#endif //< HW_DISK_HPP

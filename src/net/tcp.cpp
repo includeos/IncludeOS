@@ -126,7 +126,7 @@ uint16_t TCP::checksum(Packet_ptr pckt){
 }
 
 
-int TCP::transmit(Packet_ptr pckt){
+void TCP::transmit(Packet_ptr pckt){
   
   auto tcp_pckt = std::static_pointer_cast<PacketIP4> (pckt);
   
@@ -141,11 +141,11 @@ int TCP::transmit(Packet_ptr pckt){
   hdr->set_offset(5);
   hdr->checksum = 0;  
   hdr->checksum = checksum(pckt);
-  return _network_layer_out(pckt);
+  _network_layer_out(pckt);
 };
 
 
-int TCP::bottom(Packet_ptr pckt){
+void TCP::bottom(Packet_ptr pckt){
   
   auto pckt4 = std::static_pointer_cast<TCP_packet>(pckt);
   debug("<TCP::bottom> Upstream TCP-packet received, to TCP @ %p \n", this);
@@ -164,7 +164,7 @@ int TCP::bottom(Packet_ptr pckt){
   if (listener == listeners.end()){
     debug("<TCP::bottom> Nobody's listening to this port. Ignoring");
     debug("<TCP::bottom> There are %i open ports \n", listeners.size());
-    return 0;
+    return;
   }
   
   debug("<TCP::bottom> Somebody's listening to this port. State: %i. Passing it up to the socket \n",listener->second.poll());
@@ -174,13 +174,10 @@ int TCP::bottom(Packet_ptr pckt){
   if (pckt4->isset(TCP::RST)) {
     debug("<TCP::bottom> But it's a RESET-packet, so closing \n");
     listeners.erase(listener);
-    return 0;    
+    return;    
   }
           
   // Pass the packet up to the listening socket
   (*listener).second.bottom(pckt);
-  
-  
-  return 0;
   
 }

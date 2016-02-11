@@ -12,8 +12,8 @@
 #ifndef OSABI_DELEGATE_HPP
 #define OSABI_DELEGATE_HPP
 
-#include <memory>
 #include <new>
+#include <memory>
 #include <utility>
 #include <functional>
 

@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/cpuid.hpp>
 #include <cstring>
+
+#include <kernel/cpuid.hpp>
 
 #define ECX_SSE3                    (1 << 0)    // Streaming SIMD Extensions 3
 #define ECX_PCLMULQDQ               (1 << 1)    // PCLMULQDQ Instruction
@@ -87,12 +88,11 @@
 #define EDX_RDTSCP                  (1 << 27)   // RDTSCP and IA32_TSC_AUX
 #define EDX_64_BIT                  (1 << 29)   // 64-bit Architecture
 
-typedef CPUID::cpuid_t cpuid_t;
+using cpuid_t = CPUID::cpuid_t;
 
 // EBX/RBX needs to be preserved depending on the memory model and use of PIC
 static cpuid_t
-cpuid_info(const unsigned int func, const unsigned int subfunc)
-{
+cpuid_info(const unsigned int func, const unsigned int subfunc) {
   cpuid_t info;
   __asm__ __volatile__ (
       "cpuid"
@@ -102,30 +102,32 @@ cpuid_info(const unsigned int func, const unsigned int subfunc)
   return info;
 }
 
-bool CPUID::isAmdCpu()
-{
+bool CPUID::isAmdCpu() {
   cpuid_t info = cpuid_info(0, 0);
   if (memcmp((char *) (&info.EBX), "htuA", 4) == 0
    && memcmp((char *) (&info.EDX), "itne", 4) == 0
    && memcmp((char *) (&info.ECX), "DMAc", 4) == 0)
+  {
       return true;
+  }
   return false;
 }
 
-bool CPUID::isIntelCpu()
-{
+bool CPUID::isIntelCpu() {
   cpuid_t info = cpuid_info(0, 0);
   if (memcmp((char *) (&info.EBX), "Genu", 4) == 0
    && memcmp((char *) (&info.EDX), "ineI", 4) == 0
    && memcmp((char *) (&info.ECX), "ntel", 4) == 0)
+  {
       return true;
+  }
   return false;
 }
 
-bool CPUID::hasRDRAND()
-{
-  if (!isAmdCpu() && !isIntelCpu())
+bool CPUID::hasRDRAND() {
+  if (!isAmdCpu() && !isIntelCpu()) {
     return false;
+  }
   
   cpuid_t info = cpuid_info(0, 0);
   return (info.ECX & ECX_RDRAND) != 0;

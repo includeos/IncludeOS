@@ -213,7 +213,7 @@ public:
   inline net::BufferStore& bufstore() { return bufstore_; }
   
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int transmit(net::Packet_ptr pckt);
+  void transmit(net::Packet_ptr pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(PCI_Device& pcidev);

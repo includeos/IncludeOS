@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,9 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// -*-C++-*-
-#ifndef DEBUG_HEADER
-#define DEBUG_HEADER
+#ifndef ___API_DEBUG___
+#define ___API_DEBUG___
 
 #if defined(DEBUG) && ! defined(NO_DEBUG)
 #define debug(X,...)  printf("* " X,##__VA_ARGS__);
@@ -31,4 +31,4 @@
 #define debug2(X,...) 
 #endif
 
-#endif
+#endif //< ___API_DEBUG___

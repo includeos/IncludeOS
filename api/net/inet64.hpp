@@ -23,7 +23,6 @@
 #include <net/ethernet.hpp>
 #include <net/arp.hpp>
 #include <net/ip4.hpp>
-#include <net/icmp.hpp>
 #include <net/udp.hpp>
 #include "ip6/ip6.hpp"
 #include "ip6/icmp6.hpp"
@@ -33,6 +32,7 @@
 #include <vector>
 
 #include <nic.hpp>
+#include "ip4/icmpv4.hpp"
 
 namespace net {
 
@@ -116,7 +116,7 @@ namespace net {
     
     // This is the actual stack
     IP4  _ip4;
-    ICMP _icmp;
+    ICMPv4 _icmp;
     UDP  _udp;
     IP6    _ip6;
     ICMPv6 _icmp6;

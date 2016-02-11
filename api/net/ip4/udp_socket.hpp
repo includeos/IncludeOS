@@ -29,7 +29,7 @@ namespace net
   class Socket<UDP>
   {
   public:
-    typedef UDP::port port;
+    typedef UDP::port_t port;
     typedef IP4::addr addr;
     typedef IP4::addr multicast_group_addr;
     

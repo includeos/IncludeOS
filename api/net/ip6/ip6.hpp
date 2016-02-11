@@ -265,10 +265,10 @@ namespace net
     }
     
     // handler for upstream IPv6 packets
-    int bottom(Packet_ptr pckt);
+    void bottom(Packet_ptr pckt);
     
     // transmit packets to the ether
-    int transmit(std::shared_ptr<PacketIP6>& pckt);
+    void transmit(std::shared_ptr<PacketIP6>& pckt);
     
     // modify upstream handlers
     inline void set_handler(uint8_t proto, upstream& handler)

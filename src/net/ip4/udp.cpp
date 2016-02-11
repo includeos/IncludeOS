@@ -21,9 +21,9 @@
 #include <net/util.hpp>
 #include <memory>
 
-using namespace net;
+namespace net {
 
-int UDP::bottom(Packet_ptr pckt)
+void UDP::bottom(Packet_ptr pckt)
 {
   debug("<UDP handler> Got data");
   std::shared_ptr<PacketUDP> udp = 
@@ -32,49 +32,46 @@ int UDP::bottom(Packet_ptr pckt)
   debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
         udp->src_port(), udp->dst_port(), udp->length());
   
-  auto it = ports.find(udp->dst_port());
-  if (it != ports.end())
+  auto it = ports_.find(udp->dst_port());
+  if (it != ports_.end())
   {
     debug("<UDP> Someone's listening to this port. Forwarding...\n");
-    return it->second.internal_read(udp);
+    it->second.internal_read(udp);
   }
   
   debug("<UDP> Nobody's listening to this port. Drop!\n");
-  return -1;
 }
 
 UDP::Socket& UDP::bind(port_t port)
 {
   debug("<UDP> Binding to port %i\n", port);
   /// ... !!!
-  auto it = ports.find(port);
-  if (it == ports.end())
-  {
+  auto it = ports_.find(port);
+  if (it == ports_.end()) {
     // create new socket
-    auto res = ports.emplace(
+    auto res = ports_.emplace(
 			     std::piecewise_construct,
 			     std::forward_as_tuple(port),
-			     std::forward_as_tuple(stack, port));
+			     std::forward_as_tuple(stack_, port));
     it = res.first;
   }
   return it->second;
 }
-UDP::Socket& UDP::bind()
-{  
 
-  if (ports.size() >= 0xfc00)
+UDP::Socket& UDP::bind() {  
+
+  if (ports_.size() >= 0xfc00)
     panic("UPD Socket: All ports taken!");  
 
   debug("UDP finding free ephemeral port\n");  
-  while (ports.find(++currentPort) != ports.end())
-    if (currentPort  == 0) currentPort = 1025; // prevent automatic ports under 1024
+  while (ports_.find(++current_port_) != ports_.end())
+    if (current_port_  == 0) current_port_ = 1025; // prevent automatic ports under 1024
   
-  debug("UDP binding to %i port\n", currentPort);
-  return bind(currentPort);
+  debug("UDP binding to %i port\n", current_port_);
+  return bind(current_port_);
 }
 
-int UDP::transmit(std::shared_ptr<PacketUDP> udp)
-{
+void UDP::transmit(std::shared_ptr<PacketUDP> udp) {
   debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
         udp->length(), udp->ip4_segment_size(),
         udp->src().str().c_str(),
@@ -84,14 +81,12 @@ int UDP::transmit(std::shared_ptr<PacketUDP> udp)
   assert(udp->protocol() == IP4::IP4_UDP);
   
   Packet_ptr pckt = Packet::packet(udp);
-  return _network_layer_out(pckt);
+  network_layer_out_(pckt);
 }
 
-namespace net
+void ignore_udp(Packet_ptr)
 {
-  int ignore_udp(Packet_ptr)
-  {
-    debug("<UDP->Network> No handler - DROP!\n");
-    return 0;
-  }
+  debug("<UDP->Network> No handler - DROP!\n");
 }
+
+} //< namespace net

@@ -18,7 +18,7 @@ namespace net
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
     auto arp_bottom(upstream::from<Arp,&Arp::bottom>(arp_));
     auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(ip4_));
-    auto icmp4_bottom(upstream::from<ICMP,&ICMP::bottom>(icmp_));
+    auto icmp4_bottom(upstream::from<ICMPv4,&ICMPv4::bottom>(icmp_));
     auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(udp_));
     auto tcp_bottom(upstream::from<TCP,&TCP::bottom>(tcp_));
     

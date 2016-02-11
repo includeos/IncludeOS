@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,9 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVICE_HEADER
-#define SERVICE_HEADER
+#ifndef ___API_SERVICE___
+#define ___API_SERVICE___
 
 #include "kernel/service.hpp"
 
-#endif
+#endif //< ___API_SERVICE___

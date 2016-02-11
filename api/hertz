@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,28 +16,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ___API_HERTZ___
+#define ___API_HERTZ___
 
 #include <chrono>
 
-using Hz = std::chrono::duration<double>; 
+using Hz  = std::chrono::duration<double>; 
 using KHz = std::chrono::duration<double, std::kilo>;
 using MHz = std::chrono::duration<double, std::mega>;
 using GHz = std::chrono::duration<double, std::giga>;
 
-constexpr Hz operator""_hz (long double d){
-   return Hz(d);
+constexpr Hz operator"" _hz(long double d) {
+  return Hz(d);
 }
 
-constexpr KHz operator"" _khz(long double d){
-   return KHz(d);
+constexpr KHz operator"" _khz(long double d) {
+  return KHz(d);
 }
 
-constexpr MHz operator"" _mhz(long double d){
-   return MHz(d);
+constexpr MHz operator"" _mhz(long double d) {
+  return MHz(d);
 }
 
-constexpr GHz operator"" _ghz(long double d){
-   return GHz(d);
+constexpr GHz operator"" _ghz(long double d) {
+  return GHz(d);
 }
 
+#endif //< ___API_HERTZ___
