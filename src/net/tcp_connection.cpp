@@ -14,6 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#define DEBUG 1
+#define DEBUG2
 
 #include <net/tcp.hpp>
 #include <net/tcp_connection_states.hpp>
@@ -26,11 +28,11 @@ using namespace std;
 /*
 	This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, Socket& local, Socket&& remote) :
+Connection::Connection(TCP& host, Socket& local, Socket remote) :
 	host_(host),
-	local_(local), 
+	local_port_(local.port()), 
 	remote_(remote),
-	state_(Connection::Closed::instance()),
+	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
 	outgoing_packet_(nullptr)
@@ -43,9 +45,9 @@ Connection::Connection(TCP& host, Socket& local, Socket&& remote) :
 */
 Connection::Connection(TCP& host, Socket& local) :
 	host_(host),
-	local_(local), 
+	local_port_(local.port()), 
 	remote_(TCP::Socket()),
-	state_(Connection::Closed::instance()),
+	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
 	outgoing_packet_(nullptr)
@@ -53,13 +55,13 @@ Connection::Connection(TCP& host, Socket& local) :
 	
 }
 
-string Connection::read(uint16_t buffer_size) {
-	//state_.receive()
-	return "implement me";
+string Connection::read(size_t buffer_size) {
+	return state_->receive(*this, buffer_size);
 }
 
 void Connection::write(const std::string& data) {
-	state_.send(*this, data);
+	printf("<TCP::Connection::write> Writing data with length %i \n", data.size());
+	state_->send(*this, data);
 	/*int remaining{data.size()};
 
 	do {
@@ -109,9 +111,7 @@ void Connection::push_data(bool push) {
 		The amount by which the variables are advanced is the length of the
 		data in the segment.  Note that once in the ESTABLISHED state all
 		segments must carry current acknowledgment information.
-  */
-
-
+  	*/
 	do {
 		auto packet = outgoing_packet();
 		remaining -= packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK).fill(send_buffer_);
@@ -126,12 +126,13 @@ void Connection::push_data(bool push) {
 	Need a remote Socket.
 */
 void Connection::open(bool active) {
-	// TODO: Add support for OPEN/PASSIVE
 	try {
-		state_.open(*this, active);
+		printf("<TCP::Connection::open> Trying to open Connection...\n");
+		state_->open(*this, active);
 	}
 	// No remote host, or state isnt valid for opening.
 	catch (TCPException e) {
+		printf("<TCP::Connection::open> Cannot open Connection. \n");
 		signal_error(e);
 	}	
 }
@@ -142,12 +143,8 @@ void Connection::close() {
 
 string Connection::to_string() const {
 	ostringstream os;
-	os << local_.to_string() << "\t" << remote_.to_string() << "\t" << state_.to_string();
+	os << local().to_string() << "\t" << remote_.to_string() << "\t" << state_->to_string();
 	return os.str();
-}
-
-Connection::Tuple Connection::tuple() {
-	return {local_, remote_};
 }
 
 /*
@@ -155,14 +152,13 @@ Connection::Tuple Connection::tuple() {
 */
 void Connection::receive(TCP::Packet_ptr incoming) {
 	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-	if(state_.handle(*this, incoming)) {
-		/*if(is_connected()) {
-			on_sucess_handler(*this);
-		}*/
-	} else {
-		//drop(packet);
-		//error handler
-	}
+	printf("<TCP::Connection::receive> Received incoming TCP Packet on %p: %s \n", 
+			this, incoming->to_string().c_str());
+	// Change window accordingly. 
+	control_block.SND.WND = incoming->win();
+	int sig = state_->handle(*this, incoming);
+	
+	printf("<TCP::Connection::receive> State handle finished with value: %i. If -1, Connection is supposed to close. \n", sig);
 }
 
 Connection::~Connection() {
@@ -176,18 +172,27 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 	
 	packet->init();
 	// Set Source (local == the current connection)
-	packet->set_source(local_);
+	packet->set_source(local());
 	// Set Destination (remote)
 	packet->set_destination(remote_);
 	// Clear flags (Is this needed...?)
-	packet->header().clear_flags();
-	//packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
-	debug2("<TCP::Connection::create_outgoing_packet> Outgoing packet created.");
+	//packet->header().clear_flags();
+	//packet->set_size(sizeof(TCP::Full_header));
+	packet->set_win_size(control_block.SND.WND);
+	
+	packet->header().set_offset(5); // Hardcoded for now, until support for option.
+	// Set SEQ and ACK - I think this is OK..
+	packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
+	debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
 	return packet;
 }
 
 void Connection::transmit() {
+	assert(outgoing_packet_ != nullptr);
+	assert(! outgoing_packet_->destination().is_empty());
+
+	printf("<TCP::Connection::transmit> Transmitting packet: %s \n", outgoing_packet_->to_string().c_str());
 	host_.transmit(outgoing_packet_);
 	// Packet is gone. (retransmit timer will still keep a copy)
 	outgoing_packet_ = nullptr;
@@ -201,4 +206,22 @@ TCP::Packet_ptr Connection::outgoing_packet() {
 
 TCP::Seq Connection::generate_iss() {
 	return host_.generate_iss();
+}
+
+std::string Connection::TCB::to_string() const {
+	ostringstream os;
+	os << "SND"
+		<< " .UNA = " << SND.UNA
+		<< " .NXT = " << SND.NXT
+		<< " .WND = " << SND.WND
+		<< " .UP = " << SND.UP
+		<< " .WL1 = " << SND.WL1
+		<< " .WL2 = " << SND.WL2
+		<< " ISS = " << ISS
+		<< "\n RCV"
+		<< " .NXT = " << RCV.NXT
+		<< " .WND = " << RCV.WND
+		<< " .UP = " << RCV.UP
+		<< " IRS = " << IRS;
+	return os.str();
 }

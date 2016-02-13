@@ -38,7 +38,6 @@ public:
 	using Seq = uint32_t;
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
-private:
 	using IPStack = Inet<LinkLayer,IP4>;
 
 public:
@@ -249,19 +248,19 @@ public:
     	}
 
     	inline TCP::Seq seq() const {
-    		return header().seq_nr;
+    		return ntohl(header().seq_nr);
     	}
 
     	inline TCP::Seq ack() const {
-    		return header().ack_nr;
+    		return ntohl(header().ack_nr);
     	}
 
     	inline uint16_t win() const {
-    		return header().window_size;
+    		return ntohs(header().window_size);
     	}
 
     	inline TCP::Socket source() const { 
-    		return TCP::Socket {src(), src_port()};
+    		return TCP::Socket{src(), src_port()};
     	}
 
     	inline TCP::Socket destination() const {
@@ -294,15 +293,24 @@ public:
     		return *this;
     	}
 
+    	inline TCP::Packet& set_checksum(uint16_t checksum) {
+    		header().checksum = checksum;
+    		return *this;
+    	}
+
+    	inline TCP::Packet& set_urgent(uint16_t offset) {
+    		header().urgent = htons(offset);
+    	}
+
     	inline TCP::Packet& set_source(const TCP::Socket& src) {
     		set_src(src.address()); // PacketIP4::set_src
-    		header().source_port = src.port();
+    		set_src_port(src.port());
     		return *this;
     	}
 
     	inline TCP::Packet& set_destination(const TCP::Socket& dest) {
     		set_dst(dest.address()); // PacketIP4::set_dst
-    		header().destination_port = dest.port();
+    		set_dst_port(dest.port());
     		return *this;
     	}
 
@@ -354,24 +362,29 @@ public:
     		return header().checksum;
     	}*/
 
-    	inline TCP::Packet& set_checksum(uint16_t checksum) {
-    		header().checksum = checksum;
-    		return *this;
-    	}
+    	
 
 	    //! assuming the packet has been properly initialized,
 	    //! this will fill bytes from @buffer into this packets buffer,
 	    //! then return the number of bytes written. buffer is unmodified
-    	uint32_t fill(const std::vector<unsigned char>& buffer)
+    	uint32_t fill(const std::vector<unsigned char>& send_buffer)
     	{
     		uint32_t rem = capacity();
-    		uint32_t total = (buffer.size() < rem) ? buffer.size() : rem;
+    		uint32_t total = (send_buffer.size() < rem) ? send_buffer.size() : rem;
       		// copy from buffer to packet buffer
     		//memcpy(data() + data_length(), buffer.data(), total);
-    		std::move(buffer.begin(), buffer.begin()+total, payload());
+    		std::move(send_buffer.begin(), send_buffer.begin()+total, buffer() + HEADERS_SIZE);
       		// set new packet length
     		set_length(data_length() + total);
     		return total;
+    	}
+
+    	inline std::string to_string() {
+    		std::ostringstream os;
+    		os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
+    			<< " SEQ:" << seq() << " ACK:" << ack() << " DATA-LENGTH:" << data_length() 
+    			<< " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
+    		return os.str();
     	}
 
 	}; // << class TCP::Packet
@@ -380,9 +393,9 @@ public:
 	/*
 		TODO: Implement.
 	*/
-	class TCPException {
+	class TCPException : public std::runtime_error {
 	public:
-		TCPException(std::string error) {};
+		TCPException(std::string error) : std::runtime_error(error) {};
 	};
 
 
@@ -393,6 +406,9 @@ public:
 	*/
 	class Connection {
 	public:
+		/*
+			Connection identifier
+		*/
 		using Tuple = std::pair<TCP::Socket, TCP::Socket>;
 
 		/*
@@ -403,7 +419,12 @@ public:
 		using DisconnectCallback		= delegate<void(Connection&, std::string)>;
 		using ErrorCallback 			= delegate<void(Connection&, TCPException)>;
 		using PacketReceivedCallback 	= delegate<void(Connection&, TCP::Packet_ptr)>;
-		using PacketDroppedCallback		= delegate<void(TCP::Packet_ptr)>;
+		using PacketDroppedCallback		= delegate<void(TCP::Packet_ptr, std::string)>;
+
+		/*
+			Buffer
+		*/
+		using Buffer = std::vector<unsigned char>;
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -426,7 +447,7 @@ public:
 				Read from a Connection.
 				RECEIVE
 			*/
-			virtual void receive(Connection&, size_t buffer_size);
+			virtual std::string receive(Connection&, size_t buffer_size);
 			
 			/*
 				Close a Connection.
@@ -510,11 +531,13 @@ public:
 			TCP::Seq IRS;		// initial receive sequence number
 
 			TCB() {
-				SND = { 0, 0, 0, 0, 0, 0 };
+				SND = { 0, 0, TCP::default_window_size, 0, 0, 0 };
 				ISS = 0;
-				RCV = { 0,0,0 };
+				RCV = { 0, TCP::default_window_size, 0 };
 				IRS = 0;
 			};
+
+			std::string to_string() const;
 		}__attribute__((packed)); // < struct TCP::Connection::TCB
 
 		/*
@@ -525,27 +548,32 @@ public:
 		/*
 			Creates a connection with a remote.
 		*/
-		Connection(TCP& host, Socket& local, Socket&& remote);
+		Connection(TCP& host, Socket& local, Socket remote);
+
+		/*
+			The hosting TCP instance.
+		*/
+		inline const TCP& host() const { return host_; }
 
 		/*
 			The local Socket bound to this connection.
 		*/
-		inline TCP::Socket& local() { return local_; }
+		inline TCP::Socket local() const { return {host_.inet_.ip_addr(), local_port_}; }
 
 		/*
 			The remote Socket bound to this connection.
 		*/
-		inline TCP::Socket& remote() { return remote_; }
+		inline TCP::Socket remote() const { return remote_; }
 
 		/*
 			Set remote Socket bound to this connection.
 		*/
-		inline void set_remote(Socket&& remote) { remote_ = remote; }
+		inline void set_remote(Socket remote) { remote_ = remote; }
 
 		/*
 			Read content from remote.
 		*/
-		std::string read(uint16_t buffer_size);
+		std::string read(size_t buffer_size = 0);
 
 		/*
 			Write content to remote.
@@ -618,12 +646,12 @@ public:
 		/*
 			Returns the current state of the connection.
 		*/
-		inline Connection::State& state() const { return state_; }
+		inline Connection::State& state() const { return *state_; }
 
 		/*
 			Returns the previous state of the connection.
 		*/
-		inline Connection::State& prev_state() const { return prev_state_; }
+		inline Connection::State& prev_state() const { return *prev_state_; }
 
 		/*
 			Returns the control_block.
@@ -649,7 +677,23 @@ public:
 		/*
 			Return the id (TUPLE) of the connection.
 		*/
-		Connection::Tuple tuple();
+		inline Connection::Tuple tuple() {
+			return {local(), remote_};
+		}
+
+		/*
+			Receive buffer
+		*/
+		inline Buffer& receive_buffer() {
+			return receive_buffer_;
+		}
+
+		/*
+			Send buffer
+		*/
+		inline Buffer& send_buffer() {
+			return send_buffer_;
+		}
 
 		/*
 			Receive a TCP Packet.
@@ -680,20 +724,21 @@ public:
 		TCP& host_;				// 4 B
 
 		/* End points. */
-		TCP::Socket local_;		// 8~ B
+		//TCP::Socket local_;		// 8~ B
+		TCP::Port local_port_;
 		TCP::Socket remote_;	// 8~ B
 
 		/* The current state the Connection is in. Handles most of the logic. */
-		State& state_;			// 4 B
+		State* state_;			// 4 B
 		// Used for SYN-RECV if RST isset.
-		State& prev_state_;		// 4 B
+		State* prev_state_;		// 4 B
 		
 		/* Keep tracks of all sequence variables */
 		TCB control_block;		// 36 B
 
 		/* "User" buffers. */
-		std::vector<unsigned char> receive_buffer_;
-		std::vector<unsigned char> send_buffer_;
+		Buffer receive_buffer_;
+		Buffer send_buffer_;
 		
 		/* Current outgoing packet. */
 		TCP::Packet_ptr outgoing_packet_;
@@ -705,19 +750,30 @@ public:
 		ConnectCallback on_connect_;
 		
 		/* When Connection is CLOSING. */
-		DisconnectCallback on_disconnect_;
+		DisconnectCallback on_disconnect_ = [](Connection& conn, std::string msg) {
+			printf("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
+		};
 		
 		/* When data is received */
-		DataCallback on_data_;
+		DataCallback on_data_ = [](Connection& conn, bool push) {
+			printf("<TCP::Connection::@Data> Connection received data. Push: %d \n", push);
+		};
 
 		/* When error occcured. */
-		ErrorCallback on_error_;
+		ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::error>(this);
+		inline void error(Connection& conn, TCPException error) { 
+			printf("<TCP::Connection::@Error> TCPException: %s \n", error.what()); 
+		}
 
 		/* When packet is received */
-		PacketReceivedCallback on_packet_received_;
+		PacketReceivedCallback on_packet_received_ = [](Connection& conn, TCP::Packet_ptr packet) {
+			printf("<TCP::Connection::@PacketReceived> Packet received: %s \n", packet->to_string().c_str());
+		};
 
 		/* When a packet is dropped. */
-		PacketDroppedCallback on_packet_dropped_;
+		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr packet, std::string reason) { 
+			printf("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", packet->to_string().c_str(), reason.c_str()); 
+		};
 		
 
 		/*
@@ -745,9 +801,9 @@ public:
 		*/
 		inline void set_state(State& state) {
 			prev_state_ = state_;
-			state_ = state;
-			debug2("<TCP::Connection::set_state> State changed: %s => %s", 
-					prev_state_.to_string().c_str(), state.to_string().c_str());
+			state_ = &state;
+			printf("<TCP::Connection::set_state> State changed for %p: %s => %s \n", 
+					this, prev_state_->to_string().c_str(), state_->to_string().c_str());
 		}
 
 		/*
@@ -763,7 +819,7 @@ public:
 
 		inline void signal_packet_received(TCP::Packet_ptr packet) { on_packet_received_(*this, packet); }
 
-		inline void signal_packet_dropped(TCP::Packet_ptr packet) { on_packet_dropped_(packet); }
+		inline void signal_packet_dropped(TCP::Packet_ptr packet, std::string reason) { on_packet_dropped_(packet, reason); }
 
 
 		/*
@@ -786,12 +842,15 @@ public:
 		/*
 			Drop a packet. Used for debug/callback.
 		*/
-		inline void drop(TCP::Packet_ptr packet) { signal_packet_dropped(packet); }
+		inline void drop(TCP::Packet_ptr packet, std::string reason) { signal_packet_dropped(packet, reason); }
+		inline void drop(TCP::Packet_ptr packet) { drop(packet, "None given."); }
 
 		/*
 			Helper function for state checks.
 		*/
-		inline bool is_state(const std::string& state) const { return state == state_.to_string(); }
+		inline bool is_state(const std::string& state) const { 
+			return state == state_->to_string();
+		}
 		
 
 	}; // < class TCP::Connection
@@ -822,17 +881,17 @@ public:
 	/*
 		Active open a new connection to the given remote.
 	*/
-	Connection& connect(Socket&& remote);
+	Connection& connect(Socket remote);
 
 	/*
 		Active open a new connection to the given remote.
 	*/
-	void connect(Socket& remote, Connection::ConnectCallback);
+	void connect(Socket remote, Connection::ConnectCallback);
 
 	/*
 		Receive packet from network layer (IP).
 	*/
-	void bottom(net::Packet_ptr);
+	int bottom(net::Packet_ptr);
 
 	/* 
 		Delegate output to network layer
@@ -844,6 +903,11 @@ public:
 	*/
     static uint16_t checksum(const TCP::Packet_ptr);
 
+    /*
+		Number of open ports.
+    */
+	inline size_t openPorts() { return listeners.size(); }
+
 	/*
 		Show all connections for TCP as a string.
 	*/
@@ -852,7 +916,7 @@ public:
 
 private:
 	IPStack& inet_;
-	std::map<TCP::Socket, Connection> listeners;
+	std::map<TCP::Port, Connection> listeners;
 	std::map<Connection::Tuple, Connection> connections;
 
 	downstream _network_layer_out;
@@ -882,7 +946,7 @@ private:
 	/*
 		Add a Connection.
 	*/
-	TCP::Connection& add_connection(TCP::Socket& local, TCP::Socket&& remote);
+	TCP::Connection& add_connection(TCP::Socket& local, TCP::Socket remote);
 
 
 }; // < class TCP

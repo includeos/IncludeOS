@@ -14,6 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#define DEBUG 1
+#define DEBUG2
 
 #include <net/tcp.hpp>
 
@@ -42,13 +44,14 @@ TCP::TCP(IPStack& inet) :
 TCP::Connection& TCP::bind(Port port) {
 	TCP::Socket local{inet_.ip_addr(), port};
 	
-	auto listen_conn_it = listeners.find(local);
+	auto listen_conn_it = listeners.find(port);
 	// Already a listening socket.
 	if(listen_conn_it != listeners.end()) {
 		throw TCPException{"Port is already taken."};
 	}
-	auto& connection = (listeners.emplace(local, Connection{*this, local})).first->second;
-	connection.open();
+	auto& connection = (listeners.emplace(port, Connection{*this, local})).first->second;
+	printf("<TCP::bind> Bound to port %i \n", port);
+	connection.open(false);
 	return connection;
 }
 
@@ -65,9 +68,9 @@ void TCP::bind(Port port, Connection::ConnectCallback success) {
 	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
 	and open() is called before callback is added.
 */
-TCP::Connection& TCP::connect(Socket&& remote) {
+TCP::Connection& TCP::connect(Socket remote) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	TCP::Connection& connection = add_connection(local, forward<TCP::Socket>(remote));
+	TCP::Connection& connection = add_connection(local, remote);
 	connection.open(true);
 	return connection;
 }
@@ -75,9 +78,9 @@ TCP::Connection& TCP::connect(Socket&& remote) {
 /*
 	Active open a new connection to the given remote.
 */
-void TCP::connect(Socket& remote, Connection::ConnectCallback callback) {
+void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	TCP::Connection& connection = add_connection(local, forward<TCP::Socket>(remote));
+	TCP::Connection& connection = add_connection(local, remote);
 	connection.onConnect(callback).open(true);
 }
 
@@ -90,7 +93,7 @@ TCP::Port TCP::free_port() {
 	if(++current_ephemeral_ == 0)
 		current_ephemeral_ = 1025;
 	// Avoid giving a port that is bound to a service.
-	while(listeners.find(Socket{inet_.ip_addr(), current_ephemeral_}) != listeners.end())
+	while(listeners.find(current_ephemeral_) != listeners.end())
 		current_ephemeral_++;
 
 	return current_ephemeral_;
@@ -145,13 +148,15 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 }
 
 
-void TCP::bottom(net::Packet_ptr packet_ptr) {
+int TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
 	auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
+	printf("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n", 
+			packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 	
 	// Do checksum
 	if(checksum(packet)) {
-		// drop?
+		printf("<TCP::bottom> TCP Packet Checksum != 0 \n");
 	}
 
 	Connection::Tuple tuple { packet->destination(), packet->source() };
@@ -160,21 +165,24 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	auto conn_it = connections.find(tuple);
 	// Connection found
 	if(conn_it != connections.end()) {
+		printf("<TCP::bottom> Connection found: %s \n", conn_it->second.to_string().c_str());
 		conn_it->second.receive(packet);
 	}
 	// No connection found 
 	else {
 		// Is there a listener?
-		auto listen_conn_it = listeners.find(packet->destination());
+		auto listen_conn_it = listeners.find(packet->dst_port());
+		printf("<TCP::bottom> No connection found - looking for listener..\n");
 		// Listener found => Create listening Connection
 		if(listen_conn_it != listeners.end()) {
-			//Connection connection{listening_conn_it};
 			auto& listen_conn = listen_conn_it->second;
-			auto connection = (connections.emplace(tuple, Connection{listen_conn})).first->second;
+			printf("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
+			auto& connection = (connections.emplace(tuple, Connection{listen_conn})).first->second;
 			// Set remote
-			connection.set_remote(packet->destination());
+			connection.set_remote(packet->source());
+			printf("<TCP::bottom> ... Creating connection: %s \n", connection.to_string().c_str());
 			// Change to listening state.
-			connection.open();
+			//connection.open(); // already listening
 			connection.receive(packet);
 		}
 		// No listener found
@@ -182,6 +190,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 			drop(packet);
 		}
 	}
+	return 0;
 }
 
 /*
@@ -197,13 +206,14 @@ string TCP::status() const {
 	for(auto listen_it : listeners) {
 		ss << listen_it.second.to_string() << "\n";
 	}
-	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tLocal\tRemote\tState\n";
+	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\tRemote\tState\n";
 	for(auto con_it : connections) {
-		auto conn = con_it.second;
+		auto c = con_it.second;
 		ss << "tcp4\t" 
-			<< conn.bytes_received() << "\t" << conn.bytes_transmitted() << "\t" 
-			<< conn.local().to_string() << "\t" << conn.remote().to_string() << "\t" 
-			<< conn.state().to_string() << "\n";
+			<< c.receive_buffer().size() << "\t" << c.send_buffer().size() << "\t"
+			<< c.bytes_received() << "\t" << c.bytes_transmitted() << "\t"
+			<< c.local().to_string() << "\t" << c.remote().to_string() << "\t" 
+			<< c.state().to_string() << "\n";
 	}
 	return ss.str();
 }
@@ -212,15 +222,15 @@ string TCP::status() const {
 
 }*/
 
-TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket&& remote) {
+TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket remote) {
 	return 	(connections.emplace(
 				Connection::Tuple{ local, remote }, 
-				Connection{*this, local, forward<TCP::Socket>(remote)})
+				Connection{*this, local, remote})
 			).first->second;
 }
 
 void TCP::drop(TCP::Packet_ptr packet) {
-	
+	printf("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
 
 void TCP::transmit(TCP::Packet_ptr packet) {

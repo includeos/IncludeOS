@@ -148,6 +148,8 @@ public:
 	}
 
 	virtual void send(TCP::Connection&, const std::string& data, bool push) override;
+
+	virtual std::string receive(TCP::Connection&, size_t buffer_size) override;
 	/*
 		
 	*/
@@ -187,7 +189,7 @@ public:
 		
 		=> LastAck
 	*/
-	virtual void close(TCP::Connection&) override;
+	//virtual void close(TCP::Connection&) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSE-WAIT";
@@ -211,7 +213,7 @@ public:
 
 		=> FinWait2.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	//virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-1";
@@ -257,7 +259,7 @@ public:
 
 		=> Closed (Tell TCP to remove this connection)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	//virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "LAST-ACK";
@@ -281,7 +283,7 @@ public:
 
 		=> TimeWait (Guess this isnt needed, just start a Close-timer)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	//virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSING";

@@ -14,14 +14,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#define DEBUG 1
+#define DEBUG2
 
 #include <net/tcp_connection_states.hpp>
 #include <algorithm>
 
 using namespace std;
 
-// COMMON STATE FUNCTIONS
 
+/////////////////////////////////////////////////////////////////////
+/*
+	COMMON STATE FUNCTIONS
+*/
+/////////////////////////////////////////////////////////////////////
+
+/*
+	1. Check Sequence
+*/
 /*
 	SYN-RECEIVED STATE
   	ESTABLISHED STATE
@@ -76,9 +86,13 @@ using namespace std;
     numbers may be held for later processing.
 */
 
-bool Connection::State::check_sequence(Connection& tcp, TCP::Packet_ptr in) {
+/*
+	TODO: Optimize this one. It checks for the same things.
+*/
+bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
 	auto& tcb = tcp.tcb();
 	bool acceptable = false;
+	debug2("<Connection::State::check_seq> TCB: %s \n",tcb.to_string().c_str());
 	// #1 
 	if( in->seq() == tcb.RCV.NXT ) {
 		acceptable = true;
@@ -88,7 +102,7 @@ bool Connection::State::check_sequence(Connection& tcp, TCP::Packet_ptr in) {
 		acceptable = true;
 	}
 	// #3 (INVALID)
-	else if( in->seq() > tcb.RCV.WND ) {
+	else if( in->seq() + in->data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
 		acceptable = false;
 	}
 	// #4
@@ -111,40 +125,28 @@ bool Connection::State::check_sequence(Connection& tcp, TCP::Packet_ptr in) {
 			tcp.outgoing_packet()->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
 			tcp.transmit();
 		}
-		tcp.drop(in);
+		tcp.drop(in, "Unacceptable SEQ.");
 		return false;
 	}
+	printf("<Connection::State::check_seq> Acceptable SEQ: %u \n", in->seq());
 	// is acceptable.
 	return true;
 }
 
-bool acceptable_seq(Connection& tcp, TCP::Packet_ptr in) {
-	auto& tcb = tcp.tcb();
-	if( in->seq() == tcb.RCV.NXT ) {
-		return true;
-	} 
-	else if( tcb.RCV.NXT <= in->seq() and in->seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
-		return true;
-	}
-	else if( in->seq() > tcb.RCV.WND ) {
-		return false;
-	} else if( (tcb.RCV.NXT <= in->seq() and in->seq() < tcb.RCV.NXT + tcb.RCV.WND)
-    	or ( tcb.RCV.NXT <= in->seq()+in->data_length()-1 and in->seq()+in->data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
-		return true;
-	} else {
-		return false;
-	}
-}
 
 /*
-	 SYN-RECEIVED
-	  ESTABLISHED STATE
-	  FIN-WAIT STATE-1
-	  FIN-WAIT STATE-2
-	  CLOSE-WAIT STATE
-	  CLOSING STATE
-	  LAST-ACK STATE
-	  TIME-WAIT STATE
+	4. Check SYN
+*/
+
+/*
+ 	SYN-RECEIVED
+	ESTABLISHED STATE
+	FIN-WAIT STATE-1
+	FIN-WAIT STATE-2
+	CLOSE-WAIT STATE
+	CLOSING STATE
+	LAST-ACK STATE
+	TIME-WAIT STATE
 
     If the SYN is in the window it is an error, send a reset, any
     outstanding RECEIVEs and SEND should receive "reset" responses,
@@ -156,19 +158,160 @@ bool acceptable_seq(Connection& tcp, TCP::Packet_ptr in) {
     and an ack would have been sent in the first step (sequence
     number check).
 */
-bool Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Packet_ptr in) {
+void Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Packet_ptr in) {
+	assert(in->isset(SYN));
 	// Not sure if this is the correct way to send a "reset response"
-	if(!in->isset(SYN)) {
-		return false;
-	}
-	tcp.outgoing_packet()->set_seq(in->seq()).set_flag(RST);
+	tcp.outgoing_packet()->set_seq(in->ack()).set_flag(RST);
 	tcp.transmit();
 	tcp.signal_disconnect("Connection reset.");
-	//close();
-	return true;
 }
 
-// STATE - Fallback if not implemented in state.
+
+/*
+	5. Check ACK
+*/
+bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
+    // 5. ACK bit
+    if( in->isset(ACK) ) {
+    	auto& tcb = tcp.tcb();
+    	/*
+		  If SND.UNA < SEG.ACK =< SND.NXT then, set SND.UNA <- SEG.ACK.
+          Any segments on the retransmission queue which are thereby
+          entirely acknowledged are removed.  Users should receive
+          positive acknowledgments for buffers which have been SENT and
+          fully acknowledged (i.e., SEND buffer should be returned with
+          "ok" response).  If the ACK is a duplicate
+          (SEG.ACK < SND.UNA), it can be ignored.  If the ACK acks
+          something not yet sent (SEG.ACK > SND.NXT) then send an ACK,
+          drop the segment, and return.	
+    	*/
+		if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
+			tcb.SND.UNA = in->ack();
+			// tcp.signal_sent();
+			// return that buffer has been SENT - currently no support to receipt sent buffer.
+
+			/*
+				If SND.UNA < SEG.ACK =< SND.NXT, the send window should be
+          		updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
+          		SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
+          		SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
+			*/
+          	if( tcb.SND.WL1 < in->seq() or ( tcb.SND.WL1 = in->seq() and tcb.SND.WL2 <= in->ack() ) ) {
+          		tcb.SND.WND = in->win();
+          		tcb.SND.WL1 = in->seq();
+          		tcb.SND.WL2 = in->ack();
+          	}
+          	/*
+      			Note that SND.WND is an offset from SND.UNA, that SND.WL1
+	          	records the sequence number of the last segment used to update
+	          	SND.WND, and that SND.WL2 records the acknowledgment number of
+	          	the last segment used to update SND.WND.  The check here
+	          	prevents using old segments to update the window.
+          	*/
+
+		}
+		/* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
+		else if( in->ack() > tcb.SND.NXT ) {
+			tcp.outgoing_packet()->set_flag(ACK);
+			tcp.transmit();
+			tcp.drop(in, "ACK > SND.NXT");
+			return false;
+		}
+		/* If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored. */
+		/*else if( in->ack() < tcb.SND.UNA ) {
+			// ignore.
+		}*/
+		return true;
+    }
+    // ACK not set.
+    else {
+    	tcp.drop(in, "!ACK"});
+    	return false;
+    }
+}
+
+
+/*
+	7. Process the segment text
+*/
+/*
+	Once in the ESTABLISHED state, it is possible to deliver segment
+    text to user RECEIVE buffers.  Text from segments can be moved
+    into buffers until either the buffer is full or the segment is
+    empty.  If the segment empties and carries an PUSH flag, then
+    the user is informed, when the buffer is returned, that a PUSH
+    has been received.
+
+    When the TCP takes responsibility for delivering the data to the
+    user it must also acknowledge the receipt of the data.
+
+    Once the TCP takes responsibility for the data it advances
+    RCV.NXT over the data accepted, and adjusts RCV.WND as
+    apporopriate to the current buffer availability.  The total of
+    RCV.NXT and RCV.WND should not be reduced.
+
+    Please note the window management suggestions in section 3.7.
+
+    Send an acknowledgment of the form:
+
+      <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+
+    This acknowledgment should be piggybacked on a segment being
+    transmitted if possible without incurring undue delay.
+*/
+void Connection::State::process_segment(Connection& conn, TCP::Packet_ptr in) {
+    
+    // TODO: Piggyback ACK & data.
+    
+    assert(in->has_data());
+	auto& tcb = tcp.tcb();
+	printf("<TCP::Connection::State::handle> Received packet with DATA-LENGTH: %i. Copy to receive buffer. \n", in->data_length());
+	tcp.queue_receive(in->data());
+	if(in->isset(PSH)) {
+		tcp.signal_data(true);
+	}
+	/*
+		Once the TCP takes responsibility for the data it advances
+        RCV.NXT over the data accepted, and adjusts RCV.WND as
+        apporopriate to the current buffer availability.  The total of
+        RCV.NXT and RCV.WND should not be reduced.
+    */
+	tcb.RCV.NXT += in->data_length();
+	printf("<TCP::Connection::State::handle> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, tcb.SND.NXT);
+	// TODO: Adjust RCV.WND, section 3.7
+	//tcp.push_data(true); // TODO: can't send from everywhere.
+	tcp.outgoing_packet()->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+	tcp.transmit();	
+}
+
+/*
+	8. Check FIN
+*/
+
+/*
+	If the FIN bit is set, signal the user "connection closing" and
+	return any pending RECEIVEs with same message, advance RCV.NXT
+	over the FIN, and send an acknowledgment for the FIN.  Note that
+	FIN implies PUSH for any segment text not yet delivered to the
+	user.
+*/
+
+void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
+    assert(in->isset(FIN));
+    auto& tcb = tcp.tcb();
+	tcp.signal_disconnect("Connection closing.");
+	// Advance RCV.NXT over the FIN?
+	//tcb.RCV.NXT++;
+	auto fin = in->seq() + in->data_length();
+	tcb.RCV.NXT += fin;
+	tcp.outgoing_packet()->set_ack(tcb.RCV.NXT)->set_flag(ACK);
+	tcp.transmit();
+	// tcp.signal_data(true);
+}
+
+/*
+	Fallback.
+*/
 
 void Connection::State::open(Connection& tcp, bool active) {
 	throw TCPException{"Connection already exists."};
@@ -178,8 +321,8 @@ void Connection::State::send(Connection& tcp, const std::string& data, bool push
 	throw TCPException{"Connection is not open."};
 }
 
-void Connection::State::receive(Connection& tcp, size_t buffer_size) {
-
+std::string Connection::State::receive(Connection& tcp, size_t buffer_size) {
+	return "";
 }
 
 void Connection::State::close(Connection& tcp) {
@@ -187,25 +330,28 @@ void Connection::State::close(Connection& tcp) {
 }
 
 int Connection::State::handle(Connection& tcp, TCP::Packet_ptr in) {
-	tcp.drop(in);
+	tcp.drop(in, "STATELESS");
 }
 
 string Connection::State::to_string() const {
 	return "STATELESS";
 }
+/////////////////////////////////////////////////////////////////////
 
+
+/////////////////////////////////////////////////////////////////////
 /*
 	CLOSED
 */
+/////////////////////////////////////////////////////////////////////
 
 void Connection::Closed::open(Connection& tcp, bool active) {
 	if(active) {
 		// There is a remote host
 		if(!tcp.remote().is_empty()) {
-			auto out = tcp.outgoing_packet();
 			auto& tcb = tcp.tcb();
 			tcb.ISS = tcp.generate_iss();
-			out->set_seq(tcb.ISS).set_flag(SYN);
+			tcp.outgoing_packet()->set_seq(tcb.ISS).set_flag(SYN);
 			tcb.SND.UNA = tcb.ISS;
 			tcb.SND.NXT = tcb.ISS+1;
 			tcp.transmit();
@@ -214,7 +360,7 @@ void Connection::Closed::open(Connection& tcp, bool active) {
 			throw TCPException{"No remote host set."};
 		}
 	} else {
-		tcp.set_state(Listen::instance());
+		tcp.set_state(Connection::Listen::instance());
 	}
 }
 
@@ -234,16 +380,17 @@ int Connection::Closed::handle(Connection& tcp, TCP::Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////
 /*
 	LISTEN
 */
+/////////////////////////////////////////////////////////////////////
 
 void Connection::Listen::open(Connection& tcp, bool active) {
 	if(!tcp.remote().is_empty()) {
-		auto out = tcp.outgoing_packet();
 		auto& tcb = tcp.tcb();
 		tcb.ISS = tcp.generate_iss();
-		out->set_seq(tcb.ISS).set_flag(SYN);
+		tcp.outgoing_packet()->set_seq(tcb.ISS).set_flag(SYN);
 		tcb.SND.UNA = tcb.ISS;
 		tcb.SND.NXT = tcb.ISS+1;
 		tcp.transmit();
@@ -258,14 +405,13 @@ int Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
 		// ignore
 		return 0;
 	}
-	auto out = tcp.outgoing_packet();
 	if(in->isset(ACK)) {
-		out->set_seq(in->ack()).set_flag(RST);
+		tcp.outgoing_packet()->set_seq(in->ack()).set_flag(RST);
 		tcp.transmit();
 		return 1;
 	}
 	if(in->isset(SYN)) {
-		auto tcb = tcp.tcb();
+		auto& tcb = tcp.tcb();
 		/*
 		// Security stuff, don't know yet.
 		if(p.PRC > tcb.PRC)
@@ -276,19 +422,23 @@ int Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
 		tcb.ISS 		= tcp.generate_iss();
 		tcb.SND.NXT 	= tcb.ISS+1;
 		tcb.SND.UNA 	= tcb.ISS;
+		printf("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n", in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
-		out->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
+		tcp.outgoing_packet()->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 		tcp.transmit();
 		tcp.set_state(SynReceived::instance());
 		return 1;
 	}
+	return 0;
 }
 /////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////
 /* 
 	SYN-SENT
 */
+/////////////////////////////////////////////////////////////////////
 
 void Connection::SynSent::send(Connection& tcp, const std::string& data, bool push) {
 	tcp.queue_send(data);
@@ -310,7 +460,7 @@ int Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
 			}
 			// (unless the RST bit is set, if so drop the segment and return)
 			else {
-				tcp.drop(in);
+				tcp.drop(in, "RST");
 				return 0;
 			}
 			// If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
@@ -320,11 +470,10 @@ int Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
 	if(in->isset(RST)) {
 		if(in->isset(ACK)) {
       		tcp.signal_error(TCPException{"Connection reset."});
-      		tcp.drop(in);
-      		//tcp.invoke_close();
-      		return 0;
+      		tcp.drop(in, "RST with acceptable ACK");
+      		return -1;
 		} else {
-			tcp.drop(in);
+			tcp.drop(in, "RST");
 			return 0;
 		}
 		/*
@@ -376,8 +525,8 @@ int Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
     		tcp.outgoing_packet()->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
     		tcp.transmit();
     		tcp.set_state(Connection::Established::instance());
+    		//return tcp.state().handle(tcp, in);
     		return 1;
-    		// return tcp.receive(in); // State is now established.
     		/* 
 	    		If there are other controls or
 	        	text in the segment then continue processing at the sixth step
@@ -420,9 +569,11 @@ int Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////
 /*
 	SYN-RECEIVED
 */
+/////////////////////////////////////////////////////////////////////
 
 void Connection::SynReceived::send(Connection& tcp, const std::string& data, bool push) {
 	tcp.queue_send(data);
@@ -430,7 +581,7 @@ void Connection::SynReceived::send(Connection& tcp, const std::string& data, boo
 
 int Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr in) {
 	// 1. check sequence
-	if(! check_sequence(tcp, in) ) {
+	if(! check_seq(tcp, in) ) {
 		return 0;
 	}
 	// 2. check RST
@@ -455,31 +606,29 @@ int Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr in) {
       	}
 
       	// close();
-      	return 0;
+      	return -1;
         
         
 	}
 	// 3. check security
 
 	// 4. check SYN
-	if( unallowed_syn_reset_connection(tcp, in) ) {
-    	return 0;
+	if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
 	}
+
 	auto& tcb = tcp.tcb();
 	// 5. check ACK
-	if(!in->isset(ACK)) {
-		tcp.drop(in);
-		return 0;
-	}
-	// ACK isset
-	else {
-        /*
+	if(in->isset(ACK)) {	
+		/*
         	If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
           	and continue processing.
       	*/
 		if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
+			printf("<TCP::Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
 			tcp.set_state(Connection::Established::instance());
-			return tcp.state().handle(tcp,in); // TODO: Is this possible?
+			return tcp.state().handle(tcp,in); // TODO: Fix. This is kinda bad, need to make the above steps again.
 		}
 		/*
 			If the segment acknowledgment is not acceptable, form a
@@ -490,33 +639,29 @@ int Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr in) {
 			tcp.transmit();
 		}
 	}
+	// ACK is missing
+	else {
+        tcp.drop(in, "SYN-RCV: !ACK");
+		return 0;
+	}
 
 	// 8. check FIN
 	if(in->isset(FIN)) {
-		// DRY - same as ESTABLISHED
-		/*
-			If the FIN bit is set, signal the user "connection closing" and
-      		return any pending RECEIVEs with same message, advance RCV.NXT
-      		over the FIN, and send an acknowledgment for the FIN.  Note that
-      		FIN implies PUSH for any segment text not yet delivered to the
-      		user.
-      	*/
-  		//TCP::Seq fin = in->seq() + in->data_length();
-		tcp.signal_disconnect("Connection closing.");
-		// Advance RCV.NXT over the FIN?
-		tcb.RCV.NXT++;
-		// Send ACK for FIN ???
-		auto out = tcp.outgoing_packet();
-		tcp.transmit();
+		process_fin(tcp, in);
 		tcp.set_state(Connection::CloseWait::instance());
+		return 0;
 	}
+	return 0;
 }
 /////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////
 /*
 	ESTABLISHED
 */
+/////////////////////////////////////////////////////////////////////
+
 /*
 	Segmentize the buffer and send it with a piggybacked
   	acknowledgment (acknowledgment value = RCV.NXT).  If there is
@@ -527,7 +672,7 @@ int Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr in) {
   	urgent pointer in the outgoing segments.	
 */
 void Connection::Established::send(Connection& tcp, const std::string& data, bool push) {
-	
+	printf("<TCP::Connection::Established::send> Sending data with the length of %u. PUSH: %d \n", data.size(), push);
     /*
     	3.7 Data Communication
 		The sender of data keeps track of the next sequence number to use in
@@ -546,7 +691,8 @@ void Connection::Established::send(Connection& tcp, const std::string& data, boo
 		data in the segment.  Note that once in the ESTABLISHED state all
 		segments must carry current acknowledgment information.
 	*/
-  	unsigned int remaining{tcp.send_buffer_.size()};
+	tcp.queue_send(data);
+  	unsigned int remaining{tcp.send_buffer().size()};
   	auto& tcb = tcp.tcb();
 	// TODO: ACK and TCB stuff.
 	do {
@@ -559,166 +705,310 @@ void Connection::Established::send(Connection& tcp, const std::string& data, boo
 			packet->set_flag(PSH);
 		tcp.transmit();
 		// Advance SND.NXT
-		tcb.SND.NXT = packet->data_length();
+		tcb.SND.NXT += packet->data_length();
 
 	} while(remaining);
-	tcp.queue_send(data);
+	
+}
+
+std::string Connection::Established::receive(Connection& tcp, size_t buffer_size) {
+	auto& buffer = tcp.receive_buffer_;
+
+	return {buffer.begin(), buffer.end()};
 }
 
 void Connection::Established::close(Connection& tcp) {
 	auto& tcb = tcp.tcb();
 	tcp.outgoing_packet()->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
 	tcp.transmit();
+	tcp.set_state(Connection::FinWait1::instance());
 }
 
 int Connection::Established::handle(Connection& tcp, TCP::Packet_ptr in) {
-    // 1. Check sequence number
-    if(! check_sequence(tcp, in) ) {
+	// 1. check SEQ
+    if(! check_seq(tcp, in) ) {
     	return 0;
     }
 
     // 2. check RST
     if( in->isset(RST) ) {
-    	// signal Connection reset
-    	//close();
-    	return 0;
+    	tcp.signal_disconnect("Connection reset.");
+    	return -1; // close
     }
 
-    // 3. check for security
+    // 3. check security
 
     // 4. check SYN
-    if( unallowed_syn_reset_connection(tcp, in) ) {
+	if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 5. check ACK
+    if( ! check_ack(tcp, in) ) {
     	return 0;
     }
-    auto& tcb = tcp.tcb();
-    // 5. ACK bit
-    if( !in->isset(ACK) ) {
-    	tcp.drop(in);
-    	return 0;
-    }
-    // ACK isset
-    else {
-    	/*
-		  If SND.UNA < SEG.ACK =< SND.NXT then, set SND.UNA <- SEG.ACK.
-          Any segments on the retransmission queue which are thereby
-          entirely acknowledged are removed.  Users should receive
-          positive acknowledgments for buffers which have been SENT and
-          fully acknowledged (i.e., SEND buffer should be returned with
-          "ok" response).  If the ACK is a duplicate
-          (SEG.ACK < SND.UNA), it can be ignored.  If the ACK acks
-          something not yet sent (SEG.ACK > SND.NXT) then send an ACK,
-          drop the segment, and return.	
-    	*/
-		if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
-			tcb.SND.UNA = in->ack();
-			// return that buffer has been SENT - currently no support to receipt sent buffer.
-
-			/*
-				If SND.UNA < SEG.ACK =< SND.NXT, the send window should be
-          		updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
-          		SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
-          		SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
-			*/
-          	if( tcb.SND.WL1 < in->seq() or ( tcb.SND.WL1 = in->seq() and tcb.SND.WL2 <= in->ack() ) ) {
-          		tcb.SND.WND = in->win();
-          		tcb.SND.WL1 = in->seq();
-          		tcb.SND.WL2 = in->ack();
-          	}
-          	/*
-      			Note that SND.WND is an offset from SND.UNA, that SND.WL1
-	          	records the sequence number of the last segment used to update
-	          	SND.WND, and that SND.WL2 records the acknowledgment number of
-	          	the last segment used to update SND.WND.  The check here
-	          	prevents using old segments to update the window.
-          	*/
-
-		} else if( in->ack() < tcb.SND.UNA ) {
-			// ignore.
-		} else if( in->ack() > tcb.SND.NXT ) {
-			// Send ACK
-			tcp.transmit();
-			tcp.drop(in);
-			return 0;
-		}
-
-		if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
-
-		}
-    }
-    // 6. check URG
-    if(in->isset(URG)) {
-    	/*
-	    	If the URG bit is set, RCV.UP <- max(RCV.UP,SEG.UP), and signal
-	        the user that the remote side has urgent data if the urgent
-	        pointer (RCV.UP) is in advance of the data consumed.  If the
-	        user has already been signaled (or is still in the "urgent
-	        mode") for this continuous sequence of urgent data, do not
-	        signal the user again.
-        */
-    }
+    // 6. check URG - DEPRECATED
 
     // 7. proccess the segment text
-    /*
-		Once in the ESTABLISHED state, it is possible to deliver segment
-        text to user RECEIVE buffers.  Text from segments can be moved
-        into buffers until either the buffer is full or the segment is
-        empty.  If the segment empties and carries an PUSH flag, then
-        the user is informed, when the buffer is returned, that a PUSH
-        has been received.
-
-        When the TCP takes responsibility for delivering the data to the
-        user it must also acknowledge the receipt of the data.
-
-        Once the TCP takes responsibility for the data it advances
-        RCV.NXT over the data accepted, and adjusts RCV.WND as
-        apporopriate to the current buffer availability.  The total of
-        RCV.NXT and RCV.WND should not be reduced.
-
-        Please note the window management suggestions in section 3.7.
-
-        Send an acknowledgment of the form:
-
-          <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
-
-        This acknowledgment should be piggybacked on a segment being
-        transmitted if possible without incurring undue delay.
-    */
     if(in->has_data()) {
-    	tcp.queue_receive(in->data());
-		if(in->isset(PSH)) {
-			tcp.signal_data(true);
-		}
-		/*
-			Once the TCP takes responsibility for the data it advances
-	        RCV.NXT over the data accepted, and adjusts RCV.WND as
-	        apporopriate to the current buffer availability.  The total of
-	        RCV.NXT and RCV.WND should not be reduced.
-        */
-		tcb.RCV.NXT += in->data_length();
-		tcp.outgoing_packet()->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-		tcp.transmit();	
+    	process_segment(tcp, in);	
     }
-	
 
-	// 8. Check FIN bit
-	/*
-	  If the FIN bit is set, signal the user "connection closing" and
-      return any pending RECEIVEs with same message, advance RCV.NXT
-      over the FIN, and send an acknowledgment for the FIN.  Note that
-      FIN implies PUSH for any segment text not yet delivered to the
-      user.
-	*/
+	// 8. check FIN bit
 	if(in->isset(FIN)) {
-		//TCP::Seq fin = in->seq() + in->data_length();
-		tcp.signal_disconnect("Connection closing.");
-		// Advance RCV.NXT over the FIN?
-		tcb.RCV.NXT++;
-		// Send ACK for FIN ???
-		auto out = tcp.outgoing_packet();
-		tcp.transmit();
+		process_fin(tcp, in);
 		tcp.set_state(Connection::CloseWait::instance());
+		return 0;
 	}
+	return 0;
 }
 /////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////
+/*
+	FIN-WAIT-1
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. Check sequence number
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	tcp.signal_disconnect("Connection reset.");
+    	return -1; // close
+    }
+
+    // 4. check SYN
+	if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 5. check ACK
+    if( ! check_ack(tcp, in) ) {
+    	return 0;
+    }
+
+    // 7. proccess the segment text
+    if(in->has_data()) {
+    	process_segment(tcp, in);	
+    }
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	/*
+			If our FIN has been ACKed (perhaps in this segment), then
+          	enter TIME-WAIT, start the time-wait timer, turn off the other
+          	timers; otherwise enter the CLOSING state.
+    	*/
+      	// TODO: Implement above.
+    	return 0;
+    }
+}
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+/*
+	FIN-WAIT-2
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. check SEQ
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	tcp.signal_disconnect("Connection reset.");
+    	return -1; // close
+    }
+
+    // 4. check SYN
+	if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 5. check ACK
+    if( ! check_ack(tcp, in) ) {
+    	return 0;
+    }
+
+    // 7. proccess the segment text
+    if(in->has_data()) {
+    	process_segment(tcp, in);
+    }
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	/*
+			Enter the TIME-WAIT state.  Start the time-wait timer, turn off the other timers.
+    	*/
+      	// TODO: Implement above.
+    	return 0;
+    }
+}
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+/*
+	CLOSE-WAIT
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::CloseWait::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. check SEQ
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	tcp.signal_disconnect("Connection reset.");
+    	return -1; // close
+    }
+
+    // 4. check SYN
+	if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 5. check ACK
+    if( ! check_ack(tcp, in) ) {
+    	return 0;
+    }
+
+    // 7. proccess the segment text
+    // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	// Remain in state
+    	return 0;
+    }
+}
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+/*
+	CLOSING
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::Closing::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. Check sequence number
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	return -1; // close
+    }
+
+    // 4. check SYN
+    if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 7. proccess the segment text
+    // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	// Remain in state
+    	return 0;
+    }
+}
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+/*
+	LAST-ACK
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::LastAck::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. Check sequence number
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	return -1; // close
+    }
+
+    // 4. check SYN
+    if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 7. proccess the segment text
+    // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	// Remain in state
+    	return 0;
+    }
+}
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+/*
+	TIME-WAIT
+*/
+/////////////////////////////////////////////////////////////////////
+
+int Connection::TimeWait::handle(Connection& tcp, TCP::Packet_ptr in) {
+	// 1. Check sequence number
+    if(! check_seq(tcp, in) ) {
+    	return 0;
+    }
+
+    // 2. check RST
+    if( in->isset(RST) ) {
+    	return -1; // close
+    }
+
+    // 4. check SYN
+    if( in->isset(SYN) ) {
+		unallowed_syn_reset_connection(tcp, in);
+		return -1;
+	}
+
+    // 7. proccess the segment text
+    // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
+
+    // 8. check FIN
+    if(in->isset(FIN)) {
+    	process_fin(tcp, in);
+    	// Remain in state
+    	// TODO: Restart the 2 MSL time-wait timeout.
+    	return 0;
+    }
+    
+}
+/////////////////////////////////////////////////////////////////////
