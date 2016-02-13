@@ -20,6 +20,7 @@
 
 #include <virtio/virtio.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/pci.hpp>
 #include <malloc.h>
 #include <string.h>
 #include <assert.h>

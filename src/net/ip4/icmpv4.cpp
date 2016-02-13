@@ -35,7 +35,9 @@ void ICMPv4::bottom(Packet_ptr pckt) {
   full_header* full_hdr = reinterpret_cast<full_header*>(pckt->buffer());
   icmp_header* hdr = &full_hdr->icmp_hdr;
 
-  auto ip_address = full_hdr->ip_hdr.saddr.c_str();
+#ifdef DEBUG
+  auto ip_address = full_hdr->ip_hdr.saddr.str().c_str();
+#endif
   
   switch(hdr->type) {
   case (ICMP_ECHO):

@@ -42,7 +42,7 @@ void UDP::bottom(Packet_ptr pckt)
   debug("<UDP> Nobody's listening to this port. Drop!\n");
 }
 
-UDP::Socket& UDP::bind(port_t port)
+UDP::Socket& UDP::bind(UDP::port_t port)
 {
   debug("<UDP> Binding to port %i\n", port);
   /// ... !!!

@@ -45,9 +45,8 @@ public:
     uint32_t whole;
     
     /**
-     *  NOTE:
-     *   Constructors:
-     *     Can't have them - that removes the packed-attribute
+     *  NOTE: Constructors
+     *  Can't have them - removes the packed-attribute
      */
 
     inline addr& operator=(addr cpy) noexcept {
@@ -79,13 +78,8 @@ public:
     
     inline bool operator!=(const uint32_t rhs) const noexcept
     { return  whole != rhs; }
-
-    /** Get a C-String representation */
-    const char* c_str() const {
-      return str().c_str();
-    }
     
-    /** Get a std::string representation */
+    /** x.x.x.x string representation */
     std::string str() const {
       char ip_addr[16];
       sprintf(ip_addr, "%1i.%1i.%1i.%1i",
@@ -158,7 +152,7 @@ public:
    *
    * Returns the IPv4 address associated with this interface
    **/
-  const addr& local_ip() const {
+  const addr local_ip() const {
     return stack_.ip_addr();
   }
   

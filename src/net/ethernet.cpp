@@ -40,15 +40,13 @@ const Ethernet::addr Ethernet::addr::IPv6mcast_02 {{0x33,0x33,0x02,0,0,0}};
 
 static void ignore(Packet_ptr UNUSED(pckt)) noexcept {
   debug("<Ethernet handler> Ignoring data (no real handler)\n");
-};
+}
 
-Ethernet::Ethernet(const addr& mac) noexcept:
-  mac_{{mac.part[0],mac.part[1],mac.part[2],
-        mac.part[3],mac.part[4],mac.part[5]}},
-  /** Default initializing to the empty handler. */
-  ip4_handler_{ignore},
-  ip6_handler_{ignore},
-  arp_handler_{ignore}
+Ethernet::Ethernet(addr mac) noexcept
+  : mac_(mac),
+    ip4_handler_{ignore},
+    ip6_handler_{ignore},
+    arp_handler_{ignore}
 {}
 
 void Ethernet::transmit(Packet_ptr pckt) {
@@ -59,15 +57,13 @@ void Ethernet::transmit(Packet_ptr pckt) {
   assert(hdr->type != 0);
   
   // Add source address
-  hdr->src.major = mac_.major;
-  hdr->src.minor = mac_.minor;
-
+  hdr->src = mac_;
+  
   debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
-         pckt->size(), hdr->src.c_str(), hdr->dest.c_str(), hdr->type);
+      pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
   
   physical_out_(pckt);
 }
-
 
 void Ethernet::bottom(Packet_ptr pckt) {
   assert(pckt->size() > 0);

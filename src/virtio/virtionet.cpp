@@ -22,6 +22,11 @@
 #include <virtio/virtionet.hpp>
 #include <net/packet.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
+#include <hw/pci.hpp>
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
 
 using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;

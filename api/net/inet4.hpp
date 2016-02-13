@@ -40,20 +40,20 @@ namespace net {
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
     
-    inline const Ethernet::addr& link_addr() override 
+    Ethernet::addr link_addr() override 
     { return eth_.mac(); }
     
-    inline Ethernet& link() override
-    { return eth_; }    
-    
-    inline const IP4::addr& ip_addr() override 
+    IP4::addr ip_addr() override 
     { return ip4_addr_; }
-
-    inline const IP4::addr& netmask() override 
+    
+    IP4::addr netmask() override 
     { return netmask_; }
     
-    inline const IP4::addr& router() override 
+    IP4::addr router() override 
     { return router_; }
+    
+    Ethernet& link() override
+    { return eth_; }    
     
     inline IP4& ip_obj() override
     { return ip4_; }

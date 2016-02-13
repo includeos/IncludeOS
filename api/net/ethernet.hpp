@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_ETHERNET_HPP
 #define NET_ETHERNET_HPP
 
@@ -27,8 +28,8 @@ namespace net {
 /** Ethernet packet handling. */
 class Ethernet {
 public:
-  static constexpr size_t ETHER_ADDR_LEN  {6};
-  static constexpr size_t minimum_payload {46};
+  static constexpr size_t ETHER_ADDR_LEN  = 6;
+  static constexpr size_t MINIMUM_PAYLOAD = 46;
 
   /**
    *  Some big-endian ethernet types
@@ -55,86 +56,87 @@ public:
     ETH_VLAN  = 0x81
   };
 
-  /** MAC address representation */
-  union __attribute__((packed)) addr {
+  // MAC address
+  union addr {
     uint8_t part[ETHER_ADDR_LEN];
-
+    
     struct {
       uint16_t minor;
       uint32_t major;
     } __attribute__((packed));
-
-    /** Assignment operator */
-    addr& operator=(const addr& cpy) noexcept {
+    
+    addr& operator=(const addr cpy) noexcept {
       minor = cpy.minor;
       major = cpy.major;
       return *this;
     }
-
-    /** Get a C-String representation */
-    const char* c_str() const {
-      return str().c_str();
-    }
-  
-    /** Get a std::string representation */
+    
+    // hex string representation
     std::string str() const {
       char eth_addr[17];
       sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
-              part[0],part[1],part[2],
-              part[3],part[4],part[5]);
+              part[0], part[1], part[2],
+              part[3], part[4], part[5]);
       return eth_addr;
     }
-
+    
     /** Check for equality */
-    bool operator==(const addr& mac) const noexcept
-    { return strncmp(reinterpret_cast<const char*>(part), reinterpret_cast<const char*>(mac.part), ETHER_ADDR_LEN) == 0; }
+    bool operator==(const addr mac) const noexcept
+    {
+      return strncmp(
+          reinterpret_cast<const char*>(part), 
+          reinterpret_cast<const char*>(mac.part), 
+          ETHER_ADDR_LEN) == 0;
+    }
     
     static const addr MULTICAST_FRAME;
     static const addr BROADCAST_FRAME;
-
+    
     static const addr IPv6mcast_01;
     static const addr IPv6mcast_02;
-  }; //< union addr
-
+    
+  }  __attribute__((packed)); //< union addr
+  
   /** Constructor */
-  explicit Ethernet(const addr& mac) noexcept;
+  explicit Ethernet(addr mac) noexcept;
   
   struct header {
     addr dest;
     addr src;
     unsigned short type;
-  };
-
+    
+  } __attribute__((packed)) ;
+  
   /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
   void bottom(Packet_ptr);
-
+  
   /** Delegate upstream ARP handler. */
-  inline void set_arp_handler(upstream del)
+  void set_arp_handler(upstream del)
   { arp_handler_ = del; }
-
-  inline upstream get_arp_handler()
+  
+  upstream get_arp_handler()
   { return arp_handler_; }
-      
+  
   /** Delegate upstream IPv4 handler. */
-  inline void set_ip4_handler(upstream del)
+  void set_ip4_handler(upstream del)
   { ip4_handler_ = del; }
   
   /** Delegate upstream IPv4 handler. */
-  inline upstream get_ip4_handler()
+  upstream get_ip4_handler()
   { return ip4_handler_; }
-
+  
   /** Delegate upstream IPv6 handler. */
-  inline void set_ip6_handler(upstream del)
+  void set_ip6_handler(upstream del)
   { ip6_handler_ = del; };  
   
   /** Delegate downstream */
-  inline void set_physical_out(downstream del)
+  void set_physical_out(downstream del)
   { physical_out_ = del; }
   
   /** @return Mac address of the underlying device */
-  inline const addr& mac() const noexcept
+  const addr mac() const noexcept
   { return mac_; }
-
+  
   /** Transmit data, with preallocated space for eth.header */
   void transmit(Packet_ptr);
 
@@ -143,9 +145,9 @@ private:
   addr mac_;
 
   /** Upstream OUTPUT connections */
-  upstream ip4_handler_;
-  upstream ip6_handler_;
-  upstream arp_handler_;
+  upstream ip4_handler_ = [](Packet_ptr){};
+  upstream ip6_handler_ = [](Packet_ptr){};
+  upstream arp_handler_ = [](Packet_ptr){};
   
   /** Downstream OUTPUT connection */
   downstream physical_out_ = [](Packet_ptr){};
