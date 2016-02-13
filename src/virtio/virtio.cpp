@@ -18,6 +18,7 @@
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/pci.hpp>
 #include <assert.h>
 
 void Virtio::set_irq(){

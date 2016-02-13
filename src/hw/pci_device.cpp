@@ -18,6 +18,7 @@
 #include <assert.h>
 
 #include <common>
+#include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
 
