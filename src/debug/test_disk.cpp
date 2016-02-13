@@ -98,27 +98,50 @@ void Service::start()
     net::TCP::Socket& sock =  inet->tcp().bind(80);
     sock.onAccept([] (net::TCP::Socket& conn)
     {
-      printf("SERVICE got data: %s \n", conn.read(1024).c_str());
+      std::string req = conn.read(1024);
       
-      disk->fs().readFile("/test/lorem_ipsum_longnamed.txt",
-      [&conn] (fs::error_t err, const uint8_t* buffer, size_t len)
+      printf("SERVICE got data: %s \n", req.c_str());
+      
+      if (req.find("smaller2.jpg") != req.npos)
       {
-        if (err)
+        printf("Looking for image file\n");
+        
+        disk->fs().readFile("/test/smaller2.jpeg",
+        [&conn] (fs::error_t err, const uint8_t* buffer, size_t len)
         {
-          printf("Failed to read file!\n");
-          std::string header="HTTP/1.1 404 Not Found\n "				\
+          if (err)
+          {
+            printf("Failed to read file!\n");
+            std::string header="HTTP/1.1 404 Not Found\n"				\
+              "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"			\
+              "Server: IncludeOS prototype 4.0\n"				\
+              "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"		\
+              "Content-Type: text/html; charset=UTF-8\n"			\
+              "Content-Length: 0\n"		\
+              "Accept-Ranges: bytes\n"					\
+              "Connection: close\n\n";
+            
+            conn.write(header);
+            return;
+          }
+          
+          printf("Sending linux penguin image...\n");
+          std::string header=
+            "HTTP/1.1 200 OK\n "				\
             "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"			\
-            "Server: IncludeOS prototype 4.0\n"				\
+            "Server: IncludeOS prototype 4.0 \n"				\
             "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"		\
-            "Content-Type: text/html; charset=UTF-8\n"			\
-            "Content-Length: 0\n"		\
+            "Content-Type: image/jpeg\n"			\
+            "Content-Length: "+std::to_string(len)+"\n"		\
             "Accept-Ranges: bytes\n"					\
             "Connection: close\n\n";
           
           conn.write(header);
-          return;
-        }
-        
+          conn.write( std::string((const char*) buffer, len) );
+        });
+      }
+      else
+      {
         //// generate webpage ////
         uint32_t color = rand();
         
@@ -135,7 +158,7 @@ void Service::start()
          << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"	
          << "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
          << "<h2>Now speaks TCP!</h2>"
-         << "<pre>" << std::string((const char*) buffer, len) << "</pre>"
+         << "<img src='smaller2.jpg' />"
          << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
          << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
          << "</body></html>\n";
@@ -158,8 +181,7 @@ void Service::start()
         
         // We don't have to actively close when the http-header says "Connection: close"
         //conn.close();
-        
-      });
+      }
       
     });
   });
