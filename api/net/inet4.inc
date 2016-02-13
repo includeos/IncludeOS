@@ -1,15 +1,15 @@
 //-*- C++ -*-
 #define DEBUG
 #include <os>
-#include <net/inet4.hpp>
 
 namespace net
 {
-  
   template <typename T>  
-  Inet4<T>::Inet4(Nic<T>& nic, IP4::addr ip, IP4::addr netmask) :
-    ip4_addr_(ip), netmask_(netmask), nic_(nic), eth_(nic.mac()), arp_(*this), 
-    ip4_(*this), icmp_(*this), udp_(*this), tcp_(*this), dns(*this), bufstore_(nic.bufstore())
+  Inet4<T>::Inet4(Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
+    : ip4_addr_(ip), netmask_(netmask), router_(IP4::INADDR_ANY), 
+      nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this), 
+      icmp_(*this), udp_(*this), tcp_(*this), dns(*this), 
+      bufstore_(nic.bufstore())
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());          
     INFO("Inet4","Bringing up the IP stack");

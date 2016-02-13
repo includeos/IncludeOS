@@ -27,7 +27,7 @@
 using namespace net;
 
 TCP::TCP(Inet<LinkLayer,IP4>& inet)
-  : inet_(inet), local_ip_(inet.ip_addr()), listeners()
+  : inet_(inet), listeners()
 {
   debug2("<TCP::TCP> Instantiating. Open ports: %i \n", listeners.size()); 
 }
@@ -136,7 +136,7 @@ void TCP::transmit(Packet_ptr pckt){
   tcp_header* hdr = &(full_hdr->tcp_hdr);
   
   // Set source address
-  full_hdr->ip_hdr.saddr.whole = local_ip_.whole;
+  full_hdr->ip_hdr.saddr = inet_.ip_addr();
   
   hdr->set_offset(5);
   hdr->checksum = 0;  

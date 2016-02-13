@@ -246,7 +246,6 @@ namespace net {
     IPStack& inet_;
     
     size_t socket_backlog = 1000;
-    const IP4::addr& local_ip_;
     
     // For each port on this stack (which has one IP), each IP-Port-Pair represents a connection
     // It's the same as the standard "quadruple", except that local IP is implicit in this TCP-object

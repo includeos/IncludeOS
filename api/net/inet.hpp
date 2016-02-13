@@ -35,10 +35,10 @@ public:
   template <typename IPv>
   using resolve_func = delegate<void(Stack&, const std::string&, typename IPv::addr)>;
   
-  virtual const typename IPV::addr& ip_addr() = 0;
-  virtual const typename IPV::addr& netmask() = 0;
-  virtual const typename IPV::addr& router()  = 0;
-  virtual const typename LINKLAYER::addr& link_addr() = 0;
+  virtual typename IPV::addr ip_addr() = 0;
+  virtual typename IPV::addr netmask() = 0;
+  virtual typename IPV::addr router()  = 0;
+  virtual typename LINKLAYER::addr link_addr() = 0;
 
   virtual LINKLAYER& link()   = 0;
   virtual IPV&       ip_obj() = 0;

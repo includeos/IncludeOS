@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_ARP_HPP
 #define NET_ARP_HPP
 
@@ -32,7 +33,7 @@ class Arp {
 private:
   /** ARP cache expires after cache_exp_t_ seconds */
   static constexpr uint16_t cache_exp_t_ {60 * 60 * 12};
-
+  
   /** Cache entries are just MAC's and timestamps */
   struct cache_entry {
     Ethernet::addr mac_;
@@ -40,14 +41,16 @@ private:
     
     /** Map needs empty constructor (we have no emplace yet) */
     cache_entry() noexcept = default;
-
-    cache_entry(Ethernet::addr mac) noexcept : mac_(mac), timestamp_(OS::uptime()) {}
-
-    cache_entry(const cache_entry& cpy) noexcept : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
-
+    
+    cache_entry(Ethernet::addr mac) noexcept
+        : mac_(mac), timestamp_(OS::uptime()) {}
+    
+    cache_entry(const cache_entry& cpy) noexcept
+        : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
+    
     void update() noexcept { timestamp_ = OS::uptime(); }
   }; //< struct cache_entry
-
+  
   using Cache       = std::map<IP4::addr, cache_entry>;
   using PacketQueue = std::map<IP4::addr, Packet_ptr>;
 public:
@@ -56,15 +59,15 @@ public:
    *
    *  We're doing this to keep the Hårek Haugerud mapping (HH_MAP)
    */
-  using Arp_resolver = delegate<int(Packet_ptr packet)>;
-
+  using Arp_resolver = delegate<void(Packet_ptr packet)>;
+  
   enum Opcode { H_request = 0x100, H_reply = 0x200 };
   
   /** Arp opcodes (Big-endian) */
   static constexpr uint16_t H_htype_eth {0x0100};
   static constexpr uint16_t H_ptype_ip4 {0x0008};
   static constexpr uint16_t H_hlen_plen {0x0406};
-
+  
   /** Constructor */
   explicit Arp(Inet<Ethernet, IP4>&) noexcept;
   
@@ -79,16 +82,16 @@ public:
     Ethernet::addr   dhwaddr;   // Target mac
     IP4::addr        dipaddr;   // Target ip
   };
-
+  
   /** Handle incoming ARP packet. */
   void bottom(Packet_ptr pckt);
-
+  
   /** Roll your own arp-resolution system. */
   void set_resolver(Arp_resolver ar)
   { arp_resolver_ = ar; }
   
   enum Resolver_name { DEFAULT, HH_MAP };
-
+  
   void set_resolver(Resolver_name nm) {
     // @TODO: Add HÅREK-mapping here
     switch (nm) {
@@ -103,43 +106,37 @@ public:
   /** Delegate link-layer output. */
   void set_linklayer_out(downstream link)
   { linklayer_out_ = link; }
-
+  
   /** Downstream transmission. */
   void transmit(Packet_ptr);
   
-  /** Get IP4 address */
-  const IP4::addr& ip() const noexcept
-  { return ip_; }
-
 private: 
   Inet<Ethernet, IP4>& inet_;
   
   /** Needs to know which mac address to put in header->swhaddr */
   Ethernet::addr mac_;
-
-  /** Needs to know which IP to respond to */
-  const IP4::addr& ip_;
   
   /** Outbound data goes through here */
   downstream linklayer_out_;
-
+  
   /** The ARP cache */
   Cache cache_;
-
+  
   /** Cache IP resolution. */
-  void cache(IP4::addr&, Ethernet::addr&);
-
+  void cache(IP4::addr, Ethernet::addr);
+  
   /** Check if an IP is cached and not expired */
-  bool is_valid_cached(IP4::addr&);
-
+  bool is_valid_cached(IP4::addr);
+  
   /** ARP resolution. */
-  Ethernet::addr& resolve(IP4::addr&);
-
+  Ethernet::addr resolve(IP4::addr);
+  
   void arp_respond(header* hdr_in);    
-      
-  int hh_map(Packet_ptr);
-  int arp_resolve(Packet_ptr);
-
+  
+  // two different ARP resolvers
+  void arp_resolve(Packet_ptr);
+  void hh_map(Packet_ptr);
+  
   Arp_resolver arp_resolver_ = Arp_resolver::from<Arp, &Arp::arp_resolve>(*this);
   
   PacketQueue waiting_packets_;
@@ -150,6 +147,7 @@ private:
   /** Create a default initialized ARP-packet */
   Packet_ptr createPacket();
 }; //< class Arp
+
 } //< namespace net
 
 #endif //< NET_ARP_HPP
