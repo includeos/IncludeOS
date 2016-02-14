@@ -35,7 +35,8 @@ Connection::Connection(TCP& host, Socket& local, Socket remote) :
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
-	outgoing_packet_(nullptr)
+	receive_buffer_(),
+	send_buffer_()
 {
 
 }
@@ -50,75 +51,92 @@ Connection::Connection(TCP& host, Socket& local) :
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
-	outgoing_packet_(nullptr)
+	receive_buffer_(),
+	send_buffer_()
 {
 	
 }
 
-string Connection::read(size_t buffer_size) {
-	return state_->receive(*this, buffer_size);
+
+size_t Connection::read(char* buffer, size_t n) {
+	printf("<TCP::Connection::read> Reading %u bytes of data from RCV buffer. Total amount of packets stored: %u\n", 
+			n, receive_buffer().size());
+	return state_->receive(*this, buffer, n);
 }
 
-void Connection::write(const std::string& data) {
-	printf("<TCP::Connection::write> Writing data with length %i \n", data.size());
-	state_->send(*this, data);
-	/*int remaining{data.size()};
+// TODO: The n == 0 part.
+std::string Connection::read(size_t n) {
+	char buffer[n];
+	size_t length = read(&buffer[0], n);
+	return {buffer, length};
+}
 
-	do {
-		remaining -= outgoing_packet().fill(data);
-		transmit();
-	} while(remaining);*/
-	/*do {
-		remaining -= last_packet.fill(data);
-
-		if(last_packet.full()) {
-			transmit();
+size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
+	size_t bytes_read = 0;
+	// Read data to buffer until either whole buffer is emptied, or the user got all the data requested.
+	while(!receive_buffer().empty() and bytes_read < n)
+	{
+		// Packet in front
+		auto packet = receive_buffer().front();
+		// Where to begin reading
+		char* begin = packet->data()+rcv_buffer_offset;
+		// Read this iteration
+		size_t total{0};
+		// Remaining bytes to read.
+		size_t remaining = n - bytes_read;
+		// Trying to read over more than one packet
+		if( remaining >= (packet->data_length() - rcv_buffer_offset) ) {
+			// Reading whole packet
+			total = packet->data_length();
+			// Removing packet from receive buffer.
+			receive_buffer().pop();
+			// Next packet will start from beginning.
+			rcv_buffer_offset = 0;
 		}
-
-		if(remaining) {
-			auto packet = outgoing_packet();
-			last_packet.chain(packet);
-			last_packet = packet;
+		// Reading less than one packet.
+		else {
+			total = remaining;
+			rcv_buffer_offset = packet->data_length() - remaining;
 		}
-	} while(remaining);*/
+		printf("<TCP::Connection::read_from_receive_buffer> Buffer: %s, Begin: %s, Bytes: %u \n", buffer, begin, total);
+		memcpy(buffer, begin, total);
+		bytes_read += total;
+	}
+
+	return bytes_read;
 }
 
-int Connection::queue_send(const std::string& data) {
-	std::copy(data.begin(), data.end(), back_inserter(send_buffer_));
-	return data.size();
+bool Connection::add_to_receive_buffer(TCP::Packet_ptr packet) {
+	// TODO: Check for buffer limit.
+	receive_buffer().push(packet);
+	return true;
 }
 
-int Connection::queue_receive(const std::string& data) {
-	std::copy(data.begin(), data.end(), back_inserter(receive_buffer_));
-	return data.size();
+size_t Connection::write(const char* buffer, size_t n) {
+	printf("<TCP::Connection::write> Writing %u bytes of data to SND buffer. \n", n);
+	return state_->send(*this, buffer, n);
 }
 
-void Connection::push_data(bool push) {
-	unsigned int remaining{send_buffer_.size()};	
-	/*
-		The sender of data keeps track of the next sequence number to use in
-		the variable SND.NXT.  The receiver of data keeps track of the next
-		sequence number to expect in the variable RCV.NXT.  The sender of data
-		keeps track of the oldest unacknowledged sequence number in the
-		variable SND.UNA.  If the data flow is momentarily idle and all data
-		sent has been acknowledged then the three variables will be equal.
-
-		When the sender creates a segment and transmits it the sender advances
-		SND.NXT.  When the receiver accepts a segment it advances RCV.NXT and
-		sends an acknowledgment.  When the data sender receives an
-		acknowledgment it advances SND.UNA.  The extent to which the values of
-		these variables differ is a measure of the delay in the communication.
-		The amount by which the variables are advanced is the length of the
-		data in the segment.  Note that once in the ESTABLISHED state all
-		segments must carry current acknowledgment information.
-  	*/
+size_t Connection::write_to_send_buffer(const char* buffer, size_t n) {
+	size_t bytes_written{0};
+	size_t remaining{n};
 	do {
-		auto packet = outgoing_packet();
-		remaining -= packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK).fill(send_buffer_);
-		if(!remaining and push)
+		auto packet = create_outgoing_packet();
+		size_t written = packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK).fill(buffer + (n-remaining), remaining);
+		bytes_written += written;
+		remaining -= written;
+		
+		printf("<TCP::Connection::write_to_send_buffer> Remaining: %u \n", remaining);
+		
+		// If last packet, add PUSH.
+		if(!remaining)
 			packet->set_flag(PSH);
-		transmit();
+
+		// Advance outgoing sequence number (SND.NXT) with the length of the data.
+		control_block.SND.NXT += packet->data_length();
 	} while(remaining);
+
+	return bytes_written;
 }
 
 /*
@@ -138,7 +156,8 @@ void Connection::open(bool active) {
 }
 
 void Connection::close() {
-
+	printf("<TCP::Connection::close> Active close on connection. \n");
+	state_->close(*this);
 }
 
 string Connection::to_string() const {
@@ -185,23 +204,30 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 	packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
 	debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
+	// Will also add the packet to the back of the send queue.
+	send_buffer().push(packet);
+
 	return packet;
 }
 
 void Connection::transmit() {
-	assert(outgoing_packet_ != nullptr);
-	assert(! outgoing_packet_->destination().is_empty());
-
-	printf("<TCP::Connection::transmit> Transmitting packet: %s \n", outgoing_packet_->to_string().c_str());
-	host_.transmit(outgoing_packet_);
-	// Packet is gone. (retransmit timer will still keep a copy)
-	outgoing_packet_ = nullptr;
+	assert(! send_buffer().empty() );
+	
+	printf("<TCP::Connection::transmit> Transmitting [ %i ] number of packets. \n", send_buffer().size());
+	
+	while(! send_buffer_.empty() ) {
+		auto packet = send_buffer().front();
+		assert(! packet->destination().is_empty());
+		printf("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
+		host_.transmit(packet);
+		send_buffer().pop();
+	}
 }
 
 TCP::Packet_ptr Connection::outgoing_packet() {
-	if(outgoing_packet_ == nullptr)
-		outgoing_packet_ = create_outgoing_packet();
-	return outgoing_packet_;
+	if(send_buffer().empty())
+		create_outgoing_packet();
+	return send_buffer().back();
 }
 
 TCP::Seq Connection::generate_iss() {
