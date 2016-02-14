@@ -50,21 +50,6 @@ public:
   
   /** Uptime in seconds. */
   static double uptime();
-  
-  /**
-   *  Receive a byte from port. @todo Should be moved
-   *
-   *  @param port: The port number to receive from
-   */
-  static uint8_t inb(int port);
-  
-  /**
-   *  Send a byte to port. @todo Should be moved to hw/...something
-   *
-   *  @param port:  The port to send to
-	 *  @param data : One byte of data to send to @param port
-   */
-  static void outb(int port, uint8_t data);
     
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
