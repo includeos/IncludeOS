@@ -15,20 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/ioport.hpp>
-#include <hw/pic.hpp>
+#ifndef HW_IOPORT_HPP
+#define HW_IOPORT_HPP
 
-uint16_t PIC::irq_mask_ {0xFFFB};
+#include <common>
 
-void PIC::init() noexcept {
-  IOport::outb(master_ctrl, master_icw1);
-  IOport::outb(slave_ctrl,  slave_icw1);
-  IOport::outb(master_mask, master_icw2);
-  IOport::outb(slave_mask,  slave_icw2);
-  IOport::outb(master_mask, master_icw3);
-  IOport::outb(slave_mask,  slave_icw3);
-  IOport::outb(master_mask, master_icw4);
-  IOport::outb(slave_mask,  slave_icw4);
+class IOport{
+  
+	public:     
+  /** Receive a byte from port.
+      @param port : The port number to receive from
+  */
+  static uint8_t inb(int port);
+  
+  /** Send a byte to port.
+      @param port : The port to send to
+	  @param data : One byte of data to send to @param port
+  */
+  static void outb(int port, uint8_t data);
+};
 
-  set_intr_mask(irq_mask_);
-}
+#endif

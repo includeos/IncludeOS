@@ -25,6 +25,7 @@
 #include <os>
 
 // A private class to handle IRQ
+#include <hw/ioport.hpp>
 #include <hw/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
 
@@ -127,24 +128,11 @@ size_t OS::rsprint(const char* str, const size_t len) {
 	return len;
 }
 
-/* STEAL: Read byte from I/O address space */
-uint8_t OS::inb(int port) {
-  int ret;
-  __asm__ volatile ("xorl %eax,%eax");
-  __asm__ volatile ("inb %%dx,%%al":"=a"(ret):"d"(port));
-  return ret;
-}
-
-/*  Write byte to I/O address space */
-void OS::outb(int port, uint8_t data) {
-  __asm__ volatile ("outb %%al,%%dx"::"a"(data), "d"(port));
-}
-
 /* STEAL: Print to serial port 0x3F8 */
 void OS::rswrite(const char c) {
   /* Wait for the previous character to be sent */
-  while ((inb(0x3FD) & 0x20) != 0x20);
+  while ((IOport::inb(0x3FD) & 0x20) != 0x20);
 
   /* Send the character */
-  outb(0x3F8, c);
+  IOport::outb(0x3F8, c);
 }
