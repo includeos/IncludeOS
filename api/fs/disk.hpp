@@ -29,7 +29,7 @@ namespace fs
 {
   class FileSystem;
   
-  template <int P, typename FS>
+  template <typename FS>
   class Disk
   {
   public:
@@ -64,7 +64,7 @@ namespace fs
     /// initialization ///
     Disk(IDiskDevice& dev);
     
-    /// filesystem functions
+    /// return a reference to the specified filesystem <FS>
     FileSystem& fs()
     {
       return *filesys;
@@ -80,8 +80,8 @@ namespace fs
     std::unique_ptr<FS> filesys;
   };
 
-  template <int P, typename FS>
-  Disk<P, FS>::Disk(IDiskDevice& dev)
+  template <typename FS>
+  Disk<FS>::Disk(IDiskDevice& dev)
     : device(dev)
   {
     filesys.reset(new FS(device));

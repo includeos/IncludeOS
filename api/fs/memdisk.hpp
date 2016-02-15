@@ -31,7 +31,10 @@ namespace fs
   public:
     MemDisk();
     
-    virtual void read_sector(uint32_t blk, on_read_func func) override;
+    virtual void 
+    read_sector(block_t blk, on_read_func func) override;
+    virtual void 
+    read_sectors(block_t start, block_t cnt, on_read_func) override;
     
   private:
     void*  image_start;

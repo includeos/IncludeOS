@@ -19,7 +19,7 @@ namespace fs
     image_end   = &_DISK_END_;
   }
   
-  void MemDisk::read_sector(uint32_t blk, on_read_func func)
+  void MemDisk::read_sector(block_t blk, on_read_func func)
   {
     static const size_t SECTOR_SIZE = 512;
     
@@ -33,6 +33,14 @@ namespace fs
     
     // callback
     func(buffer);
+  }
+  
+  void MemDisk::read_sectors(
+      block_t start, 
+      block_t count, 
+      on_read_func func)
+  {
+    func(nullptr);
   }
   
 }

@@ -84,14 +84,14 @@ void IP4::transmit(Packet_ptr pckt) {
   // Compare subnets to know where to send packet
   pckt->next_hop(target == local ? hdr->daddr : stack_.router());
   
-  printf("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+  debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
       hdr->daddr.str().c_str(),
       stack_.netmask().str().c_str(),
       stack_.ip_addr().str().c_str(),
       stack_.router().str().c_str(),
       target == local ? "DIRECT" : "GATEWAY");
   
-  printf("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
+  debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
       stack_.ip_addr().str().c_str(),
       pckt->next_hop().str().c_str(),
       pckt->size(),

@@ -17,7 +17,7 @@ using namespace fs;
 MemDisk device;
 
 // describe a disk with FAT32 mounted on partition 0 (MBR)
-using MountedDisk = fs::Disk<0, FAT32>;
+using MountedDisk = fs::Disk<FAT32>;
 // disk with filesystem
 std::unique_ptr<MountedDisk> disk;
 
@@ -58,8 +58,6 @@ void Service::start()
       {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
           e.type_string().c_str(), e.name.c_str(), e.size, e.block);
-        
-        printf("--> %s\n", e.type_string().c_str());
         
         if (e.type == FileSystem::FILE)
         {
@@ -185,8 +183,6 @@ void Service::start()
       
     });
   });
-  
-  printf("[!]  Inet4 IP is %s\n",  inet->ip_addr().str().c_str());
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

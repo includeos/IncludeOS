@@ -26,13 +26,15 @@
 class IDiskDevice
 {
 public:
+  typedef uint64_t block_t;
+  
   // To be used by caching mechanism for disk drivers
   typedef std::shared_ptr<void*> buffer;
   // Delegate for result of reading a disk sector
   typedef std::function<void(const void*)> on_read_func;
   
-  virtual void read_sector(uint32_t blk, on_read_func func) = 0;
-  
+  virtual void read_sector(block_t blk, on_read_func func) = 0;
+  virtual void read_sectors(block_t start, block_t count, on_read_func) = 0;
 };
 
 #endif
