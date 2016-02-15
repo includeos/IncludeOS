@@ -23,6 +23,7 @@
 #include <net/ip4/packet_ip4.hpp> // PacketIP4
 #include <net/util.hpp> // net::Packet_ptr, htons / noths
 #include <vector>
+#include <queue>
 #include <map>
 #include <sstream>
 
@@ -235,7 +236,7 @@ public:
     		set_win_size(TCP::default_window_size);
 
 	      	// set TCP payload location (!?)
-    		payload_ = buffer() + sizeof(TCP::Full_header);
+    		set_payload(buffer() + sizeof(TCP::Full_header));
     	}
 
     	// GETTERS
@@ -298,10 +299,6 @@ public:
     		return *this;
     	}
 
-    	inline TCP::Packet& set_urgent(uint16_t offset) {
-    		header().urgent = htons(offset);
-    	}
-
     	inline TCP::Packet& set_source(const TCP::Socket& src) {
     		set_src(src.address()); // PacketIP4::set_src
     		set_src_port(src.port());
@@ -323,6 +320,16 @@ public:
 
     	inline TCP::Packet& set_flags(uint16_t f) { 
     		header().set_flags(f);
+    		return *this;
+    	}
+
+    	inline TCP::Packet& clear_flag(TCP::Flag f) {
+    		header().clear_flag(f);
+    		return *this;
+    	}
+
+    	inline TCP::Packet& clear_flags() {
+    		header().clear_flags();
     		return *this;
     	}
 
@@ -367,13 +374,13 @@ public:
 	    //! assuming the packet has been properly initialized,
 	    //! this will fill bytes from @buffer into this packets buffer,
 	    //! then return the number of bytes written. buffer is unmodified
-    	uint32_t fill(const std::vector<unsigned char>& send_buffer)
+    	uint32_t fill(const char* buffer, size_t length)
     	{
-    		uint32_t rem = capacity();
-    		uint32_t total = (send_buffer.size() < rem) ? send_buffer.size() : rem;
+    		uint32_t rem = capacity() - HEADERS_SIZE;
+    		uint32_t total = (length < rem) ? length : rem;
       		// copy from buffer to packet buffer
-    		//memcpy(data() + data_length(), buffer.data(), total);
-    		std::move(send_buffer.begin(), send_buffer.begin()+total, buffer() + HEADERS_SIZE);
+    		memcpy(data() + data_length(), buffer, total);
+    		//std::copy(send_buffer.begin(), send_buffer.begin()+total, buffer() + HEADERS_SIZE);
       		// set new packet length
     		set_length(data_length() + total);
     		return total;
@@ -388,7 +395,6 @@ public:
     	}
 
 	}; // << class TCP::Packet
-
 
 	/*
 		TODO: Implement.
@@ -424,7 +430,7 @@ public:
 		/*
 			Buffer
 		*/
-		using Buffer = std::vector<unsigned char>;
+		using Buffer = std::queue<TCP::Packet_ptr>;
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -441,13 +447,13 @@ public:
 				Write to a Connection.
 				SEND
 			*/
-			virtual void send(Connection&, const std::string&, bool push = false);
+			virtual size_t send(Connection&, const char* buffer, size_t n, bool push = false);
 
 			/*
 				Read from a Connection.
 				RECEIVE
 			*/
-			virtual std::string receive(Connection&, size_t buffer_size);
+			virtual size_t receive(Connection&, char* buffer, size_t n);
 			
 			/*
 				Close a Connection.
@@ -470,10 +476,17 @@ public:
 		protected:		
 			/*
 				Helper functions
+				TODO: Clean up names.
 			*/
-			bool check_sequence(Connection&, TCP::Packet_ptr);
+			virtual bool check_seq(Connection&, TCP::Packet_ptr);
 
-			bool unallowed_syn_reset_connection(Connection&, TCP::Packet_ptr);
+			virtual void unallowed_syn_reset_connection(Connection&, TCP::Packet_ptr);
+
+			virtual bool check_ack(Connection&, TCP::Packet_ptr);
+
+			virtual void process_segment(Connection&, TCP::Packet_ptr);
+
+			virtual void process_fin(Connection&, TCP::Packet_ptr);
 
 		}; // < class TCP::Connection::State
 
@@ -497,11 +510,6 @@ public:
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
 			
-			Note:
-			What I can read from the RFC, the TCB **is** what I am calling "Connection".
-			Question is if the struct TCB is needed, or if Connection should be renamed TCB, 
-			and expose the interface Connection to users.
-
 			RFC 793: Page 19
 			Among the variables stored in the
   			TCB are the local and remote socket numbers, the security and
@@ -567,18 +575,26 @@ public:
 
 		/*
 			Set remote Socket bound to this connection.
+			@WARNING: Should this be public? Used by TCP.
 		*/
 		inline void set_remote(Socket remote) { remote_ = remote; }
+
 
 		/*
 			Read content from remote.
 		*/
-		std::string read(size_t buffer_size = 0);
+		size_t read(char* buffer, size_t n);
+
+		/*
+			Read n bytes into a string.
+			Default 1024 bytes.
+		*/
+		std::string read(size_t n = 1024);
 
 		/*
 			Write content to remote.
 		*/
-		void write(const std::string& data);
+		size_t write(const char* buffer, size_t n);
 
 		/*
 			Open connection.
@@ -654,13 +670,6 @@ public:
 		inline Connection::State& prev_state() const { return *prev_state_; }
 
 		/*
-			Returns the control_block.
-
-			@WARNING: Public, for use in sub-state.
-		*/
-		inline Connection::TCB& tcb() { return control_block; }
-
-		/*
 			Calculates and return bytes transmitted.
 		*/
 		inline uint32_t bytes_transmitted() const {
@@ -720,34 +729,45 @@ public:
 		~Connection();
 
 	private:
-		/* "Parent" for Connection. */
+		/* 
+			"Parent" for Connection.
+		*/
 		TCP& host_;				// 4 B
 
-		/* End points. */
-		//TCP::Socket local_;		// 8~ B
-		TCP::Port local_port_;
+		/* 
+			End points.
+		*/
+		TCP::Port local_port_;	// 2 B
 		TCP::Socket remote_;	// 8~ B
 
-		/* The current state the Connection is in. Handles most of the logic. */
+		/* 
+			The current state the Connection is in. 
+			Handles most of the logic. 
+		*/
 		State* state_;			// 4 B
-		// Used for SYN-RECV if RST isset.
+		// Previous state. Used to keep track of state transitions.
 		State* prev_state_;		// 4 B
 		
-		/* Keep tracks of all sequence variables */
+		/* 
+			Keep tracks of all sequence variables.
+		*/
 		TCB control_block;		// 36 B
 
-		/* "User" buffers. */
+		/* 
+			Buffers
+		*/
 		Buffer receive_buffer_;
 		Buffer send_buffer_;
-		
-		/* Current outgoing packet. */
-		TCP::Packet_ptr outgoing_packet_;
+		// How far in the most front packet is read.
+		uint32_t rcv_buffer_offset = 0;
 
 		
-		/// Callbacks for TCP events. ///
+		/// CALLBACK HANDLING ///
 		
 		/* When Connection is ESTABLISHED. */
-		ConnectCallback on_connect_;
+		ConnectCallback on_connect_ = [](Connection& conn) {
+			printf("<TCP::Connection::@Connect> Connected.");
+		};
 		
 		/* When Connection is CLOSING. */
 		DisconnectCallback on_disconnect_ = [](Connection& conn, std::string msg) {
@@ -772,39 +792,9 @@ public:
 
 		/* When a packet is dropped. */
 		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr packet, std::string reason) { 
-			printf("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", packet->to_string().c_str(), reason.c_str()); 
+			printf("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", 
+				packet->to_string().c_str(), reason.c_str()); 
 		};
-		
-
-		/*
-			Transmit outgoing_packet_.
-		*/
-		void transmit();
-
-		/*
-			Creates a new outgoing packet.
-		*/
-		TCP::Packet_ptr create_outgoing_packet();
-
-		/*
-		 	Outgoing packet
-		*/
-	 	TCP::Packet_ptr outgoing_packet();
-
-		/*
-			Generate a new ISS.
-		*/
-		TCP::Seq generate_iss();
-
-		/*
-			Set state. (used by substates)
-		*/
-		inline void set_state(State& state) {
-			prev_state_ = state_;
-			state_ = &state;
-			printf("<TCP::Connection::set_state> State changed for %p: %s => %s \n", 
-					this, prev_state_->to_string().c_str(), state_->to_string().c_str());
-		}
 
 		/*
 			Invoke/signal the diffrent TCP events.
@@ -821,29 +811,36 @@ public:
 
 		inline void signal_packet_dropped(TCP::Packet_ptr packet, std::string reason) { on_packet_dropped_(packet, reason); }
 
-
-		/*
-			Queue data to SEND buffer.
-			Returns data length (?)
-		*/
-		int queue_send(const std::string& data);
-		
-		/*
-			Queue data to RECEIVE buffer.
-			Returns data length (?)
-		*/
-		int queue_receive(const std::string& data);
-
-		/*
-			Create packets of data and transmit it.
-		*/
-		void push_data(bool PUSH = false);
-
 		/*
 			Drop a packet. Used for debug/callback.
 		*/
 		inline void drop(TCP::Packet_ptr packet, std::string reason) { signal_packet_dropped(packet, reason); }
 		inline void drop(TCP::Packet_ptr packet) { drop(packet, "None given."); }
+
+
+		/// TCB HANDLING ///
+
+		/*
+			Returns the TCB.
+		*/
+		inline Connection::TCB& tcb() { return control_block; }
+
+		/*
+			Generate a new ISS.
+		*/
+		TCP::Seq generate_iss();
+
+
+		/// STATE HANDLING ///
+		/*
+			Set state. (used by substates)
+		*/
+		inline void set_state(State& state) {
+			prev_state_ = state_;
+			state_ = &state;
+			printf("<TCP::Connection::set_state> State changed for %p: %s => %s \n", 
+					this, prev_state_->to_string().c_str(), state_->to_string().c_str());
+		}
 
 		/*
 			Helper function for state checks.
@@ -851,17 +848,45 @@ public:
 		inline bool is_state(const std::string& state) const { 
 			return state == state_->to_string();
 		}
+
+
+		/// BUFFER HANDLING ///
+
+		/*
+			Read from receive buffer.
+		*/
+		size_t read_from_receive_buffer(char* buffer, size_t n);
+
+		/*
+			Add(queue) a packet to the receive buffer.
+		*/
+		bool add_to_receive_buffer(TCP::Packet_ptr packet);
 		
+		/*
+			Write to the send buffer. Segmentize into packets.
+		*/
+		size_t write_to_send_buffer(const char* buffer, size_t n);
+
+		/*
+			Transmit the send buffer.
+		*/
+		void transmit();
+
+		/*
+			Creates a new outgoing packet and put it in the back of the send buffer.
+		*/
+		TCP::Packet_ptr create_outgoing_packet();
+
+		/*
+		 	Returns the packet in the back of the send buffer.
+		 	If the send buffer is empty, it creates a new packet and adds it.
+		*/
+	 	TCP::Packet_ptr outgoing_packet();		
 
 	}; // < class TCP::Connection
 
 
-	////// USER INTERFACE - TCP //////
-	/*
-		Callback for Connection
-	*/
-	//using ConnectionCallback = Connection::DataCallback;
-	//using ConnectionErrorCallback = Connection::ErrorCallback;
+	/// USER INTERFACE - TCP ///
 
 	/*
 		Constructor

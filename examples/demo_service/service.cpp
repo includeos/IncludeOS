@@ -54,13 +54,19 @@ void Service::start() {
   
   srand(OS::cycles_since_boot());
   
-  printf("<Service> Connection: %s", conn.to_string().c_str());
+  printf("<Service> Connection: %s \n", conn.to_string().c_str());
   // Add a TCP connection handler - here a hardcoded HTTP-service
   conn.onData([](net::TCP::Connection& conn, bool push) {
-      auto data = conn.read();
+      std::string data = conn.read(1024);
       printf("<Service> onData: \n %s \n", data.c_str());
-      printf("<Service> TCP STATUS:\n%s", conn.host().status().c_str());
-      conn.write("HTTP/1.1 200 OK \n\n");
+      printf("<Service> TCP STATUS:\n%s \n", conn.host().status().c_str());
+      std::stringstream ss;
+      for(int i = 0; i < 1500; i++) {
+        ss << (char)i;
+      }
+      std::string output{"HTTP/1.1 200 OK \n\n <html>" + ss.str() + "</html>"};
+      conn.write(output.data(), output.size());
+      //conn.close();
   }).onDisconnect([](net::TCP::Connection& conn, std::string msg) {
       printf("<Service> onDisconnect: %s \n", msg.c_str());
       printf("<Service> TCP STATUS:\n%s", conn.host().status().c_str());
