@@ -21,6 +21,8 @@
 #include "../kernel/os.hpp"
 #include "ioport.hpp"
 
+namespace hw {
+
 class PIC {
 public:
   static void init() noexcept;
@@ -43,9 +45,9 @@ public:
 
   inline static void eoi(const uint8_t irq) noexcept {
     if (irq >= 8) {
-      IOport::outb(slave_ctrl, eoi_);
+      hw::outb(slave_ctrl, eoi_);
     }
-    IOport::outb(master_ctrl, eoi_);
+    hw::outb(master_ctrl, eoi_);
   }
   
   /* Returns the combined value of the cascaded PICs irq request register */
@@ -84,8 +86,8 @@ private:
   static uint16_t irq_mask_;
     
   inline static void set_intr_mask(uint32_t mask) noexcept {
-    IOport::outb(master_mask, static_cast<uint8_t>(mask));
-    IOport::outb(slave_mask,  static_cast<uint8_t>(mask >> 8));
+    hw::outb(master_mask, static_cast<uint8_t>(mask));
+    hw::outb(slave_mask,  static_cast<uint8_t>(mask >> 8));
   }
 
   /* Helper func */
@@ -94,10 +96,12 @@ private:
      * OCW3 to PIC CMD to get the register values.  PIC2 is chained, and
      * represents IRQs 8-15.  PIC1 is IRQs 0-7, with 2 being the chain
      */
-    IOport::outb(master_ctrl, ocw3);
-    IOport::outb(master_ctrl, ocw3);
-    return (IOport::inb(slave_ctrl) << 8) | IOport::inb(master_ctrl);
+    hw::outb(master_ctrl, ocw3);
+    hw::outb(master_ctrl, ocw3);
+    return (hw::inb(slave_ctrl) << 8) | hw::inb(master_ctrl);
   }
 }; //< class PIC
+
+} //< namespace hw
 
 #endif //< HW_PIC_HPP

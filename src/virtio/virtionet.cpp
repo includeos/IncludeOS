@@ -42,7 +42,7 @@ static void drop(Packet_ptr UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
 }
 
-VirtioNet::VirtioNet(PCI_Device& d)
+VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
@@ -192,7 +192,7 @@ void VirtioNet::irq_handler(){
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
-  unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
+  unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
   
   // Step 2. A) - one of the queues have changed
   if (isr & 1){

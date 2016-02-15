@@ -20,19 +20,28 @@
 
 #include <common>
 
-class IOport{
-  
-	public:     
+namespace hw {
+
   /** Receive a byte from port.
       @param port : The port number to receive from
   */
-  static uint8_t inb(int port);
-  
+  static inline uint8_t inb(int port)
+  {
+    int ret;
+    __asm__ volatile ("xorl %eax,%eax");
+    __asm__ volatile ("inb %%dx,%%al":"=a" (ret):"d"(port));
+
+    return ret;
+  }
+
   /** Send a byte to port.
       @param port : The port to send to
-	  @param data : One byte of data to send to @param port
+      @param data : One byte of data to send to @param port
   */
-  static void outb(int port, uint8_t data);
-};
+  static inline void outb(int port, uint8_t data) {
+    __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
+  }
 
-#endif
+} //< namespace hw
+
+#endif // HW_IOPORT_HPP

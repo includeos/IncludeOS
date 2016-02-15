@@ -111,10 +111,10 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
     
     /** Initialize with static IP / netmask */
-    Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
+    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask);
     
     /** Initialize with DHCP  */
-    Inet4(Nic<DRIVER>& nic); 
+    Inet4(hw::Nic<DRIVER>& nic);
     
     virtual void
     network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
@@ -134,7 +134,7 @@ namespace net {
     IP4::addr dns_server;
     
     // This is the actual stack
-    Nic<DRIVER>& nic_;
+	hw::Nic<DRIVER>& nic_;
     Ethernet eth_;
     Arp arp_;
     IP4  ip4_;

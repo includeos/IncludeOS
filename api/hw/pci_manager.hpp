@@ -26,11 +26,11 @@
 
 class PCI_manager {
 private:
-  using Device_Registry = std::unordered_map<PCI::classcode_t, std::vector<PCI_Device>>;
+  using Device_Registry = std::unordered_map<PCI::classcode_t, std::vector<hw::PCI_Device>>;
 
 public:
   template <PCI::classcode_t CLASS>
-  static PCI_Device& device(const int n) noexcept {
+  static hw::PCI_Device& device(const int n) noexcept {
     return devices_[CLASS][n];
   };
 

@@ -24,6 +24,8 @@
 #include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
 
+namespace hw {
+
 /**
  *  A public interface for Network cards
  *
@@ -86,5 +88,7 @@ public:
 
 /** Hopefully somebody will port a driver for this one */
 class RTL8139;
+
+} //< namespace hw
 
 #endif // NIC_HPP

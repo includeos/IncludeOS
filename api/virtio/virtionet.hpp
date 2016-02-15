@@ -216,7 +216,7 @@ public:
   void transmit(net::Packet_ptr pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(PCI_Device& pcidev);
+  VirtioNet(hw::PCI_Device& pcidev);
     
 
 };
