@@ -36,7 +36,7 @@ void Service::start()
   disk = std::make_unique<MountedDisk> (device);
   
   // mount the main partition in the Master Boot Record
-  disk->fs().mount(MountedDisk::PART_MBR,
+  disk->mount(MountedDisk::PART_MBR,
   [] (fs::error_t err)
   {
     if (err)

@@ -30,7 +30,7 @@ namespace fs
       
       if (!data)
       {
-        func(false, parts);
+        func(true, parts);
         return;
       }
       
@@ -53,8 +53,15 @@ namespace fs
             mbr->part[i].sectors);
       }
       
-      func(true, parts);
+      func(no_error, parts);
     });
+  }
+  
+  template <typename FS>
+  void Disk<FS>::mount(partition_t part, on_mount_func func)
+  {
+    // assume MBR for now
+    fs().mount(0, func);
   }
   
   template <typename FS>

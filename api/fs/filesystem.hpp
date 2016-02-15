@@ -24,12 +24,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "error.hpp"
 
 namespace fs
 {
-  typedef bool error_t;
-  extern error_t no_error;
-  
   class FileSystem
   {
   public:
@@ -81,9 +79,8 @@ namespace fs
     typedef std::function<void(error_t, const Dirent&)> on_stat_func;
     
     
-    // 0   = Mount MBR
-    // 1-4 = Mount VBR 1-4
-    virtual void mount(uint8_t partid, on_mount_func on_mount) = 0;
+    // mount this filesystem with LBA at @base_sector
+    virtual void mount(uint64_t lba, on_mount_func on_mount) = 0;
     
     // path is a path in the mounted filesystem
     virtual void ls(const std::string& path, on_ls_func) = 0;

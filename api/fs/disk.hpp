@@ -24,6 +24,7 @@
 #include <memory>
 #include <vector>
 #include "disk_device.hpp"
+#include "error.hpp"
 
 namespace fs
 {
@@ -33,11 +34,16 @@ namespace fs
   class Disk
   {
   public:
-    static const uint8_t PART_MBR = 0;
-    static const uint8_t PART_VBR1 = 1;
-    static const uint8_t PART_VBR2 = 2;
-    static const uint8_t PART_VBR3 = 3;
-    static const uint8_t PART_VBR4 = 4;
+    enum partition_t
+    {
+      // master boot record (0)
+      PART_MBR = 0,
+      // extended partitions (1-4)
+      PART_VBR1,
+      PART_VBR2,
+      PART_VBR3,
+      PART_VBR4
+    };
     
     struct Partition
     {
@@ -49,7 +55,7 @@ namespace fs
       uint32_t lba_begin;
       uint32_t sectors;
       
-      bool is_boot() const
+      bool is_boot() const noexcept
       {
         return flags & 0x1;
       }
@@ -58,8 +64,8 @@ namespace fs
     };
     
     /// callbacks  ///
-    typedef std::function<void(bool, std::vector<Partition>&)> on_parts_func;
-    typedef std::function<void(bool)> on_init_func;
+    typedef std::function<void(error_t, std::vector<Partition>&)> on_parts_func;
+    typedef std::function<void(error_t)> on_mount_func;
     
     /// initialization ///
     Disk(IDiskDevice& dev);
@@ -71,6 +77,9 @@ namespace fs
     }
     
     /// disk functions ///
+    // mount selected filesystem
+    void mount(partition_t part, on_mount_func func);
+    
     // returns a vector of the partitions on a disk
     // the disk does not need to be mounted beforehand
     void partitions(on_parts_func func);
@@ -79,7 +88,7 @@ namespace fs
     IDiskDevice& device;
     std::unique_ptr<FS> filesys;
   };
-
+  
   template <typename FS>
   Disk<FS>::Disk(IDiskDevice& dev)
     : device(dev)

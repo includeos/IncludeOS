@@ -110,11 +110,13 @@ namespace fs
     debug("System ID: %.8s\n", bpb->system_id);
   }
   
-  void FAT32::mount(uint8_t partid, on_mount_func on_mount)
+  void FAT32::mount(uint64_t lba, on_mount_func on_mount)
   {
-    // read Master Boot Record (sector 0)
-    device.read_sector(0,
-    [this, partid, on_mount] (const void* data)
+    this->base_lba = lba;
+    
+    // read Partition block
+    device.read_sector(this->base_lba,
+    [this, on_mount] (const void* data)
     {
       auto* mbr = (MBR::mbr*) data;
       assert(mbr != nullptr);
@@ -123,10 +125,6 @@ namespace fs
       debug("OEM name: \t%s\n", mbr->oem_name);
       debug("MBR signature: \t0x%x\n", mbr->magic);
       assert(mbr->magic == 0xAA55);
-      
-      /// the mount partition id tells us the LBA offset to the volume
-      // assume MBR for now
-      assert(partid == 0);
       
       // initialize FAT16 or FAT32 filesystem
       init(mbr);

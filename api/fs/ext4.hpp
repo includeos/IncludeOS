@@ -46,7 +46,7 @@ namespace fs
     
     // 0   = Mount MBR
     // 1-4 = Mount VBR 1-4
-    virtual void mount(uint8_t partid, on_mount_func on_mount) override;
+    virtual void mount(uint64_t lba, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
     virtual void ls(const std::string& path, on_ls_func) override;

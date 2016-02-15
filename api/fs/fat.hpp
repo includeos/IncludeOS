@@ -34,7 +34,7 @@ namespace fs
     /// ----------------------------------------------------- ///
     // 0   = Mount MBR
     // 1-4 = Mount VBR 1-4
-    virtual void mount(uint8_t partid, on_mount_func on_mount) override;
+    virtual void mount(uint64_t lba, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
     virtual void ls(const std::string& path, on_ls_func) override;
@@ -169,7 +169,10 @@ namespace fs
     // device we can read and write sectors to
     IDiskDevice& device;
     
-    // private members
+    /// private members ///
+    // the location of this filesystem in LBA
+    uint32_t base_lba;
+    
     uint16_t sector_size; // from bytes_per_sector
     uint32_t sectors;   // total sectors in partition
     uint32_t clusters;  // number of indexable FAT clusters
