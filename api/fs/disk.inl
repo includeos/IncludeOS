@@ -60,8 +60,37 @@ namespace fs
   template <typename FS>
   void Disk<FS>::mount(partition_t part, on_mount_func func)
   {
-    // assume MBR for now
-    fs().mount(0, func);
+    // for the MBR case, all we need to do is mount on sector 0
+    if (part == PART_MBR)
+    {
+      fs().mount(0, func);
+    }
+    else
+    {
+      // otherwise, we will have to read the LBA offset
+      // of the partition to be mounted
+      device.read_sector(0,
+      [this, part, func] (const void* data)
+      {
+        if (!data)
+        {
+          // TODO: error-case for unable to read MBR
+          func(true);
+          return;
+        }
+        
+        // treat data as MBR
+        auto* mbr = (MBR::mbr*) data;
+        // treat VBR1 as index 0 etc.
+        int pint = (int) part - 1;
+        // get LBA from selected partition
+        uint32_t lba = mbr->part[pint].lba_begin;
+        
+        // call the filesystems mount function
+        // with lba_begin as base address
+        fs().mount(lba, func);
+      });
+    }
   }
   
   template <typename FS>
