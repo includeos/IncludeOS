@@ -26,6 +26,7 @@
 #include <queue>
 #include <map>
 #include <sstream>
+#include <chrono>
 
 namespace net {
 
@@ -437,6 +438,11 @@ public:
 		*/
 		class State {
 		public:
+			enum Result {
+				CLOSED = -1,
+				OK = 0,
+				CLOSE = 1
+			};
 			/*
 				Open a Connection.
 				OPEN
@@ -465,7 +471,7 @@ public:
 				Handle a Packet
 				SEGMENT ARRIVES
 			*/
-			virtual int handle(Connection&, TCP::Packet_ptr in);
+			virtual Result handle(Connection&, TCP::Packet_ptr in);
 
 			/*
 				The current state represented as a string.
@@ -597,6 +603,13 @@ public:
 		size_t write(const char* buffer, size_t n);
 
 		/*
+			Write a string to the remote.
+		*/
+		inline void write(const std::string& content) {
+			write(content.data(), content.size());
+		}
+
+		/*
 			Open connection.
 		*/
 		void open(bool active = false);
@@ -655,6 +668,14 @@ public:
 		}
 
 		/*
+			Set callback for when a connection is closing.
+		*/
+		/*inline Connection& onClose(CloseCallback callback) {
+			on_close_ = callback;
+			return *this;
+		}*/
+
+		/*
 			Represent the Connection as a string (STATUS).
 		*/
 		std::string to_string() const;
@@ -686,7 +707,7 @@ public:
 		/*
 			Return the id (TUPLE) of the connection.
 		*/
-		inline Connection::Tuple tuple() {
+		inline Connection::Tuple tuple() const {
 			return {local(), remote_};
 		}
 
@@ -760,6 +781,11 @@ public:
 		Buffer send_buffer_;
 		// How far in the most front packet is read.
 		uint32_t rcv_buffer_offset = 0;
+
+		/*
+			When time-wait timer was started.
+		*/
+		uint64_t time_wait_started;
 
 		
 		/// CALLBACK HANDLING ///
@@ -865,12 +891,17 @@ public:
 		/*
 			Write to the send buffer. Segmentize into packets.
 		*/
-		size_t write_to_send_buffer(const char* buffer, size_t n);
+		size_t write_to_send_buffer(const char* buffer, size_t n, bool PUSH = true);
 
 		/*
 			Transmit the send buffer.
 		*/
 		void transmit();
+
+		/*
+			Transmit the packet.
+		*/
+		void transmit(TCP::Packet_ptr);
 
 		/*
 			Creates a new outgoing packet and put it in the back of the send buffer.
@@ -882,6 +913,30 @@ public:
 		 	If the send buffer is empty, it creates a new packet and adds it.
 		*/
 	 	TCP::Packet_ptr outgoing_packet();		
+
+	 	
+	 	/// RETRANSMISSION ///
+
+	 	/*
+	 		Starts a retransmission timer that retransmits the packet when RTO has passed.
+	 		
+	 		// TODO: Calculate RTO, currently hardcoded to 1 second (1000ms).
+	 	*/
+	 	void add_retransmission(TCP::Packet_ptr);
+
+	 	/*
+			Measure the elapsed time between sending a data octet with a
+      		particular sequence number and receiving an acknowledgment that
+      		covers that sequence number (segments sent do not have to match
+      		segments received).  This measured elapsed time is the Round Trip
+      		Time (RTT).
+	 	*/
+	 	//std::chrono::milliseconds RTT() const;
+  		std::chrono::milliseconds RTO() const;
+
+	 	void start_time_wait_timeout();
+
+	 	void signal_close();
 
 	}; // < class TCP::Connection
 
@@ -911,6 +966,13 @@ public:
 	/*
 		Active open a new connection to the given remote.
 	*/
+	inline Connection& connect(TCP::Address address, Port port = 80) { 
+		return connect({address, port}); 
+	}
+
+	/*
+		Active open a new connection to the given remote.
+	*/
 	void connect(Socket remote, Connection::ConnectCallback);
 
 	/*
@@ -934,6 +996,13 @@ public:
 	inline size_t openPorts() { return listeners.size(); }
 
 	/*
+		Maximum Segment Lifetime
+	*/
+	inline auto MSL() const {
+		return MAX_SEG_LIFETIME;
+	}
+
+	/*
 		Show all connections for TCP as a string.
 	*/
 	std::string status() const;
@@ -947,6 +1016,8 @@ private:
 	downstream _network_layer_out;
 
 	TCP::Port current_ephemeral_ = 1024;
+
+	std::chrono::milliseconds MAX_SEG_LIFETIME;
 	
 	/*
 		Transmit packet to network layer (IP).
@@ -972,6 +1043,11 @@ private:
 		Add a Connection.
 	*/
 	TCP::Connection& add_connection(TCP::Socket& local, TCP::Socket remote);
+
+	/*
+		Close and delete the connection.
+	*/
+	void close_connection(TCP::Connection&);
 
 
 }; // < class TCP

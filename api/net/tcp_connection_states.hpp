@@ -46,7 +46,7 @@ public:
 
 		=> SynSent
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSED";
@@ -73,7 +73,7 @@ public:
 
 		=> SynReceived.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "LISTENING";
@@ -100,7 +100,7 @@ public:
 
 		=> Established.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "SYN-SENT";
@@ -127,7 +127,7 @@ public:
 
 		=> Established.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "SYN-RCV";
@@ -153,7 +153,7 @@ public:
 	/*
 		
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	/*
 		-> Receive FIN.
@@ -182,6 +182,8 @@ public:
 		static CloseWait instance;
 		return instance;
 	}
+
+	inline void close(TCP::Connection&) override;
 	/*
 		-> Nothing I think...
 
@@ -189,7 +191,7 @@ public:
 		
 		=> LastAck
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSE-WAIT";
@@ -213,7 +215,7 @@ public:
 
 		=> FinWait2.
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-1";
@@ -235,7 +237,7 @@ public:
 	/*
 		
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-2";
@@ -260,7 +262,7 @@ public:
 
 		=> Closed (Tell TCP to remove this connection)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "LAST-ACK";
@@ -284,7 +286,7 @@ public:
 
 		=> TimeWait (Guess this isnt needed, just start a Close-timer)
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSING";
@@ -306,7 +308,7 @@ public:
 	/*
 		
 	*/
-	virtual int handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "TIME-WAIT";

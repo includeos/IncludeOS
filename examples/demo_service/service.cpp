@@ -50,7 +50,6 @@ void Service::start() {
   
   // Set up a TCP server on port 80
   net::TCP::Connection& conn =  inet->tcp().bind(80);
-
   
   srand(OS::cycles_since_boot());
   
@@ -60,17 +59,57 @@ void Service::start() {
       std::string data = conn.read(1024);
       printf("<Service> onData: \n %s \n", data.c_str());
       printf("<Service> TCP STATUS:\n%s \n", conn.host().status().c_str());
-      std::stringstream ss;
-      for(int i = 0; i < 1500; i++) {
-        ss << (char)i;
-      }
-      std::string output{"HTTP/1.1 200 OK \n\n <html>" + ss.str() + "</html>"};
+      int color = rand();
+      std::stringstream stream;
+ 
+      /* HTML Fonts */
+      std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
+      std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
+      std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
+      
+      /* HTML */
+      stream << "<html><head>"
+       << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
+       << "</head><body>"
+       << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"  
+       <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
+       <<  "<h2>Now speaks TCP!</h2>"
+  // .... generate more dynamic content 
+       << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
+       << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
+       << "</body></html>\n";
+      
+      /* HTTP-header */
+      std::string html = stream.str();
+      std::string header="HTTP/1.1 200 OK \n "        \
+  "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
+  "Server: IncludeOS prototype 4.0 \n"        \
+  "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
+  "Content-Type: text/html; charset=UTF-8 \n"     \
+  "Content-Length: "+std::to_string(html.size())+"\n"   \
+  "Accept-Ranges: bytes\n"          \
+  "Connection: close\n\n";
+      
+      std::string output{header + html};
       conn.write(output.data(), output.size());
       //conn.close();
   }).onDisconnect([](net::TCP::Connection& conn, std::string msg) {
       printf("<Service> onDisconnect: %s \n", msg.c_str());
       printf("<Service> TCP STATUS:\n%s", conn.host().status().c_str());
+      //conn.close();
   });
+
+  // Set up a Active conneciton
+  /*net::TCP::Connection& active_con = inet->tcp().connect({{23,235,43,133}});
+
+  active_con.onConnect([](net::TCP::Connection& conn) {
+      std::string request{"GET / HTTP/1.1 \n"};
+      conn.write(request.data(), request.size());
+  }).onData([](net::TCP::Connection& conn, bool PUSH) {
+
+  }).onDisconnect([](net::TCP::Connection& conn, std::string msg) {
+
+  });*/
 
   printf("*** TEST SERVICE STARTED *** \n");
 

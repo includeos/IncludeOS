@@ -36,7 +36,8 @@ Connection::Connection(TCP& host, Socket& local, Socket remote) :
 	prev_state_(state_),
 	control_block(),
 	receive_buffer_(),
-	send_buffer_()
+	send_buffer_(),
+	time_wait_started(0)
 {
 
 }
@@ -52,7 +53,8 @@ Connection::Connection(TCP& host, Socket& local) :
 	prev_state_(state_),
 	control_block(),
 	receive_buffer_(),
-	send_buffer_()
+	send_buffer_(),
+	time_wait_started(0)
 {
 	
 }
@@ -98,7 +100,6 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 			total = remaining;
 			rcv_buffer_offset = packet->data_length() - remaining;
 		}
-		printf("<TCP::Connection::read_from_receive_buffer> Buffer: %s, Begin: %s, Bytes: %u \n", buffer, begin, total);
 		memcpy(buffer, begin, total);
 		bytes_read += total;
 	}
@@ -117,7 +118,7 @@ size_t Connection::write(const char* buffer, size_t n) {
 	return state_->send(*this, buffer, n);
 }
 
-size_t Connection::write_to_send_buffer(const char* buffer, size_t n) {
+size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH) {
 	size_t bytes_written{0};
 	size_t remaining{n};
 	do {
@@ -129,7 +130,7 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n) {
 		printf("<TCP::Connection::write_to_send_buffer> Remaining: %u \n", remaining);
 		
 		// If last packet, add PUSH.
-		if(!remaining)
+		if(!remaining and PUSH)
 			packet->set_flag(PSH);
 
 		// Advance outgoing sequence number (SND.NXT) with the length of the data.
@@ -175,14 +176,26 @@ void Connection::receive(TCP::Packet_ptr incoming) {
 			this, incoming->to_string().c_str());
 	// Change window accordingly. 
 	control_block.SND.WND = incoming->win();
-	int sig = state_->handle(*this, incoming);
+	switch(state_->handle(*this, incoming)) {
+		case State::CLOSED: {
+			printf("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
+			signal_close();
+			break;
+		};
+		case State::CLOSE: {
+			printf("<TCP::Connection::receive> State handle finished with CLOSE. onDisconnect has been called, close the connection. \n");
+			state_->close(*this);
+			break;
+		};
+	}
 	
-	printf("<TCP::Connection::receive> State handle finished with value: %i. If -1, Connection is supposed to close. \n", sig);
+	
 }
 
 Connection::~Connection() {
 	// Do all necessary clean up.
 	// Free up buffers etc.
+	printf("<TCP::Connection::~Connection> Bye bye... \n");
 }
 
 
@@ -213,15 +226,21 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 void Connection::transmit() {
 	assert(! send_buffer().empty() );
 	
-	printf("<TCP::Connection::transmit> Transmitting [ %i ] number of packets. \n", send_buffer().size());
-	
+	printf("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer().size());	
 	while(! send_buffer_.empty() ) {
 		auto packet = send_buffer().front();
 		assert(! packet->destination().is_empty());
-		printf("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
-		host_.transmit(packet);
+		transmit(packet);
 		send_buffer().pop();
 	}
+}
+
+void Connection::transmit(TCP::Packet_ptr packet) {
+	printf("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
+	host_.transmit(packet);
+	// Don't think we would like to retransmit reset packets..?
+	if(!packet->isset(RST))
+		add_retransmission(packet);
 }
 
 TCP::Packet_ptr Connection::outgoing_packet() {
@@ -232,6 +251,56 @@ TCP::Packet_ptr Connection::outgoing_packet() {
 
 TCP::Seq Connection::generate_iss() {
 	return host_.generate_iss();
+}
+
+void Connection::add_retransmission(TCP::Packet_ptr packet) {
+	printf("<TCP::Connection::add_retransmission> Packet added to retransmission. \n");
+	PIT::instance().onTimeout(RTO(), [packet, this] {
+		// Packet hasnt been ACKed.
+		if(packet->seq() > tcb().SND.UNA) {
+			printf("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+			transmit(packet);
+		} else {
+			debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
+		}
+	});
+}
+/*
+	Next compute a Smoothed Round Trip Time (SRTT) as:
+
+    SRTT = ( ALPHA * SRTT ) + ((1-ALPHA) * RTT)
+
+	and based on this, compute the retransmission timeout (RTO) as:
+
+	RTO = min[UBOUND,max[LBOUND,(BETA*SRTT)]]
+
+	where UBOUND is an upper bound on the timeout (e.g., 1 minute),
+	LBOUND is a lower bound on the timeout (e.g., 1 second), ALPHA is
+	a smoothing factor (e.g., .8 to .9), and BETA is a delay variance
+	factor (e.g., 1.3 to 2.0).
+*/
+std::chrono::milliseconds Connection::RTO() const {
+	return 1s;
+}
+
+void Connection::start_time_wait_timeout() {
+	printf("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
+	time_wait_started = OS::cycles_since_boot();
+	//auto timeout = 2 * host().MSL(); // 60 seconds
+	auto timeout = 10s;
+	PIT::instance().onTimeout(timeout,[this, timeout] {
+		// The timer hasnt been updated
+		if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
+			signal_close();
+		} else {
+			printf("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
+		}
+	});
+}
+
+void Connection::signal_close() {
+	printf("<TCP::Connection::signal_close> It's time to delete this connection. \n");
+	host_.close_connection(*this);
 }
 
 std::string Connection::TCB::to_string() const {

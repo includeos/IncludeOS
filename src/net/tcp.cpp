@@ -25,7 +25,8 @@ using namespace net;
 TCP::TCP(IPStack& inet) : 
 	inet_(inet),
 	listeners(),
-	connections()
+	connections(),
+	MAX_SEG_LIFETIME(30s)
 {
 
 }
@@ -227,6 +228,12 @@ TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket remote) {
 				Connection::Tuple{ local, remote }, 
 				Connection{*this, local, remote})
 			).first->second;
+}
+
+void TCP::close_connection(TCP::Connection& conn) {
+	printf("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
+	connections.erase(conn.tuple());
+	printf("<TCP::close_connection> TCP Status: \n%s \n", status().c_str());
 }
 
 void TCP::drop(TCP::Packet_ptr packet) {
