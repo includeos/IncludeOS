@@ -22,6 +22,8 @@
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
 
+namespace hw {
+
 constexpr int NUM_CLASSCODES {19};
 
 static const char* classcodes[NUM_CLASSCODES] {
@@ -211,3 +213,5 @@ uint32_t PCI_Device::read_dword(const uint16_t pci_addr, const uint8_t reg) noex
 
   return inpd(PCI::CONFIG_DATA);
 }
+
+} //< namespace hw

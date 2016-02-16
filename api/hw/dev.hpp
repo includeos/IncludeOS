@@ -27,6 +27,8 @@
 #include "disk.hpp"
 #include "pci_manager.hpp"
 
+namespace hw {
+
 /** @Todo: Implement */
 class Serial;
 class APIC;
@@ -68,5 +70,8 @@ public:
     return PIT::instance();
   }
 }; //< class Dev
+
+} //< namespace hw
+
 
 #endif //< HW_DEV_HPP

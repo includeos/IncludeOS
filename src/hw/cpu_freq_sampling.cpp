@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <os>
 
+namespace hw {
+
 /** @note C-style code here, since we're dealing with interrupt handling. 
     The hardware expects a pure function pointer, and asm can't (easily) 
     call class member functions.  */
@@ -101,3 +103,5 @@ void cpu_sampling_irq_handler(){
   IRQ_manager::eoi(0);
   return;
 }  
+
+} //< namespace hw

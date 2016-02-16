@@ -5,7 +5,7 @@
 namespace net
 {
   template <typename T>  
-  Inet4<T>::Inet4(Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
+  Inet4<T>::Inet4(hw::Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
     : ip4_addr_(ip), netmask_(netmask), router_(IP4::INADDR_ANY), 
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this), 
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this), 
@@ -45,7 +45,7 @@ namespace net
    
     /** Downstream delegates */
     auto phys_top(downstream
-                  ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(nic));
+                  ::from<hw::Nic<VirtioNet>,&hw::Nic<VirtioNet>::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));    
     auto arp_top(downstream
@@ -75,7 +75,7 @@ namespace net
   }
   
   template <typename T>
-  Inet4<T>::Inet4(Nic<T>& nic)
+  Inet4<T>::Inet4(hw::Nic<T>& nic)
     : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
   {
     INFO("Inet4","Applying DHCP client");

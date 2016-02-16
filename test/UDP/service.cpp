@@ -28,7 +28,7 @@ using namespace net;
 void Service::start()
 {
   // Assign an IP-address, using Hårek-mapping :-)
-  auto& eth0 = Dev::eth<0,VirtioNet>();
+  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac(); 
   
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device

@@ -20,6 +20,8 @@
 
 #include "pci_device.hpp"
 
+namespace hw {
+
 /** Hopefully somebody will port a driver for this one */
 class IDE;
 
@@ -58,5 +60,7 @@ private:
   
   friend class Dev;
 }; //< class Disk
+
+} //< namespace hw
 
 #endif //< HW_DISK_HPP

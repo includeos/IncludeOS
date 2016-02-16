@@ -32,7 +32,7 @@ void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.
-  Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
+  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   
   // Bring up a network stack, attached to the nic
   // @note : No parameters after 'nic' means we'll use DHCP for IP config.

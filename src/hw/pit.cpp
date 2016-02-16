@@ -23,6 +23,8 @@
 #include <hw/cpu_freq_sampling.hpp>
 #include <kernel/irq_manager.hpp>
 
+namespace hw {
+
 // Bit 0-3: Mode 0 - "Interrupt on terminal count"
 // Bit 4-5: Both set, access mode "Lobyte / Hibyte"
 const uint8_t PIT_mode_register = 0x43;
@@ -162,9 +164,9 @@ void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
 uint8_t PIT::read_back(uint8_t){
   const uint8_t READ_BACK_CMD = 0xc2;
   
-  IOport::outb(PIT_mode_register, READ_BACK_CMD );
+  hw::outb(PIT_mode_register, READ_BACK_CMD );
   
-  auto res = IOport::inb(PIT_chan0);
+  auto res = hw::inb(PIT_chan0);
   
   debug("STATUS: %#x \n", res);
   
@@ -254,7 +256,7 @@ void PIT::set_mode(Mode mode){
   uint8_t config = mode | LO_HI | channel;
   debug("<PIT::set_mode> Setting mode %#x, config: %#x \n", mode, config);
   
-  IOport::outb(PIT_mode_register, config);
+  hw::outb(PIT_mode_register, config);
   current_mode_ = mode;
 
 }
@@ -266,8 +268,8 @@ void PIT::set_freq_divider(uint16_t freq_divider){
   }data{freq_divider};  
 
   // Send frequency hi/lo to PIT
-  IOport::outb(PIT_chan0, data.part[0]);
-  IOport::outb(PIT_chan0, data.part[1]);
+  hw::outb(PIT_chan0, data.part[0]);
+  hw::outb(PIT_chan0, data.part[1]);
 
   current_freq_divider_ = freq_divider;
 
@@ -282,3 +284,4 @@ void PIT::oneshot(uint16_t t){
   set_freq_divider(t);
 }
 
+} //< namespace hw

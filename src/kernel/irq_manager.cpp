@@ -201,7 +201,7 @@ void IRQ_manager::init()
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
      
   //Initialize the interrupt controller
-  PIC::init();
+  hw::PIC::init();
      
   //Register the timer and enable / unmask it in the pic
   //set_handler(32,irq_timer_entry);
@@ -259,7 +259,7 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  PIC::enable_irq(irq);
+	hw::PIC::enable_irq(irq);
 }
 
 int IRQ_manager::timer_interrupts {0};
@@ -328,13 +328,13 @@ void IRQ_manager::notify() {
 }
 
 void IRQ_manager::eoi(uint8_t irq) {
-  PIC::eoi(irq);
+	hw::PIC::eoi(irq);
 }
 
 void irq_default_handler() { 
   // Now we don't really know the IRQ number,
   // but we can guess by looking at ISR
-  uint16_t isr {PIC::get_isr()};
+  uint16_t isr {hw::PIC::get_isr()};
 
   //IRR would give us more than we want
   //uint16_t irr {pic_get_irr()};
