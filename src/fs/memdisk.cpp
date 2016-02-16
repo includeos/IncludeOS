@@ -12,8 +12,6 @@ extern "C"
 
 namespace fs
 {
-  static const size_t SECTOR_SIZE = 512;
-  
   MemDisk::MemDisk()
   {
     
@@ -51,6 +49,11 @@ namespace fs
     assert( memcpy(buffer, start_loc, count * SECTOR_SIZE) == buffer );
     
     callback(buffer);
+  }
+  
+  uint64_t MemDisk::size() const
+  {
+    return ((char*) image_end - (char*) image_start) / SECTOR_SIZE;
   }
   
 }

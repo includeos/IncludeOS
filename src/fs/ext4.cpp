@@ -16,7 +16,7 @@ namespace fs
     (void) base_sector;
   }
   
-  void EXT4::mount(uint64_t lba, on_mount_func on_mount)
+  void EXT4::mount(uint64_t start, uint64_t size, on_mount_func on_mount)
   {
     printf("Superblock: %u bytes, Block group desc: %u bytes\n", 
         sizeof(superblock), sizeof(group_desc));
@@ -27,14 +27,17 @@ namespace fs
         sizeof(inode_table));
     
     // read Master Boot Record (sector 0)
-    device.read_sector(lba,
-    [this, on_mount] (const void* data)
+    device.read_sector(start,
+    [this, start, size, on_mount] (const void* data)
     {
       auto* mbr = (MBR::mbr*) data;
       assert(mbr != nullptr);
       
       /// now what?
+      printf("Mounting EXT4 from LBA %llu to %llu\n",
+          start, size);
       
+      init(data);
     });
     
   }

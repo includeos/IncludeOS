@@ -16,12 +16,10 @@
 // limitations under the License.
 
 #pragma once
-#ifndef MEMDISK_HPP
-#define MEMDISK_HPP
+#ifndef FS_MEMDISK_HPP
+#define FS_MEMDISK_HPP
 
 #include <cstdint>
-#include <deque>
-#include <functional>
 #include "disk_device.hpp"
 
 namespace fs
@@ -29,12 +27,16 @@ namespace fs
   class MemDisk : public IDiskDevice
   {
   public:
+    static const size_t SECTOR_SIZE = 512;
+    
     MemDisk();
     
     virtual void 
     read_sector(block_t blk, on_read_func func) override;
     virtual void 
     read_sectors(block_t start, block_t cnt, on_read_func) override;
+    
+    virtual uint64_t size() const override;
     
   private:
     void*  image_start;

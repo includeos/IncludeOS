@@ -80,7 +80,7 @@ namespace fs
     
     
     // mount this filesystem with LBA at @base_sector
-    virtual void mount(uint64_t lba, on_mount_func on_mount) = 0;
+    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
     // path is a path in the mounted filesystem
     virtual void ls(const std::string& path, on_ls_func) = 0;

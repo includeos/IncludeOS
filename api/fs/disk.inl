@@ -63,7 +63,7 @@ namespace fs
     // for the MBR case, all we need to do is mount on sector 0
     if (part == PART_MBR)
     {
-      fs().mount(0, func);
+      fs().mount(0, device.size(), func);
     }
     else
     {
@@ -84,11 +84,12 @@ namespace fs
         // treat VBR1 as index 0 etc.
         int pint = (int) part - 1;
         // get LBA from selected partition
-        uint32_t lba = mbr->part[pint].lba_begin;
+        uint32_t lba_base = mbr->part[pint].lba_begin;
+        uint32_t lba_size = mbr->part[pint].sectors;
         
         // call the filesystems mount function
         // with lba_begin as base address
-        fs().mount(lba, func);
+        fs().mount(lba_base, lba_size, func);
       });
     }
   }

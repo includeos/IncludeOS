@@ -30,11 +30,17 @@ public:
   
   // To be used by caching mechanism for disk drivers
   typedef std::shared_ptr<void*> buffer;
+  
   // Delegate for result of reading a disk sector
   typedef std::function<void(const void*)> on_read_func;
   
+  // Read sector(s) from blk and call func with result
+  // a null-pointer is passed to result if something bad happened
   virtual void read_sector(block_t blk, on_read_func func) = 0;
-  virtual void read_sectors(block_t start, block_t count, on_read_func) = 0;
+  virtual void read_sectors(block_t blk, block_t count, on_read_func) = 0;
+  
+  // the size of the disk in sectors
+  virtual uint64_t size() const = 0;
 };
 
 #endif
