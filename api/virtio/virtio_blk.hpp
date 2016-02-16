@@ -45,7 +45,7 @@ public:
   void write(block_t blk, const char* data);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioBlk(PCI_Device& pcidev);
+  VirtioBlk(hw::PCI_Device& pcidev);
   
 private:
   Virtio::Queue req;

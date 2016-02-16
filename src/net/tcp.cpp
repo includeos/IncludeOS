@@ -22,6 +22,7 @@
 using namespace std;
 using namespace net;
 
+
 TCP::TCP(IPStack& inet) : 
 	inet_(inet),
 	listeners(),
@@ -148,8 +149,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 	return ~(sum.part[0] + sum.part[1]);
 }
 
-
-int TCP::bottom(net::Packet_ptr packet_ptr) {
+void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
 	auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
 	printf("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n", 
@@ -191,7 +191,6 @@ int TCP::bottom(net::Packet_ptr packet_ptr) {
 			drop(packet);
 		}
 	}
-	return 0;
 }
 
 /*

@@ -15,20 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <hw/ioport.hpp>
 #include <hw/pic.hpp>
 
-uint16_t PIC::irq_mask_ = 0xFFFB;
+namespace hw {
 
-void PIC::init(){
-  OS::outb(master_ctrl, master_icw1);
-  OS::outb(slave_ctrl, slave_icw1);
-  OS::outb(master_mask, master_icw2);
-  OS::outb(slave_mask, slave_icw2);
-  OS::outb(master_mask, master_icw3);
-  OS::outb(slave_mask, slave_icw3);
-  OS::outb(master_mask, master_icw4);
-  OS::outb(slave_mask, slave_icw4);
+uint16_t PIC::irq_mask_ {0xFFFB};
+
+void PIC::init() noexcept {
+  hw::outb(master_ctrl, master_icw1);
+  hw::outb(slave_ctrl,  slave_icw1);
+  hw::outb(master_mask, master_icw2);
+  hw::outb(slave_mask,  slave_icw2);
+  hw::outb(master_mask, master_icw3);
+  hw::outb(slave_mask,  slave_icw3);
+  hw::outb(master_mask, master_icw4);
+  hw::outb(slave_mask,  slave_icw4);
 
   set_intr_mask(irq_mask_);
-
 }
+
+} //< namespace hw

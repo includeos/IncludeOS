@@ -15,144 +15,153 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CLASS_ETHERNET_HPP
-#define CLASS_ETHERNET_HPP
+#pragma once
+#ifndef NET_ETHERNET_HPP
+#define NET_ETHERNET_HPP
+
+#include <string>
 
 #include <net/inet_common.hpp>
-#include <delegate>
-#include <string>
-//#include <net/class_packet.hpp>
-
 
 namespace net {
-  class Packet;
-  
-  /** Ethernet packet handling. */
-  class Ethernet{
-  
-  public:
-    static const int ETHER_ADDR_LEN = 6;
+
+/** Ethernet packet handling. */
+class Ethernet {
+public:
+  static constexpr size_t ETHER_ADDR_LEN  = 6;
+  static constexpr size_t MINIMUM_PAYLOAD = 46;
+
+  /**
+   *  Some big-endian ethernet types
+   * 
+   *  From http://en.wikipedia.org/wiki/EtherType
+   */
+  enum ethertype_le {
+    _ETH_IP4   = 0x0800,
+    _ETH_ARP   = 0x0806, 
+    _ETH_WOL   = 0x0842,
+    _ETH_IP6   = 0x86DD, 
+    _ETH_FLOW  = 0x8808,
+    _ETH_JUMBO = 0x8870
+  };
+
+  /** Little-endian ethertypes. */
+  enum ethertype {
+    ETH_IP4   = 0x8,
+    ETH_ARP   = 0x608,
+    ETH_WOL   = 0x4208,
+    ETH_IP6   = 0xdd86,
+    ETH_FLOW  = 0x888,
+    ETH_JUMBO = 0x7088,
+    ETH_VLAN  = 0x81
+  };
+
+  // MAC address
+  union addr {
+    uint8_t part[ETHER_ADDR_LEN];
     
-    union addr
-    {
-      uint8_t part[ETHER_ADDR_LEN];
-      struct {
-        uint16_t minor;
-        uint32_t major;
-      } __attribute__((packed));   
-    
-      inline std::string str() const {
-        char _str[17];
-        sprintf(_str,"%1x:%1x:%1x:%1x:%1x:%1x",
-                part[0],part[1],part[2],
-                part[3],part[4],part[5]);
-        return std::string(_str);
-      }
-      
-      inline bool operator == (addr& mac)
-      { return strncmp((char*)mac.part,(char*)part,ETHER_ADDR_LEN) == 0; }
-      
-      inline addr& operator=(addr cpy){ 
-	minor = cpy.minor;
-	major = cpy.major;
-	return *this;
-      }
-      
-      static const addr MULTICAST_FRAME;
-      static const addr BROADCAST_FRAME;
-      static const addr IPv6mcast_01, IPv6mcast_02;
-      
+    struct {
+      uint16_t minor;
+      uint32_t major;
     } __attribute__((packed));
     
-    struct header 
+    addr& operator=(const addr cpy) noexcept {
+      minor = cpy.minor;
+      major = cpy.major;
+      return *this;
+    }
+    
+    // hex string representation
+    std::string str() const {
+      char eth_addr[17];
+      sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
+              part[0], part[1], part[2],
+              part[3], part[4], part[5]);
+      return eth_addr;
+    }
+    
+    /** Check for equality */
+    bool operator==(const addr mac) const noexcept
     {
-      addr dest;
-      addr src;
-      unsigned short type;
-    };
-  
-    /** Some big-endian ethertypes. 
-        From http://en.wikipedia.org/wiki/EtherType. */
-    enum ethertype_le {_ETH_IP4 = 0x0800, _ETH_ARP = 0x0806, 
-                       _ETH_WOL = 0x0842, _ETH_IP6 = 0x86DD, 
-                       _ETH_FLOW = 0x8808, _ETH_JUMBO = 0x8870};
-  
-    /** Little-endian ethertypes. */
-    enum ethertype {ETH_IP4 = 0x8, ETH_ARP = 0x608, ETH_WOL = 0x4208,
-                    ETH_IP6 = 0xdd86, ETH_FLOW = 0x888, ETH_JUMBO = 0x7088,
-                    ETH_VLAN =0x81};
-  
-    // Minimum payload
-    static constexpr int minimum_payload = 46;
-  
-    /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    int bottom(Packet_ptr pckt);
-  
-    /** Delegate upstream ARP handler. */
-    inline void set_arp_handler(upstream del)
-    { arp_handler_ = del; }
-
-    inline upstream get_arp_handler()
-    { return arp_handler_; }
-        
-    /** Delegate upstream IPv4 handler. */
-    inline void set_ip4_handler(upstream del)
-    { ip4_handler_ = del; }
+      return strncmp(
+          reinterpret_cast<const char*>(part), 
+          reinterpret_cast<const char*>(mac.part), 
+          ETHER_ADDR_LEN) == 0;
+    }
     
-    /** Delegate upstream IPv4 handler. */
-    inline upstream get_ip4_handler()
-    { return ip4_handler_; }
+    static const addr MULTICAST_FRAME;
+    static const addr BROADCAST_FRAME;
+    
+    static const addr IPv6mcast_01;
+    static const addr IPv6mcast_02;
+    
+  }  __attribute__((packed)); //< union addr
   
-
-    /** Delegate upstream IPv6 handler. */
-    inline void set_ip6_handler(upstream del)
-    { ip6_handler_ = del; };  
-    
-    /** Delegate downstream */
-    inline void set_physical_out(downstream del)
-    { physical_out_ = del; }
-    
-    /** Assign a packet filter. 
-	@note : The filter function will be called as early as possible., 
-	i.e. in bottom */
-    inline void set_packet_filter(Packet_filter f)
-    { filter_ = f; }
-    
-    /** @return Mac address of the underlying device */
-    inline const addr& mac()
-    { return _mac; }
-
-    /** Transmit data, with preallocated space for eth.header */
-    int transmit(Packet_ptr pckt);
+  /** Constructor */
+  explicit Ethernet(addr mac) noexcept;
   
-    Ethernet(addr mac);
-
-  private:
-    addr _mac;
-
-    // Upstream OUTPUT connections
-    upstream ip4_handler_ = [](Packet_ptr)->int{ return 0; };
-    upstream ip6_handler_ = [](Packet_ptr)->int{ return 0; };
-    upstream arp_handler_ = [](Packet_ptr)->int{ return 0; };
-    Packet_filter filter_ = [](Packet_ptr p)->Packet_ptr{ return p; };
+  struct header {
+    addr dest;
+    addr src;
+    unsigned short type;
     
-    // Downstream OUTPUT connection
-    downstream physical_out_ = [](Packet_ptr)->int{ return 0; };
+  } __attribute__((packed)) ;
   
+  /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
+  void bottom(Packet_ptr);
   
-    /*
-    
-      +--|IP4|---|ARP|---|IP6|---+
-      |                          |
-      |        Ethernet          |
-      |                          |
-      +---------|Phys|-----------+
-    
-    */
+  /** Delegate upstream ARP handler. */
+  void set_arp_handler(upstream del)
+  { arp_handler_ = del; }
   
-};
+  upstream get_arp_handler()
+  { return arp_handler_; }
+  
+  /** Delegate upstream IPv4 handler. */
+  void set_ip4_handler(upstream del)
+  { ip4_handler_ = del; }
+  
+  /** Delegate upstream IPv4 handler. */
+  upstream get_ip4_handler()
+  { return ip4_handler_; }
+  
+  /** Delegate upstream IPv6 handler. */
+  void set_ip6_handler(upstream del)
+  { ip6_handler_ = del; };  
+  
+  /** Delegate downstream */
+  void set_physical_out(downstream del)
+  { physical_out_ = del; }
+  
+  /** @return Mac address of the underlying device */
+  const addr mac() const noexcept
+  { return mac_; }
+  
+  /** Transmit data, with preallocated space for eth.header */
+  void transmit(Packet_ptr);
 
-} // ~net
+private:
+  /** MAC address */
+  addr mac_;
 
-#endif
+  /** Upstream OUTPUT connections */
+  upstream ip4_handler_ = [](Packet_ptr){};
+  upstream ip6_handler_ = [](Packet_ptr){};
+  upstream arp_handler_ = [](Packet_ptr){};
+  
+  /** Downstream OUTPUT connection */
+  downstream physical_out_ = [](Packet_ptr){};
 
+  /*
+  
+    +--|IP4|---|ARP|---|IP6|---+
+    |                          |
+    |        Ethernet          |
+    |                          |
+    +---------|Phys|-----------+
+  
+  */
+}; //< class Ethernet
+} // namespace net
+
+#endif //< NET_ETHERNET_HPP

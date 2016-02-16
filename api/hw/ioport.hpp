@@ -15,29 +15,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fs/common.hpp>
+#ifndef HW_IOPORT_HPP
+#define HW_IOPORT_HPP
 
-std::string fs_error_string(int error)
-{
-  switch (error)
+#include <common>
+
+namespace hw {
+
+  /** Receive a byte from port.
+      @param port : The port number to receive from
+  */
+  static inline uint8_t inb(int port)
   {
-  case 0:
-    return "No error";
-  case -ENOENT:
-    return "No such file or directory";
-  case -EIO:
-    return "I/O Error";
-  case -EEXIST:
-    return "File already exists";
-  case -ENOTDIR:
-    return "Not a directory";
-  case -EINVAL:
-    return "Invalid argument";
-  case -ENOSPC:
-    return "No space left on device";
-  case -ENOTEMPTY:
-    return "Directory not empty";
-  
+    int ret;
+    __asm__ volatile ("xorl %eax,%eax");
+    __asm__ volatile ("inb %%dx,%%al":"=a" (ret):"d"(port));
+
+    return ret;
   }
-  return "Invalid error code";
-}
+
+  /** Send a byte to port.
+      @param port : The port to send to
+      @param data : One byte of data to send to @param port
+  */
+  static inline void outb(int port, uint8_t data) {
+    __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
+  }
+
+} //< namespace hw
+
+#endif // HW_IOPORT_HPP

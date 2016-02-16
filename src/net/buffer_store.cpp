@@ -22,20 +22,20 @@
 #include <os>
 #include <net/buffer_store.hpp>
 
-using namespace net;
+namespace net {
 
 BufferStore::BufferStore(size_t num, size_t bufsize, size_t device_offset ) :
   bufcount_      {num},
   bufsize_       {bufsize},
   device_offset_ {device_offset},
-  pool_          {static_cast<buffer>(memalign(PAGE_SIZE, num * bufsize))}
+  pool_          {static_cast<buffer_t>(memalign(PAGE_SIZE, num * bufsize))}
 {
   assert(pool_);
 
   debug ("<BufferStore> Creating buffer store of %i * %i bytes.\n",
 	      num, bufsize);
 
-  for (buffer b = pool_; b < pool_ + (num * bufsize); b += bufsize)
+  for (buffer_t b = pool_; b < pool_ + (num * bufsize); b += bufsize)
     available_buffers_.push_back(b);
 
   debug ("<BufferStore> I now have %i free buffers in range %p -> %p.\n",
@@ -53,7 +53,7 @@ void BufferStore::increaseStorage() {
   panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
 }
 
-buffer BufferStore::get_raw_buffer() {
+BufferStore::buffer_t BufferStore::get_raw_buffer() {
   if (available_buffers_.empty())
     increaseStorage();
 
@@ -66,11 +66,11 @@ buffer BufferStore::get_raw_buffer() {
   return buf;
 }
 
-buffer BufferStore::get_offset_buffer() {
+BufferStore::buffer_t BufferStore::get_offset_buffer() {
   return get_raw_buffer() + device_offset_;
 }
 
-void BufferStore::release_raw_buffer(buffer b, size_t bufsize) {
+void BufferStore::release_raw_buffer(buffer_t b, size_t bufsize) {
   debug2("<BufferStore> Trying to release %i sized buffer @%p.\n", bufsize, b);
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
@@ -85,7 +85,7 @@ void BufferStore::release_raw_buffer(buffer b, size_t bufsize) {
   debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
 }
 
-void BufferStore::release_offset_buffer(buffer b, size_t bufsize) {
+void BufferStore::release_offset_buffer(buffer_t b, size_t bufsize) {
   debug2("<BufferStore> Trying to release %i + %i sized buffer @%p.\n", bufsize, device_offset_, b);
   // Make sure the buffer comes from here. Otherwise, ignore it.
   if (address_is_from_pool(b) 
@@ -99,3 +99,5 @@ void BufferStore::release_offset_buffer(buffer b, size_t bufsize) {
 
   debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
 }
+
+} //< namespace net

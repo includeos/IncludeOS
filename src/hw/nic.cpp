@@ -18,9 +18,9 @@
 #include <class_nic.hpp>
 #include <class_pci_device.hpp>
 
-
-
-
+/*
+namespace hw {
+*/
 
 /*
 template <> const char* Nic<VirtioNet>::name(){
@@ -57,4 +57,8 @@ template <> Nic<E1000>::Nic(PCI_Device* _dev)
   _dev->probe_resources();
   
 }
+*/
+
+/*
+} //< namespace hw
 */

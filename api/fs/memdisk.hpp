@@ -16,32 +16,33 @@
 // limitations under the License.
 
 #pragma once
-#include <stdint.h>
-#include <string>
+#ifndef FS_MEMDISK_HPP
+#define FS_MEMDISK_HPP
 
-// Index node
-typedef int16_t inode_t;
+#include <cstdint>
+#include "disk_device.hpp"
 
-#define likely(x)   __builtin_expect(!!(x), true)
-#define unlikely(x) __builtin_expect(!!(x), false) 
+namespace fs
+{
+  class MemDisk : public IDiskDevice
+  {
+  public:
+    static const size_t SECTOR_SIZE = 512;
+    
+    MemDisk();
+    
+    virtual void 
+    read_sector(block_t blk, on_read_func func) override;
+    virtual void 
+    read_sectors(block_t start, block_t cnt, on_read_func) override;
+    
+    virtual uint64_t size() const override;
+    
+  private:
+    void*  image_start;
+    void*  image_end;
+  };
+  
+}
 
-#include <sys/errno.h>
-
-/*
-// No such file or directory
-#define ENOENT   2
-// I/O Error
-#define EIO      5
-// File already exists
-#define EEXIST  17
-// Not a directory
-#define ENOTDIR 20
-// Invalid argument
-#define EINVAL  22
-// No space left on device
-#define ENOSPC  28
-// Directory not empty
-#define ENOTEMPTY 39
-*/
-
-extern std::string fs_error_string(int error);
+#endif

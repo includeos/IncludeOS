@@ -22,6 +22,11 @@
 #include <virtio/virtionet.hpp>
 #include <net/packet.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
+#include <hw/pci.hpp>
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
 
 using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
@@ -33,17 +38,16 @@ void VirtioNet::get_config(){
   Virtio::get_config(&_conf,_config_length);
 };
 
-int drop(std::shared_ptr<Packet> UNUSED(pckt)){
+static void drop(Packet_ptr UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
-  return -1;
 }
 
-VirtioNet::VirtioNet(PCI_Device& d)
+VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()), 
     ctrl_q(queue_size(2),2,iobase()),
-    _link_out(net::upstream(drop))
+    _link_out(drop)
 {
   
   INFO("VirtioNet", "Driver initializing");
@@ -115,7 +119,7 @@ VirtioNet::VirtioNet(PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %i receive buffers of size %i",
-       rx_q.size() / 2, MTUSIZE+sizeof(virtio_net_hdr));
+       rx_q.size() / 2, Packet::MTU+sizeof(virtio_net_hdr));
   
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
   
@@ -173,7 +177,7 @@ int VirtioNet::add_receive_buffer(){
   //sg[0].data = (void*)&empty_header; 
   sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = MTUSIZE; 
+  sg[1].size = Packet::MTU; 
   rx_q.enqueue(sg, 0, 2,buf);  
   
   return 0;
@@ -188,7 +192,7 @@ void VirtioNet::irq_handler(){
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
-  unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
+  unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
   
   // Step 2. A) - one of the queues have changed
   if (isr & 1){
@@ -282,7 +286,7 @@ void VirtioNet::service_TX(){
   // Deallocate buffer. 
 }
 
-int VirtioNet::transmit(net::Packet_ptr pckt){
+void VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
 
 
@@ -312,5 +316,4 @@ int VirtioNet::transmit(net::Packet_ptr pckt){
   
   tx_q.kick();
   
-  return 0;
 }

@@ -163,7 +163,7 @@ public:
       	uint16_t urgent;				// Urgent pointer offset
       	uint32_t options[0];			// Options
 
-			// Get the raw tcp offset, in quadruples
+		// Get the raw tcp offset, in quadruples
 		inline uint8_t offset() { return (uint8_t)(offset_flags.offset_reserved >> 4); }
 
 		// Set raw TCP offset in quadruples
@@ -978,7 +978,7 @@ public:
 	/*
 		Receive packet from network layer (IP).
 	*/
-	int bottom(net::Packet_ptr);
+	void bottom(net::Packet_ptr);
 
 	/* 
 		Delegate output to network layer

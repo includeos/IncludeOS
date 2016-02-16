@@ -74,7 +74,7 @@ namespace net
     return next;
   }
   
-	int IP6::bottom(Packet_ptr pckt)
+	void IP6::bottom(Packet_ptr pckt)
 	{
     debug(">>> IPv6 packet:");
     
@@ -98,14 +98,13 @@ namespace net
       {
         // forward packet to handler
         pckt->set_payload(reader);
-        return it->second(pckt);
+        it->second(pckt);
       }
       else
         // just print information
         next = parse6(reader, next);
     }
     
-    return 0;
 	};
   
   static const std::string lut = "0123456789abcdef";
@@ -128,14 +127,14 @@ namespace net
     return ret;
   }
   
-  int IP6::transmit(std::shared_ptr<PacketIP6>& ip6_packet)
+  void IP6::transmit(std::shared_ptr<PacketIP6>& ip6_packet)
   {
     auto packet = *reinterpret_cast<std::shared_ptr<Packet>*> (&ip6_packet);
     
     //debug("<IP6 OUT> Transmitting %li b, from %s -> %s\n",
     //       pckt->len(), hdr.src.str().c_str(), hdr.dst.str().c_str());
     
-    return _linklayer_out(packet);
+    _linklayer_out(packet);
   }
   
   std::shared_ptr<PacketIP6> IP6::create(uint8_t proto,

@@ -16,8 +16,11 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
-#include <iostream>
+#ifndef FS_PATH_HPP
+#define FS_PATH_HPP
+
+#include <deque>
+#include <string>
 
 namespace fs
 {
@@ -59,32 +62,57 @@ namespace fs
 		
 		bool operator == (const Path& p) const
 		{
-			return this->toString() == p.toString();
+			if (stk.size() != p.stk.size()) return false;
+      return this->to_string() == p.to_string();
 		}
+    bool operator != (const Path& p) const
+    {
+      return !this->operator== (p);
+    }
 		bool operator == (const std::string& p) const
 		{
 			return *this == Path(p);
 		}
 		
-		friend std::ostream& operator << (std::ostream& st, const Path& p)
-		{
-			return st << p.toString();
-		}
-		
+    bool empty() const
+    {
+      return stk.empty();
+    }
+    
+    std::string front() const
+    {
+      return stk.front();
+    }
+    void pop_front()
+    {
+      stk.pop_front();
+    }
+    
+    std::string back() const
+    {
+      return stk.back();
+    }
+    void pop_back()
+    {
+      stk.pop_back();
+    }
+    
     void up()
     {
       if (!stk.empty())
         stk.pop_back();
     }
-		std::string toString() const;
+		std::string to_string() const;
     
 	private:
-		int parse(const std::string& path);
-		int nameAdded(const std::string& name);
-		std::string realPath() const;
+		int  parse(const std::string& path);
+		void name_added(const std::string& name);
+		std::string real_path() const;
 		
 		int state;
-    std::vector<std::string> stk;
+    std::deque<std::string> stk;
 	};
 	
 }
+
+#endif

@@ -34,7 +34,10 @@
 // 
 
 #include <os>
+#include <hw/ioport.hpp>
 #include <hw/pic.h>
+
+namespace hw {
 
 // All IRQs disabled initially except cascade
 
@@ -46,8 +49,8 @@ unsigned int irq_mask = 0xFFFB;
 
 static void set_intr_mask(unsigned long mask)
 {
-  OS::outb(PIC_MSTR_MASK, (unsigned char) mask);
-  OS::outb(PIC_SLV_MASK, (unsigned char) (mask >> 8));
+  hw::outb(PIC_MSTR_MASK, (unsigned char) mask);
+  hw::outb(PIC_SLV_MASK, (unsigned char) (mask >> 8));
 }
 
 //
@@ -56,14 +59,14 @@ static void set_intr_mask(unsigned long mask)
 
 void init_pic()
 {
-  OS::outb(PIC_MSTR_CTRL, PIC_MSTR_ICW1);
-  OS::outb(PIC_SLV_CTRL, PIC_SLV_ICW1);
-  OS::outb(PIC_MSTR_MASK, PIC_MSTR_ICW2);
-  OS::outb(PIC_SLV_MASK, PIC_SLV_ICW2);
-  OS::outb(PIC_MSTR_MASK, PIC_MSTR_ICW3);
-  OS::outb(PIC_SLV_MASK, PIC_SLV_ICW3);
-  OS::outb(PIC_MSTR_MASK, PIC_MSTR_ICW4);
-  OS::outb(PIC_SLV_MASK, PIC_SLV_ICW4);
+  hw::outb(PIC_MSTR_CTRL, PIC_MSTR_ICW1);
+  hw::outb(PIC_SLV_CTRL, PIC_SLV_ICW1);
+  hw::outb(PIC_MSTR_MASK, PIC_MSTR_ICW2);
+  hw::outb(PIC_SLV_MASK, PIC_SLV_ICW2);
+  hw::outb(PIC_MSTR_MASK, PIC_MSTR_ICW3);
+  hw::outb(PIC_SLV_MASK, PIC_SLV_ICW3);
+  hw::outb(PIC_MSTR_MASK, PIC_MSTR_ICW4);
+  hw::outb(PIC_SLV_MASK, PIC_SLV_ICW4);
 
   set_intr_mask(irq_mask);
 }
@@ -100,10 +103,12 @@ void disable_irq(unsigned int irq)
 void eoi(unsigned int irq)
 {
   if (irq < 8)
-    OS::outb(PIC_MSTR_CTRL, irq + PIC_EOI_BASE);
+    hw::outb(PIC_MSTR_CTRL, irq + PIC_EOI_BASE);
   else
   {
-    OS::outb(PIC_SLV_CTRL, (irq - 8) + PIC_EOI_BASE);
-    OS::outb(PIC_MSTR_CTRL, PIC_EOI_CAS);
+    hw::outb(PIC_SLV_CTRL, (irq - 8) + PIC_EOI_BASE);
+    hw::outb(PIC_MSTR_CTRL, PIC_EOI_CAS);
   }
 }
+
+} //< namespace hw

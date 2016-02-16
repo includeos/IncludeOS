@@ -28,17 +28,19 @@ using namespace std::chrono;
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // our VGA output module
-//#include <kernel/vga.hpp>
-//ConsoleVGA vga;
+#include <kernel/vga.hpp>
+ConsoleVGA vga;
 
 void Service::start()
 {
   // set secondary serial output to VGA console module
-  OS::set_rsprint_secondary(
+  /*OS::set_rsprint_secondary(
   [] (const char* string, size_t len)
   {
-    //vga.write(string, len);
-  });
+    (void) string;
+    (void) len;
+    vga.write(string, len);
+  });*/
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -47,37 +49,41 @@ void Service::start()
   
   // Bring up a network stack, attached to the nic
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-
+  
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( {{ 10,0,0,42 }},      // IP
+  inet->network_config(
+      {{ 10,0,0,42 }},      // IP
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
-
+  
   // Inject a custom packet filter, to between the device and Ethernet 
   auto current_eth_handler = eth0.get_linklayer_out();
-  eth0.set_linklayer_out([current_eth_handler](net::Packet_ptr pckt){
+  eth0.set_linklayer_out(
+    [current_eth_handler] (net::Packet_ptr pckt) {
       printf("Custom Ethernet Packet filter - got %i bytes\n",pckt->size());
-      return current_eth_handler(pckt);
+      current_eth_handler(pckt);
     });
   
   // Inject a custom IP packet filter, between IP and Ethernet (upstream)
   auto current_ip4_handler = inet->link().get_ip4_handler();
-  inet->link().set_ip4_handler([current_ip4_handler](net::Packet_ptr pckt)->int{
+  inet->link().set_ip4_handler(
+    [current_ip4_handler](net::Packet_ptr pckt) {
       auto pckt4 = std::static_pointer_cast<net::PacketIP4>(pckt);
       printf("Custom IP-level Packet filter - got %i bytes from %s \n",
 	     pckt->size(), pckt4->src().str().c_str());
-      return current_ip4_handler(pckt);
+      current_ip4_handler(pckt);
     });
   
-  inet->tcp().connect({{ 10,0,0,1 }}, 4242, [](net::TCP::Socket& conn){
+  inet->tcp().connect({{ 10,0,0,1 }}, 4242, 
+  [] (net::TCP::Socket& conn) {
       printf("TCP Connected to .... some IP. Data: '%s'\n", conn.read(1024).c_str()); 
       conn.write("Hello!\n");
       conn.close();
   });
-    
-      // after DHCP we would like to do some networking
+  
+  // after DHCP we would like to do some networking
   inet->dhclient()->on_config(
   [] (net::DHClient::Stack& stack)
   {

@@ -1,15 +1,15 @@
 //-*- C++ -*-
 #define DEBUG
 #include <os>
-#include <net/inet4.hpp>
 
 namespace net
 {
-  
   template <typename T>  
-  Inet4<T>::Inet4(Nic<T>& nic, IP4::addr ip, IP4::addr netmask) :
-    ip4_addr_(ip), netmask_(netmask), nic_(nic), eth_(nic.mac()), arp_(*this), 
-    ip4_(*this), icmp_(*this), udp_(*this), tcp_(*this), dns(*this), bufstore_(nic.bufstore())
+  Inet4<T>::Inet4(hw::Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
+    : ip4_addr_(ip), netmask_(netmask), router_(IP4::INADDR_ANY), 
+      nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this), 
+      icmp_(*this), udp_(*this), tcp_(*this), dns(*this), 
+      bufstore_(nic.bufstore())
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());          
     INFO("Inet4","Bringing up the IP stack");
@@ -18,7 +18,7 @@ namespace net
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
     auto arp_bottom(upstream::from<Arp,&Arp::bottom>(arp_));
     auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(ip4_));
-    auto icmp4_bottom(upstream::from<ICMP,&ICMP::bottom>(icmp_));
+    auto icmp4_bottom(upstream::from<ICMPv4,&ICMPv4::bottom>(icmp_));
     auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(udp_));
     auto tcp_bottom(upstream::from<TCP,&TCP::bottom>(tcp_));
     
@@ -45,7 +45,7 @@ namespace net
    
     /** Downstream delegates */
     auto phys_top(downstream
-                  ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(nic));
+                  ::from<hw::Nic<VirtioNet>,&hw::Nic<VirtioNet>::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));    
     auto arp_top(downstream
@@ -75,7 +75,7 @@ namespace net
   }
   
   template <typename T>
-  Inet4<T>::Inet4(Nic<T>& nic)
+  Inet4<T>::Inet4(hw::Nic<T>& nic)
     : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
   {
     INFO("Inet4","Applying DHCP client");

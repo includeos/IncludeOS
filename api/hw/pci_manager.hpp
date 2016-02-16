@@ -18,39 +18,39 @@
 #ifndef HW_PCI_MANAGER_HPP
 #define HW_PCI_MANAGER_HPP
 
-#include "pci_device.hpp"
 #include <vector>
-#include <unordered_map>
 #include <cstdio>
+#include <unordered_map>
 
-  
-class PCI_Device;
+#include "pci_device.hpp"
 
-class PCI_manager{
-  
+class PCI_manager {
 private:
-  
-  /** Keep track of certain devices 
-      
-      The PCI manager can probe and keep track of devices which can (possibly)
-	be specialized by the Dev-class later. 
-  */
-  static void init();
-  
-  static std::unordered_map<PCI::classcode_t, std::vector<PCI_Device> > devices;
-  
-  
-public:
-  
-  template <PCI::classcode_t CLASS>
-  static PCI_Device& device(int n){
-    
-    return devices[CLASS][n];
-    
-  };    
-  
-  friend class OS;  
-  
-};
+  using Device_Registry = std::unordered_map<PCI::classcode_t, std::vector<hw::PCI_Device>>;
 
-#endif
+public:
+  template <PCI::classcode_t CLASS>
+  static hw::PCI_Device& device(const int n) noexcept {
+    return devices_[CLASS][n];
+  };
+
+  template <PCI::classcode_t CLASS>
+  static size_t num_of_devices() noexcept {
+    return devices_[CLASS].size();
+  }
+
+private:
+  static Device_Registry devices_;
+
+  /**
+   *  Keep track of certain devices
+   *  
+   *  The PCI manager can probe and keep track of devices which can (possibly)
+   *  be specialized by the Dev-class later.
+   */
+  static void init();
+
+  friend class OS;
+}; //< class PCI_manager
+
+#endif //< HW_PCI_MANAGER_HPP

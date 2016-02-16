@@ -25,12 +25,13 @@
 #include "ethernet.hpp"
 #include "arp.hpp"
 #include "ip4.hpp"
-#include "icmp.hpp"
 #include "ip4/udp.hpp"
 #include "dns/client.hpp"
 #include "tcp.hpp"
 #include "dhcp/dh4client.hpp"
 #include <vector>
+
+#include "ip4/icmpv4.hpp"
 
 namespace net {
   
@@ -39,20 +40,20 @@ namespace net {
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
     
-    inline const Ethernet::addr& link_addr() override 
+    Ethernet::addr link_addr() override 
     { return eth_.mac(); }
     
-    inline Ethernet& link() override
-    { return eth_; }    
-    
-    inline const IP4::addr& ip_addr() override 
+    IP4::addr ip_addr() override 
     { return ip4_addr_; }
-
-    inline const IP4::addr& netmask() override 
+    
+    IP4::addr netmask() override 
     { return netmask_; }
     
-    inline const IP4::addr& router() override 
+    IP4::addr router() override 
     { return router_; }
+    
+    Ethernet& link() override
+    { return eth_; }    
     
     inline IP4& ip_obj() override
     { return ip4_; }
@@ -110,10 +111,10 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
     
     /** Initialize with static IP / netmask */
-    Inet4(Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask); 
+    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask);
     
     /** Initialize with DHCP  */
-    Inet4(Nic<DRIVER>& nic); 
+    Inet4(hw::Nic<DRIVER>& nic);
     
     virtual void
     network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
@@ -133,11 +134,11 @@ namespace net {
     IP4::addr dns_server;
     
     // This is the actual stack
-    Nic<DRIVER>& nic_;
+	hw::Nic<DRIVER>& nic_;
     Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
-    ICMP icmp_;
+    ICMPv4 icmp_;
     UDP  udp_;
     TCP tcp_;
     // we need this to store the cache per-stack
