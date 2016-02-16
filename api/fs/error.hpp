@@ -16,33 +16,16 @@
 // limitations under the License.
 
 #pragma once
-#ifndef FS_MEMDISK_HPP
-#define FS_MEMDISK_HPP
-
-#include <cstdint>
-#include "disk_device.hpp"
+#ifndef FS_ERROR_HPP
+#define FS_ERROR_HPP
 
 namespace fs
 {
-  class MemDisk : public IDiskDevice
-  {
-  public:
-    static const size_t SECTOR_SIZE = 512;
-    
-    MemDisk();
-    
-    virtual void 
-    read_sector(block_t blk, on_read_func func) override;
-    virtual void 
-    read_sectors(block_t start, block_t cnt, on_read_func) override;
-    
-    virtual uint64_t size() const override;
-    
-  private:
-    void*  image_start;
-    void*  image_end;
-  };
+  // TODO: transform this into a class with a bool operator
+  typedef bool error_t;
   
+  // no_error always returns boolean false when used in expressions:
+  extern error_t no_error;
 }
 
 #endif

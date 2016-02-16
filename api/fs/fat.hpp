@@ -34,7 +34,7 @@ namespace fs
     /// ----------------------------------------------------- ///
     // 0   = Mount MBR
     // 1-4 = Mount VBR 1-4
-    virtual void mount(uint8_t partid, on_mount_func on_mount) override;
+    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
     virtual void ls(const std::string& path, on_ls_func) override;
@@ -49,7 +49,16 @@ namespace fs
     // returns the name of the filesystem
     virtual std::string name() const override
     {
-      return "FAT32"; // could also be FAT16
+      switch (this->fat_type)
+      {
+      case T_FAT12:
+          return "FAT12";
+      case T_FAT16:
+          return "FAT16";
+      case T_FAT32:
+          return "FAT32";
+      }
+      return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
     
@@ -137,7 +146,7 @@ namespace fs
     // helper functions
     uint32_t cl_to_sector(uint32_t cl)
     {
-      return data_index + (cl - 2) * sectors_per_cluster;
+      return lba_base + data_index + (cl - 2) * sectors_per_cluster;
     }
     
     uint16_t cl_to_entry_offset(uint32_t cl)
@@ -169,7 +178,12 @@ namespace fs
     // device we can read and write sectors to
     IDiskDevice& device;
     
-    // private members
+    /// private members ///
+    // the location of this partition
+    uint32_t lba_base;
+    // the size of this partition
+    uint32_t lba_size;
+    
     uint16_t sector_size; // from bytes_per_sector
     uint32_t sectors;   // total sectors in partition
     uint32_t clusters;  // number of indexable FAT clusters

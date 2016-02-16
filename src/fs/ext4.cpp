@@ -16,7 +16,7 @@ namespace fs
     (void) base_sector;
   }
   
-  void EXT4::mount(uint8_t partid, on_mount_func on_mount)
+  void EXT4::mount(uint64_t start, uint64_t size, on_mount_func on_mount)
   {
     printf("Superblock: %u bytes, Block group desc: %u bytes\n", 
         sizeof(superblock), sizeof(group_desc));
@@ -27,41 +27,46 @@ namespace fs
         sizeof(inode_table));
     
     // read Master Boot Record (sector 0)
-    device.read_sector(0,
-    [this, partid, on_mount] (const void* data)
+    device.read_sector(start,
+    [this, start, size, on_mount] (const void* data)
     {
       auto* mbr = (MBR::mbr*) data;
       assert(mbr != nullptr);
       
       /// now what?
+      printf("Mounting EXT4 from LBA %llu to %llu\n",
+          start, size);
       
+      init(data);
     });
     
   }
   
-  void EXT4::ls(const std::string& path, on_ls_func on_ls)
+  void EXT4::ls(const std::string& path, on_ls_func)
   {
-    
+    (void) path;
   }
   
-  void EXT4::readFile(const Dirent& ent, on_read_func callback)
+  void EXT4::readFile(const Dirent&, on_read_func callback)
   {
     callback(true, nullptr, 0);
   }
   void EXT4::readFile(const std::string& strpath, on_read_func callback)
   {
+    (void) strpath;
     callback(true, nullptr, 0);
   }
   
   void EXT4::stat(const std::string& strpath, on_stat_func callback)
   {
+    (void) strpath;
     callback(true, Dirent());
   }
   
   // filesystem traversal function
-  void EXT4::traverse(std::shared_ptr<Path> path, cluster_func callback)
+  void EXT4::traverse(std::shared_ptr<Path> path, cluster_func)
   {
-    
+    (void) path;
   }
   
 }

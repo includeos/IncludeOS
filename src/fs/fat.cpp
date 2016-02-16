@@ -9,6 +9,8 @@
 #include <memory>
 #include <locale>
 
+#include <info>
+
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
@@ -110,11 +112,14 @@ namespace fs
     debug("System ID: %.8s\n", bpb->system_id);
   }
   
-  void FAT32::mount(uint8_t partid, on_mount_func on_mount)
+  void FAT32::mount(uint64_t base, uint64_t size, on_mount_func on_mount)
   {
-    // read Master Boot Record (sector 0)
-    device.read_sector(0,
-    [this, partid, on_mount] (const void* data)
+    this->lba_base = base;
+    this->lba_size = size;
+    
+    // read Partition block
+    device.read_sector(this->lba_base,
+    [this, on_mount] (const void* data)
     {
       auto* mbr = (MBR::mbr*) data;
       assert(mbr != nullptr);
@@ -124,26 +129,28 @@ namespace fs
       debug("MBR signature: \t0x%x\n", mbr->magic);
       assert(mbr->magic == 0xAA55);
       
-      /// the mount partition id tells us the LBA offset to the volume
-      // assume MBR for now
-      assert(partid == 0);
-      
       // initialize FAT16 or FAT32 filesystem
       init(mbr);
       
       // determine which FAT version is mounted
+      std::string inf = "ofs: " + std::to_string(lba_base) +
+                        "size: " + std::to_string(lba_size) +
+  " (" + std::to_string(this->lba_size * sector_size) + " bytes)\n";
+      
       switch (this->fat_type)
       {
       case FAT32::T_FAT12:
-          printf("--> Mounting FAT12 filesystem\n");
+          INFO("FS", "Mounting FAT12 filesystem");
           break;
       case FAT32::T_FAT16:
-          printf("--> Mounting FAT16 filesystem\n");
+          INFO("FS", "Mounting FAT16 filesystem");
           break;
       case FAT32::T_FAT32:
-          printf("--> Mounting FAT32 filesystem\n");
+          INFO("FS", "Mounting FAT32 filesystem");
           break;
       }
+      INFO2("[ofs=%u  size=%u (%u bytes)]\n", 
+          this->lba_base, this->lba_size, this->lba_size * 512);
       
       // on_mount callback
       on_mount(no_error);
