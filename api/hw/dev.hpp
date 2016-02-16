@@ -21,11 +21,11 @@
 #include <common>
 #include <virtio/virtionet.hpp>
 #include <virtio/virtio_blk.hpp>
+#include <kernel/pci_manager.hpp>
 
 #include "nic.hpp"
 #include "pit.hpp"
 #include "disk.hpp"
-#include "pci_manager.hpp"
 
 namespace hw {
 
