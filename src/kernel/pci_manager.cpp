@@ -19,8 +19,7 @@
 
 #include <common>
 
-#include <hw/pci_device.hpp>
-#include <hw/pci_manager.hpp>
+#include <kernel/pci_manager.hpp>
 
 #define NUM_BUSES 2
 

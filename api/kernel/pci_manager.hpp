@@ -15,14 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HW_PCI_MANAGER_HPP
-#define HW_PCI_MANAGER_HPP
+#ifndef KERNEL_PCI_MANAGER_HPP
+#define KERNEL_PCI_MANAGER_HPP
 
 #include <vector>
 #include <cstdio>
 #include <unordered_map>
 
-#include "pci_device.hpp"
+#include <hw/pci_device.hpp>
 
 class PCI_manager {
 private:
@@ -53,4 +53,4 @@ private:
   friend class OS;
 }; //< class PCI_manager
 
-#endif //< HW_PCI_MANAGER_HPP
+#endif //< KERNEL_PCI_MANAGER_HPP

@@ -26,7 +26,7 @@
 
 // A private class to handle IRQ
 #include <hw/ioport.hpp>
-#include <hw/pci_manager.hpp>
+#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
 
 bool OS::power_   {true};
