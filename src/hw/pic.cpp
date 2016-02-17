@@ -18,17 +18,21 @@
 #include <hw/ioport.hpp>
 #include <hw/pic.hpp>
 
+namespace hw {
+
 uint16_t PIC::irq_mask_ {0xFFFB};
 
 void PIC::init() noexcept {
-  IOport::outb(master_ctrl, master_icw1);
-  IOport::outb(slave_ctrl,  slave_icw1);
-  IOport::outb(master_mask, master_icw2);
-  IOport::outb(slave_mask,  slave_icw2);
-  IOport::outb(master_mask, master_icw3);
-  IOport::outb(slave_mask,  slave_icw3);
-  IOport::outb(master_mask, master_icw4);
-  IOport::outb(slave_mask,  slave_icw4);
+  hw::outb(master_ctrl, master_icw1);
+  hw::outb(slave_ctrl,  slave_icw1);
+  hw::outb(master_mask, master_icw2);
+  hw::outb(slave_mask,  slave_icw2);
+  hw::outb(master_mask, master_icw3);
+  hw::outb(slave_mask,  slave_icw3);
+  hw::outb(master_mask, master_icw4);
+  hw::outb(slave_mask,  slave_icw4);
 
   set_intr_mask(irq_mask_);
 }
+
+} //< namespace hw

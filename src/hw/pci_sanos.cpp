@@ -35,6 +35,9 @@
 
 #include <os>
 #include <hw/pci.h>
+
+namespace hw {
+
 struct
 {
   int classcode;
@@ -507,3 +510,5 @@ unsigned long get_pci_hostbus_unitcode()
 
   return PCI_UNITCODE(vendorid, deviceid);
 }
+
+} //< namespace hw

@@ -60,7 +60,7 @@ public:
   void write (const void* data, size_t len, on_write_func func);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioCon(PCI_Device& pcidev);
+  VirtioCon(hw::PCI_Device& pcidev);
   
 private:
   struct console_config

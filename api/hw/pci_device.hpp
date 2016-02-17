@@ -77,6 +77,7 @@ enum classcode_t {
 }; //< enum classcode_t
 } //< namespace PCI
 
+namespace hw {
 /**
  *  @brief Communication class for all PCI devices
  *  
@@ -249,5 +250,7 @@ private:
     }
   }
 }; //< class PCI_Device
+
+} //< namespace hw
 
 #endif //< HW_PCI_DEVICE_HPP

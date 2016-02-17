@@ -289,8 +289,8 @@ void Virtio::Queue::kick(){
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
           _pci_index, _iobase);
-    //outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);
-    outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
+    //hw::outpw(_iobase + VIRTIO_PCI_QUEUE_SEL, _pci_index);
+    hw::outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
   }else{
     debug("<VirtioQueue>Virtio device says we can't kick!");
   }

@@ -26,7 +26,7 @@
 
 // A private class to handle IRQ
 #include <hw/ioport.hpp>
-#include <hw/pci_manager.hpp>
+#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
 
 bool OS::power_   {true};
@@ -56,7 +56,7 @@ void OS::start() {
   IRQ_manager::init();
   
   // Initialize the Interval Timer
-  PIT::init();
+  hw::PIT::init();
 
   // Initialize PCI devices
   PCI_manager::init();
@@ -67,11 +67,11 @@ void OS::start() {
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(10 samples, %f sec. interval)", 
-	(PIT::frequency() / _cpu_sampling_freq_divider_).count());
+	(hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
   
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = MHz(2200); //PIT::CPUFrequency();
+  cpu_mhz_ = MHz(2200); //hw::PIT::CPUFrequency();
 
   INFO2("+--> %f MHz", cpu_mhz_.count());
     
@@ -131,8 +131,8 @@ size_t OS::rsprint(const char* str, const size_t len) {
 /* STEAL: Print to serial port 0x3F8 */
 void OS::rswrite(const char c) {
   /* Wait for the previous character to be sent */
-  while ((IOport::inb(0x3FD) & 0x20) != 0x20);
+  while ((hw::inb(0x3FD) & 0x20) != 0x20);
 
   /* Send the character */
-  IOport::outb(0x3F8, c);
+  hw::outb(0x3F8, c);
 }

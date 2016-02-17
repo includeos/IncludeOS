@@ -1,7 +1,9 @@
-#ifndef KERNEL_PCI_HPP
-#define KERNEL_PCI_HPP
+#ifndef HW_PCI_HPP
+#define HW_PCI_HPP
 
 #include <cstdint>
+
+namespace hw {
 
 typedef uint16_t port_t;
 
@@ -50,5 +52,7 @@ static inline void outpd(port_t port, uint32_t data)
 {
   __asm__ volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
 }
+
+} //< namespace hw
 
 #endif

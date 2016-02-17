@@ -23,7 +23,7 @@
 
 #define FEAT(x)  (1 << x)
 
-VirtioCon::VirtioCon(PCI_Device& d)
+VirtioCon::VirtioCon(hw::PCI_Device& d)
   : Virtio(d),
     rx(queue_size(0), 0, iobase()),
     tx(queue_size(1), 1, iobase()),
@@ -91,7 +91,7 @@ void VirtioCon::irq_handler()
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
-  unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
+  unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
   
   // Step 2. A) - one of the queues have changed
   if (isr & 1)

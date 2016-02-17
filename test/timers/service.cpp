@@ -28,7 +28,7 @@ void Service::start()
   std::vector<int> integers={1,2,3};
   
   printf("TESTING Timers \n");
-  auto& time = PIT::instance();
+  auto& time = hw::PIT::instance();
   
   
   int x = 42;
