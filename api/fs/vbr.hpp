@@ -19,12 +19,12 @@
 #ifndef FS_VBR_HPP
 #define FS_VBR_HPP
 
-namespace fs
-{
-  class VBR
-  {
-    
-  };
-}
+namespace fs {
 
-#endif
+class VBR {
+
+}; //< class VBR
+  
+} //< namespace fs
+
+#endif //< FS_VBR_HPP

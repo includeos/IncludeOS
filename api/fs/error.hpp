@@ -19,13 +19,14 @@
 #ifndef FS_ERROR_HPP
 #define FS_ERROR_HPP
 
-namespace fs
-{
-  // TODO: transform this into a class with a bool operator
-  typedef bool error_t;
-  
-  // no_error always returns boolean false when used in expressions:
-  extern error_t no_error;
-}
+namespace fs {
 
-#endif
+// TODO: transform this into a class with a bool operator
+using error_t = bool;
+
+/** @var no_error: Always returns boolean false when used in expressions */
+extern error_t no_error;
+
+} //< namespace fs
+
+#endif //< FS_ERROR_HPP

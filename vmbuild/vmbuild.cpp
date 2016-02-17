@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <fstream>
+#include <cstring>
 #include <iostream>
 
 #include <elf.h>
@@ -24,7 +25,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <cstring>
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666
@@ -38,27 +38,27 @@ const int offs_srvoffs {6};
 static bool test {false};
 
 const string info  {"Create a bootable disk image for IncludeOS.\n"};
-const string usage {"Usage: buildvm <bootloader> <service_binary> [-test]\n"};
+const string usage {"Usage: vmbuild <bootloader> <service_binary> [-test]\n"};
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
 
   // Verify proper command usage
-  if(argc < 3){
+  if (argc < 3) {
     cout << info << usage;
-    exit(0);
+    exit(0x00);
   }
   
   const string bootloc {argv[1]};
   const string srvloc  {argv[2]};
-  /// fixes missing Magic Signature bug
-  const int extra_sectors = 1;
+  
+  const int extra_sectors {1}; //< Fixes missing Magic Signature :bug:
   
   const string img_name {srvloc.substr(srvloc.find_last_of("/") + 1, string::npos) + ".img"};
 
-  cout << "\nCreating VM disk image './" << img_name << "' where N = " << extra_sectors << "\n";
+  cout << "\nCreating VM disk image './" << img_name << "' where N = " << extra_sectors << '\n';
 
-  if((argc > 3) && (string{argv[3]} == "-test")){
-    test=true;
+  if ((argc > 3) and (string{argv[3]} == "-test")) {
+    test = true;
     cout << "\n*** TEST MODE ***\n";
   }
 
@@ -66,19 +66,19 @@ int main(int argc, char** argv){
   struct stat stat_srv;
 
   // Verify boot loader
-  if(stat(bootloc.c_str(), &stat_boot) == -1){
+  if (stat(bootloc.c_str(), &stat_boot) == -1) {
     cout << "Could not open " << bootloc << " - exiting\n";
     return errno;
   }    
   
-  if(stat_boot.st_size > SECT_SIZE){
-    cout << "Boot sector too big! (" 
+  if (stat_boot.st_size > SECT_SIZE) {
+    cout << "Boot sector too big! ("
          << stat_boot.st_size << " bytes)\n";
     return SECT_SIZE_ERR;
   }
 
   cout << "Size of bootloader:\t " 
-       << stat_boot.st_size << "\n";
+       << stat_boot.st_size << '\n';
   
   // Verify service
   if (stat(srvloc.c_str(), &stat_srv) == -1) {
@@ -86,9 +86,11 @@ int main(int argc, char** argv){
     return errno;
   }
 
-  decltype(stat_srv.st_size) srv_sect = stat_srv.st_size / SECT_SIZE;
-  if ((stat_srv.st_size % SECT_SIZE) != 0)
+  decltype(stat_srv.st_size) srv_sect {stat_srv.st_size / SECT_SIZE};
+
+  if ((stat_srv.st_size % SECT_SIZE) != 0) {
     srv_sect += 1;
+  }
   
   cout << "Size of service: \t" << stat_srv.st_size << " bytes\n";
   
@@ -114,6 +116,7 @@ int main(int argc, char** argv){
   */
   
   const auto disksize = (img_size_sect + extra_sectors) * SECT_SIZE;
+
   if (disksize < img_size_bytes) {
     cout << "\n---- ERROR ----\n"
          << "Image is too big for the disk!\n"
@@ -127,62 +130,63 @@ int main(int argc, char** argv){
        //<< "Heads: "  << heads     << "\n"
        //<< "Sec/Tr: " << spt       << "\n"
        << "=> "      << (disksize / SECT_SIZE) << " sectors\n"
-       << "=> "      << disksize  << " bytes\n";
+       << "=> "      << disksize               << " bytes\n";
   
   vector<char> disk (disksize);
   auto* disk_head = disk.data();
-  memset(disk.data(), 0, disk.size());
   
-  // Load the boot loader into memory
-  ifstream file_boot {bootloc};
+  ifstream file_boot {bootloc}; //< Load the boot loader into memory
 
   cout << "Read " << file_boot.read(disk_head, stat_boot.st_size).gcount()
        << " bytes from boot image\n";
 
-  // Load the service into memory
-  ifstream file_srv {srvloc};
+  ifstream file_srv {srvloc}; //< Load the service into memory
   
-  // Location of service code within the image
-  char* srv_imgloc = disk_head + SECT_SIZE;
+  auto* srv_imgloc = disk_head + SECT_SIZE; //< Location of service code within the image
   
   cout << "Read " << file_srv.read(srv_imgloc, stat_srv.st_size).gcount()
-       << " bytes from service image\n";  
+       << " bytes from service image\n";
    
-  // ELF Header summary
-  Elf32_Ehdr* elf_header {reinterpret_cast<Elf32_Ehdr*>(srv_imgloc)};
+  Elf32_Ehdr* elf_header {reinterpret_cast<Elf32_Ehdr*>(srv_imgloc)}; //< ELF Header summary
 
   cout << "Reading ELF headers...\n";
   cout << "Signature: ";
 
-  for(int i = 0; i < EI_NIDENT; ++i)
+  for(int i {0}; i < EI_NIDENT; ++i) {
       cout << elf_header->e_ident[i];
+  }
   
-  cout << "\nType: " << (elf_header->e_type == ET_EXEC ? " ELF Executable\n" : "Non-executable\n");
+  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
   cout << "Machine: ";
 
-  switch(elf_header->e_machine){
-  case(EM_386): cout <<  "Intel 80386\n";
+  switch (elf_header->e_machine) {
+  case (EM_386): {
+    cout << "Intel 80386\n";
     break;
-  case(EM_X86_64): cout << "Intel x86_64\n";
+  }
+  case (EM_X86_64): {
+    cout << "Intel x86_64\n";
     break;
-  default:
+  }
+  default: {
     cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
     break;
   }
+  } //< switch (elf_header->e_machine)
 
-  cout << "Version: "                   << elf_header->e_version      << "\n";
-  cout << "Entry point: 0x"             << hex << elf_header->e_entry << "\n";
-  cout << "Number of program headers: " << elf_header->e_phnum        << "\n";
-  cout << "Program header offset: "     << elf_header->e_phoff        << "\n";
-  cout << "Number of section headers: " << elf_header->e_shnum        << "\n";
-  cout << "Section header offset: "     << elf_header->e_shoff        << "\n";
+  cout << "Version: "                   << elf_header->e_version      << '\n';
+  cout << "Entry point: 0x"             << hex << elf_header->e_entry << '\n';
+  cout << "Number of program headers: " << elf_header->e_phnum        << '\n';
+  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
+  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
+  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
   cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
   
   cout << "\nFetching offset of section .text (the service starting point)\n";
   
   Elf32_Phdr* prog_hdr {reinterpret_cast<Elf32_Phdr*>(srv_imgloc + elf_header->e_phoff)};
 
-  cout << "Starting at pheader 1, phys.addr: 0x" << hex << prog_hdr->p_paddr << "\n";
+  cout << "Starting at pheader 1, phys.addr: 0x" << hex << prog_hdr->p_paddr << '\n';
   
   decltype(elf_header->e_entry) srv_start {elf_header->e_entry};
   
@@ -192,17 +196,18 @@ int main(int argc, char** argv){
   
   int* magic_loc {reinterpret_cast<int*>(disk_head + img_size_bytes + SECT_SIZE-3)};
   
-  cout << "Applying magic signature: 0xFA7CA7"             << "\n"
-       << "Data currently at location: " << img_size_bytes << "\n"
-       << "Location on image: 0x" << hex << img_size_bytes << "\n";
+  cout << "Applying magic signature: 0xFA7CA7"             << '\n'
+       << "Data currently at location: " << img_size_bytes << '\n'
+       << "Location on image: 0x" << hex << img_size_bytes << '\n';
   
   *magic_loc = 0xFA7CA7;
   
-  if (test){
+  if (test) {
     cout << "\nTEST overwriting service with testdata\n";
-    for(int i = 0; i < img_size_bytes - 512; i++)
+    for(int i {0}; i < (img_size_bytes - 512); ++i) {
       disk[(512 + i)] = (i % 256);
-  }
+    }
+  } //< if (test)
   
   // Write the image
   auto* image = fopen(img_name.c_str(), "w");
@@ -210,7 +215,7 @@ int main(int argc, char** argv){
   
   cout << "Wrote "       << std::dec << wrote
        << " bytes => "   << (wrote / SECT_SIZE)
-       << " sectors to " << img_name << "\n";
+       << " sectors to " << img_name << '\n';
   
   fclose(image);
 }

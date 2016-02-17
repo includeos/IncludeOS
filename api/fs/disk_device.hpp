@@ -16,31 +16,30 @@
 // limitations under the License.
 
 #pragma once
-#ifndef DISK_DEVICE_HPP
-#define DISK_DEVICE_HPP
+#ifndef FS_DISK_DEVICE_HPP
+#define FS_DISK_DEVICE_HPP
 
+#include <memory>
 #include <cstdint>
 #include <functional>
-#include <memory>
 
-class IDiskDevice
-{
+class IDiskDevice {
 public:
-  typedef uint64_t block_t;
+  using block_t = uint64_t; //< Disk device block size
   
-  // To be used by caching mechanism for disk drivers
-  typedef std::shared_ptr<void*> buffer;
+  using buffer = std::shared_ptr<void*>; //< To be used by caching mechanism for disk drivers
   
-  // Delegate for result of reading a disk sector
-  typedef std::function<void(const void*)> on_read_func;
+  using on_read_func = std::function<void(const void*)>; //< Delegate for result of reading a disk sector
   
-  // Read sector(s) from blk and call func with result
-  // a null-pointer is passed to result if something bad happened
+  /**
+   *  Read sector(s) from blk and call func with result
+   *  A null-pointer is passed to result if something bad happened
+   */
   virtual void read_sector(block_t blk, on_read_func func) = 0;
   virtual void read_sectors(block_t blk, block_t count, on_read_func) = 0;
   
-  // the size of the disk in sectors
+  /** The size of the disk in sectors */
   virtual uint64_t size() const = 0;
-};
+}; //< class IDiskDevice
 
-#endif
+#endif //< FS_DISK_DEVICE_HPP
