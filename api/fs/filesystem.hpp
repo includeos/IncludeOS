@@ -19,82 +19,90 @@
 #ifndef FS_FILESYS_HPP
 #define FS_FILESYS_HPP
 
-#include <cstdint>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <functional>
+
 #include "error.hpp"
 
-namespace fs
-{
-  class FileSystem
-  {
-  public:
-    enum Enttype
-    {
-      FILE,
-      DIR,
-      // FAT puts disk labels in the root directory, hence:
-      VOLUME_ID,
-    };
+namespace fs {
+
+class FileSystem {
+public:
+  struct Dirent; //< Generic structure for directory entries
+  
+  using dirvec_t = std::shared_ptr<std::vector<Dirent>>;
+  
+  using on_mount_func = std::function<void(error_t)>;
+  using on_ls_func    = std::function<void(error_t, dirvec_t)>;
+  using on_read_func  = std::function<void(error_t, uint8_t*, size_t)>;
+  using on_stat_func  = std::function<void(error_t, const Dirent&)>;
+
+  enum Enttype {
+    FILE,
+    DIR,
+    /** FAT puts disk labels in the root directory, hence: */
+    VOLUME_ID,
+  }; //< enum Enttype
+  
+  /** Generic structure for directory entries */
+  struct Dirent {
+    /** Default constructor */
+    explicit Dirent(const std::string& n = "", const Enttype  t    = FILE,
+                    const uint64_t blk   = 0U, const uint64_t pr   = 0U,
+                    const uint64_t sz    = 0U, const uint32_t attr = 0U) :
+      name      {n},
+      type      {t},
+      block     {blk},
+      parent    {pr},
+      size      {sz},
+      attrib    {attr},
+      timestamp {0}
+    {}
     
-    // generic structure for directory entries
-    struct Dirent
-    {
-      Dirent() {}
-      Dirent(std::string n, Enttype t, uint64_t blk, uint64_t pr, uint64_t sz, uint32_t attr)
-        : name(n), type(t), block(blk), parent(pr), size(sz), attrib(attr), timestamp(0) {}
-      
-      std::string name;
-      Enttype  type;
-      uint64_t block;
-      uint64_t parent; // parent's block#
-      uint64_t size;
-      uint32_t attrib;
-      int64_t  timestamp;
-      
-      std::string type_string() const
-      {
-        switch (type)
-        {
-        case FILE:
-          return "File";
-        case DIR:
-          return "Directory";
-        case VOLUME_ID:
-          return "Volume ID";
-        default:
-          return "Unknown type";
-        }
-      }
-      
-    };
+    std::string name;
+    Enttype     type;
+    uint64_t    block;
+    uint64_t    parent; //< Parent's block#
+    uint64_t    size;
+    uint32_t    attrib;
+    int64_t     timestamp;
     
-    typedef std::shared_ptr<std::vector<Dirent>> dirvec_t;
-    
-    typedef std::function<void(error_t)> on_mount_func;
-    typedef std::function<void(error_t, dirvec_t)> on_ls_func;
-    typedef std::function<void(error_t, uint8_t*, size_t)> on_read_func;
-    typedef std::function<void(error_t, const Dirent&)> on_stat_func;
-    
-    
-    // mount this filesystem with LBA at @base_sector
+    std::string type_string() const {
+      switch (type) {
+      case FILE:
+        return "File";
+      case DIR:
+        return "Directory";
+      case VOLUME_ID:
+        return "Volume ID";
+      default:
+        return "Unknown type";
+      } //< switch (type)
+    }
+  }; //< struct Dirent
+  
+   /** Mount this filesystem with LBA at @base_sector */
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
-    // path is a path in the mounted filesystem
+    /** @param path: Path in the mounted filesystem */
     virtual void ls(const std::string& path, on_ls_func) = 0;
     
-    // read an entire file into a buffer, then call on_read
+    /** Read an entire file into a buffer, then call on_read */
     virtual void readFile(const std::string&, on_read_func) = 0;
-    virtual void readFile(const Dirent& ent, on_read_func) = 0;
+    virtual void readFile(const Dirent& ent,  on_read_func) = 0;
     
-    // return information about a file or directory
+    /** Return information about a file or directory */
     virtual void stat(const std::string& ent, on_stat_func) = 0;
     
-    // returns the name of this filesystem
+    /** Returns the name of this filesystem */
     virtual std::string name() const = 0;
-  };
-}
 
-#endif
+    /** Default destructor */
+    virtual ~FileSystem() noexcept = default;
+}; //< class FileSystem
+} //< namespace fs
+
+#endif //< FS_FILESYS_HPP
