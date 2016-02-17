@@ -69,7 +69,7 @@ enum classcode_t {
   OLD,
   STORAGE,
   NIC,
-  DISPLAY,
+  DISPLAY, // VirtioConsole
   MULTIMEDIA,
   MEMORY,
   BRIDGE,

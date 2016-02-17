@@ -33,6 +33,11 @@ ConsoleVGA vga;
 
 void Service::start()
 {
+  auto con = Dev::console<0, VirtioCon> ();
+  
+  const char* data = "Hey there!!!!!\n";
+  con.write(data, strlen(data)+1, []{} );
+  
   // set secondary serial output to VGA console module
   /*OS::set_rsprint_secondary(
   [] (const char* string, size_t len)

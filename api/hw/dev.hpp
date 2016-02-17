@@ -21,6 +21,7 @@
 #include <common>
 #include <virtio/virtionet.hpp>
 #include <virtio/virtio_blk.hpp>
+#include <virtio/virtio_con.hpp>
 
 #include "nic.hpp"
 #include "pit.hpp"
@@ -51,6 +52,13 @@ public:
   static Disk<DRIVER>& disk() {
     static Disk<DRIVER> disk_ {PCI_manager::device<PCI::STORAGE>(N)};
     return disk_;
+  }
+  
+  /** Get disk N using driver DRIVER */
+  template <int N, typename DRIVER>
+  static DRIVER& console() {
+    static DRIVER con_ {PCI_manager::device<PCI::STORAGE>(N)};
+    return con_;
   }
   
   /**
