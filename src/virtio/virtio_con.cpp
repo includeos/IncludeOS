@@ -5,7 +5,7 @@
 #include <kernel/irq_manager.hpp>
 #include <hw/pci.hpp>
 #include <cassert>
-#include <cstdlib>
+#include <cstring>
 
 #define VIRTIO_CONSOLE_F_SIZE          0
 #define VIRTIO_CONSOLE_F_MULTIPORT     1
@@ -128,6 +128,10 @@ void VirtioCon::service_RX()
   {
     uint32_t len = 0;
     char* condata = (char*) rx.dequeue(&len);
+    
+    uint32_t dontcare;
+    rx.dequeue(&dontcare);
+    
     if (condata)
     {
       printf("service_RX() received %u bytes from virtio console\n", len);
@@ -136,7 +140,8 @@ void VirtioCon::service_RX()
     }
     else
     {
-      printf("No data, just len = %d\n", len);
+      // maybe just acknowledgement?
+      //printf("No data, just len = %d\n", len);
     }
   }
   
@@ -145,13 +150,15 @@ void VirtioCon::service_RX()
 
 void VirtioCon::write (
       const void* data, 
-      size_t len, 
-      on_write_func callback)
+      size_t len)
 {
-  printf("Writing %u bytes to console\n", len);
+  //printf("Writing %u bytes to console\n", len);
+  
+  char* heapdata = new char[len];
+  memcpy(heapdata, data, len);
   
   scatterlist sg[1];
-  sg[0].data = (void*) data;
+  sg[0].data = (void*) heapdata;
   sg[0].size = len;   // +1?
   
   tx.enqueue(sg, 1, 0, (void*) data);

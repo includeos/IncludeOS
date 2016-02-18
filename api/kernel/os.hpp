@@ -82,7 +82,7 @@ public:
    *
    *  This handler is called in addition to writing to the serial port.
    */
-  static void set_rsprint_secondary(rsprint_func func) {
+  static void set_rsprint(rsprint_func func) {
     rsprint_handler_ = func;
   }
   

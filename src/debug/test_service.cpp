@@ -33,14 +33,16 @@ ConsoleVGA vga;
 
 void Service::start()
 {
+  /// virtio-console testing ///
+  auto con = hw::Dev::console<0, VirtioCon> ();
+  
   // set secondary serial output to VGA console module
-  /*OS::set_rsprint_secondary(
-  [] (const char* string, size_t len)
+  printf("Attaching console...\n");
+  OS::set_rsprint(
+  [&con] (const char* data, size_t len)
   {
-    (void) string;
-    (void) len;
-    vga.write(string, len);
-  });*/
+    con.write(data, len);
+  });
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -57,13 +59,6 @@ void Service::start()
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
-  
-  /// virtio-console testing ///
-  auto con = hw::Dev::console<0, VirtioCon> ();
-  
-  const char* data = "Hey there!!!!!\n";
-  for (int i = 0; i < 100; i++)
-    con.write(data, strlen(data)+1, []{} );
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

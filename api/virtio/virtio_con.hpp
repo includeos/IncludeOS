@@ -45,8 +45,6 @@
 class VirtioCon : public Virtio
 {
 public:
-  typedef delegate<void()> on_write_func;
-  
   // returns the sizes of this console
   size_t rows() const noexcept
   {
@@ -57,7 +55,7 @@ public:
     return config.cols;
   }
   
-  void write (const void* data, size_t len, on_write_func func);
+  void write (const void* data, size_t len);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioCon(hw::PCI_Device& pcidev);
