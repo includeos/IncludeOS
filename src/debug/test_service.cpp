@@ -33,11 +33,6 @@ ConsoleVGA vga;
 
 void Service::start()
 {
-  auto con = hw::Dev::console<0, VirtioCon> ();
-  
-  const char* data = "Hey there!!!!!\n";
-  con.write(data, strlen(data)+1, []{} );
-  
   // set secondary serial output to VGA console module
   /*OS::set_rsprint_secondary(
   [] (const char* string, size_t len)
@@ -63,5 +58,12 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
-  printf("*** TEST SERVICE STARTED *** \n");    
+  /// virtio-console testing ///
+  auto con = hw::Dev::console<0, VirtioCon> ();
+  
+  const char* data = "Hey there!!!!!\n";
+  for (int i = 0; i < 100; i++)
+    con.write(data, strlen(data)+1, []{} );
+  
+  printf("*** TEST SERVICE STARTED *** \n");
 }

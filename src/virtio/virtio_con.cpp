@@ -33,30 +33,37 @@ VirtioCon::VirtioCon(hw::PCI_Device& d)
   INFO("VirtioCon", "Driver initializing");
   
   uint32_t needed_features =
-      FEAT(VIRTIO_CONSOLE_F_SIZE);
+      FEAT(VIRTIO_CONSOLE_F_MULTIPORT);
   negotiate_features(needed_features);
   
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_SIZE),
-    "Barrier is enabled");
+    "Valid console dimensions");
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_MULTIPORT),
-    "Console dimensions is known");
+    "Multiple ports support");
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_EMERG_WRITE),
-    "Seg-max is known");
+    "Emergency write support");
   
   CHECK ((features() & needed_features) == needed_features,
     "Negotiated needed features");
   
-  // Step 1 - Initialize receive queues
+  // Step 1 - Initialize queues
   auto success = assign_queue(0, (uint32_t) rx.queue_desc());
   CHECK(success, "Receive queue assigned (0x%x) to device",
     (uint32_t) rx.queue_desc());
+  
+  success = assign_queue(1, (uint32_t) tx.queue_desc());
+  CHECK(success, "Transmit queue assigned (0x%x) to device",
+    (uint32_t) tx.queue_desc());
   
   success = assign_queue(2, (uint32_t) rx.queue_desc());
   CHECK(success, "Control rx queue assigned (0x%x) to device",
     (uint32_t) ctl_rx.queue_desc());
   
+  success = assign_queue(3, (uint32_t) ctl_tx.queue_desc());
+  CHECK(success, "Control tx queue assigned (0x%x) to device",
+    (uint32_t) ctl_tx.queue_desc());
+  
   // Step 3 - Fill receive queue with buffers
-  // DEBUG: Disable
   INFO("VirtioCon", "Queue size   rx: %d  tx: %d\n", 
         rx.size(), tx.size());
   
@@ -117,19 +124,20 @@ void VirtioCon::service_RX()
 {
   rx.disable_interrupts();
   
-  uint32_t received = 0;
-  uint32_t len;
-  char*    condata;
-  while ((condata = (char*) rx.dequeue(&len)) != nullptr)
+  while (rx.new_incoming())
   {
-    printf("service_RX() received %u bytes from virtio console\n", len);
-    printf("Data: %s\n", condata);
-    //vbr->handler(0, vbr->sector);
-    received++;
-  }
-  if (received == 0)
-  {
-    printf("service_RX() error processing requests\n");
+    uint32_t len = 0;
+    char* condata = (char*) rx.dequeue(&len);
+    if (condata)
+    {
+      printf("service_RX() received %u bytes from virtio console\n", len);
+      printf("Data: %s\n", condata);
+      //vbr->handler(0, vbr->sector);
+    }
+    else
+    {
+      printf("No data, just len = %d\n", len);
+    }
   }
   
   rx.enable_interrupts();
@@ -146,6 +154,6 @@ void VirtioCon::write (
   sg[0].data = (void*) data;
   sg[0].size = len;   // +1?
   
-  tx.enqueue(sg, 0, 1, (void*) data);
+  tx.enqueue(sg, 1, 0, (void*) data);
   tx.kick();
 }

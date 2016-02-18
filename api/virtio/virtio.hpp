@@ -28,6 +28,7 @@
      
      In the following abbreviated to Virtio 1.03 or Virtio std.          
 */
+#pragma once
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
@@ -60,7 +61,6 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
 
-
 /** A simple scatter-gather list used for Queue::enqueue. 
     ( From sanos, virtio.h  - probably Linux originally)
  */
@@ -73,6 +73,25 @@ struct scatterlist {
 class Virtio
 {
 public:    
+  // http://docs.oasis-open.org/virtio/virtio/v1.0/csprd01/virtio-v1.0-csprd01.html#x1-860005
+  // Virtio device types
+  enum virtiotype_t
+  {
+    RESERVED = 0,
+    NIC,
+    BLOCK,
+    CONSOLE,
+    ENTROPY,
+    BALLOON,
+    IO_MEM,
+    RP_MSG,
+    SCSI_HOST,
+    T9P,
+    WLAN,
+    RP_SERIAL,
+    CAIF
+  };
+  
   /** Virtio Queue class. */
   class Queue
   {
@@ -296,9 +315,6 @@ private:
   int calls = 0;
   
   void default_irq_handler();
-  
-
-  
 };
 
 #endif
