@@ -22,9 +22,6 @@
 
 namespace hw {
 
-/** Hopefully somebody will port a driver for this one */
-class IDE;
-
 template <typename DRIVER>
 class Disk {
 public:
