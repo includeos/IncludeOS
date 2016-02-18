@@ -34,7 +34,10 @@ MHz  OS::cpu_mhz_ {0};
 
 // We have to initialize delegates?
 OS::rsprint_func OS::rsprint_handler_ =
-  [](const char*, size_t) {};
+  [] (const char* data, size_t len) {
+    for(size_t i = 0; i < len; ++i)
+        rswrite(data[i]);
+  };
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
@@ -108,23 +111,20 @@ void OS::event_loop() {
 }
 
 size_t OS::rsprint(const char* str) {
-  size_t len {0};
+  size_t len = 0;
 
 	// Measure length
   while (str[len++]);
   
-  // Call rsprint again with length
-  return rsprint(str, len);
+  // Output callback
+  rsprint_handler_(str, len);
+  return len;
 }
 
 size_t OS::rsprint(const char* str, const size_t len) {
-	// Serial output
-	for(size_t i {0}; i < len; ++i)
-		rswrite(str[i]);
-	
-  // Call external handler for secondary outputs
+  
+  // Output callback
   OS::rsprint_handler_(str, len);
-	
 	return len;
 }
 
@@ -132,7 +132,7 @@ size_t OS::rsprint(const char* str, const size_t len) {
 void OS::rswrite(const char c) {
   /* Wait for the previous character to be sent */
   while ((hw::inb(0x3FD) & 0x20) != 0x20);
-
+  
   /* Send the character */
   hw::outb(0x3F8, c);
 }

@@ -63,7 +63,7 @@ union msg {
     uint8_t  code;
   };
 }; //< union msg
-  
+
 /** Relevant class codes (many more) */
 enum classcode_t {
   OLD,
@@ -73,6 +73,17 @@ enum classcode_t {
   MULTIMEDIA,
   MEMORY,
   BRIDGE,
+  COMMUNICATION,
+  BASE_SYSTEM_PER,
+  INPUT_DEVICE,
+  DOCKING_STATION,
+  PROCESSOR,
+  SERIAL_BUS,
+  WIRELESS,
+  IO_CTL,
+  SATELLITE,
+  ENCRYPTION,
+  SIGPRO,
   OTHER=255
 }; //< enum classcode_t
 } //< namespace PCI

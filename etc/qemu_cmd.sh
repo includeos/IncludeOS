@@ -17,6 +17,8 @@ export SMP="-smp 1"
 
 export DEV_GRAPHICS="--nographic" #For a VGA console (which won't work over ssh), use "-vga std"
 
+export SERIAL="-virtioconsole stdio"
+
 export DEV_HDD="-hda $IMAGE"
-export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP"
+export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP $SERIAL"
 
