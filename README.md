@@ -15,12 +15,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 
 ## Build status
-We're working towards automating everything with our Jenkins CI server at [jenkins.includeos.org](http://jenkins.includeos.org/). Jenkins is currently only testing on KVM/Linux, but more platforms will come. We do manual tests on virtualbox, before releases.
-
-|        | Build from bundle                                                                                                                                   | Build from source                                                                                                                                   |
-|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Master | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_master/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_master/) | [![Build Status](http://jenkins.includeos.org/job/complete_source_master/badge/icon)](http://jenkins.includeos.org/job/complete_source_master/) |
-| Dev    | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_dev/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_dev/)       | [![Build Status](http://jenkins.includeos.org/job/complete_source_dev/badge/icon)](http://jenkins.includeos.org/job/complete_source_dev/)       |
+We're working towards automating everything with our Jenkins CI server. Unfortunately he was recently hacked and is being cloned from DNA recovered from a mosqito in resin plus pig stem cells as we speak. He'll be back on his feet and just like before (ish) pretty soon.
 
 ### Key features
 * **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 693K when optimized for size.
