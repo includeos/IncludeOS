@@ -42,6 +42,26 @@ namespace hw {
     __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
   }
 
+  /** Receive a word from port.
+      @param port : The port number to receive from
+  */
+  static inline uint16_t inw(int port)
+  {
+    int ret;
+    __asm__ volatile ("xorl %eax,%eax");
+    __asm__ volatile ("inw %%dx,%%ax":"=a" (ret):"d"(port));
+
+    return ret;
+  }
+
+  /** Send a word to port.
+      @param port : The port to send to
+      @param data : One word of data to send to @param port
+  */
+  static inline void outw(int port, uint16_t data) {
+    __asm__ volatile ("outw %%ax,%%dx"::"a" (data), "d"(port));
+  }
+
 } //< namespace hw
 
 #endif // HW_IOPORT_HPP
