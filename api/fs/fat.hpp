@@ -20,7 +20,7 @@
 #define FS_FAT_HPP
 
 #include "filesystem.hpp"
-#include "disk_device.hpp"
+#include <hw/disk_device.hpp>
 #include <functional>
 #include <cstdint>
 #include <memory>
@@ -63,7 +63,7 @@ namespace fs
     /// ----------------------------------------------------- ///
     
     // constructor
-    FAT32(IDiskDevice& idev);
+    FAT32(hw::IDiskDevice& idev);
     ~FAT32() {}
     
   private:
@@ -176,7 +176,7 @@ namespace fs
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     
     // device we can read and write sectors to
-    IDiskDevice& device;
+    hw::IDiskDevice& device;
     
     /// private members ///
     // the location of this partition

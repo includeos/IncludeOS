@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef VIRTIO_VIRTIOBLK_HPP
-#define VIRTIO_VIRTIOBLK_HPP
+#pragma once
+#ifndef VIRTIO_BLOCK_HPP
+#define VIRTIO_BLOCK_HPP
 
 #include <common>
 #include "../hw/pci_device.hpp"
@@ -30,7 +31,7 @@ public:
   typedef uint64_t block_t;
   typedef delegate<void(block_t, const char*)> on_read_func;
   typedef delegate<void(block_t, block_t)> on_write_func;
-  static const int SECTOR_SIZE = 512;
+  static const size_t SECTOR_SIZE = 512;
   
   /** Human readable name. */
   const char* name();  
@@ -38,11 +39,11 @@ public:
   // returns the optimal block size for this device
   constexpr block_t block_size() const
   {
-    return 512; // some multiple of sector size
+    return SECTOR_SIZE; // some multiple of sector size
   }
   
   void read (block_t blk, on_read_func func);
-  void write(block_t blk, const char* data);
+  //void write(block_t blk, const char* data);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioBlk(hw::PCI_Device& pcidev);

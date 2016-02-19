@@ -134,13 +134,13 @@ void VirtioBlk::service_RX()
   blk_data_t* vbr;
   while ((vbr = (blk_data_t*) req.dequeue(&len)) != nullptr)
   {
-    printf("service_RX() received %u bytes from virtioblk device\n", len);
+    //printf("service_RX() received %u bytes from virtioblk device\n", len);
     vbr->handler(0, vbr->sector);
     received++;
   }
   if (received == 0)
   {
-    printf("service_RX() error processing requests\n");
+    //printf("service_RX() error processing requests\n");
   }
   
   req.enable_interrupts();

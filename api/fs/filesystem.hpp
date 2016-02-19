@@ -103,6 +103,7 @@ public:
     /** Default destructor */
     virtual ~FileSystem() noexcept = default;
 }; //< class FileSystem
+
 } //< namespace fs
 
 #endif //< FS_FILESYS_HPP
