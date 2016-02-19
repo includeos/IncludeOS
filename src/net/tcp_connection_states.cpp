@@ -361,7 +361,7 @@ size_t Connection::State::receive(Connection&, char*, size_t) {
 }
 
 void Connection::State::close(Connection&) {
-	// Dirty close
+	throw TCPException{"Connection closing."};
 }
 
 void Connection::State::abort(Connection&) {
@@ -452,6 +452,16 @@ size_t Connection::Listen::send(Connection&, const char*, size_t, bool) {
 	return 0;
 }
 
+void Connection::Listen::close(Connection& tcp) {
+	/*
+	  Any outstanding RECEIVEs are returned with "error:  closing"
+      responses.  Delete TCB, enter CLOSED state, and return.
+	*/
+
+	// tcp.signal_disconnect("Closing")
+	tcp.set_state(Closed::instance());
+}
+
 
 State::Result Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
 	if(in->isset(RST)) {
@@ -501,6 +511,16 @@ size_t Connection::SynSent::send(Connection& tcp, const char* buffer, size_t n, 
       resources".
 	*/
 	return tcp.write_to_send_buffer(buffer, n, push);
+}
+
+void Connection::SynSent::close(Connection& tcp) {
+	/*
+	  Delete the TCB and return "error:  closing" responses to any
+      queued SENDs, or RECEIVEs.
+	*/
+
+	// tcp.signal_disconnect("Closing")
+	tcp.set_state(Closed::instance());
 }
 
 
@@ -647,6 +667,19 @@ size_t Connection::SynReceived::send(Connection& tcp, const char* buffer, size_t
       resources".
 	*/
 	return tcp.write_to_send_buffer(buffer, n, push);
+}
+
+void Connection::SynReceived::close(Connection& tcp) {
+	/*
+	  If no SENDs have been issued and there is no pending data to send,
+      then form a FIN segment and send it, and enter FIN-WAIT-1 state;
+      otherwise queue for processing after entering ESTABLISHED state.
+	*/
+    // Dont know how to queue for close for processing...
+    auto& tcb = tcp.tcb();
+	tcp.outgoing_packet()->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
+	tcp.transmit();
+	tcp.set_state(Connection::FinWait1::instance());
 }
 
 void Connection::SynReceived::abort(Connection& tcp) {
@@ -833,6 +866,10 @@ size_t Connection::FinWait1::receive(Connection& tcp, char* buffer, size_t n) {
 	return tcp.read_from_receive_buffer(buffer, n);
 }
 
+void Connection::FinWait1::close(Connection&) {
+
+}
+
 void Connection::FinWait1::abort(Connection& tcp) {
 	send_reset(tcp);
 }
@@ -906,6 +943,10 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
 
 size_t Connection::FinWait2::receive(Connection& tcp, char* buffer, size_t n) {
 	return tcp.read_from_receive_buffer(buffer, n);
+}
+
+void Connection::FinWait2::close(Connection&) {
+	
 }
 
 void Connection::FinWait2::abort(Connection& tcp) {

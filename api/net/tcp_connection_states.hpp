@@ -70,6 +70,8 @@ public:
 	virtual void open(Connection&, bool active = false) override;
 
 	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+
+	virtual void close(Connection&) override;
 	/*
 		-> Receive SYN.
 
@@ -97,6 +99,8 @@ public:
 	}
 
 	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+
+	virtual void close(Connection&) override;
 	/*
 		-> Receive SYN+ACK
 
@@ -124,6 +128,8 @@ public:
 	}
 
 	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+
+	virtual void close(Connection&) override;
 
 	virtual void abort(Connection&) override;
 	/*
@@ -157,21 +163,11 @@ public:
 
 	virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	virtual void abort(Connection&) override;
-	/*
-		
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
-
-	/*
-		-> Receive FIN.
-
-		<- Send ACK.
-
-		=> CloseWait
-	*/
-	// What if we wanna close?? => FinWait1
 	virtual void close(Connection&) override;
+
+	virtual void abort(Connection&) override;
+
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "ESTABLISHED";
@@ -179,6 +175,64 @@ public:
 
 private:
 	inline Established() {};
+};
+
+/*
+	FIN-WAIT-1
+*/
+class Connection::FinWait1 : public State {
+public:
+	inline static State& instance() {
+		static FinWait1 instance;
+		return instance;
+	}
+
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+
+	virtual void close(Connection&) override;
+
+	virtual void abort(Connection&) override;
+
+	/*
+		-> Receive ACK.
+
+		=> FinWait2.
+	*/
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+
+	inline virtual std::string to_string() const override {
+		return "FIN-WAIT-1";
+	};
+
+private:
+	inline FinWait1() {};
+};
+
+/*
+	FIN-WAIT-2
+*/
+class Connection::FinWait2 : public State {
+public:
+	inline static State& instance() {
+		static FinWait2 instance;
+		return instance;
+	}
+
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+
+	virtual void close(Connection&) override;
+
+	virtual void abort(Connection&) override;
+	/*
+		
+	*/
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+
+	inline virtual std::string to_string() const override {
+		return "FIN-WAIT-2";
+	};
+private:
+	inline FinWait2() {};
 };
 
 /*
@@ -213,60 +267,6 @@ public:
 
 private:
 	inline CloseWait() {};
-};
-
-/*
-	FIN-WAIT-1
-*/
-class Connection::FinWait1 : public State {
-public:
-	inline static State& instance() {
-		static FinWait1 instance;
-		return instance;
-	}
-
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
-
-	virtual void abort(Connection&) override;
-
-	/*
-		-> Receive ACK.
-
-		=> FinWait2.
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
-
-	inline virtual std::string to_string() const override {
-		return "FIN-WAIT-1";
-	};
-
-private:
-	inline FinWait1() {};
-};
-
-/*
-	FIN-WAIT-1
-*/
-class Connection::FinWait2 : public State {
-public:
-	inline static State& instance() {
-		static FinWait2 instance;
-		return instance;
-	}
-
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
-
-	virtual void abort(Connection&) override;
-	/*
-		
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
-
-	inline virtual std::string to_string() const override {
-		return "FIN-WAIT-2";
-	};
-private:
-	inline FinWait2() {};
 };
 
 /*

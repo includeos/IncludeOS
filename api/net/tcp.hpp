@@ -510,9 +510,9 @@ public:
 		class SynSent;
 		class SynReceived;
 		class Established;
-		class CloseWait;
 		class FinWait1;
 		class FinWait2;
+		class CloseWait;
 		class LastAck;
 		class Closing;
 		class TimeWait;

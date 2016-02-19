@@ -170,7 +170,13 @@ void Connection::open(bool active) {
 
 void Connection::close() {
 	printf("<TCP::Connection::close> Active close on connection. \n");
-	state_->close(*this);
+	try {
+		state_->close(*this);
+		if(is_state(Closed::instance()))
+			signal_close();
+	} catch(TCPException err) {
+		signal_error(err);
+	}
 }
 
 string Connection::to_string() const {
@@ -281,12 +287,12 @@ TCP::Seq Connection::generate_iss() {
 
 void Connection::add_retransmission(TCP::Packet_ptr packet) {
 	debug2("<TCP::Connection::add_retransmission> Packet added to retransmission. \n");
-	// This is dangerous...
-	hw::PIT::instance().onTimeout(RTO(), [packet, this] {
+	auto self = shared_from_this();
+	hw::PIT::instance().onTimeout(RTO(), [packet, self] {
 		// Packet hasnt been ACKed.
-		if(packet->seq() > tcb().SND.UNA) {
+		if(packet->seq() > self->tcb().SND.UNA) {
 			printf("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
-			transmit(packet);
+			self->transmit(packet);
 		} else {
 			debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
 			// Signal user?
@@ -316,6 +322,7 @@ void Connection::start_time_wait_timeout() {
 	time_wait_started = OS::cycles_since_boot();
 	//auto timeout = 2 * host().MSL(); // 60 seconds
 	auto timeout = 10s;
+	// Passing "this"..?
 	hw::PIT::instance().onTimeout(timeout,[this, timeout] {
 		// The timer hasnt been updated
 		if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
