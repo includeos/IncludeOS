@@ -58,22 +58,15 @@ TCP::Connection& TCP::bind(Port port) {
 }
 
 /*
-	Bind a new connection to a given Port with a Callback.
-*/
-void TCP::bind(Port port, Connection::ConnectCallback success) {
-	bind(port).onConnect(success);
-}
-
-/*
 	Active open a new connection to the given remote.
 
 	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
 	and open() is called before callback is added.
 */
-TCP::Connection& TCP::connect(Socket remote) {
+std::shared_ptr<TCP::Connection> TCP::connect(Socket remote) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	TCP::Connection& connection = add_connection(local, remote);
-	connection.open(true);
+	std::shared_ptr<Connection> connection = add_connection(local, remote);
+	connection->open(true);
 	return connection;
 }
 
@@ -82,8 +75,8 @@ TCP::Connection& TCP::connect(Socket remote) {
 */
 void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
 	TCP::Socket local{inet_.ip_addr(), free_port()};
-	TCP::Connection& connection = add_connection(local, remote);
-	connection.onConnect(callback).open(true);
+	auto connection = add_connection(local, remote);
+	connection->onConnect(callback).open(true);
 }
 
 TCP::Seq TCP::generate_iss() {
@@ -166,8 +159,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	auto conn_it = connections.find(tuple);
 	// Connection found
 	if(conn_it != connections.end()) {
-		printf("<TCP::bottom> Connection found: %s \n", conn_it->second.to_string().c_str());
-		conn_it->second.receive(packet);
+		printf("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
+		conn_it->second->receive(packet);
 	}
 	// No connection found 
 	else {
@@ -178,13 +171,13 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 		if(listen_conn_it != listeners.end()) {
 			auto& listen_conn = listen_conn_it->second;
 			printf("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
-			auto& connection = (connections.emplace(tuple, Connection{listen_conn})).first->second;
+			auto connection = (connections.emplace(tuple, std::make_shared<Connection>(listen_conn)).first->second);
 			// Set remote
-			connection.set_remote(packet->source());
-			printf("<TCP::bottom> ... Creating connection: %s \n", connection.to_string().c_str());
+			connection->set_remote(packet->source());
+			printf("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
 			// Change to listening state.
 			//connection.open(); // already listening
-			connection.receive(packet);
+			connection->receive(packet);
 		}
 		// No listener found
 		else {
@@ -208,7 +201,7 @@ string TCP::status() const {
 	}
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
 	for(auto con_it : connections) {
-		auto c = con_it.second;
+		auto c = *(con_it.second);
 		ss << "tcp4\t" 
 			<< c.receive_buffer().size() << "\t" << c.send_buffer().size() << "\t"
 			<< c.bytes_received() << "\t" << c.bytes_transmitted() << "\t"
@@ -222,10 +215,10 @@ string TCP::status() const {
 
 }*/
 
-TCP::Connection& TCP::add_connection(TCP::Socket& local, TCP::Socket remote) {
+std::shared_ptr<TCP::Connection> TCP::add_connection(TCP::Socket& local, TCP::Socket remote) {
 	return 	(connections.emplace(
 				Connection::Tuple{ local, remote }, 
-				Connection{*this, local, remote})
+				std::make_shared<Connection>(*this, local, remote))
 			).first->second;
 }
 
