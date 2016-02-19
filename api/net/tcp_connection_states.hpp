@@ -35,6 +35,8 @@ public:
 	}
 
 	virtual void open(TCP::Connection&, bool active = false) override;
+
+	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
 	/*
 		PASSIVE:		
 		<- Do nothing (Start listening).
@@ -64,8 +66,9 @@ public:
 		static Listen instance;
 		return instance;
 	}
-
 	virtual void open(TCP::Connection&, bool active = false) override;
+
+	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
 	/*
 		-> Receive SYN.
 
@@ -183,6 +186,10 @@ public:
 		return instance;
 	}
 
+	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+
+	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+
 	inline void close(TCP::Connection&) override;
 	/*
 		-> Nothing I think...
@@ -210,6 +217,9 @@ public:
 		static FinWait1 instance;
 		return instance;
 	}
+
+	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+
 	/*
 		-> Receive ACK.
 
@@ -234,6 +244,8 @@ public:
 		static FinWait2 instance;
 		return instance;
 	}
+	
+	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
 	/*
 		
 	*/

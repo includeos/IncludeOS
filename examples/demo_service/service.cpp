@@ -49,16 +49,28 @@ void Service::start() {
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
   
   // Set up a TCP server on port 80
-  net::TCP::Connection& conn =  inet->tcp().bind(80);
+  auto& server = inet->tcp().bind(80);
   
   srand(OS::cycles_since_boot());
   
-  printf("<Service> Connection: %s \n", conn.to_string().c_str());
+  printf("<Service> Connection: %s \n", server.to_string().c_str());
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  conn.onData([](net::TCP::Connection& conn, bool push) {
-      std::string data = conn.read(1024);
-      printf("<Service> onData: \n %s \n", data.c_str());
-      printf("<Service> TCP STATUS:\n%s \n", conn.host().status().c_str());
+  server.onAccept([](auto conn)->bool {
+      printf("<Service> @onAccept - Connection attempt from: %s \n", conn->remote().to_string().c_str());
+      printf("<Service> Status: %s \n", conn->to_string().c_str());
+
+      bool allowed_connection_expression = true; // accepts all connections.
+      
+      return allowed_connection_expression;
+
+  }).onConnect([](auto conn) {
+      printf("<Service> @onConnect - Connection successfully established. \n");
+      printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
+
+  }).onReceive([](auto conn, bool push) {
+      std::string data = conn->read(1024);
+      printf("<Service> @onData - PUSH: %d, Data read: \n %s \n", push, data.c_str());
+      printf("<Service> Status: %s \n", conn->to_string().c_str());
       int color = rand();
       std::stringstream stream;
  
@@ -91,12 +103,12 @@ void Service::start() {
   "Connection: close\n\n";
       
       std::string output{header + html};
-      conn.write(output.data(), output.size());
-      //conn.close();
-  }).onDisconnect([](net::TCP::Connection& conn, std::string msg) {
-      printf("<Service> onDisconnect: %s \n", msg.c_str());
-      printf("<Service> TCP STATUS:\n%s", conn.host().status().c_str());
-      //conn.close();
+      conn->write(output.data(), output.size());
+
+  }).onDisconnect([](auto conn, std::string msg) {
+      printf("<Service> @onDisconnect - Reason: %s \n", msg.c_str());
+      printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
+
   });
 
   // Set up a Active conneciton

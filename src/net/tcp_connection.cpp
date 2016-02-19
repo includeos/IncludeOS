@@ -62,8 +62,13 @@ Connection::Connection(TCP& host, Socket& local) :
 
 size_t Connection::read(char* buffer, size_t n) {
 	printf("<TCP::Connection::read> Reading %u bytes of data from RCV buffer. Total amount of packets stored: %u\n", 
-			n, receive_buffer().size());
-	return state_->receive(*this, buffer, n);
+			n, receive_buffer_.size());
+	try {
+		return state_->receive(*this, buffer, n);	
+	} catch(TCPException err) {
+		signal_error(err);
+		return 0;
+	}
 }
 
 // TODO: The n == 0 part.
@@ -76,10 +81,10 @@ std::string Connection::read(size_t n) {
 size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 	size_t bytes_read = 0;
 	// Read data to buffer until either whole buffer is emptied, or the user got all the data requested.
-	while(!receive_buffer().empty() and bytes_read < n)
+	while(!receive_buffer_.empty() and bytes_read < n)
 	{
 		// Packet in front
-		auto packet = receive_buffer().front();
+		auto packet = receive_buffer_.front();
 		// Where to begin reading
 		char* begin = packet->data()+rcv_buffer_offset;
 		// Read this iteration
@@ -91,7 +96,7 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 			// Reading whole packet
 			total = packet->data_length();
 			// Removing packet from receive buffer.
-			receive_buffer().pop();
+			receive_buffer_.pop();
 			// Next packet will start from beginning.
 			rcv_buffer_offset = 0;
 		}
@@ -108,14 +113,21 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 }
 
 bool Connection::add_to_receive_buffer(TCP::Packet_ptr packet) {
-	// TODO: Check for buffer limit.
-	receive_buffer().push(packet);
-	return true;
+	if(receive_buffer_.size() < host_.buffer_limit()) {
+		receive_buffer_.push(packet);
+		return true;	
+	}
+	return false;
 }
 
-size_t Connection::write(const char* buffer, size_t n) {
-	printf("<TCP::Connection::write> Writing %u bytes of data to SND buffer. \n", n);
-	return state_->send(*this, buffer, n);
+size_t Connection::write(const char* buffer, size_t n, bool PUSH) {
+	printf("<TCP::Connection::write> Asking to write %u bytes of data to SND buffer. \n", n);
+	try {
+		return state_->send(*this, buffer, PUSH);
+	} catch(TCPException err) {
+		signal_error(err);
+		return 0;
+	}
 }
 
 size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH) {
@@ -127,7 +139,7 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH)
 		bytes_written += written;
 		remaining -= written;
 		
-		printf("<TCP::Connection::write_to_send_buffer> Remaining: %u \n", remaining);
+		debug("<TCP::Connection::write_to_send_buffer> Written: %u - Remaining: %u \n", written, remaining);
 		
 		// If last packet, add PUSH.
 		if(!remaining and PUSH)
@@ -135,7 +147,7 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH)
 
 		// Advance outgoing sequence number (SND.NXT) with the length of the data.
 		control_block.SND.NXT += packet->data_length();
-	} while(remaining);
+	} while(remaining and send_buffer_.size() < host_.buffer_limit());
 
 	return bytes_written;
 }
@@ -172,11 +184,14 @@ string Connection::to_string() const {
 */
 void Connection::receive(TCP::Packet_ptr incoming) {
 	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-	printf("<TCP::Connection::receive> Received incoming TCP Packet on %p: %s \n", 
-			this, incoming->to_string().c_str());
+	signal_packet_received(incoming);
 	// Change window accordingly. 
 	control_block.SND.WND = incoming->win();
 	switch(state_->handle(*this, incoming)) {
+		case State::OK: {
+			// Do nothing.
+			break;
+		}
 		case State::CLOSED: {
 			printf("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
 			signal_close();
@@ -188,14 +203,28 @@ void Connection::receive(TCP::Packet_ptr incoming) {
 			break;
 		};
 	}
-	
-	
+}
+
+bool Connection::is_listening() const { 
+	return is_state(Listen::instance()); 
+}
+
+bool Connection::is_connected() const { 
+	return is_state(Established::instance()); 
+}
+
+bool Connection::is_closing() const { 
+	return (is_state(Closing::instance()) or is_state(LastAck::instance()) or is_state(TimeWait::instance())); 
+}
+
+bool Connection::is_writable() const {
+	return (is_connected() and (send_buffer_.size() < host_.buffer_limit()));
 }
 
 Connection::~Connection() {
 	// Do all necessary clean up.
 	// Free up buffers etc.
-	printf("<TCP::Connection::~Connection> Bye bye... \n");
+	debug2("<TCP::Connection::~Connection> Bye bye... \n");
 }
 
 
@@ -207,31 +236,28 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 	packet->set_source(local());
 	// Set Destination (remote)
 	packet->set_destination(remote_);
-	// Clear flags (Is this needed...?)
-	//packet->header().clear_flags();
-	//packet->set_size(sizeof(TCP::Full_header));
+
 	packet->set_win_size(control_block.SND.WND);
 	
-	packet->header().set_offset(5); // Hardcoded for now, until support for option.
 	// Set SEQ and ACK - I think this is OK..
 	packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
 	debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
 	// Will also add the packet to the back of the send queue.
-	send_buffer().push(packet);
+	send_buffer_.push(packet);
 
 	return packet;
 }
 
 void Connection::transmit() {
-	assert(! send_buffer().empty() );
+	assert(! send_buffer_.empty() );
 	
 	printf("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer().size());	
 	while(! send_buffer_.empty() ) {
-		auto packet = send_buffer().front();
+		auto packet = send_buffer_.front();
 		assert(! packet->destination().is_empty());
 		transmit(packet);
-		send_buffer().pop();
+		send_buffer_.pop();
 	}
 }
 
@@ -244,9 +270,9 @@ void Connection::transmit(TCP::Packet_ptr packet) {
 }
 
 TCP::Packet_ptr Connection::outgoing_packet() {
-	if(send_buffer().empty())
+	if(send_buffer_.empty())
 		create_outgoing_packet();
-	return send_buffer().back();
+	return send_buffer_.back();
 }
 
 TCP::Seq Connection::generate_iss() {
@@ -254,7 +280,8 @@ TCP::Seq Connection::generate_iss() {
 }
 
 void Connection::add_retransmission(TCP::Packet_ptr packet) {
-	printf("<TCP::Connection::add_retransmission> Packet added to retransmission. \n");
+	debug2("<TCP::Connection::add_retransmission> Packet added to retransmission. \n");
+	// This is dangerous...
 	hw::PIT::instance().onTimeout(RTO(), [packet, this] {
 		// Packet hasnt been ACKed.
 		if(packet->seq() > tcb().SND.UNA) {
@@ -262,6 +289,7 @@ void Connection::add_retransmission(TCP::Packet_ptr packet) {
 			transmit(packet);
 		} else {
 			debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
+			// Signal user?
 		}
 	});
 }
