@@ -16,12 +16,15 @@
 // limitations under the License.
 
 #pragma once
-#ifndef FS_DISK_DEVICE_HPP
-#define FS_DISK_DEVICE_HPP
+#ifndef HW_DISK_DEVICE_HPP
+#define HW_DISK_DEVICE_HPP
 
 #include <memory>
 #include <cstdint>
 #include <functional>
+
+namespace hw
+{
 
 class IDiskDevice {
 public:
@@ -31,6 +34,9 @@ public:
   
   using on_read_func = std::function<void(const void*)>; //< Delegate for result of reading a disk sector
   
+  // Human-readable name of this disk controller
+  virtual const char* name() const noexcept = 0;
+  
   /**
    *  Read sector(s) from blk and call func with result
    *  A null-pointer is passed to result if something bad happened
@@ -39,10 +45,12 @@ public:
   virtual void read_sectors(block_t blk, block_t count, on_read_func) = 0;
   
   /** The size of the disk in sectors */
-  virtual uint64_t size() const = 0;
+  virtual block_t size() const noexcept = 0;
 
   /** Default destructor */
   virtual ~IDiskDevice() noexcept = default;
 }; //< class IDiskDevice
+
+} //< namespace hw
 
 #endif //< FS_DISK_DEVICE_HPP
