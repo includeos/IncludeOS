@@ -5,7 +5,7 @@
 
 namespace fs
 {
-  EXT4::EXT4(IDiskDevice& dev)
+  EXT4::EXT4(hw::IDiskDevice& dev)
     : device(dev)
   {
     

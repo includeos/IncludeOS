@@ -18,34 +18,39 @@
 #ifndef HW_IDE_HPP
 #define HW_IDE_HPP
 
+#include "disk.hpp"
+#include "pci_device.hpp"
 #include <delegate>
-#include <hw/pci_device.hpp>
 
 namespace hw {
 
   /** IDE device driver.  */
-  class IDE
+  class IDE : public IDiskDevice
   {
-    public:
-      typedef uint64_t block_t;
-      typedef delegate<void(block_t, char*)> on_read_func;
-      typedef delegate<void(block_t, block_t)> on_write_func;
-
+  public:
+      //using on_read_func = IDiskDevice::on_read_func;
+      //using block_t      = IDiskDevice::block_t;
+      
       /** Human readable name.  */
-      constexpr const char* name() const
+      virtual const char* name() const noexcept override
       {
         return "IDE Controller";
       }
 
       /** Returns the optimal block size for this device.  */
-      constexpr block_t block_size() const
+      constexpr block_t block_size() const noexcept
       {
         return 512;
       }
-
-      void read(block_t blk, on_read_func del);
-      void write(block_t blk, const char* data);
-
+      
+      virtual void read_sector(block_t blk, on_read_func del) override;
+      virtual void read_sectors(block_t blk, block_t count, on_read_func del) override;
+      
+      virtual block_t size() const noexcept override
+      {
+        return _nb_blk;
+      }
+      
       /**
        * Constructor.
        * @param pcidev An initialized PCI device.

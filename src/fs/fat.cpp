@@ -23,7 +23,7 @@ inline std::string trim_right_copy(
 
 namespace fs
 {
-  FAT32::FAT32(IDiskDevice& dev)
+  FAT32::FAT32(hw::IDiskDevice& dev)
     : device(dev)
   {
     

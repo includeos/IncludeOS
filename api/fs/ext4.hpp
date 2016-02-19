@@ -20,7 +20,7 @@
 #define FS_EXT4_HPP
 
 #include "filesystem.hpp"
-#include "disk_device.hpp"
+#include <hw/disk_device.hpp>
 #include <functional>
 #include <cstdint>
 #include <memory>
@@ -65,7 +65,7 @@ namespace fs
     }
     
     // constructor
-    EXT4(IDiskDevice& idev);
+    EXT4(hw::IDiskDevice& idev);
     ~EXT4() {}
     
   private:
@@ -517,7 +517,7 @@ namespace fs
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     
     // device we can read and write sectors to
-    IDiskDevice& device;
+    hw::IDiskDevice& device;
     
     // system fields
     

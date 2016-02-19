@@ -19,41 +19,45 @@
 #define HW_DISK_HPP
 
 #include "pci_device.hpp"
+#include "disk_device.hpp"
 
 namespace hw {
 
 template <typename DRIVER>
-class Disk {
+class Disk : public IDiskDevice {
 public:
-  using driver_t      = DRIVER;
-  using block_t       = typename driver_t::block_t;
-  using on_read_func  = typename driver_t::on_read_func;
-  using on_write_func = typename driver_t::on_write_func;
+  /** Human readable name.  */
+  const char* name() const noexcept override
+  {
+    return driver.name();
+  }
   
-  /** Get a readable name. */
-  inline const char* name() const noexcept
-  { return driver_.name(); }
+  virtual void
+  read_sector(block_t blk, on_read_func del) override
+  {
+    driver.read_sector(blk, del);
+  }
+  virtual void
+  read_sectors(block_t blk, block_t count, on_read_func del) override
+  {
+    driver.read_sectors(blk, count, del);
+  }
   
-  inline block_t block_size() const noexcept
-  { return driver_.block_size(); }
+  virtual block_t size() const noexcept override
+  {
+    return driver.size();
+  }
   
-  inline void read(block_t blk, on_read_func on_read)
-  { driver_.read(blk, on_read); }
-  
-  inline void write(block_t, const char*, on_write_func)
-  { /*return driver_.write(blk, data, on_write);*/ }
+  virtual ~Disk() = default;
   
 private:
-  driver_t driver_;
+  DRIVER driver;
   
   /**
-   *  Constructor
-   *  
    *  Just a wrapper around the driver constructor
-   *
    *  @note The Dev-class is a friend and will call this
    */
-  explicit Disk(PCI_Device& d): driver_{d} {}
+  explicit Disk(PCI_Device& d): driver{d} {}
   
   friend class Dev;
 }; //< class Disk

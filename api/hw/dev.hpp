@@ -20,8 +20,8 @@
 
 #include <common>
 #include <virtio/virtionet.hpp>
-#include <virtio/virtio_blk.hpp>
-#include <virtio/virtio_con.hpp>
+#include <virtio/block.hpp>
+#include <virtio/console.hpp>
 #include <kernel/pci_manager.hpp>
 
 #include "nic.hpp"

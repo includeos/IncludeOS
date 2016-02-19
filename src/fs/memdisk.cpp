@@ -51,7 +51,7 @@ namespace fs
     callback(buffer);
   }
   
-  uint64_t MemDisk::size() const
+  uint64_t MemDisk::size() const noexcept
   {
     return ((char*) image_end - (char*) image_start) / SECTOR_SIZE;
   }

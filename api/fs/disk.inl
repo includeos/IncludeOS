@@ -32,7 +32,7 @@ void Disk<FS>::partitions(on_parts_func func) {
       return;
     }
     
-    auto* mbr = reinterpret_cast<MBR::mbr*>(data); //< First sector is the Master Boot Record
+    auto* mbr =(MBR::mbr*) data; //< First sector is the Master Boot Record
     
     for (int i {0}; i < 4; ++i) {
       // all the partitions are offsets to potential Volume Boot Records
@@ -55,7 +55,7 @@ void Disk<FS>::partitions(on_parts_func func) {
 template <typename FS>
 void Disk<FS>::mount(partition_t part, on_mount_func func) {
   /** For the MBR case, all we need to do is mount on sector 0 */
-  if (part == PART_MBR) {
+  if (part == MBR) {
     fs().mount(0, device.size(), func);
   }
   else {
@@ -72,8 +72,7 @@ void Disk<FS>::mount(partition_t part, on_mount_func func) {
         return;
       }
       
-      auto* mbr = reinterpret_cast<MBR::mbr*>(data); //< Treat data as MBR
-      
+      auto* mbr = (MBR::mbr*) data; //< Treat data as MBR
       auto pint = static_cast<int>(part - 1); //< Treat VBR1 as index 0 etc.
 
       /** Get LBA from selected partition */

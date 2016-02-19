@@ -51,10 +51,10 @@
 
 namespace hw {
 
-  void IDE::read(block_t blk, on_read_func del)
+  void IDE::read_sector(block_t blk, on_read_func del)
   {
     if (blk >= _nb_blk) {
-      del(blk, NULL);
+      del(NULL);
       return;
     }
 
@@ -69,7 +69,7 @@ namespace hw {
     for (block_t i = 0; i < block_size() / sizeof (uint16_t); i++)
       buf[i] = inw(IDE_DATA);
 
-    del(blk, (char*)buf);
+    del(buf);
   }
 
   IDE::IDE(hw::PCI_Device& pcidev)
@@ -113,6 +113,10 @@ namespace hw {
     _nb_blk = (buffer[61] << 16) | buffer[60];
 
     INFO("IDE", "Initialization complete");
+  }
+  void IDE::read_sectors(block_t, block_t, on_read_func)
+  {
+    
   }
 
   void IDE::wait_status_busy(void)

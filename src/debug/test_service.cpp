@@ -31,9 +31,15 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 #include <kernel/vga.hpp>
 ConsoleVGA vga;
 
+// IDE
+#include <hw/ide.hpp>
+#include <fs/disk.hpp>
+#include <fs/fat.hpp>
+
 void Service::start()
 {
   /// virtio-console testing ///
+  /*
   auto con = hw::Dev::console<0, VirtioCon> ();
   
   // set secondary serial output to VGA console module
@@ -42,7 +48,17 @@ void Service::start()
   [&con] (const char* data, size_t len)
   {
     con.write(data, len);
-  });
+    //for (size_t i = 0; i < len; i++)
+    //    OS::rswrite(data[i]);
+  });*/
+  
+  /*
+  const char* test = "Testing :(\n";
+  size_t L = strlen(test);
+  
+  for (int i = 0; i < 120; i++)
+      con.write(test, L);
+  */
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -59,6 +75,35 @@ void Service::start()
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
+  
+  
+  /// PCI IDE controller testing ///
+  using FatDisk = fs::Disk<fs::FAT32>;
+  
+  auto ide1 = hw::Dev::disk<0, hw::IDE> ( /** probably need some option here **/ );
+  auto disk = std::make_shared<FatDisk> (ide1);
+  
+  ide1.read_sector(0, 
+  [] (const void* data)
+  {
+    auto* mbr = (fs::MBR::mbr*) data;
+    
+    printf("OEM name: %.8s\n", mbr->oem_name);
+    printf("MAGIC sig: 0x%x\n", mbr->magic);
+  });
+  
+  disk->mount(FatDisk::MBR,
+  [] (fs::error_t err)
+  {
+    if (err)
+    {
+      printf("BAD\n");
+      return;
+    }
+    
+    printf("GOOD ?\n");
+    
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

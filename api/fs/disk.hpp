@@ -25,7 +25,7 @@
 #include <functional>
 
 #include "error.hpp"
-#include "disk_device.hpp"
+#include <hw/disk_device.hpp>
 
 namespace fs {
 
@@ -41,15 +41,15 @@ public:
   using on_mount_func = std::function<void(error_t)>;
   
   /** Constructor */
-  explicit Disk(IDiskDevice&);
+  explicit Disk(hw::IDiskDevice&);
 
   enum partition_t {
-    PART_MBR = 0, //< Master Boot Record (0)
+    MBR = 0, //< Master Boot Record (0)
     /** extended partitions (1-4) */
-    PART_VBR1,
-    PART_VBR2,
-    PART_VBR3,
-    PART_VBR4
+    VBR1,
+    VBR2,
+    VBR3,
+    VBR4
   }; //<  enum partition_t
   
   struct Partition {
@@ -89,12 +89,12 @@ public:
   void partitions(on_parts_func func);
   
 private:
-  IDiskDevice& device;
+  hw::IDiskDevice& device;
   std::unique_ptr<FS> filesys;
 }; //< class Disk
 
 template <typename FS>
-inline Disk<FS>::Disk(IDiskDevice& dev) :
+inline Disk<FS>::Disk(hw::IDiskDevice& dev) :
   device {dev}
 {
   filesys.reset(new FS(device));
