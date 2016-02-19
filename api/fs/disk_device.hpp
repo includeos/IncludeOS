@@ -40,6 +40,9 @@ public:
   
   /** The size of the disk in sectors */
   virtual uint64_t size() const = 0;
+
+  /** Default destructor */
+  virtual ~IDiskDevice() noexcept = default;
 }; //< class IDiskDevice
 
 #endif //< FS_DISK_DEVICE_HPP
