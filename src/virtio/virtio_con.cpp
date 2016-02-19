@@ -6,6 +6,8 @@
 #include <hw/pci.hpp>
 #include <cassert>
 #include <cstring>
+extern "C"
+{ void panic(const char*); }
 
 #define VIRTIO_CONSOLE_F_SIZE          0
 #define VIRTIO_CONSOLE_F_MULTIPORT     1
@@ -55,13 +57,23 @@ VirtioCon::VirtioCon(hw::PCI_Device& d)
   CHECK(success, "Transmit queue assigned (0x%x) to device",
     (uint32_t) tx.queue_desc());
   
-  success = assign_queue(2, (uint32_t) rx.queue_desc());
+  success = assign_queue(2, (uint32_t) ctl_rx.queue_desc());
   CHECK(success, "Control rx queue assigned (0x%x) to device",
     (uint32_t) ctl_rx.queue_desc());
   
   success = assign_queue(3, (uint32_t) ctl_tx.queue_desc());
   CHECK(success, "Control tx queue assigned (0x%x) to device",
     (uint32_t) ctl_tx.queue_desc());
+  
+  /*
+  success = assign_queue(4, (uint32_t) rx1.queue_desc());
+  CHECK(success, "rx1 queue assigned (0x%x) to device",
+    (uint32_t) rx1.queue_desc());
+  
+  success = assign_queue(5, (uint32_t) tx1.queue_desc());
+  CHECK(success, "tx1 queue assigned (0x%x) to device",
+    (uint32_t) tx1.queue_desc());
+  */
   
   // Step 3 - Fill receive queue with buffers
   INFO("VirtioCon", "Queue size   rx: %d  tx: %d\n", 
@@ -76,13 +88,12 @@ VirtioCon::VirtioCon(hw::PCI_Device& d)
   
   // Hook up IRQ handler (inherited from Virtio)
   auto del(delegate<void()>::from<VirtioCon, &VirtioCon::irq_handler>(this));
-  IRQ_manager::subscribe(irq(),del);
+  IRQ_manager::subscribe(irq(), del);
   IRQ_manager::enable_irq(irq());  
   
   // Done
   INFO("VirtioCon", "Console with size (%u, %u), %u ports",
       config.cols, config.rows, config.max_nr_ports);
-  //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");    
   rx.kick();
 }
 
@@ -112,7 +123,6 @@ void VirtioCon::irq_handler()
   {
     debug("\t <VirtioCon> Configuration change:\n");
     
-    // Getting the MAC + status 
     //debug("\t             Old status: 0x%x\n", config.status);      
     get_config();
     //debug("\t             New status: 0x%x \n", config.status);
@@ -134,13 +144,13 @@ void VirtioCon::service_RX()
     
     if (condata)
     {
-      printf("service_RX() received %u bytes from virtio console\n", len);
-      printf("Data: %s\n", condata);
+      //printf("service_RX() received %u bytes from virtio console\n", len);
+      //printf("Data: %s\n", condata);
       //vbr->handler(0, vbr->sector);
     }
     else
     {
-      // maybe just acknowledgement?
+      // acknowledgement
       //printf("No data, just len = %d\n", len);
     }
   }
@@ -152,8 +162,6 @@ void VirtioCon::write (
       const void* data, 
       size_t len)
 {
-  //printf("Writing %u bytes to console\n", len);
-  
   char* heapdata = new char[len];
   memcpy(heapdata, data, len);
   

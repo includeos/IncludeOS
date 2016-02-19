@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef VIRTIO_VIRTIO_CON_HPP
-#define VIRTIO_VIRTIO_CON_HPP
+#pragma once
+#ifndef VIRTIO_CONSOLE_HPP
+#define VIRTIO_CONSOLE_HPP
 
 #include <common>
 #include "../hw/pci_device.hpp"
@@ -94,9 +95,10 @@ private:
       responsibility for memory management. */
   void service_TX();
   
-  /** Handle device IRQ. 
-      
-      Will look for config. changes and service RX/TX queues as necessary.*/
+  /**
+   * Handle device IRQ. 
+   * Will look for config. changes and service RX/TX queues as necessary.
+  **/
   void irq_handler();
   
   Virtio::Queue rx;     // 0

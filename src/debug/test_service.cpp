@@ -42,7 +42,17 @@ void Service::start()
   [&con] (const char* data, size_t len)
   {
     con.write(data, len);
+    //for (size_t i = 0; i < len; i++)
+    //    OS::rswrite(data[i]);
   });
+  
+  /*
+  const char* test = "Testing :(\n";
+  size_t L = strlen(test);
+  
+  for (int i = 0; i < 120; i++)
+      con.write(test, L);
+  */
   
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
