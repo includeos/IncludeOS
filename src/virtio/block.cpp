@@ -1,6 +1,6 @@
 #define DEBUG
 #define DEBUG2
-#include <virtio/virtio_blk.hpp>
+#include <virtio/block.hpp>
 
 #include <kernel/irq_manager.hpp>
 #include <hw/pci.hpp>
