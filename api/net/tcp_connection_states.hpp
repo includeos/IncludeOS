@@ -34,9 +34,10 @@ public:
 		return instance;
 	}
 
-	virtual void open(TCP::Connection&, bool active = false) override;
+	virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+
 	/*
 		PASSIVE:		
 		<- Do nothing (Start listening).
@@ -48,7 +49,7 @@ public:
 
 		=> SynSent
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSED";
@@ -66,9 +67,9 @@ public:
 		static Listen instance;
 		return instance;
 	}
-	virtual void open(TCP::Connection&, bool active = false) override;
+	virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 	/*
 		-> Receive SYN.
 
@@ -76,7 +77,7 @@ public:
 
 		=> SynReceived.
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "LISTENING";
@@ -95,7 +96,7 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 	/*
 		-> Receive SYN+ACK
 
@@ -103,7 +104,7 @@ public:
 
 		=> Established.
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "SYN-SENT";
@@ -122,7 +123,9 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+
+	virtual void abort(Connection&) override;
 	/*
 		-> Receive ACK.
 
@@ -130,7 +133,7 @@ public:
 
 		=> Established.
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "SYN-RCV";
@@ -150,13 +153,15 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+
+	virtual void abort(Connection&) override;
 	/*
 		
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	/*
 		-> Receive FIN.
@@ -166,7 +171,7 @@ public:
 		=> CloseWait
 	*/
 	// What if we wanna close?? => FinWait1
-	virtual void close(TCP::Connection&) override;
+	virtual void close(Connection&) override;
 
 	inline virtual std::string to_string() const override {
 		return "ESTABLISHED";
@@ -186,11 +191,13 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(TCP::Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	inline void close(TCP::Connection&) override;
+	virtual void close(Connection&) override;
+
+	virtual void abort(Connection&) override;
 	/*
 		-> Nothing I think...
 
@@ -198,7 +205,7 @@ public:
 		
 		=> LastAck
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSE-WAIT";
@@ -218,14 +225,16 @@ public:
 		return instance;
 	}
 
-	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+
+	virtual void abort(Connection&) override;
 
 	/*
 		-> Receive ACK.
 
 		=> FinWait2.
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-1";
@@ -244,12 +253,14 @@ public:
 		static FinWait2 instance;
 		return instance;
 	}
-	
-	virtual size_t receive(TCP::Connection&, char* buffer, size_t n) override;
+
+	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+
+	virtual void abort(Connection&) override;
 	/*
 		
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-2";
@@ -274,7 +285,7 @@ public:
 
 		=> Closed (Tell TCP to remove this connection)
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "LAST-ACK";
@@ -298,7 +309,7 @@ public:
 
 		=> TimeWait (Guess this isnt needed, just start a Close-timer)
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "CLOSING";
@@ -320,7 +331,7 @@ public:
 	/*
 		
 	*/
-	virtual Result handle(TCP::Connection&, TCP::Packet_ptr in) override;
+	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "TIME-WAIT";

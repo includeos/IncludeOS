@@ -121,9 +121,9 @@ bool Connection::add_to_receive_buffer(TCP::Packet_ptr packet) {
 }
 
 size_t Connection::write(const char* buffer, size_t n, bool PUSH) {
-	printf("<TCP::Connection::write> Asking to write %u bytes of data to SND buffer. \n", n);
+	debug("<TCP::Connection::write> Asking to write %u bytes of data to SND buffer. \n", n);
 	try {
-		return state_->send(*this, buffer, PUSH);
+		return state_->send(*this, buffer, n, PUSH);
 	} catch(TCPException err) {
 		signal_error(err);
 		return 0;

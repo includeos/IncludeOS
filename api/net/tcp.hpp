@@ -497,6 +497,8 @@ public:
 
 			virtual void process_fin(Connection&, TCP::Packet_ptr);
 
+			virtual void send_reset(Connection&);
+
 		}; // < class TCP::Connection::State
 
 		/*
@@ -621,6 +623,14 @@ public:
 			Close connection.
 		*/
 		void close();
+
+		/*
+			Abort connection. (Same as Terminate)
+		*/
+		inline void abort() {
+			state_->abort(*this);
+			signal_close();
+		}
 
 		/*
 			Set callback for ACCEPT event.
@@ -878,8 +888,8 @@ public:
 		inline void set_state(State& state) {
 			prev_state_ = state_;
 			state_ = &state;
-			printf("<TCP::Connection::set_state> State changed for %p: %s => %s \n", 
-					this, prev_state_->to_string().c_str(), state_->to_string().c_str());
+			printf("<TCP::Connection::set_state> %s => %s \n", 
+					prev_state_->to_string().c_str(), state_->to_string().c_str());
 		}
 
 		/*

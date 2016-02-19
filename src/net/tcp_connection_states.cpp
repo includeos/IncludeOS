@@ -18,7 +18,6 @@
 #define DEBUG2
 
 #include <net/tcp_connection_states.hpp>
-#include <algorithm>
 
 using namespace std;
 
@@ -128,7 +127,7 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
 		tcp.drop(in, "Unacceptable SEQ.");
 		return false;
 	}
-	printf("<Connection::State::check_seq> Acceptable SEQ: %u \n", in->seq());
+	debug2("<Connection::State::check_seq> Acceptable SEQ: %u \n", in->seq());
 	// is acceptable.
 	return true;
 }
@@ -160,7 +159,7 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
 */
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Packet_ptr in) {
 	assert(in->isset(SYN));
-	printf("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n", 
+	debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n", 
 		tcp.state().to_string().c_str());
 	// Not sure if this is the correct way to send a "reset response"
 	tcp.outgoing_packet()->set_seq(in->ack()).set_flag(RST);
@@ -174,7 +173,7 @@ void Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Pac
 */
 bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
     // 5. ACK bit
-    printf("<Connection::State::check_ack> Checking for ACK in STATE: %s \n", tcp.state().to_string().c_str());
+    debug2("<Connection::State::check_ack> Checking for ACK in STATE: %s \n", tcp.state().to_string().c_str());
     if( in->isset(ACK) ) {
     	auto& tcb = tcp.tcb();
     	/*
@@ -311,7 +310,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
 */
 
 void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
-    printf("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
+    debug("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
     assert(in->isset(FIN));
     auto& tcb = tcp.tcb();
 	tcp.signal_disconnect("Connection closing.");
@@ -324,6 +323,25 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
 	if(!tcp.receive_buffer().empty()) {
     	tcp.signal_receive(true);
     }
+}
+
+/*
+   Send a reset segment:
+
+    <SEQ=SND.NXT><CTL=RST>
+
+  All queued SENDs and RECEIVEs should be given "connection reset"
+  notification; all segments queued for transmission (except for the
+  RST formed above) or retransmission should be flushed, delete the
+  TCB, enter CLOSED state, and return.
+*/
+void Connection::State::send_reset(Connection& tcp) {
+	// TODO: send_buffer().clear()
+	while(!tcp.send_buffer().empty()) {
+		tcp.send_buffer_.pop();
+	}
+	tcp.outgoing_packet()->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(RST);
+	tcp.transmit();
 }
 
 /*
@@ -344,6 +362,10 @@ size_t Connection::State::receive(Connection&, char*, size_t) {
 
 void Connection::State::close(Connection&) {
 	// Dirty close
+}
+
+void Connection::State::abort(Connection&) {
+	// Do nothing.
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -443,21 +465,16 @@ State::Result Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
 	}
 	if(in->isset(SYN)) {
 		if(!tcp.signal_accept()) {
-			// Reject more gracefully?
+			// TODO: Reject more gracefully?
 			return CLOSED;
 		}
 		auto& tcb = tcp.tcb();
-		/*
-		// Security stuff, don't know yet.
-		if(p.PRC > tcb.PRC)
-			tcb.PRC = p.PRC;
-		*/
 		tcb.RCV.NXT 	= in->seq()+1;
 		tcb.IRS 		= in->seq();
 		tcb.ISS 		= tcp.generate_iss();
 		tcb.SND.NXT 	= tcb.ISS+1;
 		tcb.SND.UNA 	= tcb.ISS;
-		printf("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
+		debug("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
 			in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
 		tcp.outgoing_packet()->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
@@ -632,6 +649,10 @@ size_t Connection::SynReceived::send(Connection& tcp, const char* buffer, size_t
 	return tcp.write_to_send_buffer(buffer, n, push);
 }
 
+void Connection::SynReceived::abort(Connection& tcp) {
+	send_reset(tcp);
+}
+
 State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr in) {
 	// 1. check sequence
 	if(! check_seq(tcp, in) ) {
@@ -674,7 +695,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
           	and continue processing.
       	*/
 		if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
-			printf("<TCP::Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+			debug("<TCP::Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
 			tcp.set_state(Connection::Established::instance());
 			tcp.signal_connect(); // NOTE: User callback
 			return tcp.state().handle(tcp,in); // TODO: Fix. This is kinda bad, need to make the above steps again.
@@ -756,6 +777,10 @@ void Connection::Established::close(Connection& tcp) {
 	tcp.set_state(Connection::FinWait1::instance());
 }
 
+void Connection::Established::abort(Connection& tcp) {
+	send_reset(tcp);
+}
+
 State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr in) {
 	// 1. check SEQ
     if(! check_seq(tcp, in) ) {
@@ -806,6 +831,10 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
 
 size_t Connection::FinWait1::receive(Connection& tcp, char* buffer, size_t n) {
 	return tcp.read_from_receive_buffer(buffer, n);
+}
+
+void Connection::FinWait1::abort(Connection& tcp) {
+	send_reset(tcp);
 }
 
 State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) {
@@ -879,6 +908,10 @@ size_t Connection::FinWait2::receive(Connection& tcp, char* buffer, size_t n) {
 	return tcp.read_from_receive_buffer(buffer, n);
 }
 
+void Connection::FinWait2::abort(Connection& tcp) {
+	send_reset(tcp);
+}
+
 State::Result Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) {
 	// 1. check SEQ
     if(! check_seq(tcp, in) ) {
@@ -948,6 +981,11 @@ void Connection::CloseWait::close(Connection& tcp) {
 	tcp.transmit();
 	tcp.set_state(Connection::Closing::instance());
 }
+
+void Connection::CloseWait::abort(Connection& tcp) {
+	send_reset(tcp);
+}
+
 State::Result Connection::CloseWait::handle(Connection& tcp, TCP::Packet_ptr in) {
 	// 1. check SEQ
     if(! check_seq(tcp, in) ) {
