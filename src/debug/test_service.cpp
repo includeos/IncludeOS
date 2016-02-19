@@ -97,11 +97,11 @@ void Service::start()
   {
     if (err)
     {
-      printf("BAD");
+      printf("BAD\n");
       return;
     }
     
-    printf("GOOD ?");
+    printf("GOOD ?\n");
     
   });
   
