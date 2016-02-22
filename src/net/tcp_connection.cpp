@@ -28,9 +28,9 @@ using namespace std;
 /*
 	This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, Socket& local, Socket remote) :
+Connection::Connection(TCP& host, Port local_port, Socket remote) :
 	host_(host),
-	local_port_(local.port()), 
+	local_port_(local_port), 
 	remote_(remote),
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
@@ -45,9 +45,9 @@ Connection::Connection(TCP& host, Socket& local, Socket remote) :
 /*
 	This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, Socket& local) :
+Connection::Connection(TCP& host, Port local_port) :
 	host_(host),
-	local_port_(local.port()), 
+	local_port_(local_port), 
 	remote_(TCP::Socket()),
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
