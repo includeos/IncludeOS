@@ -20,29 +20,35 @@
 #define FS_MEMDISK_HPP
 
 #include <cstdint>
+
 #include <hw/disk_device.hpp>
 
-namespace fs
-{
-  class MemDisk : public hw::IDiskDevice
-  {
-  public:
-    static const size_t SECTOR_SIZE = 512;
-    
-    MemDisk();
-    
-    virtual void 
-    read_sector(block_t blk, on_read_func func) override;
-    virtual void 
-    read_sectors(block_t start, block_t cnt, on_read_func) override;
-    
-    virtual block_t size() const noexcept override;
-    
-  private:
-    void*  image_start;
-    void*  image_end;
-  };
-  
-}
+namespace fs {
 
-#endif
+class MemDisk : public hw::IDiskDevice {
+public:
+  static constexpr size_t SECTOR_SIZE {512};
+  
+  MemDisk() noexcept;
+  
+  virtual const char* name() const noexcept override
+  {
+    return "MemDisk";
+  }
+  
+  virtual void 
+  read_sector(block_t blk, on_read_func reader) override;
+
+  virtual void 
+  read_sectors(block_t start, block_t cnt, on_read_func reader) override;
+  
+  virtual block_t size() const noexcept override;
+  
+private:
+  void*  image_start;
+  void*  image_end;
+}; //< class MemDisk
+  
+} //< namespace fs
+
+#endif //< FS_MEMDISK_HPP

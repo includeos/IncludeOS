@@ -29,10 +29,10 @@ namespace hw
 class IDiskDevice {
 public:
   using block_t = uint64_t; //< Disk device block size
+  using buffer_t = std::shared_ptr<uint8_t>;
   
-  using buffer = std::shared_ptr<void*>; //< To be used by caching mechanism for disk drivers
-  
-  using on_read_func = std::function<void(const void*)>; //< Delegate for result of reading a disk sector
+  // Delegate for result of reading a disk sector
+  using on_read_func = std::function<void(buffer_t)>;
   
   // Human-readable name of this disk controller
   virtual const char* name() const noexcept = 0;

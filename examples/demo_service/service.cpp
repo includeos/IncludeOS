@@ -27,8 +27,14 @@ using namespace std::chrono;
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+std::vector<std::string> BUFFER;
+std::shared_ptr<net::TCP::Connection> RSH_PEER {nullptr};
+void write_rsh(const char* data, size_t n) {
+  //OS::rswrite('X');
+  RSH_PEER->write(data, n);
+}
+
 void Service::start() {
-  
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.
@@ -45,13 +51,33 @@ void Service::start() {
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
+  srand(OS::cycles_since_boot());
+
   printf("Size of IP-stack: %i b \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
+
+  // buffer up all output until connection is established
+  /*OS::set_rsprint([](const char* data, size_t n){
+    BUFFER.push_back({data, n});
+  });*/
+    
+  auto& rsh = inet->tcp().bind(22);
+
   
+
+  rsh.onAccept([](auto conn)->bool {
+      return true;
+  }).onConnect([](auto conn) {
+    // change print to write directly to connection.
+    printf("Established remote shell connection, changing rsprint... \n");
+    RSH_PEER = conn;
+    OS::set_rsprint(&write_rsh);
+  });
+
+
+
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
-  
-  srand(OS::cycles_since_boot());
   
   printf("<Service> Connection: %s \n", server.to_string().c_str());
   // Add a TCP connection handler - here a hardcoded HTTP-service

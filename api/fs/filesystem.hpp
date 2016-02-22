@@ -19,13 +19,12 @@
 #ifndef FS_FILESYS_HPP
 #define FS_FILESYS_HPP
 
-#include <memory>
+#include "common.hpp"
+
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <functional>
-
-#include "error.hpp"
 
 namespace fs {
 
@@ -34,10 +33,11 @@ public:
   struct Dirent; //< Generic structure for directory entries
   
   using dirvec_t = std::shared_ptr<std::vector<Dirent>>;
+  using buffer_t = std::shared_ptr<uint8_t>;
   
   using on_mount_func = std::function<void(error_t)>;
   using on_ls_func    = std::function<void(error_t, dirvec_t)>;
-  using on_read_func  = std::function<void(error_t, uint8_t*, size_t)>;
+  using on_read_func  = std::function<void(error_t, buffer_t, size_t)>;
   using on_stat_func  = std::function<void(error_t, const Dirent&)>;
 
   enum Enttype {

@@ -16,10 +16,14 @@
 // limitations under the License.
 
 #pragma once
-#ifndef FS_ERROR_HPP
-#define FS_ERROR_HPP
+#ifndef FS_COMMON_HPP
+#define FS_COMMON_HPP
+
+#include <memory>
 
 namespace fs {
+
+typedef std::shared_ptr<uint8_t> buffer_t;
 
 // TODO: transform this into a class with a bool operator
 using error_t = bool;

@@ -380,7 +380,7 @@ public:
 		/*
 			Connection identifier
 		*/
-		using Tuple = std::pair<TCP::Socket, TCP::Socket>;
+		using Tuple = std::pair<TCP::Port, TCP::Socket>;
 
 		/// CALLBACKS ///
 		/*
@@ -562,12 +562,12 @@ public:
 		/*
 			Creates a connection without a remote.
 		*/
-		Connection(TCP& host, Socket& local);
+		Connection(TCP& host, Port local_port);
 
 		/*
 			Creates a connection with a remote.
 		*/
-		Connection(TCP& host, Socket& local, Socket remote);
+		Connection(TCP& host, Port local_port, Socket remote);
 
 		/*
 			The hosting TCP instance.
@@ -721,7 +721,7 @@ public:
 			Return the id (TUPLE) of the connection.
 		*/
 		inline Connection::Tuple tuple() const {
-			return {local(), remote_};
+			return {local_port_, remote_};
 		}
 
 		/*
@@ -1081,7 +1081,7 @@ private:
 	/*
 		Add a Connection.
 	*/
-	std::shared_ptr<Connection> add_connection(TCP::Socket& local, TCP::Socket remote);
+	std::shared_ptr<Connection> add_connection(TCP::Port local_port, TCP::Socket remote);
 
 	/*
 		Close and delete the connection.

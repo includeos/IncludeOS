@@ -28,16 +28,16 @@ namespace fs
     
     // read Master Boot Record (sector 0)
     device.read_sector(start,
-    [this, start, size, on_mount] (const void* data)
+    [this, start, size, on_mount] (buffer_t data)
     {
-      auto* mbr = (MBR::mbr*) data;
+      auto* mbr = (MBR::mbr*) data.get();
       assert(mbr != nullptr);
       
       /// now what?
       printf("Mounting EXT4 from LBA %llu to %llu\n",
           start, size);
       
-      init(data);
+      init(data.get());
     });
     
   }
@@ -49,12 +49,12 @@ namespace fs
   
   void EXT4::readFile(const Dirent&, on_read_func callback)
   {
-    callback(true, nullptr, 0);
+    callback(true, buffer_t(), 0);
   }
   void EXT4::readFile(const std::string& strpath, on_read_func callback)
   {
     (void) strpath;
-    callback(true, nullptr, 0);
+    callback(true, buffer_t(), 0);
   }
   
   void EXT4::stat(const std::string& strpath, on_stat_func callback)

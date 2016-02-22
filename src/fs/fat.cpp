@@ -119,9 +119,9 @@ namespace fs
     
     // read Partition block
     device.read_sector(this->lba_base,
-    [this, on_mount] (const void* data)
+    [this, on_mount] (buffer_t data)
     {
-      auto* mbr = (MBR::mbr*) data;
+      auto* mbr = (MBR::mbr*) data.get();
       assert(mbr != nullptr);
       
       // verify image signature
@@ -274,7 +274,7 @@ namespace fs
     {
       //printf("int_ls: sec=%u\n", sector);
       device.read_sector(sector,
-      [this, sector, callback, &dirents, next] (const void* data)
+      [this, sector, callback, &dirents, next] (buffer_t data)
       {
         if (!data)
         {
@@ -284,7 +284,7 @@ namespace fs
         }
         
         // parse entries in sector
-        bool done = int_dirent(sector, data, dirents);
+        bool done = int_dirent(sector, data.get(), dirents);
         if (done)
         {
           // execute callback
@@ -417,14 +417,16 @@ namespace fs
         // report back to HQ
         debug("DONE SIZE: %lu  (current=%lu, total=%lu)\n", 
             ent.size, current, total);
-        callback(no_error, buffer, ent.size);
+        // create shared buffer
+        auto buffer_ptr = buffer_t(buffer, std::default_delete<uint8_t[]>());
+        // notify caller
+        callback(no_error, buffer_ptr, ent.size);
         // cleanup (after callback)
         delete next;
-        delete[] buffer;
         return;
       }
       device.read_sector(sector,
-      [this, current, total, buffer, ent, &callback, sector, next] (const void* data)
+      [this, current, total, buffer, ent, &callback, sector, next] (buffer_t data)
       {
         if (!data)
         {
@@ -433,12 +435,12 @@ namespace fs
           // cleanup
           delete next;
           delete[] buffer;
-          callback(true, nullptr, 0);
+          callback(true, buffer_t(), 0);
           return;
         }
         
         // copy over data
-        memcpy(buffer + current * sector_size, data, sector_size);
+        memcpy(buffer + current * sector_size, data.get(), sector_size);
         // continue reading next sector
         (*next)(sector+1, current+1, total);
       });

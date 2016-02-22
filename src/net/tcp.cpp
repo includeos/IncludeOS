@@ -44,14 +44,12 @@ TCP::TCP(IPStack& inet) :
 	Simple.
 */
 TCP::Connection& TCP::bind(Port port) {
-	TCP::Socket local{inet_.ip_addr(), port};
-	
 	auto listen_conn_it = listeners.find(port);
 	// Already a listening socket.
 	if(listen_conn_it != listeners.end()) {
 		throw TCPException{"Port is already taken."};
 	}
-	auto& connection = (listeners.emplace(port, Connection{*this, local})).first->second;
+	auto& connection = (listeners.emplace(port, Connection{*this, port})).first->second;
 	printf("<TCP::bind> Bound to port %i \n", port);
 	connection.open(false);
 	return connection;
@@ -64,8 +62,7 @@ TCP::Connection& TCP::bind(Port port) {
 	and open() is called before callback is added.
 */
 std::shared_ptr<TCP::Connection> TCP::connect(Socket remote) {
-	TCP::Socket local{inet_.ip_addr(), free_port()};
-	std::shared_ptr<Connection> connection = add_connection(local, remote);
+	std::shared_ptr<Connection> connection = add_connection(free_port(), remote);
 	connection->open(true);
 	return connection;
 }
@@ -74,8 +71,7 @@ std::shared_ptr<TCP::Connection> TCP::connect(Socket remote) {
 	Active open a new connection to the given remote.
 */
 void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
-	TCP::Socket local{inet_.ip_addr(), free_port()};
-	auto connection = add_connection(local, remote);
+	auto connection = add_connection(free_port(), remote);
 	connection->onConnect(callback).open(true);
 }
 
@@ -153,7 +149,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 		printf("<TCP::bottom> TCP Packet Checksum != 0 \n");
 	}
 
-	Connection::Tuple tuple { packet->destination(), packet->source() };
+	Connection::Tuple tuple { packet->dst_port(), packet->source() };
 
 	// Try to find the receiver
 	auto conn_it = connections.find(tuple);
@@ -215,10 +211,10 @@ string TCP::status() const {
 
 }*/
 
-std::shared_ptr<TCP::Connection> TCP::add_connection(TCP::Socket& local, TCP::Socket remote) {
+std::shared_ptr<TCP::Connection> TCP::add_connection(Port local_port, TCP::Socket remote) {
 	return 	(connections.emplace(
-				Connection::Tuple{ local, remote }, 
-				std::make_shared<Connection>(*this, local, remote))
+				Connection::Tuple{ local_port, remote }, 
+				std::make_shared<Connection>(*this, local_port, remote))
 			).first->second;
 }
 
