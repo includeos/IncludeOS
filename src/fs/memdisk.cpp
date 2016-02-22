@@ -28,9 +28,9 @@ extern "C" {
 
 namespace fs {
 
-MemDisk::MemDisk() noexcept:
-  image_start {&_DISK_START_},
-  image_end   {&_DISK_END_},
+MemDisk::MemDisk() noexcept
+  : image_start { &_DISK_START_ },
+    image_end   { &_DISK_END_ }
 {}
 
 void MemDisk::read_sector(block_t blk, on_read_func reader) {

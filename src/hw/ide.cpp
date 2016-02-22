@@ -53,9 +53,9 @@
 namespace hw {
 
 IDE::IDE(hw::PCI_Device& pcidev) noexcept:
-  _pcidev {pcidev}
-  _drive  {IDE_MASTER}
-  _iobase {0U}
+  _pcidev {pcidev},
+  _drive  {IDE_MASTER},
+  _iobase {0U},
   _nb_blk {0U}
 {
   INFO("IDE","VENDOR_ID : 0x%x, PRODUCT_ID : 0x%x", _pcidev.vendor_id(), _pcidev.product_id());
