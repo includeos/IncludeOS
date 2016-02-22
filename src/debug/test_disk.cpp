@@ -43,12 +43,12 @@ void Service::start()
       return;
     }
     
-    disk->fs().ls("/",
+    disk->fs().ls("/test",
     [] (fs::error_t err, FileSystem::dirvec_t ents)
     {
       if (err)
       {
-        printf("Could not list root directory");
+        printf("Could not list 'test' directory");
         return;
       }
       

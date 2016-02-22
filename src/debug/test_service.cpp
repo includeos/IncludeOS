@@ -84,9 +84,9 @@ void Service::start()
   auto disk = std::make_shared<FatDisk> (ide1);
   
   ide1.read_sector(0, 
-  [] (const void* data)
+  [] (hw::IDE::buffer_t data)
   {
-    auto* mbr = (fs::MBR::mbr*) data;
+    auto* mbr = (fs::MBR::mbr*) data.get();
     
     printf("OEM name: %.8s\n", mbr->oem_name);
     printf("MAGIC sig: 0x%x\n", mbr->magic);
