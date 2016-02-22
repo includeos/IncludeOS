@@ -18,60 +18,52 @@
 #ifndef HW_IDE_HPP
 #define HW_IDE_HPP
 
+#include <delegate>
+
 #include "disk.hpp"
 #include "pci_device.hpp"
-#include <delegate>
 
 namespace hw {
 
-  /** IDE device driver.  */
-  class IDE : public IDiskDevice
-  {
-  public:
-      //using on_read_func = IDiskDevice::on_read_func;
-      //using block_t      = IDiskDevice::block_t;
-      
-      /** Human readable name.  */
-      virtual const char* name() const noexcept override
-      {
-        return "IDE Controller";
-      }
+/** IDE device driver  */
+class IDE : public IDiskDevice {
+public: 
+  /**
+   * Constructor
+   *
+   * @param pcidev: An initialized PCI device
+   */
+  explicit IDE(hw::PCI_Device& pcidev) noexcept;
 
-      /** Returns the optimal block size for this device.  */
-      constexpr block_t block_size() const noexcept
-      {
-        return 512;
-      }
-      
-      virtual void read_sector(block_t blk, on_read_func del) override;
-      virtual void read_sectors(block_t blk, block_t count, on_read_func del) override;
-      
-      virtual block_t size() const noexcept override
-      {
-        return _nb_blk;
-      }
-      
-      /**
-       * Constructor.
-       * @param pcidev An initialized PCI device.
-       */
-      IDE(hw::PCI_Device& pcidev);
+  /** Human-readable name of this disk controller  */
+  virtual const char* name() const noexcept override
+  { return "IDE Controller"; }
 
-    private:
-      void set_drive(uint8_t drive);
-      void set_nbsectors(uint8_t cnt);
-      void set_blocknum(block_t blk);
-      void set_command(uint16_t command);
+  /** Returns the optimal block size for this device.  */
+  constexpr block_t block_size() const noexcept
+  { return 512; }
+  
+  virtual void read_sector(block_t blk, on_read_func reader) override;
+  virtual void read_sectors(block_t blk, block_t count, on_read_func reader) override;
+  
+  virtual block_t size() const noexcept override
+  { return _nb_blk; }
 
-      void wait_status_busy(void);
-      void wait_status_flags(int flags, bool set);
+private:
+  void set_drive(const uint8_t drive) const noexcept;
+  void set_nbsectors(const uint8_t cnt) const noexcept;
+  void set_blocknum(block_t blk) const noexcept;
+  void set_command(const uint16_t command) const noexcept;
 
-    private:
-      hw::PCI_Device& _pcidev; // PCI device
-      uint8_t _drive; // Drive id (IDE_MASTER or IDE_SLAVE)
-      uint32_t _iobase; // PCI device io base address.
-      block_t _nb_blk; // Max nb blocks of the device
-  };
+  void wait_status_busy() const noexcept;
+  void wait_status_flags(const int flags, const bool set) const noexcept;
+
+private:
+  hw::PCI_Device& _pcidev; // PCI device
+  uint8_t         _drive;  // Drive id (IDE_MASTER or IDE_SLAVE)
+  uint32_t        _iobase; // PCI device io base address
+  block_t         _nb_blk; // Max nb blocks of the device
+}; //< class IDE
 
 } //< namespace hw
 
