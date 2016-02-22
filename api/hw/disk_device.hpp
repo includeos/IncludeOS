@@ -23,25 +23,24 @@
 #include <cstdint>
 #include <functional>
 
-namespace hw
-{
+namespace hw {
 
 class IDiskDevice {
 public:
-  using block_t = uint64_t; //< Disk device block size
+  using block_t  = uint64_t; //< Disk device block size
   using buffer_t = std::shared_ptr<uint8_t>;
   
-  // Delegate for result of reading a disk sector
+  /** Delegate for result of reading a disk sector */
   using on_read_func = std::function<void(buffer_t)>;
   
-  // Human-readable name of this disk controller
+  /** Human-readable name of this disk controller */
   virtual const char* name() const noexcept = 0;
   
   /**
-   *  Read sector(s) from blk and call func with result
-   *  A null-pointer is passed to result if something bad happened
+   *  Read sector(s) from blk and call reader with result
+   *  A nullptr is passed to result if something bad happened
    */
-  virtual void read_sector(block_t blk, on_read_func func) = 0;
+  virtual void read_sector(block_t blk, on_read_func reader) = 0;
   virtual void read_sectors(block_t blk, block_t count, on_read_func) = 0;
   
   /** The size of the disk in sectors */
@@ -53,4 +52,4 @@ public:
 
 } //< namespace hw
 
-#endif //< FS_DISK_DEVICE_HPP
+#endif //< HW_DISK_DEVICE_HPP
