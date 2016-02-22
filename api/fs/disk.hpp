@@ -19,13 +19,12 @@
 #ifndef FS_DISK_HPP
 #define FS_DISK_HPP
 
+#include "common.hpp"
+#include <hw/disk_device.hpp>
+
 #include <deque>
 #include <vector>
-#include <memory>
 #include <functional>
-
-#include "error.hpp"
-#include <hw/disk_device.hpp>
 
 namespace fs {
 
@@ -99,7 +98,7 @@ inline Disk<FS>::Disk(hw::IDiskDevice& dev) :
 {
   filesys.reset(new FS(device));
 }
-  
+
 } //< namespace fs
 
 #include "disk.inl"

@@ -101,6 +101,7 @@ IDE::IDE(hw::PCI_Device& pcidev) noexcept:
 
 void IDE::read_sector(block_t blk, on_read_func reader) {
   if (blk >= _nb_blk) {
+    // avoid reading past the disk boundaries
     reader(nullptr);
     return;
   }
@@ -110,20 +111,23 @@ void IDE::read_sector(block_t blk, on_read_func reader) {
   set_blocknum(blk);
   set_command(IDE_CMD_READ);
 
-  auto* buf = new uint16_t[block_size()];
+  auto* buffer = new uint8_t[block_size()];
 
   wait_status_flags(IDE_DRDY, false);
-
-  for (block_t i {0U}; i < block_size() / sizeof (uint16_t); ++i) {
-    buf[i] = inw(IDE_DATA);
-  }
-
-  reader(buf);
+  
+  uint16_t* wptr = (uint16_t*) buffer;
+  
+  for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
+    wptr[i] = inw(IDE_DATA);
+  
+  // return a shared_ptr wrapper for the buffer
+  reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
 }
 
-
-void IDE::read_sectors(block_t, block_t, on_read_func)
+void IDE::read_sectors(block_t, block_t, on_read_func callback)
 {
+  // not implemented yet
+  callback( buffer_t() );
 }
 
 void IDE::wait_status_busy() const noexcept {

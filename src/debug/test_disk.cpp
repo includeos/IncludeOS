@@ -6,10 +6,8 @@
 const char* service_name__ = "...";
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-#include <fs/disk.hpp>    // the device
-#include <fs/memdisk.hpp> // the driver
-#include <fs/fat.hpp>     // the filesystem
-#include <fs/ext4.hpp>    // the filesystem
+#include <memdisk>
+#include <fs/fat.hpp> // FAT32 filesystem
 using namespace fs;
 
 // assume that devices can be retrieved as refs with some kernel API
@@ -24,19 +22,19 @@ std::unique_ptr<MountedDisk> disk;
 void Service::start()
 {
   // networking stack
-  Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
+  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
-      {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+      {{  10,  0,  0, 42 }},   // IP
+			{{ 255,255,255,  0 }},   // Netmask
+			{{  10,  0,  0,  1 }},   // Gateway
+			{{   8,  8,  8,  8 }} ); // DNS
   
   // instantiate disk with filesystem
   disk = std::make_unique<MountedDisk> (device);
   
   // mount the main partition in the Master Boot Record
-  disk->mount(MountedDisk::PART_MBR,
+  disk->mount(MountedDisk::MBR,
   [] (fs::error_t err)
   {
     if (err)
@@ -63,7 +61,7 @@ void Service::start()
         {
           printf("*** Attempting to read: %s\n", e.name.c_str());
           disk->fs().readFile(e,
-          [e] (fs::error_t err, const uint8_t* buffer, size_t len)
+          [e] (fs::error_t err, fs::buffer_t buffer, size_t len)
           {
             if (err)
             {
@@ -72,7 +70,7 @@ void Service::start()
               return;
             }
             
-            std::string contents((const char*) buffer, len);
+            std::string contents((const char*) buffer.get(), len);
             printf("[%s contents]:\n%s\nEOF\n\n", 
                 e.name.c_str(), contents.c_str());
           });
@@ -93,6 +91,7 @@ void Service::start()
           e.type_string().c_str(), e.block);
     });
     
+    /*
     net::TCP::Socket& sock =  inet->tcp().bind(80);
     sock.onAccept([] (net::TCP::Socket& conn)
     {
@@ -143,12 +142,12 @@ void Service::start()
         //// generate webpage ////
         uint32_t color = rand();
         
-        /* HTML Fonts */
+        // HTML Fonts
         std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
         std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
         std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
         
-        /* HTML */
+        // HTML
         std::stringstream html;
         html << "<html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
@@ -163,7 +162,7 @@ void Service::start()
         
         html.seekg(0, std::ios::end);
         
-        /* HTTP-header */
+        // HTTP-header
         std::string header=
           "HTTP/1.1 200 OK \n "				\
           "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"			\
@@ -181,8 +180,9 @@ void Service::start()
         //conn.close();
       }
       
-    });
-  });
+    }); // socket.onConnect */
+    
+  }); // disk.mount()
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

@@ -41,7 +41,7 @@ void MemDisk::read_sector(block_t blk, on_read_func reader) {
   auto* buffer = new uint8_t[SECTOR_SIZE]; //< Copy block to new memory
   assert( memcpy(buffer, sector_loc, SECTOR_SIZE) == buffer );
   
-  reader(buffer);
+  reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
 }
 
 void MemDisk::read_sectors(block_t start, block_t count, on_read_func reader) {
@@ -53,7 +53,7 @@ void MemDisk::read_sectors(block_t start, block_t count, on_read_func reader) {
   auto* buffer = new uint8_t[count * SECTOR_SIZE]; //< Copy block to new memory
   assert( memcpy(buffer, start_loc, count * SECTOR_SIZE) == buffer );
   
-  reader(buffer);
+  reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
 }
 
 uint64_t MemDisk::size() const noexcept {

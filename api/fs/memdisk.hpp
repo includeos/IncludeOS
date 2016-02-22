@@ -31,6 +31,11 @@ public:
   
   MemDisk() noexcept;
   
+  virtual const char* name() const noexcept override
+  {
+    return "MemDisk";
+  }
+  
   virtual void 
   read_sector(block_t blk, on_read_func reader) override;
 
