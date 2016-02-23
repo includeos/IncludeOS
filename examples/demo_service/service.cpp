@@ -65,9 +65,7 @@ void Service::start() {
 
   
 
-  rsh.onAccept([](auto conn)->bool {
-      return true;
-  }).onConnect([](auto conn) {
+  rsh.onConnect([](auto conn) {
     // change print to write directly to connection.
     printf("Established remote shell connection, changing rsprint... \n");
     RSH_PEER = conn;

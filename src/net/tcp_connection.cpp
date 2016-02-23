@@ -14,8 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#define DEBUG 1
-#define DEBUG2
 
 #include <net/tcp.hpp>
 #include <net/tcp_connection_states.hpp>
@@ -61,7 +59,7 @@ Connection::Connection(TCP& host, Port local_port) :
 
 
 size_t Connection::read(char* buffer, size_t n) {
-	printf("<TCP::Connection::read> Reading %u bytes of data from RCV buffer. Total amount of packets stored: %u\n", 
+	debug("<TCP::Connection::read> Reading %u bytes of data from RCV buffer. Total amount of packets stored: %u\n", 
 			n, receive_buffer_.size());
 	try {
 		return state_->receive(*this, buffer, n);	
@@ -158,23 +156,24 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH)
 */
 void Connection::open(bool active) {
 	try {
-		printf("<TCP::Connection::open> Trying to open Connection...\n");
+		debug("<TCP::Connection::open> Trying to open Connection...\n");
 		state_->open(*this, active);
 	}
 	// No remote host, or state isnt valid for opening.
 	catch (TCPException e) {
-		printf("<TCP::Connection::open> Cannot open Connection. \n");
+		debug("<TCP::Connection::open> Cannot open Connection. \n");
 		signal_error(e);
 	}	
 }
 
 void Connection::close() {
-	printf("<TCP::Connection::close> Active close on connection. \n");
+	debug("<TCP::Connection::close> Active close on connection. \n");
 	try {
 		state_->close(*this);
 		if(is_state(Closed::instance()))
 			signal_close();
 	} catch(TCPException err) {
+		debug("<TCP::Connection::close> Active close on connection. \n");
 		signal_error(err);
 	}
 }
@@ -199,12 +198,12 @@ void Connection::receive(TCP::Packet_ptr incoming) {
 			break;
 		}
 		case State::CLOSED: {
-			printf("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
+			debug("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
 			signal_close();
 			break;
 		};
 		case State::CLOSE: {
-			printf("<TCP::Connection::receive> State handle finished with CLOSE. onDisconnect has been called, close the connection. \n");
+			debug("<TCP::Connection::receive> State handle finished with CLOSE. onDisconnect has been called, close the connection. \n");
 			state_->close(*this);
 			break;
 		};
@@ -258,7 +257,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 void Connection::transmit() {
 	assert(! send_buffer_.empty() );
 	
-	printf("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer().size());	
+	debug("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer().size());	
 	while(! send_buffer_.empty() ) {
 		auto packet = send_buffer_.front();
 		assert(! packet->destination().is_empty());
@@ -268,7 +267,7 @@ void Connection::transmit() {
 }
 
 void Connection::transmit(TCP::Packet_ptr packet) {
-	printf("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
+	debug("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
 	host_.transmit(packet);
 	// Don't think we would like to retransmit reset packets..?
 	if(!packet->isset(RST))
@@ -291,7 +290,7 @@ void Connection::add_retransmission(TCP::Packet_ptr packet) {
 	hw::PIT::instance().onTimeout(RTO(), [packet, self] {
 		// Packet hasnt been ACKed.
 		if(packet->seq() > self->tcb().SND.UNA) {
-			printf("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+			debug("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
 			self->transmit(packet);
 		} else {
 			debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
@@ -318,7 +317,7 @@ std::chrono::milliseconds Connection::RTO() const {
 }
 
 void Connection::start_time_wait_timeout() {
-	printf("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
+	debug2("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
 	time_wait_started = OS::cycles_since_boot();
 	//auto timeout = 2 * host().MSL(); // 60 seconds
 	auto timeout = 10s;
@@ -328,13 +327,13 @@ void Connection::start_time_wait_timeout() {
 		if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
 			signal_close();
 		} else {
-			printf("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
+			debug2("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
 		}
 	});
 }
 
 void Connection::signal_close() {
-	printf("<TCP::Connection::signal_close> It's time to delete this connection. \n");
+	debug("<TCP::Connection::signal_close> It's time to delete this connection. \n");
 	host_.close_connection(*this);
 }
 

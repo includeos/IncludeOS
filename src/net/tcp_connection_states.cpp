@@ -14,8 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#define DEBUG 1
-#define DEBUG2
 
 #include <net/tcp_connection_states.hpp>
 
@@ -901,7 +899,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
         our FIN is now acknowledged then enter FIN-WAIT-2 and continue
         processing in that state.
     */
-    printf("<TCP::Connection::FinWait1::handle> Current TCB:\n %s \n", tcp.tcb().to_string().c_str());
+    debug2("<TCP::Connection::FinWait1::handle> Current TCB:\n %s \n", tcp.tcb().to_string().c_str());
     if(in->ack() == tcp.tcb().SND.NXT) {
 	    // TODO: I guess or FIN is ACK'ed..?
 		tcp.set_state(Connection::FinWait2::instance());
@@ -916,7 +914,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
     // 8. check FIN
     if(in->isset(FIN)) {
     	process_fin(tcp, in);
-    	printf("<TCP::Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
+    	debug2("<TCP::Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
     	/*
 			If our FIN has been ACKed (perhaps in this segment), then
           	enter TIME-WAIT, start the time-wait timer, turn off the other

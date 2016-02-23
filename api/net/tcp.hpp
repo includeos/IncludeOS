@@ -807,8 +807,8 @@ public:
 		
 		/* When a Connection is initiated. */
 		AcceptCallback on_accept_ = AcceptCallback::from<Connection,&Connection::default_on_accept>(this);
-		inline bool default_on_accept(std::shared_ptr<Connection> conn) {
-			debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
+		inline bool default_on_accept(std::shared_ptr<Connection>) {
+			//debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
 			return true; // Always accept
 		}
 
@@ -823,25 +823,25 @@ public:
 		};
 
 		/* When Connection is CLOSING. */
-		DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, std::string msg) {
-			debug2("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
+		DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, std::string) {
+			//debug2("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
 		};
 
 		/* When error occcured. */
 		ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
-		inline void default_on_error(std::shared_ptr<Connection>, TCPException error) { 
-			debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what()); 
+		inline void default_on_error(std::shared_ptr<Connection>, TCPException) { 
+			//debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what()); 
 		}
 
 		/* When packet is received */
-		PacketReceivedCallback on_packet_received_ = [](std::shared_ptr<Connection>, TCP::Packet_ptr packet) {
-			debug2("<TCP::Connection::@PacketReceived> Packet received: %s \n", packet->to_string().c_str());
+		PacketReceivedCallback on_packet_received_ = [](std::shared_ptr<Connection>, TCP::Packet_ptr) {
+			//debug2("<TCP::Connection::@PacketReceived> Packet received: %s \n", packet->to_string().c_str());
 		};
 
 		/* When a packet is dropped. */
-		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr packet, std::string reason) { 
-			debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", 
-				packet->to_string().c_str(), reason.c_str()); 
+		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) { 
+			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", 
+			//	packet->to_string().c_str(), reason.c_str());
 		};
 
 		/*
@@ -888,7 +888,7 @@ public:
 		inline void set_state(State& state) {
 			prev_state_ = state_;
 			state_ = &state;
-			printf("<TCP::Connection::set_state> %s => %s \n", 
+			debug("<TCP::Connection::set_state> %s => %s \n", 
 					prev_state_->to_string().c_str(), state_->to_string().c_str());
 		}
 
