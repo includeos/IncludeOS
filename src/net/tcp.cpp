@@ -14,8 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#define DEBUG 1
-#define DEBUG2
 
 #include <net/tcp.hpp>
 
@@ -50,7 +48,7 @@ TCP::Connection& TCP::bind(Port port) {
 		throw TCPException{"Port is already taken."};
 	}
 	auto& connection = (listeners.emplace(port, Connection{*this, port})).first->second;
-	printf("<TCP::bind> Bound to port %i \n", port);
+	debug("<TCP::bind> Bound to port %i \n", port);
 	connection.open(false);
 	return connection;
 }
@@ -141,12 +139,12 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
 	auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
-	printf("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n", 
+	debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n", 
 			packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 	
 	// Do checksum
 	if(checksum(packet)) {
-		printf("<TCP::bottom> TCP Packet Checksum != 0 \n");
+		debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
 	}
 
 	Connection::Tuple tuple { packet->dst_port(), packet->source() };
@@ -155,22 +153,22 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	auto conn_it = connections.find(tuple);
 	// Connection found
 	if(conn_it != connections.end()) {
-		printf("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
+		debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
 		conn_it->second->receive(packet);
 	}
 	// No connection found 
 	else {
 		// Is there a listener?
 		auto listen_conn_it = listeners.find(packet->dst_port());
-		printf("<TCP::bottom> No connection found - looking for listener..\n");
+		debug("<TCP::bottom> No connection found - looking for listener..\n");
 		// Listener found => Create listening Connection
 		if(listen_conn_it != listeners.end()) {
 			auto& listen_conn = listen_conn_it->second;
-			printf("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
+			debug("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
 			auto connection = (connections.emplace(tuple, std::make_shared<Connection>(listen_conn)).first->second);
 			// Set remote
 			connection->set_remote(packet->source());
-			printf("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
+			debug("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
 			// Change to listening state.
 			//connection.open(); // already listening
 			connection->receive(packet);
@@ -219,13 +217,13 @@ std::shared_ptr<TCP::Connection> TCP::add_connection(Port local_port, TCP::Socke
 }
 
 void TCP::close_connection(TCP::Connection& conn) {
-	printf("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
+	debug("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
 	connections.erase(conn.tuple());
-	printf("<TCP::close_connection> TCP Status: \n%s \n", status().c_str());
+	debug2("<TCP::close_connection> TCP Status: \n%s \n", status().c_str());
 }
 
-void TCP::drop(TCP::Packet_ptr packet) {
-	printf("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
+void TCP::drop(TCP::Packet_ptr) {
+	//debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
 
 void TCP::transmit(TCP::Packet_ptr packet) {
