@@ -41,7 +41,7 @@ ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api 
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -Ihttp/http
 
 CAPABS_COMMON = -msse3 -mstackrealign # Needed for 16-byte stack alignment (SSE)
 
@@ -103,11 +103,17 @@ service.o: service.cpp
 	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE)\"" -o $@ $<
 
 # Link the service with the os
-service: $(OBJS) $(LIBS) 
+service: $(OBJS) $(LIBS) memdisk.o
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) memdisk.o -o $(SERVICE)
 	@echo "\n>> Building image " $(SERVICE).img
 	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
+
+# Disk image as a section
+###################################################
+memdisk: memdisk.asm
+	@echo "\n>> Assembling memdisk"
+	nasm -f elf -o memdisk.o $<
 
 # Object files
 ###################################################
