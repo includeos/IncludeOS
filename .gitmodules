@@ -1,0 +1,3 @@
+[submodule "http"]
+	path = http
+	url = git@github.com:hioa-cs/http.git
