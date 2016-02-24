@@ -43,6 +43,9 @@ namespace fs
     virtual void readFile(const std::string&, on_read_func) override;
     virtual void readFile(const Dirent& ent, on_read_func) override;
     
+    /** Read @n bytes from direntry from position @pos */
+    virtual buffer_t read_sync(const Dirent&, uint64_t pos, uint64_t n) override;
+    
     // return information about a filesystem entity
     virtual void stat(const std::string&, on_stat_func) override;
     

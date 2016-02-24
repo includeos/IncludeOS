@@ -99,11 +99,29 @@ IDE::IDE(hw::PCI_Device& pcidev) noexcept:
   INFO("IDE", "Initialization complete");
 }
 
-void IDE::read_sector(block_t blk, on_read_func reader) {
+void IDE::read(block_t blk, on_read_func callback) {
   if (blk >= _nb_blk) {
     // avoid reading past the disk boundaries
-    reader(nullptr);
+    callback(buffer_t());
     return;
+  }
+
+  // for now: only synchronous read
+  auto buf = read_sync(blk);
+  callback(buf);
+}
+
+void IDE::read(block_t, block_t, on_read_func callback)
+{
+  // not implemented yet
+  callback( buffer_t() );
+}
+
+IDE::buffer_t IDE::read_sync(block_t blk)
+{
+  if (blk >= _nb_blk) {
+    // avoid reading past the disk boundaries
+    return buffer_t();
   }
 
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
@@ -121,14 +139,9 @@ void IDE::read_sector(block_t blk, on_read_func reader) {
     wptr[i] = inw(IDE_DATA);
   
   // return a shared_ptr wrapper for the buffer
-  reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+  return buffer_t(buffer, std::default_delete<uint8_t[]>());
 }
 
-void IDE::read_sectors(block_t, block_t, on_read_func callback)
-{
-  // not implemented yet
-  callback( buffer_t() );
-}
 
 void IDE::wait_status_busy() const noexcept {
   uint8_t ret;

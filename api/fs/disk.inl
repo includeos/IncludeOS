@@ -23,7 +23,7 @@ template <typename FS>
 inline void
 Disk<FS>::partitions(on_parts_func func) {
   /** Read Master Boot Record (sector 0) */
-  device.read_sector(0,
+  device.read(0,
   [this, func] (hw::IDiskDevice::buffer_t data)
   {
     std::vector<Partition> parts;
@@ -51,9 +51,9 @@ Disk<FS>::partitions(on_parts_func func) {
 
 template <typename FS>
 inline void
-Disk<FS>::auto_detect(on_mount_func func)
+Disk<FS>::mount(on_mount_func func)
 {
-  device.read_sector(0,
+  device.read(0,
   [this, func] (hw::IDiskDevice::buffer_t data)
   {
     if (!data) {
@@ -113,7 +113,7 @@ Disk<FS>::mount(partition_t part, on_mount_func func) {
      *  Otherwise, we will have to read the LBA offset
      *  of the partition to be mounted
      */
-    device.read_sector(0,
+    device.read(0,
     [this, part, func] (hw::IDiskDevice::buffer_t data)
     {
       if (!data) {

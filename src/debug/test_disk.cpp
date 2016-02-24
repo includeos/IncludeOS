@@ -51,7 +51,7 @@ void Service::start()
   });
   
   // mount auto-detected partition
-  disk->auto_detect(
+  disk->mount(
   [] (fs::error_t err)
   {
     if (err)

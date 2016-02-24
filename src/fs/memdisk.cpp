@@ -33,27 +33,37 @@ MemDisk::MemDisk() noexcept
     image_end   { &_DISK_END_ }
 {}
 
-void MemDisk::read_sector(block_t blk, on_read_func reader) {
-  auto* sector_loc = ((char*) image_start) + blk * SECTOR_SIZE;
+void MemDisk::read(block_t blk, on_read_func reader) {
+  auto* sector_loc = ((char*) image_start) + blk * block_size();
   assert(sector_loc < image_end); //< Disallow reading memory past disk image
   
   
-  auto* buffer = new uint8_t[SECTOR_SIZE]; //< Copy block to new memory
-  assert( memcpy(buffer, sector_loc, SECTOR_SIZE) == buffer );
+  auto* buffer = new uint8_t[block_size()];
+  assert( memcpy(buffer, sector_loc, block_size()) == buffer );
   
   reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
 }
 
-void MemDisk::read_sectors(block_t start, block_t count, on_read_func reader) {
-  auto* start_loc = ((char*) image_start) + start * SECTOR_SIZE;
-  auto* end_loc   = start_loc + count * SECTOR_SIZE;
+void MemDisk::read(block_t start, block_t count, on_read_func reader) {
+  auto* start_loc = ((char*) image_start) + start * block_size();
+  auto* end_loc   = start_loc + count * block_size();
   
   assert(end_loc < image_end); //< Disallow reading memory past disk image
   
-  auto* buffer = new uint8_t[count * SECTOR_SIZE]; //< Copy block to new memory
-  assert( memcpy(buffer, start_loc, count * SECTOR_SIZE) == buffer );
+  auto* buffer = new uint8_t[count * block_size()];
+  assert( memcpy(buffer, start_loc, count * block_size()) == buffer );
   
   reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+}
+
+MemDisk::buffer_t MemDisk::read_sync(block_t blk)
+{
+  auto* loc = ((char*) image_start) + blk * block_size();
+  
+  auto* buffer = new uint8_t[block_size()];
+  assert( memcpy(buffer, loc, block_size()) == buffer );
+  
+  return buffer_t(buffer, std::default_delete<uint8_t[]>());
 }
 
 uint64_t MemDisk::size() const noexcept {

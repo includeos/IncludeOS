@@ -27,7 +27,7 @@ namespace fs
         sizeof(inode_table));
     
     // read Master Boot Record (sector 0)
-    device.read_sector(start,
+    device.read(start,
     [this, start, size, on_mount] (buffer_t data)
     {
       auto* mbr = (MBR::mbr*) data.get();

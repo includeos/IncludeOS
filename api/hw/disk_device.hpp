@@ -34,15 +34,21 @@ public:
   // Delegate for result of reading a disk sector
   using on_read_func = std::function<void(buffer_t)>;
   
-  // Human-readable name of this disk controller
+  /** Human-readable name of this disk controller  */
   virtual const char* name() const noexcept = 0;
   
+  /** Returns the optimal block size for this device.  */
+  virtual block_t block_size() const noexcept = 0;
+  
   /**
-   *  Read sector(s) from blk and call func with result
+   *  Read block(s) from blk and call func with result
    *  A null-pointer is passed to result if something bad happened
    */
-  virtual void read_sector(block_t blk, on_read_func func) = 0;
-  virtual void read_sectors(block_t blk, block_t count, on_read_func) = 0;
+  virtual void read(block_t blk, on_read_func func) = 0;
+  virtual void read(block_t blk, block_t count, on_read_func) = 0;
+  
+  /** read synchronously the block @blk  */
+  virtual buffer_t read_sync(block_t blk) = 0;
   
   /** The size of the disk in sectors */
   virtual block_t size() const noexcept = 0;

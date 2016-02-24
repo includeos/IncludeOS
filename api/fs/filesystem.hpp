@@ -94,6 +94,9 @@ public:
     virtual void readFile(const std::string&, on_read_func) = 0;
     virtual void readFile(const Dirent& ent,  on_read_func) = 0;
     
+    /** Read @n bytes from direntry from position @pos */
+    virtual buffer_t read_sync(const Dirent&, uint64_t pos, uint64_t n) = 0;
+    
     /** Return information about a file or directory */
     virtual void stat(const std::string& ent, on_stat_func) = 0;
     
