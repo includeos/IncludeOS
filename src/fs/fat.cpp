@@ -8,6 +8,7 @@
 #include <cstring>
 #include <memory>
 #include <locale>
+#include <kernel/syscalls.hpp> // for panic()
 
 #include <info>
 
@@ -36,6 +37,12 @@ namespace fs
     
     MBR::BPB* bpb = mbr->bpb();
     this->sector_size = bpb->bytes_per_sector;
+    if (unlikely(this->sector_size < 512))
+    {
+      printf("Invalid sector size (%u) for FAT32 partition\n", sector_size);
+      printf("Are you mounting the correct partition?\n");
+      panic("FAT32: Invalid sector size");
+    }
     
     // Let's begin our incantation
     // To drive out the demons of old DOS we have to read some PBP values

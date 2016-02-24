@@ -34,7 +34,7 @@ void Service::start()
   disk = std::make_unique<MountedDisk> (device);
   
   // mount the main partition in the Master Boot Record
-  disk->mount(MountedDisk::MBR,
+  disk->mount(MountedDisk::VBR1,
   [] (fs::error_t err)
   {
     if (err)
@@ -48,7 +48,7 @@ void Service::start()
     {
       if (err)
       {
-        printf("Could not list 'test' directory");
+        printf("Could not list 'test' directory\n");
         return;
       }
       
