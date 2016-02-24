@@ -83,7 +83,7 @@ void Service::start()
   auto ide1 = hw::Dev::disk<0, hw::IDE> ( /** probably need some option here **/ );
   auto disk = std::make_shared<FatDisk> (ide1);
   
-  ide1.read_sector(0, 
+  ide1.read(0, 
   [] (hw::IDE::buffer_t data)
   {
     auto* mbr = (fs::MBR::mbr*) data.get();
@@ -92,9 +92,8 @@ void Service::start()
     printf("MAGIC sig: 0x%x\n", mbr->magic);
   });
   
-  disk->mount(FatDisk::MBR,
-  [] (fs::error_t err)
-  {
+  disk->mount(
+  [] (fs::error_t err) {
     if (err)
     {
       printf("BAD\n");
@@ -102,7 +101,6 @@ void Service::start()
     }
     
     printf("GOOD ?\n");
-    
   });
   
   printf("*** TEST SERVICE STARTED *** \n");

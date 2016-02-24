@@ -1,3 +1,4 @@
+#define DEBUG
 #include <fs/fat.hpp>
 
 #include <cassert>
@@ -70,7 +71,8 @@ namespace fs
         this->sectors = bpb->small_sectors;
         this->sectors_per_fat = bpb->sectors_per_fat;
         this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
-        debug("Root dir sectors: %u\n", this->root_dir_sectors);
+        //printf("Root dir sectors: %u\n", this->root_dir_sectors);
+        //this->root_dir_sectors = 0;
     }
     else
     {
@@ -115,7 +117,7 @@ namespace fs
       this->root_cluster = *(uint32_t*) &mbr->boot[33];
       debug("The image is type FAT32, with %u clusters\n", this->clusters);
     }
-    debug("Root cluster index: %u\n", this->root_cluster);
+    debug("Root cluster index: %u (sector %u)\n", this->root_cluster, cl_to_sector(root_cluster));
     debug("System ID: %.8s\n", bpb->system_id);
   }
   
@@ -315,18 +317,19 @@ namespace fs
     typedef std::function<void(uint32_t)> next_func_t;
     
     // parse this path into a stack of names
-    debug("TRAVERSE: %s\n", path->to_string().c_str());
+    printf("TRAVERSE: %s\n", path->to_string().c_str());
     
     // asynch stack traversal
     next_func_t next;
     next = 
     [this, path, &next, callback] (uint32_t cluster)
     {
-      debug("Traversed to cluster %u\n", cluster);
+      //printf("Traversed to cluster %u\n", cluster);
       if (path->empty())
       {
         // attempt to read directory
         uint32_t S = this->cl_to_sector(cluster);
+        //uint32_t S = this->cl_to_sector(cluster);
         //debug("Reading cluster %u at sector %u\n", cluster, S);
         
         // result allocated on heap
@@ -344,8 +347,8 @@ namespace fs
       std::string name = path->front();
       path->pop_front();
       
-      debug("Current target: %s\n", name.c_str());
       uint32_t S = this->cl_to_sector(cluster);
+      debug("Current target: %s on cluster %u (sector %u)\n", name.c_str(), cluster, S);
       
       // result allocated on heap
       auto dirents = std::make_shared<std::vector<Dirent>> ();
@@ -386,7 +389,7 @@ namespace fs
     };
     
     // start by reading root directory
-    next(this->root_cluster);
+    next(0);
   }
   
   void FAT32::ls(const std::string& path, on_ls_func on_ls)
@@ -405,8 +408,6 @@ namespace fs
   {
     // cluster -> sector + position -> sector
     uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    // number of sectors to read ahead
-    size_t sectors = n / sector_size + 1;
     
     // the resulting buffer
     uint8_t* result = new uint8_t[n];
