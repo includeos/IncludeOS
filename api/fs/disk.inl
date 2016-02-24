@@ -20,7 +20,8 @@
 namespace fs {
 
 template <typename FS>
-void Disk<FS>::partitions(on_parts_func func) {
+inline void
+Disk<FS>::partitions(on_parts_func func) {
   /** Read Master Boot Record (sector 0) */
   device.read_sector(0,
   [this, func] (hw::IDiskDevice::buffer_t data)
@@ -49,12 +50,65 @@ void Disk<FS>::partitions(on_parts_func func) {
 }
 
 template <typename FS>
-void Disk<FS>::mount(partition_t part, on_mount_func func) {
-  /** For the MBR case, all we need to do is mount on sector 0 */
-  if (part == MBR) {
+inline void
+Disk<FS>::auto_detect(on_mount_func func)
+{
+  device.read_sector(0,
+  [this, func] (hw::IDiskDevice::buffer_t data)
+  {
+    if (!data) {
+      // TODO: error-case for unable to read MBR
+      mount(INVALID, func);
+      return;
+    }
+    
+    // auto-detect FAT on MBR:
+    auto* mbr = (MBR::mbr*) data.get();
+    MBR::BPB* bpb = mbr->bpb();
+    
+    if (bpb->bytes_per_sector != 0 
+     && bpb->fa_tables != 0 
+     && bpb->sectors_per_fat != 0)
+    {
+      // we have FAT on MBR (and we are assuming mount FAT)
+      mount(MBR, func);
+      return;
+    }
+    
+    // go through partition list
+    for (int i = 0; i < 4; i++)
+    {
+      if (mbr->part[i].type != 0       // 0 is unused partition
+       && mbr->part[i].lba_begin != 0  // 0 is MBR anyways
+       && mbr->part[i].sectors != 0)   // 0 means no size, so...
+      {
+        mount((partition_t) (VBR1 + i), func);
+        return;
+      }
+    }
+    
+    // no partition was found (TODO: extended partitions)
+    mount(INVALID, func);
+    return;
+  });
+}
+
+template <typename FS>
+inline void
+Disk<FS>::mount(partition_t part, on_mount_func func) {
+  
+  if (part == INVALID)
+  {
+    // Something bad happened maybe in auto-detect
+    panic("Disk::mount(): Trying to mount invalid partition");
+  }
+  else if (part == MBR)
+  {
+    // For the MBR case, all we need to do is mount on sector 0
     fs().mount(0, device.size(), func);
   }
-  else {
+  else
+  {
     /**
      *  Otherwise, we will have to read the LBA offset
      *  of the partition to be mounted

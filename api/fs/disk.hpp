@@ -48,7 +48,9 @@ public:
     VBR1,
     VBR2,
     VBR3,
-    VBR4
+    VBR4,
+    
+    INVALID
   }; //<  enum partition_t
   
   struct Partition {
@@ -77,8 +79,12 @@ public:
   
   //************** disk functions **************//
 
-  /** Mount selected filesystem */
+  // Mount selected filesystem
   void mount(partition_t part, on_mount_func func);
+  
+  // Returns the first recognized partition (eg. MBR, VBR1 etc.)
+  // to be used with mount() as an auto-detection mechanism
+  void auto_detect(on_mount_func func);
   
   /**
    *  Returns a vector of the partitions on a disk

@@ -33,8 +33,25 @@ void Service::start()
   // instantiate disk with filesystem
   disk = std::make_unique<MountedDisk> (device);
   
-  // mount the main partition in the Master Boot Record
-  disk->mount(MountedDisk::VBR1,
+  // list partitions
+  disk->partitions(
+  [] (fs::error_t err, auto& parts)
+  {
+    if (err)
+    {
+      printf("Failed to retrieve volumes on disk\n");
+      return;
+    }
+    
+    for (auto& part : parts)
+    {
+      printf("* Volume: %s at LBA %u\n",
+          part.name().c_str(), part.lba_begin);
+    }
+  });
+  
+  // mount auto-detected partition
+  disk->auto_detect(
   [] (fs::error_t err)
   {
     if (err)
@@ -182,7 +199,7 @@ void Service::start()
       
     }); // socket.onConnect */
     
-  }); // disk.mount()
+  }); // disk->auto_detect()
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
