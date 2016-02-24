@@ -149,7 +149,10 @@ namespace fs
     // helper functions
     uint32_t cl_to_sector(uint32_t cl)
     {
-      return lba_base + data_index + (cl - 2) * sectors_per_cluster;
+      if (cl == 0)
+        return lba_base + data_index + (this->root_cluster - 2) * sectors_per_cluster - this->root_dir_sectors;
+      else
+        return lba_base + data_index + (cl - 2) * sectors_per_cluster;
     }
     
     uint16_t cl_to_entry_offset(uint32_t cl)

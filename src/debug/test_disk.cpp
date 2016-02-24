@@ -65,7 +65,7 @@ void Service::start()
     {
       if (err)
       {
-        printf("Could not list '/' directory\n");
+        printf("Could not list '/Sample Pictures' directory\n");
         return;
       }
       
@@ -95,7 +95,7 @@ void Service::start()
       }
     });
     
-    disk->fs().stat("/TEST.TXT",
+    disk->fs().stat("/test.txt",
     [] (fs::error_t err, const FileSystem::Dirent& e)
     {
       if (err)
@@ -104,7 +104,19 @@ void Service::start()
         return;
       }
       
-      printf("stat: / is a %s on cluster %llu\n", 
+      printf("stat: /test.txt is a %s on cluster %llu\n", 
+          e.type_string().c_str(), e.block);
+    });
+    disk->fs().stat("/Sample Pictures/Koala.jpg",
+    [] (fs::error_t err, const FileSystem::Dirent& e)
+    {
+      if (err)
+      {
+        printf("Could not stat /Sample Pictures/Koala.jpg\n");
+        return;
+      }
+      
+      printf("stat: /Sample Pictures/Koala.jpg is a %s on cluster %llu\n", 
           e.type_string().c_str(), e.block);
     });
     
