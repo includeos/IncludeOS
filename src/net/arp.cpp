@@ -104,8 +104,9 @@ bool Arp::is_valid_cached(IP4::addr ip) {
   auto entry = cache_.find(ip);
   
   if (entry != cache_.end()) {
-    debug("Cached entry, mac: %s time: %llu Expiry: %llu\n", entry->second.mac_.c_str(),
-	        entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
+    debug("Cached entry, mac: %s time: %llu Expiry: %llu\n", 
+        entry->second.mac_.str().c_str(),
+	      entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
     debug("Time now: %llu\n", static_cast<uint64_t>(OS::uptime()));
   }
   
@@ -128,7 +129,8 @@ void Arp::arp_respond(header* hdr_in) {
   res->set_dest_ip(hdr_in->sipaddr);
   res->set_opcode(H_reply);
     
-  debug2("\t My IP: %s belongs to My Mac: %s\n", res->source_ip().c_str(), res->source_mac().c_str());
+  debug2("\t My IP: %s belongs to My Mac: %s\n", 
+      res->source_ip().str().c_str(), res->source_mac().str().c_str());
   
   linklayer_out_(res);
 }
@@ -182,7 +184,7 @@ void Arp::transmit(Packet_ptr pckt) {
   ethhdr->dest = dest_mac;
   ethhdr->type = Ethernet::ETH_IP4;
   
-  debug2("<ARP -> physical> Sending packet to %s\n", mac.c_str());
+  debug2("<ARP -> physical> Sending packet to %s\n", mac_.str().c_str());
   linklayer_out_(pckt);
 }
 

@@ -1,3 +1,4 @@
+#define DEBUG
 #include <fs/fat.hpp>
 
 #include <cassert>
@@ -322,7 +323,7 @@ namespace fs
     next = 
     [this, path, &next, callback] (uint32_t cluster)
     {
-      debug("Traversed to cluster %u\n", cluster);
+      printf("Traversed to cluster %u\n", cluster);
       if (path->empty())
       {
         // attempt to read directory
@@ -344,6 +345,7 @@ namespace fs
       std::string name = path->front();
       path->pop_front();
       
+      printf("Current target: %s on cluster %u\n", name.c_str(), cluster);
       debug("Current target: %s\n", name.c_str());
       uint32_t S = this->cl_to_sector(cluster);
       
@@ -405,8 +407,6 @@ namespace fs
   {
     // cluster -> sector + position -> sector
     uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    // number of sectors to read ahead
-    size_t sectors = n / sector_size + 1;
     
     // the resulting buffer
     uint8_t* result = new uint8_t[n];

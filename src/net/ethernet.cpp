@@ -75,8 +75,8 @@ void Ethernet::bottom(Packet_ptr pckt) {
     len -= sizeof(header);
   */    
   debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
-         eth->src.c_str(), eth->dest.c_str(), eth->type);
-
+    eth->src.str().c_str(), eth->dest.str().c_str(), eth->type);
+  
   switch(eth->type) { 
   case ETH_IP4:
     debug2("IPv4 packet\n");

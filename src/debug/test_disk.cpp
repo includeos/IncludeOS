@@ -60,12 +60,12 @@ void Service::start()
       return;
     }
     
-    disk->fs().ls("/test",
+    disk->fs().ls("/",
     [] (fs::error_t err, FileSystem::dirvec_t ents)
     {
       if (err)
       {
-        printf("Could not list 'test' directory\n");
+        printf("Could not list '/' directory\n");
         return;
       }
       
@@ -95,16 +95,16 @@ void Service::start()
       }
     });
     
-    disk->fs().stat("/test",
+    disk->fs().stat("/TEST.TXT",
     [] (fs::error_t err, const FileSystem::Dirent& e)
     {
       if (err)
       {
-        printf("Could not stat the directory /test\n");
+        printf("Could not stat /TEST.TXT\n");
         return;
       }
       
-      printf("stat: /test is a %s on cluster %llu\n", 
+      printf("stat: / is a %s on cluster %llu\n", 
           e.type_string().c_str(), e.block);
     });
     

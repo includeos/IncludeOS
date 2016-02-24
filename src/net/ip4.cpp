@@ -42,7 +42,7 @@ void IP4::bottom(Packet_ptr pckt) {
   ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
   
   debug2("\t Source IP: %s Dest.IP: %s\n",
-        hdr->saddr.c_str(), hdr->daddr.c_str());
+    hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
   
   switch(hdr->protocol){
   case IP4_ICMP:
