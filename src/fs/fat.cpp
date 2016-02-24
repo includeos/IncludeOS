@@ -316,8 +316,8 @@ namespace fs
   {
     typedef std::function<void(uint32_t)> next_func_t;
     
-    // parse this path into a stack of names
-    printf("TRAVERSE: %s\n", path->to_string().c_str());
+    // parse this path into a stack of memes
+    //printf("TRAVERSE: %s\n", path->to_string().c_str());
     
     // asynch stack traversal
     next_func_t next;
