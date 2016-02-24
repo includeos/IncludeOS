@@ -50,19 +50,23 @@
 .global exception_30_entry
 .global exception_31_entry	
 
-//Redirected IRQ 0 - 12
+//Redirected IRQ 0 - 15
 .global irq_32_entry
 .global irq_33_entry
-.global irq_34_entry
+//The 34th irq is the slave PIC one so it doesn't need an entry
 .global irq_35_entry
 .global irq_36_entry
-.global irq_37_entry    
+.global irq_37_entry
 .global irq_38_entry
 .global irq_39_entry
 .global irq_40_entry
 .global irq_41_entry
 .global irq_42_entry
-.global irq_43_entry    
+.global irq_43_entry
+.global irq_44_entry
+.global irq_45_entry
+.global irq_46_entry
+.global irq_47_entry
 
 .global cpu_sampling_irq_entry
 	
@@ -110,7 +114,6 @@ IRQ exception_31_entry exception_31_handler
 
 IRQ irq_32_entry irq_32_handler
 IRQ irq_33_entry irq_33_handler
-IRQ irq_34_entry irq_34_handler
 IRQ irq_35_entry irq_35_handler
 IRQ irq_36_entry irq_36_handler
 IRQ irq_37_entry irq_37_handler
@@ -121,6 +124,10 @@ IRQ irq_40_entry irq_40_handler
 IRQ irq_41_entry irq_41_handler
 IRQ irq_42_entry irq_42_handler
 IRQ irq_43_entry irq_43_handler
+IRQ irq_44_entry irq_44_handler
+IRQ irq_45_entry irq_45_handler
+IRQ irq_46_entry irq_46_handler
+IRQ irq_47_entry irq_47_handler
 
 
 exception_13_entry:
