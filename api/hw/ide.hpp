@@ -34,17 +34,20 @@ public:
    * @param pcidev: An initialized PCI device
    */
   explicit IDE(hw::PCI_Device& pcidev) noexcept;
-
+  
   /** Human-readable name of this disk controller  */
   virtual const char* name() const noexcept override
   { return "IDE Controller"; }
 
   /** Returns the optimal block size for this device.  */
-  constexpr block_t block_size() const noexcept
+  virtual block_t block_size() const noexcept override
   { return 512; }
   
-  virtual void read_sector(block_t blk, on_read_func reader) override;
-  virtual void read_sectors(block_t blk, block_t count, on_read_func reader) override;
+  virtual void read(block_t blk, on_read_func reader) override;
+  virtual void read(block_t blk, block_t count, on_read_func reader) override;
+  
+  /** read synchronously from IDE disk  */
+  virtual buffer_t read_sync(block_t blk) override;
   
   virtual block_t size() const noexcept override
   { return _nb_blk; }

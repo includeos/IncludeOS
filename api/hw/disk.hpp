@@ -26,21 +26,30 @@ namespace hw {
 template <typename DRIVER>
 class Disk : public IDiskDevice {
 public:
-  /** Human readable name.  */
+  /** optimal block size for this device */
+  virtual block_t block_size() const noexcept override
+  { return driver.block_size(); }
+  
+  /** Human readable name */
   const char* name() const noexcept override
   {
     return driver.name();
   }
   
   virtual void
-  read_sector(block_t blk, on_read_func del) override
+  read(block_t blk, on_read_func del) override
   {
-    driver.read_sector(blk, del);
+    driver.read(blk, del);
   }
   virtual void
-  read_sectors(block_t blk, block_t count, on_read_func del) override
+  read(block_t blk, block_t count, on_read_func del) override
   {
-    driver.read_sectors(blk, count, del);
+    driver.read(blk, count, del);
+  }
+  
+  virtual buffer_t read_sync(block_t blk) override
+  {
+    return driver.read_sync(blk);
   }
   
   virtual block_t size() const noexcept override

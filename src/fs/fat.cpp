@@ -125,7 +125,7 @@ namespace fs
     this->lba_size = size;
     
     // read Partition block
-    device.read_sector(this->lba_base,
+    device.read(this->lba_base,
     [this, on_mount] (buffer_t data)
     {
       auto* mbr = (MBR::mbr*) data.get();
@@ -280,7 +280,7 @@ namespace fs
     next = [this, sector, callback, &dirents, next] (uint32_t sector)
     {
       //printf("int_ls: sec=%u\n", sector);
-      device.read_sector(sector,
+      device.read(sector,
       [this, sector, callback, &dirents, next] (buffer_t data)
       {
         if (!data)
@@ -401,6 +401,57 @@ namespace fs
     });
   }
   
+  buffer_t FAT32::read_sync(const Dirent& ent, uint64_t pos, uint64_t n)
+  {
+    // cluster -> sector + position -> sector
+    uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
+    // number of sectors to read ahead
+    size_t sectors = n / sector_size + 1;
+    
+    // the resulting buffer
+    uint8_t* result = new uint8_t[n];
+    
+    // in all cases, read the first sector
+    buffer_t data = device.read_sync(sector);
+    
+    uint32_t internal_ofs = pos % device.block_size();
+    // calculate bytes to read before moving on to next sector
+    uint32_t rest = device.block_size() - (pos - internal_ofs);
+    
+    // if what we want to read is larger than the rest, exit early
+    if (rest > n)
+    {
+      memcpy(result, data.get() + internal_ofs, n);
+      return buffer_t(result);
+    }
+    // otherwise, read to the sector border
+    uint8_t* ptr = result;
+    memcpy(ptr, data.get() + internal_ofs, rest);
+    ptr += rest;
+    n   -= rest;
+    sector += 1;
+    
+    // copy entire sectors
+    while (n > device.block_size())
+    {
+      device.read_sync(sector);
+      
+      memcpy(ptr, data.get(), device.block_size());
+      ptr += device.block_size();
+      n   -= device.block_size();
+      sector += 1;
+    }
+    
+    // copy remainder
+    if (likely(n > 0))
+    {
+      device.read_sync(sector);
+      memcpy(ptr, data.get(), n);
+    }
+    
+    return buffer_t(result);
+  }
+  
   void FAT32::readFile(const Dirent& ent, on_read_func callback)
   {
     // cluster -> sector
@@ -432,7 +483,7 @@ namespace fs
         delete next;
         return;
       }
-      device.read_sector(sector,
+      device.read(sector,
       [this, current, total, buffer, ent, &callback, sector, next] (buffer_t data)
       {
         if (!data)

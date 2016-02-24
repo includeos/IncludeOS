@@ -27,9 +27,13 @@ namespace fs {
 
 class MemDisk : public hw::IDiskDevice {
 public:
-  static constexpr size_t SECTOR_SIZE {512};
+  static constexpr size_t SECTOR_SIZE = 512;
   
   MemDisk() noexcept;
+  
+  /** Returns the optimal block size for this device.  */
+  virtual block_t block_size() const noexcept override
+  { return SECTOR_SIZE; }
   
   virtual const char* name() const noexcept override
   {
@@ -37,10 +41,12 @@ public:
   }
   
   virtual void 
-  read_sector(block_t blk, on_read_func reader) override;
-
+  read(block_t blk, on_read_func reader) override;
+  
   virtual void 
-  read_sectors(block_t start, block_t cnt, on_read_func reader) override;
+  read(block_t start, block_t cnt, on_read_func reader) override;
+  
+  virtual buffer_t read_sync(block_t blk) override;
   
   virtual block_t size() const noexcept override;
   
