@@ -23,14 +23,17 @@
 
 namespace fs {
 
-typedef std::shared_ptr<uint8_t> buffer_t;
+using buffer_t = std::shared_ptr<uint8_t>;
 
 // TODO: transform this into a class with a bool operator
 using error_t = bool;
 
-/** @var no_error: Always returns boolean false when used in expressions */
-extern error_t no_error;
+/** @error: Always returns boolean true when used in expressions */
+extern const error_t error;
+
+/** @no_error: Always returns boolean false when used in expressions */
+extern const error_t no_error;
 
 } //< namespace fs
 
-#endif //< FS_ERROR_HPP
+#endif //< FS_COMMON_HPP

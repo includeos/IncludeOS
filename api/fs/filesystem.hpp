@@ -19,12 +19,12 @@
 #ifndef FS_FILESYS_HPP
 #define FS_FILESYS_HPP
 
-#include "common.hpp"
-
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <functional>
+
+#include "common.hpp"
 
 namespace fs {
 
@@ -33,7 +33,6 @@ public:
   struct Dirent; //< Generic structure for directory entries
   
   using dirvec_t = std::shared_ptr<std::vector<Dirent>>;
-  using buffer_t = std::shared_ptr<uint8_t>;
   
   using on_mount_func = std::function<void(error_t)>;
   using on_ls_func    = std::function<void(error_t, dirvec_t)>;
@@ -85,12 +84,12 @@ public:
   }; //< struct Dirent
   
    /** Mount this filesystem with LBA at @base_sector */
-    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
+    virtual void mount(uint64_t lba, uint64_t size, on_mount_func mounter) = 0;
     
     /** @param path: Path in the mounted filesystem */
     virtual void ls(const std::string& path, on_ls_func) = 0;
     
-    /** Read an entire file into a buffer, then call on_read */
+    /** Read an entire file into a buffer, then call on_read_func */
     virtual void readFile(const std::string&, on_read_func) = 0;
     virtual void readFile(const Dirent& ent,  on_read_func) = 0;
     

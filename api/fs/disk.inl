@@ -20,15 +20,15 @@
 namespace fs {
 
 template <typename FS>
-void Disk<FS>::partitions(on_parts_func func) {
+void Disk<FS>::partitions(on_parts_func partioner) {
   /** Read Master Boot Record (sector 0) */
   device.read_sector(0,
-  [this, func] (hw::IDiskDevice::buffer_t data)
+  [this, partioner] (hw::IDiskDevice::buffer_t data)
   {
     std::vector<Partition> parts;
     
-    if (!data) {
-      func(true, parts);
+    if (not data) {
+      partioner(error, parts);
       return;
     }
     
@@ -44,15 +44,15 @@ void Disk<FS>::partitions(on_parts_func func) {
           mbr->part[i].sectors);
     }
     
-    func(no_error, parts);
+    partioner(no_error, parts);
   });
 }
 
 template <typename FS>
-void Disk<FS>::mount(partition_t part, on_mount_func func) {
+void Disk<FS>::mount(partition_t part, on_mount_func mounter) {
   /** For the MBR case, all we need to do is mount on sector 0 */
   if (part == MBR) {
-    fs().mount(0, device.size(), func);
+    fs().mount(0, device.size(), mounter);
   }
   else {
     /**
@@ -60,11 +60,11 @@ void Disk<FS>::mount(partition_t part, on_mount_func func) {
      *  of the partition to be mounted
      */
     device.read_sector(0,
-    [this, part, func] (hw::IDiskDevice::buffer_t data)
+    [this, part, mounter] (hw::IDiskDevice::buffer_t data)
     {
-      if (!data) {
+      if (not data) {
         // TODO: error-case for unable to read MBR
-        func(true);
+        mounter(error);
         return;
       }
       
@@ -79,7 +79,7 @@ void Disk<FS>::mount(partition_t part, on_mount_func func) {
        *  Call the filesystems mount function
        *  with lba_begin as base address
        */
-      fs().mount(lba_base, lba_size, func);
+      fs().mount(lba_base, lba_size, mounter);
     });
   }
 }

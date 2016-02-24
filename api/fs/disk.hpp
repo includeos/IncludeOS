@@ -19,12 +19,12 @@
 #ifndef FS_DISK_HPP
 #define FS_DISK_HPP
 
-#include "common.hpp"
-#include <hw/disk_device.hpp>
-
 #include <deque>
 #include <vector>
 #include <functional>
+
+#include "common.hpp"
+#include <hw/disk_device.hpp>
 
 namespace fs {
 
@@ -71,24 +71,24 @@ public:
     std::string name() const;
   }; //< struct Partition
   
-  /** Return a reference to the specified filesystem <FS> */
+  /** Return a reference to the specified filesystem <@tparam FS> */
   FileSystem& fs() noexcept
   { return *filesys; }
   
-  //************** disk functions **************//
+  //************** Disk Functions **************//
 
   /** Mount selected filesystem */
-  void mount(partition_t part, on_mount_func func);
+  void mount(partition_t part, on_mount_func mounter);
   
   /**
    *  Returns a vector of the partitions on a disk
    *
    *  The disk does not need to be mounted beforehand
    */
-  void partitions(on_parts_func func);
+  void partitions(on_parts_func partioner);
   
 private:
-  hw::IDiskDevice& device;
+  hw::IDiskDevice&    device;
   std::unique_ptr<FS> filesys;
 }; //< class Disk
 
@@ -96,7 +96,7 @@ template <typename FS>
 inline Disk<FS>::Disk(hw::IDiskDevice& dev) :
   device {dev}
 {
-  filesys.reset(new FS(device));
+  filesys.reset(new FS{device});
 }
 
 } //< namespace fs
