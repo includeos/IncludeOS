@@ -51,7 +51,7 @@ Disk<FS>::partitions(on_parts_func func) {
 
 template <typename FS>
 inline void
-Disk<FS>::auto_detect(on_mount_func func)
+Disk<FS>::mount(on_mount_func func)
 {
   device.read_sector(0,
   [this, func] (hw::IDiskDevice::buffer_t data)

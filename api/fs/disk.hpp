@@ -79,12 +79,11 @@ public:
   
   //************** disk functions **************//
 
-  // Mount selected filesystem
-  void mount(partition_t part, on_mount_func func);
+  // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
+  void mount(on_mount_func func);
   
-  // Returns the first recognized partition (eg. MBR, VBR1 etc.)
-  // to be used with mount() as an auto-detection mechanism
-  void auto_detect(on_mount_func func);
+  // Mount partition @part as the filesystem FS
+  void mount(partition_t part, on_mount_func func);
   
   /**
    *  Returns a vector of the partitions on a disk
