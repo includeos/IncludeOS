@@ -66,7 +66,9 @@ private:
    *  Just a wrapper around the driver constructor
    *  @note The Dev-class is a friend and will call this
    */
-  explicit Disk(PCI_Device& d): driver{d} {}
+  template <typename... Args>
+  explicit Disk(PCI_Device& d, Args&&... args):
+    driver{d, std::forward<Args>(args)... } {}
   
   friend class Dev;
 }; //< class Disk
