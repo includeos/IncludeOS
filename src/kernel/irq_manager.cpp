@@ -151,9 +151,10 @@ extern "C"{
     kill(1,9);
   }
   
-  //Redirected IRQ 0 - 12  
-  IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(34) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37)
-  IRQ_PAIR(38) IRQ_PAIR(39) IRQ_PAIR(40) IRQ_PAIR(41) IRQ_PAIR(42) IRQ_PAIR(43)
+  //Redirected IRQ 0 - 15
+  IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37)
+  IRQ_PAIR(38) IRQ_PAIR(39) IRQ_PAIR(40) IRQ_PAIR(41) IRQ_PAIR(42)
+  IRQ_PAIR(43) IRQ_PAIR(44) IRQ_PAIR(45) IRQ_PAIR(46) IRQ_PAIR(47)
   
 } //End extern
 
@@ -181,17 +182,18 @@ void IRQ_manager::init()
   // GATES 21-29 are reserved
   REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
      
-  //Redirected IRQ 0 - 12
-  REG_DEFAULT_IRQ(32) REG_DEFAULT_IRQ(33) REG_DEFAULT_IRQ(34)
-  REG_DEFAULT_IRQ(35) REG_DEFAULT_IRQ(36) REG_DEFAULT_IRQ(37)
-  REG_DEFAULT_IRQ(38) REG_DEFAULT_IRQ(39) REG_DEFAULT_IRQ(40)
-  REG_DEFAULT_IRQ(41) REG_DEFAULT_IRQ(42) REG_DEFAULT_IRQ(43)
+  //Redirected IRQ 0 - 15
+  REG_DEFAULT_IRQ(32) REG_DEFAULT_IRQ(33) REG_DEFAULT_IRQ(35)
+  REG_DEFAULT_IRQ(36) REG_DEFAULT_IRQ(37) REG_DEFAULT_IRQ(38)
+  REG_DEFAULT_IRQ(39) REG_DEFAULT_IRQ(40) REG_DEFAULT_IRQ(41)
+  REG_DEFAULT_IRQ(42) REG_DEFAULT_IRQ(43) REG_DEFAULT_IRQ(44)
+  REG_DEFAULT_IRQ(45) REG_DEFAULT_IRQ(46) REG_DEFAULT_IRQ(47)
           
   // Default gates for "real IRQ lines", 32-64
   INFO2("+ Exception gates set for irq < 32");
      
   //Set all irq-gates (>= 44) to the default handler
-  for(int i=44;i<256;i++){
+  for(int i=48;i<256;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }  
   INFO2("+ Default interrupt gates set for irq >= 32");
@@ -204,9 +206,10 @@ void IRQ_manager::init()
   hw::PIC::init();
      
   //Register the timer and enable / unmask it in the pic
-  //set_handler(32,irq_timer_entry);
+  //set_handler(0,irq_timer_entry);
      
-  enable_irq(33); //Keyboard - now people can subscribe
+  enable_irq(1); //Keyboard - now people can subscribe
+  enable_irq(2); //Slave PIC irq
   enable_interrupts();
   
   //Test zero-division exception

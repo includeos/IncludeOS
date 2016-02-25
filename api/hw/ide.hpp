@@ -57,9 +57,13 @@ private:
   void set_nbsectors(const uint8_t cnt) const noexcept;
   void set_blocknum(block_t blk) const noexcept;
   void set_command(const uint16_t command) const noexcept;
+  void set_irq_mode(const bool on) const noexcept;
 
   void wait_status_busy() const noexcept;
   void wait_status_flags(const int flags, const bool set) const noexcept;
+
+  void irq_handler();
+  void enable_irq_handler();
 
 private:
   hw::PCI_Device& _pcidev; // PCI device

@@ -16,32 +16,32 @@
 // limitations under the License.
 
 #include <os>
+#include <fs/disk.hpp>
+#include <fs/mbr.hpp>
+#include <fs/fat.hpp>
 #include <hw/ide.hpp>
-
-static void del(hw::IDE::block_t blk, char* data)
-{
-  (void)blk;
-
-  if (!data) {
-    printf("Error while reading\n");
-    printf("Test failed\n");
-    return;
-  }
-
-  if ((uint8_t)data[510] == 0x55 and (uint8_t)data[511] == 0xAA)
-    printf("Test passed\n");
-  else
-    printf("Test failed\n");
-}
 
 void Service::start()
 {
-  printf("TESTING Disks\n");
+  printf("TESTING Disks\n\n");
 
-  hw::Disk<hw::IDE>& disk0 = hw::Dev::disk<0, hw::IDE>();
+  auto ide = hw::Dev::disk<0, hw::IDE>();
 
-  printf("Name : %s\n", disk0.name());
-  printf("Block size : %llu\n", disk0.block_size());
+  printf("Name : %s\n", ide.name());
+  printf("Size : %llu\n\n", ide.size());
 
-  disk0.read(0, del);
+  printf("Reading sync:\n");
+  auto* mbr = (fs::MBR::mbr*)ide.read_sync(0).get();
+  printf("Name: %.8s\n", mbr->oem_name);
+  printf("MAGIC sig: 0x%x\n\n", mbr->magic);
+
+  ide.read(0, 3, [] (hw::IDE::buffer_t data) {
+    static int i = 0;
+    uint8_t* buf = (uint8_t*)data.get();
+    printf("Async read, Block %d:\n", i);
+    for (int i = 0; i < 512; i++)
+      printf("%x ", buf[i]);
+    printf("\n");
+    i++;
+  });
 }

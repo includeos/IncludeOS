@@ -45,6 +45,9 @@
 #define IDE_DRDY     (1 << 6)
 #define IDE_BUSY     (1 << 7)
 
+#define IDE_CTRL_IRQ 0x3F6
+#define IDE_IRQN     14
+
 #define IDE_VENDOR_ID   PCI_Device::VENDOR_INTEL
 #define IDE_PRODUCT_ID  0x7010
 
@@ -77,7 +80,13 @@ IDE::IDE(hw::PCI_Device& pcidev) noexcept:
   _iobase = _pcidev.iobase();
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
+  /** IRQ initialization */
+  CHECK(IDE_IRQN, "Unit has IRQ %i", IDE_IRQN);
+  enable_irq_handler();
+  INFO("IDE", "Enabling IRQ handler");
+
   /** IDE device initialization */
+  set_irq_mode(false);
   set_drive(_drive);
   set_nbsectors(0U);
   set_blocknum(0U);
@@ -99,6 +108,13 @@ IDE::IDE(hw::PCI_Device& pcidev) noexcept:
   INFO("IDE", "Initialization complete");
 }
 
+/**
+ * FIXME: this is a simple trick as we actually can't properly access the private
+ * members of the class during the IRQ handling...
+ */
+static IDE::on_read_func _callback = nullptr; // Current callback for asynchronous read
+static int _nb_irqs = 0; // Number of IRQs that we expect
+
 void IDE::read(block_t blk, on_read_func callback) {
   if (blk >= _nb_blk) {
     // avoid reading past the disk boundaries
@@ -106,15 +122,32 @@ void IDE::read(block_t blk, on_read_func callback) {
     return;
   }
 
-  // for now: only synchronous read
-  auto buf = read_sync(blk);
-  callback(buf);
+  set_irq_mode(true);
+  set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+  set_nbsectors(1);
+  set_blocknum(blk);
+  set_command(IDE_CMD_READ);
+
+  _callback = callback;
+  _nb_irqs = 1;
 }
 
-void IDE::read(block_t, block_t, on_read_func callback)
+void IDE::read(block_t blk, block_t count, on_read_func callback)
 {
-  // not implemented yet
-  callback( buffer_t() );
+  if (blk + count >= _nb_blk) {
+    // avoid reading past the disk boundaries
+    callback(buffer_t());
+    return;
+  }
+
+  set_irq_mode(true);
+  set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+  set_nbsectors(count);
+  set_blocknum(blk);
+  set_command(IDE_CMD_READ);
+
+  _callback = callback;
+  _nb_irqs = count;
 }
 
 IDE::buffer_t IDE::read_sync(block_t blk)
@@ -124,6 +157,7 @@ IDE::buffer_t IDE::read_sync(block_t blk)
     return buffer_t();
   }
 
+  set_irq_mode(false);
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
   set_nbsectors(1);
   set_blocknum(blk);
@@ -142,7 +176,6 @@ IDE::buffer_t IDE::read_sync(block_t blk)
   return buffer_t(buffer, std::default_delete<uint8_t[]>());
 }
 
-
 void IDE::wait_status_busy() const noexcept {
   uint8_t ret;
   while (((ret = inb(IDE_STATUS)) & IDE_BUSY) == IDE_BUSY);
@@ -155,7 +188,7 @@ void IDE::wait_status_flags(const int flags, const bool set) const noexcept {
 
   for (int i {IDE_TIMEOUT}; i; --i) {
     if (set) {
-      if ((ret & flags) not_eq flags)
+      if ((ret & flags) == flags)
         break;
     } else {
       if ((ret & flags) not_eq flags)
@@ -190,6 +223,39 @@ void IDE::set_blocknum(block_t blk) const noexcept {
 void IDE::set_command(const uint16_t command) const noexcept {
   wait_status_flags(IDE_DRDY, false);
   outb(IDE_CMD, command);
+}
+
+void IDE::set_irq_mode(const bool on) const noexcept {
+  wait_status_flags(IDE_DRDY, false);
+  outb(IDE_CTRL_IRQ, on ? 0 : 1);
+}
+
+void IDE::irq_handler() {
+  if (!_nb_irqs || _callback == nullptr) {
+    set_irq_mode(false);
+    IRQ_manager::eoi(IDE_IRQN);
+    return;
+  }
+
+  auto* buffer = new uint8_t[block_size()];
+
+  wait_status_flags(IDE_DRDY, false);
+
+  uint16_t* wptr = (uint16_t*) buffer;
+
+  for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
+    wptr[i] = inw(IDE_DATA);
+
+  _callback(buffer_t(buffer, std::default_delete<uint8_t[]>()));
+  _nb_irqs--;
+
+  IRQ_manager::eoi(IDE_IRQN);
+}
+
+void IDE::enable_irq_handler() {
+  auto del(delegate<void()>::from<IDE, &IDE::irq_handler>(this));
+  IRQ_manager::enable_irq(IDE_IRQN);
+  IRQ_manager::subscribe(IDE_IRQN, del);
 }
 
 } //< namespace hw

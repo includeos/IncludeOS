@@ -1,4 +1,4 @@
-file service
+file Test_IDE
 break _start
 break OS::start
 set non-stop off
