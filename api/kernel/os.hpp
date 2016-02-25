@@ -66,6 +66,11 @@ public:
    */
   static void rswrite(const char c);
 
+  /**
+   *  Write to serial port with rswrite.
+  */
+  static void default_rsprint(const char*, size_t);
+
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();
 
@@ -78,9 +83,7 @@ public:
   static void halt();
   
   /**
-   *  Set handler for secondary serial output.
-   *
-   *  This handler is called in addition to writing to the serial port.
+   *  Set handler for serial output.
    */
   static void set_rsprint(rsprint_func func) {
     rsprint_handler_ = func;
