@@ -22,8 +22,17 @@ std::unique_ptr<MountedDisk> disk;
 using namespace hw; // kill me plz
 #include <ide>
 
+using namespace std::chrono;
+
 void Service::start()
 {
+  printf("Service::start()\n");
+  PIT::instance().onTimeout(20ms,
+  [] ()
+  {
+    printf("20ms\n");
+  });
+  
   // networking stack
   Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
