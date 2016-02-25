@@ -19,10 +19,13 @@ using MountedDisk = fs::Disk<FAT32>;
 // disk with filesystem
 std::unique_ptr<MountedDisk> disk;
 
+using namespace hw; // kill me plz
+#include <ide>
+
 void Service::start()
 {
   // networking stack
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
       {{  10,  0,  0, 42 }},   // IP
@@ -31,7 +34,19 @@ void Service::start()
 			{{   8,  8,  8,  8 }} ); // DNS
   
   // instantiate disk with filesystem
+  auto device = Dev::disk<0, IDE> (IDE::SLAVE);
   disk = std::make_unique<MountedDisk> (device);
+  printf("Initialized IDE disk\n");
+  
+  // sync read
+  auto buf = device.read_sync(0);
+  printf("Sync MBR read: %p\n", (void*) buf.get());
+  // async read
+  device.read(0,
+  [] (auto buf)
+  {
+    printf("Async MBR read: %p\n", (void*) buf.get());
+  });
   
   // list partitions
   disk->partitions(

@@ -50,9 +50,13 @@ public:
   }
   
   /** Get disk N using driver DRIVER */
-  template <int N, typename DRIVER>
-  static Disk<DRIVER>& disk() {
-    static Disk<DRIVER> disk_ {PCI_manager::device<PCI::STORAGE>(N)};
+  template <int N, typename DRIVER, typename... Args>
+  static Disk<DRIVER>& disk(Args&&... args) {
+    static Disk<DRIVER> 
+    disk_ {
+      PCI_manager::device<PCI::STORAGE>(N),
+      std::forward<Args>(args)...
+    };
     return disk_;
   }
   

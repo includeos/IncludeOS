@@ -55,15 +55,15 @@
 
 namespace hw {
 
-IDE::IDE(hw::PCI_Device& pcidev) noexcept:
+IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
   _pcidev {pcidev},
-  _drive  {IDE_MASTER},
+  _drive  {(uint8_t) ((sel == MASTER) ? IDE_MASTER : IDE_SLAVE)},
   _iobase {0U},
   _nb_blk {0U}
 {
   INFO("IDE","VENDOR_ID : 0x%x, PRODUCT_ID : 0x%x", _pcidev.vendor_id(), _pcidev.product_id());
   INFO("IDE","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
-
+  
   /** PCI device checking */
   if (_pcidev.vendor_id() not_eq IDE_VENDOR_ID) {
     panic("This is not an Intel device");
@@ -122,6 +122,8 @@ void IDE::read(block_t blk, on_read_func callback) {
     return;
   }
 
+  auto buf = read_sync(blk);
+  /*
   set_irq_mode(true);
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
   set_nbsectors(1);
@@ -130,6 +132,8 @@ void IDE::read(block_t blk, on_read_func callback) {
 
   _callback = callback;
   _nb_irqs = 1;
+  */
+  callback(buf);
 }
 
 void IDE::read(block_t blk, block_t count, on_read_func callback)
@@ -139,7 +143,7 @@ void IDE::read(block_t blk, block_t count, on_read_func callback)
     callback(buffer_t());
     return;
   }
-
+  
   set_irq_mode(true);
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
   set_nbsectors(count);
