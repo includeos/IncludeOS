@@ -205,16 +205,13 @@ public:
     
     /** Get the queue descriptor. To be written to the Virtio device. */
     virtq_desc* queue_desc() const { return _queue.desc; }
-        
-    /** Notify the queue of IRQ */
-    void notify();
     
     /** Push data tokens onto the queue. 
         @param sg : A scatterlist of tokens
         @param out : The number of outbound tokens (device-readable - TX)
         @param in : The number of tokens to be inbound (device-writable RX)
     */
-    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data));
+    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void*);
     
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);

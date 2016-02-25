@@ -216,56 +216,9 @@ uint8_t* Virtio::Queue::dequeue(uint32_t* len){
   return data;
 }
 
-//TEMP. REMOVE - This belongs to VirtioNet.
-struct virtio_net_hdr
-  {
-    uint8_t flags;
-    uint8_t gso_type;
-    uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
-    uint16_t gso_size;         // Bytes to append to hdr_len per frame
-    uint16_t csum_start;       // Position to start checksumming from
-    uint16_t csum_offset;      // Offset after that to place checksum
-    uint16_t num_buffers;      // ONLY if "Merge RX-buffers"
-  };
-
-
-
-void Virtio::Queue::notify(){
-  debug("\t <Q %i> Notified, checking buffers.... \n",_pci_index);
-  debug("\t             Used idx: %i, Avail idx: %i \n",
-        _queue.used->idx, _queue.avail->idx );
-  
-  int new_packets = _queue.used->idx - _last_used_idx;
-  
-  if (new_packets && _queue.used->idx >= _queue.avail->idx)
-    printf("<Q %i> !!! BUFER FULL !!!  \n",_pci_index);
-
-
-  
-  debug("\t <VirtQueue> %i new packets: \n", new_packets);
-    
-  // For each token, extract data. We're merging RX-buffers, so no chaining 
-  for (;_last_used_idx != _queue.used->idx; _last_used_idx++){
-    auto id = _queue.used->ring[_last_used_idx % _size].id;
-    auto len = _queue.used->ring[_last_used_idx % _size].len;
-    debug("\tHandling packet id: 0x%lx len: %li last used: %i Q used idx: %i\n",
-          id,len,_last_used_idx, _queue.used->idx);        
-
-    auto tok_addr = _queue.desc[id].addr;    
-    uint8_t* data = (uint8_t*)tok_addr + sizeof(virtio_net_hdr); 
-    
-    // Push data to a handler
-    _data_handler(data, len);
-    
-  }
-  
-}
-
-
 void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
   _data_handler=del;
-};
-
+}
 
 void Virtio::Queue::disable_interrupts(){
   _queue.avail->flags |= (1 << VIRTQ_AVAIL_F_NO_INTERRUPT);

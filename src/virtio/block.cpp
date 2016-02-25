@@ -134,13 +134,17 @@ void VirtioBlk::service_RX()
   blk_data_t* vbr;
   while ((vbr = (blk_data_t*) req.dequeue(&len)) != nullptr)
   {
-    //printf("service_RX() received %u bytes from virtioblk device\n", len);
-    vbr->handler(0, vbr->sector);
+    printf("service_RX() received %u bytes from virtioblk device\n", len);
+    uint8_t* copy = new uint8_t[512];
+    memcpy(copy, vbr->sector, 512);
+    
+    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+    vbr->handler(buf);
     received++;
   }
   if (received == 0)
   {
-    //printf("service_RX() error processing requests\n");
+    printf("service_RX() error processing requests\n");
   }
   
   req.enable_interrupts();
@@ -169,4 +173,9 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   
   req.enqueue(sg, 1, 1, vbr);
   req.kick();
+}
+
+VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
+{
+  return buffer_t();
 }
