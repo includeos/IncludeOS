@@ -204,12 +204,10 @@ void IRQ_manager::init()
      
   //Initialize the interrupt controller
   hw::PIC::init();
-     
-  //Register the timer and enable / unmask it in the pic
-  //set_handler(0,irq_timer_entry);
-     
+  
   enable_irq(1); //Keyboard - now people can subscribe
   enable_irq(2); //Slave PIC irq
+  enable_irq(33); // someone explain?
   enable_interrupts();
   
   //Test zero-division exception

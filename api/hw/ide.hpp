@@ -28,12 +28,18 @@ namespace hw {
 /** IDE device driver  */
 class IDE : public IDiskDevice {
 public: 
+  enum selector_t
+  {
+    MASTER,
+    SLAVE
+  };
+  
   /**
    * Constructor
    *
    * @param pcidev: An initialized PCI device
    */
-  explicit IDE(hw::PCI_Device& pcidev) noexcept;
+  explicit IDE(hw::PCI_Device& pcidev, selector_t);
   
   /** Human-readable name of this disk controller  */
   virtual const char* name() const noexcept override
