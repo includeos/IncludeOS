@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_disks
+SERVICE = Test_IDE
 
 # Your service parts
 FILES = service.cpp
