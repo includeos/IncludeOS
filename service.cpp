@@ -45,41 +45,55 @@ void Service::start() {
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
 
-
   ////// DISK //////
   // instantiate disk with filesystem
   disk = std::make_unique<MountedDisk> (device);
-  
+
   // mount the main partition in the Master Boot Record
-  disk->mount(MountedDisk::MBR,
-  [] (fs::error_t err)
-  {
-    
-    if (err)
-    {
+  disk->mount([](fs::error_t err) {
+    if (err) {
       printf("Could not mount filesystem\n");
       return;
     }
 
-    ///// TCP SERVER ///
+    ///// HTTP SERVER /////
     auto& server = inet->tcp().bind(80);
     
-    printf("<Service> Added listener: %s \n", server.to_string().c_str());
-    
-    server.onReceive([](auto conn, bool push) {
+    printf("<Server> Status: %s \n", server.to_string().c_str());
+
+    server.onConnect([](auto conn) {
+      printf("<Server> Connected: %s \n", conn->remote().to_string().c_str());
+
+    }).onReceive([](auto conn, bool) {
       using namespace http;
-      bool buffer_full = !push;
-
-      Request req{conn->read(1024)};
-      printf("URI: %s \n", req.get_uri().c_str());
+      // Read request
+      Request req{conn->read()};
+      printf("<Server> Received request:\n%s \n", req.to_string().c_str());
+      // Create response
       Response res;
+      // if root
+      if(req.get_uri() == "/") {
+        // read index.html from disk
+        disk->fs().readFile("/index.html", [conn, &res]
+          (fs::error_t err, fs::buffer_t buff, size_t len) {
+            if(err) {
+              res.set_status_code(Not_Found);
+            } else {
+              // fill Response with content from index.html
+              printf("<Server> Responding with index.html. \n");
+              res.add_body(std::string{(const char*) buff.get(), len});  
+            }
+            // send response
+            conn->write(res);
+        }); // << fs().readFile
+      } else {
+        conn->write(Response{Not_Found});
+      }
+      // << onReceive
+    }).onDisconnect([](auto conn, std::string message) {
+      printf("<Server> Disconnect: %s (%s) \n", conn->remote().to_string().c_str(), message.c_str());
 
-      conn->write(res);
-    });  
+    });
 
-  });
-
-
-
-  
+  }); // < disk*/
 }
