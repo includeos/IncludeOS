@@ -2,7 +2,7 @@
 #ifndef NET_INET
 #define NET_INET
 
-#include "class_inet.hpp"
+#include "inet.hpp"
 
 
 #endif
