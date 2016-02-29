@@ -37,24 +37,37 @@ public:
   
   using on_mount_func = std::function<void(error_t)>;
   using on_ls_func    = std::function<void(error_t, dirvec_t)>;
-  using on_read_func  = std::function<void(error_t, buffer_t, size_t)>;
+  using on_read_func  = std::function<void(error_t, buffer_t, uint64_t)>;
   using on_stat_func  = std::function<void(error_t, const Dirent&)>;
-
+  
+  struct Buffer
+  {
+    error_t  err;
+    buffer_t buffer;
+    uint64_t len;
+    
+    Buffer(error_t e, buffer_t b, size_t l)
+      : err(e), buffer(b), len(l) {}
+  };
+  
   enum Enttype {
     FILE,
     DIR,
     /** FAT puts disk labels in the root directory, hence: */
     VOLUME_ID,
+    SYM_LINK,
+    
+    INVALID_ENTITY
   }; //< enum Enttype
   
   /** Generic structure for directory entries */
   struct Dirent {
     /** Default constructor */
-    explicit Dirent(const std::string& n = "", const Enttype  t    = FILE,
-                    const uint64_t blk   = 0U, const uint64_t pr   = 0U,
-                    const uint64_t sz    = 0U, const uint32_t attr = 0U) :
-      name      {n},
-      type      {t},
+    explicit Dirent(const Enttype  t   = FILE, const std::string& n = "",
+                    const uint64_t blk   = 0U, const uint64_t pr    = 0U,
+                    const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
+      ftype     {t},
+      fname     {n},
       block     {blk},
       parent    {pr},
       size      {sz},
@@ -62,22 +75,42 @@ public:
       timestamp {0}
     {}
     
-    std::string name;
-    Enttype     type;
+    Enttype     ftype;
+    std::string fname;
     uint64_t    block;
     uint64_t    parent; //< Parent's block#
     uint64_t    size;
     uint32_t    attrib;
     int64_t     timestamp;
     
+    // true if this dirent is valid
+    // if not, it means don't read any values from the Dirent as they are not
+    bool is_valid() const
+    {
+      return ftype != INVALID_ENTITY;
+    }
+    
+    const std::string& name() const noexcept
+    {
+      return fname;
+    }
+    
+    Enttype type() const noexcept
+    {
+      return ftype;
+    }
+    
     std::string type_string() const {
-      switch (type) {
+      switch (ftype) {
       case FILE:
         return "File";
       case DIR:
         return "Directory";
       case VOLUME_ID:
         return "Volume ID";
+        
+      case INVALID_ENTITY:
+        return "Invalid entity";
       default:
         return "Unknown type";
       } //< switch (type)
@@ -88,17 +121,20 @@ public:
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
     /** @param path: Path in the mounted filesystem */
-    virtual void ls(const std::string& path, on_ls_func) = 0;
+    virtual void     ls(const std::string& path, on_ls_func) = 0;
+    virtual dirvec_t ls(const std::string& path) = 0;
     
     /** Read an entire file into a buffer, then call on_read */
     virtual void readFile(const std::string&, on_read_func) = 0;
     virtual void readFile(const Dirent& ent,  on_read_func) = 0;
     
     /** Read @n bytes from direntry from position @pos */
-    virtual buffer_t read_sync(const Dirent&, uint64_t pos, uint64_t n) = 0;
+    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) = 0;
+    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) = 0;
     
     /** Return information about a file or directory */
-    virtual void stat(const std::string& ent, on_stat_func) = 0;
+    virtual void   stat(const std::string& ent, on_stat_func) = 0;
+    virtual Dirent stat(const std::string& ent) = 0;
     
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;

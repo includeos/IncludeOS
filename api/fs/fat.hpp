@@ -32,22 +32,23 @@ namespace fs
   struct FAT32 : public FileSystem
   {
     /// ----------------------------------------------------- ///
-    // 0   = Mount MBR
-    // 1-4 = Mount VBR 1-4
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
-    virtual void ls(const std::string& path, on_ls_func) override;
+    virtual void     ls     (const std::string& path, on_ls_func) override;
+    virtual dirvec_t ls(const std::string& path) override;
     
     // read an entire file into a buffer, then call on_read
     virtual void readFile(const std::string&, on_read_func) override;
     virtual void readFile(const Dirent& ent, on_read_func) override;
     
-    /** Read @n bytes from direntry from position @pos */
-    virtual buffer_t read_sync(const Dirent&, uint64_t pos, uint64_t n) override;
+    /** Read @n bytes from file pointed by @entry starting at position @pos */
+    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
+    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
     
     // return information about a filesystem entity
-    virtual void stat(const std::string&, on_stat_func) override;
+    virtual void   stat(const std::string&, on_stat_func) override;
+    virtual Dirent stat(const std::string& ent) override;
     
     // returns the name of the filesystem
     virtual std::string name() const override
@@ -178,7 +179,12 @@ namespace fs
     bool int_dirent(uint32_t sector, const void* data, dirvec_t);
     
     // tree traversal
-    typedef std::function<void(bool, uint32_t, dirvec_t)> cluster_func;
+    typedef std::function<void(error_t, dirvec_t)> cluster_func;
+    struct traverse_t
+    {
+      error_t  err;
+      dirvec_t ents;
+    };
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     
     // device we can read and write sectors to

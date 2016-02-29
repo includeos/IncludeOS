@@ -243,8 +243,8 @@ namespace fs
                 dirname = trim_right_copy(dirname);
                 
                 dirents->emplace_back(
-                  dirname, 
                   D->type(), 
+                  dirname, 
                   D->dir_cluster(root_cluster), 
                   sector, // parent block
                   D->size(), 
@@ -259,8 +259,8 @@ namespace fs
               dirname = trim_right_copy(dirname);
               
               dirents->emplace_back(
-                dirname, 
                 D->type(), 
+                dirname, 
                 D->dir_cluster(root_cluster), 
                 sector, // parent block
                 D->size(), 
@@ -314,31 +314,26 @@ namespace fs
   
   void FAT32::traverse(std::shared_ptr<Path> path, cluster_func callback)
   {
-    typedef std::function<void(uint32_t)> next_func_t;
-    
     // parse this path into a stack of memes
-    //printf("TRAVERSE: %s\n", path->to_string().c_str());
+    typedef std::function<void(uint32_t)> next_func_t;
     
     // asynch stack traversal
     next_func_t next;
     next = 
     [this, path, &next, callback] (uint32_t cluster)
     {
-      //printf("Traversed to cluster %u\n", cluster);
       if (path->empty())
       {
         // attempt to read directory
         uint32_t S = this->cl_to_sector(cluster);
-        //uint32_t S = this->cl_to_sector(cluster);
-        //debug("Reading cluster %u at sector %u\n", cluster, S);
         
         // result allocated on heap
         auto dirents = std::make_shared<std::vector<Dirent>> ();
         
         int_ls(S, dirents,
-        [S, callback] (error_t error, dirvec_t ents)
+        [callback] (error_t error, dirvec_t ents)
         {
-          callback(error, S, ents);
+          callback(error, ents);
         });
         return;
       }
@@ -355,35 +350,35 @@ namespace fs
       
       // list directory contents
       int_ls(S, dirents,
-      [name, dirents, &next, S, callback] (error_t error, dirvec_t ents)
+      [name, dirents, &next, callback] (error_t error, dirvec_t ents)
       {
         if (unlikely(error))
         {
           debug("Could not find: %s\n", name.c_str());
-          callback(true, S, dirents);
+          callback(true, dirents);
           return;
         }
         
         // look for name in directory
         for (auto& e : *ents)
         {
-          if (unlikely(e.name == name))
+          if (unlikely(e.name() == name))
           {
             // go to this directory, unless its the last name
             debug("Found match for %s", name.c_str());
             // enter the matching directory
             debug("\t\t cluster: %lu\n", e.block);
             // only follow directories
-            if (e.type == DIR)
+            if (e.type() == DIR)
               next(e.block);
             else
-              callback(true, S, dirents);
+              callback(true, dirents);
             return;
           }
         } // for (ents)
         
         debug("NO MATCH for %s\n", name.c_str());
-        callback(true, S, dirents);
+        callback(true, dirents);
       });
       
     };
@@ -398,59 +393,16 @@ namespace fs
     auto pstk = std::make_shared<Path> (path);
     
     traverse(pstk, 
-    [on_ls] (error_t error, uint32_t, dirvec_t dirents)
+    [on_ls] (error_t error, dirvec_t dirents)
     {
       on_ls(error, dirents);
     });
   }
   
-  buffer_t FAT32::read_sync(const Dirent& ent, uint64_t pos, uint64_t n)
+  void FAT32::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
-    // cluster -> sector + position -> sector
-    uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    
-    // the resulting buffer
-    uint8_t* result = new uint8_t[n];
-    
-    // in all cases, read the first sector
-    buffer_t data = device.read_sync(sector);
-    
-    uint32_t internal_ofs = pos % device.block_size();
-    // calculate bytes to read before moving on to next sector
-    uint32_t rest = device.block_size() - (pos - internal_ofs);
-    
-    // if what we want to read is larger than the rest, exit early
-    if (rest > n)
-    {
-      memcpy(result, data.get() + internal_ofs, n);
-      return buffer_t(result);
-    }
-    // otherwise, read to the sector border
-    uint8_t* ptr = result;
-    memcpy(ptr, data.get() + internal_ofs, rest);
-    ptr += rest;
-    n   -= rest;
-    sector += 1;
-    
-    // copy entire sectors
-    while (n > device.block_size())
-    {
-      device.read_sync(sector);
-      
-      memcpy(ptr, data.get(), device.block_size());
-      ptr += device.block_size();
-      n   -= device.block_size();
-      sector += 1;
-    }
-    
-    // copy remainder
-    if (likely(n > 0))
-    {
-      device.read_sync(sector);
-      memcpy(ptr, data.get(), n);
-    }
-    
-    return buffer_t(result);
+    auto buf = read(ent, pos, n);
+    callback(buf.err, buf.buffer, buf.len);
   }
   
   void FAT32::readFile(const Dirent& ent, on_read_func callback)
@@ -524,7 +476,7 @@ namespace fs
     path->pop_back();
     
     traverse(path,
-    [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
+    [this, filename, &callback] (error_t error, dirvec_t dirents)
     {
       if (unlikely(error))
       {
@@ -536,7 +488,7 @@ namespace fs
       // find the matching filename in directory
       for (auto& e : *dirents)
       {
-        if (unlikely(e.name == filename))
+        if (unlikely(e.name() == filename))
         {
           // read this file
           readFile(e, callback);
@@ -562,7 +514,7 @@ namespace fs
     path->pop_back();
     
     traverse(path,
-    [this, filename, &callback] (error_t error, uint32_t, dirvec_t dirents)
+    [this, filename, &callback] (error_t error, dirvec_t dirents)
     {
       if (unlikely(error))
       {
@@ -574,7 +526,7 @@ namespace fs
       // find the matching filename in directory
       for (auto& e : *dirents)
       {
-        if (unlikely(e.name == filename))
+        if (unlikely(e.name() == filename))
         {
           // read this file
           callback(no_error, e);

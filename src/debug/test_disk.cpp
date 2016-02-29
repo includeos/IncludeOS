@@ -15,33 +15,22 @@ using MountedDisk = fs::Disk<FAT32>;
 std::unique_ptr<MountedDisk> disk;
 
 using namespace hw; // kill me plz
-#include <ide>
+#include <virtio/console.hpp>
 
 using namespace std::chrono;
 
 void Service::start()
 {
-  printf("Service::start()\n");
-  PIT::instance().onTimeout(20ms,
-  [] ()
+  /*auto& con = Dev::console<0, VirtioCon> ();
+  OS::set_rsprint(
+  [&con] (const char* data, size_t len)
   {
-    printf("20ms\n");
-  });
+    con.write(data, len);
+  });*/
   
   // instantiate disk with filesystem
-  auto device = Dev::disk<1, VirtioBlk> ();
+  //auto device = Dev::disk<1, VirtioBlk> ();
   disk = std::make_unique<MountedDisk> (device);
-  printf("Initialized IDE disk\n");
-  
-  // sync read
-  auto buf = device.read_sync(0);
-  printf("Sync MBR read: %p\n", (void*) buf.get());
-  // async read
-  device.read(0,
-  [] (auto buf)
-  {
-    printf("Async MBR read: %p\n", (void*) buf.get());
-  });
   
   // list partitions
   disk->partitions(
