@@ -9,6 +9,13 @@ endif
 # shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
+# stackrealign is needed to guarantee 16-byte stack alignment for SSE
+# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
+CAPABS_COMMON = -mstackrealign
+CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
+WARNS   = -Wall -Wextra #-pedantic
+DEBUG_OPTS = -ggdb3
+
 
 # External Libraries
 ###################################################
@@ -22,11 +29,9 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
 
 INC_NEWLIB=$(INSTALL)/newlib/include
 
-DEBUG_OPTS = -ggdb3
-
 # Compiler/Linker
 ###################################################
-CC  = clang-3.6
+CC  = clang-3.6 -msse3
 CPP = clang++-3.6
 # Set defaults if not defined
 ifndef LD_INC
@@ -43,12 +48,6 @@ CPPOPTS = -target i686-elf
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-# stackrealign is needed to guarantee 16-byte stack alignment for SSE
-# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -msse3 -mstackrealign
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
-
-WARNS   = -Wall -Wextra #-pedantic
 CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
 CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\"" 
 
@@ -74,7 +73,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
 		fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/memdisk.o
+		fs/ext4.o fs/fat.o fs/fat_sync.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o

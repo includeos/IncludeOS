@@ -123,19 +123,33 @@ void VirtioBlk::irq_handler()
   IRQ_manager::eoi(irq());
 }
 
-VirtioBlk::request_t* VirtioBlk::buf;
-
 void VirtioBlk::service_RX()
 {
   req.disable_interrupts();
   
   uint32_t received = 0;
   uint32_t len;
+  request_t* hdr;
   blk_data_t* vbr;
-  while ((vbr = (blk_data_t*) req.dequeue(&len)) != nullptr)
+  //printf("service_RX() reading from VirtioBlk device\n");
+  
+  while ((hdr = (request_t*) req.dequeue(len)) != nullptr)
   {
-    //printf("service_RX() received %u bytes from virtioblk device\n", len);
-    vbr->handler(0, vbr->sector);
+    printf("service_RX() received %u bytes for sector %llu\n", 
+        len, hdr->hdr.sector);
+    vbr = &hdr->data;
+    
+    printf("service_RX() received %u bytes data response\n", len);
+    printf("Received handler: %p\n", vbr->handler);
+    
+    uint8_t* copy = new uint8_t[SECTOR_SIZE];
+    memcpy(copy, vbr->sector, SECTOR_SIZE);
+    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+    
+    printf("Calling handler: %p\n", vbr->handler);
+    (*vbr->handler)(buf);
+    delete vbr->handler;
+    
     received++;
   }
   if (received == 0)
@@ -148,25 +162,22 @@ void VirtioBlk::service_RX()
 
 void VirtioBlk::read (block_t blk, on_read_func func)
 {
-  printf("Sending read request for block %llu\n", blk);
-  scatterlist sg[3];
-  
   // Virtio Std. § 5.1.6.3
   auto* vbr = new request_t();
-  buf = vbr;
   
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
+  vbr->data.handler = new on_read_func(func);
   vbr->data.status  = VIRTIO_BLK_S_OK;
-  vbr->data.handler = func;
   
-  sg[0].data = &vbr->hdr;
-  sg[0].size = sizeof(scsi_header_t);
+  printf("Enqueue handler: %p\n", vbr->data.handler);
   
-  sg[1].data = &vbr->data;
-  sg[1].size = sizeof(blk_data_t);
-  
-  req.enqueue(sg, 1, 1, vbr);
+  req.enqueue(&vbr->hdr, sizeof(scsi_header_t), &vbr->data, sizeof(blk_data_t));
   req.kick();
+}
+
+VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
+{
+  return buffer_t();
 }
