@@ -29,7 +29,6 @@
 class VirtioBlk : public Virtio, public hw::IDiskDevice
 {
 public:
-  typedef uint64_t block_t;
   static constexpr size_t SECTOR_SIZE = 512;
   
   /** Human readable name. */
@@ -93,8 +92,10 @@ private:
   struct blk_data_t
   {
     uint8_t sector[512];
+    uint32_t stuff1;
+    on_read_func* handler;
+    uint32_t stuff2;
     uint8_t status;
-    on_read_func handler;
   } __attribute__((packed));
   
   struct request_t
@@ -125,7 +126,6 @@ private:
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
   uint16_t request_counter;
-  static request_t* buf;
 };
 
 #endif

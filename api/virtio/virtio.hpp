@@ -111,11 +111,11 @@ public:
       le32 len; 
       
       /* This marks a buffer as continuing via the next field. */ 
-#define VIRTQ_DESC_F_NEXT   1 
+      #define VIRTQ_DESC_F_NEXT     1
       /* This marks a buffer as device write-only (otherwise device read-only). */ 
-#define VIRTQ_DESC_F_WRITE     2 
+      #define VIRTQ_DESC_F_WRITE    2
       /* This means the buffer contains a list of buffer descriptors. */ 
-#define VIRTQ_DESC_F_INDIRECT   4 
+      #define VIRTQ_DESC_F_INDIRECT 4
       /* The flags as indicated above. */ 
       le16 flags; 
       /* Next field if flags & NEXT */ 
@@ -213,6 +213,9 @@ public:
     */
     int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void*);
     
+    void enqueue(void* out, uint32_t out_len, void* in, uint32_t in_len);
+    void* dequeue(uint32_t& len);
+    
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
     
@@ -233,7 +236,22 @@ public:
 
     inline uint16_t num_avail()
     { return _queue.avail->idx - _queue.used->idx; }
-        
+    
+    // access the current index
+    virtq_desc& current()
+    {
+      return _queue.desc[_free_head];
+    }
+    virtq_desc& next()
+    {
+      return _queue.desc[ _queue.desc[_free_head].next ];
+    }
+    
+    // go to next index
+    void go_next()
+    {
+      _free_head = _queue.desc[_free_head].next;
+    }
     
     inline uint16_t size(){ return _size; }
     
