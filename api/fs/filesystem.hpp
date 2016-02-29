@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef FS_FILESYS_HPP
-#define FS_FILESYS_HPP
+#ifndef FS_FILESYSTEM_HPP
+#define FS_FILESYSTEM_HPP
 
 #include "common.hpp"
 
@@ -63,7 +63,7 @@ public:
   /** Generic structure for directory entries */
   struct Dirent {
     /** Default constructor */
-    explicit Dirent(const Enttype  t   = FILE, const std::string& n = "",
+    explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
                     const uint64_t blk   = 0U, const uint64_t pr    = 0U,
                     const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
       ftype     {t},
@@ -121,8 +121,8 @@ public:
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
     /** @param path: Path in the mounted filesystem */
-    virtual void     ls(const std::string& path, on_ls_func) = 0;
-    virtual dirvec_t ls(const std::string& path) = 0;
+    virtual void    ls(const std::string& path, on_ls_func) = 0;
+    virtual error_t ls(const std::string& path, dirvec_t e) = 0;
     
     /** Read an entire file into a buffer, then call on_read */
     virtual void readFile(const std::string&, on_read_func) = 0;
@@ -143,6 +143,9 @@ public:
     virtual ~FileSystem() noexcept = default;
 }; //< class FileSystem
 
+// simplify initializing shared vector for sync ls
+typedef FileSystem::dirvec_t dirvec_t;
+
 } //< namespace fs
 
-#endif //< FS_FILESYS_HPP
+#endif //< FS_FILESYSTEM_HPP

@@ -10,7 +10,7 @@ using namespace fs;
 MemDisk device;
 
 // describe a disk with FAT32 mounted on partition 0 (MBR)
-using MountedDisk = fs::Disk<FAT32>;
+using MountedDisk = fs::Disk<FAT>;
 // disk with filesystem
 std::unique_ptr<MountedDisk> disk;
 
@@ -59,47 +59,79 @@ void Service::start()
       return;
     }
     
+    auto dirents = std::make_shared<fs::dirvec_t> ();
+    err = disk->fs().ls("/", dirents);
+    if (err)
+    {
+      printf("Could not list '/' directory\n");
+    }
+    else
+    {
+      for (auto& e : *dirents)
+      {
+        printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
+          e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+        
+        if (e.type() == FileSystem::FILE)
+        {
+          printf("*** Attempting to read: %s\n", e.name().c_str());
+          auto buf = disk->fs().read(e, 0, e.size);
+          
+          if (buf.err)
+          {
+            printf("Failed to read file %s!\n", e.name().c_str());
+          }
+          else
+          {
+            std::string contents((const char*) buf.buffer.get(), buf.len);
+            printf("[%s contents]:\n%s\nEOF\n\n", 
+                e.name().c_str(), contents.c_str());
+          }
+        }
+      }
+    }
+    
     disk->fs().ls("/",
-    [] (fs::error_t err, FileSystem::dirvec_t ents)
+    [] (fs::error_t err, auto ents)
     {
       if (err)
       {
-        printf("Could not list '/Sample Pictures' directory\n");
+        printf("Could not list '/' directory\n");
         return;
       }
       
       for (auto& e : *ents)
       {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-          e.type_string().c_str(), e.name.c_str(), e.size, e.block);
+          e.type_string().c_str(), e.name().c_str(), e.size, e.block);
         
-        if (e.type == FileSystem::FILE)
+        if (e.type() == FileSystem::FILE)
         {
-          printf("*** Attempting to read: %s\n", e.name.c_str());
+          printf("*** Attempting to read: %s\n", e.name().c_str());
           disk->fs().readFile(e,
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len)
           {
             if (err)
             {
               printf("Failed to read file %s!\n",
-                  e.name.c_str());
+                  e.name().c_str());
               return;
             }
             
             std::string contents((const char*) buffer.get(), len);
             printf("[%s contents]:\n%s\nEOF\n\n", 
-                e.name.c_str(), contents.c_str());
+                e.name().c_str(), contents.c_str());
           });
         }
       }
     });
     
     disk->fs().stat("/test.txt",
-    [] (fs::error_t err, const FileSystem::Dirent& e)
+    [] (fs::error_t err, const auto& e)
     {
       if (err)
       {
-        printf("Could not stat /TEST.TXT\n");
+        printf("Could not stat %s\n", e.name().c_str());
         return;
       }
       
@@ -107,16 +139,16 @@ void Service::start()
           e.type_string().c_str(), e.block);
     });
     disk->fs().stat("/Sample Pictures/Koala.jpg",
-    [] (fs::error_t err, const FileSystem::Dirent& e)
+    [] (fs::error_t err, const auto& e)
     {
       if (err)
       {
-        printf("Could not stat /Sample Pictures/Koala.jpg\n");
+        printf("Could not stat %s\n", e.name().c_str());
         return;
       }
       
-      printf("stat: /Sample Pictures/Koala.jpg is a %s on cluster %llu\n", 
-          e.type_string().c_str(), e.block);
+      printf("stat: %s is a %s on cluster %llu\n", 
+          e.name().c_str(), e.type_string().c_str(), e.block);
     });
     
   }); // disk->auto_detect()

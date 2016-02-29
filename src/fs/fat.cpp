@@ -25,13 +25,13 @@ inline std::string trim_right_copy(
 
 namespace fs
 {
-  FAT32::FAT32(hw::IDiskDevice& dev)
+  FAT::FAT(hw::IDiskDevice& dev)
     : device(dev)
   {
     
   }
   
-  void FAT32::init(const void* base_sector)
+  void FAT::init(const void* base_sector)
   {
     // assume its the master boot record for now
     auto* mbr = (MBR::mbr*) base_sector;
@@ -67,7 +67,7 @@ namespace fs
     // initialize FAT
     if (bpb->small_sectors) // FAT16
     {
-        this->fat_type  = FAT32::T_FAT16;
+        this->fat_type  = FAT::T_FAT16;
         this->sectors = bpb->small_sectors;
         this->sectors_per_fat = bpb->sectors_per_fat;
         this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
@@ -76,7 +76,7 @@ namespace fs
     }
     else
     {
-        this->fat_type   = FAT32::T_FAT32;
+        this->fat_type   = FAT::T_FAT32;
         this->sectors = bpb->large_sectors;
         this->sectors_per_fat = *(uint32_t*) &mbr->boot[25];
         this->root_dir_sectors = 0;
@@ -101,19 +101,19 @@ namespace fs
     // using the official method:
     if (this->clusters < 4085)
     {
-      this->fat_type = FAT32::T_FAT12;
+      this->fat_type = FAT::T_FAT12;
       this->root_cluster = 2;
       debug("The image is type FAT12, with %u clusters\n", this->clusters);
     }
     else if (this->clusters < 65525)
     {
-      this->fat_type = FAT32::T_FAT16;
+      this->fat_type = FAT::T_FAT16;
       this->root_cluster = 2;
       debug("The image is type FAT16, with %u clusters\n", this->clusters);
     }
     else
     {
-      this->fat_type = FAT32::T_FAT32;
+      this->fat_type = FAT::T_FAT32;
       this->root_cluster = *(uint32_t*) &mbr->boot[33];
       debug("The image is type FAT32, with %u clusters\n", this->clusters);
     }
@@ -121,7 +121,7 @@ namespace fs
     debug("System ID: %.8s\n", bpb->system_id);
   }
   
-  void FAT32::mount(uint64_t base, uint64_t size, on_mount_func on_mount)
+  void FAT::mount(uint64_t base, uint64_t size, on_mount_func on_mount)
   {
     this->lba_base = base;
     this->lba_size = size;
@@ -148,13 +148,13 @@ namespace fs
       
       switch (this->fat_type)
       {
-      case FAT32::T_FAT12:
+      case FAT::T_FAT12:
           INFO("FS", "Mounting FAT12 filesystem");
           break;
-      case FAT32::T_FAT16:
+      case FAT::T_FAT16:
           INFO("FS", "Mounting FAT16 filesystem");
           break;
-      case FAT32::T_FAT32:
+      case FAT::T_FAT32:
           INFO("FS", "Mounting FAT32 filesystem");
           break;
       }
@@ -166,12 +166,12 @@ namespace fs
     });
   }
   
-  bool FAT32::int_dirent(
+  bool FAT::int_dirent(
       uint32_t  sector,
       const void* data, 
       dirvec_t dirents)
   {
-      auto* root = (FAT32::cl_dir*) data;
+      auto* root = (cl_dir*) data;
       bool  found_last = false;
       
       for (int i = 0; i < 16; i++)
@@ -194,7 +194,7 @@ namespace fs
             
             if (likely(root[i].is_longname()))
             {
-              auto* L = (FAT32::cl_long*) &root[i];
+              auto* L = (cl_long*) &root[i];
               // the last long index is part of a chain of entries
               if (L->is_last())
               {
@@ -272,7 +272,7 @@ namespace fs
       return found_last;
   }
   
-  void FAT32::int_ls(
+  void FAT::int_ls(
       uint32_t sector, 
       dirvec_t dirents, 
       on_internal_ls_func callback)
@@ -312,7 +312,7 @@ namespace fs
     next(sector);
   }
   
-  void FAT32::traverse(std::shared_ptr<Path> path, cluster_func callback)
+  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback)
   {
     // parse this path into a stack of memes
     typedef std::function<void(uint32_t)> next_func_t;
@@ -387,7 +387,7 @@ namespace fs
     next(0);
   }
   
-  void FAT32::ls(const std::string& path, on_ls_func on_ls)
+  void FAT::ls(const std::string& path, on_ls_func on_ls)
   {
     // parse this path into a stack of names
     auto pstk = std::make_shared<Path> (path);
@@ -399,13 +399,13 @@ namespace fs
     });
   }
   
-  void FAT32::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
+  void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
     auto buf = read(ent, pos, n);
     callback(buf.err, buf.buffer, buf.len);
   }
   
-  void FAT32::readFile(const Dirent& ent, on_read_func callback)
+  void FAT::readFile(const Dirent& ent, on_read_func callback)
   {
     // cluster -> sector
     uint32_t sector = this->cl_to_sector(ent.block);
@@ -461,7 +461,7 @@ namespace fs
     (*next)(sector, current, total);
   }
   
-  void FAT32::readFile(const std::string& strpath, on_read_func callback)
+  void FAT::readFile(const std::string& strpath, on_read_func callback)
   {
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty()))
@@ -498,13 +498,13 @@ namespace fs
     });
   } // readFile()
   
-  void FAT32::stat(const std::string& strpath, on_stat_func callback)
+  void FAT::stat(const std::string& strpath, on_stat_func callback)
   {
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty()))
     {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      callback(true, Dirent());
+      callback(true, Dirent(INVALID_ENTITY, strpath));
       return;
     }
     
@@ -519,7 +519,7 @@ namespace fs
       if (unlikely(error))
       {
         // no path, no file!
-        callback(error, Dirent());
+        callback(error, Dirent(INVALID_ENTITY, filename));
         return;
       }
       
@@ -535,7 +535,7 @@ namespace fs
       }
       
       // not found
-      callback(true, Dirent());
+      callback(true, Dirent(INVALID_ENTITY, filename));
     });
   }
 }
