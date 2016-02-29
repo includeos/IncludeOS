@@ -78,9 +78,9 @@ void Service::start()
   
   
   /// PCI IDE controller testing ///
-  using FatDisk = fs::Disk<fs::FAT32>;
+  using FatDisk = fs::Disk<fs::FAT>;
   
-  auto ide1 = hw::Dev::disk<0, hw::IDE> ( /** probably need some option here **/ );
+  auto ide1 = hw::Dev::disk<0, hw::IDE> (hw::IDE::SLAVE);
   auto disk = std::make_shared<FatDisk> (ide1);
   
   ide1.read(0, 

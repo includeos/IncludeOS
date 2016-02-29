@@ -100,7 +100,7 @@ namespace fs
     // start with root dir
     uint32_t cluster = 0;
     // directory entries are read into this
-    auto dirents = std::make_shared<std::vector<Dirent>> ();
+    auto dirents = new_shared_vector();
     Dirent found(INVALID_ENTITY);
     
     while (!path.empty())
@@ -133,7 +133,8 @@ namespace fs
           // not dir = error, for now
           return true;
         }
-      }
+      } // for (ents)
+      
       // validate result
       if (found.type() == INVALID_ENTITY)
       {

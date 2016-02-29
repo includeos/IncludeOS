@@ -32,8 +32,9 @@ class FileSystem {
 public:
   struct Dirent; //< Generic structure for directory entries
   
-  using dirvec_t = std::shared_ptr<std::vector<Dirent>>;
-  using buffer_t = std::shared_ptr<uint8_t>;
+  using dirvector = std::vector<Dirent>;
+  using dirvec_t  = std::shared_ptr<dirvector>;
+  using buffer_t  = std::shared_ptr<uint8_t>;
   
   using on_mount_func = std::function<void(error_t)>;
   using on_ls_func    = std::function<void(error_t, dirvec_t)>;
@@ -143,8 +144,11 @@ public:
     virtual ~FileSystem() noexcept = default;
 }; //< class FileSystem
 
-// simplify initializing shared vector for sync ls
-typedef FileSystem::dirvec_t dirvec_t;
+// simplify initializing shared vector
+inline FileSystem::dirvec_t new_shared_vector()
+{
+  return std::make_shared<FileSystem::dirvector> ();
+}
 
 } //< namespace fs
 

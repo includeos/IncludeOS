@@ -59,14 +59,11 @@ void Service::start()
       return;
     }
     
-    auto dirents = std::make_shared<fs::dirvec_t> ();
+    auto dirents = fs::new_shared_vector();
     err = disk->fs().ls("/", dirents);
     if (err)
-    {
       printf("Could not list '/' directory\n");
-    }
     else
-    {
       for (auto& e : *dirents)
       {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
@@ -78,18 +75,15 @@ void Service::start()
           auto buf = disk->fs().read(e, 0, e.size);
           
           if (buf.err)
-          {
-            printf("Failed to read file %s!\n", e.name().c_str());
-          }
+              printf("Failed to read file %s!\n", e.name().c_str());
           else
           {
-            std::string contents((const char*) buf.buffer.get(), buf.len);
-            printf("[%s contents]:\n%s\nEOF\n\n", 
-                e.name().c_str(), contents.c_str());
+              std::string contents((const char*) buf.buffer.get(), buf.len);
+              printf("[%s contents]:\n%s\nEOF\n\n", 
+                     e.name().c_str(), contents.c_str());
           }
         }
       }
-    }
     
     disk->fs().ls("/",
     [] (fs::error_t err, auto ents)
