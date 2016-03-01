@@ -114,7 +114,7 @@ LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 
-TEST_OBJ = debug/test_service.o util/service_name.o
+TEST_OBJ = debug/test_service.o debug/ircd.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)

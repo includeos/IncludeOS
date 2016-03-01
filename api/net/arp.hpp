@@ -19,6 +19,7 @@
 #ifndef NET_ARP_HPP
 #define NET_ARP_HPP
 
+#include <os>
 #include <map>
 
 #include <delegate>
