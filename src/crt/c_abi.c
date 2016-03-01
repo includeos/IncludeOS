@@ -21,6 +21,7 @@
 #include <utility/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
+#include <string.h>
 
 /// IMPLEMENTATION OF Newlib I/O:
 struct _reent newlib_reent;
@@ -37,7 +38,8 @@ void _init_c_runtime()
 {
   // Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
-  streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+  memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+  //streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
   
   // Initialize the heap before exceptions
   extern caddr_t heap_end; // used by SBRK:

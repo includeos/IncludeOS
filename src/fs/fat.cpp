@@ -367,7 +367,7 @@ namespace fs
             // go to this directory, unless its the last name
             debug("Found match for %s", name.c_str());
             // enter the matching directory
-            debug("\t\t cluster: %lu\n", e.block);
+            debug("\t\t cluster: %llu\n", e.block);
             // only follow directories
             if (e.type() == DIR)
               next(e.block);

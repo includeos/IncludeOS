@@ -160,18 +160,15 @@ int main(int argc, char** argv) {
   cout << "Machine: ";
 
   switch (elf_header->e_machine) {
-  case (EM_386): {
+  case (EM_386):
     cout << "Intel 80386\n";
     break;
-  }
-  case (EM_X86_64): {
+  case (EM_X86_64):
     cout << "Intel x86_64\n";
     break;
-  }
-  default: {
+  default:
     cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
     break;
-  }
   } //< switch (elf_header->e_machine)
 
   cout << "Version: "                   << elf_header->e_version      << '\n';
@@ -194,13 +191,13 @@ int main(int argc, char** argv) {
   *(reinterpret_cast<int*>(disk_head + offs_srvsize)) = srv_sect;
   *(reinterpret_cast<int*>(disk_head + offs_srvoffs)) = srv_start;
   
-  int* magic_loc {reinterpret_cast<int*>(disk_head + img_size_bytes + SECT_SIZE-3)};
+  auto* magic_loc = (uint32_t*)(disk_head + img_size_bytes + SECT_SIZE-4);
   
   cout << "Applying magic signature: 0xFA7CA7"             << '\n'
        << "Data currently at location: " << img_size_bytes << '\n'
        << "Location on image: 0x" << hex << img_size_bytes << '\n';
   
-  *magic_loc = 0xFA7CA7;
+  *magic_loc = 0xFA7CA700;
   
   if (test) {
     cout << "\nTEST overwriting service with testdata\n";

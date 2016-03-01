@@ -27,7 +27,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // our VGA output module
 #include <kernel/vga.hpp>
-ConsoleVGA vga;
+//ConsoleVGA vga;
 
 void Service::start()
 {

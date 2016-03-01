@@ -190,8 +190,8 @@ void Virtio::Queue::enqueue(
     current().addr = (intptr_t) out;
     current().len = out_len;
     
-    debug("<Q %i> Enqueueing outbound: index %i len %li, next %i\n",
-          _pci_index, i, current().len, current().next);
+    debug("<Q %i> Enqueueing outbound: index %u len %li, next %i\n",
+          _pci_index, head, current().len, current().next);
     
     last = &current();
     // go to next
