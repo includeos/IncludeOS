@@ -17,9 +17,6 @@
 
 #include <os>
 #include <net/inet4>
-#include <math.h>
-#include <iostream>
-#include <sstream>
 #include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
@@ -31,10 +28,239 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 #include <kernel/vga.hpp>
 ConsoleVGA vga;
 
-// IDE
-#include <hw/ide.hpp>
-#include <fs/disk.hpp>
-#include <fs/fat.hpp>
+#include "ircsplit.hpp"
+static const std::string SERVER_NAME = "irc.includeos.org";
+
+class Client
+{
+public:
+  using Connection = std::shared_ptr<net::TCP::Connection>;
+  
+  Client(size_t s, Connection c)
+    : alive(true), regis(0), self(s), conn(c) {}
+  
+  bool is_alive() const
+  {
+    return alive;
+  }
+  bool is_reg() const
+  {
+    return regis == 3;
+  }
+  void remove()
+  {
+    alive = false; regis = 0;
+  }
+  
+  void read(const char* buffer, size_t len);
+  void split_message(const std::string&);
+  void handle(const std::string&, const std::vector<std::string>&);
+  
+  void send(uint16_t numeric, std::string text);
+  void send(std::string text);
+  
+  std::string userhost() const
+  {
+    return user + "@" + host;
+  }
+  std::string nickuserhost() const
+  {
+    return nick + "!" + userhost();
+  }
+  
+private:
+  void welcome(uint8_t);
+  void auth_notice();
+  
+  bool        alive;
+  uint8_t     regis;
+  size_t      self;
+  Connection  conn;
+  std::string passw;
+  std::string nick;
+  std::string user;
+  std::string host;
+  
+  std::string buffer;
+  
+};
+std::vector<Client> clients;
+
+void Client::split_message(const std::string& msg)
+{
+  std::string source;
+  auto vec = split(msg, source);
+  
+  printf("[Client]: ");
+  for (auto& str : vec)
+  {
+    printf("[%s]", str.c_str());
+  }
+  printf("\n");
+  // ignore empty messages
+  if (vec.size() == 0) return;
+  // handle message
+  handle(source, vec);
+}
+
+void Client::read(const char* buf, size_t len)
+{
+  while (len > 0)
+  {
+    int search = -1;
+    
+    for (size_t i = 0; i < len; i++)
+    if (buf[i] == 13 || buf[i] == 10)
+    {
+      search = i; break;
+    }
+    // not found:
+    if (search == -1)
+    {
+      // append entire buffer
+      buffer.append(buf, len);
+      break;
+    }
+    else
+    {
+      // found CR LF:
+      if (search != 0)
+      {
+        // append to clients buffer
+        buffer.append(buf, search);
+        
+        // move forward in socket buffer
+        buf += search;
+        // decrease len
+        len -= search;
+      }
+      else
+      {
+        buf++; len--;
+      }
+      
+      // parse message
+      if (buffer.size())
+      {
+        split_message(buffer);
+        buffer.clear();
+      }
+    }
+  }
+}
+
+void Client::send(uint16_t numeric, std::string text)
+{
+  std::string num;
+  num.reserve(128);
+  num = std::to_string(numeric);
+  num = std::string(3 - num.size(), '0') + num;
+  
+  num = ":" + SERVER_NAME + " " + num + " " + this->nick + " " + text + "\r\n";
+  //printf("-> %s", num.c_str());
+  conn->write(num.c_str(), num.size());
+}
+void Client::send(std::string text)
+{
+  std::string data = ":" + SERVER_NAME + " " + text + "\r\n";
+  //printf("-> %s", data.c_str());
+  conn->write(data.c_str(), data.size());
+}
+
+#define ERR_NOSUCHNICK     401
+#define ERR_NOSUCHCMD      421
+#define ERR_NEEDMOREPARAMS 461
+
+
+void Client::handle(const std::string&,
+                    const std::vector<std::string>& msg)
+{
+  #define TK_CAP    "CAP"
+  #define TK_PASS   "PASS"
+  #define TK_NICK   "NICK"
+  #define TK_USER   "USER"
+  
+  const std::string& cmd = msg[0];
+  
+  if (this->is_reg() == false)
+  {
+    if (cmd == TK_CAP)
+    {
+      // ignored completely
+    }
+    else if (cmd == TK_PASS)
+    {
+      if (msg.size() > 1)
+      {
+        this->passw = msg[1];
+      }
+      else
+      {
+        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      }
+    }
+    else if (cmd == TK_NICK)
+    {
+      if (msg.size() > 1)
+      {
+        this->nick = msg[1];
+        welcome(regis | 1);
+      }
+      else
+      {
+        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      }
+    }
+    else if (cmd == TK_USER)
+    {
+      if (msg.size() > 1)
+      {
+        this->user = msg[1];
+        welcome(regis | 2);
+      }
+      else
+      {
+        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      }
+    }
+    else
+    {
+      send(ERR_NOSUCHCMD, cmd + " :Unknown command");
+    }
+  }
+}
+
+#define RPL_WELCOME   1
+#define RPL_YOURHOST  2
+#define RPL_CREATED   3
+#define RPL_MYINFO    4
+#define RPL_BOUNCE    5
+
+void Client::welcome(uint8_t newreg)
+{
+  uint8_t oldreg = regis;
+  bool regged = is_reg();
+  regis = newreg;
+  // not registered before, but registered now
+  if (!regged && is_reg())
+  {
+    printf("* Registered: %s\n", nickuserhost().c_str());
+    send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
+    send(RPL_YOURHOST, ":Your host is " + SERVER_NAME + ", running v1.0");
+  }
+  else if (oldreg == 0)
+  {
+    auth_notice();
+  }
+}
+void Client::auth_notice()
+{
+  send("NOTICE AUTH :*** Processing your connection..");
+  send("NOTICE AUTH :*** Looking up your hostname...");
+  //hostname_lookup()
+  send("NOTICE AUTH :*** Checking Ident");
+  //ident_check()
+}
 
 void Service::start()
 {
@@ -52,14 +278,6 @@ void Service::start()
     //    OS::rswrite(data[i]);
   });*/
   
-  /*
-  const char* test = "Testing :(\n";
-  size_t L = strlen(test);
-  
-  for (int i = 0; i < 120; i++)
-      con.write(test, L);
-  */
-  
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.
@@ -76,31 +294,39 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
+  auto& tcp = inet->tcp();
   
-  /// PCI IDE controller testing ///
-  using FatDisk = fs::Disk<fs::FAT>;
-  
-  auto ide1 = hw::Dev::disk<0, hw::IDE> (hw::IDE::SLAVE);
-  auto disk = std::make_shared<FatDisk> (ide1);
-  
-  ide1.read(0, 
-  [] (hw::IDE::buffer_t data)
+  // IRCd default port
+  auto& sock = tcp.bind(6667);
+  sock.onConnect(
+  [&sock] (auto csock)
   {
-    auto* mbr = (fs::MBR::mbr*) data.get();
+    printf("Received connection from %s\n",
+        csock->remote().to_string().c_str());
+    /// create client ///
+    size_t index = clients.size();
+    clients.emplace_back(index, csock);
     
-    printf("OEM name: %.8s\n", mbr->oem_name);
-    printf("MAGIC sig: 0x%x\n", mbr->magic);
-  });
-  
-  disk->mount(
-  [] (fs::error_t err) {
-    if (err)
+    auto& client = clients[index];
+    
+    // set up callbacks
+    csock->onReceive(
+    [&client] (auto conn, bool)
     {
-      printf("BAD\n");
-      return;
-    }
+      char buffer[1024];
+      size_t bytes = conn->read(buffer, sizeof(buffer));
+      
+      client.read(buffer, bytes);
+      
+    }).onDisconnect(
+    [&client] (auto conn, std::string)
+    {
+      // remove client from various lists
+      client.remove();
+      /// inform others about disconnect
+      //client.bcast(TK_QUIT, "Disconnected");
+    });
     
-    printf("GOOD ?\n");
   });
   
   printf("*** TEST SERVICE STARTED *** \n");

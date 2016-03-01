@@ -44,7 +44,7 @@ void Service::start()
     
     for (auto& part : parts)
     {
-      printf("* Volume: %s at LBA %u\n",
+      printf("* Partition: %s at LBA %u\n",
           part.name().c_str(), part.lba_begin);
     }
   });
@@ -58,9 +58,12 @@ void Service::start()
       printf("Could not mount filesystem\n");
       return;
     }
+    // get a reference to the mounted filesystem
+    auto& fs = disk->fs();
     
+    // check contents of disk
     auto dirents = fs::new_shared_vector();
-    err = disk->fs().ls("/", dirents);
+    err = fs.ls("/", dirents);
     if (err)
       printf("Could not list '/' directory\n");
     else
@@ -68,22 +71,20 @@ void Service::start()
       {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
           e.type_string().c_str(), e.name().c_str(), e.size, e.block);
-        
-        if (e.type() == FileSystem::FILE)
-        {
-          printf("*** Attempting to read: %s\n", e.name().c_str());
-          auto buf = disk->fs().read(e, 0, e.size);
-          
-          if (buf.err)
-              printf("Failed to read file %s!\n", e.name().c_str());
-          else
-          {
-              std::string contents((const char*) buf.buffer.get(), buf.len);
-              printf("[%s contents]:\n%s\nEOF\n\n", 
-                     e.name().c_str(), contents.c_str());
-          }
-        }
       }
+    
+    auto ent = fs.stat("/test.txt");
+    // validate the stat call
+    if (ent.is_valid())
+    {
+      // read specific area of file
+      auto buf = fs.read(ent, 1032, 65);
+      std::string contents((const char*) buf.buffer.get(), buf.len);
+      printf("[%s contents (%llu bytes)]:\n%s\n[end]\n\n", 
+             ent.name().c_str(), buf.len, contents.c_str());
+      
+    }
+    return;
     
     disk->fs().ls("/",
     [] (fs::error_t err, auto ents)
