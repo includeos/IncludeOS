@@ -369,6 +369,70 @@ public:
 		TCPException(std::string error) : std::runtime_error(error) {};
 	};
 
+	/*
+		Buffer for TCP::Packet_ptr
+	*/
+	template<typename T = TCP::Packet_ptr, typename Buffer = std::queue<T>>
+	class PacketBuffer {
+	public:
+		
+		PacketBuffer(typename Buffer::size_type limit) :
+			buffer_(), data_length_(0),
+			data_offset_(0), limit_(limit)
+		{
+
+		}
+		/* Number of packets */
+		inline auto size() const { return buffer_.size(); }
+		
+		/* Amount of data */
+		inline size_t data_size() const { return data_length_; }
+
+		inline void push(const T& packet) {
+			buffer_.push(packet);
+			data_length_ += packet->data_length();
+		}
+
+		inline bool add(T packet) {
+			if(full()) return false;
+			push(packet);
+			return true;
+		}
+
+		inline void pop() {
+			data_length_ -= buffer_.front()->data_length();
+			buffer_.pop();
+		}
+
+		inline const T& front() const { return buffer_.front(); }
+
+		inline const T& back() const { return buffer_.back(); }
+
+		inline bool empty() const { return buffer_.empty(); }
+
+		inline auto limit() const { return limit_; }
+
+		inline bool full() const { return size() >= limit(); }
+
+		inline auto data_offset() const { return data_offset_; }
+
+		inline void set_data_offset(uint32_t offset) { data_offset_ = offset; }
+
+		inline void clear() {
+			while(!buffer_.empty())
+				buffer_.pop();
+			data_length_ = {0};
+			data_offset_ = {0};
+		}
+
+	private:
+		Buffer buffer_;
+		size_t data_length_;
+		uint32_t data_offset_;
+		typename Buffer::size_type limit_;
+
+	}; // << TCP::PacketBuffer
+
 
 	/*
 		A connection between two Sockets (local and remote).
@@ -428,7 +492,7 @@ public:
 		/*
 			Buffer
 		*/
-		using Buffer = std::queue<TCP::Packet_ptr>;
+		using Buffer = PacketBuffer<>;
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -600,7 +664,7 @@ public:
 			Read n bytes into a string.
 			Default 1024 bytes.
 		*/
-		std::string read(size_t n = 1024);
+		std::string read(size_t n = 0);
 
 		/*
 			Write content to remote.
@@ -794,8 +858,6 @@ public:
 		*/
 		Buffer receive_buffer_;
 		Buffer send_buffer_;
-		// How far in the most front packet is read.
-		uint32_t rcv_buffer_offset = 0;
 
 		/*
 			When time-wait timer was started.
@@ -814,7 +876,7 @@ public:
 
 		/* When Connection is ESTABLISHED. */
 		ConnectCallback on_connect_ = [](std::shared_ptr<Connection>) {
-			debug2("<TCP::Connection::@Connect> Connected.");
+			debug2("<TCP::Connection::@Connect> Connected.\n");
 		};
 		
 		/* When data is received */
@@ -885,12 +947,7 @@ public:
 		/*
 			Set state. (used by substates)
 		*/
-		inline void set_state(State& state) {
-			prev_state_ = state_;
-			state_ = &state;
-			debug("<TCP::Connection::set_state> %s => %s \n", 
-					prev_state_->to_string().c_str(), state_->to_string().c_str());
-		}
+		void set_state(State& state);
 
 		/*
 			Helper function for state checks.
@@ -975,7 +1032,7 @@ public:
 	/*
 		Bind a new connection to a given Port.	
 	*/
-	Connection& bind(Port port);
+	TCP::Connection& bind(Port port);
 
 	/*
 		Active open a new connection to the given remote.
@@ -1028,7 +1085,7 @@ public:
 		return MAX_BUFFER_SIZE;
 	}
 
-	inline void set_buffer_limit(Connection::Buffer::size_type buffer_limit) {
+	inline void set_buffer_limit(size_t buffer_limit) {
 		MAX_BUFFER_SIZE = buffer_limit;
 	}
 
@@ -1056,7 +1113,7 @@ private:
 		Current: limit by packet COUNT.
 		Connection buffer size in bytes = buffers * BUFFER_LIMIT * MTU.
 	*/
-	Connection::Buffer::size_type MAX_BUFFER_SIZE = 10;
+	size_t MAX_BUFFER_SIZE = 10;
 	
 	/*
 		Transmit packet to network layer (IP).

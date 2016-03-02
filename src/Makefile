@@ -131,6 +131,11 @@ test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking test VirtioBlk service"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
+test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""
+test_tcp: debug/test_tcp.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Linking test TCP service"
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_tcp.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+
 test: test_service
 
 # OS libraries
@@ -191,7 +196,7 @@ etags:
 # Cleanup
 ###################################################
 clean_tests:
-	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6
+	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6 debug/test_tcp
 
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
