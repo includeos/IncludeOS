@@ -40,13 +40,11 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
-  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
   [] (auto csock)
   {
-    /*
     printf("Received connection from %s\n",
         csock->remote().to_string().c_str());
     /// create client ///
@@ -72,8 +70,7 @@ void Service::start()
       /// inform others about disconnect
       //client.bcast(TK_QUIT, "Disconnected");
     });
-    
-  });*/
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

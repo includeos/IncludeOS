@@ -2,55 +2,30 @@
 const char* service_name__ = "...";
 
 #include <memdisk>
-#include <fs/fat.hpp> // FAT32 filesystem
-using namespace fs;
+//using namespace fs;
 
-// assume that devices can be retrieved as refs with some kernel API
-// for now, we will just create it here
-MemDisk device;
+// memdisk with FAT filesystem
+fs::MountedDisk disk;
 
-// describe a disk with FAT32 mounted on partition 0 (MBR)
-using MountedDisk = fs::Disk<FAT>;
-// disk with filesystem
-std::unique_ptr<MountedDisk> disk;
-
-using namespace hw; // kill me plz
-#include <virtio/console.hpp>
-
-using namespace std::chrono;
+void list_partitions(fs::MountedDisk);
 
 void Service::start()
 {
-  /*auto& con = Dev::console<0, VirtioCon> ();
-  OS::set_rsprint(
-  [&con] (const char* data, size_t len)
+  // instantiate memdisk with FAT filesystem
+  disk = fs::new_shared_memdisk();
+  
+  // if the disk is empty, we can't mount a filesystem anyways
+  if (disk->empty())
   {
-    con.write(data, len);
-  });*/
+    printf("Oops! Your memdisk is empty?\n");
+    panic("Empty memdisk!");
+  }
   
-  // instantiate disk with filesystem
-  //auto device = Dev::disk<1, VirtioBlk> ();
-  disk = std::make_unique<MountedDisk> (device);
+  // list extended partitions
+  list_partitions(disk);
   
-  // list partitions
-  disk->partitions(
-  [] (fs::error_t err, auto& parts)
-  {
-    if (err)
-    {
-      printf("Failed to retrieve volumes on disk\n");
-      return;
-    }
-    
-    for (auto& part : parts)
-    {
-      printf("* Partition: %s at LBA %u\n",
-          part.name().c_str(), part.lba_begin);
-    }
-  });
-  
-  // mount auto-detected partition
-  disk->mount(
+  // mount first valid partition (auto-detect and mount)
+  disk->mount( // or specify partition explicitly in parameter
   [] (fs::error_t err)
   {
     if (err)
@@ -100,7 +75,7 @@ void Service::start()
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
           e.type_string().c_str(), e.name().c_str(), e.size, e.block);
         
-        if (e.type() == FileSystem::FILE)
+        if (e.is_file())
         {
           printf("*** Attempting to read: %s\n", e.name().c_str());
           disk->fs().readFile(e,
@@ -149,4 +124,21 @@ void Service::start()
   }); // disk->auto_detect()
   
   printf("*** TEST SERVICE STARTED *** \n");
+}
+
+void list_partitions(fs::MountedDisk disk)
+{
+  disk->partitions(
+  [] (fs::error_t err, auto& parts)
+  {
+    if (err)
+    {
+      printf("Failed to retrieve volumes on disk\n");
+      return;
+    }
+    
+    for (auto& part : parts)
+      printf("[Partition]  '%s' at LBA %u\n",
+          part.name().c_str(), part.lba());
+  });
 }
