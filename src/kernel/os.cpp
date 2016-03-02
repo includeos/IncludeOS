@@ -32,12 +32,8 @@
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {0};
 
-// We have to initialize delegates?
-OS::rsprint_func OS::rsprint_handler_ =
-  [] (const char* data, size_t len) {
-    for(size_t i = 0; i < len; ++i)
-        rswrite(data[i]);
-  };
+// Set default rsprint_handler
+OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
@@ -135,4 +131,9 @@ void OS::rswrite(const char c) {
   
   /* Send the character */
   hw::outb(0x3F8, c);
+}
+
+void OS::default_rsprint(const char* str, size_t len) {
+  for(size_t i = 0; i < len; ++i)
+        rswrite(str[i]);
 }

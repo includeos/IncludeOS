@@ -14,6 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#define DEBUG
+#define DEBUG2
 
 #include <net/tcp.hpp>
 #include <net/tcp_connection_states.hpp>
@@ -33,8 +35,8 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
-	receive_buffer_(),
-	send_buffer_(),
+	receive_buffer_(host.buffer_limit()),
+	send_buffer_(host.buffer_limit()),
 	time_wait_started(0)
 {
 
@@ -50,8 +52,8 @@ Connection::Connection(TCP& host, Port local_port) :
 	state_(&Connection::Closed::instance()),
 	prev_state_(state_),
 	control_block(),
-	receive_buffer_(),
-	send_buffer_(),
+	receive_buffer_(host.buffer_limit()),
+	send_buffer_(host.buffer_limit()),
 	time_wait_started(0)
 {
 	
@@ -69,8 +71,11 @@ size_t Connection::read(char* buffer, size_t n) {
 	}
 }
 
-// TODO: The n == 0 part.
 std::string Connection::read(size_t n) {
+	if(n == 0) {
+		// Read all data.
+		n = receive_buffer_.data_size();
+	}
 	char buffer[n];
 	size_t length = read(&buffer[0], n);
 	return {buffer, length};
@@ -84,24 +89,24 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 		// Packet in front
 		auto packet = receive_buffer_.front();
 		// Where to begin reading
-		char* begin = packet->data()+rcv_buffer_offset;
+		char* begin = packet->data()+receive_buffer_.data_offset();
 		// Read this iteration
 		size_t total{0};
 		// Remaining bytes to read.
 		size_t remaining = n - bytes_read;
 		// Trying to read over more than one packet
-		if( remaining >= (packet->data_length() - rcv_buffer_offset) ) {
+		if( remaining >= (packet->data_length() - receive_buffer_.data_offset()) ) {
 			// Reading whole packet
 			total = packet->data_length();
 			// Removing packet from receive buffer.
 			receive_buffer_.pop();
 			// Next packet will start from beginning.
-			rcv_buffer_offset = 0;
+			receive_buffer_.set_data_offset(0);
 		}
 		// Reading less than one packet.
 		else {
 			total = remaining;
-			rcv_buffer_offset = packet->data_length() - remaining;
+			receive_buffer_.set_data_offset(packet->data_length() - remaining);
 		}
 		memcpy(buffer, begin, total);
 		bytes_read += total;
@@ -111,11 +116,7 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 }
 
 bool Connection::add_to_receive_buffer(TCP::Packet_ptr packet) {
-	if(receive_buffer_.size() < host_.buffer_limit()) {
-		receive_buffer_.push(packet);
-		return true;	
-	}
-	return false;
+	return receive_buffer_.add(packet);
 }
 
 size_t Connection::write(const char* buffer, size_t n, bool PUSH) {
@@ -145,7 +146,7 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH)
 
 		// Advance outgoing sequence number (SND.NXT) with the length of the data.
 		control_block.SND.NXT += packet->data_length();
-	} while(remaining and send_buffer_.size() < host_.buffer_limit());
+	} while(remaining and !send_buffer_.full());
 
 	return bytes_written;
 }
@@ -223,7 +224,7 @@ bool Connection::is_closing() const {
 }
 
 bool Connection::is_writable() const {
-	return (is_connected() and (send_buffer_.size() < host_.buffer_limit()));
+	return (is_connected() and (!send_buffer_.full()));
 }
 
 Connection::~Connection() {
@@ -257,7 +258,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 void Connection::transmit() {
 	assert(! send_buffer_.empty() );
 	
-	debug("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer().size());	
+	debug("<TCP::Connection::transmit> Transmitting: [ %i ] packets. \n", send_buffer_.size());	
 	while(! send_buffer_.empty() ) {
 		auto packet = send_buffer_.front();
 		assert(! packet->destination().is_empty());
@@ -282,6 +283,13 @@ TCP::Packet_ptr Connection::outgoing_packet() {
 
 TCP::Seq Connection::generate_iss() {
 	return host_.generate_iss();
+}
+
+void Connection::set_state(State& state) {
+	prev_state_ = state_;
+	state_ = &state;
+	debug("<TCP::Connection::set_state> %s => %s \n", 
+			prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
 void Connection::add_retransmission(TCP::Packet_ptr packet) {

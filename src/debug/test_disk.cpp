@@ -2,7 +2,6 @@
 const char* service_name__ = "...";
 
 #include <memdisk>
-//using namespace fs;
 
 // memdisk with FAT filesystem
 fs::MountedDisk disk;

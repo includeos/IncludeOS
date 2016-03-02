@@ -25,10 +25,6 @@ using namespace std::chrono;
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-// our VGA output module
-#include <kernel/vga.hpp>
-//ConsoleVGA vga;
-
 void Service::start()
 {
   // boilerplate
@@ -45,8 +41,9 @@ void Service::start()
   server.onConnect(
   [] (auto csock)
   {
-    printf("Received connection from %s\n",
+    printf("*** Received connection from %s\n",
         csock->remote().to_string().c_str());
+    
     /// create client ///
     size_t index = clients.size();
     clients.emplace_back(index, csock);
@@ -62,14 +59,15 @@ void Service::start()
       
       client.read(buffer, bytes);
       
-    }).onDisconnect(
+    });
+    /*.onDisconnect(
     [&client] (auto conn, std::string)
     {
       // remove client from various lists
       client.remove();
       /// inform others about disconnect
       //client.bcast(TK_QUIT, "Disconnected");
-    });
+    });*/
   });
   
   printf("*** TEST SERVICE STARTED *** \n");
