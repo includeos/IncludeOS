@@ -11,7 +11,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign
+CAPABS_COMMON = -mstackrealign -msse3
 CAPABS = $(CAPABS_COMMON) -O0 -DNO_DEBUG=1
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
@@ -31,7 +31,7 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
 ###################################################
-CC  = clang-3.6 -msse3
+CC  = clang-3.6
 CPP = clang++-3.6
 # Set defaults if not defined
 ifndef LD_INC

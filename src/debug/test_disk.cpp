@@ -2,17 +2,7 @@
 const char* service_name__ = "...";
 
 #include <memdisk>
-#include <fs/fat.hpp> // FAT32 filesystem
 using namespace fs;
-
-// assume that devices can be retrieved as refs with some kernel API
-// for now, we will just create it here
-MemDisk device;
-
-// describe a disk with FAT32 mounted on partition 0 (MBR)
-using MountedDisk = fs::Disk<FAT>;
-// disk with filesystem
-std::unique_ptr<MountedDisk> disk;
 
 using namespace hw; // kill me plz
 #include <virtio/console.hpp>
@@ -30,7 +20,7 @@ void Service::start()
   
   // instantiate disk with filesystem
   //auto device = Dev::disk<1, VirtioBlk> ();
-  disk = std::make_unique<MountedDisk> (device);
+  auto disk = new_mounted_memdisk();
   
   // list partitions
   disk->partitions(

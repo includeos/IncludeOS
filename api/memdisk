@@ -1,3 +1,18 @@
 #pragma once
+#ifndef MEMDISK_HEADER
+#define MEMDISK_HEADER
+
 #include "fs/disk.hpp"
 #include "fs/memdisk.hpp"
+
+// describe a disk with FAT32 mounted on partition 0 (MBR)
+using MountedMemDisk = fs::Disk<FAT>;
+inline std::unique_ptr<MountedMemDisk>
+new_mounted_memdisk()
+{
+  static MemDisk device;
+  // disk with filesystem
+  return std::make_shared<MountedMemDisk> (device);
+}
+
+#endif

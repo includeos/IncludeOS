@@ -26,7 +26,7 @@ using namespace std::chrono;
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // our VGA output module
-#include <kernel/vga.hpp>
+//#include <kernel/vga.hpp>
 //ConsoleVGA vga;
 
 void Service::start()
@@ -40,15 +40,17 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
-  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
   [] (auto csock)
   {
-    /*
-    printf("Received connection from %s\n",
+    printf("*** Received connection from %s\n",
         csock->remote().to_string().c_str());
+    
+    const char buf[25] = "NOTICE AUTH :*** HEY!\r\n";
+    csock->write(buf, sizeof(buf));
+    /*
     /// create client ///
     size_t index = clients.size();
     clients.emplace_back(index, csock);
@@ -64,16 +66,17 @@ void Service::start()
       
       client.read(buffer, bytes);
       
-    }).onDisconnect(
+    });
+    /*.onDisconnect(
     [&client] (auto conn, std::string)
     {
       // remove client from various lists
       client.remove();
       /// inform others about disconnect
       //client.bcast(TK_QUIT, "Disconnected");
-    });
+    });*/
     
-  });*/
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
