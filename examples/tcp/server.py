@@ -20,15 +20,13 @@ while True:
     try:
         print >>sys.stderr, 'connection from', client_address
 
-        # Receive the data in small chunks and retransmit it
         while True:
             data = connection.recv(1024)
             if data:
                 print >>sys.stderr, 'received: %s' % data
                 connection.sendall(data)
-                #connection.close()
             else:
-                print >>sys.stderr, 'no more data from', client_address
+                print >>sys.stderr, 'closing', client_address
                 break
             
     finally:
