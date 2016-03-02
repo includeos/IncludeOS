@@ -23,6 +23,8 @@
 #include <os>
 #include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
+#include <unwind.h>
 
 #define IRQ_BASE 32
 
@@ -59,7 +61,10 @@ bool cpuHasAPIC() {
   return edx & CPUID_FEAT_EDX_APIC;
 }
 
-extern char _end;
+extern "C"
+{
+  void exception_handler();
+}
 
 /** Default Exception-handler, which just prints its number */
 #define EXCEPTION_HANDLER(I)                                  \
@@ -68,6 +73,39 @@ extern char _end;
     printf("Heap end: %#x \n", (uint32_t)&_end);              \
     kill(1, 9);                                               \
   }
+
+void exception_handler()
+{
+  #define frp(N, ra)   \
+      (__builtin_frame_address(N) != nullptr) && \
+      (ra = __builtin_return_address(N)) != nullptr
+  
+  printf("\n");
+  #define PRINT_TRACE(N, ra) \
+      printf("[%d] Return %p\n", N, ra);
+  
+  void* ra;
+  if (frp(0, ra)) {
+   PRINT_TRACE(0, ra);
+   if (frp(1, ra)) {
+    PRINT_TRACE(1, ra);
+    if (frp(2, ra)) {
+     PRINT_TRACE(2, ra);
+     if (frp(3, ra)) {
+      PRINT_TRACE(3, ra);
+      if (frp(4, ra)) {
+       PRINT_TRACE(4, ra);
+       if (frp(5, ra)) {
+        PRINT_TRACE(5, ra);
+        if (frp(6, ra))
+         PRINT_TRACE(6, ra);
+  }}}}}}
+  
+  panic(">>>> !!! CPU EXCEPTION !!! <<<<<\n");
+  extern char _end;
+  printf("Heap end: %#x \n", (uint32_t) &_end);
+  panic(">>>> !!! CPU EXCEPTION !!! <<<<<\n");
+}
 
 /** Atomically increment i. */
 inline void ainc(uint32_t& i) {
@@ -101,14 +139,14 @@ static uint32_t __irqueues[256] {0};
 // eoi(I-IRQ_BASE);  
 
 /* Macro magic to register default gates */ 
-#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_##I##_entry, \
+#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry, \
 					default_sel, default_attr );
 
 #define REG_DEFAULT_IRQ(I) create_gate(&(idt[I]),irq_##I##_entry,	\
 				  default_sel, default_attr );
 
  /* EXCEPTIONS */
-#define EXCEPTION_PAIR(I) void exception_##I##_entry(); EXCEPTION_HANDLER(I)
+#define EXCEPTION_PAIR(I) void exception_entry();
 #define IRQ_PAIR(I) void irq_##I##_entry(); IRQ_HANDLER(I)
 
 /*
