@@ -170,7 +170,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 		if(listen_conn_it != listeners.end()) {
 			auto& listen_conn = listen_conn_it->second;
 			debug("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
-			auto connection = (connections.emplace(tuple, std::make_shared<Connection>(Connection{listen_conn})).first->second);
+			auto connection = (connections.emplace(tuple, std::make_shared<Connection>(listen_conn)).first->second);
 			// Set remote
 			connection->set_remote(packet->source());
 			debug("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
@@ -200,7 +200,7 @@ string TCP::status() const {
 	}
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
 	for(auto con_it : connections) {
-		auto c = *(con_it.second);
+		auto& c = *(con_it.second);
 		ss << "tcp4\t" 
 			<< c.receive_buffer().data_size() << "\t" << c.send_buffer().data_size() << "\t"
 			<< c.bytes_received() << "\t" << c.bytes_transmitted() << "\t"
