@@ -127,10 +127,7 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Creating memdisk"
-	python memdisk.py $(DISK)
-	$(MAKE) memdisk
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking disk test"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
