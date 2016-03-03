@@ -275,7 +275,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
 	if(in->isset(PSH)) {
 		debug("<TCP::Connection::State::process_segment> Packet carries PUSH. Notify user.\n");
 		tcp.signal_receive(true);
-	} else if(tcp.receive_buffer().size() == tcp.host().buffer_limit()) {
+	} else if(tcp.receive_buffer().full()) {
 		// Buffer is now full
 		debug("<TCP::Connection::State::process_segment> Receive buffer is full. Notify user. \n");
 		tcp.signal_receive(false);
@@ -334,10 +334,7 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
   TCB, enter CLOSED state, and return.
 */
 void Connection::State::send_reset(Connection& tcp) {
-	// TODO: send_buffer().clear()
-	while(!tcp.send_buffer().empty()) {
-		tcp.send_buffer_.pop();
-	}
+	tcp.send_buffer_.clear();
 	tcp.outgoing_packet()->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(RST);
 	tcp.transmit();
 }

@@ -18,10 +18,8 @@
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <math.h>
+#include <math.h> // rand()
 #include <sstream>
-
-//using namespace std::chrono;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -61,7 +59,7 @@ void Service::start() {
 
   }).onReceive([](auto conn, bool push) {
       std::string data = conn->read(1024);
-      printf("<Service> @onData - PUSH: %d, Data read: \n %s \n", push, data.c_str());
+      printf("<Service> @onData - PUSH: %d, Data read: \n%s\n", push, data.c_str());
       printf("<Service> Status: %s \n", conn->to_string().c_str());
       int color = rand();
       std::stringstream stream;
@@ -78,7 +76,7 @@ void Service::start() {
        << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"  
        <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
        <<  "<h2>Now speaks TCP!</h2>"
-  // .... generate more dynamic content 
+        // .... generate more dynamic content 
        << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
        << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
        << "</body></html>\n";
