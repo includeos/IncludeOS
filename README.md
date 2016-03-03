@@ -111,7 +111,7 @@ will build and run a [this example service](./examples/demo_service/service.cpp)
    * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to VirtualBox on Windows), please let us know so we can update our wiki.
 
 ## Writing a service
-Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INNCLUDEOS_HOME` directory (`$HOMOE/IncludeOS_install by default`). The [./seed](./seed) directory contains everything a service needs to build and link with IncludeOS. 
+Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INCLUDEOS_HOME` directory (`$HOME/IncludeOS_install` by default). The [./seed](./seed) directory contains everything a service needs to build and link with IncludeOS. 
 
 *NOTE: Don't develop inside the seed directory; the point is to be able to reuse the seed to create new blank services*
 
@@ -147,5 +147,4 @@ We are currently far from it, but in time we'd like to adhere as much as possibl
 ## Read more on the wiki
 We're trying to grow a Wiki, and some questions might already be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
 
-See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guies.
-
+See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guides.
