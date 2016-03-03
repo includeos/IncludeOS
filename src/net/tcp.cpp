@@ -202,7 +202,7 @@ string TCP::status() const {
 	for(auto con_it : connections) {
 		auto& c = *(con_it.second);
 		ss << "tcp4\t" 
-			<< c.receive_buffer().data_size() << "\t" << c.send_buffer().data_size() << "\t"
+			<< " " << "\t" << " " << "\t"
 			<< c.bytes_received() << "\t" << c.bytes_transmitted() << "\t"
 			<< c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t" 
 			<< c.state().to_string() << "\n";
