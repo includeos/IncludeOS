@@ -390,7 +390,7 @@ public:
 
 		inline void push(const T& packet) {
 			buffer_.push(packet);
-			data_length_ += packet->data_length();
+			data_length_ += (size_t)packet->data_length();
 		}
 
 		inline bool add(T packet) {
@@ -400,7 +400,7 @@ public:
 		}
 
 		inline void pop() {
-			data_length_ -= buffer_.front()->data_length();
+			data_length_ -= (size_t)buffer_.front()->data_length();
 			buffer_.pop();
 		}
 

@@ -174,7 +174,6 @@ void Connection::close() {
 		if(is_state(Closed::instance()))
 			signal_close();
 	} catch(TCPException err) {
-		debug("<TCP::Connection::close> Active close on connection. \n");
 		signal_error(err);
 	}
 }
@@ -271,8 +270,8 @@ void Connection::transmit(TCP::Packet_ptr packet) {
 	debug("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
 	host_.transmit(packet);
 	// Don't think we would like to retransmit reset packets..?
-	if(!packet->isset(RST))
-		add_retransmission(packet);
+	//if(!packet->isset(RST))
+	//	add_retransmission(packet);
 }
 
 TCP::Packet_ptr Connection::outgoing_packet() {
