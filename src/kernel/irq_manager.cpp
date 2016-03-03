@@ -63,7 +63,7 @@ bool cpuHasAPIC() {
 
 extern "C"
 {
-  void exception_handler();
+  void exception_handler() __attribute__((noreturn));
 }
 
 /** Default Exception-handler, which just prints its number */
@@ -101,10 +101,10 @@ void exception_handler()
          PRINT_TRACE(6, ra);
   }}}}}}
   
-  panic(">>>> !!! CPU EXCEPTION !!! <<<<<\n");
+  printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   extern char _end;
   printf("Heap end: %#x \n", (uint32_t) &_end);
-  panic(">>>> !!! CPU EXCEPTION !!! <<<<<\n");
+  panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 
 /** Atomically increment i. */
