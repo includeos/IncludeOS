@@ -17,10 +17,9 @@
 
 #include <os>
 #include <net/inet4>
-#include <math.h>
+#include <net/dhcp/dh4client.hpp>
+#include <math.h> // rand()
 #include <sstream>
-
-using namespace std::chrono;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -44,22 +43,16 @@ void Service::start() {
   
   srand(OS::cycles_since_boot());
 
-  printf("Size of IP-stack: %i b \n",sizeof(inet));
-  printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
-
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
   
-  printf("<Service> Connection: %s \n", server.to_string().c_str());
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([](auto conn)->bool {
-      printf("<Service> @onAccept - Connection attempt from: %s \n", conn->remote().to_string().c_str());
+  server.onAccept([](auto conn) -> bool {
+      printf("<Service> @onAccept - Connection attempt from: %s \n", 
+          conn->to_string().c_str());
       printf("<Service> Status: %s \n", conn->to_string().c_str());
-
-      bool allowed_connection_expression = true; // accepts all connections.
+      return true; // allow all connections
       
-      return allowed_connection_expression;
-
   }).onConnect([](auto conn) {
       printf("<Service> @onConnect - Connection successfully established. \n");
       printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());

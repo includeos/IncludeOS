@@ -1,3 +1,43 @@
+// -*-C++-*-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
+#ifndef MEMDISK_HEADER
+#define MEMDISK_HEADER
+
 #include "fs/disk.hpp"
 #include "fs/memdisk.hpp"
+#include "fs/fat.hpp" // FAT filesystem
+
+namespace fs
+{
+  // describe a disk with a FAT filesystem
+  using FatDisk = fs::Disk<FAT>;
+  // its not really a shared memdisk right now,
+  // but we are only using this in conjunction with
+  // new_shared_memdisk() which very likely contains FAT
+  using MountedDisk = std::shared_ptr<fs::FatDisk>;
+  
+  inline MountedDisk new_shared_memdisk()
+  {
+    static fs::MemDisk device;
+    return std::make_shared<fs::FatDisk> (device);
+  }
+}
+
+#endif

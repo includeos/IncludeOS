@@ -11,7 +11,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign
+CAPABS_COMMON = -mstackrealign -msse3
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
@@ -31,7 +31,7 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
 ###################################################
-CC  = clang-3.6 -msse3
+CC  = clang-3.6
 CPP = clang++-3.6
 # Set defaults if not defined
 ifndef LD_INC
@@ -114,7 +114,7 @@ LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 
-TEST_OBJ = debug/test_service.o util/service_name.o
+TEST_OBJ = debug/test_service.o debug/ircd.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
@@ -127,8 +127,11 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
-	@echo "\n>> Linking test VirtioBlk service"
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Creating memdisk"
+	python memdisk.py $(DISK)
+	$(MAKE) memdisk
+	@echo "\n>> Linking disk test"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""
@@ -157,7 +160,12 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	cp crt/crtn.o $(INSTALL)/crt
 	cp -r ../api $(INSTALL)/
 	cp linker.ld $(INSTALL)/
+	# Memdisk related
+	mkdir -p $(INSTALL)/memdisk
+	cp memdisk/* $(INSTALL)/memdisk/
+	# Seed related
 	cp util/service_name.cpp $(INSTALL)
+	cp seed/Makefile $(INSTALL)/Makeseed
 	@echo "\nDone!"
 
 # Makefile recipes

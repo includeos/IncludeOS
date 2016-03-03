@@ -67,10 +67,17 @@ public:
     uint32_t lba_begin;
     uint32_t sectors;
     
+    // true if the partition has boot code / is bootable
     bool is_boot() const noexcept
     { return flags & 0x1; }
     
+    // human-readable name of partition id
     std::string name() const;
+    
+    // logical block address of beginning of partition
+    uint32_t lba() const
+    { return lba_begin; }
+    
   }; //< struct Partition
   
   /** Return a reference to the specified filesystem <FS> */
@@ -78,7 +85,13 @@ public:
   { return *filesys; }
   
   //************** disk functions **************//
-
+  
+  // Returns true if the disk has no sectors
+  inline bool empty() const
+  {
+    return device.size() == 0;
+  }
+  
   // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
   void mount(on_mount_func func);
   

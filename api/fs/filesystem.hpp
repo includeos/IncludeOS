@@ -84,23 +84,25 @@ public:
     uint32_t    attrib;
     int64_t     timestamp;
     
+    Enttype type() const noexcept
+    { return ftype; }
+    
     // true if this dirent is valid
     // if not, it means don't read any values from the Dirent as they are not
     bool is_valid() const
-    {
-      return ftype != INVALID_ENTITY;
-    }
+    { return ftype != INVALID_ENTITY; }
     
+    // most common types
+    bool is_file() const noexcept
+    { return ftype == FILE; }
+    bool is_dir() const noexcept
+    { return ftype == DIR; }
+    
+    // the entrys name
     const std::string& name() const noexcept
-    {
-      return fname;
-    }
+    { return fname; }
     
-    Enttype type() const noexcept
-    {
-      return ftype;
-    }
-    
+    // type converted to human-readable string
     std::string type_string() const {
       switch (ftype) {
       case FILE:

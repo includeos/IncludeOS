@@ -32,6 +32,7 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "---------------------------------------------------------------------------------"
     
+    QEMU="qemu-system-i386"
     sudo $QEMU -s -S $QEMU_OPTS
     
 elif [ "$STRIPPED" -ne 0 ]

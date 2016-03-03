@@ -24,31 +24,8 @@
 .global irq_timer_entry
     ;; .global irq_virtio_entry
     
-.global exception_0_entry
-.global exception_1_entry	
-.global exception_2_entry
-.global exception_3_entry
-.global exception_4_entry
-.global exception_5_entry	
-.global exception_6_entry
-.global exception_7_entry
-.global exception_8_entry
-.global exception_9_entry
-.global exception_10_entry
-.global exception_11_entry
-.global exception_12_entry
-.global exception_13_entry
-.global exception_14_entry
-.global exception_15_entry
-.global exception_16_entry
-.global exception_17_entry
-.global exception_18_entry
-.global exception_19_entry
-.global exception_20_entry
+.global exception_entry
 //21-29 are reserved
-
-.global exception_30_entry
-.global exception_31_entry	
 
 //Redirected IRQ 0 - 15
 .global irq_32_entry
@@ -87,30 +64,8 @@
 	iret
 .endm
 
-IRQ exception_0_entry exception_0_handler
-IRQ exception_1_entry exception_1_handler
-IRQ exception_2_entry exception_2_handler
-IRQ exception_3_entry exception_3_handler
-IRQ exception_4_entry exception_4_handler
-IRQ exception_5_entry exception_5_handler
-IRQ exception_6_entry exception_6_handler
-IRQ exception_7_entry exception_7_handler		
-IRQ exception_8_entry exception_8_handler	
-IRQ exception_9_entry exception_9_handler
-IRQ exception_10_entry exception_10_handler	
-IRQ exception_11_entry exception_11_handler
-IRQ exception_12_entry exception_12_handler
-// IRQ exception_13_entry exception_13_handler
-IRQ exception_14_entry exception_14_handler
-IRQ exception_15_entry exception_15_handler
-IRQ exception_16_entry exception_16_handler
-IRQ exception_17_entry exception_17_handler
-IRQ exception_18_entry exception_18_handler
-IRQ exception_19_entry exception_19_handler
-IRQ exception_20_entry exception_20_handler
+IRQ exception_entry exception_handler
 //   exception 21 - 29 are reserved	
-IRQ exception_30_entry exception_30_handler
-IRQ exception_31_entry exception_31_handler
 
 IRQ irq_32_entry irq_32_handler
 IRQ irq_33_entry irq_33_handler
