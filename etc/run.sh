@@ -41,4 +41,4 @@ else
     sudo $QEMU $QEMU_OPTS 
 fi
 
-echo "NOTE: To run you image on another platform such as virtualbox, check out IncludeOS/etc/convert_image.sh"
+echo "NOTE: To run your image in another VMM, such as VirtualBox, check out IncludeOS/etc/convert_image.sh"

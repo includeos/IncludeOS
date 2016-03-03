@@ -13,14 +13,17 @@ DISK=
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
-	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
 
 # Shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
 all:
-		$(MAKE) -f $(INSTALL)/Makeseed all FILES=$(FILES) SERVICE=$(SERVICE) SERVICE_NAME=$(SERVICE_NAME) DISK=$(DISK)
+	$(MAKE) -f $(INSTALL)/Makeseed all FILES=$(FILES) SERVICE=$(SERVICE) SERVICE_NAME=$(SERVICE_NAME) DISK=$(DISK)
+
+stripped:
+	$(MAKE) -f $(INSTALL)/Makeseed stripped FILES=$(FILES) SERVICE=$(SERVICE) SERVICE_NAME=$(SERVICE_NAME) DISK=$(DISK)
 
 # Cleanup
 ###################################################
