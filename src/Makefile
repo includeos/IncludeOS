@@ -127,8 +127,11 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
-	@echo "\n>> Linking test VirtioBlk service"
+test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Creating memdisk"
+	python memdisk.py $(DISK)
+	$(MAKE) memdisk
+	@echo "\n>> Linking disk test"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""
@@ -157,7 +160,12 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	cp crt/crtn.o $(INSTALL)/crt
 	cp -r ../api $(INSTALL)/
 	cp linker.ld $(INSTALL)/
+	# Memdisk related
+	mkdir -p $(INSTALL)/memdisk
+	cp memdisk/* $(INSTALL)/memdisk/
+	# Seed related
 	cp util/service_name.cpp $(INSTALL)
+	cp seed/Makefile $(INSTALL)/Makeseed
 	@echo "\nDone!"
 
 # Makefile recipes

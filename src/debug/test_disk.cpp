@@ -14,11 +14,7 @@ void Service::start()
   disk = fs::new_shared_memdisk();
   
   // if the disk is empty, we can't mount a filesystem anyways
-  if (disk->empty())
-  {
-    printf("Oops! Your memdisk is empty?\n");
-    panic("Empty memdisk!");
-  }
+  if (disk->empty()) panic("Oops! The memdisk is empty!\n");
   
   // list extended partitions
   list_partitions(disk);
