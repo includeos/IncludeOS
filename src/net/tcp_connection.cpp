@@ -96,6 +96,8 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 		size_t remaining = n - bytes_read;
 		// Trying to read over more than one packet
 		if( remaining >= (packet->data_length() - receive_buffer_.data_offset()) ) {
+			debug2("<TCP::Connection_read_from_receive_buffer> Remaining >: %u Current p: %u\n", 
+				remaining, packet->data_length() - receive_buffer_.data_offset());
 			// Reading whole packet
 			total = packet->data_length();
 			// Removing packet from receive buffer.
@@ -105,10 +107,11 @@ size_t Connection::read_from_receive_buffer(char* buffer, size_t n) {
 		}
 		// Reading less than one packet.
 		else {
+			debug2("<TCP::Connection_read_from_receive_buffer> Remaining <: %u\n", remaining);
 			total = remaining;
 			receive_buffer_.set_data_offset(packet->data_length() - remaining);
 		}
-		memcpy(buffer, begin, total);
+		memcpy(buffer+bytes_read, begin, total);
 		bytes_read += total;
 	}
 
