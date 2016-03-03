@@ -13,6 +13,10 @@ ifndef INCLUDEOS_INSTALL
 	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
 
+ifneq ($(DISK),)
+MEMDISK=memdisk.o
+endif
+
 # Shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
@@ -89,9 +93,11 @@ debug: service #Don't wanna call 'all', since it strips debug info
 
 # Disk image as a section
 ###################################################
-memdisk: $(INSTALL)/memdisk/memdisk.asm
+memdisk:
+	@echo "\n>> Creating memdisk"
+	python $(INSTALL)/memdisk/memdisk.py --file $(INSTALL)/memdisk/memdisk.asm $(DISK)
 	@echo "\n>> Assembling memdisk"
-	nasm -f elf -o memdisk.o $<
+	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 
 # Service
 ###################################################
@@ -104,17 +110,16 @@ service.o: service.cpp
 
 # Link the service with the os
 service: $(OBJS) $(LIBS)
-ifneq ($(DISK),)
+	# build memdisk when IMAGES is set
+ifneq ($(MEMDISK),)
 	@echo "\n>> Creating memdisk"
 	python $(INSTALL)/memdisk/memdisk.py --file $(INSTALL)/memdisk/memdisk.asm $(DISK)
-	$(MAKE) memdisk
-else
-	# skip creating memdisk
-	nasm -f elf -o memdisk.o $(INSTALL)/memdisk/empty.asm
+	@echo "\n>> Assembling memdisk"
+	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) memdisk.o -o $(SERVICE)
-	@echo "\n>> Building image " $(SERVICE).img
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
 
 # Object files

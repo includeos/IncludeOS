@@ -66,7 +66,7 @@ MemDisk::buffer_t MemDisk::read_sync(block_t blk)
   return buffer_t(buffer, std::default_delete<uint8_t[]>());
 }
 
-uint64_t MemDisk::size() const noexcept {
+MemDisk::block_t MemDisk::size() const noexcept {
   return ((char*) image_end - (char*) image_start) / SECTOR_SIZE;
 }
   

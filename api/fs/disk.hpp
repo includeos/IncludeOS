@@ -86,11 +86,12 @@ public:
   
   //************** disk functions **************//
   
+  hw::IDiskDevice& dev() noexcept
+  { return device; }
+  
   // Returns true if the disk has no sectors
-  inline bool empty() const
-  {
-    return device.size() == 0;
-  }
+  bool empty() const noexcept
+  { return device.size() == 0; }
   
   // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
   void mount(on_mount_func func);
