@@ -50,4 +50,6 @@ void Service::start()
   assert(!buf);
   printf("[x] Buffer outside of disk range (sector=%llu) is 0x0\n",
       disk->dev().size());
+  
+  printf("SUCCESS\n");
 }
