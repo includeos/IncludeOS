@@ -26,6 +26,8 @@ void Service::start()
   auto disk = fs::new_shared_memdisk();
   // verify that the size is indeed 2 sectors
   assert(disk->dev().size() == 2);
+  // which means that the disk can't be empty
+  assert(!disk->empty());
   printf("[x] Correct disk size\n");
   // read one block
   auto buf = disk->dev().read_sync(0);
@@ -46,6 +48,6 @@ void Service::start()
   // verify that reading outside of disk returns a 0x0 pointer
   buf = disk->dev().read_sync(disk->dev().size());
   assert(!buf);
-  printf("[x] Buffer outside of disk range (sector=%u) is 0x0\n",
+  printf("[x] Buffer outside of disk range (sector=%llu) is 0x0\n",
       disk->dev().size());
 }
