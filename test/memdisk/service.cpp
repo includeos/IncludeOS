@@ -24,6 +24,9 @@
 void Service::start()
 {
   auto disk = fs::new_shared_memdisk();
+  // verify that the size is indeed 2 sectors
+  assert(disk->dev().size() == 2);
+  printf("[x] Correct disk size\n");
   // read one block
   auto buf = disk->dev().read_sync(0);
   // verify nothing bad happened
@@ -31,6 +34,7 @@ void Service::start()
   {
     panic("Failed to read sector 0 on memdisk device\n");
   }
+  printf("[x] Buffer for sector 0 contains is valid\n");
   // convert to text
   std::string text((const char*) buf.get(), disk->dev().block_size());
   // verify that the sector contents matches the test string
@@ -40,7 +44,8 @@ void Service::start()
   assert(test1 == test2);
   printf("[x] Binary comparison of sector data\n");
   // verify that reading outside of disk returns a 0x0 pointer
-  buf = disk->dev().read_sync(1);
+  buf = disk->dev().read_sync(disk->dev().size());
   assert(!buf);
-  printf("[x] Buffer outside of disk range is 0x0\n");
+  printf("[x] Buffer outside of disk range (sector=%u) is 0x0\n",
+      disk->dev().size());
 }
