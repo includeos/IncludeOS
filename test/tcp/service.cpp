@@ -112,14 +112,14 @@ void Service::start()
 			}
 			// 
 			if(buffer->read == huge.size()) {
-				int compare = strcmp(buffer->data, huge.data());
-				printf("strcmp: %u\n", compare);
-				printf("compare: buffer: %s - huge: %s \n", buffer->data+59900, huge.data()+59900);
-				//printf("conn.read() == huge: [%d]\n", OK);
+				//int compare = strcmp(buffer->data, huge.data());
+				//bool OK = (compare == 0);
+				bool OK = (buffer->str() == huge);
+				printf("conn.read() == huge: [%d]\n", OK);
 				conn->close();
 			}
 		});
-		buffer->written += conn->write(huge.data()+buffer->size, huge.size() - buffer->written);
+		buffer->written += conn->write(huge.data()+buffer->written, huge.size() - buffer->written);
 	});
 
 
