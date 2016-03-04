@@ -47,9 +47,10 @@ try:
     while True:
         data = sock.recv(1024)
         if data:
-            response += data
+            sock.sendall(data);
+            #response += data
         else:
-            sock.sendall(response)
+            #sock.sendall(response)
             break
 finally:
     print >>sys.stderr, 'closing socket'

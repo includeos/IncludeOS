@@ -19,6 +19,7 @@
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 #include <net/tcp.hpp>
+#include <vector>
 
 using namespace net;
 using Connection_ptr = std::shared_ptr<TCP::Connection>;
@@ -28,6 +29,26 @@ std::shared_ptr<TCP::Connection> client;
 std::string small, big, huge;
 int S{150}, B{1500}, H{15000};
 std::string TEST_STR {"1337"};
+
+class Buffer {
+public:
+	size_t written;
+	size_t read;
+	char* data;
+	const size_t size;
+	
+	inline Buffer(size_t length) :
+		written(0), read(0), data(new char[length]), size(length)
+	{}
+
+	inline ~Buffer() {
+		delete[] data;
+	}
+
+	std::string str() {
+		return {data, size};
+	}
+};
 
 void Service::start()
 {
@@ -78,13 +99,27 @@ void Service::start()
 		TEST: Send and receive huge string.
 	*/
 	tcp.bind(3).onConnect([](Connection_ptr conn) {
-		conn->onReceive([](Connection_ptr conn, bool) {
-			auto response = conn->read();
-			bool OK = (response == huge);
-			printf("conn.read() == huge: [%d]\n", OK);
+		auto buffer = std::make_shared<Buffer>(huge.size());
+		conn->onReceive([buffer](Connection_ptr conn, bool) {
+			// if not all expected data is read
+			if(buffer->read < huge.size())
+				buffer->read += conn->read(buffer->data+buffer->read, conn->receive_buffer().data_size());
+			printf("huge read: %u\n", buffer->read);
+			//
+			if(buffer->written < huge.size()) {
+				buffer->written += conn->write(huge.data()+buffer->written, huge.size() - buffer->written);
+				printf("huge written: %u\n", buffer->written);
+			}
+			// 
+			if(buffer->read == huge.size()) {
+				int compare = strcmp(buffer->data, huge.data());
+				printf("strcmp: %u\n", compare);
+				printf("compare: buffer: %s - huge: %s \n", buffer->data+59900, huge.data()+59900);
+				//printf("conn.read() == huge: [%d]\n", OK);
+				conn->close();
+			}
 		});
-		conn->write(huge);
-		conn->close();
+		buffer->written += conn->write(huge.data()+buffer->size, huge.size() - buffer->written);
 	});
 
 
