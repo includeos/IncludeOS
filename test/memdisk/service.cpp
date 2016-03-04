@@ -38,5 +38,9 @@ void Service::start()
   std::string test1 = "\xEF\xBB\xBFThe Project Gutenberg EBook of Pride and Prejudice, by Jane Austen";
   std::string test2 = text.substr(0, test1.size());
   assert(test1 == test2);
-  printf("SUCCESS\n");
+  printf("[x] Binary comparison of sector data\n");
+  // verify that reading outside of disk returns a 0x0 pointer
+  buf = disk->dev().read_sync(1);
+  assert(!buf);
+  printf("[x] Buffer outside of disk range is 0x0\n");
 }
