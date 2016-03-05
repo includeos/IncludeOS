@@ -8,9 +8,9 @@ sudo mount my.disk tmpdisk/
 sudo cp Makefile tmpdisk/
 sync # Mui Importante
 
-make SERVICE=Test DISK=my.disk FILES=test.cpp
+make SERVICE=Test DISK=my.disk FILES=fat16.cpp
 start Test.img "FAT: FAT16 test"
-make SERVICE=Test FILES=test.cpp clean
+make SERVICE=Test FILES=fat16.cpp clean
 rm memdisk.o
 
 sudo umount tmpdisk/
