@@ -16,7 +16,4 @@ ifndef INCLUDEOS_INSTALL
 INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
 
-# Shorter name
-INSTALL = $(INCLUDEOS_INSTALL)
-
-include $(INSTALL)/Makeseed
+include $(INCLUDEOS_INSTALL)/Makeseed
