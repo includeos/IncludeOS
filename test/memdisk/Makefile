@@ -3,11 +3,11 @@
 #################################################
 
 # The name of your service
-SERVICE = MemdiskTest
+SERVICE = Test
 SERVICE_NAME = "The Memdisk Test Service"
 
 # Your service parts
-FILES = service.cpp
+FILES=
 # Your disk image
 DISK=
 

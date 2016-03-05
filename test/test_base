@@ -1,6 +1,6 @@
 #!/bin/bash
 banana() {
-  ./run.sh MemdiskTest.img
+  ./run.sh $1
 }
 list_descendants ()
 {
@@ -39,6 +39,6 @@ handle() {
   fi
 }
 start() {
-  coproc bananafd { banana; }
-  handle ${bananafd[0]} $1
+  coproc bananafd { banana $1; }
+  handle ${bananafd[0]} ${@:2}
 }
