@@ -20,8 +20,10 @@
 #include <net/dhcp/dh4client.hpp>
 #include <net/tcp.hpp>
 #include <vector>
+#include <info>
 
 using namespace net;
+using namespace std::chrono; // For timers and MSL
 using Connection_ptr = std::shared_ptr<TCP::Connection>;
 std::unique_ptr<Inet4<VirtioNet>> inet;
 std::shared_ptr<TCP::Connection> client;
@@ -40,6 +42,23 @@ int
 
 std::string 
 	TEST_STR {"1337"};
+
+size_t bufstore_capacity{0};
+
+// Default MSL is 30s. Timeout 2*MSL.
+// To reduce test duration, lower MSL to 5s.
+milliseconds MSL_TEST = 5s;
+
+void FINISH_TEST() {
+	INFO("TEST", "Started 3 x MSL timeout.");
+	hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
+		INFO("TEST", "Verify release of resources");
+		CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
+		CHECK(inet->available_capacity() == bufstore_capacity, 
+			"inet.available_capacity() == bufstore_capacity");
+		printf("# TEST DONE #\n");
+	});
+}
 
 struct Buffer {
 	size_t written, read;
@@ -68,19 +87,22 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
  	
+ 	bufstore_capacity = inet->available_capacity();
  	auto& tcp = inet->tcp();
  	tcp.set_buffer_limit(10);
+ 	tcp.set_MSL(MSL_TEST);
 	
 	/*
 		TEST: Send and receive small string.
 	*/
-	printf("# TEST BIND PORT #\n");
-	printf("[%d] : tcp.openPorts() == 0\n", tcp.openPorts() == 0);
-	printf("[%d] : tcp.activeConnections() == 0\n", tcp.activeConnections() == 0);
+	INFO("TEST", "Listeners and connections allocation.");
+	CHECK(tcp.openPorts() == 0, "tcp.openPorts() == 0");
+	CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
+	
 	tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
-		printf("# TEST SMALL STRING #\n");
+		INFO("TEST", "SMALL string");
 		conn->onReceive([](Connection_ptr conn, bool) {
-			printf("[%d] : conn.read() == small\n", conn->read() == small);
+			CHECK(conn->read() == small, "conn.read() == small");
 			conn->close();
 		});
 		conn->write(small);
@@ -88,19 +110,19 @@ void Service::start()
 	/*
 		TEST: 1 server should be bound.
 	*/
-	printf("[%d] : tcp.openPorts() == 1\n", tcp.openPorts() == 1);
+	CHECK(tcp.openPorts() == 1, "tcp.openPorts() == 1");
 	
 	/*
 		TEST: Send and receive big string.
 	*/
 	tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
-		printf("# TEST BIG STRING #\n");
+		INFO("TEST", "BIG string");
 		auto response = std::make_shared<std::string>();
 		conn->onReceive([response](Connection_ptr conn, bool) {
 			*response += conn->read();
 			if(response->size() == big.size()) {
 				bool OK = (*response == big);
-				printf("[%d] : conn.read() == big\n", OK);
+				CHECK(OK, "conn.read() == big");
 				conn->close();
 			}
 		});
@@ -111,7 +133,7 @@ void Service::start()
 		TEST: Send and receive huge string.
 	*/
 	tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
-		printf("# TEST HUGE STRING #\n");
+		INFO("TEST", "HUGE string");
 		auto buffer = std::make_shared<Buffer>(huge.size());
 		conn->onReceive([buffer](Connection_ptr conn, bool) {
 			// if not all expected data is read
@@ -124,41 +146,41 @@ void Service::start()
 			// when all expected data is read
 			if(buffer->read == huge.size()) {
 				bool OK = (buffer->str() == huge);
-				printf("[%d] : conn.read() == huge\n", OK);
+				CHECK(OK, "conn.read() == huge");
 				conn->close();
 			}
 		});
 		buffer->written += conn->write(huge.data(), huge.size());
 	});
 
-	printf("[%d] : tcp.openPorts() == 3\n", tcp.openPorts() == 3);
+	CHECK(tcp.openPorts() == 3, "tcp.openPorts() == 3");
 
 	/*
 		Test for other stuff
 	*/
 	tcp.bind(TEST4).onConnect([](Connection_ptr conn) {
-		printf("# TEST CONNECTION #\n");
+		INFO("TEST","Connection");
 		// There should be at least one connection.
-		printf("[%d] : tcp.activeConnections() > 0\n", inet->tcp().activeConnections() > 0);
+		CHECK(inet->tcp().activeConnections() > 0, "tcp.activeConnections() > 0");
 		// Test if connected.
-		printf("[%d] : conn.is_connected()\n", conn->is_connected());
+		CHECK(conn->is_connected(), "conn.is_connected()");
 		// Test if writable.
-		printf("[%d] : conn.is_writable()\n", conn->is_writable());
+		CHECK(conn->is_writable(), "conn.is_writable()");
 		// Test if state is ESTABLISHED.
-		printf("[%d] : conn.is_state(ESTABLISHED)\n", conn->is_state("ESTABLISHED"));
+		CHECK(conn->is_state({"ESTABLISHED"}), "conn.is_state(ESTABLISHED)");
 
-		printf("# TEST ACTIVE CLOSE #\n");
+		INFO("TEST", "Active close");
 		// Test for active close.
 		conn->close();
-		printf("[%d] : !conn.is_writable()\n", !conn->is_writable());
-		printf("[%d] : conn.is_state(FIN-WAIT-1) \n", conn->is_state("FIN-WAIT-1"));
+		CHECK(!conn->is_writable(), "!conn->is_writable()");
+		CHECK(conn->is_state({"FIN-WAIT-1"}), "conn.is_state(FIN-WAIT-1)");
 	})
 	.onDisconnect([](Connection_ptr conn, std::string) {
-		printf("[%d] : conn.is_state(FIN-WAIT-2) \n", conn->is_state("FIN-WAIT-2"));
-		using namespace std::chrono;
+		CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
 		hw::PIT::instance().onTimeout(1s,[conn]{
-			printf("[%d] : conn.is_state(TIME-WAIT)\n", conn->is_state("TIME-WAIT"));
+			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
 		});
+		FINISH_TEST();
 	});
 
 
