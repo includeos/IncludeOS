@@ -329,8 +329,7 @@ std::chrono::milliseconds Connection::RTO() const {
 void Connection::start_time_wait_timeout() {
 	debug2("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
 	time_wait_started = OS::cycles_since_boot();
-	//auto timeout = 2 * host().MSL(); // 60 seconds
-	auto timeout = 10s;
+	auto timeout = 2 * host().MSL(); // 60 seconds
 	// Passing "this"..?
 	hw::PIT::instance().onTimeout(timeout,[this, timeout] {
 		// The timer hasnt been updated
