@@ -25,8 +25,8 @@ using namespace net;
 
 TCP::TCP(IPStack& inet) : 
 	inet_(inet),
-	listeners(),
-	connections(),
+	listeners_(),
+	connections_(),
 	MAX_SEG_LIFETIME(30s)
 {
 
@@ -44,12 +44,12 @@ TCP::TCP(IPStack& inet) :
 	Simple.
 */
 TCP::Connection& TCP::bind(Port port) {
-	auto listen_conn_it = listeners.find(port);
+	auto listen_conn_it = listeners_.find(port);
 	// Already a listening socket.
-	if(listen_conn_it != listeners.end()) {
+	if(listen_conn_it != listeners_.end()) {
 		throw TCPException{"Port is already taken."};
 	}
-	auto& connection = (listeners.emplace(port, Connection{*this, port})).first->second;
+	auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;
 	debug("<TCP::bind> Bound to port %i \n", port);
 	connection.open(false);
 	return connection;
@@ -61,7 +61,7 @@ TCP::Connection& TCP::bind(Port port) {
 	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
 	and open() is called before callback is added.
 */
-std::shared_ptr<TCP::Connection> TCP::connect(Socket remote) {
+TCP::Connection_ptr TCP::connect(Socket remote) {
 	std::shared_ptr<Connection> connection = add_connection(free_port(), remote);
 	connection->open(true);
 	return connection;
@@ -87,7 +87,7 @@ TCP::Port TCP::free_port() {
 	if(++current_ephemeral_ == 0)
 		current_ephemeral_ = 1025;
 	// Avoid giving a port that is bound to a service.
-	while(listeners.find(current_ephemeral_) != listeners.end())
+	while(listeners_.find(current_ephemeral_) != listeners_.end())
 		current_ephemeral_++;
 
 	return current_ephemeral_;
@@ -155,22 +155,22 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	Connection::Tuple tuple { packet->dst_port(), packet->source() };
 
 	// Try to find the receiver
-	auto conn_it = connections.find(tuple);
+	auto conn_it = connections_.find(tuple);
 	// Connection found
-	if(conn_it != connections.end()) {
+	if(conn_it != connections_.end()) {
 		debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
 		conn_it->second->receive(packet);
 	}
 	// No connection found 
 	else {
 		// Is there a listener?
-		auto listen_conn_it = listeners.find(packet->dst_port());
+		auto listen_conn_it = listeners_.find(packet->dst_port());
 		debug("<TCP::bottom> No connection found - looking for listener..\n");
 		// Listener found => Create listening Connection
-		if(listen_conn_it != listeners.end()) {
+		if(listen_conn_it != listeners_.end()) {
 			auto& listen_conn = listen_conn_it->second;
 			debug("<TCP::bottom> Listener found: %s ...\n", listen_conn.to_string().c_str());
-			auto connection = (connections.emplace(tuple, std::make_shared<Connection>(listen_conn)).first->second);
+			auto connection = (connections_.emplace(tuple, std::make_shared<Connection>(listen_conn)).first->second);
 			// Set remote
 			connection->set_remote(packet->source());
 			debug("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
@@ -195,11 +195,11 @@ string TCP::status() const {
 	// Write all connections in a cute list.
 	stringstream ss;
 	ss << "LISTENING SOCKETS:\n";
-	for(auto listen_it : listeners) {
+	for(auto listen_it : listeners_) {
 		ss << listen_it.second.to_string() << "\n";
 	}
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
-	for(auto con_it : connections) {
+	for(auto con_it : connections_) {
 		auto& c = *(con_it.second);
 		ss << "tcp4\t" 
 			<< " " << "\t" << " " << "\t"
@@ -214,8 +214,8 @@ string TCP::status() const {
 
 }*/
 
-std::shared_ptr<TCP::Connection> TCP::add_connection(Port local_port, TCP::Socket remote) {
-	return 	(connections.emplace(
+TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
+	return 	(connections_.emplace(
 				Connection::Tuple{ local_port, remote }, 
 				std::make_shared<Connection>(*this, local_port, remote))
 			).first->second;
@@ -223,7 +223,7 @@ std::shared_ptr<TCP::Connection> TCP::add_connection(Port local_port, TCP::Socke
 
 void TCP::close_connection(TCP::Connection& conn) {
 	debug("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
-	connections.erase(conn.tuple());
+	connections_.erase(conn.tuple());
 	debug2("<TCP::close_connection> TCP Status: \n%s \n", status().c_str());
 }
 
