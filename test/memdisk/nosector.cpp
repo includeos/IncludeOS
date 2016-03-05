@@ -23,10 +23,17 @@
 
 void Service::start()
 {
+  INFO("MemDisk", "Running tests for MemDisk");
   auto disk = fs::new_shared_memdisk();
+  assert(disk);
+  
   // verify that the size is indeed 2 sectors
+  CHECK(disk->dev().size() == 0, "Disk size 0 sectors");
   assert(disk->dev().size() == 0);
+  
   // which means that the disk must be empty
+  CHECK(disk->empty(), "Disk empty");
   assert(disk->empty());
-  printf("SUCCESS\n");
+  
+  INFO("MemDisk", "SUCCESS");
 }
