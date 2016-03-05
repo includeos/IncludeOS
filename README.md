@@ -9,17 +9,13 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 [![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.7.0--proto-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Join the chat at https://gitter.im/hioa-cs/IncludeOS](https://badges.gitter.im/hioa-cs/IncludeOS.svg)](https://gitter.im/hioa-cs/IncludeOS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 **Note:** *Anything may change at any time. The public API should not be considered stable.* This is the meaning of the 0 in the version number, as intended by [Semver](http://semver.org/).
 
 
 ## Build status
-We're working towards automating everything with our Jenkins CI server at [jenkins.includeos.org](http://jenkins.includeos.org/). Jenkins is currently only testing on KVM/Linux, but more platforms will come. We do manual tests on virtualbox, before releases.
-
-|        | Build from bundle                                                                                                                                   | Build from source                                                                                                                                   |
-|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Master | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_master/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_master/) | [![Build Status](http://jenkins.includeos.org/job/complete_source_master/badge/icon)](http://jenkins.includeos.org/job/complete_source_master/) |
-| Dev    | [![Build Status](http://jenkins.includeos.org/job/complete_bundle_dev/badge/icon)](http://jenkins.includeos.org/job/complete_bundle_dev/)       | [![Build Status](http://jenkins.includeos.org/job/complete_source_dev/badge/icon)](http://jenkins.includeos.org/job/complete_source_dev/)       |
+We're working towards automating everything with our Jenkins CI server. Unfortunately he was recently hacked and is being cloned from DNA recovered from a mosqito in resin plus pig stem cells as we speak. He'll be back on his feet and just like before (ish) pretty soon.
 
 ### Key features
 * **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 693K when optimized for size.
@@ -136,7 +132,7 @@ will build and run a [this example service](./examples/demo_service/service.cpp)
    * *NOTE*: This keyboard shortcut may not work if you're interacting with your development environment is via a VirtualBox GUI, over putty, inside a `screen` etc. If you find a good solution for a certain platform (i.e. putty to VirtualBox on Windows), please let us know so we can update our wiki.
 
 ## Writing a service
-Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INNCLUDEOS_HOME` directory (`$HOMOE/IncludeOS_install by default`). The [./seed](./seed) directory contains everything a service needs to build and link with IncludeOS. 
+Developing IncludeOS services should be done completely separately from IncludeOS repository. All you need is compiled and installed libraries, in your `$INCLUDEOS_HOME` directory (`$HOME/IncludeOS_install` by default). The [./seed](./seed) directory contains everything a service needs to build and link with IncludeOS. 
 
 *NOTE: Don't develop inside the seed directory; the point is to be able to reuse the seed to create new blank services*
 
@@ -172,5 +168,4 @@ We are currently far from it, but in time we'd like to adhere as much as possibl
 ## Read more on the wiki
 We're trying to grow a Wiki, and some questions might already be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ). 
 
-See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guies.
-
+See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guides.
