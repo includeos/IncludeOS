@@ -32,14 +32,14 @@ void Service::start()
   assert(disk->dev().size() == 16500);
   
   // which means that the disk can't be empty
-  CHECK(!disk->empty(), "Disk empty");
+  CHECK(!disk->empty(), "Disk not empty");
   assert(!disk->empty());
   
-  // mount filesystem
+  // auto-mount filesystem
   disk->mount(
   [disk] (fs::error_t err)
   {
-    CHECK(!err, "Filesystem mounted");
+    CHECK(!err, "Filesystem auto-mounted");
     assert(!err);
     
     auto& fs = disk->fs();
@@ -50,8 +50,27 @@ void Service::start()
     CHECK(!err, "List root directory");
     assert(!err);
     
-    CHECK(vec->empty(), "Root directory is empty");
-    assert(vec->empty());
+    CHECK(vec->size() == 1, "Exactly one ent in root dir");
+    assert(vec->size() == 1);
+    
+    auto& e = vec->at(0);
+    CHECK(e.is_file(), "Ent is a file");
+    CHECK(e.name() == "Makefile", "Ent is 'Makefile'");
+    
+  });
+  // re-mount on VBR1
+  disk->mount(disk->VBR1,
+  [disk] (fs::error_t err)
+  {
+    CHECK(!err, "Filesystem mounted on VBR1");
+    assert(!err);
+    
+    auto& fs = disk->fs();
+    auto ent = fs.stat("/Makefile");
+    CHECK(ent.is_valid(), "Stat file in root dir");
+    CHECK(ent.is_file(), "Entity is file");
+    CHECK(!ent.is_dir(), "Entity is not directory");
+    CHECK(ent.name() == "Makefile", "Name is 'Makefile'");
   });
   
   INFO("MemDisk", "SUCCESS");
