@@ -2,12 +2,6 @@
 #          IncludeOS SERVICE makefile           #
 #################################################
 
-# The name of your service
-SERVICE = My_IncludeOS_Service
-
-# Your service parts
-FILES = service.cpp
-
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
 	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
@@ -32,7 +26,7 @@ OPTIONS = $(WARNS) $(CAPABS)
 ###################################################
 LIBC_OBJ = $(INSTALL)/newlib/libc.a
 LIBG_OBJ = $(INSTALL)/newlib/libg.a
-LIBM_OBJ = $(INSTALL)/newlib/libm.a 
+LIBM_OBJ = $(INSTALL)/newlib/libm.a
 
 LIBGCC = $(INSTALL)/libgcc/libgcc.a
 LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
@@ -46,9 +40,9 @@ ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api 
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api
 
-all: CAPABS  =  $(CAPABS_COMMON) -O2  
+all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
@@ -110,7 +104,7 @@ service.o: service.cpp
 
 # Link the service with the os
 service: $(OBJS) $(LIBS)
-	# build memdisk when IMAGES is set
+# build memdisk when IMAGES is set
 ifneq ($(MEMDISK),)
 	@echo "\n>> Creating memdisk"
 	python $(INSTALL)/memdisk/memdisk.py --file $(INSTALL)/memdisk/memdisk.asm $(DISK)
@@ -133,7 +127,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 # General C++-files to object files
 %.o: %.cpp
 	@echo "\n>> Compiling OS object without header"
-	$(CPP) $(CPPOPTS) -o $@ $< 
+	$(CPP) $(CPPOPTS) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s
@@ -142,8 +136,9 @@ crt%.o: $(INSTALL)/crt/crt%.s
 
 # Cleanup
 ###################################################
-clean: 
-	$(RM) $(OBJS) $(DEPS) $(SERVICE) 
+clean:
+	$(RM) $(OBJS) $(DEPS) $(SERVICE)
 	$(RM) $(SERVICE).img
+	$(RM) .service_name.o
 
 -include $(DEPS)

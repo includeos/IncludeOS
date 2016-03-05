@@ -3,8 +3,8 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_UDP
-SERVICE_NAME = "IncludeOS UDP test"
+SERVICE = "Test_UDP"
+SERVICE_NAME = "IncludeOS\ UDP\ test"
 
 # Your service parts
 FILES = service.cpp
@@ -19,13 +19,4 @@ endif
 # Shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
-all:
-	$(MAKE) -f $(INSTALL)/Makeseed all FILES=$(FILES) SERVICE=$(SERVICE) SERVICE_NAME=$(SERVICE_NAME) DISK=$(DISK)
-
-stripped:
-	$(MAKE) -f $(INSTALL)/Makeseed stripped FILES=$(FILES) SERVICE=$(SERVICE) SERVICE_NAME=$(SERVICE_NAME) DISK=$(DISK)
-
-# Cleanup
-###################################################
-clean:
-		$(MAKE) -f $(INSTALL)/Makeseed clean
+include $(INSTALL)/Makeseed
