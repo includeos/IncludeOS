@@ -19,5 +19,5 @@ export DEV_GRAPHICS="-nographic"
 
 export SERIAL="-virtioconsole stdio"
 
-export DEV_HDD="-hda $IMAGE"
+export DEV_HDD="-drive file=$IMAGE,format=raw,if=ide"
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP"
