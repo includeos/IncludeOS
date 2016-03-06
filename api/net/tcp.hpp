@@ -40,6 +40,8 @@ public:
 	using Seq = uint32_t;
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
+	class Connection;
+	using Connection_ptr = std::shared_ptr<Connection>;
 	using IPStack = Inet<LinkLayer,IP4>;
 
 public:
@@ -822,6 +824,17 @@ public:
 		bool is_writable() const;
 
 		/*
+			Helper function for state checks.
+		*/
+		inline bool is_state(const State& state) const { 
+			return state_ == &state;
+		}
+
+		inline bool is_state(const std::string& state_str) const {
+			return state_->to_string() == state_str;
+		}
+
+		/*
 			Destroy the Connection.
 
 			Clean up.
@@ -949,13 +962,6 @@ public:
 		*/
 		void set_state(State& state);
 
-		/*
-			Helper function for state checks.
-		*/
-		inline bool is_state(const State& state) const { 
-			return state_ == &state;
-		}
-
 
 		/// BUFFER HANDLING ///
 
@@ -1030,14 +1036,14 @@ public:
 	TCP(IPStack&);
 	
 	/*
-		Bind a new connection to a given Port.	
+		Bind a new listener to a given Port.	
 	*/
 	TCP::Connection& bind(Port port);
 
 	/*
 		Active open a new connection to the given remote.
 	*/
-	std::shared_ptr<Connection> connect(Socket remote);
+	Connection_ptr connect(Socket remote);
 
 	/*
 		Active open a new connection to the given remote.
@@ -1066,25 +1072,40 @@ public:
 	*/
     static uint16_t checksum(const TCP::Packet_ptr);
 
+    inline const auto& listeners() { return listeners_; }
+
+    inline const auto& connections() { return connections_; }
+
     /*
 		Number of open ports.
     */
-	inline size_t openPorts() { return listeners.size(); }
+	inline size_t openPorts() { return listeners_.size(); }
+
+	/*
+		Number of active connections.
+	*/
+	inline size_t activeConnections() { return connections_.size(); }
 
 	/*
 		Maximum Segment Lifetime
 	*/
-	inline auto MSL() const {
-		return MAX_SEG_LIFETIME;
+	inline auto MSL() const { return MAX_SEG_LIFETIME; }
+
+	/*
+		Set Maximum Segment Lifetime
+	*/
+	inline void set_MSL(const std::chrono::milliseconds msl) { 
+		MAX_SEG_LIFETIME = msl;
 	}
 
 	/*
 		Maximum Buffer Size
 	*/
-	inline auto buffer_limit() const {
-		return MAX_BUFFER_SIZE;
-	}
+	inline auto buffer_limit() const { return MAX_BUFFER_SIZE; }
 
+	/*
+		Set Buffer limit
+	*/
 	inline void set_buffer_limit(size_t buffer_limit) {
 		MAX_BUFFER_SIZE = buffer_limit;
 	}
@@ -1097,8 +1118,8 @@ public:
 
 private:
 	IPStack& inet_;
-	std::map<TCP::Port, Connection> listeners;
-	std::map<Connection::Tuple, std::shared_ptr<Connection>> connections;
+	std::map<TCP::Port, Connection> listeners_;
+	std::map<Connection::Tuple, Connection_ptr> connections_;
 
 	downstream _network_layer_out;
 
@@ -1138,7 +1159,7 @@ private:
 	/*
 		Add a Connection.
 	*/
-	std::shared_ptr<Connection> add_connection(TCP::Port local_port, TCP::Socket remote);
+	Connection_ptr add_connection(TCP::Port local_port, TCP::Socket remote);
 
 	/*
 		Close and delete the connection.

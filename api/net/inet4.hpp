@@ -86,6 +86,9 @@ namespace net {
     // We have to ask the Nic for the MTU
     virtual inline uint16_t MTU() const override
     { return nic_.MTU(); }
+
+    inline auto available_capacity()
+    { return bufstore_.capacity(); }
     
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
