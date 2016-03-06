@@ -1,6 +1,6 @@
 #!/bin/bash
 banana() {
-  ./run.sh $1
+  source ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/run.sh $1
 }
 list_descendants ()
 {
