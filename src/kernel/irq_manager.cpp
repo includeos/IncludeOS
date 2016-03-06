@@ -6,17 +6,17 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Enable debugging
-//#define DEBUG2
+#define DEBUG // Enable debugging
+#define DEBUG2
 
 #include <assert.h>
 
@@ -26,7 +26,7 @@
 #include <kernel/syscalls.hpp>
 #include <unwind.h>
 
-#define IRQ_BASE 32
+const int irq_base=32;
 
 unsigned int IRQ_manager::irq_mask  {0xFFFB};
 IDTDescr     IRQ_manager::idt[256]  {};
@@ -79,11 +79,11 @@ void exception_handler()
   #define frp(N, ra)   \
       (__builtin_frame_address(N) != nullptr) && \
       (ra = __builtin_return_address(N)) != nullptr
-  
+
   printf("\n");
   #define PRINT_TRACE(N, ra) \
       printf("[%d] Return %p\n", N, ra);
-  
+
   void* ra;
   if (frp(0, ra)) {
    PRINT_TRACE(0, ra);
@@ -100,21 +100,11 @@ void exception_handler()
         if (frp(6, ra))
          PRINT_TRACE(6, ra);
   }}}}}}
-  
+
   printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   extern char _end;
   printf("Heap end: %#x \n", (uint32_t) &_end);
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
-}
-
-/** Atomically increment i. */
-inline void ainc(uint32_t& i) {
-  __asm__ volatile ("LOCK incl (%0)"::"r"(&i));
-}
-
-/** Atomically decrement i. */
-inline void adec(uint32_t& i) {
-  __asm__ volatile ("LOCK decl (%0)"::"r"(&i));
 }
 
 /**
@@ -125,24 +115,24 @@ inline void adec(uint32_t& i) {
  */
 static uint32_t __irqueues[256] {0};
 
-#define IRQ_HANDLER(I)                                          \
-  void irq_##I##_handler() {                                    \
-    irq_pending |=  (1 << (I-IRQ_BASE));                        \
-    ainc(__irqueues[I-IRQ_BASE]);                               \
-    debug("<IRQ !> IRQ %i. Pending: 0x%lx. Count: %li\n", I,	  \
-	  irq_pending, __irqueues[I-IRQ_BASE]);	                   		\
+#define IRQ_HANDLER(I)                                            \
+  void irq_##I##_handler() {                                      \
+    irq_pending |=  (1 << I);                                     \
+    __sync_fetch_and_add(&__irqueues[I],1);                        \
+    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", I,        \
+          irq_pending, __irqueues[I]);                            \
   }
 
-//debug("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);     
+//debug("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);
 
 // The delegates will handle EOI
-// eoi(I-IRQ_BASE);  
+// eoi(I-IRQ_BASE);
 
-/* Macro magic to register default gates */ 
+/* Macro magic to register default gates */
 #define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry, \
 					default_sel, default_attr );
 
-#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I]),irq_##I##_entry,	\
+#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + irq_base]),irq_##I##_entry,	\
 				  default_sel, default_attr );
 
  /* EXCEPTIONS */
@@ -150,36 +140,36 @@ static uint32_t __irqueues[256] {0};
 #define IRQ_PAIR(I) void irq_##I##_entry(); IRQ_HANDLER(I)
 
 /*
-  IRQ HANDLERS, 
+  IRQ HANDLERS,
   extern: must be visible from assembler
-  
+
   We define two functions for each IRQ/Exception i :
-  
+
   > void irq/exception_i_entry() - defined in interrupts.s
   > void irq/exception_i_handler() - defined here.
 */
 extern "C"{
   void _irq_20_entry(int i);
   //Array of custom IRQ-handlers
-  void (*custom_handlers[256])();  
-  
+  void (*custom_handlers[256])();
+
   void irq_default_handler();
   void irq_default_entry();
-  
+
   void irq_timer_entry();
   void irq_timer_handler();
-  
+
   // CPU-sampling irq-handler is defined in the PIT-implementation
   void cpu_sampling_irq_entry();
-  
+
   EXCEPTION_PAIR(0) EXCEPTION_PAIR(1) EXCEPTION_PAIR(2) EXCEPTION_PAIR(3)
   EXCEPTION_PAIR(4) EXCEPTION_PAIR(5) EXCEPTION_PAIR(6) EXCEPTION_PAIR(7)
   EXCEPTION_PAIR(8) EXCEPTION_PAIR(9) EXCEPTION_PAIR(10) EXCEPTION_PAIR(11)
   EXCEPTION_PAIR(12) /*EXCEPTION_PAIR(13)*/ EXCEPTION_PAIR(14) EXCEPTION_PAIR(15)
   EXCEPTION_PAIR(16) EXCEPTION_PAIR(17) EXCEPTION_PAIR(18) EXCEPTION_PAIR(19)
   EXCEPTION_PAIR(20) /*21-29 Reserved*/ EXCEPTION_PAIR(30) EXCEPTION_PAIR(31)
-  
-  void exception_13_entry(); 
+
+  void exception_13_entry();
   void exception_13_handler(int i){
     printf("\n>>>>!!!! CPU Exception 13 !!!! \n");
     printf("\t >> General protection fault. Error code: 0x%x \n",i);
@@ -188,27 +178,27 @@ extern "C"{
     printf("\t >> Stack address: %p\n", (void*) &i);
     kill(1,9);
   }
-  
+
   //Redirected IRQ 0 - 15
-  IRQ_PAIR(32) IRQ_PAIR(33) IRQ_PAIR(35) IRQ_PAIR(36) IRQ_PAIR(37)
-  IRQ_PAIR(38) IRQ_PAIR(39) IRQ_PAIR(40) IRQ_PAIR(41) IRQ_PAIR(42)
-  IRQ_PAIR(43) IRQ_PAIR(44) IRQ_PAIR(45) IRQ_PAIR(46) IRQ_PAIR(47)
-  
+  IRQ_PAIR(0) IRQ_PAIR(1) IRQ_PAIR(3) IRQ_PAIR(4) IRQ_PAIR(5)
+  IRQ_PAIR(6) IRQ_PAIR(7) IRQ_PAIR(8) IRQ_PAIR(9) IRQ_PAIR(10)
+  IRQ_PAIR(11) IRQ_PAIR(12) IRQ_PAIR(13) IRQ_PAIR(14) IRQ_PAIR(15)
+
 } //End extern
 
 void IRQ_manager::init()
 {
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
-  if (idt_is_set)    
+  if (idt_is_set)
     panic(">>> ERROR: Trying to reset IDT");
-     
+
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
   idt_reg.limit = (256*sizeof(IDTDescr))-1;
   idt_reg.base = (uint32_t)idt;
-     
+
   INFO("IRQ manager", "Creating interrupt handlers");
-     
+
   // Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
   REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
@@ -219,35 +209,33 @@ void IRQ_manager::init()
   REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
   // GATES 21-29 are reserved
   REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
-     
+
   //Redirected IRQ 0 - 15
-  REG_DEFAULT_IRQ(32) REG_DEFAULT_IRQ(33) REG_DEFAULT_IRQ(35)
-  REG_DEFAULT_IRQ(36) REG_DEFAULT_IRQ(37) REG_DEFAULT_IRQ(38)
-  REG_DEFAULT_IRQ(39) REG_DEFAULT_IRQ(40) REG_DEFAULT_IRQ(41)
-  REG_DEFAULT_IRQ(42) REG_DEFAULT_IRQ(43) REG_DEFAULT_IRQ(44)
-  REG_DEFAULT_IRQ(45) REG_DEFAULT_IRQ(46) REG_DEFAULT_IRQ(47)
-          
+  REG_DEFAULT_IRQ(0) REG_DEFAULT_IRQ(1) REG_DEFAULT_IRQ(3)
+  REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
+  REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
+  REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
+  REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
+
   // Default gates for "real IRQ lines", 32-64
   INFO2("+ Exception gates set for irq < 32");
-     
+
   //Set all irq-gates (>= 44) to the default handler
   for(int i=48;i<256;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
-  }  
+  }
   INFO2("+ Default interrupt gates set for irq >= 32");
-     
-     
+
+
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
-     
+
   //Initialize the interrupt controller
   hw::PIC::init();
-  
-  enable_irq(1); //Keyboard - now people can subscribe
+
   enable_irq(2); //Slave PIC irq
-  enable_irq(33); // someone explain?
   enable_interrupts();
-  
+
   //Test zero-division exception
   //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
 }
@@ -274,9 +262,9 @@ void IRQ_manager::create_gate(IDTDescr* idt_entry,
   idt_entry->zero      = 0;
 }
 
-void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {  
+void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {
   create_gate(&idt[irq], function_addr, default_sel, default_attr);
-  
+
   /**
    *  The default handlers don't send EOI. If we don't do it here,
    *  previous interrupts won't have reported EOI and new handler
@@ -289,7 +277,7 @@ void (*IRQ_manager::get_handler(uint8_t irq))() {
   addr_union addr;
   addr.lo16 = idt[irq].offset_1;
   addr.hi16 = idt[irq].offset_2;
-  
+
   return (void (*)()) addr.whole;
 }
 
@@ -309,10 +297,10 @@ static int glob_timer_interrupts  {0};
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {   //void(*notify)()
   if (irq > (sizeof(irq_bitfield) * 8))
     panic("Too high IRQ: only IRQ 0 - 32 are subscribable\n");
-  
+
   // Mark IRQ as subscribed to
   irq_subscriptions |= (1 << irq);
-  
+
   // Add callback to subscriber list (for now overwriting any previous)
   //irq_subscribers[irq] = notify;
   irq_delegates[irq] = del;
@@ -329,40 +317,40 @@ inline int bsr(irq_bitfield b) {
 }
 
 void IRQ_manager::notify() {
-  //__asm__("cli");  
-  
+  //__asm__("cli");
+
   // Get the IRQ's that are both pending and subscribed to
-  irq_bitfield todo {irq_subscriptions & irq_pending};
+  irq_bitfield todo {static_cast<irq_bitfield>(irq_subscriptions & irq_pending)};
   int          irq  {0};
-  
+
   while (todo) {
     // Select the first IRQ to notify
-    irq = bsr(todo);  
-    
+    irq = bsr(todo);
+
     // Notify
-    debug2("<IRQ notify> __irqueue %i Count: %li\n", irq, __irqueues[irq]);
+    debug2("<IRQ notify> __irqueue %i Count: %i\n", irq, __irqueues[irq]);
     irq_delegates[irq]();
-    
+
     // Decrement the counter
-    adec(__irqueues[irq]);
-    
+    __sync_fetch_and_sub(&__irqueues[irq], 1);
+
     // Critical section start
     // Spinlock? Well, we can't lock out the IRQ-handler
     // ... and we don't have a timer interrupt so we can't do blocking locks.
     if (!__irqueues[irq]) {
-        // Remove the IRQ from pending list        
+        // Remove the IRQ from pending list
         irq_pending &= ~(1 << irq);
         //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);
     }
     // Critical section end
-    
+
     // Find remaining IRQ's both pending and subscribed to
-    todo = (irq_subscriptions & irq_pending);   
+    todo = (irq_subscriptions & irq_pending);
   }
-  
+
   //hlt
   debug("<IRQ notify> Done. OS going to sleep.\n");
-  //__asm__("sti");  
+  //__asm__("sti");
   __asm__ volatile("hlt;");
 }
 
@@ -370,14 +358,14 @@ void IRQ_manager::eoi(uint8_t irq) {
 	hw::PIC::eoi(irq);
 }
 
-void irq_default_handler() { 
+void irq_default_handler() {
   // Now we don't really know the IRQ number,
   // but we can guess by looking at ISR
   uint16_t isr {hw::PIC::get_isr()};
 
   //IRR would give us more than we want
   //uint16_t irr {pic_get_irr()};
-  
+
   printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x\n", isr, bsr(isr));
   IRQ_manager::eoi(bsr(isr));
 }
@@ -387,7 +375,7 @@ void irq_timer_handler() {
   if((glob_timer_interrupts % 16) == 0) {
     printf("\nGot %i timer interrupts\n", glob_timer_interrupts);
   }
-}  
+}
 
 inline void disable_pic() {
   asm volatile("mov $0xff,%al; "		\
