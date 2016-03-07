@@ -34,6 +34,9 @@ std::shared_ptr<TCP::Connection> client;
 TCP::Port 
 	TEST1{1}, TEST2{2}, TEST3{3}, TEST4{4};
 
+TCP::Socket
+	TEST_OUT{ {{10,0,2,2}}, 1337 };
+
 std::string 
 	small, big, huge;
 
@@ -58,6 +61,21 @@ void FINISH_TEST() {
 			"inet.available_capacity() == bufstore_capacity");
 		printf("# TEST DONE #\n");
 	});
+}
+
+void OUTGOING_TEST(TCP::Socket outgoing) {
+	INFO("TEST", "Outgoing Connection");
+	inet->tcp().connect(outgoing)
+		->onConnect([](Connection_ptr conn) {
+			conn->write(small);
+		})
+		.onReceive([](Connection_ptr conn, bool) {
+			CHECK(conn->read() == small, "conn->read() == small");
+		})
+		.onDisconnect([](Connection_ptr conn, std::string msg) {
+			CHECK(true, "Connection closed by server");
+			FINISH_TEST();
+		});
 }
 
 struct Buffer {
@@ -179,9 +197,9 @@ void Service::start()
 		CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
 		hw::PIT::instance().onTimeout(1s,[conn]{
 			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
+			
+			OUTGOING_TEST(TEST_OUT);
 		});
-		FINISH_TEST();
 	});
-
 
 }
