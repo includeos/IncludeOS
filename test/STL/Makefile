@@ -8,6 +8,9 @@ SERVICE_NAME = IncludeOS basic STL test
 
 # Your service parts
 FILES = service.cpp
+
+LOCAL_INCLUDES = $(PWD)/../lest/include/lest
+
 # Your disk image
 DISK=
 
