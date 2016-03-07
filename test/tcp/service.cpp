@@ -37,6 +37,11 @@ TCP::Port
 TCP::Socket
 	TEST_OUT{ {{10,0,2,2}}, 1337 };
 
+using HostAddress = std::pair<std::string, TCP::Port>;
+HostAddress
+	TEST_ADDR_TIME{"india.colorado.edu", 13};
+
+
 std::string 
 	small, big, huge;
 
@@ -63,6 +68,27 @@ void FINISH_TEST() {
 	});
 }
 
+void OUTGOING_TEST_INTERNET(const HostAddress& address) {
+	auto port = address.second;
+	INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
+	inet->resolve(address.first, [port](auto&, auto&, auto ip_address) {
+		CHECK(ip_address != 0, "Resolved host");
+		
+		if(ip_address != 0) {
+			inet->tcp().connect(ip_address, port)
+			->onConnect([](Connection_ptr) {
+				CHECK(true, "Connected");
+			})
+			.onReceive([](Connection_ptr conn, bool) {
+				CHECK(true, "Received data: %s", conn->read().c_str());
+			})
+			.onError([](Connection_ptr, TCP::TCPException err) {
+				CHECK(false, "Error occured: %s", err.what());
+			});
+		}
+	});
+}
+
 void OUTGOING_TEST(TCP::Socket outgoing) {
 	INFO("TEST", "Outgoing Connection");
 	inet->tcp().connect(outgoing)
@@ -72,9 +98,10 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
 		.onReceive([](Connection_ptr conn, bool) {
 			CHECK(conn->read() == small, "conn->read() == small");
 		})
-		.onDisconnect([](Connection_ptr conn, std::string msg) {
+		.onDisconnect([](Connection_ptr, std::string) {
 			CHECK(true, "Connection closed by server");
-			FINISH_TEST();
+			
+			OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
 		});
 }
 
@@ -200,6 +227,8 @@ void Service::start()
 			
 			OUTGOING_TEST(TEST_OUT);
 		});
+		
+		hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
 	});
 
 }
