@@ -298,6 +298,9 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {   //void(*notify)()
   if (irq > (sizeof(irq_bitfield) * 8))
     panic("Too high IRQ: only IRQ 0 - 32 are subscribable\n");
 
+  // Enable the IRQ line
+  enable_irq(irq);
+
   // Mark IRQ as subscribed to
   irq_subscriptions |= (1 << irq);
 

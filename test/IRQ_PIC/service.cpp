@@ -65,14 +65,18 @@ void Service::start()
               });
 
 
-  IRQ_manager::subscribe(1, [](){ IRQ_manager::eoi(1); CHECK(1,"IRQ 1 delegate called once"); });
-  IRQ_manager::enable_irq(1);
+  IRQ_manager::subscribe(1, [](){
+      IRQ_manager::eoi(1);
+      CHECK(1,"IRQ 1 delegate called once");
+    });
 
-  IRQ_manager::subscribe(3, [](){ static int irq3_count {1}; IRQ_manager::eoi(3); CHECK(1,"IRQ 3 delegate called %i times ", irq3_count++); });
-
+  IRQ_manager::subscribe(3, [](){
+      static int irq3_count {1};
+      IRQ_manager::eoi(3);
+      CHECK(1,"IRQ 3 delegate called %i times ", irq3_count++);
+    });
 
   INFO("IRQ test","Soft-triggering IRQ's");
-
   // This will trigger IRQ-handlers,
   // but default handlers should only yield output in debug-mode
   // unless they have subscribers, in which case the subscribers should get called later
@@ -105,7 +109,6 @@ void Service::start()
   time.onTimeout(1s, [](){ printf("One second passed...\n"); });
   time.onTimeout(2s, [](){ printf("Two seconds passed...\n"); });
   time.onTimeout(5s, [](){ printf("Five seconds passed...\n"); });
-
 
   INFO("IRQ test","Expect IRQ subscribers to get called now ");
 }
