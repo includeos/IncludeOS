@@ -55,7 +55,7 @@ void Service::start()
     
     auto& e = vec->at(0);
     CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "Makefile", "Ent is 'Makefile'");
+    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
     
   });
   // re-mount on VBR1
@@ -65,12 +65,36 @@ void Service::start()
     CHECK(!err, "Filesystem mounted on VBR1");
     assert(!err);
     
+    // verify that we can read Makefile
     auto& fs = disk->fs();
-    auto ent = fs.stat("/Makefile");
+    auto ent = fs.stat("/banana.txt");
     CHECK(ent.is_valid(), "Stat file in root dir");
     CHECK(ent.is_file(), "Entity is file");
     CHECK(!ent.is_dir(), "Entity is not directory");
-    CHECK(ent.name() == "Makefile", "Name is 'Makefile'");
+    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    
+    // try reading banana-file
+    auto buf = fs.read(ent, 0, ent.size);
+    std::string banana((char*) buf.buffer.get(), buf.len);
+    
+    std::string internal_banana = 
+    R"(     ____                           ___
+    |  _ \  ___              _   _.' _ `.
+ _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
+|:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
+|   `.[_) )  _  |  \| | (_) |     | | | |.',..|
+':.   `. /| | | |     |  _  | |\  | | |.' :;::'
+ !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
+ !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
+ ';:'        `::;::;'             ''     .,  .
+   `:     .,.    `'    .::... .      .::;::;'
+     `..:;::;:..      ::;::;:;:;,    :;::;'
+       "-:;::;:;:      ':;::;:''     ;.-'
+           ""`---...________...---'""
+)";
+    CHECK(banana == internal_banana, "Correct banana");
+    printf("%s\n", banana.c_str());
+    
   });
   
   INFO("FAT16", "SUCCESS");
