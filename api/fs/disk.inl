@@ -66,9 +66,9 @@ Disk<FS>::mount(on_mount_func func)
     auto* mbr = (MBR::mbr*) data.get();
     MBR::BPB* bpb = mbr->bpb();
     
-    if (bpb->bytes_per_sector != 0 
+    if (bpb->bytes_per_sector >= 512 
      && bpb->fa_tables != 0 
-     && bpb->sectors_per_fat != 0)
+     && bpb->signature != 0) // check MBR signature too
     {
       // we have FAT on MBR (and we are assuming mount FAT)
       mount(MBR, func);

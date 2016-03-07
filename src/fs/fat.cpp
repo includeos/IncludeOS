@@ -64,23 +64,17 @@ namespace fs
     
     debug("System ID: \t%.8s\n", bpb->system_id);
     
-    // initialize FAT
-    if (bpb->small_sectors) // FAT16
-    {
-        this->fat_type  = FAT::T_FAT16;
-        this->sectors = bpb->small_sectors;
-        this->sectors_per_fat = bpb->sectors_per_fat;
-        this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
-        //printf("Root dir sectors: %u\n", this->root_dir_sectors);
-        //this->root_dir_sectors = 0;
-    }
+    // sector count
+    if (bpb->small_sectors)
+      this->sectors  = bpb->small_sectors;
     else
-    {
-        this->fat_type   = FAT::T_FAT32;
-        this->sectors = bpb->large_sectors;
+      this->sectors  = bpb->large_sectors;
+    // sectors per FAT (not sure about the rule here)
+    this->sectors_per_fat = bpb->sectors_per_fat;
+    if (this->sectors_per_fat == 0)
         this->sectors_per_fat = *(uint32_t*) &mbr->boot[25];
-        this->root_dir_sectors = 0;
-    }
+    // root dir sectors from root entries
+    this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
     // calculate index of first data sector
     this->data_index = bpb->reserved_sectors + (bpb->fa_tables * this->sectors_per_fat) + this->root_dir_sectors;
     debug("First data sector: %u\n", this->data_index);
@@ -115,7 +109,12 @@ namespace fs
     {
       this->fat_type = FAT::T_FAT32;
       this->root_cluster = *(uint32_t*) &mbr->boot[33];
+      this->root_cluster = 2;
       debug("The image is type FAT32, with %u clusters\n", this->clusters);
+      //printf("Root dir entries: %u clusters\n", bpb->root_entries);
+      //assert(bpb->root_entries == 0);
+      //this->root_dir_sectors = 0;
+      //this->data_index = bpb->reserved_sectors + bpb->fa_tables * this->sectors_per_fat;
     }
     debug("Root cluster index: %u (sector %u)\n", this->root_cluster, cl_to_sector(root_cluster));
     debug("System ID: %.8s\n", bpb->system_id);
@@ -234,7 +233,7 @@ namespace fs
                 }
                 
                 final_name[final_count] = 0;
-                //printf("Long name: %s\n", final_name);
+                debug("Long name: %s\n", final_name);
                 
                 i++; // skip over the long version
                 // to the short version for the stats and cluster
@@ -254,7 +253,8 @@ namespace fs
             else
             {
               auto* D = &root[i];
-              //printf("Short name: %.11s\n", D->shortname);
+              debug("Short name: %.11s\n", D->shortname);
+              
               std::string dirname((char*) D->shortname, 11);
               dirname = trim_right_copy(dirname);
               
@@ -281,7 +281,7 @@ namespace fs
     
     next = [this, sector, callback, &dirents, next] (uint32_t sector)
     {
-      //printf("int_ls: sec=%u\n", sector);
+      debug("int_ls: sec=%u\n", sector);
       device.read(sector,
       [this, sector, callback, &dirents, next] (buffer_t data)
       {
@@ -382,7 +382,6 @@ namespace fs
       });
       
     };
-    
     // start by reading root directory
     next(0);
   }
@@ -412,7 +411,7 @@ namespace fs
     // number of sectors to read ahead
     size_t chunks = ent.size / sector_size + 1;
     // allocate buffer
-    uint8_t* buffer = new uint8_t[chunks * sector_size];
+    auto* buffer = new uint8_t[chunks * sector_size];
     // at which sector we will stop
     size_t total   = chunks;
     size_t current = 0;

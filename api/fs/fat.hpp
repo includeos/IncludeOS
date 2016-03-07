@@ -112,11 +112,11 @@ namespace fs
       Enttype type() const
       {
         if (attrib & ATTR_VOLUME_ID)
-		  return VOLUME_ID;
+          return VOLUME_ID;
         else if (attrib & ATTR_DIRECTORY)
           return DIR;
         else
-		  return FILE;
+          return FILE;
       }
       
       uint32_t size() const
@@ -137,10 +137,13 @@ namespace fs
       uint16_t zero;
       uint16_t third[2];
       
+      // the index value for this long entry
+      // starting with the highest (hint: read manual)
       uint8_t long_index() const
       {
         return index & ~0x40;
       }
+      // true if this is the last long index
       uint8_t is_last() const
       {
         return (index & LAST_LONG_ENTRY) != 0;

@@ -23,7 +23,7 @@
 
 void Service::start()
 {
-  INFO("MemDisk", "Running tests for MemDisk");
+  INFO("FAT16", "Running tests for FAT16");
   auto disk = fs::new_shared_memdisk();
   assert(disk);
   
@@ -73,5 +73,5 @@ void Service::start()
     CHECK(ent.name() == "Makefile", "Name is 'Makefile'");
   });
   
-  INFO("MemDisk", "SUCCESS");
+  INFO("FAT16", "SUCCESS");
 }
