@@ -29,6 +29,7 @@
 #include <map>
 #include <functional>
 #include <cstring>
+#include <cassert>
 
 #define MYINFO(X,...) INFO("Test STL",X,##__VA_ARGS__)
 
@@ -54,14 +55,14 @@ void Service::start()
   std::vector<int> integers={1,2,3};
   std::map<const char*, int> map_of_ints={std::make_pair("First",42) , std::make_pair("Second",43)};
   for (auto i : integers)
-    CHECK(i,"Integer %i",i);
+    CHECKSERT(i,"Integer %i",i);
 
-  MYINFO("Check basic map functionality")
-  CHECK(map_of_ints["First"] == 42, "First from map: %i",  map_of_ints["First"]);
-  CHECK(map_of_ints["Second"] == 43,"Second from map: %i", map_of_ints["Second"]);
+  MYINFO("Check basic map functionality");
+  CHECKSERT(map_of_ints["First"] == 42, "First from map: %i",  map_of_ints["First"]);
+  CHECKSERT(map_of_ints["Second"] == 43,"Second from map: %i", map_of_ints["Second"]);
 
   MYINFO("Call a std::function lambda immediately");
-  std::function<void()> my_lambda = [] (void) { CHECK(1," Lambda is called"); };
+  std::function<void()> my_lambda = [] (void) { CHECKSERT(1," Lambda is called"); };
   my_lambda();
 
   INFO("Test STL", "String to c-string conversion");
@@ -69,6 +70,8 @@ void Service::start()
   const char* orig = "std::string to c-string conversion works";
   std::string str = "std::string to c-string conversion works";
 
-  CHECK(strcmp(str.c_str(),orig) == 0, "std::string to c-string conversion works");
+  CHECKSERT(strcmp(str.c_str(),orig) == 0, "std::string to c-string conversion works");
+
+  MYINFO("SUCCESS");
 
 }
