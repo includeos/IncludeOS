@@ -28,6 +28,7 @@
      
      In the following abbreviated to Virtio 1.03 or Virtio std.          
 */
+#pragma once
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
@@ -60,7 +61,6 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
 
-
 /** A simple scatter-gather list used for Queue::enqueue. 
     ( From sanos, virtio.h  - probably Linux originally)
  */
@@ -73,6 +73,25 @@ struct scatterlist {
 class Virtio
 {
 public:    
+  // http://docs.oasis-open.org/virtio/virtio/v1.0/csprd01/virtio-v1.0-csprd01.html#x1-860005
+  // Virtio device types
+  enum virtiotype_t
+  {
+    RESERVED = 0,
+    NIC,
+    BLOCK,
+    CONSOLE,
+    ENTROPY,
+    BALLOON,
+    IO_MEM,
+    RP_MSG,
+    SCSI_HOST,
+    T9P,
+    WLAN,
+    RP_SERIAL,
+    CAIF
+  };
+  
   /** Virtio Queue class. */
   class Queue
   {
@@ -92,11 +111,11 @@ public:
       le32 len; 
       
       /* This marks a buffer as continuing via the next field. */ 
-#define VIRTQ_DESC_F_NEXT   1 
+      #define VIRTQ_DESC_F_NEXT     1
       /* This marks a buffer as device write-only (otherwise device read-only). */ 
-#define VIRTQ_DESC_F_WRITE     2 
+      #define VIRTQ_DESC_F_WRITE    2
       /* This means the buffer contains a list of buffer descriptors. */ 
-#define VIRTQ_DESC_F_INDIRECT   4 
+      #define VIRTQ_DESC_F_INDIRECT 4
       /* The flags as indicated above. */ 
       le16 flags; 
       /* Next field if flags & NEXT */ 
@@ -186,16 +205,16 @@ public:
     
     /** Get the queue descriptor. To be written to the Virtio device. */
     virtq_desc* queue_desc() const { return _queue.desc; }
-        
-    /** Notify the queue of IRQ */
-    void notify();
     
     /** Push data tokens onto the queue. 
         @param sg : A scatterlist of tokens
         @param out : The number of outbound tokens (device-readable - TX)
         @param in : The number of tokens to be inbound (device-writable RX)
     */
-    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data));
+    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void*);
+    
+    void enqueue(void* out, uint32_t out_len, void* in, uint32_t in_len);
+    void* dequeue(uint32_t& len);
     
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
@@ -217,7 +236,22 @@ public:
 
     inline uint16_t num_avail()
     { return _queue.avail->idx - _queue.used->idx; }
-        
+    
+    // access the current index
+    virtq_desc& current()
+    {
+      return _queue.desc[_free_head];
+    }
+    virtq_desc& next()
+    {
+      return _queue.desc[ _queue.desc[_free_head].next ];
+    }
+    
+    // go to next index
+    void go_next()
+    {
+      _free_head = _queue.desc[_free_head].next;
+    }
     
     inline uint16_t size(){ return _size; }
     
@@ -273,11 +307,11 @@ public:
       Should conform to Virtio std. §3.1.1, steps 1-6  
       (Step 7 is "Device specific" which a subclass will handle)
   */
-  Virtio(PCI_Device& pci);
+  Virtio(hw::PCI_Device& pci);
 
 private:
   //PCI memer as reference (so no indirection overhead)
-  PCI_Device& _pcidev;
+  hw::PCI_Device& _pcidev;
   
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;  
@@ -296,9 +330,6 @@ private:
   int calls = 0;
   
   void default_irq_handler();
-  
-
-  
 };
 
 #endif

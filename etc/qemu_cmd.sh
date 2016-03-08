@@ -9,14 +9,15 @@ else
 fi
 
 export macaddress="c0:01:0a:00:00:2a"
-[ ! -v INCLUDEOS_HOME ] && INCLUDEOS_HOME=$HOME/IncludeOS_install
+INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 
 export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
 export SMP="-smp 1"
 
-export DEV_GRAPHICS="--nographic" #For a VGA console (which won't work over ssh), use "-vga std"
+export DEV_GRAPHICS="-nographic"
 
-export DEV_HDD="-hda $IMAGE"
+export SERIAL="-virtioconsole stdio"
+
+export DEV_HDD="-drive file=$IMAGE,format=raw,if=ide"
 export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP"
-

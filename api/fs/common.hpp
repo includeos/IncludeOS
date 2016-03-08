@@ -16,32 +16,21 @@
 // limitations under the License.
 
 #pragma once
-#include <stdint.h>
-#include <string>
+#ifndef FS_COMMON_HPP
+#define FS_COMMON_HPP
 
-// Index node
-typedef int16_t inode_t;
+#include <memory>
 
-#define likely(x)   __builtin_expect(!!(x), true)
-#define unlikely(x) __builtin_expect(!!(x), false) 
+namespace fs {
 
-#include <sys/errno.h>
+typedef std::shared_ptr<uint8_t> buffer_t;
 
-/*
-// No such file or directory
-#define ENOENT   2
-// I/O Error
-#define EIO      5
-// File already exists
-#define EEXIST  17
-// Not a directory
-#define ENOTDIR 20
-// Invalid argument
-#define EINVAL  22
-// No space left on device
-#define ENOSPC  28
-// Directory not empty
-#define ENOTEMPTY 39
-*/
+// TODO: transform this into a class with a bool operator
+using error_t = bool;
 
-extern std::string fs_error_string(int error);
+/** @var no_error: Always returns boolean false when used in expressions */
+extern error_t no_error;
+
+} //< namespace fs
+
+#endif //< FS_ERROR_HPP

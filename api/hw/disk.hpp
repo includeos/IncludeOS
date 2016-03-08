@@ -19,68 +19,60 @@
 #define HW_DISK_HPP
 
 #include "pci_device.hpp"
+#include "disk_device.hpp"
 
-/** @Todo : Implement */
-class Block { };
-
-/** @Todo : Implement */
-class DiskError;
-
-/** A public interface for block devices
-    
-    @Todo: This is just a stub. 
-    Currently (v0.6.3-proto) only the bootloader access disks.
-    
-    The requirements for a driver is implicitly given by how it's used below,
-    rather than explicitly by proper inheritance.  */
+namespace hw {
 
 template <typename DRIVER>
-class Disk{ 
-  
+class Disk : public IDiskDevice {
 public:
-
-  typedef DRIVER driver; 
-  using Blocknr = uint32_t;
- 
+  /** optimal block size for this device */
+  virtual block_t block_size() const noexcept override
+  { return driver.block_size(); }
   
-  using On_read = delegate<void(Block& b)>;
-  using On_error = delegate<void(DiskError)>;
+  /** Human readable name */
+  const char* name() const noexcept override
+  {
+    return driver.name();
+  }
   
-  /** Get a readable name. */
-  inline const char* name() { return driver_.name(); }
+  virtual void
+  read(block_t blk, on_read_func del) override
+  {
+    driver.read(blk, del);
+  }
+  virtual void
+  read(block_t blk, block_t count, on_read_func del) override
+  {
+    driver.read(blk, count, del);
+  }
   
-  inline uint32_t block_size () const 
-  { return driver_.block_size(); }    
+  virtual buffer_t read_sync(block_t blk) override
+  {
+    return driver.read_sync(blk);
+  }
   
-  inline void read_block(Blocknr nr, On_read onread, On_error onerr)
-  { return driver_.read_block(nr, onread, onerr); }
+  virtual block_t size() const noexcept override
+  {
+    return driver.size();
+  }
   
-  inline void write_block(Blocknr nr, Block blk, On_error onerr)
-  { return driver_.write_block(nr, blk, onerr); }
+  virtual ~Disk() = default;
   
 private:
+  DRIVER driver;
   
-  DRIVER driver_;
-  
-  /** Constructor. 
-      
-      Just a wrapper around the driver constructor.
-      @note The Dev-class is a friend and will call this */
-  Disk(PCI_Device& d): driver_(d) {}
+  /**
+   *  Just a wrapper around the driver constructor
+   *  @note The Dev-class is a friend and will call this
+   */
+  template <typename... Args>
+  explicit Disk(PCI_Device& d, Args&&... args):
+    driver{d, std::forward<Args>(args)... } {}
   
   friend class Dev;
+}; //< class Disk
 
-};
+} //< namespace hw
 
-/** @todo : At least implement virtio block devices. */
-class Virtio_block{
-public: 
-  const char* name(){ return "E1000 Driver"; }
-  //...whatever the Nic class implicitly needs
-  
-};
-
-/** Hopefully somebody will port a driver for this one */
-class IDE;
-
-#endif
+#endif //< HW_DISK_HPP

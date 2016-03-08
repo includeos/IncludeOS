@@ -2,3 +2,9 @@
 [submodule "mod/rapidjson"]
 	path = mod/rapidjson
 	url = git@github.com:fwsGonzo/rapidjson.git
+[submodule "mod/GSL"]
+	path = mod/GSL
+	url = git@github.com:Microsoft/GSL.git
+[submodule "test/lest"]
+	path = test/lest
+	url = git@github.com:martinmoene/lest.git

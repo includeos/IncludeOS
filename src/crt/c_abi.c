@@ -21,6 +21,7 @@
 #include <utility/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
+#include <string.h>
 
 /// IMPLEMENTATION OF Newlib I/O:
 struct _reent newlib_reent;

@@ -15,15 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef OSABI_SIGNAL_HPP
-#define OSABI_SIGNAL_HPP
+#ifndef UTILITY_SIGNAL_HPP
+#define UTILITY_SIGNAL_HPP
 
-#include <functional>
 #include <vector>
+#include <functional>
 
-template<typename F>
-class signal
-{
+template <typename F>
+class signal {
 public:
 	//! \brief Callable type of the signal handlers
 	using handler = std::function<F>;
@@ -41,15 +40,13 @@ public:
 	signal& operator=(signal&&) = default;
 
 	//! \brief Connect a callable object to this signal
-	void connect(handler&& fn)
-	{
+	void connect(handler&& fn) {
 		funcs.emplace_back(std::forward<handler>(fn));
 	}
 	
 	//! \brief Emit this signal by executing all connected callable objects
 	template<typename... Args>
-	void emit(Args&&... args)
-	{
+	void emit(Args&&... args) {
 		for(auto& fn : funcs)
 			fn(std::forward<Args>(args)...);
 	}
@@ -63,6 +60,6 @@ private:
 
 	// Avoid assignment
 	signal& operator=(signal const&) = delete;
-};
+}; //< class signal
 
-#endif
+#endif //< UTILITY_SIGNAL_HPP

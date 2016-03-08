@@ -8,7 +8,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 #
 # llvm_src -> path to clone llvm repo
 # llvm_build-> path to build llvm-libs. (must beoutside of llvm)
-# IncludeOS_src -> InclueOS git source (i.e =$HOME/IncludeOS)
+# INCLUDEOS_SRC -> InclueOS git source (i.e =$HOME/IncludeOS)
 
 
 # OPTIONALS (required the first time, but optional later):
@@ -17,7 +17,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 # $download_llvm: Clone llvm svn sources
 
 
-IncludeOS_sys=$IncludeOS_src/api/sys
+IncludeOS_sys=$INCLUDEOS_SRC/api/sys
 
 
 
@@ -103,7 +103,7 @@ OPTS+=-DLIBCXX_BUILD_32_BITS=ON" "
 OPTS+=-DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON" "
 
 OPTS+=-DLIBCXX_CXX_ABI=libcxxabi" "
-OPTS+=-DLIBCXX_CXX_ABI_INCLUDE_PATHS=$IncludeOS_src/src/include" "
+OPTS+=-DLIBCXX_CXX_ABI_INCLUDE_PATHS=$INCLUDEOS_SRC/src/include" "
 
 
 # libunwind-specific options
@@ -133,7 +133,7 @@ llvm_src_verbose=-v
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
 
 # Using Ninja (slightly faster, but not by much)
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$IncludeOS_src/api -I$newlib_inc -I$IncludeOS_src/src/include/ -I$IncludeOS_src/stdlib/support/newlib/ " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$INCLUDEOS_SRC/api -I$newlib_inc -I$INCLUDEOS_SRC/src/include/ -I$INCLUDEOS_SRC/stdlib/support/newlib/ " $BUILD_DIR/$llvm_src #  -DCMAKE_CXX_COMPILER='clang++ -std=c++11
 
 
 #

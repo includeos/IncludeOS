@@ -185,7 +185,7 @@ class VirtioNet : Virtio {
   net::upstream _link_out;
 
   /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffff / MTU(),  MTU(), sizeof(virtio_net_hdr) };
+  net::BufferStore bufstore_{ 0xfffffU / MTU(),  MTU(), sizeof(virtio_net_hdr) };
   net::BufferStore::release_del release_buffer = 
     net::BufferStore::release_del::from
     <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
@@ -213,10 +213,10 @@ public:
   inline net::BufferStore& bufstore() { return bufstore_; }
   
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  int transmit(net::Packet_ptr pckt);
+  void transmit(net::Packet_ptr pckt);
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(PCI_Device& pcidev);
+  VirtioNet(hw::PCI_Device& pcidev);
     
 
 };

@@ -24,7 +24,7 @@ namespace net
 {
   void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
   {
-    UDP::port port = 33314; // <-- FIXME: should be automatic port
+    UDP::port_t port = 33314; // <-- FIXME: should be automatic port
     auto& sock = stack.udp().bind(port);
     
     // create DNS request
@@ -39,7 +39,7 @@ namespace net
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
     sock.onRead( [this, hostname, request, func]
-    (Socket<UDP>&, IP4::addr, UDP::port, const char* data, int) mutable -> int
+    (Socket<UDP>&, IP4::addr, UDP::port_t, const char* data, int) mutable -> int
     {
       // original request ID = this->id;
       request.parseResponse(data);

@@ -33,3 +33,4 @@ vmbuild/vmbuild
 
 /.vagrant
 /examples/demo_service/IncludeOS_Demo_Service
+/seed/My_Service

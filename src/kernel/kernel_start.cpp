@@ -16,6 +16,7 @@
 // limitations under the License.
 
 //#define DEBUG
+#include <hw/ioport.hpp>
 #include <kernel/os.hpp>
 #include <assert.h>
 #include <debug>
@@ -85,22 +86,22 @@ extern "C"
   
   #define SERIAL_PORT 0x3f8  
   void init_serial() {
-    OS::outb(SERIAL_PORT + 1, 0x00);    // Disable all interrupts
-    OS::outb(SERIAL_PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-    OS::outb(SERIAL_PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-    OS::outb(SERIAL_PORT + 1, 0x00);    //                  (hi byte)
-    OS::outb(SERIAL_PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
-    OS::outb(SERIAL_PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-    OS::outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+    hw::outb(SERIAL_PORT + 1, 0x00);    // Disable all interrupts
+    hw::outb(SERIAL_PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+    hw::outb(SERIAL_PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+    hw::outb(SERIAL_PORT + 1, 0x00);    //                  (hi byte)
+    hw::outb(SERIAL_PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+    hw::outb(SERIAL_PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    hw::outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
   }
   
   int is_transmit_empty() {
-    return OS::inb(SERIAL_PORT + 5) & 0x20;
+    return hw::inb(SERIAL_PORT + 5) & 0x20;
   }
   
   void write_serial(char a) {
     while (is_transmit_empty() == 0);
     
-    OS::outb(SERIAL_PORT, a);
+    hw::outb(SERIAL_PORT, a);
   }
 }

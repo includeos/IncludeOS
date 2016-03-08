@@ -44,7 +44,7 @@ ata_lba_read:
 	out dx, al
 	
 	mov edx, 0x1F7 ; Command port
-	mov al, 0x20   ;0x20 Read with retry.
+	mov al,  0x20  ; Read with retry.
 	out dx, al
 
 	;; Check for errors
@@ -67,17 +67,16 @@ ata_lba_read:
 	hlt
 
 .fetch_data:
-	mov eax, 128 ; to read 256 words = 1 sector
-	xor bx, bx
-	mov bl, cl ; read CL sectors
-	mul bx
-	mov ecx, eax ; ECX is counter for INSW
-	mov edx, 0x1F0 ; Data port, in and out
-
-	;; Repeatedly read words to memory
-	;; from drive buffer
-	rep insd	      ; in to [RDI]		
-	
+	mov bl, cl    ; read CL sectors
+	mov dx, 0x1F0 ; Data port, in and out
+  ;;xor bx, bx
+	;;mul bx
+	mov  cx, 256   ; CX is counter for INSW
+	rep insw	     ; read in to [EDI]
+	in al, dx
+	in al, dx
+	in al, dx
+	in al, dx
+  
 	popa
 	ret
-	

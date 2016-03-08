@@ -172,76 +172,49 @@ mode32:
 	mov ebp,_kernel_stack
 	
 	;; Set up data segment
-	mov ds,eax
-	mov es,eax
-	mov fs,eax
-	mov gs,eax
-
+	mov ds, eax
+	mov es, eax
+	mov fs, eax
+	mov gs, eax
 	
-	;; Load LBA params
-	%define CYL   0
-	%define HEAD  0
-	%define SECT  2
-	%define HPC   1
-	%define SPT  63
-	
-	;;  OBS: By default, Qemu handles only 1 sector pr. read	
+	;; By default QEMU handles only 1 sector pr. read	
 	%define LOAD_SIZE 1 
 	
-	xor edx,edx
+	;; Number of sectors to read for the entire service
+  mov edx, [srv_size+(_boot_segment<<4)]
+	mov eax, 1
 	
-	
-	mov edx,[srv_size+(_boot_segment<<4)]
-	mov eax,1	;== ((CYL*HPC)+HEAD)*SPT+SECT-1		;
-
-	
-	;; Number of sectors to read (lets do one sector at a time)
-
+	;; Location to load kernel
 	mov edi,_kernel_loc
-
+  
 .more:
-	xor ecx, ecx
-	mov cl,LOAD_SIZE
-
-	;; Do the loading
+	mov cl, LOAD_SIZE
+  
+	;; Load 1 sector from disk
 	call ata_lba_read
 	
-	;; Increase LBA by 63 sectors
-	add eax,LOAD_SIZE
-
-	;; Increase destination by 63 sect. * sect.size
-	add edi,LOAD_SIZE*512
-
-	;; Decrement counter (srv_size) by load size
-	sub edx,LOAD_SIZE
-
+	;; Increase LBA by 1 sector
+	add eax, LOAD_SIZE
+  
+	;; Increase destination (in bytes)
+	add edi, LOAD_SIZE * 512
+  
+	;; Decrement counter (srv_size) by 1 sector
+	sub edx, LOAD_SIZE
+  
 	;; If all sectors loaded, move on, else get .more
-	cmp edx,0
-	jge .more
+	cmp edx, 0
+	jge .more  ;; jump when gequal
 	
-	;; Compute service address (kernel entry + elf-offset)
-	;; Putting this in ecx... Good idea? Don't know.
-	;; TODO: Check gnu calling conventions to see if ecx is preserved
-	xor eax,eax
-	xor ebx,ebx
-	xor ecx,ecx
-	xor edx,edx
-	xor edi,edi
-	mov ecx,[srv_offs+(_boot_segment<<4)]
-	;; add ecx,_kernel_loc // We've now placed the exact address in srv_offs.
-
-	;; A20 test
-	;; mov byte [0x10000],'!'
-	
-
+  ;; Bochs breakpoint
+	;;xchg bx,bx
+  
 	;; GERONIMO!
 	;; Jump to service
-	xchg bx,bx
-	;; 	hlt
-	jmp ecx
+	mov ecx, [srv_offs+(_boot_segment<<4)]
+  jmp ecx
 	
 	%include "boot/disk_read_lba.asm"
-	
 	
 ;; BOOT SIGNATURE
 	times 510-($-$$) db 0	;

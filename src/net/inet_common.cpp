@@ -15,29 +15,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <net/inet_common.hpp>
-#include <net/util.hpp>
 #include <stdlib.h>
 
-// Should be pretty much like the example in RFC 1071, but using a uinon for readability
-uint16_t net::checksum(void* data, size_t len)
-{
-  uint16_t* buf = (uint16_t*)data;
+#include <os>
+#include <net/util.hpp>
+#include <net/inet_common.hpp>
 
-  union sum
-  {
+namespace net {
+
+// Should be pretty much like the example in RFC 1071,
+// but using a uinon for readability
+uint16_t checksum(void* data, size_t len) noexcept {
+
+  uint16_t* buf = reinterpret_cast<uint16_t*>(data);
+
+  union sum {
     uint32_t whole;    
     uint16_t part[2];
-  } sum32{0};
+  } sum32 {0};
   
   // Iterate in short int steps.
-  for (uint16_t* i = buf; i < buf + len / 2; i++)
+  for (uint16_t* i = buf; i < (buf + len / 2); ++i)
     sum32.whole += *i;
   
   // odd-length case
-  if (len & 1)    
-    sum32.whole += ((uint8_t*) buf)[len-1];
+  if (len & 1) {  
+    sum32.whole += reinterpret_cast<uint8_t*>(buf)[len - 1];
+  }
 
-  return ~(sum32.part[0]+sum32.part[1]);
+  return ~(sum32.part[0] + sum32.part[1]);
 }
+
+} //< namespace net

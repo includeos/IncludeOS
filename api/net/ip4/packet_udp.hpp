@@ -52,11 +52,11 @@ namespace net
       set_protocol(IP4::IP4_UDP);
     }
     
-    UDP::port src_port() const
+    UDP::port_t src_port() const
     {
       return htons(header().sport);
     }
-    UDP::port dst_port() const
+    UDP::port_t dst_port() const
     {
       return htons(header().dport);
     }
