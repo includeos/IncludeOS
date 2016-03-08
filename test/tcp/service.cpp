@@ -32,15 +32,11 @@ std::shared_ptr<TCP::Connection> client;
 	TEST VARIABLES
 */
 TCP::Port 
-	TEST1{1}, TEST2{2}, TEST3{3}, TEST4{4};
-
-TCP::Socket
-	TEST_OUT{ {{10,0,2,2}}, 1337 };
+	TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
 using HostAddress = std::pair<std::string, TCP::Port>;
 HostAddress
 	TEST_ADDR_TIME{"india.colorado.edu", 13};
-
 
 std::string 
 	small, big, huge;
@@ -57,6 +53,9 @@ size_t bufstore_capacity{0};
 // To reduce test duration, lower MSL to 5s.
 milliseconds MSL_TEST = 5s;
 
+/*
+	TEST: Release of resources/clean up.
+*/
 void FINISH_TEST() {
 	INFO("TEST", "Started 3 x MSL timeout.");
 	hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
@@ -68,6 +67,9 @@ void FINISH_TEST() {
 	});
 }
 
+/*
+	TEST: Outgoing Internet Connection
+*/
 void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 	auto port = address.second;
 	INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
@@ -89,8 +91,11 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 	});
 }
 
+/*
+	TEST: Outgoing Connection to Host
+*/
 void OUTGOING_TEST(TCP::Socket outgoing) {
-	INFO("TEST", "Outgoing Connection");
+	INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
 	inet->tcp().connect(outgoing)
 		->onConnect([](Connection_ptr conn) {
 			conn->write(small);
@@ -105,6 +110,7 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
 		});
 }
 
+// Used to send big data
 struct Buffer {
 	size_t written, read;
 	char* data;
@@ -134,13 +140,19 @@ void Service::start()
  	
  	bufstore_capacity = inet->available_capacity();
  	auto& tcp = inet->tcp();
+ 	// this is default
  	tcp.set_buffer_limit(10);
+ 	// reduce test duration
  	tcp.set_MSL(MSL_TEST);
 	
 	/*
 		TEST: Send and receive small string.
 	*/
 	INFO("TEST", "Listeners and connections allocation.");
+
+	/*
+		TEST: Nothing should be allocated.
+	*/
 	CHECK(tcp.openPorts() == 0, "tcp.openPorts() == 0");
 	CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
 	
@@ -152,8 +164,9 @@ void Service::start()
 		});
 		conn->write(small);
 	});
+
 	/*
-		TEST: 1 server should be bound.
+		TEST: Server should be bound.
 	*/
 	CHECK(tcp.openPorts() == 1, "tcp.openPorts() == 1");
 	
@@ -198,10 +211,13 @@ void Service::start()
 		buffer->written += conn->write(huge.data(), huge.size());
 	});
 
+	/*
+		TEST: More servers should be bound.
+	*/
 	CHECK(tcp.openPorts() == 3, "tcp.openPorts() == 3");
 
 	/*
-		Test for other stuff
+		TEST: Connection (Status etc.) and Active Close
 	*/
 	tcp.bind(TEST4).onConnect([](Connection_ptr conn) {
 		INFO("TEST","Connection");
@@ -225,7 +241,7 @@ void Service::start()
 		hw::PIT::instance().onTimeout(1s,[conn]{
 			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
 			
-			OUTGOING_TEST(TEST_OUT);
+			OUTGOING_TEST({inet->router(), TEST5});
 		});
 		
 		hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
