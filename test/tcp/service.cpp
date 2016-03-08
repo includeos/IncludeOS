@@ -32,10 +32,7 @@ std::shared_ptr<TCP::Connection> client;
 	TEST VARIABLES
 */
 TCP::Port 
-	TEST1{1}, TEST2{2}, TEST3{3}, TEST4{4};
-
-TCP::Socket
-	TEST_OUT{ {{10,0,2,2}}, 1337 };
+	TEST1{1}, TEST2{2}, TEST3{3}, TEST4{4}, TEST5{1337};
 
 using HostAddress = std::pair<std::string, TCP::Port>;
 HostAddress
@@ -90,7 +87,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 }
 
 void OUTGOING_TEST(TCP::Socket outgoing) {
-	INFO("TEST", "Outgoing Connection");
+	INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
 	inet->tcp().connect(outgoing)
 		->onConnect([](Connection_ptr conn) {
 			conn->write(small);
@@ -225,7 +222,7 @@ void Service::start()
 		hw::PIT::instance().onTimeout(1s,[conn]{
 			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
 			
-			OUTGOING_TEST(TEST_OUT);
+			OUTGOING_TEST({inet->router(), TEST5});
 		});
 		
 		hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
