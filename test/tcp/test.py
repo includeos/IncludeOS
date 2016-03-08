@@ -1,9 +1,15 @@
+#!/usr/bin/python
+
 import socket
 import sys
 
+# Usage: python test.py $GUEST_IP $HOST_IP
+GUEST = '10.0.2.42' if (len(sys.argv) < 2) else sys.argv[1]
+HOST = '10.0.0.1' if (len(sys.argv) < 3) else sys.argv[2]
+
 def connect(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('127.0.0.1', port)
+    server_address = (GUEST, port)
     print >>sys.stderr, 'connecting to %s port %s' % server_address
     sock.connect(server_address)
 
@@ -26,7 +32,7 @@ connect(8084)
 
 def listen(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('127.0.0.1', 1337)
+    server_address = (HOST, port)
     print >>sys.stderr, 'starting up on %s port %s' % server_address
     sock.bind(server_address)
     sock.listen(1)
@@ -52,4 +58,4 @@ def listen(port):
         sock.close()
     return
 
-listen(1337)
+listen(8085)
