@@ -3,7 +3,7 @@
 ### Usage:
 ` $ python test.py $GUEST_IP $HOST_IP `
 
-Guest and Host IP are optional (default are GUEST=`10.0.2.42` HOST=`10.0.0.1`).
+Guest and Host IP are optional (default are GUEST=`10.0.0.42` HOST=`10.0.0.1`).
 
 Script helps verify the TCP connections when the service is running.
 
