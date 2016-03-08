@@ -2,14 +2,15 @@
 #include <cassert>
 const char* service_name__ = "...";
 
+//#include <memdisk>
+//auto disk = fs::new_shared_memdisk();
+
 #include <ide>
 #include <fs/fat.hpp>
-
 using FatDisk = fs::Disk<fs::FAT>;
 std::shared_ptr<FatDisk> disk;
-using SharedFatDisk = decltype(disk);
 
-void list_partitions(SharedFatDisk);
+void list_partitions(decltype(disk));
 
 void Service::start()
 {
@@ -19,7 +20,7 @@ void Service::start()
   assert(disk);
   
   // if the disk is empty, we can't mount a filesystem anyways
-  if (disk->empty()) panic("Oops! The memdisk is empty!\n");
+  if (disk->empty()) panic("Oops! The disk is empty!\n");
   
   // list extended partitions
   list_partitions(disk);
@@ -130,7 +131,7 @@ void Service::start()
   printf("*** TEST SERVICE STARTED *** \n");
 }
 
-void list_partitions(SharedFatDisk disk)
+void list_partitions(decltype(disk) disk)
 {
   disk->partitions(
   [] (fs::error_t err, auto& parts)

@@ -57,7 +57,7 @@ namespace hw {
 
 IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
   _pcidev {pcidev},
-  _drive  {(uint8_t) ((sel == MASTER) ? IDE_MASTER : IDE_SLAVE)},
+  _drive  {(uint8_t) ((sel == MASTER) ? 0 : 1)},
   _iobase {0U},
   _nb_blk {0U}
 {
@@ -122,8 +122,9 @@ void IDE::read(block_t blk, on_read_func callback) {
     return;
   }
 
-  auto buf = read_sync(blk);
-  /*
+  callback(read_sync(blk));
+  return;
+  
   set_irq_mode(true);
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
   set_nbsectors(1);
@@ -132,8 +133,6 @@ void IDE::read(block_t blk, on_read_func callback) {
 
   _callback = callback;
   _nb_irqs = 1;
-  */
-  callback(buf);
 }
 
 void IDE::read(block_t blk, block_t count, on_read_func callback)
@@ -172,9 +171,9 @@ IDE::buffer_t IDE::read_sync(block_t blk)
   wait_status_flags(IDE_DRDY, false);
   
   uint16_t* wptr = (uint16_t*) buffer;
-  
-  for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
-    wptr[i] = inw(IDE_DATA);
+  uint16_t* wend = (uint16_t*)&buffer[block_size()];
+  while (wptr < wend)
+    *(wptr++) = inw(IDE_DATA);
   
   // return a shared_ptr wrapper for the buffer
   return buffer_t(buffer, std::default_delete<uint8_t[]>());

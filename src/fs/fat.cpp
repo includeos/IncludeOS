@@ -500,13 +500,14 @@ namespace fs
     });
   } // readFile()
   
-  void FAT::stat(const std::string& strpath, on_stat_func callback)
+  void FAT::stat(const std::string& strpath, on_stat_func func)
   {
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty()))
     {
-      // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      callback(true, Dirent(INVALID_ENTITY, strpath));
+      // root doesn't have any stat anyways
+      // Note: could use ATTR_VOLUME_ID in FAT
+      func(true, Dirent(INVALID_ENTITY, strpath));
       return;
     }
     
@@ -514,14 +515,16 @@ namespace fs
     // extract file we are looking for
     std::string filename = path->back();
     path->pop_back();
+    // we need to remember this later
+    auto callback = std::make_shared<on_stat_func> (func);
     
     traverse(path,
-    [this, filename, &callback] (error_t error, dirvec_t dirents)
+    [this, filename, callback] (error_t error, dirvec_t dirents)
     {
       if (unlikely(error))
       {
         // no path, no file!
-        callback(error, Dirent(INVALID_ENTITY, filename));
+        (*callback)(error, Dirent(INVALID_ENTITY, filename));
         return;
       }
       
@@ -531,13 +534,13 @@ namespace fs
         if (unlikely(e.name() == filename))
         {
           // read this file
-          callback(no_error, e);
+          (*callback)(no_error, e);
           return;
         }
       }
       
       // not found
-      callback(true, Dirent(INVALID_ENTITY, filename));
+      (*callback)(true, Dirent(INVALID_ENTITY, filename));
     });
   }
 }
