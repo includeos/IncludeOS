@@ -277,13 +277,16 @@ namespace fs
       dirvec_t dirents, 
       on_internal_ls_func callback)
   {
-    std::function<void(uint32_t)> next;
+    // list contents of meme sector by sector
+    typedef std::function<void(uint32_t)> next_func_t;
     
-    next = [this, sector, callback, &dirents, next] (uint32_t sector)
+    auto next = std::make_shared<next_func_t> ();
+    *next = 
+    [this, sector, callback, dirents, next] (uint32_t sector)
     {
       debug("int_ls: sec=%u\n", sector);
       device.read(sector,
-      [this, sector, callback, &dirents, next] (buffer_t data)
+      [this, sector, callback, dirents, next] (buffer_t data)
       {
         if (!data)
         {
@@ -302,14 +305,14 @@ namespace fs
         else
         {
           // go to next sector
-          next(sector+1);
+          (*next)(sector+1);
         }
         
       }); // read root dir
     };
     
     // start reading sectors asynchronously
-    next(sector);
+    (*next)(sector);
   }
   
   void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback)
@@ -318,9 +321,9 @@ namespace fs
     typedef std::function<void(uint32_t)> next_func_t;
     
     // asynch stack traversal
-    next_func_t next;
-    next = 
-    [this, path, &next, callback] (uint32_t cluster)
+    auto next = std::make_shared<next_func_t> ();
+    *next = 
+    [this, path, next, callback] (uint32_t cluster)
     {
       if (path->empty())
       {
@@ -350,7 +353,7 @@ namespace fs
       
       // list directory contents
       int_ls(S, dirents,
-      [name, dirents, &next, callback] (error_t error, dirvec_t ents)
+      [name, dirents, next, callback] (error_t error, dirvec_t ents)
       {
         if (unlikely(error))
         {
@@ -370,7 +373,7 @@ namespace fs
             debug("\t\t cluster: %llu\n", e.block);
             // only follow directories
             if (e.type() == DIR)
-              next(e.block);
+              (*next)(e.block);
             else
               callback(true, dirents);
             return;
@@ -383,7 +386,7 @@ namespace fs
       
     };
     // start by reading root directory
-    next(0);
+    (*next)(0);
   }
   
   void FAT::ls(const std::string& path, on_ls_func on_ls)
