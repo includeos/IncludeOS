@@ -64,23 +64,17 @@ namespace fs
     
     debug("System ID: \t%.8s\n", bpb->system_id);
     
-    // initialize FAT
-    if (bpb->small_sectors) // FAT16
-    {
-        this->fat_type  = FAT::T_FAT16;
-        this->sectors = bpb->small_sectors;
-        this->sectors_per_fat = bpb->sectors_per_fat;
-        this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
-        //printf("Root dir sectors: %u\n", this->root_dir_sectors);
-        //this->root_dir_sectors = 0;
-    }
+    // sector count
+    if (bpb->small_sectors)
+      this->sectors  = bpb->small_sectors;
     else
-    {
-        this->fat_type   = FAT::T_FAT32;
-        this->sectors = bpb->large_sectors;
+      this->sectors  = bpb->large_sectors;
+    // sectors per FAT (not sure about the rule here)
+    this->sectors_per_fat = bpb->sectors_per_fat;
+    if (this->sectors_per_fat == 0)
         this->sectors_per_fat = *(uint32_t*) &mbr->boot[25];
-        this->root_dir_sectors = 0;
-    }
+    // root dir sectors from root entries
+    this->root_dir_sectors = ((bpb->root_entries * 32) + (sector_size - 1)) / sector_size;
     // calculate index of first data sector
     this->data_index = bpb->reserved_sectors + (bpb->fa_tables * this->sectors_per_fat) + this->root_dir_sectors;
     debug("First data sector: %u\n", this->data_index);
@@ -115,7 +109,12 @@ namespace fs
     {
       this->fat_type = FAT::T_FAT32;
       this->root_cluster = *(uint32_t*) &mbr->boot[33];
+      this->root_cluster = 2;
       debug("The image is type FAT32, with %u clusters\n", this->clusters);
+      //printf("Root dir entries: %u clusters\n", bpb->root_entries);
+      //assert(bpb->root_entries == 0);
+      //this->root_dir_sectors = 0;
+      //this->data_index = bpb->reserved_sectors + bpb->fa_tables * this->sectors_per_fat;
     }
     debug("Root cluster index: %u (sector %u)\n", this->root_cluster, cl_to_sector(root_cluster));
     debug("System ID: %.8s\n", bpb->system_id);
@@ -234,7 +233,7 @@ namespace fs
                 }
                 
                 final_name[final_count] = 0;
-                //printf("Long name: %s\n", final_name);
+                debug("Long name: %s\n", final_name);
                 
                 i++; // skip over the long version
                 // to the short version for the stats and cluster
@@ -254,7 +253,8 @@ namespace fs
             else
             {
               auto* D = &root[i];
-              //printf("Short name: %.11s\n", D->shortname);
+              debug("Short name: %.11s\n", D->shortname);
+              
               std::string dirname((char*) D->shortname, 11);
               dirname = trim_right_copy(dirname);
               
@@ -277,13 +277,16 @@ namespace fs
       dirvec_t dirents, 
       on_internal_ls_func callback)
   {
-    std::function<void(uint32_t)> next;
+    // list contents of meme sector by sector
+    typedef std::function<void(uint32_t)> next_func_t;
     
-    next = [this, sector, callback, &dirents, next] (uint32_t sector)
+    auto next = std::make_shared<next_func_t> ();
+    *next = 
+    [this, sector, callback, dirents, next] (uint32_t sector)
     {
-      //printf("int_ls: sec=%u\n", sector);
+      debug("int_ls: sec=%u\n", sector);
       device.read(sector,
-      [this, sector, callback, &dirents, next] (buffer_t data)
+      [this, sector, callback, dirents, next] (buffer_t data)
       {
         if (!data)
         {
@@ -302,14 +305,14 @@ namespace fs
         else
         {
           // go to next sector
-          next(sector+1);
+          (*next)(sector+1);
         }
         
       }); // read root dir
     };
     
     // start reading sectors asynchronously
-    next(sector);
+    (*next)(sector);
   }
   
   void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback)
@@ -318,9 +321,9 @@ namespace fs
     typedef std::function<void(uint32_t)> next_func_t;
     
     // asynch stack traversal
-    next_func_t next;
-    next = 
-    [this, path, &next, callback] (uint32_t cluster)
+    auto next = std::make_shared<next_func_t> ();
+    *next = 
+    [this, path, next, callback] (uint32_t cluster)
     {
       if (path->empty())
       {
@@ -350,7 +353,7 @@ namespace fs
       
       // list directory contents
       int_ls(S, dirents,
-      [name, dirents, &next, callback] (error_t error, dirvec_t ents)
+      [name, dirents, next, callback] (error_t error, dirvec_t ents)
       {
         if (unlikely(error))
         {
@@ -370,7 +373,7 @@ namespace fs
             debug("\t\t cluster: %llu\n", e.block);
             // only follow directories
             if (e.type() == DIR)
-              next(e.block);
+              (*next)(e.block);
             else
               callback(true, dirents);
             return;
@@ -382,9 +385,8 @@ namespace fs
       });
       
     };
-    
     // start by reading root directory
-    next(0);
+    (*next)(0);
   }
   
   void FAT::ls(const std::string& path, on_ls_func on_ls)
@@ -412,13 +414,13 @@ namespace fs
     // number of sectors to read ahead
     size_t chunks = ent.size / sector_size + 1;
     // allocate buffer
-    uint8_t* buffer = new uint8_t[chunks * sector_size];
+    auto* buffer = new uint8_t[chunks * sector_size];
     // at which sector we will stop
     size_t total   = chunks;
     size_t current = 0;
     
     typedef std::function<void(uint32_t, size_t, size_t)> next_func_t;
-    auto* next = new next_func_t;
+    auto next = std::make_shared<next_func_t> ();
     
     *next = 
     [this, buffer, ent, callback, next] (uint32_t sector, size_t current, size_t total)
@@ -432,8 +434,6 @@ namespace fs
         auto buffer_ptr = buffer_t(buffer, std::default_delete<uint8_t[]>());
         // notify caller
         callback(no_error, buffer_ptr, ent.size);
-        // cleanup (after callback)
-        delete next;
         return;
       }
       device.read(sector,
@@ -444,7 +444,6 @@ namespace fs
           // general I/O error occurred
           debug("Failed to read sector %u for read()", sector);
           // cleanup
-          delete next;
           delete[] buffer;
           callback(true, buffer_t(), 0);
           return;
@@ -498,13 +497,14 @@ namespace fs
     });
   } // readFile()
   
-  void FAT::stat(const std::string& strpath, on_stat_func callback)
+  void FAT::stat(const std::string& strpath, on_stat_func func)
   {
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty()))
     {
-      // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      callback(true, Dirent(INVALID_ENTITY, strpath));
+      // root doesn't have any stat anyways
+      // Note: could use ATTR_VOLUME_ID in FAT
+      func(true, Dirent(INVALID_ENTITY, strpath));
       return;
     }
     
@@ -512,14 +512,16 @@ namespace fs
     // extract file we are looking for
     std::string filename = path->back();
     path->pop_back();
+    // we need to remember this later
+    auto callback = std::make_shared<on_stat_func> (func);
     
     traverse(path,
-    [this, filename, &callback] (error_t error, dirvec_t dirents)
+    [this, filename, callback] (error_t error, dirvec_t dirents)
     {
       if (unlikely(error))
       {
         // no path, no file!
-        callback(error, Dirent(INVALID_ENTITY, filename));
+        (*callback)(error, Dirent(INVALID_ENTITY, filename));
         return;
       }
       
@@ -529,13 +531,13 @@ namespace fs
         if (unlikely(e.name() == filename))
         {
           // read this file
-          callback(no_error, e);
+          (*callback)(no_error, e);
           return;
         }
       }
       
       // not found
-      callback(true, Dirent(INVALID_ENTITY, filename));
+      (*callback)(true, Dirent(INVALID_ENTITY, filename));
     });
   }
 }

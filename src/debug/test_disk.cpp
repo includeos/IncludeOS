@@ -1,20 +1,26 @@
 #include <os>
+#include <cassert>
 const char* service_name__ = "...";
 
-#include <memdisk>
+//#include <memdisk>
+//auto disk = fs::new_shared_memdisk();
 
-// memdisk with FAT filesystem
-fs::MountedDisk disk;
+#include <ide>
+#include <fs/fat.hpp>
+using FatDisk = fs::Disk<fs::FAT>;
+std::shared_ptr<FatDisk> disk;
 
-void list_partitions(fs::MountedDisk);
+void list_partitions(decltype(disk));
 
 void Service::start()
 {
   // instantiate memdisk with FAT filesystem
-  disk = fs::new_shared_memdisk();
+  auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
+  disk = std::make_shared<FatDisk> (device);
+  assert(disk);
   
   // if the disk is empty, we can't mount a filesystem anyways
-  if (disk->empty()) panic("Oops! The memdisk is empty!\n");
+  if (disk->empty()) panic("Oops! The disk is empty!\n");
   
   // list extended partitions
   list_partitions(disk);
@@ -53,6 +59,10 @@ void Service::start()
       printf("[%s contents (%llu bytes)]:\n%s\n[end]\n\n", 
              ent.name().c_str(), buf.len, contents.c_str());
       
+    }
+    else
+    {
+      printf("Invalid entity for /test.txt\n");
     }
     return;
     
@@ -121,7 +131,7 @@ void Service::start()
   printf("*** TEST SERVICE STARTED *** \n");
 }
 
-void list_partitions(fs::MountedDisk disk)
+void list_partitions(decltype(disk) disk)
 {
   disk->partitions(
   [] (fs::error_t err, auto& parts)

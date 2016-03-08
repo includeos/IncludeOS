@@ -66,9 +66,9 @@ Disk<FS>::mount(on_mount_func func)
     auto* mbr = (MBR::mbr*) data.get();
     MBR::BPB* bpb = mbr->bpb();
     
-    if (bpb->bytes_per_sector != 0 
+    if (bpb->bytes_per_sector >= 512 
      && bpb->fa_tables != 0 
-     && bpb->sectors_per_fat != 0)
+     && bpb->signature != 0) // check MBR signature too
     {
       // we have FAT on MBR (and we are assuming mount FAT)
       mount(MBR, func);
@@ -100,7 +100,9 @@ Disk<FS>::mount(partition_t part, on_mount_func func) {
   if (part == INVALID)
   {
     // Something bad happened maybe in auto-detect
-    panic("Disk::mount(): Trying to mount invalid partition");
+    // Either way, no partition was found
+    func(true);
+    return;
   }
   else if (part == MBR)
   {

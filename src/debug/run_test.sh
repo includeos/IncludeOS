@@ -14,7 +14,7 @@ echo "Building system $SERVICE..."
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . ../etc/qemu_cmd.sh
 export SERIAL="" #"-monitor none -virtioconsole stdio"
-QEMU_OPTS+=" -drive file=./smalldisk,if=virtio,index=1,media=disk $SERIAL"
+QEMU_OPTS+=" -drive file=./smalldisk,if=ide,media=disk $SERIAL"
 
 # Qemu with gdb debugging:
 if [ "$DEBUG" -ne 0 ]

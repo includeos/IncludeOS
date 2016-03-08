@@ -19,25 +19,30 @@
 #include <stdio.h>
 #include <cassert>
 
-#include <memdisk>
+#include <fs/fat.hpp>
+#include <ide>
+using FatDisk = fs::Disk<fs::FAT>;
+std::shared_ptr<FatDisk> disk;
 
 void Service::start()
 {
-  INFO("FAT16", "Running tests for FAT16");
-  auto disk = fs::new_shared_memdisk();
+  INFO("FAT32", "Running tests for FAT32");
+  auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
+  disk = std::make_shared<FatDisk> (device);
   assert(disk);
   
   // verify that the size is indeed N sectors
-  CHECK(disk->dev().size() == 16500, "Disk size 16500 sectors");
-  assert(disk->dev().size() == 16500);
+  const size_t SIZE = 4194304;
+  CHECK(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
+  assert(disk->dev().size() == SIZE);
   
   // which means that the disk can't be empty
   CHECK(!disk->empty(), "Disk not empty");
   assert(!disk->empty());
   
   // auto-mount filesystem
-  disk->mount(
-  [disk] (fs::error_t err)
+  disk->mount(disk->MBR,
+  [] (fs::error_t err)
   {
     CHECK(!err, "Filesystem auto-mounted");
     assert(!err);
@@ -50,52 +55,48 @@ void Service::start()
     CHECK(!err, "List root directory");
     assert(!err);
     
-    CHECK(vec->size() == 1, "Exactly one ent in root dir");
-    assert(vec->size() == 1);
+    CHECK(vec->size() == 2, "Exactly two ents in root dir");
+    assert(vec->size() == 2);
     
     auto& e = vec->at(0);
     CHECK(e.is_file(), "Ent is a file");
     CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
-    
   });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
-  [disk] (fs::error_t err)
+  [] (fs::error_t err)
   {
     CHECK(!err, "Filesystem mounted on VBR1");
     assert(!err);
     
-    // verify that we can read Makefile
     auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
     CHECK(ent.is_valid(), "Stat file in root dir");
+    assert(ent.is_valid());
+    
     CHECK(ent.is_file(), "Entity is file");
+    assert(ent.is_file());
+    
     CHECK(!ent.is_dir(), "Entity is not directory");
+    assert(!ent.is_dir());
+    
     CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    assert(ent.name() == "banana.txt");
     
-    // try reading banana-file
-    auto buf = fs.read(ent, 0, ent.size);
-    std::string banana((char*) buf.buffer.get(), buf.len);
+    ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
+    CHECK(ent.is_valid(), "Stat file in deep dir");
+    assert(ent.is_valid());
     
-    std::string internal_banana = 
-    R"(     ____                           ___
-    |  _ \  ___              _   _.' _ `.
- _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
-|:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
-|   `.[_) )  _  |  \| | (_) |     | | | |.',..|
-':.   `. /| | | |     |  _  | |\  | | |.' :;::'
- !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
- !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
- ';:'        `::;::;'             ''     .,  .
-   `:     .,.    `'    .::... .      .::;::;'
-     `..:;::;:..      ::;::;:;:;,    :;::;'
-       "-:;::;:;:      ':;::;:''     ;.-'
-           ""`---...________...---'""
-)";
-    CHECK(banana == internal_banana, "Correct banana");
-    printf("%s\n", banana.c_str());
+    CHECK(ent.is_file(), "Entity is file");
+    assert(ent.is_file());
+    
+    CHECK(!ent.is_dir(), "Entity is not directory");
+    assert(!ent.is_dir());
+    
+    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    assert(ent.name() == "banana.txt");
     
   });
   
-  INFO("FAT16", "SUCCESS");
+  INFO("FAT32", "SUCCESS");
 }
