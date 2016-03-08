@@ -87,7 +87,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
 
   /** IDE device initialization */
   set_irq_mode(false);
-  set_drive(_drive);
+  set_drive(0xA0 | (_drive << 4));
   set_nbsectors(0U);
   set_blocknum(0U);
   set_command(IDE_CMD_IDENTIFY);
