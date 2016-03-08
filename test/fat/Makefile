@@ -4,7 +4,7 @@
 
 # The name of your service
 SERVICE = Test
-SERVICE_NAME = The Memdisk Test Service
+SERVICE_NAME = The FAT Test Service
 
 # Your service parts
 FILES=
