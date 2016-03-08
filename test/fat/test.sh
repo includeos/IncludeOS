@@ -22,6 +22,8 @@ mkfs.fat my.disk
 mkdir tmpdisk
 sudo mount my.disk tmpdisk/
 sudo cp banana.txt tmpdisk/
+sudo mkdir -p tmpdisk/dir1/dir2/dir3/dir4/dir5/dir6
+sudo cp banana.txt tmpdisk/dir1/dir2/dir3/dir4/dir5/dir6/
 sync # Mui Importante
 sudo umount tmpdisk/
 

@@ -32,10 +32,9 @@ void Service::start()
   assert(disk);
   
   // verify that the size is indeed N sectors
-  printf("Disk size: %lu ???\n", disk->dev().size());
-  //const size_t SIZE = 4194304;
-  //CHECK(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
-  //assert(disk->dev().size() == SIZE);
+  const size_t SIZE = 4194304;
+  CHECK(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
+  assert(disk->dev().size() == SIZE);
   
   // which means that the disk can't be empty
   CHECK(!disk->empty(), "Disk not empty");
@@ -56,12 +55,12 @@ void Service::start()
     CHECK(!err, "List root directory");
     assert(!err);
     
-    CHECK(vec->size() == 1, "Exactly one ent in root dir");
-    assert(vec->size() == 1);
+    CHECK(vec->size() == 2, "Exactly two ents in root dir");
+    assert(vec->size() == 2);
     
     auto& e = vec->at(0);
     CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "Makefile", "Ent is 'Makefile'");
+    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
   });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
@@ -71,11 +70,32 @@ void Service::start()
     assert(!err);
     
     auto& fs = disk->fs();
-    auto ent = fs.stat("/Makefile");
+    auto ent = fs.stat("/banana.txt");
     CHECK(ent.is_valid(), "Stat file in root dir");
+    assert(ent.is_valid());
+    
     CHECK(ent.is_file(), "Entity is file");
+    assert(ent.is_file());
+    
     CHECK(!ent.is_dir(), "Entity is not directory");
-    CHECK(ent.name() == "Makefile", "Name is 'Makefile'");
+    assert(!ent.is_dir());
+    
+    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    assert(ent.name() == "banana.txt");
+    
+    ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
+    CHECK(ent.is_valid(), "Stat file in deep dir");
+    assert(ent.is_valid());
+    
+    CHECK(ent.is_file(), "Entity is file");
+    assert(ent.is_file());
+    
+    CHECK(!ent.is_dir(), "Entity is not directory");
+    assert(!ent.is_dir());
+    
+    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    assert(ent.name() == "banana.txt");
+    
   });
   
   INFO("FAT32", "SUCCESS");

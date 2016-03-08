@@ -420,7 +420,7 @@ namespace fs
     size_t current = 0;
     
     typedef std::function<void(uint32_t, size_t, size_t)> next_func_t;
-    auto* next = new next_func_t;
+    auto next = std::make_shared<next_func_t> ();
     
     *next = 
     [this, buffer, ent, callback, next] (uint32_t sector, size_t current, size_t total)
@@ -434,8 +434,6 @@ namespace fs
         auto buffer_ptr = buffer_t(buffer, std::default_delete<uint8_t[]>());
         // notify caller
         callback(no_error, buffer_ptr, ent.size);
-        // cleanup (after callback)
-        delete next;
         return;
       }
       device.read(sector,
@@ -446,7 +444,6 @@ namespace fs
           // general I/O error occurred
           debug("Failed to read sector %u for read()", sector);
           // cleanup
-          delete next;
           delete[] buffer;
           callback(true, buffer_t(), 0);
           return;
