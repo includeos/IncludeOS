@@ -13,7 +13,7 @@ To make outgoing internet connection work, correct forwarding rules needs to be 
 This test is developed on OS X using Virtualbox. Here's an recepie how to try it out.
 
 1. make *(remember to export LD_INC and AR_INC)*
-2. `/<includeos_repo>/etc/vboxrun.sh IncludeOS_TCP_Test TCP_test`
+2. `/<includeos_repo>/etc/vboxrun.sh IncludeOS_TCP_Test.img TCP_test`
 3. Kill VM.
 4. Open Virtualbox => TCP_test => Settings => Network
 5. Change *Adapter 1* to use *NAT* => Advanced => Port Forwarding
