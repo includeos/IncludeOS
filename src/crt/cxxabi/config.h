@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 // much better than abort()
-void abort_ex(const char*);
+void abort_ex(const char*) __attribute__((noreturn));
 
 // Set this in the CXXFLAGS when you need it
 #define LIBCXXABI_HAS_NO_THREADS 1

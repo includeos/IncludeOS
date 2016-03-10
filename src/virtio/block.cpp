@@ -1,8 +1,9 @@
 #define DEBUG
 #define DEBUG2
-#include <virtio/virtio_blk.hpp>
+#include <virtio/block.hpp>
 
 #include <kernel/irq_manager.hpp>
+#include <hw/pci.hpp>
 #include <cassert>
 #include <stdlib.h>
 
@@ -27,7 +28,7 @@
 
 #define FEAT(x)  (1 << x)
 
-VirtioBlk::VirtioBlk(PCI_Device& d)
+VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   : Virtio(d),
     req(queue_size(0), 0, iobase()),
     request_counter(0)
@@ -100,7 +101,7 @@ void VirtioBlk::irq_handler()
   //Virtio Std. § 4.1.5.5, steps 1-3    
   
   // Step 1. read ISR
-  unsigned char isr = inp(iobase() + VIRTIO_PCI_ISR);
+  unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
   
   // Step 2. A) - one of the queues have changed
   if (isr & 1)
@@ -122,24 +123,38 @@ void VirtioBlk::irq_handler()
   IRQ_manager::eoi(irq());
 }
 
-VirtioBlk::request_t* VirtioBlk::buf;
-
 void VirtioBlk::service_RX()
 {
   req.disable_interrupts();
   
   uint32_t received = 0;
   uint32_t len;
+  request_t* hdr;
   blk_data_t* vbr;
-  while ((vbr = (blk_data_t*) req.dequeue(&len)) != nullptr)
+  //printf("service_RX() reading from VirtioBlk device\n");
+  
+  while ((hdr = (request_t*) req.dequeue(len)) != nullptr)
   {
-    printf("service_RX() received %u bytes from virtioblk device\n", len);
-    vbr->handler(0, vbr->sector);
+    printf("service_RX() received %u bytes for sector %llu\n", 
+        len, hdr->hdr.sector);
+    vbr = &hdr->data;
+    
+    printf("service_RX() received %u bytes data response\n", len);
+    printf("Received handler: %p\n", vbr->handler);
+    
+    uint8_t* copy = new uint8_t[SECTOR_SIZE];
+    memcpy(copy, vbr->sector, SECTOR_SIZE);
+    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+    
+    printf("Calling handler: %p\n", vbr->handler);
+    (*vbr->handler)(buf);
+    delete vbr->handler;
+    
     received++;
   }
   if (received == 0)
   {
-    printf("service_RX() error processing requests\n");
+    //printf("service_RX() error processing requests\n");
   }
   
   req.enable_interrupts();
@@ -147,25 +162,22 @@ void VirtioBlk::service_RX()
 
 void VirtioBlk::read (block_t blk, on_read_func func)
 {
-  printf("Sending read request for block %llu\n", blk);
-  scatterlist sg[3];
-  
   // Virtio Std. § 5.1.6.3
   auto* vbr = new request_t();
-  buf = vbr;
   
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
+  vbr->data.handler = new on_read_func(func);
   vbr->data.status  = VIRTIO_BLK_S_OK;
-  vbr->data.handler = func;
   
-  sg[0].data = &vbr->hdr;
-  sg[0].size = sizeof(scsi_header_t);
+  printf("Enqueue handler: %p\n", vbr->data.handler);
   
-  sg[1].data = &vbr->data;
-  sg[1].size = sizeof(blk_data_t);
-  
-  req.enqueue(sg, 1, 1, vbr);
+  req.enqueue(&vbr->hdr, sizeof(scsi_header_t), &vbr->data, sizeof(blk_data_t));
   req.kick();
+}
+
+VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
+{
+  return buffer_t();
 }

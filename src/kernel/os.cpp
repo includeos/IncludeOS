@@ -25,15 +25,15 @@
 #include <os>
 
 // A private class to handle IRQ
-#include <hw/pci_manager.hpp>
+#include <hw/ioport.hpp>
+#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {0};
 
-// We have to initialize delegates?
-OS::rsprint_func OS::rsprint_handler_ =
-  [](const char*, size_t) {};
+// Set default rsprint_handler
+OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
@@ -55,7 +55,7 @@ void OS::start() {
   IRQ_manager::init();
   
   // Initialize the Interval Timer
-  PIT::init();
+  hw::PIT::init();
 
   // Initialize PCI devices
   PCI_manager::init();
@@ -66,11 +66,11 @@ void OS::start() {
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(10 samples, %f sec. interval)", 
-	(PIT::frequency() / _cpu_sampling_freq_divider_).count());
+	(hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
   
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = MHz(2200); //PIT::CPUFrequency();
+  cpu_mhz_ = MHz(2200); //hw::PIT::CPUFrequency();
 
   INFO2("+--> %f MHz", cpu_mhz_.count());
     
@@ -107,44 +107,33 @@ void OS::event_loop() {
 }
 
 size_t OS::rsprint(const char* str) {
-  size_t len {0};
+  size_t len = 0;
 
 	// Measure length
   while (str[len++]);
   
-  // Call rsprint again with length
-  return rsprint(str, len);
+  // Output callback
+  rsprint_handler_(str, len);
+  return len;
 }
 
 size_t OS::rsprint(const char* str, const size_t len) {
-	// Serial output
-	for(size_t i {0}; i < len; ++i)
-		rswrite(str[i]);
-	
-  // Call external handler for secondary outputs
+  
+  // Output callback
   OS::rsprint_handler_(str, len);
-	
 	return len;
-}
-
-/* STEAL: Read byte from I/O address space */
-uint8_t OS::inb(int port) {
-  int ret;
-  __asm__ volatile ("xorl %eax,%eax");
-  __asm__ volatile ("inb %%dx,%%al":"=a"(ret):"d"(port));
-  return ret;
-}
-
-/*  Write byte to I/O address space */
-void OS::outb(int port, uint8_t data) {
-  __asm__ volatile ("outb %%al,%%dx"::"a"(data), "d"(port));
 }
 
 /* STEAL: Print to serial port 0x3F8 */
 void OS::rswrite(const char c) {
   /* Wait for the previous character to be sent */
-  while ((inb(0x3FD) & 0x20) != 0x20);
-
+  while ((hw::inb(0x3FD) & 0x20) != 0x20);
+  
   /* Send the character */
-  outb(0x3F8, c);
+  hw::outb(0x3F8, c);
+}
+
+void OS::default_rsprint(const char* str, size_t len) {
+  for(size_t i = 0; i < len; ++i)
+        rswrite(str[i]);
 }

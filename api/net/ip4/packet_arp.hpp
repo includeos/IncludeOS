@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #pragma once
+#ifndef NET_IP4_PACKET_ARP
+#define NET_IP4_PACKET_ARP
 
 #include "../arp.hpp"
 #include <net/packet.hpp>
@@ -26,7 +28,6 @@ namespace net
                     public std::enable_shared_from_this<PacketArp>
   {
   public:
-    
     Arp::header& header() const
     {
       return *(Arp::header*) buffer();
@@ -35,7 +36,7 @@ namespace net
     static const size_t headers_size = sizeof(Arp::header);
     
     /** initializes to a default, empty Arp packet, given
-	a valid MTU-sized buffer */
+        a valid MTU-sized buffer */
     void init(Ethernet::addr local_mac, IP4::addr local_ip)
     {            
       auto& hdr = header();
@@ -49,35 +50,37 @@ namespace net
       hdr.shwaddr = local_mac;
     }
     
-    void set_dest_mac(Ethernet::addr mac){
+    void set_dest_mac(Ethernet::addr mac) {
       header().dhwaddr = mac;
       header().ethhdr.dest = mac; 
     } 
     
-    void set_opcode(Arp::Opcode op){
+    void set_opcode(Arp::Opcode op) {
       header().opcode = op;
     }
     
-    void set_dest_ip(IP4::addr ip){
+    void set_dest_ip(IP4::addr ip) {
       header().dipaddr = ip;
     }
     
-    IP4::addr source_ip(){
+    IP4::addr source_ip() const {
       return header().sipaddr;
     }
     
-    IP4::addr dest_ip(){
+    IP4::addr dest_ip() const {
       return header().dipaddr;
     }
     
-    Ethernet::addr source_mac(){
+    Ethernet::addr source_mac() const {
       return header().ethhdr.src;
     };
     
-    Ethernet::addr dest_mac(){
+    Ethernet::addr dest_mac() const {
       return header().ethhdr.dest;
     };
     
     
   };
 }
+
+#endif

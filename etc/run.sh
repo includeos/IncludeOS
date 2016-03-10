@@ -32,13 +32,15 @@ then
     echo "   gdb -i=mi service -x service.gdb"
     echo "------------------------------------------------------------"    
 
-    sudo $QEMU -s -S $QEMU_OPTS
+    echo $QEMU -s -S $QEMU_OPTS $QEMU_EXTRA
+    sudo $QEMU -s -S $QEMU_OPTS $QEMU_EXTRA
 else    
 
     echo "------------------------------------------------------------"    
     echo "Starting VM: '$1'"
     echo "------------------------------------------------------------"        
-    sudo $QEMU $QEMU_OPTS 
+    echo $QEMU $QEMU_OPTS $QEMU_EXTRA
+    sudo $QEMU $QEMU_OPTS $QEMU_EXTRA
 fi
 
-echo "NOTE: To run you image on another platform such as virtualbox, check out IncludeOS/etc/convert_image.sh"
+echo "NOTE: To run your image in another VMM, such as VirtualBox, check out IncludeOS/etc/convert_image.sh"

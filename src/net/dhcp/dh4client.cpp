@@ -178,9 +178,11 @@ namespace net
     dhcp->siaddr = IP4::INADDR_ANY;
     dhcp->giaddr = IP4::INADDR_ANY;
     
+    Ethernet::addr link_addr = stack.link_addr();
+    
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
-    memcpy(dhcp->chaddr, &stack.link_addr(), ETH_ALEN);
+    memcpy(dhcp->chaddr, &link_addr, ETH_ALEN);
     // zero server, file and options
     memset(dhcp->sname, 0, dhcp_packet_t::SNAME_LEN + dhcp_packet_t::FILE_LEN);
     
@@ -199,7 +201,7 @@ namespace net
     opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
-    memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
+    memcpy(&opt->val[1], &link_addr, ETH_ALEN);
     // DHCP Parameter Request Field
     opt = conv_option(dhcp->options + 12);
     opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
@@ -346,9 +348,11 @@ namespace net
     resp->siaddr = IP4::INADDR_ANY;
     resp->giaddr = IP4::INADDR_ANY;
     
+    Ethernet::addr link_addr = stack.link_addr();
+    
     // copy our hardware address to chaddr field
     memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
-    memcpy(resp->chaddr, &stack.link_addr(), ETH_ALEN);
+    memcpy(resp->chaddr, &link_addr, ETH_ALEN);
     // zero server, file and options
     memset(resp->sname, 0, dhcp_packet_t::SNAME_LEN + dhcp_packet_t::FILE_LEN);
     // magic DHCP bootp values
@@ -367,7 +371,7 @@ namespace net
     opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
-    memcpy(&opt->val[1], &stack.link_addr(), ETH_ALEN);
+    memcpy(&opt->val[1], &link_addr, ETH_ALEN);
     // DHCP server identifier
     opt = conv_option(resp->options + 12);
     opt->code   = DHO_DHCP_SERVER_IDENTIFIER;

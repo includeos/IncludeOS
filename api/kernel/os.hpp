@@ -50,21 +50,6 @@ public:
   
   /** Uptime in seconds. */
   static double uptime();
-  
-  /**
-   *  Receive a byte from port. @todo Should be moved
-   *
-   *  @param port: The port number to receive from
-   */
-  static uint8_t inb(int port);
-  
-  /**
-   *  Send a byte to port. @todo Should be moved to hw/...something
-   *
-   *  @param port:  The port to send to
-	 *  @param data : One byte of data to send to @param port
-   */
-  static void outb(int port, uint8_t data);
     
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
@@ -81,6 +66,11 @@ public:
    */
   static void rswrite(const char c);
 
+  /**
+   *  Write to serial port with rswrite.
+  */
+  static void default_rsprint(const char*, size_t);
+
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start();
 
@@ -93,11 +83,9 @@ public:
   static void halt();
   
   /**
-   *  Set handler for secondary serial output.
-   *
-   *  This handler is called in addition to writing to the serial port.
+   *  Set handler for serial output.
    */
-  static void set_rsprint_secondary(rsprint_func func) {
+  static void set_rsprint(rsprint_func func) {
     rsprint_handler_ = func;
   }
   

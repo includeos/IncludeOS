@@ -20,12 +20,15 @@
 
 #include <common>
 #include <virtio/virtionet.hpp>
-#include <virtio/virtio_blk.hpp>
+#include <virtio/block.hpp>
+#include <virtio/console.hpp>
+#include <kernel/pci_manager.hpp>
 
 #include "nic.hpp"
 #include "pit.hpp"
 #include "disk.hpp"
-#include "pci_manager.hpp"
+
+namespace hw {
 
 /** @Todo: Implement */
 class Serial;
@@ -47,10 +50,21 @@ public:
   }
   
   /** Get disk N using driver DRIVER */
-  template <int N, typename DRIVER>
-  static Disk<DRIVER>& disk() {
-    static Disk<DRIVER> disk_ {PCI_manager::device<PCI::STORAGE>(N)};
+  template <int N, typename DRIVER, typename... Args>
+  static Disk<DRIVER>& disk(Args&&... args) {
+    static Disk<DRIVER> 
+    disk_ {
+      PCI_manager::device<PCI::STORAGE>(N),
+      std::forward<Args>(args)...
+    };
     return disk_;
+  }
+  
+  /** Get console N using driver DRIVER */
+  template <int N, typename DRIVER>
+  static DRIVER& console() {
+    static DRIVER con_ {PCI_manager::device<PCI::COMMUNICATION>(N)};
+    return con_;
   }
   
   /**
@@ -68,5 +82,8 @@ public:
     return PIT::instance();
   }
 }; //< class Dev
+
+} //< namespace hw
+
 
 #endif //< HW_DEV_HPP

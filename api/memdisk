@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,23 +17,27 @@
 // limitations under the License.
 
 #pragma once
-#ifndef DISK_DEVICE_HPP
-#define DISK_DEVICE_HPP
+#ifndef MEMDISK_HEADER
+#define MEMDISK_HEADER
 
-#include <cstdint>
-#include <functional>
-#include <memory>
+#include "fs/disk.hpp"
+#include "fs/memdisk.hpp"
+#include "fs/fat.hpp" // FAT filesystem
 
-class IDiskDevice
+namespace fs
 {
-public:
-  // To be used by caching mechanism for disk drivers
-  typedef std::shared_ptr<void*> buffer;
-  // Delegate for result of reading a disk sector
-  typedef std::function<void(const void*)> on_read_func;
+  // describe a disk with a FAT filesystem
+  using FatDisk = Disk<FAT>;
+  // its not really a shared memdisk right now,
+  // but we are only using this in conjunction with
+  // new_shared_memdisk() which very likely contains FAT
+  using MountedDisk = std::shared_ptr<FatDisk>;
   
-  virtual void read_sector(uint32_t blk, on_read_func func) = 0;
-  
-};
+  inline MountedDisk new_shared_memdisk()
+  {
+    static MemDisk device;
+    return std::make_shared<FatDisk> (device);
+  }
+}
 
 #endif

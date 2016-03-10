@@ -15,41 +15,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef VIRTIO_VIRTIOBLK_HPP
-#define VIRTIO_VIRTIOBLK_HPP
+#pragma once
+#ifndef VIRTIO_BLOCK_HPP
+#define VIRTIO_BLOCK_HPP
 
 #include <common>
-#include "../hw/pci_device.hpp"
+#include <hw/disk_device.hpp>
+#include <hw/pci_device.hpp>
 #include "virtio.hpp"
-#include <delegate>
+//#include <delegate>
 
 /** Virtio-net device driver.  */
-class VirtioBlk : Virtio
+class VirtioBlk : public Virtio, public hw::IDiskDevice
 {
 public:
-  typedef uint64_t block_t;
-  typedef delegate<void(block_t, const char*)> on_read_func;
-  typedef delegate<void(block_t, block_t)> on_write_func;
-  static const int SECTOR_SIZE = 512;
+  static constexpr size_t SECTOR_SIZE = 512;
   
   /** Human readable name. */
-  const char* name();  
-  
-  // returns the optimal block size for this device
-  constexpr block_t block_size() const
+  virtual const char* name() const noexcept override
   {
-    return 512; // some multiple of sector size
+    return "VirtioBlk";
   }
   
-  void read (block_t blk, on_read_func func);
-  void write(block_t blk, const char* data);
+  // returns the optimal block size for this device
+  virtual block_t block_size() const noexcept override
+  {
+    return SECTOR_SIZE; // some multiple of sector size
+  }
+  
+  virtual void read(block_t blk, on_read_func func) override;
+  
+  virtual void read(block_t, block_t, on_read_func cb) override
+  {
+    cb(buffer_t());
+  }
+  
+  virtual buffer_t read_sync(block_t blk) override;
+  
+  virtual block_t size() const noexcept override
+  {
+    return config.capacity;
+  }
   
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioBlk(PCI_Device& pcidev);
+  VirtioBlk(hw::PCI_Device& pcidev);
   
 private:
-  Virtio::Queue req;
-  
   struct virtio_blk_geometry_t
   {
     uint16_t cyls;
@@ -80,9 +91,11 @@ private:
   } __attribute__((packed));
   struct blk_data_t
   {
-    char    sector[512];
+    uint8_t sector[512];
+    uint32_t stuff1;
+    on_read_func* handler;
+    uint32_t stuff2;
     uint8_t status;
-    on_read_func handler{[](block_t,const char*) {}};
   } __attribute__((packed));
   
   struct request_t
@@ -108,10 +121,11 @@ private:
       Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
   
+  Virtio::Queue req;
+  
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
   uint16_t request_counter;
-  static request_t* buf;
 };
 
 #endif

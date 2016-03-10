@@ -20,7 +20,7 @@
 #define FS_FAT_HPP
 
 #include "filesystem.hpp"
-#include "disk_device.hpp"
+#include <hw/disk_device.hpp>
 #include <functional>
 #include <cstdint>
 #include <memory>
@@ -29,33 +29,46 @@ namespace fs
 {
   class Path;
   
-  struct FAT32 : public FileSystem
+  struct FAT : public FileSystem
   {
     /// ----------------------------------------------------- ///
-    // 0   = Mount MBR
-    // 1-4 = Mount VBR 1-4
-    virtual void mount(uint8_t partid, on_mount_func on_mount) override;
+    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
-    virtual void ls(const std::string& path, on_ls_func) override;
+    virtual void    ls     (const std::string& path, on_ls_func) override;
+    virtual error_t ls(const std::string& path, dirvec_t) override;
     
     // read an entire file into a buffer, then call on_read
     virtual void readFile(const std::string&, on_read_func) override;
     virtual void readFile(const Dirent& ent, on_read_func) override;
     
+    /** Read @n bytes from file pointed by @entry starting at position @pos */
+    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
+    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
+    
     // return information about a filesystem entity
-    virtual void stat(const std::string&, on_stat_func) override;
+    virtual void   stat(const std::string&, on_stat_func) override;
+    virtual Dirent stat(const std::string& ent) override;
     
     // returns the name of the filesystem
     virtual std::string name() const override
     {
-      return "FAT32"; // could also be FAT16
+      switch (this->fat_type)
+      {
+      case T_FAT12:
+          return "FAT12";
+      case T_FAT16:
+          return "FAT16";
+      case T_FAT32:
+          return "FAT32";
+      }
+      return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
     
     // constructor
-    FAT32(IDiskDevice& idev);
-    ~FAT32() {}
+    FAT(hw::IDiskDevice& idev);
+    virtual ~FAT() = default;
     
   private:
     // FAT types
@@ -99,11 +112,11 @@ namespace fs
       Enttype type() const
       {
         if (attrib & ATTR_VOLUME_ID)
-		  return VOLUME_ID;
+          return VOLUME_ID;
         else if (attrib & ATTR_DIRECTORY)
           return DIR;
         else
-		  return FILE;
+          return FILE;
       }
       
       uint32_t size() const
@@ -124,10 +137,13 @@ namespace fs
       uint16_t zero;
       uint16_t third[2];
       
+      // the index value for this long entry
+      // starting with the highest (hint: read manual)
       uint8_t long_index() const
       {
         return index & ~0x40;
       }
+      // true if this is the last long index
       uint8_t is_last() const
       {
         return (index & LAST_LONG_ENTRY) != 0;
@@ -137,7 +153,10 @@ namespace fs
     // helper functions
     uint32_t cl_to_sector(uint32_t cl)
     {
-      return data_index + (cl - 2) * sectors_per_cluster;
+      if (cl == 0)
+        return lba_base + data_index + (this->root_cluster - 2) * sectors_per_cluster - this->root_dir_sectors;
+      else
+        return lba_base + data_index + (cl - 2) * sectors_per_cluster;
     }
     
     uint16_t cl_to_entry_offset(uint32_t cl)
@@ -163,13 +182,22 @@ namespace fs
     bool int_dirent(uint32_t sector, const void* data, dirvec_t);
     
     // tree traversal
-    typedef std::function<void(bool, uint32_t, dirvec_t)> cluster_func;
+    typedef std::function<void(error_t, dirvec_t)> cluster_func;
+    // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
+    // sync version
+    error_t traverse(Path path, dirvec_t);
+    error_t int_ls(uint32_t sector, dirvec_t);
     
     // device we can read and write sectors to
-    IDiskDevice& device;
+    hw::IDiskDevice& device;
     
-    // private members
+    /// private members ///
+    // the location of this partition
+    uint32_t lba_base;
+    // the size of this partition
+    uint32_t lba_size;
+    
     uint16_t sector_size; // from bytes_per_sector
     uint32_t sectors;   // total sectors in partition
     uint32_t clusters;  // number of indexable FAT clusters

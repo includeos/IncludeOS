@@ -1,42 +1,32 @@
 #include <os>
-#include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
-#include <sstream>
-
+#include <cassert>
 const char* service_name__ = "...";
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-#include <fs/disk.hpp>    // the device
-#include <fs/memdisk.hpp> // the driver
-#include <fs/fat.hpp>     // the filesystem
-#include <fs/ext4.hpp>    // the filesystem
-using namespace fs;
+//#include <memdisk>
+//auto disk = fs::new_shared_memdisk();
 
-// assume that devices can be retrieved as refs with some kernel API
-// for now, we will just create it here
-MemDisk device;
+#include <ide>
+#include <fs/fat.hpp>
+using FatDisk = fs::Disk<fs::FAT>;
+std::shared_ptr<FatDisk> disk;
 
-// describe a disk with FAT32 mounted on partition 0 (MBR)
-using MountedDisk = fs::Disk<0, FAT32>;
-// disk with filesystem
-std::unique_ptr<MountedDisk> disk;
+void list_partitions(decltype(disk));
 
 void Service::start()
 {
-  // networking stack
-  Nic<VirtioNet>& eth0 = Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-  inet->network_config(
-      {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+  // instantiate memdisk with FAT filesystem
+  auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
+  disk = std::make_shared<FatDisk> (device);
+  assert(disk);
   
-  // instantiate disk with filesystem
-  disk = std::make_unique<MountedDisk> (device);
+  // if the disk is empty, we can't mount a filesystem anyways
+  if (disk->empty()) panic("Oops! The disk is empty!\n");
   
-  // mount the main partition in the Master Boot Record
-  disk->fs().mount(MountedDisk::PART_MBR,
+  // list extended partitions
+  list_partitions(disk);
+  
+  // mount first valid partition (auto-detect and mount)
+  disk->mount( // or specify partition explicitly in parameter
   [] (fs::error_t err)
   {
     if (err)
@@ -44,127 +34,116 @@ void Service::start()
       printf("Could not mount filesystem\n");
       return;
     }
+    // get a reference to the mounted filesystem
+    auto& fs = disk->fs();
+    
+    // check contents of disk
+    auto dirents = fs::new_shared_vector();
+    err = fs.ls("/", dirents);
+    if (err)
+      printf("Could not list '/' directory\n");
+    else
+      for (auto& e : *dirents)
+      {
+        printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
+          e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+      }
+    
+    auto ent = fs.stat("/test.txt");
+    // validate the stat call
+    if (ent.is_valid())
+    {
+      // read specific area of file
+      auto buf = fs.read(ent, 1032, 65);
+      std::string contents((const char*) buf.buffer.get(), buf.len);
+      printf("[%s contents (%llu bytes)]:\n%s\n[end]\n\n", 
+             ent.name().c_str(), buf.len, contents.c_str());
+      
+    }
+    else
+    {
+      printf("Invalid entity for /test.txt\n");
+    }
+    return;
     
     disk->fs().ls("/",
-    [] (fs::error_t err, FileSystem::dirvec_t ents)
+    [] (fs::error_t err, auto ents)
     {
       if (err)
       {
-        printf("Could not list root directory");
+        printf("Could not list '/' directory\n");
         return;
       }
       
       for (auto& e : *ents)
       {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-          e.type_string().c_str(), e.name.c_str(), e.size, e.block);
+          e.type_string().c_str(), e.name().c_str(), e.size, e.block);
         
-        printf("--> %s\n", e.type_string().c_str());
-        
-        if (e.type == FileSystem::FILE)
+        if (e.is_file())
         {
-          printf("*** Attempting to read: %s\n", e.name.c_str());
+          printf("*** Attempting to read: %s\n", e.name().c_str());
           disk->fs().readFile(e,
-          [e] (fs::error_t err, const uint8_t* buffer, size_t len)
+          [e] (fs::error_t err, fs::buffer_t buffer, size_t len)
           {
             if (err)
             {
               printf("Failed to read file %s!\n",
-                  e.name.c_str());
+                  e.name().c_str());
               return;
             }
             
-            std::string contents((const char*) buffer, len);
+            std::string contents((const char*) buffer.get(), len);
             printf("[%s contents]:\n%s\nEOF\n\n", 
-                e.name.c_str(), contents.c_str());
+                e.name().c_str(), contents.c_str());
           });
         }
       }
     });
     
-    disk->fs().stat("/test",
-    [] (fs::error_t err, const FileSystem::Dirent& e)
+    disk->fs().stat("/test.txt",
+    [] (fs::error_t err, const auto& e)
     {
       if (err)
       {
-        printf("Could not stat the directory /test\n");
+        printf("Could not stat %s\n", e.name().c_str());
         return;
       }
       
-      printf("stat: /test is a %s on cluster %llu\n", 
+      printf("stat: /test.txt is a %s on cluster %llu\n", 
           e.type_string().c_str(), e.block);
     });
-    
-    net::TCP::Socket& sock =  inet->tcp().bind(80);
-    sock.onAccept([] (net::TCP::Socket& conn)
+    disk->fs().stat("/Sample Pictures/Koala.jpg",
+    [] (fs::error_t err, const auto& e)
     {
-      printf("SERVICE got data: %s \n", conn.read(1024).c_str());
-      
-      disk->fs().readFile("/test/lorem_ipsum_longnamed.txt",
-      [&conn] (fs::error_t err, const uint8_t* buffer, size_t len)
+      if (err)
       {
-        if (err)
-        {
-          printf("Failed to read file!\n");
-          std::string header="HTTP/1.1 404 Not Found\n "				\
-            "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"			\
-            "Server: IncludeOS prototype 4.0\n"				\
-            "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"		\
-            "Content-Type: text/html; charset=UTF-8\n"			\
-            "Content-Length: 0\n"		\
-            "Accept-Ranges: bytes\n"					\
-            "Connection: close\n\n";
-          
-          conn.write(header);
-          return;
-        }
-        
-        //// generate webpage ////
-        uint32_t color = rand();
-        
-        /* HTML Fonts */
-        std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-        std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-        std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
-        
-        /* HTML */
-        std::stringstream html;
-        html << "<html><head>"
-         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
-         << "</head><body>"
-         << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"	
-         << "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
-         << "<h2>Now speaks TCP!</h2>"
-         << "<pre>" << std::string((const char*) buffer, len) << "</pre>"
-         << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-         << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-         << "</body></html>\n";
-        
-        html.seekg(0, std::ios::end);
-        
-        /* HTTP-header */
-        std::string header=
-          "HTTP/1.1 200 OK \n "				\
-          "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"			\
-          "Server: IncludeOS prototype 4.0 \n"				\
-          "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"		\
-          "Content-Type: text/html; charset=UTF-8 \n"			\
-          "Content-Length: "+std::to_string(html.tellg())+"\n"		\
-          "Accept-Ranges: bytes\n"					\
-          "Connection: close\n\n";
-        
-        conn.write(header);
-        conn.write(html.str());
-        
-        // We don't have to actively close when the http-header says "Connection: close"
-        //conn.close();
-        
-      });
+        printf("Could not stat %s\n", e.name().c_str());
+        return;
+      }
       
+      printf("stat: %s is a %s on cluster %llu\n", 
+          e.name().c_str(), e.type_string().c_str(), e.block);
     });
-  });
-  
-  printf("[!]  Inet4 IP is %s\n",  inet->ip_addr().str().c_str());
+    
+  }); // disk->auto_detect()
   
   printf("*** TEST SERVICE STARTED *** \n");
+}
+
+void list_partitions(decltype(disk) disk)
+{
+  disk->partitions(
+  [] (fs::error_t err, auto& parts)
+  {
+    if (err)
+    {
+      printf("Failed to retrieve volumes on disk\n");
+      return;
+    }
+    
+    for (auto& part : parts)
+      printf("[Partition]  '%s' at LBA %u\n",
+          part.name().c_str(), part.lba());
+  });
 }

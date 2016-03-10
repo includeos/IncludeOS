@@ -18,6 +18,7 @@
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/pci.hpp>
 #include <assert.h>
 
 void Virtio::set_irq(){
@@ -31,7 +32,7 @@ void Virtio::set_irq(){
 }
 
 
-Virtio::Virtio(PCI_Device& dev)
+Virtio::Virtio(hw::PCI_Device& dev)
   : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
@@ -42,7 +43,7 @@ Virtio::Virtio(PCI_Device& dev)
   /** 
       Match vendor ID and Device ID : §4.1.2.2 
   */
-  if (_pcidev.vendor_id() != PCI_Device::VENDOR_VIRTIO)
+  if (_pcidev.vendor_id() != hw::PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
   
@@ -83,8 +84,8 @@ Virtio::Virtio(PCI_Device& dev)
   // 2. Set ACKNOWLEGE status bit, and
   // 3. Set DRIVER status bit
   
-  outp(_iobase + VIRTIO_PCI_STATUS, 
-       inp(_iobase + VIRTIO_PCI_STATUS) | 
+  hw::outp(_iobase + VIRTIO_PCI_STATUS,
+       hw::inp(_iobase + VIRTIO_PCI_STATUS) |
        VIRTIO_CONFIG_S_ACKNOWLEDGE | 
        VIRTIO_CONFIG_S_DRIVER);
   
@@ -115,7 +116,7 @@ Virtio::Virtio(PCI_Device& dev)
   // But, it seems there aren't any guarantees in the standard.
   
   // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
-  // uint32_t queue_size = inpd(_iobase + 0x0C);
+  // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
   
   /* printf(queue_size > 0 and queue_size != PCI_WTF ?
          "\t [x] Queue Size : 0x%lx \n" :
@@ -127,36 +128,36 @@ void Virtio::get_config(void* buf, int len){
   unsigned char* ptr = (unsigned char*)buf;
   uint32_t ioaddr = _iobase + VIRTIO_PCI_CONFIG;
   int i;
-  for (i = 0; i < len; i++) *ptr++ = inp(ioaddr + i);
+  for (i = 0; i < len; i++) *ptr++ = hw::inp(ioaddr + i);
 }
 
 
 void Virtio::reset(){
-  outp(_iobase + VIRTIO_PCI_STATUS, 0);
+  hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
 }
 
 uint32_t Virtio::queue_size(uint16_t index){  
-  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  return inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
+  hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
 #define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)  
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
-  outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
-  return inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == BTOP(queue_desc);
+  hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == BTOP(queue_desc);
 }
 
 uint32_t Virtio::probe_features(){
-  return inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+  return hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
 }
 
 void Virtio::negotiate_features(uint32_t features){
-  _features = inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+  _features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
   //_features &= features; //SanOS just adds features
   _features = features;
   debug("<Virtio> Wanted features: 0x%lx \n",_features);
-  outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
+  hw::outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
   debug("<Virtio> Got features: 0x%lx \n",_features);
 
@@ -165,7 +166,7 @@ void Virtio::negotiate_features(uint32_t features){
 void Virtio::setup_complete(bool ok){
   uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
   debug("<VIRTIO> status: %i ",status);
-  outp(_iobase + VIRTIO_PCI_STATUS, inp(_iobase + VIRTIO_PCI_STATUS) | status);
+  hw::outp(_iobase + VIRTIO_PCI_STATUS, hw::inp(_iobase + VIRTIO_PCI_STATUS) | status);
 }
 
 
@@ -175,7 +176,7 @@ void Virtio::default_irq_handler(){
   printf("Old Features : 0x%x \n",_features);
   printf("New Features : 0x%x \n",probe_features());
   
-  unsigned char isr = inp(_iobase + VIRTIO_PCI_ISR);
+  unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
   

@@ -42,7 +42,7 @@ void IP4::bottom(Packet_ptr pckt) {
   ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
   
   debug2("\t Source IP: %s Dest.IP: %s\n",
-        hdr->saddr.c_str(), hdr->daddr.c_str());
+    hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
   
   switch(hdr->protocol){
   case IP4_ICMP:
@@ -84,16 +84,16 @@ void IP4::transmit(Packet_ptr pckt) {
   // Compare subnets to know where to send packet
   pckt->next_hop(target == local ? hdr->daddr : stack_.router());
   
-  debug2("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-      hdr->daddr.c_str(),
-      stack_.netmask().c_str(),
-      stack_.ip_addr().c_str(),
-      stack_.router().c_str(),
+  debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+      hdr->daddr.str().c_str(),
+      stack_.netmask().str().c_str(),
+      stack_.ip_addr().str().c_str(),
+      stack_.router().str().c_str(),
       target == local ? "DIRECT" : "GATEWAY");
   
-  debug2("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
-      stack_.ip_addr().c_str(),
-      pckt->next_hop().c_str(),
+  debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
+      stack_.ip_addr().str().c_str(),
+      pckt->next_hop().str().c_str(),
       pckt->size(),
       ip4_pckt->ip4_segment_size()
 	);

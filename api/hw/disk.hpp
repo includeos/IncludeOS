@@ -19,44 +19,60 @@
 #define HW_DISK_HPP
 
 #include "pci_device.hpp"
+#include "disk_device.hpp"
 
-/** Hopefully somebody will port a driver for this one */
-class IDE;
+namespace hw {
 
 template <typename DRIVER>
-class Disk {
+class Disk : public IDiskDevice {
 public:
-  using driver_t      = DRIVER;
-  using block_t       = typename driver_t::block_t;
-  using on_read_func  = typename driver_t::on_read_func;
-  using on_write_func = typename driver_t::on_write_func;
+  /** optimal block size for this device */
+  virtual block_t block_size() const noexcept override
+  { return driver.block_size(); }
   
-  /** Get a readable name. */
-  inline const char* name() const noexcept
-  { return driver_.name(); }
+  /** Human readable name */
+  const char* name() const noexcept override
+  {
+    return driver.name();
+  }
   
-  inline block_t block_size() const noexcept
-  { return driver_.block_size(); }
+  virtual void
+  read(block_t blk, on_read_func del) override
+  {
+    driver.read(blk, del);
+  }
+  virtual void
+  read(block_t blk, block_t count, on_read_func del) override
+  {
+    driver.read(blk, count, del);
+  }
   
-  inline void read(block_t blk, on_read_func on_read)
-  { driver_.read(blk, on_read); }
+  virtual buffer_t read_sync(block_t blk) override
+  {
+    return driver.read_sync(blk);
+  }
   
-  inline void write(block_t, const char*, on_write_func)
-  { /*return driver_.write(blk, data, on_write);*/ }
+  virtual block_t size() const noexcept override
+  {
+    return driver.size();
+  }
+  
+  virtual ~Disk() = default;
   
 private:
-  driver_t driver_;
+  DRIVER driver;
   
   /**
-   *  Constructor
-   *  
    *  Just a wrapper around the driver constructor
-   *
    *  @note The Dev-class is a friend and will call this
    */
-  explicit Disk(PCI_Device& d): driver_{d} {}
+  template <typename... Args>
+  explicit Disk(PCI_Device& d, Args&&... args):
+    driver{d, std::forward<Args>(args)... } {}
   
   friend class Dev;
 }; //< class Disk
+
+} //< namespace hw
 
 #endif //< HW_DISK_HPP

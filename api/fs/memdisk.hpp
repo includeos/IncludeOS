@@ -16,28 +16,45 @@
 // limitations under the License.
 
 #pragma once
-#ifndef MEMDISK_HPP
-#define MEMDISK_HPP
+#ifndef FS_MEMDISK_HPP
+#define FS_MEMDISK_HPP
 
 #include <cstdint>
-#include <deque>
-#include <functional>
-#include "disk_device.hpp"
 
-namespace fs
-{
-  class MemDisk : public IDiskDevice
-  {
-  public:
-    MemDisk();
-    
-    virtual void read_sector(uint32_t blk, on_read_func func) override;
-    
-  private:
-    void*  image_start;
-    void*  image_end;
-  };
+#include <hw/disk_device.hpp>
+
+namespace fs {
+
+class MemDisk : public hw::IDiskDevice {
+public:
+  static constexpr size_t SECTOR_SIZE = 512;
   
-}
+  MemDisk() noexcept;
+  
+  /** Returns the optimal block size for this device.  */
+  virtual block_t block_size() const noexcept override
+  { return SECTOR_SIZE; }
+  
+  virtual const char* name() const noexcept override
+  {
+    return "MemDisk";
+  }
+  
+  virtual void 
+  read(block_t blk, on_read_func reader) override;
+  
+  virtual void 
+  read(block_t start, block_t cnt, on_read_func reader) override;
+  
+  virtual buffer_t read_sync(block_t blk) override;
+  
+  virtual block_t size() const noexcept override;
+  
+private:
+  void*  image_start;
+  void*  image_end;
+}; //< class MemDisk
+  
+} //< namespace fs
 
-#endif
+#endif //< FS_MEMDISK_HPP

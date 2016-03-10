@@ -21,6 +21,8 @@
 #include <map>
 #include <hertz>
 
+namespace hw {
+
 /**
    Programmable Interval Timer class. A singleton.
    
@@ -181,3 +183,5 @@ private:
   void start_timer(Timer t, std::chrono::milliseconds);
   
 };
+
+} //< namespace hw
