@@ -10,6 +10,7 @@ SERVICE_NAME = "TCP\ Test\ Service"
 FILES = service.cpp
 # Your disk image
 DISK=
+LOCAL_INCLUDES=
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
