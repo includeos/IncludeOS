@@ -4,7 +4,7 @@
 
 # The name of your service
 SERVICE = Test_crt
-SERVICE_NAME = "C runtime test"
+SERVICE_NAME = C runtime test
 
 # Your service parts
 FILES = service.cpp
