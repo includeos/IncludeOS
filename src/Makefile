@@ -187,7 +187,7 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 
 # Disk image as a section
 ###################################################
-memdisk: memdisk.asm
+memdisk:
 	@echo "\n>> Assembling memdisk"
 	nasm -f elf -o memdisk.o $<
 
