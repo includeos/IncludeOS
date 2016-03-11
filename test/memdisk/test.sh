@@ -19,6 +19,7 @@ sudo cp banana.txt tmpdisk/
 sync # Mui Importante
 
 make SERVICE=Test DISK=big.disk FILES=bigdisk.cpp
+export MEM="-m 256" 
 start Test.img "Memdisk: Big disk test"
 make SERVICE=Test FILES=bigdisk.cpp clean
 

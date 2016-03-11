@@ -17,15 +17,29 @@
 
 #include <os>
 #include <stdio.h>
+#include <quick_exit>
 
+/** 
+    Test 'quick-exit' and 'at_quick_exit' from C11
+    
+    NOTE: This test is supposed to result in a PANIC, 
+    after calling the quick-exit handler, and then quick_exit
+    
+**/
 void Service::start()
 {
   
-  printf("TESTING Quick Exit\n");
+  INFO("Test Quick Exit","Expect panic after exit handler");
   
-  at_quick_exit([](){ printf("[x] Custom quick exit-handler called \n"); return; });
+  at_quick_exit([](){ 
+      CHECK(1,"Custom quick exit-handler called"); 
+      return; 
+    });
+  
   quick_exit(0);
   
   // Make sure we actually exit  (This is dead code -  but for testing)
-  at_quick_exit([](){ printf("[0] Service didn't actually exit \n"); return; });
+  at_quick_exit([](){ 
+      CHECK(0, "FAIL: Service didn't actually exit \n"); return; });
+  
 }
