@@ -75,8 +75,8 @@ namespace hw{
     uint8_t irq_{4};
     std::string buf{};
 
-    on_data_handler on_data_ = [](char c){ debug("Default on_data: %c \n", c); };
-    on_string_handler on_readline_ = [](std::string s) { (void)s; };
+    on_data_handler on_data_ = [](char c){ debug("Default on_data: %c \n", c); (void)c; };
+    on_string_handler on_readline_ {}= [](std::string s) { (void)s; };
 
     void irq_handler_ ();
     void readline_handler_(char c);
