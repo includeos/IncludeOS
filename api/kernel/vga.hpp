@@ -55,7 +55,7 @@ public:
   static const size_t VGA_WIDTH  {80};
   static const size_t VGA_HEIGHT {25};
   
-private:
+public:
   void write(char) noexcept;
   void putEntryAt(const char, const uint8_t, const size_t, const size_t) noexcept;
   void putEntryAt(const char, const size_t, const size_t) noexcept;
