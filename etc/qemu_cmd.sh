@@ -10,14 +10,15 @@ fi
 
 export macaddress="c0:01:0a:00:00:2a"
 INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
+
 export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 
-export DEV_NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
-export SMP="-smp 1"
+[ ! -v NET ] && export NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
+[ ! -v SMP ] && export SMP="-smp 1"
+[ ! -v GRAPHICS ] && export GRAPHICS="-nographic"
+[ ! -v SERIAL ] && export SERIAL="-virtioconsole stdio"
+[ ! -v MEM ] && export MEM="-m 128"
+[ ! -v HDD ] && export HDD="-drive file=$IMAGE,format=raw,if=ide"
+[ ! -v CPU ] && export CPU=""
 
-export DEV_GRAPHICS="-nographic"
-
-export SERIAL="-virtioconsole stdio"
-
-export DEV_HDD="-drive file=$IMAGE,format=raw,if=ide"
-export QEMU_OPTS="$DEV_HDD $DEV_NET $DEV_GRAPHICS $SMP"
+export QEMU_OPTS="$HDD $NET $GRAPHICS $SMP $MEM $CPU"

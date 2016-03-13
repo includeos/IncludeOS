@@ -21,23 +21,32 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
-
 #include <os>
 
-// A private class to handle IRQ
 #include <hw/ioport.hpp>
+#include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
 
 bool OS::power_   {true};
-MHz  OS::cpu_mhz_ {0};
+MHz  OS::cpu_mhz_ {1000};
 
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
+hw::Serial& OS::com1 = hw::Serial::port<1>(); 
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start() {
+  
+  // Initialize serial port
+  com1.init();
+  
+  // Print a fancy header
+  FILLINE('=');
+  CAPTION("#include<os> // Literally\n");
+  FILLINE('=');
+  
   debug("\t[*] OS class started\n");
   srand(time(NULL));
   
@@ -48,21 +57,17 @@ void OS::start() {
   MYINFO("Heap start: @ %p", heap_end);
   MYINFO("Current end is: @ %p", &_end);
   
-  // OS::rsprint("\t[*] IRQ handler\n");
-
-  asm("cli");
-
+  // Set up interrupt handlers 
   IRQ_manager::init();
-  
+    
   // Initialize the Interval Timer
   hw::PIT::init();
 
   // Initialize PCI devices
   PCI_manager::init();
+  
+  /** Estimate CPU frequency 
 
-  asm("sti");
-  
-  
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(10 samples, %f sec. interval)", 
@@ -70,10 +75,12 @@ void OS::start() {
   INFO2("|");
   
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = MHz(2200); //hw::PIT::CPUFrequency();
+  cpu_mhz_ = hw::PIT::CPUFrequency();
 
   INFO2("+--> %f MHz", cpu_mhz_.count());
-    
+  
+  **/
+  
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
@@ -109,7 +116,7 @@ void OS::event_loop() {
 size_t OS::rsprint(const char* str) {
   size_t len = 0;
 
-	// Measure length
+  // Measure length
   while (str[len++]);
   
   // Output callback
@@ -118,22 +125,12 @@ size_t OS::rsprint(const char* str) {
 }
 
 size_t OS::rsprint(const char* str, const size_t len) {
-  
   // Output callback
   OS::rsprint_handler_(str, len);
-	return len;
-}
-
-/* STEAL: Print to serial port 0x3F8 */
-void OS::rswrite(const char c) {
-  /* Wait for the previous character to be sent */
-  while ((hw::inb(0x3FD) & 0x20) != 0x20);
-  
-  /* Send the character */
-  hw::outb(0x3F8, c);
+  return len;
 }
 
 void OS::default_rsprint(const char* str, size_t len) {
   for(size_t i = 0; i < len; ++i)
-        rswrite(str[i]);
+    com1.write(str[i]);
 }

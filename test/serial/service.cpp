@@ -15,41 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
-#include <hw/ioport.hpp>
-#include <kernel/os.hpp>
-#include <assert.h>
-#include <debug>
+#include <os>
+#include <hw/serial.hpp>
+#include <kernel/irq_manager.hpp>
 
-extern "C"
+using namespace std::chrono;
+
+void Service::start()
 {
-  void _init_c_runtime();
     
-  // enables Streaming SIMD Extensions
-  static void enableSSE(void)
-  {
-    __asm__ ("mov %cr0, %eax");
-    __asm__ ("and $0xFFFB,%ax");
-    __asm__ ("or  $0x2,   %ax");
-    __asm__ ("mov %eax, %cr0");
-    
-    __asm__ ("mov %cr4, %eax");
-    __asm__ ("or  $0x600,%ax");
-    __asm__ ("mov %eax, %cr4");
-  }
+  auto& com1 = hw::Serial::port<1>();  
   
-  void _start(void)
-  {    
-    __asm__ volatile ("cli");
-    
-    // enable SSE extensions bitmask in CR4 register
-    enableSSE();
-    
-    // Initialize stack-unwinder, call global constructors etc.
-    _init_c_runtime();
-    
-    // Initialize some OS functionality
-    OS::start();
+  com1.on_readline([](const std::string& s){ 
+      printf("\nReceived: %s \n", s.c_str());
+ 
+    });  
+ 
+  INFO("Serial Test","Doing some serious serial");  
 
-  }
+
 }
+
+

@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,31 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <stdio.h>
-#include <quick_exit>
+#pragma once
+#ifndef VGA_HEADER
+#define VGA_HEADER
 
-/** 
-    Test 'quick-exit' and 'at_quick_exit' from C11
-    
-    NOTE: This test is supposed to result in a PANIC, 
-    after calling the quick-exit handler, and then quick_exit
-    
-**/
-void Service::start()
-{
-  
-  INFO("Test Quick Exit","Expect panic after exit handler");
-  
-  at_quick_exit([](){ 
-      CHECK(1,"Custom quick exit-handler called"); 
-      return; 
-    });
-  
-  quick_exit(0);
-  
-  // Make sure we actually exit  (This is dead code -  but for testing)
-  at_quick_exit([](){ 
-      CHECK(0, "FAIL: Service didn't actually exit \n"); return; });
-  
-}
+#include "kernel/vga.hpp"
+
+#endif

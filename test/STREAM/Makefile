@@ -8,6 +8,7 @@ SERVICE_NAME = STREAM Memory benchmark
 
 # Your service parts
 FILES = service.cpp stream.cpp
+
 # Your disk image
 DISK=
 

@@ -17,7 +17,7 @@
 
 #include <os>
 #include <stdio.h>
-
+#include <cassert>
 
 class CustomException : public std::runtime_error {
   using runtime_error::runtime_error;

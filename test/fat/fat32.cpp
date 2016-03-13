@@ -96,6 +96,35 @@ void Service::start()
     CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
     assert(ent.name() == "banana.txt");
     
+    // asynch file reading test
+    fs.readFile(ent,
+    [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+    {
+      CHECK(!err, "Read 'banana.txt' asynchronously");
+      if (err)
+      {
+        panic("Failed to read file async");
+      }
+      
+      std::string banana((char*) buf.get(), len);
+      std::string internal_banana = 
+    R"(     ____                           ___
+    |  _ \  ___              _   _.' _ `.
+ _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
+|:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
+|   `.[_) )  _  |  \| | (_) |     | | | |.',..|
+':.   `. /| | | |     |  _  | |\  | | |.' :;::'
+ !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
+ !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
+ ';:'        `::;::;'             ''     .,  .
+   `:     .,.    `'    .::... .      .::;::;'
+     `..:;::;:..      ::;::;:;:;,    :;::;'
+       "-:;::;:;:      ':;::;:''     ;.-'
+           ""`---...________...---'""
+)";
+      CHECK(banana == internal_banana, "Correct banana");
+      printf("%s\n", banana.c_str());
+    });
   });
   
   INFO("FAT32", "SUCCESS");

@@ -40,7 +40,7 @@ ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(LOCAL_INCLUDES) -I
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api $(LOCAL_INCLUDES)
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
@@ -59,6 +59,7 @@ CRTN_OBJ = $(INSTALL)/crt/crtn.o
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
+
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
@@ -81,7 +82,7 @@ stripped: service
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: LDOPTS  += -M --verbose
+#debug: LDOPTS  += -M --verbose
 debug: OBJS += $(LIBG_OBJ)
 debug: service #Don't wanna call 'all', since it strips debug info
 
