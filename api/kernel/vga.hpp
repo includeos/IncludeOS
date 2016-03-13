@@ -55,12 +55,15 @@ public:
   static const size_t VGA_WIDTH  {80};
   static const size_t VGA_HEIGHT {25};
   
-public:
   void write(char) noexcept;
   void putEntryAt(const char, const uint8_t, const size_t, const size_t) noexcept;
   void putEntryAt(const char, const size_t, const size_t) noexcept;
   void increment(int) noexcept;
   void newline() noexcept;
+  
+private:
+  static const uint16_t DEFAULT_ENTRY;
+  void put(uint16_t, size_t, size_t) noexcept;
   
   size_t    row;
   size_t    column;
