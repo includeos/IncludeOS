@@ -137,11 +137,15 @@ size_t Connection::write_to_send_buffer(const char* buffer, size_t n, bool PUSH)
 	size_t remaining{n};
 	do {
 		auto packet = create_outgoing_packet();
-		size_t written = packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK).fill(buffer + (n-remaining), remaining);
+		packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK);
+		// calculate how much the packet can be filled with
+		auto packet_limit = (uint32_t)MSDS() - packet->header_size();
+		size_t written = packet->fill(buffer + (n-remaining), std::min(packet_limit, remaining));
 		bytes_written += written;
 		remaining -= written;
 		
-		debug("<TCP::Connection::write_to_send_buffer> Written: %u - Remaining: %u \n", written, remaining);
+		debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u - Remaining: %u\n", 
+			packet_limit, written, remaining);
 		
 		// If last packet, add PUSH.
 		if(!remaining and PUSH)
@@ -191,10 +195,22 @@ string Connection::to_string() const {
 	Where the magic happens.
 */
 void Connection::receive(TCP::Packet_ptr incoming) {
-	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
+
 	signal_packet_received(incoming);
-	// Change window accordingly. 
+
+	if(incoming->has_options()) {
+		try {
+			parse_options(incoming);	
+		}
+		catch(TCPBadOptionException err) {
+			printf("<TCP::Connection::receive> %s \n", err.what());
+		}
+	}
+
+	// Change window accordingly. TODO: Not sure if this is how you do it.
 	control_block.SND.WND = incoming->win();
+
+	// Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
 	switch(state_->handle(*this, incoming)) {
 		case State::OK: {
 			// Do nothing.
@@ -363,3 +379,63 @@ std::string Connection::TCB::to_string() const {
 		<< " IRS = " << IRS;
 	return os.str();
 }
+
+void Connection::parse_options(TCP::Packet_ptr packet) {
+	assert(packet->has_options());
+	debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n", 
+		packet->offset(), packet->options_length());
+	
+	auto* opt = packet->options();
+	
+	while((char*)opt < packet->data()) {
+		
+		auto* option = (TCP::Option*)opt;
+		
+		switch(option->kind) {
+
+			case Option::END: {
+				return;
+			}
+
+			case Option::NOP: {
+				opt++;
+				break;
+			}
+
+			case Option::MSS: {
+				// unlikely
+				if(option->length != 4)
+					throw TCPBadOptionException{Option::MSS, "length != 4"};
+				// unlikely
+				if(!packet->isset(SYN))
+					throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
+				
+				auto* opt_mss = (Option::opt_mss*)option;
+				uint16_t mss = ntohs(opt_mss->mss);
+				control_block.SND.MSS = mss;
+				debug2("<TCP::parse_options@Option:MSS> MSS: %u \n", mss);
+				opt += option->length;
+				break;
+			}
+
+			default:
+				return;
+		}
+	}
+}
+
+void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
+	
+	switch(kind) {
+
+		case Option::MSS: {
+			packet->add_option<Option::opt_mss>(host_.MSS());
+			debug2("<TCP::Connection::add_option@Option::MSS> Packet: %s - MSS: %u\n", 
+				packet->to_string().c_str(), ntohs(*(uint16_t*)(packet->options()+2)));
+			break;
+		}
+		default:
+			break;
+	}
+}
+

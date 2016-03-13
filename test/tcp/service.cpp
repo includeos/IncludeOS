@@ -157,7 +157,7 @@ void Service::start()
 	CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
 	
 	tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "SMALL string");
+		INFO("TEST", "SMALL string (%u)", small.size());
 		conn->onReceive([](Connection_ptr conn, bool) {
 			CHECK(conn->read() == small, "conn.read() == small");
 			conn->close();
@@ -174,7 +174,7 @@ void Service::start()
 		TEST: Send and receive big string.
 	*/
 	tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "BIG string");
+		INFO("TEST", "BIG string (%u)", big.size());
 		auto response = std::make_shared<std::string>();
 		conn->onReceive([response](Connection_ptr conn, bool) {
 			*response += conn->read();
@@ -191,7 +191,7 @@ void Service::start()
 		TEST: Send and receive huge string.
 	*/
 	tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "HUGE string");
+		INFO("TEST", "HUGE string (%u)", huge.size());
 		auto buffer = std::make_shared<Buffer>(huge.size());
 		conn->onReceive([buffer](Connection_ptr conn, bool) {
 			// if not all expected data is read
