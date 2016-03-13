@@ -174,8 +174,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 			// Set remote
 			connection->set_remote(packet->source());
 			debug("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
-			// Change to listening state.
-			//connection.open(); // already listening
+			
 			connection->receive(packet);
 		}
 		// No listener found
@@ -190,6 +189,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 
 	Format:
 	[Protocol][Recv][Send][Local][Remote][State]
+
+	TODO: Make sure Recv, Send, In, Out is correct and add them to output. Also, alignment?
 */
 string TCP::status() const {
 	// Write all connections in a cute list.
@@ -203,7 +204,7 @@ string TCP::status() const {
 		auto& c = *(con_it.second);
 		ss << "tcp4\t" 
 			<< " " << "\t" << " " << "\t"
-			<< c.bytes_received() << "\t" << c.bytes_transmitted() << "\t"
+			<< " " << "\t" << " " << "\t"
 			<< c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t" 
 			<< c.state().to_string() << "\n";
 	}

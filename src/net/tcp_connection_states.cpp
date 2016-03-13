@@ -377,7 +377,14 @@ void Connection::Closed::open(Connection& tcp, bool active) {
 		if(!tcp.remote().is_empty()) {
 			auto& tcb = tcp.tcb();
 			tcb.ISS = tcp.generate_iss();
-			tcp.outgoing_packet()->set_seq(tcb.ISS).set_flag(SYN);
+			auto packet = tcp.outgoing_packet();
+			packet->set_seq(tcb.ISS).set_flag(SYN);
+			
+			/*
+				Add MSS option.
+			*/
+			tcp.add_option(Option::MSS, packet);
+
 			tcb.SND.UNA = tcb.ISS;
 			tcb.SND.NXT = tcb.ISS+1;
 			tcp.transmit();
@@ -482,7 +489,15 @@ State::Result Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
 		debug("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
 			in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
-		tcp.outgoing_packet()->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
+		auto packet = tcp.outgoing_packet();
+		packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
+		
+		/*
+			Add MSS option.
+			TODO: Send even if we havent received MSS option?
+		*/
+		tcp.add_option(Option::MSS, packet);
+		
 		tcp.transmit();
 		tcp.set_state(SynReceived::instance());
 
