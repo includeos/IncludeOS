@@ -67,7 +67,7 @@ boot:
 	;;  Print the IncludeOS logo
 	mov esi, str_includeos
 	call printstr
-	mov ax, 0x0800
+	mov ax, 0x07
 	mov [color], ax
 	mov esi, str_literally
 	call printstr
