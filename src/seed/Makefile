@@ -82,7 +82,7 @@ stripped: service
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: LDOPTS  += -M --verbose
+#debug: LDOPTS  += -M --verbose
 debug: OBJS += $(LIBG_OBJ)
 debug: service #Don't wanna call 'all', since it strips debug info
 

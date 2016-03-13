@@ -26,7 +26,8 @@
 
 #include <common>
 
-#include "../hw/pit.hpp"
+#include <hw/pit.hpp>
+namespace hw{ class Serial; }
 
 /**
  *  The entrypoint for OS services
@@ -60,7 +61,7 @@ public:
   static size_t rsprint(const char* ptr, const size_t len);
   
   /**
-   *  Write a character to serial port. @todo Should be moved Dev::serial(n)
+   *  Write a character to serial port. 
    *
    *  @param c: The character to print to serial port
    */
@@ -100,6 +101,8 @@ private:
   
   static rsprint_func rsprint_handler_;
 
+  static hw::Serial& com1;
+  
   // Prohibit copy and move operations
   OS(OS&)  = delete;
   OS(OS&&) = delete;

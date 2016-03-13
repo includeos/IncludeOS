@@ -19,6 +19,6 @@ export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 [ ! -v SERIAL ] && export SERIAL="-virtioconsole stdio"
 [ ! -v MEM ] && export MEM="-m 128"
 [ ! -v HDD ] && export HDD="-drive file=$IMAGE,format=raw,if=ide"
-[ ! -v CPU ] && export CPU="-cpu host"
+[ ! -v CPU ] && export CPU=""
 
 export QEMU_OPTS="$HDD $NET $GRAPHICS $SMP $MEM $CPU"
