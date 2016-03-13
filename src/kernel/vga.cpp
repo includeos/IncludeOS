@@ -47,6 +47,11 @@ void ConsoleVGA::putEntryAt(const char c, const size_t x, const size_t y) noexce
   put(make_vgaentry(c, this->color), x, y);
 }
 
+void ConsoleVGA::setCursorAt(const size_t x, const size_t y) noexcept {
+  this->column = x;
+  this->row = y; 
+}
+
 inline void ConsoleVGA::put(uint16_t entry, size_t x, size_t y) noexcept {
   const size_t index = y * VGA_WIDTH + x;
   this->buffer[index] = entry;

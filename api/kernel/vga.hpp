@@ -58,8 +58,11 @@ public:
   void write(char) noexcept;
   void putEntryAt(const char, const uint8_t, const size_t, const size_t) noexcept;
   void putEntryAt(const char, const size_t, const size_t) noexcept;
+  void setCursorAt(const size_t, const size_t) noexcept;
   void increment(int) noexcept;
   void newline() noexcept;
+  inline void set_color(vga_color c)
+  { color = c; };
   
 private:
   static const uint16_t DEFAULT_ENTRY;
