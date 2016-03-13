@@ -26,6 +26,11 @@ std::unique_ptr<Inet4<VirtioNet>> inet;
 #include <vga>
 ConsoleVGA vga;
 
+static char c = '0';
+static int iterations = 0;
+
+using namespace std::chrono;
+
 void Service::start()
 {
   INFO("VGA", "Running tests for VGA");
@@ -44,6 +49,53 @@ void Service::start()
 			{{ 255,255,255,0 }}, // Netmask
 			{{ 10,0,0,1 }},      // Gateway
 			{{ 8,8,8,8 }} );     // DNS
+  
+  auto test1 = [](){
+    vga.putEntryAt('@',0,0);
+    vga.putEntryAt('@',0,24);
+    vga.putEntryAt('@',79,0);
+    vga.putEntryAt('@',79,24);
+    
+    static int row = 0;
+    static int col = 0;
+    
+    vga.putEntryAt(c,col % 80, row % 25);
+    
+    if (col++ % 80 == 79){	
+      row++;
+    }
+    
+    if (row % 25 == 24 and col % 80 == 79)
+      c++;
+  };
+  auto test1_1 = 
+  [] () -> bool
+  {
+    if ( c >= '4') {
+      hw::PIT::instance().onRepeatedTimeout(5ms,
+      [] {
+        vga.newline();
+        iterations++;	    
+      }, 
+      [] {
+        return iterations <= 25;
+      });
+    }
+    return c < '4';
+  };
+  
+  hw::PIT::instance().onRepeatedTimeout(500ms,
+  [] {
+    const int width = 40;
+    
+    char buf[width];
+    for (int i = 0; i<width; i++)
+      buf[i] = c;
+      
+    buf[width - 1] = '\n';
+    vga.write(buf,width);
+      c++;
+  });
   
   INFO("VGA", "SUCCESS");
 }
