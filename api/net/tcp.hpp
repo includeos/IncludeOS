@@ -28,8 +28,13 @@
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
 
-namespace net {
+inline unsigned round_up(unsigned n, unsigned div) {
+	assert(n);
+	return (n + div - 1) / div;
+}
 
+namespace net {
+	
 class TCP {
 public:
 	using Address = IP4::addr;
@@ -388,7 +393,7 @@ public:
     		auto* addr = options()+options_length();
     		new (addr) T(args...);
     		// update offset
-    		set_offset(offset() + ( ((T*)addr)->length / 4) );
+    		set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
     		set_length(); // update
     	}
 
