@@ -18,7 +18,11 @@
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
+#include <term>
 #include "ircd.hpp"
+
+SerialComm scomm(hw::Serial::port<1>());
+Terminal   term(scomm);
 
 using namespace std::chrono;
 
@@ -69,6 +73,10 @@ void Service::start()
       //client.bcast(TK_QUIT, "Disconnected");
     });*/
   });
+  
+  /// terminal ///
+  
+  
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

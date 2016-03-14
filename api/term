@@ -1,0 +1,6 @@
+#ifndef TERM_HEADER
+#define TERM_HEADER
+
+#include "kernel/terminal.hpp"
+
+#endif

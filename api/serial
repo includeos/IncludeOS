@@ -1,0 +1,6 @@
+#ifndef SERIAL_HEADER
+#define SERIAL_HEADER
+
+#include "hw/serial.hpp"
+
+#endif
