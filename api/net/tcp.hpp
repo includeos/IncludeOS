@@ -28,8 +28,13 @@
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
 
-namespace net {
+inline unsigned round_up(unsigned n, unsigned div) {
+	assert(n);
+	return (n + div - 1) / div;
+}
 
+namespace net {
+	
 class TCP {
 public:
 	using Address = IP4::addr;
@@ -38,8 +43,13 @@ public:
 		A Sequence number (SYN/ACK) (32 bits)
 	*/
 	using Seq = uint32_t;
+	
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
+
+	class TCPException;
+	class TCPBadOptionException;
+
 	class Connection;
 	using Connection_ptr = std::shared_ptr<Connection>;
 	using IPStack = Inet<LinkLayer,IP4>;
@@ -109,6 +119,8 @@ public:
 	
 	static constexpr uint16_t default_window_size = 0xffff;
 
+	static constexpr uint16_t default_mss = 536;
+
 	/* 
 		Flags (Control bits) in the TCP Header.
 	*/
@@ -163,7 +175,7 @@ public:
       	uint16_t window_size;			// Window size
       	uint16_t checksum;				// Checksum
       	uint16_t urgent;				// Urgent pointer offset
-      	uint32_t options[0];			// Options
+      	uint8_t options[0];			// Options
 	}__attribute__((packed)); // << struct TCP::Header
 
 
@@ -194,6 +206,47 @@ public:
 		IP4::ip_header ip4;
 		TCP::Header tcp; 
 	}__attribute__((packed));
+
+	/*
+		TCP Header Option
+	*/
+	struct Option {
+		uint8_t kind;
+		uint8_t length;
+		uint8_t data[0];
+
+		enum Kind {
+			END = 0x00, // End of option list
+			NOP = 0x01, // No-Opeartion
+			MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
+		};
+
+		static std::string kind_string(Kind kind) {
+			switch(kind) {
+				case MSS: 
+					return {"MSS"};
+
+				default: 
+					return {"Unknown Option"};
+			}
+		}
+
+		struct opt_mss {
+			uint8_t kind;
+			uint8_t length;
+			uint16_t mss;
+
+			opt_mss(uint16_t mss) 
+				: kind(MSS), length(4), mss(htons(mss)) {}
+		};
+
+		struct opt_timestamp {
+			uint8_t kind;
+			uint8_t length;
+			uint32_t ts_val;
+			uint32_t ts_ecr;
+		};
+	};
 
 	
 	/*
@@ -332,10 +385,33 @@ public:
 
     	inline uint16_t tcp_length() const { return header_size() + data_length(); }
 
-    	
+    	template <typename T, typename... Args>
+    	inline void add_option(Args&&... args) {
+    		// to avoid headache, options need to be added BEFORE any data.
+    		assert(!has_data());
+    		// option address
+    		auto* addr = options()+options_length();
+    		new (addr) T(args...);
+    		// update offset
+    		set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+    		set_length(); // update
+    	}
+
+    	inline void clear_options() {
+    		// clear existing options
+    		// move data (if any) (??)
+    		set_offset(5);
+    		set_length(); // update
+    	}
+
+    	inline uint8_t* options() { return (uint8_t*) header().options; }
+
+    	inline uint8_t options_length() const { return header_size() - sizeof(TCP::Header); }
+
+    	inline bool has_options() const { return options_length() > 0; }
 
     	// sets the correct length for all the protocols up to IP4
-    	void set_length(uint16_t newlen) {
+    	void set_length(uint16_t newlen = 0) {
      		// new total packet length
     		set_size( all_headers_len() + newlen );
     	}
@@ -356,7 +432,8 @@ public:
     	inline std::string to_string() {
     		std::ostringstream os;
     		os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
-    			<< " SEQ:" << seq() << " ACK:" << ack() << " HEAD-LEN:" << (int)header_size() <<" DATA-LEN:" << data_length() 
+    			<< " SEQ:" << seq() << " ACK:" << ack() 
+    			<< " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length() 
     			<< " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
     		return os.str();
     	}
@@ -364,11 +441,26 @@ public:
 	}; // << class TCP::Packet
 
 	/*
-		TODO: Implement.
+		TODO: Does this need to be better? (faster? stronger?)
 	*/
 	class TCPException : public std::runtime_error {
 	public:
-		TCPException(std::string error) : std::runtime_error(error) {};
+		TCPException(const std::string& error) : std::runtime_error(error) {};
+		virtual ~TCPException() {};
+	};
+
+	/*
+		Exception for Bad TCP Header Option (TCP::Option)
+	*/
+	class TCPBadOptionException : public TCPException {
+	public:
+		TCPBadOptionException(Option::Kind kind, const std::string& error) : 
+			TCPException("Bad Option [" + Option::kind_string(kind) + "]: " + error),
+			kind_(kind) {};
+
+		Option::Kind kind();
+	private:
+		Option::Kind kind_;
 	};
 
 	/*
@@ -604,6 +696,8 @@ public:
 				uint16_t UP;	// send urgent pointer
 				TCP::Seq WL1;	// segment sequence number used for last window update
 				TCP::Seq WL2;	// segment acknowledgment number used for last window update
+
+				uint16_t MSS;	// Maximum segment size for outgoing segments.
 			} SND; // <<
 			TCP::Seq ISS;		// initial send sequence number
 
@@ -616,7 +710,7 @@ public:
 			TCP::Seq IRS;		// initial receive sequence number
 
 			TCB() {
-				SND = { 0, 0, TCP::default_window_size, 0, 0, 0 };
+				SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss };
 				ISS = 0;
 				RCV = { 0, TCP::default_window_size, 0 };
 				IRS = 0;
@@ -771,6 +865,7 @@ public:
 
 		/*
 			Calculates and return bytes transmitted.
+			TODO: Not sure if this will suffice.
 		*/
 		inline uint32_t bytes_transmitted() const {
 			return control_block.SND.NXT - control_block.ISS;
@@ -778,6 +873,7 @@ public:
 
 		/*
 			Calculates and return bytes received.
+			TODO: Not sure if this will suffice.
 		*/
 		inline uint32_t bytes_received() const {
 			return control_block.RCV.NXT - control_block.IRS;
@@ -1020,10 +1116,36 @@ public:
 	 	*/
 	 	//std::chrono::milliseconds RTT() const;
   		std::chrono::milliseconds RTO() const;
-
+  		
+  		/*
+			Start the time wait timeout for 2*MSL
+  		*/
 	 	void start_time_wait_timeout();
 
+	 	/*
+			Tell the host (TCP) to delete this connection.
+	 	*/
 	 	void signal_close();
+
+
+	 	/// OPTIONS ///
+	 	/*
+			Maximum Segment Data Size
+			(Limit the size for outgoing packets)
+	 	*/
+	 	inline uint16_t MSDS() const {
+	 		return std::min(host_.MSS(), control_block.SND.MSS);
+	 	}
+
+	 	/*
+			Parse and apply options.
+	 	*/
+	 	void parse_options(TCP::Packet_ptr);
+
+	 	/*
+			Add an option.
+	 	*/
+		void add_option(TCP::Option::Kind, TCP::Packet_ptr);
 
 	}; // < class TCP::Connection
 
@@ -1108,6 +1230,22 @@ public:
 	*/
 	inline void set_buffer_limit(size_t buffer_limit) {
 		MAX_BUFFER_SIZE = buffer_limit;
+	}
+
+	/*
+		Maximum Segment Size
+		[RFC 793] [RFC 879] [RFC 6691]
+
+		@NOTE: Currently not supporting MTU bigger than 1482 bytes.
+	*/
+	inline uint16_t MSS() const {
+		/*
+			VirtulaBox "issue":
+			MTU > 1498 will break TCP.
+			MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
+		*/
+		const uint16_t VBOX_LIMIT = 1482;
+		return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header); 
 	}
 
 	/*
