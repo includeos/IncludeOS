@@ -24,6 +24,8 @@
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+using namespace std::chrono;
+
 void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -45,22 +47,23 @@ void Service::start() {
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
+
+  hw::PIT::instance().onRepeatedTimeout(30s, []{
+    printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+  });
   
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.onAccept([](auto conn) -> bool {
       printf("<Service> @onAccept - Connection attempt from: %s \n", 
           conn->to_string().c_str());
-      printf("<Service> Status: %s \n", conn->to_string().c_str());
       return true; // allow all connections
       
-  }).onConnect([](auto conn) {
-      printf("<Service> @onConnect - Connection successfully established. \n");
-      printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
+  }).onConnect([](auto) {
+      printf("<Service> @onConnect - Connection successfully established.\n");
 
   }).onReceive([](auto conn, bool push) {
       std::string data = conn->read(1024);
       printf("<Service> @onData - PUSH: %d, Data read: \n%s\n", push, data.c_str());
-      printf("<Service> Status: %s \n", conn->to_string().c_str());
       int color = rand();
       std::stringstream stream;
  
@@ -95,9 +98,8 @@ void Service::start() {
       std::string output{header + html};
       conn->write(output.data(), output.size());
 
-  }).onDisconnect([](auto conn, auto reason) {
+  }).onDisconnect([](auto, auto reason) {
       printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
-      printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
   });
 
   printf("*** TEST SERVICE STARTED *** \n");
