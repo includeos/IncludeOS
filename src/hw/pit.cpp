@@ -175,6 +175,8 @@ uint8_t PIT::read_back(uint8_t){
 }
 
 void PIT::irq_handler(){
+  // All IRQ-handlers has to send EOI
+  IRQ_manager::eoi(0);
 
   IRQ_counter_ ++;
 
@@ -237,9 +239,6 @@ void PIT::irq_handler(){
 
     debug2("\n---------------------------\n\n");
   }
-
-  // All IRQ-handlers has to send EOI
-  IRQ_manager::eoi(0);
 
 }
 

@@ -35,4 +35,5 @@ void PIC::init() noexcept {
   set_intr_mask(irq_mask_);
 }
 
+
 } //< namespace hw
