@@ -86,6 +86,8 @@ class IRQ_manager {
 public:
   using irq_delegate = delegate<void()>;
 
+  static const uint8_t irq_base = 32;
+  
   /**
    *  Enable an IRQ line
    *
@@ -148,6 +150,14 @@ public:
    */
   static void eoi(uint8_t irq);
 
+  static inline void register_interrupt(uint8_t i){
+    irq_pending_ |=  (1 << i);
+    __sync_fetch_and_add(&irq_counters_[i],1);
+    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
+	  irq_pending_, irq_counters_[i]);
+  }
+  
+  
 private:
   static unsigned int   irq_mask;
   static int            timer_interrupts;
@@ -158,10 +168,12 @@ private:
 
   /** bit n set means IRQ n has fired since last check */
   //static irq_bitfield irq_pending;
-  static irq_bitfield irq_subscriptions;
+  static irq_bitfield irq_subscriptions_;
 
-  static void(*irq_subscribers[sizeof(irq_bitfield)*8])();
-  static irq_delegate irq_delegates[sizeof(irq_bitfield)*8];
+  static void(*irq_subscribers_[sizeof(irq_bitfield)*8])();
+  static irq_delegate irq_delegates_[sizeof(irq_bitfield)*8];
+  static uint32_t irq_counters_[32];
+  static uint32_t irq_pending_;
 
   /** STI */
   static void enable_interrupts();
@@ -188,6 +200,7 @@ private:
 
   /** Notify all delegates waiting for interrupts */
   static void notify();
+  
 }; //< IRQ_manager
 
 #endif //< KERNEL_IRQ_MANAGER_HPP
