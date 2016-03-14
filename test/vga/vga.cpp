@@ -18,11 +18,6 @@
 #include <os>
 #include <stdio.h>
 #include <info>
-
-#include <net/inet4>
-using namespace net;
-std::unique_ptr<Inet4<VirtioNet>> inet;
-
 #include <vga>
 ConsoleVGA vga;
 
@@ -31,24 +26,24 @@ static int iterations = 0;
 
 using namespace std::chrono;
 
+void write_goodbye(){
+
+  char msg[] = {0xd,0xe,' ','G','A','M','E',' ','O','V','E','R',' ',0xe,0xd,0};  
+  vga.setCursorAt(32,24);
+  vga.setColor(ConsoleVGA::COLOR_LIGHT_BROWN);
+  vga.write(msg, sizeof(msg));
+  
+}
+
 void Service::start()
 {
   INFO("VGA", "Running tests for VGA");
   
-  OS::set_rsprint(
-  [] (const char* data, size_t len)
-  {
-    vga.write(data, len);
-  });
-  printf("Hello there!\n");
+  OS::set_rsprint([] (const char* data, size_t len) {
+      vga.write(data, len);
+    });
   
-	hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<Inet4<VirtioNet>>(eth0);
-  inet->network_config(
-      {{ 10,0,0,42 }},     // IP
-			{{ 255,255,255,0 }}, // Netmask
-			{{ 10,0,0,1 }},      // Gateway
-			{{ 8,8,8,8 }} );     // DNS
+  printf("Hello there!\n");
   
   auto test1 = [](){
     vga.putEntryAt('@',0,0);
@@ -58,7 +53,8 @@ void Service::start()
     
     static int row = 0;
     static int col = 0;
-    
+
+    vga.setColor(col % 256);
     vga.putEntryAt(c,col % 80, row % 25);
     
     if (col++ % 80 == 79){	
@@ -67,35 +63,52 @@ void Service::start()
     
     if (row % 25 == 24 and col % 80 == 79)
       c++;
-  };
-  auto test1_1 = 
-  [] () -> bool
+  };  
+
+  
+  auto test1_1 = [] () -> bool
   {
     if ( c >= '4') {
-      hw::PIT::instance().onRepeatedTimeout(5ms,
-      [] {
-        vga.newline();
-        iterations++;	    
-      }, 
-      [] {
-        return iterations <= 25;
-      });
+      hw::PIT::instance().onRepeatedTimeout(100ms, [] {
+	  vga.newline();
+	  iterations++;
+	  if (iterations == 24)
+	    write_goodbye();
+	  
+	},
+	
+	[] {
+	  return iterations < 36;
+	});
     }
     return c < '4';
   };
+
   
-  hw::PIT::instance().onRepeatedTimeout(500ms,
-  [] {
+  auto test2 = [](){
     const int width = 40;
     
     char buf[width];
     for (int i = 0; i<width; i++)
       buf[i] = c;
-      
+    
     buf[width - 1] = '\n';
     vga.write(buf,width);
-      c++;
-  });
+    c++;
+  };
+
+  auto test3 = [test1,test1_1](){    
+    for (uint8_t i=0; i<255; i++){
+      vga.setColor(i);
+      vga.write('#');
+    }
+    vga.setColor(vga.make_color(ConsoleVGA::COLOR_WHITE, ConsoleVGA::COLOR_BLACK));
+    hw::PIT::instance().onRepeatedTimeout(1ms, test1, test1_1);
+  };
+
+  
+  hw::PIT::instance().onTimeout(1s, test3);
+  
   
   INFO("VGA", "SUCCESS");
 }

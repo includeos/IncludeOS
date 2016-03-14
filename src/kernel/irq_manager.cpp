@@ -16,7 +16,7 @@
 // limitations under the License.
 
 //#define DEBUG // Enable debugging
-// #define DEBUG2
+//#define DEBUG2
 
 #include <assert.h>
 
@@ -26,17 +26,16 @@
 #include <kernel/syscalls.hpp>
 #include <unwind.h>
 
-const int irq_base=32;
 
 unsigned int IRQ_manager::irq_mask  {0xFFFB};
 IDTDescr     IRQ_manager::idt[256]  {};
 bool IRQ_manager::idt_is_set        {false};
 
-irq_bitfield irq_pending {0};
-irq_bitfield IRQ_manager::irq_subscriptions {0};
+irq_bitfield IRQ_manager::irq_pending_ {0};
+irq_bitfield IRQ_manager::irq_subscriptions_ {0};
 
-void (*IRQ_manager::irq_subscribers[sizeof(irq_bitfield)*8])() {nullptr};
-IRQ_manager::irq_delegate IRQ_manager::irq_delegates[sizeof(irq_bitfield)*8];
+void (*IRQ_manager::irq_subscribers_[sizeof(irq_bitfield)*8])() {nullptr};
+IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[sizeof(irq_bitfield)*8];
 
 void IRQ_manager::enable_interrupts() {
   __asm__ volatile("sti");
@@ -113,20 +112,13 @@ void exception_handler()
  *  - Set pending flag
  *  - Increment counter
  */
-static uint32_t __irqueues[256] {0};
+uint32_t IRQ_manager::irq_counters_[32] {0};
+
 
 #define IRQ_HANDLER(I)                                            \
   void irq_##I##_handler() {                                      \
-    irq_pending |=  (1 << I);                                     \
-    __sync_fetch_and_add(&__irqueues[I],1);                        \
-    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", I,        \
-          irq_pending, __irqueues[I]);                            \
+    IRQ_manager::register_interrupt(I);				  \
   }
-
-//debug("<!> IRQ %i. Pending: 0x%lx\n",I,irq_pending);
-
-// The delegates will handle EOI
-// eoi(I-IRQ_BASE);
 
 /* Macro magic to register default gates */
 #define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry, \
@@ -282,7 +274,7 @@ void (*IRQ_manager::get_handler(uint8_t irq))() {
 }
 
 IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
-  return irq_delegates[irq];
+  return irq_delegates_[irq];
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
@@ -302,14 +294,14 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {   //void(*notify)()
   enable_irq(irq);
 
   // Mark IRQ as subscribed to
-  irq_subscriptions |= (1 << irq);
+  irq_subscriptions_ |= (1 << irq);
 
   // Add callback to subscriber list (for now overwriting any previous)
   //irq_subscribers[irq] = notify;
-  irq_delegates[irq] = del;
+  irq_delegates_[irq] = del;
 
   eoi(irq);
-  INFO("IRQ manager", "Updated subscriptions: %#x irq: %i", irq_subscriptions, irq);
+  INFO("IRQ manager", "Updated subscriptions: %#x irq: %i", irq_subscriptions_, irq);
 }
 
 /** Get most significant bit of b. */
@@ -323,32 +315,34 @@ void IRQ_manager::notify() {
   //__asm__("cli");
 
   // Get the IRQ's that are both pending and subscribed to
-  irq_bitfield todo {static_cast<irq_bitfield>(irq_subscriptions & irq_pending)};
+  irq_bitfield todo {static_cast<irq_bitfield>(irq_subscriptions_ & irq_pending_)};
   int          irq  {0};
 
   while (todo) {
-    // Select the first IRQ to notify
-    irq = bsr(todo);
+    
+    // Select the first IRQ to notify - the least significant bit set
+    // - lowesr bit/IRQ, means higher priority
+    irq = __builtin_ffs(todo) - 1;
 
     // Notify
-    debug2("<IRQ notify> __irqueue %i Count: %i\n", irq, __irqueues[irq]);
-    irq_delegates[irq]();
+    debug2("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
+    irq_delegates_[irq]();
 
     // Decrement the counter
-    __sync_fetch_and_sub(&__irqueues[irq], 1);
+    __sync_fetch_and_sub(&irq_counters_[irq], 1);
 
     // Critical section start
     // Spinlock? Well, we can't lock out the IRQ-handler
     // ... and we don't have a timer interrupt so we can't do blocking locks.
-    if (!__irqueues[irq]) {
+    if (!irq_counters_[irq]) {
         // Remove the IRQ from pending list
-        irq_pending &= ~(1 << irq);
-        //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending);
+        irq_pending_ &= ~(1 << irq);
+        //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending_);
     }
     // Critical section end
 
     // Find remaining IRQ's both pending and subscribed to
-    todo = (irq_subscriptions & irq_pending);
+    todo = (irq_subscriptions_ & irq_pending_);
   }
 
   //hlt
