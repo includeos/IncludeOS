@@ -95,8 +95,8 @@ void Service::start() {
       std::string output{header + html};
       conn->write(output.data(), output.size());
 
-  }).onDisconnect([](auto conn, std::string msg) {
-      printf("<Service> @onDisconnect - Reason: %s \n", msg.c_str());
+  }).onDisconnect([](auto conn, auto reason) {
+      printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
       printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
   });
 

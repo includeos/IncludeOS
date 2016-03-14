@@ -32,6 +32,7 @@
 #include <net/inet4>
 
 using Connection_ptr = std::shared_ptr<net::TCP::Connection>;
+using Disconnect = net::TCP::Connection::Disconnect;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -97,14 +98,14 @@ void Service::start() {
 			});
 
 			// When client is disconnecting
-			client->onDisconnect([python](Connection_ptr, std::string msg) {
-				printf("Disconnected [Client]: %s\n", msg.c_str());
+			client->onDisconnect([python](Connection_ptr, Disconnect reason) {
+				printf("Disconnected [Client]: %s\n", reason.to_string().c_str());
 				python->close();
 			});
 
 			// When python is disconnecting
-			python->onDisconnect([client](Connection_ptr, std::string msg) {
-				printf("Disconnected [Python]: %s\n", msg.c_str());
+			python->onDisconnect([client](Connection_ptr, Disconnect reason) {
+				printf("Disconnected [Python]: %s\n", reason.to_string().c_str());
 				client->close();
 			});
 		}); // << onConnect (outgoing (python))
