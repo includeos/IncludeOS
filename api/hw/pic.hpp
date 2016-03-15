@@ -46,6 +46,7 @@ public:
   inline static void eoi(const uint8_t irq) noexcept {
     
     if (irq >= 8) {
+      //hw::outb(slave_ctrl, eoi_);
       hw::outb(slave_ctrl, eoi_);
     }
     //hw::outb(master_ctrl, specific_eoi_ | (irq & 0x0f) );*/
@@ -53,27 +54,35 @@ public:
   
   /* Returns the combined value of the cascaded PICs irq request register */
   inline static uint16_t get_irr() noexcept
-  { return get_irq_reg(read_irr); }
+  { return get_irq_reg(ocw3_read_irr); }
   
   /* Returns the combined value of the cascaded PICs in-service register */
   inline static uint16_t get_isr() noexcept
-  { return get_irq_reg(read_isr); }
+  { return get_irq_reg(ocw3_read_isr); }
 
 private:
   // ICW1 bits
-  static constexpr uint8_t icw1 {0x10};                // Bit 5 must always be set
+  static constexpr uint8_t icw1 {0x10};                // Bit 5 compulsory
   static constexpr uint8_t icw1_icw4_needed {0x1};     // Prepare for cw4 or not
-  static constexpr uint8_t icw1_single_mode {0x2};     // Not set means cascade
-  static constexpr uint8_t icw1_addr_interval_4 {0x4}; // Not set means interval 8
-  static constexpr uint8_t icw1_level_trigered {0x8};  // Not set means egde triggred
+  static constexpr uint8_t icw1_single_mode {0x2};     // 0: cascade
+  static constexpr uint8_t icw1_addr_interval_4 {0x4}; // 0: interval 8
+  static constexpr uint8_t icw1_level_trigered {0x8};  // 0: egde triggred
   
   // ICW2 bits: Interrupt number for first IRQ 
-  // ICW3 bits: Location of slave PIC
+  static constexpr uint8_t icw2_irq_base_master {32};
+  static constexpr uint8_t icw2_irq_base_slave {40};
+  
+  // ICW3 bits: Location and ID of slave PIC
+  static constexpr uint8_t icw3_slave_location {0x04};
+  static constexpr uint8_t icw3_slave_id {0x02};
+
   // ICW4 bits: 
-  static constexpr uint8_t icw4_8086_mode {0x1};       // Not set means aincient runes
-  static constexpr uint8_t icw4_auto_eoi {0x2};        // Switch between auto / normal EOI
+  static constexpr uint8_t icw4 {0x0};                 // No bits by default
+  static constexpr uint8_t icw4_8086_mode {0x1};       // 0: aincient runes
+  static constexpr uint8_t icw4_auto_eoi {0x2};        // auto vs. normal EOI
   static constexpr uint8_t icw4_buffered_mode_slave {0x08}; 
   static constexpr uint8_t icw4_buffered_mode_master {0x12};
+  
   
   // Registers addresses
   static const uint8_t master_ctrl {0x20};
@@ -81,22 +90,28 @@ private:
   static const uint8_t slave_ctrl  {0xA0};
   static const uint8_t slave_mask  {0xA1};
 
-  // Master commands
-  static const uint8_t master_icw1 {0x11}; // icw4 needed (bit1), bit5 always on
-  static const uint8_t master_icw2 {32}; // Remap
-  static const uint8_t master_icw3 {0x04}; // Location of slave
-  static const uint8_t master_icw4 {0x03}; // 8086-mode (bit1), Auto-EOI (bit2)
+  
+  // Operational command words
+  // OCW1: Interrupt mask
+  // OCW2:
+  static constexpr uint8_t ocw2 {0x0}; // No default bits
+  static constexpr uint8_t ocw2_nonspecific_eoi {0x20};
+  static constexpr uint8_t ocw2_specific_eoi {0x60};
+  static constexpr uint8_t ocw2_rotate_on_non_specific_eoi {0xA0};
+  static constexpr uint8_t ocw2_rotate_on_auto_eoi_set {0x80}; // 0x0 to clear
+  static constexpr uint8_t ocw2_rotate_on_specific_eoi {0xE0}; 
+  static constexpr uint8_t ocw2_set_priority_cmd {0xC0}; 
+  static constexpr uint8_t ocw2_nop {0x40};           
+  
+  static constexpr uint8_t ocw3 {0x08}; // Default bits
+  static constexpr uint8_t ocw3_read_irr {0x02}; 
+  static constexpr uint8_t ocw3_read_isr {0x03};
+  static constexpr uint8_t ocw3_poll_cmd {0x04}; // 0 to disable
+  static constexpr uint8_t ocw3_set_special_mask {0x60}; 
+  static constexpr uint8_t ocw3_reset_special_mask {0x40}; 
+  
+  
 
-  // Slave commands
-  static const uint8_t slave_icw1 {0x11};
-  static const uint8_t slave_icw2 {40};
-  static const uint8_t slave_icw3 {0x02}; // Slave ID
-  static const uint8_t slave_icw4 {0x01};
-
-  /* IRQ ready next CMD read */
-  static const uint8_t read_irr {0x0A};
-  /* IRQ service next CMD read */
-  static const uint8_t read_isr {0x0B};
 
   
   static constexpr uint8_t ocw2_eoi = 0x20;
