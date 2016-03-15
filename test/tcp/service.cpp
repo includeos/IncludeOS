@@ -103,7 +103,7 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
 		.onReceive([](Connection_ptr conn, bool) {
 			CHECK(conn->read() == small, "conn->read() == small");
 		})
-		.onDisconnect([](Connection_ptr, std::string) {
+		.onDisconnect([](Connection_ptr, TCP::Connection::Disconnect) {
 			CHECK(true, "Connection closed by server");
 			
 			OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
@@ -236,7 +236,7 @@ void Service::start()
 		CHECK(!conn->is_writable(), "!conn->is_writable()");
 		CHECK(conn->is_state({"FIN-WAIT-1"}), "conn.is_state(FIN-WAIT-1)");
 	})
-	.onDisconnect([](Connection_ptr conn, std::string) {
+	.onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
 		CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
 		hw::PIT::instance().onTimeout(1s,[conn]{
 			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");

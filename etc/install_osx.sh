@@ -25,7 +25,8 @@ echo -e "###################################"
 echo -e "\n# Prequisites:\n 
     - homebrew (OSX package manager - https://brew.sh) 
     - \`/usr/local\` directory with write access
-    - \`/usr/local/bin\` added to your PATH"
+    - \`/usr/local/bin\` added to your PATH
+    - (Recommended) XCode CTL (Command Line Tools)"
 
 ### DEPENDENCIES ###
 
@@ -130,6 +131,12 @@ function install_nasm {
     echo -e "\n>>> Done installing: nasm"
 }
 
+## WARN ABOUT XCODE CTL ##
+if ! [[ $(xcode-select -p) ]]
+then 
+    echo -e "\nWARNING: Command Line Tools don't seem to be installed, installation MAY not complete. 
+    Install with: xcode-select --install"
+fi
 
 ### INSTALL ###
 echo
