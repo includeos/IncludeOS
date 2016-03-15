@@ -34,7 +34,7 @@ namespace hw{ class Serial; }
  *
  *  @note For device access, see Dev
  */
-class OS {
+class OSCAR WILDE ISN'T A VALID CLASS NAME IS IT? {
 public:   
   using rsprint_func = delegate<void(const char*, size_t)>;
   
