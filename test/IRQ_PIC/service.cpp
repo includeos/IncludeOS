@@ -19,6 +19,7 @@
 
 #include <os>
 #include <kernel/irq_manager.hpp>
+#include <hw/serial.hpp>
 #include <list>
 #include <net/inet4>
 #include <vector>
@@ -37,24 +38,26 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
  **/
 void Service::start()
 {
-
+  
+  // Serial
+  auto& com1 = hw::Serial::port<1>();
+  
+  // Timers
   auto& time = hw::PIT::instance();
-
-  // Write something in half a second
-
-  // Assign an IP-address, using Hårek-mapping :-)
+  
+  // Network
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac();
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
     {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
     {{ 255,255,0,0 }} );  // Netmask
-
+  
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
 
   // UDP
   UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
-
+  
   sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port, const char* data, int len) -> int
               {
                 printf("Getting UDP data from %s: %i: %s\n",
@@ -104,11 +107,35 @@ void Service::start()
 
   // Halting could/should be used in this test
   // asm("hlt");
+  
+  com1.on_readline([](std::string str){	  
+      cout << "\nGot string: " << str << "\n";	  
+      cout << "But if we get another IRQ, which we don't handle: trouble\n";
+      cout << "Now send a UDP-package\n";
+      
+    });    
 
+  /*
+  IRQ_manager::subscribe(4, [](){ 
+      IRQ_manager::eoi(4);
+      INFO("IRQ","Serial port IRQ\n"); 
+    });
+  */
+  
+  /*
+  IRQ_manager::subscribe(11,[](){       
+      // Calling eoi here will turn the IRQ line on and loop forever.
+      IRQ_manager::eoi(11);
+      INFO("IRQ","Network IRQ\n");      
+    });
+  */			 
+   
   // Enabling a timer causes freeze in debug mode, for some reason
-  time.onTimeout(1s, [](){ printf("One second passed...\n"); });
-  time.onTimeout(2s, [](){ printf("Two seconds passed...\n"); });
-  time.onTimeout(5s, [](){ printf("Five seconds passed...\n"); });
+  time.onRepeatedTimeout(1s, [](){ 
+      printf("Time \n");                 
+      
+    });
+  
 
   INFO("IRQ test","Expect IRQ subscribers to get called now ");
 }
