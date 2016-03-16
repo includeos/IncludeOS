@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,7 @@ inline unsigned round_up(unsigned n, unsigned div) {
 }
 
 namespace net {
-	
+
 class TCP {
 public:
 	using Address = IP4::addr;
@@ -43,7 +43,7 @@ public:
 		A Sequence number (SYN/ACK) (32 bits)
 	*/
 	using Seq = uint32_t;
-	
+
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
 
@@ -95,7 +95,7 @@ public:
 			Comparator used for vector.
 		*/
 		inline bool operator ==(const Socket &s2) const {
-			return address().whole == s2.address().whole 
+			return address().whole == s2.address().whole
 					and port() == s2.port();
 		}
 
@@ -116,12 +116,12 @@ public:
 
 
 	/////// TCP Stuff - Relevant to the protocol /////
-	
+
 	static constexpr uint16_t default_window_size = 0xffff;
 
 	static constexpr uint16_t default_mss = 536;
 
-	/* 
+	/*
 		Flags (Control bits) in the TCP Header.
 	*/
 	enum Flag {
@@ -140,8 +140,8 @@ public:
 		Representation of the TCP Header.
 
 		RFC 793, (p.15):
-	    0                   1                   2                   3   
-	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+	    0                   1                   2                   3
+	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	   |          Source Port          |       Destination Port        |
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -179,7 +179,7 @@ public:
 	}__attribute__((packed)); // << struct TCP::Header
 
 
-	/* 
+	/*
 		TCP Pseudo header, for checksum calculation
 	*/
 	struct Pseudo_header {
@@ -189,7 +189,7 @@ public:
 		uint8_t proto;
 		uint16_t tcp_length;
 	}__attribute__((packed));
-    
+
 	/*
 		TCP Checksum-header (TCP-header + pseudo-header)
 	*/
@@ -204,7 +204,7 @@ public:
 	struct Full_header {
 		Ethernet::header ethernet;
 		IP4::ip_header ip4;
-		TCP::Header tcp; 
+		TCP::Header tcp;
 	}__attribute__((packed));
 
 	/*
@@ -223,10 +223,10 @@ public:
 
 		static std::string kind_string(Kind kind) {
 			switch(kind) {
-				case MSS: 
+				case MSS:
 					return {"MSS"};
 
-				default: 
+				default:
 					return {"Unknown Option"};
 			}
 		}
@@ -236,7 +236,7 @@ public:
 			uint8_t length;
 			uint16_t mss;
 
-			opt_mss(uint16_t mss) 
+			opt_mss(uint16_t mss)
 				: kind(MSS), length(4), mss(htons(mss)) {}
 		};
 
@@ -248,25 +248,25 @@ public:
 		};
 	};
 
-	
+
 	/*
-		A Wrapper for a TCP Packet. Is everything as a IP4 Packet, 
+		A Wrapper for a TCP Packet. Is everything as a IP4 Packet,
 		in addition to the TCP Header and functions to modify this and the control bits (FLAGS).
 	*/
 	class Packet : public PacketIP4 {
 	public:
-    
+
 	    inline TCP::Header& header() const
 	    {
 	     	return ((TCP::Full_header*) buffer())->tcp;
 	    }
-    
+
     	static const size_t HEADERS_SIZE = sizeof(TCP::Full_header);
-    
+
 	    //! initializes to a default, empty TCP packet, given
 	    //! a valid MTU-sized buffer
     	void init()
-    	{            
+    	{
 	      // Erase all headers (smart? necessary? ...well, convenient)
     		memset(buffer(), 0, HEADERS_SIZE);
     		PacketIP4::init();
@@ -295,27 +295,27 @@ public:
     	inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
 
     	// SETTERS
-    	inline TCP::Packet& set_src_port(TCP::Port p) { 
+    	inline TCP::Packet& set_src_port(TCP::Port p) {
     		header().source_port = htons(p);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_dst_port(TCP::Port p) { 
+    	inline TCP::Packet& set_dst_port(TCP::Port p) {
     		header().destination_port = htons(p);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_seq(TCP::Seq n) { 
+    	inline TCP::Packet& set_seq(TCP::Seq n) {
     		header().seq_nr = htonl(n);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_ack(TCP::Seq n) { 
+    	inline TCP::Packet& set_ack(TCP::Seq n) {
     		header().ack_nr = htonl(n);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_win_size(uint16_t size) { 
+    	inline TCP::Packet& set_win_size(uint16_t size) {
     		header().window_size = htons(size);
     		return *this;
     	}
@@ -339,12 +339,12 @@ public:
 
     	/// FLAGS / CONTROL BITS ///
 
-    	inline TCP::Packet& set_flag(TCP::Flag f) { 
+    	inline TCP::Packet& set_flag(TCP::Flag f) {
     		header().offset_flags.whole |= htons(f);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_flags(uint16_t f) { 
+    	inline TCP::Packet& set_flags(uint16_t f) {
     		header().offset_flags.whole |= htons(f);
     		return *this;
     	}
@@ -378,7 +378,7 @@ public:
 
 		// Where data starts
 		inline char* data() { return (char*) (buffer() + all_headers_len()); }
-    	
+
     	inline uint16_t data_length() const { return size() - all_headers_len(); }
 
     	inline bool has_data() const { return data_length() > 0; }
@@ -432,8 +432,8 @@ public:
     	inline std::string to_string() {
     		std::ostringstream os;
     		os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
-    			<< " SEQ:" << seq() << " ACK:" << ack() 
-    			<< " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length() 
+    			<< " SEQ:" << seq() << " ACK:" << ack()
+    			<< " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length()
     			<< " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
     		return os.str();
     	}
@@ -454,7 +454,7 @@ public:
 	*/
 	class TCPBadOptionException : public TCPException {
 	public:
-		TCPBadOptionException(Option::Kind kind, const std::string& error) : 
+		TCPBadOptionException(Option::Kind kind, const std::string& error) :
 			TCPException("Bad Option [" + Option::kind_string(kind) + "]: " + error),
 			kind_(kind) {};
 
@@ -469,7 +469,7 @@ public:
 	template<typename T = TCP::Packet_ptr, typename Buffer = std::queue<T>>
 	class PacketBuffer {
 	public:
-		
+
 		PacketBuffer(typename Buffer::size_type limit) :
 			buffer_(), data_length_(0),
 			data_offset_(0), limit_(limit)
@@ -478,7 +478,7 @@ public:
 		}
 		/* Number of packets */
 		inline auto size() const { return buffer_.size(); }
-		
+
 		/* Amount of data */
 		inline size_t data_size() const { return data_length_; }
 
@@ -546,13 +546,13 @@ public:
 			First thing that will happen.
 		*/
 		using AcceptCallback			= delegate<bool(std::shared_ptr<Connection>)>;
-		
+
 		/*
 			On connected - When both hosts exchanged sequence numbers (handshake is done).
 			Now in ESTABLISHED state - it's allowed to write and read to/from the remote.
 		*/
 		using ConnectCallback 			= delegate<void(std::shared_ptr<Connection>)>;
-		
+
 		/*
 			On receiving data - When there is data to read in the receive buffer.
 			Either when remote PUSH, or buffer is full.
@@ -598,7 +598,7 @@ public:
 			enum Reason {
 				CLOSING,
 				REFUSED,
-				RESET	
+				RESET
 			};
 
 			Reason reason;
@@ -613,7 +613,7 @@ public:
 
 			std::string to_string() const {
 				switch(reason) {
-				case CLOSING: 
+				case CLOSING:
 					return "Connection closing";
 				case REFUSED:
 					return "Conneciton refused";
@@ -652,19 +652,19 @@ public:
 				RECEIVE
 			*/
 			virtual size_t receive(Connection&, char* buffer, size_t n);
-			
+
 			/*
 				Close a Connection.
 				CLOSE
 			*/
 			virtual void close(Connection&);
-			
+
 			/*
 				Terminate a Connection.
 				ABORT
 			*/
 			virtual void abort(Connection&);
-			
+
 			/*
 				Handle a Packet
 				SEGMENT ARRIVES
@@ -677,7 +677,7 @@ public:
 			*/
 			virtual std::string to_string() const = 0;
 
-		protected:		
+		protected:
 			/*
 				Helper functions
 				TODO: Clean up names.
@@ -715,7 +715,7 @@ public:
 		/*
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
-			
+
 			RFC 793: Page 19
 			Among the variables stored in the
   			TCB are the local and remote socket numbers, the security and
@@ -959,7 +959,7 @@ public:
 		/*
 			Helper function for state checks.
 		*/
-		inline bool is_state(const State& state) const { 
+		inline bool is_state(const State& state) const {
 			return state_ == &state;
 		}
 
@@ -975,31 +975,31 @@ public:
 		~Connection();
 
 	private:
-		/* 
+		/*
 			"Parent" for Connection.
 		*/
 		TCP& host_;				// 4 B
 
-		/* 
+		/*
 			End points.
 		*/
 		TCP::Port local_port_;	// 2 B
 		TCP::Socket remote_;	// 8~ B
 
-		/* 
-			The current state the Connection is in. 
-			Handles most of the logic. 
+		/*
+			The current state the Connection is in.
+			Handles most of the logic.
 		*/
 		State* state_;			// 4 B
 		// Previous state. Used to keep track of state transitions.
 		State* prev_state_;		// 4 B
-		
-		/* 
+
+		/*
 			Keep tracks of all sequence variables.
 		*/
 		TCB control_block;		// 36 B
 
-		/* 
+		/*
 			Buffers
 		*/
 		Buffer receive_buffer_;
@@ -1010,9 +1010,9 @@ public:
 		*/
 		uint64_t time_wait_started;
 
-		
+
 		/// CALLBACK HANDLING ///
-		
+
 		/* When a Connection is initiated. */
 		AcceptCallback on_accept_ = AcceptCallback::from<Connection,&Connection::default_on_accept>(this);
 		inline bool default_on_accept(std::shared_ptr<Connection>) {
@@ -1024,7 +1024,7 @@ public:
 		ConnectCallback on_connect_ = [](std::shared_ptr<Connection>) {
 			debug2("<TCP::Connection::@Connect> Connected.\n");
 		};
-		
+
 		/* When data is received */
 		ReceiveCallback on_receive_ = [](std::shared_ptr<Connection>, bool) {
 			debug2("<TCP::Connection::@Receive> Connection received data. \n");
@@ -1037,8 +1037,8 @@ public:
 
 		/* When error occcured. */
 		ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
-		inline void default_on_error(std::shared_ptr<Connection>, TCPException) { 
-			//debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what()); 
+		inline void default_on_error(std::shared_ptr<Connection>, TCPException) {
+			//debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
 		}
 
 		/* When packet is received */
@@ -1047,8 +1047,8 @@ public:
 		};
 
 		/* When a packet is dropped. */
-		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) { 
-			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", 
+		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) {
+			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
 			//	packet->to_string().c_str(), reason.c_str());
 		};
 
@@ -1107,7 +1107,7 @@ public:
 			Add(queue) a packet to the receive buffer.
 		*/
 		bool add_to_receive_buffer(TCP::Packet_ptr packet);
-		
+
 		/*
 			Write to the send buffer. Segmentize into packets.
 		*/
@@ -1132,14 +1132,14 @@ public:
 		 	Returns the packet in the back of the send buffer.
 		 	If the send buffer is empty, it creates a new packet and adds it.
 		*/
-	 	TCP::Packet_ptr outgoing_packet();		
+	 	TCP::Packet_ptr outgoing_packet();
 
-	 	
+
 	 	/// RETRANSMISSION ///
 
 	 	/*
 	 		Starts a retransmission timer that retransmits the packet when RTO has passed.
-	 		
+
 	 		// TODO: Calculate RTO, currently hardcoded to 1 second (1000ms).
 	 	*/
 	 	void add_retransmission(TCP::Packet_ptr);
@@ -1153,7 +1153,7 @@ public:
 	 	*/
 	 	//std::chrono::milliseconds RTT() const;
   		std::chrono::milliseconds RTO() const;
-  		
+
   		/*
 			Start the time wait timeout for 2*MSL
   		*/
@@ -1193,9 +1193,9 @@ public:
 		Constructor
 	*/
 	TCP(IPStack&);
-	
+
 	/*
-		Bind a new listener to a given Port.	
+		Bind a new listener to a given Port.
 	*/
 	TCP::Connection& bind(Port port);
 
@@ -1207,8 +1207,8 @@ public:
 	/*
 		Active open a new connection to the given remote.
 	*/
-	inline auto connect(TCP::Address address, Port port = 80) { 
-		return connect({address, port}); 
+	inline auto connect(TCP::Address address, Port port = 80) {
+		return connect({address, port});
 	}
 
 	/*
@@ -1221,7 +1221,7 @@ public:
 	*/
 	void bottom(net::Packet_ptr);
 
-	/* 
+	/*
 		Delegate output to network layer
 	*/
 	inline void set_network_out(downstream del) { _network_layer_out = del; }
@@ -1253,7 +1253,7 @@ public:
 	/*
 		Set Maximum Segment Lifetime
 	*/
-	inline void set_MSL(const std::chrono::milliseconds msl) { 
+	inline void set_MSL(const std::chrono::milliseconds msl) {
 		MAX_SEG_LIFETIME = msl;
 	}
 
@@ -1282,7 +1282,7 @@ public:
 			MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
 		*/
 		const uint16_t VBOX_LIMIT = 1482;
-		return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header); 
+		return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header);
 	}
 
 	/*
@@ -1298,7 +1298,7 @@ private:
 
 	downstream _network_layer_out;
 
-	/* 
+	/*
 		Settings
 	*/
 	TCP::Port current_ephemeral_ = 1024;
@@ -1310,7 +1310,7 @@ private:
 		Connection buffer size in bytes = buffers * BUFFER_LIMIT * MTU.
 	*/
 	size_t MAX_BUFFER_SIZE = 10;
-	
+
 	/*
 		Transmit packet to network layer (IP).
 	*/
