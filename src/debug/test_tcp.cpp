@@ -44,44 +44,15 @@ void Service::start() {
     printf("Server is running: %s \n", server.to_string().c_str());
   });
 
-  server.onAccept([](auto conn)->bool {
-    printf("<Server> onAccept \n");
-    return true;
-
-  }).onConnect([](auto conn) {
-    printf("<Server> onConnect \n");
-
-  }).onReceive([](auto conn, bool) {
-    printf("<Server> onReceive \n");
-
-  }).onDisconnect([](auto conn, std::string msg) {
-    printf("<Server> onDisconnect \n");
-
-  }).onError([](auto conn, auto err) {
-    printf("<Server> Error: %s \n", err.what());
-
-  }).onPacketReceived([](auto conn, auto packet) {
-    printf("<Server> Received. \n");
+  server.onPacketReceived([](auto conn, auto packet) {
+    printf("<Server> Received: %s\n", packet->to_string().c_str());
 
   }).onPacketDropped([](auto packet, std::string reason) {
-    printf("<Server> Dropped. \n");
+    printf("<Server> Dropped: %s - Reason: %s \n", packet->to_string().c_str(), reason.c_str());
 
-  });
-
-  inet->dhclient()->on_config([server](auto&) {
-    printf("<Client> Trying to connect to server. \n");
-    auto conn = inet->tcp().connect({50,63,202,26});
-    printf("<Client> Connection: %s \n", conn->to_string().c_str());
-    conn->onConnect([](auto conn) {
-      printf("<Client> onConnect \n");
-      conn->write("GET / HTTP/1.0");
-
-    }).onReceive([](auto conn, bool) {
-      printf("<Client> onReceive:\n%s \n", conn->read(3000).c_str());
-
-    }).onPacketReceived([](auto conn, auto packet) {
-      printf("<Server> Received: %s \n", packet->to_string().c_str());
-
-    });
+  }).onReceive([](auto conn, bool) {
+    conn->write("<html>Hey</html>");
+  }).onConnect([](auto conn) {
+    printf("<Server> Connected.\n");
   });
 }
