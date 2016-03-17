@@ -20,28 +20,20 @@
 
 namespace hw {
 
-uint16_t PIC::irq_mask_ {0xFFFF};
+  uint16_t PIC::irq_mask_ {0xFFFF};
 
-void PIC::init() noexcept {
-  // Master commands
-  static const uint8_t master_icw3 {0x04}; // Location of slave
-  static const uint8_t master_icw4 {0x03}; // 8086-mode (bit1), Auto-EOI (bit2)
+  void PIC::init() noexcept {
 
-  // Slave commands
-  static const uint8_t slave_icw3 {0x02}; // Slave ID
-  static const uint8_t slave_icw4 {0x01};
+    hw::outb(master_ctrl, icw1 | icw1_icw4_needed);
+    hw::outb(slave_ctrl,  icw1 | icw1_icw4_needed);
+    hw::outb(master_mask, icw2_irq_base_master);
+    hw::outb(slave_mask,  icw2_irq_base_slave);
+    hw::outb(master_mask, icw3_slave_location);
+    hw::outb(slave_mask,  icw3_slave_id);
 
-  hw::outb(master_ctrl, icw1 | icw1_icw4_needed);
-  hw::outb(slave_ctrl,  icw1 | icw1_icw4_needed);
-  hw::outb(master_mask, icw2_irq_base_master);
-  hw::outb(slave_mask,  icw2_irq_base_slave);
-  hw::outb(master_mask, icw3_slave_location);
-  hw::outb(slave_mask,  icw3_slave_id);
-  hw::outb(master_mask, icw4_8086_mode | icw4_auto_eoi);
-  hw::outb(slave_mask,  icw4_8086_mode);
+    hw::outb(master_mask, icw4_8086_mode | icw4_auto_eoi);
+    hw::outb(slave_mask,  icw4_8086_mode);  // AEOI-mode only works for master
 
-  set_intr_mask(irq_mask_);
-}
-
-
+    set_intr_mask(irq_mask_);
+  }
 } //< namespace hw
