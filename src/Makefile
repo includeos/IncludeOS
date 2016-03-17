@@ -120,6 +120,7 @@ TEST_OBJ = debug/test_service.o util/service_name.o
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
+	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
@@ -130,6 +131,7 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
 test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking disk test"
+	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""
