@@ -18,12 +18,15 @@
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
+#include <term>
 #include "ircd.hpp"
 
 using namespace std::chrono;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
+
+std::unique_ptr<Terminal> term;
 
 void Service::start()
 {
@@ -36,6 +39,7 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
+  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
@@ -60,15 +64,36 @@ void Service::start()
       client.read(buffer, bytes);
       
     });
-    /*.onDisconnect(
+    
+    .onDisconnect(
     [&client] (auto conn, std::string)
     {
       // remove client from various lists
       client.remove();
       /// inform others about disconnect
       //client.bcast(TK_QUIT, "Disconnected");
-    });*/
+    });
+  });*/
+  
+  /// terminal ///
+  #define SERVICE_TELNET    23
+  auto& tcp = inet->tcp();
+  auto& server = tcp.bind(SERVICE_TELNET);
+  server.onConnect(
+  [] (auto client)
+  {
+    // create terminal with open TCP connection
+    term = std::make_unique<Terminal> (client);
+    // add 'ifconfig' command
+    term->add(
+      "ifconfig", "Show information about interfaces",
+      [client] (const std::vector<std::string>&) -> int
+      {
+        term->write("%s\r\n", inet->tcp().status().c_str());
+        return 0;
+      });
   });
+  /// terminal ///
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

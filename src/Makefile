@@ -60,7 +60,7 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
-		kernel/irq_manager.o kernel/pci_manager.o \
+		kernel/irq_manager.o kernel/pci_manager.o kernel/terminal.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
 		util/memstream.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
@@ -114,7 +114,7 @@ LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 
-TEST_OBJ = debug/test_service.o debug/ircd.o util/service_name.o
+TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
