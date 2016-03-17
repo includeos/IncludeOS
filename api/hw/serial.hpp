@@ -23,6 +23,7 @@
 #include <os>
 #include <hw/ioport.hpp>
 #include <kernel/irq_manager.hpp>
+#include <cstdio>
 
 namespace hw{
 

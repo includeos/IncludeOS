@@ -21,13 +21,12 @@
 #include <term>
 #include "ircd.hpp"
 
-SerialComm scomm(hw::Serial::port<1>());
-Terminal   term(scomm);
-
 using namespace std::chrono;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
+
+std::unique_ptr<Terminal> term;
 
 void Service::start()
 {
@@ -40,6 +39,7 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
+  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
@@ -64,19 +64,38 @@ void Service::start()
       client.read(buffer, bytes);
       
     });
-    /*.onDisconnect(
+    
+    .onDisconnect(
     [&client] (auto conn, std::string)
     {
       // remove client from various lists
       client.remove();
       /// inform others about disconnect
       //client.bcast(TK_QUIT, "Disconnected");
-    });*/
-  });
+    });
+  });*/
   
   /// terminal ///
-  
-  
+  auto& tcp = inet->tcp();
+  auto& server = tcp.bind(23); // TELNET port
+  server.onConnect(
+  [] (auto csock)
+  {
+    printf("term.write('')\n");
+    term = std::make_unique<Terminal> (csock);
+    
+    term->add_cmd(
+      "ifconfig",
+      [csock] (const std::vector<std::string>& args) -> int
+      {
+        printf("ifconfig called! argc = %u\n", args.size());
+        
+        term->write("ifconfig - %s WutFace 4Head\r\n", csock->remote().to_string().c_str());
+        return 1;
+      });
+    
+    //term->write("hello\n");
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

@@ -21,9 +21,9 @@ void Serial::init(){
 Serial::Serial(int port) : 
   nr_{port}, 
   port_{ port < 5 ? ports_[port -1] : 0 }
-    {
-      //init();
-    }
+{
+  //init();
+}
 
 void Serial::on_data(on_data_handler del){
   enable_interrupt();    
@@ -92,5 +92,4 @@ void Serial::readline_handler_ (char c) {
   // Call the event handler
   on_readline_(buf);    
   buf.clear();
-  
-};
+}
