@@ -84,8 +84,8 @@ void Service::start()
     printf("term.write('')\n");
     term = std::make_unique<Terminal> (csock);
     
-    term->add_cmd(
-      "ifconfig",
+    term->add(
+      "ifconfig", "Show information about interfaces",
       [csock] (const std::vector<std::string>& args) -> int
       {
         printf("ifconfig called! argc = %u\n", args.size());

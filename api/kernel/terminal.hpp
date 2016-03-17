@@ -10,9 +10,11 @@ struct Command
 {
   using main_func = std::function<int(const std::vector<std::string>&)>;
   
-  Command(main_func func) : main(func) {}
+  Command(const std::string& descr, main_func func)
+    : desc(descr), main(func) {}
   
-  main_func main;
+  std::string desc;
+  main_func   main;
 };
 
 class Terminal
@@ -42,7 +44,8 @@ public:
   }
   
   template <typename... Args>
-  void add_cmd(const std::string& command, Args&&... args)
+  void add(const std::string& command, 
+           Args&&... args)
   {
     commands.emplace(std::piecewise_construct,
                      std::forward_as_tuple(command),
@@ -58,15 +61,23 @@ public:
     on_write(buffer, bytes);
   }
   
+  std::function<void()> on_exit { [] {} };
+  
 private:
   void command(uint8_t cmd);
+  void option(uint8_t option, uint8_t cmd);
   void read(const char* buf, size_t len);
   void run(const std::string& cmd);
+  void add_basic_commands();
+  void intro();
+  void prompt();
   
   on_read_func  on_read;
   on_write_func on_write;
   
-  bool iac;
+  bool    iac;
+  bool    newline;
+  uint8_t subcmd;
   std::string buffer;
   std::map<std::string, Command> commands;
 };
