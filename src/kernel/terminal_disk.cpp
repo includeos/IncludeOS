@@ -16,21 +16,73 @@
 // limitations under the License.
 
 #include <term>
-#include <memdisk>
+#include <fs/disk.hpp>
+#include <fs/path.hpp>
+
+using namespace fs;
+
+int target_directory(Disk_ptr disk, const Path& path)
+{
+  // avoid stat on root directory
+  if (path.empty()) return 0;
+  
+  std::string strpath(path.to_string());
+  
+  auto& fs = disk->fs();
+  auto ent = fs.stat(strpath);
+  
+  if (!ent.is_valid())
+    return 1;
+  else if (!ent.is_dir())
+    return 1;
+  else
+    return 0;
+}
 
 void Terminal::add_disk_commands(Disk_ptr disk)
 {
-  // add 'ls' command
-  add("ls", "List files in a folder",
-    [this, disk] (const std::vector<std::string>& args) -> int
+  auto curdir = std::make_shared<std::string> ("/");
+  
+  // add 'cd' command
+  add("cd", "Change current directory",
+    [this, curdir, disk] (const std::vector<std::string>& args) -> int
     {
       // current directory, somehow...
-      std::string operand = "/";
-      if (!args.empty()) operand = args[0];
+      std::string target = "/";
+      if (!args.empty()) target = args[0];
+      
+      Path path(*curdir);
+      path += target;
+      
+      int rv = target_directory(disk, path);
+      if (rv)
+      {
+        this->write("cd: %s: No such file or directory\r\n", target.c_str());
+        return rv;
+      }
+      *curdir = path.to_string();
+      return 0;
+    });
+  // add 'ls' command
+  add("ls", "List files in a folder",
+    [this, curdir, disk] (const std::vector<std::string>& args) -> int
+    {
+      // current directory, somehow...
+      Path path(*curdir);
+      if (!args.empty()) path += args[0];
+      
+      int rv = target_directory(disk, path);
+      if (rv)
+      {
+        this->write("ls: %s: No such file or directory\r\n", path.to_string().c_str());
+        return rv;
+      }
+      
+      std::string target = path.to_string();
       
       auto& fs = disk->fs();
       auto vec = fs::new_shared_vector();
-      auto err = fs.ls(operand, vec);
+      auto err = fs.ls(target, vec);
       if (!err)
       {
         this->write("%s \t%s \t%s \t%s\r\n", 

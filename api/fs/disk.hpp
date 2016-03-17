@@ -109,6 +109,8 @@ private:
   std::unique_ptr<FileSystem> filesys;
 }; //< class Disk
 
+using Disk_ptr = std::shared_ptr<Disk>;
+
 } //< namespace fs
 
 #endif //< FS_DISK_HPP
