@@ -76,26 +76,24 @@ void Service::start()
   });*/
   
   /// terminal ///
+  #define SERVICE_TELNET    23
   auto& tcp = inet->tcp();
-  auto& server = tcp.bind(23); // TELNET port
+  auto& server = tcp.bind(SERVICE_TELNET);
   server.onConnect(
-  [] (auto csock)
+  [] (auto client)
   {
-    printf("term.write('')\n");
-    term = std::make_unique<Terminal> (csock);
-    
+    // create terminal with open TCP connection
+    term = std::make_unique<Terminal> (client);
+    // add 'ifconfig' command
     term->add(
       "ifconfig", "Show information about interfaces",
-      [csock] (const std::vector<std::string>& args) -> int
+      [client] (const std::vector<std::string>&) -> int
       {
-        printf("ifconfig called! argc = %u\n", args.size());
-        
-        term->write("ifconfig - %s WutFace 4Head\r\n", csock->remote().to_string().c_str());
-        return 1;
+        term->write("%s\r\n", inet->tcp().status().c_str());
+        return 0;
       });
-    
-    //term->write("hello\n");
   });
+  /// terminal ///
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
