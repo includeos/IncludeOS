@@ -60,10 +60,7 @@ extern "C" {
 
     * IRQ-numbering: 0 or 32?
 
-
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
-
-
  */
 class IRQ_manager {
 public:
@@ -72,7 +69,7 @@ public:
   static constexpr uint8_t irq_base = 32;
   static constexpr uint8_t irq_lines = 64;
 
-  
+
   /**
    *  Enable an IRQ line
    *
@@ -139,10 +136,10 @@ public:
     irq_pending_ |=  (1 << i);
     __sync_fetch_and_add(&irq_counters_[i],1);
     debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
-	  irq_pending_, irq_counters_[i]);
+          irq_pending_, irq_counters_[i]);
   }
-  
-  
+
+
 private:
   static unsigned int   irq_mask;
   static int            timer_interrupts;
@@ -185,7 +182,7 @@ private:
 
   /** Notify all delegates waiting for interrupts */
   static void notify();
-  
+
 }; //< IRQ_manager
 
 #endif //< KERNEL_IRQ_MANAGER_HPP

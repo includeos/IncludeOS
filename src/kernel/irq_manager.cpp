@@ -207,7 +207,7 @@ void IRQ_manager::init()
   REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
   REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
   REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
- 
+
   //Set all irq-gates (> 47) to the default handler
   for(int i=48;i<irq_lines;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
@@ -311,7 +311,7 @@ void IRQ_manager::notify() {
   int          irq  {0};
 
   while (todo) {
-    
+
     // Select the first IRQ to notify - the least significant bit set
     // - lowesr bit/IRQ, means higher priority
     irq = __builtin_ffs(todo) - 1;
@@ -338,7 +338,7 @@ void IRQ_manager::notify() {
   }
 
   //hlt
-  debug("<IRQ notify> Done. OS going to sleep.\n");
+  debug2("<IRQ notify> Done. OS going to sleep.\n");
   //__asm__("sti");
   __asm__ volatile("hlt;");
 }
