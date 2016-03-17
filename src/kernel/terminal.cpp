@@ -58,9 +58,18 @@ Terminal::Terminal(hw::Serial& serial)
   : Terminal()
 {
   serial.on_data(
-  [this] (char c)
+  [this, &serial] (char c)
   {
     this->read(&c, 1);
+    if (c == CR)
+    {
+      c = LF;
+      this->read(&c, 1);
+    }
+    else
+    {
+      serial.write(c);
+    }
   });
   
   on_write = 
