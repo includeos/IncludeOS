@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <kernel/terminal.hpp>
+#include <net/inet4>
 
 #include <vector>
 #include <serial>
