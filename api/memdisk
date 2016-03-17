@@ -26,17 +26,15 @@
 
 namespace fs
 {
-  // describe a disk with a FAT filesystem
-  using FatDisk = Disk<FAT>;
   // its not really a shared memdisk right now,
   // but we are only using this in conjunction with
   // new_shared_memdisk() which very likely contains FAT
-  using MountedDisk = std::shared_ptr<FatDisk>;
+  using Disk_ptr = std::shared_ptr<Disk>;
   
-  inline MountedDisk new_shared_memdisk()
+  inline Disk_ptr new_shared_memdisk()
   {
     static MemDisk device;
-    return std::make_shared<FatDisk> (device);
+    return std::make_shared<Disk> (device);
   }
 }
 

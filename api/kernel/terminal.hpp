@@ -20,8 +20,14 @@
 
 #include <functional>
 #include <map>
+#include <string>
 #include <vector>
 #include <net/inet4>
+
+namespace fs
+{
+  class Disk;
+}
 
 struct Command
 {
@@ -38,6 +44,7 @@ class Terminal
 {
 public:
   using Connection_ptr = std::shared_ptr<net::TCP::Connection>;
+  using Disk_ptr = std::shared_ptr<fs::Disk>;
   enum
   {
     NUL  = 0,
@@ -79,6 +86,9 @@ public:
   }
   
   std::function<void()> on_exit { [] {} };
+  
+  ///
+  void add_disk_commands(Disk_ptr disk);
   
 private:
   void command(uint8_t cmd);

@@ -60,7 +60,8 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
-		kernel/irq_manager.o kernel/pci_manager.o kernel/terminal.o \
+		kernel/irq_manager.o kernel/pci_manager.o \
+		kernel/terminal.o kernel/terminal_disk.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
 		util/memstream.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
@@ -72,7 +73,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
-		fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
+		fs/disk.o fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_sync.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
