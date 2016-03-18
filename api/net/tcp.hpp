@@ -56,63 +56,90 @@ public:
 
 public:
 	/*
-		An IP address and a Port.
-	*/
-	class Socket {
-	public:
-		/*
-			Intialize an empty socket.
-		*/
-		inline Socket() : address_(), port_(0) { address_.whole = 0; };
+	 * @type TCP::Socket
+   	 * @description An IP address and port pair <ipaddress:port>
+   	 */
+  	class Socket {
+  	public:
+    /*
+     * Intialize an empty socket <ipaddress:port> -> <0.0.0.0:0>
+     */
+    explicit Socket() noexcept = default;
 
-		/*
-			Create a socket with a Address and Port.
-		*/
-		inline Socket(Address address, Port port) : address_(address), port_(port) {};
+    /*
+     * Create a socket with an address and port
+     */
+    explicit Socket(const Address address, const Port port) noexcept
+      : address_ {address}
+      , port_    {port}
+    {}
 
-		/*
-			Returns the Socket's address.
-		*/
-		inline const TCP::Address address() const { return address_; }
+    /*
+     * Default copy constructor
+     */
+    Socket(const Socket&) noexcept = default;
 
-		/*
-			Returns the Socket's port.
-		*/
-		inline TCP::Port port() const { return port_; }
+    /*
+     * Default copy assignment operator
+     */
+    Socket& operator=(const Socket&) noexcept = default;
 
-		/*
-			Returns a string in the format "Address:Port".
-		*/
-		std::string to_string() const {
-			std::stringstream ss;
-			ss << address_.str() << ":" << port_;
-			return ss.str();
-		}
+    /*
+     * Default move constructor
+     */
+    Socket(Socket&&) noexcept = default;
 
-		inline bool is_empty() const { return (address_.whole == 0 and port_ == 0); }
+    /*
+     * Default move assignment operator
+     */
+    Socket& operator=(Socket&&) noexcept = default;
 
-		/*
-			Comparator used for vector.
-		*/
-		inline bool operator ==(const Socket &s2) const {
-			return address().whole == s2.address().whole 
-					and port() == s2.port();
-		}
+    /*
+     * Returns the Socket's address
+     */
+    Address address() const noexcept
+    { return address_; }
 
-		/*
-			Comparator used for map.
-		*/
-		inline bool operator <(const Socket& s2) const {
-        	return address().whole < s2.address().whole
-        		or (address().whole == s2.address().whole and port() < s2.port());
-    	}
+    /*
+     * Returns the Socket's port
+     */
+    Port port() const noexcept
+    { return port_; }
 
-	private:
-		//SocketID id_; // Maybe a hash or something. Not sure if needed (yet)
-		TCP::Address address_;
-		TCP::Port port_;
+    /*
+     * Returns a string representation of a socket
+     * in the format <Address:Port>
+     */
+    std::string to_string() const {
+      std::stringstream ss;
+      ss << address_.str() << ":" << port_;
+      return ss.str();
+    }
 
-	}; // << class TCP::Socket
+    bool is_empty() const noexcept
+    { return (address_.whole == 0 and port_ == 0); }
+
+    /*
+     * Comparator used for vector
+     */
+    bool operator ==(const Socket& s2) const noexcept {
+      return address_ == s2.address_
+         and port_ == s2.port_;
+    }
+
+    /*
+     * Comparator used for map
+     */
+    bool operator <(const Socket& s2) const noexcept {
+      return address_ < s2.address_
+         or (address_ == s2.address_ and port_ < s2.port_);
+    }
+
+    private:
+    	//SocketID id_; //< Maybe a hash or something. Not sure if needed (yet)
+    	const Address address_ {};
+    	const Port    port_    {};
+  	}; //< class TCP::Socket
 
 
 	/////// TCP Stuff - Relevant to the protocol /////
