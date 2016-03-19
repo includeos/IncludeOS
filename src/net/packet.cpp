@@ -22,42 +22,42 @@
 
 namespace net {
 
-Packet::Packet(BufferStore::buffer_t buf, size_t bufsize, size_t datalen, release_del rel) noexcept:
+  Packet::Packet(BufferStore::buffer_t buf, size_t bufsize, size_t datalen, release_del rel) noexcept:
   buf_       {buf},
-  capacity_  {bufsize},
-  size_      {datalen},
-  next_hop4_ {},
-  release_   {rel}
+    capacity_  {bufsize},
+    size_      {datalen},
+    next_hop4_ {},
+    release_   {rel}
 {
   debug("<Packet> CONSTRUCT packet, buf @ %p\n", buf);
 }
 
-Packet::~Packet() {
-  debug("<Packet> DESTRUCT packet, buf @ %p\n", buf_);
-  release_(buf_, capacity_);
-}
-
-IP4::addr Packet::next_hop() const noexcept {
-  return next_hop4_;
-}
-
-void Packet::next_hop(IP4::addr ip) noexcept {
-  next_hop4_ = ip;
-}
-
-int Packet::set_size(const size_t size) noexcept {
-  if(size > capacity_) {
-    return 0;
+  Packet::~Packet() {
+    debug("<Packet> DESTRUCT packet, buf @ %p\n", buf_);
+    release_(buf_, capacity_);
   }
 
-  size_ = size;
+  IP4::addr Packet::next_hop() const noexcept {
+    return next_hop4_;
+  }
 
-  return size_;
-}
+  void Packet::next_hop(IP4::addr ip) noexcept {
+    next_hop4_ = ip;
+  }
 
-void default_release(BufferStore::buffer_t b, size_t) {
-  (void) b;
-  debug("<Packet DEFAULT RELEASE> Ignoring buffer.");
-}
+  int Packet::set_size(const size_t size) noexcept {
+    if(size > capacity_) {
+      return 0;
+    }
+
+    size_ = size;
+
+    return size_;
+  }
+
+  void default_release(BufferStore::buffer_t b, size_t) {
+    (void) b;
+    debug("<Packet DEFAULT RELEASE> Ignoring buffer.");
+  }
 
 } //< namespace net

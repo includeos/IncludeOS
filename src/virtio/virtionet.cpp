@@ -57,11 +57,11 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     | (1 << VIRTIO_NET_F_STATUS);
   //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features; /*;
-    | (1 << VIRTIO_NET_F_CSUM)
-    | (1 << VIRTIO_F_ANY_LAYOUT)
-    | (1 << VIRTIO_NET_F_CTRL_VQ)
-    | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
-    | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
+						| (1 << VIRTIO_NET_F_CSUM)
+						| (1 << VIRTIO_F_ANY_LAYOUT)
+						| (1 << VIRTIO_NET_F_CTRL_VQ)
+						| (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
+						| (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
 
   negotiate_features(wanted_features);
 
@@ -79,10 +79,10 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 	"Guest handles packets w. partial checksum");
 
   CHECK(features() & (1 << VIRTIO_NET_F_CTRL_VQ),
-       "There's a control queue");
+	"There's a control queue");
 
   CHECK(features() & (1 << VIRTIO_F_ANY_LAYOUT),
-       "Queue can handle any header/data layout");
+	"Queue can handle any header/data layout");
 
   CHECK(features() & (1 << VIRTIO_F_RING_INDIRECT_DESC),
 	"We can use indirect descriptors");
@@ -221,7 +221,7 @@ void VirtioNet::irq_handler(){
 
 void VirtioNet::service_RX(){
   debug2("<RX Queue> %i new packets, %i available tokens \n",
-        rx_q.new_incoming(),rx_q.num_avail());
+	 rx_q.new_incoming(),rx_q.num_avail());
 
 
   /** For RX, we dequeue, add new buffers and let receiver is responsible for
@@ -270,7 +270,7 @@ void VirtioNet::service_RX(){
 
 void VirtioNet::service_TX(){
   debug2("<TX Queue> %i transmitted, %i waiting packets\n",
-        tx_q.new_incoming(),tx_q.num_avail());
+	 tx_q.new_incoming(),tx_q.num_avail());
 
   uint32_t len = 0;
   int i = 0;
