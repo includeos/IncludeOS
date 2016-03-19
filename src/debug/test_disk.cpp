@@ -2,13 +2,9 @@
 #include <cassert>
 const char* service_name__ = "...";
 
-//#include <memdisk>
-//auto disk = fs::new_shared_memdisk();
-
 #include <ide>
-#include <fs/fat.hpp>
-using FatDisk = fs::Disk<fs::FAT>;
-std::shared_ptr<FatDisk> disk;
+#include <fs/disk.hpp>
+std::shared_ptr<fs::Disk> disk;
 
 void list_partitions(decltype(disk));
 
@@ -16,7 +12,7 @@ void Service::start()
 {
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
-  disk = std::make_shared<FatDisk> (device);
+  disk = std::make_shared<fs::Disk> (device);
   assert(disk);
   
   // if the disk is empty, we can't mount a filesystem anyways

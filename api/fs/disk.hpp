@@ -20,6 +20,7 @@
 #define FS_DISK_HPP
 
 #include "common.hpp"
+#include "filesystem.hpp"
 #include <hw/disk_device.hpp>
 
 #include <deque>
@@ -28,9 +29,6 @@
 
 namespace fs {
 
-class FileSystem; //< FileSystem interface
-
-template <typename FS>
 class Disk {
 public:
   struct Partition; //< Representation of a disk partition
@@ -108,18 +106,9 @@ public:
   
 private:
   hw::IDiskDevice& device;
-  std::unique_ptr<FS> filesys;
+  std::unique_ptr<FileSystem> filesys;
 }; //< class Disk
 
-template <typename FS>
-inline Disk<FS>::Disk(hw::IDiskDevice& dev) :
-  device {dev}
-{
-  filesys.reset(new FS(device));
-}
-
 } //< namespace fs
-
-#include "disk.inl"
 
 #endif //< FS_DISK_HPP

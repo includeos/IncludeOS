@@ -12,7 +12,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -msse3
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
+CAPABS = $(CAPABS_COMMON) -O2 #-DNO_DEBUG=1
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
@@ -61,6 +61,7 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
+		kernel/terminal.o kernel/terminal_disk.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
 		util/memstream.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
@@ -72,7 +73,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
-		fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
+		fs/disk.o fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_sync.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
@@ -96,6 +97,9 @@ all: bootloader libc++abi.a os.a
 stripped: CAPABS += -Oz
 stripped: all test
 
+production: CAPABS += -DNO_DEBUG=1
+production: all test
+
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
@@ -114,11 +118,12 @@ LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
 
-TEST_OBJ = debug/test_service.o debug/ircd.o util/service_name.o
+TEST_OBJ = debug/test_service.o util/service_name.o
 
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
+	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
 test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
@@ -129,6 +134,7 @@ test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
 test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
 test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
 	@echo "\n>> Linking disk test"
+	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
 
 test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""

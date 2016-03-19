@@ -65,7 +65,7 @@ void Service::start()
     CHECK(!err, "Filesystem mounted on VBR1");
     assert(!err);
     
-    // verify that we can read Makefile
+    // verify that we can read file
     auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
     CHECK(ent.is_valid(), "Stat file in root dir");

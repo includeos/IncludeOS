@@ -21,14 +21,13 @@
 
 #include <fs/fat.hpp>
 #include <ide>
-using FatDisk = fs::Disk<fs::FAT>;
-std::shared_ptr<FatDisk> disk;
+std::shared_ptr<fs::Disk> disk;
 
 void Service::start()
 {
   INFO("FAT32", "Running tests for FAT32");
   auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
-  disk = std::make_shared<FatDisk> (device);
+  disk = std::make_shared<fs::Disk> (device);
   assert(disk);
   
   // verify that the size is indeed N sectors

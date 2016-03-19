@@ -563,7 +563,9 @@ public:
 			On disconnect - When a remote told it wanna close the connection.
 			Connection has received a FIN, currently last thing that will happen before a connection is remoed.
 		*/
-		using DisconnectCallback		= delegate<void(std::shared_ptr<Connection>, std::string)>;
+		struct Disconnect;
+
+		using DisconnectCallback		= delegate<void(std::shared_ptr<Connection>, Disconnect)>;
 
 		/*
 			On error - When any of the users request fails.
@@ -587,6 +589,41 @@ public:
 			Buffer
 		*/
 		using Buffer = PacketBuffer<>;
+
+		/*
+			Reason for disconnect event.
+		*/
+		struct Disconnect {
+		public:
+			enum Reason {
+				CLOSING,
+				REFUSED,
+				RESET	
+			};
+
+			Reason reason;
+
+			explicit Disconnect(Reason reason) : reason(reason) {}
+
+			inline operator Reason() const noexcept { return reason; }
+
+			inline operator std::string() const noexcept { return to_string(); }
+
+			inline bool operator ==(const Disconnect& dc) const { return reason == dc.reason; }
+
+			std::string to_string() const {
+				switch(reason) {
+				case CLOSING: 
+					return "Connection closing";
+				case REFUSED:
+					return "Conneciton refused";
+				case RESET:
+					return "Connection reset";
+				default:
+					return "Unknown reason";
+				}
+			}
+		}; // < struct TCP::Connection::Disconnect
 
 		/*
 			Interface for one of the many states a Connection can have.
@@ -994,7 +1031,7 @@ public:
 		};
 
 		/* When Connection is CLOSING. */
-		DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, std::string) {
+		DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, Disconnect) {
 			//debug2("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
 		};
 
@@ -1024,7 +1061,7 @@ public:
 
 		inline void signal_receive(bool PUSH) { on_receive_(shared_from_this(), PUSH); }
 
-		inline void signal_disconnect(std::string message) { on_disconnect_(shared_from_this(), message); }
+		inline void signal_disconnect(Disconnect::Reason&& reason) { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
 		inline void signal_error(TCPException error) { on_error_(shared_from_this(), error); }
 

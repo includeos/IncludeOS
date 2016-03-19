@@ -162,7 +162,7 @@ void Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Pac
 	// Not sure if this is the correct way to send a "reset response"
 	tcp.outgoing_packet()->set_seq(in->ack()).set_flag(RST);
 	tcp.transmit();
-	tcp.signal_disconnect("Connection reset.");
+	tcp.signal_disconnect(Disconnect::RESET);
 }
 
 
@@ -311,7 +311,7 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
     debug("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
     assert(in->isset(FIN));
     auto& tcb = tcp.tcb();
-	tcp.signal_disconnect("Connection closing.");
+	tcp.signal_disconnect(Disconnect::CLOSING);
 	// Advance RCV.NXT over the FIN?
 	tcb.RCV.NXT++;
 	//auto fin = in->data_length();
@@ -717,7 +717,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
       	// Since we create a new connection when it starts listening, we don't wanna do this, but just delete it.
 
       	if(tcp.prev_state().to_string() == Connection::SynSent::instance().to_string()) {
-      		tcp.signal_disconnect("Connection refused.");
+      		tcp.signal_disconnect(Disconnect::REFUSED);
       	}
 
       	return CLOSED;
@@ -832,7 +832,7 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
 
     // 2. check RST
     if( in->isset(RST) ) {
-    	tcp.signal_disconnect("Connection reset.");
+    	tcp.signal_disconnect(Disconnect::RESET);
     	return CLOSED; // close
     }
 
@@ -892,7 +892,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
 
     // 2. check RST
     if( in->isset(RST) ) {
-    	tcp.signal_disconnect("Connection reset.");
+    	tcp.signal_disconnect(Disconnect::RESET);
     	return CLOSED; // close
     }
 
@@ -971,7 +971,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) 
 
     // 2. check RST
     if( in->isset(RST) ) {
-    	tcp.signal_disconnect("Connection reset.");
+    	tcp.signal_disconnect(Disconnect::RESET);
     	return CLOSED; // close
     }
 
@@ -1045,7 +1045,7 @@ State::Result Connection::CloseWait::handle(Connection& tcp, TCP::Packet_ptr in)
 
     // 2. check RST
     if( in->isset(RST) ) {
-    	tcp.signal_disconnect("Connection reset.");
+    	tcp.signal_disconnect(Disconnect::RESET);
     	return CLOSED; // close
     }
 
