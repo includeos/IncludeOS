@@ -60,6 +60,4 @@ namespace net {
     debug("<Packet DEFAULT RELEASE> Ignoring buffer.");
   }
 
-
-
 } //< namespace net
