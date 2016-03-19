@@ -6,29 +6,29 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/**  
-     @note This virtionet implementation was very much inspired by 
-     SanOS, (C) Michael Ringgaard. All due respect.
-     
-     STANDARD:      
-     
-     We're aiming for standard compliance:
-     
-     Virtio 1.0, OASIS Committee Specification Draft 01
-     (http://docs.oasis-open.org/virtio/virtio/v1.0/csd01/virtio-v1.0-csd01.pdf)
-     
-     In the following abbreviated to Virtio 1.01
-     
-     ...Alas, nobody's using it yet, so we're stuck with "legacy" for now.
+/**
+   @note This virtionet implementation was very much inspired by
+   SanOS, (C) Michael Ringgaard. All due respect.
+
+   STANDARD:
+
+   We're aiming for standard compliance:
+
+   Virtio 1.0, OASIS Committee Specification Draft 01
+   (http://docs.oasis-open.org/virtio/virtio/v1.0/csd01/virtio-v1.0-csd01.pdf)
+
+   In the following abbreviated to Virtio 1.01
+
+   ...Alas, nobody's using it yet, so we're stuck with "legacy" for now.
 */
 #ifndef VIRTIO_VIRTIONET_HPP
 #define VIRTIO_VIRTIONET_HPP
@@ -42,7 +42,7 @@
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
-/* Device handles packets with partial checksum. This “checksum offload” 
+/* Device handles packets with partial checksum. This “checksum offload”
    is a common feature on modern network cards.*/
 #define VIRTIO_NET_F_CSUM 0
 
@@ -110,7 +110,41 @@
 
 /** Virtio-net device driver.  */
 class VirtioNet : Virtio {
-  
+
+public:
+
+  /** Human readable name. */
+  const char* name();
+
+  /** Mac address. */
+  const net::Ethernet::addr& mac();
+
+  constexpr uint16_t MTU() const {
+    return 1500 + sizeof(virtio_net_hdr); }
+
+  /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
+  inline void set_linklayer_out(net::upstream link_out){
+    _link_out = link_out;
+    //rx_q.set_data_handler(link_out);
+  };
+
+  inline net::upstream get_linklayer_out()
+  { return _link_out; }
+
+  inline net::BufferStore& bufstore() { return bufstore_; }
+
+  /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
+  void transmit(net::Packet_ptr pckt);
+
+  /** Constructor. @param pcidev an initialized PCI device. */
+  VirtioNet(hw::PCI_Device& pcidev);
+
+
+  inline void on_buffers_available(net::buf_avail_delg del)
+  { buffer_available_event_ = del; };
+
+private:
+
   struct virtio_net_hdr
   {
     uint8_t flags;
@@ -121,7 +155,7 @@ class VirtioNet : Virtio {
     uint16_t csum_offset;      // Offset after that to place checksum
   }__attribute__((packed));
 
-  /** Virtio std. § 5.1.6.1: 
+  /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
   struct virtio_net_hdr_nomerge
   {
@@ -134,90 +168,65 @@ class VirtioNet : Virtio {
     uint16_t num_buffers;
   }__attribute__((packed));
 
-  
-  /** An empty header.      
+
+  /** An empty header.
       It's ok to use as long as we don't need checksum offloading
       or other 'fancier' virtio features. */
-  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0}; 
-  
+  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0};
+
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
   Virtio::Queue ctrl_q;
 
   // Moved to Nic
-  // Ethernet eth; 
+  // Ethernet eth;
   // Arp arp;
 
   // From Virtio 1.01, 5.1.4
   struct config{
     net::Ethernet::addr mac;
     uint16_t status;
-    
+
     //Only valid if VIRTIO_NET_F_MQ
-    uint16_t max_virtq_pairs = 0; 
+    uint16_t max_virtq_pairs = 0;
   }_conf;
-  
+
   //sizeof(config) if VIRTIO_NET_F_MQ, else sizeof(config) - sizeof(uint16_t)
   int _config_length = sizeof(config);
-  
+
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
-  
-  
-  /** Service the RX Queue. 
-      Push incoming data up to linklayer, dequeue RX buffers. */
-  void service_RX();
-  
-  /** Service the TX Queue 
-      Dequeue used TX buffers. @note: This function does not take any 
-      responsibility for memory management. */
-  void service_TX();
 
-  /** Handle device IRQ. 
-      
-      Will look for config. changes and service RX/TX queues as necessary.*/
+
+  /** Service the RX/TX Queues.
+      Push incoming data up to linklayer, dequeue any used RX- and TX buffers.*/
+  void service_queues();
+
+  /** Add packet to buffer chain */
+  void add_to_tx_buffer(net::Packet_ptr pckt);
+
+  /** Add packet chain to virtio queue */
+  void enqueue(net::Packet_ptr pckt);
+
+  /** Handle device IRQ.
+      Will look for config changes and service RX/TX queues as necessary.*/
   void irq_handler();
-  
+
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  int add_receive_buffer();  
+  int add_receive_buffer();
 
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
 
   /** 20-bit / 1MB of buffers to start with */
   net::BufferStore bufstore_{ 0xfffffU / MTU(),  MTU(), sizeof(virtio_net_hdr) };
-  net::BufferStore::release_del release_buffer = 
+  net::BufferStore::release_del release_buffer =
     net::BufferStore::release_del::from
     <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
-  
-public:     
-  
-  /** Human readable name. */
-  const char* name();  
-  
-  /** Mac address. */
-  const net::Ethernet::addr& mac();
-  
-  constexpr uint16_t MTU() const { 
-    return 1500 + sizeof(virtio_net_hdr); }
-  
-  /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
-  inline void set_linklayer_out(net::upstream link_out){
-    _link_out = link_out;
-    //rx_q.set_data_handler(link_out);
-  };
 
-  inline net::upstream get_linklayer_out()
-  { return _link_out; }
-  
-  inline net::BufferStore& bufstore() { return bufstore_; }
-  
-  /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  void transmit(net::Packet_ptr pckt);
-  
-  /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(hw::PCI_Device& pcidev);
-    
+  net::buf_avail_delg buffer_available_event_ {};
+
+  net::Packet_ptr transmit_queue_ {0};
 
 };
 
