@@ -48,10 +48,18 @@ void Service::start()
 
   sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
                   const char* data, int len) -> int {
-                printf("Getting UDP data from %s: %i: %s\n",
-                       addr.str().c_str(), port, data);
+                CHECK(1, "Got  UDP data from %s: %i: %s",
+                      addr.str().c_str(), port, data);
                 // send the same thing right back!
-                conn.sendto(addr, port, data, len);
+                const int packets { 600 };
+
+                INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
+                for (int i = 0; i < packets; i++)
+                  conn.sendto(addr, port, data, len);
+
+
+
+
                 return 0;
               });
 
@@ -62,7 +70,7 @@ void Service::start()
 
   hw::PIT::instance().onTimeout(200ms,[=](){
       const int packets { 600 };
-      INFO("TEST", "Trying to transmit %i packets at maximum throttle", packets);
+      INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
       for (int i=0; i < packets; i++){
         auto pckt = inet->createPacket(inet->MTU());
         Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
@@ -74,5 +82,8 @@ void Service::start()
 
       CHECK(1,"Transmission didn't panic");
 
+
     });
+
+
 }
