@@ -53,8 +53,8 @@ namespace fs
     virtual error_t ls(const std::string& path, dirvec_t e) override;
     
     // read an entire file into a buffer, then call on_read
-    virtual void readFile(const std::string&, on_read_func) override;
-    virtual void readFile(const Dirent& ent, on_read_func) override;
+    virtual void   readFile(const std::string&, on_read_func) override;
+    virtual Buffer readFile(const std::string&) override;
     
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;

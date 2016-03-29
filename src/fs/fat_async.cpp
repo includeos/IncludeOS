@@ -206,11 +206,6 @@ namespace fs
     (*next)(pos, pos, pos + n);
   }
   
-  void FAT::readFile(const Dirent& ent, on_read_func callback)
-  {
-    read(ent, 0, ent.size, callback);
-  }
-  
   void FAT::readFile(const std::string& strpath, on_read_func callback)
   {
     auto path = std::make_shared<Path> (strpath);
@@ -236,15 +231,18 @@ namespace fs
       }
       
       // find the matching filename in directory
-      for (auto& e : *dirents)
+      for (auto& ent : *dirents)
       {
-        if (unlikely(e.name() == filename))
+        if (unlikely(ent.name() == filename))
         {
           // read this file
-          readFile(e, callback);
+          read(ent, 0, ent.size, callback);
           return;
         }
       }
+      
+      // file not found
+      callback(true, buffer_t(), 0);
     });
   } // readFile()
   
