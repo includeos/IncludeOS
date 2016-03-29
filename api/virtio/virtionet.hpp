@@ -139,9 +139,13 @@ public:
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(hw::PCI_Device& pcidev);
 
+  inline void on_transmit_queue_available(net::transmit_avail_delg del)
+  { transmit_queue_available_event_ = del; };
 
-  inline void on_buffers_available(net::buf_avail_delg del)
-  { buffer_available_event_ = del; };
+  /** Space available in the transmit queue, in packets */
+  inline size_t transmit_queue_available(){
+    return tx_q.num_free() / 2;
+  };
 
 private:
 
@@ -224,7 +228,7 @@ private:
     net::BufferStore::release_del::from
     <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
 
-  net::buf_avail_delg buffer_available_event_ {};
+  net::transmit_avail_delg transmit_queue_available_event_ {};
 
   net::Packet_ptr transmit_queue_ {0};
 

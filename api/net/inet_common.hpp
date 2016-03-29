@@ -36,8 +36,9 @@ namespace net {
   using downstream = delegate<void(Packet_ptr)>;
   using upstream = downstream;
 
-  // Delegate for signalling available buffers
-  using buf_avail_delg = delegate<void(size_t count)>;
+  // Delegate for signalling available space in device transmit queue
+  // 'count' is a multiple of packets
+  using transmit_avail_delg = delegate<void(size_t count)>;
 
   // Compute the internet checksum for the buffer / buffer part provided
   uint16_t checksum(void* data, size_t len) noexcept;
