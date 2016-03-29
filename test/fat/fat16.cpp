@@ -92,9 +92,12 @@ void Service::start()
        "-:;::;:;:      ':;::;:''     ;.-'
            ""`---...________...---'""
 )";
-    CHECK(banana == internal_banana, "Correct banana");
-    printf("%s\n", banana.c_str());
+    printf("%s\n", internal_banana.c_str());
+    CHECK(banana == internal_banana, "Correct banana #1");
     
+    buf = fs.readFile("/banana.txt");
+    banana = std::string((char*) buf.buffer.get(), buf.len);
+    CHECK(banana == internal_banana, "Correct banana #2");
   });
   
   INFO("FAT16", "SUCCESS");
