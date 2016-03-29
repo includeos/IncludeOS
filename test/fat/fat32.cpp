@@ -96,7 +96,7 @@ void Service::start()
     assert(ent.name() == "banana.txt");
     
     // asynch file reading test
-    fs.readFile(ent,
+    fs.read(ent, 0, ent.size,
     [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
     {
       CHECK(!err, "Read 'banana.txt' asynchronously");

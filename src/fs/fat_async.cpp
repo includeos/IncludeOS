@@ -145,8 +145,65 @@ namespace fs
   
   void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
-    auto buf = read(ent, pos, n);
-    callback(buf.err, buf.buffer, buf.len);
+    // cluster -> sector
+    uint32_t sector = this->cl_to_sector(ent.block);
+    
+    // allocate buffer
+    auto* buffer = new uint8_t[n];
+    
+    // start reading process
+    typedef std::function<void(size_t, size_t, size_t)> next_func_t;
+    auto next = std::make_shared<next_func_t> ();
+    
+    *next = 
+    [this, sector, buffer, callback, next] (size_t start, size_t n, size_t end)
+    {
+      if (unlikely(n == end))
+      {
+        // report back to HQ
+        debug("DONE start=%lu, current=%lu, total=%lu\n", start, n, end - start);
+        // create shared buffer
+        auto buffer_ptr = buffer_t(buffer, std::default_delete<uint8_t[]>());
+        // notify caller
+        callback(no_error, buffer_ptr, end - start);
+        return;
+      }
+      
+      // read the current sector based on position @n
+      uint32_t current_sector = sector + n / this->sector_size;
+      
+      device.read(current_sector,
+      [this, start, n, end, buffer, &callback, sector, next] (buffer_t data)
+      {
+        if (!data)
+        {
+          // general I/O error occurred
+          debug("Failed to read sector %u for read()", sector);
+          // cleanup
+          delete[] buffer;
+          callback(true, buffer_t(), 0);
+          return;
+        }
+        
+        uint32_t length = n & (sector_size-1);
+        if (n == start && n > 0)
+        {
+          length = sector_size - length;
+        }
+        else
+        {
+          length = (n + sector_size) < end ? sector_size : (end - n);
+        }
+        
+        // copy over data
+        memcpy(buffer + n, data.get(), length);
+        // continue reading next sector
+        (*next)(start, n + length, end);
+      });
+    };
+    
+    // start!
+    (*next)(pos, pos, pos + n);
   }
   
   void FAT::readFile(const Dirent& ent, on_read_func callback)
