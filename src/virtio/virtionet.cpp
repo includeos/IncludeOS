@@ -17,7 +17,7 @@
 
 #define PRINT_INFO
 #define DEBUG // Allow debuging
-//#define DEBUG2
+#define DEBUG2
 
 #include <virtio/virtionet.hpp>
 #include <net/packet.hpp>
@@ -167,7 +167,7 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   auto buf = bufstore_.get_raw_buffer();
 
-  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n", (uint32_t)buf);
+  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
   hdr = (virtio_net_hdr*)buf;
 
@@ -240,7 +240,7 @@ void VirtioNet::service_queues(){
       data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
 
       auto pckt_ptr = std::make_shared<Packet>
-        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offset)
+        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
          MTU()-sizeof(virtio_net_hdr), // Capacity
          len - sizeof(virtio_net_hdr), release_buffer); // Size
 
@@ -252,45 +252,50 @@ void VirtioNet::service_queues(){
       dequeued_rx++;
 
     }
-    debug2("<VirtioNet> Service loop about to kick RX if %i \n",i);
 
     // Do one TX-packet
     if (tx_q.new_incoming()){
+      debug2("<VirtioNet> Dequeing TX");
       tx_q.dequeue(&len);
       dequeued_tx++;
     }
 
   }
 
+  debug2("<VirtioNet> Service loop about to kick RX if %i \n",
+         dequeued_rx);
   // Let virtio know we have increased receive capacity
   if (dequeued_rx)
     rx_q.kick();
 
 
   rx_q.enable_interrupts();
+  tx_q.enable_interrupts();
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
   if (dequeued_tx) {
 
-    debug("<VirtioNet> Transmitted something, now transmitting any buffer\n");
+    debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
     if (transmit_queue_){
       auto buf = transmit_queue_;
       transmit_queue_ = 0;
       transmit(buf);
+    }else{
+      debug("<VirtioNet> Transmit queue is empty \n");
     }
 
     // If we now emptied the buffer, offer packets to stack
-    if (! transmit_queue_ && tx_q.num_avail() > 1)
-      buffer_available_event_(tx_q.num_avail() / 2);
-
+    if (!transmit_queue_ && tx_q.num_free() > 1)
+      buffer_available_event_(tx_q.num_free() / 2);
+    else
+      debug("<VirtioNet> No event: !transmit q %i, num_avail %i \n",
+            !transmit_queue_, tx_q.num_free());
   }
 
-  tx_q.enable_interrupts();
-
-  debug2("<VirtioNet> Done servicing queues\n");
+  debug("<VirtioNet> Done servicing queues\n");
 }
 
 void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
@@ -313,7 +318,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 }
 
 void VirtioNet::transmit(net::Packet_ptr pckt){
-  debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
+  debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
 
 
   /** @note We have to send a virtio header first, then the packet.
@@ -343,12 +348,16 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   }
 
   // Notify virtio about new packets
-  if (transmitted)
+  if (transmitted) {
     tx_q.kick();
+  }
 
   // Buffer the rest
-  if (tail)
+  if (tail) {
     add_to_tx_buffer(tail);
+
+    debug("Buffering remaining packets \n");
+  }
 
 }
 
