@@ -42,7 +42,7 @@ void Service::start()
   auto packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
                                          bufstore_.offset_bufsize(), 1500, release);
 
-  CHECK(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
+  CHECKSERT(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
 
   int chain_size = bufcount_;
 
@@ -51,14 +51,14 @@ void Service::start()
     auto chained_packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
                                                    bufstore_.offset_bufsize(), 1500, release);
     packet->chain(chained_packet);
-    CHECK(bufstore_.buffers_available() == bufcount_ - i - 2 , "Bufcount is now %i", bufcount_ - i -2);
+    CHECKSERT(bufstore_.buffers_available() == bufcount_ - i - 2 , "Bufcount is now %i", bufcount_ - i -2);
   }
 
 
   // Release
   INFO("Test 1","Releaseing packet-chain all at once: Expect bufcount restored");
   packet = 0;
-  CHECK(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
+  CHECKSERT(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
 
   INFO("Test 2","Create and chain packets, release one-by-one");
 
@@ -66,34 +66,35 @@ void Service::start()
   packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
                                          bufstore_.offset_bufsize(), 1500, release);
 
-  CHECK(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
+  CHECKSERT(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
 
   // Chain
   for (int i = 0; i < chain_size - 1; i++){
     auto chained_packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
                                                    bufstore_.offset_bufsize(), 1500, release);
     packet->chain(chained_packet);
-    CHECK(bufstore_.buffers_available() == bufcount_ - i -2, "Bufcount is now %i", bufcount_ - i -2);
+    CHECKSERT(bufstore_.buffers_available() == bufcount_ - i -2, "Bufcount is now %i", bufcount_ - i -2);
   }
 
-  INFO("Test 2","Releaseing packet-chain one-by-one");
+  INFO("Test 2","Releasing packet-chain one-by-one");
 
   // Release one-by-one
   auto tail = packet;
   size_t i = 0;
   while(tail && i < bufcount_ - 1 ) {
     tail = tail->detach_tail();
-    CHECK(bufstore_.buffers_available() == i,
+    CHECKSERT(bufstore_.buffers_available() == i,
           "Bufcount is now %i == %i", i,
           bufstore_.buffers_available());
     i++;
   }
 
-  INFO("Test 2","Releaseing last packet");
+  INFO("Test 2","Releasing last packet");
   tail = 0;
   packet = 0;
-  CHECK(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
+  CHECKSERT(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
 
 
+  INFO("Tests","SUCCESS");
 
 }
