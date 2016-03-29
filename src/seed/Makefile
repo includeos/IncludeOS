@@ -78,13 +78,24 @@ stripped: LDOPTS  += -S #strip all
 stripped: CPPOPTS += -Oz
 stripped: service
 
+# Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
+debug-info: CAPABS += -UNO_DEBUG
+debug-info: service
 
-# The same, but with debugging symbols (OBS: Dramatically increases binary size)
+# Build with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-#debug: LDOPTS  += -M --verbose
-debug: OBJS += $(LIBG_OBJ)
-debug: service #Don't wanna call 'all', since it strips debug info
+debug: OBJ_LIST += $(LIBG_OBJ)
+debug: CAPABS += -O0
+debug: service
+
+# Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
+debug-all: CAPABS += -UNO_DEBUG
+debug-all: CCOPTS  += $(DEBUG_OPTS)
+debug-all: CPPOPTS += $(DEBUG_OPTS)
+debug-all: OBJ_LIST += $(LIBG_OBJ)
+debug-all: CAPABS += -O0
+debug-all: service
 
 # Disk image as a section
 ###################################################
