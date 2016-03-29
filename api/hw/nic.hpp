@@ -44,28 +44,32 @@ namespace hw {
     inline const char* name() const noexcept
     { return driver_.name(); }
 
+
     /** The mac address. */
     inline const net::Ethernet::addr& mac()
     { return driver_.mac(); }
-  
+
     inline void set_linklayer_out(net::upstream del)
     { driver_.set_linklayer_out(del); }
-  
+
     inline net::upstream get_linklayer_out()
     { return driver_.get_linklayer_out(); }
-  
+
     inline void transmit(net::Packet_ptr pckt)
     { driver_.transmit(pckt); }
-  
+
     inline uint16_t MTU() const noexcept
     { return driver_.MTU(); }
-  
+
     inline net::BufferStore& bufstore() noexcept
     { return driver_.bufstore(); }
-  
+
+    inline void on_buffers_available(net::buf_avail_delg del)
+    { driver_.on_buffers_available(del); };
+
   private:
     driver_t driver_;
-  
+
     /**
      *  Constructor
      *
@@ -80,7 +84,7 @@ namespace hw {
 
   /** Future drivers may start out like so, */
   class E1000 {
-  public: 
+  public:
     inline const char* name() const noexcept
     { return "E1000 Driver"; }
     //...whatever the Nic class implicitly needs
@@ -88,7 +92,7 @@ namespace hw {
 
   /** Hopefully somebody will port a driver for this one */
   class RTL8139;
-  
+
 } //< namespace hw
 
 #endif // NIC_HPP
