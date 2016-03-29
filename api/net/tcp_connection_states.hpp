@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,10 +36,10 @@ public:
 
 	virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
 	/*
-		PASSIVE:		
+		PASSIVE:
 		<- Do nothing (Start listening).
 
 		=> Listen.
@@ -69,7 +69,7 @@ public:
 	}
 	virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
 	virtual void close(Connection&) override;
 	/*
@@ -98,7 +98,7 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
 	virtual void close(Connection&) override;
 	/*
@@ -127,7 +127,7 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
 	virtual void close(Connection&) override;
 
@@ -159,9 +159,9 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+	virtual void receive(Connection&, ReadBuffer&) override;
 
 	virtual void close(Connection&) override;
 
@@ -172,6 +172,18 @@ public:
 	inline virtual std::string to_string() const override {
 		return "ESTABLISHED";
 	};
+
+  inline virtual bool is_connected() const override {
+    return true;
+  }
+
+  inline virtual bool is_writable() const override {
+    return true;
+  }
+
+  inline virtual bool is_readable() const override {
+    return true;
+  }
 
 private:
 	inline Established() {};
@@ -187,7 +199,7 @@ public:
 		return instance;
 	}
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+	virtual void receive(Connection&, ReadBuffer&) override;
 
 	virtual void close(Connection&) override;
 
@@ -204,6 +216,14 @@ public:
 		return "FIN-WAIT-1";
 	};
 
+  inline virtual bool is_readable() const override {
+    return true;
+  }
+
+  inline virtual bool is_closing() const override {
+    return true;
+  }
+
 private:
 	inline FinWait1() {};
 };
@@ -218,19 +238,28 @@ public:
 		return instance;
 	}
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+	virtual void receive(Connection&, ReadBuffer&) override;
 
 	virtual void close(Connection&) override;
 
 	virtual void abort(Connection&) override;
 	/*
-		
+
 	*/
 	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "FIN-WAIT-2";
 	};
+
+  inline virtual bool is_readable() const override {
+    return true;
+  }
+
+  inline virtual bool is_closing() const override {
+    return true;
+  }
+
 private:
 	inline FinWait2() {};
 };
@@ -245,9 +274,9 @@ public:
 		return instance;
 	}
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+	virtual size_t send(Connection&, WriteBuffer&) override;
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+	virtual void receive(Connection&, ReadBuffer&) override;
 
 	virtual void close(Connection&) override;
 
@@ -256,7 +285,7 @@ public:
 		-> Nothing I think...
 
 		<- Send FIN.
-		
+
 		=> LastAck
 	*/
 	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
@@ -265,34 +294,12 @@ public:
 		return "CLOSE-WAIT";
 	};
 
+  inline virtual bool is_writable() const override {
+    return true;
+  }
+
 private:
 	inline CloseWait() {};
-};
-
-/*
-	LAST-ACK
-*/
-class Connection::LastAck : public State {
-public:
-	inline static State& instance() {
-		static LastAck instance;
-		return instance;
-	}
-	/*
-		-> Receive ACK.
-
-		<- conn.onClose();
-
-		=> Closed (Tell TCP to remove this connection)
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
-
-	inline virtual std::string to_string() const override {
-		return "LAST-ACK";
-	};
-
-private:
-	inline LastAck() {};
 };
 
 /*
@@ -315,8 +322,42 @@ public:
 		return "CLOSING";
 	};
 
+  inline virtual bool is_closing() const override {
+    return true;
+  }
+
 private:
 	inline Closing() {};
+};
+
+/*
+  LAST-ACK
+*/
+class Connection::LastAck : public State {
+public:
+  inline static State& instance() {
+    static LastAck instance;
+    return instance;
+  }
+  /*
+    -> Receive ACK.
+
+    <- conn.onClose();
+
+    => Closed (Tell TCP to remove this connection)
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+
+  inline virtual std::string to_string() const override {
+    return "LAST-ACK";
+  };
+
+  inline virtual bool is_closing() const override {
+    return true;
+  }
+
+private:
+  inline LastAck() {};
 };
 
 /*
@@ -329,13 +370,17 @@ public:
 		return instance;
 	}
 	/*
-		
+
 	*/
 	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
 	inline virtual std::string to_string() const override {
 		return "TIME-WAIT";
 	};
+
+  inline virtual bool is_closing() const override {
+    return true;
+  }
 
 private:
 	inline TimeWait() {};

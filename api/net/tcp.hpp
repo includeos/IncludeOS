@@ -44,6 +44,8 @@ public:
 	*/
 	using Seq = uint32_t;
 
+  using buffer_t = std::shared_ptr<uint8_t>;
+
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
 
@@ -365,44 +367,44 @@ public:
     	/// OFFSET, OPTIONS, DATA ///
 
     	// Get the raw tcp offset, in quadruples
-		inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
+      inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
 
-		// Set raw TCP offset in quadruples
-		inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
+      // Set raw TCP offset in quadruples
+      inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
 
-		// The actaul TCP header size (including options).
-		inline uint8_t header_size() const { return offset() * 4; }
+      // The actaul TCP header size (including options).
+      inline uint8_t header_size() const { return offset() * 4; }
 
-		// Calculate the full header length, down to linklayer, in bytes
-		uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
+      // Calculate the full header length, down to linklayer, in bytes
+      uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
 
-		// Where data starts
-		inline char* data() { return (char*) (buffer() + all_headers_len()); }
+      // Where data starts
+      inline char* data() { return (char*) (buffer() + all_headers_len()); }
 
-    	inline uint16_t data_length() const { return size() - all_headers_len(); }
+      inline uint16_t data_length() const { return size() - all_headers_len(); }
 
-    	inline bool has_data() const { return data_length() > 0; }
+      inline bool has_data() const { return data_length() > 0; }
 
-    	inline uint16_t tcp_length() const { return header_size() + data_length(); }
+      inline uint16_t tcp_length() const { return header_size() + data_length(); }
 
-    	template <typename T, typename... Args>
-    	inline void add_option(Args&&... args) {
-    		// to avoid headache, options need to be added BEFORE any data.
-    		assert(!has_data());
-    		// option address
-    		auto* addr = options()+options_length();
-    		new (addr) T(args...);
-    		// update offset
-    		set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
-    		set_length(); // update
-    	}
+      template <typename T, typename... Args>
+      inline void add_option(Args&&... args) {
+        // to avoid headache, options need to be added BEFORE any data.
+        assert(!has_data());
+        // option address
+        auto* addr = options()+options_length();
+        new (addr) T(args...);
+        // update offset
+        set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+        set_length(); // update
+      }
 
-    	inline void clear_options() {
-    		// clear existing options
-    		// move data (if any) (??)
-    		set_offset(5);
-    		set_length(); // update
-    	}
+      inline void clear_options() {
+        // clear existing options
+        // move data (if any) (??)
+        set_offset(5);
+        set_length(); // update
+      }
 
     	inline uint8_t* options() { return (uint8_t*) header().options; }
 
@@ -534,7 +536,108 @@ public:
 		Transist between many states.
 	*/
 	class Connection : public std::enable_shared_from_this<Connection> {
-	public:
+    friend class TCP;
+  public:
+
+    /*
+      Wrapper around a buffer that receives data.
+    */
+    struct ReadBuffer {
+      buffer_t buffer;
+      size_t remaining;
+      size_t offset;
+      bool push;
+
+      ReadBuffer(buffer_t buf, size_t length, size_t offs = 0)
+        : buffer(buf), remaining(length-offs), offset(offs), push(false) {}
+
+      inline size_t capacity() const { return remaining + offset; }
+
+      inline bool empty() const { return offset == 0; }
+
+      inline bool full() const { return remaining == 0; }
+
+      inline size_t size() const { return offset; }
+
+      inline uint8_t* begin() const { return buffer.get(); }
+
+      inline uint8_t* pos() const { return buffer.get() + offset; }
+
+      inline uint8_t* end() const { return buffer.get() + capacity(); }
+
+      inline bool advance(size_t length) {
+        assert(length <= remaining);
+        offset += length;
+        remaining -= length;
+        return length > 0;
+      }
+
+      inline size_t add(uint8_t* data, size_t n) {
+        auto written = std::min(n, remaining);
+        memcpy(pos(), data, written);
+        return written;
+      }
+
+      inline void clear() {
+        memset(begin(), 0, offset);
+        remaining = capacity();
+        offset = 0;
+        push = false;
+      }
+    }; // < Connection::ReadBuffer
+
+
+    /*
+      Wrapper around a buffer that contains data to be written.
+    */
+    struct WriteBuffer {
+      buffer_t buffer;
+      size_t remaining;
+      size_t offset;
+      bool push;
+
+      WriteBuffer(buffer_t buf, size_t length, bool PSH, size_t offs = 0)
+        : buffer(buf), remaining(length-offs), offset(offs), push(PSH) {}
+
+      inline size_t length() const { return remaining + offset; }
+
+      inline bool done() const { return remaining == 0; }
+
+      inline uint8_t* begin() const { return buffer.get(); }
+
+      inline uint8_t* pos() const { return buffer.get() + offset; }
+
+      inline uint8_t* end() const { return buffer.get() + length(); }
+
+      inline bool advance(size_t length) {
+        assert(length <= remaining);
+        offset += length;
+        remaining -= length;
+        return length > 0;
+      }
+    }; // < Connection::WriteBuffer
+
+    /*
+      Callback when a receive buffer receives either push or is full - Supplied on asynchronous read
+    */
+    using OnRead = delegate<void(TCP::Connection_ptr, ReadBuffer&, bool success)>;
+
+    struct ReadRequest {
+      ReadBuffer buffer;
+      OnRead callback;
+
+      ReadRequest(ReadBuffer buf, OnRead cb) : buffer(buf), callback(cb) {}
+      ReadRequest() : buffer({std::make_shared<uint8_t>(1024), 1024}), callback([](auto, auto&, bool){}) {}
+    };
+    //using ReadRequest = std::pair<ReadBuffer, OnRead>;
+
+    /*
+      Callback when a write is done - Supplied on asynchronous write, gives the user a callback when the "write job" is complete.
+    */
+    using OnWritten = delegate<void(TCP::Connection_ptr, WriteBuffer, bool success)>;
+
+    using WriteRequest = std::pair<WriteBuffer, OnWritten>;
+
 		/*
 			Connection identifier
 		*/
@@ -570,7 +673,7 @@ public:
 		/*
 			On error - When any of the users request fails.
 		*/
-		using ErrorCallback 			= delegate<void(std::shared_ptr<Connection>, TCPException)>;
+		using ErrorCallback 			  = delegate<void(std::shared_ptr<Connection>, TCPException)>;
 
 		/*
 			When a packet is received - Everytime a connection receives an incoming packet.
@@ -645,13 +748,13 @@ public:
 				Write to a Connection.
 				SEND
 			*/
-			virtual size_t send(Connection&, const char* buffer, size_t n, bool push = false);
+			virtual size_t send(Connection&, WriteBuffer&);
 
 			/*
 				Read from a Connection.
 				RECEIVE
 			*/
-			virtual size_t receive(Connection&, char* buffer, size_t n);
+			virtual void receive(Connection&, ReadBuffer&);
 
 			/*
 				Close a Connection.
@@ -676,6 +779,17 @@ public:
 				STATUS
 			*/
 			virtual std::string to_string() const = 0;
+
+      /*
+
+      */
+      virtual bool is_connected() const { return false; }
+
+      virtual bool is_writable() const { return false; }
+
+      virtual bool is_readable() const { return false; }
+
+      virtual bool is_closing() const { return false; }
 
 		protected:
 			/*
@@ -708,8 +822,8 @@ public:
 		class FinWait1;
 		class FinWait2;
 		class CloseWait;
-		class LastAck;
 		class Closing;
+    class LastAck;
 		class TimeWait;
 
 		/*
@@ -787,29 +901,28 @@ public:
 		*/
 		inline void set_remote(Socket remote) { remote_ = remote; }
 
+    /*
+      Read content from remote.
+    */
+    void read(ReadBuffer buffer, OnRead callback);
 
-		/*
-			Read content from remote.
-		*/
-		size_t read(char* buffer, size_t n);
+    inline void read(buffer_t buffer, size_t n, OnRead callback) {
+      read({buffer, n}, callback);
+    }
 
-		/*
-			Read n bytes into a string.
-			Default 1024 bytes.
-		*/
-		std::string read(size_t n = 0);
+    inline void read(size_t n, OnRead callback) {
+      ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t>()), n};
+      read(buffer, callback);
+    }
 
 		/*
 			Write content to remote.
 		*/
-		size_t write(const char* buffer, size_t n, bool PUSH = true);
+    void write(WriteBuffer request, OnWritten callback);
 
-		/*
-			Write a string to the remote.
-		*/
-		inline void write(const std::string& content) {
-			write(content.data(), content.size(), true);
-		}
+    inline void write(buffer_t buffer, size_t n, OnWritten callback, bool PUSH = true) {
+      write({buffer, n, PUSH}, callback);
+    }
 
 		/*
 			Open connection.
@@ -923,38 +1036,21 @@ public:
 			return {local_port_, remote_};
 		}
 
-		/*
-			Receive buffer
-		*/
-		inline const Buffer& receive_buffer() {
-			return receive_buffer_;
-		}
-
-		/*
-			Send buffer
-		*/
-		inline const Buffer& send_buffer() {
-			return send_buffer_;
-		}
-
-		/*
-			Receive a TCP Packet.
-
-			@WARNING: Public, for use in TCP::bottom (friend it?)
-		*/
-		void receive(TCP::Packet_ptr);
-
 
 		/*
 			State checks.
 		*/
 		bool is_listening() const;
 
-		bool is_connected() const;
+		inline bool is_connected() const { return state_->is_connected(); }
 
-		bool is_closing() const;
+    inline bool is_writable() const { return state_->is_writable(); }
 
-		bool is_writable() const;
+    inline bool is_readable() const { return state_->is_readable(); }
+
+		inline bool is_closing() const { return state_->is_closing(); }
+
+
 
 		/*
 			Helper function for state checks.
@@ -999,11 +1095,17 @@ public:
 		*/
 		TCB control_block;		// 36 B
 
-		/*
-			Buffers
-		*/
-		Buffer receive_buffer_;
-		Buffer send_buffer_;
+    /*
+      The given read request
+    */
+    ReadRequest read_request;
+
+    /*
+      Queue for write requests to process
+    */
+    std::queue<WriteRequest> write_queue;
+
+
 
 		/*
 			When time-wait timer was started.
@@ -1051,6 +1153,77 @@ public:
 			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
 			//	packet->to_string().c_str(), reason.c_str());
 		};
+
+
+    /// READING ///
+
+    /*
+      Assign the read request (read buffer)
+    */
+    inline void receive(ReadBuffer& buffer) {
+      read_request.buffer = {buffer};
+    }
+
+    /*
+      Receive data into the current read requests buffer.
+    */
+    size_t receive(const uint8_t* data, size_t n, bool PUSH);
+
+    /*
+      Copy data into the ReadBuffer
+    */
+    inline size_t receive(ReadBuffer& buf, const uint8_t* data, size_t n) {
+      auto received = std::min(n, buf.remaining);
+      memcpy(buf.pos(), data, received); // Can we use move?
+      return received;
+    }
+
+    /*
+
+    */
+    inline void receive_disconnect() {
+      //assert(read_request);
+      assert(!read_request.buffer.empty());
+      auto& buf = read_request.buffer;
+      buf.push = true;
+      read_request.callback(shared_from_this(), buf, true);
+    }
+
+
+    /// WRITING ///
+
+    /*
+      Active try to send a buffer by asking the TCP.
+    */
+    inline size_t send(WriteBuffer& buffer) {
+      return host_.send(shared_from_this(), buffer);
+    }
+
+    /*
+      Segmentize buffer into packets until either everything has been written,
+      or all packets are used up.
+    */
+    size_t send(const char* buffer, size_t remaining, size_t& packets, bool PUSH);
+
+    inline size_t send(WriteBuffer& buffer, size_t& packets) {
+      return send((char*)buffer.pos(), buffer.remaining, packets, buffer.push);
+    }
+
+    /*
+      Process the write queue with the given amount of packets.
+      Returns true if all the jobs are done (queue is empty)
+    */
+    bool offer(size_t& packets);
+
+    /*
+      Try to write (some of) queue when connected.
+    */
+    void write_queue_on_connect();
+
+    /*
+      Reset queue on disconnect. Clears the queue and notice every requests callback.
+    */
+    void write_queue_reset();
 
 		/*
 			Invoke/signal the diffrent TCP events.
@@ -1109,11 +1282,6 @@ public:
 		bool add_to_receive_buffer(TCP::Packet_ptr packet);
 
 		/*
-			Write to the send buffer. Segmentize into packets.
-		*/
-		size_t write_to_send_buffer(const char* buffer, size_t n, bool PUSH = true);
-
-		/*
 			Transmit the send buffer.
 		*/
 		void transmit();
@@ -1152,7 +1320,7 @@ public:
       		Time (RTT).
 	 	*/
 	 	//std::chrono::milliseconds RTT() const;
-  		std::chrono::milliseconds RTO() const;
+		std::chrono::milliseconds RTO() const;
 
   		/*
 			Start the time wait timeout for 2*MSL
@@ -1183,6 +1351,11 @@ public:
 			Add an option.
 	 	*/
 		void add_option(TCP::Option::Kind, TCP::Packet_ptr);
+
+    /*
+      Receive a TCP Packet.
+    */
+    void segment_arrived(TCP::Packet_ptr);
 
 	}; // < class TCP::Connection
 
@@ -1221,6 +1394,11 @@ public:
 	*/
 	void bottom(net::Packet_ptr);
 
+  /*
+    Write data to a connection.
+  */
+  void write(Connection_ptr, std::shared_ptr<uint8_t>, size_t, Connection::OnWritten, bool = true);
+
 	/*
 		Delegate output to network layer
 	*/
@@ -1229,15 +1407,15 @@ public:
 	/*
 		Compute the TCP checksum
 	*/
-    static uint16_t checksum(const TCP::Packet_ptr);
+  static uint16_t checksum(const TCP::Packet_ptr);
 
-    inline const auto& listeners() { return listeners_; }
+  inline const auto& listeners() { return listeners_; }
 
-    inline const auto& connections() { return connections_; }
+  inline const auto& connections() { return connections_; }
 
-    /*
-		Number of open ports.
-    */
+  /*
+    Number of open ports.
+  */
 	inline size_t openPorts() { return listeners_.size(); }
 
 	/*
@@ -1292,11 +1470,14 @@ public:
 
 
 private:
+
 	IPStack& inet_;
 	std::map<TCP::Port, Connection> listeners_;
 	std::map<Connection::Tuple, Connection_ptr> connections_;
 
 	downstream _network_layer_out;
+
+  std::queue<Connection_ptr> write_queue;
 
 	/*
 		Settings
@@ -1340,6 +1521,16 @@ private:
 		Close and delete the connection.
 	*/
 	void close_connection(TCP::Connection&);
+
+  /*
+    Process the write queue with the given amount of free packets.
+  */
+  void process_write_queue(size_t packets);
+
+  /*
+
+  */
+  size_t send(Connection_ptr, Connection::WriteBuffer&);
 
 
 }; // < class TCP
