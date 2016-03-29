@@ -120,7 +120,10 @@ public:
   const net::Ethernet::addr& mac();
 
   constexpr uint16_t MTU() const {
-    return 1500 + sizeof(virtio_net_hdr); }
+    return 1500; }
+
+  constexpr uint16_t bufsize() const {
+    return MTU() + sizeof(virtio_net_hdr); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
@@ -223,7 +226,7 @@ private:
   net::upstream _link_out;
 
   /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffffU / MTU(),  MTU(), sizeof(virtio_net_hdr) };
+  net::BufferStore bufstore_{ 0xfffffU / bufsize(),  bufsize(), sizeof(virtio_net_hdr) };
   net::BufferStore::release_del release_buffer =
     net::BufferStore::release_del::from
     <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);

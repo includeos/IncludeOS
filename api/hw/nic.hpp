@@ -61,6 +61,9 @@ namespace hw {
     inline uint16_t MTU() const noexcept
     { return driver_.MTU(); }
 
+    inline uint16_t bufsize() const noexcept
+    { return driver_.bufsize(); }
+
     inline net::BufferStore& bufstore() noexcept
     { return driver_.bufstore(); }
 
