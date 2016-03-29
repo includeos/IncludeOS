@@ -22,15 +22,10 @@
 
 #include "fs/disk.hpp"
 #include "fs/memdisk.hpp"
-#include "fs/fat.hpp" // FAT filesystem
 
 namespace fs
 {
-  // its not really a shared memdisk right now,
-  // but we are only using this in conjunction with
-  // new_shared_memdisk() which very likely contains FAT
-  using Disk_ptr = std::shared_ptr<Disk>;
-  
+  // new_shared_memdisk() very likely contains FAT
   inline Disk_ptr new_shared_memdisk()
   {
     static MemDisk device;

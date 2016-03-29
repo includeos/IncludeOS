@@ -128,8 +128,8 @@ public:
     virtual error_t ls(const std::string& path, dirvec_t e) = 0;
     
     /** Read an entire file into a buffer, then call on_read */
-    virtual void readFile(const std::string&, on_read_func) = 0;
-    virtual void readFile(const Dirent& ent,  on_read_func) = 0;
+    virtual void   readFile(const std::string&, on_read_func) = 0;
+    virtual Buffer readFile(const std::string&) = 0;
     
     /** Read @n bytes from direntry from position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) = 0;

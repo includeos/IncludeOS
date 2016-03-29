@@ -1,27 +1,16 @@
-#define DEBUG
+//#define DEBUG
 #include <fs/fat.hpp>
 
 #include <cassert>
-#include <fs/mbr.hpp>
 #include <fs/path.hpp>
 #include <debug>
 
 #include <cstring>
 #include <memory>
 #include <locale>
-#include <kernel/syscalls.hpp> // for panic()
-
-#include <info>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
-
-inline std::string trim_right_copy(
-  const std::string& s,
-  const std::string& delimiters = " \f\n\r\t\v" )
-{
-  return s.substr( 0, s.find_last_not_of( delimiters ) + 1 );
-}
 
 namespace fs
 {
@@ -78,6 +67,38 @@ namespace fs
     
     return Buffer(no_error, buffer_t(result), total);
   }
+  
+  Buffer FAT::readFile(const std::string& strpath)
+  {
+    Path path(strpath);
+    if (unlikely(path.empty()))
+    {
+      // there is no possible file to read where path is empty
+      return Buffer(true, nullptr, 0);
+    }
+    debug("readFile: %s\n", path.back().c_str());
+    
+    std::string filename = path.back();
+    path.pop_back();
+    
+    // result directory entries are put into @dirents
+    auto dirents = new_shared_vector();
+    
+    auto err = traverse(path, dirents);
+    if (err) return Buffer(true, buffer_t(), 0); // for now
+    
+    // find the matching filename in directory
+    for (auto& e : *dirents)
+    {
+      if (unlikely(e.name() == filename))
+      {
+        // read this file
+        return read(e, 0, e.size);
+      }
+    }
+    // entry not found
+    return Buffer(true, buffer_t(), 0);
+  } // readFile()
   
   error_t FAT::int_ls(uint32_t sector, dirvec_t ents)
   {

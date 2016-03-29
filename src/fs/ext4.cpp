@@ -47,9 +47,9 @@ namespace fs
     (void) path;
   }
   
-  void EXT4::readFile(const Dirent&, on_read_func callback)
+  EXT4::Buffer EXT4::readFile(const std::string&)
   {
-    callback(true, buffer_t(), 0);
+    return Buffer(true, buffer_t(), 0);
   }
   void EXT4::readFile(const std::string& strpath, on_read_func callback)
   {
