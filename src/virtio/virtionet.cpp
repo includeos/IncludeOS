@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #define PRINT_INFO
-//#define DEBUG // Allow debuging
-//#define DEBUG2
+#define DEBUG // Allow debuging
+#define DEBUG2
 
 #include <virtio/virtionet.hpp>
 #include <net/packet.hpp>
@@ -57,38 +57,38 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     | (1 << VIRTIO_NET_F_STATUS);
   //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features; /*;
-    | (1 << VIRTIO_NET_F_CSUM)
-    | (1 << VIRTIO_F_ANY_LAYOUT)
-    | (1 << VIRTIO_NET_F_CTRL_VQ)
-    | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
-    | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
+						| (1 << VIRTIO_NET_F_CSUM)
+						| (1 << VIRTIO_F_ANY_LAYOUT)
+						| (1 << VIRTIO_NET_F_CTRL_VQ)
+						| (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
+						| (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
 
   negotiate_features(wanted_features);
 
 
   CHECK ((features() & needed_features) == needed_features,
-	 "Negotiated needed features");
+         "Negotiated needed features");
 
   CHECK ((features() & wanted_features) == wanted_features,
-	 "Negotiated wanted features");
+         "Negotiated wanted features");
 
   CHECK(features() & (1 << VIRTIO_NET_F_CSUM),
-	"Device handles packets w. partial checksum");
+        "Device handles packets w. partial checksum");
 
   CHECK(features() & (1 << VIRTIO_NET_F_GUEST_CSUM),
-	"Guest handles packets w. partial checksum");
+        "Guest handles packets w. partial checksum");
 
   CHECK(features() & (1 << VIRTIO_NET_F_CTRL_VQ),
-       "There's a control queue");
+	"There's a control queue");
 
   CHECK(features() & (1 << VIRTIO_F_ANY_LAYOUT),
-       "Queue can handle any header/data layout");
+	"Queue can handle any header/data layout");
 
   CHECK(features() & (1 << VIRTIO_F_RING_INDIRECT_DESC),
-	"We can use indirect descriptors");
+        "We can use indirect descriptors");
 
   CHECK(features() & (1 << VIRTIO_F_RING_EVENT_IDX),
-	"There's a Ring Event Index to use");
+        "There's a Ring Event Index to use");
 
   CHECK(features() & (1 << VIRTIO_NET_F_MQ),
         "There are multiple queue pairs");
@@ -97,23 +97,23 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     printf("\t\t* max_virtqueue_pairs: 0x%x \n",_conf.max_virtq_pairs);
 
   CHECK(features() & (1 << VIRTIO_NET_F_MRG_RXBUF),
-	"Merge RX buffers");
+        "Merge RX buffers");
 
 
   // Step 1 - Initialize RX/TX queues
   auto success = assign_queue(0, (uint32_t)rx_q.queue_desc());
   CHECK(success, "RX queue assigned (0x%x) to device",
-	(uint32_t)rx_q.queue_desc());
+        (uint32_t)rx_q.queue_desc());
 
   success = assign_queue(1, (uint32_t)tx_q.queue_desc());
   CHECK(success, "TX queue assigned (0x%x) to device",
-	(uint32_t)tx_q.queue_desc());
+        (uint32_t)tx_q.queue_desc());
 
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ)) {
     success = assign_queue(2, (uint32_t)tx_q.queue_desc());
     CHECK(success, "CTRL queue assigned (0x%x) to device",
-	  (uint32_t)ctrl_q.queue_desc());
+          (uint32_t)ctrl_q.queue_desc());
   }
 
   // Step 3 - Fill receive queue with buffers
@@ -137,7 +137,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   get_config();
 
   CHECK(_conf.mac.major > 0, "Valid Mac address: %s",
-	_conf.mac.str().c_str());
+        _conf.mac.str().c_str());
 
 
   // Step 7 - 9 - GSO: @todo Not using GSO features yet.
@@ -167,7 +167,7 @@ int VirtioNet::add_receive_buffer(){
   // Virtio Std. § 5.1.6.3
   auto buf = bufstore_.get_raw_buffer();
 
-  debug2("<VirtioNet> Added receive-bufer @ 0x%lx \n", (uint32_t)buf);
+  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
   hdr = (virtio_net_hdr*)buf;
 
@@ -198,12 +198,9 @@ void VirtioNet::irq_handler(){
   if (isr & 1){
 
     // This now means service RX & TX interchangeably
-    service_RX();
-
     // We need a zipper-solution; we can't receive n packets before sending
     // anything - that's unfair.
-
-    //service_TX();
+    service_queues();
   }
 
   // Step 2. B)
@@ -219,19 +216,22 @@ void VirtioNet::irq_handler(){
 
 }
 
-void VirtioNet::service_RX(){
+void VirtioNet::service_queues(){
   debug2("<RX Queue> %i new packets, %i available tokens \n",
-        rx_q.new_incoming(),rx_q.num_avail());
+	 rx_q.new_incoming(),rx_q.num_avail());
+
 
 
   /** For RX, we dequeue, add new buffers and let receiver is responsible for
       memory management (they know when they're done with the packet.) */
 
-  int i = 0;
+  int dequeued_rx = 0;
   uint32_t len = 0;
   uint8_t* data;
+  int dequeued_tx = 0;
 
   rx_q.disable_interrupts();
+  tx_q.disable_interrupts();
   // A zipper, alternating between sending and receiving
   while(rx_q.new_incoming() or tx_q.new_incoming()){
 
@@ -240,54 +240,85 @@ void VirtioNet::service_RX(){
       data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
 
       auto pckt_ptr = std::make_shared<Packet>
-        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offset)
-	 MTU()-sizeof(virtio_net_hdr), // Capacity
-	 len - sizeof(virtio_net_hdr), release_buffer); // Size
+        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
+         MTU()-sizeof(virtio_net_hdr), // Capacity
+         len - sizeof(virtio_net_hdr), release_buffer); // Size
 
       _link_out(pckt_ptr);
 
       // Requeue a new buffer
       add_receive_buffer();
 
-      i++;
+      dequeued_rx++;
 
     }
-    debug2("<VirtioNet> Service loop about to kick RX if %i \n",i);
-
-    if (i)
-      rx_q.kick();
 
     // Do one TX-packet
     if (tx_q.new_incoming()){
+      debug2("<VirtioNet> Dequeing TX");
       tx_q.dequeue(&len);
+      dequeued_tx++;
     }
 
-    rx_q.enable_interrupts();
   }
 
-  debug2("<VirtioNet> Done servicing queues\n");
+  debug2("<VirtioNet> Service loop about to kick RX if %i \n",
+         dequeued_rx);
+  // Let virtio know we have increased receive capacity
+  if (dequeued_rx)
+    rx_q.kick();
+
+
+  rx_q.enable_interrupts();
+  tx_q.enable_interrupts();
+
+  // If we have a transmit queue, eat from it, otherwise let the stack know we
+  // have increased transmit capacity
+  if (dequeued_tx) {
+
+    debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
+
+    // transmit as much as possible from the buffer
+    if (transmit_queue_){
+      auto buf = transmit_queue_;
+      transmit_queue_ = 0;
+      transmit(buf);
+    }else{
+      debug("<VirtioNet> Transmit queue is empty \n");
+    }
+
+    // If we now emptied the buffer, offer packets to stack
+    if (!transmit_queue_ && tx_q.num_free() > 1)
+      buffer_available_event_(tx_q.num_free() / 2);
+    else
+      debug("<VirtioNet> No event: !transmit q %i, num_avail %i \n",
+            !transmit_queue_, tx_q.num_free());
+  }
+
+  debug("<VirtioNet> Done servicing queues\n");
 }
 
-void VirtioNet::service_TX(){
-  debug2("<TX Queue> %i transmitted, %i waiting packets\n",
-        tx_q.new_incoming(),tx_q.num_avail());
+void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
+  if (transmit_queue_)
+      transmit_queue_->chain(pckt);
+    else
+      transmit_queue_ = pckt;
 
-  uint32_t len = 0;
-  int i = 0;
+#ifdef DEBUG
+  size_t chain_length = 1;
+  Packet_ptr next = transmit_queue_->tail();
+  while (next) {
+    chain_length++;
+    next = next->tail();
+  }
+#endif
 
-  /** For TX, just dequeue all incoming tokens.
+  debug("Buffering, %i packets chained \n", chain_length);
 
-      Sender allocated the buffer and is responsible for memory management.
-      @todo Sender doesn't know when the packet is transmitted; deal with it. */
-  for (;i < tx_q.new_incoming(); i++)
-    tx_q.dequeue(&len);
-
-  debug2("\t Dequeued %i packets \n",i);
-  // Deallocate buffer.
 }
 
 void VirtioNet::transmit(net::Packet_ptr pckt){
-  debug2("<VirtioNet> Enqueuing %lib of data. \n",pckt->len());
+  debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
 
 
   /** @note We have to send a virtio header first, then the packet.
@@ -302,6 +333,36 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
       support VirtualBox
   */
 
+  int transmitted = 0;
+  net::Packet_ptr tail {pckt};
+
+  // Transmit all we can directly
+  while (tx_q.num_free() and tail) {
+    debug("%i tokens left in TX queue \n", tx_q.num_free());
+    enqueue(tail);
+    tail = tail->detach_tail();
+    transmitted++;
+    if (! tail)
+      break;
+
+  }
+
+  // Notify virtio about new packets
+  if (transmitted) {
+    tx_q.kick();
+  }
+
+  // Buffer the rest
+  if (tail) {
+    add_to_tx_buffer(tail);
+
+    debug("Buffering remaining packets \n");
+  }
+
+}
+
+void VirtioNet::enqueue(net::Packet_ptr pckt){
+
   // A scatterlist for virtio-header + data
   scatterlist sg[2];
 
@@ -313,7 +374,5 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(sg, 2, 0, 0);
-
-  tx_q.kick();
 
 }

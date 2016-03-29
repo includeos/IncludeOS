@@ -26,68 +26,72 @@
 
 namespace hw {
 
-/**
- *  A public interface for Network cards
- *
- *  @note: The requirements for a driver is implicitly given by how it's used below,
- *         rather than explicitly by inheritance. This avoids vtables.
- *
- *  @note: Drivers are passed in as template paramter so that only the drivers
- *         we actually need will be added to our project.
- */
-template <typename DRIVER>
-class Nic {
-public:
-  using driver_t = DRIVER;
-
-  /** Get a readable name. */
-  inline const char* name() const noexcept
-  { return driver_.name(); }
-
-  /** The mac address. */
-  inline const net::Ethernet::addr& mac()
-  { return driver_.mac(); }
-  
-  inline void set_linklayer_out(net::upstream del)
-  { driver_.set_linklayer_out(del); }
-  
-  inline net::upstream get_linklayer_out()
-  { return driver_.get_linklayer_out(); }
-  
-  inline void transmit(net::Packet_ptr pckt)
-  { driver_.transmit(pckt); }
-  
-  inline uint16_t MTU() const noexcept
-  { return driver_.MTU(); }
-  
-  inline net::BufferStore& bufstore() noexcept
-  { return driver_.bufstore(); }
-  
-private:
-  driver_t driver_;
-  
   /**
-   *  Constructor
+   *  A public interface for Network cards
    *
-   *  Just a wrapper around the driver constructor.
+   *  @note: The requirements for a driver is implicitly given by how it's used below,
+   *         rather than explicitly by inheritance. This avoids vtables.
    *
-   *  @note: The Dev-class is a friend and will call this
+   *  @note: Drivers are passed in as template paramter so that only the drivers
+   *         we actually need will be added to our project.
    */
-  Nic(PCI_Device& d) : driver_{d} {}
+  template <typename DRIVER>
+  class Nic {
+  public:
+    using driver_t = DRIVER;
 
-  friend class Dev;
-};
+    /** Get a readable name. */
+    inline const char* name() const noexcept
+    { return driver_.name(); }
 
-/** Future drivers may start out like so, */
-class E1000 {
-public: 
-  inline const char* name() const noexcept
-  { return "E1000 Driver"; }
-  //...whatever the Nic class implicitly needs
-};
 
-/** Hopefully somebody will port a driver for this one */
-class RTL8139;
+    /** The mac address. */
+    inline const net::Ethernet::addr& mac()
+    { return driver_.mac(); }
+
+    inline void set_linklayer_out(net::upstream del)
+    { driver_.set_linklayer_out(del); }
+
+    inline net::upstream get_linklayer_out()
+    { return driver_.get_linklayer_out(); }
+
+    inline void transmit(net::Packet_ptr pckt)
+    { driver_.transmit(pckt); }
+
+    inline uint16_t MTU() const noexcept
+    { return driver_.MTU(); }
+
+    inline net::BufferStore& bufstore() noexcept
+    { return driver_.bufstore(); }
+
+    inline void on_buffers_available(net::buf_avail_delg del)
+    { driver_.on_buffers_available(del); };
+
+  private:
+    driver_t driver_;
+
+    /**
+     *  Constructor
+     *
+     *  Just a wrapper around the driver constructor.
+     *
+     *  @note: The Dev-class is a friend and will call this
+     */
+    Nic(PCI_Device& d) : driver_{d} {}
+
+    friend class Dev;
+  };
+
+  /** Future drivers may start out like so, */
+  class E1000 {
+  public:
+    inline const char* name() const noexcept
+    { return "E1000 Driver"; }
+    //...whatever the Nic class implicitly needs
+  };
+
+  /** Hopefully somebody will port a driver for this one */
+  class RTL8139;
 
 } //< namespace hw
 

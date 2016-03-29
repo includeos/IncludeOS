@@ -1,0 +1,89 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//#define DEBUG // Debug supression
+
+#include <os>
+#include <list>
+#include <net/inet4>
+#include <vector>
+
+using namespace std;
+using namespace net;
+
+std::shared_ptr<net::Inet4<VirtioNet> > inet;
+
+void Service::start()
+{
+  // Assign an IP-address, using Hårek-mapping :-)
+  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
+  auto& mac = eth0.mac();
+
+  inet = std::make_shared<net::Inet4<VirtioNet>>(eth0);
+
+  inet->network_config({{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
+                       {{ 255,255,0,0 }}, // Netmask
+                       {{ 10,0,0,1 }}, // Gateway
+                       {{ 8,8,8,8}});  // DNS
+
+  printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
+
+  // UDP
+  UDP::port_t port = 4242;
+  auto& sock = inet->udp().bind(port);
+
+  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
+                  const char* data, int len) -> int {
+                CHECK(1, "Got  UDP data from %s: %i: %s",
+                      addr.str().c_str(), port, data);
+                // send the same thing right back!
+                const int packets { 600 };
+
+                INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
+                for (int i = 0; i < packets; i++)
+                  conn.sendto(addr, port, data, len);
+
+
+
+
+                return 0;
+              });
+
+  eth0.on_buffers_available([](size_t s){
+      CHECK(1,"There are now %i available buffers", s);
+    });
+
+
+  hw::PIT::instance().onTimeout(200ms,[=](){
+      const int packets { 600 };
+      INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
+      for (int i=0; i < packets; i++){
+        auto pckt = inet->createPacket(inet->MTU());
+        Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
+        hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
+        hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
+        hdr->type = Ethernet::ETH_ARP;
+        inet->link().transmit(pckt);
+      }
+
+      CHECK(1,"Transmission didn't panic");
+
+
+    });
+
+
+}
