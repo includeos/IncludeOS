@@ -627,7 +627,9 @@ public:
       OnRead callback;
 
       ReadRequest(ReadBuffer buf, OnRead cb) : buffer(buf), callback(cb) {}
-      ReadRequest() : buffer({std::make_shared<uint8_t>(1024), 1024}), callback([](auto, auto&, bool){}) {}
+      ReadRequest(size_t n = 0) :
+        buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
+        callback([](auto, auto&, bool){}) {}
     };
     //using ReadRequest = std::pair<ReadBuffer, OnRead>;
 
@@ -911,7 +913,7 @@ public:
     }
 
     inline void read(size_t n, OnRead callback) {
-      ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t>()), n};
+      ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
       read(buffer, callback);
     }
 
