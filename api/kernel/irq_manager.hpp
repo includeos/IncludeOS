@@ -23,23 +23,6 @@
 #include "os.hpp"
 #include "../hw/pic.hpp"
 
-//  IDT Type flags
-
-// Bits 0-3, "type" (VALUES)
-const char TRAP_GATE {0xf};
-const char TASK_GATE {0x5};
-const char INT_GATE  {0xe};
-
-// Bit 4, "Storage segment" (BIT NUMBER)
-const char BIT_STOR_SEG {0x10}; //=0 for trap gates
-
-//Bits 5-6, "Protection level" (BIT NUMBER)
-const char BIT_DPL1 {0x20};
-const char BIT_DPL2 {0x40};
-
-//Bit 7, "Present" (BIT NUMBER)
-const char BIT_PRESENT {static_cast<char>(0x80)};
-
 // From osdev
 struct IDTDescr {
   uint16_t offset_1;  // offset bits 0..15
@@ -77,17 +60,16 @@ extern "C" {
 
     * IRQ-numbering: 0 or 32?
 
-
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
-
-
  */
 class IRQ_manager {
 public:
   using irq_delegate = delegate<void()>;
 
-  static const uint8_t irq_base = 32;
-  
+  static constexpr uint8_t irq_base = 32;
+  static constexpr uint8_t irq_lines = 64;
+
+
   /**
    *  Enable an IRQ line
    *
@@ -154,14 +136,14 @@ public:
     irq_pending_ |=  (1 << i);
     __sync_fetch_and_add(&irq_counters_[i],1);
     debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
-	  irq_pending_, irq_counters_[i]);
+          irq_pending_, irq_counters_[i]);
   }
-  
-  
+
+
 private:
   static unsigned int   irq_mask;
   static int            timer_interrupts;
-  static IDTDescr       idt[256];
+  static IDTDescr       idt[irq_lines];
   static const char     default_attr {static_cast<char>(0x8e)};
   static const uint16_t default_sel  {0x8};
   static bool           idt_is_set;
@@ -200,7 +182,7 @@ private:
 
   /** Notify all delegates waiting for interrupts */
   static void notify();
-  
+
 }; //< IRQ_manager
 
 #endif //< KERNEL_IRQ_MANAGER_HPP

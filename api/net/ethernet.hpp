@@ -25,143 +25,143 @@
 
 namespace net {
 
-/** Ethernet packet handling. */
-class Ethernet {
-public:
-  static constexpr size_t ETHER_ADDR_LEN  = 6;
-  static constexpr size_t MINIMUM_PAYLOAD = 46;
+  /** Ethernet packet handling. */
+  class Ethernet {
+  public:
+    static constexpr size_t ETHER_ADDR_LEN  = 6;
+    static constexpr size_t MINIMUM_PAYLOAD = 46;
 
-  /**
-   *  Some big-endian ethernet types
-   * 
-   *  From http://en.wikipedia.org/wiki/EtherType
-   */
-  enum ethertype_le {
-    _ETH_IP4   = 0x0800,
-    _ETH_ARP   = 0x0806, 
-    _ETH_WOL   = 0x0842,
-    _ETH_IP6   = 0x86DD, 
-    _ETH_FLOW  = 0x8808,
-    _ETH_JUMBO = 0x8870
-  };
+    /**
+     *  Some big-endian ethernet types
+     * 
+     *  From http://en.wikipedia.org/wiki/EtherType
+     */
+    enum ethertype_le {
+      _ETH_IP4   = 0x0800,
+      _ETH_ARP   = 0x0806, 
+      _ETH_WOL   = 0x0842,
+      _ETH_IP6   = 0x86DD, 
+      _ETH_FLOW  = 0x8808,
+      _ETH_JUMBO = 0x8870
+    };
 
-  /** Little-endian ethertypes. */
-  enum ethertype {
-    ETH_IP4   = 0x8,
-    ETH_ARP   = 0x608,
-    ETH_WOL   = 0x4208,
-    ETH_IP6   = 0xdd86,
-    ETH_FLOW  = 0x888,
-    ETH_JUMBO = 0x7088,
-    ETH_VLAN  = 0x81
-  };
+    /** Little-endian ethertypes. */
+    enum ethertype {
+      ETH_IP4   = 0x8,
+      ETH_ARP   = 0x608,
+      ETH_WOL   = 0x4208,
+      ETH_IP6   = 0xdd86,
+      ETH_FLOW  = 0x888,
+      ETH_JUMBO = 0x7088,
+      ETH_VLAN  = 0x81
+    };
 
-  // MAC address
-  union addr {
-    uint8_t part[ETHER_ADDR_LEN];
+    // MAC address
+    union addr {
+      uint8_t part[ETHER_ADDR_LEN];
     
-    struct {
-      uint16_t minor;
-      uint32_t major;
-    } __attribute__((packed));
+      struct {
+	uint16_t minor;
+	uint32_t major;
+      } __attribute__((packed));
     
-    addr& operator=(const addr cpy) noexcept {
-      minor = cpy.minor;
-      major = cpy.major;
-      return *this;
-    }
+      addr& operator=(const addr cpy) noexcept {
+	minor = cpy.minor;
+	major = cpy.major;
+	return *this;
+      }
     
-    // hex string representation
-    std::string str() const {
-      char eth_addr[17];
-      sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
-              part[0], part[1], part[2],
-              part[3], part[4], part[5]);
-      return eth_addr;
-    }
+      // hex string representation
+      std::string str() const {
+	char eth_addr[17];
+	sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
+		part[0], part[1], part[2],
+		part[3], part[4], part[5]);
+	return eth_addr;
+      }
     
-    /** Check for equality */
-    bool operator==(const addr mac) const noexcept
-    {
-      return strncmp(
-          reinterpret_cast<const char*>(part), 
-          reinterpret_cast<const char*>(mac.part), 
-          ETHER_ADDR_LEN) == 0;
-    }
+      /** Check for equality */
+      bool operator==(const addr mac) const noexcept
+      {
+	return strncmp(
+		       reinterpret_cast<const char*>(part), 
+		       reinterpret_cast<const char*>(mac.part), 
+		       ETHER_ADDR_LEN) == 0;
+      }
     
-    static const addr MULTICAST_FRAME;
-    static const addr BROADCAST_FRAME;
+      static const addr MULTICAST_FRAME;
+      static const addr BROADCAST_FRAME;
     
-    static const addr IPv6mcast_01;
-    static const addr IPv6mcast_02;
+      static const addr IPv6mcast_01;
+      static const addr IPv6mcast_02;
     
-  }  __attribute__((packed)); //< union addr
+    }  __attribute__((packed)); //< union addr
   
-  /** Constructor */
-  explicit Ethernet(addr mac) noexcept;
+    /** Constructor */
+    explicit Ethernet(addr mac) noexcept;
   
-  struct header {
-    addr dest;
-    addr src;
-    unsigned short type;
+    struct header {
+      addr dest;
+      addr src;
+      unsigned short type;
     
-  } __attribute__((packed)) ;
+    } __attribute__((packed)) ;
   
-  /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-  void bottom(Packet_ptr);
+    /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
+    void bottom(Packet_ptr);
   
-  /** Delegate upstream ARP handler. */
-  void set_arp_handler(upstream del)
-  { arp_handler_ = del; }
+    /** Delegate upstream ARP handler. */
+    void set_arp_handler(upstream del)
+    { arp_handler_ = del; }
   
-  upstream get_arp_handler()
-  { return arp_handler_; }
+    upstream get_arp_handler()
+    { return arp_handler_; }
   
-  /** Delegate upstream IPv4 handler. */
-  void set_ip4_handler(upstream del)
-  { ip4_handler_ = del; }
+    /** Delegate upstream IPv4 handler. */
+    void set_ip4_handler(upstream del)
+    { ip4_handler_ = del; }
   
-  /** Delegate upstream IPv4 handler. */
-  upstream get_ip4_handler()
-  { return ip4_handler_; }
+    /** Delegate upstream IPv4 handler. */
+    upstream get_ip4_handler()
+    { return ip4_handler_; }
   
-  /** Delegate upstream IPv6 handler. */
-  void set_ip6_handler(upstream del)
-  { ip6_handler_ = del; };  
+    /** Delegate upstream IPv6 handler. */
+    void set_ip6_handler(upstream del)
+    { ip6_handler_ = del; };  
   
-  /** Delegate downstream */
-  void set_physical_out(downstream del)
-  { physical_out_ = del; }
+    /** Delegate downstream */
+    void set_physical_out(downstream del)
+    { physical_out_ = del; }
   
-  /** @return Mac address of the underlying device */
-  const addr mac() const noexcept
-  { return mac_; }
+    /** @return Mac address of the underlying device */
+    const addr mac() const noexcept
+    { return mac_; }
   
-  /** Transmit data, with preallocated space for eth.header */
-  void transmit(Packet_ptr);
+    /** Transmit data, with preallocated space for eth.header */
+    void transmit(Packet_ptr);
 
-private:
-  /** MAC address */
-  addr mac_;
+  private:
+    /** MAC address */
+    addr mac_;
 
-  /** Upstream OUTPUT connections */
-  upstream ip4_handler_ = [](Packet_ptr){};
-  upstream ip6_handler_ = [](Packet_ptr){};
-  upstream arp_handler_ = [](Packet_ptr){};
+    /** Upstream OUTPUT connections */
+    upstream ip4_handler_ = [](Packet_ptr){};
+    upstream ip6_handler_ = [](Packet_ptr){};
+    upstream arp_handler_ = [](Packet_ptr){};
   
-  /** Downstream OUTPUT connection */
-  downstream physical_out_ = [](Packet_ptr){};
+    /** Downstream OUTPUT connection */
+    downstream physical_out_ = [](Packet_ptr){};
 
-  /*
+    /*
   
-    +--|IP4|---|ARP|---|IP6|---+
-    |                          |
-    |        Ethernet          |
-    |                          |
-    +---------|Phys|-----------+
+      +--|IP4|---|ARP|---|IP6|---+
+      |                          |
+      |        Ethernet          |
+      |                          |
+      +---------|Phys|-----------+
   
-  */
-}; //< class Ethernet
+    */
+  }; //< class Ethernet
 } // namespace net
 
 #endif //< NET_ETHERNET_HPP

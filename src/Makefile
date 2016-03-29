@@ -12,7 +12,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -msse3
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
+CAPABS = $(CAPABS_COMMON) -O2 #-DNO_DEBUG=1
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
@@ -96,6 +96,9 @@ all: bootloader libc++abi.a os.a
 #stripped: LDOPTS += -s #strip all
 stripped: CAPABS += -Oz
 stripped: all test
+
+production: CAPABS += -DNO_DEBUG=1
+production: all test
 
 # The same, but with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)

@@ -28,7 +28,7 @@
 
 
 unsigned int IRQ_manager::irq_mask  {0xFFFB};
-IDTDescr     IRQ_manager::idt[256]  {};
+IDTDescr     IRQ_manager::idt[irq_lines]  {};
 bool IRQ_manager::idt_is_set        {false};
 
 irq_bitfield IRQ_manager::irq_pending_ {0};
@@ -142,8 +142,6 @@ uint32_t IRQ_manager::irq_counters_[32] {0};
 */
 extern "C"{
   void _irq_20_entry(int i);
-  //Array of custom IRQ-handlers
-  void (*custom_handlers[256])();
 
   void irq_default_handler();
   void irq_default_entry();
@@ -186,7 +184,7 @@ void IRQ_manager::init()
 
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
-  idt_reg.limit = (256*sizeof(IDTDescr))-1;
+  idt_reg.limit = (irq_lines*sizeof(IDTDescr))-1;
   idt_reg.base = (uint32_t)idt;
 
   INFO("IRQ manager", "Creating interrupt handlers");
@@ -201,6 +199,7 @@ void IRQ_manager::init()
   REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
   // GATES 21-29 are reserved
   REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
+  INFO2("+ Exception gates set for irq < 32");
 
   //Redirected IRQ 0 - 15
   REG_DEFAULT_IRQ(0) REG_DEFAULT_IRQ(1) REG_DEFAULT_IRQ(3)
@@ -209,15 +208,11 @@ void IRQ_manager::init()
   REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
   REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
-  // Default gates for "real IRQ lines", 32-64
-  INFO2("+ Exception gates set for irq < 32");
-
-  //Set all irq-gates (>= 44) to the default handler
-  for(int i=48;i<256;i++){
+  //Set all irq-gates (> 47) to the default handler
+  for(int i=48;i<irq_lines;i++){
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
   INFO2("+ Default interrupt gates set for irq >= 32");
-
 
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
@@ -227,9 +222,6 @@ void IRQ_manager::init()
 
   enable_irq(2); //Slave PIC irq
   enable_interrupts();
-
-  //Test zero-division exception
-  //int i=0; float x=1/i;  printf("ERROR: 1/0 == %f \n",x);
 }
 
 // A union to be able to extract the lower and upper part of an address
@@ -319,7 +311,7 @@ void IRQ_manager::notify() {
   int          irq  {0};
 
   while (todo) {
-    
+
     // Select the first IRQ to notify - the least significant bit set
     // - lowesr bit/IRQ, means higher priority
     irq = __builtin_ffs(todo) - 1;
@@ -346,7 +338,7 @@ void IRQ_manager::notify() {
   }
 
   //hlt
-  debug("<IRQ notify> Done. OS going to sleep.\n");
+  debug2("<IRQ notify> Done. OS going to sleep.\n");
   //__asm__("sti");
   __asm__ volatile("hlt;");
 }

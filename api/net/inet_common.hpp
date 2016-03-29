@@ -23,27 +23,27 @@
 #include <delegate>
 
 namespace net {
-// Packet must be forward declared to avoid circular dependency
-// i.e. IP uses Packet, and Packet uses IP headers
-class Packet;
-class Ethernet;
+  // Packet must be forward declared to avoid circular dependency
+  // i.e. IP uses Packet, and Packet uses IP headers
+  class Packet;
+  class Ethernet;
 
-using LinkLayer = Ethernet;
+  using LinkLayer = Ethernet;
 
-using Packet_ptr = std::shared_ptr<Packet>;
+  using Packet_ptr = std::shared_ptr<Packet>;
 
-// Downstream / upstream delegates
-using downstream = delegate<void(Packet_ptr)>;
-using upstream = downstream;
+  // Downstream / upstream delegates
+  using downstream = delegate<void(Packet_ptr)>;
+  using upstream = downstream;
 
-// Compute the internet checksum for the buffer / buffer part provided
-uint16_t checksum(void* data, size_t len) noexcept;
+  // Compute the internet checksum for the buffer / buffer part provided
+  uint16_t checksum(void* data, size_t len) noexcept;
 
-// View a packet differently based on context
-template <typename T, typename Packet>
-inline auto view_packet_as(Packet packet) noexcept {
-	return std::static_pointer_cast<T>(packet);
-}
+  // View a packet differently based on context
+  template <typename T, typename Packet>
+  inline auto view_packet_as(Packet packet) noexcept {
+    return std::static_pointer_cast<T>(packet);
+  }
 
 } //< namespace net
 
