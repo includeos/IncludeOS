@@ -208,55 +208,7 @@ namespace fs
   
   void FAT::readFile(const Dirent& ent, on_read_func callback)
   {
-    // cluster -> sector
-    uint32_t sector = this->cl_to_sector(ent.block);
-    // number of sectors to read ahead
-    size_t chunks = ent.size / sector_size + 1;
-    // allocate buffer
-    auto* buffer = new uint8_t[chunks * sector_size];
-    // at which sector we will stop
-    size_t total   = chunks;
-    size_t current = 0;
-    
-    typedef std::function<void(uint32_t, size_t, size_t)> next_func_t;
-    auto next = std::make_shared<next_func_t> ();
-    
-    *next = 
-    [this, buffer, ent, callback, next] (uint32_t sector, size_t current, size_t total)
-    {
-      if (unlikely(current == total))
-      {
-        // report back to HQ
-        debug("DONE SIZE: %lu  (current=%lu, total=%lu)\n", 
-            ent.size, current, total);
-        // create shared buffer
-        auto buffer_ptr = buffer_t(buffer, std::default_delete<uint8_t[]>());
-        // notify caller
-        callback(no_error, buffer_ptr, ent.size);
-        return;
-      }
-      device.read(sector,
-      [this, current, total, buffer, ent, &callback, sector, next] (buffer_t data)
-      {
-        if (!data)
-        {
-          // general I/O error occurred
-          debug("Failed to read sector %u for read()", sector);
-          // cleanup
-          delete[] buffer;
-          callback(true, buffer_t(), 0);
-          return;
-        }
-        
-        // copy over data
-        memcpy(buffer + current * sector_size, data.get(), sector_size);
-        // continue reading next sector
-        (*next)(sector+1, current+1, total);
-      });
-    };
-    
-    // start!
-    (*next)(sector, current, total);
+    read(ent, 0, ent.size, callback);
   }
   
   void FAT::readFile(const std::string& strpath, on_read_func callback)
@@ -279,7 +231,7 @@ namespace fs
       if (unlikely(error))
       {
         // no path, no file!
-        callback(error, nullptr, 0);
+        callback(error, buffer_t(), 0);
         return;
       }
       
