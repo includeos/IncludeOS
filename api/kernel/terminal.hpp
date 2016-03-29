@@ -28,6 +28,10 @@ namespace fs
 {
   class Disk;
 }
+namespace hw
+{
+  class Serial;
+}
 
 struct Command
 {
@@ -57,15 +61,10 @@ public:
     CR   = 13
   };
   
-  using on_read_func  = std::function<void(std::string)>;
   using on_write_func = std::function<void(const char*, size_t)>;
   
   Terminal(Connection_ptr);
-  
-  void set_on_read(on_read_func callback)
-  {
-    on_read = callback;
-  }
+  Terminal(hw::Serial& serial);
   
   template <typename... Args>
   void add(const std::string& command, 
@@ -91,6 +90,8 @@ public:
   void add_disk_commands(Disk_ptr disk);
   
 private:
+  Terminal();
+  
   void command(uint8_t cmd);
   void option(uint8_t option, uint8_t cmd);
   void read(const char* buf, size_t len);
@@ -99,7 +100,6 @@ private:
   void intro();
   void prompt();
   
-  on_read_func  on_read;
   on_write_func on_write;
   
   bool    iac;

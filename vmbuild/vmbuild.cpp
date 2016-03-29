@@ -45,13 +45,14 @@ int main(int argc, char** argv) {
   // Verify proper command usage
   if (argc < 3) {
     cout << info << usage;
-    exit(0x00);
+    exit(EXIT_FAILURE);
   }
   
   const string bootloc {argv[1]};
   const string srvloc  {argv[2]};
   
-  const int extra_sectors {1}; //< Fixes missing Magic Signature :bug:
+  // Fixes missing Magic Signature :bug:
+  const int extra_sectors = 2;
   
   const string img_name {srvloc.substr(srvloc.find_last_of("/") + 1, string::npos) + ".img"};
 
