@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,6 +35,9 @@ namespace net {
   // Downstream / upstream delegates
   using downstream = delegate<void(Packet_ptr)>;
   using upstream = downstream;
+
+  // Delegate for signalling available buffers
+  using buf_avail_delg = delegate<void(size_t count)>;
 
   // Compute the internet checksum for the buffer / buffer part provided
   uint16_t checksum(void* data, size_t len) noexcept;
