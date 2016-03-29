@@ -1,27 +1,16 @@
-#define DEBUG
+//#define DEBUG
 #include <fs/fat.hpp>
 
 #include <cassert>
-#include <fs/mbr.hpp>
 #include <fs/path.hpp>
 #include <debug>
 
 #include <cstring>
 #include <memory>
 #include <locale>
-#include <kernel/syscalls.hpp> // for panic()
-
-#include <info>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
-
-inline std::string trim_right_copy(
-  const std::string& s,
-  const std::string& delimiters = " \f\n\r\t\v" )
-{
-  return s.substr( 0, s.find_last_not_of( delimiters ) + 1 );
-}
 
 namespace fs
 {
