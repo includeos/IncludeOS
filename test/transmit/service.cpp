@@ -48,35 +48,35 @@ void Service::start()
 
   sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
                   const char* data, int len) -> int {
-                CHECK(1, "Got  UDP data from %s: %i: %s",
-                      addr.str().c_str(), port, data);
+                INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: %s",
+                     addr.str().c_str(), port, data);
                 // send the same thing right back!
                 const int packets { 600 };
 
-                INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
+                INFO("TEST 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
                 for (int i = 0; i < packets; i++)
                   conn.sendto(addr, port, data, len);
-
-
-
-
                 return 0;
               });
 
-  eth0.on_buffers_available([](size_t s){
+  eth0.on_transmit_queue_available([](size_t s){
       CHECK(1,"There are now %i available buffers", s);
     });
 
 
   hw::PIT::instance().onTimeout(200ms,[=](){
       const int packets { 600 };
-      INFO("TEST 2", "Trying to transmit %i packets at maximum throttle", packets);
+      INFO("TEST 1", "Trying to transmit %i ethernet packets at maximum throttle", packets);
       for (int i=0; i < packets; i++){
         auto pckt = inet->createPacket(inet->MTU());
         Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
         hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
         hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
         hdr->type = Ethernet::ETH_ARP;
+        printf("\t Transmit Queue available: %i \n",
+               inet->transmit_queue_available());
+        printf("\t Bufstore available: %i \n",
+               inet->buffers_available());
         inet->link().transmit(pckt);
       }
 

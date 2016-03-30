@@ -289,7 +289,7 @@ void VirtioNet::service_queues(){
 
     // If we now emptied the buffer, offer packets to stack
     if (!transmit_queue_ && tx_q.num_free() > 1)
-      buffer_available_event_(tx_q.num_free() / 2);
+      transmit_queue_available_event_(tx_q.num_free() / 2);
     else
       debug("<VirtioNet> No event: !transmit q %i, num_avail %i \n",
             !transmit_queue_, tx_q.num_free());

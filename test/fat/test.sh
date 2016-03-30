@@ -1,6 +1,6 @@
 #!/bin/bash
 source ../test_base
-mkdir tmpdisk
+mkdir -p tmpdisk
 
 ### FAT16 TEST ###
 rm -f my.disk
@@ -19,7 +19,7 @@ rm -f memdisk.o my.disk
 ### FAT16 TEST ###
 fallocate -l 2147483648 my.disk
 mkfs.fat my.disk
-mkdir tmpdisk
+mkdir -p tmpdisk
 sudo mount my.disk tmpdisk/
 sudo cp banana.txt tmpdisk/
 sudo mkdir -p tmpdisk/dir1/dir2/dir3/dir4/dir5/dir6

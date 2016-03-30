@@ -12,7 +12,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -msse3
-CAPABS = $(CAPABS_COMMON) -O2 #-DNO_DEBUG=1
+CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
@@ -21,7 +21,7 @@ DEBUG_OPTS = -ggdb3
 ###################################################
 LIBC_OBJ = $(INSTALL)/newlib/libc.a
 LIBG_OBJ = $(INSTALL)/newlib/libg.a
-LIBM_OBJ = $(INSTALL)/newlib/libm.a 
+LIBM_OBJ = $(INSTALL)/newlib/libm.a
 
 LIBGCC = $(INSTALL)/libgcc/libgcc.a
 LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
@@ -48,10 +48,10 @@ CPPOPTS = -target i686-elf
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES) 
-CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\"" 
+CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES)
+CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
 
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto 
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 
 # Objects
 ###################################################
@@ -74,7 +74,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_sync.o fs/memdisk.o
+		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -90,22 +90,32 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # - a bootloader
 # - an OS library for the service to link against
 
-all: bootloader libc++abi.a os.a 
+all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
 stripped: CAPABS += -Oz
 stripped: all test
 
-production: CAPABS += -DNO_DEBUG=1
-production: all test
+# Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
+debug-info: CAPABS += -UNO_DEBUG
+debug-info: all test
 
-# The same, but with debugging symbols (OBS: Dramatically increases binary size)
+# Build with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: CAPABS += -O0 -UNO_DEBUG
+debug: CAPABS += -O0
 debug: all test
+
+# Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
+debug-all: CAPABS += -UNO_DEBUG
+debug-all: CCOPTS  += $(DEBUG_OPTS)
+debug-all: CPPOPTS += $(DEBUG_OPTS)
+debug-all: OBJ_LIST += $(LIBG_OBJ)
+debug-all: CAPABS += -O0
+debug-all: all test
+
 
 silent: CPPOPTS += -DNO_INFO=1
 silent: all test
@@ -174,11 +184,11 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 # Makefile recipes
 ###################################################
 %.o: %.c
-	$(CC) -MMD $(CCOPTS) -o $@ $< 
+	$(CC) -MMD $(CCOPTS) -o $@ $<
 
-%.o: %.cpp 
+%.o: %.cpp
 	@echo "\n"
-	$(CPP) -MMD $(CPPOPTS) -o $@ $< 
+	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s

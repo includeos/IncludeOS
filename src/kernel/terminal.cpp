@@ -22,8 +22,14 @@
 #include <serial>
 #include <cstdio>
 
-Terminal::Terminal(Connection_ptr csock)
+Terminal::Terminal()
   : iac(false), newline(false), subcmd(0)
+{
+  add_basic_commands();
+}
+
+Terminal::Terminal(Connection_ptr csock)
+  : Terminal()
 {
   csock->read(1024, [this](auto, auto& buffer, bool){
     this->read((char*)buffer.begin(), buffer.size());
@@ -47,8 +53,40 @@ Terminal::Terminal(Connection_ptr csock)
   [csock] {
     csock->close();
   };
+  // after setting up everything, show introduction
+  intro();
+}
 
-  add_basic_commands();
+Terminal::Terminal(hw::Serial& serial)
+  : Terminal()
+{
+  serial.on_data(
+  [this, &serial] (char c)
+  {
+    this->read(&c, 1);
+    if (c == CR)
+    {
+      c = LF;
+      this->read(&c, 1);
+    }
+    else
+    {
+      serial.write(c);
+    }
+  });
+
+  on_write =
+  [&serial] (const char* buffer, size_t len)
+  {
+    for (size_t i = 0; i < len; i++)
+      serial.write(buffer[i]);
+  };
+
+  on_exit =
+  [] {
+    // do nothing
+  };
+  // after setting up everything, show introduction
   intro();
 }
 

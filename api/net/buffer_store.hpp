@@ -77,6 +77,10 @@ public:
   /** Check if an address is the start of a buffer */
   inline bool address_is_offset_bufstart(buffer_t addr)
   { return (addr - pool_ - device_offset_) % bufsize_ == 0; }
+
+  inline size_t buffers_available()
+  { return available_buffers_.size(); }
+
 private:
   size_t               bufcount_;
   const size_t         bufsize_;

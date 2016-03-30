@@ -26,6 +26,7 @@ using namespace std::chrono;
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+#include <serial>
 std::unique_ptr<Terminal> term;
 
 void Service::start()
@@ -76,23 +77,17 @@ void Service::start()
   });*/
   
   /// terminal ///
-  #define SERVICE_TELNET    23
-  auto& tcp = inet->tcp();
-  auto& server = tcp.bind(SERVICE_TELNET);
-  server.onConnect(
-  [] (auto client)
-  {
-    // create terminal with open TCP connection
-    term = std::make_unique<Terminal> (client);
-    // add 'ifconfig' command
-    term->add(
-      "ifconfig", "Show information about interfaces",
-      [client] (const std::vector<std::string>&) -> int
-      {
-        term->write("%s\r\n", inet->tcp().status().c_str());
-        return 0;
-      });
-  });
+  auto& serial = hw::Serial::port<1> ();
+  // create terminal with open TCP connection
+  term = std::make_unique<Terminal> (serial);
+  // add 'ifconfig' command
+  term->add(
+    "ifconfig", "Show information about interfaces",
+    [] (const std::vector<std::string>&) -> int
+    {
+      term->write("%s\r\n", inet->tcp().status().c_str());
+      return 0;
+    });
   /// terminal ///
   
   printf("*** TEST SERVICE STARTED *** \n");

@@ -120,7 +120,10 @@ public:
   const net::Ethernet::addr& mac();
 
   constexpr uint16_t MTU() const {
-    return 1500 + sizeof(virtio_net_hdr); }
+    return 1500; }
+
+  constexpr uint16_t bufsize() const {
+    return MTU() + sizeof(virtio_net_hdr); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
@@ -139,9 +142,13 @@ public:
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(hw::PCI_Device& pcidev);
 
+  inline void on_transmit_queue_available(net::transmit_avail_delg del)
+  { transmit_queue_available_event_ = del; };
 
-  inline void on_buffers_available(net::buf_avail_delg del)
-  { buffer_available_event_ = del; };
+  /** Space available in the transmit queue, in packets */
+  inline size_t transmit_queue_available(){
+    return tx_q.num_free() / 2;
+  };
 
 private:
 
@@ -219,12 +226,12 @@ private:
   net::upstream _link_out;
 
   /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffffU / MTU(),  MTU(), sizeof(virtio_net_hdr) };
+  net::BufferStore bufstore_{ 0xfffffU / bufsize(),  bufsize(), sizeof(virtio_net_hdr) };
   net::BufferStore::release_del release_buffer =
     net::BufferStore::release_del::from
     <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
 
-  net::buf_avail_delg buffer_available_event_ {};
+  net::transmit_avail_delg transmit_queue_available_event_ {};
 
   net::Packet_ptr transmit_queue_ {0};
 
