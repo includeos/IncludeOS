@@ -30,7 +30,7 @@ TCP::TCP(IPStack& inet) :
   write_queue(),
 	MAX_SEG_LIFETIME(30s)
 {
-
+  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_write_queue>(this));
 }
 
 /*
@@ -198,8 +198,7 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
   size_t written{0};
 
   if(write_queue.empty()) {
-    //auto packets = inet_->free_packets();
-    size_t packets = 10;
+    auto packets = inet_.transmit_queue_available();
     written = conn->send(buffer, packets);
   }
 
