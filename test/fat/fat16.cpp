@@ -89,6 +89,23 @@ void Service::start()
     printf("%s\n", internal_banana.c_str());
     CHECKSERT(banana == internal_banana, "Correct banana #1");
     
+    bool test = true;
+    
+    for (size_t i = 0; i < internal_banana.size(); i++)
+    {
+      // read one byte at a time
+      buf = fs.read(ent, i, 1);
+      
+      // verify that it matches the same location in test-string
+      test = ((char) buf.buffer.get()[0] == internal_banana[i]);
+      if (!test)
+      {
+        printf("!! Random access read test failed on i = %u\n", i);
+        break;
+      }
+    }
+    CHECKSERT(test, "Validate random access sync read");
+    
     buf = fs.readFile("/banana.txt");
     banana = std::string((char*) buf.buffer.get(), buf.len);
     CHECKSERT(banana == internal_banana, "Correct banana #2");
