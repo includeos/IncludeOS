@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_crt
+SERVICE = test_crt
 SERVICE_NAME = C runtime test
 
 # Your service parts
