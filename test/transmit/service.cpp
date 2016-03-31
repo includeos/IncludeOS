@@ -34,6 +34,7 @@ void Service::start()
   auto& mac = eth0.mac();
 
   inet = std::make_shared<net::Inet4<VirtioNet>>(eth0);
+  auto& timer = hw::PIT::instance();
 
   inet->network_config({{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
                        {{ 255,255,0,0 }}, // Netmask
@@ -46,41 +47,61 @@ void Service::start()
   UDP::port_t port = 4242;
   auto& sock = inet->udp().bind(port);
 
-  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
+  sock.onRead([&] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
                   const char* data, int len) -> int {
-                INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: %s",
-                     addr.str().c_str(), port, data);
-                // send the same thing right back!
+                string received = std::string(data,len-1);
+                INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: '%s')",
+                     addr.str().c_str(), port, received.c_str());
+
                 const int packets { 600 };
 
-                INFO("TEST 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
-                for (int i = 0; i < packets; i++)
-                  conn.sendto(addr, port, data, len);
+                string first_reply {string("Received '") + received +
+                    "'. Expect " + to_string(packets) + " packets in 1s\n" };
+
+                // Send the first packet, and then wait for ARP
+                conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
+
+                timer.onTimeout(1s, [&conn, addr, port, data, len]() {
+                    INFO("Test 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
+                    auto bufcount = inet->buffers_available();
+
+                    for (int i = 0; i < packets; i++)
+                      conn.sendto(addr, port, data, len);
+
+                    CHECK(1,"UDP-transmission didn't panic");
+                    auto bufcount2 = inet->buffers_available();
+
+                    CHECKSERT(bufcount2 < bufcount,
+                              "%i buffers available after transmission (Had %i). ",
+                              bufcount2, bufcount);
+
+                    INFO("Transmision tests","SUCCESS");
+                  });
+
                 return 0;
+
               });
 
   eth0.on_transmit_queue_available([](size_t s){
-      CHECK(1,"There are now %i available buffers", s);
+      CHECKSERT(s,"There is now room for %i packets in transmit queue", s);
     });
 
 
-  hw::PIT::instance().onTimeout(200ms,[=](){
+  timer.onTimeout(200ms,[=](){
       const int packets { 600 };
-      INFO("TEST 1", "Trying to transmit %i ethernet packets at maximum throttle", packets);
+      INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", packets);
       for (int i=0; i < packets; i++){
         auto pckt = inet->createPacket(inet->MTU());
         Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
         hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
         hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
         hdr->type = Ethernet::ETH_ARP;
-        printf("\t Transmit Queue available: %i \n",
-               inet->transmit_queue_available());
-        printf("\t Bufstore available: %i \n",
-               inet->buffers_available());
         inet->link().transmit(pckt);
       }
 
       CHECK(1,"Transmission didn't panic");
+      INFO("Test 1", "Done. Send some UDP-data to %s:%i to continue test",
+           inet->ip_addr().str().c_str(), port);
 
 
     });
