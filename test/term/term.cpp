@@ -46,8 +46,8 @@ void Service::start()
   disk->mount(
   [disk] (fs::error_t err)
   {
-    assert(!err);
-
+    CHECKSERT(!err, "Filesystem auto-mounted");
+    
     /// terminal ///
     #define SERVICE_TELNET    23
     auto& tcp = inet->tcp();
