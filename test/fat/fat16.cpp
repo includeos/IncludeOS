@@ -28,50 +28,44 @@ void Service::start()
   assert(disk);
   
   // verify that the size is indeed N sectors
-  CHECK(disk->dev().size() == 16500, "Disk size 16500 sectors");
-  assert(disk->dev().size() == 16500);
+  CHECKSERT(disk->dev().size() == 16500, "Disk size 16500 sectors");
   
   // which means that the disk can't be empty
-  CHECK(!disk->empty(), "Disk not empty");
-  assert(!disk->empty());
+  CHECKSERT(!disk->empty(), "Disk not empty");
   
   // auto-mount filesystem
   disk->mount(
   [disk] (fs::error_t err)
   {
-    CHECK(!err, "Filesystem auto-mounted");
-    assert(!err);
+    CHECKSERT(!err, "Filesystem auto-mounted");
     
     auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
     
     auto vec = fs::new_shared_vector();
     err = fs.ls("/", vec);
-    CHECK(!err, "List root directory");
-    assert(!err);
+    CHECKSERT(!err, "List root directory");
     
-    CHECK(vec->size() == 1, "Exactly one ent in root dir");
-    assert(vec->size() == 1);
+    CHECKSERT(vec->size() == 1, "Exactly one ent in root dir");
     
     auto& e = vec->at(0);
-    CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
+    CHECKSERT(e.is_file(), "Ent is a file");
+    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
     
   });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
   [disk] (fs::error_t err)
   {
-    CHECK(!err, "Filesystem mounted on VBR1");
-    assert(!err);
+    CHECKSERT(!err, "Filesystem mounted on VBR1");
     
     // verify that we can read file
     auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in root dir");
-    CHECK(ent.is_file(), "Entity is file");
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    CHECKSERT(ent.is_valid(), "Stat file in root dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
     
     // try reading banana-file
     auto buf = fs.read(ent, 0, ent.size);
@@ -93,11 +87,11 @@ void Service::start()
            ""`---...________...---'""
 )";
     printf("%s\n", internal_banana.c_str());
-    CHECK(banana == internal_banana, "Correct banana #1");
+    CHECKSERT(banana == internal_banana, "Correct banana #1");
     
     buf = fs.readFile("/banana.txt");
     banana = std::string((char*) buf.buffer.get(), buf.len);
-    CHECK(banana == internal_banana, "Correct banana #2");
+    CHECKSERT(banana == internal_banana, "Correct banana #2");
   });
   
   INFO("FAT16", "SUCCESS");

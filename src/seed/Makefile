@@ -138,7 +138,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 
 # General C++-files to object files
 %.o: %.cpp
-	@echo "\n>> Compiling OS object without header"
+	@echo "\n>> Compiling $<..."
 	$(CPP) $(CPPOPTS) -o $@ $<
 
 # AS-assembled object files
