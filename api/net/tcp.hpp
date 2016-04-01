@@ -466,71 +466,6 @@ public:
 	};
 
 	/*
-		Buffer for TCP::Packet_ptr
-	*/
-	template<typename T = TCP::Packet_ptr, typename Buffer = std::queue<T>>
-	class PacketBuffer {
-	public:
-
-		PacketBuffer(typename Buffer::size_type limit) :
-			buffer_(), data_length_(0),
-			data_offset_(0), limit_(limit)
-		{
-
-		}
-		/* Number of packets */
-		inline auto size() const { return buffer_.size(); }
-
-		/* Amount of data */
-		inline size_t data_size() const { return data_length_; }
-
-		inline void push(const T& packet) {
-			buffer_.push(packet);
-			data_length_ += (size_t)packet->data_length();
-		}
-
-		inline bool add(T packet) {
-			if(full()) return false;
-			push(packet);
-			return true;
-		}
-
-		inline void pop() {
-			data_length_ -= (size_t)buffer_.front()->data_length();
-			buffer_.pop();
-		}
-
-		inline const T& front() const { return buffer_.front(); }
-
-		inline const T& back() const { return buffer_.back(); }
-
-		inline bool empty() const { return buffer_.empty(); }
-
-		inline auto limit() const { return limit_; }
-
-		inline bool full() const { return size() >= limit(); }
-
-		inline auto data_offset() const { return data_offset_; }
-
-		inline void set_data_offset(uint32_t offset) { data_offset_ = offset; }
-
-		inline void clear() {
-			while(!buffer_.empty())
-				buffer_.pop();
-			data_length_ = {0};
-			data_offset_ = {0};
-		}
-
-	private:
-		Buffer buffer_;
-		size_t data_length_;
-		uint32_t data_offset_;
-		typename Buffer::size_type limit_;
-
-	}; // << TCP::PacketBuffer
-
-
-	/*
 		A connection between two Sockets (local and remote).
 		Receives and handle TCP::Packet.
 		Transist between many states.
@@ -618,27 +553,28 @@ public:
     }; // < Connection::WriteBuffer
 
     /*
-      Callback when a receive buffer receives either push or is full - Supplied on asynchronous read
+      Callback when a receive buffer receives either push or is full
+      - Supplied on asynchronous read
     */
-    using OnRead = delegate<void(TCP::Connection_ptr, ReadBuffer&, bool success)>;
+    using ReadCallback = delegate<void(buffer_t, size_t)>;
 
     struct ReadRequest {
       ReadBuffer buffer;
-      OnRead callback;
+      ReadCallback callback;
 
-      ReadRequest(ReadBuffer buf, OnRead cb) : buffer(buf), callback(cb) {}
+      ReadRequest(ReadBuffer buf, ReadCallback cb) : buffer(buf), callback(cb) {}
       ReadRequest(size_t n = 0) :
         buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
-        callback([](auto, auto&, bool){}) {}
+        callback([](auto, auto){}) {}
     };
-    //using ReadRequest = std::pair<ReadBuffer, OnRead>;
 
     /*
-      Callback when a write is done - Supplied on asynchronous write, gives the user a callback when the "write job" is complete.
+      Callback when a write is sent by the TCP
+      - Supplied on asynchronous write
     */
-    using OnWritten = delegate<void(TCP::Connection_ptr, WriteBuffer, bool success)>;
+    using WriteCallback = delegate<void(size_t)>;
 
-    using WriteRequest = std::pair<WriteBuffer, OnWritten>;
+    using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
 
 		/*
 			Connection identifier
@@ -657,12 +593,6 @@ public:
 			Now in ESTABLISHED state - it's allowed to write and read to/from the remote.
 		*/
 		using ConnectCallback 			= delegate<void(std::shared_ptr<Connection>)>;
-
-		/*
-			On receiving data - When there is data to read in the receive buffer.
-			Either when remote PUSH, or buffer is full.
-		*/
-		using ReceiveCallback 			= delegate<void(std::shared_ptr<Connection>, bool)>;
 
 		/*
 			On disconnect - When a remote told it wanna close the connection.
@@ -690,10 +620,6 @@ public:
 		*/
 		using PacketDroppedCallback		= delegate<void(TCP::Packet_ptr, std::string)>;
 
-		/*
-			Buffer
-		*/
-		using Buffer = PacketBuffer<>;
 
 		/*
 			Reason for disconnect event.
@@ -903,28 +829,66 @@ public:
 		*/
 		inline void set_remote(Socket remote) { remote_ = remote; }
 
+
     /*
-      Read content from remote.
+      Read asynchronous from a remote.
+
+      Create n sized internal read buffer and callback for when data is received.
+      Callback will be called until overwritten with a new read() or connection closes.
+      Buffer is cleared for data after every reset.
     */
-    void read(ReadBuffer buffer, OnRead callback);
-
-    inline void read(buffer_t buffer, size_t n, OnRead callback) {
-      read({buffer, n}, callback);
-    }
-
-    inline void read(size_t n, OnRead callback) {
+    inline void read(size_t n, ReadCallback callback) {
       ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
       read(buffer, callback);
     }
 
-		/*
-			Write content to remote.
-		*/
-    void write(WriteBuffer request, OnWritten callback);
+    /*
+      Assign the connections receive buffer and callback for when data is received.
+      Works as read(size_t, ReadCallback);
+    */
+    inline void read(buffer_t buffer, size_t n, ReadCallback callback) {
+      read({buffer, n}, callback);
+    }
 
-    inline void write(buffer_t buffer, size_t n, OnWritten callback, bool PUSH = true) {
+    void read(ReadBuffer buffer, ReadCallback callback);
+
+
+		/*
+			Write asynchronous to a remote.
+
+      Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
+      Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
+		*/
+    inline void write(const void* buf, size_t n, WriteCallback callback, bool PUSH = true) {
+      auto buffer = buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>());
+      memcpy(buffer.get(), buf, n);
+      write(buffer, n, callback, PUSH);
+    }
+
+    /*
+      Works as write(const void*, size_t, WriteCallback, bool),
+      but with the exception of avoiding copying the data to an internal buffer.
+    */
+    inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH = true) {
       write({buffer, n, PUSH}, callback);
     }
+
+    /*
+      Works the same as it's counterpart, without subscribing to a WriteCallback.
+    */
+    inline void write(const void* buf, size_t n, bool PUSH = true) {
+      write(buf, n, [](auto){}, PUSH);
+    }
+
+    /*
+      Works the same as it's counterpart, without subscribing to a WriteCallback.
+    */
+    inline void write(buffer_t buffer, size_t n, bool PUSH = true) {
+      write({buffer, n, PUSH}, [](auto){});
+    }
+
+    void write(WriteBuffer request, WriteCallback callback);
+
 
 		/*
 			Open connection.
@@ -957,14 +921,6 @@ public:
 		*/
 		inline Connection& onConnect(ConnectCallback callback) {
 			on_connect_ = callback;
-			return *this;
-		}
-
-		/*
-			Set callback for ON RECEIVE event.
-		*/
-		inline Connection& onReceive(ReceiveCallback callback) {
-			on_receive_ = callback;
 			return *this;
 		}
 
@@ -1030,6 +986,19 @@ public:
 		inline uint32_t bytes_received() const {
 			return control_block.RCV.NXT - control_block.IRS;
 		}
+
+    /*
+      Bytes queued for transmission.
+      TODO: Implement when retransmission is up and running.
+    */
+    //inline size_t send_queue_bytes() const {}
+
+    /*
+      Bytes currently in receive buffer.
+    */
+    inline size_t read_queue_bytes() const {
+      return read_request.buffer.size();
+    }
 
 		/*
 			Return the id (TUPLE) of the connection.
@@ -1107,7 +1076,10 @@ public:
     */
     std::queue<WriteRequest> write_queue;
 
-
+    /*
+      Bytes queued for transmission.
+    */
+    //size_t write_queue_total;
 
 		/*
 			When time-wait timer was started.
@@ -1127,11 +1099,6 @@ public:
 		/* When Connection is ESTABLISHED. */
 		ConnectCallback on_connect_ = [](std::shared_ptr<Connection>) {
 			debug2("<TCP::Connection::@Connect> Connected.\n");
-		};
-
-		/* When data is received */
-		ReceiveCallback on_receive_ = [](std::shared_ptr<Connection>, bool) {
-			debug2("<TCP::Connection::@Receive> Connection received data. \n");
 		};
 
 		/* When Connection is CLOSING. */
@@ -1181,14 +1148,14 @@ public:
     }
 
     /*
-
+      Remote is closing, no more data will be received.
+      Returns receive buffer to user.
     */
     inline void receive_disconnect() {
-      //assert(read_request);
       assert(!read_request.buffer.empty());
       auto& buf = read_request.buffer;
       buf.push = true;
-      read_request.callback(shared_from_this(), buf, true);
+      read_request.callback(buf.buffer, buf.size());
     }
 
 
@@ -1218,7 +1185,7 @@ public:
     bool offer(size_t& packets);
 
     /*
-      Try to write (some of) queue when connected.
+      Try to write (some of) queue on connected.
     */
     void write_queue_on_connect();
 
@@ -1233,8 +1200,6 @@ public:
 		inline bool signal_accept() { return on_accept_(shared_from_this()); }
 
 		inline void signal_connect() { on_connect_(shared_from_this()); }
-
-		inline void signal_receive(bool PUSH) { on_receive_(shared_from_this(), PUSH); }
 
 		inline void signal_disconnect(Disconnect::Reason&& reason) { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
@@ -1274,16 +1239,6 @@ public:
 		/// BUFFER HANDLING ///
 
 		/*
-			Read from receive buffer.
-		*/
-		size_t read_from_receive_buffer(char* buffer, size_t n);
-
-		/*
-			Add(queue) a packet to the receive buffer.
-		*/
-		bool add_to_receive_buffer(TCP::Packet_ptr packet);
-
-		/*
 			Transmit the send buffer.
 		*/
 		void transmit();
@@ -1294,15 +1249,15 @@ public:
 		void transmit(TCP::Packet_ptr);
 
 		/*
-			Creates a new outgoing packet and put it in the back of the send buffer.
+			Creates a new outgoing packet with the current TCB values and options.
 		*/
 		TCP::Packet_ptr create_outgoing_packet();
 
 		/*
-		 	Returns the packet in the back of the send buffer.
-		 	If the send buffer is empty, it creates a new packet and adds it.
 		*/
-	 	TCP::Packet_ptr outgoing_packet();
+	 	inline TCP::Packet_ptr outgoing_packet() {
+      return create_outgoing_packet();
+    }
 
 
 	 	/// RETRANSMISSION ///
@@ -1324,9 +1279,9 @@ public:
 	 	//std::chrono::milliseconds RTT() const;
 		std::chrono::milliseconds RTO() const;
 
-  		/*
+		/*
 			Start the time wait timeout for 2*MSL
-  		*/
+		*/
 	 	void start_time_wait_timeout();
 
 	 	/*
@@ -1396,11 +1351,6 @@ public:
 	*/
 	void bottom(net::Packet_ptr);
 
-  /*
-    Write data to a connection.
-  */
-  void write(Connection_ptr, std::shared_ptr<uint8_t>, size_t, Connection::OnWritten, bool = true);
-
 	/*
 		Delegate output to network layer
 	*/
@@ -1435,18 +1385,6 @@ public:
 	*/
 	inline void set_MSL(const std::chrono::milliseconds msl) {
 		MAX_SEG_LIFETIME = msl;
-	}
-
-	/*
-		Maximum Buffer Size
-	*/
-	inline auto buffer_limit() const { return MAX_BUFFER_SIZE; }
-
-	/*
-		Set Buffer limit
-	*/
-	inline void set_buffer_limit(size_t buffer_limit) {
-		MAX_BUFFER_SIZE = buffer_limit;
 	}
 
 	/*
@@ -1489,12 +1427,6 @@ private:
 	std::chrono::milliseconds MAX_SEG_LIFETIME;
 
 	/*
-		Current: limit by packet COUNT.
-		Connection buffer size in bytes = buffers * BUFFER_LIMIT * MTU.
-	*/
-	size_t MAX_BUFFER_SIZE = 10;
-
-	/*
 		Transmit packet to network layer (IP).
 	*/
 	void transmit(TCP::Packet_ptr);
@@ -1530,7 +1462,8 @@ private:
   void process_write_queue(size_t packets);
 
   /*
-
+    Ask to send a Connection's WriteBuffer.
+    If there is no free packets, the job will be queued.
   */
   size_t send(Connection_ptr, Connection::WriteBuffer&);
 

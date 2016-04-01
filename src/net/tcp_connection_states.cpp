@@ -343,7 +343,8 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
 	packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
 	tcp.transmit(packet);
   // signal the user
-  tcp.receive_disconnect();
+  if(!tcp.read_request.buffer.empty())
+    tcp.receive_disconnect();
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -606,10 +607,6 @@ void Connection::SynReceived::close(Connection& tcp) {
   tcp.set_state(Connection::FinWait1::instance());
 }
 
-void Connection::SynReceived::abort(Connection& tcp) {
-  send_reset(tcp);
-}
-
 void Connection::Established::close(Connection& tcp) {
   auto& tcb = tcp.tcb();
   auto packet = tcp.outgoing_packet();
@@ -659,6 +656,10 @@ void Connection::CloseWait::close(Connection& tcp) {
 
 void Connection::State::abort(Connection&) {
   // Do nothing.
+}
+
+void Connection::SynReceived::abort(Connection& tcp) {
+  send_reset(tcp);
 }
 
 void Connection::Established::abort(Connection& tcp) {
@@ -858,9 +859,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
       tcp.transmit(packet);
       tcp.set_state(Connection::SynReceived::instance());
       if(in->has_data()) {
-        tcp.add_to_receive_buffer(in);
-        // Advance RCV.NXT ??
-        tcb.RCV.NXT += in->data_length();
+        process_segment(tcp, in);
       }
       return OK;
       /*

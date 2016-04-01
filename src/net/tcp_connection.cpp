@@ -57,13 +57,13 @@ Connection::Connection(TCP& host, Port local_port) :
 
 }
 
-void Connection::read(ReadBuffer buffer, OnRead callback) {
+void Connection::read(ReadBuffer buffer, ReadCallback callback) {
 	try {
     state_->receive(*this, buffer);
     read_request.callback = callback;
   }
   catch (TCPException err) {
-    callback(shared_from_this(), buffer, false);
+    callback(buffer.buffer, buffer.size());
   }
 }
 
@@ -80,7 +80,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
       // buffer should be full
       assert(buf.full());
       // signal the user
-      read_request.callback(shared_from_this(), buf, true);
+      read_request.callback(buf.buffer, buf.size());
       // reset the buffer
       buf.clear();
     }
@@ -93,7 +93,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   // end of data, signal the user
   if(PUSH) {
     buf.push = PUSH;
-    read_request.callback(shared_from_this(), buf, true);
+    read_request.callback(buf.buffer, buf.size());
     // reset the buffer
     buf.clear();
   }
@@ -102,32 +102,37 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 }
 
 
-void Connection::write(WriteBuffer request, OnWritten callback) {
+void Connection::write(WriteBuffer buffer, WriteCallback callback) {
   try {
-    auto written = state_->send(*this, request);
-    request.advance(written);
+    auto written = state_->send(*this, buffer);
+    buffer.advance(written);
 
-    if(!request.remaining) {
-      callback(shared_from_this(), request, true);
+    if(!buffer.remaining) {
+      callback(buffer.offset);
     }
     else {
-      write_queue.emplace(request, callback);
+      write_queue.emplace(buffer, callback);
     }
   }
   catch(TCPException err) {
-    callback(shared_from_this(), request, false);
+    callback(0);
   }
 }
 
 bool Connection::offer(size_t& packets) {
   assert(packets);
+  debug2("<TCP::Connection::offer> (%s) got offered [%u] packets.\n", tuple().to_string().c_str(), packets);
 
   while(!write_queue.empty() and packets) {
-    auto& req = write_queue.front().first;
-    auto written = send(req, packets);
-    req.advance(written);
-    if(!req.remaining) {
-      write_queue.front().second(shared_from_this(), req, true);
+    auto& buf = write_queue.front().first;
+    // segmentize the buffer into packets
+    auto written = send(buf, packets);
+    // advance the buffer
+    buf.advance(written);
+    // if finished
+    if(!buf.remaining) {
+      // callback and remove object
+      write_queue.front().second(buf.offset);
       write_queue.pop();
     }
   }
@@ -137,7 +142,9 @@ bool Connection::offer(size_t& packets) {
 
 
 size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_count, bool PUSH) {
+  assert(packet_count && remaining);
   size_t bytes_written{0};
+
   while(remaining and packet_count) {
     // retreive a new packet
     auto packet = create_outgoing_packet();
@@ -153,8 +160,8 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     bytes_written += written;
     remaining -= written;
 
-    debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u - Remaining: %u\n",
-      packet_limit, written, remaining);
+    debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u - Remaining: %u - Packet count: %u\n",
+      packet_limit, written, remaining, packet_count);
 
     // If last packet, add PUSH.
     if(!remaining and PUSH)
@@ -162,36 +169,33 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
 
     // Advance outgoing sequence number (SND.NXT) with the length of the data.
     control_block.SND.NXT += packet->data_length();
+    // TODO: Replace with chaining
     transmit(packet);
   }
   return bytes_written;
 }
 
+
 void Connection::write_queue_on_connect() {
   while(!write_queue.empty()) {
-    auto& req = write_queue.front().first;
-    auto written = send(req);
-    req.advance(written);
-    if(req.remaining)
+    auto& buf = write_queue.front().first;
+    auto written = send(buf);
+    buf.advance(written);
+    if(buf.remaining)
         return;
-    write_queue.front().second(shared_from_this(), req, true);
+    write_queue.front().second(buf.offset);
     write_queue.pop();
   }
 }
 
 void Connection::write_queue_reset() {
   while(!write_queue.empty()) {
-    auto job = write_queue.front();
-    job.second(shared_from_this(), job.first, false);
+    auto& job = write_queue.front();
+    job.second(job.first.offset);
     write_queue.pop();
   }
 }
 
-
-/*
-	If ACTIVE:
-	Need a remote Socket.
-*/
 void Connection::open(bool active) {
 	try {
 		debug("<TCP::Connection::open> Trying to open Connection...\n");
@@ -215,16 +219,15 @@ void Connection::close() {
 	}
 }
 
-
+/*
+  Local:Port Remote:Port (STATE)
+*/
 string Connection::to_string() const {
 	ostringstream os;
-	os << local().to_string() << "\t" << remote_.to_string() << "\t" << state_->to_string();
+	os << local().to_string() << " " << remote_.to_string() << " (" << state_->to_string() << ")";
 	return os.str();
 }
 
-/*
-	Where the magic happens.
-*/
 void Connection::segment_arrived(TCP::Packet_ptr incoming) {
 
 	signal_packet_received(incoming);
@@ -295,10 +298,6 @@ void Connection::transmit(TCP::Packet_ptr packet) {
 	// Don't think we would like to retransmit reset packets..?
 	//if(!packet->isset(RST))
 	//	add_retransmission(packet);
-}
-
-inline TCP::Packet_ptr Connection::outgoing_packet() {
-	return create_outgoing_packet();
 }
 
 TCP::Seq Connection::generate_iss() {
