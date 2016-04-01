@@ -83,6 +83,7 @@ CRTN_OBJ = crt/crtn.o
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
+.PHONY: memdisk all debug stripped clean
 
 # Complete OS build
 ###################################################
@@ -203,7 +204,7 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 
 # Disk image as a section
 ###################################################
-memdisk:
+memdisk: memdisk.asm
 	@echo "\n>> Assembling memdisk"
 	nasm -f elf -o memdisk.o $<
 
