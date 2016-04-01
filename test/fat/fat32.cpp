@@ -48,34 +48,29 @@ void Service::start()
   
   // verify that the size is indeed N sectors
   const size_t SIZE = 4194304;
-  CHECK(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
-  assert(disk->dev().size() == SIZE);
+  CHECKSERT(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
   
   // which means that the disk can't be empty
-  CHECK(!disk->empty(), "Disk not empty");
-  assert(!disk->empty());
+  CHECKSERT(!disk->empty(), "Disk not empty");
   
   // auto-mount filesystem
   disk->mount(disk->MBR,
   [] (fs::error_t err)
   {
-    CHECK(!err, "Filesystem auto-mounted");
-    assert(!err);
+    CHECKSERT(!err, "Filesystem auto-mounted");
     
     auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
     
     auto vec = fs::new_shared_vector();
     err = fs.ls("/", vec);
-    CHECK(!err, "List root directory");
-    assert(!err);
+    CHECKSERT(!err, "List root directory");
     
-    CHECK(vec->size() == 2, "Exactly two ents in root dir");
-    assert(vec->size() == 2);
+    CHECKSERT(vec->size() == 2, "Exactly two ents in root dir");
     
     auto& e = vec->at(0);
-    CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
+    CHECKSERT(e.is_file(), "Ent is a file");
+    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
   });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
@@ -86,30 +81,17 @@ void Service::start()
     
     auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in root dir");
-    assert(ent.is_valid());
-    
-    CHECK(ent.is_file(), "Entity is file");
-    assert(ent.is_file());
-    
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    assert(!ent.is_dir());
-    
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
-    assert(ent.name() == "banana.txt");
+    CHECKSERT(ent.is_valid(), "Stat file in root dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
     
     ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in deep dir");
-    assert(ent.is_valid());
+    CHECKSERT(ent.is_valid(), "Stat file in deep dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
     
-    CHECK(ent.is_file(), "Entity is file");
-    assert(ent.is_file());
-    
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    assert(!ent.is_dir());
-    
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
-    assert(ent.name() == "banana.txt");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
     
     printf("%s\n", internal_banana.c_str());
     
@@ -117,26 +99,26 @@ void Service::start()
     fs.read(ent, 0, ent.size,
     [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
     {
-      CHECK(!err, "read: Read 'banana.txt' asynchronously");
+      CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");
       if (err)
       {
         panic("Failed to read file async");
       }
       
       std::string banana((char*) buf.get(), len);
-      CHECK(banana == internal_banana, "Correct banana #1");
+      CHECKSERT(banana == internal_banana, "Correct banana #1");
       
       fs.readFile("/banana.txt",
       [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
       {
-        CHECK(!err, "readFile: Read 'banana.txt' asynchronously");
+        CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
         if (err)
         {
           panic("Failed to read file async");
         }
         
         std::string banana((char*) buf.get(), len);
-        CHECK(banana == internal_banana, "Correct banana #2");
+        CHECKSERT(banana == internal_banana, "Correct banana #2");
       });
     });
   });

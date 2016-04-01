@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,16 +37,16 @@ void Service::start()
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
-  
+
   INFO("TERM", "Running tests for Terminal");
   auto disk = fs::new_shared_memdisk();
   assert(disk);
-  
+
   // auto-mount filesystem
   disk->mount(
   [disk] (fs::error_t err)
   {
-    assert(!err);
+    CHECKSERT(!err, "Filesystem auto-mounted");
     
     /// terminal ///
     #define SERVICE_TELNET    23
@@ -59,6 +59,9 @@ void Service::start()
       term = std::make_unique<Terminal> (client);
       term->add_disk_commands(disk);
     });
+
+    INFO("TERM", "Connect to terminal with $ telnet %s ",
+         inet->ip_addr().str().c_str());
     /// terminal ///
   });
 }
