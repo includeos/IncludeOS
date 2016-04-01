@@ -31,7 +31,7 @@ namespace fs
     // keep track of total bytes
     uint64_t total = n;
     // calculate bytes to read before moving on to next sector
-    uint32_t rest = device.block_size() - (pos - internal_ofs);
+    uint32_t rest = device.block_size() - internal_ofs;
     
     // if what we want to read is larger than the rest, exit early
     if (rest > n)
