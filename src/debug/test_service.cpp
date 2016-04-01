@@ -35,19 +35,19 @@ void Service::start()
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
-      {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+		       {{ 10,0,0,42 }},      // IP
+		       {{ 255,255,255,0 }},  // Netmask
+		       {{ 10,0,0,1 }},       // Gateway
+		       {{ 8,8,8,8 }} );      // DNS
   
   /*
-  auto& tcp = inet->tcp();
-  auto& server = tcp.bind(6667); // IRCd default port
-  server.onConnect(
-  [] (auto csock)
-  {
+    auto& tcp = inet->tcp();
+    auto& server = tcp.bind(6667); // IRCd default port
+    server.onConnect(
+    [] (auto csock)
+    {
     printf("*** Received connection from %s\n",
-        csock->remote().to_string().c_str());
+    csock->remote().to_string().c_str());
     
     /// create client ///
     size_t index = clients.size();
@@ -59,22 +59,22 @@ void Service::start()
     csock->onReceive(
     [&client] (auto conn, bool)
     {
-      char buffer[1024];
-      size_t bytes = conn->read(buffer, sizeof(buffer));
+    char buffer[1024];
+    size_t bytes = conn->read(buffer, sizeof(buffer));
       
-      client.read(buffer, bytes);
+    client.read(buffer, bytes);
       
     });
     
     .onDisconnect(
     [&client] (auto conn, std::string)
     {
-      // remove client from various lists
-      client.remove();
-      /// inform others about disconnect
-      //client.bcast(TK_QUIT, "Disconnected");
+    // remove client from various lists
+    client.remove();
+    /// inform others about disconnect
+    //client.bcast(TK_QUIT, "Disconnected");
     });
-  });*/
+    });*/
   
   /// terminal ///
   auto& serial = hw::Serial::port<1> ();
@@ -82,12 +82,12 @@ void Service::start()
   term = std::make_unique<Terminal> (serial);
   // add 'ifconfig' command
   term->add(
-    "ifconfig", "Show information about interfaces",
-    [] (const std::vector<std::string>&) -> int
-    {
-      term->write("%s\r\n", inet->tcp().status().c_str());
-      return 0;
-    });
+	    "ifconfig", "Show information about interfaces",
+	    [] (const std::vector<std::string>&) -> int
+	    {
+	      term->write("%s\r\n", inet->tcp().status().c_str());
+	      return 0;
+	    });
   /// terminal ///
   
   printf("*** TEST SERVICE STARTED *** \n");

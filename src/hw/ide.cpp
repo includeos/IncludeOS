@@ -55,11 +55,11 @@
 
 namespace hw {
 
-IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
-  _pcidev {pcidev},
-  _drive  {(uint8_t) ((sel == MASTER) ? 0 : 1)},
-  _iobase {0U},
-  _nb_blk {0U}
+  IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
+    _pcidev {pcidev},
+    _drive  {(uint8_t) ((sel == MASTER) ? 0 : 1)},
+    _iobase {0U},
+    _nb_blk {0U}
 {
   INFO("IDE","VENDOR_ID : 0x%x, PRODUCT_ID : 0x%x", _pcidev.vendor_id(), _pcidev.product_id());
   INFO("IDE","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
@@ -108,157 +108,157 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
   INFO("IDE", "Initialization complete");
 }
 
-/**
- * FIXME: this is a simple trick as we actually can't properly access the private
- * members of the class during the IRQ handling...
- */
-static IDE::on_read_func _callback = nullptr; // Current callback for asynchronous read
-static int _nb_irqs = 0; // Number of IRQs that we expect
+  /**
+   * FIXME: this is a simple trick as we actually can't properly access the private
+   * members of the class during the IRQ handling...
+   */
+  static IDE::on_read_func _callback = nullptr; // Current callback for asynchronous read
+  static int _nb_irqs = 0; // Number of IRQs that we expect
 
-void IDE::read(block_t blk, on_read_func callback) {
-  if (blk >= _nb_blk) {
-    // avoid reading past the disk boundaries
-    callback(buffer_t());
-    return;
-  }
-
-  callback(read_sync(blk));
-  return;
-  
-  set_irq_mode(true);
-  set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
-  set_nbsectors(1);
-  set_blocknum(blk);
-  set_command(IDE_CMD_READ);
-
-  _callback = callback;
-  _nb_irqs = 1;
-}
-
-void IDE::read(block_t blk, block_t count, on_read_func callback)
-{
-  if (blk + count >= _nb_blk) {
-    // avoid reading past the disk boundaries
-    callback(buffer_t());
-    return;
-  }
-  
-  set_irq_mode(true);
-  set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
-  set_nbsectors(count);
-  set_blocknum(blk);
-  set_command(IDE_CMD_READ);
-
-  _callback = callback;
-  _nb_irqs = count;
-}
-
-IDE::buffer_t IDE::read_sync(block_t blk)
-{
-  if (blk >= _nb_blk) {
-    // avoid reading past the disk boundaries
-    return buffer_t();
-  }
-
-  set_irq_mode(false);
-  set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
-  set_nbsectors(1);
-  set_blocknum(blk);
-  set_command(IDE_CMD_READ);
-
-  auto* buffer = new uint8_t[block_size()];
-
-  wait_status_flags(IDE_DRDY, false);
-  
-  uint16_t* wptr = (uint16_t*) buffer;
-  uint16_t* wend = (uint16_t*)&buffer[block_size()];
-  while (wptr < wend)
-    *(wptr++) = inw(IDE_DATA);
-  
-  // return a shared_ptr wrapper for the buffer
-  return buffer_t(buffer, std::default_delete<uint8_t[]>());
-}
-
-void IDE::wait_status_busy() const noexcept {
-  uint8_t ret;
-  while (((ret = inb(IDE_STATUS)) & IDE_BUSY) == IDE_BUSY);
-}
-
-void IDE::wait_status_flags(const int flags, const bool set) const noexcept {
-  wait_status_busy();
-
-  auto ret = inb(IDE_STATUS);
-
-  for (int i {IDE_TIMEOUT}; i; --i) {
-    if (set) {
-      if ((ret & flags) == flags)
-        break;
-    } else {
-      if ((ret & flags) not_eq flags)
-        break;
+  void IDE::read(block_t blk, on_read_func callback) {
+    if (blk >= _nb_blk) {
+      // avoid reading past the disk boundaries
+      callback(buffer_t());
+      return;
     }
-    
-    ret = inb(IDE_STATUS);
-  }
-}
 
-void IDE::set_drive(const uint8_t drive) const noexcept {
-  wait_status_flags(IDE_DRQ, true);
-  outb(IDE_DRV, drive);
-}
-
-void IDE::set_nbsectors(const uint8_t cnt) const noexcept {
-  wait_status_flags(IDE_DRQ, true);
-  outb(IDE_SECCNT, cnt);
-}
-
-void IDE::set_blocknum(block_t blk) const noexcept {
-  wait_status_flags(IDE_DRQ, true);
-  outb(IDE_BLKLO, blk & 0xFF);
-
-  wait_status_flags(IDE_DRQ, true);
-  outb(IDE_BLKMID, (blk & 0xFF00) >> 8);
-
-  wait_status_flags(IDE_DRQ, true);
-  outb(IDE_BLKHI, (blk & 0xFF0000) >> 16);
-}
-
-void IDE::set_command(const uint16_t command) const noexcept {
-  wait_status_flags(IDE_DRDY, false);
-  outb(IDE_CMD, command);
-}
-
-void IDE::set_irq_mode(const bool on) const noexcept {
-  wait_status_flags(IDE_DRDY, false);
-  outb(IDE_CTRL_IRQ, on ? 0 : 1);
-}
-
-void IDE::irq_handler() {
-  if (!_nb_irqs || _callback == nullptr) {
-    set_irq_mode(false);
-    IRQ_manager::eoi(IDE_IRQN);
+    callback(read_sync(blk));
     return;
+  
+    set_irq_mode(true);
+    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_nbsectors(1);
+    set_blocknum(blk);
+    set_command(IDE_CMD_READ);
+
+    _callback = callback;
+    _nb_irqs = 1;
   }
 
-  auto* buffer = new uint8_t[block_size()];
+  void IDE::read(block_t blk, block_t count, on_read_func callback)
+  {
+    if (blk + count >= _nb_blk) {
+      // avoid reading past the disk boundaries
+      callback(buffer_t());
+      return;
+    }
+  
+    set_irq_mode(true);
+    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_nbsectors(count);
+    set_blocknum(blk);
+    set_command(IDE_CMD_READ);
 
-  wait_status_flags(IDE_DRDY, false);
+    _callback = callback;
+    _nb_irqs = count;
+  }
 
-  uint16_t* wptr = (uint16_t*) buffer;
+  IDE::buffer_t IDE::read_sync(block_t blk)
+  {
+    if (blk >= _nb_blk) {
+      // avoid reading past the disk boundaries
+      return buffer_t();
+    }
 
-  for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
-    wptr[i] = inw(IDE_DATA);
+    set_irq_mode(false);
+    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_nbsectors(1);
+    set_blocknum(blk);
+    set_command(IDE_CMD_READ);
 
-  _callback(buffer_t(buffer, std::default_delete<uint8_t[]>()));
-  _nb_irqs--;
+    auto* buffer = new uint8_t[block_size()];
 
-  IRQ_manager::eoi(IDE_IRQN);
-}
+    wait_status_flags(IDE_DRDY, false);
+  
+    uint16_t* wptr = (uint16_t*) buffer;
+    uint16_t* wend = (uint16_t*)&buffer[block_size()];
+    while (wptr < wend)
+      *(wptr++) = inw(IDE_DATA);
+  
+    // return a shared_ptr wrapper for the buffer
+    return buffer_t(buffer, std::default_delete<uint8_t[]>());
+  }
 
-void IDE::enable_irq_handler() {
-  auto del(delegate<void()>::from<IDE, &IDE::irq_handler>(this));
-  IRQ_manager::enable_irq(IDE_IRQN);
-  IRQ_manager::subscribe(IDE_IRQN, del);
-}
+  void IDE::wait_status_busy() const noexcept {
+    uint8_t ret;
+    while (((ret = inb(IDE_STATUS)) & IDE_BUSY) == IDE_BUSY);
+  }
+
+  void IDE::wait_status_flags(const int flags, const bool set) const noexcept {
+    wait_status_busy();
+
+    auto ret = inb(IDE_STATUS);
+
+    for (int i {IDE_TIMEOUT}; i; --i) {
+      if (set) {
+	if ((ret & flags) == flags)
+	  break;
+      } else {
+	if ((ret & flags) not_eq flags)
+	  break;
+      }
+    
+      ret = inb(IDE_STATUS);
+    }
+  }
+
+  void IDE::set_drive(const uint8_t drive) const noexcept {
+    wait_status_flags(IDE_DRQ, true);
+    outb(IDE_DRV, drive);
+  }
+
+  void IDE::set_nbsectors(const uint8_t cnt) const noexcept {
+    wait_status_flags(IDE_DRQ, true);
+    outb(IDE_SECCNT, cnt);
+  }
+
+  void IDE::set_blocknum(block_t blk) const noexcept {
+    wait_status_flags(IDE_DRQ, true);
+    outb(IDE_BLKLO, blk & 0xFF);
+
+    wait_status_flags(IDE_DRQ, true);
+    outb(IDE_BLKMID, (blk & 0xFF00) >> 8);
+
+    wait_status_flags(IDE_DRQ, true);
+    outb(IDE_BLKHI, (blk & 0xFF0000) >> 16);
+  }
+
+  void IDE::set_command(const uint16_t command) const noexcept {
+    wait_status_flags(IDE_DRDY, false);
+    outb(IDE_CMD, command);
+  }
+
+  void IDE::set_irq_mode(const bool on) const noexcept {
+    wait_status_flags(IDE_DRDY, false);
+    outb(IDE_CTRL_IRQ, on ? 0 : 1);
+  }
+
+  void IDE::irq_handler() {
+    if (!_nb_irqs || _callback == nullptr) {
+      set_irq_mode(false);
+      IRQ_manager::eoi(IDE_IRQN);
+      return;
+    }
+
+    auto* buffer = new uint8_t[block_size()];
+
+    wait_status_flags(IDE_DRDY, false);
+
+    uint16_t* wptr = (uint16_t*) buffer;
+
+    for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
+      wptr[i] = inw(IDE_DATA);
+
+    _callback(buffer_t(buffer, std::default_delete<uint8_t[]>()));
+    _nb_irqs--;
+
+    IRQ_manager::eoi(IDE_IRQN);
+  }
+
+  void IDE::enable_irq_handler() {
+    auto del(delegate<void()>::from<IDE, &IDE::irq_handler>(this));
+    IRQ_manager::enable_irq(IDE_IRQN);
+    IRQ_manager::subscribe(IDE_IRQN, del);
+  }
 
 } //< namespace hw

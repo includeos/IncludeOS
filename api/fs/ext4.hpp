@@ -32,16 +32,16 @@ namespace fs
   struct EXT4 : public FileSystem
   {
     /**
-    Blocks 	                   2^32 	  2^32    2^32 	   2^32
-    Inodes 	                   2^32 	  2^32    2^32 	   2^32
-    File System Size 	         4TiB 	  8TiB   16TiB 	 256PiB
-    Blocks Per Block Group 	  8,192 	16,384 	32,768 	524,288
-    Inodes Per Block Group 	  8,192 	16,384 	32,768 	524,288
-    Block Group Size 	         8MiB	   32MiB 	128MiB  	32GiB
-    Blocks Per File, Extents 	 2^32 	  2^32 	  2^32 	   2^32
-    Blocks Per File, Block Maps 	16,843,020 	134,480,396 	1,074,791,436 	4,398,314,962,956
-    File Size, Extents         4TiB     8TiB   16TiB  256TiB
-    File Size, Block Maps 	16GiB 	256GiB 	4TiB 	256PiB 
+       Blocks 	                   2^32 	  2^32    2^32 	   2^32
+       Inodes 	                   2^32 	  2^32    2^32 	   2^32
+       File System Size 	         4TiB 	  8TiB   16TiB 	 256PiB
+       Blocks Per Block Group 	  8,192 	16,384 	32,768 	524,288
+       Inodes Per Block Group 	  8,192 	16,384 	32,768 	524,288
+       Block Group Size 	         8MiB	   32MiB 	128MiB  	32GiB
+       Blocks Per File, Extents 	 2^32 	  2^32 	  2^32 	   2^32
+       Blocks Per File, Block Maps 	16,843,020 	134,480,396 	1,074,791,436 	4,398,314,962,956
+       File Size, Extents         4TiB     8TiB   16TiB  256TiB
+       File Size, Block Maps 	16GiB 	256GiB 	4TiB 	256PiB 
     **/
     
     // 0   = Mount MBR

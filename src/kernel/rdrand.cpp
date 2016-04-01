@@ -25,9 +25,9 @@ bool rdrand16(uint16_t* result)
 {
   int res = 0;
   while (res == 0)
-  {
-    res = _rdrand16_step(result);
-  }
+    {
+      res = _rdrand16_step(result);
+    }
   return (res == 1);
 }
 
@@ -35,8 +35,8 @@ bool rdrand32(uint32_t* result)
 {
   int res = 0;
   while (res == 0)
-  {
-    res = _rdrand32_step(result);
-  }
+    {
+      res = _rdrand32_step(result);
+    }
   return (res == 1);
 }

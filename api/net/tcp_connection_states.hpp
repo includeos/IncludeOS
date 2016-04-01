@@ -25,320 +25,320 @@ using Connection = TCP::Connection;
 using State = TCP::Connection::State;
 
 /*
-	CLOSED
+  CLOSED
 */
 class Connection::Closed : public State {
 public:
-	inline static State& instance() {
-		static Closed instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static Closed instance;
+    return instance;
+  }
 
-	virtual void open(Connection&, bool active = false) override;
+  virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	/*
-		PASSIVE:		
-		<- Do nothing (Start listening).
+  /*
+    PASSIVE:		
+    <- Do nothing (Start listening).
 
-		=> Listen.
+    => Listen.
 
-		ACTIVE:
-		<- Send SYN.
+    ACTIVE:
+    <- Send SYN.
 
-		=> SynSent
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => SynSent
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "CLOSED";
-	};
+  inline virtual std::string to_string() const override {
+    return "CLOSED";
+  };
 private:
-	inline Closed() {};
+  inline Closed() {};
 };
 
 /*
-	LISTEN
+  LISTEN
 */
 class Connection::Listen : public State {
 public:
-	inline static State& instance() {
-		static Listen instance;
-		return instance;
-	}
-	virtual void open(Connection&, bool active = false) override;
+  inline static State& instance() {
+    static Listen instance;
+    return instance;
+  }
+  virtual void open(Connection&, bool active = false) override;
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual void close(Connection&) override;
-	/*
-		-> Receive SYN.
+  virtual void close(Connection&) override;
+  /*
+    -> Receive SYN.
 
-		<- Send SYN+ACK.
+    <- Send SYN+ACK.
 
-		=> SynReceived.
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => SynReceived.
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "LISTENING";
-	};
+  inline virtual std::string to_string() const override {
+    return "LISTENING";
+  };
 private:
-	inline Listen() {};
+  inline Listen() {};
 };
 
 /*
-	SYN-SENT
+  SYN-SENT
 */
 class Connection::SynSent : public State {
 public:
-	inline static State& instance() {
-		static SynSent instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static SynSent instance;
+    return instance;
+  }
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual void close(Connection&) override;
-	/*
-		-> Receive SYN+ACK
+  virtual void close(Connection&) override;
+  /*
+    -> Receive SYN+ACK
 
-		<- Send ACK.
+    <- Send ACK.
 
-		=> Established.
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => Established.
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "SYN-SENT";
-	};
+  inline virtual std::string to_string() const override {
+    return "SYN-SENT";
+  };
 private:
-	inline SynSent() {};
+  inline SynSent() {};
 };
 
 /*
-	SYN-RCV
+  SYN-RCV
 */
 class Connection::SynReceived : public State {
 public:
-	inline static State& instance() {
-		static SynReceived instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static SynReceived instance;
+    return instance;
+  }
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual void close(Connection&) override;
+  virtual void close(Connection&) override;
 
-	virtual void abort(Connection&) override;
-	/*
-		-> Receive ACK.
+  virtual void abort(Connection&) override;
+  /*
+    -> Receive ACK.
 
-		<- Do nothing (Connection is Established)
+    <- Do nothing (Connection is Established)
 
-		=> Established.
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => Established.
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "SYN-RCV";
-	};
+  inline virtual std::string to_string() const override {
+    return "SYN-RCV";
+  };
 
 private:
-	inline SynReceived() {};
+  inline SynReceived() {};
 };
 
 /*
-	ESTABLISHED
+  ESTABLISHED
 */
 class Connection::Established : public State {
 public:
-	inline static State& instance() {
-		static Established instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static Established instance;
+    return instance;
+  }
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+  virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	virtual void close(Connection&) override;
+  virtual void close(Connection&) override;
 
-	virtual void abort(Connection&) override;
+  virtual void abort(Connection&) override;
 
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "ESTABLISHED";
-	};
+  inline virtual std::string to_string() const override {
+    return "ESTABLISHED";
+  };
 
 private:
-	inline Established() {};
+  inline Established() {};
 };
 
 /*
-	FIN-WAIT-1
+  FIN-WAIT-1
 */
 class Connection::FinWait1 : public State {
 public:
-	inline static State& instance() {
-		static FinWait1 instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static FinWait1 instance;
+    return instance;
+  }
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+  virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	virtual void close(Connection&) override;
+  virtual void close(Connection&) override;
 
-	virtual void abort(Connection&) override;
+  virtual void abort(Connection&) override;
 
-	/*
-		-> Receive ACK.
+  /*
+    -> Receive ACK.
 
-		=> FinWait2.
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => FinWait2.
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "FIN-WAIT-1";
-	};
+  inline virtual std::string to_string() const override {
+    return "FIN-WAIT-1";
+  };
 
 private:
-	inline FinWait1() {};
+  inline FinWait1() {};
 };
 
 /*
-	FIN-WAIT-2
+  FIN-WAIT-2
 */
 class Connection::FinWait2 : public State {
 public:
-	inline static State& instance() {
-		static FinWait2 instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static FinWait2 instance;
+    return instance;
+  }
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+  virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	virtual void close(Connection&) override;
+  virtual void close(Connection&) override;
 
-	virtual void abort(Connection&) override;
-	/*
+  virtual void abort(Connection&) override;
+  /*
 		
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+   */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "FIN-WAIT-2";
-	};
+  inline virtual std::string to_string() const override {
+    return "FIN-WAIT-2";
+  };
 private:
-	inline FinWait2() {};
+  inline FinWait2() {};
 };
 
 /*
-	CLOSE-WAIT
+  CLOSE-WAIT
 */
 class Connection::CloseWait : public State {
 public:
-	inline static State& instance() {
-		static CloseWait instance;
-		return instance;
-	}
+  inline static State& instance() {
+    static CloseWait instance;
+    return instance;
+  }
 
-	virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
+  virtual size_t send(Connection&, const char* buffer, size_t n, bool push) override;
 
-	virtual size_t receive(Connection&, char* buffer, size_t n) override;
+  virtual size_t receive(Connection&, char* buffer, size_t n) override;
 
-	virtual void close(Connection&) override;
+  virtual void close(Connection&) override;
 
-	virtual void abort(Connection&) override;
-	/*
-		-> Nothing I think...
+  virtual void abort(Connection&) override;
+  /*
+    -> Nothing I think...
 
-		<- Send FIN.
+    <- Send FIN.
 		
-		=> LastAck
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => LastAck
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "CLOSE-WAIT";
-	};
+  inline virtual std::string to_string() const override {
+    return "CLOSE-WAIT";
+  };
 
 private:
-	inline CloseWait() {};
+  inline CloseWait() {};
 };
 
 /*
-	LAST-ACK
+  LAST-ACK
 */
 class Connection::LastAck : public State {
 public:
-	inline static State& instance() {
-		static LastAck instance;
-		return instance;
-	}
-	/*
-		-> Receive ACK.
+  inline static State& instance() {
+    static LastAck instance;
+    return instance;
+  }
+  /*
+    -> Receive ACK.
 
-		<- conn.onClose();
+    <- conn.onClose();
 
-		=> Closed (Tell TCP to remove this connection)
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => Closed (Tell TCP to remove this connection)
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "LAST-ACK";
-	};
+  inline virtual std::string to_string() const override {
+    return "LAST-ACK";
+  };
 
 private:
-	inline LastAck() {};
+  inline LastAck() {};
 };
 
 /*
-	CLOSING
+  CLOSING
 */
 class Connection::Closing : public State {
 public:
-	inline static State& instance() {
-		static Closing instance;
-		return instance;
-	}
-	/*
-		-> Receive ACK.
+  inline static State& instance() {
+    static Closing instance;
+    return instance;
+  }
+  /*
+    -> Receive ACK.
 
-		=> TimeWait (Guess this isnt needed, just start a Close-timer)
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+    => TimeWait (Guess this isnt needed, just start a Close-timer)
+  */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "CLOSING";
-	};
+  inline virtual std::string to_string() const override {
+    return "CLOSING";
+  };
 
 private:
-	inline Closing() {};
+  inline Closing() {};
 };
 
 /*
-	TIME-WAIT
+  TIME-WAIT
 */
 class Connection::TimeWait : public State {
 public:
-	inline static State& instance() {
-		static TimeWait instance;
-		return instance;
-	}
-	/*
+  inline static State& instance() {
+    static TimeWait instance;
+    return instance;
+  }
+  /*
 		
-	*/
-	virtual Result handle(Connection&, TCP::Packet_ptr in) override;
+   */
+  virtual Result handle(Connection&, TCP::Packet_ptr in) override;
 
-	inline virtual std::string to_string() const override {
-		return "TIME-WAIT";
-	};
+  inline virtual std::string to_string() const override {
+    return "TIME-WAIT";
+  };
 
 private:
-	inline TimeWait() {};
+  inline TimeWait() {};
 };
 
 #endif

@@ -35,7 +35,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
    We're going to use the network- and keyboard interrupts for now, using UDP
    to trigger the NIC irq.
 
- **/
+**/
 void Service::start()
 {
 
@@ -111,10 +111,10 @@ void Service::start()
 
 
   /**
-      A custom IRQ-handler for the serial port
-      It doesn't send eoi, but it should work anyway
-      since we're using auto-EOI-mode for IRQ < 8 (master)
-   */
+     A custom IRQ-handler for the serial port
+     It doesn't send eoi, but it should work anyway
+     since we're using auto-EOI-mode for IRQ < 8 (master)
+  */
   IRQ_manager::subscribe(4, [](){
       uint16_t serial_port1 = 0x3F8;
       //IRQ_manager::eoi(4);
@@ -127,11 +127,11 @@ void Service::start()
 
 
   /*
-  IRQ_manager::subscribe(11,[](){
-      // Calling eoi here will turn the IRQ line on and loop forever.
-      IRQ_manager::eoi(11);
-      INFO("IRQ","Network IRQ\n");
-      });*/
+    IRQ_manager::subscribe(11,[](){
+    // Calling eoi here will turn the IRQ line on and loop forever.
+    IRQ_manager::eoi(11);
+    INFO("IRQ","Network IRQ\n");
+    });*/
 
 
   // Enabling a timer causes freeze in debug mode, for some reason

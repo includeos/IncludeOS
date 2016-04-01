@@ -144,6 +144,6 @@ namespace net
       size_ = sizeof(IP6::full_header) + icmp_len;
     }
     
- };
+  };
   
 }

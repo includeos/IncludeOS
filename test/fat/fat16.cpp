@@ -37,48 +37,48 @@ void Service::start()
   
   // auto-mount filesystem
   disk->mount(
-  [disk] (fs::error_t err)
-  {
-    CHECK(!err, "Filesystem auto-mounted");
-    assert(!err);
+	      [disk] (fs::error_t err)
+	      {
+		CHECK(!err, "Filesystem auto-mounted");
+		assert(!err);
     
-    auto& fs = disk->fs();
-    printf("\t\t%s filesystem\n", fs.name().c_str());
+		auto& fs = disk->fs();
+		printf("\t\t%s filesystem\n", fs.name().c_str());
     
-    auto vec = fs::new_shared_vector();
-    err = fs.ls("/", vec);
-    CHECK(!err, "List root directory");
-    assert(!err);
+		auto vec = fs::new_shared_vector();
+		err = fs.ls("/", vec);
+		CHECK(!err, "List root directory");
+		assert(!err);
     
-    CHECK(vec->size() == 1, "Exactly one ent in root dir");
-    assert(vec->size() == 1);
+		CHECK(vec->size() == 1, "Exactly one ent in root dir");
+		assert(vec->size() == 1);
     
-    auto& e = vec->at(0);
-    CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
+		auto& e = vec->at(0);
+		CHECK(e.is_file(), "Ent is a file");
+		CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
     
-  });
+	      });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
-  [disk] (fs::error_t err)
-  {
-    CHECK(!err, "Filesystem mounted on VBR1");
-    assert(!err);
+	      [disk] (fs::error_t err)
+	      {
+		CHECK(!err, "Filesystem mounted on VBR1");
+		assert(!err);
     
-    // verify that we can read file
-    auto& fs = disk->fs();
-    auto ent = fs.stat("/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in root dir");
-    CHECK(ent.is_file(), "Entity is file");
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
+		// verify that we can read file
+		auto& fs = disk->fs();
+		auto ent = fs.stat("/banana.txt");
+		CHECK(ent.is_valid(), "Stat file in root dir");
+		CHECK(ent.is_file(), "Entity is file");
+		CHECK(!ent.is_dir(), "Entity is not directory");
+		CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
     
-    // try reading banana-file
-    auto buf = fs.read(ent, 0, ent.size);
-    std::string banana((char*) buf.buffer.get(), buf.len);
+		// try reading banana-file
+		auto buf = fs.read(ent, 0, ent.size);
+		std::string banana((char*) buf.buffer.get(), buf.len);
     
-    std::string internal_banana = 
-    R"(     ____                           ___
+		std::string internal_banana = 
+		  R"(     ____                           ___
     |  _ \  ___              _   _.' _ `.
  _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
 |:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
@@ -87,11 +87,11 @@ void Service::start()
  !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
  !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
  ';:'        `::;::;'             ''     .,  .
-   `:     .,.    `'    .::... .      .::;::;'
-     `..:;::;:..      ::;::;:;:;,    :;::;'
+      `:     .,.    `'    .::... .      .::;::;'
+      `..:;::;:..      ::;::;:;:;,    :;::;'
        "-:;::;:;:      ':;::;:''     ;.-'
            ""`---...________...---'""
-)";
+					 )";
     printf("%s\n", internal_banana.c_str());
     CHECK(banana == internal_banana, "Correct banana #1");
     
