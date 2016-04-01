@@ -3,8 +3,8 @@
 #################################################
 
 # The name of your service
-SERVICE = "Test_UDP"
-SERVICE_NAME = "IncludeOS\ UDP\ test"
+SERVICE = test_udp
+SERVICE_NAME = IncludeOS UDP test
 
 # Your service parts
 FILES = service.cpp
