@@ -24,79 +24,79 @@
 
 namespace fs {
 
-class Path {
-public:
-  //! constructs Path to the current directory
-  Path();
+  class Path {
+  public:
+    //! constructs Path to the current directory
+    Path();
 
-  //! constructs Path to @path
-  Path(const std::string& path);
+    //! constructs Path to @path
+    Path(const std::string& path);
   
-  size_t size() const noexcept
-  { return stk.size(); }
+    size_t size() const noexcept
+    { return stk.size(); }
 
-  const std::string& operator [] (const int i) const noexcept
-  { return stk[i]; }
+    const std::string& operator [] (const int i) const noexcept
+    { return stk[i]; }
 
-  int getState() const noexcept
-  { return state; }
+    int getState() const noexcept
+    { return state; }
   
-  Path& operator = (const std::string& p) {
-    stk.clear();
-    this->state = parse(p);
-    return *this;
-  }
+    Path& operator = (const std::string& p) {
+      stk.clear();
+      this->state = parse(p);
+      return *this;
+    }
 
-  Path& operator += (const std::string& p) {
-    this->state = parse(p);
-    return *this;
-  }
+    Path& operator += (const std::string& p) {
+      this->state = parse(p);
+      return *this;
+    }
 
-  Path operator + (const std::string& p) const {
-    Path np  = Path(*this);
-    np.state = np.parse(p);
-    return np;
-  }
+    Path operator + (const std::string& p) const {
+      Path np  = Path(*this);
+      np.state = np.parse(p);
+      return np;
+    }
   
-  bool operator == (const Path& p) const {
-    if (stk.size() not_eq p.stk.size()) return false;
-    return this->to_string() == p.to_string();
-  }
+    bool operator == (const Path& p) const {
+      if (stk.size() not_eq p.stk.size()) return false;
+      return this->to_string() == p.to_string();
+    }
 
-  bool operator != (const Path& p) const
-  { return not this->operator == (p); }
+    bool operator != (const Path& p) const
+    { return not this->operator == (p); }
 
-  bool operator == (const std::string& p) const
-  { return *this == Path(p); }
+    bool operator == (const std::string& p) const
+    { return *this == Path(p); }
   
-  bool empty() const noexcept
-  { return stk.empty(); }
+    bool empty() const noexcept
+    { return stk.empty(); }
   
-  std::string front() const 
-  { return stk.front(); }
+    std::string front() const 
+    { return stk.front(); }
 
-  std::string back() const
-  { return stk.back(); }
+    std::string back() const
+    { return stk.back(); }
 
-  Path& pop_front() noexcept
-  { stk.pop_front(); return *this; }
+    Path& pop_front() noexcept
+    { stk.pop_front(); return *this; }
   
-  Path& pop_back() noexcept
-  { stk.pop_back(); return *this; }
+    Path& pop_back() noexcept
+    { stk.pop_back(); return *this; }
   
-  Path& up()
-  { if (not stk.empty()) stk.pop_back(); return *this; }
+    Path& up()
+    { if (not stk.empty()) stk.pop_back(); return *this; }
 
-  std::string to_string() const;
+    std::string to_string() const;
   
-private:
-  int  parse(const std::string& path);
-  void name_added(const std::string& name);
-  std::string real_path() const;
+  private:
+    int  parse(const std::string& path);
+    void name_added(const std::string& name);
+    std::string real_path() const;
   
-  int state;
-  std::deque<std::string> stk;
-}; //< class Path
+    int state;
+    std::deque<std::string> stk;
+  }; //< class Path
   
 } //< namespace fs
 

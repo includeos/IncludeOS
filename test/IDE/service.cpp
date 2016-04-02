@@ -36,14 +36,14 @@ void Service::start()
   printf("MAGIC sig: 0x%x\n\n", mbr->magic);
 
   ide.read(0, 3, [] (hw::IDE::buffer_t data) {
-    static int i = 0;
-    uint8_t* buf = (uint8_t*)data.get();
-    printf("Async read, Block %d:\n", i);
-    for (int i = 0; i < 512; i++)
-      printf("%x ", buf[i]);
-    printf("\n");
-    i++;
-  });
+      static int i = 0;
+      uint8_t* buf = (uint8_t*)data.get();
+      printf("Async read, Block %d:\n", i);
+      for (int i = 0; i < 512; i++)
+	printf("%x ", buf[i]);
+      printf("\n");
+      i++;
+    });
 
   printf("Reading sync:\n");
   mbr = (fs::MBR::mbr*)ide.read_sync(0).get();
@@ -51,10 +51,10 @@ void Service::start()
   printf("MAGIC sig: 0x%x\n\n", mbr->magic);
 
   ide.read(4, [] (hw::IDE::buffer_t data) {
-    uint8_t* buf = (uint8_t*)data.get();
-    printf("Async read, Block %d:\n", 4);
-    for (int i = 0; i < 512; i++)
-      printf("%x ", buf[i]);
-    printf("\n");
-  });
+      uint8_t* buf = (uint8_t*)data.get();
+      printf("Async read, Block %d:\n", 4);
+      for (int i = 0; i < 512; i++)
+	printf("%x ", buf[i]);
+      printf("\n");
+    });
 }

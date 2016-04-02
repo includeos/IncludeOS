@@ -27,7 +27,7 @@ namespace hw {
   /**
      Programmable Interrupt Controller
      implementation according to Intel 8259A / 8259A-2 1988 whitepaper
-   */
+  */
   class PIC {
   public:
     static void init() noexcept;
@@ -49,19 +49,19 @@ namespace hw {
     }
 
     /**
-        @brief End of Interrupt. Master IRQ-lines (0-7) currently use Auto EOI,
-        but the user should assume that IRQ-specific EOI's are necessary.
+       @brief End of Interrupt. Master IRQ-lines (0-7) currently use Auto EOI,
+       but the user should assume that IRQ-specific EOI's are necessary.
 
-        @note:
-        According to Intel 8259A / 8259A-2 whitepaper p. 15
-        "The AEOI mode can only be used in a master 8259A and not a slave.
-        8259As with a copyright date of 1985 or later will operate in the AEOI
-        mode as a master or a slave"
+       @note:
+       According to Intel 8259A / 8259A-2 whitepaper p. 15
+       "The AEOI mode can only be used in a master 8259A and not a slave.
+       8259As with a copyright date of 1985 or later will operate in the AEOI
+       mode as a master or a slave"
 
-        If I enable auto-eoi for slave, everything seems to freeze in Qemu,
-        the moment I get the first network interrupt (IRQ 11).
+       If I enable auto-eoi for slave, everything seems to freeze in Qemu,
+       the moment I get the first network interrupt (IRQ 11).
 
-        I'm assuming this means that I have an old chip :-)
+       I'm assuming this means that I have an old chip :-)
     */
     inline static void eoi(const uint8_t irq) noexcept {
 

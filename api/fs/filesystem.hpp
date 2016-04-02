@@ -28,99 +28,99 @@
 
 namespace fs {
 
-class FileSystem {
-public:
-  struct Dirent; //< Generic structure for directory entries
+  class FileSystem {
+  public:
+    struct Dirent; //< Generic structure for directory entries
   
-  using dirvector = std::vector<Dirent>;
-  using dirvec_t  = std::shared_ptr<dirvector>;
-  using buffer_t  = std::shared_ptr<uint8_t>;
+    using dirvector = std::vector<Dirent>;
+    using dirvec_t  = std::shared_ptr<dirvector>;
+    using buffer_t  = std::shared_ptr<uint8_t>;
   
-  using on_mount_func = std::function<void(error_t)>;
-  using on_ls_func    = std::function<void(error_t, dirvec_t)>;
-  using on_read_func  = std::function<void(error_t, buffer_t, uint64_t)>;
-  using on_stat_func  = std::function<void(error_t, const Dirent&)>;
+    using on_mount_func = std::function<void(error_t)>;
+    using on_ls_func    = std::function<void(error_t, dirvec_t)>;
+    using on_read_func  = std::function<void(error_t, buffer_t, uint64_t)>;
+    using on_stat_func  = std::function<void(error_t, const Dirent&)>;
   
-  struct Buffer
-  {
-    error_t  err;
-    buffer_t buffer;
-    uint64_t len;
+    struct Buffer
+    {
+      error_t  err;
+      buffer_t buffer;
+      uint64_t len;
     
-    Buffer(error_t e, buffer_t b, size_t l)
-      : err(e), buffer(b), len(l) {}
-  };
+      Buffer(error_t e, buffer_t b, size_t l)
+	: err(e), buffer(b), len(l) {}
+    };
   
-  enum Enttype {
-    FILE,
-    DIR,
-    /** FAT puts disk labels in the root directory, hence: */
-    VOLUME_ID,
-    SYM_LINK,
+    enum Enttype {
+      FILE,
+      DIR,
+      /** FAT puts disk labels in the root directory, hence: */
+      VOLUME_ID,
+      SYM_LINK,
     
-    INVALID_ENTITY
-  }; //< enum Enttype
+      INVALID_ENTITY
+    }; //< enum Enttype
   
-  /** Generic structure for directory entries */
-  struct Dirent {
-    /** Default constructor */
-    explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
-                    const uint64_t blk   = 0U, const uint64_t pr    = 0U,
-                    const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
-      ftype     {t},
-      fname     {n},
-      block     {blk},
-      parent    {pr},
-      size      {sz},
-      attrib    {attr},
-      timestamp {0}
-    {}
+    /** Generic structure for directory entries */
+    struct Dirent {
+      /** Default constructor */
+      explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
+		      const uint64_t blk   = 0U, const uint64_t pr    = 0U,
+		      const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
+	ftype     {t},
+	fname     {n},
+	block     {blk},
+	parent    {pr},
+	size      {sz},
+	attrib    {attr},
+	timestamp {0}
+      {}
     
-    Enttype     ftype;
-    std::string fname;
-    uint64_t    block;
-    uint64_t    parent; //< Parent's block#
-    uint64_t    size;
-    uint32_t    attrib;
-    int64_t     timestamp;
+      Enttype     ftype;
+      std::string fname;
+      uint64_t    block;
+      uint64_t    parent; //< Parent's block#
+      uint64_t    size;
+      uint32_t    attrib;
+      int64_t     timestamp;
     
-    Enttype type() const noexcept
-    { return ftype; }
+      Enttype type() const noexcept
+      { return ftype; }
     
-    // true if this dirent is valid
-    // if not, it means don't read any values from the Dirent as they are not
-    bool is_valid() const
-    { return ftype != INVALID_ENTITY; }
+      // true if this dirent is valid
+      // if not, it means don't read any values from the Dirent as they are not
+      bool is_valid() const
+      { return ftype != INVALID_ENTITY; }
     
-    // most common types
-    bool is_file() const noexcept
-    { return ftype == FILE; }
-    bool is_dir() const noexcept
-    { return ftype == DIR; }
+      // most common types
+      bool is_file() const noexcept
+      { return ftype == FILE; }
+      bool is_dir() const noexcept
+      { return ftype == DIR; }
     
-    // the entrys name
-    const std::string& name() const noexcept
-    { return fname; }
+      // the entrys name
+      const std::string& name() const noexcept
+      { return fname; }
     
-    // type converted to human-readable string
-    std::string type_string() const {
-      switch (ftype) {
-      case FILE:
-        return "File";
-      case DIR:
-        return "Directory";
-      case VOLUME_ID:
-        return "Volume ID";
+      // type converted to human-readable string
+      std::string type_string() const {
+	switch (ftype) {
+	case FILE:
+	  return "File";
+	case DIR:
+	  return "Directory";
+	case VOLUME_ID:
+	  return "Volume ID";
         
-      case INVALID_ENTITY:
-        return "Invalid entity";
-      default:
-        return "Unknown type";
-      } //< switch (type)
-    }
-  }; //< struct Dirent
+	case INVALID_ENTITY:
+	  return "Invalid entity";
+	default:
+	  return "Unknown type";
+	} //< switch (type)
+      }
+    }; //< struct Dirent
   
-   /** Mount this filesystem with LBA at @base_sector */
+    /** Mount this filesystem with LBA at @base_sector */
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
     /** @param path: Path in the mounted filesystem */
@@ -144,13 +144,13 @@ public:
 
     /** Default destructor */
     virtual ~FileSystem() noexcept = default;
-}; //< class FileSystem
+  }; //< class FileSystem
 
-// simplify initializing shared vector
-inline FileSystem::dirvec_t new_shared_vector()
-{
-  return std::make_shared<FileSystem::dirvector> ();
-}
+  // simplify initializing shared vector
+  inline FileSystem::dirvec_t new_shared_vector()
+  {
+    return std::make_shared<FileSystem::dirvector> ();
+  }
 
 } //< namespace fs
 

@@ -21,9 +21,9 @@
 
 namespace fs {
 
-class VBR {
+  class VBR {
 
-}; //< class VBR
+  }; //< class VBR
   
 } //< namespace fs
 

@@ -62,7 +62,7 @@ namespace net {
     }
     /// send an UDPv6 packet, hopefully (please dont lie!)
     std::shared_ptr<PacketUDP6> udp6_create(
-        Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
+					    Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
     {
       return _udp6.create(ether_dest, ip_dest, port);
     }
@@ -79,13 +79,13 @@ namespace net {
     }
     
     /** Bind an IP and a netmask to a given device. 
-      The function expects the given device to exist.*/
+	The function expects the given device to exist.*/
     static void
     ifconfig(
-        netdev nic,
-        IP4::addr ip,
-        IP4::addr netmask,
-        IP6::addr ip6);
+	     netdev nic,
+	     IP4::addr ip,
+	     IP4::addr netmask,
+	     IP6::addr ip6);
     
     inline static IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
@@ -125,7 +125,7 @@ namespace net {
     
     /** Don't think we *want* copy construction.
 	@todo: Fix this with a singleton or something.
-   */
+    */
     Inet(Inet& UNUSED(cpy)) = delete;
     
     Inet(std::vector<IP4::addr> ips);

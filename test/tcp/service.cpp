@@ -30,23 +30,23 @@ std::unique_ptr<Inet4<VirtioNet>> inet;
 std::shared_ptr<TCP::Connection> client;
 
 /*
-	TEST VARIABLES
+  TEST VARIABLES
 */
 TCP::Port
-	TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
+TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
 using HostAddress = std::pair<std::string, TCP::Port>;
 HostAddress
-	TEST_ADDR_TIME{"india.colorado.edu", 13};
+TEST_ADDR_TIME{"india.colorado.edu", 13};
 
 std::string
-	small, big, huge;
+small, big, huge;
 
 int
-	S{150}, B{1500}, H{15000};
+S{150}, B{1500}, H{15000};
 
 std::string
-	TEST_STR {"1337"};
+TEST_STR {"1337"};
 
 size_t buffers_available{0};
 
@@ -55,84 +55,84 @@ size_t buffers_available{0};
 milliseconds MSL_TEST = 5s;
 
 /*
-	TEST: Release of resources/clean up.
+  TEST: Release of resources/clean up.
 */
 void FINISH_TEST() {
-	INFO("TEST", "Started 3 x MSL timeout.");
-	hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
-		INFO("TEST", "Verify release of resources");
-		CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
-		CHECK(inet->buffers_available() == buffers_available,
-			"inet->buffers_available() == buffers_available");
-    INFO("Buffers available", "%u", inet->buffers_available());
-		printf("# TEST DONE #\n");
-	});
+  INFO("TEST", "Started 3 x MSL timeout.");
+  hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
+      INFO("TEST", "Verify release of resources");
+      CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
+      CHECK(inet->buffers_available() == buffers_available,
+	    "inet->buffers_available() == buffers_available");
+      INFO("Buffers available", "%u", inet->buffers_available());
+      printf("# TEST DONE #\n");
+    });
 }
 
 /*
-	TEST: Outgoing Internet Connection
+  TEST: Outgoing Internet Connection
 */
 void OUTGOING_TEST_INTERNET(const HostAddress& address) {
-	auto port = address.second;
-	INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
-	inet->resolve(address.first, [port](auto&, auto&, auto ip_address) {
-		CHECK(ip_address != 0, "Resolved host");
+  auto port = address.second;
+  INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
+  inet->resolve(address.first, [port](auto&, auto&, auto ip_address) {
+      CHECK(ip_address != 0, "Resolved host");
 
-		if(ip_address != 0) {
-			inet->tcp().connect(ip_address, port)
-			->onConnect([](Connection_ptr conn) {
-				CHECK(true, "Connected");
-        conn->read(1024, [](buffer_t, size_t n) {
-          CHECK(n > 0, "Received data");
-        });
-			})
-			.onError([](Connection_ptr, TCP::TCPException err) {
-				CHECK(false, "Error occured: %s", err.what());
-			});
-		}
-	});
+      if(ip_address != 0) {
+	inet->tcp().connect(ip_address, port)
+	  ->onConnect([](Connection_ptr conn) {
+	      CHECK(true, "Connected");
+	      conn->read(1024, [](buffer_t, size_t n) {
+		  CHECK(n > 0, "Received data");
+		});
+	    })
+	  .onError([](Connection_ptr, TCP::TCPException err) {
+	      CHECK(false, "Error occured: %s", err.what());
+	    });
+      }
+    });
 }
 
 /*
-	TEST: Outgoing Connection to Host
+  TEST: Outgoing Connection to Host
 */
 void OUTGOING_TEST(TCP::Socket outgoing) {
-	INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
-	inet->tcp().connect(outgoing)
-		->onConnect([](Connection_ptr conn) {
-			conn->write(small.data(), small.size());
-      conn->read(small.size(), [](buffer_t buffer, size_t n) {
-        CHECK(std::string((char*)buffer.get(), n) == small, "conn->read() == small");
-      });
-		})
-		.onDisconnect([](Connection_ptr, TCP::Connection::Disconnect) {
-			CHECK(true, "Connection closed by server");
+  INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
+  inet->tcp().connect(outgoing)
+    ->onConnect([](Connection_ptr conn) {
+	conn->write(small.data(), small.size());
+	conn->read(small.size(), [](buffer_t buffer, size_t n) {
+	    CHECK(std::string((char*)buffer.get(), n) == small, "conn->read() == small");
+	  });
+      })
+    .onDisconnect([](Connection_ptr, TCP::Connection::Disconnect) {
+	CHECK(true, "Connection closed by server");
 
-			OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
-		});
+	OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
+      });
 }
 
 // Used to send big data
 struct Buffer {
-	size_t written, read;
-	char* data;
-	const size_t size;
+  size_t written, read;
+  char* data;
+  const size_t size;
 
-	Buffer(size_t length) :
-		written(0), read(0), data(new char[length]), size(length) {}
+  Buffer(size_t length) :
+    written(0), read(0), data(new char[length]), size(length) {}
 
-	~Buffer() { delete[] data; }
+  ~Buffer() { delete[] data; }
 
-	std::string str() { return {data, size};}
+  std::string str() { return {data, size};}
 };
 
 void Service::start()
 {
-	for(int i = 0; i < S; i++) small += TEST_STR;
-	for(int i = 0; i < B; i++) big += TEST_STR;
-	for(int i = 0; i < H; i++) huge += TEST_STR;
+  for(int i = 0; i < S; i++) small += TEST_STR;
+  for(int i = 0; i < B; i++) big += TEST_STR;
+  for(int i = 0; i < H; i++) huge += TEST_STR;
 
-	hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
 
   inet->network_config( {{ 10,0,0,42 }},      // IP
@@ -140,113 +140,113 @@ void Service::start()
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
 
- 	buffers_available = inet->buffers_available();
+  buffers_available = inet->buffers_available();
   INFO("Buffers available", "%u", inet->buffers_available());
- 	auto& tcp = inet->tcp();
- 	// reduce test duration
- 	tcp.set_MSL(MSL_TEST);
+  auto& tcp = inet->tcp();
+  // reduce test duration
+  tcp.set_MSL(MSL_TEST);
 
-	/*
-		TEST: Send and receive small string.
-	*/
-	INFO("TEST", "Listeners and connections allocation.");
+  /*
+    TEST: Send and receive small string.
+  */
+  INFO("TEST", "Listeners and connections allocation.");
 
-	/*
-		TEST: Nothing should be allocated.
-	*/
-	CHECK(tcp.openPorts() == 0, "tcp.openPorts() == 0");
-	CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
+  /*
+    TEST: Nothing should be allocated.
+  */
+  CHECK(tcp.openPorts() == 0, "tcp.openPorts() == 0");
+  CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
 
-	tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "SMALL string (%u)", small.size());
-		conn->read(small.size(), [conn](buffer_t buffer, size_t n) {
-      CHECK(inet->buffers_available() < buffers_available,
-        "inet->buffers_available() < buffers_available");
-			CHECK(std::string((char*)buffer.get(), n) == small, "conn.read() == small");
-			conn->close();
-		});
-		conn->write(small.data(), small.size());
-    INFO("Buffers available", "%u", inet->buffers_available());
+  tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
+      INFO("TEST", "SMALL string (%u)", small.size());
+      conn->read(small.size(), [conn](buffer_t buffer, size_t n) {
+	  CHECK(inet->buffers_available() < buffers_available,
+		"inet->buffers_available() < buffers_available");
+	  CHECK(std::string((char*)buffer.get(), n) == small, "conn.read() == small");
+	  conn->close();
 	});
+      conn->write(small.data(), small.size());
+      INFO("Buffers available", "%u", inet->buffers_available());
+    });
 
-	/*
-		TEST: Server should be bound.
-	*/
-	CHECK(tcp.openPorts() == 1, "tcp.openPorts() == 1");
+  /*
+    TEST: Server should be bound.
+  */
+  CHECK(tcp.openPorts() == 1, "tcp.openPorts() == 1");
 
-	/*
-		TEST: Send and receive big string.
-	*/
-	tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "BIG string (%u)", big.size());
-		auto response = std::make_shared<std::string>();
-		conn->read(big.size(), [response, conn](buffer_t buffer, size_t n) {
-			*response += std::string((char*)buffer.get(), n);
-			if(response->size() == big.size()) {
-				bool OK = (*response == big);
-				CHECK(OK, "conn.read() == big");
-				conn->close();
-			}
-		});
-		conn->write(big.data(), big.size());
-    INFO("Buffers available", "%u", inet->buffers_available());
+  /*
+    TEST: Send and receive big string.
+  */
+  tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
+      INFO("TEST", "BIG string (%u)", big.size());
+      auto response = std::make_shared<std::string>();
+      conn->read(big.size(), [response, conn](buffer_t buffer, size_t n) {
+	  *response += std::string((char*)buffer.get(), n);
+	  if(response->size() == big.size()) {
+	    bool OK = (*response == big);
+	    CHECK(OK, "conn.read() == big");
+	    conn->close();
+	  }
 	});
+      conn->write(big.data(), big.size());
+      INFO("Buffers available", "%u", inet->buffers_available());
+    });
 
-	/*
-		TEST: Send and receive huge string.
-	*/
-	tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
-		INFO("TEST", "HUGE string (%u)", huge.size());
-		auto temp = std::make_shared<Buffer>(huge.size());
-		conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
-			memcpy(temp->data + temp->written, buffer.get(), n);
-      temp->written += n;
+  /*
+    TEST: Send and receive huge string.
+  */
+  tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
+      INFO("TEST", "HUGE string (%u)", huge.size());
+      auto temp = std::make_shared<Buffer>(huge.size());
+      conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
+	  memcpy(temp->data + temp->written, buffer.get(), n);
+	  temp->written += n;
 
-			// when all expected data is read
-			if(temp->written == huge.size()) {
-				bool OK = (temp->str() == huge);
-				CHECK(OK, "conn.read() == huge");
-				conn->close();
-			}
-		});
-		conn->write(huge.data(), huge.size());
-    INFO("Buffers available", "%u", inet->buffers_available());
+	  // when all expected data is read
+	  if(temp->written == huge.size()) {
+	    bool OK = (temp->str() == huge);
+	    CHECK(OK, "conn.read() == huge");
+	    conn->close();
+	  }
 	});
+      conn->write(huge.data(), huge.size());
+      INFO("Buffers available", "%u", inet->buffers_available());
+    });
 
-	/*
-		TEST: More servers should be bound.
-	*/
-	CHECK(tcp.openPorts() == 3, "tcp.openPorts() == 3");
+  /*
+    TEST: More servers should be bound.
+  */
+  CHECK(tcp.openPorts() == 3, "tcp.openPorts() == 3");
 
-	/*
-		TEST: Connection (Status etc.) and Active Close
-	*/
-	tcp.bind(TEST4).onConnect([](Connection_ptr conn) {
-		INFO("TEST","Connection");
-		// There should be at least one connection.
-		CHECK(inet->tcp().activeConnections() > 0, "tcp.activeConnections() > 0");
-		// Test if connected.
-		CHECK(conn->is_connected(), "conn.is_connected()");
-		// Test if writable.
-		CHECK(conn->is_writable(), "conn.is_writable()");
-		// Test if state is ESTABLISHED.
-		CHECK(conn->is_state({"ESTABLISHED"}), "conn.is_state(ESTABLISHED)");
+  /*
+    TEST: Connection (Status etc.) and Active Close
+  */
+  tcp.bind(TEST4).onConnect([](Connection_ptr conn) {
+      INFO("TEST","Connection");
+      // There should be at least one connection.
+      CHECK(inet->tcp().activeConnections() > 0, "tcp.activeConnections() > 0");
+      // Test if connected.
+      CHECK(conn->is_connected(), "conn.is_connected()");
+      // Test if writable.
+      CHECK(conn->is_writable(), "conn.is_writable()");
+      // Test if state is ESTABLISHED.
+      CHECK(conn->is_state({"ESTABLISHED"}), "conn.is_state(ESTABLISHED)");
 
-		INFO("TEST", "Active close");
-		// Test for active close.
-		conn->close();
-		CHECK(!conn->is_writable(), "!conn->is_writable()");
-		CHECK(conn->is_state({"FIN-WAIT-1"}), "conn.is_state(FIN-WAIT-1)");
-	})
-	.onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
-		CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
-		hw::PIT::instance().onTimeout(1s,[conn]{
-			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
+      INFO("TEST", "Active close");
+      // Test for active close.
+      conn->close();
+      CHECK(!conn->is_writable(), "!conn->is_writable()");
+      CHECK(conn->is_state({"FIN-WAIT-1"}), "conn.is_state(FIN-WAIT-1)");
+    })
+    .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
+	CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
+	hw::PIT::instance().onTimeout(1s,[conn]{
+	    CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
 
-			OUTGOING_TEST({inet->router(), TEST5});
-		});
+	    OUTGOING_TEST({inet->router(), TEST5});
+	  });
 
-		hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
-	});
+	hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
+      });
 
 }

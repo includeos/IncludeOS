@@ -72,7 +72,7 @@ namespace net
     
     // creates a new packet to be sent over the ether
     std::shared_ptr<PacketUDP6> create(
-        Ethernet::addr ether_dest, const IP6::addr& dest, port_t port);
+				       Ethernet::addr ether_dest, const IP6::addr& dest, port_t port);
     
   private:
     std::map<port_t, listener_t> listeners;
@@ -125,7 +125,7 @@ namespace net
       header().length = htons(sizeof(UDPv6::header) + newlen);
       // new total IPv6 payload length
       ip6_header().set_size(
-          sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
+			    sizeof(IP6::header) + sizeof(UDPv6::header) + newlen);
       // new total packet length
       size_ = sizeof(IP6::full_header) + sizeof(UDPv6::header) + newlen;
     }

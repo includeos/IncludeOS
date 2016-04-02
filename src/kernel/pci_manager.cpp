@@ -35,11 +35,11 @@ void PCI_manager::init() {
   uint32_t id {PCI::WTF};
   
   for (uint16_t pci_addr {0}; pci_addr < 255; ++pci_addr) {
-      id = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
-      if (id != PCI::WTF) {
-		  hw::PCI_Device dev {pci_addr, id};
-    	  devices_[dev.classcode()].emplace_back(dev);
-	    }
+    id = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
+    if (id != PCI::WTF) {
+      hw::PCI_Device dev {pci_addr, id};
+      devices_[dev.classcode()].emplace_back(dev);
+    }
   }
   
   // Pretty printing, end of device tree
