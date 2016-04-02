@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,29 +25,30 @@
 using namespace net;
 using namespace std::chrono; // For timers and MSL
 using Connection_ptr = std::shared_ptr<TCP::Connection>;
+using buffer_t = TCP::buffer_t;
 std::unique_ptr<Inet4<VirtioNet>> inet;
 std::shared_ptr<TCP::Connection> client;
 
 /*
 	TEST VARIABLES
 */
-TCP::Port 
+TCP::Port
 	TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
 using HostAddress = std::pair<std::string, TCP::Port>;
 HostAddress
 	TEST_ADDR_TIME{"india.colorado.edu", 13};
 
-std::string 
+std::string
 	small, big, huge;
 
-int 
+int
 	S{150}, B{1500}, H{15000};
 
-std::string 
+std::string
 	TEST_STR {"1337"};
 
-size_t bufstore_capacity{0};
+size_t buffers_available{0};
 
 // Default MSL is 30s. Timeout 2*MSL.
 // To reduce test duration, lower MSL to 5s.
@@ -61,8 +62,9 @@ void FINISH_TEST() {
 	hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
 		INFO("TEST", "Verify release of resources");
 		CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
-		CHECK(inet->available_capacity() == bufstore_capacity, 
-			"inet.available_capacity() == bufstore_capacity");
+		CHECK(inet->buffers_available() == buffers_available,
+			"inet->buffers_available() == buffers_available");
+    INFO("Buffers available", "%u", inet->buffers_available());
 		printf("# TEST DONE #\n");
 	});
 }
@@ -75,14 +77,14 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 	INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
 	inet->resolve(address.first, [port](auto&, auto&, auto ip_address) {
 		CHECK(ip_address != 0, "Resolved host");
-		
+
 		if(ip_address != 0) {
 			inet->tcp().connect(ip_address, port)
-			->onConnect([](Connection_ptr) {
+			->onConnect([](Connection_ptr conn) {
 				CHECK(true, "Connected");
-			})
-			.onReceive([](Connection_ptr conn, bool) {
-				CHECK(true, "Received data: %s", conn->read().c_str());
+        conn->read(1024, [](buffer_t, size_t n) {
+          CHECK(n > 0, "Received data");
+        });
 			})
 			.onError([](Connection_ptr, TCP::TCPException err) {
 				CHECK(false, "Error occured: %s", err.what());
@@ -98,14 +100,14 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
 	INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
 	inet->tcp().connect(outgoing)
 		->onConnect([](Connection_ptr conn) {
-			conn->write(small);
-		})
-		.onReceive([](Connection_ptr conn, bool) {
-			CHECK(conn->read() == small, "conn->read() == small");
+			conn->write(small.data(), small.size());
+      conn->read(small.size(), [](buffer_t buffer, size_t n) {
+        CHECK(std::string((char*)buffer.get(), n) == small, "conn->read() == small");
+      });
 		})
 		.onDisconnect([](Connection_ptr, TCP::Connection::Disconnect) {
 			CHECK(true, "Connection closed by server");
-			
+
 			OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
 		});
 }
@@ -115,7 +117,7 @@ struct Buffer {
 	size_t written, read;
 	char* data;
 	const size_t size;
-	
+
 	Buffer(size_t length) :
 		written(0), read(0), data(new char[length]), size(length) {}
 
@@ -127,24 +129,23 @@ struct Buffer {
 void Service::start()
 {
 	for(int i = 0; i < S; i++) small += TEST_STR;
-	for(int i = 0; i < B; i++) big += TEST_STR;		
+	for(int i = 0; i < B; i++) big += TEST_STR;
 	for(int i = 0; i < H; i++) huge += TEST_STR;
 
 	hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
-  
+
   inet->network_config( {{ 10,0,0,42 }},      // IP
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
- 	
- 	bufstore_capacity = inet->available_capacity();
+
+ 	buffers_available = inet->buffers_available();
+  INFO("Buffers available", "%u", inet->buffers_available());
  	auto& tcp = inet->tcp();
- 	// this is default
- 	tcp.set_buffer_limit(10);
  	// reduce test duration
  	tcp.set_MSL(MSL_TEST);
-	
+
 	/*
 		TEST: Send and receive small string.
 	*/
@@ -155,36 +156,40 @@ void Service::start()
 	*/
 	CHECK(tcp.openPorts() == 0, "tcp.openPorts() == 0");
 	CHECK(tcp.activeConnections() == 0, "tcp.activeConnections() == 0");
-	
+
 	tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
 		INFO("TEST", "SMALL string (%u)", small.size());
-		conn->onReceive([](Connection_ptr conn, bool) {
-			CHECK(conn->read() == small, "conn.read() == small");
+		conn->read(small.size(), [conn](buffer_t buffer, size_t n) {
+      CHECK(inet->buffers_available() < buffers_available,
+        "inet->buffers_available() < buffers_available");
+			CHECK(std::string((char*)buffer.get(), n) == small, "conn.read() == small");
 			conn->close();
 		});
-		conn->write(small);
+		conn->write(small.data(), small.size());
+    INFO("Buffers available", "%u", inet->buffers_available());
 	});
 
 	/*
 		TEST: Server should be bound.
 	*/
 	CHECK(tcp.openPorts() == 1, "tcp.openPorts() == 1");
-	
+
 	/*
 		TEST: Send and receive big string.
 	*/
 	tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
 		INFO("TEST", "BIG string (%u)", big.size());
 		auto response = std::make_shared<std::string>();
-		conn->onReceive([response](Connection_ptr conn, bool) {
-			*response += conn->read();
+		conn->read(big.size(), [response, conn](buffer_t buffer, size_t n) {
+			*response += std::string((char*)buffer.get(), n);
 			if(response->size() == big.size()) {
 				bool OK = (*response == big);
 				CHECK(OK, "conn.read() == big");
 				conn->close();
 			}
 		});
-		conn->write(big);
+		conn->write(big.data(), big.size());
+    INFO("Buffers available", "%u", inet->buffers_available());
 	});
 
 	/*
@@ -192,23 +197,20 @@ void Service::start()
 	*/
 	tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
 		INFO("TEST", "HUGE string (%u)", huge.size());
-		auto buffer = std::make_shared<Buffer>(huge.size());
-		conn->onReceive([buffer](Connection_ptr conn, bool) {
-			// if not all expected data is read
-			if(buffer->read < huge.size())
-				buffer->read += conn->read(buffer->data+buffer->read, conn->receive_buffer().data_size());
-			// if not all expected data is written
-			if(buffer->written < huge.size()) {
-				buffer->written += conn->write(huge.data()+buffer->written, huge.size() - buffer->written);
-			}
+		auto temp = std::make_shared<Buffer>(huge.size());
+		conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
+			memcpy(temp->data + temp->written, buffer.get(), n);
+      temp->written += n;
+
 			// when all expected data is read
-			if(buffer->read == huge.size()) {
-				bool OK = (buffer->str() == huge);
+			if(temp->written == huge.size()) {
+				bool OK = (temp->str() == huge);
 				CHECK(OK, "conn.read() == huge");
 				conn->close();
 			}
 		});
-		buffer->written += conn->write(huge.data(), huge.size());
+		conn->write(huge.data(), huge.size());
+    INFO("Buffers available", "%u", inet->buffers_available());
 	});
 
 	/*
@@ -240,10 +242,10 @@ void Service::start()
 		CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
 		hw::PIT::instance().onTimeout(1s,[conn]{
 			CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
-			
+
 			OUTGOING_TEST({inet->router(), TEST5});
 		});
-		
+
 		hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
 	});
 

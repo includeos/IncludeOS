@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,7 @@ inline unsigned round_up(unsigned n, unsigned div) {
 }
 
 namespace net {
-	
+
 class TCP {
 public:
 	using Address = IP4::addr;
@@ -43,7 +43,9 @@ public:
 		A Sequence number (SYN/ACK) (32 bits)
 	*/
 	using Seq = uint32_t;
-	
+
+  using buffer_t = std::shared_ptr<uint8_t>;
+
 	class Packet;
 	using Packet_ptr = std::shared_ptr<Packet>;
 
@@ -95,7 +97,7 @@ public:
 			Comparator used for vector.
 		*/
 		inline bool operator ==(const Socket &s2) const {
-			return address().whole == s2.address().whole 
+			return address().whole == s2.address().whole
 					and port() == s2.port();
 		}
 
@@ -116,12 +118,12 @@ public:
 
 
 	/////// TCP Stuff - Relevant to the protocol /////
-	
+
 	static constexpr uint16_t default_window_size = 0xffff;
 
 	static constexpr uint16_t default_mss = 536;
 
-	/* 
+	/*
 		Flags (Control bits) in the TCP Header.
 	*/
 	enum Flag {
@@ -140,8 +142,8 @@ public:
 		Representation of the TCP Header.
 
 		RFC 793, (p.15):
-	    0                   1                   2                   3   
-	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+	    0                   1                   2                   3
+	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	   |          Source Port          |       Destination Port        |
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -179,7 +181,7 @@ public:
 	}__attribute__((packed)); // << struct TCP::Header
 
 
-	/* 
+	/*
 		TCP Pseudo header, for checksum calculation
 	*/
 	struct Pseudo_header {
@@ -189,7 +191,7 @@ public:
 		uint8_t proto;
 		uint16_t tcp_length;
 	}__attribute__((packed));
-    
+
 	/*
 		TCP Checksum-header (TCP-header + pseudo-header)
 	*/
@@ -204,7 +206,7 @@ public:
 	struct Full_header {
 		Ethernet::header ethernet;
 		IP4::ip_header ip4;
-		TCP::Header tcp; 
+		TCP::Header tcp;
 	}__attribute__((packed));
 
 	/*
@@ -223,10 +225,10 @@ public:
 
 		static std::string kind_string(Kind kind) {
 			switch(kind) {
-				case MSS: 
+				case MSS:
 					return {"MSS"};
 
-				default: 
+				default:
 					return {"Unknown Option"};
 			}
 		}
@@ -236,7 +238,7 @@ public:
 			uint8_t length;
 			uint16_t mss;
 
-			opt_mss(uint16_t mss) 
+			opt_mss(uint16_t mss)
 				: kind(MSS), length(4), mss(htons(mss)) {}
 		};
 
@@ -248,25 +250,25 @@ public:
 		};
 	};
 
-	
+
 	/*
-		A Wrapper for a TCP Packet. Is everything as a IP4 Packet, 
+		A Wrapper for a TCP Packet. Is everything as a IP4 Packet,
 		in addition to the TCP Header and functions to modify this and the control bits (FLAGS).
 	*/
 	class Packet : public PacketIP4 {
 	public:
-    
+
 	    inline TCP::Header& header() const
 	    {
 	     	return ((TCP::Full_header*) buffer())->tcp;
 	    }
-    
+
     	static const size_t HEADERS_SIZE = sizeof(TCP::Full_header);
-    
+
 	    //! initializes to a default, empty TCP packet, given
 	    //! a valid MTU-sized buffer
     	void init()
-    	{            
+    	{
 	      // Erase all headers (smart? necessary? ...well, convenient)
     		memset(buffer(), 0, HEADERS_SIZE);
     		PacketIP4::init();
@@ -295,27 +297,27 @@ public:
     	inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
 
     	// SETTERS
-    	inline TCP::Packet& set_src_port(TCP::Port p) { 
+    	inline TCP::Packet& set_src_port(TCP::Port p) {
     		header().source_port = htons(p);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_dst_port(TCP::Port p) { 
+    	inline TCP::Packet& set_dst_port(TCP::Port p) {
     		header().destination_port = htons(p);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_seq(TCP::Seq n) { 
+    	inline TCP::Packet& set_seq(TCP::Seq n) {
     		header().seq_nr = htonl(n);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_ack(TCP::Seq n) { 
+    	inline TCP::Packet& set_ack(TCP::Seq n) {
     		header().ack_nr = htonl(n);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_win_size(uint16_t size) { 
+    	inline TCP::Packet& set_win_size(uint16_t size) {
     		header().window_size = htons(size);
     		return *this;
     	}
@@ -339,12 +341,12 @@ public:
 
     	/// FLAGS / CONTROL BITS ///
 
-    	inline TCP::Packet& set_flag(TCP::Flag f) { 
+    	inline TCP::Packet& set_flag(TCP::Flag f) {
     		header().offset_flags.whole |= htons(f);
     		return *this;
     	}
 
-    	inline TCP::Packet& set_flags(uint16_t f) { 
+    	inline TCP::Packet& set_flags(uint16_t f) {
     		header().offset_flags.whole |= htons(f);
     		return *this;
     	}
@@ -365,44 +367,44 @@ public:
     	/// OFFSET, OPTIONS, DATA ///
 
     	// Get the raw tcp offset, in quadruples
-		inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
+      inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
 
-		// Set raw TCP offset in quadruples
-		inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
+      // Set raw TCP offset in quadruples
+      inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
 
-		// The actaul TCP header size (including options).
-		inline uint8_t header_size() const { return offset() * 4; }
+      // The actaul TCP header size (including options).
+      inline uint8_t header_size() const { return offset() * 4; }
 
-		// Calculate the full header length, down to linklayer, in bytes
-		uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
+      // Calculate the full header length, down to linklayer, in bytes
+      uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
 
-		// Where data starts
-		inline char* data() { return (char*) (buffer() + all_headers_len()); }
-    	
-    	inline uint16_t data_length() const { return size() - all_headers_len(); }
+      // Where data starts
+      inline char* data() { return (char*) (buffer() + all_headers_len()); }
 
-    	inline bool has_data() const { return data_length() > 0; }
+      inline uint16_t data_length() const { return size() - all_headers_len(); }
 
-    	inline uint16_t tcp_length() const { return header_size() + data_length(); }
+      inline bool has_data() const { return data_length() > 0; }
 
-    	template <typename T, typename... Args>
-    	inline void add_option(Args&&... args) {
-    		// to avoid headache, options need to be added BEFORE any data.
-    		assert(!has_data());
-    		// option address
-    		auto* addr = options()+options_length();
-    		new (addr) T(args...);
-    		// update offset
-    		set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
-    		set_length(); // update
-    	}
+      inline uint16_t tcp_length() const { return header_size() + data_length(); }
 
-    	inline void clear_options() {
-    		// clear existing options
-    		// move data (if any) (??)
-    		set_offset(5);
-    		set_length(); // update
-    	}
+      template <typename T, typename... Args>
+      inline void add_option(Args&&... args) {
+        // to avoid headache, options need to be added BEFORE any data.
+        assert(!has_data());
+        // option address
+        auto* addr = options()+options_length();
+        new (addr) T(args...);
+        // update offset
+        set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+        set_length(); // update
+      }
+
+      inline void clear_options() {
+        // clear existing options
+        // move data (if any) (??)
+        set_offset(5);
+        set_length(); // update
+      }
 
     	inline uint8_t* options() { return (uint8_t*) header().options; }
 
@@ -432,8 +434,8 @@ public:
     	inline std::string to_string() {
     		std::ostringstream os;
     		os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
-    			<< " SEQ:" << seq() << " ACK:" << ack() 
-    			<< " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length() 
+    			<< " SEQ:" << seq() << " ACK:" << ack()
+    			<< " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length()
     			<< " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
     		return os.str();
     	}
@@ -454,7 +456,7 @@ public:
 	*/
 	class TCPBadOptionException : public TCPException {
 	public:
-		TCPBadOptionException(Option::Kind kind, const std::string& error) : 
+		TCPBadOptionException(Option::Kind kind, const std::string& error) :
 			TCPException("Bad Option [" + Option::kind_string(kind) + "]: " + error),
 			kind_(kind) {};
 
@@ -464,77 +466,116 @@ public:
 	};
 
 	/*
-		Buffer for TCP::Packet_ptr
-	*/
-	template<typename T = TCP::Packet_ptr, typename Buffer = std::queue<T>>
-	class PacketBuffer {
-	public:
-		
-		PacketBuffer(typename Buffer::size_type limit) :
-			buffer_(), data_length_(0),
-			data_offset_(0), limit_(limit)
-		{
-
-		}
-		/* Number of packets */
-		inline auto size() const { return buffer_.size(); }
-		
-		/* Amount of data */
-		inline size_t data_size() const { return data_length_; }
-
-		inline void push(const T& packet) {
-			buffer_.push(packet);
-			data_length_ += (size_t)packet->data_length();
-		}
-
-		inline bool add(T packet) {
-			if(full()) return false;
-			push(packet);
-			return true;
-		}
-
-		inline void pop() {
-			data_length_ -= (size_t)buffer_.front()->data_length();
-			buffer_.pop();
-		}
-
-		inline const T& front() const { return buffer_.front(); }
-
-		inline const T& back() const { return buffer_.back(); }
-
-		inline bool empty() const { return buffer_.empty(); }
-
-		inline auto limit() const { return limit_; }
-
-		inline bool full() const { return size() >= limit(); }
-
-		inline auto data_offset() const { return data_offset_; }
-
-		inline void set_data_offset(uint32_t offset) { data_offset_ = offset; }
-
-		inline void clear() {
-			while(!buffer_.empty())
-				buffer_.pop();
-			data_length_ = {0};
-			data_offset_ = {0};
-		}
-
-	private:
-		Buffer buffer_;
-		size_t data_length_;
-		uint32_t data_offset_;
-		typename Buffer::size_type limit_;
-
-	}; // << TCP::PacketBuffer
-
-
-	/*
 		A connection between two Sockets (local and remote).
 		Receives and handle TCP::Packet.
 		Transist between many states.
 	*/
 	class Connection : public std::enable_shared_from_this<Connection> {
-	public:
+    friend class TCP;
+  public:
+
+    /*
+      Wrapper around a buffer that receives data.
+    */
+    struct ReadBuffer {
+      buffer_t buffer;
+      size_t remaining;
+      size_t offset;
+      bool push;
+
+      ReadBuffer(buffer_t buf, size_t length, size_t offs = 0)
+        : buffer(buf), remaining(length-offs), offset(offs), push(false) {}
+
+      inline size_t capacity() const { return remaining + offset; }
+
+      inline bool empty() const { return offset == 0; }
+
+      inline bool full() const { return remaining == 0; }
+
+      inline size_t size() const { return offset; }
+
+      inline uint8_t* begin() const { return buffer.get(); }
+
+      inline uint8_t* pos() const { return buffer.get() + offset; }
+
+      inline uint8_t* end() const { return buffer.get() + capacity(); }
+
+      inline bool advance(size_t length) {
+        assert(length <= remaining);
+        offset += length;
+        remaining -= length;
+        return length > 0;
+      }
+
+      inline size_t add(uint8_t* data, size_t n) {
+        auto written = std::min(n, remaining);
+        memcpy(pos(), data, written);
+        return written;
+      }
+
+      inline void clear() {
+        memset(begin(), 0, offset);
+        remaining = capacity();
+        offset = 0;
+        push = false;
+      }
+    }; // < Connection::ReadBuffer
+
+
+    /*
+      Wrapper around a buffer that contains data to be written.
+    */
+    struct WriteBuffer {
+      buffer_t buffer;
+      size_t remaining;
+      size_t offset;
+      bool push;
+
+      WriteBuffer(buffer_t buf, size_t length, bool PSH, size_t offs = 0)
+        : buffer(buf), remaining(length-offs), offset(offs), push(PSH) {}
+
+      inline size_t length() const { return remaining + offset; }
+
+      inline bool done() const { return remaining == 0; }
+
+      inline uint8_t* begin() const { return buffer.get(); }
+
+      inline uint8_t* pos() const { return buffer.get() + offset; }
+
+      inline uint8_t* end() const { return buffer.get() + length(); }
+
+      inline bool advance(size_t length) {
+        assert(length <= remaining);
+        offset += length;
+        remaining -= length;
+        return length > 0;
+      }
+    }; // < Connection::WriteBuffer
+
+    /*
+      Callback when a receive buffer receives either push or is full
+      - Supplied on asynchronous read
+    */
+    using ReadCallback = delegate<void(buffer_t, size_t)>;
+
+    struct ReadRequest {
+      ReadBuffer buffer;
+      ReadCallback callback;
+
+      ReadRequest(ReadBuffer buf, ReadCallback cb) : buffer(buf), callback(cb) {}
+      ReadRequest(size_t n = 0) :
+        buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
+        callback([](auto, auto){}) {}
+    };
+
+    /*
+      Callback when a write is sent by the TCP
+      - Supplied on asynchronous write
+    */
+    using WriteCallback = delegate<void(size_t)>;
+
+    using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
+
 		/*
 			Connection identifier
 		*/
@@ -546,18 +587,12 @@ public:
 			First thing that will happen.
 		*/
 		using AcceptCallback			= delegate<bool(std::shared_ptr<Connection>)>;
-		
+
 		/*
 			On connected - When both hosts exchanged sequence numbers (handshake is done).
 			Now in ESTABLISHED state - it's allowed to write and read to/from the remote.
 		*/
 		using ConnectCallback 			= delegate<void(std::shared_ptr<Connection>)>;
-		
-		/*
-			On receiving data - When there is data to read in the receive buffer.
-			Either when remote PUSH, or buffer is full.
-		*/
-		using ReceiveCallback 			= delegate<void(std::shared_ptr<Connection>, bool)>;
 
 		/*
 			On disconnect - When a remote told it wanna close the connection.
@@ -570,7 +605,7 @@ public:
 		/*
 			On error - When any of the users request fails.
 		*/
-		using ErrorCallback 			= delegate<void(std::shared_ptr<Connection>, TCPException)>;
+		using ErrorCallback 			  = delegate<void(std::shared_ptr<Connection>, TCPException)>;
 
 		/*
 			When a packet is received - Everytime a connection receives an incoming packet.
@@ -585,10 +620,6 @@ public:
 		*/
 		using PacketDroppedCallback		= delegate<void(TCP::Packet_ptr, std::string)>;
 
-		/*
-			Buffer
-		*/
-		using Buffer = PacketBuffer<>;
 
 		/*
 			Reason for disconnect event.
@@ -598,7 +629,7 @@ public:
 			enum Reason {
 				CLOSING,
 				REFUSED,
-				RESET	
+				RESET
 			};
 
 			Reason reason;
@@ -613,7 +644,7 @@ public:
 
 			std::string to_string() const {
 				switch(reason) {
-				case CLOSING: 
+				case CLOSING:
 					return "Connection closing";
 				case REFUSED:
 					return "Conneciton refused";
@@ -645,26 +676,26 @@ public:
 				Write to a Connection.
 				SEND
 			*/
-			virtual size_t send(Connection&, const char* buffer, size_t n, bool push = false);
+			virtual size_t send(Connection&, WriteBuffer&);
 
 			/*
 				Read from a Connection.
 				RECEIVE
 			*/
-			virtual size_t receive(Connection&, char* buffer, size_t n);
-			
+			virtual void receive(Connection&, ReadBuffer&);
+
 			/*
 				Close a Connection.
 				CLOSE
 			*/
 			virtual void close(Connection&);
-			
+
 			/*
 				Terminate a Connection.
 				ABORT
 			*/
 			virtual void abort(Connection&);
-			
+
 			/*
 				Handle a Packet
 				SEGMENT ARRIVES
@@ -677,7 +708,18 @@ public:
 			*/
 			virtual std::string to_string() const = 0;
 
-		protected:		
+      /*
+
+      */
+      virtual bool is_connected() const { return false; }
+
+      virtual bool is_writable() const { return false; }
+
+      virtual bool is_readable() const { return false; }
+
+      virtual bool is_closing() const { return false; }
+
+		protected:
 			/*
 				Helper functions
 				TODO: Clean up names.
@@ -708,14 +750,14 @@ public:
 		class FinWait1;
 		class FinWait2;
 		class CloseWait;
-		class LastAck;
 		class Closing;
+    class LastAck;
 		class TimeWait;
 
 		/*
 			Transmission Control Block.
 			Keep tracks of all the data for a connection.
-			
+
 			RFC 793: Page 19
 			Among the variables stored in the
   			TCB are the local and remote socket numbers, the security and
@@ -788,28 +830,65 @@ public:
 		inline void set_remote(Socket remote) { remote_ = remote; }
 
 
-		/*
-			Read content from remote.
-		*/
-		size_t read(char* buffer, size_t n);
+    /*
+      Read asynchronous from a remote.
+
+      Create n sized internal read buffer and callback for when data is received.
+      Callback will be called until overwritten with a new read() or connection closes.
+      Buffer is cleared for data after every reset.
+    */
+    inline void read(size_t n, ReadCallback callback) {
+      ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
+      read(buffer, callback);
+    }
+
+    /*
+      Assign the connections receive buffer and callback for when data is received.
+      Works as read(size_t, ReadCallback);
+    */
+    inline void read(buffer_t buffer, size_t n, ReadCallback callback) {
+      read({buffer, n}, callback);
+    }
+
+    void read(ReadBuffer buffer, ReadCallback callback);
+
 
 		/*
-			Read n bytes into a string.
-			Default 1024 bytes.
-		*/
-		std::string read(size_t n = 0);
+			Write asynchronous to a remote.
 
-		/*
-			Write content to remote.
+      Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
+      Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
 		*/
-		size_t write(const char* buffer, size_t n, bool PUSH = true);
+    inline void write(const void* buf, size_t n, WriteCallback callback, bool PUSH = true) {
+      auto buffer = buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>());
+      memcpy(buffer.get(), buf, n);
+      write(buffer, n, callback, PUSH);
+    }
 
-		/*
-			Write a string to the remote.
-		*/
-		inline void write(const std::string& content) {
-			write(content.data(), content.size(), true);
-		}
+    /*
+      Works as write(const void*, size_t, WriteCallback, bool),
+      but with the exception of avoiding copying the data to an internal buffer.
+    */
+    inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH = true) {
+      write({buffer, n, PUSH}, callback);
+    }
+
+    /*
+      Works the same as it's counterpart, without subscribing to a WriteCallback.
+    */
+    inline void write(const void* buf, size_t n, bool PUSH = true) {
+      write(buf, n, [](auto){}, PUSH);
+    }
+
+    /*
+      Works the same as it's counterpart, without subscribing to a WriteCallback.
+    */
+    inline void write(buffer_t buffer, size_t n, bool PUSH = true) {
+      write({buffer, n, PUSH}, [](auto){});
+    }
+
+    void write(WriteBuffer request, WriteCallback callback);
+
 
 		/*
 			Open connection.
@@ -842,14 +921,6 @@ public:
 		*/
 		inline Connection& onConnect(ConnectCallback callback) {
 			on_connect_ = callback;
-			return *this;
-		}
-
-		/*
-			Set callback for ON RECEIVE event.
-		*/
-		inline Connection& onReceive(ReceiveCallback callback) {
-			on_receive_ = callback;
 			return *this;
 		}
 
@@ -916,6 +987,19 @@ public:
 			return control_block.RCV.NXT - control_block.IRS;
 		}
 
+    /*
+      Bytes queued for transmission.
+      TODO: Implement when retransmission is up and running.
+    */
+    //inline size_t send_queue_bytes() const {}
+
+    /*
+      Bytes currently in receive buffer.
+    */
+    inline size_t read_queue_bytes() const {
+      return read_request.buffer.size();
+    }
+
 		/*
 			Return the id (TUPLE) of the connection.
 		*/
@@ -923,43 +1007,26 @@ public:
 			return {local_port_, remote_};
 		}
 
-		/*
-			Receive buffer
-		*/
-		inline const Buffer& receive_buffer() {
-			return receive_buffer_;
-		}
-
-		/*
-			Send buffer
-		*/
-		inline const Buffer& send_buffer() {
-			return send_buffer_;
-		}
-
-		/*
-			Receive a TCP Packet.
-
-			@WARNING: Public, for use in TCP::bottom (friend it?)
-		*/
-		void receive(TCP::Packet_ptr);
-
 
 		/*
 			State checks.
 		*/
 		bool is_listening() const;
 
-		bool is_connected() const;
+		inline bool is_connected() const { return state_->is_connected(); }
 
-		bool is_closing() const;
+    inline bool is_writable() const { return state_->is_writable(); }
 
-		bool is_writable() const;
+    inline bool is_readable() const { return state_->is_readable(); }
+
+		inline bool is_closing() const { return state_->is_closing(); }
+
+
 
 		/*
 			Helper function for state checks.
 		*/
-		inline bool is_state(const State& state) const { 
+		inline bool is_state(const State& state) const {
 			return state_ == &state;
 		}
 
@@ -975,44 +1042,53 @@ public:
 		~Connection();
 
 	private:
-		/* 
+		/*
 			"Parent" for Connection.
 		*/
 		TCP& host_;				// 4 B
 
-		/* 
+		/*
 			End points.
 		*/
 		TCP::Port local_port_;	// 2 B
 		TCP::Socket remote_;	// 8~ B
 
-		/* 
-			The current state the Connection is in. 
-			Handles most of the logic. 
+		/*
+			The current state the Connection is in.
+			Handles most of the logic.
 		*/
 		State* state_;			// 4 B
 		// Previous state. Used to keep track of state transitions.
 		State* prev_state_;		// 4 B
-		
-		/* 
+
+		/*
 			Keep tracks of all sequence variables.
 		*/
 		TCB control_block;		// 36 B
 
-		/* 
-			Buffers
-		*/
-		Buffer receive_buffer_;
-		Buffer send_buffer_;
+    /*
+      The given read request
+    */
+    ReadRequest read_request;
+
+    /*
+      Queue for write requests to process
+    */
+    std::queue<WriteRequest> write_queue;
+
+    /*
+      Bytes queued for transmission.
+    */
+    //size_t write_queue_total;
 
 		/*
 			When time-wait timer was started.
 		*/
 		uint64_t time_wait_started;
 
-		
+
 		/// CALLBACK HANDLING ///
-		
+
 		/* When a Connection is initiated. */
 		AcceptCallback on_accept_ = AcceptCallback::from<Connection,&Connection::default_on_accept>(this);
 		inline bool default_on_accept(std::shared_ptr<Connection>) {
@@ -1024,11 +1100,6 @@ public:
 		ConnectCallback on_connect_ = [](std::shared_ptr<Connection>) {
 			debug2("<TCP::Connection::@Connect> Connected.\n");
 		};
-		
-		/* When data is received */
-		ReceiveCallback on_receive_ = [](std::shared_ptr<Connection>, bool) {
-			debug2("<TCP::Connection::@Receive> Connection received data. \n");
-		};
 
 		/* When Connection is CLOSING. */
 		DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, Disconnect) {
@@ -1037,8 +1108,8 @@ public:
 
 		/* When error occcured. */
 		ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
-		inline void default_on_error(std::shared_ptr<Connection>, TCPException) { 
-			//debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what()); 
+		inline void default_on_error(std::shared_ptr<Connection>, TCPException) {
+			//debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
 		}
 
 		/* When packet is received */
@@ -1047,10 +1118,81 @@ public:
 		};
 
 		/* When a packet is dropped. */
-		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) { 
-			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n", 
+		PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) {
+			//debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
 			//	packet->to_string().c_str(), reason.c_str());
 		};
+
+
+    /// READING ///
+
+    /*
+      Assign the read request (read buffer)
+    */
+    inline void receive(ReadBuffer& buffer) {
+      read_request.buffer = {buffer};
+    }
+
+    /*
+      Receive data into the current read requests buffer.
+    */
+    size_t receive(const uint8_t* data, size_t n, bool PUSH);
+
+    /*
+      Copy data into the ReadBuffer
+    */
+    inline size_t receive(ReadBuffer& buf, const uint8_t* data, size_t n) {
+      auto received = std::min(n, buf.remaining);
+      memcpy(buf.pos(), data, received); // Can we use move?
+      return received;
+    }
+
+    /*
+      Remote is closing, no more data will be received.
+      Returns receive buffer to user.
+    */
+    inline void receive_disconnect() {
+      assert(!read_request.buffer.empty());
+      auto& buf = read_request.buffer;
+      buf.push = true;
+      read_request.callback(buf.buffer, buf.size());
+    }
+
+
+    /// WRITING ///
+
+    /*
+      Active try to send a buffer by asking the TCP.
+    */
+    inline size_t send(WriteBuffer& buffer) {
+      return host_.send(shared_from_this(), buffer);
+    }
+
+    /*
+      Segmentize buffer into packets until either everything has been written,
+      or all packets are used up.
+    */
+    size_t send(const char* buffer, size_t remaining, size_t& packets, bool PUSH);
+
+    inline size_t send(WriteBuffer& buffer, size_t& packets) {
+      return send((char*)buffer.pos(), buffer.remaining, packets, buffer.push);
+    }
+
+    /*
+      Process the write queue with the given amount of packets.
+      Returns true if all the jobs are done (queue is empty)
+    */
+    bool offer(size_t& packets);
+
+    /*
+      Try to write (some of) queue on connected.
+    */
+    void write_queue_on_connect();
+
+    /*
+      Reset queue on disconnect. Clears the queue and notice every requests callback.
+    */
+    void write_queue_reset();
 
 		/*
 			Invoke/signal the diffrent TCP events.
@@ -1058,8 +1200,6 @@ public:
 		inline bool signal_accept() { return on_accept_(shared_from_this()); }
 
 		inline void signal_connect() { on_connect_(shared_from_this()); }
-
-		inline void signal_receive(bool PUSH) { on_receive_(shared_from_this(), PUSH); }
 
 		inline void signal_disconnect(Disconnect::Reason&& reason) { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
@@ -1099,21 +1239,6 @@ public:
 		/// BUFFER HANDLING ///
 
 		/*
-			Read from receive buffer.
-		*/
-		size_t read_from_receive_buffer(char* buffer, size_t n);
-
-		/*
-			Add(queue) a packet to the receive buffer.
-		*/
-		bool add_to_receive_buffer(TCP::Packet_ptr packet);
-		
-		/*
-			Write to the send buffer. Segmentize into packets.
-		*/
-		size_t write_to_send_buffer(const char* buffer, size_t n, bool PUSH = true);
-
-		/*
 			Transmit the send buffer.
 		*/
 		void transmit();
@@ -1124,22 +1249,22 @@ public:
 		void transmit(TCP::Packet_ptr);
 
 		/*
-			Creates a new outgoing packet and put it in the back of the send buffer.
+			Creates a new outgoing packet with the current TCB values and options.
 		*/
 		TCP::Packet_ptr create_outgoing_packet();
 
 		/*
-		 	Returns the packet in the back of the send buffer.
-		 	If the send buffer is empty, it creates a new packet and adds it.
 		*/
-	 	TCP::Packet_ptr outgoing_packet();		
+	 	inline TCP::Packet_ptr outgoing_packet() {
+      return create_outgoing_packet();
+    }
 
-	 	
+
 	 	/// RETRANSMISSION ///
 
 	 	/*
 	 		Starts a retransmission timer that retransmits the packet when RTO has passed.
-	 		
+
 	 		// TODO: Calculate RTO, currently hardcoded to 1 second (1000ms).
 	 	*/
 	 	void add_retransmission(TCP::Packet_ptr);
@@ -1152,11 +1277,11 @@ public:
       		Time (RTT).
 	 	*/
 	 	//std::chrono::milliseconds RTT() const;
-  		std::chrono::milliseconds RTO() const;
-  		
-  		/*
+		std::chrono::milliseconds RTO() const;
+
+		/*
 			Start the time wait timeout for 2*MSL
-  		*/
+		*/
 	 	void start_time_wait_timeout();
 
 	 	/*
@@ -1184,6 +1309,11 @@ public:
 	 	*/
 		void add_option(TCP::Option::Kind, TCP::Packet_ptr);
 
+    /*
+      Receive a TCP Packet.
+    */
+    void segment_arrived(TCP::Packet_ptr);
+
 	}; // < class TCP::Connection
 
 
@@ -1193,9 +1323,9 @@ public:
 		Constructor
 	*/
 	TCP(IPStack&);
-	
+
 	/*
-		Bind a new listener to a given Port.	
+		Bind a new listener to a given Port.
 	*/
 	TCP::Connection& bind(Port port);
 
@@ -1207,8 +1337,8 @@ public:
 	/*
 		Active open a new connection to the given remote.
 	*/
-	inline auto connect(TCP::Address address, Port port = 80) { 
-		return connect({address, port}); 
+	inline auto connect(TCP::Address address, Port port = 80) {
+		return connect({address, port});
 	}
 
 	/*
@@ -1221,7 +1351,7 @@ public:
 	*/
 	void bottom(net::Packet_ptr);
 
-	/* 
+	/*
 		Delegate output to network layer
 	*/
 	inline void set_network_out(downstream del) { _network_layer_out = del; }
@@ -1229,15 +1359,15 @@ public:
 	/*
 		Compute the TCP checksum
 	*/
-    static uint16_t checksum(const TCP::Packet_ptr);
+  static uint16_t checksum(const TCP::Packet_ptr);
 
-    inline const auto& listeners() { return listeners_; }
+  inline const auto& listeners() { return listeners_; }
 
-    inline const auto& connections() { return connections_; }
+  inline const auto& connections() { return connections_; }
 
-    /*
-		Number of open ports.
-    */
+  /*
+    Number of open ports.
+  */
 	inline size_t openPorts() { return listeners_.size(); }
 
 	/*
@@ -1253,20 +1383,8 @@ public:
 	/*
 		Set Maximum Segment Lifetime
 	*/
-	inline void set_MSL(const std::chrono::milliseconds msl) { 
+	inline void set_MSL(const std::chrono::milliseconds msl) {
 		MAX_SEG_LIFETIME = msl;
-	}
-
-	/*
-		Maximum Buffer Size
-	*/
-	inline auto buffer_limit() const { return MAX_BUFFER_SIZE; }
-
-	/*
-		Set Buffer limit
-	*/
-	inline void set_buffer_limit(size_t buffer_limit) {
-		MAX_BUFFER_SIZE = buffer_limit;
 	}
 
 	/*
@@ -1282,7 +1400,7 @@ public:
 			MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
 		*/
 		const uint16_t VBOX_LIMIT = 1482;
-		return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header); 
+		return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header);
 	}
 
 	/*
@@ -1292,25 +1410,22 @@ public:
 
 
 private:
+
 	IPStack& inet_;
 	std::map<TCP::Port, Connection> listeners_;
 	std::map<Connection::Tuple, Connection_ptr> connections_;
 
 	downstream _network_layer_out;
 
-	/* 
+  std::queue<Connection_ptr> write_queue;
+
+	/*
 		Settings
 	*/
 	TCP::Port current_ephemeral_ = 1024;
 
 	std::chrono::milliseconds MAX_SEG_LIFETIME;
 
-	/*
-		Current: limit by packet COUNT.
-		Connection buffer size in bytes = buffers * BUFFER_LIMIT * MTU.
-	*/
-	size_t MAX_BUFFER_SIZE = 10;
-	
 	/*
 		Transmit packet to network layer (IP).
 	*/
@@ -1340,6 +1455,17 @@ private:
 		Close and delete the connection.
 	*/
 	void close_connection(TCP::Connection&);
+
+  /*
+    Process the write queue with the given amount of free packets.
+  */
+  void process_write_queue(size_t packets);
+
+  /*
+    Ask to send a Connection's WriteBuffer.
+    If there is no free packets, the job will be queued.
+  */
+  size_t send(Connection_ptr, Connection::WriteBuffer&);
 
 
 }; // < class TCP

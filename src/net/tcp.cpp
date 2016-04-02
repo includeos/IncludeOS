@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,21 +23,22 @@ using namespace std;
 using namespace net;
 
 
-TCP::TCP(IPStack& inet) : 
+TCP::TCP(IPStack& inet) :
 	inet_(inet),
 	listeners_(),
 	connections_(),
+  write_queue(),
 	MAX_SEG_LIFETIME(30s)
 {
-
+  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_write_queue>(this));
 }
 
 /*
 	Note: There is different approaches to how to handle listeners & connections.
 	Need to discuss and decide for the best one.
 
-	Best solution(?): 
-	Preallocate a pool with listening connections. 
+	Best solution(?):
+	Preallocate a pool with listening connections.
 	When threshold is reach, remove/add new ones, similar to TCP window.
 
 	Current solution:
@@ -58,7 +59,7 @@ TCP::Connection& TCP::bind(Port port) {
 /*
 	Active open a new connection to the given remote.
 
-	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)), 
+	@WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)),
 	and open() is called before callback is added.
 */
 TCP::Connection_ptr TCP::connect(Socket remote) {
@@ -105,7 +106,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 	pseudo_hdr.saddr.whole = packet->src().whole;
 	pseudo_hdr.daddr.whole = packet->dst().whole;
 	pseudo_hdr.zero = 0;
-	pseudo_hdr.proto = IP4::IP4_TCP;	 
+	pseudo_hdr.proto = IP4::IP4_TCP;
 	pseudo_hdr.tcp_length = htons(tcp_length);
 
 	union {
@@ -117,7 +118,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 
 	// Compute sum of pseudo header
 	for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-		sum.whole += *it;       
+		sum.whole += *it;
 
 	// Compute sum sum the actual header and data
 	for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
@@ -144,9 +145,9 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Translate into a TCP::Packet. This will be used inside the TCP-scope.
 	auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
-	debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n", 
+	debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
 			packet->source().to_string().c_str(), packet->destination().to_string().c_str());
-	
+
 	// Do checksum
 	if(checksum(packet)) {
 		debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
@@ -159,9 +160,9 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 	// Connection found
 	if(conn_it != connections_.end()) {
 		debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
-		conn_it->second->receive(packet);
+		conn_it->second->segment_arrived(packet);
 	}
-	// No connection found 
+	// No connection found
 	else {
 		// Is there a listener?
 		auto listen_conn_it = listeners_.find(packet->dst_port());
@@ -174,14 +175,37 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 			// Set remote
 			connection->set_remote(packet->source());
 			debug("<TCP::bottom> ... Creating connection: %s \n", connection->to_string().c_str());
-			
-			connection->receive(packet);
+
+			connection->segment_arrived(packet);
 		}
 		// No listener found
 		else {
 			drop(packet);
 		}
 	}
+}
+
+void TCP::process_write_queue(size_t packets) {
+  // foreach connection who wants to write
+  while(packets and !write_queue.empty()) {
+    auto conn = write_queue.front();
+    if(conn->offer(packets))
+      write_queue.pop();
+  }
+}
+
+size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
+  size_t written{0};
+
+  if(write_queue.empty()) {
+    auto packets = inet_.transmit_queue_available();
+    written = conn->send(buffer, packets);
+  }
+
+  if(written < buffer.remaining)
+    write_queue.push(conn);
+
+  return written;
 }
 
 /*
@@ -202,22 +226,19 @@ string TCP::status() const {
 	ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
 	for(auto con_it : connections_) {
 		auto& c = *(con_it.second);
-		ss << "tcp4\t" 
+		ss << "tcp4\t"
 			<< " " << "\t" << " " << "\t"
 			<< " " << "\t" << " " << "\t"
-			<< c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t" 
+			<< c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t"
 			<< c.state().to_string() << "\n";
 	}
 	return ss.str();
 }
 
-/*TCP::Socket& TCP::add_listener(TCP::Socket&& socket) {
-
-}*/
 
 TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
 	return 	(connections_.emplace(
-				Connection::Tuple{ local_port, remote }, 
+				Connection::Tuple{ local_port, remote },
 				std::make_shared<Connection>(*this, local_port, remote))
 			).first->second;
 }

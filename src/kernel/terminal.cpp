@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,22 +31,25 @@ Terminal::Terminal()
 Terminal::Terminal(Connection_ptr csock)
   : Terminal()
 {
-  csock->onReceive(
+  csock->read(1024, [this](auto buffer, size_t n){
+    this->read((char*)buffer.get(), n);
+  });
+  /*csock->onReceive(
   [this] (auto conn, bool)
   {
     char buffer[1024];
     size_t bytes = conn->read(buffer, sizeof(buffer));
-    
+
     this->read(buffer, bytes);
-  });
-  
-  on_write = 
+  });*/
+
+  on_write =
   [csock] (const char* buffer, size_t len)
   {
     csock->write(buffer, len);
   };
-  
-  on_exit = 
+
+  on_exit =
   [csock] {
     csock->close();
   };
@@ -71,15 +74,15 @@ Terminal::Terminal(hw::Serial& serial)
       serial.write(c);
     }
   });
-  
-  on_write = 
+
+  on_write =
   [&serial] (const char* buffer, size_t len)
   {
     for (size_t i = 0; i < len; i++)
       serial.write(buffer[i]);
   };
-  
-  on_exit = 
+
+  on_exit =
   [] {
     // do nothing
   };
@@ -198,7 +201,7 @@ split(const std::string& text, std::string& command)
   {
     x = text.find(" ", p+1);
     size_t y = text.find(":", x+1); // find last param
-    
+
     if (y == x+1)
     {
       // single argument
@@ -218,9 +221,9 @@ split(const std::string& text, std::string& command)
       retv.push_back(text.substr(p));
     }
     p = x+1;
-    
+
   } while (x != std::string::npos);
-  
+
   return retv;
 }
 
@@ -231,7 +234,7 @@ void Terminal::run(const std::string& cmd_string)
   if (cmd_name.size())
   {
     printf("Terminal::run(): %s\n", cmd_name.c_str());
-    
+
     auto it = commands.find(cmd_name);
     if (it != commands.end())
     {
@@ -267,11 +270,11 @@ void Terminal::add_basic_commands()
       this->on_exit();
       return 0;
     });
-  
+
 }
 void Terminal::intro()
 {
-  std::string banana = 
+  std::string banana =
   R"baaa(
      ____                           ___
     |  _ \  ___              _   _.' _ `.
@@ -286,10 +289,10 @@ void Terminal::intro()
    `..:;::;:..      ::;::;:;:;,    :;::;'
      "-:;::;:;:      ':;::;:''     ;.-'
          ""`---...________...---'""
-  
+
 > Banana Terminal v1 <
 )baaa";
-  
+
   write("%s", banana.c_str());
   prompt();
 }
