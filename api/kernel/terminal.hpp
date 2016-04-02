@@ -50,16 +50,16 @@ public:
   using Connection_ptr = std::shared_ptr<net::TCP::Connection>;
   using Disk_ptr = std::shared_ptr<fs::Disk>;
   enum
-    {
-      NUL  = 0,
-      BELL = 7,
-      BS   = 8,
-      HTAB = 9,
-      LF   = 10,
-      VTAB = 11,
-      FF   = 12,
-      CR   = 13
-    };
+  {
+    NUL  = 0,
+    BELL = 7,
+    BS   = 8,
+    HTAB = 9,
+    LF   = 10,
+    VTAB = 11,
+    FF   = 12,
+    CR   = 13
+  };
   
   using on_write_func = std::function<void(const char*, size_t)>;
   

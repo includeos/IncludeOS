@@ -29,87 +29,87 @@
 
 namespace fs {
 
-  class Disk {
-  public:
-    struct Partition; //< Representation of a disk partition
+class Disk {
+public:
+  struct Partition; //< Representation of a disk partition
 
-    /** Callbacks */
-    using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
-    using on_mount_func = std::function<void(error_t)>;
+  /** Callbacks */
+  using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
+  using on_mount_func = std::function<void(error_t)>;
   
-    /** Constructor */
-    explicit Disk(hw::IDiskDevice&);
+  /** Constructor */
+  explicit Disk(hw::IDiskDevice&);
 
-    enum partition_t {
-      MBR = 0, //< Master Boot Record (0)
-      /** extended partitions (1-4) */
-      VBR1,
-      VBR2,
-      VBR3,
-      VBR4,
+  enum partition_t {
+    MBR = 0, //< Master Boot Record (0)
+    /** extended partitions (1-4) */
+    VBR1,
+    VBR2,
+    VBR3,
+    VBR4,
     
-      INVALID
-    }; //<  enum partition_t
+    INVALID
+  }; //<  enum partition_t
   
-    struct Partition {
-      explicit Partition(const uint8_t  fl,  const uint8_t  Id,
-			 const uint32_t LBA, const uint32_t sz) noexcept :
-	flags     {fl},
-	id        {Id},
-	lba_begin {LBA},
-	sectors   {sz}
-      {}
+  struct Partition {
+    explicit Partition(const uint8_t  fl,  const uint8_t  Id,
+                       const uint32_t LBA, const uint32_t sz) noexcept :
+      flags     {fl},
+      id        {Id},
+      lba_begin {LBA},
+      sectors   {sz}
+    {}
     
-      uint8_t  flags;
-      uint8_t  id;
-      uint32_t lba_begin;
-      uint32_t sectors;
+    uint8_t  flags;
+    uint8_t  id;
+    uint32_t lba_begin;
+    uint32_t sectors;
     
-      // true if the partition has boot code / is bootable
-      bool is_boot() const noexcept
-      { return flags & 0x1; }
+    // true if the partition has boot code / is bootable
+    bool is_boot() const noexcept
+    { return flags & 0x1; }
     
-      // human-readable name of partition id
-      std::string name() const;
+    // human-readable name of partition id
+    std::string name() const;
     
-      // logical block address of beginning of partition
-      uint32_t lba() const
-      { return lba_begin; }
+    // logical block address of beginning of partition
+    uint32_t lba() const
+    { return lba_begin; }
     
-    }; //< struct Partition
+  }; //< struct Partition
   
-    /** Return a reference to the specified filesystem <FS> */
-    FileSystem& fs() noexcept
-    { return *filesys; }
+  /** Return a reference to the specified filesystem <FS> */
+  FileSystem& fs() noexcept
+  { return *filesys; }
   
-    //************** disk functions **************//
+  //************** disk functions **************//
   
-    hw::IDiskDevice& dev() noexcept
-    { return device; }
+  hw::IDiskDevice& dev() noexcept
+  { return device; }
   
-    // Returns true if the disk has no sectors
-    bool empty() const noexcept
-    { return device.size() == 0; }
+  // Returns true if the disk has no sectors
+  bool empty() const noexcept
+  { return device.size() == 0; }
   
-    // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
-    void mount(on_mount_func func);
+  // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
+  void mount(on_mount_func func);
   
-    // Mount partition @part as the filesystem FS
-    void mount(partition_t part, on_mount_func func);
+  // Mount partition @part as the filesystem FS
+  void mount(partition_t part, on_mount_func func);
   
-    /**
-     *  Returns a vector of the partitions on a disk
-     *
-     *  The disk does not need to be mounted beforehand
-     */
-    void partitions(on_parts_func func);
+  /**
+   *  Returns a vector of the partitions on a disk
+   *
+   *  The disk does not need to be mounted beforehand
+   */
+  void partitions(on_parts_func func);
   
-  private:
-    hw::IDiskDevice& device;
-    std::unique_ptr<FileSystem> filesys;
-  }; //< class Disk
+private:
+  hw::IDiskDevice& device;
+  std::unique_ptr<FileSystem> filesys;
+}; //< class Disk
 
-  using Disk_ptr = std::shared_ptr<Disk>;
+using Disk_ptr = std::shared_ptr<Disk>;
 
 } //< namespace fs
 

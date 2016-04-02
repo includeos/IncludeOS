@@ -93,7 +93,7 @@ namespace net {
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
-     **/
+    **/
     inline virtual void
     resolve(const std::string& hostname,
             resolve_func<IP4>  func) override

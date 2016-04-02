@@ -16,17 +16,17 @@
 // limitations under the License.
 
 /**
-   @note This virtio implementation was very much inspired by
-   SanOS, (C) Michael Ringgaard. All due respect.
+     @note This virtio implementation was very much inspired by
+     SanOS, (C) Michael Ringgaard. All due respect.
 
-   STANDARD:
+     STANDARD:
 
-   We're aiming to become standards compilant according to this one:
+     We're aiming to become standards compilant according to this one:
 
-   Virtio 1.0, OASIS Committee Specification Draft 03
-   (http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+     Virtio 1.0, OASIS Committee Specification Draft 03
+     (http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
 
-   In the following abbreviated to Virtio 1.03 or Virtio std.
+     In the following abbreviated to Virtio 1.03 or Virtio std.
 */
 #pragma once
 #ifndef VIRTIO_VIRTIO_HPP
@@ -63,7 +63,7 @@
 
 /** A simple scatter-gather list used for Queue::enqueue.
     ( From sanos, virtio.h  - probably Linux originally)
-*/
+ */
 struct scatterlist {
   void* data;
   int size;
@@ -76,21 +76,21 @@ public:
   // http://docs.oasis-open.org/virtio/virtio/v1.0/csprd01/virtio-v1.0-csprd01.html#x1-860005
   // Virtio device types
   enum virtiotype_t
-    {
-      RESERVED = 0,
-      NIC,
-      BLOCK,
-      CONSOLE,
-      ENTROPY,
-      BALLOON,
-      IO_MEM,
-      RP_MSG,
-      SCSI_HOST,
-      T9P,
-      WLAN,
-      RP_SERIAL,
-      CAIF
-    };
+  {
+    RESERVED = 0,
+    NIC,
+    BLOCK,
+    CONSOLE,
+    ENTROPY,
+    BALLOON,
+    IO_MEM,
+    RP_MSG,
+    SCSI_HOST,
+    T9P,
+    WLAN,
+    RP_SERIAL,
+    CAIF
+  };
 
   /** Virtio Queue class. */
   class Queue
@@ -111,11 +111,11 @@ public:
       le32 len;
 
       /* This marks a buffer as continuing via the next field. */
-#define VIRTQ_DESC_F_NEXT     1
+      #define VIRTQ_DESC_F_NEXT     1
       /* This marks a buffer as device write-only (otherwise device read-only). */
-#define VIRTQ_DESC_F_WRITE    2
+      #define VIRTQ_DESC_F_WRITE    2
       /* This means the buffer contains a list of buffer descriptors. */
-#define VIRTQ_DESC_F_INDIRECT 4
+      #define VIRTQ_DESC_F_INDIRECT 4
       /* The flags as indicated above. */
       le16 flags;
       /* Next field if flags & NEXT */
@@ -148,7 +148,7 @@ public:
       le16 flags;
       le16 idx;
       struct virtq_used_elem ring[ /* Queue Size */];
-      /*le16 avail_event; Only if VIRTIO_F_EVENT_IDX */
+       /*le16 avail_event; Only if VIRTIO_F_EVENT_IDX */
     };
 
 
@@ -299,7 +299,7 @@ public:
   /** Indicate which Virtio version (PCI revision ID) is supported.
 
       Currently only Legacy is supported (partially the 1.0 standard)
-  */
+   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
 

@@ -35,10 +35,10 @@ namespace net
     
     // check for listeners on dst port
     if (listeners.find(port) != listeners.end())
-      {
-	// make the call to the listener on that port
-	return listeners[port](P6);
-      }
+    {
+      // make the call to the listener on that port
+      return listeners[port](P6);
+    }
     // was not forwarded, so just return -1
     debug("... dumping packet, no listeners\n");
     return -1;
@@ -83,7 +83,7 @@ namespace net
     // normally we would start at &icmp_echo::type, but
     // it is after all the first element of the icmp message
     memcpy(data + sizeof(UDPv6::pseudo_header), this->payload(),
-	   datalen - sizeof(UDPv6::pseudo_header));
+        datalen - sizeof(UDPv6::pseudo_header));
     
     // calculate csum and free data on return
     header().chksum = net::checksum(data, datalen);
@@ -91,7 +91,7 @@ namespace net
   }
   
   std::shared_ptr<PacketUDP6> UDPv6::create(
-					    Ethernet::addr ether_dest, const IP6::addr& ip6_dest, UDPv6::port_t port)
+      Ethernet::addr ether_dest, const IP6::addr& ip6_dest, UDPv6::port_t port)
   {
     auto packet = IP6::create(IP6::PROTO_UDP, ether_dest, ip6_dest);
     auto udp_packet = view_packet_as<PacketUDP6> (packet);

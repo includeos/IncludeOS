@@ -23,55 +23,55 @@
 
 namespace hw {
 
-  template <typename DRIVER>
-  class Disk : public IDiskDevice {
-  public:
-    /** optimal block size for this device */
-    virtual block_t block_size() const noexcept override
-    { return driver.block_size(); }
+template <typename DRIVER>
+class Disk : public IDiskDevice {
+public:
+  /** optimal block size for this device */
+  virtual block_t block_size() const noexcept override
+  { return driver.block_size(); }
   
-    /** Human readable name */
-    const char* name() const noexcept override
-    {
-      return driver.name();
-    }
+  /** Human readable name */
+  const char* name() const noexcept override
+  {
+    return driver.name();
+  }
   
-    virtual void
-    read(block_t blk, on_read_func del) override
-    {
-      driver.read(blk, del);
-    }
-    virtual void
-    read(block_t blk, block_t count, on_read_func del) override
-    {
-      driver.read(blk, count, del);
-    }
+  virtual void
+  read(block_t blk, on_read_func del) override
+  {
+    driver.read(blk, del);
+  }
+  virtual void
+  read(block_t blk, block_t count, on_read_func del) override
+  {
+    driver.read(blk, count, del);
+  }
   
-    virtual buffer_t read_sync(block_t blk) override
-    {
-      return driver.read_sync(blk);
-    }
+  virtual buffer_t read_sync(block_t blk) override
+  {
+    return driver.read_sync(blk);
+  }
   
-    virtual block_t size() const noexcept override
-    {
-      return driver.size();
-    }
+  virtual block_t size() const noexcept override
+  {
+    return driver.size();
+  }
   
-    virtual ~Disk() = default;
+  virtual ~Disk() = default;
   
-  private:
-    DRIVER driver;
+private:
+  DRIVER driver;
   
-    /**
-     *  Just a wrapper around the driver constructor
-     *  @note The Dev-class is a friend and will call this
-     */
-    template <typename... Args>
-    explicit Disk(PCI_Device& d, Args&&... args):
-      driver{d, std::forward<Args>(args)... } {}
+  /**
+   *  Just a wrapper around the driver constructor
+   *  @note The Dev-class is a friend and will call this
+   */
+  template <typename... Args>
+  explicit Disk(PCI_Device& d, Args&&... args):
+    driver{d, std::forward<Args>(args)... } {}
   
-    friend class Dev;
-  }; //< class Disk
+  friend class Dev;
+}; //< class Disk
 
 } //< namespace hw
 

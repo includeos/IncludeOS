@@ -38,9 +38,9 @@ void Service::start()
   // verify nothing bad happened
   CHECK(!!(buf), "Buffer for sector 0 is valid");
   if (!buf)
-    {
-      panic("Failed to read sector 0 on memdisk device\n");
-    }
+  {
+    panic("Failed to read sector 0 on memdisk device\n");
+  }
   // convert to text
   std::string text((const char*) buf.get(), disk->dev().block_size());
   // verify that the sector contents matches the test string
@@ -53,7 +53,7 @@ void Service::start()
   // verify that reading outside of disk returns a 0x0 pointer
   buf = disk->dev().read_sync(disk->dev().size());
   CHECK(!buf, "Buffer outside of disk range (sector=%llu) is 0x0",
-	disk->dev().size());
+      disk->dev().size());
   assert(!buf);
   
   INFO("MemDisk", "SUCCESS");

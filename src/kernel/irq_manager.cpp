@@ -66,39 +66,39 @@ extern "C"
 }
 
 /** Default Exception-handler, which just prints its number */
-#define EXCEPTION_HANDLER(I)					\
-  void exception_##I##_handler() {				\
-    printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n", I);	\
-    printf("Heap end: %#x \n", (uint32_t)&_end);		\
-    kill(1, 9);							\
+#define EXCEPTION_HANDLER(I)                                  \
+  void exception_##I##_handler() {                            \
+    printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n", I);	  \
+    printf("Heap end: %#x \n", (uint32_t)&_end);              \
+    kill(1, 9);                                               \
   }
 
 void exception_handler()
 {
-#define frp(N, ra)					\
-  (__builtin_frame_address(N) != nullptr) &&		\
-    (ra = __builtin_return_address(N)) != nullptr
+  #define frp(N, ra)   \
+      (__builtin_frame_address(N) != nullptr) && \
+      (ra = __builtin_return_address(N)) != nullptr
 
   printf("\n");
-#define PRINT_TRACE(N, ra)			\
-  printf("[%d] Return %p\n", N, ra);
+  #define PRINT_TRACE(N, ra) \
+      printf("[%d] Return %p\n", N, ra);
 
   void* ra;
   if (frp(0, ra)) {
-    PRINT_TRACE(0, ra);
-    if (frp(1, ra)) {
-      PRINT_TRACE(1, ra);
-      if (frp(2, ra)) {
-	PRINT_TRACE(2, ra);
-	if (frp(3, ra)) {
-	  PRINT_TRACE(3, ra);
-	  if (frp(4, ra)) {
-	    PRINT_TRACE(4, ra);
-	    if (frp(5, ra)) {
-	      PRINT_TRACE(5, ra);
-	      if (frp(6, ra))
-		PRINT_TRACE(6, ra);
-	    }}}}}}
+   PRINT_TRACE(0, ra);
+   if (frp(1, ra)) {
+    PRINT_TRACE(1, ra);
+    if (frp(2, ra)) {
+     PRINT_TRACE(2, ra);
+     if (frp(3, ra)) {
+      PRINT_TRACE(3, ra);
+      if (frp(4, ra)) {
+       PRINT_TRACE(4, ra);
+       if (frp(5, ra)) {
+        PRINT_TRACE(5, ra);
+        if (frp(6, ra))
+         PRINT_TRACE(6, ra);
+  }}}}}}
 
   printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   extern char _end;
@@ -115,19 +115,19 @@ void exception_handler()
 uint32_t IRQ_manager::irq_counters_[32] {0};
 
 
-#define IRQ_HANDLER(I)				\
-  void irq_##I##_handler() {			\
-    IRQ_manager::register_interrupt(I);		\
+#define IRQ_HANDLER(I)                                            \
+  void irq_##I##_handler() {                                      \
+    IRQ_manager::register_interrupt(I);				  \
   }
 
 /* Macro magic to register default gates */
-#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry,	\
-					 default_sel, default_attr );
+#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry, \
+					default_sel, default_attr );
 
-#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + irq_base]),irq_##I##_entry, \
-				       default_sel, default_attr );
+#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + irq_base]),irq_##I##_entry,	\
+				  default_sel, default_attr );
 
-/* EXCEPTIONS */
+ /* EXCEPTIONS */
 #define EXCEPTION_PAIR(I) void exception_entry();
 #define IRQ_PAIR(I) void irq_##I##_entry(); IRQ_HANDLER(I)
 
@@ -191,27 +191,27 @@ void IRQ_manager::init()
 
   // Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
-    REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
-    REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8)
-    REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11)
-    REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
-    REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
-    REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
-    // GATES 21-29 are reserved
-    REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
-    INFO2("+ Exception gates set for irq < 32");
+  REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
+  REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8)
+  REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11)
+  REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
+  REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
+  REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
+  // GATES 21-29 are reserved
+  REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
+  INFO2("+ Exception gates set for irq < 32");
 
   //Redirected IRQ 0 - 15
   REG_DEFAULT_IRQ(0) REG_DEFAULT_IRQ(1) REG_DEFAULT_IRQ(3)
-    REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
-    REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
-    REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
-    REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
+  REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
+  REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
+  REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
+  REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
-    //Set all irq-gates (> 47) to the default handler
-    for(int i=48;i<irq_lines;i++){
-      create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
-    }
+  //Set all irq-gates (> 47) to the default handler
+  for(int i=48;i<irq_lines;i++){
+    create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
+  }
   INFO2("+ Default interrupt gates set for irq >= 32");
 
   //Load IDT
@@ -234,9 +234,9 @@ union addr_union {
 };
 
 void IRQ_manager::create_gate(IDTDescr* idt_entry,
-			      void (*function_addr)(),
-			      uint16_t segment_sel,
-			      char attributes) {
+			                        void (*function_addr)(),
+			                        uint16_t segment_sel,
+			                        char attributes) {
   addr_union addr;
   addr.whole           = (uint32_t)function_addr;
   idt_entry->offset_1  = addr.lo16;
@@ -270,7 +270,7 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  hw::PIC::enable_irq(irq);
+	hw::PIC::enable_irq(irq);
 }
 
 int IRQ_manager::timer_interrupts {0};
@@ -327,9 +327,9 @@ void IRQ_manager::notify() {
     // Spinlock? Well, we can't lock out the IRQ-handler
     // ... and we don't have a timer interrupt so we can't do blocking locks.
     if (!irq_counters_[irq]) {
-      // Remove the IRQ from pending list
-      irq_pending_ &= ~(1 << irq);
-      //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending_);
+        // Remove the IRQ from pending list
+        irq_pending_ &= ~(1 << irq);
+        //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending_);
     }
     // Critical section end
 
@@ -344,7 +344,7 @@ void IRQ_manager::notify() {
 }
 
 void IRQ_manager::eoi(uint8_t irq) {
-  hw::PIC::eoi(irq);
+	hw::PIC::eoi(irq);
 }
 
 void irq_default_handler() {

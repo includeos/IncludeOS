@@ -22,54 +22,54 @@
 
 namespace net {
 
-  class TCP;
-  class UDP;
-  class DHClient;
+class TCP;
+class UDP;
+class DHClient;
 
-  /** An abstract IP-stack interface  */
-  template <typename LINKLAYER, typename IPV >
-  class Inet {
-  public:
-    using Stack = Inet<LINKLAYER, IPV>;
+/** An abstract IP-stack interface  */
+template <typename LINKLAYER, typename IPV >
+class Inet {
+public:
+  using Stack = Inet<LINKLAYER, IPV>;
 
-    template <typename IPv>
-    using resolve_func = delegate<void(Stack&, const std::string&, typename IPv::addr)>;
+  template <typename IPv>
+  using resolve_func = delegate<void(Stack&, const std::string&, typename IPv::addr)>;
 
-    virtual typename IPV::addr ip_addr() = 0;
-    virtual typename IPV::addr netmask() = 0;
-    virtual typename IPV::addr router()  = 0;
-    virtual typename LINKLAYER::addr link_addr() = 0;
+  virtual typename IPV::addr ip_addr() = 0;
+  virtual typename IPV::addr netmask() = 0;
+  virtual typename IPV::addr router()  = 0;
+  virtual typename LINKLAYER::addr link_addr() = 0;
 
-    virtual LINKLAYER& link()   = 0;
-    virtual IPV&       ip_obj() = 0;
-    virtual TCP&       tcp()    = 0;
-    virtual UDP&       udp()    = 0;
+  virtual LINKLAYER& link()   = 0;
+  virtual IPV&       ip_obj() = 0;
+  virtual TCP&       tcp()    = 0;
+  virtual UDP&       udp()    = 0;
 
-    virtual std::shared_ptr<DHClient> dhclient() = 0;
+  virtual std::shared_ptr<DHClient> dhclient() = 0;
 
-    virtual uint16_t MTU() const = 0;
+  virtual uint16_t MTU() const = 0;
 
-    virtual Packet_ptr createPacket(size_t size) = 0;
+  virtual Packet_ptr createPacket(size_t size) = 0;
 
-    virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
+  virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
 
-    virtual void set_dns_server(typename IPV::addr server) = 0;
+  virtual void set_dns_server(typename IPV::addr server) = 0;
 
-    virtual void network_config(typename IPV::addr ip,
-				typename IPV::addr nmask,
-				typename IPV::addr router,
-				typename IPV::addr dnssrv) = 0;
+  virtual void network_config(typename IPV::addr ip,
+                              typename IPV::addr nmask,
+                              typename IPV::addr router,
+                              typename IPV::addr dnssrv) = 0;
 
-    /** Event triggered when there are available buffers in the transmit queue */
-    virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
+  /** Event triggered when there are available buffers in the transmit queue */
+  virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
 
-    /** Number of packets the transmit queue has room for */
-    virtual size_t transmit_queue_available() = 0;
+  /** Number of packets the transmit queue has room for */
+  virtual size_t transmit_queue_available() = 0;
 
-    /** Number of buffers available in the bufstore */
-    virtual size_t buffers_available() = 0;
+  /** Number of buffers available in the bufstore */
+  virtual size_t buffers_available() = 0;
 
-  }; //< class Inet<LINKLAYER, IPV>
+}; //< class Inet<LINKLAYER, IPV>
 } //< namespace net
 
 #endif

@@ -31,55 +31,55 @@ extern "C" {
 
 namespace fs {
 
-  MemDisk::MemDisk() noexcept
+MemDisk::MemDisk() noexcept
   : image_start { &_DISK_START_ },
     image_end   { &_DISK_END_ }
 {}
 
-  void MemDisk::read(block_t blk, on_read_func callback) {
-    auto* sector_loc = ((char*) image_start) + blk * block_size();
-    // Disallow reading memory past disk image
-    if (unlikely(sector_loc >= image_end))
-      {
-	callback(buffer_t()); return;
-      }
-  
-    auto* buffer = new uint8_t[block_size()];
-    assert( memcpy(buffer, sector_loc, block_size()) == buffer );
-  
-    callback( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
-  }
-
-  void MemDisk::read(block_t start, block_t count, on_read_func callback) {
-    auto* start_loc = ((char*) image_start) + start * block_size();
-    auto* end_loc   = start_loc + count * block_size();
-    // Disallow reading memory past disk image
-    if (unlikely(end_loc >= image_end))
-      {
-	callback(buffer_t()); return;
-      }
-  
-    auto* buffer = new uint8_t[count * block_size()];
-    assert( memcpy(buffer, start_loc, count * block_size()) == buffer );
-  
-    callback( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
-  }
-
-  MemDisk::buffer_t MemDisk::read_sync(block_t blk)
+void MemDisk::read(block_t blk, on_read_func callback) {
+  auto* sector_loc = ((char*) image_start) + blk * block_size();
+  // Disallow reading memory past disk image
+  if (unlikely(sector_loc >= image_end))
   {
-    auto* loc = ((char*) image_start) + blk * block_size();
-    // Disallow reading memory past disk image
-    if (unlikely(loc >= image_end))
-      return buffer_t();
-  
-    auto* buffer = new uint8_t[block_size()];
-    assert( memcpy(buffer, loc, block_size()) == buffer );
-  
-    return buffer_t(buffer, std::default_delete<uint8_t[]>());
+    callback(buffer_t()); return;
   }
+  
+  auto* buffer = new uint8_t[block_size()];
+  assert( memcpy(buffer, sector_loc, block_size()) == buffer );
+  
+  callback( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+}
 
-  MemDisk::block_t MemDisk::size() const noexcept {
-    return ((char*) image_end - (char*) image_start) / SECTOR_SIZE;
+void MemDisk::read(block_t start, block_t count, on_read_func callback) {
+  auto* start_loc = ((char*) image_start) + start * block_size();
+  auto* end_loc   = start_loc + count * block_size();
+  // Disallow reading memory past disk image
+  if (unlikely(end_loc >= image_end))
+  {
+    callback(buffer_t()); return;
   }
+  
+  auto* buffer = new uint8_t[count * block_size()];
+  assert( memcpy(buffer, start_loc, count * block_size()) == buffer );
+  
+  callback( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+}
+
+MemDisk::buffer_t MemDisk::read_sync(block_t blk)
+{
+  auto* loc = ((char*) image_start) + blk * block_size();
+  // Disallow reading memory past disk image
+  if (unlikely(loc >= image_end))
+    return buffer_t();
+  
+  auto* buffer = new uint8_t[block_size()];
+  assert( memcpy(buffer, loc, block_size()) == buffer );
+  
+  return buffer_t(buffer, std::default_delete<uint8_t[]>());
+}
+
+MemDisk::block_t MemDisk::size() const noexcept {
+  return ((char*) image_end - (char*) image_start) / SECTOR_SIZE;
+}
   
 } //< namespace fs

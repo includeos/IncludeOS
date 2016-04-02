@@ -23,13 +23,13 @@
 
 namespace fs {
 
-  typedef std::shared_ptr<uint8_t> buffer_t;
+typedef std::shared_ptr<uint8_t> buffer_t;
 
-  // TODO: transform this into a class with a bool operator
-  using error_t = bool;
+// TODO: transform this into a class with a bool operator
+using error_t = bool;
 
-  /** @var no_error: Always returns boolean false when used in expressions */
-  extern error_t no_error;
+/** @var no_error: Always returns boolean false when used in expressions */
+extern error_t no_error;
 
 } //< namespace fs
 

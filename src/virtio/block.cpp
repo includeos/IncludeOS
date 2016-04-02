@@ -29,41 +29,41 @@
 #define FEAT(x)  (1 << x)
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-: Virtio(d),
-		       req(queue_size(0), 0, iobase()),
-  request_counter(0)
+  : Virtio(d),
+    req(queue_size(0), 0, iobase()),
+    request_counter(0)
 {
   INFO("VirtioBlk", "Driver initializing");
   
   uint32_t needed_features =
-    FEAT(VIRTIO_BLK_F_BLK_SIZE);
+      FEAT(VIRTIO_BLK_F_BLK_SIZE);
   negotiate_features(needed_features);
   
   CHECK(features() & FEAT(VIRTIO_BLK_F_BARRIER),
-	"Barrier is enabled");
+    "Barrier is enabled");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SIZE_MAX),
-	"Size-max is known");
+    "Size-max is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SEG_MAX),
-	"Seg-max is known");
+    "Seg-max is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_GEOMETRY),
-	"Geometry structure is used");
+    "Geometry structure is used");
   CHECK(features() & FEAT(VIRTIO_BLK_F_RO),
-	"Device is read-only");
+    "Device is read-only");
   CHECK(features() & FEAT(VIRTIO_BLK_F_BLK_SIZE),
-	"Block-size is known");
+    "Block-size is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SCSI),
-	"SCSI is enabled :(");
+    "SCSI is enabled :(");
   CHECK(features() & FEAT(VIRTIO_BLK_F_FLUSH),
-	"Flush enabled");
+    "Flush enabled");
   
   
   CHECK ((features() & needed_features) == needed_features,
-	 "Negotiated needed features");
+    "Negotiated needed features");
   
   // Step 1 - Initialize REQ queue
   auto success = assign_queue(0, (uint32_t) req.queue_desc());
   CHECK(success, "Request queue assigned (0x%x) to device",
-	(uint32_t) req.queue_desc());
+    (uint32_t) req.queue_desc());
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
@@ -84,7 +84,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   
   // Done
   INFO("VirtioBlk", "Block device with %llu sectors capacity",
-       config.capacity);
+      config.capacity);
   //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");    
   req.kick();
 }
@@ -105,21 +105,21 @@ void VirtioBlk::irq_handler()
   
   // Step 2. A) - one of the queues have changed
   if (isr & 1)
-    {
-      // This now means service RX & TX interchangeably
-      service_RX();
-    }
+  {
+    // This now means service RX & TX interchangeably
+    service_RX();
+  }
   
   // Step 2. B)
   if (isr & 2)
-    {
-      debug("\t <VirtioBlk> Configuration change:\n");
+  {
+    debug("\t <VirtioBlk> Configuration change:\n");
     
-      // Getting the MAC + status 
-      //debug("\t             Old status: 0x%x\n", config.status);      
-      get_config();
-      //debug("\t             New status: 0x%x \n", config.status);
-    }
+    // Getting the MAC + status 
+    //debug("\t             Old status: 0x%x\n", config.status);      
+    get_config();
+    //debug("\t             New status: 0x%x \n", config.status);
+  }
   IRQ_manager::eoi(irq());
 }
 
@@ -134,28 +134,28 @@ void VirtioBlk::service_RX()
   //printf("service_RX() reading from VirtioBlk device\n");
   
   while ((hdr = (request_t*) req.dequeue(len)) != nullptr)
-    {
-      printf("service_RX() received %u bytes for sector %llu\n", 
-	     len, hdr->hdr.sector);
-      vbr = &hdr->data;
+  {
+    printf("service_RX() received %u bytes for sector %llu\n", 
+        len, hdr->hdr.sector);
+    vbr = &hdr->data;
     
-      printf("service_RX() received %u bytes data response\n", len);
-      printf("Received handler: %p\n", vbr->handler);
+    printf("service_RX() received %u bytes data response\n", len);
+    printf("Received handler: %p\n", vbr->handler);
     
-      uint8_t* copy = new uint8_t[SECTOR_SIZE];
-      memcpy(copy, vbr->sector, SECTOR_SIZE);
-      auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+    uint8_t* copy = new uint8_t[SECTOR_SIZE];
+    memcpy(copy, vbr->sector, SECTOR_SIZE);
+    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
     
-      printf("Calling handler: %p\n", vbr->handler);
-      (*vbr->handler)(buf);
-      delete vbr->handler;
+    printf("Calling handler: %p\n", vbr->handler);
+    (*vbr->handler)(buf);
+    delete vbr->handler;
     
-      received++;
-    }
+    received++;
+  }
   if (received == 0)
-    {
-      //printf("service_RX() error processing requests\n");
-    }
+  {
+    //printf("service_RX() error processing requests\n");
+  }
   
   req.enable_interrupts();
 }

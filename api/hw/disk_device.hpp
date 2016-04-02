@@ -26,39 +26,39 @@
 namespace hw
 {
 
-  class IDiskDevice {
-  public:
-    using block_t = uint64_t; //< Disk device block size
-    using buffer_t = std::shared_ptr<uint8_t>;
+class IDiskDevice {
+public:
+  using block_t = uint64_t; //< Disk device block size
+  using buffer_t = std::shared_ptr<uint8_t>;
   
-    // Delegate for result of reading a disk sector
-    using on_read_func = std::function<void(buffer_t)>;
+  // Delegate for result of reading a disk sector
+  using on_read_func = std::function<void(buffer_t)>;
   
-    /** Human-readable name of this disk controller  */
-    virtual const char* name() const noexcept = 0;
+  /** Human-readable name of this disk controller  */
+  virtual const char* name() const noexcept = 0;
   
-    /** The size of the disk in whole sectors */
-    virtual block_t size() const noexcept = 0;
+  /** The size of the disk in whole sectors */
+  virtual block_t size() const noexcept = 0;
   
-    /** Returns the optimal block size for this device */
-    virtual block_t block_size() const noexcept = 0;
+  /** Returns the optimal block size for this device */
+  virtual block_t block_size() const noexcept = 0;
   
-    /**
-     *  Read block(s) from blk and call func with result
-     *  A null-pointer is passed to result if something bad happened
-     *  Validate using !buffer_t:
-     *  if (!buffer)
-     *     error("Device failed to read sector");
-     **/
-    virtual void read(block_t blk, on_read_func func) = 0;
-    virtual void read(block_t blk, block_t count, on_read_func) = 0;
+  /**
+   *  Read block(s) from blk and call func with result
+   *  A null-pointer is passed to result if something bad happened
+   *  Validate using !buffer_t:
+   *  if (!buffer)
+   *     error("Device failed to read sector");
+  **/
+  virtual void read(block_t blk, on_read_func func) = 0;
+  virtual void read(block_t blk, block_t count, on_read_func) = 0;
   
-    /** read synchronously the block @blk  */
-    virtual buffer_t read_sync(block_t blk) = 0;
+  /** read synchronously the block @blk  */
+  virtual buffer_t read_sync(block_t blk) = 0;
   
-    /** Default destructor */
-    virtual ~IDiskDevice() noexcept = default;
-  }; //< class IDiskDevice
+  /** Default destructor */
+  virtual ~IDiskDevice() noexcept = default;
+}; //< class IDiskDevice
 
 } //< namespace hw
 

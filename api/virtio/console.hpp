@@ -41,7 +41,7 @@
  * placed in the receive queue for incoming data and outgoing 
  * characters are placed in the transmit queue. 
  * 
- **/
+**/
 
 class VirtioCon : public Virtio
 {
@@ -98,7 +98,7 @@ private:
   /**
    * Handle device IRQ. 
    * Will look for config. changes and service RX/TX queues as necessary.
-   **/
+  **/
   void irq_handler();
   
   Virtio::Queue rx;     // 0

@@ -38,9 +38,9 @@ void Service::start()
   // verify nothing bad happened
   CHECK(!!(buf), "Buffer for sector 0 is valid");
   if (!buf)
-    {
-      panic("Failed to read sector 0 on memdisk device\n");
-    }
+  {
+    panic("Failed to read sector 0 on memdisk device\n");
+  }
   // verify MBR has signature
   const uint8_t* mbr = buf.get();
   assert(mbr[0x1FE] == 0x55);

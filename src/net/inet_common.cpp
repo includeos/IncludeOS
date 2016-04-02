@@ -23,27 +23,27 @@
 
 namespace net {
 
-  // Should be pretty much like the example in RFC 1071,
-  // but using a uinon for readability
-  uint16_t checksum(void* data, size_t len) noexcept {
+// Should be pretty much like the example in RFC 1071,
+// but using a uinon for readability
+uint16_t checksum(void* data, size_t len) noexcept {
 
-    uint16_t* buf = reinterpret_cast<uint16_t*>(data);
+  uint16_t* buf = reinterpret_cast<uint16_t*>(data);
 
-    union sum {
-      uint32_t whole;    
-      uint16_t part[2];
-    } sum32 {0};
+  union sum {
+    uint32_t whole;    
+    uint16_t part[2];
+  } sum32 {0};
   
-    // Iterate in short int steps.
-    for (uint16_t* i = buf; i < (buf + len / 2); ++i)
-      sum32.whole += *i;
+  // Iterate in short int steps.
+  for (uint16_t* i = buf; i < (buf + len / 2); ++i)
+    sum32.whole += *i;
   
-    // odd-length case
-    if (len & 1) {  
-      sum32.whole += reinterpret_cast<uint8_t*>(buf)[len - 1];
-    }
-
-    return ~(sum32.part[0] + sum32.part[1]);
+  // odd-length case
+  if (len & 1) {  
+    sum32.whole += reinterpret_cast<uint8_t*>(buf)[len - 1];
   }
+
+  return ~(sum32.part[0] + sum32.part[1]);
+}
 
 } //< namespace net

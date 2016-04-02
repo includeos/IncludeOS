@@ -25,10 +25,10 @@ static uint16_t make_vgaentry(const char c, const uint8_t color) noexcept {
   return c16 | color16 << 8;
 }
 const uint16_t ConsoleVGA::DEFAULT_ENTRY = 
-			  make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
+    make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
 
 ConsoleVGA::ConsoleVGA() noexcept:
-row{0}, column{0}
+  row{0}, column{0}
 {
   this->color  = make_color(COLOR_WHITE, COLOR_BLACK);
   this->buffer = reinterpret_cast<uint16_t*>(0xB8000);
