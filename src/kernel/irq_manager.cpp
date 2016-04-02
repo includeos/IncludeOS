@@ -219,8 +219,6 @@ void IRQ_manager::init()
 
   //Initialize the interrupt controller
   hw::PIC::init();
-
-  enable_irq(2); //Slave PIC irq
   enable_interrupts();
 }
 
@@ -254,7 +252,7 @@ void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {
    *  previous interrupts won't have reported EOI and new handler
    *  will never get called
    */
-  eoi(irq);
+  eoi(irq - irq_base);
 }
 
 void (*IRQ_manager::get_handler(uint8_t irq))() {
