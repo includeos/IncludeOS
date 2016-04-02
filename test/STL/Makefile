@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_STL
+SERVICE = test_STL
 SERVICE_NAME = IncludeOS basic STL test
 
 # Your service parts
