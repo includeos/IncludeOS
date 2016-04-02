@@ -19,6 +19,7 @@
 #define HW_IDE_HPP
 
 #include <delegate>
+#include <list>
 
 #include "disk.hpp"
 #include "pci_device.hpp"
@@ -30,8 +31,8 @@ class IDE : public IDiskDevice {
 public: 
   enum selector_t
   {
-    MASTER,
-    SLAVE
+    MASTER = 0x00,
+    SLAVE = 0x10
   };
   
   /**
@@ -58,17 +59,18 @@ public:
   virtual block_t size() const noexcept override
   { return _nb_blk; }
 
+  static void set_irq_mode(const bool on) noexcept;
+
+  static void wait_status_busy() noexcept;
+  static void wait_status_flags(const int flags, const bool set) noexcept;
+
 private:
   void set_drive(const uint8_t drive) const noexcept;
   void set_nbsectors(const uint8_t cnt) const noexcept;
   void set_blocknum(block_t blk) const noexcept;
   void set_command(const uint16_t command) const noexcept;
-  void set_irq_mode(const bool on) const noexcept;
 
-  void wait_status_busy() const noexcept;
-  void wait_status_flags(const int flags, const bool set) const noexcept;
-
-  void irq_handler();
+  void callback_wrapper();
   void enable_irq_handler();
 
 private:

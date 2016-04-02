@@ -38,15 +38,13 @@
 #define IDE_CMD_WRITE    0x30
 #define IDE_CMD_IDENTIFY 0xEC
 
-#define IDE_MASTER  0x00
-#define IDE_SLAVE   0x10
-
 #define IDE_DRQ      (1 << 3)
 #define IDE_DRDY     (1 << 6)
 #define IDE_BUSY     (1 << 7)
 
 #define IDE_CTRL_IRQ 0x3F6
 #define IDE_IRQN     14
+#define IDE_BLKSZ    512
 
 #define IDE_VENDOR_ID   PCI_Device::VENDOR_INTEL
 #define IDE_PRODUCT_ID  0x7010
@@ -57,7 +55,7 @@ namespace hw {
 
 IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
   _pcidev {pcidev},
-  _drive  {(uint8_t) ((sel == MASTER) ? 0 : 1)},
+  _drive  {(uint8_t)sel},
   _iobase {0U},
   _nb_blk {0U}
 {
@@ -108,12 +106,19 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel) :
   INFO("IDE", "Initialization complete");
 }
 
-/**
- * FIXME: this is a simple trick as we actually can't properly access the private
- * members of the class during the IRQ handling...
- */
-static IDE::on_read_func _callback = nullptr; // Current callback for asynchronous read
-static int _nb_irqs = 0; // Number of IRQs that we expect
+struct ide_irq {
+  ide_irq(uint8_t* buff, IDE::on_read_func call)
+    : buffer(buff)
+    , callback(call)
+  {}
+
+  uint8_t*          buffer;   // Reading buffer
+  IDE::on_read_func callback; // IRQ callback
+};
+
+static int                       _nb_irqs = 0;                // Number of IRQs that we expect
+static IDE::on_read_func         _current_callback = nullptr; // Callback for the current irq
+static std::list<struct ide_irq> _ide_irqs;                   // IRQ queue
 
 void IDE::read(block_t blk, on_read_func callback) {
   if (blk >= _nb_blk) {
@@ -122,16 +127,13 @@ void IDE::read(block_t blk, on_read_func callback) {
     return;
   }
 
-  callback(read_sync(blk));
-  return;
-  
   set_irq_mode(true);
   set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
   set_nbsectors(1);
   set_blocknum(blk);
   set_command(IDE_CMD_READ);
 
-  _callback = callback;
+  _current_callback = callback;
   _nb_irqs = 1;
 }
 
@@ -149,7 +151,7 @@ void IDE::read(block_t blk, block_t count, on_read_func callback)
   set_blocknum(blk);
   set_command(IDE_CMD_READ);
 
-  _callback = callback;
+  _current_callback = callback;
   _nb_irqs = count;
 }
 
@@ -179,12 +181,12 @@ IDE::buffer_t IDE::read_sync(block_t blk)
   return buffer_t(buffer, std::default_delete<uint8_t[]>());
 }
 
-void IDE::wait_status_busy() const noexcept {
+void IDE::wait_status_busy() noexcept {
   uint8_t ret;
   while (((ret = inb(IDE_STATUS)) & IDE_BUSY) == IDE_BUSY);
 }
 
-void IDE::wait_status_flags(const int flags, const bool set) const noexcept {
+void IDE::wait_status_flags(const int flags, const bool set) noexcept {
   wait_status_busy();
 
   auto ret = inb(IDE_STATUS);
@@ -228,37 +230,47 @@ void IDE::set_command(const uint16_t command) const noexcept {
   outb(IDE_CMD, command);
 }
 
-void IDE::set_irq_mode(const bool on) const noexcept {
+void IDE::set_irq_mode(const bool on) noexcept {
   wait_status_flags(IDE_DRDY, false);
   outb(IDE_CTRL_IRQ, on ? 0 : 1);
 }
 
-void IDE::irq_handler() {
-  if (!_nb_irqs || _callback == nullptr) {
-    set_irq_mode(false);
+extern "C" void ide_irq_handler() {
+  if (!_nb_irqs || _current_callback == nullptr) {
+    IDE::set_irq_mode(false);
     IRQ_manager::eoi(IDE_IRQN);
     return;
   }
 
-  auto* buffer = new uint8_t[block_size()];
+  uint8_t* buffer = new uint8_t[IDE_BLKSZ];
 
-  wait_status_flags(IDE_DRDY, false);
+  IDE::wait_status_flags(IDE_DRDY, false);
 
   uint16_t* wptr = (uint16_t*) buffer;
 
-  for (block_t i = 0; i < block_size() / sizeof (uint16_t); ++i)
+  for (IDE::block_t i = 0; i < IDE_BLKSZ / sizeof (uint16_t); ++i)
     wptr[i] = inw(IDE_DATA);
 
-  _callback(buffer_t(buffer, std::default_delete<uint8_t[]>()));
+  _ide_irqs.push_back(ide_irq(buffer, _current_callback));
   _nb_irqs--;
 
+  IRQ_manager::register_interrupt(IDE_IRQN);
   IRQ_manager::eoi(IDE_IRQN);
 }
 
+extern "C" void ide_irq_entry();
+
+void IDE::callback_wrapper()
+{
+  IDE::on_read_func callback = _ide_irqs.front().callback;
+  callback(IDE::buffer_t(_ide_irqs.front().buffer, std::default_delete<uint8_t[]>()));
+  _ide_irqs.pop_front();
+}
+
 void IDE::enable_irq_handler() {
-  auto del(delegate<void()>::from<IDE, &IDE::irq_handler>(this));
-  IRQ_manager::enable_irq(IDE_IRQN);
+  auto del(delegate<void()>::from<IDE, &IDE::callback_wrapper>(this));
   IRQ_manager::subscribe(IDE_IRQN, del);
+  IRQ_manager::set_handler(IDE_IRQN + 32, ide_irq_entry);
 }
 
 } //< namespace hw
