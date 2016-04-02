@@ -79,7 +79,7 @@ void Service::start()
         if (e.is_file())
         {
           printf("*** Attempting to read: %s\n", e.name().c_str());
-          disk->fs().readFile(e,
+          disk->fs().read(e, 0, e.size,
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len)
           {
             if (err)
