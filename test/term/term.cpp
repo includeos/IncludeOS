@@ -58,6 +58,26 @@ void Service::start()
       // create terminal with open TCP connection
       term = std::make_unique<Terminal> (client);
       term->add_disk_commands(disk);
+      
+      /// work on network commands ///
+      // add 'ifconfig' command
+      term->add(
+        "ifconfig", "Configure a network interface",
+        [] (const std::vector<std::string>&) -> int
+        {
+          term->write("Link encap:%s\r\n", inet->tcp().status().c_str());
+          return 0;
+        });
+      // add 'netstat' command
+      term->add(
+        "netstat", "Print network connections",
+        [] (const std::vector<std::string>&) -> int
+        {
+          term->write("%s\r\n", inet->tcp().status().c_str());
+          return 0;
+        });
+      
+      
     });
 
     INFO("TERM", "Connect to terminal with $ telnet %s ",
