@@ -43,12 +43,37 @@ namespace fs {
   
     struct Buffer
     {
+      Buffer(error_t e, buffer_t b, size_t l)
+	: err(e), buffer(b), len(l) {}
+        
+      // returns true if this buffer is valid
+      bool is_valid() const
+      {
+        return buffer != nullptr;
+      }
+      operator bool () const
+      {
+        return is_valid();
+      }
+      
+      uint8_t* data()
+      {
+        return buffer.get();
+      }
+      size_t   size() const
+      {
+        return len;
+      }
+      
+      // create a std::string from the stored buffer and return it
+      std::string to_string() const
+      {
+        return std::string((char*) buffer.get(), size());
+      }
+      
       error_t  err;
       buffer_t buffer;
       uint64_t len;
-    
-      Buffer(error_t e, buffer_t b, size_t l)
-	: err(e), buffer(b), len(l) {}
     };
   
     enum Enttype {
