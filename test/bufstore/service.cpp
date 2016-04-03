@@ -64,7 +64,7 @@ void Service::start()
 
   // Reinitialize the first packet
   packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                         bufstore_.offset_bufsize(), 1500, release);
+				    bufstore_.offset_bufsize(), 1500, release);
 
   CHECKSERT(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
 
@@ -84,8 +84,8 @@ void Service::start()
   while(tail && i < bufcount_ - 1 ) {
     tail = tail->detach_tail();
     CHECKSERT(bufstore_.buffers_available() == i,
-          "Bufcount is now %i == %i", i,
-          bufstore_.buffers_available());
+	      "Bufcount is now %i == %i", i,
+	      bufstore_.buffers_available());
     i++;
   }
 

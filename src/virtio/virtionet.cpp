@@ -300,9 +300,9 @@ void VirtioNet::service_queues(){
 
 void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
   if (transmit_queue_)
-      transmit_queue_->chain(pckt);
-    else
-      transmit_queue_ = pckt;
+    transmit_queue_->chain(pckt);
+  else
+    transmit_queue_ = pckt;
 
 #ifdef DEBUG
   size_t chain_length = 1;

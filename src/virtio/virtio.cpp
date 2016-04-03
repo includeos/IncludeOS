@@ -85,9 +85,9 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // 3. Set DRIVER status bit
   
   hw::outp(_iobase + VIRTIO_PCI_STATUS,
-       hw::inp(_iobase + VIRTIO_PCI_STATUS) |
-       VIRTIO_CONFIG_S_ACKNOWLEDGE | 
-       VIRTIO_CONFIG_S_DRIVER);
+	   hw::inp(_iobase + VIRTIO_PCI_STATUS) |
+	   VIRTIO_CONFIG_S_ACKNOWLEDGE | 
+	   VIRTIO_CONFIG_S_DRIVER);
   
 
   // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
@@ -119,8 +119,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
   
   /* printf(queue_size > 0 and queue_size != PCI_WTF ?
-         "\t [x] Queue Size : 0x%lx \n" :
-         "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */  
+     "\t [x] Queue Size : 0x%lx \n" :
+     "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */  
   
 }
 
@@ -200,13 +200,13 @@ void Virtio::enable_irq_handler(){
 }
 
 /** void Virtio::enable_irq_handler(IRQ_manager::irq_delegate d){
-  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-  //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
+ //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
+ //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
   
-  IRQ_manager::subscribe(_irq,d);
+ IRQ_manager::subscribe(_irq,d);
   
-  IRQ_manager::enable_irq(_irq);
-  }*/
+ IRQ_manager::enable_irq(_irq);
+ }*/
 
 
 

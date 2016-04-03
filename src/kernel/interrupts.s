@@ -46,6 +46,8 @@
 .global irq_15_entry
 
 .global cpu_sampling_irq_entry
+.global ide_irq_entry
+.extern ide_irq_handler
 
 
 /*
@@ -84,36 +86,13 @@ IRQ irq_13_entry irq_13_handler
 IRQ irq_14_entry irq_14_handler
 IRQ irq_15_entry irq_15_handler
 
+IRQ ide_irq_entry ide_irq_handler
+IRQ cpu_sampling_irq_entry cpu_sampling_irq_handler
+IRQ irq_default_entry irq_default_handler
 
 exception_13_entry:
 	cli
 	call exception_13_handler
-
-
-cpu_sampling_irq_entry:
-	cli
-	pusha
-	call cpu_sampling_irq_handler
-	popa
-	sti
-	iret
-
-
-irq_default_entry:
-	cli
-	pusha
-	call irq_default_handler
-	popa
-	sti
-	iret
-
-
-//Send EOI for the timer
-//      movb	PIC_PORT, %al
-//	movw	SIG_EOI, %dx
-//	outb	%al, %dx
-
-
 
 irq_timer_entry:
 	cli

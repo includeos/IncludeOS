@@ -54,14 +54,14 @@ extern "C" {
 
     NOTES:
     * All IRQ-callbacks are in charge of calling End-Of-Interrupt - eoi.
-        Why? Because this makes it possible to prevent further interrupts until
-        a condition of your choice is met. And, interrupts are costly as they
-	always cause vm-exit.
+    Why? Because this makes it possible to prevent further interrupts until
+    a condition of your choice is met. And, interrupts are costly as they
+    always cause vm-exit.
 
     * IRQ-numbering: 0 or 32?
 
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
- */
+*/
 class IRQ_manager {
 public:
   using irq_delegate = delegate<void()>;
@@ -90,7 +90,7 @@ public:
    *    Failure to do so will keep the interrupt from firing and cause a
    *    stack overflow or similar badness.
    *  }
-    */
+   */
   static void set_handler(uint8_t irq, void(*function_addr)());
 
   /** Get handler from inside the IDT. */
@@ -100,7 +100,7 @@ public:
    *  Subscribe to an IRQ
 
    *  @param irq: The IRQ to subscribe to
-	 *  @param del: A delegate to attach to the IRQ DPC-system
+   *  @param del: A delegate to attach to the IRQ DPC-system
 
    *  The delegate will be called a.s.a.p. after @param irq gets triggered
    *
@@ -116,7 +116,7 @@ public:
    *  Get the current subscriber of an IRQ-line
    *
    *  @param irq: The IRQ to get subscriber for
-  */
+   */
   static irq_delegate get_subscriber(uint8_t irq);
 
   /**
@@ -169,9 +169,9 @@ private:
    *  Use "set_handler" for a simpler version using defaults
    */
   static void create_gate(IDTDescr* idt_entry,
-			                    void (*function_addr)(),
-			                    uint16_t segment_sel,
-			                    char attributes);
+			  void (*function_addr)(),
+			  uint16_t segment_sel,
+			  char attributes);
 
   /** The OS will call the following : */
   friend class OS;

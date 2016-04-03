@@ -56,7 +56,7 @@ public:
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
    *
    *  @param ptr: The string to write to serial port
-  */
+   */
   static size_t rsprint(const char* ptr);
   static size_t rsprint(const char* ptr, const size_t len);
   
@@ -69,7 +69,7 @@ public:
 
   /**
    *  Write to serial port with rswrite.
-  */
+   */
   static void default_rsprint(const char*, size_t);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */

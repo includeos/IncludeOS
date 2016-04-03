@@ -26,7 +26,7 @@ extern "C" const char* service_name__;
  *  This is where you take over
  *
  *  The service gets started whenever the OS is done initializing
-*/
+ */
 class Service {
 public:
   /**

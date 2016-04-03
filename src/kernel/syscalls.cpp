@@ -111,7 +111,7 @@ int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len)) {
 
 int write(int file, const void* ptr, size_t len) {
   if (file == syscall_fd and not debug_syscalls) {
-		return len;
+    return len;
   }
   return OS::rsprint((const char*) ptr, len);
 }

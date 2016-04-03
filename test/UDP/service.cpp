@@ -43,15 +43,16 @@ void Service::start()
   UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
-  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port, const char* data, int len) -> int
+  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
+                  const char* data, int len) -> int
               {
-                printf("Getting UDP data from %s: %i: %s\n",
-                       addr.str().c_str(), port, data);
+                CHECK(1,"Getting UDP data from %s: %i: %s",
+                      addr.str().c_str(), port, data);
                 // send the same thing right back!
                 conn.sendto(addr, port, data, len);
                 return 0;
               });
 
-  printf("UDP server listening to port %i \n",port);
+  INFO("UDP test", "listening to  %i \n",port);
 
 }

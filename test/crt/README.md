@@ -3,5 +3,5 @@ Essentially this tests global constructors, which needs crti.o, crtn.o etc. to b
 
 Internal test, self-explanatory output.
 
-Success:  Outputs SUCCESS
-Fail: Panic
+Success:  Outputs SUCCESS if all tests pass
+Fail: Panic on any failed tests

@@ -67,22 +67,22 @@ void Service::start()
 
   
   auto test1_1 = [] () -> bool
-  {
-    if ( c >= '4') {
-      hw::PIT::instance().onRepeatedTimeout(100ms, [] {
-	  vga.newline();
-	  iterations++;
-	  if (iterations == 24)
-	    write_goodbye();
+    {
+      if ( c >= '4') {
+	hw::PIT::instance().onRepeatedTimeout(100ms, [] {
+	    vga.newline();
+	    iterations++;
+	    if (iterations == 24)
+	      write_goodbye();
 	  
-	},
+	  },
 	
-	[] {
-	  return iterations < 36;
-	});
-    }
-    return c < '4';
-  };
+	  [] {
+	    return iterations < 36;
+	  });
+      }
+      return c < '4';
+    };
 
   
   auto test2 = [](){

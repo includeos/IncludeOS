@@ -41,18 +41,18 @@ void Service::start() {
   auto& server = inet->tcp().bind(80);
   
   hw::PIT::instance().onTimeout(5s, [server]{
-    printf("Server is running: %s \n", server.to_string().c_str());
-  });
+      printf("Server is running: %s \n", server.to_string().c_str());
+    });
 
   server.onPacketReceived([](auto conn, auto packet) {
-    printf("<Server> Received: %s\n", packet->to_string().c_str());
+      printf("<Server> Received: %s\n", packet->to_string().c_str());
 
-  }).onPacketDropped([](auto packet, std::string reason) {
-    printf("<Server> Dropped: %s - Reason: %s \n", packet->to_string().c_str(), reason.c_str());
+    }).onPacketDropped([](auto packet, std::string reason) {
+	printf("<Server> Dropped: %s - Reason: %s \n", packet->to_string().c_str(), reason.c_str());
 
-  }).onReceive([](auto conn, bool) {
-    conn->write("<html>Hey</html>");
-  }).onConnect([](auto conn) {
-    printf("<Server> Connected.\n");
-  });
+      }).onReceive([](auto conn, bool) {
+	  conn->write("<html>Hey</html>");
+	}).onConnect([](auto conn) {
+	    printf("<Server> Connected.\n");
+	  });
 }

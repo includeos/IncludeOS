@@ -30,12 +30,12 @@ namespace net
     using Stack = Inet<LinkLayer, IP4>;
     
     DNSClient(Stack& stk)
-        : stack(stk)  {}
+      : stack(stk)  {}
     
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
-    **/
+     **/
     void resolve(IP4::addr dns_server,
                  const std::string& hostname, 
                  Stack::resolve_func<IP4> func);

@@ -33,10 +33,10 @@ void Service::start()
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
-      {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+		       {{ 10,0,0,42 }},      // IP
+		       {{ 255,255,255,0 }},  // Netmask
+		       {{ 10,0,0,1 }},       // Gateway
+		       {{ 8,8,8,8 }} );      // DNS
 
   INFO("TERM", "Running tests for Terminal");
   auto disk = fs::new_shared_memdisk();
@@ -44,8 +44,8 @@ void Service::start()
 
   // auto-mount filesystem
   disk->mount(
-  [disk] (fs::error_t err)
-  {
+	[disk] (fs::error_t err)
+	{
     CHECKSERT(!err, "Filesystem auto-mounted");
     
     /// terminal ///
@@ -76,12 +76,10 @@ void Service::start()
           term->write("%s\r\n", inet->tcp().status().c_str());
           return 0;
         });
-      
-      
     });
-
+    
     INFO("TERM", "Connect to terminal with $ telnet %s ",
-         inet->ip_addr().str().c_str());
+        inet->ip_addr().str().c_str());
     /// terminal ///
   });
 }

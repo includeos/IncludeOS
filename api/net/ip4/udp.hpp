@@ -25,77 +25,77 @@
 
 namespace net {
 
-class PacketUDP;
+  class PacketUDP;
 
-template <typename T>
-class Socket;
+  template <typename T>
+  class Socket;
 
-void ignore_udp(Packet_ptr);
+  void ignore_udp(Packet_ptr);
 
-/** Basic UDP support. @todo Implement UDP sockets.  */
-class UDP {
-public:
-  using addr_t = IP4::addr;
+  /** Basic UDP support. @todo Implement UDP sockets.  */
+  class UDP {
+  public:
+    using addr_t = IP4::addr;
 
-  /** UDP port number */
-  using port_t = uint16_t;
+    /** UDP port number */
+    using port_t = uint16_t;
   
-  using Socket = Socket<UDP>;
-  using Stack  = Inet<LinkLayer, IP4>;
+    using Socket = Socket<UDP>;
+    using Stack  = Inet<LinkLayer, IP4>;
 
-  /** UDP header */
-  struct udp_header {
-    port_t   sport;
-    port_t   dport;
-    uint16_t length;
-    uint16_t checksum;
-  };
+    /** UDP header */
+    struct udp_header {
+      port_t   sport;
+      port_t   dport;
+      uint16_t length;
+      uint16_t checksum;
+    };
 
-  /** Full UDP Header with all sub-headers */
-  struct full_header {
-    IP4::full_header full_hdr;
-    udp_header       udp_hdr;
-  }__attribute__((packed));
+    /** Full UDP Header with all sub-headers */
+    struct full_header {
+      IP4::full_header full_hdr;
+      udp_header       udp_hdr;
+    }__attribute__((packed));
   
-  ////////////////////////////////////////////
+    ////////////////////////////////////////////
   
-  inline addr_t local_ip() const
-  { return stack_.ip_addr(); }
+    inline addr_t local_ip() const
+    { return stack_.ip_addr(); }
   
-  /** Input from network layer */
-  void bottom(Packet_ptr);
+    /** Input from network layer */
+    void bottom(Packet_ptr);
 
-  /** Delegate output to network layer */
-  inline void set_network_out(downstream del)
-  { network_layer_out_ = del; }
+    /** Delegate output to network layer */
+    inline void set_network_out(downstream del)
+    { network_layer_out_ = del; }
   
-  /** Send UDP datagram from source ip/port to destination ip/port. 
+    /** Send UDP datagram from source ip/port to destination ip/port. 
     
-      @param sip   Local IP-address
-      @param sport Local port
-      @param dip   Remote IP-address
-      @param dport Remote port   */
-  void transmit(std::shared_ptr<PacketUDP> udp);
+	@param sip   Local IP-address
+	@param sport Local port
+	@param dip   Remote IP-address
+	@param dport Remote port   */
+    void transmit(std::shared_ptr<PacketUDP> udp);
   
-  //! @param port local port
-  Socket& bind(port_t port);
+    //! @param port local port
+    Socket& bind(port_t port);
   
-  //! returns a new UDP socket bound to a random port
-  Socket& bind();
+    //! returns a new UDP socket bound to a random port
+    Socket& bind();
   
-  //! construct this UDP module with @inet
-  UDP(Stack& inet) :
-    network_layer_out_ {ignore_udp},
-    stack_ {inet}
-  { }
-private: 
-  downstream               network_layer_out_;
-  Stack&                   stack_;
-  std::map<port_t, Socket> ports_;
-  port_t                   current_port_ {1024};
+    //! construct this UDP module with @inet
+    UDP(Stack& inet) :
+      network_layer_out_ {ignore_udp},
+      stack_ {inet}
+    { }
+  private: 
+    downstream               network_layer_out_;
+    Stack&                   stack_;
+    std::map<port_t, Socket> ports_;
+    port_t                   current_port_ {1024};
   
-  friend class SocketUDP;
-}; //< class UDP
+    friend class SocketUDP;
+  }; //< class UDP
 } //< namespace net
 
 #include "packet_udp.hpp"
