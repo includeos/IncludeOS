@@ -67,7 +67,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
     virtio/block.o virtio/console.o \
-		net/ethernet.o net/inet_common.o net/arp.o net/ip4.o \
+		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \

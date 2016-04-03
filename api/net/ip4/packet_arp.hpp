@@ -19,7 +19,7 @@
 #ifndef NET_IP4_PACKET_ARP
 #define NET_IP4_PACKET_ARP
 
-#include "../arp.hpp"
+#include "arp.hpp"
 #include <net/packet.hpp>
 
 namespace net

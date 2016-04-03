@@ -23,8 +23,8 @@
 #include <hw/nic.hpp>
 #include "inet.hpp"
 #include "ethernet.hpp"
-#include "arp.hpp"
-#include "ip4.hpp"
+#include "ip4/arp.hpp"
+#include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
 #include "dns/client.hpp"
 #include "tcp.hpp"
