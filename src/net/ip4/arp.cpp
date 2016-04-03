@@ -21,8 +21,8 @@
 #include <vector>
 
 #include <os>
-#include <net/arp.hpp>
 #include <net/inet4.hpp>
+#include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
 
 namespace net {

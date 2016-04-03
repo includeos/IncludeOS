@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NET_DNS_HPP
-#define NET_DNS_HPP
+#ifndef NET_DNS_DNS_HPP
+#define NET_DNS_DNS_HPP
 
 /**
  * DNS message
@@ -49,7 +49,7 @@
  * 
  **/
 
-#include <net/ip4.hpp> // UDP headers
+#include <net/ip4/ip4.hpp> // IP4::addr
 #include <string>
 #include <vector>
 #include <functional>

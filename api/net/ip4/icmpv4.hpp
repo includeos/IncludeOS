@@ -19,7 +19,7 @@
 #define NET_IP4_ICMPv4_HPP
 
 #include "../inet.hpp"
-#include "../ip4.hpp"
+#include "ip4.hpp"
 
 namespace net {
 

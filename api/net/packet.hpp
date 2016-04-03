@@ -18,8 +18,8 @@
 #ifndef NET_PACKET_HPP
 #define NET_PACKET_HPP
 
-#include <net/buffer_store.hpp>
-#include <net/ip4.hpp>
+#include "buffer_store.hpp"
+#include "ip4/ip4.hpp"
 #include <cassert>
 
 namespace net {

@@ -19,9 +19,9 @@
 #define NET_TCP_HPP
 
 #include <os>
-#include <net/ip4.hpp> // IP4::Addr
-#include <net/ip4/packet_ip4.hpp> // PacketIP4
-#include <net/util.hpp> // net::Packet_ptr, htons / noths
+#include "ip4/ip4.hpp" // IP4::Addr
+#include "ip4/packet_ip4.hpp" // PacketIP4
+#include "util.hpp" // net::Packet_ptr, htons / noths
 #include <queue> // buffer
 #include <map>
 #include <sstream> // ostringstream

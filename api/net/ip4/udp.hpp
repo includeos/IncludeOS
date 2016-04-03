@@ -21,7 +21,7 @@
 #include <map>
 
 #include "../inet.hpp"
-#include "../ip4.hpp"
+#include "ip4.hpp"
 
 namespace net {
 

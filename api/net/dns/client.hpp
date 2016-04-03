@@ -18,8 +18,8 @@
 #ifndef NET_DNS_CLIENT_HPP
 #define NET_DNS_CLIENT_HPP
 
-#include "../inet.hpp"
-#include "../ip4.hpp"
+#include <net/inet.hpp>
+#include <net/ip4/ip4.hpp>
 #include <map>
 
 namespace net

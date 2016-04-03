@@ -16,14 +16,14 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_ARP_HPP
-#define NET_ARP_HPP
+#ifndef NET_IP4_ARP_HPP
+#define NET_IP4_ARP_HPP
 
 #include <os>
 #include <map>
 
 #include <delegate>
-#include <net/ip4.hpp>
+#include "ip4.hpp"
 
 namespace net {
   
