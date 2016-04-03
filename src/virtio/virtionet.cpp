@@ -241,7 +241,7 @@ void VirtioNet::service_queues(){
 
       auto pckt_ptr = std::make_shared<Packet>
         (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
-         MTU()-sizeof(virtio_net_hdr), // Capacity
+         MTU(), // Capacity
          len - sizeof(virtio_net_hdr), release_buffer); // Size
 
       _link_out(pckt_ptr);
