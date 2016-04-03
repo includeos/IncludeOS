@@ -71,6 +71,7 @@ DEPS = $(OBJS:.o=.d)
 ###################################################
 # A complete build includes:
 # - a "service", to be linked with OS-objects (OS included)
+.PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: service
 
