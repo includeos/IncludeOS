@@ -85,7 +85,7 @@ namespace hw {
 
   /** IDE device initialization */
   set_irq_mode(false);
-  set_drive(0xA0 | (_drive << 4));
+  set_drive(0xA0 | _drive);
   set_nbsectors(0U);
   set_blocknum(0U);
   set_command(IDE_CMD_IDENTIFY);
@@ -128,7 +128,7 @@ namespace hw {
     }
 
     set_irq_mode(true);
-    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_drive(0xE0 | _drive | ((blk >> 24) & 0x0F));
     set_nbsectors(1);
     set_blocknum(blk);
     set_command(IDE_CMD_READ);
@@ -146,7 +146,7 @@ namespace hw {
     }
   
     set_irq_mode(true);
-    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_drive(0xE0 | _drive | ((blk >> 24) & 0x0F));
     set_nbsectors(count);
     set_blocknum(blk);
     set_command(IDE_CMD_READ);
@@ -163,7 +163,7 @@ namespace hw {
     }
 
     set_irq_mode(false);
-    set_drive(0xE0 | (_drive << 4) | ((blk >> 24) & 0x0F));
+    set_drive(0xE0 | _drive | ((blk >> 24) & 0x0F));
     set_nbsectors(1);
     set_blocknum(blk);
     set_command(IDE_CMD_READ);

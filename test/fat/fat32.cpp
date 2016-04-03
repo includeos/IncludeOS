@@ -24,7 +24,7 @@
 std::shared_ptr<fs::Disk> disk;
 
 std::string internal_banana = 
-  R"(     ____                           ___
+R"(     ____                           ___
     |  _ \  ___              _   _.' _ `.
  _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
 |:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
@@ -33,11 +33,11 @@ std::string internal_banana =
  !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
  !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
  ';:'        `::;::;'             ''     .,  .
-      `:     .,.    `'    .::... .      .::;::;'
-      `..:;::;:..      ::;::;:;:;,    :;::;'
+   `:     .,.    `'    .::... .      .::;::;'
+     `..:;::;:..      ::;::;:;:;,    :;::;'
        "-:;::;:;:      ':;::;:''     ;.-'
            ""`---...________...---'""
-       )";
+)";
 
 void Service::start()
 {
@@ -48,6 +48,7 @@ void Service::start()
   
   // verify that the size is indeed N sectors
   const size_t SIZE = 4194304;
+  printf("Size: %llu\n", disk->dev().size());
   CHECKSERT(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
   
   // which means that the disk can't be empty

@@ -18,7 +18,7 @@
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
 #include <os>
-#include <net/ip4.hpp>
+#include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
 

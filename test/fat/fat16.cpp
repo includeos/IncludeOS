@@ -67,12 +67,8 @@ void Service::start()
 		CHECKSERT(!ent.is_dir(), "Entity is not directory");
 		CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
     
-		// try reading banana-file
-		auto buf = fs.read(ent, 0, ent.size);
-		std::string banana((char*) buf.buffer.get(), buf.len);
-    
 		std::string internal_banana = 
-		  R"(     ____                           ___
+R"(     ____                           ___
     |  _ \  ___              _   _.' _ `.
  _  | [_) )' _ `._   _  ___ ! \ | | (_) |    _
 |:;.|  _ <| (_) | \ | |' _ `|  \| |  _  |  .:;|
@@ -81,12 +77,17 @@ void Service::start()
  !::,   `-!_| | | |\  | | | | | \ !_!.'   ':;!
  !::;       ":;:!.!.\_!_!_!.!-'-':;:''    '''!
  ';:'        `::;::;'             ''     .,  .
-      `:     .,.    `'    .::... .      .::;::;'
-      `..:;::;:..      ::;::;:;:;,    :;::;'
+   `:     .,.    `'    .::... .      .::;::;'
+     `..:;::;:..      ::;::;:;:;,    :;::;'
        "-:;::;:;:      ':;::;:''     ;.-'
            ""`---...________...---'""
-					 )";
+)";
     printf("%s\n", internal_banana.c_str());
+    
+		// try reading banana-file
+		auto buf = fs.read(ent, 0, ent.size);
+		auto banana = buf.to_string();
+    
     CHECKSERT(banana == internal_banana, "Correct banana #1");
     
     bool test = true;
@@ -95,6 +96,8 @@ void Service::start()
     {
       // read one byte at a time
       buf = fs.read(ent, i, 1);
+      /// @buf should evaluate to 'true' if its valid
+      CHECKSERT(buf, "Validate buffer");
       
       // verify that it matches the same location in test-string
       test = ((char) buf.buffer.get()[0] == internal_banana[i]);
@@ -107,7 +110,7 @@ void Service::start()
     CHECKSERT(test, "Validate random access sync read");
     
     buf = fs.readFile("/banana.txt");
-    banana = std::string((char*) buf.buffer.get(), buf.len);
+    banana = buf.to_string();
     CHECKSERT(banana == internal_banana, "Correct banana #2");
   });
   
