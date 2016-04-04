@@ -41,7 +41,7 @@ namespace fs {
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end))
       {
-	callback(buffer_t()); return;
+        callback(buffer_t()); return;
       }
   
     auto* buffer = new uint8_t[block_size()];
@@ -56,7 +56,7 @@ namespace fs {
     // Disallow reading memory past disk image
     if (unlikely(end_loc >= image_end))
       {
-	callback(buffer_t()); return;
+        callback(buffer_t()); return;
       }
   
     auto* buffer = new uint8_t[count * block_size()];

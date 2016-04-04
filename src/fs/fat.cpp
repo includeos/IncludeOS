@@ -15,8 +15,8 @@
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
 inline std::string trim_right_copy(
-				   const std::string& s,
-				   const std::string& delimiters = " \f\n\r\t\v" )
+                                   const std::string& s,
+                                   const std::string& delimiters = " \f\n\r\t\v" )
 {
   return s.substr( 0, s.find_last_not_of( delimiters ) + 1 );
 }
@@ -38,9 +38,9 @@ namespace fs
     this->sector_size = bpb->bytes_per_sector;
     if (unlikely(this->sector_size < 512))
       {
-	printf("Invalid sector size (%u) for FAT32 partition\n", sector_size);
-	printf("Are you mounting the correct partition?\n");
-	panic("FAT32: Invalid sector size");
+        printf("Invalid sector size (%u) for FAT32 partition\n", sector_size);
+        printf("Are you mounting the correct partition?\n");
+        panic("FAT32: Invalid sector size");
       }
     
     // Let's begin our incantation
@@ -93,26 +93,26 @@ namespace fs
     // using the official method:
     if (this->clusters < 4085)
       {
-	this->fat_type = FAT::T_FAT12;
-	this->root_cluster = 2;
-	debug("The image is type FAT12, with %u clusters\n", this->clusters);
+        this->fat_type = FAT::T_FAT12;
+        this->root_cluster = 2;
+        debug("The image is type FAT12, with %u clusters\n", this->clusters);
       }
     else if (this->clusters < 65525)
       {
-	this->fat_type = FAT::T_FAT16;
-	this->root_cluster = 2;
-	debug("The image is type FAT16, with %u clusters\n", this->clusters);
+        this->fat_type = FAT::T_FAT16;
+        this->root_cluster = 2;
+        debug("The image is type FAT16, with %u clusters\n", this->clusters);
       }
     else
       {
-	this->fat_type = FAT::T_FAT32;
-	this->root_cluster = *(uint32_t*) &mbr->boot[33];
-	this->root_cluster = 2;
-	debug("The image is type FAT32, with %u clusters\n", this->clusters);
-	//printf("Root dir entries: %u clusters\n", bpb->root_entries);
-	//assert(bpb->root_entries == 0);
-	//this->root_dir_sectors = 0;
-	//this->data_index = bpb->reserved_sectors + bpb->fa_tables * this->sectors_per_fat;
+        this->fat_type = FAT::T_FAT32;
+        this->root_cluster = *(uint32_t*) &mbr->boot[33];
+        this->root_cluster = 2;
+        debug("The image is type FAT32, with %u clusters\n", this->clusters);
+        //printf("Root dir entries: %u clusters\n", bpb->root_entries);
+        //assert(bpb->root_entries == 0);
+        //this->root_dir_sectors = 0;
+        //this->data_index = bpb->reserved_sectors + bpb->fa_tables * this->sectors_per_fat;
       }
     debug("Root cluster index: %u (sector %u)\n", this->root_cluster, cl_to_sector(root_cluster));
     debug("System ID: %.8s\n", bpb->system_id);
@@ -125,48 +125,48 @@ namespace fs
     
     // read Partition block
     device.read(this->lba_base,
-		[this, on_mount] (buffer_t data)
-		{
-		  auto* mbr = (MBR::mbr*) data.get();
-		  assert(mbr != nullptr);
+                [this, on_mount] (buffer_t data)
+                {
+                  auto* mbr = (MBR::mbr*) data.get();
+                  assert(mbr != nullptr);
       
-		  // verify image signature
-		  debug("OEM name: \t%s\n", mbr->oem_name);
-		  debug("MBR signature: \t0x%x\n", mbr->magic);
-		  assert(mbr->magic == 0xAA55);
+                  // verify image signature
+                  debug("OEM name: \t%s\n", mbr->oem_name);
+                  debug("MBR signature: \t0x%x\n", mbr->magic);
+                  assert(mbr->magic == 0xAA55);
       
-		  // initialize FAT16 or FAT32 filesystem
-		  init(mbr);
+                  // initialize FAT16 or FAT32 filesystem
+                  init(mbr);
       
-		  // determine which FAT version is mounted
-		  std::string inf = "ofs: " + std::to_string(lba_base) +
-		    "size: " + std::to_string(lba_size) +
-		    " (" + std::to_string(this->lba_size * sector_size) + " bytes)\n";
+                  // determine which FAT version is mounted
+                  std::string inf = "ofs: " + std::to_string(lba_base) +
+                    "size: " + std::to_string(lba_size) +
+                    " (" + std::to_string(this->lba_size * sector_size) + " bytes)\n";
       
-		  switch (this->fat_type)
-		    {
-		    case FAT::T_FAT12:
-		      INFO("FS", "Mounting FAT12 filesystem");
-		      break;
-		    case FAT::T_FAT16:
-		      INFO("FS", "Mounting FAT16 filesystem");
-		      break;
-		    case FAT::T_FAT32:
-		      INFO("FS", "Mounting FAT32 filesystem");
-		      break;
-		    }
-		  INFO2("[ofs=%u  size=%u (%u bytes)]\n", 
-			this->lba_base, this->lba_size, this->lba_size * 512);
+                  switch (this->fat_type)
+                    {
+                    case FAT::T_FAT12:
+                      INFO("FS", "Mounting FAT12 filesystem");
+                      break;
+                    case FAT::T_FAT16:
+                      INFO("FS", "Mounting FAT16 filesystem");
+                      break;
+                    case FAT::T_FAT32:
+                      INFO("FS", "Mounting FAT32 filesystem");
+                      break;
+                    }
+                  INFO2("[ofs=%u  size=%u (%u bytes)]\n", 
+                        this->lba_base, this->lba_size, this->lba_size * 512);
       
-		  // on_mount callback
-		  on_mount(no_error);
-		});
+                  // on_mount callback
+                  on_mount(no_error);
+                });
   }
   
   bool FAT::int_dirent(
-		       uint32_t  sector,
-		       const void* data, 
-		       dirvec_t dirents)
+                       uint32_t  sector,
+                       const void* data, 
+                       dirvec_t dirents)
   {
     auto* root = (cl_dir*) data;
     bool  found_last = false;
@@ -174,97 +174,97 @@ namespace fs
     for (int i = 0; i < 16; i++)
       {
         if (unlikely(root[i].shortname[0] == 0x0))
-	  {
-	    //printf("end of dir\n");
-	    found_last = true;
-	    // end of directory
-	    break;
-	  }
+          {
+            //printf("end of dir\n");
+            found_last = true;
+            // end of directory
+            break;
+          }
         else if (unlikely(root[i].shortname[0] == 0xE5))
-	  {
-	    // unused index
-	  }
+          {
+            // unused index
+          }
         else
-	  {
+          {
             // traverse long names, then final cluster
             // to read all the relevant info
             
             if (likely(root[i].is_longname()))
-	      {
-		auto* L = (cl_long*) &root[i];
-		// the last long index is part of a chain of entries
-		if (L->is_last())
-		  {
-		    // buffer for long filename
-		    char final_name[256];
-		    int  final_count = 0;
+              {
+                auto* L = (cl_long*) &root[i];
+                // the last long index is part of a chain of entries
+                if (L->is_last())
+                  {
+                    // buffer for long filename
+                    char final_name[256];
+                    int  final_count = 0;
                 
-		    int  total = L->long_index();
-		    // go to the last entry and work backwards
-		    i += total-1;
-		    L += total-1;
+                    int  total = L->long_index();
+                    // go to the last entry and work backwards
+                    i += total-1;
+                    L += total-1;
                 
-		    for (int idx = total; idx > 0; idx--)
-		      {
-			uint16_t longname[13];
-			memcpy(longname+ 0, L->first, 10);
-			memcpy(longname+ 5, L->second, 12);
-			memcpy(longname+11, L->third, 4);
+                    for (int idx = total; idx > 0; idx--)
+                      {
+                        uint16_t longname[13];
+                        memcpy(longname+ 0, L->first, 10);
+                        memcpy(longname+ 5, L->second, 12);
+                        memcpy(longname+11, L->third, 4);
                   
-			for (int j = 0; j < 13; j++)
-			  {
-			    // 0xFFFF indicates end of name
-			    if (unlikely(longname[j] == 0xFFFF)) break;
-			    // sometimes, invalid stuff are snuck into filenames
-			    if (unlikely(longname[j] == 0x0)) break;
+                        for (int j = 0; j < 13; j++)
+                          {
+                            // 0xFFFF indicates end of name
+                            if (unlikely(longname[j] == 0xFFFF)) break;
+                            // sometimes, invalid stuff are snuck into filenames
+                            if (unlikely(longname[j] == 0x0)) break;
                     
-			    final_name[final_count] = longname[j] & 0xFF;
-			    final_count++;
-			  }
-			L--;
+                            final_name[final_count] = longname[j] & 0xFF;
+                            final_count++;
+                          }
+                        L--;
                   
-			if (unlikely(final_count > 240))
-			  {
-			    debug("Suspicious long name length, breaking...\n");
-			    break;
-			  }
-		      }
+                        if (unlikely(final_count > 240))
+                          {
+                            debug("Suspicious long name length, breaking...\n");
+                            break;
+                          }
+                      }
                 
-		    final_name[final_count] = 0;
-		    debug("Long name: %s\n", final_name);
+                    final_name[final_count] = 0;
+                    debug("Long name: %s\n", final_name);
                 
-		    i++; // skip over the long version
-		    // to the short version for the stats and cluster
-		    auto* D = &root[i];
-		    std::string dirname(final_name, final_count);
-		    dirname = trim_right_copy(dirname);
+                    i++; // skip over the long version
+                    // to the short version for the stats and cluster
+                    auto* D = &root[i];
+                    std::string dirname(final_name, final_count);
+                    dirname = trim_right_copy(dirname);
                 
-		    dirents->emplace_back(
-					  D->type(), 
-					  dirname, 
-					  D->dir_cluster(root_cluster), 
-					  sector, // parent block
-					  D->size(), 
-					  D->attrib);
-		  }
-	      }
+                    dirents->emplace_back(
+                                          D->type(), 
+                                          dirname, 
+                                          D->dir_cluster(root_cluster), 
+                                          sector, // parent block
+                                          D->size(), 
+                                          D->attrib);
+                  }
+              }
             else
-	      {
-		auto* D = &root[i];
-		debug("Short name: %.11s\n", D->shortname);
+              {
+                auto* D = &root[i];
+                debug("Short name: %.11s\n", D->shortname);
               
-		std::string dirname((char*) D->shortname, 11);
-		dirname = trim_right_copy(dirname);
+                std::string dirname((char*) D->shortname, 11);
+                dirname = trim_right_copy(dirname);
               
-		dirents->emplace_back(
-				      D->type(), 
-				      dirname, 
-				      D->dir_cluster(root_cluster), 
-				      sector, // parent block
-				      D->size(), 
-				      D->attrib);
-	      }
-	  }
+                dirents->emplace_back(
+                                      D->type(), 
+                                      dirname, 
+                                      D->dir_cluster(root_cluster), 
+                                      sector, // parent block
+                                      D->size(), 
+                                      D->attrib);
+              }
+          }
       } // directory list
       
     return found_last;

@@ -36,9 +36,9 @@ namespace fs
     // if what we want to read is larger than the rest, exit early
     if (rest > n)
       {
-	memcpy(result, data.get() + internal_ofs, n);
+        memcpy(result, data.get() + internal_ofs, n);
       
-	return Buffer(no_error, buffer_t(result), n);
+        return Buffer(no_error, buffer_t(result), n);
       }
     // otherwise, read to the sector border
     uint8_t* ptr = result;
@@ -50,19 +50,19 @@ namespace fs
     // copy entire sectors
     while (n > device.block_size())
       {
-	data = device.read_sync(sector);
+        data = device.read_sync(sector);
       
-	memcpy(ptr, data.get(), device.block_size());
-	ptr += device.block_size();
-	n   -= device.block_size();
-	sector += 1;
+        memcpy(ptr, data.get(), device.block_size());
+        ptr += device.block_size();
+        n   -= device.block_size();
+        sector += 1;
       }
     
     // copy remainder
     if (likely(n > 0))
       {
-	data = device.read_sync(sector);
-	memcpy(ptr, data.get(), n);
+        data = device.read_sync(sector);
+        memcpy(ptr, data.get(), n);
       }
     
     return Buffer(no_error, buffer_t(result), total);
@@ -73,8 +73,8 @@ namespace fs
     Path path(strpath);
     if (unlikely(path.empty()))
       {
-	// there is no possible file to read where path is empty
-	return Buffer(true, nullptr, 0);
+        // there is no possible file to read where path is empty
+        return Buffer(true, nullptr, 0);
       }
     debug("readFile: %s\n", path.back().c_str());
     
@@ -90,11 +90,11 @@ namespace fs
     // find the matching filename in directory
     for (auto& e : *dirents)
       {
-	if (unlikely(e.name() == filename))
-	  {
-	    // read this file
-	    return read(e, 0, e.size);
-	  }
+        if (unlikely(e.name() == filename))
+          {
+            // read this file
+            return read(e, 0, e.size);
+          }
       }
     // entry not found
     return Buffer(true, buffer_t(), 0);
@@ -105,13 +105,13 @@ namespace fs
     bool done = false;
     while (!done)
       {
-	// read sector sync
-	buffer_t data = device.read_sync(sector);
-	if (!data) return true;
-	// parse directory into @ents
-	done = int_dirent(sector, data.get(), ents);
-	// go to next sector until done
-	sector++;
+        // read sector sync
+        buffer_t data = device.read_sync(sector);
+        if (!data) return true;
+        // parse directory into @ents
+        done = int_dirent(sector, data.get(), ents);
+        // go to next sector until done
+        sector++;
       }
     return no_error;
   }
@@ -126,44 +126,44 @@ namespace fs
     
     while (!path.empty())
       {
-	uint32_t S = this->cl_to_sector(cluster);
-	dirents->clear(); // mui importante
-	// sync read entire directory
-	auto err = int_ls(S, dirents);
-	if (err) return err;
-	// the name we are looking for
-	std::string name = path.front();
-	path.pop_front();
+        uint32_t S = this->cl_to_sector(cluster);
+        dirents->clear(); // mui importante
+        // sync read entire directory
+        auto err = int_ls(S, dirents);
+        if (err) return err;
+        // the name we are looking for
+        std::string name = path.front();
+        path.pop_front();
       
-	// check for matches in dirents
-	for (auto& e : *dirents)
-	  if (unlikely(e.name() == name))
-	    {
-	      // go to this directory, unless its the last name
-	      debug("traverse_sync: Found match for %s", name.c_str());
-	      // enter the matching directory
-	      debug("\t\t cluster: %lu\n", e.block);
-	      // only follow if the name is a directory
-	      if (e.type() == DIR)
-		{
-		  found = e;
-		  break;
-		}
-	      else
-		{
-		  // not dir = error, for now
-		  return true;
-		}
-	    } // for (ents)
+        // check for matches in dirents
+        for (auto& e : *dirents)
+          if (unlikely(e.name() == name))
+            {
+              // go to this directory, unless its the last name
+              debug("traverse_sync: Found match for %s", name.c_str());
+              // enter the matching directory
+              debug("\t\t cluster: %lu\n", e.block);
+              // only follow if the name is a directory
+              if (e.type() == DIR)
+                {
+                  found = e;
+                  break;
+                }
+              else
+                {
+                  // not dir = error, for now
+                  return true;
+                }
+            } // for (ents)
       
-	// validate result
-	if (found.type() == INVALID_ENTITY)
-	  {
-	    debug("traverse_sync: NO MATCH for %s\n", name.c_str());
-	    return true;
-	  }
-	// set next cluster
-	cluster = found.block;
+        // validate result
+        if (found.type() == INVALID_ENTITY)
+          {
+            debug("traverse_sync: NO MATCH for %s\n", name.c_str());
+            return true;
+          }
+        // set next cluster
+        cluster = found.block;
       }
     
     uint32_t S = this->cl_to_sector(cluster);
@@ -181,8 +181,8 @@ namespace fs
     Path path(strpath);
     if (unlikely(path.empty()))
       {
-	// root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-	return Dirent(INVALID_ENTITY);
+        // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
+        return Dirent(INVALID_ENTITY);
       }
     
     debug("stat_sync: %s\n", path.back().c_str());
@@ -199,11 +199,11 @@ namespace fs
     // find the matching filename in directory
     for (auto& e : *dirents)
       {
-	if (unlikely(e.name() == filename))
-	  {
-	    // return this directory entry
-	    return e;
-	  }
+        if (unlikely(e.name() == filename))
+          {
+            // return this directory entry
+            return e;
+          }
       }
     // entry not found
     return Dirent(INVALID_ENTITY);

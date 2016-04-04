@@ -54,14 +54,14 @@ namespace fs
     virtual std::string name() const override
     {
       switch (this->fat_type)
-	{
-	case T_FAT12:
+        {
+        case T_FAT12:
           return "FAT12";
-	case T_FAT16:
+        case T_FAT16:
           return "FAT16";
-	case T_FAT32:
+        case T_FAT32:
           return "FAT32";
-	}
+        }
       return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
@@ -121,7 +121,7 @@ namespace fs
       
       uint32_t size() const
       {
-	return filesize;
+        return filesize;
       }
       
     } __attribute__((packed));
@@ -162,16 +162,16 @@ namespace fs
     uint16_t cl_to_entry_offset(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-	return (cl * 2) % sector_size;
+        return (cl * 2) % sector_size;
       else // T_FAT32
-	return (cl * 4) % sector_size;
+        return (cl * 4) % sector_size;
     }
     uint16_t cl_to_entry_sector(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-	return reserved + (cl * 2 / sector_size);
+        return reserved + (cl * 2 / sector_size);
       else // T_FAT32
-	return reserved + (cl * 4 / sector_size);
+        return reserved + (cl * 4 / sector_size);
     }
     
     // initialize filesystem by providing base sector

@@ -61,32 +61,32 @@ namespace net {
       uint8_t part[ETHER_ADDR_LEN];
     
       struct {
-	uint16_t minor;
-	uint32_t major;
+        uint16_t minor;
+        uint32_t major;
       } __attribute__((packed));
     
       addr& operator=(const addr cpy) noexcept {
-	minor = cpy.minor;
-	major = cpy.major;
-	return *this;
+        minor = cpy.minor;
+        major = cpy.major;
+        return *this;
       }
     
       // hex string representation
       std::string str() const {
-	char eth_addr[17];
-	sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
-		part[0], part[1], part[2],
-		part[3], part[4], part[5]);
-	return eth_addr;
+        char eth_addr[17];
+        sprintf(eth_addr, "%1x:%1x:%1x:%1x:%1x:%1x",
+                part[0], part[1], part[2],
+                part[3], part[4], part[5]);
+        return eth_addr;
       }
     
       /** Check for equality */
       bool operator==(const addr mac) const noexcept
       {
-	return strncmp(
-		       reinterpret_cast<const char*>(part), 
-		       reinterpret_cast<const char*>(mac.part), 
-		       ETHER_ADDR_LEN) == 0;
+        return strncmp(
+                       reinterpret_cast<const char*>(part), 
+                       reinterpret_cast<const char*>(mac.part), 
+                       ETHER_ADDR_LEN) == 0;
       }
     
       static const addr MULTICAST_FRAME;

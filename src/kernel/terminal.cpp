@@ -61,25 +61,25 @@ Terminal::Terminal(hw::Serial& serial)
   : Terminal()
 {
   serial.on_data(
-		 [this, &serial] (char c)
-		 {
-		   this->read(&c, 1);
-		   if (c == CR)
-		     {
-		       c = LF;
-		       this->read(&c, 1);
-		     }
-		   else
-		     {
-		       serial.write(c);
-		     }
-		 });
+                 [this, &serial] (char c)
+                 {
+                   this->read(&c, 1);
+                   if (c == CR)
+                     {
+                       c = LF;
+                       this->read(&c, 1);
+                     }
+                   else
+                     {
+                       serial.write(c);
+                     }
+                 });
 
   on_write =
     [&serial] (const char* buffer, size_t len)
     {
       for (size_t i = 0; i < len; i++)
-	serial.write(buffer[i]);
+        serial.write(buffer[i]);
     };
 
   on_exit =
@@ -95,40 +95,40 @@ void Terminal::read(const char* buf, size_t len)
   while (len)
     {
       if (this->subcmd)
-	{
-	  // execute options
-	  option(this->subcmd, (uint8_t) *buf);
-	  this->subcmd = 0;
-	}
+        {
+          // execute options
+          option(this->subcmd, (uint8_t) *buf);
+          this->subcmd = 0;
+        }
       else if (this->iac)
-	{
-	  command(*(uint8_t*) buf);
-	  this->iac = false;
-	}
+        {
+          command(*(uint8_t*) buf);
+          this->iac = false;
+        }
       else if (*buf == 13 && !newline)
-	{
-	  newline = true;
-	}
+        {
+          newline = true;
+        }
       else if (*buf == 10 && newline)
-	{
-	  newline = false;
-	  // parse message
-	  run(buffer);
-	  buffer.clear();
-	}
+        {
+          newline = false;
+          // parse message
+          run(buffer);
+          buffer.clear();
+        }
       else if (*buf == 0)
-	{
-	  // NOP
-	}
+        {
+          // NOP
+        }
       else if ((uint8_t) *buf == 0xFF)
-	{
-	  // Interpret as Command
-	  this->iac = true;
-	}
+        {
+          // Interpret as Command
+          this->iac = true;
+        }
       else
-	{
-	  buffer.append(buf, 1);
-	}
+        {
+          buffer.append(buf, 1);
+        }
       buf++; len--;
     }
 }
@@ -189,8 +189,8 @@ split(const std::string& text, std::string& command)
     // early return for cmd-only msg
     if (x == std::string::npos)
       {
-	command = text;
-	return retv;
+        command = text;
+        return retv;
       }
     // command is substring
     command = text.substr(0, x);
@@ -203,23 +203,23 @@ split(const std::string& text, std::string& command)
       size_t y = text.find(":", x+1); // find last param
 
       if (y == x+1)
-	{
-	  // single argument
-	  retv.push_back(text.substr(p, x-p));
-	  // ending text argument
-	  retv.push_back(text.substr(y+1));
-	  break;
-	}
+        {
+          // single argument
+          retv.push_back(text.substr(p, x-p));
+          // ending text argument
+          retv.push_back(text.substr(y+1));
+          break;
+        }
       else if (x != std::string::npos)
-	{
-	  // single argument
-	  retv.push_back(text.substr(p, x-p));
-	}
+        {
+          // single argument
+          retv.push_back(text.substr(p, x-p));
+        }
       else
-	{
-	  // last argument
-	  retv.push_back(text.substr(p));
-	}
+        {
+          // last argument
+          retv.push_back(text.substr(p));
+        }
       p = x+1;
 
     } while (x != std::string::npos);
@@ -237,14 +237,14 @@ void Terminal::run(const std::string& cmd_string)
 
       auto it = commands.find(cmd_name);
       if (it != commands.end())
-	{
-	  int retv = it->second.main(cmd_vec);
-	  if (retv) write("%s returned: %d\r\n", cmd_name.c_str(), retv);
-	}
+        {
+          int retv = it->second.main(cmd_vec);
+          if (retv) write("%s returned: %d\r\n", cmd_name.c_str(), retv);
+        }
       else
-	{
-	  write("No such command: '%s'\r\n", cmd_name.c_str());
-	}
+        {
+          write("No such command: '%s'\r\n", cmd_name.c_str());
+        }
     }
   prompt();
 }
@@ -256,19 +256,19 @@ void Terminal::add_basic_commands()
       "?", "List available commands",
       [this] (const std::vector<std::string>&) -> int
       {
-	for (auto cmd : this->commands)
-	  {
-	    write("%s \t-- %s\r\n", cmd.first.c_str(), cmd.second.desc.c_str());
-	  }
-	return 0;
+        for (auto cmd : this->commands)
+          {
+            write("%s \t-- %s\r\n", cmd.first.c_str(), cmd.second.desc.c_str());
+          }
+        return 0;
       });
   // exit:
   add(
       "exit", "Close the terminal",
       [this] (const std::vector<std::string>&) -> int
       {
-	this->on_exit();
-	return 0;
+        this->on_exit();
+        return 0;
       });
 
 }
@@ -290,8 +290,8 @@ void Terminal::intro()
      "-:;::;:;:      ':;::;:''     ;.-'
          ""`---...________...---'""
 
-				       > Banana Terminal v1 <
-					 )baaa";
+                                       > Banana Terminal v1 <
+                                         )baaa";
 
   write("%s", banana.c_str());
   prompt();

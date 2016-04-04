@@ -51,28 +51,28 @@ namespace net {
     case H_request: {
       debug2("\t ARP REQUEST: ");
       debug2("%s is looking for %s\n", 
-	     hdr->sipaddr.str().c_str(),
-	     hdr->dipaddr.str().c_str());
+             hdr->sipaddr.str().c_str(),
+             hdr->dipaddr.str().c_str());
     
       if (hdr->dipaddr == inet_.ip_addr()) {
-	arp_respond(hdr);    
+        arp_respond(hdr);    
       } else {
-	debug2("\t NO MATCH for My IP (%s). DROP!\n", 
-	       inet_.ip_addr().str().c_str());
+        debug2("\t NO MATCH for My IP (%s). DROP!\n", 
+               inet_.ip_addr().str().c_str());
       }
       break;
     }
     
     case H_reply: {
       debug2("\t ARP REPLY: %s belongs to %s\n", 
-	     hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
+             hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
 
       auto waiting = waiting_packets_.find(hdr->sipaddr);
 
       if (waiting != waiting_packets_.end()) {
-	debug("Had a packet waiting for this IP. Sending\n");
-	transmit(waiting->second);
-	waiting_packets_.erase(waiting);
+        debug("Had a packet waiting for this IP. Sending\n");
+        transmit(waiting->second);
+        waiting_packets_.erase(waiting);
       }
       break;
     }
@@ -90,7 +90,7 @@ namespace net {
 
     if (entry != cache_.end()) {
       debug2("Cached entry found: %s recorded @ %llu. Updating timestamp\n",
-	     entry->second.mac_.str().c_str(), entry->second.timestamp_);
+             entry->second.mac_.str().c_str(), entry->second.timestamp_);
     
       // Update
       entry->second.update();
@@ -105,8 +105,8 @@ namespace net {
   
     if (entry != cache_.end()) {
       debug("Cached entry, mac: %s time: %llu Expiry: %llu\n", 
-	    entry->second.mac_.str().c_str(),
-	    entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
+            entry->second.mac_.str().c_str(),
+            entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
       debug("Time now: %llu\n", static_cast<uint64_t>(OS::uptime()));
     }
   
@@ -130,7 +130,7 @@ namespace net {
     res->set_opcode(H_reply);
     
     debug2("\t My IP: %s belongs to My Mac: %s\n", 
-	   res->source_ip().str().c_str(), res->source_mac().str().c_str());
+           res->source_ip().str().c_str(), res->source_mac().str().c_str());
   
     linklayer_out_(res);
   }
@@ -140,12 +140,12 @@ namespace net {
   
     /** Get destination IP from IP header */
     IP4::ip_header* iphdr = reinterpret_cast<IP4::ip_header*>(pckt->buffer() 
-							      + sizeof(Ethernet::header));
+                                                              + sizeof(Ethernet::header));
     IP4::addr sip = iphdr->saddr;
     IP4::addr dip = pckt->next_hop();
 
     debug2("<ARP -> physical> Transmitting %i bytes to %s\n", 
-	   pckt->size(), dip.str().c_str());
+           pckt->size(), dip.str().c_str());
   
     Ethernet::addr dest_mac;
   
@@ -154,18 +154,18 @@ namespace net {
       // our own IP or 0.0.0.0
     
       if (sip != inet_.ip_addr() && sip != IP4::INADDR_ANY) {
-	debug2("<ARP> Dropping outbound broadcast packet due to "
-	       "invalid source IP %s\n",  sip.str().c_str());
-	return;
+        debug2("<ARP> Dropping outbound broadcast packet due to "
+               "invalid source IP %s\n",  sip.str().c_str());
+        return;
       }
       // mui importante
       dest_mac = Ethernet::addr::BROADCAST_FRAME;
     
     } else {
       if (sip != inet_.ip_addr()) {
-	debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
-	       sip.str().c_str(), inet_.ip_addr().str().c_str());
-	return;
+        debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
+               sip.str().c_str(), inet_.ip_addr().str().c_str());
+        return;
       }
     
       // If we don't have a cached IP, perform address resolution

@@ -37,17 +37,17 @@ namespace hw {
     typedef std::function<bool()> repeat_condition;
   
     /** Create a one-shot timer. 
-	@param ms: Expiration time. Compatible with all std::chrono durations.
-	@param handler: A delegate or function to be called on timeout.   */
+        @param ms: Expiration time. Compatible with all std::chrono durations.
+        @param handler: A delegate or function to be called on timeout.   */
     void onTimeout(std::chrono::milliseconds ms, timeout_handler handler);
 
     /** Create a repeating timer. 
-	@param ms: Expiration time. Compatible with all std::chrono durations.
-	@param handler: A delegate or function to be called every ms interval. 
-	@param cond: The timer ends when cond() returns false. Default to true. */
+        @param ms: Expiration time. Compatible with all std::chrono durations.
+        @param handler: A delegate or function to be called every ms interval. 
+        @param cond: The timer ends when cond() returns false. Default to true. */
     void onRepeatedTimeout(std::chrono::milliseconds ms, 
-			   timeout_handler handler, 
-			   repeat_condition cond = forever);
+                           timeout_handler handler, 
+                           repeat_condition cond = forever);
   
     /** No copy or move. The OS owns one instance forever. */
     PIT(PIT&) = delete;
@@ -68,8 +68,8 @@ namespace hw {
     static inline MHz current_frequency(){ return frequency() / current_freq_divider_; }
   
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc. 
-	@Note This is an asynchronous function. Once finished the result can be 
-	fetched by CPUFrequency() (below)  */
+        @Note This is an asynchronous function. Once finished the result can be 
+        fetched by CPUFrequency() (below)  */
     static void estimateCPUFrequency();
   
     /** Get the last estimated CPU frequency.  May trigger frequency sampling */
@@ -80,12 +80,12 @@ namespace hw {
     static std::function<bool()> forever;
   
     enum Mode { ONE_SHOT = 0, 
-		HW_ONESHOT = 1 << 1, 
-		RATE_GEN = 2 << 1, 
-		SQ_WAVE = 3 << 1, 
-		SW_STROBE = 4 << 1, 
-		HW_STROBE = 5 << 1, 
-		NONE = 256};
+                HW_ONESHOT = 1 << 1, 
+                RATE_GEN = 2 << 1, 
+                SQ_WAVE = 3 << 1, 
+                SW_STROBE = 4 << 1, 
+                HW_STROBE = 5 << 1, 
+                NONE = 256};
   
     // The PIT-chip runs at this fixed frequency (in MHz) , according to OSDev.org */
     static constexpr MHz frequency_ = MHz(14.31818 / 12);
@@ -133,7 +133,7 @@ namespace hw {
 
   
     /** A timer is a handler and an expiration time (interval). 
-	@todo The timer also keeps a pre-computed rdtsc-value, which is currently unused.*/
+        @todo The timer also keeps a pre-computed rdtsc-value, which is currently unused.*/
     class Timer {
     public:
       enum Type { ONE_SHOT, REPEAT, REPEAT_WHILE} type_;    
@@ -165,18 +165,18 @@ namespace hw {
       std::chrono::milliseconds interval_;
     
       /* This Could be a reference in the default case of "forever", but then the
-	 case of a normal lambda being passed in, the user would have to be in charge
-	 of storage. */
+         case of a normal lambda being passed in, the user would have to be in charge
+         of storage. */
       const repeat_condition cond_;
     };
   
     /** A map of timers. 
-	@note {Performance: We take advantage of the fact that std::map have sorted keys. 
-	* Timers soonest to expire are in the front, so we only iterate over those
-	* Deletion of finished timers in amortized constant time, via iterators
-	* Timer insertion is log(n) }
-	@note This is why we want to instantiate PIT, and why it's a singleton: 
-	If you don't use PIT-timers, you won't pay for them. */
+        @note {Performance: We take advantage of the fact that std::map have sorted keys. 
+        * Timers soonest to expire are in the front, so we only iterate over those
+        * Deletion of finished timers in amortized constant time, via iterators
+        * Timer insertion is log(n) }
+        @note This is why we want to instantiate PIT, and why it's a singleton: 
+        If you don't use PIT-timers, you won't pay for them. */
     std::multimap<uint64_t,Timer> timers_;
 
     /** Queue the timer. This will update timestamps in the timer */

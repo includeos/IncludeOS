@@ -161,7 +161,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     remaining -= written;
 
     debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u - Remaining: %u - Packet count: %u\n",
-	   packet_limit, written, remaining, packet_count);
+           packet_limit, written, remaining, packet_count);
 
     // If last packet, add PUSH.
     if(!remaining and PUSH)
@@ -297,7 +297,7 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   host_.transmit(packet);
   // Don't think we would like to retransmit reset packets..?
   //if(!packet->isset(RST))
-  //	add_retransmission(packet);
+  //    add_retransmission(packet);
 }
 
 TCP::Seq Connection::generate_iss() {
@@ -308,7 +308,7 @@ void Connection::set_state(State& state) {
   prev_state_ = state_;
   state_ = &state;
   debug("<TCP::Connection::set_state> %s => %s \n",
-	prev_state_->to_string().c_str(), state_->to_string().c_str());
+        prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
 void Connection::add_retransmission(TCP::Packet_ptr packet) {
@@ -317,11 +317,11 @@ void Connection::add_retransmission(TCP::Packet_ptr packet) {
   hw::PIT::instance().onTimeout(RTO(), [packet, self] {
       // Packet hasnt been ACKed.
       if(packet->seq() > self->tcb().SND.UNA) {
-	debug("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
-	self->transmit(packet);
+        debug("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+        self->transmit(packet);
       } else {
-	debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
-	// Signal user?
+        debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
+        // Signal user?
       }
     });
 }
@@ -351,9 +351,9 @@ void Connection::start_time_wait_timeout() {
   hw::PIT::instance().onTimeout(timeout,[this, timeout] {
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
-	signal_close();
+        signal_close();
       } else {
-	debug2("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
+        debug2("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
       }
     });
 }
@@ -384,7 +384,7 @@ std::string Connection::TCB::to_string() const {
 void Connection::parse_options(TCP::Packet_ptr packet) {
   assert(packet->has_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
-	packet->offset(), packet->options_length());
+        packet->offset(), packet->options_length());
 
   auto* opt = packet->options();
 
@@ -406,10 +406,10 @@ void Connection::parse_options(TCP::Packet_ptr packet) {
     case Option::MSS: {
       // unlikely
       if(option->length != 4)
-	throw TCPBadOptionException{Option::MSS, "length != 4"};
+        throw TCPBadOptionException{Option::MSS, "length != 4"};
       // unlikely
       if(!packet->isset(SYN))
-	throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
+        throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
 
       auto* opt_mss = (Option::opt_mss*)option;
       uint16_t mss = ntohs(opt_mss->mss);
@@ -432,7 +432,7 @@ void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
   case Option::MSS: {
     packet->add_option<Option::opt_mss>(host_.MSS());
     debug2("<TCP::Connection::add_option@Option::MSS> Packet: %s - MSS: %u\n",
-	   packet->to_string().c_str(), ntohs(*(uint16_t*)(packet->options()+2)));
+           packet->to_string().c_str(), ntohs(*(uint16_t*)(packet->options()+2)));
     break;
   }
   default:

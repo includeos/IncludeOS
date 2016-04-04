@@ -33,13 +33,13 @@ namespace net {
   assert(pool_);
 
   debug ("<BufferStore> Creating buffer store of %i * %i bytes.\n",
-	 num, bufsize);
+         num, bufsize);
 
   for (buffer_t b = pool_; b < pool_ + (num * bufsize); b += bufsize)
     available_buffers_.push_back(b);
 
   debug ("<BufferStore> I now have %i free buffers in range %p -> %p.\n",
-	 available_buffers_.size(), pool_, pool_ + (bufcount_ * bufsize_));
+         available_buffers_.size(), pool_, pool_ + (bufcount_ * bufsize_));
 }
 
   BufferStore::~BufferStore() {
@@ -61,7 +61,7 @@ namespace net {
     available_buffers_.pop_front();  
   
     debug2("<BufferStore> Provisioned a buffer. %i buffers remaining.\n",
-	   available_buffers_.size());
+           available_buffers_.size());
 
     return buf;
   }
@@ -74,12 +74,12 @@ namespace net {
     debug2("<BufferStore> Trying to release %i sized buffer @%p.\n", bufsize, b);
     // Make sure the buffer comes from here. Otherwise, ignore it.
     if (address_is_from_pool(b) 
-	and address_is_bufstart(b)
-	and bufsize == bufsize_)
+        and address_is_bufstart(b)
+        and bufsize == bufsize_)
       {
-	available_buffers_.push_back(b);
-	debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
-	return;
+        available_buffers_.push_back(b);
+        debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
+        return;
       }
 
     debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
@@ -89,12 +89,12 @@ namespace net {
     debug2("<BufferStore> Trying to release %i + %i sized buffer @%p.\n", bufsize, device_offset_, b);
     // Make sure the buffer comes from here. Otherwise, ignore it.
     if (address_is_from_pool(b) 
-	and address_is_offset_bufstart(b)
-	and bufsize == bufsize_ - device_offset_)
+        and address_is_offset_bufstart(b)
+        and bufsize == bufsize_ - device_offset_)
       {
-	available_buffers_.push_back(b - device_offset_);
-	debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
-	return;
+        available_buffers_.push_back(b - device_offset_);
+        debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
+        return;
       }
 
     debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);

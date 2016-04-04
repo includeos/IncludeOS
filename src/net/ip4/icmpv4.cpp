@@ -61,7 +61,7 @@ namespace net {
     hdr->sequence   = full_hdr->icmp_hdr.sequence;
 
     debug("<ICMP> Rest of header IN: 0x%lx OUT: 0x%lx\n",
-	  full_hdr->icmp_hdr.rest, hdr->rest);
+          full_hdr->icmp_hdr.rest, hdr->rest);
   
     debug("<ICMP> Transmitting answer\n");
 
@@ -79,7 +79,7 @@ namespace net {
   
     hdr->checksum = 0;
     hdr->checksum = net::checksum(reinterpret_cast<uint16_t*>(hdr),
-				  size - sizeof(full_header) + sizeof(icmp_header));
+                                  size - sizeof(full_header) + sizeof(icmp_header));
   
     network_layer_out_(packet_ptr);
   }

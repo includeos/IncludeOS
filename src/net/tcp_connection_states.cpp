@@ -108,7 +108,7 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
   }
   // #4
   else if( (tcb.RCV.NXT <= in->seq() and in->seq() < tcb.RCV.NXT + tcb.RCV.WND)
-	   or ( tcb.RCV.NXT <= in->seq()+in->data_length()-1 and in->seq()+in->data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
+           or ( tcb.RCV.NXT <= in->seq()+in->data_length()-1 and in->seq()+in->data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
     acceptable = true;
   }
   /*
@@ -169,7 +169,7 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, TCP::Packet_ptr in) {
   assert(in->isset(SYN));
   debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n",
-	tcp.state().to_string().c_str());
+        tcp.state().to_string().c_str());
   // Not sure if this is the correct way to send a "reset response"
   auto packet = tcp.outgoing_packet();
   packet->set_seq(in->ack()).set_flag(RST);
@@ -211,22 +211,22 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
       // return that buffer has been SENT - currently no support to receipt sent buffer.
 
       /*
-	If SND.UNA < SEG.ACK =< SND.NXT, the send window should be
-	updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
-	SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
-	SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
+        If SND.UNA < SEG.ACK =< SND.NXT, the send window should be
+        updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
+        SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
+        SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
       */
       if( tcb.SND.WL1 < in->seq() or ( tcb.SND.WL1 = in->seq() and tcb.SND.WL2 <= in->ack() ) ) {
-	tcb.SND.WND = in->win();
-	tcb.SND.WL1 = in->seq();
-	tcb.SND.WL2 = in->ack();
+        tcb.SND.WND = in->win();
+        tcb.SND.WL1 = in->seq();
+        tcb.SND.WL2 = in->ack();
       }
       /*
-	Note that SND.WND is an offset from SND.UNA, that SND.WL1
-	records the sequence number of the last segment used to update
-	SND.WND, and that SND.WL2 records the acknowledgment number of
-	the last segment used to update SND.WND.  The check here
-	prevents using old segments to update the window.
+        Note that SND.WND is an offset from SND.UNA, that SND.WL1
+        records the sequence number of the last segment used to update
+        SND.WND, and that SND.WL2 records the acknowledgment number of
+        the last segment used to update SND.WND.  The check here
+        prevents using old segments to update the window.
       */
     }
     /* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
@@ -725,7 +725,7 @@ State::Result Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
     tcb.SND.NXT   = tcb.ISS+1;
     tcb.SND.UNA   = tcb.ISS;
     debug("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
-	  in->to_string().c_str(), tcp.tcb().to_string().c_str());
+          in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);

@@ -196,8 +196,8 @@ namespace hw {
     union vendor_product {
       uint32_t __value;
       struct __attribute__((packed)) {
-	uint16_t vendor;
-	uint16_t product;
+        uint16_t vendor;
+        uint16_t product;
       };
     } device_id_;
 
@@ -205,15 +205,15 @@ namespace hw {
     union class_revision {
       uint32_t reg;
       struct __attribute__((packed)) {
-	uint8_t rev_id;
-	uint8_t prog_if;
-	uint8_t subclass;
-	uint8_t classcode;
+        uint8_t rev_id;
+        uint8_t prog_if;
+        uint8_t subclass;
+        uint8_t classcode;
       };
       struct __attribute__((packed)) {
-	uint16_t class_subclass;
-	uint8_t __prog_if; //Overlaps the above
-	uint8_t revision;        
+        uint16_t class_subclass;
+        uint8_t __prog_if; //Overlaps the above
+        uint8_t revision;        
       };
     } devtype_;
 
@@ -253,11 +253,11 @@ namespace hw {
     void add_resource(Resource<R_T>* res, Resource<R_T>*& Q) noexcept {
       Resource<R_T>* q;
       if (Q) {
-	q = Q;
-	while (q->next) q = q->next;
-	q->next = res;
+        q = Q;
+        while (q->next) q = q->next;
+        q->next = res;
       } else {
-	Q = res;
+        Q = res;
       }
     }
   }; //< class PCI_Device

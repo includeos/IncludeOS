@@ -53,10 +53,10 @@ namespace hw {
     template <int N, typename DRIVER, typename... Args>
     static Disk<DRIVER>& disk(Args&&... args) {
       static Disk<DRIVER> 
-	disk_ {
-	PCI_manager::device<PCI::STORAGE>(N),
-	  std::forward<Args>(args)...
-	  };
+        disk_ {
+        PCI_manager::device<PCI::STORAGE>(N),
+          std::forward<Args>(args)...
+          };
       return disk_;
     }
   

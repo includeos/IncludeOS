@@ -57,7 +57,7 @@ void Service::start()
     vga.setColor(col % 256);
     vga.putEntryAt(c,col % 80, row % 25);
     
-    if (col++ % 80 == 79){	
+    if (col++ % 80 == 79){      
       row++;
     }
     
@@ -69,17 +69,17 @@ void Service::start()
   auto test1_1 = [] () -> bool
     {
       if ( c >= '4') {
-	hw::PIT::instance().onRepeatedTimeout(100ms, [] {
-	    vga.newline();
-	    iterations++;
-	    if (iterations == 24)
-	      write_goodbye();
-	  
-	  },
-	
-	  [] {
-	    return iterations < 36;
-	  });
+        hw::PIT::instance().onRepeatedTimeout(100ms, [] {
+            vga.newline();
+            iterations++;
+            if (iterations == 24)
+              write_goodbye();
+          
+          },
+        
+          [] {
+            return iterations < 36;
+          });
       }
       return c < '4';
     };

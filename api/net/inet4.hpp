@@ -68,19 +68,19 @@ namespace net {
     inline std::shared_ptr<DHClient> dhclient() override { return dhcp_;  }
 
     /** Create a Packet, with a preallocated buffer.
-	@param size : the "size" reported by the allocated packet.
-	@note as of v0.6.3 this has no effect other than to force the size to be
-	set explicitly by the caller.
-	@todo make_shared will allocate with new. This is fast in IncludeOS,
-	(no context switch for sbrk) but consider overloading operator new.
+        @param size : the "size" reported by the allocated packet.
+        @note as of v0.6.3 this has no effect other than to force the size to be
+        set explicitly by the caller.
+        @todo make_shared will allocate with new. This is fast in IncludeOS,
+        (no context switch for sbrk) but consider overloading operator new.
     */
     inline Packet_ptr createPacket(size_t size) override {
       // Create a release delegate, for returning buffers
       auto release = BufferStore::release_del::from
-	<BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
+        <BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
       // Create the packet, using  buffer and .
       return std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-				      bufstore_.offset_bufsize(), size, release);
+                                      bufstore_.offset_bufsize(), size, release);
     }
 
     // We have to ask the Nic for the MTU

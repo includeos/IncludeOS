@@ -33,9 +33,9 @@ void Service::start() {
   inet = std::make_unique<IPStack>(eth0);
   
   inet->network_config( {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+                        {{ 255,255,255,0 }},  // Netmask
+                        {{ 10,0,0,1 }},       // Gateway
+                        {{ 8,8,8,8 }} );      // DNS
   
   
   auto& server = inet->tcp().bind(80);
@@ -48,11 +48,11 @@ void Service::start() {
       printf("<Server> Received: %s\n", packet->to_string().c_str());
 
     }).onPacketDropped([](auto packet, std::string reason) {
-	printf("<Server> Dropped: %s - Reason: %s \n", packet->to_string().c_str(), reason.c_str());
+        printf("<Server> Dropped: %s - Reason: %s \n", packet->to_string().c_str(), reason.c_str());
 
       }).onReceive([](auto conn, bool) {
-	  conn->write("<html>Hey</html>");
-	}).onConnect([](auto conn) {
-	    printf("<Server> Connected.\n");
-	  });
+          conn->write("<html>Hey</html>");
+        }).onConnect([](auto conn) {
+            printf("<Server> Connected.\n");
+          });
 }

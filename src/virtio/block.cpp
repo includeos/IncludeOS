@@ -30,8 +30,8 @@
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 : Virtio(d),
-		       req(queue_size(0), 0, iobase()),
-  request_counter(0)
+  req(queue_size(0), 0, iobase()),
+                       request_counter(0)
 {
   INFO("VirtioBlk", "Driver initializing");
   
@@ -40,30 +40,30 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   negotiate_features(needed_features);
   
   CHECK(features() & FEAT(VIRTIO_BLK_F_BARRIER),
-	"Barrier is enabled");
+        "Barrier is enabled");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SIZE_MAX),
-	"Size-max is known");
+        "Size-max is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SEG_MAX),
-	"Seg-max is known");
+        "Seg-max is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_GEOMETRY),
-	"Geometry structure is used");
+        "Geometry structure is used");
   CHECK(features() & FEAT(VIRTIO_BLK_F_RO),
-	"Device is read-only");
+        "Device is read-only");
   CHECK(features() & FEAT(VIRTIO_BLK_F_BLK_SIZE),
-	"Block-size is known");
+        "Block-size is known");
   CHECK(features() & FEAT(VIRTIO_BLK_F_SCSI),
-	"SCSI is enabled :(");
+        "SCSI is enabled :(");
   CHECK(features() & FEAT(VIRTIO_BLK_F_FLUSH),
-	"Flush enabled");
+        "Flush enabled");
   
   
   CHECK ((features() & needed_features) == needed_features,
-	 "Negotiated needed features");
+         "Negotiated needed features");
   
   // Step 1 - Initialize REQ queue
   auto success = assign_queue(0, (uint32_t) req.queue_desc());
   CHECK(success, "Request queue assigned (0x%x) to device",
-	(uint32_t) req.queue_desc());
+        (uint32_t) req.queue_desc());
   
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
@@ -136,7 +136,7 @@ void VirtioBlk::service_RX()
   while ((hdr = (request_t*) req.dequeue(len)) != nullptr)
     {
       printf("service_RX() received %u bytes for sector %llu\n", 
-	     len, hdr->hdr.sector);
+             len, hdr->hdr.sector);
       vbr = &hdr->data;
     
       printf("service_RX() received %u bytes data response\n", len);

@@ -24,23 +24,23 @@ split(const std::string& text, std::string& source)
       size_t y = text.find(":", x+1); // find last param
     
       if (y == x+1)
-	{
-	  // single argument
-	  retv.push_back(text.substr(p, x-p));
-	  // ending text argument
-	  retv.push_back(text.substr(y+1));
-	  break;
-	}
+        {
+          // single argument
+          retv.push_back(text.substr(p, x-p));
+          // ending text argument
+          retv.push_back(text.substr(y+1));
+          break;
+        }
       else if (x != std::string::npos)
-	{
-	  // single argument
-	  retv.push_back(text.substr(p, x-p));
-	}
+        {
+          // single argument
+          retv.push_back(text.substr(p, x-p));
+        }
       else
-	{
-	  // last argument
-	  retv.push_back(text.substr(p));
-	}
+        {
+          // last argument
+          retv.push_back(text.substr(p));
+        }
       p = x+1;
     
     } while (x != std::string::npos);

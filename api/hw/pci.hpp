@@ -13,8 +13,8 @@ namespace hw {
   
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inb %%dx,%%al"
-		     :"=a"(ret)
-		     :"d"(port));
+                     :"=a"(ret)
+                     :"d"(port));
     return ret;  
   }
 
@@ -23,8 +23,8 @@ namespace hw {
     uint16_t ret;
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inw %%dx,%%ax"
-		     :"=a"(ret)
-		     :"d"(port));
+                     :"=a"(ret)
+                     :"d"(port));
     return ret;    
   }
 
@@ -33,8 +33,8 @@ namespace hw {
     uint32_t ret;
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inl %%dx,%%eax"
-		     :"=a"(ret)
-		     :"d"(port));
+                     :"=a"(ret)
+                     :"d"(port));
   
     return ret;
   }

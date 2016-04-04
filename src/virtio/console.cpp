@@ -27,10 +27,10 @@ extern "C"
 
 VirtioCon::VirtioCon(hw::PCI_Device& d)
 : Virtio(d),
-		       rx(queue_size(0), 0, iobase()),
-		       tx(queue_size(1), 1, iobase()),
-		       ctl_rx(queue_size(2), 2, iobase()),
-  ctl_tx(queue_size(3), 3, iobase())
+  rx(queue_size(0), 0, iobase()),
+                       tx(queue_size(1), 1, iobase()),
+                       ctl_rx(queue_size(2), 2, iobase()),
+                       ctl_tx(queue_size(3), 3, iobase())
 {
   INFO("VirtioCon", "Driver initializing");
   
@@ -39,31 +39,31 @@ VirtioCon::VirtioCon(hw::PCI_Device& d)
   negotiate_features(needed_features);
   
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_SIZE),
-	"Valid console dimensions");
+        "Valid console dimensions");
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_MULTIPORT),
-	"Multiple ports support");
+        "Multiple ports support");
   CHECK(features() & FEAT(VIRTIO_CONSOLE_F_EMERG_WRITE),
-	"Emergency write support");
+        "Emergency write support");
   
   CHECK ((features() & needed_features) == needed_features,
-	 "Negotiated needed features");
+         "Negotiated needed features");
   
   // Step 1 - Initialize queues
   auto success = assign_queue(0, (uint32_t) rx.queue_desc());
   CHECK(success, "Receive queue assigned (0x%x) to device",
-	(uint32_t) rx.queue_desc());
+        (uint32_t) rx.queue_desc());
   
   success = assign_queue(1, (uint32_t) tx.queue_desc());
   CHECK(success, "Transmit queue assigned (0x%x) to device",
-	(uint32_t) tx.queue_desc());
+        (uint32_t) tx.queue_desc());
   
   success = assign_queue(2, (uint32_t) ctl_rx.queue_desc());
   CHECK(success, "Control rx queue assigned (0x%x) to device",
-	(uint32_t) ctl_rx.queue_desc());
+        (uint32_t) ctl_rx.queue_desc());
   
   success = assign_queue(3, (uint32_t) ctl_tx.queue_desc());
   CHECK(success, "Control tx queue assigned (0x%x) to device",
-	(uint32_t) ctl_tx.queue_desc());
+        (uint32_t) ctl_tx.queue_desc());
   
   /*
     success = assign_queue(4, (uint32_t) rx1.queue_desc());
@@ -143,24 +143,24 @@ void VirtioCon::service_RX()
       rx.dequeue(&dontcare);
     
       if (condata)
-	{
-	  //printf("service_RX() received %u bytes from virtio console\n", len);
-	  //printf("Data: %s\n", condata);
-	  //vbr->handler(0, vbr->sector);
-	}
+        {
+          //printf("service_RX() received %u bytes from virtio console\n", len);
+          //printf("Data: %s\n", condata);
+          //vbr->handler(0, vbr->sector);
+        }
       else
-	{
-	  // acknowledgement
-	  //printf("No data, just len = %d\n", len);
-	}
+        {
+          // acknowledgement
+          //printf("No data, just len = %d\n", len);
+        }
     }
   
   rx.enable_interrupts();
 }
 
 void VirtioCon::write (
-		       const void* data, 
-		       size_t len)
+                       const void* data, 
+                       size_t len)
 {
   char* heapdata = new char[len];
   memcpy(heapdata, data, len);

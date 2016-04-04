@@ -29,42 +29,42 @@ void Client::read(const char* buf, size_t len)
       int search = -1;
     
       for (size_t i = 0; i < len; i++)
-	if (buf[i] == 13 || buf[i] == 10)
-	  {
-	    search = i; break;
-	  }
+        if (buf[i] == 13 || buf[i] == 10)
+          {
+            search = i; break;
+          }
       // not found:
       if (search == -1)
-	{
-	  // append entire buffer
-	  buffer.append(buf, len);
-	  break;
-	}
+        {
+          // append entire buffer
+          buffer.append(buf, len);
+          break;
+        }
       else
-	{
-	  // found CR LF:
-	  if (search != 0)
-	    {
-	      // append to clients buffer
-	      buffer.append(buf, search);
+        {
+          // found CR LF:
+          if (search != 0)
+            {
+              // append to clients buffer
+              buffer.append(buf, search);
         
-	      // move forward in socket buffer
-	      buf += search;
-	      // decrease len
-	      len -= search;
-	    }
-	  else
-	    {
-	      buf++; len--;
-	    }
+              // move forward in socket buffer
+              buf += search;
+              // decrease len
+              len -= search;
+            }
+          else
+            {
+              buf++; len--;
+            }
       
-	  // parse message
-	  if (buffer.size())
-	    {
-	      split_message(buffer);
-	      buffer.clear();
-	    }
-	}
+          // parse message
+          if (buffer.size())
+            {
+              split_message(buffer);
+              buffer.clear();
+            }
+        }
     }
 }
 
@@ -104,48 +104,48 @@ void Client::handle(const std::string&,
   if (this->is_reg() == false)
     {
       if (cmd == TK_CAP)
-	{
-	  // ignored completely
-	}
+        {
+          // ignored completely
+        }
       else if (cmd == TK_PASS)
-	{
-	  if (msg.size() > 1)
-	    {
-	      this->passw = msg[1];
-	    }
-	  else
-	    {
-	      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-	    }
-	}
+        {
+          if (msg.size() > 1)
+            {
+              this->passw = msg[1];
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
       else if (cmd == TK_NICK)
-	{
-	  if (msg.size() > 1)
-	    {
-	      this->nick = msg[1];
-	      welcome(regis | 1);
-	    }
-	  else
-	    {
-	      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-	    }
-	}
+        {
+          if (msg.size() > 1)
+            {
+              this->nick = msg[1];
+              welcome(regis | 1);
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
       else if (cmd == TK_USER)
-	{
-	  if (msg.size() > 1)
-	    {
-	      this->user = msg[1];
-	      welcome(regis | 2);
-	    }
-	  else
-	    {
-	      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-	    }
-	}
+        {
+          if (msg.size() > 1)
+            {
+              this->user = msg[1];
+              welcome(regis | 2);
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
       else
-	{
-	  send(ERR_NOSUCHCMD, cmd + " :Unknown command");
-	}
+        {
+          send(ERR_NOSUCHCMD, cmd + " :Unknown command");
+        }
     }
 }
 

@@ -42,7 +42,7 @@ namespace net {
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
   
     debug2("\t Source IP: %s Dest.IP: %s\n",
-	   hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
+           hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
   
     switch(hdr->protocol){
     case IP4_ICMP:
@@ -85,18 +85,18 @@ namespace net {
     pckt->next_hop(target == local ? hdr->daddr : stack_.router());
   
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-	  hdr->daddr.str().c_str(),
-	  stack_.netmask().str().c_str(),
-	  stack_.ip_addr().str().c_str(),
-	  stack_.router().str().c_str(),
-	  target == local ? "DIRECT" : "GATEWAY");
+          hdr->daddr.str().c_str(),
+          stack_.netmask().str().c_str(),
+          stack_.ip_addr().str().c_str(),
+          stack_.router().str().c_str(),
+          target == local ? "DIRECT" : "GATEWAY");
   
     debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
-	  stack_.ip_addr().str().c_str(),
-	  pckt->next_hop().str().c_str(),
-	  pckt->size(),
-	  ip4_pckt->ip4_segment_size()
-	  );
+          stack_.ip_addr().str().c_str(),
+          pckt->next_hop().str().c_str(),
+          pckt->size(),
+          ip4_pckt->ip4_segment_size()
+          );
   
     linklayer_out_(pckt);
   }

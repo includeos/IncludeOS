@@ -50,25 +50,25 @@ namespace net
       {
       case PROTO_HOPOPT:
       case PROTO_OPTSv6:
-	{
-	  debug(">>> IPv6 options header %s", protocol_name(next).c_str());
+        {
+          debug(">>> IPv6 options header %s", protocol_name(next).c_str());
       
-	  options_header& opts = *(options_header*) reader;
-	  reader += opts.size();
+          options_header& opts = *(options_header*) reader;
+          reader += opts.size();
       
-	  debug("OPTSv6 size: %d\n", opts.size());
-	  debug("OPTSv6 ext size: %d\n", opts.extended());
+          debug("OPTSv6 size: %d\n", opts.size());
+          debug("OPTSv6 ext size: %d\n", opts.extended());
       
-	  next = opts.next();
-	  debug("OPTSv6 next: %s\n", protocol_name(next).c_str());
-	} break;
+          next = opts.next();
+          debug("OPTSv6 next: %s\n", protocol_name(next).c_str());
+        } break;
       case PROTO_ICMPv6:
-	break;
+        break;
       case PROTO_UDP:
-	break;
+        break;
       
       default:
-	debug("Not parsing: %s\n", protocol_name(next).c_str());
+        debug("Not parsing: %s\n", protocol_name(next).c_str());
       }
     
     return next;
@@ -93,16 +93,16 @@ namespace net
     
     while (next != PROTO_NoNext)
       {
-	auto it = proto_handlers.find(next);
-	if (it != proto_handlers.end())
-	  {
-	    // forward packet to handler
-	    pckt->set_payload(reader);
-	    it->second(pckt);
-	  }
-	else
-	  // just print information
-	  next = parse6(reader, next);
+        auto it = proto_handlers.find(next);
+        if (it != proto_handlers.end())
+          {
+            // forward packet to handler
+            pckt->set_payload(reader);
+            it->second(pckt);
+          }
+        else
+          // just print information
+          next = parse6(reader, next);
       }
     
   };
@@ -118,10 +118,10 @@ namespace net
     
     for (int i = 0; i < 16; i++)
       {
-	ret[counter++] = lut[(octet[i] & 0xF0) >> 4];
-	ret[counter++] = lut[(octet[i] & 0x0F) >> 0];
-	if (i & 1)
-	  ret[counter++] = ':';
+        ret[counter++] = lut[(octet[i] & 0xF0) >> 4];
+        ret[counter++] = lut[(octet[i] & 0x0F) >> 0];
+        if (i & 1)
+          ret[counter++] = ':';
       }
     ret.resize(counter-1);
     return ret;
@@ -138,7 +138,7 @@ namespace net
   }
   
   std::shared_ptr<PacketIP6> IP6::create(uint8_t proto,
-					 Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
+                                         Ethernet::addr ether_dest, const IP6::addr& ip6_dest)
   {
     // arbitrarily big buffer
     uint8_t* data = new uint8_t[1500];
