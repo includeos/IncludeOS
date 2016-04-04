@@ -96,11 +96,11 @@ namespace net {
     void set_resolver(Resolver_name nm) {
       // @TODO: Add HÅREK-mapping here
       switch (nm) {
-      case HH_MAP:	
-	arp_resolver_ = Arp_resolver::from<Arp, &Arp::hh_map>(*this);
-	break;
+      case HH_MAP:      
+        arp_resolver_ = Arp_resolver::from<Arp, &Arp::hh_map>(*this);
+        break;
       default:
-	arp_resolver_ = Arp_resolver::from<Arp, &Arp::arp_resolve>(*this);	
+        arp_resolver_ = Arp_resolver::from<Arp, &Arp::arp_resolve>(*this);      
       }
     }    
   

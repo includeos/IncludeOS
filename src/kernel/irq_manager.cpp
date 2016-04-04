@@ -49,9 +49,9 @@ enum {
 
 static inline void cpuid(int code, uint32_t *a, uint32_t *d) {
   asm volatile("cpuid"
-	       :"=a"(*a),"=d"(*d)
-	       :"a"(code)
-	       :"ecx","ebx");
+               :"=a"(*a),"=d"(*d)
+               :"a"(code)
+               :"ecx","ebx");
 }
 
 bool cpuHasAPIC() {
@@ -66,21 +66,21 @@ extern "C"
 }
 
 /** Default Exception-handler, which just prints its number */
-#define EXCEPTION_HANDLER(I)					\
-  void exception_##I##_handler() {				\
-    printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n", I);	\
-    printf("Heap end: %#x \n", (uint32_t)&_end);		\
-    kill(1, 9);							\
+#define EXCEPTION_HANDLER(I)                                    \
+  void exception_##I##_handler() {                              \
+    printf("\n\n>>>> !!! CPU EXCEPTION %i !!! <<<<<\n", I);     \
+    printf("Heap end: %#x \n", (uint32_t)&_end);                \
+    kill(1, 9);                                                 \
   }
 
 void exception_handler()
 {
-#define frp(N, ra)					\
-  (__builtin_frame_address(N) != nullptr) &&		\
+#define frp(N, ra)                                      \
+  (__builtin_frame_address(N) != nullptr) &&            \
     (ra = __builtin_return_address(N)) != nullptr
 
   printf("\n");
-#define PRINT_TRACE(N, ra)			\
+#define PRINT_TRACE(N, ra)                      \
   printf("[%d] Return %p\n", N, ra);
 
   void* ra;
@@ -89,16 +89,16 @@ void exception_handler()
     if (frp(1, ra)) {
       PRINT_TRACE(1, ra);
       if (frp(2, ra)) {
-	PRINT_TRACE(2, ra);
-	if (frp(3, ra)) {
-	  PRINT_TRACE(3, ra);
-	  if (frp(4, ra)) {
-	    PRINT_TRACE(4, ra);
-	    if (frp(5, ra)) {
-	      PRINT_TRACE(5, ra);
-	      if (frp(6, ra))
-		PRINT_TRACE(6, ra);
-	    }}}}}}
+        PRINT_TRACE(2, ra);
+        if (frp(3, ra)) {
+          PRINT_TRACE(3, ra);
+          if (frp(4, ra)) {
+            PRINT_TRACE(4, ra);
+            if (frp(5, ra)) {
+              PRINT_TRACE(5, ra);
+              if (frp(6, ra))
+                PRINT_TRACE(6, ra);
+            }}}}}}
 
   printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   extern char _end;
@@ -115,17 +115,17 @@ void exception_handler()
 uint32_t IRQ_manager::irq_counters_[32] {0};
 
 
-#define IRQ_HANDLER(I)				\
-  void irq_##I##_handler() {			\
-    IRQ_manager::register_interrupt(I);		\
+#define IRQ_HANDLER(I)                          \
+  void irq_##I##_handler() {                    \
+    IRQ_manager::register_interrupt(I);         \
   }
 
 /* Macro magic to register default gates */
-#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry,	\
-					 default_sel, default_attr );
+#define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry,     \
+                                         default_sel, default_attr );
 
 #define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + irq_base]),irq_##I##_entry, \
-				       default_sel, default_attr );
+                                       default_sel, default_attr );
 
 /* EXCEPTIONS */
 #define EXCEPTION_PAIR(I) void exception_entry();
@@ -232,9 +232,9 @@ union addr_union {
 };
 
 void IRQ_manager::create_gate(IDTDescr* idt_entry,
-			      void (*function_addr)(),
-			      uint16_t segment_sel,
-			      char attributes) {
+                              void (*function_addr)(),
+                              uint16_t segment_sel,
+                              char attributes) {
   addr_union addr;
   addr.whole           = (uint32_t)function_addr;
   idt_entry->offset_1  = addr.lo16;
@@ -365,7 +365,7 @@ void irq_timer_handler() {
 }
 
 inline void disable_pic() {
-  asm volatile("mov $0xff,%al; "		\
-	       "out %al,$0xa1; "		      \
-	       "out %al,$0x21; ");
+  asm volatile("mov $0xff,%al; "                \
+               "out %al,$0xa1; "                      \
+               "out %al,$0x21; ");
 }

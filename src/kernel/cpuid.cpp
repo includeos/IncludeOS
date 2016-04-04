@@ -95,10 +95,10 @@ static cpuid_t
 cpuid_info(const unsigned int func, const unsigned int subfunc) {
   cpuid_t info;
   __asm__ __volatile__ (
-			"cpuid"
-			: "=a"(info.EAX), "=b"(info.EBX), "=c"(info.ECX), "=d"(info.EDX)
-			: "a"(func), "c"(subfunc) : "%eax", "%ebx", "%ecx", "%edx"
-			);
+                        "cpuid"
+                        : "=a"(info.EAX), "=b"(info.EBX), "=c"(info.ECX), "=d"(info.EDX)
+                        : "a"(func), "c"(subfunc) : "%eax", "%ebx", "%ecx", "%edx"
+                        );
   return info;
 }
 

@@ -52,8 +52,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
     and _pcidev.product_id() <= 0x103f;
   
   CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
-	_pcidev.product_id(), 
-	_STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+        _pcidev.product_id(), 
+        _STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
     
   assert(_STD_ID or _LEGACY_ID);
   
@@ -65,7 +65,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
     
   
   CHECK(rev_id_ok and version_supported(_pcidev.rev_id()), 
-	"Device Revision ID (0x%x) supported", _pcidev.rev_id());
+        "Device Revision ID (0x%x) supported", _pcidev.rev_id());
   
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
   
@@ -85,9 +85,9 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // 3. Set DRIVER status bit
   
   hw::outp(_iobase + VIRTIO_PCI_STATUS,
-	   hw::inp(_iobase + VIRTIO_PCI_STATUS) |
-	   VIRTIO_CONFIG_S_ACKNOWLEDGE | 
-	   VIRTIO_CONFIG_S_DRIVER);
+           hw::inp(_iobase + VIRTIO_PCI_STATUS) |
+           VIRTIO_CONFIG_S_ACKNOWLEDGE | 
+           VIRTIO_CONFIG_S_DRIVER);
   
 
   // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS

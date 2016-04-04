@@ -30,13 +30,13 @@ namespace net {
       std::static_pointer_cast<PacketUDP> (pckt);
   
     debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
-	  udp->src_port(), udp->dst_port(), udp->length());
+          udp->src_port(), udp->dst_port(), udp->length());
   
     auto it = ports_.find(udp->dst_port());
     if (it != ports_.end())
       {
-	debug("<UDP> Someone's listening to this port. Forwarding...\n");
-	it->second.internal_read(udp);
+        debug("<UDP> Someone's listening to this port. Forwarding...\n");
+        it->second.internal_read(udp);
       }
   
     debug("<UDP> Nobody's listening to this port. Drop!\n");
@@ -50,9 +50,9 @@ namespace net {
     if (it == ports_.end()) {
       // create new socket
       auto res = ports_.emplace(
-				std::piecewise_construct,
-				std::forward_as_tuple(port),
-				std::forward_as_tuple(stack_, port));
+                                std::piecewise_construct,
+                                std::forward_as_tuple(port),
+                                std::forward_as_tuple(stack_, port));
       it = res.first;
     }
     return it->second;
@@ -73,9 +73,9 @@ namespace net {
 
   void UDP::transmit(std::shared_ptr<PacketUDP> udp) {
     debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
-	   udp->length(), udp->ip4_segment_size(),
-	   udp->src().str().c_str(),
-	   udp->dst().str().c_str(), udp->dst_port());
+           udp->length(), udp->ip4_segment_size(),
+           udp->src().str().c_str(),
+           udp->dst().str().c_str(), udp->dst_port());
   
     assert(udp->length() >= sizeof(UDP::udp_header));
     assert(udp->protocol() == IP4::IP4_UDP);

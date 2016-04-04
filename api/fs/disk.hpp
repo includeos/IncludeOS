@@ -53,11 +53,11 @@ namespace fs {
   
     struct Partition {
       explicit Partition(const uint8_t  fl,  const uint8_t  Id,
-			 const uint32_t LBA, const uint32_t sz) noexcept :
-	flags     {fl},
-	id        {Id},
-	lba_begin {LBA},
-	sectors   {sz}
+                         const uint32_t LBA, const uint32_t sz) noexcept :
+        flags     {fl},
+        id        {Id},
+        lba_begin {LBA},
+        sectors   {sz}
       {}
     
       uint8_t  flags;

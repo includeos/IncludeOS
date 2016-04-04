@@ -53,7 +53,7 @@ void Service::start()
   // verify that reading outside of disk returns a 0x0 pointer
   buf = disk->dev().read_sync(disk->dev().size());
   CHECK(!buf, "Buffer outside of disk range (sector=%llu) is 0x0",
-	disk->dev().size());
+        disk->dev().size());
   assert(!buf);
   
   INFO("MemDisk", "SUCCESS");

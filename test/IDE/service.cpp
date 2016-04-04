@@ -40,7 +40,7 @@ void Service::start()
       uint8_t* buf = (uint8_t*)data.get();
       printf("Async read, Block %d:\n", i);
       for (int i = 0; i < 512; i++)
-	printf("%x ", buf[i]);
+        printf("%x ", buf[i]);
       printf("\n");
       i++;
     });
@@ -54,7 +54,7 @@ void Service::start()
       uint8_t* buf = (uint8_t*)data.get();
       printf("Async read, Block %d:\n", 4);
       for (int i = 0; i < 512; i++)
-	printf("%x ", buf[i]);
+        printf("%x ", buf[i]);
       printf("\n");
     });
 }

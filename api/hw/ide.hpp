@@ -31,8 +31,8 @@ namespace hw {
   public: 
     enum selector_t
       {
-	MASTER = 0x00,
-	SLAVE = 0x10
+        MASTER = 0x00,
+        SLAVE = 0x10
       };
   
     /**

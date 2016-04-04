@@ -18,10 +18,10 @@
 /*
   An example to show incoming and outgoing TCP Connections.
   In this example, IncludeOS is listening on port 80.
-	
+        
   Data received on port 80 will be redirected to a
   outgoing connection to a (in this case) python server (server.py)
-	
+        
   Data received from the python server connection 
   will be redirected back to the client.
 
@@ -67,9 +67,9 @@ void Service::start() {
   
   // Static IP configuration, until we (possibly) get DHCP
   inet->network_config( {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+                        {{ 255,255,255,0 }},  // Netmask
+                        {{ 10,0,0,1 }},       // Gateway
+                        {{ 8,8,8,8 }} );      // DNS
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
@@ -84,31 +84,31 @@ void Service::start() {
       auto outgoing = inet->tcp().connect(python_server);
       // When outgoing connection to python sever is established
       outgoing->onConnect([client](Connection_ptr python) {
-	  printf("Connected [Python]: %s\n", python->to_string().c_str());
+          printf("Connected [Python]: %s\n", python->to_string().c_str());
 
-	  // Setup handlers for when data is received on client and python connection
-	  // When client has data to be read
-	  client->onReceive([python](Connection_ptr client, bool) {
-	      handle_client_on_receive(client, python);
-	    });
+          // Setup handlers for when data is received on client and python connection
+          // When client has data to be read
+          client->onReceive([python](Connection_ptr client, bool) {
+              handle_client_on_receive(client, python);
+            });
 
-	  // When python server has data to be read
-	  python->onReceive([client](Connection_ptr python, bool) {
-	      handle_python_on_receive(python, client);
-	    });
+          // When python server has data to be read
+          python->onReceive([client](Connection_ptr python, bool) {
+              handle_python_on_receive(python, client);
+            });
 
-	  // When client is disconnecting
-	  client->onDisconnect([python](Connection_ptr, Disconnect reason) {
-	      printf("Disconnected [Client]: %s\n", reason.to_string().c_str());
-	      python->close();
-	    });
+          // When client is disconnecting
+          client->onDisconnect([python](Connection_ptr, Disconnect reason) {
+              printf("Disconnected [Client]: %s\n", reason.to_string().c_str());
+              python->close();
+            });
 
-	  // When python is disconnecting
-	  python->onDisconnect([client](Connection_ptr, Disconnect reason) {
-	      printf("Disconnected [Python]: %s\n", reason.to_string().c_str());
-	      client->close();
-	    });
-	}); // << onConnect (outgoing (python))
+          // When python is disconnecting
+          python->onDisconnect([client](Connection_ptr, Disconnect reason) {
+              printf("Disconnected [Python]: %s\n", reason.to_string().c_str());
+              client->close();
+            });
+        }); // << onConnect (outgoing (python))
     }); // << onConnect (client)
 
 }

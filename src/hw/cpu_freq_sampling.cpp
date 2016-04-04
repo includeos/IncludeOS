@@ -71,8 +71,8 @@ namespace hw {
       auto freq = cycles / (1 / test_frequency().count());
       _cpu_freq_samples.push_back(freq);    
       debug("%lu - %lu = Delta: %lu Current PIT-Freq: %f Hz CPU Freq: %f MHz \n",
-	    (uint32_t)_cpu_timestamps[i], (uint32_t)_cpu_timestamps[i-1],
-	    (uint32_t)cycles, Hz(test_frequency()), freq);        
+            (uint32_t)_cpu_timestamps[i], (uint32_t)_cpu_timestamps[i-1],
+            (uint32_t)cycles, Hz(test_frequency()), freq);        
     }
   
   

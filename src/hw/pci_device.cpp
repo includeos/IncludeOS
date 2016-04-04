@@ -69,10 +69,10 @@ namespace hw {
   } _pci_vendorlist[] {
     {0x8086,"Intel Corp."},
       {0x1013,"Cirrus Logic"},
-	{0x10EC,"Realtek Semi.Corp."},
-	  {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
-	    {0x1022,"AMD"},
-	      {0x0000,NULL}
+        {0x10EC,"Realtek Semi.Corp."},
+          {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
+            {0x1022,"AMD"},
+              {0x0000,NULL}
   };
 
   static unsigned long pci_size(const unsigned long base, const unsigned long mask) noexcept {
@@ -116,21 +116,21 @@ namespace hw {
 
       if (value & 1) {  // Resource type IO
 
-	unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
-	pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
+        unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
+        pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
       
-	// Add it to resource list
-	add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val, pci__size), res_io_);
-	assert(res_io_ != nullptr);        
+        // Add it to resource list
+        add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val, pci__size), res_io_);
+        assert(res_io_ != nullptr);        
       
       } else { //Resource type Mem
 
-	unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
-	pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
+        unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
+        pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
 
-	//Add it to resource list
-	add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val, pci__size), res_mem_);
-	assert(res_mem_ != nullptr);
+        //Add it to resource list
+        add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val, pci__size), res_mem_);
+        assert(res_mem_ != nullptr);
       }
 
       INFO2("");
@@ -159,14 +159,14 @@ namespace hw {
   switch (devtype_.classcode) {
   case PCI::BRIDGE:
     INFO2("+--+ %s %s (0x%x)",
-	  bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
-	  classcodes[devtype_.classcode],devtype_.subclass);
+          bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
+          classcodes[devtype_.classcode],devtype_.subclass);
     break;
 
   case PCI::NIC:
     INFO2("+--+ %s %s (0x%x)",
-	  nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
-	  classcodes[devtype_.classcode],devtype_.subclass);
+          nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
+          classcodes[devtype_.classcode],devtype_.subclass);
     break;
 
   default:

@@ -125,7 +125,7 @@ namespace hw {
 
     auto ticks = in_msecs / KHz(current_frequency()).count();
     debug("<PIT start_timer> PIT KHz: %f * %i = %f ms. \n",
-	  KHz(current_frequency()).count(), (uint32_t)ticks.count(), ((uint32_t)ticks.count() * KHz(current_frequency()).count()));
+          KHz(current_frequency()).count(), (uint32_t)ticks.count(), ((uint32_t)ticks.count() * KHz(current_frequency()).count()));
 
     t.setStart(OS::cycles_since_boot());
     t.setEnd(t.start() + uint64_t(cycles_pr_millisec.count() * in_msecs.count()));
@@ -137,7 +137,7 @@ namespace hw {
     timers_.insert(std::make_pair(key, t));
 
     debug("<PIT start_timer> Key: %i id: %i, t.cond()(): %s There are %i timers. \n",
-	  (uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
+          (uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
 
 
   }
@@ -154,7 +154,7 @@ namespace hw {
     Timer t(Timer::ONE_SHOT, handler, msec);
 
     debug("<PIT timeout> setting a %i ms. one-shot timer. Id: %i \n",
-	  (uint32_t)msec.count(), t.id());
+          (uint32_t)msec.count(), t.id());
 
     start_timer(t, msec);
 
@@ -193,22 +193,22 @@ namespace hw {
 
       // Map-keys are sorted. If this timer isn't expired, neither are the rest
       if (it->first > millisec_counter)
-	break;
+        break;
 
       debug2 ("\n**** Timer type %i, id: %i expired. Running handler **** \n",
-	      it->second.type(), it->second.id());
+              it->second.type(), it->second.id());
 
       // Execute the handler
       it->second.handler()();
 
       // Re-queue repeating timers
       if (it->second.type() == Timer::REPEAT) {
-	debug2 ("<Timer IRQ> REPEAT: Requeuing the timer \n");
-	start_timer(it->second, it->second.interval());
+        debug2 ("<Timer IRQ> REPEAT: Requeuing the timer \n");
+        start_timer(it->second, it->second.interval());
 
       }else if (it->second.type() == Timer::REPEAT_WHILE and it->second.cond()()) {
-	debug2 ("<Timer IRQ> REPEAT_WHILE: Requeuing the timer COND \n");
-	start_timer(it->second, it->second.interval());
+        debug2 ("<Timer IRQ> REPEAT_WHILE: Requeuing the timer COND \n");
+        start_timer(it->second, it->second.interval());
       }
 
       debug2 ("Timer done. Erasing.  \n");
@@ -222,19 +222,19 @@ namespace hw {
 
       // If this was the last timer, we can turn off the clock
       if (timers_.empty()){
-	// Disable the PIT
-	oneshot(1);
+        // Disable the PIT
+        oneshot(1);
 
-	debug2 ("Timers done. PIT disabled for now. \n");
-	// Escape iterator death
-	break;
+        debug2 ("Timers done. PIT disabled for now. \n");
+        // Escape iterator death
+        break;
       }
 
       debug2 ("Timers left: %i \n", timers_.size());
 
 #ifdef DEBUG2
       for (auto t : timers_)
-	debug2("Key: %i , id: %i, Type: %i", (uint32_t)t.first, t.second.id(), t.second.type());
+        debug2("Key: %i , id: %i, Type: %i", (uint32_t)t.first, t.second.id(), t.second.type());
 #endif
 
       debug2("\n---------------------------\n\n");

@@ -59,7 +59,7 @@ namespace net
     uint32_t  lease_time;
     On_config config_handler = [](Stack&){ INFO("DHCPv4::On_config","Config complete"); };
   };
-	
+        
   inline DHClient::DHClient(Stack& inet)
     : stack(inet)  {}
 }

@@ -169,9 +169,9 @@ private:
    *  Use "set_handler" for a simpler version using defaults
    */
   static void create_gate(IDTDescr* idt_entry,
-			  void (*function_addr)(),
-			  uint16_t segment_sel,
-			  char attributes);
+                          void (*function_addr)(),
+                          uint16_t segment_sel,
+                          char attributes);
 
   /** The OS will call the following : */
   friend class OS;

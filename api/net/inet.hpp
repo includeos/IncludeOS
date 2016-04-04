@@ -56,9 +56,9 @@ namespace net {
     virtual void set_dns_server(typename IPV::addr server) = 0;
 
     virtual void network_config(typename IPV::addr ip,
-				typename IPV::addr nmask,
-				typename IPV::addr router,
-				typename IPV::addr dnssrv) = 0;
+                                typename IPV::addr nmask,
+                                typename IPV::addr router,
+                                typename IPV::addr dnssrv) = 0;
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;

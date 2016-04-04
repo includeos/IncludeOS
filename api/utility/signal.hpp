@@ -43,14 +43,14 @@ public:
   void connect(handler&& fn) {
     funcs.emplace_back(std::forward<handler>(fn));
   }
-	
+        
   //! \brief Emit this signal by executing all connected callable objects
   template<typename... Args>
   void emit(Args&&... args) {
     for(auto& fn : funcs)
       fn(std::forward<Args>(args)...);
   }
-	
+        
 private:
   // Set of callable objects registered to be called on demand
   std::vector<handler> funcs;

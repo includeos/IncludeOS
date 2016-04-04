@@ -137,7 +137,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
   }
 
   debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
-	 sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
+         sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
 
   return ~(sum.part[0] + sum.part[1]);
 }
@@ -146,7 +146,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
-	packet->source().to_string().c_str(), packet->destination().to_string().c_str());
+        packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
   // Do checksum
   if(checksum(packet)) {
@@ -237,10 +237,10 @@ string TCP::status() const {
 
 
 TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
-  return 	(connections_.emplace(
-				      Connection::Tuple{ local_port, remote },
-				      std::make_shared<Connection>(*this, local_port, remote))
-		 ).first->second;
+  return        (connections_.emplace(
+                                      Connection::Tuple{ local_port, remote },
+                                      std::make_shared<Connection>(*this, local_port, remote))
+                 ).first->second;
 }
 
 void TCP::close_connection(TCP::Connection& conn) {

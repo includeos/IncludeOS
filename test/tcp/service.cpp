@@ -63,7 +63,7 @@ void FINISH_TEST() {
       INFO("TEST", "Verify release of resources");
       CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
       CHECK(inet->buffers_available() == buffers_available,
-	    "inet->buffers_available() == buffers_available");
+            "inet->buffers_available() == buffers_available");
       INFO("Buffers available", "%u", inet->buffers_available());
       printf("# TEST DONE #\n");
     });
@@ -79,16 +79,16 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0) {
-	inet->tcp().connect(ip_address, port)
-	  ->onConnect([](Connection_ptr conn) {
-	      CHECK(true, "Connected");
-	      conn->read(1024, [](buffer_t, size_t n) {
-		  CHECK(n > 0, "Received data");
-		});
-	    })
-	  .onError([](Connection_ptr, TCP::TCPException err) {
-	      CHECK(false, "Error occured: %s", err.what());
-	    });
+        inet->tcp().connect(ip_address, port)
+          ->onConnect([](Connection_ptr conn) {
+              CHECK(true, "Connected");
+              conn->read(1024, [](buffer_t, size_t n) {
+                  CHECK(n > 0, "Received data");
+                });
+            })
+          .onError([](Connection_ptr, TCP::TCPException err) {
+              CHECK(false, "Error occured: %s", err.what());
+            });
       }
     });
 }
@@ -100,15 +100,15 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
   inet->tcp().connect(outgoing)
     ->onConnect([](Connection_ptr conn) {
-	conn->write(small.data(), small.size());
-	conn->read(small.size(), [](buffer_t buffer, size_t n) {
-	    CHECK(std::string((char*)buffer.get(), n) == small, "conn->read() == small");
-	  });
+        conn->write(small.data(), small.size());
+        conn->read(small.size(), [](buffer_t buffer, size_t n) {
+            CHECK(std::string((char*)buffer.get(), n) == small, "conn->read() == small");
+          });
       })
     .onDisconnect([](Connection_ptr, TCP::Connection::Disconnect) {
-	CHECK(true, "Connection closed by server");
+        CHECK(true, "Connection closed by server");
 
-	OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
+        OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
       });
 }
 
@@ -136,9 +136,9 @@ void Service::start()
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
 
   inet->network_config( {{ 10,0,0,42 }},      // IP
-			{{ 255,255,255,0 }},  // Netmask
-			{{ 10,0,0,1 }},       // Gateway
-			{{ 8,8,8,8 }} );      // DNS
+                        {{ 255,255,255,0 }},  // Netmask
+                        {{ 10,0,0,1 }},       // Gateway
+                        {{ 8,8,8,8 }} );      // DNS
 
   buffers_available = inet->buffers_available();
   INFO("Buffers available", "%u", inet->buffers_available());
@@ -160,11 +160,11 @@ void Service::start()
   tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
       INFO("TEST", "SMALL string (%u)", small.size());
       conn->read(small.size(), [conn](buffer_t buffer, size_t n) {
-	  CHECK(inet->buffers_available() < buffers_available,
-		"inet->buffers_available() < buffers_available");
-	  CHECK(std::string((char*)buffer.get(), n) == small, "conn.read() == small");
-	  conn->close();
-	});
+          CHECK(inet->buffers_available() < buffers_available,
+                "inet->buffers_available() < buffers_available");
+          CHECK(std::string((char*)buffer.get(), n) == small, "conn.read() == small");
+          conn->close();
+        });
       conn->write(small.data(), small.size());
       INFO("Buffers available", "%u", inet->buffers_available());
     });
@@ -181,13 +181,13 @@ void Service::start()
       INFO("TEST", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
       conn->read(big.size(), [response, conn](buffer_t buffer, size_t n) {
-	  *response += std::string((char*)buffer.get(), n);
-	  if(response->size() == big.size()) {
-	    bool OK = (*response == big);
-	    CHECK(OK, "conn.read() == big");
-	    conn->close();
-	  }
-	});
+          *response += std::string((char*)buffer.get(), n);
+          if(response->size() == big.size()) {
+            bool OK = (*response == big);
+            CHECK(OK, "conn.read() == big");
+            conn->close();
+          }
+        });
       conn->write(big.data(), big.size());
       INFO("Buffers available", "%u", inet->buffers_available());
     });
@@ -199,16 +199,16 @@ void Service::start()
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
-	  memcpy(temp->data + temp->written, buffer.get(), n);
-	  temp->written += n;
+          memcpy(temp->data + temp->written, buffer.get(), n);
+          temp->written += n;
 
-	  // when all expected data is read
-	  if(temp->written == huge.size()) {
-	    bool OK = (temp->str() == huge);
-	    CHECK(OK, "conn.read() == huge");
-	    conn->close();
-	  }
-	});
+          // when all expected data is read
+          if(temp->written == huge.size()) {
+            bool OK = (temp->str() == huge);
+            CHECK(OK, "conn.read() == huge");
+            conn->close();
+          }
+        });
       conn->write(huge.data(), huge.size());
       INFO("Buffers available", "%u", inet->buffers_available());
     });
@@ -239,14 +239,14 @@ void Service::start()
       CHECK(conn->is_state({"FIN-WAIT-1"}), "conn.is_state(FIN-WAIT-1)");
     })
     .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
-	CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
-	hw::PIT::instance().onTimeout(1s,[conn]{
-	    CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
+        CHECK(conn->is_state({"FIN-WAIT-2"}), "conn.is_state(FIN-WAIT-2)");
+        hw::PIT::instance().onTimeout(1s,[conn]{
+            CHECK(conn->is_state({"TIME-WAIT"}), "conn.is_state(TIME-WAIT)");
 
-	    OUTGOING_TEST({inet->router(), TEST5});
-	  });
+            OUTGOING_TEST({inet->router(), TEST5});
+          });
 
-	hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
+        hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
       });
 
 }

@@ -193,11 +193,11 @@ namespace hw {
 
     for (int i {IDE_TIMEOUT}; i; --i) {
       if (set) {
-	if ((ret & flags) == flags)
-	  break;
+        if ((ret & flags) == flags)
+          break;
       } else {
-	if ((ret & flags) not_eq flags)
-	  break;
+        if ((ret & flags) not_eq flags)
+          break;
       }
     
       ret = inb(IDE_STATUS);

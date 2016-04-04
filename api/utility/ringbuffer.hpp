@@ -28,12 +28,12 @@ namespace includeOS
   {
     enum error_t
       {
-	E_OK = 0,
-	E_NO_SPACE = -1;
-	E_WRITE_FAILED = -2;
+        E_OK = 0,
+        E_NO_SPACE = -1;
+        E_WRITE_FAILED = -2;
       };
-		
-		
+                
+                
     RingBuffer(int size)
     {
       this->size   = size + 1;
@@ -44,56 +44,56 @@ namespace includeOS
     ~RingBuffer()
     {
       if (this->buffer)
-	delete[] this->buffer;
+        delete[] this->buffer;
     }
-		
+                
     int write(char* data, int length)
     {
       if (available_data() == 0)
-	{
-	  this->start = this->end = 0;
-	}
-			
+        {
+          this->start = this->end = 0;
+        }
+                        
       if (length > available_space())
-	{
-	  return E_NO_SPACE;
-	}
-			
+        {
+          return E_NO_SPACE;
+        }
+                        
       void* result = memcpy(ends_at(), data, length);
       if (result == nullptr)
-	{
-	  return E_WRITE_FAILED;
-	}
-			
+        {
+          return E_WRITE_FAILED;
+        }
+                        
       // commit write
       this->end = (this->end + length) % this->size;
       // return length written
       return length;
     }
-		
+                
     int read(char* dest, int length)
     {
       check_debug(amount <= RingBuffer_available_data(buffer),
-		  "Not enough in the buffer: has %d, needs %d",
-		  RingBuffer_available_data(buffer), amount);
+                  "Not enough in the buffer: has %d, needs %d",
+                  RingBuffer_available_data(buffer), amount);
 
       void *result = memcpy(target, RingBuffer_starts_at(buffer), amount);
       check(result != NULL, "Failed to write buffer into data.");
-			
+                        
       // commit read
       this->start = (this->start + length) % this->size;
-			
+                        
       if (this->end == this->start)
-	{
-	  this->start = this->end = 0;
-	}
-			
+        {
+          this->start = this->end = 0;
+        }
+                        
       return length;
     }
-		
+                
 #define RingBuffer_available_data(B) (((B)->end + 1) % (B)->length - (B)->start - 1)
 #define RingBuffer_available_space(B) ((B)->length - (B)->end - 1)
-		
+                
     int available_data() const
     {
       return (this->end + 1) % this->size - this->start - 1;
@@ -101,8 +101,8 @@ namespace includeOS
     int available_space() const
     {
       return this->
-	}
-		
+        }
+                
     const char* starts_at() const
     {
       return this->buffer + this->end;
@@ -111,7 +111,7 @@ namespace includeOS
     {
       return this->buffer + this->end;
     }
-		
+                
     bool full() const
     {
       return available_data() - this->size == 0;
@@ -120,8 +120,8 @@ namespace includeOS
     {
       return available_data() == 0;
     }
-		
-		
+                
+                
   private:
     int size;
     int start;

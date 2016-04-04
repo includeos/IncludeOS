@@ -44,7 +44,7 @@ namespace fs {
     struct Buffer
     {
       Buffer(error_t e, buffer_t b, size_t l)
-	: err(e), buffer(b), len(l) {}
+        : err(e), buffer(b), len(l) {}
         
       // returns true if this buffer is valid
       bool is_valid() const
@@ -90,15 +90,15 @@ namespace fs {
     struct Dirent {
       /** Default constructor */
       explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
-		      const uint64_t blk   = 0U, const uint64_t pr    = 0U,
-		      const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
-	ftype     {t},
-	fname     {n},
-	block     {blk},
-	parent    {pr},
-	size      {sz},
-	attrib    {attr},
-	timestamp {0}
+                      const uint64_t blk   = 0U, const uint64_t pr    = 0U,
+                      const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
+        ftype     {t},
+        fname     {n},
+        block     {blk},
+        parent    {pr},
+        size      {sz},
+        attrib    {attr},
+        timestamp {0}
       {}
     
       Enttype     ftype;
@@ -129,19 +129,19 @@ namespace fs {
     
       // type converted to human-readable string
       std::string type_string() const {
-	switch (ftype) {
-	case FILE:
-	  return "File";
-	case DIR:
-	  return "Directory";
-	case VOLUME_ID:
-	  return "Volume ID";
+        switch (ftype) {
+        case FILE:
+          return "File";
+        case DIR:
+          return "Directory";
+        case VOLUME_ID:
+          return "Volume ID";
         
-	case INVALID_ENTITY:
-	  return "Invalid entity";
-	default:
-	  return "Unknown type";
-	} //< switch (type)
+        case INVALID_ENTITY:
+          return "Invalid entity";
+        default:
+          return "Unknown type";
+        } //< switch (type)
       }
     }; //< struct Dirent
   

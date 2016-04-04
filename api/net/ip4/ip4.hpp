@@ -50,8 +50,8 @@ namespace net {
        */
 
       inline addr& operator=(addr cpy) noexcept {
-	whole = cpy.whole;
-	return *this;
+        whole = cpy.whole;
+        return *this;
       }
     
       /** Standard comparison operators */
@@ -81,10 +81,10 @@ namespace net {
     
       /** x.x.x.x string representation */
       std::string str() const {
-	char ip_addr[16];
-	sprintf(ip_addr, "%1i.%1i.%1i.%1i",
-		part[0], part[1], part[2], part[3]);
-	return ip_addr;
+        char ip_addr[16];
+        sprintf(ip_addr, "%1i.%1i.%1i.%1i",
+                part[0], part[1], part[2], part[3]);
+        return ip_addr;
       }      
     }; //< union addr
   

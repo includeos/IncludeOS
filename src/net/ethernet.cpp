@@ -60,7 +60,7 @@ namespace net {
     hdr->src = mac_;
 
     debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
-	   pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
+           pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
 
     physical_out_(pckt);
   }
@@ -71,11 +71,11 @@ namespace net {
     header* eth = reinterpret_cast<header*>(pckt->buffer());
 
     /** Do we pass on ethernet headers? As for now, yes.
-	data += sizeof(header);
-	len -= sizeof(header);
+        data += sizeof(header);
+        len -= sizeof(header);
     */
     debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
-	   eth->src.str().c_str(), eth->dest.str().c_str(), eth->type);
+           eth->src.str().c_str(), eth->dest.str().c_str(), eth->type);
 
     switch(eth->type) {
     case ETH_IP4:
@@ -104,9 +104,9 @@ namespace net {
     default:
       // This might be 802.3 LLC traffic
       if (net::ntohs(eth->type) > 1500) {
-	debug("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type));
+        debug("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type));
       }else {
-	debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type));
+        debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type));
       }
       break;
     }

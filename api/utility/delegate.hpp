@@ -42,16 +42,16 @@ public:
   delegate(::std::nullptr_t const) noexcept : delegate() { }
 
   template <class C, typename =
-	    typename ::std::enable_if< ::std::is_class<C>{}>::type>
-	    explicit delegate(C const* const o) noexcept :
-	    object_ptr_(const_cast<C*>(o))
+            typename ::std::enable_if< ::std::is_class<C>{}>::type>
+            explicit delegate(C const* const o) noexcept :
+            object_ptr_(const_cast<C*>(o))
   {
   }
 
   template <class C, typename =
-	    typename ::std::enable_if< ::std::is_class<C>{}>::type>
-	    explicit delegate(C const& o) noexcept :
-	    object_ptr_(const_cast<C*>(&o))
+            typename ::std::enable_if< ::std::is_class<C>{}>::type>
+            explicit delegate(C const& o) noexcept :
+            object_ptr_(const_cast<C*>(&o))
   {
   }
 
@@ -87,8 +87,8 @@ public:
     >
     delegate(T&& f) :
     store_(operator new(sizeof(typename ::std::decay<T>::type)),
-	   functor_deleter<typename ::std::decay<T>::type>),
-	 store_size_(sizeof(typename ::std::decay<T>::type))
+           functor_deleter<typename ::std::decay<T>::type>),
+         store_size_(sizeof(typename ::std::decay<T>::type))
   {
     using functor_type = typename ::std::decay<T>::type;
 
@@ -129,14 +129,14 @@ public:
 
     if ((sizeof(functor_type) > store_size_) || !store_.unique())
       {
-	store_.reset(operator new(sizeof(functor_type)),
-		     functor_deleter<functor_type>);
+        store_.reset(operator new(sizeof(functor_type)),
+                     functor_deleter<functor_type>);
 
-	store_size_ = sizeof(functor_type);
+        store_size_ = sizeof(functor_type);
       }
     else
       {
-	deleter_(store_.get());
+        deleter_(store_.get());
       }
 
     new (store_.get()) functor_type(::std::forward<T>(f));
@@ -201,14 +201,14 @@ public:
 
   template <class C>
   static delegate from(C* const object_ptr,
-		       R (C::* const method_ptr)(A...))
+                       R (C::* const method_ptr)(A...))
   {
     return member_pair<C>(object_ptr, method_ptr);
   }
 
   template <class C>
   static delegate from(C const* const object_ptr,
-		       R (C::* const method_ptr)(A...) const)
+                       R (C::* const method_ptr)(A...) const)
   {
     return const_member_pair<C>(object_ptr, method_ptr);
   }
@@ -221,7 +221,7 @@ public:
 
   template <class C>
   static delegate from(C const& object,
-		       R (C::* const method_ptr)(A...) const)
+                       R (C::* const method_ptr)(A...) const)
   {
     return const_member_pair<C>(&object, method_ptr);
   }
@@ -303,14 +303,14 @@ private:
   static R method_stub(void* const object_ptr, A&&... args)
   {
     return (static_cast<C*>(object_ptr)->*method_ptr)(
-						      ::std::forward<A>(args)...);
+                                                      ::std::forward<A>(args)...);
   }
 
   template <class C, R (C::*method_ptr)(A...) const>
   static R const_method_stub(void* const object_ptr, A&&... args)
   {
     return (static_cast<C const*>(object_ptr)->*method_ptr)(
-							    ::std::forward<A>(args)...);
+                                                            ::std::forward<A>(args)...);
   }
 
   template <typename>
@@ -318,7 +318,7 @@ private:
 
   template <class C>
   struct is_member_pair< ::std::pair<C* const,
-				     R (C::* const)(A...)> > : std::true_type
+                                     R (C::* const)(A...)> > : std::true_type
   {
   };
 
@@ -327,7 +327,7 @@ private:
 
   template <class C>
   struct is_const_member_pair< ::std::pair<C const* const,
-					   R (C::* const)(A...) const> > : std::true_type
+                                           R (C::* const)(A...) const> > : std::true_type
   {
   };
 
@@ -351,7 +351,7 @@ private:
     functor_stub(void* const object_ptr, A&&... args)
   {
     return (static_cast<T*>(object_ptr)->first->*
-	    static_cast<T*>(object_ptr)->second)(::std::forward<A>(args)...);
+            static_cast<T*>(object_ptr)->second)(::std::forward<A>(args)...);
   }
 };
 
@@ -365,7 +365,7 @@ namespace std
       auto const seed(hash<void*>()(d.object_ptr_));
 
       return hash<typename ::delegate<R (A...)>::stub_ptr_type>()(
-								  d.stub_ptr_) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                                                                  d.stub_ptr_) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
   };
 }

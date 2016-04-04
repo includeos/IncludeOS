@@ -20,8 +20,8 @@ struct mmap_entry_t
 std::map<void*, mmap_entry_t> _mmap_entries;
 
 void* mmap(void* addr, size_t length, 
-	   int prot,  int flags,
-	   int fd,    off_t offset)
+           int prot,  int flags,
+           int fd,    off_t offset)
 {
   // invalid or misaligned length
   if (length == 0 || (length & 4095) != 0)
