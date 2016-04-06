@@ -15,13 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#define DEBUG
 #include "../packet.hpp"
-
-#include <debug>
 #include <info>
 
 namespace net
@@ -39,7 +37,8 @@ namespace net
     
     DHClient() = delete;
     DHClient(DHClient&) = delete;
-    DHClient(Stack&);
+    DHClient(Stack& inet)
+      : stack(inet)  {}
     
     Stack& stack;
     void negotiate(); // --> offer
@@ -48,18 +47,15 @@ namespace net
     }
     
   private:
-    void offer(UDPSocket&, const char* data, int len);
+    void offer(UDPSocket&, const char* data, size_t len);
     void request(UDPSocket&);   // --> acknowledge
-    void acknowledge(const char* data, int len);
+    void acknowledge(const char* data, size_t len);
     
     uint32_t  xid;
     IP4::addr ipaddr, netmask, router, dns_server;
     uint32_t  lease_time;
     On_config config_handler = [](Stack&){ INFO("DHCPv4::On_config","Config complete"); };
   };
-        
-  inline DHClient::DHClient(Stack& inet)
-    : stack(inet)  {}
 }
 
 #endif

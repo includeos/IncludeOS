@@ -29,8 +29,8 @@ namespace net
     
     // create DNS request
     DNS::Request request;
-    char* data = new char[256];
-    int   len  = request.create(data, hostname);
+    char*  data = new char[256];
+    size_t len  = request.create(data, hostname);
     
     // send request to DNS server
     sock.sendto(dns_server, DNS::DNS_SERVICE_PORT, data, len);
@@ -40,14 +40,13 @@ namespace net
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
     sock.onRead(
     [this, hostname, request, func]
-    (IP4::addr, UDP::port_t, const char* data, int) mutable -> int
+    (IP4::addr, UDP::port_t, const char* data, size_t) mutable
     {
       // original request ID = this->id;
       request.parseResponse(data);
       
       // fire onResolve event 
       func(this->stack, hostname, request.getFirstIP4());
-      return -1;
     });
   }
 }

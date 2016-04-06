@@ -21,12 +21,8 @@
 namespace net
 {
   UDPSocket::UDPSocket(UDPSocket::Stack& stk, port_t port)
-    : stack(stk), l_port(port) {}
-  
-  int UDPSocket::internal_read(UDP::Packet_ptr udp)
-  {
-    return on_read(udp->src(), udp->src_port(), udp->data(), udp->data_length());
-  }
+    : stack(stk), l_port(port) 
+  {}
   
   void UDPSocket::packet_init(
       UDP::Packet_ptr p, 
@@ -45,12 +41,17 @@ namespace net
     assert(p->data_length() == length);
   }
   
-  int UDPSocket::internal_write(
+  void UDPSocket::internal_read(UDP::Packet_ptr udp)
+  {
+    on_read(udp->src(), udp->src_port(), udp->data(), udp->data_length());
+  }
+  
+  void UDPSocket::internal_write(
       addr_t srcIP, 
       addr_t destIP,
       port_t port, 
       const uint8_t* buffer, 
-      int length)
+      size_t length)
   {
     // the maximum we can write per packet:
     const int WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
@@ -88,26 +89,25 @@ namespace net
       // ship the packet
       stack.udp().transmit(p2);
     }
-    return length;
   } // internal_write()
   
-  int UDPSocket::sendto(
+  void UDPSocket::sendto(
       addr_t destIP, 
       port_t port, 
       const void* buffer, 
-      int len)
+      size_t len)
   {
-    return internal_write(local_addr(), destIP, port, 
-                          (const uint8_t*) buffer, len);
+    internal_write(local_addr(), destIP, port, 
+                   (const uint8_t*) buffer, len);
   }
-  int UDPSocket::bcast(
+  void UDPSocket::bcast(
       addr_t srcIP, 
       port_t port, 
       const void* buffer, 
-      int len)
+      size_t len)
   {
-    return internal_write(srcIP, IP4::INADDR_BCAST, port, 
-                          (const uint8_t*) buffer, len);
+    internal_write(srcIP, IP4::INADDR_BCAST, port, 
+                   (const uint8_t*) buffer, len);
   }
   
 }

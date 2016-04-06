@@ -221,7 +221,7 @@ namespace net
     
     socket.onRead(
     [this, &socket] (IP4::addr, UDP::port_t port, 
-            const char* data, int len) -> int
+                     const char* data, size_t len)
     {
       if (port == DHCP_DEST_PORT)
       {
@@ -230,7 +230,6 @@ namespace net
               addr.str().c_str(), DHCP_DEST_PORT);
         this->offer(socket, data, len);
       }
-      return -1;
     });
   }
   
@@ -238,16 +237,15 @@ namespace net
   {
     const dhcp_option_t* opt = (const dhcp_option_t*) options;
     while (opt->code != code && opt->code != DHO_END)
-      {
-        // go to next option
-        opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
-      }
+    {
+      // go to next option
+      opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
+    }
     return opt;
   }
   
-  void DHClient::offer(UDPSocket& sock, const char* data, int datalen)
+  void DHClient::offer(UDPSocket& sock, const char* data, size_t)
   {
-    (void) datalen;
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
     
     uint32_t xid = htonl(dhcp->xid);
@@ -396,7 +394,7 @@ namespace net
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.onRead(
     [this] (IP4::addr, UDP::port_t port, 
-            const char* data, int len) -> int
+            const char* data, size_t len)
     {
       if (port == DHCP_DEST_PORT)
       {
@@ -405,16 +403,14 @@ namespace net
               addr.str().c_str(), DHCP_DEST_PORT);
         this->acknowledge(data, len);
       }
-      return -1;
     });
     
     // send our DHCP Request
     sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
   
-  void DHClient::acknowledge(const char* data, int datalen)
+  void DHClient::acknowledge(const char* data, size_t)
   {
-    (void) datalen;
     const dhcp_packet_t* dhcp = (const dhcp_packet_t*) data;
     
     uint32_t xid = htonl(dhcp->xid);
@@ -426,14 +422,14 @@ namespace net
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
     
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
-      {
-        // verify that the type is indeed DHCPOFFER
-        debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
-              opt->val[0], DHCPACK);
+    {
+      // verify that the type is indeed DHCPOFFER
+      debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+            opt->val[0], DHCPACK);
       
-        // ignore when not a DHCP Offer
-        if (opt->val[0] != DHCPACK) return;
-      }
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPACK) return;
+    }
     // ignore message when DHCP message type is missing
     else return;
     

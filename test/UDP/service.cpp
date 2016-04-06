@@ -31,21 +31,19 @@ void Service::start()
 {
   // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
-  auto& mac = eth0.mac();
-
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
     {{ 10,0,0,42 }}, // IP
     {{ 255,255,0,0 }} );  // Netmask
 
-  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
-
+  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
+  
   // UDP
   UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
-
+  
   sock.onRead(
   [&sock] (UDP::addr_t addr, UDP::port_t port,
-           const char* data, int len) -> int
+           const char* data, size_t len)
   {
     std::string strdata(data, len);
     CHECK(1, "Getting UDP data from %s:  %d -> %s",
@@ -54,8 +52,7 @@ void Service::start()
     sock.sendto(addr, port, data, len);
     
     INFO("UDP test", "SUCCESS");
-    return 0;
-  });
+    });
   
   INFO("UDP test", "Listening on port %d\n", port);
 }
