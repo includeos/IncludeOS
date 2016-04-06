@@ -34,7 +34,7 @@ void Service::start()
   auto& mac = eth0.mac();
 
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
+    {{ 10,0,0,42 }}, // IP
     {{ 255,255,0,0 }} );  // Netmask
 
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
@@ -43,16 +43,19 @@ void Service::start()
   UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
-  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
-                  const char* data, int len) -> int
-              {
-                CHECK(1,"Getting UDP data from %s: %i: %s",
-                      addr.str().c_str(), port, data);
-                // send the same thing right back!
-                conn.sendto(addr, port, data, len);
-                return 0;
-              });
-
-  INFO("UDP test", "listening to  %i \n",port);
-
+  sock.onRead(
+  [&sock] (UDP::addr_t addr, UDP::port_t port,
+           const char* data, int len) -> int
+  {
+    std::string strdata(data, len);
+    CHECK(1, "Getting UDP data from %s:  %d -> %s",
+              addr.str().c_str(), port, strdata.c_str());
+    // send the same thing right back!
+    sock.sendto(addr, port, data, len);
+    
+    INFO("UDP test", "SUCCESS");
+    return 0;
+  });
+  
+  INFO("UDP test", "Listening on port %d\n", port);
 }

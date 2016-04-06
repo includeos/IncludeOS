@@ -23,7 +23,7 @@
 
 namespace net {
 
-  void UDP::bottom(Packet_ptr pckt)
+  void UDP::bottom(net::Packet_ptr pckt)
   {
     debug("<UDP handler> Got data");
     std::shared_ptr<PacketUDP> udp = 
@@ -42,7 +42,7 @@ namespace net {
     debug("<UDP> Nobody's listening to this port. Drop!\n");
   }
 
-  UDP::Socket& UDP::bind(UDP::port_t port)
+  UDPSocket& UDP::bind(UDP::port_t port)
   {
     debug("<UDP> Binding to port %i\n", port);
     /// ... !!!
@@ -58,7 +58,7 @@ namespace net {
     return it->second;
   }
 
-  UDP::Socket& UDP::bind() {  
+  UDPSocket& UDP::bind() {  
 
     if (ports_.size() >= 0xfc00)
       panic("UPD Socket: All ports taken!");  
@@ -77,10 +77,10 @@ namespace net {
            udp->src().str().c_str(),
            udp->dst().str().c_str(), udp->dst_port());
   
-    assert(udp->length() >= sizeof(UDP::udp_header));
+    assert(udp->length() >= sizeof(udp_header));
     assert(udp->protocol() == IP4::IP4_UDP);
   
-    Packet_ptr pckt = Packet::packet(udp);
+    auto pckt = Packet::packet(udp);
     network_layer_out_(pckt);
   }
 

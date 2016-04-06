@@ -26,9 +26,7 @@
 
 namespace net
 {
-  template <typename T>
-  class Socket;
-  class UDP;
+  class UDPSocket;
   
   template <typename LINK, typename IPV>
   class Inet;
@@ -50,8 +48,8 @@ namespace net
     }
     
   private:
-    void offer(Socket<UDP>&, const char* data, int len);
-    void request(Socket<UDP>&);   // --> acknowledge
+    void offer(UDPSocket&, const char* data, int len);
+    void request(UDPSocket&);   // --> acknowledge
     void acknowledge(const char* data, int len);
     
     uint32_t  xid;

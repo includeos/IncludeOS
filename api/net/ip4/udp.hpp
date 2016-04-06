@@ -26,9 +26,7 @@
 namespace net {
 
   class PacketUDP;
-
-  template <typename T>
-  class Socket;
+  class UDPSocket;
 
   void ignore_udp(Packet_ptr);
 
@@ -36,11 +34,9 @@ namespace net {
   class UDP {
   public:
     using addr_t = IP4::addr;
-
-    /** UDP port number */
     using port_t = uint16_t;
-  
-    using Socket = Socket<UDP>;
+    
+    using Packet_ptr = std::shared_ptr<PacketUDP>;
     using Stack  = Inet<LinkLayer, IP4>;
 
     /** UDP header */
@@ -63,7 +59,7 @@ namespace net {
     { return stack_.ip_addr(); }
   
     /** Input from network layer */
-    void bottom(Packet_ptr);
+    void bottom(net::Packet_ptr);
 
     /** Delegate output to network layer */
     inline void set_network_out(downstream del)
@@ -75,13 +71,13 @@ namespace net {
         @param sport Local port
         @param dip   Remote IP-address
         @param dport Remote port   */
-    void transmit(std::shared_ptr<PacketUDP> udp);
+    void transmit(UDP::Packet_ptr udp);
   
     //! @param port local port
-    Socket& bind(port_t port);
+    UDPSocket& bind(port_t port);
   
     //! returns a new UDP socket bound to a random port
-    Socket& bind();
+    UDPSocket& bind();
   
     //! construct this UDP module with @inet
     UDP(Stack& inet) :
@@ -89,12 +85,10 @@ namespace net {
       stack_ {inet}
     { }
   private: 
-    downstream               network_layer_out_;
-    Stack&                   stack_;
-    std::map<port_t, Socket> ports_;
-    port_t                   current_port_ {1024};
-  
-    friend class SocketUDP;
+    downstream  network_layer_out_;
+    Stack&      stack_;
+    std::map<port_t, UDPSocket> ports_;
+    port_t      current_port_ {1024};
   }; //< class UDP
 } //< namespace net
 
