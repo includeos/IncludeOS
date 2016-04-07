@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/tcp_connection_states.hpp>
+#include <sstream>
 
 using namespace std;
 
@@ -127,7 +128,12 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
       packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
       tcp.transmit(packet);
     }
-    tcp.drop(in, "Unacceptable SEQ.");
+    std::stringstream ss;
+    ss << "Unacceptable SEQ: "
+      << "[Packet: SEQ: " << in->seq() << " LEN: " << in->data_length() << "] "
+      << "[TCB: RCV.NXT: " << tcb.RCV.NXT << " RCV.WND: " << tcb.RCV.WND << "]";
+
+    tcp.drop(in, ss.str());
     return false;
   }
   debug2("<Connection::State::check_seq> Acceptable SEQ: %u \n", in->seq());
@@ -207,6 +213,7 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
     */
     if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
       tcb.SND.UNA = in->ack();
+      debug2("<Connection::State::check_ack> Usable window slided (%i)\n", tcp.usable_window());
       // tcp.signal_sent();
       // return that buffer has been SENT - currently no support to receipt sent buffer.
 
@@ -289,26 +296,53 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
 
   auto& tcb = tcp.tcb();
   auto length = in->data_length();
+  // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
+  auto snd_nxt = tcb.SND.NXT;
   debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
   if(tcp.read_request.buffer.capacity()) {
     auto received = tcp.receive((uint8_t*)in->data(), in->data_length(), in->isset(PSH));
     assert(received == length);
   }
   tcb.RCV.NXT += length;
-  auto snd_nxt = tcb.SND.NXT;
   debug2("<TCP::Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
+
+  /*
+    WARNING/NOTE:
+    Not sure how "dangerous" the following is, and how big of a bottleneck it is.
+    Maybe has to be implemented with timers or something.
+  */
+
   /*
     Once the TCP takes responsibility for the data it advances
     RCV.NXT over the data accepted, and adjusts RCV.WND as
     apporopriate to the current buffer availability.  The total of
     RCV.NXT and RCV.WND should not be reduced.
   */
-  // TODO: SACK (Selective ACK), or if there is a write queue, don't send ACK.
-  if(tcb.SND.NXT == snd_nxt) {
-    auto packet = tcp.outgoing_packet();
-    packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-    tcp.transmit(packet);
-  } else {
+  // no data has been sent during user callback
+  // TODO: A lot of cleanup / refactoring - this is messy.
+  if(snd_nxt == tcb.SND.NXT) {
+    // Piggyback ACK with outgoing data
+    if(tcp.has_doable_job() and !tcp.is_queued()) {
+      debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
+      tcp.write_queue_push();
+      // we tried to push data, but nothing was written, reply the sender immediately
+      if(tcp.usable_window() == tcb.SND.WND) {
+        auto packet = tcp.outgoing_packet();
+        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+        tcp.transmit(packet);
+      }
+    }
+    // TODO: Selective ACK
+    // If no outgoing data right now - reply with ACK.
+    else {
+      debug2("<TCP::Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
+        tcp.usable_window(), tcp.write_queue.size(), tcp.is_queued() ? "true" : "false");
+      auto packet = tcp.outgoing_packet();
+      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+      tcp.transmit(packet);
+    }
+  }
+  else {
     debug2("<TCP::Connection::State::process_segment> SND.NXT > snd_nxt, this packet has already been acknowledged. \n");
   }
 }
@@ -986,6 +1020,7 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
     tcp.set_state(Connection::CloseWait::instance());
     return CLOSE;
   }
+
   return OK;
 }
 
