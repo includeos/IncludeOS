@@ -24,12 +24,11 @@ namespace net
 {
   void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
   {
-    UDP::port_t port = 33314; // <-- FIXME: should be automatic port
-    auto& sock = stack.udp().bind(port);
+    auto& sock = stack.udp().bind();
     
     // create DNS request
     DNS::Request request;
-    char*  data = new char[256];
+    auto*  data = new char[256];
     size_t len  = request.create(data, hostname);
     
     // send request to DNS server

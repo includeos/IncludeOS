@@ -71,7 +71,7 @@ namespace net {
     return bind(current_port_);
   }
 
-  void UDP::transmit(std::shared_ptr<PacketUDP> udp) {
+  void UDP::transmit(UDP::Packet_ptr udp) {
     debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
            udp->length(), udp->ip4_segment_size(),
            udp->src().str().c_str(),
@@ -83,10 +83,38 @@ namespace net {
     auto pckt = Packet::packet(udp);
     network_layer_out_(pckt);
   }
-
-  void ignore_udp(Packet_ptr)
+  
+  size_t UDP::process_sendq(size_t num)
   {
-    debug("<UDP->Network> No handler - DROP!\n");
+    if (num == 0)
+    {
+      size_t total = 0;
+      for (auto& buf : sendq)
+        total += buf.packets_needed();
+    }
   }
-
+  
+  size_t UDP::WriteBuffer::packets_needed() const
+  {
+    int r = remaining();
+    // whole packets
+    size_t P = r / stack.MTU();
+    // one packet for remainder
+    if (r % stack.MTU()) P++;
+    return P;
+  }
+  UDP::WriteBuffer::WriteBuffer(
+      const uint8_t* data, size_t length, sendto_handler cb,
+      addr_t LA, port_t LP, addr_t DA, port_t DP)
+  : len(length), offset(0), callback(cb), 
+    l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)
+  {
+    // create a copy of the data,
+    auto* copy = new uint8_t[len];
+    memcpy(copy, data, length);
+    // make it shared
+    this->buf = 
+      std::shared_ptr<uint8_t> (copy, std::default_delete<uint8_t[]>());
+  }
+  
 } //< namespace net

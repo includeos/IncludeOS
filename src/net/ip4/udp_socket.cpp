@@ -51,10 +51,15 @@ namespace net
       addr_t srcIP, 
       addr_t destIP,
       port_t port, 
-      const uint8_t* buffer, 
+      const uint8_t* data, 
       size_t length,
       sendto_handler cb)
   {
+    stack.udp().sendq.emplace_back(
+        data, length, cb,
+        srcIP, this->l_port, destIP, port);
+    
+    /*
     // the maximum we can write per packet:
     const size_t WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
     // the bytes remaining to be written
@@ -91,6 +96,8 @@ namespace net
       // ship the packet
       stack.udp().transmit(p2);
     }
+    */
+    
   } // internal_write()
   
   void UDPSocket::sendto(

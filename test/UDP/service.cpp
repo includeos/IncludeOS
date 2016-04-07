@@ -38,10 +38,10 @@ void Service::start()
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
   
   // UDP
-  UDP::port_t port = 4242;
+  const UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
   
-  sock.onRead(
+  sock.on_read(
   [&sock] (UDP::addr_t addr, UDP::port_t port,
            const char* data, size_t len)
   {
@@ -51,6 +51,8 @@ void Service::start()
     // send the same thing right back!
     sock.sendto(addr, port, data, len,
     [] {
+      // sent
+      
       INFO("UDP test", "SUCCESS");
     });
   });

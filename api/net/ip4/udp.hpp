@@ -18,18 +18,17 @@
 #ifndef NET_IP4_UDP_HPP
 #define NET_IP4_UDP_HPP
 
+#include <deque>
 #include <map>
-
 #include "../inet.hpp"
 #include "ip4.hpp"
+#include <cstring>
 
 namespace net {
 
   class PacketUDP;
   class UDPSocket;
-
-  void ignore_udp(Packet_ptr);
-
+  
   /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP {
   public:
@@ -38,7 +37,40 @@ namespace net {
     
     using Packet_ptr = std::shared_ptr<PacketUDP>;
     using Stack  = Inet<LinkLayer, IP4>;
-
+    
+    typedef delegate<void()> sendto_handler;
+    
+    // write buffer for sendq
+    struct WriteBuffer
+    {
+      WriteBuffer(
+        const uint8_t* data, size_t length, sendto_handler cb,
+        addr_t LA, port_t LP, addr_t DA, port_t DP);
+      
+      int remaining() const {
+        return len - offset;
+      }
+      bool done() const {
+        return offset == len;
+      }
+      
+      size_t packets_needed() const;
+      
+      // buffer, total length and current write offset
+      std::shared_ptr<uint8_t> buf;
+      size_t len;
+      size_t offset;
+      // the callback for when this buffer is written
+      sendto_handler callback;
+      
+      // the port this was being sent from
+      addr_t l_addr;
+      port_t l_port;
+      // destination address and port
+      port_t d_port;
+      addr_t d_addr;
+    };
+    
     /** UDP header */
     struct udp_header {
       port_t   sport;
@@ -46,23 +78,23 @@ namespace net {
       uint16_t length;
       uint16_t checksum;
     };
-
+    
     /** Full UDP Header with all sub-headers */
     struct full_header {
       IP4::full_header full_hdr;
       udp_header       udp_hdr;
     }__attribute__((packed));
-  
+    
     ////////////////////////////////////////////
-  
-    inline addr_t local_ip() const
+    
+    addr_t local_ip() const
     { return stack_.ip_addr(); }
   
     /** Input from network layer */
     void bottom(net::Packet_ptr);
 
     /** Delegate output to network layer */
-    inline void set_network_out(downstream del)
+    void set_network_out(downstream del)
     { network_layer_out_ = del; }
   
     /** Send UDP datagram from source ip/port to destination ip/port. 
@@ -81,15 +113,24 @@ namespace net {
   
     //! construct this UDP module with @inet
     UDP(Stack& inet) :
-      network_layer_out_ {ignore_udp},
-      stack_ {inet}
-    { }
+      stack_(inet)
+    {
+      network_layer_out_ = [] (net::Packet_ptr) {};
+    }
+    
+    size_t process_sendq(size_t num);
+    
   private: 
     downstream  network_layer_out_;
     Stack&      stack_;
     std::map<port_t, UDPSocket> ports_;
     port_t      current_port_ {1024};
+    
+    // the async send queue
+    std::deque<WriteBuffer> sendq;
+    friend class net::UDPSocket;
   }; //< class UDP
+  
 } //< namespace net
 
 #include "packet_udp.hpp"

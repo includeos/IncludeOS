@@ -33,7 +33,7 @@ namespace net
     using Stack = Inet<LinkLayer, IP4>;
     
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
-    typedef delegate<void()> sendto_handler;
+    typedef UDP::sendto_handler sendto_handler;
     
     // constructors
     UDPSocket(Stack&, port_t port);
