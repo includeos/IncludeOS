@@ -49,10 +49,11 @@ void Service::start()
     CHECK(1, "Getting UDP data from %s:  %d -> %s",
               addr.str().c_str(), port, strdata.c_str());
     // send the same thing right back!
-    sock.sendto(addr, port, data, len);
-    
-    INFO("UDP test", "SUCCESS");
+    sock.sendto(addr, port, data, len,
+    [] {
+      INFO("UDP test", "SUCCESS");
     });
+  });
   
   INFO("UDP test", "Listening on port %d\n", port);
 }

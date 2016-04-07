@@ -38,7 +38,7 @@ namespace net
     
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
-    sock.onRead(
+    sock.on_read(
     [this, hostname, request, func]
     (IP4::addr, UDP::port_t, const char* data, size_t) mutable
     {

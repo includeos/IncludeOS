@@ -33,7 +33,7 @@ namespace net
     using Stack = Inet<LinkLayer, IP4>;
     
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
-    typedef delegate<void(addr_t, port_t, const char*, size_t)> sendto_handler;
+    typedef delegate<void()> sendto_handler;
     
     // constructors
     UDPSocket(Stack&, port_t port);
@@ -44,18 +44,16 @@ namespace net
     // Use Stack.udp().bind(port) to get a valid Socket<UDP> reference.
     
     // functions
-    void onRead(recvfrom_handler func)
+    void on_read(recvfrom_handler callback)
     {
-      on_read = func;
-    }
-    void onWrite(sendto_handler func)
-    {
-      on_send = func;
+      on_read_handler = callback;
     }
     void sendto(addr_t destIP, port_t port, 
-                const void* buffer, size_t length);
+                const void* buffer, size_t length, 
+                sendto_handler cb = [] {});
     void bcast(addr_t srcIP, port_t port, 
-               const void* buffer, size_t length);
+               const void* buffer, size_t length,
+               sendto_handler cb = [] {});
     void close();
     
     void join(multicast_group_addr);
@@ -74,14 +72,13 @@ namespace net
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
-    void internal_write(addr_t, addr_t, port_t, const uint8_t*, size_t);
+    void internal_write(
+        addr_t, addr_t, port_t, const uint8_t*, size_t, sendto_handler);
     
     Stack& stack;
     port_t l_port;
-    recvfrom_handler on_read = 
-        [](addr_t, port_t, const char*, size_t) {};
-    sendto_handler   on_send = 
-        [](addr_t, port_t, const char*, size_t) {};
+    recvfrom_handler on_read_handler = 
+        [] (addr_t, port_t, const char*, size_t) {};
     
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender

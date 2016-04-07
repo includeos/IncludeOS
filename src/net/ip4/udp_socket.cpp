@@ -43,7 +43,8 @@ namespace net
   
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
-    on_read(udp->src(), udp->src_port(), udp->data(), udp->data_length());
+    on_read_handler
+        (udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
   
   void UDPSocket::internal_write(
@@ -51,12 +52,13 @@ namespace net
       addr_t destIP,
       port_t port, 
       const uint8_t* buffer, 
-      size_t length)
+      size_t length,
+      sendto_handler cb)
   {
     // the maximum we can write per packet:
-    const int WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
+    const size_t WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
     // the bytes remaining to be written
-    int rem = length;
+    size_t rem = length;
     
     while (rem >= WRITE_MAX)
     {
@@ -95,19 +97,21 @@ namespace net
       addr_t destIP, 
       port_t port, 
       const void* buffer, 
-      size_t len)
+      size_t len,
+      sendto_handler cb)
   {
     internal_write(local_addr(), destIP, port, 
-                   (const uint8_t*) buffer, len);
+                   (const uint8_t*) buffer, len, cb);
   }
   void UDPSocket::bcast(
       addr_t srcIP, 
       port_t port, 
       const void* buffer, 
-      size_t len)
+      size_t len,
+      sendto_handler cb)
   {
     internal_write(srcIP, IP4::INADDR_BCAST, port, 
-                   (const uint8_t*) buffer, len);
+                   (const uint8_t*) buffer, len, cb);
   }
   
 }
