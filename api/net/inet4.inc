@@ -23,6 +23,9 @@ namespace net
     auto tcp_bottom(upstream::from<TCP,&TCP::bottom>(tcp_));
     
     /** Upstream wiring  */
+    // Packets available
+    nic.on_transmit_queue_available(
+      transmit_avail_delg::from<Inet4<T>, transmit_queue_available>(*this));
     
     // Phys -> Eth (Later, this will be passed through router)
     nic.set_linklayer_out(eth_bottom);
@@ -42,7 +45,6 @@ namespace net
     // IP4 -> TCP
     ip4_.set_tcp_handler(tcp_bottom);
     
-   
     /** Downstream delegates */
     auto phys_top(downstream
                   ::from<hw::Nic<VirtioNet>,&hw::Nic<VirtioNet>::transmit>(nic));
@@ -81,6 +83,51 @@ namespace net
     INFO("Inet4","Applying DHCP client");
     dhcp_ = std::make_shared<DHClient>(*this);
     dhcp_->negotiate();
+  }
+  
+  template <typename T>
+  void Inet4<T>::transmit_queue_available(size_t packets)
+  {
+    ////////////////////////////////////////////
+    // divide up fairly
+    size_t div = packets / tqa.size();
+    
+    // give each protocol a chance to take
+    for (size_t i = 0; i < tqa.size(); i++)
+      tqa[i](div);
+    
+    // hand out remaining
+    for (size_t i = 0; i < tqa.size(); i++)
+    {
+      div = buffers_available();
+      if (!div) break;
+      // give as much as possible
+      tqa[i](div);
+    }
+    ////////////////////////////////////////////
+    
+    /*
+    size_t list[tqa.size()];
+    for (size_t i = 0; i < tqa.size(); i++)
+      list[i] = tqa[i](0);
+    
+    size_t give[tqa.size()] = {0};
+    int cp = 0; // current protocol
+    
+    // distribute packets one at a time for each protocol
+    while (packets--)
+    {
+      if (list[cp])
+      {
+        // give one packet
+        give[cp]++;  list[cp]--;
+      }
+      cp = (cp + 1) % tqa.size();
+    }
+    // hand out several packets per protocol
+    for (size_t i = 0; i < tqa.size(); i++)
+      if (give[i]) tqa[i](give[i]);
+    */
   }
   
 }
