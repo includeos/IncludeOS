@@ -211,7 +211,9 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
       something not yet sent (SEG.ACK > SND.NXT) then send an ACK,
       drop the segment, and return.
     */
-    if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
+    //if( tcb.SND.UNA < in->ack() and in->ack() <= tcb.SND.NXT ) {
+    // Correction: [RFC 1122 p. 94]
+    if( tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT ) {
       tcb.SND.UNA = in->ack();
       debug2("<Connection::State::check_ack> Usable window slided (%i)\n", tcp.usable_window());
       // tcp.signal_sent();
@@ -245,9 +247,23 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
       return false;
     }
     /* If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored. */
-    /*else if( in->ack() < tcb.SND.UNA ) {
-    // ignore.
-    }*/
+    // Correction: [RFC 1122 p. 94]
+    else if( in->ack() <= tcb.SND.UNA ) {
+      printf("<Connection::State::check_ack> Dup ACK.\n");
+      // [RFC 5681]
+      /*
+        Note that a sender using SACK [RFC2018] MUST NOT send
+        new data unless the incoming duplicate acknowledgment contains
+        new SACK information.
+      */
+      auto dup_count = tcp.duplicate_ack(in->ack());
+      if(dup_count == 3) {
+        printf("<Connection::State::check_ack> Duplicate ACK strike! (>= 3)\n");
+        tcp.reduce_slow_start_threshold();
+      } else if(dup_count > 3) {
+        tcb.SND.cwnd += tcp.SMSS();
+      }
+    }
     return true;
   }
   // ACK not set.
@@ -304,6 +320,8 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
     assert(received == length);
   }
   tcb.RCV.NXT += length;
+  // [RFC 5681]
+  tcb.SND.cwnd += std::min(length, tcp.SMSS());
   debug2("<TCP::Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
 
   /*
@@ -676,7 +694,9 @@ void Connection::CloseWait::close(Connection& tcp) {
   auto packet = tcp.outgoing_packet();
   packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
   tcp.transmit(packet);
-  tcp.set_state(Connection::Closing::instance());
+  //tcp.set_state(Connection::Closing::instance());
+  // Correction: [RFC 1122 p. 93]
+  tcp.set_state(Connection::LastAck::instance());
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -860,6 +880,12 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
     // (our SYN has been ACKed)
     if(tcb.SND.UNA > tcb.ISS) {
       tcp.set_state(Connection::Established::instance());
+      // Correction: [RFC 1122 p. 94]
+      tcb.SND.WND = in->win();
+      tcb.SND.WL1 = in->seq();
+      tcb.SND.WL2 = in->ack();
+      // end of correction
+
       TCP::Seq snd_nxt = tcb.SND.NXT;
       tcp.signal_connect(); // NOTE: User callback
 
