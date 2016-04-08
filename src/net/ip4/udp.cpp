@@ -103,7 +103,12 @@ namespace net {
       num--;
       
       if (buffer.done())
+      {
+        // call on_written callback
+        buffer.callback();
+        // remove buffer from queue
         sendq.pop_front();
+      }
     }
   }
   

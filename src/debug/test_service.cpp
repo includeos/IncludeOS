@@ -87,7 +87,6 @@ void Service::start()
     sock.sendto(addr, port, data, len,
     [] {
       // sent
-      
       INFO("UDP test", "SUCCESS");
     });
   });
