@@ -45,7 +45,7 @@ namespace net {
     {
       WriteBuffer(
         const uint8_t* data, size_t length, sendto_handler cb,
-        addr_t LA, port_t LP, addr_t DA, port_t DP);
+        UDP& udp, addr_t LA, port_t LP, addr_t DA, port_t DP);
       
       int remaining() const {
         return len - offset;
@@ -55,6 +55,7 @@ namespace net {
       }
       
       size_t packets_needed() const;
+      void write();
       
       // buffer, total length and current write offset
       std::shared_ptr<uint8_t> buf;
@@ -62,8 +63,10 @@ namespace net {
       size_t offset;
       // the callback for when this buffer is written
       sendto_handler callback;
+      // the UDP stack
+      UDP& udp;
       
-      // the port this was being sent from
+      // port and addr this was being sent from
       addr_t l_addr;
       port_t l_port;
       // destination address and port
@@ -116,6 +119,11 @@ namespace net {
       stack_(inet)
     {
       network_layer_out_ = [] (net::Packet_ptr) {};
+    }
+    
+    Stack& stack()
+    {
+      return stack_;
     }
     
     size_t process_sendq(size_t num);

@@ -56,48 +56,8 @@ namespace net
       sendto_handler cb)
   {
     stack.udp().sendq.emplace_back(
-        data, length, cb,
+        data, length, cb, stack.udp(),
         srcIP, this->l_port, destIP, port);
-    
-    /*
-    // the maximum we can write per packet:
-    const size_t WRITE_MAX = stack.MTU() - PacketUDP::HEADERS_SIZE;
-    // the bytes remaining to be written
-    size_t rem = length;
-    
-    while (rem >= WRITE_MAX)
-    {
-      // create some packet p (and convert it to PacketUDP)
-      auto p = stack.createPacket(stack.MTU());
-      // fill buffer (at payload position)
-      memcpy(p->buffer() + PacketUDP::HEADERS_SIZE, buffer, WRITE_MAX);
-      
-      // initialize packet with several infos
-      auto p2 = std::static_pointer_cast<PacketUDP>(p);
-      packet_init(p2, srcIP, destIP, port, WRITE_MAX);
-      // ship the packet
-      stack.udp().transmit(p2);
-      
-      // next buffer part
-      buffer += WRITE_MAX;  rem -= WRITE_MAX;
-    }
-    if (rem)
-    {
-      // copy remainder
-      size_t size = PacketUDP::HEADERS_SIZE + rem;
-      
-      // create some packet p
-      auto p = stack.createPacket(size);
-      memcpy(p->buffer() + PacketUDP::HEADERS_SIZE, buffer, rem);
-      
-      // initialize packet with several infos
-      auto p2 = std::static_pointer_cast<PacketUDP>(p);
-      packet_init(p2, srcIP, destIP, port, rem);
-      // ship the packet
-      stack.udp().transmit(p2);
-    }
-    */
-    
   } // internal_write()
   
   void UDPSocket::sendto(
