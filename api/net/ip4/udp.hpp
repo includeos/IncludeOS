@@ -115,18 +115,15 @@ namespace net {
     UDPSocket& bind();
   
     //! construct this UDP module with @inet
-    UDP(Stack& inet) :
-      stack_(inet)
-    {
-      network_layer_out_ = [] (net::Packet_ptr) {};
-    }
+    UDP(Stack& inet);
     
     Stack& stack()
     {
       return stack_;
     }
     
-    size_t process_sendq(size_t num);
+    // create packets from send queue
+    void process_sendq(size_t num);
     
   private: 
     downstream  network_layer_out_;

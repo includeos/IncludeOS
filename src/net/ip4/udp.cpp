@@ -23,6 +23,14 @@
 
 namespace net {
 
+  UDP::UDP(Stack& inet)
+    : stack_(inet)
+  {
+    network_layer_out_ = [] (net::Packet_ptr) {};
+    inet.on_transmit_queue_available(
+      transmit_avail_delg::from<UDP, &UDP::process_sendq>(this));
+  }
+  
   void UDP::bottom(net::Packet_ptr pckt)
   {
     debug("<UDP handler> Got data");
@@ -50,9 +58,9 @@ namespace net {
     if (it == ports_.end()) {
       // create new socket
       auto res = ports_.emplace(
-                                std::piecewise_construct,
-                                std::forward_as_tuple(port),
-                                std::forward_as_tuple(stack_, port));
+        std::piecewise_construct,
+        std::forward_as_tuple(port),
+        std::forward_as_tuple(stack_, port));
       it = res.first;
     }
     return it->second;
@@ -65,7 +73,8 @@ namespace net {
 
     debug("UDP finding free ephemeral port\n");  
     while (ports_.find(++current_port_) != ports_.end())
-      if (current_port_  == 0) current_port_ = 1025; // prevent automatic ports under 1024
+      // prevent automatic ports under 1024
+      if (current_port_  == 0) current_port_ = 1024;
   
     debug("UDP binding to %i port\n", current_port_);
     return bind(current_port_);
@@ -84,19 +93,8 @@ namespace net {
     network_layer_out_(pckt);
   }
   
-  size_t UDP::process_sendq(size_t num)
+  void UDP::process_sendq(size_t num)
   {
-    // for gathering phase
-    if (num == 0)
-    {
-      size_t total = 0;
-      for (auto& buf : sendq)
-        total += buf.packets_needed();
-      
-      return total;
-    }
-    
-    // for processing phase
     while (!sendq.empty() && num != 0)
     {
       WriteBuffer& buffer = sendq.front();
@@ -105,10 +103,13 @@ namespace net {
       num--;
       
       if (buffer.done())
+      {
+        // call on_written callback
+        buffer.callback();
+        // remove buffer from queue
         sendq.pop_front();
+      }
     }
-    
-    return num;
   }
   
   size_t UDP::WriteBuffer::packets_needed() const
