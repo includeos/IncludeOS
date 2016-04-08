@@ -18,16 +18,12 @@
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <term>
 #include "ircd.hpp"
 
 using namespace std::chrono;
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
-#include <serial>
-std::unique_ptr<Terminal> term;
 
 void Service::start()
 {
@@ -41,11 +37,11 @@ void Service::start()
                        {{ 8,8,8,8 }} );      // DNS
   
   /*
-    auto& tcp = inet->tcp();
-    auto& server = tcp.bind(6667); // IRCd default port
-    server.onConnect(
-    [] (auto csock)
-    {
+  auto& tcp = inet->tcp();
+  auto& server = tcp.bind(6667); // IRCd default port
+  server.onConnect(
+  [] (auto csock)
+  {
     printf("*** Received connection from %s\n",
     csock->remote().to_string().c_str());
     
@@ -74,21 +70,27 @@ void Service::start()
     /// inform others about disconnect
     //client.bcast(TK_QUIT, "Disconnected");
     });
-    });*/
+  });*/
   
-  /// terminal ///
-  auto& serial = hw::Serial::port<1> ();
-  // create terminal with open TCP connection
-  term = std::make_unique<Terminal> (serial);
-  // add 'ifconfig' command
-  term->add(
-            "ifconfig", "Show information about interfaces",
-            [] (const std::vector<std::string>&) -> int
-            {
-              term->write("%s\r\n", inet->tcp().status().c_str());
-              return 0;
-            });
-  /// terminal ///
+  using namespace net;
+  const UDP::port_t port = 4242;
+  auto& sock = inet->udp().bind(port);
+  
+  sock.on_read(
+  [&sock] (UDP::addr_t addr, UDP::port_t port,
+           const char* data, size_t len)
+  {
+    std::string strdata(data, len);
+    CHECK(1, "Getting UDP data from %s:%d -> %s",
+              addr.str().c_str(), port, strdata.c_str());
+    // send the same thing right back!
+    sock.sendto(addr, port, data, len,
+    [] {
+      // sent
+      
+      INFO("UDP test", "SUCCESS");
+    });
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

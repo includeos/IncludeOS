@@ -133,9 +133,10 @@ namespace net {
     virtual void
     on_transmit_queue_available(transmit_avail_delg del) override {
       tqa.push_back(del);
+      printf("* adding transmit listener  (sz=%u)\n", tqa.size() );
     }
 
-    inline virtual size_t transmit_queue_available() override {
+    virtual size_t transmit_queue_available() override {
       return nic_.transmit_queue_available();
     }
 
@@ -144,7 +145,9 @@ namespace net {
     }
 
   private:
-    void transmit_queue_available(size_t);
+    inline void process_sendq(size_t);
+    // delegates registered to get signalled about free packets
+    std::vector<transmit_avail_delg> tqa;
     
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
@@ -164,8 +167,6 @@ namespace net {
 
     std::shared_ptr<net::DHClient> dhcp_{};
     BufferStore& bufstore_;
-    // delegates registered to get signalled about free packets
-    std::vector<transmit_avail_delg> tqa;
   };
 }
 
