@@ -25,7 +25,7 @@ namespace net
     /** Upstream wiring  */
     // Packets available
     nic.on_transmit_queue_available(
-      transmit_avail_delg::from<Inet4<T>, transmit_queue_available>(*this));
+      transmit_avail_delg::from<Inet4<T>, &Inet4<T>::transmit_queue_available>(*this));
     
     // Phys -> Eth (Later, this will be passed through router)
     nic.set_linklayer_out(eth_bottom);
