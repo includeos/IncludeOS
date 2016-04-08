@@ -23,7 +23,15 @@
 
 namespace net {
 
-  void UDP::bottom(Packet_ptr pckt)
+  UDP::UDP(Stack& inet)
+    : stack_(inet)
+  {
+    network_layer_out_ = [] (net::Packet_ptr) {};
+    inet.on_transmit_queue_available(
+      transmit_avail_delg::from<UDP, &UDP::process_sendq>(this));
+  }
+  
+  void UDP::bottom(net::Packet_ptr pckt)
   {
     debug("<UDP handler> Got data");
     std::shared_ptr<PacketUDP> udp = 
@@ -42,7 +50,7 @@ namespace net {
     debug("<UDP> Nobody's listening to this port. Drop!\n");
   }
 
-  UDP::Socket& UDP::bind(UDP::port_t port)
+  UDPSocket& UDP::bind(UDP::port_t port)
   {
     debug("<UDP> Binding to port %i\n", port);
     /// ... !!!
@@ -50,43 +58,109 @@ namespace net {
     if (it == ports_.end()) {
       // create new socket
       auto res = ports_.emplace(
-                                std::piecewise_construct,
-                                std::forward_as_tuple(port),
-                                std::forward_as_tuple(stack_, port));
+        std::piecewise_construct,
+        std::forward_as_tuple(port),
+        std::forward_as_tuple(stack_, port));
       it = res.first;
     }
     return it->second;
   }
 
-  UDP::Socket& UDP::bind() {  
+  UDPSocket& UDP::bind() {  
 
     if (ports_.size() >= 0xfc00)
       panic("UPD Socket: All ports taken!");  
 
     debug("UDP finding free ephemeral port\n");  
     while (ports_.find(++current_port_) != ports_.end())
-      if (current_port_  == 0) current_port_ = 1025; // prevent automatic ports under 1024
+      // prevent automatic ports under 1024
+      if (current_port_  == 0) current_port_ = 1024;
   
     debug("UDP binding to %i port\n", current_port_);
     return bind(current_port_);
   }
 
-  void UDP::transmit(std::shared_ptr<PacketUDP> udp) {
+  void UDP::transmit(UDP::Packet_ptr udp) {
     debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
            udp->length(), udp->ip4_segment_size(),
            udp->src().str().c_str(),
            udp->dst().str().c_str(), udp->dst_port());
   
-    assert(udp->length() >= sizeof(UDP::udp_header));
+    assert(udp->length() >= sizeof(udp_header));
     assert(udp->protocol() == IP4::IP4_UDP);
   
-    Packet_ptr pckt = Packet::packet(udp);
+    auto pckt = Packet::packet(udp);
     network_layer_out_(pckt);
   }
-
-  void ignore_udp(Packet_ptr)
+  
+  void UDP::process_sendq(size_t num)
   {
-    debug("<UDP->Network> No handler - DROP!\n");
+    while (!sendq.empty() && num != 0)
+    {
+      WriteBuffer& buffer = sendq.front();
+      // create and transmit packet from writebuffer
+      buffer.write();
+      num--;
+      
+      if (buffer.done())
+        sendq.pop_front();
+    }
   }
-
+  
+  size_t UDP::WriteBuffer::packets_needed() const
+  {
+    int r = remaining();
+    // whole packets
+    size_t P = r / udp.stack().MTU();
+    // one packet for remainder
+    if (r % udp.stack().MTU()) P++;
+    return P;
+  }
+  UDP::WriteBuffer::WriteBuffer(
+      const uint8_t* data, size_t length, sendto_handler cb,
+      UDP& stack, addr_t LA, port_t LP, addr_t DA, port_t DP)
+  : len(length), offset(0), callback(cb), udp(stack),
+    l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)
+  {
+    // create a copy of the data,
+    auto* copy = new uint8_t[len];
+    memcpy(copy, data, length);
+    // make it shared
+    this->buf = 
+      std::shared_ptr<uint8_t> (copy, std::default_delete<uint8_t[]>());
+  }
+  
+  void UDP::WriteBuffer::write()
+  {
+    const size_t MTU = udp.stack().MTU();
+    
+    // the maximum we can write per packet:
+    const size_t WRITE_MAX = MTU - PacketUDP::HEADERS_SIZE;
+    // the bytes remaining to be written
+    size_t total = remaining();
+    total = (total > WRITE_MAX) ? WRITE_MAX : total;
+    
+    // create some packet p (and convert it to PacketUDP)
+    auto p = udp.stack().createPacket(MTU);
+    // fill buffer (at payload position)
+    memcpy(p->buffer() + PacketUDP::HEADERS_SIZE, 
+           buf.get() + this->offset, total);
+    
+    // initialize packet with several infos
+    auto p2 = std::static_pointer_cast<PacketUDP>(p);
+    
+    p2->init();
+    p2->header().sport = htons(l_port);
+    p2->header().dport = htons(d_port);
+    p2->set_src(l_addr);
+    p2->set_dst(d_addr);
+    p2->set_length(total);
+    
+    // ship the packet
+    udp.transmit(p2);
+    
+    // next position in buffer
+    this->offset += total;
+  }
+  
 } //< namespace net

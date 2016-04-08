@@ -55,14 +55,14 @@ namespace net {
     Ethernet& link() override
     { return eth_; }
 
-    inline IP4& ip_obj() override
+    IP4& ip_obj() override
     { return ip4_; }
 
     /** Get the TCP-object belonging to this stack */
-    inline TCP& tcp() override { debug("<TCP> Returning tcp-reference to %p \n",&tcp_); return tcp_; }
+    TCP& tcp() override { return tcp_; }
 
     /** Get the UDP-object belonging to this stack */
-    inline UDP& udp() override { return udp_; }
+    UDP& udp() override { return udp_; }
 
     /** Get the DHCP client (if any) */
     inline std::shared_ptr<DHClient> dhclient() override { return dhcp_;  }
@@ -129,9 +129,10 @@ namespace net {
       this->dns_server = dns;
     }
 
-    inline virtual void
+    // register a callback for receiving signal on free packet-buffers
+    virtual void
     on_transmit_queue_available(transmit_avail_delg del) override {
-      nic_.on_transmit_queue_available(del);
+      tqa.push_back(del);
     }
 
     inline virtual size_t transmit_queue_available() override {
@@ -143,7 +144,8 @@ namespace net {
     }
 
   private:
-
+    void transmit_queue_available(size_t);
+    
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr router_;
@@ -162,6 +164,8 @@ namespace net {
 
     std::shared_ptr<net::DHClient> dhcp_{};
     BufferStore& bufstore_;
+    // delegates registered to get signalled about free packets
+    std::vector<transmit_avail_delg> tqa;
   };
 }
 

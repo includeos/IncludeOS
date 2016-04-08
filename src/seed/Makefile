@@ -20,7 +20,7 @@ CAPABS_COMMON = -mstackrealign -msse3
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
-OPTIONS = $(WARNS) $(CAPABS)
+OPTIONS = $(WARNS) $(CAPABS) $(EXTRA_FLAGS)
 
 # External Libraries
 ###################################################
@@ -35,6 +35,7 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
 INC_NEWLIB=$(INSTALL)/newlib/include
 INC_LIBCXX=$(INSTALL)/libcxx/include
 
+CC = clang-3.6 -target i686-elf
 CPP = clang++-3.6 -target i686-elf
 ifndef LD_INC
 	LD_INC = ld
@@ -46,7 +47,7 @@ all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 #-flto -fno-exceptions
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1
 LDOPTS = -nostdlib -melf_i386 -N --script=$(INSTALL)/linker.ld
 
 # Objects
@@ -141,6 +142,10 @@ crt%.o: $(INSTALL)/crt/crt%.s
 %.o: %.cpp
 	@echo "\n>> Compiling $<..."
 	$(CPP) $(CPPOPTS) -o $@ $<
+
+%.o: %.c
+	@echo "\n>> Compiling $<..."
+	$(CC) $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s
