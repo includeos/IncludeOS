@@ -1077,6 +1077,11 @@ namespace net {
       std::queue<WriteRequest> write_queue;
 
       /*
+        State if connection is in TCP write queue or not.
+      */
+      bool is_queued_;
+
+      /*
         Bytes queued for transmission.
       */
       //size_t write_queue_total;
@@ -1180,19 +1185,45 @@ namespace net {
 
       /*
         Process the write queue with the given amount of packets.
-        Returns true if all the jobs are done (queue is empty)
+        Returns true if the Connection finishes - there is no more doable jobs.
       */
       bool offer(size_t& packets);
 
       /*
+        Returns if the connection has a doable write job.
+      */
+      inline bool has_doable_job() {
+        return !write_queue.empty() and usable_window() >= MSDS();
+      }
+
+      /*
+        Try to process the current write queue.
+      */
+      void write_queue_push();
+
+      /*
         Try to write (some of) queue on connected.
       */
-      void write_queue_on_connect();
+      inline void write_queue_on_connect() { write_queue_push(); }
 
       /*
         Reset queue on disconnect. Clears the queue and notice every requests callback.
       */
       void write_queue_reset();
+
+      /*
+        Returns if the TCP has the Connection in write queue
+      */
+      inline bool is_queued() const {
+        return is_queued_;
+      }
+
+      /*
+        Mark wether the Connection is in TCP write queue or not.
+      */
+      inline void is_queued(bool queued) {
+        is_queued_ = queued;
+      }
 
       /*
         Invoke/signal the diffrent TCP events.
@@ -1222,6 +1253,11 @@ namespace net {
         Returns the TCB.
       */
       inline Connection::TCB& tcb() { return control_block; }
+
+      inline int32_t usable_window() const {
+        auto x = (int64_t)control_block.SND.UNA + (int64_t)control_block.SND.WND - (int64_t)control_block.SND.NXT;
+        return (int32_t) x;
+      }
 
       /*
         Generate a new ISS.
@@ -1466,6 +1502,13 @@ namespace net {
       If there is no free packets, the job will be queued.
     */
     size_t send(Connection_ptr, Connection::WriteBuffer&);
+
+    /*
+      Force the TCP to process the it's queue with the current amount of available packets.
+    */
+    inline void kick() {
+      process_write_queue(inet_.transmit_queue_available());
+    }
 
 
   }; // < class TCP

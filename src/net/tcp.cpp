@@ -189,8 +189,18 @@ void TCP::process_write_queue(size_t packets) {
   // foreach connection who wants to write
   while(packets and !write_queue.empty()) {
     auto conn = write_queue.front();
-    if(conn->offer(packets))
-      write_queue.pop();
+    write_queue.pop();
+    // try to offer if there is any doable job, and if still more to do, requeue.
+    if(conn->has_doable_job() and !conn->offer(packets)) {
+      debug2("TCP::process_write_queue> %s still has more to do. Re-queued.\n");
+      write_queue.push(conn);
+    }
+    else {
+      // mark the connection as not queued.
+      conn->is_queued(false);
+      debug2("<TCP::process_write_queue> %s Removed from queue. Size is %u\n",
+        conn->to_string().c_str(), write_queue.size());
+    }
   }
 }
 
@@ -202,8 +212,12 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
     written = conn->send(buffer, packets);
   }
 
-  if(written < buffer.remaining)
+  if(written < buffer.remaining and !conn->is_queued()) {
     write_queue.push(conn);
+    conn->is_queued(true);
+    debug2("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
+      conn->to_string().c_str(), written, buffer.remaining-written);
+  }
 
   return written;
 }

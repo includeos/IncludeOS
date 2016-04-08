@@ -24,13 +24,12 @@ namespace net
 {
   void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
   {
-    UDP::port_t port = 33314; // <-- FIXME: should be automatic port
-    auto& sock = stack.udp().bind(port);
+    auto& sock = stack.udp().bind();
     
     // create DNS request
     DNS::Request request;
-    char* data = new char[256];
-    int   len  = request.create(data, hostname);
+    auto*  data = new char[256];
+    size_t len  = request.create(data, hostname);
     
     // send request to DNS server
     sock.sendto(dns_server, DNS::DNS_SERVICE_PORT, data, len);
@@ -38,15 +37,15 @@ namespace net
     
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
-    sock.onRead( [this, hostname, request, func]
-                 (Socket<UDP>&, IP4::addr, UDP::port_t, const char* data, int) mutable -> int
-                 {
-                   // original request ID = this->id;
-                   request.parseResponse(data);
+    sock.on_read(
+    [this, hostname, request, func]
+    (IP4::addr, UDP::port_t, const char* data, size_t) mutable
+    {
+      // original request ID = this->id;
+      request.parseResponse(data);
       
-                   // fire onResolve event 
-                   func(this->stack, hostname, request.getFirstIP4());
-                   return -1;
-                 });
+      // fire onResolve event 
+      func(this->stack, hostname, request.getFirstIP4());
+    });
   }
 }

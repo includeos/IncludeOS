@@ -36,6 +36,8 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
   prev_state_(state_),
   control_block(),
   read_request(),
+  write_queue(),
+  is_queued_(false),
   time_wait_started(0)
 {
 
@@ -44,15 +46,8 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
 /*
   This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, Port local_port) :
-  host_(host),
-  local_port_(local_port),
-  remote_(TCP::Socket()),
-  state_(&Connection::Closed::instance()),
-  prev_state_(state_),
-  control_block(),
-  read_request(),
-  time_wait_started(0)
+Connection::Connection(TCP& host, Port local_port)
+  : Connection(host, local_port, TCP::Socket())
 {
 
 }
@@ -121,23 +116,29 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
 
 bool Connection::offer(size_t& packets) {
   assert(packets);
-  debug2("<TCP::Connection::offer> (%s) got offered [%u] packets.\n", tuple().to_string().c_str(), packets);
+  debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
+    to_string().c_str(), packets, usable_window());
 
-  while(!write_queue.empty() and packets) {
+  while(has_doable_job() and packets) {
     auto& buf = write_queue.front().first;
     // segmentize the buffer into packets
     auto written = send(buf, packets);
     // advance the buffer
     buf.advance(written);
+    debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %i.\n",
+      written, buf.remaining, packets, usable_window());
     // if finished
     if(!buf.remaining) {
       // callback and remove object
       write_queue.front().second(buf.offset);
       write_queue.pop();
+      debug("<TCP::Connection::offer> Request finished.\n");
     }
   }
   assert(packets >= 0);
-  return write_queue.empty();
+  debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
+    packets, write_queue.size(), usable_window());
+  return !has_doable_job();
 }
 
 
@@ -145,7 +146,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
   assert(packet_count && remaining);
   size_t bytes_written{0};
 
-  while(remaining and packet_count) {
+  while(remaining and packet_count and usable_window() >= MSDS()) {
     // retreive a new packet
     auto packet = create_outgoing_packet();
     // reduce the amount of packets available by one
@@ -153,15 +154,16 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     // add the seq, ack and flag
     packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT).set_flag(ACK);
     // calculate how much the packet can be filled with
-    auto packet_limit = (uint32_t)MSDS() - packet->header_size();
+    auto packet_limit = std::min((uint32_t)MSDS() - packet->header_size(), (uint32_t)usable_window());
     // fill the packet with data from the request
     size_t written = packet->fill(buffer+bytes_written, std::min(packet_limit, remaining));
     // update local variables
     bytes_written += written;
     remaining -= written;
 
-    debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u - Remaining: %u - Packet count: %u\n",
-           packet_limit, written, remaining, packet_count);
+    debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u"
+          " - Remaining: %u - Packet count: %u, Window: %u\n",
+           packet_limit, written, remaining, packet_count, usable_window());
 
     // If last packet, add PUSH.
     if(!remaining and PUSH)
@@ -175,8 +177,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
   return bytes_written;
 }
 
-
-void Connection::write_queue_on_connect() {
+void Connection::write_queue_push() {
   while(!write_queue.empty()) {
     auto& buf = write_queue.front().first;
     auto written = send(buf);
@@ -241,9 +242,6 @@ void Connection::segment_arrived(TCP::Packet_ptr incoming) {
     }
   }
 
-  // Change window accordingly. TODO: Not sure if this is how you do it.
-  control_block.SND.WND = incoming->win();
-
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
   switch(state_->handle(*this, incoming)) {
   case State::OK: {
@@ -276,6 +274,7 @@ Connection::~Connection() {
 
 TCP::Packet_ptr Connection::create_outgoing_packet() {
   auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(TCP::Packet::HEADERS_SIZE));
+  //auto packet = host_.create_empty_packet();
 
   packet->init();
   // Set Source (local == the current connection)
@@ -297,7 +296,7 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   host_.transmit(packet);
   // Don't think we would like to retransmit reset packets..?
   //if(!packet->isset(RST))
-  //    add_retransmission(packet);
+  //  add_retransmission(packet);
 }
 
 TCP::Seq Connection::generate_iss() {
@@ -318,6 +317,7 @@ void Connection::add_retransmission(TCP::Packet_ptr packet) {
       // Packet hasnt been ACKed.
       if(packet->seq() > self->tcb().SND.UNA) {
         debug("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+        packet->set_ack(self->tcb().RCV.NXT);
         self->transmit(packet);
       } else {
         debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
