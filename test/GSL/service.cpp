@@ -124,7 +124,6 @@ const lest::test test_basic_gsl[] = {
 
         };
 
-
         WHEN ("We pass a raw pointer") {
           char* name = (char*)"Bjarne Stroustrup";
 
@@ -133,9 +132,10 @@ const lest::test test_basic_gsl[] = {
             EXPECT( Mem::count({name, 10}) != std::string(name).size());
           }
 
-          AND_THEN("If callee keeps track of the size, it will still work"){
+          AND_THEN("If caller keeps track of the size, it will still work"){
             EXPECT( Mem::count({name, 17}) == std::string(name).size());
           }
+
         }
 
         WHEN ("We use std::array") {
@@ -153,6 +153,35 @@ const lest::test test_basic_gsl[] = {
           }
         }
       }
+
+      GIVEN ("A (Bad) span-interface that doesn't do any bounds checking") {
+
+        class Bad {
+        public:
+          static unsigned char eighth(gsl::span<char> chars){
+            return chars[8];
+          }
+        };
+
+        WHEN ("we pass in sufficient data") {
+          char* character = (char*) "Bjarne \"Yoda\" Stroustrup leas the Jedi council with wisdom";
+          THEN("you can access the elements of the span using the index operator"){
+            EXPECT(Bad::eighth({character, 20}) == 'Y');
+          }
+
+        }
+
+        WHEN ("we pass in too little data") {
+          char* character = (char*) "Yoda";
+          THEN("span saves us from complete embarrasment") {
+            EXPECT_THROWS(Bad::eighth({character, 4}));
+          }
+
+        }
+
+      }
+
+
     }
   }
 };
