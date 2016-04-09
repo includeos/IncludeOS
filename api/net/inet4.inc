@@ -99,7 +99,7 @@ namespace net
     // hand out remaining
     for (size_t i = 0; i < tqa.size(); i++)
     {
-      div = buffers_available();
+      div = transmit_queue_available();
       if (!div) break;
       // give as much as possible
       tqa[i](div);
