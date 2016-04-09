@@ -20,8 +20,8 @@
 
 namespace net
 {
-  UDPSocket::UDPSocket(UDPSocket::Stack& stk, port_t port)
-    : stack(stk), l_port(port) 
+  UDPSocket::UDPSocket(UDP& udp_, port_t port)
+    : udp(udp_), l_port(port) 
   {}
   
   void UDPSocket::packet_init(
@@ -43,22 +43,9 @@ namespace net
   
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
-    on_read_handler
-        (udp->src(), udp->src_port(), udp->data(), udp->data_length());
+    on_read_handler(
+        udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
-  
-  void UDPSocket::internal_write(
-      addr_t srcIP, 
-      addr_t destIP,
-      port_t port, 
-      const uint8_t* data, 
-      size_t length,
-      sendto_handler cb)
-  {
-    stack.udp().sendq.emplace_back(
-        data, length, cb, stack.udp(),
-        srcIP, this->l_port, destIP, port);
-  } // internal_write()
   
   void UDPSocket::sendto(
       addr_t destIP, 
@@ -67,8 +54,12 @@ namespace net
       size_t len,
       sendto_handler cb)
   {
-    internal_write(local_addr(), destIP, port, 
-                   (const uint8_t*) buffer, len, cb);
+    udp.sendq.emplace_back(
+        (const uint8_t*) buffer, len, cb, this->udp,
+        local_addr(), this->l_port, destIP, port);
+    
+    // UDP packets are meant to be sent immediately, so try flushing
+    udp.flush();
   }
   void UDPSocket::bcast(
       addr_t srcIP, 
@@ -77,8 +68,12 @@ namespace net
       size_t len,
       sendto_handler cb)
   {
-    internal_write(srcIP, IP4::INADDR_BCAST, port, 
-                   (const uint8_t*) buffer, len, cb);
+    udp.sendq.emplace_back(
+        (const uint8_t*) buffer, len, cb, this->udp,
+        srcIP, this->l_port, IP4::INADDR_BCAST, port);
+    
+    // UDP packets are meant to be sent immediately, so try flushing
+    udp.flush();
   }
   
 }

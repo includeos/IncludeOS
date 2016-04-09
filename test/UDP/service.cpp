@@ -41,7 +41,6 @@ void Service::start()
   const UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
   
-  /*
   sock.on_read(
   [&sock] (UDP::addr_t addr, UDP::port_t port,
            const char* data, size_t len)
@@ -52,11 +51,9 @@ void Service::start()
     // send the same thing right back!
     sock.sendto(addr, port, data, len,
     [] {
-      // sent
-      
       INFO("UDP test", "SUCCESS");
     });
-  });*/
+  });
   
   INFO("UDP test", "Listening on port %d\n", port);
 }
