@@ -72,8 +72,6 @@ namespace net
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
-    void internal_write(
-        addr_t, addr_t, port_t, const uint8_t*, size_t, sendto_handler);
     
     Stack& stack;
     port_t l_port;

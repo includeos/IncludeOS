@@ -93,6 +93,12 @@ namespace net {
     network_layer_out_(pckt);
   }
   
+  void UDP::flush()
+  {
+    size_t packets = stack_.transmit_queue_available();
+    if (packets) process_sendq(packets);
+  }
+  
   void UDP::process_sendq(size_t num)
   {
     while (!sendq.empty() && num != 0)
