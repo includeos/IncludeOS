@@ -60,7 +60,7 @@ namespace net {
       auto res = ports_.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(port),
-        std::forward_as_tuple(stack_, port));
+        std::forward_as_tuple(*this, port));
       it = res.first;
     }
     return it->second;
@@ -91,6 +91,12 @@ namespace net {
   
     auto pckt = Packet::packet(udp);
     network_layer_out_(pckt);
+  }
+  
+  void UDP::flush()
+  {
+    size_t packets = stack_.transmit_queue_available();
+    if (packets) process_sendq(packets);
   }
   
   void UDP::process_sendq(size_t num)

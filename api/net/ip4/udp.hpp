@@ -122,10 +122,13 @@ namespace net {
       return stack_;
     }
     
-    // create packets from send queue
+    // send as much as possible from sendq
+    void flush();
+    // create and transmit @num packets from sendq
     void process_sendq(size_t num);
     
-  private: 
+  private:
+    
     downstream  network_layer_out_;
     Stack&      stack_;
     std::map<port_t, UDPSocket> ports_;
