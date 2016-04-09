@@ -58,6 +58,9 @@ namespace net
     stack.udp().sendq.emplace_back(
         data, length, cb, stack.udp(),
         srcIP, this->l_port, destIP, port);
+    
+    size_t packets = stack.transmit_queue_available();
+    if (packets) stack.udp().process_sendq(packets);
   } // internal_write()
   
   void UDPSocket::sendto(
