@@ -30,13 +30,11 @@ namespace net
     typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
     
-    using Stack = Inet<LinkLayer, IP4>;
-    
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
     typedef UDP::sendto_handler sendto_handler;
     
     // constructors
-    UDPSocket(Stack&, port_t port);
+    UDPSocket(UDP&, port_t port);
     UDPSocket(const UDPSocket&) = delete;
     // ^ DON'T USE THESE. We could create our own allocators just to prevent
     // you from creating sockets, but then everyone is wasting time.
@@ -62,7 +60,7 @@ namespace net
     // stuff
     addr_t local_addr() const
     {
-      return stack.ip_addr();
+      return udp.local_ip();
     }
     port_t local_port() const
     {
@@ -73,7 +71,7 @@ namespace net
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
     
-    Stack& stack;
+    UDP& udp;
     port_t l_port;
     recvfrom_handler on_read_handler = 
         [] (addr_t, port_t, const char*, size_t) {};
