@@ -107,13 +107,6 @@ namespace net {
     while (!sendq.empty() && num != 0)
     {
       WriteBuffer& buffer = sendq.front();
-      // ignore empty or finished writes
-      if (unlikely(buffer.done()))
-      {
-        printf("process_sendq: removing empty buffer\n");
-        sendq.pop_front();
-        continue;
-      }
       
       // create and transmit packet from writebuffer
       buffer.write();
@@ -126,9 +119,10 @@ namespace net {
         sendq.pop_front();
         // call on_written callback
         copy();
-        // refresh @num, just in case packets were sent in
+        // reduce @num, just in case packets were sent in
         // another stack frame
-        num = stack_.transmit_queue_available();
+        size_t avail = stack_.transmit_queue_available();
+        num = (num > avail) ? avail : num;
       }
     }
   }
