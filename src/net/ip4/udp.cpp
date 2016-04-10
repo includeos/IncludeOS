@@ -21,6 +21,9 @@
 #include <net/util.hpp>
 #include <memory>
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 namespace net {
 
   UDP::UDP(Stack& inet)
@@ -33,7 +36,6 @@ namespace net {
   
   void UDP::bottom(net::Packet_ptr pckt)
   {
-    debug("<UDP handler> Got data");
     std::shared_ptr<PacketUDP> udp = 
       std::static_pointer_cast<PacketUDP> (pckt);
   
@@ -42,11 +44,12 @@ namespace net {
   
     auto it = ports_.find(udp->dst_port());
     if (it != ports_.end())
-      {
-        debug("<UDP> Someone's listening to this port. Forwarding...\n");
-        it->second.internal_read(udp);
-      }
-  
+    {
+      debug("<UDP> Someone's listening to this port. Forwarding...\n");
+      it->second.internal_read(udp);
+      return;
+    }
+    
     debug("<UDP> Nobody's listening to this port. Drop!\n");
   }
 
@@ -55,7 +58,7 @@ namespace net {
     debug("<UDP> Binding to port %i\n", port);
     /// ... !!!
     auto it = ports_.find(port);
-    if (it == ports_.end()) {
+    if (likely(it == ports_.end())) {
       // create new socket
       auto res = ports_.emplace(
         std::piecewise_construct,
@@ -104,16 +107,28 @@ namespace net {
     while (!sendq.empty() && num != 0)
     {
       WriteBuffer& buffer = sendq.front();
+      // ignore empty or finished writes
+      if (unlikely(buffer.done()))
+      {
+        printf("process_sendq: removing empty buffer\n");
+        sendq.pop_front();
+        continue;
+      }
+      
       // create and transmit packet from writebuffer
       buffer.write();
       num--;
       
       if (buffer.done())
       {
-        // call on_written callback
-        buffer.callback();
+        auto copy = buffer.callback;
         // remove buffer from queue
         sendq.pop_front();
+        // call on_written callback
+        copy();
+        // refresh @num, just in case packets were sent in
+        // another stack frame
+        num = stack_.transmit_queue_available();
       }
     }
   }
