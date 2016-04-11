@@ -123,7 +123,9 @@ public:
     return 1500; }
 
   constexpr uint16_t bufsize() const {
-    return MTU() + sizeof(virtio_net_hdr); }
+    return MTU() +
+      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer) +
+      sizeof(virtio_net_hdr); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){

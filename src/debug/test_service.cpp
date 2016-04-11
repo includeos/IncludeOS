@@ -85,9 +85,26 @@ void Service::start()
               addr.str().c_str(), port, strdata.c_str());
     // send the same thing right back!
     sock.sendto(addr, port, data, len,
-    [] {
-      // sent
-      INFO("UDP test", "SUCCESS");
+    [&sock, addr, port]
+    {
+      // print this message once
+      printf("*** Starting spam (you should see this once)\n");
+      
+      typedef std::function<void()> rnd_gen_t;
+      auto next = std::make_shared<rnd_gen_t> ();
+      
+      *next = 
+      [next, &sock, addr, port] ()
+      {
+        // spam this message at max speed
+        std::string text("Spamorino Cappucino\n");
+        
+        sock.sendto(addr, port, text.data(), text.size(),
+        [next] { (*next)(); });
+      };
+      
+      // start spamming
+      (*next)();
     });
   });
   
