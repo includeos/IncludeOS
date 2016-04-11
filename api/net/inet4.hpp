@@ -148,7 +148,7 @@ namespace net {
     inline void process_sendq(size_t);
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;
-    
+
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr router_;

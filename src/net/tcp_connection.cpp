@@ -37,7 +37,7 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
   control_block(),
   read_request(),
   write_queue(),
-  is_queued_(false),
+  queued_(false),
   time_wait_started(0)
 {
 
@@ -282,7 +282,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
   // Set Destination (remote)
   packet->set_destination(remote_);
 
-  packet->set_win_size(control_block.SND.WND);
+  packet->set_win(control_block.SND.WND);
 
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(control_block.SND.NXT).set_ack(control_block.RCV.NXT);
@@ -295,8 +295,53 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   debug("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
   host_.transmit(packet);
   // Don't think we would like to retransmit reset packets..?
-  //if(!packet->isset(RST))
-  //  add_retransmission(packet);
+  if(!packet->isset(RST))
+    queue_retransmission(packet);
+}
+
+void Connection::retransmit(TCP::Packet_ptr packet) {
+  debug("<TCP::Connection::retransmit> Retransmitting: %s \n", packet->to_string().c_str());
+  host_.transmit(packet);
+}
+
+void Connection::queue_retransmission(TCP::Packet_ptr packet, size_t rt_attempt) {
+  const size_t ATTEMPT_LIMIT = 3;
+  auto self = shared_from_this();
+
+  if(rt_attempt <= ATTEMPT_LIMIT) {
+    hw::PIT::instance().onTimeout(RTO() * rt_attempt,
+    [packet, self, rt_attempt]
+    {
+      // Packet hasnt been ACKed.
+      if(packet->seq() > self->tcb().SND.UNA) {
+        debug("<TCP::Connection::queue_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+        if(rt_attempt == 1)
+          self->segment_loss_detected();
+        //packet->set_ack(self->tcb().RCV.NXT);
+        self->retransmit(packet);
+        self->queue_retransmission(packet, rt_attempt+1);
+      } else {
+        debug2("<TCP::Connection::queue_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
+        // Signal user?
+      }
+    });
+  }
+  else {
+    printf("<TCP::Connection::queue_retransmission> Give up already... Already tried %u times. Time to kill connection?\n",
+      ATTEMPT_LIMIT);
+  }
+  debug2("<TCP::Connection::queue_retransmission> Packet queued for retransmission [%u] \n", retransmit_try);
+}
+
+size_t Connection::duplicate_ack(TCP::Seq ack) {
+  // if its another duplicate, increment count
+  if(dup_acks_.ACK == ack)
+    return ++dup_acks_.count;
+
+  // if not, set the new ack and set count to 1
+  dup_acks_.ACK = ack;
+  dup_acks_.count = 1;
+  return dup_acks_.count;
 }
 
 TCP::Seq Connection::generate_iss() {
@@ -310,21 +355,7 @@ void Connection::set_state(State& state) {
         prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
-void Connection::add_retransmission(TCP::Packet_ptr packet) {
-  debug2("<TCP::Connection::add_retransmission> Packet added to retransmission. \n");
-  auto self = shared_from_this();
-  hw::PIT::instance().onTimeout(RTO(), [packet, self] {
-      // Packet hasnt been ACKed.
-      if(packet->seq() > self->tcb().SND.UNA) {
-        debug("<TCP::Connection::add_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
-        packet->set_ack(self->tcb().RCV.NXT);
-        self->transmit(packet);
-      } else {
-        debug2("<TCP::Connection::add_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
-        // Signal user?
-      }
-    });
-}
+
 /*
   Next compute a Smoothed Round Trip Time (SRTT) as:
 

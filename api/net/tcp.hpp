@@ -274,7 +274,7 @@ namespace net {
         PacketIP4::init();
 
         set_protocol(IP4::IP4_TCP);
-        set_win_size(TCP::default_window_size);
+        set_win(TCP::default_window_size);
         set_offset(5);
 
         // set TCP payload location (!?)
@@ -317,7 +317,7 @@ namespace net {
         return *this;
       }
 
-      inline TCP::Packet& set_win_size(uint16_t size) {
+      inline TCP::Packet& set_win(uint16_t size) {
         header().window_size = htons(size);
         return *this;
       }
@@ -777,6 +777,8 @@ namespace net {
           TCP::Seq WL2; // segment acknowledgment number used for last window update
 
           uint16_t MSS; // Maximum segment size for outgoing segments.
+
+          uint32_t cwnd; // Congestion window [RFC 5681]
         } SND; // <<
         TCP::Seq ISS;           // initial send sequence number
 
@@ -785,15 +787,28 @@ namespace net {
           TCP::Seq NXT; // receive next
           uint16_t WND; // receive window
           uint16_t UP;  // receive urgent pointer
+
+          uint16_t rwnd; // receivers advertised window [RFC 5681]
         } RCV; // <<
         TCP::Seq IRS;           // initial receive sequence number
 
+        uint32_t ssthresh; // slow start threshold [RFC 5681]
+
         TCB() {
-          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss };
+          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss, 0 };
           ISS = 0;
-          RCV = { 0, TCP::default_window_size, 0 };
+          RCV = { 0, TCP::default_window_size, 0, 0 };
           IRS = 0;
+          ssthresh = TCP::default_window_size;
         };
+
+        bool slow_start() const {
+          return SND.cwnd <= ssthresh;
+        }
+
+        bool congestion_avoidance() const {
+          return !slow_start();
+        }
 
         std::string to_string() const;
       }__attribute__((packed)); // < struct TCP::Connection::TCB
@@ -1079,7 +1094,12 @@ namespace net {
       /*
         State if connection is in TCP write queue or not.
       */
-      bool is_queued_;
+      bool queued_;
+
+      struct {
+        TCP::Seq ACK = 0;
+        size_t count = 0;
+      } dup_acks_;
 
       /*
         Bytes queued for transmission.
@@ -1215,14 +1235,14 @@ namespace net {
         Returns if the TCP has the Connection in write queue
       */
       inline bool is_queued() const {
-        return is_queued_;
+        return queued_;
       }
 
       /*
         Mark wether the Connection is in TCP write queue or not.
       */
-      inline void is_queued(bool queued) {
-        is_queued_ = queued;
+      inline void set_queued(bool queued) {
+        queued_ = queued;
       }
 
       /*
@@ -1256,8 +1276,40 @@ namespace net {
 
       inline int32_t usable_window() const {
         auto x = (int64_t)control_block.SND.UNA + (int64_t)control_block.SND.WND - (int64_t)control_block.SND.NXT;
-        return (int32_t) x;
+        return std::min((int32_t) x, (int32_t)control_block.SND.cwnd);
       }
+
+      /// Congestion Control [RFC 5681] ///
+
+      inline uint16_t SMSS() const {
+        return host_.MSS();
+      }
+
+      inline uint16_t RMSS() const {
+        return control_block.SND.MSS;
+      }
+
+      inline int32_t flight_size() const {
+        return control_block.SND.NXT - control_block.SND.UNA;
+      }
+
+      inline void init_cwnd(uint32_t segments) {
+        control_block.SND.cwnd = segments*SMSS();
+      }
+
+      inline void reduce_slow_start_threshold() {
+        control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
+        printf("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
+          control_block.ssthresh);
+      }
+
+      inline void segment_loss_detected() {
+        reduce_slow_start_threshold();
+      }
+      /*
+
+      */
+      size_t duplicate_ack(TCP::Seq ack);
 
       /*
         Generate a new ISS.
@@ -1271,18 +1323,20 @@ namespace net {
       */
       void set_state(State& state);
 
-
-      /// BUFFER HANDLING ///
-
       /*
         Transmit the send buffer.
       */
       void transmit();
 
       /*
-        Transmit the packet.
+        Transmit the packet and hooks up retransmission.
       */
       void transmit(TCP::Packet_ptr);
+
+      /*
+        Retransmit the packet.
+      */
+      void retransmit(TCP::Packet_ptr);
 
       /*
         Creates a new outgoing packet with the current TCB values and options.
@@ -1303,7 +1357,7 @@ namespace net {
 
         // TODO: Calculate RTO, currently hardcoded to 1 second (1000ms).
         */
-      void add_retransmission(TCP::Packet_ptr);
+      void queue_retransmission(TCP::Packet_ptr, size_t rt_attempt = 1);
 
       /*
         Measure the elapsed time between sending a data octet with a
@@ -1332,7 +1386,7 @@ namespace net {
         (Limit the size for outgoing packets)
       */
       inline uint16_t MSDS() const {
-        return std::min(host_.MSS(), control_block.SND.MSS);
+        return std::min(host_.MSS(), control_block.SND.MSS) + sizeof(TCP::Header);
       }
 
       /*
@@ -1426,17 +1480,9 @@ namespace net {
     /*
       Maximum Segment Size
       [RFC 793] [RFC 879] [RFC 6691]
-
-      @NOTE: Currently not supporting MTU bigger than 1482 bytes.
     */
-    inline uint16_t MSS() const {
-      /*
-        VirtulaBox "issue":
-        MTU > 1498 will break TCP.
-        MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
-      */
-      const uint16_t VBOX_LIMIT = 1482;
-      return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header);
+    inline constexpr uint16_t MSS() const {
+      return network().MDDS() - sizeof(TCP::Header);
     }
 
     /*
@@ -1508,6 +1554,10 @@ namespace net {
     */
     inline void kick() {
       process_write_queue(inet_.transmit_queue_available());
+    }
+
+    inline IP4& network() const {
+      return inet_.ip_obj();
     }
 
 
