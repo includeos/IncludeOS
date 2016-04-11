@@ -1386,7 +1386,7 @@ namespace net {
         (Limit the size for outgoing packets)
       */
       inline uint16_t MSDS() const {
-        return std::min(host_.MSS(), control_block.SND.MSS);
+        return std::min(host_.MSS(), control_block.SND.MSS) + sizeof(TCP::Header);
       }
 
       /*
@@ -1480,17 +1480,9 @@ namespace net {
     /*
       Maximum Segment Size
       [RFC 793] [RFC 879] [RFC 6691]
-
-      @NOTE: Currently not supporting MTU bigger than 1482 bytes.
     */
     inline constexpr uint16_t MSS() const {
-      /*
-        VirtulaBox "issue":
-        MTU > 1498 will break TCP.
-        MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
-      */
-      //const uint16_t VBOX_LIMIT = 1482;
-      return inet_.ip_obj().MDDS() - sizeof(TCP::Header);
+      return network().MDDS() - sizeof(TCP::Header);
     }
 
     /*
@@ -1562,6 +1554,10 @@ namespace net {
     */
     inline void kick() {
       process_write_queue(inet_.transmit_queue_available());
+    }
+
+    inline IP4& network() const {
+      return inet_.ip_obj();
     }
 
 

@@ -119,7 +119,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %i receive buffers of size %i",
-       rx_q.size() / 2, Packet::MTU+sizeof(virtio_net_hdr));
+       rx_q.size() / 2, bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
 
@@ -177,7 +177,7 @@ int VirtioNet::add_receive_buffer(){
   //sg[0].data = (void*)&empty_header;
   sg[0].size = sizeof(virtio_net_hdr);
   sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = Packet::MTU;
+  sg[1].size = bufsize()-sizeof(virtio_net_hdr);
   rx_q.enqueue(sg, 0, 2,buf);
 
   return 0;
@@ -241,7 +241,7 @@ void VirtioNet::service_queues(){
 
       auto pckt_ptr = std::make_shared<Packet>
         (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
-         MTU(), // Capacity
+         bufsize()-sizeof(virtio_net_hdr), // Capacity
          len - sizeof(virtio_net_hdr), release_buffer); // Size
 
       _link_out(pckt_ptr);
