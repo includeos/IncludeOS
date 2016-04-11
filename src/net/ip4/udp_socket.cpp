@@ -18,6 +18,9 @@
 #include <net/ip4/udp_socket.hpp>
 #include <memory>
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 namespace net
 {
   UDPSocket::UDPSocket(UDP& udp_, port_t port)
@@ -54,12 +57,15 @@ namespace net
       size_t len,
       sendto_handler cb)
   {
-    udp.sendq.emplace_back(
-        (const uint8_t*) buffer, len, cb, this->udp,
-        local_addr(), this->l_port, destIP, port);
-    
-    // UDP packets are meant to be sent immediately, so try flushing
-    udp.flush();
+    if (likely(len))
+    {
+      udp.sendq.emplace_back(
+          (const uint8_t*) buffer, len, cb, this->udp,
+          local_addr(), this->l_port, destIP, port);
+      
+      // UDP packets are meant to be sent immediately, so try flushing
+      udp.flush();
+    }
   }
   void UDPSocket::bcast(
       addr_t srcIP, 
@@ -68,12 +74,15 @@ namespace net
       size_t len,
       sendto_handler cb)
   {
-    udp.sendq.emplace_back(
-        (const uint8_t*) buffer, len, cb, this->udp,
-        srcIP, this->l_port, IP4::INADDR_BCAST, port);
-    
-    // UDP packets are meant to be sent immediately, so try flushing
-    udp.flush();
+    if (likely(len))
+    {
+      udp.sendq.emplace_back(
+          (const uint8_t*) buffer, len, cb, this->udp,
+          srcIP, this->l_port, IP4::INADDR_BCAST, port);
+      
+      // UDP packets are meant to be sent immediately, so try flushing
+      udp.flush();
+    }
   }
   
 }
