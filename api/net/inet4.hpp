@@ -133,7 +133,6 @@ namespace net {
     virtual void
     on_transmit_queue_available(transmit_avail_delg del) override {
       tqa.push_back(del);
-      printf("* adding transmit listener  (sz=%u)\n", tqa.size() );
     }
 
     virtual size_t transmit_queue_available() override {
