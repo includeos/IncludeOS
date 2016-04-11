@@ -1276,7 +1276,7 @@ namespace net {
 
       inline int32_t usable_window() const {
         auto x = (int64_t)control_block.SND.UNA + (int64_t)control_block.SND.WND - (int64_t)control_block.SND.NXT;
-        return (int32_t) x;
+        return std::min((int32_t) x, (int32_t)control_block.SND.cwnd);
       }
 
       /// Congestion Control [RFC 5681] ///
@@ -1293,8 +1293,8 @@ namespace net {
         return control_block.SND.NXT - control_block.SND.UNA;
       }
 
-      inline void init_cwnd() {
-        control_block.SND.cwnd = 10*SMSS();
+      inline void init_cwnd(uint32_t segments) {
+        control_block.SND.cwnd = segments*SMSS();
       }
 
       inline void reduce_slow_start_threshold() {
@@ -1483,14 +1483,14 @@ namespace net {
 
       @NOTE: Currently not supporting MTU bigger than 1482 bytes.
     */
-    inline uint16_t MSS() const {
+    inline constexpr uint16_t MSS() const {
       /*
         VirtulaBox "issue":
         MTU > 1498 will break TCP.
         MTU > 1482 seems to cause fragmentation: https://www.virtualbox.org/ticket/13967
       */
-      const uint16_t VBOX_LIMIT = 1482;
-      return std::min(inet_.MTU(), VBOX_LIMIT) - sizeof(Full_header::ip4) - sizeof(TCP::Header);
+      //const uint16_t VBOX_LIMIT = 1482;
+      return inet_.ip_obj().MDDS() - sizeof(TCP::Header);
     }
 
     /*
