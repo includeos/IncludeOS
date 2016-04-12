@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,15 +24,15 @@
 namespace net
 {
   UDPSocket::UDPSocket(UDP& udp_, port_t port)
-    : udp(udp_), l_port(port) 
+    : udp(udp_), l_port(port)
   {}
-  
+
   void UDPSocket::packet_init(
-      UDP::Packet_ptr p, 
-      addr_t srcIP, 
-      addr_t destIP, 
-      port_t port, 
-      uint16_t length)
+                              UDP::Packet_ptr p,
+                              addr_t srcIP,
+                              addr_t destIP,
+                              port_t port,
+                              uint16_t length)
   {
     p->init();
     p->header().sport = htons(this->l_port);
@@ -40,49 +40,49 @@ namespace net
     p->set_src(srcIP);
     p->set_dst(destIP);
     p->set_length(length);
-    
+
     assert(p->data_length() == length);
   }
-  
+
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
     on_read_handler(
-        udp->src(), udp->src_port(), udp->data(), udp->data_length());
+                    udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
-  
+
   void UDPSocket::sendto(
-      addr_t destIP, 
-      port_t port, 
-      const void* buffer, 
-      size_t len,
-      sendto_handler cb)
+                         addr_t destIP,
+                         port_t port,
+                         const void* buffer,
+                         size_t len,
+                         sendto_handler cb)
   {
     if (likely(len))
-    {
-      udp.sendq.emplace_back(
-          (const uint8_t*) buffer, len, cb, this->udp,
-          local_addr(), this->l_port, destIP, port);
-      
-      // UDP packets are meant to be sent immediately, so try flushing
-      udp.flush();
-    }
+      {
+        udp.sendq.emplace_back(
+                               (const uint8_t*) buffer, len, cb, this->udp,
+                               local_addr(), this->l_port, destIP, port);
+
+        // UDP packets are meant to be sent immediately, so try flushing
+        udp.flush();
+      }
   }
   void UDPSocket::bcast(
-      addr_t srcIP, 
-      port_t port, 
-      const void* buffer, 
-      size_t len,
-      sendto_handler cb)
+                        addr_t srcIP,
+                        port_t port,
+                        const void* buffer,
+                        size_t len,
+                        sendto_handler cb)
   {
     if (likely(len))
-    {
-      udp.sendq.emplace_back(
-          (const uint8_t*) buffer, len, cb, this->udp,
-          srcIP, this->l_port, IP4::INADDR_BCAST, port);
-      
-      // UDP packets are meant to be sent immediately, so try flushing
-      udp.flush();
-    }
+      {
+        udp.sendq.emplace_back(
+                               (const uint8_t*) buffer, len, cb, this->udp,
+                               srcIP, this->l_port, IP4::INADDR_BCAST, port);
+
+        // UDP packets are meant to be sent immediately, so try flushing
+        udp.flush();
+      }
   }
-  
+
 }

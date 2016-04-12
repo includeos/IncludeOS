@@ -48,37 +48,37 @@ void Service::start()
   auto& conn = inet->udp().bind(port);
 
   conn.on_read([&] (UDP::addr_t addr, UDP::port_t port,
-                   const char* data, int len) {
-                string received = std::string(data,len-1);
-                INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: '%s')",
-                     addr.str().c_str(), port, received.c_str());
+                    const char* data, int len) {
+                 string received = std::string(data,len-1);
+                 INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: '%s')",
+                      addr.str().c_str(), port, received.c_str());
 
-                const int packets { 600 };
+                 const int packets { 600 };
 
-                string first_reply {string("Received '") + received +
-                    "'. Expect " + to_string(packets) + " packets in 1s\n" };
+                 string first_reply {string("Received '") + received +
+                     "'. Expect " + to_string(packets) + " packets in 1s\n" };
 
-                // Send the first packet, and then wait for ARP
-                conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
+                 // Send the first packet, and then wait for ARP
+                 conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
 
-                timer.onTimeout(1s, [&conn, addr, port, data, len]() {
-                    INFO("Test 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
-                    auto bufcount = inet->buffers_available();
+                 timer.onTimeout(1s, [&conn, addr, port, data, len]() {
+                     INFO("Test 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
+                     auto bufcount = inet->buffers_available();
 
-                    for (int i = 0; i < packets; i++)
-                      conn.sendto(addr, port, data, len);
+                     for (int i = 0; i < packets; i++)
+                       conn.sendto(addr, port, data, len);
 
-                    CHECK(1,"UDP-transmission didn't panic");
-                    auto bufcount2 = inet->buffers_available();
+                     CHECK(1,"UDP-transmission didn't panic");
+                     auto bufcount2 = inet->buffers_available();
 
-                    CHECKSERT(bufcount2 < bufcount,
-                              "%i buffers available after transmission (Had %i). ",
-                              bufcount2, bufcount);
+                     CHECKSERT(bufcount2 < bufcount,
+                               "%i buffers available after transmission (Had %i). ",
+                               bufcount2, bufcount);
 
-                    INFO("Transmision tests","SUCCESS");
-                  });
+                     INFO("Transmision tests","SUCCESS");
+                   });
 
-              });
+               });
 
   eth0.on_transmit_queue_available([](size_t s){
       CHECKSERT(s,"There is now room for %i packets in transmit queue", s);

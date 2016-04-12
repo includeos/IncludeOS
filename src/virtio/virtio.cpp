@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,13 +22,13 @@
 #include <assert.h>
 
 void Virtio::set_irq(){
-  
-  //Get device IRQ 
+
+  //Get device IRQ
   uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    _irq = value & 0xFF;    
+    _irq = value & 0xFF;
   }
-  
+
 }
 
 
@@ -36,70 +36,70 @@ Virtio::Virtio(hw::PCI_Device& dev)
   : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
-  
+
 
   /** PCI Device discovery. Virtio std. §4.1.2  */
-  
-  /** 
-      Match vendor ID and Device ID : §4.1.2.2 
+
+  /**
+      Match vendor ID and Device ID : §4.1.2.2
   */
   if (_pcidev.vendor_id() != hw::PCI_Device::VENDOR_VIRTIO)
     panic("This is not a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
-  
+
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
-  bool _LEGACY_ID = _pcidev.product_id() >= 0x1000 
+  bool _LEGACY_ID = _pcidev.product_id() >= 0x1000
     and _pcidev.product_id() <= 0x103f;
-  
+
   CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
-        _pcidev.product_id(), 
+        _pcidev.product_id(),
         _STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
-    
+
   assert(_STD_ID or _LEGACY_ID);
-  
-  /** 
-      Match Device revision ID. Virtio Std. §4.1.2.2 
+
+  /**
+      Match Device revision ID. Virtio Std. §4.1.2.2
   */
   bool rev_id_ok = ((_LEGACY_ID and _pcidev.rev_id() == 0) or
                     (_STD_ID and _pcidev.rev_id() > 0));
-    
-  
-  CHECK(rev_id_ok and version_supported(_pcidev.rev_id()), 
+
+
+  CHECK(rev_id_ok and version_supported(_pcidev.rev_id()),
         "Device Revision ID (0x%x) supported", _pcidev.rev_id());
-  
+
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
-  
+
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
-  _iobase=_pcidev.iobase();  
-  
+  _iobase=_pcidev.iobase();
+
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
-  
+
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
-  
+
   // 1. Reset device
   reset();
   INFO2("[*] Reset device");
-  
+
   // 2. Set ACKNOWLEGE status bit, and
   // 3. Set DRIVER status bit
-  
+
   hw::outp(_iobase + VIRTIO_PCI_STATUS,
            hw::inp(_iobase + VIRTIO_PCI_STATUS) |
-           VIRTIO_CONFIG_S_ACKNOWLEDGE | 
+           VIRTIO_CONFIG_S_ACKNOWLEDGE |
            VIRTIO_CONFIG_S_DRIVER);
-  
+
 
   // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
   // 4. Negotiate features (Read, write, read)
-  //    => In the subclass (i.e. Only the Nic driver knows if it wants a mac)  
-  // 5. @todo IF >= Virtio 1.0, set FEATURES_OK status bit 
-  // 6. @todo IF >= Virtio 1.0, Re-read Device Status to ensure features are OK  
-  // 7. Device specifig setup. 
-  
-  // Where the standard isn't clear, we'll do our best to separate work 
+  //    => In the subclass (i.e. Only the Nic driver knows if it wants a mac)
+  // 5. @todo IF >= Virtio 1.0, set FEATURES_OK status bit
+  // 6. @todo IF >= Virtio 1.0, Re-read Device Status to ensure features are OK
+  // 7. Device specifig setup.
+
+  // Where the standard isn't clear, we'll do our best to separate work
   // between this class and subclasses.
-    
+
   //Fetch IRQ from PCI resource
   set_irq();
 
@@ -108,20 +108,20 @@ Virtio::Virtio(hw::PCI_Device& dev)
   enable_irq_handler();
 
 
-  
+
   INFO("Virtio", "Initialization complete");
-  
-  // It would be nice if we new that all queues were the same size. 
+
+  // It would be nice if we new that all queues were the same size.
   // Then we could pass this size on to the device-specific constructor
   // But, it seems there aren't any guarantees in the standard.
-  
-  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8. 
+
+  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8.
   // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
-  
+
   /* printf(queue_size > 0 and queue_size != PCI_WTF ?
      "\t [x] Queue Size : 0x%lx \n" :
-     "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */  
-  
+     "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */
+
 }
 
 void Virtio::get_config(void* buf, int len){
@@ -136,12 +136,12 @@ void Virtio::reset(){
   hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
 }
 
-uint32_t Virtio::queue_size(uint16_t index){  
+uint32_t Virtio::queue_size(uint16_t index){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
-#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)  
+#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
@@ -175,39 +175,35 @@ void Virtio::default_irq_handler(){
   printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
   printf("Old Features : 0x%x \n",_features);
   printf("New Features : 0x%x \n",probe_features());
-  
+
   unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
-  
+
   IRQ_manager::eoi(_irq);
-  
+
 }
 
 
 
 void Virtio::enable_irq_handler(){
   //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-  
-  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);  
+
+  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);
   auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
-  
+
   IRQ_manager::subscribe(_irq,del);
-  
+
   IRQ_manager::enable_irq(_irq);
-  
-  
+
+
 }
 
 /** void Virtio::enable_irq_handler(IRQ_manager::irq_delegate d){
  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
  //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
-  
+
  IRQ_manager::subscribe(_irq,d);
-  
+
  IRQ_manager::enable_irq(_irq);
  }*/
-
-
-
-

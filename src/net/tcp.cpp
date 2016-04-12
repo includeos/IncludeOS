@@ -199,7 +199,7 @@ void TCP::process_write_queue(size_t packets) {
       // mark the connection as not queued.
       conn->set_queued(false);
       debug2("<TCP::process_write_queue> %s Removed from queue. Size is %u\n",
-        conn->to_string().c_str(), write_queue.size());
+             conn->to_string().c_str(), write_queue.size());
     }
   }
 }
@@ -216,7 +216,7 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
     write_queue.push(conn);
     conn->set_queued(true);
     debug2("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
-      conn->to_string().c_str(), written, buffer.remaining-written);
+           conn->to_string().c_str(), written, buffer.remaining-written);
   }
 
   return written;

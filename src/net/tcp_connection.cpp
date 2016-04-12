@@ -117,7 +117,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
 bool Connection::offer(size_t& packets) {
   assert(packets);
   debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
-    to_string().c_str(), packets, usable_window());
+        to_string().c_str(), packets, usable_window());
 
   while(has_doable_job() and packets) {
     auto& buf = write_queue.front().first;
@@ -126,7 +126,7 @@ bool Connection::offer(size_t& packets) {
     // advance the buffer
     buf.advance(written);
     debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %i.\n",
-      written, buf.remaining, packets, usable_window());
+           written, buf.remaining, packets, usable_window());
     // if finished
     if(!buf.remaining) {
       // callback and remove object
@@ -137,7 +137,7 @@ bool Connection::offer(size_t& packets) {
   }
   assert(packets >= 0);
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
-    packets, write_queue.size(), usable_window());
+        packets, write_queue.size(), usable_window());
   return !has_doable_job();
 }
 
@@ -162,7 +162,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     remaining -= written;
 
     debug2("<TCP::Connection::send> Packet Limit: %u - Written: %u"
-          " - Remaining: %u - Packet count: %u, Window: %u\n",
+           " - Remaining: %u - Packet count: %u, Window: %u\n",
            packet_limit, written, remaining, packet_count, usable_window());
 
     // If last packet, add PUSH.
@@ -311,25 +311,25 @@ void Connection::queue_retransmission(TCP::Packet_ptr packet, size_t rt_attempt)
 
   if(rt_attempt <= ATTEMPT_LIMIT) {
     hw::PIT::instance().onTimeout(RTO() * rt_attempt,
-    [packet, self, rt_attempt]
-    {
-      // Packet hasnt been ACKed.
-      if(packet->seq() > self->tcb().SND.UNA) {
-        debug("<TCP::Connection::queue_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
-        if(rt_attempt == 1)
-          self->segment_loss_detected();
-        //packet->set_ack(self->tcb().RCV.NXT);
-        self->retransmit(packet);
-        self->queue_retransmission(packet, rt_attempt+1);
-      } else {
-        debug2("<TCP::Connection::queue_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
-        // Signal user?
-      }
-    });
+                                  [packet, self, rt_attempt]
+                                  {
+                                    // Packet hasnt been ACKed.
+                                    if(packet->seq() > self->tcb().SND.UNA) {
+                                      debug("<TCP::Connection::queue_retransmission@onTimeout> Packet unacknowledge, retransmitting...\n");
+                                      if(rt_attempt == 1)
+                                        self->segment_loss_detected();
+                                      //packet->set_ack(self->tcb().RCV.NXT);
+                                      self->retransmit(packet);
+                                      self->queue_retransmission(packet, rt_attempt+1);
+                                    } else {
+                                      debug2("<TCP::Connection::queue_retransmission@onTimeout> Packet acknowledged %s \n", packet->to_string().c_str());
+                                      // Signal user?
+                                    }
+                                  });
   }
   else {
     printf("<TCP::Connection::queue_retransmission> Give up already... Already tried %u times. Time to kill connection?\n",
-      ATTEMPT_LIMIT);
+           ATTEMPT_LIMIT);
   }
   debug2("<TCP::Connection::queue_retransmission> Packet queued for retransmission [%u] \n", retransmit_try);
 }
@@ -471,4 +471,3 @@ void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
     break;
   }
 }
-

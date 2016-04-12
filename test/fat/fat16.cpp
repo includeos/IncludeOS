@@ -76,31 +76,31 @@ void Service::start()
                 auto buf = fs.read(ent, 0, ent.size);
                 auto banana = buf.to_string();
 
-    CHECKSERT(banana == internal_banana, "Correct banana #1");
+                CHECKSERT(banana == internal_banana, "Correct banana #1");
 
-    bool test = true;
+                bool test = true;
 
-    for (size_t i = 0; i < internal_banana.size(); i++)
-    {
-      // read one byte at a time
-      buf = fs.read(ent, i, 1);
-      /// @buf should evaluate to 'true' if its valid
-      CHECKSERT(buf, "Validate buffer");
+                for (size_t i = 0; i < internal_banana.size(); i++)
+                  {
+                    // read one byte at a time
+                    buf = fs.read(ent, i, 1);
+                    /// @buf should evaluate to 'true' if its valid
+                    CHECKSERT(buf, "Validate buffer");
 
-      // verify that it matches the same location in test-string
-      test = ((char) buf.buffer.get()[0] == internal_banana[i]);
-      if (!test)
-      {
-        printf("!! Random access read test failed on i = %u\n", i);
-        break;
-      }
-    }
-    CHECKSERT(test, "Validate random access sync read");
+                    // verify that it matches the same location in test-string
+                    test = ((char) buf.buffer.get()[0] == internal_banana[i]);
+                    if (!test)
+                      {
+                        printf("!! Random access read test failed on i = %u\n", i);
+                        break;
+                      }
+                  }
+                CHECKSERT(test, "Validate random access sync read");
 
-    buf = fs.readFile("/banana.txt");
-    banana = buf.to_string();
-    CHECKSERT(banana == internal_banana, "Correct banana #2");
-  });
+                buf = fs.readFile("/banana.txt");
+                banana = buf.to_string();
+                CHECKSERT(banana == internal_banana, "Correct banana #2");
+              });
 
   INFO("FAT16", "SUCCESS");
 }

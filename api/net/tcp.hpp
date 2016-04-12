@@ -1159,9 +1159,9 @@ namespace net {
         /*
           When the first RTT measurement R is made, the host MUST set
 
-            SRTT <- R
-            RTTVAR <- R/2
-            RTO <- SRTT + max (G, K*RTTVAR)
+          SRTT <- R
+          RTTVAR <- R/2
+          RTO <- SRTT + max (G, K*RTTVAR)
 
           where K = 4.
         */
@@ -1174,8 +1174,8 @@ namespace net {
         /*
           When a subsequent RTT measurement R' is made, a host MUST set
 
-            RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
-            SRTT <- (1 - alpha) * SRTT + alpha * R'
+          RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
+          SRTT <- (1 - alpha) * SRTT + alpha * R'
 
           The value of SRTT used in the update to RTTVAR is its value
           before updating SRTT itself using the second assignment.  That
@@ -1388,7 +1388,7 @@ namespace net {
       inline void reduce_slow_start_threshold() {
         control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
         debug2("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
-          control_block.ssthresh);
+               control_block.ssthresh);
       }
 
       inline void segment_loss_detected() {
@@ -1396,7 +1396,7 @@ namespace net {
       }
       /*
 
-      */
+       */
       size_t duplicate_ack(TCP::Seq ack);
 
       /*

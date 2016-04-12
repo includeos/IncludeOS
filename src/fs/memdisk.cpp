@@ -40,7 +40,7 @@ namespace fs {
     auto sector_loc = image_start_ + (blk * block_size());
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end_)) {
-        reader(buffer_t()); return;
+      reader(buffer_t()); return;
     }
 
     auto buffer = new uint8_t[block_size()];
@@ -54,7 +54,7 @@ namespace fs {
     auto end_loc   = start_loc + (count * block_size());
     // Disallow reading memory past disk image
     if (unlikely(end_loc >= image_end_)) {
-        reader(buffer_t()); return;
+      reader(buffer_t()); return;
     }
 
     auto buffer = new uint8_t[count * block_size()];
