@@ -29,8 +29,6 @@ namespace net {
 
   class Packet : public std::enable_shared_from_this<Packet> {
   public:
-    static constexpr size_t MTU {1500};
-
     using release_del = BufferStore::release_del;
 
     /**
@@ -120,7 +118,7 @@ namespace net {
   protected:
     BufferStore::buffer_t payload_   {nullptr};
     BufferStore::buffer_t buf_       {nullptr};
-    size_t                capacity_  {MTU};     // NOTE: Actual value is provided by BufferStore
+    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
     size_t                size_      {0};
     IP4::addr             next_hop4_ {};
   private:

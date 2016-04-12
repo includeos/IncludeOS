@@ -164,7 +164,7 @@ const lest::test test_basic_gsl[] = {
         };
 
         WHEN ("we pass in sufficient data") {
-          char* character = (char*) "Bjarne \"Yoda\" Stroustrup leas the Jedi council with wisdom";
+          char* character = (char*) "Bjarne \"Yoda\" Stroustrup leads the Jedi council with wisdom";
           THEN("you can access the elements of the span using the index operator"){
             EXPECT(Bad::eighth({character, 20}) == 'Y');
           }
@@ -189,10 +189,8 @@ const lest::test test_basic_gsl[] = {
 void Service::start()
 {
 
-  // Lest takes command line params
-  char* argv[2] = {(char*)"test", (char*)"-p"};
-
-  auto failed = lest::run(test_basic_gsl, 2, argv);
+  // Lest takes command line params as vector
+  auto failed = lest::run(test_basic_gsl, {"-p"});
 
   assert(not failed);
 

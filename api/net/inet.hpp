@@ -47,7 +47,7 @@ namespace net {
 
     virtual std::shared_ptr<DHClient> dhclient() = 0;
 
-    virtual uint16_t MTU() const = 0;
+    virtual constexpr uint16_t MTU() const = 0;
 
     virtual Packet_ptr createPacket(size_t size) = 0;
 

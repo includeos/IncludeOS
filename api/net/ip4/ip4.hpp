@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,15 +35,15 @@ namespace net {
   public:
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Inet<LinkLayer, IP4>&) noexcept;
-  
+
     /** Known transport layer protocols. */
     enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
-  
+
     /** IP4 address representation */
     union __attribute__((packed)) addr {
       uint8_t part[4];
       uint32_t whole;
-    
+
       /**
        *  NOTE: Constructors
        *  Can't have them - removes the packed-attribute
@@ -53,14 +53,14 @@ namespace net {
         whole = cpy.whole;
         return *this;
       }
-    
+
       /** Standard comparison operators */
       inline bool operator==(addr rhs)           const noexcept
       { return whole == rhs.whole; }
 
       inline bool operator==(const uint32_t rhs) const noexcept
       { return  whole == rhs; }
-    
+
       inline bool operator<(const addr rhs)      const noexcept
       { return whole < rhs.whole; }
 
@@ -72,25 +72,25 @@ namespace net {
 
       inline bool operator>(const uint32_t rhs)  const noexcept
       { return  whole > rhs; }
-    
+
       inline bool operator!=(const addr rhs)     const noexcept
       { return whole != rhs.whole; }
-    
+
       inline bool operator!=(const uint32_t rhs) const noexcept
       { return  whole != rhs; }
-    
+
       /** x.x.x.x string representation */
       std::string str() const {
         char ip_addr[16];
         sprintf(ip_addr, "%1i.%1i.%1i.%1i",
                 part[0], part[1], part[2], part[3]);
         return ip_addr;
-      }      
+      }
     }; //< union addr
-  
+
     static const addr INADDR_ANY;
     static const addr INADDR_BCAST;
-  
+
     /** IP4 header representation */
     struct ip_header {
       uint8_t  version_ihl;
@@ -114,27 +114,33 @@ namespace net {
       uint8_t   link_hdr[sizeof(typename LinkLayer::header)];
       ip_header ip_hdr;
     };
-      
+
+    /*
+      Maximum Datagram Data Size
+    */
+    inline constexpr uint16_t MDDS() const
+    { return stack_.MTU() - sizeof(ip_header); }
+
     /** Upstream: Input from link layer */
     void bottom(Packet_ptr);
-  
+
     /** Upstream: Outputs to transport layer */
     inline void set_icmp_handler(upstream s)
     { icmp_handler_ = s; }
-  
+
     inline void set_udp_handler(upstream s)
     { udp_handler_ = s; }
-  
+
     inline void set_tcp_handler(upstream s)
     { tcp_handler_ = s; }
-  
+
     /** Downstream: Delegate linklayer out */
     void set_linklayer_out(downstream s)
     { linklayer_out_ = s; };
 
     /**
      *  Downstream: Receive data from above and transmit
-     *   
+     *
      *  @note: The following *must be set* in the packet:
      *
      *   * Destination IP
@@ -146,7 +152,7 @@ namespace net {
 
     /** Compute the IP4 header checksum */
     uint16_t checksum(ip_header*);
-  
+
     /**
      * \brief
      *
@@ -155,13 +161,13 @@ namespace net {
     const addr local_ip() const {
       return stack_.ip_addr();
     }
-  
+
   private:
     Inet<LinkLayer,IP4>& stack_;
-  
+
     /** Downstream: Linklayer output delegate */
     downstream linklayer_out_ {ignore_ip4_down};
-  
+
     /** Upstream delegates */
     upstream icmp_handler_ {ignore_ip4_up};
     upstream udp_handler_  {ignore_ip4_up};
