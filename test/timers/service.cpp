@@ -63,7 +63,7 @@ void Service::start()
     });
 
   // 1 sec.
-  timer.onTimeout(1s, [] {
+  timer.on_timeout(1, [] {
       CHECKSERT(one_shots == 1, "After 1 sec, 1 other one-shot-timers has fired");
       one_shots++;
     });

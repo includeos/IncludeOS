@@ -883,26 +883,36 @@ namespace net {
       inline void write(const void* buf, size_t n, WriteCallback callback)
       { write(buf, n, callback, true); }
 
-      inline void write(const void* buf, size_t n, bool PUSH)
-      { write(buf, n, [](auto){}, PUSH); }
+      // results in ambiguous call to member function
+      //inline void write(const void* buf, size_t n, bool PUSH)
+      //{ write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), PUSH); }
 
       inline void write(const void* buf, size_t n)
-      { write(buf, n, [](auto){}, true); }
+      { write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), true); }
 
       /*
         Works as write(const void*, size_t, WriteCallback, bool),
         but with the exception of avoiding copying the data to an internal buffer.
       */
-      inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH = true)
+      inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
       { write({buffer, n, PUSH}, callback); }
 
-      inline void write(buffer_t buffer, size_t n, bool PUSH = true)
-      { write({buffer, n, PUSH}, [](auto){}); }
+      inline void write(buffer_t buffer, size_t n, WriteCallback callback)
+      { write({buffer, n, true}, callback); }
+
+      // results in ambiguous call to member function
+      //inline void write(buffer_t buffer, size_t n, bool PUSH)
+      //{ write({buffer, n, PUSH}, WriteCallback::from<Connection,&Connection::default_on_write>(this)); }
+
+      inline void write(buffer_t buffer, size_t n)
+      { write({buffer, n, true}, WriteCallback::from<Connection,&Connection::default_on_write>(this)); }
 
       /*
         Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
       */
       void write(WriteBuffer request, WriteCallback callback);
+
+      inline void default_on_write(size_t) {};
 
 
       /*
@@ -1110,6 +1120,84 @@ namespace net {
         When time-wait timer was started.
       */
       uint64_t time_wait_started;
+
+
+      // [RFC 6298]
+      struct RoundTripCalc {
+        using timestamp_t = double;
+        using duration_t = double;
+
+        // clock granularity
+        static constexpr duration_t CLOCK_G = hw::PIT::frequency().count();
+
+        static constexpr double K = 4.0;
+
+        static constexpr double alpha = 1.0/8;
+        static constexpr double beta = 1.0/4;
+
+        TCP::Seq SEQ; // current sequence number measured
+        timestamp_t t; // tick when measure is started
+
+        duration_t SRTT; // smoothed round-trip time
+        duration_t RTTVAR; // round-trip time variation
+        duration_t RTO; // retransmission timeout
+
+        bool active = false;
+
+        void start(Seq seq) {
+          SEQ = seq;
+          t = OS::uptime();
+          active = true;
+        }
+
+        void stop() {
+          active = false;
+          // round trip time (RTT)
+          sub_rtt_measurement(OS::uptime() - t);
+        }
+
+        /*
+          When the first RTT measurement R is made, the host MUST set
+
+            SRTT <- R
+            RTTVAR <- R/2
+            RTO <- SRTT + max (G, K*RTTVAR)
+
+          where K = 4.
+        */
+        void first_rtt_measurement(duration_t R) {
+          SRTT = R;
+          RTTVAR = R/2;
+          update_rto();
+        }
+
+        /*
+          When a subsequent RTT measurement R' is made, a host MUST set
+
+            RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
+            SRTT <- (1 - alpha) * SRTT + alpha * R'
+
+          The value of SRTT used in the update to RTTVAR is its value
+          before updating SRTT itself using the second assignment.  That
+          is, updating RTTVAR and SRTT MUST be computed in the above
+          order.
+
+          The above SHOULD be computed using alpha=1/8 and beta=1/4 (as
+          suggested in [JK88]).
+
+          After the computation, a host MUST update
+          RTO <- SRTT + max (G, K*RTTVAR)
+        */
+        void sub_rtt_measurement(duration_t R) {
+          RTTVAR = (1 - beta) * RTTVAR + beta * std::abs(SRTT-R);
+          SRTT = (1 - alpha) * SRTT + alpha * R;
+        }
+
+        void update_rto() {
+          RTO = std::max(SRTT + std::max(CLOCK_G, K * RTTVAR), 1.0);
+        }
+
+      } round_trip;
 
 
       /// CALLBACK HANDLING ///

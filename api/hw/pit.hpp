@@ -83,6 +83,9 @@ namespace hw {
         @param handler: A delegate or function to be called on timeout.   */
     Timer_iterator onTimeout(std::chrono::milliseconds ms, timeout_handler handler);
 
+    Timer_iterator on_timeout(double sec, timeout_handler handler)
+    { return onTimeout(std::chrono::milliseconds((unsigned)(sec * 1000)), handler); }
+
     /** Create a repeating timer.
         @param ms: Expiration time. Compatible with all std::chrono durations.
         @param handler: A delegate or function to be called every ms interval.
