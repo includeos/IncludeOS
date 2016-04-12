@@ -3,8 +3,8 @@
 #################################################
 
 # The name of your service
-SERVICE = "Test_timers"
-SERVICE_NAME = "Timers\ Test\ Service"
+SERVICE = test_timers
+SERVICE_NAME = Timers Test Service
 
 # Your service parts
 FILES = service.cpp
