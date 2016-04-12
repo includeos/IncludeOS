@@ -7,9 +7,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,24 +38,13 @@
 #error "This project needs to be compiled with an ix86-elf compiler"
 #endif
 
-#ifndef __includeOS__
-#define __includeOS__
-#endif
-
-/* Unused parameters (necessary for syscall warnings) */
+/* Unused parameters */
 #ifdef __GNUC__
 #  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
 #else
 #  define UNUSED(x) UNUSED_ ## x
 #endif
 
-/* Hardware @todo Make this more C++'ish and proper. */
-#define MAX_NICS    4
-#define MAX_DISKS   4 
-#define MAX_SERIALS 4
-
-/* LIMITS */
-//#define SBRK_MAX 0x10000
 
 /* BOCHS Break point */
 #define BREAK __asm__ volatile("xchg %bx,%bx");
@@ -64,10 +53,5 @@
 #include "debug"
 #include "warn"
 #include "info"
-
-// From sanos, pdir.h
-#define PAGESHIFT      12
-#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
-#define PAGESIZE 4096
 
 #endif

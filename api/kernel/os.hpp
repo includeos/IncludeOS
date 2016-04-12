@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,23 +35,23 @@ namespace hw{ class Serial; }
  *  @note For device access, see Dev
  */
 class OS {
-public:   
+public:
   using rsprint_func = delegate<void(const char*, size_t)>;
-  
+
   /* Get the version of the os */
   static inline std::string version()
   { return std::string(OS_VERSION); }
-  
+
   /** Clock cycles since boot. */
   static inline uint64_t cycles_since_boot() {
     uint64_t ret;
     __asm__ volatile ("rdtsc":"=A"(ret));
     return ret;
   }
-  
+
   /** Uptime in seconds. */
   static double uptime();
-    
+
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
    *
@@ -59,9 +59,9 @@ public:
    */
   static size_t rsprint(const char* ptr);
   static size_t rsprint(const char* ptr, const size_t len);
-  
+
   /**
-   *  Write a character to serial port. 
+   *  Write a character to serial port.
    *
    *  @param c: The character to print to serial port
    */
@@ -82,31 +82,44 @@ public:
    *  we'll stay asleep.
    */
   static void halt();
-  
+
   /**
    *  Set handler for serial output.
    */
   static void set_rsprint(rsprint_func func) {
     rsprint_handler_ = func;
   }
-  
-private:  
+
+  /** Memory page helpers */
+  static inline constexpr uint32_t page_size() {
+    return 4096;
+  }
+  static inline constexpr uint32_t page_nr_from_addr(uint32_t x){
+    return x >> page_shift_;
+  }
+  static inline constexpr uint32_t base_from_page_nr(uint32_t x){
+    return x << page_shift_;
+  }
+
+private:
+  static const int page_shift_ = 12;
+
   /** Indicate if the OS is running. */
   static bool power_;
-  
+
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
-  
+
   static MHz cpu_mhz_;
-  
+
   static rsprint_func rsprint_handler_;
 
   static hw::Serial& com1;
-  
+
   // Prohibit copy and move operations
   OS(OS&)  = delete;
   OS(OS&&) = delete;
-  
+
   // Prohibit construction
   OS() = delete;
 }; //< OS
