@@ -86,23 +86,24 @@ private:
     uint32_t type;
     uint32_t ioprio;
     uint64_t sector;
-    /// SCSI ///
-    //char* cmd = nullptr;
-  } __attribute__((packed));
-  struct blk_data_t
+  };
+  struct blk_resp_t
   {
-    uint8_t sector[512];
-    uint32_t stuff1;
-    on_read_func* handler;
-    uint32_t stuff2;
     uint8_t status;
-  } __attribute__((packed));
+  };
+  
+  struct blk_io_t
+  {
+    uint8_t       sector[512];
+    on_read_func  handler;
+  };
   
   struct request_t
   {
     scsi_header_t hdr;
-    blk_data_t    data;
-  } __attribute__((packed));
+    blk_io_t      io;
+    blk_resp_t    resp;
+  };
   
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();

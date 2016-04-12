@@ -157,24 +157,26 @@ int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UN
   return _num_free;
 }
 void Virtio::Queue::enqueue(
-                            void*    out,
-                            uint32_t out_len,
-                            void*    in,
-                            uint32_t in_len)
+    void*    out,
+    uint32_t out_len,
+    void*    in,
+    uint32_t in_len)
 {
   int total = (out) ? 1 : 0;
   total += (in) ? 1 : 0;
-
+  
+  printf("enqueue total: %d\n", total);
+  
   if (_num_free < total)
-    {
-      // Queue is full (we think)
-      printf("<Q %i>Buffer full (%i avail,"               \
-             " used.idx: %i, avail.idx: %i )\n",
-             _pci_index, num_avail(),
-             _queue.used->idx,_queue.avail->idx
-             );
-      panic("Buffer full");
-    }
+  {
+    // Queue is full (we think)
+    printf("<Q %i>Buffer full (%i avail,"               \
+           " used.idx: %i, avail.idx: %i )\n",
+           _pci_index, num_avail(),
+           _queue.used->idx,_queue.avail->idx
+           );
+    panic("Buffer full");
+  }
 
   // Remove buffers from the free list
   _num_free -= total;
@@ -185,31 +187,31 @@ void Virtio::Queue::enqueue(
 
   // (implicitly) Mark all outbound tokens as device-readable
   if (out)
-    {
-      current().flags = VIRTQ_DESC_F_NEXT;
-      current().addr = (intptr_t) out;
-      current().len = out_len;
-
-      debug("<Q %i> Enqueueing outbound: index %u len %li, next %i\n",
-            _pci_index, head, current().len, current().next);
-
-      last = &current();
-      // go to next
-      go_next();
-    }
+  {
+    current().flags = VIRTQ_DESC_F_NEXT;
+    current().addr = (intptr_t) out;
+    current().len = out_len;
+    
+    printf("<Q %d> Enqueueing outbound: index %u len %u (actual: %u), next %d\n",
+          _pci_index, head, current().len, out_len, current().next);
+    
+    last = &current();
+    // go to next
+    go_next();
+  }
 
   // Mark all inbound tokens as device-writable
   if (in)
-    {
-      debug("<Q> Enqueuing inbound \n");
-      current().flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-      current().addr = (intptr_t) in;
-      current().len = in_len;
-
-      last = &current();
-      // go to next
-      go_next();
-    }
+  {
+    printf("<Q> Enqueuing inbound \n");
+    current().flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
+    current().addr = (intptr_t) in;
+    current().len = in_len;
+    
+    last = &current();
+    // go to next
+    go_next();
+  }
 
   // No continue on last buffer
   last->flags &= ~VIRTQ_DESC_F_NEXT;
@@ -219,19 +221,57 @@ void Virtio::Queue::enqueue(
   _queue.avail->ring[avail] = head;
   debug("<Q%u> avail: %u\n", _pci_index, avail);
 }
+void Virtio::Queue::enqueue(void* data, uint32_t len, bool out, bool last)
+{
+  if (_num_free < 1)
+  {
+    // Queue is full (we think)
+    printf("<Q %i>Buffer full (%i avail,"               \
+           " used.idx: %i, avail.idx: %i )\n",
+           _pci_index, num_avail(),
+           _queue.used->idx,_queue.avail->idx
+           );
+    panic("Buffer full");
+  }
+
+  // Remove buffers from the free list
+  _num_free -= 1;
+  // remember current head for later
+  uint16_t head = _free_head;
+  // No continue on last buffer
+  uint16_t flags = last ? 0 : VIRTQ_DESC_F_NEXT;
+  // WRITE for inbound
+  current().flags = flags | (out ? 0 : VIRTQ_DESC_F_WRITE);
+  current().addr = (intptr_t) data;
+  current().len = len;
+  
+  if (out)
+  printf("<Q %d> Enqueueing outbound: %p index %u len %u (actual: %u), next %d\n",
+        _pci_index, data, head, current().len, len, current().next);
+  else
+  printf("<Q %d> Enqueueing inbound: %p index %u len %u (actual: %u), next %d\n",
+        _pci_index, data, head, current().len, len, current().next);
+  
+  // go to next in ring
+  go_next();
+  
+  // SanOS: Put entry in available array, but do not update avail->idx until sync
+  uint16_t avail = (_queue.avail->idx + _num_added++) % _size;
+  _queue.avail->ring[avail] = head;
+}
 void* Virtio::Queue::dequeue(uint32_t& len)
 {
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx)
-    {
-      debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-      return nullptr;
-    }
+  {
+    debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
+    return nullptr;
+  }
 
   // Get next completed buffer
   auto& e = _queue.used->ring[_last_used_idx % _size];
 
-  debug2("<Q %i> Releasing token %li. Len: %li\n",_pci_index, e.id, e.len);
+  printf("<Q %i> Releasing token %u. Len: %u\n",_pci_index, e.id, e.len);
   void* data = (void*) _queue.desc[e.id].addr;
   len = e.len;
 

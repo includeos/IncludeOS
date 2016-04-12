@@ -213,9 +213,6 @@ public:
     */
     int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void*);
 
-    void enqueue(void* out, uint32_t out_len, void* in, uint32_t in_len);
-    void* dequeue(uint32_t& len);
-
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
 
@@ -228,16 +225,22 @@ public:
     void release(uint32_t head);
 
     /** Get number of free tokens in Queue */
-    inline uint16_t num_free(){ return _num_free; }
+    uint16_t num_free() const noexcept
+    { return _num_free; }
 
     /** Get number of new incoming buffers */
-    inline uint16_t new_incoming()
+    uint16_t new_incoming() const noexcept
     { return _queue.used->idx - _last_used_idx; }
 
     /** Get number of used buffers */
-    inline uint16_t num_avail()
+    uint16_t num_avail() const noexcept
     { return _queue.avail->idx - _queue.used->idx; }
 
+    // gonzoified enqueue & dequeue
+    void enqueue(void* out, uint32_t out_len, void* in, uint32_t in_len);
+    void enqueue(void* data, uint32_t len, bool out, bool last);
+    void* dequeue(uint32_t& len);
+    
     // access the current index
     virtq_desc& current()
     {
@@ -254,7 +257,10 @@ public:
       _free_head = _queue.desc[_free_head].next;
     }
 
-    inline uint16_t size(){ return _size; }
+    uint16_t size() const noexcept
+    {
+      return _size;
+    }
 
   };
 
