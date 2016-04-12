@@ -45,10 +45,10 @@ void Service::start()
 
   // UDP
   UDP::port_t port = 4242;
-  auto& sock = inet->udp().bind(port);
+  auto& conn = inet->udp().bind(port);
 
-  sock.onRead([&] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port,
-                   const char* data, int len) -> int {
+  conn.on_read([&] (UDP::addr_t addr, UDP::port_t port,
+                   const char* data, int len) {
                 string received = std::string(data,len-1);
                 INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: '%s')",
                      addr.str().c_str(), port, received.c_str());
@@ -77,8 +77,6 @@ void Service::start()
 
                     INFO("Transmision tests","SUCCESS");
                   });
-
-                return 0;
 
               });
 
