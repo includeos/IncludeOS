@@ -18,6 +18,7 @@
 //#define DEBUG // Allow debug
 //#define DEBUG2
 
+#include <os>
 #include <virtio/virtio.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
@@ -51,7 +52,7 @@ void Virtio::Queue::init_queue(int size, void* buf){
   // (This is  a formula from sanos - don't know why it works, but it does
   // align the used queue to the next page border)
   _queue.used = (virtq_used*)(((uint32_t)&_queue.avail->ring[size] +
-                               sizeof(uint16_t)+PAGESIZE-1) & ~(PAGESIZE -1));
+                               sizeof(uint16_t)+OS::page_size()-1) & ~(OS::page_size() -1));
   debug("\t * Queue used  @ 0x%lx \n ",(long)_queue.used);
 
 }

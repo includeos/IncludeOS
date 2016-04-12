@@ -144,8 +144,8 @@ uint32_t Virtio::queue_size(uint16_t index){
 #define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, BTOP(queue_desc));
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == BTOP(queue_desc);
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
 }
 
 uint32_t Virtio::probe_features(){
