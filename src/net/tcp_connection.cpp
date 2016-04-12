@@ -40,7 +40,7 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
   queued_(false),
   time_wait_started(0)
 {
-
+  init_cwnd(3);
 }
 
 /*
@@ -161,7 +161,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     bytes_written += written;
     remaining -= written;
 
-    debug2("<TCP::Connection::write_to_send_buffer> Packet Limit: %u - Written: %u"
+    debug2("<TCP::Connection::send> Packet Limit: %u - Written: %u"
           " - Remaining: %u - Packet count: %u, Window: %u\n",
            packet_limit, written, remaining, packet_count, usable_window());
 
@@ -174,6 +174,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     // TODO: Replace with chaining
     transmit(packet);
   }
+  debug("<TCP::Connection::send> Sent %u bytes of data\n", bytes_written);
   return bytes_written;
 }
 
@@ -295,8 +296,8 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   debug("<TCP::Connection::transmit> Transmitting: %s \n", packet->to_string().c_str());
   host_.transmit(packet);
   // Don't think we would like to retransmit reset packets..?
-  if(!packet->isset(RST))
-    queue_retransmission(packet);
+  //if(!packet->isset(RST))
+  //  queue_retransmission(packet);
 }
 
 void Connection::retransmit(TCP::Packet_ptr packet) {

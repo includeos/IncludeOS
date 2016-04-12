@@ -874,34 +874,34 @@ namespace net {
         Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
         Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
       */
-      inline void write(const void* buf, size_t n, WriteCallback callback, bool PUSH = true) {
+      inline void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
         auto buffer = buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>());
         memcpy(buffer.get(), buf, n);
         write(buffer, n, callback, PUSH);
       }
 
+      inline void write(const void* buf, size_t n, WriteCallback callback)
+      { write(buf, n, callback, true); }
+
+      inline void write(const void* buf, size_t n, bool PUSH)
+      { write(buf, n, [](auto){}, PUSH); }
+
+      inline void write(const void* buf, size_t n)
+      { write(buf, n, [](auto){}, true); }
+
       /*
         Works as write(const void*, size_t, WriteCallback, bool),
         but with the exception of avoiding copying the data to an internal buffer.
       */
-      inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH = true) {
-        write({buffer, n, PUSH}, callback);
-      }
+      inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH = true)
+      { write({buffer, n, PUSH}, callback); }
+
+      inline void write(buffer_t buffer, size_t n, bool PUSH = true)
+      { write({buffer, n, PUSH}, [](auto){}); }
 
       /*
-        Works the same as it's counterpart, without subscribing to a WriteCallback.
+        Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
       */
-      inline void write(const void* buf, size_t n, bool PUSH = true) {
-        write(buf, n, [](auto){}, PUSH);
-      }
-
-      /*
-        Works the same as it's counterpart, without subscribing to a WriteCallback.
-      */
-      inline void write(buffer_t buffer, size_t n, bool PUSH = true) {
-        write({buffer, n, PUSH}, [](auto){});
-      }
-
       void write(WriteBuffer request, WriteCallback callback);
 
 
@@ -1299,7 +1299,7 @@ namespace net {
 
       inline void reduce_slow_start_threshold() {
         control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
-        printf("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
+        debug2("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
           control_block.ssthresh);
       }
 
