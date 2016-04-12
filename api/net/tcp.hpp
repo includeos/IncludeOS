@@ -1299,7 +1299,7 @@ namespace net {
 
       inline void reduce_slow_start_threshold() {
         control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
-        printf("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
+        debug2("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
           control_block.ssthresh);
       }
 
