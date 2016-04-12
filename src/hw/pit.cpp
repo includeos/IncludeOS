@@ -16,7 +16,7 @@
 // limitations under the License.
 
 //#define DEBUG
-// #define DEBUG2
+//#define DEBUG2
 #include <hw/ioport.hpp>
 #include <hw/pit.hpp>
 #include <os>
@@ -111,7 +111,7 @@ namespace hw {
   }
 
 
-  void PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
+  PIT::Timer_iterator PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
     if (in_msecs < 1ms) panic("Can't wait less than 1 ms. ");
 
     if (current_mode_ != RATE_GEN)
@@ -121,11 +121,11 @@ namespace hw {
       set_freq_divider(millisec_interval);
 
     auto cycles_pr_millisec = KHz(CPUFrequency());
-    debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
+    //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
     auto ticks = in_msecs / KHz(current_frequency()).count();
-    debug("<PIT start_timer> PIT KHz: %f * %i = %f ms. \n",
-          KHz(current_frequency()).count(), (uint32_t)ticks.count(), ((uint32_t)ticks.count() * KHz(current_frequency()).count()));
+    //debug("<PIT start_timer> PIT KHz: %f * %i = %f ms. \n",
+    //KHz(current_frequency()).count(), (uint32_t)ticks.count(), ((uint32_t)ticks.count() * KHz(current_frequency()).count()));
 
     t.setStart(OS::cycles_since_boot());
     t.setEnd(t.start() + uint64_t(cycles_pr_millisec.count() * in_msecs.count()));
@@ -134,31 +134,36 @@ namespace hw {
     auto key = millisec_counter + ticks.count();
 
     // We could emplace, but the timer exists allready, and might be a reused one
-    timers_.insert(std::make_pair(key, t));
+    auto it = timers_.insert(std::make_pair(key, t));
 
     debug("<PIT start_timer> Key: %i id: %i, t.cond()(): %s There are %i timers. \n",
           (uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
 
+    return it;
 
   }
 
-  void PIT::onRepeatedTimeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
+  PIT::Timer_iterator PIT::onRepeatedTimeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
     debug("<PIT repeated> setting a %i ms. repeating timer \n", (uint32_t)ms.count());
 
     Timer t(Timer::REPEAT_WHILE, handler, ms, cond);
-    start_timer(t, ms);
+    return start_timer(t, ms);
   };
 
 
-  void PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
+  PIT::Timer_iterator PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
     Timer t(Timer::ONE_SHOT, handler, msec);
 
     debug("<PIT timeout> setting a %i ms. one-shot timer. Id: %i \n",
           (uint32_t)msec.count(), t.id());
 
-    start_timer(t, msec);
+    return start_timer(t, msec);
 
   };
+
+  void PIT::stop_timer(PIT::Timer_iterator it) {
+    timers_.erase(it);
+  }
 
 
   uint8_t PIT::read_back(uint8_t){
@@ -188,6 +193,9 @@ namespace hw {
       OS::rsprint(".");
 #endif
 
+    std::vector<Timer_iterator> garbage {};
+    std::vector<Timer_iterator> restart {};
+
     // Iterate over expired timers (we break on the first non-expired)
     for (auto it = timers_.begin(); it != timers_.end(); it++) {
 
@@ -204,43 +212,45 @@ namespace hw {
       // Re-queue repeating timers
       if (it->second.type() == Timer::REPEAT) {
         debug2 ("<Timer IRQ> REPEAT: Requeuing the timer \n");
-        start_timer(it->second, it->second.interval());
+        restart.push_back(it);
 
       }else if (it->second.type() == Timer::REPEAT_WHILE and it->second.cond()()) {
         debug2 ("<Timer IRQ> REPEAT_WHILE: Requeuing the timer COND \n");
-        start_timer(it->second, it->second.interval());
+        restart.push_back(it);
       }
 
       debug2 ("Timer done. Erasing.  \n");
 
-      // Escape iterator death
-      auto remove = it;
-      it++;
+      // Queue this timer for deletion (Escape iterator death by not deleting it now)
+      garbage.push_back(it);
 
-      // Erase the timer
-      timers_.erase(remove);
+    }
 
-      // If this was the last timer, we can turn off the clock
-      if (timers_.empty()){
-        // Disable the PIT
-        oneshot(1);
-
-        debug2 ("Timers done. PIT disabled for now. \n");
-        // Escape iterator death
-        break;
-      }
-
+    if (not garbage.empty()) {
       debug2 ("Timers left: %i \n", timers_.size());
 
 #ifdef DEBUG2
       for (auto t : timers_)
-        debug2("Key: %i , id: %i, Type: %i", (uint32_t)t.first, t.second.id(), t.second.type());
+        debug2("Key: %i , id: %i, Type: %i \n", (uint32_t)t.first, t.second.id(), t.second.type());
 #endif
 
       debug2("\n---------------------------\n\n");
     }
 
+    for (auto t : restart) {
+      start_timer(t->second, t->second.interval());
+    }
+
+    for (auto t : garbage) {
+      debug2("ERASE: Key: %i , id: %i, Type: %i \n", (uint32_t)t->first, t->second.id(), t->second.type());
+      timers_.erase(t);
+    }
+
+    if (timers_.empty())
+      oneshot(1);
+
   }
+
 
   void PIT::init(){
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());
