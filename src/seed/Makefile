@@ -41,7 +41,7 @@ ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api $(LOCAL_INCLUDES)
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL/include $(LOCAL_INCLUDES)
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0

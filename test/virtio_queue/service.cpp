@@ -51,29 +51,35 @@ const lest::test virtio_tests[] = {
         EXPECT (vq.num_free() == queue_size);
 
         WHEN ("You enqueue 10 tokens") {
-          for (int i = 0; i < 10; i++)
-            vq.enqueue(malloc(100), 100, OUT, 0);
+
+          for (int i = 0; i < 10; i++) {
+            Virtio::Token token {(uint8_t*) malloc(100), 100 };
+            vq.enqueue(token , Virtio::Queue::Direction::OUT);
+            printf("Free tokens: %i \n", vq.num_free());
+          }
 
           EXPECT (vq.num_free() == (queue_size - 10));
 
           THEN("You dequeue 10 tokens") {
             uint32_t res;
             for (int i = 0; i < 10; i++)
-              vq.dequeue(res);
+              vq.dequeue(&res);
 
             EXPECT (vq.num_free() == 0);
           }
         }
 
         WHEN ("You insert too many tokens") {
-          for (int i = 0; i < queue_size * 3; i++)
-            vq.enqueue(malloc(100), 100, OUT, 0);
+
+          for (int i = 0; i < queue_size * 3; i++) {
+            Virtio::Token token {(uint8_t*) malloc(100), 100 };
+            vq.enqueue(token, Virtio::Queue::Direction::OUT);
+          }
 
           THEN ("Queue reports 10 items") {
             EXPECT (vq.num_free() == (queue_size - 10));
           }
         }
-
       }
     }
   }
