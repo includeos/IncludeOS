@@ -140,7 +140,7 @@ namespace fs {
     
     // returns true if a filesystem is mounted
     bool fs_mounted() const noexcept
-    { return filesys; }
+    { return (bool) filesys; }
     
     // Returns a reference to a mounted filesystem
     // If no filesystem is mounted, the results are undefined
