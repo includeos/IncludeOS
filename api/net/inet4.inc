@@ -86,7 +86,13 @@ namespace net
     // 2 second timeout for DHCP-server negotation
     dhcp_->negotiate(2.0);
   }
-
+  
+  template <typename T>
+  void Inet4<T>::on_config(delegate<void(bool)> handler)
+  {
+    dhcp_->on_config(handler);
+  }
+  
   template <typename T>
   void Inet4<T>::process_sendq(size_t packets)
   {

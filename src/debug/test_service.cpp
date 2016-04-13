@@ -72,41 +72,48 @@ void Service::start()
     });*/
 
   
-  using namespace net;
-  const UDP::port_t port = 4242;
-  auto& sock = inet->udp().bind(port);
-  
-  sock.on_read(
-  [&sock] (UDP::addr_t addr, UDP::port_t port,
-          const char* data, size_t len)
+  inet->on_config(
+  [] (bool timeout)
   {
-    std::string strdata(data, len);
-    CHECK(1, "Getting UDP data from %s:%d -> %s",
-          addr.str().c_str(), port, strdata.c_str());
-    // send the same thing right back!
-    sock.sendto(addr, port, data, len,
-    [&sock, addr, port]
+    printf("Inet::on_config(%d)\n", timeout);
+    
+    using namespace net;
+    const UDP::port_t port = 4242;
+    auto& sock = inet->udp().bind(port);
+    
+    sock.on_read(
+    [&sock] (UDP::addr_t addr, UDP::port_t port,
+            const char* data, size_t len)
     {
-      // print this message once
-      printf("*** Starting spam (you should see this once)\n");
-      
-      typedef std::function<void()> rnd_gen_t;
-      auto next = std::make_shared<rnd_gen_t> ();
-      
-      *next =
-      [next, &sock, addr, port] ()
+      std::string strdata(data, len);
+      CHECK(1, "Getting UDP data from %s:%d -> %s",
+            addr.str().c_str(), port, strdata.c_str());
+      // send the same thing right back!
+      sock.sendto(addr, port, data, len,
+      [&sock, addr, port]
       {
-        // spam this message at max speed
-        std::string text("Spamorino Cappucino\n");
+        // print this message once
+        printf("*** Starting spam (you should see this once)\n");
         
-        sock.sendto(addr, port, text.data(), text.size(),
-        [next] { (*next)(); });
-      };
-      
-      // start spamming
-      (*next)();
-    });
-  });
-
+        typedef std::function<void()> rnd_gen_t;
+        auto next = std::make_shared<rnd_gen_t> ();
+        
+        *next =
+        [next, &sock, addr, port] ()
+        {
+          // spam this message at max speed
+          std::string text("Spamorino Cappucino\n");
+          
+          sock.sendto(addr, port, text.data(), text.size(),
+          [next] { (*next)(); });
+        };
+        
+        // start spamming
+        (*next)();
+      });
+    }); // sock on_read
+    
+  }); // on_config
+  
   printf("*** TEST SERVICE STARTED *** \n");
 }

@@ -159,7 +159,7 @@ namespace net
     : stack(inet)
   {
     config_handler = 
-    [] (Stack&, bool timeout) {
+    [] (bool timeout) {
       if (timeout)
         INFO("DHCPv4","Negotiation timed out");
       else
@@ -175,7 +175,7 @@ namespace net
       // reset session ID
       this->xid = 0;
       // call on_config with timeout = true
-      this->config_handler(stack, true);
+      this->config_handler(true);
     });
     
     // create a random session ID
@@ -244,13 +244,13 @@ namespace net
     [this, &socket] (IP4::addr, UDP::port_t port,
                      const char* data, size_t len)
     {
-     if (port == DHCP_DEST_PORT)
-       {
-         // we have got a DHCP Offer
-         debug("Received possible DHCP OFFER from %s:%d\n",
-               addr.str().c_str(), DHCP_DEST_PORT);
-         this->offer(socket, data, len);
-       }
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have got a DHCP Offer
+        debug("Received possible DHCP OFFER from %s:%d\n",
+              addr.str().c_str(), DHCP_DEST_PORT);
+        this->offer(socket, data, len);
+      }
     });
   }
 
@@ -414,18 +414,18 @@ namespace net
 
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.on_read(
-                 [this] (IP4::addr, UDP::port_t port,
-                         const char* data, size_t len)
-                 {
-                   if (port == DHCP_DEST_PORT)
-                     {
-                       // we have hopefully got a DHCP Ack
-                       debug("\tReceived DHCP ACK from %s:%d\n",
-                             addr.str().c_str(), DHCP_DEST_PORT);
-                       this->acknowledge(data, len);
-                     }
-                 });
-
+    [this] (IP4::addr, UDP::port_t port,
+            const char* data, size_t len)
+    {
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have hopefully got a DHCP Ack
+        debug("\tReceived DHCP ACK from %s:%d\n",
+              addr.str().c_str(), DHCP_DEST_PORT);
+        this->acknowledge(data, len);
+      }
+    });
+    
     // send our DHCP Request
     sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
@@ -443,14 +443,13 @@ namespace net
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
 
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
-      {
-        // verify that the type is indeed DHCPOFFER
-        debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
-              opt->val[0], DHCPACK);
-
-        // ignore when not a DHCP Offer
-        if (opt->val[0] != DHCPACK) return;
-      }
+    {
+      // verify that the type is indeed DHCPOFFER
+      debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+            opt->val[0], DHCPACK);
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPACK) return;
+    }
     // ignore message when DHCP message type is missing
     else return;
 
@@ -461,6 +460,6 @@ namespace net
     // stop timeout from happening
     hw::PIT::stop(timeout);
     // run some post-DHCP event to release the hounds
-    this->config_handler(stack, false);
+    this->config_handler(false);
   }
 }

@@ -33,7 +33,7 @@ namespace net
   {
   public:
     using Stack = Inet<LinkLayer, IP4>;
-    using config_func = delegate<void(Stack&, bool)>;
+    using config_func = delegate<void(bool)>;
     
     DHClient() = delete;
     DHClient(DHClient&) = delete;

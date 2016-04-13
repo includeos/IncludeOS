@@ -94,19 +94,22 @@ namespace net {
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
-    inline virtual void
-    resolve(const std::string& hostname,
-            resolve_func<IP4>  func) override
+    virtual void resolve(const std::string& hostname,
+                         resolve_func<IP4>  func) override
     {
       dns.resolve(this->dns_server, hostname, func);
     }
-
-    inline virtual void
-    set_dns_server(IP4::addr server) override
+    
+    virtual void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
-
+    
+    // handler called after the network successfully, or
+    // unsuccessfully negotiated with DHCP-server
+    // the timeout parameter indicates whether dhcp negotitation failed
+    void on_config(delegate<void(bool)> handler);
+    
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
     Inet4(Inet4&&) = delete;
