@@ -31,30 +31,28 @@ namespace fs {
 
   class Disk {
   public:
-    struct Partition; //< Representation of a disk partition
-
-    /** Callbacks */
+    struct Partition;
     using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
     using on_mount_func = std::function<void(error_t)>;
+    using lba_t = uint32_t;
   
     /** Constructor */
     explicit Disk(hw::IDiskDevice&);
 
     enum partition_t {
       MBR = 0, //< Master Boot Record (0)
-      /** extended partitions (1-4) */
-      VBR1,
+      VBR1,   //> extended partitions (1-4)
       VBR2,
       VBR3,
       VBR4,
-    
+      
       INVALID
-    }; //<  enum partition_t
-  
+    };
+    
     struct Partition {
       explicit Partition(const uint8_t  fl,  const uint8_t  Id,
-                         const uint32_t LBA, const uint32_t sz) noexcept :
-        flags     {fl},
+                         const uint32_t LBA, const uint32_t sz) noexcept
+      : flags     {fl},
         id        {Id},
         lba_begin {LBA},
         sectors   {sz}
@@ -92,10 +90,21 @@ namespace fs {
     { return device.size() == 0; }
   
     // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
+    // NOTE: Always detects and instantiates a FAT filesystem
     void mount(on_mount_func func);
-  
-    // Mount partition @part as the filesystem FS
+    
+    // Mounts specified partition
+    // NOTE: Always detects and instantiates a FAT filesystem
     void mount(partition_t part, on_mount_func func);
+    
+    // mount custom filesystem on MBR or VBRn
+    template <class T, class... Args>
+    void mount(Args&&... args, partition_t part, on_mount_func func)
+    {
+      // construct custom filesystem
+      filesys.reset(new T(args...));
+      internal_mount(part, func);
+    }
   
     /**
      *  Returns a vector of the partitions on a disk
@@ -105,6 +114,8 @@ namespace fs {
     void partitions(on_parts_func func);
   
   private:
+    void internal_mount(partition_t part, on_mount_func func);
+    
     hw::IDiskDevice& device;
     std::unique_ptr<FileSystem> filesys;
   }; //< class Disk

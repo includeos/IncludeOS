@@ -38,69 +38,69 @@ void Service::start()
 
   // auto-mount filesystem
   disk->mount(
-              [disk] (fs::error_t err)
-              {
-                CHECKSERT(!err, "Filesystem auto-mounted");
+  [disk] (fs::error_t err)
+  {
+    CHECKSERT(!err, "Filesystem auto-mounted");
 
-                auto& fs = disk->fs();
-                printf("\t\t%s filesystem\n", fs.name().c_str());
+    auto& fs = disk->fs();
+    printf("\t\t%s filesystem\n", fs.name().c_str());
 
-                auto vec = fs::new_shared_vector();
-                err = fs.ls("/", vec);
-                CHECKSERT(!err, "List root directory");
+    auto vec = fs::new_shared_vector();
+    err = fs.ls("/", vec);
+    CHECKSERT(!err, "List root directory");
 
-                CHECKSERT(vec->size() == 1, "Exactly one ent in root dir");
+    CHECKSERT(vec->size() == 1, "Exactly one ent in root dir");
 
-                auto& e = vec->at(0);
-                CHECKSERT(e.is_file(), "Ent is a file");
-                CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
+    auto& e = vec->at(0);
+    CHECKSERT(e.is_file(), "Ent is a file");
+    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
-              });
+  });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
-              [disk] (fs::error_t err)
-              {
-                CHECKSERT(!err, "Filesystem mounted on VBR1");
+  [disk] (fs::error_t err)
+  {
+    CHECKSERT(!err, "Filesystem mounted on VBR1");
 
-                // verify that we can read file
-                auto& fs = disk->fs();
-                auto ent = fs.stat("/banana.txt");
-                CHECKSERT(ent.is_valid(), "Stat file in root dir");
-                CHECKSERT(ent.is_file(), "Entity is file");
-                CHECKSERT(!ent.is_dir(), "Entity is not directory");
-                CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    // verify that we can read file
+    auto& fs = disk->fs();
+    auto ent = fs.stat("/banana.txt");
+    CHECKSERT(ent.is_valid(), "Stat file in root dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
 
-                printf("%s\n", internal_banana.c_str());
+    printf("%s\n", internal_banana.c_str());
 
-                // try reading banana-file
-                auto buf = fs.read(ent, 0, ent.size);
-                auto banana = buf.to_string();
+    // try reading banana-file
+    auto buf = fs.read(ent, 0, ent.size);
+    auto banana = buf.to_string();
 
-                CHECKSERT(banana == internal_banana, "Correct banana #1");
+    CHECKSERT(banana == internal_banana, "Correct banana #1");
 
-                bool test = true;
+    bool test = true;
 
-                for (size_t i = 0; i < internal_banana.size(); i++)
-                  {
-                    // read one byte at a time
-                    buf = fs.read(ent, i, 1);
-                    /// @buf should evaluate to 'true' if its valid
-                    CHECKSERT(buf, "Validate buffer");
+    for (size_t i = 0; i < internal_banana.size(); i++)
+      {
+        // read one byte at a time
+        buf = fs.read(ent, i, 1);
+        /// @buf should evaluate to 'true' if its valid
+        CHECKSERT(buf, "Validate buffer");
 
-                    // verify that it matches the same location in test-string
-                    test = ((char) buf.buffer.get()[0] == internal_banana[i]);
-                    if (!test)
-                      {
-                        printf("!! Random access read test failed on i = %u\n", i);
-                        break;
-                      }
-                  }
-                CHECKSERT(test, "Validate random access sync read");
+        // verify that it matches the same location in test-string
+        test = ((char) buf.buffer.get()[0] == internal_banana[i]);
+        if (!test)
+          {
+            printf("!! Random access read test failed on i = %u\n", i);
+            break;
+          }
+      }
+    CHECKSERT(test, "Validate random access sync read");
 
-                buf = fs.readFile("/banana.txt");
-                banana = buf.to_string();
-                CHECKSERT(banana == internal_banana, "Correct banana #2");
-              });
+    buf = fs.readFile("/banana.txt");
+    banana = buf.to_string();
+    CHECKSERT(banana == internal_banana, "Correct banana #2");
+  });
 
   INFO("FAT16", "SUCCESS");
 }
