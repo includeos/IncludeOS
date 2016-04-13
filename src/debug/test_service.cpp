@@ -17,7 +17,6 @@
 
 #include <os>
 #include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
 #include "ircd.hpp"
 
 using namespace std::chrono;
@@ -31,10 +30,10 @@ void Service::start()
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
-                       {{ 10,0,0,42 }},      // IP
-                       {{ 255,255,255,0 }},  // Netmask
-                       {{ 10,0,0,1 }},       // Gateway
-                       {{ 8,8,8,8 }} );      // DNS
+    {{ 10,0,0,42 }},      // IP
+    {{ 255,255,255,0 }},  // Netmask
+    {{ 10,0,0,1 }},       // Gateway
+    {{ 8,8,8,8 }} );      // DNS
 
   /*
     auto& tcp = inet->tcp();
@@ -72,41 +71,42 @@ void Service::start()
     });
     });*/
 
+  
   using namespace net;
   const UDP::port_t port = 4242;
   auto& sock = inet->udp().bind(port);
-
+  
   sock.on_read(
-               [&sock] (UDP::addr_t addr, UDP::port_t port,
-                        const char* data, size_t len)
-               {
-                 std::string strdata(data, len);
-                 CHECK(1, "Getting UDP data from %s:%d -> %s",
-                       addr.str().c_str(), port, strdata.c_str());
-                 // send the same thing right back!
-                 sock.sendto(addr, port, data, len,
-                             [&sock, addr, port]
-                             {
-                               // print this message once
-                               printf("*** Starting spam (you should see this once)\n");
-
-                               typedef std::function<void()> rnd_gen_t;
-                               auto next = std::make_shared<rnd_gen_t> ();
-
-                               *next =
-                                 [next, &sock, addr, port] ()
-                                 {
-                                   // spam this message at max speed
-                                   std::string text("Spamorino Cappucino\n");
-
-                                   sock.sendto(addr, port, text.data(), text.size(),
-                                               [next] { (*next)(); });
-                                 };
-
-                               // start spamming
-                               (*next)();
-                             });
-               });
+  [&sock] (UDP::addr_t addr, UDP::port_t port,
+          const char* data, size_t len)
+  {
+    std::string strdata(data, len);
+    CHECK(1, "Getting UDP data from %s:%d -> %s",
+          addr.str().c_str(), port, strdata.c_str());
+    // send the same thing right back!
+    sock.sendto(addr, port, data, len,
+    [&sock, addr, port]
+    {
+      // print this message once
+      printf("*** Starting spam (you should see this once)\n");
+      
+      typedef std::function<void()> rnd_gen_t;
+      auto next = std::make_shared<rnd_gen_t> ();
+      
+      *next =
+      [next, &sock, addr, port] ()
+      {
+        // spam this message at max speed
+        std::string text("Spamorino Cappucino\n");
+        
+        sock.sendto(addr, port, text.data(), text.size(),
+        [next] { (*next)(); });
+      };
+      
+      // start spamming
+      (*next)();
+    });
+  });
 
   printf("*** TEST SERVICE STARTED *** \n");
 }

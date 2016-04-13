@@ -154,9 +154,30 @@ namespace net
   {
     return (dhcp_option_t*) option;
   }
-
-  void DHClient::negotiate()
+  
+  DHClient::DHClient(Stack& inet)
+    : stack(inet)
   {
+    config_handler = 
+    [] (Stack&, bool timeout) {
+      if (timeout)
+        INFO("DHCPv4","Negotiation timed out");
+      else
+        INFO("DHCPv4","Config complete");
+    };
+  }
+  
+  void DHClient::negotiate(double timeout_secs)
+  {
+    // set timeout handler
+    this->timeout = hw::PIT::instance().on_timeout(timeout_secs, 
+    [this] {
+      // reset session ID
+      this->xid = 0;
+      // call on_config with timeout = true
+      this->config_handler(stack, true);
+    });
+    
     // create a random session ID
     this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
     MYINFO("Negotiating IP-address (xid=%u)", xid);
@@ -220,17 +241,17 @@ namespace net
     socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
-                   [this, &socket] (IP4::addr, UDP::port_t port,
-                                    const char* data, size_t len)
-                   {
-                     if (port == DHCP_DEST_PORT)
-                       {
-                         // we have got a DHCP Offer
-                         debug("Received possible DHCP OFFER from %s:%d\n",
-                               addr.str().c_str(), DHCP_DEST_PORT);
-                         this->offer(socket, data, len);
-                       }
-                   });
+    [this, &socket] (IP4::addr, UDP::port_t port,
+                     const char* data, size_t len)
+    {
+     if (port == DHCP_DEST_PORT)
+       {
+         // we have got a DHCP Offer
+         debug("Received possible DHCP OFFER from %s:%d\n",
+               addr.str().c_str(), DHCP_DEST_PORT);
+         this->offer(socket, data, len);
+       }
+    });
   }
 
   const dhcp_option_t* get_option(const uint8_t* options, uint8_t code)
@@ -437,7 +458,9 @@ namespace net
     MYINFO("Server acknowledged our request!");
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);
+    // stop timeout from happening
+    hw::PIT::stop(timeout);
     // run some post-DHCP event to release the hounds
-    this->config_handler(stack);
+    this->config_handler(stack, false);
   }
 }

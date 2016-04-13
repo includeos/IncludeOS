@@ -26,15 +26,15 @@
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
+#include "ip4/icmpv4.hpp"
 #include "dns/client.hpp"
 #include "tcp.hpp"
-#include "dhcp/dh4client.hpp"
 #include <vector>
-
-#include "ip4/icmpv4.hpp"
 
 namespace net {
 
+  class DHClient;
+  
   /** A complete IP4 network stack */
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
@@ -65,7 +65,7 @@ namespace net {
     UDP& udp() override { return udp_; }
 
     /** Get the DHCP client (if any) */
-    inline std::shared_ptr<DHClient> dhclient() override { return dhcp_;  }
+    auto dhclient() { return dhcp_;  }
 
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.

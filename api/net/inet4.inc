@@ -1,6 +1,7 @@
 //-*- C++ -*-
 #define DEBUG
 #include <os>
+#include "dhcp/dh4client.hpp"
 
 namespace net
 {
@@ -25,7 +26,7 @@ namespace net
     /** Upstream wiring  */
     // Packets available
     nic.on_transmit_queue_available(
-                                    transmit_avail_delg::from<Inet4<T>, &Inet4<T>::process_sendq>(*this));
+      transmit_avail_delg::from<Inet4<T>, &Inet4<T>::process_sendq>(*this));
 
     // Phys -> Eth (Later, this will be passed through router)
     nic.set_linklayer_out(eth_bottom);
@@ -82,7 +83,8 @@ namespace net
   {
     INFO("Inet4","Applying DHCP client");
     dhcp_ = std::make_shared<DHClient>(*this);
-    dhcp_->negotiate();
+    // 2 second timeout for DHCP-server negotation
+    dhcp_->negotiate(2.0);
   }
 
   template <typename T>

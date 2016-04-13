@@ -19,8 +19,8 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
+#include <hw/pit.hpp>
 #include "../packet.hpp"
-#include <info>
 
 namespace net
 {
@@ -33,28 +33,31 @@ namespace net
   {
   public:
     using Stack = Inet<LinkLayer, IP4>;
-    using On_config = delegate<void(Stack&)>;
+    using config_func = delegate<void(Stack&, bool)>;
     
     DHClient() = delete;
     DHClient(DHClient&) = delete;
-    DHClient(Stack& inet)
-      : stack(inet)  {}
+    DHClient(Stack& inet);
     
-    Stack& stack;
-    void negotiate(); // --> offer
-    inline void on_config(On_config handler){
-      config_handler = handler;
-    }
+    // negotiate with local DHCP server
+    void negotiate(double timeout_secs);
+    
+    // handler for result of DHCP negotation
+    // timeout is true if the negotiation timed out
+    void on_config(config_func handler)
+    {  config_handler = handler;  }
     
   private:
     void offer(UDPSocket&, const char* data, size_t len);
     void request(UDPSocket&);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
     
-    uint32_t  xid;
-    IP4::addr ipaddr, netmask, router, dns_server;
-    uint32_t  lease_time;
-    On_config config_handler = [](Stack&){ INFO("DHCPv4::On_config","Config complete"); };
+    Stack& stack;
+    uint32_t    xid;
+    IP4::addr   ipaddr, netmask, router, dns_server;
+    uint32_t    lease_time;
+    config_func config_handler;
+    hw::PIT::Timer_iterator timeout;
   };
 }
 
