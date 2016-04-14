@@ -1,0 +1,6 @@
+{
+  "image" : "test_UDP.img",
+  "drives" : [{"file":"test.txt", "type" :"virtio"}],
+  "cpu"   : "host",
+  "mem"   : 256
+}
