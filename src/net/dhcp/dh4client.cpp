@@ -154,12 +154,37 @@ namespace net
   {
     return (dhcp_option_t*) option;
   }
-
-  void DHClient::negotiate()
+  
+  DHClient::DHClient(Stack& inet)
+    : stack(inet), xid(0), console_spam(true)
   {
+    config_handler = 
+    [this] (bool timeout) {
+      if (console_spam)
+      {
+        if (timeout)
+          INFO("DHCPv4","Negotiation timed out");
+        else
+          INFO("DHCPv4","Config complete");
+      }
+    };
+  }
+  
+  void DHClient::negotiate(double timeout_secs)
+  {
+    // set timeout handler
+    this->timeout = hw::PIT::instance().on_timeout(timeout_secs, 
+    [this] {
+      // reset session ID
+      this->xid = 0;
+      // call on_config with timeout = true
+      this->config_handler(true);
+    });
+    
     // create a random session ID
     this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
-    MYINFO("Negotiating IP-address (xid=%u)", xid);
+    if (console_spam)
+      MYINFO("Negotiating IP-address (xid=%u)", xid);
 
     // create DHCP discover packet
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -220,17 +245,17 @@ namespace net
     socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
-                   [this, &socket] (IP4::addr, UDP::port_t port,
-                                    const char* data, size_t len)
-                   {
-                     if (port == DHCP_DEST_PORT)
-                       {
-                         // we have got a DHCP Offer
-                         debug("Received possible DHCP OFFER from %s:%d\n",
-                               addr.str().c_str(), DHCP_DEST_PORT);
-                         this->offer(socket, data, len);
-                       }
-                   });
+    [this, &socket] (IP4::addr, UDP::port_t port,
+                     const char* data, size_t len)
+    {
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have got a DHCP Offer
+        debug("Received possible DHCP OFFER from %s:%d\n",
+              addr.str().c_str(), DHCP_DEST_PORT);
+        this->offer(socket, data, len);
+      }
+    });
   }
 
   const dhcp_option_t* get_option(const uint8_t* options, uint8_t code)
@@ -257,70 +282,72 @@ namespace net
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
 
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
-      {
-        // verify that the type is indeed DHCPOFFER
-        debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
-              opt->val[0], DHCPOFFER);
-
-        // ignore when not a DHCP Offer
-        if (opt->val[0] != DHCPOFFER) return;
-      }
+    {
+      // verify that the type is indeed DHCPOFFER
+      debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
+            opt->val[0], DHCPOFFER);
+      
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPOFFER) return;
+    }
     // ignore message when DHCP message type is missing
     else return;
 
     // the offered IP address:
     this->ipaddr = dhcp->yiaddr;
-    MYINFO("IP ADDRESS: \t%s",
-           this->ipaddr.str().c_str());
-
+    if (console_spam)
+      MYINFO("IP ADDRESS: \t%s", this->ipaddr.str().c_str());
+    
     opt = get_option(dhcp->options, DHO_SUBNET_MASK);
     if (opt->code == DHO_SUBNET_MASK)
-      {
-        memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
-        MYINFO("SUBNET MASK: \t%s",
-               this->netmask.str().c_str());
-      }
-
+    {
+      memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
+      if (console_spam)
+        MYINFO("SUBNET MASK: \t%s", this->netmask.str().c_str());
+    }
+    
     opt = get_option(dhcp->options, DHO_DHCP_LEASE_TIME);
     if (opt->code == DHO_DHCP_LEASE_TIME)
-      {
-        memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
+    {
+      memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
+      if (console_spam)
         MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
-      }
-
+    }
+    
     // now validate the offer, checking for minimum information
     opt = get_option(dhcp->options, DHO_ROUTERS);
     if (opt->code == DHO_ROUTERS)
-      {
-        memcpy(&this->router, opt->val, sizeof(IP4::addr));
-        MYINFO("GATEWAY: \t%s",
-               this->router.str().c_str());
-      }
+    {
+      memcpy(&this->router, opt->val, sizeof(IP4::addr));
+      if (console_spam)
+        MYINFO("GATEWAY: \t%s", this->router.str().c_str());
+    }
     // assume that the server we received the request from is the gateway
     else
+    {
+      opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
+      if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
       {
-        opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
-        if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
-          {
-            memcpy(&this->router, opt->val, sizeof(IP4::addr));
-            MYINFO("GATEWAY: \t%s",
-                   this->router.str().c_str());
-          }
-        // silently ignore when both ROUTER and SERVER_ID is missing
-        else return;
+        memcpy(&this->router, opt->val, sizeof(IP4::addr));
+        if (console_spam)
+          MYINFO("GATEWAY: \t%s", this->router.str().c_str());
       }
-
+      // silently ignore when both ROUTER and SERVER_ID is missing
+      else return;
+    }
+    
     opt = get_option(dhcp->options, DHO_DOMAIN_NAME_SERVERS);
     if (opt->code == DHO_DOMAIN_NAME_SERVERS)
-      {
-        memcpy(&this->dns_server, opt->val, sizeof(IP4::addr));
-      }
+    {
+      memcpy(&this->dns_server, opt->val, sizeof(IP4::addr));
+    }
     else
-      { // just try using ROUTER as DNS server
-        this->dns_server = this->router;
-      }
-    MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
-
+    { // just try using ROUTER as DNS server
+      this->dns_server = this->router;
+    }
+    if (console_spam)
+      MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
+    
     // we can accept the offer now by requesting the IP!
     this->request(sock);
   }
@@ -393,18 +420,18 @@ namespace net
 
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.on_read(
-                 [this] (IP4::addr, UDP::port_t port,
-                         const char* data, size_t len)
-                 {
-                   if (port == DHCP_DEST_PORT)
-                     {
-                       // we have hopefully got a DHCP Ack
-                       debug("\tReceived DHCP ACK from %s:%d\n",
-                             addr.str().c_str(), DHCP_DEST_PORT);
-                       this->acknowledge(data, len);
-                     }
-                 });
-
+    [this] (IP4::addr, UDP::port_t port,
+            const char* data, size_t len)
+    {
+      if (port == DHCP_DEST_PORT)
+      {
+        // we have hopefully got a DHCP Ack
+        debug("\tReceived DHCP ACK from %s:%d\n",
+              addr.str().c_str(), DHCP_DEST_PORT);
+        this->acknowledge(data, len);
+      }
+    });
+    
     // send our DHCP Request
     sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
@@ -422,22 +449,25 @@ namespace net
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
 
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
-      {
-        // verify that the type is indeed DHCPOFFER
-        debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
-              opt->val[0], DHCPACK);
-
-        // ignore when not a DHCP Offer
-        if (opt->val[0] != DHCPACK) return;
-      }
+    {
+      // verify that the type is indeed DHCPOFFER
+      debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+            opt->val[0], DHCPACK);
+      // ignore when not a DHCP Offer
+      if (opt->val[0] != DHCPACK) return;
+    }
     // ignore message when DHCP message type is missing
     else return;
 
+    if (console_spam)
+      MYINFO("Server acknowledged our request!");
+    
     // configure our network stack
-    MYINFO("Server acknowledged our request!");
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);
+    // stop timeout from happening
+    hw::PIT::stop(timeout);
     // run some post-DHCP event to release the hounds
-    this->config_handler(stack);
+    this->config_handler(false);
   }
 }
