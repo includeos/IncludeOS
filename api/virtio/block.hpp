@@ -79,7 +79,7 @@ private:
     uint8_t alignment_offset;    // Alignment offset in logical blocks
     uint16_t min_io_size;        // Minimum I/O size without performance penalty in logical blocks
     uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks    
-  } __attribute__((packed));
+  };
   
   struct scsi_header_t
   {
