@@ -54,4 +54,6 @@
 #include "warn"
 #include "info"
 
+#include <gsl.h>
+
 #endif

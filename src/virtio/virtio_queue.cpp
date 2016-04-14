@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Allow debug
+#define DEBUG // Allow debug
 //#define DEBUG2
 
 #include <os>
@@ -40,7 +40,7 @@ unsigned Virtio::Queue::virtq_size(unsigned int qsz)
 
 void Virtio::Queue::init_queue(int size, void* buf){
 
-  // The buffer starts with is an array of queue descriptors
+  // The buffer starts with is an array of queue descriptors (i.e. tokens)
   _queue.desc = (virtq_desc*)buf;
   debug("\t * Queue desc  @ 0x%lx \n ",(long)_queue.desc);
 
@@ -70,7 +70,7 @@ int empty_handler(uint8_t* UNUSED(data),int UNUSED(size)) {
 
 /** Constructor */
 Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
-  : _size(size),_size_bytes(virtq_size(size)),_iobase(iobase),_num_free(size),
+  : _size(size),_size_bytes(virtq_size(size)),_iobase(iobase),
     _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index),
     _data_handler(delegate<int(uint8_t*,int)>(empty_handler))
 {
@@ -91,196 +91,44 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 }
 
 
+
 /** Ported more or less directly from SanOS. */
-int Virtio::Queue::enqueue(scatterlist sg[], uint32_t out, uint32_t in, void* UNUSED(data)){
+int Virtio::Queue::enqueue(gsl::span<Token> buffers, bool out){
+  debug ("Enqueuing %i tokens \n", buffers.size());
+  Expects(_free_head >= 0);
+  Expects(_free_head < size());
+  Expects(_num_added + 1 > _num_added);
 
-  uint16_t i,avail,head, prev = _free_head;
+  uint16_t last = _free_head;
+  uint16_t first = _free_head;
+  // Place each buffer in a token
+  for( auto buf : buffers )  {
+    debug (" buf @ %p \n", buffers.data());
 
+    // Set read / write flags
+    _queue.desc[_free_head].flags =
+      out ? VIRTQ_DESC_F_NEXT : VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
 
-  while (_num_free < out + in){ // Queue is full (we think)
-    //while( num_avail() >= _size) // Wait for Virtio
-    printf("<Q %i>Buffer full (%i avail,"               \
-           " used.idx: %i, avail.idx: %i )\n",
-           _pci_index,num_avail(),
-           _queue.used->idx,_queue.avail->idx
-           );
-    panic("Buffer full");
+    // Assign raw buffer
+    _queue.desc[_free_head].addr = (uint64_t) buf.data;
+    _queue.desc[_free_head].len = buf.size;
+
+    last = _free_head;
+    _free_head ++;
   }
 
-  // Remove buffers from the free list
-  _num_free -= out + in;
-  head = _free_head;
-
-
-  // (implicitly) Mark all outbound tokens as device-readable
-  for (i = _free_head; out; i = _queue.desc[i].next, out--)
-    {
-      _queue.desc[i].flags = VIRTQ_DESC_F_NEXT;
-      _queue.desc[i].addr = (uint64_t)sg->data;
-      _queue.desc[i].len = sg->size;
-
-      debug("<Q %i> Enqueueing outbound: index %i len %li, next %i\n",
-            _pci_index,i,_queue.desc[i].len,_queue.desc[i].next);
-
-      prev = i;
-      sg++;
-    }
-
-  // Mark all inbound tokens as device-writable
-  for (; in; i = _queue.desc[i].next, in--)
-    {
-      debug("<Q> Enqueuing inbound \n");
-      _queue.desc[i].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-      _queue.desc[i].addr = (uint64_t)sg->data;
-      _queue.desc[i].len = sg->size;
-      prev = i;
-      sg++;
-    }
-
   // No continue on last buffer
-  _queue.desc[prev].flags &= ~VIRTQ_DESC_F_NEXT;
+  _queue.desc[last].flags &= ~VIRTQ_DESC_F_NEXT;
 
+  // Place the head of this current chain in the avail ring
+  uint16_t avail_index = (_queue.avail->idx + _num_added++) % _size;
+  _queue.avail->ring[avail_index] = first;
 
-  // Update free pointer
-  _free_head = i;
+  debug("<Q %i> avail_index: %i size: %i, _free_head %i \n",
+        _pci_index, avail_index, size(), _free_head );
 
-  // Set callback token
-  //vq->data[head] = data;
-
-  // SanOS: Put entry in available array, but do not update avail->idx until sync
-  avail = (_queue.avail->idx + _num_added++) % _size;
-  _queue.avail->ring[avail] = head;
-  debug("<Q %i> avail: %i \n",_pci_index,avail);
-
-  // Notify about free buffers
-  //if (_num_free > 0) set_event(&vq->bufavail);
-
-  return _num_free;
-}
-void Virtio::Queue::enqueue(
-                            void*    out,
-                            uint32_t out_len,
-                            void*    in,
-                            uint32_t in_len)
-{
-  int total = (out) ? 1 : 0;
-  total += (in) ? 1 : 0;
-
-  printf("enqueue total: %d\n", total);
-
-  if (_num_free < total)
-    {
-      // Queue is full (we think)
-      printf("<Q %i>Buffer full (%i avail,"               \
-             " used.idx: %i, avail.idx: %i )\n",
-             _pci_index, num_avail(),
-             _queue.used->idx,_queue.avail->idx
-             );
-      panic("Buffer full");
-    }
-
-  // Remove buffers from the free list
-  _num_free -= total;
-  // remember current head for later
-  uint16_t head = _free_head;
-  // the last buffer in queue
-  virtq_desc* last = nullptr;
-
-  // (implicitly) Mark all outbound tokens as device-readable
-  if (out)
-    {
-      current().flags = VIRTQ_DESC_F_NEXT;
-      current().addr = (intptr_t) out;
-      current().len = out_len;
-
-      printf("<Q %d> Enqueueing outbound: index %u len %u (actual: %u), next %d\n",
-             _pci_index, head, current().len, out_len, current().next);
-
-      last = &current();
-      // go to next
-      go_next();
-    }
-
-  // Mark all inbound tokens as device-writable
-  if (in)
-    {
-      printf("<Q> Enqueuing inbound \n");
-      current().flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-      current().addr = (intptr_t) in;
-      current().len = in_len;
-
-      last = &current();
-      // go to next
-      go_next();
-    }
-
-  // No continue on last buffer
-  last->flags &= ~VIRTQ_DESC_F_NEXT;
-
-  // SanOS: Put entry in available array, but do not update avail->idx until sync
-  uint16_t avail = (_queue.avail->idx + _num_added++) % _size;
-  _queue.avail->ring[avail] = head;
-  debug("<Q%u> avail: %u\n", _pci_index, avail);
-}
-void Virtio::Queue::enqueue(void* data, uint32_t len, bool out, bool last)
-{
-  if (_num_free < 1)
-    {
-      // Queue is full (we think)
-      printf("<Q %i>Buffer full (%i avail,"               \
-             " used.idx: %i, avail.idx: %i )\n",
-             _pci_index, num_avail(),
-             _queue.used->idx,_queue.avail->idx
-             );
-      panic("Buffer full");
-    }
-
-  // Remove buffers from the free list
-  _num_free -= 1;
-  // remember current head for later
-  uint16_t head = _free_head;
-  // No continue on last buffer
-  uint16_t flags = last ? 0 : VIRTQ_DESC_F_NEXT;
-  // WRITE for inbound
-  current().flags = flags | (out ? 0 : VIRTQ_DESC_F_WRITE);
-  current().addr = (intptr_t) data;
-  current().len = len;
-
-  if (out)
-    printf("<Q %d> Enqueueing outbound: %p index %u len %u (actual: %u), next %d\n",
-           _pci_index, data, head, current().len, len, current().next);
-  else
-    printf("<Q %d> Enqueueing inbound: %p index %u len %u (actual: %u), next %d\n",
-           _pci_index, data, head, current().len, len, current().next);
-
-  // go to next in ring
-  go_next();
-
-  // SanOS: Put entry in available array, but do not update avail->idx until sync
-  uint16_t avail = (_queue.avail->idx + _num_added++) % _size;
-  _queue.avail->ring[avail] = head;
-}
-void* Virtio::Queue::dequeue(uint32_t& len)
-{
-  // Return NULL if there are no more completed buffers in the queue
-  if (_last_used_idx == _queue.used->idx)
-    {
-      debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-      return nullptr;
-    }
-
-  // Get next completed buffer
-  auto& e = _queue.used->ring[_last_used_idx % _size];
-
-  printf("<Q %i> Releasing token %u. Len: %u\n",_pci_index, e.id, e.len);
-  void* data = (void*) _queue.desc[e.id].addr;
-  len = e.len;
-
-  // Release buffer
-  release(e.id);
-  _last_used_idx++;
-
-  return data;
+  Ensures(_free_head <= size());
+  return buffers.size();
 }
 
 void Virtio::Queue::release(uint32_t head)
@@ -288,15 +136,9 @@ void Virtio::Queue::release(uint32_t head)
   // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
 
-  //It's at least one token...
-  _num_free++;
-
-  //...possibly with a tail
-
   while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT)
     {
       i = _queue.desc[i].next;
-      _num_free++;
     }
 
   // Add buffers back to free list
@@ -342,15 +184,8 @@ void Virtio::Queue::enable_interrupts(){
 }
 
 void Virtio::Queue::kick(){
-  //__sync_synchronize ();
 
-  // Atomically increment (maybe not necessary?)
-  //__sync_add_and_fetch(&(_queue.avail->idx),_num_added);
-  _queue.avail->idx += _num_added;
-  //__sync_synchronize ();
-
-  _num_added = 0;
-
+  update_avail_idx();
 
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
