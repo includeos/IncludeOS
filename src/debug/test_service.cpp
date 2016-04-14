@@ -36,11 +36,11 @@ void Service::start()
     {{ 8,8,8,8 }} );      // DNS
 
   /*
-    auto& tcp = inet->tcp();
-    auto& server = tcp.bind(6667); // IRCd default port
-    server.onConnect(
-    [] (auto csock)
-    {
+  auto& tcp = inet->tcp();
+  auto& server = tcp.bind(6667); // IRCd default port
+  server.onConnect(
+  [] (auto csock)
+  {
     printf("*** Received connection from %s\n",
     csock->remote().to_string().c_str());
 
@@ -69,13 +69,19 @@ void Service::start()
     /// inform others about disconnect
     //client.bcast(TK_QUIT, "Disconnected");
     });
-    });*/
-
+  });*/
+  
+  inet->dhclient()->set_silent(true);
   
   inet->on_config(
   [] (bool timeout)
   {
-    printf("Inet::on_config(%d)\n", timeout);
+    if (timeout)
+      printf("Inet::on_config: Timeout\n");
+    else
+      printf("Inet::on_config: DHCP Server acknowledged our request!\n");
+    printf("Service IP address: %s, router: %s\n", 
+      inet->ip_addr().str().c_str(), inet->router().str().c_str());
     
     using namespace net;
     const UDP::port_t port = 4242;

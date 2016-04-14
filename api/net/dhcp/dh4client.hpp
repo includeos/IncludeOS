@@ -47,6 +47,10 @@ namespace net
     void on_config(config_func handler)
     {  config_handler = handler;  }
     
+    // disable or enable console spam
+    void set_silent(bool sil)
+    { this->console_spam = !sil; }
+    
   private:
     void offer(UDPSocket&, const char* data, size_t len);
     void request(UDPSocket&);   // --> acknowledge
@@ -58,6 +62,7 @@ namespace net
     uint32_t    lease_time;
     config_func config_handler;
     hw::PIT::Timer_iterator timeout;
+    bool  console_spam;
   };
 }
 
