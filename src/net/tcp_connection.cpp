@@ -119,7 +119,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
 bool Connection::offer(size_t& packets) {
   assert(packets);
   debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
-    to_string().c_str(), packets, usable_window());
+        to_string().c_str(), packets, usable_window());
 
   while(has_doable_job() and packets) {
     auto& buf = write_queue.front().first;
@@ -128,7 +128,7 @@ bool Connection::offer(size_t& packets) {
     // advance the buffer
     buf.advance(written);
     debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %i.\n",
-      written, buf.remaining, packets, usable_window());
+           written, buf.remaining, packets, usable_window());
     // if finished
     if(!buf.remaining) {
       // callback and remove object
@@ -139,7 +139,7 @@ bool Connection::offer(size_t& packets) {
   }
   assert(packets >= 0);
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
-    packets, write_queue.size(), usable_window());
+        packets, write_queue.size(), usable_window());
   return !has_doable_job();
 }
 
@@ -311,6 +311,7 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rt_start();
 }
 
+<<<<<<< HEAD
 
 /*
   As specified in [RFC3390], the SYN/ACK and the acknowledgment of the
@@ -584,4 +585,3 @@ void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
     break;
   }
 }
-

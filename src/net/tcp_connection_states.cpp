@@ -130,8 +130,8 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
     }
     std::stringstream ss;
     ss << "Unacceptable SEQ: "
-      << "[Packet: SEQ: " << in->seq() << " LEN: " << in->data_length() << "] "
-      << "[TCB: RCV.NXT: " << tcb.RCV.NXT << " RCV.WND: " << tcb.RCV.WND << "]";
+       << "[Packet: SEQ: " << in->seq() << " LEN: " << in->data_length() << "] "
+       << "[TCB: RCV.NXT: " << tcb.RCV.NXT << " RCV.WND: " << tcb.RCV.WND << "]";
 
     tcp.drop(in, ss.str());
     return false;
@@ -381,7 +381,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
     // If no outgoing data right now - reply with ACK.
     else {
       debug2("<TCP::Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
-        tcp.usable_window(), tcp.write_queue.size(), tcp.is_queued() ? "true" : "false");
+             tcp.usable_window(), tcp.write_queue.size(), tcp.is_queued() ? "true" : "false");
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
       tcp.transmit(packet);

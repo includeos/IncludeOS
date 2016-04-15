@@ -15,6 +15,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/**
+ * /// Create basic FAT disk ///
+ * 
+ * // create disk from a given disk-device
+ * auto disk = std::make_shared<Disk> (device);
+ * // mount filesystem on auto-detected volume
+ * disk->mount(
+ * [disk] (fs::error_t err) {
+ *   if (err) {
+ *     printf("Bad!\n");
+ *     return;
+ *   }
+ *   // reference to filesystem
+ *   auto& fs = disk->fs();
+ *   // synchronous stat:
+ *   auto dirent = fs.stat("/file");
+ * });
+ * 
+ * /// Construct custom filesystem ///
+ * 
+ * // constructing on MBR means mount on sector 0
+ * disk->mount<MyFileSystem>(filesystem_args..., Disk::MBR, 
+ * [disk] {
+ *   printf("Disk mounted!\n");
+ *   auto& fs = disk->fs();
+ *   
+ *   auto dirent = fs.stat("/file");
+ * });
+ * 
+**/
+
 #pragma once
 #ifndef FS_DISK_HPP
 #define FS_DISK_HPP
@@ -31,30 +62,25 @@ namespace fs {
 
   class Disk {
   public:
-    struct Partition; //< Representation of a disk partition
-
-    /** Callbacks */
+    struct Partition;
     using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
     using on_mount_func = std::function<void(error_t)>;
+    using lba_t = uint32_t;
   
-    /** Constructor */
-    explicit Disk(hw::IDiskDevice&);
-
     enum partition_t {
       MBR = 0, //< Master Boot Record (0)
-      /** extended partitions (1-4) */
-      VBR1,
+      VBR1,   //> extended partitions (1-4)
       VBR2,
       VBR3,
       VBR4,
-    
+      
       INVALID
-    }; //<  enum partition_t
-  
+    };
+    
     struct Partition {
       explicit Partition(const uint8_t  fl,  const uint8_t  Id,
-                         const uint32_t LBA, const uint32_t sz) noexcept :
-        flags     {fl},
+                         const uint32_t LBA, const uint32_t sz) noexcept
+      : flags     {fl},
         id        {Id},
         lba_begin {LBA},
         sectors   {sz}
@@ -78,33 +104,52 @@ namespace fs {
     
     }; //< struct Partition
   
-    /** Return a reference to the specified filesystem <FS> */
-    FileSystem& fs() noexcept
-    { return *filesys; }
-  
     //************** disk functions **************//
   
+    // construct a disk with a given disk-device
+    explicit Disk(hw::IDiskDevice&);
+    
+    // returns the device the disk is using
     hw::IDiskDevice& dev() noexcept
     { return device; }
-  
+    
     // Returns true if the disk has no sectors
     bool empty() const noexcept
     { return device.size() == 0; }
   
     // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
+    // NOTE: Always detects and instantiates a FAT filesystem
     void mount(on_mount_func func);
-  
-    // Mount partition @part as the filesystem FS
+    
+    // Mounts specified partition
+    // NOTE: Always detects and instantiates a FAT filesystem
     void mount(partition_t part, on_mount_func func);
+    
+    // mount custom filesystem on MBR or VBRn
+    template <class T, class... Args>
+    void mount(Args&&... args, partition_t part, on_mount_func func)
+    {
+      // construct custom filesystem
+      filesys.reset(new T(args...));
+      internal_mount(part, func);
+    }
   
-    /**
-     *  Returns a vector of the partitions on a disk
-     *
-     *  The disk does not need to be mounted beforehand
-     */
+    // Creates a vector of the partitions on disk (see: on_parts_func)
+    // Note: The disk does not need to be mounted beforehand
     void partitions(on_parts_func func);
-  
+    
+    // returns true if a filesystem is mounted
+    bool fs_mounted() const noexcept
+    { return (bool) filesys; }
+    
+    // Returns a reference to a mounted filesystem
+    // If no filesystem is mounted, the results are undefined
+    FileSystem& fs() noexcept
+    { return *filesys; }
+    
   private:
+    void internal_mount(partition_t part, on_mount_func func);
+    
     hw::IDiskDevice& device;
     std::unique_ptr<FileSystem> filesys;
   }; //< class Disk

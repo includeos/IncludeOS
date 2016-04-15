@@ -79,30 +79,31 @@ private:
     uint8_t alignment_offset;    // Alignment offset in logical blocks
     uint16_t min_io_size;        // Minimum I/O size without performance penalty in logical blocks
     uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks    
-  } __attribute__((packed));
+  };
   
   struct scsi_header_t
   {
     uint32_t type;
     uint32_t ioprio;
     uint64_t sector;
-    /// SCSI ///
-    //char* cmd = nullptr;
-  } __attribute__((packed));
-  struct blk_data_t
+  };
+  struct blk_resp_t
   {
-    uint8_t sector[512];
-    uint32_t stuff1;
-    on_read_func* handler;
-    uint32_t stuff2;
     uint8_t status;
-  } __attribute__((packed));
+  };
+  
+  struct blk_io_t
+  {
+    uint8_t       sector[512];
+    on_read_func  handler;
+  };
   
   struct request_t
   {
     scsi_header_t hdr;
-    blk_data_t    data;
-  } __attribute__((packed));
+    blk_io_t      io;
+    blk_resp_t    resp;
+  };
   
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();

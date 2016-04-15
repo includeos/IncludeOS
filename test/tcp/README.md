@@ -1,7 +1,8 @@
 # TCP Test
 
 ### Usage:
-` $ python test.py $GUEST_IP $HOST_IP `
+1. Start the TCP test service, with `./test.sh`
+2. Start the python test with `$ python test.py $GUEST_IP $HOST_IP `
 
 Guest and Host IP are optional (default are GUEST=`10.0.0.42` HOST=`10.0.0.1`).
 
@@ -18,7 +19,7 @@ This test is developed on OS X using Virtualbox. Here's an recepie how to try it
 4. Open Virtualbox => TCP_test => Settings => Network
 5. Change *Adapter 1* to use *NAT* => Advanced => Port Forwarding
 6. Add the following rules:
- 
+
 ```
 $ vboxmanage showvminfo TCP_test
 ...

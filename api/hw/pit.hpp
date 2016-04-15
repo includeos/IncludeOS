@@ -97,7 +97,10 @@ namespace hw {
     /** Stop a timer.
         @param it: A valid iterator to timer */
     void stop_timer(Timer_iterator it);
-
+    
+    static void stop(Timer_iterator it)
+    { instance().stop_timer(it); }
+    
     inline size_t active_timers() { return timers_.size(); }
 
     /** No copy or move. The OS owns one instance forever. */

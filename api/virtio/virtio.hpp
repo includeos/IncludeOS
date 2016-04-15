@@ -61,18 +61,18 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
 
-/** A simple scatter-gather list used for Queue::enqueue.
-    ( From sanos, virtio.h  - probably Linux originally)
-*/
-struct scatterlist {
-  void* data;
-  int size;
-};
 
 //#include <class_irq_handler.hpp>
 class Virtio
 {
+
 public:
+  /** A wrapper for buffers to be passed in to the Queue */
+  struct Token {
+    uint8_t* data;
+    size_t size;
+  };
+
   // http://docs.oasis-open.org/virtio/virtio/v1.0/csprd01/virtio-v1.0-csprd01.html#x1-860005
   // Virtio device types
   enum virtiotype_t
@@ -95,13 +95,19 @@ public:
   /** Virtio Queue class. */
   class Queue
   {
-    /** @note Using typedefs in order to keep the standard notation. */
-    typedef uint64_t le64;
-    typedef uint32_t le32;
-    typedef uint16_t le16;
-    typedef uint16_t u16;
-    typedef uint8_t  u8;
 
+  public:
+    // "Direction" of tokens
+    enum Direction { IN, OUT };
+
+  private:
+
+    /** @note Using typedefs in order to keep the standard notation. */
+    using le64 =  uint64_t;
+    using le32 = uint32_t;
+    using le16 = uint16_t;
+    using u16 = uint16_t;
+    using u8 = uint8_t;
 
     /** Virtio Ring Descriptor. Virtio std. §2.4.5  */
     struct virtq_desc {
@@ -154,7 +160,7 @@ public:
 
     /** Virtqueue. Virtio std. §2.4.2 */
     struct virtq {
-      // The actual descriptors (16 bytes each)
+      // The actual descriptors (i.e. tokens) (16 bytes each)
       virtq_desc* desc;// [ /* Queue Size*/  ];
 
       // A ring of available descriptor heads with free-running index.
@@ -180,13 +186,10 @@ public:
     virtq _queue;
 
     uint16_t _iobase = 0; // Device PCI location
-    uint16_t _num_free = 0; // Number of free descriptors
     uint16_t _free_head = 0; // First available descriptor
     uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
     uint16_t _last_used_idx = 0; // Last entry inserted by device
     uint16_t _pci_index = 0; // Queue nr.
-    //void **_data;
-
 
     /** Handler for data coming in on virtq.used. */
     delegate<int(uint8_t* data, int len)> _data_handler;
@@ -195,6 +198,14 @@ public:
     void init_queue(int size, void* buf);
 
   public:
+    /**
+       Update the available index */
+    inline void update_avail_idx ()
+    {
+      _queue.avail->idx += _num_added;
+      _num_added = 0;
+    }
+
     /** Kick hypervisor.
 
         Will notify the host (Qemu/Virtualbox etc.) about pending data  */
@@ -207,14 +218,10 @@ public:
     virtq_desc* queue_desc() const { return _queue.desc; }
 
     /** Push data tokens onto the queue.
-        @param sg : A scatterlist of tokens
-        @param out : The number of outbound tokens (device-readable - TX)
-        @param in : The number of tokens to be inbound (device-writable RX)
+        @param buffers : A span of buffers
+        @param out : true if the buffers are device readable, otherwise false
     */
-    int enqueue(scatterlist sg[], uint32_t out, uint32_t in, void*);
-
-    void enqueue(void* out, uint32_t out_len, void* in, uint32_t in_len);
-    void* dequeue(uint32_t& len);
+    int enqueue(gsl::span<Virtio::Token> buffers, bool out);
 
     /** Dequeue a received packet. From SanOS */
     uint8_t* dequeue(uint32_t* len);
@@ -227,16 +234,19 @@ public:
     /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);
 
-    /** Get number of free tokens in Queue */
-    inline uint16_t num_free(){ return _num_free; }
-
-    /** Get number of new incoming buffers */
-    inline uint16_t new_incoming()
+    /** Get number of new incoming buffers, i.e. the increase in
+        queue_used_->idx since we last checked. An increase means the device
+        has inserted tokens into the used ring.*/
+    uint16_t new_incoming() const noexcept
     { return _queue.used->idx - _last_used_idx; }
 
     /** Get number of used buffers */
-    inline uint16_t num_avail()
+    uint16_t num_used() const noexcept
     { return _queue.avail->idx - _queue.used->idx; }
+
+    /** Get number of free tokens in Queue */
+    uint16_t num_free() const noexcept
+    { return size() - _free_head; }
 
     // access the current index
     virtq_desc& current()
@@ -254,7 +264,10 @@ public:
       _free_head = _queue.desc[_free_head].next;
     }
 
-    inline uint16_t size(){ return _size; }
+    uint16_t size() const noexcept
+    {
+      return _size;
+    }
 
   };
 

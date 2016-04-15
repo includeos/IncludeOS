@@ -85,14 +85,14 @@ void Service::start() {
           // Setup handlers for when data is received on client and python connection
           // When client reads data
           client->read(1024, [python](auto buf, size_t n) {
-            std::string data{ (char*)buf.get(), n };
-            handle_client_on_read(python, data);
+              std::string data{ (char*)buf.get(), n };
+              handle_client_on_read(python, data);
             });
 
           // When python server reads data
           python->read(1024, [client](auto buf, size_t n) {
-            std::string data{ (char*)buf.get(), n };
-            handle_python_on_read(client, data);
+              std::string data{ (char*)buf.get(), n };
+              handle_python_on_read(client, data);
             });
 
           // When client is disconnecting

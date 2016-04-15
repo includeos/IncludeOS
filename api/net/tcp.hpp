@@ -1189,9 +1189,9 @@ namespace net {
         /*
           When the first RTT measurement R is made, the host MUST set
 
-            SRTT <- R
-            RTTVAR <- R/2
-            RTO <- SRTT + max (G, K*RTTVAR)
+          SRTT <- R
+          RTTVAR <- R/2
+          RTO <- SRTT + max (G, K*RTTVAR)
 
           where K = 4.
         */
@@ -1204,8 +1204,8 @@ namespace net {
         /*
           When a subsequent RTT measurement R' is made, a host MUST set
 
-            RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
-            SRTT <- (1 - alpha) * SRTT + alpha * R'
+          RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
+          SRTT <- (1 - alpha) * SRTT + alpha * R'
 
           The value of SRTT used in the update to RTTVAR is its value
           before updating SRTT itself using the second assignment.  That

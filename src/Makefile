@@ -45,7 +45,7 @@ endif
 CCOPTS = -target i686-elf
 CPPOPTS = -target i686-elf
 
-INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api #
+INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
 CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES)
@@ -66,7 +66,6 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		util/memstream.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
-    virtio/block.o virtio/console.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
@@ -74,7 +73,8 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o kernel/vga.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
+		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
+		virtio/block.o # virtio/console.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -100,6 +100,7 @@ stripped: all test
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
+debug-info: CAPABS += -DGSL_THROW_ON_CONTRACT_VIOLATION
 debug-info: all test
 
 # Build with debugging symbols (OBS: Dramatically increases binary size)
@@ -180,6 +181,9 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	# Seed related
 	cp util/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
+	# Eexternal dependencies related
+	mkdir -p $(INSTALL)/mod/
+	cp -r ../mod/GSL $(INSTALL)/mod
 	@echo "\nDone!"
 
 # Makefile recipes

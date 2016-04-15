@@ -159,26 +159,22 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
 };
 
-/** Port-ish from SanOS */
+
 int VirtioNet::add_receive_buffer(){
-  virtio_net_hdr* hdr;
-  scatterlist sg[2];
+
 
   // Virtio Std. § 5.1.6.3
   auto buf = bufstore_.get_raw_buffer();
 
   debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
-  hdr = (virtio_net_hdr*)buf;
+  std::array<Virtio::Token, 2> tokens;
+  tokens[0].data = buf;
+  tokens[0].size = sizeof(virtio_net_hdr);
+  tokens[1].data = buf + sizeof(virtio_net_hdr);
+  tokens[1].size = bufsize() - sizeof(virtio_net_hdr);
 
-  sg[0].data = hdr;
-
-  //NOTE: using separate empty header doesn't work for RX, but it works for TX...
-  //sg[0].data = (void*)&empty_header;
-  sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = buf + sizeof(virtio_net_hdr);
-  sg[1].size = bufsize()-sizeof(virtio_net_hdr);
-  rx_q.enqueue(sg, 0, 2,buf);
+  rx_q.enqueue(tokens, Virtio::Queue::Direction::IN);
 
   return 0;
 }
@@ -217,10 +213,8 @@ void VirtioNet::irq_handler(){
 }
 
 void VirtioNet::service_queues(){
-  debug2("<RX Queue> %i new packets, %i available tokens \n",
-         rx_q.new_incoming(),rx_q.num_avail());
-
-
+  debug2("<RX Queue> %i new packets \n",
+         rx_q.new_incoming());
 
   /** For RX, we dequeue, add new buffers and let receiver is responsible for
       memory management (they know when they're done with the packet.) */
@@ -364,15 +358,15 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 void VirtioNet::enqueue(net::Packet_ptr pckt){
 
   // A scatterlist for virtio-header + data
-  scatterlist sg[2];
+  std::array<Virtio::Token, 2> tokens;
 
   // This setup requires all tokens to be pre-chained like in SanOS
-  sg[0].data = (void*)&empty_header;
-  sg[0].size = sizeof(virtio_net_hdr);
-  sg[1].data = (void*)pckt->buffer();
-  sg[1].size = pckt->size();
+  tokens[0].data = (uint8_t*) &empty_header;
+  tokens[0].size = sizeof(virtio_net_hdr);
+  tokens[1].data = pckt->buffer();
+  tokens[1].size = pckt->size();
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
-  tx_q.enqueue(sg, 2, 0, 0);
+  tx_q.enqueue(tokens, Virtio::Queue::Direction::OUT);
 
 }

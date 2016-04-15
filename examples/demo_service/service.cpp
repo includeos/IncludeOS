@@ -88,30 +88,30 @@ void Service::start() {
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.onAccept([](auto conn) -> bool {
-    printf("<Service> @onAccept - Connection attempt from: %s \n",
-           conn->to_string().c_str());
-    return true; // allow all connections
+      printf("<Service> @onAccept - Connection attempt from: %s \n",
+             conn->to_string().c_str());
+      return true; // allow all connections
 
-  }).onConnect([](auto conn) {
-      printf("<Service> @onConnect - Connection successfully established.\n");
-      // read async with a buffer size of 1024 bytes
-      // define what to do when data is read
-      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
-        // create string from buffer
-        std::string data { (char*)buf.get(), n };
-        printf("<Service> @read:\n%s\n", data.c_str());
+    }).onConnect([](auto conn) {
+        printf("<Service> @onConnect - Connection successfully established.\n");
+        // read async with a buffer size of 1024 bytes
+        // define what to do when data is read
+        conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+            // create string from buffer
+            std::string data { (char*)buf.get(), n };
+            printf("<Service> @read:\n%s\n", data.c_str());
 
-        // create response
-        std::string response = HTML_RESPONSE();
-        // write the data from the string with the strings size
-        conn->write(response.data(), response.size(), [](size_t n) {
-          printf("<Service> @write: %u bytes written\n", n);
+            // create response
+            std::string response = HTML_RESPONSE();
+            // write the data from the string with the strings size
+            conn->write(response.data(), response.size(), [](size_t n) {
+                printf("<Service> @write: %u bytes written\n", n);
+              });
+          });
+
+      }).onDisconnect([](auto, auto reason) {
+          printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
         });
-      });
-
-  }).onDisconnect([](auto, auto reason) {
-      printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
-  });
 
   printf("*** TEST SERVICE STARTED *** \n");
 }

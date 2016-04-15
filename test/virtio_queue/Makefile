@@ -3,14 +3,18 @@
 #################################################
 
 # The name of your service
-SERVICE = test_tcp
-SERVICE_NAME = TCP Test Service
+SERVICE = test_virtio_queue
+SERVICE_NAME = Virtio Queue Test
 
 # Your service parts
 FILES = service.cpp
+
+LOCAL_INCLUDES=-I$(PWD)/../lest/include/lest -I$(PWD)/../../mod/GSL/include
+
 # Your disk image
 DISK=
-LOCAL_INCLUDES=
+
+
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
