@@ -311,8 +311,6 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rt_start();
 }
 
-<<<<<<< HEAD
-
 /*
   As specified in [RFC3390], the SYN/ACK and the acknowledgment of the
   SYN/ACK MUST NOT increase the size of the congestion window.
@@ -470,24 +468,6 @@ void Connection::set_state(State& state) {
         prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
-
-/*
-  Next compute a Smoothed Round Trip Time (SRTT) as:
-
-  SRTT = ( ALPHA * SRTT ) + ((1-ALPHA) * RTT)
-
-  and based on this, compute the retransmission timeout (RTO) as:
-
-  RTO = min[UBOUND,max[LBOUND,(BETA*SRTT)]]
-
-  where UBOUND is an upper bound on the timeout (e.g., 1 minute),
-  LBOUND is a lower bound on the timeout (e.g., 1 second), ALPHA is
-  a smoothing factor (e.g., .8 to .9), and BETA is a delay variance
-  factor (e.g., 1.3 to 2.0).
-*/
-std::chrono::milliseconds Connection::RTO() const {
-  return 1s;
-}
 
 void Connection::start_time_wait_timeout() {
   debug2("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
