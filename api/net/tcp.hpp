@@ -363,6 +363,8 @@ namespace net {
 
       inline bool isset(TCP::Flag f) { return ntohs(header().offset_flags.whole) & f; }
 
+      //TCP::Flag flags() const { return (htons(header().offset_flags.whole) << 8) & 0xFF; }
+
 
       /// OFFSET, OPTIONS, DATA ///
 
@@ -429,6 +431,10 @@ namespace net {
         // set new packet length
         set_length(data_length() + total);
         return total;
+      }
+
+      bool is_acked_by(const Seq ack) const {
+        return ack >= (seq() + data_length());
       }
 
       inline std::string to_string() {
@@ -662,9 +668,9 @@ namespace net {
       class State {
       public:
         enum Result {
-          CLOSED = -1,
-          OK = 0,
-          CLOSE = 1
+          CLOSED = -1, // This inditactes that a Connection is done and should be closed.
+          OK = 0, // Does nothing
+          CLOSE = 1 // This indicates that the CLIENT (peer) has/wants to close their end.
         };
         /*
           Open a Connection.
@@ -779,6 +785,7 @@ namespace net {
           uint16_t MSS; // Maximum segment size for outgoing segments.
 
           uint32_t cwnd; // Congestion window [RFC 5681]
+          Seq recover; // New Reno [RFC 6582]
         } SND; // <<
         TCP::Seq ISS;           // initial send sequence number
 
@@ -795,7 +802,7 @@ namespace net {
         uint32_t ssthresh; // slow start threshold [RFC 5681]
 
         TCB() {
-          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss, 0 };
+          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss, 0, 0 };
           ISS = 0;
           RCV = { 0, TCP::default_window_size, 0, 0 };
           IRS = 0;
@@ -1106,10 +1113,22 @@ namespace net {
       */
       bool queued_;
 
+      /*
+        Retransmission queue
+      */
+      std::deque<TCP::Packet_ptr> retransq;
+
       struct {
-        TCP::Seq ACK = 0;
-        size_t count = 0;
-      } dup_acks_;
+        hw::PIT::Timer_iterator iter;
+        bool active = false;
+        size_t i = 0;
+      } rt_timer;
+
+
+      /*
+        Keep track of duplicate ACK
+      */
+      size_t DUP_ACK = 0;
 
       /*
         Bytes queued for transmission.
@@ -1122,20 +1141,22 @@ namespace net {
       uint64_t time_wait_started;
 
 
+
       // [RFC 6298]
-      struct RoundTripCalc {
+      // Round Trip Time Measurer
+      struct RTTM {
         using timestamp_t = double;
         using duration_t = double;
 
         // clock granularity
-        static constexpr duration_t CLOCK_G = hw::PIT::frequency().count();
+        //static constexpr duration_t CLOCK_G = hw::PIT::frequency().count() / 1000;
+        static constexpr duration_t CLOCK_G = 0.0011;
 
         static constexpr double K = 4.0;
 
         static constexpr double alpha = 1.0/8;
         static constexpr double beta = 1.0/4;
 
-        TCP::Seq SEQ; // current sequence number measured
         timestamp_t t; // tick when measure is started
 
         duration_t SRTT; // smoothed round-trip time
@@ -1144,16 +1165,25 @@ namespace net {
 
         bool active = false;
 
-        void start(Seq seq) {
-          SEQ = seq;
+        RTTM() : t(OS::uptime()), RTO(1.0), active(false) {}
+
+        void start() {
           t = OS::uptime();
           active = true;
         }
 
-        void stop() {
+        void stop(bool first = false) {
+          assert(active);
           active = false;
           // round trip time (RTT)
-          sub_rtt_measurement(OS::uptime() - t);
+          auto rtt = OS::uptime() - t;
+          debug2("<TCP::Connection::RTT> RTT: %ums\n",
+            (uint32_t)(rtt * 1000));
+          if(!first)
+            sub_rtt_measurement(rtt);
+          else {
+            first_rtt_measurement(rtt);
+          }
         }
 
         /*
@@ -1165,7 +1195,7 @@ namespace net {
 
           where K = 4.
         */
-        void first_rtt_measurement(duration_t R) {
+        inline void first_rtt_measurement(duration_t R) {
           SRTT = R;
           RTTVAR = R/2;
           update_rto();
@@ -1188,16 +1218,19 @@ namespace net {
           After the computation, a host MUST update
           RTO <- SRTT + max (G, K*RTTVAR)
         */
-        void sub_rtt_measurement(duration_t R) {
+        inline void sub_rtt_measurement(duration_t R) {
           RTTVAR = (1 - beta) * RTTVAR + beta * std::abs(SRTT-R);
           SRTT = (1 - alpha) * SRTT + alpha * R;
+          update_rto();
         }
 
-        void update_rto() {
+        inline void update_rto() {
           RTO = std::max(SRTT + std::max(CLOCK_G, K * RTTVAR), 1.0);
+          debug2("<TCP::Connection::RTO> RTO updated: %ums\n",
+            (uint32_t)(RTO * 1000));
         }
 
-      } round_trip;
+      } rttm;
 
 
       /// CALLBACK HANDLING ///
@@ -1301,7 +1334,7 @@ namespace net {
         Returns if the connection has a doable write job.
       */
       inline bool has_doable_job() {
-        return !write_queue.empty() and usable_window() >= MSDS();
+        return !write_queue.empty() and usable_window() >= SMSS();
       }
 
       /*
@@ -1363,41 +1396,101 @@ namespace net {
       inline Connection::TCB& tcb() { return control_block; }
 
       inline int32_t usable_window() const {
-        auto x = (int64_t)control_block.SND.UNA + (int64_t)control_block.SND.WND - (int64_t)control_block.SND.NXT;
-        return std::min((int32_t) x, (int32_t)control_block.SND.cwnd);
+        auto x = (int64_t)congestion_window() - (int64_t)control_block.SND.NXT;
+        return (int32_t) x;
       }
+
+      /*
+
+        Note:
+        Made a function due to future use when Window Scaling Option is added.
+      */
+      inline int32_t send_window() const {
+        return (int32_t)control_block.SND.WND;
+      }
+
+      inline int32_t congestion_window() const {
+        auto win = control_block.SND.UNA + std::min((int32_t)control_block.SND.cwnd, send_window());
+        return win;
+      }
+
+      /*
+        Acknowledge a packet
+        - TCB update, Congestion control handling, RTT calculation and RT handling.
+      */
+      void acknowledge(Seq ACK);
 
       /// Congestion Control [RFC 5681] ///
 
-      inline uint16_t SMSS() const {
-        return host_.MSS();
+      inline void setup_congestion_control()
+      { reno_init(); }
+
+      inline uint16_t SMSS() const
+      { return host_.MSS(); }
+
+      inline uint16_t RMSS() const
+      { return control_block.SND.MSS; }
+
+      inline int32_t flight_size() const
+      { return control_block.SND.NXT - control_block.SND.UNA; }
+
+      /// Reno ///
+
+      inline void reno_init() {
+        reno_init_cwnd(3);
+        reno_init_sshtresh();
       }
 
-      inline uint16_t RMSS() const {
-        return control_block.SND.MSS;
-      }
-
-      inline int32_t flight_size() const {
-        return control_block.SND.NXT - control_block.SND.UNA;
-      }
-
-      inline void init_cwnd(uint32_t segments) {
+      inline void reno_init_cwnd(size_t segments)
+      {
         control_block.SND.cwnd = segments*SMSS();
+        printf("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", control_block.SND.cwnd);
       }
 
-      inline void reduce_slow_start_threshold() {
+      inline void reno_init_sshtresh()
+      { control_block.ssthresh = control_block.SND.WND; }
+
+      inline bool reno_slow_start() const
+      { return control_block.SND.cwnd < control_block.ssthresh; }
+
+      inline void reno_increase_cwnd(uint16_t n)
+      { control_block.SND.cwnd += std::min(n, SMSS()); }
+
+      inline void reno_reduce_ssthresh() {
         control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
-        debug2("TCP::Connection::reduce_slow_start_threshold> Slow start threshold reduced: %u\n",
-               control_block.ssthresh);
+        printf("<TCP::Connection::reno_reduce_ssthresh> Slow start threshold reduced: %u\n",
+          control_block.ssthresh);
       }
 
-      inline void segment_loss_detected() {
-        reduce_slow_start_threshold();
+      inline void reno_fast_retransmit() {
+        printf("<TCP::Connection::reno_fast_retransmit> Fast retransmit initiated.\n");
+        retransmit();
+        control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
       }
-      /*
 
-       */
-      size_t duplicate_ack(TCP::Seq ack);
+      inline void reno_loss_detected() {
+        reno_reduce_ssthresh();
+        reno_fast_retransmit();
+      }
+
+      inline bool reno_is_dup_ack(TCP::Packet_ptr in) {
+        bool is_dup_ack = flight_size() > 0
+          and !in->has_data()
+          and !in->isset(FIN) and !in->isset(SYN)
+          //and ((in->flags() & (FIN | SYN)) == 0)
+          and in->win() == control_block.SND.WND;
+
+        return is_dup_ack;
+      }
+
+      inline void reno_dup_ack() {
+        if(++DUP_ACK == 3) {
+          printf("<TCP::Connection::reno_dup_ack> Duplicate ACK - Strike 3!\n");
+          reno_loss_detected();
+        } else if(DUP_ACK > 3) {
+          control_block.SND.cwnd += SMSS();
+        }
+      }
 
       /*
         Generate a new ISS.
@@ -1422,17 +1515,12 @@ namespace net {
       void transmit(TCP::Packet_ptr);
 
       /*
-        Retransmit the packet.
-      */
-      void retransmit(TCP::Packet_ptr);
-
-      /*
         Creates a new outgoing packet with the current TCB values and options.
       */
       TCP::Packet_ptr create_outgoing_packet();
 
       /*
-       */
+      */
       inline TCP::Packet_ptr outgoing_packet() {
         return create_outgoing_packet();
       }
@@ -1441,21 +1529,57 @@ namespace net {
       /// RETRANSMISSION ///
 
       /*
-        Starts a retransmission timer that retransmits the packet when RTO has passed.
-
-        // TODO: Calculate RTO, currently hardcoded to 1 second (1000ms).
-        */
-      void queue_retransmission(TCP::Packet_ptr, size_t rt_attempt = 1);
+        Retransmit the first packet in retransmission queue.
+      */
+      void retransmit();
 
       /*
-        Measure the elapsed time between sending a data octet with a
-        particular sequence number and receiving an acknowledgment that
-        covers that sequence number (segments sent do not have to match
-        segments received).  This measured elapsed time is the Round Trip
-        Time (RTT).
+        Start retransmission timer.
       */
-      //std::chrono::milliseconds RTT() const;
-      std::chrono::milliseconds RTO() const;
+      void rt_start();
+
+      /*
+        Stop retransmission timer.
+      */
+      void rt_stop();
+
+      /*
+        Restart retransmission timer.
+      */
+      inline void rt_restart() {
+        rt_stop();
+        rt_start();
+      }
+
+      /*
+        Number of retransmission attempts on the packet first in RT-queue
+      */
+      size_t rto_attempt = 0;
+
+      /*
+        Remove all packets acknowledge by ACK in retransmission queue
+      */
+      void rt_ack_queue(Seq ack);
+
+      /*
+        Flush the queue (transmit every packet in queue)
+      */
+      void rt_flush();
+
+      /*
+        Delete retransmission queue
+      */
+      void rt_clear();
+
+      /*
+        When retransmission times out.
+      */
+      inline void rt_timeout() {
+        if(rto_attempt++ == 0)
+          reno_reduce_ssthresh();
+        retransmit();
+      }
+
 
       /*
         Start the time wait timeout for 2*MSL
@@ -1576,7 +1700,12 @@ namespace net {
     /*
       Show all connections for TCP as a string.
     */
-    std::string status() const;
+    std::string to_string() const;
+
+    inline std::string status() const
+    { return to_string(); }
+
+
 
 
   private:
