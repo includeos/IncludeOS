@@ -27,6 +27,21 @@
       }
     },
 
+    "net" : {
+
+      "description" : "Network devices",
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "type" : { "enum" : ["virtio"] },
+          "name" : { "type" : "string" }
+        },
+
+        "required" : ["type"]
+      }
+    },
+
 
     "mem" : {
 
@@ -47,7 +62,6 @@
       "description" : "Number of virtual CPU's",
       "type" : "number"
     }
-
   },
 
   "required" : ["image"]
