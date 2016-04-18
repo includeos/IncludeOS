@@ -66,6 +66,12 @@ else
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
 fi
 
+echo -e "\n\n>>> Installing submodules"
+pushd $INCLUDEOS_SRC
+git submodule init
+git submodule update
+popd
+
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
 make -j
