@@ -215,8 +215,8 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
   if(written < buffer.remaining and !conn->is_queued()) {
     write_queue.push(conn);
     conn->set_queued(true);
-    debug2("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
-           conn->to_string().c_str(), written, buffer.remaining-written);
+    printf("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
+      conn->to_string().c_str(), written, buffer.remaining-written);
   }
 
   return written;
@@ -230,7 +230,7 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
 
   TODO: Make sure Recv, Send, In, Out is correct and add them to output. Also, alignment?
 */
-string TCP::status() const {
+string TCP::to_string() const {
   // Write all connections in a cute list.
   stringstream ss;
   ss << "LISTENING SOCKETS:\n";

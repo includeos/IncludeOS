@@ -21,14 +21,12 @@
 
 **/
 
-
-#include <os>
-#include <cassert>
+#include <cstdlib>
 
 #define GSL_THROW_ON_CONTRACT_VIOLATION
-#include <gsl.h>
+#include <common>
+#include <os>
 #include <lest.hpp>
-
 
 int clock_gettime(clockid_t clk_id, struct timespec *tp){
   (void*)clk_id;
@@ -51,7 +49,11 @@ const lest::test test_basic_gsl[] = {
         class Math {
         public:
           static int div (int x, int y) {
+
+            printf("Dividing %i by %i ", x, y);
             Expects( y > 0 );
+
+            printf("Dividing %i by %i ", x, y);
 
             int prevcount_ = divcount_;
 
@@ -188,7 +190,7 @@ const lest::test test_basic_gsl[] = {
 
 void Service::start()
 {
-
+  MYINFO ("Starting LEST-tests");
   // Lest takes command line params as vector
   auto failed = lest::run(test_basic_gsl, {"-p"});
 

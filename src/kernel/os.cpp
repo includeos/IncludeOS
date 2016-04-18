@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,60 +33,62 @@ MHz  OS::cpu_mhz_ {1000};
 
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
-hw::Serial& OS::com1 = hw::Serial::port<1>(); 
+hw::Serial& OS::com1 = hw::Serial::port<1>();
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void OS::start() {
-  
+
   // Initialize serial port
   com1.init();
-  
+
   // Print a fancy header
   FILLINE('=');
   CAPTION("#include<os> // Literally\n");
   FILLINE('=');
-  
+
   debug("\t[*] OS class started\n");
   srand(time(NULL));
-  
+
   // Heap
   extern caddr_t heap_end;
   extern char    _end;
 
   MYINFO("Heap start: @ %p", heap_end);
   MYINFO("Current end is: @ %p", &_end);
-  
-  // Set up interrupt handlers 
+
+  atexit(default_exit);
+
+  // Set up interrupt handlers
   IRQ_manager::init();
-    
+
   // Initialize the Interval Timer
   hw::PIT::init();
 
   // Initialize PCI devices
   PCI_manager::init();
-  
-  /** Estimate CPU frequency 
+
+  /** Estimate CPU frequency
 
       MYINFO("Estimating CPU-frequency");
       INFO2("|");
-      INFO2("+--(10 samples, %f sec. interval)", 
+      INFO2("+--(10 samples, %f sec. interval)",
       (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
       INFO2("|");
-  
+
       // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
       cpu_mhz_ = hw::PIT::CPUFrequency();
 
       INFO2("+--> %f MHz", cpu_mhz_.count());
-  
+
   **/
-  
+
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
   // Everything is ready
   Service::start();
-  
+
   event_loop();
 }
 
@@ -103,12 +105,12 @@ void OS::event_loop() {
   printf(" IncludeOS %s\n", version().c_str());
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
   FILLINE('~');
-  
+
   while (power_) {
-    IRQ_manager::notify(); 
+    IRQ_manager::notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
-  
+
   //Cleanup
   //Service::stop();
 }
@@ -118,7 +120,7 @@ size_t OS::rsprint(const char* str) {
 
   // Measure length
   while (str[len++]);
-  
+
   // Output callback
   rsprint_handler_(str, len);
   return len;
