@@ -165,8 +165,8 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
 
     // If last packet, add PUSH.
     // TODO: Redefine "push"
-    if((!remaining or !packet_count or usable_window() < SMSS()) and PUSH)
-    //if(!remaining and PUSH)
+    //if((!remaining or !packet_count or usable_window() < SMSS()) and PUSH)
+    if(!remaining and PUSH)
       packet->set_flag(PSH);
 
     // Advance outgoing sequence number (SND.NXT) with the length of the data.
@@ -177,6 +177,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     debug2("<TCP::Connection::send> Packet Limit: %u - Written: %u"
           " - Remaining: %u - Packet count: %u, Window: %u\n",
            packet_limit, written, remaining, packet_count, usable_window());
+    if(reno_is_fast_recovering()) break;
   }
   debug("<TCP::Connection::send> Sent %u bytes of data\n", bytes_written);
   return bytes_written;
@@ -323,19 +324,42 @@ void Connection::acknowledge(Seq ACK) {
   size_t bytes_acked = ACK - control_block.SND.UNA;
   control_block.SND.UNA = ACK;
 
-  if(reno_slow_start()) {
-    reno_increase_cwnd(bytes_acked);
-    debug2("<TCP::Connection::reno_ack> Slow start - cwnd increased: %u\n",
-            control_block.SND.cwnd);
-  }
-  // congestion avoidance
-  else {
-    if(rttm.active) {
+  reno_update_heuristic_ack(ACK);
+  if(!reno_is_fast_recovering()) {
+    if(reno_slow_start()) {
       reno_increase_cwnd(bytes_acked);
-      debug2("<TCP::Connection::reno_ack> Congestion avoidance - cwnd increased: %u\n",
-        control_block.SND.cwnd);
+      debug2("<TCP::Connection::reno_ack> Slow start - cwnd increased: %u\n",
+              control_block.SND.cwnd);
+    }
+    // congestion avoidance
+    else {
+      if(rttm.active) {
+        reno_increase_cwnd(bytes_acked);
+        debug2("<TCP::Connection::reno_ack> Congestion avoidance - cwnd increased: %u\n",
+          control_block.SND.cwnd);
+      }
     }
   }
+  // fast recovery
+  else {
+    // full acknowledgement
+    if(reno_full_ack(ACK)) {
+      reno_exit_fast_recovery();
+    }
+    // partial acknowledgement
+    else {
+      reno_deflate_cwnd(bytes_acked);
+      if(RENO_FPACK_NOT_SEEN) {
+        printf("<TCP::Connection::acknowledge> #1 Partial ACK - %u, Cwnd: %u\n", ACK, control_block.SND.cwnd);
+        rt_restart();
+        RENO_FPACK_NOT_SEEN = false;
+      } else {
+        //printf("<TCP::Connection::acknowledge> Partial ACK - %u, Cwnd: %u\n", ACK, control_block.SND.cwnd);
+      }
+    }
+  }
+
+  /**/
 
   if(rttm.active)
     rttm.stop();
@@ -455,6 +479,15 @@ void Connection::rt_clear() {
   if(rt_timer.active)
     rt_stop();
   retransq.clear();
+}
+
+void Connection::rt_timeout() {
+  if(rto_attempt++ == 0)
+    reno_reduce_ssthresh();
+  reno_update_recover();
+  if(reno_is_fast_recovering())
+    reno_exit_fast_recovery();
+  retransmit();
 }
 
 TCP::Seq Connection::generate_iss() {

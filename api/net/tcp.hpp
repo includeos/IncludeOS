@@ -809,12 +809,9 @@ namespace net {
           ssthresh = TCP::default_window_size;
         };
 
-        bool slow_start() const {
-          return SND.cwnd <= ssthresh;
-        }
-
-        bool congestion_avoidance() const {
-          return !slow_start();
+        void init() {
+          ISS = TCP::generate_iss();
+          SND.recover = ISS; // [RFC 6582]
         }
 
         std::string to_string() const;
@@ -1422,6 +1419,13 @@ namespace net {
 
       /// Congestion Control [RFC 5681] ///
 
+      bool RENO_FAST_RECOVERY = false;
+      // First partial ack not seen
+      bool RENO_FPACK_NOT_SEEN = false;
+
+      Seq RENO_PREV_HIGHEST_ACK = 0;
+      Seq RENO_HIGHEST_ACK = 0;
+
       inline void setup_congestion_control()
       { reno_init(); }
 
@@ -1444,7 +1448,7 @@ namespace net {
       inline void reno_init_cwnd(size_t segments)
       {
         control_block.SND.cwnd = segments*SMSS();
-        printf("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", control_block.SND.cwnd);
+        debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", control_block.SND.cwnd);
       }
 
       inline void reno_init_sshtresh()
@@ -1456,6 +1460,9 @@ namespace net {
       inline void reno_increase_cwnd(uint16_t n)
       { control_block.SND.cwnd += std::min(n, SMSS()); }
 
+      inline void reno_deflate_cwnd(uint16_t n)
+      { control_block.SND.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
+
       inline void reno_reduce_ssthresh() {
         control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
         printf("<TCP::Connection::reno_reduce_ssthresh> Slow start threshold reduced: %u\n",
@@ -1465,12 +1472,17 @@ namespace net {
       inline void reno_fast_retransmit() {
         printf("<TCP::Connection::reno_fast_retransmit> Fast retransmit initiated.\n");
         retransmit();
-        control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
+        reno_enter_fast_recovery();
+        //control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
       }
 
       inline void reno_loss_detected() {
         reno_reduce_ssthresh();
         reno_fast_retransmit();
+      }
+
+      inline void reno_enter_fast_retransmit() {
+        reno_loss_detected();
       }
 
       inline bool reno_is_dup_ack(TCP::Packet_ptr in) {
@@ -1483,14 +1495,61 @@ namespace net {
         return is_dup_ack;
       }
 
-      inline void reno_dup_ack() {
+      inline void reno_dup_ack(Seq ACK) {
         if(++DUP_ACK == 3) {
           printf("<TCP::Connection::reno_dup_ack> Duplicate ACK - Strike 3!\n");
-          reno_loss_detected();
+          if(reno_should_recover(ACK)) {
+            reno_update_recover();
+            reno_enter_fast_retransmit();
+          }
         } else if(DUP_ACK > 3) {
           control_block.SND.cwnd += SMSS();
         }
       }
+
+      inline void reno_enter_fast_recovery() {
+        control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
+        RENO_FAST_RECOVERY = true;
+        RENO_FPACK_NOT_SEEN = true;
+        printf("<TCP::Connection::reno_enter_fast_recovery> Entered Fast Recovery - Cwnd: %u\n", control_block.SND.cwnd);
+      }
+
+      inline void reno_exit_fast_recovery() {
+        control_block.SND.cwnd = std::min((int32_t)control_block.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
+        RENO_FAST_RECOVERY = false;
+        printf("<TCP::Connection::reno_exit_fast_recovery> Exited Fast Recovery - Cwnd: %u\n", control_block.SND.cwnd);
+      }
+
+      inline bool reno_should_recover(Seq ACK) {
+        return (ACK - 1 > control_block.SND.recover) or reno_heuristic_segment_loss_detected();
+      }
+
+      inline bool reno_heuristic_segment_loss_detected() {
+        return (congestion_window() > SMSS())
+          and (RENO_HIGHEST_ACK - RENO_PREV_HIGHEST_ACK <= 4*SMSS());
+      }
+
+      inline bool reno_full_ack(Seq ACK) {
+        return ACK - 1 > control_block.SND.recover;
+      }
+
+      inline bool reno_partial_ack(Seq ACK) {
+        return !reno_full_ack(ACK);
+      }
+
+      inline bool reno_is_fast_recovering() {
+        return RENO_FAST_RECOVERY;
+      }
+
+      inline void reno_update_recover() {
+        control_block.SND.recover = control_block.SND.NXT;
+      }
+
+      void reno_update_heuristic_ack(Seq ACK) {
+        RENO_PREV_HIGHEST_ACK = RENO_HIGHEST_ACK;
+        RENO_HIGHEST_ACK = ACK;
+      }
+
 
       /*
         Generate a new ISS.
@@ -1574,11 +1633,7 @@ namespace net {
       /*
         When retransmission times out.
       */
-      inline void rt_timeout() {
-        if(rto_attempt++ == 0)
-          reno_reduce_ssthresh();
-        retransmit();
-      }
+      void rt_timeout();
 
 
       /*
@@ -1733,7 +1788,7 @@ namespace net {
     /*
       Generate a unique initial sequence number (ISS).
     */
-    TCP::Seq generate_iss();
+    static TCP::Seq generate_iss();
 
     /*
       Returns a free port for outgoing connections.

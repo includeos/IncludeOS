@@ -255,7 +255,7 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
         //!in->isset(FIN) and !in->isset(SYN)
         else if(tcp.reno_is_dup_ack(in)) {
           debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
-          tcp.reno_dup_ack();
+          tcp.reno_dup_ack(in->ack());
         }
         // this is an RFC 793 DUP ACK
         else {
@@ -342,14 +342,22 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
   auto snd_nxt = tcb.SND.NXT;
   debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
+
   if(tcp.read_request.buffer.capacity()) {
     auto received = tcp.receive((uint8_t*)in->data(), in->data_length(), in->isset(PSH));
     assert(received == length);
   }
   tcb.RCV.NXT += length;
   // [RFC 5681]
-  tcb.SND.cwnd += std::min(length, tcp.SMSS());
+  //tcb.SND.cwnd += std::min(length, tcp.SMSS());
   debug2("<TCP::Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
+  auto packet = tcp.outgoing_packet();
+  packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+  tcp.transmit(packet);
+  if(tcp.has_doable_job() and !tcp.is_queued()) {
+    debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
+    tcp.write_queue_push();
+  }
 
   /*
     WARNING/NOTE:
@@ -365,7 +373,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   */
   // no data has been sent during user callback
   // TODO: A lot of cleanup / refactoring - this is messy.
-  if(snd_nxt == tcb.SND.NXT) {
+  /*if(snd_nxt == tcb.SND.NXT) {
     // Piggyback ACK with outgoing data
     if(tcp.has_doable_job() and !tcp.is_queued()) {
       debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
@@ -389,7 +397,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   }
   else {
     debug2("<TCP::Connection::State::process_segment> SND.NXT > snd_nxt, this packet has already been acknowledged. \n");
-  }
+  }*/
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -504,8 +512,7 @@ void Connection::Closed::open(Connection& tcp, bool active) {
     // There is a remote host
     if(!tcp.remote().is_empty()) {
       auto& tcb = tcp.tcb();
-      tcb.ISS = tcp.generate_iss();
-      tcb.SND.recover = tcb.ISS; // [RFC 6582]
+      tcb.init();
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.ISS).set_flag(SYN);
 
@@ -529,8 +536,7 @@ void Connection::Closed::open(Connection& tcp, bool active) {
 void Connection::Listen::open(Connection& tcp, bool) {
   if(!tcp.remote().is_empty()) {
     auto& tcb = tcp.tcb();
-    tcb.ISS = tcp.generate_iss();
-    tcb.SND.recover = tcb.ISS; // [RFC 6582]
+    tcb.init();
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.ISS).set_flag(SYN);
     tcb.SND.UNA = tcb.ISS;
@@ -806,8 +812,7 @@ State::Result Connection::Listen::handle(Connection& tcp, TCP::Packet_ptr in) {
     auto& tcb = tcp.tcb();
     tcb.RCV.NXT   = in->seq()+1;
     tcb.IRS     = in->seq();
-    tcb.ISS     = tcp.generate_iss();
-    tcb.SND.recover = tcb.ISS; // [RFC 6582]
+    tcb.init();
     tcb.SND.NXT   = tcb.ISS+1;
     tcb.SND.UNA   = tcb.ISS;
     debug("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
