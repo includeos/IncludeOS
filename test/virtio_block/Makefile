@@ -3,11 +3,11 @@
 #################################################
 
 # The name of your service
-SERVICE = test_IDE
-SERVICE_NAME = IncludeOS IDE test
+SERVICE = test_virtio_block
+SERVICE_NAME = Virtio Block Test Service
 
 # Your service parts
-FILES = service.cpp
+FILES=service.cpp
 
 # Your disk image
 DISK=

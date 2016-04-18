@@ -1,0 +1,4 @@
+{
+  "image" : "test_STL.img",
+  "drive" : [{"file" : "test.txt", "type" : "virtio" }]
+}
