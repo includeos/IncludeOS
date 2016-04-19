@@ -131,12 +131,16 @@ void VirtioBlk::service_RX()
   uint32_t received = 0;
   uint32_t len;
   request_t* hdr;
+  gsl::span<char> res;
 
-  while ((hdr = (request_t*) req.dequeue(&len)) != nullptr)
+  while ( (res = req.dequeue()).data() != nullptr )
     {
+
       //&printf("service_RX() received %u bytes for sector %llu\n",
       //       len, hdr->hdr.sector);
       //
+      hdr = (request_t*) res.data();
+      len = res.size();
       blk_resp_t* resp = &hdr->resp;
       printf("blk response: %u\n", resp->status);
 
@@ -150,6 +154,7 @@ void VirtioBlk::service_RX()
 
       received++;
     }
+
   if (received == 0)
     {
       //printf("service_RX() error processing requests\n");

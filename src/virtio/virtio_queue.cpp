@@ -149,26 +149,25 @@ void Virtio::Queue::release(uint32_t head)
   debug2("<Q %i> desc[%i].next : %i \n",_pci_index,i,_queue.desc[i].next);
 }
 
-uint8_t* Virtio::Queue::dequeue(uint32_t* len){
+gsl::span<char> Virtio::Queue::dequeue(){
 
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx){
     debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-    return NULL;
+    return nullptr;
+
   }
 
   // Get next completed buffer
   auto* e = &_queue.used->ring[_last_used_idx % _size];
-  *len = e->len;
 
   debug2("<Q %i> Releasing token %li. Len: %li\n",_pci_index,e->id, e->len);
-  uint8_t* data = (uint8_t*)_queue.desc[e->id].addr;
 
   // Release buffer
   release(e->id);
   _last_used_idx++;
 
-  return data;
+  return {(char*) _queue.desc[e->id].addr, (gsl::span<char>::size_type) e->len };
 }
 
 void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){

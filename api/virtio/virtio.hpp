@@ -237,8 +237,8 @@ public:
     */
     int enqueue(gsl::span<Virtio::Token> buffers);
 
-    /** Dequeue a received packet. From SanOS */
-    uint8_t* dequeue(uint32_t* len);
+    /** Dequeue a received packet */
+    gsl::span<char> dequeue();
 
     void disable_interrupts();
     void enable_interrupts();
