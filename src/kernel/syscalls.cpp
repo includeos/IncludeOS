@@ -33,13 +33,14 @@ static bool debug_syscalls  {true};
 
 caddr_t heap_end;
 
+
 void _exit(int status) {
   (void) status;
   panic("Exit called");
 }
 
-int close(int UNUSED(file)) {
-  panic("SYSCALL CLOSE Dummy, returning -1");
+int close(int) {
+  panic("SYSCALL CLOSE NOT SUPPORTED");
   return -1;
 };
 
@@ -159,7 +160,6 @@ void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
   printf("\tHeap end: %p\n", heap_end);
   while(1) __asm__("cli; hlt;");
-
 }
 
 // No continuation from here
