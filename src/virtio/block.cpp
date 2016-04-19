@@ -131,30 +131,31 @@ void VirtioBlk::service_RX()
   uint32_t received = 0;
   uint32_t len;
   request_t* hdr;
+  gsl::span<char> res;
 
-  while ((hdr = (request_t*) req.dequeue(&len)) != nullptr)
-    {
-      //&printf("service_RX() received %u bytes for sector %llu\n",
-      //       len, hdr->hdr.sector);
-      //
-      blk_resp_t* resp = &hdr->resp;
-      printf("blk response: %u\n", resp->status);
-
-      uint8_t* copy = new uint8_t[SECTOR_SIZE];
-      memcpy(copy, hdr->io.sector, SECTOR_SIZE);
-      auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
-
-      printf("STATUS: [%u]\nCalling handler: %p\n",
-             resp->status, &hdr->io.handler);
-      hdr->io.handler(buf);
-
-      received++;
-    }
+  while ((res = req.dequeue()).data() != nullptr)
+  {
+    //&printf("service_RX() received %u bytes for sector %llu\n",
+    //       len, hdr->hdr.sector);
+    //
+    hdr = (request_t*) res.data();
+    len = res.size();
+    blk_resp_t* resp = &hdr->resp;
+    printf("blk response: %u\n", resp->status);
+    
+    uint8_t* copy = new uint8_t[SECTOR_SIZE];
+    memcpy(copy, hdr->io.sector, SECTOR_SIZE);
+    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+    
+    printf("STATUS: [%u]\nCalling handler: %p\n",
+           resp->status, &hdr->resp.handler);
+    hdr->resp.handler(buf);
+    received++;
+  }
   if (received == 0)
-    {
-      //printf("service_RX() error processing requests\n");
-    }
-
+  {
+    printf("service_RX() error processing requests\n");
+  }
   req.enable_interrupts();
 }
 
@@ -166,24 +167,20 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
-  vbr->io.handler = func;
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
+  vbr->resp.handler = func;
 
   printf("Enqueue handler: %p, total: %u\n",
-         &vbr->io.handler, sizeof(request_t));
+         &vbr->resp.handler, sizeof(request_t));
   //
-  std::array<Virtio::Token, 1> tout;
-  std::array<Virtio::Token, 2> tin;
-  
-  tout[0].data = (uint8_t*) &vbr->hdr;
-  tout[0].size = sizeof(scsi_header_t);
-  tin[0].data = (uint8_t*) &vbr->io;
-  tin[0].size = sizeof(blk_io_t);
-  tin[1].data = (uint8_t*) &vbr->resp;
-  tin[1].size = sizeof(blk_resp_t);
-  
-  req.enqueue(tout, Virtio::Queue::Direction::OUT);
-  req.enqueue(tin,  Virtio::Queue::Direction::IN);
+
+  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
+  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, sizeof(blk_resp_t) }, Token::IN };
+
+  std::array<Token, 3> tokens {{ token1, token2, token3 }};
+
+  req.enqueue(tokens);
   req.kick();
 }
 

@@ -168,13 +168,17 @@ int VirtioNet::add_receive_buffer(){
 
   debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
-  std::array<Virtio::Token, 2> tokens;
-  tokens[0].data = buf;
-  tokens[0].size = sizeof(virtio_net_hdr);
-  tokens[1].data = buf + sizeof(virtio_net_hdr);
-  tokens[1].size = bufsize() - sizeof(virtio_net_hdr);
+  Token token1 {
+    {buf, sizeof(virtio_net_hdr)},
+      Token::IN };
 
-  rx_q.enqueue(tokens, Virtio::Queue::Direction::IN);
+  Token token2 {
+    {buf + sizeof(virtio_net_hdr),  (Token::size_type) (bufsize() - sizeof(virtio_net_hdr))},
+      Token::IN };
+
+  std::array<Token, 2> tokens {{ token1, token2 }};
+
+  rx_q.enqueue(tokens);
 
   return 0;
 }
@@ -231,12 +235,14 @@ void VirtioNet::service_queues(){
 
     // Do one RX-packet
     if (rx_q.new_incoming() ){
-      data = rx_q.dequeue(&len); //BUG # 102? + sizeof(virtio_net_hdr);
+      auto res = rx_q.dequeue(); //BUG # 102? + sizeof(virtio_net_hdr);
+      data = (uint8_t*) res.data();
+      len += res.size();
 
       auto pckt_ptr = std::make_shared<Packet>
-        (data+sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
+        (data + sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
          bufsize()-sizeof(virtio_net_hdr), // Capacity
-         len - sizeof(virtio_net_hdr), release_buffer); // Size
+         res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
 
       _link_out(pckt_ptr);
 
@@ -250,7 +256,7 @@ void VirtioNet::service_queues(){
     // Do one TX-packet
     if (tx_q.new_incoming()){
       debug2("<VirtioNet> Dequeing TX");
-      tx_q.dequeue(&len);
+      tx_q.dequeue();
       dequeued_tx++;
     }
 
@@ -357,16 +363,16 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
 void VirtioNet::enqueue(net::Packet_ptr pckt){
 
-  // A scatterlist for virtio-header + data
-  std::array<Virtio::Token, 2> tokens;
 
   // This setup requires all tokens to be pre-chained like in SanOS
-  tokens[0].data = (uint8_t*) &empty_header;
-  tokens[0].size = sizeof(virtio_net_hdr);
-  tokens[1].data = pckt->buffer();
-  tokens[1].size = pckt->size();
+  Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
+      Token::OUT };
+
+  Token token2 { {pckt->buffer(), (Token::size_type) pckt->size() }, Token::OUT };
+
+  std::array<Token, 2> tokens {{ token1, token2 }};
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
-  tx_q.enqueue(tokens, Virtio::Queue::Direction::OUT);
+  tx_q.enqueue(tokens);
 
 }

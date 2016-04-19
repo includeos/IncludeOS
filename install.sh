@@ -72,6 +72,11 @@ fi
 echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
 $INCLUDEOS_SRC/etc/create_binary_bundle.sh
 
+echo -e "\n\n>>> Installing submodules"
+pushd $INCLUDEOS_SRC
+git submodule init
+git submodule update
+popd
 
 if [ ! -z $do_includeos ]; then
     # Build and install the vmbuilder 
@@ -90,9 +95,7 @@ if [ ! -z $do_includeos ]; then
     
     echo -e "\n >>> Installing IncludeOS"
     make install
-
     popd
-   
     
     # RUNNING IncludeOS
     PREREQS_RUN="bridge-utils qemu-kvm"

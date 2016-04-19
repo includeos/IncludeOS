@@ -87,14 +87,13 @@ private:
     uint32_t ioprio;
     uint64_t sector;
   };
-  struct blk_resp_t
-  {
-    uint8_t status;
-  };
-  
   struct blk_io_t
   {
     uint8_t       sector[512];
+  };
+  struct blk_resp_t
+  {
+    uint8_t status;
     on_read_func  handler;
   };
   

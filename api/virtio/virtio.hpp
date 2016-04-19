@@ -67,10 +67,29 @@ class Virtio
 {
 
 public:
+
+
   /** A wrapper for buffers to be passed in to the Queue */
-  struct Token {
-    uint8_t* data;
-    size_t size;
+  class Token {
+
+  public:
+    // "Direction" of tokens
+    using span = gsl::span<uint8_t>;
+    using size_type = span::size_type;
+    enum Direction { IN, OUT };
+    inline Token(span buf, Direction d) :
+      data_{ buf.data() }, size_{ buf.size() }, dir_{ d }
+    {}
+
+    inline auto data() { return data_; }
+    inline auto size() { return size_; }
+    inline auto direction() { return dir_; }
+
+
+  private:
+    uint8_t* data_;
+    size_type size_;
+    Direction dir_;
   };
 
   // http://docs.oasis-open.org/virtio/virtio/v1.0/csprd01/virtio-v1.0-csprd01.html#x1-860005
@@ -95,10 +114,6 @@ public:
   /** Virtio Queue class. */
   class Queue
   {
-
-  public:
-    // "Direction" of tokens
-    enum Direction { IN, OUT };
 
   private:
 
@@ -218,13 +233,12 @@ public:
     virtq_desc* queue_desc() const { return _queue.desc; }
 
     /** Push data tokens onto the queue.
-        @param buffers : A span of buffers
-        @param out : true if the buffers are device readable, otherwise false
+        @param buffers : A span of tokens
     */
-    int enqueue(gsl::span<Virtio::Token> buffers, bool out);
+    int enqueue(gsl::span<Virtio::Token> buffers);
 
-    /** Dequeue a received packet. From SanOS */
-    uint8_t* dequeue(uint32_t* len);
+    /** Dequeue a received packet */
+    gsl::span<char> dequeue();
 
     void disable_interrupts();
     void enable_interrupts();
