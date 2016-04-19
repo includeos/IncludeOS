@@ -34,6 +34,7 @@ static bool debug_syscalls  {true};
 caddr_t heap_end;
 
 void _exit(int status) {
+  (void) status;
   panic("Exit called");
 }
 
