@@ -204,12 +204,12 @@ void TCP::process_write_queue(size_t packets) {
   }
 }
 
-size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer) {
+size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n) {
   size_t written{0};
 
-  if(write_queue.empty()) {
+  if(write_queue.empty() and inet_.transmit_queue_available()) {
     auto packets = inet_.transmit_queue_available();
-    written = conn->send(buffer, packets);
+    written = conn->send(buffer, packets, n);
   }
 
   if(written < buffer.remaining and !conn->is_queued()) {

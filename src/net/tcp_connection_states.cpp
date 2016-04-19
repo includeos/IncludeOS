@@ -221,12 +221,18 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
           updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
           SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
           SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
+
+          Note that SND.WND is an offset from SND.UNA, that SND.WL1
+          records the sequence number of the last segment used to update
+          SND.WND, and that SND.WL2 records the acknowledgment number of
+          the last segment used to update SND.WND.  The check here
+          prevents using old segments to update the window.
         */
         if( tcb.SND.WL1 < in->seq() or ( tcb.SND.WL1 = in->seq() and tcb.SND.WL2 <= in->ack() ) ) {
           tcb.SND.WND = in->win();
           tcb.SND.WL1 = in->seq();
           tcb.SND.WL2 = in->ack();
-          debug2("<Connection::State::check_ack> Send window updated: %u \n", tcb.SND.WND);
+          debug2("<Connection::State::check_ack> Usable window slided (%i)\n", tcp.usable_window());
         }
 
         // this is a NEW ACK
@@ -261,27 +267,13 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
         else {
           //printf("<Connection::State::check_ack> RFC 793 Dup ACK %u\n", in->ack());
         }
-
-
       }
-      // this is an ACK out of order
+      // this is an "old" ACK out of order
       else {
-
+        printf("<Connection::State::check_ack> ACK out of order (SND.UNA > ACK)\n");
       }
-
-      debug2("<Connection::State::check_ack> Usable window slided (%i) %u\n", tcp.usable_window(), tcb.SND.cwnd);
       // tcp.signal_sent();
       // return that buffer has been SENT - currently no support to receipt sent buffer.
-
-
-      /*
-        Note that SND.WND is an offset from SND.UNA, that SND.WL1
-        records the sequence number of the last segment used to update
-        SND.WND, and that SND.WL2 records the acknowledgment number of
-        the last segment used to update SND.WND.  The check here
-        prevents using old segments to update the window.
-      */
-
     }
     /* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
     else {

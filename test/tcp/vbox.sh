@@ -1,2 +1,2 @@
 #!/bin/bash
-../../etc/vboxrun.sh IncludeOS_TCP_Test.img TCP_test
+../../etc/vboxrun.sh test_tcp.img TCP_test

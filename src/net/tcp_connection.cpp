@@ -121,10 +121,10 @@ bool Connection::offer(size_t& packets) {
   debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
         to_string().c_str(), packets, usable_window());
 
-  while(has_doable_job() and packets) {
+  while(has_doable_job() and packets and !reno_is_fast_recovering()) {
     auto& buf = write_queue.front().first;
     // segmentize the buffer into packets
-    auto written = send(buf, packets);
+    auto written = send(buf, packets, buf.remaining);
     // advance the buffer
     buf.advance(written);
     debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %i.\n",
@@ -140,12 +140,13 @@ bool Connection::offer(size_t& packets) {
   assert(packets >= 0);
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, write_queue.size(), usable_window());
-  return !has_doable_job();
+  return !has_doable_job() or reno_is_fast_recovering();
 }
 
 // TODO: This is starting to get complex and ineffective, refactor..
 size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_count, bool PUSH) {
-  assert(packet_count && remaining);
+  assert(packet_count);
+  assert(remaining);
   size_t bytes_written{0};
 
   while(remaining and packet_count and usable_window() >= SMSS()) {
@@ -193,6 +194,17 @@ void Connection::write_queue_push() {
     write_queue.front().second(buf.offset);
     write_queue.pop();
   }
+}
+
+void Connection::limited_tx() {
+  auto& buf = write_queue.front().first;
+  auto written = host_.send(shared_from_this(),buf, std::min(buf.remaining, (uint32_t)RMSS()));
+  printf("<TCP::Connection::limited_tx> Limited transmit. %u written\n", written);
+  buf.advance(written);
+  if(buf.remaining)
+    return;
+  write_queue.front().second(buf.offset);
+  write_queue.pop();
 }
 
 void Connection::write_queue_reset() {
@@ -312,6 +324,34 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rt_start();
 }
 
+/*void Connection::acknowledge(TCP::Packet_ptr in) {
+  // ACK is inside
+  if(in->ack() <= control_block.SND.NXT) {
+    // new ACK
+    if(in->ack() > control_block.SND.UNA) {
+      size_t bytes_acked = in->ack() - control_block.SND.UNA;
+      control_block.SND.UNA = in->ack();
+      if(DUP_ACK >= DUP) {
+
+      }
+    }
+    // Duplicate ACK
+    else if(in->ack() == control_block.SND.UNA) {
+      in->has_data() and
+      DUP_ACK++
+    }
+    // old ACK
+    else {
+
+    }
+
+  }
+  // ACK outside
+  else {
+
+  }
+}*/
+
 /*
   As specified in [RFC3390], the SYN/ACK and the acknowledgment of the
   SYN/ACK MUST NOT increase the size of the congestion window.
@@ -323,6 +363,8 @@ void Connection::acknowledge(Seq ACK) {
   DUP_ACK = 0;
   size_t bytes_acked = ACK - control_block.SND.UNA;
   control_block.SND.UNA = ACK;
+
+  rt_ack_queue(ACK);
 
   reno_update_heuristic_ack(ACK);
   if(!reno_is_fast_recovering()) {
@@ -348,6 +390,8 @@ void Connection::acknowledge(Seq ACK) {
     }
     // partial acknowledgement
     else {
+      //fast_rtx();
+      retransmit();
       reno_deflate_cwnd(bytes_acked);
       if(RENO_FPACK_NOT_SEEN) {
         printf("<TCP::Connection::acknowledge> #1 Partial ACK - %u, Cwnd: %u\n", ACK, control_block.SND.cwnd);
@@ -356,15 +400,12 @@ void Connection::acknowledge(Seq ACK) {
       } else {
         //printf("<TCP::Connection::acknowledge> Partial ACK - %u, Cwnd: %u\n", ACK, control_block.SND.cwnd);
       }
+      try_limited_tx();
     }
   }
 
-  /**/
-
   if(rttm.active)
     rttm.stop();
-
-  rt_ack_queue(ACK);
 }
 
 /*

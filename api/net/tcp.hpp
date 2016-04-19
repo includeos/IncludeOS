@@ -1308,7 +1308,7 @@ namespace net {
         Active try to send a buffer by asking the TCP.
       */
       inline size_t send(WriteBuffer& buffer) {
-        return host_.send(shared_from_this(), buffer);
+        return host_.send(shared_from_this(), buffer, buffer.remaining);
       }
 
       /*
@@ -1317,8 +1317,8 @@ namespace net {
       */
       size_t send(const char* buffer, size_t remaining, size_t& packets, bool PUSH);
 
-      inline size_t send(WriteBuffer& buffer, size_t& packets) {
-        return send((char*)buffer.pos(), buffer.remaining, packets, buffer.push);
+      inline size_t send(WriteBuffer& buffer, size_t& packets, size_t n) {
+        return send((char*)buffer.pos(), n, packets, buffer.push);
       }
 
       /*
@@ -1384,6 +1384,13 @@ namespace net {
       inline void drop(TCP::Packet_ptr packet, std::string reason) { signal_packet_dropped(packet, reason); }
       inline void drop(TCP::Packet_ptr packet) { drop(packet, "None given."); }
 
+
+      // RFC 3042
+      void limited_tx();
+      inline void try_limited_tx() {
+        if( (send_window() > 0) and ( (flight_size() + 2*SMSS() ) <= control_block.SND.cwnd) )
+          limited_tx();
+      }
 
       /// TCB HANDLING ///
 
@@ -1496,7 +1503,10 @@ namespace net {
       }
 
       inline void reno_dup_ack(Seq ACK) {
-        if(++DUP_ACK == 3) {
+        if(++DUP_ACK < 3) {
+          if(!write_queue.empty())
+            try_limited_tx();
+        } else if(DUP_ACK == 3) {
           printf("<TCP::Connection::reno_dup_ack> Duplicate ACK - Strike 3!\n");
           if(reno_should_recover(ACK)) {
             reno_update_recover();
@@ -1504,6 +1514,7 @@ namespace net {
           }
         } else if(DUP_ACK > 3) {
           control_block.SND.cwnd += SMSS();
+          try_limited_tx();
         }
       }
 
@@ -1819,7 +1830,7 @@ namespace net {
       Ask to send a Connection's WriteBuffer.
       If there is no free packets, the job will be queued.
     */
-    size_t send(Connection_ptr, Connection::WriteBuffer&);
+    size_t send(Connection_ptr, Connection::WriteBuffer&, size_t n);
 
     /*
       Force the TCP to process the it's queue with the current amount of available packets.
