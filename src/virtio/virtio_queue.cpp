@@ -58,7 +58,6 @@ void Virtio::Queue::init_queue(int size, void* buf){
 }
 
 
-
 /** A default handler doing nothing.
 
     It's here because we might not want to look at the data, e.g. for
@@ -146,28 +145,32 @@ void Virtio::Queue::release(uint32_t head)
   _free_head = head;
 
   // What happens here?
-  debug2("<Q %i> desc[%i].next : %i \n",_pci_index,i,_queue.desc[i].next);
+  debug("<Q %i> desc[%i].next : %i \n",_pci_index, i ,_queue.desc[i].next);
 }
 
-gsl::span<char> Virtio::Queue::dequeue(){
+Virtio::Token Virtio::Queue::dequeue(){
 
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx){
     debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-    return nullptr;
+    return {{nullptr, 0}, Token::IN};
 
   }
+
+  //debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
 
   // Get next completed buffer
   auto* e = &_queue.used->ring[_last_used_idx % _size];
 
-  debug2("<Q %i> Releasing token %li. Len: %li\n",_pci_index,e->id, e->len);
+  debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
 
   // Release buffer
   release(e->id);
   _last_used_idx++;
 
-  return {(char*) _queue.desc[e->id].addr, (gsl::span<char>::size_type) e->len };
+  Token token1 {{(uint8_t*) _queue.desc[e->id].addr, (gsl::span<char>::size_type) e->len }, Token::IN};
+
+  return token1;
 }
 
 void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){

@@ -12,22 +12,25 @@ SECTIONS
     _TEXT_END_ = .;
   }
   
-  .init :
-  {
+  .init ALIGN(0x10) : {
     _INIT_START_ = .;
     *(.init)
     _INIT_END_ = .; 
   }
+  .fini ALIGN(0x10) : {
+    /* we don't want destructors taking up space */
+    *(.fini)
+  }
   
   /* Global constructor array */
-  .ctors :
+  .ctors ALIGN(0x10) :
   {
     _GCONSTR_START = .;
     *(.ctors)
     _GCONSTR_END = .;
     LONG(0);
   }
-  .dtors :
+  .dtors ALIGN(0x10) :
   {
     *(.dtors)
     LONG(0);
@@ -39,9 +42,6 @@ SECTIONS
     *(.rodata*)
     *(.gnu.linkonce.r*)
     _RODATA_END_ = .;
-    
-    /* this will make the image bigger, but maybe give it some speed too */
-    /*. = ALIGN(4096);*/
   }
   
   /* For stack unwinding (Required by exception handling)  */
@@ -65,6 +65,12 @@ SECTIONS
     _DATA_END_ = .;
   }
   
+  .syms :
+  {
+    *(.symtab)
+    *(.strtab)
+  }
+  
   .memdisk :
   {
     _DISK_START_ = .;
@@ -82,5 +88,6 @@ SECTIONS
   }
   
   _includeos = .;
-  _end = .;  
+  . = ALIGN(4096);
+  _end = .;
 }

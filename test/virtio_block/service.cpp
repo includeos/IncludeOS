@@ -11,10 +11,11 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//1 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define OS_TERMINATE_ON_CONTRACT_VIOLATION
 #include <os>
 
 #include <fs/disk.hpp>
@@ -35,8 +36,15 @@ void Service::start()
   // if the disk is empty, we can't mount a filesystem anyways
   CHECKSERT(not disk->empty(), "Disk is not empty");
 
+  disk->dev().read(1, [](auto buf){
+      printf("<Disk> Sector 1: \n %s \n", buf.get());
+    });
+
   // list extended partitions
   list_partitions(disk);
+
+
+
 
   // mount first valid partition (auto-detect and mount)
   disk->mount([] (fs::error_t err) {

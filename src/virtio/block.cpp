@@ -86,7 +86,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   INFO("VirtioBlk", "Block device with %llu sectors capacity",
        config.capacity);
   //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");
-  req.kick();
+  //req.kick();
 }
 
 void VirtioBlk::get_config()
@@ -96,6 +96,7 @@ void VirtioBlk::get_config()
 
 void VirtioBlk::irq_handler()
 {
+  IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -120,63 +121,95 @@ void VirtioBlk::irq_handler()
       get_config();
       //debug("\t             New status: 0x%x \n", config.status);
     }
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::service_RX()
 {
-  printf("VirtioBlk interrupt handler\n");
+
+  //const char* str = "000000000000000000000000"; // OK
+  //const char* str = "00000000000000000000000000000000000000000000000"; // OK
+  //const char* str = "000000000000000000000000000000000000000000000001"; // Symptom 1
+  const char* str = "00000000000000000000000000000000000000000000000111111111111111111111111111111112"; // Symptom 2
+  printf("%p\n",str);
+
+  /*
+  printf("bbbbbbbbbbbbbbbbbb");
+  //printf("aaaaaaaaaaaaaaaaaa");
+  printf("ccccccccccccccccccc");
+  printf("ccccccccccccccccccc");
+  printf("ccccccccccccccccccc");
+
+  printf("cccccccccccccccccccaa");
+  //printf("ccccccccccccccccccc");
+  //printf("ccccccccccccccccccc");
+  //printf("ccccccccccccccccccc");
+  //printf("V2");*/
+
+
+
   req.disable_interrupts();
+  auto res = req.dequeue();
+  req.enable_interrupts();
 
-  uint32_t received = 0;
-  uint32_t len;
-  request_t* hdr;
-  gsl::span<char> res;
+  request_t* hdr = (request_t*) res.data();
+  auto len = res.size();
+  blk_resp_t* resp = &hdr->resp;
+  printf("\nblk response: %u \n%s \n", resp->status, (char*)hdr->io.sector);
 
+
+  printf("Dequeued first: %p \n Data: %s \n", res.data(), res.data());
+
+
+  /*
   while ((res = req.dequeue()).data() != nullptr)
   {
-    //&printf("service_RX() received %u bytes for sector %llu\n",
+
+    debug("blk response \n");
+    //&debug("service_RX() received %u bytes for sector %llu\n",
     //       len, hdr->hdr.sector);
     //
     hdr = (request_t*) res.data();
     len = res.size();
     blk_resp_t* resp = &hdr->resp;
-    printf("blk response: %u\n", resp->status);
-    
+    debug("blk response: %u\n", resp->status);
+
     uint8_t* copy = new uint8_t[SECTOR_SIZE];
     memcpy(copy, hdr->io.sector, SECTOR_SIZE);
     auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
-    
-    printf("STATUS: [%u]\nCalling handler: %p\n",
+
+    debug("STATUS: [%u]\nCalling handler: %p\n",
            resp->status, &hdr->resp.handler);
     hdr->resp.handler(buf);
     received++;
   }
   if (received == 0)
   {
-    printf("service_RX() error processing requests\n");
-  }
-  req.enable_interrupts();
+    debug("service_RX() error processing requests\n");
+    }
+  */
+
+
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func)
 {
   // Virtio Std. § 5.1.6.3
-  auto* vbr = new request_t;
+  //auto* vbr = new request_t;
+  request_t* vbr = (request_t*) malloc(sizeof(request_t));
 
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
-  vbr->resp.handler = func;
+  //vbr->resp.handler = func;
 
-  printf("Enqueue handler: %p, total: %u\n",
+  debug("Enqueue handler: %p, total: %u\n",
          &vbr->resp.handler, sizeof(request_t));
   //
 
   Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
   Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
-  Token token3 { { (uint8_t*) &vbr->resp, sizeof(blk_resp_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, 1}, Token::IN };
 
   std::array<Token, 3> tokens {{ token1, token2, token3 }};
 
