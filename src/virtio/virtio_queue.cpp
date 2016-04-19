@@ -93,7 +93,7 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 
 
 /** Ported more or less directly from SanOS. */
-int Virtio::Queue::enqueue(gsl::span<Token> buffers, bool out){
+int Virtio::Queue::enqueue(gsl::span<Token> buffers){
   debug ("Enqueuing %i tokens \n", buffers.size());
   Expects(_free_head >= 0);
   Expects(_free_head < size());
@@ -107,11 +107,11 @@ int Virtio::Queue::enqueue(gsl::span<Token> buffers, bool out){
 
     // Set read / write flags
     _queue.desc[_free_head].flags =
-      out ? VIRTQ_DESC_F_NEXT : VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
+      buf.direction() ? VIRTQ_DESC_F_NEXT : VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
 
     // Assign raw buffer
-    _queue.desc[_free_head].addr = (uint64_t) buf.data;
-    _queue.desc[_free_head].len = buf.size;
+    _queue.desc[_free_head].addr = (uint64_t) buf.data();
+    _queue.desc[_free_head].len = buf.size();
 
     last = _free_head;
     _free_head ++;

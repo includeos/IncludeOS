@@ -80,7 +80,7 @@ class qemu(hypervisor):
     disk_args = self.drive_arg(self._vm["image"], "ide")
     if self._vm.has_key("drives"):
       for disk in self._vm["drives"]:
-        disk_args += drive_arg(disk["file"], disk["type"], disk["format"])
+        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
 
     net_args = []
     i = 0
@@ -159,7 +159,7 @@ class vm:
     try:
       self._hyper.boot()
     except Exception as err:
-      self._timer.cancel()
+      if (timeout): self._timer.cancel()
       raise err
       #self.exit(1, err)
 
