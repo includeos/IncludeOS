@@ -172,18 +172,14 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   printf("Enqueue handler: %p, total: %u\n",
          &vbr->io.handler, sizeof(request_t));
   //
-  std::array<Virtio::Token, 1> tout;
-  std::array<Virtio::Token, 2> tin;
-  
-  tout[0].data = (uint8_t*) &vbr->hdr;
-  tout[0].size = sizeof(scsi_header_t);
-  tin[0].data = (uint8_t*) &vbr->io;
-  tin[0].size = sizeof(blk_io_t);
-  tin[1].data = (uint8_t*) &vbr->resp;
-  tin[1].size = sizeof(blk_resp_t);
-  
-  req.enqueue(tout, Virtio::Queue::Direction::OUT);
-  req.enqueue(tin,  Virtio::Queue::Direction::IN);
+
+  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
+  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, sizeof(blk_resp_t) }, Token::IN };
+
+  std::array<Token, 3> tokens {{ token1, token2, token3 }};
+
+  req.enqueue(tokens);
   req.kick();
 }
 
