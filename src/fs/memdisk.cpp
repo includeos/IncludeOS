@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstring>
-#include <cassert>
 #include <cstdio>
+#include <cstring>
 
+#include <api/common>
 #include <fs/memdisk.hpp>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
@@ -40,13 +40,13 @@ namespace fs {
     auto sector_loc = image_start_ + (blk * block_size());
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end_)) {
-      reader(buffer_t()); return;
+      reader(buffer_t{}); return;
     }
 
     auto buffer = new uint8_t[block_size()];
-    assert( memcpy(buffer, sector_loc, block_size()) == buffer );
+    Ensures( memcpy(buffer, sector_loc, block_size()) == buffer );
 
-    reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+    reader( buffer_t{buffer, std::default_delete<uint8_t[]>()} );
   }
 
   void MemDisk::read(block_t blk, block_t count, on_read_func reader) {
@@ -54,25 +54,25 @@ namespace fs {
     auto end_loc   = start_loc + (count * block_size());
     // Disallow reading memory past disk image
     if (unlikely(end_loc >= image_end_)) {
-      reader(buffer_t()); return;
+      reader(buffer_t{}); return;
     }
 
     auto buffer = new uint8_t[count * block_size()];
-    assert( memcpy(buffer, start_loc, count * block_size()) == buffer );
+    Ensures( memcpy(buffer, start_loc, count * block_size()) == buffer );
 
-    reader( buffer_t(buffer, std::default_delete<uint8_t[]>()) );
+    reader( buffer_t{buffer, std::default_delete<uint8_t[]>()} );
   }
 
   MemDisk::buffer_t MemDisk::read_sync(block_t blk) {
     auto sector_loc = image_start_ + (blk * block_size());
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end_))
-      return buffer_t();
+      return buffer_t{};
 
     auto buffer = new uint8_t[block_size()];
-    assert( memcpy(buffer, sector_loc, block_size()) == buffer );
+    Ensures( memcpy(buffer, sector_loc, block_size()) == buffer );
 
-    return buffer_t(buffer, std::default_delete<uint8_t[]>());
+    return buffer_t{buffer, std::default_delete<uint8_t[]>()};
   }
 
   MemDisk::block_t MemDisk::size() const noexcept {

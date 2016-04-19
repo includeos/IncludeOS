@@ -29,7 +29,7 @@ namespace fs {
   public:
     static constexpr size_t SECTOR_SIZE = 512;
 
-    MemDisk() noexcept;
+    explicit MemDisk() noexcept;
 
     virtual const char* name() const noexcept override
     { return "MemDisk"; }
@@ -49,8 +49,8 @@ namespace fs {
     virtual buffer_t read_sync(block_t blk) override;
 
   private:
-    const char*  image_start_;
-    const char*  image_end_;
+    const char* const image_start_;
+    const char* const image_end_;
   }; //< class MemDisk
 
 } //< namespace fs
