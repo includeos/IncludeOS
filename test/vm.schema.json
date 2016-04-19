@@ -20,10 +20,11 @@
         "properties" : {
           "file" : { "type" : "string" },
           "type" : { "enum" : ["ide", "virtio"] },
+          "format" : { "enum" : ["raw", "qcow2", "vdi"] },
           "name" : { "type" : "string" }
         },
 
-        "required" : ["file"]
+        "required" : ["file", "format", "type"]
       }
     },
 

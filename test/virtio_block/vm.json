@@ -1,4 +1,6 @@
 {
-  "image" : "test_STL.img",
-  "drive" : [{"file" : "test.txt", "type" : "virtio" }]
+  "image" : "test_virtio_block.img",
+  "drives" : [{"file" : "test.txt",
+               "type" : "virtio",
+               "format": "raw" }]
 }
