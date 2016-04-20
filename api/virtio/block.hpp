@@ -125,7 +125,6 @@ private:
   
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
-  uint16_t request_counter;
 };
 
 #endif

@@ -30,7 +30,7 @@
 /**
    Virtio Queue class, nested inside Virtio.
 */
-#define ALIGN(x) (((x) + PAGE_SIZE) & ~PAGE_SIZE)
+#define ALIGN(x) (((x) + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1))
 unsigned Virtio::Queue::virtq_size(unsigned int qsz)
 {
   return ALIGN(sizeof(virtq_desc)*qsz + sizeof(u16)*(3 + qsz))
