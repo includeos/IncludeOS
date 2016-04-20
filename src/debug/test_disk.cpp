@@ -23,6 +23,7 @@ void Service::start()
   [i] (fs::buffer_t buffer)
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
+    assert(buffer);
   });
   //return;
   
