@@ -92,8 +92,8 @@ void VirtioBlk::get_config()
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
 }
 
-void VirtioBlk::irq_handler()
-{
+void VirtioBlk::irq_handler() {
+  
   IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
@@ -103,26 +103,23 @@ void VirtioBlk::irq_handler()
   unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
 
   // Step 2. A) - one of the queues have changed
-  if (isr & 1)
-    {
-      // This now means service RX & TX interchangeably
-      service_RX();
-    }
-
+  if (isr & 1) {
+    // This now means service RX & TX interchangeably
+    service_RX();
+  }
+  
   // Step 2. B)
-  if (isr & 2)
-    {
-      debug("\t <VirtioBlk> Configuration change:\n");
+  if (isr & 2) {
+    debug("\t <VirtioBlk> Configuration change:\n");
 
-      // Getting the MAC + status
-      //debug("\t             Old status: 0x%x\n", config.status);
-      get_config();
-      //debug("\t             New status: 0x%x \n", config.status);
-    }
+    // Getting the MAC + status
+    //debug("\t             Old status: 0x%x\n", config.status);
+    get_config();
+    //debug("\t             New status: 0x%x \n", config.status);
+  }
 }
 
-void VirtioBlk::service_RX()
-{
+void VirtioBlk::service_RX() {
   req.disable_interrupts();
   
   do {
@@ -152,8 +149,7 @@ void VirtioBlk::service_RX()
   req.enable_interrupts();
 }
 
-void VirtioBlk::read (block_t blk, on_read_func func)
-{
+void VirtioBlk::read (block_t blk, on_read_func func) {
   // Virtio Std. § 5.1.6.3
   auto* vbr = new request_t;
 
@@ -166,7 +162,6 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   debug("Enqueue handler: %p, total: %u\n",
          &vbr->resp.handler, sizeof(request_t));
   //
-
   Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
   Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
   Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN };
