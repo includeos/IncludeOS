@@ -235,7 +235,9 @@ void VirtioNet::service_queues(){
 
     // Do one RX-packet
     if (rx_q.new_incoming() ){
+
       auto res = rx_q.dequeue(); //BUG # 102? + sizeof(virtio_net_hdr);
+
       data = (uint8_t*) res.data();
       len += res.size();
 

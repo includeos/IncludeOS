@@ -23,7 +23,7 @@
 
 #include <cstdlib>
 
-#define GSL_THROW_ON_CONTRACT_VIOLATION
+#define OS_TERMINATE_ON_CONTRACT_VIOLATION
 #include <common>
 #include <os>
 #include <lest.hpp>

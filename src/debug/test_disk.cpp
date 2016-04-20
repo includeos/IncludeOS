@@ -24,7 +24,7 @@ void Service::start()
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
   });
-  return;
+  //return;
   
   // list extended partitions
   list_partitions(disk);

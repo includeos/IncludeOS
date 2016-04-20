@@ -35,6 +35,7 @@
 #include "../hw/pci_device.hpp"
 #include <delegate>
 #include <stdint.h>
+#include <vector>
 
 #define PAGE_SIZE 4096
 
@@ -74,11 +75,11 @@ public:
 
   public:
     // "Direction" of tokens
-    using span = gsl::span<uint8_t>;
-    using size_type = span::size_type;
+    using span = std::pair<uint8_t*, size_t>;  //gsl::span<uint8_t>;
+    using size_type = size_t;//span::size_type;
     enum Direction { IN, OUT };
     inline Token(span buf, Direction d) :
-      data_{ buf.data() }, size_{ buf.size() }, dir_{ d }
+      data_{ buf.first }, size_{ buf.second }, dir_{ d }
     {}
 
     inline auto data() { return data_; }
@@ -238,7 +239,7 @@ public:
     int enqueue(gsl::span<Virtio::Token> buffers);
 
     /** Dequeue a received packet */
-    gsl::span<char> dequeue();
+    Token dequeue();
 
     void disable_interrupts();
     void enable_interrupts();

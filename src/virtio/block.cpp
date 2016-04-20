@@ -84,7 +84,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   INFO("VirtioBlk", "Block device with %llu sectors capacity",
        config.capacity);
   //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");
-  req.kick();
+  //req.kick();
 }
 
 void VirtioBlk::get_config()
@@ -94,6 +94,7 @@ void VirtioBlk::get_config()
 
 void VirtioBlk::irq_handler()
 {
+  IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -118,18 +119,18 @@ void VirtioBlk::irq_handler()
       get_config();
       //debug("\t             New status: 0x%x \n", config.status);
     }
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::service_RX()
 {
   req.disable_interrupts();
-  gsl::span<char> res;
-
-  while ((res = req.dequeue()).data() != nullptr)
-  {
+  
+  do {
+    auto res = req.dequeue();
+    if (!res.data()) break;
+    assert(res.size());
+    
     request_t* hdr = (request_t*) res.data();
-    uint32_t   len = res.size();
     // check request response
     blk_resp_t* resp = &hdr->resp;
     // only call handler with data when the request was fullfilled
@@ -147,7 +148,7 @@ void VirtioBlk::service_RX()
       // return empty shared ptr
       hdr->resp.handler(buffer_t());
     }
-  }
+  } while (true);
   req.enable_interrupts();
 }
 
@@ -162,7 +163,7 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
   vbr->resp.handler = func;
 
-  printf("Enqueue handler: %p, total: %u\n",
+  debug("Enqueue handler: %p, total: %u\n",
          &vbr->resp.handler, sizeof(request_t));
   //
 
