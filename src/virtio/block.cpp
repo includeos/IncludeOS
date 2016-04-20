@@ -29,9 +29,7 @@
 #define FEAT(x)  (1 << x)
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-: Virtio(d),
-                       req(queue_size(0), 0, iobase()),
-                       request_counter(0)
+  : Virtio(d), req(queue_size(0), 0, iobase())
 {
   INFO("VirtioBlk", "Driver initializing");
 
@@ -86,7 +84,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   INFO("VirtioBlk", "Block device with %llu sectors capacity",
        config.capacity);
   //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");
-  req.kick();
+  //req.kick();
 }
 
 void VirtioBlk::get_config()
@@ -94,8 +92,9 @@ void VirtioBlk::get_config()
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
 }
 
-void VirtioBlk::irq_handler()
-{
+void VirtioBlk::irq_handler() {
+  
+  IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -104,63 +103,53 @@ void VirtioBlk::irq_handler()
   unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
 
   // Step 2. A) - one of the queues have changed
-  if (isr & 1)
-    {
-      // This now means service RX & TX interchangeably
-      service_RX();
-    }
-
+  if (isr & 1) {
+    // This now means service RX & TX interchangeably
+    service_RX();
+  }
+  
   // Step 2. B)
-  if (isr & 2)
-    {
-      debug("\t <VirtioBlk> Configuration change:\n");
+  if (isr & 2) {
+    debug("\t <VirtioBlk> Configuration change:\n");
 
-      // Getting the MAC + status
-      //debug("\t             Old status: 0x%x\n", config.status);
-      get_config();
-      //debug("\t             New status: 0x%x \n", config.status);
-    }
-  IRQ_manager::eoi(irq());
+    // Getting the MAC + status
+    //debug("\t             Old status: 0x%x\n", config.status);
+    get_config();
+    //debug("\t             New status: 0x%x \n", config.status);
+  }
 }
 
-void VirtioBlk::service_RX()
-{
-  printf("VirtioBlk interrupt handler\n");
+void VirtioBlk::service_RX() {
   req.disable_interrupts();
-
-  uint32_t received = 0;
-  uint32_t len;
-  request_t* hdr;
-  gsl::span<char> res;
-
-  while ((res = req.dequeue()).data() != nullptr)
-  {
-    //&printf("service_RX() received %u bytes for sector %llu\n",
-    //       len, hdr->hdr.sector);
-    //
-    hdr = (request_t*) res.data();
-    len = res.size();
+  
+  do {
+    auto res = req.dequeue();
+    if (!res.data()) break;
+    assert(res.size());
+    
+    request_t* hdr = (request_t*) res.data();
+    // check request response
     blk_resp_t* resp = &hdr->resp;
-    printf("blk response: %u\n", resp->status);
-    
-    uint8_t* copy = new uint8_t[SECTOR_SIZE];
-    memcpy(copy, hdr->io.sector, SECTOR_SIZE);
-    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
-    
-    printf("STATUS: [%u]\nCalling handler: %p\n",
-           resp->status, &hdr->resp.handler);
-    hdr->resp.handler(buf);
-    received++;
-  }
-  if (received == 0)
-  {
-    printf("service_RX() error processing requests\n");
-  }
+    // only call handler with data when the request was fullfilled
+    if (resp->status == 0)
+    {
+      // create a shared copy of the data
+      uint8_t* copy = new uint8_t[SECTOR_SIZE];
+      memcpy(copy, hdr->io.sector, SECTOR_SIZE);
+      auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+      // return buffer only as size is implicit
+      hdr->resp.handler(buf);
+    }
+    else
+    {
+      // return empty shared ptr
+      hdr->resp.handler(buffer_t());
+    }
+  } while (true);
   req.enable_interrupts();
 }
 
-void VirtioBlk::read (block_t blk, on_read_func func)
-{
+void VirtioBlk::read (block_t blk, on_read_func func) {
   // Virtio Std. § 5.1.6.3
   auto* vbr = new request_t;
 
@@ -170,13 +159,12 @@ void VirtioBlk::read (block_t blk, on_read_func func)
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
   vbr->resp.handler = func;
 
-  printf("Enqueue handler: %p, total: %u\n",
+  debug("Enqueue handler: %p, total: %u\n",
          &vbr->resp.handler, sizeof(request_t));
   //
-
   Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
   Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
-  Token token3 { { (uint8_t*) &vbr->resp, sizeof(blk_resp_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN };
 
   std::array<Token, 3> tokens {{ token1, token2, token3 }};
 

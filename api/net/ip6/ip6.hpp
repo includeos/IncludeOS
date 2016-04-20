@@ -63,23 +63,32 @@ namespace net
       addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2, 
            uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
       {
-        i128 = _mm_set_epi16(
-                             //d2, d1, c2, c1, b2, b1, a2, a1);
-                             htons(d2), htons(d1), 
-                             htons(c2), htons(c1), 
-                             htons(b2), htons(b1), 
-                             htons(a2), htons(a1));
+        i16[0] = a1; i16[1] = a2;
+        i16[2] = b1; i16[3] = b2;
+        i16[4] = c1; i16[5] = c2;
+        i16[6] = d1; i16[7] = d2;
+        /*i128 = _mm_set_epi16(
+           htons(d2), htons(d1), 
+           htons(c2), htons(c1), 
+           htons(b2), htons(b1), 
+           htons(a2), htons(a1));*/
       }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
       {
-        i128 = _mm_set_epi32(d, c, b, a);
+        i32[0] = a; i32[1] = b; i32[2] = c; i32[3] = d;
+        //i128 = _mm_set_epi32(d, c, b, a);
       }
       addr(const addr& a)
-        : i128(a.i128) {}
+      {
+        for (int i = 0; i < 4; i++)
+          i32[i] = a.i32[i];
+      }
       // move constructor
       addr& operator= (const addr& a)
       {
-        i128 = a.i128;
+        for (int i = 0; i < 4; i++)
+          i32[i] = a.i32[i];
+        //i128 = a.i128;
         return *this;
       }
       
@@ -87,8 +96,11 @@ namespace net
       bool operator== (const addr& a) const
       {
         // i128 == a.i128:
-        __m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
-        return _mm_cvtsi128_si32(cmp);
+        for (int i = 0; i < 4; i++)
+          if (i32[i] != a.i32[i]) return false;
+        return true;
+        //__m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
+        //return _mm_cvtsi128_si32(cmp);
       }
       bool operator!= (const addr& a) const
       {
@@ -136,11 +148,12 @@ namespace net
       
       union
       {
-        __m128i  i128;
+        //__m128i  i128;
         uint32_t  i32[ 4];
+        uint16_t  i16[ 8];
         uint8_t    i8[16];
       };
-    } __attribute__((aligned(alignof(__m128i))));
+    };
     
 #pragma pack(push, 1)
     class header
