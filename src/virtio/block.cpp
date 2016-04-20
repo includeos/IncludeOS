@@ -131,8 +131,7 @@ void VirtioBlk::service_RX() {
     // check request response
     blk_resp_t* resp = &hdr->resp;
     // only call handler with data when the request was fullfilled
-    if (resp->status == 0)
-    {
+    if (resp->status == 0) {
       // create a shared copy of the data
       uint8_t* copy = new uint8_t[SECTOR_SIZE];
       memcpy(copy, hdr->io.sector, SECTOR_SIZE);
@@ -140,13 +139,34 @@ void VirtioBlk::service_RX() {
       // return buffer only as size is implicit
       hdr->resp.handler(buf);
     }
-    else
-    {
+    else {
       // return empty shared ptr
       hdr->resp.handler(buffer_t());
     }
+    // delete request(!)
+    delete hdr;
+    
   } while (true);
   req.enable_interrupts();
+  
+  // if we have free space and jobs, ship them now
+  while (free_space() && !jobs.empty()) {
+    auto* vbr = jobs.front();
+    jobs.pop_front();
+    shipit(vbr);
+  }
+}
+
+void VirtioBlk::shipit(request_t* vbr) {
+  
+  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
+  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN }; // 1 status byte
+  
+  std::array<Token, 3> tokens {{ token1, token2, token3 }};
+  
+  req.enqueue(tokens);
+  req.kick();
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func) {
@@ -159,20 +179,17 @@ void VirtioBlk::read (block_t blk, on_read_func func) {
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
   vbr->resp.handler = func;
 
-  debug("Enqueue handler: %p, total: %u\n",
+  debug("virtioblk: Enqueue handler %p, reqsize %u\n",
          &vbr->resp.handler, sizeof(request_t));
   //
-  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
-  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
-  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN };
-
-  std::array<Token, 3> tokens {{ token1, token2, token3 }};
-
-  req.enqueue(tokens);
-  req.kick();
+  if (free_space())
+    shipit(vbr);
+  else
+    jobs.push_back(vbr);
 }
 
 VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
 {
+  // this driver won't support sync read
   return buffer_t();
 }

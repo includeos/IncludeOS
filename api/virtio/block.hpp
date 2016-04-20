@@ -23,7 +23,7 @@
 #include <hw/disk_device.hpp>
 #include <hw/pci_device.hpp>
 #include "virtio.hpp"
-//#include <delegate>
+#include <deque>
 
 /** Virtio-net device driver.  */
 class VirtioBlk : public Virtio, public hw::IDiskDevice
@@ -120,11 +120,21 @@ private:
 
       Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
-
+  
+  // need at least 3 tokens free to ship a request
+  inline bool free_space() const noexcept
+  { return req.num_free() >= 3; }
+  
+  // add one request to queue and kick
+  void shipit(request_t*);
+  
   Virtio::Queue req;
 
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
+  
+  // queue waiting for space in vring
+  std::deque<request_t*> jobs;
 };
 
 #endif
