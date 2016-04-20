@@ -29,9 +29,7 @@
 #define FEAT(x)  (1 << x)
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-: Virtio(d),
-                       req(queue_size(0), 0, iobase()),
-                       request_counter(0)
+  : Virtio(d), req(queue_size(0), 0, iobase())
 {
   INFO("VirtioBlk", "Driver initializing");
 
@@ -125,83 +123,45 @@ void VirtioBlk::irq_handler()
 
 void VirtioBlk::service_RX()
 {
-
-  //const char* str = "000000000000000000000000"; // OK
-  //const char* str = "00000000000000000000000000000000000000000000000"; // OK
-  //const char* str = "000000000000000000000000000000000000000000000001"; // Symptom 1
-  const char* str = "00000000000000000000000000000000000000000000000111111111111111111111111111111112"; // Symptom 2
-  printf("%p\n",str);
-
-  /*
-  printf("bbbbbbbbbbbbbbbbbb");
-  //printf("aaaaaaaaaaaaaaaaaa");
-  printf("ccccccccccccccccccc");
-  printf("ccccccccccccccccccc");
-  printf("ccccccccccccccccccc");
-
-  printf("cccccccccccccccccccaa");
-  //printf("ccccccccccccccccccc");
-  //printf("ccccccccccccccccccc");
-  //printf("ccccccccccccccccccc");
-  //printf("V2");*/
-
-
-
   req.disable_interrupts();
-  auto res = req.dequeue();
-  req.enable_interrupts();
-
-  request_t* hdr = (request_t*) res.data();
-  auto len = res.size();
-  blk_resp_t* resp = &hdr->resp;
-  printf("\nblk response: %u \n%s \n", resp->status, (char*)hdr->io.sector);
-
-
-  printf("Dequeued first: %p \n Data: %s \n", res.data(), res.data());
-
-
-  /*
-  while ((res = req.dequeue()).data() != nullptr)
-  {
-
-    debug("blk response \n");
-    //&debug("service_RX() received %u bytes for sector %llu\n",
-    //       len, hdr->hdr.sector);
-    //
-    hdr = (request_t*) res.data();
-    len = res.size();
+  
+  do {
+    auto res = req.dequeue();
+    if (!res.data()) break;
+    assert(res.size());
+    
+    request_t* hdr = (request_t*) res.data();
+    // check request response
     blk_resp_t* resp = &hdr->resp;
-    debug("blk response: %u\n", resp->status);
-
-    uint8_t* copy = new uint8_t[SECTOR_SIZE];
-    memcpy(copy, hdr->io.sector, SECTOR_SIZE);
-    auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
-
-    debug("STATUS: [%u]\nCalling handler: %p\n",
-           resp->status, &hdr->resp.handler);
-    hdr->resp.handler(buf);
-    received++;
-  }
-  if (received == 0)
-  {
-    debug("service_RX() error processing requests\n");
+    // only call handler with data when the request was fullfilled
+    if (resp->status == 0)
+    {
+      // create a shared copy of the data
+      uint8_t* copy = new uint8_t[SECTOR_SIZE];
+      memcpy(copy, hdr->io.sector, SECTOR_SIZE);
+      auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
+      // return buffer only as size is implicit
+      hdr->resp.handler(buf);
     }
-  */
-
-
+    else
+    {
+      // return empty shared ptr
+      hdr->resp.handler(buffer_t());
+    }
+  } while (true);
+  req.enable_interrupts();
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func)
 {
   // Virtio Std. § 5.1.6.3
-  //auto* vbr = new request_t;
-  request_t* vbr = (request_t*) malloc(sizeof(request_t));
+  auto* vbr = new request_t;
 
   vbr->hdr.type   = VIRTIO_BLK_T_IN;
   vbr->hdr.ioprio = 0;
   vbr->hdr.sector = blk;
   vbr->resp.status = VIRTIO_BLK_S_IOERR;
-  //vbr->resp.handler = func;
+  vbr->resp.handler = func;
 
   debug("Enqueue handler: %p, total: %u\n",
          &vbr->resp.handler, sizeof(request_t));
@@ -209,7 +169,7 @@ void VirtioBlk::read (block_t blk, on_read_func func)
 
   Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
   Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
-  Token token3 { { (uint8_t*) &vbr->resp, 1}, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN };
 
   std::array<Token, 3> tokens {{ token1, token2, token3 }};
 

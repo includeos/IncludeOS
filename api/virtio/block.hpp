@@ -93,8 +93,8 @@ private:
   };
   struct blk_resp_t
   {
-    uint8_t status;
-    //on_read_func  handler;
+    uint8_t      status;
+    on_read_func handler;
   };
 
   struct request_t
@@ -125,7 +125,6 @@ private:
 
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
-  uint16_t request_counter;
 };
 
 #endif

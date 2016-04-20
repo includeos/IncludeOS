@@ -17,7 +17,15 @@ void Service::start()
 
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
-
+  
+  for (int i = 0; i < 32; i++)
+  device.read(0,
+  [i] (fs::buffer_t buffer)
+  {
+    printf("buffer %d is not null: %d\n", i, !!buffer);
+  });
+  //return;
+  
   // list extended partitions
   list_partitions(disk);
 
