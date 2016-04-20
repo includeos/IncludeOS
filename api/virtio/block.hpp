@@ -42,13 +42,10 @@ public:
   {
     return SECTOR_SIZE; // some multiple of sector size
   }
-
+  // read @blk from disk, call func with buffer when done
   virtual void read(block_t blk, on_read_func func) override;
-
-  virtual void read(block_t, block_t, on_read_func cb) override
-  {
-    cb(buffer_t());
-  }
+  // read @blk + @cnt from disk, call func with buffer when done
+  virtual void read(block_t blk, block_t cnt, on_read_func cb) override;
 
   virtual buffer_t read_sync(block_t blk) override;
 
@@ -94,6 +91,7 @@ private:
   struct blk_resp_t
   {
     uint8_t      status;
+    bool         partial;
     on_read_func handler;
   };
 
@@ -102,6 +100,8 @@ private:
     scsi_header_t hdr;
     blk_io_t      io;
     blk_resp_t    resp;
+    
+    request_t(uint64_t blk, bool, on_read_func cb);
   };
 
   /** Get virtio PCI config. @see Virtio::get_config.*/
@@ -124,6 +124,10 @@ private:
   // need at least 3 tokens free to ship a request
   inline bool free_space() const noexcept
   { return req.num_free() >= 3; }
+  
+  // need many free tokens free to efficiently ship requests
+  inline bool lots_free_space() const noexcept
+  { return req.num_free() >= 32; }
   
   // add one request to queue and kick
   void shipit(request_t*);
