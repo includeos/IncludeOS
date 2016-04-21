@@ -783,9 +783,6 @@ namespace net {
           TCP::Seq WL2; // segment acknowledgment number used for last window update
 
           uint16_t MSS; // Maximum segment size for outgoing segments.
-
-          uint32_t cwnd; // Congestion window [RFC 5681]
-          Seq recover; // New Reno [RFC 6582]
         } SND; // <<
         TCP::Seq ISS;           // initial send sequence number
 
@@ -800,18 +797,26 @@ namespace net {
         TCP::Seq IRS;           // initial receive sequence number
 
         uint32_t ssthresh; // slow start threshold [RFC 5681]
+        uint32_t cwnd; // Congestion window [RFC 5681]
+        Seq recover; // New Reno [RFC 6582]
 
         TCB() {
-          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss, 0, 0 };
-          ISS = 0;
+          SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss };
+          ISS = (Seq)4815162342;
           RCV = { 0, TCP::default_window_size, 0, 0 };
           IRS = 0;
           ssthresh = TCP::default_window_size;
+          cwnd = 0;
+          recover = 0;
         };
 
         void init() {
           ISS = TCP::generate_iss();
-          SND.recover = ISS; // [RFC 6582]
+          recover = ISS; // [RFC 6582]
+        }
+
+        bool slow_start() {
+          return cwnd < ssthresh;
         }
 
         std::string to_string() const;
@@ -1005,7 +1010,7 @@ namespace net {
         TODO: Not sure if this will suffice.
       */
       inline uint32_t bytes_transmitted() const {
-        return control_block.SND.NXT - control_block.ISS;
+        return cb.SND.NXT - cb.ISS;
       }
 
       /*
@@ -1013,7 +1018,7 @@ namespace net {
         TODO: Not sure if this will suffice.
       */
       inline uint32_t bytes_received() const {
-        return control_block.RCV.NXT - control_block.IRS;
+        return cb.RCV.NXT - cb.IRS;
       }
 
       /*
@@ -1093,7 +1098,7 @@ namespace net {
       /*
         Keep tracks of all sequence variables.
       */
-      TCB control_block;                // 36 B
+      TCB cb;                // 36 B
 
       /*
         The given read request
@@ -1103,7 +1108,7 @@ namespace net {
       /*
         Queue for write requests to process
       */
-      std::queue<WriteRequest> write_queue;
+      std::queue<WriteRequest> writeq;
 
       /*
         State if connection is in TCP write queue or not.
@@ -1113,13 +1118,13 @@ namespace net {
       /*
         Retransmission queue
       */
-      std::deque<TCP::Packet_ptr> retransq;
+      std::deque<TCP::Packet_ptr> rtx_q;
 
       struct {
         hw::PIT::Timer_iterator iter;
         bool active = false;
         size_t i = 0;
-      } rt_timer;
+      } rtx_timer;
 
 
       /*
@@ -1321,6 +1326,8 @@ namespace net {
         return send((char*)buffer.pos(), n, packets, buffer.push);
       }
 
+      size_t send(const char* buffer, size_t n, Packet_ptr, bool PUSH);
+
       /*
         Process the write queue with the given amount of packets.
         Returns true if the Connection finishes - there is no more doable jobs.
@@ -1331,23 +1338,23 @@ namespace net {
         Returns if the connection has a doable write job.
       */
       inline bool has_doable_job() {
-        return !write_queue.empty() and usable_window() >= SMSS();
+        return !writeq.empty() and usable_window() >= SMSS();
       }
 
       /*
         Try to process the current write queue.
       */
-      void write_queue_push();
+      void writeq_push();
 
       /*
         Try to write (some of) queue on connected.
       */
-      inline void write_queue_on_connect() { write_queue_push(); }
+      inline void writeq_on_connect() { writeq_push(); }
 
       /*
         Reset queue on disconnect. Clears the queue and notice every requests callback.
       */
-      void write_queue_reset();
+      void writeq_reset();
 
       /*
         Returns if the TCP has the Connection in write queue
@@ -1388,7 +1395,7 @@ namespace net {
       // RFC 3042
       void limited_tx();
       inline void try_limited_tx() {
-        if( (send_window() > 0) and ( (flight_size() + 2*SMSS() ) <= control_block.SND.cwnd) )
+        if( (send_window() > 0) and ( (flight_size() + 2*SMSS() ) <= cb.cwnd) )
           limited_tx();
       }
 
@@ -1397,10 +1404,10 @@ namespace net {
       /*
         Returns the TCB.
       */
-      inline Connection::TCB& tcb() { return control_block; }
+      inline Connection::TCB& tcb() { return cb; }
 
       inline int32_t usable_window() const {
-        auto x = (int64_t)congestion_window() - (int64_t)control_block.SND.NXT;
+        auto x = (int64_t)congestion_window() - (int64_t)cb.SND.NXT;
         return (int32_t) x;
       }
 
@@ -1410,11 +1417,11 @@ namespace net {
         Made a function due to future use when Window Scaling Option is added.
       */
       inline int32_t send_window() const {
-        return (int32_t)control_block.SND.WND;
+        return (int32_t)cb.SND.WND;
       }
 
       inline int32_t congestion_window() const {
-        auto win = control_block.SND.UNA + std::min((int32_t)control_block.SND.cwnd, send_window());
+        auto win = cb.SND.UNA + std::min((int32_t)cb.cwnd, send_window());
         return win;
       }
 
@@ -1424,11 +1431,24 @@ namespace net {
       */
       void acknowledge(Seq ACK);
 
+      void handle_ack(TCP::Packet_ptr);
+
+      void on_dup_ack();
+
+      inline bool can_send_one()
+      { return (std::min(cb.cwnd, (uint32_t)send_window()) >= SMSS()) and !writeq.empty(); }
+
+      //void send_ack(TCP::Packet_ptr = nullptr);
+
       /// Congestion Control [RFC 5681] ///
 
       bool RENO_FAST_RECOVERY = false;
-      // First partial ack not seen
-      bool RENO_FPACK_NOT_SEEN = false;
+      // First partial ack seen
+      bool reno_fpack_seen = false;
+
+      size_t dup_acks_ = 0;
+      Seq prev_high_ack_ = 0;
+      Seq highest_ack_ = 0;
 
       Seq RENO_PREV_HIGHEST_ACK = 0;
       Seq RENO_HIGHEST_ACK = 0;
@@ -1440,10 +1460,10 @@ namespace net {
       { return host_.MSS(); }
 
       inline uint16_t RMSS() const
-      { return control_block.SND.MSS; }
+      { return cb.SND.MSS; }
 
       inline int32_t flight_size() const
-      { return control_block.SND.NXT - control_block.SND.UNA; }
+      { return cb.SND.NXT - cb.SND.UNA; }
 
       /// Reno ///
 
@@ -1454,85 +1474,72 @@ namespace net {
 
       inline void reno_init_cwnd(size_t segments)
       {
-        control_block.SND.cwnd = segments*SMSS();
-        debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", control_block.SND.cwnd);
+        cb.cwnd = segments*SMSS();
+        debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", cb.cwnd);
       }
 
       inline void reno_init_sshtresh()
-      { control_block.ssthresh = control_block.SND.WND; }
+      { cb.ssthresh = cb.SND.WND; }
 
       inline bool reno_slow_start() const
-      { return control_block.SND.cwnd < control_block.ssthresh; }
+      { return cb.cwnd < cb.ssthresh; }
 
       inline void reno_increase_cwnd(uint16_t n)
-      { control_block.SND.cwnd += std::min(n, SMSS()); }
+      { cb.cwnd += std::min(n, SMSS()); }
 
       inline void reno_deflate_cwnd(uint16_t n)
-      { control_block.SND.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
+      { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
-      inline void reno_reduce_ssthresh() {
-        control_block.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
-        printf("<TCP::Connection::reno_reduce_ssthresh> Slow start threshold reduced: %u\n",
-          control_block.ssthresh);
+      inline void reduce_ssthresh() {
+        cb.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
+        //printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
+        //  cb.ssthresh);
       }
 
-      inline void reno_fast_retransmit() {
-        printf("<TCP::Connection::reno_fast_retransmit> Fast retransmit initiated.\n");
+      inline void fast_retransmit() {
+        printf("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
+        // reduce sshtresh
+        reduce_ssthresh();
+        // retransmit segment starting SND.UNA
         retransmit();
-        reno_enter_fast_recovery();
-        //control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
+        // inflate congestion window with the 3 packets we got dup ack on.
+        cb.cwnd = cb.ssthresh + 3*SMSS();
       }
 
-      inline void reno_loss_detected() {
-        reno_reduce_ssthresh();
-        reno_fast_retransmit();
+      inline void finish_fast_recovery() {
+        dup_acks_ = 0;
+        reno_fpack_seen = false;
+        cb.cwnd = std::min((int32_t)cb.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
+        printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
-      inline void reno_enter_fast_retransmit() {
-        reno_loss_detected();
-      }
 
       inline bool reno_is_dup_ack(TCP::Packet_ptr in) {
         bool is_dup_ack = flight_size() > 0
           and !in->has_data()
           and !in->isset(FIN) and !in->isset(SYN)
           //and ((in->flags() & (FIN | SYN)) == 0)
-          and in->win() == control_block.SND.WND;
+          and in->win() == cb.SND.WND;
 
         return is_dup_ack;
       }
 
-      inline void reno_dup_ack(Seq ACK) {
-        if(++DUP_ACK < 3) {
-          if(!write_queue.empty())
-            try_limited_tx();
-        } else if(DUP_ACK == 3) {
-          printf("<TCP::Connection::reno_dup_ack> Duplicate ACK - Strike 3!\n");
-          if(reno_should_recover(ACK)) {
-            reno_update_recover();
-            reno_enter_fast_retransmit();
-          }
-        } else if(DUP_ACK > 3) {
-          control_block.SND.cwnd += SMSS();
-          try_limited_tx();
-        }
-      }
 
       inline void reno_enter_fast_recovery() {
-        control_block.SND.cwnd = control_block.ssthresh + (3 * SMSS());
+        cb.cwnd = cb.ssthresh + (3 * SMSS());
         RENO_FAST_RECOVERY = true;
-        RENO_FPACK_NOT_SEEN = true;
-        printf("<TCP::Connection::reno_enter_fast_recovery> Entered Fast Recovery - Cwnd: %u\n", control_block.SND.cwnd);
+        reno_fpack_seen = true;
+        printf("<TCP::Connection::reno_enter_fast_recovery> Entered Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
       inline void reno_exit_fast_recovery() {
-        control_block.SND.cwnd = std::min((int32_t)control_block.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
+        cb.cwnd = std::min((int32_t)cb.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
         RENO_FAST_RECOVERY = false;
-        printf("<TCP::Connection::reno_exit_fast_recovery> Exited Fast Recovery - Cwnd: %u\n", control_block.SND.cwnd);
+        printf("<TCP::Connection::reno_exit_fast_recovery> Exited Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
       inline bool reno_should_recover(Seq ACK) {
-        return (ACK - 1 > control_block.SND.recover) or reno_heuristic_segment_loss_detected();
+        return (ACK - 1 > cb.recover) or reno_heuristic_segment_loss_detected();
       }
 
       inline bool reno_heuristic_segment_loss_detected() {
@@ -1541,7 +1548,7 @@ namespace net {
       }
 
       inline bool reno_full_ack(Seq ACK) {
-        return ACK - 1 > control_block.SND.recover;
+        return ACK - 1 > cb.recover;
       }
 
       inline bool reno_partial_ack(Seq ACK) {
@@ -1553,7 +1560,7 @@ namespace net {
       }
 
       inline void reno_update_recover() {
-        control_block.SND.recover = control_block.SND.NXT;
+        cb.recover = cb.SND.NXT;
       }
 
       void reno_update_heuristic_ack(Seq ACK) {
@@ -1606,19 +1613,19 @@ namespace net {
       /*
         Start retransmission timer.
       */
-      void rt_start();
+      void rtx_start();
 
       /*
         Stop retransmission timer.
       */
-      void rt_stop();
+      void rtx_stop();
 
       /*
         Restart retransmission timer.
       */
-      inline void rt_restart() {
-        rt_stop();
-        rt_start();
+      inline void rtx_reset() {
+        rtx_stop();
+        rtx_start();
       }
 
       /*
@@ -1629,22 +1636,22 @@ namespace net {
       /*
         Remove all packets acknowledge by ACK in retransmission queue
       */
-      void rt_ack_queue(Seq ack);
+      void rtx_ack(Seq ack);
 
       /*
         Flush the queue (transmit every packet in queue)
       */
-      void rt_flush();
+      void rtx_flush();
 
       /*
         Delete retransmission queue
       */
-      void rt_clear();
+      void rtx_clear();
 
       /*
         When retransmission times out.
       */
-      void rt_timeout();
+      void rtx_timeout();
 
 
       /*
@@ -1664,7 +1671,7 @@ namespace net {
         (Limit the size for outgoing packets)
       */
       inline uint16_t MSDS() const {
-        return std::min(host_.MSS(), control_block.SND.MSS) + sizeof(TCP::Header);
+        return std::min(host_.MSS(), cb.SND.MSS) + sizeof(TCP::Header);
       }
 
       /*

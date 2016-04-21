@@ -43,7 +43,7 @@ std::string
 small, big, huge;
 
 int
-S{150}, B{1500}, H{15000};
+S{150}, B{1500}, H{150000};
 
 std::string
 TEST_STR {"1337"};
@@ -129,8 +129,14 @@ struct Buffer {
 void Service::start()
 {
   for(int i = 0; i < S; i++) small += TEST_STR;
+
+  big += "start-";
   for(int i = 0; i < B; i++) big += TEST_STR;
+  big += "-end";
+
+  huge += "start-";
   for(int i = 0; i < H; i++) huge += TEST_STR;
+  huge += "-end";
 
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
@@ -196,12 +202,19 @@ void Service::start()
     TEST: Send and receive huge string.
   */
   tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
+      conn->onPacketDropped([](TCP::Packet_ptr, std::string reason) {
+        //printf("Dropped: %s\n", reason.c_str());
+      });
+      conn->onPacketReceived([](Connection_ptr, TCP::Packet_ptr packet) {
+        //if(packet->has_data())
+        //  printf("Received: %s\n", packet->to_string().c_str());
+      });
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
-
+          //printf("Read: %u\n", n);
           // when all expected data is read
           if(temp->written == huge.size()) {
             bool OK = (temp->str() == huge);
@@ -209,7 +222,9 @@ void Service::start()
             conn->close();
           }
         });
-      conn->write(huge.data(), huge.size());
+      conn->write(huge.data(), huge.size(), [](size_t n) {
+        printf("Finished write request! %u bytes written\n", n);
+      }, true);
       INFO("Buffers available", "%u", inet->buffers_available());
     });
 

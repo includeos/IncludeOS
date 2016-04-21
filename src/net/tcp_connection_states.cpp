@@ -214,32 +214,16 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
     // Correction: [RFC 1122 p. 94]
     // ACK is inside sequence space
     if(in->ack() <= tcb.SND.NXT ) {
-      // this is a "new" ACK
-      if(tcb.SND.UNA <= in->ack()) {
-        /*
-          If SND.UNA =< SEG.ACK =< SND.NXT, the send window should be
-          updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
-          SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
-          SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
 
-          Note that SND.WND is an offset from SND.UNA, that SND.WL1
-          records the sequence number of the last segment used to update
-          SND.WND, and that SND.WL2 records the acknowledgment number of
-          the last segment used to update SND.WND.  The check here
-          prevents using old segments to update the window.
-        */
-        if( tcb.SND.WL1 < in->seq() or ( tcb.SND.WL1 = in->seq() and tcb.SND.WL2 <= in->ack() ) ) {
-          tcb.SND.WND = in->win();
-          tcb.SND.WL1 = in->seq();
-          tcb.SND.WL2 = in->ack();
-          debug2("<Connection::State::check_ack> Usable window slided (%i)\n", tcp.usable_window());
-        }
+      tcp.handle_ack(in);
+      // this is a "new" ACK
+      //if(tcb.SND.UNA <= in->ack()) {
 
         // this is a NEW ACK
-        if(tcb.SND.UNA < in->ack())
-        {
-          tcp.acknowledge(in->ack());
-        }
+        //if(tcb.SND.UNA < in->ack())
+        //{
+        //  tcp.acknowledge(in->ack());
+        //}
          // [RFC 5681]
         /*
           DUPLICATE ACKNOWLEDGMENT:
@@ -259,19 +243,19 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
         */
         // this is a RFC 5681 DUP ACK
         //!in->isset(FIN) and !in->isset(SYN)
-        else if(tcp.reno_is_dup_ack(in)) {
-          debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
-          tcp.reno_dup_ack(in->ack());
-        }
+        //else if(tcp.reno_is_dup_ack(in)) {
+        //  debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
+        //  tcp.reno_dup_ack(in->ack());
+        //}
         // this is an RFC 793 DUP ACK
-        else {
+        //else {
           //printf("<Connection::State::check_ack> RFC 793 Dup ACK %u\n", in->ack());
-        }
-      }
+        //}
+      //}
       // this is an "old" ACK out of order
-      else {
-        printf("<Connection::State::check_ack> ACK out of order (SND.UNA > ACK)\n");
-      }
+      //else {
+      //  printf("<Connection::State::check_ack> ACK out of order (SND.UNA > ACK)\n");
+      //}
       // tcp.signal_sent();
       // return that buffer has been SENT - currently no support to receipt sent buffer.
     }
@@ -348,7 +332,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   tcp.transmit(packet);
   if(tcp.has_doable_job() and !tcp.is_queued()) {
     debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
-    tcp.write_queue_push();
+    tcp.writeq_push();
   }
 
   /*
@@ -369,7 +353,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
     // Piggyback ACK with outgoing data
     if(tcp.has_doable_job() and !tcp.is_queued()) {
       debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
-      tcp.write_queue_push();
+      tcp.writeq_push();
       // we tried to push data, but nothing was written, reply the sender immediately
       if(tcp.usable_window() == tcb.SND.WND) {
         auto packet = tcp.outgoing_packet();
@@ -381,7 +365,7 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
     // If no outgoing data right now - reply with ACK.
     else {
       debug2("<TCP::Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
-             tcp.usable_window(), tcp.write_queue.size(), tcp.is_queued() ? "true" : "false");
+             tcp.usable_window(), tcp.writeq.size(), tcp.is_queued() ? "true" : "false");
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
       tcp.transmit(packet);
@@ -444,11 +428,11 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 void Connection::State::send_reset(Connection& tcp) {
-  tcp.write_queue_reset();
+  tcp.writeq_reset();
   auto packet = tcp.outgoing_packet();
   packet->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(RST);
   // flush retransmission queue
-  tcp.rt_flush();
+  tcp.rtx_flush();
   tcp.transmit(packet);
 }
 /////////////////////////////////////////////////////////////////////
@@ -600,7 +584,7 @@ size_t Connection::SynReceived::send(Connection&, WriteBuffer&) {
 
 size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.write_queue.empty())
+  if(tcp.writeq.empty())
     return tcp.send(buffer);
 
   return 0;
@@ -608,7 +592,7 @@ size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
 
 size_t Connection::CloseWait::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.write_queue.empty())
+  if(tcp.writeq.empty())
     return tcp.send(buffer);
 
   return 0;
@@ -909,7 +893,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
     tcb.IRS       = in->seq();
     tcb.SND.UNA   = in->ack();
 
-    tcp.rt_ack_queue(in->ack());
+    tcp.rtx_ack(in->ack());
 
     // (our SYN has been ACKed)
     if(tcb.SND.UNA > tcb.ISS) {
@@ -1021,7 +1005,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
       tcb.SND.UNA = in->ack();
       if(tcp.rttm.active)
         tcp.rttm.stop();
-      tcp.rt_ack_queue(in->ack());
+      tcp.rtx_ack(in->ack());
 
       // 7. proccess the segment text
       if(in->has_data()) {
@@ -1156,7 +1140,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
     if(in->ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
-      tcp.rt_stop();
+      tcp.rtx_stop();
       tcp.start_time_wait_timeout();
     } else {
       tcp.set_state(Closing::instance());
@@ -1202,7 +1186,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) 
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
-    tcp.rt_stop();
+    tcp.rtx_stop();
     tcp.start_time_wait_timeout();
   }
   return OK;
