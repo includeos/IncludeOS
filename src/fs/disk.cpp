@@ -67,10 +67,11 @@ namespace fs {
       // auto-detect FAT on MBR:
       auto* mbr = (MBR::mbr*) data.get();
       MBR::BPB* bpb = mbr->bpb();
-
+      
       if (bpb->bytes_per_sector >= 512 
        && bpb->fa_tables != 0 
-       && bpb->signature != 0) // check MBR signature too
+       && (bpb->signature != 0 // check MBR signature too
+       || bpb->large_sectors != 0)) // but its not set for FAT32
       {
         // detected FAT on MBR
         filesys.reset(new FAT(device));
