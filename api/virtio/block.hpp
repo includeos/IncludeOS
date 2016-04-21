@@ -132,6 +132,8 @@ private:
   // add one request to queue and kick
   void shipit(request_t*);
   
+  void handle(request_t*);
+  
   Virtio::Queue req;
 
   // configuration as read from paravirtual PCI device
@@ -139,6 +141,7 @@ private:
   
   // queue waiting for space in vring
   std::deque<request_t*> jobs;
+  size_t inflight;
 };
 
 #endif

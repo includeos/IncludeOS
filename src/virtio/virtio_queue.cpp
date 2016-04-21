@@ -148,33 +148,59 @@ void Virtio::Queue::release(uint32_t head)
   debug("<Q %i> desc[%i].next : %i \n",_pci_index, i ,_queue.desc[i].next);
 }
 
-Virtio::Token Virtio::Queue::dequeue(){
+Virtio::Token Virtio::Queue::dequeue() {
 
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx){
     debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
     return {{nullptr, 0}, Token::IN};
-
   }
+  debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
 
-  //debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
+  // Get next completed buffer
+  auto& e = _queue.used->ring[_last_used_idx % _size];
+  debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, &e, e.id, e.len);
+
+  // Release buffer
+  release(e.id);
+  _last_used_idx++;
+  // return token:
+  return {{(uint8_t*) _queue.desc[e.id].addr, 
+           (gsl::span<char>::size_type) e.len }, Token::IN};
+}
+std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
+  
+  std::vector<Virtio::Token> result;
+  
+  // Return NULL if there are no more completed buffers in the queue
+  if (_last_used_idx == _queue.used->idx){
+    debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
+    return result;
+  }
+  debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
 
   // Get next completed buffer
   auto* e = &_queue.used->ring[_last_used_idx % _size];
-
-  debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
-
+  
+  auto* unchain = &_queue.desc[e->id];
+  do
+  {
+    result.emplace_back(
+      Token::span{ (uint8_t*) unchain->addr, unchain->len }, Token::IN);
+    unchain = &_queue.desc[ unchain->next ];
+  }
+  while (unchain->flags & VIRTQ_DESC_F_NEXT);
+  
   // Release buffer
+  debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
   release(e->id);
   _last_used_idx++;
-
-  Token token1 {{(uint8_t*) _queue.desc[e->id].addr, (gsl::span<char>::size_type) e->len }, Token::IN};
-
-  return token1;
+  
+  return result;
 }
 
-void Virtio::Queue::set_data_handler(delegate<int(uint8_t* data,int len)> del){
-  _data_handler=del;
+void Virtio::Queue::set_data_handler(data_handler_t del) {
+  _data_handler = del;
 }
 
 void Virtio::Queue::disable_interrupts(){

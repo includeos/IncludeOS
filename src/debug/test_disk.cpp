@@ -19,17 +19,17 @@ void Service::start()
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   
   // 1. create alot of separate jobs
-  for (int i = 0; i < 256; i++)
+  /*for (int i = 0; i < 256; i++)
   device.read(0,
   [i] (fs::buffer_t buffer)
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
     assert(buffer);
-  });
+  });*/
   // 2. create alot of sequential jobs of 1024 sectors each
   // note: if we queue more than this we will run out of RAM
-  for (int i = 0; i < 64; i++)
-  device.read(0, 1024,
+  for (int i = 0; i < 256; i++)
+  device.read(0, 22,
   [i] (fs::buffer_t buffer)
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
