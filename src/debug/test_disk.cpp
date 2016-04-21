@@ -18,8 +18,18 @@ void Service::start()
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   
-  for (int i = 0; i < 32; i++)
+  // 1. create alot of separate jobs
+  /*for (int i = 0; i < 256; i++)
   device.read(0,
+  [i] (fs::buffer_t buffer)
+  {
+    printf("buffer %d is not null: %d\n", i, !!buffer);
+    assert(buffer);
+  });*/
+  // 2. create alot of sequential jobs of 1024 sectors each
+  // note: if we queue more than this we will run out of RAM
+  for (int i = 0; i < 256; i++)
+  device.read(0, 22,
   [i] (fs::buffer_t buffer)
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);

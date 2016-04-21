@@ -28,6 +28,9 @@
 
 #define FEAT(x)  (1 << x)
 
+// a deleter that does nothing
+void null_deleter(uint8_t*) {};
+
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   : Virtio(d), req(queue_size(0), 0, iobase())
 {
@@ -119,60 +122,153 @@ void VirtioBlk::irq_handler() {
   }
 }
 
-void VirtioBlk::service_RX() {
-  req.disable_interrupts();
-  
-  do {
-    auto res = req.dequeue();
-    if (!res.data()) break;
-    assert(res.size());
-    
-    request_t* hdr = (request_t*) res.data();
-    // check request response
-    blk_resp_t* resp = &hdr->resp;
-    // only call handler with data when the request was fullfilled
-    if (resp->status == 0)
-    {
-      // create a shared copy of the data
+void VirtioBlk::handle(request_t* hdr) {
+  // check request response
+  blk_resp_t* resp = &hdr->resp;
+  // only call handler with data when the request was fullfilled
+  if (resp->status == 0) {
+    buffer_t buf;
+    // for partial results, we will just use the buffer as-is
+    if (resp->partial) {
+      buf = buffer_t(hdr->io.sector, null_deleter);
+    }
+    else {
+      // otherwise, create a shared copy of the data
+      // because we are giving this to the user
       uint8_t* copy = new uint8_t[SECTOR_SIZE];
       memcpy(copy, hdr->io.sector, SECTOR_SIZE);
-      auto buf = buffer_t(copy, std::default_delete<uint8_t[]>());
-      // return buffer only as size is implicit
-      hdr->resp.handler(buf);
+      buf = buffer_t(copy, std::default_delete<uint8_t[]>());
     }
-    else
-    {
-      // return empty shared ptr
-      hdr->resp.handler(buffer_t());
-    }
+    // return buffer only as size is implicit
+    resp->handler(buf);
+  }
+  else {
+    // return empty shared ptr
+    hdr->resp.handler(buffer_t());
+  }
+}
+
+void VirtioBlk::service_RX() {
+  
+  int handled = 0;
+  req.disable_interrupts();
+  do {
+    auto tok = req.dequeue();
+    if (!tok.data()) break;
+    
+    // only handle the main header of each request
+    auto* hdr = (request_t*) tok.data();
+    handle(hdr);
+    inflight--; handled++;
+    // delete request(!)
+    delete hdr;
+    
   } while (true);
+  
+  // only ship more if we have nothing more queued (??)
+  if (inflight == 0) {
+    // if we have lots of free space and jobs, ship many
+    bool shipped = false;
+    while (free_space() && !jobs.empty()) {
+      auto* vbr = jobs.front();
+      jobs.pop_front();
+      shipit(vbr);
+      shipped = true;
+    }
+    if (shipped) req.kick();
+  }
   req.enable_interrupts();
+  
+  //printf("inflight: %d  handled: %d  shipped: %d  num_free: %u\n", 
+  //    inflight, handled, scnt, req.num_free());
+}
+
+void VirtioBlk::shipit(request_t* vbr) {
+  
+  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
+  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
+  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN }; // 1 status byte
+  
+  std::array<Token, 3> tokens {{ token1, token2, token3 }};
+  req.enqueue(tokens);
+  inflight++;
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func) {
   // Virtio Std. § 5.1.6.3
-  auto* vbr = new request_t;
-
-  vbr->hdr.type   = VIRTIO_BLK_T_IN;
-  vbr->hdr.ioprio = 0;
-  vbr->hdr.sector = blk;
-  vbr->resp.status = VIRTIO_BLK_S_IOERR;
-  vbr->resp.handler = func;
-
-  debug("Enqueue handler: %p, total: %u\n",
-         &vbr->resp.handler, sizeof(request_t));
+  auto* vbr = new request_t(blk, false, func);
+  debug("virtioblk: Enqueue blk %llu\n", blk);
   //
-  Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
-  Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
-  Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN };
-
-  std::array<Token, 3> tokens {{ token1, token2, token3 }};
-
-  req.enqueue(tokens);
-  req.kick();
+  if (free_space()) {
+    shipit(vbr);
+    req.kick();
+  }
+  else {
+    jobs.push_back(vbr);
+  }
+}
+void VirtioBlk::read (block_t blk, block_t cnt, on_read_func func) {
+  
+  bool shipped = false;
+  // create big buffer for collecting all the disk data
+  uint8_t* bufdata = new uint8_t[block_size() * cnt];
+  buffer_t bigbuf { bufdata, std::default_delete<uint8_t[]>() };
+  // (initialized) boolean array of partial jobs
+  auto results = std::make_shared<size_t> (cnt);
+  
+  for (int i = cnt-1; i >= 0; i--)
+  {
+    // create a special request where we collect all the data
+    auto* vbr = new request_t(blk + i, true,
+    [this, i, func, results, bigbuf] (buffer_t buffer) {
+      // if the job was already completed, return early
+      if (*results == 0) {
+        printf("Job cancelled? results == 0,  blk=%u\n", i);
+        return;
+      }
+      // validate partial result
+      if (buffer) {
+        *results -= 1;
+        // copy partial block
+        memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
+        // check if we have all blocks
+        if (*results == 0) {
+          // finally, call user-provided callback
+          func(bigbuf);
+        }
+      }
+      else {
+        // if the partial result failed, cancel all
+        *results = 0;
+        // callback with no data
+        func(buffer_t());
+      }
+    });
+    debug("virtioblk: Enqueue blk %llu\n", blk + i);
+    //
+    if (free_space()) {
+      shipit(vbr);
+      shipped = true;
+    }
+    else
+      jobs.push_back(vbr);
+  }
+  // kick when we have enqueued stuff
+  if (shipped) req.kick();
 }
 
 VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
 {
+  // this driver won't support sync read
   return buffer_t();
+}
+
+VirtioBlk::request_t::request_t(uint64_t blk, bool part, on_read_func cb)
+{
+  hdr.type   = VIRTIO_BLK_T_IN;
+  hdr.ioprio = 0; // reserved
+  hdr.sector = blk;
+  resp.status  = VIRTIO_BLK_S_IOERR;
+  resp.partial = part;
+  resp.handler = cb;
 }
