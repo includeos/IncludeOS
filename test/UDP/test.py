@@ -35,5 +35,4 @@ vm = vmrunner.vms[0]
 vm.on_output("IncludeOS UDP test", UDP_test)
 
 # Boot the VM, taking a timeout as parameter
-timeout = sys.argv[1] if len(sys.argv) > 1 else 30
 vm.boot(20)
