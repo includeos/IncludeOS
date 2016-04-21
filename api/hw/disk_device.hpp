@@ -21,7 +21,6 @@
 
 #include <memory>
 #include <cstdint>
-#include <functional>
 #include <delegate>
 
 namespace hw

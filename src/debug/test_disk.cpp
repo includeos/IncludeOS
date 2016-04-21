@@ -2,9 +2,8 @@
 #include <cassert>
 const char* service_name__ = "...";
 
-#include <ide>
 #include <fs/disk.hpp>
-std::shared_ptr<fs::Disk> disk;
+fs::Disk_ptr disk;
 
 void list_partitions(decltype(disk));
 
@@ -69,7 +68,7 @@ void Service::start()
                e.type_string().c_str(), e.name().c_str(), e.size, e.block);
         
         if (e.is_file()) {
-          printf("*** Attempting to read: %s\n", e.name().c_str());
+          printf("*** Read file  %s\n", e.name().c_str());
           disk->fs().read(e, 0, e.size,
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
             if (err) {
