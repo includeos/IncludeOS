@@ -10,14 +10,24 @@ import re
 
 import validate_test
 
+INCLUDEOS_HOME = None
+
+if not os.environ.has_key("INCLUDEOS_HOME"):
+    print "WARNING: Environment varialble INCLUDEOS_HOME is not set. Trying default"
+    def_home = os.environ["HOME"] + "/IncludeOS_install"
+    if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
+    INCLUDEOS_HOME= def_home
+else:
+    INCLUDEOS_HOME = os.environ['INCLUDEOS_HOME']
+
 def abstract():
     raise Exception("Abstract class method called. Use a subclass")
 # Hypervisor base / super class
 # (It seems to be recommended for "new style classes" to inherit object)
 class hypervisor(object):
 
-  def __init__(self, vm):
-    self._vm = vm;
+  def __init__(self, config):
+    self._config = config;
 
   # Boot a VM, returning a hypervisor handle for reuse
   def boot(self):
@@ -68,42 +78,42 @@ class qemu(hypervisor):
 
   def net_arg(self, if_type = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
     type_names = {"virtio" : "virtio-net"}
-    qemu_ifup = os.environ['INCLUDEOS_HOME']+"/etc/qemu-ifup"
+    qemu_ifup = INCLUDEOS_HOME+"/etc/qemu-ifup"
     return ["-device", type_names[if_type]+",netdev="+if_name+",mac="+mac,
             "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
 
 
   def boot(self):
     self._out_sign = "<" + type(self).__name__ + ">"
-    print self._out_sign,"booting ",self._vm["image"]
+    print self._out_sign,"booting ",self._config["image"]
 
-    disk_args = self.drive_arg(self._vm["image"], "ide")
-    if self._vm.has_key("drives"):
-      for disk in self._vm["drives"]:
+    disk_args = self.drive_arg(self._config["image"], "ide")
+    if self._config.has_key("drives"):
+      for disk in self._config["drives"]:
         disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
 
     net_args = []
     i = 0
-    if self._vm.has_key("net"):
-      for net in self._vm["net"]:
+    if self._config.has_key("net"):
+      for net in self._config["net"]:
         net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
         i+=1
 
-    command = ["sudo", "qemu-system-x86_64", "-nographic" ] + disk_args + net_args
+    command = ["sudo", "qemu-system-x86_64","--enable-kvm", "-nographic" ] + disk_args + net_args
     print self._out_sign, "command:", command
 
     self._proc = start_process(command)
 
   def stop(self):
     if hasattr(self, "_proc") and self._proc.poll() == None :
-      print self._out_sign,"Stopping", self._vm["image"], "PID",self._proc.pid
+      print self._out_sign,"Stopping", self._config["image"], "PID",self._proc.pid
       # Kill with sudo
       subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
 
   def wait(self):
-    print "Waiting for process to terminate"
+    print self._out_sign, "Waiting for process to terminate"
     self._proc.wait()
 
   def readline(self):
@@ -132,8 +142,10 @@ class vm:
 
   def exit(self, status, msg):
     self.stop()
+    print
     print msg
     self._exit_status = status
+    # sys.exit won't really do anything if called from a (timer) thread
     sys.exit(status)
 
   def on_output(self, output, callback):
@@ -167,12 +179,24 @@ class vm:
     while self._hyper.poll() == None and not self._exit_status:
       line = self._hyper.readline()
       print "<VM>",line.rstrip()
-
       # Look for event-triggers
       for pattern, func in self._on_output.iteritems():
         if re.search(pattern, line):
           func()
-    return self
+
+    # Now we either have an exit status from timer thread, or an exit status
+    # from the subprocess.
+    self.stop()
+    self.wait()
+
+    if self._exit_status:
+        print "<VMRunner> Done running VM. Exit status: ", self._exit_status
+        sys.exit(self._exit_status)         
+    else:
+        print "<VMRunner> Subprocess finished. Exiting with ", self._hyper.poll()
+        sys.exit(self._hyper.poll())
+
+    raise Exception("Unexpected termination")
 
   def stop(self):
     self._hyper.stop()
