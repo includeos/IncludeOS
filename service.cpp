@@ -18,8 +18,8 @@
 #include <os>
 #include <net/inet4>
 #include <math.h>
-#include <iostream>
 #include <sstream>
+#include <cstring>
 #include <net/dhcp/dh4client.hpp>
 
 using namespace std::chrono;
@@ -56,16 +56,9 @@ void Service::start() {
   printf("Size of IP-stack: %i b \n",sizeof(inet));
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
 
-  // buffer up all output until connection is established
-  /*OS::set_rsprint([](const char* data, size_t n){
-    BUFFER.push_back({data, n});
-  });*/
-    
   auto& rsh = inet->tcp().bind(22);
-
-  
-
-  rsh.onConnect([](auto conn) {
+  rsh.onConnect(
+  [] (auto conn) {
     // change print to write directly to connection.
     printf("Established remote shell connection, changing rsprint... \n");
     RSH_PEER = conn;
@@ -79,32 +72,20 @@ void Service::start() {
   
   printf("<Service> Connection: %s \n", server.to_string().c_str());
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([](auto conn)->bool {
-      /* 
-	 printf("<Service> @onAccept - Connection attempt from: %s \n", conn->remote().to_string().c_str());
-	 printf("<Service> Status: %s \n", conn->to_string().c_str());
-      */
-
-      bool allowed_connection_expression = true; // accepts all connections.
+  server.onAccept(
+  [] (auto) -> bool {
+      return true;
+  }).onConnect(
+  [] (auto conn) {
+    
+    conn->read(1024, 
+    [conn] (net::TCP::buffer_t buffer, size_t size) {
       
-      return allowed_connection_expression;
-
-  }).onConnect([](auto conn) {
+      std::string data((char*) buffer.get(), size);
       
-      /*
-	printf("<Service> @onConnect - Connection successfully established. \n");
-	printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
-      */
-
-  }).onReceive([](auto conn, bool push) {
-      std::string data = conn->read(1024);
-      /*
-	printf("<Service> @onData - PUSH: %d, Data read: \n %s \n", push, data.c_str());
-	printf("<Service> Status: %s \n", conn->to_string().c_str());
-      */
       int color = rand();
       std::stringstream stream;
- 
+      
       /* HTML Fonts */
       std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
       std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
@@ -124,43 +105,19 @@ void Service::start() {
       
       /* HTTP-header */
       std::string html = stream.str();
-      std::string header="HTTP/1.1 200 OK \n "        \
-  "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-  "Server: IncludeOS prototype 4.0 \n"        \
-  "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-  "Content-Type: text/html; charset=UTF-8 \n"     \
-  "Content-Length: "+std::to_string(html.size())+"\n"   \
-  "Accept-Ranges: bytes\n"          \
-  "Connection: close\n\n";
+      std::string header = 
+        "HTTP/1.1 200 OK \n "        \
+        "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
+        "Server: IncludeOS prototype 4.0 \n"        \
+        "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
+        "Content-Type: text/html; charset=UTF-8 \n"     \
+        "Content-Length: "+std::to_string(html.size())+"\n"   \
+        "Accept-Ranges: bytes\n"          \
+        "Connection: close\n\n";
       
       std::string output{header + html};
       conn->write(output.data(), output.size());
-
-  }).onDisconnect([](auto conn, std::string msg) {
-      /*
-	printf("<Service> @onDisconnect - Reason: %s \n", msg.c_str());
-	printf("<Service> TCP STATUS:\n%s \n", conn->host().status().c_str());
-      */
-
-  });
-
-
-  hw::PIT::instance().onRepeatedTimeout(5s, [](){
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str()); 
     });
-
-  // Set up a Active conneciton
-  /*net::TCP::Connection& active_con = inet->tcp().connect({{23,235,43,133}});
-
-  active_con.onConnect([](net::TCP::Connection& conn) {
-      std::string request{"GET / HTTP/1.1 \n"};
-      conn.write(request.data(), request.size());
-  }).onData([](net::TCP::Connection& conn, bool PUSH) {
-
-  }).onDisconnect([](net::TCP::Connection& conn, std::string msg) {
-
-  });*/
-
+  });
   printf("*** TEST SERVICE STARTED *** \n");
-
 }
