@@ -20,7 +20,7 @@
 
 #include <os>
 
-#include <api/common>
+#include <common>
 
 #include <net/ethernet.hpp>
 #include <net/packet.hpp>
