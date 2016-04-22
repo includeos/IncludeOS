@@ -44,8 +44,8 @@ void _init_c_runtime()
   extern caddr_t heap_end; // used by SBRK:
   extern char _end;        // Defined by the linker 
   // Set heap to after _end (given by linker script) if needed
-  if (&_end > heap_end)
-    heap_end = &_end;
+  // note: end should be aligned to next page by linker
+  heap_end = &_end;
   
   /// initialize newlib I/O
   newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);

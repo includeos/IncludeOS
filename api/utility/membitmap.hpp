@@ -23,7 +23,7 @@
  * In-memory bitmap implementation
  * 
  * 
-**/
+ **/
 
 namespace fs
 {
@@ -56,15 +56,15 @@ namespace fs
     {
       // each word
       for (index_t i = 0; i < _size; i++)
-      if (_data[i] != WORD_MAX)
-      {
-        // each bit
-        for (index_t b = 0; b < CHUNK_SIZE; b++)
-        if (!(_data[i] & (1 << b)))
-        {
-          return i * CHUNK_SIZE + b;
-        }
-      } // chunk
+        if (_data[i] != WORD_MAX)
+          {
+            // each bit
+            for (index_t b = 0; b < CHUNK_SIZE; b++)
+              if (!(_data[i] & (1 << b)))
+                {
+                  return i * CHUNK_SIZE + b;
+                }
+          } // chunk
       return -1;
     } // first_free()
     

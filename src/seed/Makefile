@@ -20,7 +20,7 @@ CAPABS_COMMON = -mstackrealign -msse3
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
-OPTIONS = $(WARNS) $(CAPABS)
+OPTIONS = $(WARNS) $(CAPABS) $(EXTRA_FLAGS)
 
 # External Libraries
 ###################################################
@@ -35,18 +35,19 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
 INC_NEWLIB=$(INSTALL)/newlib/include
 INC_LIBCXX=$(INSTALL)/libcxx/include
 
+CC = clang-3.6 -target i686-elf
 CPP = clang++-3.6 -target i686-elf
 ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(LOCAL_INCLUDES) -I
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL/include $(LOCAL_INCLUDES)
 
 all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 #-flto -fno-exceptions
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1
 LDOPTS = -nostdlib -melf_i386 -N --script=$(INSTALL)/linker.ld
 
 # Objects
@@ -59,6 +60,7 @@ CRTN_OBJ = $(INSTALL)/crt/crtn.o
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
+
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
 OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
@@ -70,6 +72,7 @@ DEPS = $(OBJS:.o=.d)
 ###################################################
 # A complete build includes:
 # - a "service", to be linked with OS-objects (OS included)
+.PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: service
 
@@ -77,13 +80,24 @@ stripped: LDOPTS  += -S #strip all
 stripped: CPPOPTS += -Oz
 stripped: service
 
+# Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
+debug-info: CAPABS += -UNO_DEBUG
+debug-info: service
 
-# The same, but with debugging symbols (OBS: Dramatically increases binary size)
+# Build with debugging symbols (OBS: Dramatically increases binary size)
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
-debug: LDOPTS  += -M --verbose
-debug: OBJS += $(LIBG_OBJ)
-debug: service #Don't wanna call 'all', since it strips debug info
+debug: OBJ_LIST += $(LIBG_OBJ)
+debug: CAPABS += -O0
+debug: service
+
+# Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
+debug-all: CAPABS += -UNO_DEBUG
+debug-all: CCOPTS  += $(DEBUG_OPTS)
+debug-all: CPPOPTS += $(DEBUG_OPTS)
+debug-all: OBJ_LIST += $(LIBG_OBJ)
+debug-all: CAPABS += -O0
+debug-all: service
 
 # Disk image as a section
 ###################################################
@@ -126,8 +140,12 @@ crt%.o: $(INSTALL)/crt/crt%.s
 
 # General C++-files to object files
 %.o: %.cpp
-	@echo "\n>> Compiling OS object without header"
+	@echo "\n>> Compiling $<..."
 	$(CPP) $(CPPOPTS) -o $@ $<
+
+%.o: %.c
+	@echo "\n>> Compiling $<..."
+	$(CC) $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s

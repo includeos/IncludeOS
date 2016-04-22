@@ -32,16 +32,16 @@ namespace fs
   struct EXT4 : public FileSystem
   {
     /**
-    Blocks 	                   2^32 	  2^32    2^32 	   2^32
-    Inodes 	                   2^32 	  2^32    2^32 	   2^32
-    File System Size 	         4TiB 	  8TiB   16TiB 	 256PiB
-    Blocks Per Block Group 	  8,192 	16,384 	32,768 	524,288
-    Inodes Per Block Group 	  8,192 	16,384 	32,768 	524,288
-    Block Group Size 	         8MiB	   32MiB 	128MiB  	32GiB
-    Blocks Per File, Extents 	 2^32 	  2^32 	  2^32 	   2^32
-    Blocks Per File, Block Maps 	16,843,020 	134,480,396 	1,074,791,436 	4,398,314,962,956
-    File Size, Extents         4TiB     8TiB   16TiB  256TiB
-    File Size, Block Maps 	16GiB 	256GiB 	4TiB 	256PiB 
+       Blocks                      2^32           2^32    2^32     2^32
+       Inodes                      2^32           2^32    2^32     2^32
+       File System Size                  4TiB     8TiB   16TiB   256PiB
+       Blocks Per Block Group     8,192         16,384  32,768  524,288
+       Inodes Per Block Group     8,192         16,384  32,768  524,288
+       Block Group Size                  8MiB      32MiB        128MiB          32GiB
+       Blocks Per File, Extents          2^32     2^32    2^32     2^32
+       Blocks Per File, Block Maps      16,843,020      134,480,396     1,074,791,436   4,398,314,962,956
+       File Size, Extents         4TiB     8TiB   16TiB  256TiB
+       File Size, Block Maps    16GiB   256GiB  4TiB    256PiB 
     **/
     
     // 0   = Mount MBR
@@ -53,8 +53,8 @@ namespace fs
     virtual error_t ls(const std::string& path, dirvec_t e) override;
     
     // read an entire file into a buffer, then call on_read
-    virtual void readFile(const std::string&, on_read_func) override;
-    virtual void readFile(const Dirent& ent, on_read_func) override;
+    virtual void   readFile(const std::string&, on_read_func) override;
+    virtual Buffer readFile(const std::string&) override;
     
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
@@ -103,15 +103,15 @@ namespace fs
       uint16_t  magic; // Magic signature, 0xEF53
       
       // File system state. Valid values are:
-      //  0x0001 	Cleanly umounted
-      //  0x0002 	Errors detected
-      //  0x0004 	Orphans being recovered
+      //  0x0001        Cleanly umounted
+      //  0x0002        Errors detected
+      //  0x0004        Orphans being recovered
       uint16_t  state;
       
       // Behaviour when detecting errors. One of:
-      //  1 	Continue
-      //  2 	Remount read-only
-      //  3 	Panic
+      //  1     Continue
+      //  2     Remount read-only
+      //  3     Panic
       uint16_t  errors;
       uint16_t  minor_rev_level; // Minor revision level
       
@@ -119,16 +119,16 @@ namespace fs
       uint32_t  checkinterval; // Maximum time between checks, in seconds
       
       // OS. One of:
-      //  0 	Linux
-      //  1 	Hurd
-      //  2 	Masix
-      //  3 	FreeBSD
-      //  4 	Lites
+      //  0     Linux
+      //  1     Hurd
+      //  2     Masix
+      //  3     FreeBSD
+      //  4     Lites
       uint32_t  creator_os;
       
       // Revision level. One of:
-      //  0 	Original format
-      //  1 	v2 format w/ dynamic inode sizes
+      //  0     Original format
+      //  1     v2 format w/ dynamic inode sizes
       uint32_t  rev_level;
       
       uint16_t  def_resuid; // Default uid for reserved blocks
@@ -155,54 +155,54 @@ namespace fs
       // Compatible feature set flags. 
       // Kernel can still read/write this fs even if it doesn't 
       // understand a flag; fsck should not do that. Any of:
-      //  0x1 	Directory preallocation (COMPAT_DIR_PREALLOC).
-      //  0x2 	"imagic inodes". Not clear from the code what this does (COMPAT_IMAGIC_INODES).
-      //  0x4 	Has a journal (COMPAT_HAS_JOURNAL).
-      //  0x8 	Supports extended attributes (COMPAT_EXT_ATTR).
-      //  0x10 	Has reserved GDT blocks for filesystem expansion (COMPAT_RESIZE_INODE).
-      //  0x20 	Has directory indices (COMPAT_DIR_INDEX).
-      //  0x40 	"Lazy BG". Not in Linux kernel, seems to have been for uninitialized block groups? (COMPAT_LAZY_BG)
-      //  0x80 	"Exclude inode". Not used. (COMPAT_EXCLUDE_INODE).
-      //  0x100 	"Exclude bitmap". Seems to be used to indicate the presence of snapshot-related exclude bitmaps? Not defined in kernel or used in e2fsprogs (COMPAT_EXCLUDE_BITMAP).
-      //  0x200 	Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks (COMPAT_SPARSE_SUPER2).
+      //  0x1   Directory preallocation (COMPAT_DIR_PREALLOC).
+      //  0x2   "imagic inodes". Not clear from the code what this does (COMPAT_IMAGIC_INODES).
+      //  0x4   Has a journal (COMPAT_HAS_JOURNAL).
+      //  0x8   Supports extended attributes (COMPAT_EXT_ATTR).
+      //  0x10  Has reserved GDT blocks for filesystem expansion (COMPAT_RESIZE_INODE).
+      //  0x20  Has directory indices (COMPAT_DIR_INDEX).
+      //  0x40  "Lazy BG". Not in Linux kernel, seems to have been for uninitialized block groups? (COMPAT_LAZY_BG)
+      //  0x80  "Exclude inode". Not used. (COMPAT_EXCLUDE_INODE).
+      //  0x100         "Exclude bitmap". Seems to be used to indicate the presence of snapshot-related exclude bitmaps? Not defined in kernel or used in e2fsprogs (COMPAT_EXCLUDE_BITMAP).
+      //  0x200         Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks (COMPAT_SPARSE_SUPER2).
       uint32_t  feature_compat;
       
       // Incompatible feature set. If the kernel or fsck doesn't 
       // understand one of these bits, it should stop. Any of:
-      //  0x1 	Compression (INCOMPAT_COMPRESSION).
-      //  0x2 	Directory entries record the file type. See ext4_dir_entry_2 below (INCOMPAT_FILETYPE).
-      //  0x4 	Filesystem needs recovery (INCOMPAT_RECOVER).
-      //  0x8 	Filesystem has a separate journal device (INCOMPAT_JOURNAL_DEV).
-      //  0x10 	Meta block groups. See the earlier discussion of this feature (INCOMPAT_META_BG).
-      //  0x40 	Files in this filesystem use extents (INCOMPAT_EXTENTS).
-      //  0x80 	Enable a filesystem size of 2^64 blocks (INCOMPAT_64BIT).
-      //  0x100 	Multiple mount protection. Not implemented (INCOMPAT_MMP).
-      //  0x200 	Flexible block groups. See the earlier discussion of this feature (INCOMPAT_FLEX_BG).
-      //  0x400 	Inodes can be used for large extended attributes (INCOMPAT_EA_INODE). (Not implemented?)
-      //  0x1000 	Data in directory entry (INCOMPAT_DIRDATA). (Not implemented?)
-      //  0x2000 	Metadata checksum seed is stored in the superblock. This feature enables the administrator to change the UUID of a metadata_csum filesystem while the filesystem is mounted; without it, the checksum definition requires all metadata blocks to be rewritten (INCOMPAT_CSUM_SEED).
-      //  0x4000 	Large directory >2GB or 3-level htree (INCOMPAT_LARGEDIR).
-      //  0x8000 	Data in inode (INCOMPAT_INLINE_DATA).
-      //  0x10000 	Encrypted inodes are present on the filesystem. (INCOMPAT_ENCRYPT).
+      //  0x1   Compression (INCOMPAT_COMPRESSION).
+      //  0x2   Directory entries record the file type. See ext4_dir_entry_2 below (INCOMPAT_FILETYPE).
+      //  0x4   Filesystem needs recovery (INCOMPAT_RECOVER).
+      //  0x8   Filesystem has a separate journal device (INCOMPAT_JOURNAL_DEV).
+      //  0x10  Meta block groups. See the earlier discussion of this feature (INCOMPAT_META_BG).
+      //  0x40  Files in this filesystem use extents (INCOMPAT_EXTENTS).
+      //  0x80  Enable a filesystem size of 2^64 blocks (INCOMPAT_64BIT).
+      //  0x100         Multiple mount protection. Not implemented (INCOMPAT_MMP).
+      //  0x200         Flexible block groups. See the earlier discussion of this feature (INCOMPAT_FLEX_BG).
+      //  0x400         Inodes can be used for large extended attributes (INCOMPAT_EA_INODE). (Not implemented?)
+      //  0x1000        Data in directory entry (INCOMPAT_DIRDATA). (Not implemented?)
+      //  0x2000        Metadata checksum seed is stored in the superblock. This feature enables the administrator to change the UUID of a metadata_csum filesystem while the filesystem is mounted; without it, the checksum definition requires all metadata blocks to be rewritten (INCOMPAT_CSUM_SEED).
+      //  0x4000        Large directory >2GB or 3-level htree (INCOMPAT_LARGEDIR).
+      //  0x8000        Data in inode (INCOMPAT_INLINE_DATA).
+      //  0x10000       Encrypted inodes are present on the filesystem. (INCOMPAT_ENCRYPT).
       uint32_t feature_incompat;
       
       // Readonly-compatible feature set. If the kernel doesn't 
       // understand one of these bits, it can still mount read-only. 
       // Any of:
-      //0x1 	Sparse superblocks. See the earlier discussion of this feature (RO_COMPAT_SPARSE_SUPER).
-      //0x2 	This filesystem has been used to store a file greater than 2GiB (RO_COMPAT_LARGE_FILE).
-      //0x4 	Not used in kernel or e2fsprogs (RO_COMPAT_BTREE_DIR).
-      //0x8 	This filesystem has files whose sizes are represented in units of logical blocks, not 512-byte sectors. This implies a very large file indeed! (RO_COMPAT_HUGE_FILE)
-      //0x10 	Group descriptors have checksums. In addition to detecting corruption, this is useful for lazy formatting with uninitialized groups (RO_COMPAT_GDT_CSUM).
-      //0x20 	Indicates that the old ext3 32,000 subdirectory limit no longer applies (RO_COMPAT_DIR_NLINK).
-      //0x40 	Indicates that large inodes exist on this filesystem (RO_COMPAT_EXTRA_ISIZE).
-      //0x80 	This filesystem has a snapshot (RO_COMPAT_HAS_SNAPSHOT).
-      //0x100 	Quota (RO_COMPAT_QUOTA).
-      //0x200 	This filesystem supports "bigalloc", which means that file extents are tracked in units of clusters (of blocks) instead of blocks (RO_COMPAT_BIGALLOC).
-      //0x400 	This filesystem supports metadata checksumming. (RO_COMPAT_METADATA_CSUM; implies RO_COMPAT_GDT_CSUM, though GDT_CSUM must not be set)
-      //0x800 	Filesystem supports replicas. This feature is neither in the kernel nor e2fsprogs. (RO_COMPAT_REPLICA)
-      //0x1000 	Read-only filesystem image; the kernel will not mount this image read-write and most tools will refuse to write to the image. (RO_COMPAT_READONLY)
-      //0x2000 	Filesystem tracks project quotas. (RO_COMPAT_PROJECT)
+      //0x1     Sparse superblocks. See the earlier discussion of this feature (RO_COMPAT_SPARSE_SUPER).
+      //0x2     This filesystem has been used to store a file greater than 2GiB (RO_COMPAT_LARGE_FILE).
+      //0x4     Not used in kernel or e2fsprogs (RO_COMPAT_BTREE_DIR).
+      //0x8     This filesystem has files whose sizes are represented in units of logical blocks, not 512-byte sectors. This implies a very large file indeed! (RO_COMPAT_HUGE_FILE)
+      //0x10    Group descriptors have checksums. In addition to detecting corruption, this is useful for lazy formatting with uninitialized groups (RO_COMPAT_GDT_CSUM).
+      //0x20    Indicates that the old ext3 32,000 subdirectory limit no longer applies (RO_COMPAT_DIR_NLINK).
+      //0x40    Indicates that large inodes exist on this filesystem (RO_COMPAT_EXTRA_ISIZE).
+      //0x80    This filesystem has a snapshot (RO_COMPAT_HAS_SNAPSHOT).
+      //0x100   Quota (RO_COMPAT_QUOTA).
+      //0x200   This filesystem supports "bigalloc", which means that file extents are tracked in units of clusters (of blocks) instead of blocks (RO_COMPAT_BIGALLOC).
+      //0x400   This filesystem supports metadata checksumming. (RO_COMPAT_METADATA_CSUM; implies RO_COMPAT_GDT_CSUM, though GDT_CSUM must not be set)
+      //0x800   Filesystem supports replicas. This feature is neither in the kernel nor e2fsprogs. (RO_COMPAT_REPLICA)
+      //0x1000  Read-only filesystem image; the kernel will not mount this image read-write and most tools will refuse to write to the image. (RO_COMPAT_READONLY)
+      //0x2000  Filesystem tracks project quotas. (RO_COMPAT_PROJECT)
       uint32_t  feature_ro_compat;
       
       uint8_t uuid[16]; // 128-bit UUID for volume
@@ -225,19 +225,19 @@ namespace fs
       
       // Journaling support valid if EXT4_FEATURE_COMPAT_HAS_JOURNAL set
       uint8_t   journal_uuid[16]; // UUID of journal superblock
-      uint32_t  journal_inum; 	// inode number of journal file.
+      uint32_t  journal_inum;   // inode number of journal file.
       uint32_t  journal_dev;    // Device number of journal file, if the external journal feature flag is set
       
       uint32_t  last_orphan; // Start of list of orphaned inodes to delete
       uint32_t  hash_seed[4]; // HTREE hash seed
       
       // Default hash algorithm to use for directory hashes. One of:
-      //  0x0 	Legacy.
-      //  0x1 	Half MD4.
-      //  0x2 	Tea.
-      //  0x3 	Legacy, unsigned.
-      //  0x4 	Half MD4, unsigned.
-      //  0x5 	Tea, unsigned.
+      //  0x0   Legacy.
+      //  0x1   Half MD4.
+      //  0x2   Tea.
+      //  0x3   Legacy, unsigned.
+      //  0x4   Half MD4, unsigned.
+      //  0x5   Tea, unsigned.
       uint8_t   def_hash_version;
       
       // If this value is 0 or EXT3_JNL_BACKUP_BLOCKS (1), then the s_jnl_blocks field contains a duplicate copy of the inode's i_block[] array and i_size
@@ -246,18 +246,18 @@ namespace fs
       uint16_t  desc_size;
       
       // Default mount options. Any of:
-      //  0x001 	Print debugging info upon (re)mount. (EXT4_DEFM_DEBUG)
-      //  0x002 	New files take the gid of the containing directory (instead of the fsgid of the current process). (EXT4_DEFM_BSDGROUPS)
-      //  0x004 	Support userspace-provided extended attributes. (EXT4_DEFM_XATTR_USER)
-      //  0x008 	Support POSIX access control lists (ACLs). (EXT4_DEFM_ACL)
-      //  0x010 	Do not support 32-bit UIDs. (EXT4_DEFM_UID16)
-      //  0x020 	All data and metadata are commited to the journal. (EXT4_DEFM_JMODE_DATA)
-      //  0x040 	All data are flushed to the disk before metadata are committed to the journal. (EXT4_DEFM_JMODE_ORDERED)
-      //  0x060 	Data ordering is not preserved; data may be written after the metadata has been written. (EXT4_DEFM_JMODE_WBACK)
-      //  0x100 	Disable write flushes. (EXT4_DEFM_NOBARRIER)
-      //  0x200 	Track which blocks in a filesystem are metadata and therefore should not be used as data blocks. This option will be enabled by default on 3.18, hopefully. (EXT4_DEFM_BLOCK_VALIDITY)
-      //  0x400 	Enable DISCARD support, where the storage device is told about blocks becoming unused. (EXT4_DEFM_DISCARD)
-      //  0x800 	Disable delayed allocation. (EXT4_DEFM_NODELALLOC)
+      //  0x001         Print debugging info upon (re)mount. (EXT4_DEFM_DEBUG)
+      //  0x002         New files take the gid of the containing directory (instead of the fsgid of the current process). (EXT4_DEFM_BSDGROUPS)
+      //  0x004         Support userspace-provided extended attributes. (EXT4_DEFM_XATTR_USER)
+      //  0x008         Support POSIX access control lists (ACLs). (EXT4_DEFM_ACL)
+      //  0x010         Do not support 32-bit UIDs. (EXT4_DEFM_UID16)
+      //  0x020         All data and metadata are commited to the journal. (EXT4_DEFM_JMODE_DATA)
+      //  0x040         All data are flushed to the disk before metadata are committed to the journal. (EXT4_DEFM_JMODE_ORDERED)
+      //  0x060         Data ordering is not preserved; data may be written after the metadata has been written. (EXT4_DEFM_JMODE_WBACK)
+      //  0x100         Disable write flushes. (EXT4_DEFM_NOBARRIER)
+      //  0x200         Track which blocks in a filesystem are metadata and therefore should not be used as data blocks. This option will be enabled by default on 3.18, hopefully. (EXT4_DEFM_BLOCK_VALIDITY)
+      //  0x400         Enable DISCARD support, where the storage device is told about blocks becoming unused. (EXT4_DEFM_DISCARD)
+      //  0x800         Disable delayed allocation. (EXT4_DEFM_NODELALLOC)
       uint32_t  default_mount_opts;
       
       // First metablock block group, if the meta_bg feature is enabled
@@ -275,9 +275,9 @@ namespace fs
       uint16_t  want_extra_isize; // New inodes should reserve # bytes
       
       // Miscellaneous flags. Any of:
-      //  0x01 	Signed directory hash in use.
-      //  0x02 	Unsigned directory hash in use.
-      //  0x04 	To test development code.
+      //  0x01  Signed directory hash in use.
+      //  0x02  Unsigned directory hash in use.
+      //  0x04  To test development code.
       uint32_t  flags;
       
       // RAID stride. This is the number of logical blocks read from or written to the disk before moving to the next disk. This affects the placement of filesystem metadata, which will hopefully make RAID storage faster
@@ -321,10 +321,10 @@ namespace fs
       uint32_t  backup_bgs[2]; // Block groups containing superblock backups (if sparse_super2)
       
       // Encryption algorithms in use. There can be up to four algorithms in use at any time; valid algorithm codes are given below:
-      //  0 	Invalid algorithm (ENCRYPTION_MODE_INVALID).
-      //  1 	256-bit AES in XTS mode (ENCRYPTION_MODE_AES_256_XTS).
-      //  2 	256-bit AES in GCM mode (ENCRYPTION_MODE_AES_256_GCM).
-      //  3 	256-bit AES in CBC mode (ENCRYPTION_MODE_AES_256_CBC).
+      //  0     Invalid algorithm (ENCRYPTION_MODE_INVALID).
+      //  1     256-bit AES in XTS mode (ENCRYPTION_MODE_AES_256_XTS).
+      //  2     256-bit AES in GCM mode (ENCRYPTION_MODE_AES_256_GCM).
+      //  3     256-bit AES in CBC mode (ENCRYPTION_MODE_AES_256_CBC).
       uint8_t   encrypt_algos[4];
       // Salt for the string2key algorithm for encryption.
       uint8_t   encrypt_pw_salt[16];
@@ -351,9 +351,9 @@ namespace fs
       uint16_t  free_inodes_count_lo; // Lower 16-bits of free inode count
       uint16_t  used_dirs_count_lo;   // Lower 16-bits of directory count
       // Block group flags. Any of:
-      //  0x1 	inode table and bitmap are not initialized (EXT4_BG_INODE_UNINIT).
-      //  0x2 	block bitmap is not initialized (EXT4_BG_BLOCK_UNINIT).
-      //  0x4 	inode table is zeroed (EXT4_BG_INODE_ZEROED).
+      //  0x1   inode table and bitmap are not initialized (EXT4_BG_INODE_UNINIT).
+      //  0x2   block bitmap is not initialized (EXT4_BG_BLOCK_UNINIT).
+      //  0x4   inode table is zeroed (EXT4_BG_INODE_ZEROED).
       uint16_t  flags;
       
       uint32_t  exclude_bitmap_lo; // Lower 32-bits of location of snapshot exclusion bitmap
@@ -386,26 +386,26 @@ namespace fs
     struct inode_table
     {
       // File mode. Any of:
-      //  0x1 	S_IXOTH (Others may execute)
-      //  0x2 	S_IWOTH (Others may write)
-      //  0x4 	S_IROTH (Others may read)
-      //  0x8 	S_IXGRP (Group members may execute)
-      //  0x10 	S_IWGRP (Group members may write)
-      //  0x20 	S_IRGRP (Group members may read)
-      //  0x40 	S_IXUSR (Owner may execute)
-      //  0x80 	S_IWUSR (Owner may write)
-      //  0x100 	S_IRUSR (Owner may read)
-      //  0x200 	S_ISVTX (Sticky bit)
-      //  0x400 	S_ISGID (Set GID)
-      //  0x800 	S_ISUID (Set UID)
+      //  0x1   S_IXOTH (Others may execute)
+      //  0x2   S_IWOTH (Others may write)
+      //  0x4   S_IROTH (Others may read)
+      //  0x8   S_IXGRP (Group members may execute)
+      //  0x10  S_IWGRP (Group members may write)
+      //  0x20  S_IRGRP (Group members may read)
+      //  0x40  S_IXUSR (Owner may execute)
+      //  0x80  S_IWUSR (Owner may write)
+      //  0x100         S_IRUSR (Owner may read)
+      //  0x200         S_ISVTX (Sticky bit)
+      //  0x400         S_ISGID (Set GID)
+      //  0x800         S_ISUID (Set UID)
       //  These are mutually-exclusive file types:
-      //  0x1000 	S_IFIFO (FIFO)
-      //  0x2000 	S_IFCHR (Character device)
-      //  0x4000 	S_IFDIR (Directory)
-      //  0x6000 	S_IFBLK (Block device)
-      //  0x8000 	S_IFREG (Regular file)
-      //  0xA000 	S_IFLNK (Symbolic link)
-      //  0xC000 	S_IFSOCK (Socket)       
+      //  0x1000        S_IFIFO (FIFO)
+      //  0x2000        S_IFCHR (Character device)
+      //  0x4000        S_IFDIR (Directory)
+      //  0x6000        S_IFBLK (Block device)
+      //  0x8000        S_IFREG (Regular file)
+      //  0xA000        S_IFLNK (Symbolic link)
+      //  0xC000        S_IFSOCK (Socket)       
       uint16_t  mode;
       
       uint16_t  uid; // Owner-ID (lower 16)
@@ -419,37 +419,37 @@ namespace fs
       uint32_t  blocks_lo; // "Block" count (lower 32)
       
       // Inode flags. Any of:
-      //  0x1 	This file requires secure deletion (EXT4_SECRM_FL). (not implemented)
-      //  0x2 	This file should be preserved, should undeletion be desired (EXT4_UNRM_FL). (not implemented)
-      //  0x4 	File is compressed (EXT4_COMPR_FL). (not really implemented)
-      //  0x8 	All writes to the file must be synchronous (EXT4_SYNC_FL).
-      //  0x10 	File is immutable (EXT4_IMMUTABLE_FL).
-      //  0x20 	File can only be appended (EXT4_APPEND_FL).
-      //  0x40 	The dump(1) utility should not dump this file (EXT4_NODUMP_FL).
-      //  0x80 	Do not update access time (EXT4_NOATIME_FL).
-      //  0x100 	Dirty compressed file (EXT4_DIRTY_FL). (not used)
-      //  0x200 	File has one or more compressed clusters (EXT4_COMPRBLK_FL). (not used)
-      //  0x400 	Do not compress file (EXT4_NOCOMPR_FL). (not used)
-      //  0x800 	Encrypted inode (EXT4_ENCRYPT_FL). This bit value previously was EXT4_ECOMPR_FL (compression error), which was never used.
-      //  0x1000 	Directory has hashed indexes (EXT4_INDEX_FL).
-      //  0x2000 	AFS magic directory (EXT4_IMAGIC_FL).
-      //  0x4000 	File data must always be written through the journal (EXT4_JOURNAL_DATA_FL).
-      //  0x8000 	File tail should not be merged (EXT4_NOTAIL_FL). (not used by ext4)
-      //  0x10000 	All directory entry data should be written synchronously (see dirsync) (EXT4_DIRSYNC_FL).
-      //  0x20000 	Top of directory hierarchy (EXT4_TOPDIR_FL).
-      //  0x40000 	This is a huge file (EXT4_HUGE_FILE_FL).
-      //  0x80000 	Inode uses extents (EXT4_EXTENTS_FL).
-      //  0x200000 	Inode used for a large extended attribute (EXT4_EA_INODE_FL).
-      //  0x400000 	This file has blocks allocated past EOF (EXT4_EOFBLOCKS_FL). (deprecated)
-      //  0x01000000 	Inode is a snapshot (EXT4_SNAPFILE_FL). (not in mainline)
-      //  0x04000000 	Snapshot is being deleted (EXT4_SNAPFILE_DELETED_FL). (not in mainline)
-      //  0x08000000 	Snapshot shrink has completed (EXT4_SNAPFILE_SHRUNK_FL). (not in mainline)
-      //  0x10000000 	Inode has inline data (EXT4_INLINE_DATA_FL).
-      //  0x20000000 	Create children with the same project ID (EXT4_PROJINHERIT_FL).
-      //  0x80000000 	Reserved for ext4 library (EXT4_RESERVED_FL).
+      //  0x1   This file requires secure deletion (EXT4_SECRM_FL). (not implemented)
+      //  0x2   This file should be preserved, should undeletion be desired (EXT4_UNRM_FL). (not implemented)
+      //  0x4   File is compressed (EXT4_COMPR_FL). (not really implemented)
+      //  0x8   All writes to the file must be synchronous (EXT4_SYNC_FL).
+      //  0x10  File is immutable (EXT4_IMMUTABLE_FL).
+      //  0x20  File can only be appended (EXT4_APPEND_FL).
+      //  0x40  The dump(1) utility should not dump this file (EXT4_NODUMP_FL).
+      //  0x80  Do not update access time (EXT4_NOATIME_FL).
+      //  0x100         Dirty compressed file (EXT4_DIRTY_FL). (not used)
+      //  0x200         File has one or more compressed clusters (EXT4_COMPRBLK_FL). (not used)
+      //  0x400         Do not compress file (EXT4_NOCOMPR_FL). (not used)
+      //  0x800         Encrypted inode (EXT4_ENCRYPT_FL). This bit value previously was EXT4_ECOMPR_FL (compression error), which was never used.
+      //  0x1000        Directory has hashed indexes (EXT4_INDEX_FL).
+      //  0x2000        AFS magic directory (EXT4_IMAGIC_FL).
+      //  0x4000        File data must always be written through the journal (EXT4_JOURNAL_DATA_FL).
+      //  0x8000        File tail should not be merged (EXT4_NOTAIL_FL). (not used by ext4)
+      //  0x10000       All directory entry data should be written synchronously (see dirsync) (EXT4_DIRSYNC_FL).
+      //  0x20000       Top of directory hierarchy (EXT4_TOPDIR_FL).
+      //  0x40000       This is a huge file (EXT4_HUGE_FILE_FL).
+      //  0x80000       Inode uses extents (EXT4_EXTENTS_FL).
+      //  0x200000      Inode used for a large extended attribute (EXT4_EA_INODE_FL).
+      //  0x400000      This file has blocks allocated past EOF (EXT4_EOFBLOCKS_FL). (deprecated)
+      //  0x01000000    Inode is a snapshot (EXT4_SNAPFILE_FL). (not in mainline)
+      //  0x04000000    Snapshot is being deleted (EXT4_SNAPFILE_DELETED_FL). (not in mainline)
+      //  0x08000000    Snapshot shrink has completed (EXT4_SNAPFILE_SHRUNK_FL). (not in mainline)
+      //  0x10000000    Inode has inline data (EXT4_INLINE_DATA_FL).
+      //  0x20000000    Create children with the same project ID (EXT4_PROJINHERIT_FL).
+      //  0x80000000    Reserved for ext4 library (EXT4_RESERVED_FL).
       // Aggregate flags:
-      //  0x4BDFFF 	User-visible flags.
-      //  0x4B80FF 	User-modifiable flags. Note that while EXT4_JOURNAL_DATA_FL and EXT4_EXTENTS_FL can be set with setattr, they are not in the kernel's EXT4_FL_USER_MODIFIABLE mask, since it needs to handle the setting of these flags in a special manner and they are masked out of the set of flags that are saved directly to i_flags.
+      //  0x4BDFFF      User-visible flags.
+      //  0x4B80FF      User-modifiable flags. Note that while EXT4_JOURNAL_DATA_FL and EXT4_EXTENTS_FL can be set with setattr, they are not in the kernel's EXT4_FL_USER_MODIFIABLE mask, since it needs to handle the setting of these flags in a special manner and they are masked out of the set of flags that are saved directly to i_flags.
       uint32_t  flags;
       
       union // linux1, hurd1, masix1

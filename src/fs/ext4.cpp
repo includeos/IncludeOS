@@ -19,26 +19,26 @@ namespace fs
   void EXT4::mount(uint64_t start, uint64_t size, on_mount_func on_mount)
   {
     printf("Superblock: %u bytes, Block group desc: %u bytes\n", 
-        sizeof(superblock), sizeof(group_desc));
+           sizeof(superblock), sizeof(group_desc));
     assert(sizeof(superblock) == 1024);
     assert(sizeof(group_desc) == 64);
     
     printf("Inode table: %u\n",
-        sizeof(inode_table));
+           sizeof(inode_table));
     
     // read Master Boot Record (sector 0)
     device.read(start,
-    [this, start, size, on_mount] (buffer_t data)
-    {
-      auto* mbr = (MBR::mbr*) data.get();
-      assert(mbr != nullptr);
+                [this, start, size, on_mount] (buffer_t data)
+                {
+                  auto* mbr = (MBR::mbr*) data.get();
+                  assert(mbr != nullptr);
       
-      /// now what?
-      printf("Mounting EXT4 from LBA %llu to %llu\n",
-          start, size);
+                  /// now what?
+                  printf("Mounting EXT4 from LBA %llu to %llu\n",
+                         start, size);
       
-      init(data.get());
-    });
+                  init(data.get());
+                });
     
   }
   
@@ -47,9 +47,9 @@ namespace fs
     (void) path;
   }
   
-  void EXT4::readFile(const Dirent&, on_read_func callback)
+  EXT4::Buffer EXT4::readFile(const std::string&)
   {
-    callback(true, buffer_t(), 0);
+    return Buffer(true, buffer_t(), 0);
   }
   void EXT4::readFile(const std::string& strpath, on_read_func callback)
   {

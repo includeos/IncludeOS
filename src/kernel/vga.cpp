@@ -15,20 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <kernel/vga.hpp>
 #include <cstring>
-
 #include <x86intrin.h>
 
-#include <kernel/vga.hpp>
-
 static uint16_t make_vgaentry(const char c, const uint8_t color) noexcept {
-  uint16_t c16     {static_cast<uint16_t>(c)};
-  uint16_t color16 {static_cast<uint16_t>(color)};
+  uint16_t c16     = c;
+  uint16_t color16 = color;
   return c16 | color16 << 8;
 }
+const uint16_t ConsoleVGA::DEFAULT_ENTRY = 
+                          make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
 
 ConsoleVGA::ConsoleVGA() noexcept:
-  row{0}, column{0}
+row{0}, column{0}
 {
   this->color  = make_color(COLOR_WHITE, COLOR_BLACK);
   this->buffer = reinterpret_cast<uint16_t*>(0xB8000);
@@ -40,13 +40,21 @@ void ConsoleVGA::setColor(const uint8_t color) noexcept {
 }
 
 void ConsoleVGA::putEntryAt(const char c, const uint8_t color, const size_t x, const size_t y) noexcept {
-  const size_t index {(y * VGA_WIDTH) + x};
-  this->buffer[index] = make_vgaentry(c, color);
+  put(make_vgaentry(c, color), x, y);
 }
 
 void ConsoleVGA::putEntryAt(const char c, const size_t x, const size_t y) noexcept {
-  const size_t index {(y * VGA_WIDTH) + x};
-  this->buffer[index] = make_vgaentry(c, this->color);
+  put(make_vgaentry(c, this->color), x, y);
+}
+
+void ConsoleVGA::setCursorAt(const size_t x, const size_t y) noexcept {
+  this->column = x;
+  this->row = y; 
+}
+
+inline void ConsoleVGA::put(uint16_t entry, size_t x, size_t y) noexcept {
+  const size_t index = y * VGA_WIDTH + x;
+  this->buffer[index] = entry;
 }
 
 void ConsoleVGA::increment(const int step) noexcept {
@@ -56,12 +64,9 @@ void ConsoleVGA::increment(const int step) noexcept {
   }
 }
 
-void ConsoleVGA::newline() noexcept {
-  // Use whitespace to force blank the remainder of the line
-  while (this->column < VGA_WIDTH) {
-    putEntryAt(32, this->column++, this->row);
-  }
 
+void ConsoleVGA::newline() noexcept {
+  
   // Reset back to left side
   this->column = 0;
 
@@ -70,7 +75,6 @@ void ConsoleVGA::newline() noexcept {
     this->row--;
     
     unsigned total {VGA_WIDTH * (VGA_HEIGHT - 1)};
-
     __m128i scan;
     
     // Copy rows upwards
@@ -80,7 +84,7 @@ void ConsoleVGA::newline() noexcept {
     }
     
     // Clear out the last row
-    scan = _mm_set1_epi16(32);
+    scan = _mm_set1_epi16(DEFAULT_ENTRY);
     
     for (size_t n {0}; n < VGA_WIDTH; n += 8) {
       _mm_store_si128(reinterpret_cast<__m128i*>(&buffer[total + n]), scan);
@@ -93,7 +97,7 @@ void ConsoleVGA::clear() noexcept {
   this->column = 0;
   
   for (size_t x {0}; x < (VGA_WIDTH * VGA_HEIGHT); ++x)
-    buffer[x] = 32;
+    buffer[x] = DEFAULT_ENTRY;
 }
 
 void ConsoleVGA::write(const char c) noexcept {

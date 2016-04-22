@@ -43,14 +43,14 @@ namespace net {
   class Inet64 {
   public:
     /** Listen to a UDP port. 
-	This is just a simple forwarder. @see UDP::listen.  */
+        This is just a simple forwarder. @see UDP::listen.  */
     inline void udp_listen(uint16_t port, UDP::listener l)
     { _udp.listen(port,l); }
     
     /** Send a UDP datagram. 
-	
-	@note the data buffer is the *whole* ethernet frame, so don't overwrite 
-	headers unless you own them (i.e. you *are* the IP object)  */
+        
+        @note the data buffer is the *whole* ethernet frame, so don't overwrite 
+        headers unless you own them (i.e. you *are* the IP object)  */
     inline int udp_send(std::shared_ptr<Packet> pckt)
     { return _udp.transmit(pckt); }
     
@@ -62,7 +62,7 @@ namespace net {
     }
     /// send an UDPv6 packet, hopefully (please dont lie!)
     std::shared_ptr<PacketUDP6> udp6_create(
-        Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
+                                            Ethernet::addr ether_dest, const IP6::addr& ip_dest, UDPv6::port_t port)
     {
       return _udp6.create(ether_dest, ip_dest, port);
     }
@@ -79,13 +79,13 @@ namespace net {
     }
     
     /** Bind an IP and a netmask to a given device. 
-      The function expects the given device to exist.*/
+        The function expects the given device to exist.*/
     static void
     ifconfig(
-        netdev nic,
-        IP4::addr ip,
-        IP4::addr netmask,
-        IP6::addr ip6);
+             netdev nic,
+             IP4::addr ip,
+             IP4::addr netmask,
+             IP6::addr ip6);
     
     inline static IP4::addr ip4(netdev nic)
     { return _ip4_list[nic]; }
@@ -124,15 +124,15 @@ namespace net {
     
     
     /** Don't think we *want* copy construction.
-	@todo: Fix this with a singleton or something.
-   */
+        @todo: Fix this with a singleton or something.
+    */
     Inet(Inet& UNUSED(cpy)) = delete;
     
     Inet(std::vector<IP4::addr> ips);
     
     /** Initialize. For now IP and mac is passed on to Ethernet and Arp.
-	@todo For now, mac- and IP-addresses are hardcoded here. 
-	They should be user-definable
+        @todo For now, mac- and IP-addresses are hardcoded here. 
+        They should be user-definable
     */
     Inet();
     

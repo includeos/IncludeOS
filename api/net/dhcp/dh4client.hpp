@@ -15,20 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#define DEBUG
+#include <hw/pit.hpp>
 #include "../packet.hpp"
-
-#include <debug>
-#include <info>
 
 namespace net
 {
-  template <typename T>
-  class Socket;
-  class UDP;
+  class UDPSocket;
   
   template <typename LINK, typename IPV>
   class Inet;
@@ -37,31 +33,37 @@ namespace net
   {
   public:
     using Stack = Inet<LinkLayer, IP4>;
-    using On_config = delegate<void(Stack&)>;
+    using config_func = delegate<void(bool)>;
     
     DHClient() = delete;
     DHClient(DHClient&) = delete;
-    DHClient(Stack&);
+    DHClient(Stack& inet);
     
-    Stack& stack;
-    void negotiate(); // --> offer
-    inline void on_config(On_config handler){
-      config_handler = handler;
-    }
+    // negotiate with local DHCP server
+    void negotiate(double timeout_secs);
+    
+    // handler for result of DHCP negotation
+    // timeout is true if the negotiation timed out
+    void on_config(config_func handler)
+    {  config_handler = handler;  }
+    
+    // disable or enable console spam
+    void set_silent(bool sil)
+    { this->console_spam = !sil; }
     
   private:
-    void offer(Socket<UDP>&, const char* data, int len);
-    void request(Socket<UDP>&);   // --> acknowledge
-    void acknowledge(const char* data, int len);
+    void offer(UDPSocket&, const char* data, size_t len);
+    void request(UDPSocket&);   // --> acknowledge
+    void acknowledge(const char* data, size_t len);
     
-    uint32_t  xid;
-    IP4::addr ipaddr, netmask, router, dns_server;
-    uint32_t  lease_time;
-    On_config config_handler = [](Stack&){ INFO("DHCPv4::On_config","Config complete"); };
+    Stack& stack;
+    uint32_t    xid;
+    IP4::addr   ipaddr, netmask, router, dns_server;
+    uint32_t    lease_time;
+    config_func config_handler;
+    hw::PIT::Timer_iterator timeout;
+    bool  console_spam;
   };
-	
-  inline DHClient::DHClient(Stack& inet)
-    : stack(inet)  {}
 }
 
 #endif

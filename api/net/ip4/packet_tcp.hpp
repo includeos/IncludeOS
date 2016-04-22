@@ -26,7 +26,7 @@ namespace net
   
   /** A TCP Packet wrapper, with no data just methods. */
   class TCP_packet : public PacketIP4, // might work as upcast:
-		     public std::enable_shared_from_this<TCP_packet>
+                     public std::enable_shared_from_this<TCP_packet>
   {
   public:
     

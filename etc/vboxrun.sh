@@ -91,6 +91,10 @@ else
     
     # NETWORK
     $VB modifyvm "$VMNAME" --nic1 hostonly --nictype1 virtio --hostonlyadapter1 vboxnet0
+
+    # Memory
+    $VB modifyvm "$VMNAME" --memory 256
+    
 fi
 # START VM
 $VB startvm "$VMNAME" &

@@ -40,9 +40,9 @@ void Service::start()
   
   // basic UDP service
   net::Inet::ifconfig(
-      net::ETH0, 
-      ip4, {{255, 255, 255, 0}}, 
-      ip6);
+                      net::ETH0, 
+                      ip4, {{255, 255, 255, 0}}, 
+                      ip6);
   
   net::Inet* inet = net::Inet::up();
   
@@ -64,37 +64,37 @@ void Service::start()
   // basic UDP service
   static const int UDP_PORT = 64;
   inet->udp6_listen(UDP_PORT,
-    [=] (std::shared_ptr<net::PacketUDP6>& pckt) -> int
-    {
-      printf("Received UDP6 packet from %s to my listener on port %d\n",
-          pckt->src().str().c_str(), pckt->dst_port());
+                    [=] (std::shared_ptr<net::PacketUDP6>& pckt) -> int
+                    {
+                      printf("Received UDP6 packet from %s to my listener on port %d\n",
+                             pckt->src().str().c_str(), pckt->dst_port());
       
-      std::string data((const char*) pckt->data(), pckt->data_length());
+                      std::string data((const char*) pckt->data(), pckt->data_length());
       
-      printf("Contents (len=%d):\n%s\n", pckt->data_length(), data.c_str());
+                      printf("Contents (len=%d):\n%s\n", pckt->data_length(), data.c_str());
       
-      // unfortunately,
-      // copy the ether src field of the incoming packet
-      net::Ethernet::addr ether_src = 
-          ((net::Ethernet::header*) pckt->buffer())->src;
+                      // unfortunately,
+                      // copy the ether src field of the incoming packet
+                      net::Ethernet::addr ether_src = 
+                        ((net::Ethernet::header*) pckt->buffer())->src;
       
-      // create a response packet with destination [ether_src] dst()
-      std::shared_ptr<net::PacketUDP6> newpacket = 
-          inet->udp6_create(ether_src, pckt->dst(), UDP_PORT);
+                      // create a response packet with destination [ether_src] dst()
+                      std::shared_ptr<net::PacketUDP6> newpacket = 
+                        inet->udp6_create(ether_src, pckt->dst(), UDP_PORT);
       
-      const char* text = "This is the response packet!";
-      // copy text into UDP data section
-      memcpy( newpacket->data(),  text,  strlen(text) );
-      // set new length
-      newpacket->set_length(strlen(text));
+                      const char* text = "This is the response packet!";
+                      // copy text into UDP data section
+                      memcpy( newpacket->data(),  text,  strlen(text) );
+                      // set new length
+                      newpacket->set_length(strlen(text));
       
-      // generate checksum for packet before sending
-      newpacket->gen_checksum();
+                      // generate checksum for packet before sending
+                      newpacket->gen_checksum();
       
-      // ship it to the ether
-      inet->udp6_send(newpacket);
-      return -1;
-    }
-  );
+                      // ship it to the ether
+                      inet->udp6_send(newpacket);
+                      return -1;
+                    }
+                    );
   
 }

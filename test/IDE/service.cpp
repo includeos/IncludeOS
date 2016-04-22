@@ -25,7 +25,7 @@ void Service::start()
 {
   printf("TESTING Disks\n\n");
 
-  auto ide = hw::Dev::disk<0, hw::IDE>();
+  auto ide = hw::Dev::disk<0, hw::IDE>(hw::IDE::MASTER);
 
   printf("Name : %s\n", ide.name());
   printf("Size : %llu\n\n", ide.size());
@@ -36,12 +36,25 @@ void Service::start()
   printf("MAGIC sig: 0x%x\n\n", mbr->magic);
 
   ide.read(0, 3, [] (hw::IDE::buffer_t data) {
-    static int i = 0;
-    uint8_t* buf = (uint8_t*)data.get();
-    printf("Async read, Block %d:\n", i);
-    for (int i = 0; i < 512; i++)
-      printf("%x ", buf[i]);
-    printf("\n");
-    i++;
-  });
+      static int i = 0;
+      uint8_t* buf = (uint8_t*)data.get();
+      printf("Async read, Block %d:\n", i);
+      for (int i = 0; i < 512; i++)
+        printf("%x ", buf[i]);
+      printf("\n");
+      i++;
+    });
+
+  printf("Reading sync:\n");
+  mbr = (fs::MBR::mbr*)ide.read_sync(0).get();
+  printf("Name: %.8s\n", mbr->oem_name);
+  printf("MAGIC sig: 0x%x\n\n", mbr->magic);
+
+  ide.read(4, [] (hw::IDE::buffer_t data) {
+      uint8_t* buf = (uint8_t*)data.get();
+      printf("Async read, Block %d:\n", 4);
+      for (int i = 0; i < 512; i++)
+        printf("%x ", buf[i]);
+      printf("\n");
+    });
 }

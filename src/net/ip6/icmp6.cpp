@@ -44,92 +44,92 @@ namespace net
   std::string ICMPv6::code_string(uint8_t type, uint8_t code)
   {
     switch (type)
-    {
-      /// error codes ///
-    case 1:
-      /// delivery problems ///
-      switch (code)
       {
-      case 0:
-        return "No route to destination";
+        /// error codes ///
       case 1:
-        return "Communication with dest administratively prohibited";
+        /// delivery problems ///
+        switch (code)
+          {
+          case 0:
+            return "No route to destination";
+          case 1:
+            return "Communication with dest administratively prohibited";
+          case 2:
+            return "Beyond scope of source address";
+          case 3:
+            return "Address unreachable";
+          case 4:
+            return "Port unreachable";
+          case 5:
+            return "Source address failed ingress/egress policy";
+          case 6:
+            return "Reject route to destination";
+          case 7:
+            return "Error in source routing header";
+          default:
+            return "ERROR Invalid ICMP type";
+          }
       case 2:
-        return "Beyond scope of source address";
+        /// size problems ///
+        return "Packet too big";
+      
       case 3:
-        return "Address unreachable";
+        /// time problems ///
+        switch (code)
+          {
+          case 0:
+            return "Hop limit exceeded in traffic";
+          case 1:
+            return "Fragment reassembly time exceeded";
+          default:
+            return "ERROR Invalid ICMP code";
+          }
       case 4:
-        return "Port unreachable";
-      case 5:
-        return "Source address failed ingress/egress policy";
-      case 6:
-        return "Reject route to destination";
-      case 7:
-        return "Error in source routing header";
+        /// parameter problems ///
+        switch (code)
+          {
+          case 0:
+            return "Erroneous header field";
+          case 1:
+            return "Unrecognized next header";
+          case 2:
+            return "Unrecognized IPv6 option";
+          default:
+            return "ERROR Invalid ICMP code";
+          }
+      
+        /// echo feature ///
+      case ECHO_REQUEST:
+        return "Echo request";
+      case ECHO_REPLY:
+        return "Echo reply";
+      
+        /// multicast feature ///
+      case 130:
+        return "Multicast listener query";
+      case 131:
+        return "Multicast listener report";
+      case 132:
+        return "Multicast listener done";
+      
+        /// neighbor discovery protocol ///
+      case ND_ROUTER_SOL:
+        return "NDP Router solicitation request";
+      case ND_ROUTER_ADV:
+        return "NDP Router advertisement";
+      case ND_NEIGHB_SOL:
+        return "NDP Neighbor solicitation request";
+      case ND_NEIGHB_ADV:
+        return "NDP Neighbor advertisement";
+      case ND_REDIRECT:
+        return "NDP Redirect message";
+      
+      case 143:
+        return "Multicast Listener Discovery (MLDv2) reports (RFC 3810)";
+      
       default:
-        return "ERROR Invalid ICMP type";
+        return "Unknown type: " + std::to_string((int) type);
       }
-    case 2:
-      /// size problems ///
-      return "Packet too big";
-      
-    case 3:
-      /// time problems ///
-      switch (code)
-      {
-      case 0:
-        return "Hop limit exceeded in traffic";
-      case 1:
-        return "Fragment reassembly time exceeded";
-      default:
-        return "ERROR Invalid ICMP code";
-      }
-    case 4:
-      /// parameter problems ///
-      switch (code)
-      {
-      case 0:
-        return "Erroneous header field";
-      case 1:
-        return "Unrecognized next header";
-      case 2:
-        return "Unrecognized IPv6 option";
-      default:
-        return "ERROR Invalid ICMP code";
-      }
-      
-      /// echo feature ///
-    case ECHO_REQUEST:
-      return "Echo request";
-    case ECHO_REPLY:
-      return "Echo reply";
-      
-      /// multicast feature ///
-    case 130:
-      return "Multicast listener query";
-    case 131:
-      return "Multicast listener report";
-    case 132:
-      return "Multicast listener done";
-      
-      /// neighbor discovery protocol ///
-    case ND_ROUTER_SOL:
-      return "NDP Router solicitation request";
-    case ND_ROUTER_ADV:
-      return "NDP Router advertisement";
-    case ND_NEIGHB_SOL:
-      return "NDP Neighbor solicitation request";
-    case ND_NEIGHB_ADV:
-      return "NDP Neighbor advertisement";
-    case ND_REDIRECT:
-      return "NDP Redirect message";
-      
-    case 143:
-      return "Multicast Listener Discovery (MLDv2) reports (RFC 3810)";
-      
-    default:
-      return "Unknown type: " + std::to_string((int) type);
-    }
   }
   
   int ICMPv6::bottom(Packet_ptr pckt)
@@ -139,27 +139,27 @@ namespace net
     type_t type = icmp->type();
     
     if (listeners.find(type) != listeners.end())
-    {
-      return listeners[type](*this, icmp);
-    }
+      {
+        return listeners[type](*this, icmp);
+      }
     else
-    {
-      debug(">>> IPv6 -> ICMPv6 bottom (no handler installed)\n");
-      debug("ICMPv6 type %d: %s\n", 
-          (int) icmp->type(), code_string(icmp->type(), icmp->code()).c_str());
+      {
+        debug(">>> IPv6 -> ICMPv6 bottom (no handler installed)\n");
+        debug("ICMPv6 type %d: %s\n", 
+              (int) icmp->type(), code_string(icmp->type(), icmp->code()).c_str());
       
-      /*
-      // show correct checksum
-      intptr_t chksum = icmp->checksum();
-      debug("ICMPv6 checksum: %p \n",(void*) chksum);
+        /*
+        // show correct checksum
+        intptr_t chksum = icmp->checksum();
+        debug("ICMPv6 checksum: %p \n",(void*) chksum);
       
-      // show our recalculated checksum
-      icmp->header().checksum_ = 0;
-      chksum = checksum(icmp);
-      debug("ICMPv6 our estimate: %p \n", (void*) chksum );
-      */
-      return -1;
-    }
+        // show our recalculated checksum
+        icmp->header().checksum_ = 0;
+        chksum = checksum(icmp);
+        debug("ICMPv6 our estimate: %p \n", (void*) chksum );
+        */
+        return -1;
+      }
   }
   int ICMPv6::transmit(std::shared_ptr<PacketICMP6>& pckt)
   {
@@ -189,18 +189,18 @@ namespace net
     //assert(hdr.next() == 58); // ICMPv6
     
     /**
-      RFC 4443
-      2.3. Message Checksum Calculation
+       RFC 4443
+       2.3. Message Checksum Calculation
       
-      The checksum is the 16-bit one's complement of the one's complement
-      sum of the entire ICMPv6 message, starting with the ICMPv6 message
-      type field, and prepended with a "pseudo-header" of IPv6 header
-      fields, as specified in [IPv6, Section 8.1].  The Next Header value
-      used in the pseudo-header is 58.  (The inclusion of a pseudo-header
-      in the ICMPv6 checksum is a change from IPv4; see [IPv6] for the
-      rationale for this change.)
+       The checksum is the 16-bit one's complement of the one's complement
+       sum of the entire ICMPv6 message, starting with the ICMPv6 message
+       type field, and prepended with a "pseudo-header" of IPv6 header
+       fields, as specified in [IPv6, Section 8.1].  The Next Header value
+       used in the pseudo-header is 58.  (The inclusion of a pseudo-header
+       in the ICMPv6 checksum is a change from IPv4; see [IPv6] for the
+       rationale for this change.)
       
-      For computing the checksum, the checksum field is first set to zero.
+       For computing the checksum, the checksum field is first set to zero.
     **/
     union
     {
@@ -214,7 +214,7 @@ namespace net
     uint16_t* it_end = it + sizeof(pseudo_header) / 2;
     
     while (it < it_end)
-        sum.whole += *(it++);
+      sum.whole += *(it++);
     
     // compute sum of data
     it = (uint16_t*) pckt->payload();
@@ -243,21 +243,21 @@ namespace net
     icmp->type = ICMPv6::ECHO_REPLY;
     
     if (pckt->dst().is_multicast())
-    {
-      // We won't be changing source address for multicast ping
-      debug("Was multicast ping6: no change for source and dest\n");
-    }
+      {
+        // We won't be changing source address for multicast ping
+        debug("Was multicast ping6: no change for source and dest\n");
+      }
     else
-    {
-      printf("Normal ping6: source is us\n");
-      printf("src is %s\n", pckt->src().str().c_str());
-      printf("dst is %s\n", pckt->dst().str().c_str());
+      {
+        printf("Normal ping6: source is us\n");
+        printf("src is %s\n", pckt->src().str().c_str());
+        printf("dst is %s\n", pckt->dst().str().c_str());
       
-      printf("multicast is %s\n", IP6::addr::link_all_nodes.str().c_str());
-      // normal ping: send packet to source, from us
-      pckt->set_dst(pckt->src());
-      pckt->set_src(caller.local_ip());
-    }
+        printf("multicast is %s\n", IP6::addr::link_all_nodes.str().c_str());
+        // normal ping: send packet to source, from us
+        pckt->set_dst(pckt->src());
+        pckt->set_src(caller.local_ip());
+      }
     // calculate and set checksum
     // NOTE: do this after changing packet contents!
     icmp->checksum = 0;
@@ -288,9 +288,9 @@ namespace net
     // ether-broadcast an IPv6 packet to all routers
     // IPv6mcast_02: 33:33:00:00:00:02
     auto pckt = IP6::create(
-        IP6::PROTO_ICMPv6,
-        Ethernet::addr::IPv6mcast_02, 
-        IP6::addr::link_unspecified);
+                            IP6::PROTO_ICMPv6,
+                            Ethernet::addr::IPv6mcast_02, 
+                            IP6::addr::link_unspecified);
     
     // RFC4861 4.1. Router Solicitation Message Format
     pckt->set_hoplimit(255);

@@ -6,15 +6,16 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_IP4_UDP_SOCKET_HPP
 #define NET_IP4_UDP_SOCKET_HPP
 #include "udp.hpp"
@@ -22,71 +23,64 @@
 
 namespace net
 {
-  template <class T>
-  class Socket;
-  
-  template<>
-  class Socket<UDP>
+  class UDPSocket
   {
   public:
-    typedef UDP::port_t port;
-    typedef IP4::addr addr;
+    typedef UDP::port_t port_t;
+    typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
-    
-    typedef delegate<int(Socket<UDP>&, addr, port, const char*, int)> recvfrom_handler;
-    typedef delegate<int(Socket<UDP>&, addr, port, const char*, int)> sendto_handler;
-    
+
+    typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
+    typedef UDP::sendto_handler sendto_handler;
+
     // constructors
-    Socket<UDP>(Inet<LinkLayer,IP4>&, port port);
-    Socket<UDP>(const Socket<UDP>&) = delete;
+    UDPSocket(UDP&, port_t port);
+    UDPSocket(const UDPSocket&) = delete;
     // ^ DON'T USE THESE. We could create our own allocators just to prevent
     // you from creating sockets, but then everyone is wasting time.
     // These are public to allow us to use emplace(...).
     // Use Stack.udp().bind(port) to get a valid Socket<UDP> reference.
-    
+
     // functions
-    inline void onRead(recvfrom_handler func)
+    void on_read(recvfrom_handler callback)
     {
-      on_read = func;
+      on_read_handler = callback;
     }
-    inline void onWrite(sendto_handler func)
-    {
-      on_send = func;
-    }
-    int sendto(addr destIP, port port, 
-               const void* buffer, int length);
-    int bcast(addr srcIP, port port, 
-              const void* buffer, int length);
+    void sendto(addr_t destIP, port_t port,
+                const void* buffer, size_t length,
+                sendto_handler cb = [] {});
+    void bcast(addr_t srcIP, port_t port,
+               const void* buffer, size_t length,
+               sendto_handler cb = [] {});
     void close();
-    
-    void join(multicast_group_addr&);
-    void leave(multicast_group_addr&);
-    
+
+    void join(multicast_group_addr);
+    void leave(multicast_group_addr);
+
     // stuff
-    addr local_addr() const
+    addr_t local_addr() const
     {
-      return stack.ip_addr();
+      return udp.local_ip();
     }
-    port local_port() const
+    port_t local_port() const
     {
       return l_port;
     }
-    
+
   private:
-    void packet_init(std::shared_ptr<PacketUDP>, addr, addr, port, uint16_t);
-    int  internal_read(std::shared_ptr<PacketUDP>);
-    int  internal_write(addr, addr, port, const uint8_t*, int);
-    
-    Inet<LinkLayer,IP4>& stack;
-    port l_port;
-    recvfrom_handler on_read = [](Socket<UDP>&, addr, port, const char*, int)->int{ return 0; };
-    sendto_handler   on_send = [](Socket<UDP>&, addr, port, const char*, int)->int{ return 0; };
-    
+    void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
+    void internal_read(UDP::Packet_ptr);
+
+    UDP& udp;
+    port_t l_port;
+    recvfrom_handler on_read_handler =
+      [] (addr_t, port_t, const char*, size_t) {};
+
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender
-    
+
     friend class UDP;
-    friend class std::allocator<Socket>;
+    friend class std::allocator<UDPSocket>;
   };
 }
 

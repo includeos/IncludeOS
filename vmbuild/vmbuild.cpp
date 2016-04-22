@@ -45,13 +45,14 @@ int main(int argc, char** argv) {
   // Verify proper command usage
   if (argc < 3) {
     cout << info << usage;
-    exit(0x00);
+    exit(EXIT_FAILURE);
   }
   
   const string bootloc {argv[1]};
   const string srvloc  {argv[2]};
   
-  const int extra_sectors {1}; //< Fixes missing Magic Signature :bug:
+  // Fixes missing Magic Signature :bug:
+  const int extra_sectors = 2;
   
   const string img_name {srvloc.substr(srvloc.find_last_of("/") + 1, string::npos) + ".img"};
 
@@ -106,13 +107,13 @@ int main(int argc, char** argv) {
   // Bochs requires old-school disk specifications. 
   // sectors=cyls*heads*spt (sectors per track)
   /*
-  const int spt = 63;
-  auto disk_tracks = 
-      (img_size_sect % spt) == 0 ? 
-      (img_size_sect / spt) :    // Sector count is a multiple of 63
-      (img_size_sect / spt) + 1; // There's a remainder, so we add one track
+    const int spt = 63;
+    auto disk_tracks = 
+    (img_size_sect % spt) == 0 ? 
+    (img_size_sect / spt) :    // Sector count is a multiple of 63
+    (img_size_sect / spt) + 1; // There's a remainder, so we add one track
   
-  const decltype(img_size_sect) disksize {disk_tracks * spt * SECT_SIZE};
+    const decltype(img_size_sect) disksize {disk_tracks * spt * SECT_SIZE};
   */
   
   const auto disksize = (img_size_sect + extra_sectors) * SECT_SIZE;
@@ -126,9 +127,9 @@ int main(int argc, char** argv) {
   }
   
   cout << "Creating disk of size: "
-       //<< "Cyls: "   << cylinders << "\n"
-       //<< "Heads: "  << heads     << "\n"
-       //<< "Sec/Tr: " << spt       << "\n"
+    //<< "Cyls: "   << cylinders << "\n"
+    //<< "Heads: "  << heads     << "\n"
+    //<< "Sec/Tr: " << spt       << "\n"
        << "=> "      << (disksize / SECT_SIZE) << " sectors\n"
        << "=> "      << disksize               << " bytes\n";
   
@@ -153,7 +154,7 @@ int main(int argc, char** argv) {
   cout << "Signature: ";
 
   for(int i {0}; i < EI_NIDENT; ++i) {
-      cout << elf_header->e_ident[i];
+    cout << elf_header->e_ident[i];
   }
   
   cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");

@@ -39,8 +39,8 @@ namespace fs
     virtual error_t ls(const std::string& path, dirvec_t) override;
     
     // read an entire file into a buffer, then call on_read
-    virtual void readFile(const std::string&, on_read_func) override;
-    virtual void readFile(const Dirent& ent, on_read_func) override;
+    virtual void   readFile(const std::string&, on_read_func) override;
+    virtual Buffer readFile(const std::string&) override;
     
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
@@ -54,14 +54,14 @@ namespace fs
     virtual std::string name() const override
     {
       switch (this->fat_type)
-      {
-      case T_FAT12:
+        {
+        case T_FAT12:
           return "FAT12";
-      case T_FAT16:
+        case T_FAT16:
           return "FAT16";
-      case T_FAT32:
+        case T_FAT32:
           return "FAT32";
-      }
+        }
       return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
@@ -121,7 +121,7 @@ namespace fs
       
       uint32_t size() const
       {
-          return filesize;
+        return filesize;
       }
       
     } __attribute__((packed));
@@ -151,9 +151,9 @@ namespace fs
     } __attribute__((packed));
     
     // helper functions
-    uint32_t cl_to_sector(uint32_t cl)
+    uint32_t cl_to_sector(uint32_t const cl)
     {
-      if (cl == 0)
+      if (cl <= 2)
         return lba_base + data_index + (this->root_cluster - 2) * sectors_per_cluster - this->root_dir_sectors;
       else
         return lba_base + data_index + (cl - 2) * sectors_per_cluster;
@@ -162,16 +162,16 @@ namespace fs
     uint16_t cl_to_entry_offset(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-          return (cl * 2) % sector_size;
+        return (cl * 2) % sector_size;
       else // T_FAT32
-          return (cl * 4) % sector_size;
+        return (cl * 4) % sector_size;
     }
     uint16_t cl_to_entry_sector(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-          return reserved + (cl * 2 / sector_size);
+        return reserved + (cl * 2 / sector_size);
       else // T_FAT32
-          return reserved + (cl * 4 / sector_size);
+        return reserved + (cl * 4 / sector_size);
     }
     
     // initialize filesystem by providing base sector

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,43 +23,40 @@
 #include <hw/disk_device.hpp>
 #include <hw/pci_device.hpp>
 #include "virtio.hpp"
-//#include <delegate>
+#include <deque>
 
 /** Virtio-net device driver.  */
 class VirtioBlk : public Virtio, public hw::IDiskDevice
 {
 public:
   static constexpr size_t SECTOR_SIZE = 512;
-  
+
   /** Human readable name. */
   virtual const char* name() const noexcept override
   {
     return "VirtioBlk";
   }
-  
+
   // returns the optimal block size for this device
   virtual block_t block_size() const noexcept override
   {
     return SECTOR_SIZE; // some multiple of sector size
   }
-  
+  // read @blk from disk, call func with buffer when done
   virtual void read(block_t blk, on_read_func func) override;
-  
-  virtual void read(block_t, block_t, on_read_func cb) override
-  {
-    cb(buffer_t());
-  }
-  
+  // read @blk + @cnt from disk, call func with buffer when done
+  virtual void read(block_t blk, block_t cnt, on_read_func cb) override;
+
   virtual buffer_t read_sync(block_t blk) override;
-  
+
   virtual block_t size() const noexcept override
   {
     return config.capacity;
   }
-  
+
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioBlk(hw::PCI_Device& pcidev);
-  
+
 private:
   struct virtio_blk_geometry_t
   {
@@ -67,7 +64,7 @@ private:
     uint8_t  heds;
     uint8_t  sect;
   } __attribute__((packed));
-  
+
   struct virtio_blk_config_t
   {
     uint64_t capacity;
@@ -78,54 +75,73 @@ private:
     uint8_t physical_block_exp;  // Exponent for physical block per logical block
     uint8_t alignment_offset;    // Alignment offset in logical blocks
     uint16_t min_io_size;        // Minimum I/O size without performance penalty in logical blocks
-    uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks    
-  } __attribute__((packed));
-  
+    uint32_t opt_io_size;        // Optimal sustained I/O size in logical blocks
+  };
+
   struct scsi_header_t
   {
     uint32_t type;
     uint32_t ioprio;
     uint64_t sector;
-    /// SCSI ///
-    //char* cmd = nullptr;
-  } __attribute__((packed));
-  struct blk_data_t
+  };
+  struct blk_io_t
   {
-    uint8_t sector[512];
-    uint32_t stuff1;
-    on_read_func* handler;
-    uint32_t stuff2;
-    uint8_t status;
-  } __attribute__((packed));
-  
+    uint8_t       sector[512];
+  };
+  struct blk_resp_t
+  {
+    uint8_t      status;
+    bool         partial;
+    on_read_func handler;
+  };
+
   struct request_t
   {
     scsi_header_t hdr;
-    blk_data_t    data;
-  } __attribute__((packed));
-  
+    blk_io_t      io;
+    blk_resp_t    resp;
+    
+    request_t(uint64_t blk, bool, on_read_func cb);
+  };
+
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
-  
-  /** Service the RX Queue. 
+
+  /** Service the RX Queue.
       Push incoming data up to linklayer, dequeue RX buffers. */
   void service_RX();
-  
-  /** Service the TX Queue 
-      Dequeue used TX buffers. @note: This function does not take any 
+
+  /** Service the TX Queue
+      Dequeue used TX buffers. @note: This function does not take any
       responsibility for memory management. */
   void service_TX();
-  
-  /** Handle device IRQ. 
-      
+
+  /** Handle device IRQ.
+
       Will look for config. changes and service RX/TX queues as necessary.*/
   void irq_handler();
   
-  Virtio::Queue req;
+  // need at least 3 tokens free to ship a request
+  inline bool free_space() const noexcept
+  { return req.num_free() >= 3; }
   
+  // need many free tokens free to efficiently ship requests
+  inline bool lots_free_space() const noexcept
+  { return req.num_free() >= 32; }
+  
+  // add one request to queue and kick
+  void shipit(request_t*);
+  
+  void handle(request_t*);
+  
+  Virtio::Queue req;
+
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
-  uint16_t request_counter;
+  
+  // queue waiting for space in vring
+  std::deque<request_t*> jobs;
+  size_t inflight;
 };
 
 #endif

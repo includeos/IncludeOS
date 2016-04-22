@@ -19,6 +19,7 @@
 
 #include <os>
 #include <kernel/irq_manager.hpp>
+#include <hw/serial.hpp>
 #include <list>
 #include <net/inet4>
 #include <vector>
@@ -34,15 +35,17 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
    We're going to use the network- and keyboard interrupts for now, using UDP
    to trigger the NIC irq.
 
- **/
+**/
 void Service::start()
 {
 
+  // Serial
+  auto& com1 = hw::Serial::port<1>();
+
+  // Timers
   auto& time = hw::PIT::instance();
 
-  // Write something in half a second
-
-  // Assign an IP-address, using Hårek-mapping :-)
+  // Network
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac();
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
@@ -57,8 +60,9 @@ void Service::start()
 
   sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port, const char* data, int len) -> int
               {
-                printf("Getting UDP data from %s: %i: %s\n",
-                       addr.str().c_str(), port, data);
+                auto str = std::string(data,len);
+                str[len -1] = 0;
+                CHECK(1,"UDP received '%s'", str.c_str());
                 // send the same thing right back!
                 conn.sendto(addr, port, data, len);
                 return 0;
@@ -102,13 +106,41 @@ void Service::start()
   asm("int $48"); // Expect "unexpected IRQ"
   asm("int $49"); // Expect "unexpected IRQ"
 
-  // Halting could/should be used in this test
-  // asm("hlt");
+
+  com1.enable_interrupt();
+
+
+  /**
+     A custom IRQ-handler for the serial port
+     It doesn't send eoi, but it should work anyway
+     since we're using auto-EOI-mode for IRQ < 8 (master)
+  */
+  IRQ_manager::subscribe(4, [](){
+      uint16_t serial_port1 = 0x3F8;
+      //IRQ_manager::eoi(4);
+      char byte = 0;
+      while (hw::inb(serial_port1 + 5) & 1)
+        byte = hw::inb(serial_port1);
+
+      CHECK(1,"Serial port (IRQ 4) received '%c'", byte);
+    });
+
+
+  /*
+    IRQ_manager::subscribe(11,[](){
+    // Calling eoi here will turn the IRQ line on and loop forever.
+    IRQ_manager::eoi(11);
+    INFO("IRQ","Network IRQ\n");
+    });*/
+
 
   // Enabling a timer causes freeze in debug mode, for some reason
-  time.onTimeout(1s, [](){ printf("One second passed...\n"); });
-  time.onTimeout(2s, [](){ printf("Two seconds passed...\n"); });
-  time.onTimeout(5s, [](){ printf("Five seconds passed...\n"); });
+  time.onRepeatedTimeout(1s, [](){
+      static int time_counter = 0;
+      CHECK(1,"Time %i", ++time_counter);
+
+    });
+
 
   INFO("IRQ test","Expect IRQ subscribers to get called now ");
 }
