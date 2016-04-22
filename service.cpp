@@ -46,15 +46,13 @@ void Service::start() {
   
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( {{ 10,0,0,42 }},      // IP
+  inet->network_config(
+      {{ 10,0,0,42 }},      // IP
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
   
   srand(OS::cycles_since_boot());
-
-  printf("Size of IP-stack: %i b \n",sizeof(inet));
-  printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
 
   auto& rsh = inet->tcp().bind(22);
   rsh.onConnect(
@@ -64,8 +62,6 @@ void Service::start() {
     RSH_PEER = conn;
     OS::set_rsprint(&write_rsh);
   });
-
-
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
