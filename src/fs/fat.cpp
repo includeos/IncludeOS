@@ -10,13 +10,15 @@
 #include <kernel/syscalls.hpp> // for panic()
 
 #include <info>
+//#undef debug
+//#define debug(...) printf(__VA_ARGS__)
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
 inline std::string trim_right_copy(
-                                   const std::string& s,
-                                   const std::string& delimiters = " \f\n\r\t\v" )
+   const std::string& s,
+   const std::string& delimiters = " \f\n\r\t\v" )
 {
   return s.substr( 0, s.find_last_not_of( delimiters ) + 1 );
 }
@@ -36,12 +38,14 @@ namespace fs
     
     MBR::BPB* bpb = mbr->bpb();
     this->sector_size = bpb->bytes_per_sector;
-    if (unlikely(this->sector_size < 512))
-      {
-        printf("Invalid sector size (%u) for FAT32 partition\n", sector_size);
-        printf("Are you mounting the correct partition?\n");
-        panic("FAT32: Invalid sector size");
-      }
+    
+    if (unlikely(this->sector_size < 512)) {
+      fprintf(stderr, 
+          "Invalid sector size (%u) for FAT32 partition\n", sector_size);
+      fprintf(stderr,
+          "Are you mounting the correct partition?\n");
+      panic("FAT32: Invalid sector size");
+    }
     
     // Let's begin our incantation
     // To drive out the demons of old DOS we have to read some PBP values

@@ -68,7 +68,7 @@ class Virtio
 {
 
 public:
-
+  using data_handler_t = delegate<int(uint8_t* data,int len)>;
 
   /** A wrapper for buffers to be passed in to the Queue */
   class Token {
@@ -208,7 +208,7 @@ public:
     uint16_t _pci_index = 0; // Queue nr.
 
     /** Handler for data coming in on virtq.used. */
-    delegate<int(uint8_t* data, int len)> _data_handler;
+    data_handler_t _data_handler;
 
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
@@ -240,11 +240,12 @@ public:
 
     /** Dequeue a received packet */
     Token dequeue();
+    std::vector<Token> dequeue_chain();
 
     void disable_interrupts();
     void enable_interrupts();
 
-    void set_data_handler(delegate<int(uint8_t* data,int len)> dataHandler);
+    void set_data_handler(data_handler_t dataHandler);
 
     /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);
@@ -302,7 +303,6 @@ public:
   void negotiate_features(uint32_t features);
 
   /** Register interrupt handler & enable IRQ */
-  //void enable_irq_handler(IRQ_handler::irq_delegate d);
   void enable_irq_handler();
 
   /** Probe PCI device for features */

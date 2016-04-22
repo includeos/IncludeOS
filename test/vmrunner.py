@@ -154,7 +154,7 @@ class vm:
   def on_success(self, callback):
     self._on_success = callback
 
-  def on_panic(self, callack):
+  def on_panic(self, callback):
     self._on_panic = callback
 
   def on_timeout(self, callback):
