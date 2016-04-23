@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,103 +17,89 @@
 
 #include <os>
 #include <net/inet4>
+
 #include <math.h>
 #include <sstream>
 #include <cstring>
 #include <net/dhcp/dh4client.hpp>
-
-using namespace std::chrono;
+#include <http>
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-std::vector<std::string> BUFFER;
-std::shared_ptr<net::TCP::Connection> RSH_PEER {nullptr};
-void write_rsh(const char* data, size_t n) {
-  //OS::rswrite('X');
-  RSH_PEER->write(data, n);
-}
+#include <memdisk>
+#include <fs/fat.hpp> // FAT32 filesystem
+using namespace fs;
+
+// assume that devices can be retrieved as refs with some kernel API
+// for now, we will just create it here
+MemDisk device;
+
+// describe a disk with FAT32 mounted on partition 0 (MBR)
+using MountedDisk = fs::Disk<FAT32>;
+// disk with filesystem
+std::unique_ptr<MountedDisk> disk;
 
 void Service::start() {
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config(
-      {{ 10,0,0,42 }},      // IP
+  inet->network_config( {{ 10,0,0,42 }},      // IP
 			{{ 255,255,255,0 }},  // Netmask
 			{{ 10,0,0,1 }},       // Gateway
 			{{ 8,8,8,8 }} );      // DNS
-  
-  srand(OS::cycles_since_boot());
 
-  auto& rsh = inet->tcp().bind(22);
-  rsh.onConnect(
-  [] (auto conn) {
-    // change print to write directly to connection.
-    printf("Established remote shell connection, changing rsprint... \n");
-    RSH_PEER = conn;
-    OS::set_rsprint(&write_rsh);
-  });
+  ////// DISK //////
+  // instantiate disk with filesystem
+  disk = std::make_unique<MountedDisk> (device);
 
-  // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
-  
-  printf("<Service> Connection: %s \n", server.to_string().c_str());
-  // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept(
-  [] (auto) -> bool {
-      return true;
-  }).onConnect(
-  [] (auto conn) {
+  // mount the main partition in the Master Boot Record
+  disk->mount([](fs::error_t err) {
+    if (err) {
+      printf("Could not mount filesystem\n");
+      return;
+    }
+
+    ///// HTTP SERVER /////
+    auto& server = inet->tcp().bind(80);
     
-    conn->read(1024, 
-    [conn] (net::TCP::buffer_t buffer, size_t size) {
-      
-      std::string data((char*) buffer.get(), size);
-      
-      int color = rand();
-      std::stringstream stream;
-      
-      /* HTML Fonts */
-      std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-      std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-      std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
-      
-      /* HTML */
-      stream << "<html><head>"
-       << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
-       << "</head><body>"
-       << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"  
-       <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
-       <<  "<h2>Now speaks TCP!</h2>"
-  // .... generate more dynamic content 
-       << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-       << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-       << "</body></html>\n";
-      
-      /* HTTP-header */
-      std::string html = stream.str();
-      std::string header = 
-        "HTTP/1.1 200 OK \n "        \
-        "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-        "Server: IncludeOS prototype 4.0 \n"        \
-        "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-        "Content-Type: text/html; charset=UTF-8 \n"     \
-        "Content-Length: "+std::to_string(html.size())+"\n"   \
-        "Accept-Ranges: bytes\n"          \
-        "Connection: close\n\n";
-      
-      std::string output{header + html};
-      conn->write(output.data(), output.size());
+    printf("<Server> Status: %s \n", server.to_string().c_str());
+
+    server.onConnect([](auto conn) {
+      printf("<Server> Connected: %s \n", conn->remote().to_string().c_str());
+
+    }).onReceive([](auto conn, bool) {
+      using namespace http;
+      // Read request
+      Request req{conn->read()};
+      printf("<Server> Received request:\n%s \n", req.to_string().c_str());
+      // Create response
+      Response res;
+      // if root
+      if(req.get_uri() == "/") {
+        // read index.html from disk
+        disk->fs().readFile("/index.html", [conn, &res]
+          (fs::error_t err, fs::buffer_t buff, size_t len) {
+            if(err) {
+              res.set_status_code(Not_Found);
+            } else {
+              // fill Response with content from index.html
+              printf("<Server> Responding with index.html. \n");
+              res.add_body(std::string{(const char*) buff.get(), len});  
+            }
+            // send response
+            conn->write(res);
+        }); // << fs().readFile
+      } else {
+        conn->write(Response{Not_Found});
+      }
+      // << onReceive
+    }).onDisconnect([](auto conn, std::string message) {
+      printf("<Server> Disconnect: %s (%s) \n", conn->remote().to_string().c_str(), message.c_str());
+
     });
-  });
-  printf("*** TEST SERVICE STARTED *** \n");
+
+  }); // < disk*/
 }
