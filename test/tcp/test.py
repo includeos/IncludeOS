@@ -16,6 +16,7 @@ def connect(port):
     try:
         while True:
             data = sock.recv(1024)
+            print >>sys.stderr, '%s' % data
             if data:
                 sock.sendall(data);
             else:
@@ -51,7 +52,7 @@ def listen(port):
                 else:
                     print >>sys.stderr, 'no more data from', client_address
                     break
-                
+
         finally:
             connection.close()
             break

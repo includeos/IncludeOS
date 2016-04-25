@@ -516,12 +516,6 @@ namespace net {
           return length > 0;
         }
 
-        inline size_t add(uint8_t* data, size_t n) {
-          auto written = std::min(n, remaining);
-          memcpy(pos(), data, written);
-          return written;
-        }
-
         inline void clear() {
           memset(begin(), 0, offset);
           remaining = capacity();

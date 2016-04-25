@@ -146,6 +146,8 @@ void Connection::offer(size_t& packets) {
       writeq.pop();
       debug("<TCP::Connection::offer> Request finished.\n");
     }
+
+    transmit(packet);
   }
 
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
