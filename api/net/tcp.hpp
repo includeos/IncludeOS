@@ -1316,26 +1316,23 @@ namespace net {
         Active try to send a buffer by asking the TCP.
       */
       inline size_t send(WriteBuffer& buffer) {
-        return host_.send(shared_from_this(), buffer, buffer.remaining);
+        return host_.send(shared_from_this(), (char*)buffer.pos(), buffer.remaining);
       }
 
       /*
         Segmentize buffer into packets until either everything has been written,
         or all packets are used up.
       */
-      size_t send(const char* buffer, size_t remaining, size_t& packets, bool PUSH);
+      size_t send(const char* buffer, size_t remaining, size_t& packets);
 
       inline size_t send(WriteBuffer& buffer, size_t& packets, size_t n) {
-        return send((char*)buffer.pos(), n, packets, buffer.push);
+        return send((char*)buffer.pos(), n, packets);
       }
-
-      size_t send(const char* buffer, size_t n, Packet_ptr, bool PUSH);
 
       /*
         Process the write queue with the given amount of packets.
-        Returns true if the Connection finishes - there is no more doable jobs.
       */
-      bool offer(size_t& packets);
+      void offer(size_t& packets);
 
       /*
         Returns if the connection has a doable write job.
@@ -1444,7 +1441,9 @@ namespace net {
       { return rtx_q.empty(); }
 
       bool can_send();
-      size_t send_much();
+      void send_much();
+
+      size_t fill_packet(Packet_ptr, const char*, size_t);
       //void send_ack(TCP::Packet_ptr = nullptr);
 
       /// Congestion Control [RFC 5681] ///
@@ -1758,7 +1757,7 @@ namespace net {
 
     downstream _network_layer_out;
 
-    std::queue<Connection_ptr> write_queue;
+    std::deque<Connection_ptr> writeq;
 
     /*
       Settings
@@ -1800,19 +1799,18 @@ namespace net {
     /*
       Process the write queue with the given amount of free packets.
     */
-    void process_write_queue(size_t packets);
+    void process_writeq(size_t packets);
 
     /*
-      Ask to send a Connection's WriteBuffer.
-      If there is no free packets, the job will be queued.
+
     */
-    size_t send(Connection_ptr, Connection::WriteBuffer&, size_t n);
+    size_t send(Connection_ptr, const char* buffer, size_t n);
 
     /*
       Force the TCP to process the it's queue with the current amount of available packets.
     */
     inline void kick() {
-      process_write_queue(inet_.transmit_queue_available());
+      process_writeq(inet_.transmit_queue_available());
     }
 
     inline IP4& network() const {

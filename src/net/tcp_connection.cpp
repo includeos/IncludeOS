@@ -116,19 +116,29 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
   }
 }
 
-bool Connection::offer(size_t& packets) {
-  assert(packets);
+void Connection::offer(size_t& packets) {
+  Expects(packets);
+
   debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
         to_string().c_str(), packets, usable_window());
 
-  while(has_doable_job() and packets and !fast_recovery) {
+  // write until we either cant send more (window closes or no more in queue),
+  // or we're out of packets.
+  while(can_send() and packets)
+  {
+    auto packet = create_outgoing_packet();
+    packets--;
+
+    // get the first buffer in queue
     auto& buf = writeq.front().first;
-    // segmentize the buffer into packets
-    auto written = send(buf, packets, buf.remaining);
+    // fill the packet with data
+    auto written = fill_packet(packet, (char*)buf.pos(), std::min(buf.remaining, (size_t)SMSS()));
     // advance the buffer
     buf.advance(written);
+
     debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %i.\n",
            written, buf.remaining, packets, usable_window());
+
     // if finished
     if(!buf.remaining) {
       // callback and remove object
@@ -137,91 +147,49 @@ bool Connection::offer(size_t& packets) {
       debug("<TCP::Connection::offer> Request finished.\n");
     }
   }
-  assert(packets >= 0);
+
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
-  return !has_doable_job() or fast_recovery;
 }
 
-// TODO: This is starting to get complex and ineffective, refactor..
-size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_count, bool PUSH) {
-  assert(packet_count);
-  assert(remaining);
-  size_t bytes_written{0};
+size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_avail) {
 
-  while(remaining and packet_count and usable_window() >= SMSS()) {
-    // retreive a new packet
+  size_t bytes_written = 0;
+
+  std::vector<Packet_ptr> packets;
+
+  while(remaining and usable_window() >= SMSS() and packets_avail)
+  {
     auto packet = create_outgoing_packet();
-    // reduce the amount of packets available by one
-    packet_count--;
-    // add the seq, ack and flag
-    packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
-    // calculate how much the packet can be filled with
-    auto packet_limit = std::min((uint32_t)MSDS() - packet->header_size(), (uint32_t)usable_window());
-    // fill the packet with data from the request
-    size_t written = packet->fill(buffer+bytes_written, std::min(packet_limit, remaining));
-    // update local variables
+    packets_avail--;
+
+    auto written = fill_packet(packet, buffer, std::min(remaining, (size_t)SMSS()));
+
     bytes_written += written;
     remaining -= written;
 
-    // If last packet, add PUSH.
-    // TODO: Redefine "push"
-    //if((!remaining or !packet_count or usable_window() < SMSS()) and PUSH)
-    if(!remaining and PUSH)
-      packet->set_flag(PSH);
-
-    // Advance outgoing sequence number (SND.NXT) with the length of the data.
-    cb.SND.NXT += packet->data_length();
-    // TODO: Replace with chaining
     transmit(packet);
-
-    debug2("<TCP::Connection::send> Packet Limit: %u - Written: %u"
-          " - Remaining: %u - Packet count: %u, Window: %u\n",
-           packet_limit, written, remaining, packet_count, usable_window());
-    //if(reno_is_fast_recovering()) break;
+    //packets.push_back(packet);
   }
-  //printf("<TCP::Connection::send> Sent %u bytes of data\n", bytes_written);
+  /*Ensures(!packets.empty());
+  // get first packet
+  auto i = packets.begin();
+  auto head = i++;
+  // chain packets
+  while(i != packets.end()) {
+    (*head)->chain(*i);
+    head = i++;
+  }
+  // set push
+  (*head)->set_flag(PSH);
+
+  // transmit first packet
+  transmit(packets.front());*/
+
   return bytes_written;
 }
 
-size_t Connection::send(const char* buffer, size_t n, Packet_ptr packet, bool PUSH) {
-  auto written = packet->fill(buffer, n);
-  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
-  if(PUSH)
-    packet->set_flag(PSH);
-  cb.SND.NXT += packet->data_length();
-  transmit(packet);
-  return written;
-}
-
-/*size_t Connection::fill(Packet_ptr packet, const char* buffer, size_t length, bool PUSH) {
-  Expects(!packet->has_data());
-  Expects(length > 0);
-
-  // fill packet with data from buffer
-  auto written = packet->fill(buffer, n);
-  // setup numbers
-  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
-  if(PUSH)
-    packet->set_flag(PSH);
-
-  // advance sequence number
-  cb.SND.NXT += packet->data_length();
-
-  Ensures(written > 0);
-  Ensures(written == packet->data_length());
-
-  return written;
-}*/
-
-/*void Connection::pre_process(Packet_ptr packet) {
-
-}
-
-void Connection::post_process(Packet_ptr packet) {
-
-}
-
+/*
 void Connection::set_window(Packet_ptr packet) {
   packet->set_win(cb.RCV.WND);
 }
@@ -241,7 +209,7 @@ void Connection::make_flight_ready(Packet_ptr packet) {
 void Connection::writeq_push() {
   while(!writeq.empty()) {
     auto& buf = writeq.front().first;
-    auto written = send(buf);
+    auto written = host_.send(shared_from_this(), (char*)buf.pos(), buf.remaining);
     buf.advance(written);
     if(buf.remaining)
       return;
@@ -250,13 +218,34 @@ void Connection::writeq_push() {
   }
 }
 
+size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n) {
+  Expects(!packet->has_data());
+
+  auto written = packet->fill(buffer, n);
+
+  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
+  cb.SND.NXT += packet->data_length();
+
+  Ensures(written <= n);
+
+  return written;
+}
+
 void Connection::limited_tx() {
+
+  auto packet = create_outgoing_packet();
+
+  printf("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
+
   auto& buf = writeq.front().first;
-  printf("<Connection::send_one> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
-  auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet(), false);
+  auto written = fill_packet(packet, (char*)buf.pos(), std::min(buf.remaining, (uint32_t)SMSS()));
+
+  transmit(packet);
+
   buf.advance(written);
   if(buf.remaining)
     return;
+
   writeq.front().second(buf.offset);
   writeq.pop();
 }
@@ -370,7 +359,7 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
     rttm.start();
   }
-  if(packet->seq() + packet->data_length() < cb.SND.NXT)
+  if(packet->seq() + packet->data_length() != cb.SND.NXT)
     printf("<TCP::Connection::transmit> Transmitting: %u \n", packet->seq() - cb.ISS);
 
   host_.transmit(packet);
@@ -381,28 +370,24 @@ void Connection::transmit(TCP::Packet_ptr packet) {
 }
 
 bool Connection::can_send() {
-  return (usable_window() >= RMSS()) and !writeq.empty();
+  return (usable_window() >= SMSS()) and !writeq.empty();
 }
 
-size_t Connection::send_much() {
-  size_t bytes_written = 0;
-  auto uw = usable_window();
-
-  while(can_send()) {
+void Connection::send_much() {
+  writeq_push();
+  /*while(can_send()) {
     auto& buf = writeq.front().first;
-    auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet(), false);
+    auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet());
     bytes_written += written;
     buf.advance(written);
     if(!buf.remaining) {
       writeq.front().second(buf.offset);
       writeq.pop();
     }
-  }
+  }*/
 
   //printf("<Connection::send_much> Prev UW: %u UW: %u CW: %u, FS: %u BW: %u\n",
   //  uw, usable_window(), cb.cwnd, flight_size(), bytes_written);
-
-  return bytes_written;
 }
 
 /*size_t Connection::send_one() {
@@ -499,7 +484,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
         //printf("<TCP::Connection::handle_ack> Recovery - Partial ACK\n");
         retransmit();
 
-        dup_acks_ = 0;
+        //dup_acks_ = 0;
 
         if(!reno_fpack_seen) {
           rtx_reset();
@@ -507,7 +492,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
         }
 
         // send one segment if possible
-        if(can_send_one())
+        if(can_send())
           limited_tx();
 
         if(in->has_data() or in->isset(FIN))
@@ -683,7 +668,7 @@ void Connection::rtx_timeout() {
 
   if(!rtx_q.front()->isset(SYN)) {
     // "back off" timer
-    rttm.RTO *= 2;
+    rttm.RTO *= 2.0;
   }
   // we never queue SYN packets since they don't carry data..
   else {

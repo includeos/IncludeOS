@@ -27,10 +27,10 @@ TCP::TCP(IPStack& inet) :
   inet_(inet),
   listeners_(),
   connections_(),
-  write_queue(),
+  writeq(),
   MAX_SEG_LIFETIME(30s)
 {
-  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_write_queue>(this));
+  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
 }
 
 /*
@@ -185,54 +185,22 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   }
 }
 
-void TCP::process_write_queue(size_t packets) {
+void TCP::process_writeq(size_t packets) {
   // foreach connection who wants to write
-  while(packets and !write_queue.empty()) {
-    auto conn = write_queue.front();
-    write_queue.pop();
+  while(packets and !writeq.empty()) {
+    auto conn = writeq.front();
+    writeq.pop_back();
     conn->offer(packets);
     conn->set_queued(false);
-    /*
-    // try to offer if there is any doable job, and if still more to do, requeue.
-    if(conn->has_doable_job() and !conn->offer(packets)) {
-      debug2("TCP::process_write_queue> %s still has more to do. Re-queued.\n");
-      write_queue.push(conn);
-    }
-    else {
-      // mark the connection as not queued.
-      conn->set_queued(false);
-      debug2("<TCP::process_write_queue> %s Removed from queue. Size is %u\n",
-             conn->to_string().c_str(), write_queue.size());
-    }
-    */
   }
 }
 
-size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n) {
-  size_t written{0};
-
-  if(write_queue.empty() and inet_.transmit_queue_available()) {
-    auto packets = inet_.transmit_queue_available();
-    written = conn->send(buffer, packets, n);
-  }
-
-  if(written < buffer.remaining and !conn->is_queued()) {
-    write_queue.push(conn);
-    conn->set_queued(true);
-    debug("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
-      conn->to_string().c_str(), written, buffer.remaining-written);
-  }
-
-  return written;
-}
-
-/*
-size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n) {
+size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   size_t written{0};
   auto packets = inet_.transmit_queue_available();
 
   if(packets > 0) {
-    conn->offer(packets);
+    written += conn->send(buffer, n, packets);
   }
   // if connection still can send (means there wasn't enough packets)
   if(conn->can_send()) {
@@ -242,7 +210,6 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n)
 
   return written;
 }
-*/
 
 /*
   Show all connections for TCP as a string.

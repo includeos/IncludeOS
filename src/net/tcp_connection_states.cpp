@@ -317,18 +317,22 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   auto length = in->data_length();
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
   debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
-
+  tcb.RCV.NXT += length;
+  auto snd_nxt = tcb.SND.NXT;
   if(tcp.read_request.buffer.capacity()) {
     auto received = tcp.receive((uint8_t*)in->data(), in->data_length(), in->isset(PSH));
-    assert(received == length);
+    Ensures(received == length);
   }
-  tcb.RCV.NXT += length;
+
   // [RFC 5681]
   //tcb.SND.cwnd += std::min(length, tcp.SMSS());
   debug2("<TCP::Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
-  auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-  tcp.transmit(packet);
+
+  if(tcb.SND.NXT == snd_nxt) {
+    auto packet = tcp.outgoing_packet();
+    packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+    tcp.transmit(packet);
+  }
   if(tcp.can_send())
     tcp.send_much();
   /*if(tcp.has_doable_job() and !tcp.is_queued()) {
