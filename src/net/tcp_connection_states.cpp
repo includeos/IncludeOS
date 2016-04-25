@@ -215,7 +215,7 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
     // ACK is inside sequence space
     if(in->ack() <= tcb.SND.NXT ) {
 
-      tcp.handle_ack(in);
+      return tcp.handle_ack(in);
       // this is a "new" ACK
       //if(tcb.SND.UNA <= in->ack()) {
 
@@ -316,7 +316,6 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   auto& tcb = tcp.tcb();
   auto length = in->data_length();
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
-  auto snd_nxt = tcb.SND.NXT;
   debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
 
   if(tcp.read_request.buffer.capacity()) {
@@ -330,10 +329,12 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
   auto packet = tcp.outgoing_packet();
   packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
   tcp.transmit(packet);
-  if(tcp.has_doable_job() and !tcp.is_queued()) {
-    debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
+  if(tcp.can_send())
+    tcp.send_much();
+  /*if(tcp.has_doable_job() and !tcp.is_queued()) {
+    printf("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
     tcp.writeq_push();
-  }
+  }*/
 
   /*
     WARNING/NOTE:

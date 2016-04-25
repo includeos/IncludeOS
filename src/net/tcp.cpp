@@ -190,6 +190,9 @@ void TCP::process_write_queue(size_t packets) {
   while(packets and !write_queue.empty()) {
     auto conn = write_queue.front();
     write_queue.pop();
+    conn->offer(packets);
+    conn->set_queued(false);
+    /*
     // try to offer if there is any doable job, and if still more to do, requeue.
     if(conn->has_doable_job() and !conn->offer(packets)) {
       debug2("TCP::process_write_queue> %s still has more to do. Re-queued.\n");
@@ -201,6 +204,7 @@ void TCP::process_write_queue(size_t packets) {
       debug2("<TCP::process_write_queue> %s Removed from queue. Size is %u\n",
              conn->to_string().c_str(), write_queue.size());
     }
+    */
   }
 }
 
@@ -215,12 +219,30 @@ size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n)
   if(written < buffer.remaining and !conn->is_queued()) {
     write_queue.push(conn);
     conn->set_queued(true);
-    printf("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
+    debug("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
       conn->to_string().c_str(), written, buffer.remaining-written);
   }
 
   return written;
 }
+
+/*
+size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n) {
+  size_t written{0};
+  auto packets = inet_.transmit_queue_available();
+
+  if(packets > 0) {
+    conn->offer(packets);
+  }
+  // if connection still can send (means there wasn't enough packets)
+  if(conn->can_send()) {
+    writeq.push_back(conn);
+    conn->set_queued(true);
+  }
+
+  return written;
+}
+*/
 
 /*
   Show all connections for TCP as a string.
@@ -271,6 +293,8 @@ void TCP::transmit(TCP::Packet_ptr packet) {
   // Translate into a net::Packet_ptr and send away.
   // Generate checksum.
   packet->set_checksum(TCP::checksum(packet));
+  //if(packet->has_data())
+  //  printf("<TCP::transmit> S: %u\n", packet->seq());
   //packet->set_checksum(checksum(packet));
   _network_layer_out(packet);
 }

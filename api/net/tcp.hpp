@@ -387,6 +387,9 @@ namespace net {
 
       inline bool has_data() const { return data_length() > 0; }
 
+      inline uint16_t size_available() const
+      { return size() - all_headers_len() - data_length(); }
+
       inline uint16_t tcp_length() const { return header_size() + data_length(); }
 
       template <typename T, typename... Args>
@@ -1394,10 +1397,6 @@ namespace net {
 
       // RFC 3042
       void limited_tx();
-      inline void try_limited_tx() {
-        if( (send_window() > 0) and ( (flight_size() + 2*SMSS() ) <= cb.cwnd) )
-          limited_tx();
-      }
 
       /// TCB HANDLING ///
 
@@ -1406,9 +1405,14 @@ namespace net {
       */
       inline Connection::TCB& tcb() { return cb; }
 
-      inline int32_t usable_window() const {
-        auto x = (int64_t)congestion_window() - (int64_t)cb.SND.NXT;
-        return (int32_t) x;
+      /*
+
+        SND.UNA + SND.WND - SND.NXT
+        SND.UNA + WINDOW - SND.NXT
+      */
+      inline uint32_t usable_window() const {
+        auto x = (int64_t)send_window() - (int64_t)flight_size();
+        return (uint32_t) std::max(0ll, x);
       }
 
       /*
@@ -1416,38 +1420,41 @@ namespace net {
         Note:
         Made a function due to future use when Window Scaling Option is added.
       */
-      inline int32_t send_window() const {
-        return (int32_t)cb.SND.WND;
+      inline uint32_t send_window() const {
+        return std::min((uint32_t)cb.SND.WND, cb.cwnd);
       }
 
       inline int32_t congestion_window() const {
-        auto win = cb.SND.UNA + std::min((int32_t)cb.cwnd, send_window());
-        return win;
+        auto win = (uint64_t)cb.SND.UNA + std::min((uint64_t)cb.cwnd, (uint64_t)send_window());
+        return (int32_t)win;
       }
 
       /*
         Acknowledge a packet
         - TCB update, Congestion control handling, RTT calculation and RT handling.
       */
-      void acknowledge(Seq ACK);
-
-      void handle_ack(TCP::Packet_ptr);
+      bool handle_ack(TCP::Packet_ptr);
 
       void on_dup_ack();
 
       inline bool can_send_one()
-      { return (std::min(cb.cwnd, (uint32_t)send_window()) >= SMSS()) and !writeq.empty(); }
+      { return send_window() >= SMSS() and !writeq.empty(); }
 
+      inline bool need_send()
+      { return rtx_q.empty(); }
+
+      bool can_send();
+      size_t send_much();
       //void send_ack(TCP::Packet_ptr = nullptr);
 
       /// Congestion Control [RFC 5681] ///
 
-      bool RENO_FAST_RECOVERY = false;
+      bool fast_recovery = false;
       // First partial ack seen
       bool reno_fpack_seen = false;
 
       size_t dup_acks_ = 0;
-      Seq prev_high_ack_ = 0;
+      Seq prev_highest_ack_ = 0;
       Seq highest_ack_ = 0;
 
       Seq RENO_PREV_HIGHEST_ACK = 0;
@@ -1462,8 +1469,8 @@ namespace net {
       inline uint16_t RMSS() const
       { return cb.SND.MSS; }
 
-      inline int32_t flight_size() const
-      { return cb.SND.NXT - cb.SND.UNA; }
+      inline uint32_t flight_size() const
+      { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
 
       /// Reno ///
 
@@ -1481,8 +1488,6 @@ namespace net {
       inline void reno_init_sshtresh()
       { cb.ssthresh = cb.SND.WND; }
 
-      inline bool reno_slow_start() const
-      { return cb.cwnd < cb.ssthresh; }
 
       inline void reno_increase_cwnd(uint16_t n)
       { cb.cwnd += std::min(n, SMSS()); }
@@ -1491,9 +1496,9 @@ namespace net {
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
       inline void reduce_ssthresh() {
-        cb.ssthresh = std::max( (flight_size() / 2), (2 * SMSS()) );
-        //printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
-        //  cb.ssthresh);
+        cb.ssthresh = std::max( (flight_size() / 2), (2 * (uint32_t)SMSS()) );
+        printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
+          cb.ssthresh);
       }
 
       inline void fast_retransmit() {
@@ -1504,38 +1509,14 @@ namespace net {
         retransmit();
         // inflate congestion window with the 3 packets we got dup ack on.
         cb.cwnd = cb.ssthresh + 3*SMSS();
+        fast_recovery = true;
       }
 
       inline void finish_fast_recovery() {
-        dup_acks_ = 0;
         reno_fpack_seen = false;
-        cb.cwnd = std::min((int32_t)cb.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
+        fast_recovery = false;
+        cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
         printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
-      }
-
-
-      inline bool reno_is_dup_ack(TCP::Packet_ptr in) {
-        bool is_dup_ack = flight_size() > 0
-          and !in->has_data()
-          and !in->isset(FIN) and !in->isset(SYN)
-          //and ((in->flags() & (FIN | SYN)) == 0)
-          and in->win() == cb.SND.WND;
-
-        return is_dup_ack;
-      }
-
-
-      inline void reno_enter_fast_recovery() {
-        cb.cwnd = cb.ssthresh + (3 * SMSS());
-        RENO_FAST_RECOVERY = true;
-        reno_fpack_seen = true;
-        printf("<TCP::Connection::reno_enter_fast_recovery> Entered Fast Recovery - Cwnd: %u\n", cb.cwnd);
-      }
-
-      inline void reno_exit_fast_recovery() {
-        cb.cwnd = std::min((int32_t)cb.ssthresh, std::max(flight_size(), (int32_t)SMSS()) + SMSS());
-        RENO_FAST_RECOVERY = false;
-        printf("<TCP::Connection::reno_exit_fast_recovery> Exited Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
       inline bool reno_should_recover(Seq ACK) {
@@ -1549,18 +1530,6 @@ namespace net {
 
       inline bool reno_full_ack(Seq ACK) {
         return ACK - 1 > cb.recover;
-      }
-
-      inline bool reno_partial_ack(Seq ACK) {
-        return !reno_full_ack(ACK);
-      }
-
-      inline bool reno_is_fast_recovering() {
-        return RENO_FAST_RECOVERY;
-      }
-
-      inline void reno_update_recover() {
-        cb.recover = cb.SND.NXT;
       }
 
       void reno_update_heuristic_ack(Seq ACK) {

@@ -121,7 +121,7 @@ bool Connection::offer(size_t& packets) {
   debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %i.\n",
         to_string().c_str(), packets, usable_window());
 
-  while(has_doable_job() and packets and dup_acks_ < 3) {
+  while(has_doable_job() and packets and !fast_recovery) {
     auto& buf = writeq.front().first;
     // segmentize the buffer into packets
     auto written = send(buf, packets, buf.remaining);
@@ -140,7 +140,7 @@ bool Connection::offer(size_t& packets) {
   assert(packets >= 0);
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
-  return !has_doable_job() or dup_acks_ >= 3;
+  return !has_doable_job() or fast_recovery;
 }
 
 // TODO: This is starting to get complex and ineffective, refactor..
@@ -178,9 +178,9 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packet_cou
     debug2("<TCP::Connection::send> Packet Limit: %u - Written: %u"
           " - Remaining: %u - Packet count: %u, Window: %u\n",
            packet_limit, written, remaining, packet_count, usable_window());
-    if(reno_is_fast_recovering()) break;
+    //if(reno_is_fast_recovering()) break;
   }
-  debug("<TCP::Connection::send> Sent %u bytes of data\n", bytes_written);
+  //printf("<TCP::Connection::send> Sent %u bytes of data\n", bytes_written);
   return bytes_written;
 }
 
@@ -193,6 +193,50 @@ size_t Connection::send(const char* buffer, size_t n, Packet_ptr packet, bool PU
   transmit(packet);
   return written;
 }
+
+/*size_t Connection::fill(Packet_ptr packet, const char* buffer, size_t length, bool PUSH) {
+  Expects(!packet->has_data());
+  Expects(length > 0);
+
+  // fill packet with data from buffer
+  auto written = packet->fill(buffer, n);
+  // setup numbers
+  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
+  if(PUSH)
+    packet->set_flag(PSH);
+
+  // advance sequence number
+  cb.SND.NXT += packet->data_length();
+
+  Ensures(written > 0);
+  Ensures(written == packet->data_length());
+
+  return written;
+}*/
+
+/*void Connection::pre_process(Packet_ptr packet) {
+
+}
+
+void Connection::post_process(Packet_ptr packet) {
+
+}
+
+void Connection::set_window(Packet_ptr packet) {
+  packet->set_win(cb.RCV.WND);
+}
+
+void Connection::make_flight_ready(Packet_ptr packet) {
+  set_window(packet);
+
+  // Set Source (local == the current connection)
+  packet->set_source(local());
+  // Set Destination (remote)
+  packet->set_destination(remote_);
+
+  // set correct sequence numbers
+  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
+}*/
 
 void Connection::writeq_push() {
   while(!writeq.empty()) {
@@ -208,8 +252,8 @@ void Connection::writeq_push() {
 
 void Connection::limited_tx() {
   auto& buf = writeq.front().first;
-  auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)SMSS()), create_outgoing_packet(), false);
-  //printf("<TCP::Connection::limited_tx> Limited transmit. %u written\n", written);
+  printf("<Connection::send_one> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
+  auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet(), false);
   buf.advance(written);
   if(buf.remaining)
     return;
@@ -311,7 +355,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
   // Set Destination (remote)
   packet->set_destination(remote_);
 
-  packet->set_win(cb.SND.WND);
+  packet->set_win(cb.RCV.WND);
 
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
@@ -326,6 +370,8 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
     rttm.start();
   }
+  if(packet->seq() + packet->data_length() < cb.SND.NXT)
+    printf("<TCP::Connection::transmit> Transmitting: %u \n", packet->seq() - cb.ISS);
 
   host_.transmit(packet);
   if(packet->has_data())
@@ -333,37 +379,61 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   if(!rtx_timer.active)
     rtx_start();
 }
-/*
-void Connection::retransmit() {
-  printf("<TCP::Connection::retransmit> \n");
+
+bool Connection::can_send() {
+  return (usable_window() >= RMSS()) and !writeq.empty();
 }
 
-void Connection::fast_retransmit() {
-  printf("<TCP::Connection::fast_retransmit> \n");
-  retransmit();
+size_t Connection::send_much() {
+  size_t bytes_written = 0;
+  auto uw = usable_window();
+
+  while(can_send()) {
+    auto& buf = writeq.front().first;
+    auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet(), false);
+    bytes_written += written;
+    buf.advance(written);
+    if(!buf.remaining) {
+      writeq.front().second(buf.offset);
+      writeq.pop();
+    }
+  }
+
+  //printf("<Connection::send_much> Prev UW: %u UW: %u CW: %u, FS: %u BW: %u\n",
+  //  uw, usable_window(), cb.cwnd, flight_size(), bytes_written);
+
+  return bytes_written;
+}
+
+/*size_t Connection::send_one() {
+
 
 }
 
-void Connection::finish_fast_recovery() {
-  printf("<TCP::Connection::finish_fast_recovery> \n");
-}
+size_t Connection::send(const char* data, size_t n, size_t& packets) {
 
-void Connection::on_rtx_timeout() {
-  printf("<TCP::Connection::on_rtx_timeout> \n");
-}
-
-void Connection::limited_tx() {
-  if(flight_size() <= )
 }
 */
 
+bool Connection::handle_ack(TCP::Packet_ptr in) {
+  // dup ack
+  /*
+    1. Same ACK as latest received
+    2. outstanding data
+    3. packet is empty
+    4. is not an wnd update
+  */
+  if(in->ack() == cb.SND.UNA and flight_size()
+    and !in->has_data() and cb.SND.WND == in->win()
+    and !in->isset(SYN) and !in->isset(FIN))
+  {
+    dup_acks_++;
+    on_dup_ack();
+    return false;
+  } // < dup ack
 
-void Connection::handle_ack(TCP::Packet_ptr in) {
   // new ack
-  if(in->ack() > cb.SND.UNA) {
-    // [RFC 6582] p. 8
-    //prev_highest_ack_ = cb.SND.UNA;
-    //highest_ack_ = in->ack();
+  else if(in->ack() >= cb.SND.UNA) {
 
     if( cb.SND.WL1 < in->seq() or ( cb.SND.WL1 == in->seq() and cb.SND.WL2 <= in->ack() ) )
     {
@@ -372,6 +442,10 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
       cb.SND.WL2 = in->ack();
       debug2("<Connection::State::check_ack> Usable window slided (%i)\n", tcp.usable_window());
     }
+
+    // [RFC 6582] p. 8
+    prev_highest_ack_ = cb.SND.UNA;
+    highest_ack_ = in->ack();
 
     // used for cwnd calculation (Reno)
     size_t bytes_acked = in->ack() - cb.SND.UNA;
@@ -390,9 +464,10 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
     }
 
     // no fast recovery
-    if(dup_acks_ < 3) {
+    if(!fast_recovery) {
 
       dup_acks_ = 0;
+      cb.recover = cb.SND.NXT;
 
       // slow start
       if(cb.slow_start()) {
@@ -403,15 +478,15 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
       else {
         // increase cwnd once per RTT
         cb.cwnd += std::max(SMSS()*SMSS()/cb.cwnd, (uint32_t)1);
-        //if(cong_avoid_rtt) {
-          /*
-            Not sure about this one..
-            If timer is active, it means this ACK will stop the timer => one RTT.
-            Not sure how this works with retransmission.
-          */
-          //reno_increase_cwnd(bytes_acked);
-        //}
       } // < congestion avoidance
+
+      // try to write
+      if(can_send())
+        send_much();
+
+      // if data, let state continue process
+      if(in->has_data() or in->isset(FIN))
+        return true;
 
     } // < !fast recovery
 
@@ -424,6 +499,8 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
         //printf("<TCP::Connection::handle_ack> Recovery - Partial ACK\n");
         retransmit();
 
+        dup_acks_ = 0;
+
         if(!reno_fpack_seen) {
           rtx_reset();
           reno_fpack_seen = true;
@@ -432,10 +509,14 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
         // send one segment if possible
         if(can_send_one())
           limited_tx();
+
+        if(in->has_data() or in->isset(FIN))
+          return true;
       } // < partial ack
 
       // full ack
       else {
+        dup_acks_ = 0;
         finish_fast_recovery();
       } // < full ack
 
@@ -443,26 +524,12 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
 
   } // < new ack
 
-  // dup ack
-  /*
-    1. Same ACK as latest received
-    2. outstanding data
-    3. packet is empty
-    4. is not an wnd update
-  */
-  else if(in->ack() == cb.SND.UNA and flight_size()
-    and !in->has_data() and cb.SND.WND == in->win())
-  {
-    dup_acks_++;
-    on_dup_ack();
-  } // < dup ack
-
   // ACK outside
   else {
-
+    return true;
   }
+  return false;
 }
-
 
 /*
   Reno [RFC 5681] p. 9
@@ -470,19 +537,22 @@ void Connection::handle_ack(TCP::Packet_ptr in) {
   What to do when received ACK is a duplicate.
 */
 void Connection::on_dup_ack() {
-  printf("<TCP::Connection::on_dup_ack> %u\n", dup_acks_);
+  //printf("<TCP::Connection::on_dup_ack> %u\n", dup_acks_);
   // if less than 3 dup acks
   if(dup_acks_ < 3) {
 
     // try to send one segment
-    if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + dup_acks_*SMSS()) and !writeq.empty())
+    if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty())
       limited_tx();
   }
 
   // 3 dup acks
   else if(dup_acks_ == 3) {
     printf("<TCP::Connection::on_dup_ack> Dup ACK == 3 - %u\n", cb.SND.UNA);
-    if(cb.SND.UNA - 1 > cb.recover) {
+
+    if(cb.SND.UNA - 1 > cb.recover
+      or ( congestion_window() > SMSS() and (highest_ack_ - prev_highest_ack_ <= 4*SMSS()) ))
+    {
       cb.recover = cb.SND.NXT;
       printf("<TCP::Connection::on_dup_ack> Enter Recovery - Flight Size: %u\n", flight_size());
       fast_retransmit();
@@ -493,67 +563,10 @@ void Connection::on_dup_ack() {
   else {
     cb.cwnd += SMSS();
     // send one segment if possible
-    if(can_send_one())
+    if(can_send())
       limited_tx();
   }
 }
-
-/*
-  As specified in [RFC3390], the SYN/ACK and the acknowledgment of the
-  SYN/ACK MUST NOT increase the size of the congestion window.
-  Further, if the SYN or SYN/ACK is lost, the initial window used by a
-  sender after a correctly transmitted SYN MUST be one segment
-  consisting of at most SMSS bytes.
-*/
-/*void Connection::acknowledge(Seq ACK) {
-  DUP_ACK = 0;
-  size_t bytes_acked = ACK - cb.SND.UNA;
-  cb.SND.UNA = ACK;
-
-
-  rtx_ack(ACK);
-
-  reno_update_heuristic_ack(ACK);
-  if(!reno_is_fast_recovering()) {
-    if(reno_slow_start()) {
-      reno_increase_cwnd(bytes_acked);
-      debug2("<TCP::Connection::reno_ack> Slow start - cwnd increased: %u\n",
-              cb.cwnd);
-    }
-    // congestion avoidance
-    else {
-      if(rttm.active) {
-        reno_increase_cwnd(bytes_acked);
-        debug2("<TCP::Connection::reno_ack> Congestion avoidance - cwnd increased: %u\n",
-          cb.cwnd);
-      }
-    }
-  }
-  // fast recovery
-  else {
-    // full acknowledgement
-    if(reno_full_ack(ACK)) {
-      reno_exit_fast_recovery();
-    }
-    // partial acknowledgement
-    else {
-      //fast_rtx();
-      retransmit();
-      reno_deflate_cwnd(bytes_acked);
-      if(RENO_FPACK_NOT_SEEN) {
-        printf("<TCP::Connection::acknowledge> #1 Partial ACK - %u, Cwnd: %u\n", ACK, cb.cwnd);
-        rt_restart();
-        RENO_FPACK_NOT_SEEN = false;
-      } else {
-        //printf("<TCP::Connection::acknowledge> Partial ACK - %u, Cwnd: %u\n", ACK, cb.cwnd);
-      }
-      try_limited_tx();
-    }
-  }
-
-  if(rttm.active)
-    rttm.stop();
-}*/
 
 /*
   [RFC 6298]
@@ -598,7 +611,7 @@ void Connection::retransmit() {
   if(rtx_q.empty())
     return;
   auto packet = rtx_q.front();
-  printf("<TCP::Connection::retransmit> Retransmitting: %u \n", packet->seq());
+  //printf("<TCP::Connection::retransmit> Retransmitting: %u \n", packet->seq());
   host_.transmit(packet);
   /*
     Every time a packet containing data is sent (including a
@@ -613,12 +626,13 @@ void Connection::retransmit() {
 void Connection::rtx_start() {
   assert(!rtx_timer.active);
   auto i = rtx_timer.i;
+  auto rto = rttm.RTO;
   rtx_timer.iter = hw::PIT::instance().on_timeout(rttm.RTO,
-  [this, i]
+  [this, i, rto]
   {
     rtx_timer.active = false;
-    printf("<TCP::Connection::RTO@timeout> %s Timed out. rt_q: %u, i: %u rt_i: %u\n",
-      to_string().c_str(), rtx_q.size(), i, rtx_timer.i);
+    printf("<TCP::Connection::RTO@timeout> %i Timed out (%f). rt_q: %u, i: %u rt_i: %u\n",
+      local_port_, rto, rtx_q.size(), i, rtx_timer.i);
     rtx_timeout();
   });
   rtx_timer.i++;
@@ -701,7 +715,7 @@ void Connection::rtx_timeout() {
   // update recover
   cb.recover = cb.SND.NXT;
 
-  if(dup_acks_ >= 3) // not sure if this is correct
+  if(fast_recovery) // not sure if this is correct
     finish_fast_recovery();
 
   cb.cwnd = SMSS();
