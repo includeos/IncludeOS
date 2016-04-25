@@ -13,7 +13,7 @@ FILES = service.cpp
 DISK=
 
 # Your own include-path
-LOCAL_INCLUDES=
+LOCAL_INCLUDES=-Ihttp
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

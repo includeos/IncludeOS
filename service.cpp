@@ -17,24 +17,79 @@
 
 #include <os>
 #include <net/inet4>
-#include <math.h>
-#include <sstream>
-#include <cstring>
-#include <net/dhcp/dh4client.hpp>
+#include <http/request.hpp>
+#include <http/response.hpp>
+#include <fs/disk.hpp>
+#include <cassert>
 
-using namespace std::chrono;
-
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
-std::vector<std::string> BUFFER;
-std::shared_ptr<net::TCP::Connection> RSH_PEER {nullptr};
-void write_rsh(const char* data, size_t n) {
-  //OS::rswrite('X');
-  RSH_PEER->write(data, n);
+namespace fs {
+  typedef FileSystem::Dirent Dirent;
+}
+namespace net {
+  typedef TCP::Connection_ptr Connection_ptr;
 }
 
+void send_status(net::Connection_ptr conn, fs::Disk_ptr, int code)
+{
+  http::Response response(code);
+  std::string data(response.to_string());
+  
+  conn->write(data.data(), data.size());
+}
+void send_file(net::Connection_ptr conn, fs::Disk_ptr disk, const fs::Dirent& dirent)
+{
+   disk->fs().read(dirent, 0, dirent.size,
+   [conn, disk, dirent] (fs::error_t err, fs::buffer_t buffer, size_t size) {
+     if (err) {
+       // internal error
+       send_status(conn, disk, 500);
+     }
+     // send file
+     conn->write(buffer.get(), size);
+   });
+}
+void send_directory(net::Connection_ptr, fs::Disk_ptr disk, const fs::Dirent& dirent)
+{
+  
+}
+
+void client_read(
+    fs::Disk_ptr disk, 
+    net::Connection_ptr conn,
+    net::TCP::buffer_t  buffer,
+    size_t size)
+{
+  std::string reqstr((char*) buffer.get(), size);
+  using namespace http;
+  Request request(reqstr);
+  
+  printf("REQUEST URI: %s\n", request.get_uri().c_str());
+  
+  // get filesystem entry for request URI
+  disk->fs().stat(request.get_uri(),
+  [conn, disk] (fs::error_t err, auto& entry)
+  {
+    if (!entry.is_valid())
+    {
+      // return 404
+      send_status(conn, disk, 404);
+    }
+    else if (entry.is_file())
+    {
+      send_file(conn, disk, entry);
+    }
+    else
+    {
+      send_directory(conn, disk, entry);
+    }
+  });
+}
+
+std::unique_ptr<net::Inet4<VirtioNet>> inet;
+fs::Disk_ptr disk;
+
 void Service::start() {
+  
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.
@@ -42,7 +97,7 @@ void Service::start() {
   
   // Bring up a network stack, attached to the nic
   // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  static auto inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
@@ -54,65 +109,32 @@ void Service::start() {
   
   srand(OS::cycles_since_boot());
 
-  auto& rsh = inet->tcp().bind(22);
-  rsh.onConnect(
-  [] (auto conn) {
-    // change print to write directly to connection.
-    printf("Established remote shell connection, changing rsprint... \n");
-    RSH_PEER = conn;
-    OS::set_rsprint(&write_rsh);
-  });
-
-  // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
+  // instantiate disk with FAT filesystem
+  auto& device = hw::Dev::disk<1, VirtioBlk>();
+  static auto disk = std::make_shared<fs::Disk> (device);
+  assert(!disk->empty());
   
-  printf("<Service> Connection: %s \n", server.to_string().c_str());
-  // Add a TCP connection handler - here a hardcoded HTTP-service
+  disk->mount(
+  [] (fs::error_t err) {
+    if (err) {
+      printf("Could not mount filesystem\n");
+      panic("mount() failed");
+    }
+    
+  });
+  // Set up a TCP server on port 80
+  printf("Setup server on port 80...\n");
+  auto& server = inet->tcp().bind(80);
   server.onAccept(
   [] (auto) -> bool {
       return true;
   }).onConnect(
   [] (auto conn) {
-    
+    printf("Connected client\n");
     conn->read(1024, 
     [conn] (net::TCP::buffer_t buffer, size_t size) {
-      
-      std::string data((char*) buffer.get(), size);
-      
-      int color = rand();
-      std::stringstream stream;
-      
-      /* HTML Fonts */
-      std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-      std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-      std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
-      
-      /* HTML */
-      stream << "<html><head>"
-       << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
-       << "</head><body>"
-       << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"  
-       <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
-       <<  "<h2>Now speaks TCP!</h2>"
-  // .... generate more dynamic content 
-       << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-       << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-       << "</body></html>\n";
-      
-      /* HTTP-header */
-      std::string html = stream.str();
-      std::string header = 
-        "HTTP/1.1 200 OK \n "        \
-        "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-        "Server: IncludeOS prototype 4.0 \n"        \
-        "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-        "Content-Type: text/html; charset=UTF-8 \n"     \
-        "Content-Length: "+std::to_string(html.size())+"\n"   \
-        "Accept-Ranges: bytes\n"          \
-        "Connection: close\n\n";
-      
-      std::string output{header + html};
-      conn->write(output.data(), output.size());
+      printf("Read: %u\n", size);
+      //client_read(disk, conn, buffer, size);
     });
   });
   printf("*** TEST SERVICE STARTED *** \n");
