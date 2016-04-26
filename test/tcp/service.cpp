@@ -112,6 +112,23 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
       });
 }
 
+/*void outgoing_packet(net::Packet_ptr p) {
+
+  auto* eth = reinterpret_cast<net::Ethernet::header*>(p->buffer());
+
+  if (eth->type == net::Ethernet::ETH_IP4) {
+    
+    auto ip4 = net::view_packet_as<PacketIP4>(p);
+    auto& hdr = reinterpret_cast<net::IP4::full_header*>(p->buffer())->ip_hdr;
+    
+    if (hdr.protocol == net::IP4::IP4_TCP) {
+      auto tcp = net::view_packet_as<TCP::Packet>(p);
+      printf("%s\n", tcp->to_string().c_str());  
+    }
+  }
+  
+}*/
+
 // Used to send big data
 struct Buffer {
   size_t written, read;
@@ -139,7 +156,9 @@ void Service::start()
   huge += "-end";
 
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  //eth0.on_exit_to_physical(outgoing_packet);
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
+
 
   inet->network_config( {{ 10,0,0,42 }},      // IP
                         {{ 255,255,255,0 }},  // Netmask

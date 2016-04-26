@@ -1428,8 +1428,7 @@ namespace net {
 
       void on_dup_ack();
 
-      inline bool can_send_one()
-      { return send_window() >= SMSS() and !writeq.empty(); }
+      bool can_send_one();
 
       inline bool need_send()
       { return rtx_q.empty(); }
@@ -1445,6 +1444,8 @@ namespace net {
       bool fast_recovery = false;
       // First partial ack seen
       bool reno_fpack_seen = false;
+
+      bool limited_tx_ = true;
 
       size_t dup_acks_ = 0;
       Seq prev_highest_ack_ = 0;
@@ -1489,7 +1490,12 @@ namespace net {
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
       inline void reduce_ssthresh() {
-        cb.ssthresh = std::max( (flight_size() / 2), (2 * (uint32_t)SMSS()) );
+        auto fs = flight_size();
+        
+        if(limited_tx_)
+          fs -= 2*(uint32_t)SMSS();
+
+        cb.ssthresh = std::max( (fs / 2), (2 * (uint32_t)SMSS()) );
         printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
           cb.ssthresh);
       }

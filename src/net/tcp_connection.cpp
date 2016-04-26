@@ -172,6 +172,9 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     bytes_written += written;
     remaining -= written;
 
+    if(!remaining or usable_window() < SMSS() or !packets_avail)
+      packet->set_flag(PSH);
+
     transmit(packet);
     //packets.push_back(packet);
   }
@@ -367,14 +370,18 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rttm.start();
   }
   //if(packet->seq() + packet->data_length() != cb.SND.NXT)
-  printf("<TCP::Connection::transmit> rseq=%u rack=%u\n", 
-    packet->seq() - cb.ISS, packet->ack() - cb.IRS);
+  //printf("<TCP::Connection::transmit> rseq=%u rack=%u\n", 
+  //  packet->seq() - cb.ISS, packet->ack() - cb.IRS);
+  printf("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
   host_.transmit(packet);
   if(packet->has_data())
     rtx_q.push_back(packet);
   if(!rtx_timer.active)
     rtx_start();
+}
+bool Connection::can_send_one() {
+  return send_window() >= SMSS() and !writeq.empty();
 }
 
 bool Connection::can_send() {
@@ -545,9 +552,11 @@ void Connection::on_dup_ack() {
   // if less than 3 dup acks
   if(dup_acks_ < 3) {
 
-    // try to send one segment
-    if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty()) {
-      limited_tx();
+    if(limited_tx_) {
+      // try to send one segment
+      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty()) {
+        limited_tx();
+      }  
     }
   }
 
@@ -616,7 +625,8 @@ void Connection::retransmit() {
   if(rtx_q.empty())
     return;
   auto packet = rtx_q.front();
-  printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
+  //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
+  printf("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
   Ensures(packet->tail() == nullptr);
   Ensures(packet->last_in_chain() == nullptr);
   host_.transmit(packet);
@@ -687,6 +697,9 @@ void Connection::rtx_clear() {
 void Connection::rtx_timeout() {
   // retransmit SND.UNA
   retransmit();
+  auto hax = ++rtx_q.begin();
+  for(auto i = 0; i < 2 and hax != rtx_q.end(); i++)
+    host_.transmit(*hax++);
 
   if(!rtx_q.front()->isset(SYN)) {
     // "back off" timer
