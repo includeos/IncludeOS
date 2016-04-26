@@ -46,7 +46,7 @@ int
 S{150}, B{1500}, H{150000};
 
 std::string
-TEST_STR {"1337"};
+TEST_STR {"Kappa!"};
 
 size_t buffers_available{0};
 
@@ -151,7 +151,7 @@ void Service::start()
   for(int i = 0; i < B; i++) big += TEST_STR;
   big += "-end";
 
-  huge += "start-";
+  huge = "start-";
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 

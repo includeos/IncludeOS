@@ -167,7 +167,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     auto packet = create_outgoing_packet();
     packets_avail--;
 
-    auto written = fill_packet(packet, buffer, std::min(remaining, (size_t)SMSS()));
+    auto written = fill_packet(packet, buffer+bytes_written, std::min(remaining, (size_t)SMSS()));
 
     bytes_written += written;
     remaining -= written;
@@ -249,10 +249,11 @@ void Connection::limited_tx() {
 
   auto& buf = writeq.front().first;
   auto written = fill_packet(packet, (char*)buf.pos(), std::min(buf.remaining, (uint32_t)SMSS()));
+  
+  buf.advance(written);
 
   transmit(packet);
 
-  buf.advance(written);
   if(buf.remaining)
     return;
 
@@ -434,8 +435,8 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
 
   // new ack
   else if(in->ack() >= cb.SND.UNA) {
-    printf("<Connection::handle_ack> New ACK: %u %s\n", 
-      in->ack() - cb.ISS, fast_recovery ? "[RECOVERY]" : "");
+    printf("<Connection::handle_ack> New ACK: %u FS: %u %s\n", 
+      in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
     if( cb.SND.WL1 < in->seq() or ( cb.SND.WL1 == in->seq() and cb.SND.WL2 <= in->ack() ) )
     {
       cb.SND.WND = in->win();
@@ -555,7 +556,7 @@ void Connection::on_dup_ack() {
     if(limited_tx_) {
       // try to send one segment
       if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty()) {
-        limited_tx();
+        //limited_tx();
       }  
     }
   }
@@ -577,8 +578,8 @@ void Connection::on_dup_ack() {
   else {
     cb.cwnd += SMSS();
     // send one segment if possible
-    //if(can_send())
-    //  limited_tx();
+    if(can_send())
+      limited_tx();
   }
 }
 
@@ -697,9 +698,9 @@ void Connection::rtx_clear() {
 void Connection::rtx_timeout() {
   // retransmit SND.UNA
   retransmit();
-  auto hax = ++rtx_q.begin();
-  for(auto i = 0; i < 2 and hax != rtx_q.end(); i++)
-    host_.transmit(*hax++);
+  //auto hax = ++rtx_q.begin();
+  //for(auto i = 0; i < 2 and hax != rtx_q.end(); i++)
+  //  host_.transmit(*hax++);
 
   if(!rtx_q.front()->isset(SYN)) {
     // "back off" timer
@@ -741,7 +742,7 @@ void Connection::rtx_timeout() {
   cb.cwnd = SMSS();
 
   /*
-    NOTE: It's unclear which one comes first, or if finish_fast_recovery includes chaining the cwnd.
+    NOTE: It's unclear which one comes first, or if finish_fast_recovery includes changing the cwnd.
   */
 }
 
