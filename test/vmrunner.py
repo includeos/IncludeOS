@@ -20,6 +20,14 @@ if not os.environ.has_key("INCLUDEOS_HOME"):
 else:
     INCLUDEOS_HOME = os.environ['INCLUDEOS_HOME']
 
+# Exit codes used by this program
+exit_codes = {"SUCCESS" : 0,
+              "PROGRAM_FAILURE" : 1,
+              "TIMEOUT" : 66,
+              "VM_FAIL" : 67,
+              "OUTSIDE_FAIL" : 68 }
+
+
 def abstract():
     raise Exception("Abstract class method called. Use a subclass")
 # Hypervisor base / super class
@@ -83,7 +91,8 @@ class qemu(hypervisor):
             "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
 
   def kvm_present(self):
-    if not subprocess.check_output("egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo", shell = True):
+    command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
+    if not subprocess.check_output(command, shell = True):
       print "<qemu> KVM OFF"
       return False
     else:
@@ -122,6 +131,7 @@ class qemu(hypervisor):
       subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
+    return self
 
   def wait(self):
     print self._out_sign, "Waiting for process to terminate"
@@ -138,12 +148,13 @@ class qemu(hypervisor):
 # VM class
 class vm:
 
+
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
     self._config = config
-    self._on_success = lambda : self.exit(0, "<VMRun> SUCCESS : All tests passed")
-    self._on_panic =  lambda : self.exit(66, "<VMRun> FAIL : " + self._hyper.readline())
-    self._on_timeout = lambda : self.exit(67, "<VMRun> TIMEOUT: Test timed out")
+    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], "<VMRun> SUCCESS : All tests passed")
+    self._on_panic =  lambda : self.exit(exit_codes["VM_FAIL"], "<VMRun> FAIL : " + self._hyper.readline())
+    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], "<VMRun> TIMEOUT: Test timed out")
     self._on_output = {
       "PANIC" : self._on_panic,
       "SUCCESS" : self._on_success }
@@ -193,7 +204,14 @@ class vm:
       # Look for event-triggers
       for pattern, func in self._on_output.iteritems():
         if re.search(pattern, line):
-          func()
+          res = func()
+          #NOTE: It can be 'None' without problem
+          if res == False:
+            self._exit_status = exit_codes["OUTSIDE_FAIL"]
+            self.exit(self._exit_status, "<VMRun> External test failed")
+            print "<VMRunner> VM-external test failed"
+
+
 
     # Now we either have an exit status from timer thread, or an exit status
     # from the subprocess.
@@ -213,7 +231,7 @@ class vm:
     self._hyper.stop()
     if hasattr(self, "_timer") and self._timer:
       self._timer.cancel()
-
+    return self
 
   def wait(self):
     if hasattr(self, "_timer") and self._timer:
