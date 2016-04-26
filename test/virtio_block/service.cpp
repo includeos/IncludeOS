@@ -30,61 +30,58 @@ void Service::start()
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
-
-  CHECKSERT(disk,"Disk created");
-
-  // if the disk is empty, we can't mount a filesystem anyways
+  // assert that we have a disk
+  CHECKSERT(disk, "Disk created");
+  // if the disk is empty, we can't mount a filesystem
   CHECKSERT(not disk->empty(), "Disk is not empty");
-
-  disk->dev().read(1, [](auto buf){
-      printf("<Disk> Sector 1: \n %s \n", buf.get());
-    });
 
   // list extended partitions
   list_partitions(disk);
 
-
-
-
   // mount first valid partition (auto-detect and mount)
-  disk->mount([] (fs::error_t err) {
+  disk->mount(
+  [] (fs::error_t err) {
+    if (err) {
+      printf("Could not mount filesystem\n");
+      panic("mount() failed");
+    }
+
+    // async ls
+    disk->fs().ls("/",
+    [] (fs::error_t err, auto ents) {
       if (err) {
-        printf("Could not mount filesystem\n");
-        return;
+        printf("Could not list '/' directory\n");
+        panic("ls() failed");
       }
 
-      // async ls
-      disk->fs().ls("/", [] (fs::error_t err, auto ents) {
-          if (err) {
-              printf("Could not list '/' directory\n");
-              return;
+      // go through directory entries
+      for (auto& e : *ents) {
+        printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
+               e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+
+        if (e.is_file()) {
+          printf("*** Read %s\n", e.name().c_str());
+          disk->fs().read(e, 0, e.size, 
+          [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
+            if (err) {
+              printf("Failed to read %s!\n", e.name().c_str());
+              panic("read() failed");
             }
 
-          // go through directory entries
-          for (auto& e : *ents) {
-            printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-                   e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+            std::string contents((const char*) buffer.get(), len);
+            printf("[%s contents]:\n%s\nEOF\n\n",
+                   e.name().c_str(), contents.c_str());
+            // ---
+            INFO("Virtioblk Test", "SUCCESS");
+          });
+          
+        } // is_file
+        
+      } // ents
+      
+    }); // ls
 
-            if (e.is_file()) {
-              printf("*** Attempting to read: %s\n", e.name().c_str());
-              disk->fs().read(e, 0, e.size, [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
-                  if (err) {
-                    printf("Failed to read file %s!\n",
-                           e.name().c_str());
-                    return;
-                  }
-
-                  std::string contents((const char*) buffer.get(), len);
-                  printf("[%s contents]:\n%s\nEOF\n\n",
-                         e.name().c_str(), contents.c_str());
-                });
-            }
-          }
-
-          INFO("Virtioblk Test", "SUCCESS");
-        });
-
-    }); // disk->auto_detect()
+  }); // disk->auto_detect()
 
   printf("*** TEST SERVICE STARTED *** \n");
 

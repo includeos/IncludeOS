@@ -19,10 +19,12 @@
 //#define DEBUG2
 
 #include <os>
+
+#include <common>
+
 #include <net/ethernet.hpp>
 #include <net/packet.hpp>
 #include <net/util.hpp>
-#include <cassert>
 
 namespace net {
 
@@ -53,8 +55,8 @@ namespace net {
     header* hdr = reinterpret_cast<header*>(pckt->buffer());
 
     // Verify ethernet header
-    assert(hdr->dest.major != 0 || hdr->dest.minor !=0);
-    assert(hdr->type != 0);
+    Expects(hdr->dest.major != 0 || hdr->dest.minor !=0);
+    Expects(hdr->type != 0);
 
     // Add source address
     hdr->src = mac_;
@@ -66,7 +68,7 @@ namespace net {
   }
 
   void Ethernet::bottom(Packet_ptr pckt) {
-    assert(pckt->size() > 0);
+    Expects(pckt->size() > 0);
 
     header* eth = reinterpret_cast<header*>(pckt->buffer());
 

@@ -23,9 +23,6 @@
 #include <sys/reent.h>
 #include <string.h>
 
-
-const char* _______first = "H E L L O";
-
 /// IMPLEMENTATION OF Newlib I/O:
 struct _reent newlib_reent;
 
@@ -68,9 +65,6 @@ void _init_c_runtime()
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
-  
-  // check first string
-  printf("first = %s, addr = %p\n", _______first, _______first);
 }
 
 // global/static objects should never be destructed here, so ignore this

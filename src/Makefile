@@ -73,7 +73,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/packet.o net/buffer_store.o \
-		fs/disk.o fs/filesystem.o fs/mbr.o fs/vbr.o fs/path.o \
+		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
 		virtio/block.o # virtio/console.o
 
