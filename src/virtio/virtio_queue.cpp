@@ -94,9 +94,6 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 /** Ported more or less directly from SanOS. */
 int Virtio::Queue::enqueue(gsl::span<Token> buffers){
   debug ("Enqueuing %i tokens \n", buffers.size());
-  Expects(_free_head >= 0);
-  Expects(_free_head < size());
-  Expects(_num_added + 1 > _num_added);
 
   uint16_t last = _free_head;
   uint16_t first = _free_head;
@@ -113,39 +110,52 @@ int Virtio::Queue::enqueue(gsl::span<Token> buffers){
     _queue.desc[_free_head].len = buf.size();
 
     last = _free_head;
-    _free_head ++;
+    _free_head = _queue.desc[_free_head].next;
   }
+
+  _desc_in_flight += buffers.size();
+  Ensures(_desc_in_flight <= size());
 
   // No continue on last buffer
   _queue.desc[last].flags &= ~VIRTQ_DESC_F_NEXT;
 
+
   // Place the head of this current chain in the avail ring
-  uint16_t avail_index = (_queue.avail->idx + _num_added++) % _size;
+  uint16_t avail_index = (_queue.avail->idx + _num_added) % _size;
+
+  // we added a token
+  _num_added++;
+
   _queue.avail->ring[avail_index] = first;
 
   debug("<Q %i> avail_index: %i size: %i, _free_head %i \n",
         _pci_index, avail_index, size(), _free_head );
 
-  Ensures(_free_head <= size());
+  debug ("Free tokens: %i \n", num_free());
+
   return buffers.size();
 }
 
 void Virtio::Queue::release(uint32_t head)
 {
+
   // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
+
+  _desc_in_flight --;
 
   while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT)
     {
       i = _queue.desc[i].next;
+      _desc_in_flight --;
     }
 
   // Add buffers back to free list
   _queue.desc[i].next = _free_head;
   _free_head = head;
 
-  // What happens here?
-  debug("<Q %i> desc[%i].next : %i \n",_pci_index, i ,_queue.desc[i].next);
+  debug("Descriptors in flight: %i \n", _desc_in_flight);
+
 }
 
 Virtio::Token Virtio::Queue::dequeue() {
