@@ -19,7 +19,7 @@ export INCLUDEOS_SRC=`pwd`
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
-export clang_version=3.6
+export clang_version=3.8
 
 export gcc_version=5.1.0
 export binutils_version=2.25
@@ -79,34 +79,34 @@ git submodule update
 popd
 
 if [ ! -z $do_includeos ]; then
-    # Build and install the vmbuilder 
+    # Build and install the vmbuilder
     echo -e "\n >>> Installing vmbuilder"
     pushd $INCLUDEOS_SRC/vmbuild
-    make 
+    make
     cp vmbuild $INSTALL_DIR/
     popd
-    
+
     echo -e "\n >>> Building IncludeOS"
     pushd $INCLUDEOS_SRC/src
     make $num_jobs
-        
+
     echo -e "\n >>> Linking IncludeOS test-service"
     make test
-    
+
     echo -e "\n >>> Installing IncludeOS"
     make install
     popd
-    
+
     # RUNNING IncludeOS
     PREREQS_RUN="bridge-utils qemu-kvm"
     echo -e "\n\n >>> Trying to install prerequisites for *running* IncludeOS"
     echo -e   "        Packages: $PREREQS_RUN \n"
     sudo apt-get install -y $PREREQS_RUN
-    
+
     # Set up the IncludeOS network bridge
     echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
     sudo $INCLUDEOS_SRC/etc/create_bridge.sh
-    
+
     # Copy qemu-ifup til install loc.
     $INCLUDEOS_SRC/etc/copy_scripts.sh
 fi
