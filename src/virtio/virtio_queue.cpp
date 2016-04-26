@@ -165,13 +165,13 @@ Virtio::Token Virtio::Queue::dequeue() {
   release(e.id);
   _last_used_idx++;
   // return token:
-  return {{(uint8_t*) _queue.desc[e.id].addr, 
+  return {{(uint8_t*) _queue.desc[e.id].addr,
            (gsl::span<char>::size_type) e.len }, Token::IN};
 }
 std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
-  
+
   std::vector<Virtio::Token> result;
-  
+
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx){
     debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
@@ -181,7 +181,7 @@ std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
 
   // Get next completed buffer
   auto* e = &_queue.used->ring[_last_used_idx % _size];
-  
+
   auto* unchain = &_queue.desc[e->id];
   do
   {
@@ -190,12 +190,12 @@ std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
     unchain = &_queue.desc[ unchain->next ];
   }
   while (unchain->flags & VIRTQ_DESC_F_NEXT);
-  
+
   // Release buffer
   debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
   release(e->id);
   _last_used_idx++;
-  
+
   return result;
 }
 
@@ -215,6 +215,8 @@ void Virtio::Queue::kick(){
 
   update_avail_idx();
 
+  // Std. §3.2.1 pt. 4
+  asm volatile("mfence" ::: "memory");
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
           _pci_index, _iobase);

@@ -218,6 +218,8 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
+      // Std. §3.2.1 pt. 4
+      asm volatile("mfence" ::: "memory");
       _queue.avail->idx += _num_added;
       _num_added = 0;
     }
