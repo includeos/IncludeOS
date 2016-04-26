@@ -82,6 +82,13 @@ class qemu(hypervisor):
     return ["-device", type_names[if_type]+",netdev="+if_name+",mac="+mac,
             "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
 
+  def kvm_present(self):
+    if subprocess.call("kvm") > 0:
+      print "<qemu> KVM OFF"
+      return False
+    else:
+      print "<qemu> KVM ON"
+      return True
 
   def boot(self):
     self._out_sign = "<" + type(self).__name__ + ">"
@@ -99,7 +106,11 @@ class qemu(hypervisor):
         net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
         i+=1
 
-    command = ["sudo", "qemu-system-x86_64","--enable-kvm", "-nographic" ] + disk_args + net_args
+    command = ["sudo", "qemu-system-x86_64"]
+    if self.kvm_present(): command.append("--enable-kvm")
+
+    command += ["-nographic" ] + disk_args + net_args
+
     print self._out_sign, "command:", command
 
     self._proc = start_process(command)
@@ -191,7 +202,7 @@ class vm:
 
     if self._exit_status:
         print "<VMRunner> Done running VM. Exit status: ", self._exit_status
-        sys.exit(self._exit_status)         
+        sys.exit(self._exit_status)
     else:
         print "<VMRunner> Subprocess finished. Exiting with ", self._hyper.poll()
         sys.exit(self._hyper.poll())
@@ -209,6 +220,10 @@ class vm:
       self._timer.join()
     self._hyper.wait()
     return self._exit_status
+
+
+  def poll(self):
+    return self._hyper.poll()
 
 
 print
