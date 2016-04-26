@@ -58,7 +58,9 @@ def UDP_test():
 
     if (bytes_received >= 600 * 1472):
       break
-
+      
+  if packet_order and packet_content:
+    sock.sendto("SUCCESS", (HOST, PORT))
 
   return packet_order and packet_content
 
