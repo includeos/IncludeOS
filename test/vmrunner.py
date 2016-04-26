@@ -83,7 +83,7 @@ class qemu(hypervisor):
             "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
 
   def kvm_present(self):
-    if subprocess.call("kvm") > 0:
+    if not subprocess.check_output("egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo", shell = True):
       print "<qemu> KVM OFF"
       return False
     else:
