@@ -33,9 +33,10 @@
 #define VIRTIO_VIRTIO_HPP
 
 #include "../hw/pci_device.hpp"
-#include <delegate>
+#include <net/inet_common.hpp>
 #include <stdint.h>
 #include <vector>
+#include <common>
 
 #define PAGE_SIZE 4096
 
@@ -202,10 +203,13 @@ public:
     virtq _queue;
 
     uint16_t _iobase = 0; // Device PCI location
-    uint16_t _free_head = 0; // First available descriptor
+    uint16_t _free_head = 0; // First available descriptor (_queue.desc[_free_head])
     uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
-    uint16_t _last_used_idx = 0; // Last entry inserted by device
+    uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
+    uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
     uint16_t _pci_index = 0; // Queue nr.
+
+    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
 
     /** Handler for data coming in on virtq.used. */
     data_handler_t _data_handler;
@@ -264,7 +268,10 @@ public:
 
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
-    { return size() - _free_head; }
+    {
+      //Expects(size() - _free_head == size() - _desc_in_flight);
+      return size() - _desc_in_flight;
+    }
 
     // access the current index
     virtq_desc& current()
@@ -286,6 +293,11 @@ public:
     {
       return _size;
     }
+
+    /** Inject a packet filter delegate the last possible point downstream */
+    inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
+    { on_exit_to_physical_ = dlg; };
+
 
   };
 
@@ -324,7 +336,6 @@ public:
 
   /** Tell Virtio device if we're OK or not. Virtio Std. § 3.1.1,step 8*/
   void setup_complete(bool ok);
-
 
   /** Indicate which Virtio version (PCI revision ID) is supported.
 
