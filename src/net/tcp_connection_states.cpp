@@ -333,8 +333,8 @@ void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
     packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
     tcp.transmit(packet);
   }
-  if(tcp.can_send())
-    tcp.send_much();
+  //if(tcp.can_send())
+  //  tcp.send_much();
   /*if(tcp.has_doable_job() and !tcp.is_queued()) {
     printf("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
     tcp.writeq_push();

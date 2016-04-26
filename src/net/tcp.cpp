@@ -186,6 +186,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 }
 
 void TCP::process_writeq(size_t packets) {
+  printf("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
   while(packets and !writeq.empty()) {
     auto conn = writeq.front();
@@ -199,11 +200,14 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   size_t written{0};
   auto packets = inet_.transmit_queue_available();
 
+  printf("<TCP::send> Send request for %u bytes\n", n);
+
   if(packets > 0) {
     written += conn->send(buffer, n, packets);
   }
   // if connection still can send (means there wasn't enough packets)
   if(conn->can_send()) {
+    printf("<TCP::send> Conn queued.\n");
     writeq.push_back(conn);
     conn->set_queued(true);
   }

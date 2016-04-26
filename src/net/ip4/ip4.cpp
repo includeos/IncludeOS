@@ -98,8 +98,9 @@ namespace net {
           pckt->size(),
           ip4_pckt->ip4_segment_size()
           );
-    //auto tcp = std::static_pointer_cast<TCP::Packet> (pckt);
-    //printf("<IP4 transmit> TCP SEQ: %u %u %u\n", tcp->seq(), tcp->ack(), tcp->data_length());
+    auto tcp = std::static_pointer_cast<TCP::Packet> (pckt);
+    printf("<IP4 transmit> TCP seq=%u data=%u size=%u seg=%u\n", 
+      tcp->seq(), tcp->data_length(), pckt->size(), ip4_pckt->ip4_segment_size());
 
     linklayer_out_(pckt);
   }
