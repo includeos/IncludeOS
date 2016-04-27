@@ -4,6 +4,7 @@ sys.path.insert(0,"..")
 
 import vmrunner
 import socket
+import time
 
 HOST, PORT = "10.0.0.42", 4242
 # SOCK_DGRAM is the socket type to use for UDP sockets
@@ -38,15 +39,22 @@ def UDP_test():
   print "<Test.py> Received: {}".format(received)
 
   expect = "A"
+
+  packet_size = 1472
+  packet_count = 2400
+
   OK = False
   i = 1
   bytes_received = 0;
+
+  t1 = time.clock()
+
   while not vm.poll():
     received = sock.recv(65000)
     bytes_received += len(received)
     first_char = received[0]
     last_char = received[len(received)-1]
-    print "Packet",i,len(received),"bytes, (",bytes_received," total)",first_char, " - ", last_char
+    #print "Packet",i,len(received),"bytes, (",bytes_received," total)",first_char, " - ", last_char
 
     if not assert_packet_content(first_char == last_char): return False
     if not assert_packet_order(ord(first_char) == ord(expect)): return False
@@ -56,9 +64,12 @@ def UDP_test():
     else : expect = chr(ord(first_char) + 1)
     i += 1
 
-    if (bytes_received >= 600 * 1472):
+    if (bytes_received >= packet_count * packet_size):
       break
-      
+
+  time_taken = time.clock() - t1
+  print "<test.py> Transmission finished in ", time_taken
+
   if packet_order and packet_content:
     sock.sendto("SUCCESS", (HOST, PORT))
 
