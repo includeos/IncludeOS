@@ -5,7 +5,7 @@
 
 namespace net
 {
-  template <typename T>
+  template <typename T> inline
   Inet4<T>::Inet4(hw::Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
     : ip4_addr_(ip), netmask_(netmask), router_(IP4::INADDR_ANY),
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
@@ -77,25 +77,24 @@ namespace net
     eth_.set_physical_out(phys_top);
   }
 
-  template <typename T>
+  template <typename T> inline
   Inet4<T>::Inet4(hw::Nic<T>& nic)
     : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
   {
-    INFO("Inet4","Applying DHCP client");
+    INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
     // 2 second timeout for DHCP-server negotation
     dhcp_->negotiate(30.0);
   }
 
-  template <typename T>
-  void Inet4<T>::on_config(delegate<void(bool)> handler)
-  {
+  template <typename T> inline
+  void Inet4<T>::on_config(delegate<void(bool)> handler) {
     dhcp_->on_config(handler);
   }
 
-  template <typename T>
-  void Inet4<T>::process_sendq(size_t packets)
-  {
+  template <typename T> inline
+  void Inet4<T>::process_sendq(size_t packets) {
+    
     ////////////////////////////////////////////
     // divide up fairly
     size_t div = packets / tqa.size();
@@ -105,13 +104,12 @@ namespace net
       tqa[i](div);
 
     // hand out remaining
-    for (size_t i = 0; i < tqa.size(); i++)
-      {
-        div = transmit_queue_available();
-        if (!div) break;
-        // give as much as possible
-        tqa[i](div);
-      }
+    for (size_t i = 0; i < tqa.size(); i++) {
+      div = transmit_queue_available();
+      if (!div) break;
+      // give as much as possible
+      tqa[i](div);
+    }
     ////////////////////////////////////////////
 
     /*

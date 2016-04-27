@@ -73,6 +73,10 @@ namespace hw {
     inline size_t transmit_queue_available()
     { return driver_.transmit_queue_available(); }
 
+    inline size_t receive_queue_waiting(){
+      return driver_.receive_queue_waiting();
+    };
+
     inline size_t buffers_available()
     { return bufstore().buffers_available(); }
 

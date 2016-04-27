@@ -152,6 +152,11 @@ public:
     return tx_q.num_free() / 2;
   };
 
+  /** Number of incoming packets waiting in the RX-queue */
+  inline size_t receive_queue_waiting(){
+    return rx_q.new_incoming() / 2;
+  };
+
 
   inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
   { on_exit_to_physical_ = dlg; };
