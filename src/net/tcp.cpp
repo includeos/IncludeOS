@@ -27,10 +27,10 @@ TCP::TCP(IPStack& inet) :
   inet_(inet),
   listeners_(),
   connections_(),
-  write_queue(),
+  writeq(),
   MAX_SEG_LIFETIME(30s)
 {
-  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_write_queue>(this));
+  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
 }
 
 /*
@@ -185,38 +185,31 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   }
 }
 
-void TCP::process_write_queue(size_t packets) {
+void TCP::process_writeq(size_t packets) {
+  printf("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
-  while(packets and !write_queue.empty()) {
-    auto conn = write_queue.front();
-    write_queue.pop();
-    // try to offer if there is any doable job, and if still more to do, requeue.
-    if(conn->has_doable_job() and !conn->offer(packets)) {
-      debug2("TCP::process_write_queue> %s still has more to do. Re-queued.\n");
-      write_queue.push(conn);
-    }
-    else {
-      // mark the connection as not queued.
-      conn->set_queued(false);
-      debug2("<TCP::process_write_queue> %s Removed from queue. Size is %u\n",
-             conn->to_string().c_str(), write_queue.size());
-    }
+  while(packets and !writeq.empty()) {
+    auto conn = writeq.front();
+    writeq.pop_back();
+    conn->offer(packets);
+    conn->set_queued(false);
   }
 }
 
-size_t TCP::send(Connection_ptr conn, Connection::WriteBuffer& buffer, size_t n) {
+size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   size_t written{0};
+  auto packets = inet_.transmit_queue_available();
 
-  if(write_queue.empty() and inet_.transmit_queue_available()) {
-    auto packets = inet_.transmit_queue_available();
-    written = conn->send(buffer, packets, n);
+  printf("<TCP::send> Send request for %u bytes\n", n);
+
+  if(packets > 0) {
+    written += conn->send(buffer, n, packets);
   }
-
-  if(written < buffer.remaining and !conn->is_queued()) {
-    write_queue.push(conn);
+  // if connection still can send (means there wasn't enough packets)
+  if(conn->can_send()) {
+    printf("<TCP::send> Conn queued.\n");
+    writeq.push_back(conn);
     conn->set_queued(true);
-    printf("<TCP::send> %s wrote %u bytes (%u remaining) and is Re-queued.\n",
-      conn->to_string().c_str(), written, buffer.remaining-written);
   }
 
   return written;
@@ -271,6 +264,8 @@ void TCP::transmit(TCP::Packet_ptr packet) {
   // Translate into a net::Packet_ptr and send away.
   // Generate checksum.
   packet->set_checksum(TCP::checksum(packet));
+  //if(packet->has_data())
+  //  printf("<TCP::transmit> S: %u\n", packet->seq());
   //packet->set_checksum(checksum(packet));
   _network_layer_out(packet);
 }

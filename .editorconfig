@@ -7,6 +7,8 @@ end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
+draw_white_space = all
+trim_trailing_white_space_on_save = true
 
 [Makefile]
 indent_style = tab

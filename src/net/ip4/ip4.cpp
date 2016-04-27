@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
+#include <net/tcp.hpp>
 
 namespace net {
 
@@ -37,13 +38,13 @@ namespace net {
 
   void IP4::bottom(Packet_ptr pckt) {
     debug2("<IP4 handler> got the data.\n");
-    
+
     auto data = pckt->buffer();
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
-  
+
     debug2("\t Source IP: %s Dest.IP: %s\n",
            hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
-  
+
     switch(hdr->protocol){
     case IP4_ICMP:
       debug2("\t Type: ICMP\n");
@@ -68,36 +69,39 @@ namespace net {
   }
 
   void IP4::transmit(Packet_ptr pckt) {
-    assert(pckt->size() > sizeof(IP4::full_header));    
-  
+    assert(pckt->size() > sizeof(IP4::full_header));
+
     full_header* full_hdr = reinterpret_cast<full_header*>(pckt->buffer());
     ip_header* hdr = &full_hdr->ip_hdr;
-  
+
     auto ip4_pckt = std::static_pointer_cast<PacketIP4>(pckt);
     ip4_pckt->make_flight_ready();
-  
+
     // Create local and target subnets
     addr target, local;
     target.whole = hdr->daddr.whole       & stack_.netmask().whole;
     local.whole  = stack_.ip_addr().whole & stack_.netmask().whole;
-  
+
     // Compare subnets to know where to send packet
     pckt->next_hop(target == local ? hdr->daddr : stack_.router());
-  
+
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr->daddr.str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
           stack_.router().str().c_str(),
           target == local ? "DIRECT" : "GATEWAY");
-  
+
     debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
           stack_.ip_addr().str().c_str(),
           pckt->next_hop().str().c_str(),
           pckt->size(),
           ip4_pckt->ip4_segment_size()
           );
-  
+    auto tcp = std::static_pointer_cast<TCP::Packet> (pckt);
+    printf("<IP4 transmit> TCP seq=%u data=%u size=%u seg=%u\n", 
+      tcp->seq(), tcp->data_length(), pckt->size(), ip4_pckt->ip4_segment_size());
+
     linklayer_out_(pckt);
   }
 
