@@ -13,7 +13,7 @@ void Service::start()
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
   assert(disk);
-
+  
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   

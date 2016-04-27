@@ -143,8 +143,17 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
+void print_stuff()
+{
+  printf("TIMER: Buffers avail: %u / %u  Transmit avail: %u\n",
+    inet->buffers_available(), buffers_available, inet->transmit_queue_available());
+  hw::PIT::on_timeout(5.0, print_stuff);
+}
+
 void Service::start()
 {
+  hw::PIT::on_timeout(5.0, print_stuff);
+  
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
