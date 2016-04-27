@@ -161,10 +161,7 @@ namespace net {
     debug("<UDP> %i bytes to write, need %i packets \n",
            remaining(), remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
-    int i = 0;
-
     do {
-      debug("\tCreating packet %i \n", i++);
       size_t total = remaining();
       total = (total > udp.max_datagram_size()) ? udp.max_datagram_size() : total;
 
