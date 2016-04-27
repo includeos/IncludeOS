@@ -58,7 +58,7 @@ void Service::start()
       INFO("Test 2","Starting UDP-test. Got UDP data from %s: %i: %s",
            addr.str().c_str(), port, received.c_str());
 
-      const int packets { 600 };
+      const int packets { 2400 };
 
       string first_reply {string("Received '") + received +
           "'. Expect " + to_string(packets) + " packets in 1s\n" };
@@ -67,12 +67,16 @@ void Service::start()
       conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
 
       timer.onTimeout(1s, [&conn, addr, port, data, len]() {
-          INFO("Test 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
+
           auto bufcount = inet->buffers_available();
+          size_t packetsize = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
+          INFO("Test 2", "Trying to transmit %i UDP packets of size %i at maximum throttle",
+               packets, packetsize);
 
           for (int i = 0; i < packets; i++) {
-            string send = "Packet " + std::to_string(i) + "\n";
-            //printf("<TEST> %s", send.c_str());
+            char c = (char)('A' + (i % 26));
+            string send (packetsize, c);
+            //printf("<TEST> %i nr. of  %c \n", send.size(), c);
             conn.sendto(addr, port, send.c_str() , send.size());
           }
 
