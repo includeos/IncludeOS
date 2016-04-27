@@ -109,7 +109,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
   pseudo_hdr.proto = IP4::IP4_TCP;
   pseudo_hdr.tcp_length = htons(tcp_length);
 
-  union {
+  union Sum{
     uint32_t whole;
     uint16_t part[2];
   } sum;
@@ -139,7 +139,12 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
   debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
          sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
 
-  return ~(sum.part[0] + sum.part[1]);
+  Sum final_sum { (uint32_t)sum.part[0] + (uint32_t)sum.part[1] };
+
+  if (final_sum.part[1])
+    final_sum.part[0] += final_sum.part[1];
+
+  return ~final_sum.whole;
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
