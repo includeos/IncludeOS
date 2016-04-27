@@ -124,8 +124,13 @@ namespace net {
 
     // send as much as possible from sendq
     void flush();
+
     // create and transmit @num packets from sendq
     void process_sendq(size_t num);
+
+    inline constexpr uint16_t max_datagram_size() noexcept {
+      return stack().ip_obj().MDDS() - sizeof(udp_header);
+    }
 
   private:
 
