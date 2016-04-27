@@ -87,7 +87,8 @@ namespace net {
       hdr.check = 0;
       hdr.check = net::checksum(&hdr, sizeof(IP4::ip_header));
     }
-  
+    
+    friend class IP4;
   }; //< class PacketIP4
 } //< namespace net
 

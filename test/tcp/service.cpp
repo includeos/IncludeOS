@@ -154,6 +154,18 @@ void Service::start()
 {
   hw::PIT::on_timeout(5.0, print_stuff);
   
+  IP4::addr A1 (255, 255, 255, 255);
+  IP4::addr B1 (  0, 255, 255, 255);
+  IP4::addr C1 (  0,   0, 255, 255);
+  IP4::addr D1 (  0,   0,   0, 255);
+  IP4::addr E1 (  0,   0,   0,   0);
+  printf("A: %s\n", A1.str().c_str());
+  printf("B: %s\n", B1.str().c_str());
+  printf("C: %s\n", C1.str().c_str());
+  printf("D: %s\n", D1.str().c_str());
+  printf("E: %s\n", E1.str().c_str());
+  printf("D & A: %s\n", (D1 & A1).str().c_str());
+  
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
@@ -167,13 +179,11 @@ void Service::start()
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   //eth0.on_exit_to_physical(outgoing_packet);
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
-
-
-  inet->network_config( {{ 10,0,0,42 }},      // IP
-                        {{ 255,255,255,0 }},  // Netmask
-                        {{ 10,0,0,1 }},       // Gateway
-                        {{ 8,8,8,8 }} );      // DNS
-
+  inet->network_config( {  10,  0,  0, 42 },  // IP
+                        {  255,255,255, 0 },  // Netmask
+                        {  10,  0,  0,  1 },  // Gateway
+                        {   8,  8,  8,  8 } );// DNS
+  
   buffers_available = inet->buffers_available();
   INFO("Buffers available", "%u", inet->buffers_available());
   auto& tcp = inet->tcp();
