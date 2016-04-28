@@ -435,8 +435,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
 
   // new ack
   else if(in->ack() >= cb.SND.UNA) {
-    printf("<Connection::handle_ack> New ACK: %u FS: %u %s\n", 
-      in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
+   
     if( cb.SND.WL1 < in->seq() or ( cb.SND.WL1 == in->seq() and cb.SND.WL2 <= in->ack() ) )
     {
       cb.SND.WND = in->win();
@@ -444,6 +443,11 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
       cb.SND.WL2 = in->ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
+
+    acks_rcvd_++;
+
+    printf("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_, 
+      in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
     prev_highest_ack_ = cb.SND.UNA;
@@ -487,6 +491,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
       } // < congestion avoidance
 
       // try to write
+      //if(can_send() and acks_rcvd_ % 2 == 1)
       if(can_send())
         send_much();
 
@@ -556,7 +561,7 @@ void Connection::on_dup_ack() {
     if(limited_tx_) {
       // try to send one segment
       if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty()) {
-        //limited_tx();
+        limited_tx();
       }  
     }
   }
@@ -626,6 +631,7 @@ void Connection::retransmit() {
   if(rtx_q.empty())
     return;
   auto packet = rtx_q.front();
+  packet->clear_flag(PSH);
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
   printf("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
   Ensures(packet->tail() == nullptr);

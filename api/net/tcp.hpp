@@ -1450,6 +1450,7 @@ namespace net {
       size_t dup_acks_ = 0;
       Seq prev_highest_ack_ = 0;
       Seq highest_ack_ = 0;
+      size_t acks_rcvd_ = 0;
 
       Seq RENO_PREV_HIGHEST_ACK = 0;
       Seq RENO_HIGHEST_ACK = 0;
