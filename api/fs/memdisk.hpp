@@ -41,12 +41,17 @@ namespace fs {
     { return SECTOR_SIZE; }
 
     virtual void
-    read(block_t blk, on_read_func reader) override;
+    read(block_t blk, on_read_func reader) override {
+      reader( read_sync(blk) );
+    }
 
     virtual void
-    read(block_t start, block_t cnt, on_read_func reader) override;
+    read(block_t blk, size_t cnt, on_read_func reader) override {
+      reader( read_sync(blk, cnt) );
+    }
 
     virtual buffer_t read_sync(block_t blk) override;
+    virtual buffer_t read_sync(block_t blk, size_t cnt) override;
 
   private:
     const char* const image_start_;

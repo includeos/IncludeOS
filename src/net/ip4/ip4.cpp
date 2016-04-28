@@ -24,8 +24,8 @@
 
 namespace net {
 
-  const IP4::addr IP4::INADDR_ANY   {{0,0,0,0}};
-  const IP4::addr IP4::INADDR_BCAST {{0xff,0xff,0xff,0xff}};
+  const IP4::addr IP4::INADDR_ANY(0);
+  const IP4::addr IP4::INADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
   stack_{inet}
@@ -70,22 +70,19 @@ namespace net {
   void IP4::transmit(Packet_ptr pckt) {
     assert(pckt->size() > sizeof(IP4::full_header));
 
-    full_header* full_hdr = reinterpret_cast<full_header*>(pckt->buffer());
-    ip_header* hdr = &full_hdr->ip_hdr;
-
     auto ip4_pckt = std::static_pointer_cast<PacketIP4>(pckt);
     ip4_pckt->make_flight_ready();
 
+    IP4::ip_header& hdr = ip4_pckt->ip4_header();
     // Create local and target subnets
-    addr target, local;
-    target.whole = hdr->daddr.whole       & stack_.netmask().whole;
-    local.whole  = stack_.ip_addr().whole & stack_.netmask().whole;
-
+    addr target = hdr.daddr        & stack_.netmask();
+    addr local  = stack_.ip_addr() & stack_.netmask();
+    
     // Compare subnets to know where to send packet
-    pckt->next_hop(target == local ? hdr->daddr : stack_.router());
+    pckt->next_hop(target == local ? hdr.daddr : stack_.router());
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-          hdr->daddr.str().c_str(),
+          hdr.daddr.str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
           stack_.router().str().c_str(),

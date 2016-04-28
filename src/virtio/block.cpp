@@ -207,7 +207,7 @@ void VirtioBlk::read (block_t blk, on_read_func func) {
     jobs.push_back(vbr);
   }
 }
-void VirtioBlk::read (block_t blk, block_t cnt, on_read_func func) {
+void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
   
   bool shipped = false;
   // create big buffer for collecting all the disk data
@@ -255,12 +255,6 @@ void VirtioBlk::read (block_t blk, block_t cnt, on_read_func func) {
   }
   // kick when we have enqueued stuff
   if (shipped) req.kick();
-}
-
-VirtioBlk::buffer_t VirtioBlk::read_sync(block_t)
-{
-  // this driver won't support sync read
-  return buffer_t();
 }
 
 VirtioBlk::request_t::request_t(uint64_t blk, bool part, on_read_func cb)

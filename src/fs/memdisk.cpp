@@ -36,47 +36,36 @@ namespace fs {
     image_end_   { &_DISK_END_ }
   {}
 
-  void MemDisk::read(block_t blk, on_read_func reader) {
-    auto sector_loc = image_start_ + (blk * block_size());
-    // Disallow reading memory past disk image
-    if (unlikely(sector_loc >= image_end_)) {
-      reader(buffer_t{}); return;
-    }
-
-    auto buffer = new uint8_t[block_size()];
-    Ensures( memcpy(buffer, sector_loc, block_size()) == buffer );
-
-    reader( buffer_t{buffer, std::default_delete<uint8_t[]>()} );
-  }
-
-  void MemDisk::read(block_t blk, block_t count, on_read_func reader) {
-    auto start_loc = image_start_ + (blk * block_size());
-    auto end_loc   = start_loc + (count * block_size());
-    // Disallow reading memory past disk image
-    if (unlikely(end_loc >= image_end_)) {
-      reader(buffer_t{}); return;
-    }
-
-    auto buffer = new uint8_t[count * block_size()];
-    Ensures( memcpy(buffer, start_loc, count * block_size()) == buffer );
-
-    reader( buffer_t{buffer, std::default_delete<uint8_t[]>()} );
-  }
-
   MemDisk::buffer_t MemDisk::read_sync(block_t blk) {
-    auto sector_loc = image_start_ + (blk * block_size());
+    auto sector_loc = image_start_ + blk * block_size();
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end_))
       return buffer_t{};
 
     auto buffer = new uint8_t[block_size()];
-    Ensures( memcpy(buffer, sector_loc, block_size()) == buffer );
+    memcpy(buffer, sector_loc, block_size());
+
+    return buffer_t{buffer, std::default_delete<uint8_t[]>()};
+  }
+  
+  MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt) {
+    auto start_loc = image_start_ + blk * block_size();
+    auto end_loc = start_loc + cnt * block_size();
+    
+    // Disallow reading memory past disk image
+    if (unlikely(end_loc >= image_end_))
+      return buffer_t{};
+
+    auto buffer = new uint8_t[cnt * block_size()];
+    memcpy(buffer, start_loc, cnt * block_size());
 
     return buffer_t{buffer, std::default_delete<uint8_t[]>()};
   }
 
   MemDisk::block_t MemDisk::size() const noexcept {
-    return (image_end_ - image_start_) / SECTOR_SIZE;
+    // we are NOT going to round up to "support" unevenly sized
+    // disks that are not created as multiples of sectors
+    return (image_end_ - image_start_) / block_size();
   }
 
 } //< namespace fs
