@@ -32,25 +32,29 @@ public:
   static constexpr size_t SECTOR_SIZE = 512;
 
   /** Human readable name. */
-  virtual const char* name() const noexcept override
-  {
+  virtual const char* name() const noexcept override {
     return "VirtioBlk";
   }
 
   // returns the optimal block size for this device
-  virtual block_t block_size() const noexcept override
-  {
+  virtual block_t block_size() const noexcept override {
     return SECTOR_SIZE; // some multiple of sector size
   }
+  
   // read @blk from disk, call func with buffer when done
   virtual void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
-  virtual void read(block_t blk, block_t cnt, on_read_func cb) override;
+  virtual void read(block_t blk, size_t cnt, on_read_func cb) override;
 
-  virtual buffer_t read_sync(block_t blk) override;
+  // unsupported sync reads
+  virtual buffer_t read_sync(block_t) override {
+    return buffer_t();
+  }
+  virtual buffer_t read_sync(block_t, size_t) override {
+    return buffer_t();
+  }
 
-  virtual block_t size() const noexcept override
-  {
+  virtual block_t size() const noexcept override {
     return config.capacity;
   }
 

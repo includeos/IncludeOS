@@ -101,14 +101,6 @@ namespace fs {
         timestamp {0}
       {}
     
-      Enttype     ftype;
-      std::string fname;
-      uint64_t    block;
-      uint64_t    parent; //< Parent's block#
-      uint64_t    size;
-      uint32_t    attrib;
-      int64_t     timestamp;
-    
       Enttype type() const noexcept
       { return ftype; }
     
@@ -143,6 +135,14 @@ namespace fs {
           return "Unknown type";
         } //< switch (type)
       }
+      
+      Enttype     ftype;
+      std::string fname;
+      uint64_t    block;
+      uint64_t    parent; //< Parent's block#
+      uint64_t    size;
+      uint32_t    attrib;
+      int64_t     timestamp;
     }; //< struct Dirent
   
     /** Mount this filesystem with LBA at @base_sector */

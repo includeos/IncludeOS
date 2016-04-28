@@ -37,19 +37,19 @@ namespace hw {
     }
   
     virtual void
-    read(block_t blk, on_read_func del) override
-    {
+    read(block_t blk, on_read_func del) override {
       driver.read(blk, del);
     }
     virtual void
-    read(block_t blk, block_t count, on_read_func del) override
-    {
+    read(block_t blk, size_t count, on_read_func del) override {
       driver.read(blk, count, del);
     }
   
-    virtual buffer_t read_sync(block_t blk) override
-    {
+    virtual buffer_t read_sync(block_t blk) override {
       return driver.read_sync(blk);
+    }
+    virtual buffer_t read_sync(block_t blk, size_t cnt) override {
+      return driver.read_sync(blk, cnt);
     }
   
     virtual block_t size() const noexcept override

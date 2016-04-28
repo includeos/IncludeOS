@@ -51,10 +51,11 @@ namespace hw {
     { return 512; }
   
     virtual void read(block_t blk, on_read_func reader) override;
-    virtual void read(block_t blk, block_t count, on_read_func reader) override;
+    virtual void read(block_t blk, size_t cnt, on_read_func cb) override;
   
     /** read synchronously from IDE disk  */
     virtual buffer_t read_sync(block_t blk) override;
+    virtual buffer_t read_sync(block_t blk, size_t cnt) override;
   
     virtual block_t size() const noexcept override
     { return _nb_blk; }
