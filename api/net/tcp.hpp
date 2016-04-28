@@ -27,6 +27,7 @@
 #include <sstream> // ostringstream
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
+#include <bitset>
 
 inline unsigned round_up(unsigned n, unsigned div) {
   assert(n);
@@ -1123,12 +1124,6 @@ namespace net {
         size_t i = 0;
       } rtx_timer;
 
-
-      /*
-        Keep track of duplicate ACK
-      */
-      size_t DUP_ACK = 0;
-
       /*
         Bytes queued for transmission.
       */
@@ -1164,7 +1159,7 @@ namespace net {
 
         bool active = false;
 
-        RTTM() : t(OS::uptime()), RTO(1.0), active(false) {}
+        RTTM() : t(OS::uptime()), SRTT(1.0), RTTVAR(1.0), RTO(1.0), active(false) {}
 
         void start() {
           t = OS::uptime();
@@ -1452,9 +1447,6 @@ namespace net {
       Seq highest_ack_ = 0;
       size_t acks_rcvd_ = 0;
 
-      Seq RENO_PREV_HIGHEST_ACK = 0;
-      Seq RENO_HIGHEST_ACK = 0;
-
       inline void setup_congestion_control()
       { reno_init(); }
 
@@ -1519,24 +1511,9 @@ namespace net {
         printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
-      inline bool reno_should_recover(Seq ACK) {
-        return (ACK - 1 > cb.recover) or reno_heuristic_segment_loss_detected();
-      }
-
-      inline bool reno_heuristic_segment_loss_detected() {
-        return (congestion_window() > SMSS())
-          and (RENO_HIGHEST_ACK - RENO_PREV_HIGHEST_ACK <= 4*SMSS());
-      }
-
       inline bool reno_full_ack(Seq ACK) {
         return ACK - 1 > cb.recover;
       }
-
-      void reno_update_heuristic_ack(Seq ACK) {
-        RENO_PREV_HIGHEST_ACK = RENO_HIGHEST_ACK;
-        RENO_HIGHEST_ACK = ACK;
-      }
-
 
       /*
         Generate a new ISS.
@@ -1760,6 +1737,11 @@ namespace net {
 
     std::deque<Connection_ptr> writeq;
 
+    using PortMap = std::bitset<UINT16_MAX>;
+    //std::unique_ptr<PortMap> used_ports;
+    PortMap used_ports;
+    PortMap available_ports;
+
     /*
       Settings
     */
@@ -1781,6 +1763,11 @@ namespace net {
       Returns a free port for outgoing connections.
     */
     TCP::Port free_port();
+
+    /*
+      Check if the port is in use either among "listeners" or "connections"
+    */
+    bool port_in_use(const TCP::Port) const;
 
     /*
       Packet is dropped.

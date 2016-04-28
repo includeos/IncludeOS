@@ -21,13 +21,15 @@
 
 using namespace std;
 using namespace net;
-
+ 
 
 TCP::TCP(IPStack& inet) :
   inet_(inet),
   listeners_(),
   connections_(),
   writeq(),
+  used_ports(),
+  available_ports(),
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
@@ -85,6 +87,7 @@ TCP::Seq TCP::generate_iss() {
   TODO: Check if there is any ports free.
 */
 TCP::Port TCP::free_port() {
+  //assert(!used_ports.all());
   if(++current_ephemeral_ == 0)
     current_ephemeral_ = 1025;
   // Avoid giving a port that is bound to a service.
@@ -92,7 +95,25 @@ TCP::Port TCP::free_port() {
     current_ephemeral_++;
 
   return current_ephemeral_;
+
+   /*TCP::Port port;
+  do {
+    port = current_ephemeral_ + rand() % (65535 - current_ephemeral_);
+  } while(port_in_use(port));
+
+  return port;*/
 }
+
+bool TCP::port_in_use(const TCP::Port port) const {
+  if(listeners_.find(port) != listeners_.end())
+    return true;
+  
+  for(auto it : connections_) {
+    if(it.first.first == port)
+      return true;
+  }
+  return false;
+} 
 
 
 uint16_t TCP::checksum(TCP::Packet_ptr packet) {
@@ -211,7 +232,8 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
     written += conn->send(buffer, n, packets);
   }
   // if connection still can send (means there wasn't enough packets)
-  if(conn->can_send()) {
+  // only requeue if not already queued
+  if(conn->can_send() and !conn->is_queued()) {
     debug2("<TCP::send> Conn queued.\n");
     writeq.push_back(conn);
     conn->set_queued(true);
