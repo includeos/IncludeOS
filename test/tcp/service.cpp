@@ -230,13 +230,6 @@ void Service::start()
     TEST: Send and receive huge string.
   */
   tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
-      conn->onPacketDropped([](TCP::Packet_ptr, std::string reason) {
-        //printf("Dropped: %s\n", reason.c_str());
-      });
-      conn->onPacketReceived([](Connection_ptr, TCP::Packet_ptr packet) {
-        //if(packet->has_data())
-        //  printf("Received: %s\n", packet->to_string().c_str());
-      });
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {

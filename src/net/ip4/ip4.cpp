@@ -21,7 +21,6 @@
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
-#include <net/tcp.hpp>
 
 namespace net {
 
@@ -98,9 +97,6 @@ namespace net {
           pckt->size(),
           ip4_pckt->ip4_segment_size()
           );
-    auto tcp = std::static_pointer_cast<TCP::Packet> (pckt);
-    printf("<IP4 transmit> TCP seq=%u data=%u size=%u seg=%u\n", 
-      tcp->seq(), tcp->data_length(), pckt->size(), ip4_pckt->ip4_segment_size());
 
     linklayer_out_(pckt);
   }
