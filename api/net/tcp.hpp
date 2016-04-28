@@ -1740,6 +1740,7 @@ namespace net {
     using PortMap = std::bitset<UINT16_MAX>;
     //std::unique_ptr<PortMap> used_ports;
     PortMap used_ports;
+    PortMap available_ports;
 
     /*
       Settings
