@@ -21,7 +21,6 @@
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
-#include <net/tcp.hpp>
 
 namespace net {
 

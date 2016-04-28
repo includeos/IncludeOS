@@ -16,7 +16,7 @@ def connect(port):
     try:
         while True:
             data = sock.recv(1024)
-            print >>sys.stderr, '%s' % data
+            #print >>sys.stderr, '%s' % data
             if data:
                 sock.sendall(data);
             else:
