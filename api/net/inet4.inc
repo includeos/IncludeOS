@@ -14,6 +14,7 @@ namespace net
   {
     debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());
     INFO("Inet4","Bringing up the IP stack");
+    Ensures(sizeof(IP4::addr) == 4);
 
     /** Upstream delegates */
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));

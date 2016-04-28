@@ -137,7 +137,7 @@ namespace hw {
     _nb_irqs = 1;
   }
 
-  void IDE::read(block_t blk, block_t count, on_read_func callback)
+  void IDE::read(block_t blk, size_t count, on_read_func callback)
   {
     if (blk + count >= _nb_blk) {
       // avoid reading past the disk boundaries
@@ -179,6 +179,12 @@ namespace hw {
   
     // return a shared_ptr wrapper for the buffer
     return buffer_t(buffer, std::default_delete<uint8_t[]>());
+  }
+  IDE::buffer_t IDE::read_sync(block_t blk, size_t cnt) {
+    (void) blk;
+    (void) cnt;
+    // not yet implemented
+    return buffer_t();
   }
 
   void IDE::wait_status_busy() noexcept {

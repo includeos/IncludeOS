@@ -51,10 +51,11 @@ namespace hw
      *     error("Device failed to read sector");
      **/
     virtual void read(block_t blk, on_read_func func) = 0;
-    virtual void read(block_t blk, block_t count, on_read_func) = 0;
+    virtual void read(block_t blk, size_t count, on_read_func) = 0;
 
     /** read synchronously the block @blk  */
     virtual buffer_t read_sync(block_t blk) = 0;
+    virtual buffer_t read_sync(block_t blk, size_t count) = 0;
 
     /** Default destructor */
     virtual ~IDiskDevice() noexcept = default;

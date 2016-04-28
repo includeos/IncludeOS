@@ -278,18 +278,14 @@ namespace net
   
   IP4::addr DNS::Request::rr_t::getIP4() const
   {
-    switch (ntohs(resource.type))
-      {
-      case DNS_TYPE_A:
-        {
-          IP4::addr* addr = (IP4::addr*) rdata.c_str();
-          return *addr;
-        }
-      case DNS_TYPE_ALIAS:
-      case DNS_TYPE_NS:
-      default:
-        return IP4::addr{{0}};
-      }
+    switch (ntohs(resource.type)) {
+    case DNS_TYPE_A:
+      return *(IP4::addr*) rdata.data();
+    case DNS_TYPE_ALIAS:
+    case DNS_TYPE_NS:
+    default:
+      return IP4::INADDR_ANY;
+    }
   }
   void DNS::Request::rr_t::print()
   {
@@ -298,7 +294,7 @@ namespace net
       {
       case DNS_TYPE_A:
         {
-          IP4::addr* addr = (IP4::addr*) rdata.c_str();
+          auto* addr = (IP4::addr*) rdata.data();
           printf("has IPv4 address: %s", addr->str().c_str());
         }
         break;

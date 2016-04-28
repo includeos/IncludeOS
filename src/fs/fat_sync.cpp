@@ -12,60 +12,33 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
+inline size_t roundup(size_t n, size_t multiple) 
+{
+  return ((n + multiple - 1) / multiple) * multiple;
+}
+
 namespace fs
 {
   typedef FileSystem::Buffer Buffer;
   
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
-    // cluster -> sector + position -> sector
+    // cluster -> sector + position
     uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
+    uint32_t nsect = sector - roundup(pos + n, sector_size) / sector_size;
     
     // the resulting buffer
     uint8_t* result = new uint8_t[n];
     
-    // in all cases, read the first sector
-    buffer_t data = device.read_sync(sector);
-    
+    // read @nsect sectors ahead
+    buffer_t data = device.read_sync(sector, nsect);
+    // where to start copying from the device result
     uint32_t internal_ofs = pos % device.block_size();
-    // keep track of total bytes
-    uint64_t total = n;
-    // calculate bytes to read before moving on to next sector
-    uint32_t rest = device.block_size() - internal_ofs;
+    // copy data to result buffer
+    memcpy(result, data.get() + internal_ofs, n);
+    auto buffer = buffer_t(result, std::default_delete<uint8_t[]>());
     
-    // if what we want to read is larger than the rest, exit early
-    if (rest > n)
-      {
-        memcpy(result, data.get() + internal_ofs, n);
-      
-        return Buffer(no_error, buffer_t(result), n);
-      }
-    // otherwise, read to the sector border
-    uint8_t* ptr = result;
-    memcpy(ptr, data.get() + internal_ofs, rest);
-    ptr += rest;
-    n   -= rest;
-    sector += 1;
-    
-    // copy entire sectors
-    while (n > device.block_size())
-      {
-        data = device.read_sync(sector);
-      
-        memcpy(ptr, data.get(), device.block_size());
-        ptr += device.block_size();
-        n   -= device.block_size();
-        sector += 1;
-      }
-    
-    // copy remainder
-    if (likely(n > 0))
-      {
-        data = device.read_sync(sector);
-        memcpy(ptr, data.get(), n);
-      }
-    
-    return Buffer(no_error, buffer_t(result), total);
+    return Buffer(no_error, buffer, n);
   }
   
   Buffer FAT::readFile(const std::string& strpath)
@@ -89,13 +62,10 @@ namespace fs
     
     // find the matching filename in directory
     for (auto& e : *dirents)
-      {
-        if (unlikely(e.name() == filename))
-          {
-            // read this file
-            return read(e, 0, e.size);
-          }
-      }
+    if (unlikely(e.name() == filename)) {
+      // read this file
+      return read(e, 0, e.size);
+    }
     // entry not found
     return Buffer(true, buffer_t(), 0);
   } // readFile()
