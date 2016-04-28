@@ -152,6 +152,15 @@ public:
     return tx_q.num_free() / 2;
   };
 
+  /** Number of incoming packets waiting in the RX-queue */
+  inline size_t receive_queue_waiting(){
+    return rx_q.new_incoming() / 2;
+  };
+
+
+  inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
+  { on_exit_to_physical_ = dlg; };
+
 private:
 
   struct virtio_net_hdr
@@ -236,6 +245,8 @@ private:
   net::transmit_avail_delg transmit_queue_available_event_ {};
 
   net::Packet_ptr transmit_queue_ {0};
+
+  delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
 
 };
 

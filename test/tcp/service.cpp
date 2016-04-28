@@ -46,7 +46,7 @@ int
 S{150}, B{1500}, H{150000};
 
 std::string
-TEST_STR {"1337"};
+TEST_STR {"Kappa!"};
 
 size_t buffers_available{0};
 
@@ -112,6 +112,23 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
       });
 }
 
+/*void outgoing_packet(net::Packet_ptr p) {
+
+  auto* eth = reinterpret_cast<net::Ethernet::header*>(p->buffer());
+
+  if (eth->type == net::Ethernet::ETH_IP4) {
+    
+    auto ip4 = net::view_packet_as<PacketIP4>(p);
+    auto& hdr = reinterpret_cast<net::IP4::full_header*>(p->buffer())->ip_hdr;
+    
+    if (hdr.protocol == net::IP4::IP4_TCP) {
+      auto tcp = net::view_packet_as<TCP::Packet>(p);
+      printf("%s\n", tcp->to_string().c_str());  
+    }
+  }
+  
+}*/
+
 // Used to send big data
 struct Buffer {
   size_t written, read;
@@ -126,20 +143,31 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
+void print_stuff()
+{
+  printf("TIMER: Buffers avail: %u / %u  Transmit avail: %u\n",
+    inet->buffers_available(), buffers_available, inet->transmit_queue_available());
+  hw::PIT::on_timeout(5.0, print_stuff);
+}
+
 void Service::start()
 {
+  hw::PIT::on_timeout(5.0, print_stuff);
+  
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
   for(int i = 0; i < B; i++) big += TEST_STR;
   big += "-end";
 
-  huge += "start-";
+  huge = "start-";
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  //eth0.on_exit_to_physical(outgoing_packet);
   inet = std::make_unique<Inet4<VirtioNet>>(eth0);
+
 
   inet->network_config( {{ 10,0,0,42 }},      // IP
                         {{ 255,255,255,0 }},  // Netmask
@@ -202,13 +230,6 @@ void Service::start()
     TEST: Send and receive huge string.
   */
   tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
-      conn->onPacketDropped([](TCP::Packet_ptr, std::string reason) {
-        //printf("Dropped: %s\n", reason.c_str());
-      });
-      conn->onPacketReceived([](Connection_ptr, TCP::Packet_ptr packet) {
-        //if(packet->has_data())
-        //  printf("Received: %s\n", packet->to_string().c_str());
-      });
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {

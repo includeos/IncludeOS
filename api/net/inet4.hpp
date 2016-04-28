@@ -74,7 +74,7 @@ namespace net {
         @todo make_shared will allocate with new. This is fast in IncludeOS,
         (no context switch for sbrk) but consider overloading operator new.
     */
-    inline Packet_ptr createPacket(size_t size) override {
+    virtual Packet_ptr createPacket(size_t size) override {
       // Create a release delegate, for returning buffers
       auto release = BufferStore::release_del::from
         <BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
@@ -84,11 +84,8 @@ namespace net {
     }
 
     // We have to ask the Nic for the MTU
-    virtual inline uint16_t MTU() const override
+    virtual uint16_t MTU() const override
     { return nic_.MTU(); }
-
-    inline auto available_capacity()
-    { return bufstore_.capacity(); }
 
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
@@ -142,7 +139,7 @@ namespace net {
       return nic_.transmit_queue_available();
     }
 
-    inline virtual size_t buffers_available() override {
+    virtual size_t buffers_available() override {
       return nic_.buffers_available();
     }
 

@@ -100,6 +100,8 @@ namespace net {
   {
     size_t packets = stack_.transmit_queue_available();
     if (packets) process_sendq(packets);
+    //else debug("<UDP> Transmit queue full. Waiting for offer");
+
   }
 
   void UDP::process_sendq(size_t num)
@@ -131,9 +133,9 @@ namespace net {
   {
     int r = remaining();
     // whole packets
-    size_t P = r / udp.stack().MTU();
+    size_t P = r / udp.max_datagram_size();
     // one packet for remainder
-    if (r % udp.stack().MTU()) P++;
+    if (r % udp.max_datagram_size()) P++;
     return P;
   }
   UDP::WriteBuffer::WriteBuffer(
@@ -152,35 +154,48 @@ namespace net {
 
   void UDP::WriteBuffer::write()
   {
-    const size_t MTU = udp.stack().MTU();
 
-    // the maximum we can write per packet:
-    const size_t WRITE_MAX = MTU - PacketUDP::HEADERS_SIZE;
     // the bytes remaining to be written
-    size_t total = remaining();
-    total = (total > WRITE_MAX) ? WRITE_MAX : total;
+    UDP::Packet_ptr chain_head{};
 
-    // create some packet p (and convert it to PacketUDP)
-    auto p = udp.stack().createPacket(MTU);
-    // fill buffer (at payload position)
-    memcpy(p->buffer() + PacketUDP::HEADERS_SIZE,
-           buf.get() + this->offset, total);
+    debug("<UDP> %i bytes to write, need %i packets \n",
+           remaining(), remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
-    // initialize packet with several infos
-    auto p2 = std::static_pointer_cast<PacketUDP>(p);
+    do {
+      size_t total = remaining();
+      total = (total > udp.max_datagram_size()) ? udp.max_datagram_size() : total;
 
-    p2->init();
-    p2->header().sport = htons(l_port);
-    p2->header().dport = htons(d_port);
-    p2->set_src(l_addr);
-    p2->set_dst(d_addr);
-    p2->set_length(total);
+      // create some packet p (and convert it to PacketUDP)
+      auto p = udp.stack().createPacket(0);
+      // fill buffer (at payload position)
+      memcpy(p->buffer() + PacketUDP::HEADERS_SIZE,
+             buf.get() + this->offset, total);
+
+      // initialize packet with several infos
+      auto p2 = std::static_pointer_cast<PacketUDP>(p);
+
+      p2->init();
+      p2->header().sport = htons(l_port);
+      p2->header().dport = htons(d_port);
+      p2->set_src(l_addr);
+      p2->set_dst(d_addr);
+      p2->set_length(total);
+
+      // Attach packet to chain
+      if (!chain_head)
+        chain_head = p2;
+      else
+        chain_head->chain(p2);
+
+      // next position in buffer
+      this->offset += total;
+
+    } while ( remaining() );
 
     // ship the packet
-    udp.transmit(p2);
+    udp.transmit(chain_head);
 
-    // next position in buffer
-    this->offset += total;
+
   }
 
 } //< namespace net

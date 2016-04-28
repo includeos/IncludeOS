@@ -47,43 +47,53 @@ void Service::start()
   UDP::port_t port = 4242;
   auto& conn = inet->udp().bind(port);
 
-  conn.on_read([&] (UDP::addr_t addr, UDP::port_t port,
-                    const char* data, int len) {
-                 string received = std::string(data,len-1);
-                 INFO("Test 2","Starting UDP-test (got UDP data from %s: %i: '%s')",
-                      addr.str().c_str(), port, received.c_str());
+  conn.on_read([&] (UDP::addr_t addr, UDP::port_t port, const char* data, int len) {
+      string received = std::string(data,len);
 
-                 const int packets { 600 };
+      if (received == "SUCCESS") {
+        INFO("Test 2", "Client says SUCCESS");
+        return;
+      }
 
-                 string first_reply {string("Received '") + received +
-                     "'. Expect " + to_string(packets) + " packets in 1s\n" };
+      INFO("Test 2","Starting UDP-test. Got UDP data from %s: %i: %s",
+           addr.str().c_str(), port, received.c_str());
 
-                 // Send the first packet, and then wait for ARP
-                 conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
+      const int packets { 2400 };
 
-                 timer.onTimeout(1s, [&conn, addr, port, data, len]() {
-                     INFO("Test 2", "Trying to transmit %i UDP packets at maximum throttle", packets);
-                     auto bufcount = inet->buffers_available();
+      string first_reply {string("Received '") + received +
+          "'. Expect " + to_string(packets) + " packets in 1s\n" };
 
-                     for (int i = 0; i < packets; i++)
-                       conn.sendto(addr, port, data, len);
+      // Send the first packet, and then wait for ARP
+      conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
 
-                     CHECK(1,"UDP-transmission didn't panic");
-                     auto bufcount2 = inet->buffers_available();
+      timer.onTimeout(1s, [&conn, addr, port, data, len]() {
 
-                     CHECKSERT(bufcount2 < bufcount,
-                               "%i buffers available after transmission (Had %i). ",
-                               bufcount2, bufcount);
+          auto bufcount = inet->buffers_available();
+          size_t packetsize = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
+          INFO("Test 2", "Trying to transmit %i UDP packets of size %i at maximum throttle",
+               packets, packetsize);
 
-                     INFO("Transmision tests","SUCCESS");
-                   });
+          for (int i = 0; i < packets; i++) {
+            char c = (char)('A' + (i % 26));
+            string send (packetsize, c);
+            //printf("<TEST> %i nr. of  %c \n", send.size(), c);
+            conn.sendto(addr, port, send.c_str() , send.size());
+          }
 
-               });
+          CHECK(1,"UDP-transmission didn't panic");
+          auto bufcount2 = inet->buffers_available();
 
-  eth0.on_transmit_queue_available([](size_t s){
-      CHECKSERT(s,"There is now room for %i packets in transmit queue", s);
+          INFO("UDP Transmision tests","OK");
+        });
     });
 
+
+  /*
+    WARNING: Subscribing to this event will overwrite the Inet delegate. So Don't
+
+    eth0.on_transmit_queue_available([](size_t s){
+    CHECKSERT(s,"There is now room for %i packets in transmit queue", s);
+    }); */
 
   timer.onTimeout(200ms,[=](){
       const int packets { 600 };

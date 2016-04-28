@@ -94,9 +94,6 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
 /** Ported more or less directly from SanOS. */
 int Virtio::Queue::enqueue(gsl::span<Token> buffers){
   debug ("Enqueuing %i tokens \n", buffers.size());
-  Expects(_free_head >= 0);
-  Expects(_free_head < size());
-  Expects(_num_added + 1 > _num_added);
 
   uint16_t last = _free_head;
   uint16_t first = _free_head;
@@ -113,39 +110,52 @@ int Virtio::Queue::enqueue(gsl::span<Token> buffers){
     _queue.desc[_free_head].len = buf.size();
 
     last = _free_head;
-    _free_head ++;
+    _free_head = _queue.desc[_free_head].next;
   }
+
+  _desc_in_flight += buffers.size();
+  Ensures(_desc_in_flight <= size());
 
   // No continue on last buffer
   _queue.desc[last].flags &= ~VIRTQ_DESC_F_NEXT;
 
+
   // Place the head of this current chain in the avail ring
-  uint16_t avail_index = (_queue.avail->idx + _num_added++) % _size;
+  uint16_t avail_index = (_queue.avail->idx + _num_added) % _size;
+
+  // we added a token
+  _num_added++;
+
   _queue.avail->ring[avail_index] = first;
 
   debug("<Q %i> avail_index: %i size: %i, _free_head %i \n",
         _pci_index, avail_index, size(), _free_head );
 
-  Ensures(_free_head <= size());
+  debug ("Free tokens: %i \n", num_free());
+
   return buffers.size();
 }
 
 void Virtio::Queue::release(uint32_t head)
 {
+
   // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
+
+  _desc_in_flight --;
 
   while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT)
     {
       i = _queue.desc[i].next;
+      _desc_in_flight --;
     }
 
   // Add buffers back to free list
   _queue.desc[i].next = _free_head;
   _free_head = head;
 
-  // What happens here?
-  debug("<Q %i> desc[%i].next : %i \n",_pci_index, i ,_queue.desc[i].next);
+  debug("Descriptors in flight: %i \n", _desc_in_flight);
+
 }
 
 Virtio::Token Virtio::Queue::dequeue() {
@@ -165,13 +175,13 @@ Virtio::Token Virtio::Queue::dequeue() {
   release(e.id);
   _last_used_idx++;
   // return token:
-  return {{(uint8_t*) _queue.desc[e.id].addr, 
+  return {{(uint8_t*) _queue.desc[e.id].addr,
            (gsl::span<char>::size_type) e.len }, Token::IN};
 }
 std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
-  
+
   std::vector<Virtio::Token> result;
-  
+
   // Return NULL if there are no more completed buffers in the queue
   if (_last_used_idx == _queue.used->idx){
     debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
@@ -181,7 +191,7 @@ std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
 
   // Get next completed buffer
   auto* e = &_queue.used->ring[_last_used_idx % _size];
-  
+
   auto* unchain = &_queue.desc[e->id];
   do
   {
@@ -190,12 +200,12 @@ std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
     unchain = &_queue.desc[ unchain->next ];
   }
   while (unchain->flags & VIRTQ_DESC_F_NEXT);
-  
+
   // Release buffer
   debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
   release(e->id);
   _last_used_idx++;
-  
+
   return result;
 }
 
@@ -215,6 +225,8 @@ void Virtio::Queue::kick(){
 
   update_avail_idx();
 
+  // Std. §3.2.1 pt. 4
+  asm volatile("mfence" ::: "memory");
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<Queue %i> Kicking virtio. Iobase 0x%x \n",
           _pci_index, _iobase);
