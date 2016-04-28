@@ -23,7 +23,7 @@ namespace fs
   
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
-    // cluster -> sector + position -> sector
+    // cluster -> sector + position
     uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
     uint32_t nsect = sector - roundup(pos + n, sector_size) / sector_size;
     
@@ -36,8 +36,9 @@ namespace fs
     uint32_t internal_ofs = pos % device.block_size();
     // copy data to result buffer
     memcpy(result, data.get() + internal_ofs, n);
+    auto buffer = buffer_t(result, std::default_delete<uint8_t[]>());
     
-    return Buffer(no_error, buffer_t(result), n);
+    return Buffer(no_error, buffer, n);
   }
   
   Buffer FAT::readFile(const std::string& strpath)
