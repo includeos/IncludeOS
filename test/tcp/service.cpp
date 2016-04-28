@@ -65,7 +65,7 @@ void FINISH_TEST() {
       CHECK(inet->buffers_available() == buffers_available,
             "inet->buffers_available() == buffers_available");
       INFO("Buffers available", "%u", inet->buffers_available());
-      printf("# TEST DONE #\n");
+      printf("# TEST SUCCESS #\n");
     });
 }
 
@@ -284,5 +284,5 @@ void Service::start()
 
         hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
       });
-
+printf ("IncludeOS TCP test\n");
 }
