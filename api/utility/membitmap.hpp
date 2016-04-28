@@ -30,8 +30,8 @@ namespace fs
   class MemBitmap
   {
   public:
-    typedef uint64_t word;
-    static const word WORD_MAX = UINT64_MAX;
+    typedef uint32_t word;
+    static const word WORD_MAX = UINT32_MAX;
     typedef uint32_t  index_t;
     static const int CHUNK_SIZE = sizeof(word) * 8;
     
