@@ -28,17 +28,17 @@ namespace fs
     
     // read Master Boot Record (sector 0)
     device.read(start,
-                [this, start, size, on_mount] (buffer_t data)
-                {
-                  auto* mbr = (MBR::mbr*) data.get();
-                  assert(mbr != nullptr);
+    [this, start, size, on_mount] (buffer_t data) {
       
-                  /// now what?
-                  printf("Mounting EXT4 from LBA %llu to %llu\n",
-                         start, size);
-      
-                  init(data.get());
-                });
+      auto* mbr = (MBR::mbr*) data.get();
+      assert(mbr != nullptr);
+
+      /// now what?
+      printf("Mounting EXT4 from LBA %llu to %llu\n",
+             start, size);
+
+      init(data.get());
+    });
     
   }
   
@@ -47,20 +47,20 @@ namespace fs
     (void) path;
   }
   
-  EXT4::Buffer EXT4::readFile(const std::string&)
+  Buffer EXT4::readFile(const std::string&)
   {
-    return Buffer(true, buffer_t(), 0);
+    return Buffer({ error_t::E_IO, "Not implemented" }, buffer_t(), 0);
   }
   void EXT4::readFile(const std::string& strpath, on_read_func callback)
   {
     (void) strpath;
-    callback(true, buffer_t(), 0);
+    callback({ error_t::E_IO, "Not implemented" }, buffer_t(), 0);
   }
   
   void EXT4::stat(const std::string& strpath, on_stat_func callback)
   {
     (void) strpath;
-    callback(true, Dirent());
+    callback({ error_t::E_NOENT, "Not implemented" }, Dirent());
   }
   
   // filesystem traversal function

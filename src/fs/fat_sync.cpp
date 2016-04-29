@@ -18,8 +18,6 @@ inline size_t roundup(size_t n, size_t multiple)
 
 namespace fs
 {
-  typedef FileSystem::Buffer Buffer;
-  
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
     // cluster -> sector + position
@@ -43,11 +41,10 @@ namespace fs
   Buffer FAT::readFile(const std::string& strpath)
   {
     Path path(strpath);
-    if (unlikely(path.empty()))
-      {
-        // there is no possible file to read where path is empty
-        return Buffer(true, nullptr, 0);
-      }
+    if (unlikely(path.empty())) {
+      // there is no possible file to read where path is empty
+      return Buffer({ error_t::E_NOENT, "Path is empty" }, nullptr, 0);
+    }
     debug("readFile: %s\n", path.back().c_str());
     
     std::string filename = path.back();
@@ -57,7 +54,7 @@ namespace fs
     auto dirents = new_shared_vector();
     
     auto err = traverse(path, dirents);
-    if (err) return Buffer(true, buffer_t(), 0); // for now
+    if (err) return Buffer(err, buffer_t(), 0); // for now
     
     // find the matching filename in directory
     for (auto& e : *dirents)
@@ -66,22 +63,21 @@ namespace fs
       return read(e, 0, e.size);
     }
     // entry not found
-    return Buffer(true, buffer_t(), 0);
+    return Buffer({ error_t::E_NOENT, filename }, buffer_t(), 0);
   } // readFile()
   
   error_t FAT::int_ls(uint32_t sector, dirvec_t ents)
   {
     bool done = false;
-    while (!done)
-      {
-        // read sector sync
-        buffer_t data = device.read_sync(sector);
-        if (!data) return true;
-        // parse directory into @ents
-        done = int_dirent(sector, data.get(), ents);
-        // go to next sector until done
-        sector++;
-      }
+    while (!done) {
+      // read sector sync
+      buffer_t data = device.read_sync(sector);
+      if (!data) return { error_t::E_IO, "Unable to read directory" };
+      // parse directory into @ents
+      done = int_dirent(sector, data.get(), ents);
+      // go to next sector until done
+      sector++;
+    }
     return no_error;
   }
   
@@ -106,31 +102,27 @@ namespace fs
       
         // check for matches in dirents
         for (auto& e : *dirents)
-          if (unlikely(e.name() == name))
-            {
-              // go to this directory, unless its the last name
-              debug("traverse_sync: Found match for %s", name.c_str());
-              // enter the matching directory
-              debug("\t\t cluster: %lu\n", e.block);
-              // only follow if the name is a directory
-              if (e.type() == DIR)
-                {
-                  found = e;
-                  break;
-                }
-              else
-                {
-                  // not dir = error, for now
-                  return true;
-                }
-            } // for (ents)
+        if (unlikely(e.name() == name)) {
+          // go to this directory, unless its the last name
+          debug("traverse_sync: Found match for %s", name.c_str());
+          // enter the matching directory
+          debug("\t\t cluster: %lu\n", e.block);
+          // only follow if the name is a directory
+          if (e.type() == DIR) {
+            found = e;
+            break;
+          }
+          else {
+            // not dir = error, for now
+            return { error_t::E_NOTDIR, "Cannot list non-directory" };
+          }
+        } // for (ents)
       
         // validate result
-        if (found.type() == INVALID_ENTITY)
-          {
-            debug("traverse_sync: NO MATCH for %s\n", name.c_str());
-            return true;
-          }
+        if (found.type() == INVALID_ENTITY) {
+          debug("traverse_sync: NO MATCH for %s\n", name.c_str());
+          return { error_t::E_NOENT, name };
+        }
         // set next cluster
         cluster = found.block;
       }
