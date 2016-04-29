@@ -2,15 +2,15 @@
 
 # Install the IncludeOS libraries (i.e. IncludeOS_home) from binary bundle
 # ...as opposed to building them all from scratch, which takes a long time
-# 
 #
-# OPTIONS: 
+#
+# OPTIONS:
 #
 # Location of the IncludeOS repo:
 # $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
 #
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
-# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e. 
+# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
 [[ -z $INCLUDEOS_SRC ]] && export INCLUDEOS_SRC=`pwd`
 [[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
@@ -22,8 +22,8 @@ echo -e "\n###################################"
 echo -e "IncludeOS installation for Mac OS X"
 echo -e "###################################"
 
-echo -e "\n# Prequisites:\n 
-    - homebrew (OSX package manager - https://brew.sh) 
+echo -e "\n# Prequisites:\n
+    - homebrew (OSX package manager - https://brew.sh)
     - \`/usr/local\` directory with write access
     - \`/usr/local/bin\` added to your PATH
     - (Recommended) XCode CTL (Command Line Tools)"
@@ -33,12 +33,12 @@ echo -e "\n# Prequisites:\n
 echo -e "\n# Dependencies"
 
 ## LLVM ##
-echo -e "\nllvm36 (clang/clang++ 3.6) - required for compiling"
+echo -e "\nllvm38 (clang/clang++ 3.8) - required for compiling"
 DEPENDENCY_LLVM=false
 
-BREW_LLVM=llvm36
-BREW_CLANG_CC=/usr/local/bin/clang-3.6
-BREW_CLANG_CPP=/usr/local/bin/clang++-3.6
+BREW_LLVM=llvm38
+BREW_CLANG_CC=/usr/local/bin/clang-3.8
+BREW_CLANG_CPP=/usr/local/bin/clang++-3.8
 
 [ -e $BREW_CLANG_CPP ] && DEPENDENCY_LLVM=true
 if ($DEPENDENCY_LLVM); then echo -e "> Found"; else echo -e "> Not Found"; fi
@@ -47,6 +47,9 @@ function install_llvm {
     echo -e "\n>>> Installing: llvm"
     # Check if brew is installed
     command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
+    # Try to update brew
+    echo -e "\n> Make sure homebrew is up to date."
+    brew update
     # Install llvm
     echo -e "\n> Install $BREW_LLVM with brew"
     brew install $BREW_LLVM
@@ -75,19 +78,19 @@ function install_binutils {
 
     # Create build directory if not exist
     mkdir -p $INCLUDEOS_BUILD
-    
+
     # Decide filename (release)
     BINUTILS_RELEASE=binutils-2.25
     filename_binutils=$BINUTILS_RELEASE".tar.gz"
 
     # Check if file is downloaded
     if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
-    then 
+    then
         echo -e "\n> $BINUTILS_RELEASE already downloaded."
     else
         # Download binutils
         echo -e "\n> Downloading $BINUTILS_RELEASE."
-        curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils 
+        curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils
     fi
 
     ## Unzip
@@ -96,7 +99,7 @@ function install_binutils {
 
     ## Configure
     pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE
-    
+
     ## Install
     echo -e "\n> Installing $BINUTILS_RELEASE to $BINUTILS_DIR"
     ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
@@ -133,8 +136,8 @@ function install_nasm {
 
 ## WARN ABOUT XCODE CTL ##
 if ! [[ $(xcode-select -p) ]]
-then 
-    echo -e "\nWARNING: Command Line Tools don't seem to be installed, installation MAY not complete. 
+then
+    echo -e "\nWARNING: Command Line Tools don't seem to be installed, installation MAY not complete.
     Install with: xcode-select --install"
 fi
 
@@ -167,18 +170,18 @@ echo ">>> Updating git-tags "
 pushd $INCLUDEOS_SRC
 git fetch --tags
 tag=`git describe --abbrev=0`
-popd 
+popd
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
 
-# If the tarball exists, use that 
-if [ -e $filename ] 
+# If the tarball exists, use that
+if [ -e $filename ]
 then
     echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
-else    
+else
     echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
-    # Download from GitHub API    
+    # Download from GitHub API
     if [ "$1" = "-oauthToken" ]
     then
         oauthToken=$2
@@ -198,7 +201,7 @@ else
     else
         curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
     fi
-    
+
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
 fi
 
