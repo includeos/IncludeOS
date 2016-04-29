@@ -7,7 +7,6 @@
 
 #include <cstring>
 #include <memory>
-#include <locale>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -24,14 +23,14 @@ namespace fs
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
     // cluster -> sector + position
-    uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    uint32_t nsect = sector - roundup(pos + n, sector_size) / sector_size;
+    uint32_t sector = pos / this->sector_size;
+    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
     
     // the resulting buffer
     uint8_t* result = new uint8_t[n];
     
     // read @nsect sectors ahead
-    buffer_t data = device.read_sync(sector, nsect);
+    buffer_t data = device.read_sync(this->cl_to_sector(ent.block) + sector, nsect);
     // where to start copying from the device result
     uint32_t internal_ofs = pos % device.block_size();
     // copy data to result buffer
