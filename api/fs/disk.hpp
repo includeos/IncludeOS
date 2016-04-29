@@ -73,8 +73,6 @@ namespace fs {
       VBR2,
       VBR3,
       VBR4,
-      
-      INVALID
     };
     
     struct Partition {

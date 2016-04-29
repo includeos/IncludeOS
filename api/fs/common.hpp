@@ -20,13 +20,42 @@
 #define FS_COMMON_HPP
 
 #include <memory>
+#include <string>
 
 namespace fs {
 
   typedef std::shared_ptr<uint8_t> buffer_t;
 
-  // TODO: transform this into a class with a bool operator
-  using error_t = bool;
+  struct error_t
+  {
+    enum token_t {
+      NO_ERR = 0,
+      E_IO, // general I/O error
+      E_MNT,
+      
+      E_NOENT,
+      E_NOTDIR,
+    };
+    
+    error_t(token_t tk, const std::string& rsn)
+      : token_(tk), reason_(rsn) {}
+    
+    // error code to string
+    std::string to_string() const;
+    // show explanation for error
+    std::string reason() const noexcept {
+      return reason_;
+    }
+    
+    // returns true when it's an error
+    operator bool () const noexcept {
+      return token_ != NO_ERR;
+    }
+    
+  private:
+    token_t     token_;
+    std::string reason_;
+  };
 
   /** @var no_error: Always returns boolean false when used in expressions */
   extern error_t no_error;
