@@ -33,7 +33,7 @@ namespace fs {
       std::vector<Partition> parts;
 
       if (!data) {
-        func(true, parts);
+        func({ error_t::E_IO, "Unable to read MBR"}, parts);
         return;
       }
 
@@ -60,7 +60,7 @@ namespace fs {
     {
       if (!data) {
         // TODO: error-case for unable to read MBR
-        internal_mount(INVALID, func);
+        func({ error_t::E_IO, "Unable to read MBR"});
         return;
       }
 
@@ -98,7 +98,7 @@ namespace fs {
       }
       
       // no partition was found (TODO: extended partitions)
-      internal_mount(INVALID, func);
+      func({ error_t::E_MNT, "No FAT partition auto-detected"});
     });
   }
 
@@ -110,14 +110,7 @@ namespace fs {
   
   void Disk::internal_mount(partition_t part, on_mount_func func) {
   
-    if (part == INVALID)
-    {
-      // Something bad happened maybe in auto-detect
-      // Either way, no partition was found
-      func(true);
-      return;
-    }
-    else if (part == MBR)
+    if (part == MBR)
     {
       // For the MBR case, all we need to do is mount on sector 0
       fs().mount(0, device.size(), func);
@@ -133,7 +126,7 @@ namespace fs {
       {
         if (!data) {
           // TODO: error-case for unable to read MBR
-          func(true);
+          func({ error_t::E_IO, "Unable to read MBR" });
           return;
         }
         

@@ -27,7 +27,7 @@
 #include <functional>
 
 namespace fs {
-
+  
   class FileSystem {
   public:
     struct Dirent; //< Generic structure for directory entries
@@ -40,41 +40,6 @@ namespace fs {
     using on_ls_func    = std::function<void(error_t, dirvec_t)>;
     using on_read_func  = std::function<void(error_t, buffer_t, uint64_t)>;
     using on_stat_func  = std::function<void(error_t, const Dirent&)>;
-  
-    struct Buffer
-    {
-      Buffer(error_t e, buffer_t b, size_t l)
-        : err(e), buffer(b), len(l) {}
-        
-      // returns true if this buffer is valid
-      bool is_valid() const
-      {
-        return buffer != nullptr;
-      }
-      operator bool () const
-      {
-        return is_valid();
-      }
-      
-      uint8_t* data()
-      {
-        return buffer.get();
-      }
-      size_t   size() const
-      {
-        return len;
-      }
-      
-      // create a std::string from the stored buffer and return it
-      std::string to_string() const
-      {
-        return std::string((char*) buffer.get(), size());
-      }
-      
-      error_t  err;
-      buffer_t buffer;
-      uint64_t len;
-    };
   
     enum Enttype {
       FILE,
@@ -176,7 +141,9 @@ namespace fs {
   {
     return std::make_shared<FileSystem::dirvector> ();
   }
-
+  
+  using Dirent = FileSystem::Dirent;
+  
 } //< namespace fs
 
 #endif //< FS_FILESYSTEM_HPP
