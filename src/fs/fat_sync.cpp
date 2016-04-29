@@ -18,8 +18,6 @@ inline size_t roundup(size_t n, size_t multiple)
 
 namespace fs
 {
-  typedef FileSystem::Buffer Buffer;
-  
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
     // cluster -> sector + position

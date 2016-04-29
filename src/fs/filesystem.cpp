@@ -4,7 +4,7 @@ namespace fs
 {
   error_t no_error { error_t::NO_ERR, "" };
   
-  std::string error_t::to_string() const {
+  std::string error_t::token() const noexcept {
     switch (token_) {
     case NO_ERR:
       return "No error";
@@ -17,7 +17,6 @@ namespace fs
       return "No such entry";
     case E_NOTDIR:
       return "Not a directory";
-    
     }
   }
   

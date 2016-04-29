@@ -47,7 +47,7 @@ namespace fs
     (void) path;
   }
   
-  EXT4::Buffer EXT4::readFile(const std::string&)
+  Buffer EXT4::readFile(const std::string&)
   {
     return Buffer({ error_t::E_IO, "Not implemented" }, buffer_t(), 0);
   }
