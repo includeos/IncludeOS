@@ -7,7 +7,6 @@
 
 #include <cstring>
 #include <memory>
-#include <locale>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -139,13 +138,19 @@ namespace fs
   
   void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
-    // cluster -> sector + position
-    uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    uint32_t nsect = sector - roundup(pos + n, sector_size) / sector_size;
+    // when n=0 roundup() will return an invalid value
+    if (n == 0) {
+      callback(true, buffer_t(), 0);
+      return;
+    }
+    // calculate start and length in sectors
+    uint32_t sector = pos / this->sector_size;
+    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
     uint32_t internal_ofs = pos % device.block_size();
     
-    device.read(sector, nsect,
-    [pos, n, &callback, internal_ofs] (buffer_t data) {
+    // cluster -> sector + position
+    device.read(this->cl_to_sector(ent.block) + sector, nsect,
+    [pos, n, callback, internal_ofs] (buffer_t data) {
       
       if (!data) {
         // general I/O error occurred
