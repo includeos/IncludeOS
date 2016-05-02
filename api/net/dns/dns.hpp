@@ -159,10 +159,10 @@ namespace net
       }
       IP4::addr getFirstIP4() const
       {
-        IP4::addr result(0);
         if (answers.size())
-          result = answers[0].getIP4();
-        return result;
+          return answers[0].getIP4();
+        
+        return IP4::INADDR_ANY;
       }
       
     private:
