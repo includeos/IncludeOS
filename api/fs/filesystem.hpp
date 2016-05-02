@@ -120,7 +120,9 @@ namespace fs {
     
     /** @param path: Path in the mounted filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
+    virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
     virtual List  ls(const std::string& path) = 0;
+    virtual List  ls(const Dirent&) = 0;
     
     /** Read an entire file into a buffer, then call on_read */
     virtual void   readFile(const std::string&, on_read_func) = 0;

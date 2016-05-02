@@ -138,6 +138,18 @@ namespace fs
     auto err = traverse(strpath, ents);
     return { err, ents };
   }
+  FAT::List FAT::ls(const Dirent& ent)
+  {
+    dirvector ents;
+    // verify ent is a directory
+    if (!ent.is_valid() || !ent.is_dir())
+      return { { error_t::E_NOTDIR, ent.name() }, ents };
+    // convert cluster to sector
+    uint32_t S = this->cl_to_sector(ent.block);
+    // read result directory entries into ents
+    auto err = int_ls(S, ents);
+    return { err, ents };
+  }
   
   FAT::Dirent FAT::stat(const std::string& strpath)
   {

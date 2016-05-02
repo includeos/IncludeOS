@@ -36,7 +36,9 @@ namespace fs
     
     // path is a path in the mounted filesystem
     virtual void  ls     (const std::string& path, on_ls_func) override;
+    virtual void  ls     (const Dirent& entry,     on_ls_func) override;
     virtual List  ls(const std::string& path) override;
+    virtual List  ls(const Dirent&) override;
     
     // read an entire file into a buffer, then call on_read
     virtual void   readFile(const std::string&, on_read_func) override;
