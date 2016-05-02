@@ -7,7 +7,6 @@
 
 #include <cstring>
 #include <memory>
-#include <locale>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -37,7 +36,7 @@ namespace fs
         
         if (!data) {
           // could not read sector
-          callback(true, dirents);
+          callback({ error_t::E_IO, "Unable to read directory" }, dirents);
           return;
         }
         
@@ -97,7 +96,7 @@ namespace fs
         
         if (unlikely(err)) {
           debug("Could not find: %s\n", name.c_str());
-          callback(true, dirents);
+          callback(err, dirents);
           return;
         }
         
@@ -112,13 +111,13 @@ namespace fs
             if (e.type() == DIR)
               (*next)(e.block);
             else
-              callback(true, dirents);
+              callback({ error_t::E_NOTDIR, e.name() }, dirents);
             return;
           }
         } // for (ents)
         
         debug("NO MATCH for %s\n", name.c_str());
-        callback(true, dirents);
+        callback({ error_t::E_NOENT, name }, dirents);
       });
       
     };
@@ -139,18 +138,24 @@ namespace fs
   
   void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
-    // cluster -> sector + position
-    uint32_t sector = this->cl_to_sector(ent.block) + pos / this->sector_size;
-    uint32_t nsect = sector - roundup(pos + n, sector_size) / sector_size;
+    // when n=0 roundup() will return an invalid value
+    if (n == 0) {
+      callback({ error_t::E_IO, "Zero read length" }, buffer_t(), 0);
+      return;
+    }
+    // calculate start and length in sectors
+    uint32_t sector = pos / this->sector_size;
+    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
     uint32_t internal_ofs = pos % device.block_size();
     
-    device.read(sector, nsect,
-    [pos, n, &callback, internal_ofs] (buffer_t data) {
+    // cluster -> sector + position
+    device.read(this->cl_to_sector(ent.block) + sector, nsect,
+    [pos, n, callback, internal_ofs] (buffer_t data) {
       
       if (!data) {
         // general I/O error occurred
         debug("Failed to read sector %u for read()", sector);
-        callback(true, buffer_t(), 0);
+        callback({ error_t::E_IO, "Unable to read file" }, buffer_t(), 0);
         return;
       }
       
@@ -168,7 +173,7 @@ namespace fs
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty())) {
       // there is no possible file to read where path is empty
-      callback(true, nullptr, 0);
+      callback({ error_t::E_NOENT, "Path is empty" }, nullptr, 0);
       return;
     }
     debug("readFile: %s\n", path->back().c_str());
@@ -195,7 +200,7 @@ namespace fs
       }
       
       // file not found
-      callback(true, buffer_t(), 0);
+      callback({ error_t::E_NOENT, filename }, buffer_t(), 0);
     });
   } // readFile()
   
@@ -205,7 +210,7 @@ namespace fs
     if (unlikely(path->empty())) {
       // root doesn't have any stat anyways
       // Note: could use ATTR_VOLUME_ID in FAT
-      func(true, Dirent(INVALID_ENTITY, strpath));
+      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(INVALID_ENTITY, strpath));
       return;
     }
     
@@ -213,32 +218,27 @@ namespace fs
     // extract file we are looking for
     std::string filename = path->back();
     path->pop_back();
-    // we need to remember this later
-    auto callback = std::make_shared<on_stat_func> (func);
     
     traverse(path,
-             [this, filename, callback] (error_t error, dirvec_t dirents)
-             {
-               if (unlikely(error))
-                 {
-                   // no path, no file!
-                   (*callback)(error, Dirent(INVALID_ENTITY, filename));
-                   return;
-                 }
+    [this, filename, func] (error_t error, dirvec_t dirents)
+    {
+      if (unlikely(error)) {
+        // no path, no file!
+        func(error, Dirent(INVALID_ENTITY, filename));
+        return;
+      }
       
-               // find the matching filename in directory
-               for (auto& e : *dirents)
-                 {
-                   if (unlikely(e.name() == filename))
-                     {
-                       // read this file
-                       (*callback)(no_error, e);
-                       return;
-                     }
-                 }
+      // find the matching filename in directory
+      for (auto& e : *dirents) {
+        if (unlikely(e.name() == filename)) {
+          // read this file
+          func(no_error, e);
+          return;
+        }
+      }
       
-               // not found
-               (*callback)(true, Dirent(INVALID_ENTITY, filename));
-             });
+      // not found
+      func({ error_t::E_NOENT, filename }, Dirent(INVALID_ENTITY, filename));
+    });
   }
 }

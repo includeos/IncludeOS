@@ -48,10 +48,16 @@ void Service::start()
   disk->mount(
   [] (fs::error_t err) {
     if (err) {
-      printf("Could not mount filesystem\n");
+      printf("Error: %s\n", err.to_string().c_str());
       return;
     }
     printf("Mounted filesystem\n");
+    
+    // read something that doesn't exist
+    disk->fs().stat("/fefe/fefe",
+    [] (fs::error_t err, const fs::Dirent&) {
+      printf("Error: %s\n", err.to_string().c_str());
+    });
     
     // async ls
     disk->fs().ls("/",
