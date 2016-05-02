@@ -29,7 +29,7 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
-  used_ports(new PortMap),
+  used_ports(),
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
@@ -52,7 +52,6 @@ TCP::Connection& TCP::bind(Port port) {
     throw TCPException{"Port is already taken."};
   }
   auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;
-  (*used_ports)[port]=1;
   debug("<TCP::bind> Bound to port %i \n", port);
   connection.open(false);
   return connection;
@@ -67,7 +66,6 @@ TCP::Connection& TCP::bind(Port port) {
 TCP::Connection_ptr TCP::connect(Socket remote) {
   auto port = next_free_port();
   std::shared_ptr<Connection> connection = add_connection(port, remote);
-  (*used_ports)[port]=1;
   connection->open(true);
   return connection;
 }
@@ -78,7 +76,6 @@ TCP::Connection_ptr TCP::connect(Socket remote) {
 void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
   auto port = next_free_port();
   auto connection = add_connection(port, remote);
-  (*used_ports)[port]=1;
   connection->onConnect(callback).open(true);
 }
 
@@ -91,26 +88,30 @@ TCP::Seq TCP::generate_iss() {
   TODO: Check if there is any ports free.
 */
 TCP::Port TCP::next_free_port() {
-  Ensures(!used_ports->all());
 
-  if(++current_ephemeral_ == 0)
+  if(++current_ephemeral_ == 0) {
     current_ephemeral_ = 1025;
+    // TODO: Can be taken
+  }
   // Avoid giving a port that is bound to a service.
-  while(port_in_use(current_ephemeral_))
+  while(listeners_.find(current_ephemeral_) != listeners_.end())
     current_ephemeral_++;
 
   return current_ephemeral_;
-
-   /*TCP::Port port;
-  do {
-    port = current_ephemeral_ + rand() % (65535 - current_ephemeral_);
-  } while(port_in_use(port));
-
-  return port;*/
 }
 
+/*
+  Expensive look up if port is in use.
+*/
 bool TCP::port_in_use(const TCP::Port port) const {
-  return (*used_ports)[port];
+  if(listeners_.find(port) != listeners_.end())
+    return true;
+
+  for(auto conn : connections_) {
+    if(conn.first.first == port)
+      return true;
+  }
+  return false;
 } 
 
 
@@ -278,10 +279,6 @@ TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
 void TCP::close_connection(TCP::Connection& conn) {
   debug("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
   connections_.erase(conn.tuple());
-  auto port = conn.local_port();
-  // If it's an active connection
-  if(listeners_.find(port) == listeners_.end())
-    (*used_ports)[port]=0;
 }
 
 void TCP::drop(TCP::Packet_ptr) {

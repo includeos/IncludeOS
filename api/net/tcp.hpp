@@ -533,14 +533,15 @@ namespace net {
         buffer_t buffer;
         size_t remaining;
         size_t offset;
+        size_t acknowledged;
         bool push;
 
         WriteBuffer(buffer_t buf, size_t length, bool PSH, size_t offs = 0)
-          : buffer(buf), remaining(length-offs), offset(offs), push(PSH) {}
+          : buffer(buf), remaining(length-offs), offset(offs), acknowledged(0), push(PSH) {}
 
         inline size_t length() const { return remaining + offset; }
 
-        inline bool done() const { return remaining == 0; }
+        inline bool done() const { return acknowledged == length(); }
 
         inline uint8_t* begin() const { return buffer.get(); }
 
@@ -554,6 +555,13 @@ namespace net {
           remaining -= length;
           return length > 0;
         }
+
+        size_t acknowledge(size_t bytes) {
+          auto acked = std::min(bytes, length()-acknowledged);
+          acknowledged += acked;
+          return acked;
+        }
+
       }; // < Connection::WriteBuffer
 
       /*
@@ -579,6 +587,59 @@ namespace net {
       using WriteCallback = delegate<void(size_t)>;
 
       using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
+
+
+      /*
+        Write Queue
+      */
+      struct WriteQueue {
+
+        std::deque<WriteRequest> q;
+        
+        std::deque<WriteRequest>::iterator current;
+
+        WriteQueue() : q(), current(q.begin()) {}
+
+        void acknowledge(size_t bytes) {
+          while(bytes and !q.empty()) 
+          {
+            auto& buf = q.front()->first;
+            
+            bytes -= buf.acknowledge(bytes);
+            
+            if(buf.done()) {
+              buf.pop_front();
+            }
+          }
+        }
+
+        bool empty() const
+        { return q.empty(); }
+
+        size_t size() const
+        { return q.size(); }
+
+        bool remaining_requests() const 
+        { return !q.empty() and q.back().remaining; }
+
+        const WriteBuffer& nxt()
+        { return current->first; }
+
+        const WriteBuffer& una() 
+        { return q.front()->first; }
+
+        void advance(size_t bytes) {
+          
+          auto& buf = current->first;
+          
+          buf.advance(bytes);
+          
+          if(!buf.remaining) {
+            current->second(buf.offset);
+            current++;
+          }
+        }
+      };
 
       /*
         Connection identifier
@@ -1112,7 +1173,7 @@ namespace net {
       /*
         Queue for write requests to process
       */
-      std::queue<WriteRequest> writeq;
+      WriteQueue writeq;
 
       /*
         State if connection is in TCP write queue or not.
@@ -1333,7 +1394,7 @@ namespace net {
         Returns if the connection has a doable write job.
       */
       inline bool has_doable_job() {
-        return !writeq.empty() and usable_window() >= SMSS();
+        return !writeq.remaining_requests() and usable_window() >= SMSS();
       }
 
       /*
@@ -1744,8 +1805,7 @@ namespace net {
 
     std::deque<Connection_ptr> writeq;
 
-    using PortMap = std::bitset<UINT16_MAX>;
-    std::unique_ptr<PortMap> used_ports;
+    std::vector<uint16_t> used_ports;
 
     /*
       Settings
