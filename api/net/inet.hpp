@@ -33,7 +33,7 @@ namespace net {
     using Stack = Inet<LINKLAYER, IPV>;
 
     template <typename IPv>
-    using resolve_func = delegate<void(Stack&, const std::string&, typename IPv::addr)>;
+    using resolve_func = delegate<void(typename IPv::addr)>;
 
     virtual typename IPV::addr ip_addr() = 0;
     virtual typename IPV::addr netmask() = 0;

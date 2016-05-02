@@ -29,6 +29,7 @@ TCP::TCP(IPStack& inet) :
   connections_(),
   writeq(),
   used_ports(),
+  available_ports(),
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));

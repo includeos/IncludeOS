@@ -63,7 +63,7 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/terminal.o kernel/terminal_disk.o \
-		kernel/vga.o util/memstream.o \
+		kernel/vga.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \

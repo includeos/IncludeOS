@@ -54,7 +54,8 @@ namespace fs
     auto dirents = new_shared_vector();
     
     auto err = traverse(path, dirents);
-    if (err) return Buffer(err, buffer_t(), 0); // for now
+    if (unlikely(err))
+        return Buffer(err, buffer_t(), 0); // for now
     
     // find the matching filename in directory
     for (auto& e : *dirents)
@@ -72,7 +73,8 @@ namespace fs
     while (!done) {
       // read sector sync
       buffer_t data = device.read_sync(sector);
-      if (!data) return { error_t::E_IO, "Unable to read directory" };
+      if (unlikely(!data))
+          return { error_t::E_IO, "Unable to read directory" };
       // parse directory into @ents
       done = int_dirent(sector, data.get(), ents);
       // go to next sector until done
@@ -95,7 +97,7 @@ namespace fs
         dirents->clear(); // mui importante
         // sync read entire directory
         auto err = int_ls(S, dirents);
-        if (err) return err;
+        if (unlikely(err)) return err;
         // the name we are looking for
         std::string name = path.front();
         path.pop_front();
@@ -140,11 +142,10 @@ namespace fs
   FAT::Dirent FAT::stat(const std::string& strpath)
   {
     Path path(strpath);
-    if (unlikely(path.empty()))
-      {
-        // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-        return Dirent(INVALID_ENTITY);
-      }
+    if (unlikely(path.empty())) {
+      // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
+      return Dirent(INVALID_ENTITY);
+    }
     
     debug("stat_sync: %s\n", path.back().c_str());
     // extract file we are looking for
@@ -155,17 +156,15 @@ namespace fs
     auto dirents = std::make_shared<std::vector<Dirent>> ();
     
     auto err = traverse(path, dirents);
-    if (err) return Dirent(INVALID_ENTITY); // for now
+    if (unlikely(err))
+        return Dirent(INVALID_ENTITY); // for now
     
     // find the matching filename in directory
     for (auto& e : *dirents)
-      {
-        if (unlikely(e.name() == filename))
-          {
-            // return this directory entry
-            return e;
-          }
-      }
+    if (unlikely(e.name() == filename)) {
+      // return this directory entry
+      return e;
+    }
     // entry not found
     return Dirent(INVALID_ENTITY);
   }
