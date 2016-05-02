@@ -41,7 +41,7 @@ namespace fs
         }
         
         // parse entries in sector
-        bool done = int_dirent(sector, data.get(), dirents);
+        bool done = int_dirent(sector, data.get(), *dirents);
         if (done)
           // execute callback
           callback(no_error, dirents);

@@ -172,7 +172,7 @@ namespace fs
     });
   }
   
-  bool FAT::int_dirent(uint32_t  sector, const void* data, dirvec_t dirents) {
+  bool FAT::int_dirent(uint32_t  sector, const void* data, dirvector& dirents) {
     
     auto* root = (cl_dir*) data;
     bool  found_last = false;
@@ -237,7 +237,7 @@ namespace fs
             std::string dirname(final_name, final_count);
             dirname = trim_right_copy(dirname);
         
-            dirents->emplace_back(
+            dirents.emplace_back(
                 D->type(), 
                 dirname, 
                 D->dir_cluster(root_cluster), 
@@ -253,7 +253,7 @@ namespace fs
           std::string dirname((char*) D->shortname, 11);
           dirname = trim_right_copy(dirname);
         
-          dirents->emplace_back(
+          dirents.emplace_back(
               D->type(), 
               dirname, 
               D->dir_cluster(root_cluster), 

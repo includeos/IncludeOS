@@ -35,8 +35,8 @@ namespace fs
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
-    virtual void    ls     (const std::string& path, on_ls_func) override;
-    virtual error_t ls(const std::string& path, dirvec_t) override;
+    virtual void  ls     (const std::string& path, on_ls_func) override;
+    virtual List  ls(const std::string& path) override;
     
     // read an entire file into a buffer, then call on_read
     virtual void   readFile(const std::string&, on_read_func) override;
@@ -179,15 +179,15 @@ namespace fs
     // return a list of entries from directory entries at @sector
     typedef std::function<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
-    bool int_dirent(uint32_t sector, const void* data, dirvec_t);
+    bool int_dirent(uint32_t sector, const void* data, dirvector&);
     
     // tree traversal
     typedef std::function<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     // sync version
-    error_t traverse(Path path, dirvec_t);
-    error_t int_ls(uint32_t sector, dirvec_t);
+    error_t traverse(Path path, dirvector&);
+    error_t int_ls(uint32_t sector, dirvector&);
     
     // device we can read and write sectors to
     hw::IDiskDevice& device;

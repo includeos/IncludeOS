@@ -45,13 +45,12 @@ void Service::start()
     auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
 
-    auto vec = fs::new_shared_vector();
-    err = fs.ls("/", vec);
-    CHECKSERT(!err, "List root directory");
+    auto list = fs.ls("/");
+    CHECKSERT(!list.error, "List root directory");
 
-    CHECKSERT(vec->size() == 1, "Exactly one ent in root dir");
+    CHECKSERT(list.entries.size() == 1, "Exactly one ent in root dir");
 
-    auto& e = vec->at(0);
+    auto& e = list.entries.at(0);
     CHECKSERT(e.is_file(), "Ent is a file");
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
