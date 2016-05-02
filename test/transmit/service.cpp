@@ -36,10 +36,10 @@ void Service::start()
   inet = std::make_shared<net::Inet4<VirtioNet>>(eth0);
   auto& timer = hw::PIT::instance();
 
-  inet->network_config({{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }},
-                       {{ 255,255,0,0 }}, // Netmask
-                       {{ 10,0,0,1 }}, // Gateway
-                       {{ 8,8,8,8}});  // DNS
+  inet->network_config({ mac.part[2],mac.part[3],mac.part[4],mac.part[5] },
+                       { 255,255,0,0 }, // Netmask
+                       { 10,0,0,1 }, // Gateway
+                       { 8,8,8,8 });  // DNS
 
   printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
 
