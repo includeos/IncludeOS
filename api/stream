@@ -1,0 +1,8 @@
+#pragma once
+#ifndef API_STREAM_HEADER
+#define API_STREAM_HEADER
+
+// hmm...
+#include "utility/stream.hpp"
+
+#endif
