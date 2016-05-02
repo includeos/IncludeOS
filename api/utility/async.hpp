@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILITY_STREAM_HPP
-#define UTILITY_STREAM_HPP
+#ifndef UTILITY_ASYNC_HPP
+#define UTILITY_ASYNC_HPP
 
 #include <net/inet4.hpp>
 #include <fs/disk.hpp>
