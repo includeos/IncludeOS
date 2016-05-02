@@ -18,6 +18,7 @@
 #define DEBUG2
 
 #include <net/tcp.hpp>
+#include <alloca.h>
 
 using namespace std;
 using namespace net;
@@ -28,7 +29,7 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
-  used_ports(),
+  used_ports(new PortMap),
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
@@ -46,12 +47,12 @@ TCP::TCP(IPStack& inet) :
   Simple.
 */
 TCP::Connection& TCP::bind(Port port) {
-  auto listen_conn_it = listeners_.find(port);
   // Already a listening socket.
-  if(listen_conn_it != listeners_.end()) {
+  if(port_in_use(port)) {
     throw TCPException{"Port is already taken."};
   }
   auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;
+  (*used_ports)[port]=1;
   debug("<TCP::bind> Bound to port %i \n", port);
   connection.open(false);
   return connection;
@@ -64,7 +65,9 @@ TCP::Connection& TCP::bind(Port port) {
   and open() is called before callback is added.
 */
 TCP::Connection_ptr TCP::connect(Socket remote) {
-  std::shared_ptr<Connection> connection = add_connection(free_port(), remote);
+  auto port = next_free_port();
+  std::shared_ptr<Connection> connection = add_connection(port, remote);
+  (*used_ports)[port]=1;
   connection->open(true);
   return connection;
 }
@@ -73,7 +76,9 @@ TCP::Connection_ptr TCP::connect(Socket remote) {
   Active open a new connection to the given remote.
 */
 void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
-  auto connection = add_connection(free_port(), remote);
+  auto port = next_free_port();
+  auto connection = add_connection(port, remote);
+  (*used_ports)[port]=1;
   connection->onConnect(callback).open(true);
 }
 
@@ -85,12 +90,13 @@ TCP::Seq TCP::generate_iss() {
 /*
   TODO: Check if there is any ports free.
 */
-TCP::Port TCP::free_port() {
-  //assert(!used_ports.all());
+TCP::Port TCP::next_free_port() {
+  Ensures(!used_ports->all());
+
   if(++current_ephemeral_ == 0)
     current_ephemeral_ = 1025;
   // Avoid giving a port that is bound to a service.
-  while(listeners_.find(current_ephemeral_) != listeners_.end())
+  while(port_in_use(current_ephemeral_))
     current_ephemeral_++;
 
   return current_ephemeral_;
@@ -104,14 +110,7 @@ TCP::Port TCP::free_port() {
 }
 
 bool TCP::port_in_use(const TCP::Port port) const {
-  if(listeners_.find(port) != listeners_.end())
-    return true;
-  
-  for(auto it : connections_) {
-    if(it.first.first == port)
-      return true;
-  }
-  return false;
+  return (*used_ports)[port];
 } 
 
 
@@ -279,7 +278,10 @@ TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
 void TCP::close_connection(TCP::Connection& conn) {
   debug("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
   connections_.erase(conn.tuple());
-  debug2("<TCP::close_connection> TCP Status: \n%s \n", status().c_str());
+  auto port = conn.local_port();
+  // If it's an active connection
+  if(listeners_.find(port) == listeners_.end())
+    (*used_ports)[port]=0;
 }
 
 void TCP::drop(TCP::Packet_ptr) {
@@ -287,11 +289,9 @@ void TCP::drop(TCP::Packet_ptr) {
 }
 
 void TCP::transmit(TCP::Packet_ptr packet) {
-  // Translate into a net::Packet_ptr and send away.
   // Generate checksum.
   packet->set_checksum(TCP::checksum(packet));
   //if(packet->has_data())
   //  printf("<TCP::transmit> S: %u\n", packet->seq());
-  //packet->set_checksum(checksum(packet));
   _network_layer_out(packet);
 }

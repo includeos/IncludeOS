@@ -836,6 +836,12 @@ namespace net {
       inline const TCP& host() const { return host_; }
 
       /*
+        The local Port bound to this connection.
+      */
+      inline TCP::Port local_port() const
+      { return local_port_; }
+
+      /*
         The local Socket bound to this connection.
       */
       inline TCP::Socket local() const { return {host_.inet_.ip_addr(), local_port_}; }
@@ -1484,6 +1490,7 @@ namespace net {
 
       inline void reduce_ssthresh() {
         auto fs = flight_size();
+        printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
         
         if(limited_tx_)
           fs -= 2*(uint32_t)SMSS();
@@ -1738,8 +1745,7 @@ namespace net {
     std::deque<Connection_ptr> writeq;
 
     using PortMap = std::bitset<UINT16_MAX>;
-    //std::unique_ptr<PortMap> used_ports;
-    PortMap used_ports;
+    std::unique_ptr<PortMap> used_ports;
 
     /*
       Settings
@@ -1761,7 +1767,7 @@ namespace net {
     /*
       Returns a free port for outgoing connections.
     */
-    TCP::Port free_port();
+    TCP::Port next_free_port();
 
     /*
       Check if the port is in use either among "listeners" or "connections"
