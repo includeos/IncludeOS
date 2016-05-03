@@ -37,8 +37,8 @@ extern "C"
     __asm__ ("mov %eax, %cr4");
   }
   
-  __attribute__((noinline))
-  static char stack_smasher(const char* src) {
+  static char __attribute__((noinline))
+  stack_smasher(const char* src) {
     char bullshit[16];
     
     for (int i = -100; i < 100; i++)
@@ -51,7 +51,7 @@ extern "C"
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
-    stack_smasher("1234567890 12345 hello world! test -.-");
+    //stack_smasher("1234567890 12345 hello world! test -.-");
     
     // Initialize stack-unwinder, call global constructors etc.
     _init_c_runtime();
