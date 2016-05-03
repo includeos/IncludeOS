@@ -28,6 +28,37 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 using namespace fs;
 using namespace std;
 
+////// DISK //////
+// instantiate disk with filesystem
+auto disk = fs::new_shared_memdisk();
+
+void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
+  auto& filesys = disk->fs();
+  int indent = (depth * 3);
+  for (auto entry : entries) {
+
+    // Print directories
+    if (entry.is_dir()) {
+      // Normal dirs
+      if (entry.name() != "."  and entry.name() != "..") {
+        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
+        recursive_fs_dump(*filesys.ls(entry).entries, depth + 1 );
+      } else {
+        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
+      }
+
+    }else {
+      // Print files / symlinks etc.
+      //printf(" %*s  \n", indent, "|");
+      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
+    }
+  }
+  printf(" %*s \n", indent, " ");
+  //printf(" %*s \n", indent, "o");
+
+}
+
+
 void Service::start() {
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
@@ -39,19 +70,24 @@ void Service::start() {
                         { 10,0,0,1 },       // Gateway
                         { 8,8,8,8 } );      // DNS
 
-  ////// DISK //////
-  // instantiate disk with filesystem
-  auto disk = fs::new_shared_memdisk();
 
   // mount the main partition in the Master Boot Record
-  disk->mount([disk](fs::error_t err) {
+  disk->mount([](fs::error_t err) {
 
       if (err)  panic("Could not mount filesystem\n");
 
+      auto vec = *disk->fs().ls("/").entries;
+
+
+      printf("------------------------------------ \n");
+      printf(" Memdisk contents \n");
+      printf("------------------------------------ \n");
+      recursive_fs_dump(vec);
+      printf("------------------------------------ \n");
 
       http::Router routes;
 
-      routes.on_get("/"s, [disk](const auto&, auto& res){
+      routes.on_get("/"s, [](const auto&, auto& res){
           disk->fs().readFile("/index.html", [&res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
                 res.set_status_code(http::Not_Found);
