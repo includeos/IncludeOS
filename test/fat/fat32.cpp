@@ -54,9 +54,9 @@ void Service::start()
     auto list = fs.ls("/");
     CHECKSERT(!list.error, "List root directory");
 
-    CHECKSERT(list.entries.size() == 2, "Exactly two ents in root dir");
+    CHECKSERT(list.entries->size() == 2, "Exactly two ents in root dir");
 
-    auto& e = list.entries.at(0);
+    auto& e = list.entries->at(0);
     CHECKSERT(e.is_file(), "Ent is a file");
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
   });
@@ -84,7 +84,7 @@ void Service::start()
     printf("%s\n", internal_banana.c_str());
 
     // asynch file reading test
-    fs.read(ent, 0, ent.size,
+    fs.read(ent, 0, ent.size(),
     [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
     {
       CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");

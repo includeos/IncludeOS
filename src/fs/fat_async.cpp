@@ -210,7 +210,7 @@ namespace fs
       for (auto& ent : *dirents) {
         if (unlikely(ent.name() == filename)) {
           // read this file
-          read(ent, 0, ent.size, callback);
+          read(ent, 0, ent.size(), callback);
           return;
         }
       }

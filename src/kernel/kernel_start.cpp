@@ -51,7 +51,7 @@ extern "C"
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
-    //stack_smasher("1234567890 12345 hello world! test -.-");
+    stack_smasher("1234567890 12345 hello world! test -.-");
     
     // Initialize stack-unwinder, call global constructors etc.
     _init_c_runtime();
