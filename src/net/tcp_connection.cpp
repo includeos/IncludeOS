@@ -708,7 +708,7 @@ TCP::Seq Connection::generate_iss() {
 void Connection::set_state(State& state) {
   prev_state_ = state_;
   state_ = &state;
-  printf("<TCP::Connection::set_state> %s => %s \n",
+  debug("<TCP::Connection::set_state> %s => %s \n",
         prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
