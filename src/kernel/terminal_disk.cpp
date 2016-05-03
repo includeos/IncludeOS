@@ -81,18 +81,17 @@ void Terminal::add_disk_commands(Disk_ptr disk)
     std::string target = path.to_string();
     
     auto& fs = disk->fs();
-    auto vec = fs::new_shared_vector();
-    auto err = fs.ls(target, vec);
-    if (!err)
+    auto list = fs.ls(target);
+    if (!list.error)
     {
       this->write("%s \t%s \t%s \t%s\r\n", 
                   "Name", "Size", "Type", "Sector");
-      for (auto& ent : *vec)
+      for (auto& ent : *list.entries)
       {
         this->write("%s \t%llu \t%s \t%llu\r\n", 
-                    ent.name().c_str(), ent.size, ent.type_string().c_str(), ent.block);
+          ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
       }
-      this->write("Total %u\r\n", vec->size());
+      this->write("Total %u\r\n", list.entries->size());
       return 0;
     }
     else
@@ -114,7 +113,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
         this->write("%s \t%s \t%s \t%s\r\n", 
                     "Name", "Size", "Type", "Sector");
         this->write("%s \t%llu \t%s \t%llu\r\n", 
-                    ent.name().c_str(), ent.size, ent.type_string().c_str(), ent.block);
+                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
         return 0;
       }
       else
@@ -145,7 +144,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
         return 1;
       }
       // read file contents
-      auto buf = fs.read(ent, 0, ent.size);
+      auto buf = fs.read(ent, 0, ent.size());
       if (!buf.buffer)
       {
         this->write("cat: '%s': I/O error\r\n", file.c_str());

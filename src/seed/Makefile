@@ -16,7 +16,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -msse3
+CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
@@ -47,7 +47,7 @@ all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1
 LDOPTS = -nostdlib -melf_i386 -N --script=$(INSTALL)/linker.ld
 
 # Objects
