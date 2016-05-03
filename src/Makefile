@@ -11,7 +11,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -fstack-protector -msse3
+CAPABS_COMMON = -mstackrealign -fstack-protector-strong -msse3
 
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 WARNS   = -Wall -Wextra #-pedantic
@@ -49,8 +49,8 @@ CPPOPTS = -target i686-elf
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES)
-CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
+CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
 
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 

@@ -16,13 +16,12 @@
 // limitations under the License.
 
 //#define DEBUG
-#include <hw/ioport.hpp>
 #include <kernel/os.hpp>
 #include <assert.h>
-#include <debug>
 
 extern "C"
 {
+  uintptr_t __stack_chk_guard = 23453;
   void _init_c_runtime();
     
   // enables Streaming SIMD Extensions
@@ -38,18 +37,15 @@ extern "C"
     __asm__ ("mov %eax, %cr4");
   }
   
-  void _start(void)
-  {    
-    __asm__ volatile ("cli");
-    
+  void _start(void) {
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
     // Initialize stack-unwinder, call global constructors etc.
     _init_c_runtime();
+    assert(__stack_chk_guard == 23453);
     
     // Initialize some OS functionality
     OS::start();
-
   }
 }
