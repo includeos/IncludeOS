@@ -71,11 +71,11 @@ void Service::start()
       // go through directory entries
       for (auto& e : *ents) {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-               e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+               e.type_string().c_str(), e.name().c_str(), e.size(), e.block);
         
         if (e.is_file()) {
           printf("*** Read file  %s\n", e.name().c_str());
-          disk->fs().read(e, 0, e.size,
+          disk->fs().read(e, 0, e.size(),
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
             if (err) {
               printf("Failed to read file %s!\n",
