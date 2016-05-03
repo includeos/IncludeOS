@@ -21,7 +21,7 @@
 
 extern "C"
 {
-  uintptr_t __stack_chk_guard = 23453;
+  uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
   void _init_c_runtime();
     
   // enables Streaming SIMD Extensions
