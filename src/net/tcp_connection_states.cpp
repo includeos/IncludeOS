@@ -436,8 +436,6 @@ void Connection::State::send_reset(Connection& tcp) {
   tcp.writeq_reset();
   auto packet = tcp.outgoing_packet();
   packet->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(RST);
-  // flush retransmission queue
-  tcp.rtx_flush();
   tcp.transmit(packet);
 }
 /////////////////////////////////////////////////////////////////////
@@ -589,7 +587,7 @@ size_t Connection::SynReceived::send(Connection&, WriteBuffer&) {
 
 size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.writeq.empty())
+  if(!tcp.writeq.remaining_requests())
     return tcp.send(buffer);
 
   return 0;
@@ -597,7 +595,7 @@ size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
 
 size_t Connection::CloseWait::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.writeq.empty())
+  if(!tcp.writeq.remaining_requests())
     return tcp.send(buffer);
 
   return 0;
@@ -898,7 +896,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
     tcb.IRS       = in->seq();
     tcb.SND.UNA   = in->ack();
 
-    tcp.rtx_ack(in->ack());
+    //tcp.rtx_ack(in->ack());
 
     // (our SYN has been ACKed)
     if(tcb.SND.UNA > tcb.ISS) {
@@ -1010,7 +1008,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
       tcb.SND.UNA = in->ack();
       if(tcp.rttm.active)
         tcp.rttm.stop();
-      tcp.rtx_ack(in->ack());
+      //tcp.rtx_ack(in->ack());
 
       // 7. proccess the segment text
       if(in->has_data()) {
@@ -1145,7 +1143,8 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
     if(in->ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
-      tcp.rtx_stop();
+      if(tcp.rtx_timer.active)
+        tcp.rtx_stop();
       tcp.start_time_wait_timeout();
     } else {
       tcp.set_state(Closing::instance());
@@ -1191,7 +1190,8 @@ State::Result Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) 
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
-    tcp.rtx_stop();
+    if(tcp.rtx_timer.active)
+      tcp.rtx_stop();
     tcp.start_time_wait_timeout();
   }
   return OK;
