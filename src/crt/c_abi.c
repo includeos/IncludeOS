@@ -35,7 +35,7 @@ __FILE* stdout;
 __FILE* stderr;
 
 // stack-protector guard
-extern uintptr_t __stack_chk_guard;
+uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
 void _init_c_runtime()
