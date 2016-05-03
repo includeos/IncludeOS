@@ -43,7 +43,7 @@ void Async::disk_transfer(
   [next, disk, ent, write_func, callback, CHUNK_SIZE] (size_t pos) {
     
     // number of write calls necessary
-    const size_t writes = ent.size / CHUNK_SIZE;
+    const size_t writes = ent.size() / CHUNK_SIZE;
     
     // done condition
     if (pos >= writes) {

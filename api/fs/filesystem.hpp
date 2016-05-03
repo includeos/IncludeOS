@@ -61,7 +61,7 @@ namespace fs {
         fname     {n},
         block     {blk},
         parent    {pr},
-        size      {sz},
+        size_     {sz},
         attrib    {attr},
         timestamp {0}
       {}
@@ -101,18 +101,22 @@ namespace fs {
         } //< switch (type)
       }
       
+      uint64_t size() const noexcept {
+        return size_;
+      }
+      
       Enttype     ftype;
       std::string fname;
       uint64_t    block;
       uint64_t    parent; //< Parent's block#
-      uint64_t    size;
+      uint64_t    size_;
       uint32_t    attrib;
       int64_t     timestamp;
     }; //< struct Dirent
     
     struct List {
-      error_t   error;
-      dirvector entries;
+      error_t  error;
+      dirvec_t entries;
     };
     
     /** Mount this filesystem with LBA at @base_sector */

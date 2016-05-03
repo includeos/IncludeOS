@@ -61,7 +61,7 @@ namespace fs
     for (auto& e : dirents)
     if (unlikely(e.name() == filename)) {
       // read this file
-      return read(e, 0, e.size);
+      return read(e, 0, e.size());
     }
     // entry not found
     return Buffer({ error_t::E_NOENT, filename }, buffer_t(), 0);
@@ -134,20 +134,20 @@ namespace fs
   
   FAT::List FAT::ls(const std::string& strpath)
   {
-    dirvector ents;
-    auto err = traverse(strpath, ents);
+    auto ents = std::make_shared<dirvector> ();
+    auto err = traverse(strpath, *ents);
     return { err, ents };
   }
   FAT::List FAT::ls(const Dirent& ent)
   {
-    dirvector ents;
+    auto ents = std::make_shared<dirvector> ();
     // verify ent is a directory
     if (!ent.is_valid() || !ent.is_dir())
       return { { error_t::E_NOTDIR, ent.name() }, ents };
     // convert cluster to sector
     uint32_t S = this->cl_to_sector(ent.block);
     // read result directory entries into ents
-    auto err = int_ls(S, ents);
+    auto err = int_ls(S, *ents);
     return { err, ents };
   }
   
