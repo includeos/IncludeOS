@@ -11,7 +11,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -msse3
+CAPABS_COMMON = -mstackrealign -fstack-protector -msse3
 
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 WARNS   = -Wall -Wextra #-pedantic
