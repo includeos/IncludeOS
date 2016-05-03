@@ -41,7 +41,7 @@ namespace fs
         }
         
         // parse entries in sector
-        bool done = int_dirent(sector, data.get(), dirents);
+        bool done = int_dirent(sector, data.get(), *dirents);
         if (done)
           // execute callback
           callback(no_error, dirents);
@@ -133,6 +133,22 @@ namespace fs
     traverse(pstk, 
     [on_ls] (error_t error, dirvec_t dirents) {
       on_ls(error, dirents);
+    });
+  }
+  void FAT::ls(const Dirent& ent, on_ls_func on_ls)
+  {
+    auto dirents = std::make_shared<dirvector> ();
+    // verify ent is a directory
+    if (!ent.is_valid() || !ent.is_dir()) {
+      on_ls( { error_t::E_NOTDIR, ent.name() }, dirents );
+      return;
+    }
+    // convert cluster to sector
+    uint32_t S = this->cl_to_sector(ent.block);
+    // read result directory entries into ents
+    int_ls(S, dirents,
+    [on_ls] (error_t err, dirvec_t entries) {
+      on_ls( err, entries );
     });
   }
   

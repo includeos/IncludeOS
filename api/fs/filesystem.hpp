@@ -109,13 +109,20 @@ namespace fs {
       uint32_t    attrib;
       int64_t     timestamp;
     }; //< struct Dirent
-  
+    
+    struct List {
+      error_t   error;
+      dirvector entries;
+    };
+    
     /** Mount this filesystem with LBA at @base_sector */
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
     
     /** @param path: Path in the mounted filesystem */
-    virtual void    ls(const std::string& path, on_ls_func) = 0;
-    virtual error_t ls(const std::string& path, dirvec_t e) = 0;
+    virtual void  ls(const std::string& path, on_ls_func) = 0;
+    virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
+    virtual List  ls(const std::string& path) = 0;
+    virtual List  ls(const Dirent&) = 0;
     
     /** Read an entire file into a buffer, then call on_read */
     virtual void   readFile(const std::string&, on_read_func) = 0;
