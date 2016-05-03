@@ -593,16 +593,24 @@ namespace net {
 
 
       /*
-        Write Queue
+        Write Queue containig WriteRequests from user.
+        Stores requests until they are fully acknowledged;
+        this will make it possible to retransmit 
       */
       struct WriteQueue {
 
         std::deque<WriteRequest> q;
         
+        /* Current element (index + 1) */
         uint32_t current;
 
         WriteQueue() : q(), current(0) {}
 
+        /*
+          Acknowledge n bytes from the write queue.
+          If a Request is fully acknowledged, release from queue
+          and "step back".
+        */
         void acknowledge(size_t bytes) {
           while(bytes and !q.empty()) 
           {
@@ -622,15 +630,29 @@ namespace net {
         size_t size() const
         { return q.size(); }
 
+        /*
+          If the queue has more data to send
+        */
         bool remaining_requests() const 
         { return !q.empty() and q.back().first.remaining; }
 
+        /*
+          The current buffer to write from.
+          Can be in the middle/back of the queue due to unacknowledged buffers in front.
+        */
         const WriteBuffer& nxt()
         { return q[current-1].first; }
 
+        /*
+          The oldest unacknowledged buffer. (Always in front)
+        */
         const WriteBuffer& una() 
         { return q.front().first; }
 
+        /*
+          Advances the queue forward.
+          If current buffer finishes; exec user callback and step to next.
+        */
         void advance(size_t bytes) {
           
           auto& buf = q[current-1].first;
@@ -642,12 +664,17 @@ namespace net {
           }
         }
 
+        /*
+          Add a request to the back of the queue.
+          If the queue was empty/finished, point current to the new request.
+        */
         void push_back(const WriteRequest& wr) {
           q.push_back(wr);
           if(current == q.size()-1)
             current++;
         }
-      };
+      }; // < TCP::Connection::WriteQueue
+
 
       /*
         Connection identifier
@@ -1195,11 +1222,6 @@ namespace net {
       } rtx_timer;
 
       /*
-        Bytes queued for transmission.
-      */
-      //size_t write_queue_total;
-
-      /*
         When time-wait timer was started.
       */
       uint64_t time_wait_started;
@@ -1491,27 +1513,49 @@ namespace net {
       */
       bool handle_ack(TCP::Packet_ptr);
 
+      /*
+        When a duplicate ACK is received.
+      */
       void on_dup_ack();
 
+      /*
+        Is it possible to send ONE segment.
+      */
       bool can_send_one();
 
+      /*
+        Is the usable window large enough, and is there data to send.
+      */
       bool can_send();
+
+      /*
+        Send as much as possible from write queue.
+      */
       void send_much();
 
+      /*
+        Fill a packet with data and give it a SEQ number.
+      */
       size_t fill_packet(Packet_ptr, const char*, size_t, Seq);
-      //void send_ack(TCP::Packet_ptr = nullptr);
 
       /// Congestion Control [RFC 5681] ///
 
+      // is fast recovery state
       bool fast_recovery = false;
+      
       // First partial ack seen
       bool reno_fpack_seen = false;
-
+      
+      // limited transmit [RFC 3042] active
       bool limited_tx_ = true;
 
+      // number of duplicate acks
       size_t dup_acks_ = 0;
+      
       Seq prev_highest_ack_ = 0;
       Seq highest_ack_ = 0;
+      
+      // number of non duplicate acks received
       size_t acks_rcvd_ = 0;
 
       inline void setup_congestion_control()
@@ -1549,6 +1593,7 @@ namespace net {
       inline void reno_deflate_cwnd(uint16_t n)
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
+      // TODO: Flight size goes from zero to max uint32 when limited tx
       inline void reduce_ssthresh() {
         auto fs = flight_size();
         printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
@@ -1579,9 +1624,8 @@ namespace net {
         printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
-      inline bool reno_full_ack(Seq ACK) {
-        return ACK - 1 > cb.recover;
-      }
+      inline bool reno_full_ack(Seq ACK)
+      { return ACK - 1 > cb.recover; }
 
       /*
         Generate a new ISS.
@@ -1612,9 +1656,8 @@ namespace net {
 
       /*
       */
-      inline TCP::Packet_ptr outgoing_packet() {
-        return create_outgoing_packet();
-      }
+      inline TCP::Packet_ptr outgoing_packet()
+      { return create_outgoing_packet(); }
 
 
       /// RETRANSMISSION ///
