@@ -28,6 +28,7 @@
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
 #include <bitset>
+#include <list>
 
 inline unsigned round_up(unsigned n, unsigned div) {
   assert(n);
@@ -297,6 +298,8 @@ namespace net {
 
       inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
 
+      inline TCP::Seq end() const { return seq() + data_length(); }
+
       // SETTERS
       inline TCP::Packet& set_src_port(TCP::Port p) {
         header().source_port = htons(p);
@@ -533,14 +536,15 @@ namespace net {
         buffer_t buffer;
         size_t remaining;
         size_t offset;
+        size_t acknowledged;
         bool push;
 
         WriteBuffer(buffer_t buf, size_t length, bool PSH, size_t offs = 0)
-          : buffer(buf), remaining(length-offs), offset(offs), push(PSH) {}
+          : buffer(buf), remaining(length-offs), offset(offs), acknowledged(0), push(PSH) {}
 
         inline size_t length() const { return remaining + offset; }
 
-        inline bool done() const { return remaining == 0; }
+        inline bool done() const { return acknowledged == length(); }
 
         inline uint8_t* begin() const { return buffer.get(); }
 
@@ -554,6 +558,13 @@ namespace net {
           remaining -= length;
           return length > 0;
         }
+
+        size_t acknowledge(size_t bytes) {
+          auto acked = std::min(bytes, length()-acknowledged);
+          acknowledged += acked;
+          return acked;
+        }
+
       }; // < Connection::WriteBuffer
 
       /*
@@ -579,6 +590,91 @@ namespace net {
       using WriteCallback = delegate<void(size_t)>;
 
       using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
+
+
+      /*
+        Write Queue containig WriteRequests from user.
+        Stores requests until they are fully acknowledged;
+        this will make it possible to retransmit 
+      */
+      struct WriteQueue {
+
+        std::deque<WriteRequest> q;
+        
+        /* Current element (index + 1) */
+        uint32_t current;
+
+        WriteQueue() : q(), current(0) {}
+
+        /*
+          Acknowledge n bytes from the write queue.
+          If a Request is fully acknowledged, release from queue
+          and "step back".
+        */
+        void acknowledge(size_t bytes) {
+          while(bytes and !q.empty()) 
+          {
+            auto& buf = q.front().first;
+            
+            bytes -= buf.acknowledge(bytes);
+            if(buf.done()) {
+              q.pop_front();
+              current--;
+            }
+          }
+        }
+
+        bool empty() const
+        { return q.empty(); }
+
+        size_t size() const
+        { return q.size(); }
+
+        /*
+          If the queue has more data to send
+        */
+        bool remaining_requests() const 
+        { return !q.empty() and q.back().first.remaining; }
+
+        /*
+          The current buffer to write from.
+          Can be in the middle/back of the queue due to unacknowledged buffers in front.
+        */
+        const WriteBuffer& nxt()
+        { return q[current-1].first; }
+
+        /*
+          The oldest unacknowledged buffer. (Always in front)
+        */
+        const WriteBuffer& una() 
+        { return q.front().first; }
+
+        /*
+          Advances the queue forward.
+          If current buffer finishes; exec user callback and step to next.
+        */
+        void advance(size_t bytes) {
+          
+          auto& buf = q[current-1].first;
+          buf.advance(bytes);
+
+          if(!buf.remaining) {
+            q[current-1].second(buf.offset);
+            current++;
+          }
+        }
+
+        /*
+          Add a request to the back of the queue.
+          If the queue was empty/finished, point current to the new request.
+        */
+        void push_back(const WriteRequest& wr) {
+          q.push_back(wr);
+          if(current == q.size()-1)
+            current++;
+        }
+      }; // < TCP::Connection::WriteQueue
+
 
       /*
         Connection identifier
@@ -834,6 +930,12 @@ namespace net {
         The hosting TCP instance.
       */
       inline const TCP& host() const { return host_; }
+
+      /*
+        The local Port bound to this connection.
+      */
+      inline TCP::Port local_port() const
+      { return local_port_; }
 
       /*
         The local Socket bound to this connection.
@@ -1106,28 +1208,18 @@ namespace net {
       /*
         Queue for write requests to process
       */
-      std::queue<WriteRequest> writeq;
+      WriteQueue writeq;
 
       /*
         State if connection is in TCP write queue or not.
       */
       bool queued_;
 
-      /*
-        Retransmission queue
-      */
-      std::deque<TCP::Packet_ptr> rtx_q;
-
       struct {
         hw::PIT::Timer_iterator iter;
         bool active = false;
         size_t i = 0;
       } rtx_timer;
-
-      /*
-        Bytes queued for transmission.
-      */
-      //size_t write_queue_total;
 
       /*
         When time-wait timer was started.
@@ -1327,7 +1419,7 @@ namespace net {
         Returns if the connection has a doable write job.
       */
       inline bool has_doable_job() {
-        return !writeq.empty() and usable_window() >= SMSS();
+        return writeq.remaining_requests() and usable_window() >= SMSS();
       }
 
       /*
@@ -1421,30 +1513,49 @@ namespace net {
       */
       bool handle_ack(TCP::Packet_ptr);
 
+      /*
+        When a duplicate ACK is received.
+      */
       void on_dup_ack();
 
+      /*
+        Is it possible to send ONE segment.
+      */
       bool can_send_one();
 
-      inline bool need_send()
-      { return rtx_q.empty(); }
-
+      /*
+        Is the usable window large enough, and is there data to send.
+      */
       bool can_send();
+
+      /*
+        Send as much as possible from write queue.
+      */
       void send_much();
 
-      size_t fill_packet(Packet_ptr, const char*, size_t);
-      //void send_ack(TCP::Packet_ptr = nullptr);
+      /*
+        Fill a packet with data and give it a SEQ number.
+      */
+      size_t fill_packet(Packet_ptr, const char*, size_t, Seq);
 
       /// Congestion Control [RFC 5681] ///
 
+      // is fast recovery state
       bool fast_recovery = false;
+      
       // First partial ack seen
       bool reno_fpack_seen = false;
-
+      
+      // limited transmit [RFC 3042] active
       bool limited_tx_ = true;
 
+      // number of duplicate acks
       size_t dup_acks_ = 0;
+      
       Seq prev_highest_ack_ = 0;
       Seq highest_ack_ = 0;
+      
+      // number of non duplicate acks received
       size_t acks_rcvd_ = 0;
 
       inline void setup_congestion_control()
@@ -1482,8 +1593,10 @@ namespace net {
       inline void reno_deflate_cwnd(uint16_t n)
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
+      // TODO: Flight size goes from zero to max uint32 when limited tx
       inline void reduce_ssthresh() {
         auto fs = flight_size();
+        printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
         
         if(limited_tx_)
           fs -= 2*(uint32_t)SMSS();
@@ -1511,9 +1624,8 @@ namespace net {
         printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
-      inline bool reno_full_ack(Seq ACK) {
-        return ACK - 1 > cb.recover;
-      }
+      inline bool reno_full_ack(Seq ACK)
+      { return ACK - 1 > cb.recover; }
 
       /*
         Generate a new ISS.
@@ -1544,9 +1656,8 @@ namespace net {
 
       /*
       */
-      inline TCP::Packet_ptr outgoing_packet() {
-        return create_outgoing_packet();
-      }
+      inline TCP::Packet_ptr outgoing_packet()
+      { return create_outgoing_packet(); }
 
 
       /// RETRANSMISSION ///
@@ -1583,11 +1694,6 @@ namespace net {
         Remove all packets acknowledge by ACK in retransmission queue
       */
       void rtx_ack(Seq ack);
-
-      /*
-        Flush the queue (transmit every packet in queue)
-      */
-      void rtx_flush();
 
       /*
         Delete retransmission queue
@@ -1737,10 +1843,7 @@ namespace net {
 
     std::deque<Connection_ptr> writeq;
 
-    using PortMap = std::bitset<UINT16_MAX>;
-    //std::unique_ptr<PortMap> used_ports;
-    PortMap used_ports;
-    PortMap available_ports;
+    std::vector<Port> used_ports;
 
     /*
       Settings
@@ -1762,7 +1865,7 @@ namespace net {
     /*
       Returns a free port for outgoing connections.
     */
-    TCP::Port free_port();
+    TCP::Port next_free_port();
 
     /*
       Check if the port is in use either among "listeners" or "connections"
