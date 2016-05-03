@@ -298,6 +298,8 @@ namespace net {
 
       inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
 
+      inline TCP::Seq end() const { return seq() + data_length(); }
+
       // SETTERS
       inline TCP::Packet& set_src_port(TCP::Port p) {
         header().source_port = htons(p);
@@ -595,11 +597,11 @@ namespace net {
       */
       struct WriteQueue {
 
-        std::list<WriteRequest> q;
+        std::deque<WriteRequest> q;
         
-        std::list<WriteRequest>::iterator current;
+        uint32_t current;
 
-        WriteQueue() : q(), current(q.end()) {}
+        WriteQueue() : q(), current(0) {}
 
         void acknowledge(size_t bytes) {
           while(bytes and !q.empty()) 
@@ -607,10 +609,9 @@ namespace net {
             auto& buf = q.front().first;
             
             bytes -= buf.acknowledge(bytes);
-            printf("<Connection::acknowledge> Buf offset=%u rem=%u ack=%u\n",
-              buf.offset, buf.remaining, buf.acknowledged);
             if(buf.done()) {
               q.pop_front();
+              current--;
             }
           }
         }
@@ -625,39 +626,26 @@ namespace net {
         { return !q.empty() and q.back().first.remaining; }
 
         const WriteBuffer& nxt()
-        { auto& buf = current->first;
-          printf("<Connection::current> Buf offset=%u rem=%u ack=%u\n",
-              buf.offset, buf.remaining, buf.acknowledged);
-          return current->first; }
+        { return q[current-1].first; }
 
         const WriteBuffer& una() 
         { return q.front().first; }
 
         void advance(size_t bytes) {
           
-          auto& buf = current->first;
-          
+          auto& buf = q[current-1].first;
           buf.advance(bytes);
-          printf("<Connection::advance> Buf offset=%u rem=%u ack=%u\n",
-              buf.offset, buf.remaining, buf.acknowledged);
-          
+
           if(!buf.remaining) {
-            current->second(buf.offset);
+            q[current-1].second(buf.offset);
             current++;
           }
         }
 
         void push_back(const WriteRequest& wr) {
-          printf("<Connection::WriteQueue::push_back> Adding WR \n");
-          auto& buf = current->first;
-          printf("<Connection::current> Buf offset=%u rem=%u ack=%u\n",
-              buf.offset, buf.remaining, buf.acknowledged);
-          bool update = (current == q.end());
           q.push_back(wr);
-          if(update) {
-            current = --q.end();
-            printf("<Connection::WriteQueue::push_back> Updated iter \n");
-          }         
+          if(current == q.size()-1)
+            current++;
         }
       };
 
@@ -1200,11 +1188,6 @@ namespace net {
       */
       bool queued_;
 
-      /*
-        Retransmission queue
-      */
-      std::deque<TCP::Packet_ptr> rtx_q;
-
       struct {
         hw::PIT::Timer_iterator iter;
         bool active = false;
@@ -1512,9 +1495,6 @@ namespace net {
 
       bool can_send_one();
 
-      inline bool need_send()
-      { return rtx_q.empty(); }
-
       bool can_send();
       void send_much();
 
@@ -1671,11 +1651,6 @@ namespace net {
         Remove all packets acknowledge by ACK in retransmission queue
       */
       void rtx_ack(Seq ack);
-
-      /*
-        Flush the queue (transmit every packet in queue)
-      */
-      void rtx_flush();
 
       /*
         Delete retransmission queue
