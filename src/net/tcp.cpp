@@ -48,7 +48,7 @@ TCP::TCP(IPStack& inet) :
 */
 TCP::Connection& TCP::bind(Port port) {
   // Already a listening socket.
-  if(port_in_use(port)) {
+  if(listeners_.find(port) != listeners_.end()) {
     throw TCPException{"Port is already taken."};
   }
   auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;

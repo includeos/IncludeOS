@@ -28,6 +28,7 @@
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
 #include <bitset>
+#include <list>
 
 inline unsigned round_up(unsigned n, unsigned div) {
   assert(n);
@@ -594,21 +595,22 @@ namespace net {
       */
       struct WriteQueue {
 
-        std::deque<WriteRequest> q;
+        std::list<WriteRequest> q;
         
-        std::deque<WriteRequest>::iterator current;
+        std::list<WriteRequest>::iterator current;
 
-        WriteQueue() : q(), current(q.begin()) {}
+        WriteQueue() : q(), current(q.end()) {}
 
         void acknowledge(size_t bytes) {
           while(bytes and !q.empty()) 
           {
-            auto& buf = q.front()->first;
+            auto& buf = q.front().first;
             
             bytes -= buf.acknowledge(bytes);
-            
+            printf("<Connection::acknowledge> Buf offset=%u rem=%u ack=%u\n",
+              buf.offset, buf.remaining, buf.acknowledged);
             if(buf.done()) {
-              buf.pop_front();
+              q.pop_front();
             }
           }
         }
@@ -620,24 +622,42 @@ namespace net {
         { return q.size(); }
 
         bool remaining_requests() const 
-        { return !q.empty() and q.back().remaining; }
+        { return !q.empty() and q.back().first.remaining; }
 
         const WriteBuffer& nxt()
-        { return current->first; }
+        { auto& buf = current->first;
+          printf("<Connection::current> Buf offset=%u rem=%u ack=%u\n",
+              buf.offset, buf.remaining, buf.acknowledged);
+          return current->first; }
 
         const WriteBuffer& una() 
-        { return q.front()->first; }
+        { return q.front().first; }
 
         void advance(size_t bytes) {
           
           auto& buf = current->first;
           
           buf.advance(bytes);
+          printf("<Connection::advance> Buf offset=%u rem=%u ack=%u\n",
+              buf.offset, buf.remaining, buf.acknowledged);
           
           if(!buf.remaining) {
             current->second(buf.offset);
             current++;
           }
+        }
+
+        void push_back(const WriteRequest& wr) {
+          printf("<Connection::WriteQueue::push_back> Adding WR \n");
+          auto& buf = current->first;
+          printf("<Connection::current> Buf offset=%u rem=%u ack=%u\n",
+              buf.offset, buf.remaining, buf.acknowledged);
+          bool update = (current == q.end());
+          q.push_back(wr);
+          if(update) {
+            current = --q.end();
+            printf("<Connection::WriteQueue::push_back> Updated iter \n");
+          }         
         }
       };
 
@@ -1394,7 +1414,7 @@ namespace net {
         Returns if the connection has a doable write job.
       */
       inline bool has_doable_job() {
-        return !writeq.remaining_requests() and usable_window() >= SMSS();
+        return writeq.remaining_requests() and usable_window() >= SMSS();
       }
 
       /*
@@ -1498,7 +1518,7 @@ namespace net {
       bool can_send();
       void send_much();
 
-      size_t fill_packet(Packet_ptr, const char*, size_t);
+      size_t fill_packet(Packet_ptr, const char*, size_t, Seq);
       //void send_ack(TCP::Packet_ptr = nullptr);
 
       /// Congestion Control [RFC 5681] ///
@@ -1805,7 +1825,7 @@ namespace net {
 
     std::deque<Connection_ptr> writeq;
 
-    std::vector<uint16_t> used_ports;
+    std::vector<Port> used_ports;
 
     /*
       Settings

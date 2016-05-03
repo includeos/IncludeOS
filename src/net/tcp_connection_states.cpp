@@ -589,7 +589,7 @@ size_t Connection::SynReceived::send(Connection&, WriteBuffer&) {
 
 size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.writeq.empty())
+  if(!tcp.writeq.remaining_requests())
     return tcp.send(buffer);
 
   return 0;
@@ -597,7 +597,7 @@ size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
 
 size_t Connection::CloseWait::send(Connection& tcp, WriteBuffer& buffer) {
   // if nothing in queue, try to write directly
-  if(tcp.writeq.empty())
+  if(!tcp.writeq.remaining_requests())
     return tcp.send(buffer);
 
   return 0;

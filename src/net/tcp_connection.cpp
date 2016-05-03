@@ -101,15 +101,14 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(WriteBuffer buffer, WriteCallback callback) {
   try {
-    state_->is_writeable();
+    // try to write
     auto written = state_->send(*this, buffer);
-    buffer.advance(written);
-
-    if(!buffer.remaining) {
-      callback(buffer.offset);
-    }
-    else {
-      writeq.emplace(buffer, callback);
+    // put request in line
+    writeq.push_back({buffer, callback});
+    // if data was written, advance
+    if(written) {
+      printf("<Connection::write> Wrote %u.\n", written);
+      writeq.advance(written);  
     }
   }
   catch(TCPException err) {
@@ -213,7 +212,7 @@ void Connection::make_flight_ready(Packet_ptr packet) {
 }*/
 
 void Connection::writeq_push() {
-  while(!writeq.remaining_requests()) {
+  while(writeq.remaining_requests()) {
     auto& buf = writeq.nxt();
     auto written = host_.send(shared_from_this(), (char*)buf.pos(), buf.remaining);
     writeq.advance(written);
@@ -370,11 +369,11 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rtx_start();
 }
 bool Connection::can_send_one() {
-  return send_window() >= SMSS() and !writeq.remaining_requests();
+  return send_window() >= SMSS() and writeq.remaining_requests();
 }
 
 bool Connection::can_send() {
-  return (usable_window() >= SMSS()) and !writeq.remaining_requests();
+  return (usable_window() >= SMSS()) and writeq.remaining_requests();
 }
 
 void Connection::send_much() {
@@ -435,6 +434,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
     size_t bytes_acked = in->ack() - cb.SND.UNA;
     cb.SND.UNA = in->ack();
 
+    writeq.acknowledge(bytes_acked);
     // ack everything in rtx queue
     rtx_ack(in->ack());
 
@@ -538,7 +538,7 @@ void Connection::on_dup_ack() {
 
     if(limited_tx_) {
       // try to send one segment
-      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.remaining_requests()) {
+      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.remaining_requests()) {
         limited_tx();
       }  
     }
@@ -633,7 +633,7 @@ void Connection::rtx_start() {
   [this, i, rto]
   {
     rtx_timer.active = false;
-    debug("<TCP::Connection::RTO@timeout> %i Timed out (%f). rt_q: %u, i: %u rt_i: %u\n",
+    printf("<TCP::Connection::RTO@timeout> %i Timed out (%f). rt_q: %u, i: %u rt_i: %u\n",
       local_port_, rto, rtx_q.size(), i, rtx_timer.i);
     rtx_timeout();
   });
