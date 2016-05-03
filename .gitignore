@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 Acorn
 *.img
+*.dmg
+*.fat
 *.o
 *.d
-=======
-*.img
-*.dmg
-*.o
->>>>>>> 3b7ab6962ce9d04717721193bbbde68603f1bb37

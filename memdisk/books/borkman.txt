@@ -1,0 +1,5760 @@
+The Project Gutenberg eBook, John Gabriel Borkman, by Henrik Ibsen,
+Translated by William Archer
+
+
+This eBook is for the use of anyone anywhere at no cost and with
+almost no restrictions whatsoever.  You may copy it, give it away or
+re-use it under the terms of the Project Gutenberg License included
+with this eBook or online at www.gutenberg.org
+
+
+
+
+
+Title: John Gabriel Borkman
+
+
+Author: Henrik Ibsen
+
+
+
+Release Date: July 8, 2006  [eBook #18792]
+
+Language: English
+
+Character set encoding: ISO-646-US (US-ASCII)
+
+
+***START OF THE PROJECT GUTENBERG EBOOK JOHN GABRIEL BORKMAN***
+
+
+E-text prepared by Douglas Levy
+
+
+
+The Collected Works of Henrik Ibsen, Volume XI
+
+JOHN GABRIEL BORKMAN.
+
+by
+
+HENRIK IBSEN
+
+Translation and Introduction by William Archer.
+
+
+
+
+
+
+
+INTRODUCTION.*
+
+
+The anecdotic history of _John Gabriel Borkman_ is even scantier than
+that of _Little Eyolf_.  It is true that two mentions of it occur in
+Ibsen's letters, but they throw no light whatever upon its spiritual
+antecedents.  Writing to George Brandes from Christiania, on April
+24, 1896, Ibsen says: "In your last letter you make the suggestion
+that I should visit London.  If I knew enough English, I might
+perhaps go.  But as I unfortunately do not, I must give up the idea
+altogether.  Besides, I am engaged in preparing for a big new work,
+and I do not wish to put off the writing of it longer than necessary.
+It might so easily happen that a roof-tile fell on my head before I
+had 'found time to make the last verse.'  And what then?"  On October
+3 of the same year, writing to the same correspondent, he again
+alludes to his work as "a new long play, which must be completed as
+soon as possible."  It was, as a matter of fact, completed with very
+little delay, for it appeared in Copenhagen on December 15, 1896.
+
+The irresponsible gossip of the time made out that Bjornson
+discerned in the play some personal allusions to himself; but this
+Bjornson emphatically denied.  I am not aware that any attempt has
+been made to identify the original of the various characters.  It need
+scarcely be pointed out that in the sisters Gunhild and Ella we have
+the pair of women, one strong and masterful, the other tender and
+devoted, who run through so many of Ibsen's plays, from _The Feast at
+Solhoug_ onwards--nay, even from _Catalina_.  In my Introduction to
+_The Lady from the Sea_ (p. xxii) it is pointed out that Ibsen had the
+character of Foldal clearly in his mind when, in March 1880, he made
+the first draft of that play.  The character there appears as: "The
+old married clerk.  Has written a play in his youth which was only
+once acted.  Is for ever touching it up, and lives in the illusion
+that it will be published and will make a great success.  Takes no
+steps, however, to bring this about.  Nevertheless accounts himself
+one of the 'literary' class.  His wife and children believe blindly
+in the play."  By the time Foldal actually came to life, the faith
+of his wife and children had sadly dwindled away.
+
+There was scarcely a theatre in Scandinavia or Finland at which
+_John Gabriel Borkman_ was not acted in the course of January 1897.
+Helsingors led the way with performances both at the Swedish and the
+Finnish Theatres on January 10.  Christiania and Stockholm followed
+on January 25, Copenhagen on January 31; and meanwhile the piece had
+been presented at many provincial theatres as well.  In Christiania,
+Borkman, Gunhild, and Ella were played by Garmann, Fru Gundersen,
+and Froken Reimers respectively; in Copenhagen, by Emil Pousen, Fru
+Eckhardt, and Fru Hennings.  In the course of 1897 it spread all over
+Germany, beginning with Frankfort on Main, where, oddly enough,
+it was somewhat maltreated by the Censorship.  In London, an
+organization calling itself the New Century Theatre presented _John
+Gabriel Borkman_ at the Strand Theatre on the afternoon of May 3,
+1897, with Mr. W. H. Vernon as Borkman, Miss Genevieve Ward as
+Gunhild, Miss Elizabeth Robins as Ella Rentheim, Mr. Martin Harvey
+as Erhart, Mr. James Welch as Foldal, and Mrs. Beerbohm Tree as Mrs.
+Wilton.  The first performance in America was given by the Criterion
+Independent Theatre of New York on November 18, 1897, Mr. E. J. Henley
+playing Borkman, Mr. John Blair Erhart, Miss Maude Banks Gunhild,
+and Miss Ann Warrington Ella.  For some reason, which I can only
+conjecture to be the weakness of the the third act, the play seems
+nowhere to have taken a very firm hold on the stage.
+
+Dr. Brahm has drawn attention to the great similarity between the
+theme of _John Gabriel Borkman_ and that of _Pillars of Society_.
+"In both," he says, "we have a business man of great ability who is
+guilty of a crime; in both this man is placed between two sisters;
+and in both he renounces a marriage of inclination for the sake of
+a marriage that shall further his business interests."  The likeness
+is undeniable; and yet how utterly unlike are the two plays! and how
+immeasurably superior the later one!  It may seem, on a superficial
+view, that in _John Gabriel Borkman_ Ibsen has returned to prose and
+the common earth after his excursion into poetry and the possibly
+supernatural, if I may so call it, in _The Master Builder_ and
+_Little Eyolf_.  But this is a very superficial view indeed.  We
+have only to compare the whole invention of _John Gabriel Borkman_
+with the invention of _Pillars of Society_, to realise the difference
+between the poetry and the prose of drama.  The quality of imagination
+which conceived the story of the House of Bernick is utterly unlike
+that which conceived the tragedy of the House of Borkman.  The
+difference is not greater between (say) _The Merchant of Venice_
+and _King Lear_.
+
+The technical feat which Ibsen here achieves of carrying through
+without a single break the whole action of a four-act play has been
+much commented on and admired.  The imaginary time of the drama is
+actually shorter than the real time of representation, since the poet
+does not even leave intervals for the changing of the scenes.  This
+feat, however, is more curious than important.  Nothing particular
+is gained by such a literal observance of the unity of time.  For
+the rest, we feel definitely in _John Gabriel Borkman_ what we
+already felt vaguely in _Little Eyolf_--that the poet's technical
+staying-power is beginning to fail him.  We feel that the initial
+design was larger and more detailed than the finished work.  If the
+last acts of _The Wild Duck_ and _Hedda Gabler_ be compared with the
+last acts of _Little Eyolf_ and _Borkman_, it will be seen that in
+the earlier plays it relaxes towards the close, to make room for pure
+imagination and lyric beauty.  The actual drama is over long before
+the curtain falls on either play, and in the one case we have Rita
+and Allmers, in the other Ella and Borkman, looking back over their
+shattered lives and playing chorus to their own tragedy.  For my
+part, I set the highest value on these choral odes, these mournful
+antiphones, in which the poet definitely triumphs over the mere
+playwright.  They seem to me noble and beautiful in themselves, and
+as truly artistic, if not as theatrical, as any abrupter catastrophe
+could be.  But I am not quite sure that they are exactly the
+conclusions the poet originally projected, and still less am I
+satisfied that they are reached by precisely the paths which he at
+first designed to pursue.
+
+The traces of a change of scheme in _John Gabriel Borkman_ seem to me
+almost unmistakable.  The first two acts laid the foundation for a
+larger and more complex superstructure than is ultimately erected.
+Ibsen seems to have designed that Hinkel, the man who "betrayed"
+Borkman in the past, should play some efficient part in the
+alienation of Erhart from his family and home.  Otherwise, why this
+insistence on a "party" at the Hinkels', which is apparently to serve
+as a sort of "send-off" for Erhart and Mrs. Wilton?  It appears in
+the third act that the "party" was imaginary.  "Erhart and I were
+the whole party," says Mrs. Wilton, "and little Frida, of course."
+We might, then, suppose it to have been a mere blind to enable Erhart
+to escape from home; but, in the first place, as Erhart does not live
+at home, there is no need for any such pretext; in the second place,
+it appears that the trio do actually go to the Hinkels' house (since
+Mrs. Borkman's servant finds them there), and do actually make it their
+starting-point.  Erhart comes and goes with the utmost freedom in Mrs.
+Wilton's own house; what possible reason can they have for not setting
+out from there?  No reason is shown or hinted.  We cannot even imagine
+that the Hinkels have been instrumental in bringing Erhart and Mrs.
+Wilton together; it is expressly stated that Erhart made her
+acquaintance and saw a great deal of her in town, before she moved out
+to the country.  The whole conception of the party at the Hinkels' is,
+as it stands, mysterious and a little cumbersome.  We are forced to
+conclude, I think, that something more was at one time intended to
+come of it, and that, when the poet abandoned the idea, he did not
+think it worth while to remove the scaffolding.  To this change of
+plan, too, we may possibly trace what I take to be the one serious
+flaw in the the play--the comparative weakness of the second half of
+the third act.  The scene of Erhart's rebellion against the claims
+of the mother, aunt, and father strikes one as the symmetrical
+working out of a problem rather than a passage of living drama.
+
+All this means, of course, that there is a certain looseness of fibre
+in _John Gabriel Borkman_ which we do not find in the best of Ibsen's
+earlier works.  But in point of intellectual power and poetic beauty
+it yields to none of its predecessors.  The conception of the three
+leading figures is one of the great things of literature; the second
+act, with the exquisite humour of the Foldal scene, and the dramatic
+intensity of the encounter between Borkman and Ella, is perhaps the
+finest single act Ibsen ever wrote, in prose at all events; and the
+last scene is a thing of rare and exalted beauty.  One could wish
+that the poet's last words to us had been those haunting lines with
+which Gunhild and Ella join hands over Borkman's body:
+
+     We twin sisters--over him we both have loved.
+     We two shadows--over the dead man.
+
+Among many verbal difficulties which this play presents, the greatest,
+perhaps, has been to find an equivalent for the word "opreisning,"
+which occurs again and again in the first and second acts.  No one
+English word that I could discover would fit in all the different
+contexts; so I have had to employ three: "redemption," "restoration,"
+and in one place "rehabilitation."  The reader may bear in mind that
+these three terms represent one idea in the original.
+
+Borkman in Act II. uses a very odd expression--"overskurkens moral,"
+which I have rendered "the morals of the higher rascality."  I cannot
+but suspect (though for this I have no authority) that in the word
+"overskurk," which might be represented in German by "Ueberschurke,"
+Borkman is parodying the expression "Uebermensch," of which so much
+has been heard of late.  When I once suggested this to Ibsen, he
+neither affirmed nor denied it.  I understood him to say, however,
+that in speaking of "overskurken" he had a particular man in view.
+Somewhat pusillanimously, perhaps, I pursued my inquiries no further.
+
+*Copyright, 1907, by Charles Scribner's Sons.
+
+
+
+
+JOHN GABRIEL BORKMAN (1896)
+
+
+PERSONS.
+
+JOHN GABRIEL BORKMAN, formerly Managing Director of a Bank.
+MRS. GUNHILD BORKMAN, his wife.
+ERHART BORKMAN, their son, a student.
+MISS ELLA RENTHEIM, Mrs. Borkman's twin sister.
+MRS. FANNY WILTON.
+VILHELM FOLDAL, subordinate clerk in a Government office.
+FRIDA FOLDAL, his daughter.
+MRS. BORKMAN'S MAID.
+
+
+    The action passes one winter evening, at the Manorhouse of
+     the Rentheim family, in the neighbourhood of Christiania.
+
+
+
+
+JOHN GABRIEL BORKMAN
+
+PLAY IN FOUR ACTS
+
+
+
+ACT FIRST
+
+
+MRS. BORKMAN's drawing-room, furnished with old-fashioned, faded
+    splendour.  At the back, an open sliding-door leads into a
+    garden-room, with windows and a glass door.  Through it a view
+    over the garden; twilight with driving snow.  On the right,
+    a door leading from the hall.  Further forward, a large
+    old-fashioned iron stove, with the fire lighted.  On the left,
+    towards the back, a single smaller door.  In front, on the
+    same side, a window, covered with thick curtains.  Between
+    the window and the door a horsehair sofa, with a table in
+    front of it covered with a cloth.  On the table, a lighted
+    lamp with a shade.  Beside the stove a high-backed armchair.
+
+MRS. GUNHILD BORKMAN sits on the sofa, crocheting.  She is an
+    elderly lady, of cold, distinguished appearance, with stiff
+    carriage and immobile features.  Her abundant hair is very
+    grey.  Delicate transparent hands.  Dressed in a gown of
+    heavy dark silk, which has originally been handsome, but
+    is now somewhat worn and shabby.  A woollen shawl over her
+    shoulders.
+
+She sits for a time erect and immovable at her crochet.  Then the
+    bells of a passing sledge are heard.
+
+
+MRS. BORKMAN.
+  [Listens; her eyes sparkle with gladness and she involuntarily
+whispers].  Erhart!  At last!
+
+    [She rises and draws the curtain a little aside to look out.
+        Appears disappointed, and sits down to her work again, on
+        the sofa.  Presently THE MAID enters from the hall with a
+        visiting card on a small tray.
+
+MRS. BORKMAN.
+  [Quickly.]  Has Mr. Erhart come after all?
+
+THE MAID.
+  No, ma'am.  But there's a lady----
+
+MRS. BORKMAN.
+  [Laying aside her crochet.]  Oh, Mrs. Wilton, I suppose----
+
+THE MAID.
+  [Approaching.]  No, it's a strange lady----
+
+MRS. BORKMAN.
+  [Taking the card.]  Let me see---- [Reads it; rises hastily and
+looks intently at the girl.]  Are you sure this is for me?
+
+THE MAID.
+  Yes, I understand it was for you, ma'am.
+
+MRS. BORKMAN.
+  Did she say she wanted to see Mrs. Borkman?
+
+THE MAID.
+  Yes, she did.
+
+MRS. BORKMAN.
+  [Shortly, resolutely.]  Good.  Then say I am at home.
+
+    [THE MAID opens the door for the strange lady and goes out.
+        MISS ELLA RENTHEIM enters.  She resembles her sister; but
+        her face has rather a suffering than a hard expression.
+        It still shows signs of great beauty, combined with strong
+        character.  She has a great deal of hair, which is drawn
+        back from the forehead in natural ripples, and is snow-white.
+        She is dressed in black velvet, with a hat and a fur-lined
+        cloak of the same material.
+
+    [The two sisters stand silent for a time, and look searchingly
+        at each other.  Each is evidently waiting for the other to
+        speak first.
+
+ELLA RENTHEIM.
+  [Who has remained near the door.]  You are surprised to see me,
+Gunhild.
+
+MRS. BORKMAN.
+  [Standing erect and immovable between the sofa and the table,
+resting her finger-tips upon the cloth.]  Have you not made a
+mistake?  The bailiff lives in the side wing, you know.
+
+ELLA RENTHEIM.
+  It is not the bailiff I want to see to-day.
+
+MRS. BORKMAN.
+  Is it me you want, then?
+
+ELLA RENTHEIM.
+  Yes.  I have a few words to say to you.
+
+MRS. BORKMAN.
+  [Coming forward into the middle of the room.]  Well--then
+sit down.
+
+ELLA RENTHEIM.
+  Thank you.  I can quite well stand for the present.
+
+MRS. BORKMAN.
+  Just as you please.  But at least loosen your cloak.
+
+ELLA RENTHEIM.
+  [Unbuttoning her cloak.]  Yes, it is very warm here.
+
+MRS. BORKMAN.
+  I am always cold.
+
+ELLA RENTHEIM.
+  [Stands looking at her for a time with her arms resting on the
+back of the armchair.]  Well, Gunhild, it is nearly eight years
+now since we saw each other last.
+
+MRS. BORKMAN.
+  [Coldly.]  Since last we spoke to each other at any rate.
+
+ELLA RENTHEIM.
+  True, since we spoke to each other.  I daresay you have seen
+me now and again--when I came on my yearly visit to the bailiff.
+
+MRS. BORKMAN.
+  Once or twice, I have.
+
+ELLA RENTHEIM.
+  I have caught one or two glimpses of you, too--there, at the
+window.
+
+MRS. BORKMAN.
+  You must have seen me through the curtains then.  You have good
+eyes.  [Harshly and cuttingly.]  But the last time we spoke to each
+other--it was here in this room----
+
+ELLA RENTHEIM.
+  [Trying to stop her.]  Yes, yes; I know, Gunhild!
+
+MRS. BORKMAN.
+  --the week before he--before he was let out.
+
+ELLA RENTHEIM.
+  [Moving towards the back.]  O, don't speak about that.
+
+MRS. BORKMAN.
+   [Firmly, but in a low voice.]  It was the week before he--was
+set at liberty.
+
+ELLA RENTHEIM.
+  [Coming down.]  Oh yes, yes, yes!  I shall never forget that
+time!  But it is too terrible to think of!  Only to recall it
+for the moment--oh!
+
+MRS. BORKMAN.
+  [Gloomily.]  And yet one's thoughts can never get away from it.
+[Vehemently; clenching her hands together.]  No, I can't understand
+how such a thing--how anything so horrible can come upon one single
+family!  And then--that it should be our family!  So old a family
+as ours!  Think of its choosing us out!
+
+ELLA RENTHEIM.
+  Oh, Gunhild--there were many, many families besides ours that
+that blow fell upon.
+
+MRS. BORKMAN.
+  Oh yes; but those others don't trouble me very much.  For in
+their case it was only a matter of a little money--or some papers.
+But for us----!  For me!  And then for Erhart!  My little boy--as
+he then was!  [In rising excitement.]  The shame that fell upon
+us two innocent ones!  The dishonour!  The hateful, terrible
+dishonour!  And then the utter ruin too!
+
+ELLA RENTHEIM.
+  [Cautiously.]  Tell me, Gunhild, how does he bear it?
+
+MRS. BORKMAN.
+  Erhart, do you mean?
+
+ELLA RENTHEIM.
+  No--he himself.  How does he bear it?
+
+MRS. BORKMAN.
+  [Scornfully.]  Do you think I ever ask about that?
+
+ELLA RENTHEIM.
+  Ask?  Surely you do not require to ask----
+
+MRS. BORKMAN.
+  [Looks at her in surprise.]  You don't suppose I ever have
+anything to do with him?  That I ever meet him?  That I see
+anything of him?
+
+ELLA RENTHEIM.
+  Not even that!
+
+MRS. BORKMAN.
+  [As before.]  The man was in gaol, in gaol for five years!
+[Covers her face with her hands.]  Oh, the crushing shame of it!
+[With increased vehemence.]  And then to think of all that the
+name of John Gabriel Borkman used to mean!  No, no, no--I can
+never see him again!  Never!
+
+ELLA RENTHEIM.
+  [Looks at her for a while.]  You have a hard heart, Gunhild.
+
+MRS. BORKMAN.
+  Towards him, yes.
+
+ELLA RENTHEIM.
+  After all, he is your husband.
+
+MRS. BORKMAN.
+  Did he not say in court that it was I who began his ruin?  That
+I spent money so recklessly?
+
+ELLA RENTHEIM.
+  [Tentatively.]  But is there not some truth in that?
+
+MRS. BORKMAN.
+  Why, it was he himself that made me do it!  He insisted on our
+living in such an absurdly lavish style----
+
+ELLA RENTHEIM.
+  Yes, I know.  But that is just where you should have restrained
+him; and apparently you didn't.
+
+MRS. BORKMAN.
+  How was I to know that it was not his own money he gave me to
+squander?  And that he himself used to squander, too--ten times
+more than I did!
+
+ELLA RENTHEIM.
+  [Quietly.]  Well, I daresay his position forced him to do that--
+to some extent at any rate.
+
+MRS. BORKMAN.
+  [Scornfully.]  Yes, it was always the same story--we were to
+"cut a figure."  And he did "cut a figure" to some purpose!  He
+used to drive about with a four-in-hand as if he were a king.
+And he had people bowing and scraping to him just as to a king.
+[With a laugh.]  And they always called him by his Christian
+names--all the country over--as if he had been the king himself.
+"John Gabriel," "John Gabriel," "John Gabriel."  Every one knew
+what a great man "John Gabriel" was!
+
+ELLA RENTHEIM.
+  [Warmly and emphatically.]  He was a great man then.
+
+MRS. BORKMAN.
+  Yes, to all appearance.  But he never breathed a single word to
+me as to his real position--never gave a hint as to where he got
+his means from.
+
+ELLA RENTHEIM.
+  No, no; and other people did not dream of it either.
+
+MRS. BORKMAN.
+  I don't care about the other people.  But it was his duty to
+tell me the truth.  And that he never did!  He kept on lying to
+me--lying abominably----
+
+ELLA RENTHEIM.
+  [Interrupting.]  Surely not, Gunhild.  He kept things back
+perhaps, but I am sure he did not lie.
+
+MRS. BORKMAN.
+  Well, well; call it what you please; it makes no difference.
+And then it all fell to pieces--the whole thing.
+
+ELLA RENTHEIM.
+  [To herself.]  Yes, everything fell to pieces--for him--and
+for others.
+
+MRS. BORKMAN.
+  [Drawing herself up menacingly.]  But I tell you this, Ella,
+I do not give in yet!  I shall redeem myself yet--you may make
+up your mind to that!
+
+ELLA RENTHEIM.
+  [Eagerly.]  Redeem yourself!  What do you mean by that?
+
+MRS. BORKMAN.
+  Redeem my name, and honour, and fortune!  Redeem my ruined life--
+that is what I mean!  I have some one in reserve, let me tell you--
+one who will wash away every stain that he has left.
+
+ELLA RENTHEIM.
+  Gunhild!  Gunhild!
+
+MRS. BORKMAN.
+  [With rising excitement.]  There is an avenger living, I tell
+you!  One who will make up to me for all his father's sins!
+
+ELLA RENTHEIM.
+  Erhart you mean.
+
+MRS. BORKMAN.
+  Yes, Erhart, my own boy!  He will redeem the family, the house,
+the name.  All that can be redeemed.--And perhaps more besides.
+
+ELLA RENTHEIM.
+  And how do you think that is to be done?
+
+MRS. BORKMAN.
+  It must be done as best it can; I don't know how.  But I know
+that it must and shall be done.  [Looks searchingly at her.]  Come
+now, Ella; isn't that really what you have had in mind too, ever
+since he was a child?
+
+ELLA RENTHEIM.
+  No, I can't exactly say that.
+
+MRS. BORKMAN.
+  No?  Then why did you take charge of him when the storm broke
+upon--upon this house?
+
+ELLA RENTHEIM.
+  You could not look after him yourself at that time, Gunhild.
+
+MRS. BORKMAN.
+  No, no, I could not.  And his father--he had a valid enough
+excuse--while he was there--in safe keeping----
+
+ELLA RENTHEIM.
+  [Indignant.]  Oh, how can you say such things!--You!
+
+MRS. BORKMAN.
+  [With a venomous expression.]  And how could you make up your
+mind to take charge of the child of a--a John Gabriel!  Just as
+if he had been your own?  To take the child away from me--home
+with you--and keep him there year after year, until the boy was
+nearly grown up.  [Looking suspiciously at her.]  What was your
+real reason, Ella?  Why did you keep him with you?
+
+ELLA RENTHEIM.
+  I came to love him so dearly----
+
+MRS. BORKMAN.
+  More than I--his mother?
+
+ELLA RENTHEIM.
+  [Evasively.]  I don't know about that.  And then, you know,
+Erhart was rather delicate as a child----
+
+MRS. BORKMAN.
+  Erhart--delicate!
+
+ELLA RENTHEIM.
+  Yes, I thought so--at that time at any rate.  And you know the
+air of the west coast is so much milder than here.
+
+MRS. BORKMAN.
+  [Smiling bitterly.]  H'm--is it indeed?  [Breaking off.]  Yes,
+it is true you have done a great deal for Erhart.  [With a change
+of tone.]  Well, of course, you could afford it.  [Smiling.]  You
+were so lucky, Ella; you managed to save all your money.
+
+ELLA RENTHEIM.
+  [Hurt.]  I did not manage anything about it, I assure you.  I
+had no idea--until long, long afterwards--that the securities
+belonging to me--that they had been left untouched.
+
+MRS. BORKMAN.
+  Well, well; I don't understand anything about these things!  I
+only say you were lucky.  [Looking inquiringly at her.]  But when
+you, of your own accord, undertook to educate Erhart for me--what
+was your motive in that?
+
+ELLA RENTHEIM.
+  [Looking at her.]  My motive?
+
+MRS. BORKMAN.
+  Yes, some motive you must have had.  What did you want to do
+with him?  To make of him, I mean?
+
+ELLA RENTHEIM.
+  [Slowly.]  I wanted to smooth the way for Erhart to happiness
+in life.
+
+MRS. BORKMAN.
+  [Contemptuously.]  Pooh--people situated as we are have something
+else than happiness to think of.
+
+ELLA RENTHEIM.
+  What, then?
+
+MRS. BORKMAN.
+  [Looking steadily and earnestly at her.]  Erhart has in the first
+place to make so brilliant a position for himself, that no trace
+shall be left of the shadow his father has cast upon my name--and
+my son's.
+
+ELLA RENTHEIM.
+  [Searchingly.]  Tell me, Gunhild, is this what Erhart himself
+demands of his life?
+
+MRS. BORKMAN.
+  [Slightly taken aback.]  Yes, I should hope so!
+
+ELLA RENTHEIM.
+  Is it not rather what you demand of him?
+
+MRS. BORKMAN.
+  [Curtly.]  Erhart and I always make the same demands upon
+ourselves.
+
+ELLA RENTHEIM.
+  [Sadly and slowly.]  You are so very certain of your boy, then,
+Gunhild?
+
+MRS. BORKMAN.
+  [With veiled triumph.]  Yes, that I am--thank Heaven.  You may
+be sure of that!
+
+ELLA RENTHEIM.
+  Then I should think in reality you must be happy after all; in
+spite of all the rest.
+
+MRS. BORKMAN.
+  So I am--so far as that goes.  But then, every moment, all the
+rest comes rushing in upon me like a storm.
+
+ELLA RENTHEIM.
+  [With a change of tone.]  Tell me--you may as well tell me at
+once--for that is really what I have come for----
+
+MRS. BORKMAN.
+  What?
+
+ELLA RENTHEIM.
+  Something I felt I must talk to you about.--Tell me--Erhart does
+not live out here with--with you others?
+
+MRS. BORKMAN.
+  [Harshly.]  Erhart cannot live out here with me.  He has to live
+in town----
+
+ELLA RENTHEIM.
+  So he wrote to me.
+
+MRS. BORKMAN.
+  He must, for the sake of his studies.  But he comes out to me
+for a little while every evening.
+
+ELLA RENTHEIM.
+  Well, may I see him then?  May I speak to him at once?
+
+MRS. BORKMAN.
+  He has not come yet; but I expect him every moment.
+
+ELLA RENTHEIM.
+  Why, Gunhild, surely he must have come.  I can hear his footsteps
+overhead.
+
+MRS. BORKMAN.
+  [With a rapid upward glance.]  Up in the long gallery?
+
+ELLA RENTHEIM.
+  Yes.  I have heard him walking up and down there ever since
+I came.
+
+MRS. BORKMAN.
+  [Looking away from her.]  That is not Erhart, Ella.
+
+ELLA RENTHEIM.
+  [Surprised.]  Not Erhart?  [Divining.]  Who is it then?
+
+MRS. BORKMAN.
+  It is he.
+
+ELLA RENTHEIM.
+  [Softly, with suppressed pain.]  Borkman?  John Gabriel Borkman?
+
+MRS. BORKMAN.
+  He walks up and down like that--backwards and forwards--from
+morning to night--day out and day in.
+
+ELLA RENTHEIM.
+  I have heard something of this----
+
+MRS. BORKMAN.
+  I daresay.  People find plenty to say about us, no doubt.
+
+ELLA RENTHEIM.
+  Erhart has spoken of it in his letters.  He said that his father
+generally remained by himself--up there--and you alone down here.
+
+MRS. BORKMAN.
+  Yes; that is how it has been, Ella, ever since they let him out,
+and sent him home to me.  All these long eight years.
+
+ELLA RENTHEIM.
+  I never believed it could really be so.  It seemed impossible!
+
+MRS. BORKMAN.
+  [Nods.]  It is so; and it can never be otherwise.
+
+ELLA RENTHEIM.
+  [Looking at her.]  This must be a terrible life, Gunhild.
+
+MRS. BORKMAN.
+  Worse than terrible--almost unendurable.
+
+ELLA RENTHEIM.
+  Yes, it must be.
+
+MRS. BORKMAN.
+  Always to hear his footsteps up there--from early morning till
+far into the night.  And everything sounds so clear in this house!
+
+ELLA RENTHEIM.
+  Yes, it is strange how clear the sound is.
+
+MRS. BORKMAN.
+  I often feel as if I had a sick wolf pacing his cage up there in
+the gallery, right over my head.  [Listens and whispers.]  Hark!
+Do you hear!  Backwards and forwards, up and down, goes the wolf.
+
+ELLA RENTHEIM.
+  [Tentatively.]  Is no change possible, Gunhild?
+
+MRS. BORKMAN.
+  [With a gesture of repulsion.]  He has never made any movement
+towards a change.
+
+ELLA RENTHEIM.
+  Could you not make the first movement, then?
+
+MRS. BORKMAN.
+  [Indignantly.]  I!  After all the wrong he has done me!  No thank
+you!  Rather let the wolf go on prowling up there.
+
+ELLA RENTHEIM.
+  This room is too hot for me.  You must let me take off my things
+after all.
+
+MRS. BORKMAN.
+  Yes, I asked you to.
+
+    [ELLA RENTHEIM takes off her hat and cloak and lays them on a
+        chair beside the door leading to the hall.
+
+ELLA RENTHEIM.
+  Do you never happen to meet him, away from home?
+
+MRS. BORKMAN.
+  [With a bitter laugh.]  In society, do you mean?
+
+ELLA RENTHEIM.
+  I mean, when he goes out walking.  In the woods, or----
+
+MRS. BORKMAN.
+  He never goes out.
+
+ELLA RENTHEIM.
+  Not even in the twilight?
+
+MRS. BORKMAN.
+  Never.
+
+ELLA RENTHEIM.
+  [With emotion.]  He cannot bring himself to go out?
+
+MRS. BORKMAN.
+  I suppose not.  He has his great cloak and his hat hanging in
+the cupboard--the cupboard in the hall, you know----
+
+ELLA RENTHEIM.
+  [To herself.]  The cupboard we used to hide in when we were
+little.
+
+MRS. BORKMAN.
+  [Nods.]  And now and then--late in the evening--I can hear him
+come down as though to go out.  But he always stops when he is
+halfway downstairs, and turns back--straight back to the gallery.
+
+ELLA RENTHEIM.
+  [Quietly.]  Do none of his old friends ever come up to see him?
+
+MRS. BORKMAN.
+  He has no old friends.
+
+ELLA RENTHEIM.
+  He had so many--once.
+
+MRS. BORKMAN.
+  H'm!  He took the best possible way to get rid of them.  He was
+a dear friend to his friends, was John Gabriel.
+
+ELLA RENTHEIM.
+  Oh, yes, that is true, Gunhild.
+
+MRS. BORKMAN.
+  [Vehemently.]  All the same, I call it mean, petty, base,
+contemptible of them, to think so much of the paltry losses
+they may have suffered through him.  They were only money
+losses, nothing more.
+
+ELLA RENTHEIM.
+  [Not answering her.]  So he lives up there quite alone.
+Absolutely by himself.
+
+MRS. BORKMAN.
+  Yes, practically so.  They tell me an old clerk or copyist or
+something comes out to see him now and then.
+
+ELLA RENTHEIM.
+  Ah, indeed; no doubt it is a man called Foldal.  I know they
+were friends as young men.
+
+MRS. BORKMAN.
+  Yes, I believe they were.  But I know nothing about him.  He
+was quite outside our circle--when we had a circle----
+
+ELLA RENTHEIM.
+  So he comes out to see Borkman now?
+
+MRS. BORKMAN.
+  Yes, he condescends to.  But of course he only comes when it
+is dark.
+
+ELLA RENTHEIM.
+  This Foldal--he was one of those that suffered when the bank
+failed?
+
+MRS. BORKMAN.
+  [Carelessly.]  Yes, I believe I heard he had lost some money.
+But no doubt it was something quite trifling.
+
+ELLA RENTHEIM.
+  [With slight emphasis.]  It was all he possessed.
+
+MRS. BORKMAN.
+  [Smiling.]  Oh, well; what he possessed must have been little
+enough--nothing to speak of.
+
+ELLA RENTHEIM.
+  And he did not speak of it--Foldal I mean--during the
+investigation.
+
+MRS. BORKMAN.
+  At all events, I can assure you Erhart has made ample amends
+for any little loss he may have suffered.
+
+ELLA RENTHEIM.
+  [With surprise.]  Erhart!  How can Erhart have done that?
+
+MRS. BORKMAN.
+  He has taken an interest in Foldal's youngest daughter.  He has
+taught her things, and put her in the way of getting employment,
+and some day providing for herself.  I am sure that is a great
+deal more than her father could ever have done for her.
+
+ELLA RENTHEIM.
+  Yes, I daresay her father can't afford to do much.
+
+MRS. BORKMAN.
+  And then Erhart has arranged for her to have lessons in music.
+She has made such progress already that she can come up to--to
+him in the gallery, and play to him.
+
+ELLA RENTHEIM.
+  So he is still fond of music?
+
+MRS. BORKMAN.
+  Oh yes, I suppose he is.  Of course he has the piano you sent
+out here--when he was expected back----
+
+ELLA RENTHEIM.
+  And she plays to him on it?
+
+MRS. BORKMAN.
+  Yes, now and then--in the evenings.  That is Erhart's doing, too.
+
+ELLA RENTHEIM.
+  Has the poor girl to come all the long way out here, and then
+back to town again?
+
+MRS. BORKMAN.
+  No, she doesn't need to.  Erhart has arranged for her to stay
+with a lady who lives near us--a Mrs. Wilton----
+
+ELLA RENTHEIM.
+  [With interest.]  Mrs. Wilton?
+
+MRS. BORKMAN.
+  A very rich woman.  You don't know her.
+
+ELLA RENTHEIM.
+  I have heard her name.  Mrs. Fanny Wilton, is it not----?
+
+MRS. BORKMAN.
+  Yes, quite right.
+
+ELLA RENTHEIM.
+  Erhart has mentioned her several times.  Does she live out
+here now?
+
+MRS. BORKMAN.
+  Yes, she has taken a villa here; she moved out from town some
+time ago.
+
+ELLA RENTHEIM.
+  [With a slight hesitation.]  They say she is divorced from
+her husband.
+
+MRS. BORKMAN.
+  Her husband has been dead for several years.
+
+ELLA RENTHEIM.
+  Yes, but they were divorced.  He got a divorce.
+
+MRS. BORKMAN.
+  He deserted her, that is what he did.  I am sure the fault
+wasn't hers.
+
+ELLA RENTHEIM.
+  Do you know her at all intimately, Gunhild?
+
+MRS. BORKMAN.
+  Oh yes, pretty well.  She lives close by here; and she looks in
+every now and then.
+
+ELLA RENTHEIM.
+  And do you like her?
+
+MRS. BORKMAN.
+  She is unusually intelligent; remarkably clear in her judgments.
+
+ELLA RENTHEIM.
+  In her judgments of people, do you mean?
+
+MRS. BORKMAN.
+  Yes, principally of people.  She has made quite a study of
+Erhart; looked deep into his character--into his soul.  And
+the result is she idolises him, as she could not help doing.
+
+ELLA RENTHEIM.
+  [With a touch of finesse.]  Then perhaps she knows Erhart still
+better than she knows you?
+
+MRS. BORKMAN.
+  Yes, Erhart saw a good deal of her in town, before she came
+out here.
+
+ELLA RENTHEIM.
+  [Without thinking.]  And in spite of that she moved out of town?
+
+MRS. BORKMAN.
+  [Taken aback, looking keenly at her.]  In spite of that!  What
+do you mean?
+
+ELLA RENTHEIM.
+  [Evasively.]  Oh, nothing particular.
+
+MRS. BORKMAN.
+  You said it strangely--you did mean something by it, Ella!
+
+ELLA RENTHEIM.
+  [Looking her straight in the eyes.]  Yes, that is true, Gunhild!
+I did mean something by it.
+
+MRS. BORKMAN.
+  Well, then, say it right out.
+
+ELLA RENTHEIM.
+  First let me tell you, I think I too have a certain claim upon
+Erhart.  Do you think I haven't?
+
+MRS. BORKMAN.
+  [Glancing round the room.]  No doubt--after all the money you
+have spent upon him.
+
+ELLA RENTHEIM.
+  Oh, not on that account, Gunhild.  But because I love him.
+
+MRS. BORKMAN.
+  [Smiling scornfully.]  Love my son?  Is it possible?  You?  In
+spite of everything?
+
+ELLA RENTHEIM.
+  Yes, it is possible--in spite of everything.  And it is true.
+I love Erhart--as much as I can love any one--now--at my time of
+life.
+
+MRS. BORKMAN.
+  Well, well, suppose you do: what then?
+
+ELLA RENTHEIM.
+  Why, then, I am troubled as soon as I see anything threatening
+him.
+
+MRS. BORKMAN.
+  Threatening Erhart!  Why, what should threaten him?  Or who?
+
+ELLA RENTHEIM.
+  You in the first place--in your way.
+
+MRS. BORKMAN.
+  [Vehemently.]  I!
+
+ELLA RENTHEIM.
+  And then this Mrs. Wilton, too, I am afraid.
+
+MRS. BORKMAN.
+  [Looks at her for a moment in speechless surprise.]  And you
+think such things of Erhart!  Of my own boy!  He, who has his
+great mission to fulfil!
+
+ELLA RENTHEIM.
+  [Lightly.]  Oh, his mission!
+
+MRS. BORKMAN.
+  [Indignantly.]  How dare you say that so scornfully?
+
+ELLA RENTHEIM.
+  Do you think a young man of Erhart's age, full of health and
+spirits--do you think he is going to sacrifice himself for--for
+such a thing as a "mission"?
+
+MRS. BORKMAN.
+  [Firmly and emphatically.]  Erhart will!  I know he will.
+
+ELLA RENTHEIM.
+  [Shaking her head.]  You neither know it nor believe it, Gunhild.
+
+MRS. BORKMAN.
+  I don't believe it!
+
+ELLA RENTHEIM.
+  It is only a dream that you cherish.  For if you hadn't that to
+cling to, you feel that you would utterly despair.
+
+MRS. BORKMAN.
+  Yes, indeed I should despair.  [Vehemently.]  And I daresay that
+is what you would like to see, Ella!
+
+ELLA RENTHEIM.
+  [With head erect.]  Yes, I would rather see that than see you
+"redeem" yourself at Erhart's expense.
+
+MRS. BORKMAN.
+  [Threateningly.]  You want to come between us?  Between mother
+and son?  You?
+
+ELLA RENTHEIM.
+  I want to free him from your power--your will--your despotism.
+
+MRS. BORKMAN.
+  [Triumphantly.]  You are too late!  You had him in your nets
+all these years--until he was fifteen.  But now I have won him
+again, you see!
+
+ELLA RENTHEIM.
+  Then I will win him back from you!  [Hoarsely, half whispering.]
+We two have fought a life-and-death battle before, Gunhild--for a
+man's soul!
+
+MRS. BORKMAN.
+  [Looking at her in triumph.]  Yes, and I won the victory.
+
+ELLA RENTHEIM.
+  [With a smile of scorn.]  Do you still think that victory was
+worth the winning?
+
+MRS. BORKMAN.
+  [Darkly.]  No; Heaven knows you are right there.
+
+ELLA RENTHEIM.
+  You need look for no victory worth the winning this time either.
+
+MRS. BORKMAN.
+  Not when I am fighting to preserve a mother's power over my son!
+
+ELLA RENTHEIM.
+  No; for it is only power over him that you want.
+
+MRS. BORKMAN.
+  And you?
+
+ELLA RENTHEIM.
+  [Warmly.]  I want his affection--his soul--his whole heart!
+
+MRS. BORKMAN.
+  [With an outburst.]  That you shall never have in this world!
+
+ELLA RENTHEIM.
+  [Looking at her.]  You have seen to that?
+
+MRS. BORKMAN.
+  [Smiling.]  Yes, I have taken that liberty.  Could you not see
+that in his letters?
+
+ELLA RENTHEIM.
+  [Nods slowly.]  Yes.  I could see you--the whole of you--in his
+letters of late.
+
+MRS. BORKMAN.
+  [Gallingly.]  I have made the best use of these eight years.  I
+have had him under my own eye, you see.
+
+ELLA RENTHEIM.
+  [Controlling herself.]  What have you said to Erhart about me?
+Is it the sort of thing you can tell me?
+
+MRS. BORKMAN.
+  Oh yes, I can tell you well enough.
+
+ELLA RENTHEIM.
+  Then please do.
+
+MRS. BORKMAN.
+  I have only told him the truth.
+
+ELLA RENTHEIM.
+  Well?
+
+MRS. BORKMAN.
+  I have impressed upon him, every day of his life, that he must
+never forget that it is you we have to thank for being able to
+live as we do--for being able to live at all.
+
+ELLA RENTHEIM.
+  Is that all?
+
+MRS. BORKMAN.
+  Oh, that is the sort of thing that rankles; I feel that in my
+own heart.
+
+ELLA RENTHEIM.
+  But that is very much what Erhart knew already.
+
+MRS. BORKMAN.
+  When he came home to me, he imagined that you did it all out
+of goodness of heart.  [Looks malignly at her.]  Now he does not
+believe that any longer, Ella.
+
+ELLA RENTHEIM.
+  Then what does he believe now?
+
+MRS. BORKMAN.
+  He believes what is the truth.  I asked him how he accounted
+for the fact that Aunt Ella never came here to visit us----
+
+ELLA RENTHEIM.
+  [Interrupting.]  He knew my reasons already!
+
+MRS. BORKMAN.
+  He knows them better now.  You had got him to believe that it
+was to spare me and--and him up there in gallery----
+
+ELLA RENTHEIM.
+  And so it was.
+
+MRS. BORKMAN.
+  Erhart does not believe that for a moment, now.
+
+ELLA RENTHEIM.
+  What have you put in his head?
+
+MRS. BORKMAN.
+  He thinks, what is the truth, that you are ashamed of us--that
+you despise us.  And do you pretend that you don't?  Were you not
+once planning to take him quite away from me?  Think, Ella; you
+cannot have forgotten.
+
+ELLA RENTHEIM.
+  [With a gesture of negation.]  That was at the height of the
+scandal--when the case was before the courts.  I have no such
+designs now.
+
+MRS. BORKMAN.
+  And it would not matter if you had.  For in that case what would
+become of his mission?  No, thank you.  It is me that Erhart needs--
+not you.  And therefore he is as good as dead to you--and you to
+him.
+
+ELLA RENTHEIM.
+  [Coldly, with resolution.]  We shall see.  For now I shall remain
+out here.
+
+MRS. BORKMAN.
+  [Stares at her.]  Here?  In this house?
+
+ELLA RENTHEIM.
+  Yes, here.
+
+MRS. BORKMAN.
+  Here--with us?  Remain all night?
+
+ELLA RENTHEIM.
+  I shall remain here all the rest of my days if need be.
+
+MRS. BORKMAN.
+  [Collecting herself.]  Very well, Ella; the house is yours----
+
+ELLA RENTHEIM.
+  Oh, nonsense----
+
+MRS. BORKMAN.
+  Everything is yours.  The chair I am sitting in is yours.  The
+bed I lie and toss in at night belongs to you.  The food we eat
+comes to us from you.
+
+ELLA RENTHEIM.
+  It can't be arranged otherwise, you know.  Borkman can hold no
+property of his own; for some one would at once come and take it
+from him.
+
+MRS. BORKMAN.
+  Yes, I know.  We must be content to live upon your pity and
+charity.
+
+ELLA RENTHEIM.
+  [Coldly.]  I cannot prevent you from looking at it in that
+light, Gunhild.
+
+MRS. BORKMAN.
+  No, you cannot.  When do you want us to move out?
+
+ELLA RENTHEIM.
+  [Looking at her.]  Move out?
+
+MRS. BORKMAN.
+  [In great excitement.]  Yes; you don't imagine that I will go
+on living under the same roof with you!  I tell you, I would
+rather go to the workhouse or tramp the roads!
+
+ELLA RENTHEIM.
+  Good.  Then let me take Erhart with me----
+
+MRS. BORKMAN.
+  Erhart?  My own son?  My child?
+
+ELLA RENTHEIM.
+  Yes; for then I would go straight home again.
+
+MRS. BORKMAN.
+  [After reflecting a moment, firmly.]  Erhart himself shall choose
+between us.
+
+ELLA RENTHEIM.
+  [Looking doubtfully and hesitatingly at her.]  He choose?  Dare
+you risk that, Gunhild?
+
+MRS. BORKMAN.
+  [With a hard laugh.]  Dare I?  Let my boy choose between his
+mother and you?  Yes, indeed I dare!
+
+ELLA RENTHEIM.
+  [Listening.]  Is there some one coming?  I thought I heard----
+
+MRS. BORKMAN.
+  Then it must be Erhart.
+
+    [There is a sharp knock at the door leading in from the hall,
+        which is immediately opened.  MRS. WILTON enters, in
+        evening dress, and with outer wraps.  She is followed by
+        THE MAID, who has not had time to announce her, and looks
+        bewildered.  The door remains half open.  MRS. WILTON is
+        a strikingly handsome, well-developed woman in the
+        thirties.  Broad, red, smiling lips, sparkling eyes.
+        Luxuriant dark hair.
+
+MRS. WILTON.
+  Good evening, my dearest Mrs. Borkman!
+
+MRS. BORKMAN.
+  [Rather drily.]  Good evening, Mrs. Wilton.  [To THE MAID,
+pointing toward the garden-room.]  Take the lamp that is in there
+and light it.
+
+    [THE MAID takes the lamp and goes out with it.
+
+MRS. WILTON.
+  [Observing ELLA RENTHEIM.]  Oh, I beg your pardon--you have
+a visitor.
+
+MRS. BORKMAN.
+  Only my sister, who has just arrived from----
+
+    [ERHART BORKMAN flings the half-open door wide open and rushes
+        in.  He is a young man with bright cheerful eyes.  He is
+        well dressed; his moustache is beginning to grow.
+
+ERHART.
+  [Radiant with joy; on the threshold.]  What is this!  Is Aunt
+Ella here?  [Rushing up to her and seizing her hands.]  Aunt,
+aunt!  Is it possible?  Are you here?
+
+ELLA RENTHEIM.
+  [Throws her arms round his neck.]  Erhart!  My dear, dear boy!
+Why, how big you have grown!  Oh, how good it is to see you again!
+
+MRS. BORKMAN.
+  [Sharply.]  What does this mean, Erhart?  Were you hiding out in
+the hallway?
+
+MRS. WILTON.
+  [Quickly.]  Erhart--Mr. Borkman came in with me.
+
+MRS. BORKMAN.
+  [Looking hard at him.]  Indeed, Erhart!  You don't come to your
+mother first?
+
+ERHART.
+  I had just to look in at Mrs. Wilton's for a moment--to call
+for little Frida.
+
+MRS. BORKMAN.
+  Is that Miss Foldal with you too?
+
+MRS. WILTON.
+  Yes, we have left her in the hall.
+
+ERHART.
+  [Addressing some one through the open door.]  You can go right
+upstairs, Frida.
+
+    [Pause.  ELLA RENTHEIM observes ERHART.  He seems embarrassed
+        and a little impatient; his face has assumed a nervous and
+        colder expression.
+
+    [THE MAID brings the lighted lamp into the garden-room, goes
+        out again and closes the door behind her.
+
+MRS. BORKMAN.
+  [With forced politeness.]  Well, Mrs. Wilton, if you will give
+us the pleasure of your company this evening, won't you----
+
+MRS. WILTON.
+  Many thanks, my dear lady, but I really can't.  We have another
+invitation.  We're going down to the Hinkels'.
+
+MRS. BORKMAN.
+  [Looking at her.]  We?  Whom do you mean by we?
+
+MRS. WILTON.
+  [Laughing.]  Oh, I ought really to have said I.  But I was
+commissioned by the ladies of the house to bring Mr. Borkman
+with me--if I happened to see him.
+
+MRS. BORKMAN.
+  And you did happen to see him, it appears.
+
+MRS. WILTON.
+  Yes, fortunately.  He was good enough to look in at my house--
+to call for Frida.
+
+MRS. BORKMAN.
+  [Drily.]  But, Erhart, I did not know that you knew that family--
+those Hinkels?
+
+ERHART.
+  [Irritated.]  No, I don't exactly know them.  [Adds rather
+impatiently.]  You know better than anybody, mother, what people
+I know and don't know.
+
+MRS. WILTON.
+  Oh, it doesn't matter!  They soon put you at your ease in that
+house!  They are such cheerful, hospitable people--the house swarms
+with young ladies.
+
+MRS. BORKMAN.
+  [With emphasis.]  If I know my son rightly, Mrs. Wilton, they
+are no fit company for him.
+
+MRS. WILTON.
+  Why, good gracious, dear lady, he is young, too, you know!
+
+MRS. BORKMAN.
+  Yes, fortunately he's young.  He would need to be young.
+
+ERHART.
+  [Concealing his impatience.]  Well, well, well, mother, it's
+quite clear I can't got to the Hinkels' this evening.  Of course
+I shall remain here with you and Aunt Ella.
+
+MRS. BORKMAN.
+  I knew you would, my dear Erhart.
+
+ELLA RENTHEIM.
+  No, Erhart, you must not stop at home on my account----
+
+ERHART.
+  Yes, indeed, my dear Aunt; I can't think of going.  [Looking
+doubtfully at MRS. WILTON.]  But how shall we manage?  Can I get
+out of it?  You have said "Yes" for me, haven't you?
+
+MRS. WILTON.
+  [Gaily.]  What nonsense!  Not get out of it!  When I make my
+entrance into the festive halls--just imagine it!--deserted and
+forlorn--then I must simply say "No" for you.
+
+ERHART.
+  [Hesitatingly.]  Well, if you really think I can get out of
+it----
+
+MRS. WILTON.
+  [Putting the matter lightly aside.]  I am quite used to saying
+both yes and no--on my own account.  And you can't possibly think
+of leaving your aunt the moment she has arrived!  For shame,
+Monsieur Erhart!  Would that be behaving like a good son?
+
+MRS. BORKMAN.
+  [Annoyed.]  Son?
+
+MRS. WILTON.
+  Well, adopted son then, Mrs. Borkman.
+
+MRS. BORKMAN.
+  Yes, you may well add that.
+
+MRS. WILTON.
+  Oh, it seems to me we have often more cause to be grateful to
+a foster-mother than to our own mother.
+
+MRS. BORKMAN.
+  Has that been your experience?
+
+MRS. WILTON.
+  I knew very little of my own mother, I am sorry to say.  But if
+I had had a good foster-mother, perhaps I shouldn't have been so--
+so naughty, as people say I am.  [Turning towards ERHART.]  Well,
+then we stop peaceably at home like a good boy, and drink tea
+with mamma and auntie!  [To the ladies.]  Good-bye, good-bye Mrs.
+Borkman!  Good-bye Miss Rentheim.
+
+    [The ladies bow silently.  She goes toward the door.
+
+ERHART.
+  [Following her.]  Shan't I go a little bit of the way with you?
+
+MRS. WILTON.
+  [In the doorway, motioning him back.]  You shan't go a step
+with me.  I am quite accustomed to taking my walks alone.  [Stops
+on the threshold, looks at him and nods.]  But now beware, Mr.
+Borkman--I warn you!
+
+ERHART.
+  What am I to beware of?
+
+MRS. WILTON.
+  [Gaily.]  Why, as I go down the road--deserted and forlorn, as
+I said before--I shall try if I can't cast a spell upon you.
+
+ERHART.
+  [Laughing.]  Oh, indeed!  Are you going to try that again?
+
+MRS. WILTON.
+  [Half seriously.]  Yes, just you beware!  As I go down the road,
+I will say in my own mind--right from the very centre of my will--
+I will say: "Mr. Erhart Borkman, take your hat at once!"
+
+MRS. BORKMAN.
+  And you think he will take it?
+
+MRS. WILTON.
+  [Laughing.]  Good heavens, yes, he'll snatch up his hat
+instantly.  And then I will say: "Now put on your overcoat, like
+a good boy, Erhart Borkman!  And your goloshes!  Be sure you don't
+forget the goloshes!  And then follow me!  Do as I bid you, as I
+bid you, as I bid you!"
+
+ERHART.
+  [With forced gaiety.]  Oh, you may rely on that.
+
+MRS. WILTON.
+  [Raising her forefinger.]  As I bid you!  As I bid you!
+Good-night!
+
+    [She laughs and nods to the ladies, and closes the door
+        behind her.
+
+MRS. BORKMAN.
+  Does she really play tricks of that sort?
+
+ERHART.
+  Oh, not at all.  How can you think so!  She only says it in fun.
+[Breaking off.]  But don't let us talk about Mrs. Wilton.  [He
+forces ELLA RENTHEIM to seat herself at the armchair beside the
+stove, then stands and looks at her.]  To think of your having
+taken all this long journey, Aunt Ella!  And in winter too!
+
+ELLA RENTHEIM.
+  I found I had to, Erhart.
+
+ERHART.
+  Indeed?  Why so?
+
+ELLA RENTHEIM.
+  I had to come to town after all, to consult the doctors.
+
+ERHART.
+  Oh, I'm glad of that!
+
+ELLA RENTHEIM.
+  [Smiling.]  Are you glad of that?
+
+ERHART.
+  I mean I am glad you made up your mind to it at last.
+
+MRS. BORKMAN.
+  [On the sofa, coldly.]  Are you ill, Ella?
+
+ELLA RENTHEIM.
+  [Looking hardly at her.]  You know quite well that I am ill.
+
+MRS. BORKMAN.
+  I knew you were not strong, and hadn't been for years.
+
+ERHART.
+  I told you before I left you that you ought to consult a doctor.
+
+ELLA RENTHEIM.
+  There is no one in my neighbourhood that I have any real
+confidence in.  And, besides, I did not feel it so much at
+that time.
+
+ERHART.
+  Are you worse, then, Aunt?
+
+ELLA RENTHEIM.
+  Yes, my dear boy; I am worse now.
+
+ERHART.
+  But there's nothing dangerous?
+
+ELLA RENTHEIM.
+  Oh, that depends how you look at it.
+
+ERHART.
+  [Emphatically.]  Well, then, I tell you what it is, Aunt Ella;
+you mustn't think of going home again for the present.
+
+ELLA RENTHEIM.
+  No, I am not thinking of it.
+
+ERHART.
+  You must remain in town; for here you can have your choice of
+all the best doctors.
+
+ELLA RENTHEIM.
+  That was what I thought when I left home.
+
+ERHART.
+  And then you must be sure and find a really nice place to live--
+quiet, comfortable rooms.
+
+ELLA RENTHEIM.
+  I went this morning to the old ones, where I used to stay before.
+
+ERHART.
+  Oh, well, you were comfortable enough there.
+
+ELLA RENTHEIM.
+  Yes, but I shall not be staying there after all.
+
+ERHART.
+  Indeed?  Why not?
+
+ELLA RENTHEIM.
+  I changed my mind after coming out here.
+
+ERHART.
+  [Surprised.]  Really?  Changed you mind?
+
+MRS. BORKMAN.
+  [Crocheting; without looking up.]  Your aunt will live here, in
+her own house, Erhart.
+
+ERHART.
+  [Looking from one to the other alternately.]  Here, with us?  Is
+this true, Aunt?
+
+ELLA RENTHEIM.
+  Yes, that is what I made up my mind to do.
+
+MRS. BORKMAN.
+  [As before.]  Everything here belongs to your aunt, you know.
+
+ELLA RENTHEIM.
+  I intend to remain here, Erhart--just now--for the present.
+I shall set up a little establishment of my own, over in the
+bailiff's wing.
+
+ERHART.
+  Ah, that's a good idea.  There are plenty of rooms there.  [With
+sudden vivacity.]  But, by-the-bye, Aunt--aren't you very tired
+after your journey?
+
+ELLA RENTHEIM.
+  Oh yes, rather tired.
+
+ERHART.
+  Well, then, I think you ought to go quite early to bed.
+
+ELLA RENTHEIM.
+  [Looks at him smilingly.]  I mean to.
+
+ERHART.
+  [Eagerly.]  And then we could have a good long talk to-morrow--
+or some other day, of course--about this and that--about things
+in general--you and mother and I.  Wouldn't that be much the
+best plan, Aunt Ella?
+
+MRS. BORKMAN.
+  [With an outburst, rising from the sofa.]  Erhart, I can see you
+are going to leave me!
+
+ERHART.
+  [Starts.]  What do you mean by that?
+
+MRS. BORKMAN.
+  You are going down to--to the Hinkels'?
+
+ERHART.
+  [Involuntarily.]  Oh, that!  [Collecting himself.]  Well, you
+wouldn't have me sit here and keep Aunt Ella up half the night?
+Remember, she's an invalid, mother.
+
+MRS. BORKMAN.
+  You are going to the Hinkels', Erhart!
+
+ERHART.
+  [Impatiently.]  Well, really, mother, I don't think I can well
+get out of it.  What do you say, Aunt?
+
+ELLA RENTHEIM.
+  I should like you to feel quite free, Erhart.
+
+MRS. BORKMAN.
+  [Goes up to her menacingly.]  You want to take him away from me!
+
+ELLA RENTHEIM.
+  [Rising.]  Yes, if only I could, Gunhild!
+    [Music is heard from above.
+
+ERHART.
+  [Writhing as if in pain.]  Oh, I can't endure this!  [Looking
+round.]  What have I done with my hat?  [To ELLA RENTHEIM.]  Do
+you know the air that she is playing up there?
+
+ELLA RENTHEIM.
+  No.  What is it?
+
+ERHART.
+  It's the _Danse Macabre_--the Dance of Death!  Don't you know
+the Dance of Death, Aunt?
+
+ELLA RENTHEIM.
+  [Smiling sadly.]  Not yet, Erhart.
+
+ERHART.
+  [To MRS. BORKMAN.]  Mother--I beg and implore you--let me go!
+
+MRS. BORKMAN.
+  [Looks hardly at him.]  Away from your mother?  So that is what
+you want to do?
+
+ERHART.
+  Of course I'll come out again--to-morrow perhaps.
+
+MRS. BORKMAN.
+  [With passionate emotion.]  You want to go away from me!  To be
+with those strange people!  With--with--no, I will not even think
+of it!
+
+ERHART.
+  There are bright lights down there, and young, happy faces; and
+there's music there, mother!
+
+MRS. BORKMAN.
+  [Pointing upwards.]  There is music here, too, Erhart.
+
+ERHART.
+  Yes, it's just that music that drives me out of the house.
+
+ELLA RENTHEIM.
+  Do you grudge your father a moment of self-forgetfulness?
+
+ERHART.
+  No, I don't.  I'm very, very glad that he should have it--if
+only _I_ don't have to listen.
+
+MRS. BORKMAN.
+  [Looking solemnly at him.]  Be strong, Erhart!  Be strong, my
+son!  Do not forget that you have your great mission.
+
+ERHART.
+  Oh, mother--do spare me these phrases!  I wasn't born to be
+a "missionary."--Good-night, aunt dear!  Good-night, mother.
+    [He goes hastily out through the hall.
+
+MRS. BORKMAN.
+  [After a short silence.]  It has not taken you long to recapture
+him, Ella, after all.
+
+ELLA RENTHEIM.
+  I wish I could believe it.
+
+MRS. BORKMAN.
+  But you shall see you won't be allowed to keep him long.
+
+ELLA RENTHEIM.
+  Allowed?  By you, do you mean?
+
+MRS. BORKMAN.
+  By me or--by her, the other one----
+
+ELLA RENTHEIM.
+  Then rather she than you.
+
+MRS. BORKMAN.
+  [Nodding slowly.]  That I understand.  I say the same.  Rather
+she than you.
+
+ELLA RENTHEIM.
+  Whatever should become of him in the end----
+
+MRS. BORKMAN.
+  It wouldn't greatly matter, I should say.
+
+ELLA RENTHEIM.
+  [Taking her outdoor things upon her arm.]  For the first time in
+our lives, we twin sisters are of one mind.  Good-night, Gunhild.
+
+    [She goes out by the hall.  The music sounds louder from above.
+
+MRS. BORKMAN.
+  [Stands still for a moment, starts, shrinks together, and
+whispers involuntarily.]  The wolf is whining again--the sick wolf.
+[She stands still for a moment, then flings herself down on the
+floor, writhing in agony and whispering:]  Erhart! Erhart!--be
+true to me!  Oh, come home and help your mother!  For I can bear
+this life no longer!
+
+
+
+ACT SECOND
+
+
+The great gallery on the first floor of the Rentheim House.
+    The walls are covered with old tapestries, representing
+    hunting-scenes, shepherds and shepherdesses, all in faded
+    colours.  A folding-door to the left, and further forward a
+    piano.  In the left-hand corner, at the back, a door, cut in
+    the tapestry, and covered with tapestry, without any frame.
+    Against the middle of the right wall, a large writing-table of
+    carved oak, with many books and papers.  Further forward on
+    the same side, a sofa with a table and chairs in front of it.
+    The furniture is all of a stiff Empire style.  Lighted lamps
+    on both tables.
+
+JOHN GABRIEL BORKMAN stands with his hands behind his back, beside
+    the piano, listening to FRIDA FOLDAL, who is playing the last
+    bars of the "Danse Macabre."
+
+BORKMAN is of middle height, a well-knit, powerfully-built man,
+    well on in the sixties.  His appearance is distinguished,
+    his profile finely cut, his eyes piercing, his hair and
+    beard curly and greyish-white.  He is dressed in a slightly
+    old-fashioned black coat, and wears a white necktie.  FRIDA
+    FOLDAL is a pretty, pale girl of fifteen, with a somewhat
+    weary and overstrained expression.  She is cheaply dressed in
+    light colours.
+
+
+BORKMAN.
+  Can you guess where I first heard tones like these?
+
+FRIDA.
+  [Looking up at him.]  No, Mr. Borkman.
+
+BORKMAN.
+  It was down in the mines.
+
+FRIDA.
+  [Not understanding.]  Indeed?  Down in the mines?
+
+BORKMAN.
+  I am a miner's son, you know.  Or perhaps you did not know?
+
+FRIDA.
+  No, Mr. Borkman.
+
+BORKMAN.
+  A miner's son.  And my father used sometimes to take me with
+him into the mines.  The metal sings down there.
+
+FRIDA.
+  Really?  Sings?
+
+BORKMAN.
+  [Nodding.]  When it is loosened.  The hammer-strokes that loosen
+it are the midnight bell clanging to set it free; and that is why
+the metal sings--in its own way--for gladness.
+
+FRIDA.
+  Why does it do that, Mr. Borkman?
+
+BORKMAN.
+  It wants to come up into the light of day and serve mankind.
+     [He paces up and down the gallery, always with his hands
+        behind his back.
+
+FRIDA.
+  [Sits waiting a little, then looks at her watch and rises.]
+I beg your pardon, Mr. Borkman; but I am afraid I must go.
+
+BORKMAN.
+  [Stopping before her.]  Are you going already?
+
+FRIDA.
+  [Putting her music in its case.]  I really must.  [Visibly
+embarrassed.]  I have an engagement this evening.
+
+BORKMAN.
+  For a party?
+
+FRIDA.
+  Yes.
+
+BORKMAN.
+  And you are to play before the company?
+
+FRIDA.
+  [Biting her lip.]  No; at least I am only to play for dancing.
+
+BORKMAN.
+  Only for dancing?
+
+FRIDA.
+  Yes; there is to be a dance after supper.
+
+BORKMAN.
+  [Stands and looks at her.]  Do you like playing dance music?
+At parties, I mean?
+
+FRIDA.
+  [Putting on her outdoor things.]  Yes, when I can get an
+engagement.  I can always earn a little in that way.
+
+BORKMAN.
+  [With interest.]  Is that the principal thing in your mind as
+you sit playing for the dancers?
+
+FRIDA.
+  No; I'm generally thinking how hard it is that I mayn't join
+in the dance myself.
+
+BORKMAN.
+  [Nodding.]  That is just what I wanted to know.  [Moving
+restlessly about the room.]  Yes, yes, yes.  That you must not
+join in the dance, that is the hardest thing of all.  [Stopping.]
+But there is one thing that should make up to you for that, Frida.
+
+FRIDA.
+  [Looking inquiringly at him.]  What is that, Mr. Borkman?
+
+BORKMAN.
+  The knowledge that you have ten times more music in you than
+all the dancers together.
+
+FRIDA.
+  [Smiling evasively.]  Oh, that's not at all so certain.
+
+BORKMAN.
+  [Holding up his fore-finger warningly.]  You must never be so
+mad as to have doubts of yourself!
+
+FRIDA.
+  But since no one knows it----
+
+BORKMAN.
+  So long as you know it yourself, that is enough.  Where is it
+you are going to play this evening?
+
+FRIDA.
+  Over at the Hinkel's.
+
+BORKMAN.
+  [With a swift, keen glance at her.]  Hinkel's, you say!
+
+FRIDA.
+  Yes.
+
+BORKMAN.
+  [With a cutting smile.]  Does that man give parties?  Can he
+get people to visit him?
+
+FRIDA.
+  Yes, they have a great many people about them, Mrs. Wilton says.
+
+BORKMAN.
+  [Vehemently.]  But what sort of people?  Can you tell me that?
+
+FRIDA.
+  [A little nervously.]  No, I really don't know.  Yes, by-the-bye,
+I know that young Mr. Borkman is to be there this evening.
+
+BORKMAN.
+  [Taken aback.]  Erhart?  My son?
+
+FRIDA.
+  Yes, he is going there.
+
+BORKMAN.
+  How do you know that?
+
+FRIDA.
+  He said so himself--an hour ago.
+
+BORKMAN.
+  Is he out here to-day?
+
+FRIDA.
+  Yes, he has been at Mrs. Wilton's all the afternoon.
+
+BORKMAN.
+  [Inquiringly.]  Do you know if he called here too?  I mean, did
+he see any one downstairs?
+
+FRIDA.
+  Yes, he looked in to see Mrs. Borkman.
+
+BORKMAN.
+  [Bitterly.]  Aha--I might have known it.
+
+FRIDA.
+  There was a strange lady calling upon her, I think.
+
+BORKMAN.
+  Indeed?  Was there?  Oh yes, I suppose people do come now and
+then to see Mrs. Borkman.
+
+FRIDA.
+  If I meet young Mr. Borkman this evening, shall I ask him to
+come up and see you too?
+
+BORKMAN.
+  [Harshly.]  You shall do nothing of the sort!  I won't have it
+on any account.  The people who want to see me can come of their
+own accord.
+
+FRIDA.
+  Oh, very well; I shan't say anything then.  Good-night, Mr.
+Borkman.
+
+BORKMAN.
+  [Pacing up and down and growling.]  Good-night.
+
+FRIDA.
+  Do you mind if I run down by the winding stair?  It's the
+shortest way.
+
+BORKMAN.
+  Oh, by all means; take whatever stair you please, so far as I
+am concerned.  Good-night to you!
+
+FRIDA.
+  Good-night, Mr. Borkman.
+
+    [She goes out by the little tapestry door in the back on
+        the left.
+
+    [BORKMAN, lost in thought, goes up to the piano, and is about
+        to close it, but changes his mind.  Looks round the great
+        empty room, and sets to pacing up and down it from the
+        corner at the back on the right--pacing backward and
+        forward uneasily and incessantly.  At last he goes up
+        to the writing-table, listens in the direction of the
+        folding door, hastily snatches up a hand-glass, looks
+        at himself in it, and straightens his necktie.
+
+    [A knock at the folding door.  BORKMAN hears it, looks rapidly
+        towards the door, but says nothing.
+
+    [In a little there comes another knock, this time louder.
+
+BORKMAN.
+  [Standing beside the writing-table with his left hand resting
+upon it, and his right thrust in the breast of his coat.]  Come
+in!
+
+    [VILHELM FOLDAL comes softly into the room.  He is a bent
+        and worn man with mild blue eyes and long, thin grey hair
+        straggling down over his coat collar.  He has a portfolio
+        under his arm, a soft felt hat, and large horn spectacles,
+        which he pushes up over his forehead.
+
+BORKMAN.
+  [Changes his attitude and looks at FOLDAL with a half
+disappointed, half pleased expression.]  Oh, is it only you?
+
+FOLDAL.
+  Good evening, John Gabriel.  Yes, you see it is me.
+
+BORKMAN.
+  [With a stern glance.]  I must say you are rather a late visitor.
+
+FOLDAL.
+  Well, you know, it's a good bit of a way, especially when you
+have to trudge it on foot.
+
+BORKMAN.
+  But why do you always walk, Vilhelm?  The tramway passes your
+door.
+
+FOLDAL.
+  It's better for you to walk--and then you always save twopence.
+Well, has Frida been playing to you lately?
+
+BORKMAN.
+  She has just this moment gone.  Did you not meet her outside?
+
+FOLDAL.
+  No, I have seen nothing of her for a long time; not since she
+went to live with this Mrs. Wilton.
+
+BORKMAN.
+  [Seating himself on the sofa and waving his hand toward a chair.]
+You may sit down, Vilhelm.
+
+FOLDAL.
+  [Seating himself on the edge of a chair.]  Many thanks.  [Looks
+mournfully at him.]  You can't think how lonely I feel since Frida
+left home.
+
+BORKMAN.
+  Oh, come--you have plenty left.
+
+FOLDAL.
+  Yes, God knows I have--five of them.  But Frida was the only one
+who at all understood me.  [Shaking his head sadly.]  The others
+don't understand me a bit.
+
+BORKMAN.
+  [Gloomily, gazing straight before him, and drumming on the
+table with his fingers.]  No, that's just it.  That is the curse
+we exceptional, chosen people have to bear.  The common herd--
+the average man and woman--they do not understand us, Vilhelm.
+
+FOLDAL.
+  [With resignation.]  If it were only the lack of understanding--
+with a little patience, one could manage to wait for that awhile
+yet.  [His voice choked with tears.]  But there is something
+still bitterer.
+
+BORKMAN.
+  [Vehemently.]  There is nothing bitterer than that.
+
+FOLDAL.
+  Yes, there is, John Gabriel.  I have gone through a domestic
+scene to-night--just before I started.
+
+BORKMAN.
+  Indeed?  What about?
+
+FOLDAL.
+  [With an outburst.]  My people at home--they despise me.
+
+BORKMAN.
+  [Indignantly.]  Despise----?
+
+FOLDAL.
+  [Wiping his eyes.]  I have long known it; but to-day it came
+out unmistakably.
+
+BORKMAN.
+  [After a short silence.]  You made an unwise choice, I fear,
+when you married.
+
+FOLDAL.
+  I had practically no choice in the matter.  And, you see, one
+feels a need for companionship as one begins to get on in years.
+And so crushed as I then was--so utterly broken down----
+
+BORKMAN.
+  [Jumping up in anger.]  Is this meant for me?  A reproach----!
+
+FOLDAL.
+  [Alarmed.]  No, no, for Heaven's sake, John Gabriel----!
+
+BORKMAN.
+  Yes, you are thinking of the disaster to the bank, I can see
+you are.
+
+FOLDAL.
+  [Soothingly.]  But I don't blame you for that!  Heaven forbid!
+
+BORKMAN.
+  [Growling, resumes his seat.]  Well, that is a good thing, at
+any rate.
+
+FOLDAL.
+  Besides, you mustn't think it is my wife that I complain of.  It
+is true she has not much polish, poor thing; but she is a good sort
+of woman all the same.  No, it's the children.
+
+BORKMAN.
+  I thought as much.
+
+FOLDAL.
+  For the children--well, they have more culture and therefore
+they expect more of life.
+
+BORKMAN.
+  [Looking at him sympathetically.]  And so your children despise
+you, Vilhelm?
+
+FOLDAL.
+  [Shrugging his shoulders.]  I haven't made much of a career,
+you see--there is no denying that.
+
+BORKMAN.
+  [Moving nearer to him, and laying his hand upon his arm.]  Do
+they not know, then, that in your young days you wrote a tragedy?
+
+FOLDAL.
+  Yes, of course they know that.  But it doesn't seem to make much
+impression on them.
+
+BORKMAN.
+  Then they don't understand these things.  For your tragedy is
+good.  I am firmly convinced of that.
+
+FOLDAL.
+  [Brightening up.]  Yes, don't you think there are some good
+things in it, John Gabriel?  Good God, if I could only manage
+to get it placed----!  [Opens his portfolio, and begins eagerly
+turning over the contents.]  Look here!  Just let me show you
+one or two alterations I have made.
+
+BORKMAN.
+  Have you it with you?
+
+FOLDAL.
+  Yes, I thought I would bring it.  It's so long now since I have
+read it to you.  And I thought perhaps it might amuse you to hear
+an act or two.
+
+BORKMAN.
+  [Rising, with a negative gesture.]  No, no, we will keep that
+for another time.
+
+FOLDAL.
+  Well, well, as you please.
+
+    [BORKMAN paces up and down the room.  FOLDAL puts the
+        manuscript up again.
+
+BORKMAN.
+  [Stopping in front of him.]  You are quite right in what you
+said just now--you have not made any career.  But I promise you
+this, Vilhelm, that when once the hour of my restoration strikes----
+
+FOLDAL.
+  [Making a movement to rise.]  Oh, thanks, thanks!
+
+BORKMAN.
+  [Waving his hand.]  No, please be seated.  [With rising
+excitement.]  When the hour of my restoration strikes--when they
+see that they cannot get on without me--when they come to me, here
+in the gallery, and crawl to my feet, and beseech me to take the
+reins of the bank again----!  The new bank, that they have founded
+and can't carry on----  [Placing himself beside the writing-table
+in the same attitude as before, and striking his breast.]  Here
+I shall stand, and receive them!  And it shall be known far and
+wide, all the country over, what conditions John Gabriel Borkman
+imposes before he will----  [Stopping suddenly and staring at
+FOLDAL.]  You're looking so doubtfully at me!  Perhaps you do not
+believe that they will come?  That they must, must, must come to
+me some day?  Do you not believe it?
+
+FOLDAL.
+  Yes, Heaven knows I do, John Gabriel.
+
+BORKMAN.
+  [Seating himself again on the sofa.]  I firmly believe it.  I
+am immovably convinced--I know that they will come.  If I had not
+been certain of that I would have put a bullet through my head
+long ago.
+
+FOLDAL.
+  [Anxiously.]  Oh no, for Heaven's sake----!
+
+BORKMAN.
+  [Exultantly.]  But they will come!  They will come sure enough!
+You shall see!  I expect them any day, any moment.  And you see,
+I hold myself in readiness to receive them.
+
+FOLDAL.
+  [With a sigh.]  If only they would come quickly.
+
+BORKMAN.
+  [Restlessly.]  Yes, time flies: the years slip away; life----
+Ah, no--I dare not think of it!  [Looking at him.]  Do you know
+what I sometimes feel like?
+
+FOLDAL.
+  What?
+
+BORKMAN.
+  I feel like a Napoleon who has been maimed in his first battle.
+
+FOLDAL.
+  [Placing his hand upon his portfolio.]  I have that feeling too.
+
+BORKMAN.
+  Oh, well, that is on a smaller scale, of course.
+
+FOLDAL.
+  [Quietly.]  My little world of poetry is very precious to me,
+John Gabriel.
+
+BORKMAN.
+  [Vehemently.]  Yes, but think of me, who could have created
+millions!  All the mines I should have controlled!  New veins
+innumerable!  And the water-falls!  And the quarries!  And the
+trade routes, and the steamship-lines all the wide world over!
+I would have organised it all--I alone!
+
+FOLDAL.
+  Yes, I know, I know.  There was nothing in the world you would
+have shrunk from.
+
+BORKMAN.
+  [Clenching his hands together.]  And now I have to sit here,
+like a wounded eagle, and look on while others pass me in the
+race, and take everything away from me, piece by piece!
+
+FOLDAL.
+  That is my fate too.
+
+BORKMAN.
+  [Not noticing him.]  Only to think of it; so near to the goal
+as I was!  If I had only had another week to look about me!  All
+the deposits would have been covered.  All the securities I had
+dealt with so daringly should have been in their places again as
+before.  Vast companies were within a hair's-breadth of being
+floated.  Not a soul should have lost a half-penny.
+
+FOLDAL.
+  Yes, yes; you were on the very verge of success.
+
+BORKMAN.
+  [With suppressed fury.]  And then treachery overtook me!  Just
+at the critical moment!  [Looking at him.]  Do you know what I
+hold to be the most infamous crime a man can be guilty of?
+
+FOLDAL.
+  No, tell me.
+
+BORKMAN.
+  It is not murder.  It is not robbery or house-breaking.  It is
+not even perjury.  For all these things people do to those they
+hate, or who are indifferent to them, and do not matter.
+
+FOLDAL.
+  What is the worst of all then, John Gabriel?
+
+BORKMAN.
+  [With emphasis.]  The most infamous of crimes is a friend's
+betrayal of his friend's confidence.
+
+FOLDAL.
+  [Somewhat doubtfully.]  Yes, but you know----
+
+BORKMAN.
+  [Firing up.]  What are you going to say?  I see it in your face.
+But it is of no use.  The people who had their securities in the
+bank should have got them all back again--every farthing.  No; I
+tell you the most infamous crime a man can commit is to misuse a
+friend's letters; to publish to all the world what has been
+confided to him alone, in the closest secrecy, like a whisper
+in an empty, dark, double-locked room.  The man who can do such
+things is infected and poisoned in every fibre with the morals
+of the higher rascality.  And such a friend was mine--and it
+was he who crushed me.
+
+FOLDAL.
+  I can guess whom you mean.
+
+BORKMAN.
+  There was not a nook or cranny of my life that I hesitated
+to lay open to him.  And then, when the moment came, he turned
+against me the weapons I myself had placed in his hands.
+
+FOLDAL.
+  I have never been able to understand why he----  Of course,
+there were whispers of all sorts at the time.
+
+BORKMAN.
+  What were the whispers?  Tell me.  You see I know nothing.
+For I had to go straight into--into isolation.  What did people
+whisper, Vilhelm?
+
+FOLDAL.
+  You were to have gone into the Cabinet, they said.
+
+BORKMAN.
+  I was offered a portfolio, but I refused it.
+
+FOLDAL.
+  Then it wasn't there you stood in his way?
+
+BORKMAN.
+  Oh, no; that was not the reason he betrayed me.
+
+FOLDAL.
+  Then I really can't understand----
+
+BORKMAN.
+  I may as well tell you, Vilhelm----
+
+FOLDAL.
+  Well?
+
+BORKMAN.
+  There was--in fact, there was a woman in the case.
+
+FOLDAL.
+  A woman in the case?  Well but, John Gabriel----
+
+BORKMAN.
+  [Interrupting.]  Well, well--let us say no more of these stupid
+old stories.  After all, neither of us got into the Cabinet,
+neither he nor I.
+
+FOLDAL.
+  But he rose high in the world.
+
+BORKMAN.
+  And I fell into the abyss.
+
+FOLDAL.
+  Oh, it's a terrible tragedy----
+
+BORKMAN.
+  [Nodding to him.]  Almost as terrible as yours, I fancy, when
+I come to think of it.
+
+FOLDAL.
+  [Naively.]  Yes, at least as terrible.
+
+BORKMAN.
+  [Laughing quietly.]  But looked at from another point of view,
+it is really a sort of comedy as well.
+
+FOLDAL.
+  A comedy?  The story of your life?
+
+BORKMAN.
+  Yes, it seems to be taking a turn in that direction.  For let
+me tell you----
+
+FOLDAL.
+  What?
+
+BORKMAN.
+  You say you did not meet Frida as you came in?
+
+FOLDAL.
+  No.
+
+BORKMAN.
+  At this moment, as we sit here, she is playing waltzes for the
+guests of the man who betrayed and ruined me.
+
+FOLDAL.
+  I hadn't the least idea of that.
+
+BORKMAN.
+  Yes, she took her music, and went straight from me to--to the
+great house.
+
+FOLDAL.
+  [Apologetically.]  Well, you see, poor child----
+
+BORKMAN.
+  And can you guess for whom she is playing--among the rest?
+
+FOLDAL.
+  No.
+
+BORKMAN.
+  For my son.
+
+FOLDAL.
+  What?
+
+BORKMAN.
+  What do you think of that, Vilhelm?  My son is down there in
+the whirl of the dance this evening.  Am I not right in calling
+it a comedy?
+
+FOLDAL.
+  But in that case you may be sure he knows nothing about it.
+
+BORKMAN.
+  What does he know?
+
+FOLDAL.
+  You may be sure he doesn't know how he--that man----
+
+BORKMAN.
+  Do not shrink from his name.  I can quite well bear it now.
+
+FOLDAL.
+  I'm certain your son doesn't know the circumstances, John Gabriel.
+
+BORKMAN.
+  [Gloomily, sitting and beating the table.]  Yes, he knows, as
+surely as I am sitting here.
+
+FOLDAL.
+  Then how can he possibly be a guest in that house?
+
+BORKMAN.
+  [Shaking his head.]  My son probably does not see things with
+my eyes.  I'll take my oath he is on my enemies' side!  No doubt
+he thinks, as they do, that Hinkel only did his confounded duty
+when he went and betrayed me.
+
+FOLDAL.
+  But, my dear friend, who can have got him to see things in
+that light?
+
+BORKMAN.
+  Who?  Do you forget who has brought him up?  First his aunt,
+from the time he was six or seven years old; and now, of late
+years, his mother!
+
+FOLDAL.
+  I believe you are doing them an injustice.
+
+BORKMAN.
+  [Firing up.]  I never do any one injustice!  Both of them have
+gone and poisoned his mind against me, I tell you!
+
+FOLDAL.
+  [Soothingly.]  Well, well, well, I suppose they have.
+
+BORKMAN.
+  [Indignantly.]  Oh these women!  They wreck and ruin life for
+us!  Play the devil with our whole destiny--our triumphal progress.
+
+FOLDAL.
+  Not all of them!
+
+BORKMAN.
+  Indeed?  Can you tell me of a single one that is good for
+anything?
+
+FOLDAL.
+  No, that is the trouble.  The few that I know are good for
+nothing.
+
+BORKMAN.
+  [With a snort of scorn.]  Well then, what is the good of it?
+What is the good of such women existing--if you never know them?
+
+FOLDAL.
+  [Warmly.]  Yes, John Gabriel, there is good in it, I assure you.
+It is such a blessed, beneficial thought that here or there in the
+world, somewhere, far away--the true woman exists after all.
+
+BORKMAN.
+  [Moving impatiently on the sofa.]  Oh, do spare me that poetical
+nonsense.
+
+FOLDAL.
+  [Looks at him, deeply wounded.]  Do you call my holiest faith
+poetical nonsense?
+
+BORKMAN.
+  [Harshly.]  Yes I do!  That is what has always prevented you
+from getting on in the world.  If you would get all that out of
+your head, I could still help you on in life--help you to rise.
+
+FOLDAL.
+  [Boiling inwardly.]  Oh, you can't do that.
+
+BORKMAN.
+  I can when once I come into power again.
+
+FOLDAL.
+  That won't be for many a day.
+
+BORKMAN.
+  [Vehemently.]  Perhaps you think that day will never come?
+Answer me!
+
+FOLDAL.
+  I don't know what to answer.
+
+BORKMAN.
+  [Rising, cold and dignified, and waving his hand towards the
+door.]  Then I no longer have any use for you.
+
+FOLDAL.
+  [Starting up.]  No use----!
+
+BORKMAN.
+  Since you do not believe that the tide will turn for me----
+
+FOLDAL.
+  How can I believe in the teeth of all reason?  You would have
+to be legally rehabilitated----
+
+BORKMAN.
+  Go on! go on!
+
+FOLDAL.
+  It's true I never passed my examination; but I have read enough
+law to know that----
+
+BORKMAN.
+  [Quickly.]  It is impossible, you mean?
+
+FOLDAL.
+  There is no precedent for such a thing.
+
+BORKMAN.
+  Exceptional men are above precedents.
+
+FOLDAL.
+  The law knows nothing of such distinctions.
+
+BORKMAN.
+  [Harshly and decisively.]  You are no poet, Vilhelm.
+
+FOLDAL.
+  [Unconsciously folding his hands.]  Do you say that in sober
+earnest?
+
+BORKMAN.
+  [Dismissing the subject, without answering.]  We are only
+wasting each other's time.  You had better not come here again.
+
+FOLDAL.
+  Then you really want me to leave you?
+
+BORKMAN.
+  [Without looking at him.]  I have no longer any use for you.
+
+FOLDAL.
+  [Softly, taking his portfolio.]  No, no, no; I daresay not.
+
+BORKMAN.
+  Here you have been lying to me all the time.
+
+FOLDAL.
+  [Shaking his head.]  Never lying, John Gabriel.
+
+BORKMAN.
+  Have you not sat here feeding me with hope, and trust, and
+confidence--that was all a lie?
+
+FOLDAL.
+  It wasn't a lie so long as you believed in my vocation.  So long
+as you believed in me, I believed in you.
+
+BORKMAN.
+  Then we have been all the time deceiving each other.  And perhaps
+deceiving ourselves--both of us.
+
+FOLDAL.
+  But isn't that just the essence of friendship, John Gabriel?
+
+BORKMAN.
+  [Smiling bitterly.]  Yes, you are right there.  Friendship
+means--deception.  I have learnt that once before.
+
+FOLDAL.
+  [Looking at him.]  I have no poetic vocation!  And you could
+actually say it to me so bluntly.
+
+BORKMAN.
+  [In a gentler tone.]  Well, you know, I don't pretend to know
+much about these matters.
+
+FOLDAL.
+  Perhaps you know more than you think.
+
+BORKMAN.
+  I?
+
+FOLDAL.
+  [Softly.]  Yes, you.  For I myself have had my doubts, now and
+then, I may tell you.  The horrible doubt that I may have bungled
+my life for the sake of a delusion.
+
+BORKMAN.
+  If you have no faith in yourself, you are on the downward path
+indeed.
+
+FOLDAL.
+  That was why I found such comfort in coming here to lean upon
+your faith in me.  [Taking his hat.]  But now you have become a
+stranger to me.
+
+BORKMAN.
+  And you to me.
+
+FOLDAL.
+  Good night, John Gabriel.
+
+BORKMAN.
+  Good night, Vilhelm.
+    [Foldal goes out to the left.
+
+    [BORKMAN stands for a moment gazing at the closed door; makes
+        a movement as though to call FOLDAL back, but changes his
+        mind, and begins to pace the floor with his hands behind
+        his back.  Then he stops at the table beside the sofa and
+        puts out the lamp.  The room becomes half dark.  After a
+        short pause, there comes a knock at the tapestry door.
+
+BORKMAN.
+  [At the table, starts, turns, and asks in a loud voice:]  Who is
+that knocking?
+    [No answer, another knock.
+
+BORKMAN.
+  [Without moving.]  Who is it?  Come in!
+
+    [ELLA RENTHEIM, with a lighted candle in her hand, appears in
+        the doorway.  She wears her black dress, as before, with
+        her cloak thrown loosely round her shoulders.
+
+BORKMAN.
+  [Staring at her.]  Who are you?  What do you want with me?
+
+ELLA RENTHEIM.
+  [Closes the door and advances.]  It is I, Borkman.
+
+     [She puts down the candle on the piano and remains standing
+         beside it.
+
+BORKMAN.
+  [Stands as though thunderstruck, stares fixedly at her, and says
+in a half-whisper.]  Is it--is it Ella?  Is it Ella Rentheim?
+
+ELLA RENTHEIM.
+  Yes, it's "your" Ella, as you used to call me in the old days;
+many, many years ago.
+
+BORKMAN.
+  [As before.]  Yes, it is you Ella, I can see you now.
+
+ELLA RENTHEIM.
+  Can you recognise me?
+
+BORKMAN.
+  Yes, now I begin to----
+
+ELLA RENTHEIM.
+  The years have told on me, and brought winter with them, Borkman.
+Do you not think so?
+
+BORKMAN.
+  [In a forced voice.]  You are a good deal changed--just at first
+glance.
+
+ELLA RENTHEIM.
+  There are no dark curls on my neck now--the curls you once loved
+to twist round your fingers.
+
+BORKMAN.
+  [Quickly.]  True!  I can see now, Ella, you have done your hair
+differently.
+
+ELLA RENTHEIM.
+  [With a sad smile.]  Precisely; it is the way I do my hair that
+makes the difference.
+
+BORKMAN.
+  [Changing the subject.]  I had no idea that you were in this
+part of the world.
+
+ELLA RENTHEIM.
+  I have only just arrived.
+
+BORKMAN.
+  Why have you come all this way now, in winter?
+
+ELLA RENTHEIM.
+  That you shall hear.
+
+BORKMAN.
+  Is it me you have come to see?
+
+ELLA RENTHEIM.
+  You among others.  But if I am to tell you my errand, I must
+begin far back.
+
+BORKMAN.
+  You look tired.
+
+ELLA RENTHEIM.
+  Yes, I am tired.
+
+BORKMAN.
+  Won't you sit down?  There on the sofa.
+
+ELLA RENTHEIM.
+  Yes, thank you; I need rest.
+
+    [She crosses to the right and seats herself in the furthest
+        forward corner of the sofa.  BORKMAN stands beside the
+        table with his hands behind his back looking at her.  A
+        short silence.
+
+ELLA RENTHEIM.
+  It seems an endless time since we two met, Borkman, face to face.
+
+BORKMAN.
+  [Gloomily.]  It is a long, long time.  And terrible things have
+passed since then.
+
+ELLA RENTHEIM.
+  A whole lifetime has passed--a wasted lifetime.
+
+BORKMAN.
+  [Looking keenly at her.]  Wasted!
+
+ELLA RENTHEIM.
+  Yes, I say wasted--for both of us.
+
+BORKMAN.
+  [In a cold business tone.]  I cannot regard my life as wasted
+yet.
+
+ELLA RENTHEIM.
+  And what about mine?
+
+BORKMAN.
+  There you have yourself to blame, Ella.
+
+ELLA RENTHEIM.
+  [With a start.]  And you can say that?
+
+BORKMAN.
+  You could quite well have been happy without me.
+
+ELLA RENTHEIM.
+  Do you believe that?
+
+BORKMAN.
+  If you had made up your mind to.
+
+ELLA RENTHEIM.
+  [Bitterly.]  Oh, yes, I know well enough there was some one else
+ready to marry me.
+
+BORKMAN.
+  But you rejected him.
+
+ELLA RENTHEIM.
+  Yes, I did.
+
+BORKMAN.
+  Time after time you rejected him.  Year after year----
+
+ELLA RENTHEIM.
+  [Scornfully.]  Year after year I rejected happiness, I suppose
+you think?
+
+BORKMAN.
+  You might perfectly well have been happy with him.  And then I
+should have been saved.
+
+ELLA RENTHEIM.
+  You?
+
+BORKMAN.
+  Yes, you would have saved me, Ella.
+
+ELLA RENTHEIM.
+  How do you mean?
+
+BORKMAN.
+  He thought I was at the bottom of your obstinacy--of your
+perpetual refusals.  And then he took his revenge.  It was so easy
+for him; he had all my frank, confiding letters in his keeping.  He
+made his own use of them; and then it was all over with me--for
+the time, that is to say.  So you see it is all your doing, Ella!
+
+ELLA RENTHEIM.
+  Oh indeed, Borkman.  If we look into the matter, it appears that
+it is I who owe you reparation.
+
+BORKMAN.
+  It depends how you look at it.  I know quite well all that you
+have done for us.  You bought in this house, and the whole
+property, at the auction.  You placed the house entirely at my
+disposal--and your sister too.  You took charge of Erhart, and
+cared for him in every way----
+
+ELLA RENTHEIM.
+  As long as I was allowed to----
+
+BORKMAN.
+  By your sister, you mean.  I have never mixed myself up in these
+domestic affairs.  As I was saying, I know all the sacrifices you
+have made for me and for your sister.  But you were in a position
+to do so, Ella; and you must not forget that it was I who placed
+you in that position.
+
+ELLA RENTHEIM.
+  [Indignantly.]  There you make a great mistake, Borkman!  It was
+the love of my inmost heart for Erhart--and for you too--that made
+me do it!
+
+BORKMAN.
+  [Interrupting.]  My dear Ella, do not let us get upon questions
+of sentiment and that sort of thing.  I mean, of course, that if
+you acted generously, it was I that put it in your power to do so.
+
+ELLA RENTHEIM.
+  [Smiling.]  H'm!  In my power----
+
+BORKMAN.
+  [Warmly.]  Yes, put it in your power, I say!  On the eve of the
+great decisive battle--when I could not afford to spare either kith
+or kin--when I had to grasp at--when I did grasp at the millions
+that were entrusted to me--then I spared all that was yours, every
+farthing, although I could have taken it, and made use of it, as
+I did of all the rest!
+
+ELLA RENTHEIM.
+  [Coldly and quietly.]  That is quite true, Borkman.
+
+BORKMAN.
+  Yes it is.  And that was why, when they came and took me, they
+found all your securities untouched in the strong-room of the bank.
+
+ELLA RENTHEIM.
+  [Looking at him.]  I have often and often wondered what was your
+real reason for sparing all my property?  That, and that alone.
+
+BORKMAN.
+  My reason?
+
+ELLA RENTHEIM.
+  Yes, your reason.  Tell me.
+
+BORKMAN.
+  [Harshly and scornfully.]  Perhaps you think it was that I might
+have something to fall back upon, if things went wrong?
+
+ELLA RENTHEIM.
+  Oh no, I am sure you did not think of that in those days.
+
+BORKMAN.
+  Never!  I was so absolutely certain of victory.
+
+ELLA RENTHEIM.
+  Well then, why was it that----?
+
+BORKMAN.
+  [Shrugging his shoulders.]  Upon my soul, Ella, it is not so
+easy to remember one's motives of twenty years ago.  I only know
+that when I used to grapple, silently and alone, with all the
+great projects I had in my mind, I had something like the feeling
+of a man who is starting on a balloon voyage.  All through my
+sleepless nights I was inflating my giant balloon, and preparing
+to soar away into perilous, unknown regions.
+
+ELLA RENTHEIM.
+  [Smiling.]  You, who never had the least doubt of victory?
+
+BORKMAN.
+  [Impatiently.]  Men are made so, Ella.  They both doubt and
+believe at the same time.  [Looking straight before him.]  And
+I suppose that was why I would not take you and yours with me
+in the balloon.
+
+ELLA RENTHEIM.
+  [Eagerly.]  Why, I ask you?  Tell me why!
+
+BORKMAN.
+  [Without looking at her.]  One shrinks from risking what one
+holds dearest on such a voyage.
+
+ELLA RENTHEIM.
+  You had risked what was dearest to you on that voyage.  Your
+whole future life----
+
+BORKMAN.
+  Life is not always what one holds dearest.
+
+ELLA RENTHEIM.
+  [Breathlessly.]  Was that how you felt at that time?
+
+BORKMAN.
+  I fancy it was.
+
+ELLA RENTHEIM.
+  I was the dearest thing in the world to you?
+
+BORKMAN.
+  I seem to remember something of the sort.
+
+ELLA RENTHEIM.
+  And yet years had passed since you had deserted me--and married--
+married another!
+
+BORKMAN.
+  Deserted you, you say?  You must know very well that it was
+higher motives--well then, other motives that compelled me.
+Without his support I could not have done anything.
+
+ELLA RENTHEIM.
+  [Controlling herself.]  So you deserted me from--higher motives.
+
+BORKMAN.
+  I could not get on without his help.  And he made you the price
+of helping me.
+
+ELLA RENTHEIM.
+  And you paid the price.  Paid it in full--without haggling.
+
+BORKMAN.
+  I had no choice.  I had to conquer or fall.
+
+ELLA RENTHEIM.
+  [In a trembling voice, looking at him.]  Can what you tell me
+be true--that I was then the dearest thing in the world to you?
+
+BORKMAN.
+  Both then and afterwards--long, long, after.
+
+ELLA RENTHEIM.
+  But you bartered me away none the less; drove a bargain with
+another man for your love.  Sold my love for a--for a directorship.
+
+BORKMAN.
+  [Gloomily and bowed down.]  I was driven by inexorable
+necessity, Ella.
+
+ELLA RENTHEIM.
+  [Rises from the sofa, quivering with passion.]  Criminal!
+
+BORKMAN.
+  [Starts, but controls himself.]  I have heard that word before.
+
+ELLA RENTHEIM.
+  Oh, don't imagine I'm thinking of anything you may have done
+against the law of the land!  The use you made of all those
+vouchers and securities, or whatever you call them--do you think
+I care a straw about that!  If I could have stood at your side
+when the crash came----
+
+BORKMAN.
+  [Eagerly.]  What then, Ella?
+
+ELLA RENTHEIM.
+  Trust me, I should have borne it all so gladly along with you.
+The shame, the ruin--I would have helped you to bear it all--all!
+
+BORKMAN.
+  Would you have had the will--the strength?
+
+ELLA RENTHEIM.
+  Both the will and the strength.  For then I did not know of
+your great, your terrible crime.
+
+BORKMAN.
+  What crime?  What are you speaking of?
+
+ELLA RENTHEIM.
+  I am speaking of that crime for which there is no forgiveness.
+
+BORKMAN.
+  [Staring at her.]  You must be out of your mind.
+
+ELLA RENTHEIM.
+  [Approaching him.]  You are a murderer!  You have committed the
+one mortal sin!
+
+BORKMAN.
+  [Falling back towards the piano.]  You are raving, Ella!
+
+ELLA RENTHEIM.
+  You have killed the love-life in me.  [Still nearer him.]  Do
+you understand what that means?  The Bible speaks of a mysterious
+sin for which there is no forgiveness.  I have never understood
+what it could be; but now I understand.  The great, unpardonable
+sin is to murder the love-life in a human soul.
+
+BORKMAN.
+  And you say I have done that?
+
+ELLA RENTHEIM.
+  You have done that.  I have never rightly understood until
+this evening what had really happened to me.  That you deserted
+me and turned to Gunhild instead--I took that to be mere common
+fickleness on your part, and the result of heartless scheming
+on hers.  I almost think I despised you a little, in spite of
+everything.  But now I see it!  You deserted the woman you loved!
+Me, me, me!  What you held dearest in the world you were ready to
+barter away for gain.  That is the double murder you have
+committed!  The murder of your own soul and of mine!
+
+BORKMAN.
+  [With cold self-control.]  How well I recognise your passionate,
+ungovernable spirit, Ella.  No doubt it is natural enough that
+you should look at the thing in this light.  Of course, you are
+a woman, and therefore it would seem that your own heart is the
+one thing you know or care about in this world.
+
+ELLA RENTHEIM.
+  Yes, yes it is.
+
+BORKMAN.
+  Your own heart is the only thing that exists for you.
+
+ELLA RENTHEIM.
+  The only thing!  The only thing!  You are right there.
+
+BORKMAN.
+  But you must remember that I am a man.  As a woman, you were the
+dearest thing in the world to me.  But if the worst comes to the
+worst, one woman can always take the place of another.
+
+ELLA RENTHEIM.
+  [Looks at him with a smile.]  Was that your experience when you
+had made Gunhild your wife?
+
+BORKMAN.
+  No.  But the great aims I had in life helped me to bear even
+that.  I wanted to have at my command all the sources of power
+in this country.  All the wealth that lay hidden in the soil,
+and the rocks, and the forests, and the sea--  I wanted to gather
+it all into my hands to make myself master of it all, and so to
+promote the well-being of many, many thousands.
+
+ELLA RENTHEIM.
+  [Lost in recollection.]  I know it.  Think of all the evenings
+we spent in talking over your projects.
+
+BORKMAN.
+  Yes, I could talk to you, Ella.
+
+ELLA RENTHEIM.
+  I jested with your plans, and asked whether you wanted to awaken
+all the sleeping spirits of the mine.
+
+BORKMAN.
+  [Nodding.]  I remember that phrase.  [Slowly.]  All the sleeping
+spirits of the mine.
+
+ELLA RENTHEIM.
+  But you did not take it as a jest.  You said: "Yes, yes, Ella,
+that is just what I want to do."
+
+BORKMAN.
+  And so it was.  If only I could get my foot in the stirrup----
+And that depended on that one man.  He could and would secure me
+the control of the bank--if I on my side----
+
+ELLA RENTHEIM.
+  Yes, just so!  If you on your side would renounce the woman you
+loved--and who loved you beyond words in return.
+
+BORKMAN.
+  I knew his consuming passion for you.  I knew that on no other
+condition would he----
+
+ELLA RENTHEIM.
+  And so you struck the bargain.
+
+BORKMAN.
+  [Vehemently.]  Yes, I did, Ella!  For the love of power is
+uncontrollable in me, you see!  So I struck the bargain; I had to.
+And he helped me half-way up towards the beckoning heights that I
+was bent on reaching.  And I mounted and mounted; year by year
+I mounted----
+
+ELLA RENTHEIM.
+  And I was as though wiped out of your life.
+
+BORKMAN.
+  And after all he hurled me into the abyss again.  On account of
+you, Ella.
+
+ELLA RENTHEIM.
+  [After a short thoughtful silence.]  Borkman, does it not seem
+to you as if there had been a sort of curse on our whole relation?
+
+BORKMAN.
+  [Looking at her.]  A curse?
+
+ELLA RENTHEIM.
+  Yes.  Don't you think so?
+
+BORKMAN.
+  [Uneasily.]  Yes. But why is it?  [With an outburst.]  Oh Ella,
+I begin to wonder which is in the right--you or I!
+
+ELLA RENTHEIM.
+  It is you who have sinned.  You have done to death all the
+gladness of my life in me.
+
+BORKMAN.
+  [Anxiously.]  Do not say that, Ella!
+
+ELLA RENTHEIM.
+  All a woman's gladness at any rate.  From the day when your image
+began to dwindle in my mind, I have lived my life as though under
+an eclipse.  During all these years it has grown harder and harder
+for me--and at last utterly impossible--to love any living creature.
+Human beings, animals, plants: I shrank from all--from all but one----
+
+BORKMAN.
+  What one?
+
+ELLA RENTHEIM.
+  Erhart, of course.
+
+BORKMAN.
+  Erhart?
+
+ELLA RENTHEIM.
+  Erhart--your son, Borkman.
+
+BORKMAN.
+  Has he really been so close to your heart?
+
+ELLA RENTHEIM.
+  Why else should I have taken him to me, and kept him as long as
+ever I could?  Why?
+
+BORKMAN.
+  I thought it was out of pity, like all the rest that you did.
+
+ELLA RENTHEIM.
+  [In strong inward emotion.]  Pity!  Ha, ha!  I have never known
+pity, since you deserted me.  I was incapable of feeling it.  If
+a poor starved child came into my kitchen, shivering, and crying,
+and begging for a morsel of food, I let the servants look to it.
+I never felt any desire to take the child to myself, to warm it
+at my own hearth, to have the pleasure of seeing it eat and be
+satisfied.  And yet I was not like that when I was young; that I
+remember clearly!  It is you that have created an empty, barren
+desert within me--and without me too!
+
+BORKMAN.
+  Except only for Erhart.
+
+ELLA RENTHEIM.
+  Yes, except for your son.  But I am hardened to every other
+living thing.  You have cheated me of a mother's joy and happiness
+in life--and of a mother's sorrows and tears as well.  And perhaps
+that is the heaviest part of the loss to me.
+
+BORKMAN.
+  Do you say that, Ella?
+
+ELLA RENTHEIM.
+  Who knows?  It may be that a mother's sorrows and tears were
+what I needed most.  [With still deeper emotion.]  But at that
+time I could not resign myself to my loss; and that was why I
+took Erhart to me.  I won him entirely.  Won his whole, warm,
+trustful childish heart--until----  Oh!
+
+BORKMAN.
+  Until what?
+
+ELLA RENTHEIM.
+  Until his mother--his mother in the flesh, I mean--took him from
+me again.
+
+BORKMAN.
+  He had to leave you in any case; he had to come to town.
+
+ELLA RENTHEIM.
+  [Wringing her hands.]  Yes, but I cannot bear the solitude--
+the emptiness!  I cannot bear the loss of your son's heart!
+
+BORKMAN.
+  [With an evil expression in his eyes.]  H'm--I doubt whether
+you have lost it, Ella.  Hearts are not so easily lost to a
+certain person--in the room below.
+
+ELLA RENTHEIM.
+  I have lost Erhart here, and she has won him back again.  Or
+if not she, some one else.  That is plain enough in the letters
+he writes me from time to time.
+
+BORKMAN.
+  Then it is to take him back with you that you have come here?
+
+ELLA RENTHEIM.
+  Yes, if only it were possible----!
+
+BORKMAN.
+  It is possible enough, if you have set your heart upon it.  For
+you have the first and strongest claims upon him.
+
+ELLA RENTHEIM.
+  Oh, claims, claims!  What is the use of claims?  If he is not
+mine of his own free will, he is not mine at all.  And have him
+I must!  I must have my boy's heart, whole and undivided--now!
+
+BORKMAN.
+  You must remember that Erhart is well into his twenties.  You
+could scarcely reckon on keeping his heart very long undivided,
+as you express it.
+
+ELLA RENTHEIM.
+  [With a melancholy smile.]  It would not need to be for so very
+long.
+
+BORKMAN.
+  Indeed?  I should have thought that when you want a thing, you
+want it to the end of your days.
+
+ELLA RENTHEIM.
+  So I do.  But that need not mean for very long.
+
+BORKMAN.
+  [Taken aback.]  What do you mean by that?
+
+ELLA RENTHEIM.
+  I suppose you know I have been in bad health for many years past?
+
+BORKMAN.
+  Have you?
+
+ELLA RENTHEIM.
+  Do you not know that?
+
+BORKMAN.
+  No, I cannot say I did----
+
+ELLA RENTHEIM.
+  [Looking at him in surprise.]  Has Erhart not told you so?
+
+BORKMAN.
+  I really don't remember at the moment.
+
+ELLA RENTHEIM.
+  Perhaps he has not spoken of me at all?
+
+BORKMAN.
+  Oh, yes, I believe he has spoken of you.  But the fact is, I
+so seldom see anything of him--scarcely ever.  There is a certain
+person below that keeps him away from me.  Keeps him away, you
+understand?
+
+ELLA RENTHEIM.
+  Are you quite sure of that, Borkman?
+
+BORKMAN.
+  Yes, absolutely sure.  [Changing his tone.]  And so you have
+been in bad health, Ella?
+
+ELLA RENTHEIM.
+  Yes, I have.  And this autumn I grew so much worse that I had
+to come to town and take better medical advice.
+
+BORKMAN.
+  And you have seen the doctors already?
+
+ELLA RENTHEIM.
+  Yes, this morning.
+
+BORKMAN.
+  And what did they say to you?
+
+ELLA RENTHEIM.
+  They gave me full assurance of what I had long suspected.
+
+BORKMAN.
+  Well?
+
+ELLA RENTHEIM.
+  [Calmly and quietly.]  My illness will never be cured, Borkman.
+
+BORKMAN.
+  Oh, you must not believe that, Ella.
+
+ELLA RENTHEIM.
+  It is a disease that there is no help or cure for.  The doctors
+can do nothing with it.  They must just let it take its course.
+They cannot possibly check it; at most, they can allay the
+suffering.  And that is always something.
+
+BORKMAN.
+  Oh, but it will take a long time to run its course.  I am sure
+it will.
+
+ELLA RENTHEIM.
+  I may perhaps last out the winter, they told me.
+
+BORKMAN.
+  [Without thinking.]  Oh, well, the winter is long.
+
+ELLA RENTHEIM.
+  [Quietly.]  Long enough for me, at any rate.
+
+BORKMAN.
+  [Eagerly, changing the subject.]  But what in all the world can
+have brought on this illness?  You, who have always lived such a
+healthy and regular life?  What can have brought it on?
+
+ELLA RENTHEIM.
+  [Looking at him.]  The doctors thought that perhaps at one time
+in my life I had had to go through some great stress of emotion.
+
+BORKMAN.
+  [Firing up.]  Emotion!  Aha, I understand!  You mean that it is
+my fault?
+
+ELLA RENTHEIM.
+  [With increasing inward agitation.]  It is too late to go into
+that matter now!  But I must have my heart's own child again before
+I go!  It is so unspeakably sad for me to think that I must go
+away from all that is called life--away from sun, and light, and
+air--and not leave behind me one single human being who will think
+of me--who will remember me lovingly and mournfully--as a son
+remembers and thinks of the mother he has lost.
+
+BORKMAN.
+  [After a short pause.]  Take him, Ella, if you can win him.
+
+ELLA RENTHEIM.
+  [With animation.]  Do you give your consent?  Can you?
+
+BORKMAN.
+  [Gloomily.]  Yes.  And it is no great sacrifice either.  For in
+any case he is not mine.
+
+ELLA RENTHEIM.
+  Thank you, thank you all the same for the sacrifice!  But I have
+one thing more to beg of you--a great thing for me, Borkman.
+
+BORKMAN.
+  Well, what is it?
+
+ELLA RENTHEIM.
+  I daresay you will think it childish of me--you will not
+understand----
+
+BORKMAN.
+  Go on--tell me what it is.
+
+ELLA RENTHEIM.
+  When I die--as I must soon--I shall have a fair amount to leave
+behind me.
+
+BORKMAN.
+  Yes, I suppose so.
+
+ELLA RENTHEIM.
+  And I intend to leave it all to Erhart.
+
+BORKMAN.
+  Well, you have really no one nearer to you than he.
+
+ELLA RENTHEIM.
+  [Warmly.]  No, indeed, I have no one nearer me than he.
+
+BORKMAN.
+  No one of your own family.  You are the last.
+
+ELLA RENTHEIM.
+  [Nodding slowly.]  Yes, that is just it.  When I die, the name
+of Rentheim dies with me.  And that is such a torturing thought
+to me.  To be wiped out of existence--even to your very name----
+
+BORKMAN.
+  [Firing up.]  Ah, I see what you are driving at!
+
+ELLA RENTHEIM.
+  [Passionately.]  Do not let this be my forte.  Let Erhart bear
+my name after me!
+
+BORKMAN.
+  I understand you well enough.  You want to save my son from
+having to bear his father's name.  That is your meaning.
+
+ELLA RENTHEIM.
+  No, no, not that!  I myself would have borne it proudly and
+gladly along with you!  But a mother who is at the point of
+death----  There is more binding force in a name than you think
+or believe, Borkman.
+
+BORKMAN.
+  [Coldly and proudly.]  Well and good, Ella.  I am man enough
+to bear my own name alone.
+
+ELLA RENTHEIM.
+  [Seizing and pressing his hand.]  Thank you, thank you!  Now
+there has been a full settlement between us!  Yes, yes, let it
+be so!  You have made all the atonement in your power.  For when
+I have gone from the world, I shall leave Erhart Rentheim behind
+me!
+
+    [The tapestry door is thrown open.  MRS. BORKMAN, with the
+        large shawl over her head, stands in the doorway.
+
+MRS. BORKMAN.
+  [In violent agitation.]  Never to his dying day shall Erhart
+be called by that name!
+
+ELLA RENTHEIM.
+  [Shrinking back.]  Gunhild!
+
+BORKMAN.
+  [Harshly and threateningly.]  I allow no one to come up to my
+room!
+
+MRS. BORKMAN.
+  [Advancing a step.]  I do not ask your permission.
+
+BORKMAN.
+  [Going towards her.]  What do you want with me?
+
+MRS. BORKMAN.
+  I will fight with all my might for you.  I will protect you
+from the powers of evil.
+
+ELLA RENTHEIM.
+  The worst "powers of evil" are in yourself, Gunhild!
+
+MRS. BORKMAN.
+  [Harshly.]  So be it then.  [Menacingly, with upstretched arm.]
+But this I tell you--he shall bear his father's name!  And bear
+it aloft in honour again!  My son's heart shall be mine--mine
+and no other's.
+
+    [She goes out by the tapestry door and shuts it behind her.
+
+ELLA RENTHEIM.
+  [Shaken and shattered.]  Borkman, Erhart's life will be wrecked
+in this storm.  There must be an understanding between you and
+Gunhild.  We must go down to her at once.
+
+BORKMAN.
+  [Looking at her.]  We?  I too, do you mean?
+
+ELLA RENTHEIM.
+  Both you and I.
+
+BORKMAN.
+  [Shaking his head.]  She is hard, I tell you.  Hard as the metal
+I once dreamed of hewing out of the rocks.
+
+ELLA RENTHEIM.
+  Then try it now!
+
+    [BORKMAN does not answer, but stands looking doubtfully at her.
+
+
+
+ACT THIRD
+
+
+    MRS. BORKMAN's drawing room.  The lamp is still burning on
+        the table beside the sofa in front.  The garden-room at
+        the back is quite dark.
+
+    MRS. BORKMAN, with the shawl still over her head, enters, in
+        violent agitation, by the hall door, goes up to the window,
+        draws the curtain a little aside, and looks out; then she
+        seats herself beside the stove, but immediately springs
+        up again, goes to the bell-pull and rings.  Stands beside
+        the sofa, and waits a moment.  No one comes.  Then she
+        rings again, this time more violently.
+
+    THE MAID presently enters from the hall.  She looks sleepy
+        and out of temper, and appears to have dressed in great
+        haste.
+
+
+MRS. BORKMAN.
+  [Impatiently.]  What has become of you, Malena?  I have rung
+for you twice!
+
+THE MAID.
+  Yes, ma'am, I heard you.
+
+MRS. BORKMAN.
+  And yet you didn't come?
+
+
+THE MAID.
+  [Sulkily.]  I had to put some clothes on first, I suppose.
+
+MRS. BORKMAN.
+  Yes, you must dress yourself properly, and then you must run and
+fetch my son.
+
+THE MAID.
+  [Looking at her in astonishment.]  You want me to fetch Mr.
+Erhart?
+
+MRS. BORKMAN.
+  Yes; tell him he must come home to me at once; I want to speak
+to him.
+
+THE MAID.
+  [Grumbling.]  Then I'd better go to the bailiff's and call up
+the coachman.
+
+MRS. BORKMAN.
+  Why?
+
+THE MAID.
+  To get him to harness the sledge.  The snow's dreadful to-night.
+
+MRS. BORKMAN.
+  Oh, that doesn't matter; only make haste and go.  It's just round
+the corner.
+
+THE MAID.
+  Why, ma'am you can't call that just round the corner!
+
+MRS. BORKMAN.
+  Of course it is.  Don't you know Mr. Hinkel's villa?
+
+THE MAID.
+  [With malice.]  Oh, indeed!  It's there Mr. Erhart is this
+evening?
+
+MRS. BORKMAN.
+  [Taken aback.]  Why, where else should he be?
+
+THE MAID.
+  [With a slight smile.]  Well, I only thought he might be where
+he usually is.
+
+MRS. BORKMAN.
+  Where do you mean?
+
+THE MAID.
+  At Mrs. Wilton's, as they call her.
+
+MRS. BORKMAN.
+  Mrs. Wilton's?  My son isn't so often there.
+
+THE MAID.
+  [Half muttering.]  I've heard say as he's there every day of
+his life.
+
+MRS. BORKMAN.
+  That's all nonsense, Malena.  Go straight to Mr. Hinkel's and
+try to to get hold of him.
+
+THE MAID.
+  [With a toss of her head.]  Oh, very well; I'm going.
+
+    [She is on the point of going out by the hall, but just at
+        that moment the hall door is opened, and ELLA RENTHEIM
+        and BORKMAN appear on the threshold.
+
+MRS. BORKMAN.
+  [Staggers a step backwards.]  What does this mean?
+
+THE MAID.
+  [Terrified, instinctively folding her hands.]  Lord save us!
+
+MRS. BORKMAN.
+  [Whispers to THE MAID.]  Tell him he must come this instant.
+
+THE MAID.
+  [Softly.]  Yes, ma'am.
+
+    [ELLA RENTHEIM and, after her, BORKMAN enter the room.  THE
+        MAID sidles behind them to the door, goes out, and closes
+        it after her.
+
+MRS. BORKMAN.
+  [Having recovered her self-control, turns to ELLA.]  What does
+he want down here in my room?
+
+ELLA RENTHEIM.
+  He wants to come to an understanding with you, Gunhild.
+
+MRS. BORKMAN.
+  He has never tried that before.
+
+ELLA RENTHEIM.
+  He is going to, this evening.
+
+MRS. BORKMAN.
+  The last time we stood face to face--it was in the Court, when
+I was summoned to give an account----
+
+BORKMAN.
+  [Approaching.]  And this evening it is _I_ who will give an
+account of myself.
+
+MRS. BORKMAN.
+  [Looking at him.]  You?
+
+BORKMAN.
+  Not of what I have done amiss.  All the world knows that.
+
+MRS. BORKMAN.
+  [With a bitter sigh.]  Yes, that is true; all the world knows
+that.
+
+BORKMAN.
+  But it does not know why I did it; why I had to do it.  People
+do not understand that I had to, because I was myself--because I
+was John Gabriel Borkman--myself, and not another.  And that is
+what I will try to explain to you.
+
+MRS. BORKMAN.
+  [Shaking her head.]  It is of no use.  Temptations and promptings
+acquit no one.
+
+BORKMAN.
+  They may acquit one in one's own eyes.
+
+MRS. BORKMAN.
+  [With a gesture of repulsion.]  Oh, let all that alone!  I have
+thought over that black business of yours enough and to spare.
+
+BORKMAN.
+  I too.  During those five endless years in my cell--and elsewhere
+--I had time to think it over.  And during the eight years up there
+in the gallery I have had still more ample time.  I have re-tried
+the whole case--by myself.  Time after time I have re-tried it.  I
+have been my own accuser, my own defender, and my own judge.  I
+have been more impartial than any one else could be--that I venture
+to say.  I have paced up and down the gallery there, turning every
+one of my actions upside down and inside out.  I have examined them
+from all sides as unsparingly, as pitilessly, as any lawyer of them
+all.  And the final judgment I have always come to is this: the one
+person I have sinned against is--myself.
+
+MRS. BORKMAN.
+  And what about me?  What about your son?
+
+BORKMAN.
+  You and he are included in what I mean when I say myself.
+
+MRS. BORKMAN.
+  And what about the hundreds of others, then--the people you are
+said to have ruined?
+
+BORKMAN.
+  [More vehemently.]  I had power in my hands!  And then I felt
+the irresistible vocation within me!  The prisoned millions lay
+all over the country, deep in the bowels of the earth, calling
+aloud to me!  They shrieked to me to free them!  But no one else
+heard their cry--I alone had ears for it.
+
+MRS. BORKMAN.
+  Yes, to the branding of the name of Borkman.
+
+BORKMAN.
+  If the others had had the power, do you think they would not
+have acted exactly as I did?
+
+MRS. BORKMAN.
+  No one, no one but you would have done it!
+
+BORKMAN.
+  Perhaps not.  But that would have been because they had not my
+brains.  And if they had done it, it would not have been with my
+aims in view.  The act would have been a different act.  In short,
+I have acquitted myself.
+
+ELLA RENTHEIM.
+  [Softly and appealingly.]  Oh, can you say that so confidently,
+Borkman?
+
+BORKMAN.
+  [Nodding.]  Acquitted myself on that score.  But then comes the
+great, crushing self-accusation.
+
+MRS. BORKMAN.
+  What is that?
+
+BORKMAN.
+  I have skulked up there and wasted eight precious years of my
+life!  The very day I was set free, I should have gone forth into
+the world--out into the steel-hard, dreamless world of reality!
+I should have begun at the bottom and swung myself up to the
+heights anew--higher than ever before--in spite of all that
+lay between.
+
+MRS. BORKMAN.
+  Oh, it would have been the same thing over again; take my word
+for that.
+
+BORKMAN.
+  [Shakes his head, and looks at her with a sententious air.]  It
+is true that nothing new happens; but what has happened does not
+repeat itself either.  It is the eye that transforms the action.
+The eye, born anew, transforms the old action.  [Breaking off.]
+But you do not understand this.
+
+MRS. BORKMAN.
+  [Curtly.]  No, I do not understand it.
+
+BORKMAN.
+  Ah, that is just the curse--I have never found one single soul
+to understand me.
+
+ELLA RENTHEIM.
+  [Looking at him.]  Never, Borkman?
+
+BORKMAN.
+  Except one--perhaps.  Long, long ago.  In the days when I did
+not think I needed understanding.  Since then, at any rate, no
+one has understood me!  There has been no one alive enough to
+my needs to be afoot and rouse me--to ring the morning bell for
+me--to call me up to manful work anew.  And to impress upon me
+that I had done nothing inexpiable.
+
+MRS. BORKMAN.
+  [With a scornful laugh.]  So, after all, you require to have
+that impressed on you from without?
+
+BORKMAN.
+  [With increasing indignation.]  Yes, when the whole world hisses
+in chorus that I have sunk never to rise again, there come moments
+when I almost believe it myself.  [Raising his head.]  But then my
+inmost assurance rises again triumphant; and that acquits me.
+
+MRS. BORKMAN.
+  [Looking harshly at him.]  Why have you never come and asked me
+for what you call understanding?
+
+BORKMAN.
+  What use would it have been to come to you?
+
+MRS. BORKMAN.
+  [With a gesture of repulsion.]  You have never loved anything
+outside yourself; that is the secret of the whole matter.
+
+BORKMAN.
+  [Proudly.]  I have loved power.
+
+MRS. BORKMAN.
+  Yes, power!
+
+BORKMAN.
+  The power to create human happiness in wide, wide circles around
+me!
+
+MRS. BORKMAN.
+  You had once the power to make me happy.  Have you used it to
+that end?
+
+BORKMAN.
+  [Without looking at her.]  Some one must generally go down in
+a shipwreck.
+
+MRS. BORKMAN.
+  And your own son!  Have you used your power--have you lived and
+laboured--to make him happy?
+
+BORKMAN.
+  I do not know him.
+
+MRS. BORKMAN.
+  No, that is true.  You do not even know him.
+
+BORKMAN.
+  [Harshly.]  You, his mother, have taken care of that!
+
+MRS. BORKMAN.
+  [Looking at him with a lofty air.]  Oh, you do not know what I
+have taken care of!
+
+BORKMAN.
+  You?
+
+MRS. BORKMAN.
+  Yes, I.  I alone.
+
+BORKMAN.
+  Then tell me.
+
+MRS. BORKMAN.
+  I have taken care of your memory.
+
+BORKMAN.
+  [With a short dry laugh.]  My memory?  Oh, indeed!  It sounds
+almost as if I were dead already.
+
+MRS. BORKMAN.
+  [With emphasis.]  And so you are.
+
+BORKMAN.
+  [Slowly.]  Yes, perhaps you are right.  [Firing up.]  But no,
+no!  Not yet!  I have been close to the verge of death.  But now
+I have awakened.  I have come to myself.  A whole life lies before
+me yet.  I can see it awaiting me, radiant and quickening.  And
+you--you shall see it too.
+
+MRS. BORKMAN.
+  [Raising her hand.]  Never dream of life again!  Lie quiet where
+you are.
+
+ELLA RENTHEIM.
+  [Shocked.]  Gunhild!  Gunhild, how can you----!
+
+MRS. BORKMAN.
+  [Not listening to her.]  I will raise the monument over your
+grave.
+
+BORKMAN.
+  The pillar of shame, I suppose you mean?
+
+MRS. BORKMAN.
+  [With increasing excitement.]  Oh, no, it shall be no pillar
+of metal or stone.  And no one shall be suffered to carve any
+scornful legend on the monument I shall raise.  There shall be,
+as it were, a quickset hedge of trees and bushes, close, close
+around your tomb.  They shall hide away all the darkness that
+has been.  The eyes of men and the thoughts of men shall no
+longer dwell on John Gabriel Borkman!
+
+BORKMAN.
+  [Hoarsely and cuttingly.]  And this labour of love you will
+perform?
+
+MRS. BORKMAN.
+  Not by my own strength.  I cannot think of that.  But I have
+brought up one to help me, who shall live for this alone.  His
+life shall be so pure and high and bright, that your burrowing
+in the dark shall be as though it had never been!
+
+BORKMAN.
+  [Darkly and threateningly.]  If it is Erhart you mean, say so
+at once!
+
+MRS. BORKMAN.
+  [Looking him straight in the eyes.]  Yes, it is Erhart; my son;
+he whom you are ready to renounce in atonement for your own acts.
+
+BORKMAN.
+  [With a look towards ELLA.]  In atonement for my blackest sin.
+
+MRS. BORKMAN.
+  [Repelling the idea.]  A sin towards a stranger only.  Remember
+the sin towards me!  [Looking triumphantly at them both.]  But he
+will not obey you!  When I cry out to him in my need, he will come
+to me!  It is with me that he will remain!  With me, and never
+with any one else.  [Suddenly listens, and cries.]  I hear him!
+He is here, he is here!  Erhart!
+
+    [ERHART BORKMAN hastily tears open the hall door, and enters
+        the room.  He is wearing an overcoat and has his hat on.
+
+ERHART.
+  [Pale and anxious.]  Mother!  What in Heaven's name----!  [Seeing
+BORKMAN, who is standing beside the doorway leading into the
+garden-room, he starts and takes off his hat.  After a moment's
+silence, he asks:]  What do you want with me, mother?  What has
+happened?
+
+MRS. BORKMAN.
+  [Stretching her arms towards him.]  I want to see you, Erhart!
+I want to have you with me, always!
+
+ERHART.
+  [Stammering.]  Have me----?  Always?  What do you mean by that?
+
+MRS. BORKMAN.
+  I will have you, I say!  There is some one who wants to take
+you away from me!
+
+ERHART.
+  [Recoiling a step.]  Ah--so you know?
+
+MRS. BORKMAN.
+  Yes.  Do you know it, too?
+
+ERHART.
+  [Surprised, looking at her.]  Do _I_ know it?  Yes, of course.
+
+MRS. BORKMAN.
+  Aha, so you have planned it all out!  Behind my back!  Erhart!
+Erhart!
+
+ERHART.
+  [Quickly.]  Mother, tell me what it is you know!
+
+MRS. BORKMAN.
+  I know everything.  I know that your aunt has come here to take
+you from me.
+
+ERHART.
+  Aunt Ella!
+
+ELLA RENTHEIM.
+  Oh, listen to me a moment, Erhart!
+
+MRS. BORKMAN.
+  [Continuing.]  She wants me to give you up to her.  She wants
+to stand in your mother's place to you, Erhart!  She wants you
+to be her son, and not mine, from this time forward.  She wants
+you to inherit everything from her; to renounce your own name
+and take hers instead!
+
+ERHART.
+  Aunt Ella, is this true?
+
+ELLA RENTHEIM.
+  Yes, it is true.
+
+ERHART.
+  I knew nothing of this.  Why do you want to have me with you
+again?
+
+ELLA RENTHEIM.
+  Because I feel that I am losing you here.
+
+MRS. BORKMAN.
+  [Hardly.]  You are losing him to me--yes.  And that is just as
+it should be.
+
+ELLA RENTHEIM.
+  [Looking beseechingly at him.]  Erhart, I cannot afford to lose
+you.  For, I must tell you I am a lonely--dying woman.
+
+ERHART.
+  Dying----?
+
+ELLA RENTHEIM.
+  Yes, dying.  Will you came and be with me to the end?  Attach
+yourself wholly to me?  Be to me, as though you were my own
+child----?
+
+MRS. BORKMAN.
+  [Interrupting.]  And forsake your mother, and perhaps your
+mission in life as well?  Will you, Erhart?
+
+ELLA RENTHEIM.
+  I am condemned to death.  Answer me, Erhart.
+
+ERHART.
+  [Warmly, with emotion.]  Aunt Ella, you have been unspeakably
+good to me.  With you I grew up in as perfect happiness as any
+boy can ever have known----
+
+MRS. BORKMAN.
+  Erhart, Erhart!
+
+ELLA RENTHEIM.
+  Oh, how glad I am that you can still say that!
+
+ERHART.
+  But I cannot sacrifice myself to you now.  It is not possible
+for me to devote myself wholly to taking a son's place towards you.
+
+MRS. BORKMAN.
+  [Triumphing.]  Ah, I knew it!  You shall not have him!  You shall
+not have him, Ella!
+
+ELLA RENTHEIM.
+  [Sadly.]  I see it.  You have won him back.
+
+MRS. BORKMAN.
+  Yes, yes!  Mine he is, and mine he shall remain!  Erhart, say
+it is so, dear; we two have still a long way to go together, have
+we not?
+
+ERHART.
+  [Struggling with himself.]  Mother, I may as well tell you
+plainly----
+
+MRS. BORKMAN.
+  [Eagerly.]  What?
+
+ERHART.
+  I am afraid it is only a very little way you and I can go
+together.
+
+MRS. BORKMAN.
+  [Stands as though thunderstruck.]  What do you mean by that?
+
+ERHART.
+  [Plucking up spirit.]  Good heavens, mother, I am young, after
+all!  I feel as if the close air of this room must stifle me in
+the end.
+
+MRS. BORKMAN.
+  Close air?  Here--with me?
+
+ERHART.
+  Yes, here with you, mother.
+
+ELLA RENTHEIM.
+  Then come with me, Erhart.
+
+ERHART.
+  Oh, Aunt Ella, it's not a whit better with you.  It's different,
+but no better--no better for me.  It smells of rose-leaves and
+lavender there too; it is as airless there as here.
+
+MRS. BORKMAN.
+  [Shaken, but having recovered her composure with an effort.]
+Airless in your mother's room, you say!
+
+ERHART.
+  [In growing impatience.]  Yes, I don't know how else to express
+it.  All this morbid watchfulness and--and idolisation, or whatever
+you like to call it----  I can't endure it any longer!
+
+MRS. BORKMAN.
+  [Looking at him with deep solemnity.]  Have you forgotten what
+you have consecrated your life to, Erhart?
+
+ERHART.
+  [With an outburst.]  Oh, say rather what you have consecrated
+my life to.  You, you have been my will.  You have never given
+me leave to have any of my own.  But now I cannot bear this yoke
+any longer.  I am young; remember that, mother.  [With a polite,
+considerate glance towards BORKMAN.]  I cannot consecrate my life
+to making atonement for another--whoever that other may be.
+
+MRS. BORKMAN.
+  [Seized with growing anxiety.]  Who is it that has transformed
+you, Erhart?
+
+ERHART.
+  [Struck.]  Who?  Can you not conceive that it is I myself?
+
+MRS. BORKMAN.
+  No, no, no!  You have come under some strange power.  You
+are not in your mother's power any longer; nor in your--your
+foster-mother's either.
+
+ERHART.
+  [With laboured defiance.]  I am in my own power, mother!  And
+working my own will!
+
+BORKMAN.
+  [Advancing towards ERHART.]  Then perhaps my hour has come at
+last.
+
+ERHART.
+  [Distantly and with measured politeness.]  How so!  How do you
+mean, sir?
+
+MRS. BORKMAN.
+  [Scornfully.]  Yes, you may well ask that.
+
+BORKMAN.
+  [Continuing undisturbed.]  Listen, Erhart--will you not cast in
+your lot with your father?  It is not through any other man's life
+that a man who has fallen can be raised up again.  These are only
+empty fables that have been told to you down here in the airless
+room.  If you were to set yourself to live your life like all the
+saints together, it would be of no use whatever to me.
+
+ERHART.
+  [With measured respectfulness.]  That is very true indeed.
+
+BORKMAN.
+  Yes, it is.  And it would be of no use either if I should resign
+myself to wither away in abject penitence.  I have tried to feed
+myself upon hopes and dreams, all through these years.  But I am
+not the man to be content with that; and now I mean to have done
+with dreaming.
+
+ERHART.
+  [With a slight bow.]  And what will--what will you do, sir?
+
+BORKMAN.
+  I will work out my own redemption, that is what I will do.  I
+will begin at the bottom again.  It is only through his present
+and his future that a man can atone for his past.  Through work,
+indefatigable work, for all that, in my youth, seemed to give life
+its meaning--and that now seems a thousand times greater than it
+did then.  Erhart, will you join with me and help me in this new
+life?
+
+MRS. BORKMAN.
+  [Raising her hand warningly.]  Do not do it, Erhart!
+
+ELLA RENTHEIM.
+  [Warmly.]  Yes, yes do it!  Oh, help him, Erhart!
+
+MRS. BORKMAN.
+  And you advise him to do that?  You, the lonely dying woman.
+
+ELLA RENTHEIM.
+  I don't care about myself.
+
+MRS. BORKMAN.
+  No, so long as it is not I that take him from you.
+
+ELLA RENTHEIM.
+  Precisely so, Gunhild.
+
+BORKMAN.
+  Will you, Erhart?
+
+ERHART.
+  [Wrung with pain.]  Father, I cannot now.  It is utterly
+impossible!
+
+BORKMAN.
+  What do you want to do then?
+
+ERHART.
+  [With a sudden glow.]  I am young!  I want to live, for once
+in a way, as well as other people!  I want to live my own life!
+
+ELLA RENTHEIM.
+  You cannot give up two or three little months to brighten the
+close of a poor waning life?
+
+ERHART.
+  I cannot, Aunt, however much I may wish to.
+
+ELLA RENTHEIM.
+  Not for the sake of one who loves you so dearly?
+
+MRS. BORKMAN.
+  [Looking sharply at him.]  And your mother has no power over
+you either, any more?
+
+ERHART.
+  I will always love you, mother; but I cannot go on living for
+you alone.  This is no life for me.
+
+BORKMAN.
+  Then come and join with me, after all!  For life, life means
+work, Erhart.  Come, we two will go forth into life and work
+together!
+
+ERHART.
+  [Passionately.]  Yes, but I don't want to work now!  For I am
+young!  That's what I never realised before; but now the knowledge
+is tingling through every vein in my body.  I will not work!  I
+will only live, live, live!
+
+MRS. BORKMAN.
+  [With a cry of divination.]  Erhart, what will you live for?
+
+ERHART.
+  [With sparkling eyes.]  For happiness, mother!
+
+MRS. BORKMAN.
+  And where do you think you can find that?
+
+ERHART.
+  I have found it, already!
+
+MRS. BORKMAN.
+  [Shrieks.]  Erhart!  [ERHART goes quickly to the hall door and
+throws it open.]
+
+ERHART.
+  [Calls out.]  Fanny, you can come in now!
+
+    [MRS. WILTON, in outdoor wraps, appears on the threshold.
+
+MRS. BORKMAN.
+  [With uplifted hands.]  Mrs. Wilton!
+
+MRS. WILTON.
+  [Hesitating a little, with an enquiring glance at ERHART.]  Do you
+want me to----?
+
+ERHART.
+  Yes, now you can come in.  I have told them everything.
+
+    [MRS. WILTON comes forward into the room.  ERHART closes the
+        door behind her.  She bows formally to BORKMAN, who returns
+        her bow in silence.  A short pause.
+
+MRS. WILTON.
+  [In a subdued but firm voice.]  So the word has been spoken--
+and I suppose you all think I have brought a great calamity upon
+this house?
+
+MRS. BORKMAN.
+  [Slowly, looking hard at her.]  You have crushed the last
+remnant of interest in life for me.  [With an outburst.]  But
+all of this--all this is utterly impossible!
+
+MRS. WILTON.
+  I can quite understand that it must appear impossible to you,
+Mrs. Borkman.
+
+MRS. BORKMAN.
+  Yes, you can surely see for yourself that it is impossible.
+Or what----?
+
+MRS. WILTON.
+  I should rather say that it seems highly improbable.  But it's
+so, none the less.
+
+MRS. BORKMAN.
+  [Turning.]  Are you really in earnest about this, Erhart?
+
+ERHART.
+  This means happiness for me, mother--all the beauty and
+happiness of life.  That is all I can say to you.
+
+MRS. BORKMAN.
+  [Clenching her hands together; to MRS. WILTON.]  Oh, how you
+have cajoled and deluded my unhappy son!
+
+MRS. WILTON.
+  [Raising her head proudly.]  I have done nothing of the sort.
+
+MRS. BORKMAN.
+  You have not, say you!
+
+MRS. WILTON.
+  No.  I have neither cajoled nor deluded him.  Erhart came to me
+of his own free will.  And of my own free will I went out half-way
+to meet him.
+
+MRS. BORKMAN.
+  [Measuring her scornfully with her eye.]  Yes, indeed!  That I
+can easily believe.
+
+MRS. WILTON.
+  [With self-control.]  Mrs. Borkman, there are forces in human
+life that you seem to know very little about.
+
+MRS. BORKMAN.
+  What forces, may I ask?
+
+MRS. WILTON.
+  The forces which ordain that two people shall join their lives
+together, indissolubly--and fearlessly.
+
+MRS. BORKMAN.
+  [With a smile.]  I thought you were already indissolubly bound--
+to another.
+
+MRS. WILTON.
+  [Shortly.]  That other has deserted me.
+
+MRS. BORKMAN.
+  But he is still living, they say.
+
+MRS. WILTON.
+  He is dead to me.
+
+ERHART.
+  [Insistently.]  Yes, mother, he is dead to Fanny.  And besides,
+this other makes no difference to me!
+
+MRS. BORKMAN.
+  [Looking sternly at him.]  So you know all this--about the other.
+
+ERHART.
+  Yes, mother, I know quite well--all about it!
+
+MRS. BORKMAN.
+  And yet you can say that it makes no difference to you?
+
+ERHART.
+  [With defiant petulance.]  I can only tell you that it is
+happiness I must have!  I am young!  I want to live, live, live!
+
+MRS. BORKMAN.
+  Yes, you are young, Erhart.  Too young for this.
+
+MRS. WILTON.
+  [Firmly and earnestly.]  You must not think, Mrs. Borkman,
+that I haven't said the same to him.  I have laid my whole life
+before him.  Again and again I have reminded him that I am seven
+years older than he----
+
+ERHART.
+  [Interrupting.]  Oh, nonsense, Fanny--I knew that all the time.
+
+MRS. WILTON.
+  But nothing--nothing was of any use.
+
+MRS. BORKMAN.
+  Indeed?  Nothing?  Then why did you not dismiss him without
+more ado?  Close your door to him?  You should have done that,
+and done it in time!
+
+MRS. WILTON.
+  [Looks at her, and says in a low voice.]  I could not do that,
+Mrs. Borkman.
+
+MRS. BORKMAN.
+  Why could you not?
+
+MRS. WILTON.
+  Because for me too this meant happiness.
+
+MRS. BORKMAN.
+  [Scornfully.]  H'm, happiness, happiness----
+
+MRS. WILTON.
+  I have never before known happiness in life.  And I cannot
+possibly drive happiness away from me, merely because it comes
+so late.
+
+MRS. BORKMAN.
+  And how long do you think this happiness will last?
+
+ERHART.
+  [Interrupting.]  Whether it lasts or does not last, mother,
+it doesn't matter now!
+
+MRS. BORKMAN.
+  [In anger.]  Blind boy that you are!  Do you not see where all
+this is leading you?
+
+ERHART.
+  I don't want to look into the future.  I don't want to look
+around me in any direction; I am only determined to live my own
+life--at last!
+
+MRS. BORKMAN.
+  [With deep pain.]  And you call this life, Erhart!
+
+ERHART.
+  Don't you see how lovely she is!
+
+MRS. BORKMAN.
+  [Wringing her hands.]  And I have to bear this load of shame
+as well!
+
+BORKMAN.
+  [At the back, harshly and cuttingly.]  Ho--you are used to
+bearing things of that sort, Gunhild!
+
+ELLA RENTHEIM.
+  [Imploringly.]  Borkman!
+
+ERHART.
+  [Similarly.]  Father!
+
+MRS. BORKMAN.
+  Day after day I shall have to see my own son linked to a--a----
+
+ERHART.
+  [Interrupting her harshly.]  You shall see nothing of the kind,
+mother!  You may make your mind easy on that point.  I shall not
+remain here.
+
+MRS. WILTON.
+  [Quickly and with decision.]  We are going away, Mrs. Borkman.
+
+MRS. BORKMAN.
+  [Turning pale.]  Are you going away, too?  Together, no doubt?
+
+MRS. WILTON.
+  [Nodding.]  Yes, I am going abroad, to the south.  I am taking
+a young girl with me.  And Erhart is going along with us.
+
+MRS. BORKMAN.
+  With you--and a young girl?
+
+MRS. WILTON.
+  Yes.  It is little Frida Foldal, whom I have had living with me.
+I want her to go abroad and get more instruction in music.
+
+MRS. BORKMAN.
+  So you are taking her with you?
+
+MRS. WILTON.
+  Yes; I can't well send her out into the world alone.
+
+MRS. BORKMAN.
+  [Suppressing a smile.]  What do you say to this, Erhart?
+
+ERHART.
+  [With some embarrassment, shrugging his shoulders.]  Well,
+mother, since Fanny will have it so----
+
+MRS. BORKMAN.
+  [Coldly.]  And when does this distinguished party set out, if
+one may ask?
+
+MRS. WILTON.
+  We are going at once--to-night.  My covered sledge is waiting
+on the road, outside the Hinkels'.
+
+MRS. BORKMAN.
+  [Looking her from head to foot.]  Aha! so that was what the
+party meant?
+
+MRS. WILTON.
+  [Smiling.]  Yes, Erhart and I were the whole party.  And little
+Frida, of course.
+
+MRS. BORKMAN.
+  And where is she now?
+
+MRS. WILTON.
+  She is sitting in the sledge waiting for us.
+
+ERHART.
+  [In painful embarrassment.]  Mother, surely you can understand?
+I would have spared you all this--you and every one.
+
+MRS. BORKMAN.
+  [Looks at him, deeply pained.]  You would have gone away from
+me without saying a good-bye?
+
+ERHART.
+  Yes, I thought that would be best; best for all of us.  Our
+boxes were packed and everything settled.  But of course
+when you sent for me, I----  [Holding out his hands to her.]
+Good-bye, mother.
+
+MRS. BORKMAN.
+  [With a gesture of repulsion.]  Don't touch me!
+
+ERHART.
+  [Gently.]  Is that your last word?
+
+MRS. BORKMAN.
+  [Sternly.]  Yes.
+
+ERHART.
+  [Turning.]  Good-bye to you, then, Aunt Ella.
+
+ELLA RENTHEIM.
+  [Pressing his hands.]  Good-bye, Erhart!  And live your life--
+and be as happy--as happy as ever you can.
+
+ERHART.
+  Thanks, Aunt.  [Bowing to BORKMAN.]  Good-bye, father.  [Whispers
+to MRS. WILTON.]  Let us get away, the sooner the better.
+
+MRS. WILTON.
+  [In a low voice.]  Yes, let us.
+
+MRS. BORKMAN.
+  [With a malignant smile.]  Mrs. Wilton, do you think you are
+acting quite wisely in taking that girl with you?
+
+MRS. WILTON.
+  [Returning the smile, half ironically, half seriously.]  Men
+are so unstable, Mrs. Borkman.  And women too.  When Erhart is
+done with me--and I with him--then it will be well for us both
+that he, poor fellow, should have some one to fall back upon.
+
+MRS. BORKMAN.
+  But you yourself?
+
+MRS. WILTON.
+  Oh, I shall know what to do, I assure you.  Good-bye to you all!
+
+    [She bows and goes out by the hall door.  ERHART stands for a
+         moment as though wavering; then he turns and follows her.
+
+MRS. BORKMAN.
+  [Dropping her folded hands.]  Childless.
+
+BORKMAN.
+  [As though awakening to a resolution.]  Then out into the storm
+alone!  My hat!  My cloak!
+    [He goes hastily towards the door.
+
+ELLA RENTHEIM.
+  [In terror, stopping him.]  John Gabriel, where are you going?
+
+BORKMAN.
+  Out into the storm of life, I tell you.  Let me go, Ella!
+
+ELLA RENTHEIM.
+  [Holding him back.]  No, no, I won't let you out!  You are ill.
+I can see it in your face!
+
+BORKMAN.
+  Let me go, I tell you!
+
+    [He tears himself away from her, and goes out by the hall.
+
+ELLA RENTHEIM.
+  [In the doorway.]  Help me to hold him, Gunhild!
+
+MRS. BORKMAN.
+  [Coldly and sharply, standing in the middle of the room.]  I
+will not try to hold any one in all the world.  Let them go away
+from me--both the one and the other!  As far--as far as ever they
+please.  [Suddenly, with a piercing shriek.]  Erhart, don't leave
+me!
+
+    [She rushes with outstretched arms towards the door.  ELLA
+        RENTHEIM stops her.
+
+
+
+ACT FOURTH
+
+
+An open space outside the main building, which lies to the right.
+    A projecting corner of it is visible, with a door approached by
+    a flight of low stone steps.  The background consists of steep
+    fir-clad slopes, quite close at hand.  On the left are small
+    scattered trees, forming the margin of a wood.  The snowstorm
+    has ceased; but the newly fallen snow lies deep around.  The
+    fir-branches droop under heavy loads of snow.  The night is
+    dark, with drifting clouds.  Now and then the moon gleams out
+    faintly.  Only a dim light is reflected from the snow.
+
+BORKMAN, MRS. BORKMAN and ELLA RENTHEIM are standing upon the
+    steps, BORKMAN leaning wearily against the wall of the house.
+    He has an old-fashioned cape thrown over his shoulders, holds
+    a soft grey felt hat in one hand and a thick knotted stick in
+    the other.  ELLA RENTHEIM carries her cloak over her arm.  MRS.
+    BORKMAN's great shawl has slipped down over her shoulders, so
+    that her hair is uncovered.
+
+
+ELLA RENTHEIM.
+  [Barring the way for MRS. BORKMAN.]  Don't go after him, Gunhild!
+
+MRS. BORKMAN.
+  [In fear and agitation.]  Let me pass, I say!  He must not go
+away from me!
+
+ELLA RENTHEIM.
+  It is utterly useless, I tell you!  You will never overtake him.
+
+MRS. BORKMAN.
+  Let me go, Ella!  I will cry aloud after him all down the road.
+And he must hear his mother's cry!
+
+ELLA RENTHEIM.
+  He cannot hear you.  You may be sure he is in the sledge already.
+
+MRS. BORKMAN.
+  No, no; he can't be in the sledge yet!
+
+ELLA RENTHEIM.
+  The doors are closed upon him long ago, believe me.
+
+MRS. BORKMAN.
+  [In despair.]  If he is in the sledge, then he is there with
+her, with her--her!
+
+BORKMAN.
+  [Laughing gloomily.]  Then he probably won't hear his mother's
+cry.
+
+MRS. BORKMAN.
+  No, he will not hear it.  [Listening.]  Hark! what is that?
+
+ELLA RENTHEIM.
+  [Also listening.]  It sounds like sledge-bells.
+
+MRS. BORKMAN.
+  [With a suppressed scream.]  It is her sledge!
+
+ELLA RENTHEIM.
+  Perhaps it's another.
+
+MRS. BORKMAN.
+  No, no, it is Mrs. Wilton's covered sledge!  I know the silver
+bells!  Hark!  Now they are driving right past here, at the foot
+of the hill!
+
+ELLA RENTHEIM.
+  [Quickly.]  Gunhild, if you want to cry out to him, now is the
+time!  Perhaps after all----!  [The tinkle of the bells sounds
+close at hand, in the wood.]  Make haste, Gunhild!  Now they are
+right under us!
+
+MRS. BORKMAN.
+  [Stands for a moment undecided, then she stiffens and says
+sternly and coldly.]  No.  I will not cry out to him.  Let Erhart
+Borkman pass away from me--far, far away--to what he calls life
+and happiness.
+    [The sound dies away in the distance.
+
+ELLA RENTHEIM.
+  [After a moment.]  Now the bells are out of hearing.
+
+MRS. BORKMAN.
+  They sounded like funeral bells.
+
+BORKMAN.
+  [With a dry suppressed laugh.]  Oho--it is not for me they are
+ringing to-night!
+
+MRS. BORKMAN.
+  No, but for me--and for him who has gone from me.
+
+ELLA RENTHEIM.
+  [Nodding thoughtfully.]  Who knows if, after all, they may not
+be ringing in life and happiness for him, Gunhild.
+
+MRS. BORKMAN.
+  [With sudden animation, looking hard at her.]  Life and
+happiness, you say!
+
+ELLA RENTHEIM.
+  For a little while at any rate.
+
+MRS. BORKMAN.
+  Could you endure to let him know life and happiness, with her?
+
+ELLA RENTHEIM.
+  [With warmth and feeling.]  Indeed, I could, with all my heart
+and soul!
+
+MRS. BORKMAN.
+  [Coldly.]  Then you must be richer than I am in the power of
+love.
+
+ELLA RENTHEIM.
+  [Looking far away.]  Perhaps it is the lack of love that keeps
+the power alive.
+
+MRS. BORKMAN.
+  [Fixing her eyes on her.]  If that is so, then I shall soon be
+as rich as you, Ella.
+    [She turns and goes into the house.
+
+ELLA RENTHEIM.
+  [Stands for a time looking with a troubled expression at BORKMAN;
+then lays her hand cautiously on his shoulder.]  Come, John--you
+must come in, too.
+
+BORKMAN.
+  [As if wakening.]  I?
+
+ELLA RENTHEIM.
+  Yes, this winter air is too keen for you; I can see that, John.
+So come--come in with me--into the house, into the warmth.
+
+BORKMAN.
+  [Angrily.]  Up to the gallery again, I suppose.
+
+ELLA RENTHEIM.
+  No, rather into the room below.
+
+BORKMAN.
+  [His anger flaming forth.]  Never will I set foot under that
+roof again!
+
+ELLA RENTHEIM.
+  Where will you go then?  So late, and in the dark, John?
+
+BORKMAN.
+  [Putting on his hat.]  First of all, I will go out and see to
+all my buried treasures.
+
+ELLA RENTHEIM.
+  [Looking anxiously at him.]  John--I don't understand you.
+
+BORKMAN.
+  [With laughter, interrupted by coughing.]  Oh, it is not hidden
+plunder I mean; don't be afraid of that, Ella.  [Stopping, and
+pointing outwards.]  Do you see that man there?  Who is it?
+
+    [VILHELM FOLDAL, in an old cape, covered with snow, with his
+        hat-brim turned down, and a large umbrella in his hand,
+        advances towards the corner of the house, laboriously
+        stumbling through the snow.  He is noticeably lame in
+        his left foot.
+
+BORKMAN.
+  Vilhelm!  What do you want with me again?
+
+FOLDAL.
+  [Looking up.]  Good heavens, are you out on the steps, John
+Gabriel?  [Bowing.]  And Mrs. Borkman, too, I see.
+
+BORKMAN.
+  [Shortly.]  This is not Mrs. Borkman.
+
+FOLDAL.
+  Oh, I beg pardon.  You see, I have lost my spectacles in the
+snow.  But how is it that you, who never put your foot out of
+doors----?
+
+BORKMAN.
+  [Carelessly and gaily.]  It is high time I should come out
+into the open air again, don't you see?  Nearly three years in
+detention--five years in prison--eight years in the gallery up
+there----
+
+ELLA RENTHEIM.
+  [Distressed.]  Borkman, I beg you----
+
+FOLDAL.
+  Ah yes, yes, yes!
+
+BORKMAN.
+  But I want to know what has brought you here.
+
+FOLDAL.
+  [Still standing at the foot of the steps.]  I wanted to come up
+to you, John Gabriel.  I felt I must come to you, in the gallery.
+Ah me, that gallery----!
+
+BORKMAN.
+  Did you want to come up to me after I had shown you the door?
+
+FOLDAL.
+  Oh, I couldn't let that stand in the way.
+
+BORKMAN.
+  What have you done to your foot?  I see you are limping?
+
+FOLDAL.
+  Yes, what do you think--I have been run over.
+
+ELLA RENTHEIM.
+  Run over!
+
+FOLDAL.
+  Yes, by a covered sledge.
+
+BORKMAN.
+  Oho!
+
+FOLDAL.
+  With two horses.  They came down the hill at a tearing gallop.
+I couldn't get out of the way quick enough; and so----
+
+ELLA RENTHEIM.
+  And so they ran over you?
+
+FOLDAL.
+  They came right down upon me, madam--or miss.  They came right
+upon me and sent me rolling over and over in the snow--so that I
+lost my spectacles and got my umbrella broken.  [Rubbing his leg.]
+And my ankle a little hurt too.
+
+BORKMAN.
+  [Laughing inwardly.]  Do you know who were in that sledge,
+Vilhelm?
+
+FOLDAL.
+  No, how could I see?  It was a covered sledge, and the curtains
+were down.  And the driver didn't stop a moment after he had sent
+me spinning.  But it doesn't matter a bit, for----  [With an
+outburst.]  Oh, I am so happy, so happy!
+
+BORKMAN.
+  Happy?
+
+FOLDAL.
+  Well, I don't exactly know what to call it.  But I think happy
+is the nearest word.  For something wonderful has happened!  And
+that is why I couldn't help--I had to come out and share my
+happiness with you, John Gabriel.
+
+BORKMAN.
+  [Harshly.]  Well, share away then!
+
+ELLA RENTHEIM.
+  Oh, but first take your friend indoors with you, Borkman.
+
+BORKMAN.
+  [Sternly.]  I have told you I will not go into the house.
+
+ELLA RENTHEIM.
+  But don't you hear, he has been run over!
+
+BORKMAN.
+  Oh, we are all of us run over, sometime or other in life.  The
+thing is to jump up again, and let no one see you are hurt.
+
+FOLDAL.
+  That is a profound saying, John Gabriel.  But I can easily tell
+you my story out here, in a few words.
+
+BORKMAN.
+  [More mildly.]  Yes, please do, Vilhelm.
+
+FOLDAL.
+  Well, now you shall hear!  Only think, when I got home this
+evening after I had been with you, what did I find but a letter.
+Can you guess who it was from?
+
+BORKMAN.
+  Possibly from your little Frida?
+
+FOLDAL.
+  Precisely!  Think of your hitting on it at once!  Yes, it was
+a long letter from Frida.  A footman had brought it.  And can
+you imagine what was in it?
+
+BORKMAN.
+  Perhaps it was to say good-bye to her mother and you?
+
+FOLDAL.
+  Exactly!  How good you are at guessing, John Gabriel!  Yes, she
+tells me that Mrs. Wilton has taken such a fancy to her, and she
+is to go abroad with her and study music.  And Mrs. Wilton has
+engaged a first-rate teacher who is to accompany them on the
+journey--and to read with Frida.  For unfortunately she has been
+a good deal neglected in some branches, you see.
+
+BORKMAN.
+  [Shaken with inward laughter.]  Of course, of course--I see it
+all quite clearly, Vilhelm.
+
+FOLDAL.
+  [Eagerly continuing.]  And only think, she knew nothing about
+the arrangement until this evening; at that party, you know, h'm!
+And yet she found time to write to me.  And the letter is such a
+beautiful one--so warm and affectionate, I assure you.  There is
+not a trace of contempt for her father in it.  And then what a
+delicate thought it was to say good-bye to us by letter--before
+she started.  [Laughing.]  But of course I can't let her go like
+that.
+
+BORKMAN.
+  [Looks inquiringly at him.]  How so?
+
+FOLDAL.
+  She tells me that they start early to-morrow morning; quite
+early.
+
+BORKMAN.
+  Oh indeed--to-morrow?  Does she tell you that?
+
+FOLDAL.
+  [Laughing and rubbing his hands.]  Yes; but I know a trick worth
+two of that, you see!  I am going straight up to Mrs. Wilton's----
+
+BORKMAN.
+  This evening?
+
+FOLDAL.
+  Oh, it's not so very late yet.  And even if the house is shut
+up, I shall ring; without hesitation.  For I must and will see
+Frida before she starts.  Good-night, good-night!
+    [Makes a movement to go.
+
+BORKMAN.
+  Stop a moment, my poor Vilhelm; you may spare yourself that
+heavy bit of road.
+
+FOLDAL.
+  Oh, you are thinking of my ankle----
+
+BORKMAN.
+  Yes; and in any case you won't get in at Mrs. Wilton's.
+
+FOLDAL.
+  Yes, indeed I will.  I'll go on ringing and knocking till some
+one comes and lets me in.  For I must and will see Frida.
+
+ELLA RENTHEIM.
+  Your daughter has gone already, Mr. Foldal.
+
+FOLDAL.
+  [Stands as though thunderstruck.]  Has Frida gone already!  Are
+you quite sure?  Who told you?
+
+BORKMAN.
+  We had it from her future teacher.
+
+FOLDAL.
+  Indeed?  And who is he?
+
+BORKMAN.
+  A certain Mr. Erhart Borkman.
+
+FOLDAL.
+  [Beaming with joy.]  Your son, John Gabriel?  Is he going with
+them?
+
+BORKMAN.
+  Yes; it is he that is to help Mrs. Wilton with little Frida's
+education.
+
+FOLDAL.
+  Oh, Heaven be praised!  Then the child is in the best of hands.
+But is it quite certain that they have started with her already?
+
+BORKMAN.
+  They took her away in that sledge which ran you over in the road.
+
+FOLDAL.
+  [Clasping his hands.]  To think that my little Frida was in that
+magnificent sledge!
+
+BORKMAN.
+  [Nodding.]  Yes, yes, Vilhelm, your daughter has come to drive
+in her carriage.  And Master Erhart, too.  Tell me, did you notice
+the silver bells?
+
+FOLDAL.
+  Yes, indeed.  Silver bells did you say?  Were they silver?  Real,
+genuine silver bells?
+
+BORKMAN.
+  You may be quite sure of that.  Everything was genuine--both
+outside and in.
+
+FOLDAL.
+  [In quiet emotion.]  Isn't it strange how fortune can sometimes
+befriend one?  It is my--my little gift of song that has transmuted
+itself into music in Frida.  So after all, it is not for nothing
+that I was born a poet.  For now she is going forth into the great
+wide world, that I once yearned so passionately to see.  Little
+Frida sets out in a splendid covered sledge with silver bells on
+the harness----
+
+BORKMAN.
+  And runs over her father.
+
+FOLDAL.
+  [Happily.]  Oh, pooh!  What does it matter about me, if only
+the child----!  Well, so I am too late, then, after all.  I must
+go home again and comfort her mother.  I left her crying in the
+kitchen.
+
+BORKMAN.
+  Crying?
+
+FOLDAL.
+  [Smiling.]  Yes, would you believe it, she was crying her eyes
+out when I came away.
+
+BORKMAN.
+  And you are laughing, Vilhelm?
+
+FOLDAL.
+  Yes, _I_ am, of course.  But she, poor thing, she doesn't know
+any better, you see.  Well, good-bye!  It's a good thing I have
+the tramway so handy.  Good-bye, good-bye, John Gabriel.  Good-bye,
+Madam.
+
+    [He bows and limps laboriously out by the way he came.
+
+BORKMAN.
+  [Stands silent for a moment, gazing before him.]  Good-bye,
+Vilhelm!  It is not the first time in your life that you've
+been run over, old friend.
+
+ELLA RENTHEIM.
+  [Looking at him with suppressed anxiety.]  You are so pale,
+John, so very pale.
+
+BORKMAN.
+  That is the effect of the prison air up yonder.
+
+ELLA RENTHEIM.
+  I have never seen you like this before.
+
+BORKMAN.
+  No, for I suppose you have never seen an escaped convict before.
+
+ELLA RENTHEIM.
+  Oh, do come into the house with me, John!
+
+BORKMAN.
+  It is no use trying to lure me in.  I have told you----
+
+ELLA RENTHEIM.
+  But when I beg and implore you----?  For your own sake----
+
+    [THE MAID opens the door, and stands in the doorway.
+
+THE MAID.
+  I beg your pardon.  Mrs. Borkman told me to lock the front door
+now.
+
+BORKMAN.
+  [In a low voice, to ELLA.]  You see, they want to lock me up
+again!
+
+ELLA RENTHEIM.
+  [To THE MAID.]  Mr. Borkman is not quite well.  He wants to have
+a little fresh air before coming in.
+
+THE MAID.
+  But Mrs. Borkman told me to----
+
+ELLA RENTHEIM.
+  I shall lock the door.  Just leave the key in the lock.
+
+THE MAID.
+  Oh, very well; I'll leave it.
+    [She goes into the house again.
+
+BORKMAN.
+  [Stands silent for a moment, and listens; then goes hastily
+down the steps and out into the open space.]  Now I am outside
+the walls, Ella!  Now they will never get hold of me again!
+
+ELLA RENTHEIM.
+  [Who has gone down to him.]  But you are a free man in there,
+too, John.  You can come and go just as you please.
+
+BORKMAN.
+  [Softly, as though in terror.]  Never under a roof again!  It
+is so good to be out here in the night.  If I went up into the
+gallery now, ceiling and walls would shrink together and crush
+me--crush me flat as a fly.
+
+ELLA RENTHEIM.
+  But where will you go, then?
+
+BORKMAN.
+  I will simply go on, and on, and on.  I will try if I cannot
+make my way to freedom, and life, and human beings again.  Will
+you go with me, Ella?
+
+ELLA RENTHEIM.
+  I?  Now?
+
+BORKMAN.
+  Yes, at once!
+
+ELLA RENTHEIM.
+  But how far?
+
+BORKMAN.
+  As far as ever I can.
+
+ELLA RENTHEIM.
+  Oh, but think what you are doing!  Out in this raw, cold winter
+night----
+
+BORKMAN.
+  [Speaking very hoarsely.]  Oho--my lady is concerned about her
+health?  Yes, yes--I know it is delicate.
+
+ELLA RENTHEIM.
+  It is your health I am concerned about.
+
+BORKMAN.
+  Hohoho!  A dead man's health!  I can't help laughing at you,
+Ella!  [He moves onwards.
+
+ELLA RENTHEIM.
+  [Following him: holding him back.]  What did you call yourself?
+
+BORKMAN.
+  A dead man, I said.  Don't you remember, Gunhild told me to lie
+quiet where I was?
+
+ELLA RENTHEIM.
+  [With resolution, throwing her cloak around her.]  I will go
+with you, John.
+
+BORKMAN.
+  Yes, we two belong to each other, Ella.  [Advancing.]  So come!
+
+    [They have gradually passed into the low wood on the left.
+        It conceals them little by little, until they are quite
+        lost to sight.  The house and the open space disappear.
+        The landscape, consisting of wooded slopes and ridges,
+        slowly changes and grows wilder and wilder.
+
+ELLA RENTHEIM's VOICE.
+  [Is heard in the wood to the right.]  Where are we going, John?
+I don't recognise this place.
+
+BORKMAN's VOICE.
+  [Higher up.]  Just follow my footprints in the snow!
+
+ELLA RENTHEIM's VOICE.
+  But why need we climb so high?
+
+BORKMAN's VOICE.
+  [Nearer at hand.]  We must go up the winding path.
+
+ELLA RENTHEIM.
+  [Still hidden.]  Oh, but I can't go much further.
+
+BORKMAN.
+  [On the verge of the wood to the right.]  Come, come!  We are
+not far from the view now.  There used to be a seat there.
+
+ELLA RENTHEIM.
+  [Appearing among the trees.]  Do you remember it?
+
+BORKMAN.
+  You can rest there.
+
+    [They have emerged upon a small high-lying, open plateau in
+        the wood.  The mountain rises abruptly behind them.  To
+        the left, far below, an extensive fiord landscape, with
+        high ranges in the distance, towering one above the other.
+        On the plateau, to the left, a dead fir-tree with a bench
+        under it.  The snow lies deep upon the plateau.
+
+    [BORKMAN and, after him, ELLA RENTHEIM enter from the right
+        and wade with difficulty through the snow.
+
+BORKMAN.
+  [Stopping at the verge of the steep declivity on the left.]
+Come here, Ella, and you shall see.
+
+ELLA RENTHEIM.
+  [Coming up to him.]  What do you want to show me, John?
+
+BORKMAN.
+  [Pointing outwards.]  Do you see how free and open the country
+lies before us--away to the far horizon?
+
+ELLA RENTHEIM.
+  We have often sat on this bench before, and looked out into a
+much, much further distance.
+
+BORKMAN.
+  It was a dreamland we then looked out over.
+
+ELLA RENTHEIM.
+  [Nodding sadly.]  It was the dreamland of our life, yes.  And
+now that land is buried in snow.  And the old tree is dead.
+
+BORKMAN.
+  [Not listening to her.]  Can you see the smoke of the great
+steamships out on the fiord?
+
+ELLA RENTHEIM.
+  No.
+
+BORKMAN.
+  I can.  They come and they go.  They weave a network of
+fellowship all round the world.  They shed light and warmth over
+the souls of men in many thousands of homes.  That was what I
+dreamed of doing.
+
+ELLA RENTHEIM.
+  [Softly.]  And it remained a dream.
+
+BORKMAN.
+  It remained a dream, yes.  [Listening.]  And hark, down by the
+river, dear!  The factories are working!  My factories!  All those
+that I would have created!  Listen!  Do you hear them humming?  The
+night shift is on--so they are working night and day.  Hark! hark!
+the wheels are whirling and the bands are flashing--round and
+round and round.  Can't you hear, Ella?
+
+ELLA RENTHEIM.
+  No.
+
+BORKMAN.
+  I can hear it.
+
+ELLA RENTHEIM.
+  [Anxiously.]  I think you are mistaken, John.
+
+BORKMAN.
+  [More and more fired up.]  Oh, but all these--they are only like
+the outworks around the kingdom, I tell you!
+
+ELLA RENTHEIM.
+  The kingdom, you say?  What kingdom?
+
+BORKMAN.
+  My kingdom, of course!  The kingdom I was on the point of
+conquering when I--when I died.
+
+ELLA RENTHEIM.
+  [Shaken, in a low voice.]  Oh, John, John!
+
+BORKMAN.
+  And now there it lies--defenceless, masterless--exposed to all
+the robbers and plunderers.  Ella, do you see the mountain chains
+there--far away?  They soar, they tower aloft, one behind the
+other!  That is my vast, my infinite, inexhaustible kingdom!
+
+ELLA RENTHEIM.
+  Oh, but there comes an icy blast from that kingdom, John!
+
+BORKMAN.
+  That blast is the breath of life to me.  That blast comes to
+me like a greeting from subject spirits.  I seem to touch them,
+the prisoned millions; I can see the veins of metal stretch out
+their winding, branching, luring arms to me.  I saw them before
+my eyes like living shapes, that night when I stood in the
+strong-room with the candle in my hand.  You begged to be
+liberated, and I tried to free you.  But my strength failed
+me; and the treasure sank back into the deep again.  [With
+outstretched hands.]  But I will whisper it to you here in the
+stillness of the night: I love you, as you lie there spellbound
+in the deeps and the darkness!  I love you, unborn treasures,
+yearning for the light!  I love you, with all your shining train
+of power and glory!  I love you, love you, love you!
+
+ELLA RENTHEIM.
+  [In suppressed but rising agitation.]  Yes, your love is still
+down there, John.  It has always been rooted there.  But here, in
+the light of day, here there was a living, warm, human heart that
+throbbed and glowed for you.  And this heart you crushed.  Oh worse
+than that!  Ten times worse!  You sold it for--for----
+
+BORKMAN.
+  [Trembles; a cold shudder seems to go through him.]  For the
+kingdom--and the power--and the glory--you mean?
+
+ELLA RENTHEIM.
+  Yes, that is what I mean.  I have said it once before to-night:
+you have murdered the love-life in the woman who loved you.  And
+whom you loved in return, so far as you could love any one.  [With
+uplifted arm.]  And therefore I prophesy to you, John Gabriel
+Borkman--you will never touch the price you demanded for the
+murder.  You will never enter in triumph into your cold, dark
+kingdom!
+
+BORKMAN.
+  [Staggers to the bench and seats himself heavily.]  I almost
+fear your prophecy will come true, Ella.
+
+ELLA RENTHEIM.
+  [Going up to him.]  You must not fear it, John.  That is the
+best thing that can happen to you.
+
+BORKMAN.
+  [With a shriek; clutching at his breast.]  Ah----!  [Feebly.]
+Now it let me go again.
+
+ELLA RENTHEIM.
+  [Shaking him.]  What was it, John?
+
+BORKMAN.
+  [Sinking down against the back of the seat.]  It was a hand of
+ice that clutched at my heart.
+
+ELLA RENTHEIM.
+  John!  Did you feel the ice-hand again!
+
+BORKMAN.
+  [Murmurs.]  No.  No ice-hand.  It was a metal hand.
+    [He sinks right down upon the bench.
+
+ELLA RENTHEIM.
+  [Tears off her cloak and throws it over him.]  Lie still where
+you are!  I will go and bring help for you.
+
+    [She goes a step or two towards the right; then she stops,
+        returns, and carefully feels his pulse and touches his
+        face.
+
+ELLA RENTHEIM.
+  [Softly and firmly.]  No.  It is best so, John Borkman.  Best
+for you.
+
+    [She spreads the cloak closer around him, and sinks down in
+        the snow in front of the bench.  A short silence.
+
+    [MRS. BORKMAN, wrapped in a mantle, comes through the wood
+        on the right.  THE MAID goes before her carrying a lantern.
+
+THE MAID.
+  [Throwing the light upon the snow.]  Yes, yes, ma'am, here are
+their tracks.
+
+MRS. BORKMAN.
+  [Peering around.]  Yes, here they are!  They are sitting there
+on the bench.  [Calls.]  Ella!
+
+ELLA RENTHEIM.
+  [Rising.]  Are you looking for us?
+
+MRS. BORKMAN.
+  [Sternly.]  Yes, you see I have to.
+
+ELLA RENTHEIM.
+  [Pointing.]  Look, there he lies, Gunhild.
+
+MRS. BORKMAN.
+  Sleeping?
+
+ELLA RENTHEIM.
+  A long, deep sleep, I think.
+
+MRS. BORKMAN.
+  [With an outburst.]  Ella!  [Controls herself and asks in a low
+voice.]  Did he do it--of his own accord?
+
+ELLA RENTHEIM.
+  No.
+
+MRS. BORKMAN.
+  [Relieved.]  Not by his own hand then?
+
+ELLA RENTHEIM.
+  No.  It was an ice-cold metal hand that gripped him by the heart.
+
+MRS. BORKMAN.
+  [To THE MAID.]  Go for help.  Get the men to come up from the
+farm.
+
+THE MAID.
+  Yes, I will, ma'am.  [To herself.]  Lord save us!
+    [She goes out through the wood to the right.
+
+MRS. BORKMAN.
+  [Standing behind the bench.]  So the night air has killed him----
+
+ELLA RENTHEIM.
+  So it appears.
+
+MRS. BORKMAN.
+  ----strong man that he was.
+
+ELLA RENTHEIM.
+  [Coming in front of the bench.]  Will you not look at him,
+Gunhild?
+
+MRS. BORKMAN.
+  [With a gesture of repulsion.]  No, no, no.  [Lowering her
+voice.]  He was a miner's son, John Gabriel Borkman.  He could
+not live in the fresh air.
+
+ELLA RENTHEIM.
+  It was rather the cold that killed him.
+
+MRS. BORKMAN.
+  [Shakes her head.]  The cold, you say?  The cold--that had
+killed him long ago.
+
+ELLA RENTHEIM.
+  [Nodding to her.]  Yes--and changed us two into shadows.
+
+MRS. BORKMAN.
+  You are right there.
+
+ELLA RENTHEIM.
+  [With a painful smile.]  A dead man and two shadows--that is
+what the cold has made of us.
+
+MRS. BORKMAN.
+  Yes, the coldness of heart.--And now I think we two may hold
+out our hands to each other, Ella.
+
+ELLA RENTHEIM.
+  I think we may, now.
+
+MRS. BORKMAN.
+  We twin sisters--over him we have both loved.
+
+ELLA RENTHEIM.
+  We two shadows--over the dead man.
+
+    [MRS. BORKMAN behind the bench, and ELLA RENTHEIM in front
+        of it, take each other's hand.
+
+
+
+***END OF THE PROJECT GUTENBERG EBOOK JOHN GABRIEL BORKMAN***
+
+
+******* This file should be named 18792.txt or 18792.zip *******
+
+
+This and all associated files of various formats will be found in:
+http://www.gutenberg.org/dirs/1/8/7/9/18792
+
+
+
+Updated editions will replace the previous one--the old editions
+will be renamed.
+
+Creating the works from public domain print editions means that no
+one owns a United States copyright in these works, so the Foundation
+(and you!) can copy and distribute it in the United States without
+permission and without paying copyright royalties.  Special rules,
+set forth in the General Terms of Use part of this license, apply to
+copying and distributing Project Gutenberg-tm electronic works to
+protect the PROJECT GUTENBERG-tm concept and trademark.  Project
+Gutenberg is a registered trademark, and may not be used if you
+charge for the eBooks, unless you receive specific permission.  If you
+do not charge anything for copies of this eBook, complying with the
+rules is very easy.  You may use this eBook for nearly any purpose
+such as creation of derivative works, reports, performances and
+research.  They may be modified and printed and given away--you may do
+practically ANYTHING with public domain eBooks.  Redistribution is
+subject to the trademark license, especially commercial
+redistribution.
+
+
+
+*** START: FULL LICENSE ***
+
+THE FULL PROJECT GUTENBERG LICENSE
+PLEASE READ THIS BEFORE YOU DISTRIBUTE OR USE THIS WORK
+
+To protect the Project Gutenberg-tm mission of promoting the free
+distribution of electronic works, by using or distributing this work
+(or any other work associated in any way with the phrase "Project
+Gutenberg"), you agree to comply with all the terms of the Full Project
+Gutenberg-tm License (available with this file or online at
+http://www.gutenberg.org/license).
+
+
+Section 1.  General Terms of Use and Redistributing Project Gutenberg-tm
+electronic works
+
+1.A.  By reading or using any part of this Project Gutenberg-tm
+electronic work, you indicate that you have read, understand, agree to
+and accept all the terms of this license and intellectual property
+(trademark/copyright) agreement.  If you do not agree to abide by all
+the terms of this agreement, you must cease using and return or destroy
+all copies of Project Gutenberg-tm electronic works in your possession.
+If you paid a fee for obtaining a copy of or access to a Project
+Gutenberg-tm electronic work and you do not agree to be bound by the
+terms of this agreement, you may obtain a refund from the person or
+entity to whom you paid the fee as set forth in paragraph 1.E.8.
+
+1.B.  "Project Gutenberg" is a registered trademark.  It may only be
+used on or associated in any way with an electronic work by people who
+agree to be bound by the terms of this agreement.  There are a few
+things that you can do with most Project Gutenberg-tm electronic works
+even without complying with the full terms of this agreement.  See
+paragraph 1.C below.  There are a lot of things you can do with Project
+Gutenberg-tm electronic works if you follow the terms of this agreement
+and help preserve free future access to Project Gutenberg-tm electronic
+works.  See paragraph 1.E below.
+
+1.C.  The Project Gutenberg Literary Archive Foundation ("the Foundation"
+or PGLAF), owns a compilation copyright in the collection of Project
+Gutenberg-tm electronic works.  Nearly all the individual works in the
+collection are in the public domain in the United States.  If an
+individual work is in the public domain in the United States and you are
+located in the United States, we do not claim a right to prevent you from
+copying, distributing, performing, displaying or creating derivative
+works based on the work as long as all references to Project Gutenberg
+are removed.  Of course, we hope that you will support the Project
+Gutenberg-tm mission of promoting free access to electronic works by
+freely sharing Project Gutenberg-tm works in compliance with the terms of
+this agreement for keeping the Project Gutenberg-tm name associated with
+the work.  You can easily comply with the terms of this agreement by
+keeping this work in the same format with its attached full Project
+Gutenberg-tm License when you share it without charge with others.
+
+1.D.  The copyright laws of the place where you are located also govern
+what you can do with this work.  Copyright laws in most countries are in
+a constant state of change.  If you are outside the United States, check
+the laws of your country in addition to the terms of this agreement
+before downloading, copying, displaying, performing, distributing or
+creating derivative works based on this work or any other Project
+Gutenberg-tm work.  The Foundation makes no representations concerning
+the copyright status of any work in any country outside the United
+States.
+
+1.E.  Unless you have removed all references to Project Gutenberg:
+
+1.E.1.  The following sentence, with active links to, or other immediate
+access to, the full Project Gutenberg-tm License must appear prominently
+whenever any copy of a Project Gutenberg-tm work (any work on which the
+phrase "Project Gutenberg" appears, or with which the phrase "Project
+Gutenberg" is associated) is accessed, displayed, performed, viewed,
+copied or distributed:
+
+This eBook is for the use of anyone anywhere at no cost and with
+almost no restrictions whatsoever.  You may copy it, give it away or
+re-use it under the terms of the Project Gutenberg License included
+with this eBook or online at www.gutenberg.org
+
+1.E.2.  If an individual Project Gutenberg-tm electronic work is derived
+from the public domain (does not contain a notice indicating that it is
+posted with permission of the copyright holder), the work can be copied
+and distributed to anyone in the United States without paying any fees
+or charges.  If you are redistributing or providing access to a work
+with the phrase "Project Gutenberg" associated with or appearing on the
+work, you must comply either with the requirements of paragraphs 1.E.1
+through 1.E.7 or obtain permission for the use of the work and the
+Project Gutenberg-tm trademark as set forth in paragraphs 1.E.8 or
+1.E.9.
+
+1.E.3.  If an individual Project Gutenberg-tm electronic work is posted
+with the permission of the copyright holder, your use and distribution
+must comply with both paragraphs 1.E.1 through 1.E.7 and any additional
+terms imposed by the copyright holder.  Additional terms will be linked
+to the Project Gutenberg-tm License for all works posted with the
+permission of the copyright holder found at the beginning of this work.
+
+1.E.4.  Do not unlink or detach or remove the full Project Gutenberg-tm
+License terms from this work, or any files containing a part of this
+work or any other work associated with Project Gutenberg-tm.
+
+1.E.5.  Do not copy, display, perform, distribute or redistribute this
+electronic work, or any part of this electronic work, without
+prominently displaying the sentence set forth in paragraph 1.E.1 with
+active links or immediate access to the full terms of the Project
+Gutenberg-tm License.
+
+1.E.6.  You may convert to and distribute this work in any binary,
+compressed, marked up, nonproprietary or proprietary form, including any
+word processing or hypertext form.  However, if you provide access to or
+distribute copies of a Project Gutenberg-tm work in a format other than
+"Plain Vanilla ASCII" or other format used in the official version
+posted on the official Project Gutenberg-tm web site (www.gutenberg.org),
+you must, at no additional cost, fee or expense to the user, provide a
+copy, a means of exporting a copy, or a means of obtaining a copy upon
+request, of the work in its original "Plain Vanilla ASCII" or other
+form.  Any alternate format must include the full Project Gutenberg-tm
+License as specified in paragraph 1.E.1.
+
+1.E.7.  Do not charge a fee for access to, viewing, displaying,
+performing, copying or distributing any Project Gutenberg-tm works
+unless you comply with paragraph 1.E.8 or 1.E.9.
+
+1.E.8.  You may charge a reasonable fee for copies of or providing
+access to or distributing Project Gutenberg-tm electronic works provided
+that
+
+- You pay a royalty fee of 20% of the gross profits you derive from
+     the use of Project Gutenberg-tm works calculated using the method
+     you already use to calculate your applicable taxes.  The fee is
+     owed to the owner of the Project Gutenberg-tm trademark, but he
+     has agreed to donate royalties under this paragraph to the
+     Project Gutenberg Literary Archive Foundation.  Royalty payments
+     must be paid within 60 days following each date on which you
+     prepare (or are legally required to prepare) your periodic tax
+     returns.  Royalty payments should be clearly marked as such and
+     sent to the Project Gutenberg Literary Archive Foundation at the
+     address specified in Section 4, "Information about donations to
+     the Project Gutenberg Literary Archive Foundation."
+
+- You provide a full refund of any money paid by a user who notifies
+     you in writing (or by e-mail) within 30 days of receipt that s/he
+     does not agree to the terms of the full Project Gutenberg-tm
+     License.  You must require such a user to return or
+     destroy all copies of the works possessed in a physical medium
+     and discontinue all use of and all access to other copies of
+     Project Gutenberg-tm works.
+
+- You provide, in accordance with paragraph 1.F.3, a full refund of any
+     money paid for a work or a replacement copy, if a defect in the
+     electronic work is discovered and reported to you within 90 days
+     of receipt of the work.
+
+- You comply with all other terms of this agreement for free
+     distribution of Project Gutenberg-tm works.
+
+1.E.9.  If you wish to charge a fee or distribute a Project Gutenberg-tm
+electronic work or group of works on different terms than are set
+forth in this agreement, you must obtain permission in writing from
+both the Project Gutenberg Literary Archive Foundation and Michael
+Hart, the owner of the Project Gutenberg-tm trademark.  Contact the
+Foundation as set forth in Section 3 below.
+
+1.F.
+
+1.F.1.  Project Gutenberg volunteers and employees expend considerable
+effort to identify, do copyright research on, transcribe and proofread
+public domain works in creating the Project Gutenberg-tm
+collection.  Despite these efforts, Project Gutenberg-tm electronic
+works, and the medium on which they may be stored, may contain
+"Defects," such as, but not limited to, incomplete, inaccurate or
+corrupt data, transcription errors, a copyright or other intellectual
+property infringement, a defective or damaged disk or other medium, a
+computer virus, or computer codes that damage or cannot be read by
+your equipment.
+
+1.F.2.  LIMITED WARRANTY, DISCLAIMER OF DAMAGES - Except for the "Right
+of Replacement or Refund" described in paragraph 1.F.3, the Project
+Gutenberg Literary Archive Foundation, the owner of the Project
+Gutenberg-tm trademark, and any other party distributing a Project
+Gutenberg-tm electronic work under this agreement, disclaim all
+liability to you for damages, costs and expenses, including legal
+fees.  YOU AGREE THAT YOU HAVE NO REMEDIES FOR NEGLIGENCE, STRICT
+LIABILITY, BREACH OF WARRANTY OR BREACH OF CONTRACT EXCEPT THOSE
+PROVIDED IN PARAGRAPH F3.  YOU AGREE THAT THE FOUNDATION, THE
+TRADEMARK OWNER, AND ANY DISTRIBUTOR UNDER THIS AGREEMENT WILL NOT BE
+LIABLE TO YOU FOR ACTUAL, DIRECT, INDIRECT, CONSEQUENTIAL, PUNITIVE OR
+INCIDENTAL DAMAGES EVEN IF YOU GIVE NOTICE OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+1.F.3.  LIMITED RIGHT OF REPLACEMENT OR REFUND - If you discover a
+defect in this electronic work within 90 days of receiving it, you can
+receive a refund of the money (if any) you paid for it by sending a
+written explanation to the person you received the work from.  If you
+received the work on a physical medium, you must return the medium with
+your written explanation.  The person or entity that provided you with
+the defective work may elect to provide a replacement copy in lieu of a
+refund.  If you received the work electronically, the person or entity
+providing it to you may choose to give you a second opportunity to
+receive the work electronically in lieu of a refund.  If the second copy
+is also defective, you may demand a refund in writing without further
+opportunities to fix the problem.
+
+1.F.4.  Except for the limited right of replacement or refund set forth
+in paragraph 1.F.3, this work is provided to you 'AS-IS', WITH NO OTHER
+WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+WARRANTIES OF MERCHANTIBILITY OR FITNESS FOR ANY PURPOSE.
+
+1.F.5.  Some states do not allow disclaimers of certain implied
+warranties or the exclusion or limitation of certain types of damages.
+If any disclaimer or limitation set forth in this agreement violates the
+law of the state applicable to this agreement, the agreement shall be
+interpreted to make the maximum disclaimer or limitation permitted by
+the applicable state law.  The invalidity or unenforceability of any
+provision of this agreement shall not void the remaining provisions.
+
+1.F.6.  INDEMNITY - You agree to indemnify and hold the Foundation, the
+trademark owner, any agent or employee of the Foundation, anyone
+providing copies of Project Gutenberg-tm electronic works in accordance
+with this agreement, and any volunteers associated with the production,
+promotion and distribution of Project Gutenberg-tm electronic works,
+harmless from all liability, costs and expenses, including legal fees,
+that arise directly or indirectly from any of the following which you do
+or cause to occur: (a) distribution of this or any Project Gutenberg-tm
+work, (b) alteration, modification, or additions or deletions to any
+Project Gutenberg-tm work, and (c) any Defect you cause.
+
+
+Section  2.  Information about the Mission of Project Gutenberg-tm
+
+Project Gutenberg-tm is synonymous with the free distribution of
+electronic works in formats readable by the widest variety of computers
+including obsolete, old, middle-aged and new computers.  It exists
+because of the efforts of hundreds of volunteers and donations from
+people in all walks of life.
+
+Volunteers and financial support to provide volunteers with the
+assistance they need, is critical to reaching Project Gutenberg-tm's
+goals and ensuring that the Project Gutenberg-tm collection will
+remain freely available for generations to come.  In 2001, the Project
+Gutenberg Literary Archive Foundation was created to provide a secure
+and permanent future for Project Gutenberg-tm and future generations.
+To learn more about the Project Gutenberg Literary Archive Foundation
+and how your efforts and donations can help, see Sections 3 and 4
+and the Foundation web page at http://www.gutenberg.org/fundraising/pglaf.
+
+
+Section 3.  Information about the Project Gutenberg Literary Archive
+Foundation
+
+The Project Gutenberg Literary Archive Foundation is a non profit
+501(c)(3) educational corporation organized under the laws of the
+state of Mississippi and granted tax exempt status by the Internal
+Revenue Service.  The Foundation's EIN or federal tax identification
+number is 64-6221541.  Contributions to the Project Gutenberg
+Literary Archive Foundation are tax deductible to the full extent
+permitted by U.S. federal laws and your state's laws.
+
+The Foundation's principal office is located at 4557 Melan Dr. S.
+Fairbanks, AK, 99712., but its volunteers and employees are scattered
+throughout numerous locations.  Its business office is located at
+809 North 1500 West, Salt Lake City, UT 84116, (801) 596-1887, email
+business@pglaf.org.  Email contact links and up to date contact
+information can be found at the Foundation's web site and official
+page at http://www.gutenberg.org/about/contact
+
+For additional contact information:
+     Dr. Gregory B. Newby
+     Chief Executive and Director
+     gbnewby@pglaf.org
+
+Section 4.  Information about Donations to the Project Gutenberg
+Literary Archive Foundation
+
+Project Gutenberg-tm depends upon and cannot survive without wide
+spread public support and donations to carry out its mission of
+increasing the number of public domain and licensed works that can be
+freely distributed in machine readable form accessible by the widest
+array of equipment including outdated equipment.  Many small donations
+($1 to $5,000) are particularly important to maintaining tax exempt
+status with the IRS.
+
+The Foundation is committed to complying with the laws regulating
+charities and charitable donations in all 50 states of the United
+States.  Compliance requirements are not uniform and it takes a
+considerable effort, much paperwork and many fees to meet and keep up
+with these requirements.  We do not solicit donations in locations
+where we have not received written confirmation of compliance.  To
+SEND DONATIONS or determine the status of compliance for any
+particular state visit http://www.gutenberg.org/fundraising/donate
+
+While we cannot and do not solicit contributions from states where we
+have not met the solicitation requirements, we know of no prohibition
+against accepting unsolicited donations from donors in such states who
+approach us with offers to donate.
+
+International donations are gratefully accepted, but we cannot make
+any statements concerning tax treatment of donations received from
+outside the United States.  U.S. laws alone swamp our small staff.
+
+Please check the Project Gutenberg Web pages for current donation
+methods and addresses.  Donations are accepted in a number of other
+ways including checks, online payments and credit card donations.
+To donate, please visit:
+http://www.gutenberg.org/fundraising/donate
+
+
+Section 5.  General Information About Project Gutenberg-tm electronic
+works.
+
+Professor Michael S. Hart is the originator of the Project Gutenberg-tm
+concept of a library of electronic works that could be freely shared
+with anyone.  For thirty years, he produced and distributed Project
+Gutenberg-tm eBooks with only a loose network of volunteer support.
+
+Project Gutenberg-tm eBooks are often created from several printed
+editions, all of which are confirmed as Public Domain in the U.S.
+unless a copyright notice is included.  Thus, we do not necessarily
+keep eBooks in compliance with any particular paper edition.
+
+Most people start at our Web site which has the main PG search facility:
+
+     http://www.gutenberg.org
+
+This Web site includes information about Project Gutenberg-tm,
+including how to make donations to the Project Gutenberg Literary
+Archive Foundation, how to help produce our new eBooks, and how to
+subscribe to our email newsletter to hear about new eBooks.
+
