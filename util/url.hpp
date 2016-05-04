@@ -75,6 +75,8 @@ namespace url {
   inline uint8_t hex_error(char nibble){
 #ifdef URL_THROW_ON_ERROR
     throw Hex_error(std::string("Not a hex character: ") + nibble);
+#else
+    (void) nibble;
 #endif
     return 0;
   }
@@ -134,7 +136,6 @@ namespace url {
       std::string res ="";
     for (auto it = input.begin(); it != input.end(); it++) {
       if (*it == '%') {
-
 
         if (++it >= input.end()) return decode_error(res);
         uint8_t nibble1 = *(it);
