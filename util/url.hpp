@@ -81,10 +81,6 @@ namespace url {
     return 0;
   }
 
-
-  const char hex[16] =
-    {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
-
   inline uint8_t from_hex(char digit){
     if (digit >= '0' and digit <= '9')
       return digit - '0';
@@ -103,12 +99,11 @@ namespace url {
   }
 
   inline bool is_reserved (char chr) {
-    static const char reserved[18] =
-      {':' , '/' , '?' , '#' , '[' , ']' , '@',
-       '!' , '$' , '&' , '\'' , '(' , ')' , '*' , '+' , ',' , ';' , '='};
+    static const std::array<char,18> reserved
+    {{':' , '/' , '?' , '#' , '[' , ']' , '@',
+          '!' , '$' , '&' , '\'' , '(' , ')' , '*' , '+' , ',' , ';' , '='}};
 
-    return std::find(reserved, reserved + sizeof(reserved), chr)
-      < reserved + sizeof(reserved);
+    return std::find(reserved.begin(), reserved.end(), chr) < reserved.end();
   }
 
   inline bool is_unreserved (char chr) {
@@ -117,6 +112,9 @@ namespace url {
 
   /** URL-encode (percent-encode) a span of bytes */
   inline std::string encode(gsl::span<const char> input){
+    static const std::array<char,16> hex =
+      {{ '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }};
+
     std::string res;
 
     for (unsigned char chr : input)
