@@ -8,6 +8,7 @@
 
 class Async
 {
+public:
   static const size_t PAYLOAD_SIZE = 64000;
   
   typedef net::TCP::Connection_ptr Connection;
