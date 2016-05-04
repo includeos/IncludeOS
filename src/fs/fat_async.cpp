@@ -159,10 +159,15 @@ namespace fs
       callback({ error_t::E_IO, "Zero read length" }, buffer_t(), 0);
       return;
     }
+    // bounds check the read position and length
+    uint32_t stapos = std::min(ent.size(), pos);
+    uint32_t endpos = std::min(ent.size(), pos + n);
+    // new length
+    n = endpos - stapos;
     // calculate start and length in sectors
-    uint32_t sector = pos / this->sector_size;
-    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
-    uint32_t internal_ofs = pos % device.block_size();
+    uint32_t sector = stapos / this->sector_size;
+    uint32_t nsect = roundup(endpos, sector_size) / sector_size - sector;
+    uint32_t internal_ofs = stapos % device.block_size();
     
     // cluster -> sector + position
     device.read(this->cl_to_sector(ent.block) + sector, nsect,
@@ -175,12 +180,15 @@ namespace fs
         return;
       }
       
-      // allocate buffer & copy data
-      auto* result = new uint8_t[n];
-      memcpy(result, data.get() + internal_ofs, n);
+      // when the offset is non-zero we aren't on a sector boundary
+      if (internal_ofs != 0) {
+        // so, we need to copy offset data to data buffer
+        auto* result = new uint8_t[n];
+        memcpy(result, data.get() + internal_ofs, n);
+        data = buffer_t(result, std::default_delete<uint8_t[]>());
+      }
       
-      auto buffer = buffer_t(result, std::default_delete<uint8_t[]>());
-      callback(no_error, buffer, n);
+      callback(no_error, data, n);
     });
   }
   

@@ -20,9 +20,14 @@ namespace fs
 {
   Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
   {
+    // bounds check the read position and length
+    uint32_t stapos = std::min(ent.size(), pos);
+    uint32_t endpos = std::min(ent.size(), pos + n);
+    // new length
+    n = endpos - stapos;
     // cluster -> sector + position
-    uint32_t sector = pos / this->sector_size;
-    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
+    uint32_t sector = stapos / this->sector_size;
+    uint32_t nsect = roundup(endpos, sector_size) / sector_size - sector;
     
     // the resulting buffer
     uint8_t* result = new uint8_t[n];
@@ -30,12 +35,15 @@ namespace fs
     // read @nsect sectors ahead
     buffer_t data = device.read_sync(this->cl_to_sector(ent.block) + sector, nsect);
     // where to start copying from the device result
-    uint32_t internal_ofs = pos % device.block_size();
-    // copy data to result buffer
-    memcpy(result, data.get() + internal_ofs, n);
-    auto buffer = buffer_t(result, std::default_delete<uint8_t[]>());
+    uint32_t internal_ofs = stapos % device.block_size();
+    // when the offset is non-zero we aren't on a sector boundary
+    if (internal_ofs != 0) {
+      // so, we need to copy offset data to data buffer
+      memcpy(result, data.get() + internal_ofs, n);
+      data = buffer_t(result, std::default_delete<uint8_t[]>());
+    }
     
-    return Buffer(no_error, buffer, n);
+    return Buffer(no_error, data, n);
   }
   
   Buffer FAT::readFile(const std::string& strpath)
