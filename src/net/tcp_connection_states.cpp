@@ -1085,7 +1085,7 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
   if(in->isset(FIN)) {
     process_fin(tcp, in);
     tcp.set_state(Connection::CloseWait::instance());
-    return CLOSE;
+    return OK;
   }
 
   return OK;
