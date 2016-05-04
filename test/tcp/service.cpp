@@ -61,10 +61,10 @@ void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
   hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
       INFO("TEST", "Verify release of resources");
-      CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
-      CHECK(inet->buffers_available() == buffers_available,
-            "inet->buffers_available() == buffers_available");
-      INFO("Buffers available", "%u", inet->buffers_available());
+      CHECK(inet->tcp().activeConnections() == 0, 
+        "tcp.activeConnections() == 0");
+      CHECK(inet->buffers_available() == buffers_available, 
+        "inet->buffers_available() == buffers_available");
       printf("# TEST SUCCESS #\n");
     });
 }
@@ -153,7 +153,7 @@ void print_stuff()
 
 void Service::start()
 {
-  hw::PIT::on_timeout(5.0, print_stuff);
+  //hw::PIT::on_timeout(5.0, print_stuff);
   
   IP4::addr A1 (255, 255, 255, 255);
   IP4::addr B1 (  0, 255, 255, 255);

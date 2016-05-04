@@ -101,14 +101,13 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(WriteBuffer buffer, WriteCallback callback) {
   try {
+    // try to write
     auto written = state_->send(*this, buffer);
-    buffer.advance(written);
-
-    if(!buffer.remaining) {
-      callback(buffer.offset);
-    }
-    else {
-      writeq.emplace(buffer, callback);
+    // put request in line
+    writeq.push_back({buffer, callback});
+    // if data was written, advance
+    if(written) {
+      writeq.advance(written);  
     }
   }
   catch(TCPException err) {
@@ -129,25 +128,19 @@ void Connection::offer(size_t& packets) {
     auto packet = create_outgoing_packet();
     packets--;
 
-    // get the first buffer in queue
-    auto& buf = writeq.front().first;
+    // get next request in writeq
+    auto& buf = writeq.nxt();
     // fill the packet with data
-    auto written = fill_packet(packet, (char*)buf.pos(), std::min(buf.remaining, (size_t)SMSS()));
-    // advance the buffer
-    buf.advance(written);
+    auto written = fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+    cb.SND.NXT += packet->data_length();
+
+    // advance the write q
+    writeq.advance(written);
 
     debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
     transmit(packet);
-    
-    // if finished
-    if(!buf.remaining) {
-      // callback and remove object
-      writeq.front().second(buf.offset);
-      writeq.pop();
-      debug("<TCP::Connection::offer> Request finished.\n");
-    }
   }
 
   debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
@@ -167,7 +160,8 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     auto packet = create_outgoing_packet();
     packets_avail--;
 
-    auto written = fill_packet(packet, buffer+bytes_written, std::min(remaining, (size_t)SMSS()));
+    auto written = fill_packet(packet, buffer+bytes_written, remaining, cb.SND.NXT);
+    cb.SND.NXT += packet->data_length();
 
     bytes_written += written;
     remaining -= written;
@@ -217,24 +211,21 @@ void Connection::make_flight_ready(Packet_ptr packet) {
 }*/
 
 void Connection::writeq_push() {
-  while(!writeq.empty()) {
-    auto& buf = writeq.front().first;
+  while(writeq.remaining_requests()) {
+    auto& buf = writeq.nxt();
     auto written = host_.send(shared_from_this(), (char*)buf.pos(), buf.remaining);
-    buf.advance(written);
+    writeq.advance(written);
     if(buf.remaining)
       return;
-    writeq.front().second(buf.offset);
-    writeq.pop();
   }
 }
 
-size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n) {
+size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n, Seq seq) {
   Expects(!packet->has_data());
 
-  auto written = packet->fill(buffer, n);
+  auto written = packet->fill(buffer, std::min(n, (size_t)SMSS()));
 
-  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
-  cb.SND.NXT += packet->data_length();
+  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
 
   Ensures(written <= n);
 
@@ -247,25 +238,21 @@ void Connection::limited_tx() {
 
   debug("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
 
-  auto& buf = writeq.front().first;
-  auto written = fill_packet(packet, (char*)buf.pos(), std::min(buf.remaining, (uint32_t)SMSS()));
+  auto& buf = writeq.nxt();
+
+  auto written = fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+  cb.SND.NXT += packet->data_length();
   
-  buf.advance(written);
+  writeq.advance(written);
 
   transmit(packet);
-
-  if(buf.remaining)
-    return;
-
-  writeq.front().second(buf.offset);
-  writeq.pop();
 }
 
 void Connection::writeq_reset() {
   while(!writeq.empty()) {
-    auto& job = writeq.front();
+    auto& job = writeq.q.front();
     job.second(job.first.offset);
-    writeq.pop();
+    writeq.q.pop_front();
   }
 }
 
@@ -322,7 +309,7 @@ void Connection::segment_arrived(TCP::Packet_ptr incoming) {
   }
   case State::CLOSED: {
     debug("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
-    rtx_clear();
+    writeq_reset();
     signal_close();
     break;
   };
@@ -365,7 +352,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
 }
 
 void Connection::transmit(TCP::Packet_ptr packet) {
-  if(!rttm.active) {
+  if(!rttm.active and packet->end() == cb.SND.NXT) {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
     rttm.start();
   }
@@ -375,34 +362,21 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
   host_.transmit(packet);
-  if(packet->has_data())
-    rtx_q.push_back(packet);
-  if(!rtx_timer.active)
-    rtx_start();
+  if(packet->has_data() and !rtx_timer.active) {
+    rtx_start();  
+  }
 }
+
 bool Connection::can_send_one() {
-  return send_window() >= SMSS() and !writeq.empty();
+  return send_window() >= SMSS() and writeq.remaining_requests();
 }
 
 bool Connection::can_send() {
-  return (usable_window() >= SMSS()) and !writeq.empty();
+  return (usable_window() >= SMSS()) and writeq.remaining_requests();
 }
 
 void Connection::send_much() {
   writeq_push();
-  /*while(can_send()) {
-    auto& buf = writeq.front().first;
-    auto written = send((char*)buf.pos(), std::min(buf.remaining, (uint32_t)RMSS()), create_outgoing_packet());
-    bytes_written += written;
-    buf.advance(written);
-    if(!buf.remaining) {
-      writeq.front().second(buf.offset);
-      writeq.pop();
-    }
-  }*/
-
-  //printf("<Connection::send_much> Prev UW: %u UW: %u CW: %u, FS: %u BW: %u\n",
-  //  uw, usable_window(), cb.cwnd, flight_size(), bytes_written);
 }
 
 bool Connection::handle_ack(TCP::Packet_ptr in) {
@@ -435,7 +409,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
 
     acks_rcvd_++;
 
-    debug2("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_, 
+    debug("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_, 
       in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
@@ -446,8 +420,9 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
     size_t bytes_acked = in->ack() - cb.SND.UNA;
     cb.SND.UNA = in->ack();
 
-    // ack everything in rtx queue
-    rtx_ack(in->ack());
+    // ack everything in write queue
+    if(!writeq.empty())
+      rtx_ack(in->ack());
 
     // update cwnd when congestion avoidance?
     bool cong_avoid_rtt = false;
@@ -549,7 +524,7 @@ void Connection::on_dup_ack() {
 
     if(limited_tx_) {
       // try to send one segment
-      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and !writeq.empty()) {
+      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.remaining_requests()) {
         limited_tx();
       }  
     }
@@ -588,43 +563,38 @@ void Connection::on_dup_ack() {
          (for the current value of RTO).
 */
 void Connection::rtx_ack(const Seq ack) {
-  auto x = rtx_q.size();
-  while(!rtx_q.empty()) {
-    if(rtx_q.front()->is_acked_by(ack))
-      rtx_q.pop_front();
-    else
-      break;
-  }
+  auto acked = ack - prev_highest_ack_;
+  writeq.acknowledge(acked);
   /*
     When all outstanding data has been acknowledged, turn off the
     retransmission timer.
   */
-  if(rtx_q.empty() and rtx_timer.active) {
+  if(cb.SND.UNA == cb.SND.NXT) {
     rtx_stop();
+    rto_attempt = 0;
   }
   /*
     When an ACK is received that acknowledges new data, restart the
     retransmission timer so that it will expire after RTO seconds
     (for the current value of RTO).
   */
-  else if(x - rtx_q.size() > 0) {
-    rto_attempt = 0;
+  else if(acked > 0) {
     rtx_reset();
+    rto_attempt = 0;
   }
+  
   //printf("<TCP::Connection::rt_acknowledge> ACK'ed %u packets. rtx_q: %u\n",
   //  x-rtx_q.size(), rtx_q.size());
 }
 
 
 void Connection::retransmit() {
-  if(rtx_q.empty())
-    return;
-  auto packet = rtx_q.front();
-  packet->clear_flag(PSH);
+  auto packet = create_outgoing_packet();
+  auto& buf = writeq.una();
+  fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
+  packet->set_flag(ACK);
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
   debug("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
-  Ensures(packet->tail() == nullptr);
-  Ensures(packet->last_in_chain() == nullptr);
   host_.transmit(packet);
   /*
     Every time a packet containing data is sent (including a
@@ -632,20 +602,21 @@ void Connection::retransmit() {
     so that it will expire after RTO seconds (for the current value
     of RTO).
   */
-  //if(!rt_timer.active)
-  //  rt_start();
+  if(packet->has_data() and !rtx_timer.active) {
+    rtx_start();  
+  }
 }
 
 void Connection::rtx_start() {
-  assert(!rtx_timer.active);
+  Expects(!rtx_timer.active);
   auto i = rtx_timer.i;
   auto rto = rttm.RTO;
   rtx_timer.iter = hw::PIT::instance().on_timeout(rttm.RTO,
   [this, i, rto]
   {
     rtx_timer.active = false;
-    debug("<TCP::Connection::RTO@timeout> %i Timed out (%f). rt_q: %u, i: %u rt_i: %u\n",
-      local_port_, rto, rtx_q.size(), i, rtx_timer.i);
+    printf("<TCP::Connection::RTO@timeout> %i Timed out (%f). FS: %u, i: %u rt_i: %u\n",
+      local_port_, rto, flight_size(), i, rtx_timer.i);
     rtx_timeout();
   });
   rtx_timer.i++;
@@ -653,22 +624,14 @@ void Connection::rtx_start() {
 }
 
 void Connection::rtx_stop() {
-  assert(rtx_timer.active);
+  Expects(rtx_timer.active);
   hw::PIT::instance().stop_timer(rtx_timer.iter);
   rtx_timer.active = false;
-}
-
-void Connection::rtx_flush() {
-  while(!rtx_q.empty()) {
-    host_.transmit(rtx_q.front());
-    rtx_q.pop_front();
-  }
 }
 
 void Connection::rtx_clear() {
   if(rtx_timer.active)
     rtx_stop();
-  rtx_q.clear();
 }
 
 /*
@@ -693,11 +656,8 @@ void Connection::rtx_clear() {
 void Connection::rtx_timeout() {
   // retransmit SND.UNA
   retransmit();
-  //auto hax = ++rtx_q.begin();
-  //for(auto i = 0; i < 2 and hax != rtx_q.end(); i++)
-  //  host_.transmit(*hax++);
 
-  if(!rtx_q.front()->isset(SYN)) {
+  if(cb.SND.UNA != cb.ISS) {
     // "back off" timer
     rttm.RTO *= 2.0;
   }

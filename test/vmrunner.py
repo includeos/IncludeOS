@@ -92,12 +92,14 @@ class qemu(hypervisor):
 
   def kvm_present(self):
     command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
-    if not subprocess.check_output(command, shell = True):
-      print "<qemu> KVM OFF"
-      return False
-    else:
+    try:
+      subprocess.check_output(command, shell = True)
       print "<qemu> KVM ON"
       return True
+
+    except Exception as err:
+      print "<qemu> KVM OFF"
+      return False
 
   def boot(self):
     self._out_sign = "<" + type(self).__name__ + ">"
@@ -181,6 +183,9 @@ class vm:
 
   def on_timeout(self, callback):
     self._on_timeout = callback
+
+  def readline(self):
+    return self._hyper.readline()
 
   def boot(self, timeout = None):
 
