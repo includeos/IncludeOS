@@ -24,7 +24,7 @@ void Service::start()
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
     assert(buffer);
-  });*/
+  });
   // 2. create alot of sequential jobs of 1024 sectors each
   // note: if we queue more than this we will run out of RAM
   static int bufcounter = 0;
@@ -91,8 +91,11 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");
+  void test_APIC();
+  test_APIC();
 }
 
 void list_partitions(decltype(disk) disk)
@@ -108,4 +111,11 @@ void list_partitions(decltype(disk) disk)
       printf("[Partition]  '%s' at LBA %u\n",
              part.name().c_str(), part.lba());
   });
+}
+
+#include <hw/apic.hpp>
+void test_APIC() {
+  
+  hw::APIC::init();
+  
 }
