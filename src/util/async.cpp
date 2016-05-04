@@ -13,13 +13,13 @@ void Async::upload_file(
     const size_t  CHUNK_SIZE)
 {
   disk_transfer(disk, ent,
-  [conn, callback, CHUNK_SIZE] (fs::buffer_t buffer, 
-                                size_t       length, 
-                                next_func    next)
+  [conn, CHUNK_SIZE] (fs::buffer_t buffer, 
+                      size_t       length, 
+                      next_func    next)
   {
     // write chunk to TCP connection
     conn->write(buffer.get(), length, 
-    [callback, CHUNK_SIZE, next] (size_t n) {
+    [CHUNK_SIZE, next] (size_t n) {
       
       // if all data written, go to next chunk
       next(n == CHUNK_SIZE);
@@ -72,7 +72,7 @@ void Async::disk_transfer(
           (*next)(pos+1);
         else
           // otherwise, fail
-          callback(fs::no_error, false);
+          callback({fs::error_t::E_IO, "Write failed"}, false);
       });
     });
     
