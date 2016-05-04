@@ -18,7 +18,8 @@
 #include <os>
 #include <net/inet4>
 #include <sstream>
-#include <http>
+//#include <http>
+#include "server/server.hpp"
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -59,8 +60,13 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
 }
 
 
+static server::Server& createServer() {
+  static server::Server server;
+  return server;
+}
+
 void Service::start() {
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  /*hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
 
   // Static IP configuration, until we (possibly) get DHCP
@@ -69,32 +75,38 @@ void Service::start() {
                         { 255,255,255,0 },  // Netmask
                         { 10,0,0,1 },       // Gateway
                         { 8,8,8,8 } );      // DNS
-
+*/
 
   // mount the main partition in the Master Boot Record
   disk->mount([](fs::error_t err) {
 
       if (err)  panic("Could not mount filesystem\n");
 
-      auto vec = *disk->fs().ls("/").entries;
+      server::Router routes;
 
+      /* Route: /images/prettypicture.jpg */
+      routes.on_get("/images/prettypicture.jpg"s,
+        [](const auto&, auto res)
+      {
 
-      printf("------------------------------------ \n");
-      printf(" Memdisk contents \n");
-      printf("------------------------------------ \n");
-      recursive_fs_dump(vec);
-      printf("------------------------------------ \n");
+        disk->fs().stat("/images/prettypicture.jpg",
+          [res](auto err, const auto& entry)
+        {
+          if(!err)
+            res->send_file({disk, entry});
+        });
 
-      http::Router routes;
+      });
 
-      routes.on_get("/"s, [](const auto&, auto& res){
+      /* Route: /images/prettypicture.jpg */
+      routes.on_get("/"s, [](const auto&, auto res){
           disk->fs().readFile("/index.html", [&res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
-                res.set_status_code(http::Not_Found);
+                res->set_status_code(http::Not_Found);
               } else {
                 // fill Response with content from index.html
                 printf("<Server> Responding with index.html. \n");
-                res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn")
+                res->add_header(http::header_fields::Response::Server, "IncludeOS/Acorn")
                   .add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
                   .add_header(http::header_fields::Response::Connection, "close"s)
                   .add_body(std::string{(const char*) buff.get(), len});
@@ -102,8 +114,17 @@ void Service::start() {
             });
 
         }); // << fs().readFile
+      createServer().set_routes(routes).listen(8081);
+      //http::createServer().set_routes(routes).listen(8081);
 
-      http::createServer().set_routes(routes).listen(8081);
+      auto vec = disk->fs().ls("/").entries;
+
+
+      printf("------------------------------------ \n");
+      printf(" Memdisk contents \n");
+      printf("------------------------------------ \n");
+      recursive_fs_dump(*vec);
+      printf("------------------------------------ \n");
 
     }); // < disk*/
 }
