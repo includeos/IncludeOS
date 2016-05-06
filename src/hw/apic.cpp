@@ -19,6 +19,36 @@
 #include <hw/ioport.hpp>
 #include <utility/membitmap.hpp>
 
+#define LAPIC_ID        0x20
+#define LAPIC_VER       0x30
+#define LAPIC_TPR       0x80
+#define LAPIC_EOI       0x0B0
+#define LAPIC_LDR       0x0D0
+#define LAPIC_DFR       0x0E0
+#define LAPIC_SPURIOUS  0x0F0
+#define LAPIC_ESR	      0x280
+#define LAPIC_ICRL      0x300
+#define LAPIC_ICRH      0x310
+#define LAPIC_LVT_TMR	  0x320
+#define LAPIC_LVT_PERF  0x340
+#define LAPIC_LVT_LINT0 0x350
+#define LAPIC_LVT_LINT1 0x360
+#define LAPIC_LVT_ERR   0x370
+#define LAPIC_TMRINITCNT 0x380
+#define LAPIC_TMRCURRCNT 0x390
+#define LAPIC_TMRDIV    0x3E0
+#define LAPIC_LAST      0x38F
+#define LAPIC_DISABLE   0x10000
+#define LAPIC_SW_ENABLE 0x100
+#define LAPIC_CPUFOCUS  0x200
+#define LAPIC_NMI       (4<<8)
+#define TMR_PERIODIC    0x20000
+#define TMR_BASEDIV     (1<<20)
+
+extern "C" {
+  void apic_enable();
+}
+
 namespace hw {
   
   static const uintptr_t IA32_APIC_BASE = 0x1B;
@@ -31,69 +61,36 @@ namespace hw {
   }
   
   // a single 16-byte aligned APIC register
-  struct apic_reg
-  {
-    uint32_t u32;
-  };
+  typedef uint32_t apic_reg;
   
-  struct apic_registers
+  struct apic
   {
-    apic_reg reserv1[2]; // 0000h - 0010h
+    apic(uintptr_t addr)
+      : base_addr(addr) {}
     
-    apic_reg lapic_id;   // 0020h ID
-    apic_reg lapic_ver;  // 0030h VER
-    apic_reg reserv2[4]; // 0040h - 0070h
-    
-    apic_reg task_prio;  // 0080h TPR
-    apic_reg arbi_prio;  // 0090h APR
-    apic_reg proc_prio;  // 00A0h PPR
-    apic_reg eoi;        // 00B0h EOI
-    apic_reg remt_read;  // 00C0h RRD
-    apic_reg logic_dst;  // 00D0h
-    apic_reg dest_fmt;   // 00E0h
-    
-    apic_reg spur_intv;  // 00F0h
-    
-    // In-Service Registers (ISRs)
-    apic_reg isr[8];     // 0100h - 0170h ISR
-    
-    // Trigger Mode Registers (TMRs)
-    apic_reg trig[8];    // 0180h - 01F0h TMR
-    
-    // Interrupt Request Registers (IRRs)
-    apic_reg irr[8];     // 0200h - 0270h TMR
-    
-    apic_reg error_stat; // 0280h
-    apic_reg reserv3[6]; // 0290h - 02F0h
-    
-    apic_reg lvt_cmci;   // 02F0h
-    
-    apic_reg intr_cmd0;  // 0300h ICR
-    apic_reg intr_cmd1;  // 0310h ICR
-    
-    apic_reg lvt_timer;  // 0320h
-    apic_reg lvt_therm;  // 0330h
-    apic_reg lvt_perf;   // 0340h
-    apic_reg lvt_lint0;  // 0350h
-    apic_reg lvt_lint1;  // 0360h
-    apic_reg lvt_error;  // 0370h
-    // timer initial and current counters
-    apic_reg initial_cnt; // 0380h  RW
-    apic_reg current_cnt; // 0390h  RO
-    apic_reg reserv4[4]; // 03A0h - 03E0h
-    
-    apic_reg div_config; // 03E0h   RW
-    apic_reg reserv5;    // 03F0h
-    
-    bool x2apic() const noexcept {
+    bool x2apic() const noexcept {
       return false;
     }
     
-    uint32_t get_id() const noexcept {
-      return (lapic_id.u32 >> 24) & 0xFF;
+    apic_reg get_id() const noexcept {
+      return (read(LAPIC_ID) >> 24) & 0xFF;
     }
     
+    uint32_t read(apic_reg reg) const noexcept {
+      auto volatile* addr = (uint32_t volatile*) base_addr;
+      addr[0] = reg & 0xff;
+      return addr[4];
+    }
+    void write(apic_reg reg, uint32_t value) {
+      auto volatile* addr = (uint32_t volatile*) base_addr;
+      addr[0] = reg & 0xff;
+      addr[4] = value;
+    }
+    
+    uintptr_t base_addr;
   };
+  
+  static apic lapic;
   
   void APIC::init() {
     
@@ -103,8 +100,10 @@ namespace hw {
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
-    auto* regs = (apic_registers*) APIC_BASE_ADDR;
-    printf("LAPIC id: 0x%x\n", regs->get_id());
+    lapic = apic(APIC_BASE_ADDR);
+    printf("LAPIC id: 0x%x\n", lapic.get_id());
+    
+    apic_enable();
     
   }
   
