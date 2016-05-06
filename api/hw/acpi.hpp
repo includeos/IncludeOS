@@ -20,9 +20,18 @@
 
 namespace hw {
   
-  class APIC {
+  class ACPI {
   public:
     static void init();
+    
+    static uint64_t time();
+    
+    const ACPI& get() {
+      static ACPI acpi;
+      return acpi;
+    }
+    
+  private:
     
   };
   

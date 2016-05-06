@@ -65,6 +65,7 @@ namespace hw {
   
   struct apic
   {
+    apic() {}
     apic(uintptr_t addr)
       : base_addr(addr) {}
     
@@ -90,7 +91,7 @@ namespace hw {
     uintptr_t base_addr;
   };
   
-  //static apic lapic;
+  static apic lapic;
   
   void APIC::init() {
     
@@ -100,7 +101,7 @@ namespace hw {
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
-    apic lapic = apic(APIC_BASE_ADDR);
+    lapic = apic(APIC_BASE_ADDR);
     printf("LAPIC id: 0x%x\n", lapic.get_id());
     
     
