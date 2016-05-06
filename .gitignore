@@ -12,6 +12,7 @@
 *.vmdk
 *.tmp
 *.d
+*.pyc
 nbproject
 
 src/bootloader
