@@ -146,6 +146,12 @@ inline void Server::listen(Port port) {
 	    server.router_[{req.method(), req.uri()}](req, res);
       //-------------------------------
 	  }); // < read
+
+    // if user sends FIN, we do also want to close.
+    conn->onDisconnect([](auto conn, auto) {
+      printf("Closing %s\n", conn->to_string().c_str());
+      conn->close();
+    });
   }); // < onConnect
 }
 
