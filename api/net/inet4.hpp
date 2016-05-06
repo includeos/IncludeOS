@@ -34,7 +34,7 @@
 namespace net {
 
   class DHClient;
-  
+
   /** A complete IP4 network stack */
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
@@ -96,17 +96,17 @@ namespace net {
     {
       dns.resolve(this->dns_server, hostname, func);
     }
-    
+
     virtual void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
-    
+
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
     // the timeout parameter indicates whether dhcp negotitation failed
     void on_config(delegate<void(bool)> handler);
-    
+
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
     Inet4(Inet4&&) = delete;
@@ -117,7 +117,7 @@ namespace net {
     Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask);
 
     /** Initialize with DHCP  */
-    Inet4(hw::Nic<DRIVER>& nic);
+    Inet4(hw::Nic<DRIVER>& nic, double timeout = 10.0);
 
     virtual void
     network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override

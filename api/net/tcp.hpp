@@ -679,6 +679,20 @@ namespace net {
           if(current == q.size()-1)
             current++;
         }
+
+        /*
+          Remove all write requests from queue and signal how much was written for each request.
+        */
+        void reset() {
+          while(!q.empty()) {
+            auto& req = q.front();
+            // only give callbacks on request who hasnt finished writing
+            // (others has already been called)
+            if(req.first.remaining > 0)
+              req.second(req.first.offset);
+            q.pop_front();
+          }
+        }
       }; // < TCP::Connection::WriteQueue
 
 
