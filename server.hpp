@@ -35,7 +35,7 @@ private:
   // Internal class type aliases
   //-------------------------------
   using Port     = const unsigned;
-  using IP_Stack = std::unique_ptr<net::Inet4<VirtioNet>>;
+  using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
   //-------------------------------
 public:
   //-------------------------------
@@ -44,10 +44,14 @@ public:
   //-------------------------------
   explicit Server();
 
+  Server(IP_Stack);
+
   //-------------------------------
   // Default destructor
   //-------------------------------
   ~Server() noexcept = default;
+
+  net::Inet4<VirtioNet>& ip_stack() const;
 
   //-------------------------------
   // Get the underlying router
@@ -108,6 +112,12 @@ inline Server::Server() {
   initialize();
 }
 
+inline Server::Server(IP_Stack stack) : inet_(stack) {}
+
+inline net::Inet4<VirtioNet>& Server::ip_stack() const {
+  return *inet_;
+}
+
 inline Router& Server::router() noexcept {
   return router_;
 }
@@ -142,7 +152,7 @@ inline void Server::listen(Port port) {
 void Server::initialize() {
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   //-------------------------------
-  inet_ = std::make_unique<net::Inet4<VirtioNet>>(eth0);
+  inet_ = std::make_shared<net::Inet4<VirtioNet>>(eth0);
   //-------------------------------
   inet_->network_config({ 10,0,0,42 },     // IP
 		  { 255,255,255,0 }, // Netmask
