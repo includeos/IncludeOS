@@ -69,7 +69,7 @@ void Service::start()
       auto min = cmos_get(cmos_min);
       auto sec = cmos_get(cmos_sec);
 
-      printf("(cent: %i) %i-%i-%i %i:%i:%i \n",
+      printf("(cent: %i) %x-%x-%x %x:%x:%x \n",
              cent, day, month, year, hrs, min, sec);
 
     });
