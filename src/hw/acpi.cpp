@@ -54,6 +54,20 @@ namespace hw {
     }
   };
   
+  struct MADTRecord {
+    uint8_t type;
+    uint8_t length;
+    uint8_t data[0];
+  };
+  
+  struct MADTHeader {
+    
+    SDTHeader hdr;
+    uintptr_t lapic_addr;
+    uint32_t  flags; // 1 = dual 8259 PICs
+    MADTRecord record[0];
+  };
+  
   uint64_t ACPI::time() {
     return 0;
   }
@@ -77,11 +91,11 @@ namespace hw {
   }
   
   constexpr uint32_t bake(char a, char b , char c, char d) {
-    return a | b >> 8 | c >> 16 | d >> 24;
+    return a | (b << 8) | (c << 16) | (d << 24);
   }
   
-  void ACPI::walk_sdts(const char* addr) {
-    
+  void ACPI::walk_sdts(const char* addr)
+  {
     // find total number of SDTs
     auto* rsdt = (SDTHeader*) addr;
     int  total = (rsdt->Length - sizeof(SDTHeader)) / 4;
@@ -93,26 +107,61 @@ namespace hw {
     
     // parse all tables
     const uint32_t APIC_t = bake('A', 'P', 'I', 'C');
-    const uint32_t MADT_t = bake('M', 'A', 'D', 'T');
+    const uint32_t HPET_t = bake('H', 'P', 'E', 'T');
     
     while (total) {
-      // convert addr to pointer to SDT
-      auto  sdt_ptr = *(intptr_t*) addr;
+      // convert *addr to SDT-address
+      auto sdt_ptr = *(intptr_t*) addr;
       // create SDT pointer
       auto* sdt = (SDTHeader*) sdt_ptr;
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
-        printf("APIC found: L=%u\n", sdt->Length);
+        printf("APIC found: P=%p L=%u\n", sdt, sdt->Length);
+        walk_madt((char*) sdt);
+        break;
+      case HPET_t:
+        printf("HPET found: P=%p L=%u\n", sdt, sdt->Length);
         break;
       default:
-        printf("Signature: %.*s\n", 4, sdt->Signature);
+        printf("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
       }
       
-      addr += 4;
-      total--;
+      addr += 4; total--;
     }
     printf("Finished walking SDTs\n");
+  }
+  
+  void ACPI::walk_madt(const char* addr)
+  {
+    auto* hdr = (MADTHeader*) addr;
+    printf("--> LAPIC addr: 0x%x  flags: 0x%x\n", 
+        hdr->lapic_addr, hdr->flags);
+    
+    // the length remaining after MADT header
+    int len = hdr->hdr.Length - sizeof(MADTHeader);
+    // start walking
+    const char* ptr = (char*) hdr->record;
+    
+    while (len) {
+      auto* rec = (MADTRecord*) ptr;
+      switch (rec->type) {
+      case 0:
+        {
+          auto& lapic = *(LAPIC*) rec;
+          lapics.push_back(lapic);
+          printf("  | --> LAPIC: cpu=%u id=%u flags=0x%x\n", 
+              lapic.cpu, lapic.id, lapic.flags);
+        }
+        break;
+      case 1:
+        break;
+      }
+      // decrease length as we go
+      len -= rec->length;
+      // go to next entry
+      ptr += rec->length;
+    }
   }
   
   bool ACPI::checksum(const char* addr, size_t size) const {
@@ -150,7 +199,7 @@ namespace hw {
         // verify checksum of RDSP
         if (checksum(addr, sizeof(RSDPDescriptor))) {
           printf("Found ACPI located at %p\n", addr);
-          begin(guess);
+          begin(addr);
           return;
         }
         else {

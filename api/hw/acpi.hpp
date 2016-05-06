@@ -17,11 +17,20 @@
 
 #pragma once
 #include <cstdint>
+#include <vector>
 
 namespace hw {
   
   class ACPI {
   public:
+    struct LAPIC {
+      uint8_t  type;
+      uint8_t  length;
+      uint8_t  cpu;
+      uint8_t  id;
+      uint32_t flags;
+    };
+    
     static void init() {
       get().discover();
     }
@@ -39,10 +48,12 @@ namespace hw {
     void begin(const void* addr);
     
     void walk_sdts(const char* addr);
-    
+    void walk_madt(const char* addr);
     
     void*    sdt_base;
     uint32_t sdt_total;
+    
+    std::vector<LAPIC> lapics;
   };
   
 }
