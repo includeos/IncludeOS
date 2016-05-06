@@ -21,8 +21,7 @@
 //#include <http>
 #include "server/server.hpp"
 
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
+std::unique_ptr<server::Server> acorn;
 
 #include <memdisk>
 #include <fs/fat.hpp> // FAT32 filesystem
@@ -57,12 +56,6 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   printf(" %*s \n", indent, " ");
   //printf(" %*s \n", indent, "o");
 
-}
-
-
-static server::Server& createServer() {
-  static server::Server server;
-  return server;
 }
 
 void Service::start() {
@@ -114,8 +107,10 @@ void Service::start() {
             });
 
         }); // << fs().readFile
-      createServer().set_routes(routes).listen(8081);
-      //http::createServer().set_routes(routes).listen(8081);
+
+      // initialize server
+      acorn = std::make_unique<server::Server>();
+      acorn->set_routes(routes).listen(8081);
 
       auto vec = disk->fs().ls("/").entries;
 
@@ -125,6 +120,10 @@ void Service::start() {
       printf("------------------------------------ \n");
       recursive_fs_dump(*vec);
       printf("------------------------------------ \n");
+
+      hw::PIT::instance().onRepeatedTimeout(5s, []{
+        printf("%s\n", acorn->ip_stack().tcp().status().c_str());
+      });
 
     }); // < disk*/
 }
