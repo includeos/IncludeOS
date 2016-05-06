@@ -1083,8 +1083,8 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
 
   // 8. check FIN bit
   if(in->isset(FIN)) {
-    process_fin(tcp, in);
     tcp.set_state(Connection::CloseWait::instance());
+    process_fin(tcp, in);
     return OK;
   }
 
