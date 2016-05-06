@@ -22,7 +22,7 @@
 
 using namespace std;
 using namespace net;
- 
+
 
 TCP::TCP(IPStack& inet) :
   inet_(inet),
@@ -112,7 +112,7 @@ bool TCP::port_in_use(const TCP::Port port) const {
       return true;
   }
   return false;
-} 
+}
 
 
 uint16_t TCP::checksum(TCP::Packet_ptr packet) {
