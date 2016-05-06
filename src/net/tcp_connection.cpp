@@ -250,11 +250,7 @@ void Connection::limited_tx() {
 
 void Connection::writeq_reset() {
   debug2("<Connection::writeq_reset> Reseting.\n");
-  while(!writeq.empty()) {
-    auto& job = writeq.q.front();
-    job.second(job.first.offset);
-    writeq.q.pop_front();
-  }
+  writeq.reset();
 }
 
 void Connection::open(bool active) {
