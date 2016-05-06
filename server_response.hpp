@@ -23,28 +23,62 @@ struct File {
 
 class ServerResponse : public http::Response {
 private:
+  using Code = http::status_t;
   using Connection_ptr = net::TCP::Connection_ptr;
 
 public:
-  ServerResponse(Connection_ptr conn)
-    : http::Response(), conn_(conn)
-  {}
 
-  void send_header() const;
+  ServerResponse(Connection_ptr conn);
 
+  /*
+    Send only status code
+  */
+  void send_code(const Code);
+
+  /*
+    Send the Response
+  */
+  void send() const;
+
+  /*
+    Send a file
+  */
   void send_file(const File&);
+
+  /*
+    "End" the response
+  */
+  void end() const;
 
 private:
   Connection_ptr conn_;
 
 };
 
-void ServerResponse::send_header() const {
-  printf("<ServerResponse::send_header> %s\n", get_header().to_string().c_str());
+ServerResponse::ServerResponse(Connection_ptr conn)
+  : http::Response(), conn_(conn)
+{
+  add_header(http::header_fields::Response::Server, "IncludeOS/Acorn");
+  // screw keep alive
+  add_header(http::header_fields::Response::Connection, "close");
+}
+
+void ServerResponse::send() const {
+  auto res = to_string();
+  conn_->write(res.data(), res.size());
+  end();
+}
+
+void ServerResponse::send_code(const Code code) {
+  set_status_code(code);
+  send();
 }
 
 void ServerResponse::send_file(const File& file) {
   auto& fname = file.entry.fname;
+
+  /* Content Length */
+  add_header(http::header_fields::Entity::Content_Length, std::to_string(file.entry.size()));
 
   /* Setup MIME type */
   std::string ext = "txt"; // fallback
@@ -61,12 +95,11 @@ void ServerResponse::send_file(const File& file) {
 
   add_header(http::header_fields::Entity::Content_Type, mime);
 
-  auto response = to_string();
-  conn_->write(response.data(), response.size());
+  /* Send header */
+  auto res = to_string();
+  conn_->write(res.data(), res.size());
 
-  printf("<ServerResponse::send_file> Response: %s\n", to_string().c_str());
-
-
+  /* Send file over connection */
   auto conn = conn_;
   printf("<ServerResponse::send_file> Asking to send %llu bytes.\n", file.entry.size());
   Async::upload_file(file.disk, file.entry, conn,
@@ -75,13 +108,19 @@ void ServerResponse::send_file(const File& file) {
       if(good) {
         printf("<ServerResponse::send_file> %s - Success!\n",
           conn->to_string().c_str());
-        conn->close();
+        //conn->close();
       }
       else {
         printf("<ServerResponse::send_file> %s - Error: %s\n",
           conn->to_string().c_str(), err.to_string().c_str());
       }
   });
+
+  end();
+}
+
+void ServerResponse::end() const {
+  // Response ended, signal server?
 }
 
 #endif
