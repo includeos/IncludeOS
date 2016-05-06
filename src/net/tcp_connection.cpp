@@ -107,7 +107,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
     writeq.push_back({buffer, callback});
     // if data was written, advance
     if(written) {
-      writeq.advance(written);  
+      writeq.advance(written);
     }
   }
   catch(TCPException err) {
@@ -242,18 +242,15 @@ void Connection::limited_tx() {
 
   auto written = fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
   cb.SND.NXT += packet->data_length();
-  
+
   writeq.advance(written);
 
   transmit(packet);
 }
 
 void Connection::writeq_reset() {
-  while(!writeq.empty()) {
-    auto& job = writeq.q.front();
-    job.second(job.first.offset);
-    writeq.q.pop_front();
-  }
+  debug2("<Connection::writeq_reset> Reseting.\n");
+  writeq.reset();
 }
 
 void Connection::open(bool active) {
@@ -269,7 +266,7 @@ void Connection::open(bool active) {
 }
 
 void Connection::close() {
-  debug("<TCP::Connection::close> Active close on connection. \n");
+  printf("<TCP::Connection::close> Active close on connection. \n");
   try {
     state_->close(*this);
     if(is_state(Closed::instance()))
@@ -308,7 +305,8 @@ void Connection::segment_arrived(TCP::Packet_ptr incoming) {
     break;
   }
   case State::CLOSED: {
-    debug("<TCP::Connection::receive> State handle finished with CLOSED. We're done, ask host() to delete the connection. \n");
+    debug("<TCP::Connection::receive> (%s => %s) State handle finished with CLOSED. We're done, ask host() to delete the connection.\n",
+      prev_state_->to_string().c_str(), state_->to_string().c_str());
     writeq_reset();
     signal_close();
     break;
@@ -357,13 +355,13 @@ void Connection::transmit(TCP::Packet_ptr packet) {
     rttm.start();
   }
   //if(packet->seq() + packet->data_length() != cb.SND.NXT)
-  //printf("<TCP::Connection::transmit> rseq=%u rack=%u\n", 
+  //printf("<TCP::Connection::transmit> rseq=%u rack=%u\n",
   //  packet->seq() - cb.ISS, packet->ack() - cb.IRS);
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
   host_.transmit(packet);
   if(packet->has_data() and !rtx_timer.active) {
-    rtx_start();  
+    rtx_start();
   }
 }
 
@@ -398,7 +396,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
 
   // new ack
   else if(in->ack() >= cb.SND.UNA) {
-   
+
     if( cb.SND.WL1 < in->seq() or ( cb.SND.WL1 == in->seq() and cb.SND.WL2 <= in->ack() ) )
     {
       cb.SND.WND = in->win();
@@ -409,7 +407,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
 
     acks_rcvd_++;
 
-    debug("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_, 
+    debug("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_,
       in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
@@ -442,7 +440,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
       // slow start
       if(cb.slow_start()) {
         reno_increase_cwnd(bytes_acked);
-        debug2("<Connection::handle_ack> Slow start. cwnd=%u uw=%u\n", 
+        debug2("<Connection::handle_ack> Slow start. cwnd=%u uw=%u\n",
           cb.cwnd, usable_window());
       }
 
@@ -450,7 +448,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
       else {
         // increase cwnd once per RTT
         cb.cwnd += std::max(SMSS()*SMSS()/cb.cwnd, (uint32_t)1);
-        debug2("<Connection::handle_ack> Congestion avoidance. cwnd=%u uw=%u\n", 
+        debug2("<Connection::handle_ack> Congestion avoidance. cwnd=%u uw=%u\n",
           cb.cwnd, usable_window());
       } // < congestion avoidance
 
@@ -526,7 +524,7 @@ void Connection::on_dup_ack() {
       // try to send one segment
       if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.remaining_requests()) {
         limited_tx();
-      }  
+      }
     }
   }
 
@@ -582,7 +580,7 @@ void Connection::rtx_ack(const Seq ack) {
     rtx_reset();
     rto_attempt = 0;
   }
-  
+
   //printf("<TCP::Connection::rt_acknowledge> ACK'ed %u packets. rtx_q: %u\n",
   //  x-rtx_q.size(), rtx_q.size());
 }
@@ -603,7 +601,7 @@ void Connection::retransmit() {
     of RTO).
   */
   if(packet->has_data() and !rtx_timer.active) {
-    rtx_start();  
+    rtx_start();
   }
 }
 

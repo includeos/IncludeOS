@@ -79,13 +79,13 @@ namespace net
   }
 
   template <typename T> inline
-  Inet4<T>::Inet4(hw::Nic<T>& nic)
+  Inet4<T>::Inet4(hw::Nic<T>& nic, double timeout)
     : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
   {
     INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
     // 2 second timeout for DHCP-server negotation
-    dhcp_->negotiate(30.0);
+    dhcp_->negotiate(timeout);
   }
 
   template <typename T> inline
@@ -95,7 +95,7 @@ namespace net
 
   template <typename T> inline
   void Inet4<T>::process_sendq(size_t packets) {
-    
+
     ////////////////////////////////////////////
     // divide up fairly
     size_t div = packets / tqa.size();

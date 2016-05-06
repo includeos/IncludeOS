@@ -28,7 +28,6 @@
 #include <chrono> // timer duration
 #include <memory> // enable_shared_from_this
 #include <bitset>
-#include <list>
 
 inline unsigned round_up(unsigned n, unsigned div) {
   assert(n);
@@ -595,12 +594,12 @@ namespace net {
       /*
         Write Queue containig WriteRequests from user.
         Stores requests until they are fully acknowledged;
-        this will make it possible to retransmit 
+        this will make it possible to retransmit
       */
       struct WriteQueue {
 
         std::deque<WriteRequest> q;
-        
+
         /* Current element (index + 1) */
         uint32_t current;
 
@@ -612,10 +611,10 @@ namespace net {
           and "step back".
         */
         void acknowledge(size_t bytes) {
-          while(bytes and !q.empty()) 
+          while(bytes and !q.empty())
           {
             auto& buf = q.front().first;
-            
+
             bytes -= buf.acknowledge(bytes);
             if(buf.done()) {
               q.pop_front();
@@ -633,7 +632,7 @@ namespace net {
         /*
           If the queue has more data to send
         */
-        bool remaining_requests() const 
+        bool remaining_requests() const
         { return !q.empty() and q.back().first.remaining; }
 
         /*
@@ -646,7 +645,7 @@ namespace net {
         /*
           The oldest unacknowledged buffer. (Always in front)
         */
-        const WriteBuffer& una() 
+        const WriteBuffer& una()
         { return q.front().first; }
 
         /*
@@ -654,11 +653,16 @@ namespace net {
           If current buffer finishes; exec user callback and step to next.
         */
         void advance(size_t bytes) {
-          
+
           auto& buf = q[current-1].first;
           buf.advance(bytes);
 
+          debug2("<Connection::WriteQueue> Advance: off=%u rem=%u ack=%u\n",
+            buf.offset, buf.remaining, buf.acknowledged);
+
           if(!buf.remaining) {
+            debug("<Connection::WriteQueue> Advance: Done (%u)\n",
+              buf.offset);
             q[current-1].second(buf.offset);
             current++;
           }
@@ -670,8 +674,24 @@ namespace net {
         */
         void push_back(const WriteRequest& wr) {
           q.push_back(wr);
+          debug2("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
+            wr.first.offset, wr.first.remaining, wr.first.acknowledged);
           if(current == q.size()-1)
             current++;
+        }
+
+        /*
+          Remove all write requests from queue and signal how much was written for each request.
+        */
+        void reset() {
+          while(!q.empty()) {
+            auto& req = q.front();
+            // only give callbacks on request who hasnt finished writing
+            // (others has already been called)
+            if(req.first.remaining > 0)
+              req.second(req.first.offset);
+            q.pop_front();
+          }
         }
       }; // < TCP::Connection::WriteQueue
 
@@ -1542,19 +1562,19 @@ namespace net {
 
       // is fast recovery state
       bool fast_recovery = false;
-      
+
       // First partial ack seen
       bool reno_fpack_seen = false;
-      
+
       // limited transmit [RFC 3042] active
       bool limited_tx_ = true;
 
       // number of duplicate acks
       size_t dup_acks_ = 0;
-      
+
       Seq prev_highest_ack_ = 0;
       Seq highest_ack_ = 0;
-      
+
       // number of non duplicate acks received
       size_t acks_rcvd_ = 0;
 
@@ -1597,7 +1617,7 @@ namespace net {
       inline void reduce_ssthresh() {
         auto fs = flight_size();
         printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
-        
+
         if(limited_tx_)
           fs -= 2*(uint32_t)SMSS();
 
