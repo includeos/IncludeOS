@@ -113,9 +113,11 @@ void list_partitions(decltype(disk) disk)
   });
 }
 
+#include <hw/acpi.hpp>
 #include <hw/apic.hpp>
 void test_APIC() {
   
+  hw::ACPI::init();
   hw::APIC::init();
   
 }

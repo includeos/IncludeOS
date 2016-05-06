@@ -22,17 +22,27 @@ namespace hw {
   
   class ACPI {
   public:
-    static void init();
+    static void init() {
+      get().discover();
+    }
     
     static uint64_t time();
     
-    const ACPI& get() {
+    static ACPI& get() {
       static ACPI acpi;
       return acpi;
     }
     
   private:
+    void discover();
+    bool checksum(const char*, size_t) const;
+    void begin(const void* addr);
     
+    void walk_sdts(const char* addr);
+    
+    
+    void*    sdt_base;
+    uint32_t sdt_total;
   };
   
 }
