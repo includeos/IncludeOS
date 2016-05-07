@@ -31,21 +31,21 @@ namespace uri {
 
   public:
 
-    /** String-like data type - at least as general as std::string */
-    using String_t = gsl::span<char>;
+    /** Non-owning pointer-size type */
     using Span_t = gsl::span<const char>;
+
     ///
     /// RFC-specified URI parts
     ///
 
     /** Get userinfo. E.g. 'username@'... */
-    const std::string& userinfo() const;
+    const std::string userinfo() const;
 
     /** Get host. E.g. 'includeos.org', '10.0.0.42' etc. */
-    const std::string& host() const;
+    const std::string host() const;
 
     /** Get raw port number. In decimal character representation */
-    const std::string& port_str() const;
+    const std::string port_str() const;
 
     /** Get numeric port number.
      * @warning The RFC doesn't specify dimension. This funcion will truncate
@@ -57,10 +57,10 @@ namespace uri {
     std::string path() const;
 
     /** Get the complete unparsed query string. */
-    const std::string& query() const;
+    const std::string query() const;
 
     /** Get the fragment part. E.g. "...#anchor1" */
-    const std::string& fragment() const;
+    const std::string fragment() const;
 
     ///
     /// Construct / Destruct
@@ -73,8 +73,12 @@ namespace uri {
     URI& operator=(const URI&) = default;
     URI& operator=(URI&&) = default;
 
+    // We might do a span-based constructor later.
     //URI(gsl::span<const char>);
-    URI(std::string);
+
+    /** Construct using a string */
+    URI(const std::string&&);
+    URI(const std::string&);
 
     ///
     /// Convenience
@@ -85,11 +89,10 @@ namespace uri {
      *
      * E.g. for query() => "?name=Bjarne%20Stroustrup",
      * query("name") returns "Bjarne Stroustrup" */
-    std::string query(String_t key);
+    std::string query(std::string key);
 
     /** String representation **/
     std::string to_string() const;
-
 
   private:
 
