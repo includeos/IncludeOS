@@ -10,6 +10,14 @@ URI::URI(const std::string&& data) :
   uri_data_ = uri_str_;
 }
 
+URI::URI(const char* data) :
+  uri_str_ {data}
+{
+  path_ = uri_str_;
+  uri_data_ = uri_str_;
+}
+
+
 std::string URI::path() const {
   return std::string{path_.begin(), path_.end()};
 }

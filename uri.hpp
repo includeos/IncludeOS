@@ -78,7 +78,7 @@ namespace uri {
 
     /** Construct using a string */
     URI(const std::string&&);
-    URI(const std::string&);
+    URI(const char*);
 
     ///
     /// Convenience
