@@ -61,34 +61,91 @@ namespace hw {
   }
   
   // a single 16-byte aligned APIC register
-  typedef uint32_t apic_reg;
+  struct apic_reg
+  {
+    uint32_t reg;
+    uint32_t pad[3];
+  };
+  
+  struct apic_regs
+  {
+    apic_reg reserved0;
+    apic_reg reserved1;
+    apic_reg 		lapic_id;
+    apic_reg 		lapic_ver;
+    apic_reg reserved4;
+    apic_reg reserved5;
+    apic_reg reserved6;
+    apic_reg reserved7;
+    apic_reg 		task_pri;               // TPRI
+    apic_reg reservedb; // arb pri
+    apic_reg reservedc; // cpu pri
+    apic_reg 		eoi;                    // EOI
+    apic_reg 		remote;
+    apic_reg 		logical_dest;
+    apic_reg 		dest_format;
+    apic_reg 		spurious_vector;        // SIVR
+    apic_reg 		isr[8];
+    apic_reg 		tmr[8];
+    apic_reg 		irr[8];
+    apic_reg    error_status;
+    apic_reg reserved28[7];
+    apic_reg			int_command[2]; 	// ICR1. ICR2
+    apic_reg 		timer_vector; 		// LVTT
+    apic_reg reserved33;
+    apic_reg reserved34; // perf count lvt
+    apic_reg 		lint0_vector;
+    apic_reg 		lint1_vector;
+    apic_reg 		error_vector; // err vector
+    apic_reg 		init_count; // timer
+    apic_reg 		cur_count;  // timer
+    apic_reg reserved3a;
+    apic_reg reserved3b;
+    apic_reg reserved3c;
+    apic_reg reserved3d;
+    apic_reg 		divider_config; // 3e, timer divider
+    apic_reg reserved3f;
+  };
   
   struct apic
   {
     apic() {}
     apic(uintptr_t addr)
-      : base_addr(addr) {}
+    {
+      this->regs = (apic_regs*) addr;
+    }
     
     bool x2apic() const noexcept {
       return false;
     }
     
-    apic_reg get_id() const noexcept {
-      return (read(LAPIC_ID) >> 24) & 0xFF;
+    uint32_t get_id() const noexcept {
+      return (regs->lapic_id.reg >> 24) & 0xFF;
     }
     
-    uint32_t read(apic_reg reg) const noexcept {
-      auto volatile* addr = (uint32_t volatile*) base_addr;
+    uint32_t io_read(uint32_t reg) const noexcept {
+      auto volatile* addr = (uint32_t volatile*) ioapic_base;
       addr[0] = reg & 0xff;
       return addr[4];
     }
-    void write(apic_reg reg, uint32_t value) {
-      auto volatile* addr = (uint32_t volatile*) base_addr;
+    void io_write(uint32_t reg, uint32_t value) {
+      auto volatile* addr = (uint32_t volatile*) ioapic_base;
       addr[0] = reg & 0xff;
       addr[4] = value;
     }
     
-    uintptr_t base_addr;
+    // set and clear one of the 255-bit registers
+    void set(apic_reg* reg, uint8_t bit)
+    {
+      reg[bit >> 5].reg |= 1 << (bit & 0x1f);
+    }
+    void clr(apic_reg* reg, uint8_t bit)
+    {
+      reg[bit >> 5].reg &= ~(1 << (bit & 0x1f));
+    }
+    
+    apic_regs* regs;
+    uintptr_t  ioapic_base;
   };
   
   static apic lapic;
@@ -102,7 +159,7 @@ namespace hw {
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
-    printf("LAPIC id: 0x%x\n", lapic.get_id());
+    printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
     
     
     apic_enable();
