@@ -30,6 +30,7 @@ namespace hw {
       uint8_t  id;
       uint32_t flags;
     };
+    typedef std::vector<LAPIC> lapic_list_t;
     
     static void init() {
       get().discover();
@@ -42,6 +43,10 @@ namespace hw {
       return acpi;
     }
     
+    const lapic_list_t& get_lapics() const {
+      return lapics;
+    }
+    
   private:
     void discover();
     bool checksum(const char*, size_t) const;
@@ -52,7 +57,7 @@ namespace hw {
     
     uintptr_t hpet_base;
     uintptr_t apic_base;
-    std::vector<LAPIC> lapics;
+    lapic_list_t lapics;
   };
   
 }

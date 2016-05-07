@@ -18,6 +18,8 @@
 #include <kernel/syscalls.hpp>
 #include <hw/acpi.hpp>
 #include <hw/ioport.hpp>
+#include <debug>
+#include <info>
 
 namespace hw {
   
@@ -104,7 +106,8 @@ namespace hw {
   void ACPI::begin(const void* addr) {
     
     auto* rdsp = (RSDPDescriptor20*) addr;
-    printf("--- ACPI ---\nOEM: %.*s Rev. %u\n", 
+    INFO("ACPI", "Reading headers");
+    INFO2("OEM: %.*s Rev. %u", 
         6, rdsp->rdsp10.OEMID, rdsp->rdsp10.Revision);
     
     auto* rsdt = (SDTHeader*) rdsp->rdsp10.RsdtAddress;
@@ -143,26 +146,27 @@ namespace hw {
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
-        printf("APIC found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("APIC found: P=%p L=%u\n", sdt, sdt->Length);
         walk_madt((char*) sdt);
         break;
       case HPET_t:
-        printf("HPET found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("HPET found: P=%p L=%u\n", sdt, sdt->Length);
         this->hpet_base = sdt_ptr + sizeof(SDTHeader);
         break;
       default:
-        printf("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
+        debug("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
       }
       
       addr += 4; total--;
     }
-    printf("Finished walking SDTs\n");
+    debug("Finished walking SDTs\n");
   }
   
   void ACPI::walk_madt(const char* addr)
   {
     auto* hdr = (MADTHeader*) addr;
-    printf("--> LAPIC addr: 0x%x  flags: 0x%x\n", 
+    INFO("APIC", "Reading APIC information");
+    INFO2("LAPIC base: 0x%x  (flags: 0x%x)", 
         hdr->lapic_addr, hdr->flags);
     this->apic_base = hdr->lapic_addr;
     
@@ -178,7 +182,7 @@ namespace hw {
         {
           auto& lapic = *(LAPIC*) rec;
           lapics.push_back(lapic);
-          printf("  | --> LAPIC: cpu=%u id=%u flags=0x%x\n", 
+          INFO2("-> CPU %u ID %u  (flags=0x%x)", 
               lapic.cpu, lapic.id, lapic.flags);
         }
         break;
@@ -210,7 +214,7 @@ namespace hw {
     const auto* guess = (char*) 0xf6450;
     if (*(uint64_t*) guess == sign) {
       if (checksum(guess, sizeof(RSDPDescriptor))) {
-        printf("Found ACPI located at QEMU-guess (%p)\n", guess);
+        debug("Found ACPI located at QEMU-guess (%p)\n", guess);
         begin(guess);
         return;
       }
@@ -219,25 +223,22 @@ namespace hw {
     // search in BIOS area (below 1mb)
     const auto* addr = (char*) 0x000e0000;
     const auto* end  = (char*) 0x000fffff;
-    printf("Looking for ACPI at %p\n", addr);
+    debug("Looking for ACPI at %p\n", addr);
     
     while (addr < end) {
       
       if (*(uint64_t*) addr == sign) {
-        // verify checksum of RDSP
+        // verify checksum of potential RDSP
         if (checksum(addr, sizeof(RSDPDescriptor))) {
-          printf("Found ACPI located at %p\n", addr);
+          debug("Found ACPI located at %p\n", addr);
           begin(addr);
           return;
-        }
-        else {
-         printf("Bad RDSP checksum at %p\n", addr); 
         }
       }
       addr++;
     }
     
-    panic("ACPI lookup failed\n");
+    panic("ACPI RDST-search failed\n");
   }
   
 }
