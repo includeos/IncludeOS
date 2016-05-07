@@ -266,7 +266,7 @@ void Connection::open(bool active) {
 }
 
 void Connection::close() {
-  printf("<TCP::Connection::close> Active close on connection. \n");
+  debug("<TCP::Connection::close> Active close on connection. \n");
   try {
     state_->close(*this);
     if(is_state(Closed::instance()))
@@ -613,8 +613,8 @@ void Connection::rtx_start() {
   [this, i, rto]
   {
     rtx_timer.active = false;
-    printf("<TCP::Connection::RTO@timeout> %i Timed out (%f). FS: %u, i: %u rt_i: %u\n",
-      local_port_, rto, flight_size(), i, rtx_timer.i);
+    printf("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u, i: %u rt_i: %u\n",
+      to_string().c_str(), rto, flight_size(), i, rtx_timer.i);
     rtx_timeout();
   });
   rtx_timer.i++;
@@ -664,7 +664,8 @@ void Connection::rtx_timeout() {
     rttm.RTO = 3.0;
   }
   // timer need to be restarted
-  rtx_start();
+  if(!rtx_timer.active)
+    rtx_start();
 
   /*
     [RFC 5681] p. 7
