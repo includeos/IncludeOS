@@ -62,11 +62,40 @@ namespace hw {
   
   struct MADTHeader {
     
-    SDTHeader hdr;
-    uintptr_t lapic_addr;
-    uint32_t  flags; // 1 = dual 8259 PICs
+    SDTHeader  hdr;
+    uintptr_t  lapic_addr;
+    uint32_t   flags; // 1 = dual 8259 PICs
     MADTRecord record[0];
   };
+  
+  struct AddressStructure
+  {
+    uint8_t  address_space_id; // 0 - system memory, 1 - system I/O
+    uint8_t  register_bit_width;
+    uint8_t  register_bit_offset;
+    uint8_t  reserved;
+    uint64_t address;
+  };
+  
+  struct pci_vendor_t
+  {
+    uint16_t    ven_id;
+    const char* ven_name;
+  };
+  
+  struct HPET
+  {
+    uint8_t hardware_rev_id;
+    uint8_t comparator_count :5;
+    uint8_t counter_size     :1;
+    uint8_t reserved         :1;
+    uint8_t legacy_replacem  :1;
+    pci_vendor_t pci_vendor_id;
+    AddressStructure address;
+    uint8_t hpet_number;
+    uint16_t minimum_tick;
+    uint8_t page_protection;
+  } __attribute__((packed));
   
   uint64_t ACPI::time() {
     return 0;
@@ -101,13 +130,10 @@ namespace hw {
     int  total = (rsdt->Length - sizeof(SDTHeader)) / 4;
     // go past rsdt
     addr += sizeof(SDTHeader);
-    // remember for later
-    sdt_base  = rsdt;
-    sdt_total = total;
     
     // parse all tables
-    const uint32_t APIC_t = bake('A', 'P', 'I', 'C');
-    const uint32_t HPET_t = bake('H', 'P', 'E', 'T');
+    constexpr uint32_t APIC_t = bake('A', 'P', 'I', 'C');
+    constexpr uint32_t HPET_t = bake('H', 'P', 'E', 'T');
     
     while (total) {
       // convert *addr to SDT-address
@@ -122,6 +148,7 @@ namespace hw {
         break;
       case HPET_t:
         printf("HPET found: P=%p L=%u\n", sdt, sdt->Length);
+        this->hpet_base = sdt_ptr + sizeof(SDTHeader);
         break;
       default:
         printf("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
@@ -137,6 +164,7 @@ namespace hw {
     auto* hdr = (MADTHeader*) addr;
     printf("--> LAPIC addr: 0x%x  flags: 0x%x\n", 
         hdr->lapic_addr, hdr->flags);
+    this->apic_base = hdr->lapic_addr;
     
     // the length remaining after MADT header
     int len = hdr->hdr.Length - sizeof(MADTHeader);

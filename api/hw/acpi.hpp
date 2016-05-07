@@ -50,9 +50,8 @@ namespace hw {
     void walk_sdts(const char* addr);
     void walk_madt(const char* addr);
     
-    void*    sdt_base;
-    uint32_t sdt_total;
-    
+    uintptr_t hpet_base;
+    uintptr_t apic_base;
     std::vector<LAPIC> lapics;
   };
   
