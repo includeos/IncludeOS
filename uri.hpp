@@ -19,6 +19,7 @@
 #define URI_HPP
 
 #include <gsl.h>
+#include <unordered_map>
 
 namespace uri {
 
@@ -32,31 +33,48 @@ namespace uri {
 
     /** String-like data type - at least as general as std::string */
     using String_t = gsl::span<char>;
-
+    using Span_t = gsl::span<const char>;
     ///
     /// RFC-specified URI parts
     ///
 
     /** Get userinfo. E.g. 'username@'... */
-    String_t userinfo();
+    const std::string& userinfo() const;
 
     /** Get host. E.g. 'includeos.org', '10.0.0.42' etc. */
-    String_t host();
+    const std::string& host() const;
 
     /** Get raw port number. In decimal character representation */
-    String_t port_str();
+    const std::string& port_str() const;
 
     /** Get numeric port number.
      * @warning The RFC doesn't specify dimension. This funcion will truncate
      * any overflowing digits
      **/
-    uint16_t port();
+    uint16_t port() const;
+
+    /** Get the path. E.g. /pictures/logo.png  */
+    std::string path() const;
 
     /** Get the complete unparsed query string. */
-    String_t query();
+    const std::string& query() const;
 
     /** Get the fragment part. E.g. "...#anchor1" */
-    String_t fragment();
+    const std::string& fragment() const;
+
+    ///
+    /// Construct / Destruct
+    ///
+
+    URI() = default;
+    URI(URI&) = default;
+    URI(URI&&) = default;
+    ~URI() = default;
+    URI& operator=(const URI&) = default;
+    URI& operator=(URI&&) = default;
+
+    //URI(gsl::span<const char>);
+    URI(std::string);
 
     ///
     /// Convenience
@@ -69,12 +87,28 @@ namespace uri {
      * query("name") returns "Bjarne Stroustrup" */
     std::string query(String_t key);
 
+    /** String representation **/
+    std::string to_string() const;
+
+
   private:
 
     std::unordered_map<std::string,std::string> queries_;
-    String_t uri_data_;
+    Span_t uri_data_;
+    Span_t userinfo_;
+    Span_t host_;
+    Span_t port_str_;
+    uint16_t port_ = 0;
+    Span_t path_;
+    Span_t query_;
+    Span_t fragment_;
 
-  } // class uri::URI
+    // A copy of the data, if the string-based constructor was used
+    std::string uri_str_;
+  }; // class uri::URI
+
+
+  std::ostream& operator<< (std::ostream&, const URI&);
 
 } // namespace uri
 

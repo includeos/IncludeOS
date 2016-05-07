@@ -2,7 +2,7 @@
 #ifndef URI_URI
 #define URI_URI
 
-#include <percent_encoding.hpp>
 #include <uri.hpp>
+#include <percent_encoding.hpp>
 
 #endif
