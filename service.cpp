@@ -90,6 +90,31 @@ void Service::start() {
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
       server::Router routes;
+
+      routes.on_get("/api/users/.*", [](const auto& req, auto res) {
+          res->add_header(http::header_fields::Entity::Content_Type,
+                          "text/JSON; charset=utf-8"s)
+            .add_body("{\"id\" : 1, \"name\" : \"alfred\"}"s);
+
+          res->send();
+        });
+
+      routes.on_get("/books/.*", [](const auto& req, auto res) {
+          res->add_header(http::header_fields::Entity::Content_Type,
+                          "text/HTML; charset=utf-8"s)
+            .add_body("<html><body>"
+                      "<h1>Books:</h1>"
+                      "<ul>"
+                      "<li> borkman.txt </li>"
+                      "<li> fables.txt </li>"
+                      "<li> poetics.txt </li>"
+                      "</ul>"
+                      "</body></html>"s
+                      );
+
+          res->send();
+        });
+
       routes.on_get("/images/.*", [](const auto& req, auto res) {
           disk->fs().stat(req.uri().path(), [res](auto err, const auto& entry) {
               if(!err)
