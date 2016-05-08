@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #include <hw/apic.hpp>
-#include <hw/ioport.hpp>
-#include <utility/membitmap.hpp>
+#include <hw/acpi.hpp> // ACPI
+#include <cstdio>
 
 #define LAPIC_ID        0x20
 #define LAPIC_VER       0x30
@@ -163,6 +163,8 @@ namespace hw {
     
     
     apic_enable();
+    
+    // turn on CPUs
     
   }
   

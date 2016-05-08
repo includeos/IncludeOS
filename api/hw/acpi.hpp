@@ -43,8 +43,8 @@ namespace hw {
       return acpi;
     }
     
-    const lapic_list_t& get_lapics() const {
-      return lapics;
+    static const lapic_list_t& get_lapics() {
+      return get().lapics;
     }
     
   private:

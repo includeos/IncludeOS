@@ -16,28 +16,10 @@
 // limitations under the License.
 
 #include <os>
-//#include <chrono>
-#include <hw/ioport.hpp>
+#include <iostream>
+
 #include <hw/pit.hpp>
-
-static const uint8_t cmos_out = 0x70;
-static const uint8_t cmos_in = 0x71;
-
-static const uint8_t cmos_no_nmi = 0x80;
-
-static const uint8_t cmos_sec = 0x0;
-static const uint8_t cmos_min = 0x2;
-static const uint8_t cmos_hrs = 0x4;
-static const uint8_t cmos_day = 0x7;
-static const uint8_t cmos_month = 0x8;
-static const uint8_t cmos_year = 0x9;
-static const uint8_t cmos_cent = 0x48;
-
-
-uint8_t cmos_get(uint8_t reg) {
-  hw::outb(cmos_out, reg | cmos_no_nmi);
-  return hw::inb(cmos_in);
-}
+#include <hw/cmos.hpp>
 
 
 using namespace std::chrono;
@@ -52,27 +34,63 @@ void Service::start()
   unsigned short total;
   unsigned char lowmem, highmem;
 
-  lowmem = cmos_get(0x30);
-  highmem = cmos_get(0x31);
+  lowmem = cmos::get(0x30);
+  highmem = cmos::get(0x31);
 
   total = lowmem | highmem << 8;
 
   printf("Total memory: %i \n", total);
 
+  auto regB = cmos::get(cmos::r_status_b);
+  printf("RegB: 0x%x Binary mode/daylight: %i, 12-hr-mode: %i \n",
+         regB,
+         regB & cmos::b_daylight_savings_enabled,
+         regB & cmos::b_24_hr_clock);
 
-  hw::PIT::instance().onRepeatedTimeout(1s, [](){
-      auto cent = cmos_get(cmos_cent);
-      auto year = cmos_get(cmos_year);
-      auto month = cmos_get(cmos_month);
-      auto day = cmos_get(cmos_day);
-      auto hrs = cmos_get(cmos_hrs);
-      auto min = cmos_get(cmos_min);
-      auto sec = cmos_get(cmos_sec);
+  cmos::set(cmos::r_status_b, cmos::b_24_hr_clock | cmos::b_binary_mode);
 
-      printf("(cent: %i) %x-%x-%x %x:%x:%x \n",
-             cent, day, month, year, hrs, min, sec);
+  regB = cmos::get(cmos::r_status_b);
+  printf("RegB: 0x%x Binary mode/daylight: %i, 12-hr-mode: %i \n",
+         regB,
+         regB & cmos::b_daylight_savings_enabled,
+         regB & cmos::b_24_hr_clock);
+
+  uint32_t wraps = 0;
+  uint32_t i = 0;
+
+  while (!cmos::update_in_progress()) {
+    i++;
+    if (i == 0) {
+      wraps++;
+      printf("Wrapped %i times, still no update \n", wraps);
+      std::cout << cmos::now().to_string() << "\n";
+      if (wraps > 10)
+        panic("CMOS time didn't update after 10 * 2^32 increments.");
+    }
+  };
+
+  CHECKSERT(1, "CMOS updated");
+
+  auto tsc_base1 = OS::cycles_since_boot();
+
+  hw::PIT::instance().onRepeatedTimeout(1s, [tsc_base1](){
+      static auto tsc_base = tsc_base1;
+      uint64_t ticks_pr_sec = OS::cycles_since_boot() - tsc_base;
+      auto tsc1 = OS::cycles_since_boot();
+      auto rtc1 = cmos::now();
+      auto tsc2 = OS::cycles_since_boot();
+      auto tsc3 = OS::cycles_since_boot();
+
+      printf("<CMOS> Cycles last sec: %llu \n", ticks_pr_sec);
+      printf("<CMOS> Reading CMOS Wall-clock took: %llu cycles \n", tsc2 - tsc1);
+      printf("<CMOS> RDTSC took: %llu cycles \n", tsc3 - tsc2);
+
+      printf("\n");
+      printf("Internet timestamp: %s\n",rtc1.to_string().c_str());
+      printf("Seconds since Epoch: %i\n",rtc1.to_epoch());
+      printf("Day of year: %i\n", rtc1.day_of_year());
+      printf("-------------------------------- \n\n");
+      tsc_base = OS::cycles_since_boot();
 
     });
-
-
 }
