@@ -32,7 +32,10 @@ namespace uri {
   public:
 
     /** Non-owning pointer-size type */
-    using Span_t = gsl::span<const char>;
+    using Span_t = struct {
+      uint32_t begin;
+      uint32_t end;
+    };
 
     ///
     /// RFC-specified URI parts
@@ -108,6 +111,9 @@ namespace uri {
 
     // A copy of the data, if the string-based constructor was used
     std::string uri_str_;
+
+    void init_spans();
+
   }; // class uri::URI
 
 

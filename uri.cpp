@@ -3,27 +3,30 @@
 
 using namespace uri;
 
+void URI::init_spans() {
+  path_ = {0, uri_str_.size()};
+  uri_data_ = {0, uri_str_.size()};
+}
+
 URI::URI(const std::string&& data) :
   uri_str_ {std::forward<const std::string>(data)}
 {
-  path_ = uri_str_;
-  uri_data_ = uri_str_;
+  init_spans();
 }
 
 URI::URI(const char* data) :
   uri_str_ {data}
 {
-  path_ = uri_str_;
-  uri_data_ = uri_str_;
+  init_spans();
 }
 
 
 std::string URI::path() const {
-  return std::string{path_.begin(), path_.end()};
+  return uri_str_.substr(path_.begin, path_.end);
 }
 
 std::string URI::to_string() const{
-  return std::string{uri_data_.begin(), uri_data_.end()};
+  return uri_str_;
 }
 
 std::ostream& uri::operator<< (std::ostream& out, const URI& uri) {
