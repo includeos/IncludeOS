@@ -21,14 +21,16 @@ struct File {
   fs::Disk_ptr disk;
 };
 
-class ServerResponse : public http::Response {
+namespace server {
+
+class Response : public http::Response {
 private:
   using Code = http::status_t;
   using Connection_ptr = net::TCP::Connection_ptr;
 
 public:
 
-  ServerResponse(Connection_ptr conn);
+  Response(Connection_ptr conn);
 
   /*
     Send only status code
@@ -53,9 +55,9 @@ public:
 private:
   Connection_ptr conn_;
 
-};
+}; // server::Response
 
-ServerResponse::ServerResponse(Connection_ptr conn)
+Response::Response(Connection_ptr conn)
   : http::Response(), conn_(conn)
 {
   add_header(http::header_fields::Response::Server, "IncludeOS/Acorn");
@@ -63,18 +65,18 @@ ServerResponse::ServerResponse(Connection_ptr conn)
   add_header(http::header_fields::Response::Connection, "close");
 }
 
-void ServerResponse::send() const {
+void Response::send() const {
   auto res = to_string();
   conn_->write(res.data(), res.size());
   end();
 }
 
-void ServerResponse::send_code(const Code code) {
+void Response::send_code(const Code code) {
   set_status_code(code);
   send();
 }
 
-void ServerResponse::send_file(const File& file) {
+void Response::send_file(const File& file) {
   auto& fname = file.entry.fname;
 
   /* Content Length */
@@ -101,17 +103,17 @@ void ServerResponse::send_file(const File& file) {
 
   /* Send file over connection */
   auto conn = conn_;
-  printf("<ServerResponse::send_file> Asking to send %llu bytes.\n", file.entry.size());
+  printf("<Response::send_file> Asking to send %llu bytes.\n", file.entry.size());
   Async::upload_file(file.disk, file.entry, conn,
     [conn](fs::error_t err, bool good)
   {
       if(good) {
-        printf("<ServerResponse::send_file> %s - Success!\n",
+        printf("<Response::send_file> %s - Success!\n",
           conn->to_string().c_str());
         //conn->close();
       }
       else {
-        printf("<ServerResponse::send_file> %s - Error: %s\n",
+        printf("<Response::send_file> %s - Error: %s\n",
           conn->to_string().c_str(), err.to_string().c_str());
       }
   });
@@ -119,8 +121,10 @@ void ServerResponse::send_file(const File& file) {
   end();
 }
 
-void ServerResponse::end() const {
+void Response::end() const {
   // Response ended, signal server?
 }
+
+} // < server
 
 #endif
