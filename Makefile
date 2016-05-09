@@ -13,7 +13,7 @@ FILES = service.cpp memdisk.o
 DISK=
 
 # Your own include-path
-LOCAL_INCLUDES=-I./http/inc
+LOCAL_INCLUDES=-I./server/http/inc
 
 # Local target dependencies
 .PHONY: memdisk.fat
