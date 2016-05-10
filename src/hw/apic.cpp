@@ -90,6 +90,7 @@ extern "C" {
     asm volatile("iret");
   }
   void revenant_main(int cpu);
+  unsigned boot_counter = 0;
 }
 
 namespace hw {
@@ -217,12 +218,9 @@ namespace hw {
     uint32_t   jump;
     // stuff we will need to modify
     uintptr_t  IDT_addr;
-    uint32_t   counter;
     void(*worker_addr)(int);
     void*  stack_base;
     size_t stack_size;
-    // and the rest is boot code
-    char       boot[0];
   };
   
   union addr_union {
@@ -243,18 +241,6 @@ namespace hw {
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
     printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
-    
-    // clear task priority reg to enable interrupts
-    /*
-    lapic.regs->task_pri.reg       = 0;
-    lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
-    lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
-    // spurious interrupt vector
-    lapic.regs->spurious_vector.reg = 0x100 | 0xff;
-    
-    // turn the APIC on
-    apic_enable();
-    */
     
     // copy our bootloader to APIC init location
     const char* start = &_binary_apic_boot_bin_start;
@@ -282,7 +268,7 @@ namespace hw {
     //boot->IDT_addr = (uintptr_t) idt;
     
     // reset counter
-    boot->counter = 1;
+    boot_counter = 1;
     
     boot->worker_addr = &revenant_main;
     boot->stack_base = aligned_alloc(REV_STACK_SIZE, 4096);
@@ -304,8 +290,8 @@ namespace hw {
     INFO("APIC", "Starting CPUs");
     for (auto& cpu : ACPI::get_cpus())
     {
-      printf("-> CPU %u ID %u  fl 0x%x\n",
-        cpu.cpu, cpu.id, cpu.flags);
+      //printf("-> CPU %u ID %u  fl 0x%x\n",
+      //  cpu.cpu, cpu.id, cpu.flags);
       // except the CPU we are using now
       if (cpu.id != lapic.get_id())
         // Send SIPI with start address 0x80000
@@ -313,10 +299,24 @@ namespace hw {
     }
     
     // wait for all to start
-    while (boot->counter < CPUcount);
+    while (boot_counter < CPUcount) {
+      asm("nop");
+    }
     INFO("APIC", "All CPUs are online now\n");
     
-    // enable interrupts
+    /// enable interrupts ///
+    // clear task priority reg to enable interrupts
+    /*
+    lapic.regs->task_pri.reg       = 0;
+    lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
+    lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
+    // spurious interrupt vector
+    const uint8_t SPURIOUS_IRQ = 0xff;
+    lapic.regs->spurious_vector.reg = 0x100 | SPURIOUS_IRQ;
+    
+    // turn the APIC on
+    apic_enable();
+    */
     
   }
   
