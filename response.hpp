@@ -40,7 +40,7 @@ public:
   /*
     Send the Response
   */
-  void send() const;
+  void send(bool close = false) const;
 
   /*
     Send a file
@@ -55,6 +55,8 @@ public:
 private:
   Connection_ptr conn_;
 
+  void write_to_conn(bool close_on_written = false) const;
+
 }; // server::Response
 
 Response::Response(Connection_ptr conn)
@@ -65,10 +67,23 @@ Response::Response(Connection_ptr conn)
   add_header(http::header_fields::Response::Connection, "close");
 }
 
-void Response::send() const {
-  auto res = to_string();
-  conn_->write(res.data(), res.size());
+void Response::send(bool close) const {
+  write_to_conn(close);
   end();
+}
+
+void Response::write_to_conn(bool close_on_written) const {
+  auto res = to_string();
+
+  if(!close_on_written) {
+    conn_->write(res.data(), res.size());
+  }
+  else {
+    auto conn = conn_;
+    conn_->write(res.data(), res.size(), [conn](size_t) {
+      conn->close();
+    });
+  }
 }
 
 void Response::send_code(const Code code) {
