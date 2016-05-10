@@ -3,8 +3,8 @@
 
 using namespace server;
 
-Connection::Connection(Server& serv, Connection_ptr conn)
-  : server_(serv), conn_(conn)
+Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
+  : server_(serv), conn_(conn), idx_(idx)
 {
   conn_->read(BUFSIZE, OnData::from<Connection, &Connection::on_data>(this));
   conn_->onDisconnect(OnDisconnect::from<Connection, &Connection::on_disconnect>(this));
@@ -26,5 +26,5 @@ void Connection::on_disconnect(Connection_ptr, Disconnect) {
 
 void Connection::close() {
   conn_->close();
-  server_.close(this);
+  server_.close(idx_);
 }

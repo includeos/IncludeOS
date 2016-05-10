@@ -23,7 +23,7 @@ private:
   using OnDisconnect = net::TCP::Connection::DisconnectCallback;
 
 public:
-  Connection(Server&, Connection_ptr);
+  Connection(Server&, Connection_ptr, size_t idx);
 
   Request_ptr get_request()
   { return request_; }
@@ -40,6 +40,7 @@ private:
   Connection_ptr conn_;
   Request_ptr request_;
   Response_ptr response_;
+  size_t idx_;
 
   void on_data(buffer_t, size_t);
 
