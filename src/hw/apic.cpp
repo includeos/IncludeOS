@@ -17,6 +17,7 @@
 
 #include <hw/apic.hpp>
 #include <hw/acpi.hpp> // ACPI
+#include <hw/apic_revenant.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
 #include <debug>
@@ -89,13 +90,11 @@ extern "C" {
     INFO("APIC", "Oops! Exception\n");
     asm volatile("iret");
   }
-  void revenant_main(int cpu);
   unsigned boot_counter = 0;
 }
 
 namespace hw {
   
-  static const size_t    REV_STACK_SIZE = 4096;
   static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
   static const uintptr_t IA32_APIC_BASE = 0x1B;
   
@@ -218,7 +217,7 @@ namespace hw {
     uint32_t   jump;
     // stuff we will need to modify
     uintptr_t  IDT_addr;
-    void(*worker_addr)(int);
+    void*  worker_addr;
     void*  stack_base;
     size_t stack_size;
   };
@@ -269,18 +268,20 @@ namespace hw {
     
     // reset counter
     boot_counter = 1;
+    size_t CPUcount = ACPI::get_cpus().size();
     
-    boot->worker_addr = &revenant_main;
-    boot->stack_base = aligned_alloc(REV_STACK_SIZE, 4096);
+    boot->worker_addr = (void*) &revenant_main;
+    boot->stack_base = aligned_alloc(CPUcount * REV_STACK_SIZE, 4096);
     boot->stack_size = REV_STACK_SIZE;
+    printf("APIC stack base: %p  size: %u   main size: %u\n", 
+        boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
     
     // turn on CPUs
-    size_t CPUcount = ACPI::get_cpus().size();
     
     INFO("APIC", "Initializing CPUs");
     for (auto& cpu : ACPI::get_cpus())
     {
-      printf("-> CPU %u ID %u  fl 0x%x\n",
+      debug("-> CPU %u ID %u  fl 0x%x\n",
         cpu.cpu, cpu.id, cpu.flags);
       // except the CPU we are using now
       if (cpu.id != lapic.get_id())
@@ -290,8 +291,6 @@ namespace hw {
     INFO("APIC", "Starting CPUs");
     for (auto& cpu : ACPI::get_cpus())
     {
-      //printf("-> CPU %u ID %u  fl 0x%x\n",
-      //  cpu.cpu, cpu.id, cpu.flags);
       // except the CPU we are using now
       if (cpu.id != lapic.get_id())
         // Send SIPI with start address 0x80000

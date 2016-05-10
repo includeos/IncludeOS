@@ -1,3 +1,7 @@
+;
+; Thanks to Maghsoud for paving the way to SMP!
+; We are still calling them Revenants
+;
 org 0x80000
 BITS 16
 ; 2-bytes of jmp instruction, but aligned to 4-bytes (!)
@@ -6,29 +10,18 @@ BITS 16
 ALIGN 4
 ; 20 bytes of addresses that we must modify
 ; before we can start this bootloader
-IDT_array:
-  dd  0x80480
-revenant_main:
-  dd  0x0
-stack_base:
-  dd  0x0
-stack_size:
-  dd  0
+IDT_array      dd  0x80480
+revenant_main  dd  0x0
+stack_base     dd  0x0
+stack_size     dd  0
 
 ALIGN 4
 boot_code:
-  cli   ; disable interrupts
-  cld   ; direction from lowest to highest address
-  
-	mov ax, cs
-	mov ds, ax
-	mov ss, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+  ; disable interrupts
+  cli
   
   ; segment descriptor table
-  lgdt  [gdtr]
+  lgdt  [cs:gdtr]
   
   mov   edx, cr0  ; set bit 0 of CR0
   or    edx, 1    ; to enable protected mode
@@ -39,10 +32,7 @@ boot_code:
   nop
   nop
   
-;==========================================================================
-;=  Fill the Code segment register CS with the 0x08 value by a far jump   =
-;==========================================================================
-
+  ; flush and enter protected mode
   JMP DWORD 0x08:protected_mode
 
 ;; Global descriptor table
@@ -70,15 +60,13 @@ gdt32_end:
 
 BITS 32
 protected_mode:
+  cld
   
   ; load interrupt descriptor table
   ;mov ebx, [IDT_array]
   ;lidt     [bx]
   
-;============================================================
-;=       Fill the data registers with the 0x10 value        =
-;============================================================
-
+  ; set all segments to data segment (0x10)
   mov   ax, 0x10
   mov   ds, ax
   mov   es, ax
@@ -86,14 +74,13 @@ protected_mode:
   mov   gs, ax
   mov   ss, ax
   
-  ; determine CPU id
+  ; retrieve CPU id
   mov eax, 1
   cpuid
   shr ebx, 24
   
   ; give separate stack to each cpu
-  xor edx, edx
-  mov eax, [stack_size]
+  mov eax, DWORD [stack_size]
   mul ebx
   add eax, [stack_base]
   mov ebp, eax
@@ -102,9 +89,11 @@ protected_mode:
   ; enable SSE
   call enable_sse
   
+  push  esp
   push  ebx
   call  [revenant_main]
   pop   ebx
+  add   esp, 4
   
   ; halt loop after main
 .halt:
@@ -113,7 +102,6 @@ protected_mode:
   jmp .halt
 
 enable_sse:
-  ;now enable SSE and the like
   mov eax, cr0
   and ax, 0xFFFB  ;clear coprocessor emulation CR0.EM
   or ax, 0x2      ;set coprocessor monitoring  CR0.MP

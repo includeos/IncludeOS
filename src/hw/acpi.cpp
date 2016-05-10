@@ -165,7 +165,7 @@ namespace hw {
   void ACPI::walk_madt(const char* addr)
   {
     auto* hdr = (MADTHeader*) addr;
-    INFO("APIC", "Reading APIC information");
+    INFO("ACPI", "Reading APIC information");
     // the base address for APIC registers
     INFO2("LAPIC base: 0x%x  (flags: 0x%x)", 
         hdr->lapic_addr, hdr->flags);
