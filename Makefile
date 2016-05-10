@@ -7,13 +7,13 @@ SERVICE = Acorn
 SERVICE_NAME = Acorn
 
 # Your service parts
-FILES = service.cpp memdisk.o
+FILES = service.cpp memdisk.o server/request.o server/response.o server/connection.o server/server.o
 
 # Your disk image
 DISK=
 
 # Your own include-path
-LOCAL_INCLUDES=-I./server/http/inc
+LOCAL_INCLUDES=-I.
 
 # Local target dependencies
 .PHONY: memdisk.fat
