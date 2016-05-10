@@ -21,7 +21,7 @@
 #include <functional>
 
 #include "request.hpp"
-#include "server_response.hpp"
+#include "response.hpp"
 
 namespace std {
 
@@ -36,7 +36,7 @@ public:
 } //< namespace std
 
 namespace server {
-using namespace http;
+
 //-------------------------------
 // This class is used to provide
 // route resolution
@@ -46,8 +46,8 @@ private:
   //-------------------------------
   // Internal class type aliases
   //-------------------------------
-  using Route       = std::pair<Method, URI>;
-  using Result      = std::function<void(const Request&, std::shared_ptr<ServerResponse>)>;
+  using Route       = std::pair<http::Method, http::URI>;
+  using Result      = std::function<void(const Request&, std::shared_ptr<Response>)>;
   using Route_Table = std::unordered_map<Route, Result>;
   //-------------------------------
 public:
@@ -336,14 +336,15 @@ inline bool Router::route_exist(const Route& route) const noexcept {
 inline void Router::initialize_default_configuration() {
   using namespace std;
   //-----------------------------------
-  route_table_.emplace(std::make_pair(http::method::GET, "404"), [](const Request&, std::shared_ptr<ServerResponse> res) {
+  route_table_.emplace(std::make_pair(http::method::GET, "404"), [](const Request&, std::shared_ptr<Response> res) {
     res->reset()
-       .set_status_code(Not_Found)
-       .add_header(header_fields::Response::Server, "IncludeOS/v0.7.0"s)
-       .add_header(header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
-       .add_header(header_fields::Response::Connection, "close"s)
+       .set_status_code(http::Not_Found)
+       .add_header(http::header_fields::Response::Server, "IncludeOS/v0.7.0"s)
+       .add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
+       .add_header(http::header_fields::Response::Connection, "close"s)
        .add_body("<h1>404</h1>"
                  "<p>PAGE NOT FOUND</p>"s);
+    res->send();
   });
 }
 

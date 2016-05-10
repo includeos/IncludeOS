@@ -25,6 +25,9 @@
 
 namespace server {
 
+using Next = delegate<void()>;
+using Middleware = delegate<void(const Request&, std::shared_ptr<Response>, Next)>;
+
 //-------------------------------
 // This class is a simple dumb
 // HTTP server for service testing
@@ -134,13 +137,14 @@ inline void Server::listen(Port port) {
   Server& server = *this;
 
   inet_->tcp().bind(port).onConnect([&](auto conn) {
+
     conn->read(1500, [conn, &server](net::TCP::buffer_t buf, size_t n) {
         auto data = std::string((char*)buf.get(), n);
         debug("Received data: %s\n", data.c_str());
 
 	    // Create request / response objects for callback
 	    Request  req {data};
-	    std::shared_ptr<ServerResponse> res = std::make_shared<ServerResponse>(conn);
+	    std::shared_ptr<Response> res = std::make_shared<Response>(conn);
 
 	    // Get and call the callback
 	    server.router_[{req.method(), req.uri()}](req, res);
