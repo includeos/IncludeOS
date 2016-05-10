@@ -17,7 +17,10 @@
 
 #include <hw/apic.hpp>
 #include <hw/acpi.hpp> // ACPI
+#include <kernel/irq_manager.hpp>
 #include <cstdio>
+#include <debug>
+#include <info>
 
 #define LAPIC_ID        0x20
 #define LAPIC_VER       0x30
@@ -45,12 +48,54 @@
 #define TMR_PERIODIC    0x20000
 #define TMR_BASEDIV     (1<<20)
 
+// Interrupt Command Register
+#define ICR_DEST_BITS   24
+
+// Delivery Mode
+#define ICR_FIXED               0x000000
+#define ICR_LOWEST              0x000100
+#define ICR_SMI                 0x000200
+#define ICR_NMI                 0x000400
+#define ICR_INIT                0x000500
+#define ICR_STARTUP             0x000600
+
+// Destination Mode
+#define ICR_PHYSICAL            0x000000
+#define ICR_LOGICAL             0x000800
+
+// Delivery Status
+#define ICR_IDLE                0x000000
+#define ICR_SEND_PENDING        0x001000
+
+// Level
+#define ICR_DEASSERT            0x000000
+#define ICR_ASSERT              0x004000
+
+// Trigger Mode
+#define ICR_EDGE                0x000000
+#define ICR_LEVEL               0x008000
+
+// Destination Shorthand
+#define ICR_NO_SHORTHAND        0x000000
+#define ICR_SELF                0x040000
+#define ICR_ALL_INCLUDING_SELF  0x080000
+#define ICR_ALL_EXCLUDING_SELF  0x0c0000
+
 extern "C" {
   void apic_enable();
+  extern char _binary_apic_boot_bin_start;
+  extern char _binary_apic_boot_bin_end;
+  void lapic_exception_handler() {
+    INFO("APIC", "Oops! Exception\n");
+    asm volatile("iret");
+  }
+  void revenant_main(int cpu);
 }
 
 namespace hw {
   
+  static const size_t    REV_STACK_SIZE = 4096;
+  static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
   static const uintptr_t IA32_APIC_BASE = 0x1B;
   
   uint64_t RDMSR(uint32_t addr)
@@ -90,15 +135,16 @@ namespace hw {
     apic_reg 		irr[8];
     apic_reg    error_status;
     apic_reg reserved28[7];
-    apic_reg			int_command[2]; 	// ICR1. ICR2
-    apic_reg 		timer_vector; 		// LVTT
+    apic_reg		intr_lo; 	    // ICR1
+    apic_reg		intr_hi;      // ICR2
+    apic_reg 		timer_vector; // LVTT
     apic_reg reserved33;
-    apic_reg reserved34; // perf count lvt
+    apic_reg reserved34;      // perf count lvt
     apic_reg 		lint0_vector;
     apic_reg 		lint1_vector;
     apic_reg 		error_vector; // err vector
-    apic_reg 		init_count; // timer
-    apic_reg 		cur_count;  // timer
+    apic_reg 		init_count;   // timer
+    apic_reg 		cur_count;    // timer
     apic_reg reserved3a;
     apic_reg reserved3b;
     apic_reg reserved3c;
@@ -143,17 +189,54 @@ namespace hw {
     {
       reg[bit >> 5].reg &= ~(1 << (bit & 0x1f));
     }
+    // initialize a given LAPIC
+    void init(uint8_t apic_id)
+    {
+      regs->intr_hi.reg = apic_id << ICR_DEST_BITS;
+      regs->intr_lo.reg = ICR_INIT | ICR_PHYSICAL
+           | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND;
+      
+      while (regs->intr_lo.reg & ICR_SEND_PENDING);
+    }
+    void start(uint8_t apic_id, uint32_t vector)
+    {
+      regs->intr_hi.reg = apic_id << ICR_DEST_BITS;
+      regs->intr_lo.reg = vector | ICR_STARTUP
+        | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND;
+      
+      while (regs->intr_lo.reg & ICR_SEND_PENDING);
+    }
     
     apic_regs* regs;
     uintptr_t  ioapic_base;
   };
-  
   static apic lapic;
+  
+  struct apic_boot {
+    // the jump instruction at the start
+    uint32_t   jump;
+    // stuff we will need to modify
+    uintptr_t  IDT_addr;
+    uint32_t   counter;
+    void(*worker_addr)(int);
+    void*  stack_base;
+    size_t stack_size;
+    // and the rest is boot code
+    char       boot[0];
+  };
+  
+  union addr_union {
+    uint32_t whole;
+    uint16_t part[2];
+    
+    addr_union(void(*addr)()) {
+      whole = (uintptr_t) addr;
+    }
+  };
   
   void APIC::init() {
     
     const uint64_t APIC_BASE_MSR = RDMSR(IA32_APIC_BASE);
-    
     // find the LAPICs base address
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
@@ -161,10 +244,79 @@ namespace hw {
     lapic = apic(APIC_BASE_ADDR);
     printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
     
+    // clear task priority reg to enable interrupts
+    /*
+    lapic.regs->task_pri.reg       = 0;
+    lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
+    lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
+    // spurious interrupt vector
+    lapic.regs->spurious_vector.reg = 0x100 | 0xff;
     
+    // turn the APIC on
     apic_enable();
+    */
+    
+    // copy our bootloader to APIC init location
+    const char* start = &_binary_apic_boot_bin_start;
+    ptrdiff_t bootloader_size = &_binary_apic_boot_bin_end - start;
+    debug("Copying bootloader from %p to 0x%x (size=%d)\n",
+          start, BOOTLOADER_LOCATION, bootloader_size);
+    memcpy((char*) BOOTLOADER_LOCATION, start, bootloader_size);
+    
+    // modify bootloader to support our cause
+    auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
+    // populate IDT
+    auto* idt_array = (idt_loc*) 0x80480;
+    idt_array->limit = 32 * sizeof(IDTDescr) - 1;
+    idt_array->base  = 0x80500;
+    
+    auto* idt = (IDTDescr*) idt_array->base;
+    for (size_t i = 0; i < 32; i++) {
+      addr_union addr(&lapic_exception_handler);
+      idt[i].offset_1 = addr.part[0];
+      idt[i].offset_2 = addr.part[1];
+      idt[i].selector  = 0x8;
+      idt[i].type_attr = 0x8e;
+      idt[i].zero      = 0;
+    }
+    //boot->IDT_addr = (uintptr_t) idt;
+    
+    // reset counter
+    boot->counter = 1;
+    
+    boot->worker_addr = &revenant_main;
+    boot->stack_base = aligned_alloc(REV_STACK_SIZE, 4096);
+    boot->stack_size = REV_STACK_SIZE;
     
     // turn on CPUs
+    size_t CPUcount = ACPI::get_cpus().size();
+    
+    INFO("APIC", "Initializing CPUs");
+    for (auto& cpu : ACPI::get_cpus())
+    {
+      printf("-> CPU %u ID %u  fl 0x%x\n",
+        cpu.cpu, cpu.id, cpu.flags);
+      // except the CPU we are using now
+      if (cpu.id != lapic.get_id())
+        lapic.init(cpu.id);
+    }
+    // start CPUs
+    INFO("APIC", "Starting CPUs");
+    for (auto& cpu : ACPI::get_cpus())
+    {
+      printf("-> CPU %u ID %u  fl 0x%x\n",
+        cpu.cpu, cpu.id, cpu.flags);
+      // except the CPU we are using now
+      if (cpu.id != lapic.get_id())
+        // Send SIPI with start address 0x80000
+        lapic.start(cpu.id, 0x80);
+    }
+    
+    // wait for all to start
+    while (boot->counter < CPUcount);
+    INFO("APIC", "All CPUs are online now\n");
+    
+    // enable interrupts
     
   }
   

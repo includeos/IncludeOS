@@ -166,6 +166,7 @@ namespace hw {
   {
     auto* hdr = (MADTHeader*) addr;
     INFO("APIC", "Reading APIC information");
+    // the base address for APIC registers
     INFO2("LAPIC base: 0x%x  (flags: 0x%x)", 
         hdr->lapic_addr, hdr->flags);
     this->apic_base = hdr->lapic_addr;
@@ -187,6 +188,11 @@ namespace hw {
         }
         break;
       case 1:
+        {
+          this->ioapic = *(IOAPIC*) rec;
+          INFO2("I/O APIC %u   ADDR 0x%x  INTR 0x%x", 
+              ioapic.id, ioapic.addr_base, ioapic.intr_base);
+        }
         break;
       }
       // decrease length as we go

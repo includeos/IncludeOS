@@ -1,6 +1,6 @@
 USE32
-
 global apic_enable
+global spurious_intr
 
 apic_enable:
     push ecx
@@ -12,3 +12,6 @@ apic_enable:
     pop eax
     pop ecx
     ret
+
+spurious_intr:
+    iret

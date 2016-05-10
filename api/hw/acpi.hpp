@@ -30,6 +30,14 @@ namespace hw {
       uint8_t  id;
       uint32_t flags;
     };
+    struct IOAPIC {
+      uint8_t   type;
+      uint8_t   length;
+      uint8_t   id;
+      uint8_t   reserved;
+      uintptr_t addr_base;
+      uintptr_t intr_base;
+    };
     typedef std::vector<LAPIC> lapic_list_t;
     
     static void init() {
@@ -43,8 +51,15 @@ namespace hw {
       return acpi;
     }
     
-    static const lapic_list_t& get_lapics() {
+    static const lapic_list_t& get_cpus() {
       return get().lapics;
+    }
+    static const LAPIC& get_cpu(uint8_t cpu) {
+      return get().lapics.at(cpu);
+    }
+    
+    static const IOAPIC& io_apic() {
+      return get().ioapic;
     }
     
   private:
@@ -57,6 +72,7 @@ namespace hw {
     
     uintptr_t hpet_base;
     uintptr_t apic_base;
+    IOAPIC       ioapic;
     lapic_list_t lapics;
   };
   
