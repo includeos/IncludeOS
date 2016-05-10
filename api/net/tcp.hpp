@@ -519,10 +519,20 @@ namespace net {
           return length > 0;
         }
 
-        inline void clear() {
+        void clear() {
           memset(begin(), 0, offset);
           remaining = capacity();
           offset = 0;
+          push = false;
+        }
+
+        /*
+          Renews the ReadBuffer by assigning a new buffer_t, releasing ownership
+        */
+        inline void renew() {
+          remaining = capacity();
+          offset = 0;
+          buffer = buffer_t(new uint8_t[remaining], std::default_delete<uint8_t[]>());
           push = false;
         }
       }; // < Connection::ReadBuffer
@@ -720,6 +730,7 @@ namespace net {
       */
       struct Disconnect;
 
+      // TODO: Remove reference to Connection, probably not needed..
       using DisconnectCallback          = delegate<void(std::shared_ptr<Connection>, Disconnect)>;
 
       /*
