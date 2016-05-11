@@ -77,6 +77,20 @@ public:
   const ptr_t end() { return data + size; }
 };
 
+// Just a small test to demonstrate middleware
+class Test : public server::Middleware {
+public:
+  Test(std::string str) : server::Middleware(), test_str(str) {}
+
+  virtual void process(server::Request_ptr, server::Response_ptr, server::Next) override {
+    printf("<MV:Test> My test string: %s\n", test_str.c_str());
+  }
+
+private:
+  std::string test_str;
+}; // << Test
+
+std::shared_ptr<Test> test_middleware;
 
 void Service::start() {
 
@@ -144,6 +158,16 @@ void Service::start() {
       // initialize server
       acorn = std::make_unique<server::Server>();
       acorn->set_routes(routes).listen(8081);
+
+      // add a middleware as lambda
+      acorn->use([](auto req, auto res, auto next){
+        printf("<MW:lambda> EleGiggle\n");
+      });
+
+      test_middleware = std::make_shared<Test>("PogChamp");
+      acorn->use(*test_middleware);
+
+      // add a middleware from Middleware
 
       auto vec = disk->fs().ls("/").entries;
 
