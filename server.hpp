@@ -21,15 +21,13 @@
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 
+#include "middleware.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include "connection.hpp"
 #include "router.hpp"
 
 namespace server {
-
-using Next = delegate<void()>;
-using Middleware = delegate<void(Request_ptr, Response_ptr, Next)>;
 
 //-------------------------------
 // This class is a simple dumb
@@ -90,6 +88,8 @@ public:
 
   void process(Request_ptr, Response_ptr);
 
+  void use(Callback);
+
 private:
   //-------------------------------
   // Class data members
@@ -98,6 +98,7 @@ private:
   Router   router_;
   std::vector<Connection_ptr> connections_;
   std::vector<size_t> free_idx_;
+  std::vector<Callback> middleware_;
 
   //-----------------------------------
   // Deleted move and copy operations

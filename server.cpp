@@ -56,6 +56,11 @@ void Server::close(size_t idx) {
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
+
+  for(auto mv : middleware_) {
+    mv(req, res, []{});
+  }
+
   try {
     router_.match(req->method(), req->uri().path())(req, res);
   }
@@ -68,4 +73,8 @@ void Server::process(Request_ptr req, Response_ptr res) {
     std::cout << e.what() << " thrown for Request: " << *req;
 
   }
+}
+
+void Server::use(Callback middleware) {
+  middleware_.push_back(middleware);
 }
