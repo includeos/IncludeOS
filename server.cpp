@@ -57,7 +57,7 @@ void Server::close(size_t idx) {
 
 void Server::process(Request_ptr req, Response_ptr res) {
   try {
-    router_.match(req->method(), req->uri().path())(*req, res);
+    router_.match(req->method(), req->uri().path())(req, res);
   }
   catch (Router_error err) {
     printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
