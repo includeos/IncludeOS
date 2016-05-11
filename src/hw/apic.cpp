@@ -67,6 +67,7 @@
 // Delivery Status
 #define ICR_IDLE                0x000000
 #define ICR_SEND_PENDING        0x001000
+#define ICR_DLV_STATUS          (1u <<12)
 
 // Level
 #define ICR_DEASSERT            0x000000
@@ -84,6 +85,7 @@
 
 extern "C" {
   void apic_enable();
+  extern void reboot();
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
   void lapic_exception_handler() {
@@ -216,7 +218,6 @@ namespace hw {
     // the jump instruction at the start
     uint32_t   jump;
     // stuff we will need to modify
-    uintptr_t  IDT_addr;
     void*  worker_addr;
     void*  stack_base;
     size_t stack_size;
@@ -253,7 +254,7 @@ namespace hw {
     // populate IDT
     auto* idt_array = (idt_loc*) 0x80480;
     idt_array->limit = 32 * sizeof(IDTDescr) - 1;
-    idt_array->base  = 0x80500;
+    idt_array->base  = (uintptr_t) new IDTDescr[32];
     
     auto* idt = (IDTDescr*) idt_array->base;
     for (size_t i = 0; i < 32; i++) {
@@ -264,7 +265,6 @@ namespace hw {
       idt[i].type_attr = 0x8e;
       idt[i].zero      = 0;
     }
-    //boot->IDT_addr = (uintptr_t) idt;
     
     // reset counter
     boot_counter = 1;
@@ -305,7 +305,6 @@ namespace hw {
     
     /// enable interrupts ///
     // clear task priority reg to enable interrupts
-    /*
     lapic.regs->task_pri.reg       = 0;
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
     lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
@@ -315,8 +314,28 @@ namespace hw {
     
     // turn the APIC on
     apic_enable();
-    */
     
+    // wakeup APs
+    for (auto& cpu : ACPI::get_cpus())
+    {
+      // except the CPU we are using now
+      if (cpu.id != lapic.get_id())
+        send_ipi(cpu.id, 0x80);
+    }
+    
+  }
+  
+  void APIC::send_ipi(uint8_t id, uint8_t vector)
+  {
+    printf("send_ipi  id %u  vector %u\n", id, vector);
+    uint32_t value = lapic.regs->intr_hi.reg;
+    
+    value &= 0x00FFFFFF;
+    value |= id << 24;
+    lapic.regs->intr_hi.reg = value;
+    
+    value = ICR_ASSERT | ICR_DLV_STATUS | ICR_FIXED | vector;
+    lapic.regs->intr_lo.reg = value;
   }
   
 }

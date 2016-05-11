@@ -10,10 +10,10 @@ BITS 16
 ALIGN 4
 ; 20 bytes of addresses that we must modify
 ; before we can start this bootloader
-IDT_array      dd  0x80480
 revenant_main  dd  0x0
 stack_base     dd  0x0
 stack_size     dd  0
+IDT_array      equ  0x80480
 
 ALIGN 4
 boot_code:
@@ -63,8 +63,8 @@ protected_mode:
   cld
   
   ; load interrupt descriptor table
-  ;mov ebx, [IDT_array]
-  ;lidt     [bx]
+  ;mov  eax, [IDT_array]
+  ;lidt      [eax]
   
   ; set all segments to data segment (0x10)
   mov   ax, 0x10

@@ -24,6 +24,7 @@ namespace hw {
   public:
     static void init();
     
+    static void send_ipi(uint8_t dest, uint8_t vector);
   };
   
 }
