@@ -16,6 +16,8 @@ void Connection::on_data(buffer_t buf, size_t n) {
 
   response_ = std::make_shared<Response>(conn_);
 
+  std::cout << "Raw data: " << buf << "\n";
+
   server_.process(request_, response_);
 
 }
