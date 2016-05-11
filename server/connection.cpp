@@ -11,12 +11,13 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
-  if(!request_)
-    request_ = std::make_shared<Request>(buf, n);
+  request_ = std::make_shared<Request>(buf, n);
 
   response_ = std::make_shared<Response>(conn_);
 
-  std::cout << "Raw data: " << buf << "\n";
+  printf("<Connection> OnData: %s\n", std::string{(char*) buf.get(), n}.c_str());
+
+  //std::cout << "Raw data: " << buf << " <<< End raw data.\n";
 
   server_.process(request_, response_);
 

@@ -56,10 +56,15 @@ void Server::close(size_t idx) {
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
-
   try {
     router_.match(req->method(), req->uri().path())(*req, res);
-  } catch (std::runtime_error e) {
+  }
+  catch (Router_error err) {
+    printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
+    res->set_status_code(http::Not_Found);
+    res->send(true); // active close
+  }
+  catch (std::runtime_error e) {
     std::cout << e.what() << " thrown for Request: " << *req;
 
   }
