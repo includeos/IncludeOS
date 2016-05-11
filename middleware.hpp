@@ -7,7 +7,8 @@
 
 namespace server {
 
-using Next = delegate<void()>;
+using next_t = delegate<void()>;
+using Next = std::shared_ptr<next_t>;
 using Callback = delegate<void(Request_ptr, Response_ptr, Next)>;
 
 class Middleware {

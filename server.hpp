@@ -41,6 +41,7 @@ private:
   using Port     = const unsigned;
   using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
   using OnConnect = net::TCP::Connection::ConnectCallback;
+  using MiddlewareStack = std::vector<Callback>;
   //-------------------------------
 public:
   //-------------------------------
@@ -98,7 +99,7 @@ private:
   Router   router_;
   std::vector<Connection_ptr> connections_;
   std::vector<size_t> free_idx_;
-  std::vector<Callback> middleware_;
+  MiddlewareStack middleware_;
 
   //-----------------------------------
   // Deleted move and copy operations
@@ -118,6 +119,8 @@ private:
   void initialize();
 
   void connect(net::TCP::Connection_ptr);
+
+  void process_route(Request_ptr, Response_ptr);
 
 }; //< class Server
 
