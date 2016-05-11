@@ -21,15 +21,13 @@
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 
+#include "middleware.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include "connection.hpp"
 #include "router.hpp"
 
 namespace server {
-
-using Next = delegate<void()>;
-using Middleware = delegate<void(Request_ptr, Response_ptr, Next)>;
 
 //-------------------------------
 // This class is a simple dumb
@@ -43,6 +41,7 @@ private:
   using Port     = const unsigned;
   using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
   using OnConnect = net::TCP::Connection::ConnectCallback;
+  using MiddlewareStack = std::vector<Callback>;
   //-------------------------------
 public:
   //-------------------------------
@@ -90,6 +89,8 @@ public:
 
   void process(Request_ptr, Response_ptr);
 
+  void use(Callback);
+
 private:
   //-------------------------------
   // Class data members
@@ -98,6 +99,7 @@ private:
   Router   router_;
   std::vector<Connection_ptr> connections_;
   std::vector<size_t> free_idx_;
+  MiddlewareStack middleware_;
 
   //-----------------------------------
   // Deleted move and copy operations
@@ -117,6 +119,8 @@ private:
   void initialize();
 
   void connect(net::TCP::Connection_ptr);
+
+  void process_route(Request_ptr, Response_ptr);
 
 }; //< class Server
 

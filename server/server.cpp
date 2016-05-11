@@ -29,6 +29,7 @@ void Server::connect(net::TCP::Connection_ptr conn) {
   // if there is a free spot in connections
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
+    Ensures(connections_[idx] == nullptr);
     connections_[idx] = std::make_shared<Connection>(*this, conn, idx);
     free_idx_.pop_back();
   }
@@ -56,10 +57,41 @@ void Server::close(size_t idx) {
 
 void Server::process(Request_ptr req, Response_ptr res) {
 
-  try {
-    router_.match(req->method(), req->uri().path())(*req, res);
-  } catch (std::runtime_error e) {
-    std::cout << e.what() << " thrown for Request: " << *req;
+  auto next = std::make_shared<next_t>();
+  auto it_ptr = std::make_shared<MiddlewareStack::iterator>(middleware_.begin());
+  // setup Next callback
+  *next = [this, it_ptr, next, req, res] {
+    // derefence the the pointer to the iterator
+    auto& it = *it_ptr;
+    // while there is more to do
+    if(it != middleware_.end()) {
+      // dereference the function
+      auto& func = *it;
+      // advance the iterator for the next next call
+      it++;
+      // execute the function
+      func(req, res, next);
+    }
+    // no more middleware, proceed with route processing
+    else {
+      process_route(req, res);
+    }
+  };
+  // get the party started..
+  (*next)();
+}
 
+void Server::process_route(Request_ptr req, Response_ptr res) {
+  try {
+    router_.match(req->method(), req->uri().path())(req, res);
   }
+  catch (Router_error err) {
+    printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
+    res->set_status_code(http::Not_Found);
+    res->send(true); // active close
+  }
+}
+
+void Server::use(Callback middleware) {
+  middleware_.push_back(middleware);
 }
