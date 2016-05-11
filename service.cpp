@@ -58,7 +58,31 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
 
 }
 
+
+template <typename PTR>
+class BufferWrapper {
+
+  using ptr_t = PTR;
+
+  ptr_t data;
+  size_t size;
+
+public:
+
+  BufferWrapper(ptr_t ptr, size_t sz) :
+    data {ptr}, size{sz}
+  {}
+
+  const ptr_t begin() { return data; }
+  const ptr_t end() { return data + size; }
+};
+
+
 void Service::start() {
+
+  uri::URI uri1("asdf");
+
+  printf("<URI> Test URI: %s \n", uri1.to_string().c_str());
 
   // mount the main partition in the Master Boot Record
   disk->mount([](fs::error_t err) {
@@ -67,24 +91,42 @@ void Service::start() {
 
       server::Router routes;
 
-      /* Route: GET /images/prettypicture.jpg */
-      routes.on_get("/images/prettypicture.jpg"s,
-        [](const auto&, auto res)
-      {
+      routes.on_get("/api/users/.*", [](const auto& req, auto res) {
+          res->add_header(http::header_fields::Entity::Content_Type,
+                          "text/JSON; charset=utf-8"s)
+            .add_body("{\"id\" : 1, \"name\" : \"alfred\"}"s);
 
-        disk->fs().stat("/images/prettypicture.jpg",
-          [res](auto err, const auto& entry)
-        {
-          if(!err)
-            res->send_file({disk, entry});
-          else
-            res->send_code(http::Not_Found);
+          res->send();
+        });
+
+      routes.on_get("/books/.*", [](const auto& req, auto res) {
+          res->add_header(http::header_fields::Entity::Content_Type,
+                          "text/HTML; charset=utf-8"s)
+            .add_body("<html><body>"
+                      "<h1>Books:</h1>"
+                      "<ul>"
+                      "<li> borkman.txt </li>"
+                      "<li> fables.txt </li>"
+                      "<li> poetics.txt </li>"
+                      "</ul>"
+                      "</body></html>"s
+                      );
+
+          res->send();
+        });
+
+      routes.on_get("/images/.*", [](const auto& req, auto res) {
+          disk->fs().stat(req.uri().path(), [res](auto err, const auto& entry) {
+              if(!err)
+                res->send_file({disk, entry});
+              else
+                res->send_code(http::Not_Found);
         });
 
       });
 
       /* Route: GET / */
-      routes.on_get("/"s, [](const auto&, auto res){
+      routes.on_get(R"(index\.html?|\/|\?)", [](const auto&, auto res){
           disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
                 res->set_status_code(http::Not_Found);

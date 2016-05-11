@@ -56,5 +56,11 @@ void Server::close(size_t idx) {
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
-  router_[{req->method(), req->uri()}](*req, res);
+
+  try {
+    router_.match(req->method(), req->uri().path())(*req, res);
+  } catch (std::runtime_error e) {
+    std::cout << e.what() << " thrown for Request: " << *req;
+
+  }
 }
