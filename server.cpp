@@ -29,6 +29,7 @@ void Server::connect(net::TCP::Connection_ptr conn) {
   // if there is a free spot in connections
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
+    Ensures(connections_[idx] == nullptr);
     connections_[idx] = std::make_shared<Connection>(*this, conn, idx);
     free_idx_.pop_back();
   }
