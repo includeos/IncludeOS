@@ -164,10 +164,10 @@ void Service::start() {
         printf("<MW:lambda> EleGiggle\n");
       });
 
+      // add a middleware as a class derived from server::Middleware
       test_middleware = std::make_shared<Test>("PogChamp");
       acorn->use(*test_middleware);
 
-      // add a middleware from Middleware
 
       auto vec = disk->fs().ls("/").entries;
 
