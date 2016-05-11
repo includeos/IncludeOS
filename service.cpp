@@ -82,8 +82,9 @@ class Test : public server::Middleware {
 public:
   Test(std::string str) : server::Middleware(), test_str(str) {}
 
-  virtual void process(server::Request_ptr, server::Response_ptr, server::Next) override {
+  virtual void process(server::Request_ptr, server::Response_ptr, server::Next next) override {
     printf("<MV:Test> My test string: %s\n", test_str.c_str());
+    (*next)();
   }
 
 private:
@@ -161,7 +162,10 @@ void Service::start() {
 
       // add a middleware as lambda
       acorn->use([](auto req, auto res, auto next){
-        printf("<MW:lambda> EleGiggle\n");
+        hw::PIT::on_timeout(0.050, [next]{
+          printf("<MW:lambda> EleGiggle (50ms delay)\n");
+          (*next)();
+        });
       });
 
       // add a middleware as a class derived from server::Middleware

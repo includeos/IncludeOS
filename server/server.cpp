@@ -57,10 +57,31 @@ void Server::close(size_t idx) {
 
 void Server::process(Request_ptr req, Response_ptr res) {
 
-  for(auto mv : middleware_) {
-    mv(req, res, []{});
-  }
+  auto next = std::make_shared<next_t>();
+  auto it_ptr = std::make_shared<MiddlewareStack::iterator>(middleware_.begin());
+  // setup Next callback
+  *next = [this, it_ptr, next, req, res] {
+    // derefence the the pointer to the iterator
+    auto& it = *it_ptr;
+    // while there is more to do
+    if(it != middleware_.end()) {
+      // dereference the function
+      auto& func = *it;
+      // advance the iterator for the next next call
+      it++;
+      // execute the function
+      func(req, res, next);
+    }
+    // no more middleware, proceed with route processing
+    else {
+      process_route(req, res);
+    }
+  };
+  // get the party started..
+  (*next)();
+}
 
+void Server::process_route(Request_ptr req, Response_ptr res) {
   try {
     router_.match(req->method(), req->uri().path())(req, res);
   }
@@ -68,10 +89,6 @@ void Server::process(Request_ptr req, Response_ptr res) {
     printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
     res->set_status_code(http::Not_Found);
     res->send(true); // active close
-  }
-  catch (std::runtime_error e) {
-    std::cout << e.what() << " thrown for Request: " << *req;
-
   }
 }
 
