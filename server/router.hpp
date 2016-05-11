@@ -36,7 +36,7 @@ namespace server {
     // Internal class type aliases
     //-------------------------------
     using Route_expr = std::regex;
-    using Callback = std::function<void(const Request&, std::shared_ptr<Response>)>;
+    using Callback = std::function<void(Request_ptr, Response_ptr)>;
     struct Route {
 
       Route_expr expr;

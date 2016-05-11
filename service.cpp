@@ -91,7 +91,7 @@ void Service::start() {
 
       server::Router routes;
 
-      routes.on_get("/api/users/.*", [](const auto& req, auto res) {
+      routes.on_get("/api/users/.*", [](auto req, auto res) {
           res->add_header(http::header_fields::Entity::Content_Type,
                           "text/JSON; charset=utf-8"s)
             .add_body("{\"id\" : 1, \"name\" : \"alfred\"}"s);
@@ -99,7 +99,7 @@ void Service::start() {
           res->send();
         });
 
-      routes.on_get("/books/.*", [](const auto& req, auto res) {
+      routes.on_get("/books/.*", [](auto req, auto res) {
           res->add_header(http::header_fields::Entity::Content_Type,
                           "text/HTML; charset=utf-8"s)
             .add_body("<html><body>"
@@ -115,8 +115,8 @@ void Service::start() {
           res->send();
         });
 
-      routes.on_get("/images/.*", [](const auto& req, auto res) {
-          disk->fs().stat(req.uri().path(), [res](auto err, const auto& entry) {
+      routes.on_get("/images/.*", [](auto req, auto res) {
+          disk->fs().stat(req->uri().path(), [res](auto err, const auto& entry) {
               if(!err)
                 res->send_file({disk, entry});
               else
@@ -126,7 +126,7 @@ void Service::start() {
       });
 
       /* Route: GET / */
-      routes.on_get(R"(index\.html?|\/|\?)", [](const auto&, auto res){
+      routes.on_get(R"(index\.html?|\/|\?)", [](auto, auto res){
           disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
                 res->set_status_code(http::Not_Found);
