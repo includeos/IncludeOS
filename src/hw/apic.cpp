@@ -323,6 +323,7 @@ namespace hw {
         send_ipi(cpu.id, 0x80);
     }
     
+    //APIC::reboot();
   }
   
   void APIC::send_ipi(uint8_t id, uint8_t vector)
@@ -338,4 +339,8 @@ namespace hw {
     lapic.regs->intr_lo.reg = value;
   }
   
+  void APIC::reboot()
+  {
+    ::reboot();
+  }
 }

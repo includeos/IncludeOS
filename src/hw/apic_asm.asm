@@ -28,21 +28,8 @@ spurious_intr:
 reboot:
     ; load bogus IDT
     lidt [reset_idtr]
-    
-    ; disable SSE
-    mov eax, cr0
-    ;or  ax, ~0xFFFB  ;set coprocessor emulation CR0.EM
-    and ax, ~0x2     ;clear coprocessor monitoring  CR0.MP
-    mov cr0, eax
-  
-    mov eax, cr4
-    and  ax, ~(3 << 9)
-    mov cr4, eax
-    
-    ; attempt to use SSE
-    movsd xmm0, qword [0x0]
-    ; should never reach here
-    hlt
+    ; 1-byte breakpoint instruction
+    int3
 
 reset_idtr:
     dw      400h - 1
