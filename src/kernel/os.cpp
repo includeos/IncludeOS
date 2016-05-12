@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <os>
 
-#include <hw/ioport.hpp>
+#include <hw/acpi.hpp>
+#include <hw/apic.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
@@ -59,6 +60,12 @@ void OS::start() {
 
   atexit(default_exit);
 
+  // read ACPI tables
+  hw::ACPI::init();
+  
+  // setup APIC, APIC timer, SMP etc.
+  hw::APIC::init();
+  
   // Set up interrupt handlers
   IRQ_manager::init();
 

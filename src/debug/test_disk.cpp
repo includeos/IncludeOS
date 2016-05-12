@@ -18,11 +18,12 @@ void Service::start()
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   
   // 1. create alot of separate jobs
-  /*for (int i = 0; i < 256; i++)
+  for (int i = 0; i < 256; i++)
   device.read(0,
   [i] (fs::buffer_t buffer)
   {
-    printf("buffer %d is not null: %d\n", i, !!buffer);
+    if (!buffer)
+      printf("buffer %d is not null: %d\n", i, !!buffer);
     assert(buffer);
   });
   // 2. create alot of sequential jobs of 1024 sectors each
@@ -91,11 +92,8 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
-  */
   
   printf("*** TEST SERVICE STARTED *** \n");
-  void test_APIC();
-  test_APIC();
 }
 
 void list_partitions(decltype(disk) disk)
@@ -111,11 +109,4 @@ void list_partitions(decltype(disk) disk)
       printf("[Partition]  '%s' at LBA %u\n",
              part.name().c_str(), part.lba());
   });
-}
-
-#include <hw/apic.hpp>
-void test_APIC() {
-  
-  hw::APIC::init();
-  
 }

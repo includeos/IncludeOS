@@ -65,9 +65,10 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o util/memstream.o util/async.o \
-		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
+		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		hw/serial.o hw/apic.o hw/apic_asm.o hw/cmos.o\
+		hw/serial.o hw/cmos.o \
+		hw/acpi.o hw/apic.o hw/ioapic.o hw/apic_asm.o hw/apic_revenant.o \
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
@@ -165,9 +166,9 @@ test: test_service
 libc++abi.a: $(CXXABI_OBJ)
 	$(AR_INC) rcs $@ $(CXXABI_OBJ)
 
-os.a: $(OS_OBJECTS)
+os.a: $(OS_OBJECTS) apic_boot.o
 	@echo "\n>> Building the OS library"
-	$(AR_INC) rcs $@ $(OS_OBJECTS)
+	$(AR_INC) rcs $@ $(OS_OBJECTS) apic_boot.o
 
 install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
@@ -212,6 +213,10 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
 
+apic_boot.o: hw/apic_boot.asm
+	nasm -f bin -o apic_boot.bin $<
+	objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin $@
+
 # Disk image as a section
 ###################################################
 memdisk: memdisk.asm
@@ -232,8 +237,7 @@ clean_tests:
 
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
-	$(RM) os.a
-	$(RM) libc++abi.a
-	$(RM) bootloader memdisk.o
+	$(RM) os.a libc++abi.a
+	$(RM) bootloader apic_boot apic_boot.o memdisk.o
 
 -include $(OS_DEPS)

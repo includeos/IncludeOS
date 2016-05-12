@@ -21,6 +21,7 @@
 #include <assert.h>
 
 #include <os>
+#include <hw/apic.hpp>
 #include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
@@ -28,7 +29,7 @@
 
 
 unsigned int IRQ_manager::irq_mask  {0xFFFB};
-IDTDescr     IRQ_manager::idt[irq_lines]  {};
+IDTDescr     IRQ_manager::idt[IRQ_LINES]  {};
 bool IRQ_manager::idt_is_set        {false};
 
 irq_bitfield IRQ_manager::irq_pending_ {0};
@@ -38,26 +39,7 @@ void (*IRQ_manager::irq_subscribers_[sizeof(irq_bitfield)*8])() {nullptr};
 IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[sizeof(irq_bitfield)*8];
 
 void IRQ_manager::enable_interrupts() {
-  __asm__ volatile("sti");
-}
-
-inline void disable_pic();
-
-enum {
-  CPUID_FEAT_EDX_APIC = 1 << 9
-};
-
-static inline void cpuid(int code, uint32_t *a, uint32_t *d) {
-  asm volatile("cpuid"
-               :"=a"(*a),"=d"(*d)
-               :"a"(code)
-               :"ecx","ebx");
-}
-
-bool cpuHasAPIC() {
-  uint32_t eax, edx;
-  cpuid(1, &eax, &edx);
-  return edx & CPUID_FEAT_EDX_APIC;
+  asm volatile("sti");
 }
 
 extern "C"
@@ -75,6 +57,9 @@ extern "C"
 
 void exception_handler()
 {
+  printf("ISR: 0x%x  IRR: 0x%x\n",
+    hw::APIC::get_isr(), hw::APIC::get_irr());
+  
 #define frp(N, ra)                                      \
   (__builtin_frame_address(N) != nullptr) &&            \
     (ra = __builtin_return_address(N)) != nullptr
@@ -148,6 +133,8 @@ extern "C"{
 
   void irq_timer_entry();
   void irq_timer_handler();
+  // nop handler for spurious interrupts
+  void spurious_intr();
 
   // CPU-sampling irq-handler is defined in the PIT-implementation
   void cpu_sampling_irq_entry();
@@ -184,41 +171,46 @@ void IRQ_manager::init()
 
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
-  idt_reg.limit = (irq_lines*sizeof(IDTDescr))-1;
+  idt_reg.limit = IRQ_LINES * sizeof(IDTDescr) - 1;
   idt_reg.base = (uint32_t)idt;
 
   INFO("IRQ manager", "Creating interrupt handlers");
 
   // Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
-    REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
-    REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8)
-    REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11)
-    REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
-    REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
-    REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
-    // GATES 21-29 are reserved
-    REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
-    INFO2("+ Exception gates set for irq < 32");
-
+  REG_DEFAULT_EXCPT(3) REG_DEFAULT_EXCPT(4) REG_DEFAULT_EXCPT(5)
+  REG_DEFAULT_EXCPT(6) REG_DEFAULT_EXCPT(7) REG_DEFAULT_EXCPT(8)
+  REG_DEFAULT_EXCPT(9) REG_DEFAULT_EXCPT(10) REG_DEFAULT_EXCPT(11)
+  REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
+  REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
+  REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
+  
+  // GATES 21-29 are reserved
+  REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
+  INFO2("+ Exception gates set for irq < 32");
+  
   //Redirected IRQ 0 - 15
   REG_DEFAULT_IRQ(0) REG_DEFAULT_IRQ(1) REG_DEFAULT_IRQ(3)
-    REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
-    REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
-    REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
-    REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
+  REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
+  REG_DEFAULT_IRQ(7) REG_DEFAULT_IRQ(8) REG_DEFAULT_IRQ(9)
+  REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
+  REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
-    //Set all irq-gates (> 47) to the default handler
-    for(int i=48;i<irq_lines;i++){
-      create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
-    }
+  //Set all irq-gates (> 47) to the default handler
+  for (size_t i = 48; i < IRQ_LINES; i++) {
+    create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
+  }
+  
+  // spurious interrupts on 0x0F
+  create_gate(&(idt[0x0F]), spurious_intr, default_sel, default_attr);
+  
   INFO2("+ Default interrupt gates set for irq >= 32");
 
   //Load IDT
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
 
   //Initialize the interrupt controller
-  hw::PIC::init();
+  //hw::PIC::init();
   enable_interrupts();
 }
 
@@ -245,6 +237,7 @@ void IRQ_manager::create_gate(IDTDescr* idt_entry,
 }
 
 void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {
+  
   create_gate(&idt[irq], function_addr, default_sel, default_attr);
 
   /**
@@ -342,7 +335,8 @@ void IRQ_manager::notify() {
 }
 
 void IRQ_manager::eoi(uint8_t irq) {
-  hw::PIC::eoi(irq);
+  hw::APIC::eoi(irq);
+  //hw::PIC::eoi(irq);
 }
 
 void irq_default_handler() {
@@ -362,10 +356,4 @@ void irq_timer_handler() {
   if((glob_timer_interrupts % 16) == 0) {
     printf("\nGot %i timer interrupts\n", glob_timer_interrupts);
   }
-}
-
-inline void disable_pic() {
-  asm volatile("mov $0xff,%al; "                \
-               "out %al,$0xa1; "                      \
-               "out %al,$0x21; ");
 }
