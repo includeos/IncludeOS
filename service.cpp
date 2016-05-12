@@ -78,7 +78,6 @@ public:
 };
 
 #include "middleware/waitress.cpp"
-std::shared_ptr<server::Middleware> waitress;
 
 void Service::start() {
 
@@ -157,9 +156,10 @@ void Service::start() {
       });
       */
 
+
       // custom middleware to serve static files
-      waitress = std::make_shared<Waitress>(disk);
-      acorn->use(*waitress);
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk);
+      acorn->use(waitress);
 
 
       auto vec = disk->fs().ls("/").entries;
