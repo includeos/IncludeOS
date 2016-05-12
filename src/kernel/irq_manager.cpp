@@ -201,8 +201,8 @@ void IRQ_manager::init()
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
   
-  // spurious interrupts on 0x0F
-  create_gate(&(idt[0x0F]), spurious_intr, default_sel, default_attr);
+  // spurious interrupts
+  create_gate(&(idt[0x3F]), spurious_intr, default_sel, default_attr);
   
   INFO2("+ Default interrupt gates set for irq >= 32");
 

@@ -255,7 +255,7 @@ namespace hw {
     apic_enable();
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_IRQ = 0x0f; // IRQ 15
+    const uint8_t SPURIOUS_IRQ = 0x3f; // IRQ 63
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // disable the legacy 8259 PIC
@@ -264,7 +264,8 @@ namespace hw {
     // mask all interrupts for legacy PIC
     hw::PIC::set_intr_mask(0xFFFF);
     
-    
+    // initialize I/O APICs
+    IOAPIC::init(ACPI::get_ioapics());
     
     /*
     // wakeup APs
