@@ -25,7 +25,7 @@ void Server::listen(Port port) {
 }
 
 void Server::connect(net::TCP::Connection_ptr conn) {
-  printf("<Server> Connection from %s\n", conn->remote().to_string().c_str());
+  printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
   // if there is a free spot in connections
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
