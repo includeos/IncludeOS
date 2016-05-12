@@ -89,6 +89,8 @@ public:
 
   void process(Request_ptr, Response_ptr);
 
+  void use(Middleware_ptr);
+
   void use(Callback);
 
 private:
@@ -100,6 +102,7 @@ private:
   std::vector<Connection_ptr> connections_;
   std::vector<size_t> free_idx_;
   MiddlewareStack middleware_;
+  std::vector<Middleware_ptr> mw_storage_;
 
   //-----------------------------------
   // Deleted move and copy operations

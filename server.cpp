@@ -92,6 +92,11 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
   }
 }
 
-void Server::use(Callback middleware) {
-  middleware_.push_back(middleware);
+void Server::use(Middleware_ptr mw_ptr) {
+  mw_storage_.push_back(mw_ptr);
+  use(mw_ptr->callback());
+}
+
+void Server::use(Callback callback) {
+  middleware_.push_back(callback);
 }
