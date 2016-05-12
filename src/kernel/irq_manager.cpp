@@ -22,6 +22,7 @@
 
 #include <os>
 #include <hw/apic.hpp>
+#include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
 #include <unwind.h>
@@ -56,6 +57,9 @@ extern "C"
 
 void exception_handler()
 {
+  printf("ISR: 0x%x  IRR: 0x%x\n",
+    hw::APIC::get_isr(), hw::APIC::get_irr());
+  
 #define frp(N, ra)                                      \
   (__builtin_frame_address(N) != nullptr) &&            \
     (ra = __builtin_return_address(N)) != nullptr
@@ -197,8 +201,8 @@ void IRQ_manager::init()
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
   
-  // spurious interrupts on vector 0xFF
-  create_gate(&(idt[0xFF]), spurious_intr, default_sel, default_attr);
+  // spurious interrupts on 0x0F
+  create_gate(&(idt[0x0F]), spurious_intr, default_sel, default_attr);
   
   INFO2("+ Default interrupt gates set for irq >= 32");
 
@@ -233,6 +237,7 @@ void IRQ_manager::create_gate(IDTDescr* idt_entry,
 }
 
 void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {
+  
   create_gate(&idt[irq], function_addr, default_sel, default_attr);
 
   /**

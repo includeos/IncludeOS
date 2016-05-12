@@ -189,7 +189,8 @@ namespace hw {
         break;
       case 1:
         {
-          this->ioapic = *(IOAPIC*) rec;
+          auto& ioapic = *(IOAPIC*) rec;
+          ioapics.push_back(ioapic);
           INFO2("I/O APIC %u   ADDR 0x%x  INTR 0x%x", 
               ioapic.id, ioapic.addr_base, ioapic.intr_base);
         }

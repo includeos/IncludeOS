@@ -67,8 +67,8 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		kernel/vga.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		hw/serial.o hw/apic.o hw/apic_asm.o hw/acpi.o hw/apic_revenant.o \
-		hw/cmos.o \
+		hw/serial.o hw/cmos.o \
+		hw/acpi.o hw/apic.o hw/ioapic.o hw/apic_asm.o hw/apic_revenant.o \
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \

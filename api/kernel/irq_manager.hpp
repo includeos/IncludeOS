@@ -67,7 +67,7 @@ public:
   using irq_delegate = delegate<void()>;
 
   static constexpr uint8_t irq_base = 32;
-  static constexpr size_t  IRQ_LINES = 256;
+  static constexpr size_t  IRQ_LINES = 64;
 
 
   /**

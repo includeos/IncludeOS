@@ -16,6 +16,9 @@
 // limitations under the License.
 
 #pragma once
+#ifndef HW_ACPI_HPP
+#define HW_ACPI_HPP
+
 #include <cstdint>
 #include <vector>
 
@@ -38,7 +41,8 @@ namespace hw {
       uintptr_t addr_base;
       uintptr_t intr_base;
     };
-    typedef std::vector<LAPIC> lapic_list_t;
+    typedef std::vector<LAPIC> lapic_list;
+    typedef std::vector<IOAPIC> ioapic_list;
     
     static void init() {
       get().discover();
@@ -51,15 +55,11 @@ namespace hw {
       return acpi;
     }
     
-    static const lapic_list_t& get_cpus() {
+    static const lapic_list& get_cpus() {
       return get().lapics;
     }
-    static const LAPIC& get_cpu(uint8_t cpu) {
-      return get().lapics.at(cpu);
-    }
-    
-    static const IOAPIC& io_apic() {
-      return get().ioapic;
+    static const ioapic_list& get_ioapics() {
+      return get().ioapics;
     }
     
   private:
@@ -72,8 +72,10 @@ namespace hw {
     
     uintptr_t hpet_base;
     uintptr_t apic_base;
-    IOAPIC       ioapic;
-    lapic_list_t lapics;
+    ioapic_list ioapics;
+    lapic_list  lapics;
   };
   
 }
+
+#endif

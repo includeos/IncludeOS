@@ -16,9 +16,11 @@
 // limitations under the License.
 
 #include <hw/apic.hpp>
+#include <hw/ioapic.hpp>
 #include <hw/acpi.hpp> // ACPI
 #include <hw/apic_revenant.hpp>
 #include <hw/ioport.hpp>
+#include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
 #include <debug>
@@ -172,17 +174,6 @@ namespace hw {
       return (regs->lapic_id.reg >> 24) & 0xFF;
     }
     
-    uint32_t io_read(uint32_t reg) const noexcept {
-      auto volatile* addr = (uint32_t volatile*) ioapic_base;
-      addr[0] = reg & 0xff;
-      return addr[4];
-    }
-    void io_write(uint32_t reg, uint32_t value) {
-      auto volatile* addr = (uint32_t volatile*) ioapic_base;
-      addr[0] = reg & 0xff;
-      addr[4] = value;
-    }
-    
     // set and clear one of the 255-bit registers
     void set(apic_reg* reg, uint8_t bit)
     {
@@ -217,7 +208,6 @@ namespace hw {
     }
     
     apic_regs* regs;
-    uintptr_t  ioapic_base;
   };
   static apic lapic;
   
@@ -264,14 +254,16 @@ namespace hw {
     INFO("APIC", "Enabling interrupts");
     apic_enable();
     // start receiving interrupts (0x100), set spurious vector
-    const uint8_t SPURIOUS_IRQ = 0xff;
+    // note: spurious IRQ must have 4 last bits set (0x?F)
+    const uint8_t SPURIOUS_IRQ = 0x0f; // IRQ 15
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // disable the legacy 8259 PIC
     hw::outb(0xa1, 0xff);
     hw::outb(0x21, 0xff);
-    
     // mask all interrupts for legacy PIC
+    hw::PIC::set_intr_mask(0xFFFF);
+    
     
     
     /*
@@ -352,6 +344,21 @@ namespace hw {
     INFO("APIC", "All APs are online now\n");
   }
   
+  uint8_t APIC::get_isr()
+  {
+    for (uint8_t i = 0; i < 8; i++)
+      if (lapic.regs->isr[i].reg)
+        return 32 * i + __builtin_ffs(lapic.regs->isr[i].reg);
+    return 0;
+  }
+  uint8_t APIC::get_irr()
+  {
+    for (uint8_t i = 0; i < 8; i++)
+      if (lapic.regs->irr[i].reg)
+        return 32 * i + __builtin_ffs(lapic.regs->irr[i].reg);
+    return 0;
+  }
+  
   void APIC::eoi(uint8_t)
   {
     printf("-> eoi @ %p\n", &lapic.regs->eoi.reg);
@@ -361,6 +368,8 @@ namespace hw {
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
     // TODO: this doesn't work yet because we need to enable
+    // to prevent bad things(tm) from happening, disable interrupts
+    asm("cli");
     // IPIs on the IO APIC
     printf("send_ipi  id %u  vector %u\n", id, vector);
     uint32_t value = lapic.regs->intr_hi.reg;
@@ -371,6 +380,7 @@ namespace hw {
     
     value = ICR_ASSERT | ICR_DLV_STATUS | ICR_FIXED | vector;
     lapic.regs->intr_lo.reg = value;
+    asm("sti");
   }
   
   void APIC::reboot()
