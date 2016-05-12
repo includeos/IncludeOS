@@ -25,6 +25,7 @@ namespace hw {
     static void init();
     static void init_smp();
     
+    static void eoi(uint8_t vector);
     static void send_ipi(uint8_t dest, uint8_t vector);
     
     static void reboot();

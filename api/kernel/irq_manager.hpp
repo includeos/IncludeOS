@@ -67,7 +67,7 @@ public:
   using irq_delegate = delegate<void()>;
 
   static constexpr uint8_t irq_base = 32;
-  static constexpr uint8_t irq_lines = 64;
+  static constexpr size_t  IRQ_LINES = 256;
 
 
   /**
@@ -143,7 +143,7 @@ public:
 private:
   static unsigned int   irq_mask;
   static int            timer_interrupts;
-  static IDTDescr       idt[irq_lines];
+  static IDTDescr       idt[IRQ_LINES];
   static const char     default_attr {static_cast<char>(0x8e)};
   static const uint16_t default_sel  {0x8};
   static bool           idt_is_set;

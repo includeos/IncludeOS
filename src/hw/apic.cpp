@@ -352,6 +352,12 @@ namespace hw {
     INFO("APIC", "All APs are online now\n");
   }
   
+  void APIC::eoi(uint8_t)
+  {
+    printf("-> eoi @ %p\n", &lapic.regs->eoi.reg);
+    lapic.regs->eoi.reg = 1;
+  }
+  
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
     // TODO: this doesn't work yet because we need to enable

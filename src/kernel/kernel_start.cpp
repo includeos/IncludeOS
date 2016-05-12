@@ -21,7 +21,6 @@
 
 extern "C"
 {
-  extern uintptr_t __stack_chk_guard;
   void _init_c_runtime();
   
   // enables Streaming SIMD Extensions
