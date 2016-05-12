@@ -77,21 +77,8 @@ public:
   const ptr_t end() { return data + size; }
 };
 
-// Just a small test to demonstrate middleware
-class Test : public server::Middleware {
-public:
-  Test(std::string str) : server::Middleware(), test_str(str) {}
-
-  virtual void process(server::Request_ptr, server::Response_ptr, server::Next next) override {
-    printf("<MV:Test> My test string: %s\n", test_str.c_str());
-    (*next)();
-  }
-
-private:
-  std::string test_str;
-}; // << Test
-
-std::shared_ptr<Test> test_middleware;
+#include "middleware/waitress.cpp"
+std::shared_ptr<server::Middleware> waitress;
 
 void Service::start() {
 
@@ -147,7 +134,7 @@ void Service::start() {
                 res->set_status_code(http::Not_Found);
               } else {
                 // fill Response with content from index.html
-                printf("<Server> Responding with index.html. \n");
+                printf("<Route#GET:/> Responding with index.html. \n");
                 res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
                   .add_body(std::string{(const char*) buff.get(), len});
               }
@@ -160,6 +147,7 @@ void Service::start() {
       acorn = std::make_unique<server::Server>();
       acorn->set_routes(routes).listen(8081);
 
+      /*
       // add a middleware as lambda
       acorn->use([](auto req, auto res, auto next){
         hw::PIT::on_timeout(0.050, [next]{
@@ -167,10 +155,11 @@ void Service::start() {
           (*next)();
         });
       });
+      */
 
-      // add a middleware as a class derived from server::Middleware
-      test_middleware = std::make_shared<Test>("PogChamp");
-      acorn->use(*test_middleware);
+      // custom middleware to serve static files
+      waitress = std::make_shared<Waitress>(disk);
+      acorn->use(*waitress);
 
 
       auto vec = disk->fs().ls("/").entries;
