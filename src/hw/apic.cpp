@@ -18,6 +18,7 @@
 #include <hw/apic.hpp>
 #include <hw/acpi.hpp> // ACPI
 #include <hw/apic_revenant.hpp>
+#include <hw/ioport.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
 #include <debug>
@@ -191,22 +192,28 @@ namespace hw {
     {
       reg[bit >> 5].reg &= ~(1 << (bit & 0x1f));
     }
-    // initialize a given LAPIC
-    void init(uint8_t apic_id)
+    
+    // initialize a given AP
+    void ap_init(uint8_t id)
     {
-      regs->intr_hi.reg = apic_id << ICR_DEST_BITS;
+      regs->intr_hi.reg = id << ICR_DEST_BITS;
       regs->intr_lo.reg = ICR_INIT | ICR_PHYSICAL
            | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND;
       
       while (regs->intr_lo.reg & ICR_SEND_PENDING);
     }
-    void start(uint8_t apic_id, uint32_t vector)
+    void ap_start(uint8_t id, uint32_t vector)
     {
-      regs->intr_hi.reg = apic_id << ICR_DEST_BITS;
+      regs->intr_hi.reg = id << ICR_DEST_BITS;
       regs->intr_lo.reg = vector | ICR_STARTUP
         | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND;
       
       while (regs->intr_lo.reg & ICR_SEND_PENDING);
+    }
+    
+    void enable_intr(uint8_t const spurious_vector)
+    {
+      regs->spurious_vector.reg = 0x100 | spurious_vector;
     }
     
     apic_regs* regs;
@@ -232,15 +239,57 @@ namespace hw {
     }
   };
   
-  void APIC::init() {
-    
+  void APIC::init()
+  {
     const uint64_t APIC_BASE_MSR = RDMSR(IA32_APIC_BASE);
-    // find the LAPICs base address
+    /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
     printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
+    
+    /// initialize and start registered APs found in ACPI-tables ///
+    if (ACPI::get_cpus().size() > 1) {
+      init_smp();
+    }
+    
+    /// enable interrupts ///
+    // clear task priority reg to enable interrupts
+    lapic.regs->task_pri.reg       = 0;
+    lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
+    lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
+    
+    // turn the APIC on and enable interrupts
+    INFO("APIC", "Enabling interrupts");
+    apic_enable();
+    // start receiving interrupts (0x100), set spurious vector
+    const uint8_t SPURIOUS_IRQ = 0xff;
+    lapic.enable_intr(SPURIOUS_IRQ);
+    
+    // disable the legacy 8259 PIC
+    hw::outb(0xa1, 0xff);
+    hw::outb(0x21, 0xff);
+    
+    // mask all interrupts for legacy PIC
+    
+    
+    /*
+    // wakeup APs
+    for (auto& cpu : ACPI::get_cpus())
+      // except the CPU we are using now
+      if (cpu.id != lapic.get_id())
+        send_ipi(cpu.id, 0x80);
+    
+    reboot();
+    */
+  }
+  
+  /// initialize and start registered APs found in ACPI-tables ///
+  void APIC::init_smp()
+  {
+    // smp with only one CPU == :facepalm:
+    assert(ACPI::get_cpus().size() > 1);
     
     // copy our bootloader to APIC init location
     const char* start = &_binary_apic_boot_bin_start;
@@ -277,57 +326,36 @@ namespace hw {
         boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
     
     // turn on CPUs
-    
-    INFO("APIC", "Initializing CPUs");
+    INFO("APIC", "Initializing APs");
     for (auto& cpu : ACPI::get_cpus())
     {
       debug("-> CPU %u ID %u  fl 0x%x\n",
         cpu.cpu, cpu.id, cpu.flags);
       // except the CPU we are using now
       if (cpu.id != lapic.get_id())
-        lapic.init(cpu.id);
+        lapic.ap_init(cpu.id);
     }
     // start CPUs
-    INFO("APIC", "Starting CPUs");
+    INFO("APIC", "Starting APs");
     for (auto& cpu : ACPI::get_cpus())
     {
       // except the CPU we are using now
       if (cpu.id != lapic.get_id())
         // Send SIPI with start address 0x80000
-        lapic.start(cpu.id, 0x80);
+        lapic.ap_start(cpu.id, 0x80);
     }
     
     // wait for all to start
     while (boot_counter < CPUcount) {
       asm("nop");
     }
-    INFO("APIC", "All CPUs are online now\n");
-    
-    /// enable interrupts ///
-    // clear task priority reg to enable interrupts
-    lapic.regs->task_pri.reg       = 0;
-    lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
-    lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
-    // spurious interrupt vector
-    const uint8_t SPURIOUS_IRQ = 0xff;
-    lapic.regs->spurious_vector.reg = 0x100 | SPURIOUS_IRQ;
-    
-    // turn the APIC on
-    apic_enable();
-    
-    // wakeup APs
-    for (auto& cpu : ACPI::get_cpus())
-    {
-      // except the CPU we are using now
-      if (cpu.id != lapic.get_id())
-        send_ipi(cpu.id, 0x80);
-    }
-    
-    //APIC::reboot();
+    INFO("APIC", "All APs are online now\n");
   }
   
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
+    // TODO: this doesn't work yet because we need to enable
+    // IPIs on the IO APIC
     printf("send_ipi  id %u  vector %u\n", id, vector);
     uint32_t value = lapic.regs->intr_hi.reg;
     

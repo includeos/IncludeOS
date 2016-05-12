@@ -218,7 +218,7 @@ void IRQ_manager::init()
   __asm__ volatile ("lidt %0": :"m"(idt_reg) );
 
   //Initialize the interrupt controller
-  hw::PIC::init();
+  //hw::PIC::init();
   enable_interrupts();
 }
 
