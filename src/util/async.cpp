@@ -26,7 +26,7 @@ void Async::upload_file(
     [length, next] (size_t n) {
 
       // if all data written, go to next chunk
-      printf("sock write: %u / %u\n", n, length);
+      debug("sock write: %u / %u\n", n, length);
       next(n == length);
 
     }, true);
@@ -63,6 +63,7 @@ void Async::disk_transfer(
         fs::buffer_t buffer,
         uint64_t     length)
     {
+      debug("<Async> len=%llu\n",length);
       if (err) {
         printf("%s\n", err.to_string().c_str());
         callback(err, false);

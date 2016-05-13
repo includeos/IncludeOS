@@ -23,10 +23,11 @@
 
 #include <cstdlib>
 
-#define OS_TERMINATE_ON_CONTRACT_VIOLATION
+#define GSL_THROW_ON_CONTRACT_VIOLATION
 #include <common>
 #include <os>
 #include <lest.hpp>
+#include <regex>
 
 int clock_gettime(clockid_t clk_id, struct timespec *tp){
   (void*)clk_id;
@@ -141,7 +142,7 @@ const lest::test test_basic_gsl[] = {
         }
 
         WHEN ("We use std::array") {
-          std::array<char,30> my_array {'G','S','L',' ','l','o', 'o', 'k', 's', ' ', 'n', 'i', 'c', 'e'};
+          std::array<char,30> my_array {{'G','S','L',' ','l','o', 'o', 'k', 's', ' ', 'n', 'i', 'c', 'e'}};
           THEN("we're perfectly safe"){
             EXPECT( Mem::count(my_array) == my_array.size() );
           }
@@ -152,6 +153,18 @@ const lest::test test_basic_gsl[] = {
 
           THEN ("Span helps us avoid decay to pointer") {
             EXPECT( Mem::count(str2) == sizeof(str2));
+          }
+
+          AND_THEN("Using a span we can't iterate too far") {
+
+            gsl::span<char> strspan{str2, 5};
+            auto it = strspan.begin();
+            for (; it!= strspan.end(); it++)
+              printf("'%c' ", *it);
+
+            it++;
+            EXPECT_THROWS(printf("DANGER: '%c' \n", *it));
+
           }
         }
       }
@@ -182,10 +195,29 @@ const lest::test test_basic_gsl[] = {
         }
 
       }
+    }
+  },{
+    CASE ("Using std::regex on a span") {
 
+    std::string my_string = "GET /asdf%C3%B8lkj/&%C3%A6%C3%B8asldkfpoij09j13osmdv HTTP/1.1\n";
+    gsl::span<const char> my_span {my_string};
+
+    for (auto c : my_span)
+      printf("%c",c);
+    printf("\n");
+
+    std::regex re_get("GET .*\n");
+    printf("Match: %i \n", std::regex_match(my_string, re_get));
+
+    /**
+     * WARNING: HORRIBLE HACK
+     * Unfortunately gsl::span is still not compatible with std::regex
+     * See: https://github.com/Microsoft/GSL/issues/271
+     **/
+    EXPECT( std::regex_match(my_span.data(), my_span.data() + my_span.size(), re_get) );
 
     }
-  }
+  },
 };
 
 void Service::start()
