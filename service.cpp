@@ -79,6 +79,57 @@ public:
 
 #include "middleware/waitress.cpp"
 
+#include <rapidjson/document.h>
+#define RAPIDJSON_THROWPARSEEXCEPTION 1
+
+std::shared_ptr<rapidjson::Document> squirrels_db;
+static size_t DB_IDX = 0;
+
+
+template <typename T>
+std::string json_val(T val) {
+  std::stringstream ss;
+  ss << "\"" << val << "\"";
+  return ss.str();
+}
+
+std::string create_squirrel(std::string name, size_t age) {
+  const std::string ID = json_val("id");
+  const std::string NAME = json_val("name");
+  const std::string AGE = json_val("age");
+
+  std::stringstream ss;
+  ss << "{"
+    << NAME << ":" << json_val(name) << ", "
+    << AGE << ":" << json_val(age)
+    << "}";
+
+  return ss.str();
+}
+
+void seed_squirrels() {
+  std::stringstream ss;
+
+  ss << "{"
+    << json_val(DB_IDX++) << ":" << create_squirrel("Johnnie", 42) << ", "
+    << json_val(DB_IDX++) << ":" << create_squirrel("Felix", 13) << ", "
+    << json_val(DB_IDX++) << ":" << create_squirrel("Eloise", 34)
+    << "}";
+
+  printf("JSON: %s\n", ss.str().c_str());
+  auto& db = *squirrels_db;
+  db.Parse(ss.str().c_str());
+}
+
+void setup_database() {
+  squirrels_db = std::make_shared<rapidjson::Document>();
+  DB_IDX = 1;
+
+  seed_squirrels();
+  auto& db = *squirrels_db;
+  db["1"].GetObject()["name"].GetString();
+}
+
 void Service::start() {
 
   uri::URI uri1("asdf");
@@ -142,6 +193,9 @@ void Service::start() {
 
         }); // << fs().readFile
 
+      setup_database();
+      routes.on_get("/api/squirrels", [](auto, auto res) {
+      });
       // initialize server
       acorn = std::make_unique<server::Server>();
       acorn->set_routes(routes).listen(8081);
