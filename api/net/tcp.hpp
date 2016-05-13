@@ -621,6 +621,7 @@ namespace net {
           and "step back".
         */
         void acknowledge(size_t bytes) {
+          debug2("<Connection::WriteQueue> Acknowledge %u bytes\n",bytes);
           while(bytes and !q.empty())
           {
             auto& buf = q.front().first;
@@ -667,14 +668,15 @@ namespace net {
           auto& buf = q[current-1].first;
           buf.advance(bytes);
 
-          debug2("<Connection::WriteQueue> Advance: off=%u rem=%u ack=%u\n",
-            buf.offset, buf.remaining, buf.acknowledged);
+          debug2("<Connection::WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+            bytes, buf.offset, buf.remaining, buf.acknowledged);
 
           if(!buf.remaining) {
             debug("<Connection::WriteQueue> Advance: Done (%u)\n",
               buf.offset);
-            q[current-1].second(buf.offset);
-            current++;
+            // make sure to advance current before callback is made,
+            // but after index (current) is received.
+            q[current++-1].second(buf.offset);
           }
         }
 
@@ -684,7 +686,7 @@ namespace net {
         */
         void push_back(const WriteRequest& wr) {
           q.push_back(wr);
-          debug2("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
+          debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
             wr.first.offset, wr.first.remaining, wr.first.acknowledged);
           if(current == q.size()-1)
             current++;
@@ -778,7 +780,7 @@ namespace net {
           case CLOSING:
             return "Connection closing";
           case REFUSED:
-            return "Conneciton refused";
+            return "Connection refused";
           case RESET:
             return "Connection reset";
           default:
