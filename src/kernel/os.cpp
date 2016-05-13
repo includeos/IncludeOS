@@ -69,9 +69,12 @@ void OS::start() {
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
   
+  INFO("INTR", "Enabling interrupts");
+  IRQ_manager::enable_interrupts();
+  
   // Initialize the Interval Timer
   hw::PIT::init();
-
+  
   // Initialize PCI devices
   PCI_manager::init();
 

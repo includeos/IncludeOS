@@ -59,6 +59,8 @@ namespace hw
       // default: all entries disabled
       for (uint32_t i = 0; i < entries; i++)
         set_entry(i, IOAPIC_IRQ_DISABLE);
+      
+      INFO("IOAPIC", "Done");
     }
     
     uintptr_t  base;

@@ -14,7 +14,7 @@ INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 
 [ ! -v NET ] && export NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
-[ ! -v SMP ] && export SMP="-smp 8"
+[ ! -v SMP ] && export SMP="-smp 1"
 [ ! -v GRAPHICS ] && export GRAPHICS="-nographic"
 [ ! -v SERIAL ] && export SERIAL="-virtioconsole stdio"
 [ ! -v MEM ] && export MEM="-m 128"

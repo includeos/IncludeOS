@@ -39,6 +39,9 @@ void (*IRQ_manager::irq_subscribers_[sizeof(irq_bitfield)*8])() {nullptr};
 IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[sizeof(irq_bitfield)*8];
 
 void IRQ_manager::enable_interrupts() {
+  // Manual:
+  // The IF flag and the STI and CLI instructions have no affect on 
+  // the generation of exceptions and NMI interrupts.
   asm volatile("sti");
 }
 
@@ -174,7 +177,7 @@ void IRQ_manager::init()
   idt_reg.limit = IRQ_LINES * sizeof(IDTDescr) - 1;
   idt_reg.base = (uint32_t)idt;
 
-  INFO("IRQ manager", "Creating interrupt handlers");
+  INFO("INTR", "Creating interrupt handlers");
 
   // Assign the lower 32 IRQ's : Exceptions
   REG_DEFAULT_EXCPT(0) REG_DEFAULT_EXCPT(1) REG_DEFAULT_EXCPT(2)
@@ -196,7 +199,7 @@ void IRQ_manager::init()
   REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
   REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
-  //Set all irq-gates (> 47) to the default handler
+  // Set all irq-gates (> 47) to the default handler
   for (size_t i = 48; i < IRQ_LINES; i++) {
     create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
   }
@@ -206,12 +209,8 @@ void IRQ_manager::init()
   
   INFO2("+ Default interrupt gates set for irq >= 32");
 
-  //Load IDT
-  __asm__ volatile ("lidt %0": :"m"(idt_reg) );
-
-  //Initialize the interrupt controller
-  //hw::PIC::init();
-  enable_interrupts();
+  // Load IDT
+  asm volatile ("lidt %0": :"m"(idt_reg) );
 }
 
 // A union to be able to extract the lower and upper part of an address
@@ -328,10 +327,8 @@ void IRQ_manager::notify() {
     todo = (irq_subscriptions_ & irq_pending_);
   }
 
-  //hlt
   debug2("<IRQ notify> Done. OS going to sleep.\n");
-  //__asm__("sti");
-  __asm__ volatile("hlt;");
+  asm volatile("hlt;");
 }
 
 void IRQ_manager::eoi(uint8_t irq) {

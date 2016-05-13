@@ -19,6 +19,7 @@
 #include <hw/ioapic.hpp>
 #include <hw/acpi.hpp> // ACPI
 #include <hw/apic_revenant.hpp>
+#include <hw/cpu.hpp>
 #include <hw/ioport.hpp>
 #include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
@@ -100,15 +101,9 @@ extern "C" {
 
 namespace hw {
   
+  static const uintptr_t IA32_APIC_BASE_MSR = 0x1B;
+  static const uintptr_t IA32_APIC_BASE_MSR_ENABLE = 0x800;
   static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
-  static const uintptr_t IA32_APIC_BASE = 0x1B;
-  
-  uint64_t RDMSR(uint32_t addr)
-  {
-    uint32_t EAX = 0, EDX = 0;
-    asm volatile("rdmsr": "=a" (EAX),"=d"(EDX) : "c" (addr));
-    return ((uint64_t)EDX << 32) | EAX;
-  }
   
   // a single 16-byte aligned APIC register
   struct apic_reg
@@ -231,7 +226,7 @@ namespace hw {
   
   void APIC::init()
   {
-    const uint64_t APIC_BASE_MSR = RDMSR(IA32_APIC_BASE);
+    const uint64_t APIC_BASE_MSR = CPU::read_msr(IA32_APIC_BASE_MSR);
     /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
     printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
@@ -239,10 +234,9 @@ namespace hw {
     lapic = apic(APIC_BASE_ADDR);
     printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
     
-    /// initialize and start registered APs found in ACPI-tables ///
-    if (ACPI::get_cpus().size() > 1) {
-      init_smp();
-    }
+    // disable the legacy 8259 PIC
+    // by masking off all interrupts
+    hw::PIC::set_intr_mask(0xFFFF);
     
     /// enable interrupts ///
     // clear task priority reg to enable interrupts
@@ -250,22 +244,26 @@ namespace hw {
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
     lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
     
-    // turn the APIC on and enable interrupts
-    INFO("APIC", "Enabling interrupts");
-    apic_enable();
+    // turn the Local APIC on and enable interrupts
+    INFO("APIC", "Enabling LAPIC");
+    CPU::write_msr(IA32_APIC_BASE_MSR, 
+        (APIC_BASE_MSR & 0xfffff100) | IA32_APIC_BASE_MSR_ENABLE, 0);
+    //apic_enable();
+    printf("APIC_BASE MSR is now 0x%llx\n", CPU::read_msr(IA32_APIC_BASE_MSR));
+    
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
     const uint8_t SPURIOUS_IRQ = 0x3f; // IRQ 63
     lapic.enable_intr(SPURIOUS_IRQ);
     
-    // disable the legacy 8259 PIC
-    hw::outb(0xa1, 0xff);
-    hw::outb(0x21, 0xff);
-    // mask all interrupts for legacy PIC
-    hw::PIC::set_intr_mask(0xFFFF);
-    
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
+    
+    /// initialize and start APs found in ACPI-tables ///
+    if (ACPI::get_cpus().size() > 1) {
+      INFO("APIC", "SMP Init");
+      init_smp();
+    }
     
     /*
     // wakeup APs
