@@ -1,3 +1,6 @@
 [submodule "http"]
 	path = server/http
 	url = git@github.com:hioa-cs/http.git
+[submodule "rapidjson"]
+	path = rapidjson
+	url = git@github.com:miloyip/rapidjson.git

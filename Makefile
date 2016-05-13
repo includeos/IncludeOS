@@ -13,7 +13,7 @@ FILES = service.cpp memdisk.o server/request.o server/response.o server/connecti
 DISK=
 
 # Your own include-path
-LOCAL_INCLUDES=-I./server -I./server/http/uri -I./server/http/inc
+LOCAL_INCLUDES=-I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include
 
 # Local target dependencies
 #.PHONY: memdisk.fat
