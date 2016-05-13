@@ -78,8 +78,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
       assert(buf.full());
       // signal the user
       read_request.callback(buf.buffer, buf.size());
-      // reset the buffer
-      buf.clear();
+      // renew the buffer, releasing the old one
+      buf.renew();
     }
     n -= read;
     received += read;
@@ -91,8 +91,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   if(PUSH) {
     buf.push = PUSH;
     read_request.callback(buf.buffer, buf.size());
-    // reset the buffer
-    buf.clear();
+    // renew the buffer, releasing the old one
+    buf.renew();
   }
 
   return received;
@@ -103,6 +103,8 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
   try {
     // try to write
     auto written = state_->send(*this, buffer);
+    debug("<Connection::write> off=%u rem=%u  written=%u\n",
+      buffer.offset, buffer.remaining, written);
     // put request in line
     writeq.push_back({buffer, callback});
     // if data was written, advance
