@@ -54,7 +54,7 @@ namespace hw
       entries = 1 + (entries & 0xff);
       
       INFO("IOAPIC", "Initializing");
-      INFO2("Base addr 0x%x  Entries %u", base, entries);
+      INFO2("Base addr: 0x%x  Entries: %u", base, entries);
       
       // default: all entries disabled
       for (uint32_t i = 0; i < entries; i++)

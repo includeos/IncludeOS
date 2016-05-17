@@ -53,6 +53,8 @@
 #define TMR_PERIODIC    0x20000
 #define TMR_BASEDIV     (1<<20)
 
+#define INTR_MASK    0x00010000
+
 // Interrupt Command Register
 #define ICR_DEST_BITS   24
 
@@ -108,7 +110,7 @@ namespace hw {
   // a single 16-byte aligned APIC register
   struct apic_reg
   {
-    uint32_t reg;
+    uint32_t volatile reg;
     uint32_t pad[3];
   };
   
@@ -135,14 +137,14 @@ namespace hw {
     apic_reg 		irr[8];
     apic_reg    error_status;
     apic_reg reserved28[7];
-    apic_reg		intr_lo; 	    // ICR1
-    apic_reg		intr_hi;      // ICR2
+    apic_reg		intr_lo; 	    // ICR0
+    apic_reg		intr_hi;      // ICR1
     apic_reg 		timer_vector; // LVTT
     apic_reg reserved33;
     apic_reg reserved34;      // perf count lvt
-    apic_reg 		lint0_vector;
-    apic_reg 		lint1_vector;
-    apic_reg 		error_vector; // err vector
+    apic_reg 		lint0;        // local interrupts (64-bit)
+    apic_reg 		lint1;
+    apic_reg 		error;        // error vector
     apic_reg 		init_count;   // timer
     apic_reg 		cur_count;    // timer
     apic_reg reserved3a;
@@ -238,11 +240,19 @@ namespace hw {
     // by masking off all interrupts
     hw::PIC::set_intr_mask(0xFFFF);
     
+    // set correct wire mode?
+    hw::outb(0x22, 0x70);
+    hw::outb(0x23, 0x1);
+    
     /// enable interrupts ///
     // clear task priority reg to enable interrupts
     lapic.regs->task_pri.reg       = 0;
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
     lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
+    
+    // hardcoded 240 + x for LAPIC interrupts
+    lapic.regs->lint0.reg = INTR_MASK | (240 + 3);
+    lapic.regs->lint1.reg = INTR_MASK | (240 + 4);
     
     // turn the Local APIC on and enable interrupts
     INFO("APIC", "Enabling LAPIC");
@@ -255,6 +265,9 @@ namespace hw {
     // note: spurious IRQ must have 4 last bits set (0x?F)
     const uint8_t SPURIOUS_IRQ = 0x3f; // IRQ 63
     lapic.enable_intr(SPURIOUS_IRQ);
+    
+    // acknowledge any interrupts
+    lapic.regs->eoi.reg = 0;
     
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
