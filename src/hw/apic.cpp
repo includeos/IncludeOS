@@ -139,7 +139,7 @@ namespace hw {
     apic_reg reserved28[7];
     apic_reg		intr_lo; 	    // ICR0
     apic_reg		intr_hi;      // ICR1
-    apic_reg 		timer_vector; // LVTT
+    apic_reg 		timer;        // LVTT
     apic_reg reserved33;
     apic_reg reserved34;      // perf count lvt
     apic_reg 		lint0;        // local interrupts (64-bit)
@@ -241,18 +241,20 @@ namespace hw {
     hw::PIC::set_intr_mask(0xFFFF);
     
     // set correct wire mode?
-    hw::outb(0x22, 0x70);
-    hw::outb(0x23, 0x1);
+    //hw::outb(0x22, 0x70);
+    //hw::outb(0x23, 0x1);
     
     /// enable interrupts ///
-    // clear task priority reg to enable interrupts
-    lapic.regs->task_pri.reg       = 0;
+    lapic.regs->task_pri.reg       = 0xff;
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
     lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
     
     // hardcoded 240 + x for LAPIC interrupts
-    lapic.regs->lint0.reg = INTR_MASK | (240 + 3);
-    lapic.regs->lint1.reg = INTR_MASK | (240 + 4);
+    #define LAPIC_IRQ_BASE   240
+    lapic.regs->timer.reg = INTR_MASK;
+    lapic.regs->lint0.reg = INTR_MASK | (LAPIC_IRQ_BASE + 3);
+    lapic.regs->lint1.reg = INTR_MASK | (LAPIC_IRQ_BASE + 4);
+    lapic.regs->error.reg = INTR_MASK | (LAPIC_IRQ_BASE + 5);
     
     // turn the Local APIC on and enable interrupts
     INFO("APIC", "Enabling LAPIC");
@@ -263,11 +265,14 @@ namespace hw {
     
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_IRQ = 0x3f; // IRQ 63
+    const uint8_t SPURIOUS_IRQ = 0xff; // IRQ 255
     lapic.enable_intr(SPURIOUS_IRQ);
     
-    // acknowledge any interrupts
+    // acknowledge any outstanding interrupts
     lapic.regs->eoi.reg = 0;
+    
+    // enable APIC by resetting task priority
+    lapic.regs->task_pri.reg = 0;
     
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
