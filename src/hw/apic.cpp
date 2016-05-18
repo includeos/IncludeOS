@@ -376,10 +376,10 @@ namespace hw {
     return 0;
   }
   
-  void APIC::eoi(uint8_t)
+  void APIC::eoi(uint8_t intr)
   {
-    printf("-> eoi @ %p\n", &lapic.regs->eoi.reg);
-    lapic.regs->eoi.reg = 1;
+    printf("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, intr);
+    lapic.regs->eoi.reg = 0;
   }
   
   void APIC::send_ipi(uint8_t id, uint8_t vector)

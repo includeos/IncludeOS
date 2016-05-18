@@ -5,6 +5,10 @@ const char* service_name__ = "...";
 #include <fs/disk.hpp>
 fs::Disk_ptr disk;
 
+#include <net/inet4>
+std::unique_ptr<net::Inet4<VirtioNet> > inet;
+
+
 void list_partitions(decltype(disk));
 
 void Service::start()
@@ -14,6 +18,18 @@ void Service::start()
   disk = std::make_shared<fs::Disk> (device);
   assert(disk);
   
+  
+  // boilerplate
+  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  /*
+  inet->network_config(
+    { 10,0,0,42 },      // IP
+    { 255,255,255,0 },  // Netmask
+    { 10,0,0,1 },       // Gateway
+    { 8,8,8,8 } );      // DNS
+  */
+  /*
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   
@@ -92,6 +108,7 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

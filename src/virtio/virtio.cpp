@@ -25,9 +25,9 @@ void Virtio::set_irq(){
 
   //Get device IRQ
   uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    _irq = value & 0xFF;
-  }
+  //if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+  this->_irq = value & 0xFF;
+  //}
 
 }
 

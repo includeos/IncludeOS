@@ -56,6 +56,9 @@ namespace hw
       INFO("IOAPIC", "Initializing");
       INFO2("Base addr: 0x%x  Entries: %u", base, entries);
       
+      uint16_t max_redirect = (read(REG_IOAPICVER) >> 16) & 0xffff;
+      INFO2("Max redirections: %u", max_redirect);
+      
       // default: all entries disabled
       for (uint32_t i = 0; i < entries; i++)
         set_entry(i, IOAPIC_IRQ_DISABLE);

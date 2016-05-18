@@ -260,7 +260,10 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  hw::PIC::enable_irq(irq);
+  // now program IOAPIC to redirect this irq to LAPIC ?
+  // redirect to lapic @ 224 + irqno
+  //hw::APIC::enable_irq(irq);
+  //hw::PIC::enable_irq(irq);
 }
 
 int IRQ_manager::timer_interrupts {0};
