@@ -12,8 +12,14 @@ FILES = service.cpp memdisk.o server/request.o server/response.o server/connecti
 # Your disk image
 DISK=
 
+# Modules
+CUSTOM_MODULES =-I./bucket -I./stringer_j
+MOD_FILES = stringer_j/stringer_j.o
+
+FILES += $(MOD_FILES)
+
 # Your own include-path
-LOCAL_INCLUDES=-I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include
 
 # Local target dependencies
 #.PHONY: memdisk.fat

@@ -21,7 +21,7 @@
 //#include <http>
 #include "server/server.hpp"
 
-std::unique_ptr<server::Server> acorn;
+std::unique_ptr<server::Server> server_;
 
 #include <memdisk>
 #include <fs/fat.hpp> // FAT32 filesystem
@@ -82,53 +82,11 @@ public:
 #include <rapidjson/document.h>
 #define RAPIDJSON_THROWPARSEEXCEPTION 1
 
-std::shared_ptr<rapidjson::Document> squirrels_db;
-static size_t DB_IDX = 0;
+#include "bucket.hpp"
+#include "app/squirrel.hpp"
 
-
-template <typename T>
-std::string json_val(T val) {
-  std::stringstream ss;
-  ss << "\"" << val << "\"";
-  return ss.str();
-}
-
-std::string create_squirrel(std::string name, size_t age) {
-  const std::string ID = json_val("id");
-  const std::string NAME = json_val("name");
-  const std::string AGE = json_val("age");
-
-  std::stringstream ss;
-  ss << "{"
-    << NAME << ":" << json_val(name) << ", "
-    << AGE << ":" << json_val(age)
-    << "}";
-
-  return ss.str();
-}
-
-void seed_squirrels() {
-  std::stringstream ss;
-
-  ss << "{"
-    << json_val(DB_IDX++) << ":" << create_squirrel("Johnnie", 42) << ", "
-    << json_val(DB_IDX++) << ":" << create_squirrel("Felix", 13) << ", "
-    << json_val(DB_IDX++) << ":" << create_squirrel("Eloise", 34)
-    << "}";
-
-  printf("JSON: %s\n", ss.str().c_str());
-  auto& db = *squirrels_db;
-  db.Parse(ss.str().c_str());
-}
-
-void setup_database() {
-  squirrels_db = std::make_shared<rapidjson::Document>();
-  DB_IDX = 1;
-
-  seed_squirrels();
-  auto& db = *squirrels_db;
-  db["1"].GetObject()["name"].GetString();
-}
+using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
+std::shared_ptr<SquirrelBucket> squirrels;
 
 void Service::start() {
 
@@ -193,12 +151,12 @@ void Service::start() {
 
         }); // << fs().readFile
 
-      setup_database();
       routes.on_get("/api/squirrels", [](auto, auto res) {
+
       });
       // initialize server
-      acorn = std::make_unique<server::Server>();
-      acorn->set_routes(routes).listen(8081);
+      server_ = std::make_unique<server::Server>();
+      server_->set_routes(routes).listen(8081);
 
       /*
       // add a middleware as lambda
@@ -210,10 +168,17 @@ void Service::start() {
       });
       */
 
+      // setup database
+      squirrels = std::make_shared<SquirrelBucket>();
+      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
+      squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
+
+      printf("JSON: %s\n", stringerj::StringerJ::array("squirrels"s, squirrels->lineup()).c_str());
+
 
       // custom middleware to serve static files
       server::Middleware_ptr waitress = std::make_shared<Waitress>(disk);
-      acorn->use(waitress);
+      server_->use(waitress);
 
 
       auto vec = disk->fs().ls("/").entries;
@@ -226,7 +191,7 @@ void Service::start() {
       printf("------------------------------------ \n");
 
       hw::PIT::instance().onRepeatedTimeout(15s, []{
-        printf("%s\n", acorn->ip_stack().tcp().status().c_str());
+        printf("%s\n", server_->ip_stack().tcp().status().c_str());
       });
 
     }); // < disk*/
