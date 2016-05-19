@@ -374,7 +374,7 @@ namespace hw {
   
   void APIC::eoi(uint8_t intr)
   {
-    printf("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, intr);
+    //printf("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, intr);
     lapic.regs->eoi.reg = 0;
   }
   
@@ -406,14 +406,16 @@ namespace hw {
       {
         printf("Enabled redirected IRQ %u -> %u on lapic %u\n",
             redir.irq_source, redir.global_intr, lapic.get_id());
-        //IOAPIC::set(redir.irq_source, redir.global_intr, lapic.get_id());
-        IOAPIC::enable(redir.global_intr, lapic.get_id());
+        IOAPIC::enable(redir.global_intr, irq, lapic.get_id());
         return;
       }
     }
     printf("Enabled non-redirected IRQ %u on LAPIC %u\n", irq, lapic.get_id());
-    //IOAPIC::set(irq, irq, lapic.get_id());
-    IOAPIC::enable(irq, lapic.get_id());
+    IOAPIC::enable(irq, irq, lapic.get_id());
+  }
+  void APIC::disable_irq(uint8_t irq)
+  {
+    IOAPIC::disable(irq, lapic.get_id());
   }
   
   void APIC::reboot()

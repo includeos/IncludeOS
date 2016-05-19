@@ -104,14 +104,14 @@ namespace hw
     numbawan.set_entry(idx, src, dst);
   }
   
-  void IOAPIC::enable(uint8_t idx, uint8_t dst)
+  void IOAPIC::enable(uint8_t idx, uint8_t irq_dst, uint8_t dst)
   {
     uint32_t type = 0;
     
     if (idx > 15)
         type = (1<<15) | (1<<13);
     
-    numbawan.set_entry(idx, type | (0x20 + idx), dst);
+    numbawan.set_entry(idx, type | (0x20 + irq_dst), dst);
   }
   void IOAPIC::disable(uint8_t idx, uint8_t dst)
   {

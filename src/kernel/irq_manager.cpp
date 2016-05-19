@@ -263,7 +263,6 @@ void IRQ_manager::enable_irq(uint8_t irq) {
   // now program IOAPIC to redirect this irq to LAPIC ?
   // redirect to lapic @ 224 + irqno
   hw::APIC::enable_irq(irq);
-  //hw::PIC::enable_irq(irq);
 }
 
 int IRQ_manager::timer_interrupts {0};
@@ -310,7 +309,7 @@ void IRQ_manager::notify() {
     irq = __builtin_ffs(todo) - 1;
 
     // Notify
-    printf("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
+    //printf("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
     irq_delegates_[irq]();
 
     // Decrement the counter

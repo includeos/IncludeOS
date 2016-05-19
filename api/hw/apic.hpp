@@ -35,6 +35,7 @@ namespace hw {
     static void eoi(uint8_t vector);
     
     static void enable_irq(uint8_t irq);
+    static void disable_irq(uint8_t irq);
     
     static void reboot();
   };
