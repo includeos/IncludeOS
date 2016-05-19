@@ -14,21 +14,21 @@ void list_partitions(decltype(disk));
 void Service::start()
 {
   // instantiate memdisk with FAT filesystem
+  /*
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
   assert(disk);
-  
+  */
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.5);
-  /*
   inet->network_config(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
-  */
+  
   /*
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");

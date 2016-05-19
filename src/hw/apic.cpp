@@ -415,7 +415,7 @@ namespace hw {
   }
   void APIC::disable_irq(uint8_t irq)
   {
-    IOAPIC::disable(irq, lapic.get_id());
+    IOAPIC::disable(irq);
   }
   
   void APIC::reboot()

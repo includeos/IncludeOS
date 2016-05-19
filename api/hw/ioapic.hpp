@@ -59,7 +59,7 @@ namespace hw {
     static void set(uint8_t idx, uint32_t src, uint32_t dst);
     
     static void enable(uint8_t idx, uint8_t dst_irq, uint8_t lapic);
-    static void disable(uint8_t idx, uint8_t lapic);
+    static void disable(uint8_t idx);
   };
   
 }
