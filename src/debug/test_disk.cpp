@@ -24,7 +24,7 @@ void Service::start()
   {
     printf("buffer %d is not null: %d\n", i, !!buffer);
     assert(buffer);
-  });*/
+  });
   // 2. create alot of sequential jobs of 1024 sectors each
   // note: if we queue more than this we will run out of RAM
   static int bufcounter = 0;
@@ -71,11 +71,11 @@ void Service::start()
       // go through directory entries
       for (auto& e : *ents) {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-               e.type_string().c_str(), e.name().c_str(), e.size, e.block);
+               e.type_string().c_str(), e.name().c_str(), e.size(), e.block);
         
         if (e.is_file()) {
           printf("*** Read file  %s\n", e.name().c_str());
-          disk->fs().read(e, 0, e.size,
+          disk->fs().read(e, 0, e.size(),
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
             if (err) {
               printf("Failed to read file %s!\n",
@@ -91,8 +91,11 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");
+  void test_APIC();
+  test_APIC();
 }
 
 void list_partitions(decltype(disk) disk)
@@ -108,4 +111,11 @@ void list_partitions(decltype(disk) disk)
       printf("[Partition]  '%s' at LBA %u\n",
              part.name().c_str(), part.lba());
   });
+}
+
+#include <hw/apic.hpp>
+void test_APIC() {
+  
+  hw::APIC::init();
+  
 }

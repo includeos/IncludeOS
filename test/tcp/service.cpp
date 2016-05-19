@@ -61,10 +61,10 @@ void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
   hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
       INFO("TEST", "Verify release of resources");
-      CHECK(inet->tcp().activeConnections() == 0, "tcp.activeConnections() == 0");
-      CHECK(inet->buffers_available() == buffers_available,
-            "inet->buffers_available() == buffers_available");
-      INFO("Buffers available", "%u", inet->buffers_available());
+      CHECK(inet->tcp().activeConnections() == 0, 
+        "tcp.activeConnections() == 0");
+      CHECK(inet->buffers_available() == buffers_available, 
+        "inet->buffers_available() == buffers_available");
       printf("# TEST SUCCESS #\n");
     });
 }
@@ -75,7 +75,8 @@ void FINISH_TEST() {
 void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   auto port = address.second;
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
-  inet->resolve(address.first, [port](auto&, auto&, auto ip_address) {
+  inet->resolve(address.first, 
+    [port](auto ip_address) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0) {
@@ -152,7 +153,7 @@ void print_stuff()
 
 void Service::start()
 {
-  hw::PIT::on_timeout(5.0, print_stuff);
+  //hw::PIT::on_timeout(5.0, print_stuff);
   
   IP4::addr A1 (255, 255, 255, 255);
   IP4::addr B1 (  0, 255, 255, 255);

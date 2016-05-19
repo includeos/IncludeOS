@@ -9,9 +9,10 @@ endif
 # shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
+STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -msse3
+CAPABS_COMMON = -mstackrealign -fstack-protector-all -fno-omit-frame-pointer -msse3 -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
 
 CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 WARNS   = -Wall -Wextra #-pedantic
@@ -49,8 +50,8 @@ CPPOPTS = -target i686-elf
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -fno-stack-protector -fno-builtin -march=i686 $(CINCLUDES)
-CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 -fno-stack-protector $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
+CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
 
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
 
@@ -63,9 +64,10 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/terminal.o kernel/terminal_disk.o \
-		kernel/vga.o util/memstream.o \
+		kernel/vga.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o  crt/mman.o \
-		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o hw/serial.o\
+		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
+		hw/serial.o hw/apic.o hw/apic_asm.o hw/cmos.o\
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
@@ -200,6 +202,9 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 %.o: %.s
 	@echo "\n"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
+
+%.o: %.asm
+	nasm -f elf $< -o $@
 
 # Bootloader
 ###################################################

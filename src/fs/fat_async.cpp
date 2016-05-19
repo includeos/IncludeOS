@@ -41,7 +41,7 @@ namespace fs
         }
         
         // parse entries in sector
-        bool done = int_dirent(sector, data.get(), dirents);
+        bool done = int_dirent(sector, data.get(), *dirents);
         if (done)
           // execute callback
           callback(no_error, dirents);
@@ -135,6 +135,22 @@ namespace fs
       on_ls(error, dirents);
     });
   }
+  void FAT::ls(const Dirent& ent, on_ls_func on_ls)
+  {
+    auto dirents = std::make_shared<dirvector> ();
+    // verify ent is a directory
+    if (!ent.is_valid() || !ent.is_dir()) {
+      on_ls( { error_t::E_NOTDIR, ent.name() }, dirents );
+      return;
+    }
+    // convert cluster to sector
+    uint32_t S = this->cl_to_sector(ent.block);
+    // read result directory entries into ents
+    int_ls(S, dirents,
+    [on_ls] (error_t err, dirvec_t entries) {
+      on_ls( err, entries );
+    });
+  }
   
   void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
   {
@@ -143,10 +159,15 @@ namespace fs
       callback({ error_t::E_IO, "Zero read length" }, buffer_t(), 0);
       return;
     }
+    // bounds check the read position and length
+    uint32_t stapos = std::min(ent.size(), pos);
+    uint32_t endpos = std::min(ent.size(), pos + n);
+    // new length
+    n = endpos - stapos;
     // calculate start and length in sectors
-    uint32_t sector = pos / this->sector_size;
-    uint32_t nsect = roundup(pos + n, sector_size) / sector_size - sector;
-    uint32_t internal_ofs = pos % device.block_size();
+    uint32_t sector = stapos / this->sector_size;
+    uint32_t nsect = roundup(endpos, sector_size) / sector_size - sector;
+    uint32_t internal_ofs = stapos % device.block_size();
     
     // cluster -> sector + position
     device.read(this->cl_to_sector(ent.block) + sector, nsect,
@@ -159,12 +180,15 @@ namespace fs
         return;
       }
       
-      // allocate buffer & copy data
-      auto* result = new uint8_t[n];
-      memcpy(result, data.get() + internal_ofs, n);
+      // when the offset is non-zero we aren't on a sector boundary
+      if (internal_ofs != 0) {
+        // so, we need to copy offset data to data buffer
+        auto* result = new uint8_t[n];
+        memcpy(result, data.get() + internal_ofs, n);
+        data = buffer_t(result, std::default_delete<uint8_t[]>());
+      }
       
-      auto buffer = buffer_t(result, std::default_delete<uint8_t[]>());
-      callback(no_error, buffer, n);
+      callback(no_error, data, n);
     });
   }
   
@@ -194,7 +218,7 @@ namespace fs
       for (auto& ent : *dirents) {
         if (unlikely(ent.name() == filename)) {
           // read this file
-          read(ent, 0, ent.size, callback);
+          read(ent, 0, ent.size(), callback);
           return;
         }
       }

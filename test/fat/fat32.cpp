@@ -44,73 +44,70 @@ void Service::start()
 
   // auto-mount filesystem
   disk->mount(disk->MBR,
-              [] (fs::error_t err)
-              {
-                CHECKSERT(!err, "Filesystem auto-mounted");
+  [] (fs::error_t err)
+  {
+    CHECKSERT(!err, "Filesystem auto-mounted");
 
-                auto& fs = disk->fs();
-                printf("\t\t%s filesystem\n", fs.name().c_str());
+    auto& fs = disk->fs();
+    printf("\t\t%s filesystem\n", fs.name().c_str());
 
-                auto vec = fs::new_shared_vector();
-                err = fs.ls("/", vec);
-                CHECKSERT(!err, "List root directory");
+    auto list = fs.ls("/");
+    CHECKSERT(!list.error, "List root directory");
 
-                CHECKSERT(vec->size() == 2, "Exactly two ents in root dir");
+    CHECKSERT(list.entries->size() == 2, "Exactly two ents in root dir");
 
-                auto& e = vec->at(0);
-                CHECKSERT(e.is_file(), "Ent is a file");
-                CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
-              });
+    auto& e = list.entries->at(0);
+    CHECKSERT(e.is_file(), "Ent is a file");
+    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
+  });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
-              [] (fs::error_t err)
-              {
-                CHECK(!err, "Filesystem mounted on VBR1");
-                assert(!err);
+  [] (fs::error_t err)
+  {
+    CHECK(!err, "Filesystem mounted on VBR1");
+    assert(!err);
 
-                auto& fs = disk->fs();
-                auto ent = fs.stat("/banana.txt");
-                CHECKSERT(ent.is_valid(), "Stat file in root dir");
-                CHECKSERT(ent.is_file(), "Entity is file");
-                CHECKSERT(!ent.is_dir(), "Entity is not directory");
-                CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    auto& fs = disk->fs();
+    auto ent = fs.stat("/banana.txt");
+    CHECKSERT(ent.is_valid(), "Stat file in root dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
 
-                ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
-                CHECKSERT(ent.is_valid(), "Stat file in deep dir");
-                CHECKSERT(ent.is_file(), "Entity is file");
-                CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
+    CHECKSERT(ent.is_valid(), "Stat file in deep dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
 
-                CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
 
-                printf("%s\n", internal_banana.c_str());
+    printf("%s\n", internal_banana.c_str());
 
-                // asynch file reading test
-                fs.read(ent, 0, ent.size,
-                        [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
-                        {
-                          CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");
-                          if (err)
-                            {
-                              panic("Failed to read file async");
-                            }
+    // asynch file reading test
+    fs.read(ent, 0, ent.size(),
+    [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+    {
+      CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");
+      if (err) {
+        panic("Failed to read file (async)");
+      }
 
-                          std::string banana((char*) buf.get(), len);
-                          CHECKSERT(banana == internal_banana, "Correct banana #1");
+      std::string banana((char*) buf.get(), len);
+      CHECKSERT(banana == internal_banana, "Correct banana #1");
 
-                          fs.readFile("/banana.txt",
-                                      [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
-                                      {
-                                        CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
-                                        if (err)
-                                          {
-                                            panic("Failed to read file async");
-                                          }
+      fs.readFile("/banana.txt",
+      [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+      {
+        CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
+        if (err) {
+          panic("Failed to read file (async)");
+        }
 
-                                        std::string banana((char*) buf.get(), len);
-                                        CHECKSERT(banana == internal_banana, "Correct banana #2");
-                                      });
-                        });
-              });
+        std::string banana((char*) buf.get(), len);
+        CHECKSERT(banana == internal_banana, "Correct banana #2");
+      });
+    });
+  });
 
   INFO("FAT32", "SUCCESS");
 }
