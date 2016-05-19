@@ -50,6 +50,8 @@ public:
   */
   void send_file(const File&);
 
+  void send_json(const std::string&);
+
   /*
     "End" the response
   */
