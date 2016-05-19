@@ -9,12 +9,6 @@ private:
 
 public:
 
-  static server::AttrType type(server::AttrType t = 0) {
-    static server::AttrType type;
-    if(t && !type) type = t;
-    return type;
-  }
-
   KeyValueMap& members()
   { return members_; }
 

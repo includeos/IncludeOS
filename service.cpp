@@ -179,8 +179,6 @@ void Service::start() {
       server::Middleware_ptr waitress = std::make_shared<Waitress>(disk);
       server_->use(waitress);
 
-
-      server::Attribute::register_attribute<Json>();
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
