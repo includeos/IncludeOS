@@ -15,7 +15,12 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 
 ## Build status
-We're working towards automating everything with our Jenkins CI server. Unfortunately he was recently hacked and is being cloned from DNA recovered from a mosqito in resin plus pig stem cells as we speak. He'll be back on his feet and just like before (ish) pretty soon.
+We're working towards automating everything with our Jenkins CI server. The tests performed to generate these badges are taken from the tests folder. More tests are added regularly, so to see which tests have been completed to generate the results click the corresponding badge. 
+
+|        | Build from bundle                                                                                                                                             | Build from source |
+|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| Master | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_master_bundle_pipe)](https://jenkins.includeos.org/job/shield_master_bundle_pipe/) | Coming soon       |
+| Dev    | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_dev_bundle_pipe)](https://jenkins.includeos.org/job/shield_dev_bundle_pipe/)       | Coming soon       |
 
 ### Key features
 * **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 693K when optimized for size.
