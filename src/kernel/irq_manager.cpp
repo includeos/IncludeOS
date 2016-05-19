@@ -262,7 +262,7 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
 void IRQ_manager::enable_irq(uint8_t irq) {
   // now program IOAPIC to redirect this irq to LAPIC ?
   // redirect to lapic @ 224 + irqno
-  //hw::APIC::enable_irq(irq);
+  hw::APIC::enable_irq(irq);
   //hw::PIC::enable_irq(irq);
 }
 
@@ -310,7 +310,7 @@ void IRQ_manager::notify() {
     irq = __builtin_ffs(todo) - 1;
 
     // Notify
-    debug2("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
+    printf("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
     irq_delegates_[irq]();
 
     // Decrement the counter
@@ -336,7 +336,6 @@ void IRQ_manager::notify() {
 
 void IRQ_manager::eoi(uint8_t irq) {
   hw::APIC::eoi(irq);
-  //hw::PIC::eoi(irq);
 }
 
 void irq_default_handler() {

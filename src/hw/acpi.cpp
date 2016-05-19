@@ -195,6 +195,16 @@ namespace hw {
               ioapic.id, ioapic.addr_base, ioapic.intr_base);
         }
         break;
+      case 2:
+        {
+          auto& redirect = *(override_t*) rec;
+          overrides.push_back(redirect);
+          INFO2("IRQ redirect for bus %u from IRQ %u to VEC %u", 
+              redirect.bus_source, redirect.irq_source, redirect.global_intr);
+        }
+        break;
+      default:
+        printf("Unrecognized ACPI MADT type: %u\n", rec->type);
       }
       // decrease length as we go
       len -= rec->length;

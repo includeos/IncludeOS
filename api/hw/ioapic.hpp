@@ -53,6 +53,13 @@ namespace hw {
   class IOAPIC {
   public:
     static void init(const ACPI::ioapic_list& vec);
+    
+    static unsigned entries();
+    
+    static void set(uint8_t idx, uint32_t src, uint32_t dst);
+    
+    static void enable(uint8_t idx, uint8_t dst);
+    static void disable(uint8_t idx, uint8_t dst);
   };
   
 }

@@ -150,6 +150,8 @@ void VirtioBlk::handle(request_t* hdr) {
 
 void VirtioBlk::service_RX() {
   
+  printf("VirtioBlk::service_RX\n");
+  
   int handled = 0;
   req.disable_interrupts();
   do {

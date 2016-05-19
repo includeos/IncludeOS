@@ -16,15 +16,19 @@
 // limitations under the License.
 
 #include <hw/ioapic.hpp>
+#include <hw/ioport.hpp>
 #include <cstdio>
+#include <cassert>
 #include <debug>
 #include <info>
 
 // I/O APIC registers
-#define REG_IOAPICID    0
-#define REG_IOAPICVER   1
-#define REG_IOAPICARB   2
-#define REG_IOREDTBL    3
+#define IOAPIC_ID    0
+#define IOAPIC_VER   1
+#define IOAPIC_ARB   2
+#define IOAPIC_RDT   3
+
+#define IOAPIC_INTR  0x10
 
 namespace hw
 {
@@ -40,41 +44,82 @@ namespace hw
       addr[0] = reg;
       addr[4] = value;
     }
-    void set_entry(uint8_t index, uint64_t data)
+    void set_entry(uint8_t index, uint32_t lo, uint32_t hi)
     {
-      write(REG_IOREDTBL + index * 2,     (uint32_t) data);
-      write(REG_IOREDTBL + index * 2 + 1, (uint32_t) (data >> 32));
+      assert(index < entries());
+      write(IOAPIC_INTR + index * 2 + 1, hi);
+      write(IOAPIC_INTR + index * 2,     lo);
+    }
+    void set_id(uint32_t id)
+    {
+      write(IOAPIC_ID, id << 24);
+    }
+    
+    uint8_t entries() const noexcept
+    {
+      return entries_;
     }
     
     void init(uintptr_t base)
     {
       this->base = base;
+      // required: set IOAPIC ID
+      set_id(0);
       // number of redirection entries supported
-      entries = read(REG_IOAPICVER) >> 16;
-      entries = 1 + (entries & 0xff);
+      entries_ = read(IOAPIC_VER) >> 16;
+      entries_ = 1 + (entries_ & 0xff);
       
       INFO("IOAPIC", "Initializing");
-      INFO2("Base addr: 0x%x  Entries: %u", base, entries);
-      
-      uint16_t max_redirect = (read(REG_IOAPICVER) >> 16) & 0xffff;
-      INFO2("Max redirections: %u", max_redirect);
+      INFO2("Base addr: 0x%x  Redirection entries: %u", base, entries());
       
       // default: all entries disabled
-      for (uint32_t i = 0; i < entries; i++)
-        set_entry(i, IOAPIC_IRQ_DISABLE);
+      for (unsigned i = 0; i < entries(); i++)
+        set_entry(i, IOAPIC_IRQ_DISABLE, 0);
       
       INFO("IOAPIC", "Done");
     }
     
     uintptr_t  base;
-    uint32_t   entries;
+    uint32_t   entries_;
   };
   // there can be more than one IOAPIC
   static ioapic numbawan;
   
   void IOAPIC::init(const ACPI::ioapic_list& vec)
   {
+    // enable IO APIC (ICMR wiring mode?)
+    hw::outb(0x22, 0x70);
+    hw::outb(0x23, 0x1);
+    
     numbawan.init(vec[0].addr_base);
   }
   
+  unsigned IOAPIC::entries()
+  {
+    return numbawan.entries();
+  }
+  
+  void IOAPIC::set(uint8_t idx, uint32_t src, uint32_t dst)
+  {
+    numbawan.set_entry(idx, src, dst);
+  }
+  
+  void IOAPIC::enable(uint8_t idx, uint8_t dst)
+  {
+    uint32_t type = 0;
+    
+    if (idx > 15)
+        type = (1<<15) | (1<<13);
+    
+    numbawan.set_entry(idx, type | (0x20 + idx), dst);
+  }
+  void IOAPIC::disable(uint8_t idx, uint8_t dst)
+  {
+    uint32_t type = 1 << 16;
+    
+    if (idx > 15)
+      type |= (1<<15) | (1<<13);
+    
+    numbawan.set_entry(idx, type | (0x20 + idx), dst);
+  }
 }

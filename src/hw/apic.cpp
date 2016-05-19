@@ -240,10 +240,6 @@ namespace hw {
     // by masking off all interrupts
     hw::PIC::set_intr_mask(0xFFFF);
     
-    // set correct wire mode?
-    //hw::outb(0x22, 0x70);
-    //hw::outb(0x23, 0x1);
-    
     /// enable interrupts ///
     lapic.regs->task_pri.reg       = 0xff;
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
@@ -398,6 +394,26 @@ namespace hw {
     value = ICR_ASSERT | ICR_DLV_STATUS | ICR_FIXED | vector;
     lapic.regs->intr_lo.reg = value;
     asm("sti");
+  }
+  
+  void APIC::enable_irq(uint8_t irq)
+  {
+    auto& overrides = ACPI::get_overrides();
+    for (auto& redir : overrides)
+    {
+      // NOTE: @bus_source is the IOAPIC number
+      if (redir.irq_source == irq)
+      {
+        printf("Enabled redirected IRQ %u -> %u on lapic %u\n",
+            redir.irq_source, redir.global_intr, lapic.get_id());
+        //IOAPIC::set(redir.irq_source, redir.global_intr, lapic.get_id());
+        IOAPIC::enable(redir.global_intr, lapic.get_id());
+        return;
+      }
+    }
+    printf("Enabled non-redirected IRQ %u on LAPIC %u\n", irq, lapic.get_id());
+    //IOAPIC::set(irq, irq, lapic.get_id());
+    IOAPIC::enable(irq, lapic.get_id());
   }
   
   void APIC::reboot()

@@ -21,7 +21,7 @@ void Service::start()
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.5);
   /*
   inet->network_config(
     { 10,0,0,42 },      // IP

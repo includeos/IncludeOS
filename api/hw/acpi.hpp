@@ -41,8 +41,18 @@ namespace hw {
       uintptr_t addr_base;
       uintptr_t intr_base;
     };
+    struct override_t {
+      uint8_t   type;
+      uint8_t   length;
+      uint8_t   bus_source;
+      uint8_t   irq_source;
+      uint32_t  global_intr;
+      uint16_t  flags;
+    } __attribute__((packed));
+    
     typedef std::vector<LAPIC> lapic_list;
     typedef std::vector<IOAPIC> ioapic_list;
+    typedef std::vector<override_t> override_list;
     
     static void init() {
       get().discover();
@@ -61,6 +71,9 @@ namespace hw {
     static const ioapic_list& get_ioapics() {
       return get().ioapics;
     }
+    static const override_list& get_overrides() {
+      return get().overrides;
+    }
     
   private:
     void discover();
@@ -72,8 +85,9 @@ namespace hw {
     
     uintptr_t hpet_base;
     uintptr_t apic_base;
-    ioapic_list ioapics;
-    lapic_list  lapics;
+    ioapic_list   ioapics;
+    lapic_list    lapics;
+    override_list overrides;
   };
   
 }
