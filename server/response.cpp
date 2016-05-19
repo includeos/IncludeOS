@@ -66,6 +66,12 @@ void Response::send_file(const File& file) {
   end();
 }
 
+void Response::send_json(const std::string& json) {
+  add_body(json);
+  add_header(http::header_fields::Entity::Content_Type, "application/json");
+  send(!keep_alive);
+}
+
 void Response::end() const {
   // Response ended, signal server?
 }

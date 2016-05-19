@@ -19,21 +19,33 @@ public:
     server::Next next
     ) override
   {
-    auto json = std::make_shared<Json>();
-    json->members().insert({"name", "andreas"});
 
-    req->set_attribute(json);
+    if(!has_json(req)) {
+      printf("<Parsley> No JSON in header field.\n");
+      (*next)();
+      return;
+    }
 
-    if(req->has_attribute<Json>()) {
-      auto name = req->get_attribute<Json>()->members()["name"];
-      printf("<Parsley> Has JSON Attribute. name : %s\n", name.c_str());
+    // Request doesn't have JSON attribute
+    if(!req->has_attribute<Json>()) {
+      // create attribute
+      auto json = std::make_shared<Json>();
+      // access the document and parse the body
+      json->doc().Parse(req->get_body().c_str());
+      printf("<Parsley> Parsed JSON data.\n");
+      // add the json to the request
+      req->set_attribute(json);
     }
-    else {
-      printf("<Parsley> Has NOT JSON Attribute\n");
-    }
+
     (*next)();
   }
 
+private:
+  bool has_json(server::Request_ptr req) const {
+    auto c_type = http::header_fields::Entity::Content_Type;
+    return req->has_header(c_type)
+      && (req->header_value(c_type) == "application/json");
+  }
 
 };
 

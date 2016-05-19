@@ -1,4 +1,6 @@
 #include "stringer_j.hpp"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
 namespace acorn {
 
@@ -24,9 +26,22 @@ std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
 }
 
 std::string Squirrel::json() const {
-  stringerj::StringerJ json;
-  json.add("name", name).add("age", age).add("occupation", occupation);
-  return json.str();
+  using namespace rapidjson;
+  StringBuffer s;
+  Writer<StringBuffer> writer(s);
+  writer.StartObject();
+  // name
+  writer.Key("name");
+  writer.String(name.c_str());
+  // age
+  writer.Key("age");
+  writer.Uint(age);
+  // occupation
+  writer.Key("occupation");
+  writer.String(occupation.c_str());
+
+  writer.EndObject();
+  return s.GetString();
 }
 
 };

@@ -98,6 +98,11 @@ void Service::start() {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
+      // setup "database"
+      squirrels = std::make_shared<SquirrelBucket>();
+      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
+      squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
+
       server::Router routes;
 
       routes.on_get("/api/users/.*", [](auto req, auto res) {
@@ -141,7 +146,7 @@ void Service::start() {
                 res->set_status_code(http::Not_Found);
               } else {
                 // fill Response with content from index.html
-                printf("<Route#GET:/> Responding with index.html. \n");
+                printf("[@GET:/] Responding with index.html. \n");
                 res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
                   .add_body(std::string{(const char*) buff.get(), len});
               }
@@ -151,6 +156,31 @@ void Service::start() {
         }); // << fs().readFile
 
       routes.on_get("/api/squirrels", [](auto, auto res) {
+        auto json_arr = stringerj::StringerJ::array("squirrels"s, squirrels->lineup());
+        res->send_json(json_arr);
+      });
+
+      routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
+        auto json = req->get_attribute<Json>();
+        if(!json) {
+          res->send_code(http::Bad_Request);
+        }
+        else {
+          auto& doc = json->doc();
+          try {
+            acorn::Squirrel s;
+            s.name = doc["name"].GetString();
+            s.age = doc["age"].GetInt();
+            s.occupation = doc["occupation"].GetString();
+            printf("[@POST:/api/squirrels] Squirrel created: %s\n", s.json().c_str());
+            squirrels->capture(s);
+            res->send_code(http::Created);
+          }
+          catch(AssertException e) {
+            res->send_code(http::Bad_Request);
+            printf("[@POST:/api/squirrels] Exception: %s\n", e.what());
+          }
+        }
 
       });
       // initialize server
@@ -166,13 +196,6 @@ void Service::start() {
         });
       });
       */
-
-      // setup database
-      squirrels = std::make_shared<SquirrelBucket>();
-      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
-      squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
-
-      printf("JSON: %s\n", stringerj::StringerJ::array("squirrels"s, squirrels->lineup()).c_str());
 
 
       // custom middleware to serve static files

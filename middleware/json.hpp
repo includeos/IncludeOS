@@ -1,19 +1,23 @@
 #ifndef ATTRIBUTE_JSON_HPP
 #define ATTRIBUTE_JSON_HPP
 
+#define RAPIDJSON_THROWPARSEEXCEPTION 1
+class AssertException : public std::logic_error {
+public:
+    AssertException(const char* w) : std::logic_error(w) {}
+};
+#define RAPIDJSON_ASSERT(x) if (!(x)) throw AssertException(RAPIDJSON_STRINGIFY(x))
+
 #include "attribute.hpp"
+#include "rapidjson/document.h"
 
 class Json : public server::Attribute {
-private:
-  using KeyValueMap = std::map<std::string, std::string>;
-
 public:
-
-  KeyValueMap& members()
-  { return members_; }
+  rapidjson::Document& doc()
+  { return document_; }
 
 private:
-  std::map<std::string, std::string> members_;
+  rapidjson::Document document_;
 
 };
 
