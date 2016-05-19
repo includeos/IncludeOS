@@ -32,6 +32,7 @@ void Attribute::register_attribute() {
 
 template <typename A>
 AttrType Attribute::type() {
+  static_assert(std::is_base_of<Attribute, A>::value, "A is not an Attribute");
   static AttrType id = Attribute::next_attr_type();
   return id;
 }
