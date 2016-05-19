@@ -15,6 +15,9 @@ public:
   template <typename A>
   static void register_attribute();
 
+  template <typename A>
+  static AttrType type();
+
 private:
   static AttrType next_attr_type() {
     static AttrType counter;
@@ -25,6 +28,12 @@ private:
 template <typename A>
 void Attribute::register_attribute() {
   A::type(Attribute::next_attr_type());
+}
+
+template <typename A>
+AttrType Attribute::type() {
+  static AttrType id = Attribute::next_attr_type();
+  return id;
 }
 
 

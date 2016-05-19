@@ -70,12 +70,12 @@ private:
 
 template<typename A>
 bool Request::has_attribute() const {
-  return attributes_.find(A::type()) != attributes_.end();
+  return attributes_.find(Attribute::type<A>()) != attributes_.end();
 }
 
 template<typename A>
 std::shared_ptr<A> Request::get_attribute() {
-  auto it = attributes_.find(A::type());
+  auto it = attributes_.find(Attribute::type<A>());
   if(it != attributes_.end())
     return std::static_pointer_cast<A>(it->second);
   return nullptr;
@@ -83,7 +83,7 @@ std::shared_ptr<A> Request::get_attribute() {
 
 template<typename A>
 void Request::set_attribute(std::shared_ptr<A> attr) {
-  attributes_.insert({A::type(), attr});
+  attributes_.insert({Attribute::type<A>(), attr});
 }
 
 }; // < namespace server
