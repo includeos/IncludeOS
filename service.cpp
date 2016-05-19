@@ -79,14 +79,13 @@ public:
 
 #include "middleware/waitress.cpp"
 
-#include <rapidjson/document.h>
-#define RAPIDJSON_THROWPARSEEXCEPTION 1
-
 #include "bucket.hpp"
 #include "app/squirrel.hpp"
 
 using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
 std::shared_ptr<SquirrelBucket> squirrels;
+
+#include "middleware/parsley.hpp"
 
 void Service::start() {
 
@@ -179,6 +178,11 @@ void Service::start() {
       // custom middleware to serve static files
       server::Middleware_ptr waitress = std::make_shared<Waitress>(disk);
       server_->use(waitress);
+
+
+      server::Attribute::register_attribute<Json>();
+      server::Middleware_ptr parsley = std::make_shared<Parsley>();
+      server_->use(parsley);
 
 
       auto vec = disk->fs().ls("/").entries;
