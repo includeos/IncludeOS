@@ -296,7 +296,7 @@ void Connection::segment_arrived(TCP::Packet_ptr incoming) {
       parse_options(incoming);
     }
     catch(TCPBadOptionException err) {
-      printf("<TCP::Connection::receive> %s \n", err.what());
+      debug("<TCP::Connection::receive> %s \n", err.what());
     }
   }
 
@@ -615,7 +615,7 @@ void Connection::rtx_start() {
   [this, i, rto]
   {
     rtx_timer.active = false;
-    printf("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u, i: %u rt_i: %u\n",
+    debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u, i: %u rt_i: %u\n",
       to_string().c_str(), rto, flight_size(), i, rtx_timer.i);
     rtx_timeout();
   });
