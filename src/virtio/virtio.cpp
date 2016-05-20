@@ -25,9 +25,9 @@ void Virtio::set_irq(){
 
   //Get device IRQ
   uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  //if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-  this->_irq = value & 0xFF;
-  //}
+  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+    this->_irq = value & 0xFF;
+  }
 
 }
 
@@ -104,9 +104,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   set_irq();
 
   CHECK(_irq, "Unit has IRQ %i", _irq);
-  INFO("Virtio","Enabling IRQ Handler");
-  enable_irq_handler();
-
+  //INFO("Virtio","Enabling IRQ Handler");
+  //enable_irq_handler();
 
 
   INFO("Virtio", "Initialization complete");
@@ -117,18 +116,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8.
   // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
-
-  /* printf(queue_size > 0 and queue_size != PCI_WTF ?
-     "\t [x] Queue Size : 0x%lx \n" :
-     "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */
-
 }
 
 void Virtio::get_config(void* buf, int len){
   unsigned char* ptr = (unsigned char*)buf;
   uint32_t ioaddr = _iobase + VIRTIO_PCI_CONFIG;
-  int i;
-  for (i = 0; i < len; i++) *ptr++ = hw::inp(ioaddr + i);
+  for (int i = 0; i < len; i++)
+    *ptr++ = hw::inp(ioaddr + i);
 }
 
 
@@ -170,7 +164,6 @@ void Virtio::setup_complete(bool ok){
 }
 
 
-
 void Virtio::default_irq_handler(){
   printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
   printf("Old Features : 0x%x \n",_features);
@@ -181,29 +174,10 @@ void Virtio::default_irq_handler(){
   printf("Virtio ISR: 0x%i \n",isr);
 
   IRQ_manager::eoi(_irq);
-
 }
 
-
-
-void Virtio::enable_irq_handler(){
-  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-
-  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);
+void Virtio::enable_irq_handler()
+{
   auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
-
-  IRQ_manager::subscribe(_irq,del);
-
-  IRQ_manager::enable_irq(_irq);
-
-
+  IRQ_manager::subscribe(_irq, del);
 }
-
-/** void Virtio::enable_irq_handler(IRQ_manager::irq_delegate d){
- //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
- //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
-
- IRQ_manager::subscribe(_irq,d);
-
- IRQ_manager::enable_irq(_irq);
- }*/

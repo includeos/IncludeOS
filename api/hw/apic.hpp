@@ -32,7 +32,7 @@ namespace hw {
     
     static uint8_t get_isr();
     static uint8_t get_irr();
-    static void eoi(uint8_t vector);
+    static void eoi();
     
     static void enable_irq(uint8_t irq);
     static void disable_irq(uint8_t irq);

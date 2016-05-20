@@ -63,11 +63,11 @@ void OS::start() {
   // read ACPI tables
   hw::ACPI::init();
   
-  // Set up interrupt handlers
-  IRQ_manager::init();
-  
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
+  
+  // Set up interrupt handlers
+  IRQ_manager::init();
   
   INFO("INTR", "Enabling interrupts");
   IRQ_manager::enable_interrupts();

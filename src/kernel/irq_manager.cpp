@@ -260,8 +260,7 @@ IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  // now program IOAPIC to redirect this irq to LAPIC ?
-  // redirect to lapic @ 224 + irqno
+  // program IOAPIC to redirect this irq to LAPIC
   hw::APIC::enable_irq(irq);
 }
 
@@ -285,7 +284,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {   //void(*notify)()
   irq_delegates_[irq] = del;
 
   eoi(irq);
-  INFO("IRQ manager", "Updated subscriptions: %#x irq: %i", irq_subscriptions_, irq);
+  INFO("IRQ manager", "Updated subscriptions: %#x irq: %u", irq_subscriptions_, irq);
 }
 
 /** Get most significant bit of b. */
@@ -333,8 +332,8 @@ void IRQ_manager::notify() {
   asm volatile("hlt;");
 }
 
-void IRQ_manager::eoi(uint8_t irq) {
-  hw::APIC::eoi(irq);
+void IRQ_manager::eoi(uint8_t) {
+  hw::APIC::eoi();
 }
 
 void irq_default_handler() {

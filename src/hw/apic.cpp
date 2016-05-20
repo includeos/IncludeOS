@@ -372,9 +372,9 @@ namespace hw {
     return 0;
   }
   
-  void APIC::eoi(uint8_t intr)
+  void APIC::eoi()
   {
-    //printf("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, intr);
+    debug("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, lapic.get_id());
     lapic.regs->eoi.reg = 0;
   }
   

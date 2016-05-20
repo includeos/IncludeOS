@@ -149,19 +149,14 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Hook up IRQ handler
   auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
   IRQ_manager::subscribe(irq(),del);
-  IRQ_manager::enable_irq(irq());
 
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");
   rx_q.kick();
-
-
-};
-
+}
 
 int VirtioNet::add_receive_buffer(){
-
 
   // Virtio Std. § 5.1.6.3
   auto buf = bufstore_.get_raw_buffer();
