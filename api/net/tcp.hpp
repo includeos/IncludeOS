@@ -1626,15 +1626,16 @@ namespace net {
       inline void reno_deflate_cwnd(uint16_t n)
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
-      // TODO: Flight size goes from zero to max uint32 when limited tx
       inline void reduce_ssthresh() {
         auto fs = flight_size();
         printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
 
-        if(limited_tx_)
-          fs -= 2*(uint32_t)SMSS();
+        auto two_seg = 2*(uint32_t)SMSS();
 
-        cb.ssthresh = std::max( (fs / 2), (2 * (uint32_t)SMSS()) );
+        if(limited_tx_)
+          fs = (fs >= two_seg) ? fs - two_seg : 0;
+
+        cb.ssthresh = std::max( (fs / 2), two_seg );
         printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
           cb.ssthresh);
       }
