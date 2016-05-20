@@ -188,6 +188,13 @@ namespace hw {
     /** The base address of the (first) I/O resource */
     uint32_t iobase() const noexcept;
 
+    typedef uint32_t pcicap_t;
+    void parse_capabilities();
+    
+    // MSI and MSI-X capabilities for this device
+    bool has_msi_cap();
+    bool has_msix_cap();
+    
   private:
     // @brief The 3-part PCI address
     uint16_t pci_addr_;
@@ -266,13 +273,7 @@ namespace hw {
       }
     }
     
-    typedef uint32_t pcicap_t;
     pcicap_t caps[PCI_CAP_ID_MAX+1];
-    void parse_capabilities();
-    
-    // MSI and MSI-X capabilities for this device
-    bool has_msi_cap();
-    bool has_msix_cap();
     
   }; //< class PCI_Device
 

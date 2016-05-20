@@ -72,7 +72,11 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
   _iobase = _pcidev.iobase();
-
+  
+  _pcidev.parse_capabilities();
+  printf("DEVICE MSI: %d   MSIX: %d\n",
+      _pcidev.has_msi_cap(), _pcidev.has_msix_cap());
+  
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */

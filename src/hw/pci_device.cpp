@@ -22,6 +22,21 @@
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
 
+/* PCI Register Config Space */
+#define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
+#define PCI_VENDID_REG		0x00
+#define PCI_DEVID_REG		0x02
+#define PCI_CMD_REG			0x04
+#define PCI_STATUS_REG		0x06
+#define PCI_REVID_REG		0x08
+#define PCI_PROGIF_REG		0x09
+#define PCI_SUBCLASS_REG	0x0a
+#define PCI_CLASS_REG		0x0b
+#define PCI_CLSZ_REG		0x0c
+#define PCI_LATTIM_REG		0x0d
+#define PCI_HEADER_REG		0x0e
+#define PCI_BIST_REG		0x0f
+
 namespace hw {
 
   constexpr int NUM_CLASSCODES {19};
@@ -212,6 +227,37 @@ namespace hw {
   
   void PCI_Device::parse_capabilities()
   {
+    /// TODO REWRITE THIS COMPLETELY ///
+    
+    auto wd = read_dword(PCI_HEADER_REG) & 0xff;
+    //printf("PCI_HEADER_REG: %u\n", wd);
+    uint32_t cap_off = 0;
+    
+    switch (wd & 0x7f) {
+      case 0:				/* etc */
+      case 1:				/* pci to pci bridge */
+        cap_off = 0x34;
+        break;
+      case 2:				/* cardbus bridge */
+        cap_off = 0x14;
+        break;
+      default:
+        return;
+    }
+    
+    /* initial offset points to the addr of the first cap */
+    cap_off = read_dword(cap_off) & 0xff;
+    cap_off &= ~0x3;	/* osdev says the lower 2 bits are reserved */
+    printf("cap_off: %#x\n", cap_off);
+    while (cap_off) {
+      auto cap_id = read_dword(cap_off) & 0xff;
+      printf("cap_id: %#x\n", cap_id);
+      assert (cap_id <= PCI_CAP_ID_MAX);
+      // remember capability
+      this->caps[cap_id] = cap_off;
+      // go to next cap
+      cap_off = read_dword(cap_off + 1);
+    }
   }
   
 } //< namespace hw
