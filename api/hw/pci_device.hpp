@@ -18,8 +18,13 @@
 #ifndef HW_PCI_DEVICE_HPP
 #define HW_PCI_DEVICE_HPP
 
-#include <cstdio>
+#include <cstdint>
 #include <common>
+
+#define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
+#define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
+#define  PCI_EXT_CAP_ID_PASID 0x1B	/* Process Address Space ID */
+#define  PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID    
 
 namespace PCI {
 
@@ -117,7 +122,7 @@ namespace hw {
      *
      *  @see pci_addr() for more about the address  
      */
-    explicit PCI_Device(const uint16_t pci_addr, const uint32_t device_id) noexcept;
+    explicit PCI_Device(const uint16_t pci_addr, const uint32_t device_id);
   
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
     uint32_t read_dword(const uint8_t reg) noexcept;
@@ -260,6 +265,15 @@ namespace hw {
         Q = res;
       }
     }
+    
+    typedef uint32_t pcicap_t;
+    pcicap_t caps[PCI_CAP_ID_MAX+1];
+    void parse_capabilities();
+    
+    // MSI and MSI-X capabilities for this device
+    bool has_msi_cap();
+    bool has_msix_cap();
+    
   }; //< class PCI_Device
 
 } //< namespace hw

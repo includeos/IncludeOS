@@ -71,7 +71,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
-  _iobase=_pcidev.iobase();
+  _iobase = _pcidev.iobase();
 
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 

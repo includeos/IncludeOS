@@ -28,51 +28,51 @@ namespace hw {
 
   static const char* classcodes[NUM_CLASSCODES] {
     "Too-Old-To-Tell",                                   // 0
-      "Mass Storage Controller",                           // 1
-      "Network Controller",                                // 2
-      "Display Controller",                                // 3
-      "Multimedia Controller",                             // 4
-      "Memory Controller",                                 // 5
-      "Bridge",                                            // 6
-      "Simple communications controllers",
-      "Base system peripherals",                           // 8
-      "Inupt device",                                      // 9
-      "Docking Station",
-      "Processor",
-      "Serial Bus Controller",
-      "Wireless Controller",
-      "Intelligent I/O Controller",
-      "Satellite Communication Controller",                // 15
-      "Encryption/Decryption Controller",                  // 16
-      "Data Acquisition and Signal Processing Controller", // 17
-      NULL
-      };
+    "Mass Storage Controller",                           // 1
+    "Network Controller",                                // 2
+    "Display Controller",                                // 3
+    "Multimedia Controller",                             // 4
+    "Memory Controller",                                 // 5
+    "Bridge",                                            // 6
+    "Simple communications controllers",
+    "Base system peripherals",                           // 8
+    "Inupt device",                                      // 9
+    "Docking Station",
+    "Processor",
+    "Serial Bus Controller",
+    "Wireless Controller",
+    "Intelligent I/O Controller",
+    "Satellite Communication Controller",                // 15
+    "Encryption/Decryption Controller",                  // 16
+    "Data Acquisition and Signal Processing Controller", // 17
+    NULL
+  };
 
   constexpr int SS_BR {3};
 
   static const char* bridge_subclasses[SS_BR] {
     "Host",
-      "ISA",
-      "Other"
-      };
+    "ISA",
+    "Other"
+  };
 
   constexpr int SS_NIC {2};
 
   static const char* nic_subclasses[SS_NIC] {
     "Ethernet",
-      "Other"
-      };
+    "Other"
+  };
 
   struct _pci_vendor {
     uint16_t    id;
     const char* name;
   } _pci_vendorlist[] {
     {0x8086,"Intel Corp."},
-      {0x1013,"Cirrus Logic"},
-        {0x10EC,"Realtek Semi.Corp."},
-          {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
-            {0x1022,"AMD"},
-              {0x0000,NULL}
+    {0x1013,"Cirrus Logic"},
+    {0x10EC,"Realtek Semi.Corp."},
+    {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
+    {0x1022,"AMD"},
+    {0x0000,NULL}
   };
 
   static unsigned long pci_size(const unsigned long base, const unsigned long mask) noexcept {
@@ -142,42 +142,38 @@ namespace hw {
     INFO2("");
   }
 
-  PCI_Device::PCI_Device(const uint16_t pci_addr, const uint32_t device_id) noexcept:
-  pci_addr_{pci_addr}, device_id_{device_id}
-  // Device(Device::PCI)
-  // Why not inherit Device? Well, I think "PCI devices" are too general to be useful by itself,
-  // and the "Device" class is Public ABI, so it should only know about stuff that's relevant for the user.
-{
-  //We have device, so probe for details
-  devtype_.reg = read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
+  PCI_Device::PCI_Device(const uint16_t pci_addr, const uint32_t device_id)
+      : pci_addr_{pci_addr}, device_id_{device_id}
+  {
+    //We have device, so probe for details
+    devtype_.reg = read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
-  //printf("\t[*] New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
-  //device_id.vendor,device_id.product,classcode);
-  
-  INFO2("|");  
-  
-  switch (devtype_.classcode) {
-  case PCI::BRIDGE:
-    INFO2("+--+ %s %s (0x%x)",
-          bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
-          classcodes[devtype_.classcode],devtype_.subclass);
-    break;
+    //printf("\t[*] New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
+    //device_id.vendor,device_id.product,classcode);
+    
+    INFO2("|");  
+    
+    switch (devtype_.classcode) {
+    case PCI::BRIDGE:
+      INFO2("+--+ %s %s (0x%x)",
+            bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
+            classcodes[devtype_.classcode],devtype_.subclass);
+      break;
 
-  case PCI::NIC:
-    INFO2("+--+ %s %s (0x%x)",
-          nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
-          classcodes[devtype_.classcode],devtype_.subclass);
-    break;
+    case PCI::NIC:
+      INFO2("+--+ %s %s (0x%x)",
+            nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
+            classcodes[devtype_.classcode],devtype_.subclass);
+      break;
 
-  default:
-    if (devtype_.classcode < NUM_CLASSCODES) {
-      INFO2("+--+ %s ",classcodes[devtype_.classcode]);
-    } else {
-      INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
-    } 
-  } //< switch (devtype_.classcode)
-}
-
+    default:
+      if (devtype_.classcode < NUM_CLASSCODES) {
+        INFO2("+--+ %s ",classcodes[devtype_.classcode]);
+      } else {
+        INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
+      } 
+    } //< switch (devtype_.classcode)
+  }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
     PCI::msg req;
@@ -213,5 +209,9 @@ namespace hw {
 
     return inpd(PCI::CONFIG_DATA);
   }
-
+  
+  void PCI_Device::parse_capabilities()
+  {
+  }
+  
 } //< namespace hw
