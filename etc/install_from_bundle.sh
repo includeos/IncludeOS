@@ -17,6 +17,8 @@
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
 # Install dependencies
+$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+
 DEPENDENCIES="curl make clang-3.8 nasm bridge-utils qemu"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
