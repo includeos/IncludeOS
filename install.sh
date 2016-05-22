@@ -21,7 +21,7 @@ export llvm_src=llvm
 export llvm_build=build_llvm
 export clang_version=3.8
 
-export gcc_version=5.1.0
+export gcc_version=6.1.0
 export binutils_version=2.25
 
 # Options to skip steps
