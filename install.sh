@@ -13,7 +13,7 @@ export build_dir=$HOME/cross-dev
 # Multitask-parameter to make
 export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 
-export newlib_version=2.2.0-1
+export newlib_version=2.4.0
 
 export INCLUDEOS_SRC=`pwd`
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
