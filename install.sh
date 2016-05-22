@@ -22,7 +22,7 @@ export llvm_build=build_llvm
 export clang_version=3.8
 
 export gcc_version=6.1.0
-export binutils_version=2.25
+export binutils_version=2.26
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
