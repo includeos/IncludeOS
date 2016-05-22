@@ -21,7 +21,7 @@ export llvm_src=llvm
 export llvm_build=build_llvm
 export clang_version=3.8
 
-export gcc_version=5.1.0
+export gcc_version=6.1.0
 export binutils_version=2.25
 
 # Options to skip steps
@@ -35,14 +35,15 @@ export binutils_version=2.25
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-
+$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
 
 # BUILDING IncludeOS
-PREREQS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
+DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
+
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
-echo -e  "        Packages: $PREREQS_BUILD \n"
-sudo apt-get install -y $PREREQS_BUILD
+echo -e  "        Packages: $DEPS_BUILD \n"
+sudo apt-get install -y $DEPS_BUILD
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
@@ -65,8 +66,6 @@ fi
 if [ ! -z $do_llvm ]; then
     echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
     $INCLUDEOS_SRC/etc/build_llvm32.sh
-    #echo -e "\n\n >>> INSTALLING libc++ \n"
-    #cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
 fi
 
 echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
@@ -98,10 +97,10 @@ if [ ! -z $do_includeos ]; then
     popd
 
     # RUNNING IncludeOS
-    PREREQS_RUN="bridge-utils qemu-kvm"
+    DEPS_RUN="bridge-utils qemu-kvm"
     echo -e "\n\n >>> Trying to install prerequisites for *running* IncludeOS"
-    echo -e   "        Packages: $PREREQS_RUN \n"
-    sudo apt-get install -y $PREREQS_RUN
+    echo -e   "        Packages: $DEPS_RUN \n"
+    sudo apt-get install -y $DEPS_RUN
 
     # Set up the IncludeOS network bridge
     echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
