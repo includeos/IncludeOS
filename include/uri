@@ -1,0 +1,8 @@
+//-*- C++ -*-
+#ifndef URI_URI
+#define URI_URI
+
+#include <uri.hpp>
+#include <percent_encoding.hpp>
+
+#endif
