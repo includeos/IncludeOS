@@ -121,9 +121,7 @@ echo "LLVM CMake Build options:" $OPTS
 # 1. IncludeOS_sys has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
 # 2. libcxx_inc must come before newlib, due to math.h function wrappers around C99 macros (signbit, nan etc)
 # 3. newlib_inc provodes standard C headers
-# 4. IncludeOS/api provides sys-specific paths such as "sys/time.h"
-# 5.
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$newlib_inc -I$INCLUDEOS_SRC/api -I$INCLUDEOS_SRC/src/include/ -I$INCLUDEOS_SRC/stdlib/support/newlib/ " $BUILD_DIR/$llvm_src
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
 
 
 #
