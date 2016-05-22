@@ -33,7 +33,7 @@ We're working towards automating everything with our Jenkins CI server. The test
 * **Standard C library** using [newlib](https://sourceware.org/newlib/) from [Red Hat](http://www.redhat.com/)
 * **Virtio Network driver** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. Like most implementations IncludeOS currently uses "legacy mode", but we're working towards the new [Virtio 1.0 OASIS standard](http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
 * **A highly modular TCP/IP-stack** written from scratch, still under heavy development.
-    * TCP: Not all the RFC's are impelemented yet, but it's stable and usable, including congestion control and common opitons.
+    * TCP: Not all the RFC's are impelemented yet, but it's stable and usable, including congestion control and common options.
     * UDP: More or less complete, enough to support a high performance DNS service
     * DHCP: Basic support, tested on VirtualBox, KVM and OpenStack
     * ICMP: Enough to answer ping, no integration with the rest of the stack yet.
