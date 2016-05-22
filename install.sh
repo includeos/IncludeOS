@@ -13,7 +13,7 @@ export build_dir=$HOME/cross-dev
 # Multitask-parameter to make
 export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 
-export newlib_version=2.2.0-1
+export newlib_version=2.4.0
 
 export INCLUDEOS_SRC=`pwd`
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
@@ -22,7 +22,7 @@ export llvm_build=build_llvm
 export clang_version=3.8
 
 export gcc_version=6.1.0
-export binutils_version=2.25
+export binutils_version=2.26
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
