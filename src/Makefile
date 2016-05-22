@@ -14,7 +14,11 @@ STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -fstack-protector-all -fno-omit-frame-pointer -msse3 -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
 
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
+# Various global defines
+# * NO_DEBUG Disables  output from the debug macro
+# * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
+# * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
+CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
