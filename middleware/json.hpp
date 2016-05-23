@@ -1,6 +1,6 @@
 #ifndef ATTRIBUTE_JSON_HPP
 #define ATTRIBUTE_JSON_HPP
-
+#define RAPIDJSON_HAS_STDSTRING 1
 #define RAPIDJSON_THROWPARSEEXCEPTION 1
 class AssertException : public std::logic_error {
 public:

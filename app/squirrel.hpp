@@ -1,6 +1,4 @@
-#include "stringer_j.hpp"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+#include "json_writer.hpp"
 
 namespace acorn {
 
@@ -18,6 +16,9 @@ struct Squirrel {
   std::string json() const;
 
   friend std::ostream & operator<< (std::ostream &out, const Squirrel& t);
+
+  template <typename Writer>
+  void serialize(Writer& writer) const;
 };
 
 std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
@@ -25,23 +26,21 @@ std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
   return out;
 }
 
+template <typename Writer>
+void Squirrel::serialize(Writer& writer) const {
+  writer.start_object();
+  writer.add("name", name);
+  writer.add("age", age);
+  writer.add("occupation", occupation);
+  writer.end_object();
+}
+
 std::string Squirrel::json() const {
   using namespace rapidjson;
-  StringBuffer s;
-  Writer<StringBuffer> writer(s);
-  writer.StartObject();
-  // name
-  writer.Key("name");
-  writer.String(name.c_str());
-  // age
-  writer.Key("age");
-  writer.Uint(age);
-  // occupation
-  writer.Key("occupation");
-  writer.String(occupation.c_str());
-
-  writer.EndObject();
-  return s.GetString();
+  StringBuffer sb;
+  JSON_Writer<StringBuffer> writer(sb);
+  serialize(writer);
+  return sb.GetString();
 }
 
 };

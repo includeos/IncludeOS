@@ -81,6 +81,7 @@ public:
 
 #include "bucket.hpp"
 #include "app/squirrel.hpp"
+#include "app/json_writer.hpp"
 
 using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
 std::shared_ptr<SquirrelBucket> squirrels;
@@ -156,8 +157,12 @@ void Service::start() {
         }); // << fs().readFile
 
       routes.on_get("/api/squirrels", [](auto, auto res) {
-        auto json_arr = stringerj::StringerJ::array("squirrels"s, squirrels->lineup());
-        res->send_json(json_arr);
+        printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        JSON_Writer<StringBuffer> writer(sb);
+        squirrels->serialize(writer);
+        res->send_json(sb.GetString());
       });
 
       routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {

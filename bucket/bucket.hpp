@@ -66,6 +66,9 @@ public:
    */
   std::vector<T> lineup() const;
 
+  template <typename Writer>
+  void serialize(Writer& writer) const;
+
 private:
   Key idx;
   Collection bucket_;
@@ -116,6 +119,15 @@ std::vector<T> Bucket<T>::lineup() const {
     vec.push_back(content.second);
   assert(vec.size() == bucket_.size());
   return vec;
+}
+
+template <typename T>
+template <typename Writer>
+void Bucket<T>::serialize(Writer& writer) const {
+  writer.start_array();
+  for(auto content : bucket_)
+    content.second.serialize(writer);
+  writer.end_array();
 }
 
 
