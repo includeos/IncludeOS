@@ -20,8 +20,47 @@
 #define HW_MSI_HPP
 
 #include <cstdint>
+#include <cstddef>
+#include <cassert>
 
 namespace hw {
+  
+  class PCI_Device;
+  
+  struct msix_entry
+  {
+    uint32_t vector;
+  };
+  struct msix_pba
+  {
+    // qword pending bits 0-63 etc.
+    uint64_t pending[0];
+  };
+  
+  struct msix_t
+  {
+    msix_t(PCI_Device&);
+    
+    // initialize msi-x tables for device
+    void init(PCI_Device&);
+    void mask_entry(size_t);
+    void unmask_entry(size_t);
+    uint32_t make_addr(uint64_t vec);
+    
+  private:
+    PCI_Device& dev;
+    intptr_t table_addr;
+    intptr_t pba_addr;
+    size_t   vectors;
+    
+    inline auto* get_entry(size_t idx)
+    {
+      assert(idx < vectors);
+      return ((msix_entry*) table_addr) + idx;
+    }
+    
+    intptr_t get_capbar_paddr(size_t offset);
+  };
   
   class MSI
   {

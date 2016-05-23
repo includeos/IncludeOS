@@ -135,7 +135,7 @@ namespace hw {
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
       
         // Add it to resource list
-        add_resource<RES_IO>(new Resource<RES_IO>(unmasked_val, pci__size), res_io_);
+        add_resource(new Resource(unmasked_val, pci__size), res_io_);
         assert(res_io_ != nullptr);        
       
       } else { //Resource type Mem
@@ -144,7 +144,7 @@ namespace hw {
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
 
         //Add it to resource list
-        add_resource<RES_MEM>(new Resource<RES_MEM>(unmasked_val, pci__size), res_mem_);
+        add_resource(new Resource(unmasked_val, pci__size), res_mem_);
         assert(res_mem_ != nullptr);
       }
 
@@ -213,6 +213,26 @@ namespace hw {
     return inpd(PCI::CONFIG_DATA);
   }
 
+  uint16_t PCI_Device::read16(const uint8_t reg) noexcept {
+    PCI::msg req;
+    req.data = 0x80000000;
+    req.addr = pci_addr_;
+    req.reg  = reg;
+    
+    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
+
+    return inpw(PCI::CONFIG_DATA + (reg & 2));
+  }
+  void PCI_Device::write16(const uint8_t reg, const uint16_t value) noexcept {
+    PCI::msg req;
+    req.data = 0x80000000;
+    req.addr = pci_addr_;
+    req.reg  = reg;
+  
+    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
+    outpw(PCI::CONFIG_DATA + (reg & 2), value);
+  }
+  
   uint32_t PCI_Device::read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept {
     PCI::msg req;
 
@@ -263,6 +283,11 @@ namespace hw {
       offset = cap.next;
     }
     
+  }
+  
+  void PCI_Device::init_msix()
+  {
+    this->msix = new msix_t(*this);
   }
   
 } //< namespace hw

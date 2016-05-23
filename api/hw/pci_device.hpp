@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <common>
+#include "msi.hpp"
 
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
@@ -91,6 +92,14 @@ namespace PCI {
     SIGPRO,
     OTHER=255
   }; //< enum classcode_t
+  
+  struct Resource {
+    uint32_t start_;
+    uint32_t len_;
+    Resource* next {nullptr};
+    Resource(const uint32_t start, const uint32_t len) : start_{start}, len_{len} {};
+  };
+  
 } //< namespace PCI
 
 namespace hw {
@@ -130,6 +139,12 @@ namespace hw {
     //! @brief Read from device with explicit pci_addr
     static uint32_t read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept;
 
+    //! @brief Write to device with implicit pci_address (e.g. used by Nic)
+    void write_dword(const uint8_t reg, const uint32_t value) noexcept;
+
+    uint16_t read16(const uint8_t reg) noexcept;
+    void write16(const uint8_t reg, const uint16_t value) noexcept;
+    
     /** 
      *  Probe for a device on the given address
      *
@@ -192,8 +207,28 @@ namespace hw {
     void parse_capabilities();
     
     // MSI and MSI-X capabilities for this device
-    bool has_msi_cap();
-    bool has_msix_cap();
+    // the cap offsets and can also be used as boolean to determine
+    // device MSI/MSIX support
+    int msi_cap();
+    int msix_cap();
+    // call this when msix is supported
+    void init_msix();
+    // getter spam for msix
+    uintptr_t get_membar(uint8_t idx)
+    {
+      auto* res = res_mem_;
+      
+      // due to separation of resources, its hard to tell
+      // what idx is what BIR, so lets just return the first membar
+      return res->start_;
+      
+      while (idx != 0 && res->next)
+      {
+        idx--; res = res->next;
+      }
+      
+      return res->start_;
+    }
     
   private:
     // @brief The 3-part PCI address
@@ -236,36 +271,20 @@ namespace hw {
   
     // Device Resources
 
-    //! @brief Resource types, "Memory" or "I/O"
-    enum resource_t { RES_MEM, RES_IO };
-  
     /** A device resource - possibly a list */
-    template<resource_t RT>
-    struct Resource {
-      const resource_t type {RT};
-      uint32_t start_;
-      uint32_t len_;
-      Resource<RT>* next {nullptr};
-      Resource<RT>(const uint32_t start, const uint32_t len) : start_{start}, len_{len} {};
-    };
-
+    typedef PCI::Resource Resource;
+    
     //! @brief Resource lists. Members added by add_resource();
-    Resource<RES_MEM>* res_mem_ {nullptr};
-    Resource<RES_IO>*  res_io_  {nullptr};
-   
-
-    //! @brief Write to device with implicit pci_address (e.g. used by Nic)
-    void write_dword(const uint8_t reg, const uint32_t value) noexcept;
-
+    Resource* res_mem_ {nullptr};
+    Resource* res_io_  {nullptr};
+    
     /**
      *  Add a resource to a resource queue.
      *
      *  (This seems pretty dirty; private class, reference to pointer etc.) */
-    template<resource_t R_T>
-    void add_resource(Resource<R_T>* res, Resource<R_T>*& Q) noexcept {
-      Resource<R_T>* q;
+    void add_resource(Resource* res, Resource*& Q) noexcept {
       if (Q) {
-        q = Q;
+        auto* q = Q;
         while (q->next) q = q->next;
         q->next = res;
       } else {
@@ -274,6 +293,9 @@ namespace hw {
     }
     
     pcicap_t caps[PCI_CAP_ID_MAX+1];
+    
+    // has msix support if not null
+    msix_t*  msix = nullptr;
     
   }; //< class PCI_Device
 
