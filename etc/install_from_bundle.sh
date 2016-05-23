@@ -29,7 +29,7 @@ sudo apt-get install -y $DEPENDENCIES
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
-git pull --tags
+git fetch --tags
 tag=`git describe --abbrev=0`
 popd
 
