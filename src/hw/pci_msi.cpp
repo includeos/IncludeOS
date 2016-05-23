@@ -27,12 +27,12 @@
 
 namespace hw
 {
-  bool PCI_Device::has_msi_cap()
+  int PCI_Device::msi_cap()
   {
     return caps[PCI_CAP_ID_MSI];
   }
   
-  bool PCI_Device::has_msix_cap()
+  int PCI_Device::msix_cap()
   {
     return caps[PCI_CAP_ID_MSIX];
   }

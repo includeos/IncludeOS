@@ -73,9 +73,14 @@ Virtio::Virtio(hw::PCI_Device& dev)
   _pcidev.probe_resources();
   _iobase = _pcidev.iobase();
   
+  // read caps
   _pcidev.parse_capabilities();
   printf("DEVICE MSI: %d   MSIX: %d\n",
-      _pcidev.has_msi_cap(), _pcidev.has_msix_cap());
+      _pcidev.msi_cap(), _pcidev.msix_cap());
+  
+  // initialize MSI-X if available
+  if (_pcidev.msix_cap())
+    _pcidev.init_msix();
   
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 

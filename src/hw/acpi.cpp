@@ -204,7 +204,7 @@ namespace hw {
         }
         break;
       default:
-        printf("Unrecognized ACPI MADT type: %u\n", rec->type);
+        debug("Unrecognized ACPI MADT type: %u\n", rec->type);
       }
       // decrease length as we go
       len -= rec->length;
