@@ -124,10 +124,10 @@ std::vector<T> Bucket<T>::lineup() const {
 template <typename T>
 template <typename Writer>
 void Bucket<T>::serialize(Writer& writer) const {
-  writer.start_array();
+  writer.StartArray();
   for(auto content : bucket_)
     content.second.serialize(writer);
-  writer.end_array();
+  writer.EndArray();
 }
 
 
