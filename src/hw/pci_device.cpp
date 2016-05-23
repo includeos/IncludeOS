@@ -225,39 +225,44 @@ namespace hw {
     return inpd(PCI::CONFIG_DATA);
   }
   
+  union capability_t
+  {
+    struct
+    {
+      uint8_t  id;
+      uint8_t  next;
+      char  data[2];
+    };
+    uint32_t capd;
+  };
+  
   void PCI_Device::parse_capabilities()
   {
+    /// FROM http://wiki.osdev.org/PCI
+    memset(caps, 0, sizeof(caps));
+    
+    // the capability list is only available if bit 4
+    // in the status register is set
+    auto status = read_dword(PCI_STATUS_REG) & 0x10;
+    if (!status) return;
+    
     /// TODO REWRITE THIS COMPLETELY ///
+    intptr_t offset = 0x34;
     
-    auto wd = read_dword(PCI_HEADER_REG) & 0xff;
-    //printf("PCI_HEADER_REG: %u\n", wd);
-    uint32_t cap_off = 0;
+    // read first capability
+    offset = read_dword(offset) & 0xff;
+    offset &= ~0x3; // lower 2 bits reserved
     
-    switch (wd & 0x7f) {
-      case 0:				/* etc */
-      case 1:				/* pci to pci bridge */
-        cap_off = 0x34;
-        break;
-      case 2:				/* cardbus bridge */
-        cap_off = 0x14;
-        break;
-      default:
-        return;
-    }
-    
-    /* initial offset points to the addr of the first cap */
-    cap_off = read_dword(cap_off) & 0xff;
-    cap_off &= ~0x3;	/* osdev says the lower 2 bits are reserved */
-    printf("cap_off: %#x\n", cap_off);
-    while (cap_off) {
-      auto cap_id = read_dword(cap_off) & 0xff;
-      printf("cap_id: %#x\n", cap_id);
-      assert (cap_id <= PCI_CAP_ID_MAX);
+    while (offset) {
+      capability_t cap;
+      cap.capd = read_dword(offset);
+      assert (cap.id <= PCI_CAP_ID_MAX);
       // remember capability
-      this->caps[cap_id] = cap_off;
+      this->caps[cap.id] = offset;
       // go to next cap
-      cap_off = read_dword(cap_off + 1);
+      offset = cap.next;
     }
+    
   }
   
 } //< namespace hw
