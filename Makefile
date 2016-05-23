@@ -13,8 +13,8 @@ FILES = service.cpp memdisk.o server/request.o server/response.o server/connecti
 DISK=
 
 # Modules
-CUSTOM_MODULES =-I./bucket -I./stringer_j
-MOD_FILES = stringer_j/stringer_j.o
+CUSTOM_MODULES =-I./bucket
+MOD_FILES =
 
 FILES += $(MOD_FILES)
 
