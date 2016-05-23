@@ -1,8 +1,11 @@
 #! /bin/bash
 
 # Zip-file name
+[ ! -v INCLUDEOS_SRC ] && INCLUDEOS_SRC=$HOME/IncludeOS
+pushd $INCLUDEOS_SRC
 tag=`git describe --abbrev=0`
 filename_tag=`echo $tag | tr . -`
+popd
 
 # Where to place the installation bundle
 DIR_NAME="IncludeOS_install"
@@ -13,7 +16,7 @@ DIR_NAME="IncludeOS_install"
 
 echo ">>> Creating Installation Bundle as $INSTALL_DIR"
 
-OUTFILE="$DIR_NAME_$filename_tag.tar.gz"
+OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
 
 newlib=$TEMP_INSTALL_DIR/i686-elf/lib
 llvm=$BUILD_DIR/build_llvm

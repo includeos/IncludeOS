@@ -1,6 +1,6 @@
-diff -Naur newlib-2.2.0-1/newlib/libm/machine/i386/f_ldexp.S newlib-2.2.0-1_patched/newlib/libm/machine/i386/f_ldexp.S
---- newlib-2.2.0-1/newlib/libm/machine/i386/f_ldexp.S	2002-12-20 22:31:20.000000000 +0100
-+++ newlib-2.2.0-1_patched/newlib/libm/machine/i386/f_ldexp.S	2015-11-01 17:00:59.215426521 +0100
+diff -Naur newlib-2.4.0/newlib/libm/machine/i386/f_ldexp.S newlib-2.4.0_patched/newlib/libm/machine/i386/f_ldexp.S
+--- newlib-2.4.0/newlib/libm/machine/i386/f_ldexp.S	2002-12-20 22:31:20.000000000 +0100
++++ newlib-2.4.0_patched/newlib/libm/machine/i386/f_ldexp.S	2015-11-01 17:00:59.215426521 +0100
 @@ -27,7 +27,7 @@
  SYM (_f_ldexp):
  	pushl ebp
@@ -10,9 +10,9 @@ diff -Naur newlib-2.2.0-1/newlib/libm/machine/i386/f_ldexp.S newlib-2.2.0-1_patc
  	fldl 8(ebp)
  	fscale
  	fstp st1
-diff -Naur newlib-2.2.0-1/newlib/libm/machine/i386/f_ldexpf.S newlib-2.2.0-1_patched/newlib/libm/machine/i386/f_ldexpf.S
---- newlib-2.2.0-1/newlib/libm/machine/i386/f_ldexpf.S	2002-12-20 22:31:20.000000000 +0100
-+++ newlib-2.2.0-1_patched/newlib/libm/machine/i386/f_ldexpf.S	2015-11-01 16:58:23.646121581 +0100
+diff -Naur newlib-2.4.0/newlib/libm/machine/i386/f_ldexpf.S newlib-2.4.0_patched/newlib/libm/machine/i386/f_ldexpf.S
+--- newlib-2.4.0/newlib/libm/machine/i386/f_ldexpf.S	2002-12-20 22:31:20.000000000 +0100
++++ newlib-2.4.0_patched/newlib/libm/machine/i386/f_ldexpf.S	2015-11-01 16:58:23.646121581 +0100
 @@ -27,7 +27,7 @@
  SYM (_f_ldexpf):
  	pushl ebp

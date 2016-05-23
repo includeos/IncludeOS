@@ -17,6 +17,8 @@
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
 # Install dependencies
+$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+
 DEPENDENCIES="curl make clang-3.8 nasm bridge-utils qemu"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
@@ -27,7 +29,7 @@ sudo apt-get install -y $DEPENDENCIES
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
 pushd $INCLUDEOS_SRC
-git pull --tags
+git fetch --tags
 tag=`git describe --abbrev=0`
 popd
 
