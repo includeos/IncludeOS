@@ -1,4 +1,4 @@
-CPP=clang++-3.6
+CPP=clang++-3.8
 CPPOPTS = -std=c++11 -c -Wall -Wextra -O3 -I.
 OBJS = vmbuild.o
 OUT = vmbuild
@@ -13,6 +13,3 @@ all: $(OBJS)
 
 clean:
 	$(RM) $(OBJS) $(OUT) *~
-
-
-

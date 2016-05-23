@@ -47,7 +47,7 @@ all: CAPABS  =  $(CAPABS_COMMON) -O2
 debug: CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Oz
 
-CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
 LDOPTS = -nostdlib -melf_i386 -N --script=$(INSTALL)/linker.ld
 
 # Objects

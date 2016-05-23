@@ -72,10 +72,10 @@ void Service::start() {
 
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( {{ 10,0,0,42 }},      // IP
-                        {{ 255,255,255,0 }},  // Netmask
-                        {{ 10,0,0,1 }},       // Gateway
-                        {{ 8,8,8,8 }} );      // DNS
+  inet->network_config( { 10,0,0,42 },      // IP
+                        { 255,255,255,0 },  // Netmask
+                        { 10,0,0,1 },       // Gateway
+                        { 8,8,8,8 } );      // DNS
 
   srand(OS::cycles_since_boot());
 
