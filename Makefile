@@ -13,7 +13,7 @@ FILES = service.cpp memdisk.o server/request.o server/response.o server/connecti
 DISK=
 
 # Modules
-CUSTOM_MODULES =-I./bucket
+CUSTOM_MODULES =-I./bucket -I./json
 MOD_FILES =
 
 FILES += $(MOD_FILES)

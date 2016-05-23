@@ -30,7 +30,7 @@ public:
 
     // check if request is for a file
     if(!is_file_request(path)) {
-      printf("<Waitress> No extension (%s) - This is not a request for a file. (next is called)\n", path.c_str());
+      //printf("<Waitress> No extension (%s) - This is not a request for a file. (next is called)\n", path.c_str());
       (*next)();
       return;
     }

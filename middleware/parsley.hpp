@@ -19,17 +19,18 @@ public:
     server::Next next
     ) override
   {
+    using namespace json;
 
     if(!has_json(req)) {
-      printf("<Parsley> No JSON in header field.\n");
+      //printf("<Parsley> No JSON in header field.\n");
       (*next)();
       return;
     }
 
     // Request doesn't have JSON attribute
-    if(!req->has_attribute<Json>()) {
+    if(!req->has_attribute<JsonDoc>()) {
       // create attribute
-      auto json = std::make_shared<Json>();
+      auto json = std::make_shared<JsonDoc>();
       // access the document and parse the body
       json->doc().Parse(req->get_body().c_str());
       printf("<Parsley> Parsed JSON data.\n");

@@ -1,8 +1,8 @@
-#include "json_writer.hpp"
+#include "json.hpp"
 
 namespace acorn {
 
-struct Squirrel {
+struct Squirrel : json::Serializable {
   size_t key;
   std::string name;
   size_t age;
@@ -17,8 +17,8 @@ struct Squirrel {
 
   friend std::ostream & operator<< (std::ostream &out, const Squirrel& t);
 
-  template <typename Writer>
-  void serialize(Writer& writer) const;
+  virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>&) const override;
+  virtual bool deserialize(const rapidjson::Document&) override;
 };
 
 std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
@@ -26,19 +26,32 @@ std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
   return out;
 }
 
-template <typename Writer>
-void Squirrel::serialize(Writer& writer) const {
-  writer.start_object();
-  writer.add("name", name);
-  writer.add("age", age);
-  writer.add("occupation", occupation);
-  writer.end_object();
+void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
+  writer.StartObject();
+
+  writer.Key("name");
+  writer.String(name);
+
+  writer.Key("age");
+  writer.Uint(age);
+
+  writer.Key("occupation");
+  writer.String(occupation);
+
+  writer.EndObject();
+}
+
+bool Squirrel::deserialize(const rapidjson::Document& doc) {
+  name = doc["name"].GetString();
+  age = doc["age"].GetUint();
+  occupation = doc["occupation"].GetString();
+  return true;
 }
 
 std::string Squirrel::json() const {
   using namespace rapidjson;
   StringBuffer sb;
-  JSON_Writer<StringBuffer> writer(sb);
+  Writer<StringBuffer> writer(sb);
   serialize(writer);
   return sb.GetString();
 }
