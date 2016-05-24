@@ -8,6 +8,7 @@
 <!--[if gt IE 8]><!-->
 <html class="no-js"> <!--<![endif]-->
 <head>
+  <base href="/">
 
   <!-- Meta-Information -->
   <title>Acorn Web Appliance</title>
@@ -23,8 +24,7 @@
   <!-- Optional theme -->
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
 
-  <!-- Latest compiled and minified JavaScript -->
-  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+  <!-- Font awesome -->
   <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
 
   <!-- Our Website CSS Styles -->
@@ -38,20 +38,27 @@
 <![endif]-->
 
 <!-- Our Website Content Goes Here -->
-<div ng-include='"templates/header.html"'></div>
+<!--<div ng-include='"templates/header.html"'></div>-->
 <div ng-view></div>
-<div ng-include='"templates/footer.html"'></div>
+<!--<div ng-include='"templates/footer.html"'></div>-->
 
 <!-- Vendor: Javascripts -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
 <!-- Vendor: Angular, followed by our custom Javascripts -->
 <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-route.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-resource.js"></script>
+
 
 <!-- Our Website Javascripts -->
 <script src="js/app.js"></script>
+
+<script src="js/controllers/home.js"></script>
+<script src="js/controllers/squirrel.js"></script>
+
+<script src="js/services/squirrel.js"></script>
 
 </body>
 </html>
