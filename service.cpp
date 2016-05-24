@@ -77,6 +77,7 @@ public:
   const ptr_t end() { return data + size; }
 };
 
+#include "middleware/director.hpp"
 #include "middleware/waitress.cpp"
 
 #include "bucket.hpp"
@@ -200,10 +201,14 @@ void Service::start() {
       });
       */
 
-
       // custom middleware to serve static files
-      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk);
+      auto opt = {"index.html", "index.htm"};
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt);
       server_->use(waitress);
+
+      // custom middleware to serve a webpage for a directory
+      server::Middleware_ptr director = std::make_shared<Director>(disk);
+      server_->use(director);
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
