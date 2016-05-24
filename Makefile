@@ -45,3 +45,8 @@ memdisk.fat:
 memdisk.o: memdisk.asm
 	@echo "\n>> Assembling memdisk"
 	nasm -f elf -o memdisk.o $<
+
+disk:
+	rm -f memdisk.fat
+	make memdisk.fat
+	make
