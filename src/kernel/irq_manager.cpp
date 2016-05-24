@@ -269,18 +269,14 @@ static int glob_timer_interrupts  {0};
 
 /** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
     as bitfield for setting / checking IRQ's. */
-void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {   //void(*notify)()
+void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   if (irq > (sizeof(irq_bitfield) * 8))
-    panic("Too high IRQ: only IRQ 0 - 32 are subscribable\n");
-
-  // Enable the IRQ line
-  enable_irq(irq);
+    panic("Too high IRQ: only IRQ 0 - 64 are subscribable\n");
 
   // Mark IRQ as subscribed to
   irq_subscriptions_ |= (1 << irq);
 
   // Add callback to subscriber list (for now overwriting any previous)
-  //irq_subscribers[irq] = notify;
   irq_delegates_[irq] = del;
 
   eoi(irq);

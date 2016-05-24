@@ -81,13 +81,9 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   // Hook up IRQ handler (inherited from Virtio)
   auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
   IRQ_manager::subscribe(irq(),del);
-  IRQ_manager::enable_irq(irq());
 
   // Done
-  INFO("VirtioBlk", "Block device with %llu sectors capacity",
-       config.capacity);
-  //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");
-  //req.kick();
+  INFO("VirtioBlk", "Block device with %llu sectors capacity", config.capacity);
 }
 
 void VirtioBlk::get_config()

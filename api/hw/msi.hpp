@@ -29,7 +29,10 @@ namespace hw {
   
   struct msix_entry
   {
-    uint32_t vector;
+    uint32_t vector_ctl;
+    uint32_t msg_data;
+    uint32_t msg_upper_addr;
+    uint32_t msg_addr;
   };
   struct msix_pba
   {
@@ -45,21 +48,29 @@ namespace hw {
     void init(PCI_Device&);
     void mask_entry(size_t);
     void unmask_entry(size_t);
-    uint32_t make_addr(uint64_t vec);
+    // enable one (cpu, vector) entry for this device
+    uint16_t setup_vector(uint8_t cpu, uint8_t vector);
+    
+    uint16_t vectors() const noexcept
+    {
+      return vector_cnt;
+    }
     
   private:
     PCI_Device& dev;
-    intptr_t table_addr;
-    intptr_t pba_addr;
-    size_t   vectors;
+    uintptr_t table_addr;
+    uintptr_t pba_addr;
+    uint16_t  vector_cnt;
     
     inline auto* get_entry(size_t idx)
     {
-      assert(idx < vectors);
+      assert(idx < vectors());
       return ((msix_entry*) table_addr) + idx;
     }
+    inline uintptr_t get_entry(size_t idx, size_t offs);
     
-    intptr_t get_capbar_paddr(size_t offset);
+    // get physical address of BAR
+    uintptr_t get_bar_paddr(size_t offset);
   };
   
   class MSI

@@ -255,6 +255,7 @@ namespace hw {
   void PIT::init(){
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());
     PIT::disable_regular_interrupts();
+    // must be done to program IOAPIC to redirect to BSP LAPIC
     IRQ_manager::enable_irq(0);
   }
 

@@ -25,9 +25,9 @@ namespace hw {
 
   typedef uint16_t port_t;
 
-  static inline int inp(port_t port)
+  static inline uint8_t inp(port_t port)
   {
-    int ret;
+    uint8_t ret;
   
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inb %%dx,%%al"

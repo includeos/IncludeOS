@@ -73,15 +73,6 @@ Virtio::Virtio(hw::PCI_Device& dev)
   _pcidev.probe_resources();
   _iobase = _pcidev.iobase();
   
-  // read caps
-  _pcidev.parse_capabilities();
-  printf("DEVICE MSI: %d   MSIX: %d\n",
-      _pcidev.msi_cap(), _pcidev.msix_cap());
-  
-  // initialize MSI-X if available
-  if (_pcidev.msix_cap())
-    _pcidev.init_msix();
-  
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
@@ -109,13 +100,29 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Where the standard isn't clear, we'll do our best to separate work
   // between this class and subclasses.
 
+  // read caps
+  _pcidev.parse_capabilities();
+  printf("DEVICE MSI: %d   MSIX: %d\n",
+      _pcidev.msi_cap(), _pcidev.msix_cap());
+  
+  // initialize MSI-X if available
+  if (_pcidev.msix_cap())
+  {
+    _irq = 32;
+    auto vectors = _pcidev.init_msix(_irq);
+    if (vectors)
+      INFO2("[x] Enabled %u MSI-X vectors", vectors);
+    else
+      INFO2("[ ] No MSI-X vectors?");
+  }
+  else
+  {
   //Fetch IRQ from PCI resource
   set_irq();
-
+  
   CHECK(_irq, "Unit has IRQ %i", _irq);
-  //INFO("Virtio","Enabling IRQ Handler");
-  //enable_irq_handler();
-
+    
+  }
 
   INFO("Virtio", "Initialization complete");
 

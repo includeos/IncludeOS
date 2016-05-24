@@ -211,22 +211,16 @@ namespace hw {
     // device MSI/MSIX support
     int msi_cap();
     int msix_cap();
-    // call this when msix is supported
-    void init_msix();
+    // setup msix with irq starting at irq_base, returns the number of vectors assigned
+    uint8_t init_msix(uint8_t irq_base);
     // getter spam for msix
-    uintptr_t get_membar(uint8_t idx)
+    uintptr_t get_membar(uint8_t)
     {
+      // FIXME: use idx to get correct membar
       auto* res = res_mem_;
       
       // due to separation of resources, its hard to tell
       // what idx is what BIR, so lets just return the first membar
-      return res->start_;
-      
-      while (idx != 0 && res->next)
-      {
-        idx--; res = res->next;
-      }
-      
       return res->start_;
     }
     
