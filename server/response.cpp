@@ -7,7 +7,7 @@ Response::Response(Connection_ptr conn)
 {
   add_header(http::header_fields::Response::Server, "IncludeOS/Acorn");
   // screw keep alive
-  add_header(http::header_fields::Response::Connection, "close");
+  add_header(http::header_fields::Response::Connection, "keep-alive");
 }
 
 void Response::send(bool close) const {

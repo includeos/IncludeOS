@@ -60,7 +60,7 @@ public:
 private:
   Connection_ptr conn_;
 
-  bool keep_alive = false;
+  bool keep_alive = true;
 
   void write_to_conn(bool close_on_written = false) const;
 
