@@ -18,6 +18,7 @@
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/apic.hpp>
 #include <hw/pci.hpp>
 #include <assert.h>
 
@@ -106,7 +107,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
       _pcidev.msi_cap(), _pcidev.msix_cap());
   
   // initialize MSI-X if available
-  if (_pcidev.msix_cap())
+  if (false) //_pcidev.msix_cap())
   {
     _irq = 32;
     auto vectors = _pcidev.init_msix(_irq);
@@ -117,11 +118,12 @@ Virtio::Virtio(hw::PCI_Device& dev)
   }
   else
   {
-  //Fetch IRQ from PCI resource
-  set_irq();
-  
-  CHECK(_irq, "Unit has IRQ %i", _irq);
+    //Fetch IRQ from PCI resource
+    set_irq();
+    // create IO APIC entry too for legacy interrupts
+    hw::APIC::enable_irq(_irq);
     
+    CHECK(_irq, "Unit has IRQ %i", _irq);
   }
 
   INFO("Virtio", "Initialization complete");
