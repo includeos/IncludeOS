@@ -25,7 +25,7 @@ void Server::listen(Port port) {
 }
 
 void Server::connect(net::TCP::Connection_ptr conn) {
-  printf("<Server> Connection from %s\n", conn->remote().to_string().c_str());
+  printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
   // if there is a free spot in connections
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
@@ -92,6 +92,11 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
   }
 }
 
-void Server::use(Callback middleware) {
-  middleware_.push_back(middleware);
+void Server::use(Middleware_ptr mw_ptr) {
+  mw_storage_.push_back(mw_ptr);
+  use(mw_ptr->callback());
+}
+
+void Server::use(Callback callback) {
+  middleware_.push_back(callback);
 }

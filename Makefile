@@ -12,8 +12,14 @@ FILES = service.cpp memdisk.o server/request.o server/response.o server/connecti
 # Your disk image
 DISK=
 
+# Modules
+CUSTOM_MODULES =-I./bucket -I./json
+MOD_FILES =
+
+FILES += $(MOD_FILES)
+
 # Your own include-path
-LOCAL_INCLUDES=-I./server/http/uri -I./server/http/inc
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include
 
 # Local target dependencies
 #.PHONY: memdisk.fat
@@ -39,3 +45,8 @@ memdisk.fat:
 memdisk.o: memdisk.asm
 	@echo "\n>> Assembling memdisk"
 	nasm -f elf -o memdisk.o $<
+
+disk:
+	rm -f memdisk.fat
+	make memdisk.fat
+	make

@@ -1,0 +1,18 @@
+<h1>Squirrels</h1>
+
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Age</th>
+      <th>Occupation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="squirrel in squirrels">
+      <td>{{ squirrel.name }}</td>
+      <td>{{ squirrel.age }}</td>
+      <td>{{ squirrel.occupation }}</td>
+    </tr>
+  </tbody>
+</table>

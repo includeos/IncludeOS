@@ -7,6 +7,9 @@
 
 namespace server {
 
+class Middleware;
+using Middleware_ptr = std::shared_ptr<Middleware>;
+
 using next_t = delegate<void()>;
 using Next = std::shared_ptr<next_t>;
 using Callback = delegate<void(Request_ptr, Response_ptr, Next)>;
@@ -20,9 +23,6 @@ public:
     return Callback::from<Middleware, &Middleware::process>(this);
   }
 
-  operator Callback () {
-    return callback();
-  }
 };
 
 }; // << namespace server

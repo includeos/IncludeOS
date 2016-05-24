@@ -21,7 +21,7 @@
 //#include <http>
 #include "server/server.hpp"
 
-std::unique_ptr<server::Server> acorn;
+std::unique_ptr<server::Server> server_;
 
 #include <memdisk>
 #include <fs/fat.hpp> // FAT32 filesystem
@@ -77,21 +77,16 @@ public:
   const ptr_t end() { return data + size; }
 };
 
-// Just a small test to demonstrate middleware
-class Test : public server::Middleware {
-public:
-  Test(std::string str) : server::Middleware(), test_str(str) {}
+#include "middleware/director.hpp"
+#include "middleware/waitress.cpp"
 
-  virtual void process(server::Request_ptr, server::Response_ptr, server::Next next) override {
-    printf("<MV:Test> My test string: %s\n", test_str.c_str());
-    (*next)();
-  }
+#include "bucket.hpp"
+#include "app/squirrel.hpp"
 
-private:
-  std::string test_str;
-}; // << Test
+using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
+std::shared_ptr<SquirrelBucket> squirrels;
 
-std::shared_ptr<Test> test_middleware;
+#include "middleware/parsley.hpp"
 
 void Service::start() {
 
@@ -103,6 +98,11 @@ void Service::start() {
   disk->mount([](fs::error_t err) {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
+
+      // setup "database"
+      squirrels = std::make_shared<SquirrelBucket>();
+      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
+      squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
 
       server::Router routes;
 
@@ -147,7 +147,7 @@ void Service::start() {
                 res->set_status_code(http::Not_Found);
               } else {
                 // fill Response with content from index.html
-                printf("<Server> Responding with index.html. \n");
+                printf("[@GET:/] Responding with index.html. \n");
                 res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
                   .add_body(std::string{(const char*) buff.get(), len});
               }
@@ -156,10 +156,42 @@ void Service::start() {
 
         }); // << fs().readFile
 
-      // initialize server
-      acorn = std::make_unique<server::Server>();
-      acorn->set_routes(routes).listen(8081);
+      routes.on_get("/api/squirrels", [](auto, auto res) {
+        printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        squirrels->serialize(writer);
+        res->send_json(sb.GetString());
+      });
 
+      routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
+        using namespace json;
+        auto json = req->get_attribute<JsonDoc>();
+        if(!json) {
+          res->send_code(http::Bad_Request);
+        }
+        else {
+          auto& doc = json->doc();
+          try {
+            acorn::Squirrel s;
+            s.deserialize(doc);
+            printf("[@POST:/api/squirrels] Squirrel created: %s\n", s.json().c_str());
+            squirrels->capture(s);
+            res->send_code(http::Created);
+          }
+          catch(AssertException e) {
+            res->send_code(http::Bad_Request);
+            printf("[@POST:/api/squirrels] Exception: %s\n", e.what());
+          }
+        }
+
+      });
+      // initialize server
+      server_ = std::make_unique<server::Server>();
+      server_->set_routes(routes).listen(8081);
+
+      /*
       // add a middleware as lambda
       acorn->use([](auto req, auto res, auto next){
         hw::PIT::on_timeout(0.050, [next]{
@@ -167,10 +199,20 @@ void Service::start() {
           (*next)();
         });
       });
+      */
 
-      // add a middleware as a class derived from server::Middleware
-      test_middleware = std::make_shared<Test>("PogChamp");
-      acorn->use(*test_middleware);
+      // custom middleware to serve static files
+      auto opt = {"index.html", "index.htm"};
+      //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt); // WIP
+      server_->use(waitress);
+
+      // custom middleware to serve a webpage for a directory
+      server::Middleware_ptr director = std::make_shared<Director>(disk);
+      server_->use(director);
+
+      server::Middleware_ptr parsley = std::make_shared<Parsley>();
+      server_->use(parsley);
 
 
       auto vec = disk->fs().ls("/").entries;
@@ -183,7 +225,7 @@ void Service::start() {
       printf("------------------------------------ \n");
 
       hw::PIT::instance().onRepeatedTimeout(15s, []{
-        printf("%s\n", acorn->ip_stack().tcp().status().c_str());
+        printf("%s\n", server_->ip_stack().tcp().status().c_str());
       });
 
     }); // < disk*/

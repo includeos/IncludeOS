@@ -50,6 +50,8 @@ public:
   */
   void send_file(const File&);
 
+  void send_json(const std::string&);
+
   /*
     "End" the response
   */
@@ -57,6 +59,8 @@ public:
 
 private:
   Connection_ptr conn_;
+
+  bool keep_alive = true;
 
   void write_to_conn(bool close_on_written = false) const;
 
