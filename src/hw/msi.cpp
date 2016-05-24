@@ -127,12 +127,17 @@ namespace hw
     }
     assert (vec != this->vectors());
     
-    // use table entry
+    // use free table entry
     printf("MSI-X vector %u pointing to cpu %u irq %u\n",
         vec, cpu, intr);
+    
+    // mask entry
+    mask_entry(vec);
+    
     mm_write(get_entry(vec, ENT_MSG_ADDR), msix_addr_single_cpu(cpu));
     mm_write(get_entry(vec, ENT_MSG_UPPER), 0x0);
     mm_write(get_entry(vec, ENT_MSG_DATA), msix_data_single_vector(intr));
+    
     // unmask entry
     unmask_entry(vec);
     // return it

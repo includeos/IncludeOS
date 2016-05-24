@@ -37,11 +37,6 @@ struct idt_loc {
   uint32_t base;
 }__attribute__((packed));
 
-/** We'll limit the number of subscribable IRQ lines to this. */
-typedef uint32_t irq_bitfield;
-
-// irq_bitfield irq_pending;
-
 extern "C" {
   void irq_default_handler();
 }
@@ -67,7 +62,7 @@ public:
   using irq_delegate = delegate<void()>;
 
   static constexpr uint8_t irq_base = 32;
-  static constexpr size_t  IRQ_LINES = 64;
+  static constexpr size_t  IRQ_LINES = 128;
 
 
   /**
@@ -132,13 +127,7 @@ public:
    */
   static void eoi(uint8_t irq);
 
-  static inline void register_interrupt(uint8_t i){
-    irq_pending_ |=  (1 << i);
-    __sync_fetch_and_add(&irq_counters_[i],1);
-    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
-          irq_pending_, irq_counters_[i]);
-  }
-
+  static void register_interrupt(uint8_t vector);
 
 private:
   static unsigned int   irq_mask;
@@ -148,14 +137,9 @@ private:
   static const uint16_t default_sel  {0x8};
   static bool           idt_is_set;
 
-  /** bit n set means IRQ n has fired since last check */
-  //static irq_bitfield irq_pending;
-  static irq_bitfield irq_subscriptions_;
-
-  static void(*irq_subscribers_[sizeof(irq_bitfield)*8])();
-  static irq_delegate irq_delegates_[sizeof(irq_bitfield)*8];
-  static uint32_t irq_counters_[32];
-  static uint32_t irq_pending_;
+  static void(*irq_subscribers_[IRQ_LINES])();
+  static irq_delegate irq_delegates_[IRQ_LINES];
+  static uint32_t irq_counters_[IRQ_LINES];
 
   /** STI */
   static void enable_interrupts();

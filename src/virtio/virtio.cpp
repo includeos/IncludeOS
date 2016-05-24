@@ -103,13 +103,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // read caps
   _pcidev.parse_capabilities();
-  printf("DEVICE MSI: %d   MSIX: %d\n",
+  INFO2("MSI: 0x%x   MSIX: 0x%x\n",
       _pcidev.msi_cap(), _pcidev.msix_cap());
   
   // initialize MSI-X if available
   if (false) //_pcidev.msix_cap())
   {
-    _irq = 32;
+    _irq = 48;
     auto vectors = _pcidev.init_msix(_irq);
     if (vectors)
       INFO2("[x] Enabled %u MSI-X vectors", vectors);
@@ -118,12 +118,12 @@ Virtio::Virtio(hw::PCI_Device& dev)
   }
   else
   {
-    //Fetch IRQ from PCI resource
+    // Fetch IRQ from PCI resource
     set_irq();
-    // create IO APIC entry too for legacy interrupts
-    hw::APIC::enable_irq(_irq);
-    
     CHECK(_irq, "Unit has IRQ %i", _irq);
+    
+    // create IO APIC entry for legacy interrupts
+    hw::APIC::enable_irq(_irq);
   }
 
   INFO("Virtio", "Initialization complete");

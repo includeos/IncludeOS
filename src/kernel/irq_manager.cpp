@@ -25,6 +25,7 @@
 #include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <utility/membitmap.hpp>
 #include <unwind.h>
 
 
@@ -32,11 +33,12 @@ unsigned int IRQ_manager::irq_mask  {0xFFFB};
 IDTDescr     IRQ_manager::idt[IRQ_LINES]  {};
 bool IRQ_manager::idt_is_set        {false};
 
-irq_bitfield IRQ_manager::irq_pending_ {0};
-irq_bitfield IRQ_manager::irq_subscriptions_ {0};
+static MemBitmap irq_subs;
+static MemBitmap irq_pend;
+static MemBitmap irq_todo;
 
-void (*IRQ_manager::irq_subscribers_[sizeof(irq_bitfield)*8])() {nullptr};
-IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[sizeof(irq_bitfield)*8];
+void (*IRQ_manager::irq_subscribers_[IRQ_LINES])() {nullptr};
+IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[IRQ_LINES];
 
 void IRQ_manager::enable_interrupts() {
   // Manual:
@@ -100,9 +102,15 @@ void exception_handler()
  *  - Set pending flag
  *  - Increment counter
  */
-uint32_t IRQ_manager::irq_counters_[32] {0};
+uint32_t IRQ_manager::irq_counters_[IRQ_LINES] {0};
 
-
+void IRQ_manager::register_interrupt(uint8_t vector)
+{
+  irq_pend.set(vector);
+  __sync_fetch_and_add(&irq_counters_[vector], 1);
+  
+  //debug("<IRQ> IRQ %u pending. Count %d\n", vector, irq_counters_[vector]);
+}
 #define IRQ_HANDLER(I)                          \
   void irq_##I##_handler() {                    \
     IRQ_manager::register_interrupt(I);         \
@@ -168,6 +176,12 @@ extern "C"{
 
 void IRQ_manager::init()
 {
+  const auto WORDS_PER_BMP = IRQ_LINES / 32;
+  auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
+  irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
+  irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
+  irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
+  
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
   if (idt_is_set)
     panic(">>> ERROR: Trying to reset IDT");
@@ -270,58 +284,49 @@ static int glob_timer_interrupts  {0};
 /** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
     as bitfield for setting / checking IRQ's. */
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
-  if (irq > (sizeof(irq_bitfield) * 8))
+  if (irq >= IRQ_LINES)
+  {
+    printf("IRQ out of bounds %u (max: %u)\n", irq, IRQ_LINES);
     panic("Too high IRQ: only IRQ 0 - 64 are subscribable\n");
+  }
 
   // Mark IRQ as subscribed to
-  irq_subscriptions_ |= (1 << irq);
+  irq_subs.set(irq);
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
 
   eoi(irq);
-  INFO("IRQ manager", "Updated subscriptions: %#x irq: %u", irq_subscriptions_, irq);
-}
-
-/** Get most significant bit of b. */
-inline int bsr(irq_bitfield b) {
-  int ret {0};
-  __asm__ volatile("bsr %1,%0":"=r"(ret):"r"(b));
-  return ret;
+  INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
 void IRQ_manager::notify() {
-  //__asm__("cli");
 
   // Get the IRQ's that are both pending and subscribed to
-  irq_bitfield todo {static_cast<irq_bitfield>(irq_subscriptions_ & irq_pending_)};
-  int          irq  {0};
-
-  while (todo) {
-
-    // Select the first IRQ to notify - the least significant bit set
-    // - lowesr bit/IRQ, means higher priority
-    irq = __builtin_ffs(todo) - 1;
+  irq_todo.set_from_and(irq_subs, irq_pend);
+  auto intr = irq_todo.first_set();
+  
+  while (intr != -1) {
 
     // Notify
-    //printf("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
-    irq_delegates_[irq]();
+    debug("Notify on interrupt %d\n", intr);
+    irq_delegates_[intr]();
 
     // Decrement the counter
-    __sync_fetch_and_sub(&irq_counters_[irq], 1);
+    __sync_fetch_and_sub(&irq_counters_[intr], 1);
 
     // Critical section start
     // Spinlock? Well, we can't lock out the IRQ-handler
     // ... and we don't have a timer interrupt so we can't do blocking locks.
-    if (!irq_counters_[irq]) {
+    if (!irq_counters_[intr]) {
       // Remove the IRQ from pending list
-      irq_pending_ &= ~(1 << irq);
-      //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending_);
+      irq_pend.reset(intr);
     }
     // Critical section end
 
-    // Find remaining IRQ's both pending and subscribed to
-    todo = (irq_subscriptions_ & irq_pending_);
+    //irq_todo.reset(intr);
+    irq_todo.set_from_and(irq_subs, irq_pend);
+    intr = irq_todo.first_set();
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");
@@ -330,6 +335,13 @@ void IRQ_manager::notify() {
 
 void IRQ_manager::eoi(uint8_t) {
   hw::APIC::eoi();
+}
+
+/** Get most significant bit of b. */
+inline int bsr(uint32_t b) {
+  int ret;
+  asm volatile("bsr %1,%0":"=r"(ret):"r"(b));
+  return ret;
 }
 
 void irq_default_handler() {
