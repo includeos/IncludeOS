@@ -343,7 +343,16 @@ public:
   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
-
+  // returns true if MSI-X is enabled
+  bool is_msix() const noexcept
+  {
+    return _pcidev.is_msix();
+  }
+  uint8_t get_msix_vectors() const noexcept
+  {
+    return _msix_vectors;
+  }
+  
   /** Virtio device constructor.
 
       Should conform to Virtio std. §3.1.1, steps 1-6
@@ -358,7 +367,8 @@ private:
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;
 
-  uint8_t _irq = 0;
+  uint8_t  _irq = 0;
+  uint16_t _msix_vectors;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
 

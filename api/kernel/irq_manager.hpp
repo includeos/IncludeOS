@@ -127,6 +127,10 @@ public:
    */
   static void eoi(uint8_t irq);
 
+  
+  static uint8_t get_next_msix_irq();
+
+
   static void register_interrupt(uint8_t vector);
 
 private:
@@ -137,9 +141,8 @@ private:
   static const uint16_t default_sel  {0x8};
   static bool           idt_is_set;
 
-  static void(*irq_subscribers_[IRQ_LINES])();
   static irq_delegate irq_delegates_[IRQ_LINES];
-  static uint32_t irq_counters_[IRQ_LINES];
+  static int32_t irq_counters_[IRQ_LINES];
 
   /** STI */
   static void enable_interrupts();

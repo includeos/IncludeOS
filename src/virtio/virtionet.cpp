@@ -147,9 +147,19 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler
-  auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-  IRQ_manager::subscribe(irq(),del);
-
+  if (is_msix())
+  {
+    auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
+    for (int vec = 0; vec < get_msix_vectors(); vec++)
+        IRQ_manager::subscribe(irq() + vec, del);
+  }
+  else
+  {
+    // legacy PCI interrupt
+    auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
+    IRQ_manager::subscribe(irq(),del);
+  }
+  
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");
@@ -207,8 +217,8 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
+  
   IRQ_manager::eoi(irq());
-
 }
 
 void VirtioNet::service_queues(){

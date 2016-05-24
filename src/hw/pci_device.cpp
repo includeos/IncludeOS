@@ -285,16 +285,14 @@ namespace hw {
     
   }
   
-  uint8_t PCI_Device::init_msix(uint8_t irq_base)
+  uint8_t PCI_Device::init_msix()
   {
     this->msix = new msix_t(*this);
-    
-    for (size_t irq = 0; irq < msix->vectors(); irq++)
-    {
-      msix->setup_vector(0x0, irq_base + irq);
-    }
-    
     return msix->vectors();
+  }
+  void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
+  {
+    msix->setup_vector(cpu, irq);
   }
   
 } //< namespace hw

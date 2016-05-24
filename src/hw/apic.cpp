@@ -246,7 +246,7 @@ namespace hw {
     lapic.regs->logical_dest.reg   = 0x01000000; // logical ID 1
     
     // hardcoded 240 + x for LAPIC interrupts
-    #define LAPIC_IRQ_BASE   240
+    #define LAPIC_IRQ_BASE   120
     lapic.regs->timer.reg = INTR_MASK;
     lapic.regs->lint0.reg = INTR_MASK | (LAPIC_IRQ_BASE + 3);
     lapic.regs->lint1.reg = INTR_MASK | (LAPIC_IRQ_BASE + 4);
@@ -261,7 +261,7 @@ namespace hw {
     
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_IRQ = 0xff; // IRQ 255
+    const uint8_t SPURIOUS_IRQ = 0x7f; // IRQ 127
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // acknowledge any outstanding interrupts

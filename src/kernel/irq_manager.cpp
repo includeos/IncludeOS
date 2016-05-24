@@ -28,17 +28,25 @@
 #include <utility/membitmap.hpp>
 #include <unwind.h>
 
+#define MSIX_IRQ_BASE     64
+#define LAPIC_IRQ_BASE   120
 
-unsigned int IRQ_manager::irq_mask  {0xFFFB};
-IDTDescr     IRQ_manager::idt[IRQ_LINES]  {};
-bool IRQ_manager::idt_is_set        {false};
+uint32_t  IRQ_manager::irq_mask  {0xFFFB};
+IDTDescr  IRQ_manager::idt[IRQ_LINES];
+int32_t   IRQ_manager::irq_counters_[IRQ_LINES] {0};
+bool      IRQ_manager::idt_is_set = false;
 
 static MemBitmap irq_subs;
 static MemBitmap irq_pend;
 static MemBitmap irq_todo;
 
-void (*IRQ_manager::irq_subscribers_[IRQ_LINES])() {nullptr};
 IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[IRQ_LINES];
+
+uint8_t IRQ_manager::get_next_msix_irq()
+{
+  static uint8_t next_msix_irq = MSIX_IRQ_BASE;
+  return next_msix_irq++;
+}
 
 void IRQ_manager::enable_interrupts() {
   // Manual:
@@ -102,11 +110,9 @@ void exception_handler()
  *  - Set pending flag
  *  - Increment counter
  */
-uint32_t IRQ_manager::irq_counters_[IRQ_LINES] {0};
-
 void IRQ_manager::register_interrupt(uint8_t vector)
 {
-  irq_pend.set(vector);
+  irq_pend.atomic_set(vector);
   __sync_fetch_and_add(&irq_counters_[vector], 1);
   
   //debug("<IRQ> IRQ %u pending. Count %d\n", vector, irq_counters_[vector]);
@@ -308,24 +314,19 @@ void IRQ_manager::notify() {
   
   while (intr != -1) {
 
-    // Notify
-    debug("Notify on interrupt %d\n", intr);
-    irq_delegates_[intr]();
-
-    // Decrement the counter
+    // sub and call handler
     __sync_fetch_and_sub(&irq_counters_[intr], 1);
-
-    // Critical section start
-    // Spinlock? Well, we can't lock out the IRQ-handler
-    // ... and we don't have a timer interrupt so we can't do blocking locks.
-    if (!irq_counters_[intr]) {
-      // Remove the IRQ from pending list
-      irq_pend.reset(intr);
+    irq_delegates_[intr]();
+    
+    // reset on zero
+    if (irq_counters_[intr] == 0)
+    {
+      irq_pend.atomic_reset(intr);
     }
-    // Critical section end
-
-    //irq_todo.reset(intr);
+    
+    // recreate todo-list
     irq_todo.set_from_and(irq_subs, irq_pend);
+    // find next interrupt
     intr = irq_todo.first_set();
   }
 

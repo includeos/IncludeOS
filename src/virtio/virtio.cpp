@@ -109,20 +109,33 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // initialize MSI-X if available
   if (false) //_pcidev.msix_cap())
   {
-    _irq = 48;
-    auto vectors = _pcidev.init_msix(_irq);
-    if (vectors)
-      INFO2("[x] Enabled %u MSI-X vectors", vectors);
+    this->_msix_vectors = _pcidev.init_msix();
+    if (get_msix_vectors())
+    {
+      // remember the base IRQ
+      this->_irq = IRQ_manager::get_next_msix_irq();
+      _pcidev.setup_msix_vector(0x0, this->_irq);
+      // setup all the other vectors
+      for (int i = 1; i < get_msix_vectors(); i++)
+      {
+        auto irq = IRQ_manager::get_next_msix_irq();
+        _pcidev.setup_msix_vector(0x0, irq);
+      }
+      
+      INFO2("[x] Enabled %u MSI-X vectors", get_msix_vectors());
+    }
     else
       INFO2("[ ] No MSI-X vectors?");
   }
-  else
+  
+  // use legacy if msix was not enabled
+  if (is_msix() == false)
   {
     // Fetch IRQ from PCI resource
     set_irq();
     CHECK(_irq, "Unit has IRQ %i", _irq);
     
-    // create IO APIC entry for legacy interrupts
+    // create IO APIC entry for legacy interrupt
     hw::APIC::enable_irq(_irq);
   }
 

@@ -37,7 +37,7 @@ public:
   MemBitmap(void* location, index_t chunks)
     : _chunks(chunks)
   {
-    _data = reinterpret_cast<word*>(location);
+    _data = (word*) location;
   }
   
   // returns the boolean value of the bit located at @n
@@ -47,7 +47,7 @@ public:
   }
   bool get(index_t b) const
   {
-    return _data[windex(b)] & (1 << woffset(b));
+    return _data[windex(b)] & bit(b);
   }
   
   // return the bit-index of the first clear bit
@@ -82,15 +82,24 @@ public:
   }
   void set(index_t b)
   {
-    _data[windex(b)] |= 1 << woffset(b); 
+    _data[windex(b)] |= bit(b); 
   }
   void reset(index_t b)
   {
-    _data[windex(b)] &= ~(1 << woffset(b));
+    _data[windex(b)] &= ~bit(b);
   }
   void flip(index_t b)
   {
-    _data[windex(b)] ^= 1 << woffset(b); 
+    _data[windex(b)] ^= bit(b); 
+  }
+  
+  void atomic_set(index_t b)
+  {
+    __sync_fetch_and_or(&_data[windex(b)], bit(b));
+  }
+  void atomic_reset(index_t b)
+  {
+    __sync_fetch_and_and(&_data[windex(b)], ~bit(b));
   }
   
   void set_location(const void* location, index_t chunks)
@@ -117,12 +126,21 @@ public:
   void set_from_and(const MemBitmap& a, MemBitmap& b)
   {
     for (index_t i = 0; i < _chunks; i++)
-      _data[i] = a._data[i] & b._data[i];
+        _data[i] = a._data[i] & b._data[i];
+  }
+  
+  // might wanna look at individual chunks for
+  // debugging purposes
+  word get_chunk(index_t chunk)
+  {
+    assert(chunk >= 0 && chunk < _chunks);
+    return _data[chunk];
   }
   
 private:
   index_t windex (index_t b) const { return b / CHUNK_SIZE; }
   index_t woffset(index_t b) const { return b & (CHUNK_SIZE-1); }
+  index_t bit(index_t b) const { return 1 << woffset(b); }
   
   word*   _data {nullptr};
   index_t _chunks;

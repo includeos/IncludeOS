@@ -212,7 +212,14 @@ namespace hw {
     int msi_cap();
     int msix_cap();
     // setup msix with irq starting at irq_base, returns the number of vectors assigned
-    uint8_t init_msix(uint8_t irq_base);
+    uint8_t init_msix();
+    // setup one msix vector directed to @cpu on @irq
+    void setup_msix_vector(uint8_t cpu, uint8_t irq);
+    // true if msix is enabled
+    bool is_msix() const noexcept
+    {
+      return this->msix != nullptr;
+    }
     // getter spam for msix
     uintptr_t get_membar(uint8_t)
     {
