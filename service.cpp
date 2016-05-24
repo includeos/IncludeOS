@@ -203,7 +203,8 @@ void Service::start() {
 
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
-      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt);
+      //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt); // WIP
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory

@@ -7,8 +7,8 @@
 
 
 /**
- * @brief Serves files (not food)
- * @details Serves files from a IncludeOS disk.
+ * @brief Responsible to set the scene of a directory.
+ * @details Creates a simple html display of a directory entry on a IncludeOS disk.
  *
  */
 class Director : public server::Middleware {
@@ -71,7 +71,7 @@ private:
       path += '/';
   }
 
-}; // < class Waitress
+}; // < class Director
 
 const std::string Director::HTML_HEADER = "<html><body><ul>";
 const std::string Director::HTML_FOOTER = "</ul></body></html>";
