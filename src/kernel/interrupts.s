@@ -94,6 +94,13 @@ exception_13_entry:
 	cli
 	call exception_13_handler
 
+.global modern_interrupt_handler
+modern_interrupt_handler:
+  pusha
+  call register_modern_interrupt
+  popa
+  iret
+
 irq_timer_entry:
 	cli
 

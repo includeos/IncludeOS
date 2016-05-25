@@ -161,10 +161,18 @@ extern "C"{
     kill(1,9);
   }
 
-  //Redirected IRQ 0 - 15
+  // Redirected IRQ 0 - 15
   IRQ_PAIR(0) IRQ_PAIR(1) IRQ_PAIR(3) IRQ_PAIR(4) IRQ_PAIR(5)
   IRQ_PAIR(6) IRQ_PAIR(7) IRQ_PAIR(8) IRQ_PAIR(9) IRQ_PAIR(10)
   IRQ_PAIR(11) IRQ_PAIR(12) IRQ_PAIR(13) IRQ_PAIR(14) IRQ_PAIR(15)
+  
+  void modern_interrupt_handler();
+  void register_modern_interrupt()
+  {
+    uint8_t vector = hw::APIC::get_isr();
+    bsp_idt.register_interrupt(vector);
+  }
+  
 
 } //End extern
 
@@ -212,9 +220,9 @@ void IRQ_manager::bsp_init()
   REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
   REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
-  // Set all irq-gates (> 47) to the default handler
+  // Set all interrupt-gates > 47 to "modern" handler
   for (size_t i = 48; i < IRQ_LINES; i++) {
-    create_gate(&(idt[i]),irq_default_entry,default_sel,default_attr);
+    create_gate(&(idt[i]),modern_interrupt_handler,default_sel,default_attr);
   }
   
   // spurious interrupts

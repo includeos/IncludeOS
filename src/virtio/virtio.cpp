@@ -106,18 +106,19 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // read caps
   _pcidev.parse_capabilities();
-  INFO2("MSI: 0x%x   MSIX: 0x%x\n",
-      _pcidev.msi_cap(), _pcidev.msix_cap());
   
   // initialize MSI-X if available
   if (_pcidev.msix_cap())
   {
     this->_msix_vectors = _pcidev.init_msix();
-    if (get_msix_vectors())
+    if (is_msix())
     {
+      INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
+      
       // remember the base IRQ
       this->_irq = bsp_idt.get_next_msix_irq();
       _pcidev.setup_msix_vector(0x0, this->_irq);
+      
       // setup all the other vectors
       for (int i = 1; i < get_msix_vectors(); i++)
       {
@@ -125,7 +126,6 @@ Virtio::Virtio(hw::PCI_Device& dev)
         _pcidev.setup_msix_vector(0x0, irq);
       }
       
-      INFO2("[x] Enabled %u MSI-X vectors", get_msix_vectors());
     }
     else
       INFO2("[ ] No MSI-X vectors?");
@@ -136,7 +136,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   {
     // Fetch IRQ from PCI resource
     set_irq();
-    CHECK(_irq, "Unit has IRQ %i", _irq);
+    CHECK(_irq, "Unit has legacy IRQ %i", _irq);
     
     // create IO APIC entry for legacy interrupt
     hw::APIC::enable_irq(_irq);
@@ -179,6 +179,9 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   {
     // also update virtio MSI-X queue vector
     hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);
+    // the programming could fail, and the reason is allocation failed on vmm
+    // in which case we probably don't wanna continue anyways
+    assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
   
   return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);

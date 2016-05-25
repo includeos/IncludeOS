@@ -17,7 +17,6 @@ void print_shit()
   static size_t ints = 0;
   printf("PIT Interrupt #%u\n", ++ints);
   hw::PIT::on_timeout(0.25, [] { print_shit(); });
-  bsp_idt.enable_irq(11);
 }
 
 void Service::start()

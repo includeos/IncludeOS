@@ -1,5 +1,7 @@
 #include <hw/msi.hpp>
+
 #include <hw/pci_device.hpp>
+#include <info>
 
 #define MSI_ENABLE     0x1
 #define MSIX_ENABLE    (1 << 15)
@@ -86,12 +88,8 @@ namespace hw
     auto bar = dev.read_dword(offset);
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;
-    printf("MSI-X: off 0x%x bar %d\n", capbar_off, bar);
     
     auto baroff = dev.get_membar(bar);
-    
-    printf("membar: %#x  membar off: %#x\n",
-        baroff, baroff + capbar_off);
     assert(baroff != 0);
     
     return capbar_off + baroff;
@@ -102,6 +100,7 @@ namespace hw
   {
     // get capability structure
     auto cap = dev.msix_cap();
+    assert(cap >= 0x40);
     // read message control bits
     auto func = dev.read16(cap + 2);
     // enable msix and mask all vectors
@@ -115,8 +114,8 @@ namespace hw
     // get number of vectors we can get notifications from
     this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
     
-    printf("table addr: %#x  pba addr: %#x  vectors: %u\n",
-      table_addr, pba_addr, vectors());
+    //printf("table addr: %#x  pba addr: %#x  vectors: %u\n",
+    //  table_addr, pba_addr, vectors());
     
     // mask out all entries
     for (size_t i = 0; i < this->vectors(); i++)
@@ -126,8 +125,6 @@ namespace hw
     func &= ~MSIX_FUNC_MASK;
     // write back message control bits
     dev.write16(cap + 2, func);
-    // MSI-X should be enabled now
-    //assert(is_msix());
   }
   
   uint16_t msix_t::setup_vector(uint8_t cpu, uint8_t intr)
@@ -143,7 +140,7 @@ namespace hw
     assert (vec != this->vectors());
     
     // use free table entry
-    printf("MSI-X vector %u pointing to cpu %u irq %u\n",
+    INFO2("MSI-X vector %u pointing to cpu %u intr %u",
         vec, cpu, intr);
     
     // mask entry

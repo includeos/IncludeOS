@@ -231,10 +231,10 @@ namespace hw {
     const uint64_t APIC_BASE_MSR = CPU::read_msr(IA32_APIC_BASE_MSR);
     /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
-    printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
+    //printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
-    printf("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
+    INFO2("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
     
     // disable the legacy 8259 PIC
     // by masking off all interrupts
@@ -253,11 +253,11 @@ namespace hw {
     lapic.regs->error.reg = INTR_MASK | (LAPIC_IRQ_BASE + 5);
     
     // turn the Local APIC on and enable interrupts
-    INFO("APIC", "Enabling LAPIC");
+    INFO("APIC", "Enabling BSP LAPIC");
     CPU::write_msr(IA32_APIC_BASE_MSR, 
         (APIC_BASE_MSR & 0xfffff100) | IA32_APIC_BASE_MSR_ENABLE, 0);
     //apic_enable();
-    printf("APIC_BASE MSR is now 0x%llx\n", CPU::read_msr(IA32_APIC_BASE_MSR));
+    INFO2("APIC_BASE MSR is now 0x%llx\n", CPU::read_msr(IA32_APIC_BASE_MSR));
     
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
@@ -404,13 +404,13 @@ namespace hw {
       // NOTE: @bus_source is the IOAPIC number
       if (redir.irq_source == irq)
       {
-        printf("Enabled redirected IRQ %u -> %u on lapic %u\n",
+        INFO2("Enabled redirected IRQ %u -> %u on lapic %u",
             redir.irq_source, redir.global_intr, lapic.get_id());
         IOAPIC::enable(redir.global_intr, irq, lapic.get_id());
         return;
       }
     }
-    printf("Enabled non-redirected IRQ %u on LAPIC %u\n", irq, lapic.get_id());
+    INFO2("Enabled non-redirected IRQ %u on LAPIC %u", irq, lapic.get_id());
     IOAPIC::enable(irq, irq, lapic.get_id());
   }
   void APIC::disable_irq(uint8_t irq)
