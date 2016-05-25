@@ -4,9 +4,11 @@
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
+GCC_LOC=ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+
 if [ ! -f gcc-$gcc_version.tar.gz ]; then
     echo -e "\n\n >>> Getting GCC \n"
-    wget -c --trust-server-name ftp://ftp.uninett.no/pub/gnu/gcc/gcc-$gcc_version/gcc-$gcc_version.tar.gz
+    wget -c --trust-server-name $GCC_LOC/gcc-$gcc_version/gcc-$gcc_version.tar.gz
 fi
 
 # UNPACK GCC

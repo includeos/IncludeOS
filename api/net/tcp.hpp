@@ -1626,21 +1626,22 @@ namespace net {
       inline void reno_deflate_cwnd(uint16_t n)
       { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
-      // TODO: Flight size goes from zero to max uint32 when limited tx
       inline void reduce_ssthresh() {
         auto fs = flight_size();
-        printf("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
+        debug2("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
+
+        auto two_seg = 2*(uint32_t)SMSS();
 
         if(limited_tx_)
-          fs -= 2*(uint32_t)SMSS();
+          fs = (fs >= two_seg) ? fs - two_seg : 0;
 
-        cb.ssthresh = std::max( (fs / 2), (2 * (uint32_t)SMSS()) );
-        printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
+        cb.ssthresh = std::max( (fs / 2), two_seg );
+        debug2("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
           cb.ssthresh);
       }
 
       inline void fast_retransmit() {
-        printf("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
+        debug("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
         // reduce sshtresh
         reduce_ssthresh();
         // retransmit segment starting SND.UNA
@@ -1654,7 +1655,7 @@ namespace net {
         reno_fpack_seen = false;
         fast_recovery = false;
         cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
-        printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
+        debug("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
       }
 
       inline bool reno_full_ack(Seq ACK)

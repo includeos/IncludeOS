@@ -170,6 +170,11 @@ echo ">>> Updating git-tags "
 pushd $INCLUDEOS_SRC
 git fetch --tags
 tag=`git describe --abbrev=0`
+
+echo -e "\n>>> Fetching git submodules "
+git submodule init
+git submodule update
+
 popd
 
 filename_tag=`echo $tag | tr . -`
