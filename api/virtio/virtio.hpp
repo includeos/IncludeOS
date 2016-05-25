@@ -55,7 +55,8 @@
 #define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
 #define VIRTIO_PCI_STATUS               18  // Device status register
 #define VIRTIO_PCI_ISR                  19  // Interrupt status register
-#define VIRTIO_PCI_CONFIG               20  // Configuration data block
+#define VIRTIO_PCI_CONFIG               20  // Configuration data offset
+#define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
 
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1

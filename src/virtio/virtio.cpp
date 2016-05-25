@@ -22,6 +22,9 @@
 #include <hw/pci.hpp>
 #include <assert.h>
 
+#define VIRTIO_MSI_CONFIG_VECTOR  20
+#define VIRTIO_MSI_QUEUE_VECTOR   22
+
 void Virtio::set_irq(){
 
   //Get device IRQ
@@ -107,7 +110,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
       _pcidev.msi_cap(), _pcidev.msix_cap());
   
   // initialize MSI-X if available
-  if (false) // _pcidev.msix_cap())
+  if (_pcidev.msix_cap())
   {
     this->_msix_vectors = _pcidev.init_msix();
     if (get_msix_vectors())
@@ -151,7 +154,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
 void Virtio::get_config(void* buf, int len){
   unsigned char* ptr = (unsigned char*)buf;
-  uint32_t ioaddr = _iobase + VIRTIO_PCI_CONFIG;
+  uint32_t ioaddr = _iobase;
+  ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
   for (int i = 0; i < len; i++)
     *ptr++ = hw::inp(ioaddr + i);
 }
@@ -170,6 +174,13 @@ uint32_t Virtio::queue_size(uint16_t index){
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+  
+  if (_pcidev.is_msix())
+  {
+    // also update virtio MSI-X queue vector
+    hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);
+  }
+  
   return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
 }
 

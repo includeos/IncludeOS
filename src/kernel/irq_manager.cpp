@@ -245,7 +245,7 @@ void IRQ_manager::create_gate(
   addr.whole           = (uint32_t) func;
   idt_entry->offset_1  = addr.lo16;
   idt_entry->offset_2  = addr.hi16;
-  idt_entry->selector  = segment_sel; //TODO: Create memory vars. Private OS-class?
+  idt_entry->selector  = segment_sel;
   idt_entry->type_attr = attributes;
   idt_entry->zero      = 0;
 }
@@ -298,7 +298,7 @@ void IRQ_manager::notify() {
   // Get the IRQ's that are both pending and subscribed to
   irq_todo.set_from_and(irq_subs, irq_pend);
   int intr = irq_todo.first_set();
-  printf("intr: %d subs %#x\n", intr, irq_todo.get_chunk(0));
+  
   while (intr != -1) {
 
     // sub and call handler
@@ -307,14 +307,13 @@ void IRQ_manager::notify() {
     
     // reset on zero
     if (irq_counters_[intr] == 0) {
-      irq_pend.reset(intr);
+      irq_pend.atomic_reset(intr);
     }
     
     // recreate todo-list
     irq_todo.set_from_and(irq_subs, irq_pend);
     // find next interrupt
     intr = irq_todo.first_set();
-    printf("intr: %d\n", intr);
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");

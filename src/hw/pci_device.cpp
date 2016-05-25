@@ -287,6 +287,10 @@ namespace hw {
   
   uint8_t PCI_Device::init_msix()
   {
+    // disable intx
+    auto cmd = read16(PCI_CMD_REG);
+    write16(PCI_CMD_REG, cmd | (1 << 10));
+    // enable MSI-X
     this->msix = new msix_t(*this);
     return msix->vectors();
   }

@@ -30,7 +30,6 @@ void Service::start()
   */
   
   // boilerplate
-  /*
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 5.0);
   inet->network_config(
@@ -38,7 +37,7 @@ void Service::start()
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
-  */
+  
   hw::PIT::on_timeout(0.25, [] { print_shit(); });
   
   /*

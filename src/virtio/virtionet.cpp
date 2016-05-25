@@ -151,7 +151,10 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   {
     auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
     for (int vec = 0; vec < get_msix_vectors(); vec++)
-        bsp_idt.subscribe(irq() + vec, del);
+    {
+      // update BSP IDT
+      bsp_idt.subscribe(irq() + vec, del);
+    }
   }
   else
   {

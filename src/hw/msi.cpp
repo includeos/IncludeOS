@@ -5,6 +5,9 @@
 #define MSIX_ENABLE    (1 << 15)
 #define MSIX_FUNC_MASK (1 << 14)
 #define MSIX_TBL_SIZE  0x7ff
+#define MSIX_BIR_MASK  0x7
+#define MSIX_ENTRY_SIZE       16
+#define MSIX_ENTRY_CTL_MASK   0x1
 
 
 #define ENT_VECTOR_CTL  12
@@ -42,24 +45,22 @@ namespace hw
   
   inline uintptr_t msix_t::get_entry(size_t idx, size_t offs)
   {
-    auto ptr = ((msix_entry*) table_addr) + idx;
-    return ((uintptr_t) ptr) + offs;
+    return table_addr + idx * MSIX_ENTRY_SIZE + offs;
   }
   inline uintptr_t msix_t::get_pba(size_t chunk)
   {
-    auto ptr = ((uint32_t*) pba_addr) + chunk;
-    return (uintptr_t) ptr;
+    return pba_addr + sizeof(uintptr_t) * chunk;
   }
   
   void msix_t::mask_entry(size_t vec)
   {
     auto reg = get_entry(vec, ENT_VECTOR_CTL);
-    mm_write(reg, mm_read(reg) | 0x1);
+    mm_write(reg, mm_read(reg) | MSIX_ENTRY_CTL_MASK);
   }
   void msix_t::unmask_entry(size_t vec)
   {
     auto reg = get_entry(vec, ENT_VECTOR_CTL);
-    mm_write(reg, mm_read(reg) & ~0x1);
+    mm_write(reg, mm_read(reg) & ~MSIX_ENTRY_CTL_MASK);
   }
   
   void msix_t::reset_pba_bit(size_t vec)
@@ -82,12 +83,12 @@ namespace hw
      * Software calculates the base address of the MSI-X PBA using the same process 
      * with the PBA Offset / PBA BIR register.
     **/
-    auto bir = dev.read_dword(offset);
-    auto capbar_off = bir & ~0x7;
-    bir &= 0x7;
-    printf("MSI-X: off 0x%x bir %d\n", capbar_off, bir);
+    auto bar = dev.read_dword(offset);
+    auto capbar_off = bar & ~MSIX_BIR_MASK;
+    bar &= MSIX_BIR_MASK;
+    printf("MSI-X: off 0x%x bar %d\n", capbar_off, bar);
     
-    auto baroff = dev.get_membar(bir);
+    auto baroff = dev.get_membar(bar);
     
     printf("membar: %#x  membar off: %#x\n",
         baroff, baroff + capbar_off);
@@ -103,7 +104,6 @@ namespace hw
     auto cap = dev.msix_cap();
     // read message control bits
     auto func = dev.read16(cap + 2);
-    printf("func: %#x\n", func);
     // enable msix and mask all vectors
     func |= MSIX_ENABLE | MSIX_FUNC_MASK;
     dev.write16(cap + 2, func);
@@ -126,6 +126,8 @@ namespace hw
     func &= ~MSIX_FUNC_MASK;
     // write back message control bits
     dev.write16(cap + 2, func);
+    // MSI-X should be enabled now
+    //assert(is_msix());
   }
   
   uint16_t msix_t::setup_vector(uint8_t cpu, uint8_t intr)
@@ -153,8 +155,6 @@ namespace hw
     
     // unmask entry
     unmask_entry(vec);
-    // reset PBA bit for entry
-    reset_pba_bit(vec);
     // return it
     return vec;
   }
