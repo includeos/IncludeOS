@@ -18,6 +18,7 @@
 //#define DEBUG
 #include <kernel/os.hpp>
 #include <assert.h>
+//#define ENABLE_STACK_SMASHER
 
 extern "C"
 {
@@ -36,6 +37,7 @@ extern "C"
     __asm__ ("mov %eax, %cr4");
   }
   
+#ifdef ENABLE_STACK_SMASHER
   static char __attribute__((noinline))
   stack_smasher(const char* src) {
     char bullshit[16];
@@ -45,12 +47,15 @@ extern "C"
     
     return bullshit[15];
   }
+#endif
   
   void _start(void) {
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
-    //stack_smasher("1234567890 12345 hello world! test -.-");
+    #ifdef ENABLE_STACK_SMASHER
+    stack_smasher("1234567890 12345 hello world! test -.-");
+    #endif
     
     // Initialize stack-unwinder, call global constructors etc.
     _init_c_runtime();
