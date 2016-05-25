@@ -22,7 +22,8 @@ public:
   const static std::string HTML_HEADER;
   const static std::string HTML_FOOTER;
 
-  Director(SharedDisk disk) : disk_(disk) {}
+  Director(SharedDisk disk, std::string root)
+    : disk_(disk), root_(root) {}
 
   virtual void process(
     server::Request_ptr req,
@@ -31,16 +32,19 @@ public:
     ) override
   {
     // get path
-    std::string path = req->uri().path();
-    normalize_trailing_slashes(path);
+    std::string org_path = req->uri().path();
+    normalize_trailing_slashes(org_path);
+    auto path = root_ + org_path;
 
-    disk_->fs().ls(path, [this, req, res, next, path](auto err, auto entries) {
+    printf("<Director> Path: %s\n", path.c_str());
+
+    disk_->fs().ls(path, [this, req, res, next, org_path](auto err, auto entries) {
       // Path not found on filesystem, go next
       if(err) {
         return (*next)();
       }
       else {
-        res->add_body(create_html(entries, path));
+        res->add_body(create_html(entries, org_path));
         res->send();
       }
     });
@@ -48,6 +52,7 @@ public:
 
 private:
   SharedDisk disk_;
+  std::string root_;
 
   std::string create_html(Entries entries, const std::string& path) {
     std::ostringstream ss;

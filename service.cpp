@@ -187,6 +187,20 @@ void Service::start() {
         }
 
       });
+
+      /*routes.on_get(R"/*", [](auto, auto res){
+          disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
+            if(err) {
+              res->set_status_code(http::Not_Found);
+            } else {
+              // fill Response with content from index.html
+              printf("[@GET:*] Responding with index.html. \n");
+              res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
+                .add_body(std::string{(const char*) buff.get(), len});
+            }
+            res->send();
+          });
+      });*/
       // initialize server
       server_ = std::make_unique<server::Server>();
       server_->set_routes(routes).listen(8081);
@@ -204,12 +218,12 @@ void Service::start() {
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
       //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
-      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt); // WIP
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt); // WIP
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory
-      server::Middleware_ptr director = std::make_shared<Director>(disk);
-      server_->use(director);
+      server::Middleware_ptr director = std::make_shared<Director>(disk, "/public");
+      server_->use("/static", director);
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
