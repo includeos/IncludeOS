@@ -8,8 +8,17 @@ fs::Disk_ptr disk;
 #include <net/inet4>
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-
 void list_partitions(decltype(disk));
+
+#include <kernel/irq_manager.hpp>
+
+void print_shit()
+{
+  static size_t ints = 0;
+  printf("PIT Interrupt #%u\n", ++ints);
+  hw::PIT::on_timeout(0.25, [] { print_shit(); });
+  bsp_idt.enable_irq(11);
+}
 
 void Service::start()
 {
@@ -21,13 +30,16 @@ void Service::start()
   */
   
   // boilerplate
+  /*
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.5);
+  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 5.0);
   inet->network_config(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
+  */
+  hw::PIT::on_timeout(0.25, [] { print_shit(); });
   
   /*
   // if the disk is empty, we can't mount a filesystem anyways

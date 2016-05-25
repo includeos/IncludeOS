@@ -56,6 +56,8 @@ namespace hw {
       return vector_cnt;
     }
     
+    void reset_pba_bit(size_t vec);
+    
   private:
     PCI_Device& dev;
     uintptr_t table_addr;
@@ -68,6 +70,7 @@ namespace hw {
       return ((msix_entry*) table_addr) + idx;
     }
     inline uintptr_t get_entry(size_t idx, size_t offs);
+    uintptr_t get_pba(size_t offs);
     
     // get physical address of BAR
     uintptr_t get_bar_paddr(size_t offset);

@@ -14,7 +14,6 @@
 
 namespace hw
 {
-  
   void mm_write(intptr_t addr, uint32_t val)
   {
     *((uint32_t volatile*) addr) = val;
@@ -46,6 +45,11 @@ namespace hw
     auto ptr = ((msix_entry*) table_addr) + idx;
     return ((uintptr_t) ptr) + offs;
   }
+  inline uintptr_t msix_t::get_pba(size_t chunk)
+  {
+    auto ptr = ((uint32_t*) pba_addr) + chunk;
+    return (uintptr_t) ptr;
+  }
   
   void msix_t::mask_entry(size_t vec)
   {
@@ -56,6 +60,15 @@ namespace hw
   {
     auto reg = get_entry(vec, ENT_VECTOR_CTL);
     mm_write(reg, mm_read(reg) & ~0x1);
+  }
+  
+  void msix_t::reset_pba_bit(size_t vec)
+  {
+    auto chunk = vec / 32;
+    auto bit   = vec & 31;
+    
+    auto reg = get_pba(chunk);
+    mm_write(reg, mm_read(reg) & ~(1 << bit));
   }
   
   uintptr_t msix_t::get_bar_paddr(size_t offset)
@@ -72,7 +85,7 @@ namespace hw
     auto bir = dev.read_dword(offset);
     auto capbar_off = bir & ~0x7;
     bir &= 0x7;
-    printf("MSI-X: off %d bir %d\n", capbar_off, bir);
+    printf("MSI-X: off 0x%x bir %d\n", capbar_off, bir);
     
     auto baroff = dev.get_membar(bir);
     
@@ -140,6 +153,8 @@ namespace hw
     
     // unmask entry
     unmask_entry(vec);
+    // reset PBA bit for entry
+    reset_pba_bit(vec);
     // return it
     return vec;
   }

@@ -100,7 +100,7 @@ void exception_handler()
  */
 void IRQ_manager::register_interrupt(uint8_t vector)
 {
-  irq_pend.atomic_set(vector);
+  irq_pend.set(vector);
   __sync_fetch_and_add(&irq_counters_[vector], 1);
   
   //debug("<IRQ> IRQ %u pending. Count %d\n", vector, irq_counters_[vector]);
@@ -280,7 +280,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   if (irq >= IRQ_LINES)
   {
     printf("IRQ out of bounds %u (max: %u)\n", irq, IRQ_LINES);
-    panic("Too high IRQ: only IRQ 0 - 64 are subscribable\n");
+    panic("Vector number too high in subscribe()\n");
   }
 
   // Mark IRQ as subscribed to
@@ -297,8 +297,8 @@ void IRQ_manager::notify() {
 
   // Get the IRQ's that are both pending and subscribed to
   irq_todo.set_from_and(irq_subs, irq_pend);
-  auto intr = irq_todo.first_set();
-  
+  int intr = irq_todo.first_set();
+  printf("intr: %d subs %#x\n", intr, irq_todo.get_chunk(0));
   while (intr != -1) {
 
     // sub and call handler
@@ -306,15 +306,15 @@ void IRQ_manager::notify() {
     irq_delegates_[intr]();
     
     // reset on zero
-    if (irq_counters_[intr] == 0)
-    {
-      irq_pend.atomic_reset(intr);
+    if (irq_counters_[intr] == 0) {
+      irq_pend.reset(intr);
     }
     
     // recreate todo-list
     irq_todo.set_from_and(irq_subs, irq_pend);
     // find next interrupt
     intr = irq_todo.first_set();
+    printf("intr: %d\n", intr);
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");
@@ -335,7 +335,7 @@ inline int bsr(uint32_t b) {
 void irq_default_handler() {
   // Now we don't really know the IRQ number,
   // but we can guess by looking at ISR
-  uint16_t isr {hw::PIC::get_isr()};
+  uint16_t isr {hw::APIC::get_isr()};
 
   //IRR would give us more than we want
   //uint16_t irr {pic_get_irr()};

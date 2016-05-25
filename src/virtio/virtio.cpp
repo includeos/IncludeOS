@@ -107,7 +107,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
       _pcidev.msi_cap(), _pcidev.msix_cap());
   
   // initialize MSI-X if available
-  if (false) //_pcidev.msix_cap())
+  if (false) // _pcidev.msix_cap())
   {
     this->_msix_vectors = _pcidev.init_msix();
     if (get_msix_vectors())
