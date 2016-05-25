@@ -72,7 +72,7 @@ namespace hw {
 
     auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(this));
 
-    IRQ_manager::subscribe(0, handler);
+    bsp_idt.subscribe(0, handler);
   }
 
 
@@ -83,10 +83,10 @@ namespace hw {
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
 
-    auto prev_irq_handler = IRQ_manager::get_handler(32);
+    auto prev_irq_handler = bsp_idt.get_handler(32);
 
     debug("<PIT EstimateCPUFreq> Sampling\n");
-    IRQ_manager::set_handler(32, cpu_sampling_irq_entry);
+    bsp_idt.set_handler(32, cpu_sampling_irq_entry);
 
     // GO!
     set_mode(RATE_GEN);
@@ -100,7 +100,7 @@ namespace hw {
     set_mode(temp_mode_);
     set_freq_divider(temp_freq_divider_);
 
-    IRQ_manager::set_handler(32, prev_irq_handler);
+    bsp_idt.set_handler(32, prev_irq_handler);
   }
 
   MHz PIT::CPUFrequency(){
@@ -256,7 +256,7 @@ namespace hw {
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());
     PIT::disable_regular_interrupts();
     // must be done to program IOAPIC to redirect to BSP LAPIC
-    IRQ_manager::enable_irq(0);
+    bsp_idt.enable_irq(0);
   }
 
   void PIT::set_mode(Mode mode){

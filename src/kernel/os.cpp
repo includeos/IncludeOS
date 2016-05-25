@@ -69,8 +69,8 @@ void OS::start() {
   // Set up interrupt handlers
   IRQ_manager::init();
   
-  INFO("INTR", "Enabling interrupts");
-  IRQ_manager::enable_interrupts();
+  INFO("BSP", "Enabling interrupts");
+  bsp_idt.enable_interrupts();
   
   // Initialize the Interval Timer
   hw::PIT::init();
@@ -117,7 +117,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::notify();
+    bsp_idt.notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 

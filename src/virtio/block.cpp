@@ -80,7 +80,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 
   // Hook up IRQ handler (inherited from Virtio)
   auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-  IRQ_manager::subscribe(irq(),del);
+  bsp_idt.subscribe(irq(),del);
 
   // Done
   INFO("VirtioBlk", "Block device with %llu sectors capacity", config.capacity);

@@ -18,6 +18,7 @@
 #pragma once
 #include <stdint.h>
 #include <memstream>
+#include <cassert>
 
 /**
  * In-memory bitmap implementation

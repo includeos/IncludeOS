@@ -18,29 +18,17 @@
 //#define DEBUG // Enable debugging
 //#define DEBUG2
 
-#include <assert.h>
-
-#include <os>
-#include <hw/apic.hpp>
-#include <hw/pic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
-#include <utility/membitmap.hpp>
+#include <hw/apic.hpp>
+#include <hw/pic.hpp>
 #include <unwind.h>
+#include <cassert>
 
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
 
-uint32_t  IRQ_manager::irq_mask  {0xFFFB};
-IDTDescr  IRQ_manager::idt[IRQ_LINES];
-int32_t   IRQ_manager::irq_counters_[IRQ_LINES] {0};
-bool      IRQ_manager::idt_is_set = false;
-
-static MemBitmap irq_subs;
-static MemBitmap irq_pend;
-static MemBitmap irq_todo;
-
-IRQ_manager::irq_delegate IRQ_manager::irq_delegates_[IRQ_LINES];
+IRQ_manager bsp_idt;
 
 uint8_t IRQ_manager::get_next_msix_irq()
 {
@@ -117,16 +105,16 @@ void IRQ_manager::register_interrupt(uint8_t vector)
   
   //debug("<IRQ> IRQ %u pending. Count %d\n", vector, irq_counters_[vector]);
 }
-#define IRQ_HANDLER(I)                          \
-  void irq_##I##_handler() {                    \
-    IRQ_manager::register_interrupt(I);         \
+#define IRQ_HANDLER(I)              \
+  void irq_##I##_handler() {        \
+    bsp_idt.register_interrupt(I);  \
   }
 
 /* Macro magic to register default gates */
 #define REG_DEFAULT_EXCPT(I) create_gate(&(idt[I]),exception_entry,     \
                                          default_sel, default_attr );
 
-#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + irq_base]),irq_##I##_entry, \
+#define REG_DEFAULT_IRQ(I) create_gate(&(idt[I + IRQ_BASE]),irq_##I##_entry, \
                                        default_sel, default_attr );
 
 /* EXCEPTIONS */
@@ -181,6 +169,11 @@ extern "C"{
 } //End extern
 
 void IRQ_manager::init()
+{
+  bsp_idt.bsp_init();
+}
+
+void IRQ_manager::bsp_init()
 {
   const auto WORDS_PER_BMP = IRQ_LINES / 32;
   auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
@@ -242,12 +235,14 @@ union addr_union {
   };
 };
 
-void IRQ_manager::create_gate(IDTDescr* idt_entry,
-                              void (*function_addr)(),
-                              uint16_t segment_sel,
-                              char attributes) {
+void IRQ_manager::create_gate(
+    IDTDescr* idt_entry,
+    intr_func func,
+    uint16_t segment_sel,
+    char attributes)
+{
   addr_union addr;
-  addr.whole           = (uint32_t)function_addr;
+  addr.whole           = (uint32_t) func;
   idt_entry->offset_1  = addr.lo16;
   idt_entry->offset_2  = addr.hi16;
   idt_entry->selector  = segment_sel; //TODO: Create memory vars. Private OS-class?
@@ -255,37 +250,29 @@ void IRQ_manager::create_gate(IDTDescr* idt_entry,
   idt_entry->zero      = 0;
 }
 
-void IRQ_manager::set_handler(uint8_t irq, void(*function_addr)()) {
+IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t irq) {
+  addr_union addr;
+  addr.lo16 = idt[irq].offset_1;
+  addr.hi16 = idt[irq].offset_2;
+
+  return (intr_func) addr.whole;
+}
+void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
   
-  create_gate(&idt[irq], function_addr, default_sel, default_attr);
+  create_gate(&idt[irq], func, default_sel, default_attr);
 
   /**
    *  The default handlers don't send EOI. If we don't do it here,
    *  previous interrupts won't have reported EOI and new handler
    *  will never get called
    */
-  eoi(irq - irq_base);
-}
-
-void (*IRQ_manager::get_handler(uint8_t irq))() {
-  addr_union addr;
-  addr.lo16 = idt[irq].offset_1;
-  addr.hi16 = idt[irq].offset_2;
-
-  return (void (*)()) addr.whole;
-}
-
-IRQ_manager::irq_delegate IRQ_manager::get_subscriber(uint8_t irq) {
-  return irq_delegates_[irq];
+  eoi(irq - IRQ_BASE);
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
   // program IOAPIC to redirect this irq to LAPIC
   hw::APIC::enable_irq(irq);
 }
-
-int IRQ_manager::timer_interrupts {0};
-static int glob_timer_interrupts  {0};
 
 /** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
     as bitfield for setting / checking IRQ's. */
@@ -357,9 +344,12 @@ void irq_default_handler() {
   IRQ_manager::eoi(bsr(isr));
 }
 
-void irq_timer_handler() {
-  ++glob_timer_interrupts;
-  if((glob_timer_interrupts % 16) == 0) {
-    printf("\nGot %i timer interrupts\n", glob_timer_interrupts);
+void irq_timer_handler()
+{
+  static int timer_interrupts = 0;
+  timer_interrupts++;
+  
+  if((timer_interrupts % 16) == 0) {
+    printf("\nGot %d timer interrupts\n", timer_interrupts);
   }
 }

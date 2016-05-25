@@ -151,13 +151,13 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   {
     auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
     for (int vec = 0; vec < get_msix_vectors(); vec++)
-        IRQ_manager::subscribe(irq() + vec, del);
+        bsp_idt.subscribe(irq() + vec, del);
   }
   else
   {
     // legacy PCI interrupt
     auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-    IRQ_manager::subscribe(irq(),del);
+    bsp_idt.subscribe(irq(),del);
   }
   
   // Done
