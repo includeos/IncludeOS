@@ -79,8 +79,20 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler (inherited from Virtio)
-  auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-  bsp_idt.subscribe(irq(),del);
+  if (is_msix())
+  {
+    auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
+    for (int vec = 0; vec < get_msix_vectors(); vec++)
+    {
+      // update BSP IDT
+      bsp_idt.subscribe(irq() + vec, del);
+    }
+  }
+  else
+  {
+    auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
+    bsp_idt.subscribe(irq(),del);
+  }
 
   // Done
   INFO("VirtioBlk", "Block device with %llu sectors capacity", config.capacity);
@@ -93,7 +105,6 @@ void VirtioBlk::get_config()
 
 void VirtioBlk::irq_handler() {
   
-  IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -116,6 +127,8 @@ void VirtioBlk::irq_handler() {
     get_config();
     //debug("\t             New status: 0x%x \n", config.status);
   }
+  
+  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::handle(request_t* hdr) {
@@ -145,8 +158,6 @@ void VirtioBlk::handle(request_t* hdr) {
 }
 
 void VirtioBlk::service_RX() {
-  
-  printf("VirtioBlk::service_RX\n");
   
   int handled = 0;
   req.disable_interrupts();

@@ -22,11 +22,9 @@ void print_shit()
 void Service::start()
 {
   // instantiate memdisk with FAT filesystem
-  /*
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
   assert(disk);
-  */
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
@@ -37,9 +35,8 @@ void Service::start()
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
   
-  hw::PIT::on_timeout(0.25, [] { print_shit(); });
+  //hw::PIT::on_timeout(0.25, [] { print_shit(); });
   
-  /*
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
   
@@ -118,7 +115,6 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
-  */
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
