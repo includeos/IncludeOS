@@ -50,6 +50,10 @@ public:
     });
   }
 
+  virtual void onMount(const std::string& path) override {
+    printf("<Director> Mounted on [ %s ]\n", path.c_str());
+  }
+
 private:
   SharedDisk disk_;
   std::string root_;

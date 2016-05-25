@@ -100,6 +100,7 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
 
 void Server::use(const Path& path, Middleware_ptr mw_ptr) {
   mw_storage_.push_back(mw_ptr);
+  mw_ptr->onMount(path);
   use(path, mw_ptr->callback());
 }
 
