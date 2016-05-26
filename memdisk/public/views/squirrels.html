@@ -1,18 +1,42 @@
-<h1>Squirrels</h1>
+<div class="container">
+  <div class="page-header">
+    <h1 class="text-center">Squirrels</h1>
+  </div>
 
-<table class="table table-hover">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Age</th>
-      <th>Occupation</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr ng-repeat="squirrel in squirrels">
-      <td>{{ squirrel.name }}</td>
-      <td>{{ squirrel.age }}</td>
-      <td>{{ squirrel.occupation }}</td>
-    </tr>
-  </tbody>
-</table>
+  <div class="well">
+    <form role="form" class="form-inline" ng-submit="create()">
+      <div class="form-group">
+        <input type="text" ng-model="squirrel.name" id="name" class="form-control" placeholder="Name" required/>
+      </div>
+
+      <div class="form-group">
+        <input type="number" ng-model="squirrel.age" id="age" class="form-control" placeholder="Age" required/>
+      </div>
+
+      <div class="form-group">
+        <input type="text" ng-model="squirrel.occupation" id="occupation" class="form-control" placeholder="Occupation" required/>
+      </div>
+      <button type="submit" class="btn btn-primary">Capture</button>
+    </form>
+  </div>
+
+  <div class="container">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Occupation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="squirrel in squirrels">
+          <td>{{ squirrel.name }}</td>
+          <td>{{ squirrel.age }}</td>
+          <td>{{ squirrel.occupation }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
