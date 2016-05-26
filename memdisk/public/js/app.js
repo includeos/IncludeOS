@@ -13,6 +13,9 @@ var app = angular.module('acornWebApp', [
     .when('/squirrels', {
       templateUrl: "views/squirrels.html",
       controller: "SquirrelCtrl"
+    })
+    .otherwise({
+      templateUrl: "views/404.html"
     });
 
   $locationProvider.html5Mode(true);
