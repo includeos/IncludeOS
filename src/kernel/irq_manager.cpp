@@ -46,6 +46,7 @@ void IRQ_manager::enable_interrupts() {
 extern "C"
 {
   void exception_handler() __attribute__((noreturn));
+  void bsp_lapic_send_eoi();
 }
 
 /** Default Exception-handler, which just prints its number */
@@ -137,7 +138,6 @@ extern "C"{
   void irq_default_entry();
 
   void irq_timer_entry();
-  void irq_timer_handler();
   // nop handler for spurious interrupts
   void spurious_intr();
 
@@ -173,7 +173,6 @@ extern "C"{
     bsp_idt.register_interrupt(vector);
   }
   
-
 } //End extern
 
 void IRQ_manager::init()
@@ -274,7 +273,7 @@ void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
    *  previous interrupts won't have reported EOI and new handler
    *  will never get called
    */
-  eoi(irq - IRQ_BASE);
+  eoi(irq);
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
@@ -282,8 +281,6 @@ void IRQ_manager::enable_irq(uint8_t irq) {
   hw::APIC::enable_irq(irq);
 }
 
-/** Let's say we only use 32 IRQ-lines. Then we can use a simple uint32_t
-    as bitfield for setting / checking IRQ's. */
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   if (irq >= IRQ_LINES)
   {
@@ -349,14 +346,4 @@ void irq_default_handler() {
 
   printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x\n", isr, bsr(isr));
   IRQ_manager::eoi(bsr(isr));
-}
-
-void irq_timer_handler()
-{
-  static int timer_interrupts = 0;
-  timer_interrupts++;
-  
-  if((timer_interrupts % 16) == 0) {
-    printf("\nGot %d timer interrupts\n", timer_interrupts);
-  }
 }

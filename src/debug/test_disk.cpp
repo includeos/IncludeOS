@@ -10,13 +10,16 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 void list_partitions(decltype(disk));
 
-#include <kernel/irq_manager.hpp>
-
-void print_shit()
+void print_shit(fs::Disk_ptr disk)
 {
   static size_t ints = 0;
   printf("PIT Interrupt #%u\n", ++ints);
-  hw::PIT::on_timeout(0.25, [] { print_shit(); });
+  disk->dev().read(0,
+  [disk] (fs::buffer_t buffer)
+  {
+    assert(!!buffer);
+    hw::PIT::on_timeout(0.25, [disk] { print_shit(disk); });
+  });
 }
 
 void Service::start()
@@ -28,14 +31,12 @@ void Service::start()
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 5.0);
+  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.25);
   inet->network_config(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
-  
-  //hw::PIT::on_timeout(0.25, [] { print_shit(); });
   
   // if the disk is empty, we can't mount a filesystem anyways
   if (disk->empty()) panic("Oops! The disk is empty!\n");
@@ -64,6 +65,7 @@ void Service::start()
       printf("Success: All big buffers accounted for\n");
   });
   //return;
+  hw::PIT::on_timeout(0.25, [] { print_shit(disk); });
   
   // list extended partitions
   list_partitions(disk);

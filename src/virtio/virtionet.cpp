@@ -149,12 +149,13 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Hook up IRQ handler
   if (is_msix())
   {
-    auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-    for (int vec = 0; vec < get_msix_vectors(); vec++)
-    {
-      // update BSP IDT
-      bsp_idt.subscribe(irq() + vec, del);
-    }
+    auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
+    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
+    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
+    // update BSP IDT
+    bsp_idt.subscribe(irq() + 0, conf_del);
+    bsp_idt.subscribe(irq() + 1, recv_del);
+    bsp_idt.subscribe(irq() + 2, xmit_del);
   }
   else
   {
@@ -191,7 +192,26 @@ int VirtioNet::add_receive_buffer(){
   return 0;
 }
 
+void VirtioNet::msix_conf_handler()
+{
+  debug("\t <VirtioNet> Configuration change:\n");
 
+  // Getting the MAC + status
+  debug("\t             Old status: 0x%x\n",_conf.status);
+  get_config();
+  debug("\t             New status: 0x%x \n",_conf.status);
+  IRQ_manager::eoi(irq());
+}
+void VirtioNet::msix_recv_handler()
+{
+  service_queues();
+  IRQ_manager::eoi(irq());
+}
+void VirtioNet::msix_xmit_handler()
+{
+  service_queues();
+  IRQ_manager::eoi(irq());
+}
 
 void VirtioNet::irq_handler(){
 

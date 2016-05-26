@@ -1,6 +1,7 @@
 USE32
 global apic_enable
 global spurious_intr
+global bsp_lapic_send_eoi
 global get_cpu_id
 global reboot
 
@@ -24,6 +25,13 @@ get_cpu_id:
 
 spurious_intr:
     iret
+
+bsp_lapic_send_eoi:
+    push eax
+    mov eax, 0xfee000B0
+    mov DWORD [eax], 0
+    pop eax
+    ret
 
 reboot:
     ; load bogus IDT

@@ -81,12 +81,11 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   // Hook up IRQ handler (inherited from Virtio)
   if (is_msix())
   {
-    auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-    for (int vec = 0; vec < get_msix_vectors(); vec++)
-    {
-      // update BSP IDT
-      bsp_idt.subscribe(irq() + vec, del);
-    }
+    auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
+    auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
+    // update BSP IDT
+    bsp_idt.subscribe(irq() + 0, conf_del);
+    bsp_idt.subscribe(irq() + 1, req_del);
   }
   else
   {
@@ -101,6 +100,18 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 void VirtioBlk::get_config()
 {
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
+}
+
+void VirtioBlk::msix_req_handler()
+{
+  service_RX();
+  IRQ_manager::eoi(irq());
+}
+void VirtioBlk::msix_conf_handler()
+{
+  debug("\t <VirtioBlk> Configuration change:\n");
+  get_config();
+  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::irq_handler() {
