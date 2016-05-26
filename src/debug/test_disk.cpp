@@ -121,11 +121,13 @@ void Service::start()
     }); // ls
   }); // disk->auto_detect()
   
+  return;
   static int job = 0;
   
   for (int i = 0; i < 10; i++)
   hw::APIC::start_task(
   [] (int cpu_id) {
+    (void) cpu_id;
     __sync_fetch_and_add(&job, 1);
   }, [] {
     printf("All jobs are done now, job = %d\n", job);

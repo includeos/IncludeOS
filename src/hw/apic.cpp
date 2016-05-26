@@ -278,7 +278,7 @@ namespace hw {
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // acknowledge any outstanding interrupts
-    eoi();
+    //eoi();
     
     // enable APIC by resetting task priority
     lapic.regs->task_pri.reg = 0;
