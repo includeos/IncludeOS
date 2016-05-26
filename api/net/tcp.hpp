@@ -364,7 +364,7 @@ namespace net {
         return *this;
       }
 
-      inline bool isset(TCP::Flag f) { return ntohs(header().offset_flags.whole) & f; }
+      inline bool isset(TCP::Flag f) const { return ntohs(header().offset_flags.whole) & f; }
 
       //TCP::Flag flags() const { return (htons(header().offset_flags.whole) << 8) & 0xFF; }
 
@@ -439,9 +439,11 @@ namespace net {
         return total;
       }
 
-      bool is_acked_by(const Seq ack) const {
-        return ack >= (seq() + data_length());
-      }
+      bool is_acked_by(const Seq ack) const
+      { return ack >= (seq() + data_length()); }
+
+      bool should_rtx() const
+      { return has_data() or isset(SYN) or isset(FIN); }
 
       inline std::string to_string() {
         std::ostringstream os;
@@ -1723,6 +1725,14 @@ namespace net {
         Number of retransmission attempts on the packet first in RT-queue
       */
       size_t rto_attempt = 0;
+      // number of retransmitted SYN packets.
+      size_t syn_rtx_ = 0;
+
+      /*
+        Retransmission timeout limit reached
+      */
+      inline bool rto_limit_reached() const
+      { return rto_attempt >= 15 or syn_rtx_ >= 5; };
 
       /*
         Remove all packets acknowledge by ACK in retransmission queue

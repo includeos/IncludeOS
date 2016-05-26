@@ -896,7 +896,8 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
     tcb.IRS       = in->seq();
     tcb.SND.UNA   = in->ack();
 
-    //tcp.rtx_ack(in->ack());
+    if(tcp.rtx_timer.active)
+      tcp.rtx_stop();
 
     // (our SYN has been ACKed)
     if(tcb.SND.UNA > tcb.ISS) {
@@ -1008,7 +1009,8 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
       tcb.SND.UNA = in->ack();
       if(tcp.rttm.active)
         tcp.rttm.stop();
-      //tcp.rtx_ack(in->ack());
+      if(tcp.rtx_timer.active)
+        tcp.rtx_stop();
 
       // 7. proccess the segment text
       if(in->has_data()) {
