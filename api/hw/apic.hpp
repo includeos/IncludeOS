@@ -20,15 +20,22 @@
 #define HW_APIC_HPP
 
 #include <cstdint>
+#include <functional>
 
 namespace hw {
   
   class APIC {
   public:
+    typedef std::function<void(int)>  smp_task_func;
+    typedef std::function<void()>     smp_done_func;
+    
+    static void start_task(smp_task_func, smp_done_func);
+    
     static void init();
     static void init_smp();
     
     static void send_ipi(uint8_t dest, uint8_t vector);
+    static void bcast_ipi(uint8_t vector);
     
     static uint8_t get_isr();
     static uint8_t get_irr();
@@ -36,6 +43,9 @@ namespace hw {
     
     static void enable_irq(uint8_t irq);
     static void disable_irq(uint8_t irq);
+    
+    // don't call this
+    static void enable();
     
     static void reboot();
   };

@@ -257,6 +257,7 @@ namespace hw {
     PIT::disable_regular_interrupts();
     // must be done to program IOAPIC to redirect to BSP LAPIC
     bsp_idt.enable_irq(0);
+    IRQ_manager::eoi(0);
   }
 
   void PIT::set_mode(Mode mode){

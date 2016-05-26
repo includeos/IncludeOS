@@ -153,9 +153,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
     auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
     // update BSP IDT
-    bsp_idt.subscribe(irq() + 0, conf_del);
+    bsp_idt.subscribe(irq() + 0, xmit_del);
     bsp_idt.subscribe(irq() + 1, recv_del);
-    bsp_idt.subscribe(irq() + 2, xmit_del);
+    bsp_idt.subscribe(irq() + 2, conf_del);
   }
   else
   {

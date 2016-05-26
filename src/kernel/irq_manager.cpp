@@ -46,7 +46,7 @@ void IRQ_manager::enable_interrupts() {
 extern "C"
 {
   void exception_handler() __attribute__((noreturn));
-  void bsp_lapic_send_eoi();
+  void lapic_send_eoi();
 }
 
 /** Default Exception-handler, which just prints its number */
@@ -277,7 +277,7 @@ void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {
-  // program IOAPIC to redirect this irq to LAPIC
+  // program IOAPIC to redirect this irq to BSP LAPIC
   hw::APIC::enable_irq(irq);
 }
 
@@ -339,11 +339,11 @@ inline int bsr(uint32_t b) {
 void irq_default_handler() {
   // Now we don't really know the IRQ number,
   // but we can guess by looking at ISR
-  uint16_t isr {hw::APIC::get_isr()};
+  auto isr = hw::APIC::get_isr();
 
   //IRR would give us more than we want
   //uint16_t irr {pic_get_irr()};
 
-  printf("\n <IRQ !!!> Unexpected IRQ. ISR: 0x%x. EOI: 0x%x\n", isr, bsr(isr));
-  IRQ_manager::eoi(bsr(isr));
+  printf("\n <IRQ !!!> Unexpected IRQ 0x%x\n", isr);
+  IRQ_manager::eoi(isr);
 }

@@ -60,7 +60,7 @@
 
 	call \call
 // Send EOI - we're doing that in the handlers
-  call bsp_lapic_send_eoi
+  call lapic_send_eoi
 	sti
 
 	popa
@@ -105,6 +105,8 @@ modern_interrupt_handler:
 
 irq_timer_entry:
 	cli
-	call bsp_lapic_send_eoi
+	pushl %eax
+  call lapic_send_eoi
+  popl %eax
 	sti
 	iret

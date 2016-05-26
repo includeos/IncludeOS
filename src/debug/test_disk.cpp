@@ -14,6 +14,7 @@ void print_shit(fs::Disk_ptr disk)
 {
   static size_t ints = 0;
   printf("PIT Interrupt #%u\n", ++ints);
+  
   disk->dev().read(0,
   [disk] (fs::buffer_t buffer)
   {
@@ -21,6 +22,8 @@ void print_shit(fs::Disk_ptr disk)
     hw::PIT::on_timeout(0.25, [disk] { print_shit(disk); });
   });
 }
+
+#include <hw/apic.hpp>
 
 void Service::start()
 {
@@ -117,6 +120,16 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  
+  static int job = 0;
+  
+  for (int i = 0; i < 10; i++)
+  hw::APIC::start_task(
+  [] (int cpu_id) {
+    __sync_fetch_and_add(&job, 1);
+  }, [] {
+    printf("All jobs are done now, job = %d\n", job);
+  });
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

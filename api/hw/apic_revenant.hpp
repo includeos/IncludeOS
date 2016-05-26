@@ -22,16 +22,18 @@
 #define REV_STACK_SIZE   8192
 
 #include <cstdint>
+#include <hw/apic.hpp>
 
 extern "C"
 void revenant_main(int, uintptr_t);
 
-typedef volatile int spinlock_t;
+// Intel 3a  8.10.6.7: 128-byte boundary
+typedef volatile int spinlock_t __attribute__((aligned(128)));
 
 extern "C"
 inline void lock(spinlock_t& lock) {
   while (__sync_lock_test_and_set(&lock, 1)) {
-    while (lock);
+    while (lock) asm volatile("pause");
   }
 }
 extern "C"
@@ -39,5 +41,40 @@ inline void unlock(spinlock_t& lock) {
   __sync_synchronize(); // barrier
   lock = 0;
 }
+
+struct minimal_barrier_t
+{
+  void inc()
+  {
+    __sync_fetch_and_add(&val, 1);
+  }
+  
+  void spin_wait(int max)
+  {
+    asm("mfence");
+    while (this->val < max) {
+      asm volatile("pause; nop;");
+    }
+  }
+  
+  void reset(int val)
+  {
+    asm("mfence");
+    this->val = val;
+  }
+  
+private:
+  volatile int val = 0;
+};
+
+struct smp_stuff
+{
+  spinlock_t glock;
+  minimal_barrier_t boot_barrier;
+  minimal_barrier_t task_barrier;
+  hw::APIC::smp_task_func task_func;
+  hw::APIC::smp_done_func done_func;
+};
+extern smp_stuff smp;
 
 #endif

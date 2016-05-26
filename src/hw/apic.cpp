@@ -91,15 +91,14 @@
 
 extern "C" {
   void apic_enable();
-  extern void reboot();
+  int  get_cpu_id();
+  void reboot();
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
-  void lapic_exception_handler() {
-    INFO("APIC", "Oops! Exception\n");
-    asm volatile("iret");
-  }
-  unsigned boot_counter = 0;
+  void lapic_exception_handler();
+  void lapic_irq_entry();
 }
+extern idt_loc smp_lapic_idt;
 
 namespace hw {
   
@@ -240,6 +239,27 @@ namespace hw {
     // by masking off all interrupts
     hw::PIC::set_intr_mask(0xFFFF);
     
+    // enable Local APIC
+    enable();
+    
+    // turn the Local APIC on and enable interrupts
+    INFO("APIC", "Enabling BSP LAPIC");
+    CPU::write_msr(IA32_APIC_BASE_MSR, 
+        (APIC_BASE_MSR & 0xfffff100) | IA32_APIC_BASE_MSR_ENABLE, 0);
+    INFO2("APIC_BASE MSR is now 0x%llx\n", CPU::read_msr(IA32_APIC_BASE_MSR));
+    
+    // initialize I/O APICs
+    IOAPIC::init(ACPI::get_ioapics());
+    
+    /// initialize and start APs found in ACPI-tables ///
+    if (ACPI::get_cpus().size() > 1) {
+      INFO("APIC", "SMP Init");
+      init_smp();
+    }
+  }
+  
+  void APIC::enable()
+  {
     /// enable interrupts ///
     lapic.regs->task_pri.reg       = 0xff;
     lapic.regs->dest_format.reg    = 0xffffffff; // flat mode
@@ -252,42 +272,16 @@ namespace hw {
     lapic.regs->lint1.reg = INTR_MASK | (LAPIC_IRQ_BASE + 4);
     lapic.regs->error.reg = INTR_MASK | (LAPIC_IRQ_BASE + 5);
     
-    // turn the Local APIC on and enable interrupts
-    INFO("APIC", "Enabling BSP LAPIC");
-    CPU::write_msr(IA32_APIC_BASE_MSR, 
-        (APIC_BASE_MSR & 0xfffff100) | IA32_APIC_BASE_MSR_ENABLE, 0);
-    //apic_enable();
-    INFO2("APIC_BASE MSR is now 0x%llx\n", CPU::read_msr(IA32_APIC_BASE_MSR));
-    
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
     const uint8_t SPURIOUS_IRQ = 0x7f; // IRQ 127
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // acknowledge any outstanding interrupts
-    lapic.regs->eoi.reg = 0;
+    eoi();
     
     // enable APIC by resetting task priority
     lapic.regs->task_pri.reg = 0;
-    
-    // initialize I/O APICs
-    IOAPIC::init(ACPI::get_ioapics());
-    
-    /// initialize and start APs found in ACPI-tables ///
-    if (ACPI::get_cpus().size() > 1) {
-      INFO("APIC", "SMP Init");
-      init_smp();
-    }
-    
-    /*
-    // wakeup APs
-    for (auto& cpu : ACPI::get_cpus())
-      // except the CPU we are using now
-      if (cpu.id != lapic.get_id())
-        send_ipi(cpu.id, 0x80);
-    
-    reboot();
-    */
   }
   
   /// initialize and start registered APs found in ACPI-tables ///
@@ -305,14 +299,21 @@ namespace hw {
     
     // modify bootloader to support our cause
     auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
-    // populate IDT
-    auto* idt_array = (idt_loc*) 0x80480;
-    idt_array->limit = 32 * sizeof(IDTDescr) - 1;
-    idt_array->base  = (uintptr_t) new IDTDescr[32];
+    // populate IDT used with SMP LAPICs
+    smp_lapic_idt.limit = 256 * sizeof(IDTDescr) - 1;
+    smp_lapic_idt.base  = (uintptr_t) new IDTDescr[256];
     
-    auto* idt = (IDTDescr*) idt_array->base;
+    auto* idt = (IDTDescr*) smp_lapic_idt.base;
     for (size_t i = 0; i < 32; i++) {
-      addr_union addr(&lapic_exception_handler);
+      addr_union addr(lapic_exception_handler);
+      idt[i].offset_1 = addr.part[0];
+      idt[i].offset_2 = addr.part[1];
+      idt[i].selector  = 0x8;
+      idt[i].type_attr = 0x8e;
+      idt[i].zero      = 0;
+    }
+    for (size_t i = 32; i < 48; i++) {
+      addr_union addr(lapic_irq_entry);
       idt[i].offset_1 = addr.part[0];
       idt[i].offset_2 = addr.part[1];
       idt[i].selector  = 0x8;
@@ -320,15 +321,17 @@ namespace hw {
       idt[i].zero      = 0;
     }
     
-    // reset counter
-    boot_counter = 1;
+    // assign stack and main func
     size_t CPUcount = ACPI::get_cpus().size();
     
     boot->worker_addr = (void*) &revenant_main;
     boot->stack_base = aligned_alloc(CPUcount * REV_STACK_SIZE, 4096);
     boot->stack_size = REV_STACK_SIZE;
-    printf("APIC stack base: %p  size: %u   main size: %u\n", 
+    debug("APIC stack base: %p  size: %u   main size: %u\n", 
         boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
+    
+    // reset barrier
+    smp.boot_barrier.reset(1);
     
     // turn on CPUs
     INFO("APIC", "Initializing APs");
@@ -345,15 +348,14 @@ namespace hw {
     for (auto& cpu : ACPI::get_cpus())
     {
       // except the CPU we are using now
-      if (cpu.id != lapic.get_id())
-        // Send SIPI with start address 0x80000
-        lapic.ap_start(cpu.id, 0x80);
+      if (cpu.id == lapic.get_id()) continue;
+      // Send SIPI with start address 0x80000
+      lapic.ap_start(cpu.id, 0x80);
+      lapic.ap_start(cpu.id, 0x80);
     }
     
-    // wait for all to start
-    while (boot_counter < CPUcount) {
-      asm("nop");
-    }
+    // wait for all APs to start
+    smp.boot_barrier.spin_wait(CPUcount);
     INFO("APIC", "All APs are online now\n");
   }
   
@@ -361,14 +363,14 @@ namespace hw {
   {
     for (uint8_t i = 0; i < 8; i++)
       if (lapic.regs->isr[i].reg)
-        return 32 * i + __builtin_ffs(lapic.regs->isr[i].reg);
+        return 32 * i + __builtin_ffs(lapic.regs->isr[i].reg) - 1;
     return 0;
   }
   uint8_t APIC::get_irr()
   {
     for (uint8_t i = 0; i < 8; i++)
       if (lapic.regs->irr[i].reg)
-        return 32 * i + __builtin_ffs(lapic.regs->irr[i].reg);
+        return 32 * i + __builtin_ffs(lapic.regs->irr[i].reg) - 1;
     return 0;
   }
   
@@ -380,20 +382,34 @@ namespace hw {
   
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
-    // TODO: this doesn't work yet because we need to enable
-    // to prevent bad things(tm) from happening, disable interrupts
-    asm("cli");
-    // IPIs on the IO APIC
-    printf("send_ipi  id %u  vector %u\n", id, vector);
-    uint32_t value = lapic.regs->intr_hi.reg;
-    
-    value &= 0x00FFFFFF;
-    value |= id << 24;
-    lapic.regs->intr_hi.reg = value;
-    
-    value = ICR_ASSERT | ICR_DLV_STATUS | ICR_FIXED | vector;
+    debug("send_ipi  id %u  vector %u\n", id, vector);
+    // select APIC ID
+    uint32_t value = lapic.regs->intr_hi.reg & 0x00ffffff;
+    lapic.regs->intr_hi.reg = value | (id << 24);
+    // write vector and trigger/level/mode
+    value = ICR_ASSERT | ICR_FIXED | vector;
     lapic.regs->intr_lo.reg = value;
-    asm("sti");
+  }
+  void APIC::bcast_ipi(uint8_t vector)
+  {
+    debug("bcast_ipi  vector %u\n", vector);
+    //lapic.regs->intr_hi.reg = id << 24;
+    lapic.regs->intr_lo.reg = ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector;
+  }
+  
+  void APIC::start_task(smp_task_func task, smp_done_func done)
+  {
+    smp.task_func = task;
+    smp.done_func = done;
+    
+    smp.task_barrier.reset(1);
+    bcast_ipi(0x20);
+    // execute our own part of task
+    task(get_cpu_id());
+    // wait for all APs to finish task
+    smp.task_barrier.spin_wait( ACPI::get_cpus().size() );
+    // callback
+    done();
   }
   
   void APIC::enable_irq(uint8_t irq)

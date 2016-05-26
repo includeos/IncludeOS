@@ -62,10 +62,6 @@ BITS 32
 protected_mode:
   cld
   
-  ; load interrupt descriptor table
-  ;mov  eax, [IDT_array]
-  ;lidt      [eax]
-  
   ; set all segments to data segment (0x10)
   mov   ax, 0x10
   mov   ds, ax
