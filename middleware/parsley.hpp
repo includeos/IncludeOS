@@ -15,7 +15,7 @@ public:
 
   virtual void process(
     server::Request_ptr req,
-    server::Response_ptr res,
+    server::Response_ptr,
     server::Next next
     ) override
   {
@@ -44,8 +44,10 @@ public:
 private:
   bool has_json(server::Request_ptr req) const {
     auto c_type = http::header_fields::Entity::Content_Type;
-    return req->has_header(c_type)
-      && (req->header_value(c_type) == "application/json");
+    if(!req->has_header(c_type))
+      return false;
+    return (req->header_value(c_type) == "application/json")
+      or (req->header_value(c_type) == "application/json;charset=UTF-8");
   }
 
 };
