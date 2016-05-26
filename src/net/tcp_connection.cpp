@@ -690,6 +690,7 @@ void Connection::rtx_timeout() {
   if(rto_limit_reached()) {
     printf("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
     close();
+    return;
   }
 
   // retransmit SND.UNA
