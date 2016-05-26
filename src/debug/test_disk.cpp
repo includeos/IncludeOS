@@ -8,6 +8,9 @@ fs::Disk_ptr disk;
 #include <net/inet4>
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+#include <vga>
+ConsoleVGA vga;
+
 void list_partitions(decltype(disk));
 
 void print_shit(fs::Disk_ptr disk)
@@ -24,9 +27,16 @@ void print_shit(fs::Disk_ptr disk)
 }
 
 #include <hw/apic.hpp>
+#include <hw/kbm.hpp>
 
 void Service::start()
 {
+  OS::set_rsprint(
+  [] (const char* data, size_t len)
+  {
+    vga.write(data, len);
+  });
+  
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
@@ -67,8 +77,6 @@ void Service::start()
     if (bufcounter == 256)
       printf("Success: All big buffers accounted for\n");
   });
-  //return;
-  hw::PIT::on_timeout(0.25, [] { print_shit(disk); });
   
   // list extended partitions
   list_partitions(disk);
@@ -120,6 +128,10 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  
+  //return;
+  //hw::PIT::on_timeout(0.25, [] { print_shit(disk); });
+  hw::KBM::init();
   
   return;
   static int job = 0;
