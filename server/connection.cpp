@@ -15,15 +15,15 @@ void Connection::on_data(buffer_t buf, size_t n) {
   if(!request_) {
     request_ = std::make_shared<Request>(buf, n);
     // return early to read payload
-    if(request_->method() == http::POST)
+    if((request_->method() == http::POST or request_->method() == http::PUT)
+      and request_->content_length())
       return;
   }
   // else we assume it's payload
   else {
     request_->add_body(request_->get_body() + std::string((const char*)buf.get(), n));
-    auto cl = request_->header_value(http::header_fields::Entity::Content_Length);
     // if we haven't received all data promised
-    if(std::stoull(cl) > request_->get_body().size())
+    if(request_->content_length() > request_->get_body().size())
       return;
   }
 

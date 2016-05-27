@@ -57,6 +57,8 @@ public:
   template<typename A>
   void set_attribute(std::shared_ptr<A>);
 
+  size_t content_length() const;
+
 private:
   /**
    * @brief A map with pointers to attributes.
