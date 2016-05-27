@@ -158,11 +158,21 @@ void Service::start() {
         else {
           auto& doc = json->doc();
           try {
+            // create an empty model
             acorn::Squirrel s;
+            // deserialize it
             s.deserialize(doc);
-            printf("[@POST:/api/squirrels] Squirrel created: %s\n", s.json().c_str());
-            squirrels->capture(s);
-            res->send_code(http::Created);
+            // add to bucket
+            auto id = squirrels->capture(s);
+            assert(id == s.key);
+            printf("[@POST:/api/squirrels] Squirrel captured: %s\n", s.json().c_str());
+            // setup the response
+            // location to the newly created resource
+            res->add_header(http::header_fields::Response::Location, "/api/squirrels/"s); // return back end loc i guess?
+            // status code 201 Created
+            res->set_status_code(http::Created);
+            // send the created entity as response
+            res->send_json(s.json());
           }
           catch(AssertException e) {
             res->send_code(http::Bad_Request);

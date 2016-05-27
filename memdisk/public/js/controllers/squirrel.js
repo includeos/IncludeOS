@@ -11,7 +11,8 @@ angular.module('acornWebApp')
     $scope.create = function() {
       $scope.squirrel.$save(
         function(squirrel, headers) {
-
+          $scope.squirrels.push(squirrel);
+          $scope.squirrel = new Squirrel();
         },
         function(error) {
           console.log("error");

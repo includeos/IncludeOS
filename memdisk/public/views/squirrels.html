@@ -24,13 +24,15 @@
     <table class="table table-hover">
       <thead>
         <tr>
+          <th>Key</th>
           <th>Name</th>
           <th>Age</th>
           <th>Occupation</th>
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="squirrel in squirrels">
+        <tr ng-repeat="squirrel in squirrels track by squirrel.key">
+          <td>{{ squirrel.key }}</td>
           <td>{{ squirrel.name }}</td>
           <td>{{ squirrel.age }}</td>
           <td>{{ squirrel.occupation }}</td>
