@@ -23,9 +23,12 @@ public:
     return Callback::from<Middleware, &Middleware::process>(this);
   }
 
-  virtual void onMount(const std::string&) {
-    // do nothing
+  virtual void onMount(const std::string& path) {
+    mountpath_ = path;
   }
+
+protected:
+  std::string mountpath_;
 
 };
 
