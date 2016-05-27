@@ -32,25 +32,27 @@ public:
     ) override
   {
     // get path
-    std::string org_path = req->uri().path();
-    normalize_trailing_slashes(org_path);
-    auto path = root_ + org_path;
+    std::string path = req->uri().path();
 
-    printf("<Director> Path: %s\n", path.c_str());
+    auto fpath = resolve_file_path(path);
 
-    disk_->fs().ls(path, [this, req, res, next, org_path](auto err, auto entries) {
+    printf("<Director> Path: %s\n", fpath.c_str());
+
+    normalize_trailing_slashes(path);
+    disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
       // Path not found on filesystem, go next
       if(err) {
         return (*next)();
       }
       else {
-        res->add_body(create_html(entries, org_path));
+        res->add_body(create_html(entries, path));
         res->send();
       }
     });
   }
 
   virtual void onMount(const std::string& path) override {
+    Middleware::onMount(path);
     printf("<Director> Mounted on [ %s ]\n", path.c_str());
   }
 
@@ -78,6 +80,11 @@ private:
   void normalize_trailing_slashes(std::string& path) {
     if(!path.empty() && path.back() != '/')
       path += '/';
+  }
+
+  std::string resolve_file_path(std::string path) {
+    path.replace(0,mountpath_.size(), root_);
+    return path;
   }
 
 }; // < class Director

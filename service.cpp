@@ -206,7 +206,7 @@ void Service::start() {
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory
-      server::Middleware_ptr director = std::make_shared<Director>(disk, "/public");
+      server::Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
       server_->use("/static", director);
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
