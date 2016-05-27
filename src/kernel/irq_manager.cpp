@@ -219,13 +219,18 @@ void IRQ_manager::bsp_init()
   REG_DEFAULT_IRQ(10) REG_DEFAULT_IRQ(11) REG_DEFAULT_IRQ(12)
   REG_DEFAULT_IRQ(13) REG_DEFAULT_IRQ(14) REG_DEFAULT_IRQ(15)
 
+  // keyboard
+  create_gate(&idt[IRQ_BASE + 1],modern_interrupt_handler,default_sel,default_attr);
+  // mouse
+  create_gate(&idt[IRQ_BASE + 12],modern_interrupt_handler,default_sel,default_attr);
+  
   // Set all interrupt-gates > 47 to "modern" handler
   for (size_t i = 48; i < IRQ_LINES; i++) {
-    create_gate(&(idt[i]),modern_interrupt_handler,default_sel,default_attr);
+    create_gate(&idt[i],modern_interrupt_handler,default_sel,default_attr);
   }
   
   // spurious interrupts
-  create_gate(&(idt[0x3F]), spurious_intr, default_sel, default_attr);
+  create_gate(&idt[0x7F], spurious_intr, default_sel, default_attr);
   
   INFO2("+ Default interrupt gates set for irq >= 32");
 

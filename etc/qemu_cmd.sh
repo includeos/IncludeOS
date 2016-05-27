@@ -22,5 +22,6 @@ export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 [ ! -v HDB ] && export HDB=""
 [ ! -v HDD ] && export HDD="$HDA $HDB"
 [ ! -v CPU ] && export CPU=""
+[ ! -v KEY ] && export KEY="-k en-us"
 
-export QEMU_OPTS="$HDD $NET $GRAPHICS $SMP $MEM $CPU"
+export QEMU_OPTS="$HDD $NET $GRAPHICS $SMP $MEM $CPU $KEY"
