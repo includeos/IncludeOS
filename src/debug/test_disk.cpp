@@ -36,6 +36,38 @@ void Service::start()
   {
     vga.write(data, len);
   });
+  hw::KBM::init();
+  hw::KBM::set_virtualkey_handler(
+  [] (int key) {
+    
+    if (key == hw::KBM::VK_RIGHT) {
+      printf("right\n");
+    }
+    if (key == hw::KBM::VK_LEFT) {
+      printf("left\n");
+    }
+    if (key == hw::KBM::VK_UP) {
+      printf("up\n");
+    }
+    if (key == hw::KBM::VK_DOWN) {
+      printf("down\n");
+    }
+    if (key == hw::KBM::VK_ENTER) {
+      printf("enter\n");
+    }
+    if (key == hw::KBM::VK_SPACE) {
+      printf("space\n");
+    }
+    if (key == hw::KBM::VK_TAB) {
+      printf("tab\n");
+    }
+    if (key == hw::KBM::VK_ESCAPE) {
+      printf("escape\n");
+    }
+    
+  });
+  
+  //hw::PIT::on_timeout(0.25, [] { print_shit(disk); });
   
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<1, VirtioBlk>();
@@ -128,10 +160,6 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
-  
-  //return;
-  //hw::PIT::on_timeout(0.25, [] { print_shit(disk); });
-  hw::KBM::init();
   
   return;
   static int job = 0;

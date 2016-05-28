@@ -42,11 +42,6 @@
 
 namespace hw
 {
-  bool key_press[256];
-  int  mouse_x;
-  int  mouse_y;
-  bool mouse_button[4];
-  
   typedef void (*port_func)(uint8_t);
   port_func keyboard_write;
   port_func mouse_write;
@@ -93,6 +88,55 @@ namespace hw
     }
   }
   
+  int KBM::transform_vk(uint8_t scancode)
+  {
+    if (scancode == 0x0)
+    {
+      return VK_UNKNOWN;
+    }
+    else if (scancode <= 0x0A)
+    {
+      return VK_ESCAPE + scancode - 1;
+    }
+    else if (scancode == 0xE0)
+    {
+      scancode = read_data();
+      switch (scancode) {
+      case 0x48:
+        return VK_UP;
+      case 0x4B:
+        return VK_LEFT;
+      case 0x4D:
+        return VK_RIGHT;
+      case 0x50:
+        return VK_DOWN;
+      default:
+        return VK_UNKNOWN;
+      }
+    }
+    switch (scancode) {
+    case 0x0E:
+      return VK_BACK;
+    case 0x0F:
+      return VK_TAB;
+    case 0x1C:
+      return VK_ENTER;
+    case 0x39:
+      return VK_SPACE;
+    }
+    
+    
+    return VK_UNKNOWN;
+  }
+  void KBM::handle_mouse(uint8_t scancode)
+  {
+    (void) scancode;
+  }
+  
+  KBM::KBM() {
+    this->on_virtualkey = [] (int) {};
+    this->on_mouse = [] (int,int,int) {};
+  }
   void KBM::init()
   {
     // disable ports
@@ -166,17 +210,17 @@ namespace hw
     printf("registering ps/2 keyboard interrupt\n");
     bsp_idt.subscribe(32 + KEYB_IRQ,
     [KEYB_IRQ] {
-      //printf("keyboard interrupt %u\n", KEYB_IRQ);
       IRQ_manager::eoi(KEYB_IRQ);
-      
-      printf("%c", read_data());
-      
+      // transform to virtual key
+      int key = get().transform_vk(read_data());
+      // call handler
+      get().on_virtualkey(key);
     });
     
     bsp_idt.subscribe(32 + MOUS_IRQ,
     [MOUS_IRQ] {
-      printf("mouse interrupt %u\n", MOUS_IRQ);
       IRQ_manager::eoi(MOUS_IRQ);
+      get().handle_mouse(read_data());
     });
     
     /*
