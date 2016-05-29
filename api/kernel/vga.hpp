@@ -49,24 +49,24 @@ public:
   { return fg | bg << 4; }
   
   void write(const char* data, const size_t len) noexcept;
-  void setColor(const uint8_t color) noexcept;
   void clear() noexcept;
   
   static const size_t VGA_WIDTH  {80};
   static const size_t VGA_HEIGHT {25};
   
-  void write(char) noexcept;
-  void putEntryAt(const char, const uint8_t, const size_t, const size_t) noexcept;
-  void putEntryAt(const char, const size_t, const size_t) noexcept;
-  void setCursorAt(const size_t, const size_t) noexcept;
-  void increment(int) noexcept;
+  uint16_t get(uint8_t x, uint8_t y);
+  void put(const char, uint8_t color, uint8_t x, uint8_t y) noexcept;
+  void put(const char, uint8_t x, uint8_t y) noexcept;
+  void set_cursor(uint8_t, uint8_t) noexcept;
   void newline() noexcept;
   inline void set_color(vga_color c)
   { color = c; };
   
 private:
+  void increment(int) noexcept;
+  void write(char) noexcept;
   static const uint16_t DEFAULT_ENTRY;
-  void put(uint16_t, size_t, size_t) noexcept;
+  void putent(uint16_t, uint8_t, uint8_t) noexcept;
   
   size_t    row;
   size_t    column;
