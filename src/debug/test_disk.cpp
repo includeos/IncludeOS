@@ -153,7 +153,9 @@ public:
   {
     auto& head = parts[0];
     int16_t newx = (head.get_x() + this->dirx) % 80;
+    if (newx < 0) newx = 79;
     int16_t newy = (head.get_y() + this->diry) % 25;
+    if (newy < 0) newy = 24;
     
     bool longer = false;
     auto ent = vga.get(newx, newy);
