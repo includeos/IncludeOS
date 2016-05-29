@@ -18,6 +18,7 @@
 #include <hw/kbm.hpp>
 #include <hw/apic.hpp>
 #include <kernel/irq_manager.hpp>
+#include <debug>
 
 #define PS2_DATA_PORT   0x60
 #define PS2_STATUS      0x64
@@ -54,14 +55,18 @@ namespace hw
   
   static void ctl_send(uint8_t cmd)
   {
-    while ((hw::inb(PS2_STATUS) & 2) != 0);
+    while (hw::inb(PS2_STATUS) & 2);
     hw::outb(PS2_COMMAND, cmd);
-    while ((hw::inb(PS2_STATUS) & 2) != 0);
+    while (hw::inb(PS2_STATUS) & 2);
   }
   
-  static uint8_t read_data()
+  static inline uint8_t read_data()
   {
     while (!(hw::inb(PS2_STATUS) & 1));
+    return hw::inb(PS2_DATA_PORT);
+  }
+  static inline uint8_t read_fast()
+  {
     return hw::inb(PS2_DATA_PORT);
   }
   static void send_data(uint8_t cmd)
@@ -100,7 +105,7 @@ namespace hw
     }
     else if (scancode == 0xE0)
     {
-      scancode = read_data();
+      scancode = read_fast();
       switch (scancode) {
       case 0x48:
         return VK_UP;
@@ -157,7 +162,6 @@ namespace hw
     
     ps2_flush();
     
-    printf("enable port1\n");
     // enable port1
     ctl_send(CMD_ENABLE_PORT1);
     
@@ -171,17 +175,15 @@ namespace hw
     write_port1(DEV_IDENTIFY);
     uint8_t id1 = read_data();
     
-    printf("port1 type: %#x\n", id1);
-    
     if (id1 == 0xAA || id1 == 0xAB) {
       // port1 is the keyboard
-      printf("keyboard on port1\n");
+      debug("keyboard on port1\n");
       keyboard_write = write_port1;
       mouse_write    = write_port2;
     }
     else {
       // port2 is the keyboard
-      printf("keyboard on port2\n");
+      debug("keyboard on port2\n");
       mouse_write    = write_port1;
       keyboard_write = write_port2;
     }
@@ -196,7 +198,6 @@ namespace hw
     send_data(0x00);
     uint8_t scanset = 0xFA;
     while (scanset == 0xFA) scanset = read_data();
-    printf("scan set: %#x\n", scanset);
     
     // route and enable interrupt handlers
     const uint8_t KEYB_IRQ = (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
@@ -204,15 +205,15 @@ namespace hw
     assert(KEYB_IRQ != MOUS_IRQ);
     
     // need to route IRQs from IO APIC to BSP LAPIC
-    hw::APIC::enable_irq(1);
-    hw::APIC::enable_irq(12);
+    hw::APIC::enable_irq(KEYB_IRQ);
+    hw::APIC::enable_irq(MOUS_IRQ);
     
-    printf("registering ps/2 keyboard interrupt\n");
     bsp_idt.subscribe(32 + KEYB_IRQ,
     [KEYB_IRQ] {
       IRQ_manager::eoi(KEYB_IRQ);
+      uint8_t byte = read_fast();
       // transform to virtual key
-      int key = get().transform_vk(read_data());
+      int key = get().transform_vk(byte);
       // call handler
       get().on_virtualkey(key);
     });
@@ -221,6 +222,7 @@ namespace hw
     [MOUS_IRQ] {
       IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_data());
+      ps2_flush();
     });
     
     /*
