@@ -46,17 +46,7 @@ public:
   Snake(ConsoleVGA& con)
     : vga(con)
   {
-    vga.clear();
-    // create snake head
-    parts.emplace_back(rand() % 80, rand() % 25, 0, 0);
-    vga.put('@', 2, parts[0].get_x(), parts[0].get_y());
-    // place the first food
-    place_food();
-    
-    hw::PIT::on_timeout(0.2,
-    [this] {
-      this->integrate();
-    });
+    reset();
   }
   
   // 80x25 = 2000
@@ -238,6 +228,7 @@ public:
   void game_over() {
     /// game over ///
     vga.clear();
+    this->gameover = true;
     
     vga.set_cursor(32, 12);
     std::string gameover = "GAME OVER ! ! !";
@@ -247,12 +238,33 @@ public:
     std::string finalscore = "SCORE: " + std::to_string(score);
     vga.write(finalscore.c_str(), finalscore.size());
   }
+  bool is_gameover() const {
+    return this->gameover;
+  }
+  
+  void reset() {
+    this->gameover = false;
+    this->score    = 1;
+    vga.clear();
+    // create snake head
+    parts.clear();
+    parts.emplace_back(rand() % 80, rand() % 25, 0, 0);
+    vga.put('@', 2, parts[0].get_x(), parts[0].get_y());
+    // place the first food
+    place_food();
+    
+    hw::PIT::on_timeout(0.2,
+    [this] {
+      this->integrate();
+    });
+  }
   
 private:
   ConsoleVGA& vga;
+  bool     gameover;
   int8_t   dirx = 1;
   int8_t   diry = 0;
-  uint16_t score = 1;
+  uint16_t score;
   std::vector<Part> parts;
 };
 
@@ -276,7 +288,8 @@ void begin_snake()
       snake.set_dir(Snake::DOWN);
     }
     if (key == hw::KBM::VK_SPACE) {
-      //
+      if (snake.is_gameover())
+        snake.reset();
     }
     
   });
