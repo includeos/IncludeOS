@@ -22,15 +22,14 @@
 #include "server/server.hpp"
 
 std::unique_ptr<server::Server> server_;
-
-#include <memdisk>
-#include <fs/fat.hpp> // FAT32 filesystem
-using namespace fs;
 using namespace std;
+
+#include <fs/disk.hpp>
 
 ////// DISK //////
 // instantiate disk with filesystem
-auto disk = fs::new_shared_memdisk();
+//#include <filesystem>
+fs::Disk_ptr disk;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   auto& filesys = disk->fs();
@@ -42,7 +41,9 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
       // Normal dirs
       if (entry.name() != "."  and entry.name() != "..") {
         printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
-        recursive_fs_dump(*filesys.ls(entry).entries, depth + 1 );
+        filesys.ls(entry, [depth](auto, auto entries) {
+          recursive_fs_dump(*entries, depth + 1);
+        });
       } else {
         printf(" %*s  %s \n", indent, "+", entry.name().c_str());
       }
@@ -89,6 +90,9 @@ std::shared_ptr<SquirrelBucket> squirrels;
 #include "middleware/parsley.hpp"
 
 void Service::start() {
+
+  auto& device = hw::Dev::disk<1, VirtioBlk>();
+  disk = std::make_shared<fs::Disk> (device);
 
   uri::URI uri1("asdf");
 
@@ -223,14 +227,16 @@ void Service::start() {
       server_->use(parsley);
 
 
-      auto vec = disk->fs().ls("/").entries;
+      disk->fs().ls("/", [](auto, auto entries) {
+        printf("------------------------------------ \n");
+        printf(" Disk contents \n");
+        printf("------------------------------------ \n");
+        recursive_fs_dump(*entries);
+        printf("------------------------------------ \n");
+      });
 
 
-      printf("------------------------------------ \n");
-      printf(" Memdisk contents \n");
-      printf("------------------------------------ \n");
-      recursive_fs_dump(*vec);
-      printf("------------------------------------ \n");
+
 
       hw::PIT::instance().onRepeatedTimeout(15s, []{
         printf("%s\n", server_->ip_stack().tcp().status().c_str());

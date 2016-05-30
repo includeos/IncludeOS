@@ -23,7 +23,7 @@ LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri -I./server/http/
 
 # Local target dependencies
 #.PHONY: memdisk.fat
-all: memdisk.fat memdisk.o server/router.hpp server/server.hpp
+all: server/router.hpp server/server.hpp
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
