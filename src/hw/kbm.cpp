@@ -221,8 +221,7 @@ namespace hw
     bsp_idt.subscribe(32 + MOUS_IRQ,
     [MOUS_IRQ] {
       IRQ_manager::eoi(MOUS_IRQ);
-      get().handle_mouse(read_data());
-      ps2_flush();
+      get().handle_mouse(read_fast());
     });
     
     /*
