@@ -27,7 +27,7 @@ void print_shit(fs::Disk_ptr disk)
 }
 
 #include <hw/apic.hpp>
-#include <hw/kbm.hpp>
+#include <hw/ps2.hpp>
 
 #include <string>
 

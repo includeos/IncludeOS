@@ -24,7 +24,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 ConsoleVGA vga;
 
 #include "snake.hpp"
-#include <hw/kbm.hpp>
+#include <hw/ps2.hpp>
 
 void begin_snake()
 {
