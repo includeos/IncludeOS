@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <os>
 
-#include <hw/ioport.hpp>
+#include <hw/acpi.hpp>
+#include <hw/apic.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
@@ -59,12 +60,21 @@ void OS::start() {
 
   atexit(default_exit);
 
+  // read ACPI tables
+  hw::ACPI::init();
+  
+  // setup APIC, APIC timer, SMP etc.
+  hw::APIC::init();
+  
   // Set up interrupt handlers
   IRQ_manager::init();
-
+  
+  INFO("BSP", "Enabling interrupts");
+  bsp_idt.enable_interrupts();
+  
   // Initialize the Interval Timer
   hw::PIT::init();
-
+  
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -107,7 +117,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::notify();
+    bsp_idt.notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 

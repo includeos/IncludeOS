@@ -45,7 +45,7 @@ Serial::Serial(int port) :
 void Serial::on_data(on_data_handler del){
   enable_interrupt();    
   on_data_=del;
-  IRQ_manager::subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
+  bsp_idt.subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
   INFO("Serial", "Subscribing to IRQ %i \n",irq_);
 }
 

@@ -12,6 +12,7 @@ STRIPPED=0
 echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
+export GRAPHICS="-vga std"
 . ../etc/qemu_cmd.sh
 export SERIAL="" #"-monitor none -virtioconsole stdio"
 QEMU_OPTS+=" -drive file=./smalldisk,if=virtio,media=disk $SERIAL"

@@ -19,6 +19,7 @@
 #define KERNEL_IRQ_MANAGER_HPP
 
 #include <delegate>
+#include <membitmap>
 
 #include "os.hpp"
 #include "../hw/pic.hpp"
@@ -36,11 +37,6 @@ struct idt_loc {
   uint16_t limit;
   uint32_t base;
 }__attribute__((packed));
-
-/** We'll limit the number of subscribable IRQ lines to this. */
-typedef uint32_t irq_bitfield;
-
-// irq_bitfield irq_pending;
 
 extern "C" {
   void irq_default_handler();
@@ -64,10 +60,11 @@ extern "C" {
 */
 class IRQ_manager {
 public:
+  typedef void (*intr_func) ();
   using irq_delegate = delegate<void()>;
 
-  static constexpr uint8_t irq_base = 32;
-  static constexpr uint8_t irq_lines = 64;
+  static constexpr uint8_t IRQ_BASE  =  32;
+  static constexpr size_t  IRQ_LINES = 128;
 
 
   /**
@@ -77,7 +74,7 @@ public:
    *
    *  @param irq: the IRQ to enable
    */
-  static void enable_irq(uint8_t irq);
+  void enable_irq(uint8_t irq);
 
   /**
    *  Directly set an IRQ handler in IDT
@@ -91,10 +88,10 @@ public:
    *    stack overflow or similar badness.
    *  }
    */
-  static void set_handler(uint8_t irq, void(*function_addr)());
+  void set_handler(uint8_t irq, intr_func func);
 
   /** Get handler from inside the IDT. */
-  static void (*get_handler(uint8_t irq))();
+  intr_func get_handler(uint8_t irq);
 
   /**
    *  Subscribe to an IRQ
@@ -110,14 +107,7 @@ public:
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
    */
-  static void subscribe(uint8_t irq, irq_delegate del);
-
-  /**
-   *  Get the current subscriber of an IRQ-line
-   *
-   *  @param irq: The IRQ to get subscriber for
-   */
-  static irq_delegate get_subscriber(uint8_t irq);
+  void subscribe(uint8_t irq, irq_delegate del);
 
   /**
    *  End of Interrupt
@@ -132,47 +122,44 @@ public:
    */
   static void eoi(uint8_t irq);
 
-  static inline void register_interrupt(uint8_t i){
-    irq_pending_ |=  (1 << i);
-    __sync_fetch_and_add(&irq_counters_[i],1);
-    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
-          irq_pending_, irq_counters_[i]);
+  
+  uint8_t get_next_msix_irq();
+
+
+  void register_interrupt(uint8_t vector);
+  
+  irq_delegate get_intr_handler(uint8_t vector) {
+    return irq_delegates_[vector];
   }
 
-
 private:
-  static unsigned int   irq_mask;
-  static int            timer_interrupts;
-  static IDTDescr       idt[irq_lines];
-  static const char     default_attr {static_cast<char>(0x8e)};
-  static const uint16_t default_sel  {0x8};
-  static bool           idt_is_set;
-
-  /** bit n set means IRQ n has fired since last check */
-  //static irq_bitfield irq_pending;
-  static irq_bitfield irq_subscriptions_;
-
-  static void(*irq_subscribers_[sizeof(irq_bitfield)*8])();
-  static irq_delegate irq_delegates_[sizeof(irq_bitfield)*8];
-  static uint32_t irq_counters_[32];
-  static uint32_t irq_pending_;
+  IDTDescr     idt[IRQ_LINES];
+  bool         idt_is_set                {false};
+  irq_delegate irq_delegates_[IRQ_LINES];
+  int32_t      irq_counters_[IRQ_LINES]  {0};
+  
+  int timer_interrupts {0};
+  
+  MemBitmap  irq_subs;
+  MemBitmap  irq_pend;
+  MemBitmap  irq_todo;
+  
+  static const char       default_attr {static_cast<char>(0x8e)};
+  static const uint16_t   default_sel  {0x8};
 
   /** STI */
-  static void enable_interrupts();
-
-  /** @deprecated A default handler */
-  static void handle_IRQ_default();
+  void enable_interrupts();
 
   /**
    *  Create an IDT-gate
    *
    *  Use "set_handler" for a simpler version using defaults
    */
-  static void create_gate(IDTDescr* idt_entry,
-                          void (*function_addr)(),
-                          uint16_t segment_sel,
-                          char attributes);
-
+  void create_gate(IDTDescr* idt_entry,
+                   void (*function_addr)(),
+                   uint16_t segment_sel,
+                   char attributes);
+  
   /** The OS will call the following : */
   friend class OS;
   friend void ::irq_default_handler();
@@ -180,9 +167,14 @@ private:
   /** Initialize. Only the OS can initialize the IRQ manager */
   static void init();
 
+  void bsp_init();
+  
   /** Notify all delegates waiting for interrupts */
-  static void notify();
+  void notify();
 
 }; //< IRQ_manager
+
+// IDT manager for bootstrap processor
+extern IRQ_manager bsp_idt;
 
 #endif //< KERNEL_IRQ_MANAGER_HPP

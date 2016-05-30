@@ -79,15 +79,22 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler (inherited from Virtio)
-  auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-  IRQ_manager::subscribe(irq(),del);
-  IRQ_manager::enable_irq(irq());
+  if (is_msix())
+  {
+    auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
+    auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
+    // update BSP IDT
+    bsp_idt.subscribe(irq() + 1, conf_del);
+    bsp_idt.subscribe(irq() + 0, req_del);
+  }
+  else
+  {
+    auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
+    bsp_idt.subscribe(irq(),del);
+  }
 
   // Done
-  INFO("VirtioBlk", "Block device with %llu sectors capacity",
-       config.capacity);
-  //CHECK(config.status == VIRTIO_BLK_S_OK, "Link up\n");
-  //req.kick();
+  INFO("VirtioBlk", "Block device with %llu sectors capacity", config.capacity);
 }
 
 void VirtioBlk::get_config()
@@ -95,9 +102,20 @@ void VirtioBlk::get_config()
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
 }
 
+void VirtioBlk::msix_req_handler()
+{
+  service_RX();
+  IRQ_manager::eoi(irq());
+}
+void VirtioBlk::msix_conf_handler()
+{
+  debug("\t <VirtioBlk> Configuration change:\n");
+  get_config();
+  IRQ_manager::eoi(irq());
+}
+
 void VirtioBlk::irq_handler() {
   
-  IRQ_manager::eoi(irq());
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -120,6 +138,8 @@ void VirtioBlk::irq_handler() {
     get_config();
     //debug("\t             New status: 0x%x \n", config.status);
   }
+  
+  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::handle(request_t* hdr) {

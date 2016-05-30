@@ -123,6 +123,8 @@ private:
   /** Handle device IRQ.
 
       Will look for config. changes and service RX/TX queues as necessary.*/
+  void msix_req_handler();
+  void msix_conf_handler();
   void irq_handler();
   
   // need at least 3 tokens free to ship a request

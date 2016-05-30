@@ -23,12 +23,16 @@
 #include <hw/cpu_freq_sampling.hpp>
 #include <kernel/irq_manager.hpp>
 
+// Used for cpu frequency sampling
+extern double _CPUFreq_;
+extern const uint16_t _cpu_sampling_freq_divider_;
+
 namespace hw {
 
   // Bit 0-3: Mode 0 - "Interrupt on terminal count"
   // Bit 4-5: Both set, access mode "Lobyte / Hibyte"
   const uint8_t PIT_mode_register = 0x43;
-  const uint8_t  PIT_chan0 = 0x40;
+  const uint8_t PIT_chan0 = 0x40;
 
   // PIT state
   PIT::Mode PIT::current_mode_ = NONE;
@@ -37,11 +41,6 @@ namespace hw {
   uint16_t PIT::temp_freq_divider_ = 0;
 
   uint64_t PIT::IRQ_counter_ = 0;
-
-  // Used for cpu frequency sampling
-  extern "C" double _CPUFreq_;
-  extern "C" uint16_t _cpu_sampling_freq_divider_;
-  extern "C" void irq_timer_entry();
 
   // Time keeping
   uint64_t PIT::millisec_counter = 0;
@@ -65,16 +64,13 @@ namespace hw {
     oneshot(1);
   }
 
-  PIT::~PIT(){}
-
-  PIT::PIT(){
+  PIT::PIT() {
     debug("<PIT> Instantiating. \n");
-
+    // register irq handler
     auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(this));
-
-    IRQ_manager::subscribe(0, handler);
+    bsp_idt.subscribe(0, handler);
   }
-
+  PIT::~PIT() {}
 
   void PIT::estimateCPUFrequency(){
 
@@ -83,10 +79,10 @@ namespace hw {
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
 
-    auto prev_irq_handler = IRQ_manager::get_handler(32);
+    auto prev_irq_handler = bsp_idt.get_handler(32);
 
     debug("<PIT EstimateCPUFreq> Sampling\n");
-    IRQ_manager::set_handler(32, cpu_sampling_irq_entry);
+    bsp_idt.set_handler(32, cpu_sampling_irq_entry);
 
     // GO!
     set_mode(RATE_GEN);
@@ -100,7 +96,7 @@ namespace hw {
     set_mode(temp_mode_);
     set_freq_divider(temp_freq_divider_);
 
-    IRQ_manager::set_handler(32, prev_irq_handler);
+    bsp_idt.set_handler(32, prev_irq_handler);
   }
 
   MHz PIT::CPUFrequency(){
@@ -119,7 +115,7 @@ namespace hw {
 
     if (current_freq_divider_ != millisec_interval)
       set_freq_divider(millisec_interval);
-
+    
     auto cycles_pr_millisec = KHz(CPUFrequency());
     //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
@@ -130,7 +126,6 @@ namespace hw {
     t.setStart(OS::cycles_since_boot());
     t.setEnd(t.start() + uint64_t(cycles_pr_millisec.count() * in_msecs.count()));
 
-
     auto key = millisec_counter + ticks.count();
 
     // We could emplace, but the timer exists allready, and might be a reused one
@@ -140,7 +135,6 @@ namespace hw {
           (uint32_t)key, t.id(), t.cond()() ? "true" : "false", timers_.size());
 
     return it;
-
   }
 
   PIT::Timer_iterator PIT::onRepeatedTimeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
@@ -255,7 +249,8 @@ namespace hw {
   void PIT::init(){
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());
     PIT::disable_regular_interrupts();
-    IRQ_manager::enable_irq(0);
+    // must be done to program IOAPIC to redirect to BSP LAPIC
+    bsp_idt.enable_irq(0);
   }
 
   void PIT::set_mode(Mode mode){
@@ -271,17 +266,16 @@ namespace hw {
   }
 
   void PIT::set_freq_divider(uint16_t freq_divider){
-    union{
+    union {
       uint16_t whole;
       uint8_t part[2];
-    }data{freq_divider};
+    } data{freq_divider};
 
     // Send frequency hi/lo to PIT
     hw::outb(PIT_chan0, data.part[0]);
     hw::outb(PIT_chan0, data.part[1]);
 
     current_freq_divider_ = freq_divider;
-
   }
 
   void PIT::oneshot(uint16_t t){

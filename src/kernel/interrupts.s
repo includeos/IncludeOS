@@ -22,7 +22,6 @@
 
 .global irq_default_entry
 .global irq_timer_entry
-    ;; .global irq_virtio_entry
 
 .global exception_entry
 //21-29 are reserved
@@ -61,6 +60,7 @@
 
 	call \call
 // Send EOI - we're doing that in the handlers
+  call lapic_send_eoi
 	sti
 
 	popa
@@ -94,20 +94,19 @@ exception_13_entry:
 	cli
 	call exception_13_handler
 
+.global modern_interrupt_handler
+modern_interrupt_handler:
+  cli
+  pusha
+  call register_modern_interrupt
+  popa
+  sti
+  iret
+
 irq_timer_entry:
 	cli
-
-	pusha
-	//push $'d'
-	call irq_timer_handler
-
-	//Send EOI for the timer
-	movb	$PIC1, %al
-	movw	$PIC1, %dx
-	outb	%al, %dx
-
-
-	popa
+	pushl %eax
+  call lapic_send_eoi
+  popl %eax
 	sti
-
 	iret
