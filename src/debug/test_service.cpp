@@ -19,7 +19,7 @@
 #include <net/inet4>
 #include "ircd.hpp"
 
-using namespace std::chrono;
+#include <hw/apic.hpp>
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -27,6 +27,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 void Service::start()
 {
   // boilerplate
+  /*
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
@@ -35,7 +36,6 @@ void Service::start()
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
 
-  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
@@ -69,7 +69,7 @@ void Service::start()
     /// inform others about disconnect
     //client.bcast(TK_QUIT, "Disconnected");
     });
-  });*/
+  });
   
   inet->dhclient()->set_silent(true);
   
@@ -120,6 +120,30 @@ void Service::start()
     }); // sock on_read
     
   }); // on_config
+  */
+  
+  static int completed = 0;
+  static const int TASKS = 32;
+  
+  static uint32_t job = 0;
+  
+  // schedule tasks
+  for (int i = 0; i < TASKS; i++)
+  hw::APIC::add_task(
+  [i] {
+    __sync_fetch_and_or(&job, 1 << i);
+  }, 
+  [i] {
+    printf("completed task %d\n", i);
+    completed++;
+    
+    if (completed == TASKS) {
+      printf("All jobs are done now, compl = %d\n", completed);
+      printf("bits = %#x\n", job);
+    }
+  });
+  // start working on tasks
+  hw::APIC::work_signal();
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

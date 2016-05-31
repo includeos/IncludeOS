@@ -240,7 +240,8 @@ namespace hw {
     hw::PIC::set_intr_mask(0xFFFF);
     
     // enable Local APIC
-    enable();
+    void _lapic_enable();
+    _lapic_enable();
     
     // turn the Local APIC on and enable interrupts
     INFO("APIC", "Enabling BSP LAPIC");
@@ -258,7 +259,7 @@ namespace hw {
     }
   }
   
-  void APIC::enable()
+  void _lapic_enable()
   {
     /// enable interrupts ///
     lapic.regs->task_pri.reg       = 0xff;
@@ -278,7 +279,7 @@ namespace hw {
     lapic.enable_intr(SPURIOUS_IRQ);
     
     // acknowledge any outstanding interrupts
-    eoi();
+    hw::APIC::eoi();
     
     // enable APIC by resetting task priority
     lapic.regs->task_pri.reg = 0;
@@ -390,6 +391,11 @@ namespace hw {
     value = ICR_ASSERT | ICR_FIXED | vector;
     lapic.regs->intr_lo.reg = value;
   }
+  void APIC::send_bsp_intr()
+  {
+    // for now we will just assume BSP is 0
+    send_ipi(0, BSP_LAPIC_IPI_IRQ);
+  }
   void APIC::bcast_ipi(uint8_t vector)
   {
     debug("bcast_ipi  vector %u\n", vector);
@@ -397,19 +403,16 @@ namespace hw {
     lapic.regs->intr_lo.reg = ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector;
   }
   
-  void APIC::start_task(smp_task_func task, smp_done_func done)
+  void APIC::add_task(smp_task_func task, smp_done_func done)
   {
-    smp.task_func = task;
-    smp.done_func = done;
-    
-    smp.task_barrier.reset(1);
+    lock(smp.tlock);
+    smp.tasks.emplace_back(task, done);
+    unlock(smp.tlock);
+  }
+  void APIC::work_signal()
+  {
+    // broadcast that we have work to do
     bcast_ipi(0x20);
-    // execute our own part of task
-    task(get_cpu_id());
-    // wait for all APs to finish task
-    smp.task_barrier.spin_wait( ACPI::get_cpus().size() );
-    // callback
-    done();
   }
   
   void APIC::enable_irq(uint8_t irq)
@@ -432,6 +435,26 @@ namespace hw {
   void APIC::disable_irq(uint8_t irq)
   {
     IOAPIC::disable(irq);
+  }
+  void APIC::setup_subs()
+  {
+    // IRQ handler for completed async jobs
+    bsp_idt.subscribe(BSP_LAPIC_IPI_IRQ,
+    [] {
+      eoi();
+      
+      // copy all the done functions out from queue to our local queue
+      std::deque<smp_done_func> done;
+      lock(smp.flock);
+      for (auto& func : smp.completed)
+        done.push_back(func);
+      unlock(smp.flock);
+      
+      // call all the done functions
+      for (auto& func : done) {
+        func();
+      }
+    });
   }
   
   void APIC::reboot()

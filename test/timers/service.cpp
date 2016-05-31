@@ -17,8 +17,6 @@
 
 #include <os>
 #include <stdio.h>
-#include <vector>
-#include <iostream>
 #include <cassert>
 
 using namespace std::chrono;
@@ -27,18 +25,10 @@ int one_shots = 0;
 int repeat1 = 0;
 int repeat2 = 0;
 
-auto& timer = hw::PIT::instance();
-
 void Service::start()
 {
-
-
   INFO("Test Timers","Testing one-shot timers");
-
-
-  int t1 = 0;
-  int t10 = 0;
-  int t2 = 0;
+  static auto& timer = hw::PIT::instance();
 
   // 30 sec. - Test End
   timer.onTimeout(30s, [] {

@@ -64,12 +64,7 @@ namespace hw {
     oneshot(1);
   }
 
-  PIT::PIT() {
-    debug("<PIT> Instantiating. \n");
-    // register irq handler
-    auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(this));
-    bsp_idt.subscribe(0, handler);
-  }
+  PIT::PIT() {}
   PIT::~PIT() {}
 
   void PIT::estimateCPUFrequency(){
@@ -249,6 +244,9 @@ namespace hw {
   void PIT::init(){
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency());
     PIT::disable_regular_interrupts();
+    // register irq handler
+    auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(&instance()));
+    bsp_idt.subscribe(0, handler);
     // must be done to program IOAPIC to redirect to BSP LAPIC
     bsp_idt.enable_irq(0);
   }
