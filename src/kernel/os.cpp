@@ -70,6 +70,7 @@ void OS::start() {
   IRQ_manager::init();
   
   INFO("BSP", "Enabling interrupts");
+  hw::APIC::setup_subs();
   bsp_idt.enable_interrupts();
   
   // Initialize the Interval Timer

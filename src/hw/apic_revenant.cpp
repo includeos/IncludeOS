@@ -8,26 +8,20 @@
 smp_stuff smp;
 idt_loc   smp_lapic_idt;
 
+namespace hw {
+  extern void _lapic_enable();
+}
+
 // expensive, but correctly returns the current CPU id
 extern "C" int get_cpu_id();
-extern "C" void lapic_irq_handler(int id);
 extern "C" void lapic_exception_handler();
-
-void smp_enable_self()
-{
-  #define LAPIC      0xfee00000
-  #define LAPIC_SPURIOUS  0x0f0
-  
-  auto* spurious_vector = (uint32_t*) (LAPIC | LAPIC_SPURIOUS);
-  *spurious_vector = 0x100 | 0x2f;
-}
 
 void revenant_main(int cpu, uintptr_t esp)
 {
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
   // enable Local APIC
-  hw::APIC::enable();
+  hw::_lapic_enable();
   
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
@@ -41,16 +35,41 @@ void revenant_main(int cpu, uintptr_t esp)
   
   // signal that the revenant has started
   smp.boot_barrier.inc();
+  // sleep
+  asm volatile("hlt");
   
   while (true)
   {
-    // sleep
-    asm volatile("hlt;");
+    // grab hold on task list
+    lock(smp.tlock);
     
-    // do something useful
-    smp.task_func(get_cpu_id());
-    // signal done
-    smp.task_barrier.inc();
+    if (smp.tasks.empty()) {
+      unlock(smp.tlock);
+      // sleep
+      asm volatile("hlt");
+      // try again
+      continue;
+    }
+    
+    // get copy of shared task
+    auto task = smp.tasks.front();
+    smp.tasks.pop_front();
+    
+    bool empty = smp.tasks.empty();
+    
+    unlock(smp.tlock);
+    
+    // execute actual task
+    task.func();
+    
+    // add the done function to completed list
+    lock(smp.flock);
+    smp.completed.push_back(task.done);
+    unlock(smp.flock);
+    
+    // at least one thread will empty the task list
+    if (empty)
+      hw::APIC::send_bsp_intr();
   }
 }
 
@@ -60,14 +79,4 @@ void lapic_exception_handler()
   printf("LAPIC %d: Oops! Exception %u\n", get_cpu_id(), hw::APIC::get_isr());
   unlock(smp.glock);
   asm volatile("iret");
-}
-
-void lapic_irq_handler(int id)
-{
-  uint8_t vector = hw::APIC::get_isr();
-  hw::APIC::eoi();
-  
-  lock(smp.glock);
-  printf("LAPIC %u interrupted on vector %u!\n", id, vector);
-  unlock(smp.glock);
 }
