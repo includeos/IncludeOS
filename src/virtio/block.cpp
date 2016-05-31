@@ -84,13 +84,13 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
     auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
     // update BSP IDT
-    bsp_idt.subscribe(irq() + 1, conf_del);
-    bsp_idt.subscribe(irq() + 0, req_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 0, req_del);
   }
   else
   {
     auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-    bsp_idt.subscribe(irq(),del);
+    IRQ_manager::cpu(0).subscribe(irq(),del);
   }
 
   // Done
@@ -115,7 +115,7 @@ void VirtioBlk::msix_conf_handler()
 }
 
 void VirtioBlk::irq_handler() {
-  
+
   debug2("<VirtioBlk> IRQ handler\n");
 
   //Virtio Std. § 4.1.5.5, steps 1-3
@@ -128,7 +128,7 @@ void VirtioBlk::irq_handler() {
     // This now means service RX & TX interchangeably
     service_RX();
   }
-  
+
   // Step 2. B)
   if (isr & 2) {
     debug("\t <VirtioBlk> Configuration change:\n");
@@ -138,7 +138,7 @@ void VirtioBlk::irq_handler() {
     get_config();
     //debug("\t             New status: 0x%x \n", config.status);
   }
-  
+
   IRQ_manager::eoi(irq());
 }
 
@@ -169,22 +169,22 @@ void VirtioBlk::handle(request_t* hdr) {
 }
 
 void VirtioBlk::service_RX() {
-  
+
   int handled = 0;
   req.disable_interrupts();
   do {
     auto tok = req.dequeue();
     if (!tok.data()) break;
-    
+
     // only handle the main header of each request
     auto* hdr = (request_t*) tok.data();
     handle(hdr);
     inflight--; handled++;
     // delete request(!)
     delete hdr;
-    
+
   } while (true);
-  
+
   // only ship more if we have nothing more queued (??)
   if (inflight == 0) {
     // if we have lots of free space and jobs, ship many
@@ -198,17 +198,17 @@ void VirtioBlk::service_RX() {
     if (shipped) req.kick();
   }
   req.enable_interrupts();
-  
-  //printf("inflight: %d  handled: %d  shipped: %d  num_free: %u\n", 
+
+  //printf("inflight: %d  handled: %d  shipped: %d  num_free: %u\n",
   //    inflight, handled, scnt, req.num_free());
 }
 
 void VirtioBlk::shipit(request_t* vbr) {
-  
+
   Token token1 { { (uint8_t*) &vbr->hdr, sizeof(scsi_header_t) }, Token::OUT };
   Token token2 { { (uint8_t*) &vbr->io, sizeof(blk_io_t) }, Token::IN };
   Token token3 { { (uint8_t*) &vbr->resp, 1 }, Token::IN }; // 1 status byte
-  
+
   std::array<Token, 3> tokens {{ token1, token2, token3 }};
   req.enqueue(tokens);
   inflight++;
@@ -228,14 +228,14 @@ void VirtioBlk::read (block_t blk, on_read_func func) {
   }
 }
 void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
-  
+
   bool shipped = false;
   // create big buffer for collecting all the disk data
   uint8_t* bufdata = new uint8_t[block_size() * cnt];
   buffer_t bigbuf { bufdata, std::default_delete<uint8_t[]>() };
   // (initialized) boolean array of partial jobs
   auto results = std::make_shared<size_t> (cnt);
-  
+
   for (int i = cnt-1; i >= 0; i--)
   {
     // create a special request where we collect all the data

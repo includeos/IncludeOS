@@ -95,10 +95,9 @@ public:
 
   /**
    *  Subscribe to an IRQ
-
+   *
    *  @param irq: The IRQ to subscribe to
    *  @param del: A delegate to attach to the IRQ DPC-system
-
    *  The delegate will be called a.s.a.p. after @param irq gets triggered
    *
    *  @warning The delegate is responsible for signalling a proper EOI
@@ -122,12 +121,19 @@ public:
    */
   static void eoi(uint8_t irq);
 
-  
+  /**
+   * Get the IRQ manager for a specific CPU core
+   */
+  static inline IRQ_manager& cpu(uint16_t){
+    static IRQ_manager bsp;
+    return bsp;
+  }
+
   uint8_t get_next_msix_irq();
 
 
   void register_interrupt(uint8_t vector);
-  
+
   irq_delegate get_intr_handler(uint8_t vector) {
     return irq_delegates_[vector];
   }
@@ -137,13 +143,13 @@ private:
   bool         idt_is_set                {false};
   irq_delegate irq_delegates_[IRQ_LINES];
   int32_t      irq_counters_[IRQ_LINES]  {0};
-  
+
   int timer_interrupts {0};
-  
+
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
-  
+
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};
 
@@ -159,7 +165,7 @@ private:
                    void (*function_addr)(),
                    uint16_t segment_sel,
                    char attributes);
-  
+
   /** The OS will call the following : */
   friend class OS;
   friend void ::irq_default_handler();
@@ -168,13 +174,10 @@ private:
   static void init();
 
   void bsp_init();
-  
+
   /** Notify all delegates waiting for interrupts */
   void notify();
 
 }; //< IRQ_manager
-
-// IDT manager for bootstrap processor
-extern IRQ_manager bsp_idt;
 
 #endif //< KERNEL_IRQ_MANAGER_HPP

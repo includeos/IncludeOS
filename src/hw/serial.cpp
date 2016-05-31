@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,17 +35,17 @@ void Serial::init(){
   hw::outb(port_ + 4, 0x0B);    // IRQs enabled, RTS/DSR set
 }
 
-Serial::Serial(int port) : 
-  nr_{port}, 
+Serial::Serial(int port) :
+  nr_{port},
   port_{ port < 5 ? ports_[port -1] : 0 }
 {
   //init();
 }
 
 void Serial::on_data(on_data_handler del){
-  enable_interrupt();    
+  enable_interrupt();
   on_data_=del;
-  bsp_idt.subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
+  IRQ_manager::cpu(0).subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
   INFO("Serial", "Subscribing to IRQ %i \n",irq_);
 }
 
@@ -59,13 +59,13 @@ void Serial::on_readline(on_string_handler del, char delim){
 
 void Serial::enable_interrupt(){
   outb(port_ + 1, 0x01);
-  IRQ_manager::eoi(irq_);  
+  IRQ_manager::eoi(irq_);
 }
 
 void Serial::disable_interrupt(){
   outb(port_ + 1, 0x00);
 }
-    
+
 char Serial::read(){
   return hw::inb(port_);
 }
@@ -74,7 +74,7 @@ void Serial::write(char c){
   while (is_transmit_empty() == 0);
   hw::outb(port_, c);
 }
-    
+
 int Serial::received(){
   return hw::inb(port_ + 5) & 1;
 }
@@ -84,29 +84,29 @@ int Serial::is_transmit_empty() {
 }
 
 
-void Serial::irq_handler_ () { 
+void Serial::irq_handler_ () {
   IRQ_manager::eoi(irq_);
-  
+
   while (received())
     on_data_(read());
-    
+
 }
 
 
-void Serial::readline_handler_ (char c) { 
-  
+void Serial::readline_handler_ (char c) {
+
   if (c != newline) {
     buf += c;
     write(c);
     return;
   }
-  
+
 #ifdef DEBUG
   for ( auto& ch : buf )
     debug(" 0x%x | ", ch);
-#endif 
-  
+#endif
+
   // Call the event handler
-  on_readline_(buf);    
+  on_readline_(buf);
   buf.clear();
 }

@@ -28,8 +28,6 @@
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
 
-IRQ_manager bsp_idt;
-
 uint8_t IRQ_manager::get_next_msix_irq()
 {
   static uint8_t next_msix_irq = MSIX_IRQ_BASE;
@@ -38,7 +36,7 @@ uint8_t IRQ_manager::get_next_msix_irq()
 
 void IRQ_manager::enable_interrupts() {
   // Manual:
-  // The IF flag and the STI and CLI instructions have no affect on 
+  // The IF flag and the STI and CLI instructions have no affect on
   // the generation of exceptions and NMI interrupts.
   asm volatile("sti");
 }
@@ -61,7 +59,7 @@ void exception_handler()
 {
   printf("ISR: 0x%x  IRR: 0x%x\n",
     hw::APIC::get_isr(), hw::APIC::get_irr());
-  
+
 #define frp(N, ra)                                      \
   (__builtin_frame_address(N) != nullptr) &&            \
     (ra = __builtin_return_address(N)) != nullptr
@@ -103,12 +101,12 @@ void IRQ_manager::register_interrupt(uint8_t vector)
 {
   irq_pend.set(vector);
   __sync_fetch_and_add(&irq_counters_[vector], 1);
-  
+
   //debug("<IRQ> IRQ %u pending. Count %d\n", vector, irq_counters_[vector]);
 }
 #define IRQ_HANDLER(I)              \
   void irq_##I##_handler() {        \
-    bsp_idt.register_interrupt(I);  \
+    IRQ_manager::cpu(0).register_interrupt(I);  \
   }
 
 /* Macro magic to register default gates */
@@ -165,19 +163,19 @@ extern "C"{
   IRQ_PAIR(0) IRQ_PAIR(1) IRQ_PAIR(3) IRQ_PAIR(4) IRQ_PAIR(5)
   IRQ_PAIR(6) IRQ_PAIR(7) IRQ_PAIR(8) IRQ_PAIR(9) IRQ_PAIR(10)
   IRQ_PAIR(11) IRQ_PAIR(12) IRQ_PAIR(13) IRQ_PAIR(14) IRQ_PAIR(15)
-  
+
   void modern_interrupt_handler();
   void register_modern_interrupt()
   {
     uint8_t vector = hw::APIC::get_isr();
-    bsp_idt.register_interrupt(vector);
+    IRQ_manager::cpu(0).register_interrupt(vector);
   }
-  
+
 } //End extern
 
 void IRQ_manager::init()
 {
-  bsp_idt.bsp_init();
+  cpu(0).bsp_init();
 }
 
 void IRQ_manager::bsp_init()
@@ -187,7 +185,7 @@ void IRQ_manager::bsp_init()
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
-  
+
   //debug("CPU HAS APIC: %s \n", cpuHasAPIC() ? "YES" : "NO" );
   if (idt_is_set)
     panic(">>> ERROR: Trying to reset IDT");
@@ -207,11 +205,11 @@ void IRQ_manager::bsp_init()
   REG_DEFAULT_EXCPT(12) REG_DEFAULT_EXCPT(13) REG_DEFAULT_EXCPT(14)
   REG_DEFAULT_EXCPT(15) REG_DEFAULT_EXCPT(16) REG_DEFAULT_EXCPT(17)
   REG_DEFAULT_EXCPT(18) REG_DEFAULT_EXCPT(19) REG_DEFAULT_EXCPT(20)
-  
+
   // GATES 21-29 are reserved
   REG_DEFAULT_EXCPT(30) REG_DEFAULT_EXCPT(31)
   INFO2("+ Exception gates set for irq < 32");
-  
+
   //Redirected IRQ 0 - 15
   REG_DEFAULT_IRQ(0) REG_DEFAULT_IRQ(1) REG_DEFAULT_IRQ(3)
   REG_DEFAULT_IRQ(4) REG_DEFAULT_IRQ(5) REG_DEFAULT_IRQ(6)
@@ -223,15 +221,15 @@ void IRQ_manager::bsp_init()
   create_gate(&idt[IRQ_BASE + 1],modern_interrupt_handler,default_sel,default_attr);
   // mouse
   create_gate(&idt[IRQ_BASE + 12],modern_interrupt_handler,default_sel,default_attr);
-  
+
   // Set all interrupt-gates > 47 to "modern" handler
   for (size_t i = 48; i < IRQ_LINES; i++) {
     create_gate(&idt[i],modern_interrupt_handler,default_sel,default_attr);
   }
-  
+
   // spurious interrupts
   create_gate(&idt[0x7F], spurious_intr, default_sel, default_attr);
-  
+
   INFO2("+ Default interrupt gates set for irq >= 32");
 
   // Load IDT
@@ -270,7 +268,7 @@ IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t irq) {
   return (intr_func) addr.whole;
 }
 void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
-  
+
   create_gate(&idt[irq], func, default_sel, default_attr);
 
   /**
@@ -308,18 +306,18 @@ void IRQ_manager::notify() {
   // Get the IRQ's that are both pending and subscribed to
   irq_todo.set_from_and(irq_subs, irq_pend);
   int intr = irq_todo.first_set();
-  
+
   while (intr != -1) {
 
     // sub and call handler
     __sync_fetch_and_sub(&irq_counters_[intr], 1);
     irq_delegates_[intr]();
-    
+
     // reset on zero
     if (irq_counters_[intr] == 0) {
       irq_pend.atomic_reset(intr);
     }
-    
+
     // recreate todo-list
     irq_todo.set_from_and(irq_subs, irq_pend);
     // find next interrupt

@@ -74,10 +74,10 @@ namespace hw {
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
 
-    auto prev_irq_handler = bsp_idt.get_handler(32);
+    auto prev_irq_handler = IRQ_manager::cpu(0).get_handler(32);
 
     debug("<PIT EstimateCPUFreq> Sampling\n");
-    bsp_idt.set_handler(32, cpu_sampling_irq_entry);
+    IRQ_manager::cpu(0).set_handler(32, cpu_sampling_irq_entry);
 
     // GO!
     set_mode(RATE_GEN);
@@ -91,7 +91,7 @@ namespace hw {
     set_mode(temp_mode_);
     set_freq_divider(temp_freq_divider_);
 
-    bsp_idt.set_handler(32, prev_irq_handler);
+    IRQ_manager::cpu(0).set_handler(32, prev_irq_handler);
   }
 
   MHz PIT::CPUFrequency(){
@@ -110,7 +110,7 @@ namespace hw {
 
     if (current_freq_divider_ != millisec_interval)
       set_freq_divider(millisec_interval);
-    
+
     auto cycles_pr_millisec = KHz(CPUFrequency());
     //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
@@ -246,9 +246,9 @@ namespace hw {
     PIT::disable_regular_interrupts();
     // register irq handler
     auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(&instance()));
-    bsp_idt.subscribe(0, handler);
+    IRQ_manager::cpu(0).subscribe(0, handler);
     // must be done to program IOAPIC to redirect to BSP LAPIC
-    bsp_idt.enable_irq(0);
+    IRQ_manager::cpu(0).enable_irq(0);
   }
 
   void PIT::set_mode(Mode mode){
