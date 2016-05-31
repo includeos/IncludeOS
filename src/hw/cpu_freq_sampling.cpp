@@ -46,8 +46,6 @@ namespace hw {
 
   MHz calculate_cpu_frequency(){
   
-    //printf("calculate_cpu_frequency()\n");
-    return MHz(3500);
     // We expect the cpu_sampling_irq_handler to push in samples;
     while (_cpu_timestamps.size() < do_samples_)
       OS::halt();
