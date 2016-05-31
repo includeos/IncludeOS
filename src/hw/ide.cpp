@@ -61,7 +61,7 @@ namespace hw {
 {
   INFO("IDE","VENDOR_ID : 0x%x, PRODUCT_ID : 0x%x", _pcidev.vendor_id(), _pcidev.product_id());
   INFO("IDE","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
-  
+
   /** PCI device checking */
   if (_pcidev.vendor_id() not_eq IDE_VENDOR_ID) {
     panic("This is not an Intel device");
@@ -144,7 +144,7 @@ namespace hw {
       callback(buffer_t());
       return;
     }
-  
+
     set_irq_mode(true);
     set_drive(0xE0 | _drive | ((blk >> 24) & 0x0F));
     set_nbsectors(count);
@@ -171,12 +171,12 @@ namespace hw {
     auto* buffer = new uint8_t[block_size()];
 
     wait_status_flags(IDE_DRDY, false);
-  
+
     uint16_t* wptr = (uint16_t*) buffer;
     uint16_t* wend = (uint16_t*)&buffer[block_size()];
     while (wptr < wend)
       *(wptr++) = inw(IDE_DATA);
-  
+
     // return a shared_ptr wrapper for the buffer
     return buffer_t(buffer, std::default_delete<uint8_t[]>());
   }
@@ -205,7 +205,7 @@ namespace hw {
         if ((ret & flags) not_eq flags)
           break;
       }
-    
+
       ret = inb(IDE_STATUS);
     }
   }
@@ -260,7 +260,7 @@ namespace hw {
     _ide_irqs.push_back(ide_irq(buffer, _current_callback));
     _nb_irqs--;
 
-    bsp_idt.register_interrupt(IDE_IRQN);
+    IRQ_manager::cpu(0).register_interrupt(IDE_IRQN);
   }
 
   extern "C" void ide_irq_entry();
@@ -274,8 +274,8 @@ namespace hw {
 
   void IDE::enable_irq_handler() {
     auto del(delegate<void()>::from<IDE, &IDE::callback_wrapper>(this));
-    bsp_idt.subscribe(IDE_IRQN, del);
-    bsp_idt.set_handler(IDE_IRQN + 32, ide_irq_entry);
+    IRQ_manager::cpu(0).subscribe(IDE_IRQN, del);
+    IRQ_manager::cpu(0).set_handler(IDE_IRQN + 32, ide_irq_entry);
   }
 
 } //< namespace hw

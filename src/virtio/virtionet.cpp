@@ -153,17 +153,17 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
     auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
     // update BSP IDT
-    bsp_idt.subscribe(irq() + 0, xmit_del);
-    bsp_idt.subscribe(irq() + 1, recv_del);
-    bsp_idt.subscribe(irq() + 2, conf_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 0, xmit_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, recv_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 2, conf_del);
   }
   else
   {
     // legacy PCI interrupt
     auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-    bsp_idt.subscribe(irq(),del);
+    IRQ_manager::cpu(0).subscribe(irq(),del);
   }
-  
+
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");
@@ -240,7 +240,7 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  
+
   IRQ_manager::eoi(irq());
 }
 
