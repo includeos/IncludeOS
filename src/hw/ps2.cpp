@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/kbm.hpp>
-#include <hw/apic.hpp>
+#include <hw/ps2.hpp>
 #include <kernel/irq_manager.hpp>
 #include <debug>
 
@@ -153,6 +152,8 @@ namespace hw
     ctl_send(0x20);
     uint8_t config = read_data();
     bool second_port = config & (1 << 5);
+    (void) second_port;
+    
     config |= 0x1 | 0x2; // enable interrupts
     config &= ~(1 << 6);
     
@@ -205,8 +206,8 @@ namespace hw
     assert(KEYB_IRQ != MOUS_IRQ);
     
     // need to route IRQs from IO APIC to BSP LAPIC
-    hw::APIC::enable_irq(KEYB_IRQ);
-    hw::APIC::enable_irq(MOUS_IRQ);
+    bsp_idt.enable_irq(KEYB_IRQ);
+    bsp_idt.enable_irq(MOUS_IRQ);
     
     bsp_idt.subscribe(32 + KEYB_IRQ,
     [KEYB_IRQ] {
@@ -221,8 +222,7 @@ namespace hw
     bsp_idt.subscribe(32 + MOUS_IRQ,
     [MOUS_IRQ] {
       IRQ_manager::eoi(MOUS_IRQ);
-      get().handle_mouse(read_data());
-      ps2_flush();
+      get().handle_mouse(read_fast());
     });
     
     /*

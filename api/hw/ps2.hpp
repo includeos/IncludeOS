@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_KBM_HPP
-#define HW_KBM_HPP
+#ifndef HW_PS2_HPP
+#define HW_PS2_HPP
 
 #include <functional>
 #include <cstdint>
