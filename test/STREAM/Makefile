@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = STREAM
+SERVICE = test_STREAM
 SERVICE_NAME = STREAM Memory benchmark
 
 # Your service parts
