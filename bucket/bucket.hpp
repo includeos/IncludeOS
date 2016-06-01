@@ -1,8 +1,11 @@
 #ifndef BUCKET_BUCKET_HPP
 #define BUCKET_BUCKET_HPP
 
-#include <map>
 #include <vector>
+#include <string>
+#include <unordered_map>
+
+#include "bucket_errors.hpp"
 
 namespace bucket {
 
@@ -11,16 +14,22 @@ namespace bucket {
  * @details Stores an object together with a key.
  *
  * @tparam T What to put in the bucket
+ *
+ * @note Type {T} must contain a public member <key>
+ *       of type {size_t} and must implement the
+ *       json::Serializable interface. Also, type {T}
+ *       cannot be declared as {const} since the member
+ *       <key> is assigned to from within the Bucket.
  */
 template <typename T>
 class Bucket {
 private:
-  using Key = size_t;
-  using Collection = std::map<Key, T>;
-  using Content = std::pair<Key, T>;
+  using Key        = size_t;
+  using Collection = std::unordered_map<Key, T>;
+  using Content    = Collection::value_type;
 
 public:
-  Bucket();
+  explicit Bucket();
 
   /**
    * @brief Capture something inside the bucket.
@@ -33,7 +42,7 @@ public:
 
   /**
    * @brief Uses black magic to spawn a new something inside the bucket.
-   * @details Call emplace on the underlying map, while also assigning a unique key.
+   * @details Call emplace on the underlying container, while also assigning a unique key.
    *
    * @param  Constructor args to something
    * @return The created something
@@ -43,7 +52,8 @@ public:
 
   /**
    * @brief Pick up the something with the given key inside the bucket.
-   * @details Using key to find the object inside the map. Throws if not found
+   * @details Using key to find the object inside the container.
+   * @throws Throws type {ObjectNotFound} if the object doesn't exist
    *
    * @param  The key to the something
    * @return (Hopefully) the something with the given key.
@@ -52,7 +62,7 @@ public:
 
   /**
    * @brief Abandon/release the something with the given key
-   * @details Calls earse on the underlying map
+   * @details Calls earse on the underlying container
    *
    * @param  The key to the something.
    * @return Wheter something was abandoned or not.
@@ -61,7 +71,7 @@ public:
 
   /**
    * @brief Lineup everything inside the bucket.
-   * @details Builds a vector with only the values from the underlying map.
+   * @details Builds a vector with only the values from the underlying container.
    * @return A vector with all the content inside the bucket.
    */
   std::vector<T> lineup() const;
@@ -70,20 +80,19 @@ public:
   void serialize(Writer& writer) const;
 
 private:
-  Key idx;
+  Key        idx_;
   Collection bucket_;
-
 };
 
 template <typename T>
-Bucket<T>::Bucket() : idx(1), bucket_()
+Bucket<T>::Bucket() : idx_{1}, bucket_{}
 {
 
 }
 
 template <typename T>
 size_t Bucket<T>::capture(T& obj) {
-  obj.key = idx++;
+  obj.key = idx_++;
   bucket_.insert({obj.key, obj});
   return obj.key;
 }
@@ -91,7 +100,7 @@ size_t Bucket<T>::capture(T& obj) {
 template <typename T>
 template <typename... Args>
 T& Bucket<T>::spawn(Args&&... args) {
-  Key id = idx++;
+  Key id = idx_++;
   bucket_.emplace(id, T{args...});
   auto& obj = bucket_[id];
   obj.key = id;
@@ -101,9 +110,10 @@ T& Bucket<T>::spawn(Args&&... args) {
 template <typename T>
 T& Bucket<T>::pick_up(const Key key) {
   auto it = bucket_.find(key);
-  if(it != bucket_.end())
+  if(it not_eq bucket_.end()) {
     return it->second;
-  throw "not found";
+  }
+  throw ObjectNotFound{"No object exist with key: " + std::to_string(key)};
 }
 
 template <typename T>
@@ -113,25 +123,25 @@ bool Bucket<T>::abandon(const Key key) {
 
 template <typename T>
 std::vector<T> Bucket<T>::lineup() const {
-  std::vector<T> vec;
-  vec.reserve(bucket_.size());
-  for(auto content : bucket_)
-    vec.push_back(content.second);
-  assert(vec.size() == bucket_.size());
-  return vec;
+  std::vector<T> line;
+  line.reserve(bucket_.size());
+  for(auto& content : bucket_) {
+    line.push_back(content.second);
+  }
+  assert(line.size() == bucket_.size());
+  return line;
 }
 
 template <typename T>
 template <typename Writer>
 void Bucket<T>::serialize(Writer& writer) const {
   writer.StartArray();
-  for(auto content : bucket_)
+  for(auto& content : bucket_) {
     content.second.serialize(writer);
+  }
   writer.EndArray();
 }
 
+} // < namespace bucket
 
-
-}; // < namespace bucket
-
-#endif
+#endif //< BUCKET_BUCKET_HPP
