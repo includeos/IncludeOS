@@ -62,20 +62,20 @@ void OS::start() {
 
   // read ACPI tables
   hw::ACPI::init();
-  
+
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
-  
+
   // Set up interrupt handlers
   IRQ_manager::init();
-  
+
   INFO("BSP", "Enabling interrupts");
   hw::APIC::setup_subs();
-  bsp_idt.enable_interrupts();
-  
+  IRQ_manager::cpu(0).enable_interrupts();
+
   // Initialize the Interval Timer
   hw::PIT::init();
-  
+
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -118,7 +118,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    bsp_idt.notify();
+    IRQ_manager::cpu(0).notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 

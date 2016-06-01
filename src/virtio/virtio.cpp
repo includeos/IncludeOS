@@ -76,7 +76,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
   _iobase = _pcidev.iobase();
-  
+
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
@@ -106,7 +106,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // read caps
   _pcidev.parse_capabilities();
-  
+
   // initialize MSI-X if available
   if (_pcidev.msix_cap())
   {
@@ -114,30 +114,30 @@ Virtio::Virtio(hw::PCI_Device& dev)
     if (is_msix())
     {
       INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
-      
+
       // remember the base IRQ
-      this->_irq = bsp_idt.get_next_msix_irq();
+      this->_irq = IRQ_manager::cpu(0).get_next_msix_irq();
       _pcidev.setup_msix_vector(0x0, this->_irq);
-      
+
       // setup all the other vectors
       for (int i = 1; i < get_msix_vectors(); i++)
       {
-        auto irq = bsp_idt.get_next_msix_irq();
+        auto irq = IRQ_manager::cpu(0).get_next_msix_irq();
         _pcidev.setup_msix_vector(0x0, irq);
       }
-      
+
     }
     else
       INFO2("[ ] No MSI-X vectors?");
   }
-  
+
   // use legacy if msix was not enabled
   if (is_msix() == false)
   {
     // Fetch IRQ from PCI resource
     set_irq();
     CHECK(_irq, "Unit has legacy IRQ %i", _irq);
-    
+
     // create IO APIC entry for legacy interrupt
     hw::APIC::enable_irq(_irq);
   }
@@ -174,7 +174,7 @@ uint32_t Virtio::queue_size(uint16_t index){
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
-  
+
   if (_pcidev.is_msix())
   {
     // also update virtio MSI-X queue vector
@@ -183,7 +183,7 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
     // in which case we probably don't wanna continue anyways
     assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
-  
+
   return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
 }
 
@@ -224,5 +224,5 @@ void Virtio::default_irq_handler(){
 void Virtio::enable_irq_handler()
 {
   auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
-  bsp_idt.subscribe(_irq, del);
+  IRQ_manager::cpu(0).subscribe(_irq, del);
 }

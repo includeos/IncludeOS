@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test_IRQ_PIC
+SERVICE = test_IRQ_PIC
 SERVICE_NAME = IncludeOS IRQ PIC test
 
 # Your service parts

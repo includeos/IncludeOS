@@ -45,20 +45,20 @@ namespace hw
   typedef void (*port_func)(uint8_t);
   port_func keyboard_write;
   port_func mouse_write;
-  
+
   static inline void ps2_flush()
   {
     while (hw::inb(PS2_STATUS) & 1)
       hw::inb(PS2_DATA_PORT);
   }
-  
+
   static void ctl_send(uint8_t cmd)
   {
     while (hw::inb(PS2_STATUS) & 2);
     hw::outb(PS2_COMMAND, cmd);
     while (hw::inb(PS2_STATUS) & 2);
   }
-  
+
   static inline uint8_t read_data()
   {
     while (!(hw::inb(PS2_STATUS) & 1));
@@ -73,7 +73,7 @@ namespace hw
     while (hw::inb(PS2_STATUS) & 2);
     hw::outb(PS2_DATA_PORT, cmd);
   }
-  
+
   static void write_port1(uint8_t val)
   {
     uint8_t res = 0xFE;
@@ -91,7 +91,7 @@ namespace hw
       res = read_data();
     }
   }
-  
+
   int KBM::transform_vk(uint8_t scancode)
   {
     if (scancode == 0x0)
@@ -128,15 +128,15 @@ namespace hw
     case 0x39:
       return VK_SPACE;
     }
-    
-    
+
+
     return VK_UNKNOWN;
   }
   void KBM::handle_mouse(uint8_t scancode)
   {
     (void) scancode;
   }
-  
+
   KBM::KBM() {
     this->on_virtualkey = [] (int) {};
     this->on_mouse = [] (int,int,int) {};
@@ -147,35 +147,35 @@ namespace hw
     ctl_send(CMD_DISABLE_PORT1);
     ctl_send(CMD_DISABLE_PORT2);
     ps2_flush();
-    
+
     // configure controller
     ctl_send(0x20);
     uint8_t config = read_data();
     bool second_port = config & (1 << 5);
     (void) second_port;
-    
+
     config |= 0x1 | 0x2; // enable interrupts
     config &= ~(1 << 6);
-    
+
     // write config
     ctl_send(0x60);
     send_data(config);
-    
+
     ps2_flush();
-    
+
     // enable port1
     ctl_send(CMD_ENABLE_PORT1);
-    
+
     ps2_flush();
-    
+
     // self-test (port1)
     write_port1(0xFF);
     uint8_t selftest = read_data();
     assert(selftest == 0xAA);
-    
+
     write_port1(DEV_IDENTIFY);
     uint8_t id1 = read_data();
-    
+
     if (id1 == 0xAA || id1 == 0xAB) {
       // port1 is the keyboard
       debug("keyboard on port1\n");
@@ -188,10 +188,10 @@ namespace hw
       mouse_write    = write_port1;
       keyboard_write = write_port2;
     }
-    
+
     // enable keyboard
     keyboard_write(0xF4);
-    
+
     // get and set scancode
     keyboard_write(0xF0);
     send_data(0x01);
@@ -199,17 +199,17 @@ namespace hw
     send_data(0x00);
     uint8_t scanset = 0xFA;
     while (scanset == 0xFA) scanset = read_data();
-    
+
     // route and enable interrupt handlers
     const uint8_t KEYB_IRQ = (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
     const uint8_t MOUS_IRQ = (KEYB_IRQ == PORT1_IRQ) ? PORT2_IRQ : PORT1_IRQ;
     assert(KEYB_IRQ != MOUS_IRQ);
-    
+
     // need to route IRQs from IO APIC to BSP LAPIC
-    bsp_idt.enable_irq(KEYB_IRQ);
-    bsp_idt.enable_irq(MOUS_IRQ);
-    
-    bsp_idt.subscribe(32 + KEYB_IRQ,
+    IRQ_manager::cpu(0).enable_irq(KEYB_IRQ);
+    IRQ_manager::cpu(0).enable_irq(MOUS_IRQ);
+
+    IRQ_manager::cpu(0).subscribe(32 + KEYB_IRQ,
     [KEYB_IRQ] {
       IRQ_manager::eoi(KEYB_IRQ);
       uint8_t byte = read_fast();
@@ -218,24 +218,24 @@ namespace hw
       // call handler
       get().on_virtualkey(key);
     });
-    
-    bsp_idt.subscribe(32 + MOUS_IRQ,
+
+    IRQ_manager::cpu(0).subscribe(32 + MOUS_IRQ,
     [MOUS_IRQ] {
       IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_fast());
     });
-    
+
     /*
     // reset and enable keyboard
     send_data(0xF6);
-    
+
     // enable keyboard scancodes
     send_data(0xF4);
-    
+
     // enable interrupts
     //ctl_send(0x60, ctl_read(0x20) | 0x1 | 0x2);
     */
-    
+
     printf("!!! keyboard initialized\n");
   }
 }
