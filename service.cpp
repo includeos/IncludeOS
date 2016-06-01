@@ -22,15 +22,14 @@
 #include "server/server.hpp"
 
 std::unique_ptr<server::Server> server_;
-
-#include <memdisk>
-#include <fs/fat.hpp> // FAT32 filesystem
-using namespace fs;
 using namespace std;
+
+#include <fs/disk.hpp>
 
 ////// DISK //////
 // instantiate disk with filesystem
-auto disk = fs::new_shared_memdisk();
+//#include <filesystem>
+fs::Disk_ptr disk;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   auto& filesys = disk->fs();
@@ -42,7 +41,9 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
       // Normal dirs
       if (entry.name() != "."  and entry.name() != "..") {
         printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
-        recursive_fs_dump(*filesys.ls(entry).entries, depth + 1 );
+        filesys.ls(entry, [depth](auto, auto entries) {
+          recursive_fs_dump(*entries, depth + 1);
+        });
       } else {
         printf(" %*s  %s \n", indent, "+", entry.name().c_str());
       }
@@ -90,6 +91,9 @@ std::shared_ptr<SquirrelBucket> squirrels;
 
 void Service::start() {
 
+  auto& device = hw::Dev::disk<1, VirtioBlk>();
+  disk = std::make_shared<fs::Disk> (device);
+
   uri::URI uri1("asdf");
 
   printf("<URI> Test URI: %s \n", uri1.to_string().c_str());
@@ -106,26 +110,10 @@ void Service::start() {
 
       server::Router routes;
 
-      routes.on_get("/api/users/.*", [](auto req, auto res) {
+      routes.on_get("/api/users/.*", [](auto, auto res) {
           res->add_header(http::header_fields::Entity::Content_Type,
                           "text/JSON; charset=utf-8"s)
             .add_body("{\"id\" : 1, \"name\" : \"alfred\"}"s);
-
-          res->send();
-        });
-
-      routes.on_get("/books/.*", [](auto req, auto res) {
-          res->add_header(http::header_fields::Entity::Content_Type,
-                          "text/HTML; charset=utf-8"s)
-            .add_body("<html><body>"
-                      "<h1>Books:</h1>"
-                      "<ul>"
-                      "<li> borkman.txt </li>"
-                      "<li> fables.txt </li>"
-                      "<li> poetics.txt </li>"
-                      "</ul>"
-                      "</body></html>"s
-                      );
 
           res->send();
         });
@@ -174,11 +162,21 @@ void Service::start() {
         else {
           auto& doc = json->doc();
           try {
+            // create an empty model
             acorn::Squirrel s;
+            // deserialize it
             s.deserialize(doc);
-            printf("[@POST:/api/squirrels] Squirrel created: %s\n", s.json().c_str());
-            squirrels->capture(s);
-            res->send_code(http::Created);
+            // add to bucket
+            auto id = squirrels->capture(s);
+            assert(id == s.key);
+            printf("[@POST:/api/squirrels] Squirrel captured: %s\n", s.json().c_str());
+            // setup the response
+            // location to the newly created resource
+            res->add_header(http::header_fields::Response::Location, "/api/squirrels/"s); // return back end loc i guess?
+            // status code 201 Created
+            res->set_status_code(http::Created);
+            // send the created entity as response
+            res->send_json(s.json());
           }
           catch(AssertException e) {
             res->send_code(http::Bad_Request);
@@ -186,6 +184,20 @@ void Service::start() {
           }
         }
 
+      });
+
+      routes.on_get(".*", [](auto, auto res){
+          disk->fs().readFile("/public/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
+            if(err) {
+              res->set_status_code(http::Not_Found);
+            } else {
+              // fill Response with content from index.html
+              printf("[@GET:*] (Fallback) Responding with index.html. \n");
+              res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
+                .add_body(std::string{(const char*) buff.get(), len});
+            }
+            res->send();
+          });
       });
       // initialize server
       server_ = std::make_unique<server::Server>();
@@ -204,25 +216,27 @@ void Service::start() {
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
       //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
-      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "public", opt); // WIP
+      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt); // WIP
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory
-      server::Middleware_ptr director = std::make_shared<Director>(disk);
-      server_->use(director);
+      server::Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
+      server_->use("/static", director);
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
 
-      auto vec = disk->fs().ls("/").entries;
+      disk->fs().ls("/", [](auto, auto entries) {
+        printf("------------------------------------ \n");
+        printf(" Disk contents \n");
+        printf("------------------------------------ \n");
+        recursive_fs_dump(*entries);
+        printf("------------------------------------ \n");
+      });
 
 
-      printf("------------------------------------ \n");
-      printf(" Memdisk contents \n");
-      printf("------------------------------------ \n");
-      recursive_fs_dump(*vec);
-      printf("------------------------------------ \n");
+
 
       hw::PIT::instance().onRepeatedTimeout(15s, []{
         printf("%s\n", server_->ip_stack().tcp().status().c_str());

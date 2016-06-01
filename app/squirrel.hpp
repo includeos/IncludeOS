@@ -29,6 +29,9 @@ std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
 void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.StartObject();
 
+  writer.Key("key");
+  writer.Uint(key);
+
   writer.Key("name");
   writer.String(name);
 

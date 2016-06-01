@@ -29,6 +29,14 @@
 
 namespace server {
 
+inline bool path_starts_with(const std::string& path, const std::string& start) {
+  if(path.size() < start.size())
+    return false;
+  if(path == start)
+    return true;
+  return path.substr(0, std::min(start.size(), path.size())) == start;
+}
+
 //-------------------------------
 // This class is a simple dumb
 // HTTP server for service testing
@@ -41,7 +49,13 @@ private:
   using Port     = const unsigned;
   using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
   using OnConnect = net::TCP::Connection::ConnectCallback;
-  using MiddlewareStack = std::vector<Callback>;
+  using Path = std::string;
+  struct MappedCallback {
+    Path path;
+    Callback callback;
+    MappedCallback(Path pth, Callback cb) : path(pth), callback(cb) {}
+  };
+  using MiddlewareStack = std::vector<MappedCallback>;
   //-------------------------------
 public:
   //-------------------------------
@@ -89,9 +103,15 @@ public:
 
   void process(Request_ptr, Response_ptr);
 
-  void use(Middleware_ptr);
+  inline void use(Middleware_ptr mw)
+  { use("/", mw); }
 
-  void use(Callback);
+  void use(const Path&, Middleware_ptr);
+
+  inline void use(Callback cb)
+  { use("/", cb); }
+
+  void use(const Path&, Callback);
 
 private:
   //-------------------------------

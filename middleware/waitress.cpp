@@ -78,6 +78,14 @@ public:
         if(err) {
           printf("<Waitress> File not found. Replying with 404.\n");
           return res->send_code(http::Not_Found);
+          /*
+          if(!options_.fallthrough) {
+            printf("<Waitress> File not found. Replying with 404.\n");
+            return res->send_code(http::Not_Found);
+          }
+          else {
+            return (*next)();
+          }*/
         }
         else {
           printf("<Waitress> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());

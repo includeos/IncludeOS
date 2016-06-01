@@ -4,3 +4,4 @@ Acorn
 *.fat
 *.o
 *.d
+mnt/

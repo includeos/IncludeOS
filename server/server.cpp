@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <utility>
 
 // #define DEBUG
 
@@ -63,10 +64,15 @@ void Server::process(Request_ptr req, Response_ptr res) {
   *next = [this, it_ptr, next, req, res] {
     // derefence the the pointer to the iterator
     auto& it = *it_ptr;
+
+    // skip does who don't match
+    while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
+      it++;
+
     // while there is more to do
     if(it != middleware_.end()) {
       // dereference the function
-      auto& func = *it;
+      auto& func = it->callback;
       // advance the iterator for the next next call
       it++;
       // execute the function
@@ -92,11 +98,12 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
   }
 }
 
-void Server::use(Middleware_ptr mw_ptr) {
+void Server::use(const Path& path, Middleware_ptr mw_ptr) {
   mw_storage_.push_back(mw_ptr);
-  use(mw_ptr->callback());
+  mw_ptr->onMount(path);
+  use(path, mw_ptr->callback());
 }
 
-void Server::use(Callback callback) {
-  middleware_.push_back(callback);
+void Server::use(const Path& path, Callback callback) {
+  middleware_.emplace_back(path, callback);
 }

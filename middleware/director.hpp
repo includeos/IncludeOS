@@ -22,7 +22,8 @@ public:
   const static std::string HTML_HEADER;
   const static std::string HTML_FOOTER;
 
-  Director(SharedDisk disk) : disk_(disk) {}
+  Director(SharedDisk disk, std::string root)
+    : disk_(disk), root_(root) {}
 
   virtual void process(
     server::Request_ptr req,
@@ -32,9 +33,13 @@ public:
   {
     // get path
     std::string path = req->uri().path();
-    normalize_trailing_slashes(path);
 
-    disk_->fs().ls(path, [this, req, res, next, path](auto err, auto entries) {
+    auto fpath = resolve_file_path(path);
+
+    printf("<Director> Path: %s\n", fpath.c_str());
+
+    normalize_trailing_slashes(path);
+    disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
       // Path not found on filesystem, go next
       if(err) {
         return (*next)();
@@ -46,8 +51,14 @@ public:
     });
   }
 
+  virtual void onMount(const std::string& path) override {
+    Middleware::onMount(path);
+    printf("<Director> Mounted on [ %s ]\n", path.c_str());
+  }
+
 private:
   SharedDisk disk_;
+  std::string root_;
 
   std::string create_html(Entries entries, const std::string& path) {
     std::ostringstream ss;
@@ -69,6 +80,11 @@ private:
   void normalize_trailing_slashes(std::string& path) {
     if(!path.empty() && path.back() != '/')
       path += '/';
+  }
+
+  std::string resolve_file_path(std::string path) {
+    path.replace(0,mountpath_.size(), root_);
+    return path;
   }
 
 }; // < class Director
