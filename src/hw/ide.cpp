@@ -244,7 +244,6 @@ namespace hw {
   extern "C" void ide_irq_handler() {
     if (!_nb_irqs || _current_callback == nullptr) {
       IDE::set_irq_mode(false);
-      IRQ_manager::eoi(IDE_IRQN);
       return;
     }
 

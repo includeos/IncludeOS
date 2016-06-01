@@ -11,22 +11,14 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 #include <vga>
 ConsoleVGA vga;
 
-void list_partitions(decltype(disk));
-
-void print_shit(fs::Disk_ptr disk)
+void print_shit()
 {
   static size_t ints = 0;
   printf("PIT Interrupt #%u\n", ++ints);
   
-  disk->dev().read(0,
-  [disk] (fs::buffer_t buffer)
-  {
-    assert(!!buffer);
-    hw::PIT::on_timeout(0.25, [disk] { print_shit(disk); });
-  });
+  hw::PIT::on_timeout(0.25, [] { print_shit(); });
 }
 
-#include <hw/apic.hpp>
 #include <hw/ps2.hpp>
 
 #include <string>
@@ -298,6 +290,9 @@ void begin_snake()
 
 void Service::start()
 {
+  hw::PIT::on_timeout(0.2, [] { print_shit(); });
+  
+  /*
   OS::set_rsprint(
   [] (const char* data, size_t len)
   {
@@ -307,7 +302,6 @@ void Service::start()
   hw::KBM::init();
   // we have to start snake later to avoid late text output
   hw::PIT::on_timeout(0.2, [] { begin_snake(); });
-  
   
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<1, VirtioBlk>();
@@ -350,9 +344,6 @@ void Service::start()
       printf("Success: All big buffers accounted for\n");
   });
   
-  // list extended partitions
-  list_partitions(disk);
-
   // mount first valid partition (auto-detect and mount)
   disk->mount(
   [] (fs::error_t err) {
@@ -400,21 +391,7 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
+  */
   
   printf("*** TEST SERVICE STARTED *** \n");
-}
-
-void list_partitions(decltype(disk) disk)
-{
-  disk->partitions(
-  [] (fs::error_t err, auto& parts) {
-    if (err) {
-      printf("Failed to retrieve volumes on disk\n");
-      return;
-    }
-    
-    for (auto& part : parts)
-      printf("[Partition]  '%s' at LBA %u\n",
-             part.name().c_str(), part.lba());
-  });
 }

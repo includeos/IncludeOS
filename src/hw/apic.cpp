@@ -441,8 +441,6 @@ namespace hw {
     // IRQ handler for completed async jobs
     IRQ_manager::cpu(0).subscribe(BSP_LAPIC_IPI_IRQ,
     [] {
-      eoi();
-
       // copy all the done functions out from queue to our local queue
       std::deque<smp_done_func> done;
       lock(smp.flock);

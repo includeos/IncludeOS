@@ -108,19 +108,9 @@ public:
    */
   void subscribe(uint8_t irq, irq_delegate del);
 
-  /**
-   *  End of Interrupt
-   *
-   *  Indicate to the IRQ-controller that the IRQ is handled, allowing new irq.
-   *
-   *  @param irq: The interrupt number
-   *
-   *  @note Until this is called, no furter IRQ's will be triggered on this line
-   *
-   *  @warning This function is only supposed to be called inside an IRQ-handler
-   */
-  static void eoi(uint8_t irq);
-
+  // start accepting interrupts
+  static void enable_interrupts();
+  
   /**
    * Get the IRQ manager for a specific CPU core
    */
@@ -152,9 +142,6 @@ private:
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};
-
-  /** STI */
-  void enable_interrupts();
 
   /**
    *  Create an IDT-gate

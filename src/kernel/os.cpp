@@ -71,7 +71,7 @@ void OS::start() {
 
   INFO("BSP", "Enabling interrupts");
   hw::APIC::setup_subs();
-  IRQ_manager::cpu(0).enable_interrupts();
+  IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer
   hw::PIT::init();
@@ -79,7 +79,7 @@ void OS::start() {
   // Initialize PCI devices
   PCI_manager::init();
 
-  /** Estimate CPU frequency
+  // Estimate CPU frequency
 
       MYINFO("Estimating CPU-frequency");
       INFO2("|");
@@ -91,8 +91,6 @@ void OS::start() {
       cpu_mhz_ = hw::PIT::CPUFrequency();
 
       INFO2("+--> %f MHz", cpu_mhz_.count());
-
-  **/
 
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');

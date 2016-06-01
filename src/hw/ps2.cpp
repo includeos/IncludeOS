@@ -211,7 +211,7 @@ namespace hw
 
     IRQ_manager::cpu(0).subscribe(32 + KEYB_IRQ,
     [KEYB_IRQ] {
-      IRQ_manager::eoi(KEYB_IRQ);
+      //IRQ_manager::eoi(KEYB_IRQ);
       uint8_t byte = read_fast();
       // transform to virtual key
       int key = get().transform_vk(byte);
@@ -221,7 +221,7 @@ namespace hw
 
     IRQ_manager::cpu(0).subscribe(32 + MOUS_IRQ,
     [MOUS_IRQ] {
-      IRQ_manager::eoi(MOUS_IRQ);
+      //IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_fast());
     });
 

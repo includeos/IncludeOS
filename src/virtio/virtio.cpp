@@ -217,8 +217,6 @@ void Virtio::default_irq_handler(){
   unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
-
-  IRQ_manager::eoi(_irq);
 }
 
 void Virtio::enable_irq_handler()

@@ -26,8 +26,10 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 void Service::start()
 {
+  void begin_work();
+  //begin_work();
+  
   // boilerplate
-  /*
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
@@ -36,6 +38,7 @@ void Service::start()
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
 
+  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
@@ -122,10 +125,16 @@ void Service::start()
   }); // on_config
   */
   
-  static int completed = 0;
+  printf("*** TEST SERVICE STARTED *** \n");
+}
+
+void begin_work()
+{
   static const int TASKS = 32;
+  static uint32_t completed = 0;
+  static uint32_t job;
   
-  static uint32_t job = 0;
+  job = 0;
   
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
@@ -134,16 +143,15 @@ void Service::start()
     __sync_fetch_and_or(&job, 1 << i);
   }, 
   [i] {
-    printf("completed task %d\n", i);
+    printf("completed task %d\n", completed);
     completed++;
     
-    if (completed == TASKS) {
+    if (completed % TASKS == 0) {
       printf("All jobs are done now, compl = %d\n", completed);
       printf("bits = %#x\n", job);
+      begin_work();
     }
   });
   // start working on tasks
   hw::APIC::work_signal();
-  
-  printf("*** TEST SERVICE STARTED *** \n");
 }

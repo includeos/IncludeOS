@@ -100,8 +100,6 @@ namespace hw {
     if (_cpu_timestamps.size() < do_samples_)
       _cpu_timestamps.push_back(t2);
   
-    IRQ_manager::eoi(0);
-    return;
   }  
 
 } //< namespace hw
