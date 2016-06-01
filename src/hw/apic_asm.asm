@@ -6,7 +6,6 @@ global get_cpu_id
 global reboot
 
 global lapic_irq_entry
-extern lapic_irq_handler
 
 apic_enable:
     push ecx
@@ -47,11 +46,5 @@ reset_idtr:
     dd      0
 
 lapic_irq_entry:
-    ;cli
-    ;call get_cpu_id
-    ;push eax
-    ;call lapic_irq_handler
-    ;pop eax
     call lapic_send_eoi
-    ;sti
     iret
