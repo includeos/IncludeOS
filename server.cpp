@@ -57,7 +57,6 @@ void Server::close(size_t idx) {
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
-
   auto next = std::make_shared<next_t>();
   auto it_ptr = std::make_shared<MiddlewareStack::iterator>(middleware_.begin());
   // setup Next callback
@@ -88,6 +87,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
 }
 
 void Server::process_route(Request_ptr req, Response_ptr res) {
+  printf("<Server> Processing route.\n");
   try {
     router_.match(req->method(), req->uri().path())(req, res);
   }
