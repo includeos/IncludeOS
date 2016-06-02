@@ -41,7 +41,6 @@ void IRQ_manager::enable_interrupts() {
 extern "C"
 {
   void exception_handler() __attribute__((noreturn));
-  void lapic_send_eoi();
   void spurious_intr();
 }
 
@@ -87,6 +86,7 @@ void exception_handler()
  */
 inline void IRQ_manager::register_interrupt(uint8_t vector)
 {
+  vector -= IRQ_BASE; // 0-224
   irq_pend.set(vector);
   __sync_fetch_and_add(&irq_counters_[vector], 1);
 }
@@ -106,7 +106,6 @@ extern "C" {
   {
     uint8_t vector = hw::APIC::get_isr();
     IRQ_manager::cpu(0).register_interrupt(vector);
-    lapic_send_eoi();
   }
 }
 

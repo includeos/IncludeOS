@@ -27,6 +27,7 @@ modern_interrupt_handler:
   cli
   pusha
   call register_modern_interrupt
+  call lapic_send_eoi
   popa
   sti
   iret

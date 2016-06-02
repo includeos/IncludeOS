@@ -95,9 +95,8 @@ namespace hw {
   }
 
   MHz PIT::CPUFrequency(){
-    //if (! _CPUFreq_)
-    //  estimateCPUFrequency();
-    return MHz(2400);
+    if (! _CPUFreq_)
+      estimateCPUFrequency();
 
     return MHz(_CPUFreq_);
   }
@@ -171,7 +170,6 @@ namespace hw {
 
   void PIT::irq_handler(){
     
-    printf("IRQ handler for PIT\n");
     IRQ_counter_ ++;
 
     if (current_freq_divider_ == millisec_interval)
