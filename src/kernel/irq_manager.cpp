@@ -86,8 +86,8 @@ void exception_handler()
  */
 inline void IRQ_manager::register_irq(uint8_t vector)
 {
-  irq_pend.set(vector);
-  __sync_fetch_and_add(&irq_counters_[vector], 1);
+  irq_pend.atomic_set(vector);
+  //__sync_fetch_and_add(&irq_counters_[vector], 1);
 }
 
 /*
@@ -231,17 +231,16 @@ void IRQ_manager::notify() {
 
   while (intr != -1) {
 
+    // reset pending before running handler
+    irq_pend.atomic_reset(intr);
+
     // sub and call handler
-    __sync_fetch_and_sub(&irq_counters_[intr], 1);
-    irq_delegates_[intr]();
+    irq_delegates_[intr](); // irq_counters_[intr]
+    // reset counter
+    //irq_counters_[intr] = 0;
 
-    // reset on zero
-    if (irq_counters_[intr] == 0) {
-      irq_pend.atomic_reset(intr);
-    }
-
-    // recreate todo-list
-    irq_todo.set_from_and(irq_subs, irq_pend);
+    // reset on todo-list
+    irq_todo.reset(intr);
     // find next interrupt
     intr = irq_todo.first_set();
   }
