@@ -76,7 +76,7 @@ void exception_handler()
 
   printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
   extern char _end;
-  printf("Heap end: %#x \n", (uint32_t) &_end);
+  printf("Heap end: %p \n", &_end);
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 

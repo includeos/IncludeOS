@@ -19,10 +19,6 @@ void print_shit()
   hw::PIT::on_timeout(0.25, [] { print_shit(); });
 }
 
-#include <hw/ps2.hpp>
-
-#include <string>
-
 class Snake
 {
 public:
@@ -260,6 +256,7 @@ private:
   std::vector<Part> parts;
 };
 
+#include <hw/ps2.hpp>
 void begin_snake()
 {
   static Snake snake(vga);
@@ -290,9 +287,8 @@ void begin_snake()
 
 void Service::start()
 {
-  hw::PIT::on_timeout(0.2, [] { print_shit(); });
+  //hw::PIT::on_timeout(0.2, [] { print_shit(); });
   
-  /*
   OS::set_rsprint(
   [] (const char* data, size_t len)
   {
@@ -391,7 +387,6 @@ void Service::start()
       }
     }); // ls
   }); // disk->auto_detect()
-  */
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
