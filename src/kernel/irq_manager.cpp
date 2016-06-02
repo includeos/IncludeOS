@@ -141,7 +141,8 @@ void IRQ_manager::bsp_init()
   }
 
   // spurious interrupts (should not happen)
-  create_gate(&idt[0x7F], spurious_intr, default_sel, default_attr);
+  // currently set to be the last interrupt vector
+  create_gate(&idt[INTR_LINES-1], spurious_intr, default_sel, default_attr);
 
   INFO2("+ Default interrupt gates set for irq >= 32");
 

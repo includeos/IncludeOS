@@ -275,8 +275,8 @@ namespace hw {
 
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_IRQ = 0x7f; // IRQ 127
-    lapic.enable_intr(SPURIOUS_IRQ);
+    const uint8_t SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
+    lapic.enable_intr(SPURIOUS_INTR);
 
     // acknowledge any outstanding interrupts
     hw::APIC::eoi();

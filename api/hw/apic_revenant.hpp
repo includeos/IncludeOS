@@ -19,7 +19,7 @@
 #ifndef HW_APIC_REVENANT_HPP
 #define HW_APIC_REVENANT_HPP
 
-#define BSP_LAPIC_IPI_IRQ  127
+#define BSP_LAPIC_IPI_IRQ  126
 #define REV_STACK_SIZE     8192
 
 #include <cstdint>
