@@ -28,9 +28,9 @@ ConsoleVGA vga;
 
 void begin_snake()
 {
+  hw::KBM::init();
   static Snake snake(vga);
   
-  hw::KBM::init();
   hw::KBM::set_virtualkey_handler(
   [] (int key) {
     
@@ -66,7 +66,7 @@ void Service::start()
   });
   
   // we have to start snake later to avoid late text output
-  hw::PIT::on_timeout(0.2, [] { begin_snake(); });
+  hw::PIT::on_timeout(0.25, [] { begin_snake(); });
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

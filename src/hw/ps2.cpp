@@ -209,7 +209,7 @@ namespace hw
     IRQ_manager::cpu(0).enable_irq(KEYB_IRQ);
     IRQ_manager::cpu(0).enable_irq(MOUS_IRQ);
 
-    IRQ_manager::cpu(0).subscribe(32 + KEYB_IRQ,
+    IRQ_manager::cpu(0).subscribe(KEYB_IRQ,
     [KEYB_IRQ] {
       //IRQ_manager::eoi(KEYB_IRQ);
       uint8_t byte = read_fast();
@@ -219,7 +219,7 @@ namespace hw
       get().on_virtualkey(key);
     });
 
-    IRQ_manager::cpu(0).subscribe(32 + MOUS_IRQ,
+    IRQ_manager::cpu(0).subscribe(MOUS_IRQ,
     [MOUS_IRQ] {
       //IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_fast());
@@ -235,7 +235,5 @@ namespace hw
     // enable interrupts
     //ctl_send(0x60, ctl_read(0x20) | 0x1 | 0x2);
     */
-
-    printf("!!! keyboard initialized\n");
   }
 }
