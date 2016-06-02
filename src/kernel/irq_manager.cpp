@@ -84,9 +84,8 @@ void exception_handler()
  *  - Set pending flag
  *  - Increment counter
  */
-inline void IRQ_manager::register_interrupt(uint8_t vector)
+inline void IRQ_manager::register_irq(uint8_t vector)
 {
-  vector -= IRQ_BASE; // 0-224
   irq_pend.set(vector);
   __sync_fetch_and_add(&irq_counters_[vector], 1);
 }
@@ -105,7 +104,7 @@ extern "C" {
   void register_modern_interrupt()
   {
     uint8_t vector = hw::APIC::get_isr();
-    IRQ_manager::cpu(0).register_interrupt(vector);
+    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
   }
 }
 
@@ -127,7 +126,7 @@ void IRQ_manager::bsp_init()
 
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
-  idt_reg.limit = IRQ_LINES * sizeof(IDTDescr) - 1;
+  idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
   idt_reg.base = (uint32_t)idt;
 
   INFO("INTR", "Creating interrupt handlers");
@@ -137,7 +136,7 @@ void IRQ_manager::bsp_init()
   }
   
   // Set all interrupt-gates >= 32 to normal handler
-  for (size_t i = 32; i < IRQ_LINES; i++) {
+  for (size_t i = 32; i < INTR_LINES; i++) {
     create_gate(&idt[i],modern_interrupt_handler,default_sel,default_attr);
   }
 
@@ -174,16 +173,21 @@ void IRQ_manager::create_gate(
   idt_entry->zero      = 0;
 }
 
-IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t irq) {
+IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t vec) {
   addr_union addr;
-  addr.lo16 = idt[irq].offset_1;
-  addr.hi16 = idt[irq].offset_2;
+  addr.lo16 = idt[vec].offset_1;
+  addr.hi16 = idt[vec].offset_2;
 
   return (intr_func) addr.whole;
 }
-void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
+IRQ_manager::intr_func IRQ_manager::get_irq_handler(uint8_t irq)
+{
+  return get_handler(irq + IRQ_BASE);
+}
 
-  create_gate(&idt[irq], func, default_sel, default_attr);
+void IRQ_manager::set_handler(uint8_t vec, intr_func func) {
+
+  create_gate(&idt[vec], func, default_sel, default_attr);
 
   /**
    *  The default handlers don't send EOI. If we don't do it here,
@@ -191,6 +195,10 @@ void IRQ_manager::set_handler(uint8_t irq, intr_func func) {
    *  will never get called
    */
   hw::APIC::eoi();
+}
+void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
+{
+  set_handler(irq + IRQ_BASE, func);
 }
 
 void IRQ_manager::enable_irq(uint8_t irq) {

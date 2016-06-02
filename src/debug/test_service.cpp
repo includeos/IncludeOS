@@ -27,7 +27,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 void Service::start()
 {
   void begin_work();
-  //begin_work();
+  begin_work();
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

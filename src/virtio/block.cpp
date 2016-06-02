@@ -84,8 +84,8 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
     auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
     // update BSP IDT
-    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
     IRQ_manager::cpu(0).subscribe(irq() + 0, req_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
   }
   else
   {

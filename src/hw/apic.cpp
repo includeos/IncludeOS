@@ -394,7 +394,7 @@ namespace hw {
   void APIC::send_bsp_intr()
   {
     // for now we will just assume BSP is 0
-    send_ipi(0, BSP_LAPIC_IPI_IRQ);
+    send_ipi(0, 32 + BSP_LAPIC_IPI_IRQ);
   }
   void APIC::bcast_ipi(uint8_t vector)
   {
