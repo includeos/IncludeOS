@@ -204,6 +204,10 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
+%.o: %.s
+	@echo "\n"
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
+
 %.o: %.asm
 	nasm -f elf $< -o $@
 
