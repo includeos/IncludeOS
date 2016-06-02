@@ -24,8 +24,59 @@
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+static const uintptr_t ELF_START = 0x200000;
+extern "C" {
+  char _TEXT_START_;
+}
+
+#include <iostream>
+#include "../../vmbuild/elf.h"
+
 void Service::start()
 {
+  // parse ELF header
+  const uintptr_t HDR_SIZE = (uintptr_t) &_TEXT_START_ - ELF_START;
+  
+  printf("headers size: %u\n", HDR_SIZE);
+  
+  // read symtab
+  auto elf_header = (Elf32_Ehdr*) ELF_START;
+  
+  using namespace std;
+  cout << "Reading ELF headers...\n";
+  cout << "Signature: ";
+
+  for(int i {0}; i < EI_NIDENT; ++i) {
+    cout << elf_header->e_ident[i];
+  }
+  
+  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
+  cout << "Machine: ";
+
+  switch (elf_header->e_machine) {
+  case (EM_386):
+    cout << "Intel 80386\n";
+    break;
+  case (EM_X86_64):
+    cout << "Intel x86_64\n";
+    break;
+  default:
+    cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
+    break;
+  } //< switch (elf_header->e_machine)
+
+  cout << "Version: "                   << elf_header->e_version      << '\n';
+  cout << "Entry point: 0x"             << hex << elf_header->e_entry << '\n';
+  cout << "Number of program headers: " << elf_header->e_phnum        << '\n';
+  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
+  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
+  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
+  cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
+  
+  
+  
+  return;
+  
   void begin_work();
   begin_work();
   
@@ -147,7 +198,7 @@ void begin_work()
     completed++;
     
     if (completed % TASKS == 0) {
-      printf("All jobs are done now, compl = %d\n", completed);
+      printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
       begin_work();
     }
