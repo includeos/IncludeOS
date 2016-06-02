@@ -22,10 +22,11 @@ public:
     using namespace json;
 
     if(!has_json(req)) {
-      //printf("<Parsley> No JSON in header field.\n");
+      printf("<Parsley> No JSON in header field.\n");
       (*next)();
       return;
     }
+    printf("<Parsley> Found json header\n");
 
     // Request doesn't have JSON attribute
     if(!req->has_attribute<JsonDoc>()) {
@@ -46,8 +47,7 @@ private:
     auto c_type = http::header_fields::Entity::Content_Type;
     if(!req->has_header(c_type))
       return false;
-    return (req->header_value(c_type) == "application/json")
-      or (req->header_value(c_type) == "application/json;charset=UTF-8");
+    return (req->header_value(c_type).find("application/json") != std::string::npos);
   }
 
 };
