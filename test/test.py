@@ -16,8 +16,7 @@ def valid_tests():
 
     returns: list"""
     valid_tests = subprocess.check_output(['./validate_all.sh', '-onlyNames'])
-    #return valid_tests.splitlines()
-    return ['UDP']
+    return valid_tests.splitlines()
 
 def print_result(result_list):
     """ Used for printing the result of the tests performed """
@@ -43,10 +42,10 @@ def main():
         print ">> Now testing {0}".format(test)
 
         # Change into directory
-        os.chdir("UDP")
+        os.chdir(test)
 
         # Perform test.py
-        process = subprocess.Popen(['python', 'test.py'], shell=False, stdout=subprocess.PIPE)
+        process = subprocess.Popen(['python', 'test.py'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
         
         # Check the output from the test
@@ -56,6 +55,7 @@ def main():
             test_result = "FAIL"
         
         result_list.append((test, test_result))
+        os.chdir("..")
 
     print_result(result_list)
     time.sleep(0.1)
