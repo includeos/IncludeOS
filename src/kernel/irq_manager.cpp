@@ -169,7 +169,7 @@ extern "C"{
   {
     uint8_t vector = hw::APIC::get_isr();
     IRQ_manager::cpu(0).register_interrupt(vector);
-    //lapic_send_eoi();
+    lapic_send_eoi();
   }
 
 } //End extern
