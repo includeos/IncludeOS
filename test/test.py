@@ -32,11 +32,16 @@ def print_result(result_list):
         print '{0:15} ==> {3} {1} {2}'.format(name, result, background_color_end, color)
 
 def main():
+    """
+    Loops over all valid tests as defined by the ./validate_all.sh script. Runs them one by one and gives an update of the statuses at the end.
+    """
 
+    print ">>> This script runs all the valid tests in the tests folder. These are given by the ./validate_all.sh script"
     print ">>> Will perform the following tests:"
     for test in valid_tests():
-        print test
-
+        print test, 
+    print "/n"
+    
     result_list = []
     for test in valid_tests():
         print ">> Now testing {0}".format(test)
@@ -58,15 +63,6 @@ def main():
         os.chdir("..")
 
     print_result(result_list)
-    time.sleep(0.1)
-
-
-    #output = subprocess.check_output(['/home/martin/IncludeOS_mnordsletten/test/test.py'])
-
-
-        
-
 
 if  __name__ == '__main__':
     main()
-
