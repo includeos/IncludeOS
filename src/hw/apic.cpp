@@ -275,8 +275,8 @@ namespace hw {
 
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_IRQ = 0x7f; // IRQ 127
-    lapic.enable_intr(SPURIOUS_IRQ);
+    const uint8_t SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
+    lapic.enable_intr(SPURIOUS_INTR);
 
     // acknowledge any outstanding interrupts
     hw::APIC::eoi();
@@ -394,7 +394,7 @@ namespace hw {
   void APIC::send_bsp_intr()
   {
     // for now we will just assume BSP is 0
-    send_ipi(0, BSP_LAPIC_IPI_IRQ);
+    send_ipi(0, 32 + BSP_LAPIC_IPI_IRQ);
   }
   void APIC::bcast_ipi(uint8_t vector)
   {
@@ -441,8 +441,6 @@ namespace hw {
     // IRQ handler for completed async jobs
     IRQ_manager::cpu(0).subscribe(BSP_LAPIC_IPI_IRQ,
     [] {
-      eoi();
-
       // copy all the done functions out from queue to our local queue
       std::deque<smp_done_func> done;
       lock(smp.flock);

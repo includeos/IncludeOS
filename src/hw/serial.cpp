@@ -59,7 +59,6 @@ void Serial::on_readline(on_string_handler del, char delim){
 
 void Serial::enable_interrupt(){
   outb(port_ + 1, 0x01);
-  IRQ_manager::eoi(irq_);
 }
 
 void Serial::disable_interrupt(){
@@ -85,7 +84,6 @@ int Serial::is_transmit_empty() {
 
 
 void Serial::irq_handler_ () {
-  IRQ_manager::eoi(irq_);
 
   while (received())
     on_data_(read());

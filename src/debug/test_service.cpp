@@ -24,10 +24,63 @@
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
+static const uintptr_t ELF_START = 0x200000;
+extern "C" {
+  char _TEXT_START_;
+}
+
+#include <iostream>
+#include "../../vmbuild/elf.h"
+
 void Service::start()
 {
+  // parse ELF header
+  const uintptr_t HDR_SIZE = (uintptr_t) &_TEXT_START_ - ELF_START;
+  
+  printf("headers size: %u\n", HDR_SIZE);
+  
+  // read symtab
+  auto elf_header = (Elf32_Ehdr*) ELF_START;
+  
+  using namespace std;
+  cout << "Reading ELF headers...\n";
+  cout << "Signature: ";
+
+  for(int i {0}; i < EI_NIDENT; ++i) {
+    cout << elf_header->e_ident[i];
+  }
+  
+  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
+  cout << "Machine: ";
+
+  switch (elf_header->e_machine) {
+  case (EM_386):
+    cout << "Intel 80386\n";
+    break;
+  case (EM_X86_64):
+    cout << "Intel x86_64\n";
+    break;
+  default:
+    cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
+    break;
+  } //< switch (elf_header->e_machine)
+
+  cout << "Version: "                   << elf_header->e_version      << '\n';
+  cout << "Entry point: 0x"             << hex << elf_header->e_entry << '\n';
+  cout << "Number of program headers: " << elf_header->e_phnum        << '\n';
+  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
+  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
+  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
+  cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
+  
+  
+  
+  return;
+  
+  void begin_work();
+  begin_work();
+  
   // boilerplate
-  /*
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
   inet->network_config(
@@ -36,6 +89,7 @@ void Service::start()
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
 
+  /*
   auto& tcp = inet->tcp();
   auto& server = tcp.bind(6667); // IRCd default port
   server.onConnect(
@@ -122,10 +176,16 @@ void Service::start()
   }); // on_config
   */
   
-  static int completed = 0;
+  printf("*** TEST SERVICE STARTED *** \n");
+}
+
+void begin_work()
+{
   static const int TASKS = 32;
+  static uint32_t completed = 0;
+  static uint32_t job;
   
-  static uint32_t job = 0;
+  job = 0;
   
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
@@ -134,16 +194,15 @@ void Service::start()
     __sync_fetch_and_or(&job, 1 << i);
   }, 
   [i] {
-    printf("completed task %d\n", i);
+    printf("completed task %d\n", completed);
     completed++;
     
-    if (completed == TASKS) {
-      printf("All jobs are done now, compl = %d\n", completed);
+    if (completed % TASKS == 0) {
+      printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
+      begin_work();
     }
   });
   // start working on tasks
   hw::APIC::work_signal();
-  
-  printf("*** TEST SERVICE STARTED *** \n");
 }

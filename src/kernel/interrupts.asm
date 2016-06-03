@@ -15,52 +15,28 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-global apic_enable
-global spurious_intr
-global lapic_send_eoi
-global get_cpu_id
-global reboot
+extern register_modern_interrupt
+global modern_interrupt_handler
 
-global lapic_irq_entry
+extern cpu_sampling_irq_handler
+global cpu_sampling_irq_entry
 
-apic_enable:
-    push ecx
-    push eax
-    mov			ecx, 1bh
-    rdmsr
-    bts			eax, 11
-    wrmsr
-    pop eax
-    pop ecx
-    ret
+extern lapic_send_eoi
 
-get_cpu_id:
-    mov eax, 1
-    cpuid
-    shr ebx, 24
-    mov eax, ebx
-    ret
+modern_interrupt_handler:
+  cli
+  pusha
+  call register_modern_interrupt
+  call lapic_send_eoi
+  popa
+  sti
+  iret
 
-spurious_intr:
-    iret
-
-lapic_send_eoi:
-    push eax
-    mov eax, 0xfee000B0
-    mov DWORD [eax], 0
-    pop eax
-    ret
-
-reboot:
-    ; load bogus IDT
-    lidt [reset_idtr]
-    ; 1-byte breakpoint instruction
-    int3
-
-reset_idtr:
-    dw      400h - 1
-    dd      0
-
-lapic_irq_entry:
-    call lapic_send_eoi
-    iret
+cpu_sampling_irq_entry:
+  cli
+  pusha
+  call cpu_sampling_irq_handler
+  call lapic_send_eoi
+  popa
+  sti
+  iret
