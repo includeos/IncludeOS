@@ -60,17 +60,21 @@ SECTIONS
     _RODATA_END_ = .;
   }
   
+  .gcc_except_table :
+  {
+    *(.gcc_except_table)
+  }
   /* For stack unwinding (exception handling)  */
-  eh_frame ALIGN(0x4):
+  _EH_FRAME_START_ = .;
+  
+  .eh_frame ALIGN(0x4):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
     LONG (0);
   }
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
-  }
+  
+  _EH_FRAME_END_ = .;
   
   .data :
   {
@@ -81,7 +85,7 @@ SECTIONS
     _DATA_END_ = .;
   }
   
-  .syms :
+  .symbols ALIGN(0x4) :
   {
     *(.symtab)
     *(.strtab)
