@@ -95,7 +95,7 @@ void Service::start()
       std::string banana((char*) buf.get(), len);
       CHECKSERT(banana == internal_banana, "Correct banana #1");
 
-      fs.readFile("/banana.txt",
+      fs.read_file("/banana.txt",
       [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
       {
         CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
