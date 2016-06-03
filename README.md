@@ -56,37 +56,52 @@ You can use
 a virtual machine with the correct environment for building
 IncludeOS. The following commands will build and install IncludeOS
 into your home directory (`~/IncludeOS_install/`). The directory is mapped as a shared folder into the virtual machine vagrant creates.
-
 ```
-     $ git clone https://github.com/hioa-cs/IncludeOS.git
-     $ cd IncludeOS
-     $ vagrant up
-     $ vagrant ssh --command=/IncludeOS/etc/install_from_bundle.sh
+    $ git clone https://github.com/hioa-cs/IncludeOS.git
+    $ cd IncludeOS
+    $ vagrant up
+    $ vagrant ssh --command=/IncludeOS/etc/install_from_bundle.sh
 ```
 You can now log in to the vagrant build environment and build and run a test service like so:
-
 ```
-      $ vagrant ssh
-      $ ./test.sh
+    $ vagrant ssh
+    $ ./test.sh
+```
+## Building on Mac OS X
+You can build IncludeOS (from bundle only) directly on a Mac by running [./etc/install_osx.sh](./etc/install_osx.sh). The following dependencies are utilized by the script:
+  * homebrew (OSX package manager - https://brew.sh)
+  * /usr/local directory with write access
+  * /usr/local/bin added to your PATH
+  * XCode CTL (Command Line Tools)  
+
+If you wish to quickly test the installation perform the following steps:
+```
+    $ cd IncludeOS/examples/demo_service
+    $ make
+    $ cd IncludeOS
+    $ ./etc/vboxrun.sh ./examples/demo_service/IncludeOS_Demo_Service.img
 ```
 
-## Prerequisites for building IncludeOS VM's
+## Building in Ubuntu
+There are two options to installing IncludeOS. The first is to download the binaries used from github, the second is to build everything from source directly. The first option is considerably faster than the second.
+
+### Prerequisites for building IncludeOS VM's in Ubuntu
   * **Ubuntu 16.04 or 14.04 LTS, x86_64**, either on a physical or virtual machine (A virtualbox VM works fine)
      * For the full source build, you'll need at least 1024 MB memory
      * In order to support VGA graphics inside a VM, we recommend a lightweight GUI, such as  [lubuntu](https://help.ubuntu.com/community/Lubuntu/GetLubuntu) which runs great inside a virtual machine.
          * *NOTE:* Graphics is by no means necessary, as all IncludeOS output by default will be routed to the serial port, and in Qemu,
      * The install scripts may very well work on other flavours on Linux, but we haven't tried. Please let us know if you do.
-     * **Building on a Mac:** you can build IncludeOS (from bundle only) directly on a Mac by running [./etc/install_osx.sh](./etc/install_osx.sh).
   * You'll need `git` to clone from github.
 
 Once you have a system with the prereqs (virtual or not), you can choose a full build from source, or a fast build from binaries:
 
-## A) Install libraries from binary bundle (fast)
+### A) Install libraries from binary bundle (fast)
+```
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
     $ ./etc/install_from_bundle.sh
-
+```
 **The script will:**
 * Install the required dependencies: `curl make clang-3.8 nasm bridge-utils qemu`
 * Download the latest binary release bundle from github, using the github API.
@@ -96,14 +111,15 @@ Once you have a system with the prereqs (virtual or not), you can choose a full 
 * Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`
 
 **Time:**
-About a minute or two (On a 4-core virtualbox Ubuntu VM, runing on a 2015 MacBook Air)
+About a minute or two (On a 4-core virtualbox Ubuntu VM, running on a 2015 MacBook Air)
 
-## B) Completely build everything from source (slow)
+### B) Completely build everything from source (slow)
+```
     $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
     $ ./install.sh
-    
+```
 **The script will:**
 * Install all the tools required for building IncludeOS, and all libraries it depends on:
   * `build-essential make nasm texinfo clang-3.8 cmake ninja-build subversion zlib1g-dev libtinfo-dev`
@@ -121,9 +137,9 @@ On a VM with 2 cores and 4 GB RAM, running Ubuntu 14.04, running ./install.sh ta
 ### Testing the installation
 
 A successful setup should enable you to build and run a virtual machine. Running the test-script:
-
-    IncludeOS$ ./test.sh 
-
+```
+    $ ./test.sh 
+```
 will build and run a [this example service](./examples/demo_service/service.cpp). 
 
 **Things to note**
@@ -147,11 +163,11 @@ Developing IncludeOS services should be done completely separately from IncludeO
 
 **Example:**
 ```
-     $ cp -r seed ~/my_service
-     $ cd ~/my_service
-     $ emacs service.cpp
-     ... add your code
-     $ ./run.sh my_service.img
+    $ cp -r seed ~/my_service
+    $ cd ~/my_service
+    $ emacs service.cpp
+    ... add your code
+    $ ./run.sh my_service.img
 ```
 Take a look at the [examples](./examples). These all started out as copies of the same seed.
 

@@ -204,7 +204,6 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
-# AS-assembled object files
 %.o: %.s
 	@echo "\n"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
@@ -212,7 +211,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 %.o: %.asm
 	nasm -f elf $< -o $@
 
-# Bootloader
+# Bootloaders
 ###################################################
 bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"

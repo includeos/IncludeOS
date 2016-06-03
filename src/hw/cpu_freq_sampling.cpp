@@ -17,6 +17,7 @@
 
 //#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
+#include <hw/apic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <common>
 #include <vector>
@@ -99,9 +100,8 @@ namespace hw {
   
     if (_cpu_timestamps.size() < do_samples_)
       _cpu_timestamps.push_back(t2);
+    hw::APIC::eoi();
   
-    IRQ_manager::eoi(0);
-    return;
-  }  
+  }
 
 } //< namespace hw

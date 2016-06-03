@@ -84,8 +84,8 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
     auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
     // update BSP IDT
-    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
     IRQ_manager::cpu(0).subscribe(irq() + 0, req_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
   }
   else
   {
@@ -105,13 +105,11 @@ void VirtioBlk::get_config()
 void VirtioBlk::msix_req_handler()
 {
   service_RX();
-  IRQ_manager::eoi(irq());
 }
 void VirtioBlk::msix_conf_handler()
 {
   debug("\t <VirtioBlk> Configuration change:\n");
   get_config();
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::irq_handler() {
@@ -139,7 +137,6 @@ void VirtioBlk::irq_handler() {
     //debug("\t             New status: 0x%x \n", config.status);
   }
 
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioBlk::handle(request_t* hdr) {
