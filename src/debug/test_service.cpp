@@ -24,56 +24,103 @@
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-static const uintptr_t ELF_START = 0x200000;
 extern "C" {
   char _TEXT_START_;
+  char _EH_FRAME_START_;
+  char _EH_FRAME_END_;
 }
 
 #include <iostream>
 #include "../../vmbuild/elf.h"
 
-void Service::start()
-{
-  // parse ELF header
-  const uintptr_t HDR_SIZE = (uintptr_t) &_TEXT_START_ - ELF_START;
+struct CIE;
+union Entry {
+  uint32_t length;
+  uint64_t ext_length;
   
-  printf("headers size: %u\n", HDR_SIZE);
+  size_t hdr_size() const {
+    if (length != UINT_MAX) return 4;
+    return 8;
+  }
+  CIE* cie() const {
+    return (CIE*) (((char*) this) + hdr_size());
+  }
+  size_t cie_size() const {
+    if (length != UINT_MAX) return length;
+    return ext_length;
+  }
+};
+struct CIE {
+  uint32_t id;
+  uint8_t  ver;
+  char process_start[0];
   
-  // read symtab
-  auto elf_header = (Elf32_Ehdr*) ELF_START;
-  
-  using namespace std;
-  cout << "Reading ELF headers...\n";
-  cout << "Signature: ";
-
-  for(int i {0}; i < EI_NIDENT; ++i) {
-    cout << elf_header->e_ident[i];
+  bool validate() const {
+    return ver == 1 && id == 0;
   }
   
-  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
-  cout << "Machine: ";
-
-  switch (elf_header->e_machine) {
-  case (EM_386):
-    cout << "Intel 80386\n";
-    break;
-  case (EM_X86_64):
-    cout << "Intel x86_64\n";
-    break;
-  default:
-    cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
-    break;
-  } //< switch (elf_header->e_machine)
-
-  cout << "Version: "                   << elf_header->e_version      << '\n';
-  cout << "Entry point: 0x"             << hex << elf_header->e_entry << '\n';
-  cout << "Number of program headers: " << elf_header->e_phnum        << '\n';
-  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
-  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
-  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
-  cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
+  void process();
   
+} __attribute__((packed));
+
+void CIE::process()
+{
+  printf("id: %u, ver: %u\n",
+    id, ver);
+  assert(validate());
+  printf("CIE validated\n");
   
+  char* augstr = process_start;
+  auto auglen = strlen(augstr);
+  printf("CIE aug len: %u, aug=%s\n", auglen, augstr);
+}
+
+void process_eh_frame(char* loc)
+{
+  while (true)
+  {
+    auto* hdr = (Entry*) loc;
+    printf("CIE hdrlen: %u ciesize: %u\n", 
+        hdr->hdr_size(), hdr->cie_size());
+    if (hdr->cie_size() == 0) break;
+
+    // process CIE
+    auto* cie = hdr->cie();
+    cie->process();
+    
+    // next CIE
+    loc += hdr->cie_size()-16;
+  }
+}
+
+
+extern "C" int get_cpu_id();
+extern std::string resolve_symbol(uintptr_t addr);
+
+void Service::start()
+{
+  printf("name for this function is %s\n",
+      resolve_symbol((uintptr_t) &Service::start).c_str());
+  
+  printf("text start is %p\n", &_TEXT_START_);
+  printf("division by zero is %u\n",
+      54 / get_cpu_id());
+  return;
+  
+  try {
+    throw std::string("test");
+  } catch (std::string err) {
+    auto str = "thrown: " + err;
+    printf("%s\n", str.c_str());
+  }
+  
+  auto EH_FRAME_START = (uintptr_t) &_EH_FRAME_START_;
+  auto EH_FRAME_END = (uintptr_t) &_EH_FRAME_END_;
+  printf("eh_frame start: %#x\n", EH_FRAME_START);
+  printf("eh_frame end:   %#x\n", EH_FRAME_END);
+  printf("eh_frame size:  %u\n", EH_FRAME_END - EH_FRAME_START);
+  
+  process_eh_frame(&_EH_FRAME_START_);
   
   return;
   

@@ -19,6 +19,7 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <kernel/elf.hpp>
 #include <hw/apic.hpp>
 #include <cassert>
 
@@ -44,18 +45,16 @@ extern "C"
   void spurious_intr();
 }
 
-void exception_handler()
+void print_stack()
 {
-  printf("ISR: 0x%x  IRR: 0x%x\n",
-    hw::APIC::get_isr(), hw::APIC::get_irr());
+  #define frp(N, ra)                                      \
+    (__builtin_frame_address(N) != nullptr) &&            \
+      (ra = __builtin_return_address(N)) != nullptr
 
-#define frp(N, ra)                                      \
-  (__builtin_frame_address(N) != nullptr) &&            \
-    (ra = __builtin_return_address(N)) != nullptr
-
-  printf("\n");
-#define PRINT_TRACE(N, ra)                      \
-  printf("[%d] Return %p\n", N, ra);
+    printf("\n");
+  #define PRINT_TRACE(N, ra)                      \
+    printf("[%d] Return %s (%p)\n",               \
+        N, resolve_symbol((uintptr_t) ra).c_str(), ra);
 
   void* ra;
   if (frp(0, ra)) {
@@ -73,7 +72,15 @@ void exception_handler()
               if (frp(6, ra))
                 PRINT_TRACE(6, ra);
             }}}}}}
+}
 
+void exception_handler()
+{
+  printf("ISR: 0x%x  IRR: 0x%x\n",
+    hw::APIC::get_isr(), hw::APIC::get_irr());
+
+  print_stack();
+  
   printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
   extern char _end;
   printf("Heap end: %p \n", &_end);

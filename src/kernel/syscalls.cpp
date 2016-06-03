@@ -25,13 +25,15 @@
 #include <os>
 #include <kernel/syscalls.hpp>
 
-char *__env[1] {nullptr};
-char **environ {__env};
+char*   __env[1] {nullptr};
+char**  environ {__env};
+caddr_t heap_end;
 
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};
 
-caddr_t heap_end;
+extern void print_stack();
+
 
 
 void _exit(int status) {
@@ -167,9 +169,9 @@ void default_exit() {
   panic("Exit was called");
 }
 
-
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
   printf("\n\t !!! abort_ex. Why: %s", why);
+  print_stack();
   panic(why);
 }
