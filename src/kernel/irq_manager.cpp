@@ -19,6 +19,7 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <kernel/elf.hpp>
 #include <hw/apic.hpp>
 #include <cassert>
 
@@ -43,8 +44,6 @@ extern "C"
   void exception_handler() __attribute__((noreturn));
   void spurious_intr();
 }
-
-extern std::string resolve_symbol(uintptr_t addr);
 
 void print_stack()
 {

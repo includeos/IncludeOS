@@ -111,3 +111,11 @@ std::string resolve_symbol(uintptr_t addr)
 {
   return get_parser().getsym(addr);
 }
+std::string resolve_symbol(void* addr)
+{
+  return get_parser().getsym((uintptr_t) addr);
+}
+std::string resolve_symbol(void (*addr)())
+{
+  return get_parser().getsym((uintptr_t) addr);
+}
