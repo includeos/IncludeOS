@@ -36,7 +36,7 @@ echo -e "\n# Dependencies"
 echo -e "\nllvm38 (clang/clang++ 3.8) - required for compiling"
 DEPENDENCY_LLVM=false
 
-BREW_LLVM=llvm38
+BREW_LLVM=homebrew/versions/llvm38
 BREW_CLANG_CC=/usr/local/bin/clang-3.8
 BREW_CLANG_CPP=/usr/local/bin/clang++-3.8
 
@@ -234,11 +234,8 @@ popd
 
 $INCLUDEOS_SRC/etc/copy_scripts.sh
 
-echo -e "\n\n>>> Done! Test your installation with ./test.sh"
-
 echo -e "\n### OSX installation done. ###"
 echo -e "\nTo build services and run tests, use the following before building:"
 echo -e "export LD_INC=$LD_INCLUDEOS"
 
 echo -e "\nTo run services, see: ./etc/vboxrun.sh. (VirtualBox needs to be installed)\n"
-
