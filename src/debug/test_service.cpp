@@ -33,7 +33,12 @@ extern "C" {
 #include <iostream>
 #include "../../vmbuild/elf.h"
 
+///
+/// https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
+///
 struct CIE;
+struct Frame;
+
 union Entry {
   uint32_t length;
   uint64_t ext_length;
@@ -42,12 +47,15 @@ union Entry {
     if (length != UINT_MAX) return 4;
     return 8;
   }
+  size_t size() const {
+    if (length != UINT_MAX) return length;
+    return ext_length;
+  }
   CIE* cie() const {
     return (CIE*) (((char*) this) + hdr_size());
   }
-  size_t cie_size() const {
-    if (length != UINT_MAX) return length;
-    return ext_length;
+  Frame* frame() const {
+    return (Frame*) (((char*) this) + hdr_size());
   }
 };
 struct CIE {
@@ -75,37 +83,59 @@ void CIE::process()
   printf("CIE aug len: %u, aug=%s\n", auglen, augstr);
 }
 
+struct Frame {
+  uintptr_t cie_addr;
+  uint32_t  pc_begin;
+  uint32_t  pc_range;
+  char      augdata[0];
+  
+  CIE* get_cie(Entry* entry) {
+    return (CIE*)((char*)this - cie_addr + entry->hdr_size());
+  }
+};
+
 void process_eh_frame(char* loc)
 {
+  bool is_cie = true;
+  
   while (true)
   {
     auto* hdr = (Entry*) loc;
-    printf("CIE hdrlen: %u ciesize: %u\n", 
-        hdr->hdr_size(), hdr->cie_size());
-    if (hdr->cie_size() == 0) break;
+    printf("ENTRY  hdr: %u  size: %u\n", 
+        hdr->hdr_size(), hdr->size());
+    if (hdr->size() == 0) break;
 
-    // process CIE
-    auto* cie = hdr->cie();
-    cie->process();
+    if (is_cie) {
+      // process CIE information
+      auto* cie = hdr->cie();
+      cie->process();
+      is_cie = false;
+    }
+    else
+    {
+      auto* frame = hdr->frame();
+      printf("FDE  cie: %u  frame: %#x (%u bytes)\n",
+          frame->cie_addr, frame->pc_begin, frame->pc_range);
+      
+      if (frame->cie_addr) {
+        assert (frame->cie_addr && "CIE addr must not be zero");
+        frame->get_cie(hdr)->process();
+      }
+    }
     
-    // next CIE
-    loc += hdr->cie_size()-16;
+    // next entry
+    loc += hdr->size() + hdr->hdr_size();
   }
 }
 
 
-extern "C" int get_cpu_id();
 extern std::string resolve_symbol(uintptr_t addr);
+extern void print_backtrace();
 
 void Service::start()
 {
   printf("name for this function is %s\n",
       resolve_symbol((uintptr_t) &Service::start).c_str());
-  
-  printf("text start is %p\n", &_TEXT_START_);
-  printf("division by zero is %u\n",
-      54 / get_cpu_id());
-  return;
   
   try {
     throw std::string("test");
@@ -120,12 +150,13 @@ void Service::start()
   printf("eh_frame end:   %#x\n", EH_FRAME_END);
   printf("eh_frame size:  %u\n", EH_FRAME_END - EH_FRAME_START);
   
-  process_eh_frame(&_EH_FRAME_START_);
+  //process_eh_frame(&_EH_FRAME_START_);
   
-  return;
+  print_backtrace();
   
   void begin_work();
   begin_work();
+  return;
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
@@ -247,7 +278,8 @@ void begin_work()
     if (completed % TASKS == 0) {
       printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
-      begin_work();
+      print_backtrace();
+      //begin_work();
     }
   });
   // start working on tasks

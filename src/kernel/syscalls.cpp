@@ -32,9 +32,6 @@ caddr_t heap_end;
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};
 
-extern void print_stack();
-
-
 
 void _exit(int status) {
   (void) status;
@@ -161,6 +158,7 @@ int kill(pid_t pid, int sig) {
 void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
   printf("\tHeap end: %p\n", heap_end);
+  print_backtrace();
   while(1) __asm__("cli; hlt;");
 }
 
@@ -172,6 +170,5 @@ void default_exit() {
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
   printf("\n\t !!! abort_ex. Why: %s", why);
-  print_stack();
   panic(why);
 }

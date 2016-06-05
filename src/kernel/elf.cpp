@@ -15,9 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <kernel/elf.hpp>
 #include <cassert>
 #include <string>
 #include <debug>
+#include <vector>
 #include "../../vmbuild/elf.h"
 
 static const uintptr_t ELF_START = 0x200000;
@@ -25,11 +27,16 @@ static const uintptr_t ELF_START = 0x200000;
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
 
+struct SymTab {
+  Elf32_Sym* base;
+  uint32_t   entries;
+};
+
 class ElfTables
 {
 public:
   ElfTables(uintptr_t elf_base)
-    : ELF_BASE(elf_base)
+    : strtab(0), ELF_BASE(elf_base)
   {
     auto& elf_hdr = *(Elf32_Ehdr*) ELF_BASE;
     
@@ -40,14 +47,14 @@ public:
       switch (shdr[i].sh_type)
       {
       case SHT_SYMTAB:
-        this->symtab = (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset);
-        this->st_entries = shdr[i].sh_size / sizeof(Elf32_Sym);
-        debug("found symbol table at %p with %u entries\n", 
-            this->symtab, this->st_entries);
+        symtab.push_back({ (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset) ,
+                           shdr[i].sh_size / sizeof(Elf32_Sym) });
+        printf("found symtab at %#x\n", shdr[i].sh_offset);
+        //debug("found symbol table at %p with %u entries\n", 
+        //    this->symtab, this->st_entries);
         break;
       case SHT_STRTAB:
         this->strtab = (char*) (ELF_BASE + shdr[i].sh_offset);
-        debug("found string table at %p\n", this->strtab);
         break;
       case SHT_DYNSYM:
       default:
@@ -55,24 +62,27 @@ public:
         break;
       }
     }
-    assert(symtab && strtab);
+    assert(!symtab.empty() && strtab);
   }
   
-  std::string getsym(Elf32_Addr addr)
+  func_offset getsym(Elf32_Addr addr)
   {
-    for (size_t i = 0; i < st_entries; i++) {
+    for (auto& tab : symtab)
+    for (size_t i = 0; i < tab.entries; i++) {
       // find entry with matching address
-      if (symtab[i].st_value == addr) {
+      if (addr >= tab.base[i].st_value
+      && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
+        
+        auto offset = addr - tab.base[i].st_value;
         // return string name for symbol
-        return demangle( sym_name(symtab[i]) );
+        return {demangle( sym_name(tab.base[i]) ), offset};
       }
     }
-    return "(missing symbol)";
+    return {"(missing symbol)", 0};
   }
-  inline std::string getsym(void(*func)()) {
+  inline func_offset getsym(void(*func)()) {
     return getsym((Elf32_Addr) func);
   }
-  
   
 private:
   const char* sym_name(Elf32_Sym& sym) const {
@@ -85,9 +95,9 @@ private:
   std::string demangle(const char* name)
   {
     // try demangle the name
+    size_t buflen = 256;
     std::string buf;
-    buf.reserve(64);
-    size_t buflen = buf.capacity();
+    buf.reserve(buflen);
     int status;
     // internally, demangle just returns buf when status is ok
     __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
@@ -95,11 +105,9 @@ private:
     return buf;
   }
 
-
-  Elf32_Sym* symtab = 0x0;
-  size_t     st_entries = 0;
-  char*      strtab = 0x0;
-  uintptr_t  ELF_BASE;
+  std::vector<SymTab> symtab;
+  const char* strtab;
+  uintptr_t   ELF_BASE;
 };
 
 ElfTables& get_parser() {
@@ -107,15 +115,45 @@ ElfTables& get_parser() {
   return parser;
 }
 
-std::string resolve_symbol(uintptr_t addr)
+func_offset resolve_symbol(uintptr_t addr)
 {
   return get_parser().getsym(addr);
 }
-std::string resolve_symbol(void* addr)
+func_offset resolve_symbol(void* addr)
 {
   return get_parser().getsym((uintptr_t) addr);
 }
-std::string resolve_symbol(void (*addr)())
+func_offset resolve_symbol(void (*addr)())
 {
   return get_parser().getsym((uintptr_t) addr);
+}
+
+void print_backtrace()
+{
+  #define frp(N, ra)                                      \
+    (__builtin_frame_address(N) != nullptr) &&            \
+      (ra = __builtin_return_address(N)) != nullptr
+
+    printf("\n");
+  #define PRINT_TRACE(N, ra)                     \
+    auto symb = resolve_symbol((uintptr_t) ra);  \
+    printf("[%d]  %s + %#x\n",                   \
+        N, symb.name.c_str(), symb.offset);
+
+  void* ra;
+  if (frp(0, ra)) {
+    PRINT_TRACE(0, ra);
+    if (frp(1, ra)) {
+      PRINT_TRACE(1, ra);
+      if (frp(2, ra)) {
+        PRINT_TRACE(2, ra);
+        if (frp(3, ra)) {
+          PRINT_TRACE(3, ra);
+          if (frp(4, ra)) {
+            PRINT_TRACE(4, ra);
+            if (frp(5, ra)) {
+              PRINT_TRACE(5, ra);
+              if (frp(6, ra))
+                PRINT_TRACE(6, ra);
+            }}}}}}
 }

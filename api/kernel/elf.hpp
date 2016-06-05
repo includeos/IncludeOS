@@ -20,6 +20,11 @@
 #include <cstdint>
 #include <string>
 
-std::string resolve_symbol(uintptr_t addr);
-std::string resolve_symbol(void* addr);
-std::string resolve_symbol(void (*addr)());
+struct func_offset {
+  std::string name;
+  uint32_t    offset;
+};
+
+func_offset resolve_symbol(uintptr_t addr);
+func_offset resolve_symbol(void* addr);
+func_offset resolve_symbol(void (*addr)());
