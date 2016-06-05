@@ -19,7 +19,7 @@
 #include <net/inet4>
 #include "ircd.hpp"
 
-#include <hw/apic.hpp>
+#include <smp> // SMP class
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -267,7 +267,7 @@ void begin_work()
   
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
-  hw::APIC::add_task(
+  SMP::add_task(
   [i] {
     __sync_fetch_and_or(&job, 1 << i);
   }, 
@@ -283,5 +283,5 @@ void begin_work()
     }
   });
   // start working on tasks
-  hw::APIC::work_signal();
+  SMP::start();
 }
