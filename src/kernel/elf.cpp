@@ -49,7 +49,7 @@ public:
       case SHT_SYMTAB:
         symtab.push_back({ (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset) ,
                            shdr[i].sh_size / sizeof(Elf32_Sym) });
-        printf("found symtab at %#x\n", shdr[i].sh_offset);
+        //printf("found symtab at %#x\n", shdr[i].sh_offset);
         //debug("found symbol table at %p with %u entries\n", 
         //    this->symtab, this->st_entries);
         break;
