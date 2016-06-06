@@ -37,7 +37,6 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
 ###################################################
-CLANG38 =
 
 CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
 CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
