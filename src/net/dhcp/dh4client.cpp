@@ -173,7 +173,7 @@ namespace net
   void DHClient::negotiate(double timeout_secs)
   {
     // set timeout handler
-    this->timeout = hw::PIT::instance().on_timeout(timeout_secs, 
+    this->timeout = hw::PIT::on_timeout(timeout_secs, 
     [this] {
       // reset session ID
       this->xid = 0;

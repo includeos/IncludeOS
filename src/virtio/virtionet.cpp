@@ -147,21 +147,30 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler
-  auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-  IRQ_manager::subscribe(irq(),del);
-  IRQ_manager::enable_irq(irq());
+  if (is_msix())
+  {
+    auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
+    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
+    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
+    // update BSP IDT
+    IRQ_manager::cpu(0).subscribe(irq() + 0, xmit_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, recv_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 2, conf_del);
+  }
+  else
+  {
+    // legacy PCI interrupt
+    auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
+    IRQ_manager::cpu(0).subscribe(irq(),del);
+  }
 
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");
   rx_q.kick();
-
-
-};
-
+}
 
 int VirtioNet::add_receive_buffer(){
-
 
   // Virtio Std. § 5.1.6.3
   auto buf = bufstore_.get_raw_buffer();
@@ -183,7 +192,23 @@ int VirtioNet::add_receive_buffer(){
   return 0;
 }
 
+void VirtioNet::msix_conf_handler()
+{
+  debug("\t <VirtioNet> Configuration change:\n");
 
+  // Getting the MAC + status
+  debug("\t             Old status: 0x%x\n",_conf.status);
+  get_config();
+  debug("\t             New status: 0x%x \n",_conf.status);
+}
+void VirtioNet::msix_recv_handler()
+{
+  service_queues();
+}
+void VirtioNet::msix_xmit_handler()
+{
+  service_queues();
+}
 
 void VirtioNet::irq_handler(){
 
@@ -212,7 +237,6 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-  IRQ_manager::eoi(irq());
 
 }
 

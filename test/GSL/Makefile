@@ -9,7 +9,7 @@ SERVICE_NAME = C++ Core Guideline Support Library Tests
 # Your service parts
 FILES = service.cpp
 
-LOCAL_INCLUDES=-I$(PWD)/../../mod/GSL/include -I$(PWD)/../lest/include/lest
+LOCAL_INCLUDES=-I$(shell pwd)/../../mod/GSL/include -I$(shell pwd)/../lest/include/lest
 
 # Your disk image
 DISK=

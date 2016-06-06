@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <os>
 
-#include <hw/ioport.hpp>
+#include <hw/acpi.hpp>
+#include <hw/apic.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
@@ -59,8 +60,18 @@ void OS::start() {
 
   atexit(default_exit);
 
+  // read ACPI tables
+  hw::ACPI::init();
+
+  // setup APIC, APIC timer, SMP etc.
+  hw::APIC::init();
+
   // Set up interrupt handlers
   IRQ_manager::init();
+
+  INFO("BSP", "Enabling interrupts");
+  hw::APIC::setup_subs();
+  IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer
   hw::PIT::init();
@@ -68,7 +79,7 @@ void OS::start() {
   // Initialize PCI devices
   PCI_manager::init();
 
-  /** Estimate CPU frequency
+  // Estimate CPU frequency
 
       MYINFO("Estimating CPU-frequency");
       INFO2("|");
@@ -80,8 +91,6 @@ void OS::start() {
       cpu_mhz_ = hw::PIT::CPUFrequency();
 
       INFO2("+--> %f MHz", cpu_mhz_.count());
-
-  **/
 
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
@@ -107,7 +116,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::notify();
+    IRQ_manager::cpu(0).notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 

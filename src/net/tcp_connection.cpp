@@ -253,6 +253,8 @@ void Connection::limited_tx() {
 void Connection::writeq_reset() {
   debug2("<Connection::writeq_reset> Reseting.\n");
   writeq.reset();
+  if(rtx_timer.active)
+    rtx_stop();
 }
 
 void Connection::open(bool active) {
@@ -362,7 +364,7 @@ void Connection::transmit(TCP::Packet_ptr packet) {
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
   host_.transmit(packet);
-  if(packet->has_data() and !rtx_timer.active) {
+  if(packet->should_rtx() and !rtx_timer.active) {
     rtx_start();
   }
 }
@@ -420,8 +422,8 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
     size_t bytes_acked = in->ack() - cb.SND.UNA;
     cb.SND.UNA = in->ack();
 
-    // ack everything in write queue
-    if(!writeq.empty())
+    // ack everything in rtx queue
+    if(rtx_timer.active)
       rtx_ack(in->ack());
 
     // update cwnd when congestion avoidance?
@@ -564,6 +566,7 @@ void Connection::on_dup_ack() {
 */
 void Connection::rtx_ack(const Seq ack) {
   auto acked = ack - prev_highest_ack_;
+  // what if ack is from handshake / fin?
   writeq.acknowledge(acked);
   /*
     When all outstanding data has been acknowledged, turn off the
@@ -587,12 +590,41 @@ void Connection::rtx_ack(const Seq ack) {
   //  x-rtx_q.size(), rtx_q.size());
 }
 
+/*
+  Assumption
+  Retransmission will only occur when one of the following are true:
+  * There is data to be sent  (!SYN-SENT || !SYN-RCV) <- currently not supports
+  * Last packet had SYN       (SYN-SENT || SYN-RCV)
+  * Last packet had FIN       (FIN-WAIT-1 || LAST-ACK)
 
+*/
 void Connection::retransmit() {
   auto packet = create_outgoing_packet();
-  auto& buf = writeq.una();
-  fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
-  packet->set_flag(ACK);
+  // If not retransmission of a pure SYN packet, add ACK
+  if(!is_state(SynSent::instance())) {
+    packet->set_flag(ACK);
+  }
+  // If retransmission from either SYN-SENT or SYN-RCV, add SYN
+  if(is_state(SynSent::instance()) or is_state(SynReceived::instance())) {
+    packet->set_flag(SYN);
+    packet->set_seq(cb.SND.UNA);
+    syn_rtx_++;
+  }
+  // If not, check if there is data and retransmit
+  else if(writeq.size()) {
+    auto& buf = writeq.una();
+    fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
+  }
+  // if no data
+  else {
+    packet->set_seq(cb.SND.UNA);
+  }
+
+  // If retransmission of a FIN packet
+  if(is_state(FinWait1::instance()) or is_state(LastAck::instance())) {
+    packet->set_flag(FIN);
+  }
+
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
   debug("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
   host_.transmit(packet);
@@ -602,7 +634,7 @@ void Connection::retransmit() {
     so that it will expire after RTO seconds (for the current value
     of RTO).
   */
-  if(packet->has_data() and !rtx_timer.active) {
+  if(packet->should_rtx() and !rtx_timer.active) {
     rtx_start();
   }
 }
@@ -654,6 +686,13 @@ void Connection::rtx_clear() {
        begins (i.e., after the three-way handshake completes).
 */
 void Connection::rtx_timeout() {
+  // experimental
+  if(rto_limit_reached()) {
+    printf("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
+    close();
+    return;
+  }
+
   // retransmit SND.UNA
   retransmit();
 
