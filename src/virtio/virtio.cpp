@@ -117,13 +117,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
       // remember the base IRQ
       this->_irq = IRQ_manager::cpu(0).get_next_msix_irq();
-      _pcidev.setup_msix_vector(0x0, this->_irq);
+      _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
 
       // setup all the other vectors
       for (int i = 1; i < get_msix_vectors(); i++)
       {
         auto irq = IRQ_manager::cpu(0).get_next_msix_irq();
-        _pcidev.setup_msix_vector(0x0, irq);
+        _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
       }
 
     }
@@ -217,8 +217,6 @@ void Virtio::default_irq_handler(){
   unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
-
-  IRQ_manager::eoi(_irq);
 }
 
 void Virtio::enable_irq_handler()

@@ -28,10 +28,7 @@ sudo apt-get install -y $DEPENDENCIES
 
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
-pushd $INCLUDEOS_SRC
-git fetch --tags
-tag=`git describe --abbrev=0`
-popd
+tag=`git ls-remote --tags https://github.com/hioa-cs/IncludeOS.git | grep -oP "tags/\K(.*)$" | grep -v "{" | sort -n -t . -k 1 -k 2 -k 3 | tail -n 1`
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
