@@ -19,66 +19,144 @@
 #include <net/inet4>
 #include "ircd.hpp"
 
-#include <hw/apic.hpp>
+#include <smp> // SMP class
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-static const uintptr_t ELF_START = 0x200000;
 extern "C" {
   char _TEXT_START_;
+  char _EH_FRAME_START_;
+  char _EH_FRAME_END_;
 }
 
 #include <iostream>
 #include "../../vmbuild/elf.h"
 
-void Service::start()
-{
-  // parse ELF header
-  const uintptr_t HDR_SIZE = (uintptr_t) &_TEXT_START_ - ELF_START;
-  
-  printf("headers size: %u\n", HDR_SIZE);
-  
-  // read symtab
-  auto elf_header = (Elf32_Ehdr*) ELF_START;
-  
-  using namespace std;
-  cout << "Reading ELF headers...\n";
-  cout << "Signature: ";
+///
+/// https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
+///
+struct CIE;
+struct Frame;
 
-  for(int i {0}; i < EI_NIDENT; ++i) {
-    cout << elf_header->e_ident[i];
+union Entry {
+  uint32_t length;
+  uint64_t ext_length;
+  
+  size_t hdr_size() const {
+    if (length != UINT_MAX) return 4;
+    return 8;
+  }
+  size_t size() const {
+    if (length != UINT_MAX) return length;
+    return ext_length;
+  }
+  CIE* cie() const {
+    return (CIE*) (((char*) this) + hdr_size());
+  }
+  Frame* frame() const {
+    return (Frame*) (((char*) this) + hdr_size());
+  }
+};
+struct CIE {
+  uint32_t id;
+  uint8_t  ver;
+  char process_start[0];
+  
+  bool validate() const {
+    return ver == 1 && id == 0;
   }
   
-  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
-  cout << "Machine: ";
+  void process();
+  
+} __attribute__((packed));
 
-  switch (elf_header->e_machine) {
-  case (EM_386):
-    cout << "Intel 80386\n";
-    break;
-  case (EM_X86_64):
-    cout << "Intel x86_64\n";
-    break;
-  default:
-    cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
-    break;
-  } //< switch (elf_header->e_machine)
+void CIE::process()
+{
+  printf("id: %u, ver: %u\n",
+    id, ver);
+  assert(validate());
+  printf("CIE validated\n");
+  
+  char* augstr = process_start;
+  auto auglen = strlen(augstr);
+  printf("CIE aug len: %u, aug=%s\n", auglen, augstr);
+}
 
-  cout << "Version: "                   << elf_header->e_version      << '\n';
-  cout << "Entry point: 0x"             << hex << elf_header->e_entry << '\n';
-  cout << "Number of program headers: " << elf_header->e_phnum        << '\n';
-  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
-  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
-  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
-  cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
+struct Frame {
+  uintptr_t cie_addr;
+  uint32_t  pc_begin;
+  uint32_t  pc_range;
+  char      augdata[0];
   
+  CIE* get_cie(Entry* entry) {
+    return (CIE*)((char*)this - cie_addr + entry->hdr_size());
+  }
+};
+
+void process_eh_frame(char* loc)
+{
+  bool is_cie = true;
   
+  while (true)
+  {
+    auto* hdr = (Entry*) loc;
+    printf("ENTRY  hdr: %u  size: %u\n", 
+        hdr->hdr_size(), hdr->size());
+    if (hdr->size() == 0) break;
+
+    if (is_cie) {
+      // process CIE information
+      auto* cie = hdr->cie();
+      cie->process();
+      is_cie = false;
+    }
+    else
+    {
+      auto* frame = hdr->frame();
+      printf("FDE  cie: %u  frame: %#x (%u bytes)\n",
+          frame->cie_addr, frame->pc_begin, frame->pc_range);
+      
+      if (frame->cie_addr) {
+        assert (frame->cie_addr && "CIE addr must not be zero");
+        frame->get_cie(hdr)->process();
+      }
+    }
+    
+    // next entry
+    loc += hdr->size() + hdr->hdr_size();
+  }
+}
+
+
+extern std::string resolve_symbol(uintptr_t addr);
+extern void print_backtrace();
+
+void Service::start()
+{
+  printf("name for this function is %s\n",
+      resolve_symbol((uintptr_t) &Service::start).c_str());
   
-  return;
+  try {
+    throw std::string("test");
+  } catch (std::string err) {
+    auto str = "thrown: " + err;
+    printf("%s\n", str.c_str());
+  }
+  
+  auto EH_FRAME_START = (uintptr_t) &_EH_FRAME_START_;
+  auto EH_FRAME_END = (uintptr_t) &_EH_FRAME_END_;
+  printf("eh_frame start: %#x\n", EH_FRAME_START);
+  printf("eh_frame end:   %#x\n", EH_FRAME_END);
+  printf("eh_frame size:  %u\n", EH_FRAME_END - EH_FRAME_START);
+  
+  //process_eh_frame(&_EH_FRAME_START_);
+  
+  print_backtrace();
   
   void begin_work();
   begin_work();
+  return;
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
@@ -189,7 +267,7 @@ void begin_work()
   
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
-  hw::APIC::add_task(
+  SMP::add_task(
   [i] {
     __sync_fetch_and_or(&job, 1 << i);
   }, 
@@ -200,9 +278,10 @@ void begin_work()
     if (completed % TASKS == 0) {
       printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
-      begin_work();
+      print_backtrace();
+      //begin_work();
     }
   });
   // start working on tasks
-  hw::APIC::work_signal();
+  SMP::start();
 }

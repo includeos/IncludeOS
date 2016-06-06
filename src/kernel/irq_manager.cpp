@@ -19,6 +19,7 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <kernel/elf.hpp>
 #include <hw/apic.hpp>
 #include <cassert>
 
@@ -49,31 +50,8 @@ void exception_handler()
   printf("ISR: 0x%x  IRR: 0x%x\n",
     hw::APIC::get_isr(), hw::APIC::get_irr());
 
-#define frp(N, ra)                                      \
-  (__builtin_frame_address(N) != nullptr) &&            \
-    (ra = __builtin_return_address(N)) != nullptr
-
-  printf("\n");
-#define PRINT_TRACE(N, ra)                      \
-  printf("[%d] Return %p\n", N, ra);
-
-  void* ra;
-  if (frp(0, ra)) {
-    PRINT_TRACE(0, ra);
-    if (frp(1, ra)) {
-      PRINT_TRACE(1, ra);
-      if (frp(2, ra)) {
-        PRINT_TRACE(2, ra);
-        if (frp(3, ra)) {
-          PRINT_TRACE(3, ra);
-          if (frp(4, ra)) {
-            PRINT_TRACE(4, ra);
-            if (frp(5, ra)) {
-              PRINT_TRACE(5, ra);
-              if (frp(6, ra))
-                PRINT_TRACE(6, ra);
-            }}}}}}
-
+  print_backtrace();
+  
   printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
   extern char _end;
   printf("Heap end: %p \n", &_end);
