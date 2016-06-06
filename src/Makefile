@@ -46,6 +46,9 @@ endif
 ifndef AR_INC
 	AR_INC = ar
 endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
+endif
 
 # Compiler options
 CCOPTS = -target i686-elf
@@ -219,7 +222,7 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 
 apic_boot.o: hw/apic_boot.asm
 	nasm -f bin -o apic_boot.bin $<
-	objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin $@
+	$(OBJCOPY_INC) -I binary -O elf32-i386 -B i386 apic_boot.bin $@
 
 # Disk image as a section
 ###################################################
