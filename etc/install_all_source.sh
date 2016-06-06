@@ -35,7 +35,7 @@ export binutils_version=2.26
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
 
 # BUILDING IncludeOS
 DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
