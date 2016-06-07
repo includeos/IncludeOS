@@ -32,10 +32,15 @@ namespace uri {
   public:
 
     /** Non-owning pointer-size type */
-    using Span_t = struct {
+    struct Span_t {
       size_t begin;
       size_t end;
-    };
+
+      Span_t(const size_t b = 0U, const size_t e = 0U) noexcept
+        : begin{b}
+        , end{e}
+      {}
+    }; //< struct Span_t
 
     ///
     /// RFC-specified URI parts
