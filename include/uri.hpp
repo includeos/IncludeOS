@@ -173,21 +173,24 @@ namespace uri {
     operator std::string () const;
 
   private:
+    /*
+     * A copy of the data representing a uri
+     */
+    std::string uri_str_;
 
-    std::unordered_map<std::string,std::string> queries_;
+    uint16_t port_;
+
     Span_t uri_data_;
     Span_t userinfo_;
     Span_t host_;
     Span_t port_str_;
-    uint16_t port_ = 0;
     Span_t path_;
     Span_t query_;
     Span_t fragment_;
 
     static const Span_t zero_span_;
 
-    // A copy of the data, if the string-based constructor was used
-    std::string uri_str_;
+    std::unordered_map<std::string,std::string> queries_;
 
     /**
      * @brief Parse the given string representing a uri
