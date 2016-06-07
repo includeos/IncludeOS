@@ -87,6 +87,15 @@ namespace uri {
     ///////////////////////////////////////////////
 
     /**
+     * @brief Get scheme.
+     *
+     * E.g. 'http', 'file', 'ftp' etc.
+     *
+     * @return The scheme
+     */
+    std::string scheme() const;
+
+    /**
      * @brief Get userinfo.
      *
      * E.g. 'username@'...
@@ -181,6 +190,7 @@ namespace uri {
     uint16_t port_;
 
     Span_t uri_data_;
+    Span_t scheme_;
     Span_t userinfo_;
     Span_t host_;
     Span_t port_str_;
