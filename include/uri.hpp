@@ -130,8 +130,12 @@ namespace uri {
      */
     std::string path() const;
 
-    /** Get the complete unparsed query string. */
-    const std::string query() const;
+    /**
+     * @brief Get the complete unparsed query string.
+     *
+     * @return The complete unparsed query string
+     */
+    std::string query() const;
 
     /** Get the fragment part. E.g. "...#anchor1" */
     const std::string fragment() const;
