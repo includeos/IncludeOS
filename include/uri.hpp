@@ -41,6 +41,47 @@ namespace uri {
     }; //< struct Span_t
 
   public:
+    /*
+     * Default constructor
+     */
+    URI() = default;
+
+    /*
+     * Default copy and move constructors
+     */
+    URI(URI&) = default;
+    URI(URI&&) = default;
+
+    /*
+     * Default destructor
+     */
+    ~URI() = default;
+
+    /*
+     * Default assignment operators
+     */
+    URI& operator=(const URI&) = default;
+    URI& operator=(URI&&) = default;
+
+    //
+    // We might do a span-based constructor later.
+    // URI(gsl::span<const char>);
+    //
+
+    /**
+     * @brief Construct using a C-String
+     *
+     * @param uri : A C-String representing a uri
+     */
+    URI(const char* uri);
+
+    /**
+     * @brief Construct using a string
+     *
+     * @param uri : A string representing a uri
+     */
+    URI(const std::string& uri);
+    
     ///
     /// RFC-specified URI parts
     ///
@@ -68,24 +109,6 @@ namespace uri {
 
     /** Get the fragment part. E.g. "...#anchor1" */
     const std::string fragment() const;
-
-    ///
-    /// Construct / Destruct
-    ///
-
-    URI() = default;
-    URI(URI&) = default;
-    URI(URI&&) = default;
-    ~URI() = default;
-    URI& operator=(const URI&) = default;
-    URI& operator=(URI&&) = default;
-
-    // We might do a span-based constructor later.
-    //URI(gsl::span<const char>);
-
-    /** Construct using a string */
-    URI(const std::string&&);
-    URI(const char*);
 
     ///
     /// Convenience
