@@ -17,6 +17,7 @@
 
 #include <kernel/elf.hpp>
 #include <cassert>
+#include <cstdio>
 #include <string>
 #include <debug>
 #include <vector>
@@ -26,6 +27,14 @@ static const uintptr_t ELF_START = 0x200000;
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
+
+template <typename N>
+std::string to_hex_string(N n)
+{
+  std::string buffer; buffer.reserve(64);
+  snprintf((char*) buffer.data(), buffer.capacity(), "%#x", n);
+  return buffer;
+}
 
 struct SymTab {
   Elf32_Sym* base;
@@ -78,7 +87,7 @@ public:
         return {demangle( sym_name(tab.base[i]) ), offset};
       }
     }
-    return {"(missing symbol)", 0};
+    return {to_hex_string(addr), 0};
   }
   inline func_offset getsym(void(*func)()) {
     return getsym((Elf32_Addr) func);
