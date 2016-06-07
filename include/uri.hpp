@@ -215,4 +215,4 @@ namespace uri {
 
 } // namespace uri
 
-#endif
+#endif //< URI_HPP
