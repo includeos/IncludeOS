@@ -28,9 +28,7 @@ namespace uri {
    * Ref. https://tools.ietf.org/html/rfc3986
    **/
   class URI {
-
-  public:
-
+  private:
     /** Non-owning pointer-size type */
     struct Span_t {
       size_t begin;
@@ -42,6 +40,7 @@ namespace uri {
       {}
     }; //< struct Span_t
 
+  public:
     ///
     /// RFC-specified URI parts
     ///
