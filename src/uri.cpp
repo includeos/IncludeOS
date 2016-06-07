@@ -21,6 +21,11 @@ URI::URI(const std::string& uri)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+std::string URI::userinfo() const {
+  return uri_str_.substr(userinfo_.begin, userinfo_.end);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::string URI::host() const {
   return uri_str_.substr(host_.begin, host_.end);
 }
