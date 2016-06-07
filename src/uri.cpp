@@ -57,6 +57,5 @@ void URI::parse(const std::string& uri) {
 
 ///////////////////////////////////////////////////////////////////////////////
 std::ostream& uri::operator<< (std::ostream& out, const URI& uri) {
-  out << uri.to_string();
-  return out;
+  return out << uri.to_string();
 }
