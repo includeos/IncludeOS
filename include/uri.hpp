@@ -119,8 +119,6 @@ namespace uri {
     // A copy of the data, if the string-based constructor was used
     std::string uri_str_;
 
-    void init_spans();
-
     /**
      * @brief Parse the given string representing a uri
      * into its given parts according to RFC 3986
