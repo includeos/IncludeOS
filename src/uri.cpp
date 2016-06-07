@@ -26,6 +26,11 @@ std::string URI::path() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+std::string URI::query() const {
+  return uri_str_.substr(query_.begin, query_.end);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::string URI::fragment() const {
   return uri_str_.substr(fragment_.begin, fragment_.end);
 }
