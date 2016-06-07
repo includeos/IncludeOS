@@ -111,11 +111,15 @@ namespace uri {
      */
     std::string port_str() const;
 
-    /** Get numeric port number.
+    /**
+     * @brief Get numeric port number.
+     *
      * @warning The RFC doesn't specify dimension. This funcion will truncate
-     * any overflowing digits
-     **/
-    uint16_t port() const;
+     * any overflowing digits.
+     *
+     * @return The numeric port number as a 16-bit number
+     */
+    uint16_t port() const noexcept;
 
     /** Get the path. E.g. /pictures/logo.png  */
     std::string path() const;
