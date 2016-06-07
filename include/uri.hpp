@@ -104,8 +104,12 @@ namespace uri {
      */
     std::string host() const;
 
-    /** Get raw port number. In decimal character representation */
-    const std::string port_str() const;
+    /**
+     * @brief Get the raw port number in decimal character representation.
+     *
+     * @return The raw port number as a string
+     */
+    std::string port_str() const;
 
     /** Get numeric port number.
      * @warning The RFC doesn't specify dimension. This funcion will truncate
