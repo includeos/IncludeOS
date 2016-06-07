@@ -83,7 +83,7 @@ void URI::parse(const std::string& uri) {
     "(#(.*))?$"                            //< fragment
   };
 
-  std::smatch uri_parts;
+  static std::smatch uri_parts;
 
   if (std::regex_match(uri, uri_parts, uri_pattern_matcher)) {
     path_     = Span_t(uri_parts.position(10), uri_parts.length(10));
