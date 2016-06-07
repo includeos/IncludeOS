@@ -95,8 +95,14 @@ namespace uri {
      */
     std::string userinfo() const;
 
-    /** Get host. E.g. 'includeos.org', '10.0.0.42' etc. */
-    const std::string host() const;
+    /**
+     * @brief Get host.
+     *
+     * E.g. 'includeos.org', '10.0.0.42' etc.
+     *
+     * @return The host's information
+     */
+    std::string host() const;
 
     /** Get raw port number. In decimal character representation */
     const std::string port_str() const;
