@@ -121,7 +121,13 @@ namespace uri {
      */
     uint16_t port() const noexcept;
 
-    /** Get the path. E.g. /pictures/logo.png  */
+    /**
+     * @brief Get the path.
+     *
+     * E.g. /pictures/logo.png 
+     *
+     * @return The path information
+     */
     std::string path() const;
 
     /** Get the complete unparsed query string. */
