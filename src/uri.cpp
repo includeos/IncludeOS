@@ -7,17 +7,17 @@ using namespace uri;
 const URI::Span_t URI::zero_span_;
 
 ///////////////////////////////////////////////////////////////////////////////
-URI::URI(const std::string&& data) :
-  uri_str_ {std::forward<const std::string>(data)}
-{
-  init_spans();
-}
+URI::URI(const char* uri)
+  : URI{std::string{uri}}
+{}
 
 ///////////////////////////////////////////////////////////////////////////////
-URI::URI(const char* data) :
-  uri_str_ {data}
+URI::URI(const std::string& uri)
+  : uri_str_{uri}
+  , port_{}
 {
-  init_spans();
+  parse(uri_str_);
+  port_ = port_str_.begin ? static_cast<uint16_t>(std::stoi(port_str())) : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
