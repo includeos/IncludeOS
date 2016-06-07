@@ -28,73 +28,142 @@ namespace uri {
    * Ref. https://tools.ietf.org/html/rfc3986
    **/
   class URI {
-
-  public:
-
+  private:
     /** Non-owning pointer-size type */
-    using Span_t = struct {
+    struct Span_t {
       size_t begin;
       size_t end;
-    };
 
-    ///
-    /// RFC-specified URI parts
-    ///
+      Span_t(const size_t b = 0U, const size_t e = 0U) noexcept
+        : begin{b}
+        , end{e}
+      {}
+    }; //< struct Span_t
 
-    /** Get userinfo. E.g. 'username@'... */
-    const std::string userinfo() const;
-
-    /** Get host. E.g. 'includeos.org', '10.0.0.42' etc. */
-    const std::string host() const;
-
-    /** Get raw port number. In decimal character representation */
-    const std::string port_str() const;
-
-    /** Get numeric port number.
-     * @warning The RFC doesn't specify dimension. This funcion will truncate
-     * any overflowing digits
-     **/
-    uint16_t port() const;
-
-    /** Get the path. E.g. /pictures/logo.png  */
-    std::string path() const;
-
-    /** Get the complete unparsed query string. */
-    const std::string query() const;
-
-    /** Get the fragment part. E.g. "...#anchor1" */
-    const std::string fragment() const;
-
-    ///
-    /// Construct / Destruct
-    ///
-
+  public:
+    /*
+     * Default constructor
+     */
     URI() = default;
+
+    /*
+     * Default copy and move constructors
+     */
     URI(URI&) = default;
     URI(URI&&) = default;
+
+    /*
+     * Default destructor
+     */
     ~URI() = default;
+
+    /*
+     * Default assignment operators
+     */
     URI& operator=(const URI&) = default;
     URI& operator=(URI&&) = default;
 
+    //
     // We might do a span-based constructor later.
-    //URI(gsl::span<const char>);
-
-    /** Construct using a string */
-    URI(const std::string&&);
-    URI(const char*);
-
-    ///
-    /// Convenience
-    ///
+    // URI(gsl::span<const char>);
+    //
 
     /**
-     * Get the URI-decoded value of a query-string key.
+     * @brief Construct using a C-String
      *
-     * E.g. for query() => "?name=Bjarne%20Stroustrup",
-     * query("name") returns "Bjarne Stroustrup" */
-    std::string query(std::string key);
+     * @param uri : A C-String representing a uri
+     */
+    URI(const char* uri);
 
-    /** String representation **/
+    /**
+     * @brief Construct using a string
+     *
+     * @param uri : A string representing a uri
+     */
+    URI(const std::string& uri);
+    
+    ///////////////////////////////////////////////
+    //----------RFC-specified URI parts----------//
+    ///////////////////////////////////////////////
+
+    /**
+     * @brief Get userinfo.
+     *
+     * E.g. 'username@'...
+     *
+     * @return The user's information
+     */
+    std::string userinfo() const;
+
+    /**
+     * @brief Get host.
+     *
+     * E.g. 'includeos.org', '10.0.0.42' etc.
+     *
+     * @return The host's information
+     */
+    std::string host() const;
+
+    /**
+     * @brief Get the raw port number in decimal character representation.
+     *
+     * @return The raw port number as a string
+     */
+    std::string port_str() const;
+
+    /**
+     * @brief Get numeric port number.
+     *
+     * @warning The RFC doesn't specify dimension. This funcion will truncate
+     * any overflowing digits.
+     *
+     * @return The numeric port number as a 16-bit number
+     */
+    uint16_t port() const noexcept;
+
+    /**
+     * @brief Get the path.
+     *
+     * E.g. /pictures/logo.png 
+     *
+     * @return The path information
+     */
+    std::string path() const;
+
+    /**
+     * @brief Get the complete unparsed query string.
+     *
+     * @return The complete unparsed query string
+     */
+    std::string query() const;
+
+    /**
+     * @brief Get the fragment part.
+     *
+     * E.g. "...#anchor1"
+     *
+     * @return the fragment part
+     */
+    std::string fragment() const;
+
+    /**
+     * @brief Get the URI-decoded value of a query-string key.
+     *
+     * @param key : The key to find the associated value
+     *
+     * @return The key's associated value
+     *
+     * @example For the query: "?name=Bjarne%20Stroustrup",
+     * query("name") returns "Bjarne Stroustrup"
+     */
+    std::string query(const std::string& key);
+
+    /**
+     * @brief Get a string representation of this
+     * class
+     *
+     * @return - A string representation
+     */
     std::string to_string() const;
 
   private:
@@ -109,10 +178,18 @@ namespace uri {
     Span_t query_;
     Span_t fragment_;
 
+    static const Span_t zero_span_;
+
     // A copy of the data, if the string-based constructor was used
     std::string uri_str_;
 
-    void init_spans();
+    /**
+     * @brief Parse the given string representing a uri
+     * into its given parts according to RFC 3986
+     *
+     * @param uri : The string representing a uri
+     */
+    void parse(const std::string& uri);
 
   }; // class uri::URI
 
