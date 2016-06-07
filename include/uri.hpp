@@ -146,16 +146,17 @@ namespace uri {
      */
     std::string fragment() const;
 
-    ///
-    /// Convenience
-    ///
-
     /**
-     * Get the URI-decoded value of a query-string key.
+     * @brief Get the URI-decoded value of a query-string key.
      *
-     * E.g. for query() => "?name=Bjarne%20Stroustrup",
-     * query("name") returns "Bjarne Stroustrup" */
-    std::string query(std::string key);
+     * @param key : The key to find the associated value
+     *
+     * @return The key's associated value
+     *
+     * @example For the query: "?name=Bjarne%20Stroustrup",
+     * query("name") returns "Bjarne Stroustrup"
+     */
+    std::string query(const std::string& key);
 
     /** String representation **/
     std::string to_string() const;
