@@ -202,8 +202,16 @@ namespace uri {
 
   }; // class uri::URI
 
-
-  std::ostream& operator<< (std::ostream&, const URI&);
+  /**
+   * @brief Operator to stream the contents of a {URI}
+   * to the specified output stream device
+   *
+   * @param output_device : The output stream device
+   * @param uri : The {URI} to send to the output stream
+   *
+   * @return A reference to the specified output stream device
+   */
+  std::ostream& operator<< (std::ostream& output_device, const URI& uri);
 
 } // namespace uri
 
