@@ -12,7 +12,8 @@ INSTALL = $(INCLUDEOS_INSTALL)
 STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3 -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
+CAPABS_COMMON = -mstackrealign -fstack-protector-strong -fomit-frame-pointer -msse3 
+#-D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro

@@ -134,6 +134,7 @@ extern void print_backtrace();
 
 void Service::start()
 {
+  return;
   printf("name for this function is %s\n",
       resolve_symbol((uintptr_t) &Service::start).c_str());
   
