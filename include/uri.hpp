@@ -158,7 +158,12 @@ namespace uri {
      */
     std::string query(const std::string& key);
 
-    /** String representation **/
+    /**
+     * @brief Get a string representation of this
+     * class
+     *
+     * @return - A string representation
+     */
     std::string to_string() const;
 
   private:
