@@ -3,6 +3,9 @@
 
 using namespace uri;
 
+///////////////////////////////////////////////////////////////////////////////
+const URI::Span_t URI::zero_span_;
+
 void URI::init_spans() {
   path_ = {0, uri_str_.size()};
   uri_data_ = {0, uri_str_.size()};

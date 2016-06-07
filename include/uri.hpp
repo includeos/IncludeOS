@@ -114,6 +114,8 @@ namespace uri {
     Span_t query_;
     Span_t fragment_;
 
+    static const Span_t zero_span_;
+
     // A copy of the data, if the string-based constructor was used
     std::string uri_str_;
 
