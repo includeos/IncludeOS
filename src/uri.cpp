@@ -18,7 +18,6 @@ URI::URI(const std::string& uri)
   , port_{}
 {
   parse(uri_str_);
-  port_ = port_str_.begin ? static_cast<uint16_t>(std::stoi(port_str())) : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,6 +42,9 @@ std::string URI::port_str() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 uint16_t URI::port() const noexcept {
+  if (not port_) {
+    port_ = port_str_.begin ? static_cast<uint16_t>(std::stoi(port_str())) : 0;
+  }
   return port_;
 }
 
