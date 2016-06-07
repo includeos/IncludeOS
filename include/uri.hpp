@@ -82,12 +82,18 @@ namespace uri {
      */
     URI(const std::string& uri);
     
-    ///
-    /// RFC-specified URI parts
-    ///
+    ///////////////////////////////////////////////
+    //----------RFC-specified URI parts----------//
+    ///////////////////////////////////////////////
 
-    /** Get userinfo. E.g. 'username@'... */
-    const std::string userinfo() const;
+    /**
+     * @brief Get userinfo.
+     *
+     * E.g. 'username@'...
+     *
+     * @return The user's information
+     */
+    std::string userinfo() const;
 
     /** Get host. E.g. 'includeos.org', '10.0.0.42' etc. */
     const std::string host() const;
