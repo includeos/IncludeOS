@@ -121,6 +121,14 @@ namespace uri {
 
     void init_spans();
 
+    /**
+     * @brief Parse the given string representing a uri
+     * into its given parts according to RFC 3986
+     *
+     * @param uri : The string representing a uri
+     */
+    void parse(const std::string& uri);
+
   }; // class uri::URI
 
 
