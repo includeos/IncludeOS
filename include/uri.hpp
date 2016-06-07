@@ -187,7 +187,7 @@ namespace uri {
      */
     std::string uri_str_;
 
-    uint16_t port_;
+    mutable uint16_t port_;
 
     Span_t uri_data_;
     Span_t scheme_;
