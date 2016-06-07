@@ -22,6 +22,11 @@ URI::URI(const std::string& uri)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+std::string URI::scheme() const {
+  return uri_str_.substr(scheme_.begin, scheme_.end);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::string URI::userinfo() const {
   return uri_str_.substr(userinfo_.begin, userinfo_.end);
 }
@@ -70,12 +75,12 @@ URI::operator std::string () const {
 void URI::parse(const std::string& uri) {
   static const std::regex uri_pattern_matcher
   {
-    "^([\\w]+)?(\\://)?"        //< scheme
-    "(([^:@]+)(\\:([^@]+))?@)?" //< username && password
-    "([^/:?#]+)?(\\:(\\d+))?"   //< hostname && port
-    "([^?#]+)"                  //< path
-    "(\\?([^#]*))?"             //< query
-    "(#(.*))?$"                 //< fragment
+    "^([a-zA-z]+[\\w\\+\\-\\.]+)?(\\://)?" //< scheme
+    "(([^:@]+)(\\:([^@]+))?@)?"            //< username && password
+    "([^/:?#]+)?(\\:(\\d+))?"              //< hostname && port
+    "([^?#]+)"                             //< path
+    "(\\?([^#]*))?"                        //< query
+    "(#(.*))?$"                            //< fragment
   };
 
   std::smatch uri_parts;
@@ -83,6 +88,7 @@ void URI::parse(const std::string& uri) {
   if (std::regex_match(uri, uri_parts, uri_pattern_matcher)) {
     path_     = Span_t(uri_parts.position(10), uri_parts.length(10));
 
+    scheme_   = uri_parts.length(1)  ? Span_t(uri_parts.position(1),  uri_parts.length(1))  : zero_span_;
     userinfo_ = uri_parts.length(3)  ? Span_t(uri_parts.position(3),  uri_parts.length(3))  : zero_span_;
     host_     = uri_parts.length(7)  ? Span_t(uri_parts.position(7),  uri_parts.length(7))  : zero_span_;
     port_str_ = uri_parts.length(9)  ? Span_t(uri_parts.position(9),  uri_parts.length(9))  : zero_span_;
