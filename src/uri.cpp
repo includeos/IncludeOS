@@ -1,5 +1,7 @@
-#include <uri.hpp>
+#include <regex>
 #include <iostream>
+
+#include <uri.hpp>
 
 using namespace uri;
 
