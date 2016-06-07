@@ -23,10 +23,10 @@ echo -e "IncludeOS installation for Mac OS X"
 echo -e "###################################"
 
 echo -e "\n# Prequisites:\n
-    - homebrew (OSX package manager - https://brew.sh)
+    - homebrew (OS X package manager - https://brew.sh)
     - \`/usr/local\` directory with write access
     - \`/usr/local/bin\` added to your PATH
-    - (Recommended) XCode CTL (Command Line Tools)"
+    - (Recommended) XCode CLT (Command Line Tools)"
 
 ### DEPENDENCIES ###
 
@@ -147,7 +147,7 @@ function install_nasm {
     echo -e "\n>>> Done installing: nasm"
 }
 
-## WARN ABOUT XCODE CTL ##
+## WARN ABOUT XCODE CLT ##
 if ! [[ $(xcode-select -p) ]]
 then
     echo -e "\nWARNING: Command Line Tools don't seem to be installed, installation MAY not complete.
@@ -249,7 +249,7 @@ popd
 
 $INCLUDEOS_SRC/etc/copy_scripts.sh
 
-echo -e "\n### OSX installation done. ###"
+echo -e "\n### OS X installation done. ###"
 
 echo -e "\nTo build services and run tests, set LD_INC:"
 echo -e "export LD_INC=$LD_INC"
