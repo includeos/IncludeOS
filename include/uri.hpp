@@ -81,7 +81,7 @@ namespace uri {
      * @param uri : A string representing a uri
      */
     URI(const std::string& uri);
-    
+
     ///////////////////////////////////////////////
     //----------RFC-specified URI parts----------//
     ///////////////////////////////////////////////
@@ -165,6 +165,12 @@ namespace uri {
      * @return - A string representation
      */
     std::string to_string() const;
+
+    /**
+     * @brief Operator to transform this class
+     * into string form
+     */
+    operator std::string () const;
 
   private:
 
