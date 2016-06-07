@@ -137,8 +137,14 @@ namespace uri {
      */
     std::string query() const;
 
-    /** Get the fragment part. E.g. "...#anchor1" */
-    const std::string fragment() const;
+    /**
+     * @brief Get the fragment part.
+     *
+     * E.g. "...#anchor1"
+     *
+     * @return the fragment part
+     */
+    std::string fragment() const;
 
     ///
     /// Convenience
