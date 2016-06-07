@@ -2,22 +2,24 @@
 
 # Install the IncludeOS libraries (i.e. IncludeOS_home) from binary bundle
 # ...as opposed to building them all from scratch, which takes a long time
-# 
 #
-# OPTIONS: 
+#
+# OPTIONS:
 #
 # Location of the IncludeOS repo:
 # $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
 #
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
-# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e. 
+# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-[ ! -v INCLUDEOS_SRC ] && export INCLUDEOS_SRC=$(readlink -f "$(dirname "$0")/..")
+[ ! -v INCLUDEOS_SRC ] && export INCLUDEOS_SRC=$(readlink -f "$(dirname "$0")/")
 [ ! -v INCLUDEOS_INSTALL_LOC ] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
 # Install dependencies
-DEPENDENCIES="curl make clang-3.6 nasm bridge-utils qemu"
+. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+
+DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
 sudo apt-get update
@@ -26,22 +28,19 @@ sudo apt-get install -y $DEPENDENCIES
 
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
-pushd $INCLUDEOS_SRC
-git pull --tags
-tag=`git describe --abbrev=0`
-popd 
+tag=`git ls-remote --tags https://github.com/hioa-cs/IncludeOS.git | grep -oP "tags/\K(.*)$" | grep -v "{" | sort -n -t . -k 1 -k 2 -k 3 | tail -n 1`
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
 
-# If the tarball exists, use that 
-if [ -e $filename ] 
+# If the tarball exists, use that
+if [ -e $filename ]
 then
     echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename
-else    
+else
     echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
-    # Download from GitHub API    
+    # Download from GitHub API
     if [ "$1" = "-oauthToken" ]
     then
         oauthToken=$2
@@ -61,10 +60,16 @@ else
     else
         curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
     fi
-    
+
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
-    tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename    
+    tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename
 fi
+
+echo -e "\n\n>>> Installing submodules"
+pushd $INCLUDEOS_SRC
+git submodule init
+git submodule update
+popd
 
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
@@ -84,6 +89,3 @@ sudo $INCLUDEOS_SRC/etc/create_bridge.sh
 $INCLUDEOS_SRC/etc/copy_scripts.sh
 
 echo -e "\n\n>>> Done! Test your installation with ./test.sh"
-
-
-
