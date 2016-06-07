@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,24 +16,25 @@
 // limitations under the License.
 
 #include <os>
+#include <cassert>
 
 class global {
   static int i;
 public:
   global(){
-    printf("[*] Global constructor printing %i \n",++i);
+    CHECK(1,"Global constructor printing %i",++i);
   }
-  
+
   void test(){
-    printf("[*] C++ constructor finds %i instances \n",i);
+    CHECK(1,"C++ constructor finds %i instances",i);
   }
-  
+
   int instances(){ return i; }
-  
+
   ~global(){
-    printf("[*] C++ destructor deleted 1 instance,  %i remains \n",--i);
+    CHECK(1,"C++ destructor deleted 1 instance,  %i remains",--i);
   }
-  
+
 };
 
 
@@ -53,25 +54,20 @@ __attribute__ ((constructor)) void foo(void)
 
 void Service::start()
 {
-  
-  printf("TESTING C runtime \n");
 
-  printf("[%s] Global C constructors in service \n", 
-         _test_glob3 == 0xfa7ca7 ? "x" : " ");
-  
-  printf("[%s] Global int initialization in service \n", 
-         _test_glob2 == 1 ? "x" : " ");
-  
-  
+  INFO("Test CRT","Testing C runtime \n");
+
+  CHECKSERT(_test_glob3 == 0xfa7ca7, "Global C constructors in service");
+  CHECKSERT(_test_glob2 == 1, "Global int initialization in service");
+
   global* glob2 = new global();;
   glob1.test();
-  printf("[%s] Local C++ constructors in service \n", glob1.instances() == 2 ? "x" : " ");
+  CHECKSERT(glob1.instances() == 2, "Local C++ constructors in service");
 
-  
   delete glob2;
-  printf("[%s] C++ destructors in service \n", glob1.instances() == 1 ? "x" : " ");
-  
-  
-  
-  
+  CHECKSERT(glob1.instances() == 1, "C++ destructors in service");
+
+
+  INFO("Test CRT", "SUCCESS");
+
 }

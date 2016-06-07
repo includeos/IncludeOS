@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NET_DNS_HPP
-#define NET_DNS_HPP
+#ifndef NET_DNS_DNS_HPP
+#define NET_DNS_DNS_HPP
 
 /**
  * DNS message
@@ -49,7 +49,7 @@
  * 
  **/
 
-#include <net/ip4.hpp> // UDP headers
+#include <net/ip4/ip4.hpp> // IP4::addr
 #include <string>
 #include <vector>
 #include <functional>
@@ -116,14 +116,14 @@ namespace net
 #pragma pack(pop)
     
     enum resp_code
-    {
-      NO_ERROR     = 0,
-      FORMAT_ERROR = 1,
-      SERVER_FAIL  = 2,
-      NAME_ERROR   = 3,
-      NOT_IMPL     = 4, // unimplemented feature
-      OP_REFUSED   = 5, // for political reasons
-    };
+      {
+        NO_ERROR     = 0,
+        FORMAT_ERROR = 1,
+        SERVER_FAIL  = 2,
+        NAME_ERROR   = 3,
+        NOT_IMPL     = 4, // unimplemented feature
+        OP_REFUSED   = 5, // for political reasons
+      };
     
     typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
     
@@ -132,18 +132,18 @@ namespace net
     static std::string question_string(unsigned short type)
     {
       switch (type)
-      {
-      case DNS_TYPE_A:
-        return "IPv4 address";
-      case DNS_TYPE_ALIAS:
-        return "Alias";
-      case DNS_TYPE_MX:
-        return "Mail exchange";
-      case DNS_TYPE_NS:
-        return "Name server";
-      default:
-        return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
-      }
+        {
+        case DNS_TYPE_A:
+          return "IPv4 address";
+        case DNS_TYPE_ALIAS:
+          return "Alias";
+        case DNS_TYPE_MX:
+          return "Mail exchange";
+        case DNS_TYPE_NS:
+          return "Name server";
+        default:
+          return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
+        }
     }
     
     class Request
@@ -159,10 +159,10 @@ namespace net
       }
       IP4::addr getFirstIP4() const
       {
-        IP4::addr result{{0}};
         if (answers.size())
-            result = answers[0].getIP4();
-        return result;
+          return answers[0].getIP4();
+        
+        return IP4::INADDR_ANY;
       }
       
     private:

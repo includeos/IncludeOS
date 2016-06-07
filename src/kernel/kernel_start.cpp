@@ -16,20 +16,13 @@
 // limitations under the License.
 
 //#define DEBUG
-#include <hw/ioport.hpp>
 #include <kernel/os.hpp>
 #include <assert.h>
-#include <debug>
 
 extern "C"
 {
-  extern void _init_c_runtime();
-  static void init_serial();
-  
-#ifdef DEBUG
-  static const int _test_glob = 123;
-  static int _test_constructor = 0;
-#endif
+  extern uintptr_t __stack_chk_guard;
+  void _init_c_runtime();
   
   // enables Streaming SIMD Extensions
   static void enableSSE(void)
@@ -44,64 +37,26 @@ extern "C"
     __asm__ ("mov %eax, %cr4");
   }
   
-#ifdef DEBUG
-  __attribute__((constructor)) void test_constr()
-  {    
-    OS::rsprint("\t * C constructor was called!\n");
-    _test_constructor = 1;
-  }
-#endif
-  
-  void _start(void)
-  {    
-    __asm__ volatile ("cli");
+  static char __attribute__((noinline))
+  stack_smasher(const char* src) {
+    char bullshit[16];
     
+    for (int i = -100; i < 100; i++)
+      strcpy(bullshit+i, src);
+    
+    return bullshit[15];
+  }
+  
+  void _start(void) {
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
-    // init serial port
-    init_serial();    
+    //stack_smasher("1234567890 12345 hello world! test -.-");
     
     // Initialize stack-unwinder, call global constructors etc.
-    #ifdef DEBUG
-      OS::rsprint("\t * Initializing C-environment... \n");
-    #endif
     _init_c_runtime();
     
-    FILLINE('=');
-    CAPTION("#include<os> // Literally");
-    FILLINE('=');
-    
-// verify that global constructors were called
-#ifdef DEBUG
-    assert(_test_glob == 123);
-    assert(_test_constructor == 1);
-#endif
     // Initialize some OS functionality
     OS::start();
-    
-    // Will only work if any destructors are called (I think?)
-    //_fini();
-  }
-  
-  #define SERIAL_PORT 0x3f8  
-  void init_serial() {
-    hw::outb(SERIAL_PORT + 1, 0x00);    // Disable all interrupts
-    hw::outb(SERIAL_PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-    hw::outb(SERIAL_PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-    hw::outb(SERIAL_PORT + 1, 0x00);    //                  (hi byte)
-    hw::outb(SERIAL_PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
-    hw::outb(SERIAL_PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-    hw::outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-  }
-  
-  int is_transmit_empty() {
-    return hw::inb(SERIAL_PORT + 5) & 0x20;
-  }
-  
-  void write_serial(char a) {
-    while (is_transmit_empty() == 0);
-    
-    hw::outb(SERIAL_PORT, a);
   }
 }

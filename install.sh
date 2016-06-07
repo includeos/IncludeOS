@@ -13,16 +13,16 @@ export build_dir=$HOME/cross-dev
 # Multitask-parameter to make
 export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
 
-export newlib_version=2.2.0-1
+export newlib_version=2.4.0
 
 export INCLUDEOS_SRC=`pwd`
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
-export clang_version=3.6
+export clang_version=3.8
 
-export gcc_version=5.1.0
-export binutils_version=2.25
+export gcc_version=6.1.0
+export binutils_version=2.26
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -35,14 +35,15 @@ export binutils_version=2.25
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-
+$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
 
 # BUILDING IncludeOS
-PREREQS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
+DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
+
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
-echo -e  "        Packages: $PREREQS_BUILD \n"
-sudo apt-get install -y $PREREQS_BUILD
+echo -e  "        Packages: $DEPS_BUILD \n"
+sudo apt-get install -y $DEPS_BUILD
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
@@ -65,45 +66,46 @@ fi
 if [ ! -z $do_llvm ]; then
     echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
     $INCLUDEOS_SRC/etc/build_llvm32.sh
-    #echo -e "\n\n >>> INSTALLING libc++ \n"
-    #cp $BUILD_DIR/$llvm_build/lib/libc++.a $INSTALL_DIR/lib/
 fi
 
 echo -e "\n >>> DEPENDENCIES SUCCESSFULLY BUILT. Creating binary bundle \n"
 $INCLUDEOS_SRC/etc/create_binary_bundle.sh
 
+echo -e "\n\n>>> Installing submodules"
+pushd $INCLUDEOS_SRC
+git submodule init
+git submodule update
+popd
 
 if [ ! -z $do_includeos ]; then
-    # Build and install the vmbuilder 
+    # Build and install the vmbuilder
     echo -e "\n >>> Installing vmbuilder"
     pushd $INCLUDEOS_SRC/vmbuild
-    make 
+    make
     cp vmbuild $INSTALL_DIR/
     popd
-    
+
     echo -e "\n >>> Building IncludeOS"
     pushd $INCLUDEOS_SRC/src
     make $num_jobs
-        
+
     echo -e "\n >>> Linking IncludeOS test-service"
     make test
-    
+
     echo -e "\n >>> Installing IncludeOS"
     make install
-
     popd
-   
-    
+
     # RUNNING IncludeOS
-    PREREQS_RUN="bridge-utils qemu-kvm"
+    DEPS_RUN="bridge-utils qemu-kvm"
     echo -e "\n\n >>> Trying to install prerequisites for *running* IncludeOS"
-    echo -e   "        Packages: $PREREQS_RUN \n"
-    sudo apt-get install -y $PREREQS_RUN
-    
+    echo -e   "        Packages: $DEPS_RUN \n"
+    sudo apt-get install -y $DEPS_RUN
+
     # Set up the IncludeOS network bridge
     echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
     sudo $INCLUDEOS_SRC/etc/create_bridge.sh
-    
+
     # Copy qemu-ifup til install loc.
     $INCLUDEOS_SRC/etc/copy_scripts.sh
 fi

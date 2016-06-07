@@ -34,6 +34,10 @@ __FILE* stdin;
 __FILE* stdout;
 __FILE* stderr;
 
+// stack-protector guard
+uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
+extern void panic(const char* why) __attribute__((noreturn));
+
 void _init_c_runtime()
 {
   // Initialize .bss section
@@ -44,8 +48,8 @@ void _init_c_runtime()
   extern caddr_t heap_end; // used by SBRK:
   extern char _end;        // Defined by the linker 
   // Set heap to after _end (given by linker script) if needed
-  if (&_end > heap_end)
-    heap_end = &_end;
+  // note: end should be aligned to next page by linker
+  heap_end = &_end;
   
   /// initialize newlib I/O
   newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);
@@ -69,6 +73,13 @@ void _init_c_runtime()
 
 // global/static objects should never be destructed here, so ignore this
 void* __dso_handle;
+
+// stack-protector
+__attribute__((noreturn))
+void __stack_chk_fail(void)
+{
+  panic("Stack protector: Canary modified");
+}
 
 // old function result system
 int errno = 0;

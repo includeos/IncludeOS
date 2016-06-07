@@ -28,6 +28,8 @@
 namespace __cxxabiv1
 {
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 namespace
 {
 
@@ -162,6 +164,7 @@ set_lock(uint32_t& x, lock_type y)
 #endif  // __APPLE__
 
 }  // unnamed namespace
+#pragma GCC diagnostic pop
 
 extern "C"
 {

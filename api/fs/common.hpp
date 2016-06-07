@@ -20,16 +20,80 @@
 #define FS_COMMON_HPP
 
 #include <memory>
+#include <string>
 
 namespace fs {
 
-typedef std::shared_ptr<uint8_t> buffer_t;
+  typedef std::shared_ptr<uint8_t> buffer_t;
 
-// TODO: transform this into a class with a bool operator
-using error_t = bool;
-
-/** @var no_error: Always returns boolean false when used in expressions */
-extern error_t no_error;
+  struct error_t
+  {
+    enum token_t {
+      NO_ERR = 0,
+      E_IO, // general I/O error
+      E_MNT,
+      
+      E_NOENT,
+      E_NOTDIR,
+    };
+    
+    error_t(token_t tk, const std::string& rsn)
+      : token_(tk), reason_(rsn) {}
+    
+    // error code to string
+    std::string token() const noexcept;
+    // show explanation for error
+    std::string reason() const noexcept {
+      return reason_;
+    }
+    
+    // returns "description": "reason"
+    std::string to_string() const noexcept {
+      return token() + ": " + reason();
+    }
+    
+    // returns true when it's an error
+    operator bool () const noexcept {
+      return token_ != NO_ERR;
+    }
+    
+  private:
+    token_t     token_;
+    std::string reason_;
+  };
+  
+  struct Buffer
+  {
+    Buffer(error_t e, buffer_t b, size_t l)
+      : err(e), buffer(b), len(l) {}
+      
+    // returns true if this buffer is valid
+    bool is_valid() const noexcept {
+      return buffer != nullptr;
+    }
+    operator bool () const noexcept {
+      return is_valid();
+    }
+    
+    uint8_t* data() {
+      return buffer.get();
+    }
+    size_t   size() const noexcept {
+      return len;
+    }
+    
+    // create a std::string from the stored buffer and return it
+    std::string to_string() const noexcept {
+      return std::string((char*) buffer.get(), size());
+    }
+    
+    error_t  err;
+    buffer_t buffer;
+    uint64_t len;
+  };
+  
+  /** @var no_error: Always returns boolean false when used in expressions */
+  extern error_t no_error;
 
 } //< namespace fs
 

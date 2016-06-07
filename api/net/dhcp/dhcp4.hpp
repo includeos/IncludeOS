@@ -20,7 +20,7 @@
 #ifndef NET_DHCP_DHCP4_HPP
 #define NET_DHCP_DHCP4_HPP
 
-#define DHCP_VEND_LEN	      304
+#define DHCP_VEND_LEN         304
 #define BOOTP_MIN_LEN       300
 #define DHCP_MIN_LEN        548
 // some clients silently ignore responses less than 300 bytes

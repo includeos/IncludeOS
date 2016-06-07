@@ -3,13 +3,14 @@
 #################################################
 
 # The name of your service
-SERVICE = "IncludeOS_TCP_Test"
-SERVICE_NAME = "TCP\ Test\ Service"
+SERVICE = test_tcp
+SERVICE_NAME = TCP Test Service
 
 # Your service parts
 FILES = service.cpp
 # Your disk image
 DISK=
+LOCAL_INCLUDES=
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

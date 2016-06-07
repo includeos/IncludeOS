@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,36 +33,33 @@ static bool debug_syscalls  {true};
 
 caddr_t heap_end;
 
+
 void _exit(int status) {
-  printf("\tSYSCALL EXIT: status %d. Nothing more we can do.\n", status);
-  printf("\tSTOPPING EXECUTION\n");
-  while (1)
-    asm("cli; hlt;");
+  (void) status;
+  panic("Exit called");
 }
 
-int close(int UNUSED(file)) {  
-  debug("SYSCALL CLOSE Dummy, returning -1");
+int close(int) {
+  panic("SYSCALL CLOSE NOT SUPPORTED");
   return -1;
 };
 
-int execve(const char* UNUSED(name), 
-           char* const* UNUSED(argv), 
+int execve(const char* UNUSED(name),
+           char* const* UNUSED(argv),
            char* const* UNUSED(env))
 {
-  debug((char*) "SYSCALL EXECVE NOT SUPPORTED");
-  errno = ENOMEM;
+  panic("SYSCALL EXECVE NOT SUPPORTED");
   return -1;
 };
 
 int fork() {
-  debug("SYSCALL FORK NOT SUPPORTED");
-  errno=ENOMEM;
+  panic("SYSCALL FORK NOT SUPPORTED");
   return -1;
 };
 
 int fstat(int UNUSED(file), struct stat *st) {
   debug("SYSCALL FSTAT Dummy, returning OK 0");
-  st->st_mode = S_IFCHR;  
+  st->st_mode = S_IFCHR;
   return 0;
 };
 
@@ -78,40 +75,39 @@ int isatty(int file) {
   }
 
   // Not stdxxx, error out
-  debug("SYSCALL ISATTY Unknown descriptor %i", file);
+  panic("SYSCALL ISATTY Unknown descriptor ");
   errno = EBADF;
   return 0;
 }
 
 int link(const char* UNUSED(old), const char* UNUSED(_new)) {
-  debug("SYSCALL LINK - Unsupported");
-  kill(1,9);
+  panic("SYSCALL LINK unsupported");
   return -1;
 }
 
 int unlink(const char* UNUSED(name)) {
-  debug((char*)"SYSCALL UNLINK Dummy, returning -1");
+  panic("SYSCALL UNLINK unsupported");
   return -1;
 }
 
 off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir)) {
-  debug("SYSCALL LSEEK returning 0");
+  panic("SYSCALL LSEEK returning 0");
   return 0;
 }
 
 int open(const char* UNUSED(name), int UNUSED(flags), ...) {
-  debug("SYSCALL OPEN Dummy, returning -1");
+  panic("SYSCALL OPEN unsupported");
   return -1;
 };
 
 int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len)) {
-  debug("SYSCALL READ Not supported, returning 0");
+  panic("SYSCALL READ unsupported");
   return 0;
 }
 
 int write(int file, const void* ptr, size_t len) {
   if (file == syscall_fd and not debug_syscalls) {
-		return len;
+    return len;
   }
   return OS::rsprint((const char*) ptr, len);
 }
@@ -130,7 +126,7 @@ int stat(const char* UNUSED(file), struct stat *st) {
 };
 
 clock_t times(struct tms* UNUSED(buf)) {
-  debug((char*)"SYSCALL TIMES Dummy, returning -1");
+  panic("SYSCALL TIMES Dummy, returning -1");
   return -1;
 };
 
@@ -147,13 +143,13 @@ int gettimeofday(struct timeval* p, void* UNUSED(z)) {
   return 5;
 }
 
-int kill(pid_t pid, int sig) {  
+int kill(pid_t pid, int sig) {
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
-  
+
   if (sig == 6ul) {
     printf("/ ABORT\n");
   }
-  
+
   panic("\tKilling a process doesn't make sense in IncludeOS. Panic.");
   errno = ESRCH;
   return -1;
@@ -164,8 +160,13 @@ void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
   printf("\tHeap end: %p\n", heap_end);
   while(1) __asm__("cli; hlt;");
-  
 }
+
+// No continuation from here
+void default_exit() {
+  panic("Exit was called");
+}
+
 
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {

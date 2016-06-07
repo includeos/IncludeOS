@@ -43,17 +43,17 @@ namespace net
   public:
     /** Known transport layer protocols. */
     enum proto
-    {
-      PROTO_HOPOPT =  0, // IPv6 hop-by-hop
+      {
+        PROTO_HOPOPT =  0, // IPv6 hop-by-hop
       
-      PROTO_ICMPv4 =  1,
-      PROTO_TCP    =  6,
-      PROTO_UDP    = 17,
+        PROTO_ICMPv4 =  1,
+        PROTO_TCP    =  6,
+        PROTO_UDP    = 17,
       
-      PROTO_ICMPv6 = 58, // IPv6 ICMP
-      PROTO_NoNext = 59, // no next-header
-      PROTO_OPTSv6 = 60, // dest options
-    };
+        PROTO_ICMPv6 = 58, // IPv6 ICMP
+        PROTO_NoNext = 59, // no next-header
+        PROTO_OPTSv6 = 60, // dest options
+      };
     
     struct addr
     {
@@ -63,23 +63,32 @@ namespace net
       addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2, 
            uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
       {
-        i128 = _mm_set_epi16(
-            //d2, d1, c2, c1, b2, b1, a2, a1);
-            htons(d2), htons(d1), 
-            htons(c2), htons(c1), 
-            htons(b2), htons(b1), 
-            htons(a2), htons(a1));
+        i16[0] = a1; i16[1] = a2;
+        i16[2] = b1; i16[3] = b2;
+        i16[4] = c1; i16[5] = c2;
+        i16[6] = d1; i16[7] = d2;
+        /*i128 = _mm_set_epi16(
+           htons(d2), htons(d1), 
+           htons(c2), htons(c1), 
+           htons(b2), htons(b1), 
+           htons(a2), htons(a1));*/
       }
       addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
       {
-        i128 = _mm_set_epi32(d, c, b, a);
+        i32[0] = a; i32[1] = b; i32[2] = c; i32[3] = d;
+        //i128 = _mm_set_epi32(d, c, b, a);
       }
       addr(const addr& a)
-        : i128(a.i128) {}
+      {
+        for (int i = 0; i < 4; i++)
+          i32[i] = a.i32[i];
+      }
       // move constructor
       addr& operator= (const addr& a)
       {
-        i128 = a.i128;
+        for (int i = 0; i < 4; i++)
+          i32[i] = a.i32[i];
+        //i128 = a.i128;
         return *this;
       }
       
@@ -87,8 +96,11 @@ namespace net
       bool operator== (const addr& a) const
       {
         // i128 == a.i128:
-        __m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
-        return _mm_cvtsi128_si32(cmp);
+        for (int i = 0; i < 4; i++)
+          if (i32[i] != a.i32[i]) return false;
+        return true;
+        //__m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
+        //return _mm_cvtsi128_si32(cmp);
       }
       bool operator!= (const addr& a) const
       {
@@ -121,28 +133,29 @@ namespace net
       bool is_multicast() const
       {
         /**
-          RFC 4291 2.7 Multicast Addresses
+           RFC 4291 2.7 Multicast Addresses
           
-          An IPv6 multicast address is an identifier for a group of interfaces
-          (typically on different nodes). An interface may belong to any
-          number of multicast groups. Multicast addresses have the following format:
-          |   8    |  4 |  4 |                  112 bits                   |
-          +------ -+----+----+---------------------------------------------+
-          |11111111|flgs|scop|                  group ID                   |
-          +--------+----+----+---------------------------------------------+
+           An IPv6 multicast address is an identifier for a group of interfaces
+           (typically on different nodes). An interface may belong to any
+           number of multicast groups. Multicast addresses have the following format:
+           |   8    |  4 |  4 |                  112 bits                   |
+           +------ -+----+----+---------------------------------------------+
+           |11111111|flgs|scop|                  group ID                   |
+           +--------+----+----+---------------------------------------------+
         **/
         return i8[0] == 0xFF;
       }
       
       union
       {
-        __m128i  i128;
+        //__m128i  i128;
         uint32_t  i32[ 4];
+        uint16_t  i16[ 8];
         uint8_t    i8[16];
       };
-    } __attribute__((aligned(alignof(__m128i))));
+    };
     
-    #pragma pack(push, 1)
+#pragma pack(push, 1)
     class header
     {
     public:
@@ -153,7 +166,7 @@ namespace net
       uint8_t tclass() const
       {
         return ((scanline[0] & 0xF000) >> 12) + 
-                (scanline[0] & 0xF);
+          (scanline[0] & 0xF);
       }
       // initializes the first scanline with the IPv6 version
       void init_scan0()
@@ -164,7 +177,7 @@ namespace net
       uint16_t size() const
       {
         return ((scanline[1] & 0x00FF) << 8) +
-               ((scanline[1] & 0xFF00) >> 8);
+          ((scanline[1] & 0xFF00) >> 8);
       }
       void set_size(uint16_t newsize)
       {
@@ -218,7 +231,7 @@ namespace net
         return hdr_ext_len;
       }
     };
-    #pragma pack(pop)
+#pragma pack(pop)
     
     struct full_header
     {
@@ -243,25 +256,25 @@ namespace net
     static std::string protocol_name(uint8_t protocol)
     {
       switch (protocol)
-      {
-      case PROTO_HOPOPT:
-        return "IPv6 Hop-By-Hop (0)";
+        {
+        case PROTO_HOPOPT:
+          return "IPv6 Hop-By-Hop (0)";
         
-      case PROTO_TCP:
-        return "TCPv6 (6)";
-      case PROTO_UDP:
-        return "UDPv6 (17)";
+        case PROTO_TCP:
+          return "TCPv6 (6)";
+        case PROTO_UDP:
+          return "UDPv6 (17)";
         
-      case PROTO_ICMPv6:
-        return "ICMPv6 (58)";
-      case PROTO_NoNext:
-        return "No next header (59)";
-      case PROTO_OPTSv6:
-        return "IPv6 destination options (60)";
+        case PROTO_ICMPv6:
+          return "ICMPv6 (58)";
+        case PROTO_NoNext:
+          return "No next header (59)";
+        case PROTO_OPTSv6:
+          return "IPv6 destination options (60)";
         
-      default:
-        return "Unknown: " + std::to_string(protocol);
-      }
+        default:
+          return "Unknown: " + std::to_string(protocol);
+        }
     }
     
     // handler for upstream IPv6 packets
@@ -283,7 +296,7 @@ namespace net
     
     // creates a new IPv6 packet to be sent over the ether
     static std::shared_ptr<PacketIP6> create(uint8_t proto,
-        Ethernet::addr ether_dest, const IP6::addr& dest);
+                                             Ethernet::addr ether_dest, const IP6::addr& dest);
     
   private:
     addr local;

@@ -31,27 +31,29 @@ void Service::start()
 {
   // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
-  auto& mac = eth0.mac();
-
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
-    {{ 255,255,0,0 }} );  // Netmask
+    { 10,0,0,42 }, // IP
+    { 255,255,0,0 } );  // Netmask
 
-  printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
+  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   // UDP
-  UDP::port_t port = 4242;
+  const UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
-  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port, const char* data, int len) -> int
-              {
-                printf("Getting UDP data from %s: %i: %s\n",
-                       addr.str().c_str(), port, data);
-                // send the same thing right back!
-                conn.sendto(addr, port, data, len);
-                return 0;
-              });
+  sock.on_read(
+               [&sock] (UDP::addr_t addr, UDP::port_t port,
+                        const char* data, size_t len)
+               {
+                 std::string strdata(data, len);
+                 CHECK(1, "Getting UDP data from %s:  %d -> %s",
+                       addr.str().c_str(), port, strdata.c_str());
+                 // send the same thing right back!
+                 sock.sendto(addr, port, data, len,
+                             [] {
+                               INFO("UDP test", "SUCCESS");
+                             });
+               });
 
-  printf("UDP server listening to port %i \n",port);
-
+  INFO("UDP test", "Listening on port %d\n", port);
 }

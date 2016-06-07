@@ -35,12 +35,14 @@ namespace fs
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
     
     // path is a path in the mounted filesystem
-    virtual void    ls     (const std::string& path, on_ls_func) override;
-    virtual error_t ls(const std::string& path, dirvec_t) override;
+    virtual void  ls     (const std::string& path, on_ls_func) override;
+    virtual void  ls     (const Dirent& entry,     on_ls_func) override;
+    virtual List  ls(const std::string& path) override;
+    virtual List  ls(const Dirent&) override;
     
     // read an entire file into a buffer, then call on_read
-    virtual void readFile(const std::string&, on_read_func) override;
-    virtual void readFile(const Dirent& ent, on_read_func) override;
+    virtual void   readFile(const std::string&, on_read_func) override;
+    virtual Buffer readFile(const std::string&) override;
     
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
@@ -54,14 +56,14 @@ namespace fs
     virtual std::string name() const override
     {
       switch (this->fat_type)
-      {
-      case T_FAT12:
+        {
+        case T_FAT12:
           return "FAT12";
-      case T_FAT16:
+        case T_FAT16:
           return "FAT16";
-      case T_FAT32:
+        case T_FAT32:
           return "FAT32";
-      }
+        }
       return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
@@ -121,7 +123,7 @@ namespace fs
       
       uint32_t size() const
       {
-          return filesize;
+        return filesize;
       }
       
     } __attribute__((packed));
@@ -151,9 +153,9 @@ namespace fs
     } __attribute__((packed));
     
     // helper functions
-    uint32_t cl_to_sector(uint32_t cl)
+    uint32_t cl_to_sector(uint32_t const cl)
     {
-      if (cl == 0)
+      if (cl <= 2)
         return lba_base + data_index + (this->root_cluster - 2) * sectors_per_cluster - this->root_dir_sectors;
       else
         return lba_base + data_index + (cl - 2) * sectors_per_cluster;
@@ -162,16 +164,16 @@ namespace fs
     uint16_t cl_to_entry_offset(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-          return (cl * 2) % sector_size;
+        return (cl * 2) % sector_size;
       else // T_FAT32
-          return (cl * 4) % sector_size;
+        return (cl * 4) % sector_size;
     }
     uint16_t cl_to_entry_sector(uint32_t cl)
     {
       if (fat_type == T_FAT16)
-          return reserved + (cl * 2 / sector_size);
+        return reserved + (cl * 2 / sector_size);
       else // T_FAT32
-          return reserved + (cl * 4 / sector_size);
+        return reserved + (cl * 4 / sector_size);
     }
     
     // initialize filesystem by providing base sector
@@ -179,15 +181,15 @@ namespace fs
     // return a list of entries from directory entries at @sector
     typedef std::function<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
-    bool int_dirent(uint32_t sector, const void* data, dirvec_t);
+    bool int_dirent(uint32_t sector, const void* data, dirvector&);
     
     // tree traversal
     typedef std::function<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     // sync version
-    error_t traverse(Path path, dirvec_t);
-    error_t int_ls(uint32_t sector, dirvec_t);
+    error_t traverse(Path path, dirvector&);
+    error_t int_ls(uint32_t sector, dirvector&);
     
     // device we can read and write sectors to
     hw::IDiskDevice& device;

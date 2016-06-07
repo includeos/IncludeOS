@@ -32,12 +32,12 @@ namespace net
     std::string resp;
     
     while (*(tmp)!=0)
-    {
-      int len = *tmp++;
-      resp.append((char*) tmp, len);
-      resp.append(".");
-      tmp += len;
-    }
+      {
+        int len = *tmp++;
+        resp.append((char*) tmp, len);
+        resp.append(".");
+        tmp += len;
+      }
     return resp;
   }
   
@@ -79,7 +79,7 @@ namespace net
     
     // initial response size
     unsigned short packetlen = sizeof(header) + 
-        sizeof(question) + parsed_query.size() + 1;
+      sizeof(question) + parsed_query.size() + 1;
     
     // set DNS QR to RESPONSE
     hdr.qr = DNS_QR_RESPONSE;
@@ -91,45 +91,45 @@ namespace net
     
     std::vector<IP4::addr>* addrs = lookup(parsed_query);
     if (addrs == nullptr)
-    {
-      // not found
-      debug("*** Could not find: %s", parsed_query.c_str());
-      hdr.ans_count = 0;
-      hdr.rcode     = DNS::NO_ERROR;
-    }
-    else
-    {
-      debug("*** Found %lu results for %s", addrs->size(), parsed_query.c_str());
-      // append answers
-      for (auto addr : *addrs)
       {
-        debug("*** Result: %s", addr.str().c_str());
-        // add query
-        int qlen = parsed_query.size() + 1;
-        memcpy(buffer, query, qlen);
-        buffer += qlen;
-        packetlen += qlen; // (!)
+        // not found
+        debug("*** Could not find: %s", parsed_query.c_str());
+        hdr.ans_count = 0;
+        hdr.rcode     = DNS::NO_ERROR;
+      }
+    else
+      {
+        debug("*** Found %lu results for %s", addrs->size(), parsed_query.c_str());
+        // append answers
+        for (auto addr : *addrs)
+          {
+            debug("*** Result: %s", addr.str().c_str());
+            // add query
+            int qlen = parsed_query.size() + 1;
+            memcpy(buffer, query, qlen);
+            buffer += qlen;
+            packetlen += qlen; // (!)
         
-        // add resource record
-        rr_data* data = (rr_data*) buffer;
+            // add resource record
+            rr_data* data = (rr_data*) buffer;
         
-        data->type     = htons(DNS_TYPE_A);
-        data->_class   = htons(DNS_CLASS_INET);
-        data->ttl      = htons(0x7FFF); // just because
-        data->data_len = htons(sizeof(IP4::addr));
-        buffer += sizeof(rr_data);
+            data->type     = htons(DNS_TYPE_A);
+            data->_class   = htons(DNS_CLASS_INET);
+            data->ttl      = htons(0x7FFF); // just because
+            data->data_len = htons(sizeof(IP4::addr));
+            buffer += sizeof(rr_data);
         
-        // add resource itself
-        *((IP4::addr*) buffer) = addr; // IPv4 address
-        buffer += sizeof(IP4::addr);
+            // add resource itself
+            *((IP4::addr*) buffer) = addr; // IPv4 address
+            buffer += sizeof(IP4::addr);
         
-        packetlen += sizeof(rr_data) + sizeof(IP4::addr); // (!)
-      } // addr
+            packetlen += sizeof(rr_data) + sizeof(IP4::addr); // (!)
+          } // addr
       
-      // set dns header answer count (!)
-      hdr.ans_count = htons((addrs->size() & 0xFFFF));
-      hdr.rcode     = DNS::NO_ERROR;
-    }
+        // set dns header answer count (!)
+        hdr.ans_count = htons((addrs->size() & 0xFFFF));
+        hdr.rcode     = DNS::NO_ERROR;
+      }
     return packetlen;
   }
   
@@ -160,7 +160,7 @@ namespace net
     dns->auth_count = 0;
     dns->add_count  = 0;
     
-      // point to the query portion
+    // point to the query portion
     char* qname = buffer + sizeof(DNS::header);
     
     // convert host to dns name format
@@ -197,7 +197,7 @@ namespace net
     for (int i = 0; i < ntohs(dns->auth_count); i++)
       auth.emplace_back(reader, buffer);
     
-      // parse additional
+    // parse additional
     for (int i = 0; i < ntohs(dns->add_count); i++)
       addit.emplace_back(reader, buffer);
     
@@ -231,24 +231,24 @@ namespace net
   // convert www.google.com to 3www6google3com
   void DNS::Request::dnsNameFormat(char* dns)
   {
-      int lock = 0;
+    int lock = 0;
     
-      std::string copy = this->hostname + ".";
-      int len = copy.size();
+    std::string copy = this->hostname + ".";
+    int len = copy.size();
       
-      for(int i = 0; i < len; i++)
+    for(int i = 0; i < len; i++)
       {
-          if (copy[i] == '.')
+        if (copy[i] == '.')
           {
-              *dns++ = i - lock;
-              for(; lock < i; lock++)
+            *dns++ = i - lock;
+            for(; lock < i; lock++)
               {
-                  *dns++ = copy[lock];
+                *dns++ = copy[lock];
               }
-              lock++;
+            lock++;
           }
       }
-      *dns++ = '\0';
+    *dns++ = '\0';
   }
   
   DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer)
@@ -263,54 +263,50 @@ namespace net
     
     // if its an ipv4 address
     if (ntohs(resource.type) == DNS_TYPE_A)
-    {
-      int len = ntohs(resource.data_len);
+      {
+        int len = ntohs(resource.data_len);
       
-      this->rdata = std::string(reader, len);
-      reader += len;
-    }
+        this->rdata = std::string(reader, len);
+        reader += len;
+      }
     else
-    {
-      this->rdata = readName(reader, buffer, stop);
-      reader += stop;
-    }
+      {
+        this->rdata = readName(reader, buffer, stop);
+        reader += stop;
+      }
   }
   
   IP4::addr DNS::Request::rr_t::getIP4() const
   {
-    switch (ntohs(resource.type))
-    {
+    switch (ntohs(resource.type)) {
     case DNS_TYPE_A:
-    {
-      IP4::addr* addr = (IP4::addr*) rdata.c_str();
-      return *addr;
-    }
+      return *(IP4::addr*) rdata.data();
     case DNS_TYPE_ALIAS:
     case DNS_TYPE_NS:
     default:
-      return IP4::addr{{0}};
+      return IP4::INADDR_ANY;
     }
   }
   void DNS::Request::rr_t::print()
   {
     printf("Name: %s ", name.c_str());
     switch (ntohs(resource.type))
-    {
-    case DNS_TYPE_A:
       {
-        IP4::addr* addr = (IP4::addr*) rdata.c_str();
-        printf("has IPv4 address: %s", addr->str().c_str());
+      case DNS_TYPE_A:
+        {
+          auto* addr = (IP4::addr*) rdata.data();
+          printf("has IPv4 address: %s", addr->str().c_str());
+        }
+        break;
+      case DNS_TYPE_ALIAS:
+        printf("has alias: %s", rdata.c_str());
+        break;
+      case DNS_TYPE_NS:
+        printf("has authoritative nameserver : %s", rdata.c_str());
+        break;
+      default:
+        printf("has unknown resource type: %d", ntohs(resource.type));
       }
-      break;
-    case DNS_TYPE_ALIAS:
-      printf("has alias: %s", rdata.c_str());
-      break;
-    case DNS_TYPE_NS:
-      printf("has authoritative nameserver : %s", rdata.c_str());
-      break;
-    default:
-      printf("has unknown resource type: %d", ntohs(resource.type));
-    }
     printf("\n");
   }
   
@@ -325,22 +321,22 @@ namespace net
     unsigned char* ureader = (unsigned char*) reader;
     
     while (*ureader)
-    {
-      if (*ureader >= 192)
       {
-        offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
-        ureader = (unsigned char*) buffer + offset - 1;
-        jumped = true; // we have jumped to another location so counting wont go up!
-      }
-      else
-      {
-        name[p++] = *ureader;
-      }
-      ureader++;
+        if (*ureader >= 192)
+          {
+            offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
+            ureader = (unsigned char*) buffer + offset - 1;
+            jumped = true; // we have jumped to another location so counting wont go up!
+          }
+        else
+          {
+            name[p++] = *ureader;
+          }
+        ureader++;
       
-      // if we havent jumped to another location then we can count up
-      if (jumped == false) count++;
-    }
+        // if we havent jumped to another location then we can count up
+        if (jumped == false) count++;
+      }
     name.resize(p);
     
     // number of steps we actually moved forward in the packet
@@ -351,16 +347,16 @@ namespace net
     int len = p; // same as name.size()
     int i;
     for(i = 0; i < len; i++)
-    {
-      p = name[i];
-      
-      for(unsigned j = 0; j < p; j++)
       {
-        name[i] = name[i+1];
-        i++;
+        p = name[i];
+      
+        for(unsigned j = 0; j < p; j++)
+          {
+            name[i] = name[i+1];
+            i++;
+          }
+        name[i] = '.';
       }
-      name[i] = '.';
-    }
     name[i - 1] = '\0'; // remove the last dot
     return name;
     

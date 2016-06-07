@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,46 +21,44 @@
 
 #include <fs/fat.hpp>
 #include <ide>
-using FatDisk = fs::Disk<fs::FAT>;
-std::shared_ptr<FatDisk> disk;
+
+// Includes std::string internal_banana
+#include "banana.ascii"
+
+std::shared_ptr<fs::Disk> disk;
 
 void Service::start()
 {
   INFO("FAT32", "Running tests for FAT32");
   auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
-  disk = std::make_shared<FatDisk> (device);
+  disk = std::make_shared<fs::Disk> (device);
   assert(disk);
-  
+
   // verify that the size is indeed N sectors
   const size_t SIZE = 4194304;
-  CHECK(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
-  assert(disk->dev().size() == SIZE);
-  
+  printf("Size: %llu\n", disk->dev().size());
+  CHECKSERT(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
+
   // which means that the disk can't be empty
-  CHECK(!disk->empty(), "Disk not empty");
-  assert(!disk->empty());
-  
+  CHECKSERT(!disk->empty(), "Disk not empty");
+
   // auto-mount filesystem
   disk->mount(disk->MBR,
   [] (fs::error_t err)
   {
-    CHECK(!err, "Filesystem auto-mounted");
-    assert(!err);
-    
+    CHECKSERT(!err, "Filesystem auto-mounted");
+
     auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
-    
-    auto vec = fs::new_shared_vector();
-    err = fs.ls("/", vec);
-    CHECK(!err, "List root directory");
-    assert(!err);
-    
-    CHECK(vec->size() == 2, "Exactly two ents in root dir");
-    assert(vec->size() == 2);
-    
-    auto& e = vec->at(0);
-    CHECK(e.is_file(), "Ent is a file");
-    CHECK(e.name() == "banana.txt", "Ent is 'banana.txt'");
+
+    auto list = fs.ls("/");
+    CHECKSERT(!list.error, "List root directory");
+
+    CHECKSERT(list.entries->size() == 2, "Exactly two ents in root dir");
+
+    auto& e = list.entries->at(0);
+    CHECKSERT(e.is_file(), "Ent is a file");
+    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
   });
   // re-mount on VBR1
   disk->mount(disk->VBR1,
@@ -68,35 +66,48 @@ void Service::start()
   {
     CHECK(!err, "Filesystem mounted on VBR1");
     assert(!err);
-    
+
     auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in root dir");
-    assert(ent.is_valid());
-    
-    CHECK(ent.is_file(), "Entity is file");
-    assert(ent.is_file());
-    
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    assert(!ent.is_dir());
-    
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
-    assert(ent.name() == "banana.txt");
-    
+    CHECKSERT(ent.is_valid(), "Stat file in root dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+
     ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
-    CHECK(ent.is_valid(), "Stat file in deep dir");
-    assert(ent.is_valid());
-    
-    CHECK(ent.is_file(), "Entity is file");
-    assert(ent.is_file());
-    
-    CHECK(!ent.is_dir(), "Entity is not directory");
-    assert(!ent.is_dir());
-    
-    CHECK(ent.name() == "banana.txt", "Name is 'banana.txt'");
-    assert(ent.name() == "banana.txt");
-    
+    CHECKSERT(ent.is_valid(), "Stat file in deep dir");
+    CHECKSERT(ent.is_file(), "Entity is file");
+    CHECKSERT(!ent.is_dir(), "Entity is not directory");
+
+    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+
+    printf("%s\n", internal_banana.c_str());
+
+    // asynch file reading test
+    fs.read(ent, 0, ent.size(),
+    [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+    {
+      CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");
+      if (err) {
+        panic("Failed to read file (async)");
+      }
+
+      std::string banana((char*) buf.get(), len);
+      CHECKSERT(banana == internal_banana, "Correct banana #1");
+
+      fs.readFile("/banana.txt",
+      [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+      {
+        CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
+        if (err) {
+          panic("Failed to read file (async)");
+        }
+
+        std::string banana((char*) buf.get(), len);
+        CHECKSERT(banana == internal_banana, "Correct banana #2");
+      });
+    });
   });
-  
+
   INFO("FAT32", "SUCCESS");
 }

@@ -12,9 +12,9 @@ void Client::split_message(const std::string& msg)
   
   printf("[Client]: ");
   for (auto& str : vec)
-  {
-    printf("[%s]", str.c_str());
-  }
+    {
+      printf("[%s]", str.c_str());
+    }
   printf("\n");
   // ignore empty messages
   if (vec.size() == 0) return;
@@ -25,47 +25,47 @@ void Client::split_message(const std::string& msg)
 void Client::read(const char* buf, size_t len)
 {
   while (len > 0)
-  {
-    int search = -1;
+    {
+      int search = -1;
     
-    for (size_t i = 0; i < len; i++)
-    if (buf[i] == 13 || buf[i] == 10)
-    {
-      search = i; break;
-    }
-    // not found:
-    if (search == -1)
-    {
-      // append entire buffer
-      buffer.append(buf, len);
-      break;
-    }
-    else
-    {
-      // found CR LF:
-      if (search != 0)
-      {
-        // append to clients buffer
-        buffer.append(buf, search);
-        
-        // move forward in socket buffer
-        buf += search;
-        // decrease len
-        len -= search;
-      }
+      for (size_t i = 0; i < len; i++)
+        if (buf[i] == 13 || buf[i] == 10)
+          {
+            search = i; break;
+          }
+      // not found:
+      if (search == -1)
+        {
+          // append entire buffer
+          buffer.append(buf, len);
+          break;
+        }
       else
-      {
-        buf++; len--;
-      }
+        {
+          // found CR LF:
+          if (search != 0)
+            {
+              // append to clients buffer
+              buffer.append(buf, search);
+        
+              // move forward in socket buffer
+              buf += search;
+              // decrease len
+              len -= search;
+            }
+          else
+            {
+              buf++; len--;
+            }
       
-      // parse message
-      if (buffer.size())
-      {
-        split_message(buffer);
-        buffer.clear();
-      }
+          // parse message
+          if (buffer.size())
+            {
+              split_message(buffer);
+              buffer.clear();
+            }
+        }
     }
-  }
 }
 
 void Client::send(uint16_t numeric, std::string text)
@@ -94,59 +94,59 @@ void Client::send(std::string text)
 void Client::handle(const std::string&,
                     const std::vector<std::string>& msg)
 {
-  #define TK_CAP    "CAP"
-  #define TK_PASS   "PASS"
-  #define TK_NICK   "NICK"
-  #define TK_USER   "USER"
+#define TK_CAP    "CAP"
+#define TK_PASS   "PASS"
+#define TK_NICK   "NICK"
+#define TK_USER   "USER"
   
   const std::string& cmd = msg[0];
   
   if (this->is_reg() == false)
-  {
-    if (cmd == TK_CAP)
     {
-      // ignored completely
-    }
-    else if (cmd == TK_PASS)
-    {
-      if (msg.size() > 1)
-      {
-        this->passw = msg[1];
-      }
+      if (cmd == TK_CAP)
+        {
+          // ignored completely
+        }
+      else if (cmd == TK_PASS)
+        {
+          if (msg.size() > 1)
+            {
+              this->passw = msg[1];
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
+      else if (cmd == TK_NICK)
+        {
+          if (msg.size() > 1)
+            {
+              this->nick = msg[1];
+              welcome(regis | 1);
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
+      else if (cmd == TK_USER)
+        {
+          if (msg.size() > 1)
+            {
+              this->user = msg[1];
+              welcome(regis | 2);
+            }
+          else
+            {
+              send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+            }
+        }
       else
-      {
-        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-      }
+        {
+          send(ERR_NOSUCHCMD, cmd + " :Unknown command");
+        }
     }
-    else if (cmd == TK_NICK)
-    {
-      if (msg.size() > 1)
-      {
-        this->nick = msg[1];
-        welcome(regis | 1);
-      }
-      else
-      {
-        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-      }
-    }
-    else if (cmd == TK_USER)
-    {
-      if (msg.size() > 1)
-      {
-        this->user = msg[1];
-        welcome(regis | 2);
-      }
-      else
-      {
-        send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-      }
-    }
-    else
-    {
-      send(ERR_NOSUCHCMD, cmd + " :Unknown command");
-    }
-  }
 }
 
 #define RPL_WELCOME   1
@@ -162,15 +162,15 @@ void Client::welcome(uint8_t newreg)
   regis = newreg;
   // not registered before, but registered now
   if (!regged && is_reg())
-  {
-    printf("* Registered: %s\n", nickuserhost().c_str());
-    send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
-    send(RPL_YOURHOST, ":Your host is " + SERVER_NAME + ", running v1.0");
-  }
+    {
+      printf("* Registered: %s\n", nickuserhost().c_str());
+      send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
+      send(RPL_YOURHOST, ":Your host is " + SERVER_NAME + ", running v1.0");
+    }
   else if (oldreg == 0)
-  {
-    auth_notice();
-  }
+    {
+      auth_notice();
+    }
 }
 void Client::auth_notice()
 {

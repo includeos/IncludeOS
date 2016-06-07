@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,12 +59,10 @@ long double fdiml(long double, long double);
 long double fmal(long double, long double, long double);
 long double fmaxl(long double, long double);
 long double fminl(long double, long double);
-long double hypotl(long double, long double);
-
 
 long double expl(long double);
 long double ldexpl(long double, long double);
-long double sqrtl(long double);
+
 long double ilogbl(long double);
 long double lgammal(long double);
 long double llroundl(long double);
