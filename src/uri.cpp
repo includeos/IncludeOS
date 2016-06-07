@@ -87,7 +87,7 @@ void URI::parse(const std::string& uri) {
     host_     = uri_parts.length(7)  ? Span_t(uri_parts.position(7),  uri_parts.length(7))  : zero_span_;
     port_str_ = uri_parts.length(9)  ? Span_t(uri_parts.position(9),  uri_parts.length(9))  : zero_span_;
     query_    = uri_parts.length(11) ? Span_t(uri_parts.position(11), uri_parts.length(11)) : zero_span_;
-    fragment_ = uri_parts.length(12) ? Span_t(uri_parts.position(12), uri_parts.length(12)) : zero_span_;
+    fragment_ = uri_parts.length(13) ? Span_t(uri_parts.position(13), uri_parts.length(13)) : zero_span_;
   }
 }
 
