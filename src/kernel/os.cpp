@@ -80,22 +80,20 @@ void OS::start() {
   PCI_manager::init();
 
   // Estimate CPU frequency
+  MYINFO("Estimating CPU-frequency");
+  INFO2("|");
+  INFO2("+--(10 samples, %f sec. interval)",
+  (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO2("|");
 
-      MYINFO("Estimating CPU-frequency");
-      INFO2("|");
-      INFO2("+--(10 samples, %f sec. interval)",
-      (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
-      INFO2("|");
+  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
+  cpu_mhz_ = hw::PIT::CPUFrequency();
 
-      // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-      cpu_mhz_ = hw::PIT::CPUFrequency();
-
-      INFO2("+--> %f MHz", cpu_mhz_.count());
-
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
+  INFO2("+--> %f MHz", cpu_mhz_.count());
 
   // Everything is ready
+  MYINFO("Starting %s", Service::name().c_str());
+  FILLINE('=');
   Service::start();
 
   event_loop();

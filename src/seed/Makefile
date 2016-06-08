@@ -16,7 +16,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
