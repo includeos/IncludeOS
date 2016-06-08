@@ -22,22 +22,46 @@ URI::URI(const std::string& uri)
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::scheme() const {
-  return uri_str_.substr(scheme_.begin, scheme_.end);
+  static std::string scheme;
+
+  if (scheme.empty()) {
+    scheme = uri_str_.substr(scheme_.begin, scheme_.end);
+  }
+
+  return scheme;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::userinfo() const {
-  return uri_str_.substr(userinfo_.begin, userinfo_.end);
+  static std::string userinfo;
+
+  if (userinfo.empty()) {
+    userinfo = uri_str_.substr(userinfo_.begin, userinfo_.end);
+  }
+
+  return userinfo;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::host() const {
-  return uri_str_.substr(host_.begin, host_.end);
+  static std::string host;
+
+  if (host.empty()) {
+    host = uri_str_.substr(host_.begin, host_.end);
+  }
+
+  return host;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::port_str() const {
-  return uri_str_.substr(port_str_.begin, port_str_.end);
+  static std::string port;
+
+  if (port.empty()) {
+    port = uri_str_.substr(port_str_.begin, port_str_.end);
+  }
+
+  return port;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,17 +74,35 @@ uint16_t URI::port() const noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::path() const {
-  return uri_str_.substr(path_.begin, path_.end);
+  static std::string path;
+
+  if (path.empty()) {
+    path = uri_str_.substr(path_.begin, path_.end);
+  }
+
+  return path;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::query() const {
-  return uri_str_.substr(query_.begin, query_.end);
+  static std::string query;
+
+  if (query.empty()){
+    query = uri_str_.substr(query_.begin, query_.end);
+  }
+
+  return query;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::fragment() const {
-  return uri_str_.substr(fragment_.begin, fragment_.end);
+  static std::string fragment;
+
+  if (fragment.empty()) {
+    fragment = uri_str_.substr(fragment_.begin, fragment_.end);
+  }
+
+  return fragment;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
