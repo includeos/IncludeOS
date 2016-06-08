@@ -151,10 +151,7 @@ void URI::parse(const std::string& uri) {
 
 ///////////////////////////////////////////////////////////////////////////////
 void URI::load_queries() {
-  static const std::regex queries_matcher
-  {
-    "([^?=&]+)"
-  };
+  static const std::regex queries_matcher {"[^?=&]+"};
 
   auto& queries = query();
 
