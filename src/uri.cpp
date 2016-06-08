@@ -106,6 +106,12 @@ const std::string& URI::fragment() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+const std::string& URI::query(const std::string& key) {
+  auto target = queries_.find(key);
+  return (target not_eq queries_.end()) ? target->second : "";
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::string URI::to_string() const{
   return uri_str_;
 }
