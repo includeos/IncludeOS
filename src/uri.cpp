@@ -49,6 +49,7 @@ const std::string& URI::host() const {
 
   if (host.empty()) {
     host = uri_str_.substr(host_.begin, host_.end);
+    host = decode(host);
   }
 
   return host;
