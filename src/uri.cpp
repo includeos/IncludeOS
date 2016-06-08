@@ -14,7 +14,7 @@ URI::URI(const char* uri)
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const std::string& uri)
-  : uri_str_{uri}
+  : uri_str_{decode(uri)}
   , port_{}
 {
   parse(uri_str_);
