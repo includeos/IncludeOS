@@ -165,7 +165,7 @@ namespace uri {
      * @example For the query: "?name=Bjarne%20Stroustrup",
      * query("name") returns "Bjarne Stroustrup"
      */
-    const std::string& query(const std::string& key);
+    std::string query(const std::string& key);
 
     /**
      * @brief Get a string representation of this
