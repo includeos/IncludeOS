@@ -189,7 +189,6 @@ namespace uri {
 
     mutable uint16_t port_;
 
-    Span_t uri_data_;
     Span_t scheme_;
     Span_t userinfo_;
     Span_t host_;
