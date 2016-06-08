@@ -37,14 +37,18 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
 ###################################################
-CC  = clang-3.8
-CPP = clang++-3.8
+
+CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
 # Set defaults if not defined
 ifndef LD_INC
 	LD_INC = ld
 endif
 ifndef AR_INC
 	AR_INC = ar
+endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
 endif
 
 # Compiler options
@@ -219,7 +223,7 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 
 apic_boot.o: hw/apic_boot.asm
 	nasm -f bin -o apic_boot.bin $<
-	objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin $@
+	$(OBJCOPY_INC) -I binary -O elf32-i386 -B i386 apic_boot.bin $@
 
 # Disk image as a section
 ###################################################
