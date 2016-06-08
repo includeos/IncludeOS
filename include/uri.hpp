@@ -93,7 +93,7 @@ namespace uri {
      *
      * @return The scheme
      */
-    std::string scheme() const;
+    const std::string& scheme() const;
 
     /**
      * @brief Get userinfo.
@@ -102,7 +102,7 @@ namespace uri {
      *
      * @return The user's information
      */
-    std::string userinfo() const;
+    const std::string& userinfo() const;
 
     /**
      * @brief Get host.
@@ -111,14 +111,14 @@ namespace uri {
      *
      * @return The host's information
      */
-    std::string host() const;
+    const std::string& host() const;
 
     /**
      * @brief Get the raw port number in decimal character representation.
      *
      * @return The raw port number as a string
      */
-    std::string port_str() const;
+    const std::string& port_str() const;
 
     /**
      * @brief Get numeric port number.
@@ -137,14 +137,14 @@ namespace uri {
      *
      * @return The path information
      */
-    std::string path() const;
+    const std::string& path() const;
 
     /**
      * @brief Get the complete unparsed query string.
      *
      * @return The complete unparsed query string
      */
-    std::string query() const;
+    const std::string& query() const;
 
     /**
      * @brief Get the fragment part.
@@ -153,7 +153,7 @@ namespace uri {
      *
      * @return the fragment part
      */
-    std::string fragment() const;
+    const std::string& fragment() const;
 
     /**
      * @brief Get the URI-decoded value of a query-string key.
@@ -165,7 +165,7 @@ namespace uri {
      * @example For the query: "?name=Bjarne%20Stroustrup",
      * query("name") returns "Bjarne Stroustrup"
      */
-    std::string query(const std::string& key);
+    const std::string& query(const std::string& key);
 
     /**
      * @brief Get a string representation of this

@@ -21,7 +21,7 @@ URI::URI(const std::string& uri)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::scheme() const {
+const std::string& URI::scheme() const {
   static std::string scheme;
 
   if (scheme.empty()) {
@@ -32,7 +32,7 @@ std::string URI::scheme() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::userinfo() const {
+const std::string& URI::userinfo() const {
   static std::string userinfo;
 
   if (userinfo.empty()) {
@@ -43,7 +43,7 @@ std::string URI::userinfo() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::host() const {
+const std::string& URI::host() const {
   static std::string host;
 
   if (host.empty()) {
@@ -54,7 +54,7 @@ std::string URI::host() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::port_str() const {
+const std::string& URI::port_str() const {
   static std::string port;
 
   if (port.empty()) {
@@ -73,7 +73,7 @@ uint16_t URI::port() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::path() const {
+const std::string& URI::path() const {
   static std::string path;
 
   if (path.empty()) {
@@ -84,7 +84,7 @@ std::string URI::path() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::query() const {
+const std::string& URI::query() const {
   static std::string query;
 
   if (query.empty()){
@@ -95,7 +95,7 @@ std::string URI::query() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::fragment() const {
+const std::string& URI::fragment() const {
   static std::string fragment;
 
   if (fragment.empty()) {
