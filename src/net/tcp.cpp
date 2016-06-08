@@ -188,7 +188,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
     conn_it->second->segment_arrived(packet);
   }
   // No connection found
-  else {
+  else if(packet->isset(SYN)) {
     // Is there a listener?
     auto listen_conn_it = listeners_.find(packet->dst_port());
     debug("<TCP::bottom> No connection found - looking for listener..\n");
@@ -207,6 +207,9 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
     else {
       drop(packet);
     }
+  }
+  else {
+    drop(packet);
   }
 }
 
