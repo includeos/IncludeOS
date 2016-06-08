@@ -164,7 +164,6 @@ void URI::load_queries() {
 
     if ((++position) not_eq end) {
       queries_[key] = (*position++).str();
-      continue;
     } else {
       queries_[key];
     }
