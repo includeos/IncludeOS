@@ -108,10 +108,10 @@ const std::string& URI::fragment() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::query(const std::string& key) {
+const std::string& URI::query(const std::string& key) {
   static std::string no_entry_value;
   auto target = queries_.find(key);
-  return (target not_eq queries_.end()) ? decode(target->second) : no_entry_value;
+  return (target not_eq queries_.end()) ? target->second : no_entry_value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
