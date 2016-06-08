@@ -210,6 +210,11 @@ namespace uri {
      */
     void parse(const std::string& uri);
 
+    /**
+     * @brief Load queries into the map
+     */
+    void load_queries();
+
   }; // class uri::URI
 
   /**
