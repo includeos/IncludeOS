@@ -142,6 +142,30 @@ void URI::parse(const std::string& uri) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void URI::load_queries() {
+  const std::regex queries_matcher
+  {
+    "([^?=&]+)"
+  };
+
+  auto& queries = query();
+
+  auto position = std::sregex_iterator(queries.begin(), queries.end(), queries_matcher);
+  auto end      = std::sregex_iterator();
+
+  while (position not_eq end) {
+    auto key = (*position).str();
+
+    if ((++position) not_eq end) {
+      queries_[key] = (*position++).str();
+      continue;
+    } else {
+      queries_[key];
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::ostream& uri::operator<< (std::ostream& out, const URI& uri) {
   return out << uri.to_string();
 }
