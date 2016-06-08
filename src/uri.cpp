@@ -151,11 +151,11 @@ void URI::parse(const std::string& uri) {
 
 ///////////////////////////////////////////////////////////////////////////////
 void URI::load_queries() {
-  static const std::regex queries_matcher {"[^?=&]+"};
+  static const std::regex queries_tokenizer {"[^?=&]+"};
 
   auto& queries = query();
 
-  auto position = std::sregex_iterator(queries.begin(), queries.end(), queries_matcher);
+  auto position = std::sregex_iterator(queries.begin(), queries.end(), queries_tokenizer);
   auto end      = std::sregex_iterator();
 
   while (position not_eq end) {
