@@ -18,22 +18,22 @@ URI::URI(const std::string& uri)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::scheme() const {
+const std::string& URI::scheme() const noexcept {
   return scheme_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::userinfo() const {
+const std::string& URI::userinfo() const noexcept {
   return userinfo_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::host() const {
+const std::string& URI::host() const noexcept {
   return host_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::port_str() const {
+const std::string& URI::port_str() const noexcept {
   return port_str_;
 }
 
@@ -46,17 +46,17 @@ uint16_t URI::port() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::path() const {
+const std::string& URI::path() const noexcept {
   return path_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::query() const {
+const std::string& URI::query() const noexcept {
   return query_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::fragment() const {
+const std::string& URI::fragment() const noexcept {
   return fragment_;
 }
 
@@ -76,7 +76,7 @@ const std::string& URI::query(const std::string& key) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::to_string() const{
+std::string URI::to_string() const {
   return uri_str_;
 }
 

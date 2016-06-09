@@ -81,7 +81,7 @@ namespace uri {
      *
      * @return The scheme
      */
-    const std::string& scheme() const;
+    const std::string& scheme() const noexcept;
 
     /**
      * @brief Get userinfo.
@@ -90,7 +90,7 @@ namespace uri {
      *
      * @return The user's information
      */
-    const std::string& userinfo() const;
+    const std::string& userinfo() const noexcept;
 
     /**
      * @brief Get host.
@@ -99,14 +99,14 @@ namespace uri {
      *
      * @return The host's information
      */
-    const std::string& host() const;
+    const std::string& host() const noexcept;
 
     /**
      * @brief Get the raw port number in decimal character representation.
      *
      * @return The raw port number as a string
      */
-    const std::string& port_str() const;
+    const std::string& port_str() const noexcept;
 
     /**
      * @brief Get numeric port number.
@@ -125,14 +125,14 @@ namespace uri {
      *
      * @return The path information
      */
-    const std::string& path() const;
+    const std::string& path() const noexcept;
 
     /**
      * @brief Get the complete unparsed query string.
      *
      * @return The complete unparsed query string
      */
-    const std::string& query() const;
+    const std::string& query() const noexcept;
 
     /**
      * @brief Get the fragment part.
@@ -141,7 +141,7 @@ namespace uri {
      *
      * @return the fragment part
      */
-    const std::string& fragment() const;
+    const std::string& fragment() const noexcept;
 
     /**
      * @brief Get the URI-decoded value of a query-string key.
