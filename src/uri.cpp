@@ -51,13 +51,7 @@ const std::string& URI::path() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::query() const {
-  static std::string query;
-
-  if (query.empty()){
-    query = uri_str_.substr(query_.begin, query_.end);
-  }
-
-  return query;
+  return query_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
