@@ -180,8 +180,6 @@ namespace uri {
     std::string query_;
     std::string fragment_;
 
-    static const Span_t zero_span_;
-
     std::unordered_map<std::string,std::string> queries_;
 
     /**
