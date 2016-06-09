@@ -46,13 +46,7 @@ uint16_t URI::port() const noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::path() const {
-  static std::string path;
-
-  if (path.empty()) {
-    path = uri_str_.substr(path_.begin, path_.end);
-  }
-
-  return path;
+  return path_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
