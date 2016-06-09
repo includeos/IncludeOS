@@ -71,7 +71,7 @@ const std::string& URI::query(const std::string& key) {
   }
 
   auto target = queries_.find(key);
-  
+
   return (target not_eq queries_.end()) ? target->second : no_entry_value;
 }
 
@@ -115,9 +115,7 @@ void URI::parse() {
 void URI::load_queries() {
   static const std::regex queries_tokenizer {"[^?=&]+"};
 
-  auto& queries = query();
-
-  auto position = std::sregex_iterator(queries.begin(), queries.end(), queries_tokenizer);
+  auto position = std::sregex_iterator(query_.begin(), query_.end(), queries_tokenizer);
   auto end      = std::sregex_iterator();
 
   while (position not_eq end) {
