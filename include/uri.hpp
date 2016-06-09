@@ -173,7 +173,7 @@ namespace uri {
     /*
      * A copy of the data representing a uri
      */
-    std::string uri_str_;
+    const std::string uri_str_;
 
     mutable uint16_t port_;
 
