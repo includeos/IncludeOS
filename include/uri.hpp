@@ -183,10 +183,10 @@ namespace uri {
     std::unordered_map<std::string,std::string> queries_;
 
     /**
-     * @brief Parse the given string representing a uri
+     * @brief Parse the given {std::string} representing a uri
      * into its given parts according to RFC 3986
      *
-     * @param uri : The string representing a uri
+     * @param uri : The {std::string} representing a uri
      */
     void parse(const std::string& uri);
 
