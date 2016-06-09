@@ -215,9 +215,9 @@ mode32:
   
 	;; GERONIMO!
 	;; Jump to service
-	mov ecx, [srv_offs+(_boot_segment<<4)]
-	jmp ecx
+	call DWORD [srv_offs+(_boot_segment<<4)]
 	
+  
 	%include "boot/disk_read_lba.asm"
 	
 	;; BOOT SIGNATURE
