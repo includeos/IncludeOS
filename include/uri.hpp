@@ -174,7 +174,7 @@ namespace uri {
      * A copy of the data representing a uri
      */
     std::string uri_str_;
-    
+
     mutable uint16_t port_;
 
     std::string scheme_;
@@ -190,10 +190,8 @@ namespace uri {
     /**
      * @brief Parse the given {std::string} representing a uri
      * into its given parts according to RFC 3986
-     *
-     * @param uri : The {std::string} representing a uri
      */
-    void parse(const std::string& uri);
+    void parse();
 
     /**
      * @brief Load queries into the map

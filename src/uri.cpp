@@ -14,7 +14,7 @@ URI::URI(const std::string& uri)
   : uri_str_{uri}
   , port_{}
 {
-  parse(uri);
+  parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ URI::operator std::string () const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void URI::parse(const std::string& uri) {
+void URI::parse() {
   static const std::regex uri_pattern_matcher
   {
     "^([a-zA-z]+[\\w\\+\\-\\.]+)?(\\://)?" //< scheme
@@ -91,7 +91,7 @@ void URI::parse(const std::string& uri) {
 
   static std::smatch uri_parts;
 
-  if (std::regex_match(uri, uri_parts, uri_pattern_matcher)) {
+  if (std::regex_match(uri_str_, uri_parts, uri_pattern_matcher)) {
     path_     = uri_parts[10].str();
 
     scheme_   = uri_parts.length(1)  ? uri_parts[1].str()  : "";
