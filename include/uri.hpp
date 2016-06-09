@@ -64,9 +64,9 @@ namespace uri {
     URI(const char* uri);
 
     /**
-     * @brief Construct using a string
+     * @brief Construct using a {std::string}
      *
-     * @param uri : A string representing a uri
+     * @param uri : A {std::string} representing a uri
      */
     URI(const std::string& uri);
 
