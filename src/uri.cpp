@@ -33,13 +33,7 @@ const std::string& URI::host() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::port_str() const {
-  static std::string port;
-
-  if (port.empty()) {
-    port = uri_str_.substr(port_str_.begin, port_str_.end);
-  }
-
-  return port;
+  return port_str_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
