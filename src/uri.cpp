@@ -1,6 +1,6 @@
 #include <uri>
 #include <regex>
-#include <iostream>
+#include <ostream>
 
 using namespace uri;
 
