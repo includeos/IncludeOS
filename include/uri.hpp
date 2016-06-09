@@ -172,13 +172,13 @@ namespace uri {
   private:
     mutable uint16_t port_;
 
-    Span_t scheme_;
-    Span_t userinfo_;
-    Span_t host_;
-    Span_t port_str_;
-    Span_t path_;
-    Span_t query_;
-    Span_t fragment_;
+    std::string scheme_;
+    std::string userinfo_;
+    std::string host_;
+    std::string port_str_;
+    std::string path_;
+    std::string query_;
+    std::string fragment_;
 
     static const Span_t zero_span_;
 
