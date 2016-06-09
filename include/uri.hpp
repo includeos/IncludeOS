@@ -170,11 +170,6 @@ namespace uri {
     operator std::string () const;
 
   private:
-    /*
-     * A copy of the data representing a uri
-     */
-    std::string uri_str_;
-
     mutable uint16_t port_;
 
     Span_t scheme_;
