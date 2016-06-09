@@ -92,14 +92,14 @@ void URI::parse(const std::string& uri) {
   static std::smatch uri_parts;
 
   if (std::regex_match(uri, uri_parts, uri_pattern_matcher)) {
-    path_     = Span_t(uri_parts.position(10), uri_parts.length(10));
+    path_     = uri_parts[10].str();
 
-    scheme_   = uri_parts.length(1)  ? Span_t(uri_parts.position(1),  uri_parts.length(1))  : zero_span_;
-    userinfo_ = uri_parts.length(3)  ? Span_t(uri_parts.position(3),  uri_parts.length(3))  : zero_span_;
-    host_     = uri_parts.length(7)  ? Span_t(uri_parts.position(7),  uri_parts.length(7))  : zero_span_;
-    port_str_ = uri_parts.length(9)  ? Span_t(uri_parts.position(9),  uri_parts.length(9))  : zero_span_;
-    query_    = uri_parts.length(11) ? Span_t(uri_parts.position(11), uri_parts.length(11)) : zero_span_;
-    fragment_ = uri_parts.length(13) ? Span_t(uri_parts.position(13), uri_parts.length(13)) : zero_span_;
+    scheme_   = uri_parts.length(1)  ? uri_parts[1].str()  : "";
+    userinfo_ = uri_parts.length(3)  ? uri_parts[3].str()  : "";
+    host_     = uri_parts.length(7)  ? uri_parts[7].str()  : "";
+    port_str_ = uri_parts.length(9)  ? uri_parts[9].str()  : "";
+    query_    = uri_parts.length(11) ? uri_parts[11].str() : "";
+    fragment_ = uri_parts.length(13) ? uri_parts[13].str() : "";
   }
 }
 
