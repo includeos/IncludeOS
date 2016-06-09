@@ -18,13 +18,7 @@ URI::URI(const std::string& uri)
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::scheme() const {
-  static std::string scheme;
-
-  if (scheme.empty()) {
-    scheme = uri_str_.substr(scheme_.begin, scheme_.end);
-  }
-
-  return scheme;
+  return scheme_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
