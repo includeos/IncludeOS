@@ -402,17 +402,25 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
   debug("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   assert(in->isset(FIN));
   auto& tcb = tcp.tcb();
-  tcp.signal_disconnect(Disconnect::CLOSING);
   // Advance RCV.NXT over the FIN?
   tcb.RCV.NXT++;
   //auto fin = in->data_length();
   //tcb.RCV.NXT += fin;
-  auto packet = tcp.outgoing_packet();
-  packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
-  tcp.transmit(packet);
-  // signal the user
+  auto snd_nxt = tcb.SND.NXT;
+  // empty the read buffer
   if(!tcp.read_request.buffer.empty())
     tcp.receive_disconnect();
+  // signal disconnect to the user
+  tcp.signal_disconnect(Disconnect::CLOSING);
+
+  // only ack FIN if user callback didn't result in a sent packet
+  if(tcb.SND.NXT == snd_nxt) {
+    debug2("<TCP::Connection::State::process_fin> acking FIN\n");
+    auto packet = tcp.outgoing_packet();
+    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
+    tcp.transmit(packet);
+  }
+
 }
 /////////////////////////////////////////////////////////////////////
 

@@ -109,8 +109,9 @@ void Service::start() {
               });
           });
 
-      }).onDisconnect([](auto, auto reason) {
+      }).onDisconnect([](auto conn, auto reason) {
           printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
+          conn->close();
         });
 
   printf("*** TEST SERVICE STARTED *** \n");
