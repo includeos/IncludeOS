@@ -79,7 +79,7 @@ public:
     // probably just a null pointer with ofs=addr
     if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {"Bootloader", addr - 0x7c00};
+    if (addr < 0x7e00) return {"Bootloader area", addr - 0x7c00};
     // resolve manually from symtab
     for (auto& tab : symtab)
     for (size_t i = 0; i < tab.entries; i++) {
