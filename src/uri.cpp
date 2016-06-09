@@ -56,13 +56,7 @@ const std::string& URI::query() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::fragment() const {
-  static std::string fragment;
-
-  if (fragment.empty()) {
-    fragment = uri_str_.substr(fragment_.begin, fragment_.end);
-  }
-
-  return fragment;
+  return fragment_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
