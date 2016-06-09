@@ -39,7 +39,7 @@ const std::string& URI::port_str() const {
 ///////////////////////////////////////////////////////////////////////////////
 uint16_t URI::port() const noexcept {
   if (not port_) {
-    port_ = port_str_.begin ? static_cast<uint16_t>(std::stoi(port_str())) : 0;
+    port_ = (not port_str_.empty()) ? static_cast<uint16_t>(std::stoi(port_str_)) : 0;
   }
   return port_;
 }
