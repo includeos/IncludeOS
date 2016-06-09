@@ -28,14 +28,7 @@ const std::string& URI::userinfo() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::host() const {
-  static std::string host;
-
-  if (host.empty()) {
-    host = uri_str_.substr(host_.begin, host_.end);
-    host = decode(host);
-  }
-
-  return host;
+  return host_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
