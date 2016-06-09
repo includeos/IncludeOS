@@ -62,8 +62,16 @@ const std::string& URI::fragment() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::query(const std::string& key) {
+  static bool queries_not_loaded {true};
   static std::string no_entry_value;
+
+  if (queries_not_loaded) {
+    load_queries();
+    queries_not_loaded = false;
+  }
+
   auto target = queries_.find(key);
+  
   return (target not_eq queries_.end()) ? target->second : no_entry_value;
 }
 
