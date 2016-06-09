@@ -25,6 +25,17 @@ struct func_offset {
   uint32_t    offset;
 };
 
-func_offset resolve_symbol(uintptr_t addr);
-func_offset resolve_symbol(void* addr);
-func_offset resolve_symbol(void (*addr)());
+struct Elf
+{
+  // returns the name of a symbol closest to @addr,
+  // or the hex representation of addr
+  static func_offset
+    resolve_symbol(uintptr_t addr);
+  static func_offset
+    resolve_symbol(void* addr);
+  static func_offset
+    resolve_symbol(void (*addr)());
+  
+  //returns the address of a symbol, or 0
+  uintptr_t resolve_name(const std::string& name);
+};

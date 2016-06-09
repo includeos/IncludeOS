@@ -129,13 +129,12 @@ void process_eh_frame(char* loc)
 }
 
 
-extern std::string resolve_symbol(uintptr_t addr);
-extern void print_backtrace();
+#include <kernel/elf.hpp>
 
 void Service::start()
 {
   printf("name for this function is %s\n",
-      resolve_symbol((uintptr_t) &Service::start).c_str());
+      Elf::resolve_symbol((uintptr_t) &Service::start).name.c_str());
   
   try {
     throw std::string("test");
@@ -279,7 +278,6 @@ void begin_work()
       printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
       print_backtrace();
-      //begin_work();
     }
   });
   // start working on tasks

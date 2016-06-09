@@ -83,6 +83,9 @@ else
     $VB storagectl "$VMNAME" --name "IDE Controller" --add ide --bootable on
     $VB storageattach "$VMNAME" --storagectl "IDE Controller" --port 0 --device 0 --type 'hdd' --medium "$targetLoc"
 
+    # Enable I/O APIC
+    $VB modifyvm "$VMNAME" --ioapic on
+    
     # Set the boot disk
     $VB modifyvm "$VMNAME" --boot1 disk
     

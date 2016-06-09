@@ -17,6 +17,7 @@
 
 #include <kernel/elf.hpp>
 #include <cassert>
+#include <cstdio>
 #include <string>
 #include <debug>
 #include <vector>
@@ -26,6 +27,14 @@ static const uintptr_t ELF_START = 0x200000;
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
+
+template <typename N>
+std::string to_hex_string(N n)
+{
+  std::string buffer; buffer.reserve(64);
+  snprintf((char*) buffer.data(), buffer.capacity(), "%#x", n);
+  return buffer;
+}
 
 struct SymTab {
   Elf32_Sym* base;
@@ -67,6 +76,11 @@ public:
   
   func_offset getsym(Elf32_Addr addr)
   {
+    // probably just a null pointer with ofs=addr
+    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), addr};
+    // definitely in the bootloader
+    if (addr < 0x7e00) return {"Bootloader area", addr - 0x7c00};
+    // resolve manually from symtab
     for (auto& tab : symtab)
     for (size_t i = 0; i < tab.entries; i++) {
       // find entry with matching address
@@ -78,10 +92,17 @@ public:
         return {demangle( sym_name(tab.base[i]) ), offset};
       }
     }
-    return {"(missing symbol)", 0};
+    return {to_hex_string(addr), 0};
   }
-  inline func_offset getsym(void(*func)()) {
-    return getsym((Elf32_Addr) func);
+  Elf32_Addr getaddr(const std::string& name)
+  {
+    for (auto& tab : symtab)
+    for (size_t i = 0; i < tab.entries; i++) {
+      // find entry with matching address
+      if (sym_name(tab.base[i]) == name)
+        return tab.base[i].st_value;
+    }
+    return 0;
   }
   
 private:
@@ -95,14 +116,14 @@ private:
   std::string demangle(const char* name)
   {
     // try demangle the name
-    size_t buflen = 256;
+    size_t buflen = 128;
     std::string buf;
     buf.reserve(buflen);
     int status;
     // internally, demangle just returns buf when status is ok
-    __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
-    if (status) return name;
-    return buf;
+    auto res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
+    if (status) return std::string(name);
+    return std::string(res);
   }
 
   std::vector<SymTab> symtab;
@@ -115,31 +136,31 @@ ElfTables& get_parser() {
   return parser;
 }
 
-func_offset resolve_symbol(uintptr_t addr)
+func_offset Elf::resolve_symbol(uintptr_t addr)
 {
   return get_parser().getsym(addr);
 }
-func_offset resolve_symbol(void* addr)
+func_offset Elf::resolve_symbol(void* addr)
 {
   return get_parser().getsym((uintptr_t) addr);
 }
-func_offset resolve_symbol(void (*addr)())
+func_offset Elf::resolve_symbol(void (*addr)())
 {
   return get_parser().getsym((uintptr_t) addr);
 }
 
 void print_backtrace()
 {
-  #define frp(N, ra)                                      \
-    (__builtin_frame_address(N) != nullptr) &&            \
+  #define frp(N, ra)                                 \
+    (__builtin_frame_address(N) != nullptr) &&       \
       (ra = __builtin_return_address(N)) != nullptr
 
-    printf("\n");
-  #define PRINT_TRACE(N, ra)                     \
-    auto symb = resolve_symbol((uintptr_t) ra);  \
-    printf("[%d]  %s + %#x\n",                   \
-        N, symb.name.c_str(), symb.offset);
+  #define PRINT_TRACE(N, ra)                      \
+    auto symb = Elf::resolve_symbol(ra);          \
+    printf("[%d] %8p + 0x%.4x: %s\n",             \
+        N, ra, symb.offset, symb.name.c_str());
 
+  printf("\n");
   void* ra;
   if (frp(0, ra)) {
     PRINT_TRACE(0, ra);
@@ -153,7 +174,7 @@ void print_backtrace()
             PRINT_TRACE(4, ra);
             if (frp(5, ra)) {
               PRINT_TRACE(5, ra);
-              if (frp(6, ra))
+              if (frp(6, ra)) {
                 PRINT_TRACE(6, ra);
-            }}}}}}
+            }}}}}}}
 }
