@@ -73,11 +73,11 @@ namespace net {
     auto ip4_pckt = std::static_pointer_cast<PacketIP4>(pckt);
     ip4_pckt->make_flight_ready();
 
-    IP4::ip_header& hdr = ip4_pckt->ip4_header();
+    IP4::ip_header& hdr = ip4_pckt->ip_header();
     // Create local and target subnets
     addr target = hdr.daddr        & stack_.netmask();
     addr local  = stack_.ip_addr() & stack_.netmask();
-    
+
     // Compare subnets to know where to send packet
     pckt->next_hop(target == local ? hdr.daddr : stack_.router());
 
@@ -92,7 +92,7 @@ namespace net {
           stack_.ip_addr().str().c_str(),
           pckt->next_hop().str().c_str(),
           pckt->size(),
-          ip4_pckt->ip4_segment_size()
+          ip4_pckt->ip_segment_size()
           );
 
     linklayer_out_(pckt);
