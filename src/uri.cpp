@@ -23,13 +23,7 @@ const std::string& URI::scheme() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::userinfo() const {
-  static std::string userinfo;
-
-  if (userinfo.empty()) {
-    userinfo = uri_str_.substr(userinfo_.begin, userinfo_.end);
-  }
-
-  return userinfo;
+  return userinfo_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
