@@ -61,7 +61,10 @@ namespace net {
     uint16_t ip_data_length() const noexcept
     { return ip_segment_length() - ip_header_length(); }
 
-
+    void set_ip_data_length(uint16_t length) {
+      set_size(ip_full_header_length() + length);
+      set_segment_length();
+    }
 
     /** Last modifications before transmission */
     void make_flight_ready() noexcept {
