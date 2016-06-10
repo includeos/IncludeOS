@@ -31,7 +31,9 @@ echo ">>> Updating git-tags "
 tag=`git ls-remote --tags https://github.com/hioa-cs/IncludeOS.git | grep -oP "tags/\K(.*)$" | grep -v "{" | sort -n -t . -k 1 -k 2 -k 3 | tail -n 1`
 
 filename_tag=`echo $tag | tr . -`
+echo "Latest tag found: $tag"
 filename="IncludeOS_install_"$filename_tag".tar.gz"
+echo "Full filename: $filename"
 
 # If the tarball exists, use that
 if [ -e $filename ]
