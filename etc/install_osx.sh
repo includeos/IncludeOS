@@ -12,10 +12,10 @@
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-[[ -z $INCLUDEOS_SRC ]] && export INCLUDEOS_SRC=`pwd`
-[[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
-export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
-export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
+INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
+INCLUDEOS_BUILD=${INCLUDEOS_BUILD-$HOME/IncludeOS_build}
+INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
+INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
 
 echo -e "\n###################################"

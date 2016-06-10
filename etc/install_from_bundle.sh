@@ -12,9 +12,9 @@
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-[ ! -v INCLUDEOS_SRC ] && export INCLUDEOS_SRC=$(readlink -f "$(dirname "$0")/")
-[ ! -v INCLUDEOS_INSTALL_LOC ] && export INCLUDEOS_INSTALL_LOC=$HOME
-export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
+INCLUDEOS_SRC=${INCLUDEOS_SRC-$(readlink -f "$(dirname "$0")/")}
+INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
+INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
 # Get the latest tag from IncludeOS repo
 echo -e "\n\n>>> Updating git-tags "
@@ -63,7 +63,7 @@ popd
 echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
 pushd $INCLUDEOS_SRC/vmbuild
 make
-cp vmbuild $INCLUDEOS_HOME/
+cp vmbuild $INCLUDEOS_INSTALL/
 popd
 
 # Copy scripts for running qemu, creating a memdisk
