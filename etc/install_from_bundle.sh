@@ -12,14 +12,14 @@
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-[ ! -v INCLUDEOS_SRC ] && export INCLUDEOS_SRC=$(readlink -f "$(dirname "$0")/..")
+[ ! -v INCLUDEOS_SRC ] && export INCLUDEOS_SRC=$(readlink -f "$(dirname "$0")/")
 [ ! -v INCLUDEOS_INSTALL_LOC ] && export INCLUDEOS_INSTALL_LOC=$HOME
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
 # Install dependencies
-$INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
 
-DEPENDENCIES="curl make clang-3.8 nasm bridge-utils qemu"
+DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
 sudo apt-get update
@@ -28,10 +28,7 @@ sudo apt-get install -y $DEPENDENCIES
 
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
-pushd $INCLUDEOS_SRC
-git fetch --tags
-tag=`git describe --abbrev=0`
-popd
+tag=`git ls-remote --tags https://github.com/hioa-cs/IncludeOS.git | grep -oP "tags/\K(.*)$" | grep -v "{" | sort -n -t . -k 1 -k 2 -k 3 | tail -n 1`
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
