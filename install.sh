@@ -32,5 +32,5 @@ then
     . ./etc/install_all_source.sh
 else
     echo ">>> Installing from bundle"
-    . ./etc/install_from_bundle.sh
+    . ./etc/install_ubuntu.sh
 fi

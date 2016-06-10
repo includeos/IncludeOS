@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Install the IncludeOS libraries (i.e. IncludeOS_home) from binary bundle
-# ...as opposed to building them all from scratch, which takes a long time
+# Will install IncludeOS on ubuntu using the install_from_bundle script.sh
+# Dependencies and a network bridge used by qemu is also installed. 
 #
 #
 # OPTIONS:
 #
 # Location of the IncludeOS repo:
 # $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
-#
-# Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
-# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 
