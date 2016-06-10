@@ -17,7 +17,7 @@
 export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
 
 # Get the latest tag from IncludeOS repo
-echo "\n\n>>> Updating git-tags "
+echo -e "\n\n>>> Updating git-tags "
 git fetch --tags https://github.com/hioa-cs/IncludeOS.git master
 tag=`git describe --abbrev=0`
 echo "Latest tag found: $tag"
