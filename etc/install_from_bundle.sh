@@ -28,10 +28,13 @@ sudo apt-get install -y $DEPENDENCIES
 
 echo ">>> Updating git-tags "
 # Get the latest tag from IncludeOS repo
-tag=`git ls-remote --tags https://github.com/hioa-cs/IncludeOS.git | grep -oP "tags/\K(.*)$" | grep -v "{" | sort -n -t . -k 1 -k 2 -k 3 | tail -n 1`
+git fetch --tags https://github.com/hioa-cs/IncludeOS.git master
+tag=`git describe --abbrev=0`
+echo "Latest tag found: $tag"
 
 filename_tag=`echo $tag | tr . -`
 filename="IncludeOS_install_"$filename_tag".tar.gz"
+echo "Full filename: $filename"
 
 # If the tarball exists, use that
 if [ -e $filename ]
@@ -39,27 +42,14 @@ then
     echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename
 else
-    echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
     # Download from GitHub API
-    if [ "$1" = "-oauthToken" ]
-    then
-        oauthToken=$2
-        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-        JSON=`curl -u $git_user:$oauthToken https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
-    else
-        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-        JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
-    fi
+    echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
+    JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
     ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
     ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
 
-    echo -e "\n\n>>> Getting the latest release bundle from GitHub"
-    if [ "$1" = "-oauthToken" ]
-    then
-        curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user:$oauthToken $ASSET_URL
-    else
-        curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
-    fi
+    echo -e "\n\n>>> Downloading latest IncludeOS release tarball from GitHub"
+    curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
 
     echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
     tar -C $INCLUDEOS_INSTALL_LOC -xzf $filename
