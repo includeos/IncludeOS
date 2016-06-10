@@ -12,10 +12,10 @@
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-[[ -z $INCLUDEOS_SRC ]] && export INCLUDEOS_SRC=`pwd`
-[[ -z $INCLUDEOS_INSTALL_LOC ]] && export INCLUDEOS_INSTALL_LOC=$HOME
-export INCLUDEOS_HOME=$INCLUDEOS_INSTALL_LOC/IncludeOS_install
-export INCLUDEOS_BUILD=$INCLUDEOS_INSTALL_LOC/IncludeOS_build
+INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
+INCLUDEOS_BUILD=${INCLUDEOS_BUILD-$HOME/IncludeOS_build}
+INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
+INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
 
 echo -e "\n###################################"
@@ -174,60 +174,6 @@ then
     echo -e "\n>>> Done installing dependencies."
 fi
 
-
-### INSTALL BINARY RELEASE ###
-
-echo -e "\n\n# Installing binary release"
-echo ">>> Updating git-tags "
-# Get the latest tag from IncludeOS repo
-pushd $INCLUDEOS_SRC
-git fetch --tags
-tag=`git describe --abbrev=0`
-
-echo -e "\n>>> Fetching git submodules "
-git submodule init
-git submodule update
-
-popd
-
-filename_tag=`echo $tag | tr . -`
-filename="IncludeOS_install_"$filename_tag".tar.gz"
-
-# Note: Maybe this can be extracted from install_osx.sh?
-# If the tarball exists, use that
-if [ -e $filename ]
-then
-    echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
-else
-    echo -e "\n\n>>> Downloading IncludeOS release tarball from GitHub"
-    # Download from GitHub API
-    if [ "$1" = "-oauthToken" ]
-    then
-        oauthToken=$2
-        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-        JSON=`curl -u $git_user:$oauthToken https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
-    else
-        echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-        JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
-    fi
-    ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
-    ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
-
-    echo -e "\n\n>>> Getting the latest release bundle from GitHub"
-    if [ "$1" = "-oauthToken" ]
-    then
-        curl -H "Accept: application/octet-stream" -L -o $filename -u $git_user:$oauthToken $ASSET_URL
-    else
-        curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
-    fi
-
-    echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC"
-fi
-
-# Install
-gzip -c $filename | tar xopf - -C $INCLUDEOS_INSTALL_LOC
-
-
 ### Define linker and archiver
 
 # Binutils ld & ar
@@ -235,19 +181,9 @@ export LD_INC=$LD_INC
 export AR_INC=$AR_INC
 export OBJCOPY_INC=$OBJCOPY_INC
 
-echo -e "\n\n>>> Building IncludeOS"
-pushd $INCLUDEOS_SRC/src
-make -j
-make install
-popd
-
-echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
-pushd $INCLUDEOS_SRC/vmbuild
-make
-cp vmbuild $INCLUDEOS_HOME/
-popd
-
-$INCLUDEOS_SRC/etc/copy_scripts.sh
+### INSTALL BINARY RELEASE ###
+echo -e "\n\n>>> Calling install_from_bundle.sh script"
+$INCLUDEOS_SRC/etc/install_from_bundle.sh
 
 echo -e "\n### OS X installation done. ###"
 
