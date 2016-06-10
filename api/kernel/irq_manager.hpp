@@ -42,6 +42,8 @@ extern "C" {
   void irq_default_handler();
 }
 
+#define IRQ_BASE          32
+
 /** A class to manage interrupt handlers
 
     Anyone can subscribe to IRQ's, but they will be indirectly called via the
@@ -63,8 +65,8 @@ public:
   typedef void (*intr_func) ();
   using irq_delegate = delegate<void()>;
 
-  static constexpr uint8_t IRQ_BASE  =  32;
   static constexpr size_t  IRQ_LINES = 128;
+  static constexpr size_t  INTR_LINES = IRQ_BASE + 128;
 
 
   /**
@@ -88,10 +90,12 @@ public:
    *    stack overflow or similar badness.
    *  }
    */
-  void set_handler(uint8_t irq, intr_func func);
+  void set_handler(uint8_t intr, intr_func func);
+  void set_irq_handler(uint8_t irq, intr_func func);
 
   /** Get handler from inside the IDT. */
-  intr_func get_handler(uint8_t irq);
+  intr_func get_handler(uint8_t intr);
+  intr_func get_irq_handler(uint8_t irq);
 
   /**
    *  Subscribe to an IRQ
@@ -108,19 +112,9 @@ public:
    */
   void subscribe(uint8_t irq, irq_delegate del);
 
-  /**
-   *  End of Interrupt
-   *
-   *  Indicate to the IRQ-controller that the IRQ is handled, allowing new irq.
-   *
-   *  @param irq: The interrupt number
-   *
-   *  @note Until this is called, no furter IRQ's will be triggered on this line
-   *
-   *  @warning This function is only supposed to be called inside an IRQ-handler
-   */
-  static void eoi(uint8_t irq);
-
+  // start accepting interrupts
+  static void enable_interrupts();
+  
   /**
    * Get the IRQ manager for a specific CPU core
    */
@@ -130,21 +124,13 @@ public:
   }
 
   uint8_t get_next_msix_irq();
-
-
-  void register_interrupt(uint8_t vector);
-
-  irq_delegate get_intr_handler(uint8_t vector) {
-    return irq_delegates_[vector];
-  }
+  void register_irq(uint8_t vector);
 
 private:
-  IDTDescr     idt[IRQ_LINES];
+  IDTDescr     idt[INTR_LINES];
   bool         idt_is_set                {false};
   irq_delegate irq_delegates_[IRQ_LINES];
   int32_t      irq_counters_[IRQ_LINES]  {0};
-
-  int timer_interrupts {0};
 
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
@@ -152,9 +138,6 @@ private:
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};
-
-  /** STI */
-  void enable_interrupts();
 
   /**
    *  Create an IDT-gate

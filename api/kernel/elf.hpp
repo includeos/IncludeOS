@@ -15,16 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef KERNEL_SYSCALLS_HPP
-#define KERNEL_SYSCALLS_HPP
+#pragma once
 
-#include <sys/unistd.h>
+#include <cstdint>
+#include <string>
 
-extern "C" {
-  int  kill(pid_t pid, int sig);
-  void panic(const char* why) __attribute__((noreturn));
-  void default_exit() __attribute__((noreturn));
-}
-extern void print_backtrace();
+struct func_offset {
+  std::string name;
+  uint32_t    offset;
+};
 
-#endif //< KERNEL_SYSCALLS_HPP
+struct Elf
+{
+  // returns the name of a symbol closest to @addr,
+  // or the hex representation of addr
+  static func_offset
+    resolve_symbol(uintptr_t addr);
+  static func_offset
+    resolve_symbol(void* addr);
+  static func_offset
+    resolve_symbol(void (*addr)());
+  
+  //returns the address of a symbol, or 0
+  uintptr_t resolve_name(const std::string& name);
+};

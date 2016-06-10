@@ -95,7 +95,7 @@ void Service::start()
     }
     CHECKSERT(test, "Validate random access sync read");
 
-    buf = fs.readFile("/banana.txt");
+    buf = fs.read_file("/banana.txt");
     banana = buf.to_string();
     CHECKSERT(banana == internal_banana, "Correct banana #2");
   });

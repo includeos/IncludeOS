@@ -12,7 +12,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -fno-omit-frame-pointer -msse3 -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro
@@ -37,14 +37,18 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
 ###################################################
-CC  = clang-3.8
-CPP = clang++-3.8
+
+CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
 # Set defaults if not defined
 ifndef LD_INC
 	LD_INC = ld
 endif
 ifndef AR_INC
 	AR_INC = ar
+endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
 endif
 
 # Compiler options
@@ -67,7 +71,7 @@ CXXABI_OBJ = $(CXXABI:.cpp=.o)
 OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
-		kernel/terminal.o kernel/terminal_disk.o \
+		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
@@ -204,7 +208,6 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n"
 	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
-# AS-assembled object files
 %.o: %.s
 	@echo "\n"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $< -o $@
@@ -212,7 +215,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 %.o: %.asm
 	nasm -f elf $< -o $@
 
-# Bootloader
+# Bootloaders
 ###################################################
 bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
@@ -220,7 +223,7 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 
 apic_boot.o: hw/apic_boot.asm
 	nasm -f bin -o apic_boot.bin $<
-	objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin $@
+	$(OBJCOPY_INC) -I binary -O elf32-i386 -B i386 apic_boot.bin $@
 
 # Disk image as a section
 ###################################################

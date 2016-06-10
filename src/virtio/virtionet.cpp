@@ -200,17 +200,14 @@ void VirtioNet::msix_conf_handler()
   debug("\t             Old status: 0x%x\n",_conf.status);
   get_config();
   debug("\t             New status: 0x%x \n",_conf.status);
-  IRQ_manager::eoi(irq());
 }
 void VirtioNet::msix_recv_handler()
 {
   service_queues();
-  IRQ_manager::eoi(irq());
 }
 void VirtioNet::msix_xmit_handler()
 {
   service_queues();
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioNet::irq_handler(){
@@ -241,7 +238,6 @@ void VirtioNet::irq_handler(){
     debug("\t             New status: 0x%x \n",_conf.status);
   }
 
-  IRQ_manager::eoi(irq());
 }
 
 void VirtioNet::service_queues(){

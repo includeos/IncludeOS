@@ -241,10 +241,10 @@ namespace hw {
     outb(IDE_CTRL_IRQ, on ? 0 : 1);
   }
 
-  extern "C" void ide_irq_handler() {
+  extern "C"
+  void ide_irq_handler() {
     if (!_nb_irqs || _current_callback == nullptr) {
       IDE::set_irq_mode(false);
-      IRQ_manager::eoi(IDE_IRQN);
       return;
     }
 
@@ -259,8 +259,6 @@ namespace hw {
 
     _ide_irqs.push_back(ide_irq(buffer, _current_callback));
     _nb_irqs--;
-
-    IRQ_manager::cpu(0).register_interrupt(IDE_IRQN);
   }
 
   extern "C" void ide_irq_entry();
@@ -275,7 +273,7 @@ namespace hw {
   void IDE::enable_irq_handler() {
     auto del(delegate<void()>::from<IDE, &IDE::callback_wrapper>(this));
     IRQ_manager::cpu(0).subscribe(IDE_IRQN, del);
-    IRQ_manager::cpu(0).set_handler(IDE_IRQN + 32, ide_irq_entry);
+    //IRQ_manager::cpu(0).set_irq_handler(IDE_IRQN + 32, ide_irq_entry);
   }
 
 } //< namespace hw

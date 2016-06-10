@@ -104,12 +104,12 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
     acceptable = true;
   }
   // #3 (INVALID)
-  else if( in->seq() + in->data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
+  else if( in->seq() + in->tcp_data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
     acceptable = false;
   }
   // #4
   else if( (tcb.RCV.NXT <= in->seq() and in->seq() < tcb.RCV.NXT + tcb.RCV.WND)
-           or ( tcb.RCV.NXT <= in->seq()+in->data_length()-1 and in->seq()+in->data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
+           or ( tcb.RCV.NXT <= in->seq()+in->tcp_data_length()-1 and in->seq()+in->tcp_data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
     acceptable = true;
   }
   /*
@@ -130,7 +130,7 @@ bool Connection::State::check_seq(Connection& tcp, TCP::Packet_ptr in) {
     }
     std::stringstream ss;
     ss << "Unacceptable SEQ: "
-       << "[Packet: SEQ: " << in->seq() << " LEN: " << in->data_length() << "] "
+       << "[Packet: SEQ: " << in->seq() << " LEN: " << in->tcp_data_length() << "] "
        << "[TCB: RCV.NXT: " << tcb.RCV.NXT << " RCV.WND: " << tcb.RCV.WND << "]";
 
     tcp.drop(in, ss.str());
@@ -311,16 +311,16 @@ bool Connection::State::check_ack(Connection& tcp, TCP::Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 void Connection::State::process_segment(Connection& tcp, TCP::Packet_ptr in) {
-  assert(in->has_data());
+  assert(in->has_tcp_data());
 
   auto& tcb = tcp.tcb();
-  auto length = in->data_length();
+  auto length = in->tcp_data_length();
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
   debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
   tcb.RCV.NXT += length;
   auto snd_nxt = tcb.SND.NXT;
   if(tcp.read_request.buffer.capacity()) {
-    auto received = tcp.receive((uint8_t*)in->data(), in->data_length(), in->isset(PSH));
+    auto received = tcp.receive((uint8_t*)in->tcp_data(), in->tcp_data_length(), in->isset(PSH));
     Ensures(received == length);
   }
 
@@ -402,17 +402,25 @@ void Connection::State::process_fin(Connection& tcp, TCP::Packet_ptr in) {
   debug("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   assert(in->isset(FIN));
   auto& tcb = tcp.tcb();
-  tcp.signal_disconnect(Disconnect::CLOSING);
   // Advance RCV.NXT over the FIN?
   tcb.RCV.NXT++;
-  //auto fin = in->data_length();
+  //auto fin = in->tcp_data_length();
   //tcb.RCV.NXT += fin;
-  auto packet = tcp.outgoing_packet();
-  packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
-  tcp.transmit(packet);
-  // signal the user
+  auto snd_nxt = tcb.SND.NXT;
+  // empty the read buffer
   if(!tcp.read_request.buffer.empty())
     tcp.receive_disconnect();
+  // signal disconnect to the user
+  tcp.signal_disconnect(Disconnect::CLOSING);
+
+  // only ack FIN if user callback didn't result in a sent packet
+  if(tcb.SND.NXT == snd_nxt) {
+    debug2("<TCP::Connection::State::process_fin> acking FIN\n");
+    auto packet = tcp.outgoing_packet();
+    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
+    tcp.transmit(packet);
+  }
+
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -763,7 +771,7 @@ State::Result Connection::Closed::handle(Connection& tcp, TCP::Packet_ptr in) {
   }
   auto packet = tcp.outgoing_packet();
   if(!in->isset(ACK)) {
-    packet->set_seq(0).set_ack(in->seq() + in->data_length()).set_flags(RST | ACK);
+    packet->set_seq(0).set_ack(in->seq() + in->tcp_data_length()).set_flags(RST | ACK);
   } else {
     packet->set_seq(in->ack()).set_flag(RST);
   }
@@ -922,7 +930,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
       //tcp.state().handle(tcp, in);
 
       // 7. process segment text
-      if(in->has_data()) {
+      if(in->has_tcp_data()) {
         process_segment(tcp, in);
       }
 
@@ -940,7 +948,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, TCP::Packet_ptr in) {
       packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
       tcp.transmit(packet);
       tcp.set_state(Connection::SynReceived::instance());
-      if(in->has_data()) {
+      if(in->has_tcp_data()) {
         process_segment(tcp, in);
       }
       return OK;
@@ -1007,17 +1015,16 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
 
       // Taken from acknowledge (without congestion control)
       tcb.SND.UNA = in->ack();
-      if(tcp.rttm.active)
-        tcp.rttm.stop();
       if(tcp.rtx_timer.active)
         tcp.rtx_stop();
 
+      tcp.signal_connect(); // NOTE: User callback
+
       // 7. proccess the segment text
-      if(in->has_data()) {
+      if(in->has_tcp_data()) {
+        debug2("<TCP::Connection::SynReceived::handle> @warning: Packet has data? %s\n", in->to_string().c_str());
         process_segment(tcp, in);
       }
-
-      tcp.signal_connect(); // NOTE: User callback
 
       // 8. check FIN bit
       if(in->isset(FIN)) {
@@ -1079,7 +1086,7 @@ State::Result Connection::Established::handle(Connection& tcp, TCP::Packet_ptr i
   // 6. check URG - DEPRECATED
 
   // 7. proccess the segment text
-  if(in->has_data()) {
+  if(in->has_tcp_data()) {
     process_segment(tcp, in);
   }
 
@@ -1129,7 +1136,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, TCP::Packet_ptr in) 
   }
 
   // 7. proccess the segment text
-  if(in->has_data()) {
+  if(in->has_tcp_data()) {
     process_segment(tcp, in);
   }
 
@@ -1180,7 +1187,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, TCP::Packet_ptr in) 
   }
 
   // 7. proccess the segment text
-  if(in->has_data()) {
+  if(in->has_tcp_data()) {
     process_segment(tcp, in);
   }
 

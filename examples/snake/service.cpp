@@ -28,6 +28,7 @@ ConsoleVGA vga;
 
 void begin_snake()
 {
+  hw::KBM::init();
   static Snake snake(vga);
   
   hw::KBM::set_virtualkey_handler(
@@ -57,15 +58,15 @@ void Service::start()
 {
   // redirect stdout to vga screen
   // ... even though we aren't really using it after the game starts
+  
   OS::set_rsprint(
   [] (const char* data, size_t len)
   {
     vga.write(data, len);
   });
   
-  hw::KBM::init();
   // we have to start snake later to avoid late text output
-  hw::PIT::on_timeout(0.2, [] { begin_snake(); });
+  hw::PIT::on_timeout(0.25, [] { begin_snake(); });
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

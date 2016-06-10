@@ -16,7 +16,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
@@ -35,8 +35,8 @@ LIBCXX = $(INSTALL)/libcxx/libc++.a $(INSTALL)/libcxx/libc++abi.a
 INC_NEWLIB=$(INSTALL)/newlib/include
 INC_LIBCXX=$(INSTALL)/libcxx/include
 
-CC = clang-3.8 -target i686-elf
-CPP = clang++-3.8 -target i686-elf
+CC  = $(shell command -v clang-3.8 || command -v clang-3.6) -target i686-elf
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6) -target i686-elf
 ifndef LD_INC
 	LD_INC = ld
 endif

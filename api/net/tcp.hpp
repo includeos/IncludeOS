@@ -202,15 +202,6 @@ namespace net {
     }__attribute__((packed));
 
     /*
-      To extract the TCP part from a Packet_ptr and calculate size. (?)
-    */
-    struct Full_header {
-      Ethernet::header ethernet;
-      IP4::ip_header ip4;
-      TCP::Header tcp;
-    }__attribute__((packed));
-
-    /*
       TCP Header Option
     */
     struct Option {
@@ -259,74 +250,83 @@ namespace net {
     class Packet : public PacketIP4 {
     public:
 
-      inline TCP::Header& header() const
-      {
-        return ((TCP::Full_header*) buffer())->tcp;
-      }
-
-      static const size_t HEADERS_SIZE = sizeof(TCP::Full_header);
+      inline TCP::Header& tcp_header() const
+      { return *(TCP::Header*) ip_data(); }
 
       //! initializes to a default, empty TCP packet, given
       //! a valid MTU-sized buffer
       void init()
       {
-        // Erase all headers (smart? necessary? ...well, convenient)
-        memset(buffer(), 0, HEADERS_SIZE);
         PacketIP4::init();
+
+        // clear TCP headers
+        memset(ip_data(), 0, sizeof(TCP::Header));
 
         set_protocol(IP4::IP4_TCP);
         set_win(TCP::default_window_size);
         set_offset(5);
+        set_length();
 
         // set TCP payload location (!?)
-        set_payload(buffer() + all_headers_len());
+        set_payload(buffer() + tcp_full_header_length());
+
+        debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
+          size(), ip_header_size(), tcp_full_header_length());
       }
 
       // GETTERS
-      inline TCP::Port src_port() const { return ntohs(header().source_port); }
+      inline TCP::Port src_port() const
+      { return ntohs(tcp_header().source_port); }
 
-      inline TCP::Port dst_port() const { return ntohs(header().destination_port); }
+      inline TCP::Port dst_port() const
+      { return ntohs(tcp_header().destination_port); }
 
-      inline TCP::Seq seq() const { return ntohl(header().seq_nr); }
+      inline TCP::Seq seq() const
+      { return ntohl(tcp_header().seq_nr); }
 
-      inline TCP::Seq ack() const { return ntohl(header().ack_nr); }
+      inline TCP::Seq ack() const
+      { return ntohl(tcp_header().ack_nr); }
 
-      inline uint16_t win() const { return ntohs(header().window_size); }
+      inline uint16_t win() const
+      { return ntohs(tcp_header().window_size); }
 
-      inline TCP::Socket source() const { return TCP::Socket{src(), src_port()}; }
+      inline TCP::Socket source() const
+      { return TCP::Socket{src(), src_port()}; }
 
-      inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
+      inline TCP::Socket destination() const
+      { return TCP::Socket{dst(), dst_port()}; }
 
-      inline TCP::Seq end() const { return seq() + data_length(); }
+      inline TCP::Seq end() const
+      { return seq() + tcp_data_length(); }
 
       // SETTERS
       inline TCP::Packet& set_src_port(TCP::Port p) {
-        header().source_port = htons(p);
+        tcp_header().source_port = htons(p);
         return *this;
       }
 
       inline TCP::Packet& set_dst_port(TCP::Port p) {
-        header().destination_port = htons(p);
+        tcp_header().destination_port = htons(p);
         return *this;
       }
 
       inline TCP::Packet& set_seq(TCP::Seq n) {
-        header().seq_nr = htonl(n);
+        tcp_header().seq_nr = htonl(n);
         return *this;
       }
 
       inline TCP::Packet& set_ack(TCP::Seq n) {
-        header().ack_nr = htonl(n);
+        tcp_header().ack_nr = htonl(n);
         return *this;
       }
 
       inline TCP::Packet& set_win(uint16_t size) {
-        header().window_size = htons(size);
+        tcp_header().window_size = htons(size);
         return *this;
       }
 
       inline TCP::Packet& set_checksum(uint16_t checksum) {
-        header().checksum = checksum;
+        tcp_header().checksum = checksum;
         return *this;
       }
 
@@ -345,62 +345,69 @@ namespace net {
       /// FLAGS / CONTROL BITS ///
 
       inline TCP::Packet& set_flag(TCP::Flag f) {
-        header().offset_flags.whole |= htons(f);
+        tcp_header().offset_flags.whole |= htons(f);
         return *this;
       }
 
       inline TCP::Packet& set_flags(uint16_t f) {
-        header().offset_flags.whole |= htons(f);
+        tcp_header().offset_flags.whole |= htons(f);
         return *this;
       }
 
       inline TCP::Packet& clear_flag(TCP::Flag f) {
-        header().offset_flags.whole &= ~ htons(f);
+        tcp_header().offset_flags.whole &= ~ htons(f);
         return *this;
       }
 
       inline TCP::Packet& clear_flags() {
-        header().offset_flags.whole &= 0x00ff;
+        tcp_header().offset_flags.whole &= 0x00ff;
         return *this;
       }
 
-      inline bool isset(TCP::Flag f) const { return ntohs(header().offset_flags.whole) & f; }
+      inline bool isset(TCP::Flag f) const
+      { return ntohs(tcp_header().offset_flags.whole) & f; }
 
-      //TCP::Flag flags() const { return (htons(header().offset_flags.whole) << 8) & 0xFF; }
+      //TCP::Flag flags() const { return (htons(tcp_header().offset_flags.whole) << 8) & 0xFF; }
 
 
       /// OFFSET, OPTIONS, DATA ///
 
       // Get the raw tcp offset, in quadruples
-      inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
+      inline uint8_t offset() const
+      { return (uint8_t)(tcp_header().offset_flags.offset_reserved >> 4); }
 
       // Set raw TCP offset in quadruples
-      inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
+      inline void set_offset(uint8_t offset)
+      { tcp_header().offset_flags.offset_reserved = (offset << 4); }
 
-      // The actaul TCP header size (including options).
-      inline uint8_t header_size() const { return offset() * 4; }
+      // The actual TCP header size (including options).
+      inline uint8_t tcp_header_length() const
+      { return offset() * 4; }
 
-      // Calculate the full header length, down to linklayer, in bytes
-      uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
+      inline uint8_t tcp_full_header_length() const
+      { return ip_full_header_length() + tcp_header_length(); }
+
+      // The total length of the TCP segment (TCP header + data)
+      uint16_t tcp_length() const
+      { return tcp_header_length() + tcp_data_length(); }
 
       // Where data starts
-      inline char* data() { return (char*) (buffer() + all_headers_len()); }
+      inline char* tcp_data()
+      { return ip_data() + tcp_header_length(); }
 
-      inline uint16_t data_length() const { return size() - all_headers_len(); }
+      // Length of data in packet when header has been accounted for
+      inline uint16_t tcp_data_length() const
+      { return ip_data_length() - tcp_header_length(); }
 
-      inline bool has_data() const { return data_length() > 0; }
-
-      inline uint16_t size_available() const
-      { return size() - all_headers_len() - data_length(); }
-
-      inline uint16_t tcp_length() const { return header_size() + data_length(); }
+      inline bool has_tcp_data() const
+      { return tcp_data_length() > 0; }
 
       template <typename T, typename... Args>
-      inline void add_option(Args&&... args) {
+      inline void add_tcp_option(Args&&... args) {
         // to avoid headache, options need to be added BEFORE any data.
-        assert(!has_data());
+        assert(!has_tcp_data());
         // option address
-        auto* addr = options()+options_length();
+        auto* addr = tcp_options()+tcp_options_length();
         new (addr) T(args...);
         // update offset
         set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
@@ -414,44 +421,55 @@ namespace net {
         set_length(); // update
       }
 
-      inline uint8_t* options() { return (uint8_t*) header().options; }
+      // Options
+      inline uint8_t* tcp_options()
+      { return (uint8_t*) tcp_header().options; }
 
-      inline uint8_t options_length() const { return header_size() - sizeof(TCP::Header); }
+      inline uint8_t tcp_options_length() const
+      { return tcp_header_length() - sizeof(TCP::Header); }
 
-      inline bool has_options() const { return options_length() > 0; }
+      inline bool has_tcp_options() const
+      { return tcp_options_length() > 0; }
 
-      // sets the correct length for all the protocols up to IP4
-      void set_length(uint16_t newlen = 0) {
-        // new total packet length
-        set_size( all_headers_len() + newlen );
-      }
 
       //! assuming the packet has been properly initialized,
       //! this will fill bytes from @buffer into this packets buffer,
       //! then return the number of bytes written. buffer is unmodified
       size_t fill(const char* buffer, size_t length) {
-        size_t rem = capacity() - all_headers_len();
+        size_t rem = capacity() - size();
         size_t total = (length < rem) ? length : rem;
         // copy from buffer to packet buffer
-        memcpy(data() + data_length(), buffer, total);
+        memcpy(tcp_data() + tcp_data_length(), buffer, total);
         // set new packet length
-        set_length(data_length() + total);
+        set_length(tcp_data_length() + total);
         return total;
       }
 
+      /// HELPERS ///
+
       bool is_acked_by(const Seq ack) const
-      { return ack >= (seq() + data_length()); }
+      { return ack >= (seq() + tcp_data_length()); }
 
       bool should_rtx() const
-      { return has_data() or isset(SYN) or isset(FIN); }
+      { return has_tcp_data() or isset(SYN) or isset(FIN); }
 
       inline std::string to_string() {
         std::ostringstream os;
         os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
            << " SEQ:" << seq() << " ACK:" << ack()
-           << " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length()
-           << " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
+           << " HEAD-LEN:" << (int)tcp_header_length() << " OPT-LEN:" << (int)tcp_options_length() << " DATA-LEN:" << tcp_data_length()
+           << " WIN:" << win() << " FLAGS:" << std::bitset<8>{tcp_header().offset_flags.flags}  << " ]";
         return os.str();
+      }
+
+
+    private:
+      // sets the correct length for all the protocols up to IP4
+      void set_length(uint16_t newlen = 0) {
+        // new total packet length
+        set_size( tcp_full_header_length() + newlen );
+        // update IP packet aswell - bad idea?
+        set_segment_length();
       }
 
     }; // << class TCP::Packet

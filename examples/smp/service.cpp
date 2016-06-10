@@ -17,10 +17,7 @@
 
 #include <os>
 #include <cassert>
-#include <net/inet4>
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
-#include <hw/apic.hpp>
+#include <smp>
 
 void Service::start()
 {
@@ -30,7 +27,7 @@ void Service::start()
   
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
-  hw::APIC::add_task(
+  SMP::add_task(
   [i] {
     // the job
     __sync_fetch_and_or(&job, 1 << i);
@@ -42,11 +39,11 @@ void Service::start()
     if (completed == TASKS) {
       printf("All jobs are done now, compl = %d\n", completed);
       printf("bits = %#x\n", job);
-      assert(job = 0xffffffff);
+      assert(job = 0xffffffff && "All 32 bits must be set");
     }
   });
   // start working on tasks
-  hw::APIC::work_signal();
+  SMP::start();
   
   printf("*** TEST SERVICE STARTED *** \n");
 }

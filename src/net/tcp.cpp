@@ -117,7 +117,7 @@ bool TCP::port_in_use(const TCP::Port port) const {
 
 uint16_t TCP::checksum(TCP::Packet_ptr packet) {
   // TCP header
-  TCP::Header* tcp_hdr = &(packet->header());
+  TCP::Header* tcp_hdr = &(packet->tcp_header());
   // Pseudo header
   TCP::Pseudo_header pseudo_hdr;
 

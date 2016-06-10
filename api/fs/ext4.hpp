@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@
 namespace fs
 {
   class Path;
-  
+
   struct EXT4 : public FileSystem
   {
     /**
@@ -41,43 +41,39 @@ namespace fs
        Blocks Per File, Extents          2^32     2^32    2^32     2^32
        Blocks Per File, Block Maps      16,843,020      134,480,396     1,074,791,436   4,398,314,962,956
        File Size, Extents         4TiB     8TiB   16TiB  256TiB
-       File Size, Block Maps    16GiB   256GiB  4TiB    256PiB 
+       File Size, Block Maps    16GiB   256GiB  4TiB    256PiB
     **/
-    
+
     // 0   = Mount MBR
     // 1-4 = Mount VBR 1-4
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
-    
+
     // path is a path in the mounted filesystem
     virtual void  ls(const std::string& path, on_ls_func) override;
     virtual List  ls(const std::string& path) override;
-    
-    // read an entire file into a buffer, then call on_read
-    virtual void   readFile(const std::string&, on_read_func) override;
-    virtual Buffer readFile(const std::string&) override;
-    
+
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
     virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
-    
+
     // return information about a filesystem entity
     virtual void   stat(const std::string&, on_stat_func) override;
     virtual Dirent stat(const std::string& ent) override;
-    
+
     // returns the name of the filesystem
     virtual std::string name() const override
     {
       return "Linux EXT4";
     }
-    
+
     // constructor
     EXT4(hw::IDiskDevice& idev);
     ~EXT4() {}
-    
+
   private:
     static const int EXT4_N_BLOCKS = 15;
     static const int EXT2_GOOD_OLD_INODE_SIZE = 128;
-    
+
     struct superblock
     {
       uint32_t  inodes_count;    // Total inode count
@@ -87,8 +83,8 @@ namespace fs
       uint32_t  free_inodes_count; // Free inode count
       uint32_t  first_data_block; // First data block
       // Block size is 2 ^ (10 + s_log_block_size)
-      uint32_t  log_block_size; 
-      // Cluster size is (2 ^ s_log_cluster_size) blocks if bigalloc 
+      uint32_t  log_block_size;
+      // Cluster size is (2 ^ s_log_cluster_size) blocks if bigalloc
       // is enabled, zero otherwise
       uint32_t  log_cluster_size;
       uint32_t  blocks_per_group; // Blocks per group
@@ -96,28 +92,28 @@ namespace fs
       uint32_t  inodes_per_group; // Inodes per group
       uint32_t  mtime; // Mount time, in seconds since the epoch
       uint32_t  wtime; // Write time, in seconds since the epoch
-      
+
       uint16_t  mnt_count; // Number of mounts since the last fsck
       uint16_t  max_mnt_count; // Number of mounts beyond which a fsck is needed
-      
+
       uint16_t  magic; // Magic signature, 0xEF53
-      
+
       // File system state. Valid values are:
       //  0x0001        Cleanly umounted
       //  0x0002        Errors detected
       //  0x0004        Orphans being recovered
       uint16_t  state;
-      
+
       // Behaviour when detecting errors. One of:
       //  1     Continue
       //  2     Remount read-only
       //  3     Panic
       uint16_t  errors;
       uint16_t  minor_rev_level; // Minor revision level
-      
+
       uint32_t  lastcheck; // Time of last check, in seconds since the epoch
       uint32_t  checkinterval; // Maximum time between checks, in seconds
-      
+
       // OS. One of:
       //  0     Linux
       //  1     Hurd
@@ -125,35 +121,35 @@ namespace fs
       //  3     FreeBSD
       //  4     Lites
       uint32_t  creator_os;
-      
+
       // Revision level. One of:
       //  0     Original format
       //  1     v2 format w/ dynamic inode sizes
       uint32_t  rev_level;
-      
+
       uint16_t  def_resuid; // Default uid for reserved blocks
       uint16_t  def_resgid; // Default gid for reserved blocks
-      
+
       //////////////////////////////////////////////////////////////
       /// These fields are for EXT4_DYNAMIC_REV superblocks only ///
       //////////////////////////////////////////////////////////////
       //
-      // Note: the difference between the compatible feature set 
-      // and the incompatible feature set is that if there is a bit 
-      // set in the incompatible feature set that the kernel doesn't 
+      // Note: the difference between the compatible feature set
+      // and the incompatible feature set is that if there is a bit
+      // set in the incompatible feature set that the kernel doesn't
       // know about, it should refuse to mount the filesystem.
-      // 
-      // e2fsck's requirements are more strict; if it doesn't know 
-      // about a feature in either the compatible or incompatible 
-      // feature set, it must abort and not try to meddle with things 
+      //
+      // e2fsck's requirements are more strict; if it doesn't know
+      // about a feature in either the compatible or incompatible
+      // feature set, it must abort and not try to meddle with things
       // it doesn't understand...
-      
+
       uint32_t  first_ino;  // First non-reserved inode
       uint16_t  inode_size; // Size of inode structure, in bytes
       uint16_t  block_group_nr; // Block group # of this superblock
-      
-      // Compatible feature set flags. 
-      // Kernel can still read/write this fs even if it doesn't 
+
+      // Compatible feature set flags.
+      // Kernel can still read/write this fs even if it doesn't
       // understand a flag; fsck should not do that. Any of:
       //  0x1   Directory preallocation (COMPAT_DIR_PREALLOC).
       //  0x2   "imagic inodes". Not clear from the code what this does (COMPAT_IMAGIC_INODES).
@@ -166,8 +162,8 @@ namespace fs
       //  0x100         "Exclude bitmap". Seems to be used to indicate the presence of snapshot-related exclude bitmaps? Not defined in kernel or used in e2fsprogs (COMPAT_EXCLUDE_BITMAP).
       //  0x200         Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks (COMPAT_SPARSE_SUPER2).
       uint32_t  feature_compat;
-      
-      // Incompatible feature set. If the kernel or fsck doesn't 
+
+      // Incompatible feature set. If the kernel or fsck doesn't
       // understand one of these bits, it should stop. Any of:
       //  0x1   Compression (INCOMPAT_COMPRESSION).
       //  0x2   Directory entries record the file type. See ext4_dir_entry_2 below (INCOMPAT_FILETYPE).
@@ -185,9 +181,9 @@ namespace fs
       //  0x8000        Data in inode (INCOMPAT_INLINE_DATA).
       //  0x10000       Encrypted inodes are present on the filesystem. (INCOMPAT_ENCRYPT).
       uint32_t feature_incompat;
-      
-      // Readonly-compatible feature set. If the kernel doesn't 
-      // understand one of these bits, it can still mount read-only. 
+
+      // Readonly-compatible feature set. If the kernel doesn't
+      // understand one of these bits, it can still mount read-only.
       // Any of:
       //0x1     Sparse superblocks. See the earlier discussion of this feature (RO_COMPAT_SPARSE_SUPER).
       //0x2     This filesystem has been used to store a file greater than 2GiB (RO_COMPAT_LARGE_FILE).
@@ -204,17 +200,17 @@ namespace fs
       //0x1000  Read-only filesystem image; the kernel will not mount this image read-write and most tools will refuse to write to the image. (RO_COMPAT_READONLY)
       //0x2000  Filesystem tracks project quotas. (RO_COMPAT_PROJECT)
       uint32_t  feature_ro_compat;
-      
+
       uint8_t uuid[16]; // 128-bit UUID for volume
       char  volume_name[16]; // Volume label
-      
+
       // Directory where filesystem was last mounted
       char  last_mounted[64];
-      
+
       // For compression (Not used in e2fsprogs/Linux):
       uint32_t  algorithm_usage_bitmap;
-      
-      // Performance hints. Directory preallocation should only 
+
+      // Performance hints. Directory preallocation should only
       // happen if the EXT4_FEATURE_COMPAT_DIR_PREALLOC flag is on.
       // # of blocks to try to preallocate for ... files? (Not used in e2fsprogs/Linux)
       uint8_t  prealloc_blocks;
@@ -222,15 +218,15 @@ namespace fs
       uint8_t  prealloc_dir_blocks;
       // Number of reserved GDT entries for future filesystem expansion
       uint16_t reserved_gdt_blocks;
-      
+
       // Journaling support valid if EXT4_FEATURE_COMPAT_HAS_JOURNAL set
       uint8_t   journal_uuid[16]; // UUID of journal superblock
       uint32_t  journal_inum;   // inode number of journal file.
       uint32_t  journal_dev;    // Device number of journal file, if the external journal feature flag is set
-      
+
       uint32_t  last_orphan; // Start of list of orphaned inodes to delete
       uint32_t  hash_seed[4]; // HTREE hash seed
-      
+
       // Default hash algorithm to use for directory hashes. One of:
       //  0x0   Legacy.
       //  0x1   Half MD4.
@@ -239,12 +235,12 @@ namespace fs
       //  0x4   Half MD4, unsigned.
       //  0x5   Tea, unsigned.
       uint8_t   def_hash_version;
-      
+
       // If this value is 0 or EXT3_JNL_BACKUP_BLOCKS (1), then the s_jnl_blocks field contains a duplicate copy of the inode's i_block[] array and i_size
       uint8_t   jnl_backup_type;
       // Size of group descriptors, in bytes, if the 64bit incompat feature flag is set
       uint16_t  desc_size;
-      
+
       // Default mount options. Any of:
       //  0x001         Print debugging info upon (re)mount. (EXT4_DEFM_DEBUG)
       //  0x002         New files take the gid of the containing directory (instead of the fsgid of the current process). (EXT4_DEFM_BSDGROUPS)
@@ -259,32 +255,32 @@ namespace fs
       //  0x400         Enable DISCARD support, where the storage device is told about blocks becoming unused. (EXT4_DEFM_DISCARD)
       //  0x800         Disable delayed allocation. (EXT4_DEFM_NODELALLOC)
       uint32_t  default_mount_opts;
-      
+
       // First metablock block group, if the meta_bg feature is enabled
       uint32_t  first_meta_bg;
       // When the filesystem was created, in seconds since the epoch
       uint32_t  mkfs_time;
       // Backup copy of the journal inode's i_block[] array in the first 15 elements and i_size_high and i_size in the 16th and 17th elements, respectively.
       uint32_t  jnl_blocks[17];
-      
+
       // 64bit support valid if EXT4_FEATURE_COMPAT_64BIT
       uint32_t  blocks_count_hi;      // High 32-bits of the block count
       uint32_t  r_blocks_count_hi;    // High 32-bits of the reserved block count
       uint32_t  free_blocks_count_hi; // High 32-bits of the free block count
       uint16_t  min_extra_isize;  // All inodes have at least # bytes
       uint16_t  want_extra_isize; // New inodes should reserve # bytes
-      
+
       // Miscellaneous flags. Any of:
       //  0x01  Signed directory hash in use.
       //  0x02  Unsigned directory hash in use.
       //  0x04  To test development code.
       uint32_t  flags;
-      
+
       // RAID stride. This is the number of logical blocks read from or written to the disk before moving to the next disk. This affects the placement of filesystem metadata, which will hopefully make RAID storage faster
       uint16_t  raid_stride;
       uint16_t  mmp_interval; // # seconds to wait in multi-mount prevention (MMP) checking. In theory, MMP is a mechanism to record in the superblock which host and device have mounted the filesystem, in order to prevent multiple mounts. This feature does not seem to be implemented...
       uint64_t  mmp_block;    // Block # for multi-mount protection data.
-      
+
       // RAID stripe width. This is the number of logical blocks read from or written to the disk before coming back to the current disk. This is used by the block allocator to try to reduce the number of read-modify-write operations in a RAID5/6.
       uint32_t  raid_stripe_width;
       // Size of a flexible block group is 2 ^ s_log_groups_per_flex
@@ -292,34 +288,34 @@ namespace fs
       // Metadata checksum algorithm type. The only valid value is 1 (crc32c)
       uint8_t   checksum_type;
       uint16_t  reserved_pad;
-      
+
       // Number of KiB written to this filesystem over its lifetime
       uint64_t  kbytes_written;
       uint32_t  snapshot_inum; // inode number of active snapshot. (Not used in e2fsprogs/Linux.)
       uint32_t  snapshot_id; // Sequential ID of active snapshot. (Not used in e2fsprogs/Linux.)
       uint64_t  snapshot_r_blocks_count; // Number of blocks reserved for active snapshot's future use. (Not used in e2fsprogs/Linux.)
       uint32_t  snapshot_list; // inode number of the head of the on-disk snapshot list. (Not used in e2fsprogs/Linux.)
-      
+
       uint32_t  error_count; // Number of errors seen
       uint32_t  first_error_time; // First time an error happened, in seconds since the epoch
       uint32_t  first_error_ino; // inode involved in first error
       uint64_t  first_error_block; // Number of block involved of first error
       uint8_t   first_error_func[32]; // Name of function where the error happened
-      
+
       uint32_t  first_error_line; // Line number where error happened
       uint32_t  last_error_time;  // Time of most recent error, in seconds since the epoch
       uint32_t  last_error_ino;   // inode involved in most recent error
       uint32_t  last_error_line;  // Line number where most recent error happened
       uint64_t  last_error_block; // Number of block involved in most recent error
       uint8_t   last_error_func[32]; // Name of function where the most recent error happened
-      
+
       uint8_t   mount_opts[64]; // ASCIIZ string of mount options
-      
+
       uint32_t  usr_quota_inum; // Inode number of user quota file
       uint32_t  grp_quota_inum; // Inode number of group quota file
       uint32_t  overhead_blocks; // Overhead blocks/clusters in fs. (Huh? This field is always zero, which means that the kernel calculates it dynamically.)
       uint32_t  backup_bgs[2]; // Block groups containing superblock backups (if sparse_super2)
-      
+
       // Encryption algorithms in use. There can be up to four algorithms in use at any time; valid algorithm codes are given below:
       //  0     Invalid algorithm (ENCRYPTION_MODE_INVALID).
       //  1     256-bit AES in XTS mode (ENCRYPTION_MODE_AES_256_XTS).
@@ -328,25 +324,25 @@ namespace fs
       uint8_t   encrypt_algos[4];
       // Salt for the string2key algorithm for encryption.
       uint8_t   encrypt_pw_salt[16];
-      
+
       uint32_t  lpf_ino; // Inode number of lost+found
       uint32_t  prj_quota_inum; // Inode that tracks project quotas
-      
+
       // Checksum seed used for metadata_csum calculations. This value is crc32c(~0, $orig_fs_uuid).
       uint32_t  checksum_seed;
-      
+
       uint32_t  reserved[98]; // Padding to the end of the block
       uint32_t  checksum; // Superblock checksum
-      
+
     } __attribute__((packed));
     // <-- should be 1024 bytes
-    
+
     struct group_desc
     {
       uint32_t  block_bitmap_lo; // Lower 32-bits of location of block bitmap
       uint32_t  inode_bitmap_lo; // Lower 32-bits of location of inode bitmap
       uint32_t  inode_table_lo;  // Lower 32-bits of location of inode table
-      
+
       uint16_t  free_blocks_count_lo; // Lower 16-bits of free block count
       uint16_t  free_inodes_count_lo; // Lower 16-bits of free inode count
       uint16_t  used_dirs_count_lo;   // Lower 16-bits of directory count
@@ -355,17 +351,17 @@ namespace fs
       //  0x2   block bitmap is not initialized (EXT4_BG_BLOCK_UNINIT).
       //  0x4   inode table is zeroed (EXT4_BG_INODE_ZEROED).
       uint16_t  flags;
-      
+
       uint32_t  exclude_bitmap_lo; // Lower 32-bits of location of snapshot exclusion bitmap
       uint16_t  block_bitmap_csum_lo; // Lower 16-bits of the block bitmap checksum
       uint16_t  inode_bitmap_csum_lo; // Lower 16-bits of the inode bitmap checksum
       uint16_t  itable_unused_lo; // Lower 16-bits of unused inode count. If set, we needn't scan past the (sb.s_inodes_per_group - gdt.bg_itable_unused)th entry in the inode table for this group
-      
+
       // Group descriptor checksum; crc16(sb_uuid+group+desc) if the RO_COMPAT_GDT_CSUM feature is set, or crc32c(sb_uuid+group_desc) & 0xFFFF if the RO_COMPAT_METADATA_CSUM feature is set
       uint16_t  checksum;
-      
+
       /////////////////////////////////////////////////////////////////
-      // These fields only exist if the 64bit feature is enabled and 
+      // These fields only exist if the 64bit feature is enabled and
       // desc_size > 32.
       uint32_t  block_bitmap_hi;
       uint32_t  inode_bitmap_hi;
@@ -374,15 +370,15 @@ namespace fs
       uint16_t  free_inodes_count_hi;
       uint16_t  used_dirs_count_hi; // Upper 16-bits of directory count
       uint16_t  itable_unused_hi; // Upper 16-bits of unused inode count
-      
+
       uint32_t  exclude_bitmap_hi; // Upper 32-bits of location of snapshot exclusion bitmap
       uint16_t  block_bitmap_csum_hi;
       uint16_t  inode_bitmap_csum_hi;
-      
+
       uint32_t  reserved; // Padding to 64 bytes
-      
+
     } __attribute__((packed));
-    
+
     struct inode_table
     {
       // File mode. Any of:
@@ -405,9 +401,9 @@ namespace fs
       //  0x6000        S_IFBLK (Block device)
       //  0x8000        S_IFREG (Regular file)
       //  0xA000        S_IFLNK (Symbolic link)
-      //  0xC000        S_IFSOCK (Socket)       
+      //  0xC000        S_IFSOCK (Socket)
       uint16_t  mode;
-      
+
       uint16_t  uid; // Owner-ID (lower 16)
       uint32_t  size_lo; // Size (lower 32)
       uint32_t  atime; // last access time
@@ -417,7 +413,7 @@ namespace fs
       uint16_t  gid;
       uint16_t  links_count; // Hard links
       uint32_t  blocks_lo; // "Block" count (lower 32)
-      
+
       // Inode flags. Any of:
       //  0x1   This file requires secure deletion (EXT4_SECRM_FL). (not implemented)
       //  0x2   This file should be preserved, should undeletion be desired (EXT4_UNRM_FL). (not implemented)
@@ -451,38 +447,38 @@ namespace fs
       //  0x4BDFFF      User-visible flags.
       //  0x4B80FF      User-modifiable flags. Note that while EXT4_JOURNAL_DATA_FL and EXT4_EXTENTS_FL can be set with setattr, they are not in the kernel's EXT4_FL_USER_MODIFIABLE mask, since it needs to handle the setting of these flags in a special manner and they are masked out of the set of flags that are saved directly to i_flags.
       uint32_t  flags;
-      
+
       union // linux1, hurd1, masix1
       {
         uint32_t  l_version;
         uint32_t  h_translator;
         uint32_t  m_reserved;
       } osd1;
-      
+
       // Block map or extent tree
       uint32_t  block[EXT4_N_BLOCKS];
-      
+
       uint32_t  generation; // File version for NFS
       uint32_t  file_acl_lo; // Extended attribs (lower 32)
       uint32_t  size_high;  // File size (upper 32) OR dir_acl
       uint32_t  obso_faddr; // (Obsolete) fragment address
-      
+
       uint8_t   osd2[12];
-      
+
       uint16_t  extra_isize;
       uint16_t  checksum_hi; // Checksum (upper 16)
       uint32_t  ctime_extra;
       uint32_t  mtime_extra;
       uint32_t  atime_extra;
-      
+
       uint32_t  crtime;     // File creation time
       uint32_t  crtime_extra; // (upper 32)
-      
+
       uint32_t  version_hi; // Version number (upper 32)
       uint32_t  projid;     // Project ID for quota API
-      
+
     } __attribute__((packed));
-    
+
     struct extent_header
     {
       uint16_t  magic;   // 0xF30A
@@ -491,7 +487,7 @@ namespace fs
       uint16_t  depth;   // depth of this node in extent tree
       uint32_t  generation;
     };
-    
+
     struct extent_idx
     {
       uint32_t  block;  // inode covers file blocks from @block onward
@@ -499,7 +495,7 @@ namespace fs
       uint16_t  leaf_hi; // that is the next lower level in the tree
       uint16_t  unused;
     };
-    
+
     struct extent
     {
       uint32_t  block;
@@ -507,28 +503,28 @@ namespace fs
       uint16_t  start_hi; // upper!
       uint32_t  start_lo; // lower!
     };
-    
+
     struct extent_tail
     {
-      // Checksum of the extent block, 
+      // Checksum of the extent block,
       // crc32c(uuid+inum+igeneration+extentblock)
       uint32_t  checksum;
     };
-    
+
     // initialize filesystem by providing base sector
     void init(const void* base_sector);
-    
+
     // tree traversal
     typedef std::function<void(bool, uint64_t, dirvec_t)> cluster_func;
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
-    
+
     // device we can read and write sectors to
     hw::IDiskDevice& device;
-    
+
     // system fields
-    
+
   };
-  
+
 } // fs
 
 #endif
