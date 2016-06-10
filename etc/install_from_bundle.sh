@@ -12,7 +12,7 @@
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
-INCLUDEOS_SRC=${INCLUDEOS_SRC-$(readlink -f "$(dirname "$0")/")}
+INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
 INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
