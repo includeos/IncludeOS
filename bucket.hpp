@@ -10,6 +10,9 @@
 
 namespace bucket {
 
+template <typename T>
+struct Type { typedef T type; };
+
 /**
  * @brief A (magical) bucket to store stuff inside
  * @details Stores an object together with a key.
@@ -30,7 +33,26 @@ private:
   using Content    = typename Collection::value_type;
   using IsEqual    = std::function<bool(const T&, const T&)>;
 
+  using Column = std::string;
+
+  template <typename Value>
+  using Resolver = std::function<const Value&(const T&)>;
+
+  template <typename Value>
+  using Index = std::unordered_map<Value, Key>;
+
+  template <typename Value>
+  struct IndexedColumn {
+    Resolver<Value> resolver;
+    Index<Value> index;
+  };
+
 public:
+  enum Constraint {
+    NONE,
+    UNIQUE
+  };
+
   explicit Bucket();
 
   /**
@@ -82,6 +104,10 @@ public:
     check_if_equal = func;
   }
 
+  template <typename Value>
+  void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE)
+  { add_index(Type<Value>(), std::forward<Column>(col), res, con); };
+
   template <typename Writer>
   void serialize(Writer& writer) const;
 
@@ -90,6 +116,14 @@ private:
   Collection bucket_;
 
   IsEqual check_if_equal;
+
+  std::unordered_map<Column, IndexedColumn<std::string>> string_indexes_;
+
+  template <typename Value>
+  void add_index(Type<Value>, Column&&, Resolver<Value>, Constraint);
+
+  // string implementation
+  void add_index(Type<std::string>, Column&&, Resolver<std::string>, Constraint);
 };
 
 template <typename T>
@@ -100,29 +134,31 @@ Bucket<T>::Bucket() : idx_{1}, bucket_{}
 
 template <typename T>
 size_t Bucket<T>::capture(T& obj) {
-  // check if unique constraint is set
-  if(check_if_equal) {
-    // iterate through all objects
-    for(auto& ref : bucket_) {
-      // if they're equal, return
-      if(check_if_equal(obj, ref.second))
-        return 0;
-    }
+  for(auto& str_idx : string_indexes_) {
+    auto& idx_col = str_idx.second;
+    if(idx_col.index.find(idx_col.resolver(obj)) != idx_col.index.end())
+      return 0;
   }
 
   obj.key = idx_++;
   bucket_.insert({obj.key, obj});
+
+  for(auto& str_idx : string_indexes_) {
+    auto& idx_col = str_idx.second;
+    idx_col.index[idx_col.resolver(obj)] = obj.key;
+  }
+
   return obj.key;
 }
 
 template <typename T>
 template <typename... Args>
 T& Bucket<T>::spawn(Args&&... args) {
-  Key id = idx_++;
-  bucket_.emplace(id, T{args...});
-  auto& obj = bucket_[id];
-  obj.key = id;
-  return obj;
+  T obj{args...};
+  Key id = capture(obj);
+  if(!id)
+    throw BucketException{"Can not spawn."};
+  return pick_up(id);
 }
 
 template <typename T>
@@ -159,6 +195,18 @@ void Bucket<T>::serialize(Writer& writer) const {
   }
   writer.EndArray();
 }
+
+template <typename T>
+void Bucket<T>::add_index(Type<std::string>, Column&& col, Resolver<std::string> res, Constraint con) {
+  IndexedColumn<std::string> ic;
+  ic.resolver = res;
+  string_indexes_.emplace(col, ic);
+}
+
+/*template <typename T> template <>
+void Bucket<T>::add_constraint<std::string>(Column&& col, Resolver<std::string> resolver) {
+
+}*/
 
 } // < namespace bucket
 
