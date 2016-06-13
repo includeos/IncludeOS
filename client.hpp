@@ -12,15 +12,15 @@ class Client
 {
 public:
   using Connection = net::TCP::Connection_ptr;
-  using ChannelList = std::list<size_t>;
+  using ChannelList = std::list<uint16_t>;
   typedef uint16_t index_t;
   
   Client(size_t s, IrcServer& sref)
-    : alive(true), regis(0), self(s), server(sref) {}
+    : alive_(true), regis(0), self(s), server(sref) {}
   
-  bool is_alive() const
+  bool alive() const
   {
-    return alive;
+    return alive_;
   }
   bool is_reg() const
   {
@@ -28,20 +28,22 @@ public:
   }
   void disable()
   {
-    alive = false; regis = 0;
+    alive_ = false; regis = 0;
   }
+  void reset(Connection conn);
+  
   index_t get_id() const {
     return self;
   }
+  const std::string& name() const {
+    return nick;
+  }
+  
   bool is_operator() const {
     return this->umodes & UMODE_IRCOP_MASK;
   }
   void set_umodes(uint16_t mask) {
     this->umodes |= mask;
-  }
-  
-  void set_connection(Connection conn) {
-    this->conn = conn;
   }
   
   void read(const uint8_t* buffer, size_t len);
@@ -68,8 +70,9 @@ private:
   
   void welcome(uint8_t);
   void auth_notice();
+  bool change_nick(const std::string& new_nick);
   
-  bool        alive;
+  bool        alive_;
   uint8_t     regis;
   uint16_t    umodes;
   index_t     self;

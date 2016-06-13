@@ -9,14 +9,25 @@ class Channel
 {
 public:
   typedef uint16_t index_t;
+  using ClientList = std::deque<index_t>;
   
   Channel(index_t self, IrcServer& sref);
   
   bool alive() const {
-    return !clients.empty();
+    return !clientlist.empty();
   }
   index_t get_id() const {
     return self;
+  }
+  const std::string& name() const {
+    return cname;
+  }
+  size_t size() const {
+    return clientlist.size();
+  }
+  
+  const ClientList& clients() {
+    return clientlist;
   }
   
   bool add(index_t);
@@ -28,5 +39,5 @@ private:
   uint32_t    ctimestamp;
   std::string cname;
   IrcServer&  server;
-  std::deque<index_t> clients;
+  ClientList  clientlist;
 };

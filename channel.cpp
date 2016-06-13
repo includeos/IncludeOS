@@ -3,6 +3,9 @@
 #include "ircd.hpp"
 #include "client.hpp"
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 Channel::Channel(index_t idx, IrcServer& sref)
   : self(idx), server(sref)
 {
@@ -10,18 +13,17 @@ Channel::Channel(index_t idx, IrcServer& sref)
 }
 
 bool Channel::add(index_t id) {
-  for (index_t i = 0; i < clients.size(); i++) {
-    if (clients[i] == id) {
-      return false;
-    }
+  for (index_t i = 0; i < this->size(); i++) {
+    if (unlikely(clientlist[i] == id))
+        return false;
   }
-  clients.push_back(id);
+  clientlist.push_back(id);
   return true;
 }
 bool Channel::remove(index_t id) {
-  for (Client::index_t i = 0; i < clients.size(); i++) {
-    if (clients[i] == id) {
-      clients.erase(clients.begin() + i);
+  for (Client::index_t i = 0; i < this->size(); i++) {
+    if (unlikely(clientlist[i] == id)) {
+      clientlist.erase(clientlist.begin() + i);
       return true;
     }
   }

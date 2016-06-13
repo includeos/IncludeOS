@@ -28,8 +28,10 @@ void Client::handle_new(
   {
     if (msg.size() > 1)
     {
-      this->nick = msg[1];
-      welcome(regis | 1);
+      // try to acquire nickname
+      if (change_nick(msg[1])) {
+        welcome(regis | 1);
+      }
     }
     else
     {
@@ -53,12 +55,6 @@ void Client::handle_new(
     send(ERR_NOSUCHCMD, cmd + " :Unknown command");
   }
 }
-
-#define RPL_WELCOME   1
-#define RPL_YOURHOST  2
-#define RPL_CREATED   3
-#define RPL_MYINFO    4
-#define RPL_BOUNCE    5
 
 void Client::welcome(uint8_t newreg)
 {
@@ -84,6 +80,7 @@ void Client::auth_notice()
   //hostname_lookup()
   send("NOTICE AUTH :*** Checking Ident");
   //ident_check()
+  this->host = conn->remote().address().str();
 }
 
 void Client::handle(
@@ -112,9 +109,7 @@ void Client::handle(
     if (msg.size() > 1)
     {
       // change nickname
-      
-      // broadcast change to all channels
-      
+      change_nick(msg[1]);
     }
     else
     {

@@ -37,8 +37,12 @@ void Service::start() {
     printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
   });
 
+  // initialize lookup tables
+  extern void transform_init();
+  transform_init();
+  
   // IRC default port
   new IrcServer(*inet.get(), 6667, "irc.includeos.org");
-
+  
   printf("*** IRC SERVICE STARTED *** \n");
 }
