@@ -3,6 +3,7 @@
 #define MODEL_SQUIRREL_HPP
 
 #include "json.hpp"
+#include <locale>
 
 namespace acorn {
 
@@ -23,6 +24,10 @@ struct Squirrel : json::Serializable {
 
   virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>&) const override;
   virtual bool deserialize(const rapidjson::Document&) override;
+
+  bool is_equal(const Squirrel&) const;
+
+  static bool is_equal(const Squirrel&, const Squirrel&);
 };
 
 std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
@@ -63,6 +68,20 @@ std::string Squirrel::json() const {
   return sb.GetString();
 }
 
-};
+bool Squirrel::is_equal(const Squirrel& s) const {
+  if(name.size() != s.name.size())
+    return false;
+  for(size_t i = 0; i < name.size(); i++) {
+    if(std::tolower(name[i]) != std::tolower(s.name[i]))
+      return false;
+  }
+  return true;
+}
+
+bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
+  return s1.is_equal(s2);
+}
+
+} // < namespace acorn
 
 #endif

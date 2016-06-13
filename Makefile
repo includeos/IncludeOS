@@ -7,7 +7,7 @@ SERVICE = Acorn
 SERVICE_NAME = Acorn
 
 # Your service parts
-FILES = service.cpp memdisk.o server/request.o server/response.o server/connection.o server/server.o server/http/uri/uri.o
+FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o server/http/uri/uri.o
 
 # Your disk image
 DISK=

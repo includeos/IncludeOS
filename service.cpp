@@ -84,7 +84,8 @@ public:
 #include "bucket.hpp"
 #include "app/squirrel.hpp"
 
-using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
+using namespace acorn;
+using SquirrelBucket = bucket::Bucket<Squirrel>;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 #include "middleware/parsley.hpp"
@@ -105,8 +106,16 @@ void Service::start() {
 
       // setup "database"
       squirrels = std::make_shared<SquirrelBucket>();
+      squirrels->set_unique_constraint((bool(*)(const Squirrel&, const Squirrel&)) &Squirrel::is_equal);
+      squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
+        return s.name;
+      });
+
       squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
+
+      Squirrel test_assert("Andreas", 0, "Tester");
+      assert(squirrels->capture(test_assert) == 0);
 
       server::Router routes;
 
@@ -130,7 +139,7 @@ void Service::start() {
 
       /* Route: GET / */
       routes.on_get(R"(index\.html?|\/|\?)", [](auto, auto res){
-          disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
+          disk->fs().read_file("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
                 res->set_status_code(http::Not_Found);
               } else {
@@ -200,7 +209,7 @@ void Service::start() {
       });
       // initialize server
       server_ = std::make_unique<server::Server>();
-      server_->set_routes(routes).listen(8081);
+      server_->set_routes(routes).listen(80);
 
       /*
       // add a middleware as lambda
