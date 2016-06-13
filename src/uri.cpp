@@ -106,7 +106,7 @@ URI::operator std::string () const {
 void URI::parse() {
   static const std::regex uri_pattern_matcher
   {
-    "^([a-zA-z]+[\\w\\+\\-\\.]+)?(\\://)?" //< scheme
+    "^([a-zA-Z]+[\\w\\+\\-\\.]+)?(\\://)?" //< scheme
     "(([^:@]+)(\\:([^@]+))?@)?"            //< username && password
     "([^/:?#]+)?(\\:(\\d+))?"              //< hostname && port
     "([^?#]+)"                             //< path
