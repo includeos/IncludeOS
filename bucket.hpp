@@ -3,6 +3,7 @@
 
 #include <map>
 #include <vector>
+#include <functional>
 
 namespace bucket {
 
@@ -18,6 +19,7 @@ private:
   using Key = size_t;
   using Collection = std::map<Key, T>;
   using Content = std::pair<Key, T>;
+  using IsEqual = std::function<bool(const T&, const T&)>;
 
 public:
   Bucket();
@@ -66,12 +68,20 @@ public:
    */
   std::vector<T> lineup() const;
 
+  void set_unique_constraint(IsEqual func) {
+    check_if_equal = func;
+  }
+
+  void add_string_constraint(const std::string&, Constraint);
+
   template <typename Writer>
   void serialize(Writer& writer) const;
 
 private:
   Key idx;
   Collection bucket_;
+
+  IsEqual check_if_equal;
 
 };
 
@@ -83,6 +93,16 @@ Bucket<T>::Bucket() : idx(1), bucket_()
 
 template <typename T>
 size_t Bucket<T>::capture(T& obj) {
+  // check if unique constraint is set
+  if(check_if_equal) {
+    // iterate through all objects
+    for(auto& ref : bucket_) {
+      // if they're equal, return
+      if(check_if_equal(obj, ref.second))
+        return 0;
+    }
+  }
+
   obj.key = idx++;
   bucket_.insert({obj.key, obj});
   return obj.key;
