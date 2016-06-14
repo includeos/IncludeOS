@@ -67,7 +67,7 @@ namespace hw {
   PIT::PIT() {}
   PIT::~PIT() {}
 
-  void PIT::estimateCPUFrequency(){
+  void PIT::estimate_CPU_frequency(){
 
     debug("<PIT EstimateCPUFreq> Saving state: curr_freq_div %i \n",current_freq_divider_);
     // Save PIT-state
@@ -94,9 +94,9 @@ namespace hw {
     IRQ_manager::cpu(0).set_irq_handler(0, prev_irq_handler);
   }
 
-  MHz PIT::CPUFrequency(){
+  MHz PIT::CPU_frequency(){
     if (! _CPUFreq_)
-      estimateCPUFrequency();
+      estimate_CPU_frequency();
 
     return MHz(_CPUFreq_);
   }
@@ -111,7 +111,7 @@ namespace hw {
     if (current_freq_divider_ != millisec_interval)
       set_freq_divider(millisec_interval);
 
-    auto cycles_pr_millisec = KHz(CPUFrequency());
+    auto cycles_pr_millisec = KHz(CPU_frequency());
     //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
     auto ticks = in_msecs / KHz(current_frequency()).count();
@@ -138,7 +138,7 @@ namespace hw {
     return it;
   }
 
-  uint32_t  PIT::onRepeatedTimeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
+  uint32_t  PIT::on_repeated_timeout(std::chrono::milliseconds ms, timeout_handler handler, repeat_condition cond){
     debug("<PIT repeated> setting a %i ms. repeating timer \n", (uint32_t)ms.count());
 
     Timer t(Timer::REPEAT_WHILE, handler, ms, cond);
@@ -147,7 +147,7 @@ namespace hw {
   };
 
 
-  PIT::Timer_iterator PIT::onTimeout(std::chrono::milliseconds msec, timeout_handler handler){
+  PIT::Timer_iterator PIT::on_timeout_ms(std::chrono::milliseconds msec, timeout_handler handler){
     Timer t(Timer::ONE_SHOT, handler, msec);
 
     debug("<PIT timeout> setting a %i ms. one-shot timer. Id: %i \n",

@@ -87,7 +87,7 @@ void OS::start() {
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = hw::PIT::CPUFrequency();
+  cpu_mhz_ = hw::PIT::CPU_frequency();
 
   INFO2("+--> %f MHz", cpu_mhz_.count());
 

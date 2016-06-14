@@ -90,17 +90,17 @@ namespace hw {
     /** Create a one-shot timer.
         @param ms: Expiration time. Compatible with all std::chrono durations.
         @param handler: A delegate or function to be called on timeout.   */
-    Timer_iterator onTimeout(std::chrono::milliseconds ms, timeout_handler handler);
+    Timer_iterator on_timeout_ms(std::chrono::milliseconds ms, timeout_handler handler);
 
-    static Timer_iterator on_timeout(double sec, timeout_handler handler) {
-      return instance().onTimeout(std::chrono::milliseconds((unsigned)(sec * 1000)), handler);
+    static Timer_iterator on_timeout_d(double sec, timeout_handler handler) {
+      return instance().on_timeout_ms(std::chrono::milliseconds((unsigned)(sec * 1000)), handler);
     }
 
     /** Create a repeating timer.
         @param ms: Expiration time. Compatible with all std::chrono durations.
         @param handler: A delegate or function to be called every ms interval.
         @param cond: The timer ends when cond() returns false. Default to true. */
-    Timer::Id onRepeatedTimeout(std::chrono::milliseconds ms,
+    Timer::Id on_repeated_timeout(std::chrono::milliseconds ms,
                                      timeout_handler handler,
                                      repeat_condition cond = forever);
 
@@ -138,10 +138,10 @@ namespace hw {
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
         @Note This is an asynchronous function. Once finished the result can be
         fetched by CPUFrequency() (below)  */
-    static void estimateCPUFrequency();
+    static void estimate_CPU_frequency();
 
     /** Get the last estimated CPU frequency.  May trigger frequency sampling */
-    static MHz CPUFrequency();
+    static MHz CPU_frequency();
 
 
   private:

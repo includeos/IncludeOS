@@ -643,7 +643,7 @@ void Connection::rtx_start() {
   Expects(!rtx_timer.active);
   auto i = rtx_timer.i;
   auto rto = rttm.RTO;
-  rtx_timer.iter = hw::PIT::instance().on_timeout(rttm.RTO,
+  rtx_timer.iter = hw::PIT::instance().on_timeout_d(rttm.RTO,
   [this, i, rto]
   {
     rtx_timer.active = false;
@@ -758,7 +758,7 @@ void Connection::start_time_wait_timeout() {
   time_wait_started = OS::cycles_since_boot();
   auto timeout = 2 * host().MSL(); // 60 seconds
   // Passing "this"..?
-  hw::PIT::instance().onTimeout(timeout,[this, timeout] {
+  hw::PIT::instance().on_timeout_ms(timeout,[this, timeout] {
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
         signal_close();

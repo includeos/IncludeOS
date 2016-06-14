@@ -59,7 +59,7 @@ milliseconds MSL_TEST = 5s;
 */
 void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
-  hw::PIT::instance().onTimeout(3 * MSL_TEST, [] {
+  hw::PIT::instance().on_timeout_ms(3 * MSL_TEST, [] {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().activeConnections() == 0,
         "No (0) active connections");
@@ -150,7 +150,7 @@ void print_stuff()
 {
   printf("TIMER: Buffers avail: %u / %u  Transmit avail: %u\n",
     inet->buffers_available(), buffers_available, inet->transmit_queue_available());
-  hw::PIT::on_timeout(5.0, print_stuff);
+  hw::PIT::on_timeout_d(5.0, print_stuff);
 }
 
 void Service::start()
@@ -284,13 +284,13 @@ void Service::start()
     })
     .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
         CHECKSERT(conn->is_state({"FIN-WAIT-2"}), "State: FIN-WAIT-2");
-        hw::PIT::instance().onTimeout(1s,[conn]{
+        hw::PIT::instance().on_timeout_ms(1s,[conn]{
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
 
             OUTGOING_TEST({inet->router(), TEST5});
           });
 
-        hw::PIT::instance().onTimeout(5s, [] { FINISH_TEST(); });
+        hw::PIT::instance().on_timeout_ms(5s, [] { FINISH_TEST(); });
       });
 printf ("IncludeOS TCP test\n");
 }
