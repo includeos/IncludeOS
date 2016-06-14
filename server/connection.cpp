@@ -11,12 +11,13 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
+  printf("<Connection> @on_data, size=%u\n", n);
   // if it's a new request
   if(!request_) {
     request_ = std::make_shared<Request>(buf, n);
     // return early to read payload
     if((request_->method() == http::POST or request_->method() == http::PUT)
-      and request_->content_length())
+      and request_->content_length() > request_->get_body().size())
       return;
   }
   // else we assume it's payload
@@ -28,8 +29,10 @@ void Connection::on_data(buffer_t buf, size_t n) {
   }
 
 
-  printf("<Connection:[%s]> Incoming Request [ %s ]\n",
-    conn_->remote().to_string().c_str(), request_->uri().path().c_str());
+  printf("<Connection:[%s]> Incoming Request [@%s:%s]\n",
+    conn_->remote().to_string().c_str(),
+    http::method::str(request_->method()).c_str(),
+    request_->uri().path().c_str());
 
   response_ = std::make_shared<Response>(conn_);
 

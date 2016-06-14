@@ -187,17 +187,16 @@ void Service::start() {
       });
 
       routes.on_get(".*", [](auto, auto res){
-          disk->fs().readFile("/public/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
-            if(err) {
-              res->set_status_code(http::Not_Found);
-            } else {
-              // fill Response with content from index.html
-              printf("[@GET:*] (Fallback) Responding with index.html. \n");
-              res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
-                .add_body(std::string{(const char*) buff.get(), len});
-            }
-            res->send();
-          });
+        printf("[@GET:*] Fallback route - try to serve index.html\n");
+        disk->fs().stat("/public/index.html", [res](auto err, const auto& entry) {
+          if(err) {
+            res->send_code(http::Not_Found);
+          } else {
+            // Serve index.html
+            printf("[@GET:*] (Fallback) Responding with index.html. \n");
+            res->send_file({disk, entry});
+          }
+        });
       });
       // initialize server
       server_ = std::make_unique<server::Server>();
@@ -225,18 +224,6 @@ void Service::start() {
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
-
-
-      disk->fs().ls("/", [](auto, auto entries) {
-        printf("------------------------------------ \n");
-        printf(" Disk contents \n");
-        printf("------------------------------------ \n");
-        recursive_fs_dump(*entries);
-        printf("------------------------------------ \n");
-      });
-
-
-
 
       hw::PIT::instance().onRepeatedTimeout(15s, []{
         printf("%s\n", server_->ip_stack().tcp().status().c_str());

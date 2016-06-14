@@ -1,3 +1,7 @@
+#pragma once
+#ifndef MODEL_SQUIRREL_HPP
+#define MODEL_SQUIRREL_HPP
+
 #include "json.hpp"
 
 namespace acorn {
@@ -60,3 +64,5 @@ std::string Squirrel::json() const {
 }
 
 };
+
+#endif

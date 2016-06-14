@@ -15,7 +15,6 @@ angular.module('acornWebApp')
           $scope.squirrel = new Squirrel();
         },
         function(error) {
-          console.log("error");
         }
       );
     };
