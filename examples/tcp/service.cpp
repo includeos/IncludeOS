@@ -39,7 +39,7 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 // Address to our python server: 10.0.2.2:1337
 // @note: This may be needed to be modified depending on network and server settings.
-net::TCP::Socket python_server{ {{10,0,2,2}} , 1337};
+net::TCP::Socket python_server{ {10,0,2,2} , 1337};
 
 // Called when data is received on client (incoming connection)
 void handle_client_on_read(Connection_ptr python, std::string request) {
@@ -62,16 +62,17 @@ void Service::start() {
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
 
   // Static IP configuration, until we (possibly) get DHCP
-  inet->network_config( {{ 10,0,0,42 }},      // IP
-                        {{ 255,255,255,0 }},  // Netmask
-                        {{ 10,0,0,1 }},       // Gateway
-                        {{ 8,8,8,8 }} );      // DNS
+  inet->network_config( { 10,0,0,42 },      // IP
+                        { 255,255,255,0 },  // Netmask
+                        { 10,0,0,1 },       // Gateway
+                        { 8,8,8,8 } );      // DNS
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
-  inet->dhclient()->on_config([&server](auto&) {
+  inet->dhclient()->on_config([&server](bool timeout) {
+    if(!timeout)
       printf("Server IP updated: %s\n", server.local().to_string().c_str());
-    });
+  });
   printf("Server listening: %s \n", server.local().to_string().c_str());
   // When someone connects to our server
   server.onConnect([](Connection_ptr client) {
