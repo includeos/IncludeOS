@@ -41,6 +41,7 @@ void Service::start()
 
   // 5 sec.
   timer.onTimeout(5s, [] {
+      printf("One-shots fired: %i \n", one_shots);
       CHECKSERT(one_shots == 3,
                 "After 5 sec, 3 other one-shot-timers have fired");
       one_shots++;
@@ -98,6 +99,7 @@ void Service::start()
                 "After 25 sec, 1s timer x 30 == %i times, 2s timer x 15 == %i times",
                 repeat1, repeat2);
 
+      // Make sure this timer iterator is valid
       timer.stop_timer(timer1s);
       CHECKSERT(timer.active_timers() == 2, "There are now 2 timers left");
 
@@ -106,7 +108,5 @@ void Service::start()
         });
 
     });
-
-
 
 }
