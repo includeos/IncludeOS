@@ -10,6 +10,9 @@
 
 namespace bucket {
 
+inline std::string to_string(const std::string& str)
+{ return str; }
+
 template <typename T>
 struct Type { typedef T type; };
 
@@ -99,6 +102,9 @@ public:
    */
   bool abandon(const Key);
 
+  template <typename Value>
+  T& look_for(const Column&, const Value&);
+
   /**
    * @brief Lineup everything inside the bucket.
    * @details Builds a vector with only the values from the underlying container.
@@ -147,6 +153,11 @@ private:
   // string impl
   inline bool is_null(const IndexedColumn<std::string>&, const T&) const;
 
+  inline void update_indexes(const T&);
+
+  template <typename Value>
+  inline void update_indexes(Indexes<Value>&, const T&);
+
 };
 
 template <typename T>
@@ -164,10 +175,7 @@ size_t Bucket<T>::capture(T& obj) {
   obj.key = idx_++;
   bucket_.insert({obj.key, obj});
 
-  for(auto& str_idx : string_indexes_) {
-    auto& idx_col = str_idx.second;
-    idx_col.index[idx_col.resolver(obj)] = obj.key;
-  }
+  update_indexes(obj);
 
   return obj.key;
 }
@@ -178,7 +186,7 @@ T& Bucket<T>::spawn(Args&&... args) {
   T obj{args...};
   Key id = capture(obj);
   if(!id)
-    throw BucketException{"Can not spawn."};
+    throw CannotCreateObject{"The object got away.."};
   return pick_up(id);
 }
 
@@ -194,6 +202,26 @@ T& Bucket<T>::pick_up(const Key key) {
 template <typename T>
 bool Bucket<T>::abandon(const Key key) {
   return bucket_.erase(key);
+}
+
+template <typename T>
+template <typename Value>
+T& Bucket<T>::look_for(const Column& col, const Value& val) {
+  auto& indexes = get_indexes<Value>();
+  // check for column
+  const auto indexes_it = indexes.find(col);
+  if(indexes_it == indexes.end())
+    throw ObjectNotFound{"Column not indexed: " + col};
+
+  // check for value
+  auto& idx_col = indexes_it->second;
+  const auto it = idx_col.index.find(val);
+  if(it == idx_col.index.end()) {
+    using namespace std;
+    throw ObjectNotFound{"Value [" + to_string(val) + "] does not exist in Column: " + col};
+  }
+
+  return pick_up(it->second);
 }
 
 template <typename T>
@@ -273,6 +301,21 @@ inline bool Bucket<T>::is_null(const IndexedColumn<Value>& col, const T& obj) co
 template <typename T>
 inline bool Bucket<T>::is_null(const IndexedColumn<std::string>& col, const T& obj) const
 { return col.resolver(obj).empty(); }
+
+
+template <typename T>
+inline void Bucket<T>::update_indexes(const T& obj) {
+  update_indexes(string_indexes_, obj);
+}
+
+template <typename T>
+template <typename Value>
+inline void Bucket<T>::update_indexes(Indexes<Value>& indexes, const T& obj) {
+  for(auto& idx : indexes) {
+    auto& idx_col = idx.second;
+    idx_col.index[idx_col.resolver(obj)] = obj.key;
+  }
+}
 
 } // < namespace bucket
 
