@@ -69,9 +69,10 @@ void Service::start() {
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
-  inet->dhclient()->on_config([&server](auto) {
+  inet->dhclient()->on_config([&server](bool timeout) {
+    if(!timeout)
       printf("Server IP updated: %s\n", server.local().to_string().c_str());
-    });
+  });
   printf("Server listening: %s \n", server.local().to_string().c_str());
   // When someone connects to our server
   server.onConnect([](Connection_ptr client) {
