@@ -110,11 +110,13 @@ void Service::start() {
         return s.name;
       }, SquirrelBucket::UNIQUE);
 
-      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
+      auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
 
       Squirrel test_assert("Andreas", 0, "Tester");
       assert(squirrels->capture(test_assert) == 0);
+      // no-go if throw
+      assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
       server::Router routes;
 
