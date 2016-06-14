@@ -71,6 +71,7 @@ namespace net {
     ip4_pckt->set_src(full_hdr->ip_hdr.daddr);
     ip4_pckt->set_dst(full_hdr->ip_hdr.saddr);
     ip4_pckt->set_protocol(IP4::IP4_ICMP);
+    ip4_pckt->set_ip_data_length(size);
   
     // Copy payload from old to new packet
     uint8_t* payload = reinterpret_cast<uint8_t*>(hdr) + sizeof(icmp_header);
