@@ -13,6 +13,11 @@ public:
   using BucketException::BucketException;
 };
 
+class CannotCreateObject : public BucketException {
+public:
+  using BucketException::BucketException;
+};
+
 } //< namespace bucket
 
 #endif //< BUCKET_BUCKET_ERRORS_HPP

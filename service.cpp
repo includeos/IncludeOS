@@ -106,10 +106,9 @@ void Service::start() {
 
       // setup "database"
       squirrels = std::make_shared<SquirrelBucket>();
-      squirrels->set_unique_constraint((bool(*)(const Squirrel&, const Squirrel&)) &Squirrel::is_equal);
       squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
         return s.name;
-      });
+      }, SquirrelBucket::UNIQUE);
 
       squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
