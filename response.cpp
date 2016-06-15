@@ -72,6 +72,12 @@ void Response::send_json(const std::string& json) {
   send(!keep_alive);
 }
 
+void Response::error(Error&& err) {
+  // NOTE: only cares about JSON (for now)
+  set_status_code(err.code);
+  send_json(err.json());
+}
+
 void Response::end() const {
   // Response ended, signal server?
 }

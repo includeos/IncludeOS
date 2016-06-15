@@ -33,6 +33,27 @@ private:
 
 public:
 
+  struct Error {
+    Code code;
+    std::string type;
+    std::string message;
+
+    Error() : code{http::Bad_Request} {}
+
+    Error(std::string&& type, std::string&& msg)
+      : code{http::Bad_Request}, type{type}, message{msg}
+    {}
+
+    Error(const Code code, std::string&& type, std::string&& msg)
+      : code{code}, type{type}, message{msg}
+    {}
+
+    // TODO: NotLikeThis
+    std::string json() const {
+      return "{ \"type\" : \"" + type + "\", \"message\" : \"" + message + "\" }";
+    }
+  };
+
   Response(Connection_ptr conn);
 
   /*
@@ -51,6 +72,14 @@ public:
   void send_file(const File&);
 
   void send_json(const std::string&);
+
+  /**
+   * @brief Send an error response
+   * @details Sends an error response together with the given status code.
+   *
+   * @param e Response::Error
+   */
+  void error(Error&&);
 
   /*
     "End" the response
