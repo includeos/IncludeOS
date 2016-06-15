@@ -272,13 +272,13 @@ inline bool Bucket<T>::constraints_fails(const Indexes<Value>& indexes, const T&
 
       case UNIQUE: {
         if(!is_unique(idx_col, obj))
-          return true;
+          throw ConstraintUnique{"Not Unique."};
         break;
       }
 
       case NOT_NULL: {
         if(is_null(idx_col, obj))
-          return true;
+          throw ConstraintNull{"Null value."};
         break;
       }
       default:
