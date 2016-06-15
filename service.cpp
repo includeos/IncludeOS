@@ -25,6 +25,7 @@ std::unique_ptr<server::Server> server_;
 using namespace std;
 
 #include <fs/disk.hpp>
+#include <memdisk>
 
 ////// DISK //////
 // instantiate disk with filesystem
@@ -92,8 +93,9 @@ std::shared_ptr<SquirrelBucket> squirrels;
 
 void Service::start() {
 
-  auto& device = hw::Dev::disk<1, VirtioBlk>();
-  disk = std::make_shared<fs::Disk> (device);
+  //auto& device = hw::Dev::disk<1, VirtioBlk>();
+  //disk = std::make_shared<fs::Disk> (device);
+  disk = fs::new_shared_memdisk();
 
   uri::URI uri1("asdf");
 
@@ -113,8 +115,16 @@ void Service::start() {
       auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
 
-      Squirrel test_assert("Andreas", 0, "Tester");
-      assert(squirrels->capture(test_assert) == 0);
+      // A test to see if constraint is working.
+      bool exception_thrown = false;
+      try {
+        Squirrel dupe_name("Andreas", 0, "Tester");
+        squirrels->capture(dupe_name);
+      } catch(bucket::ConstraintUnique) {
+        exception_thrown = true;
+      }
+      assert(exception_thrown);
+
       // no-go if throw
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
@@ -140,7 +150,7 @@ void Service::start() {
 
       /* Route: GET / */
       routes.on_get(R"(index\.html?|\/|\?)", [](auto, auto res){
-          disk->fs().read_file("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
+          disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
               if(err) {
                 res->set_status_code(http::Not_Found);
               } else {
@@ -167,7 +177,7 @@ void Service::start() {
         using namespace json;
         auto json = req->get_attribute<JsonDoc>();
         if(!json) {
-          res->send_code(http::Bad_Request);
+          res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
         }
         else {
           auto& doc = json->doc();
@@ -189,8 +199,16 @@ void Service::start() {
             res->send_json(s.json());
           }
           catch(AssertException e) {
-            res->send_code(http::Bad_Request);
-            printf("[@POST:/api/squirrels] Exception: %s\n", e.what());
+            printf("[@POST:/api/squirrels] AssertException: %s\n", e.what());
+            res->error({"Parsing Error", "Could not parse data."});
+          }
+          catch(bucket::ConstraintException e) {
+            printf("[@POST:/api/squirrels] ConstraintException: %s\n", e.what());
+            res->error({"Constraint Exception", e.what()});
+          }
+          catch(bucket::BucketException e) {
+            printf("[@POST:/api/squirrels] BucketException: %s\n", e.what());
+            res->error({"Bucket Exception", e.what()});
           }
         }
 
