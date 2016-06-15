@@ -14,11 +14,17 @@ void Connection::on_data(buffer_t buf, size_t n) {
   printf("<Connection> @on_data, size=%u\n", n);
   // if it's a new request
   if(!request_) {
-    request_ = std::make_shared<Request>(buf, n);
-    // return early to read payload
-    if((request_->method() == http::POST or request_->method() == http::PUT)
-      and request_->content_length() > request_->get_body().size())
+    try {
+      request_ = std::make_shared<Request>(buf, n);
+      // return early to read payload
+      if((request_->method() == http::POST or request_->method() == http::PUT)
+        and request_->content_length() > request_->get_body().size())
+        return;
+    } catch(...) {
+      printf("<Connection> Error - exception thrown when creating Request???\n");
+      close();
       return;
+    }
   }
   // else we assume it's payload
   else {
