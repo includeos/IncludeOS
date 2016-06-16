@@ -60,7 +60,7 @@ std::string HTML_RESPONSE() {
   return header + html;
 }
 
-const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
+const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \nConnection: close\n\n";
 
 void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
@@ -84,7 +84,7 @@ void Service::start() {
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
 
-  hw::PIT::instance().onRepeatedTimeout(30s, []{
+  hw::PIT::instance().on_repeated_timeout(30s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
     });
 
@@ -94,35 +94,41 @@ void Service::start() {
              conn->to_string().c_str());
       return true; // allow all connections
 
-    }).onConnect([] (auto conn) {
-        printf("<Service> @onConnect - Connection successfully established.\n");
-        // read async with a buffer size of 1024 bytes
-        // define what to do when data is read
-        conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
-            // create string from buffer
-            std::string data { (char*)buf.get(), n };
-            printf("<Service> @read:\n%s\n", data.c_str());
+    })
+    .onConnect([] (auto conn) {
+      printf("<Service> @onConnect - Connection successfully established.\n");
+      // read async with a buffer size of 1024 bytes
+      // define what to do when data is read
+      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+          // create string from buffer
+          std::string data { (char*)buf.get(), n };
+          printf("<Service> @read:\n%s\n", data.c_str());
 
-            if (data.find("GET / ") != std::string::npos) {
+          if (data.find("GET / ") != std::string::npos) {
 
-              // create response
-              std::string response = HTML_RESPONSE();
-              // write the data from the string with the strings size
-              conn->write(response.data(), response.size(), [](size_t n) {
-                  printf("<Service> @write: %u bytes written\n", n);
-                });
-            }
-            else {
-              conn->write(NOT_FOUND.data(), NOT_FOUND.size());
-            }
-          });
+            // create response
+            std::string response = HTML_RESPONSE();
+            // write the data from the string with the strings size
+            conn->write(response.data(), response.size(), [](size_t n) {
+                printf("<Service> @write: %u bytes written\n", n);
+              });
+          }
+          else {
+            conn->write(NOT_FOUND.data(), NOT_FOUND.size());
+          }
+        });
 
-      }).onDisconnect([](auto conn, auto reason) {
-          printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
-          conn->close();
-        }).onPacketReceived([](auto, auto packet) {
-            printf("@Packet: %s\n", packet->to_string().c_str());
-          });
+    })
+    .onDisconnect([](auto conn, auto reason) {
+        printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
+        conn->close();
+    })
+    .onPacketReceived([](auto, auto packet) {
+        printf("@Packet: %s\n", packet->to_string().c_str());
+    })
+    .onError([](auto, auto err) {
+      printf("<Service> @onError - %s\n", err.what());
+    });
 
   printf("*** TEST SERVICE STARTED *** \n");
 }
