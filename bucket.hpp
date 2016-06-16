@@ -62,7 +62,7 @@ private:
   using Indexes = std::unordered_map<Column, IndexedColumn<Value>>;
 
 public:
-  explicit Bucket();
+  explicit Bucket(size_t limit = 1000);
 
   /**
    * @brief Capture something inside the bucket.
@@ -112,10 +112,6 @@ public:
    */
   std::vector<T> lineup() const;
 
-  void set_unique_constraint(IsEqual func) {
-    check_if_equal = func;
-  }
-
   template <typename Value>
   void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE);
   //{ add_index(Type<Value>(), std::forward<Column>(col), res, con); };
@@ -126,10 +122,12 @@ public:
 private:
   Key        idx_;
   Collection bucket_;
+  const size_t LIMIT;
 
-  IsEqual check_if_equal;
-
+  // Indexes
   Indexes<std::string> string_indexes_;
+
+
 
   template <typename Value>
   inline Indexes<Value>& get_indexes()
@@ -161,13 +159,16 @@ private:
 };
 
 template <typename T>
-Bucket<T>::Bucket() : idx_{1}, bucket_{}
+Bucket<T>::Bucket(size_t limit)
+  : idx_{1}, bucket_{}, LIMIT{limit}
 {
 
 }
 
 template <typename T>
 size_t Bucket<T>::capture(T& obj) {
+  if(bucket_.size() >= LIMIT)
+    throw CannotCreateObject{"The Bucket is full. Please come again!"};
 
   if(constraints_fails(obj))
     return 0;
