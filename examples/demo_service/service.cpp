@@ -43,8 +43,8 @@ std::string HTML_RESPONSE() {
          <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
          <<  "<h2>Now speaks TCP!</h2>"
     // .... generate more dynamic content
-         << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-         << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
+         << "<p> This is improvised http, but proper suff is in the works. </p>"
+         << "<footer><hr /> &copy; 2016, IncludeOS AS @ 60&deg; north </footer>"
          << "</body></html>\n";
 
   std::string html = stream.str();
@@ -84,7 +84,7 @@ void Service::start() {
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
 
-  hw::PIT::instance().onRepeatedTimeout(30s, []{
+  hw::PIT::instance().on_repeated_timeout(30s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
     });
 
