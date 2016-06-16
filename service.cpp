@@ -18,18 +18,21 @@
 #include <os>
 #include <net/inet4>
 #include <sstream>
-//#include <http>
+#include <hw/cmos.hpp>
 #include "server/server.hpp"
 
 std::unique_ptr<server::Server> server_;
 using namespace std;
 
 #include <fs/disk.hpp>
+#include <memdisk>
 
 ////// DISK //////
 // instantiate disk with filesystem
 //#include <filesystem>
 fs::Disk_ptr disk;
+
+cmos::Time STARTED_AT;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   auto& filesys = disk->fs();
@@ -84,15 +87,17 @@ public:
 #include "bucket.hpp"
 #include "app/squirrel.hpp"
 
-using SquirrelBucket = bucket::Bucket<acorn::Squirrel>;
+using namespace acorn;
+using SquirrelBucket = bucket::Bucket<Squirrel>;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 #include "middleware/parsley.hpp"
 
 void Service::start() {
 
-  auto& device = hw::Dev::disk<1, VirtioBlk>();
-  disk = std::make_shared<fs::Disk> (device);
+  //auto& device = hw::Dev::disk<1, VirtioBlk>();
+  //disk = std::make_shared<fs::Disk> (device);
+  disk = fs::new_shared_memdisk();
 
   uri::URI uri1("asdf");
 
@@ -105,8 +110,25 @@ void Service::start() {
 
       // setup "database"
       squirrels = std::make_shared<SquirrelBucket>();
-      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
+      squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
+        return s.name;
+      }, SquirrelBucket::UNIQUE);
+
+      auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
+
+      // A test to see if constraint is working.
+      bool exception_thrown = false;
+      try {
+        Squirrel dupe_name("Andreas", 0, "Tester");
+        squirrels->capture(dupe_name);
+      } catch(bucket::ConstraintUnique) {
+        exception_thrown = true;
+      }
+      assert(exception_thrown);
+
+      // no-go if throw
+      assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
       server::Router routes;
 
@@ -157,7 +179,7 @@ void Service::start() {
         using namespace json;
         auto json = req->get_attribute<JsonDoc>();
         if(!json) {
-          res->send_code(http::Bad_Request);
+          res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
         }
         else {
           auto& doc = json->doc();
@@ -179,8 +201,16 @@ void Service::start() {
             res->send_json(s.json());
           }
           catch(AssertException e) {
-            res->send_code(http::Bad_Request);
-            printf("[@POST:/api/squirrels] Exception: %s\n", e.what());
+            printf("[@POST:/api/squirrels] AssertException: %s\n", e.what());
+            res->error({"Parsing Error", "Could not parse data."});
+          }
+          catch(bucket::ConstraintException e) {
+            printf("[@POST:/api/squirrels] ConstraintException: %s\n", e.what());
+            res->error({"Constraint Exception", e.what()});
+          }
+          catch(bucket::BucketException e) {
+            printf("[@POST:/api/squirrels] BucketException: %s\n", e.what());
+            res->error({"Bucket Exception", e.what()});
           }
         }
 
@@ -200,7 +230,9 @@ void Service::start() {
       });
       // initialize server
       server_ = std::make_unique<server::Server>();
-      server_->set_routes(routes).listen(8081);
+      server_->set_routes(routes).listen(80);
+
+      STARTED_AT = cmos::now();
 
       /*
       // add a middleware as lambda
@@ -225,8 +257,9 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
-      hw::PIT::instance().onRepeatedTimeout(15s, []{
-        printf("%s\n", server_->ip_stack().tcp().status().c_str());
+      hw::PIT::instance().onRepeatedTimeout(1min, []{
+        printf("@onTimeout [%s]\n%s\n",
+          cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
     }); // < disk*/

@@ -21,6 +21,8 @@ private:
   using OnData = net::TCP::Connection::ReadCallback;
   using Disconnect = net::TCP::Connection::Disconnect;
   using OnDisconnect = net::TCP::Connection::DisconnectCallback;
+  using OnError = net::TCP::Connection::ErrorCallback;
+  using TCPException = net::TCP::TCPException;
 
 public:
   Connection(Server&, Connection_ptr, size_t idx);
@@ -34,6 +36,9 @@ public:
 
   void close();
 
+  inline std::string to_string() const
+  { return "Connection:[" + conn_->remote().to_string() + "]"; }
+
 
 private:
   Server& server_;
@@ -45,6 +50,8 @@ private:
   void on_data(buffer_t, size_t);
 
   void on_disconnect(Connection_ptr, Disconnect);
+
+  void on_error(Connection_ptr, TCPException);
 
 }; // < server::Connection
 

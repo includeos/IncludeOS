@@ -73,7 +73,7 @@ public:
     }
     // we found an extension, this is a (probably) a file request
     else {
-      printf("<Waitress> Extension found - assuming request for file.\n");
+      //printf("<Waitress> Extension found - assuming request for file.\n");
       disk_->fs().stat(path, [this, req, res, next, path](auto err, const auto& entry) {
         if(err) {
           printf("<Waitress> File not found. Replying with 404.\n");

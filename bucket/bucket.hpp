@@ -2,12 +2,19 @@
 #define BUCKET_BUCKET_HPP
 
 #include <vector>
+#include <functional>
 #include <string>
 #include <unordered_map>
 
 #include "bucket_errors.hpp"
 
 namespace bucket {
+
+inline std::string to_string(const std::string& str)
+{ return str; }
+
+template <typename T>
+struct Type { typedef T type; };
 
 /**
  * @brief A (magical) bucket to store stuff inside
@@ -23,13 +30,39 @@ namespace bucket {
  */
 template <typename T>
 class Bucket {
+public:
+  enum Constraint {
+    NONE,
+    UNIQUE,
+    NOT_NULL
+  };
+
 private:
   using Key        = size_t;
   using Collection = std::unordered_map<Key, T>;
-  using Content    = Collection::value_type;
+  using Content    = typename Collection::value_type;
+  using IsEqual    = std::function<bool(const T&, const T&)>;
+
+  using Column = std::string;
+
+  template <typename Value>
+  using Resolver = std::function<const Value&(const T&)>;
+
+  template <typename Value>
+  using Index = std::unordered_map<Value, Key>;
+
+  template <typename Value>
+  struct IndexedColumn {
+    Resolver<Value> resolver;
+    Index<Value> index;
+    Constraint constraint; // currently only supports one
+  };
+
+  template <typename Value>
+  using Indexes = std::unordered_map<Column, IndexedColumn<Value>>;
 
 public:
-  explicit Bucket();
+  explicit Bucket(size_t limit = 1000);
 
   /**
    * @brief Capture something inside the bucket.
@@ -69,6 +102,9 @@ public:
    */
   bool abandon(const Key);
 
+  template <typename Value>
+  T& look_for(const Column&, const Value&);
+
   /**
    * @brief Lineup everything inside the bucket.
    * @details Builds a vector with only the values from the underlying container.
@@ -76,35 +112,83 @@ public:
    */
   std::vector<T> lineup() const;
 
+  template <typename Value>
+  void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE);
+  //{ add_index(Type<Value>(), std::forward<Column>(col), res, con); };
+
   template <typename Writer>
   void serialize(Writer& writer) const;
 
 private:
   Key        idx_;
   Collection bucket_;
+  const size_t LIMIT;
+
+  // Indexes
+  Indexes<std::string> string_indexes_;
+
+
+
+  template <typename Value>
+  inline Indexes<Value>& get_indexes()
+  { return get_indexes(Type<Value>()); }
+
+  inline Indexes<std::string>& get_indexes(Type<std::string>)
+  { return string_indexes_; }
+
+  // Constraints
+
+  inline bool constraints_fails(const T&) const;
+
+  template <typename Value>
+  inline bool constraints_fails(const Indexes<Value>&, const T&) const;
+
+  template <typename Value>
+  inline bool is_unique(const IndexedColumn<Value>&, const T&) const;
+
+  template <typename Value>
+  inline bool is_null(const IndexedColumn<Value>&, const T&) const;
+  // string impl
+  inline bool is_null(const IndexedColumn<std::string>&, const T&) const;
+
+  inline void update_indexes(const T&);
+
+  template <typename Value>
+  inline void update_indexes(Indexes<Value>&, const T&);
+
 };
 
 template <typename T>
-Bucket<T>::Bucket() : idx_{1}, bucket_{}
+Bucket<T>::Bucket(size_t limit)
+  : idx_{1}, bucket_{}, LIMIT{limit}
 {
 
 }
 
 template <typename T>
 size_t Bucket<T>::capture(T& obj) {
+  if(bucket_.size() >= LIMIT)
+    throw CannotCreateObject{"The Bucket is full. Please come again!"};
+
+  if(constraints_fails(obj))
+    return 0;
+
   obj.key = idx_++;
   bucket_.insert({obj.key, obj});
+
+  update_indexes(obj);
+
   return obj.key;
 }
 
 template <typename T>
 template <typename... Args>
 T& Bucket<T>::spawn(Args&&... args) {
-  Key id = idx_++;
-  bucket_.emplace(id, T{args...});
-  auto& obj = bucket_[id];
-  obj.key = id;
-  return obj;
+  T obj{args...};
+  Key id = capture(obj);
+  if(!id)
+    throw CannotCreateObject{"The object got away.."};
+  return pick_up(id);
 }
 
 template <typename T>
@@ -119,6 +203,26 @@ T& Bucket<T>::pick_up(const Key key) {
 template <typename T>
 bool Bucket<T>::abandon(const Key key) {
   return bucket_.erase(key);
+}
+
+template <typename T>
+template <typename Value>
+T& Bucket<T>::look_for(const Column& col, const Value& val) {
+  auto& indexes = get_indexes<Value>();
+  // check for column
+  const auto indexes_it = indexes.find(col);
+  if(indexes_it == indexes.end())
+    throw ObjectNotFound{"Column not indexed: " + col};
+
+  // check for value
+  auto& idx_col = indexes_it->second;
+  const auto it = idx_col.index.find(val);
+  if(it == idx_col.index.end()) {
+    using namespace std;
+    throw ObjectNotFound{"Value [" + to_string(val) + "] does not exist in Column: " + col};
+  }
+
+  return pick_up(it->second);
 }
 
 template <typename T>
@@ -140,6 +244,78 @@ void Bucket<T>::serialize(Writer& writer) const {
     content.second.serialize(writer);
   }
   writer.EndArray();
+}
+
+template <typename T>
+template <typename Value>
+void Bucket<T>::add_index(Column&& col, Resolver<Value> res, Constraint con) {
+  IndexedColumn<Value> ic;
+  ic.resolver = res;
+  ic.constraint = con;
+  get_indexes<Value>().emplace(col, ic);
+}
+
+template <typename T>
+inline bool Bucket<T>::constraints_fails(const T& obj) const {
+  // check all string values
+  if(constraints_fails(string_indexes_, obj))
+    return true;
+
+  return false;
+}
+
+template <typename T>
+template <typename Value>
+inline bool Bucket<T>::constraints_fails(const Indexes<Value>& indexes, const T& obj) const {
+  for(auto& idx : indexes) {
+    auto& idx_col = idx.second;
+    switch(idx_col.constraint) {
+
+      case UNIQUE: {
+        if(!is_unique(idx_col, obj))
+          throw ConstraintUnique{"Not Unique."};
+        break;
+      }
+
+      case NOT_NULL: {
+        if(is_null(idx_col, obj))
+          throw ConstraintNull{"Null value."};
+        break;
+      }
+      default:
+        break;
+    }
+  } // < switch Constraint
+  return false;
+}
+
+template <typename T>
+template <typename Value>
+inline bool Bucket<T>::is_unique(const IndexedColumn<Value>& col, const T& obj) const
+{ return col.index.find(col.resolver(obj)) == col.index.end(); }
+
+template <typename T>
+template <typename Value>
+inline bool Bucket<T>::is_null(const IndexedColumn<Value>& col, const T& obj) const
+{ return col.resolver(obj) == 0; }
+
+template <typename T>
+inline bool Bucket<T>::is_null(const IndexedColumn<std::string>& col, const T& obj) const
+{ return col.resolver(obj).empty(); }
+
+
+template <typename T>
+inline void Bucket<T>::update_indexes(const T& obj) {
+  update_indexes(string_indexes_, obj);
+}
+
+template <typename T>
+template <typename Value>
+inline void Bucket<T>::update_indexes(Indexes<Value>& indexes, const T& obj) {
+  for(auto& idx : indexes) {
+    auto& idx_col = idx.second;
+    idx_col.index[idx_col.resolver(obj)] = obj.key;
+  }
 }
 
 } // < namespace bucket

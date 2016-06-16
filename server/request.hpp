@@ -59,6 +59,16 @@ public:
 
   size_t content_length() const;
 
+  inline size_t payload_length() const
+  { return get_body().size(); }
+
+  // TODO: This should be EQUAL (==) to avoid receiving more data then announced
+  inline bool is_complete() const
+  { return payload_length() >= content_length(); }
+
+  inline std::string route_string() const
+  { return "@" + http::method::str(method()) + ":" + uri().path(); }
+
 private:
   /**
    * @brief A map with pointers to attributes.
