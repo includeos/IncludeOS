@@ -18,7 +18,7 @@
 #include <os>
 #include <net/inet4>
 #include <sstream>
-//#include <http>
+#include <hw/cmos.hpp>
 #include "server/server.hpp"
 
 std::unique_ptr<server::Server> server_;
@@ -31,6 +31,8 @@ using namespace std;
 // instantiate disk with filesystem
 //#include <filesystem>
 fs::Disk_ptr disk;
+
+cmos::Time STARTED_AT;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   auto& filesys = disk->fs();
@@ -230,6 +232,8 @@ void Service::start() {
       server_ = std::make_unique<server::Server>();
       server_->set_routes(routes).listen(80);
 
+      STARTED_AT = cmos::now();
+
       /*
       // add a middleware as lambda
       acorn->use([](auto req, auto res, auto next){
@@ -253,8 +257,9 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
-      hw::PIT::instance().onRepeatedTimeout(15s, []{
-        printf("%s\n", server_->ip_stack().tcp().status().c_str());
+      hw::PIT::instance().onRepeatedTimeout(1min, []{
+        printf("@onTimeout [%s]\n%s\n",
+          cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
     }); // < disk*/
