@@ -117,10 +117,14 @@ class qemu(hypervisor):
         net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
         i+=1
 
+    mem_arg = []
+    if self._config.has_key("mem"):
+      mem_arg = ["-m",str(self._config["mem"])]
+
     command = ["sudo", "qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
 
-    command += ["-nographic" ] + disk_args + net_args
+    command += ["-nographic" ] + disk_args + net_args + mem_arg
 
     print self._out_sign, "command:", command
 
@@ -268,6 +272,7 @@ if validate_test.valid_vms:
   print
   print "<VMRunner>", "Loaded VM specification(s) from JSON"
   for spec in validate_test.valid_vms:
+    print "<VMRunner> Found VM spec: ", spec
     vms.append(vm(spec))
 
 else:
