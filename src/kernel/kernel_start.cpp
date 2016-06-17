@@ -15,46 +15,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
 #include <kernel/os.hpp>
-#include <assert.h>
+#include <cassert>
+//#define ENABLE_STACK_SMASHER
+#include <cstdio>
 
 extern "C"
 {
-  extern uintptr_t __stack_chk_guard;
   void _init_c_runtime();
   
   // enables Streaming SIMD Extensions
   static void enableSSE(void)
   {
-    __asm__ ("mov %cr0, %eax");
-    __asm__ ("and $0xFFFB,%ax");
-    __asm__ ("or  $0x2,   %ax");
-    __asm__ ("mov %eax, %cr0");
+    asm ("mov %cr0, %eax");
+    asm ("and $0xFFFB,%ax");
+    asm ("or  $0x2,   %ax");
+    asm ("mov %eax, %cr0");
     
-    __asm__ ("mov %cr4, %eax");
-    __asm__ ("or  $0x600,%ax");
-    __asm__ ("mov %eax, %cr4");
+    asm ("mov %cr4, %eax");
+    asm ("or  $0x600,%ax");
+    asm ("mov %eax, %cr4");
   }
   
-  static char __attribute__((noinline))
-  stack_smasher(const char* src) {
-    char bullshit[16];
-    
-    for (int i = -100; i < 100; i++)
-      strcpy(bullshit+i, src);
-    
-    return bullshit[15];
+#ifdef ENABLE_STACK_SMASHER
+  static void __attribute__((noinline))
+  stack_smasher(const char* src)
+  {
+    char test[8];
+    sprintf(test, "%s", src);
   }
+#endif
   
   void _start(void) {
     // enable SSE extensions bitmask in CR4 register
     enableSSE();
     
-    //stack_smasher("1234567890 12345 hello world! test -.-");
-    
     // Initialize stack-unwinder, call global constructors etc.
     _init_c_runtime();
+    
+    #ifdef ENABLE_STACK_SMASHER
+    // can't detect stack smashing until c runtime is on
+    stack_smasher("1234123412341234");
+    #endif
     
     // Initialize some OS functionality
     OS::start();

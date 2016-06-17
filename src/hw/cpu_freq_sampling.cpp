@@ -17,11 +17,16 @@
 
 //#define DEBUG
 #include <hw/cpu_freq_sampling.hpp>
+#include <hw/apic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <common>
 #include <vector>
 #include <algorithm>
 #include <os>
+
+double _CPUFreq_ = 0;
+extern "C"
+const uint16_t _cpu_sampling_freq_divider_ = KHz(hw::PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
 
 namespace hw {
 
@@ -31,10 +36,6 @@ namespace hw {
 
   // This is how you provide storage for a static constexpr variable.
   constexpr MHz PIT::frequency_;
-
-  extern "C" double _CPUFreq_ = 0;
-  extern "C" constexpr uint16_t _cpu_sampling_freq_divider_  = KHz(PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
-
   static constexpr int do_samples_ = 20;
 
   std::vector<uint64_t> _cpu_timestamps;
@@ -99,9 +100,8 @@ namespace hw {
   
     if (_cpu_timestamps.size() < do_samples_)
       _cpu_timestamps.push_back(t2);
+    hw::APIC::eoi();
   
-    IRQ_manager::eoi(0);
-    return;
-  }  
+  }
 
 } //< namespace hw

@@ -84,7 +84,7 @@ namespace net
   {
     INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
-    // 2 second timeout for DHCP-server negotation
+    // @timeout for DHCP-server negotation
     dhcp_->negotiate(timeout);
   }
 

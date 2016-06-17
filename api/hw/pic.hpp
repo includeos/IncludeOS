@@ -83,6 +83,11 @@ namespace hw {
     inline static uint16_t get_isr() noexcept
     { return get_irq_reg(ocw3_read_isr); }
 
+    inline static void set_intr_mask(uint16_t mask) noexcept {
+      hw::outb(master_mask, mask & 0xFF);
+      hw::outb(slave_mask,  mask >> 8);
+    }
+
   private:
     // ICW1 bits
     static constexpr uint8_t icw1 {0x10};                // Bit 5 compulsory
@@ -135,11 +140,6 @@ namespace hw {
     static constexpr uint8_t ocw3_reset_special_mask {0x40};
 
     static uint16_t irq_mask_;
-
-    inline static void set_intr_mask(uint32_t mask) noexcept {
-      hw::outb(master_mask, static_cast<uint8_t>(mask));
-      hw::outb(slave_mask,  static_cast<uint8_t>(mask >> 8));
-    }
 
     /* Helper func */
     inline static uint16_t get_irq_reg(const int ocw3) noexcept {

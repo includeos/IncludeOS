@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <os>
 
-#include <hw/ioport.hpp>
+#include <hw/acpi.hpp>
+#include <hw/apic.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
@@ -36,6 +37,11 @@ OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
+
+// Heap
+extern caddr_t heap_end;
+extern char    _end;
+
 
 void OS::start() {
 
@@ -50,17 +56,23 @@ void OS::start() {
   debug("\t[*] OS class started\n");
   srand(time(NULL));
 
-  // Heap
-  extern caddr_t heap_end;
-  extern char    _end;
-
   MYINFO("Heap start: @ %p", heap_end);
   MYINFO("Current end is: @ %p", &_end);
 
   atexit(default_exit);
 
+  // read ACPI tables
+  hw::ACPI::init();
+
+  // setup APIC, APIC timer, SMP etc.
+  hw::APIC::init();
+
   // Set up interrupt handlers
   IRQ_manager::init();
+
+  INFO("BSP", "Enabling interrupts");
+  hw::APIC::setup_subs();
+  IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer
   hw::PIT::init();
@@ -68,28 +80,28 @@ void OS::start() {
   // Initialize PCI devices
   PCI_manager::init();
 
-  /** Estimate CPU frequency
+  // Estimate CPU frequency
+  MYINFO("Estimating CPU-frequency");
+  INFO2("|");
+  INFO2("+--(10 samples, %f sec. interval)",
+  (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO2("|");
 
-      MYINFO("Estimating CPU-frequency");
-      INFO2("|");
-      INFO2("+--(10 samples, %f sec. interval)",
-      (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
-      INFO2("|");
+  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
+  cpu_mhz_ = hw::PIT::CPU_frequency();
 
-      // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-      cpu_mhz_ = hw::PIT::CPUFrequency();
-
-      INFO2("+--> %f MHz", cpu_mhz_.count());
-
-  **/
-
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
+  INFO2("+--> %f MHz", cpu_mhz_.count());
 
   // Everything is ready
+  MYINFO("Starting %s", Service::name().c_str());
+  FILLINE('=');
   Service::start();
 
   event_loop();
+}
+
+uint32_t OS::memory_usage() {
+    return (uint32_t)heap_end - (uint32_t)&_end;
 }
 
 void OS::halt() {
@@ -107,7 +119,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::notify();
+    IRQ_manager::cpu(0).notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 

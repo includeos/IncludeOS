@@ -72,4 +72,4 @@ vm = vmrunner.vms[0]
 vm.on_output("IncludeOS TCP test", TCP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(40)
+vm.boot(80)

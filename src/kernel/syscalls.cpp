@@ -25,13 +25,12 @@
 #include <os>
 #include <kernel/syscalls.hpp>
 
-char *__env[1] {nullptr};
-char **environ {__env};
+char*   __env[1] {nullptr};
+char**  environ {__env};
+caddr_t heap_end;
 
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};
-
-caddr_t heap_end;
 
 
 void _exit(int status) {
@@ -159,6 +158,7 @@ int kill(pid_t pid, int sig) {
 void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
   printf("\tHeap end: %p\n", heap_end);
+  print_backtrace();
   while(1) __asm__("cli; hlt;");
 }
 
@@ -166,7 +166,6 @@ void panic(const char* why) {
 void default_exit() {
   panic("Exit was called");
 }
-
 
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {

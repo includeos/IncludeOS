@@ -20,6 +20,7 @@
 #include <chrono>
 #include <map>
 #include <hertz>
+#include <vector>
 
 namespace hw {
 
@@ -41,6 +42,7 @@ namespace hw {
     class Timer {
     public:
       enum Type { ONE_SHOT, REPEAT, REPEAT_WHILE} type_;
+      using Id = uint32_t;
 
       Timer() = delete;
       Timer(Type, timeout_handler, std::chrono::milliseconds, repeat_condition = forever);
@@ -50,15 +52,21 @@ namespace hw {
       Timer& operator=(Timer&&) = default;
       virtual ~Timer() = default;
 
-      inline Type type(){ return type_; }
-      inline std::chrono::milliseconds interval(){ return interval_; }
-      inline uint64_t start() { return timestamp_start_; }
-      inline uint64_t end() { return timestamp_end_; }
-      inline void setStart(uint64_t s) { timestamp_start_ = s; }
-      inline void setEnd(uint64_t e) { timestamp_end_ = e; }
-      inline timeout_handler handler(){ return handler_; }
-      inline const repeat_condition cond() { return cond_; }
-      inline uint32_t id(){ return id_; }
+      // Getters
+      inline Type type() const { return type_; }
+      inline std::chrono::milliseconds interval() const { return interval_; }
+      inline uint64_t start() const { return timestamp_start_; }
+      inline uint64_t end() const { return timestamp_end_; }
+      inline timeout_handler handler() const { return handler_; }
+      inline const repeat_condition cond() const { return cond_; }
+      inline uint32_t id() const { return id_; }
+      inline bool expired() const { return expired_; }
+
+      // Setters
+      inline void set_start(uint64_t s) { timestamp_start_ = s; }
+      inline void set_end(uint64_t e)  { timestamp_end_ = e; }
+      inline void restart() { expired_ = false; }
+      inline void stop(){ expired_ = true; }
 
     private:
       static uint32_t timers_count_;
@@ -66,6 +74,7 @@ namespace hw {
       timeout_handler handler_;
       uint64_t timestamp_start_;
       uint64_t timestamp_end_;
+      bool expired_ = false;
       std::chrono::milliseconds interval_;
 
       /* This Could be a reference in the default case of "forever", but then the
@@ -81,28 +90,32 @@ namespace hw {
     /** Create a one-shot timer.
         @param ms: Expiration time. Compatible with all std::chrono durations.
         @param handler: A delegate or function to be called on timeout.   */
-    Timer_iterator onTimeout(std::chrono::milliseconds ms, timeout_handler handler);
+    Timer_iterator on_timeout_ms(std::chrono::milliseconds ms, timeout_handler handler);
 
-    static Timer_iterator on_timeout(double sec, timeout_handler handler) {
-      return instance().onTimeout(std::chrono::milliseconds((unsigned)(sec * 1000)), handler);
+    static Timer_iterator on_timeout_d(double sec, timeout_handler handler) {
+      return instance().on_timeout_ms(std::chrono::milliseconds((unsigned)(sec * 1000)), handler);
     }
 
     /** Create a repeating timer.
         @param ms: Expiration time. Compatible with all std::chrono durations.
         @param handler: A delegate or function to be called every ms interval.
         @param cond: The timer ends when cond() returns false. Default to true. */
-    Timer_iterator onRepeatedTimeout(std::chrono::milliseconds ms,
+    Timer::Id on_repeated_timeout(std::chrono::milliseconds ms,
                                      timeout_handler handler,
                                      repeat_condition cond = forever);
 
     /** Stop a timer.
-        @param it: A valid iterator to timer */
+        @param it: A valid iterator to a one-shot timer */
     void stop_timer(Timer_iterator it);
-    
+
+    /** Stop a timer.
+        @param it: A valid timer ID */
+    void stop_timer(Timer::Id t);
+
     static void stop(Timer_iterator it)
     { instance().stop_timer(it); }
-    
-    inline size_t active_timers() { return timers_.size(); }
+
+    inline size_t active_timers() { return timers_.size() - garbage_; }
 
     /** No copy or move. The OS owns one instance forever. */
     PIT(PIT&) = delete;
@@ -125,10 +138,10 @@ namespace hw {
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
         @Note This is an asynchronous function. Once finished the result can be
         fetched by CPUFrequency() (below)  */
-    static void estimateCPUFrequency();
+    static void estimate_CPU_frequency();
 
     /** Get the last estimated CPU frequency.  May trigger frequency sampling */
-    static MHz CPUFrequency();
+    static MHz CPU_frequency();
 
 
   private:
@@ -164,7 +177,7 @@ namespace hw {
     static uint16_t current_freq_divider_;
     static Mode current_mode_;
     static uint64_t IRQ_counter_;
-
+    int garbage_ = 0;
 
     // The closest we can get to a millisecond interval, with the PIT-frequency
     static constexpr uint16_t  millisec_interval = KHz(frequency_).count();
