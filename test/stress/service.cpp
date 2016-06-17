@@ -70,6 +70,9 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
 
 extern char _end;
 
+uint64_t TCP_BYTES_RECV = 0;
+uint64_t TCP_BYTES_SENT = 0;
+
 void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
@@ -91,6 +94,7 @@ void Service::start() {
 
   // Set up a TCP server
   auto& server = inet->tcp().bind(80);
+  inet->tcp().set_MSL(5s);
   auto& server_mem = inet->tcp().bind(4243);
 
   // Set up a UDP server
@@ -105,16 +109,19 @@ void Service::start() {
   hw::PIT::instance().on_repeated_timeout(10s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
       printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
+      printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
     });
 
   server_mem.onConnect([] (auto conn) {
       conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+          TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
           auto reply = std::to_string(OS::memory_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
           conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
+              TCP_BYTES_SENT += n;
               conn->close();
             });
         });
@@ -123,13 +130,11 @@ void Service::start() {
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([] (auto conn) -> bool {
-      return true; // allow all connections
-
-    }).onConnect([] (auto conn) {
+  server.onConnect([] (auto conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
         conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+            TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };
 
@@ -139,11 +144,11 @@ void Service::start() {
               auto hdr = header(htm.size());
 
               // create response
-              conn->write(hdr.data(), hdr.size(), [](size_t n) {});
-              conn->write(htm.data(), htm.size(), [](size_t n) {});
+              conn->write(hdr.data(), hdr.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(htm.data(), htm.size(), [](size_t n) { TCP_BYTES_SENT += n; });
             }
             else {
-              conn->write(NOT_FOUND.data(), NOT_FOUND.size());
+              conn->write(NOT_FOUND.data(), NOT_FOUND.size(), [](size_t n) { TCP_BYTES_SENT += n; });
             }
           });
 
