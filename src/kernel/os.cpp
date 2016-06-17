@@ -38,6 +38,11 @@ hw::Serial& OS::com1 = hw::Serial::port<1>();
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
+// Heap
+extern caddr_t heap_end;
+extern char    _end;
+
+
 void OS::start() {
 
   // Initialize serial port
@@ -50,10 +55,6 @@ void OS::start() {
 
   debug("\t[*] OS class started\n");
   srand(time(NULL));
-
-  // Heap
-  extern caddr_t heap_end;
-  extern char    _end;
 
   MYINFO("Heap start: @ %p", heap_end);
   MYINFO("Current end is: @ %p", &_end);
@@ -97,6 +98,10 @@ void OS::start() {
   Service::start();
 
   event_loop();
+}
+
+uint32_t OS::memory_usage() {
+    return (uint32_t)heap_end - (uint32_t)&_end;
 }
 
 void OS::halt() {
