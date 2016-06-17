@@ -256,11 +256,11 @@ string TCP::to_string() const {
   // Write all connections in a cute list.
   stringstream ss;
   ss << "LISTENING SOCKETS:\n";
-  for(auto listen_it : listeners_) {
+  for(auto& listen_it : listeners_) {
     ss << listen_it.second.to_string() << "\n";
   }
   ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
-  for(auto con_it : connections_) {
+  for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
     ss << "tcp4\t"
        << " " << "\t" << " " << "\t"

@@ -610,6 +610,10 @@ namespace net {
         ReadRequest(size_t n = 0) :
           buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
           callback([](auto, auto){}) {}
+
+        void clean_up() {
+          callback.reset();
+        }
       };
 
       /*
@@ -978,6 +982,8 @@ namespace net {
         Creates a connection with a remote.
       */
       Connection(TCP& host, Port local_port, Socket remote);
+
+      Connection(const Connection&) = default;
 
       /*
         The hosting TCP instance.
@@ -1778,6 +1784,13 @@ namespace net {
       */
       void signal_close();
 
+      /**
+       * @brief Clean up user callbacks
+       * @details Removes all the user defined lambdas to avoid any potential
+       * copies of a Connection_ptr to the this connection.
+       */
+      void clean_up();
+
 
       /// OPTIONS ///
       /*
@@ -1892,8 +1905,8 @@ namespace net {
     inline std::string status() const
     { return to_string(); }
 
-
-
+    inline size_t writeq_size() const
+    { return writeq.size(); }
 
   private:
 
