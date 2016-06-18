@@ -209,7 +209,11 @@ class vm:
       # Look for event-triggers
       for pattern, func in self._on_output.iteritems():
         if re.search(pattern, line):
-          res = func()
+          try:
+            res = func()
+          except Exception as err:
+            print "Error in user callback: ",err
+            res = False
           #NOTE: It can be 'None' without problem
           if res == False:
             self._exit_status = exit_codes["OUTSIDE_FAIL"]
