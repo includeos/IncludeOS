@@ -26,7 +26,21 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 using namespace std::chrono;
 
-std::string HTML_RESPONSE() {
+
+std::string header(int content_size) {
+  std::string head="HTTP/1.1 200 OK \n "                \
+    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"            \
+    "Server: IncludeOS prototype 4.0 \n"                \
+    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"     \
+    "Content-Type: text/html; charset=UTF-8 \n"            \
+    "Content-Length: "+std::to_string(content_size)+"\n"   \
+    "Accept-Ranges: bytes\n"                               \
+    "Connection: close\n\n";
+
+  return head;
+}
+
+std::string html() {
   int color = rand();
   std::stringstream stream;
 
@@ -49,18 +63,15 @@ std::string HTML_RESPONSE() {
 
   std::string html = stream.str();
 
-  std::string header="HTTP/1.1 200 OK \n "        \
-    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-    "Server: IncludeOS prototype 4.0 \n"                \
-    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-    "Content-Type: text/html; charset=UTF-8 \n"     \
-    "Content-Length: "+std::to_string(html.size())+"\n"   \
-    "Accept-Ranges: bytes\n"          \
-    "Connection: close\n\n";
-  return header + html;
+  return html;
 }
 
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
+
+extern char _end;
+
+uint64_t TCP_BYTES_RECV = 0;
+uint64_t TCP_BYTES_SENT = 0;
 
 void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
@@ -81,48 +92,96 @@ void Service::start() {
 
   srand(OS::cycles_since_boot());
 
-  // Set up a TCP server on port 80
+  // Set up a TCP server
   auto& server = inet->tcp().bind(80);
+  inet->tcp().set_MSL(5s);
+  auto& server_mem = inet->tcp().bind(4243);
 
-  hw::PIT::instance().on_repeated_timeout(30s, []{
+  // Set up a UDP server
+  net::UDP::port_t port = 4242;
+  auto& conn = inet->udp().bind(port);
+
+  net::UDP::port_t port_mem = 4243;
+  auto& conn_mem = inet->udp().bind(port_mem);
+
+
+
+  hw::PIT::instance().on_repeated_timeout(10s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+      printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
+      printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
     });
 
-  // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([] (auto conn) -> bool {
-      printf("<Service> @onAccept - Connection attempt from: %s \n",
-             conn->to_string().c_str());
-      return true; // allow all connections
+  server_mem.onConnect([] (auto conn) {
+      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+          TCP_BYTES_RECV += n;
+          // create string from buffer
+          std::string received { (char*)buf.get(), n };
+          auto reply = std::to_string(OS::memory_usage())+"\n";
+          // Send the first packet, and then wait for ARP
+          printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
+          conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
+              TCP_BYTES_SENT += n;
+              conn->close();
+            });
+        });
+    });
 
-    }).onConnect([] (auto conn) {
-        printf("<Service> @onConnect - Connection successfully established.\n");
+
+
+  // Add a TCP connection handler - here a hardcoded HTTP-service
+  server.onConnect([] (auto conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
         conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+            TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };
-            printf("<Service> @read:\n%s\n", data.c_str());
 
             if (data.find("GET / ") != std::string::npos) {
 
+              auto htm = html();
+              auto hdr = header(htm.size());
+
               // create response
-              std::string response = HTML_RESPONSE();
-              // write the data from the string with the strings size
-              conn->write(response.data(), response.size(), [](size_t n) {
-                  printf("<Service> @write: %u bytes written\n", n);
-                });
+              conn->write(hdr.data(), hdr.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(htm.data(), htm.size(), [](size_t n) { TCP_BYTES_SENT += n; });
             }
             else {
-              conn->write(NOT_FOUND.data(), NOT_FOUND.size());
+              conn->write(NOT_FOUND.data(), NOT_FOUND.size(), [](size_t n) { TCP_BYTES_SENT += n; });
             }
           });
 
       }).onDisconnect([](auto conn, auto reason) {
-          printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
           conn->close();
-        }).onPacketReceived([](auto, auto packet) {
-            printf("@Packet: %s\n", packet->to_string().c_str());
-          });
+        }).onPacketReceived([](auto, auto packet) {});
+
+
+  // UDP connection handler
+  conn.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
+      std::string received = std::string(data,len);
+      std::string reply = received;
+
+      // Send the first packet, and then wait for ARP
+      conn.sendto(addr, port, reply.c_str(), reply.size());
+    });
+
+  // UDP utility to return memory usage
+  conn_mem.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
+      std::string received = std::string(data,len);
+      Expects(received == "memsize");
+      auto reply = std::to_string(OS::memory_usage());
+      // Send the first packet, and then wait for ARP
+      printf("Reporting memory size as %s bytes\n", reply.c_str());
+      conn.sendto(addr, port, reply.c_str(), reply.size());
+    });
+
+
 
   printf("*** TEST SERVICE STARTED *** \n");
+  printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
+  printf("Ready to start\n");
+  printf("Ready for UDP\n");
+  printf("Ready for ICMP\n");
+  printf("Ready for TCP\n");
 }
