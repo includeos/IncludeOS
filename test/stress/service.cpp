@@ -104,7 +104,8 @@ void Service::start() {
 
   hw::PIT::instance().on_repeated_timeout(10s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-      printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
+      auto memuse =  OS::memory_usage();
+      printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
     });
 
   server_mem.onConnect([] (auto conn) {
@@ -174,7 +175,8 @@ void Service::start() {
 
 
   printf("*** TEST SERVICE STARTED *** \n");
-  printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
+  auto memuse = OS::memory_usage();
+  printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
   printf("Ready to start\n");
   printf("Ready for UDP\n");
   printf("Ready for ICMP\n");
