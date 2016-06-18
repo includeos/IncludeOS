@@ -20,7 +20,7 @@ if args.disk:
   # if a folder is specified, lets assume the disk is
   # to be created from the contents of a folder:
   if args.folder:
-    image = args.disk + ".fs"
+    image = args.disk
 
     if _platform == "darwin":
       osx_dmg = args.disk + ".dmg"
