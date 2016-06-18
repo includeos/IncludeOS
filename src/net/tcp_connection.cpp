@@ -330,7 +330,7 @@ bool Connection::is_listening() const {
 Connection::~Connection() {
   // Do all necessary clean up.
   // Free up buffers etc.
-  debug2("<TCP::Connection::~Connection> Bye bye... \n");
+  debug("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
 }
 
 
@@ -770,7 +770,19 @@ void Connection::start_time_wait_timeout() {
 
 void Connection::signal_close() {
   debug("<TCP::Connection::signal_close> It's time to delete this connection. \n");
+
+  clean_up();
   host_.close_connection(*this);
+}
+
+void Connection::clean_up() {
+  on_accept_.reset();
+  on_connect_.reset();
+  on_disconnect_.reset(),
+  on_error_.reset();
+  on_packet_received_.reset();
+  on_packet_dropped_.reset();
+  read_request.clean_up();
 }
 
 std::string Connection::TCB::to_string() const {
