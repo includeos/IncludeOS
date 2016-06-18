@@ -102,7 +102,7 @@ void Service::start() {
 
 
 
-  hw::PIT::instance().on_repeated_timeout(10s, []{
+  hw::PIT::instance().onRepeatedTimeout(10s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
       printf("Current memory usage: %u MB \n", OS::memory_usage() / 1000000);
     });
