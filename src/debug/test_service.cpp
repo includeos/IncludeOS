@@ -130,6 +130,7 @@ void process_eh_frame(char* loc)
 
 
 #include <kernel/elf.hpp>
+#include <debug_new>
 
 void Service::start()
 {
@@ -153,8 +154,18 @@ void Service::start()
   
   print_backtrace();
   
-  void begin_work();
-  begin_work();
+  //void begin_work();
+  //begin_work();
+  
+  auto* testint = NEW(int);
+  auto* testarr = NEW_ARRAY(int, 24);
+  
+  debug_new_print_entries();
+  
+  DELETE(testint);
+  DELETE_ARRAY(testarr);
+  
+  debug_new_print_entries();
   return;
   
   // boilerplate

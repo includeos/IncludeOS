@@ -149,6 +149,11 @@ func_offset Elf::resolve_symbol(void (*addr)())
   return get_parser().getsym((uintptr_t) addr);
 }
 
+func_offset Elf::get_current_function()
+{
+  return resolve_symbol(__builtin_return_address(0));
+}
+
 void print_backtrace()
 {
   #define frp(N, ra)                                 \
