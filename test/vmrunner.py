@@ -268,6 +268,8 @@ default_spec = {"image" : "test.img"}
 # Provide a list of VM's with validated specs
 vms = []
 
+print "valid tests: {0}".format(validate_test.valid_vms)
+
 if validate_test.valid_vms:
   print
   print "<VMRunner>", "Loaded VM specification(s) from JSON"
