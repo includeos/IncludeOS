@@ -125,7 +125,10 @@ void Service::start() {
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
           conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
               TCP_BYTES_SENT += n;
-              conn->close();
+            });
+
+          conn->onDisconnect([](auto c, auto){
+              c->close();
             });
         });
     });
@@ -184,8 +187,12 @@ void Service::start() {
   printf("*** TEST SERVICE STARTED *** \n");
   auto memuse = OS::memory_usage();
   printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+
+  /** These printouts are event-triggers for the vmrunner **/
   printf("Ready to start\n");
+  printf("Ready for ARP\n");
   printf("Ready for UDP\n");
   printf("Ready for ICMP\n");
   printf("Ready for TCP\n");
+  printf("Ready to end\n");
 }
