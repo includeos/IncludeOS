@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# Install the IncludeOS libraries (i.e. IncludeOS_home) from binary bundle
+# Install the IncludeOS libraries (i.e. IncludeOS_install) from binary bundle
 # ...as opposed to building them all from scratch, which takes a long time
 #
 #
@@ -9,7 +9,7 @@
 # Location of the IncludeOS repo:
 # $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
 #
-# Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
+# Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_install)
 # $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
@@ -68,7 +68,7 @@ BINUTILS_AR=$BINUTILS_DIR/bin/$LINKER_PREFIX"ar"
 BINUTILS_OBJCOPY=$BINUTILS_DIR/bin/$LINKER_PREFIX"objcopy"
 
 # Make directory inside IncludeOS_install to store ld, ar and objcopy
-INCLUDEOS_BIN=$INCLUDEOS_HOME/bin
+INCLUDEOS_BIN=$INCLUDEOS_INSTALL/bin
 mkdir -p $INCLUDEOS_BIN
 
 # For copying ld, ar and objcopy
