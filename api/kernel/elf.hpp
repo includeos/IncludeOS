@@ -36,6 +36,10 @@ struct Elf
   static func_offset
     resolve_symbol(void (*addr)());
   
+  // get and resolve the current function
+  static func_offset
+    get_current_function();
+  
   //returns the address of a symbol, or 0
   uintptr_t resolve_name(const std::string& name);
 };

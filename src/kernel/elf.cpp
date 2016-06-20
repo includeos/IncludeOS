@@ -19,7 +19,7 @@
 #include <cassert>
 #include <cstdio>
 #include <string>
-#include <debug>
+#include <info>
 #include <vector>
 #include "../../vmbuild/elf.h"
 
@@ -45,7 +45,7 @@ class ElfTables
 {
 public:
   ElfTables(uintptr_t elf_base)
-    : strtab(0), ELF_BASE(elf_base)
+    : strtab(nullptr), ELF_BASE(elf_base)
   {
     auto& elf_hdr = *(Elf32_Ehdr*) ELF_BASE;
     
@@ -71,7 +71,9 @@ public:
         break;
       }
     }
-    assert(!symtab.empty() && strtab);
+    if (symtab.empty() || strtab == nullptr) {
+      INFO("ELF", "symtab or strtab is empty, indicating image may be stripped\n");
+    }
   }
   
   func_offset getsym(Elf32_Addr addr)
@@ -147,6 +149,11 @@ func_offset Elf::resolve_symbol(void* addr)
 func_offset Elf::resolve_symbol(void (*addr)())
 {
   return get_parser().getsym((uintptr_t) addr);
+}
+
+func_offset Elf::get_current_function()
+{
+  return resolve_symbol(__builtin_return_address(0));
 }
 
 void print_backtrace()
