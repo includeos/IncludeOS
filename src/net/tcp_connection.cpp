@@ -43,6 +43,7 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
   time_wait_started(0)
 {
   setup_congestion_control();
+  setup_default_callbacks();
 }
 
 /*
@@ -52,6 +53,10 @@ Connection::Connection(TCP& host, Port local_port)
   : Connection(host, local_port, TCP::Socket())
 {
 
+}
+
+void Connection::setup_default_callbacks() {
+  on_disconnect_ = DisconnectCallback::from<Connection,&Connection::default_on_disconnect>(this);
 }
 
 void Connection::read(ReadBuffer buffer, ReadCallback callback) {
@@ -861,4 +866,10 @@ void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
   default:
     break;
   }
+}
+
+
+void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
+  if(!conn->is_closing())
+    conn->close();
 }
