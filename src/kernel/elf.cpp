@@ -19,7 +19,7 @@
 #include <cassert>
 #include <cstdio>
 #include <string>
-#include <debug>
+#include <info>
 #include <vector>
 #include "../../vmbuild/elf.h"
 
@@ -72,8 +72,7 @@ public:
       }
     }
     if (symtab.empty() || strtab == nullptr) {
-      printf("ERROR: \tsymtab or strtab is empty, which SHOULD NEVER HAPPEN\n");
-      printf("\tThe OS image is either severely broken, or memory got overwritten\n");
+      INFO("ELF", "symtab or strtab is empty, indicating image may be stripped\n");
     }
   }
   
