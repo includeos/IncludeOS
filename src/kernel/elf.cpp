@@ -45,7 +45,7 @@ class ElfTables
 {
 public:
   ElfTables(uintptr_t elf_base)
-    : strtab(0), ELF_BASE(elf_base)
+    : strtab(nullptr), ELF_BASE(elf_base)
   {
     auto& elf_hdr = *(Elf32_Ehdr*) ELF_BASE;
     
@@ -71,7 +71,10 @@ public:
         break;
       }
     }
-    assert(!symtab.empty() && strtab);
+    if (symtab.empty() || strtab == nullptr) {
+      printf("ERROR: \tsymtab or strtab is empty, which SHOULD NEVER HAPPEN\n");
+      printf("\tThe OS image is either severely broken, or memory got overwritten\n");
+    }
   }
   
   func_offset getsym(Elf32_Addr addr)
