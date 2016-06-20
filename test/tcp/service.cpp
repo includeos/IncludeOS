@@ -111,26 +111,9 @@ void OUTGOING_TEST(TCP::Socket outgoing) {
         CHECK(true, "Connection closed by server");
         CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
         conn->close();
-        OUTGOING_TEST_INTERNET(TEST_ADDR_TIME);
-      });
+      })
+    .on_close([]{ OUTGOING_TEST_INTERNET(TEST_ADDR_TIME); });
 }
-
-/*void outgoing_packet(net::Packet_ptr p) {
-
-  auto* eth = reinterpret_cast<net::Ethernet::header*>(p->buffer());
-
-  if (eth->type == net::Ethernet::ETH_IP4) {
-
-    auto ip4 = net::view_packet_as<PacketIP4>(p);
-    auto& hdr = reinterpret_cast<net::IP4::full_header*>(p->buffer())->ip_hdr;
-
-    if (hdr.protocol == net::IP4::IP4_TCP) {
-      auto tcp = net::view_packet_as<TCP::Packet>(p);
-      printf("%s\n", tcp->to_string().c_str());
-    }
-  }
-
-}*/
 
 // Used to send big data
 struct Buffer {
@@ -241,7 +224,7 @@ void Service::start()
   tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
-      conn->read(huge.size(), [temp, conn](buffer_t buffer, size_t n) {
+      conn->read(16384, [temp, conn](buffer_t buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
           //printf("Read: %u\n", n);
@@ -252,9 +235,13 @@ void Service::start()
             conn->close();
           }
         });
-      conn->write(huge.data(), huge.size(), [](size_t n) {
-        CHECKSERT(n == huge.size(), "Wrote HUGE (%u bytes)", n);
-      }, true);
+      auto half = huge.size() / 2;
+      conn->write(huge.data(), half, [half, conn](size_t n) {
+        CHECKSERT(n == half, "Wrote one half HUGE (%u bytes)", n);
+      });
+      conn->write(huge.data()+half, half, [half](size_t n) {
+        CHECKSERT(n == half, "Wrote the other half of HUGE (%u bytes)", n);
+      });
     });
 
   /*
@@ -277,12 +264,14 @@ void Service::start()
       CHECKSERT(conn->is_state({"ESTABLISHED"}), "State: ESTABLISHED");
 
       INFO("TEST", "Active close");
+      CHECKSERT(!conn->is_closing(), "Is NOT closing");
       // Test for active close.
       conn->close();
       CHECKSERT(!conn->is_writable(), "Is NOT writable");
       CHECKSERT(conn->is_state({"FIN-WAIT-1"}), "State: FIN-WAIT-1");
     })
     .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
+        CHECKSERT(conn->is_closing(), "Is closing");
         CHECKSERT(conn->is_state({"FIN-WAIT-2"}), "State: FIN-WAIT-2");
         hw::PIT::instance().on_timeout_ms(1s,[conn]{
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
