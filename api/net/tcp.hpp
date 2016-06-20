@@ -709,11 +709,14 @@ namespace net {
           If the queue was empty/finished, point current to the new request.
         */
         void push_back(const WriteRequest& wr) {
-          q.push_back(wr);
           debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
             wr.first.offset, wr.first.remaining, wr.first.acknowledged);
-          if(current == q.size()-1)
+
+          if(empty() or !nxt().remaining) {
             current++;
+            debug2("<Connection::WriteQueue> Advanced current\n");
+          }
+          q.push_back(wr);
         }
 
         /*
@@ -1170,6 +1173,8 @@ namespace net {
         return *this;
       }
 
+      void setup_default_callbacks();
+
       /*
         Represent the Connection as a string (STATUS).
       */
@@ -1414,9 +1419,8 @@ namespace net {
       };
 
       /* When Connection is CLOSING. */
-      DisconnectCallback on_disconnect_ = DisconnectCallback::from<Connection,&Connection::default_on_disconnect>(this);
-      inline void default_on_disconnect(Connection_ptr, Disconnect)
-      { close(); }
+      DisconnectCallback on_disconnect_;
+      void default_on_disconnect(Connection_ptr, Disconnect);
 
       /* When error occcured. */
       ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
