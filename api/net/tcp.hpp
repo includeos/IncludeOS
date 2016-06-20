@@ -777,6 +777,17 @@ namespace net {
       */
       using PacketDroppedCallback               = delegate<void(TCP::Packet_ptr, std::string)>;
 
+      /**
+       * Emitted on RTO - When the retransmission timer times out, before retransmitting.
+       * Gives the current attempt and the current timeout in seconds.
+       */
+      using RtxTimeoutCallback                = delegate<void(size_t no_attempts, double rto)>;
+
+      /**
+       * Emitted right before the connection gets cleaned up (removed from the TCP)
+       */
+      using CloseCallback                     = delegate<void()>;
+
 
       /*
         Reason for disconnect event.
@@ -1149,6 +1160,16 @@ namespace net {
         return *this;
       }
 
+      inline Connection& on_rtx_timeout(RtxTimeoutCallback cb) {
+        on_rtx_timeout_ = cb;
+        return *this;
+      }
+
+      inline Connection& on_close(CloseCallback cb) {
+        on_close_ = cb;
+        return *this;
+      }
+
       /*
         Represent the Connection as a string (STATUS).
       */
@@ -1393,9 +1414,9 @@ namespace net {
       };
 
       /* When Connection is CLOSING. */
-      DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, Disconnect) {
-        //debug2("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
-      };
+      DisconnectCallback on_disconnect_ = DisconnectCallback::from<Connection,&Connection::default_on_disconnect>(this);
+      inline void default_on_disconnect(Connection_ptr, Disconnect)
+      { close(); }
 
       /* When error occcured. */
       ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
@@ -1413,6 +1434,10 @@ namespace net {
         //debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
         //      packet->to_string().c_str(), reason.c_str());
       };
+
+      RtxTimeoutCallback on_rtx_timeout_ = [](size_t, double) {};
+
+      CloseCallback on_close_ = [] {};
 
 
       /// READING ///
@@ -1524,6 +1549,8 @@ namespace net {
       inline void signal_packet_received(TCP::Packet_ptr packet) { on_packet_received_(shared_from_this(), packet); }
 
       inline void signal_packet_dropped(TCP::Packet_ptr packet, std::string reason) { on_packet_dropped_(packet, reason); }
+
+      inline void signal_rtx_timeout() { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
 
       /*
         Drop a packet. Used for debug/callback.
@@ -1748,7 +1775,7 @@ namespace net {
       /*
         Number of retransmission attempts on the packet first in RT-queue
       */
-      size_t rto_attempt = 0;
+      size_t rtx_attempt_ = 0;
       // number of retransmitted SYN packets.
       size_t syn_rtx_ = 0;
 
@@ -1756,7 +1783,7 @@ namespace net {
         Retransmission timeout limit reached
       */
       inline bool rto_limit_reached() const
-      { return rto_attempt >= 15 or syn_rtx_ >= 5; };
+      { return rtx_attempt_ >= 15 or syn_rtx_ >= 5; };
 
       /*
         Remove all packets acknowledge by ACK in retransmission queue

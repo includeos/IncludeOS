@@ -574,7 +574,7 @@ void Connection::rtx_ack(const Seq ack) {
   */
   if(cb.SND.UNA == cb.SND.NXT) {
     rtx_stop();
-    rto_attempt = 0;
+    rtx_attempt_ = 0;
   }
   /*
     When an ACK is received that acknowledges new data, restart the
@@ -583,7 +583,7 @@ void Connection::rtx_ack(const Seq ack) {
   */
   else if(acked > 0) {
     rtx_reset();
-    rto_attempt = 0;
+    rtx_attempt_ = 0;
   }
 
   //printf("<TCP::Connection::rt_acknowledge> ACK'ed %u packets. rtx_q: %u\n",
@@ -686,6 +686,7 @@ void Connection::rtx_clear() {
        begins (i.e., after the three-way handshake completes).
 */
 void Connection::rtx_timeout() {
+  signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
     printf("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
@@ -718,7 +719,7 @@ void Connection::rtx_timeout() {
 
       ssthresh = max (FlightSize / 2, 2*SMSS)
   */
-  if(rto_attempt++ == 0)
+  if(rtx_attempt_++ == 0)
     reduce_ssthresh();
 
   /*
@@ -770,7 +771,7 @@ void Connection::start_time_wait_timeout() {
 
 void Connection::signal_close() {
   debug("<TCP::Connection::signal_close> It's time to delete this connection. \n");
-
+  on_close_();
   clean_up();
   host_.close_connection(*this);
 }
