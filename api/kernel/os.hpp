@@ -23,10 +23,9 @@
 #endif
 
 #include <string>
-
 #include <common>
-
 #include <hw/pit.hpp>
+
 namespace hw{ class Serial; }
 
 /**
@@ -100,6 +99,9 @@ public:
   static inline constexpr uint32_t base_from_page_nr(uint32_t x){
     return x << page_shift_;
   }
+
+  /** Currently used dynamic memory, in bytes */
+  static  uint32_t memory_usage();
 
 private:
   static const int page_shift_ = 12;
