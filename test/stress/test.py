@@ -207,12 +207,29 @@ def check_vitals():
   pages = diff / PAGE_SIZE
   if diff % PAGE_SIZE != 0:
     print color.WARNING("Memory increase was not a multple of page size.")
+    wait_for_tw()
     return False
   print color.INFO("Memory use at test end:"), mem, "bytes"
   print color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)"
   sock_mem.close()
   vm.stop()
+  wait_for_tw()
   return True
+
+# Wait for sockets to exit TIME_WAIT status
+def wait_for_tw():
+  print color.INFO("Waiting for sockets to clear TIME_WAIT stage")
+  socket_limit = 11500
+  time_wait_proc = 30000
+  while time_wait_proc > socket_limit:
+    output = subprocess.check_output(('netstat', '-anlt'))
+    output = output.split('\n')
+    time_wait_proc = 0
+    for line in output:
+        if "TIME_WAIT" in line:
+            time_wait_proc += 1
+    print color.INFO("There are {0} sockets in use, waiting for value to drop below {1}".format(time_wait_proc, socket_limit))
+    time.sleep(7)
 
 # Add custom event-handlers
 vm.on_output("Ready to start", crash_test)
