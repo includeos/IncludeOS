@@ -637,7 +637,7 @@ namespace net {
         /* Current element (index + 1) */
         uint32_t current;
 
-        WriteQueue() : q(), current(0) {}
+        WriteQueue() : q(), current(1) {}
 
         /*
           Acknowledge n bytes from the write queue.
@@ -654,6 +654,7 @@ namespace net {
             if(buf.done()) {
               q.pop_front();
               current--;
+              debug("<Connection::WriteQueue> Acknowledge done, current-- [%u]\n", current);
             }
           }
         }
@@ -675,7 +676,7 @@ namespace net {
           Can be in the middle/back of the queue due to unacknowledged buffers in front.
         */
         const WriteBuffer& nxt()
-        { return q[current-1].first; }
+        { return q.at(current-1).first; }
 
         /*
           The oldest unacknowledged buffer. (Always in front)
@@ -689,18 +690,18 @@ namespace net {
         */
         void advance(size_t bytes) {
 
-          auto& buf = q[current-1].first;
+          auto& buf = q.at(current-1).first;
           buf.advance(bytes);
 
-          debug2("<Connection::WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+          debug("<Connection::WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
             bytes, buf.offset, buf.remaining, buf.acknowledged);
 
           if(!buf.remaining) {
-            debug("<Connection::WriteQueue> Advance: Done (%u)\n",
-              buf.offset);
             // make sure to advance current before callback is made,
             // but after index (current) is received.
-            q[current++-1].second(buf.offset);
+            q.at(current++-1).second(buf.offset);
+            debug("<Connection::WriteQueue> Advance: Done (%u) current++ [%u]\n",
+              buf.offset, current);
           }
         }
 
@@ -709,13 +710,8 @@ namespace net {
           If the queue was empty/finished, point current to the new request.
         */
         void push_back(const WriteRequest& wr) {
-          debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
-            wr.first.offset, wr.first.remaining, wr.first.acknowledged);
-
-          if(empty() or !nxt().remaining) {
-            current++;
-            debug2("<Connection::WriteQueue> Advanced current\n");
-          }
+          debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
+            wr.first.offset, wr.first.remaining, wr.first.acknowledged, current, size());
           q.push_back(wr);
         }
 
