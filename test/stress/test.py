@@ -67,7 +67,7 @@ def memory_increase(lead_time, expected_memuse = memuse_at_start):
     percent = float(increase) / expected_memuse
 
   if increase > acceptable_increase:
-    print color.WARN(name_tag), "Memory increased by ", percent, "%."
+    print color.WARNING(name_tag), "Memory increased by ", percent, "%."
     print "(" , expected_memuse, "->", use, ",", increase,"b increase, but no increase expected.)"
   else:
     print color.OK(name_tag + "Memory constant, no leak detected")
@@ -89,7 +89,7 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
     for i in range(0, burst_size):
       sock.sendto(data, (HOST, PORT_FLOOD))
   except Exception as e:
-    print color.WARN("<Test.py> Python socket timed out while sending. ")
+    print color.WARNING("<Test.py> Python socket timed out while sending. ")
     return False
   sock.close()
   time.sleep(burst_interval)
@@ -163,7 +163,7 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
     mem_base = memi
 
     if memincrease > acceptable_increase:
-      print color.WARN(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n"
+      print color.WARNING(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n"
     else:
       print color.OK(name_tag), "Memory increase ",memincrease,"b \n"
 
@@ -207,12 +207,29 @@ def check_vitals():
   pages = diff / PAGE_SIZE
   if diff % PAGE_SIZE != 0:
     print color.WARNING("Memory increase was not a multple of page size.")
+    wait_for_tw()
     return False
   print color.INFO("Memory use at test end:"), mem, "bytes"
   print color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)"
   sock_mem.close()
   vm.stop()
+  wait_for_tw()
   return True
+
+# Wait for sockets to exit TIME_WAIT status
+def wait_for_tw():
+  print color.INFO("Waiting for sockets to clear TIME_WAIT stage")
+  socket_limit = 11500
+  time_wait_proc = 30000
+  while time_wait_proc > socket_limit:
+    output = subprocess.check_output(('netstat', '-anlt'))
+    output = output.split('\n')
+    time_wait_proc = 0
+    for line in output:
+        if "TIME_WAIT" in line:
+            time_wait_proc += 1
+    print color.INFO("There are {0} sockets in use, waiting for value to drop below {1}".format(time_wait_proc, socket_limit))
+    time.sleep(7)
 
 # Add custom event-handlers
 vm.on_output("Ready to start", crash_test)
