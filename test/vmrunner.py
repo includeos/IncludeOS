@@ -25,7 +25,7 @@ class color:
     C_UNDERLINE = '\033[4m'
 
     @staticmethod
-    def WARN(string):
+    def WARNING(string):
       return color.C_WARNING + "[ WARNING ] " + string + color.C_ENDC
 
     @staticmethod
@@ -84,7 +84,7 @@ def print_exception():
 
 # Catch
 def handler(signum, frame):
-    print color.WARN("Process interrupted")
+    print color.WARNING("Process interrupted")
     thread.interrupt_main()
 
 signal.signal(signal.SIGINT, handler)
@@ -274,7 +274,7 @@ class vm:
           try:
             res = func()
           except Exception as err:
-            print color.WARN("Exception raised in event callback: ")
+            print color.WARNING("Exception raised in event callback: ")
             print_exception()
             res = False
             self.stop().wait()
