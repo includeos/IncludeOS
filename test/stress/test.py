@@ -67,7 +67,7 @@ def memory_increase(lead_time, expected_memuse = memuse_at_start):
     percent = float(increase) / expected_memuse
 
   if increase > acceptable_increase:
-    print color.WARN(name_tag), "Memory increased by ", percent, "%."
+    print color.WARNING(name_tag), "Memory increased by ", percent, "%."
     print "(" , expected_memuse, "->", use, ",", increase,"b increase, but no increase expected.)"
   else:
     print color.OK(name_tag + "Memory constant, no leak detected")
@@ -89,7 +89,7 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
     for i in range(0, burst_size):
       sock.sendto(data, (HOST, PORT_FLOOD))
   except Exception as e:
-    print color.WARN("<Test.py> Python socket timed out while sending. ")
+    print color.WARNING("<Test.py> Python socket timed out while sending. ")
     return False
   sock.close()
   time.sleep(burst_interval)
@@ -163,7 +163,7 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
     mem_base = memi
 
     if memincrease > acceptable_increase:
-      print color.WARN(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n"
+      print color.WARNING(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n"
     else:
       print color.OK(name_tag), "Memory increase ",memincrease,"b \n"
 
