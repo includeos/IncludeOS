@@ -314,30 +314,18 @@ void IRQ_manager::notify() {
     // - lowesr bit/IRQ, means higher priority
     irq = __builtin_ffs(todo) - 1;
 
+    // Remove the IRQ from pending list
+    __sync_fetch_and_and(&irq_pending_, ~(1 << irq));
+
     // Notify
     debug2("<IRQ notify> __irqueue %i Count: %i\n", irq, irq_counters_[irq]);
     irq_delegates_[irq]();
 
-    // Decrement the counter
-    __sync_fetch_and_sub(&irq_counters_[irq], 1);
-
-    // Critical section start
-    // Spinlock? Well, we can't lock out the IRQ-handler
-    // ... and we don't have a timer interrupt so we can't do blocking locks.
-    if (!irq_counters_[irq]) {
-      // Remove the IRQ from pending list
-      irq_pending_ &= ~(1 << irq);
-      //debug("<IRQ notify> IRQ's pending: 0x%lx\n",irq_pending_);
-    }
-    // Critical section end
-
     // Find remaining IRQ's both pending and subscribed to
-    todo = (irq_subscriptions_ & irq_pending_);
+    todo = irq_subscriptions_;
+    __sync_fetch_and_and(&todo, irq_pending_);
   }
 
-  //hlt
-  debug2("<IRQ notify> Done. OS going to sleep.\n");
-  //__asm__("sti");
   __asm__ volatile("hlt;");
 }
 
