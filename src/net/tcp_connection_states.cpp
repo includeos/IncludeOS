@@ -710,7 +710,6 @@ void Connection::CloseWait::close(Connection& tcp) {
   auto packet = tcp.outgoing_packet();
   packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
   tcp.transmit(packet);
-  //tcp.set_state(Connection::Closing::instance());
   // Correction: [RFC 1122 p. 93]
   tcp.set_state(Connection::LastAck::instance());
 }
@@ -1020,9 +1019,9 @@ State::Result Connection::SynReceived::handle(Connection& tcp, TCP::Packet_ptr i
 
       // 8. check FIN bit
       if(in->isset(FIN)) {
-        process_fin(tcp, in);
         tcp.set_state(Connection::CloseWait::instance());
-        return CLOSE;
+        process_fin(tcp, in);
+        return OK;
       }
     }
     /*
