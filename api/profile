@@ -20,7 +20,9 @@
 #ifndef API_PROFILE_HEADER
 #define API_PROFILE_HEADER
 
-extern void begin_stack_sampling();
+#include <cstdint>
+
+extern void begin_stack_sampling(uint16_t gather_period_ms);
 extern void print_stack_sampling(int results);
 
 #endif

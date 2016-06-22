@@ -86,9 +86,10 @@ void Service::start()
   //begin_work();
   //test_debugging();
   
-  begin_stack_sampling();
-  
-  hw::PIT::instance().on_repeated_timeout(1500ms,
+  // start sampling, gather every X ms
+  begin_stack_sampling(1500);
+  // print stuff every 5 seconds
+  hw::PIT::instance().on_repeated_timeout(5000ms,
   [] { print_stack_sampling(15); });
   
   // boilerplate

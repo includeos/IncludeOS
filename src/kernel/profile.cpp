@@ -1,6 +1,5 @@
 #include <profile>
 
-#include <cstdint>
 #include <hw/pit.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
@@ -59,9 +58,10 @@ static volatile int lockless_sampler = 0;
 extern "C" {
   void parasite_interrupt_handler();
   void profiler_stack_sampler();
+  void gather_stack_sampling();
 }
 
-void begin_stack_sampling()
+void begin_stack_sampling(uint16_t gather_period_ms)
 {
   // make room for these only when requested
   #define blargh(T) std::remove_pointer<decltype(T)>::type;
@@ -70,6 +70,11 @@ void begin_stack_sampling()
   // begin sampling
   printf("Stack sampler taking over PIT\n");
   IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
+  
+  // gather every second
+  using namespace std::chrono;
+  hw::PIT::instance().on_repeated_timeout(milliseconds(gather_period_ms),
+  [] { gather_stack_sampling(); });
 }
 
 void profiler_stack_sampler()
@@ -90,15 +95,13 @@ void profiler_stack_sampler()
   lockless_sampler = 1;
 }
 
-
-void print_stack_sampling(int results)
+void gather_stack_sampling()
 {
-  // gather results
+  // gather results on our turn only
   if (lockless_sampler == 1)
   {
     for (auto* addr = sampler_transfer->first(); addr < sampler_transfer->end(); addr++)
     {
-      assert(*addr);
       auto it = sampler_dict.find(*addr);
       
       if (it != sampler_dict.end()) {
@@ -114,7 +117,10 @@ void print_stack_sampling(int results)
     }
     lockless_sampler = 0;
   }
-  
+}
+
+void print_stack_sampling(int results)
+{
   // sort by count
   using sample_pair = std::pair<uintptr_t, func_sample>;
   std::vector<sample_pair> vec(sampler_dict.begin(), sampler_dict.end());
