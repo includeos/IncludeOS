@@ -82,9 +82,9 @@ public:
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), addr};
+    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {"Bootloader area", addr - 0x7c00};
+    if (addr < 0x7e00) return {"Bootloader area", 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     for (auto& tab : symtab)
     for (size_t i = 0; i < tab.entries; i++) {
@@ -98,8 +98,32 @@ public:
         return {demangle( sym_name(tab.base[i]) ), base, offset};
       }
     }
+    // function or space not found
     return {to_hex_string(addr), addr, 0};
   }
+  safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
+  {
+    // probably just a null pointer with ofs=addr
+    if (addr < 0x7c00) return {0, 0, addr};
+    // definitely in the bootloader
+    if (addr < 0x7e00) return {0, 0x7c00, addr - 0x7c00};
+    // resolve manually from symtab
+    for (auto& tab : symtab)
+    for (size_t i = 0; i < tab.entries; i++) {
+      // find entry with matching address
+      if (addr >= tab.base[i].st_value
+      && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
+        
+        auto base   = tab.base[i].st_value;
+        auto offset = addr - base;
+        // return string name for symbol
+        return {demangle_safe( sym_name(tab.base[i]), buffer, length ), base, offset};
+      }
+    }
+    // function or space not found
+    return {0, addr, 0};
+  }
+  
   Elf32_Addr getaddr(const std::string& name)
   {
     for (auto& tab : symtab)
@@ -122,14 +146,23 @@ private:
   std::string demangle(const char* name)
   {
     // try demangle the name
-    size_t buflen = 128;
+    size_t buflen = 256;
     std::string buf;
     buf.reserve(buflen);
     int status;
     // internally, demangle just returns buf when status is ok
-    auto res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
+    auto* res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
     if (status) return std::string(name);
     return std::string(res);
+  }
+  const char* demangle_safe(const char* name, char* buffer, size_t buflen)
+  {
+    // try demangle the name
+    int status;
+    // internally, demangle just returns buf when status is ok
+    auto* res = __cxa_demangle(name, (char*) buffer, &buflen, &status);
+    if (status) return name;
+    return res;
   }
 
   std::vector<SymTab> symtab;
@@ -153,6 +186,11 @@ func_offset Elf::resolve_symbol(void* addr)
 func_offset Elf::resolve_symbol(void (*addr)())
 {
   return get_parser().getsym((uintptr_t) addr);
+}
+
+safe_func_offset Elf::resolve_symbol(void* addr, char* buffer, size_t length)
+{
+  return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
 }
 
 func_offset Elf::get_current_function()

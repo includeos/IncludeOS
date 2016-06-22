@@ -89,7 +89,7 @@ void Service::start()
   begin_stack_sampling();
   
   hw::PIT::instance().on_repeated_timeout(1500ms,
-  [] { print_stack_sampling(5); });
+  [] { print_stack_sampling(15); });
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

@@ -26,6 +26,11 @@ struct func_offset {
   uint32_t    addr;
   uint32_t    offset;
 };
+struct safe_func_offset {
+  const char* name;
+  uint32_t    addr;
+  uint32_t    offset;
+};
 
 struct Elf
 {
@@ -43,6 +48,10 @@ struct Elf
     get_current_function();
   static std::vector<func_offset>
     get_functions();
+  
+  // doesn't use heap
+  static safe_func_offset
+    resolve_symbol(void* addr, char* buffer, size_t length);
   
   //returns the address of a symbol, or 0
   uintptr_t resolve_name(const std::string& name);
