@@ -145,10 +145,9 @@ private:
   }
   std::string demangle(const char* name)
   {
-    // try demangle the name
     size_t buflen = 256;
     std::string buf;
-    buf.reserve(buflen);
+    buf.reserve(buflen+1);
     int status;
     // internally, demangle just returns buf when status is ok
     auto* res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
@@ -157,7 +156,6 @@ private:
   }
   const char* demangle_safe(const char* name, char* buffer, size_t buflen)
   {
-    // try demangle the name
     int status;
     // internally, demangle just returns buf when status is ok
     auto* res = __cxa_demangle(name, (char*) buffer, &buflen, &status);
@@ -188,7 +186,7 @@ func_offset Elf::resolve_symbol(void (*addr)())
   return get_parser().getsym((uintptr_t) addr);
 }
 
-safe_func_offset Elf::resolve_symbol(void* addr, char* buffer, size_t length)
+safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
 {
   return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
 }

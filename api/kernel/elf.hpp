@@ -51,7 +51,7 @@ struct Elf
   
   // doesn't use heap
   static safe_func_offset
-    resolve_symbol(void* addr, char* buffer, size_t length);
+    safe_resolve_symbol(void* addr, char* buffer, size_t length);
   
   //returns the address of a symbol, or 0
   uintptr_t resolve_name(const std::string& name);
