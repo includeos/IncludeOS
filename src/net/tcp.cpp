@@ -51,7 +51,10 @@ TCP::Connection& TCP::bind(Port port) {
   if(listeners_.find(port) != listeners_.end()) {
     throw TCPException{"Port is already taken."};
   }
-  auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;
+  auto& connection = (listeners_.emplace(std::piecewise_construct,
+    std::forward_as_tuple(port),
+    std::forward_as_tuple(*this, port))
+    ).first->second;
   debug("<TCP::bind> Bound to port %i \n", port);
   connection.open(false);
   return connection;
