@@ -24,6 +24,9 @@
 #include "../../vmbuild/elf.h"
 
 static const uintptr_t ELF_START = 0x200000;
+#define frp(N, ra)                                 \
+  (__builtin_frame_address(N) != nullptr) &&       \
+    (ra = __builtin_return_address(N)) != nullptr
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
@@ -89,12 +92,13 @@ public:
       if (addr >= tab.base[i].st_value
       && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
         
-        auto offset = addr - tab.base[i].st_value;
+        auto base   = tab.base[i].st_value;
+        auto offset = addr - base;
         // return string name for symbol
-        return {demangle( sym_name(tab.base[i]) ), offset};
+        return {demangle( sym_name(tab.base[i]) ), base, offset};
       }
     }
-    return {to_hex_string(addr), 0};
+    return {to_hex_string(addr), addr, 0};
   }
   Elf32_Addr getaddr(const std::string& name)
   {
@@ -155,13 +159,33 @@ func_offset Elf::get_current_function()
 {
   return resolve_symbol(__builtin_return_address(0));
 }
+std::vector<func_offset> Elf::get_functions()
+{
+  std::vector<func_offset> vec;
+  #define ADD_TRACE(N, ra)                      \
+      vec.push_back(Elf::resolve_symbol(ra));
+
+  void* ra;
+  if (frp(0, ra)) {
+    ADD_TRACE(0, ra);
+    if (frp(1, ra)) {
+      ADD_TRACE(1, ra);
+      if (frp(2, ra)) {
+        ADD_TRACE(2, ra);
+        if (frp(3, ra)) {
+          ADD_TRACE(3, ra);
+          if (frp(4, ra)) {
+            ADD_TRACE(4, ra);
+            if (frp(5, ra)) {
+              ADD_TRACE(5, ra);
+              if (frp(6, ra)) {
+                ADD_TRACE(6, ra);
+  }}}}}}}
+  return vec;
+}
 
 void print_backtrace()
 {
-  #define frp(N, ra)                                 \
-    (__builtin_frame_address(N) != nullptr) &&       \
-      (ra = __builtin_return_address(N)) != nullptr
-
   #define PRINT_TRACE(N, ra)                      \
     auto symb = Elf::resolve_symbol(ra);          \
     printf("[%d] %8p + 0x%.4x: %s\n",             \

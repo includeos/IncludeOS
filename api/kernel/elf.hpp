@@ -19,9 +19,11 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 struct func_offset {
   std::string name;
+  uint32_t    addr;
   uint32_t    offset;
 };
 
@@ -39,6 +41,8 @@ struct Elf
   // get and resolve the current function
   static func_offset
     get_current_function();
+  static std::vector<func_offset>
+    get_functions();
   
   //returns the address of a symbol, or 0
   uintptr_t resolve_name(const std::string& name);

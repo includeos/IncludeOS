@@ -17,19 +17,10 @@
 // limitations under the License.
 
 #pragma once
-#ifndef API_DEBUG_HEADER
-#define API_DEBUG_HEADER
+#ifndef API_PROFILE_HEADER
+#define API_PROFILE_HEADER
 
-#if defined(DEBUG) && ! defined(NO_DEBUG)
-#define debug(X,...)  printf("* " X,##__VA_ARGS__);
-#else 
-#define debug(X,...) 
-#endif
-
-#if defined(DEBUG2) && ! defined(NO_DEBUG)
-#define debug2(X,...)  printf("** " X,##__VA_ARGS__);
-#else 
-#define debug2(X,...) 
-#endif
+extern void begin_stack_sampling();
+extern void print_stack_sampling(int results);
 
 #endif
