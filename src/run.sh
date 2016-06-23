@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 export JOBS=12
 export SERVICE=test_service
 

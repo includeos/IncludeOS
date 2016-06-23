@@ -24,6 +24,9 @@
 #include "../../vmbuild/elf.h"
 
 static const uintptr_t ELF_START = 0x200000;
+#define frp(N, ra)                                 \
+  (__builtin_frame_address(N) != nullptr) &&       \
+    (ra = __builtin_return_address(N)) != nullptr
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
@@ -79,9 +82,9 @@ public:
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), addr};
+    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {"Bootloader area", addr - 0x7c00};
+    if (addr < 0x7e00) return {"Bootloader area", 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     for (auto& tab : symtab)
     for (size_t i = 0; i < tab.entries; i++) {
@@ -89,13 +92,38 @@ public:
       if (addr >= tab.base[i].st_value
       && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
         
-        auto offset = addr - tab.base[i].st_value;
+        auto base   = tab.base[i].st_value;
+        auto offset = addr - base;
         // return string name for symbol
-        return {demangle( sym_name(tab.base[i]) ), offset};
+        return {demangle( sym_name(tab.base[i]) ), base, offset};
       }
     }
-    return {to_hex_string(addr), 0};
+    // function or space not found
+    return {to_hex_string(addr), addr, 0};
   }
+  safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
+  {
+    // probably just a null pointer with ofs=addr
+    if (addr < 0x7c00) return {0, 0, addr};
+    // definitely in the bootloader
+    if (addr < 0x7e00) return {0, 0x7c00, addr - 0x7c00};
+    // resolve manually from symtab
+    for (auto& tab : symtab)
+    for (size_t i = 0; i < tab.entries; i++) {
+      // find entry with matching address
+      if (addr >= tab.base[i].st_value
+      && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
+        
+        auto base   = tab.base[i].st_value;
+        auto offset = addr - base;
+        // return string name for symbol
+        return {demangle_safe( sym_name(tab.base[i]), buffer, length ), base, offset};
+      }
+    }
+    // function or space not found
+    return {0, addr, 0};
+  }
+  
   Elf32_Addr getaddr(const std::string& name)
   {
     for (auto& tab : symtab)
@@ -117,15 +145,22 @@ private:
   }
   std::string demangle(const char* name)
   {
-    // try demangle the name
-    size_t buflen = 128;
+    size_t buflen = 256;
     std::string buf;
-    buf.reserve(buflen);
+    buf.reserve(buflen+1);
     int status;
     // internally, demangle just returns buf when status is ok
-    auto res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
+    auto* res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
     if (status) return std::string(name);
     return std::string(res);
+  }
+  const char* demangle_safe(const char* name, char* buffer, size_t buflen)
+  {
+    int status;
+    // internally, demangle just returns buf when status is ok
+    auto* res = __cxa_demangle(name, (char*) buffer, &buflen, &status);
+    if (status) return name;
+    return res;
   }
 
   std::vector<SymTab> symtab;
@@ -151,17 +186,42 @@ func_offset Elf::resolve_symbol(void (*addr)())
   return get_parser().getsym((uintptr_t) addr);
 }
 
+safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
+{
+  return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
+}
+
 func_offset Elf::get_current_function()
 {
   return resolve_symbol(__builtin_return_address(0));
 }
+std::vector<func_offset> Elf::get_functions()
+{
+  std::vector<func_offset> vec;
+  #define ADD_TRACE(N, ra)                      \
+      vec.push_back(Elf::resolve_symbol(ra));
+
+  void* ra;
+  if (frp(0, ra)) {
+    ADD_TRACE(0, ra);
+    if (frp(1, ra)) {
+      ADD_TRACE(1, ra);
+      if (frp(2, ra)) {
+        ADD_TRACE(2, ra);
+        if (frp(3, ra)) {
+          ADD_TRACE(3, ra);
+          if (frp(4, ra)) {
+            ADD_TRACE(4, ra);
+            if (frp(5, ra)) {
+              ADD_TRACE(5, ra);
+              if (frp(6, ra)) {
+                ADD_TRACE(6, ra);
+  }}}}}}}
+  return vec;
+}
 
 void print_backtrace()
 {
-  #define frp(N, ra)                                 \
-    (__builtin_frame_address(N) != nullptr) &&       \
-      (ra = __builtin_return_address(N)) != nullptr
-
   #define PRINT_TRACE(N, ra)                      \
     auto symb = Elf::resolve_symbol(ra);          \
     printf("[%d] %8p + 0x%.4x: %s\n",             \
