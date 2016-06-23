@@ -27,10 +27,12 @@ namespace fs
     typedef std::function<void(uint32_t)> next_func_t;
 
     auto next = std::make_shared<next_func_t> ();
+    auto weak_next = std::weak_ptr<next_func_t>(next);
     *next =
-    [this, sector, callback, dirents, next] (uint32_t sector)
+    [this, sector, callback, dirents, weak_next] (uint32_t sector)
     {
       debug("int_ls: sec=%u\n", sector);
+      auto next = weak_next.lock();
       device.read(sector,
       [this, sector, callback, dirents, next] (buffer_t data) {
 
@@ -63,8 +65,9 @@ namespace fs
 
     // asynch stack traversal
     auto next = std::make_shared<next_func_t> ();
+    auto weak_next = std::weak_ptr<next_func_t>(next);
     *next =
-    [this, path, next, callback] (uint32_t cluster) {
+    [this, path, weak_next, callback] (uint32_t cluster) {
 
       if (path->empty()) {
         // attempt to read directory
@@ -90,6 +93,7 @@ namespace fs
       // result allocated on heap
       auto dirents = std::make_shared<std::vector<Dirent>> ();
 
+      auto next = weak_next.lock();
       // list directory contents
       int_ls(S, dirents,
       [name, dirents, next, callback] (error_t err, dirvec_t ents) {
