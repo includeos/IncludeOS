@@ -15,19 +15,35 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
+;extern lapic_send_eoi
 extern register_modern_interrupt
 global modern_interrupt_handler
 
 extern cpu_sampling_irq_handler
 global cpu_sampling_irq_entry
 
-extern lapic_send_eoi
+global parasite_interrupt_handler
+extern profiler_stack_sampler
 
 modern_interrupt_handler:
   cli
   pusha
   call register_modern_interrupt
-  call lapic_send_eoi
+  ; lapic_send_eoi:
+  mov eax, 0xfee000B0
+  mov DWORD [eax], 0
+  popa
+  sti
+  iret
+
+parasite_interrupt_handler:
+  cli
+  pusha
+  call profiler_stack_sampler
+  call register_modern_interrupt
+  ; lapic_send_eoi:
+  mov eax, 0xfee000B0
+  mov DWORD [eax], 0
   popa
   sti
   iret
@@ -36,7 +52,10 @@ cpu_sampling_irq_entry:
   cli
   pusha
   call cpu_sampling_irq_handler
-  call lapic_send_eoi
+  ; lapic_send_eoi:
+  mov eax, 0xfee000B0
+  mov DWORD [eax], 0
   popa
   sti
   iret
+

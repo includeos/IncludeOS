@@ -19,12 +19,40 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 struct func_offset {
   std::string name;
+  uint32_t    addr;
+  uint32_t    offset;
+};
+struct safe_func_offset {
+  const char* name;
+  uint32_t    addr;
   uint32_t    offset;
 };
 
-func_offset resolve_symbol(uintptr_t addr);
-func_offset resolve_symbol(void* addr);
-func_offset resolve_symbol(void (*addr)());
+struct Elf
+{
+  // returns the name of a symbol closest to @addr,
+  // or the hex representation of addr
+  static func_offset
+    resolve_symbol(uintptr_t addr);
+  static func_offset
+    resolve_symbol(void* addr);
+  static func_offset
+    resolve_symbol(void (*addr)());
+  
+  // get and resolve the current function
+  static func_offset
+    get_current_function();
+  static std::vector<func_offset>
+    get_functions();
+  
+  // doesn't use heap
+  static safe_func_offset
+    safe_resolve_symbol(void* addr, char* buffer, size_t length);
+  
+  //returns the address of a symbol, or 0
+  uintptr_t resolve_name(const std::string& name);
+};

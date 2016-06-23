@@ -15,9 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstring>
-
 #include <kernel/cpuid.hpp>
+#include <cstring>
 
 #define ECX_SSE3                    (1 << 0)    // Streaming SIMD Extensions 3
 #define ECX_PCLMULQDQ               (1 << 1)    // PCLMULQDQ Instruction
@@ -92,36 +91,28 @@ using cpuid_t = CPUID::cpuid_t;
 
 // EBX/RBX needs to be preserved depending on the memory model and use of PIC
 static cpuid_t
-cpuid_info(const unsigned int func, const unsigned int subfunc) {
+cpuid_info(unsigned func, unsigned subfunc) {
   cpuid_t info;
-  __asm__ __volatile__ (
-                        "cpuid"
-                        : "=a"(info.EAX), "=b"(info.EBX), "=c"(info.ECX), "=d"(info.EDX)
-                        : "a"(func), "c"(subfunc) : "%eax", "%ebx", "%ecx", "%edx"
-                        );
+  asm volatile ("cpuid"
+    : "=a"(info.EAX), "=b"(info.EBX), "=c"(info.ECX), "=d"(info.EDX)
+    : "a"(func), "c"(subfunc) : "%eax", "%ebx", "%ecx", "%edx");
   return info;
 }
 
 bool CPUID::isAmdCpu() {
   cpuid_t info = cpuid_info(0, 0);
-  if (memcmp((char *) (&info.EBX), "htuA", 4) == 0
-      && memcmp((char *) (&info.EDX), "itne", 4) == 0
-      && memcmp((char *) (&info.ECX), "DMAc", 4) == 0)
-    {
-      return true;
-    }
-  return false;
+  return
+     memcmp((char*) &info.EBX, "htuA", 4) == 0
+  && memcmp((char*) &info.EDX, "itne", 4) == 0
+  && memcmp((char*) &info.ECX, "DMAc", 4) == 0;
 }
 
 bool CPUID::isIntelCpu() {
   cpuid_t info = cpuid_info(0, 0);
-  if (memcmp((char *) (&info.EBX), "Genu", 4) == 0
-      && memcmp((char *) (&info.EDX), "ineI", 4) == 0
-      && memcmp((char *) (&info.ECX), "ntel", 4) == 0)
-    {
-      return true;
-    }
-  return false;
+  return
+     memcmp((char*) &info.EBX, "Genu", 4) == 0
+  && memcmp((char*) &info.EDX, "ineI", 4) == 0
+  && memcmp((char*) &info.ECX, "ntel", 4) == 0;
 }
 
 bool CPUID::hasRDRAND() {

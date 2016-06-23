@@ -17,242 +17,124 @@
 
 #include <os>
 #include <net/inet4>
-#include "ircd.hpp"
-
 #include <smp> // SMP class
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
-extern "C" {
-  char _TEXT_START_;
-  char _EH_FRAME_START_;
-  char _EH_FRAME_END_;
+std::string HTML_RESPONSE() {
+  int color = rand();
+  std::stringstream stream;
+
+  /* HTML Fonts */
+  std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
+  std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
+  std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
+
+  /* HTML */
+  stream << "<html><head>"
+         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
+         << "</head><body>"
+         << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"
+         <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
+         <<  "<h2>Now speaks TCP!</h2>"
+    // .... generate more dynamic content
+         << "<p> This is improvised http, but proper suff is in the works. </p>"
+         << "<footer><hr /> &copy; 2016, IncludeOS AS @ 60&deg; north </footer>"
+         << "</body></html>\n";
+
+  std::string html = stream.str();
+
+  std::string header="HTTP/1.1 200 OK \n "        \
+    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
+    "Server: IncludeOS prototype 4.0 \n"                \
+    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
+    "Content-Type: text/html; charset=UTF-8 \n"     \
+    "Content-Length: "+std::to_string(html.size())+"\n"   \
+    "Accept-Ranges: bytes\n"          \
+    "Connection: close\n\n";
+  return header + html;
 }
 
-#include <iostream>
-#include "../../vmbuild/elf.h"
+#include <kernel/elf.hpp>
+#include <debug_new>
+#include <debug_shared>
+#include <profile>
 
-///
-/// https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
-///
-struct CIE;
-struct Frame;
-
-union Entry {
-  uint32_t length;
-  uint64_t ext_length;
-  
-  size_t hdr_size() const {
-    if (length != UINT_MAX) return 4;
-    return 8;
-  }
-  size_t size() const {
-    if (length != UINT_MAX) return length;
-    return ext_length;
-  }
-  CIE* cie() const {
-    return (CIE*) (((char*) this) + hdr_size());
-  }
-  Frame* frame() const {
-    return (Frame*) (((char*) this) + hdr_size());
-  }
-};
-struct CIE {
-  uint32_t id;
-  uint8_t  ver;
-  char process_start[0];
-  
-  bool validate() const {
-    return ver == 1 && id == 0;
-  }
-  
-  void process();
-  
-} __attribute__((packed));
-
-void CIE::process()
+void test_debugging()
 {
-  printf("id: %u, ver: %u\n",
-    id, ver);
-  assert(validate());
-  printf("CIE validated\n");
+  auto* testint = NEW(int);
+  auto* testarr = NEW_ARRAY(int, 24);
   
-  char* augstr = process_start;
-  auto auglen = strlen(augstr);
-  printf("CIE aug len: %u, aug=%s\n", auglen, augstr);
+  debug_new_print_entries();
+  
+  DELETE(testint);
+  DELETE_ARRAY(testarr);
+  
+  debug_new_print_entries();
+  
+  auto test = make_debug_shared<int> (4);
+  auto crash = debug_ptr<int> (nullptr, [] (void*) { printf("custom deleter\n"); });
+  *crash;
 }
 
-struct Frame {
-  uintptr_t cie_addr;
-  uint32_t  pc_begin;
-  uint32_t  pc_range;
-  char      augdata[0];
-  
-  CIE* get_cie(Entry* entry) {
-    return (CIE*)((char*)this - cie_addr + entry->hdr_size());
-  }
-};
-
-void process_eh_frame(char* loc)
-{
-  bool is_cie = true;
-  
-  while (true)
-  {
-    auto* hdr = (Entry*) loc;
-    printf("ENTRY  hdr: %u  size: %u\n", 
-        hdr->hdr_size(), hdr->size());
-    if (hdr->size() == 0) break;
-
-    if (is_cie) {
-      // process CIE information
-      auto* cie = hdr->cie();
-      cie->process();
-      is_cie = false;
-    }
-    else
-    {
-      auto* frame = hdr->frame();
-      printf("FDE  cie: %u  frame: %#x (%u bytes)\n",
-          frame->cie_addr, frame->pc_begin, frame->pc_range);
-      
-      if (frame->cie_addr) {
-        assert (frame->cie_addr && "CIE addr must not be zero");
-        frame->get_cie(hdr)->process();
-      }
-    }
-    
-    // next entry
-    loc += hdr->size() + hdr->hdr_size();
-  }
-}
-
-
-extern std::string resolve_symbol(uintptr_t addr);
-extern void print_backtrace();
+using namespace std::chrono;
 
 void Service::start()
 {
-  printf("name for this function is %s\n",
-      resolve_symbol((uintptr_t) &Service::start).c_str());
+  //void begin_work();
+  //begin_work();
+  //test_debugging();
   
-  try {
-    throw std::string("test");
-  } catch (std::string err) {
-    auto str = "thrown: " + err;
-    printf("%s\n", str.c_str());
-  }
-  
-  auto EH_FRAME_START = (uintptr_t) &_EH_FRAME_START_;
-  auto EH_FRAME_END = (uintptr_t) &_EH_FRAME_END_;
-  printf("eh_frame start: %#x\n", EH_FRAME_START);
-  printf("eh_frame end:   %#x\n", EH_FRAME_END);
-  printf("eh_frame size:  %u\n", EH_FRAME_END - EH_FRAME_START);
-  
-  //process_eh_frame(&_EH_FRAME_START_);
-  
-  print_backtrace();
-  
-  void begin_work();
-  begin_work();
-  return;
+  // start sampling, gather every X ms
+  begin_stack_sampling(1500);
+  // print stuff every 5 seconds
+  hw::PIT::instance().on_repeated_timeout(5000ms,
+  [] { print_stack_sampling(15); });
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  inet = std::make_unique<net::Inet4<VirtioNet> > (eth0, 1);
   inet->network_config(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
 
-  /*
-  auto& tcp = inet->tcp();
-  auto& server = tcp.bind(6667); // IRCd default port
-  server.onConnect(
-  [] (auto csock)
-  {
-    printf("*** Received connection from %s\n",
-    csock->remote().to_string().c_str());
+  // Set up a TCP server on port 80
+  auto& server = inet->tcp().bind(80);
+  // Add a TCP connection handler - here a hardcoded HTTP-service
+  server.onAccept([] (auto conn) -> bool {
+      return true; // allow all connections
 
-    /// create client ///
-    size_t index = clients.size();
-    clients.emplace_back(index, csock);
+    })
+    .onConnect([] (auto conn) {
+      // read async with a buffer size of 1024 bytes
+      // define what to do when data is read
+      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+          // create string from buffer
+          std::string data { (char*)buf.get(), n };
 
-    auto& client = clients[index];
+          if (data.find("GET / ") != std::string::npos) {
+            // create response
+            std::string response = HTML_RESPONSE();
+            // write the data from the string with the strings size
+            conn->write(response.data(), response.size(), 
+            [] (size_t n)
+            {
+                (void) n;
+            });
+          }
+        });
 
-    // set up callbacks
-    csock->onReceive(
-    [&client] (auto conn, bool)
-    {
-    char buffer[1024];
-    size_t bytes = conn->read(buffer, sizeof(buffer));
-
-    client.read(buffer, bytes);
-
-    });
-
+    })
     .onDisconnect(
-    [&client] (auto conn, std::string)
-    {
-    // remove client from various lists
-    client.remove();
-    /// inform others about disconnect
-    //client.bcast(TK_QUIT, "Disconnected");
+    [] (auto conn, auto) {
+        conn->close();
+    })
+    .onError([](auto, auto err) {
+      printf("<Service> @onError - %s\n", err.what());
     });
-  });
-  
-  inet->dhclient()->set_silent(true);
-  
-  inet->on_config(
-  [] (bool timeout)
-  {
-    if (timeout)
-      printf("Inet::on_config: Timeout\n");
-    else
-      printf("Inet::on_config: DHCP Server acknowledged our request!\n");
-    printf("Service IP address: %s, router: %s\n", 
-      inet->ip_addr().str().c_str(), inet->router().str().c_str());
-    
-    using namespace net;
-    const UDP::port_t port = 4242;
-    auto& sock = inet->udp().bind(port);
-    
-    sock.on_read(
-    [&sock] (UDP::addr_t addr, UDP::port_t port,
-            const char* data, size_t len)
-    {
-      std::string strdata(data, len);
-      CHECK(1, "Getting UDP data from %s:%d -> %s",
-            addr.str().c_str(), port, strdata.c_str());
-      // send the same thing right back!
-      sock.sendto(addr, port, data, len,
-      [&sock, addr, port]
-      {
-        // print this message once
-        printf("*** Starting spam (you should see this once)\n");
-        
-        typedef std::function<void()> rnd_gen_t;
-        auto next = std::make_shared<rnd_gen_t> ();
-        
-        *next =
-        [next, &sock, addr, port] ()
-        {
-          // spam this message at max speed
-          std::string text("Spamorino Cappucino\n");
-          
-          sock.sendto(addr, port, text.data(), text.size(),
-          [next] { (*next)(); });
-        };
-        
-        // start spamming
-        (*next)();
-      });
-    }); // sock on_read
-    
-  }); // on_config
-  */
   
   printf("*** TEST SERVICE STARTED *** \n");
 }
@@ -279,7 +161,6 @@ void begin_work()
       printf("All jobs are done now, compl = %d\t", completed);
       printf("bits = %#x\n", job);
       print_backtrace();
-      //begin_work();
     }
   });
   // start working on tasks

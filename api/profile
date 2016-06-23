@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,20 +17,12 @@
 // limitations under the License.
 
 #pragma once
-#ifndef KERNEL_CPUID_HPP
-#define KERNEL_CPUID_HPP
+#ifndef API_PROFILE_HEADER
+#define API_PROFILE_HEADER
 
-struct CPUID {
-  struct cpuid_t {
-    unsigned int EAX;
-    unsigned int EBX;
-    unsigned int ECX;
-    unsigned int EDX;
-  };
-  
-  static bool isAmdCpu();
-  static bool isIntelCpu();
-  static bool hasRDRAND();
-}; //< CPUID
+#include <cstdint>
 
-#endif //< KERNEL_CPUID_HPP
+extern void begin_stack_sampling(uint16_t gather_period_ms);
+extern void print_stack_sampling(int results);
+
+#endif

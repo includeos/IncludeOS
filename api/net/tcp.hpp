@@ -202,15 +202,6 @@ namespace net {
     }__attribute__((packed));
 
     /*
-      To extract the TCP part from a Packet_ptr and calculate size. (?)
-    */
-    struct Full_header {
-      Ethernet::header ethernet;
-      IP4::ip_header ip4;
-      TCP::Header tcp;
-    }__attribute__((packed));
-
-    /*
       TCP Header Option
     */
     struct Option {
@@ -259,74 +250,83 @@ namespace net {
     class Packet : public PacketIP4 {
     public:
 
-      inline TCP::Header& header() const
-      {
-        return ((TCP::Full_header*) buffer())->tcp;
-      }
-
-      static const size_t HEADERS_SIZE = sizeof(TCP::Full_header);
+      inline TCP::Header& tcp_header() const
+      { return *(TCP::Header*) ip_data(); }
 
       //! initializes to a default, empty TCP packet, given
       //! a valid MTU-sized buffer
       void init()
       {
-        // Erase all headers (smart? necessary? ...well, convenient)
-        memset(buffer(), 0, HEADERS_SIZE);
         PacketIP4::init();
+
+        // clear TCP headers
+        memset(ip_data(), 0, sizeof(TCP::Header));
 
         set_protocol(IP4::IP4_TCP);
         set_win(TCP::default_window_size);
         set_offset(5);
+        set_length();
 
         // set TCP payload location (!?)
-        set_payload(buffer() + all_headers_len());
+        set_payload(buffer() + tcp_full_header_length());
+
+        debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
+          size(), ip_header_size(), tcp_full_header_length());
       }
 
       // GETTERS
-      inline TCP::Port src_port() const { return ntohs(header().source_port); }
+      inline TCP::Port src_port() const
+      { return ntohs(tcp_header().source_port); }
 
-      inline TCP::Port dst_port() const { return ntohs(header().destination_port); }
+      inline TCP::Port dst_port() const
+      { return ntohs(tcp_header().destination_port); }
 
-      inline TCP::Seq seq() const { return ntohl(header().seq_nr); }
+      inline TCP::Seq seq() const
+      { return ntohl(tcp_header().seq_nr); }
 
-      inline TCP::Seq ack() const { return ntohl(header().ack_nr); }
+      inline TCP::Seq ack() const
+      { return ntohl(tcp_header().ack_nr); }
 
-      inline uint16_t win() const { return ntohs(header().window_size); }
+      inline uint16_t win() const
+      { return ntohs(tcp_header().window_size); }
 
-      inline TCP::Socket source() const { return TCP::Socket{src(), src_port()}; }
+      inline TCP::Socket source() const
+      { return TCP::Socket{src(), src_port()}; }
 
-      inline TCP::Socket destination() const { return TCP::Socket{dst(), dst_port()}; }
+      inline TCP::Socket destination() const
+      { return TCP::Socket{dst(), dst_port()}; }
 
-      inline TCP::Seq end() const { return seq() + data_length(); }
+      inline TCP::Seq end() const
+      { return seq() + tcp_data_length(); }
 
       // SETTERS
       inline TCP::Packet& set_src_port(TCP::Port p) {
-        header().source_port = htons(p);
+        tcp_header().source_port = htons(p);
         return *this;
       }
 
       inline TCP::Packet& set_dst_port(TCP::Port p) {
-        header().destination_port = htons(p);
+        tcp_header().destination_port = htons(p);
         return *this;
       }
 
       inline TCP::Packet& set_seq(TCP::Seq n) {
-        header().seq_nr = htonl(n);
+        tcp_header().seq_nr = htonl(n);
         return *this;
       }
 
       inline TCP::Packet& set_ack(TCP::Seq n) {
-        header().ack_nr = htonl(n);
+        tcp_header().ack_nr = htonl(n);
         return *this;
       }
 
       inline TCP::Packet& set_win(uint16_t size) {
-        header().window_size = htons(size);
+        tcp_header().window_size = htons(size);
         return *this;
       }
 
       inline TCP::Packet& set_checksum(uint16_t checksum) {
-        header().checksum = checksum;
+        tcp_header().checksum = checksum;
         return *this;
       }
 
@@ -345,62 +345,69 @@ namespace net {
       /// FLAGS / CONTROL BITS ///
 
       inline TCP::Packet& set_flag(TCP::Flag f) {
-        header().offset_flags.whole |= htons(f);
+        tcp_header().offset_flags.whole |= htons(f);
         return *this;
       }
 
       inline TCP::Packet& set_flags(uint16_t f) {
-        header().offset_flags.whole |= htons(f);
+        tcp_header().offset_flags.whole |= htons(f);
         return *this;
       }
 
       inline TCP::Packet& clear_flag(TCP::Flag f) {
-        header().offset_flags.whole &= ~ htons(f);
+        tcp_header().offset_flags.whole &= ~ htons(f);
         return *this;
       }
 
       inline TCP::Packet& clear_flags() {
-        header().offset_flags.whole &= 0x00ff;
+        tcp_header().offset_flags.whole &= 0x00ff;
         return *this;
       }
 
-      inline bool isset(TCP::Flag f) const { return ntohs(header().offset_flags.whole) & f; }
+      inline bool isset(TCP::Flag f) const
+      { return ntohs(tcp_header().offset_flags.whole) & f; }
 
-      //TCP::Flag flags() const { return (htons(header().offset_flags.whole) << 8) & 0xFF; }
+      //TCP::Flag flags() const { return (htons(tcp_header().offset_flags.whole) << 8) & 0xFF; }
 
 
       /// OFFSET, OPTIONS, DATA ///
 
       // Get the raw tcp offset, in quadruples
-      inline uint8_t offset() const { return (uint8_t)(header().offset_flags.offset_reserved >> 4); }
+      inline uint8_t offset() const
+      { return (uint8_t)(tcp_header().offset_flags.offset_reserved >> 4); }
 
       // Set raw TCP offset in quadruples
-      inline void set_offset(uint8_t offset) { header().offset_flags.offset_reserved = (offset << 4); }
+      inline void set_offset(uint8_t offset)
+      { tcp_header().offset_flags.offset_reserved = (offset << 4); }
 
-      // The actaul TCP header size (including options).
-      inline uint8_t header_size() const { return offset() * 4; }
+      // The actual TCP header size (including options).
+      inline uint8_t tcp_header_length() const
+      { return offset() * 4; }
 
-      // Calculate the full header length, down to linklayer, in bytes
-      uint8_t all_headers_len() const { return (HEADERS_SIZE - sizeof(TCP::Header)) + header_size(); }
+      inline uint8_t tcp_full_header_length() const
+      { return ip_full_header_length() + tcp_header_length(); }
+
+      // The total length of the TCP segment (TCP header + data)
+      uint16_t tcp_length() const
+      { return tcp_header_length() + tcp_data_length(); }
 
       // Where data starts
-      inline char* data() { return (char*) (buffer() + all_headers_len()); }
+      inline char* tcp_data()
+      { return ip_data() + tcp_header_length(); }
 
-      inline uint16_t data_length() const { return size() - all_headers_len(); }
+      // Length of data in packet when header has been accounted for
+      inline uint16_t tcp_data_length() const
+      { return ip_data_length() - tcp_header_length(); }
 
-      inline bool has_data() const { return data_length() > 0; }
-
-      inline uint16_t size_available() const
-      { return size() - all_headers_len() - data_length(); }
-
-      inline uint16_t tcp_length() const { return header_size() + data_length(); }
+      inline bool has_tcp_data() const
+      { return tcp_data_length() > 0; }
 
       template <typename T, typename... Args>
-      inline void add_option(Args&&... args) {
+      inline void add_tcp_option(Args&&... args) {
         // to avoid headache, options need to be added BEFORE any data.
-        assert(!has_data());
+        assert(!has_tcp_data());
         // option address
-        auto* addr = options()+options_length();
+        auto* addr = tcp_options()+tcp_options_length();
         new (addr) T(args...);
         // update offset
         set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
@@ -414,44 +421,55 @@ namespace net {
         set_length(); // update
       }
 
-      inline uint8_t* options() { return (uint8_t*) header().options; }
+      // Options
+      inline uint8_t* tcp_options()
+      { return (uint8_t*) tcp_header().options; }
 
-      inline uint8_t options_length() const { return header_size() - sizeof(TCP::Header); }
+      inline uint8_t tcp_options_length() const
+      { return tcp_header_length() - sizeof(TCP::Header); }
 
-      inline bool has_options() const { return options_length() > 0; }
+      inline bool has_tcp_options() const
+      { return tcp_options_length() > 0; }
 
-      // sets the correct length for all the protocols up to IP4
-      void set_length(uint16_t newlen = 0) {
-        // new total packet length
-        set_size( all_headers_len() + newlen );
-      }
 
       //! assuming the packet has been properly initialized,
       //! this will fill bytes from @buffer into this packets buffer,
       //! then return the number of bytes written. buffer is unmodified
       size_t fill(const char* buffer, size_t length) {
-        size_t rem = capacity() - all_headers_len();
+        size_t rem = capacity() - size();
         size_t total = (length < rem) ? length : rem;
         // copy from buffer to packet buffer
-        memcpy(data() + data_length(), buffer, total);
+        memcpy(tcp_data() + tcp_data_length(), buffer, total);
         // set new packet length
-        set_length(data_length() + total);
+        set_length(tcp_data_length() + total);
         return total;
       }
 
+      /// HELPERS ///
+
       bool is_acked_by(const Seq ack) const
-      { return ack >= (seq() + data_length()); }
+      { return ack >= (seq() + tcp_data_length()); }
 
       bool should_rtx() const
-      { return has_data() or isset(SYN) or isset(FIN); }
+      { return has_tcp_data() or isset(SYN) or isset(FIN); }
 
       inline std::string to_string() {
         std::ostringstream os;
         os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
            << " SEQ:" << seq() << " ACK:" << ack()
-           << " HEAD-LEN:" << (int)header_size() << " OPT-LEN:" << (int)options_length() << " DATA-LEN:" << data_length()
-           << " WIN:" << win() << " FLAGS:" << std::bitset<8>{header().offset_flags.flags}  << " ]";
+           << " HEAD-LEN:" << (int)tcp_header_length() << " OPT-LEN:" << (int)tcp_options_length() << " DATA-LEN:" << tcp_data_length()
+           << " WIN:" << win() << " FLAGS:" << std::bitset<8>{tcp_header().offset_flags.flags}  << " ]";
         return os.str();
+      }
+
+
+    private:
+      // sets the correct length for all the protocols up to IP4
+      void set_length(uint16_t newlen = 0) {
+        // new total packet length
+        set_size( tcp_full_header_length() + newlen );
+        // update IP packet aswell - bad idea?
+        set_segment_length();
       }
 
     }; // << class TCP::Packet
@@ -592,6 +610,10 @@ namespace net {
         ReadRequest(size_t n = 0) :
           buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
           callback([](auto, auto){}) {}
+
+        void clean_up() {
+          callback.reset();
+        }
       };
 
       /*
@@ -615,7 +637,7 @@ namespace net {
         /* Current element (index + 1) */
         uint32_t current;
 
-        WriteQueue() : q(), current(0) {}
+        WriteQueue() : q(), current(1) {}
 
         /*
           Acknowledge n bytes from the write queue.
@@ -632,6 +654,7 @@ namespace net {
             if(buf.done()) {
               q.pop_front();
               current--;
+              debug("<Connection::WriteQueue> Acknowledge done, current-- [%u]\n", current);
             }
           }
         }
@@ -653,7 +676,7 @@ namespace net {
           Can be in the middle/back of the queue due to unacknowledged buffers in front.
         */
         const WriteBuffer& nxt()
-        { return q[current-1].first; }
+        { return q.at(current-1).first; }
 
         /*
           The oldest unacknowledged buffer. (Always in front)
@@ -667,18 +690,18 @@ namespace net {
         */
         void advance(size_t bytes) {
 
-          auto& buf = q[current-1].first;
+          auto& buf = q.at(current-1).first;
           buf.advance(bytes);
 
-          debug2("<Connection::WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+          debug("<Connection::WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
             bytes, buf.offset, buf.remaining, buf.acknowledged);
 
           if(!buf.remaining) {
-            debug("<Connection::WriteQueue> Advance: Done (%u)\n",
-              buf.offset);
             // make sure to advance current before callback is made,
             // but after index (current) is received.
-            q[current++-1].second(buf.offset);
+            q.at(current++-1).second(buf.offset);
+            debug("<Connection::WriteQueue> Advance: Done (%u) current++ [%u]\n",
+              buf.offset, current);
           }
         }
 
@@ -687,11 +710,9 @@ namespace net {
           If the queue was empty/finished, point current to the new request.
         */
         void push_back(const WriteRequest& wr) {
+          debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
+            wr.first.offset, wr.first.remaining, wr.first.acknowledged, current, size());
           q.push_back(wr);
-          debug("<Connection::WriteQueue> Inserted WR: off=%u rem=%u ack=%u\n",
-            wr.first.offset, wr.first.remaining, wr.first.acknowledged);
-          if(current == q.size()-1)
-            current++;
         }
 
         /*
@@ -754,6 +775,17 @@ namespace net {
         Can be used for debugging.
       */
       using PacketDroppedCallback               = delegate<void(TCP::Packet_ptr, std::string)>;
+
+      /**
+       * Emitted on RTO - When the retransmission timer times out, before retransmitting.
+       * Gives the current attempt and the current timeout in seconds.
+       */
+      using RtxTimeoutCallback                = delegate<void(size_t no_attempts, double rto)>;
+
+      /**
+       * Emitted right before the connection gets cleaned up (removed from the TCP)
+       */
+      using CloseCallback                     = delegate<void()>;
 
 
       /*
@@ -961,6 +993,8 @@ namespace net {
       */
       Connection(TCP& host, Port local_port, Socket remote);
 
+      Connection(const Connection&) = default;
+
       /*
         The hosting TCP instance.
       */
@@ -1124,6 +1158,18 @@ namespace net {
         on_packet_dropped_ = callback;
         return *this;
       }
+
+      inline Connection& on_rtx_timeout(RtxTimeoutCallback cb) {
+        on_rtx_timeout_ = cb;
+        return *this;
+      }
+
+      inline Connection& on_close(CloseCallback cb) {
+        on_close_ = cb;
+        return *this;
+      }
+
+      void setup_default_callbacks();
 
       /*
         Represent the Connection as a string (STATUS).
@@ -1369,9 +1415,8 @@ namespace net {
       };
 
       /* When Connection is CLOSING. */
-      DisconnectCallback on_disconnect_ = [](std::shared_ptr<Connection>, Disconnect) {
-        //debug2("<TCP::Connection::@Disconnect> Connection disconnect. Reason: %s \n", msg.c_str());
-      };
+      DisconnectCallback on_disconnect_;
+      void default_on_disconnect(Connection_ptr, Disconnect);
 
       /* When error occcured. */
       ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
@@ -1389,6 +1434,10 @@ namespace net {
         //debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
         //      packet->to_string().c_str(), reason.c_str());
       };
+
+      RtxTimeoutCallback on_rtx_timeout_ = [](size_t, double) {};
+
+      CloseCallback on_close_ = [] {};
 
 
       /// READING ///
@@ -1500,6 +1549,8 @@ namespace net {
       inline void signal_packet_received(TCP::Packet_ptr packet) { on_packet_received_(shared_from_this(), packet); }
 
       inline void signal_packet_dropped(TCP::Packet_ptr packet, std::string reason) { on_packet_dropped_(packet, reason); }
+
+      inline void signal_rtx_timeout() { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
 
       /*
         Drop a packet. Used for debug/callback.
@@ -1724,7 +1775,7 @@ namespace net {
       /*
         Number of retransmission attempts on the packet first in RT-queue
       */
-      size_t rto_attempt = 0;
+      size_t rtx_attempt_ = 0;
       // number of retransmitted SYN packets.
       size_t syn_rtx_ = 0;
 
@@ -1732,7 +1783,7 @@ namespace net {
         Retransmission timeout limit reached
       */
       inline bool rto_limit_reached() const
-      { return rto_attempt >= 15 or syn_rtx_ >= 5; };
+      { return rtx_attempt_ >= 15 or syn_rtx_ >= 5; };
 
       /*
         Remove all packets acknowledge by ACK in retransmission queue
@@ -1759,6 +1810,13 @@ namespace net {
         Tell the host (TCP) to delete this connection.
       */
       void signal_close();
+
+      /**
+       * @brief Clean up user callbacks
+       * @details Removes all the user defined lambdas to avoid any potential
+       * copies of a Connection_ptr to the this connection.
+       */
+      void clean_up();
 
 
       /// OPTIONS ///
@@ -1874,8 +1932,8 @@ namespace net {
     inline std::string status() const
     { return to_string(); }
 
-
-
+    inline size_t writeq_size() const
+    { return writeq.size(); }
 
   private:
 

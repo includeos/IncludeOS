@@ -51,7 +51,10 @@ TCP::Connection& TCP::bind(Port port) {
   if(listeners_.find(port) != listeners_.end()) {
     throw TCPException{"Port is already taken."};
   }
-  auto& connection = (listeners_.emplace(port, Connection{*this, port})).first->second;
+  auto& connection = (listeners_.emplace(std::piecewise_construct,
+    std::forward_as_tuple(port),
+    std::forward_as_tuple(*this, port))
+    ).first->second;
   debug("<TCP::bind> Bound to port %i \n", port);
   connection.open(false);
   return connection;
@@ -117,7 +120,7 @@ bool TCP::port_in_use(const TCP::Port port) const {
 
 uint16_t TCP::checksum(TCP::Packet_ptr packet) {
   // TCP header
-  TCP::Header* tcp_hdr = &(packet->header());
+  TCP::Header* tcp_hdr = &(packet->tcp_header());
   // Pseudo header
   TCP::Pseudo_header pseudo_hdr;
 
@@ -256,11 +259,11 @@ string TCP::to_string() const {
   // Write all connections in a cute list.
   stringstream ss;
   ss << "LISTENING SOCKETS:\n";
-  for(auto listen_it : listeners_) {
+  for(auto& listen_it : listeners_) {
     ss << listen_it.second.to_string() << "\n";
   }
   ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
-  for(auto con_it : connections_) {
+  for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
     ss << "tcp4\t"
        << " " << "\t" << " " << "\t"
