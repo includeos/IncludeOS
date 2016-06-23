@@ -14,3 +14,4 @@ sudo mount -o rw $FAT_DISK mnt/
 
 echo -e ">>> Copy content from disk1/ to $FAT_DISK"
 sudo cp -r disk1/. mnt/
+sync
