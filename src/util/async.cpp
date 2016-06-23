@@ -43,9 +43,10 @@ void Async::disk_transfer(
 {
   typedef std::function<void(size_t)> next_func_t;
   auto next = std::make_shared<next_func_t> ();
+  auto weak_next = std::weak_ptr<next_func_t>(next);
 
   *next =
-  [next, disk, ent, write_func, callback, CHUNK_SIZE] (size_t pos) {
+  [weak_next, disk, ent, write_func, callback, CHUNK_SIZE] (size_t pos) {
 
     // number of write calls necessary
     const size_t writes = roundup(ent.size(), CHUNK_SIZE);
@@ -55,7 +56,7 @@ void Async::disk_transfer(
       callback(fs::no_error, true);
       return;
     }
-
+    auto next = weak_next.lock();
     // read chunk from file
     disk->fs().read(ent, pos * CHUNK_SIZE, CHUNK_SIZE,
     [next, pos, write_func, callback, CHUNK_SIZE] (
