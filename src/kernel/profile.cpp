@@ -142,3 +142,22 @@ void print_stack_sampling(int results)
   }
   printf("*** ---------------------- ***\n");
 }
+
+
+void failure(char const* where)
+{
+  printf("\n[FAILURE] %s\n", where);
+  while (true)
+    asm volatile("cli; hlt");
+}
+
+void validate_stacktrace(char const* where)
+{
+  func_offset func;
+  
+  func = Elf::resolve_symbol((void*) &validate_stacktrace);
+  if (func.name != "validate_stacktrace(char const*)") failure(where);
+  
+  func = Elf::resolve_symbol((void*) &print_stack_sampling);
+  if (func.name != "print_stack_sampling(int)") failure(where);
+}
