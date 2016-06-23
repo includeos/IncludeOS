@@ -6,9 +6,14 @@ Interfaces with openstack to start, stop, create and delete VM's
 
 import os
 import sys
+import ConfigParser
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 import novaclient.client
+
+# Initiates the ConfigParser
+Config = ConfigParser.ConfigParser()
+Config.read('openstack.conf')
 
 # Initiates the authentication used towards OpenStack
 auth = v3.Password(auth_url=os.environ['OS_AUTH_URL'],
@@ -20,9 +25,30 @@ auth = v3.Password(auth_url=os.environ['OS_AUTH_URL'],
 sess = session.Session(auth=auth)
 nova = novaclient.client.Client(2, session=sess)
 
-def vm_create(name, image, key_pair, flavor):
-	""" Creates a VM """
-	pass
+def vm_create(name, 
+              image = Config.get('Openstack','image'), 
+              key_pair = Config.get('Openstack','key_pair'), 
+              flavor = Config.get('Openstack','flavor'),
+              network_name = Config.get('Openstack','network_name'),
+              network_id = Config.get('Openstack','network_id')):
+    """ Creates a VM 
+
+    name = Name of VM
+    image = Name of image file to use. (Ubuntu_16.04_LTS, Ubuntu 14.04 LTS)
+    key_pair = Name of ssh key pair to inject into VM
+    flavor = Resources to dedicate to VM (g1.small/medium/large)
+    network_id = Network to connect to
+    """
+    #print help(nova.servers)
+    print key_pair
+    print image
+    print "image {0}".format(image)
+    #nics = [{"net_id": network_id, "v4-fixed-ip": ''}]
+    nics = [{"net-id": nova.networks.find(label=network_name).id, "v4-fixed-ip": ''}]
+    print nics
+    #nova.servers.create(name, 'ec99573c-065f-4ee9-b56c-9fb07e51f322',
+    #                    '7671e72b-c575-4bee-9fe0-c62c7d2fcc9b',
+    #                    nics=nics)
 
 def vm_delete(name):
     """ Deletes a VM """
@@ -66,22 +92,23 @@ def vm_status(name):
     ip = networks[network_id][0]['addr']
     status_dict['network'] = ip
 
+    # Images
+    print server_info['image']
     return status_dict
 
 
 def vm_stop(name):
-	""" Stops a VM """
-	pass
+    """ Stops a VM """
+    pass
 
 def vm_start(name):
-	""" Starts a VM """
-	pass
+    """ Starts a VM """
+    pass
 
 def main():
-    status = vm_status("jenkins_master")
-    print status
     print vm_status('pull_request_1')
+    vm_create('test_script')
     return
 
 if __name__ == '__main__':
-	main()
+    main()
