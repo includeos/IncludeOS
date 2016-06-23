@@ -2,6 +2,8 @@
 
 using namespace server;
 
+Response::OnSent Response::on_sent_ = [](size_t){};
+
 Response::Response(Connection_ptr conn)
   : http::Response(), conn_(conn)
 {
@@ -17,16 +19,13 @@ void Response::send(bool close) const {
 
 void Response::write_to_conn(bool close_on_written) const {
   auto res = to_string();
-
-  if(!close_on_written) {
-    conn_->write(res.data(), res.size());
-  }
-  else {
-    auto conn = conn_;
-    conn_->write(res.data(), res.size(), [conn](size_t) {
-      conn->close();
+  auto conn = conn_;
+  conn_->write(res.data(), res.size(),
+    [conn, close_on_written](size_t n) {
+      on_sent_(n);
+      if(close_on_written)
+        conn->close();
     });
-  }
 }
 
 void Response::send_code(const Code code) {
@@ -49,13 +48,17 @@ void Response::send_file(const File& file) {
   printf("<Response> Sending file: %s (%llu B).\n",
     entry.name().c_str(), entry.size());
 
+  //auto buffer = file.disk->fs().read(entry, 0, entry.size());
+  //printf("<Respone> Content:%.*s\n", buffer.size(), buffer.data());
+
   Async::upload_file(file.disk, file.entry, conn,
     [conn, entry](fs::error_t err, bool good)
   {
       if(good) {
         printf("<Response> Success sending %s => %s\n",
           entry.name().c_str(), conn->remote().to_string().c_str());
-        //conn->close();
+
+        on_sent_(entry.size());
       }
       else {
         printf("<Response> Error sending %s => %s [%s]\n",
@@ -80,4 +83,8 @@ void Response::error(Error&& err) {
 
 void Response::end() const {
   // Response ended, signal server?
+}
+
+Response::~Response() {
+  //printf("<Response> Deleted\n");
 }
