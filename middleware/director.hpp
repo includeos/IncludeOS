@@ -33,6 +33,7 @@ public:
     server::Next next
     ) override
   {
+    printf("<Director> next=%ld\n", next.use_count());
     // get path
     std::string path = req->uri().path();
 
@@ -42,6 +43,7 @@ public:
 
     normalize_trailing_slashes(path);
     disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
+      printf("<Director> next=%ld\n", next.use_count());
       // Path not found on filesystem, go next
       if(err) {
         return (*next)();

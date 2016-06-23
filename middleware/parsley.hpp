@@ -22,11 +22,11 @@ public:
     using namespace json;
 
     if(!has_json(req)) {
-      printf("<Parsley> No JSON in header field.\n");
+      //printf("<Parsley> No JSON in header field.\n");
       (*next)();
       return;
     }
-    printf("<Parsley> Found json header\n");
+    //printf("<Parsley> Found json header\n");
 
     // Request doesn't have JSON attribute
     if(!req->has_attribute<JsonDoc>()) {
