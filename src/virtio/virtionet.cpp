@@ -173,7 +173,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 int VirtioNet::add_receive_buffer(){
 
   // Virtio Std. § 5.1.6.3
-  auto buf = bufstore_.get_raw_buffer();
+  auto* buf = new uint8_t[bufsize()];
 
   debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
@@ -240,6 +240,19 @@ void VirtioNet::irq_handler(){
 
 }
 
+auto create_packet(uint8_t* data, size_t sz, size_t cap)
+{
+  typedef VirtioNet::virtio_net_hdr vnet_hdr;
+  
+  return std::make_shared<Packet>(
+        data + sizeof(vnet_hdr),
+        cap - sizeof(vnet_hdr), 
+        sz - sizeof(vnet_hdr), 
+    [data] (uint8_t*, size_t) {
+      delete[] data;
+    });
+}
+
 void VirtioNet::service_queues(){
   debug2("<RX Queue> %i new packets \n",
          rx_q.new_incoming());
@@ -265,10 +278,13 @@ void VirtioNet::service_queues(){
       data = (uint8_t*) res.data();
       len += res.size();
 
+      /*
       auto pckt_ptr = std::make_shared<Packet>
         (data + sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
          bufsize()-sizeof(virtio_net_hdr), // Capacity
          res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
+      */
+      auto pckt_ptr = create_packet(data, res.size(), bufsize());
 
       _link_out(pckt_ptr);
 
