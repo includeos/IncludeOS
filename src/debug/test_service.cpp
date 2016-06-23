@@ -131,6 +131,7 @@ void process_eh_frame(char* loc)
 
 #include <kernel/elf.hpp>
 #include <debug_new>
+#include <debug_shared>
 
 void Service::start()
 {
@@ -166,6 +167,12 @@ void Service::start()
   DELETE_ARRAY(testarr);
   
   debug_new_print_entries();
+  
+  
+  auto test = make_debug_shared<int> (4);
+  auto crash = debug_ptr<int> (nullptr, [] (void*) { printf("custom deleter\n"); });
+  *crash;
+  
   return;
   
   // boilerplate
