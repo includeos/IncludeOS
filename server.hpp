@@ -113,6 +113,9 @@ public:
 
   void use(const Path&, Callback);
 
+  size_t active_clients() const
+  { return connections_.size() - free_idx_.size(); }
+
 private:
   //-------------------------------
   // Class data members
@@ -144,6 +147,8 @@ private:
   void connect(net::TCP::Connection_ptr);
 
   void process_route(Request_ptr, Response_ptr);
+
+  Next create_next(std::shared_ptr<MiddlewareStack::iterator>, Request_ptr, Response_ptr);
 
 }; //< class Server
 

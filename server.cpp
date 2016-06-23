@@ -36,7 +36,7 @@ void Server::connect(net::TCP::Connection_ptr conn) {
   }
   // if not, add a new shared ptr
   else {
-    connections_.emplace_back(new Connection{*this, conn, connections_.size()});
+    connections_.emplace_back(std::make_shared<Connection>(*this, conn, connections_.size()));
   }
 }
 
@@ -57,37 +57,38 @@ void Server::close(size_t idx) {
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
-  auto next = std::make_shared<next_t>();
   auto it_ptr = std::make_shared<MiddlewareStack::iterator>(middleware_.begin());
-  // setup Next callback
-  *next = [this, it_ptr, next, req, res] {
-    // derefence the the pointer to the iterator
-    auto& it = *it_ptr;
-
-    // skip does who don't match
-    while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
-      it++;
-
-    // while there is more to do
-    if(it != middleware_.end()) {
-      // dereference the function
-      auto& func = it->callback;
-      // advance the iterator for the next next call
-      it++;
-      // execute the function
-      func(req, res, next);
-    }
-    // no more middleware, proceed with route processing
-    else {
-      process_route(req, res);
-    }
-  };
   // get the party started..
-  (*next)();
+  (*create_next(it_ptr, req, res))();
 }
 
+Next Server::create_next(std::shared_ptr<MiddlewareStack::iterator> it_ptr, Request_ptr req, Response_ptr res) {
+  auto next = std::make_shared<next_t>();
+  auto& it = *it_ptr;
+
+  while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
+    it++;
+
+  if(it != middleware_.end()) {
+    // dereference the function
+    auto& func = it->callback;
+    // advance the iterator for the next next call
+    it++;
+    *next = [it_ptr, req, res, this, &func] {
+      func(req, res, create_next(it_ptr, req, res));
+    };
+  }
+  else {
+    *next = [req, res, this] {
+      process_route(req, res);
+    };
+  }
+  return next;
+}
+
+
 void Server::process_route(Request_ptr req, Response_ptr res) {
-  printf("<Server> Processing route.\n");
+  //printf("<Server> Processing route.\n");
   try {
     router_.match(req->method(), req->uri().path())(req, res);
   }
