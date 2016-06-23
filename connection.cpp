@@ -3,12 +3,16 @@
 
 using namespace server;
 
+Connection::OnConnection Connection::on_connection_ = []{};
+
 Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
   : server_(serv), conn_(conn), idx_(idx)
 {
   conn_->read(BUFSIZE, OnData::from<Connection, &Connection::on_data>(this));
   conn_->onDisconnect(OnDisconnect::from<Connection, &Connection::on_disconnect>(this));
   conn_->onError(OnError::from<Connection, &Connection::on_error>(this));
+  on_connection_();
+  //conn_->onPacketDropped(OnPacketDropped::from<Connection, &Connection::on_packet_dropped>(this));
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
@@ -37,12 +41,13 @@ void Connection::on_data(buffer_t buf, size_t n) {
     // if we haven't received all data promised
     printf("<%s> Received payload - Expected: %u - Recv: %u\n",
       to_string().c_str(), request_->content_length(), request_->payload_length());
-    if(request_->is_complete())
+    if(!request_->is_complete())
       return;
   }
 
-  assert(request_->is_complete());
-  printf("<%s> Complete Request: [%s] Data (%u/%u B)\n",
+  request_->complete();
+
+  printf("<%s> Complete Request: [%s] Payload (%u/%u B)\n",
     to_string().c_str(),
     request_->route_string().c_str(),
     request_->payload_length(),
@@ -50,12 +55,13 @@ void Connection::on_data(buffer_t buf, size_t n) {
     );
 
   response_ = std::make_shared<Response>(conn_);
-
   server_.process(request_, response_);
   request_ = nullptr;
 }
 
-void Connection::on_disconnect(Connection_ptr, Disconnect) {
+void Connection::on_disconnect(Connection_ptr, Disconnect reason) {
+  printf("<%s> Disconnect: %s\n",
+    to_string().c_str(), reason.to_string().c_str());
   close();
 }
 
@@ -64,7 +70,18 @@ void Connection::on_error(Connection_ptr, TCPException err) {
     to_string().c_str(), err.what());
 }
 
+void Connection::on_packet_dropped(Packet_ptr, std::string reason) {
+  printf("<%s> Packet dropped: %s\n",
+    to_string().c_str(), reason.c_str());
+}
+
 void Connection::close() {
+  request_ = nullptr;
+  response_ = nullptr;
   conn_->close();
   server_.close(idx_);
+}
+
+Connection::~Connection() {
+  //printf("<%s> Deleted\n", to_string().c_str());
 }

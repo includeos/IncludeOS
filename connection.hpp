@@ -23,6 +23,10 @@ private:
   using OnDisconnect = net::TCP::Connection::DisconnectCallback;
   using OnError = net::TCP::Connection::ErrorCallback;
   using TCPException = net::TCP::TCPException;
+  using OnPacketDropped = net::TCP::Connection::PacketDroppedCallback;
+  using Packet_ptr = net::TCP::Packet_ptr;
+
+  using OnConnection = std::function<void()>;
 
 public:
   Connection(Server&, Connection_ptr, size_t idx);
@@ -39,6 +43,10 @@ public:
   inline std::string to_string() const
   { return "Connection:[" + conn_->remote().to_string() + "]"; }
 
+  static void on_connection(OnConnection cb)
+  { on_connection_ = cb; }
+
+  ~Connection();
 
 private:
   Server& server_;
@@ -47,11 +55,15 @@ private:
   Response_ptr response_;
   size_t idx_;
 
+  static OnConnection on_connection_;
+
   void on_data(buffer_t, size_t);
 
   void on_disconnect(Connection_ptr, Disconnect);
 
   void on_error(Connection_ptr, TCPException);
+
+  void on_packet_dropped(Packet_ptr, std::string);
 
 }; // < server::Connection
 
