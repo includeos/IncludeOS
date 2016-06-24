@@ -124,8 +124,7 @@ public:
 
   constexpr uint16_t bufsize() const {
     return MTU() +
-      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer) +
-      sizeof(virtio_net_hdr); }
+      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
@@ -234,7 +233,7 @@ private:
   void irq_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  int add_receive_buffer();
+  void add_receive_buffer();
 
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
