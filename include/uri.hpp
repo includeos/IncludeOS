@@ -28,18 +28,6 @@ namespace uri {
    * Ref. https://tools.ietf.org/html/rfc3986
    **/
   class URI {
-  private:
-    /** Non-owning pointer-size type */
-    struct Span_t {
-      size_t begin;
-      size_t end;
-
-      Span_t(const size_t b = 0U, const size_t e = 0U) noexcept
-        : begin{b}
-        , end{e}
-      {}
-    }; //< struct Span_t
-
   public:
     /*
      * Default constructor
@@ -76,15 +64,24 @@ namespace uri {
     URI(const char* uri);
 
     /**
-     * @brief Construct using a string
+     * @brief Construct using a {std::string}
      *
-     * @param uri : A string representing a uri
+     * @param uri : A {std::string} representing a uri
      */
     URI(const std::string& uri);
-    
+
     ///////////////////////////////////////////////
     //----------RFC-specified URI parts----------//
     ///////////////////////////////////////////////
+
+    /**
+     * @brief Get scheme.
+     *
+     * E.g. 'http', 'file', 'ftp' etc.
+     *
+     * @return The scheme
+     */
+    const std::string& scheme() const noexcept;
 
     /**
      * @brief Get userinfo.
@@ -93,7 +90,7 @@ namespace uri {
      *
      * @return The user's information
      */
-    std::string userinfo() const;
+    const std::string& userinfo() const noexcept;
 
     /**
      * @brief Get host.
@@ -102,14 +99,14 @@ namespace uri {
      *
      * @return The host's information
      */
-    std::string host() const;
+    const std::string& host() const noexcept;
 
     /**
      * @brief Get the raw port number in decimal character representation.
      *
      * @return The raw port number as a string
      */
-    std::string port_str() const;
+    const std::string& port_str() const noexcept;
 
     /**
      * @brief Get numeric port number.
@@ -128,14 +125,14 @@ namespace uri {
      *
      * @return The path information
      */
-    std::string path() const;
+    const std::string& path() const noexcept;
 
     /**
      * @brief Get the complete unparsed query string.
      *
      * @return The complete unparsed query string
      */
-    std::string query() const;
+    const std::string& query() const noexcept;
 
     /**
      * @brief Get the fragment part.
@@ -144,7 +141,7 @@ namespace uri {
      *
      * @return the fragment part
      */
-    std::string fragment() const;
+    const std::string& fragment() const noexcept;
 
     /**
      * @brief Get the URI-decoded value of a query-string key.
@@ -156,7 +153,7 @@ namespace uri {
      * @example For the query: "?name=Bjarne%20Stroustrup",
      * query("name") returns "Bjarne Stroustrup"
      */
-    std::string query(const std::string& key);
+    const std::string& query(const std::string& key);
 
     /**
      * @brief Get a string representation of this
@@ -166,36 +163,54 @@ namespace uri {
      */
     std::string to_string() const;
 
+    /**
+     * @brief Operator to transform this class
+     * into string form
+     */
+    operator std::string () const;
+
   private:
+    /*
+     * A copy of the data representing a uri
+     */
+    const std::string uri_str_;
+
+    mutable uint16_t port_;
+
+    std::string scheme_;
+    std::string userinfo_;
+    std::string host_;
+    std::string port_str_;
+    std::string path_;
+    std::string query_;
+    std::string fragment_;
 
     std::unordered_map<std::string,std::string> queries_;
-    Span_t uri_data_;
-    Span_t userinfo_;
-    Span_t host_;
-    Span_t port_str_;
-    uint16_t port_ = 0;
-    Span_t path_;
-    Span_t query_;
-    Span_t fragment_;
-
-    static const Span_t zero_span_;
-
-    // A copy of the data, if the string-based constructor was used
-    std::string uri_str_;
 
     /**
-     * @brief Parse the given string representing a uri
+     * @brief Parse the given {std::string} representing a uri
      * into its given parts according to RFC 3986
-     *
-     * @param uri : The string representing a uri
      */
-    void parse(const std::string& uri);
+    void parse();
+
+    /**
+     * @brief Load queries into the map
+     */
+    void load_queries();
 
   }; // class uri::URI
 
-
-  std::ostream& operator<< (std::ostream&, const URI&);
+  /**
+   * @brief Operator to stream the contents of a {URI}
+   * to the specified output stream device
+   *
+   * @param output_device : The output stream device
+   * @param uri : The {URI} to send to the output stream
+   *
+   * @return A reference to the specified output stream device
+   */
+  std::ostream& operator<< (std::ostream& output_device, const URI& uri);
 
 } // namespace uri
 
-#endif
+#endif //< URI_HPP
