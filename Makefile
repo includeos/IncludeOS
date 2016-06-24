@@ -17,7 +17,7 @@
 
 
 # Project specific
-NAME=uri
+NAME=liburi
 INCLUDES=-I./include -I./GSL/include
 
 # The rest is generic
@@ -29,7 +29,7 @@ CXXFLAGS=-std=c++14 -Wall -Wextra -Ofast
 CPP_SOURCES=${wildcard src/*.cpp}
 OBJECTS=${CPP_SOURCES:.cpp=.o}
 
-LIB=lib/$(NAME).a
+LIB=lib/${NAME}.a
 
 ifndef INCLUDEOS_INSTALL
 	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
