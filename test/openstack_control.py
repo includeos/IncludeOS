@@ -6,6 +6,7 @@ Interfaces with openstack to start, stop, create and delete VM's
 
 import os
 import ConfigParser
+import argparse
 import time
 import subprocess
 from keystoneauth1.identity import v3
@@ -174,11 +175,49 @@ def vm_start(name):
 
 
 def main():
-    name = 'test_script'
-    vm_create(name)
-    vm_stop(name)
-    vm_start(name)
-    vm_delete(name)
+
+    parser = argparse.ArgumentParser(description="Lets you create, start, \
+                                     stop and delete Openstack VM's")
+
+    parser.add_argument("name", help="Name of the VM")
+    parser.add_argument("--image", default=Config.get('Openstack', 'image'),
+                        help="ID of Openstack image to use")
+    parser.add_argument("--key_pair",
+                        default=Config.get('Openstack', 'key_pair'),
+                        help="Name of key pair to use")
+    parser.add_argument("--flavor",
+                        default=Config.get('Openstack', 'flavor'),
+                        help="ID of flavor to use")
+    parser.add_argument("--network_name",
+                        default=Config.get('Openstack', 'network_name'),
+                        help="Name of network to connect to")
+
+    # Calling functions
+    parser.add_argument("--vm_status", action="store_const",
+                        const=vm_status, dest="cmd",
+                        help="Return status of VM")
+    parser.add_argument("--vm_create", action="store_const",
+                        const=vm_create, dest="cmd",
+                        help="Creates a new VM")
+    parser.add_argument("--vm_delete", action="store_const",
+                        const=vm_delete, dest="cmd",
+                        help="Delete the VM")
+    parser.add_argument("--vm_start", action="store_const",
+                        const=vm_start, dest="cmd",
+                        help="Start the VM")
+    parser.add_argument("--vm_stop", action="store_const",
+                        const=vm_stop, dest="cmd",
+                        help="Stop the VM")
+
+    args = parser.parse_args()
+    if args.cmd is None:
+        args.parse_args(['-h'])
+    elif args.cmd is 'vm_create':
+        args.cmd(args.name, image=args.image, flavor=args.flavor,
+                 key_pair=args.key_pair, network_name=args.network_name)
+    else:
+        args.cmd(args.name)
+
     return
 
 if __name__ == '__main__':
