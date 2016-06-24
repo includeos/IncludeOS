@@ -19,7 +19,7 @@ MOD_FILES =
 FILES += $(MOD_FILES)
 
 # Your own include-path
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat

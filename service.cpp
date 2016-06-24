@@ -185,39 +185,6 @@ void Service::start() {
 
       server::Router routes;
 
-      routes.on_get("/api/users/.*", [](auto, auto res) {
-          res->add_header(http::header_fields::Entity::Content_Type,
-                          "text/JSON; charset=utf-8"s)
-            .add_body("{\"id\" : 1, \"name\" : \"alfred\"}"s);
-
-          res->send();
-        });
-
-      routes.on_get("/images/.*", [](auto req, auto res) {
-          disk->fs().stat(req->uri().path(), [res](auto err, const auto& entry) {
-              if(!err)
-                res->send_file({disk, entry});
-              else
-                res->send_code(http::Not_Found);
-        });
-
-      });
-
-      /* Route: GET / */
-      routes.on_get(R"(index\.html?|\/|\?)", [](auto, auto res){
-          disk->fs().readFile("/index.html", [res] (fs::error_t err, fs::buffer_t buff, size_t len) {
-              if(err) {
-                res->set_status_code(http::Not_Found);
-              } else {
-                // fill Response with content from index.html
-                printf("[@GET:/] Responding with index.html. \n");
-                res->add_header(http::header_fields::Entity::Content_Type, "text/html; charset=utf-8"s)
-                  .add_body(std::string{(const char*) buff.get(), len});
-              }
-              res->send();
-            });
-        }); // << fs().readFile
-
       routes.on_get("/api/squirrels", [](auto, auto res) {
         printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
         using namespace rapidjson;
@@ -317,7 +284,7 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
-      hw::PIT::instance().onRepeatedTimeout(1min, []{
+      hw::PIT::instance().on_repeated_timeout(1min, []{
         printf("@onTimeout [%s]\n%s\n",
           cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
       });

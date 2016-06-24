@@ -45,8 +45,10 @@ void Response::send_file(const File& file) {
 
   /* Send file over connection */
   auto conn = conn_;
+  #ifdef VERBOSE_WEBSERVER
   printf("<Response> Sending file: %s (%llu B).\n",
     entry.name().c_str(), entry.size());
+  #endif
 
   //auto buffer = file.disk->fs().read(entry, 0, entry.size());
   //printf("<Respone> Content:%.*s\n", buffer.size(), buffer.data());
@@ -55,8 +57,10 @@ void Response::send_file(const File& file) {
     [conn, entry](fs::error_t err, bool good)
   {
       if(good) {
+        #ifdef VERBOSE_WEBSERVER
         printf("<Response> Success sending %s => %s\n",
           entry.name().c_str(), conn->remote().to_string().c_str());
+        #endif
 
         on_sent_(entry.size());
       }
