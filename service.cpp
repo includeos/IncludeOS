@@ -63,6 +63,45 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
 }
 
 
+struct Statistics {
+  uint64_t DATA_RECV;
+  uint64_t DATA_SENT;
+
+  uint64_t REQ_RECV;
+  uint64_t RES_SENT;
+
+  uint64_t NO_CONN;
+
+  template<typename Writer>
+  void serialize(Writer& writer) const {
+    writer.StartObject();
+
+    writer.Key("DATA_RECV");
+    writer.Uint64(DATA_RECV);
+
+    writer.Key("DATA_SENT");
+    writer.Uint64(DATA_SENT);
+
+    writer.Key("REQ_RECV");
+    writer.Uint64(REQ_RECV);
+
+    writer.Key("RES_SENT");
+    writer.Uint64(RES_SENT);
+
+    writer.Key("NO_CONN");
+    writer.Uint64(NO_CONN);
+
+    writer.Key("ACTIVE_CONN");
+    writer.Uint(server_->active_clients());
+
+    writer.Key("MEM_USAGE");
+    writer.Uint(OS::memory_usage());
+
+    writer.EndObject();
+  }
+
+} stats;
+
 template <typename PTR>
 class BufferWrapper {
 
@@ -107,6 +146,20 @@ void Service::start() {
   disk->mount([](fs::error_t err) {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
+
+      server::Connection::on_connection([](){
+        stats.NO_CONN++;
+      });
+
+      server::Response::on_sent([](size_t n) {
+        stats.DATA_SENT += n;
+        stats.RES_SENT++;
+      });
+
+      server::Request::on_recv([](size_t n) {
+        stats.DATA_RECV += n;
+        stats.REQ_RECV++;
+      });
 
       // setup "database"
       squirrels = std::make_shared<SquirrelBucket>();
@@ -163,7 +216,6 @@ void Service::start() {
               }
               res->send();
             });
-
         }); // << fs().readFile
 
       routes.on_get("/api/squirrels", [](auto, auto res) {
@@ -216,6 +268,14 @@ void Service::start() {
 
       });
 
+      routes.on_get("/api/stats", [](auto, auto res) {
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        stats.serialize(writer);
+        res->send_json(sb.GetString());
+      });
+
       routes.on_get(".*", [](auto, auto res){
         printf("[@GET:*] Fallback route - try to serve index.html\n");
         disk->fs().stat("/public/index.html", [res](auto err, const auto& entry) {
@@ -262,5 +322,5 @@ void Service::start() {
           cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
-    }); // < disk*/
+    }); // < disk
 }

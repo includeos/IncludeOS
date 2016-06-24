@@ -20,6 +20,8 @@ private:
   using Parent = http::Request;
   using buffer_t = std::shared_ptr<uint8_t>;
 
+  using OnRecv = std::function<void(size_t)>;
+
 public:
   // inherit constructors
   using Parent::Parent;
@@ -62,12 +64,23 @@ public:
   inline size_t payload_length() const
   { return get_body().size(); }
 
+  inline size_t total_length() const
+  { return to_string().size(); }
+
   // TODO: This should be EQUAL (==) to avoid receiving more data then announced
   inline bool is_complete() const
   { return payload_length() >= content_length(); }
 
   inline std::string route_string() const
   { return "@" + http::method::str(method()) + ":" + uri().path(); }
+
+
+  static void on_recv(OnRecv cb)
+  { on_recv_ = cb; }
+
+  void complete();
+
+  ~Request();
 
 private:
   /**
@@ -77,6 +90,9 @@ private:
    * (Since we got more than one request, an Attribute can't be static)
    */
   std::map<AttrType, Attribute_ptr> attributes_;
+
+
+  static OnRecv on_recv_;
 
 }; // < server::Request
 

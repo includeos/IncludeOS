@@ -2,10 +2,18 @@
 
 using namespace server;
 
+Request::OnRecv Request::on_recv_ = [](size_t) {};
+
 Request::Request(buffer_t buf, size_t n)
   : Parent(std::string{(char*)buf.get(), n})
 {
 
+}
+
+
+void Request::complete() {
+  assert(is_complete());
+  on_recv_(total_length());
 }
 
 size_t Request::content_length() const {
@@ -18,4 +26,8 @@ size_t Request::content_length() const {
   catch(...) {
     return 0;
   }
+}
+
+Request::~Request() {
+  //printf("<Request> Deleted\n");
 }

@@ -30,6 +30,7 @@ class Response : public http::Response {
 private:
   using Code = http::status_t;
   using Connection_ptr = net::TCP::Connection_ptr;
+  using OnSent = std::function<void(size_t)>;
 
 public:
 
@@ -86,8 +87,16 @@ public:
   */
   void end() const;
 
+
+  static void on_sent(OnSent cb)
+  { on_sent_ = cb; }
+
+  ~Response();
+
 private:
   Connection_ptr conn_;
+
+  static OnSent on_sent_;
 
   bool keep_alive = true;
 

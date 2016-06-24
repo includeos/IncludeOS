@@ -45,6 +45,37 @@
 <div ng-view></div>
 <!--<div ng-include='"templates/footer.html"'></div>-->
 
+<div id="footer" class="container">
+  <hr/>
+  <table class="table table-condensed">
+    <thead>
+      <tr>
+        <th>Received</th>
+        <th>Sent</th>
+        <th>Requests</th>
+        <th>Responses</th>
+        <th>Total Conn.</th>
+        <th>Active Conn.</th>
+        <th>Memory Usage</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        <td><span id="stats_recv">0</span></td>
+        <td><span id="stats_sent">0</span></td>
+        <td><span id="stats_req">0</span></td>
+        <td><span id="stats_res">0</span></td>
+        <td><span id="stats_conn">0</span></td>
+        <td><span id="stats_active">0</span></td>
+        <td><span id="stats_mem">0</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+
+</div>
+
 <!-- Vendor: Javascripts -->
 <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
@@ -57,7 +88,6 @@
 <!-- angular-toastr -->
 <script src="//npmcdn.com/angular-toastr/dist/angular-toastr.tpls.js"></script>
 
-
 <!-- Our Website Javascripts -->
 <script src="js/app.js"></script>
 
@@ -65,6 +95,9 @@
 <script src="js/controllers/squirrel.js"></script>
 
 <script src="js/services/squirrel.js"></script>
+
+<!-- Polling stats -->
+<script src="js/stats.js"></script>
 
 </body>
 </html>
