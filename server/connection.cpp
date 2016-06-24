@@ -16,7 +16,9 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
+  #ifdef VERBOSE_WEBSERVER
   printf("<%s> @on_data, size=%u\n", to_string().c_str(), n);
+  #endif
   // if it's a new request
   if(!request_) {
     try {
@@ -47,12 +49,14 @@ void Connection::on_data(buffer_t buf, size_t n) {
 
   request_->complete();
 
+  #ifdef VERBOSE_WEBSERVER
   printf("<%s> Complete Request: [%s] Payload (%u/%u B)\n",
     to_string().c_str(),
     request_->route_string().c_str(),
     request_->payload_length(),
     request_->content_length()
     );
+  #endif
 
   response_ = std::make_shared<Response>(conn_);
   server_.process(request_, response_);
@@ -60,8 +64,10 @@ void Connection::on_data(buffer_t buf, size_t n) {
 }
 
 void Connection::on_disconnect(Connection_ptr, Disconnect reason) {
+  #ifdef VERBOSE_WEBSERVER
   printf("<%s> Disconnect: %s\n",
     to_string().c_str(), reason.to_string().c_str());
+  #endif
   close();
 }
 

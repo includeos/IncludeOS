@@ -26,7 +26,9 @@ void Server::listen(Port port) {
 }
 
 void Server::connect(net::TCP::Connection_ptr conn) {
+  #ifdef VERBOSE_WEBSERVER
   printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
+  #endif
   // if there is a free spot in connections
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
