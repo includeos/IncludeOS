@@ -7,13 +7,14 @@ Interfaces with openstack to start, stop, create and delete VM's
 import os
 import ConfigParser
 import time
+import subprocess
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 import novaclient.client
 
 # Initiates the ConfigParser
 Config = ConfigParser.ConfigParser()
-Config.read('openstack.conf')
+Config.read('openstack_settings.conf')
 
 # Initiates the authentication used towards OpenStack
 auth = v3.Password(auth_url=os.environ['OS_AUTH_URL'],
@@ -44,23 +45,53 @@ def vm_create(name,
 
     nics = [{"net-id": nova.networks.find(label=network_name).id,
              "v4-fixed-ip": ''}]
+    print "vm_create: Will create a VM: {0}".format(name)
     nova.servers.create(name,
                         image=image,
                         flavor=flavor,
                         nics=nics,
                         key_name=key_pair)
 
+    # Won't exit before the server is active
+    status = ''
+    while status != 'ACTIVE':
+        try:
+            status = vm_status(name)['status']
+        except TypeError:
+            continue
+        time.sleep(1)
+
+    # Will complete a ping before moving on
+    ping_response = False
+    while ping_response is False:
+        try:
+            ip = vm_status(name)['network'][1]
+            with open(os.devnull, 'wb') as devnull:
+                response = subprocess.check_call(['ping', '-c', '1', ip],
+                                                 stdout=devnull)
+            if response == 0:
+                ping_response = True
+        except:
+            continue
+        time.sleep(2)
+    return
+
 
 def vm_delete(name):
     """ Deletes a VM """
 
     print "vm_delete: Will delete VM: {0}".format(name)
-    vm_info = vm_status(name)
     try:
         vm_status(name)['server'].delete()
     except TypeError:
         print "vm_delete: No VM to delete: {0}".format(name)
-    return
+
+    # Will not exit until vm is truely gone
+    while True:
+        try:
+            vm_status(name)['server']
+        except TypeError:
+            return
 
 
 def vm_status(name):
@@ -100,9 +131,15 @@ def vm_status(name):
 
     # Find IP
     networks = server_info['addresses']
-    network_id = networks.keys()[0]
-    ip = networks[network_id][0]['addr']
-    status_dict['network'] = ip
+    try:
+        network_id = networks.keys()[0]
+        ip = networks[network_id][0]['addr']
+    except IndexError:
+        # No networks defined
+        network_id = ''
+        ip = ''
+
+    status_dict['network'] = (network_id, ip)
 
     return status_dict
 
@@ -138,6 +175,9 @@ def vm_start(name):
 
 def main():
     name = 'test_script'
+    vm_create(name)
+    vm_stop(name)
+    vm_start(name)
     vm_delete(name)
     return
 
