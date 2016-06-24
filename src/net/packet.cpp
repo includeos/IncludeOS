@@ -42,15 +42,7 @@ namespace net {
     if(size > capacity_) {
       return 0;
     }
-
-    size_ = size;
-
-    return size_;
-  }
-
-  void default_release(BufferStore::buffer_t b, size_t) {
-    (void) b;
-    debug("<Packet DEFAULT RELEASE> Ignoring buffer.");
+    return size_ = size;
   }
 
 } //< namespace net

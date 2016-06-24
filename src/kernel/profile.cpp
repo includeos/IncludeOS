@@ -119,7 +119,7 @@ void gather_stack_sampling()
   }
 }
 
-void print_stack_sampling(int results)
+void print_stack_sampling()
 {
   // sort by count
   using sample_pair = std::pair<uintptr_t, func_sample>;
@@ -129,6 +129,7 @@ void print_stack_sampling(int results)
     return sample1.second.count > sample2.second.count;
   });
   
+  int results = 12;
   printf("*** Listing %d/%u samples ***\n", results, sampler_dict.size());
   for (auto& p : vec)
   {
@@ -159,5 +160,5 @@ void validate_stacktrace(char const* where)
   if (func.name != "validate_stacktrace(char const*)") failure(where);
   
   func = Elf::resolve_symbol((void*) &print_stack_sampling);
-  if (func.name != "print_stack_sampling(int)") failure(where);
+  if (func.name != "print_stack_sampling()") failure(where);
 }

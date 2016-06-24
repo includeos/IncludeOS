@@ -24,13 +24,8 @@
 
 namespace net {
 
-  /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
-  void default_release(BufferStore::buffer_t, size_t);
-
   class Packet : public std::enable_shared_from_this<Packet> {
   public:
-    using release_del = BufferStore::release_del;
-
     /**
      *  Construct, using existing buffer.
      *
@@ -110,8 +105,11 @@ namespace net {
     static Packet_ptr packet(Packet_ptr pckt) noexcept
     { return *static_cast<Packet_ptr*>(&pckt); }
 
-    /** @Todo: Avoid Protected Data. (Jedi Council CG, C.133) **/
-
+    
+    static void operator delete (void* p) {
+      delete[] (uint8_t*) p;
+    }
+    
   private:
     /** Let's chain packets */
     Packet_ptr chain_ {0};

@@ -172,7 +172,6 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
 void VirtioNet::add_receive_buffer(){
 
-  // Virtio Std. § 5.1.6.3
   auto* pkt = new uint8_t[sizeof(Packet) + bufsize()];
   // get a pointer to a virtionet header
   auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
@@ -184,11 +183,10 @@ void VirtioNet::add_receive_buffer(){
       Token::IN };
 
   Token token2 {
-    {vnet + sizeof(virtio_net_hdr),  (Token::size_type) bufsize()},
+    {vnet + sizeof(virtio_net_hdr), bufsize()},
       Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
-
   rx_q.enqueue(tokens);
 }
 
@@ -242,15 +240,10 @@ void VirtioNet::irq_handler(){
 
 auto recv_packet(uint8_t* data, size_t sz, size_t cap)
 {
-  typedef VirtioNet::virtio_net_hdr vnet_hdr;
-
-  auto* ptr = (Packet*) (data + sizeof(vnet_hdr) - sizeof(Packet));
+  auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(cap, sz);
 
-  return std::shared_ptr<Packet> (ptr,
-     [] (void* ptr)  {
-       delete[] (uint8_t*) ptr;
-     });
+  return std::shared_ptr<Packet> (ptr);
 }
 
 void VirtioNet::service_queues(){
@@ -273,26 +266,18 @@ void VirtioNet::service_queues(){
     // Do one RX-packet
     if (rx_q.new_incoming() ){
 
-      auto res = rx_q.dequeue(); //BUG # 102? + sizeof(virtio_net_hdr);
+      auto res = rx_q.dequeue();
 
       data = (uint8_t*) res.data();
       len += res.size();
 
-      /*
-      auto pckt_ptr = std::make_shared<Packet>
-        (data + sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
-         bufsize()-sizeof(virtio_net_hdr), // Capacity
-         res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
-      */
       auto pckt_ptr = recv_packet(data, res.size(), bufsize());
-
       _link_out(pckt_ptr);
 
       // Requeue a new buffer
       add_receive_buffer();
 
       dequeued_rx++;
-
     }
 
     // Do one TX-packet
@@ -411,7 +396,7 @@ void VirtioNet::enqueue(net::Packet_ptr pckt){
   Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
       Token::OUT };
 
-  Token token2 { {pckt->buffer(), (Token::size_type) pckt->size() }, Token::OUT };
+  Token token2{ { pckt->buffer(), pckt->size() }, Token::OUT };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 

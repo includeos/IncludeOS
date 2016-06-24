@@ -30,8 +30,7 @@ void Service::start()
   begin_stack_sampling(1500);
   
   // print stuff every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(1000ms,
-  [] { print_stack_sampling(15); });
+  hw::PIT::instance().on_repeated_timeout(1000ms, print_stack_sampling);
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
