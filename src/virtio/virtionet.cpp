@@ -170,26 +170,26 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   rx_q.kick();
 }
 
-int VirtioNet::add_receive_buffer(){
+void VirtioNet::add_receive_buffer(){
 
   // Virtio Std. § 5.1.6.3
-  auto* buf = new uint8_t[bufsize()];
+  auto* pkt = new uint8_t[sizeof(Packet) + bufsize()];
+  // get a pointer to a virtionet header
+  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
 
   debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
   Token token1 {
-    {buf, sizeof(virtio_net_hdr)},
+    {vnet, sizeof(virtio_net_hdr)},
       Token::IN };
 
   Token token2 {
-    {buf + sizeof(virtio_net_hdr),  (Token::size_type) (bufsize() - sizeof(virtio_net_hdr))},
+    {vnet + sizeof(virtio_net_hdr),  (Token::size_type) bufsize()},
       Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 
   rx_q.enqueue(tokens);
-
-  return 0;
 }
 
 void VirtioNet::msix_conf_handler()
@@ -240,17 +240,17 @@ void VirtioNet::irq_handler(){
 
 }
 
-auto create_packet(uint8_t* data, size_t sz, size_t cap)
+auto recv_packet(uint8_t* data, size_t sz, size_t cap)
 {
   typedef VirtioNet::virtio_net_hdr vnet_hdr;
-  
-  return std::make_shared<Packet>(
-        data + sizeof(vnet_hdr),
-        cap - sizeof(vnet_hdr), 
-        sz - sizeof(vnet_hdr), 
-    [data] (uint8_t*, size_t) {
-      delete[] data;
-    });
+
+  auto* ptr = (Packet*) (data + sizeof(vnet_hdr) - sizeof(Packet));
+  new (ptr) Packet(cap, sz);
+
+  return std::shared_ptr<Packet> (ptr,
+     [] (void* ptr)  {
+       delete[] (uint8_t*) ptr;
+     });
 }
 
 void VirtioNet::service_queues(){
@@ -284,7 +284,7 @@ void VirtioNet::service_queues(){
          bufsize()-sizeof(virtio_net_hdr), // Capacity
          res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
       */
-      auto pckt_ptr = create_packet(data, res.size(), bufsize());
+      auto pckt_ptr = recv_packet(data, res.size(), bufsize());
 
       _link_out(pckt_ptr);
 

@@ -338,19 +338,9 @@ Connection::~Connection() {
   debug("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
 }
 
-
-auto create_packet()
-{
-  auto* data = new uint8_t[1510];
-  return std::make_shared<Packet>(
-        data + 10,
-        1510, 0, 
-        [data] (uint8_t*, size_t) { delete[] data; });
-}
-
 TCP::Packet_ptr Connection::create_outgoing_packet() {
-  //auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(0));
-  auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
+  auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(0));
+  //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
 
   packet->init();
   // Set Source (local == the current connection)

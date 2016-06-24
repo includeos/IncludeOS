@@ -34,20 +34,16 @@ namespace net {
     /**
      *  Construct, using existing buffer.
      *
-     *  @param buf:     The buffer to use as the packet
-     *  @param bufsize: Size of the buffer
-     *  @param datalen: Length of data in the buffer
+     *  @param capacity: Size of the buffer
+     *  @param len: Length of data in the buffer
      *
      *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
      */
-    Packet(BufferStore::buffer_t buf, size_t bufsize, size_t datalen, release_del d = default_release) noexcept;
-
-    /** Destruct. */
-    virtual ~Packet();
+    Packet(size_t capacity, size_t len) noexcept;
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
-    { return buf_; }
+    { return (BufferStore::buffer_t) buf_; }
 
     /** Get the network packet length - i.e. the number of populated bytes  */
     inline uint32_t size() const noexcept
@@ -115,16 +111,8 @@ namespace net {
     { return *static_cast<Packet_ptr*>(&pckt); }
 
     /** @Todo: Avoid Protected Data. (Jedi Council CG, C.133) **/
-  protected:
-    BufferStore::buffer_t payload_   {nullptr};
-    BufferStore::buffer_t buf_       {nullptr};
-    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
-    size_t                size_      {0};
-    IP4::addr             next_hop4_ {};
-  private:
-    /** Send the buffer back home, after destruction */
-    release_del release_;
 
+  private:
     /** Let's chain packets */
     Packet_ptr chain_ {0};
     Packet_ptr last_ {0};
@@ -148,6 +136,12 @@ namespace net {
     /** Delete copy and move assignment operators. See Packet(Packet&). */
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
+
+    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
+    size_t                size_      {0};
+    IP4::addr             next_hop4_ {};
+    BufferStore::buffer_t payload_   {nullptr};
+    BufferStore::buffer_t buf_[0];
   }; //< class Packet
 
 } //< namespace net
