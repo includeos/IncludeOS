@@ -195,6 +195,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	# Seed related
 	cp util/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
+	cp seed/Makelib $(INSTALL)/Makelib
 	# Eexternal dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod
