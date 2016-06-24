@@ -15,25 +15,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#################################################
+#          IncludeOS LIBRARY makefile           #
+#################################################
 
-# Project specific
-NAME=liburi
-INCLUDES=-I./include -I./GSL/include
+# The name of your library
+LIBRARY = liburi.a
 
-# The rest is generic
+# Your library parts
+FILES = ${wildcard src/*.cpp}
 
-CXX=clang++-3.8
+# Your own include-path
+LOCAL_INCLUDES=-I./include -I./GSL/include
 
-CXXFLAGS=-std=c++14 -Wall -Wextra -Ofast
-
-CPP_SOURCES=${wildcard src/*.cpp}
-OBJECTS=${CPP_SOURCES:.cpp=.o}
-
-LIB=lib/${NAME}.a
-
+# IncludeOS location
 ifndef INCLUDEOS_INSTALL
-	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
+
+# Include the installed seed makefile
+include $(INCLUDEOS_INSTALL)/Makelib
 
 
 lib: ${OBJECTS}
@@ -44,16 +45,8 @@ lib: ${OBJECTS}
 test: test.cpp lib
 	${CXX} ${CXXFLAGS} ${INCLUDES} -o test test.cpp $(LIB)
 
-%.o: %.cpp
-	${CXX} ${CXXFLAGS} ${INCLUDES} -c $< -o $@
-
 install:
 	mkdir -p ${INCLUDEOS_INSTALL}/packages/lib/
 	cat include/*.hpp > ${INCLUDEOS_INSTALL}/packages/include/$(NAME)
 	cp -r lib/* ${INCLUDEOS_INSTALL}/packages/lib/
 	cp -r GSL/include/* ${INCLUDEOS_INSTALL}/packages/include/
-
-clean:
-	$(RM) $(OBJECTS)
-	$(RM) $(LIB)
-	$(RM) test
