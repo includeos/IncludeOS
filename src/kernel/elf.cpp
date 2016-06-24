@@ -181,10 +181,6 @@ func_offset Elf::resolve_symbol(void* addr)
 {
   return get_parser().getsym((uintptr_t) addr);
 }
-func_offset Elf::resolve_symbol(void (*addr)())
-{
-  return get_parser().getsym((uintptr_t) addr);
-}
 
 safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
 {

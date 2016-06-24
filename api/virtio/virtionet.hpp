@@ -161,8 +161,6 @@ public:
   inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
   { on_exit_to_physical_ = dlg; };
 
-private:
-
   struct virtio_net_hdr
   {
     uint8_t flags;
@@ -172,6 +170,8 @@ private:
     uint16_t csum_start;       // Position to start checksumming from
     uint16_t csum_offset;      // Offset after that to place checksum
   }__attribute__((packed));
+
+private:
 
   /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
