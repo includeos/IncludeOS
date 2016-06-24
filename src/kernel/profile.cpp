@@ -141,11 +141,15 @@ void print_stack_sampling()
     
     if (--results <= 0) break;
   }
+  
+  extern char* heap_end;
+  extern char  _end;
+  printf("heap end: %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
   printf("*** ---------------------- ***\n");
 }
 
 
-void failure(char const* where)
+static void failure(char const* where)
 {
   printf("\n[FAILURE] %s\n", where);
   while (true)

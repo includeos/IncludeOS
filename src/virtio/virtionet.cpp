@@ -170,26 +170,6 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   rx_q.kick();
 }
 
-void VirtioNet::add_receive_buffer(){
-
-  auto* pkt = new uint8_t[sizeof(Packet) + bufsize()];
-  // get a pointer to a virtionet header
-  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
-
-  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
-
-  Token token1 {
-    {vnet, sizeof(virtio_net_hdr)},
-      Token::IN };
-
-  Token token2 {
-    {vnet + sizeof(virtio_net_hdr), bufsize()},
-      Token::IN };
-
-  std::array<Token, 2> tokens {{ token1, token2 }};
-  rx_q.enqueue(tokens);
-}
-
 void VirtioNet::msix_conf_handler()
 {
   debug("\t <VirtioNet> Configuration change:\n");
@@ -238,7 +218,27 @@ void VirtioNet::irq_handler(){
 
 }
 
-auto recv_packet(uint8_t* data, size_t sz, size_t cap)
+void VirtioNet::add_receive_buffer(){
+
+  auto* pkt = new uint8_t[sizeof(Packet) + bufsize()];
+  // get a pointer to a virtionet header
+  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
+
+  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
+
+  Token token1 {
+    {vnet, sizeof(virtio_net_hdr)},
+      Token::IN };
+
+  Token token2 {
+    {vnet + sizeof(virtio_net_hdr), bufsize()},
+      Token::IN };
+
+  std::array<Token, 2> tokens {{ token1, token2 }};
+  rx_q.enqueue(tokens);
+}
+
+auto recv_packet(uint8_t* data, uint16_t cap, uint16_t sz)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(cap, sz);
@@ -271,7 +271,7 @@ void VirtioNet::service_queues(){
       data = (uint8_t*) res.data();
       len += res.size();
 
-      auto pckt_ptr = recv_packet(data, res.size(), bufsize());
+      auto pckt_ptr = recv_packet(data, bufsize(), res.size());
       _link_out(pckt_ptr);
 
       // Requeue a new buffer
