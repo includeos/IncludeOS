@@ -79,7 +79,7 @@ void begin_stack_sampling(uint16_t gather_period_ms)
 
 void profiler_stack_sampler()
 {
-  void* ra = __builtin_return_address(2);
+  void* ra = __builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (ra == nullptr) return;
   

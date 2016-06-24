@@ -49,8 +49,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop)
 {
-
   INFO("VirtioNet", "Driver initializing");
+  // this must be true, otherwise packets will be created incorrectly
+  assert(sizeof(virtio_net_hdr) < sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -344,6 +345,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 
 }
 
+#include <cstdlib>
 void VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
 
@@ -366,7 +368,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    on_exit_to_physical_(tail);
+    //on_exit_to_physical_(tail);
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;
@@ -377,6 +379,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
+    //if (rand() & 1) tx_q.kick();
     tx_q.kick();
   }
 
