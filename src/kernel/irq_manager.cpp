@@ -32,17 +32,20 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-void IRQ_manager::enable_interrupts() {
-  // Manual:
-  // The IF flag and the STI and CLI instructions have no affect on
-  // the generation of exceptions and NMI interrupts.
-  asm volatile("sti");
+inline void IRQ_manager::register_irq(uint8_t vector)
+{
+  irq_pend.atomic_set(vector);
 }
 
-extern "C"
-{
-  void exception_handler() __attribute__((noreturn));
+extern "C" {
+  void modern_interrupt_handler();
+  void register_modern_interrupt()
+  {
+    uint8_t vector = hw::APIC::get_isr();
+    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
+  }
   void spurious_intr();
+  void exception_handler() __attribute__((noreturn));
 }
 
 void exception_handler()
@@ -53,37 +56,11 @@ void exception_handler()
   print_backtrace();
   
   printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
-  extern char _end;
-  printf("Heap end: %p \n", &_end);
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 
-/**
- *  - Set pending flag
- *  - Increment counter
- */
-inline void IRQ_manager::register_irq(uint8_t vector)
-{
-  irq_pend.atomic_set(vector);
-  //__sync_fetch_and_add(&irq_counters_[vector], 1);
-}
-
-/*
-  IRQ HANDLERS,
-  extern: must be visible from assembler
-
-  We define two functions for each IRQ/Exception i :
-
-  > void irq/exception_i_entry() - defined in interrupts.s
-  > void irq/exception_i_handler() - defined here.
-*/
-extern "C" {
-  void modern_interrupt_handler();
-  void register_modern_interrupt()
-  {
-    uint8_t vector = hw::APIC::get_isr();
-    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
-  }
+void IRQ_manager::enable_interrupts() {
+  asm volatile("sti");
 }
 
 void IRQ_manager::init()

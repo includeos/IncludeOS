@@ -75,12 +75,14 @@ namespace net {
         (no context switch for sbrk) but consider overloading operator new.
     */
     virtual Packet_ptr createPacket(size_t size) override {
-      // Create a release delegate, for returning buffers
-      auto release = BufferStore::release_del::from
-        <BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
-      // Create the packet, using  buffer and .
-      return std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                      bufstore_.offset_bufsize(), size, release);
+
+      const uint16_t bufsize = nic_.bufsize();
+      // create packet + data
+      auto* ptr = (Packet*) new uint8_t[sizeof(Packet) + bufsize];
+      // place packet at front of buffer
+      new (ptr) Packet(bufsize, size);
+      // shared_ptr with custom deleter
+      return std::shared_ptr<Packet>(ptr);
     }
 
     // We have to ask the Nic for the MTU

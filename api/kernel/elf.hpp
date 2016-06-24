@@ -40,8 +40,6 @@ struct Elf
     resolve_symbol(uintptr_t addr);
   static func_offset
     resolve_symbol(void* addr);
-  static func_offset
-    resolve_symbol(void (*addr)());
   
   // get and resolve the current function
   static func_offset

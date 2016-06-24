@@ -23,12 +23,19 @@ std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 using namespace std::chrono;
 #include <kernel/elf.hpp>
+#include <profile>
+
+void print_tcp_status() {
+  printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+}
 
 void Service::start()
 {
+  begin_stack_sampling(1500);
+  
   // print stuff every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(1000ms,
-  [] { print_backtrace(); });
+  hw::PIT::instance().on_repeated_timeout(1000ms, print_stack_sampling);
+  //hw::PIT::instance().on_repeated_timeout(20s, print_tcp_status);
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

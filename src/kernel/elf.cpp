@@ -181,10 +181,6 @@ func_offset Elf::resolve_symbol(void* addr)
 {
   return get_parser().getsym((uintptr_t) addr);
 }
-func_offset Elf::resolve_symbol(void (*addr)())
-{
-  return get_parser().getsym((uintptr_t) addr);
-}
 
 safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
 {
@@ -216,7 +212,11 @@ std::vector<func_offset> Elf::get_functions()
               ADD_TRACE(5, ra);
               if (frp(6, ra)) {
                 ADD_TRACE(6, ra);
-  }}}}}}}
+                if (frp(7, ra)) {
+                  ADD_TRACE(7, ra);
+                  if (frp(8, ra)) {
+                    ADD_TRACE(8, ra);
+  }}}}}}}}}
   return vec;
 }
 
@@ -243,5 +243,9 @@ void print_backtrace()
               PRINT_TRACE(5, ra);
               if (frp(6, ra)) {
                 PRINT_TRACE(6, ra);
-            }}}}}}}
+                if (frp(7, ra)) {
+                  PRINT_TRACE(7, ra);
+                  if (frp(8, ra)) {
+                    PRINT_TRACE(8, ra);
+  }}}}}}}}}
 }

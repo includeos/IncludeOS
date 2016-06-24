@@ -79,7 +79,7 @@ void begin_stack_sampling(uint16_t gather_period_ms)
 
 void profiler_stack_sampler()
 {
-  void* ra = __builtin_return_address(2);
+  void* ra = __builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (ra == nullptr) return;
   
@@ -119,7 +119,7 @@ void gather_stack_sampling()
   }
 }
 
-void print_stack_sampling(int results)
+void print_stack_sampling()
 {
   // sort by count
   using sample_pair = std::pair<uintptr_t, func_sample>;
@@ -129,6 +129,7 @@ void print_stack_sampling(int results)
     return sample1.second.count > sample2.second.count;
   });
   
+  int results = 12;
   printf("*** Listing %d/%u samples ***\n", results, sampler_dict.size());
   for (auto& p : vec)
   {
@@ -140,5 +141,28 @@ void print_stack_sampling(int results)
     
     if (--results <= 0) break;
   }
+  
+  extern char* heap_end;
+  extern char  _end;
+  printf("heap end: %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
   printf("*** ---------------------- ***\n");
+}
+
+
+static void failure(char const* where)
+{
+  printf("\n[FAILURE] %s\n", where);
+  while (true)
+    asm volatile("cli; hlt");
+}
+
+void validate_stacktrace(char const* where)
+{
+  func_offset func;
+  
+  func = Elf::resolve_symbol((void*) &validate_stacktrace);
+  if (func.name != "validate_stacktrace(char const*)") failure(where);
+  
+  func = Elf::resolve_symbol((void*) &print_stack_sampling);
+  if (func.name != "print_stack_sampling()") failure(where);
 }
