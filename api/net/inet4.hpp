@@ -171,4 +171,25 @@ namespace net {
 
 #include "inet4.inc"
 
+namespace net {
+  template <int N = 0, typename Driver = VirtioNet>
+  inline auto new_ipv4_stack(const double timeout, delegate<void(bool)> handler)
+  {
+    auto& eth = hw::Dev::eth<N,Driver>();
+    auto inet = std::make_unique<net::Inet4<Driver>>(eth, timeout);
+    inet->on_config(handler);
+    return inet;
+  }
+
+  template <int N = 0, typename Driver = VirtioNet>
+  inline auto new_ipv4_stack(const IP4::addr addr, const IP4::addr nmask, const IP4::addr router,
+                             const IP4::addr dns = { 8,8,8,8 })
+  {
+    auto& eth = hw::Dev::eth<N,Driver>();
+    auto inet = std::make_unique<net::Inet4<Driver>>(eth);
+    inet->network_config(addr, nmask, router, dns);
+    return inet;
+  }
+} //< namespace net
+
 #endif
