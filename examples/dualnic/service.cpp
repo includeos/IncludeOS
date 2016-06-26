@@ -15,11 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>   // rand()
+#include <sstream>
+
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <math.h> // rand()
-#include <sstream>
 
 using namespace std::chrono;
 
@@ -62,7 +63,7 @@ void create_server(net::TCP::Connection& conn)
 
 void Service::start() {
   srand(OS::cycles_since_boot());
-  
+
   // Two IP-stack objects
   static std::unique_ptr< net::Inet4<VirtioNet> > inet1;
   static std::unique_ptr< net::Inet4<VirtioNet> > inet2;
@@ -84,7 +85,7 @@ void Service::start() {
                          { 255,255,255,0 },  // Netmask
                          { 10,0,0,1 },       // Gateway
                          { 8,8,8,8 } );      // DNS
-  
+
   inet2->network_config( { 20,0,0,42 },      // IP
                          { 255,255,255,0 },  // Netmask
                          { 20,0,0,1 },       // Gateway
@@ -93,7 +94,7 @@ void Service::start() {
   // Set up a TCP server on port 80
   auto& server1 = inet1->tcp().bind(80);
   create_server(server1);
-  
+
   auto& server2 = inet2->tcp().bind(80);
   create_server(server2);
 
