@@ -120,7 +120,7 @@ std::string HTML_RESPONSE() {
 
   const std::string html = stream.str();
 
-  std::string header
+  const std::string header
   {
     "HTTP/1.1 200 OK\n"
     "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"
