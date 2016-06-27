@@ -32,17 +32,22 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-void IRQ_manager::enable_interrupts() {
-  // Manual:
-  // The IF flag and the STI and CLI instructions have no affect on
-  // the generation of exceptions and NMI interrupts.
-  asm volatile("sti");
+inline void IRQ_manager::register_irq(uint8_t vector)
+{
+  irq_pend.atomic_set(vector);
 }
 
-extern "C"
-{
-  void exception_handler() __attribute__((noreturn));
+extern "C" {
+  void unused_interrupt_handler();
+  void modern_interrupt_handler();
+  void register_modern_interrupt()
+  {
+    uint8_t vector = hw::APIC::get_isr();
+    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
+  }
   void spurious_intr();
+  void exception_handler() __attribute__((noreturn));
+  void current_eoi_mechanism();
 }
 
 void exception_handler()
@@ -53,37 +58,11 @@ void exception_handler()
   print_backtrace();
   
   printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
-  extern char _end;
-  printf("Heap end: %p \n", &_end);
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 
-/**
- *  - Set pending flag
- *  - Increment counter
- */
-inline void IRQ_manager::register_irq(uint8_t vector)
-{
-  irq_pend.atomic_set(vector);
-  //__sync_fetch_and_add(&irq_counters_[vector], 1);
-}
-
-/*
-  IRQ HANDLERS,
-  extern: must be visible from assembler
-
-  We define two functions for each IRQ/Exception i :
-
-  > void irq/exception_i_entry() - defined in interrupts.s
-  > void irq/exception_i_handler() - defined here.
-*/
-extern "C" {
-  void modern_interrupt_handler();
-  void register_modern_interrupt()
-  {
-    uint8_t vector = hw::APIC::get_isr();
-    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
-  }
+void IRQ_manager::enable_interrupts() {
+  asm volatile("sti");
 }
 
 void IRQ_manager::init()
@@ -99,9 +78,6 @@ void IRQ_manager::bsp_init()
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
 
-  if (idt_is_set)
-    panic(">>> ERROR: Trying to reset IDT");
-
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
   idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
@@ -113,9 +89,9 @@ void IRQ_manager::bsp_init()
     create_gate(&idt[i],exception_handler,default_sel,default_attr);
   }
   
-  // Set all interrupt-gates >= 32 to normal handler
+  // Set all interrupt-gates >= 32 to unused do-nothing handler
   for (size_t i = 32; i < INTR_LINES; i++) {
-    create_gate(&idt[i],modern_interrupt_handler,default_sel,default_attr);
+    create_gate(&idt[i],unused_interrupt_handler,default_sel,default_attr);
   }
 
   // spurious interrupts (should not happen)
@@ -165,15 +141,7 @@ IRQ_manager::intr_func IRQ_manager::get_irq_handler(uint8_t irq)
 }
 
 void IRQ_manager::set_handler(uint8_t vec, intr_func func) {
-
   create_gate(&idt[vec], func, default_sel, default_attr);
-
-  /**
-   *  The default handlers don't send EOI. If we don't do it here,
-   *  previous interrupts won't have reported EOI and new handler
-   *  will never get called
-   */
-  hw::APIC::eoi();
 }
 void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
 {
@@ -191,6 +159,9 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
     printf("IRQ out of bounds %u (max: %u)\n", irq, IRQ_LINES);
     panic("Vector number too high in subscribe()\n");
   }
+  
+  // cheap way of changing from unused handler to event loop irq marker
+  set_irq_handler(irq, modern_interrupt_handler);
 
   // Mark IRQ as subscribed to
   irq_subs.set(irq);
@@ -198,7 +169,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
 
-  hw::APIC::eoi();
+  current_eoi_mechanism();
   INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
@@ -214,10 +185,8 @@ void IRQ_manager::notify() {
     irq_pend.atomic_reset(intr);
 
     // sub and call handler
-    irq_delegates_[intr](); // irq_counters_[intr]
-    // reset counter
-    //irq_counters_[intr] = 0;
-
+    irq_delegates_[intr]();
+    
     // reset on todo-list
     irq_todo.reset(intr);
     // find next interrupt

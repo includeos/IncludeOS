@@ -49,8 +49,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop)
 {
-
   INFO("VirtioNet", "Driver initializing");
+  // this must be true, otherwise packets will be created incorrectly
+  assert(sizeof(virtio_net_hdr) < sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -170,28 +171,6 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   rx_q.kick();
 }
 
-int VirtioNet::add_receive_buffer(){
-
-  // Virtio Std. § 5.1.6.3
-  auto* buf = new uint8_t[bufsize()];
-
-  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
-
-  Token token1 {
-    {buf, sizeof(virtio_net_hdr)},
-      Token::IN };
-
-  Token token2 {
-    {buf + sizeof(virtio_net_hdr),  (Token::size_type) (bufsize() - sizeof(virtio_net_hdr))},
-      Token::IN };
-
-  std::array<Token, 2> tokens {{ token1, token2 }};
-
-  rx_q.enqueue(tokens);
-
-  return 0;
-}
-
 void VirtioNet::msix_conf_handler()
 {
   debug("\t <VirtioNet> Configuration change:\n");
@@ -240,17 +219,32 @@ void VirtioNet::irq_handler(){
 
 }
 
-auto create_packet(uint8_t* data, size_t sz, size_t cap)
+void VirtioNet::add_receive_buffer(){
+
+  auto* pkt = new uint8_t[sizeof(Packet) + bufsize()];
+  // get a pointer to a virtionet header
+  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
+
+  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
+
+  Token token1 {
+    {vnet, sizeof(virtio_net_hdr)},
+      Token::IN };
+
+  Token token2 {
+    {vnet + sizeof(virtio_net_hdr), bufsize()},
+      Token::IN };
+
+  std::array<Token, 2> tokens {{ token1, token2 }};
+  rx_q.enqueue(tokens);
+}
+
+auto recv_packet(uint8_t* data, uint16_t cap, uint16_t sz)
 {
-  typedef VirtioNet::virtio_net_hdr vnet_hdr;
-  
-  return std::make_shared<Packet>(
-        data + sizeof(vnet_hdr),
-        cap - sizeof(vnet_hdr), 
-        sz - sizeof(vnet_hdr), 
-    [data] (uint8_t*, size_t) {
-      delete[] data;
-    });
+  auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
+  new (ptr) Packet(cap, sz);
+
+  return std::shared_ptr<Packet> (ptr);
 }
 
 void VirtioNet::service_queues(){
@@ -273,26 +267,18 @@ void VirtioNet::service_queues(){
     // Do one RX-packet
     if (rx_q.new_incoming() ){
 
-      auto res = rx_q.dequeue(); //BUG # 102? + sizeof(virtio_net_hdr);
+      auto res = rx_q.dequeue();
 
       data = (uint8_t*) res.data();
       len += res.size();
 
-      /*
-      auto pckt_ptr = std::make_shared<Packet>
-        (data + sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
-         bufsize()-sizeof(virtio_net_hdr), // Capacity
-         res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
-      */
-      auto pckt_ptr = create_packet(data, res.size(), bufsize());
-
+      auto pckt_ptr = recv_packet(data, bufsize(), res.size());
       _link_out(pckt_ptr);
 
       // Requeue a new buffer
       add_receive_buffer();
 
       dequeued_rx++;
-
     }
 
     // Do one TX-packet
@@ -359,6 +345,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 
 }
 
+#include <cstdlib>
 void VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
 
@@ -381,7 +368,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    on_exit_to_physical_(tail);
+    //on_exit_to_physical_(tail);
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;
@@ -392,6 +379,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
+    //if (rand() & 1) tx_q.kick();
     tx_q.kick();
   }
 
@@ -411,7 +399,7 @@ void VirtioNet::enqueue(net::Packet_ptr pckt){
   Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
       Token::OUT };
 
-  Token token2 { {pckt->buffer(), (Token::size_type) pckt->size() }, Token::OUT };
+  Token token2{ { pckt->buffer(), pckt->size() }, Token::OUT };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 

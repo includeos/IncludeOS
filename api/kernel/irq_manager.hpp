@@ -18,11 +18,9 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
+#include "os.hpp"
 #include <delegate>
 #include <membitmap>
-
-#include "os.hpp"
-#include "../hw/pic.hpp"
 
 // From osdev
 struct IDTDescr {
@@ -118,19 +116,17 @@ public:
   /**
    * Get the IRQ manager for a specific CPU core
    */
-  static inline IRQ_manager& cpu(uint16_t){
+  static inline IRQ_manager& cpu(uint8_t){
     static IRQ_manager bsp;
     return bsp;
   }
 
   uint8_t get_next_msix_irq();
   void register_irq(uint8_t vector);
-
+  
 private:
   IDTDescr     idt[INTR_LINES];
-  bool         idt_is_set                {false};
   irq_delegate irq_delegates_[IRQ_LINES];
-  int32_t      irq_counters_[IRQ_LINES]  {0};
 
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
