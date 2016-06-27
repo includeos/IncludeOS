@@ -65,32 +65,21 @@ void Service::start() {
   srand(OS::cycles_since_boot());
 
   // Two IP-stack objects
-  static std::unique_ptr< net::Inet4<VirtioNet> > inet1;
-  static std::unique_ptr< net::Inet4<VirtioNet> > inet2;
 
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
-  auto& eth1 = hw::Dev::eth<1,VirtioNet>();
-
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet1 = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-  inet2 = std::make_unique<net::Inet4<VirtioNet> >(eth1);
-
+  // Stack with network interface (eth0) driven by VirtioNet
+  // DNS address defaults to 8.8.8.8
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet1->network_config( { 10,0,0,42 },      // IP
-                         { 255,255,255,0 },  // Netmask
-                         { 10,0,0,1 },       // Gateway
-                         { 8,8,8,8 } );      // DNS
+  static auto inet1 = new_ipv4_stack<>({ 10,0,0,42 },      // IP
+                                       { 255,255,255,0 },  // Netmask
+                                       { 10,0,0,1 });      // Gateway
 
-  inet2->network_config( { 20,0,0,42 },      // IP
-                         { 255,255,255,0 },  // Netmask
-                         { 20,0,0,1 },       // Gateway
-                         { 8,8,8,8 } );      // DNS
-
+  // Assign a driver (VirtioNet) to a network interface (eth1)
+  // @note: We could determine the appropirate driver dynamically, but then we'd
+  // have to include all the drivers into the image, which  we want to avoid.
+  static auto inet2 = new_ipv4_stack<1,VirtioNet>({ 20,0,0,42 },      // IP
+                                                  { 255,255,255,0 },  // Netmask
+                                                  { 20,0,0,1 });      // Gateway
   // Set up a TCP server on port 80
   auto& server1 = inet1->tcp().bind(80);
   create_server(server1);
