@@ -48,16 +48,14 @@ void begin_snake()
 
 void Service::start()
 {
-  // redirect stdout to vga screen
+  // Redirect stdout to vga screen
   // ... even though we aren't really using it after the game starts
-
   OS::set_rsprint(
-  [] (const char* data, size_t len)
-  {
+  [] (const char* data, size_t len) {
     vga.write(data, len);
   });
 
-  // we have to start snake later to avoid late text output
+  // We have to start snake later to avoid late text output
   hw::PIT::on_timeout(0.25, [] { begin_snake(); });
 
   // Stack with network interface (eth0) driven by VirtioNet
