@@ -16,34 +16,28 @@ INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
 INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
-# Get the latest tag from IncludeOS repo
-echo -e "\n\n>>> Updating git-tags "
-git fetch --tags https://github.com/hioa-cs/IncludeOS.git master
-tag=`git describe master --abbrev=0`
-echo "Latest tag found: $tag"
-
-filename_tag=`echo $tag | tr . -`
-filename="IncludeOS_install_"$filename_tag".tar.gz"
-echo "Full filename: $filename"
+# Find the latest release
+echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
+JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases`
+FILENAME=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" name` 
+DOWNLOAD_URL=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" browser_download_url`
+echo -e "\nFile to download: $DOWNLOAD_URL"
 
 # If the tarball exists, use that
-if [ -e $filename ]
+if [ -e $FILENAME ]
 then
     echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
 else
     # Download from GitHub API
-    echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-    JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases/tags/$tag`
-    ASSET=`echo $JSON | $INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py`
-    ASSET_URL=https://api.github.com/repos/hioa-cs/IncludeOS/releases/assets/$ASSET
-
     echo -e "\n\n>>> Downloading latest IncludeOS release tarball from GitHub"
-    curl -H "Accept: application/octet-stream" -L -o $filename $ASSET_URL
+    curl -H "Accept: application/octet-stream" -L -o $FILENAME $DOWNLOAD_URL
 fi
 
 # Extracting the downloaded tarball
 echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC/IncludeOS_install"
-gunzip $filename -c | tar -C $INCLUDEOS_INSTALL_LOC -xf -   # Pipe gunzip to tar
+gunzip $FILENAME -c | tar -C $INCLUDEOS_INSTALL_LOC -xf -   # Pipe gunzip to tar
+
+exit 0
 
 # Install submodules
 echo -e "\n\n>>> Installing submodules"

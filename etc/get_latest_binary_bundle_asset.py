@@ -1,12 +1,21 @@
 #!/usr/bin/python
+""" Will return one of fields of the JSON output supplied. Expects to get two
+    command line inputs:
+
+    sys.argv[1]: JSON data from the github releases page
+                 api.github.com/repos/<repo-id>/<project>/releases
+    sys.argv[2]: Name of resource to print. Could be name or download url.
+"""
+
 import sys
 import json
 import fileinput
 
+
 def get_json():
     json_str=""
-    
-    for line in fileinput.input():
+
+    for line in sys.argv[1]:
         json_str += line
 
     return json_str
@@ -14,11 +23,6 @@ def get_json():
 
 json_str = get_json()
 
-#print "JSON?", 
-
 obj = json.loads(json_str);
-asset_id = obj["assets"][0]["id"]
 
-print asset_id
-
-
+print obj[0]["assets"][0][sys.argv[2]]
