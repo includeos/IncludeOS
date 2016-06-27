@@ -22,9 +22,6 @@
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
 using namespace std::chrono;
 
 std::string HTML_RESPONSE() {
@@ -69,21 +66,14 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
 void Service::start() {
   srand(OS::cycles_since_boot());
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
 
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-
+  // Stack with network interface (eth0) driven by VirtioNet
+  // DNS address defaults to 8.8.8.8
   // Static IP configuration, until we (possibly) get DHCP
-  // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
+  // @note : Mostly to get a robust demo service that works with and without DHCP
+  static auto inet = net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
+                                           { 255,255,255,0 },  // Netmask
+                                           { 10,0,0,1 });      // Gateway
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
