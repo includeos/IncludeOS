@@ -78,5 +78,5 @@ void Service::start()
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
 
-  printf("*** TEST SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE STARTED ***\n");
 }
