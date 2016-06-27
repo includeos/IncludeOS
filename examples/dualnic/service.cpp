@@ -74,12 +74,12 @@ void Service::start() {
                                             { 255,255,255,0 },  // Netmask
                                             { 10,0,0,1 });      // Gateway
 
-  // Assign a driver (VirtioNet) to a network interface (eth1)
+  // Assign a driver (VirtioNet) to network interface (eth1)
   // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  static auto inet2 = new_ipv4_stack<1,VirtioNet>({ 20,0,0,42 },      // IP
-                                                  { 255,255,255,0 },  // Netmask
-                                                  { 20,0,0,1 });      // Gateway
+  // have to include all the drivers into the image, which we want to avoid.
+  static auto inet2 = net::new_ipv4_stack<1,VirtioNet>({ 20,0,0,42 },      // IP
+                                                       { 255,255,255,0 },  // Netmask
+                                                       { 20,0,0,1 });      // Gateway
   // Set up a TCP server on port 80
   auto& server1 = inet1->tcp().bind(80);
   create_server(server1);
