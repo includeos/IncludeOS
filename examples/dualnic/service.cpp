@@ -98,35 +98,39 @@ void Service::start() {
 
 
 std::string HTML_RESPONSE() {
-  int color = rand();
-  std::stringstream stream;
+  const int color = rand();
 
   /* HTML Fonts */
-  std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-  std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-  std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
+  const std::string ubuntu_medium = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
+  const std::string ubuntu_normal = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
+  const std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
 
   /* HTML */
-  stream << "<html><head>"
+  std::stringstream stream;
+  stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
          << "</head><body>"
-         << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"
-         <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
+         << "<h1 style='color: #" << std::hex << (color >> 8) << "'>"
+         <<  "<span style='"+ubuntu_medium+"'>Include</span><span style='"+ubuntu_light+"'>OS</span></h1>"
          <<  "<h2>Now speaks TCP!</h2>"
-    // .... generate more dynamic content
+         // .... generate more dynamic content
          << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-         << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-         << "</body></html>\n";
+         << "<footer><hr/> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
+         << "</body></html>";
 
-  std::string html = stream.str();
+  const std::string html = stream.str();
 
-  std::string header="HTTP/1.1 200 OK \n "        \
-    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-    "Server: IncludeOS prototype 4.0 \n"        \
-    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-    "Content-Type: text/html; charset=UTF-8 \n"     \
-    "Content-Length: "+std::to_string(html.size())+"\n"   \
-    "Accept-Ranges: bytes\n"          \
-    "Connection: close\n\n";
+  std::string header
+  {
+    "HTTP/1.1 200 OK\n"
+    "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"
+    "Server: IncludeOS prototype 4.0\n"
+    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
+    "Content-Type: text/html; charset=UTF-8\n"
+    "Content-Length: "+std::to_string(html.size())+"\n"
+    "Accept-Ranges: bytes\n"
+    "Connection: close\n\n"
+  };
+
   return header + html;
 }
