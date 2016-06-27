@@ -87,10 +87,10 @@ void Service::start() {
   auto& server2 = inet2->tcp().bind(80);
   create_server(server2);
 
-  // print some useful netstats every 30 secs
+  // Print some useful netstats every 30 secs
   hw::PIT::instance().onRepeatedTimeout(30s, [] {
-    printf("<INET_1> TCP STATUS:\n%s \n", inet1->tcp().status().c_str());
-    printf("<INET_2> TCP STATUS:\n%s \n", inet2->tcp().status().c_str());
+    printf("<INET_1> TCP STATUS:\n\t%s\n", inet1->tcp().status().c_str());
+    printf("<INET_2> TCP STATUS:\n\t%s\n", inet2->tcp().status().c_str());
   });
 
   printf("*** TEST SERVICE STARTED *** \n");
