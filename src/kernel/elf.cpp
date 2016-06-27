@@ -23,6 +23,7 @@
 #include <vector>
 #include "../../vmbuild/elf.h"
 
+static const char* null_stringz = "(null)";
 static const uintptr_t ELF_START = 0x200000;
 #define frp(N, ra)                                 \
   (__builtin_frame_address(N) != nullptr) &&       \
@@ -82,7 +83,7 @@ public:
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {"(null) + " + to_hex_string(addr), 0, addr};
+    if (addr < 0x7c00) return {null_stringz, 0, addr};
     // definitely in the bootloader
     if (addr < 0x7e00) return {"Bootloader area", 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
@@ -104,7 +105,7 @@ public:
   safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {0, 0, addr};
+    if (addr < 0x7c00) return {null_stringz, 0, addr};
     // definitely in the bootloader
     if (addr < 0x7e00) return {0, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
@@ -129,7 +130,7 @@ public:
     for (auto& tab : symtab)
     for (size_t i = 0; i < tab.entries; i++) {
       // find entry with matching address
-      if (sym_name(tab.base[i]) == name)
+      if (demangle( sym_name(tab.base[i]) ) == name)
         return tab.base[i].st_value;
     }
     return 0;
@@ -143,7 +144,7 @@ private:
   {
     return ELF32_ST_TYPE(sym->st_info) == STT_FUNC;
   }
-  std::string demangle(const char* name)
+  std::string demangle(const char* name) const
   {
     size_t buflen = 256;
     std::string buf;
@@ -154,7 +155,7 @@ private:
     if (status) return std::string(name);
     return std::string(res);
   }
-  const char* demangle_safe(const char* name, char* buffer, size_t buflen)
+  const char* demangle_safe(const char* name, char* buffer, size_t buflen) const
   {
     int status;
     // internally, demangle just returns buf when status is ok
@@ -185,6 +186,10 @@ func_offset Elf::resolve_symbol(void* addr)
 safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
 {
   return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
+}
+uintptr_t Elf::resolve_name(const std::string& name)
+{
+  return get_parser().getaddr(name);
 }
 
 func_offset Elf::get_current_function()

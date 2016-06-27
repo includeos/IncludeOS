@@ -8,7 +8,7 @@
 #include <cassert>
 #include <algorithm>
 
-#define BUFFER_COUNT    16000
+#define BUFFER_COUNT    6000
 
 template <typename T, int N>
 struct fixedvector {
@@ -42,8 +42,9 @@ struct fixedvector {
   uint32_t count = 0;
   T element[N];
 };
-fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
-fixedvector<uintptr_t, BUFFER_COUNT>* sampler_transfer;
+static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
+static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_transfer;
+static void* event_loop_addr;
 
 struct func_sample
 {
@@ -67,8 +68,11 @@ void begin_stack_sampling(uint16_t gather_period_ms)
   #define blargh(T) std::remove_pointer<decltype(T)>::type;
   sampler_queue = new blargh(sampler_queue);
   sampler_transfer = new blargh(sampler_transfer);
+  
+  // we want to ignore event loop at FIXME the HLT location (0x198)
+  event_loop_addr = (void*) ((char*) &OS::event_loop + 0x198);
+  
   // begin sampling
-  printf("Stack sampler taking over PIT\n");
   IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
   
   // gather every second
@@ -82,6 +86,8 @@ void profiler_stack_sampler()
   void* ra = __builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (ra == nullptr) return;
+  // ignore event loop
+  if (ra == event_loop_addr) return;
   
   // add to queue
   sampler_queue->add((uintptr_t) ra);
@@ -129,8 +135,10 @@ void print_stack_sampling()
     return sample1.second.count > sample2.second.count;
   });
   
-  int results = 12;
-  printf("*** Listing %d/%u samples ***\n", results, sampler_dict.size());
+  size_t results = 12;
+  results = (results > sampler_dict.size()) ? sampler_dict.size() : results;
+  
+  printf("*** Listing %d samples ***\n", results);
   for (auto& p : vec)
   {
     // resolve the addr
@@ -139,12 +147,13 @@ void print_stack_sampling()
     printf("[%#x + %#x] %u times: %s\n",
         func.addr, func.offset, p.second.count, func.name.c_str());
     
-    if (--results <= 0) break;
+    if (results-- == 0) break;
   }
-  
+  // also show information on heap end in case of leaks
   extern char* heap_end;
   extern char  _end;
-  printf("heap end: %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
+  printf("[!] heap end == %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
+  printf("[!] heap start  %p\n", &_end);
   printf("*** ---------------------- ***\n");
 }
 

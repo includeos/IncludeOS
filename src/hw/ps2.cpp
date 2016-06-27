@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <hw/ps2.hpp>
+#include <hw/ioport.hpp>
 #include <kernel/irq_manager.hpp>
 #include <debug>
 

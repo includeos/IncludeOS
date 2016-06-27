@@ -52,5 +52,6 @@ struct Elf
     safe_resolve_symbol(void* addr, char* buffer, size_t length);
   
   //returns the address of a symbol, or 0
-  uintptr_t resolve_name(const std::string& name);
+  static uintptr_t
+    resolve_name(const std::string& name);
 };

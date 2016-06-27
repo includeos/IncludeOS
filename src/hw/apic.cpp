@@ -89,14 +89,34 @@
 #define ICR_ALL_INCLUDING_SELF  0x080000
 #define ICR_ALL_EXCLUDING_SELF  0x0c0000
 
+#define KVM_MSR_ENABLED        1
+#define MSR_KVM_PV_EOI_EN      0x4b564d04
+#define KVM_PV_EOI_BIT         0
+#define KVM_PV_EOI_MASK       (0x1 << KVM_PV_EOI_BIT)
+#define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
+#define KVM_PV_EOI_DISABLED    0x0
+
+static volatile uintptr_t pv_eoi_location = 0;
+inline void kvm_pv_eoi() {
+  //hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, 0, 0);
+  pv_eoi_location = 0;
+}
+inline void kvm_pv_eoi_init() {
+  auto loc = (uintptr_t) &pv_eoi_location;
+  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, loc | KVM_MSR_ENABLED, 0);
+  kvm_pv_eoi();
+}
+
 extern "C" {
   void apic_enable();
   int  get_cpu_id();
   void reboot();
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
+  void lapic_send_eoi();
   void lapic_exception_handler();
   void lapic_irq_entry();
+  void current_eoi_mechanism();
 }
 extern idt_loc smp_lapic_idt;
 
@@ -230,7 +250,6 @@ namespace hw {
     const uint64_t APIC_BASE_MSR = CPU::read_msr(IA32_APIC_BASE_MSR);
     /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
-    //printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
     INFO2("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
@@ -279,7 +298,8 @@ namespace hw {
     lapic.enable_intr(SPURIOUS_INTR);
 
     // acknowledge any outstanding interrupts
-    hw::APIC::eoi();
+    kvm_pv_eoi_init();
+    //hw::APIC::eoi();
 
     // enable APIC by resetting task priority
     lapic.regs->task_pri.reg = 0;
@@ -378,9 +398,10 @@ namespace hw {
   void APIC::eoi()
   {
     debug("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, lapic.get_id());
-    lapic.regs->eoi.reg = 0;
+    //lapic.regs->eoi.reg = 0;
+    current_eoi_mechanism();
   }
-
+  
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
     debug("send_ipi  id %u  vector %u\n", id, vector);
@@ -459,4 +480,11 @@ namespace hw {
   {
     ::reboot();
   }
+}
+
+void current_eoi_mechanism() {
+  //kvm_pv_eoi();
+  hw::lapic.regs->eoi.reg = 0;
+  //asm("movl $0xfee000B0, %eax");
+  //asm("movl $0, (%eax)");
 }

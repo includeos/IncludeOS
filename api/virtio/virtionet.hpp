@@ -249,6 +249,7 @@ private:
   net::Packet_ptr transmit_queue_ {0};
 
   delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
+  //bool deferred_kick = false;
 
 };
 
