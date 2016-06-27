@@ -89,24 +89,6 @@
 #define ICR_ALL_INCLUDING_SELF  0x080000
 #define ICR_ALL_EXCLUDING_SELF  0x0c0000
 
-#define KVM_MSR_ENABLED        1
-#define MSR_KVM_PV_EOI_EN      0x4b564d04
-#define KVM_PV_EOI_BIT         0
-#define KVM_PV_EOI_MASK       (0x1 << KVM_PV_EOI_BIT)
-#define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
-#define KVM_PV_EOI_DISABLED    0x0
-
-static volatile uintptr_t pv_eoi_location = 0;
-inline void kvm_pv_eoi() {
-  //hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, 0, 0);
-  pv_eoi_location = 0;
-}
-inline void kvm_pv_eoi_init() {
-  auto loc = (uintptr_t) &pv_eoi_location;
-  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, loc | KVM_MSR_ENABLED, 0);
-  kvm_pv_eoi();
-}
-
 extern "C" {
   void apic_enable();
   int  get_cpu_id();
@@ -117,6 +99,9 @@ extern "C" {
   void lapic_exception_handler();
   void lapic_irq_entry();
   void current_eoi_mechanism();
+  
+  void kvm_pv_eoi();
+  void kvm_pv_eoi_init();
 }
 extern idt_loc smp_lapic_idt;
 
@@ -398,8 +383,7 @@ namespace hw {
   void APIC::eoi()
   {
     debug("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, lapic.get_id());
-    //lapic.regs->eoi.reg = 0;
-    current_eoi_mechanism();
+    lapic.regs->eoi.reg = 0;
   }
   
   void APIC::send_ipi(uint8_t id, uint8_t vector)
@@ -483,8 +467,48 @@ namespace hw {
 }
 
 void current_eoi_mechanism() {
-  //kvm_pv_eoi();
-  hw::lapic.regs->eoi.reg = 0;
+  kvm_pv_eoi();
+  //hw::lapic.regs->eoi.reg = 0;
   //asm("movl $0xfee000B0, %eax");
   //asm("movl $0, (%eax)");
+}
+
+// *** manual ***
+// http://choon.net/forum/read.php?21,1123399
+// https://www.kernel.org/doc/Documentation/virtual/kvm/cpuid.txt
+
+#define KVM_MSR_ENABLED        1
+#define MSR_KVM_PV_EOI_EN      0x4b564d04
+#define KVM_PV_EOI_BIT         0
+#define KVM_PV_EOI_MASK       (0x1 << KVM_PV_EOI_BIT)
+#define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
+#define KVM_PV_EOI_DISABLED    0x0
+
+#define _ADDR_ (*(volatile long *) addr)
+int __test_and_clear_bit(long nr, volatile unsigned long* addr)
+{
+  int oldbit;
+
+	asm volatile( "lock "
+		"btrl %2,%1\n\tsbbl %0,%0"
+		:"=r" (oldbit),"=m" (_ADDR_)
+		:"dIr" (nr) : "memory");
+	return oldbit;
+}
+
+static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
+void kvm_pv_eoi() {
+  
+   printf("val: %#lx\n", kvm_apic_eoi);
+  if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
+      printf("avoided\n");
+      return;
+  }
+  
+  hw::lapic.regs->eoi.reg = 0;
+}
+void kvm_pv_eoi_init() {
+  kvm_apic_eoi = 0;
+  auto loc = (uintptr_t) &kvm_apic_eoi;
+  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, loc | KVM_MSR_ENABLED, 0);
 }
