@@ -8,7 +8,7 @@
 #include <cassert>
 #include <algorithm>
 
-#define BUFFER_COUNT    6000
+#define BUFFER_COUNT    18000
 
 template <typename T, int N>
 struct fixedvector {
