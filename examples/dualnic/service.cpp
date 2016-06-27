@@ -69,10 +69,10 @@ void Service::start() {
   // Stack with network interface (eth0) driven by VirtioNet
   // DNS address defaults to 8.8.8.8
   // Static IP configuration, until we (possibly) get DHCP
-  // @note : Mostly to get a robust demo service that it works with and without DHCP
-  static auto inet1 = new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                                       { 255,255,255,0 },  // Netmask
-                                       { 10,0,0,1 });      // Gateway
+  // @note : Mostly to get a robust demo service that works with and without DHCP
+  static auto inet1 = net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
+                                            { 255,255,255,0 },  // Netmask
+                                            { 10,0,0,1 });      // Gateway
 
   // Assign a driver (VirtioNet) to a network interface (eth1)
   // @note: We could determine the appropirate driver dynamically, but then we'd
