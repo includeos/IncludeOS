@@ -68,6 +68,7 @@ std::string HTML_RESPONSE() {
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
 void Service::start() {
+  srand(OS::cycles_since_boot());
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.
@@ -83,8 +84,6 @@ void Service::start() {
                         { 255,255,255,0 },  // Netmask
                         { 10,0,0,1 },       // Gateway
                         { 8,8,8,8 } );      // DNS
-
-  srand(OS::cycles_since_boot());
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
