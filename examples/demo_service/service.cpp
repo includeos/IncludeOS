@@ -78,9 +78,10 @@ void Service::start() {
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
 
-  hw::PIT::instance().on_repeated_timeout(30s, []{
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-    });
+  // Print some useful netstats every 30 secs
+  hw::PIT::instance().on_repeated_timeout(30s, [] {
+      printf("<Service> TCP STATUS:\n\t%s\n", inet->tcp().status().c_str());
+  });
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.onAccept([] (auto conn) -> bool {
