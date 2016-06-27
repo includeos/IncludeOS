@@ -467,8 +467,8 @@ namespace hw {
 }
 
 void current_eoi_mechanism() {
-  kvm_pv_eoi();
-  //hw::lapic.regs->eoi.reg = 0;
+  //kvm_pv_eoi();
+  hw::lapic.regs->eoi.reg = 0;
   //asm("movl $0xfee000B0, %eax");
   //asm("movl $0, (%eax)");
 }

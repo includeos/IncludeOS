@@ -31,11 +31,11 @@ void print_tcp_status() {
 
 void Service::start()
 {
-  begin_stack_sampling(1500);
+  //begin_stack_sampling(1500);
   
   // print stuff every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(1000ms, print_stack_sampling);
-  //hw::PIT::instance().on_repeated_timeout(20s, print_tcp_status);
+  //hw::PIT::instance().on_repeated_timeout(1000ms, print_stack_sampling);
+  hw::PIT::instance().on_repeated_timeout(5s, print_tcp_status);
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
