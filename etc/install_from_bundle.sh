@@ -37,8 +37,6 @@ fi
 echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC/IncludeOS_install"
 gunzip $FILENAME -c | tar -C $INCLUDEOS_INSTALL_LOC -xf -   # Pipe gunzip to tar
 
-exit 0
-
 # Install submodules
 echo -e "\n\n>>> Installing submodules"
 pushd $INCLUDEOS_SRC
