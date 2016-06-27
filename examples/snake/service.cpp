@@ -23,9 +23,7 @@
 
 #include "snake.hpp"
 
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
 ConsoleVGA vga;
-
 
 void begin_snake()
 {
@@ -69,14 +67,21 @@ void Service::start()
   // we have to start snake later to avoid late text output
   hw::PIT::on_timeout(0.25, [] { begin_snake(); });
 
-  // boilerplate
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.15);
-  inet->network_config(
-    { 10,0,0,42 },      // IP
-    { 255,255,255,0 },  // Netmask
-    { 10,0,0,1 },       // Gateway
-    { 8,8,8,8 } );      // DNS
+  // Stack with network interface (eth0) driven by VirtioNet
+  // DNS address defaults to 8.8.8.8
+  auto inet = net::new_ipv4_stack<>(0.15, [](bool timeout) {
+    if (timeout) {
+      printf("%s\n", "DHCP negotiation timed out\n");
+    } else {
+      printf("%s\n", "DHCP negotiation completed successfully\n");
+    }
+  });
+
+  // Static IP configuration, until we (possibly) get DHCP
+  inet->network_config({ 10,0,0,42 },      // IP
+                       { 255,255,255,0 },  // Netmask
+                       { 10,0,0,1 },       // Gateway
+                       { 8,8,8,8 });       // DNS
 
   printf("*** TEST SERVICE STARTED ***\n");
 }
