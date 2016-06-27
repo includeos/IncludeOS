@@ -21,7 +21,7 @@ echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
 JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases`
 FILENAME=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" name` 
 DOWNLOAD_URL=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" browser_download_url`
-echo -e "\nFile to download: $DOWNLOAD_URL"
+echo -e "\n\n>>> File to download: $DOWNLOAD_URL"
 
 # If the tarball exists, use that
 if [ -e $FILENAME ]
