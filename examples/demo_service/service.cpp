@@ -85,7 +85,7 @@ void Service::start() {
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.onAccept([] (auto conn) -> bool {
-      printf("<Service> @onAccept - Connection attempt from: %s \n",
+      printf("<Service> @onAccept - Connection attempt from: %s\n",
              conn->to_string().c_str());
       return true; // allow all connections
 
@@ -115,7 +115,7 @@ void Service::start() {
 
     })
     .onDisconnect([](auto conn, auto reason) {
-        printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
+        printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
         conn->close();
     })
     .onPacketReceived([](auto, auto packet) {
@@ -125,5 +125,5 @@ void Service::start() {
       printf("<Service> @onError - %s\n", err.what());
     });
 
-  printf("*** TEST SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE STARTED ***\n");
 }
