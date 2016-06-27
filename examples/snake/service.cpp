@@ -16,24 +16,25 @@
 // limitations under the License.
 
 #include <os>
+#include <vga>
 #include <cassert>
 #include <net/inet4>
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
-#include <vga>
-ConsoleVGA vga;
+#include <hw/ps2.hpp>
 
 #include "snake.hpp"
-#include <hw/ps2.hpp>
+
+std::unique_ptr<net::Inet4<VirtioNet> > inet;
+ConsoleVGA vga;
+
 
 void begin_snake()
 {
   hw::KBM::init();
   static Snake snake(vga);
-  
+
   hw::KBM::set_virtualkey_handler(
   [] (int key) {
-    
+
     if (key == hw::KBM::VK_RIGHT) {
       snake.set_dir(Snake::RIGHT);
     }
@@ -50,7 +51,7 @@ void begin_snake()
       if (snake.is_gameover())
         snake.reset();
     }
-    
+
   });
 }
 
@@ -58,16 +59,16 @@ void Service::start()
 {
   // redirect stdout to vga screen
   // ... even though we aren't really using it after the game starts
-  
+
   OS::set_rsprint(
   [] (const char* data, size_t len)
   {
     vga.write(data, len);
   });
-  
+
   // we have to start snake later to avoid late text output
   hw::PIT::on_timeout(0.25, [] { begin_snake(); });
-  
+
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
   inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.15);
@@ -76,6 +77,6 @@ void Service::start()
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
-  
+
   printf("*** TEST SERVICE STARTED *** \n");
 }
