@@ -17,7 +17,6 @@
 
 #include <os>
 #include <vga>
-#include <cassert>
 #include <net/inet4>
 #include <hw/ps2.hpp>
 
