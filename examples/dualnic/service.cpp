@@ -32,7 +32,7 @@ void create_server(net::TCP::Connection& conn)
   conn.onAccept(
   [] (auto conn) -> bool
   {
-    printf("<Service> @onAccept - Connection attempt from: %s \n",
+    printf("<Service> @onAccept - Connection attempt from: %s\n",
            conn->to_string().c_str());
     return true; // allow all connections
 
@@ -56,7 +56,7 @@ void create_server(net::TCP::Connection& conn)
 
   }).onDisconnect(
   [] (auto conn, auto reason) {
-      printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
+      printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
       conn->close();
   });
 }
@@ -93,7 +93,7 @@ void Service::start() {
     printf("<INET_2> TCP STATUS:\n\t%s\n", inet2->tcp().status().c_str());
   });
 
-  printf("*** TEST SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE STARTED ***\n");
 }
 
 
@@ -127,7 +127,7 @@ std::string HTML_RESPONSE() {
     "Server: IncludeOS prototype 4.0\n"
     "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
     "Content-Type: text/html; charset=UTF-8\n"
-    "Content-Length: "+std::to_string(html.size())+"\n"
+    "Content-Length: "+std::to_string(html.size())+'\n'
     "Accept-Ranges: bytes\n"
     "Connection: close\n\n"
   };
