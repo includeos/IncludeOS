@@ -65,7 +65,7 @@ std::string HTML_RESPONSE() {
   return header + html;
 }
 
-const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \nConnection: close\n\n";
+const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
 void Service::start() {
   // Assign a driver (VirtioNet) to a network interface (eth0)
