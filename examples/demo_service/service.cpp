@@ -15,11 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath> // rand()
+#include <sstream>
+
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <math.h> // rand()
-#include <sstream>
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
