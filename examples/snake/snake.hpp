@@ -23,34 +23,34 @@ class Snake
 {
 public:
   static const char WHITESPACE = ' ';
-  
+
   enum {
     UP,
     DOWN,
     RIGHT,
     LEFT
   };
-  
+
   Snake(ConsoleVGA& con)
     : vga(con)
   {
     reset();
   }
-  
+
   // 80x25 = 2000
   // 11 bits = 2048
   //  2 bits = direction
   //  3 bits = type
   struct Part {
     uint16_t data;
-    
+
     Part(uint16_t x, uint16_t y, uint16_t dir, uint16_t typ)
       : data(y * 80 + x)
     {
       set_dir(dir);
       set_type(typ);
     }
-    
+
     void set_pos(uint16_t x, uint16_t y)
     {
       data &= ~0x7FF;
@@ -64,7 +64,7 @@ public:
     {
       return (data & 0x7FF) / 80;
     }
-    
+
     void set_dir(uint16_t dir)
     {
       data &= 0xE7FF;
@@ -74,7 +74,7 @@ public:
     {
       return (data >> 11) & 3;
     }
-    
+
     void set_type(uint16_t typ)
     {
       data &= 0x1FFF;
@@ -84,7 +84,7 @@ public:
     {
       return data >> 13;
     }
-    
+
     char get_symbol() const noexcept
     {
       switch (get_type()) {
@@ -97,9 +97,9 @@ public:
       }
       return '?';
     }
-    
+
   };
-  
+
   void set_dir(uint16_t dir)
   {
     switch (dir) {
@@ -134,7 +134,7 @@ public:
     if (newx < 0) newx = 79;
     int16_t newy = (head.get_y() + this->diry) % 25;
     if (newy < 0) newy = 24;
-    
+
     bool longer = false;
     auto ent = vga.get(newx, newy);
     if (is_food(ent & 0xff)) {
@@ -148,9 +148,9 @@ public:
       return;
       /// game over ///
     }
-    
+
     auto old_last = parts[parts.size()-1];
-    
+
     // move rest
     for (size_t p = parts.size()-1; p > 0; p--)
     {
@@ -160,7 +160,7 @@ public:
     // move head
     head.set_pos(newx, newy);
     draw_part(head);
-    
+
     // erase last part
     if (!longer) {
       vga.put(WHITESPACE, 0, old_last.get_x(), old_last.get_y());
@@ -174,13 +174,13 @@ public:
       // and some dangerous stuff
       place_mine(); place_mine();
     }
-    
-    hw::PIT::on_timeout(0.1,
+
+    hw::PIT::on_timeout_d(0.1,
     [this] {
       integrate();
     });
   }
-  
+
   void place_token(const char tk, const uint8_t color)
   {
     while (true) {
@@ -203,12 +203,12 @@ public:
   void place_mine() {
     place_token('X', 4);
   }
-  
+
   void draw_part(const Part& part)
   {
     vga.put(part.get_symbol(), 1, part.get_x(), part.get_y());
   }
-  
+
   bool is_whitespace(const char c) const
   {
     return c == ' ';
@@ -217,11 +217,11 @@ public:
     /// game over ///
     vga.clear();
     this->gameover = true;
-    
+
     vga.set_cursor(32, 12);
     std::string gameover = "GAME OVER ! ! !";
     vga.write(gameover.c_str(), gameover.size());
-    
+
     vga.set_cursor(32, 13);
     std::string finalscore = "SCORE: " + std::to_string(score);
     vga.write(finalscore.c_str(), finalscore.size());
@@ -229,7 +229,7 @@ public:
   bool is_gameover() const {
     return this->gameover;
   }
-  
+
   void reset() {
     this->gameover = false;
     this->score    = 1;
@@ -240,13 +240,13 @@ public:
     vga.put('@', 2, parts[0].get_x(), parts[0].get_y());
     // place the first food
     place_food();
-    
-    hw::PIT::on_timeout(0.2,
+
+    hw::PIT::on_timeout_d(0.2,
     [this] {
       this->integrate();
     });
   }
-  
+
 private:
   ConsoleVGA& vga;
   bool     gameover;

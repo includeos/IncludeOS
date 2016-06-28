@@ -54,7 +54,7 @@ std::string HTML_RESPONSE() {
     "Server: IncludeOS prototype 4.0\n"
     "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
     "Content-Type: text/html; charset=UTF-8\n"
-    "Content-Length: "+std::to_string(html.size())+'\n'
+    "Content-Length: "+std::to_string(html.size())+'\n'+
     "Accept-Ranges: bytes\n"
     "Connection: close\n\n"
   };
@@ -80,7 +80,7 @@ void Service::start() {
 
   // Print some useful netstats every 30 secs
   hw::PIT::instance().on_repeated_timeout(30s, [] {
-      printf("<Service> TCP STATUS:\n\t%s\n", inet->tcp().status().c_str());
+      printf("<Service> TCP STATUS:\n%s\n", inet->tcp().status().c_str());
   });
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
