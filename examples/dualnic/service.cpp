@@ -15,11 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>   // rand()
+#include <sstream>
+
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <math.h> // rand()
-#include <sstream>
 
 using namespace std::chrono;
 
@@ -31,7 +32,7 @@ void create_server(net::TCP::Connection& conn)
   conn.onAccept(
   [] (auto conn) -> bool
   {
-    printf("<Service> @onAccept - Connection attempt from: %s \n",
+    printf("<Service> @onAccept - Connection attempt from: %s\n",
            conn->to_string().c_str());
     return true; // allow all connections
 
@@ -55,88 +56,81 @@ void create_server(net::TCP::Connection& conn)
 
   }).onDisconnect(
   [] (auto conn, auto reason) {
-      printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
+      printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
       conn->close();
   });
 }
 
 void Service::start() {
   srand(OS::cycles_since_boot());
-  
+
   // Two IP-stack objects
-  static std::unique_ptr< net::Inet4<VirtioNet> > inet1;
-  static std::unique_ptr< net::Inet4<VirtioNet> > inet2;
 
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
-  auto& eth1 = hw::Dev::eth<1,VirtioNet>();
-
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet1 = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-  inet2 = std::make_unique<net::Inet4<VirtioNet> >(eth1);
-
+  // Stack with network interface (eth0) driven by VirtioNet
+  // DNS address defaults to 8.8.8.8
   // Static IP configuration, until we (possibly) get DHCP
-  // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet1->network_config( { 10,0,0,42 },      // IP
-                         { 255,255,255,0 },  // Netmask
-                         { 10,0,0,1 },       // Gateway
-                         { 8,8,8,8 } );      // DNS
-  
-  inet2->network_config( { 20,0,0,42 },      // IP
-                         { 255,255,255,0 },  // Netmask
-                         { 20,0,0,1 },       // Gateway
-                         { 8,8,8,8 } );      // DNS
+  // @note : Mostly to get a robust demo service that works with and without DHCP
+  static auto inet1 = net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
+                                            { 255,255,255,0 },  // Netmask
+                                            { 10,0,0,1 });      // Gateway
 
+  // Assign a driver (VirtioNet) to network interface (eth1)
+  // @note: We could determine the appropirate driver dynamically, but then we'd
+  // have to include all the drivers into the image, which we want to avoid.
+  static auto inet2 = net::new_ipv4_stack<1,VirtioNet>({ 20,0,0,42 },      // IP
+                                                       { 255,255,255,0 },  // Netmask
+                                                       { 20,0,0,1 });      // Gateway
   // Set up a TCP server on port 80
   auto& server1 = inet1->tcp().bind(80);
   create_server(server1);
-  
+
   auto& server2 = inet2->tcp().bind(80);
   create_server(server2);
 
-  // print some useful netstats every 30 secs
-  hw::PIT::instance().onRepeatedTimeout(30s, [] {
-    printf("<INET_1> TCP STATUS:\n%s \n", inet1->tcp().status().c_str());
-    printf("<INET_2> TCP STATUS:\n%s \n", inet2->tcp().status().c_str());
+  // Print some useful netstats every 30 secs
+  hw::PIT::instance().on_repeated_timeout(30s, [] {
+    printf("<INET_1> TCP STATUS:\n%s\n", inet1->tcp().status().c_str());
+    printf("<INET_2> TCP STATUS:\n%s\n", inet2->tcp().status().c_str());
   });
 
-  printf("*** TEST SERVICE STARTED *** \n");
+  printf("*** TEST SERVICE STARTED ***\n");
 }
 
 
 std::string HTML_RESPONSE() {
-  int color = rand();
-  std::stringstream stream;
+  const int color = rand();
 
   /* HTML Fonts */
-  std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-  std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-  std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
+  const std::string ubuntu_medium = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
+  const std::string ubuntu_normal = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
+  const std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
 
   /* HTML */
-  stream << "<html><head>"
+  std::stringstream stream;
+  stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
          << "</head><body>"
-         << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"
-         <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
+         << "<h1 style='color: #" << std::hex << (color >> 8) << "'>"
+         <<  "<span style='"+ubuntu_medium+"'>Include</span><span style='"+ubuntu_light+"'>OS</span></h1>"
          <<  "<h2>Now speaks TCP!</h2>"
-    // .... generate more dynamic content
+         // .... generate more dynamic content
          << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-         << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-         << "</body></html>\n";
+         << "<footer><hr/> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
+         << "</body></html>";
 
-  std::string html = stream.str();
+  const std::string html = stream.str();
 
-  std::string header="HTTP/1.1 200 OK \n "        \
-    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-    "Server: IncludeOS prototype 4.0 \n"        \
-    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-    "Content-Type: text/html; charset=UTF-8 \n"     \
-    "Content-Length: "+std::to_string(html.size())+"\n"   \
-    "Accept-Ranges: bytes\n"          \
-    "Connection: close\n\n";
+  const std::string header
+  {
+    "HTTP/1.1 200 OK\n"
+    "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"
+    "Server: IncludeOS prototype 4.0\n"
+    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
+    "Content-Type: text/html; charset=UTF-8\n"
+    "Content-Length: "+std::to_string(html.size())+'\n'+
+    "Accept-Ranges: bytes\n"
+    "Connection: close\n\n"
+  };
+
   return header + html;
 }
