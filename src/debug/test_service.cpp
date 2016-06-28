@@ -26,7 +26,7 @@ using namespace std::chrono;
 #include <profile>
 
 void print_tcp_status() {
-  printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+  printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
 }
 
 void Service::start()

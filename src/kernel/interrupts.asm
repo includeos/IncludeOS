@@ -30,7 +30,7 @@ extern profiler_stack_sampler
 unused_interrupt_handler:
   cli
   pusha
-  call current_eoi_mechanism
+  call DWORD [current_eoi_mechanism]
   popa
   sti
   iret
@@ -39,7 +39,7 @@ modern_interrupt_handler:
   cli
   pusha
   call register_modern_interrupt
-  call current_eoi_mechanism
+  call DWORD [current_eoi_mechanism]
   popa
   sti
   iret
@@ -49,7 +49,7 @@ parasite_interrupt_handler:
   pusha
   call profiler_stack_sampler
   call register_modern_interrupt
-  call current_eoi_mechanism
+  call DWORD [current_eoi_mechanism]
   popa
   sti
   iret
@@ -58,7 +58,7 @@ cpu_sampling_irq_entry:
   cli
   pusha
   call cpu_sampling_irq_handler
-  call current_eoi_mechanism
+  call DWORD [current_eoi_mechanism]
   popa
   sti
   iret
