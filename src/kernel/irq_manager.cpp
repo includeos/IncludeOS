@@ -38,8 +38,8 @@ inline void IRQ_manager::register_irq(uint8_t vector)
 }
 
 extern "C" {
-  void unused_interrupt_handler();
-  void modern_interrupt_handler();
+  extern void unused_interrupt_handler();
+  extern void modern_interrupt_handler();
   void register_modern_interrupt()
   {
     uint8_t vector = hw::APIC::get_isr();
@@ -47,7 +47,7 @@ extern "C" {
   }
   void spurious_intr();
   void exception_handler() __attribute__((noreturn));
-  void current_eoi_mechanism();
+  extern void (*current_eoi_mechanism)();
 }
 
 void exception_handler()
@@ -169,7 +169,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
 
-  current_eoi_mechanism();
+  (*current_eoi_mechanism)();
   INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
