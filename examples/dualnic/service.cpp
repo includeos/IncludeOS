@@ -88,9 +88,9 @@ void Service::start() {
   create_server(server2);
 
   // Print some useful netstats every 30 secs
-  hw::PIT::instance().onRepeatedTimeout(30s, [] {
-    printf("<INET_1> TCP STATUS:\n\t%s\n", inet1->tcp().status().c_str());
-    printf("<INET_2> TCP STATUS:\n\t%s\n", inet2->tcp().status().c_str());
+  hw::PIT::instance().on_repeated_timeout(30s, [] {
+    printf("<INET_1> TCP STATUS:\n%s\n", inet1->tcp().status().c_str());
+    printf("<INET_2> TCP STATUS:\n%s\n", inet2->tcp().status().c_str());
   });
 
   printf("*** TEST SERVICE STARTED ***\n");
@@ -127,7 +127,7 @@ std::string HTML_RESPONSE() {
     "Server: IncludeOS prototype 4.0\n"
     "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
     "Content-Type: text/html; charset=UTF-8\n"
-    "Content-Length: "+std::to_string(html.size())+'\n'
+    "Content-Length: "+std::to_string(html.size())+'\n'+
     "Accept-Ranges: bytes\n"
     "Connection: close\n\n"
   };

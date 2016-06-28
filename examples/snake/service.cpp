@@ -55,7 +55,7 @@ void Service::start()
   });
 
   // We have to start snake later to avoid late text output
-  hw::PIT::on_timeout(0.25, [] { begin_snake(); });
+  hw::PIT::on_timeout_d(0.25, [] { begin_snake(); });
 
   // Stack with network interface (eth0) driven by VirtioNet
   // DNS address defaults to 8.8.8.8
