@@ -10,6 +10,10 @@
 
 #define BUFFER_COUNT    18000
 
+extern "C" {
+  extern void _start();
+}
+
 template <typename T, int N>
 struct fixedvector {
   
@@ -125,6 +129,23 @@ void gather_stack_sampling()
   }
 }
 
+static void print_heap_info()
+{
+  uintptr_t start_addr = Elf::resolve_name("_start");
+  printf("start_addr: %#x\n", start_addr);
+  
+  // also show information on heap end in case of leaks
+  extern char* heap_end;
+  extern char  _end;
+  printf("[!] Heap end   %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
+  printf("[!] OS end     %p\n", &_end);
+  
+  char buffer[256];
+  auto func = Elf::safe_resolve_symbol((void*) &_start, buffer, sizeof(buffer));
+  printf("[!] _start     0x%.6x  vs  %#x  (sym %#x)\n", 
+      (uintptr_t) &_start, func.addr, (uintptr_t) func.name);
+}
+
 void print_stack_sampling()
 {
   // sort by count
@@ -149,29 +170,28 @@ void print_stack_sampling()
     
     if (results-- == 0) break;
   }
-  // also show information on heap end in case of leaks
-  extern char* heap_end;
-  extern char  _end;
-  printf("[!] heap end == %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
-  printf("[!] heap start  %p\n", &_end);
+  print_heap_info();
   printf("*** ---------------------- ***\n");
 }
 
 
-static void failure(char const* where)
+void __panic_failure(char const* where, size_t id)
 {
-  printf("\n[FAILURE] %s\n", where);
+  printf("\n[FAILURE] %s, id=%u\n", where, id);
+  print_heap_info();
   while (true)
     asm volatile("cli; hlt");
 }
 
-void validate_stacktrace(char const* where)
+void __validate_backtrace(char const* where, size_t id)
 {
   func_offset func;
   
-  func = Elf::resolve_symbol((void*) &validate_stacktrace);
-  if (func.name != "validate_stacktrace(char const*)") failure(where);
+  func = Elf::resolve_symbol((void*) &__validate_backtrace);
+  if (func.name != "__validate_backtrace")
+      __panic_failure(where, id);
   
   func = Elf::resolve_symbol((void*) &print_stack_sampling);
-  if (func.name != "print_stack_sampling()") failure(where);
+  if (func.name != "print_stack_sampling()")
+      __panic_failure(where, id);
 }

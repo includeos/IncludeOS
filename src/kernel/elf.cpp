@@ -51,7 +51,7 @@ public:
   ElfTables(uintptr_t elf_base)
     : strtab(nullptr), ELF_BASE(elf_base)
   {
-    auto& elf_hdr = *(Elf32_Ehdr*) ELF_BASE;
+    auto& elf_hdr = elf_header();
     
     // enumerate all section headers
     auto* shdr = (Elf32_Shdr*) (ELF_BASE + elf_hdr.e_shoff);
@@ -60,8 +60,9 @@ public:
       switch (shdr[i].sh_type)
       {
       case SHT_SYMTAB:
-        symtab.push_back({ (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset) ,
-                           shdr[i].sh_size / sizeof(Elf32_Sym) });
+        symtab[num_syms] = { (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset), 
+                              shdr[i].sh_size / sizeof(Elf32_Sym) };
+        num_syms++;
         //printf("found symtab at %#x\n", shdr[i].sh_offset);
         //debug("found symbol table at %p with %u entries\n", 
         //    this->symtab, this->st_entries);
@@ -75,7 +76,7 @@ public:
         break;
       }
     }
-    if (symtab.empty() || strtab == nullptr) {
+    if (num_syms == 0 || strtab == nullptr) {
       INFO("ELF", "symtab or strtab is empty, indicating image may be stripped\n");
     }
   }
@@ -87,17 +88,12 @@ public:
     // definitely in the bootloader
     if (addr < 0x7e00) return {"Bootloader area", 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
-    for (auto& tab : symtab)
-    for (size_t i = 0; i < tab.entries; i++) {
-      // find entry with matching address
-      if (addr >= tab.base[i].st_value
-      && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
-        
-        auto base   = tab.base[i].st_value;
-        auto offset = addr - base;
-        // return string name for symbol
-        return {demangle( sym_name(tab.base[i]) ), base, offset};
-      }
+    auto* sym = getaddr(addr);
+    if (sym) {
+      auto base   = sym->st_value;
+      auto offset = addr - base;
+      // return string name for symbol
+      return {demangle( sym_name(sym) ), base, offset};
     }
     // function or space not found
     return {to_hex_string(addr), addr, 0};
@@ -109,17 +105,12 @@ public:
     // definitely in the bootloader
     if (addr < 0x7e00) return {0, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
-    for (auto& tab : symtab)
-    for (size_t i = 0; i < tab.entries; i++) {
-      // find entry with matching address
-      if (addr >= tab.base[i].st_value
-      && (addr < tab.base[i].st_value + tab.base[i].st_size)) {
-        
-        auto base   = tab.base[i].st_value;
-        auto offset = addr - base;
-        // return string name for symbol
-        return {demangle_safe( sym_name(tab.base[i]), buffer, length ), base, offset};
-      }
+    auto* sym = getaddr(addr);
+    if (sym) {
+      auto base   = sym->st_value;
+      auto offset = addr - base;
+      // return string name for symbol
+      return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
     }
     // function or space not found
     return {0, addr, 0};
@@ -127,18 +118,36 @@ public:
   
   Elf32_Addr getaddr(const std::string& name)
   {
-    for (auto& tab : symtab)
-    for (size_t i = 0; i < tab.entries; i++) {
-      // find entry with matching address
-      if (demangle( sym_name(tab.base[i]) ) == name)
-        return tab.base[i].st_value;
+    for (size_t t = 0; t < num_syms; t++)
+    for (size_t i = 0; i < symtab[t].entries; i++) {
+      
+      //printf("sym %s\n", sym_name(&symtab[t].base[i]));
+      if (demangle( sym_name(&symtab[t].base[i]) ) == name)
+          return symtab[t].base[i].st_value;
+      
     }
     return 0;
   }
+  Elf32_Sym* getaddr(Elf32_Addr addr)
+  {
+    for (size_t t = 0; t < num_syms; t++)
+    for (size_t i = 0; i < symtab[t].entries; i++) {
+      
+      if (addr >= symtab[t].base[i].st_value
+      && (addr <  symtab[t].base[i].st_value + symtab[t].base[i].st_size))
+          return &symtab[t].base[i];
+    }
+    return nullptr;
+  }
   
+  size_t end_of_file() const {
+    auto& hdr = elf_header();
+    return hdr.e_ehsize + (hdr.e_phnum * hdr.e_phentsize) + (hdr.e_shnum * hdr.e_shentsize);
+  }
+
 private:
-  const char* sym_name(Elf32_Sym& sym) const {
-    return &strtab[sym.st_name];
+  const char* sym_name(Elf32_Sym* sym) const {
+    return &strtab[sym->st_name];
   }
   bool is_func(Elf32_Sym* sym) const
   {
@@ -146,14 +155,17 @@ private:
   }
   std::string demangle(const char* name) const
   {
-    size_t buflen = 256;
-    std::string buf;
-    buf.reserve(buflen+1);
-    int status;
-    // internally, demangle just returns buf when status is ok
-    auto* res = __cxa_demangle(name, (char*) buf.data(), &buflen, &status);
-    if (status) return std::string(name);
-    return std::string(res);
+    if (name[0] == '_') {
+      int status;
+      // internally, demangle just returns buf when status is ok
+      auto* res = __cxa_demangle(name, nullptr, 0, &status);
+      if (status == 0) {
+        std::string result(res);
+        delete[] res;
+        return result;
+      }
+    }
+    return std::string(name);
   }
   const char* demangle_safe(const char* name, char* buffer, size_t buflen) const
   {
@@ -163,8 +175,13 @@ private:
     if (status) return name;
     return res;
   }
-
-  std::vector<SymTab> symtab;
+  
+  Elf32_Ehdr& elf_header() const {
+    return *(Elf32_Ehdr*) ELF_BASE;
+  }
+  
+  SymTab  symtab[4];
+  size_t  num_syms;
   const char* strtab;
   uintptr_t   ELF_BASE;
 };
@@ -172,6 +189,10 @@ private:
 ElfTables& get_parser() {
   static ElfTables parser(ELF_START);
   return parser;
+}
+
+size_t Elf::end_of_file() {
+  return get_parser().end_of_file();
 }
 
 func_offset Elf::resolve_symbol(uintptr_t addr)
@@ -253,4 +274,20 @@ void print_backtrace()
                   if (frp(8, ra)) {
                     PRINT_TRACE(8, ra);
   }}}}}}}}}
+}
+
+extern "C" {
+  uintptr_t __elf_header_end() {
+    auto& hdr = *(Elf32_Ehdr*) ELF_START;
+    uintptr_t last = 0;
+    // find last SH, calculate offset + size
+    auto* shdr = (Elf32_Shdr*) (ELF_START + hdr.e_shoff);
+    for (Elf32_Half i = 0; i < hdr.e_shnum; i++)
+    {
+      uintptr_t size = shdr[i].sh_offset + shdr[i].sh_size;
+      if (last < size) last = size;
+    }
+    // add base ELF address
+    return ELF_START + last;
+  }
 }
