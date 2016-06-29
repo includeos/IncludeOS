@@ -129,7 +129,7 @@ void gather_stack_sampling()
   }
 }
 
-static void print_heap_info()
+void print_heap_info()
 {
   uintptr_t start_addr = Elf::resolve_name("_start");
   printf("start_addr: %#x\n", start_addr);

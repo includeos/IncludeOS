@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#define DEBUG
 #include <vector>
 #include <cassert>
 #include <malloc.h>
@@ -36,9 +37,8 @@ namespace net {
 
     for (buffer_t b = pool_begin(); b < pool_end(); b += bufsize)
         available_.push_back(b);
-
     assert(available() == num);
-    
+
     locked_storage = new uint32_t[num / 32];
     new (&locked) MemBitmap(locked_storage, num / 32);
     locked.zero_all();

@@ -25,8 +25,10 @@ using namespace std::chrono;
 #include <kernel/elf.hpp>
 #include <profile>
 
+extern void print_heap_info();
 void print_tcp_status() {
   printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
+  print_heap_info();
 }
 
 uint8_t bullshit[65536*4];
@@ -89,16 +91,16 @@ extern "C" {
 
 void Service::start()
 {
-  printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
-  memset(bullshit, 0, sizeof(bullshit));
-  __validate_bullshit("validate_bullshit begin Service::start()");
+  //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
+  //memset(bullshit, 0, sizeof(bullshit));
+  //__validate_bullshit("validate_bullshit begin Service::start()");
   
-  begin_stack_sampling(200);
+  //begin_stack_sampling(200);
   // print sampling results every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(800ms, print_stack_sampling);
+  //hw::PIT::instance().on_repeated_timeout(800ms, print_stack_sampling);
   // heap validation test
   //hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
-  __validate_bullshit("validate_bullshit endof Service::start()");
+  //__validate_bullshit("validate_bullshit endof Service::start()");
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
@@ -108,7 +110,7 @@ void Service::start()
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 } );      // DNS
-  hw::PIT::instance().on_repeated_timeout(5s, print_tcp_status);
+  hw::PIT::instance().on_repeated_timeout(2500ms, print_tcp_status);
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
