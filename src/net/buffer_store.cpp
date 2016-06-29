@@ -36,7 +36,16 @@ namespace net {
     assert(num != 0);
     assert(bufsize != 0);
     
-    this->pool_ = (buffer_t) memalign(PAGE_SIZE, num * bufsize);
+    const size_t DATA_HEADER = PAGE_SIZE-1 + num * bufsize;
+    const size_t BMP_CHUNKS = num / 32;
+    const size_t BMP_SIZE   = BMP_CHUNKS * sizeof(uint32_t);
+    
+    malloc_pool_ = malloc(DATA_HEADER + BMP_SIZE);
+    assert(malloc_pool_);
+    
+    this->pool_ = (buffer_t) malloc_pool_;
+    // align to page boundary
+    pool_ += PAGE_SIZE - ((uintptr_t) pool_ & (PAGE_SIZE-1));
     assert(this->pool_);
 
     for (buffer_t b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
@@ -46,14 +55,12 @@ namespace net {
     // verify that the "first" buffer is the start of the pool
     assert(available_.back() == pool_);
 
-    locked_storage = new uint32_t[num / 32];
-    new (&locked) MemBitmap(locked_storage, num / 32);
+    new (&locked) MemBitmap((char*) malloc_pool_ + DATA_HEADER, BMP_CHUNKS);
     locked.zero_all();
   }
 
   BufferStore::~BufferStore() {
-    free(pool_);
-    delete[] locked_storage;
+    free(malloc_pool_);
   }
 
   BufferStore::buffer_t BufferStore::get_buffer() {

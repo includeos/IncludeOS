@@ -89,33 +89,18 @@ extern "C" {
   extern void _start();
 }
 
-using namespace net;
-auto create_packet(net::BufferStore* bufstore, size_t size)
-{
-  // get buffer (as packet + data)
-  auto* ptr = (Packet*) bufstore->get_buffer();
-  // place packet at front of buffer
-  new (ptr) Packet(1024, size,
-      [bufstore] (Packet* p) {
-        bufstore->release((uint8_t*) p);
-      });
-  // shared_ptr with custom deleter
-  return std::shared_ptr<Packet>(ptr);
-}
-
-BufferStore bufstore(1024, sizeof(Packet) + 1024);
 void Service::start()
 {
-  //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
-  //memset(bullshit, 0, sizeof(bullshit));
-  //__validate_bullshit("validate_bullshit begin Service::start()");
+  printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
+  memset(bullshit, 0, sizeof(bullshit));
+  __validate_bullshit("validate_bullshit begin Service::start()");
   
-  //begin_stack_sampling(200);
+  begin_stack_sampling(200);
   // print sampling results every 5 seconds
-  //hw::PIT::instance().on_repeated_timeout(800ms, print_stack_sampling);
+  hw::PIT::instance().on_repeated_timeout(800ms, print_stack_sampling);
   // heap validation test
-  //hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
-  //__validate_bullshit("validate_bullshit endof Service::start()");
+  hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
+  __validate_bullshit("validate_bullshit endof Service::start()");
   
   // boilerplate
   hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();

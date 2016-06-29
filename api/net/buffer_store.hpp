@@ -84,10 +84,9 @@ namespace net{
     size_t               poolsize_;
     const size_t         bufsize_;
     buffer_t             pool_;
+    void*                malloc_pool_;
     std::vector<buffer_t> available_;
-    
-    uint32_t* locked_storage;
-    MemBitmap locked;
+    MemBitmap  locked;
 
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
