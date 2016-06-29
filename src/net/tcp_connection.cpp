@@ -644,6 +644,7 @@ void Connection::retransmit() {
 }
 
 void Connection::rtx_start() {
+  return;
   Expects(!rtx_timer.active);
   auto i = rtx_timer.i;
   auto rto = rttm.RTO;
@@ -693,7 +694,7 @@ void Connection::rtx_timeout() {
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
-    printf("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
+    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
     close();
     return;
   }
@@ -763,7 +764,8 @@ void Connection::start_time_wait_timeout() {
   time_wait_started = OS::cycles_since_boot();
   auto timeout = 2 * host().MSL(); // 60 seconds
   // Passing "this"..?
-  hw::PIT::instance().on_timeout_ms(timeout,[this, timeout] {
+  hw::PIT::instance().on_timeout_ms(timeout,
+    [this, timeout] {
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
         signal_close();
@@ -788,6 +790,7 @@ void Connection::clean_up() {
   on_packet_received_.reset();
   on_packet_dropped_.reset();
   read_request.clean_up();
+  rtx_clear();
 }
 
 std::string Connection::TCB::to_string() const {

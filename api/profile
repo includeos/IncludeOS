@@ -25,4 +25,9 @@
 extern void begin_stack_sampling(uint16_t gather_period_ms);
 extern void print_stack_sampling();
 
+// used to validate that the backtrace is not corrupt
+extern "C" {
+  extern void __validate_backtrace(char const* where, unsigned id = 0);
+}
+
 #endif

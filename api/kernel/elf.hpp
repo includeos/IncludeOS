@@ -54,4 +54,8 @@ struct Elf
   //returns the address of a symbol, or 0
   static uintptr_t
     resolve_name(const std::string& name);
+  
+  // returns the address of the first byte after the ELF header
+  // and all static and dynamic sections
+  static size_t end_of_file();
 };
