@@ -89,8 +89,8 @@ namespace fs {
     }
 
   private:
-    const token_t      token_;
-    const std::string& reason_;
+    const token_t     token_;
+    const std::string reason_;
   }; //< struct error_t
 
   struct Buffer
