@@ -122,7 +122,7 @@ namespace fs {
     error_t  err;
     buffer_t buffer;
     uint64_t len;
-  };
+  }; //< struct Buffer
 
   /** @var no_error: Always returns boolean false when used in expressions */
   extern error_t no_error;
