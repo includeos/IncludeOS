@@ -79,10 +79,10 @@ namespace net {
       // get buffer (as packet + data)
       auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size);
+      new (ptr) Packet(nic_.bufsize(), size,
+          [this] (void* p) { bufstore_.release((uint8_t*) p); });
       // shared_ptr with custom deleter
-      return std::shared_ptr<Packet>(ptr, 
-          [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
+      return std::shared_ptr<Packet>(ptr);
     }
 
     // We have to ask the Nic for the MTU

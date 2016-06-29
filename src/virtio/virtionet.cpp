@@ -242,13 +242,13 @@ void VirtioNet::add_receive_buffer(){
 }
 
 std::shared_ptr<Packet>
-VirtioNet::recv_packet(uint8_t* data, uint16_t sz)
+VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
-  new (ptr) Packet(bufsize(), sz);
+  new (ptr) Packet(bufsize(), size,
+      [this] (void* p) { bufstore_.release((uint8_t*) p); });
 
-  return std::shared_ptr<Packet> (ptr,
-      [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
+  return std::shared_ptr<Packet> (ptr);
 }
 
 void VirtioNet::service_queues(){

@@ -116,6 +116,6 @@ void Service::start()
   auto& server = inet->tcp().bind(80);
   server.onConnect(
   [] (auto conn) {
-    conn->close();
+    conn->abort();
   });
 }

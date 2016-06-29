@@ -22,14 +22,6 @@
 
 namespace net {
 
-  Packet::Packet(size_t bufsize, size_t datalen) noexcept
-  : capacity_  {bufsize},
-    size_      {datalen},
-    next_hop4_ {}
-{
-  debug("<Packet> CONSTRUCT packet, buf @ %p\n", buf);
-}
-
   IP4::addr Packet::next_hop() const noexcept {
     return next_hop4_;
   }

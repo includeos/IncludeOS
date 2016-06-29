@@ -23,9 +23,13 @@
 #include <cassert>
 
 namespace net {
+  void default_packet_deleter(void* p);
 
-  class Packet : public std::enable_shared_from_this<Packet> {
+  class Packet : public std::enable_shared_from_this<Packet>
+  {
   public:
+    using deleter_t = delegate<void(void*)>;
+
     /**
      *  Construct, using existing buffer.
      *
@@ -34,7 +38,14 @@ namespace net {
      *
      *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
      */
-    Packet(size_t capacity, size_t len) noexcept;
+    Packet(
+        size_t cap, 
+        size_t len, 
+        deleter_t del = default_packet_deleter) noexcept
+    : capacity_ (cap),
+      size_     (len),
+      deleter_  {del}
+    {}
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
@@ -105,9 +116,13 @@ namespace net {
     static Packet_ptr packet(Packet_ptr pckt) noexcept
     { return *static_cast<Packet_ptr*>(&pckt); }
 
-    
-    static void operator delete (void* p) {
-      delete[] (uint8_t*) p;
+    // custom deleter for Packet used by network stack
+    void set_deleter(deleter_t cb) {
+      this->deleter_ = cb;
+    }
+    static void operator delete (void* p)
+    {
+      ((Packet*) p)->deleter_(p);
     }
     
   private:
@@ -135,12 +150,18 @@ namespace net {
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
 
-    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
-    size_t                size_      {0};
-    IP4::addr             next_hop4_ {};
-    BufferStore::buffer_t payload_   {nullptr};
+    size_t                capacity_;
+    size_t                size_;
+    IP4::addr             next_hop4_;
+    deleter_t             deleter_;
+    BufferStore::buffer_t payload_ {nullptr};
     BufferStore::buffer_t buf_[0];
   }; //< class Packet
+
+  inline void default_packet_deleter(void* p) {
+    assert(0);
+    delete (Packet*) p;
+  }
 
 } //< namespace net
 

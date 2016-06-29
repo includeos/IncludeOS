@@ -16,6 +16,8 @@
 // limitations under the License.
 
 //#define DEBUG
+//#undef  NO_DEBUG
+#include <debug>
 #include <vector>
 #include <cassert>
 #include <malloc.h>
@@ -23,7 +25,6 @@
 
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
-#include <debug>
 #define PAGE_SIZE     0x1000
 
 namespace net {
