@@ -96,8 +96,11 @@ namespace fs {
    */
   struct Buffer
   {
-    Buffer(error_t e, buffer_t b, size_t l)
-      : err(e), buffer(b), len(l) {}
+    Buffer(const error_t& e, buffer_t b, const uint64_t l)
+      : err_    {e}
+      , buffer_ {b}
+      , len_    {l}
+    {}
 
     // returns true if this buffer is valid
     bool is_valid() const noexcept {
@@ -119,9 +122,10 @@ namespace fs {
       return std::string((char*) buffer.get(), size());
     }
 
-    error_t  err;
-    buffer_t buffer;
-    uint64_t len;
+  private:
+    const error_t  err_;
+    buffer_t       buffer_;
+    const uint64_t len_;
   }; //< struct Buffer
 
   /** @var no_error: Always returns boolean false when used in expressions */
