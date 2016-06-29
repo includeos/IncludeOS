@@ -112,7 +112,6 @@ void Service::start() {
       auto memuse =  OS::memory_usage();
       printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
       printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
-
     });
 
   server_mem.onConnect([] (auto conn) {
