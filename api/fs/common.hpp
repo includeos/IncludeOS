@@ -40,7 +40,7 @@ namespace fs {
       E_NOENT,
       E_NOTDIR,
       E_NOTFILE
-    };
+    }; //< enum token_t
 
     /**
      * @brief Constructor
