@@ -111,9 +111,11 @@ namespace fs {
     bool is_valid() const noexcept
     { return (buffer not_eq nullptr) and (not err_); }
 
-    operator bool () const noexcept {
-      return is_valid();
-    }
+    /**
+     * @brief Coerce an object of this type to a bool
+     */
+    operator bool () const noexcept
+    { return is_valid(); }
 
     uint8_t* data() {
       return buffer.get();
