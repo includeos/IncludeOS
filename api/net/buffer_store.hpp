@@ -63,9 +63,10 @@ namespace net{
     inline size_t available() const
     { return available_.size(); }
     
-    void lock(buffer_t addr) {
-      assert(is_from_pool(addr));
-      locked.set( buffer_id(addr) );
+    void lock(void* addr) {
+      auto* buffer = (buffer_t) addr;
+      assert(is_from_pool(buffer));
+      locked.set( buffer_id(buffer) );
     }
     void unlock_and_release(buffer_t addr);
 

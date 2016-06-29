@@ -33,12 +33,18 @@ namespace net {
     poolsize_      {num * bufsize},
     bufsize_       {bufsize}
   {
-    pool_ = (buffer_t) memalign(PAGE_SIZE, num * bufsize);
-    assert(pool_);
+    assert(num != 0);
+    assert(bufsize != 0);
+    
+    this->pool_ = (buffer_t) memalign(PAGE_SIZE, num * bufsize);
+    assert(this->pool_);
 
-    for (buffer_t b = pool_begin(); b < pool_end(); b += bufsize)
+    for (buffer_t b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
         available_.push_back(b);
+    }
     assert(available() == num);
+    // verify that the "first" buffer is the start of the pool
+    assert(available_.back() == pool_);
 
     locked_storage = new uint32_t[num / 32];
     new (&locked) MemBitmap(locked_storage, num / 32);
@@ -62,6 +68,7 @@ namespace net {
   void BufferStore::release(buffer_t addr)
   {
     debug("Release %p...", addr);
+
     if (is_from_pool(addr) and is_buffer(addr)) {
       // if the buffer is locked, don't release it
       if (locked.get( buffer_id(addr) )) {

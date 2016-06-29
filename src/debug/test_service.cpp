@@ -89,6 +89,21 @@ extern "C" {
   extern void _start();
 }
 
+using namespace net;
+auto create_packet(net::BufferStore* bufstore, size_t size)
+{
+  // get buffer (as packet + data)
+  auto* ptr = (Packet*) bufstore->get_buffer();
+  // place packet at front of buffer
+  new (ptr) Packet(1024, size,
+      [bufstore] (Packet* p) {
+        bufstore->release((uint8_t*) p);
+      });
+  // shared_ptr with custom deleter
+  return std::shared_ptr<Packet>(ptr);
+}
+
+BufferStore bufstore(1024, sizeof(Packet) + 1024);
 void Service::start()
 {
   //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));

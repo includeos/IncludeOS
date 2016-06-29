@@ -48,8 +48,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop), 
-    /** 1024 buffers to start with */
-    bufstore_(1024, sizeof(net::Packet) + bufsize())
+    /** 2000 buffers to start with */
+    bufstore_(2000, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
@@ -59,13 +59,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     | (1 << VIRTIO_NET_F_MAC)
     | (1 << VIRTIO_NET_F_STATUS);
   //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
-  uint32_t wanted_features = needed_features; /*;
-                                                | (1 << VIRTIO_NET_F_CSUM)
-                                                | (1 << VIRTIO_F_ANY_LAYOUT)
-                                                | (1 << VIRTIO_NET_F_CTRL_VQ)
-                                                | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
-                                                | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
-
+  uint32_t wanted_features = needed_features;
   negotiate_features(wanted_features);
 
 
@@ -285,10 +279,8 @@ void VirtioNet::service_queues(){
     // Do one TX-packet
     if (tx_q.new_incoming()){
       debug2("<VirtioNet> Dequeing TX");
-      // FIXME
-      // unfortunately dequeue is not working here
+      // FIXME Unfortunately dequeue is not working here
       // I am guessing that Linux is eating the buffers
-      // FIXME
       tx_q.dequeue();
       
       // unlock and release the (assumed) locked buffer

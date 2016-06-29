@@ -23,12 +23,12 @@
 #include <cassert>
 
 namespace net {
-  void default_packet_deleter(void* p);
+  void default_packet_deleter(Packet* p);
 
   class Packet : public std::enable_shared_from_this<Packet>
   {
   public:
-    using deleter_t = delegate<void(void*)>;
+    using deleter_t = delegate<void(Packet*)>;
 
     /**
      *  Construct, using existing buffer.
@@ -46,6 +46,9 @@ namespace net {
       size_     (len),
       deleter_  {del}
     {}
+    ~Packet() {
+      deleter_(this);
+    }
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
@@ -59,13 +62,20 @@ namespace net {
     inline uint32_t capacity() const noexcept
     { return capacity_; }
 
-    int set_size(const size_t) noexcept;
+    int set_size(size_t new_size) noexcept {
+      if (new_size > capacity_) {
+        return 0;
+      }
+      return size_ = new_size;
+    }
 
-    /** Set next-hop ip4. */
-    void next_hop(IP4::addr ip) noexcept;
-
-    /** Get next-hop ip4. */
-    IP4::addr next_hop() const noexcept;
+    /** next-hop ipv4 address for IP routing */
+    void next_hop(IP4::addr ip) noexcept {
+      next_hop4_ = ip;
+    }
+    IP4::addr next_hop() const noexcept {
+      return next_hop4_;
+    }
 
     /* Add a packet to this packet chain.  */
     void chain(Packet_ptr p) noexcept {
@@ -120,11 +130,10 @@ namespace net {
     void set_deleter(deleter_t cb) {
       this->deleter_ = cb;
     }
-    static void operator delete (void* p)
-    {
-      ((Packet*) p)->deleter_(p);
-    }
-    
+
+    // override delete to do nothing
+    static void operator delete (void*) {}
+
   private:
     /** Let's chain packets */
     Packet_ptr chain_ {0};
@@ -158,9 +167,8 @@ namespace net {
     BufferStore::buffer_t buf_[0];
   }; //< class Packet
 
-  inline void default_packet_deleter(void* p) {
-    assert(0);
-    delete (Packet*) p;
+  inline void default_packet_deleter(Packet* p) {
+    delete p;
   }
 
 } //< namespace net

@@ -22,19 +22,4 @@
 
 namespace net {
 
-  IP4::addr Packet::next_hop() const noexcept {
-    return next_hop4_;
-  }
-
-  void Packet::next_hop(IP4::addr ip) noexcept {
-    next_hop4_ = ip;
-  }
-
-  int Packet::set_size(const size_t size) noexcept {
-    if(size > capacity_) {
-      return 0;
-    }
-    return size_ = size;
-  }
-
 } //< namespace net
