@@ -39,6 +39,7 @@
 #include "../net/ethernet.hpp"
 #include "../net/buffer_store.hpp"
 #include <delegate>
+#include <deque>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -238,11 +239,9 @@ private:
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
 
-  /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffffU / bufsize(),  bufsize(), sizeof(virtio_net_hdr) };
-  net::BufferStore::release_del release_buffer =
-    net::BufferStore::release_del::from
-    <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
+  net::BufferStore bufstore_;
+  std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::deque<uint8_t*> tx_ringq;
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 

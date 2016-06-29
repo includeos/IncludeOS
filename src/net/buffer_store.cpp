@@ -18,60 +18,76 @@
 #include <vector>
 #include <cassert>
 #include <malloc.h>
+#include <cstdio>
 
-#include <os>
 #include <net/buffer_store.hpp>
+#include <kernel/syscalls.hpp>
+#include <debug>
+#define PAGE_SIZE     0x1000
 
 namespace net {
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
     poolsize_      {num * bufsize},
-    bufsize_       {bufsize},
-    device_offset_ {device_offset},
-    pool_          {static_cast<buffer_t>(memalign(PAGE_SIZE, num * bufsize))}
-{
-  assert(pool_);
+    bufsize_       {bufsize}
+  {
+    pool_ = (buffer_t) memalign(PAGE_SIZE, num * bufsize);
+    assert(pool_);
 
-  debug ("<BufferStore> Creating buffer store of %i * %i bytes.\n",
-         num, bufsize);
+    for (buffer_t b = pool_begin(); b < pool_end(); b += bufsize)
+        available_.push_back(b);
 
-  for (buffer_t b = pool_; b < pool_ + (num * bufsize); b += bufsize)
-    available_buffers_.push_back(b);
-
-  debug ("<BufferStore> I now have %i free buffers in range %p -> %p.\n",
-         available_buffers_.size(), pool_, pool_ + (bufcount_ * bufsize_));
-}
+    assert(available() == num);
+    
+    locked_storage = new uint32_t[num / 32];
+    new (&locked) MemBitmap(locked_storage, num / 32);
+    locked.zero_all();
+  }
 
   BufferStore::~BufferStore() {
     free(pool_);
+    delete[] locked_storage;
   }
 
   BufferStore::buffer_t BufferStore::get_buffer() {
-    if (available_buffers_.empty())
+    if (available_.empty())
       panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
 
-    auto buf = available_buffers_.front();
-    available_buffers_.pop_front();
-
-    debug2("<BufferStore> Provisioned a buffer. %i buffers remaining.\n",
-           available_buffers_.size());
-
-    return buf;
+    auto addr = available_.back();
+    available_.pop_back();
+    return addr;
   }
 
-  void BufferStore::release_buffer(buffer_t b) {
-    debug2("<BufferStore> Trying to release %i sized buffer @%p.\n", bufsize, b);
-    // Make sure the buffer comes from here. Otherwise, ignore it.
-    if (address_is_from_pool(b)
-        and address_is_bufstart(b)
-        and bufsize == bufsize_)
-      {
-        available_buffers_.push_back(b);
-        debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
+  void BufferStore::release(buffer_t addr)
+  {
+    debug("Release %p...", addr);
+    if (is_from_pool(addr) and is_buffer(addr)) {
+      // if the buffer is locked, don't release it
+      if (locked.get( buffer_id(addr) )) {
+        debug(" .. but it was locked\n");
         return;
       }
-
-    debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
+      
+      available_.push_back(addr);
+      debug("released\n");
+      return;
+    }
+    // buffer not owned by bufferstore, so just delete it?
+    debug("deleted\n");
+    delete[] addr;
+  }
+  void BufferStore::unlock_and_release(buffer_t addr)
+  {
+    debug("Unlock and release %p...", addr);
+    if (is_from_pool(addr) and is_buffer(addr)) {
+      locked.reset( buffer_id(addr) );
+      available_.push_back(addr);
+      debug("released\n");
+      return;
+    }
+    // buffer not owned by bufferstore, so just delete it?
+    debug("deleted\n");
+    delete[] addr;
   }
 
 } //< namespace net

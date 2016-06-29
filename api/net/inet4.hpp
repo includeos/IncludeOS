@@ -76,13 +76,13 @@ namespace net {
     */
     virtual Packet_ptr createPacket(size_t size) override {
 
-      const uint16_t bufsize = nic_.bufsize();
-      // create packet + data
-      auto* ptr = (Packet*) new uint8_t[sizeof(Packet) + bufsize];
+      // get buffer (as packet + data)
+      auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer
-      new (ptr) Packet(bufsize, size);
+      new (ptr) Packet(nic_.bufsize(), size);
       // shared_ptr with custom deleter
-      return std::shared_ptr<Packet>(ptr);
+      return std::shared_ptr<Packet>(ptr, 
+          [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
     }
 
     // We have to ask the Nic for the MTU
