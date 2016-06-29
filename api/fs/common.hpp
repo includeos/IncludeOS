@@ -102,10 +102,15 @@ namespace fs {
       , len_    {l}
     {}
 
-    // returns true if this buffer is valid
-    bool is_valid() const noexcept {
-      return buffer != nullptr;
-    }
+    /**
+     * @brief Check if an object of this type is in a valid
+     * state
+     *
+     * @return true if valid, false otherwise
+     */
+    bool is_valid() const noexcept
+    { return (buffer not_eq nullptr) and (not err_); }
+
     operator bool () const noexcept {
       return is_valid();
     }
