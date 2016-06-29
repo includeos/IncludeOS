@@ -184,7 +184,7 @@ class qemu(hypervisor):
     if self._config.has_key("mem"):
       mem_arg = ["-m",str(self._config["mem"])]
 
-    command = ["qemu-system-x86_64"]
+    command = ["sudo", "qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
 
     command += ["-nographic" ] + disk_args + net_args + mem_arg
@@ -198,7 +198,7 @@ class qemu(hypervisor):
     if hasattr(self, "_proc") and self._proc.poll() == None :
       print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
       # Kill with sudo
-      subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
+      subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
     return self
@@ -324,11 +324,6 @@ class vm:
 
   def poll(self):
     return self._hyper.poll()
-
-print color.HEADER("Checking for sudo permissions")
-if os.geteuid() != 0:
-  print color.FAIL("You need sudo permissions to run this script")
-  sys.exit(1)
 
 print color.HEADER("IncludeOS vmrunner initializing tests")
 print color.INFO(nametag), "Validating test service"
