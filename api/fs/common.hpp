@@ -42,8 +42,10 @@ namespace fs {
       E_NOTFILE
     };
 
-    error_t(token_t tk, const std::string& rsn)
-      : token_(tk), reason_(rsn) {}
+    error_t(const token_t tk, const std::string& rsn) noexcept
+      : token_{tk}
+      , reason_{rsn}
+    {}
 
     // error code to string
     std::string token() const noexcept;
