@@ -61,8 +61,14 @@ namespace fs {
       return reason_;
     }
 
-    // returns "description": "reason"
-    std::string to_string() const noexcept {
+    /**
+     * @brief Get a {std::string} representation of this type
+     *
+     * Format "description: reason"
+     *
+     * @return {std::string} representation of this type
+     */
+    std::string to_string() const {
       return token() + ": " + reason();
     }
 
