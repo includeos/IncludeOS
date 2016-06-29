@@ -120,9 +120,14 @@ namespace fs {
     uint8_t* data() {
       return buffer.get();
     }
-    size_t   size() const noexcept {
-      return len;
-    }
+
+    /**
+     * @brief Get the size/length of the buffer
+     *
+     * @return The size/length of the buffer
+     */
+    size_t   size() const noexcept
+    { return len_; }
 
     // create a std::string from the stored buffer and return it
     std::string to_string() const noexcept {
