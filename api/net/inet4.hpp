@@ -69,19 +69,14 @@ namespace net {
 
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
-        @note as of v0.6.3 this has no effect other than to force the size to be
-        set explicitly by the caller.
-        @todo make_shared will allocate with new. This is fast in IncludeOS,
-        (no context switch for sbrk) but consider overloading operator new.
     */
     virtual Packet_ptr createPacket(size_t size) override {
-
       // get buffer (as packet + data)
       auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer
       new (ptr) Packet(nic_.bufsize(), size,
           [this] (void* p) { bufstore_.release((uint8_t*) p); });
-      // shared_ptr with custom deleter
+      // regular shared_ptr that calls delete on Packet
       return std::shared_ptr<Packet>(ptr);
     }
 
