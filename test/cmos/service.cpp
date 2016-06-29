@@ -47,7 +47,8 @@ void Service::start()
          regB & cmos::b_daylight_savings_enabled,
          regB & cmos::b_24_hr_clock);
 
-  cmos::set(cmos::r_status_b, cmos::b_24_hr_clock | cmos::b_binary_mode);
+  // This is done in OS::start() with cmos::init()
+  //cmos::set(cmos::r_status_b, cmos::b_24_hr_clock | cmos::b_binary_mode);
 
   regB = cmos::get(cmos::r_status_b);
   printf("RegB: 0x%x Binary mode/daylight: %i, 12-hr-mode: %i \n",
@@ -73,7 +74,7 @@ void Service::start()
 
   auto tsc_base1 = OS::cycles_since_boot();
 
-  hw::PIT::instance().onRepeatedTimeout(1s, [tsc_base1](){
+  hw::PIT::instance().on_repeated_timeout(1s, [tsc_base1](){
       static auto tsc_base = tsc_base1;
       uint64_t ticks_pr_sec = OS::cycles_since_boot() - tsc_base;
       auto tsc1 = OS::cycles_since_boot();

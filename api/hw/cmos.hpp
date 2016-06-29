@@ -80,7 +80,7 @@ namespace cmos {
 
   /** Set the contents of a CMOS register */
   inline void set(reg_t reg, uint8_t bits) {
-    printf("CMOS setting bits 0x%x in reg. 0x%x \n", bits, reg);
+    debug("CMOS setting bits 0x%x in reg. 0x%x \n", bits, reg);
     hw::outb(select, reg | no_nmi);
     hw::outb(data, bits);
   }
@@ -88,6 +88,12 @@ namespace cmos {
   /** Check if the CMOS time registers are being updated */
   inline bool update_in_progress(){
     return get(r_status_a) & a_time_update_in_progress;
+  }
+
+  /** Initialize CMOS with 24 hour format UTC */
+  inline void init() {
+    INFO("CMOS", "Setting 24 hour format UTC");
+    set(r_status_b, b_24_hr_clock | b_binary_mode);
   }
 
 
