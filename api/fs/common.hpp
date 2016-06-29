@@ -129,10 +129,13 @@ namespace fs {
     size_t   size() const noexcept
     { return len_; }
 
-    // create a std::string from the stored buffer and return it
-    std::string to_string() const noexcept {
-      return std::string((char*) buffer.get(), size());
-    }
+    /**
+     * @brief Get a {std::string} representation of this type
+     *
+     * @return A {std::string} representation of this type
+     */
+    std::string to_string() const noexcept
+    { return std::string{static_cast<char*>(data()), size()}; }
 
   private:
     const error_t  err_;
