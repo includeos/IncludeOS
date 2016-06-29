@@ -109,7 +109,7 @@ namespace fs {
      * @return true if valid, false otherwise
      */
     bool is_valid() const noexcept
-    { return (buffer not_eq nullptr) and (not err_); }
+    { return (buffer_ not_eq nullptr) and (not err_); }
 
     /**
      * @brief Coerce an object of this type to a bool
