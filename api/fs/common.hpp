@@ -63,9 +63,8 @@ namespace fs {
     /**
      * @brief Get an explanation for error
      */
-    const std::string& reason() const noexcept {
-      return reason_;
-    }
+    const std::string& reason() const noexcept
+    { return reason_; }
 
     /**
      * @brief Get a {std::string} representation of this type
@@ -74,9 +73,8 @@ namespace fs {
      *
      * @return {std::string} representation of this type
      */
-    std::string to_string() const {
-      return token() + ": " + reason();
-    }
+    std::string to_string() const
+    { return token() + ": " + reason(); }
 
     /**
      * @brief Check if the object of this type represents
@@ -84,9 +82,8 @@ namespace fs {
      *
      * @return true if its an error, false otherwise
      */
-    operator bool () const noexcept {
-      return token_ not_eq NO_ERR;
-    }
+    operator bool () const noexcept
+    { return token_ not_eq NO_ERR; }
 
   private:
     const token_t     token_;
