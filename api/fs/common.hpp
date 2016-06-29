@@ -42,6 +42,12 @@ namespace fs {
       E_NOTFILE
     };
 
+    /**
+     * @brief Constructor
+     *
+     * @param tk:  An error token
+     * @param rsn: The reason for the error
+     */
     error_t(const token_t tk, const std::string& rsn) noexcept
       : token_{tk}
       , reason_{rsn}
