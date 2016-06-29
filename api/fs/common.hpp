@@ -25,8 +25,8 @@
 namespace fs {
 
   /**
-   * @brief Type used for buffers within the filesystem
-   * subsystem
+   * @brief Type used as a building block to represent buffers
+   * within the filesystem subsystem
    */
   using buffer_t = std::shared_ptr<uint8_t>;
 
@@ -90,6 +90,10 @@ namespace fs {
     const std::string reason_;
   }; //< struct error_t
 
+  /**
+   * @brief Type used for buffers within the filesystem
+   * subsystem
+   */
   struct Buffer
   {
     Buffer(error_t e, buffer_t b, size_t l)
