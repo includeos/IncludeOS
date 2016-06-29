@@ -122,7 +122,7 @@ namespace fs {
      *
      * @return The starting address of the underlying data buffer
      */
-    uint8_t* data() const noexcept
+    uint8_t* data() noexcept
     { return buffer_.get(); }
 
     /**
