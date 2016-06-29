@@ -117,9 +117,13 @@ namespace fs {
     operator bool () const noexcept
     { return is_valid(); }
 
-    uint8_t* data() {
-      return buffer.get();
-    }
+    /**
+     * @brief Get the starting address of the underlying data buffer
+     *
+     * @return The starting address of the underlying data buffer
+     */
+    uint8_t* data() const noexcept
+    { return buffer_.get(); }
 
     /**
      * @brief Get the size/length of the buffer
