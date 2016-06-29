@@ -48,7 +48,7 @@ namespace fs {
      * @param tk:  An error token
      * @param rsn: The reason for the error
      */
-    error_t(const token_t tk, const std::string& rsn) noexcept
+    error_t(const token_t tk, const std::string& rsn)
       : token_{tk}
       , reason_{rsn}
     {}
