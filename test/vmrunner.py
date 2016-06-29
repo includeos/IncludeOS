@@ -129,7 +129,8 @@ def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
                           stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE)
+                          stderr = subprocess.PIPE,
+                          preexec_fn=os.setsid)
 
   # After half a second it should be started, otherwise throw
   time.sleep(0.5)
