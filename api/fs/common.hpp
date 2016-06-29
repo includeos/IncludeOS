@@ -139,7 +139,7 @@ namespace fs {
      * @return A {std::string} representation of this type
      */
     std::string to_string() const noexcept
-    { return std::string{reinterpret_cast<char*>(data()), size()}; }
+    { return std::string{reinterpret_cast<char*>(buffer_.get()), size()}; }
 
   private:
     const error_t  err_;
