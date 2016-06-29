@@ -72,9 +72,14 @@ namespace fs {
       return token() + ": " + reason();
     }
 
-    // returns true when it's an error
+    /**
+     * @brief Check if the object of this type represents
+     * an error
+     *
+     * @return true if its an error, false otherwise
+     */
     operator bool () const noexcept {
-      return token_ != NO_ERR;
+      return token_ not_eq NO_ERR;
     }
 
   private:
