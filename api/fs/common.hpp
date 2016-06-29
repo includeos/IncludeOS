@@ -24,7 +24,11 @@
 
 namespace fs {
 
-  typedef std::shared_ptr<uint8_t> buffer_t;
+  /**
+   * @brief Type used for buffers within the filesystem
+   * subsystem
+   */
+  using buffer_t = std::shared_ptr<uint8_t>;
 
   struct error_t
   {
