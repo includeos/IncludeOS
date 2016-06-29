@@ -1,25 +1,23 @@
+#include <array>
+
 #include <fs/filesystem.hpp>
 
 namespace fs
 {
   error_t no_error { error_t::NO_ERR, "" };
 
-  std::string error_t::token() const noexcept {
-    switch (token_) {
-    case NO_ERR:
-      return "No error";
-    case E_IO:
-      return "General I/O error";
-    case E_MNT:
-      return "Mounting filesystem failed";
+  const std::string& error_t::token() const noexcept {
+    const static std::array<std::string, 6> tok_str
+    {{
+      "No error",
+      "General I/O error",
+      "Mounting filesystem failed",
+      "No such entry",
+      "Not a directory",
+      "Not a file"
+    }};
 
-    case E_NOENT:
-      return "No such entry";
-    case E_NOTDIR:
-      return "Not a directory";
-    case E_NOTFILE:
-      return "Not a file";
-    }
+    return tok_str[token_];
   }
 
 }

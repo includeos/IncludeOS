@@ -47,8 +47,13 @@ namespace fs {
       , reason_{rsn}
     {}
 
-    // error code to string
-    std::string token() const noexcept;
+    /**
+     * @brief Get a human-readable description of the token
+     *
+     * @return Description of the token as a {std::string}
+     */
+    const std::string& token() const noexcept;
+
     // show explanation for error
     std::string reason() const noexcept {
       return reason_;
