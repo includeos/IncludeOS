@@ -16,66 +16,62 @@
 // limitations under the License.
 
 #include <os>
-#include <cassert>
-#include <net/inet4>
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
 #include <vga>
-ConsoleVGA vga;
+#include <net/inet4>
+#include <hw/ps2.hpp>
 
 #include "snake.hpp"
-#include <hw/ps2.hpp>
+
+ConsoleVGA vga;
 
 void begin_snake()
 {
+  static Snake snake {vga};
+
   hw::KBM::init();
-  static Snake snake(vga);
-  
   hw::KBM::set_virtualkey_handler(
   [] (int key) {
-    
     if (key == hw::KBM::VK_RIGHT) {
       snake.set_dir(Snake::RIGHT);
-    }
-    if (key == hw::KBM::VK_LEFT) {
+    } else if (key == hw::KBM::VK_LEFT) {
       snake.set_dir(Snake::LEFT);
-    }
-    if (key == hw::KBM::VK_UP) {
+    } else if (key == hw::KBM::VK_UP) {
       snake.set_dir(Snake::UP);
-    }
-    if (key == hw::KBM::VK_DOWN) {
+    } else if (key == hw::KBM::VK_DOWN) {
       snake.set_dir(Snake::DOWN);
+    } else if (key == hw::KBM::VK_SPACE and snake.is_gameover()) {
+      snake.reset();
     }
-    if (key == hw::KBM::VK_SPACE) {
-      if (snake.is_gameover())
-        snake.reset();
-    }
-    
   });
 }
 
 void Service::start()
 {
-  // redirect stdout to vga screen
+  // Redirect stdout to vga screen
   // ... even though we aren't really using it after the game starts
-  
   OS::set_rsprint(
-  [] (const char* data, size_t len)
-  {
+  [] (const char* data, size_t len) {
     vga.write(data, len);
   });
-  
-  // we have to start snake later to avoid late text output
-  hw::PIT::on_timeout(0.25, [] { begin_snake(); });
-  
-  // boilerplate
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0, 0.15);
-  inet->network_config(
-    { 10,0,0,42 },      // IP
-    { 255,255,255,0 },  // Netmask
-    { 10,0,0,1 },       // Gateway
-    { 8,8,8,8 } );      // DNS
-  
-  printf("*** TEST SERVICE STARTED *** \n");
+
+  // We have to start snake later to avoid late text output
+  hw::PIT::on_timeout_d(0.25, [] { begin_snake(); });
+
+  // Stack with network interface (eth0) driven by VirtioNet
+  // DNS address defaults to 8.8.8.8
+  auto inet = net::new_ipv4_stack<>(0.15, [](bool timeout) {
+    if (timeout) {
+      printf("%s\n", "DHCP negotiation timed out\n");
+    } else {
+      printf("%s\n", "DHCP negotiation completed successfully\n");
+    }
+  });
+
+  // Static IP configuration, until we (possibly) get DHCP
+  inet->network_config({ 10,0,0,42 },      // IP
+                       { 255,255,255,0 },  // Netmask
+                       { 10,0,0,1 },       // Gateway
+                       { 8,8,8,8 });       // DNS
+
+  printf("*** TEST SERVICE STARTED ***\n");
 }
