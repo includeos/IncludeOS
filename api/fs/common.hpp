@@ -54,8 +54,10 @@ namespace fs {
      */
     const std::string& token() const noexcept;
 
-    // show explanation for error
-    std::string reason() const noexcept {
+    /**
+     * @brief Get an explanation for error
+     */
+    const std::string& reason() const noexcept {
       return reason_;
     }
 
