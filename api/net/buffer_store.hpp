@@ -18,8 +18,8 @@
 #ifndef NET_BUFFER_STORE_HPP
 #define NET_BUFFER_STORE_HPP
 
-#include <deque>
 #include <stdexcept>
+#include <vector>
 
 #include <net/inet_common.hpp>
 
@@ -38,32 +38,26 @@ namespace net{
     using buffer_t = uint8_t*;
     using release_del = delegate<void(buffer_t, size_t)>;
 
-    BufferStore(size_t num, size_t bufsize, size_t device_offset);
+    BufferStore(size_t num, size_t bufsize);
 
     /** Free all the buffers **/
     ~BufferStore();
 
     /** Get a free buffer */
-    buffer_t get_raw_buffer();
-
-    /** Get a free buffer, offset by device-offset */
-    buffer_t get_offset_buffer();
+    buffer_t get_buffer();
 
     /** Return a buffer. */
-    void release_raw_buffer(buffer_t b, size_t);
+    void release_buffer(buffer_t);
 
-    /** Return a buffer, offset by offset_ bytes from actual buffer. */
-    void release_offset_buffer(buffer_t b, size_t);
-
-    /** Get size of a raw buffer **/
-    inline size_t raw_bufsize()
+    /** Get size of a buffer **/
+    inline size_t bufsize() const
     { return bufsize_; }
 
-    inline size_t offset_bufsize()
-    { return bufsize_ - device_offset_; }
+    inline size_t poolsize() const
+    { return poolsize_; }
 
     /** @return the total buffer capacity in bytes */
-    inline size_t capacity()
+    inline size_t capacity() const
     { return available_buffers_.size() * bufsize_; }
 
     /** Check if a buffer belongs here */
@@ -74,19 +68,14 @@ namespace net{
     inline bool address_is_bufstart(buffer_t addr)
     { return (addr - pool_) % bufsize_ == 0; }
 
-    /** Check if an address is the start of a buffer */
-    inline bool address_is_offset_bufstart(buffer_t addr)
-    { return (addr - pool_ - device_offset_) % bufsize_ == 0; }
-
     inline size_t buffers_available()
     { return available_buffers_.size(); }
 
   private:
-    size_t               bufcount_;
+    size_t               poolsize_;
     const size_t         bufsize_;
-    size_t               device_offset_;
     buffer_t             pool_;
-    std::deque<buffer_t> available_buffers_;
+    std::vector<buffer_t> available_buffers_;
 
     /** Delete move and copy operations **/
     BufferStore(BufferStore&)  = delete;
@@ -96,8 +85,6 @@ namespace net{
 
     /** Prohibit default construction **/
     BufferStore() = delete;
-
-    void increaseStorage();
   }; //< class BufferStore
 } //< namespace net
 
