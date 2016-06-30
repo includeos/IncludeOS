@@ -20,13 +20,10 @@ ENTRY(_start)
 
 SECTIONS
 {
-  .text (0x200000+SIZEOF_HEADERS) :
-  {
-    _TEXT_START_ = .;
+  .text (0x200000+SIZEOF_HEADERS) : {
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t*)
-    _TEXT_END_ = .;
   }
   
   .init ALIGN(0x10) : {
@@ -85,12 +82,6 @@ SECTIONS
     _DATA_END_ = .;
   }
   
-  .symbols ALIGN(0x4) :
-  {
-    *(.symtab)
-    *(.strtab)
-  }
-  
   .memdisk :
   {
     _DISK_START_ = .;
@@ -107,8 +98,5 @@ SECTIONS
     _BSS_END_ = .;
   }
   
-  .pagealign ALIGN(4096): {
-    _includeos = .;
-  }
   _end = .;
 }

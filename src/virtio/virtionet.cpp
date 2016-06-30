@@ -47,22 +47,19 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
-    _link_out(drop)
+    _link_out(drop), 
+    /** 1200 buffers to start with */
+    bufstore_(1200, sizeof(net::Packet) + bufsize())
 {
-
   INFO("VirtioNet", "Driver initializing");
+  // this must be true, otherwise packets will be created incorrectly
+  assert(sizeof(virtio_net_hdr) < sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
     | (1 << VIRTIO_NET_F_STATUS);
   //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
-  uint32_t wanted_features = needed_features; /*;
-                                                | (1 << VIRTIO_NET_F_CSUM)
-                                                | (1 << VIRTIO_F_ANY_LAYOUT)
-                                                | (1 << VIRTIO_NET_F_CTRL_VQ)
-                                                | (1 << VIRTIO_NET_F_GUEST_ANNOUNCE)
-                                                | (1 << VIRTIO_NET_F_CTRL_MAC_ADDR);*/
-
+  uint32_t wanted_features = needed_features;
   negotiate_features(wanted_features);
 
 
@@ -170,28 +167,6 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   rx_q.kick();
 }
 
-int VirtioNet::add_receive_buffer(){
-
-  // Virtio Std. § 5.1.6.3
-  auto buf = bufstore_.get_raw_buffer();
-
-  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
-
-  Token token1 {
-    {buf, sizeof(virtio_net_hdr)},
-      Token::IN };
-
-  Token token2 {
-    {buf + sizeof(virtio_net_hdr),  (Token::size_type) (bufsize() - sizeof(virtio_net_hdr))},
-      Token::IN };
-
-  std::array<Token, 2> tokens {{ token1, token2 }};
-
-  rx_q.enqueue(tokens);
-
-  return 0;
-}
-
 void VirtioNet::msix_conf_handler()
 {
   debug("\t <VirtioNet> Configuration change:\n");
@@ -240,6 +215,36 @@ void VirtioNet::irq_handler(){
 
 }
 
+void VirtioNet::add_receive_buffer(){
+
+  auto* pkt = bufstore_.get_buffer();
+  // get a pointer to a virtionet header
+  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
+
+  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
+
+  Token token1 {
+    {vnet, sizeof(virtio_net_hdr)},
+      Token::IN };
+
+  Token token2 {
+    {vnet + sizeof(virtio_net_hdr), bufsize()},
+      Token::IN };
+
+  std::array<Token, 2> tokens {{ token1, token2 }};
+  rx_q.enqueue(tokens);
+}
+
+std::shared_ptr<Packet>
+VirtioNet::recv_packet(uint8_t* data, uint16_t size)
+{
+  auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
+  new (ptr) Packet(bufsize(), size,
+      [this] (void* p) { bufstore_.release((uint8_t*) p); });
+
+  return std::shared_ptr<Packet> (ptr);
+}
+
 void VirtioNet::service_queues(){
   debug2("<RX Queue> %i new packets \n",
          rx_q.new_incoming());
@@ -249,7 +254,6 @@ void VirtioNet::service_queues(){
 
   int dequeued_rx = 0;
   uint32_t len = 0;
-  uint8_t* data;
   int dequeued_tx = 0;
 
   rx_q.disable_interrupts();
@@ -260,29 +264,30 @@ void VirtioNet::service_queues(){
     // Do one RX-packet
     if (rx_q.new_incoming() ){
 
-      auto res = rx_q.dequeue(); //BUG # 102? + sizeof(virtio_net_hdr);
-
-      data = (uint8_t*) res.data();
+      auto res = rx_q.dequeue();
       len += res.size();
 
-      auto pckt_ptr = std::make_shared<Packet>
-        (data + sizeof(virtio_net_hdr), // Offset buffer (bufstore knows the offseto)
-         bufsize()-sizeof(virtio_net_hdr), // Capacity
-         res.size() - sizeof(virtio_net_hdr), release_buffer); // Size
-
+      auto pckt_ptr = recv_packet(res.data(), res.size());
       _link_out(pckt_ptr);
 
       // Requeue a new buffer
       add_receive_buffer();
 
       dequeued_rx++;
-
     }
 
     // Do one TX-packet
     if (tx_q.new_incoming()){
       debug2("<VirtioNet> Dequeing TX");
+      // FIXME Unfortunately dequeue is not working here
+      // I am guessing that Linux is eating the buffers
       tx_q.dequeue();
+      
+      // unlock and release the (assumed) locked buffer
+      auto data = tx_ringq.front();
+      tx_ringq.pop_front();
+      bufstore_.unlock_and_release( data );
+      
       dequeued_tx++;
     }
 
@@ -343,6 +348,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 
 }
 
+#include <cstdlib>
 void VirtioNet::transmit(net::Packet_ptr pckt){
   debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
 
@@ -365,7 +371,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    on_exit_to_physical_(tail);
+    //on_exit_to_physical_(tail);
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;
@@ -376,6 +382,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
+    //if (rand() & 1) tx_q.kick();
     tx_q.kick();
   }
 
@@ -390,16 +397,20 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
 void VirtioNet::enqueue(net::Packet_ptr pckt){
 
-
   // This setup requires all tokens to be pre-chained like in SanOS
   Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
       Token::OUT };
 
-  Token token2 { {pckt->buffer(), (Token::size_type) pckt->size() }, Token::OUT };
+  Token token2{ { pckt->buffer(), pckt->size() }, Token::OUT };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(tokens);
 
+  // have to preserve the packet data to prevent overwriting it
+  bufstore_.lock(pckt->buffer());
+  // enq the packet we just transmitted into a transmit queue
+  // because tx_q.dequeue is not returning the correct data
+  tx_ringq.push_back((uint8_t*) pckt.get());
 }

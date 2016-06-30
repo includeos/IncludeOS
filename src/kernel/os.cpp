@@ -25,6 +25,7 @@
 
 #include <hw/acpi.hpp>
 #include <hw/apic.hpp>
+#include <hw/cmos.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
@@ -91,6 +92,9 @@ void OS::start() {
   cpu_mhz_ = hw::PIT::CPU_frequency();
 
   INFO2("+--> %f MHz", cpu_mhz_.count());
+
+  // Initialize CMOS
+  cmos::init();
 
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());

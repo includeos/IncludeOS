@@ -124,6 +124,7 @@ private:
 
   // Prohibit construction
   OS() = delete;
+  friend void begin_stack_sampling(uint16_t);
 }; //< OS
 
 #endif //< KERNEL_OS_HPP

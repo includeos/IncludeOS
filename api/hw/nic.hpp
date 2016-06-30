@@ -78,7 +78,7 @@ namespace hw {
     };
 
     inline size_t buffers_available()
-    { return bufstore().buffers_available(); }
+    { return bufstore().available(); }
 
     inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
     { driver_.on_exit_to_physical(dlg); }

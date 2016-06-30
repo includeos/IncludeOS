@@ -6,15 +6,21 @@
 namespace net
 {
   template <typename T> inline
-  Inet4<T>::Inet4(hw::Nic<T>& nic, IP4::addr ip, IP4::addr netmask)
-    : ip4_addr_(ip), netmask_(netmask), router_(IP4::INADDR_ANY),
+  Inet4<T>::Inet4(
+    hw::Nic<T>& nic,
+    IP4::addr ip,
+    IP4::addr netmask,
+    IP4::addr gateway)
+    : ip4_addr_(ip), netmask_(netmask), router_(gateway),
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
       bufstore_(nic.bufstore())
   {
-    debug("<IP Stack> Constructor. TCP @ %p has %i open ports. \n", &tcp_, tcp_.openPorts());
     INFO("Inet4","Bringing up the IP stack");
     Ensures(sizeof(IP4::addr) == 4);
+
+    // default DNS server to gateway
+    set_dns_server(gateway);
 
     /** Upstream delegates */
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));

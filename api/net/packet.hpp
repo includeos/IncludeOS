@@ -23,31 +23,36 @@
 #include <cassert>
 
 namespace net {
+  void default_packet_deleter(Packet* p);
 
-  /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
-  void default_release(BufferStore::buffer_t, size_t);
-
-  class Packet : public std::enable_shared_from_this<Packet> {
+  class Packet : public std::enable_shared_from_this<Packet>
+  {
   public:
-    using release_del = BufferStore::release_del;
+    using deleter_t = delegate<void(Packet*)>;
 
     /**
      *  Construct, using existing buffer.
      *
-     *  @param buf:     The buffer to use as the packet
-     *  @param bufsize: Size of the buffer
-     *  @param datalen: Length of data in the buffer
+     *  @param capacity: Size of the buffer
+     *  @param len: Length of data in the buffer
      *
      *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
      */
-    Packet(BufferStore::buffer_t buf, size_t bufsize, size_t datalen, release_del d = default_release) noexcept;
-
-    /** Destruct. */
-    virtual ~Packet();
+    Packet(
+        size_t cap, 
+        size_t len, 
+        deleter_t del = default_packet_deleter) noexcept
+    : capacity_ (cap),
+      size_     (len),
+      deleter_  {del}
+    {}
+    ~Packet() {
+      deleter_(this);
+    }
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
-    { return buf_; }
+    { return (BufferStore::buffer_t) buf_; }
 
     /** Get the network packet length - i.e. the number of populated bytes  */
     inline uint32_t size() const noexcept
@@ -57,13 +62,20 @@ namespace net {
     inline uint32_t capacity() const noexcept
     { return capacity_; }
 
-    int set_size(const size_t) noexcept;
+    int set_size(size_t new_size) noexcept {
+      if (new_size > capacity_) {
+        return 0;
+      }
+      return size_ = new_size;
+    }
 
-    /** Set next-hop ip4. */
-    void next_hop(IP4::addr ip) noexcept;
-
-    /** Get next-hop ip4. */
-    IP4::addr next_hop() const noexcept;
+    /** next-hop ipv4 address for IP routing */
+    void next_hop(IP4::addr ip) noexcept {
+      next_hop4_ = ip;
+    }
+    IP4::addr next_hop() const noexcept {
+      return next_hop4_;
+    }
 
     /* Add a packet to this packet chain.  */
     void chain(Packet_ptr p) noexcept {
@@ -114,17 +126,15 @@ namespace net {
     static Packet_ptr packet(Packet_ptr pckt) noexcept
     { return *static_cast<Packet_ptr*>(&pckt); }
 
-    /** @Todo: Avoid Protected Data. (Jedi Council CG, C.133) **/
-  protected:
-    BufferStore::buffer_t payload_   {nullptr};
-    BufferStore::buffer_t buf_       {nullptr};
-    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
-    size_t                size_      {0};
-    IP4::addr             next_hop4_ {};
-  private:
-    /** Send the buffer back home, after destruction */
-    release_del release_;
+    // custom deleter for Packet used by network stack
+    void set_deleter(deleter_t cb) {
+      this->deleter_ = cb;
+    }
 
+    // override delete to do nothing
+    static void operator delete (void*) {}
+
+  private:
     /** Let's chain packets */
     Packet_ptr chain_ {0};
     Packet_ptr last_ {0};
@@ -148,7 +158,18 @@ namespace net {
     /** Delete copy and move assignment operators. See Packet(Packet&). */
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
+
+    size_t                capacity_;
+    size_t                size_;
+    IP4::addr             next_hop4_;
+    deleter_t             deleter_;
+    BufferStore::buffer_t payload_ {nullptr};
+    BufferStore::buffer_t buf_[0];
   }; //< class Packet
+
+  inline void default_packet_deleter(Packet* p) {
+    delete p;
+  }
 
 } //< namespace net
 
