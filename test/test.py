@@ -54,6 +54,7 @@ def main():
     print ">>> This script runs all the valid tests in the tests folder."
     print ">>> These are found by the ./validate_all.sh script"
     print ">>> To skip certain tests use -s <tests to skip>\n\n"
+
     print ">>> Will perform the following tests:"
     for test in valid_tests():
         print test,
@@ -76,19 +77,15 @@ def main():
             test_result = "PASS"
         else:
             test_result = "FAIL"
-            print "one test failed, setting False"
             all_tests_pass = False
 
         result_list.append((test, test_result))
         os.chdir("..")
 
     print_result(result_list)
-    print all_tests_pass
     if not all_tests_pass:
-        print 'exiting with 1'
         sys.exit(1)
     else:
-        print 'exiting with 0'
         sys.exit(0)
 
 
