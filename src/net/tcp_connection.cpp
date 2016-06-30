@@ -56,7 +56,14 @@ Connection::Connection(TCP& host, Port local_port)
 }
 
 void Connection::setup_default_callbacks() {
-  on_disconnect_ = DisconnectCallback::from<Connection,&Connection::default_on_disconnect>(this);
+  on_accept_            = AcceptCallback::from<Connection, &Connection::default_on_accept>(this);
+  on_connect_           = ConnectCallback::from<Connection, &Connection::default_on_connect>(this);
+  on_disconnect_        = DisconnectCallback::from<Connection, &Connection::default_on_disconnect>(this);
+  on_error_             = ErrorCallback::from<Connection, &Connection::default_on_error>(this);
+  on_packet_received_   = PacketReceivedCallback::from<Connection, &Connection::default_on_packet_received>(this);
+  on_packet_dropped_    = PacketDroppedCallback::from<Connection, &Connection::default_on_packet_dropped>(this);
+  on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
+  on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
 }
 
 void Connection::read(ReadBuffer buffer, ReadCallback callback) {

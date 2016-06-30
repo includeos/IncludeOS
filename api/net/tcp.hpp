@@ -1402,41 +1402,39 @@ namespace net {
       /// CALLBACK HANDLING ///
 
       /* When a Connection is initiated. */
-      AcceptCallback on_accept_ = AcceptCallback::from<Connection,&Connection::default_on_accept>(this);
-      inline bool default_on_accept(std::shared_ptr<Connection>) {
+      AcceptCallback on_accept_;
+      bool default_on_accept(Connection_ptr) {
         //debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
         return true; // Always accept
       }
 
       /* When Connection is ESTABLISHED. */
-      ConnectCallback on_connect_ = [](std::shared_ptr<Connection>) {
-        debug2("<TCP::Connection::@Connect> Connected.\n");
-      };
+      ConnectCallback on_connect_;
+      void default_on_connect(Connection_ptr) {}
 
       /* When Connection is CLOSING. */
       DisconnectCallback on_disconnect_;
       void default_on_disconnect(Connection_ptr, Disconnect);
 
       /* When error occcured. */
-      ErrorCallback on_error_ = ErrorCallback::from<Connection,&Connection::default_on_error>(this);
-      inline void default_on_error(std::shared_ptr<Connection>, TCPException) {
+      ErrorCallback on_error_;
+      void default_on_error(Connection_ptr, TCPException) {
         //debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
       }
 
       /* When packet is received */
-      PacketReceivedCallback on_packet_received_ = [](std::shared_ptr<Connection>, TCP::Packet_ptr) {
-        //debug2("<TCP::Connection::@PacketReceived> Packet received: %s \n", packet->to_string().c_str());
-      };
+      PacketReceivedCallback on_packet_received_;
+      void default_on_packet_received(Connection_ptr, Packet_ptr) {}
 
       /* When a packet is dropped. */
-      PacketDroppedCallback on_packet_dropped_ = [](TCP::Packet_ptr, std::string) {
-        //debug("<TCP::Connection::@PacketDropped> Packet dropped. %s | Reason: %s \n",
-        //      packet->to_string().c_str(), reason.c_str());
-      };
+      PacketDroppedCallback on_packet_dropped_;
+      void default_on_packet_dropped(Packet_ptr, std::string) {}
 
-      RtxTimeoutCallback on_rtx_timeout_ = [](size_t, double) {};
+      RtxTimeoutCallback on_rtx_timeout_;
+      void default_on_rtx_timeout(size_t, double) {}
 
-      CloseCallback on_close_ = [] {};
+      CloseCallback on_close_;
+      void default_on_close() {}
 
 
       /// READING ///
