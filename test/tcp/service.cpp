@@ -63,6 +63,7 @@ void FINISH_TEST() {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().activeConnections() == 0,
         "No (0) active connections");
+      INFO("Buffers available", "%u", inet->buffers_available());
       CHECKSERT(inet->buffers_available() == buffers_available,
         "No hogged buffer (%u available)", buffers_available);
       printf("# TEST SUCCESS #\n");
@@ -162,16 +163,15 @@ void Service::start()
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  //eth0.on_exit_to_physical(outgoing_packet);
-  inet = std::make_unique<Inet4<VirtioNet>>(eth0);
-  inet->network_config( {  10,  0,  0, 42 },  // IP
+  inet = new_ipv4_stack<0,VirtioNet>(
+                        {  10,  0,  0, 42 },  // IP
                         {  255,255,255, 0 },  // Netmask
                         {  10,  0,  0,  1 },  // Gateway
                         {   8,  8,  8,  8 } );// DNS
 
   buffers_available = inet->buffers_available();
   INFO("Buffers available", "%u", inet->buffers_available());
+
   auto& tcp = inet->tcp();
   // reduce test duration
   tcp.set_MSL(MSL_TEST);
