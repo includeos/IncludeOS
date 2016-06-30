@@ -24,6 +24,7 @@
 
 #include <os>
 #include <kernel/syscalls.hpp>
+#include <hw/cmos.hpp>
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
@@ -135,11 +136,10 @@ int wait(int* UNUSED(status)) {
 };
 
 int gettimeofday(struct timeval* p, void* UNUSED(z)) {
-  // Currently every reboot takes us back to 1970 :-)
-  float seconds = OS::uptime();
+  uint32_t seconds = cmos::now().to_epoch();
   p->tv_sec = int(seconds);
-  p->tv_usec = (seconds - p->tv_sec) * 1000000;
-  return 5;
+  p->tv_usec = 0;
+  return 0;
 }
 
 int kill(pid_t pid, int sig) {
@@ -158,7 +158,7 @@ int kill(pid_t pid, int sig) {
 void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
   extern char _end;
-  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n", 
+  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n",
       heap_end, (uintptr_t) (heap_end - &_end) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   while(1) asm ("cli; hlt;");
