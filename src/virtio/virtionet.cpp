@@ -49,7 +49,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop), 
     /** 1200 buffers to start with */
-    bufstore_(1200, sizeof(net::Packet) + bufsize())
+    bufstore_(4000, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
@@ -146,12 +146,12 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Hook up IRQ handler
   if (is_msix())
   {
-    auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
     auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
+    auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     // update BSP IDT
-    IRQ_manager::cpu(0).subscribe(irq() + 0, xmit_del);
-    IRQ_manager::cpu(0).subscribe(irq() + 1, recv_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 0, recv_del);
+    IRQ_manager::cpu(0).subscribe(irq() + 1, xmit_del);
     IRQ_manager::cpu(0).subscribe(irq() + 2, conf_del);
   }
   else
@@ -178,11 +178,65 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  service_queues();
+  service_queues(); return;
+  
+  bool dequeued_rx = false;
+  rx_q.disable_interrupts();
+  // Do one RX-packet
+  while (rx_q.new_incoming()) {
+
+    auto res = rx_q.dequeue();
+
+    auto pckt_ptr = recv_packet(res.data(), res.size());
+    _link_out(pckt_ptr);
+
+    // Requeue a new buffer
+    add_receive_buffer();
+
+    dequeued_rx = true;
+  }
+  rx_q.enable_interrupts();
+
+  if (dequeued_rx)
+    rx_q.kick();
 }
 void VirtioNet::msix_xmit_handler()
 {
-  service_queues();
+  service_queues(); return;
+  
+  bool dequeued_tx = false;
+  tx_q.disable_interrupts();
+  // Do one TX-packet
+  while (tx_q.new_incoming()) {
+    // FIXME Unfortunately dequeue is not working here
+    // I am guessing that Linux is eating the buffers?
+    tx_q.dequeue();
+    
+    // unlock and release the (assumed) locked buffer
+    auto data = tx_ringq.front();
+    tx_ringq.pop_front();
+    bufstore_.unlock_and_release(data);
+    
+    dequeued_tx = true;
+  }
+  tx_q.enable_interrupts();
+  
+  // If we have a transmit queue, eat from it, otherwise let the stack know we
+  // have increased transmit capacity
+  if (dequeued_tx) {
+    debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
+
+    // transmit as much as possible from the buffer
+    if (transmit_queue_){
+      auto buf = transmit_queue_;
+      transmit_queue_ = 0;
+      transmit(buf);
+    }
+
+    // If we now emptied the buffer, offer packets to stack
+    if (!transmit_queue_ && tx_q.num_free() > 1)
+        transmit_queue_available_event_(tx_q.num_free() / 2);
+  }
 }
 
 void VirtioNet::irq_handler(){
