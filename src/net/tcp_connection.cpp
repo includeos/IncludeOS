@@ -644,7 +644,6 @@ void Connection::retransmit() {
 }
 
 void Connection::rtx_start() {
-  return;
   Expects(!rtx_timer.active);
   auto i = rtx_timer.i;
   auto rto = rttm.RTO;
