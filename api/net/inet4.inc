@@ -86,7 +86,7 @@ namespace net
 
   template <typename T> inline
   Inet4<T>::Inet4(hw::Nic<T>& nic, double timeout)
-    : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY)
+    : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY, IP4::INADDR_ANY)
   {
     INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
