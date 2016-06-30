@@ -32,8 +32,9 @@ void Service::start()
   // Assign an IP-address, using Hårek-mapping :-)
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    { 10,0,0,42 }, // IP
-    { 255,255,0,0 } );  // Netmask
+    { 10, 0, 0, 42 },   // IP
+    { 255, 255, 0, 0 }, // Netmask
+    { 10, 0, 0, 1 } );  // Gateway
 
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
