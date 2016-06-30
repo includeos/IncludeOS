@@ -136,7 +136,7 @@ def start_process(popen_param_list):
   time.sleep(0.5)
   if (proc.poll()):
     data, err = proc.communicate()
-    raise Exception(color.C_FAIL+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
+    raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
 
   print color.INFO(nametag), "Started process PID ",proc.pid
   return proc

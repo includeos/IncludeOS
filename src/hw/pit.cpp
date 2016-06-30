@@ -201,7 +201,8 @@ namespace hw {
       OS::rsprint(".");
 #endif
 
-    std::vector<Timer_iterator> restart {};
+    static std::vector<Timer_iterator> restart;
+    restart.clear();
 
     // Iterate over expired timers (we break on the first non-expired)
     for (auto it = timers_.begin(); it != timers_.end(); it++) {
