@@ -645,17 +645,12 @@ void Connection::retransmit() {
 
 void Connection::rtx_start() {
   Expects(!rtx_timer.active);
-  auto i = rtx_timer.i;
-  auto rto = rttm.RTO;
-  rtx_timer.iter = hw::PIT::instance().on_timeout_d(rttm.RTO,
-  [this, i, rto]
-  {
-    rtx_timer.active = false;
-    debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u, i: %u rt_i: %u\n",
-      to_string().c_str(), rto, flight_size(), i, rtx_timer.i);
-    rtx_timeout();
-  });
-  rtx_timer.i++;
+
+  using OnTimeout = hw::PIT::timeout_handler;
+
+  rtx_timer.iter = hw::PIT::instance().on_timeout_d(
+    rttm.RTO, OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
+
   rtx_timer.active = true;
 }
 
@@ -690,6 +685,10 @@ void Connection::rtx_clear() {
        begins (i.e., after the three-way handshake completes).
 */
 void Connection::rtx_timeout() {
+  rtx_timer.active = false;
+  debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u\n",
+    to_string().c_str(), flight_size());
+
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {

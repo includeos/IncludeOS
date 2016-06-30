@@ -1299,7 +1299,6 @@ namespace net {
       struct {
         hw::PIT::Timer_iterator iter;
         bool active = false;
-        size_t i = 0;
       } rtx_timer;
 
       /*
