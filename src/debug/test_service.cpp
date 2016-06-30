@@ -103,13 +103,10 @@ void Service::start()
   __validate_bullshit("validate_bullshit endof Service::start()");
   
   // boilerplate
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> > (eth0, 1);
-  inet->network_config(
+  inet = net::new_ipv4_stack(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
-    { 10,0,0,1 },       // Gateway
-    { 8,8,8,8 } );      // DNS
+    { 10,0,0,1 } );     // Gateway
   hw::PIT::instance().on_repeated_timeout(2500ms, print_tcp_status);
 
   // Set up a TCP server on port 80
