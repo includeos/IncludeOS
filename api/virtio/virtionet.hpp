@@ -39,6 +39,7 @@
 #include "../net/ethernet.hpp"
 #include "../net/buffer_store.hpp"
 #include <delegate>
+#include <deque>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -124,8 +125,7 @@ public:
 
   constexpr uint16_t bufsize() const {
     return MTU() +
-      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer) +
-      sizeof(virtio_net_hdr); }
+      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
@@ -234,22 +234,21 @@ private:
   void irq_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  int add_receive_buffer();
+  void add_receive_buffer();
 
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
 
-  /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffffU / bufsize(),  bufsize(), sizeof(virtio_net_hdr) };
-  net::BufferStore::release_del release_buffer =
-    net::BufferStore::release_del::from
-    <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
+  net::BufferStore bufstore_;
+  std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::deque<uint8_t*> tx_ringq;
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 
   net::Packet_ptr transmit_queue_ {0};
 
   delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
+  //bool deferred_kick = false;
 
 };
 

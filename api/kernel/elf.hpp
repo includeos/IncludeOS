@@ -40,8 +40,6 @@ struct Elf
     resolve_symbol(uintptr_t addr);
   static func_offset
     resolve_symbol(void* addr);
-  static func_offset
-    resolve_symbol(void (*addr)());
   
   // get and resolve the current function
   static func_offset
@@ -54,5 +52,10 @@ struct Elf
     safe_resolve_symbol(void* addr, char* buffer, size_t length);
   
   //returns the address of a symbol, or 0
-  uintptr_t resolve_name(const std::string& name);
+  static uintptr_t
+    resolve_name(const std::string& name);
+  
+  // returns the address of the first byte after the ELF header
+  // and all static and dynamic sections
+  static size_t end_of_file();
 };

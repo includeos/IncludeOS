@@ -267,6 +267,11 @@ public:
     uint16_t num_used() const noexcept
     { return _queue.avail->idx - _queue.used->idx; }
 
+    uint16_t num_inflight() const noexcept
+    {
+      return _desc_in_flight;
+    }
+    
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
     {

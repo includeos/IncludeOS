@@ -157,9 +157,11 @@ int kill(pid_t pid, int sig) {
 // No continuation from here
 void panic(const char* why) {
   printf("\n\t **** PANIC: ****\n %s\n", why);
-  printf("\tHeap end: %p\n", heap_end);
+  extern char _end;
+  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n", 
+      heap_end, (uintptr_t) (heap_end - &_end) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
-  while(1) __asm__("cli; hlt;");
+  while(1) asm ("cli; hlt;");
 }
 
 // No continuation from here

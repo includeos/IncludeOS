@@ -15,89 +15,94 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#define DEBUG
+//#undef  NO_DEBUG
+#include <debug>
 #include <vector>
 #include <cassert>
 #include <malloc.h>
+#include <cstdio>
 
-#include <os>
 #include <net/buffer_store.hpp>
+#include <kernel/syscalls.hpp>
+#define PAGE_SIZE     0x1000
 
 namespace net {
 
-  BufferStore::BufferStore(size_t num, size_t bufsize, size_t device_offset ) :
-    bufcount_      {num},
-    bufsize_       {bufsize},
-    device_offset_ {device_offset},
-    pool_          {static_cast<buffer_t>(memalign(PAGE_SIZE, num * bufsize))}
-{
-  assert(pool_);
+  BufferStore::BufferStore(size_t num, size_t bufsize) :
+    poolsize_      {num * bufsize},
+    bufsize_       {bufsize}
+  {
+    assert(num != 0);
+    assert(bufsize != 0);
+    
+    const size_t DATA_HEADER = PAGE_SIZE-1 + num * bufsize;
+    const size_t BMP_CHUNKS = num / 32;
+    const size_t BMP_SIZE   = BMP_CHUNKS * sizeof(uint32_t);
+    
+    malloc_pool_ = malloc(DATA_HEADER + BMP_SIZE);
+    assert(malloc_pool_);
+    
+    this->pool_ = (buffer_t) malloc_pool_;
+    // align to page boundary
+    pool_ += PAGE_SIZE - ((uintptr_t) pool_ & (PAGE_SIZE-1));
+    assert(this->pool_);
 
-  debug ("<BufferStore> Creating buffer store of %i * %i bytes.\n",
-         num, bufsize);
+    for (buffer_t b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
+        available_.push_back(b);
+    }
+    assert(available() == num);
+    // verify that the "first" buffer is the start of the pool
+    assert(available_.back() == pool_);
 
-  for (buffer_t b = pool_; b < pool_ + (num * bufsize); b += bufsize)
-    available_buffers_.push_back(b);
-
-  debug ("<BufferStore> I now have %i free buffers in range %p -> %p.\n",
-         available_buffers_.size(), pool_, pool_ + (bufcount_ * bufsize_));
-}
+    new (&locked) MemBitmap((char*) malloc_pool_ + DATA_HEADER, BMP_CHUNKS);
+    locked.zero_all();
+  }
 
   BufferStore::~BufferStore() {
-    free(pool_);
+    free(malloc_pool_);
   }
 
-  /**
-   * @todo : We (think we) want a list of pools, that we increase as needed.
-   */
-  void BufferStore::increaseStorage() {
-    panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
+  BufferStore::buffer_t BufferStore::get_buffer() {
+    if (available_.empty())
+      panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
+
+    auto addr = available_.back();
+    available_.pop_back();
+    return addr;
   }
 
-  BufferStore::buffer_t BufferStore::get_raw_buffer() {
-    if (available_buffers_.empty())
-      increaseStorage();
+  void BufferStore::release(buffer_t addr)
+  {
+    debug("Release %p...", addr);
 
-    auto buf = available_buffers_.front();
-    available_buffers_.pop_front();  
-  
-    debug2("<BufferStore> Provisioned a buffer. %i buffers remaining.\n",
-           available_buffers_.size());
-
-    return buf;
-  }
-
-  BufferStore::buffer_t BufferStore::get_offset_buffer() {
-    return get_raw_buffer() + device_offset_;
-  }
-
-  void BufferStore::release_raw_buffer(buffer_t b, size_t bufsize) {
-    debug2("<BufferStore> Trying to release %i sized buffer @%p.\n", bufsize, b);
-    // Make sure the buffer comes from here. Otherwise, ignore it.
-    if (address_is_from_pool(b) 
-        and address_is_bufstart(b)
-        and bufsize == bufsize_)
-      {
-        available_buffers_.push_back(b);
-        debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
+    if (is_from_pool(addr) and is_buffer(addr)) {
+      // if the buffer is locked, don't release it
+      if (locked.get( buffer_id(addr) )) {
+        debug(" .. but it was locked\n");
         return;
       }
-
-    debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
+      
+      available_.push_back(addr);
+      debug("released\n");
+      return;
+    }
+    // buffer not owned by bufferstore, so just delete it?
+    debug("deleted\n");
+    delete[] addr;
   }
-
-  void BufferStore::release_offset_buffer(buffer_t b, size_t bufsize) {
-    debug2("<BufferStore> Trying to release %i + %i sized buffer @%p.\n", bufsize, device_offset_, b);
-    // Make sure the buffer comes from here. Otherwise, ignore it.
-    if (address_is_from_pool(b) 
-        and address_is_offset_bufstart(b)
-        and bufsize == bufsize_ - device_offset_)
-      {
-        available_buffers_.push_back(b - device_offset_);
-        debug("<BufferStore> Releasing %p. %i available buffers.\n", b, available_buffers_.size());
-        return;
-      }
-
-    debug("<BufferStore> IGNORING buffer @%p. It isn't mine.\n", b);
+  void BufferStore::unlock_and_release(buffer_t addr)
+  {
+    debug("Unlock and release %p...", addr);
+    if (is_from_pool(addr) and is_buffer(addr)) {
+      locked.reset( buffer_id(addr) );
+      available_.push_back(addr);
+      debug("released\n");
+      return;
+    }
+    // buffer not owned by bufferstore, so just delete it?
+    debug("deleted\n");
+    delete[] addr;
   }
 
 } //< namespace net

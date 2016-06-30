@@ -17,7 +17,6 @@
 
 #pragma once
 #include <stdint.h>
-#include <memstream>
 #include <cassert>
 
 /**
@@ -79,7 +78,7 @@ public:
   
   void zero_all()
   {
-    streamset32(_data, 0, _chunks);
+    memset(_data, 0, _chunks);
   }
   void set(index_t b)
   {

@@ -338,19 +338,9 @@ Connection::~Connection() {
   debug("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
 }
 
-
-auto create_packet()
-{
-  auto* data = new uint8_t[1510];
-  return std::make_shared<Packet>(
-        data + 10,
-        1510, 0, 
-        [data] (uint8_t*, size_t) { delete[] data; });
-}
-
 TCP::Packet_ptr Connection::create_outgoing_packet() {
-  //auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(0));
-  auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
+  auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(0));
+  //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
 
   packet->init();
   // Set Source (local == the current connection)
@@ -703,7 +693,7 @@ void Connection::rtx_timeout() {
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
-    printf("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
+    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
     close();
     return;
   }
@@ -773,7 +763,8 @@ void Connection::start_time_wait_timeout() {
   time_wait_started = OS::cycles_since_boot();
   auto timeout = 2 * host().MSL(); // 60 seconds
   // Passing "this"..?
-  hw::PIT::instance().on_timeout_ms(timeout,[this, timeout] {
+  hw::PIT::instance().on_timeout_ms(timeout,
+    [this, timeout] {
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
         signal_close();
@@ -798,6 +789,7 @@ void Connection::clean_up() {
   on_packet_received_.reset();
   on_packet_dropped_.reset();
   read_request.clean_up();
+  rtx_clear();
 }
 
 std::string Connection::TCB::to_string() const {

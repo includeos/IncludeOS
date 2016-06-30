@@ -24,6 +24,7 @@
 
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/ioport.hpp>
 
 #define IDE_DATA        0x1F0
 #define IDE_SECCNT      0x1F2

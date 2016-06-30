@@ -95,8 +95,14 @@ extern "C" {
   void reboot();
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
+  void lapic_send_eoi();
   void lapic_exception_handler();
   void lapic_irq_entry();
+  // current selected EOI method
+  void (*current_eoi_mechanism)() = lapic_send_eoi;
+  // KVM para PV-EOI feature
+  void kvm_pv_eoi();
+  void kvm_pv_eoi_init();
 }
 extern idt_loc smp_lapic_idt;
 
@@ -230,7 +236,6 @@ namespace hw {
     const uint64_t APIC_BASE_MSR = CPU::read_msr(IA32_APIC_BASE_MSR);
     /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
-    //printf("APIC base addr: 0x%x\n", APIC_BASE_ADDR);
     // acquire infos
     lapic = apic(APIC_BASE_ADDR);
     INFO2("LAPIC id: %x  ver: %x\n", lapic.get_id(), lapic.regs->lapic_ver.reg);
@@ -243,6 +248,9 @@ namespace hw {
     void _lapic_enable();
     _lapic_enable();
 
+    // use KVMs paravirt EOI if supported
+    //kvm_pv_eoi_init();
+    
     // turn the Local APIC on and enable interrupts
     INFO("APIC", "Enabling BSP LAPIC");
     CPU::write_msr(IA32_APIC_BASE_MSR,
@@ -279,7 +287,7 @@ namespace hw {
     lapic.enable_intr(SPURIOUS_INTR);
 
     // acknowledge any outstanding interrupts
-    hw::APIC::eoi();
+    (*current_eoi_mechanism)();
 
     // enable APIC by resetting task priority
     lapic.regs->task_pri.reg = 0;
@@ -380,7 +388,7 @@ namespace hw {
     debug("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, lapic.get_id());
     lapic.regs->eoi.reg = 0;
   }
-
+  
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
     debug("send_ipi  id %u  vector %u\n", id, vector);
@@ -459,4 +467,50 @@ namespace hw {
   {
     ::reboot();
   }
+}
+
+// *** manual ***
+// http://choon.net/forum/read.php?21,1123399
+// https://www.kernel.org/doc/Documentation/virtual/kvm/cpuid.txt
+
+#define KVM_FEATURE_PV_EOI     6
+#define KVM_MSR_ENABLED        1
+#define MSR_KVM_PV_EOI_EN      0x4b564d04
+#define KVM_PV_EOI_BIT         0
+#define KVM_PV_EOI_MASK       (0x1 << KVM_PV_EOI_BIT)
+#define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
+#define KVM_PV_EOI_DISABLED    0x0
+
+#define _ADDR_ (*(volatile long *) addr)
+int __test_and_clear_bit(long nr, volatile unsigned long* addr)
+{
+  int oldbit;
+
+	asm volatile( "lock "
+		"btrl %2,%1\n\tsbbl %0,%0"
+		:"=r" (oldbit),"=m" (_ADDR_)
+		:"dIr" (nr) : "memory");
+	return oldbit;
+}
+
+static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
+void kvm_pv_eoi() {
+  
+  if (kvm_apic_eoi) printf("val: %#lx\n", kvm_apic_eoi);
+  // fast EOI by KVM
+  if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
+      printf("avoided\n");
+      return;
+  }
+  // fallback to normal APIC EOI
+  hw::lapic.regs->eoi.reg = 0;
+}
+void kvm_pv_eoi_init() {
+  kvm_apic_eoi = 0;
+  auto pv_eoi = (uintptr_t) &kvm_apic_eoi;
+  printf("MSR %#x  pv_eoi = %#x\n", MSR_KVM_PV_EOI_EN, pv_eoi);
+  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, pv_eoi | KVM_MSR_ENABLED, 0);
+  // set new EOI handler
+  current_eoi_mechanism = kvm_pv_eoi;
+  kvm_apic_eoi = KVM_PV_EOI_ENABLED;
 }
