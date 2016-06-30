@@ -250,7 +250,7 @@ void print_backtrace()
 {
   #define PRINT_TRACE(N, ra)                      \
     auto symb = Elf::resolve_symbol(ra);          \
-    printf("[%d] %8p + 0x%.4x: %s\n",             \
+    printf("[%d] %8p + 0x%.3x: %s\n",             \
         N, ra, symb.offset, symb.name.c_str());
 
   printf("\n");
