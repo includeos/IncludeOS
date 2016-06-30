@@ -94,6 +94,11 @@ namespace net {
       dns.resolve(this->dns_server, hostname, func);
     }
 
+    virtual void set_router(IP4::addr gateway) override
+    {
+      this->router_ = gateway;
+    }
+
     virtual void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
@@ -110,8 +115,8 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
 
-    /** Initialize with static IP / netmask */
-    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask);
+    /** Initialize with static IP / netmask / Gateway */
+    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
 
     /** Initialize with DHCP  */
     Inet4(hw::Nic<DRIVER>& nic, double timeout = 10.0);
@@ -183,8 +188,8 @@ namespace net {
                              const IP4::addr dns = { 8,8,8,8 })
   {
     auto& eth = hw::Dev::eth<N,Driver>();
-    auto inet = std::make_unique<net::Inet4<Driver>>(eth);
-    inet->network_config(addr, nmask, router, dns);
+    auto inet = std::make_unique<net::Inet4<Driver>>(eth, addr, nmask, router);
+    inet->set_dns_server(dns);
     return inet;
   }
 } //< namespace net
