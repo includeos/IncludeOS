@@ -163,11 +163,11 @@ void Service::start()
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 
-  inet = new_ipv4_stack<0,VirtioNet>(
-                        {  10,  0,  0, 42 },  // IP
-                        {  255,255,255, 0 },  // Netmask
-                        {  10,  0,  0,  1 },  // Gateway
-                        {   8,  8,  8,  8 } );// DNS
+  inet = new_ipv4_stack(
+    {  10,  0,  0, 42 },  // IP
+    {  255,255,255, 0 },  // Netmask
+    {  10,  0,  0,  1 },  // Gateway
+    {   8,  8,  8,  8 } );// DNS
 
   buffers_available = inet->buffers_available();
   INFO("Buffers available", "%u", inet->buffers_available());

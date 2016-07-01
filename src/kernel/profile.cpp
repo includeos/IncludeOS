@@ -165,7 +165,7 @@ void print_stack_sampling()
     // resolve the addr
     auto func = Elf::resolve_symbol(p.first);
     // print some shits
-    printf("[%#x + %#x] %u times: %s\n",
+    printf("[%#.6x + %#.3x] %u times: %s\n",
         func.addr, func.offset, p.second.count, func.name.c_str());
     
     if (results-- == 0) break;

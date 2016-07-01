@@ -28,7 +28,9 @@
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
-caddr_t heap_end;
+extern "C" {
+  caddr_t heap_end;
+}
 
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};

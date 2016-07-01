@@ -56,7 +56,14 @@ Connection::Connection(TCP& host, Port local_port)
 }
 
 void Connection::setup_default_callbacks() {
-  on_disconnect_ = DisconnectCallback::from<Connection,&Connection::default_on_disconnect>(this);
+  on_accept_            = AcceptCallback::from<Connection, &Connection::default_on_accept>(this);
+  on_connect_           = ConnectCallback::from<Connection, &Connection::default_on_connect>(this);
+  on_disconnect_        = DisconnectCallback::from<Connection, &Connection::default_on_disconnect>(this);
+  on_error_             = ErrorCallback::from<Connection, &Connection::default_on_error>(this);
+  on_packet_received_   = PacketReceivedCallback::from<Connection, &Connection::default_on_packet_received>(this);
+  on_packet_dropped_    = PacketDroppedCallback::from<Connection, &Connection::default_on_packet_dropped>(this);
+  on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
+  on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
 }
 
 void Connection::read(ReadBuffer buffer, ReadCallback callback) {
@@ -645,17 +652,12 @@ void Connection::retransmit() {
 
 void Connection::rtx_start() {
   Expects(!rtx_timer.active);
-  auto i = rtx_timer.i;
-  auto rto = rttm.RTO;
-  rtx_timer.iter = hw::PIT::instance().on_timeout_d(rttm.RTO,
-  [this, i, rto]
-  {
-    rtx_timer.active = false;
-    debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u, i: %u rt_i: %u\n",
-      to_string().c_str(), rto, flight_size(), i, rtx_timer.i);
-    rtx_timeout();
-  });
-  rtx_timer.i++;
+
+  using OnTimeout = hw::PIT::timeout_handler;
+
+  rtx_timer.iter = hw::PIT::instance().on_timeout_d(
+    rttm.RTO, OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
+
   rtx_timer.active = true;
 }
 
@@ -690,6 +692,10 @@ void Connection::rtx_clear() {
        begins (i.e., after the three-way handshake completes).
 */
 void Connection::rtx_timeout() {
+  rtx_timer.active = false;
+  debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u\n",
+    to_string().c_str(), flight_size());
+
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
