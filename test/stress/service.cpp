@@ -157,10 +157,7 @@ void Service::start() {
             }
           });
 
-      }).onDisconnect([](auto conn, auto reason) {
-          conn->close();
-        }).onPacketReceived([](auto, auto packet) {});
-
+      });
 
   // UDP connection handler
   conn.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
