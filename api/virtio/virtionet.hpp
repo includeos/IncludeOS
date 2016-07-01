@@ -242,7 +242,7 @@ private:
   net::BufferStore bufstore_;
   std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
-  bool deferred_kick = false;
+  //bool deferred_kick = false;
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 

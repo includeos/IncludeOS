@@ -146,8 +146,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Hook up IRQ handler
   if (is_msix())
   {
-    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
-    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
+    // for now use service queues, otherwise stress test fails
+    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
+    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
     auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     // update BSP IDT
     IRQ_manager::cpu(0).subscribe(irq() + 0, recv_del);
@@ -433,8 +434,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   // Notify virtio about new packets
   if (transmitted) {
     tx_q.kick();
-    /* disable deferred kick for now *
-    if (deferred_kick == false) {
+    /*if (deferred_kick == false) {
       deferred_kick = true;
       using namespace std::chrono;
       hw::PIT::instance().on_timeout_ms(1ms, 
