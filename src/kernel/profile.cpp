@@ -127,15 +127,16 @@ void gather_stack_sampling()
 
 void print_heap_info()
 {
-  uintptr_t start_addr = Elf::resolve_name("_start");
-  printf("start_addr: %#x\n", start_addr);
-  
-  // also show information on heap end in case of leaks
+  static int32_t last = 0;
+  // show information on heap status, to discover leaks etc.
   extern char* heap_end;
   extern char* heap_begin;
   auto heap_size = (size_t) (heap_end - heap_begin);
-  printf("[!] Heap begin  %p Heap size %#x\n",     heap_begin, heap_size);
-  printf("[!] Heap end    %p           (%u Kb)\n", heap_end,   heap_size / 1024);
+  last = heap_size - last;
+  printf("[!] Heap information:\n");
+  printf("[!] begin  %p  size %#x (%u Kb)\n", heap_begin, heap_size, heap_size / 1024);
+  printf("[!] end    %p  diff %#x (%d Kb)\n", heap_end,   last, last / 1024);
+  last = (int32_t) heap_size;
 }
 
 void print_stack_sampling()
@@ -162,7 +163,6 @@ void print_stack_sampling()
     
     if (results-- == 0) break;
   }
-  print_heap_info();
   printf("*** ---------------------- ***\n");
 }
 
