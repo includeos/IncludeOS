@@ -61,7 +61,7 @@ class color:
       return "\n" + color.C_HEAD + "============================ " + string + " ============================" +  color.C_ENDC
 
 
-if not os.environ.has_key("INCLUDEOS_HOME"):
+if not "INCLUDEOS_HOME" in os.environ:
     print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
     def_home = os.environ["HOME"] + "/IncludeOS_install"
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
@@ -169,19 +169,19 @@ class qemu(hypervisor):
     print color.INFO(self._nametag), "booting", self._config["image"]
 
     disk_args = self.drive_arg(self._config["image"], "ide")
-    if self._config.has_key("drives"):
+    if "drives" in self._config:
       for disk in self._config["drives"]:
         disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
 
     net_args = []
     i = 0
-    if self._config.has_key("net"):
+    if "net" in self._config:
       for net in self._config["net"]:
         net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
         i+=1
 
     mem_arg = []
-    if self._config.has_key("mem"):
+    if "mem" in self._config:
       mem_arg = ["-m",str(self._config["mem"])]
 
     command = ["qemu-system-x86_64"]
