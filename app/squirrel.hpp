@@ -66,7 +66,9 @@ struct Squirrel : json::Serializable {
    *
    */
   static bool is_equal(const Squirrel&, const Squirrel&);
-};
+}; //< struct Squirrel
+
+/**--v----------- Implementation Details -----------v--**/
 
 inline std::ostream& operator << (std::ostream& output_device, const Squirrel& s) {
   return output_device.json();
@@ -119,6 +121,8 @@ bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
   return s1.is_equal(s2);
 }
 
-} // < namespace acorn
+/**--^----------- Implementation Details -----------^--**/
 
-#endif
+} //< namespace acorn
+
+#endif //< MODEL_SQUIRREL_HPP
