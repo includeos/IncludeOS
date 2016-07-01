@@ -61,7 +61,7 @@ class color:
       return "\n" + color.C_HEAD + "============================ " + string + " ============================" +  color.C_ENDC
 
 
-if not "INCLUDEOS_HOME" in os.environ:
+if "INCLUDEOS_HOME" not in os.environ:
     print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
     def_home = os.environ["HOME"] + "/IncludeOS_install"
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
