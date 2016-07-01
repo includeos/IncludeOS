@@ -20,6 +20,7 @@
 #define MODEL_SQUIRREL_HPP
 
 #include <locale>
+#include <algorithm>
 
 #include "json.hpp"
 
@@ -114,13 +115,13 @@ std::string Squirrel::json() const {
 }
 
 bool Squirrel::is_equal(const Squirrel& s) const {
-  if(name_.size() != s.name_.size())
+  if(name_.size() not_eq s.name_.size()) {
     return false;
-  for(size_t i = 0; i < name_.size(); i++) {
-    if(std::tolower(name_[i]) != std::tolower(s.name_[i]))
-      return false;
   }
-  return true;
+
+  return std::equal(name_.begin(), name_.end(), s.name_.begin(), s.name_.end(),
+    [](const auto a, const auto b) { return ::tolower(a) == ::tolower(b);
+  });
 }
 
 bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
