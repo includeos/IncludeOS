@@ -70,9 +70,9 @@ struct Squirrel : json::Serializable {
   static bool is_equal(const Squirrel&, const Squirrel&);
 
 private:
-  const std::string name_;
-  const size_t      age_;
-  const std::string occupation_;
+  std::string name_;
+  size_t      age_;
+  std::string occupation_;
 }; //< struct Squirrel
 
 /**--v----------- Implementation Details -----------v--**/
