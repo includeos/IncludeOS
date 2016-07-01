@@ -10,7 +10,6 @@ Request::Request(buffer_t buf, size_t n)
 
 }
 
-
 void Request::complete() {
   assert(is_complete());
   on_recv_(total_length());

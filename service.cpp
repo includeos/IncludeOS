@@ -122,13 +122,17 @@ public:
 
 #include "middleware/director.hpp"
 #include "middleware/waitress.cpp"
+#include "middleware/cookie_parser.hpp"
 
 #include "bucket.hpp"
 #include "app/squirrel.hpp"
+#include "app/user.hpp"
 
 using namespace acorn;
 using SquirrelBucket = bucket::Bucket<Squirrel>;
+using UserBucket = bucket::Bucket<User>;
 std::shared_ptr<SquirrelBucket> squirrels;
+std::shared_ptr<UserBucket> users;
 
 #include "middleware/parsley.hpp"
 
@@ -161,7 +165,8 @@ void Service::start() {
         stats.REQ_RECV++;
       });
 
-      // setup "database"
+      // setup "database" squirrels
+
       squirrels = std::make_shared<SquirrelBucket>();
       squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
         return s.name;
@@ -170,7 +175,7 @@ void Service::start() {
       auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
       squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
 
-      // A test to see if constraint is working.
+      // A test to see if constraint is working (squirrel).
       bool exception_thrown = false;
       try {
         Squirrel dupe_name("Andreas", 0, "Tester");
@@ -182,6 +187,30 @@ void Service::start() {
 
       // no-go if throw
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
+
+      // setup "database" users
+
+      users = std::make_shared<UserBucket>();
+      /*users->add_index<size_t>("key", [](const User& u)->const auto& {
+        return u.key;
+      }, UserBucket::UNIQUE);*/
+
+      //auto first_user_key = users->spawn(1010U).key;
+      users->spawn(1010U);
+      users->spawn(1011U);
+
+      // A test to see if constraint is working (user).
+      bool e_thrown = false;
+      try {
+        User dupe_id(1010U);
+        users->capture(dupe_id);
+      } catch(bucket::ConstraintUnique) {
+        e_thrown = true;
+      }
+      assert(e_thrown);
+
+      // no-go if throw
+      //assert(users->look_for("key", 1010U).key == first_user_key);
 
       server::Router routes;
 
@@ -235,6 +264,15 @@ void Service::start() {
 
       });
 
+      routes.on_get("/api/users", [](auto, auto res) {
+        printf("[@GET:/api/users] Responding with content inside UserBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        users->serialize(writer);
+        res->send_json(sb.GetString());
+      });
+
       routes.on_get("/api/stats", [](auto, auto res) {
         using namespace rapidjson;
         StringBuffer sb;
@@ -283,6 +321,9 @@ void Service::start() {
 
       server::Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
+
+      server::Middleware_ptr cookie_parser = std::make_shared<CookieParser>();
+      server_->use(cookie_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
         printf("@onTimeout [%s]\n%s\n",
