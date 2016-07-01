@@ -81,7 +81,7 @@ inline std::ostream& operator << (std::ostream& output_device, const User& u) {
   return output_device << u.json();
 }
 
-void User::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
+inline void User::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.StartObject();
 
   writer.Key("key");
@@ -92,7 +92,7 @@ void User::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.EndObject();
 }
 
-bool User::deserialize(const rapidjson::Document& doc) {
+inline bool User::deserialize(const rapidjson::Document& doc) {
   key = doc["key"].GetUint();
 
   // set more variables here
@@ -100,7 +100,7 @@ bool User::deserialize(const rapidjson::Document& doc) {
   return true;
 }
 
-std::string User::json() const {
+inline std::string User::json() const {
   using namespace rapidjson;
   StringBuffer sb;
   Writer<StringBuffer> writer(sb);
@@ -108,14 +108,14 @@ std::string User::json() const {
   return sb.GetString();
 }
 
-bool User::is_equal(const User& u) const {
+inline bool User::is_equal(const User& u) const {
   if(key == u.key)
     return false;
 
   return true;
 }
 
-bool User::is_equal(const User& u1, const User& u2) {
+inline bool User::is_equal(const User& u1, const User& u2) {
   return u1.is_equal(u2);
 }
 
