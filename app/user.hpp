@@ -77,10 +77,6 @@ struct User : json::Serializable {
 
 /**--v----------- Implementation Details -----------v--**/
 
-inline std::ostream& operator << (std::ostream& output_device, const User& u) {
-  return output_device << u.json();
-}
-
 inline void User::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.StartObject();
 
@@ -114,6 +110,10 @@ inline bool User::is_equal(const User& u) const {
 
 inline bool User::is_equal(const User& u1, const User& u2) {
   return u1.is_equal(u2);
+}
+
+inline std::ostream& operator << (std::ostream& output_device, const User& u) {
+  return output_device << u.json();
 }
 
 /**--^----------- Implementation Details -----------^--**/
