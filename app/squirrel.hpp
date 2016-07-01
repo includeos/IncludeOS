@@ -77,7 +77,7 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
+inline void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.StartObject();
 
   writer.Key("key");
@@ -95,14 +95,14 @@ void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) con
   writer.EndObject();
 }
 
-bool Squirrel::deserialize(const rapidjson::Document& doc) {
+inline bool Squirrel::deserialize(const rapidjson::Document& doc) {
   name_       = doc["name"].GetString();
   age_        = doc["age"].GetUint();
   occupation_ = doc["occupation"].GetString();
   return true;
 }
 
-std::string Squirrel::json() const {
+inline std::string Squirrel::json() const {
   using namespace rapidjson;
   StringBuffer sb;
   Writer<StringBuffer> writer(sb);
@@ -110,7 +110,7 @@ std::string Squirrel::json() const {
   return sb.GetString();
 }
 
-bool Squirrel::is_equal(const Squirrel& s) const {
+inline bool Squirrel::is_equal(const Squirrel& s) const {
   if(name_.size() not_eq s.name_.size()) {
     return false;
   }
@@ -120,7 +120,7 @@ bool Squirrel::is_equal(const Squirrel& s) const {
   });
 }
 
-bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
+inline bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
   return s1.is_equal(s2);
 }
 
