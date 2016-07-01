@@ -18,7 +18,6 @@
 //#define DEBUG
 //#undef  NO_DEBUG
 #include <debug>
-#include <vector>
 #include <cassert>
 #include <malloc.h>
 #include <cstdio>
@@ -39,7 +38,7 @@ namespace net {
     assert(bufsize != 0);
 
     const size_t DATA_SIZE  = poolsize_;
-    const size_t BMP_CHUNKS = num / 32;
+    const size_t BMP_CHUNKS = num / 32 + 1; // poor mans' roundup
     const size_t BMP_SIZE   = BMP_CHUNKS * sizeof(uint32_t);
 
     this->pool_ = (buffer_t) memalign(PAGE_SIZE, DATA_SIZE + BMP_SIZE);
