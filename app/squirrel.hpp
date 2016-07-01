@@ -37,7 +37,11 @@ struct Squirrel : json::Serializable {
    *
    */
   Squirrel(std::string name, size_t age, std::string occupation)
-    : key(0), name_(name), age_(age), occupation_(occupation) {}
+    : key         {0}
+    , name_       {name}
+    , age_        {age}
+    , occupation_ {occupation}
+  {}
 
   /**
    *
