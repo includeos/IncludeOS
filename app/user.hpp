@@ -53,8 +53,6 @@ struct User : json::Serializable {
    */
   std::string json() const;
 
-  friend std::ostream & operator<< (std::ostream &out, const User& u);
-
   /**
    *
    */
@@ -79,9 +77,8 @@ struct User : json::Serializable {
 
 // -------------------- Implementation ------------------------
 
-std::ostream & operator<< (std::ostream &out, const User& u) {
-  out << u.json();
-  return out;
+inline std::ostream& operator << (std::ostream& output_device, const User& u) {
+  return output_device << u.json();
 }
 
 void User::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
