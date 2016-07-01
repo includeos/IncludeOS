@@ -61,7 +61,7 @@ class color:
       return "\n" + color.C_HEAD + "============================ " + string + " ============================" +  color.C_ENDC
 
 
-if not os.environ.has_key("INCLUDEOS_HOME"):
+if "INCLUDEOS_HOME" not in os.environ:
     print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
     def_home = os.environ["HOME"] + "/IncludeOS_install"
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
@@ -129,8 +129,7 @@ def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
                           stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE,
-                          preexec_fn=os.setsid)
+                          stderr = subprocess.PIPE)
 
   # After half a second it should be started, otherwise throw
   time.sleep(0.5)
@@ -170,22 +169,22 @@ class qemu(hypervisor):
     print color.INFO(self._nametag), "booting", self._config["image"]
 
     disk_args = self.drive_arg(self._config["image"], "ide")
-    if self._config.has_key("drives"):
+    if "drives" in self._config:
       for disk in self._config["drives"]:
         disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
 
     net_args = []
     i = 0
-    if self._config.has_key("net"):
+    if "net" in self._config:
       for net in self._config["net"]:
         net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
         i+=1
 
     mem_arg = []
-    if self._config.has_key("mem"):
+    if "mem" in self._config:
       mem_arg = ["-m",str(self._config["mem"])]
 
-    command = ["sudo", "qemu-system-x86_64"]
+    command = ["qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
 
     command += ["-nographic" ] + disk_args + net_args + mem_arg
@@ -198,8 +197,8 @@ class qemu(hypervisor):
   def stop(self):
     if hasattr(self, "_proc") and self._proc.poll() == None :
       print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
-      # Kill with sudo
-      subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
+      # Kill
+      subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
     return self
@@ -257,6 +256,11 @@ class vm:
 
   def boot(self, timeout = None):
 
+    # Check for sudo access, needed for qemu commands
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
+
     # Start the timeout thread
     if (timeout):
       self._timer = threading.Timer(timeout, self._on_timeout)
@@ -310,6 +314,11 @@ class vm:
     raise Exception("Unexpected termination")
 
   def stop(self):
+    # Check for sudo access, needed for qemu commands
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
+
     print color.INFO(nametag),"Stopping VM..."
     self._hyper.stop()
     if hasattr(self, "_timer") and self._timer:
