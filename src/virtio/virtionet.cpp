@@ -178,8 +178,6 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  service_queues(); return;
-  
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // Do one RX-packet
@@ -202,8 +200,6 @@ void VirtioNet::msix_recv_handler()
 }
 void VirtioNet::msix_xmit_handler()
 {
-  service_queues(); return;
-  
   bool dequeued_tx = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
@@ -436,6 +432,8 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
+    tx_q.kick();
+    /* disable deferred kick for now *
     if (deferred_kick == false) {
       deferred_kick = true;
       using namespace std::chrono;
@@ -444,7 +442,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
         tx_q.kick();
         deferred_kick = false;
       });
-    }
+    }*/
   }
 
   // Buffer the rest
