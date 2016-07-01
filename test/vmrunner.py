@@ -129,8 +129,7 @@ def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
                           stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE,
-                          preexec_fn=os.setsid)
+                          stderr = subprocess.PIPE)
 
   # After half a second it should be started, otherwise throw
   time.sleep(0.5)
@@ -185,7 +184,7 @@ class qemu(hypervisor):
     if self._config.has_key("mem"):
       mem_arg = ["-m",str(self._config["mem"])]
 
-    command = ["sudo", "qemu-system-x86_64"]
+    command = ["qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
 
     command += ["-nographic" ] + disk_args + net_args + mem_arg
@@ -198,8 +197,8 @@ class qemu(hypervisor):
   def stop(self):
     if hasattr(self, "_proc") and self._proc.poll() == None :
       print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
-      # Kill with sudo
-      subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
+      # Kill
+      subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
     return self
