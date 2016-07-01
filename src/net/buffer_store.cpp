@@ -27,6 +27,8 @@
 #define PAGE_SIZE     0x1000
 
 #include <kernel/elf.hpp>
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
 
 namespace net {
 
@@ -65,8 +67,9 @@ namespace net {
   }
 
   BufferStore::buffer_t BufferStore::get_buffer() {
-    if (available_.empty())
+    if (unlikely(available_.empty())) {
       panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
+    }
 
     auto addr = available_.back();
     available_.pop_back();
@@ -77,7 +80,7 @@ namespace net {
   {
     debug("Release %p...", addr);
 
-    if (is_from_pool(addr) and is_buffer(addr)) {
+    if (likely(is_from_pool(addr) and is_buffer(addr))) {
       // if the buffer is locked, don't release it
       if (locked.get( buffer_id(addr) )) {
         debug(" .. but it was locked\n");
@@ -95,7 +98,7 @@ namespace net {
   void BufferStore::unlock_and_release(buffer_t addr)
   {
     debug("Unlock and release %p...", addr);
-    if (is_from_pool(addr) and is_buffer(addr)) {
+    if (likely(is_from_pool(addr) and is_buffer(addr))) {
       locked.reset( buffer_id(addr) );
       available_.push_back(addr);
       debug("released\n");
