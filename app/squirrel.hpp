@@ -38,8 +38,6 @@ struct Squirrel : json::Serializable {
 
   std::string json() const;
 
-  friend std::ostream & operator<< (std::ostream &out, const Squirrel& t);
-
   virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>&) const override;
   virtual bool deserialize(const rapidjson::Document&) override;
 
@@ -48,9 +46,8 @@ struct Squirrel : json::Serializable {
   static bool is_equal(const Squirrel&, const Squirrel&);
 };
 
-std::ostream & operator<< (std::ostream &out, const Squirrel& s) {
-  out << s.json();
-  return out;
+inline std::ostream& operator << (std::ostream& output_device, const Squirrel& s) {
+  return output_device.json();
 }
 
 void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
