@@ -496,7 +496,7 @@ int __test_and_clear_bit(long nr, volatile unsigned long* addr)
 static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
 void kvm_pv_eoi() {
   
-  if (kvm_apic_eoi) printf("val: %#lx\n", kvm_apic_eoi);
+  //printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
   // fast EOI by KVM
   if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
       printf("avoided\n");
@@ -504,6 +504,8 @@ void kvm_pv_eoi() {
   }
   // fallback to normal APIC EOI
   hw::lapic.regs->eoi.reg = 0;
+  // check after
+  //printf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
 }
 void kvm_pv_eoi_init() {
   kvm_apic_eoi = 0;

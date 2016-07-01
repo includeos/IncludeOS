@@ -18,7 +18,6 @@
 //#define DEBUG
 //#undef  NO_DEBUG
 #include <debug>
-#include <vector>
 #include <cassert>
 #include <malloc.h>
 #include <cstdio>
@@ -27,27 +26,25 @@
 #include <kernel/syscalls.hpp>
 #define PAGE_SIZE     0x1000
 
+#include <kernel/elf.hpp>
+
 namespace net {
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
-    poolsize_      {num * bufsize},
-    bufsize_       {bufsize}
+    poolsize_  {num * bufsize},
+    bufsize_   {bufsize}
   {
     assert(num != 0);
     assert(bufsize != 0);
-    
-    const size_t DATA_HEADER = PAGE_SIZE-1 + num * bufsize;
-    const size_t BMP_CHUNKS = num / 32;
+
+    const size_t DATA_SIZE  = poolsize_;
+    const size_t BMP_CHUNKS = num / 32 + 1; // poor mans' roundup
     const size_t BMP_SIZE   = BMP_CHUNKS * sizeof(uint32_t);
-    
-    malloc_pool_ = malloc(DATA_HEADER + BMP_SIZE);
-    assert(malloc_pool_);
-    
-    this->pool_ = (buffer_t) malloc_pool_;
-    // align to page boundary
-    pool_ += PAGE_SIZE - ((uintptr_t) pool_ & (PAGE_SIZE-1));
+
+    this->pool_ = (buffer_t) memalign(PAGE_SIZE, DATA_SIZE + BMP_SIZE);
     assert(this->pool_);
 
+    available_.reserve(num);
     for (buffer_t b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
         available_.push_back(b);
     }
@@ -55,12 +52,16 @@ namespace net {
     // verify that the "first" buffer is the start of the pool
     assert(available_.back() == pool_);
 
-    new (&locked) MemBitmap((char*) malloc_pool_ + DATA_HEADER, BMP_CHUNKS);
+    new (&locked) MemBitmap((char*) pool_ + DATA_SIZE, BMP_CHUNKS);
     locked.zero_all();
+
+    //printf("strtab: %p  end: %p\n", Elf::get_strtab(), Elf::get_strtab() + Elf::get_strtab_size());
+    //printf("vec: %p end: %p vec data: %p\n", &available_, ((char*) &available_) + sizeof(available_), available_.data());
+    //printf("bmp: %p end: %p\n", &locked, ((char*) &locked) + sizeof(MemBitmap));
   }
 
   BufferStore::~BufferStore() {
-    free(malloc_pool_);
+    free(this->pool_);
   }
 
   BufferStore::buffer_t BufferStore::get_buffer() {

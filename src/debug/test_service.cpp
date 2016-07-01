@@ -100,19 +100,20 @@ void Service::start()
   
   begin_stack_sampling(200);
   // print sampling results every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(1500ms, print_stack_sampling);
-  
+  hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
+
   // boilerplate
   inet = net::new_ipv4_stack(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 } );     // Gateway
-  hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
+  //hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
+  hw::PIT::instance().on_timeout_ms(1ms, print_tcp_status);
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
   server.onConnect(
   [] (auto conn) {
-    conn->abort();
+    conn->close();
   });
 }

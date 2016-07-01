@@ -58,4 +58,8 @@ struct Elf
   // returns the address of the first byte after the ELF header
   // and all static and dynamic sections
   static size_t end_of_file();
+
+  // debugging purposes only
+  static const char* get_strtab();
+  static size_t      get_strtab_size();
 };

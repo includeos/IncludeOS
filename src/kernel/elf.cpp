@@ -69,6 +69,7 @@ public:
         break;
       case SHT_STRTAB:
         this->strtab = (char*) (ELF_BASE + shdr[i].sh_offset);
+        this->strtab_size = shdr[i].sh_size;
         break;
       case SHT_DYNSYM:
       default:
@@ -145,6 +146,13 @@ public:
     return hdr.e_ehsize + (hdr.e_phnum * hdr.e_phentsize) + (hdr.e_shnum * hdr.e_shentsize);
   }
 
+  const auto* get_strtab() const {
+    return strtab;
+  }
+  auto get_strtab_size() const {
+    return strtab_size;
+  }
+  
 private:
   const char* sym_name(Elf32_Sym* sym) const {
     return &strtab[sym->st_name];
@@ -183,6 +191,7 @@ private:
   SymTab  symtab[4];
   size_t  num_syms;
   const char* strtab;
+  size_t      strtab_size;
   uintptr_t   ELF_BASE;
 };
 
@@ -193,6 +202,12 @@ ElfTables& get_parser() {
 
 size_t Elf::end_of_file() {
   return get_parser().end_of_file();
+}
+const char* Elf::get_strtab() {
+  return get_parser().get_strtab();
+}
+size_t Elf::get_strtab_size() {
+  return get_parser().get_strtab_size();
 }
 
 func_offset Elf::resolve_symbol(uintptr_t addr)

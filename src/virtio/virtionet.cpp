@@ -34,9 +34,9 @@ constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }
 
-void VirtioNet::get_config(){
-  Virtio::get_config(&_conf,_config_length);
-};
+void VirtioNet::get_config() {
+  Virtio::get_config(&_conf, _config_length);
+}
 
 static void drop(Packet_ptr UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
@@ -48,12 +48,12 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop), 
-    /** 1200 buffers to start with */
-    bufstore_(4000, sizeof(net::Packet) + bufsize())
+    /** 1500 buffers to start with */
+    bufstore_(1500, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
-  assert(sizeof(virtio_net_hdr) < sizeof(Packet));
+  assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -146,8 +146,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Hook up IRQ handler
   if (is_msix())
   {
-    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
-    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
+    // for now use service queues, otherwise stress test fails
+    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
+    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
     auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     // update BSP IDT
     IRQ_manager::cpu(0).subscribe(irq() + 0, recv_del);
@@ -178,8 +179,6 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  service_queues(); return;
-  
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // Do one RX-packet
@@ -202,8 +201,6 @@ void VirtioNet::msix_recv_handler()
 }
 void VirtioNet::msix_xmit_handler()
 {
-  service_queues(); return;
-  
   bool dequeued_tx = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
@@ -294,7 +291,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(bufsize(), size,
-      [this] (void* p) { bufstore_.release((uint8_t*) p); });
+      [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
 
   return std::shared_ptr<Packet> (ptr);
 }
@@ -436,8 +433,16 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
-    //if (rand() & 1) tx_q.kick();
     tx_q.kick();
+    /*if (deferred_kick == false) {
+      deferred_kick = true;
+      using namespace std::chrono;
+      hw::PIT::instance().on_timeout_ms(1ms, 
+      [this] {
+        tx_q.kick();
+        deferred_kick = false;
+      });
+    }*/
   }
 
   // Buffer the rest
