@@ -77,10 +77,6 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-inline std::ostream& operator << (std::ostream& output_device, const Squirrel& s) {
-  return output_device.json();
-}
-
 void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const {
   writer.StartObject();
 
@@ -126,6 +122,10 @@ bool Squirrel::is_equal(const Squirrel& s) const {
 
 bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
   return s1.is_equal(s2);
+}
+
+inline std::ostream& operator << (std::ostream& output_device, const Squirrel& s) {
+  return output_device.json();
 }
 
 /**--^----------- Implementation Details -----------^--**/
