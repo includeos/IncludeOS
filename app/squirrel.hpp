@@ -99,8 +99,8 @@ void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) con
 }
 
 bool Squirrel::deserialize(const rapidjson::Document& doc) {
-  name_ = doc["name"].GetString();
-  age_ = doc["age"].GetUint();
+  name_       = doc["name"].GetString();
+  age_        = doc["age"].GetUint();
   occupation_ = doc["occupation"].GetString();
   return true;
 }
