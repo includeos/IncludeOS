@@ -34,9 +34,9 @@ constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 const char* VirtioNet::name(){ return "VirtioNet Driver"; }
 const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }
 
-void VirtioNet::get_config(){
-  Virtio::get_config(&_conf,_config_length);
-};
+void VirtioNet::get_config() {
+  Virtio::get_config(&_conf, _config_length);
+}
 
 static void drop(Packet_ptr UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
@@ -53,7 +53,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
-  assert(sizeof(virtio_net_hdr) < sizeof(Packet));
+  assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -294,7 +294,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(bufsize(), size,
-      [this] (void* p) { bufstore_.release((uint8_t*) p); });
+      [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
 
   return std::shared_ptr<Packet> (ptr);
 }
