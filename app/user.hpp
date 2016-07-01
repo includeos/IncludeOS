@@ -75,7 +75,7 @@ struct User : json::Serializable {
 
 };
 
-// -------------------- Implementation ------------------------
+/**--v----------- Implementation Details -----------v--**/
 
 inline std::ostream& operator << (std::ostream& output_device, const User& u) {
   return output_device << u.json();
@@ -119,6 +119,8 @@ bool User::is_equal(const User& u1, const User& u2) {
   return u1.is_equal(u2);
 }
 
-} // < namespace acorn
+/**--^----------- Implementation Details -----------^--**/
 
-#endif
+} //< namespace acorn
+
+#endif //< MODEL_USER_HPP
