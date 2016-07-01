@@ -35,22 +35,44 @@ namespace acorn {
 
 // struct or class?
 
+/**
+ *
+ */
 struct User : json::Serializable {
   size_t key;
 
+  /**
+   *
+   */
   User() : key{0} {}
 
   // More constructors here
 
+  /**
+   *
+   */
   std::string json() const;
 
   friend std::ostream & operator<< (std::ostream &out, const User& u);
 
+  /**
+   *
+   */
   virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>&) const override;
+
+  /**
+   *
+   */
   virtual bool deserialize(const rapidjson::Document&) override;
 
+  /**
+   *
+   */
   bool is_equal(const User&) const;
 
+  /**
+   *
+   */
   static bool is_equal(const User&, const User&);
 
 };
