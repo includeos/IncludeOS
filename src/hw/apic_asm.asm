@@ -19,6 +19,7 @@ global apic_enable
 global spurious_intr
 global lapic_send_eoi
 global get_cpu_id
+global get_cpu_eip
 global reboot
 
 global lapic_irq_entry
@@ -39,6 +40,10 @@ get_cpu_id:
     cpuid
     shr ebx, 24
     mov eax, ebx
+    ret
+
+get_cpu_eip:
+    mov eax, [esp]
     ret
 
 spurious_intr:

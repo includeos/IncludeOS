@@ -38,11 +38,8 @@ OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
-
-// Heap
+extern caddr_t heap_begin;
 extern caddr_t heap_end;
-extern char    _end;
-
 
 void OS::start() {
 
@@ -57,8 +54,8 @@ void OS::start() {
   debug("\t[*] OS class started\n");
   srand(time(NULL));
 
-  MYINFO("Heap start: @ %p", heap_end);
-  MYINFO("Current end is: @ %p", &_end);
+  MYINFO("Heap start:  %p", heap_begin);
+  MYINFO("Heap end:    %p", heap_end);
 
   atexit(default_exit);
 
@@ -105,7 +102,8 @@ void OS::start() {
 }
 
 uint32_t OS::memory_usage() {
-    return (uint32_t)heap_end - (uint32_t)&_end;
+  // measures heap usage only?
+  return (uint32_t) (heap_end - heap_begin);
 }
 
 void OS::halt() {

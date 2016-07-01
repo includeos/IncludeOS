@@ -8,11 +8,7 @@
 #include <cassert>
 #include <algorithm>
 
-#define BUFFER_COUNT    18000
-
-extern "C" {
-  extern void _start();
-}
+#define BUFFER_COUNT    6000
 
 template <typename T, int N>
 struct fixedvector {
@@ -136,14 +132,10 @@ void print_heap_info()
   
   // also show information on heap end in case of leaks
   extern char* heap_end;
-  extern char  _end;
-  printf("[!] Heap end   %p (%u Kb)\n", heap_end, (uintptr_t) (heap_end - &_end) / 1024);
-  printf("[!] OS end     %p\n", &_end);
-  
-  char buffer[256];
-  auto func = Elf::safe_resolve_symbol((void*) &_start, buffer, sizeof(buffer));
-  printf("[!] _start     0x%.6x  vs  %#x  (sym %#x)\n", 
-      (uintptr_t) &_start, func.addr, (uintptr_t) func.name);
+  extern char* heap_begin;
+  auto heap_size = (size_t) (heap_end - heap_begin);
+  printf("[!] Heap begin  %p Heap size %#x\n",     heap_begin, heap_size);
+  printf("[!] Heap end    %p           (%u Kb)\n", heap_end,   heap_size / 1024);
 }
 
 void print_stack_sampling()

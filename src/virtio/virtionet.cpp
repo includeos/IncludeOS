@@ -48,8 +48,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop), 
-    /** 1200 buffers to start with */
-    bufstore_(4000, sizeof(net::Packet) + bufsize())
+    /** 1024 buffers to start with */
+    bufstore_(1024, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
