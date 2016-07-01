@@ -37,15 +37,11 @@ Cookie::~Cookie() {
 
 const std::string Cookie::no_entry_value_;
 
-inline static bool equiv_strs(std::string& s1, std::string& s2) {
-  std::transform(s1.begin(), s1.end(), s1.begin(), ::tolower());
-  std::transform(s2.begin(), s2.end(), s2.begin(), ::tolower());
-  return s1 == s2;
-}
-
 inline auto Cookie::find(const std::string& keyword) const {
-  return std::find_if(data_.begin(), data_.end(), [&keyword](const auto& k) {
-    return equiv_strs(k.first, keyword);
+  return std::find_if(data_.begin(), data_.end(), [&keyword](const auto& k){
+    return std::equal(k.first.begin(), k.first.end(), keyword.begin(), keyword.end(),
+           [](const auto a, const auto b) { return ::tolower(a) == ::tolower(b);
+    });
   });
 }
 
