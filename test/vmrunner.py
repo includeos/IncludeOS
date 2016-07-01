@@ -256,6 +256,11 @@ class vm:
 
   def boot(self, timeout = None):
 
+    # Check for sudo access, needed for qemu commands
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
+
     # Start the timeout thread
     if (timeout):
       self._timer = threading.Timer(timeout, self._on_timeout)
@@ -309,6 +314,11 @@ class vm:
     raise Exception("Unexpected termination")
 
   def stop(self):
+    # Check for sudo access, needed for qemu commands
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
+
     print color.INFO(nametag),"Stopping VM..."
     self._hyper.stop()
     if hasattr(self, "_timer") and self._timer:
