@@ -109,10 +109,7 @@ inline std::string User::json() const {
 }
 
 inline bool User::is_equal(const User& u) const {
-  if(key == u.key)
-    return false;
-
-  return true;
+  return key == u.key;
 }
 
 inline bool User::is_equal(const User& u1, const User& u2) {
