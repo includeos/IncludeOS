@@ -38,7 +38,7 @@ namespace acorn {
 struct User : json::Serializable {
   size_t key;
 
-  User(size_t k) : key{k} {}
+  User() : key{0} {}
 
   // More constructors here
 
