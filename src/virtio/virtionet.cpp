@@ -436,8 +436,15 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (transmitted) {
-    //if (rand() & 1) tx_q.kick();
-    tx_q.kick();
+    if (deferred_kick == false) {
+      deferred_kick = true;
+      using namespace std::chrono;
+      hw::PIT::instance().on_timeout_ms(1ms, 
+      [this] {
+        tx_q.kick();
+        deferred_kick = false;
+      });
+    }
   }
 
   // Buffer the rest
