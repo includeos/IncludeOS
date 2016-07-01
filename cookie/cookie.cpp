@@ -1,14 +1,21 @@
-#include "cookie.hpp"
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-/*In cookie.hpp:
-#include <regex>
-#include <string>
-#include <vector>
-#include <cctype>
-#include <utility>
-#include <ostream>
-#include <algorithm>
-#include <functional>*/
+#include "cookie.hpp"
 
 using namespace cookie;
 
@@ -30,15 +37,11 @@ Cookie::~Cookie() {
 
 const std::string Cookie::no_entry_value_;
 
-inline static bool equiv_strs(std::string& s1, std::string& s2) {
-  std::transform(s1.begin(), s1.end(), s1.begin(), ::tolower());
-  std::transform(s2.begin(), s2.end(), s2.begin(), ::tolower());
-  return s1 == s2;
-}
-
 inline auto Cookie::find(const std::string& keyword) const {
-  return std::find_if(data_.begin(), data_.end(), [&keyword](const auto& k) {
-    return equiv_strs(k.first, keyword);
+  return std::find_if(data_.begin(), data_.end(), [&keyword](const auto& k){
+    return std::equal(k.first.begin(), k.first.end(), keyword.begin(), keyword.end(),
+           [](const auto a, const auto b) { return ::tolower(a) == ::tolower(b);
+    });
   });
 }
 
