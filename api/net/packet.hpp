@@ -39,8 +39,8 @@ namespace net {
      *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
      */
     Packet(
-        size_t cap, 
-        size_t len, 
+        uint16_t cap, 
+        uint16_t len, 
         deleter_t del = default_packet_deleter) noexcept
     : capacity_ (cap),
       size_     (len),
@@ -55,18 +55,15 @@ namespace net {
     { return (BufferStore::buffer_t) buf_; }
 
     /** Get the network packet length - i.e. the number of populated bytes  */
-    inline uint32_t size() const noexcept
+    inline uint16_t size() const noexcept
     { return size_; }
 
     /** Get the size of the buffer. This is >= len(), usually MTU-size */
-    inline uint32_t capacity() const noexcept
+    inline uint16_t capacity() const noexcept
     { return capacity_; }
 
-    int set_size(size_t new_size) noexcept {
-      if (new_size > capacity_) {
-        return 0;
-      }
-      return size_ = new_size;
+    void set_size(uint16_t new_size) noexcept {
+      assert((size_ = new_size) <= capacity_);
     }
 
     /** next-hop ipv4 address for IP routing */
@@ -159,8 +156,8 @@ namespace net {
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
 
-    size_t                capacity_;
-    size_t                size_;
+    uint16_t              capacity_;
+    uint16_t              size_;
     IP4::addr             next_hop4_;
     deleter_t             deleter_;
     BufferStore::buffer_t payload_ {nullptr};
