@@ -25,6 +25,9 @@
 
 namespace acorn {
 
+/**
+ *
+ */
 struct Squirrel : json::Serializable {
   size_t key;
   std::string name;
@@ -33,16 +36,35 @@ struct Squirrel : json::Serializable {
 
   Squirrel() : key(0) {}
 
+  /**
+   *
+   */
   Squirrel(std::string name, size_t age, std::string occupation)
     : key(0), name(name), age(age), occupation(occupation) {}
 
+  /**
+   *
+   */
   std::string json() const;
 
+  /**
+   *
+   */
   virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>&) const override;
+
+  /**
+   *
+   */
   virtual bool deserialize(const rapidjson::Document&) override;
 
+  /**
+   *
+   */
   bool is_equal(const Squirrel&) const;
 
+  /**
+   *
+   */
   static bool is_equal(const Squirrel&, const Squirrel&);
 };
 
