@@ -63,7 +63,9 @@ private:
    *
    */
   bool has_cookie(server::Request_ptr req) const noexcept;
-};
+}; //< class CookieParser
+
+/**--v----------- Implementation Details -----------v--**/
 
 inline void CookieParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
     if(not has_cookie(req)) {
@@ -82,6 +84,8 @@ inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
   return req->has_header(http::header_fields::Request::Cookie);
 }
 
+/**--^----------- Implementation Details -----------^--**/
+
 } //< namespace middleware
 
-#endif
+#endif //< MIDDLEWARE_COOKIE_PARSER_HPP
