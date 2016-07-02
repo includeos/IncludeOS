@@ -18,9 +18,11 @@
 #ifndef MIDDLEWARE_DIRECTOR_HPP
 #define MIDDLEWARE_DIRECTOR_HPP
 
-#include "middleware.hpp" // inherit middleware
-#include <fs/disk.hpp>
 #include <sstream>
+
+#include <fs/disk.hpp>
+
+#include "middleware.hpp"
 
 namespace middleware {
 
