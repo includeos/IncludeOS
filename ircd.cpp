@@ -15,6 +15,9 @@ IrcServer::IrcServer(
   extern void transform_init();
   transform_init();
   
+  // reserve space for clients etc.
+  clients.reserve(1000);
+  
   // server listener (although IRC servers usually have many ports open)
   auto& tcp = inet.tcp();
   auto& server_port = tcp.bind(port);

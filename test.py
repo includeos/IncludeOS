@@ -4,7 +4,7 @@ import sys
 import random
 
 def botname():
-    return "bot" + str(random.random() * 1000)
+    return "bot" + str(int(random.random() * 1000))
 
 class Bot:
   def __init__(self):
@@ -25,7 +25,7 @@ class Bot:
           self.send("JOIN #test")
 
           amount_received = 0
-          amount_expected = 10000
+          amount_expected = 10
           while amount_received < amount_expected:
               self.send("PRIVMSG #test :spamerino cappuchino etc")
               data = self.sock.recv(64)
@@ -33,6 +33,7 @@ class Bot:
               'print >>sys.stderr, received "%s"' % data
 
       finally:
+          self.send("QUIT :Lates")
           self.sock.close()
 
 
