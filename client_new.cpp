@@ -94,8 +94,10 @@ void Client::send_motd()
 {
   send(RPL_MOTDSTART, ":- " + server.name() + " Message of the day - ");
   const auto& motd = server.get_motd();
-  for (auto& line : motd)
+  
+  for (const auto& line : motd)
     send(RPL_MOTD, ":" + line);
+  
   send(RPL_ENDOFMOTD, ":End of MOTD command");
 }
 
