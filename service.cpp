@@ -79,24 +79,6 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
 
 Statistics stats;
 
-template <typename PTR>
-class BufferWrapper {
-
-  using ptr_t = PTR;
-
-  ptr_t data;
-  size_t size;
-
-public:
-
-  BufferWrapper(ptr_t ptr, size_t sz) :
-    data {ptr}, size{sz}
-  {}
-
-  const ptr_t begin() { return data; }
-  const ptr_t end() { return data + size; }
-};
-
 using namespace acorn;
 using SquirrelBucket = bucket::Bucket<Squirrel>;
 using UserBucket = bucket::Bucket<User>;
