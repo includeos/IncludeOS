@@ -69,8 +69,8 @@ public:
     return nick_ + "!" + userhost();
   }
   
-  ChannelList& channels() {
-    return channel_list;
+  ChannelList& chans() {
+    return channels_;
   }
   
 private:
@@ -94,7 +94,7 @@ private:
   std::string nick_;
   std::string user_;
   std::string host_;
-  ChannelList channel_list;
+  ChannelList channels_;
   
   std::string buffer;
 };

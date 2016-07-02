@@ -74,16 +74,14 @@ size_t IrcServer::free_channel() {
 
 IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const
 {
-  for (auto& cl : clients) {
-    if (cl.alive() && cl.nick() == name) return cl.get_id();
-  }
-  return NO_SUCH_CLIENT;
+  auto it = h_users.find(name);
+  if (it != h_users.end()) return it->second;
+  return NO_SUCH_CHANNEL;
 }
 IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
 {
-  for (auto& ch : channels) {
-    if (ch.alive() && ch.name() == name) return ch.get_id();
-  }
+  auto it = h_channels.find(name);
+  if (it != h_channels.end()) return it->second;
   return NO_SUCH_CHANNEL;
 }
 

@@ -14,7 +14,7 @@ void Client::reset(Connection conn)
   this->nick_ = "";
   this->user_ = "";
   this->host_ = "";
-  this->channel_list.clear();
+  this->channels_.clear();
   this->buffer = "";
 }
 
@@ -140,6 +140,8 @@ bool Client::change_nick(const std::string& new_nick)
     send_nonick(ERR_NICKNAMEINUSE, new_nick + " :Nickname is already in use");
     return false;
   }
+  // remove old nickname from hashtable
+  server.hash_nickname(nick(), new_nick, get_id());
   // nickname is valid and free, take it
   this->nick_ = new_nick;
   return true;

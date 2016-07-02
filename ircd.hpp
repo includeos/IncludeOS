@@ -8,6 +8,10 @@
 
 #define NO_SUCH_CLIENT    UINT16_MAX
 #define NO_SUCH_CHANNEL   UINT16_MAX
+#define STAT_TOTAL_USERS           0
+#define STAT_LOCAL_USERS           1
+#define STAT_REGGED_USERS          2
+#define STAT_CHANNELS              4
 
 class IrcServer {
 public:
@@ -37,8 +41,14 @@ public:
   inline Channel& get_channel(size_t idx) {
     return channels.at(idx);
   }
-  uindex_t  user_by_name(const std::string&) const;
-  chindex_t channel_by_name(const std::string&) const;
+  uindex_t  user_by_name(const std::string& name) const;
+  chindex_t channel_by_name(const std::string& name) const;
+  
+  void hash_nickname(const std::string& old, const std::string& nick, size_t id)
+  {
+    if (!old.empty()) h_users.erase(old);
+    h_users[nick] = id;
+  }
   
   bool is_channel(const std::string& param) {
     if (param.empty()) return false;
@@ -55,18 +65,12 @@ public:
   void chan_bcast(chindex_t idx, const std::string&);
   void chan_bcast(chindex_t idx, const std::string& from, uint16_t tk, const std::string&);
   
-  // stats
-  size_t get_total_clients() const
-  {
-    return s_clients_tot;
+  // stats / counters
+  void stat_inc(uint8_t counter) {
+    statcounters[counter]++;
   }
-  size_t get_total_ops() const
-  {
-    return s_ircops;
-  }
-  size_t get_total_chans() const
-  {
-    return s_channels;
+  size_t get_counter(uint8_t counter) {
+    return statcounters[counter];
   }
   
   // server configuration stuff
@@ -98,10 +102,13 @@ private:
   std::vector<Channel> channels;
   std::vector<size_t> free_channels;
   
+  // server callbacks
   motd_func_t motd_func;
   
-  size_t s_clients_reg;
-  size_t s_clients_tot;
-  size_t s_ircops;
-  size_t s_channels;
+  // hash table for nicknames, channels etc
+  std::map<std::string, size_t> h_users;
+  std::map<std::string, size_t> h_channels;
+  
+  // statistics
+  size_t statcounters[8] {0};
 };
