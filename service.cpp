@@ -24,6 +24,16 @@
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
 
+#include "bucket.hpp"
+
+#include "app/user.hpp"
+#include "app/squirrel.hpp"
+
+#include "middleware/parsley.hpp"
+#include "middleware/director.hpp"
+#include "middleware/waitress.cpp"
+#include "middleware/cookie_parser.hpp"
+
 #include "server/server.hpp"
 
 using namespace std;
@@ -64,7 +74,6 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   //printf(" %*s \n", indent, "o");
 
 }
-
 
 struct Statistics {
   uint64_t DATA_RECV;
@@ -123,21 +132,11 @@ public:
   const ptr_t end() { return data + size; }
 };
 
-#include "middleware/director.hpp"
-#include "middleware/waitress.cpp"
-#include "middleware/cookie_parser.hpp"
-
-#include "bucket.hpp"
-#include "app/squirrel.hpp"
-#include "app/user.hpp"
-
 using namespace acorn;
 using SquirrelBucket = bucket::Bucket<Squirrel>;
 using UserBucket = bucket::Bucket<User>;
 std::shared_ptr<SquirrelBucket> squirrels;
 std::shared_ptr<UserBucket> users;
-
-#include "middleware/parsley.hpp"
 
 void Service::start() {
 
