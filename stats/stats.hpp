@@ -87,7 +87,7 @@ private:
 /**--v----------- Implementation Details -----------v--**/
 
 template<typename Writer>
-void serialize(Writer& writer) const {
+void Statistics::serialize(Writer& writer) const {
   writer.StartObject();
 
   writer.Key("DATA_RECV");
