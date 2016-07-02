@@ -18,8 +18,8 @@
 #ifndef MIDDLEWARE_COOKIE_PARSER_HPP
 #define MIDDLEWARE_COOKIE_PARSER_HPP
 
+#include "cookie.hpp"
 #include "middleware.hpp"
-#include "../cookie/cookie.hpp"
 
 namespace middleware {
 
