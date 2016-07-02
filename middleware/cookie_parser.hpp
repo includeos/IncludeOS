@@ -28,9 +28,6 @@ namespace middleware {
  * @details
  *
  */
-
-// hpp-declarations first and implement methods further down? Or in own cpp-file?
-
 class CookieParser : public server::Middleware {
 public:
   virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
