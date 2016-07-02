@@ -30,19 +30,19 @@ namespace middleware {
  */
 class Parsley : public server::Middleware {
 public:
-
   /**
    *
    */
   virtual void process(server::Request_ptr req, server::Response_ptr, server::Next next) override;
 
 private:
-
   /**
    *
    */
   bool has_json(server::Request_ptr req) const;
-};
+}; //< class Parsley
+
+/**--v----------- Implementation Details -----------v--**/
 
 inline void process(server::Request_ptr req, server::Response_ptr, server::Next next) {
   using namespace json;
@@ -71,6 +71,8 @@ inline bool has_json(server::Request_ptr req) const {
   return (req->header_value(c_type).find("application/json") != std::string::npos);
 }
 
+/**--^----------- Implementation Details -----------^--**/
+
 } //< namespace middleware
 
-#endif
+#endif //< MIDDLEWARE_PARSLEY_HPP
