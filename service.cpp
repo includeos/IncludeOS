@@ -18,25 +18,11 @@
 #include <sstream>
 
 #include <os>
+#include <acorn>
 #include <memdisk>
 
-#include <net/inet4>
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
-
-#include "bucket.hpp"
-
-#include "app/user.hpp"
-#include "app/squirrel.hpp"
-
-#include "middleware/parsley.hpp"
-#include "middleware/director.hpp"
-#include "middleware/waitress.cpp"
-#include "middleware/cookie_parser.hpp"
-
-#include "stats/stats.hpp"
-
-#include "server/server.hpp"
 
 using namespace std;
 
