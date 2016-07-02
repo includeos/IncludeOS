@@ -43,33 +43,7 @@ fs::Disk_ptr disk;
 Statistics stats;
 cmos::Time STARTED_AT;
 
-void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
-  auto& filesys = disk->fs();
-  int indent = (depth * 3);
-  for (auto entry : entries) {
-
-    // Print directories
-    if (entry.is_dir()) {
-      // Normal dirs
-      if (entry.name() != "."  and entry.name() != "..") {
-        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
-        filesys.ls(entry, [depth](auto, auto entries) {
-          recursive_fs_dump(*entries, depth + 1);
-        });
-      } else {
-        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
-      }
-
-    }else {
-      // Print files / symlinks etc.
-      //printf(" %*s  \n", indent, "|");
-      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
-    }
-  }
-  printf(" %*s \n", indent, " ");
-  //printf(" %*s \n", indent, "o");
-
-}
+void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start() {
 
@@ -268,4 +242,32 @@ void Service::start() {
       });
 
     }); // < disk
+}
+
+void recursive_fs_dump(vector<fs::Dirent> entries, int depth) {
+  auto& filesys = disk->fs();
+  int indent = (depth * 3);
+  for (auto entry : entries) {
+
+    // Print directories
+    if (entry.is_dir()) {
+      // Normal dirs
+      if (entry.name() != "."  and entry.name() != "..") {
+        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
+        filesys.ls(entry, [depth](auto, auto entries) {
+          recursive_fs_dump(*entries, depth + 1);
+        });
+      } else {
+        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
+      }
+
+    }else {
+      // Print files / symlinks etc.
+      //printf(" %*s  \n", indent, "|");
+      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
+    }
+  }
+  printf(" %*s \n", indent, " ");
+  //printf(" %*s \n", indent, "o");
+
 }
