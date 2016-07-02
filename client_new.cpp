@@ -31,7 +31,7 @@ void Client::handle_new(
     {
       // try to acquire nickname
       if (change_nick(msg[1])) {
-        welcome(regis | 2);
+        welcome(2);
       }
     }
     else
@@ -44,7 +44,7 @@ void Client::handle_new(
     if (msg.size() > 1)
     {
       this->user_ = msg[1];
-      welcome(regis | 4);
+      welcome(4);
     }
     else
     {
@@ -69,7 +69,7 @@ void Client::auth_notice()
 void Client::welcome(uint8_t newreg)
 {
   bool regged = is_reg();
-  regis = newreg;
+  regis |= newreg;
   // not registered before, but registered now
   if (!regged && is_reg())
   {

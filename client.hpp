@@ -18,7 +18,7 @@ public:
   Client(size_t s, IrcServer& sref)
     : regis(0), self(s), server(sref) {}
   
-  bool alive() const
+  bool is_alive() const
   {
     return regis != 0;
   }
@@ -87,6 +87,8 @@ public:
   ChannelList& channels() {
     return channels_;
   }
+  
+  void handle_quit(const std::string&);
   
 private:
   void split_message(const std::string&);

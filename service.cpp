@@ -26,23 +26,24 @@ void Service::start() {
       { 255,255,255, 0 },  // Netmask
       {  10, 0,  0,  1 }); // Gateway
   
-  // TCP status over time
-  using namespace std::chrono;
-  hw::PIT::instance().on_repeated_timeout(10s, 
-  [] {
-    printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-  });
-
   // IRC default port
   static std::vector<std::string> motd;
   motd.push_back("Welcome to the");
   motd.push_back("IncludeOS IRC server");
   motd.push_back("4Head");
   
+  auto ircd =
   new IrcServer(*inet.get(), 6667, "irc.includeos.org", "IncludeNet",
   [] () -> const std::vector<std::string>& {
     return motd;
   });
   
+  using namespace std::chrono;
+  hw::PIT::instance().on_repeated_timeout(5s, 
+  [ircd] {
+    //printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+    printf("Conns %u  Local %u\n",  ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS));
+  });
+
   printf("*** IRC SERVICE STARTED *** \n");
 }

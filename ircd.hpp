@@ -46,8 +46,10 @@ public:
   inline Channel& get_channel(size_t idx) {
     return channels.at(idx);
   }
-  uindex_t  user_by_name(const std::string& name) const;
-  chindex_t channel_by_name(const std::string& name) const;
+  void free_client(Client&);
+  
+  uindex_t  user_by_name(const std::string&) const;
+  chindex_t channel_by_name(const std::string&) const;
   
   void hash_nickname(const std::string& nick, size_t id)
   {

@@ -29,23 +29,16 @@ void Client::send_lusers()
 
 void Client::send_modes()
 {
-  send_raw(":" + nickuserhost() + " MODE " + nick() + " :+" + this->mode_string());
+  send_raw(":" + nickuserhost() + " " + TK_MODE + " " + nick() + " :+" + this->mode_string());
 }
 
 void Client::send_quit(const std::string& reason)
 {
-  std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason;
+  // inform everyone what happened
+  handle_quit(reason);
   
-  /// inform others about disconnect
-  server.user_bcast(get_id(), text);
-  // remove client from various lists
-  for (size_t idx : channels()) {
-    server.get_channel(idx).remove(get_id());
-  }
-  // disable self
-  disable();
   // close connection after write
-  text += "\r\n";
+  std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason + "\r\n";
   conn->write(text.data(), text.size(),
   [hest = conn] (size_t) {
     hest->close();

@@ -33,7 +33,7 @@ IrcServer::IrcServer(
       set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
     
     printf("*** Received connection from %s\n",
-    csock->remote().to_string().c_str());
+        csock->remote().to_string().c_str());
 
     /// create client ///
     size_t clindex = free_client();
@@ -42,7 +42,7 @@ IrcServer::IrcServer(
     client.reset_to(csock);
 
     // set up callbacks
-    csock->read(1024,
+    csock->read(512,
     [this, &client] (net::TCP::buffer_t buffer, size_t bytes)
     {
       client.read(buffer.get(), bytes);
@@ -51,27 +51,16 @@ IrcServer::IrcServer(
     csock->onDisconnect(
     [this, clindex] (auto, std::string reason)
     {
-      // one less client in total
-      dec_counter(STAT_TOTAL_USERS);
-      dec_counter(STAT_LOCAL_USERS);
-      
       auto& client = clients[clindex];
-      if (client.is_reg())
-      {
-        /// inform others about disconnect
-        user_bcast_butone(clindex, 
-            ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);
-        // remove client from various lists
-        for (auto idx : client.channels()) {
-          get_channel(idx).remove(clindex);
-        }
-      }
-      // mark as disabled
-      client.disable();
-      // give back the client id
-      free_clients.push_back(clindex);
+      if (!client.is_alive()) return;
+      
+      client.handle_quit("Connection closed");
+    }).
+    onError(
+    [this, clindex] (auto, net::TCP::TCPException)
+    {
+      printf("***** ERROR for %u ******\n", clindex);
     });
-    
   });
 }
 
@@ -96,6 +85,15 @@ size_t IrcServer::free_channel() {
   // create new channel
   channels.emplace_back(channels.size(), *this);
   return channels.size()-1;
+}
+
+void IrcServer::free_client(Client& client)
+{
+  // give back the client id
+  free_clients.push_back(client.get_id());
+  // one less client in total on server
+  dec_counter(STAT_TOTAL_USERS);
+  dec_counter(STAT_LOCAL_USERS);
 }
 
 IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const

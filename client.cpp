@@ -12,22 +12,29 @@ void Client::reset_to(Connection conn)
   this->regis = 1;
   this->umodes_ = default_user_modes();
   this->conn = conn;
-  this->nick_ = "";
-  this->user_ = "";
-  this->host_ = "";
+  this->nick_.clear();
+  this->user_.clear();
+  this->host_.clear();
   this->channels_.clear();
-  this->buffer = "";
+  this->buffer.clear();
   
-  // auth notices
+  // send auth notices
   auth_notice();
-  
 }
 void Client::disable()
 {
+  // release current nickname (if any)
+  if (!nick().empty())
+    server.erase_nickname(nick());
+  // a few should not happens
+  nick_ = "BUG_BUG_BUG";
+  user_ = "BUG_BUG_BUG";
+  host_ = "BUG_BUG.BUG";
+  // reset client status
   regis = 0;
-  server.erase_nickname(nick());
+  // free client on server
+  server.free_client(*this);
 }
-
 
 void Client::split_message(const std::string& msg)
 {
@@ -178,4 +185,19 @@ std::string Client::mode_string() const
         res += usermodes.bit_to_char(i);
   }
   return res;
+}
+
+void Client::handle_quit(const std::string& reason)
+{
+  if (is_reg()) {
+    /// inform others about disconnect
+    std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason;
+    server.user_bcast(get_id(), text);
+    // remove client from various lists
+    for (size_t idx : channels()) {
+      server.get_channel(idx).remove(get_id());
+    }
+  }
+  // disable self
+  disable();
 }
