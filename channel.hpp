@@ -2,6 +2,8 @@
 #include <deque>
 #include <string>
 #include <unordered_set>
+
+#include "common.hpp"
 #include "modes.hpp"
 
 class IrcServer;
@@ -27,6 +29,8 @@ public:
   size_t size() const {
     return clients_.size();
   }
+  // reset to reuse in other fashion
+  void reset(const std::string& new_name);
   
   const ClientList& clients() {
     return clients_;
@@ -35,11 +39,26 @@ public:
   std::string listed_name(index_t cid) const;
   
   
-  bool add(index_t);
-  bool remove(index_t);
+  bool    add(index_t);
+  index_t find(index_t);
   
-  // the entire join sequence for a client
-  bool join(index_t, const std::string& key = "");
+  // silently remove client from all channel lists
+  bool remove(index_t cl)
+  {
+    auto idx = find(cl);
+    if (idx != NO_SUCH_CLIENT)
+    {
+      clients_.erase(clients_.begin() + idx);
+      voices.erase(cl);
+      chanops.erase(cl);
+    }
+    return idx != NO_SUCH_CLIENT;
+  }
+  
+  // the entire JOIN sequence for a client
+  bool join(Client&, const std::string& key = "");
+  // and the PART command
+  bool part(Client&, const std::string& msg = "");
   
   bool is_banned(index_t) const {
     return false;
@@ -60,7 +79,13 @@ public:
     return LUT.find_first_of(c) != std::string::npos;
   }
   
+  // send message to all users in a channel
+  void bcast(const std::string& from, uint16_t tk, const std::string& msg);
+  void bcast(const std::string&);
+  
 private:
+  void revalidate_channel();
+  
   index_t     self;
   std::string cmodes;
   uint32_t    ctimestamp;

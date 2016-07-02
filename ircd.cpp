@@ -4,8 +4,12 @@
 #include <set>
 
 IrcServer::IrcServer(
-    Network& inet_, uint16_t port, const std::string& name, motd_func_t mfunc)
-    : inet(inet_), server_name(name), motd_func(mfunc)
+    Network& inet_, 
+    uint16_t port, 
+    const std::string& name, 
+    const std::string& netw, 
+    motd_func_t mfunc)
+    : inet(inet_), server_name(name), server_network(netw), motd_func(mfunc)
 {
   auto& tcp = inet.tcp();
   auto& server_port = tcp.bind(port);
@@ -16,6 +20,9 @@ IrcServer::IrcServer(
     inc_counter(STAT_TOTAL_CONNS);
     inc_counter(STAT_TOTAL_USERS);
     inc_counter(STAT_LOCAL_USERS);
+    // possibly set new max users connected
+    if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
+      set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
     
     printf("*** Received connection from %s\n",
     csock->remote().to_string().c_str());
@@ -92,6 +99,13 @@ IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
   return NO_SUCH_CHANNEL;
 }
 
+IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
+{
+  auto ch = free_channel();
+  get_channel(ch).reset(name);
+  return ch;
+}
+
 void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
 {
   user_bcast(idx, ":" + from + " " + std::to_string(tk) + " " + msg);
@@ -131,16 +145,5 @@ void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
   uset.erase(idx);
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send(message);
-}
-
-void IrcServer::chan_bcast(chindex_t ch, const std::string& from, uint16_t tk, const std::string& msg)
-{
-  chan_bcast(ch, ":" + from + " " + std::to_string(tk) + " " + msg);
-}
-void IrcServer::chan_bcast(chindex_t ch, const std::string& message)
-{
-  // broadcast to all users in channel
-  for (auto cl : get_channel(ch).clients())
       get_client(cl).send(message);
 }

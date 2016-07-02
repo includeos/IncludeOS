@@ -77,7 +77,57 @@ void Client::handle(
   }
   else if (cmd == TK_JOIN)
   {
-    
+    if (msg.size() > 1)
+    {
+      if (server.is_channel(msg[1]))
+      {
+        auto ch = server.channel_by_name(msg[1]);
+        if (ch != NO_SUCH_CHANNEL)
+        {
+          auto& channel = server.get_channel(ch);
+          if (msg.size() < 3)
+            channel.join(*this);
+          else
+            channel.join(*this, msg[2]);
+        }
+        else
+        {
+          auto ch = server.create_channel(msg[1]);
+          auto key = (msg.size() < 3) ? "" : msg[2];
+          server.get_channel(ch).join(*this, key);
+        }
+      }
+      else {
+        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+      }
+    }
+    else
+      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+  }
+  else if (cmd == TK_PART)
+  {
+    if (msg.size() > 1)
+    {
+      if (server.is_channel(msg[1]))
+      {
+        auto ch = server.channel_by_name(msg[1]);
+        if (ch != NO_SUCH_CHANNEL)
+        {
+          auto& channel = server.get_channel(ch);
+          if (msg.size() < 3)
+            channel.part(*this);
+          else
+            channel.part(*this, msg[2]);
+        }
+        else
+          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+      }
+      else {
+        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+      }
+    }
+    else
+      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
   }
   else if (cmd == TK_QUIT)
   {

@@ -45,7 +45,7 @@ void Service::start() {
   motd.push_back("IncludeOS IRC server");
   motd.push_back("4Head");
   
-  new IrcServer(*inet.get(), 6667, "irc.includeos.org",
+  new IrcServer(*inet.get(), 6667, "irc.includeos.org", "IncludeNet",
   [] () -> const std::vector<std::string>& {
     return motd;
   });

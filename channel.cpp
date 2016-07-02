@@ -13,6 +13,21 @@ Channel::Channel(index_t idx, IrcServer& sref)
   cmodes = default_channel_modes();
 }
 
+void Channel::reset(const std::string& new_name)
+{
+  cmodes = default_channel_modes();
+  ctimestamp = 0; // FIXME
+  cname = new_name;
+  ctopic.clear();
+  ctopic_by.clear();
+  ctopic_ts = 0;
+  ckey.clear();
+  climit = 0;
+  clients_.clear();
+  chanops.clear();
+  voices.clear();
+}
+
 bool Channel::add(index_t id)
 {
   for (index_t i = 0; i < this->size(); i++) {
@@ -22,21 +37,18 @@ bool Channel::add(index_t id)
   clients_.push_back(id);
   return true;
 }
-bool Channel::remove(index_t id)
+Channel::index_t Channel::find(index_t id)
 {
   for (index_t i = 0; i < this->size(); i++) {
     if (unlikely(clients_[i] == id)) {
-      clients_.erase(clients_.begin() + i);
-      return true;
+      return i;
     }
   }
-  return false;
+  return NO_SUCH_CLIENT;
 }
 
-bool Channel::join(index_t cid, const std::string& key)
+bool Channel::join(Client& client, const std::string& key)
 {
-  auto& client = server.get_client(cid);
-  
   // verify key, if +k chanmode is set
   if (!ckey.empty())
   if (key != ckey)
@@ -52,30 +64,54 @@ bool Channel::join(index_t cid, const std::string& key)
     return false;
   }
   // verify that we are not banned
+  auto cid = client.get_id();
   if (is_banned(cid) && !is_excepted(cid))
   {
     client.send(ERR_BANNEDFROMCHAN, name() + " :Cannot join channel (+b)");
     return false;
   }
   /// JOINED ///
-  // add user to channel
   bool new_channel = clients_.empty();
+  // register new channels on server (for hash map)
+  if (new_channel) server.hash_channel(name(), get_id());
+  // add user to channel
   if (!add(cid)) {
     // already in channel
     return false;
   }
   // broadcast to channel that the user joined
-  server.chan_bcast(get_id(), ":" + client.nickuserhost() + " JOIN " + name());
+  bcast(":" + client.nickuserhost() + " JOIN " + name());
   // send current channel modes
   if (new_channel)
     // server creates new channel by setting modes
     client.send("MODE " + name() + " +" + this->cmodes);
   else
     send_mode(client);
-  // send current topic
-  send_topic(client);
+  // send current topic (but only if the channel existed before)
+  if (!new_channel)
+      send_topic(client);
   // send userlist to client
   send_names(client);
+  return true;
+}
+
+bool Channel::part(Client& client, const std::string& msg)
+{
+  auto cid = client.get_id();
+  index_t found = find(cid);
+  if (found == NO_SUCH_CLIENT)
+  {
+    client.send(ERR_NOTONCHANNEL, name() + " :You're not on that channel");
+    return false;
+  }
+  // broadcast that client left the channel
+  bcast(":" + client.nickuserhost() + " PART " + name() + " :" + msg);
+  // remove client from channels lists
+  chanops.erase(cid);
+  voices.erase(cid);
+  clients_.erase(clients_.begin() + found);
+  // validate the channel, since it could be empty
+  revalidate_channel();
   return true;
 }
 
@@ -118,4 +154,24 @@ void Channel::send_names(Client& client)
       client.send(RPL_NAMREPLY, " = " + name() + " :" + listed_name(clients_[i]));
   
   client.send(RPL_ENDOFNAMES, name() + " :End of NAMES list");
+}
+
+void Channel::revalidate_channel()
+{
+  if (alive() == false)
+  {
+    printf("channel died: %s\n", name().c_str());
+    server.erase_channel(name());
+  }
+}
+
+void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg)
+{
+  bcast(":" + from + " " + std::to_string(tk) + " " + msg);
+}
+void Channel::bcast(const std::string& message)
+{
+  // broadcast to all users in channel
+  for (auto cl : clients())
+      server.get_client(cl).send_raw(message);
 }

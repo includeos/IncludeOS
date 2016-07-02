@@ -109,11 +109,13 @@ void Client::send_lusers()
   send(RPL_LUSEROP,       std::to_string(server.get_counter(STAT_OPERATORS)) + " :operator(s) online");
   send(RPL_LUSERCHANNELS, std::to_string(server.get_counter(STAT_CHANNELS)) + " :channels formed");
   send(RPL_LUSERME, ":I have " + std::to_string(server.get_counter(STAT_LOCAL_USERS)) + " clients and 1 servers");
-  //250 gonzo_ :Highest connection count: 4062 (4061 clients) (243268 connections received)
+  
+  std::string mu = std::to_string(server.get_counter(STAT_MAX_USERS));
+  std::string tc = std::to_string(server.get_counter(STAT_TOTAL_CONNS));
+  send(250, "Highest connection count: " + mu + " (" + mu + " clients) (" + tc + " connections received)");
 }
 
 void Client::send_modes()
 {
-  // FIXME
   send_raw(":" + nickuserhost() + " MODE " + nick() + " :+" + this->mode_string());
 }

@@ -1,20 +1,18 @@
 #pragma once
-#include <cstdint>
 #include <vector>
 #include <functional>
 
+#include "common.hpp"
 #include "client.hpp"
 #include "channel.hpp"
-
-#define NO_SUCH_CLIENT    UINT16_MAX
-#define NO_SUCH_CHANNEL   UINT16_MAX
 
 #define STAT_TOTAL_CONNS           0
 #define STAT_TOTAL_USERS           1
 #define STAT_LOCAL_USERS           2
 #define STAT_REGGED_USERS          3
 #define STAT_OPERATORS             4
-#define STAT_CHANNELS              6
+#define STAT_CHANNELS              5
+#define STAT_MAX_USERS             6
 
 class IrcServer {
 public:
@@ -24,7 +22,7 @@ public:
   typedef Channel::index_t chindex_t;
   typedef Client::index_t  uindex_t;
   
-  IrcServer(Network& inet, uint16_t port, const std::string& name, motd_func_t);
+  IrcServer(Network& inet, uint16_t port, const std::string& name, const std::string& netw, motd_func_t);
   
   const std::string& name() const {
     return server_name;
@@ -34,7 +32,7 @@ public:
   }
   std::string version() const
   {
-    return "v0.1";
+    return IRC_SERVER_VERSION;
   }
   const std::vector<std::string>& get_motd() const
   {
@@ -60,6 +58,15 @@ public:
     h_users.erase(nick);
   }
   
+  void hash_channel(const std::string& name, size_t id)
+  {
+    h_channels[name] = id;
+  }
+  void erase_channel(const std::string& name)
+  {
+    h_channels.erase(name);
+  }
+  
   static bool is_channel(const std::string& param) {
     if (param.empty()) return false;
     return Channel::is_channel_identifier(param[0]);
@@ -71,9 +78,9 @@ public:
   // send message to all users visible to user, except user
   void user_bcast_butone(uindex_t user, const std::string&);
   void user_bcast_butone(uindex_t user, const std::string& from, uint16_t tk, const std::string&);
-  // send message to all users in a channel
-  void chan_bcast(chindex_t idx, const std::string&);
-  void chan_bcast(chindex_t idx, const std::string& from, uint16_t tk, const std::string&);
+  
+  // create channel on server
+  chindex_t create_channel(const std::string& name);
   
   // stats / counters
   void inc_counter(uint8_t counter) {
@@ -82,8 +89,11 @@ public:
   void dec_counter(uint8_t counter) {
     statcounters[counter]--;
   }
-  size_t get_counter(uint8_t counter) {
-    return statcounters[counter];
+  size_t get_counter(uint8_t c) {
+    return statcounters[c];
+  }
+  void set_counter(uint8_t c, size_t val) {
+    statcounters[c] = val;
   }
   
   // server configuration stuff
