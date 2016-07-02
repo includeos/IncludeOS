@@ -178,3 +178,10 @@ void Channel::bcast(const std::string& message)
   for (auto cl : clients())
       server.get_client(cl).send_raw(message);
 }
+void Channel::bcast_butone(index_t src, const std::string& message)
+{
+  // broadcast to all users in channel except source
+  for (auto cl : clients())
+    if (likely(cl != src))
+    server.get_client(cl).send_raw(message);
+}

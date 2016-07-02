@@ -146,6 +146,43 @@ void Client::handle(
     send_quit(reason);
     return;
   }
+  else if (cmd == TK_PRIVMSG)
+  {
+    if (msg.size() > 2)
+    {
+      if (server.is_channel(msg[1]))
+      {
+        auto ch = server.channel_by_name(msg[1]);
+        if (ch != NO_SUCH_CHANNEL)
+        {
+          auto& channel = server.get_channel(ch);
+          // check if user can broadcast to channel
+          if (channel.find(get_id()) != NO_SUCH_CLIENT)
+          {
+            // broadcast message to channel
+            channel.bcast_butone(get_id(), ":" + nickuserhost() + " PRIVMSG " + channel.name() + " :" + msg[2]);
+          }
+        }
+        else
+          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+      }
+      else // assume client
+      {
+        auto cl = server.user_by_name(msg[1]);
+        if (cl != NO_SUCH_CLIENT)
+        {
+          // send private message to user
+          auto& client = server.get_client(cl);
+          client.send_raw(":" + nickuserhost() + " PRIVMSG " + client.nick() + " :" + msg[2]);
+        }
+        else {
+          send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+        }
+      }
+    }
+    else
+      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+  }
   else
   {
     send_nonick(ERR_NOSUCHCMD, cmd + " :Unknown command");
