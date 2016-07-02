@@ -11,6 +11,11 @@ IrcServer::IrcServer(
     motd_func_t mfunc)
     : inet(inet_), server_name(name), server_network(netw), motd_func(mfunc)
 {
+  // initialize lookup tables
+  extern void transform_init();
+  transform_init();
+  
+  // server listener (although IRC servers usually have many ports open)
   auto& tcp = inet.tcp();
   auto& server_port = tcp.bind(port);
   server_port.onConnect(
