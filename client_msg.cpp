@@ -141,7 +141,10 @@ void Client::handle(
   }
   else if (cmd == TK_QUIT)
   {
-    
+    std::string reason;
+    if (msg.size() > 1) reason = msg[1];
+    send_quit(reason);
+    return;
   }
   else
   {

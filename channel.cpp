@@ -82,14 +82,17 @@ bool Channel::join(Client& client, const std::string& key)
   // broadcast to channel that the user joined
   bcast(":" + client.nickuserhost() + " JOIN " + name());
   // send current channel modes
-  if (new_channel)
+  if (new_channel) {
     // server creates new channel by setting modes
     client.send("MODE " + name() + " +" + this->cmodes);
-  else
+    // client is operator when he creates it
+    chanops.insert(cid);
+  }
+  else {
     send_mode(client);
-  // send current topic (but only if the channel existed before)
-  if (!new_channel)
-      send_topic(client);
+    // send current topic (but only if the channel existed before)
+    send_topic(client);
+  }
   // send userlist to client
   send_names(client);
   return true;
