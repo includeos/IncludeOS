@@ -3,13 +3,13 @@
 // user modes
 mode_table_t usermodes("airoOws");
 // channel modes
-mode_table_t chanmodes("ntsplkbIeu");
+mode_table_t chanmodes("eIbklimnpstu");
 
 uint16_t default_user_modes()
 {
   return 2; // +i
 }
-uint16_t default_channel_modes()
+std::string default_channel_modes()
 {
-  return 1 | 2; // +nt
+  return "nt";
 }

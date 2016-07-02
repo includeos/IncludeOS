@@ -9,7 +9,7 @@ void Client::reset(Connection conn)
 {
   this->alive_ = true;
   this->regis = 0;
-  this->umodes = default_user_modes();
+  this->umodes_ = default_user_modes();
   this->conn = conn;
   this->nick_ = "";
   this->user_ = "";
@@ -91,26 +91,32 @@ void Client::read(const uint8_t* buf, size_t len)
   }
 }
 
-void Client::send_nonick(uint16_t numeric, std::string text)
+void Client::send_from(const std::string& from, uint16_t numeric, const std::string& text)
 {
   std::string num;
   num.reserve(128);
   num = std::to_string(numeric);
   num = std::string(3 - num.size(), '0') + num;
   
-  num = ":" + server.name() + " " + num + " " + text + "\r\n";
+  num = ":" + from + " " + num + " " + text + "\r\n";
   //printf("-> %s", num.c_str());
   conn->write(num.c_str(), num.size());
 }
-void Client::send(uint16_t numeric, std::string text)
+void Client::send_nonick(uint16_t numeric, const std::string& text)
 {
-  send_nonick(numeric, nick() + " " + text);
+  send_from(server.name(), numeric, text);
 }
 void Client::send(std::string text)
 {
-  std::string data = ":" + server.name() + " " + text + "\r\n";
-  //printf("-> %s", data.c_str());
-  conn->write(data.c_str(), data.size());
+  text = ":" + server.name() + " " + text + "\r\n";
+  //printf("-> %s", text.c_str());
+  conn->write(text.c_str(), text.size());
+}
+void Client::send_raw(std::string text)
+{
+  text += "\r\n";
+  //printf("-> %s", text.c_str());
+  conn->write(text.c_str(), text.size());
 }
 
 // validate name, returns false if invalid characters
@@ -151,4 +157,17 @@ bool Client::change_nick(const std::string& new_nick)
   // nickname is valid and free, take it
   this->nick_ = new_nick;
   return true;
+}
+
+std::string Client::mode_string() const
+{
+  std::string res;
+  res.reserve(4);
+  
+  for (int i = 0; i < 16; i++)
+  {
+    if (umodes_ & (1 << i))
+        res += usermodes.bit_to_char(i);
+  }
+  return res;
 }

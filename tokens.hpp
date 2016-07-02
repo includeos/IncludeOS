@@ -23,13 +23,29 @@ inline bool is_error(size_t numeric) {
 #define ERR_PASSWDMISMATCH   464
 #define ERR_YOUREBANNEDCREEP 465
 #define ERR_YOUWILLBEBANNED  466
+#define ERR_KEYSET           467
 
+#define ERR_CHANNELISFULL    471
+#define ERR_UNKNOWNMODE      472
+#define ERR_INVITEONLYCHAN   473
+#define ERR_BANNEDFROMCHAN   474
+#define ERR_BADCHANNELKEY    475
+#define ERR_BADCHANMASK      476
+#define ERR_NOCHANMODES      477
+#define ERR_BANLISTFULL      478
+
+#define ERR_NOPRIVILEGES      481
+#define ERR_CHANOPRIVSNEEDED  482
+#define ERR_UNIQOPPRIVSNEEDED 485
+
+#define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502
 
 #define RPL_WELCOME    001
 #define RPL_YOURHOST   002
 #define RPL_CREATED    003
 #define RPL_MYINFO     004
+#define RPL_CAPABS     005
 
 #define RPL_USERHOST   302
 
@@ -55,10 +71,15 @@ inline bool is_error(size_t numeric) {
 
 #define RPL_UNIQOPIS         325
 #define RPL_CHANNELMODEIS    324
+#define RPL_CHANNELCREATED   329
 #define RPL_NOTOPIC          331
 #define RPL_TOPIC            332
+#define RPL_TOPICBY          333
 
 #define RPL_VERSION     351
+
+#define RPL_NAMREPLY    353
+#define RPL_ENDOFNAMES  366
 
 #define RPL_INFO        371
 #define RPL_ENDOFINFO   374

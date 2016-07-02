@@ -50,11 +50,28 @@ void Client::handle(
   else if (cmd == TK_MODE)
   {
     if (msg.size() > 1)
-      // non-ircops can only usermode themselves
-      if (msg[1] == this->nick())
-        send(RPL_UMODEIS, "+i");
-      else
-        send(ERR_USERSDONTMATCH, ":Cannot change mode for other users");
+    {
+      if (server.is_channel(msg[1]))
+      {
+        auto ch = server.channel_by_name(msg[1]);
+        if (ch != NO_SUCH_CHANNEL)
+        {
+          auto& channel = server.get_channel(ch);
+          channel.send_mode(*this);
+        }
+        else
+        {
+          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+        }
+      }
+      else {
+        // non-ircops can only usermode themselves
+        if (msg[1] == this->nick())
+          send(RPL_UMODEIS, "+i");
+        else
+          send(ERR_USERSDONTMATCH, ":Cannot change mode for other users");
+      }
+    }
     else
       send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
   }

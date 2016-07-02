@@ -77,11 +77,13 @@ void Client::welcome(uint8_t newreg)
     printf("* Registered: %s\n", nickuserhost().c_str());
     send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
     send(RPL_YOURHOST, ":Your host is " + server.name() + ", running v1.0");
-    send(RPL_CREATED, "This server was created <date>");
-    send(RPL_MYINFO, server.name() + " " + server.version() + " " + usermodes.get() + " " + chanmodes.get());
-    
+    send(RPL_CREATED, ":This server was created <date>");
+    send(RPL_MYINFO, server.name() + " " + server.version() + " " + usermodes.get());
+    send(RPL_CAPABS, "CHANTYPES=&# EXCEPTS PREFIX=(ov)@+ CHANMODES=eIb,k,l,imnpstu :are supported by this server");
+    send(RPL_CAPABS, "NETWORK=" + server.network() + " NICKLEN=" + std::to_string(server.nick_maxlen()) + " CHANNELLEN=" + std::to_string(server.chan_maxlen()) + " :are supported by this server");
     send_motd();
     send_lusers();
+    send_modes();
   }
   else if (oldreg == 0)
   {
@@ -107,4 +109,11 @@ void Client::send_lusers()
   send(RPL_LUSEROP,       std::to_string(server.get_counter(STAT_OPERATORS)) + " :operator(s) online");
   send(RPL_LUSERCHANNELS, std::to_string(server.get_counter(STAT_CHANNELS)) + " :channels formed");
   send(RPL_LUSERME, ":I have " + std::to_string(server.get_counter(STAT_LOCAL_USERS)) + " clients and 1 servers");
+  //250 gonzo_ :Highest connection count: 4062 (4061 clients) (243268 connections received)
+}
+
+void Client::send_modes()
+{
+  // FIXME
+  send_raw(":" + nickuserhost() + " MODE " + nick() + " :+" + this->mode_string());
 }

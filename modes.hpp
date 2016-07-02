@@ -40,5 +40,5 @@ extern mode_table_t chanmodes;
 #define CMODE_NOEXTERN  'n'
 #define CMODE_TOPIC     't'
 
-extern uint16_t default_user_modes();
-extern uint16_t default_channel_modes();
+extern uint16_t    default_user_modes();
+extern std::string default_channel_modes();

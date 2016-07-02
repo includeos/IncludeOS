@@ -29,6 +29,9 @@ public:
   const std::string& name() const {
     return server_name;
   }
+  const std::string& network() const {
+    return server_network;
+  }
   std::string version() const
   {
     return "v0.1";
@@ -57,7 +60,7 @@ public:
     h_users.erase(nick);
   }
   
-  bool is_channel(const std::string& param) {
+  static bool is_channel(const std::string& param) {
     if (param.empty()) return false;
     return Channel::is_channel_identifier(param[0]);
   }
@@ -99,14 +102,18 @@ public:
   uint8_t chan_max() const {
     return 8;
   }
+  uint8_t client_maxchans() const {
+    return 10;
+  }
   
 private:
   size_t free_client();
   size_t free_channel();
   
-  Network&    network;
+  Network&    inet;
   Connection  server;
   std::string server_name;
+  std::string server_network;
   std::vector<Client> clients;
   std::vector<size_t> free_clients;
   std::vector<Channel> channels;

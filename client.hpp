@@ -41,16 +41,26 @@ public:
   }
   
   bool is_operator() const {
-    return this->umodes & usermodes.char_to_bit(UMODE_IRCOP);
+    return this->umodes_ & usermodes.char_to_bit(UMODE_IRCOP);
   }
   void add_umodes(uint16_t mask) {
-    this->umodes |= mask;
+    this->umodes_ |= mask;
+  }
+  void rem_umodes(uint16_t mask) {
+    this->umodes_ &= ~mask;
   }
   
   void read(const uint8_t* buffer, size_t len);
-  void send_nonick(uint16_t numeric, std::string text);
-  void send(uint16_t numeric, std::string text);
+  void send_from(const std::string& from, uint16_t numeric, const std::string& text);
+  void send_nonick(uint16_t numeric, const std::string& text);
+  void send(uint16_t numeric, std::string text)
+  {
+    send_nonick(numeric, nick() + " " + text);
+  }
+  // send as server to client
   void send(std::string text);
+  // send the string as-is
+  void send_raw(std::string text);
   
   const std::string& user() const
   {
@@ -60,6 +70,8 @@ public:
   {
     return host_;
   }
+  
+  std::string mode_string() const;
   
   std::string userhost() const
   {
@@ -83,11 +95,12 @@ private:
   void auth_notice();
   void send_motd();
   void send_lusers();
+  void send_modes();
   bool change_nick(const std::string& new_nick);
   
   bool        alive_;
   uint8_t     regis;
-  uint16_t    umodes;
+  uint16_t    umodes_;
   index_t     self;
   IrcServer&  server;
   Connection  conn;

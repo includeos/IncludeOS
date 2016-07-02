@@ -4,10 +4,10 @@
 #include <set>
 
 IrcServer::IrcServer(
-    Network& inet, uint16_t port, const std::string& name, motd_func_t mfunc)
-    : network(inet), server_name(name), motd_func(mfunc)
+    Network& inet_, uint16_t port, const std::string& name, motd_func_t mfunc)
+    : inet(inet_), server_name(name), motd_func(mfunc)
 {
-  auto& tcp = network.tcp();
+  auto& tcp = inet.tcp();
   auto& server_port = tcp.bind(port);
   server_port.onConnect(
   [this] (auto csock)
