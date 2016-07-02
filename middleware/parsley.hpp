@@ -31,10 +31,16 @@ namespace middleware {
 class Parsley : public server::Middleware {
 public:
 
+  /**
+   *
+   */
   virtual void process(server::Request_ptr req, server::Response_ptr, server::Next next) override;
 
 private:
 
+  /**
+   *
+   */
   bool has_json(server::Request_ptr req) const;
 };
 
