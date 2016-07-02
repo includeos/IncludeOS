@@ -25,6 +25,13 @@
 #include <hw/cmos.hpp>
 
 using namespace std;
+using namespace acorn;
+
+using UserBucket     = bucket::Bucket<User>;
+using SquirrelBucket = bucket::Bucket<Squirrel>;
+
+std::shared_ptr<UserBucket>     users;
+std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<server::Server> server_;
 
@@ -33,6 +40,7 @@ std::unique_ptr<server::Server> server_;
 //#include <filesystem>
 fs::Disk_ptr disk;
 
+Statistics stats;
 cmos::Time STARTED_AT;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
@@ -62,14 +70,6 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
   //printf(" %*s \n", indent, "o");
 
 }
-
-Statistics stats;
-
-using namespace acorn;
-using SquirrelBucket = bucket::Bucket<Squirrel>;
-using UserBucket = bucket::Bucket<User>;
-std::shared_ptr<SquirrelBucket> squirrels;
-std::shared_ptr<UserBucket> users;
 
 void Service::start() {
 
