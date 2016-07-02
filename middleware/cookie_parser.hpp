@@ -66,13 +66,12 @@ public:
   bool clear_cookie(std::string& key); // remove Cookie from client
 
 private:
-  bool has_cookie(server::Request_ptr req) const {
-    auto c_type = http::header_fields::Request::Cookie;
-
-    return req->has_header(c_type);
-  }
-
+  bool has_cookie(server::Request_ptr req) const noexcept;
 };
+
+inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
+  return req->has_header(http::header_fields::Request::Cookie);
+}
 
 } //< namespace middleware
 
