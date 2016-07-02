@@ -16,8 +16,6 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
-
 #include "ircd.hpp"
 
 void Service::start() {

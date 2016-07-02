@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <functional>
+#include <net/inet4>
 
 #include "common.hpp"
 #include "client.hpp"
