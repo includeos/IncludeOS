@@ -26,25 +26,42 @@ namespace middleware {
 /**
  * @brief A way to parse cookies: Reading cookies that the browser is sending to the server
  * @details
- *
  */
 class CookieParser : public server::Middleware {
 public:
+  /**
+   *
+   */
   virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
 
   // Just name this method cookie?
   // Return bool or void?
+
+  /**
+   *
+   */
   bool create_cookie(std::string& key, std::string& value);  // new Cookie(...) and add_header: Set-Cookie ?
 
   // Just name this method cookie?
   // Return bool or void?
+
+  /**
+   *
+   */
   bool create_cookie(std::string& key, std::string& value, std::string& options);  // new Cookie(...) and add_header: Set-Cookie ?
 // options: map eller enum
 
   // Return bool or void?
+
+  /**
+   *
+   */
   bool clear_cookie(std::string& key); // remove Cookie from client
 
 private:
+  /**
+   *
+   */
   bool has_cookie(server::Request_ptr req) const noexcept;
 };
 
