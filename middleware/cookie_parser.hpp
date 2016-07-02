@@ -32,26 +32,8 @@ namespace middleware {
 // hpp-declarations first and implement methods further down? Or in own cpp-file?
 
 class CookieParser : public server::Middleware {
-
 public:
-  virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override {
-
-    using namespace cookie;
-
-    if(!has_cookie(req)) {
-      //No Cookie in header field: We want to create a cookie then??:
-      //
-      //create cookie:
-
-      (*next)();
-      return;
-    }
-
-    // Found Cookie in header
-
-
-
-  }
+  virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
 
   // Just name this method cookie?
   // Return bool or void?
@@ -68,6 +50,19 @@ public:
 private:
   bool has_cookie(server::Request_ptr req) const noexcept;
 };
+
+inline void CookieParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
+    if(not has_cookie(req)) {
+      // No Cookie in header field: We want to create a cookie then??:
+      // create cookie:
+      // ...
+
+      return (*next)();
+    } else {
+      // Found Cookie in header
+      // Do something
+    }
+}
 
 inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
   return req->has_header(http::header_fields::Request::Cookie);
