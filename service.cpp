@@ -34,6 +34,8 @@
 #include "middleware/waitress.cpp"
 #include "middleware/cookie_parser.hpp"
 
+#include "stats/stats.hpp"
+
 #include "server/server.hpp"
 
 using namespace std;
@@ -75,44 +77,7 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1) {
 
 }
 
-struct Statistics {
-  uint64_t DATA_RECV;
-  uint64_t DATA_SENT;
-
-  uint64_t REQ_RECV;
-  uint64_t RES_SENT;
-
-  uint64_t NO_CONN;
-
-  template<typename Writer>
-  void serialize(Writer& writer) const {
-    writer.StartObject();
-
-    writer.Key("DATA_RECV");
-    writer.Uint64(DATA_RECV);
-
-    writer.Key("DATA_SENT");
-    writer.Uint64(DATA_SENT);
-
-    writer.Key("REQ_RECV");
-    writer.Uint64(REQ_RECV);
-
-    writer.Key("RES_SENT");
-    writer.Uint64(RES_SENT);
-
-    writer.Key("NO_CONN");
-    writer.Uint64(NO_CONN);
-
-    writer.Key("ACTIVE_CONN");
-    writer.Uint(server_->active_clients());
-
-    writer.Key("MEM_USAGE");
-    writer.Uint(OS::memory_usage());
-
-    writer.EndObject();
-  }
-
-} stats;
+Statistics stats;
 
 template <typename PTR>
 class BufferWrapper {
@@ -154,17 +119,17 @@ void Service::start() {
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
       server::Connection::on_connection([](){
-        stats.NO_CONN++;
+        stats.bump_connection_count();
       });
 
       server::Response::on_sent([](size_t n) {
-        stats.DATA_SENT += n;
-        stats.RES_SENT++;
+        stats.bump_data_sent(n)
+             .bump_response_sent();
       });
 
       server::Request::on_recv([](size_t n) {
-        stats.DATA_RECV += n;
-        stats.REQ_RECV++;
+        stats.bump_data_received(n);
+             .bump_request_received();
       });
 
       // setup "database" squirrels
@@ -279,7 +244,9 @@ void Service::start() {
         using namespace rapidjson;
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
-        stats.serialize(writer);
+        stats.set_active_clients(server_->active_clients())
+             .set_memory_usage(OS::memory_usage())
+             .serialize(writer);
         res->send_json(sb.GetString());
       });
 
