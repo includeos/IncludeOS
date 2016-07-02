@@ -9,7 +9,7 @@ void Client::reset(Connection conn)
 {
   this->alive_ = true;
   this->regis = 0;
-  this->umodes = 0;
+  this->umodes = default_user_modes();
   this->conn = conn;
   this->nick_ = "";
   this->user_ = "";

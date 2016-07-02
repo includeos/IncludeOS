@@ -8,10 +8,13 @@
 
 #define NO_SUCH_CLIENT    UINT16_MAX
 #define NO_SUCH_CHANNEL   UINT16_MAX
-#define STAT_TOTAL_USERS           0
-#define STAT_LOCAL_USERS           1
-#define STAT_REGGED_USERS          2
-#define STAT_CHANNELS              4
+
+#define STAT_TOTAL_CONNS           0
+#define STAT_TOTAL_USERS           1
+#define STAT_LOCAL_USERS           2
+#define STAT_REGGED_USERS          3
+#define STAT_OPERATORS             4
+#define STAT_CHANNELS              6
 
 class IrcServer {
 public:
@@ -66,8 +69,11 @@ public:
   void chan_bcast(chindex_t idx, const std::string& from, uint16_t tk, const std::string&);
   
   // stats / counters
-  void stat_inc(uint8_t counter) {
+  void inc_counter(uint8_t counter) {
     statcounters[counter]++;
+  }
+  void dec_counter(uint8_t counter) {
+    statcounters[counter]--;
   }
   size_t get_counter(uint8_t counter) {
     return statcounters[counter];

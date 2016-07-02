@@ -13,7 +13,9 @@ IrcServer::IrcServer(
   [this] (auto csock)
   {
     // one more client in total
-    s_clients_tot ++;
+    inc_counter(STAT_TOTAL_CONNS);
+    inc_counter(STAT_TOTAL_USERS);
+    inc_counter(STAT_LOCAL_USERS);
     
     printf("*** Received connection from %s\n",
     csock->remote().to_string().c_str());
@@ -35,7 +37,9 @@ IrcServer::IrcServer(
     [this, &client] (auto, std::string reason)
     {
       // one less client in total
-      s_clients_tot --;
+      dec_counter(STAT_TOTAL_USERS);
+      dec_counter(STAT_LOCAL_USERS);
+      
       /// inform others about disconnect
       user_bcast_butone(client.get_id(), 
           ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);

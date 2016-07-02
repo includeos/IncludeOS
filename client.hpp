@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <list>
-#include "umodes.hpp"
+#include "modes.hpp"
 
 class IrcServer;
 
@@ -26,6 +26,10 @@ public:
   {
     return alive() && regis == 3;
   }
+  bool is_local() const
+  {
+    return conn != nullptr;
+  }
   void disable()
   {
     alive_ = false; regis = 0;
@@ -40,9 +44,9 @@ public:
   }
   
   bool is_operator() const {
-    return this->umodes & UMODE_IRCOP_MASK;
+    return this->umodes & usermodes.char_to_bit(UMODE_IRCOP);
   }
-  void set_umodes(uint16_t mask) {
+  void add_umodes(uint16_t mask) {
     this->umodes |= mask;
   }
   
@@ -69,7 +73,7 @@ public:
     return nick_ + "!" + userhost();
   }
   
-  ChannelList& chans() {
+  ChannelList& channels() {
     return channels_;
   }
   

@@ -9,7 +9,7 @@
 Channel::Channel(index_t idx, IrcServer& sref)
   : self(idx), server(sref)
 {
-  
+  cmodes = default_channel_modes();
 }
 
 bool Channel::add(index_t id) {
