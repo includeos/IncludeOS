@@ -30,10 +30,7 @@ public:
   {
     return conn != nullptr;
   }
-  void disable()
-  {
-    alive_ = false; regis = 0;
-  }
+  void disable();
   void reset(Connection conn);
   
   index_t get_id() const {

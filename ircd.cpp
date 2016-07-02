@@ -34,21 +34,24 @@ IrcServer::IrcServer(
     });
 
     csock->onDisconnect(
-    [this, &client] (auto, std::string reason)
+    [this, clindex] (auto, std::string reason)
     {
       // one less client in total
       dec_counter(STAT_TOTAL_USERS);
       dec_counter(STAT_LOCAL_USERS);
       
       /// inform others about disconnect
-      user_bcast_butone(client.get_id(), 
+      auto& client = clients[clindex];
+      user_bcast_butone(clindex, 
           ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);
+      // remove client from various lists
+      for (size_t idx : client.channels()) {
+        get_channel(idx).remove(clindex);
+      }
       // mark as disabled
       client.disable();
-      // remove client from various lists and
-      for (size_t idx : client.channels()) {
-        get_channel(idx).remove(client.get_id());
-      }
+      // give back the client id
+      free_clients.push_back(clindex);
     });
   });
 }

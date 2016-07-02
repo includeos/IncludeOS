@@ -17,6 +17,12 @@ void Client::reset(Connection conn)
   this->channels_.clear();
   this->buffer = "";
 }
+void Client::disable()
+{
+  alive_ = false; regis = 0;
+  server.erase_nickname(nick());
+}
+
 
 void Client::split_message(const std::string& msg)
 {

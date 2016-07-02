@@ -33,7 +33,7 @@ void Client::handle(
   }
   else if (cmd == TK_USER)
   {
-    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
+    send_nonick(ERR_NOSUCHCMD, cmd + " :Unknown command");
   }
   else if (cmd == TK_MOTD)
   {
@@ -68,6 +68,6 @@ void Client::handle(
   }
   else
   {
-    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
+    send_nonick(ERR_NOSUCHCMD, cmd + " :Unknown command");
   }
 }

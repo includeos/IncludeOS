@@ -52,6 +52,10 @@ public:
     if (!old.empty()) h_users.erase(old);
     h_users[nick] = id;
   }
+  void erase_nickname(const std::string& nick)
+  {
+    h_users.erase(nick);
+  }
   
   bool is_channel(const std::string& param) {
     if (param.empty()) return false;
