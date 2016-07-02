@@ -21,7 +21,7 @@
 #include "../cookie/cookie.hpp"
 #include "middleware.hpp"
 
-namespace server {
+namespace middleware {
 
 /**
  * @brief A way to parse cookies: Reading cookies that the browser is sending to the server
@@ -74,6 +74,6 @@ private:
 
 };
 
-} //< namespace server
+} //< namespace middleware
 
 #endif

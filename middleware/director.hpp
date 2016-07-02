@@ -22,7 +22,7 @@
 #include <fs/disk.hpp>
 #include <sstream>
 
-namespace server {
+namespace middleware {
 
 /**
  * @brief Responsible to set the scene of a directory.
@@ -180,6 +180,6 @@ const std::string Director::FONTAWESOME = "<link href=\"//maxcdn.bootstrapcdn.co
 const std::string Director::HTML_HEADER = "<html><head>" + BOOTSTRAP_CSS + FONTAWESOME + "</head><body>";
 const std::string Director::HTML_FOOTER = "</body></html>";
 
-} //< namespace server
+} //< namespace middleware
 
 #endif

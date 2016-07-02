@@ -312,17 +312,17 @@ void Service::start() {
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
       //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
-      server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt); // WIP
+      server::Middleware_ptr waitress = std::make_shared<middleware::Waitress>(disk, "/public", opt); // WIP
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory
-      server::Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
+      server::Middleware_ptr director = std::make_shared<middleware::Director>(disk, "/public/static");
       server_->use("/static", director);
 
-      server::Middleware_ptr parsley = std::make_shared<Parsley>();
+      server::Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
       server_->use(parsley);
 
-      server::Middleware_ptr cookie_parser = std::make_shared<CookieParser>();
+      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
