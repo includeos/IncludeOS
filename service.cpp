@@ -104,14 +104,15 @@ void Service::start() {
         return u.key;
       }, UserBucket::UNIQUE);*/
 
-      //auto first_user_key = users->spawn(1010U).key;
-      users->spawn(1010U);
-      users->spawn(1011U);
+      //auto first_user_key = users->spawn().key;
+      users->spawn();
+      users->spawn();
 
       // A test to see if constraint is working (user).
       bool e_thrown = false;
       try {
-        User dupe_id(1010U);
+        User dupe_id;
+        dupe_id.key = 1;
         users->capture(dupe_id);
       } catch(bucket::ConstraintUnique) {
         e_thrown = true;
@@ -119,7 +120,7 @@ void Service::start() {
       assert(e_thrown);
 
       // no-go if throw
-      //assert(users->look_for("key", 1010U).key == first_user_key);
+      //assert(users->look_for("key", 1).key == first_user_key);
 
       server::Router routes;
 
