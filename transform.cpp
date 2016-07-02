@@ -12,7 +12,7 @@ void transform_init() {
 
 void transform_to_upper(std::string& str)
 {
-  for (size_t i = 0; i < str.size(); i++) {
-    str[i] = ASCII_LUT[(unsigned) str[i]];
+  for (char& c : str) {
+    c = ASCII_LUT[(unsigned) c];
   }
 }

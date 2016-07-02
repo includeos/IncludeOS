@@ -24,6 +24,7 @@ inline bool is_error(size_t numeric) {
 #define ERR_YOUREBANNEDCREEP 465
 #define ERR_YOUWILLBEBANNED  466
 
+#define ERR_USERSDONTMATCH   502
 
 #define RPL_WELCOME    001
 #define RPL_YOURHOST   002
@@ -78,7 +79,13 @@ inline bool is_error(size_t numeric) {
 #define TK_NICK    "NICK"
 #define TK_USER    "USER"
 
-#define TK_PING    "PING"
-#define TK_JOIN    "JOIN"
-#define TK_PART    "PART"
-#define TK_PRIVMSG "PRIVMSG"
+#define TK_MOTD     "MOTD"
+#define TK_LUSERS   "LUSERS"
+#define TK_USERHOST "USERHOST"
+
+#define TK_PING     "PING"
+#define TK_MODE     "MODE"
+#define TK_JOIN     "JOIN"
+#define TK_PART     "PART"
+#define TK_PRIVMSG  "PRIVMSG"
+#define TK_QUIT     "QUIT"

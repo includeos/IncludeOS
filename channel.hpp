@@ -33,6 +33,11 @@ public:
   bool add(index_t);
   bool remove(index_t);
   
+  static bool is_channel_identifier(char c) {
+    static std::string LUT = "&#+!";
+    return LUT.find_first_of(c);
+  }
+  
 private:
   index_t     self;
   uint16_t    cmode;

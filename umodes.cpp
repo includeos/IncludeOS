@@ -1,3 +1,3 @@
 #include "umodes.hpp"
 
-const std::string umode_string = "o";
+const std::string umode_string = "wio";

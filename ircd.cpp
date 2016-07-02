@@ -1,16 +1,20 @@
 #include "ircd.hpp"
+#include "tokens.hpp"
 
 #include <set>
 
 IrcServer::IrcServer(
-    Network& inet, uint16_t port, const std::string& name)
-    : network(inet), server_name(name)
+    Network& inet, uint16_t port, const std::string& name, motd_func_t mfunc)
+    : network(inet), server_name(name), motd_func(mfunc)
 {
   auto& tcp = network.tcp();
   auto& server_port = tcp.bind(port);
   server_port.onConnect(
   [this] (auto csock)
   {
+    // one more client in total
+    s_clients_tot ++;
+    
     printf("*** Received connection from %s\n",
     csock->remote().to_string().c_str());
 
@@ -28,16 +32,19 @@ IrcServer::IrcServer(
     });
 
     csock->onDisconnect(
-    [this, &client] (auto, std::string)
+    [this, &client] (auto, std::string reason)
     {
+      // one less client in total
+      s_clients_tot --;
+      /// inform others about disconnect
+      user_bcast_butone(client.get_id(), 
+          ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);
       // mark as disabled
       client.disable();
       // remove client from various lists and
       for (size_t idx : client.channels()) {
         get_channel(idx).remove(client.get_id());
       }
-      /// inform others about disconnect
-      //client.bcast(TK_QUIT, "Disconnected");
     });
   });
 }
@@ -68,7 +75,7 @@ size_t IrcServer::free_channel() {
 IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const
 {
   for (auto& cl : clients) {
-    if (cl.alive() && cl.name() == name) return cl.get_id();
+    if (cl.alive() && cl.nick() == name) return cl.get_id();
   }
   return NO_SUCH_CLIENT;
 }
@@ -80,6 +87,10 @@ IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
   return NO_SUCH_CHANNEL;
 }
 
+void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
+{
+  user_bcast(idx, ":" + from + " " + std::to_string(tk) + " " + msg);
+}
 void IrcServer::user_bcast(uindex_t idx, const std::string& message)
 {
   std::set<uindex_t> uset;
@@ -95,6 +106,11 @@ void IrcServer::user_bcast(uindex_t idx, const std::string& message)
   // broadcast message
   for (auto cl : uset)
       get_client(cl).send(message);
+}
+
+void IrcServer::user_bcast_butone(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
+{
+  user_bcast_butone(idx, ":" + from + " " + std::to_string(tk) + " " + msg);
 }
 void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
 {
@@ -113,6 +129,10 @@ void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
       get_client(cl).send(message);
 }
 
+void IrcServer::chan_bcast(chindex_t ch, const std::string& from, uint16_t tk, const std::string& msg)
+{
+  chan_bcast(ch, ":" + from + " " + std::to_string(tk) + " " + msg);
+}
 void IrcServer::chan_bcast(chindex_t ch, const std::string& message)
 {
   // broadcast to all users in channel

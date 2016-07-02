@@ -24,7 +24,7 @@ public:
   }
   bool is_reg() const
   {
-    return regis == 3;
+    return alive() && regis == 3;
   }
   void disable()
   {
@@ -35,8 +35,8 @@ public:
   index_t get_id() const {
     return self;
   }
-  const std::string& name() const {
-    return nick;
+  const std::string& nick() const {
+    return nick_;
   }
   
   bool is_operator() const {
@@ -47,16 +47,26 @@ public:
   }
   
   void read(const uint8_t* buffer, size_t len);
+  void send_nonick(uint16_t numeric, std::string text);
   void send(uint16_t numeric, std::string text);
   void send(std::string text);
   
+  const std::string& user() const
+  {
+    return user_;
+  }
+  const std::string& host() const
+  {
+    return host_;
+  }
+  
   std::string userhost() const
   {
-    return user + "@" + host;
+    return user_ + "@" + host_;
   }
   std::string nickuserhost() const
   {
-    return nick + "!" + userhost();
+    return nick_ + "!" + userhost();
   }
   
   ChannelList& channels() {
@@ -70,6 +80,8 @@ private:
   
   void welcome(uint8_t);
   void auth_notice();
+  void send_motd();
+  void send_lusers();
   bool change_nick(const std::string& new_nick);
   
   bool        alive_;
@@ -79,9 +91,9 @@ private:
   IrcServer&  server;
   Connection  conn;
   
-  std::string nick;
-  std::string user;
-  std::string host;
+  std::string nick_;
+  std::string user_;
+  std::string host_;
   ChannelList channel_list;
   
   std::string buffer;

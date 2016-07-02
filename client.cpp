@@ -11,9 +11,9 @@ void Client::reset(Connection conn)
   this->regis = 0;
   this->umodes = 0;
   this->conn = conn;
-  this->nick = "";
-  this->user = "";
-  this->host = "";
+  this->nick_ = "";
+  this->user_ = "";
+  this->host_ = "";
   this->channel_list.clear();
   this->buffer = "";
 }
@@ -85,16 +85,20 @@ void Client::read(const uint8_t* buf, size_t len)
   }
 }
 
-void Client::send(uint16_t numeric, std::string text)
+void Client::send_nonick(uint16_t numeric, std::string text)
 {
   std::string num;
   num.reserve(128);
   num = std::to_string(numeric);
   num = std::string(3 - num.size(), '0') + num;
   
-  num = ":" + server.name() + " " + num + " " + this->nick + " " + text + "\r\n";
+  num = ":" + server.name() + " " + num + " " + text + "\r\n";
   //printf("-> %s", num.c_str());
   conn->write(num.c_str(), num.size());
+}
+void Client::send(uint16_t numeric, std::string text)
+{
+  send_nonick(numeric, nick() + " " + text);
 }
 void Client::send(std::string text)
 {
@@ -106,49 +110,37 @@ void Client::send(std::string text)
 // validate name, returns false if invalid characters
 static bool validate_name(const std::string& new_name)
 {
+  // empty nickname is invalid
+  if (new_name.empty()) return false;
+  // forbidden first characters
+  if (isdigit(new_name[0])) return false;
   // a-z A-Z 0-9 _ - \ [ ] { } ^ ` |
   static const std::string LUT = 
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_-\\[]{}^`|ÆØÅæøå";
-  static const std::string FLUT = 
-    "01234567890";
-  // empty nickname is invalid
-  assert(!new_name.empty());
-  // forbidden first characters
-  for (char c : FLUT)
-      if (new_name[0] == c) return false;
-  // forbidden first characters
-  for (size_t i = 0; i < new_name.size(); i++)
-  {
-    bool found = false;
-    for (char c : LUT)
-    if (new_name[i] == c) {
-      found = true;
-      break;
-    }
-    if (found == false) return false;
-  }
+  // forbidden characters
+  if (LUT.find_first_of(new_name) == std::string::npos) return false;
   return true;
 }
 bool Client::change_nick(const std::string& new_nick)
 {
   if (new_nick.size() < server.nick_minlen()) {
-    send(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too short");
+    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too short");
     return false;
   }
   if (new_nick.size() > server.nick_maxlen()) {
-    send(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too long");
+    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too long");
     return false;
   }
   if (!validate_name(new_nick)) {
-    send(ERR_ERRONEUSNICKNAME, new_nick + " :Erroneous nickname");
+    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Erroneous nickname");
     return false;
   }
   auto idx = server.user_by_name(new_nick);
   if (idx != NO_SUCH_CLIENT) {
-    send(ERR_NICKNAMEINUSE, new_nick + " :Nickname is already in use");
+    send_nonick(ERR_NICKNAMEINUSE, new_nick + " :Nickname is already in use");
     return false;
   }
   // nickname is valid and free, take it
-  this->nick = new_nick;
+  this->nick_ = new_nick;
   return true;
 }

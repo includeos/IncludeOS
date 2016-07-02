@@ -23,16 +23,14 @@
 void Service::start() {
   static std::unique_ptr< net::Inet4<VirtioNet> > inet;
 
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
-
+  inet = net::new_ipv4_stack(
+      {  10, 0,  0, 42 },  // IP
+      { 255,255,255, 0 },  // Netmask
+      {  10, 0,  0,  1 }); // Gateway
+  
   // TCP status over time
   using namespace std::chrono;
-  hw::PIT::instance().onRepeatedTimeout(30s, 
+  hw::PIT::instance().on_repeated_timeout(10s, 
   [] {
     printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
   });
@@ -42,7 +40,15 @@ void Service::start() {
   transform_init();
   
   // IRC default port
-  new IrcServer(*inet.get(), 6667, "irc.includeos.org");
+  static std::vector<std::string> motd;
+  motd.push_back("Welcome to the");
+  motd.push_back("IncludeOS IRC server");
+  motd.push_back("4Head");
+  
+  new IrcServer(*inet.get(), 6667, "irc.includeos.org",
+  [] {
+    return motd;
+  });
   
   printf("*** IRC SERVICE STARTED *** \n");
 }
