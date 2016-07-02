@@ -22,6 +22,7 @@
 #include <fs/disk.hpp>
 #include <sstream>
 
+namespace server {
 
 /**
  * @brief Responsible to set the scene of a directory.
@@ -178,5 +179,7 @@ const std::string Director::BOOTSTRAP_CSS = "<link rel=\"stylesheet\" href=\"//m
 const std::string Director::FONTAWESOME = "<link href=\"//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css\" rel=\"stylesheet\">";
 const std::string Director::HTML_HEADER = "<html><head>" + BOOTSTRAP_CSS + FONTAWESOME + "</head><body>";
 const std::string Director::HTML_FOOTER = "</body></html>";
+
+} //< namespace server
 
 #endif

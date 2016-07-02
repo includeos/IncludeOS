@@ -21,6 +21,7 @@
 #include "middleware.hpp" // inherit middleware
 #include <fs/disk.hpp>
 
+namespace server {
 
 /**
  * @brief Serves files (not food)
@@ -147,5 +148,6 @@ private:
 
 }; // < class Waitress
 
+} //< namespace server
 
 #endif

@@ -21,6 +21,8 @@
 #include "json.hpp"
 #include "middleware.hpp"
 
+namespace server {
+
 /**
  * @brief A vegan way to parse JSON Content in a response
  * @details TBC..
@@ -68,5 +70,7 @@ private:
   }
 
 };
+
+} //< namespace server
 
 #endif
