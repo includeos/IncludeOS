@@ -29,47 +29,41 @@ namespace middleware {
  *
  */
 class Parsley : public server::Middleware {
-
 public:
 
-  virtual void process(
-    server::Request_ptr req,
-    server::Response_ptr,
-    server::Next next
-    ) override
-  {
-    using namespace json;
-
-    if(!has_json(req)) {
-      //printf("<Parsley> No JSON in header field.\n");
-      (*next)();
-      return;
-    }
-    //printf("<Parsley> Found json header\n");
-
-    // Request doesn't have JSON attribute
-    if(!req->has_attribute<JsonDoc>()) {
-      // create attribute
-      auto json = std::make_shared<JsonDoc>();
-      // access the document and parse the body
-      json->doc().Parse(req->get_body().c_str());
-      printf("<Parsley> Parsed JSON data.\n");
-      // add the json to the request
-      req->set_attribute(json);
-    }
-
-    (*next)();
-  }
+  virtual void process(server::Request_ptr req, server::Response_ptr, server::Next next) override;
 
 private:
-  bool has_json(server::Request_ptr req) const {
-    auto c_type = http::header_fields::Entity::Content_Type;
-    if(!req->has_header(c_type))
-      return false;
-    return (req->header_value(c_type).find("application/json") != std::string::npos);
+
+  bool has_json(server::Request_ptr req) const;
+};
+
+inline void process(server::Request_ptr req, server::Response_ptr, server::Next next) {
+  using namespace json;
+
+  if(not has_json(req)) return (*next)();
+
+  // Request doesn't have JSON attribute
+  if(not req->has_attribute<JsonDoc>()) {
+    // Create attribute
+    auto json = std::make_shared<JsonDoc>();
+
+    // Access the document and parse the body
+    json->doc().Parse(req->get_body().c_str());
+    printf("<Parsley> Parsed JSON data.\n");
+
+    // Add the json attribute to the request
+    req->set_attribute(json);
   }
 
-};
+  return (*next)();
+}
+
+inline bool has_json(server::Request_ptr req) const {
+  auto c_type = http::header_fields::Entity::Content_Type;
+  if(not req->has_header(c_type)) return false;
+  return (req->header_value(c_type).find("application/json") != std::string::npos);
+}
 
 } //< namespace middleware
 
