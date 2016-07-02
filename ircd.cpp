@@ -31,7 +31,7 @@ IrcServer::IrcServer(
     size_t clindex = free_client();
     auto& client = clients[clindex];
     // make sure crucial fields are reset properly
-    client.reset(csock);
+    client.reset_to(csock);
 
     // set up callbacks
     csock->read(1024,
@@ -47,19 +47,23 @@ IrcServer::IrcServer(
       dec_counter(STAT_TOTAL_USERS);
       dec_counter(STAT_LOCAL_USERS);
       
-      /// inform others about disconnect
       auto& client = clients[clindex];
-      user_bcast_butone(clindex, 
-          ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);
-      // remove client from various lists
-      for (size_t idx : client.channels()) {
-        get_channel(idx).remove(clindex);
+      if (client.is_reg())
+      {
+        /// inform others about disconnect
+        user_bcast_butone(clindex, 
+            ":" + client.nickuserhost() + " " + TK_QUIT + " :" + reason);
+        // remove client from various lists
+        for (auto idx : client.channels()) {
+          get_channel(idx).remove(clindex);
+        }
       }
       // mark as disabled
       client.disable();
       // give back the client id
       free_clients.push_back(clindex);
     });
+    
   });
 }
 
@@ -124,7 +128,7 @@ void IrcServer::user_bcast(uindex_t idx, const std::string& message)
   }
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send(message);
+      get_client(cl).send_raw(message);
 }
 
 void IrcServer::user_bcast_butone(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
@@ -145,5 +149,5 @@ void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
   uset.erase(idx);
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send(message);
+      get_client(cl).send_raw(message);
 }

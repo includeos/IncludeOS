@@ -77,7 +77,7 @@ void Client::handle(
   }
   else if (cmd == TK_JOIN)
   {
-    if (msg.size() > 1)
+    if (msg.size() > 1 && msg[1].size() > 0)
     {
       if (server.is_channel(msg[1]))
       {
@@ -85,16 +85,22 @@ void Client::handle(
         if (ch != NO_SUCH_CHANNEL)
         {
           auto& channel = server.get_channel(ch);
+          bool joined = false;
+          
           if (msg.size() < 3)
-            channel.join(*this);
+            joined = channel.join(*this);
           else
-            channel.join(*this, msg[2]);
+            joined = channel.join(*this, msg[2]);
+          // track channel if client joined
+          if (joined) channels_.push_back(ch);
         }
         else
         {
           auto ch = server.create_channel(msg[1]);
           auto key = (msg.size() < 3) ? "" : msg[2];
           server.get_channel(ch).join(*this, key);
+          // track channel
+          channels_.push_back(ch);
         }
       }
       else {
@@ -114,10 +120,14 @@ void Client::handle(
         if (ch != NO_SUCH_CHANNEL)
         {
           auto& channel = server.get_channel(ch);
+          bool left = false;
+          
           if (msg.size() < 3)
-            channel.part(*this);
+            left = channel.part(*this);
           else
-            channel.part(*this, msg[2]);
+            left = channel.part(*this, msg[2]);
+          // stop tracking the channel ourselves
+          if (left) channels_.remove(ch);
         }
         else
           send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");

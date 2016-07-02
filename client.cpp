@@ -5,10 +5,11 @@
 #include "tokens.hpp"
 #include <cassert>
 
-void Client::reset(Connection conn)
+void Client::reset_to(Connection conn)
 {
-  this->alive_ = true;
-  this->regis = 0;
+  // this resets the client to a new connection
+  // regis field is 1, which means there is a connection
+  this->regis = 1;
   this->umodes_ = default_user_modes();
   this->conn = conn;
   this->nick_ = "";
@@ -16,10 +17,14 @@ void Client::reset(Connection conn)
   this->host_ = "";
   this->channels_.clear();
   this->buffer = "";
+  
+  // auth notices
+  auth_notice();
+  
 }
 void Client::disable()
 {
-  alive_ = false; regis = 0;
+  regis = 0;
   server.erase_nickname(nick());
 }
 
@@ -153,7 +158,10 @@ bool Client::change_nick(const std::string& new_nick)
     return false;
   }
   // remove old nickname from hashtable
-  server.hash_nickname(nick(), new_nick, get_id());
+  if (!nick().empty())
+      server.erase_nickname(nick());
+  // store new nickname
+  server.hash_nickname(new_nick, get_id());
   // nickname is valid and free, take it
   this->nick_ = new_nick;
   return true;

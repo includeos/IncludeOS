@@ -48,9 +48,8 @@ public:
   uindex_t  user_by_name(const std::string& name) const;
   chindex_t channel_by_name(const std::string& name) const;
   
-  void hash_nickname(const std::string& old, const std::string& nick, size_t id)
+  void hash_nickname(const std::string& nick, size_t id)
   {
-    if (!old.empty()) h_users.erase(old);
     h_users[nick] = id;
   }
   void erase_nickname(const std::string& nick)

@@ -16,22 +16,24 @@ public:
   typedef uint16_t index_t;
   
   Client(size_t s, IrcServer& sref)
-    : alive_(true), regis(0), self(s), server(sref) {}
+    : regis(0), self(s), server(sref) {}
   
   bool alive() const
   {
-    return alive_;
+    return regis != 0;
   }
   bool is_reg() const
   {
-    return alive() && regis == 3;
+    return regis == 7;
   }
   bool is_local() const
   {
     return conn != nullptr;
   }
+  // reset to a new connection
+  void reset_to(Connection conn);
+  // disable client completely
   void disable();
-  void reset(Connection conn);
   
   index_t get_id() const {
     return self;
@@ -96,9 +98,9 @@ private:
   void send_motd();
   void send_lusers();
   void send_modes();
+  void send_quit(const std::string& reason);
   bool change_nick(const std::string& new_nick);
   
-  bool        alive_;
   uint8_t     regis;
   uint16_t    umodes_;
   index_t     self;

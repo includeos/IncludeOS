@@ -31,7 +31,7 @@ void Client::handle_new(
     {
       // try to acquire nickname
       if (change_nick(msg[1])) {
-        welcome(regis | 1);
+        welcome(regis | 2);
       }
     }
     else
@@ -44,7 +44,7 @@ void Client::handle_new(
     if (msg.size() > 1)
     {
       this->user_ = msg[1];
-      welcome(regis | 2);
+      welcome(regis | 4);
     }
     else
     {
@@ -68,13 +68,11 @@ void Client::auth_notice()
 }
 void Client::welcome(uint8_t newreg)
 {
-  uint8_t oldreg = regis;
   bool regged = is_reg();
   regis = newreg;
   // not registered before, but registered now
   if (!regged && is_reg())
   {
-    printf("* Registered: %s\n", nickuserhost().c_str());
     send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
     send(RPL_YOURHOST, ":Your host is " + server.name() + ", running v1.0");
     send(RPL_CREATED, ":This server was created <date>");
@@ -85,37 +83,4 @@ void Client::welcome(uint8_t newreg)
     send_lusers();
     send_modes();
   }
-  else if (oldreg == 0)
-  {
-    auth_notice();
-  }
-}
-
-void Client::send_motd()
-{
-  send(RPL_MOTDSTART, ":- " + server.name() + " Message of the day - ");
-  const auto& motd = server.get_motd();
-  
-  for (const auto& line : motd)
-    send(RPL_MOTD, ":" + line);
-  
-  send(RPL_ENDOFMOTD, ":End of MOTD command");
-}
-
-void Client::send_lusers()
-{
-  send(RPL_LUSERCLIENT, ":There are " + std::to_string(server.get_counter(STAT_TOTAL_USERS)) +
-                        " and 0 services on 1 servers");
-  send(RPL_LUSEROP,       std::to_string(server.get_counter(STAT_OPERATORS)) + " :operator(s) online");
-  send(RPL_LUSERCHANNELS, std::to_string(server.get_counter(STAT_CHANNELS)) + " :channels formed");
-  send(RPL_LUSERME, ":I have " + std::to_string(server.get_counter(STAT_LOCAL_USERS)) + " clients and 1 servers");
-  
-  std::string mu = std::to_string(server.get_counter(STAT_MAX_USERS));
-  std::string tc = std::to_string(server.get_counter(STAT_TOTAL_CONNS));
-  send(250, "Highest connection count: " + mu + " (" + mu + " clients) (" + tc + " connections received)");
-}
-
-void Client::send_modes()
-{
-  send_raw(":" + nickuserhost() + " MODE " + nick() + " :+" + this->mode_string());
 }
