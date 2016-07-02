@@ -15,17 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <net/inet4>
 #include <sstream>
+
+#include <os>
+#include <memdisk>
+
+#include <net/inet4>
+#include <fs/disk.hpp>
 #include <hw/cmos.hpp>
+
 #include "server/server.hpp"
 
-std::unique_ptr<server::Server> server_;
 using namespace std;
 
-#include <fs/disk.hpp>
-#include <memdisk>
+std::unique_ptr<server::Server> server_;
 
 ////// DISK //////
 // instantiate disk with filesystem
