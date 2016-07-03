@@ -24,6 +24,7 @@
 #include "../../vmbuild/elf.h"
 
 static const char* null_stringz = "(null)";
+static const char* boot_stringz = "Bootloader area";
 static const uintptr_t ELF_START = 0x200000;
 #define frp(N, ra)                                 \
   (__builtin_frame_address(N) != nullptr) &&       \
@@ -91,7 +92,7 @@ public:
     // probably just a null pointer with ofs=addr
     if (addr < 0x7c00) return {null_stringz, 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {"Bootloader area", 0x7c00, addr - 0x7c00};
+    if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
     if (sym) {
@@ -108,7 +109,7 @@ public:
     // probably just a null pointer with ofs=addr
     if (addr < 0x7c00) return {null_stringz, 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {0, 0x7c00, addr - 0x7c00};
+    if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
     if (sym) {
@@ -118,7 +119,9 @@ public:
       return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
     }
     // function or space not found
-    return {0, addr, 0};
+    static char addr_buffer[16];
+    snprintf(addr_buffer, 15, "%#x", addr);
+    return {addr_buffer, addr, 0};
   }
   
   Elf32_Addr getaddr(const std::string& name)
@@ -262,10 +265,16 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  #define PRINT_TRACE(N, ra)                      \
-    auto symb = Elf::resolve_symbol(ra);          \
-    printf("[%d] %8p + 0x%.3x: %s\n",             \
-        N, ra, symb.offset, symb.name.c_str());
+  char btrace_buffer[180];
+  char symbol_buffer[160];
+  
+  #define PRINT_TRACE(N, ra) \
+    auto symb = Elf::safe_resolve_symbol( \
+                ra, symbol_buffer, 256);  \
+    snprintf(btrace_buffer, 255,        \
+             "[%d] %8x + 0x%.3x: %s\n", \
+             N, symb.addr, symb.offset, symb.name);\
+    fprintf(stdout, btrace_buffer);
 
   printf("\n");
   void* ra;
