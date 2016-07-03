@@ -28,6 +28,9 @@
 #include <malloc.h>
 #include <string.h>
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
@@ -48,8 +51,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
     _link_out(drop), 
-    /** 1500 buffers to start with */
-    bufstore_(1500, sizeof(net::Packet) + bufsize())
+    /** 1024 buffers to start with */
+    bufstore_(1024, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
@@ -143,7 +146,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   setup_complete((features() & needed_features) == needed_features);
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
-  // Hook up IRQ handler
+  // Hook up interrupts
   if (is_msix())
   {
     // for now use service queues, otherwise stress test fails
@@ -194,10 +197,9 @@ void VirtioNet::msix_recv_handler()
 
     dequeued_rx = true;
   }
-  rx_q.enable_interrupts();
-
   if (dequeued_rx)
     rx_q.kick();
+  rx_q.enable_interrupts();
 }
 void VirtioNet::msix_xmit_handler()
 {
@@ -236,18 +238,14 @@ void VirtioNet::msix_xmit_handler()
   }
 }
 
-void VirtioNet::irq_handler(){
-
-  debug2("<VirtioNet> handling IRQ \n");
-
-  //Virtio Std. § 4.1.5.5, steps 1-3
+void VirtioNet::irq_handler() {
+  // Virtio Std. § 4.1.5.5, steps 1-3
 
   // Step 1. read ISR
   unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
 
   // Step 2. A) - one of the queues have changed
-  if (isr & 1){
-
+  if (isr & 1) {
     // This now means service RX & TX interchangeably
     // We need a zipper-solution; we can't receive n packets before sending
     // anything - that's unfair.
@@ -255,7 +253,7 @@ void VirtioNet::irq_handler(){
   }
 
   // Step 2. B)
-  if (isr & 2){
+  if (isr & 2) {
     debug("\t <VirtioNet> Configuration change:\n");
 
     // Getting the MAC + status
@@ -263,7 +261,6 @@ void VirtioNet::irq_handler(){
     get_config();
     debug("\t             New status: 0x%x \n",_conf.status);
   }
-
 }
 
 void VirtioNet::add_receive_buffer(){
@@ -302,22 +299,17 @@ void VirtioNet::service_queues(){
 
   /** For RX, we dequeue, add new buffers and let receiver is responsible for
       memory management (they know when they're done with the packet.) */
-
-  int dequeued_rx = 0;
-  uint32_t len = 0;
-  int dequeued_tx = 0;
+  uint16_t dequeued_rx = 0;
+  uint16_t dequeued_tx = 0;
 
   rx_q.disable_interrupts();
   tx_q.disable_interrupts();
   // A zipper, alternating between sending and receiving
-  while(rx_q.new_incoming() or tx_q.new_incoming()){
+  while (rx_q.new_incoming() or tx_q.new_incoming()) {
 
     // Do one RX-packet
-    if (rx_q.new_incoming() ){
-
+    while (rx_q.new_incoming()) {
       auto res = rx_q.dequeue();
-      len += res.size();
-
       auto pckt_ptr = recv_packet(res.data(), res.size());
       _link_out(pckt_ptr);
 
@@ -328,8 +320,7 @@ void VirtioNet::service_queues(){
     }
 
     // Do one TX-packet
-    if (tx_q.new_incoming()){
-      debug2("<VirtioNet> Dequeing TX");
+    while (tx_q.new_incoming()){
       // FIXME Unfortunately dequeue is not working here
       // I am guessing that Linux is eating the buffers
       tx_q.dequeue();
@@ -343,21 +334,19 @@ void VirtioNet::service_queues(){
     }
 
   }
-
-  debug2("<VirtioNet> Service loop about to kick RX if %i \n",
-         dequeued_rx);
-  // Let virtio know we have increased receive capacity
-  if (dequeued_rx)
-    rx_q.kick();
-
-
   rx_q.enable_interrupts();
   tx_q.enable_interrupts();
 
+  // Let virtio know we have increased receive capacity
+  if (dequeued_rx)
+    //rx_q.kick();
+    begin_deferred_kick(1);
+
+  debug2("<VirtioNet> Service loop about to kick RX if %i \n",
+         dequeued_rx);
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
   if (dequeued_tx) {
-
     debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
@@ -396,14 +385,10 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 #endif
 
   debug("Buffering, %i packets chained \n", chain_length);
-
 }
 
 #include <cstdlib>
 void VirtioNet::transmit(net::Packet_ptr pckt){
-  debug2("<VirtioNet> Enqueuing %ib of data. \n",pckt->size());
-
-
   /** @note We have to send a virtio header first, then the packet.
 
       From Virtio std. §5.1.6.6:
@@ -415,46 +400,34 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
       VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to
       support VirtualBox
   */
-
   int transmitted = 0;
   net::Packet_ptr tail {pckt};
 
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    //on_exit_to_physical_(tail);
+    on_exit_to_physical_(tail);
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;
-    if (! tail)
-      break;
-
+    if (!tail) break;
   }
 
   // Notify virtio about new packets
-  if (transmitted) {
-    tx_q.kick();
-    /*if (deferred_kick == false) {
-      deferred_kick = true;
-      using namespace std::chrono;
-      hw::PIT::instance().on_timeout_ms(1ms, 
-      [this] {
-        tx_q.kick();
-        deferred_kick = false;
-      });
-    }*/
+  if (likely(transmitted)) {
+    //tx_q.kick();
+    begin_deferred_kick(2);
   }
 
   // Buffer the rest
-  if (tail) {
+  if (unlikely(tail)) {
+    debug("Buffering remaining packets..\n");
     add_to_tx_buffer(tail);
-
-    debug("Buffering remaining packets \n");
   }
 
 }
 
-void VirtioNet::enqueue(net::Packet_ptr pckt){
+void VirtioNet::enqueue(net::Packet_ptr pckt) {
 
   // This setup requires all tokens to be pre-chained like in SanOS
   Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
@@ -472,4 +445,25 @@ void VirtioNet::enqueue(net::Packet_ptr pckt){
   // enq the packet we just transmitted into a transmit queue
   // because tx_q.dequeue is not returning the correct data
   tx_ringq.push_back((uint8_t*) pckt.get());
+}
+
+#define NO_DEFERRED_KICK
+
+void VirtioNet::begin_deferred_kick(uint8_t mask)
+{
+#ifdef NO_DEFERRED_KICK
+  if (mask & 1)  rx_q.kick();
+  if (mask & 2)  tx_q.kick();
+#else
+  if (!deferred_kick) {
+    using namespace std::chrono;
+    hw::PIT::instance().on_timeout_ms(1ms, 
+    [this] {
+      if (deferred_kick & 1)  rx_q.kick();
+      if (deferred_kick & 2)  tx_q.kick();
+      deferred_kick = 0;
+    });
+  }
+  deferred_kick |= mask;
+#endif
 }

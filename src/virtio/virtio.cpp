@@ -25,17 +25,6 @@
 #define VIRTIO_MSI_CONFIG_VECTOR  20
 #define VIRTIO_MSI_QUEUE_VECTOR   22
 
-void Virtio::set_irq(){
-
-  //Get device IRQ
-  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    this->_irq = value & 0xFF;
-  }
-
-}
-
-
 Virtio::Virtio(hw::PCI_Device& dev)
   : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
 {
@@ -125,10 +114,12 @@ Virtio::Virtio(hw::PCI_Device& dev)
         auto irq = IRQ_manager::cpu(0).get_next_msix_irq();
         _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
       }
-
     }
     else
-      INFO2("[ ] No MSI-X vectors?");
+      INFO2("[ ] No MSI-X vectors");
+  } else {
+    this->_msix_vectors = 0;
+    INFO2("[ ] No MSI-X vectors");
   }
 
   // use legacy if msix was not enabled
@@ -136,7 +127,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   {
     // Fetch IRQ from PCI resource
     set_irq();
-    CHECK(_irq, "Unit has legacy IRQ %i", _irq);
+    CHECK(_irq, "Unit has legacy IRQ %u", _irq);
 
     // create IO APIC entry for legacy interrupt
     hw::APIC::enable_irq(_irq);
@@ -153,16 +144,26 @@ Virtio::Virtio(hw::PCI_Device& dev)
 }
 
 void Virtio::get_config(void* buf, int len){
-  unsigned char* ptr = (unsigned char*)buf;
+  // io addr is different when MSI-X is enabled
   uint32_t ioaddr = _iobase;
   ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
+  
+  uint8_t* ptr = (uint8_t*) buf;
   for (int i = 0; i < len; i++)
-    *ptr++ = hw::inp(ioaddr + i);
+    ptr[i] = hw::inp(ioaddr + i);
 }
 
 
 void Virtio::reset(){
   hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
+}
+
+void Virtio::set_irq() {
+  // Get legacy IRQ from PCI
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
+  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+    this->_irq = value & 0xFF;
+  }
 }
 
 uint32_t Virtio::queue_size(uint16_t index){
@@ -210,7 +211,7 @@ void Virtio::setup_complete(bool ok){
 
 
 void Virtio::default_irq_handler(){
-  printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
+  printf("*** PRIVATE virtio IRQ handler\n");
   printf("Old Features : 0x%x \n",_features);
   printf("New Features : 0x%x \n",probe_features());
 

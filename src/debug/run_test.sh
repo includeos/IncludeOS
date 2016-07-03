@@ -41,7 +41,7 @@ then
     make -j$JOBS stripped $SERVICE
     
     echo ">>> Stripping $SERVICE"
-    strip --strip-all debug/$SERVICE
+    strip --strip-all -R.comment debug/$SERVICE
     
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE

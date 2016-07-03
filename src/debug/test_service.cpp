@@ -98,9 +98,16 @@ void Service::start()
   //hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
   //__validate_bullshit("validate_bullshit endof Service::start()");
   
-  begin_stack_sampling(200);
+  //begin_stack_sampling(200);
   // print sampling results every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
+  //hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
+
+
+  hw::PIT::instance().on_repeated_timeout(500ms, 
+  [] {
+    print_heap_info();
+    printf("bufstore packets: %u\n", inet->buffers_available());
+  });
 
   // boilerplate
   inet = net::new_ipv4_stack(
@@ -115,5 +122,17 @@ void Service::start()
   server.onConnect(
   [] (auto conn) {
     conn->close();
+  });
+  
+  auto& echo_server = inet->udp().bind(66);
+  echo_server.on_read(
+  [&echo_server] (auto addr, auto port,
+                  const char* data, size_t len)
+  {
+    // send the same thing right back!
+    echo_server.sendto(addr, port, data, len,
+    [len] {
+      //INFO("UDP", "Echo reply len=%u", len);
+    });
   });
 }
