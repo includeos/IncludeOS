@@ -16,9 +16,6 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-#include <cassert>
-//#define ENABLE_STACK_SMASHER
-#include <cstdio>
 
 extern "C" void _start(void) __attribute__((visibility("hidden")));
 extern "C" void _init_c_runtime();
@@ -36,15 +33,6 @@ static void enableSSE(void)
   asm ("mov %eax, %cr4");
 }
 
-#ifdef ENABLE_STACK_SMASHER
-static void __attribute__((noinline))
-stack_smasher(const char* src)
-{
-  char test[8];
-  sprintf(test, "%s", src);
-}
-#endif
-
 void _start(void)
 {
   // enable SSE extensions bitmask in CR4 register
@@ -52,11 +40,6 @@ void _start(void)
   
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
-  
-  #ifdef ENABLE_STACK_SMASHER
-  // can't detect stack smashing until c runtime is on
-  stack_smasher("1234123412341234");
-  #endif
   
   // Initialize some OS functionality
   OS::start();
