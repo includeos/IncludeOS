@@ -19,7 +19,6 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <os>
 

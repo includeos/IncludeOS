@@ -62,16 +62,12 @@ SECTIONS
     *(.gcc_except_table)
   }
   /* For stack unwinding (exception handling)  */
-  _EH_FRAME_START_ = .;
-  
   .eh_frame ALIGN(0x4):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
     LONG (0);
   }
-  
-  _EH_FRAME_END_ = .;
   
   .data :
   {
@@ -92,11 +88,12 @@ SECTIONS
   .bss :
   {
     _BSS_START_ = .;
-    *(.bss)
-    *(.bss.*)
-    *(.gnu.linkonce.b.*)
+    *(.bss .bss.* .gnu.linkonce.b.*)
+    *(COMMON)
     _BSS_END_ = .;
+    . = ALIGN(64 / 8);
   }
-  
+  . = ALIGN(64 / 8);  
   _end = .;
+  PROVIDE (end = .);
 }

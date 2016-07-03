@@ -109,8 +109,9 @@ all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
-stripped: CAPABS += -Oz
-stripped: all test
+stripped: CAPABS += -Os -fdata-sections -ffunction-sections
+stripped: LDOPTS += --gc-sections --print-gc-sections -s
+stripped: all
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
@@ -132,9 +133,8 @@ debug-all: OBJ_LIST += $(LIBG_OBJ)
 debug-all: CAPABS += -O0
 debug-all: all test
 
-
 silent: CPPOPTS += -DNO_INFO=1
-silent: all test
+silent: all
 
 # Test service
 ###################################################

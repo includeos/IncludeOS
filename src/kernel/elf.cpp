@@ -33,11 +33,15 @@ extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
 
 template <typename N>
-std::string to_hex_string(N n)
+static std::string to_hex_string(N n)
 {
   std::string buffer; buffer.reserve(64);
   snprintf((char*) buffer.data(), buffer.capacity(), "%#x", n);
   return buffer;
+}
+
+static Elf32_Ehdr& elf_header() {
+  return *(Elf32_Ehdr*) ELF_START;
 }
 
 struct SymTab {
@@ -48,19 +52,19 @@ struct SymTab {
 class ElfTables
 {
 public:
-  ElfTables(uintptr_t elf_base)
-    : strtab(nullptr), ELF_BASE(elf_base)
+  ElfTables()
+    : strtab(nullptr)
   {
     auto& elf_hdr = elf_header();
     
     // enumerate all section headers
-    auto* shdr = (Elf32_Shdr*) (ELF_BASE + elf_hdr.e_shoff);
+    auto* shdr = (Elf32_Shdr*) (ELF_START + elf_hdr.e_shoff);
     for (Elf32_Half i = 0; i < elf_hdr.e_shnum; i++)
     {
       switch (shdr[i].sh_type)
       {
       case SHT_SYMTAB:
-        symtab[num_syms] = { (Elf32_Sym*) (ELF_BASE + shdr[i].sh_offset), 
+        symtab[num_syms] = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset), 
                               shdr[i].sh_size / sizeof(Elf32_Sym) };
         num_syms++;
         //printf("found symtab at %#x\n", shdr[i].sh_offset);
@@ -68,7 +72,7 @@ public:
         //    this->symtab, this->st_entries);
         break;
       case SHT_STRTAB:
-        this->strtab = (char*) (ELF_BASE + shdr[i].sh_offset);
+        this->strtab = (char*) (ELF_START + shdr[i].sh_offset);
         this->strtab_size = shdr[i].sh_size;
         break;
       case SHT_DYNSYM:
@@ -184,19 +188,14 @@ private:
     return res;
   }
   
-  Elf32_Ehdr& elf_header() const {
-    return *(Elf32_Ehdr*) ELF_BASE;
-  }
-  
   SymTab  symtab[4];
   size_t  num_syms;
   const char* strtab;
   size_t      strtab_size;
-  uintptr_t   ELF_BASE;
 };
 
 ElfTables& get_parser() {
-  static ElfTables parser(ELF_START);
+  static ElfTables parser;
   return parser;
 }
 
@@ -292,8 +291,10 @@ void print_backtrace()
 }
 
 extern "C" {
+  extern char _end;
+  
   uintptr_t __elf_header_end() {
-    auto& hdr = *(Elf32_Ehdr*) ELF_START;
+    auto& hdr = elf_header();
     uintptr_t last = 0;
     // find last SH, calculate offset + size
     auto* shdr = (Elf32_Shdr*) (ELF_START + hdr.e_shoff);
@@ -303,6 +304,27 @@ extern "C" {
       if (last < size) last = size;
     }
     // add base ELF address
-    return ELF_START + last;
+    last += ELF_START;
+    // compare to end
+    uintptr_t end = (uintptr_t) &_end;
+    return (end > last) ? end : last;
   }
+}
+
+void Elf::print_info()
+{
+  auto& hdr = elf_header();
+  // program headers
+  auto* phdr = (Elf32_Phdr*) (ELF_START + hdr.e_phoff);
+  printf("program headers offs=%#x at phys %p\n", hdr.e_phoff, phdr);
+  // section headers
+  auto* shdr = (Elf32_Shdr*) (ELF_START + hdr.e_shoff);
+  printf("section headers offs=%#x at phys %p\n", hdr.e_shoff, shdr);
+  for (Elf32_Half i = 0; i < hdr.e_shnum; i++)
+  {
+    uintptr_t start = ELF_START + shdr[i].sh_offset;
+    uintptr_t end   = start     + shdr[i].sh_size;
+    printf("sh from %#x to %#x\n", start, end);
+  }
+  
 }
