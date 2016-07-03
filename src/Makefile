@@ -32,7 +32,6 @@ LIBM_OBJ = $(INSTALL)/newlib/libm.a
 LIBGCC = $(INSTALL)/libgcc/libgcc.a
 LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
 
-
 INC_NEWLIB=$(INSTALL)/newlib/include
 
 # Compiler/Linker
@@ -52,13 +51,13 @@ ifndef OBJCOPY_INC
 endif
 
 # Compiler options
-CCOPTS = -target i686-elf
+CCOPTS  = -target i686-elf
 CPPOPTS = -target i686-elf
 
 INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
 CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CCOPTS += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
 CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
 
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
@@ -109,8 +108,8 @@ all: bootloader libc++abi.a os.a
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
 #stripped: LDOPTS += -s #strip all
-stripped: CAPABS += -Os -fdata-sections -ffunction-sections
-stripped: LDOPTS += --gc-sections --print-gc-sections -s
+stripped: CAPABS += -Os
+stripped: LDOPTS += -s
 stripped: all
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
