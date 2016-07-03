@@ -20,6 +20,7 @@
 #include <cstring>
 #include <iostream>
 
+#include <assert.h>
 #include <elf.h>
 #include <errno.h>
 #include <stdio.h>
@@ -32,13 +33,12 @@
 
 using namespace std;
 
-const int offs_srvsize {2};
-const int offs_srvoffs {6};
-
+static const int offs_srvsize {2};
+static const int offs_srvoffs {6};
 static bool test {false};
 
-const string info  {"Create a bootable disk image for IncludeOS.\n"};
-const string usage {"Usage: vmbuild <bootloader> <service_binary> [-test]\n"};
+static const string info  {"Create a bootable disk image for IncludeOS.\n"};
+static const string usage {"Usage: vmbuild <bootloader> <service_binary> [-test]\n"};
 
 int main(int argc, char** argv) {
 
@@ -50,13 +50,9 @@ int main(int argc, char** argv) {
   
   const string bootloc {argv[1]};
   const string srvloc  {argv[2]};
-  
-  // Fixes missing Magic Signature :bug:
-  const int extra_sectors = 2;
-  
   const string img_name {srvloc.substr(srvloc.find_last_of("/") + 1, string::npos) + ".img"};
 
-  cout << "\nCreating VM disk image './" << img_name << "' where N = " << extra_sectors << '\n';
+  cout << "\nCreating VM disk image '" << img_name << "'\n";
 
   if ((argc > 3) and (string{argv[3]} == "-test")) {
     test = true;
@@ -72,14 +68,12 @@ int main(int argc, char** argv) {
     return errno;
   }    
   
-  if (stat_boot.st_size > SECT_SIZE) {
-    cout << "Boot sector too big! ("
-         << stat_boot.st_size << " bytes)\n";
+  if (stat_boot.st_size != SECT_SIZE) {
+    cout << "Boot sector not exactly one sector in size ("
+         << stat_boot.st_size << " bytes, expected: " << SECT_SIZE << ")\n";
     return SECT_SIZE_ERR;
   }
-
-  cout << "Size of bootloader:\t " 
-       << stat_boot.st_size << '\n';
+  cout << "Size of bootloader:\t" << stat_boot.st_size << '\n';
   
   // Verify service
   if (stat(srvloc.c_str(), &stat_srv) == -1) {
@@ -87,22 +81,18 @@ int main(int argc, char** argv) {
     return errno;
   }
 
-  decltype(stat_srv.st_size) srv_sect {stat_srv.st_size / SECT_SIZE};
-
-  if ((stat_srv.st_size % SECT_SIZE) != 0) {
-    srv_sect += 1;
-  }
+  intmax_t srv_sect = stat_srv.st_size / SECT_SIZE;
+  if (stat_srv.st_size & (SECT_SIZE-1)) srv_sect += 1;
   
   cout << "Size of service: \t" << stat_srv.st_size << " bytes\n";
   
-  const decltype(srv_sect) img_size_sect  {1 + srv_sect};
+  const decltype(srv_sect) img_size_sect  {1 + srv_sect+1};
   const decltype(srv_sect) img_size_bytes {img_size_sect * SECT_SIZE};
+  assert((img_size_bytes & (SECT_SIZE-1)) == 0);
   
   cout << "Total disk size: \t" 
-       << img_size_bytes
-       << " bytes, => "
-       << img_size_sect
-       << " sectors.\n";
+       << img_size_bytes << " bytes, => "
+       << img_size_sect  << " sectors.\n";
   
   // Bochs requires old-school disk specifications. 
   // sectors=cyls*heads*spt (sectors per track)
@@ -116,22 +106,11 @@ int main(int argc, char** argv) {
     const decltype(img_size_sect) disksize {disk_tracks * spt * SECT_SIZE};
   */
   
-  const auto disksize = (img_size_sect + extra_sectors) * SECT_SIZE;
+  const auto disksize = img_size_bytes;
 
-  if (disksize < img_size_bytes) {
-    cout << "\n---- ERROR ----\n"
-         << "Image is too big for the disk!\n"
-         << "Image size: " << img_size_bytes << " B\n"
-         << "Disk size:  " << disksize       << " B\n";
-    exit(DISK_SIZE_ERR);
-  }
-  
-  cout << "Creating disk of size: "
-    //<< "Cyls: "   << cylinders << "\n"
-    //<< "Heads: "  << heads     << "\n"
-    //<< "Sec/Tr: " << spt       << "\n"
-       << "=> "      << (disksize / SECT_SIZE) << " sectors\n"
-       << "=> "      << disksize               << " bytes\n";
+  cout << "Creating disk of size:\n"
+       << "   "      << (disksize / SECT_SIZE) << " sectors\n"
+       << "=> "      <<  disksize              << " bytes\n";
   
   vector<char> disk (disksize);
   auto* disk_head = disk.data();
@@ -191,14 +170,6 @@ int main(int argc, char** argv) {
   // Write OS/Service size to the bootloader
   *(reinterpret_cast<int*>(disk_head + offs_srvsize)) = srv_sect;
   *(reinterpret_cast<int*>(disk_head + offs_srvoffs)) = srv_start;
-  
-  auto* magic_loc = (uint32_t*)(disk_head + img_size_bytes + SECT_SIZE-4);
-  
-  cout << "Applying magic signature: 0xFA7CA7"             << '\n'
-       << "Data currently at location: " << img_size_bytes << '\n'
-       << "Location on image: 0x" << hex << img_size_bytes << '\n';
-  
-  *magic_loc = 0xFA7CA700;
   
   if (test) {
     cout << "\nTEST overwriting service with testdata\n";

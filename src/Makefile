@@ -18,7 +18,7 @@ CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VA
 # * NO_DEBUG Disables  output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE
+CAPABS = $(CAPABS_COMMON) -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
@@ -31,7 +31,6 @@ LIBM_OBJ = $(INSTALL)/newlib/libm.a
 
 LIBGCC = $(INSTALL)/libgcc/libgcc.a
 LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
-
 
 INC_NEWLIB=$(INSTALL)/newlib/include
 
@@ -52,16 +51,15 @@ ifndef OBJCOPY_INC
 endif
 
 # Compiler options
-CCOPTS = -target i686-elf
+CCOPTS  = -target i686-elf
 CPPOPTS = -target i686-elf
 
-INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
-CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
+INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../mod/GSL/include
+CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
 CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
-
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 
 # Objects
 ###################################################
@@ -97,7 +95,7 @@ CRTN_OBJ = crt/crtn.o
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
-.PHONY: memdisk all debug stripped clean
+.PHONY: memdisk all debug stripped minimal clean
 
 # Complete OS build
 ###################################################
@@ -105,36 +103,41 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # - a bootloader
 # - an OS library for the service to link against
 
-all: bootloader libc++abi.a os.a
+all: CAPABS += -O2
+all: includeos
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
-#stripped: LDOPTS += -s #strip all
-stripped: CAPABS += -Os -fdata-sections -ffunction-sections
-stripped: LDOPTS += --gc-sections --print-gc-sections -s
-stripped: all
+stripped: CAPABS += -Os
+stripped: LDOPTS += -s
+stripped: includeos test
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
 debug-info: CAPABS += -DGSL_THROW_ON_CONTRACT_VIOLATION
-debug-info: all test
+debug-info: includeos test
 
 # Build with debugging symbols (OBS: Dramatically increases binary size)
+debug: CAPABS += -O0
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: CAPABS += -O0
-debug: all test
+debug: includeos test
 
 # Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
-debug-all: CAPABS += -UNO_DEBUG
+debug-all: CAPABS += -O0 -UNO_DEBUG
 debug-all: CCOPTS  += $(DEBUG_OPTS)
 debug-all: CPPOPTS += $(DEBUG_OPTS)
 debug-all: OBJ_LIST += $(LIBG_OBJ)
-debug-all: CAPABS += -O0
-debug-all: all test
+debug-all: includeos test
 
 silent: CPPOPTS += -DNO_INFO=1
-silent: all
+silent: includeos
+
+minimal: CPPOPTS += -ffunction-sections -fdata-sections
+minimal: LDOPTS += --gc-sections
+minimal: stripped test
+
+includeos: bootloader libc++abi.a os.a
 
 # Test service
 ###################################################
@@ -149,6 +152,7 @@ TEST_OBJ = debug/test_service.o util/service_name.o
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
+	@echo "\n>> LDOPTS = $(LDOPTS)"
 	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
