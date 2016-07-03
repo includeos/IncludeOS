@@ -78,7 +78,7 @@ all: service
 all: STRIPPED = --strip-unneeded
 
 stripped: LDOPTS  += -s
-stripped: STRIPPED = --strip-all
+stripped: STRIPPED = --strip-all -R.comment
 stripped: service
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
@@ -99,6 +99,10 @@ debug-all: CPPOPTS += $(DEBUG_OPTS)
 debug-all: OBJ_LIST += $(LIBG_OBJ)
 debug-all: CAPABS += -O0
 debug-all: service
+
+minimal: CPPOPTS += -ffunction-sections -fdata-sections
+minimal: LDOPTS += --gc-sections
+minimal: stripped
 
 # Disk image as a section
 ###################################################
