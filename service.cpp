@@ -46,14 +46,11 @@ cmos::Time STARTED_AT;
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start() {
+  // Test {URI} component
+  uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
+  printf("<URI> Test URI: %s \n", project_uri.path().c_str());
 
-  //auto& device = hw::Dev::disk<1, VirtioBlk>();
-  //disk = std::make_shared<fs::Disk> (device);
   disk = fs::new_shared_memdisk();
-
-  uri::URI uri1("asdf");
-
-  printf("<URI> Test URI: %s \n", uri1.to_string().c_str());
 
   // mount the main partition in the Master Boot Record
   disk->mount([](fs::error_t err) {
