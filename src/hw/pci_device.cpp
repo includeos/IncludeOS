@@ -197,7 +197,7 @@ namespace hw {
     req.addr = pci_addr_;
     req.reg  = reg;
   
-    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     outpd(PCI::CONFIG_DATA, value);
   }
 
@@ -208,8 +208,7 @@ namespace hw {
     req.addr = pci_addr_;
     req.reg  = reg;
     
-    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
-
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     return inpd(PCI::CONFIG_DATA);
   }
 
@@ -219,8 +218,7 @@ namespace hw {
     req.addr = pci_addr_;
     req.reg  = reg;
     
-    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
-
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     return inpw(PCI::CONFIG_DATA + (reg & 2));
   }
   void PCI_Device::write16(const uint8_t reg, const uint16_t value) noexcept {
@@ -229,7 +227,7 @@ namespace hw {
     req.addr = pci_addr_;
     req.reg  = reg;
   
-    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     outpw(PCI::CONFIG_DATA + (reg & 2), value);
   }
   
@@ -240,8 +238,7 @@ namespace hw {
     req.addr = pci_addr;
     req.reg  = reg;
     
-    outpd(PCI::CONFIG_ADDR, static_cast<uint32_t>(0x80000000) | req.data);
-
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     return inpd(PCI::CONFIG_DATA);
   }
   
@@ -283,20 +280,6 @@ namespace hw {
       offset = cap.next;
     }
     
-  }
-  
-  uint8_t PCI_Device::init_msix()
-  {
-    // disable intx
-    auto cmd = read16(PCI_CMD_REG);
-    write16(PCI_CMD_REG, cmd | (1 << 10));
-    // enable MSI-X
-    this->msix = new msix_t(*this);
-    return msix->vectors();
-  }
-  void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
-  {
-    msix->setup_vector(cpu, irq);
   }
   
 } //< namespace hw

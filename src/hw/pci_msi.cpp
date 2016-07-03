@@ -1,13 +1,14 @@
 #include <hw/pci_device.hpp>
 #include <hw/pci.hpp>
+#include <debug>
+
+#define PCI_CMD_REG			0x04
 
 // MSI and MSI-X capability registers
-
 #define PCI_CAP_ID_MSI        0x05    /* Message Signalled Interrupts */
 #define PCI_CAP_ID_MSIX       0x11    /* MSI-X */
 
 // Message Signalled Interrupts registers
-
 #define PCI_MSI_FLAGS_ENABLE  0x0001  /* MSI feature enabled */
 #define PCI_MSI_FLAGS_QMASK   0x000e  /* Maximum queue size available */
 #define PCI_MSI_FLAGS_QSIZE   0x0070  /* Message queue size configured */
@@ -37,6 +38,18 @@ namespace hw
     return caps[PCI_CAP_ID_MSIX];
   }
   
-  
+  uint8_t PCI_Device::init_msix()
+  {
+    // disable intx
+    auto cmd = read16(PCI_CMD_REG);
+    write16(PCI_CMD_REG, cmd | (1 << 10));
+    // enable MSI-X
+    this->msix = new msix_t(*this);
+    return msix->vectors();
+  }
+  void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
+  {
+    msix->setup_vector(cpu, irq);
+  }
   
 }

@@ -367,26 +367,20 @@ public:
   Virtio(hw::PCI_Device& pci);
 
 private:
-  //PCI memer as reference (so no indirection overhead)
   hw::PCI_Device& _pcidev;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;
-
-  uint8_t  _irq = 0;
-  uint16_t _msix_vectors;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
+  uint16_t _msix_vectors;
+  uint8_t  _irq = 0;
 
   // Indicate if virtio device ID is legacy or standard
   bool _LEGACY_ID = 0;
   bool _STD_ID = 0;
 
   void set_irq();
-
-  //TEST
-  int calls = 0;
-
   void default_irq_handler();
 };
 

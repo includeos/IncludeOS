@@ -146,7 +146,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   setup_complete((features() & needed_features) == needed_features);
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
-  // Hook up IRQ handler
+  // Hook up interrupts
   if (is_msix())
   {
     // for now use service queues, otherwise stress test fails

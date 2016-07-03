@@ -102,7 +102,8 @@ namespace hw
     auto cap = dev.msix_cap();
     assert(cap >= 0x40);
     // read message control bits
-    auto func = dev.read16(cap + 2);
+    uint16_t func = dev.read16(cap + 2);
+    assert(func < 0x1000 && "Invalid MSI-X func read");
     // enable msix and mask all vectors
     func |= MSIX_ENABLE | MSIX_FUNC_MASK;
     dev.write16(cap + 2, func);
@@ -114,8 +115,11 @@ namespace hw
     // get number of vectors we can get notifications from
     this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
     
-    //printf("table addr: %#x  pba addr: %#x  vectors: %u\n",
-    //  table_addr, pba_addr, vectors());
+    if (vector_cnt > 16) {
+      printf("table addr: %#x  pba addr: %#x  vectors: %u\n",
+              table_addr, pba_addr, vectors());
+      assert(vectors() <= 16 && "Unreasonably many MSI-X vectors");
+    }
     
     // mask out all entries
     for (size_t i = 0; i < this->vectors(); i++)
