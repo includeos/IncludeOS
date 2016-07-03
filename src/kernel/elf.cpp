@@ -19,6 +19,7 @@
 #include <cassert>
 #include <cstdio>
 #include <string>
+#include <unistd.h>
 #include <info>
 #include <vector>
 #include "../../vmbuild/elf.h"
@@ -119,9 +120,8 @@ public:
       return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
     }
     // function or space not found
-    static char addr_buffer[16];
-    snprintf(addr_buffer, 15, "%#x", addr);
-    return {addr_buffer, addr, 0};
+    snprintf(buffer, length, "%#x", addr);
+    return {buffer, addr, 0};
   }
   
   Elf32_Addr getaddr(const std::string& name)
@@ -271,10 +271,10 @@ void print_backtrace()
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol( \
                 ra, symbol_buffer, 256);  \
-    snprintf(btrace_buffer, 255,        \
+    auto len = snprintf(btrace_buffer, 255,\
              "[%d] %8x + 0x%.3x: %s\n", \
              N, symb.addr, symb.offset, symb.name);\
-    fprintf(stdout, btrace_buffer);
+    write(1, btrace_buffer, len);
 
   printf("\n");
   void* ra;
