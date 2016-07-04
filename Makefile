@@ -7,13 +7,13 @@ SERVICE = Acorn
 SERVICE_NAME = Acorn
 
 # Your service parts
-FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o
+FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o cookie/cookie.o
 
 # Your disk image
 DISK=memdisk.fat
 
 # Modules
-CUSTOM_MODULES =-I./bucket -I./json
+CUSTOM_MODULES =-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats
 MOD_FILES =
 
 FILES += $(MOD_FILES)
