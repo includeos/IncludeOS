@@ -27,25 +27,7 @@ Response::Response(Connection_ptr conn)
   add_header(http::header_fields::Response::Server, "IncludeOS/Acorn");
   // screw keep alive
   add_header(http::header_fields::Response::Connection, "keep-alive");
-
-
-
-
-  /* Add cookie if doesn't exist in previous request:
-  if()
-  add_header(http::header_fields::Response::Cookie, "");
-  */
-
-
-
-
 }
-
-// Method here that creates a cookie so it is possible to say res->createCookie f.ex.?
-
-
-//
-
 
 void Response::send(bool close) const {
   write_to_conn(close);
