@@ -17,20 +17,21 @@
 #define DEBUG
 #define DEBUG2
 
-#include <net/tcp.hpp>
-#include <net/tcp_connection_states.hpp>
+#include <net/tcp/connection.hpp>
+#include <net/tcp/connection_states.hpp>
+#include <net/tcp/packet.hpp>
+#include <net/tcp/tcp_errors.hpp>
+#include <net/tcp/tcp.hpp>
 
-using namespace net;
-using Connection = TCP::Connection;
-
+using namespace net::tcp;
 using namespace std;
 
-const TCP::Connection::RTTM::duration_t TCP::Connection::RTTM::CLOCK_G;
+//const RTTM::duration_t RTTM::CLOCK_G;
 
 /*
   This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, Port local_port, Socket remote) :
+Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   host_(host),
   local_port_(local_port),
   remote_(remote),
@@ -49,8 +50,8 @@ Connection::Connection(TCP& host, Port local_port, Socket remote) :
 /*
   This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, Port local_port)
-  : Connection(host, local_port, TCP::Socket())
+Connection::Connection(TCP& host, port_t local_port)
+  : Connection(host, local_port, Socket())
 {
 
 }
@@ -65,6 +66,34 @@ void Connection::setup_default_callbacks() {
   on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
   on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
 }
+
+inline uint16_t Connection::MSDS() const {
+  return std::min(host_.MSS(), cb.SND.MSS) + sizeof(TCP::Header);
+}
+
+inline uint16_t Connection::SMSS() const {
+  return host_.MSS();
+}
+
+inline Socket Connection::local() const {
+  return {host_.address(), local_port_};
+}
+
+Connection::TCB::TCB() {
+  SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss };
+  ISS = (seq_t)4815162342;
+  RCV = { 0, TCP::default_window_size, 0, 0 };
+  IRS = 0;
+  ssthresh = TCP::default_window_size;
+  cwnd = 0;
+  recover = 0;
+};
+
+inline void Connection::TCB::init() {
+  ISS = TCP::generate_iss();
+  recover = ISS; // [RFC 6582]
+}
+
 
 void Connection::read(ReadBuffer buffer, ReadCallback callback) {
   try {
@@ -161,6 +190,10 @@ void Connection::offer(size_t& packets) {
         packets, writeq.size(), usable_window());
 }
 
+inline size_t Connection::send(WriteBuffer& buffer) {
+  return host_.send(shared_from_this(), (char*)buffer.pos(), buffer.remaining);
+}
+
 size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_avail) {
 
   size_t bytes_written = 0;
@@ -181,7 +214,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     remaining -= written;
 
     if(!remaining or usable_window() < SMSS() or !packets_avail)
-      packet->set_flag(PSH);
+      packet->set_flag(TCP::PSH);
 
     transmit(packet);
     //packets.push_back(packet);
@@ -234,12 +267,12 @@ void Connection::writeq_push() {
   }
 }
 
-size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n, Seq seq) {
+size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n, seq_t seq) {
   Expects(!packet->has_tcp_data());
 
   auto written = packet->fill(buffer, std::min(n, (size_t)SMSS()));
 
-  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
+  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(TCP::ACK);
 
   Ensures(written <= n);
 
@@ -292,6 +325,13 @@ void Connection::close() {
   }
 }
 
+void Connection::receive_disconnect() {
+  assert(!read_request.buffer.empty());
+  auto& buf = read_request.buffer;
+  buf.push = true;
+  read_request.callback(buf.buffer, buf.size());
+}
+
 /*
   Local:Port Remote:Port (STATE)
 */
@@ -301,7 +341,7 @@ string Connection::to_string() const {
   return os.str();
 }
 
-void Connection::segment_arrived(TCP::Packet_ptr incoming) {
+void Connection::segment_arrived(Packet_ptr incoming) {
 
   signal_packet_received(incoming);
 
@@ -345,8 +385,8 @@ Connection::~Connection() {
   debug("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
 }
 
-TCP::Packet_ptr Connection::create_outgoing_packet() {
-  auto packet = std::static_pointer_cast<TCP::Packet>((host_.inet_).createPacket(0));
+Packet_ptr Connection::create_outgoing_packet() {
+  auto packet = std::static_pointer_cast<net::tcp::Packet>((host_.inet_).createPacket(0));
   //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
 
   packet->init();
@@ -364,7 +404,7 @@ TCP::Packet_ptr Connection::create_outgoing_packet() {
   return packet;
 }
 
-void Connection::transmit(TCP::Packet_ptr packet) {
+void Connection::transmit(Packet_ptr packet) {
   if(!rttm.active and packet->end() == cb.SND.NXT) {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
     rttm.start();
@@ -392,7 +432,7 @@ void Connection::send_much() {
   writeq_push();
 }
 
-bool Connection::handle_ack(TCP::Packet_ptr in) {
+bool Connection::handle_ack(Packet_ptr in) {
   // dup ack
   /*
     1. Same ACK as latest received
@@ -402,7 +442,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
   */
   if(in->ack() == cb.SND.UNA and flight_size()
     and !in->has_tcp_data() and cb.SND.WND == in->win()
-    and !in->isset(SYN) and !in->isset(FIN))
+    and !in->isset(TCP::SYN) and !in->isset(TCP::FIN))
   {
     dup_acks_++;
     on_dup_ack();
@@ -473,7 +513,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
         send_much();
 
       // if data, let state continue process
-      if(in->has_tcp_data() or in->isset(FIN))
+      if(in->has_tcp_data() or in->isset(TCP::FIN))
         return true;
 
     } // < !fast recovery
@@ -503,7 +543,7 @@ bool Connection::handle_ack(TCP::Packet_ptr in) {
           debug("<Connection::handle_ack> Can't send during recovery - usable window is closed.\n");
         }
 
-        if(in->has_tcp_data() or in->isset(FIN))
+        if(in->has_tcp_data() or in->isset(TCP::FIN))
           return true;
       } // < partial ack
 
@@ -575,7 +615,7 @@ void Connection::on_dup_ack() {
          retransmission timer so that it will expire after RTO seconds
          (for the current value of RTO).
 */
-void Connection::rtx_ack(const Seq ack) {
+void Connection::rtx_ack(const seq_t ack) {
   auto acked = ack - prev_highest_ack_;
   // what if ack is from handshake / fin?
   writeq.acknowledge(acked);
@@ -613,11 +653,11 @@ void Connection::retransmit() {
   auto packet = create_outgoing_packet();
   // If not retransmission of a pure SYN packet, add ACK
   if(!is_state(SynSent::instance())) {
-    packet->set_flag(ACK);
+    packet->set_flag(TCP::ACK);
   }
   // If retransmission from either SYN-SENT or SYN-RCV, add SYN
   if(is_state(SynSent::instance()) or is_state(SynReceived::instance())) {
-    packet->set_flag(SYN);
+    packet->set_flag(TCP::SYN);
     packet->set_seq(cb.SND.UNA);
     syn_rtx_++;
   }
@@ -633,7 +673,7 @@ void Connection::retransmit() {
 
   // If retransmission of a FIN packet
   if(is_state(FinWait1::instance()) or is_state(LastAck::instance())) {
-    packet->set_flag(FIN);
+    packet->set_flag(TCP::FIN);
   }
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
@@ -752,7 +792,7 @@ void Connection::rtx_timeout() {
   */
 }
 
-TCP::Seq Connection::generate_iss() {
+seq_t Connection::generate_iss() {
   return host_.generate_iss();
 }
 
@@ -816,7 +856,7 @@ std::string Connection::TCB::to_string() const {
   return os.str();
 }
 
-void Connection::parse_options(TCP::Packet_ptr packet) {
+void Connection::parse_options(Packet_ptr packet) {
   assert(packet->has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet->offset(), packet->tcp_options_length());
@@ -825,7 +865,7 @@ void Connection::parse_options(TCP::Packet_ptr packet) {
 
   while((char*)opt < packet->tcp_data()) {
 
-    auto* option = (TCP::Option*)opt;
+    auto* option = (Option*)opt;
 
     switch(option->kind) {
 
@@ -843,7 +883,7 @@ void Connection::parse_options(TCP::Packet_ptr packet) {
       if(option->length != 4)
         throw TCPBadOptionException{Option::MSS, "length != 4"};
       // unlikely
-      if(!packet->isset(SYN))
+      if(!packet->isset(TCP::SYN))
         throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
 
       auto* opt_mss = (Option::opt_mss*)option;
@@ -860,7 +900,7 @@ void Connection::parse_options(TCP::Packet_ptr packet) {
   }
 }
 
-void Connection::add_option(TCP::Option::Kind kind, TCP::Packet_ptr packet) {
+void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
 
   switch(kind) {
 

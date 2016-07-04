@@ -28,7 +28,7 @@
 #include "ip4/udp.hpp"
 #include "ip4/icmpv4.hpp"
 #include "dns/client.hpp"
-#include "tcp.hpp"
+#include "tcp/tcp.hpp"
 #include <vector>
 
 namespace net {
@@ -39,6 +39,7 @@ namespace net {
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
+    using TCP = tcp::TCP;
 
     Ethernet::addr link_addr() override
     { return eth_.mac(); }

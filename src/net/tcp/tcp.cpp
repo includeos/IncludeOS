@@ -17,11 +17,12 @@
 #define DEBUG
 #define DEBUG2
 
-#include <net/tcp.hpp>
+#include <net/tcp/tcp.hpp>
+#include <net/tcp/packet.hpp>
 #include <alloca.h>
 
 using namespace std;
-using namespace net;
+using namespace net::tcp;
 
 
 TCP::TCP(IPStack& inet) :
@@ -29,7 +30,6 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
-  used_ports(),
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
@@ -46,7 +46,7 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-TCP::Connection& TCP::bind(Port port) {
+Connection& TCP::bind(port_t port) {
   // Already a listening socket.
   if(listeners_.find(port) != listeners_.end()) {
     throw TCPException{"Port is already taken."};
@@ -66,7 +66,7 @@ TCP::Connection& TCP::bind(Port port) {
   @WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)),
   and open() is called before callback is added.
 */
-TCP::Connection_ptr TCP::connect(Socket remote) {
+Connection_ptr TCP::connect(Socket remote) {
   auto port = next_free_port();
   std::shared_ptr<Connection> connection = add_connection(port, remote);
   connection->open(true);
@@ -82,7 +82,7 @@ void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
   connection->onConnect(callback).open(true);
 }
 
-TCP::Seq TCP::generate_iss() {
+seq_t TCP::generate_iss() {
   // Do something to get a iss.
   return rand();
 }
@@ -90,12 +90,10 @@ TCP::Seq TCP::generate_iss() {
 /*
   TODO: Check if there is any ports free.
 */
-TCP::Port TCP::next_free_port() {
+port_t TCP::next_free_port() {
 
-  if(++current_ephemeral_ == 0) {
-    current_ephemeral_ = 1025;
-    // TODO: Can be taken
-  }
+  current_ephemeral_ = (current_ephemeral_ == 0) ? current_ephemeral_ + 1025 : current_ephemeral_ + 1;
+
   // Avoid giving a port that is bound to a service.
   while(listeners_.find(current_ephemeral_) != listeners_.end())
     current_ephemeral_++;
@@ -106,7 +104,7 @@ TCP::Port TCP::next_free_port() {
 /*
   Expensive look up if port is in use.
 */
-bool TCP::port_in_use(const TCP::Port port) const {
+bool TCP::port_in_use(const port_t port) const {
   if(listeners_.find(port) != listeners_.end())
     return true;
 
@@ -118,7 +116,7 @@ bool TCP::port_in_use(const TCP::Port port) const {
 }
 
 
-uint16_t TCP::checksum(TCP::Packet_ptr packet) {
+uint16_t TCP::checksum(Packet_ptr packet) {
   // TCP header
   TCP::Header* tcp_hdr = &(packet->tcp_header());
   // Pseudo header
@@ -172,7 +170,7 @@ uint16_t TCP::checksum(TCP::Packet_ptr packet) {
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
-  auto packet = std::static_pointer_cast<TCP::Packet>(packet_ptr);
+  auto packet = std::static_pointer_cast<net::tcp::Packet>(packet_ptr);
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
@@ -275,23 +273,23 @@ string TCP::to_string() const {
 }
 
 
-TCP::Connection_ptr TCP::add_connection(Port local_port, TCP::Socket remote) {
+Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
   return        (connections_.emplace(
                                       Connection::Tuple{ local_port, remote },
                                       std::make_shared<Connection>(*this, local_port, remote))
                  ).first->second;
 }
 
-void TCP::close_connection(TCP::Connection& conn) {
+void TCP::close_connection(Connection& conn) {
   debug("<TCP::close_connection> Closing connection: %s \n", conn.to_string().c_str());
   connections_.erase(conn.tuple());
 }
 
-void TCP::drop(TCP::Packet_ptr) {
+void TCP::drop(Packet_ptr) {
   //debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
 
-void TCP::transmit(TCP::Packet_ptr packet) {
+void TCP::transmit(Packet_ptr packet) {
   // Generate checksum.
   packet->set_checksum(TCP::checksum(packet));
   //if(packet->has_data())
