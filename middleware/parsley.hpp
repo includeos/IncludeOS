@@ -44,7 +44,7 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-inline void process(server::Request_ptr req, server::Response_ptr, server::Next next) {
+inline void Parsley::process(server::Request_ptr req, server::Response_ptr, server::Next next) {
   using namespace json;
 
   if(not has_json(req)) return (*next)();
@@ -65,7 +65,7 @@ inline void process(server::Request_ptr req, server::Response_ptr, server::Next 
   return (*next)();
 }
 
-inline bool has_json(server::Request_ptr req) const {
+inline bool Parsley::has_json(server::Request_ptr req) const {
   auto c_type = http::header_fields::Entity::Content_Type;
   if(not req->has_header(c_type)) return false;
   return (req->header_value(c_type).find("application/json") != std::string::npos);
