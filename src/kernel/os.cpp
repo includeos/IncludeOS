@@ -58,17 +58,17 @@ void OS::start() {
 
   atexit(default_exit);
 
+  // Set up interrupt and exception handlers
+  IRQ_manager::init();
+
   // read ACPI tables
   hw::ACPI::init();
 
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
 
-  // Set up interrupt handlers
-  IRQ_manager::init();
-
+  // enable interrupts
   INFO("BSP", "Enabling interrupts");
-  hw::APIC::setup_subs();
   IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer

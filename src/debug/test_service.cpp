@@ -25,9 +25,12 @@ using namespace std::chrono;
 #include <profile>
 
 extern void print_heap_info();
+extern void print_backtrace();
+
 void print_tcp_status() {
   printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
   print_heap_info();
+  print_backtrace();
 }
 
 uint8_t bullshit[65536*4];

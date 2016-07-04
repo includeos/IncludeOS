@@ -33,21 +33,25 @@ namespace hw {
     static void work_signal();
     
     static void init();
-    static void init_smp();
+    static void setup_subs();
     
-    static void send_ipi(uint8_t dest, uint8_t vector);
+    static void send_ipi(uint8_t cpu, uint8_t vector);
     static void send_bsp_intr();
     static void bcast_ipi(uint8_t vector);
+    
+    // enable and disable legacy IRQs
+    static void enable_irq(uint8_t irq);
+    static void disable_irq(uint8_t irq);
     
     static uint8_t get_isr();
     static uint8_t get_irr();
     static void eoi();
     
-    static void enable_irq(uint8_t irq);
-    static void disable_irq(uint8_t irq);
-    static void setup_subs();
-    
     static void reboot();
+    
+  private:
+    static void init_timer(uint8_t);
+    static void init_smp();
   };
   
 }
