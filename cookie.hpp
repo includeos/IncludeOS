@@ -20,11 +20,6 @@
 
 //#include "attribute.hpp"
 
-// Create cookie here??? (add_header(...) til Response og Request) ELLER UTVIKLER OPPRETTE COOKIES SELV: res.setHeader('Set-Cookie', cookie.serialize()))
-// Se screenshot Plan_Annika hvor det står øverst var cookie = require(´cookie´): Det er cookie-middlewaret som har metoden serialize (blir cookie_parser.hpp), men
-// her opprettes en cookie ved å gjøre en metode på res (response) (res.setHeader(...)) - hva ønsker vi??
-// Middleware for kun å parse og så metoder i Response og Request for å opprette cookies???? Er det sånn det er løst i Node.js??
-
 #include <regex>
 #include <string>
 #include <vector>
@@ -46,7 +41,6 @@ namespace cookie {
   private:
     using CookieData = std::vector<std::pair<std::string, std::string>>;
     using Parser = std::function<CookieData(const std::string&)>;
-        // std::function: a function that returns CookieData and takes a string as parameter
 
   public:
 
@@ -189,6 +183,9 @@ namespace cookie {
     // ?
     std::shared_ptr<Cookie> parse(std::string& str, std::string& options);  // Parse str to a Cookie-object ?
 
+    // public version:
+    // void parse(const std::string& data);
+
   private:
     /*std::string key_;
     std::string value_;
@@ -199,7 +196,6 @@ namespace cookie {
 
     static const std::string no_entry_value_;
 
-    // ?
     void parse(const std::string& data);
 
     auto find(const std::string& keyword) const;
