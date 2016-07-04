@@ -75,7 +75,6 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
 
 
 
-
     if(not has_cookie(req)) {
       // No Cookie in header field: We want to create a cookie then??:
       // create cookie:

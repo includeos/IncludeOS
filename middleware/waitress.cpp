@@ -20,6 +20,7 @@
 
 #include "middleware.hpp" // inherit middleware
 #include <fs/disk.hpp>
+#include <string>
 
 namespace middleware {
 
@@ -60,7 +61,7 @@ public:
         return (*next)();
       }
 
-      res->add_header(http::header_fields::Entity::Allow, "GET, HEAD"s);
+      res->add_header(http::header_fields::Entity::Allow, "GET, HEAD");
       return res->send_code(http::Method_Not_Allowed);
     }
 

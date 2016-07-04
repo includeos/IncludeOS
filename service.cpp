@@ -67,15 +67,15 @@ void Service::start() {
       });
 
       server::Request::on_recv([](size_t n) {
-        stats.bump_data_received(n);
-             .bump_request_received();
+        stats.bump_data_received(n)
+          .bump_request_received();
       });
 
       // setup "database" squirrels
 
       squirrels = std::make_shared<SquirrelBucket>();
       squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
-        return s.name;
+        return s.get_name();
       }, SquirrelBucket::UNIQUE);
 
       auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;

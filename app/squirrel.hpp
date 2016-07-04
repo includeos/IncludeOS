@@ -44,6 +44,30 @@ struct Squirrel : json::Serializable {
     , occupation_ {occupation}
   {}
 
+  std::string get_name() const {
+    return name_;
+  }
+
+  void set_name(std::string name) {
+    name_ = name;
+  }
+
+  size_t get_age() const {
+    return age_;
+  }
+
+  void set_age(size_t age) {
+    age_ = age;
+  }
+
+  std::string get_occupation() const {
+    return occupation_;
+  }
+
+  void set_occupation(std::string occupation) {
+    occupation_ = occupation;
+  }
+
   /**
    *
    */
