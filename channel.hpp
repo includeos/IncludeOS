@@ -59,6 +59,8 @@ public:
   bool join(Client&, const std::string& key = "");
   // and the PART command
   bool part(Client&, const std::string& msg = "");
+  // set new channel topic (and timestamp it)
+  void set_topic(Client&, const std::string&);
   
   bool is_banned(index_t) const {
     return false;
@@ -85,15 +87,16 @@ public:
   void bcast(const std::string&);
   
 private:
+  std::string mode_string() const;
   void revalidate_channel();
   
   index_t     self;
-  std::string cmodes;
-  uint32_t    ctimestamp;
+  uint16_t    cmodes;
+  long        create_ts;
   std::string cname;
   std::string ctopic;
   std::string ctopic_by;
-  uint32_t    ctopic_ts;
+  long        ctopic_ts;
   std::string ckey;
   uint16_t    climit;
   IrcServer&  server;

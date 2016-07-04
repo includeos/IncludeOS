@@ -1,15 +1,15 @@
 #include "modes.hpp"
 
-// user modes
+// visible user modes
 mode_table_t usermodes("airoOws");
-// channel modes
-mode_table_t chanmodes("eIbklimnpstu");
+// visible channel modes (+eIb)
+mode_table_t chanmodes("klimnpstu");
 
 uint16_t default_user_modes()
 {
   return 2; // +i
 }
-std::string default_channel_modes()
+uint16_t default_channel_modes()
 {
-  return "nt";
+  return 16 | 128; // +nt
 }

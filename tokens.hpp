@@ -115,5 +115,6 @@ inline bool is_error(size_t numeric) {
 #define TK_MODE     "MODE"
 #define TK_JOIN     "JOIN"
 #define TK_PART     "PART"
+#define TK_TOPIC    "TOPIC"
 #define TK_PRIVMSG  "PRIVMSG"
 #define TK_QUIT     "QUIT"

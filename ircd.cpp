@@ -1,6 +1,6 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
-
+#include <ctime>
 #include <set>
 
 IrcServer::IrcServer(
@@ -62,6 +62,20 @@ IrcServer::IrcServer(
       printf("***** ERROR for %u ******\n", clindex);
     });
   });
+  
+  // set timestamp for when the server was started
+  this->created_ts = create_timestamp();
+  this->created_string = std::string(ctime(&created_ts));
+}
+
+long IrcServer::create_timestamp() const
+{
+  return time(nullptr);
+}
+
+long IrcServer::uptime() const
+{
+  return create_timestamp() - this->created_ts;
 }
 
 size_t IrcServer::free_client() {

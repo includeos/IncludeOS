@@ -16,11 +16,8 @@ Channel::Channel(index_t idx, IrcServer& sref)
 void Channel::reset(const std::string& new_name)
 {
   cmodes = default_channel_modes();
-  ctimestamp = 0; // FIXME
   cname = new_name;
   ctopic.clear();
-  ctopic_by.clear();
-  ctopic_ts = 0;
   ckey.clear();
   climit = 0;
   clients_.clear();
@@ -83,8 +80,10 @@ bool Channel::join(Client& client, const std::string& key)
   bcast(":" + client.nickuserhost() + " JOIN " + name());
   // send current channel modes
   if (new_channel) {
+    // set creation timestamp
+    create_ts = server.create_timestamp();
     // server creates new channel by setting modes
-    client.send("MODE " + name() + " +" + this->cmodes);
+    client.send("MODE " + name() + " +" + mode_string());
     // client is operator when he creates it
     chanops.insert(cid);
   }
@@ -118,6 +117,15 @@ bool Channel::part(Client& client, const std::string& msg)
   return true;
 }
 
+void Channel::set_topic(Client& client, const std::string& new_topic)
+{
+  this->ctopic = new_topic;
+  this->ctopic_by = client.nickuserhost();
+  this->ctopic_ts = server.create_timestamp();
+  // broadcast change
+  bcast(":" + client.nickuserhost() + " " TK_TOPIC " " + name() + " :" + new_topic);
+}
+
 bool Channel::is_chanop(index_t cid) const
 {
   return chanops.find(cid) != chanops.end();
@@ -136,10 +144,19 @@ std::string Channel::listed_name(index_t cid) const
   return server.get_client(cid).nick();
 }
 
+std::string Channel::mode_string() const
+{
+  std::string str;  str.reserve(10);
+  for (int i = 0; i < 9; i++) {
+    if (cmodes & (1 << i)) str += chanmodes.get()[i];
+  }
+  return str;
+}
+
 void Channel::send_mode(Client& client)
 {
-  client.send(RPL_CHANNELMODEIS, name() + " +" + this->cmodes);
-  client.send(RPL_CHANNELCREATED, name() + " 0");
+  client.send(RPL_CHANNELMODEIS, name() + " +" + mode_string());
+  client.send(RPL_CHANNELCREATED, name() + " " + std::to_string(create_ts));
 }
 void Channel::send_topic(Client& client)
 {

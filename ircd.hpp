@@ -118,6 +118,16 @@ public:
     return 10;
   }
   
+  // return a now timestamp
+  long create_timestamp() const;
+  
+  // date server was created
+  const std::string& created() const {
+    return created_string;
+  }
+  // uptime in seconds
+  long uptime() const;
+  
 private:
   size_t free_client();
   size_t free_channel();
@@ -139,5 +149,7 @@ private:
   std::map<std::string, size_t> h_channels;
   
   // statistics
+  std::string created_string;
+  long        created_ts;
   size_t statcounters[8] {0};
 };

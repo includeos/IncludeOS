@@ -139,12 +139,30 @@ void Client::handle(
     else
       send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
   }
-  else if (cmd == TK_QUIT)
+  else if (cmd == TK_TOPIC)
   {
-    std::string reason;
-    if (msg.size() > 1) reason = msg[1];
-    send_quit(reason);
-    return;
+    if (msg.size() > 1)
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        auto& channel = server.get_channel(ch);
+        if (msg.size() > 2)
+        {
+          if (channel.is_chanop(get_id())) {
+            channel.set_topic(*this, msg[2]);
+          } else {
+            send(ERR_CHANOPRIVSNEEDED, msg[1] + " :You're not channel operator");
+          }
+        }
+        else
+          channel.send_topic(*this);
+      }
+      else
+        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+    else
+      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
   }
   else if (cmd == TK_PRIVMSG)
   {
@@ -160,7 +178,7 @@ void Client::handle(
           if (channel.find(get_id()) != NO_SUCH_CLIENT)
           {
             // broadcast message to channel
-            channel.bcast_butone(get_id(), ":" + nickuserhost() + " PRIVMSG " + channel.name() + " :" + msg[2]);
+            channel.bcast_butone(get_id(), ":" + nickuserhost() + " " TK_PRIVMSG " " + channel.name() + " :" + msg[2]);
           }
         }
         else
@@ -173,7 +191,7 @@ void Client::handle(
         {
           // send private message to user
           auto& client = server.get_client(cl);
-          client.send_raw(":" + nickuserhost() + " PRIVMSG " + client.nick() + " :" + msg[2]);
+          client.send_raw(":" + nickuserhost() + " " TK_PRIVMSG " " + client.nick() + " :" + msg[2]);
         }
         else {
           send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
@@ -182,6 +200,13 @@ void Client::handle(
     }
     else
       send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+  }
+  else if (cmd == TK_QUIT)
+  {
+    std::string reason;
+    if (msg.size() > 1) reason = msg[1];
+    send_quit(reason);
+    return;
   }
   else
   {

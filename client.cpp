@@ -4,6 +4,7 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 #include <cassert>
+//#define PRINT_CLIENT_MESSAGE
 
 void Client::reset_to(Connection conn)
 {
@@ -41,12 +42,15 @@ void Client::split_message(const std::string& msg)
   std::string source;
   auto vec = split(msg, source);
   
+#ifdef PRINT_CLIENT_MESSAGE
   printf("[Client]: ");
   for (auto& str : vec)
   {
     printf("[%s]", str.c_str());
   }
   printf("\n");
+#endif
+  
   // ignore empty messages
   if (vec.empty()) return;
   // transform command to uppercase
@@ -179,7 +183,7 @@ std::string Client::mode_string() const
   std::string res;
   res.reserve(4);
   
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < 8; i++)
   {
     if (umodes_ & (1 << i))
         res += usermodes.bit_to_char(i);
