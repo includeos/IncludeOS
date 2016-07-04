@@ -68,27 +68,26 @@ private:
 /**--v----------- Implementation Details -----------v--**/
 
 inline void CookieParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
+  if(not has_cookie(req)) {
+    // No Cookie in header field: We want to create a cookie then??:
+    // create cookie:
+    // ...
+
+    //create_cookie(res, "Cookie-test", "cookie-value");
+
+    return (*next)();
+  } else {
+    // Found Cookie in header
+    // Do something
 
 
-
-
-
-
-
-    if(not has_cookie(req)) {
-      // No Cookie in header field: We want to create a cookie then??:
-      // create cookie:
-      // ...
-
-      return (*next)();
-    } else {
-      // Found Cookie in header
-      // Do something
-    }
+  }
 }
 
-inline bool create_cookie(std::string& key, std::string& value) {
+inline bool create_cookie(server::Response_ptr res, std::string& key, std::string& value) {
+  /*Cookie c = new Cookie();
 
+  res->add_header(http::header_fields::Response::Set_Cookie, );*/
 }
 
 inline bool create_cookie(std::string& key, std::string& value, std::string& options) {

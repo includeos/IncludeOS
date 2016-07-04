@@ -15,5 +15,6 @@ sync
 rm -f memdisk.o
 
 make -j
+export CPU=""
 export HDB=" -drive file=./memdisk.fat,if=virtio,media=disk "
 ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/run.sh Acorn.img

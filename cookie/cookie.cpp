@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include "cookie.hpp"
+#include <string>
+//#include <boost/algorithm/string.hpp>
 
 using namespace cookie;
 
@@ -99,6 +101,8 @@ Cookie::operator std::string () const {
 }
 
 inline void Cookie::parse(const std::string& data) {
+  // add data to data_ (CookieData)
+
   if(parser_) {
     data_ = parser_(data);
   } else {
@@ -106,8 +110,26 @@ inline void Cookie::parse(const std::string& data) {
     auto position = std::sregex_iterator(data.begin(), data.end(), pattern);
     auto end = std::sregex_iterator();
 
-    // And more ...
+    for (std::sregex_iterator i = position; i != end; ++i) {
+        std::smatch pair = *i;
+        std::string pair_str = pair.str();
 
+        // Remove all empty spaces:
+        pair_str.erase(std::remove(pair_str.begin(), pair_str.end(), ' '), pair_str.end());
+
+        /*Alt.:
+        vector<std::string> v;
+        boost::split(v, pair_str, boost::is_any_of("="));
+        data_.push_back(std::make_pair(v.at(0), v.at(1)));*/
+
+        std::size_t pos = pair_str.find("=");
+        std::string key = pair_str.substr(0, pos);
+        std::string val = pair_str.substr(pos + 1);
+
+        data_.push_back(std::make_pair(key, val));
+
+        //printf("CookieData data_: %s = %s\n", key.c_str(), val.c_str());
+    }
   }
 }
 

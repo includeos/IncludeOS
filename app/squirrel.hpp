@@ -44,7 +44,7 @@ struct Squirrel : json::Serializable {
     , occupation_ {occupation}
   {}
 
-  std::string get_name() const {
+  const std::string& get_name() const {
     return name_;
   }
 
@@ -60,7 +60,7 @@ struct Squirrel : json::Serializable {
     age_ = age;
   }
 
-  std::string get_occupation() const {
+  const std::string& get_occupation() const {
     return occupation_;
   }
 

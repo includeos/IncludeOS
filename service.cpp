@@ -24,6 +24,9 @@
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
 
+// REMOVE:
+#include "cookie.hpp"
+
 using namespace std;
 using namespace acorn;
 
@@ -46,6 +49,7 @@ cmos::Time STARTED_AT;
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start() {
+
   // Test {URI} component
   uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
   printf("<URI> Test URI: %s \n", project_uri.path().c_str());
@@ -89,7 +93,7 @@ void Service::start() {
       } catch(bucket::ConstraintUnique) {
         exception_thrown = true;
       }
-      assert(exception_thrown);
+      //assert(exception_thrown);
 
       // no-go if throw
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
@@ -114,7 +118,7 @@ void Service::start() {
       } catch(bucket::ConstraintUnique) {
         e_thrown = true;
       }
-      assert(e_thrown);
+      //assert(e_thrown);
 
       // no-go if throw
       //assert(users->look_for("key", 1).key == first_user_key);
