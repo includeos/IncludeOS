@@ -15,35 +15,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "request.hpp"
+#ifndef SERVER_BUFFER_HPP
+#define SERVER_BUFFER_HPP
 
-using namespace server;
+namespace server {
 
-Request::OnRecv Request::on_recv_ = [](size_t) {};
+/**
+ *
+ */
+template <typename PTR>
+class BufferWrapper {
+private:
+  using ptr_t = PTR;
 
-Request::Request(buffer_t buf, size_t n)
-  : Parent(std::string{(char*)buf.get(), n})
-{
+public:
+  /**
+   *
+   */
+  BufferWrapper(ptr_t ptr, const size_t sz)
+    : data_ {ptr}
+    , size_ {sz}
+  {}
 
-}
+  /**
+   *
+   */
+  const ptr_t begin()
+  { return data_; }
 
-void Request::complete() {
-  assert(is_complete());
-  on_recv_(total_length());
-}
+  /**
+   *
+   */
+  const ptr_t end()
+  { return data_ + size_; }
 
-size_t Request::content_length() const {
-  using namespace http::header_fields::Entity;
-  if(!has_header(Content_Length))
-    return 0;
-  try {
-    return std::stoull(header_value(Content_Length));
-  }
-  catch(...) {
-    return 0;
-  }
-}
+private:
+  ptr_t        data_;
+  const size_t size_;
+}; //< class BufferWrapper
 
-Request::~Request() {
-  //printf("<Request> Deleted\n");
-}
+} //< namespace server
+
+#endif //< SERVER_BUFFER_HPP
