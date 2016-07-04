@@ -67,7 +67,7 @@ inline const std::string& Cookie::max_age() const {
   return (it not_eq data_.end()) ? it->second : no_entry_value_;
 }
 
-inline const std::string& Cookie::domanin() const {
+inline const std::string& Cookie::domain() const {
   auto it = find("Domain");
   return (it not_eq data_.end()) ? it->second : no_entry_value_;
 }
@@ -77,11 +77,11 @@ inline const std::string& Cookie::path() const {
   return (it not_eq data_.end()) ? it->second : no_entry_value_;
 }
 
-inline const bool Cookie::is_secure() const noexcept {
+inline bool Cookie::is_secure() const noexcept {
   return find("Secure") not_eq data_.end();
 }
 
-inline const bool Cookie::is_http_only() const noexcept {
+inline bool Cookie::is_http_only() const noexcept {
   return find("HttpOnly") not_eq data_.end();
 }
 
@@ -116,7 +116,7 @@ inline std::ostream& operator << (std::ostream& output_device, const Cookie& coo
 }
 
 // ?
-std::string Cookie::serialize(std::string& key, std::string& value) {
+const std::string Cookie::serialize(std::string& key, std::string& value) {
   //if(key.empty())
 
   std::string cookieString = "";
@@ -127,7 +127,7 @@ std::string Cookie::serialize(std::string& key, std::string& value) {
 }
 
 // ?
-std::string Cookie::serialize(std::string& key, std::string& value, std::string& options) {
+const std::string Cookie::serialize(std::string& key, std::string& value, std::string& options) {
 
 }
 
@@ -138,7 +138,7 @@ bool Cookie::deserialize() {
 
 // ?
 std::shared_ptr<Cookie> Cookie::parse(std::string& str, std::string& options) {
-  std::shared_ptr<Cookie> cookie(new Cookie());
+  /*std::shared_ptr<Cookie> c(new Cookie(...));
 
-  return cookie;
+  return c;*/
 }

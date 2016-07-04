@@ -68,6 +68,14 @@ private:
 /**--v----------- Implementation Details -----------v--**/
 
 inline void CookieParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
+
+
+
+
+
+
+
+
     if(not has_cookie(req)) {
       // No Cookie in header field: We want to create a cookie then??:
       // create cookie:
@@ -78,6 +86,18 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
       // Found Cookie in header
       // Do something
     }
+}
+
+inline bool create_cookie(std::string& key, std::string& value) {
+
+}
+
+inline bool create_cookie(std::string& key, std::string& value, std::string& options) {
+
+}
+
+inline bool clear_cookie(std::string& key) {
+
 }
 
 inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
