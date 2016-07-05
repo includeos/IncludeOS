@@ -322,7 +322,7 @@ public:
 
     TCB();
 
-    inline void init();
+    void init();
 
     bool slow_start()
     { return cwnd < ssthresh; }
@@ -357,7 +357,7 @@ public:
   /*
     The local Socket bound to this connection.
   */
-  inline Socket local() const;
+  Socket local() const;
 
   /*
     The remote Socket bound to this connection.
@@ -676,7 +676,7 @@ private:
   /*
     Active try to send a buffer by asking the TCP.
   */
-  inline size_t send(WriteBuffer& buffer);
+  size_t send(WriteBuffer& buffer);
 
   /*
     Segmentize buffer into packets until either everything has been written,
@@ -696,9 +696,7 @@ private:
   /*
     Returns if the connection has a doable write job.
   */
-  inline bool has_doable_job() {
-    return writeq.remaining_requests() and usable_window() >= SMSS();
-  }
+  inline bool has_doable_job();
 
   /*
     Try to process the current write queue.
@@ -708,7 +706,8 @@ private:
   /*
     Try to write (some of) queue on connected.
   */
-  inline void writeq_on_connect() { writeq_push(); }
+  inline void writeq_on_connect()
+  { writeq_push(); }
 
   /*
     Reset queue on disconnect. Clears the queue and notice every requests callback.
@@ -718,39 +717,46 @@ private:
   /*
     Returns if the TCP has the Connection in write queue
   */
-  inline bool is_queued() const {
-    return queued_;
-  }
+  inline bool is_queued() const
+  { return queued_; }
 
   /*
     Mark wether the Connection is in TCP write queue or not.
   */
-  inline void set_queued(bool queued) {
-    queued_ = queued;
-  }
+  inline void set_queued(bool queued)
+  { queued_ = queued; }
 
   /*
     Invoke/signal the diffrent TCP events.
   */
-  inline bool signal_accept() { return on_accept_(shared_from_this()); }
+  inline bool signal_accept()
+  { return on_accept_(shared_from_this()); }
 
-  inline void signal_connect() { on_connect_(shared_from_this()); }
+  inline void signal_connect()
+  { on_connect_(shared_from_this()); }
 
-  inline void signal_disconnect(Disconnect::Reason&& reason) { on_disconnect_(shared_from_this(), Disconnect{reason}); }
+  inline void signal_disconnect(Disconnect::Reason&& reason)
+  { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
-  inline void signal_error(TCPException error) { on_error_(shared_from_this(), error); }
+  inline void signal_error(TCPException error)
+  { on_error_(shared_from_this(), error); }
 
-  inline void signal_packet_received(Packet_ptr packet) { on_packet_received_(shared_from_this(), packet); }
+  inline void signal_packet_received(Packet_ptr packet)
+  { on_packet_received_(shared_from_this(), packet); }
 
-  inline void signal_packet_dropped(Packet_ptr packet, std::string reason) { on_packet_dropped_(packet, reason); }
+  inline void signal_packet_dropped(Packet_ptr packet, std::string reason)
+  { on_packet_dropped_(packet, reason); }
 
-  inline void signal_rtx_timeout() { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
+  inline void signal_rtx_timeout()
+  { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
 
   /*
     Drop a packet. Used for debug/callback.
   */
-  inline void drop(Packet_ptr packet, std::string reason) { signal_packet_dropped(packet, reason); }
-  inline void drop(Packet_ptr packet) { drop(packet, "None given."); }
+  inline void drop(Packet_ptr packet, std::string reason)
+  { signal_packet_dropped(packet, reason); }
+  inline void drop(Packet_ptr packet)
+  { drop(packet, "None given."); }
 
 
   // RFC 3042
@@ -761,7 +767,8 @@ private:
   /*
     Returns the TCB.
   */
-  inline Connection::TCB& tcb() { return cb; }
+  inline Connection::TCB& tcb()
+  { return cb; }
 
   /*
 
@@ -838,10 +845,9 @@ private:
   // number of non duplicate acks received
   size_t acks_rcvd_ = 0;
 
-  inline void setup_congestion_control()
-  { reno_init(); }
+  void setup_congestion_control();
 
-  inline uint16_t SMSS() const;
+  uint16_t SMSS() const;
 
   inline uint16_t RMSS() const
   { return cb.SND.MSS; }
@@ -851,58 +857,22 @@ private:
 
   /// Reno ///
 
-  inline void reno_init() {
-    reno_init_cwnd(3);
-    reno_init_sshtresh();
-  }
+  void reno_init();
 
-  inline void reno_init_cwnd(size_t segments)
-  {
-    cb.cwnd = segments*SMSS();
-    debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", cb.cwnd);
-  }
+  void reno_init_cwnd(size_t segments);
 
-  inline void reno_init_sshtresh()
+  void reno_init_sshtresh()
   { cb.ssthresh = cb.SND.WND; }
 
+  void reno_increase_cwnd(uint16_t n);
 
-  inline void reno_increase_cwnd(uint16_t n)
-  { cb.cwnd += std::min(n, SMSS()); }
+  void reno_deflate_cwnd(uint16_t n);
 
-  inline void reno_deflate_cwnd(uint16_t n)
-  { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
+  void reduce_ssthresh();
 
-  inline void reduce_ssthresh() {
-    auto fs = flight_size();
-    debug2("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
+  void fast_retransmit();
 
-    auto two_seg = 2*(uint32_t)SMSS();
-
-    if(limited_tx_)
-      fs = (fs >= two_seg) ? fs - two_seg : 0;
-
-    cb.ssthresh = std::max( (fs / 2), two_seg );
-    debug2("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
-      cb.ssthresh);
-  }
-
-  inline void fast_retransmit() {
-    debug("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
-    // reduce sshtresh
-    reduce_ssthresh();
-    // retransmit segment starting SND.UNA
-    retransmit();
-    // inflate congestion window with the 3 packets we got dup ack on.
-    cb.cwnd = cb.ssthresh + 3*SMSS();
-    fast_recovery = true;
-  }
-
-  inline void finish_fast_recovery() {
-    reno_fpack_seen = false;
-    fast_recovery = false;
-    cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
-    debug("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
-  }
+  void finish_fast_recovery();
 
   inline bool reno_full_ack(seq_t ACK)
   { return ACK - 1 > cb.recover; }

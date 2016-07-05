@@ -75,8 +75,12 @@ inline uint16_t Connection::SMSS() const {
   return host_.MSS();
 }
 
-inline Socket Connection::local() const {
+Socket Connection::local() const {
   return {host_.address(), local_port_};
+}
+
+inline bool Connection::has_doable_job() {
+  return writeq.remaining_requests() and usable_window() >= SMSS();
 }
 
 Connection::TCB::TCB() {
@@ -89,7 +93,7 @@ Connection::TCB::TCB() {
   recover = 0;
 };
 
-inline void Connection::TCB::init() {
+void Connection::TCB::init() {
   ISS = TCP::generate_iss();
   recover = ISS; // [RFC 6582]
 }
@@ -190,7 +194,7 @@ void Connection::offer(size_t& packets) {
         packets, writeq.size(), usable_window());
 }
 
-inline size_t Connection::send(WriteBuffer& buffer) {
+size_t Connection::send(WriteBuffer& buffer) {
   return host_.send(shared_from_this(), (char*)buffer.pos(), buffer.remaining);
 }
 
@@ -919,4 +923,59 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
 void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
   if(!conn->is_closing())
     conn->close();
+}
+
+void Connection::setup_congestion_control() {
+  reno_init();
+}
+
+void Connection::reno_init() {
+  reno_init_cwnd(3);
+  reno_init_sshtresh();
+}
+
+void Connection::reno_init_cwnd(size_t segments) {
+  cb.cwnd = segments*SMSS();
+  debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", cb.cwnd);
+}
+
+
+void Connection::reno_increase_cwnd(uint16_t n) {
+  cb.cwnd += std::min(n, SMSS());
+}
+
+void Connection::reno_deflate_cwnd(uint16_t n) {
+  cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n;
+}
+
+void Connection::reduce_ssthresh() {
+  auto fs = flight_size();
+  debug2("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
+
+  auto two_seg = 2*(uint32_t)SMSS();
+
+  if(limited_tx_)
+    fs = (fs >= two_seg) ? fs - two_seg : 0;
+
+  cb.ssthresh = std::max( (fs / 2), two_seg );
+  debug2("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
+    cb.ssthresh);
+}
+
+void Connection::fast_retransmit() {
+  debug("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
+  // reduce sshtresh
+  reduce_ssthresh();
+  // retransmit segment starting SND.UNA
+  retransmit();
+  // inflate congestion window with the 3 packets we got dup ack on.
+  cb.cwnd = cb.ssthresh + 3*SMSS();
+  fast_recovery = true;
+}
+
+void Connection::finish_fast_recovery() {
+  reno_fpack_seen = false;
+  fast_recovery = false;
+  cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
+  debug("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
 }
