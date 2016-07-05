@@ -86,8 +86,8 @@ namespace fs {
     { return token_ not_eq NO_ERR; }
 
   private:
-    const token_t     token_;
-    const std::string reason_;
+    token_t     token_;
+    std::string reason_;
   }; //< struct error_t
 
   /**
@@ -142,9 +142,9 @@ namespace fs {
     { return std::string{reinterpret_cast<char*>(buffer_.get()), size()}; }
 
   private:
-    const error_t  err_;
-    buffer_t       buffer_;
-    const uint64_t len_;
+    error_t  err_;
+    buffer_t buffer_;
+    uint64_t len_;
   }; //< struct Buffer
 
   /** @var no_error: Always returns boolean false when used in expressions */
