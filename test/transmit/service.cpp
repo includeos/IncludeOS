@@ -32,50 +32,46 @@ void Service::start()
                           { 10,0,0,1 });      // Gateway
   printf("IP address: %s \n", inet->ip_addr().str().c_str());
 
-  // UDP
   const UDP::port_t port = 4242;
   auto& conn = inet->udp().bind(port);
-
   conn.on_read(
   [&conn] (auto addr, auto port, const char* data, int len) {
-    string received = std::string(data,len);
+    auto received = std::string(data, len);
 
     if (received == "SUCCESS") {
-      INFO("Test 2", "Client says SUCCESS");
+      INFO("Test 2", "SUCCESS");
       return;
     }
 
     INFO("Test 2","Starting UDP-test. Got UDP data from %s: %i: %s",
          addr.str().c_str(), port, received.c_str());
 
-    const int PACKETS = 2400;
+    const size_t PACKETS = 600;
+    const size_t PAYLOAD_LEN = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
 
-    string first_reply {"Received '" + received +
-                        "'. Expect " + to_string(PACKETS) + 
-                        " packets in 1s\n" };
+    std::string first_reply = to_string(PACKETS * PAYLOAD_LEN);
 
     // Send the first packet, and then wait for ARP
-    conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
+    conn.sendto(addr, port, first_reply.data(), first_reply.size());
 
-    timer.on_timeout_ms(1s, 
-    [&conn, addr, port, data, len] {
-      size_t packetsize = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
-      INFO("Test 2", "Trying to transmit %i UDP packets of size %i at maximum throttle",
-           PACKETS, packetsize);
+    timer.on_timeout_ms(200ms, 
+    [&conn, addr, port, PACKETS, PAYLOAD_LEN] {
+      
+      INFO("Test 2", "Trying to transmit %u UDP packets of size %u at maximum throttle",
+           PACKETS, PAYLOAD_LEN);
 
-      for (int i = 0; i < PACKETS; i++) {
-        char c = 'A' + (i % 26);
-        string send (packetsize, c);
-        //printf("<TEST> %i nr. of  %c \n", send.size(), c);
-        conn.sendto(addr, port, send.c_str() , send.size());
+      for (size_t i = 0; i < PACKETS*2; i++) {
+        const char c = 'A' + (i % 26);
+        std::string send(PAYLOAD_LEN, c);
+        conn.sendto(addr, port, send.data(), send.size());
       }
 
       CHECK(1,"UDP-transmission didn't panic");
-      INFO("UDP Transmision tests", "SUCCESS");
+      INFO("UDP Transmision tests", "OK");
     });
   });
 
-  timer.on_timeout_ms(200ms,
+  timer.on_timeout_ms(2ms,
   [=] {
     const int PACKETS = 600;
     INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", PACKETS);
@@ -92,4 +88,6 @@ void Service::start()
     INFO("Test 1", "Done. Send some UDP-data to %s:%i to continue test",
          inet->ip_addr().str().c_str(), port);
   });
+  
+  INFO("TRANSMIT", "Ready");
 }
