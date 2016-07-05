@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = test_transmit
+SERVICE = transmit
 SERVICE_NAME = Network transmission tests
 
 # Your service parts
