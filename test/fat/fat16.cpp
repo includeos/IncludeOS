@@ -87,7 +87,7 @@ void Service::start()
       CHECKSERT(buf, "Validate buffer");
 
       // verify that it matches the same location in test-string
-      test = ((char) buf.buffer.get()[0] == internal_banana[i]);
+      test = ((char) buf.data()[0] == internal_banana[i]);
       if (!test) {
         printf("!! Random access read test failed on i = %u\n", i);
         break;
