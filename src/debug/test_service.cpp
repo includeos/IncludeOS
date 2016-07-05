@@ -25,9 +25,12 @@ using namespace std::chrono;
 #include <profile>
 
 extern void print_heap_info();
+extern void print_backtrace();
+
 void print_tcp_status() {
   printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
   print_heap_info();
+  print_backtrace();
 }
 
 uint8_t bullshit[65536*4];
@@ -88,19 +91,19 @@ extern "C" {
   extern void _start();
 }
 
+#include <hw/cpu.hpp>
 void Service::start()
 {
-  printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
-  memset(bullshit, 0, sizeof(bullshit));
-  __validate_bullshit("validate_bullshit begin Service::start()");
+  //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
+  //memset(bullshit, 0, sizeof(bullshit));
+  //__validate_bullshit("validate_bullshit begin Service::start()");
   // heap validation test
-  hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
-  __validate_bullshit("validate_bullshit endof Service::start()");
+  //hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
+  //__validate_bullshit("validate_bullshit endof Service::start()");
   
   //begin_stack_sampling(200);
   // print sampling results every 5 seconds
   //hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
-
 
   hw::PIT::instance().on_repeated_timeout(500ms, 
   [] {

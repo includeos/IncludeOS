@@ -109,7 +109,7 @@ void Service::start() {
   hw::PIT::instance().on_repeated_timeout(10s, []{
       printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
 
-      auto memuse =  OS::memory_usage();
+      auto memuse =  OS::heap_usage();
       printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
       printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
     });
@@ -119,7 +119,7 @@ void Service::start() {
           TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
-          auto reply = std::to_string(OS::memory_usage())+"\n";
+          auto reply = std::to_string(OS::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
           conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
@@ -172,7 +172,7 @@ void Service::start() {
   conn_mem.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
       std::string received = std::string(data,len);
       Expects(received == "memsize");
-      auto reply = std::to_string(OS::memory_usage());
+      auto reply = std::to_string(OS::heap_usage());
       // Send the first packet, and then wait for ARP
       printf("Reporting memory size as %s bytes\n", reply.c_str());
       conn.sendto(addr, port, reply.c_str(), reply.size());
@@ -181,7 +181,7 @@ void Service::start() {
 
 
   printf("*** TEST SERVICE STARTED *** \n");
-  auto memuse = OS::memory_usage();
+  auto memuse = OS::heap_usage();
   printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/
