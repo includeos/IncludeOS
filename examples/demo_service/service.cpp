@@ -24,7 +24,8 @@
 
 using namespace std::chrono;
 
-std::string HTML_RESPONSE() {
+std::string HTML_RESPONSE()
+{
   const int color = rand();
 
   /* HTML Fonts */
@@ -64,16 +65,14 @@ std::string HTML_RESPONSE() {
 
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
-void Service::start() {
-  srand(OS::cycles_since_boot());
-
-  // Stack with network interface (eth0) driven by VirtioNet
-  // DNS address defaults to 8.8.8.8
-  // Static IP configuration, until we (possibly) get DHCP
-  // @note : Mostly to get a robust demo service that works with and without DHCP
-  static auto inet = net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                                           { 255,255,255,0 },  // Netmask
-                                           { 10,0,0,1 });      // Gateway
+void Service::start()
+{
+  // Stack with default network interface (eth0) driven by VirtioNet
+  // Static IP configuration will get overwritten by DHCP, if found
+  static auto inet = 
+    net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
+                          { 255,255,255,0 },  // Netmask
+                          { 10,0,0,1 });      // Gateway
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
@@ -84,46 +83,50 @@ void Service::start() {
   });
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([] (auto conn) -> bool {
-      printf("<Service> @onAccept - Connection attempt from: %s\n",
-             conn->to_string().c_str());
-      return true; // allow all connections
+  server.onAccept(
+  [] (auto conn) -> bool {
+    printf("<Service> @onAccept - Connection attempt from: %s\n",
+           conn->to_string().c_str());
+    return true; // allow all connections
+  })
+  .onConnect(
+  [] (auto conn) {
+    printf("<Service> @onConnect - Connection successfully established.\n");
+    // read async with a buffer size of 1024 bytes
+    // define what to do when data is read
+    conn->read(1024, 
+    [conn] (auto buf, size_t n) {
+      // create string from buffer
+      std::string data { (char*)buf.get(), n };
+      printf("<Service> @read:\n%s\n", data.c_str());
 
-    })
-    .onConnect([] (auto conn) {
-      printf("<Service> @onConnect - Connection successfully established.\n");
-      // read async with a buffer size of 1024 bytes
-      // define what to do when data is read
-      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
-          // create string from buffer
-          std::string data { (char*)buf.get(), n };
-          printf("<Service> @read:\n%s\n", data.c_str());
-
-          if (data.find("GET / ") != std::string::npos) {
-
-            // create response
-            std::string response = HTML_RESPONSE();
-            // write the data from the string with the strings size
-            conn->write(response.data(), response.size(), [](size_t n) {
-                printf("<Service> @write: %u bytes written\n", n);
-              });
-          }
-          else {
-            conn->write(NOT_FOUND.data(), NOT_FOUND.size());
-          }
-        });
-
-    })
-    .onDisconnect([](auto conn, auto reason) {
-        printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
-        conn->close();
-    })
-    .onPacketReceived([](auto, auto packet) {
-        printf("@Packet: %s\n", packet->to_string().c_str());
-    })
-    .onError([](auto, auto err) {
-      printf("<Service> @onError - %s\n", err.what());
+      if (data.find("GET / ") != std::string::npos)
+      {
+        // create response
+        std::string response = HTML_RESPONSE();
+        // write the data from the string with the strings size
+        conn->write(response.data(), response.size(), [](size_t n) {
+            printf("<Service> @write: %u bytes written\n", n);
+          });
+      }
+      else {
+        conn->write(NOT_FOUND.data(), NOT_FOUND.size());
+      }
     });
+  })
+  .onDisconnect(
+  [] (auto conn, auto reason) {
+      printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
+      conn->close();
+  })
+  .onPacketReceived(
+  [] (auto, auto packet) {
+      printf("@Packet: %s\n", packet->to_string().c_str());
+  })
+  .onError(
+  [] (auto, auto err) {
+    printf("<Service> @onError - %s\n", err.what());
+  });
 
   printf("*** TEST SERVICE STARTED ***\n");
 }
