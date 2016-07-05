@@ -18,9 +18,7 @@
 //#define DEBUG // Debug supression
 
 #include <os>
-#include <list>
 #include <net/inet4>
-#include <vector>
 
 using namespace std;
 using namespace net;
@@ -32,56 +30,56 @@ void Service::start()
     net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
                           { 255,255,255,0 },  // Netmask
                           { 10,0,0,1 });      // Gateway
-
-  printf("Service IP address: %s \n", inet->ip_addr().str().c_str());
+  printf("IP address: %s \n", inet->ip_addr().str().c_str());
 
   // UDP
   const UDP::port_t port = 4242;
   auto& conn = inet->udp().bind(port);
 
   conn.on_read(
-  [&] (auto addr, auto port, const char* data, int len) {
-      string received = std::string(data,len);
+  [&conn] (auto addr, auto port, const char* data, int len) {
+    string received = std::string(data,len);
 
-      if (received == "SUCCESS") {
-        INFO("Test 2", "Client says SUCCESS");
-        return;
+    if (received == "SUCCESS") {
+      INFO("Test 2", "Client says SUCCESS");
+      return;
+    }
+
+    INFO("Test 2","Starting UDP-test. Got UDP data from %s: %i: %s",
+         addr.str().c_str(), port, received.c_str());
+
+    const int PACKETS = 2400;
+
+    string first_reply {"Received '" + received +
+                        "'. Expect " + to_string(PACKETS) + 
+                        " packets in 1s\n" };
+
+    // Send the first packet, and then wait for ARP
+    conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
+
+    timer.on_timeout_ms(1s, 
+    [&conn, addr, port, data, len] {
+      size_t packetsize = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
+      INFO("Test 2", "Trying to transmit %i UDP packets of size %i at maximum throttle",
+           PACKETS, packetsize);
+
+      for (int i = 0; i < PACKETS; i++) {
+        char c = 'A' + (i % 26);
+        string send (packetsize, c);
+        //printf("<TEST> %i nr. of  %c \n", send.size(), c);
+        conn.sendto(addr, port, send.c_str() , send.size());
       }
 
-      INFO("Test 2","Starting UDP-test. Got UDP data from %s: %i: %s",
-           addr.str().c_str(), port, received.c_str());
-
-      const int packets { 2400 };
-
-      string first_reply {string("Received '") + received +
-          "'. Expect " + to_string(packets) + " packets in 1s\n" };
-
-      // Send the first packet, and then wait for ARP
-      conn.sendto(addr, port, first_reply.c_str(), first_reply.size());
-
-      timer.on_timeout_ms(1s, 
-      [&conn, addr, port, data, len] {
-        size_t packetsize = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
-        INFO("Test 2", "Trying to transmit %i UDP packets of size %i at maximum throttle",
-             packets, packetsize);
-
-        for (int i = 0; i < packets; i++) {
-          char c = (char)('A' + (i % 26));
-          string send (packetsize, c);
-          //printf("<TEST> %i nr. of  %c \n", send.size(), c);
-          conn.sendto(addr, port, send.c_str() , send.size());
-        }
-
-        CHECK(1,"UDP-transmission didn't panic");
-        INFO("UDP Transmision tests","OK");
-      });
+      CHECK(1,"UDP-transmission didn't panic");
+      INFO("UDP Transmision tests", "SUCCESS");
     });
+  });
 
   timer.on_timeout_ms(200ms,
   [=] {
-    const int packets { 600 };
-    INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", packets);
-    for (int i=0; i < packets; i++){
+    const int PACKETS = 600;
+    INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", PACKETS);
+    for (int i=0; i < PACKETS; i++){
       auto pckt = inet->createPacket(inet->MTU());
       Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
       hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
