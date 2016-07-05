@@ -141,7 +141,7 @@ void Service::start()
 
   lest::run(specification, 2, argv);
 
-  MYINFO("Expect panic after exit handler")
+  MYINFO("Expect panic after exit handler");
   at_quick_exit([] {
     CHECK(1,"Custom quick exit-handler called");
     MYINFO("SUCCESS");
