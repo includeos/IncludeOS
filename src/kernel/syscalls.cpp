@@ -29,6 +29,7 @@
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
+  caddr_t heap_begin;
   caddr_t heap_end;
 }
 
@@ -158,10 +159,10 @@ int kill(pid_t pid, int sig) {
 
 // No continuation from here
 void panic(const char* why) {
-  printf("\n\t **** PANIC: ****\n %s\n", why);
+  printf("\n\t**** PANIC: ****\n %s\n", why);
   extern char _end;
   printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n",
-      heap_end, (uintptr_t) (heap_end - &_end) / 1024, (uintptr_t) heap_end / 1024);
+      heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   while(1) asm ("cli; hlt;");
 }
@@ -173,6 +174,5 @@ void default_exit() {
 
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
-  printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
 }
