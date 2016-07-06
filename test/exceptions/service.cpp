@@ -49,7 +49,7 @@ const lest::test tests[] = {
               throw myexception;
             }
           } catch(std::runtime_error e) {
-            caught = std::string(e.what()) = std::string(error_msg);
+            caught = std::string(e.what()) == std::string(error_msg);
           }
           EXPECT(caught);
         }
