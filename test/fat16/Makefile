@@ -3,13 +3,13 @@
 #################################################
 
 # The name of your service
-SERVICE = Test
-SERVICE_NAME = The FAT Test Service
+SERVICE = test_fat16
+SERVICE_NAME = FAT16 Test Service
 
 # Your service parts
-FILES=
+FILES=fat16.cpp
 # Your disk image
-DISK=
+DISK=my.disk
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
