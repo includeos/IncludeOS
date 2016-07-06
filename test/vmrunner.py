@@ -144,8 +144,8 @@ def start_process(popen_param_list):
 # Qemu Hypervisor interface
 class qemu(hypervisor):
 
-  def drive_arg(self, filename, drive_type="virtio", drive_format="raw"):
-    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type]
+  def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
+    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
   def net_arg(self, if_type = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
     type_names = {"virtio" : "virtio-net"}
@@ -171,7 +171,7 @@ class qemu(hypervisor):
     disk_args = self.drive_arg(self._config["image"], "ide")
     if "drives" in self._config:
       for disk in self._config["drives"]:
-        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
+        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
     net_args = []
     i = 0
@@ -222,21 +222,23 @@ class vm:
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
     self._config = config
-    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + "All tests passed"))
+    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + " All tests passed"))
     self._on_panic =  lambda : self.exit(exit_codes["VM_FAIL"], color.FAIL(nametag + self._hyper.readline()))
-    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag+"Test timed out"))
+    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag + " Test timed out"))
     self._on_output = {
       "PANIC" : self._on_panic,
       "SUCCESS" : self._on_success }
     assert(issubclass(hyper, hypervisor))
     self._hyper  = hyper(config)
     self._timer = None
+    self._on_exit = lambda : None
 
   def exit(self, status, msg):
     self.stop()
     print
     print msg
     self._exit_status = status
+    self._on_exit()
     sys.exit(status)
 
   def on_output(self, output, callback):
@@ -250,6 +252,9 @@ class vm:
 
   def on_timeout(self, callback):
     self._on_timeout = callback
+
+  def on_exit(self, callback):
+    self._on_exit = callback
 
   def readline(self):
     return self._hyper.readline()

@@ -1,0 +1,9 @@
+{
+  "image"   : "test_fat32.img",
+  "drives"  : [{
+    "file" : "my.disk",
+    "type" : "virtio",
+    "format" : "raw",
+    "media" : "disk"
+  }]
+}
