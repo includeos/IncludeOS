@@ -144,8 +144,8 @@ def start_process(popen_param_list):
 # Qemu Hypervisor interface
 class qemu(hypervisor):
 
-  def drive_arg(self, filename, drive_type="virtio", drive_format="raw"):
-    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type]
+  def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
+    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
   def net_arg(self, if_type = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
     type_names = {"virtio" : "virtio-net"}
@@ -171,7 +171,7 @@ class qemu(hypervisor):
     disk_args = self.drive_arg(self._config["image"], "ide")
     if "drives" in self._config:
       for disk in self._config["drives"]:
-        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
+        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
     net_args = []
     i = 0
