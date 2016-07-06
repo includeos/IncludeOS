@@ -37,7 +37,7 @@ void is_done() {
 
 void test2() {
   INFO("FAT32", "Remounting disk.");
-  disk->mount(disk->VBR1,
+  disk->mount(disk->MBR,
   [] (fs::error_t err)
   {
     CHECKSERT(not err, "Filesystem mounted on VBR1");
