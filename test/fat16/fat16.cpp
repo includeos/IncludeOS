@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +84,7 @@ void Service::start()
       // read one byte at a time
       buf = fs.read(ent, i, 1);
       /// @buf should evaluate to 'true' if its valid
-      CHECKSERT(buf, "Validate buffer");
+      assert(buf);
 
       // verify that it matches the same location in test-string
       test = ((char) buf.data()[0] == internal_banana[i]);

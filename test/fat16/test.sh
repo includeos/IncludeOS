@@ -1,36 +1,32 @@
 #!/bin/bash
-source ../test_base
-mkdir -p tmpdisk
 
 ### FAT16 TEST ###
-rm -f my.disk
-dd if=/dev/zero of=my.disk count=16500
-mkfs.fat my.disk
-sudo mount my.disk tmpdisk/
-sudo cp banana.txt tmpdisk/
-sync # Mui Importante
-sudo umount tmpdisk/
 
-make SERVICE=Test DISK=my.disk FILES=fat16.cpp
-start Test.img "FAT: FAT16 test"
-make SERVICE=Test FILES=fat16.cpp clean
-rm -f memdisk.o my.disk
+DISK=my.disk
+MOUNTDIR=tmpdisk
 
-### FAT16 TEST ###
-fallocate -l 2147483648 my.disk
-mkfs.fat my.disk
-mkdir -p tmpdisk
-sudo mount my.disk tmpdisk/
-sudo cp banana.txt tmpdisk/
-sudo mkdir -p tmpdisk/dir1/dir2/dir3/dir4/dir5/dir6
-sudo cp banana.txt tmpdisk/dir1/dir2/dir3/dir4/dir5/dir6/
-sync # Mui Importante
-sudo umount tmpdisk/
+# If no args supplied, create a fat disk and fill with data
+if [ $# -eq 0 ]
+then
 
-export QEMU_EXTRA=" -drive file=my.disk,if=ide,media=disk"
-make SERVICE=Test FILES=fat32.cpp
-start Test.img "FAT: FAT32 test"
-make SERVICE=Test FILES=fat32.cpp clean
-rm -f memdisk.o my.disk
+  # Remove disk if exists
+  rm -f $DISK
+  # Create "my.disk" with 16500 blocks (8 MB)
+  dd if=/dev/zero of=$DISK count=16500
+  # Create FAT filesystem on "my.disk"
+  mkfs.fat $DISK
 
-rmdir tmpdisk/
+  # Create mount dir
+  mkdir -p $MOUNTDIR
+  sudo mount $DISK $MOUNTDIR/
+  sudo cp banana.txt $MOUNTDIR/
+  sync # Mui Importante
+  sudo umount $MOUNTDIR/
+
+# If "clean" is supplied, clean up
+elif [ $1 = "clean" ]
+then
+  echo "> Cleaning up after FAT16 test"
+  make clean
+  rm -rf memdisk.o $MOUNTDIR/ $DISK
+fi
