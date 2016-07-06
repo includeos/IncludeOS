@@ -18,6 +18,7 @@
 #include <fs/disk.hpp>
 #include <fs/mbr.hpp>
 #include <fs/fat.hpp>
+#include <cassert>
 
 namespace fs {
 
@@ -130,17 +131,15 @@ namespace fs {
           return;
         }
         
-        auto* mbr = (MBR::mbr*) data.get(); //< Treat data as MBR
-        auto pint = static_cast<int>(part - 1); //< Treat VBR1 as index 0 etc.
+        auto* mbr = (MBR::mbr*) data.get();
+        auto pint = (int) part - 1;
         
-        /** Get LBA from selected partition */
         auto lba_base = mbr->part[pint].lba_begin;
         auto lba_size = mbr->part[pint].sectors;
+        assert(lba_size && "No such partition (length was zero)");
         
-        /**
-         *  Call the filesystems mount function
-         *  with lba_begin as base address
-         */
+        // Call the filesystems mount function
+        // with lba_begin as base address
         fs().mount(lba_base, lba_size, func);
       });
     }
