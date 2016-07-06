@@ -55,8 +55,8 @@ void Service::start()
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
   });
-  // re-mount on VBR1
-  disk->mount(disk->VBR1,
+  // re-mount on MBR (sigh)
+  disk->mount(disk->MBR,
   [disk] (fs::error_t err)
   {
     CHECKSERT(!err, "Filesystem mounted on VBR1");
