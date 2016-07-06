@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,95 +19,118 @@
 #include <stdio.h>
 #include <cassert>
 
-#include <fs/fat.hpp>
-#include <ide>
+#include <fs/disk.hpp>
 
 // Includes std::string internal_banana
 #include "banana.ascii"
 
 std::shared_ptr<fs::Disk> disk;
 
+const uint64_t SIZE = 4000000000;
+const std::string shallow_banana{"/banana.txt"};
+const std::string deep_banana{"/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt"};
+
+void is_done() {
+  static int counter = 0;
+  if (++counter == 3) INFO("FAT32","SUCCESS\n");
+}
+
+void test2() {
+  INFO("FAT32", "Remounting disk.");
+  disk->mount(disk->VBR1,
+  [] (fs::error_t err)
+  {
+    CHECKSERT(not err, "Filesystem mounted on VBR1");
+    CHECKSERT(not disk->empty(), "Disk not empty");
+    CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu bytes", SIZE);
+
+    auto& fs = disk->fs();
+
+    fs.stat(shallow_banana,
+    [] (auto err, const auto& ent) {
+      INFO("FAT32", "Shallow banana");
+
+      CHECKSERT(not err, "Stat %s", shallow_banana.c_str());
+
+      CHECKSERT(ent.is_valid(), "Stat file in root dir");
+      CHECKSERT(ent.is_file(), "Entity is file");
+      CHECKSERT(!ent.is_dir(), "Entity is not directory");
+      CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+      is_done();
+    });
+
+    fs.read_file(shallow_banana,
+    [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+    {
+      INFO("FAT32", "Read file");
+      CHECKSERT(not err, "read_file: Read %s asynchronously", shallow_banana.c_str());
+      printf("%s\n", internal_banana.c_str());
+      std::string banana((char*) buf.get(), len);
+      CHECKSERT(banana == internal_banana, "Correct shallow banana");
+      is_done();
+    });
+
+    fs.stat(deep_banana,
+    [] (auto err, const auto& ent) {
+      INFO("FAT32", "Deep banana");
+      auto& fs = disk->fs();
+      CHECKSERT(not err, "Stat %s", deep_banana.c_str());
+      CHECKSERT(ent.is_valid(), "Stat file in deep dir");
+      CHECKSERT(ent.is_file(), "Entity is file");
+      CHECKSERT(!ent.is_dir(), "Entity is not directory");
+
+      CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
+
+      // asynch file reading test
+      fs.read(ent, 0, ent.size(),
+      [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+      {
+        INFO("FAT32", "Read inside stat");
+        CHECKSERT(not err, "read: Read %s asynchronously", deep_banana.c_str());
+
+        std::string banana((char*) buf.get(), len);
+        CHECKSERT(banana == internal_banana, "Correct deep fried banana");
+        is_done();
+      });
+    });
+
+  });
+}
+
 void Service::start()
 {
-  INFO("FAT32", "Running tests for FAT32");
-  auto& device = hw::Dev::disk<0, hw::IDE>(hw::IDE::SLAVE);
+  auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);
-  assert(disk);
 
-  // verify that the size is indeed N sectors
-  const size_t SIZE = 4194304;
-  printf("Size: %llu\n", disk->dev().size());
-  CHECKSERT(disk->dev().size() == SIZE, "Disk size 4194304 sectors");
+  INFO("FAT32", "Running tests for FAT32");
+  CHECKSERT(disk, "VirtioBlk disk created");
 
   // which means that the disk can't be empty
-  CHECKSERT(!disk->empty(), "Disk not empty");
+  CHECKSERT(not disk->empty(), "Disk not empty");
+  // verify that the size is indeed N sectors
+  CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu sectors", SIZE / 512);
 
   // auto-mount filesystem
-  disk->mount(disk->MBR,
+  disk->mount(
   [] (fs::error_t err)
   {
     CHECKSERT(!err, "Filesystem auto-mounted");
 
     auto& fs = disk->fs();
-    printf("\t\t%s filesystem\n", fs.name().c_str());
+    std::string fat32_str{"FAT32"};
+    CHECKSERT(fs.name() == fat32_str, "Filesystem recognized as FAT32");
 
-    auto list = fs.ls("/");
-    CHECKSERT(!list.error, "List root directory");
+    fs.ls("/",
+    [] (fs::error_t err, auto ents) {
+      CHECKSERT(not err, "Listing root directory");
+      CHECKSERT(ents->size() == 2, "Exactly two ents in root dir");
 
-    CHECKSERT(list.entries->size() == 2, "Exactly two ents in root dir");
-
-    auto& e = list.entries->at(0);
-    CHECKSERT(e.is_file(), "Ent is a file");
-    CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
-  });
-  // re-mount on VBR1
-  disk->mount(disk->VBR1,
-  [] (fs::error_t err)
-  {
-    CHECK(!err, "Filesystem mounted on VBR1");
-    assert(!err);
-
-    auto& fs = disk->fs();
-    auto ent = fs.stat("/banana.txt");
-    CHECKSERT(ent.is_valid(), "Stat file in root dir");
-    CHECKSERT(ent.is_file(), "Entity is file");
-    CHECKSERT(!ent.is_dir(), "Entity is not directory");
-    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
-
-    ent = fs.stat("/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt");
-    CHECKSERT(ent.is_valid(), "Stat file in deep dir");
-    CHECKSERT(ent.is_file(), "Entity is file");
-    CHECKSERT(!ent.is_dir(), "Entity is not directory");
-
-    CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
-
-    printf("%s\n", internal_banana.c_str());
-
-    // asynch file reading test
-    fs.read(ent, 0, ent.size(),
-    [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
-    {
-      CHECKSERT(!err, "read: Read 'banana.txt' asynchronously");
-      if (err) {
-        panic("Failed to read file (async)");
-      }
-
-      std::string banana((char*) buf.get(), len);
-      CHECKSERT(banana == internal_banana, "Correct banana #1");
-
-      fs.read_file("/banana.txt",
-      [&fs] (fs::error_t err, fs::buffer_t buf, uint64_t len)
-      {
-        CHECKSERT(!err, "readFile: Read 'banana.txt' asynchronously");
-        if (err) {
-          panic("Failed to read file (async)");
-        }
-
-        std::string banana((char*) buf.get(), len);
-        CHECKSERT(banana == internal_banana, "Correct banana #2");
-      });
+      auto& e = ents->at(0);
+      CHECKSERT(e.is_file(), "Ent is a file");
+      CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
+      test2();
     });
   });
-
-  INFO("FAT32", "SUCCESS");
+  // re-mount on VBR1
+  /**/
 }
