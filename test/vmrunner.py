@@ -259,6 +259,14 @@ class vm:
   def readline(self):
     return self._hyper.readline()
 
+  def make(self, params = []):
+    print color.INFO(nametag), "Building test service with 'make' (params=" + str(params) + ")"
+    make = ["make"]
+    make.extend(params)
+    res = subprocess.check_output(make)
+    print color.SUBPROC(res)
+    return self
+
   def boot(self, timeout = None):
 
     # Check for sudo access, needed for qemu commands
@@ -344,10 +352,6 @@ print color.HEADER("IncludeOS vmrunner initializing tests")
 print color.INFO(nametag), "Validating test service"
 validate_test.load_schema("../vm.schema.json")
 validate_test.has_required_stuff(".")
-
-print color.INFO(nametag), "Building test service with 'make'"
-res = subprocess.check_output(["make"])
-print color.SUBPROC(res)
 
 default_spec = {"image" : "test.img"}
 
