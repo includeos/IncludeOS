@@ -40,11 +40,31 @@ const lest::test tests[] = {
         };
 
         THEN("a runtime exception should be caught") {
-          EXPECT_THROWS_AS(throw std::runtime_error("Crazy Error!"), std::runtime_error);
+          const char *error_msg = "Crazy Error!";
+
+          bool caught = false;
+          try {
+            if (OS::uptime() > 0.1){ // TODO: Why uptime? Ask Alfred.
+              std::runtime_error myexception(error_msg);
+              throw myexception;
+            }
+          } catch(std::runtime_error e) {
+            caught = std::string(e.what()) = std::string(error_msg);
+          }
+          EXPECT(caught);
         }
 
         THEN("a custom exception should be caught") {
-          EXPECT_THROWS_AS(throw CustomException("Custom exceptions are useful"), CustomException);
+          std::string custom_msg = "Custom exceptions are useful";
+          std::string caught_msg = "";
+
+          try {
+            throw CustomException(custom_msg);
+          } catch (CustomException e){
+            caught_msg = e.what();
+          }
+
+          EXPECT(caught_msg == custom_msg);
         };
       }
     }
