@@ -100,5 +100,6 @@ void Service::start()
     CHECKSERT(banana == internal_banana, "Correct banana #2");
   });
 
+  // OK since we're using a memdisk (everything is synchronous)
   INFO("FAT16", "SUCCESS");
 }
