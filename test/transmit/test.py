@@ -23,7 +23,7 @@ def UDP_test():
       received += len(sock.recv(1024))
 
   print "<Test.py> Received: {}".format(received)
-  
+
   data = "SUCCESS"
   sock.sendto(data, (HOST, PORT))
   print "<Test.py> Sent:     {}".format(data)
@@ -36,4 +36,4 @@ vm = vmrunner.vms[0]
 vm.on_output("Ready", UDP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+vm.make().boot(20)

@@ -20,4 +20,4 @@ vm = vmrunner.vms[0]
 vm.on_exit(cleanup)
 
 # Boot the VM
-vm.boot()
+vm.make().boot()
