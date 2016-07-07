@@ -1,6 +1,6 @@
 #!/bin/bash
 
-### FAT32 TEST ###
+### FAT32 TEST DISK ###
 
 DISK=my.disk
 MOUNTDIR=tmpdisk
@@ -26,11 +26,11 @@ then
   sudo cp banana.txt $MOUNTDIR/dir1/dir2/dir3/dir4/dir5/dir6/
   sync # Mui Importante
   sudo umount $MOUNTDIR/
+  rmdir $MOUNTDIR
 
 # If "clean" is supplied, clean up
 elif [ $1 = "clean" ]
 then
-  echo "> Cleaning up after FAT32 test"
-  make clean
-  rm -rf tmpdisk/ $DISK
+  echo "> Cleaning up FAT32 TEST DISK: $DISK"
+  rm -f $DISK
 fi

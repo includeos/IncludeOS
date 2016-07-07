@@ -12,5 +12,5 @@ The test verifies the following things:
 6. Remounting of filesystem.
 7. Asynchronous operations (also nested like stat into read).
 
-`test.sh` is used to create a 4 GB FAT32 disk `my.disk` with `banana.txt` as content, which will be included by qemu as a separate drive.
+`fat32_disk.sh` is used to create a 4 GB FAT32 disk `my.disk` with `banana.txt` as content, which will be included by qemu as a separate drive.
 

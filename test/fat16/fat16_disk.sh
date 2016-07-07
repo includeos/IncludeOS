@@ -1,6 +1,6 @@
 #!/bin/bash
 
-### FAT16 TEST ###
+### FAT16 TEST DISK ###
 
 DISK=my.disk
 MOUNTDIR=tmpdisk
@@ -22,11 +22,11 @@ then
   sudo cp banana.txt $MOUNTDIR/
   sync # Mui Importante
   sudo umount $MOUNTDIR/
+  rmdir $MOUNTDIR
 
 # If "clean" is supplied, clean up
 elif [ $1 = "clean" ]
 then
-  echo "> Cleaning up after FAT16 test"
-  make clean
-  rm -rf memdisk.o $MOUNTDIR/ $DISK
+  echo "> Cleaning up FAT16 TEST DISK: $DISK"
+  rm -f $DISK
 fi
