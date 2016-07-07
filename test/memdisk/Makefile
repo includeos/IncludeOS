@@ -3,13 +3,13 @@
 #################################################
 
 # The name of your service
-SERVICE = Test
+SERVICE = test_memdisk
 SERVICE_NAME = The Memdisk Test Service
 
 # Your service parts
-FILES=
+FILES=nosector.cpp
 # Your disk image
-DISK=
+DISK=sector0.disk
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
