@@ -9,19 +9,11 @@ make SERVICE=Test DISK=sector2.disk FILES=twosector.cpp
 start Test.img "Memdisk: Multiple sectors test"
 make SERVICE=Test FILES=twosector.cpp clean
 
-### BIG DISK TEST ###
-rm -f big.disk
-fallocate -l 131072000 big.disk # 256000 sectors
-mkfs.fat big.disk
-mkdir tmpdisk
-sudo mount my.disk tmpdisk/
-sudo cp banana.txt tmpdisk/
-sync # Mui Importante
-
+# Create big disk
+./bigdisk.sh
 make SERVICE=Test DISK=big.disk FILES=bigdisk.cpp
-export MEM="-m 256" 
+export MEM="-m 256"
 start Test.img "Memdisk: Big disk test"
 make SERVICE=Test FILES=bigdisk.cpp clean
 
-sudo umount tmpdisk/
 rm -f big.disk memdisk.o
