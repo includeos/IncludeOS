@@ -231,10 +231,10 @@ namespace cookie {
     static const std::string C_SECURE;
     static const std::string C_HTTP_ONLY;
 
-    // This must be static to be allowed to use as part of std::equal in icompare method
+    /* This must be static to be allowed to use as part of std::equal in icompare method
     static bool icompare_pred(unsigned char a, unsigned char b);
 
-    bool icompare(const std::string& a, const std::string& b) const;
+    bool icompare(const std::string& a, const std::string& b) const;*/
 
     // Move to CookieParser ?
     // Cookie& parse(const std::string& cookie_string);
@@ -242,6 +242,11 @@ namespace cookie {
     //auto find(const std::string& keyword) const;
 
     bool valid(const std::string& name) const;
+
+    // This must be static to be allowed to use in caseInsCompare method
+    static bool caseInsCharCompareN(char a, char b);
+
+    bool caseInsCompare(const std::string& s1, const std::string& s2) const;
 
     bool valid_option_name(std::string& option_name) const;
 
@@ -259,7 +264,7 @@ namespace cookie {
   const std::string Cookie::C_SECURE = "Secure";
   const std::string Cookie::C_HTTP_ONLY = "HttpOnly";
 
-  inline bool Cookie::icompare_pred(unsigned char a, unsigned char b) {
+  /*inline bool Cookie::icompare_pred(unsigned char a, unsigned char b) {
     return std::tolower(a) == std::tolower(b);
   }
 
@@ -268,7 +273,7 @@ namespace cookie {
       return std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
     else
       return false;
-  }
+  }*/
 
   /* Move to CookieParser ?
   Cookie& Cookie::parse(const std::string& cookie_string) {
@@ -324,10 +329,22 @@ namespace cookie {
     return (name.empty() || !(std::regex_match(name, reg))) ? false : true;
   }
 
+  inline bool Cookie::caseInsCharCompareN(char a, char b) {
+    return(toupper(a) == toupper(b));
+  }
+
+  bool Cookie::caseInsCompare(const std::string& s1, const std::string& s2) const {
+    return((s1.size() == s2.size()) and equal(s1.begin(), s1.end(), s2.begin(), caseInsCharCompareN));
+  }
+
   bool Cookie::valid_option_name(std::string& option_name) const {
-    // boost::iequals ignore case in comparing strings
+    return caseInsCompare(option_name, C_EXPIRES) || caseInsCompare(option_name, C_MAX_AGE) ||
+      caseInsCompare(option_name, C_DOMAIN) || caseInsCompare(option_name, C_PATH) ||
+      caseInsCompare(option_name, C_SECURE) || caseInsCompare(option_name, C_HTTP_ONLY);
+
+    /* // boost::iequals ignore case in comparing strings
     return icompare(option_name, C_EXPIRES) || icompare(option_name, C_MAX_AGE) || icompare(option_name, C_DOMAIN) ||
-      icompare(option_name, C_PATH) || icompare(option_name, C_SECURE) || icompare(option_name, C_HTTP_ONLY);
+      icompare(option_name, C_PATH) || icompare(option_name, C_SECURE) || icompare(option_name, C_HTTP_ONLY); */
   }
 
   bool Cookie::expired() const {
@@ -351,21 +368,47 @@ namespace cookie {
   }
 
   Cookie::Cookie(const std::string& name, const std::string& value) {
-
     // TODO: Better solution than throwing exception here?
     if(!valid(name) or !valid(value))
-        throw CookieException("Invalid name or value of cookie!");
+      throw CookieException("Invalid name or value of cookie!");
 
-      name_ = name;
-      value_ = value;
+    name_ = name;
+    value_ = value;
+
+    // set default values
+    expires_ = "";
+    //max_age_ = ;  // TODO
+    domain_ = "";
+    path_ = "";
+    secure_ = false;
+    http_only_ = false;
   }
 
   Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
       Cookie{name, value};
 
-      // for loop on vector - set values:
+      // for loop on vector - set input values from vector:
+      for(size_t i = 0; i < options.size(); i += 2) {
+        std::string nm = options[i];
 
+        if(!valid_option_name(nm))
+          throw CookieException("Invalid name of cookie option.");
 
+        std::string val = options[i+1];
+
+        if(caseInsCompare(nm, C_EXPIRES))
+          expires_ = val;
+        //else if(caseInsCompare(nm, C_MAX_AGE))
+          // TODO: max_age_ = *//* cast to std::chrono::seconds */ /* val;
+        else if(caseInsCompare(nm, C_DOMAIN))
+          domain_ = val;
+        else if(caseInsCompare(nm, C_PATH))
+          path_ = val;
+        else if(caseInsCompare(nm, C_SECURE))
+          secure_ = (caseInsCompare(val, "true")) ? true : false;
+        else if(caseInsCompare(nm, C_HTTP_ONLY))
+          http_only_ = (caseInsCompare(val, "true")) ? true : false;
+      }
   }
 
   /*inline Cookie::Cookie(const std::string& data, Parser parser) : data_{}, parser_{parser} {
@@ -463,8 +506,6 @@ namespace cookie {
       cookie_stream << "; " << C_HTTP_ONLY;
 
     return cookie_stream.str();
-
-    return "";
   }
 
   Cookie::operator std::string() const {
