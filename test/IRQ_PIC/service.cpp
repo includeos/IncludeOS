@@ -124,6 +124,8 @@ void Service::start()
 
       CHECK(1,"Serial port (IRQ 4) received '%c'", byte);
     });
+  INFO("Test Serial Port", "Calling Serial Port Test");
+  printf("trigger_test_serial_port\n");
 
 
   /*
