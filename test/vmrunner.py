@@ -129,7 +129,8 @@ def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
                           stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE)
+                          stderr = subprocess.PIPE,
+                          stdin = subprocess.PIPE)
 
   # After half a second it should be started, otherwise throw
   time.sleep(0.5)
@@ -212,6 +213,11 @@ class qemu(hypervisor):
       raise Exception("Process completed")
     return self._proc.stdout.readline()
 
+  def writeline(self, line):
+    if self._proc.poll():
+      raise Exception("Process completed")
+    return self._proc.stdin.write(line)
+
   def poll(self):
     return self._proc.poll()
 
@@ -258,6 +264,9 @@ class vm:
 
   def readline(self):
     return self._hyper.readline()
+
+  def writeline(self, line):
+    return self._hyper.writeline(line)
 
   def make(self, params = []):
     print color.INFO(nametag), "Building test service with 'make' (params=" + str(params) + ")"
