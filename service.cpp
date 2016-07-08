@@ -24,9 +24,6 @@
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
 
-// REMOVE:
-#include "cookie.hpp"
-
 using namespace std;
 using namespace acorn;
 
@@ -124,6 +121,34 @@ void Service::start() {
       //assert(users->look_for("key", 1).key == first_user_key);
 
       server::Router routes;
+
+      /* Idea with cookie implementation/Want to be able to do something like:
+       *
+       * auto jar = std::make_shared<CookieJar>();
+       * jar->add("name", "value");
+       * jar->add("name", "value", std::vector<std::string> v{"Path", "/", "Secure", "true"});
+       * // (Another solution than vector for options?)
+       *
+       * Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>(jar);
+       * server->use(cookie_parser);
+       *
+       * server.on_post("/secret", [jar](auto req, auto res){
+       *  if(!req->has_attribute<CookieCollection>()) {
+       *    printf("Req has no cookie, return not allowed.");
+       *    res->send_status(http::Not_Allowed);
+       *    return;
+       *  }
+       *  auto cookies = req->get_attribute<CookieCollection>();
+       *  if(cookies.has("Andreas"))
+       *    (...)
+       * });
+       *
+       * server.on_post("/register", [jar](auto req, auto res) {
+       *  (...)
+       *  jar.add("new_user", "hest");
+       * });
+       *
+       */
 
       routes.on_get("/api/squirrels", [](auto, auto res) {
         printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
@@ -235,6 +260,7 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
       server_->use(parsley);
 
+      // TODO: send CookieJar to CookieParser
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
 

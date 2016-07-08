@@ -28,12 +28,12 @@
 #ifndef MODEL_USER_HPP
 #define MODEL_USER_HPP
 
-#include "json.hpp"
 //#include <locale>
+//#include <algorithm>
+
+#include "json.hpp"
 
 namespace acorn {
-
-// struct or class?
 
 /**
  *
