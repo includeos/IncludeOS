@@ -7,7 +7,9 @@
 
 #include <net/ip4/packet_ip4.hpp> // PacketIP4
 #include <net/util.hpp> // byte ordering helpers
-#include "tcp.hpp"
+
+#include "common.hpp" // constants, seq_t
+#include "headers.hpp"
 #include "socket.hpp"
 
 inline unsigned round_up(unsigned n, unsigned div) {
@@ -25,8 +27,8 @@ namespace tcp {
 class Packet : public PacketIP4 {
 public:
 
-  inline TCP::Header& tcp_header() const
-  { return *(TCP::Header*) ip_data(); }
+  inline Header& tcp_header() const
+  { return *(Header*) ip_data(); }
 
   //! initializes to a default, empty TCP packet, given
   //! a valid MTU-sized buffer
@@ -35,10 +37,10 @@ public:
     PacketIP4::init();
 
     // clear TCP headers
-    memset(ip_data(), 0, sizeof(TCP::Header));
+    memset(ip_data(), 0, sizeof(Header));
 
     set_protocol(IP4::IP4_TCP);
-    set_win(TCP::default_window_size);
+    set_win(tcp::default_window_size);
     set_offset(5);
     set_length();
 
@@ -119,7 +121,7 @@ public:
 
   /// FLAGS / CONTROL BITS ///
 
-  inline Packet& set_flag(TCP::Flag f) {
+  inline Packet& set_flag(Flag f) {
     tcp_header().offset_flags.whole |= htons(f);
     return *this;
   }
@@ -129,7 +131,7 @@ public:
     return *this;
   }
 
-  inline Packet& clear_flag(TCP::Flag f) {
+  inline Packet& clear_flag(Flag f) {
     tcp_header().offset_flags.whole &= ~ htons(f);
     return *this;
   }
@@ -139,7 +141,7 @@ public:
     return *this;
   }
 
-  inline bool isset(TCP::Flag f) const
+  inline bool isset(Flag f) const
   { return ntohs(tcp_header().offset_flags.whole) & f; }
 
   //TCP::Flag flags() const { return (htons(tcp_header().offset_flags.whole) << 8) & 0xFF; }
@@ -201,7 +203,7 @@ public:
   { return (uint8_t*) tcp_header().options; }
 
   inline uint8_t tcp_options_length() const
-  { return tcp_header_length() - sizeof(TCP::Header); }
+  { return tcp_header_length() - sizeof(Header); }
 
   inline bool has_tcp_options() const
   { return tcp_options_length() > 0; }
@@ -226,7 +228,7 @@ public:
   { return ack >= (seq() + tcp_data_length()); }
 
   bool should_rtx() const
-  { return has_tcp_data() or isset(TCP::SYN) or isset(TCP::FIN); }
+  { return has_tcp_data() or isset(SYN) or isset(FIN); }
 
   std::string to_string() const {
     std::ostringstream os;

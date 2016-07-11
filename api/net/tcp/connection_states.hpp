@@ -19,7 +19,7 @@
 #ifndef NET_TCP_CONNECTION_STATES_HPP
 #define NET_TCP_CONNECTION_STATES_HPP
 
-#include <net/tcp/tcp.hpp>
+#include <net/tcp/connection.hpp>
 
 namespace net {
 namespace tcp {

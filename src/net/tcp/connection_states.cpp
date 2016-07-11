@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gsl_assert.h> // Ensures/Expects
 #include <net/tcp/connection_states.hpp>
 #include <net/tcp/packet.hpp>
 #include <sstream>
@@ -125,9 +126,9 @@ bool Connection::State::check_seq(Connection& tcp, Packet_ptr in) {
     and return.
   */
   if(!acceptable) {
-    if(!in->isset(TCP::RST)) {
+    if(!in->isset(RST)) {
       auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(TCP::ACK);
+      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
       tcp.transmit(packet);
     }
     std::stringstream ss;
@@ -175,12 +176,12 @@ bool Connection::State::check_seq(Connection& tcp, Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, Packet_ptr in) {
-  assert(in->isset(TCP::SYN));
+  assert(in->isset(SYN));
   debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n",
         tcp.state().to_string().c_str());
   // Not sure if this is the correct way to send a "reset response"
   auto packet = tcp.outgoing_packet();
-  packet->set_seq(in->ack()).set_flag(TCP::RST);
+  packet->set_seq(in->ack()).set_flag(RST);
   tcp.transmit(packet);
   tcp.signal_disconnect(Disconnect::RESET);
 }
@@ -200,7 +201,7 @@ void Connection::State::unallowed_syn_reset_connection(Connection& tcp, Packet_p
 
 bool Connection::State::check_ack(Connection& tcp, Packet_ptr in) {
   debug2("<Connection::State::check_ack> Checking for ACK in STATE: %s \n", tcp.state().to_string().c_str());
-  if( in->isset(TCP::ACK) ) {
+  if( in->isset(ACK) ) {
     auto& tcb = tcp.tcb();
     /*
       If SND.UNA < SEG.ACK =< SND.NXT then, set SND.UNA <- SEG.ACK.
@@ -244,7 +245,7 @@ bool Connection::State::check_ack(Connection& tcp, Packet_ptr in) {
           new SACK information.
         */
         // this is a RFC 5681 DUP ACK
-        //!in->isset(TCP::FIN) and !in->isset(TCP::SYN)
+        //!in->isset(FIN) and !in->isset(SYN)
         //else if(tcp.reno_is_dup_ack(in)) {
         //  debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
         //  tcp.reno_dup_ack(in->ack());
@@ -264,7 +265,7 @@ bool Connection::State::check_ack(Connection& tcp, Packet_ptr in) {
     /* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
     else {
       auto packet = tcp.outgoing_packet();
-      packet->set_flag(TCP::ACK);
+      packet->set_flag(ACK);
       tcp.transmit(packet);
       tcp.drop(in, "ACK > SND.NXT");
       return false;
@@ -318,27 +319,27 @@ void Connection::State::process_segment(Connection& tcp, Packet_ptr in) {
   auto& tcb = tcp.tcb();
   auto length = in->tcp_data_length();
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
-  debug("<TCP::Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
+  debug("<Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
   tcb.RCV.NXT += length;
   auto snd_nxt = tcb.SND.NXT;
   if(tcp.read_request.buffer.capacity()) {
-    auto received = tcp.receive((uint8_t*)in->tcp_data(), in->tcp_data_length(), in->isset(TCP::PSH));
+    auto received = tcp.receive((uint8_t*)in->tcp_data(), in->tcp_data_length(), in->isset(PSH));
     Ensures(received == length);
   }
 
   // [RFC 5681]
   //tcb.SND.cwnd += std::min(length, tcp.SMSS());
-  debug2("<TCP::Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
+  debug2("<Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
 
   if(tcb.SND.NXT == snd_nxt) {
     auto packet = tcp.outgoing_packet();
-    packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(TCP::ACK);
+    packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
     tcp.transmit(packet);
   }
   //if(tcp.can_send())
   //  tcp.send_much();
   /*if(tcp.has_doable_job() and !tcp.is_queued()) {
-    printf("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
+    printf("<Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
     tcp.writeq_push();
   }*/
 
@@ -359,7 +360,7 @@ void Connection::State::process_segment(Connection& tcp, Packet_ptr in) {
   /*if(snd_nxt == tcb.SND.NXT) {
     // Piggyback ACK with outgoing data
     if(tcp.has_doable_job() and !tcp.is_queued()) {
-      debug2("<TCP::Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
+      debug2("<Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
       tcp.writeq_push();
       // we tried to push data, but nothing was written, reply the sender immediately
       if(tcp.usable_window() == tcb.SND.WND) {
@@ -371,7 +372,7 @@ void Connection::State::process_segment(Connection& tcp, Packet_ptr in) {
     // TODO: Selective ACK
     // If no outgoing data right now - reply with ACK.
     else {
-      debug2("<TCP::Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
+      debug2("<Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
              tcp.usable_window(), tcp.writeq.size(), tcp.is_queued() ? "true" : "false");
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
@@ -379,7 +380,7 @@ void Connection::State::process_segment(Connection& tcp, Packet_ptr in) {
     }
   }
   else {
-    debug2("<TCP::Connection::State::process_segment> SND.NXT > snd_nxt, this packet has already been acknowledged. \n");
+    debug2("<Connection::State::process_segment> SND.NXT > snd_nxt, this packet has already been acknowledged. \n");
   }*/
 }
 /////////////////////////////////////////////////////////////////////
@@ -401,8 +402,8 @@ void Connection::State::process_segment(Connection& tcp, Packet_ptr in) {
 /////////////////////////////////////////////////////////////////////
 
 void Connection::State::process_fin(Connection& tcp, Packet_ptr in) {
-  debug("<TCP::Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
-  assert(in->isset(TCP::FIN));
+  debug("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
+  assert(in->isset(FIN));
   auto& tcb = tcp.tcb();
   // Advance RCV.NXT over the FIN?
   tcb.RCV.NXT++;
@@ -417,9 +418,9 @@ void Connection::State::process_fin(Connection& tcp, Packet_ptr in) {
 
   // only ack FIN if user callback didn't result in a sent packet
   if(tcb.SND.NXT == snd_nxt) {
-    debug2("<TCP::Connection::State::process_fin> acking FIN\n");
+    debug2("<Connection::State::process_fin> acking FIN\n");
     auto packet = tcp.outgoing_packet();
-    packet->set_ack(tcb.RCV.NXT).set_flag(TCP::ACK);
+    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
     tcp.transmit(packet);
   }
 
@@ -445,7 +446,7 @@ void Connection::State::process_fin(Connection& tcp, Packet_ptr in) {
 void Connection::State::send_reset(Connection& tcp) {
   tcp.writeq_reset();
   auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(TCP::RST);
+  packet->set_seq(tcp.tcb().SND.NXT).set_ack(0).set_flag(RST);
   tcp.transmit(packet);
 }
 /////////////////////////////////////////////////////////////////////
@@ -503,7 +504,7 @@ void Connection::Closed::open(Connection& tcp, bool active) {
       auto& tcb = tcp.tcb();
       tcb.init();
       auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.ISS).set_flag(TCP::SYN);
+      packet->set_seq(tcb.ISS).set_flag(SYN);
 
       /*
         Add MSS option.
@@ -527,7 +528,7 @@ void Connection::Listen::open(Connection& tcp, bool) {
     auto& tcb = tcp.tcb();
     tcb.init();
     auto packet = tcp.outgoing_packet();
-    packet->set_seq(tcb.ISS).set_flag(TCP::SYN);
+    packet->set_seq(tcb.ISS).set_flag(SYN);
     tcb.SND.UNA = tcb.ISS;
     tcb.SND.NXT = tcb.ISS+1;
     tcp.transmit(packet);
@@ -680,7 +681,7 @@ void Connection::SynReceived::close(Connection& tcp) {
   // Dont know how to queue for close for processing...
   auto& tcb = tcp.tcb();
   auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(TCP::ACK | TCP::FIN);
+  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
   tcp.transmit(packet);
   tcp.set_state(Connection::FinWait1::instance());
 }
@@ -688,7 +689,7 @@ void Connection::SynReceived::close(Connection& tcp) {
 void Connection::Established::close(Connection& tcp) {
   auto& tcb = tcp.tcb();
   auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(TCP::ACK | TCP::FIN);
+  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
   tcp.transmit(packet);
   tcp.set_state(Connection::FinWait1::instance());
 }
@@ -718,7 +719,7 @@ void Connection::CloseWait::close(Connection& tcp) {
   */
   auto& tcb = tcp.tcb();
   auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(TCP::ACK | TCP::FIN);
+  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
   tcp.transmit(packet);
   // Correction: [RFC 1122 p. 93]
   tcp.set_state(Connection::LastAck::instance());
@@ -767,14 +768,14 @@ void Connection::CloseWait::abort(Connection& tcp) {
 /////////////////////////////////////////////////////////////////////
 
 State::Result Connection::Closed::handle(Connection& tcp, Packet_ptr in) {
-  if(in->isset(TCP::RST)) {
+  if(in->isset(RST)) {
     return OK;
   }
   auto packet = tcp.outgoing_packet();
-  if(!in->isset(TCP::ACK)) {
-    packet->set_seq(0).set_ack(in->seq() + in->tcp_data_length()).set_flags(TCP::RST | TCP::ACK);
+  if(!in->isset(ACK)) {
+    packet->set_seq(0).set_ack(in->seq() + in->tcp_data_length()).set_flags(RST | ACK);
   } else {
-    packet->set_seq(in->ack()).set_flag(TCP::RST);
+    packet->set_seq(in->ack()).set_flag(RST);
   }
   tcp.transmit(packet);
   return OK;
@@ -782,17 +783,17 @@ State::Result Connection::Closed::handle(Connection& tcp, Packet_ptr in) {
 
 
 State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
-  if(in->isset(TCP::RST)) {
+  if(in->isset(RST)) {
     // ignore
     return OK;
   }
-  if(in->isset(TCP::ACK)) {
+  if(in->isset(ACK)) {
     auto packet = tcp.outgoing_packet();
-    packet->set_seq(in->ack()).set_flag(TCP::RST);
+    packet->set_seq(in->ack()).set_flag(RST);
     tcp.transmit(packet);
     return OK;
   }
-  if(in->isset(TCP::SYN)) {
+  if(in->isset(SYN)) {
     if(!tcp.signal_accept()) {
       // TODO: Reject more gracefully?
       return CLOSED;
@@ -803,11 +804,11 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     tcb.init();
     tcb.SND.NXT   = tcb.ISS+1;
     tcb.SND.UNA   = tcb.ISS;
-    debug("<TCP::Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
+    debug("<Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
           in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
     auto packet = tcp.outgoing_packet();
-    packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(TCP::SYN | TCP::ACK);
+    packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 
     /*
       Add MSS option.
@@ -826,14 +827,14 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
 
 State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
   // 1. check ACK
-  if(in->isset(TCP::ACK)) {
+  if(in->isset(ACK)) {
     auto& tcb = tcp.tcb();
     //  If SEG.ACK =< ISS, or SEG.ACK > SND.NXT
     if(in->ack() <= tcb.ISS or in->ack() > tcb.SND.NXT) {
       // send a reset
-      if(!in->isset(TCP::RST)) {
+      if(!in->isset(RST)) {
         auto packet = tcp.outgoing_packet();
-        packet->set_seq(in->ack()).set_flag(TCP::RST);
+        packet->set_seq(in->ack()).set_flag(RST);
         tcp.transmit(packet);
         return OK;
       }
@@ -850,8 +851,8 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if(in->isset(TCP::RST)) {
-    if(in->isset(TCP::ACK)) {
+  if(in->isset(RST)) {
+    if(in->isset(ACK)) {
       tcp.signal_error(TCPException{"Connection reset."});
       tcp.drop(in, "RST with acceptable ACK");
       return CLOSED;
@@ -899,7 +900,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
   */
 
   // TODO: Fix this one according to the text above.
-  if(in->isset(TCP::SYN)) {
+  if(in->isset(SYN)) {
     auto& tcb = tcp.tcb();
     tcb.RCV.NXT   = in->seq()+1;
     tcb.IRS       = in->seq();
@@ -922,7 +923,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
 
       if(tcb.SND.NXT == snd_nxt) {
         auto packet = tcp.outgoing_packet();
-        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(TCP::ACK);
+        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
         tcp.transmit(packet);
       }
       // State is now ESTABLISHED.
@@ -936,7 +937,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
       }
 
       // 8. check FIN bit
-      if(in->isset(TCP::FIN)) {
+      if(in->isset(FIN)) {
         process_fin(tcp, in);
         tcp.set_state(Connection::CloseWait::instance());
         return OK;
@@ -946,7 +947,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
     // Otherwise enter SYN-RECEIVED, form a SYN,ACK segment <SEQ=ISS><ACK=RCV.NXT><CTL=SYN,ACK>
     else {
       auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(TCP::SYN | TCP::ACK);
+      packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
       tcp.transmit(packet);
       tcp.set_state(Connection::SynReceived::instance());
       if(in->has_tcp_data()) {
@@ -973,7 +974,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
     return OK;
   }
   // 2. check RST
-  if(in->isset(TCP::RST)) {
+  if(in->isset(RST)) {
     /*
       If this connection was initiated with a passive OPEN (i.e.,
       came from the LISTEN state), then return this connection to
@@ -996,20 +997,20 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
   // 3. check security
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
 
   // 5. check ACK
-  if(in->isset(TCP::ACK)) {
+  if(in->isset(ACK)) {
     auto& tcb = tcp.tcb();
     /*
       If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
       and continue processing.
     */
     if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
-      debug("<TCP::Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+      debug("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
       if(tcp.rttm.active)
         tcp.rttm.stop(true);
       tcp.set_state(Connection::Established::instance());
@@ -1023,12 +1024,12 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
 
       // 7. proccess the segment text
       if(in->has_tcp_data()) {
-        debug2("<TCP::Connection::SynReceived::handle> @warning: Packet has data? %s\n", in->to_string().c_str());
+        debug2("<Connection::SynReceived::handle> @warning: Packet has data? %s\n", in->to_string().c_str());
         process_segment(tcp, in);
       }
 
       // 8. check FIN bit
-      if(in->isset(TCP::FIN)) {
+      if(in->isset(FIN)) {
         tcp.set_state(Connection::CloseWait::instance());
         process_fin(tcp, in);
         return OK;
@@ -1040,7 +1041,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
     */
     else {
       auto packet = tcp.outgoing_packet();
-      packet->set_seq(in->ack()).set_flag(TCP::RST);
+      packet->set_seq(in->ack()).set_flag(RST);
       tcp.transmit(packet);
     }
   }
@@ -1051,7 +1052,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     tcp.set_state(Connection::CloseWait::instance());
     return OK;
@@ -1067,7 +1068,7 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     tcp.signal_disconnect(Disconnect::RESET);
     return CLOSED; // close
   }
@@ -1075,7 +1076,7 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_ptr in) {
   // 3. check security
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1092,7 +1093,7 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 8. check FIN bit
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     tcp.set_state(Connection::CloseWait::instance());
     process_fin(tcp, in);
     return OK;
@@ -1109,13 +1110,13 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     tcp.signal_disconnect(Disconnect::RESET);
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1129,7 +1130,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
     our FIN is now acknowledged then enter FIN-WAIT-2 and continue
     processing in that state.
   */
-  debug2("<TCP::Connection::FinWait1::handle> Current TCB:\n %s \n", tcp.tcb().to_string().c_str());
+  debug2("<Connection::FinWait1::handle> Current TCB:\n %s \n", tcp.tcb().to_string().c_str());
   if(in->ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(Connection::FinWait2::instance());
@@ -1142,9 +1143,9 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
-    debug2("<TCP::Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
+    debug2("<Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
     /*
       If our FIN has been ACKed (perhaps in this segment), then
       enter TIME-WAIT, start the time-wait timer, turn off the other
@@ -1171,13 +1172,13 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     tcp.signal_disconnect(Disconnect::RESET);
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1193,7 +1194,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     /*
       Enter the TIME-WAIT state.
@@ -1215,13 +1216,13 @@ State::Result Connection::CloseWait::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     tcp.signal_disconnect(Disconnect::RESET);
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1235,7 +1236,7 @@ State::Result Connection::CloseWait::handle(Connection& tcp, Packet_ptr in) {
   // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     // Remain in state
     return OK;
@@ -1251,12 +1252,12 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1281,7 +1282,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_ptr in) {
   // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     // Remain in state
     return OK;
@@ -1298,12 +1299,12 @@ State::Result Connection::LastAck::handle(Connection& tcp, Packet_ptr in) {
   return CLOSED;
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1316,7 +1317,7 @@ State::Result Connection::LastAck::handle(Connection& tcp, Packet_ptr in) {
   // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     // Remain in state
     return OK;
@@ -1332,12 +1333,12 @@ State::Result Connection::TimeWait::handle(Connection& tcp, Packet_ptr in) {
   }
 
   // 2. check RST
-  if( in->isset(TCP::RST) ) {
+  if( in->isset(RST) ) {
     return CLOSED; // close
   }
 
   // 4. check SYN
-  if( in->isset(TCP::SYN) ) {
+  if( in->isset(SYN) ) {
     unallowed_syn_reset_connection(tcp, in);
     return CLOSED;
   }
@@ -1346,7 +1347,7 @@ State::Result Connection::TimeWait::handle(Connection& tcp, Packet_ptr in) {
   // This should not occur, since a FIN has been received from the remote side.  Ignore the segment text.
 
   // 8. check FIN
-  if(in->isset(TCP::FIN)) {
+  if(in->isset(FIN)) {
     process_fin(tcp, in);
     // Remain in state
     tcp.start_time_wait_timeout();

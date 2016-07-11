@@ -4,7 +4,7 @@
 #ifndef NET_TCP_OPTION_HPP
 #define NET_TCP_OPTION_HPP
 
-#include <net/util.hpp>
+#include <net/util.hpp> // byte ordering
 
 namespace net {
 namespace tcp {
@@ -48,6 +48,7 @@ struct Option {
     uint32_t ts_val;
     uint32_t ts_ecr;
   };
+
 }; // < struct Option
 
 } // < namespace net

@@ -16,115 +16,31 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_TCP_TCP_HPP
-#define NET_TCP_TCP_HPP
+#ifndef NET_TCP_HPP
+#define NET_TCP_HPP
 
-#include <os>
-#include <net/ip4/ip4.hpp> // IP4::Addr
-#include <net/util.hpp> // net::Packet_ptr
-#include <queue> // buffer
-#include <map>
-#include <sstream> // ostringstream
 #include <chrono> // timer duration
+#include <map>
+#include <net/inet.hpp>
+#include <net/util.hpp> // net::Packet_ptr
+#include <sstream> // ostringstream
+#include <queue> // buffer
 
 #include "common.hpp"
+#include "headers.hpp"
 #include "socket.hpp"
 #include "connection.hpp"
 
 namespace net {
-namespace tcp {
 
   class TCP {
   public:
     using IPStack = Inet<LinkLayer,IP4>;
 
-    friend class Connection;
+    friend class tcp::Connection;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
-
-    static constexpr uint16_t default_window_size = 0xffff;
-
-    static constexpr uint16_t default_mss = 536;
-
-    /*
-      Flags (Control bits) in the TCP Header.
-    */
-    enum Flag {
-      NS        = (1 << 8),     // Nounce (Experimental: see RFC 3540)
-      CWR       = (1 << 7),     // Congestion Window Reduced
-      ECE       = (1 << 6),     // ECN-Echo
-      URG       = (1 << 5),     // Urgent
-      ACK       = (1 << 4),     // Acknowledgement
-      PSH       = (1 << 3),     // Push
-      RST       = (1 << 2),     // Reset
-      SYN       = (1 << 1),     // Syn(chronize)
-      FIN       = 1,            // Fin(ish)
-    };
-
-    /*
-      Representation of the TCP Header.
-
-      RFC 793, (p.15):
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |          Source Port          |       Destination Port        |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |                        Sequence Number                        |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |                    Acknowledgment Number                      |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |  Data |           |U|A|P|R|S|F|                               |
-      | Offset| Reserved  |R|C|S|S|Y|I|            Window             |
-      |       |           |G|K|H|T|N|N|                               |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |           Checksum            |         Urgent Pointer        |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |                    Options                    |    Padding    |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-      |                             data                              |
-      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    */
-    struct Header {
-      port_t source_port;                    // Source port
-      port_t destination_port;               // Destination port
-      seq_t seq_nr;                          // Sequence number
-      seq_t ack_nr;                          // Acknowledge number
-      union {
-        uint16_t whole;                         // Reference to offset_reserved & flags together.
-        struct {
-          uint8_t offset_reserved;      // Offset (4 bits) + Reserved (3 bits) + NS (1 bit)
-          uint8_t flags;                                // All Flags (Control bits) except NS (9 bits - 1 bit)
-        };
-      } offset_flags;                                   // Data offset + Reserved + Flags (16 bits)
-      uint16_t window_size;                     // Window size
-      uint16_t checksum;                                // Checksum
-      uint16_t urgent;                          // Urgent pointer offset
-      uint8_t options[0];                       // Options
-    }__attribute__((packed)); // << struct TCP::Header
-
-
-    /*
-      TCP Pseudo header, for checksum calculation
-    */
-    struct Pseudo_header {
-      IP4::addr saddr;
-      IP4::addr daddr;
-      uint8_t zero;
-      uint8_t proto;
-      uint16_t tcp_length;
-    }__attribute__((packed));
-
-    /*
-      TCP Checksum-header (TCP-header + pseudo-header)
-    */
-    struct Checksum_header {
-      Pseudo_header pseudo;
-      Header tcp;
-    }__attribute__((packed));
-
-
 
     /// USER INTERFACE - TCP ///
 
@@ -136,24 +52,24 @@ namespace tcp {
     /*
       Bind a new listener to a given Port.
     */
-    Connection& bind(port_t port);
+    tcp::Connection& bind(tcp::port_t port);
 
     /*
       Active open a new connection to the given remote.
     */
-    Connection_ptr connect(Socket remote);
+    tcp::Connection_ptr connect(tcp::Socket remote);
 
     /*
       Active open a new connection to the given remote.
     */
-    inline auto connect(Address address, port_t port = 80) {
+    inline auto connect(tcp::Address address, tcp::port_t port = 80) {
       return connect({address, port});
     }
 
     /*
       Active open a new connection to the given remote.
     */
-    void connect(Socket remote, Connection::ConnectCallback);
+    void connect(tcp::Socket remote, tcp::Connection::ConnectCallback);
 
     /*
       Receive packet from network layer (IP).
@@ -169,7 +85,7 @@ namespace tcp {
     /*
       Compute the TCP checksum
     */
-    static uint16_t checksum(const Packet_ptr);
+    static uint16_t checksum(const tcp::Packet_ptr);
 
     inline const auto& listeners()
     { return listeners_; }
@@ -206,7 +122,7 @@ namespace tcp {
       [RFC 793] [RFC 879] [RFC 6691]
     */
     inline constexpr uint16_t MSS() const
-    { return network().MDDS() - sizeof(TCP::Header); }
+    { return network().MDDS() - sizeof(tcp::Header); }
 
     /*
       Show all connections for TCP as a string.
@@ -219,60 +135,60 @@ namespace tcp {
     inline size_t writeq_size() const
     { return writeq.size(); }
 
-    inline Address address()
+    inline tcp::Address address()
     { return inet_.ip_addr(); }
 
   private:
 
     IPStack& inet_;
-    std::map<port_t, Connection> listeners_;
-    std::map<Connection::Tuple, Connection_ptr> connections_;
+    std::map<tcp::port_t, tcp::Connection> listeners_;
+    std::map<tcp::Connection::Tuple, tcp::Connection_ptr> connections_;
 
     downstream _network_layer_out;
 
-    std::deque<Connection_ptr> writeq;
+    std::deque<tcp::Connection_ptr> writeq;
 
     /*
       Settings
     */
-    port_t current_ephemeral_ = 1024;
+    tcp::port_t current_ephemeral_ = 1024;
 
     std::chrono::milliseconds MAX_SEG_LIFETIME;
 
     /*
       Transmit packet to network layer (IP).
     */
-    void transmit(Packet_ptr);
+    void transmit(tcp::Packet_ptr);
 
     /*
       Generate a unique initial sequence number (ISS).
     */
-    static seq_t generate_iss();
+    static tcp::seq_t generate_iss();
 
     /*
       Returns a free port for outgoing connections.
     */
-    port_t next_free_port();
+    tcp::port_t next_free_port();
 
     /*
       Check if the port is in use either among "listeners" or "connections"
     */
-    bool port_in_use(const port_t) const;
+    bool port_in_use(const tcp::port_t) const;
 
     /*
       Packet is dropped.
     */
-    void drop(Packet_ptr);
+    void drop(tcp::Packet_ptr);
 
     /*
       Add a Connection.
     */
-    Connection_ptr add_connection(port_t local_port, Socket remote);
+    tcp::Connection_ptr add_connection(tcp::port_t local_port, tcp::Socket remote);
 
     /*
       Close and delete the connection.
     */
-    void close_connection(Connection&);
+    void close_connection(tcp::Connection&);
 
     /*
       Process the write queue with the given amount of free packets.
@@ -282,7 +198,7 @@ namespace tcp {
     /*
 
     */
-    size_t send(Connection_ptr, const char* buffer, size_t n);
+    size_t send(tcp::Connection_ptr, const char* buffer, size_t n);
 
     /*
       Force the TCP to process the it's queue with the current amount of available packets.
@@ -295,7 +211,6 @@ namespace tcp {
 
   }; // < class TCP
 
-}; // < namespace tcp
-}; // < namespace net
+} // < namespace net
 
-#endif // < NET_TCP_TCP_HPP
+#endif // < NET_TCP_HPP

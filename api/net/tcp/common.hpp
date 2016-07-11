@@ -2,10 +2,14 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/ip4.hpp> // IP4::addr
+#include <net/ip4/ip4.hpp> // IP4::addr @TODO: include ip4 only for address?
 
 namespace net {
   namespace tcp {
+
+    // Constants
+    static constexpr uint16_t default_window_size = 0xffff;
+    static constexpr uint16_t default_mss = 536;
 
     using Address = IP4::addr;
 

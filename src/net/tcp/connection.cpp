@@ -17,16 +17,17 @@
 #define DEBUG
 #define DEBUG2
 
+#include <os> // OS::cycles_since_boot
+#include <gsl_assert.h> // Ensures/Expects
 #include <net/tcp/connection.hpp>
 #include <net/tcp/connection_states.hpp>
 #include <net/tcp/packet.hpp>
-#include <net/tcp/tcp_errors.hpp>
 #include <net/tcp/tcp.hpp>
+#include <net/tcp/tcp_errors.hpp>
+
 
 using namespace net::tcp;
 using namespace std;
-
-//const RTTM::duration_t RTTM::CLOCK_G;
 
 /*
   This is most likely used in a ACTIVE open
@@ -68,7 +69,7 @@ void Connection::setup_default_callbacks() {
 }
 
 inline uint16_t Connection::MSDS() const {
-  return std::min(host_.MSS(), cb.SND.MSS) + sizeof(TCP::Header);
+  return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
 inline uint16_t Connection::SMSS() const {
@@ -84,11 +85,11 @@ inline bool Connection::has_doable_job() {
 }
 
 Connection::TCB::TCB() {
-  SND = { 0, 0, TCP::default_window_size, 0, 0, 0, TCP::default_mss };
+  SND = { 0, 0, default_window_size, 0, 0, 0, default_mss };
   ISS = (seq_t)4815162342;
-  RCV = { 0, TCP::default_window_size, 0, 0 };
+  RCV = { 0, default_window_size, 0, 0 };
   IRS = 0;
-  ssthresh = TCP::default_window_size;
+  ssthresh = default_window_size;
   cwnd = 0;
   recover = 0;
 };
@@ -218,7 +219,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     remaining -= written;
 
     if(!remaining or usable_window() < SMSS() or !packets_avail)
-      packet->set_flag(TCP::PSH);
+      packet->set_flag(PSH);
 
     transmit(packet);
     //packets.push_back(packet);
@@ -276,7 +277,7 @@ size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n, 
 
   auto written = packet->fill(buffer, std::min(n, (size_t)SMSS()));
 
-  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(TCP::ACK);
+  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
 
   Ensures(written <= n);
 
@@ -446,7 +447,7 @@ bool Connection::handle_ack(Packet_ptr in) {
   */
   if(in->ack() == cb.SND.UNA and flight_size()
     and !in->has_tcp_data() and cb.SND.WND == in->win()
-    and !in->isset(TCP::SYN) and !in->isset(TCP::FIN))
+    and !in->isset(SYN) and !in->isset(FIN))
   {
     dup_acks_++;
     on_dup_ack();
@@ -517,7 +518,7 @@ bool Connection::handle_ack(Packet_ptr in) {
         send_much();
 
       // if data, let state continue process
-      if(in->has_tcp_data() or in->isset(TCP::FIN))
+      if(in->has_tcp_data() or in->isset(FIN))
         return true;
 
     } // < !fast recovery
@@ -547,7 +548,7 @@ bool Connection::handle_ack(Packet_ptr in) {
           debug("<Connection::handle_ack> Can't send during recovery - usable window is closed.\n");
         }
 
-        if(in->has_tcp_data() or in->isset(TCP::FIN))
+        if(in->has_tcp_data() or in->isset(FIN))
           return true;
       } // < partial ack
 
@@ -657,11 +658,11 @@ void Connection::retransmit() {
   auto packet = create_outgoing_packet();
   // If not retransmission of a pure SYN packet, add ACK
   if(!is_state(SynSent::instance())) {
-    packet->set_flag(TCP::ACK);
+    packet->set_flag(ACK);
   }
   // If retransmission from either SYN-SENT or SYN-RCV, add SYN
   if(is_state(SynSent::instance()) or is_state(SynReceived::instance())) {
-    packet->set_flag(TCP::SYN);
+    packet->set_flag(SYN);
     packet->set_seq(cb.SND.UNA);
     syn_rtx_++;
   }
@@ -677,7 +678,7 @@ void Connection::retransmit() {
 
   // If retransmission of a FIN packet
   if(is_state(FinWait1::instance()) or is_state(LastAck::instance())) {
-    packet->set_flag(TCP::FIN);
+    packet->set_flag(FIN);
   }
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
@@ -887,7 +888,7 @@ void Connection::parse_options(Packet_ptr packet) {
       if(option->length != 4)
         throw TCPBadOptionException{Option::MSS, "length != 4"};
       // unlikely
-      if(!packet->isset(TCP::SYN))
+      if(!packet->isset(SYN))
         throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
 
       auto* opt_mss = (Option::opt_mss*)option;

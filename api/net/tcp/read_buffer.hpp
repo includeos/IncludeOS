@@ -43,11 +43,11 @@ struct ReadBuffer {
   inline uint8_t* end() const
   { return buffer.get() + capacity(); }
 
-  bool advance(size_t length) {
+  size_t advance(size_t length) {
     assert(length <= remaining);
     offset += length;
     remaining -= length;
-    return length > 0;
+    return length;
   }
 
   void clear() {

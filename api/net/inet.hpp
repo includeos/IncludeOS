@@ -22,10 +22,8 @@
 
 namespace net {
 
-  namespace tcp {
-    class TCP;
-  }
-  using TCP = tcp::TCP;
+
+  class TCP;
   class UDP;
   class DHClient;
 

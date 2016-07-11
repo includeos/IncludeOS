@@ -4,6 +4,8 @@
 #ifndef NET_TCP_CONNECTION_HPP
 #define NET_TCP_CONNECTION_HPP
 
+#include <hw/pit.hpp>
+
 #include "common.hpp"
 #include "read_buffer.hpp"
 #include "rttm.hpp"
@@ -21,7 +23,7 @@ namespace tcp {
   Transist between many states.
 */
 class Connection : public std::enable_shared_from_this<Connection> {
-  friend class TCP;
+  friend class net::TCP;
 public:
   /** Connection identifier */
   using Tuple = std::pair<port_t, Socket>;

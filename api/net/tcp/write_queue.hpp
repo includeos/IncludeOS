@@ -1,13 +1,17 @@
+// License
+
 #pragma once
 #ifndef NET_TCP_WRITE_QUEUE_HPP
 #define NET_TCP_WRITE_QUEUE_HPP
 
+#include <debug>
+#include <delegate>
+#include <deque>
 #include "write_buffer.hpp"
+
 
 namespace net {
 namespace tcp {
-
-
 
 /*
   Write Queue containig WriteRequests from user.

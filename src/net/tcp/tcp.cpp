@@ -19,9 +19,9 @@
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
-#include <alloca.h>
 
 using namespace std;
+using namespace net;
 using namespace net::tcp;
 
 
@@ -116,11 +116,11 @@ bool TCP::port_in_use(const port_t port) const {
 }
 
 
-uint16_t TCP::checksum(Packet_ptr packet) {
+uint16_t TCP::checksum(tcp::Packet_ptr packet) {
   // TCP header
-  TCP::Header* tcp_hdr = &(packet->tcp_header());
+  Header* tcp_hdr = &(packet->tcp_header());
   // Pseudo header
-  TCP::Pseudo_header pseudo_hdr;
+  Pseudo_header pseudo_hdr;
 
   int tcp_length = packet->tcp_length();
 
@@ -285,11 +285,11 @@ void TCP::close_connection(Connection& conn) {
   connections_.erase(conn.tuple());
 }
 
-void TCP::drop(Packet_ptr) {
+void TCP::drop(tcp::Packet_ptr) {
   //debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
 
-void TCP::transmit(Packet_ptr packet) {
+void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
   packet->set_checksum(TCP::checksum(packet));
   //if(packet->has_data())

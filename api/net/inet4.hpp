@@ -39,7 +39,6 @@ namespace net {
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
-    using TCP = tcp::TCP;
 
     Ethernet::addr link_addr() override
     { return eth_.mac(); }

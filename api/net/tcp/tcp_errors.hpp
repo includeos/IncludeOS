@@ -4,6 +4,7 @@
 #ifndef NET_TCP_TCP_ERRORS_HPP
 #define NET_TCP_TCP_ERRORS_HPP
 
+#include <stdexcept>
 #include "options.hpp"
 
 namespace net {

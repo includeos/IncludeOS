@@ -4,8 +4,9 @@
 #ifndef NET_TCP_RTTM_HPP
 #define NET_TCP_RTTM_HPP
 
-#include <os> // OS::uptime()
 #include <cassert>
+#include <cmath>
+#include <debug>
 
 namespace net {
 namespace tcp {
@@ -31,30 +32,15 @@ struct RTTM {
   duration_t RTTVAR; // round-trip time variation
   duration_t RTO; // retransmission timeout
 
-  bool active = false;
+  bool active;
 
   RTTM()
-    : t(OS::uptime()), SRTT(1.0), RTTVAR(1.0), RTO(1.0), active(false)
+    : t(0), SRTT(1.0), RTTVAR(1.0), RTO(1.0), active(false)
   {}
 
-  void start() {
-    t = OS::uptime();
-    active = true;
-  }
+  void start();
 
-  void stop(bool first = false) {
-    assert(active);
-    active = false;
-    // round trip time (RTT)
-    auto rtt = OS::uptime() - t;
-    debug2("<RTTM::stop> RTT: %ums\n",
-      (uint32_t)(rtt * 1000));
-    if(!first)
-      sub_rtt_measurement(rtt);
-    else {
-      first_rtt_measurement(rtt);
-    }
-  }
+  void stop(bool first = false);
 
   /*
     When the first RTT measurement R is made, the host MUST set
