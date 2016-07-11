@@ -22,10 +22,10 @@
 #include <time.h>
 
 #include "middleware.hpp"
-#include "cookiejar.hpp"
+#include "cookie_jar.hpp"
 #include "cookie.hpp"
 
-// using namespace cookie;
+using namespace cookie;
 
 namespace middleware {
 
@@ -146,7 +146,7 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
 void CookieParser::create_cookie(const std::string& name, const std::string& value) {
 
   // try catch
-  cookie::Cookie c{name, value};
+  Cookie c{name, value};
 
   // add to cookiejar if everything ok (no exception)
 
@@ -170,10 +170,10 @@ void CookieParser::create_cookie(const std::string& name, const std::string& val
 inline bool CookieParser::create_cookie(server::Response_ptr res, const std::string& name, const std::string& value) {
 
   // try catch
-  cookie::Cookie c{name, value};
+  Cookie c{name, value};
   std::string cs = c.serialize();
 
-  printf("Created cookie: %s ", cs.c_str());
+  printf("Created cookie: %s \n", cs.c_str());
 
   res->add_header(http::header_fields::Response::Set_Cookie, cs);
 
@@ -185,7 +185,7 @@ inline bool CookieParser::create_cookie(server::Response_ptr res, const std::str
 inline bool CookieParser::create_cookie(server::Response_ptr res, const std::string& name, const std::string& value, const std::vector<std::string>& options) {
 
   // try catch
-  cookie::Cookie c{name, value, options};
+  Cookie c{name, value, options};
   std::string cs = c.serialize();
   res->add_header(http::header_fields::Response::Set_Cookie, cs);
 

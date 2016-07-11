@@ -7,7 +7,7 @@ SERVICE = Acorn
 SERVICE_NAME = Acorn
 
 # Your service parts
-FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o cookie/cookie.o cookie/cookiejar.o
+FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o cookie/cookie.o cookie/cookie_jar.o
 
 # Your disk image
 DISK=memdisk.fat
