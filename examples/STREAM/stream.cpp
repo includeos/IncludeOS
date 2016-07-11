@@ -183,8 +183,9 @@ static STREAM_TYPE	a[STREAM_ARRAY_SIZE+OFFSET],
 static double	avgtime[4] = {0}, maxtime[4] = {0},
 		mintime[4] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
 
-static char	*label[4] = {"Copy:      ", "Scale:     ",
-    "Add:       ", "Triad:     "};
+static const char	*label[4] = 
+  {"Copy:      ", "Scale:     ",
+   "Add:       ", "Triad:     "};
 
 static double	bytes[4] = {
     2 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE,
@@ -206,8 +207,9 @@ extern int omp_get_num_threads();
 #endif
 int
 main()
-    {
-    int			quantum, checktick();
+{
+    int     checktick(void);
+    int			quantum;
     int			BytesPerWord;
     int			k;
     ssize_t		j;
@@ -415,18 +417,6 @@ checktick()
 /* A gettimeofday routine to give access to the wall
    clock timer on most UNIX-like systems.  */
 
-#include <sys/time.h>
-
-double mysecond()
-{
-        struct timeval tp;
-        struct timezone tzp;
-        int i;
-
-        i = gettimeofday(&tp,&tzp);
-        return ( (double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
-}
-
 #ifndef abs
 #define abs(a) ((a) >= 0 ? (a) : -(a))
 #endif
@@ -476,7 +466,7 @@ void checkSTREAMresults ()
 		epsilon = 1.e-13;
 	}
 	else {
-		printf("WEIRD: sizeof(STREAM_TYPE) = %lu\n",sizeof(STREAM_TYPE));
+		printf("WEIRD: sizeof(STREAM_TYPE) = %u\n", sizeof(STREAM_TYPE));
 		epsilon = 1.e-6;
 	}
 

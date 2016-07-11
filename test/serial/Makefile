@@ -4,7 +4,7 @@
 
 # The name of your service
 SERVICE = test_serial
-SERVICE_NAME = Serial port test
+SERVICE_NAME = Serial port Test Service
 
 # Your service parts
 FILES = service.cpp

@@ -31,7 +31,7 @@ namespace net {
   {
     network_layer_out_ = [] (net::Packet_ptr) {};
     inet.on_transmit_queue_available(
-                                     transmit_avail_delg::from<UDP, &UDP::process_sendq>(this));
+        transmit_avail_delg::from<UDP, &UDP::process_sendq>(this));
   }
 
   void UDP::bottom(net::Packet_ptr pckt)
@@ -61,9 +61,9 @@ namespace net {
     if (likely(it == ports_.end())) {
       // create new socket
       auto res = ports_.emplace(
-                                std::piecewise_construct,
-                                std::forward_as_tuple(port),
-                                std::forward_as_tuple(*this, port));
+          std::piecewise_construct,
+          std::forward_as_tuple(port),
+          std::forward_as_tuple(*this, port));
       it = res.first;
     }
     return it->second;
@@ -114,18 +114,17 @@ namespace net {
         buffer.write();
         num--;
 
-        if (buffer.done())
-          {
-            auto copy = buffer.callback;
-            // remove buffer from queue
-            sendq.pop_front();
-            // call on_written callback
-            copy();
-            // reduce @num, just in case packets were sent in
-            // another stack frame
-            size_t avail = stack_.transmit_queue_available();
-            num = (num > avail) ? avail : num;
-          }
+        if (buffer.done()) {
+          auto copy = buffer.callback;
+          // remove buffer from queue
+          sendq.pop_front();
+          // call on_written callback
+          copy();
+          // reduce @num, just in case packets were sent in
+          // another stack frame
+          size_t avail = stack_.transmit_queue_available();
+          num = (num > avail) ? avail : num;
+        }
       }
   }
 
@@ -138,8 +137,7 @@ namespace net {
     if (r % udp.max_datagram_size()) P++;
     return P;
   }
-  UDP::WriteBuffer::WriteBuffer(
-                                const uint8_t* data, size_t length, sendto_handler cb,
+  UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb,
                                 UDP& stack, addr_t LA, port_t LP, addr_t DA, port_t DP)
     : len(length), offset(0), callback(cb), udp(stack),
       l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)

@@ -59,7 +59,9 @@ void Service::start()
 
   // Stack with network interface (eth0) driven by VirtioNet
   // DNS address defaults to 8.8.8.8
-  auto inet = net::new_ipv4_stack<>(0.15, [](bool timeout) {
+  static auto inet = 
+      net::new_ipv4_stack<>(0.15, 
+  [](bool timeout) {
     if (timeout) {
       printf("%s\n", "DHCP negotiation timed out\n");
     } else {

@@ -42,6 +42,12 @@ namespace hw
       asm volatile("wrmsr" : : "a" (eax),"d"(edx), "c" (addr));
     }
     
+    static uint64_t rdtsc()
+    {
+      uint64_t ret;
+      __asm__ volatile ("rdtsc":"=A"(ret));
+      return ret;
+    }
   };
 }
 

@@ -43,10 +43,10 @@ def get_mem():
     received = sock_mem.recv(1000).rstrip()
 
   except Exception as e:
-    color.FAIL(name_tag+"Python socket failed while getting memsize: "+e)
+    print color.FAIL(name_tag), "Python socket failed while getting memsize: ", e
     return False
 
-  print color.INFO(name_tag),"Current VM memory usage reported as ",received
+  print color.INFO(name_tag),"Current VM memory usage reported as ", received
   return int(received)
 
 def get_mem_start():
@@ -252,4 +252,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.boot(timeout)
+vm.make().boot(timeout)

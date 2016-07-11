@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,8 +55,8 @@ void Service::start()
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
   });
-  // re-mount on VBR1
-  disk->mount(disk->VBR1,
+  // re-mount on MBR (sigh)
+  disk->mount(disk->MBR,
   [disk] (fs::error_t err)
   {
     CHECKSERT(!err, "Filesystem mounted on VBR1");
@@ -84,10 +84,10 @@ void Service::start()
       // read one byte at a time
       buf = fs.read(ent, i, 1);
       /// @buf should evaluate to 'true' if its valid
-      CHECKSERT(buf, "Validate buffer");
+      assert(buf);
 
       // verify that it matches the same location in test-string
-      test = ((char) buf.buffer.get()[0] == internal_banana[i]);
+      test = ((char) buf.data()[0] == internal_banana[i]);
       if (!test) {
         printf("!! Random access read test failed on i = %u\n", i);
         break;
@@ -100,5 +100,6 @@ void Service::start()
     CHECKSERT(banana == internal_banana, "Correct banana #2");
   });
 
+  // OK since we're using a memdisk (everything is synchronous)
   INFO("FAT16", "SUCCESS");
 }

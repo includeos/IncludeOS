@@ -20,41 +20,35 @@
 #include <os>
 #include <list>
 #include <net/inet4>
-#include <vector>
 
-using namespace std;
 using namespace net;
-
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
+std::unique_ptr<Inet4<VirtioNet> > inet;
 
 void Service::start()
 {
-  // Assign an IP-address, using Hårek-mapping :-)
-  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
-  auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    { 10, 0, 0, 42 },   // IP
-    { 255, 255, 0, 0 }, // Netmask
-    { 10, 0, 0, 1 } );  // Gateway
-
-  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
+  inet = new_ipv4_stack(
+      {  10,  0,  0, 42 },   // IP
+      { 255, 255, 0,  0 },   // Netmask
+      {  10,  0,  0,  1 } ); // Gateway
+  printf("Service IP address is %s\n", inet->ip_addr().str().c_str());
 
   // UDP
   const UDP::port_t port = 4242;
-  auto& sock = inet.udp().bind(port);
+  auto& sock = inet->udp().bind(port);
 
   sock.on_read(
-               [&sock] (UDP::addr_t addr, UDP::port_t port,
-                        const char* data, size_t len)
-               {
-                 std::string strdata(data, len);
-                 CHECK(1, "Getting UDP data from %s:  %d -> %s",
-                       addr.str().c_str(), port, strdata.c_str());
-                 // send the same thing right back!
-                 sock.sendto(addr, port, data, len,
-                             [] {
-                               INFO("UDP test", "SUCCESS");
-                             });
-               });
+  [&sock] (UDP::addr_t addr, UDP::port_t port,
+           const char* data, size_t len)
+  {
+    std::string strdata(data, len);
+    CHECK(1, "Getting UDP data from %s:  %d -> %s",
+          addr.str().c_str(), port, strdata.c_str());
+    // send the same thing right back!
+    sock.sendto(addr, port, data, len,
+    [] {
+      INFO("UDP test", "SUCCESS");
+    });
+  });
 
   INFO("UDP test", "Listening on port %d\n", port);
 }

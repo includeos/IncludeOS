@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -141,5 +141,13 @@ void Service::start()
 
   lest::run(specification, 2, argv);
 
-  MYINFO("SUCCESS");
+  MYINFO("Expect panic after exit handler");
+  at_quick_exit([] {
+    CHECK(1,"Custom quick exit-handler called");
+    MYINFO("SUCCESS");
+  });
+
+  quick_exit(0);
+
+  CHECKSERT(false, "Quick exit never happend");
 }

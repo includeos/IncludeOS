@@ -8,9 +8,11 @@ SERVICE_NAME = Exceptions test
 
 # Your service parts
 FILES = service.cpp
+
 # Your disk image
 DISK=
-LOCAL_INCLUDES=
+
+LOCAL_INCLUDES=-I$(shell pwd)/../lest/include/lest
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

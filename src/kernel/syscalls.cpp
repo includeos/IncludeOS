@@ -24,10 +24,14 @@
 
 #include <os>
 #include <kernel/syscalls.hpp>
+#include <hw/cmos.hpp>
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
-caddr_t heap_end;
+extern "C" {
+  caddr_t heap_begin;
+  caddr_t heap_end;
+}
 
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};
@@ -135,11 +139,10 @@ int wait(int* UNUSED(status)) {
 };
 
 int gettimeofday(struct timeval* p, void* UNUSED(z)) {
-  // Currently every reboot takes us back to 1970 :-)
-  float seconds = OS::uptime();
+  uint32_t seconds = cmos::now().to_epoch();
   p->tv_sec = int(seconds);
-  p->tv_usec = (seconds - p->tv_sec) * 1000000;
-  return 5;
+  p->tv_usec = 0;
+  return 0;
 }
 
 int kill(pid_t pid, int sig) {
@@ -156,10 +159,10 @@ int kill(pid_t pid, int sig) {
 
 // No continuation from here
 void panic(const char* why) {
-  printf("\n\t **** PANIC: ****\n %s\n", why);
+  printf("\n\t**** PANIC: ****\n %s\n", why);
   extern char _end;
-  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n", 
-      heap_end, (uintptr_t) (heap_end - &_end) / 1024, (uintptr_t) heap_end / 1024);
+  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n",
+      heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   while(1) asm ("cli; hlt;");
 }
@@ -171,6 +174,5 @@ void default_exit() {
 
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
-  printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
 }

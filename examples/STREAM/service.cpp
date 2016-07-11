@@ -19,6 +19,11 @@
 #include <iostream>
 extern int  main();
 
+double mysecond()
+{
+  return OS::uptime();
+}
+
 void Service::start()
 {
   std::cout << "*** Service is up - with OS Included! ***" << std::endl;

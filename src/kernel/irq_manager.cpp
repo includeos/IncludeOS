@@ -55,9 +55,7 @@ void exception_handler()
   printf("ISR: 0x%x  IRR: 0x%x\n",
     hw::APIC::get_isr(), hw::APIC::get_irr());
 
-  print_backtrace();
-  
-  printf(">>>> !!! CPU EXCEPTION %u !!! <<<<\n", hw::APIC::get_isr());
+  printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 
@@ -186,9 +184,9 @@ void IRQ_manager::notify() {
 
     // sub and call handler
     irq_delegates_[intr]();
-    
-    // reset on todo-list
-    irq_todo.reset(intr);
+
+    // rebuild on todo-list
+    irq_todo.set_from_and(irq_subs, irq_pend);
     // find next interrupt
     intr = irq_todo.first_set();
   }

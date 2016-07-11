@@ -19,7 +19,6 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <os>
 
@@ -38,11 +37,8 @@ OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
-
-// Heap
+extern caddr_t heap_begin;
 extern caddr_t heap_end;
-extern char    _end;
-
 
 void OS::start() {
 
@@ -57,10 +53,13 @@ void OS::start() {
   debug("\t[*] OS class started\n");
   srand(time(NULL));
 
-  MYINFO("Heap start: @ %p", heap_end);
-  MYINFO("Current end is: @ %p", &_end);
+  MYINFO("Heap start:  %p", heap_begin);
+  MYINFO("Heap end:    %p", heap_end);
 
   atexit(default_exit);
+
+  // Set up interrupt and exception handlers
+  IRQ_manager::init();
 
   // read ACPI tables
   hw::ACPI::init();
@@ -68,11 +67,8 @@ void OS::start() {
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
 
-  // Set up interrupt handlers
-  IRQ_manager::init();
-
+  // enable interrupts
   INFO("BSP", "Enabling interrupts");
-  hw::APIC::setup_subs();
   IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer
@@ -104,16 +100,13 @@ void OS::start() {
   event_loop();
 }
 
-uint32_t OS::memory_usage() {
-    return (uint32_t)heap_end - (uint32_t)&_end;
+uintptr_t OS::heap_usage() {
+  // measures heap usage only?
+  return (uint32_t) (heap_end - heap_begin);
 }
 
 void OS::halt() {
   __asm__ volatile("hlt;");
-}
-
-double OS::uptime() {
-  return (cycles_since_boot() / Hz(cpu_mhz_).count());
 }
 
 void OS::event_loop() {

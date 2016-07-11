@@ -17,7 +17,6 @@
 
 #include <os>
 #include <net/inet4>
-
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
@@ -26,9 +25,12 @@ using namespace std::chrono;
 #include <profile>
 
 extern void print_heap_info();
+extern void print_backtrace();
+
 void print_tcp_status() {
   printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
   print_heap_info();
+  print_backtrace();
 }
 
 uint8_t bullshit[65536*4];
@@ -51,7 +53,7 @@ void do_nothing_useful()
   static uint8_t* ptrs[NUM_POINTERS];
   
   printf("Validing heap...");
-  __validate_backtrace("BEFORE do_nothing_useful()");
+  //__validate_backtrace("BEFORE do_nothing_useful()");
   counter++;
   
   if (!mode_free) {
@@ -59,21 +61,21 @@ void do_nothing_useful()
     // allocate all pointers
     for (size_t i = 0; i < NUM_POINTERS; i++)
     {
-      __validate_backtrace("BEFORE NEW", i);
+      //__validate_backtrace("BEFORE NEW", i);
       const size_t BUFFER_SIZE = 4096;
       ptrs[i] = new uint8_t[BUFFER_SIZE];
-      __validate_backtrace("BEFORE MEMSET", i);
+      //__validate_backtrace("BEFORE MEMSET", i);
       memset(ptrs[i], 0, BUFFER_SIZE);
       
       // create empty packet
-      __validate_backtrace("BEFORE Packet()", i);
+      //__validate_backtrace("BEFORE Packet()", i);
       new (ptrs[i]) net::Packet(BUFFER_SIZE, 0);
     }
   } else {
     // delete all pointers
     printf("Deleting...\n");
     for (size_t i = 0; i < NUM_POINTERS; i++) {
-      __validate_backtrace("BEFORE DELETE", i);
+      //__validate_backtrace("BEFORE DELETE", i);
       delete[] ptrs[i];
       ptrs[i] = nullptr;
     }
@@ -89,30 +91,50 @@ extern "C" {
   extern void _start();
 }
 
+#include <hw/cpu.hpp>
 void Service::start()
 {
-  printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
-  memset(bullshit, 0, sizeof(bullshit));
-  __validate_bullshit("validate_bullshit begin Service::start()");
-  
-  begin_stack_sampling(200);
-  // print sampling results every 5 seconds
-  hw::PIT::instance().on_repeated_timeout(800ms, print_stack_sampling);
+  //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
+  //memset(bullshit, 0, sizeof(bullshit));
+  //__validate_bullshit("validate_bullshit begin Service::start()");
   // heap validation test
-  hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
-  __validate_bullshit("validate_bullshit endof Service::start()");
+  //hw::PIT::instance().on_repeated_timeout(200ms, do_nothing_useful);
+  //__validate_bullshit("validate_bullshit endof Service::start()");
   
+  //begin_stack_sampling(200);
+  // print sampling results every 5 seconds
+  //hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
+
+  hw::PIT::instance().on_repeated_timeout(500ms, 
+  [] {
+    print_heap_info();
+    printf("bufstore packets: %u\n", inet->buffers_available());
+  });
+
   // boilerplate
   inet = net::new_ipv4_stack(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 } );     // Gateway
-  hw::PIT::instance().on_repeated_timeout(2500ms, print_tcp_status);
+  hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
+  hw::PIT::instance().on_timeout_ms(1ms, print_tcp_status);
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
   server.onConnect(
   [] (auto conn) {
-    conn->abort();
+    conn->close();
+  });
+  
+  auto& echo_server = inet->udp().bind(66);
+  echo_server.on_read(
+  [&echo_server] (auto addr, auto port,
+                  const char* data, size_t len)
+  {
+    // send the same thing right back!
+    echo_server.sendto(addr, port, data, len,
+    [len] {
+      //INFO("UDP", "Echo reply len=%u", len);
+    });
   });
 }

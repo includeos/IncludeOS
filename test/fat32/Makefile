@@ -3,14 +3,13 @@
 #################################################
 
 # The name of your service
-SERVICE = test_quick_exit
-SERVICE_NAME = Quick Exit Test
+SERVICE = test_fat32
+SERVICE_NAME = FAT32 Test Service
 
 # Your service parts
-FILES = service.cpp
+FILES=fat32.cpp
 # Your disk image
 DISK=
-LOCAL_INCLUDES=
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

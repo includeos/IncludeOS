@@ -149,10 +149,6 @@ namespace fs
       init(mbr);
 
       // determine which FAT version is mounted
-      std::string inf = "ofs: " + std::to_string(lba_base) +
-        "size: " + std::to_string(lba_size) +
-        " (" + std::to_string(this->lba_size * sector_size) + " bytes)\n";
-
       switch (this->fat_type) {
       case FAT::T_FAT12:
         INFO("FS", "Mounting FAT12 filesystem");
