@@ -18,24 +18,22 @@
 #include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
-#include <net/tcp.hpp>
+#include <net/tcp/tcp.hpp>
 #include <vector>
 #include <info>
 
 using namespace net;
 using namespace std::chrono; // For timers and MSL
-using Connection_ptr = std::shared_ptr<TCP::Connection>;
-using buffer_t = TCP::buffer_t;
 std::unique_ptr<Inet4<VirtioNet>> inet;
-std::shared_ptr<TCP::Connection> client;
+tcp::Connection_ptr client;
 
 /*
   TEST VARIABLES
 */
-TCP::Port
+tcp::port_t
 TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
-using HostAddress = std::pair<std::string, TCP::Port>;
+using HostAddress = std::pair<std::string, tcp::port_t>;
 HostAddress
 TEST_ADDR_TIME{"india.colorado.edu", 13};
 
@@ -61,7 +59,7 @@ void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
   hw::PIT::instance().on_timeout_ms(3 * MSL_TEST, [] {
       INFO("TEST", "Verify release of resources");
-      CHECKSERT(inet->tcp().activeConnections() == 0,
+      CHECKSERT(inet->tcp().active_connections() == 0,
         "No (0) active connections");
       INFO("Buffers available", "%u", inet->buffers_available());
       CHECKSERT(inet->buffers_available() == buffers_available,
@@ -83,13 +81,13 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 
       if(ip_address != 0) {
         inet->tcp().connect(ip_address, port)
-          ->onConnect([](Connection_ptr conn) {
+          ->onConnect([](tcp::Connection_ptr conn) {
               CHECK(true, "Connected");
-              conn->read(1024, [](buffer_t, size_t n) {
+              conn->read(1024, [](tcp::buffer_t, size_t n) {
                   CHECK(n > 0, "Received a response");
                 });
             })
-          .onError([](Connection_ptr, TCP::TCPException err) {
+          .onError([](auto, tcp::TCPException err) {
               CHECK(false, "Error occured: %s", err.what());
             });
       }
@@ -99,16 +97,16 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 /*
   TEST: Outgoing Connection to Host
 */
-void OUTGOING_TEST(TCP::Socket outgoing) {
+void OUTGOING_TEST(tcp::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
   inet->tcp().connect(outgoing)
-    ->onConnect([](Connection_ptr conn) {
+    ->onConnect([](auto conn) {
         conn->write(small.data(), small.size());
-        conn->read(small.size(), [](buffer_t buffer, size_t n) {
+        conn->read(small.size(), [](auto buffer, size_t n) {
             CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           });
       })
-    .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
+    .onDisconnect([](auto conn, tcp::Connection::Disconnect) {
         CHECK(true, "Connection closed by server");
         CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
         conn->close();
@@ -184,12 +182,12 @@ void Service::start()
   /*
     TEST: Nothing should be allocated.
   */
-  CHECK(tcp.openPorts() == 0, "No (0) open ports (listening connections)");
-  CHECK(tcp.activeConnections() == 0, "No (0) active connections");
+  CHECK(tcp.open_ports() == 0, "No (0) open ports (listening connections)");
+  CHECK(tcp.active_connections() == 0, "No (0) active connections");
 
-  tcp.bind(TEST1).onConnect([](Connection_ptr conn) {
+  tcp.bind(TEST1).onConnect([](auto conn) {
       INFO("TEST", "SMALL string (%u)", small.size());
-      conn->read(small.size(), [conn](buffer_t buffer, size_t n) {
+      conn->read(small.size(), [conn](auto buffer, size_t n) {
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           conn->close();
         });
@@ -199,15 +197,15 @@ void Service::start()
   /*
     TEST: Server should be bound.
   */
-  CHECK(tcp.openPorts() == 1, "One (1) open port");
+  CHECK(tcp.open_ports() == 1, "One (1) open port");
 
   /*
     TEST: Send and receive big string.
   */
-  tcp.bind(TEST2).onConnect([](Connection_ptr conn) {
+  tcp.bind(TEST2).onConnect([](auto conn) {
       INFO("TEST", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
-      conn->read(big.size(), [response, conn](buffer_t buffer, size_t n) {
+      conn->read(big.size(), [response, conn](auto buffer, size_t n) {
           *response += std::string((char*)buffer.get(), n);
           if(response->size() == big.size()) {
             bool OK = (*response == big);
@@ -221,10 +219,10 @@ void Service::start()
   /*
     TEST: Send and receive huge string.
   */
-  tcp.bind(TEST3).onConnect([](Connection_ptr conn) {
+  tcp.bind(TEST3).onConnect([](auto conn) {
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
-      conn->read(16384, [temp, conn](buffer_t buffer, size_t n) {
+      conn->read(16384, [temp, conn](auto buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
           //printf("Read: %u\n", n);
@@ -247,15 +245,15 @@ void Service::start()
   /*
     TEST: More servers should be bound.
   */
-  CHECK(tcp.openPorts() == 3, "Three (3) open ports");
+  CHECK(tcp.open_ports() == 3, "Three (3) open ports");
 
   /*
     TEST: Connection (Status etc.) and Active Close
   */
-  tcp.bind(TEST4).onConnect([](Connection_ptr conn) {
+  tcp.bind(TEST4).onConnect([](auto conn) {
       INFO("TEST","Connection/TCP state");
       // There should be at least one connection.
-      CHECKSERT(inet->tcp().activeConnections() > 0, "There is (>0) open connection(s)");
+      CHECKSERT(inet->tcp().active_connections() > 0, "There is (>0) open connection(s)");
       // Test if connected.
       CHECKSERT(conn->is_connected(), "Is connected");
       // Test if writable.
@@ -270,7 +268,7 @@ void Service::start()
       CHECKSERT(!conn->is_writable(), "Is NOT writable");
       CHECKSERT(conn->is_state({"FIN-WAIT-1"}), "State: FIN-WAIT-1");
     })
-    .onDisconnect([](Connection_ptr conn, TCP::Connection::Disconnect) {
+    .onDisconnect([](auto conn, tcp::Connection::Disconnect) {
         CHECKSERT(conn->is_closing(), "Is closing");
         CHECKSERT(conn->is_state({"FIN-WAIT-2"}), "State: FIN-WAIT-2");
         hw::PIT::instance().on_timeout_ms(1s,[conn]{
