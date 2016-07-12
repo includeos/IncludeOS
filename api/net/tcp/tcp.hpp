@@ -27,17 +27,23 @@
 #include <queue> // buffer
 
 #include "common.hpp"
-#include "headers.hpp"
-#include "socket.hpp"
 #include "connection.hpp"
+#include "headers.hpp"
+#include "listener.hpp"
+#include "socket.hpp"
+
 
 namespace net {
 
   class TCP {
   public:
-    using IPStack = Inet<LinkLayer,IP4>;
+    using IPStack         = Inet<LinkLayer,IP4>;
+
+    using CleanupCallback = tcp::Connection::CleanupCallback;
+    using ConnectCallback = tcp::Connection::ConnectCallback;
 
     friend class tcp::Connection;
+    friend class tcp::Listener;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
@@ -52,7 +58,7 @@ namespace net {
     /*
       Bind a new listener to a given Port.
     */
-    tcp::Connection& bind(tcp::port_t port);
+    tcp::Listener& bind(tcp::port_t port);
 
     /*
       Active open a new connection to the given remote.
@@ -69,7 +75,7 @@ namespace net {
     /*
       Active open a new connection to the given remote.
     */
-    void connect(tcp::Socket remote, tcp::Connection::ConnectCallback);
+    void connect(tcp::Socket remote, ConnectCallback);
 
     /*
       Receive packet from network layer (IP).
@@ -141,7 +147,7 @@ namespace net {
   private:
 
     IPStack& inet_;
-    std::map<tcp::port_t, tcp::Connection> listeners_;
+    std::map<tcp::port_t, tcp::Listener> listeners_;
     std::map<tcp::Connection::Tuple, tcp::Connection_ptr> connections_;
 
     downstream _network_layer_out;
@@ -185,10 +191,12 @@ namespace net {
     */
     tcp::Connection_ptr add_connection(tcp::port_t local_port, tcp::Socket remote);
 
+    void add_connection(tcp::Connection_ptr);
+
     /*
       Close and delete the connection.
     */
-    void close_connection(tcp::Connection&);
+    void close_connection(tcp::Connection_ptr);
 
     /*
       Process the write queue with the given amount of free packets.

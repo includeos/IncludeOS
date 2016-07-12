@@ -67,6 +67,7 @@ void Connection::setup_default_callbacks() {
   on_packet_dropped_    = PacketDroppedCallback::from<Connection, &Connection::default_on_packet_dropped>(this);
   on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
   on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
+  _on_cleanup_          = CleanupCallback::from<Connection, &Connection::default_on_cleanup>(this);
 }
 
 inline uint16_t Connection::MSDS() const {
@@ -388,7 +389,9 @@ bool Connection::is_listening() const {
 Connection::~Connection() {
   // Do all necessary clean up.
   // Free up buffers etc.
-  debug("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
+  printf("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
+  rtx_clear();
+  printf("<Connection::~Connection> Rtx cleared\n");
 }
 
 Packet_ptr Connection::create_outgoing_packet() {
@@ -828,12 +831,19 @@ void Connection::start_time_wait_timeout() {
 
 void Connection::signal_close() {
   debug("<TCP::Connection::signal_close> It's time to delete this connection. \n");
+
+  // call user callback
   on_close_();
+
+  // clean up all copies, delegates and timers
   clean_up();
-  host_.close_connection(*this);
 }
 
 void Connection::clean_up() {
+  // clean up all other copies
+  // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
+  _on_cleanup_(shared_from_this());
+
   on_accept_.reset();
   on_connect_.reset();
   on_disconnect_.reset(),
@@ -841,6 +851,7 @@ void Connection::clean_up() {
   on_packet_received_.reset();
   on_packet_dropped_.reset();
   read_request.clean_up();
+  _on_cleanup_.reset();
   rtx_clear();
 }
 
