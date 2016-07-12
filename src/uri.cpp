@@ -147,6 +147,11 @@ void URI::load_queries() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+bool uri::operator < (const URI& lhs, const URI& rhs) noexcept {
+  return lhs.to_string() < rhs.to_string();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 bool uri::operator == (const URI& lhs, const URI& rhs) noexcept {
   return lhs.to_string() == rhs.to_string();
 }

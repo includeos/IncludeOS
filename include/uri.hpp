@@ -201,6 +201,16 @@ namespace uri {
   }; // class uri::URI
 
   /**
+   * @brief Less-than operator to compare two {URI} objects
+   *
+   * @param lhs : {URI} object to compare
+   * @param rhs : {URI} object to compare
+   *
+   * @return true if lhs is less-than rhs, false otherwise
+   */
+  bool operator < (const URI& lhs, const URI& rhs) noexcept;
+
+  /**
    * @brief Operator to compare two {URI} objects
    * for equality
    *
