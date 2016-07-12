@@ -81,13 +81,13 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 
       if(ip_address != 0) {
         inet->tcp().connect(ip_address, port)
-          ->onConnect([](tcp::Connection_ptr conn) {
+          ->on_connect([](tcp::Connection_ptr conn) {
               CHECK(true, "Connected");
               conn->read(1024, [](tcp::buffer_t, size_t n) {
                   CHECK(n > 0, "Received a response");
                 });
             })
-          .onError([](auto, tcp::TCPException err) {
+          .on_error([](auto, tcp::TCPException err) {
               CHECK(false, "Error occured: %s", err.what());
             });
       }
@@ -100,13 +100,13 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 void OUTGOING_TEST(tcp::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
   inet->tcp().connect(outgoing)
-    ->onConnect([](auto conn) {
+    ->on_connect([](auto conn) {
         conn->write(small.data(), small.size());
         conn->read(small.size(), [](auto buffer, size_t n) {
             CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           });
       })
-    .onDisconnect([](auto conn, tcp::Connection::Disconnect) {
+    .on_disconnect([](auto conn, tcp::Connection::Disconnect) {
         CHECK(true, "Connection closed by server");
         CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
         conn->close();
@@ -185,7 +185,7 @@ void Service::start()
   CHECK(tcp.open_ports() == 0, "No (0) open ports (listening connections)");
   CHECK(tcp.active_connections() == 0, "No (0) active connections");
 
-  tcp.bind(TEST1).onConnect([](auto conn) {
+  tcp.bind(TEST1).on_connect([](auto conn) {
       INFO("TEST", "SMALL string (%u)", small.size());
       conn->read(small.size(), [conn](auto buffer, size_t n) {
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
@@ -202,7 +202,7 @@ void Service::start()
   /*
     TEST: Send and receive big string.
   */
-  tcp.bind(TEST2).onConnect([](auto conn) {
+  tcp.bind(TEST2).on_connect([](auto conn) {
       INFO("TEST", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
       conn->read(big.size(), [response, conn](auto buffer, size_t n) {
@@ -219,7 +219,7 @@ void Service::start()
   /*
     TEST: Send and receive huge string.
   */
-  tcp.bind(TEST3).onConnect([](auto conn) {
+  tcp.bind(TEST3).on_connect([](auto conn) {
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->read(16384, [temp, conn](auto buffer, size_t n) {
@@ -250,7 +250,7 @@ void Service::start()
   /*
     TEST: Connection (Status etc.) and Active Close
   */
-  tcp.bind(TEST4).onConnect([](auto conn) {
+  tcp.bind(TEST4).on_connect([](auto conn) {
       INFO("TEST","Connection/TCP state");
       // There should be at least one connection.
       CHECKSERT(inet->tcp().active_connections() > 0, "There is (>0) open connection(s)");
@@ -263,12 +263,8 @@ void Service::start()
 
       INFO("TEST", "Active close");
       CHECKSERT(!conn->is_closing(), "Is NOT closing");
-      // Test for active close.
-      conn->close();
-      CHECKSERT(!conn->is_writable(), "Is NOT writable");
-      CHECKSERT(conn->is_state({"FIN-WAIT-1"}), "State: FIN-WAIT-1");
-    })
-    .onDisconnect([](auto conn, tcp::Connection::Disconnect) {
+      // Setup on_disconnect event
+      conn->on_disconnect([](auto conn, tcp::Connection::Disconnect) {
         CHECKSERT(conn->is_closing(), "Is closing");
         CHECKSERT(conn->is_state({"FIN-WAIT-2"}), "State: FIN-WAIT-2");
         hw::PIT::instance().on_timeout_ms(1s,[conn]{
@@ -279,5 +275,12 @@ void Service::start()
 
         hw::PIT::instance().on_timeout_ms(5s, [] { FINISH_TEST(); });
       });
+
+      // Test for active close.
+      conn->close();
+      CHECKSERT(!conn->is_writable(), "Is NOT writable");
+      CHECKSERT(conn->is_state({"FIN-WAIT-1"}), "State: FIN-WAIT-1");
+    });
+
 printf ("IncludeOS TCP test\n");
 }

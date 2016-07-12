@@ -39,6 +39,7 @@ namespace tcp {
 */
 class Connection : public std::enable_shared_from_this<Connection> {
   friend class net::TCP;
+  friend class Listener;
 public:
   /** Connection identifier */
   using Tuple = std::pair<port_t, Socket>;
@@ -119,14 +120,23 @@ public:
   using RtxTimeoutCallback                = delegate<void(size_t no_attempts, double rto)>;
 
   /**
-   * Emitted right before the connection gets cleaned up (removed from the TCP)
+   * Emitted right before the connection gets cleaned up
    */
   using CloseCallback                     = delegate<void()>;
+
+  /**
+   * @brief Cleanup callback
+   * @details This is called to make sure TCP/Listener doesn't hold any shared ptr of
+   * the given connection. This is only for internal use, and not visible for the user.
+   *
+   * @param  Connection to be cleaned up
+   */
+  using CleanupCallback                   = delegate<void(Connection_ptr)>;
 
   /*
     Set callback for ACCEPT event.
   */
-  inline Connection& onAccept(AcceptCallback callback) {
+  inline Connection& on_accept(AcceptCallback callback) {
     on_accept_ = callback;
     return *this;
   }
@@ -134,7 +144,7 @@ public:
   /*
     Set callback for CONNECT event.
   */
-  inline Connection& onConnect(ConnectCallback callback) {
+  inline Connection& on_connect(ConnectCallback callback) {
     on_connect_ = callback;
     return *this;
   }
@@ -142,7 +152,7 @@ public:
   /*
     Set callback for DISCONNECT event.
   */
-  inline Connection& onDisconnect(DisconnectCallback callback) {
+  inline Connection& on_disconnect(DisconnectCallback callback) {
     on_disconnect_ = callback;
     return *this;
   }
@@ -150,7 +160,7 @@ public:
   /*
     Set callback for ERROR event.
   */
-  inline Connection& onError(ErrorCallback callback) {
+  inline Connection& on_error(ErrorCallback callback) {
     on_error_ = callback;
     return *this;
   }
@@ -158,7 +168,7 @@ public:
   /*
     Set callback for every packet received.
   */
-  inline Connection& onPacketReceived(PacketReceivedCallback callback) {
+  inline Connection& on_packet_received(PacketReceivedCallback callback) {
     on_packet_received_ = callback;
     return *this;
   }
@@ -166,7 +176,7 @@ public:
   /*
     Set callback for when a packet is dropped.
   */
-  inline Connection& onPacketDropped(PacketDroppedCallback callback) {
+  inline Connection& on_packet_dropped(PacketDroppedCallback callback) {
     on_packet_dropped_ = callback;
     return *this;
   }
@@ -535,7 +545,7 @@ public:
   /*
     State checks.
   */
-  inline bool is_listening() const;
+  bool is_listening() const;
 
   inline bool is_connected() const
   { return state_->is_connected(); }
@@ -656,6 +666,14 @@ private:
 
   CloseCallback on_close_;
   void default_on_close() {}
+
+  CleanupCallback _on_cleanup_;
+  void default_on_cleanup(Connection_ptr) {}
+  inline Connection& _on_cleanup(CleanupCallback cb)
+  {
+    _on_cleanup_ = cb;
+    return *this;
+  }
 
 
   /// READING ///

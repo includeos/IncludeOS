@@ -69,7 +69,7 @@ void Service::start()
 {
   // Stack with default network interface (eth0) driven by VirtioNet
   // Static IP configuration will get overwritten by DHCP, if found
-  static auto inet = 
+  static auto inet =
     net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
                           { 255,255,255,0 },  // Netmask
                           { 10,0,0,1 });      // Gateway
@@ -83,19 +83,19 @@ void Service::start()
   });
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept(
-  [] (auto conn) -> bool {
+  server.on_accept(
+  [] (auto socket) -> bool {
     printf("<Service> @onAccept - Connection attempt from: %s\n",
-           conn->to_string().c_str());
+           socket.to_string().c_str());
     return true; // allow all connections
   })
-  .onConnect(
+  .on_connect(
   [] (auto conn) {
     printf("<Service> @onConnect - Connection successfully established.\n");
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
-    conn->read(1024, 
-    [conn] (net::TCP::buffer_t buf, size_t n) {
+    conn->read(1024,
+    [conn] (net::tcp::buffer_t buf, size_t n) {
       // create string from buffer
       std::string data { (char*)buf.get(), n };
       printf("<Service> @read:\n%s\n", data.c_str());
@@ -113,19 +113,19 @@ void Service::start()
         conn->write(NOT_FOUND.data(), NOT_FOUND.size());
       }
     });
-  })
-  .onDisconnect(
-  [] (auto conn, auto reason) {
-      printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
-      conn->close();
-  })
-  .onPacketReceived(
-  [] (auto, auto packet) {
-      printf("@Packet: %s\n", packet->to_string().c_str());
-  })
-  .onError(
-  [] (auto, auto err) {
-    printf("<Service> @onError - %s\n", err.what());
+    conn->on_disconnect(
+    [] (auto conn, auto reason) {
+        printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
+        conn->close();
+    })
+    .on_packet_received(
+    [] (auto, auto packet) {
+        printf("@Packet: %s\n", packet->to_string().c_str());
+    })
+    .on_error(
+    [] (auto, auto err) {
+      printf("<Service> @onError - %s\n", err.what());
+    });
   });
 
   printf("*** TEST SERVICE STARTED ***\n");
