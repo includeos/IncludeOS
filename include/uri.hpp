@@ -201,6 +201,17 @@ namespace uri {
   }; // class uri::URI
 
   /**
+   * @brief Operator to compare two {URI} objects
+   * for equality
+   *
+   * @param lhs : {URI} object to compare
+   * @param rhs : {URI} object to compare
+   *
+   * @return true if equal, false otherwise
+   */
+  bool operator == (const URI& lhs, const URI& rhs) noexcept;
+
+  /**
    * @brief Operator to stream the contents of a {URI}
    * to the specified output stream device
    *

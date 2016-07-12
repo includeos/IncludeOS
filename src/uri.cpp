@@ -147,6 +147,11 @@ void URI::load_queries() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+bool uri::operator == (const URI& lhs, const URI& rhs) noexcept {
+  return lhs.to_string() == rhs.to_string();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 std::ostream& uri::operator<< (std::ostream& out, const URI& uri) {
   return out << uri.to_string();
 }
