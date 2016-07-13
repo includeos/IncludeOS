@@ -25,8 +25,12 @@ namespace net {
   namespace tcp {
 
     // Constants
+    // default size of TCP window - how much data can be "in flight" (unacknowledged)
     static constexpr uint16_t default_window_size = 0xffff;
+    // maximum size of a TCP segment - later set based on MTU or peer
     static constexpr uint16_t default_mss = 536;
+    // the maximum amount of half-open connections per port (listener)
+    static constexpr size_t max_syn_backlog = 64;
 
     using Address = IP4::addr;
 

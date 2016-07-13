@@ -53,13 +53,12 @@ public:
   }
 
   inline bool syn_queue_full() const
-  { return syn_queue_.size() >= SYN_QUEUE_LIMIT; }
+  { return syn_queue_.size() >= max_syn_backlog; }
 
 
 private:
   TCP& host_;
   const port_t port_;
-  static constexpr size_t SYN_QUEUE_LIMIT = 5;
 
   std::deque<Connection_ptr> syn_queue_;
 
