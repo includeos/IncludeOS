@@ -20,21 +20,25 @@
 
 #include <vector>
 #include <string>
-
-// <set> not supported
+#include <set>
 
 #include "cookie.hpp"
 
-namespace cookie {
+using namespace cookie;
+
+//namespace cookie {
 
 class CookieJar {
 public:
 
   explicit CookieJar() = default;
 
-  // CookieJar(CookieJar&&) = default;
+  // Because we want to send a CookieJar to CookieParser
+  CookieJar(const CookieJar&) = default;
 
-  // CookieJar& operator = (CookieJar&&) = default;
+  CookieJar(CookieJar&&) = default;
+
+  CookieJar& operator = (CookieJar&&) = default;
 
   ~CookieJar() = default;
 
@@ -42,21 +46,21 @@ public:
 
   bool is_empty() const noexcept;
 
-  // bool add(const Cookie& cookie);
+  bool add(const Cookie& cookie);
 
-  bool add(std::string& name, std::string& value);
+  bool add(const std::string& name, const std::string& value);
   // instead of bool add(const Cookie& cookie) because we want the developer to be able to add to the CookieJar in service.cpp
   // without having to create Cookies first
 
-  bool add(std::string& name, std::string& value, std::vector<std::string>& options);
+  bool add(const std::string& name, const std::string& value, const std::vector<std::string>& options);
 
   // void remove(const Cookie& cookie) noexcept;
 
-  void remove(const std::string& name) noexcept;
+  CookieJar& remove(const std::string& name) noexcept;
 
-  void remove(const std::string& name, const std::string& value) noexcept;
+  CookieJar& remove(const std::string& name, const std::string& value) noexcept;
 
-  void clear() noexcept;
+  CookieJar& clear() noexcept;
 
   // bool exists(const Cookie& cookie) noexcept;
 
@@ -72,26 +76,47 @@ public:
 
   std::vector<Cookie> get_cookies() const;
 
+  // If set:
+
+  std::set<Cookie>::const_iterator begin() const noexcept;
+
+  std::set<Cookie>::const_iterator end() const noexcept;
+
 private:
-  std::vector<Cookie> cookies_;
+  //std::vector<Cookie> cookies_;
+  std::set<Cookie> cookies_;
 
-  // CookieJar(const CookieJar&) = delete;
+  // Not this because we want to send CookieJar to CookieParser: CookieJar(const CookieJar&) = delete;
 
-  // CookieJar& operator = (const CookieJar&) = delete;
+  CookieJar& operator = (const CookieJar&) = delete;
 
-  /*struct find_by_name {
+  // If set:
+
+  struct find_by_name {
     find_by_name(const std::string& name) : name_{name} {}
 
-    bool operator()(const Cookie& c) {
+    bool operator ()(const Cookie& c) {
       return c.get_name() == name_;
     }
 
   private:
     std::string name_;
-  };  // < struct find_by_name */
+  };  // < struct find_by_name
+
+  struct find_by_name_and_value {
+    find_by_name_and_value(const std::string& name, const std::string& value) : name_{name}, value_{value} {}
+
+    bool operator ()(const Cookie& c) {
+      return c.get_name() == name_ && c.get_value() == value_;
+    }
+
+  private:
+    std::string name_;
+    std::string value_;
+  };  // < struct find_by_name_and_value
 
 };  // < class CookieJar
 
-};  // < namespace cookie
+//};  // < namespace cookie
 
 #endif  // < COOKIE_JAR_HPP

@@ -19,67 +19,26 @@
 
 namespace cookie {
 
-//const std::string Cookie::C_NO_ENTRY_VALUE;
+bool operator < (const Cookie& a, const Cookie& b) noexcept {
+  return std::hash<std::string>{}(a.get_name() + a.get_value())
+    < std::hash<std::string>{}(b.get_name() + b.get_value());
+}
+
+bool operator == (const Cookie& a, const Cookie& b) noexcept {
+  return std::hash<std::string>{}(a.get_name() + a.get_value())
+    == std::hash<std::string>{}(b.get_name() + b.get_value());
+}
+
+std::ostream& operator << (std::ostream& output_device, const Cookie& cookie) {
+  return output_device << cookie.to_string();
+}
+
 const std::string Cookie::C_EXPIRES = "Expires";
 const std::string Cookie::C_MAX_AGE = "Max-Age";
 const std::string Cookie::C_DOMAIN = "Domain";
 const std::string Cookie::C_PATH = "Path";
 const std::string Cookie::C_SECURE = "Secure";
 const std::string Cookie::C_HTTP_ONLY = "HttpOnly";
-
-/*inline bool Cookie::icompare_pred(unsigned char a, unsigned char b) {
-  return std::tolower(a) == std::tolower(b);
-}
-
-inline bool Cookie::icompare(const std::string& a, const std::string& b) const {
-  if(a.length() == b.length())
-    return std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
-  else
-    return false;
-}*/
-
-/* Move to CookieParser ?
-Cookie& Cookie::parse(const std::string& cookie_string) {
-  // add data to data_ (CookieData)
-*/
-  /*if(parser_) {
-    data_ = parser_(data);
-  } else {*/
-/*
-  static const std::regex pattern{"[^;]+"};
-  auto position = std::sregex_iterator(data.begin(), data.end(), pattern);
-  auto end = std::sregex_iterator();
-
-  for (std::sregex_iterator i = position; i != end; ++i) {
-      std::smatch pair = *i;
-      std::string pair_str = pair.str();
-
-      // Remove all empty spaces:
-      pair_str.erase(std::remove(pair_str.begin(), pair_str.end(), ' '), pair_str.end());
-*/
-      /*Alt.:
-      vector<std::string> v;
-      boost::split(v, pair_str, boost::is_any_of("="));
-      data_.push_back(std::make_pair(v.at(0), v.at(1)));*/
-/*
-      size_t pos = pair_str.find("=");
-      std::string name = pair_str.substr(0, pos);
-      std::string value = pair_str.substr(pos + 1);
-
-      //data_.push_back(std::make_pair(name, value));
-  }
-
-  //}
-}
-*/
-
-/*inline auto Cookie::find(const std::string& keyword) const {
-  return std::find_if(data_.begin(), data_.end(), [&keyword](const auto& k){
-    return std::equal(k.first.begin(), k.first.end(), keyword.begin(), keyword.end(),
-           [](const auto a, const auto b) { return ::tolower(a) == ::tolower(b);
-    });
-  });
-}*/
 
 // TODO: Test regex
 bool Cookie::valid(const std::string& name) const {
@@ -104,10 +63,6 @@ bool Cookie::valid_option_name(std::string& option_name) const {
   return caseInsCompare(option_name, C_EXPIRES) || caseInsCompare(option_name, C_MAX_AGE) ||
     caseInsCompare(option_name, C_DOMAIN) || caseInsCompare(option_name, C_PATH) ||
     caseInsCompare(option_name, C_SECURE) || caseInsCompare(option_name, C_HTTP_ONLY);
-
-  /* // boost::iequals ignore case in comparing strings
-  return icompare(option_name, C_EXPIRES) || icompare(option_name, C_MAX_AGE) || icompare(option_name, C_DOMAIN) ||
-    icompare(option_name, C_PATH) || icompare(option_name, C_SECURE) || icompare(option_name, C_HTTP_ONLY); */
 }
 
 bool Cookie::expired() const {
@@ -128,9 +83,11 @@ bool Cookie::expired() const {
 }
 
 Cookie::Cookie(const std::string& name, const std::string& value) {
-  // TODO: Better solution than throwing exception here?
-  if(!valid(name) or !valid(value))
-    throw CookieException{"Invalid name or value of cookie!"};
+  if(!valid(name))
+    throw CookieException{"Invalid name (" + name + ") of cookie!"};
+
+  if(!valid(value))
+    throw CookieException{"Invalid value (" + value + ") of cookie!"};
 
   name_ = name;
   value_ = value;
@@ -141,21 +98,21 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
   expires_ = "";
   max_age_ = std::chrono::seconds(0);
   domain_ = "";
-  path_ = "";
+  path_ = "/";
   secure_ = false;
   http_only_ = false;
 }
 
 // TODO: Better to just have the constructor Cookie(name, value) and have set methods that can be called for every option?
-Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
-  Cookie{name, value};
-
+Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options)
+  : Cookie{name, value}
+{
   // for loop on vector - set input values from vector:
   for(size_t i = 0; i < options.size(); i += 2) {
     std::string nm = options[i];
 
     if(!valid_option_name(nm))
-      throw CookieException{"Invalid name of cookie option."};
+      throw CookieException{"Invalid name (" + nm + ") of cookie option!"};
 
     std::string val = options[i+1];
 
@@ -178,37 +135,22 @@ Cookie::Cookie(const std::string& name, const std::string& value, const std::vec
   }
 }
 
-/*inline Cookie::Cookie(const std::string& data, Parser parser) : data_{}, parser_{parser} {
-
-  // parse(name, value, options) or similar instead of constructor?
-  // Need to validate the data string!
-
-  parse(data);
-}*/
-
 const std::string& Cookie::get_name() const noexcept {
-  //return data_.at(0).first;
-
   return name_;
 }
 
 const std::string& Cookie::get_value() const noexcept {
-  //return data_.at(0).second;
-
   return value_;
 }
 
 void Cookie::set_value(const std::string& value) {
   if(!valid(value))
-    throw CookieException{"Invalid value of cookie!"};
+    throw CookieException{"Invalid value (" + value + ") of cookie!"};
 
   value_ = value;
 }
 
 const std::string& Cookie::get_expires() const {
-  /*auto it = find(C_EXPIRES);
-  return (it not_eq data_.end()) ? it->second : C_NO_ENTRY_VALUE;*/
-
   return expires_;
 }
 
@@ -230,9 +172,6 @@ void Cookie::set_expires(const ExpiryDate& expires) {
 }
 
 std::chrono::seconds Cookie::get_max_age() const noexcept {
-  /*auto it = find(C_MAX_AGE);
-  return (it not_eq data_.end()) ? it->second : C_NO_ENTRY_VALUE;*/
-
   return max_age_;
 }
 
@@ -242,9 +181,6 @@ void Cookie::set_max_age(std::chrono::seconds max_age) noexcept {
 }
 
 const std::string& Cookie::get_domain() const noexcept {
-  /*auto it = find(C_DOMAIN);
-  return (it not_eq data_.end()) ? it->second : C_NO_ENTRY_VALUE;*/
-
   return domain_;
 }
 
@@ -260,20 +196,21 @@ const std::string& Cookie::get_path() const noexcept {
 
 void Cookie::set_path(const std::string& path) {
   if(path.empty()) {
-    path_ = '/';
+    path_ = "/";
     return;
   }
 
-  // TODO: A custom regex/check for path ?
+  /* TODO: A custom regex/check for path?
   if(!valid(path))
-    throw CookieException{"Invalid path!"};
+    throw CookieException{"Invalid path (" + path + ")!"};
+  */
 
-  /* Alt. (add more?):
-   * std::for_each(path.begin(), path.end(), [&path](const char c) {
-   *  if(::iscntrl(c) or (c == ';'))
-   *    throw CookieException{"Invalid path!"};
-   * });
-   */
+  // Alt. (add more?):
+  std::for_each(path.begin(), path.end(), [&path](const char c) {
+    if(::iscntrl(c) or (c == ';')) {
+      throw CookieException{"Invalid path (" + path + ")!"};
+    }
+  });
 
   path_ = path;
 }
@@ -331,73 +268,5 @@ std::string Cookie::to_string() const {
 
   return cookie_stream.str();
 }
-
-std::string Cookie::serialize() const {
-  return to_string();
-}
-
-/*const std::string& Cookie::serialize(const std::string& name, const std::string& value) {
-
-  // TODO: TRY CATCH WHEN CALLING THIS METHOD
-
-  // check if valid parameter values:
-  if(!valid(name) || !valid(value)) {
-
-    printf("Name and value: %s and %s", name.c_str(), value.c_str());
-
-    const char* message = ("Invalid name " + name + " or value " + value + " of cookie!").c_str();
-    throw CookieException{message};
-  }
-
-  // create CookieData or just string??
-  // ADD NAME AND VALUE TO COOKIEDATA ?? CLEAR COOKIEDATA FIRST??
-  // A standard serialize method in node.js is just a function: no class with private attributes
-  // and therefore just return string and nothing else
-  //data_.clear();
-  //data_.push_back(std::make_pair(name, value));
-
-  std::string s{name + "=" + value};
-
-
-}
-
-const std::string& Cookie::serialize(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
-
-  // TODO: TRY CATCH
-  std::string cookieString = serialize(name, value);
-
-  // add options to the string and data_ (CookieData) ??
-
-  if(options.empty())
-    return cookieString;
-
-  // Test all values in options with valid-method?
-  // Find option-names (Domain and more )
-  // Iterate options?
-
-  for(size_t i = 0; i < options.size(); i += 2) {
-    std::string nm = options[i];
-
-    if(!valid_option_name(nm)) {
-      const char* message = (nm + " is not a valid option!").c_str();
-      throw CookieException{message};
-    }
-
-    std::string val = options[i+1];
-*/
-    /* No need to validate values..? Browser validates the values?
-    if(!valid(val)) {
-      const char* message = ("Invalid value " + val + " of cookie!").c_str();
-      throw CookieException{message};
-    }*/
-/*
-    cookieString += "; " + nm + "=" + val;
-
-    data_.push_back(std::make_pair(nm, val));
-  }
-
-  //cookieString += "; " + "";
-}
-*/
 
 };  // < namespace cookie
