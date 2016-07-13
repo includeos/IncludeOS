@@ -122,6 +122,12 @@ void Service::start() {
 
       server::Router routes;
 
+      // TODO Testing Added CookieJar and CookieParser that takes a CookieJar as parameter:
+      auto jar = std::make_shared<CookieJar>();
+      jar->add("squirrel", "squirrel-value", std::vector<std::string>{"path", "/api/squirrels"});
+      jar->add("cookie-name", "cookie-value");
+      jar->add("cookie-number", "cookie-val");
+
       /* Idea with cookie implementation/Want to be able to do something like:
        *
        * auto jar = std::make_shared<CookieJar>();
@@ -150,7 +156,25 @@ void Service::start() {
        *
        */
 
-      routes.on_get("/api/squirrels", [](auto, auto res) {
+      // TODO TESTING CookieJar and CookieParser (added jar to empty []):
+      routes.on_get("/api/squirrels", [jar](server::Request_ptr req, auto res) {
+
+        /*Possible:
+        if(jar->add("request-name", "request-value", std::vector<std::string>{"path", "/api/squirrels"}))
+          printf("COOKIE IN /api/squirrels ADDED!\n");
+        else
+          printf("Cookie in /api/squirrels NOT added (already exists)!\n");
+        */
+
+        if(req->has_attribute<Cookie>()) {
+          // TODO Change to CookieCollection instead of Cookie (now only get the first Cookie):
+          auto cookie = req->get_attribute<Cookie>();
+          printf("[@GET:/api/squirrels] Existing cookie has path: %s\n", cookie->get_path().c_str());
+        } else {
+          printf("[@GET:/api/squirrels] Request has no attribute!\n");
+        }
+      // UNTIL HERE
+
         printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
         using namespace rapidjson;
         StringBuffer sb;
@@ -260,8 +284,7 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
       server_->use(parsley);
 
-      // TODO: send CookieJar to CookieParser
-      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
+      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>(jar);
       server_->use(cookie_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
