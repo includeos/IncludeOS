@@ -102,7 +102,7 @@ void OUTGOING_TEST(tcp::Socket outgoing) {
   inet->tcp().connect(outgoing)
     ->on_connect([](auto conn) {
         conn->write(small.data(), small.size());
-        conn->read(small.size(), [](auto buffer, size_t n) {
+        conn->read(small.size(), [](tcp::buffer_t buffer, size_t n) {
             CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           });
       })
@@ -187,7 +187,7 @@ void Service::start()
 
   tcp.bind(TEST1).on_connect([](auto conn) {
       INFO("TEST", "SMALL string (%u)", small.size());
-      conn->read(small.size(), [conn](auto buffer, size_t n) {
+      conn->read(small.size(), [conn](tcp::buffer_t buffer, size_t n) {
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           conn->close();
         });
@@ -205,7 +205,7 @@ void Service::start()
   tcp.bind(TEST2).on_connect([](auto conn) {
       INFO("TEST", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
-      conn->read(big.size(), [response, conn](auto buffer, size_t n) {
+      conn->read(big.size(), [response, conn](tcp::buffer_t buffer, size_t n) {
           *response += std::string((char*)buffer.get(), n);
           if(response->size() == big.size()) {
             bool OK = (*response == big);
@@ -222,7 +222,7 @@ void Service::start()
   tcp.bind(TEST3).on_connect([](auto conn) {
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
-      conn->read(16384, [temp, conn](auto buffer, size_t n) {
+      conn->read(16384, [temp, conn](tcp::buffer_t buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
           //printf("Read: %u\n", n);
