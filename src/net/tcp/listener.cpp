@@ -30,6 +30,9 @@ Listener::Listener(TCP& host, port_t port)
   on_connect_     = ConnectCallback::from<Listener, &Listener::default_on_connect>(this);
 }
 
+Socket Listener::local() const {
+  return {host_.address(), port_};
+}
 
 void Listener::segment_arrived(Packet_ptr packet) {
   debug2("<Listener::segment_arrived> Received packet: %s\n",

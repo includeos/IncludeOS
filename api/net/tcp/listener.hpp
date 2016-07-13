@@ -24,6 +24,7 @@
 #include "common.hpp"
 #include "connection.hpp"
 #include "packet.hpp"
+#include "socket.hpp"
 
 namespace net {
 namespace tcp {
@@ -55,6 +56,13 @@ public:
   inline bool syn_queue_full() const
   { return syn_queue_.size() >= max_syn_backlog; }
 
+  /**
+   * @brief Returns the local socket identified with this Listener
+   * @details Creates a temporary identifier for the Listener,
+   * in form of Address to the current stack (TCP) and the port_
+   * @return The local Socket
+   */
+  Socket local() const;
 
 private:
   TCP& host_;
