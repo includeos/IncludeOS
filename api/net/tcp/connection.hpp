@@ -634,14 +634,11 @@ private:
 
   /* When a Connection is initiated. */
   AcceptCallback on_accept_;
-  bool default_on_accept(Connection_ptr) {
-    //debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
-    return true; // Always accept
-  }
+  bool default_on_accept(Connection_ptr);
 
   /* When Connection is ESTABLISHED. */
   ConnectCallback on_connect_;
-  void default_on_connect(Connection_ptr) {}
+  void default_on_connect(Connection_ptr);
 
   /* When Connection is CLOSING. */
   DisconnectCallback on_disconnect_;
@@ -649,27 +646,26 @@ private:
 
   /* When error occcured. */
   ErrorCallback on_error_;
-  void default_on_error(Connection_ptr, TCPException) {
-    //debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
-  }
+  void default_on_error(Connection_ptr, TCPException);
 
   /* When packet is received */
   PacketReceivedCallback on_packet_received_;
-  void default_on_packet_received(Connection_ptr, Packet_ptr) {}
+  void default_on_packet_received(Connection_ptr, Packet_ptr);
 
   /* When a packet is dropped. */
   PacketDroppedCallback on_packet_dropped_;
-  void default_on_packet_dropped(Packet_ptr, std::string) {}
+  void default_on_packet_dropped(Packet_ptr, std::string);
 
   RtxTimeoutCallback on_rtx_timeout_;
-  void default_on_rtx_timeout(size_t, double) {}
+  void default_on_rtx_timeout(size_t, double);
 
   CloseCallback on_close_;
-  void default_on_close() {}
+  void default_on_close();
 
   CleanupCallback _on_cleanup_;
-  void default_on_cleanup(Connection_ptr) {}
-  inline Connection& _on_cleanup(CleanupCallback cb)
+  void default_on_cleanup(Connection_ptr);
+
+  Connection& _on_cleanup(CleanupCallback cb)
   {
     _on_cleanup_ = cb;
     return *this;

@@ -389,9 +389,8 @@ bool Connection::is_listening() const {
 Connection::~Connection() {
   // Do all necessary clean up.
   // Free up buffers etc.
-  printf("<TCP::Connection::~Connection> Remote: %u\n", remote_.port());
+  debug("<Connection::~Connection> Remote: %u\n", remote_.port());
   rtx_clear();
-  printf("<Connection::~Connection> Rtx cleared\n");
 }
 
 Packet_ptr Connection::create_outgoing_packet() {
@@ -717,8 +716,10 @@ void Connection::rtx_stop() {
 }
 
 void Connection::rtx_clear() {
-  if(rtx_timer.active)
+  if(rtx_timer.active) {
     rtx_stop();
+    debug2("<Connection::rtx_clear> Rtx cleared\n");
+  }
 }
 
 /*
@@ -820,6 +821,7 @@ void Connection::start_time_wait_timeout() {
   // Passing "this"..?
   hw::PIT::instance().on_timeout_ms(timeout,
     [this, timeout] {
+      debug("<Connection::start_time_wait_timeout> Exec\n");
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
         signal_close();
@@ -830,7 +832,7 @@ void Connection::start_time_wait_timeout() {
 }
 
 void Connection::signal_close() {
-  debug("<TCP::Connection::signal_close> It's time to delete this connection. \n");
+  debug("<Connection::signal_close> It's time to delete this connection. \n");
 
   // call user callback
   on_close_();
@@ -932,10 +934,42 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
   }
 }
 
+bool Connection::default_on_accept(Connection_ptr) {
+  //debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
+  return true; // Always accept
+}
+
+void Connection::default_on_connect(Connection_ptr) {
+
+}
 
 void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
   if(!conn->is_closing())
     conn->close();
+}
+
+void Connection::default_on_error(Connection_ptr, TCPException) {
+  //debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
+}
+
+void Connection::default_on_packet_received(Connection_ptr, Packet_ptr) {
+
+}
+
+void Connection::default_on_packet_dropped(Packet_ptr, std::string) {
+
+}
+
+void Connection::default_on_rtx_timeout(size_t, double) {
+
+}
+
+void Connection::default_on_close() {
+
+}
+
+void Connection::default_on_cleanup(Connection_ptr) {
+
 }
 
 void Connection::setup_congestion_control() {
