@@ -32,17 +32,20 @@ Listener::Listener(TCP& host, port_t port)
 
 
 void Listener::segment_arrived(Packet_ptr packet) {
-  debug("<Listener::segment_arrived> Received packet: %s\n",
+  debug2("<Listener::segment_arrived> Received packet: %s\n",
     packet->to_string().c_str());
-  // if it's an ACK for our SYN-ACK
+  // if it's an reply to any of our half-open connections
   if(!packet->isset(SYN))
   {
     // if there is a connection waiting for the packet
-    for(auto& conn : syn_queue_)
+    for(auto conn : syn_queue_) // take a copy to avoid conn->segment_arrived to make a reference invalid
     {
       if(conn->remote() == packet->source())
       {
+        debug("<Listener::segment_arrived> Found packet receiver: %s\n",
+          conn->to_string().c_str());
         conn->segment_arrived(packet);
+        debug2("<Listener::segment_arrived> Connection done handling segment\n");
         return;
       }
     }
@@ -55,18 +58,16 @@ void Listener::segment_arrived(Packet_ptr packet) {
       return;
 
     // remove oldest connection if queue is full
-    printf("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());
+    debug2("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());
     if(syn_queue_full())
     {
-      printf("<Listener::segment_arrived> Queue is full\n");
+      debug2("<Listener::segment_arrived> Queue is full\n");
       Expects(not syn_queue_.empty());
-      //printf("<Listener::segment_arrived> Connection %s dropped to make room for new connection\n",
-      //  syn_queue_.back()->to_string().c_str());
-      //syn_queue_.back()->clean_up();
+      debug("<Listener::segment_arrived> Connection %s dropped to make room for new connection\n",
+        syn_queue_.back()->to_string().c_str());
 
       syn_queue_.pop_back();
     }
-    printf("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());
 
     auto& conn = *(syn_queue_.emplace(syn_queue_.begin(),
       std::make_shared<Connection>( host_, port_, packet->source() )));
@@ -76,29 +77,32 @@ void Listener::segment_arrived(Packet_ptr packet) {
     // Open connection
     conn->open(false);
     Ensures(conn->is_listening());
-    printf("<Listener::segment_arrived> Connection %s created\n",
+    debug("<Listener::segment_arrived> Connection %s created\n",
       conn->to_string().c_str());
     conn->segment_arrived(packet);
+    debug2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }
+  debug2("<Listener::segment_arrived> No receipent\n");
 }
 
 void Listener::remove(Connection_ptr conn) {
-  printf("<Listener::remove> Inside remove\n");
+  debug2("<Listener::remove> Try remove %s\n", conn->to_string().c_str());
   auto it = syn_queue_.begin();
-  while(it++ != syn_queue_.end())
+  while(it != syn_queue_.end())
   {
     if((*it) == conn)
     {
       syn_queue_.erase(it);
-      printf("<Listener::remove> %s removed.\n", conn->to_string().c_str());
+      debug("<Listener::remove> %s removed.\n", conn->to_string().c_str());
       return;
     }
+    it++;
   }
 }
 
 void Listener::connected(Connection_ptr conn) {
-  printf("<Listener::connected> %s connected\n", conn->to_string().c_str());
+  debug("<Listener::connected> %s connected\n", conn->to_string().c_str());
   remove(conn);
   Expects(conn->is_connected());
   host_.add_connection(conn);

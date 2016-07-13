@@ -200,8 +200,9 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   // Listener found => Create listening Connection
   if(listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
-    debug("<TCP::bottom> Listener found: %s ...\n", listener.to_string().c_str());
+    debug("<TCP::bottom> Listener found: %s\n", listener.to_string().c_str());
     listener.segment_arrived(packet);
+    debug2("<TCP::bottom> Listener done with packet\n");
     return;
   }
 
@@ -288,6 +289,7 @@ void TCP::close_connection(tcp::Connection_ptr conn) {
 }
 
 void TCP::drop(tcp::Packet_ptr) {
+  debug("<TCP::drop> Packet dropped\n");
   //debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
 
