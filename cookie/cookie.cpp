@@ -40,18 +40,27 @@ const std::string Cookie::C_PATH = "Path";
 const std::string Cookie::C_SECURE = "Secure";
 const std::string Cookie::C_HTTP_ONLY = "HttpOnly";
 
-// TODO: Test regex
+// TODO: Test regex and check what values are valid for name and value in a cookie
 bool Cookie::valid(const std::string& name) const {
+
+  std::regex reg{"([\u0009\u0020-\u007e\u0080-\u00ff]+)"};
+  // TODO: Regex source: https://github.com/pillarjs/cookies/blob/master/lib/cookies.js:
+  /**
+   * RegExp to match field-content in RFC 7230 sec 3.2
+   *
+   * field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+   * field-vchar   = VCHAR / obs-text
+   * obs-text      = %x80-FF
+   */
+
   // %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+  // % missing:
+  //std::regex reg("([a-zA-Z0-9!#\\$&'\\*\\+\\-\\.\\^_`\\|~]+)");
 
-  // % missing
-  std::regex reg("([a-zA-Z!#\\$&'\\*\\+\\-\\.\\^_`\\|~]+)");
-  //std::regex reg("/^[\u0009\u0020-\u007e\u0080-\u00ff]+$/");
-
-  return (name.empty() || !(std::regex_match(name, reg))) ? false : true;
+  return (name.empty() or not (std::regex_match(name, reg))) ? false : true;
 }
 
-inline bool Cookie::caseInsCharCompareN(char a, char b) {
+bool Cookie::caseInsCharCompareN(char a, char b) {
   return(toupper(a) == toupper(b));
 }
 
@@ -59,7 +68,7 @@ bool Cookie::caseInsCompare(const std::string& s1, const std::string& s2) const 
   return((s1.size() == s2.size()) and equal(s1.begin(), s1.end(), s2.begin(), caseInsCharCompareN));
 }
 
-bool Cookie::valid_option_name(std::string& option_name) const {
+bool Cookie::valid_option_name(const std::string& option_name) const {
   return caseInsCompare(option_name, C_EXPIRES) || caseInsCompare(option_name, C_MAX_AGE) ||
     caseInsCompare(option_name, C_DOMAIN) || caseInsCompare(option_name, C_PATH) ||
     caseInsCompare(option_name, C_SECURE) || caseInsCompare(option_name, C_HTTP_ONLY);
@@ -83,10 +92,11 @@ bool Cookie::expired() const {
 }
 
 Cookie::Cookie(const std::string& name, const std::string& value) {
-  if(!valid(name))
+  if(not valid(name))
     throw CookieException{"Invalid name (" + name + ") of cookie!"};
 
-  if(!valid(value))
+  // value can be empty
+  if(not value.empty() and not valid(value))
     throw CookieException{"Invalid value (" + value + ") of cookie!"};
 
   name_ = name;
@@ -103,7 +113,6 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
   http_only_ = false;
 }
 
-// TODO: Better to just have the constructor Cookie(name, value) and have set methods that can be called for every option?
 Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options)
   : Cookie{name, value}
 {
@@ -144,7 +153,8 @@ const std::string& Cookie::get_value() const noexcept {
 }
 
 void Cookie::set_value(const std::string& value) {
-  if(!valid(value))
+  // value can be empty
+  if(not value.empty() and not valid(value))
     throw CookieException{"Invalid value (" + value + ") of cookie!"};
 
   value_ = value;
@@ -159,7 +169,10 @@ void Cookie::set_expires(const std::string& expires) {
   expires_ = expires;
 }*/
 
-void Cookie::set_expires(const ExpiryDate& expires) {
+//void Cookie::set_expires(const ExpiryDate& expires) {
+void Cookie::set_expires(const std::string& expires) {
+
+  // TODO: Input validation or const ExpiryDate& expires
 
   // need to #include "time.hpp" to use (rico)
 
@@ -169,6 +182,8 @@ void Cookie::set_expires(const ExpiryDate& expires) {
   max_age_ = std::chrono::seconds(0);
   expires_ = time::from_time_t(exp_date);
   */
+
+  expires_ = expires;
 }
 
 std::chrono::seconds Cookie::get_max_age() const noexcept {
@@ -200,12 +215,6 @@ void Cookie::set_path(const std::string& path) {
     return;
   }
 
-  /* TODO: A custom regex/check for path?
-  if(!valid(path))
-    throw CookieException{"Invalid path (" + path + ")!"};
-  */
-
-  // Alt. (add more?):
   std::for_each(path.begin(), path.end(), [&path](const char c) {
     if(::iscntrl(c) or (c == ';')) {
       throw CookieException{"Invalid path (" + path + ")!"};

@@ -96,6 +96,129 @@ void Response::send_json(const std::string& json) {
   send(!keep_alive);
 }
 
+/* Cookie support start */
+
+void Response::cookie(const Cookie& c) {
+  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+  send(keep_alive);
+}
+
+void Response::cookie(const std::string& name, const std::string& value) {
+  try {
+    Cookie c{name, value};
+    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+
+    send(keep_alive);
+
+  } catch (CookieException& ce) {
+
+  }
+}
+
+void Response::cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
+  try {
+    Cookie c{name, value, options};
+    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+
+    send(keep_alive);
+
+  } catch (CookieException& ce) {
+
+  }
+}
+
+void Response::update_cookie(const std::string& old_name, const std::string& old_path, const std::string& old_domain, const Cookie& new_cookie) {
+  try {
+
+    // clear cookie:
+
+    Cookie c{old_name, ""};
+    c.set_path(old_path);
+    c.set_domain(old_domain);
+    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
+
+    //c.set_path("/");
+    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+
+    // set new cookie:
+
+    add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
+
+    // send:
+
+    send(keep_alive);
+
+  } catch (CookieException& ce) {
+
+    // printf("CookieException occurred in Response::clear_cookie(...)!\n");
+
+  }
+}
+
+void Response::clear_cookie(const std::string& name, const std::string& path, const std::string& domain) {
+  try {
+    Cookie c{name, ""};
+    c.set_path(path);
+    c.set_domain(domain);
+
+/*
+    //time_t rawtime;
+    struct tm* timeinfo;
+    char buffer[80];
+
+    //time(&rawtime);
+    time(0);
+    //timeinfo = localtime(&rawtime);
+    timeinfo = localtime(0);
+
+    strftime(buffer, 80, "%a, %d %b %Y, %H:%M:%S GMT", timeinfo); // Sun, 06 Nov 1994 08:49:37 GMT
+*/
+
+    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
+
+    //c.set_path("/");
+    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+
+    send(keep_alive);
+
+  } catch (CookieException& ce) {
+
+    // printf("CookieException occurred in Response::clear_cookie(...)!\n");
+
+  }
+}
+
+/*
+bool Response::clear_cookie(const std::string& name) {
+  try {
+    Cookie c{name, ""};
+  */
+/*
+    //time_t rawtime;
+    struct tm* timeinfo;
+    char buffer[80];
+
+    //time(&rawtime);
+    time(0);
+    //timeinfo = localtime(&rawtime);
+    timeinfo = localtime(0);
+
+    strftime(buffer, 80, "%a, %d %b %Y, %H:%M:%S GMT", timeinfo); // Sun, 06 Nov 1994 08:49:37 GMT
+*/ /*
+
+    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
+
+    //c.set_path("/");
+    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+    return true;
+
+  } catch (CookieException& ce) {
+    return false;
+  }
+}*/
+
+/* Cookie support end */
+
 void Response::error(Error&& err) {
   // NOTE: only cares about JSON (for now)
   set_status_code(err.code);

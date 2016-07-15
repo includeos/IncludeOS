@@ -51,14 +51,16 @@ public:
 
 private:
 
-  static const std::regex pattern;
-
   // CookieParser takes a CookieJar as parameter (created in the service.cpp)
   std::shared_ptr<CookieJar> jar_;
+
+  static const std::regex pattern;
 
   bool has_cookie(server::Request_ptr req) const noexcept;
 
   const std::string& read_cookies(server::Request_ptr req) const noexcept;
+
+  bool set_sid_cookie(server::Response_ptr res) const noexcept;
 
   // Cookie parse(const std::string& cookie_data);
 
@@ -89,7 +91,10 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
 
   if(not has_cookie(req)) {
 
-    // Then do not parse cookie string but go through jar_
+    // Set a unique session identifier cookie:
+    set_sid_cookie(res);
+
+    // When the request has no cookies: do not parse cookie string, but go through jar_
     // and set all cookies that match this path:
 
     // Go through jar_ and add_header Set-Cookie for each:
@@ -102,8 +107,7 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
       // If the path == / or the path matches the req's path,
       // we want to set the cookie in the response header:
       if(cookie_path == "/" or cookie_path == request_path) {
-        std::string cookie_string = c.to_string(); // serialize(c);
-        res->add_header(http::header_fields::Response::Set_Cookie, cookie_string);
+        res->add_header(http::header_fields::Response::Set_Cookie, c.to_string());
       }
     }
 
@@ -112,12 +116,59 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
 
   } else {
 
+    //CookieCollection cookie_collection;
+    CookieJar req_cookies;
+
     // Get the cookies that already exists (sent in the request):
     std::string cookies_string = read_cookies(req);
     std::set<Cookie> existing_cookies = parse_from_client(cookies_string);
 
+
+
+
+    // TODO:
+
+    // Check if the user has a cookie with the name SID (identifier):
+    std::set<Cookie>::iterator it = std::find_if(existing_cookies.begin(), existing_cookies.end(),
+      [] (const Cookie& cookie) { return cookie.get_name() == "SID"; });
+
+    if(it not_eq existing_cookies.end()) {
+
+      printf("SID-cookie FOUND\n");
+
+      // The request has a cookie named SID - want to make it accessible to the developer:
+
+      // TODO:
+
+      // Get the SID cookie from the request and add it to req->set_attribute so that the
+      // developer can access it - ADD TO CookieCollection
+
+      Cookie sid_cookie = *it;
+
+      /*auto cookie_attr = std::make_shared<Cookie>(sid_cookie);
+      req->set_attribute(cookie_attr);*/
+      req_cookies.add(sid_cookie);
+
+      // BUT THE DEVELOPER GETS NO ADDITIONAL INFORMATION THAN THE SID-COOKIES NAME AND VALUE
+      // THAT IS OK SINCE THE COOKIEPARSER IS RESPONSIBLE FOR CREATING IT....?
+      // CANNOT CHANGE THE COOKIE'S OPTIONS - SHOULD THE DEVELOPER BE ABLE TO CHANGE THESE..?
+
+    } else {  // if the user has no SID-cookie, we create one:
+
+      printf("SID-cookie NOT FOUND\n");
+
+      set_sid_cookie(res);
+    }
+
+
+
+
+
+
+    // TODO
     // Go through jar_ and add_header Set-Cookie for each cookie that
-    // doesn't exist in the request:
+    // doesn't exist in the request -
+    // DO WE WANT TO DO THIS?:
     std::vector<Cookie> all_cookies = jar_->get_cookies();
 
     for(size_t i = 0; i < all_cookies.size(); i++) {
@@ -130,11 +181,27 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
         // instead of adding it to the request here. Then later add the
         // CookieCollection to the request.)
 
-        auto cookie_attr = std::make_shared<Cookie>(c);
-        req->set_attribute(cookie_attr);
+        /*auto cookie_attr = std::make_shared<Cookie>(c);
+        req->set_attribute(cookie_attr);*/
+        req_cookies.add(c);
 
         continue;
       }
+
+
+
+
+      // TESTING: TODO: NOT SET lang-COOKIE
+      /*ADDED: TODO: If a cookie in existing_cookies has a name equal to a cookie's name
+      in jar_, we will not set the cookie ??
+      TESTING WITH NAME = "lang" */
+      /*if(all_cookies[i].get_name() == "lang")
+        continue;*/
+
+
+
+
+
 
       // If the cookie doesn't exist and the path to the cookie in jar_
       // matches the request's path or is /, we want to set the cookie in
@@ -143,16 +210,15 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr 
       std::string cookie_path = c.get_path();
 
       if(cookie_path == "/" or cookie_path == request_path) {
-        std::string cookie_string = c.to_string(); // serialize(c);
-        res->add_header(http::header_fields::Response::Set_Cookie, cookie_string);
+        res->add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+        // c.to_string() returns the serialized cookie: is a valid set_cookie header string
       }
     }
 
     /*auto cookie_attr = std::make_shared<Cookie>(c);
     res->set_attribute(cookie_attr);*/
-
-    /*auto cookies_attr = std::make_shared<CookieCollection>(cookie_collection);
-    req->set_attribute(cookies_attr);*/
+    auto jar_attr = std::make_shared<CookieJar>(req_cookies);
+    req->set_attribute(jar_attr);
   }
 
   return (*next)();
@@ -166,6 +232,33 @@ inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
 
 inline const std::string& CookieParser::read_cookies(server::Request_ptr req) const noexcept {
   return req->header_value(http::header_fields::Request::Cookie);
+}
+
+bool CookieParser::set_sid_cookie(server::Response_ptr res) const noexcept {
+  try {
+
+    // TODO
+
+    // Use hash function of what values ? (unique and random)
+    //std::string sid = std::hash<std::string> ...;
+    //Cookie sid_cookie{"SID", sid, "Secure", "true", "HttpOnly", "true"};
+    // Set expires or max_age? If not: Cookie only set for the user's session
+
+    // JUST FOR TESTING:
+    //Cookie sid_cookie{"SID", "1f14a3s4dj2919", std::vector<std::string>{"Secure", "true", "HttpOnly", "true"}};
+    Cookie sid_cookie{"SID", "1f14a3s4dj2919"};
+
+    // NOT ADD sid_cookie TO JAR_?
+
+    res->add_header(http::header_fields::Response::Set_Cookie, sid_cookie.to_string());
+    // sid_cookie.to_string() returns the serialized cookie: is a valid set_cookie header string
+
+    return true;
+
+  } catch (CookieException& ce) {
+    printf("Unable to create SID-cookie!\n");
+    return false;
+  }
 }
 
 /*Cookie CookieParser::parse(const std::string& cookie_data) {
@@ -196,7 +289,7 @@ std::set<Cookie> CookieParser::parse_from_client(const std::string& cookie_data)
 
     Cookie c{name, value};
 
-    if(!cookies.insert(c).second)
+    if(not cookies.insert(c).second)
       throw CookieException{"Could not add cookie with name " + name + " and value " + value + " to the set!"};
   }
 

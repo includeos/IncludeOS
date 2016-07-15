@@ -1,0 +1,63 @@
+<style type="text/css">
+.stylish-panel {
+  padding: 20px 0;
+  text-align: center;
+}
+.stylish-panel > div > div{
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+.stylish-panel > div:hover > div{
+  margin-top: -10px;
+  border: 1px solid rgb(200, 200, 200);
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 5px 5px 2px;
+  background: rgba(200, 200, 200, 0.1);
+  transition: 0.5s;
+}
+
+.stylish-panel > div:hover img {
+  border-radius: 50%;
+  -webkit-transform: rotate(360deg);
+  -moz-transform: rotate(360deg);
+  -o-transform: rotate(360deg);
+  -ms-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+</style>
+
+<div class="container">
+  <div class="page-header">
+    <h1 class="text-center">Acorn Web Innretning</h1>
+  </div>
+  <p class="lead text-center">Sjekk ut det vi har jobbet med!</p>
+  <div class="container">
+    <div class="row stylish-panel">
+
+      <div class="col-md-4">
+        <div>
+          <img src="img/squirrel.jpg" alt="Squirrel has escaped!" class="img-circle img-thumbnail">
+          <h2>Rest API</h2>
+          <p>
+            Her kan du finne vår ekorn-samling - avdekket som JSON fra Acorn.
+          </p>
+          <a href="squirrels" class="btn btn-primary" title="See more">Se, et ekorn! »</a>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div>
+          <img src="img/books.jpg" alt="A stack of books" class="img-circle img-thumbnail">
+          <h2>Filsystem</h2>
+          <p>
+            Sjekk ut innholdet til memdisken vår. Her presenterer vi en katalog med bøker fra filsystemet vårt.
+          </p>
+          <a href="/static/books" target="_self" class="btn btn-primary" title="See more">Les en bok »</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- /container -->

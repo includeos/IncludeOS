@@ -126,7 +126,7 @@ void Service::start() {
       auto jar = std::make_shared<CookieJar>();
       jar->add("squirrel", "squirrel-value", std::vector<std::string>{"path", "/api/squirrels"});
       jar->add("cookie-name", "cookie-value");
-      jar->add("cookie-number", "cookie-val");
+      //jar->add("lang", "en-US");
 
       /* Idea with cookie implementation/Want to be able to do something like:
        *
@@ -156,25 +156,73 @@ void Service::start() {
        *
        */
 
-      // TODO TESTING CookieJar and CookieParser (added jar to empty []):
-      routes.on_get("/api/squirrels", [jar](server::Request_ptr req, auto res) {
+  // TODO TESTING CookieJar and CookieParser FROM HERE:
 
-        /*Possible:
-        if(jar->add("request-name", "request-value", std::vector<std::string>{"path", "/api/squirrels"}))
-          printf("COOKIE IN /api/squirrels ADDED!\n");
-        else
-          printf("Cookie in /api/squirrels NOT added (already exists)!\n");
-        */
+      routes.on_get("/api/english", [](server::Request_ptr req, auto res) {
+        if(req->has_attribute<CookieJar>()) {
+          auto req_cookies = req->get_attribute<CookieJar>();
 
-        if(req->has_attribute<Cookie>()) {
-          // TODO Change to CookieCollection instead of Cookie (now only get the first Cookie):
-          auto cookie = req->get_attribute<Cookie>();
-          printf("[@GET:/api/squirrels] Existing cookie has path: %s\n", cookie->get_path().c_str());
-        } else {
-          printf("[@GET:/api/squirrels] Request has no attribute!\n");
+          try {
+
+            // Change not stored in the default CookieJar - we only want users
+            // who have went to this path to change language to english
+
+            Cookie c = req_cookies->get_cookie("lang");
+
+            if(c.get_value() not_eq "en-US") {
+              c.set_value("en-US");
+              res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
+            }
+
+          } catch (CookieException& ce) {
+            res->cookie("lang", "en-US");
+          }
         }
-      // UNTIL HERE
+      });
 
+      routes.on_get("/api/norwegian", [](server::Request_ptr req, auto res) {
+        if(req->has_attribute<CookieJar>()) {
+          auto req_cookies = req->get_attribute<CookieJar>();
+
+          try {
+
+            // Change not stored in the default CookieJar - we only want users
+            // who have went to this path to change language to norwegian
+
+            Cookie c = req_cookies->get_cookie("lang");
+
+            if(c.get_value() not_eq "nb-NO") {
+              c.set_value("nb-NO");
+              res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
+
+              //res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
+              //res->update_cookie could handle this (since two operations):
+            // WORKS:
+            // res->clear_cookie(c.get_name(), c.get_path(), c.get_domain());
+
+              /*res->cookie("lang", "nb-NO"); OR: */
+            //res->cookie(c);
+                //res->clear_cookie(c.get_name());
+                //res->cookie(c.get_name(), c.get_value(), ...);
+              // update_cookie: Clear existing cookie and add_header with new cookie
+            }
+          } catch (CookieException& ce) {
+
+            printf("CookieException occurred when trying to get cookie with name 'lang'!\n");
+
+            // create cookie if doesn't exist and put on the response
+
+            // Cookie c{"lang", "nb-NO"};
+            // Can add to jar if we want this cookie to be a default-cookie
+
+            res->cookie("lang", "nb-NO");
+          }
+        }
+      });
+
+  // UNTIL HERE
+
+      routes.on_get("/api/squirrels", [](auto, auto res) {
         printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
         using namespace rapidjson;
         StringBuffer sb;
@@ -221,7 +269,6 @@ void Service::start() {
             res->error({"Bucket Exception", e.what()});
           }
         }
-
       });
 
       routes.on_get("/api/users", [](auto, auto res) {

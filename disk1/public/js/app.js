@@ -3,7 +3,8 @@
 var app = angular.module('acornWebApp', [
   'ngRoute',
   'ngResource',
-  'toastr'
+  'toastr',
+  'ngCookies'
 ])
 .config(function($routeProvider, $locationProvider) {
   $routeProvider
