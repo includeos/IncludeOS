@@ -156,6 +156,22 @@ namespace uri {
     const std::string& query(const std::string& key);
 
     /**
+     * @brief Check to see if an object of this type is valid
+     *
+     * @return true if valid, false otherwise
+     */
+    bool is_valid() const noexcept;
+
+    /**
+     * @brief Convert an object of this type to a boolean value
+     *
+     * @see is_valid
+     *
+     * @return true if valid, false otherwise
+     */
+    operator bool() const noexcept;
+
+    /**
      * @brief Get a string representation of this
      * class
      *
@@ -173,7 +189,7 @@ namespace uri {
     /*
      * A copy of the data representing a uri
      */
-    const std::string uri_str_;
+    std::string uri_str_;
 
     mutable uint16_t port_;
 
