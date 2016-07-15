@@ -32,8 +32,8 @@
 
 #include "time.hpp"
 
-// TODO: #include "attribute.hpp" on class Cookie or CookieCollection:
-#include "attribute.hpp"
+/* TODO: #include "attribute.hpp" on class Cookie or CookieCollection:
+#include "attribute.hpp"*/
 
 namespace cookie {
 
@@ -47,9 +47,9 @@ public:
 };  // < class CookieException
 
 // : public server::Attribute on class Cookie or CookieCollection
-class Cookie : public server::Attribute {
+class Cookie /*: public server::Attribute*/ {
 private:
-  using ExpiryDate = std::chrono::system_clock::time_point;
+  //using ExpiryDate = std::chrono::system_clock::time_point;
 
 public:
 
@@ -93,7 +93,8 @@ public:
    * @param[in]  expires The expiry date for the cookie (if set in the past
    *             the cookie will be deleted/cleared from the browser)
    */
-  void set_expires(const ExpiryDate& expires);
+  //void set_expires(const ExpiryDate& expires);
+  void set_expires(const std::string& expires);
 
   /**
    * @brief      [RFC 6265] The Max-Age attribute indicates the maximum lifetime of the cookie,
@@ -236,7 +237,7 @@ private:
 
   bool caseInsCompare(const std::string& s1, const std::string& s2) const;
 
-  bool valid_option_name(std::string& option_name) const;
+  bool valid_option_name(const std::string& option_name) const;
 
   bool expired() const;
 

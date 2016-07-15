@@ -24,12 +24,39 @@
 
 #include "cookie.hpp"
 
+#include "attribute.hpp"
+
 using namespace cookie;
 
 //namespace cookie {
 
-class CookieJar {
+class CookieJar : public server::Attribute {
 public:
+
+  // If set:
+
+  struct find_by_name {
+    find_by_name(const std::string& name) : name_{name} {}
+
+    bool operator ()(const Cookie& c) {
+      return c.get_name() == name_;
+    }
+
+  private:
+    std::string name_;
+  };  // < struct find_by_name
+
+  struct find_by_name_and_value {
+    find_by_name_and_value(const std::string& name, const std::string& value) : name_{name}, value_{value} {}
+
+    bool operator ()(const Cookie& c) {
+      return c.get_name() == name_ && c.get_value() == value_;
+    }
+
+  private:
+    std::string name_;
+    std::string value_;
+  };  // < struct find_by_name_and_value
 
   explicit CookieJar() = default;
 
@@ -53,6 +80,8 @@ public:
   // without having to create Cookies first
 
   bool add(const std::string& name, const std::string& value, const std::vector<std::string>& options);
+
+  // bool update(const Cookie& old_cookie, const Cookie& new_cookie);
 
   // void remove(const Cookie& cookie) noexcept;
 
@@ -89,31 +118,6 @@ private:
   // Not this because we want to send CookieJar to CookieParser: CookieJar(const CookieJar&) = delete;
 
   CookieJar& operator = (const CookieJar&) = delete;
-
-  // If set:
-
-  struct find_by_name {
-    find_by_name(const std::string& name) : name_{name} {}
-
-    bool operator ()(const Cookie& c) {
-      return c.get_name() == name_;
-    }
-
-  private:
-    std::string name_;
-  };  // < struct find_by_name
-
-  struct find_by_name_and_value {
-    find_by_name_and_value(const std::string& name, const std::string& value) : name_{name}, value_{value} {}
-
-    bool operator ()(const Cookie& c) {
-      return c.get_name() == name_ && c.get_value() == value_;
-    }
-
-  private:
-    std::string name_;
-    std::string value_;
-  };  // < struct find_by_name_and_value
 
 };  // < class CookieJar
 
