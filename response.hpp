@@ -24,6 +24,13 @@
 #include <net/tcp.hpp>
 #include <utility/async.hpp>
 
+#include "cookie.hpp"
+#include <string>
+#include <vector>
+#include <time.h>
+
+using namespace cookie;
+
 struct File {
 
   File(fs::Disk_ptr dptr, const fs::Dirent& ent)
@@ -90,6 +97,22 @@ public:
 
   void send_json(const std::string&);
 
+  /* Cookie support start */
+
+  void cookie(const Cookie& c);
+
+  void cookie(const std::string& name, const std::string& value);
+
+  void cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options);
+
+  void update_cookie(const std::string& old_name, const std::string& old_path, const std::string& old_domain, const Cookie& new_cookie);
+
+  void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
+
+  // bool clear_cookie(const std::string& name);
+
+  /* Cookie support end */
+
   /**
    * @brief Send an error response
    * @details Sends an error response together with the given status code.
@@ -102,7 +125,6 @@ public:
     "End" the response
   */
   void end() const;
-
 
   static void on_sent(OnSent cb)
   { on_sent_ = cb; }
