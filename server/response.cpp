@@ -104,118 +104,80 @@ void Response::cookie(const Cookie& c) {
 }
 
 void Response::cookie(const std::string& name, const std::string& value) {
-  try {
-    Cookie c{name, value};
-    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
 
-    send(keep_alive);
+  // Can throw CookieException
 
-  } catch (CookieException& ce) {
-
-  }
+  Cookie c{name, value};
+  cookie(c);
 }
 
 void Response::cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
-  try {
-    Cookie c{name, value, options};
-    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
 
-    send(keep_alive);
+  // Can throw CookieException
 
-  } catch (CookieException& ce) {
-
-  }
+  Cookie c{name, value, options};
+  cookie(c);
 }
 
-void Response::update_cookie(const std::string& old_name, const std::string& old_path, const std::string& old_domain, const Cookie& new_cookie) {
-  try {
+void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  const std::string& new_value) {
 
-    // clear cookie:
+  // Can throw CookieException
 
-    Cookie c{old_name, ""};
-    c.set_path(old_path);
-    c.set_domain(old_domain);
-    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
+  // 1. Clear old cookie:
 
-    //c.set_path("/");
-    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+  Cookie c{name, ""};
+  c.set_path(old_path);
+  c.set_domain(old_domain);
+  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
 
-    // set new cookie:
+  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
 
-    add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
+  // 2. Set new cookie:
 
-    // send:
+  Cookie new_cookie{name, new_value};
+  add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
 
-    send(keep_alive);
+  // 3. Send:
 
-  } catch (CookieException& ce) {
+  send(keep_alive);
+}
 
-    // printf("CookieException occurred in Response::clear_cookie(...)!\n");
+void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  const std::string& new_value, const std::vector<std::string>& new_options) {
 
-  }
+  // Can throw CookieException
+
+  // 1. Clear old cookie:
+
+  Cookie c{name, ""};
+  c.set_path(old_path);
+  c.set_domain(old_domain);
+  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
+
+  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
+
+  // 2. Set new cookie:
+
+  Cookie new_cookie{name, new_value, new_options};
+  add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
+
+  // 3. Send:
+
+  send(keep_alive);
 }
 
 void Response::clear_cookie(const std::string& name, const std::string& path, const std::string& domain) {
-  try {
-    Cookie c{name, ""};
-    c.set_path(path);
-    c.set_domain(domain);
 
-/*
-    //time_t rawtime;
-    struct tm* timeinfo;
-    char buffer[80];
+  // Can throw CookieException
 
-    //time(&rawtime);
-    time(0);
-    //timeinfo = localtime(&rawtime);
-    timeinfo = localtime(0);
+  Cookie c{name, ""};
+  c.set_path(path);
+  c.set_domain(domain);
+  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
 
-    strftime(buffer, 80, "%a, %d %b %Y, %H:%M:%S GMT", timeinfo); // Sun, 06 Nov 1994 08:49:37 GMT
-*/
-
-    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
-
-    //c.set_path("/");
-    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
-
-    send(keep_alive);
-
-  } catch (CookieException& ce) {
-
-    // printf("CookieException occurred in Response::clear_cookie(...)!\n");
-
-  }
+  cookie(c);
 }
-
-/*
-bool Response::clear_cookie(const std::string& name) {
-  try {
-    Cookie c{name, ""};
-  */
-/*
-    //time_t rawtime;
-    struct tm* timeinfo;
-    char buffer[80];
-
-    //time(&rawtime);
-    time(0);
-    //timeinfo = localtime(&rawtime);
-    timeinfo = localtime(0);
-
-    strftime(buffer, 80, "%a, %d %b %Y, %H:%M:%S GMT", timeinfo); // Sun, 06 Nov 1994 08:49:37 GMT
-*/ /*
-
-    c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT");
-
-    //c.set_path("/");
-    add_header(http::header_fields::Response::Set_Cookie, c.to_string());
-    return true;
-
-  } catch (CookieException& ce) {
-    return false;
-  }
-}*/
 
 /* Cookie support end */
 

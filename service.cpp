@@ -122,61 +122,34 @@ void Service::start() {
 
       server::Router routes;
 
-      // TODO Testing Added CookieJar and CookieParser that takes a CookieJar as parameter:
-      auto jar = std::make_shared<CookieJar>();
-      jar->add("squirrel", "squirrel-value", std::vector<std::string>{"path", "/api/squirrels"});
-      jar->add("cookie-name", "cookie-value");
-      //jar->add("lang", "en-US");
-
-      /* Idea with cookie implementation/Want to be able to do something like:
-       *
-       * auto jar = std::make_shared<CookieJar>();
-       * jar->add("name", "value");
-       * jar->add("name", "value", std::vector<std::string> v{"Path", "/", "Secure", "true"});
-       * // (Another solution than vector for options?)
-       *
-       * Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>(jar);
-       * server->use(cookie_parser);
-       *
-       * server.on_post("/secret", [jar](auto req, auto res){
-       *  if(!req->has_attribute<CookieCollection>()) {
-       *    printf("Req has no cookie, return not allowed.");
-       *    res->send_status(http::Not_Allowed);
-       *    return;
-       *  }
-       *  auto cookies = req->get_attribute<CookieCollection>();
-       *  if(cookies.has("Andreas"))
-       *    (...)
-       * });
-       *
-       * server.on_post("/register", [jar](auto req, auto res) {
-       *  (...)
-       *  jar.add("new_user", "hest");
-       * });
-       *
-       */
-
   // TODO TESTING CookieJar and CookieParser FROM HERE:
 
       routes.on_get("/api/english", [](server::Request_ptr req, auto res) {
         if(req->has_attribute<CookieJar>()) {
           auto req_cookies = req->get_attribute<CookieJar>();
 
-          try {
+          // Print all the request-cookies
+          std::map<std::string, std::string> all_cookies = req_cookies->get_cookies();
+          for(const auto& c : all_cookies)
+            printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
 
-            // Change not stored in the default CookieJar - we only want users
-            // who have went to this path to change language to english
+          std::string value = req_cookies->find("lang");
 
-            Cookie c = req_cookies->get_cookie("lang");
-
-            if(c.get_value() not_eq "en-US") {
-              c.set_value("en-US");
-              res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
-            }
-
-          } catch (CookieException& ce) {
+          if(value == "") {
+            printf("Cookie with name 'lang' not found! Creating it.\n");
             res->cookie("lang", "en-US");
+          } else if(value not_eq "en-US") {
+            printf("Cookie with name 'lang' found, but with wrong value. Updating cookie.\n");
+            res->update_cookie("lang", "", "", "en-US");
+          } else {  // Cookie 'lang' exists and has wanted value ('en-US')
+            printf("Wanted cookie already exists (name 'lang' and value 'en-US')!\n");
+            res->send(true);
           }
+
+        } else {
+          printf("Request has no cookies! Creating cookie.\n");
+          // Want to create lang-cookie then:
+          res->cookie("lang", "en-US");
         }
       });
 
@@ -184,39 +157,28 @@ void Service::start() {
         if(req->has_attribute<CookieJar>()) {
           auto req_cookies = req->get_attribute<CookieJar>();
 
-          try {
+          // Print all the request-cookies
+          std::map<std::string, std::string> all_cookies = req_cookies->get_cookies();
+          for(const auto& c : all_cookies)
+            printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
 
-            // Change not stored in the default CookieJar - we only want users
-            // who have went to this path to change language to norwegian
+          std::string value = req_cookies->find("lang");
 
-            Cookie c = req_cookies->get_cookie("lang");
-
-            if(c.get_value() not_eq "nb-NO") {
-              c.set_value("nb-NO");
-              res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
-
-              //res->update_cookie(c.get_name(), c.get_path(), c.get_domain(), c);
-              //res->update_cookie could handle this (since two operations):
-            // WORKS:
-            // res->clear_cookie(c.get_name(), c.get_path(), c.get_domain());
-
-              /*res->cookie("lang", "nb-NO"); OR: */
-            //res->cookie(c);
-                //res->clear_cookie(c.get_name());
-                //res->cookie(c.get_name(), c.get_value(), ...);
-              // update_cookie: Clear existing cookie and add_header with new cookie
-            }
-          } catch (CookieException& ce) {
-
-            printf("CookieException occurred when trying to get cookie with name 'lang'!\n");
-
-            // create cookie if doesn't exist and put on the response
-
-            // Cookie c{"lang", "nb-NO"};
-            // Can add to jar if we want this cookie to be a default-cookie
-
+          if(value == "") {
+            printf("Cookie with name 'lang' not found! Creating it.\n");
             res->cookie("lang", "nb-NO");
+          } else if(value not_eq "nb-NO") {
+            printf("Cookie with name 'lang' found, but with wrong value. Updating cookie.\n");
+            res->update_cookie("lang", "", "", "nb-NO");
+          } else {  // Cookie 'lang' exists and has wanted value ('nb-NO')
+            printf("Wanted cookie already exists (name 'lang' and value 'nb-NO')!\n");
+            res->send(true);
           }
+
+        } else {
+          printf("Request has no cookies! Creating cookie.\n");
+          // Want to create lang-cookie then:
+          res->cookie("lang", "nb-NO");
         }
       });
 
@@ -331,7 +293,7 @@ void Service::start() {
       server::Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
       server_->use(parsley);
 
-      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>(jar);
+      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
