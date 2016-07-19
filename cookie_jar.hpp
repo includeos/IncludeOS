@@ -22,10 +22,7 @@
 #include <map>
 
 #include "cookie.hpp"
-
 #include "attribute.hpp"
-
-using namespace cookie;
 
 namespace cookie {
 
