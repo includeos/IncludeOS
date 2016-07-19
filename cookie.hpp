@@ -30,11 +30,6 @@
 #include <exception>
 #include <chrono>
 
-#include "time.hpp"
-
-/* TODO: #include "attribute.hpp" on class Cookie or CookieCollection:
-#include "attribute.hpp"*/
-
 namespace cookie {
 
 class CookieException : public std::exception {
@@ -46,10 +41,9 @@ public:
   const char* what() const throw() { return msg.c_str(); }
 };  // < class CookieException
 
-// : public server::Attribute on class Cookie or CookieCollection
-class Cookie /*: public server::Attribute*/ {
+class Cookie {
 private:
-  //using ExpiryDate = std::chrono::system_clock::time_point;
+  using ExpiryDate = std::chrono::system_clock::time_point;
 
 public:
 
@@ -84,8 +78,6 @@ public:
    * @return     { description_of_the_return_value }
    */
   const std::string& get_expires() const; // date and time
-
-  // void set_expires(const std::string& expires);
 
   /**
    * @brief      Sets the expires_ attribute.
@@ -203,10 +195,6 @@ public:
 
   void set_http_only(bool http_only) noexcept;
 
-  bool is_valid() const noexcept;
-
-  operator bool() const noexcept;
-
   operator std::string() const;
 
   std::string to_string() const;
@@ -220,8 +208,6 @@ private:
   std::string path_;
   bool secure_;
   bool http_only_;
-
-  std::chrono::system_clock::time_point time_created_;
 
   static const std::string C_EXPIRES;
   static const std::string C_MAX_AGE;
@@ -239,7 +225,7 @@ private:
 
   bool valid_option_name(const std::string& option_name) const;
 
-  bool expired() const;
+  bool valid_expires_time(const std::string& expires) const noexcept;
 
 };  // < class Cookie
 

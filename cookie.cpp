@@ -53,11 +53,9 @@ bool Cookie::valid(const std::string& name) const {
    * obs-text      = %x80-FF
    */
 
-  // %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
-  // % missing:
-  //std::regex reg("([a-zA-Z0-9!#\\$&'\\*\\+\\-\\.\\^_`\\|~]+)");
+  return ((not name.empty()) and std::regex_match(name, reg));
 
-  return (name.empty() or not (std::regex_match(name, reg))) ? false : true;
+  // return (name.empty() or not (std::regex_match(name, reg))) ? false : true;
 }
 
 bool Cookie::caseInsCharCompareN(char a, char b) {
@@ -74,21 +72,25 @@ bool Cookie::valid_option_name(const std::string& option_name) const {
     caseInsCompare(option_name, C_SECURE) || caseInsCompare(option_name, C_HTTP_ONLY);
 }
 
-bool Cookie::expired() const {
+bool Cookie::valid_expires_time(const std::string& expires) const noexcept {
+  std::tm tm{};
 
-  /* need to #include "time.hpp" to use (rico) + TODO: trouble with chrono (undefined reference to clock_gettime)
-  const auto now = std::chrono::system_clock::now();
-  const auto delta = std::chrono::duration_cast<std::chrono::seconds>(now - time_created_);
+  if (expires.empty())
+    return false;
 
-  if(not expires_.empty()) {
-    const auto expiry_time = std::chrono::system_clock::from_time_t(time::to_time_t(expires_));
+  // Format: Sun, 06 Nov 1994 08:49:37 GMT
+  if (strptime(expires.c_str(), "%a, %d %b %Y %H:%M:%S %Z", &tm) not_eq nullptr)
+    return true;
 
-    return now > expiry_time;
-  }
+  // Format: Sunday, 06-Nov-94 08:49:37 GMT
+  if (strptime(expires.c_str(), "%a, %d-%b-%y %H:%M:%S %Z", &tm) not_eq nullptr)
+    return true;
 
-  return delta > max_age_;*/
+  // Format: Sun Nov  6 08:49:37 1994
+  if(strptime(expires.c_str(), "%a %b %d %H:%M:%S %Y", &tm) not_eq nullptr)
+    return true;
 
-  return true;
+  return false;
 }
 
 Cookie::Cookie(const std::string& name, const std::string& value) {
@@ -102,8 +104,6 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
   name_ = name;
   value_ = value;
 
-  //time_created_ = std::chrono::system_clock::now(); // TODO: trouble with chrono (undefined reference to clock_gettime)
-
   // set default values:
   expires_ = "";
   max_age_ = std::chrono::seconds(0);
@@ -116,7 +116,10 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
 Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options)
   : Cookie{name, value}
 {
-  // for loop on vector - set input values from vector:
+
+  // TODO: Map instead of vector of options?
+
+  // for-loop on vector - set input values from vector:
   for(size_t i = 0; i < options.size(); i += 2) {
     std::string nm = options[i];
 
@@ -126,8 +129,7 @@ Cookie::Cookie(const std::string& name, const std::string& value, const std::vec
     std::string val = options[i+1];
 
     if(caseInsCompare(nm, C_EXPIRES)) {
-      // TODO: Change to set_expires(val); when method finished/working
-      expires_ = val;
+      set_expires(val);
     } else if(caseInsCompare(nm, C_MAX_AGE)) {
       set_max_age(std::chrono::seconds(atoi(val.c_str())));
     } else if(caseInsCompare(nm, C_DOMAIN)) {
@@ -164,26 +166,15 @@ const std::string& Cookie::get_expires() const {
   return expires_;
 }
 
-/*
+// void Cookie::set_expires(const ExpiryDate& expires) {
 void Cookie::set_expires(const std::string& expires) {
-  expires_ = expires;
-}*/
-
-//void Cookie::set_expires(const ExpiryDate& expires) {
-void Cookie::set_expires(const std::string& expires) {
-
-  // TODO: Input validation or const ExpiryDate& expires
-
-  // need to #include "time.hpp" to use (rico)
-
-  /* TODO: Trouble chrono: undefined reference to clock_gettime
-  auto exp_date = std::chrono::system_clock::to_time_t(expires);
-  //max_age_ = 0s;
-  max_age_ = std::chrono::seconds(0);
-  expires_ = time::from_time_t(exp_date);
-  */
+  if(not valid_expires_time(expires))
+    throw CookieException{"Invalid expires attribute (" + expires + ") of cookie!"};
 
   expires_ = expires;
+
+  // Not necessary to change max_age_ because every browser uses the Expires attribute
+  // and persists it properly (Max-Age is ignored if Expires is set).
 }
 
 std::chrono::seconds Cookie::get_max_age() const noexcept {
@@ -191,7 +182,9 @@ std::chrono::seconds Cookie::get_max_age() const noexcept {
 }
 
 void Cookie::set_max_age(std::chrono::seconds max_age) noexcept {
-  expires_.clear();
+  expires_.clear(); // TODO: Do this or not? Not every browser supports the Max-Age
+                    // attribute, but if it does, the Expires attribute is ignored.
+                    // Internet Explorer does not support the Max-Age attribute.
   max_age_ = max_age;
 }
 
@@ -200,9 +193,20 @@ const std::string& Cookie::get_domain() const noexcept {
 }
 
 void Cookie::set_domain(const std::string& domain) {
-  // TODO: Check input parameter?
+  if(domain.empty()) {
+    domain_ = "";
+    return;
+  }
 
-  domain_ = domain;
+  // [RFC 6265] If the first character of the attribute-value string is ".", let
+  // cookie-domain be the attribute-value without the leading "." character.
+  if(domain.at(0) == '.')
+    domain_ = domain.substr(1);
+  else
+    domain_ = domain;
+
+  // [RFC 6265] Convert the cookie-domain to lower case.
+  std::transform(domain_.begin(), domain_.end(), domain_.begin(), ::tolower);
 }
 
 const std::string& Cookie::get_path() const noexcept {
@@ -210,14 +214,19 @@ const std::string& Cookie::get_path() const noexcept {
 }
 
 void Cookie::set_path(const std::string& path) {
+  // [RFC 6265 5.2.4]
   if(path.empty()) {
     path_ = "/";
     return;
   }
 
+  // [RFC 6265 5.2.4]
+  if(path.at(0) not_eq '/')
+    throw CookieException{"Invalid path (" + path + ") of cookie! It must start with a / character."};
+
   std::for_each(path.begin(), path.end(), [&path](const char c) {
     if(::iscntrl(c) or (c == ';')) {
-      throw CookieException{"Invalid path (" + path + ")!"};
+      throw CookieException{"Invalid path (" + path + ") of cookie!"};
     }
   });
 
@@ -238,14 +247,6 @@ bool Cookie::is_http_only() const noexcept {
 
 void Cookie::set_http_only(bool http_only) noexcept {
   http_only_ = http_only;
-}
-
-bool Cookie::is_valid() const noexcept {
-  return not expired();
-}
-
-Cookie::operator bool() const noexcept {
-  return is_valid();
 }
 
 Cookie::operator std::string() const {
