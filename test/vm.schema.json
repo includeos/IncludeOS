@@ -36,11 +36,12 @@
       "items" : {
         "type" : "object",
         "properties" : {
-          "type" : { "enum" : ["virtio"] },
-          "name" : { "type" : "string" }
+          "device" : { "enum" : ["virtio"] },
+          "name" : { "type" : "string" },
+          "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
         },
 
-        "required" : ["type"]
+        "required" : ["device"]
       }
     },
 
