@@ -269,7 +269,7 @@ class vm:
 
   def boot(self, timeout = None):
 
-    # Check for sudo access, needed for tap network devices
+    # Check for sudo access, needed for tap network devices and the KVM module
     if os.getuid() is not 0:
         print color.FAIL("Call the script with sudo access")
         sys.exit(1)
@@ -343,7 +343,6 @@ class vm:
       self._timer.join()
     self._hyper.wait()
     return self._exit_status
-
 
   def poll(self):
     return self._hyper.poll()
