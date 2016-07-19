@@ -17,7 +17,7 @@
 
 #include "cookie_jar.hpp"
 
-//namespace cookie {
+namespace cookie {
 
 size_t CookieJar::size() const noexcept {
   return cookies_.size();
@@ -96,4 +96,4 @@ std::map<std::string, std::string>::const_iterator CookieJar::end() const noexce
   return cookies_.cend();
 }
 
-//};  // < namespace cookie
+};  // < namespace cookie

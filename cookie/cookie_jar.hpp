@@ -27,7 +27,7 @@
 
 using namespace cookie;
 
-//namespace cookie {
+namespace cookie {
 
 class CookieJar : public server::Attribute {
 public:
@@ -79,6 +79,6 @@ private:
 
 };  // < class CookieJar
 
-//};  // < namespace cookie
+};  // < namespace cookie
 
 #endif  // < COOKIE_JAR_HPP
