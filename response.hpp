@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <time.h>
+#include <chrono>
 
 using namespace cookie;
 
@@ -105,11 +106,13 @@ public:
 
   void cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options);
 
-  void update_cookie(const std::string& old_name, const std::string& old_path, const std::string& old_domain, const Cookie& new_cookie);
+  void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+    const std::string& new_value);
+
+  void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+    const std::string& new_value, const std::vector<std::string>& new_options);
 
   void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
-
-  // bool clear_cookie(const std::string& name);
 
   /* Cookie support end */
 
