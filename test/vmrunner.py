@@ -147,11 +147,11 @@ class qemu(hypervisor):
   def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
     return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
-  def net_arg(self, if_type = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
-    type_names = {"virtio" : "virtio-net"}
+  def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
+    device_names = {"virtio" : "virtio-net"}
     qemu_ifup = INCLUDEOS_HOME+"/etc/qemu-ifup"
-    return ["-device", type_names[if_type]+",netdev="+if_name+",mac="+mac,
-            "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
+    return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
+            "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
 
   def kvm_present(self):
     command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
@@ -177,7 +177,7 @@ class qemu(hypervisor):
     i = 0
     if "net" in self._config:
       for net in self._config["net"]:
-        net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
+        net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), net["mac"])
         i+=1
 
     mem_arg = []
@@ -269,7 +269,7 @@ class vm:
 
   def boot(self, timeout = None):
 
-    # Check for sudo access, needed for qemu commands
+    # Check for sudo access, needed for tap network devices and the KVM module
     if os.getuid() is not 0:
         print color.FAIL("Call the script with sudo access")
         sys.exit(1)
@@ -343,7 +343,6 @@ class vm:
       self._timer.join()
     self._hyper.wait()
     return self._exit_status
-
 
   def poll(self):
     return self._hyper.poll()
