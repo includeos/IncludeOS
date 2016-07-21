@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <functional>
 #include <exception>
-#include <chrono>
 
 namespace cookie {
 
@@ -42,11 +41,8 @@ public:
 };  // < class CookieException
 
 class Cookie {
-private:
-  using ExpiryDate = std::chrono::system_clock::time_point;
 
 public:
-
   explicit Cookie(const std::string& name, const std::string& value);
 
   explicit Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options);
@@ -77,7 +73,7 @@ public:
    *
    * @return     { description_of_the_return_value }
    */
-  const std::string& get_expires() const; // date and time
+  const std::string& get_expires() const noexcept; // date and time
 
   /**
    * @brief      Sets the expires_ attribute.
@@ -106,9 +102,9 @@ public:
    *
    * @return     { description_of_the_return_value }
    */
-  std::chrono::seconds get_max_age() const noexcept;
+  int get_max_age() const noexcept;
 
-  void set_max_age(std::chrono::seconds max_age) noexcept;
+  void set_max_age(int max_age) noexcept;
 
   /**
    * @brief      [RFC 6265] The Domain attribute specifies those hosts to which the cookie will be sent.
@@ -203,7 +199,7 @@ private:
   std::string name_;
   std::string value_;
   std::string expires_;
-  std::chrono::seconds max_age_;
+  int max_age_; // number of seconds
   std::string domain_;
   std::string path_;
   bool secure_;
@@ -225,7 +221,7 @@ private:
 
   bool valid_option_name(const std::string& option_name) const;
 
-  bool valid_expires_time(const std::string& expires) const noexcept;
+  bool valid_expires_time(const std::string& e) const noexcept;
 
 };  // < class Cookie
 
