@@ -4,3 +4,9 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = git@github.com:miloyip/rapidjson.git
+[submodule "lest"]
+	path = test/lest
+	url = git@github.com:martinmoene/lest.git
+[submodule "test/lest"]
+	path = test/lest
+	url = git@github.com:martinmoene/lest.git
