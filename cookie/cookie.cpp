@@ -40,22 +40,24 @@ const std::string Cookie::C_PATH = "Path";
 const std::string Cookie::C_SECURE = "Secure";
 const std::string Cookie::C_HTTP_ONLY = "HttpOnly";
 
-// TODO: Test regex and check what values are valid for name and value in a cookie
 bool Cookie::valid(const std::string& name) const {
 
-  std::regex reg{"([\u0009\u0020-\u007e\u0080-\u00ff]+)"};
-  // TODO: Regex source: https://github.com/pillarjs/cookies/blob/master/lib/cookies.js:
-  /**
-   * RegExp to match field-content in RFC 7230 sec 3.2
+  std::regex reg{"(.*[\\x00-\\x20\\x22\\x28-\\x29\\x2c\\x2f\\x3a-\\x40\\x5b-\\x5d\\x7b\\x7d\\x7f]+.*)"};
+
+  /* Valid name characters according to the RFC: Any chars excluding
+   * control characters and special characters.
    *
-   * field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
-   * field-vchar   = VCHAR / obs-text
-   * obs-text      = %x80-FF
+   * RFC2068 lists special characters as
+   * tspecials      = "(" | ")" | "<" | ">" | "@"
+   *                     | "," | ";" | ":" | "\" | <">
+   *                     | "/" | "[" | "]" | "?" | "="
+   *                     | "{" | "}" | SP | HT
+   *
+   * SP             = <US-ASCII SP, space (32)>
+   * HT             = <US-ASCII HT, horizontal-tab (9)>
    */
 
-  return ((not name.empty()) and std::regex_match(name, reg));
-
-  // return (name.empty() or not (std::regex_match(name, reg))) ? false : true;
+  return ((not name.empty()) and (not std::regex_match(name, reg)));
 }
 
 bool Cookie::caseInsCharCompareN(char a, char b) {
@@ -72,11 +74,20 @@ bool Cookie::valid_option_name(const std::string& option_name) const {
     caseInsCompare(option_name, C_SECURE) || caseInsCompare(option_name, C_HTTP_ONLY);
 }
 
-bool Cookie::valid_expires_time(const std::string& expires) const noexcept {
+bool Cookie::valid_expires_time(const std::string& e) const noexcept {
   std::tm tm{};
+
+  //printf("Expires INSIDE VALID_EXPIRES_TIME: %s\n", e);
+
+  // ADDED...:
+  std::string expires = e.substr(0);
+
+  //printf("E: %s\n", expires.c_str());
 
   if (expires.empty())
     return false;
+
+  // NB: strptime changes the expires string
 
   // Format: Sun, 06 Nov 1994 08:49:37 GMT
   if (strptime(expires.c_str(), "%a, %d %b %Y %H:%M:%S %Z", &tm) not_eq nullptr)
@@ -86,7 +97,7 @@ bool Cookie::valid_expires_time(const std::string& expires) const noexcept {
   if (strptime(expires.c_str(), "%a, %d-%b-%y %H:%M:%S %Z", &tm) not_eq nullptr)
     return true;
 
-  // Format: Sun Nov  6 08:49:37 1994
+  // Format: Sun Nov 6 08:49:37 1994
   if(strptime(expires.c_str(), "%a %b %d %H:%M:%S %Y", &tm) not_eq nullptr)
     return true;
 
@@ -106,7 +117,7 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
 
   // set default values:
   expires_ = "";
-  max_age_ = std::chrono::seconds(0);
+  max_age_ = -1;  // 0 deletes the cookie right away
   domain_ = "";
   path_ = "/";
   secure_ = false;
@@ -116,8 +127,9 @@ Cookie::Cookie(const std::string& name, const std::string& value) {
 Cookie::Cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options)
   : Cookie{name, value}
 {
-
-  // TODO: Map instead of vector of options?
+  // Check that the vector has an even number of elements (key, value)
+  if(options.size() % 2 not_eq 0)
+    throw CookieException{"Invalid number of elements in cookie's options vector!"};
 
   // for-loop on vector - set input values from vector:
   for(size_t i = 0; i < options.size(); i += 2) {
@@ -129,9 +141,17 @@ Cookie::Cookie(const std::string& name, const std::string& value, const std::vec
     std::string val = options[i+1];
 
     if(caseInsCompare(nm, C_EXPIRES)) {
+
+      // printf("Val expires in constructor: %s\n", val.c_str());
+
       set_expires(val);
     } else if(caseInsCompare(nm, C_MAX_AGE)) {
-      set_max_age(std::chrono::seconds(atoi(val.c_str())));
+      int age = std::stoi(val); // Can throw exception (invalid_argument or out_of_range)
+
+      if(age < 0)
+        throw CookieException{"Invalid max-age attribute (" + val + ") of cookie! Negative number of seconds not allowed."};
+
+      set_max_age(age);
     } else if(caseInsCompare(nm, C_DOMAIN)) {
       set_domain(val);
     } else if(caseInsCompare(nm, C_PATH)) {
@@ -162,29 +182,48 @@ void Cookie::set_value(const std::string& value) {
   value_ = value;
 }
 
-const std::string& Cookie::get_expires() const {
+const std::string& Cookie::get_expires() const noexcept {
+
+  //printf("Expires in get: %s\n", expires_.c_str());
+
   return expires_;
 }
 
 // void Cookie::set_expires(const ExpiryDate& expires) {
 void Cookie::set_expires(const std::string& expires) {
-  if(not valid_expires_time(expires))
-    throw CookieException{"Invalid expires attribute (" + expires + ") of cookie!"};
+
+  //printf("Expires in set before: %s\n", expires.c_str());
 
   expires_ = expires;
+
+  //printf("Expires in set after: %s\n", expires_.c_str());
+
+  // printf("Expires in set before test: %s and %s\n", expires_.c_str(), expires.c_str());
+
+  if(not valid_expires_time(expires)) { // valid_expires_time changes expires
+
+    // printf("NOT VALID EXPIRES TIME: %s\n", expires);
+
+    expires_ = "";
+    throw CookieException{"Invalid expires attribute (" + expires + ") of cookie!"};
+  }
 
   // Not necessary to change max_age_ because every browser uses the Expires attribute
   // and persists it properly (Max-Age is ignored if Expires is set).
 }
 
-std::chrono::seconds Cookie::get_max_age() const noexcept {
+int Cookie::get_max_age() const noexcept {
   return max_age_;
 }
 
-void Cookie::set_max_age(std::chrono::seconds max_age) noexcept {
+void Cookie::set_max_age(int max_age) noexcept {
   expires_.clear(); // TODO: Do this or not? Not every browser supports the Max-Age
                     // attribute, but if it does, the Expires attribute is ignored.
                     // Internet Explorer does not support the Max-Age attribute.
+
+  if(max_age < 0)
+    throw CookieException{"Invalid max-age attribute (" + std::to_string(max_age) + ") of cookie! Negative number of seconds not allowed."};
+
   max_age_ = max_age;
 }
 
@@ -254,29 +293,30 @@ Cookie::operator std::string() const {
 }
 
 std::string Cookie::to_string() const {
-  std::ostringstream cookie_stream;
+  std::string cookie_string = name_ + "=" + value_;
 
-  cookie_stream << name_ << "=" << value_;
+  // expires_ is empty because of valid_expires_time-method ??
+  // printf("Expires in to_string: %s\n", expires_.c_str());
 
   if(not expires_.empty())
-    cookie_stream << "; " << C_EXPIRES << "=" << expires_;
+    cookie_string += "; " + C_EXPIRES + "=" + expires_;
 
-  if(max_age_.count())
-    cookie_stream << "; " << C_MAX_AGE << "=" << max_age_.count();
+  if(max_age_ not_eq -1)
+    cookie_string += "; " + C_MAX_AGE + "=" + std::to_string(max_age_);
 
   if(not domain_.empty())
-    cookie_stream << "; " << C_DOMAIN << "=" << domain_;
+    cookie_string += "; " + C_DOMAIN + "=" + domain_;
 
   if(not path_.empty())
-    cookie_stream << "; " << C_PATH << "=" << path_;
+    cookie_string += "; " + C_PATH + "=" + path_;
 
   if(secure_)
-    cookie_stream << "; " << C_SECURE;
+    cookie_string += "; " + C_SECURE;
 
   if(http_only_)
-    cookie_stream << "; " << C_HTTP_ONLY;
+    cookie_string += "; " + C_HTTP_ONLY;
 
-  return cookie_stream.str();
+  return cookie_string;
 }
 
 };  // < namespace cookie
