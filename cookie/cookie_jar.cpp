@@ -70,7 +70,7 @@ CookieJar& CookieJar::clear() noexcept {
 
 bool CookieJar::exists(const std::string& name) const noexcept {
   auto it = cookies_.find(name);
-  return (it != cookies_.end());
+  return (it not_eq cookies_.end());
 }
 
 std::string CookieJar::find(const std::string& name) const noexcept {
