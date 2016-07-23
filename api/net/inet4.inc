@@ -95,7 +95,22 @@ namespace net
   }
 
   template <typename T> inline
-  void Inet4<T>::on_config(delegate<void(bool)> handler) {
+  void Inet4<T>::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
+    if(!dhcp_)
+      dhcp_ = std::make_shared<DHClient>(*this);
+    // @timeout for DHCP-server negotation
+    dhcp_->negotiate(timeout);
+    // add timeout_handler if supplied
+    if(handler)
+      dhcp_->on_config(handler);
+  }
+
+  template <typename T> inline
+  void Inet4<T>::on_config(dhcp_timeout_func handler) {
+    // setup DHCP if not intialized
+    if(!dhcp_)
+      negotiate_dhcp();
+
     dhcp_->on_config(handler);
   }
 

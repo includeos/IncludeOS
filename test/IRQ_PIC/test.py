@@ -10,15 +10,12 @@ import vmrunner
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
-def cleanup():
-  vm.make(["clean"])
-  call(["./fat32_disk.sh", "clean"])
+def test_serial_port():
+  print "Serial port triggered"
+  vm.writeline("Here is a test")
 
-# Setup disk
-call(["./fat32_disk.sh"], shell=True)
 
-# Clean up on exit
-vm.on_exit(cleanup)
+vm.on_output("trigger_test_serial_port", test_serial_port)
 
 # Boot the VM
 vm.make().boot()

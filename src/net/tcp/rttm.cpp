@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,27 +15,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <hw/serial.hpp>
-#include <kernel/irq_manager.hpp>
+#include <os> // uptime
+#include <net/tcp/rttm.hpp>
 
-using namespace std::chrono;
+using namespace net::tcp;
 
-void Service::start()
-{
+const RTTM::duration_t RTTM::CLOCK_G;
 
-  auto& com1 = hw::Serial::port<1>();
+void RTTM::start() {
+  t = OS::uptime();
+  active = true;
+}
 
-  com1.on_readline([](const std::string& s){
-      CHECK(true, "Received: %s", s.c_str());
-
-    });
-  //IRQ_manager::cpu(0).enable_irq(4);
-  INFO("Serial Test","Doing some serious serial");
-  printf("trigger_test_serial_port\n");
-
-  hw::PIT::instance().on_repeated_timeout(3s, []{
-    printf("I'm alive\n");
-  });
-
+void RTTM::stop(bool first) {
+  assert(active);
+  active = false;
+  // round trip time (RTT)
+  auto rtt = OS::uptime() - t;
+  debug2("<RTTM::stop> RTT: %ums\n",
+    (uint32_t)(rtt * 1000));
+  if(!first)
+    sub_rtt_measurement(rtt);
+  else {
+    first_rtt_measurement(rtt);
+  }
 }

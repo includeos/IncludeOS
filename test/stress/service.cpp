@@ -114,8 +114,8 @@ void Service::start() {
       printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
     });
 
-  server_mem.onConnect([] (auto conn) {
-      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+  server_mem.on_connect([] (auto conn) {
+      conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
@@ -126,7 +126,7 @@ void Service::start() {
               TCP_BYTES_SENT += n;
             });
 
-          conn->onDisconnect([](auto c, auto){
+          conn->on_disconnect([](auto c, auto){
               c->close();
             });
         });
@@ -135,10 +135,10 @@ void Service::start() {
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onConnect([] (auto conn) {
+  server.on_connect([] (auto conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
-        conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+        conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
             TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };

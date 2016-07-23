@@ -11,5 +11,5 @@ The test verifies the following things:
 5. Filesystem API (read) and subclasses as `Dirent`.
 6. Random access sync read.
 
-`test.sh` is used to create a 8 MB FAT16 disk `my.disk` with `banana.txt` as content, which will be included as a memdisk into the service.
+`fat16_disk.sh` is used to create a 8 MB FAT16 disk `my.disk` with `banana.txt` as content, which will be included as a memdisk into the service.
 

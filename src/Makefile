@@ -79,7 +79,8 @@ OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
 		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
-		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
+		net/tcp/tcp.o net/tcp/connection.o net/tcp/connection_states.o \
+		net/tcp/rttm.o net/tcp/listener.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
