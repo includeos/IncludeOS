@@ -18,6 +18,7 @@
 #ifndef CLASS_IP4_HPP
 #define CLASS_IP4_HPP
 
+#include <regex>
 #include <string>
 #include <iostream>
 
@@ -48,6 +49,42 @@ namespace net {
         : whole(ipaddr) {}
       addr(uint8_t p1, uint8_t p2, uint8_t p3, uint8_t p4)
         : whole(p1 | (p2 << 8) | (p3 << 16) | (p4 << 24)) {}
+
+      /**
+       * @brief Construct an IPv4 address from a {std::string}
+       * object
+       *
+       * @note If the {std::string} object doesn't contain a valid
+       * IPv4 representation then the instance will contain the
+       * address -> 0.0.0.0
+       *
+       * @param ip_addr:
+       * A {std::string} object representing an IPv4 address
+       */
+      addr(const std::string& ip_addr)
+        : addr{}
+      {
+        const static std::regex ipv4_address_pattern
+        {
+          "^(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+          "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+          "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+          "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)$"
+        };
+
+        std::smatch ipv4_parts;
+      
+        if (not std::regex_match(ip_addr, ipv4_parts, ipv4_address_pattern)) {
+          return;
+        }
+        
+        auto p1 = static_cast<uint8_t>(std::stoi(ipv4_parts[1]));
+        auto p2 = static_cast<uint8_t>(std::stoi(ipv4_parts[2]));
+        auto p3 = static_cast<uint8_t>(std::stoi(ipv4_parts[3]));
+        auto p4 = static_cast<uint8_t>(std::stoi(ipv4_parts[4]));
+
+        whole = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
+      }
       
       inline addr& operator=(addr cpy) noexcept {
         whole = cpy.whole;
