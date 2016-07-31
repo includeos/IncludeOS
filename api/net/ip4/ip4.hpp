@@ -22,6 +22,7 @@
 #include <string>
 #include <iostream>
 
+#include <common>
 #include <net/ethernet.hpp>
 #include <net/inet.hpp>
 
@@ -64,6 +65,8 @@ namespace net {
       addr(const std::string& ipv4_addr)
         : addr{}
       {
+      	Expects(ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15); //< [7, 15] minimum and maximum address length
+
         const static std::regex ipv4_address_pattern
         {
           "^(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
