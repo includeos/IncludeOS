@@ -74,7 +74,7 @@ namespace net {
       // hex string representation
       std::string str() const {
         char eth_addr[18];
-        snprintf(eth_addr, sizeof(eth_addr), "%1x:%1x:%1x:%1x:%1x:%1x",
+        snprintf(eth_addr, sizeof(eth_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
                 part[0], part[1], part[2],
                 part[3], part[4], part[5]);
         return eth_addr;
