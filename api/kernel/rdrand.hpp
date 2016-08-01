@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef KERNEL_RDRAND_HPP
 #define KERNEL_RDRAND_HPP
 
@@ -23,4 +25,4 @@
 extern bool rdrand16(uint16_t* result);
 extern bool rdrand32(uint32_t* result);
 
-#endif //< KERNEL_RDRAND_HPP
+#endif
