@@ -18,6 +18,8 @@
 #ifndef ETHERNET_MODULE_TEST_HPP
 #define ETHERNET_MODULE_TEST_HPP
 
+#define MYINFO(X,...) INFO("Ethernet Test",X,##__VA_ARGS__)
+
 #include <lest.hpp>
 #include <net/inet4>
 
