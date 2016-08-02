@@ -32,6 +32,11 @@ namespace hw {
     static void add_task(smp_task_func, smp_done_func);
     static void work_signal();
     
+    typedef std::function<void()>   timer_func;
+    
+    static void sched_timer(int when, timer_func);
+    static void stop_timer();
+    
     static void init();
     static void setup_subs();
     

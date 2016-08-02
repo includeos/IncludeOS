@@ -20,6 +20,19 @@
 #ifndef KERNEL_TIMER_HPP
 #define KERNEL_TIMER_HPP
 
+/**
+ * 1. There are no restrictions on when timers can be started or stopped
+ * 2. A period of 0 means start a one-shot timer
+ * 3. Each timer is a separate object living in a "fixed" vector
+ * 4. A dead timer is simply a timer which has its handler reset, as well as
+ *     having been removed from schedule
+ * 5. No timer may be scheduled more than once at a time, as that will needlessly
+ *     inflate the schedule container, as well as complicate stopping timers
+ * 6. Free timers are allocated from a stack of free timer IDs (or through expanding
+ *     the "fixed" vector)
+**/
+
+
 #include <cstdint>
 #include <functional>
 #include <delegate>
@@ -33,9 +46,14 @@ public:
   
   /// create a timer that begins @when and repeats every @period
   /// returns a timer id
-  static id_t start(timestamp_t when, timestamp_t period, const handler_t&);
+  static id_t create(timestamp_t when, timestamp_t period, const handler_t&);
   // un-schedule timer, and free it
   static void stop(id_t);
+};
+
+class ITimerControl
+{
+  
 };
 
 #endif
