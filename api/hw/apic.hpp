@@ -55,7 +55,6 @@ namespace hw {
     static void reboot();
     
   private:
-    static void init_timer(uint8_t);
     static void init_smp();
   };
   

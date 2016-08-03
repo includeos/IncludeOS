@@ -24,6 +24,7 @@
 
 #include <hw/acpi.hpp>
 #include <hw/apic.hpp>
+#include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
 #include <hw/serial.hpp>
 #include <kernel/pci_manager.hpp>
@@ -39,6 +40,10 @@ hw::Serial& OS::com1 = hw::Serial::port<1>();
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern caddr_t heap_begin;
 extern caddr_t heap_end;
+
+namespace hw {
+  extern void apic_init_timer();
+}
 
 void OS::start() {
 
@@ -74,6 +79,9 @@ void OS::start() {
   // Initialize the Interval Timer
   hw::PIT::init();
 
+  // initialize BSP APIC timer
+  hw::APIC_Timer::init();
+
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -81,7 +89,7 @@ void OS::start() {
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(10 samples, %f sec. interval)",
-  (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+        (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.

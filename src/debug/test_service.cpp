@@ -28,7 +28,7 @@ extern void print_heap_info();
 extern void print_backtrace();
 
 void print_tcp_status() {
-  printf("<Service> TCP STATUS: %u\n", inet->tcp().activeConnections());
+  printf("<Service> TCP STATUS: %u\n", inet->tcp().active_connections());
   print_heap_info();
   print_backtrace();
 }
@@ -94,6 +94,7 @@ extern "C" {
 #include <hw/cpu.hpp>
 void Service::start()
 {
+  return;
   //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
   //memset(bullshit, 0, sizeof(bullshit));
   //__validate_bullshit("validate_bullshit begin Service::start()");
@@ -121,7 +122,7 @@ void Service::start()
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);
-  server.onConnect(
+  server.on_connect(
   [] (auto conn) {
     conn->close();
   });
