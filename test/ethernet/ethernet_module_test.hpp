@@ -40,7 +40,7 @@ const lest::test ethernet_module_test[]
     {
       GIVEN("A net::Ethernet::addr object")
       {
-        const net::Ethernet::addr host_mac_address {0,240,34,255,45,11};
+        const net::Ethernet::addr host_mac_address {{0,240,34,255,45,11}};
 
         WHEN("Converted to a std::string object")
         {
