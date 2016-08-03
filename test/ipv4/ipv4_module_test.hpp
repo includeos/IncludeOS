@@ -21,6 +21,18 @@
 #include <lest.hpp>
 #include <net/inet4>
 
+#define MYINFO(X,...) INFO("IPv4 Test",X,##__VA_ARGS__)
+
+/**
+ * @brief This is defined to quite the compiler from complaining
+ * about the missing symbol {clock_gettime}
+ */
+int clock_gettime(clockid_t clk_id, struct timespec *tp){
+  (void*)clk_id;
+  (void*)tp;
+  return 0;
+};
+
 const lest::test ipv4_module_test[]
 {
   {
@@ -51,7 +63,7 @@ const lest::test ipv4_module_test[]
 
           THEN("The net::IP4::addr object must reflect the address 0.0.0.0")
           {
-            EXPECT(host_address.str() == {"0.0.0.0"});
+            EXPECT(host_address.str() == "0.0.0.0");
           }
         }
       }

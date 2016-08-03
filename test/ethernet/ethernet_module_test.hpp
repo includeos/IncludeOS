@@ -18,6 +18,9 @@
 #ifndef ETHERNET_MODULE_TEST_HPP
 #define ETHERNET_MODULE_TEST_HPP
 
+#include <lest.hpp>
+#include <net/inet4>
+
 #define MYINFO(X,...) INFO("Ethernet Test",X,##__VA_ARGS__)
 
 /**
@@ -30,9 +33,6 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp){
   return 0;
 };
 
-#include <lest.hpp>
-#include <net/inet4>
-
 const lest::test ethernet_module_test[]
 {
   {
@@ -40,7 +40,7 @@ const lest::test ethernet_module_test[]
     {
       GIVEN("A net::Ethernet::addr object")
       {
-        const net::Ethernet::addr host_mac_address {{0,240,34,255,45,11}};
+        const net::Ethernet::addr host_mac_address {0,240,34,255,45,11};
 
         WHEN("Converted to a std::string object")
         {
