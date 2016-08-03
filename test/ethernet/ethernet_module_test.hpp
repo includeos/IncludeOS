@@ -15,13 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef IPV4_MODULE_TEST_HPP
-#define IPV4_MODULE_TEST_HPP
+#ifndef ETHERNET_MODULE_TEST_HPP
+#define ETHERNET_MODULE_TEST_HPP
 
 #include <lest.hpp>
 #include <net/inet4>
 
-#define MYINFO(X,...) INFO("IPv4 Test",X,##__VA_ARGS__)
+#define MYINFO(X,...) INFO("Ethernet Test",X,##__VA_ARGS__)
 
 /**
  * @brief This is defined to quiet the compiler from complaining
@@ -33,42 +33,27 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp){
   return 0;
 };
 
-const lest::test ipv4_module_test[]
+const lest::test ethernet_module_test[]
 {
   {
-    SCENARIO("IPv4 address construction")
+    SCENARIO("Ethernet MAC address string representation")
     {
-      GIVEN("A std::string object representing a valid IPv4 address")
+      GIVEN("A net::Ethernet::addr object")
       {
-        const std::string ipv4_address {"10.0.0.42"};
+        const net::Ethernet::addr host_mac_address {0,240,34,255,45,11};
 
-        WHEN("Passed to the net::IPv4::addr constructor")
+        WHEN("Converted to a std::string object")
         {
-          net::IP4::addr host_address {ipv4_address};
+          auto mac_address_string = host_mac_address.str();
 
-          THEN("The net::IP4::addr object must reflect the given address")
+          THEN("The MAC address string representation must print leading zeros")
           {
-            EXPECT(host_address.str() == ipv4_address);
-          }
-        }
-      }
-
-      GIVEN("A std::string object representing an invalid IPv4 address")
-      {
-        const std::string ipv4_address {"256.652.300.4"};
-
-        WHEN("Passed to the net::IPv4::addr constructor")
-        {
-          net::IP4::addr host_address {ipv4_address};
-
-          THEN("The net::IP4::addr object must reflect the address 0.0.0.0")
-          {
-            EXPECT(host_address.str() == "0.0.0.0");
+            EXPECT(mac_address_string == "00:f0:22:ff:2d:0b");
           }
         }
       }
     }
   }
-}; //< const lest::test ipv4_module_test[]
+}; //< const lest::test ethernet_module_test[]
 
-#endif //< IPV4_MODULE_TEST_HPP
+#endif //< ETHERNET_MODULE_TEST_HPP
