@@ -65,6 +65,13 @@ namespace net {
         uint32_t major;
       } __attribute__((packed));
 
+      addr() noexcept : part{} {}
+
+      addr(const uint8_t a, const uint8_t b, const uint8_t c,
+           const uint8_t d, const uint8_t e, const uint8_t f) noexcept
+        : part{a,b,c,d,e,f}
+      {}
+
       addr& operator=(const addr cpy) noexcept {
         minor = cpy.minor;
         major = cpy.major;
