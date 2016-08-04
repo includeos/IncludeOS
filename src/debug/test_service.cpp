@@ -116,7 +116,7 @@ void Service::start()
   printf("Creating repeating timer for 500ms\n");
   static int C = 0;
   for (int i = 0; i < 5000; i++)
-  Timers::create(500ms, 500ms,
+  Timers::periodic(500ms, 500ms,
   [] {
     printf("beep\t");
     C++;

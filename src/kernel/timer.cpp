@@ -83,13 +83,13 @@ static id_t create_timer(
   sched_timer(when, id);
   return id;
 }
-id_t Timers::create(duration_t when, duration_t period, const handler_t& handler)
-{
-  return create_timer(when, period, handler);
-}
-id_t Timers::create(duration_t when, const handler_t& handler)
+id_t Timers::oneshot(duration_t when, const handler_t& handler)
 {
   return create_timer(when, milliseconds(0), handler);
+}
+id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
+{
+  return create_timer(when, period, handler);
 }
 
 void Timers::stop(id_t id)

@@ -47,9 +47,9 @@ public:
   
   /// create a one-shot timer that triggers @when from now
   /// returns a timer id
-  static id_t create(duration_t when, const handler_t&);
-  /// create a timer that begins @when and repeats every @period
-  static id_t create(duration_t when, duration_t period, const handler_t&);
+  static id_t oneshot(duration_t when, const handler_t&);
+  /// create a periodic timer that begins @when and repeats every @period
+  static id_t periodic(duration_t when, duration_t period, const handler_t&);
   // un-schedule timer, and free it
   static void stop(id_t);
   
