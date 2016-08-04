@@ -27,8 +27,9 @@
 #include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
 #include <hw/serial.hpp>
-#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/pci_manager.hpp>
+#include <kernel/timer.hpp>
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
@@ -79,9 +80,6 @@ void OS::start() {
   // Initialize the Interval Timer
   hw::PIT::init();
 
-  // initialize BSP APIC timer
-  hw::APIC_Timer::init();
-
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -94,8 +92,27 @@ void OS::start() {
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
   cpu_mhz_ = hw::PIT::CPU_frequency();
-
   INFO2("+--> %f MHz", cpu_mhz_.count());
+
+  // cpu_mhz must be known before we can start timer system
+  /// initialize timers hooked up to APIC timer
+  Timers::init(
+    // timer start function
+    [] (Timers::duration_t when) {
+      // explicit conversion to microseconds
+      hw::APIC_Timer::oneshot(std::chrono::microseconds(when).count());
+    }, 
+    // timer stop function
+    hw::APIC_Timer::stop);
+
+  // initialize BSP APIC timer
+  hw::APIC_Timer::init(
+  [] {
+    // set final interrupt handler
+    hw::APIC_Timer::set_handler(Timers::timers_handler);
+    // signal ready
+    Timers::ready();
+  });
 
   // Initialize CMOS
   cmos::init();

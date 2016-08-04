@@ -2,34 +2,65 @@
 
 #include <map>
 #include <vector>
-#include <hw/apic.hpp>
+#include <kernel/os.hpp>
 
-typedef Timers::id_t        id_t;
-typedef Timers::timestamp_t timestamp_t;
-typedef Timers::handler_t   handler_t;
+typedef Timers::id_t       id_t;
+typedef Timers::duration_t duration_t;
+typedef Timers::handler_t  handler_t;
 
-void sched_timer(timestamp_t when, id_t id);
+using namespace std::chrono;
+void sched_timer(duration_t when, id_t id);
 void stop_timer();
 
 struct Timer
 {
-  Timer(timestamp_t p, handler_t h)
-    : period(p), handler(h), deferred_destruct(false) {}
+  Timer(duration_t p, handler_t cb)
+    : period(p), callback(cb), deferred_destruct(false) {}
   
-  timestamp_t period;
-  handler_t   handler;
+  bool is_alive() const noexcept {
+    return deferred_destruct == false;
+  }
+  
+  bool is_oneshot() const noexcept {
+    return period.count() == 0;
+  }
+  
+  duration_t period;
+  handler_t  callback;
   bool deferred_destruct = false;
 };
 
-static std::vector<Timer> timers;
-static std::vector<id_t>  free_timers;
-static bool  is_running = false;
+static std::vector<Timer>  timers;
+static std::vector<id_t>   free_timers;
+static bool   signal_ready = false;
+static bool   is_running = false;
+static double current_time;
+static Timers::start_func_t arch_start_func;
+static Timers::stop_func_t  arch_stop_func;
 
 // timers sorted by timestamp
-static std::multimap<timestamp_t, id_t> scheduled;
+static std::multimap<duration_t, id_t> scheduled;
+
+void Timers::init(const start_func_t& start, const stop_func_t& stop)
+{
+  // use uptime as position in timer system
+  current_time = OS::uptime();
+  // architecture specific start and stop functions
+  arch_start_func = start;
+  arch_stop_func  = stop;
+}
+
+void Timers::ready()
+{
+  signal_ready = true;
+  // begin processing timers if any are queued
+  if (is_running == false) {
+    timers_handler();
+  }
+}
 
 static id_t create_timer(
-    timestamp_t when, timestamp_t period, const handler_t& handler)
+    duration_t when, duration_t period, const handler_t& handler)
 {
   id_t id;
   
@@ -52,101 +83,90 @@ static id_t create_timer(
   sched_timer(when, id);
   return id;
 }
-id_t Timers::create(timestamp_t when, timestamp_t period, const handler_t& handler)
+id_t Timers::create(duration_t when, duration_t period, const handler_t& handler)
 {
   return create_timer(when, period, handler);
+}
+id_t Timers::create(duration_t when, const handler_t& handler)
+{
+  return create_timer(when, milliseconds(0), handler);
 }
 
 void Timers::stop(id_t id)
 {
-  // mark as free
-  free_timers.push_back(id);
-  // remove from scheduling
-  auto it = scheduled.find(id);
-  if (it == scheduled.end())
-      return;
-  
-  // in the special case where the timer id is the current front,
-  // we will need to also stop/reset the hardware timer
-  if (it == scheduled.begin()) {
-    stop_timer();
-  }
-  
-  scheduled.erase(it);
+  // mark as dead already
+  timers[id].deferred_destruct = true;
+  // note:
+  // if the timer id is a legit "alive" timer,
+  // then the timer MUST be visited at some point in interrupt handler,
+  // and this will free the resources in the timers callback
 }
 
 /// time functions ///
-/// ARCHITECTURE SPECIFIC ///
-#include <kernel/os.hpp>
 
-static timestamp_t now()
+inline auto now()
 {
-  return (timestamp_t) OS::uptime();
-}
-static void arch_sched(timestamp_t when, handler_t cb)
-{
-  hw::APIC::sched_timer(when, cb);
-}
-static void arch_stop()
-{
-  hw::APIC::stop_timer();
+  return microseconds((int64_t)(OS::uptime() * 1000000.0));
 }
 
-void timers_handler()
+/// scheduling ///
+
+void Timers::timers_handler()
 {
   while (!scheduled.empty())
   {
     auto it = scheduled.begin();
     auto when   = it->first;
     auto ts_now = now();
-    auto& timer = timers[it->second];
+    id_t id = it->second;
+    auto& timer = timers[id];
     
     if (ts_now >= when) {
       // erase immediately
       scheduled.erase(scheduled.begin());
       
-      // call handler
-      timer.handler();
-      
-      // if the timer died during handler, free its resources
-      if (timer.deferred_destruct) {
-        timer.deferred_destruct = false;
-        timer.handler.reset();
-      }
-      else if (timer.period)
-      {
-        // or, if the timer is recurring, we will want to reschedule it
-        is_running = true;
-        arch_sched(timer.period, timer.handler);
+      // only process timer if still alive
+      if (timer.is_alive()) {
+        // call the users callback function
+        timer.callback();
+        
+        // if the timer died during callback, free its resources
+        if (timer.deferred_destruct) {
+          timer.deferred_destruct = false;
+          timer.callback.reset();
+        }
+        else if (timer.period.count())
+        {
+          // if the timer is recurring, we will simply reschedule it
+          sched_timer(timer.period, id);
+        }
       }
       
     } else {
-      // not yet past time, so schedule it for later
+      // not yet time, so schedule it for later
       is_running = true;
-      arch_sched(when - ts_now, timer.handler);
+      arch_start_func(when - ts_now);
       // exit early, because we have nothing more to do, and there is a deferred handler
       return;
     }
   }
-  // if we get here, the list is empty,
-  // and if the hardware timer is running, stop it
-  if (is_running) {
-    is_running = false;
-    arch_stop();
-  }
+  // lets assume the timer is not running anymore
+  is_running = false;
+  //arch_stop_func();
 }
-void sched_timer(timestamp_t when, id_t id)
+void sched_timer(duration_t when, id_t id)
 {
   scheduled.insert(std::forward_as_tuple(now() + when, id));
   
-  if (is_running == false) {
-    timers_handler();
+  // If the hardware timer is not running, we have to start it somehow
+  //  and timers_start() should program the hardware
+  // This also optimizes the case where lots of timers are happening "now",
+  //  typically the case for deferred actions, such as deferred kick
+  if (is_running == false && signal_ready) {
+    Timers::timers_handler();
   }
-  
 }
 void stop_timer()
 {
-  arch_stop();
+  arch_stop_func();
 }
-
-/// scheduling ///

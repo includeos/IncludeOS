@@ -19,6 +19,7 @@
 #include <hw/apic_regs.hpp>
 #include <hw/pit.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/os.hpp>
 #include <cstdio>
 #include <info>
 
@@ -33,10 +34,10 @@ using namespace std::chrono;
 
 namespace hw
 {
-  static delegate<void()> intr_handler;
-  static uint32_t         ticks_per_micro = 0;
+  static APIC_Timer::handler_t intr_handler;
+  static uint32_t ticks_per_micro = 0;
   
-  void APIC_Timer::init()
+  void APIC_Timer::init(const handler_t& handler)
   {
     // decrement only every 16 ticks
     lapic.regs->divider_config.reg = DIVIDE_BY_16;
@@ -47,10 +48,12 @@ namespace hw
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
     lapic.regs->init_count.reg = 0xFFFFFFFF;
+    // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
     
-    // See: Vol3a 10.5.4.1 TSC-Deadline Mode
+    // ready handler
+    intr_handler = handler;
     
     /// use PIT to measure <time> in one-shot ///
     hw::PIT::instance().on_timeout_ms(milliseconds(10),
@@ -65,8 +68,8 @@ namespace hw
       // make sure timer is still disabled
       lapic.regs->timer.reg |= INTR_MASK;
       
-      // enable normal timer functionality
-      IRQ_manager::cpu(0).subscribe(LAPIC_IRQ_TIMER, intr_handler);
+      // signal ready to go
+      intr_handler();
     });
   }
   
@@ -75,7 +78,7 @@ namespace hw
     return ticks_per_micro != 0;
   }
   
-  void APIC_Timer::set_handler(delegate<void()>& handler)
+  void APIC_Timer::set_handler(const handler_t& handler)
   {
     intr_handler = handler;
     if (ready()) {
@@ -85,8 +88,12 @@ namespace hw
   
   void APIC_Timer::oneshot(uint32_t microsec)
   {
+    // prevent overflow
+    uint64_t ticks = microsec * ticks_per_micro;
+    if (ticks & 0xFFFFFFFF00000000) ticks = 0xFFFFFFFF;
+    
     // set initial counter
-    lapic.regs->init_count.reg = microsec * ticks_per_micro;
+    lapic.regs->init_count.reg = ticks;
     // enable interrupt vector
     lapic.regs->timer.reg = (lapic.regs->timer.reg & ~INTR_MASK) | TIMER_ONESHOT;
     

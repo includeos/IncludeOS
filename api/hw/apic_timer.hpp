@@ -28,11 +28,11 @@ namespace hw {
   {
     typedef delegate<void()> handler_t;
     
-    static void init();
+    static void init(const handler_t&);
     
     static void oneshot(uint32_t microsec);
     static void stop();
-    static void set_handler(handler_t& handler);
+    static void set_handler(const handler_t&);
     
     static bool     ready();
     static uint32_t long_duration();

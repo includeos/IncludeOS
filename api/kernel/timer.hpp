@@ -34,6 +34,7 @@
 
 
 #include <cstdint>
+#include <chrono>
 #include <functional>
 #include <delegate>
 
@@ -41,19 +42,26 @@ class Timers
 {
 public:
   typedef uint32_t id_t;
-  typedef uint32_t timestamp_t;
+  typedef std::chrono::microseconds duration_t;
   typedef delegate<void()> handler_t;
   
-  /// create a timer that begins @when and repeats every @period
+  /// create a one-shot timer that triggers @when from now
   /// returns a timer id
-  static id_t create(timestamp_t when, timestamp_t period, const handler_t&);
+  static id_t create(duration_t when, const handler_t&);
+  /// create a timer that begins @when and repeats every @period
+  static id_t create(duration_t when, duration_t period, const handler_t&);
   // un-schedule timer, and free it
   static void stop(id_t);
-};
-
-class ITimerControl
-{
   
+  /// initialization
+  typedef delegate<void(duration_t)> start_func_t;
+  typedef delegate<void()> stop_func_t;
+  static void init(const start_func_t&, const stop_func_t&);
+  /// signal from the underlying hardware that it is calibrated and ready to go
+  static void ready();
+  
+  /// handler that processes timer interrupts
+  static void timers_handler();
 };
 
 #endif

@@ -92,9 +92,10 @@ extern "C" {
 }
 
 #include <hw/cpu.hpp>
+#include <timer>
+
 void Service::start()
 {
-  return;
   //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
   //memset(bullshit, 0, sizeof(bullshit));
   //__validate_bullshit("validate_bullshit begin Service::start()");
@@ -106,19 +107,29 @@ void Service::start()
   // print sampling results every 5 seconds
   //hw::PIT::instance().on_repeated_timeout(500ms, print_stack_sampling);
 
-  hw::PIT::instance().on_repeated_timeout(500ms, 
-  [] {
-    print_heap_info();
-    printf("bufstore packets: %u\n", inet->buffers_available());
-  });
+  //Timers::create(500ms, 500ms,
+  //[] {
+  //  print_heap_info();
+  //  printf("bufstore packets: %u\n", inet->buffers_available());
+  //});
 
+  printf("Creating repeating timer for 500ms\n");
+  static int C = 0;
+  for (int i = 0; i < 5000; i++)
+  Timers::create(500ms, 500ms,
+  [] {
+    printf("beep\t");
+    C++;
+    if (C == 10) printf("\n");
+  });
+  
   // boilerplate
   inet = net::new_ipv4_stack(
     { 10,0,0,42 },      // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 } );     // Gateway
-  hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
-  hw::PIT::instance().on_timeout_ms(1ms, print_tcp_status);
+  //hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
+  //hw::PIT::instance().on_timeout_ms(1ms, print_tcp_status);
 
   // Set up a TCP server on port 80
   auto& server = inet->tcp().bind(80);

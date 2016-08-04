@@ -34,9 +34,6 @@ namespace hw {
     
     typedef std::function<void()>   timer_func;
     
-    static void sched_timer(int when, timer_func);
-    static void stop_timer();
-    
     static void init();
     static void setup_subs();
     
