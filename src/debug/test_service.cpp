@@ -117,7 +117,7 @@ void Service::start()
   static int C = 0;
   for (int i = 0; i < 5000; i++)
   Timers::periodic(500ms, 500ms,
-  [] {
+  [] (auto) {
     printf("beep\t");
     C++;
     if (C == 10) printf("\n");

@@ -4,13 +4,12 @@
 #include <vector>
 #include <kernel/os.hpp>
 
+using namespace std::chrono;
 typedef Timers::id_t       id_t;
 typedef Timers::duration_t duration_t;
 typedef Timers::handler_t  handler_t;
 
-using namespace std::chrono;
-void sched_timer(duration_t when, id_t id);
-void stop_timer();
+static void sched_timer(duration_t when, id_t id);
 
 struct Timer
 {
@@ -96,7 +95,7 @@ static id_t create_timer(
     new (&timers[id]) Timer(period, handler);
   }
   
-  // immediately schedule the first timer
+  // immediately schedule timer
   sched_timer(when, id);
   return id;
 }
@@ -119,6 +118,11 @@ void Timers::stop(id_t id)
   // and this will free the resources in the timers callback
 }
 
+size_t Timers::active()
+{
+  return scheduled.size();
+}
+
 /// time functions ///
 
 inline auto now()
@@ -139,30 +143,36 @@ void Timers::timers_handler()
     auto when   = it->first;
     auto ts_now = now();
     id_t id = it->second;
-    auto& timer = timers[id];
     
     if (ts_now >= when) {
       // erase immediately
-      scheduled.erase(scheduled.begin());
+      scheduled.erase(it);
       
       // only process timer if still alive
-      if (timer.is_alive()) {
+      if (timers[id].is_alive()) {
         // call the users callback function
-        timer.callback(id);
+        timers[id].callback(id);
+        // if the timers struct was modified in callback, eg. due to
+        // creating a timer, then the timer reference below would have
+        // been invalidated, hence why its BELOW, AND MUST STAY THERE
+        auto& timer = timers[id];
         
         // oneshot timers are automatically freed
         if (timer.deferred_destruct || timer.is_oneshot())
         {
           timer.reset();
+          free_timers.push_back(id);
         }
         else if (timer.is_oneshot() == false)
         {
           // if the timer is recurring, we will simply reschedule it
-          sched_timer(timer.period, id);
+          // NOTE: we are carefully using (when + period) to avoid drift
+          scheduled.insert(std::forward_as_tuple(when + timer.period, id));
         }
       } else {
         // timer was already dead
-        timer.reset();
+        timers[id].reset();
+        free_timers.push_back(id);
       }
       
     } else {
@@ -175,7 +185,7 @@ void Timers::timers_handler()
   }
   //arch_stop_func();
 }
-void sched_timer(duration_t when, id_t id)
+static void sched_timer(duration_t when, id_t id)
 {
   scheduled.insert(std::forward_as_tuple(now() + when, id));
   
@@ -190,8 +200,4 @@ void sched_timer(duration_t when, id_t id)
   else if (scheduled.begin()->second == id) {
     Timers::timers_handler();
   }
-}
-void stop_timer()
-{
-  arch_stop_func();
 }

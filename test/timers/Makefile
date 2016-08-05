@@ -7,7 +7,7 @@ SERVICE = test_timers
 SERVICE_NAME = Timers Test Service
 
 # Your service parts
-FILES = service.cpp
+FILES = service.cpp timers.cpp
 # Your disk image
 DISK=
 
