@@ -21,6 +21,7 @@
 #include <net/tcp/tcp.hpp>
 #include <vector>
 #include <info>
+#include <timer>
 
 using namespace net;
 using namespace std::chrono; // For timers and MSL
@@ -57,7 +58,8 @@ milliseconds MSL_TEST = 5s;
 */
 void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
-  hw::PIT::instance().on_timeout_ms(3 * MSL_TEST, [] {
+  Timers::oneshot(3 * MSL_TEST, 
+  [] (auto) {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().active_connections() == 0,
         "No (0) active connections");
@@ -128,17 +130,8 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
-void print_stuff()
-{
-  printf("TIMER: Buffers avail: %u / %u  Transmit avail: %u\n",
-    inet->buffers_available(), buffers_available, inet->transmit_queue_available());
-  hw::PIT::on_timeout_d(5.0, print_stuff);
-}
-
 void Service::start()
 {
-  //hw::PIT::on_timeout(5.0, print_stuff);
-
   IP4::addr A1 (255, 255, 255, 255);
   IP4::addr B1 (  0, 255, 255, 255);
   IP4::addr C1 (  0,   0, 255, 255);
@@ -267,13 +260,14 @@ void Service::start()
       conn->on_disconnect([](auto conn, tcp::Connection::Disconnect) {
         CHECKSERT(conn->is_closing(), "Is closing");
         CHECKSERT(conn->is_state({"FIN-WAIT-2"}), "State: FIN-WAIT-2");
-        hw::PIT::instance().on_timeout_ms(1s,[conn]{
+        Timers::oneshot(1s,
+        [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
 
             OUTGOING_TEST({inet->router(), TEST5});
           });
 
-        hw::PIT::instance().on_timeout_ms(5s, [] { FINISH_TEST(); });
+        Timers::oneshot(5s, [] (auto) { FINISH_TEST(); });
       });
 
       // Test for active close.
