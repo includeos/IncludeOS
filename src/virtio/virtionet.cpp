@@ -448,6 +448,7 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
 }
 
 #define NO_DEFERRED_KICK
+#include <timer>
 
 void VirtioNet::begin_deferred_kick(uint8_t mask)
 {
@@ -457,8 +458,8 @@ void VirtioNet::begin_deferred_kick(uint8_t mask)
 #else
   if (!deferred_kick) {
     using namespace std::chrono;
-    hw::PIT::instance().on_timeout_ms(1ms,
-    [this] {
+    Timers::oneshot(microseconds(50),
+    [this] (Timers::id_t) {
       if (deferred_kick & 1)  rx_q.kick();
       if (deferred_kick & 2)  tx_q.kick();
       deferred_kick = 0;

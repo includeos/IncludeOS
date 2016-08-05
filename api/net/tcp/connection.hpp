@@ -620,7 +620,7 @@ private:
   bool queued_;
 
   struct {
-    hw::PIT::Timer_iterator iter;
+    uint32_t id;
     bool active = false;
   } rtx_timer;
 
@@ -992,7 +992,7 @@ private:
   /*
     When retransmission times out.
   */
-  void rtx_timeout();
+  void rtx_timeout(uint32_t);
 
 
   /*

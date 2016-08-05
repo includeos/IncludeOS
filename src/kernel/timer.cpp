@@ -130,6 +130,9 @@ inline auto now()
 
 void Timers::timers_handler()
 {
+  // lets assume the timer is not running anymore
+  is_running = false;
+  
   while (!scheduled.empty())
   {
     auto it = scheduled.begin();
@@ -170,19 +173,21 @@ void Timers::timers_handler()
       return;
     }
   }
-  // lets assume the timer is not running anymore
-  is_running = false;
-  arch_stop_func();
+  //arch_stop_func();
 }
 void sched_timer(duration_t when, id_t id)
 {
   scheduled.insert(std::forward_as_tuple(now() + when, id));
   
-  // If the hardware timer is not running, we have to start it somehow
-  //  and timers_start() should program the hardware
-  // This also optimizes the case where lots of timers are happening "now",
-  //  typically the case for deferred actions, such as deferred kick
-  if (is_running == false && signal_ready) {
+  // dont start any hardware until after calibration
+  if (!signal_ready) return;
+  
+  // if the hardware timer is not running, try starting it
+  if (is_running == false) {
+    Timers::timers_handler();
+  }
+  // or, if the scheduled timer is the new front, restart timer
+  else if (scheduled.begin()->second == id) {
     Timers::timers_handler();
   }
 }
