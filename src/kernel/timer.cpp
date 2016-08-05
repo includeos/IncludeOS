@@ -112,10 +112,8 @@ void Timers::stop(id_t id)
 {
   // mark as dead already
   timers[id].deferred_destruct = true;
-  // note:
-  // if the timer id is a legit "alive" timer,
-  // then the timer MUST be visited at some point in interrupt handler,
-  // and this will free the resources in the timers callback
+  // free resources immediately
+  timers[id].callback.reset();
 }
 
 size_t Timers::active()
