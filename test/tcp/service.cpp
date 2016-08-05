@@ -59,7 +59,7 @@ milliseconds MSL_TEST = 5s;
 void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
   Timers::oneshot(3 * MSL_TEST, 
-  [] (auto) {
+  [] (Timers::id_t) {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().active_connections() == 0,
         "No (0) active connections");
@@ -267,7 +267,7 @@ void Service::start()
             OUTGOING_TEST({inet->router(), TEST5});
           });
 
-        Timers::oneshot(5s, [] (auto) { FINISH_TEST(); });
+        Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });
       });
 
       // Test for active close.
