@@ -40,6 +40,9 @@ public:
   // un-schedule timer, and free it
   static void stop(id_t);
   
+  /// returns the number of current, active timers
+  static size_t active();
+  
   /// initialization
   typedef delegate<void(duration_t)> start_func_t;
   typedef delegate<void()> stop_func_t;

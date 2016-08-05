@@ -4,13 +4,12 @@
 #include <vector>
 #include <kernel/os.hpp>
 
+using namespace std::chrono;
 typedef Timers::id_t       id_t;
 typedef Timers::duration_t duration_t;
 typedef Timers::handler_t  handler_t;
 
-using namespace std::chrono;
-void sched_timer(duration_t when, id_t id);
-void stop_timer();
+static void sched_timer(duration_t when, id_t id);
 
 struct Timer
 {
@@ -96,7 +95,7 @@ static id_t create_timer(
     new (&timers[id]) Timer(period, handler);
   }
   
-  // immediately schedule the first timer
+  // immediately schedule timer
   sched_timer(when, id);
   return id;
 }
@@ -113,10 +112,13 @@ void Timers::stop(id_t id)
 {
   // mark as dead already
   timers[id].deferred_destruct = true;
-  // note:
-  // if the timer id is a legit "alive" timer,
-  // then the timer MUST be visited at some point in interrupt handler,
-  // and this will free the resources in the timers callback
+  // free resources immediately
+  timers[id].callback.reset();
+}
+
+size_t Timers::active()
+{
+  return scheduled.size();
 }
 
 /// time functions ///
@@ -130,36 +132,45 @@ inline auto now()
 
 void Timers::timers_handler()
 {
+  // lets assume the timer is not running anymore
+  is_running = false;
+  
   while (!scheduled.empty())
   {
     auto it = scheduled.begin();
     auto when   = it->first;
     auto ts_now = now();
     id_t id = it->second;
-    auto& timer = timers[id];
     
     if (ts_now >= when) {
       // erase immediately
-      scheduled.erase(scheduled.begin());
+      scheduled.erase(it);
       
       // only process timer if still alive
-      if (timer.is_alive()) {
+      if (timers[id].is_alive()) {
         // call the users callback function
-        timer.callback(id);
+        timers[id].callback(id);
+        // if the timers struct was modified in callback, eg. due to
+        // creating a timer, then the timer reference below would have
+        // been invalidated, hence why its BELOW, AND MUST STAY THERE
+        auto& timer = timers[id];
         
         // oneshot timers are automatically freed
         if (timer.deferred_destruct || timer.is_oneshot())
         {
           timer.reset();
+          free_timers.push_back(id);
         }
         else if (timer.is_oneshot() == false)
         {
           // if the timer is recurring, we will simply reschedule it
-          sched_timer(timer.period, id);
+          // NOTE: we are carefully using (when + period) to avoid drift
+          scheduled.insert(std::forward_as_tuple(when + timer.period, id));
         }
       } else {
         // timer was already dead
-        timer.reset();
+        timers[id].reset();
+        free_timers.push_back(id);
       }
       
     } else {
@@ -170,23 +181,21 @@ void Timers::timers_handler()
       return;
     }
   }
-  // lets assume the timer is not running anymore
-  is_running = false;
-  arch_stop_func();
+  //arch_stop_func();
 }
-void sched_timer(duration_t when, id_t id)
+static void sched_timer(duration_t when, id_t id)
 {
   scheduled.insert(std::forward_as_tuple(now() + when, id));
   
-  // If the hardware timer is not running, we have to start it somehow
-  //  and timers_start() should program the hardware
-  // This also optimizes the case where lots of timers are happening "now",
-  //  typically the case for deferred actions, such as deferred kick
-  if (is_running == false && signal_ready) {
+  // dont start any hardware until after calibration
+  if (!signal_ready) return;
+  
+  // if the hardware timer is not running, try starting it
+  if (is_running == false) {
     Timers::timers_handler();
   }
-}
-void stop_timer()
-{
-  arch_stop_func();
+  // or, if the scheduled timer is the new front, restart timer
+  else if (scheduled.begin()->second == id) {
+    Timers::timers_handler();
+  }
 }

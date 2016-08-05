@@ -25,6 +25,7 @@
 #include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
+#include <timer>
 
 
 using namespace net::tcp;
@@ -701,17 +702,18 @@ void Connection::retransmit() {
 void Connection::rtx_start() {
   Expects(!rtx_timer.active);
 
-  using OnTimeout = hw::PIT::timeout_handler;
+  using OnTimeout = Timers::handler_t;
 
-  rtx_timer.iter = hw::PIT::instance().on_timeout_d(
-    rttm.RTO, OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
+  rtx_timer.id = Timers::oneshot(
+    std::chrono::milliseconds((int) (rttm.RTO * 1000.0)), 
+    OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
 
   rtx_timer.active = true;
 }
 
 void Connection::rtx_stop() {
   Expects(rtx_timer.active);
-  hw::PIT::instance().stop_timer(rtx_timer.iter);
+  Timers::stop(rtx_timer.id);
   rtx_timer.active = false;
 }
 
@@ -741,7 +743,7 @@ void Connection::rtx_clear() {
        MUST be re-initialized to 3 seconds when data transmission
        begins (i.e., after the three-way handshake completes).
 */
-void Connection::rtx_timeout() {
+void Connection::rtx_timeout(uint32_t) {
   rtx_timer.active = false;
   debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u\n",
     to_string().c_str(), flight_size());
@@ -819,8 +821,8 @@ void Connection::start_time_wait_timeout() {
   time_wait_started = OS::cycles_since_boot();
   auto timeout = 2 * host().MSL(); // 60 seconds
   // Passing "this"..?
-  hw::PIT::instance().on_timeout_ms(timeout,
-    [this, timeout] {
+  Timers::oneshot(timeout,
+    [this, timeout] (Timers::id_t) {
       debug("<Connection::start_time_wait_timeout> Exec\n");
       // The timer hasnt been updated
       if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {

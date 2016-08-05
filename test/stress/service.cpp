@@ -20,6 +20,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
+#include <timer>
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -104,16 +105,16 @@ void Service::start() {
   net::UDP::port_t port_mem = 4243;
   auto& conn_mem = inet->udp().bind(port_mem);
 
+/*
+  Timers::periodic(10s, 10s,
+  [] (Timers::id_t) {
+    printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
 
-
-  hw::PIT::instance().on_repeated_timeout(10s, []{
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-
-      auto memuse =  OS::heap_usage();
-      printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
-      printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
-    });
-
+    auto memuse =  OS::heap_usage();
+    printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+    printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
+  });
+*/
   server_mem.on_connect([] (auto conn) {
       conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
