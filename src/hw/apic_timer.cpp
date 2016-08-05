@@ -30,6 +30,8 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
+#define CALIBRATION_MS   125
+
 using namespace std::chrono;
 
 namespace hw
@@ -56,14 +58,14 @@ namespace hw
     intr_handler = handler;
     
     /// use PIT to measure <time> in one-shot ///
-    hw::PIT::instance().on_timeout_ms(milliseconds(10),
+    hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [] {
       // measure difference
       uint32_t diff = lapic.regs->init_count.reg - lapic.regs->cur_count.reg;
-      ticks_per_micro = diff / 10 / 1000;
+      ticks_per_micro = diff / CALIBRATION_MS / 1000;
       
-      printf("* APIC timer: ticks 10ms: %u\t 1micro: %u\n", 
-            diff, ticks_per_micro);
+      printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n", 
+            CALIBRATION_MS, diff, ticks_per_micro);
       
       // make sure timer is still disabled
       lapic.regs->timer.reg |= INTR_MASK;
