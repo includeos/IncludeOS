@@ -25,10 +25,27 @@ struct Timer
     return period.count() == 0;
   }
   
+  void reset() {
+    callback.reset();
+    deferred_destruct = false;
+  }
+  
   duration_t period;
   handler_t  callback;
   bool deferred_destruct = false;
 };
+
+/**
+ * 1. There are no restrictions on when timers can be started or stopped
+ * 2. A period of 0 means start a one-shot timer
+ * 3. Each timer is a separate object living in a "fixed" vector
+ * 4. A dead timer is simply a timer which has its handler reset, as well as
+ *     having been removed from schedule
+ * 5. No timer may be scheduled more than once at a time, as that will needlessly
+ *     inflate the schedule container, as well as complicate stopping timers
+ * 6. Free timer IDs are retrieved from a stack of free timer IDs (or through 
+ *     expanding the "fixed" vector)
+**/
 
 static std::vector<Timer>  timers;
 static std::vector<id_t>   free_timers;
@@ -128,18 +145,21 @@ void Timers::timers_handler()
       // only process timer if still alive
       if (timer.is_alive()) {
         // call the users callback function
-        timer.callback();
+        timer.callback(id);
         
-        // if the timer died during callback, free its resources
-        if (timer.deferred_destruct) {
-          timer.deferred_destruct = false;
-          timer.callback.reset();
+        // oneshot timers are automatically freed
+        if (timer.deferred_destruct || timer.is_oneshot())
+        {
+          timer.reset();
         }
-        else if (timer.period.count())
+        else if (timer.is_oneshot() == false)
         {
           // if the timer is recurring, we will simply reschedule it
           sched_timer(timer.period, id);
         }
+      } else {
+        // timer was already dead
+        timer.reset();
       }
       
     } else {
@@ -152,7 +172,7 @@ void Timers::timers_handler()
   }
   // lets assume the timer is not running anymore
   is_running = false;
-  //arch_stop_func();
+  arch_stop_func();
 }
 void sched_timer(duration_t when, id_t id)
 {

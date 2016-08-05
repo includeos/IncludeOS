@@ -20,19 +20,6 @@
 #ifndef KERNEL_TIMER_HPP
 #define KERNEL_TIMER_HPP
 
-/**
- * 1. There are no restrictions on when timers can be started or stopped
- * 2. A period of 0 means start a one-shot timer
- * 3. Each timer is a separate object living in a "fixed" vector
- * 4. A dead timer is simply a timer which has its handler reset, as well as
- *     having been removed from schedule
- * 5. No timer may be scheduled more than once at a time, as that will needlessly
- *     inflate the schedule container, as well as complicate stopping timers
- * 6. Free timers are allocated from a stack of free timer IDs (or through expanding
- *     the "fixed" vector)
-**/
-
-
 #include <cstdint>
 #include <chrono>
 #include <functional>
@@ -41,9 +28,9 @@
 class Timers
 {
 public:
-  typedef uint32_t id_t;
-  typedef std::chrono::microseconds duration_t;
-  typedef delegate<void()> handler_t;
+  using id_t       = uint32_t;
+  using duration_t = std::chrono::microseconds;
+  using handler_t  = delegate<void(id_t)>;
   
   /// create a one-shot timer that triggers @when from now
   /// returns a timer id

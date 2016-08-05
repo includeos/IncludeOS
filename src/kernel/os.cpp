@@ -42,10 +42,6 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern caddr_t heap_begin;
 extern caddr_t heap_end;
 
-namespace hw {
-  extern void apic_init_timer();
-}
-
 void OS::start() {
 
   // Initialize serial port
