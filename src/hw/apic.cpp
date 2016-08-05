@@ -106,9 +106,6 @@ namespace hw {
     // use KVMs paravirt EOI if supported
     //kvm_pv_eoi_init();
     
-    // initialize APIC timer
-    extern void apic_init_timer();
-    apic_init_timer();
     // subscribe to APIC-related interrupts
     setup_subs();
   }
@@ -293,8 +290,8 @@ namespace hw {
     // IRQ handler for completed async jobs
     IRQ_manager::cpu(0).subscribe(BSP_LAPIC_IPI_IRQ,
     [] {
-      // copy all the done functions out from queue to our local queue
-      std::deque<smp_done_func> done;
+      // copy all the done functions out from queue to our local vector
+      std::vector<smp_done_func> done;
       lock(smp.flock);
       for (auto& func : smp.completed)
         done.push_back(func);
@@ -305,8 +302,6 @@ namespace hw {
         func();
       }
     });
-    extern void apic_timer_interrupt_handler();
-    IRQ_manager::cpu(0).subscribe(LAPIC_IRQ_BASE, apic_timer_interrupt_handler);
   }
 
   void APIC::reboot()
