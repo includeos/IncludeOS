@@ -11,7 +11,7 @@ class IrcServer;
 class Client
 {
 public:
-  using Connection = net::TCP::Connection_ptr;
+  using Connection = net::tcp::Connection_ptr;
   using ChannelList = std::list<uint16_t>;
   typedef uint16_t index_t;
   

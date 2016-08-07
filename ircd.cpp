@@ -21,7 +21,7 @@ IrcServer::IrcServer(
   // server listener (although IRC servers usually have many ports open)
   auto& tcp = inet.tcp();
   auto& server_port = tcp.bind(port);
-  server_port.onConnect(
+  server_port.on_connect(
   [this] (auto csock)
   {
     // one more client in total
@@ -43,23 +43,18 @@ IrcServer::IrcServer(
 
     // set up callbacks
     csock->read(512,
-    [this, &client] (net::TCP::buffer_t buffer, size_t bytes)
+    [this, &client] (net::tcp::buffer_t buffer, size_t bytes)
     {
       client.read(buffer.get(), bytes);
     });
 
-    csock->onDisconnect(
+    csock->on_disconnect(
     [this, clindex] (auto, std::string reason)
     {
       auto& client = clients[clindex];
       if (!client.is_alive()) return;
       
       client.handle_quit("Connection closed");
-    }).
-    onError(
-    [this, clindex] (auto, net::TCP::TCPException)
-    {
-      printf("***** ERROR for %u ******\n", clindex);
     });
   });
   

@@ -17,7 +17,7 @@
 
 class IrcServer {
 public:
-  using Connection = net::TCP::Connection_ptr;
+  using Connection = net::tcp::Connection_ptr;
   using Network    = net::Inet4<VirtioNet>;
   typedef std::function<const std::vector<std::string>&()> motd_func_t;
   typedef Channel::index_t chindex_t;
