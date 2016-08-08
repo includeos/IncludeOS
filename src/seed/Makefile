@@ -165,6 +165,6 @@ crt%.o: $(INSTALL)/crt/crt%.s
 ###################################################
 clean:
 	$(RM) $(OBJS) $(DEPS) $(SERVICE)
-	$(RM) $(SERVICE).img
+	$(RM) $(SERVICE).img $(MEMDISK)
 
 -include $(DEPS)

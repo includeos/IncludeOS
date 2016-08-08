@@ -18,51 +18,63 @@
 #include <os>
 #include <stdio.h>
 #include <cassert>
+#include <lest.hpp>
 
-class CustomException : public std::runtime_error {
-  using runtime_error::runtime_error;
+#define MYINFO(X,...) INFO("Test exceptions",X,##__VA_ARGS__)
+
+// FIXME: Remove hack below :-(
+int clock_gettime(clockid_t clk_id, struct timespec *tp){
+  // Lest depends on clock_gettime, but it's not implemented in
+  // IncludeOS yet. Add a stub to prevent linker error.
+  (void*)clk_id;
+  (void*)tp;
+  return 0;
+};
+
+const lest::test tests[] = {
+  {
+    SCENARIO("exceptions can be thrown and caught") {
+      GIVEN ("a custom exception class") {
+        class CustomException : public std::runtime_error {
+          using runtime_error::runtime_error;
+        };
+
+        THEN("a runtime exception should be caught") {
+          const char *error_msg = "Crazy Error!";
+
+          bool caught = false;
+          try {
+            if (OS::uptime() > 0.1){ // TODO: Why uptime? Ask Alfred.
+              std::runtime_error myexception(error_msg);
+              throw myexception;
+            }
+          } catch(std::runtime_error e) {
+            caught = std::string(e.what()) == std::string(error_msg);
+          }
+          EXPECT(caught);
+        }
+
+        THEN("a custom exception should be caught") {
+          std::string custom_msg = "Custom exceptions are useful";
+          std::string caught_msg = "";
+
+          try {
+            throw CustomException(custom_msg);
+          } catch (CustomException e){
+            caught_msg = e.what();
+          }
+
+          EXPECT(caught_msg == custom_msg);
+        };
+      }
+    }
+  },
 };
 
 void Service::start()
 {
-
-  printf("TESTING Exceptions \n");
-
-  const char* error_msg = "Crazy Error!";
-
-  try {
-    printf("[x] Inside try-block \n");
-    if (OS::uptime() > 0.1){
-      std::runtime_error myexception(error_msg);
-      throw myexception;
-    }
-
-  }catch(std::runtime_error e){
-
-    printf("[%s] Caught runtime error: %s \n", std::string(e.what()) == std::string(error_msg) ? "x" : " " ,e.what());
-
-  }catch(...) {
-
-    printf("[ ] Caught something - but not what we expected \n");
-
-  }
-
-  std::string custom_msg = "Custom exceptions are useful";
-  std::string caught_msg = "";
-
-  try {
-    // Trying to throw a custom exception
-    throw CustomException(custom_msg);
-  } catch (CustomException e){
-
-    caught_msg = e.what();
-
-  } catch (...) {
-
-    printf("[ ] Couldn't catch custom exception \n");
-
-  }
-
-  assert(caught_msg == custom_msg);
-  printf("[x] Caught custom exception \n");
+  MYINFO ("Running LEST-tests");
+  auto failed = lest::run(tests, {"-p"});
+  assert(not failed);
+  MYINFO("SUCCESS");
 }

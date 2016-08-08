@@ -3,8 +3,8 @@
 #################################################
 
 # The name of your service
-SERVICE = test_IRQ_PIC
-SERVICE_NAME = IncludeOS IRQ PIC test
+SERVICE = test_irq_pic
+SERVICE_NAME = IRQ PIC Test Service
 
 # Your service parts
 FILES = service.cpp

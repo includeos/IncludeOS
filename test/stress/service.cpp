@@ -20,6 +20,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
+#include <timer>
 
 // An IP-stack object
 std::unique_ptr<net::Inet4<VirtioNet> > inet;
@@ -104,29 +105,29 @@ void Service::start() {
   net::UDP::port_t port_mem = 4243;
   auto& conn_mem = inet->udp().bind(port_mem);
 
+/*
+  Timers::periodic(10s, 10s,
+  [] (Timers::id_t) {
+    printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
 
-
-  hw::PIT::instance().on_repeated_timeout(10s, []{
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-
-      auto memuse =  OS::memory_usage();
-      printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
-      printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
-    });
-
-  server_mem.onConnect([] (auto conn) {
-      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+    auto memuse =  OS::heap_usage();
+    printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+    printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
+  });
+*/
+  server_mem.on_connect([] (auto conn) {
+      conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
-          auto reply = std::to_string(OS::memory_usage())+"\n";
+          auto reply = std::to_string(OS::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
           conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
               TCP_BYTES_SENT += n;
             });
 
-          conn->onDisconnect([](auto c, auto){
+          conn->on_disconnect([](auto c, auto){
               c->close();
             });
         });
@@ -135,10 +136,10 @@ void Service::start() {
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onConnect([] (auto conn) {
+  server.on_connect([] (auto conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
-        conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+        conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
             TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };
@@ -172,7 +173,7 @@ void Service::start() {
   conn_mem.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
       std::string received = std::string(data,len);
       Expects(received == "memsize");
-      auto reply = std::to_string(OS::memory_usage());
+      auto reply = std::to_string(OS::heap_usage());
       // Send the first packet, and then wait for ARP
       printf("Reporting memory size as %s bytes\n", reply.c_str());
       conn.sendto(addr, port, reply.c_str(), reply.size());
@@ -181,7 +182,7 @@ void Service::start() {
 
 
   printf("*** TEST SERVICE STARTED *** \n");
-  auto memuse = OS::memory_usage();
+  auto memuse = OS::heap_usage();
   printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/

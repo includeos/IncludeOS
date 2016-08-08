@@ -32,22 +32,27 @@ namespace hw {
     static void add_task(smp_task_func, smp_done_func);
     static void work_signal();
     
-    static void init();
-    static void init_smp();
+    typedef std::function<void()>   timer_func;
     
-    static void send_ipi(uint8_t dest, uint8_t vector);
+    static void init();
+    static void setup_subs();
+    
+    static void send_ipi(uint8_t cpu, uint8_t vector);
     static void send_bsp_intr();
     static void bcast_ipi(uint8_t vector);
+    
+    // enable and disable legacy IRQs
+    static void enable_irq(uint8_t irq);
+    static void disable_irq(uint8_t irq);
     
     static uint8_t get_isr();
     static uint8_t get_irr();
     static void eoi();
     
-    static void enable_irq(uint8_t irq);
-    static void disable_irq(uint8_t irq);
-    static void setup_subs();
-    
     static void reboot();
+    
+  private:
+    static void init_smp();
   };
   
 }

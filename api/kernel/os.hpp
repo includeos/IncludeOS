@@ -24,6 +24,7 @@
 
 #include <string>
 #include <common>
+#include <hw/cpu.hpp>
 #include <hw/pit.hpp>
 
 namespace hw{ class Serial; }
@@ -38,18 +39,18 @@ public:
   using rsprint_func = delegate<void(const char*, size_t)>;
 
   /* Get the version of the os */
-  static inline std::string version()
+  static std::string version()
   { return std::string(OS_VERSION); }
 
   /** Clock cycles since boot. */
-  static inline uint64_t cycles_since_boot() {
-    uint64_t ret;
-    __asm__ volatile ("rdtsc":"=A"(ret));
-    return ret;
+  static uint64_t cycles_since_boot() {
+    return hw::CPU::rdtsc();
   }
-
+  
   /** Uptime in seconds. */
-  static double uptime();
+  static double uptime() {
+    return cycles_since_boot() / Hz(cpu_mhz_).count();
+  }
 
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
@@ -101,7 +102,7 @@ public:
   }
 
   /** Currently used dynamic memory, in bytes */
-  static  uint32_t memory_usage();
+  static uintptr_t heap_usage();
 
 private:
   static const int page_shift_ = 12;

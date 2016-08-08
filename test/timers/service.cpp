@@ -21,13 +21,19 @@
 
 using namespace std::chrono;
 
-int one_shots = 0;
-int repeat1 = 0;
-int repeat2 = 0;
+static int one_shots = 0;
+static int repeat1 = 0;
+static int repeat2 = 0;
 
 void Service::start()
 {
-  INFO("Test Timers","Testing one-shot timers");
+  INFO("Timers", "Testing one-shot timers");
+  
+  // test timer system
+  extern void test_timers();
+  test_timers();
+  return;
+  
   static auto& timer = hw::PIT::instance();
 
   // 30 sec. - Test End
@@ -36,7 +42,7 @@ void Service::start()
       CHECKSERT(one_shots == 5, "5 one-shot-timers fired");
       CHECKSERT(repeat1 == 25 and repeat2 == 10, "1s. timer fired 25 times, 2s. timer fired 10 times");
       CHECKSERT(timer.active_timers() == 1, "This is the last active timer");
-      INFO("Test Timers","SUCCESS");
+      INFO("Timers", "SUCCESS");
     });
 
   // 5 sec.
@@ -108,5 +114,4 @@ void Service::start()
         });
 
     });
-
 }
