@@ -794,10 +794,6 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     return OK;
   }
   if(in->isset(SYN)) {
-    if(!tcp.signal_accept()) {
-      // TODO: Reject more gracefully?
-      return CLOSED;
-    }
     auto& tcb = tcp.tcb();
     tcb.RCV.NXT   = in->seq()+1;
     tcb.IRS     = in->seq();

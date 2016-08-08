@@ -60,7 +60,6 @@ Connection::Connection(TCP& host, port_t local_port)
 }
 
 void Connection::setup_default_callbacks() {
-  on_accept_            = AcceptCallback::from<Connection, &Connection::default_on_accept>(this);
   on_connect_           = ConnectCallback::from<Connection, &Connection::default_on_connect>(this);
   on_disconnect_        = DisconnectCallback::from<Connection, &Connection::default_on_disconnect>(this);
   on_error_             = ErrorCallback::from<Connection, &Connection::default_on_error>(this);
@@ -705,7 +704,7 @@ void Connection::rtx_start() {
   using OnTimeout = Timers::handler_t;
 
   rtx_timer.id = Timers::oneshot(
-    std::chrono::milliseconds((int) (rttm.RTO * 1000.0)), 
+    std::chrono::milliseconds((int) (rttm.RTO * 1000.0)),
     OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
 
   rtx_timer.active = true;
@@ -847,8 +846,8 @@ void Connection::clean_up() {
   // clean up all other copies
   // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
   _on_cleanup_(shared_from_this());
+  printf("<Connection::clean_up> _on_cleanup_ called\n");
 
-  on_accept_.reset();
   on_connect_.reset();
   on_disconnect_.reset(),
   on_error_.reset();
@@ -856,7 +855,10 @@ void Connection::clean_up() {
   on_packet_dropped_.reset();
   read_request.clean_up();
   _on_cleanup_.reset();
+
+  printf("<Connection::clean_up> Delegates reset\n");
   rtx_clear();
+  printf("<Connection::rtx_clear> Rtx timer cleared\n");
 }
 
 std::string Connection::TCB::to_string() const {
@@ -936,10 +938,6 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
   }
 }
 
-bool Connection::default_on_accept(Connection_ptr) {
-  //debug2("<TCP::Connection::@Accept> Connection attempt from: %s \n", conn->remote().to_string().c_str());
-  return true; // Always accept
-}
 
 void Connection::default_on_connect(Connection_ptr) {
 
@@ -950,11 +948,11 @@ void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
     conn->close();
 }
 
-void Connection::default_on_error(Connection_ptr, TCPException) {
+void Connection::default_on_error(TCPException) {
   //debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
 }
 
-void Connection::default_on_packet_received(Connection_ptr, Packet_ptr) {
+void Connection::default_on_packet_received(Packet_ptr) {
 
 }
 
