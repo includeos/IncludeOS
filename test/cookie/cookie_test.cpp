@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Compile and run: g++ -Wall -Wextra -std=c++14 -I../include/lest -o cookie_test cookie_test.cpp && ./cookie_test
+
 #include "../lest/include/lest/lest.hpp"
-#include "../../cookie/cookie.hpp"
 #include "../../cookie/cookie.cpp"
 
 using namespace std;
@@ -166,6 +167,7 @@ const lest::test test_cookie_creation[] =
       RATHER: Set max-age from int instead of chrono::seconds.
       Then in cookie constructor: convert from string to int
       */
+
       /* Better for the developer:
       int seconds = 10*60;
       string s = to_string(seconds);
@@ -182,7 +184,7 @@ const lest::test test_cookie_creation[] =
       {
         Cookie c{"name", "value", v};
 
-        THEN("Expect to get the input values back")
+        THEN("Get the input values back")
         {
           EXPECT(c.get_name() == "name");
           EXPECT(c.get_value() == "value");
@@ -201,12 +203,14 @@ const lest::test test_cookie_creation[] =
           printf("EXPIRES NOW: %s\n", c.get_expires().c_str());
 
           // FIX:
-          //EXPECT(c.get_expires() == "Sun, 06 Nov 1994 08:49:37 GMT");
       // UNTIL HERE
-      */
+
+          printf("ERROR EMPTY EXPIRES: %s\n", c.get_expires().c_str());
+
+          EXPECT(c.get_expires() == "Sun, 06 Nov 1994 08:49:37 GMT");*/
         }
 
-        AND_THEN("Expect to get string containing existing values when calling the cookie's to_string method")
+        AND_THEN("Get a string containing existing values when calling the cookie's to_string method")
         {
 
       /* TODO
@@ -229,7 +233,7 @@ const lest::test test_cookie_creation[] =
 
       WHEN("Accessing all cookie attributes")
       {
-        THEN("Expect to get the default cookie options")
+        THEN("Get the default cookie options")
         {
           EXPECT(c.get_name() == "name");
           EXPECT(c.get_value() == "value");
@@ -244,7 +248,7 @@ const lest::test test_cookie_creation[] =
 
       WHEN("Getting the cookie's to_string")
       {
-        THEN("Expect it to only contain existing values")
+        THEN("It only contains existing values")
         {
           EXPECT( c.to_string() == "name=value; Path=/" );
         }
@@ -260,7 +264,7 @@ const lest::test test_cookie_creation[] =
         c.set_secure(true);
         c.set_http_only(true);
 
-        THEN("Expect to get the set values")
+        THEN("Get the set values")
         {
           EXPECT(c.get_value() == "new_value");
           EXPECT(c.get_path() == "/a_path");
@@ -279,7 +283,7 @@ const lest::test test_cookie_creation[] =
 
       WHEN("Accessing all cookie attributes")
       {
-        THEN("Expect the specified values to have been set")
+        THEN("The specified values have been set")
         {
           EXPECT(c.get_name() == "name");
           EXPECT(c.get_value() == "value");
@@ -290,7 +294,7 @@ const lest::test test_cookie_creation[] =
 
       WHEN("Getting the cookie's to_string")
       {
-        THEN("Expect it to only contain existing values")
+        THEN("It only contains existing values")
         {
           EXPECT(c.to_string() == "name=value; Max-Age=402000; Path=/some path");
         }
@@ -393,8 +397,6 @@ const lest::test test_cookie_creation[] =
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Path", ""}}) );
   },
 
-  // TODO: Maybe not necessary?:
-  // If use, do this to test other attributes as well
   CASE("Path is set")
   {
     Cookie c{"name", "value", {"path", "/my_path"}};
@@ -452,18 +454,10 @@ const lest::test test_cookie_creation[] =
     EXPECT_NOT( c4.is_http_only() );
     EXPECT_NOT( c5.is_http_only() );
   }
-
 };
 
 int main(int argc, char * argv[])
 {
-
-  // What to test (relevant to cookies):
-  // - Cookie
-  // - CookieJar
-  // - CookieParser
-  // - Response (cookie)
-
   printf("Running tests of cookie-creation...\n");
 
   int res = lest::run(test_cookie_creation, argc, argv);
