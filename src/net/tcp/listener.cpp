@@ -30,6 +30,14 @@ Listener::Listener(TCP& host, port_t port)
   on_connect_     = ConnectCallback::from<Listener, &Listener::default_on_connect>(this);
 }
 
+bool Listener::default_on_accept(Socket) {
+  return true;
+}
+
+void Listener::default_on_connect(Connection_ptr) {
+
+}
+
 Socket Listener::local() const {
   return {host_.address(), port_};
 }

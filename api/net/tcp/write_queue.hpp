@@ -52,7 +52,7 @@ public:
     and "step back".
   */
   void acknowledge(size_t bytes) {
-    debug2("<Connection::WriteQueue> Acknowledge %u bytes\n",bytes);
+    debug2("<WriteQueue> Acknowledge %u bytes\n",bytes);
     while(bytes and !q.empty())
     {
       auto& buf = q.front().first;
@@ -61,7 +61,7 @@ public:
       if(buf.done()) {
         q.pop_front();
         current--;
-        debug("<Connection::WriteQueue> Acknowledge done, current-- [%u]\n", current);
+        debug("<WriteQueue> Acknowledge done, current-- [%u]\n", current);
       }
     }
   }
@@ -100,7 +100,7 @@ public:
     auto& buf = q.at(current).first;
     buf.advance(bytes);
 
-    debug("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+    debug2("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
       bytes, buf.offset, buf.remaining, buf.acknowledged);
 
     if(!buf.remaining) {
@@ -134,6 +134,7 @@ public:
         req.second(req.first.offset);
       q.pop_front();
     }
+    current = 0;
   }
 
 private:

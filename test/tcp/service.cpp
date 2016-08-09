@@ -50,15 +50,15 @@ TEST_STR {"Kappa!"};
 size_t buffers_available{0};
 
 // Default MSL is 30s. Timeout 2*MSL.
-// To reduce test duration, lower MSL to 5s.
-milliseconds MSL_TEST = 5s;
+// To reduce test duration, lower MSL to 3s.
+milliseconds MSL_TEST = 3s;
 
 /*
   TEST: Release of resources/clean up.
 */
 void FINISH_TEST() {
-  INFO("TEST", "Started 3 x MSL timeout.");
-  Timers::oneshot(3 * MSL_TEST, 
+  INFO("TEST", "Started 2 x MSL + 100ms timeout.");
+  Timers::oneshot(2 * MSL_TEST + 100ms,
   [] (Timers::id_t) {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().active_connections() == 0,
@@ -85,11 +85,11 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
         inet->tcp().connect(ip_address, port)
           ->on_connect([](tcp::Connection_ptr conn) {
               CHECK(true, "Connected");
-              conn->read(1024, [](tcp::buffer_t, size_t n) {
+              conn->on_read(1024, [](tcp::buffer_t, size_t n) {
                   CHECK(n > 0, "Received a response");
                 });
             })
-          .on_error([](auto, tcp::TCPException err) {
+          .on_error([](tcp::TCPException err) {
               CHECK(false, "Error occured: %s", err.what());
             });
       }
@@ -104,7 +104,7 @@ void OUTGOING_TEST(tcp::Socket outgoing) {
   inet->tcp().connect(outgoing)
     ->on_connect([](auto conn) {
         conn->write(small.data(), small.size());
-        conn->read(small.size(), [](tcp::buffer_t buffer, size_t n) {
+        conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n) {
             CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           });
       })
@@ -180,11 +180,11 @@ void Service::start()
 
   tcp.bind(TEST1).on_connect([](auto conn) {
       INFO("TEST", "SMALL string (%u)", small.size());
-      conn->read(small.size(), [conn](tcp::buffer_t buffer, size_t n) {
+      conn->on_read(small.size(), [conn](tcp::buffer_t buffer, size_t n) {
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           conn->close();
         });
-      conn->write(small.data(), small.size());
+      conn->write(small);
     });
 
   /*
@@ -198,7 +198,7 @@ void Service::start()
   tcp.bind(TEST2).on_connect([](auto conn) {
       INFO("TEST", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
-      conn->read(big.size(), [response, conn](tcp::buffer_t buffer, size_t n) {
+      conn->on_read(big.size(), [response, conn](tcp::buffer_t buffer, size_t n) {
           *response += std::string((char*)buffer.get(), n);
           if(response->size() == big.size()) {
             bool OK = (*response == big);
@@ -215,7 +215,7 @@ void Service::start()
   tcp.bind(TEST3).on_connect([](auto conn) {
       INFO("TEST", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
-      conn->read(16384, [temp, conn](tcp::buffer_t buffer, size_t n) {
+      conn->on_read(16384, [temp, conn](tcp::buffer_t buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
           //printf("Read: %u\n", n);
