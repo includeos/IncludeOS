@@ -41,8 +41,8 @@ void Service::start() {
   using namespace std::chrono;
   hw::PIT::instance().on_repeated_timeout(5s, 
   [ircd] {
-    //printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-    printf("Conns %u  Local %u\n",  ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS));
+    printf("Conns received %d  Local clients %d\n",  
+        ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS));
   });
 
   printf("*** IRC SERVICE STARTED *** \n");

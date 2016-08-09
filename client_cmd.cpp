@@ -40,7 +40,7 @@ void Client::send_quit(const std::string& reason)
   // close connection after write
   std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason + "\r\n";
   conn->write(text.data(), text.size(),
-  [hest = conn] (size_t) {
-    hest->close();
+  [this] (size_t) {
+    conn->close();
   });
 }

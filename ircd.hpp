@@ -91,10 +91,10 @@ public:
   void dec_counter(uint8_t counter) {
     statcounters[counter]--;
   }
-  size_t get_counter(uint8_t c) {
+  int get_counter(uint8_t c) {
     return statcounters[c];
   }
-  void set_counter(uint8_t c, size_t val) {
+  void set_counter(uint8_t c, int val) {
     statcounters[c] = val;
   }
   
@@ -129,8 +129,8 @@ public:
   long uptime() const;
   
 private:
-  size_t free_client();
-  size_t free_channel();
+  size_t new_client();
+  size_t new_channel();
   
   Network&    inet;
   Connection  server;
@@ -151,5 +151,5 @@ private:
   // statistics
   std::string created_string;
   long        created_ts;
-  size_t statcounters[8] {0};
+  int statcounters[8] {0};
 };

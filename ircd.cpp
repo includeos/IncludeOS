@@ -33,28 +33,30 @@ IrcServer::IrcServer(
       set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
     
     printf("*** Received connection from %s\n",
-        csock->remote().to_string().c_str());
+          csock->remote().to_string().c_str());
 
     /// create client ///
-    size_t clindex = free_client();
+    size_t clindex = new_client();
     auto& client = clients[clindex];
     // make sure crucial fields are reset properly
     client.reset_to(csock);
 
     // set up callbacks
-    csock->read(512,
-    [this, &client] (net::tcp::buffer_t buffer, size_t bytes)
+    csock->read(128,
+    [this, clindex] (net::tcp::buffer_t buffer, size_t bytes)
     {
+      auto& client = clients[clindex];
       client.read(buffer.get(), bytes);
     });
 
-    csock->on_disconnect(
-    [this, clindex] (auto, std::string reason)
-    {
+    csock->on_close(
+    [this, clindex] {
+      // for the case where the client has not voluntarily quit,
       auto& client = clients[clindex];
-      if (!client.is_alive()) return;
-      
+      // tell everyone that he just disconnected
       client.handle_quit("Connection closed");
+      // force-free resources
+      client.disable();
     });
   });
   
@@ -73,7 +75,7 @@ long IrcServer::uptime() const
   return create_timestamp() - this->created_ts;
 }
 
-size_t IrcServer::free_client() {
+size_t IrcServer::new_client() {
   // use prev dead client
   if (!free_clients.empty()) {
     size_t idx = free_clients.back();
@@ -84,7 +86,7 @@ size_t IrcServer::free_client() {
   clients.emplace_back(clients.size(), *this);
   return clients.size()-1;
 }
-size_t IrcServer::free_channel() {
+size_t IrcServer::new_channel() {
   // use prev dead channel
   if (!free_channels.empty()) {
     size_t idx = free_channels.back();
@@ -96,6 +98,7 @@ size_t IrcServer::free_channel() {
   return channels.size()-1;
 }
 
+#include <kernel/syscalls.hpp>
 void IrcServer::free_client(Client& client)
 {
   // give back the client id
@@ -103,6 +106,7 @@ void IrcServer::free_client(Client& client)
   // one less client in total on server
   dec_counter(STAT_TOTAL_USERS);
   dec_counter(STAT_LOCAL_USERS);
+  if (get_counter(STAT_LOCAL_USERS) < 0) panic("");
 }
 
 IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const
@@ -120,7 +124,7 @@ IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
 
 IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
 {
-  auto ch = free_channel();
+  auto ch = new_channel();
   get_channel(ch).reset(name);
   return ch;
 }

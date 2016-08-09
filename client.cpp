@@ -24,6 +24,7 @@ void Client::reset_to(Connection conn)
 }
 void Client::disable()
 {
+  assert(is_alive());
   // release current nickname (if any)
   if (!nick().empty())
     server.erase_nickname(nick());
@@ -31,6 +32,7 @@ void Client::disable()
   nick_ = "BUG_BUG_BUG";
   user_ = "BUG_BUG_BUG";
   host_ = "BUG_BUG.BUG";
+  conn = nullptr;
   // reset client status
   regis = 0;
   // free client on server
@@ -57,6 +59,7 @@ void Client::split_message(const std::string& msg)
   extern void transform_to_upper(std::string& str);
   transform_to_upper(vec[0]);
   // handle message
+  assert(is_alive());
   if (this->is_reg() == false)
     handle_new(source, vec);
   else
@@ -194,14 +197,12 @@ std::string Client::mode_string() const
 void Client::handle_quit(const std::string& reason)
 {
   if (is_reg()) {
-    /// inform others about disconnect
+    // inform others about disconnect
     std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason;
-    server.user_bcast(get_id(), text);
+    server.user_bcast_butone(get_id(), text);
     // remove client from various lists
     for (size_t idx : channels()) {
       server.get_channel(idx).remove(get_id());
     }
   }
-  // disable self
-  disable();
 }
