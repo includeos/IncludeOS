@@ -22,7 +22,7 @@
 #include <hw/pit.hpp>
 
 #include "common.hpp"
-#include "read_buffer.hpp"
+#include "read_request.hpp"
 #include "rttm.hpp"
 #include "socket.hpp"
 #include "tcp_errors.hpp"
@@ -38,8 +38,10 @@ namespace tcp {
   Transist between many states.
 */
 class Connection : public std::enable_shared_from_this<Connection> {
+
   friend class net::TCP;
   friend class Listener;
+
 public:
   /** Connection identifier */
   using Tuple = std::pair<port_t, Socket>;
@@ -48,6 +50,7 @@ public:
   /** Disconnect event */
   struct Disconnect;
 
+public:
   /*
     Callback when a receive buffer receives either push or is full
     - Supplied on asynchronous read
@@ -57,25 +60,6 @@ public:
   using WriteCallback = WriteQueue::WriteCallback;
 
   using WriteRequest = WriteQueue::WriteRequest;
-
-
-  struct ReadRequest {
-    ReadBuffer buffer;
-    ReadCallback callback;
-
-    ReadRequest(ReadBuffer buf, ReadCallback cb)
-      : buffer(buf), callback(cb)
-    {}
-
-    ReadRequest(size_t n = 0)
-      : buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
-        callback([](auto, auto){})
-    {}
-
-    void clean_up() {
-      callback.reset();
-    }
-  };
 
 
   /*
