@@ -61,7 +61,7 @@ public:
       if(buf.done()) {
         q.pop_front();
         current--;
-        printf("<WriteQueue> Acknowledge done, current-- [%u]\n", current);
+        debug("<WriteQueue> Acknowledge done, current-- [%u]\n", current);
       }
     }
   }
@@ -100,14 +100,14 @@ public:
     auto& buf = q.at(current).first;
     buf.advance(bytes);
 
-    debug("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+    debug2("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
       bytes, buf.offset, buf.remaining, buf.acknowledged);
 
     if(!buf.remaining) {
       // make sure to advance current before callback is made,
       // but after index (current) is received.
       q.at(current++).second(buf.offset);
-      printf("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
+      debug("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
         buf.offset, current);
     }
   }
@@ -117,7 +117,7 @@ public:
     If the queue was empty/finished, point current to the new request.
   */
   void push_back(const WriteRequest& wr) {
-    printf("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
+    debug("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
       wr.first.offset, wr.first.remaining, wr.first.acknowledged, current, size());
     q.push_back(wr);
   }
