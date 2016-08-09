@@ -16,11 +16,12 @@
 // limitations under the License.
 
 #include <os>
+#include <profile>
+#include <timer>
 #include "ircd.hpp"
 
 void Service::start() {
   static std::unique_ptr< net::Inet4<VirtioNet> > inet;
-
   inet = net::new_ipv4_stack(
       {  10, 0,  0, 42 },  // IP
       { 255,255,255, 0 },  // Netmask
@@ -39,11 +40,28 @@ void Service::start() {
   });
   
   using namespace std::chrono;
-  hw::PIT::instance().on_repeated_timeout(5s, 
-  [ircd] {
-    printf("Conns received %d  Local clients %d\n",  
-        ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS));
+  Timers::periodic(0s, 2s, 
+  [ircd] (uint32_t) {
+    static std::vector<int> M;
+    static int last = 0;
+    // only keep 5 measurements
+    if (M.size() > 4) M.erase(M.begin());
+    
+    int diff = ircd->get_counter(STAT_TOTAL_CONNS) - last;
+    last = ircd->get_counter(STAT_TOTAL_CONNS);
+    // 2 seconds between measurements
+    M.push_back(diff / 2);
+    
+    double cps = 0.0;
+    for (int C : M) cps += C;
+    cps /= M.size();
+    
+    printf("Conns/sec %f  Local clients %d\n",  
+        cps, ircd->get_counter(STAT_LOCAL_USERS));
+    
+    print_stack_sampling();
   });
+  begin_stack_sampling(200);
 
   printf("*** IRC SERVICE STARTED *** \n");
 }

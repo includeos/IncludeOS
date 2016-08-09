@@ -2,6 +2,7 @@
 #include "tokens.hpp"
 #include <ctime>
 #include <set>
+#include <debug>
 
 IrcServer::IrcServer(
     Network& inet_, 
@@ -32,7 +33,7 @@ IrcServer::IrcServer(
     if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
       set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
     
-    printf("*** Received connection from %s\n",
+    debug("*** Received connection from %s\n",
           csock->remote().to_string().c_str());
 
     /// create client ///
@@ -42,7 +43,7 @@ IrcServer::IrcServer(
     client.reset_to(csock);
 
     // set up callbacks
-    csock->read(128,
+    csock->on_read(128,
     [this, clindex] (net::tcp::buffer_t buffer, size_t bytes)
     {
       auto& client = clients[clindex];

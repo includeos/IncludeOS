@@ -37,5 +37,6 @@ class Bot:
           self.sock.close()
 
 
-bot1 = Bot()
-bot1.begin()
+while True:
+  bot = Bot()
+  bot.begin()
