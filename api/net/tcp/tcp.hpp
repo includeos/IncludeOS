@@ -68,14 +68,13 @@ namespace net {
     /*
       Active open a new connection to the given remote.
     */
-    inline auto connect(tcp::Address address, tcp::port_t port = 80) {
-      return connect({address, port});
-    }
-
-    /*
-      Active open a new connection to the given remote.
-    */
     void connect(tcp::Socket remote, ConnectCallback);
+
+    auto connect(tcp::Address address, tcp::port_t port)
+    { return connect({address, port}); }
+
+    void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
+    { connect({address, port}, callback); }
 
     /*
       Receive packet from network layer (IP).
@@ -85,7 +84,7 @@ namespace net {
     /*
       Delegate output to network layer
     */
-    inline void set_network_out(downstream del)
+    void set_network_out(downstream del)
     { _network_layer_out = del; }
 
     /*
@@ -93,41 +92,41 @@ namespace net {
     */
     static uint16_t checksum(const tcp::Packet_ptr);
 
-    inline const auto& listeners()
+    const auto& listeners()
     { return listeners_; }
 
-    inline const auto& connections()
+    const auto& connections()
     { return connections_; }
 
     /*
       Number of open ports.
     */
-    inline size_t open_ports()
+    size_t open_ports()
     { return listeners_.size(); }
 
     /*
       Number of active connections.
     */
-    inline size_t active_connections()
+    size_t active_connections()
     { return connections_.size(); }
 
     /*
       Maximum Segment Lifetime
     */
-    inline auto MSL() const
+    auto MSL() const
     { return MAX_SEG_LIFETIME; }
 
     /*
       Set Maximum Segment Lifetime
     */
-    inline void set_MSL(const std::chrono::milliseconds msl)
+    void set_MSL(const std::chrono::milliseconds msl)
     { MAX_SEG_LIFETIME = msl; }
 
     /*
       Maximum Segment Size
       [RFC 793] [RFC 879] [RFC 6691]
     */
-    inline constexpr uint16_t MSS() const
+    constexpr uint16_t MSS() const
     { return network().MDDS() - sizeof(tcp::Header); }
 
     /*
@@ -135,13 +134,13 @@ namespace net {
     */
     std::string to_string() const;
 
-    inline std::string status() const
+    std::string status() const
     { return to_string(); }
 
-    inline size_t writeq_size() const
+    size_t writeq_size() const
     { return writeq.size(); }
 
-    inline tcp::Address address()
+    tcp::Address address()
     { return inet_.ip_addr(); }
 
   private:
@@ -211,10 +210,10 @@ namespace net {
     /*
       Force the TCP to process the it's queue with the current amount of available packets.
     */
-    inline void kick()
+    void kick()
     { process_writeq(inet_.transmit_queue_available()); }
 
-    inline IP4& network() const
+    IP4& network() const
     { return inet_.ip_obj(); }
 
   }; // < class TCP

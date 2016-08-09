@@ -794,10 +794,6 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     return OK;
   }
   if(in->isset(SYN)) {
-    if(!tcp.signal_accept()) {
-      // TODO: Reject more gracefully?
-      return CLOSED;
-    }
     auto& tcb = tcp.tcb();
     tcb.RCV.NXT   = in->seq()+1;
     tcb.IRS     = in->seq();
@@ -1134,7 +1130,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
   if(in->ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(Connection::FinWait2::instance());
-    return tcp.state().handle(tcp, in); // TODO: Is this OK?
+    return tcp.state_->handle(tcp, in); // TODO: Is this OK?
   }
 
   // 7. proccess the segment text

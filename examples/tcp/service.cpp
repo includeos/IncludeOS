@@ -39,16 +39,16 @@ using Disconnect = net::tcp::Connection::Disconnect;
 net::tcp::Socket python_server{ {10,0,2,2} , 1337};
 
 // Called when data is received on client (incoming connection)
-void handle_client_on_read(Connection_ptr python, std::string request) {
+void handle_client_on_read(Connection_ptr python, const std::string& request) {
   printf("Received [Client]: %s\n", request.c_str());
   // Write the request to our python server
-  python->write(request.data(), request.size());
+  python->write(request);
 }
 
 // Called when data is received on python (outgoing connection)
-void handle_python_on_read(Connection_ptr client, std::string response) {
+void handle_python_on_read(Connection_ptr client, const std::string& response) {
   // Write response to our client
-  client->write(response.data(), response.size());
+  client->write(response);
 }
 
 void Service::start()
@@ -77,13 +77,13 @@ void Service::start()
 
         // Setup handlers for when data is received on client and python connection
         // When client reads data
-        client->read(1024, [python](auto buf, size_t n) {
+        client->on_read(1024, [python](auto buf, size_t n) {
             std::string data{ (char*)buf.get(), n };
             handle_client_on_read(python, data);
           });
 
         // When python server reads data
-        python->read(1024, [client](auto buf, size_t n) {
+        python->on_read(1024, [client](auto buf, size_t n) {
             std::string data{ (char*)buf.get(), n };
             handle_python_on_read(client, data);
           });
