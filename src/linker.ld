@@ -1,6 +1,6 @@
 /**
  * This file is a part of the IncludeOS unikernel - www.includeos.org
- * 
+ *
  * Copyright 2015 Oslo and Akershus University College of Applied Sciences
  * and Alfred Bratterud
  *
@@ -18,23 +18,41 @@
 **/
 ENTRY(_start)
 
+PHDRS {
+    loadable PT_LOAD FLAGS(7) ;
+}
+
 SECTIONS
 {
-  .text (0x200000+SIZEOF_HEADERS) : {
+  PROVIDE ( _ELF_START_ = . + 0x200000);
+  PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
+
+  .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
+      PROVIDE(_MULTIBOOT_START_ = .);
+      *multiboot.o(.rodata);
+   }
+  PROVIDE ( _TEXT_START_ = . );
+  .text (_TEXT_START_ ) :
+  {
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t*)
   }
-  
+
   .init ALIGN(0x10) : {
     _INIT_START_ = .;
     *(.init)
-    _INIT_END_ = .; 
+    _INIT_END_ = .;
   }
+
   .fini ALIGN(0x10) : {
     *(.fini)
   }
-  
+
+  /* Global offset-table. For dynamic linking */
+  .got ALIGN(0x10) : {
+      *(.got*)
+  }
   /* Global constructor array */
   .ctors ALIGN(0x10) :
   {
@@ -48,7 +66,7 @@ SECTIONS
     *(.dtors)
     LONG(0);
   }
-  
+
   .rodata :
   {
     _RODATA_START_ = .;
@@ -56,19 +74,25 @@ SECTIONS
     *(.gnu.linkonce.r*)
     _RODATA_END_ = .;
   }
-  
+
   .gcc_except_table :
   {
     *(.gcc_except_table)
   }
-  /* For stack unwinding (exception handling)  */
+
+    /* For stack unwinding (exception handling)  */
+  .eh_frame_hdr ALIGN(0x4):
+  {
+    KEEP(*(.eh_frame_hdr*))
+
+  }
   .eh_frame ALIGN(0x4):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
     LONG (0);
   }
-  
+
   .data :
   {
     _DATA_START_ = .;
@@ -77,14 +101,28 @@ SECTIONS
     *(.gnu.linkonce.d*)
     _DATA_END_ = .;
   }
-  
+
   .memdisk :
   {
     _DISK_START_ = .;
     *(.diskdata)
     _DISK_END_ = .;
   }
-  
+
+  .symtab :
+  {
+        _SYMTAB_START = .;
+        *(.symtab)
+        *(.symtab.*)
+  }:loadable
+
+  .strtab :
+  {
+        _STRTAB_START = .;
+        *(.strtab)
+        *(.strtab.*)
+  }:loadable
+
   .bss :
   {
     _BSS_START_ = .;
@@ -93,7 +131,11 @@ SECTIONS
     _BSS_END_ = .;
     . = ALIGN(64 / 8);
   }
-  . = ALIGN(64 / 8);  
+  . = ALIGN(64 / 8);
   _end = .;
   PROVIDE (end = .);
+  PROVIDE (_ELF_END_ = .);
+  PROVIDE (_LOAD_END_ = .);
+
+
 }
