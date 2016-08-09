@@ -29,12 +29,6 @@
 #include <lest.hpp>
 #include <regex>
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 
 #define MYINFO(X,...) INFO("Test GSL",X,##__VA_ARGS__)
 
