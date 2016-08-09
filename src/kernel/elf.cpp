@@ -280,13 +280,13 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  char btrace_buffer[180];
-  char symbol_buffer[160];
+  char symbol_buffer[161];
+  char btrace_buffer[181];
 
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol( \
-                ra, symbol_buffer, 256);  \
-    auto len = snprintf(btrace_buffer, 255,\
+                ra, symbol_buffer, 160);  \
+    auto len = snprintf(btrace_buffer, 180,\
              "[%d] %8x + 0x%.3x: %s\n", \
              N, symb.addr, symb.offset, symb.name);\
     write(1, btrace_buffer, len);

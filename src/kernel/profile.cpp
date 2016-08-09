@@ -43,12 +43,13 @@ struct fixedvector {
   T element[N];
 };
 static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
-static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_transfer;
+static fixedvector<uintptr_t, BUFFER_COUNT>* transfer_queue;
 static void* event_loop_addr;
 
 typedef uint32_t func_sample;
 std::unordered_map<uintptr_t, func_sample> sampler_dict;
-static volatile int lockless_sampler = 0;
+static func_sample sampler_total = 0;
+static int lockless_sampler = 0;
 
 extern "C" {
   void parasite_interrupt_handler();
@@ -61,7 +62,8 @@ void begin_stack_sampling(uint16_t gather_period_ms)
   // make room for these only when requested
   #define blargh(T) std::remove_pointer<decltype(T)>::type;
   sampler_queue = new blargh(sampler_queue);
-  sampler_transfer = new blargh(sampler_transfer);
+  transfer_queue = new blargh(transfer_queue);
+  sampler_total = 0;
   
   // we want to ignore event loop at FIXME the HLT location (0x198)
   event_loop_addr = (void*) ((char*) &OS::event_loop + 0x198);
@@ -90,7 +92,7 @@ void profiler_stack_sampler()
   if (lockless_sampler) return;
   
   // transfer all the built up samplings
-  sampler_transfer->clone(sampler_queue->first(), sampler_queue->size());
+  transfer_queue->clone(sampler_queue->first(), sampler_queue->size());
   sampler_queue->clear();
   lockless_sampler = 1;
 }
@@ -100,10 +102,12 @@ void gather_stack_sampling()
   // gather results on our turn only
   if (lockless_sampler == 1)
   {
-    for (auto* addr = sampler_transfer->first(); addr < sampler_transfer->end(); addr++)
+    for (auto* addr = transfer_queue->first(); addr < transfer_queue->end(); addr++)
     {
-      auto it = sampler_dict.find(*addr);
-      
+      // convert return address to function entry address
+      uintptr_t resolved = Elf::resolve_addr(*addr);
+      // insert into unordered map
+      auto it = sampler_dict.find(resolved);
       if (it != sampler_dict.end()) {
         it->second++;
       }
@@ -111,10 +115,11 @@ void gather_stack_sampling()
         // add to dictionary
         sampler_dict.emplace(
             std::piecewise_construct,
-            std::forward_as_tuple(*addr),
+            std::forward_as_tuple(resolved),
             std::forward_as_tuple(1));
       }
     }
+    sampler_total += transfer_queue->size();
     lockless_sampler = 0;
   }
 }
@@ -136,15 +141,9 @@ void print_heap_info()
 void print_stack_sampling()
 {
   using sample_pair = std::pair<uintptr_t, func_sample>;
-  std::unordered_map<uintptr_t, func_sample> resolved;
-  
-  // convert addresses to function entry addresses
-  for (auto& sample : sampler_dict) {
-    resolved[Elf::resolve_addr(sample.first)] += sample.second;
-  }
   
   // sort by count
-  std::vector<sample_pair> vec(resolved.begin(), resolved.end());
+  std::vector<sample_pair> vec(sampler_dict.begin(), sampler_dict.end());
   std::sort(vec.begin(), vec.end(), 
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
     return sample1.second > sample2.second;
@@ -153,14 +152,16 @@ void print_stack_sampling()
   size_t results = 12;
   results = (results > sampler_dict.size()) ? sampler_dict.size() : results;
   
-  printf("*** Listing %d samples ***\n", results);
-  for (auto& p : vec)
+  printf("*** Listing %d results (%u samples) ***\n", results, sampler_total);
+  for (auto& sa : vec)
   {
     // resolve the addr
-    auto func = Elf::resolve_symbol(p.first);
+    auto func = Elf::resolve_symbol(sa.first);
+    
+    float f =  (float) sa.second / sampler_total * 100;
     // print some shits
-    printf("[%#.6x + %#.3x] %u times: %s\n",
-        func.addr, func.offset, p.second, func.name.c_str());
+    printf("%5.2f%%  %*u: %s\n",
+        f, 8, sa.second, func.name.c_str());
     
     if (results-- == 0) break;
   }
