@@ -29,8 +29,8 @@
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
-  caddr_t heap_begin;
-  caddr_t heap_end;
+  uintptr_t heap_begin;
+  uintptr_t heap_end;
 }
 
 static const int syscall_fd {999};
@@ -116,9 +116,9 @@ int write(int file, const void* ptr, size_t len) {
 }
 
 void* sbrk(ptrdiff_t incr) {
-  void* prev_heap_end = heap_end;
+  auto prev_heap_end = heap_end;
   heap_end += incr;
-  return (caddr_t) prev_heap_end;
+  return (void*) prev_heap_end;
 }
 
 
@@ -161,8 +161,8 @@ int kill(pid_t pid, int sig) {
 void panic(const char* why) {
   printf("\n\t**** PANIC: ****\n %s\n", why);
   extern char _end;
-  printf("\tHeap end: %p (heap %u Kb, max %u Kb)\n",
-      heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
+  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
+         heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   while(1) asm ("cli; hlt;");
 }
@@ -176,3 +176,14 @@ void default_exit() {
 void abort_ex(const char* why) {
   panic(why);
 }
+
+// Basic second-resolution implementation - using CMOS directly for now.
+int clock_gettime(clockid_t clk_id, struct timespec *tp){
+  if (clk_id == CLOCK_REALTIME) {
+    tp->tv_sec = cmos::now().to_epoch();
+    tp->tv_nsec = 0;
+    return 0;
+  }
+
+  return -1;
+};
