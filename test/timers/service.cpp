@@ -17,53 +17,50 @@
 
 #include <os>
 #include <stdio.h>
-#include <vector>
-#include <iostream>
 #include <cassert>
 
 using namespace std::chrono;
 
-int one_shots = 0;
-int repeat1 = 0;
-int repeat2 = 0;
-
-auto& timer = hw::PIT::instance();
+static int one_shots = 0;
+static int repeat1 = 0;
+static int repeat2 = 0;
 
 void Service::start()
 {
-
-
-  INFO("Test Timers","Testing one-shot timers");
-
-
-  int t1 = 0;
-  int t10 = 0;
-  int t2 = 0;
+  INFO("Timers", "Testing one-shot timers");
+  
+  // test timer system
+  extern void test_timers();
+  test_timers();
+  return;
+  
+  static auto& timer = hw::PIT::instance();
 
   // 30 sec. - Test End
-  timer.onTimeout(30s, [] {
+  timer.on_timeout_ms(30s, [] {
       printf("One-shots fired: %i \n", one_shots);
       CHECKSERT(one_shots == 5, "5 one-shot-timers fired");
       CHECKSERT(repeat1 == 25 and repeat2 == 10, "1s. timer fired 25 times, 2s. timer fired 10 times");
       CHECKSERT(timer.active_timers() == 1, "This is the last active timer");
-      INFO("Test Timers","SUCCESS");
+      INFO("Timers", "SUCCESS");
     });
 
   // 5 sec.
-  timer.onTimeout(5s, [] {
+  timer.on_timeout_ms(5s, [] {
+      printf("One-shots fired: %i \n", one_shots);
       CHECKSERT(one_shots == 3,
                 "After 5 sec, 3 other one-shot-timers have fired");
       one_shots++;
     });
 
   // 0.5 sec.
-  timer.onTimeout(500ms, [] {
+  timer.on_timeout_ms(500ms, [] {
       CHECKSERT(one_shots == 0, "After 0.5 sec, no other one-shot-timers have fired");
       one_shots++;
     });
 
   // 1 sec.
-  timer.on_timeout(1, [] {
+  timer.on_timeout_d(1, [] {
       CHECKSERT(one_shots == 1, "After 1 sec, 1 other one-shot-timers has fired");
       one_shots++;
     });
@@ -78,14 +75,14 @@ void Service::start()
     one_shots++;
   };
 
-  timer.onTimeout(1s, in_a_second);
+  timer.on_timeout_ms(1s, in_a_second);
 
-  auto timer1s = timer.onRepeatedTimeout(1s, []{
+  auto timer1s = timer.on_repeated_timeout(1s, []{
       repeat1++;
       printf("1s. PULSE #%i \n", repeat1);
     });
 
-  timer.onRepeatedTimeout(2s, []{
+  timer.on_repeated_timeout(2s, []{
       repeat2++;
       printf("2s. PULSE #%i \n", repeat2);
     },
@@ -102,21 +99,19 @@ void Service::start()
 
 
   // 25 sec. - end last repeating timer
-  timer.onTimeout(25s + 10ms, [ timer1s ] {
+  timer.on_timeout_ms(25s + 10ms, [ timer1s ] {
       one_shots++;
       CHECKSERT(repeat1 == 25 and repeat2 == 10,
                 "After 25 sec, 1s timer x 30 == %i times, 2s timer x 15 == %i times",
                 repeat1, repeat2);
 
+      // Make sure this timer iterator is valid
       timer.stop_timer(timer1s);
       CHECKSERT(timer.active_timers() == 2, "There are now 2 timers left");
 
-      timer.onTimeout(1s, []{
+      timer.on_timeout_ms(1s, []{
           CHECKSERT(1, "Timers are still functioning");
         });
 
     });
-
-
-
 }

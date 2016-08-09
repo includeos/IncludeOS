@@ -12,13 +12,13 @@ INSTALL = $(INCLUDEOS_INSTALL)
 STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3 -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-CAPABS = $(CAPABS_COMMON) -O2 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE
+CAPABS = $(CAPABS_COMMON) -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE
 WARNS   = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3
 
@@ -31,7 +31,6 @@ LIBM_OBJ = $(INSTALL)/newlib/libm.a
 
 LIBGCC = $(INSTALL)/libgcc/libgcc.a
 LIBCXX = $(INSTALL)/libcxx/libc++.a libc++abi.a
-
 
 INC_NEWLIB=$(INSTALL)/newlib/include
 
@@ -52,37 +51,40 @@ ifndef OBJCOPY_INC
 endif
 
 # Compiler options
-CCOPTS = -target i686-elf
+CCOPTS  = -target i686-elf
 CPPOPTS = -target i686-elf
 
-INCLUDES =  -I../api/sys -I$(INSTALL)/libcxx/include  -I$(INC_NEWLIB)  -Iinclude -I../api -I../mod/GSL/include #
-CINCLUDES =  -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api  #
+INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../mod/GSL/include
+CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
-CCOPTS	+= $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
 CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
-
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld #-flto
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 
 # Objects
 ###################################################
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
-		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
+OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
+		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/memmap.o\
 		kernel/irq_manager.o kernel/pci_manager.o \
-		kernel/terminal.o kernel/terminal_disk.o \
-		kernel/vga.o util/memstream.o util/async.o \
+		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
+		kernel/vga.o kernel/debug_new.o kernel/profile.o \
+		kernel/timer.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		hw/serial.o hw/cmos.o \
+		hw/ps2.o hw/serial.o hw/cmos.o \
+		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
+		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
 		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
-		net/tcp.o net/tcp_connection.o net/tcp_connection_states.o \
+		net/tcp/tcp.o net/tcp/connection.o net/tcp/connection_states.o \
+		net/tcp/rttm.o net/tcp/listener.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/packet.o net/buffer_store.o \
+		net/buffer_store.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
 		virtio/block.o # virtio/console.o
@@ -94,7 +96,7 @@ CRTN_OBJ = crt/crtn.o
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
-.PHONY: memdisk all debug stripped clean
+.PHONY: memdisk all debug stripped minimal clean
 
 # Complete OS build
 ###################################################
@@ -102,36 +104,41 @@ OS_DEPS = $(OS_OBJECTS:.o=.d)
 # - a bootloader
 # - an OS library for the service to link against
 
-all: bootloader libc++abi.a os.a
+all: CAPABS += -O2
+all: includeos
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
-#stripped: LDOPTS += -s #strip all
-stripped: CAPABS += -Oz
-stripped: all test
+stripped: CAPABS += -Os
+stripped: LDOPTS += -s
+stripped: includeos test
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
 debug-info: CAPABS += -DGSL_THROW_ON_CONTRACT_VIOLATION
-debug-info: all test
+debug-info: includeos test
 
 # Build with debugging symbols (OBS: Dramatically increases binary size)
+debug: CAPABS += -O0
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: CAPABS += -O0
-debug: all test
+debug: includeos test
 
 # Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
-debug-all: CAPABS += -UNO_DEBUG
+debug-all: CAPABS += -O0 -UNO_DEBUG
 debug-all: CCOPTS  += $(DEBUG_OPTS)
 debug-all: CPPOPTS += $(DEBUG_OPTS)
 debug-all: OBJ_LIST += $(LIBG_OBJ)
-debug-all: CAPABS += -O0
-debug-all: all test
-
+debug-all: includeos test
 
 silent: CPPOPTS += -DNO_INFO=1
-silent: all test
+silent: includeos
+
+minimal: CPPOPTS += -ffunction-sections -fdata-sections
+minimal: LDOPTS += --gc-sections
+minimal: stripped test
+
+includeos: bootloader multiboot libc++abi.a os.a
 
 # Test service
 ###################################################
@@ -146,6 +153,7 @@ TEST_OBJ = debug/test_service.o util/service_name.o
 test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
 test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test service"
+	@echo "\n>> LDOPTS = $(LDOPTS)"
 	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
@@ -165,6 +173,11 @@ test_tcp: debug/test_tcp.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test TCP service"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_tcp.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
+test_memory: CPPOPTS += -DSERVICE_NAME="\"Memory test Service\""
+test_memory: debug/test_memory.o $(CRTI_OBJ) $(CRTN_OBJ)
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_memory.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+
+
 test: test_service
 
 # OS libraries
@@ -173,13 +186,14 @@ test: test_service
 libc++abi.a: $(CXXABI_OBJ)
 	$(AR_INC) rcs $@ $(CXXABI_OBJ)
 
-os.a: $(OS_OBJECTS)
+os.a: $(OS_OBJECTS) apic_boot.o
 	@echo "\n>> Building the OS library"
-	$(AR_INC) rcs $@ $(OS_OBJECTS)
+	$(AR_INC) rcs $@ $(OS_OBJECTS) apic_boot.o
 
 install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
+	cp boot/multiboot.o $(INSTALL)
 	cp os.a $(INSTALL)
 	cp libc++abi.a $(INSTALL)/libcxx
 	cp crt/crti.o $(INSTALL)/crt
@@ -190,8 +204,9 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	mkdir -p $(INSTALL)/memdisk
 	cp memdisk/* $(INSTALL)/memdisk/
 	# Seed related
-	cp util/service_name.cpp $(INSTALL)
+	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
+	cp seed/Makelib $(INSTALL)/Makelib
 	# Eexternal dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod
@@ -219,6 +234,12 @@ bootloader: boot/bootloader.asm boot/disk_read_lba.asm
 	@echo "\n>> Assembling bootloader"
 	nasm -f bin -o bootloader $<
 
+apic_boot.o: hw/apic_boot.asm
+	nasm -f bin -o apic_boot.bin $<
+	$(OBJCOPY_INC) -I binary -O elf32-i386 -B i386 apic_boot.bin $@
+
+multiboot: boot/multiboot.o
+
 # Disk image as a section
 ###################################################
 memdisk: memdisk.asm
@@ -240,6 +261,6 @@ clean_tests:
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a libc++abi.a
-	$(RM) bootloader memdisk.o
+	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
 
 -include $(OS_DEPS)

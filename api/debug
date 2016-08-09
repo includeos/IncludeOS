@@ -16,19 +16,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ___API_DEBUG___
-#define ___API_DEBUG___
+#pragma once
+#ifndef API_DEBUG_HEADER
+#define API_DEBUG_HEADER
 
 #if defined(DEBUG) && ! defined(NO_DEBUG)
-#define debug(X,...)  printf("* " X,##__VA_ARGS__);
+#define debug(X,...)  printf(X,##__VA_ARGS__);
 #else 
 #define debug(X,...) 
 #endif
 
 #if defined(DEBUG2) && ! defined(NO_DEBUG)
-#define debug2(X,...)  printf("** " X,##__VA_ARGS__);
+#define debug2(X,...)  printf(X,##__VA_ARGS__);
 #else 
 #define debug2(X,...) 
 #endif
 
-#endif //< ___API_DEBUG___
+#endif

@@ -24,14 +24,17 @@
 
 #include <os>
 #include <kernel/syscalls.hpp>
+#include <hw/cmos.hpp>
 
-char *__env[1] {nullptr};
-char **environ {__env};
+char*   __env[1] {nullptr};
+char**  environ {__env};
+extern "C" {
+  uintptr_t heap_begin;
+  uintptr_t heap_end;
+}
 
 static const int syscall_fd {999};
 static bool debug_syscalls  {true};
-
-caddr_t heap_end;
 
 
 void _exit(int status) {
@@ -113,9 +116,9 @@ int write(int file, const void* ptr, size_t len) {
 }
 
 void* sbrk(ptrdiff_t incr) {
-  void* prev_heap_end = heap_end;
+  auto prev_heap_end = heap_end;
   heap_end += incr;
-  return (caddr_t) prev_heap_end;
+  return (void*) prev_heap_end;
 }
 
 
@@ -136,11 +139,10 @@ int wait(int* UNUSED(status)) {
 };
 
 int gettimeofday(struct timeval* p, void* UNUSED(z)) {
-  // Currently every reboot takes us back to 1970 :-)
-  float seconds = OS::uptime();
+  uint32_t seconds = cmos::now().to_epoch();
   p->tv_sec = int(seconds);
-  p->tv_usec = (seconds - p->tv_sec) * 1000000;
-  return 5;
+  p->tv_usec = 0;
+  return 0;
 }
 
 int kill(pid_t pid, int sig) {
@@ -157,9 +159,12 @@ int kill(pid_t pid, int sig) {
 
 // No continuation from here
 void panic(const char* why) {
-  printf("\n\t **** PANIC: ****\n %s\n", why);
-  printf("\tHeap end: %p\n", heap_end);
-  while(1) __asm__("cli; hlt;");
+  printf("\n\t**** PANIC: ****\n %s\n", why);
+  extern char _end;
+  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
+         heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
+  print_backtrace();
+  while(1) asm ("cli; hlt;");
 }
 
 // No continuation from here
@@ -167,9 +172,18 @@ void default_exit() {
   panic("Exit was called");
 }
 
-
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
-  printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
 }
+
+// Basic second-resolution implementation - using CMOS directly for now.
+int clock_gettime(clockid_t clk_id, struct timespec *tp){
+  if (clk_id == CLOCK_REALTIME) {
+    tp->tv_sec = cmos::now().to_epoch();
+    tp->tv_nsec = 0;
+    return 0;
+  }
+
+  return -1;
+};

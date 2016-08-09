@@ -28,11 +28,11 @@ namespace net
   {}
 
   void UDPSocket::packet_init(
-                              UDP::Packet_ptr p,
-                              addr_t srcIP,
-                              addr_t destIP,
-                              port_t port,
-                              uint16_t length)
+      UDP::Packet_ptr p,
+      addr_t srcIP,
+      addr_t destIP,
+      port_t port,
+      uint16_t length)
   {
     p->init();
     p->header().sport = htons(this->l_port);
@@ -47,42 +47,38 @@ namespace net
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
     on_read_handler(
-                    udp->src(), udp->src_port(), udp->data(), udp->data_length());
+        udp->src(), udp->src_port(), udp->data(), udp->data_length());
   }
 
   void UDPSocket::sendto(
-                         addr_t destIP,
-                         port_t port,
-                         const void* buffer,
-                         size_t len,
-                         sendto_handler cb)
+     addr_t destIP,
+     port_t port,
+     const void* buffer,
+     size_t len,
+     sendto_handler cb)
   {
-    if (likely(len))
-      {
-        udp.sendq.emplace_back(
-                               (const uint8_t*) buffer, len, cb, this->udp,
-                               local_addr(), this->l_port, destIP, port);
+    if (unlikely(len == 0)) return;
+    udp.sendq.emplace_back(
+       (const uint8_t*) buffer, len, cb, this->udp,
+       local_addr(), this->l_port, destIP, port);
 
-        // UDP packets are meant to be sent immediately, so try flushing
-        udp.flush();
-      }
+    // UDP packets are meant to be sent immediately, so try flushing
+    udp.flush();
   }
   void UDPSocket::bcast(
-                        addr_t srcIP,
-                        port_t port,
-                        const void* buffer,
-                        size_t len,
-                        sendto_handler cb)
+      addr_t srcIP,
+      port_t port,
+      const void* buffer,
+      size_t len,
+      sendto_handler cb)
   {
-    if (likely(len))
-      {
-        udp.sendq.emplace_back(
-                               (const uint8_t*) buffer, len, cb, this->udp,
-                               srcIP, this->l_port, IP4::INADDR_BCAST, port);
+    if (unlikely(len == 0)) return;
+    udp.sendq.emplace_back(
+         (const uint8_t*) buffer, len, cb, this->udp,
+         srcIP, this->l_port, IP4::INADDR_BCAST, port);
 
-        // UDP packets are meant to be sent immediately, so try flushing
-        udp.flush();
-      }
+    // UDP packets are meant to be sent immediately, so try flushing
+    udp.flush();
   }
 
 }

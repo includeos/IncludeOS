@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,30 +28,26 @@
 namespace fs
 {
   class Path;
-  
+
   struct FAT : public FileSystem
   {
     /// ----------------------------------------------------- ///
     virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
-    
+
     // path is a path in the mounted filesystem
     virtual void  ls     (const std::string& path, on_ls_func) override;
     virtual void  ls     (const Dirent& entry,     on_ls_func) override;
     virtual List  ls(const std::string& path) override;
     virtual List  ls(const Dirent&) override;
-    
-    // read an entire file into a buffer, then call on_read
-    virtual void   readFile(const std::string&, on_read_func) override;
-    virtual Buffer readFile(const std::string&) override;
-    
+
     /** Read @n bytes from file pointed by @entry starting at position @pos */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
     virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
-    
+
     // return information about a filesystem entity
     virtual void   stat(const std::string&, on_stat_func) override;
     virtual Dirent stat(const std::string& ent) override;
-    
+
     // returns the name of the filesystem
     virtual std::string name() const override
     {
@@ -67,17 +63,17 @@ namespace fs
       return "Invalid fat type";
     }
     /// ----------------------------------------------------- ///
-    
+
     // constructor
     FAT(hw::IDiskDevice& idev);
     virtual ~FAT() = default;
-    
+
   private:
     // FAT types
     static const int T_FAT12 = 0;
     static const int T_FAT16 = 1;
     static const int T_FAT32 = 2;
-    
+
     // Attribute masks
     static const uint8_t ATTR_READ_ONLY = 0x01;
     static const uint8_t ATTR_HIDDEN    = 0x02;
@@ -85,10 +81,10 @@ namespace fs
     static const uint8_t ATTR_VOLUME_ID = 0x08;
     static const uint8_t ATTR_DIRECTORY = 0x10;
     static const uint8_t ATTR_ARCHIVE   = 0x20;
-    
+
     // Mask for the last longname entry
     static const uint8_t LAST_LONG_ENTRY = 0x40;
-    
+
     struct cl_dir
     {
       uint8_t  shortname[11];
@@ -98,19 +94,19 @@ namespace fs
       uint8_t  pad2[4];
       uint16_t cluster_lo;
       uint32_t filesize;
-      
+
       bool is_longname() const
       {
         return (attrib & 0x0F) == 0x0F;
       }
-      
+
       uint32_t dir_cluster(uint32_t root_cl) const
       {
         uint32_t cl = cluster_lo | (cluster_hi << 16);
         return (cl) ? cl : root_cl;
-        
+
       }
-      
+
       Enttype type() const
       {
         if (attrib & ATTR_VOLUME_ID)
@@ -120,14 +116,14 @@ namespace fs
         else
           return FILE;
       }
-      
+
       uint32_t size() const
       {
         return filesize;
       }
-      
+
     } __attribute__((packed));
-    
+
     struct cl_long
     {
       uint8_t  index;
@@ -138,7 +134,7 @@ namespace fs
       uint16_t second[6];
       uint16_t zero;
       uint16_t third[2];
-      
+
       // the index value for this long entry
       // starting with the highest (hint: read manual)
       uint8_t long_index() const
@@ -151,7 +147,7 @@ namespace fs
         return (index & LAST_LONG_ENTRY) != 0;
       }
     } __attribute__((packed));
-    
+
     // helper functions
     uint32_t cl_to_sector(uint32_t const cl)
     {
@@ -160,7 +156,7 @@ namespace fs
       else
         return lba_base + data_index + (cl - 2) * sectors_per_cluster;
     }
-    
+
     uint16_t cl_to_entry_offset(uint32_t cl)
     {
       if (fat_type == T_FAT16)
@@ -175,14 +171,14 @@ namespace fs
       else // T_FAT32
         return reserved + (cl * 4 / sector_size);
     }
-    
+
     // initialize filesystem by providing base sector
     void init(const void* base_sector);
     // return a list of entries from directory entries at @sector
     typedef std::function<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
     bool int_dirent(uint32_t sector, const void* data, dirvector&);
-    
+
     // tree traversal
     typedef std::function<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
@@ -190,32 +186,32 @@ namespace fs
     // sync version
     error_t traverse(Path path, dirvector&);
     error_t int_ls(uint32_t sector, dirvector&);
-    
+
     // device we can read and write sectors to
     hw::IDiskDevice& device;
-    
+
     /// private members ///
     // the location of this partition
     uint32_t lba_base;
     // the size of this partition
     uint32_t lba_size;
-    
+
     uint16_t sector_size; // from bytes_per_sector
     uint32_t sectors;   // total sectors in partition
     uint32_t clusters;  // number of indexable FAT clusters
-    
+
     uint8_t  fat_type;  // T_FAT12, T_FAT16 or T_FAT32
     uint16_t reserved;  // number of reserved sectors
-    
+
     uint32_t sectors_per_fat;
     uint16_t sectors_per_cluster;
     uint16_t root_dir_sectors; // FAT16 root entries
-    
+
     uint32_t root_cluster;  // index of root cluster
     uint32_t data_index;    // index of first data sector (relative to partition)
     uint32_t data_sectors;  // number of data sectors
   };
-  
+
 } // fs
 
 #endif

@@ -49,8 +49,9 @@ void Service::start()
   auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   auto& mac = eth0.mac();
   auto& inet = *new net::Inet4<VirtioNet>(eth0, // Device
-    {{ mac.part[2],mac.part[3],mac.part[4],mac.part[5] }}, // IP
-    {{ 255,255,0,0 }} );  // Netmask
+    { mac.part[2],mac.part[3],mac.part[4],mac.part[5] }, // IP
+    { 255,255,0,0 }, // Netmask
+    { 10,0,0,1 } );  // Gateway
 
   printf("Service IP address: %s \n", inet.ip_addr().str().c_str());
 
@@ -58,25 +59,24 @@ void Service::start()
   UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
-  sock.onRead([] (UDP::Socket& conn, UDP::addr_t addr, UDP::port_t port, const char* data, int len) -> int
-              {
-                auto str = std::string(data,len);
-                str[len -1] = 0;
-                CHECK(1,"UDP received '%s'", str.c_str());
-                // send the same thing right back!
-                conn.sendto(addr, port, data, len);
-                return 0;
-              });
+  sock.on_read(
+  [&sock] (UDP::addr_t addr, UDP::port_t port,
+          const char* data, int len)
+  {
+    auto str = std::string(data,len);
+    str[len -1] = 0;
+    CHECK(1,"UDP received '%s'", str.c_str());
+    // send the same thing right back!
+    sock.sendto(addr, port, data, len);
+  });
 
-
-  IRQ_manager::subscribe(1, [](){
-      IRQ_manager::eoi(1);
+  auto& irq_man = IRQ_manager::cpu(0);
+  irq_man.subscribe(1, [](){
       CHECK(1,"IRQ 1 delegate called once");
     });
 
-  IRQ_manager::subscribe(3, [](){
+  irq_man.subscribe(3, [](){
       static int irq3_count {1};
-      IRQ_manager::eoi(3);
       CHECK(1,"IRQ 3 delegate called %i times ", irq3_count++);
     });
 
@@ -115,7 +115,7 @@ void Service::start()
      It doesn't send eoi, but it should work anyway
      since we're using auto-EOI-mode for IRQ < 8 (master)
   */
-  IRQ_manager::subscribe(4, [](){
+  irq_man.subscribe(4, [](){
       uint16_t serial_port1 = 0x3F8;
       //IRQ_manager::eoi(4);
       char byte = 0;
@@ -124,6 +124,8 @@ void Service::start()
 
       CHECK(1,"Serial port (IRQ 4) received '%c'", byte);
     });
+  INFO("Test Serial Port", "Calling Serial Port Test");
+  printf("trigger_test_serial_port\n");
 
 
   /*
@@ -135,7 +137,7 @@ void Service::start()
 
 
   // Enabling a timer causes freeze in debug mode, for some reason
-  time.onRepeatedTimeout(1s, [](){
+  time.on_repeated_timeout(1s, [](){
       static int time_counter = 0;
       CHECK(1,"Time %i", ++time_counter);
 

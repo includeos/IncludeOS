@@ -17,7 +17,7 @@
 
 #pragma once
 #include <stdint.h>
-#include <memstream>
+#include <cassert>
 
 /**
  * In-memory bitmap implementation
@@ -30,14 +30,14 @@ class MemBitmap
 public:
   typedef uint32_t word;
   static const word WORD_MAX = UINT32_MAX;
-  typedef uint32_t  index_t;
+  typedef int32_t  index_t;
   static const int CHUNK_SIZE = sizeof(word) * 8;
   
   MemBitmap() = default;
   MemBitmap(void* location, index_t chunks)
-    : size_(chunks)
+    : _chunks(chunks)
   {
-    _data = reinterpret_cast<word*>(location);
+    _data = (word*) location;
   }
   
   // returns the boolean value of the bit located at @n
@@ -47,53 +47,101 @@ public:
   }
   bool get(index_t b) const
   {
-    return _data[windex(b)] & (1 << woffset(b));
+    return _data[windex(b)] & bit(b);
   }
+  
   // return the bit-index of the first clear bit
   index_t first_free() const
   {
     // each word
-    for (index_t i = 0; i < size(); i++)
+    for (int i = 0; i < _chunks; i++)
     if (_data[i] != WORD_MAX) {
       // each bit
-      for (index_t b = 0; b < CHUNK_SIZE; b++)
+      for (int b = 0; b < CHUNK_SIZE; b++)
       if (!(_data[i] & (1 << b))) {
         return i * CHUNK_SIZE + b;
       }
     } // chunk
     return -1;
-  } // first_free()
+  }
+  
+  index_t first_set() const
+  {
+    for (int i = 0; i < _chunks; i++)
+    if (_data[i])
+    {
+      int b = __builtin_ffs(_data[i]) - 1;
+      return i * CHUNK_SIZE + b;
+    }
+    return -1;
+  }
   
   void zero_all()
   {
-    streamset32(_data, 0, size());
+    memset(_data, 0, _chunks);
   }
   void set(index_t b)
   {
-    _data[windex(b)] |= 1 << woffset(b); 
+    _data[windex(b)] |= bit(b); 
   }
-  void clear(index_t b)
+  void reset(index_t b)
   {
-    _data[windex(b)] &= ~(1 << woffset(b));
+    _data[windex(b)] &= ~bit(b);
   }
   void flip(index_t b)
   {
-    _data[windex(b)] ^= 1 << woffset(b); 
+    _data[windex(b)] ^= bit(b); 
   }
   
+  void atomic_set(index_t b)
+  {
+    __sync_fetch_and_or(&_data[windex(b)], bit(b));
+  }
+  void atomic_reset(index_t b)
+  {
+    __sync_fetch_and_and(&_data[windex(b)], ~bit(b));
+  }
+  
+  void set_location(const void* location, index_t chunks)
+  {
+    this->_data = (word*) location;
+    this->_chunks = chunks;
+  }
   char* data() const noexcept
   {
     return (char*) _data;
   }
-  size_t size() const noexcept
+  index_t size() const noexcept
   {
-    return size_ * CHUNK_SIZE;
+    return _chunks * CHUNK_SIZE;
+  }
+  
+  // bit-and two bitmaps together
+  MemBitmap& operator&= (const MemBitmap& bmp)
+  {
+    for (index_t i = 0; i < _chunks; i++)
+      _data[i] &= bmp._data[i];
+    return *this;
+  }
+  void set_from_and(const MemBitmap& a, MemBitmap& b)
+  {
+    for (index_t i = 0; i < _chunks; i++)
+        _data[i] = a._data[i] & b._data[i];
+  }
+  
+  // might wanna look at individual chunks for
+  // debugging purposes
+  word get_chunk(index_t chunk)
+  {
+    assert(chunk >= 0 && chunk < _chunks);
+    return _data[chunk];
   }
   
 private:
   index_t windex (index_t b) const { return b / CHUNK_SIZE; }
   index_t woffset(index_t b) const { return b & (CHUNK_SIZE-1); }
+  index_t bit(index_t b) const { return 1 << woffset(b); }
   
   word*   _data {nullptr};
-  index_t size_ {};
+  index_t _chunks;
 };

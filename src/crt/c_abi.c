@@ -23,9 +23,12 @@
 #include <sys/reent.h>
 #include <string.h>
 
+#define HEAP_ALIGNMENT   16
+caddr_t heap_begin;
+caddr_t heap_end;
+
 /// IMPLEMENTATION OF Newlib I/O:
 struct _reent newlib_reent;
-
 #undef stdin
 #undef stdout
 #undef stderr
@@ -35,6 +38,9 @@ __FILE* stdout;
 __FILE* stderr;
 
 // stack-protector guard
+#ifndef _STACK_GUARD_VALUE_
+#define _STACK_GUARD_VALUE_ 0xe2dee396
+#endif
 uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
@@ -45,11 +51,13 @@ void _init_c_runtime()
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
   
   // Initialize the heap before exceptions
-  extern caddr_t heap_end; // used by SBRK:
-  extern char _end;        // Defined by the linker 
-  // Set heap to after _end (given by linker script) if needed
-  // note: end should be aligned to next page by linker
-  heap_end = &_end;
+  /// heap start is located at the end of the elf data, which
+  /// we can scan for by reading SH offsets
+  extern uintptr_t __elf_header_end(); // elf header size
+  uintptr_t end = __elf_header_end();
+  end += HEAP_ALIGNMENT - (end & (HEAP_ALIGNMENT-1));
+  heap_begin = (char*) end;
+  heap_end   = (char*) end;
   
   /// initialize newlib I/O
   newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);

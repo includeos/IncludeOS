@@ -19,30 +19,42 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <os>
-
-#include <hw/ioport.hpp>
+#include <boot/multiboot.h>
+#include <kernel/elf.hpp>
+#include <hw/acpi.hpp>
+#include <hw/apic.hpp>
+#include <hw/apic_timer.hpp>
+#include <hw/cmos.hpp>
 #include <hw/serial.hpp>
-#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/pci_manager.hpp>
+#include <kernel/timer.hpp>
+
+extern "C" uint16_t _cpu_sampling_freq_divider_;
+extern uintptr_t heap_begin;
+extern uintptr_t heap_end;
+extern uintptr_t _start;
+extern uintptr_t _end;
+extern uintptr_t _ELF_START_;
+extern uintptr_t _TEXT_START_;
+extern uintptr_t _LOAD_START_;
+extern uintptr_t _ELF_END_;
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
+uint32_t OS::low_memory_size {0};
+uint32_t OS::high_memory_size {0};
+uint32_t OS::max_heap_size {PAGE_SIZE * 1000};
+const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START_};
 
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
-extern "C" uint16_t _cpu_sampling_freq_divider_;
 
-// Heap
-extern caddr_t heap_end;
-extern char    _end;
-
-
-void OS::start() {
+void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Initialize serial port
   com1.init();
@@ -52,16 +64,97 @@ void OS::start() {
   CAPTION("#include<os> // Literally\n");
   FILLINE('=');
 
+  uintptr_t esp;
+  asm ("mov %%esp, %0"
+       : "=r"(esp));
+  MYINFO ("Stack: 0x%x", esp);
+  Expects (esp < (uintptr_t)&_LOAD_START_ and esp >= 0x100000 and "Stack location OK");
+
+  MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
+         boot_magic, boot_addr);
+
+  if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    OS::multiboot(boot_magic, boot_addr);
+  } else {
+    auto mem = cmos::meminfo();
+    low_memory_size = mem.base.total * 1024;
+    INFO2("* Low memory: %i Kib", mem.base.total);
+    high_memory_size = mem.extended.total * 1024;
+    if (mem.extended.total == 0xffff)
+      INFO2("* High memory: >= %i Kib", mem.extended.total);
+    else
+      INFO2("* High memory: %i Kib", mem.extended.total);
+  }
+
   debug("\t[*] OS class started\n");
   srand(time(NULL));
 
-  MYINFO("Heap start: @ %p", heap_end);
-  MYINFO("Current end is: @ %p", &_end);
-
   atexit(default_exit);
 
-  // Set up interrupt handlers
+  MYINFO("Assigning fixed memory ranges (Memory map)");
+
+  auto& memmap = memory_map();
+
+  // @ Todo: The first ~600k of memory is free for use. What can we put there?
+  memmap.assign_range({0x0009FC00, 0x0009FFFF,
+        "EBDA", "Extended BIOS data area"});
+  memmap.assign_range({0x000A0000, 0x000FFFFF,
+        "VGA/ROM", "Memory mapped video memory"});
+  memmap.assign_range({0x00100000, (uintptr_t)&_LOAD_START_ -1 ,
+        "Stack", "Kernel / service main stack"});
+  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
+        "ELF", "Your service binary including OS"});
+
+  // Give the rest of physical memory to heap
+  uintptr_t heap_max = ((0x100000 + high_memory_size)  & 0xffff0000) - 1;
+  memmap.assign_range({(uintptr_t)&_end + 1, heap_max,
+        "Heap", "Dynamic memory" });
+
+  // Create ranges for the remaining address space
+  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
+  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
+  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
+  uintptr_t unavail_start = 0x100000 + high_memory_size;
+  size_t interval = std::min(span_max, addr_max - unavail_start);
+  uintptr_t unavail_end = unavail_start + interval;
+
+  while (unavail_end < addr_max){
+    INFO2("* Unavailable memory: 0x%x - 0x%x", unavail_start, unavail_end);
+    memmap.assign_range({unavail_start, unavail_end,
+          "N/A", "Outside physical range!" });
+
+    unavail_start = unavail_end + 1;
+    interval = std::min(span_max, addr_max - unavail_start);
+
+    // Increment might wrapped around
+    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
+      INFO2("* Last chunk of memory: 0x%x - 0x%x", unavail_start, addr_max);
+      memmap.assign_range({unavail_start, addr_max,
+            "N/A", "Outside physical range!" });
+      break;
+    }
+
+    unavail_end += interval;
+  }
+
+
+  MYINFO("Printing memory map");
+
+  for (const auto &i : memory_map())
+    INFO2("* %s",i.second.to_string().c_str());
+
+  // Set up interrupt and exception handlers
   IRQ_manager::init();
+
+  // read ACPI tables
+  hw::ACPI::init();
+
+  // setup APIC, APIC timer, SMP etc.
+  hw::APIC::init();
+
+  // enable interrupts
+  INFO("BSP", "Enabling interrupts");
+  IRQ_manager::enable_interrupts();
 
   // Initialize the Interval Timer
   hw::PIT::init();
@@ -69,40 +162,55 @@ void OS::start() {
   // Initialize PCI devices
   PCI_manager::init();
 
-  /** Estimate CPU frequency
+  // Estimate CPU frequency
+  MYINFO("Estimating CPU-frequency");
+  INFO2("|");
+  INFO2("+--(10 samples, %f sec. interval)",
+        (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+  INFO2("|");
 
-      MYINFO("Estimating CPU-frequency");
-      INFO2("|");
-      INFO2("+--(10 samples, %f sec. interval)",
-      (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
-      INFO2("|");
+  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
+  cpu_mhz_ = hw::PIT::CPU_frequency();
+  INFO2("+--> %f MHz", cpu_mhz_.count());
 
-      // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-      cpu_mhz_ = hw::PIT::CPUFrequency();
+  // cpu_mhz must be known before we can start timer system
+  /// initialize timers hooked up to APIC timer
+  Timers::init(
+    // timer start function
+    [] (Timers::duration_t when) {
+      // explicit conversion to microseconds
+      hw::APIC_Timer::oneshot(std::chrono::microseconds(when).count());
+    }, 
+    // timer stop function
+    hw::APIC_Timer::stop);
 
-      INFO2("+--> %f MHz", cpu_mhz_.count());
+  // initialize BSP APIC timer
+  hw::APIC_Timer::init(
+  [] {
+    // set final interrupt handler
+    hw::APIC_Timer::set_handler(Timers::timers_handler);
+    // signal ready
+    Timers::ready();
+  });
 
-  **/
-
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
+  // Initialize CMOS
+  cmos::init();
 
   // Everything is ready
+  MYINFO("Starting %s", Service::name().c_str());
+  FILLINE('=');
   Service::start();
 
   event_loop();
 }
 
-uint32_t OS::memory_usage() {
-    return (uint32_t)heap_end - (uint32_t)&_end;
+uintptr_t OS::heap_usage() {
+  // measures heap usage only?
+  return (uint32_t) (heap_end - heap_begin);
 }
 
 void OS::halt() {
   __asm__ volatile("hlt;");
-}
-
-double OS::uptime() {
-  return (cycles_since_boot() / Hz(cpu_mhz_).count());
 }
 
 void OS::event_loop() {
@@ -112,7 +220,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::notify();
+    IRQ_manager::cpu(0).notify();
     debug("<OS> Woke up @ t = %li\n", uptime());
   }
 
@@ -140,4 +248,51 @@ size_t OS::rsprint(const char* str, const size_t len) {
 void OS::default_rsprint(const char* str, size_t len) {
   for(size_t i = 0; i < len; ++i)
     com1.write(str[i]);
+}
+
+void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
+  MYINFO("Booted with multiboot");
+  INFO2("* magic value: 0x%x Multiboot info at 0x%x", boot_magic, boot_addr);
+
+  multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
+
+  if (! bootinfo->flags & MULTIBOOT_INFO_MEMORY) {
+    INFO2("* No memory info provided in multiboot info");
+    return;
+  }
+
+  uint32_t mem_low_start = 0;
+  uint32_t mem_low_end = (bootinfo->mem_lower * 1024) - 1;
+  uint32_t mem_low_kb = bootinfo->mem_lower;
+  uint32_t mem_high_start = 0x100000;
+  uint32_t mem_high_end = mem_high_start + (bootinfo->mem_upper * 1024) - 1;
+  uint32_t mem_high_kb = bootinfo->mem_upper;
+
+  OS::low_memory_size = mem_low_kb * 1024;
+  OS::high_memory_size = mem_high_kb * 1024;
+
+  INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
+  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+        mem_low_start, mem_low_end, mem_low_kb);
+  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+        mem_high_start, mem_high_end, mem_high_kb);
+  INFO2("");
+
+  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE)
+    INFO2("* Booted with parameters (unused for now): %s ", (char*) bootinfo->cmdline);
+
+  if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
+    INFO2("* Multiboot provided memory map  (%i entries)",bootinfo->mmap_length / sizeof(multiboot_memory_map_t));
+    gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo->mmap_addr),
+        (int)(bootinfo->mmap_length / sizeof(multiboot_memory_map_t))};
+
+    for (auto map : mmap) {
+      const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
+      INFO2("\t 0x%08llx - 0x%08llx %s (%llu Kb.)",
+            map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
+      /*if (map.addr + map.len > mem_high_end)
+        break;*/
+    }
+    printf("\n");
+  }
 }

@@ -24,56 +24,57 @@
 using namespace std;
 using namespace net;
 
-constexpr size_t bufcount_ {100};
-BufferStore bufstore_{ bufcount_,  1500, 10 };
+constexpr size_t MTU = 1520;
+constexpr size_t BUFFER_CNT = 100;
+BufferStore bufstore_{ BUFFER_CNT,  MTU };
+
+auto create_packet(BufferStore& bufstore) {
+  // get buffer (as packet + data)
+  auto* ptr = (Packet*) bufstore.get_buffer();
+  // place packet at front of buffer
+  new (ptr) Packet(MTU, 0,
+      [&bufstore] (Packet* p) {
+        bufstore.release((uint8_t*) p);
+      });
+  // regular shared_ptr that calls delete on Packet
+  return std::shared_ptr<Packet>(ptr);
+}
 
 void Service::start()
 {
-
   INFO("Test net::Packet","Starting tests");
 
   INFO("Test 1","Naively create, chain and release packets");
 
-  // Create a release delegate - i.e. the thing in charge of releasing packets
-  auto release = BufferStore::release_del::from
-    <BufferStore, &BufferStore::release_offset_buffer>(bufstore_);
-
   // Create packets, using buffer from the bufstore, and the bufstore's release
-  auto packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                         bufstore_.offset_bufsize(), 1500, release);
+  auto packet = create_packet(bufstore_);
+  CHECKSERT(bufstore_.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
 
-  CHECKSERT(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
-
-  int chain_size = bufcount_;
+  int chain_size = BUFFER_CNT;
 
   // Chain packets
   for (int i = 0; i < chain_size - 1; i++){
-    auto chained_packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                                   bufstore_.offset_bufsize(), 1500, release);
+    auto chained_packet = create_packet(bufstore_);
     packet->chain(chained_packet);
-    CHECKSERT(bufstore_.buffers_available() == bufcount_ - i - 2 , "Bufcount is now %i", bufcount_ - i -2);
+    CHECKSERT(bufstore_.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
   }
 
-
   // Release
-  INFO("Test 1","Releaseing packet-chain all at once: Expect bufcount restored");
-  packet = 0;
-  CHECKSERT(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
+  INFO("Test 1","Releasing packet-chain all at once: Expect bufcount restored");
+  packet = nullptr;
+  CHECKSERT(bufstore_.available() == BUFFER_CNT, "Bufcount is now %i", BUFFER_CNT);
 
   INFO("Test 2","Create and chain packets, release one-by-one");
 
   // Reinitialize the first packet
-  packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                    bufstore_.offset_bufsize(), 1500, release);
-
-  CHECKSERT(bufstore_.buffers_available() == bufcount_ - 1, "Bufcount is now %i", bufcount_ -1);
+  packet = create_packet(bufstore_);
+  CHECKSERT(bufstore_.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
 
   // Chain
   for (int i = 0; i < chain_size - 1; i++){
-    auto chained_packet = std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                                   bufstore_.offset_bufsize(), 1500, release);
+    auto chained_packet = create_packet(bufstore_);
     packet->chain(chained_packet);
-    CHECKSERT(bufstore_.buffers_available() == bufcount_ - i -2, "Bufcount is now %i", bufcount_ - i -2);
+    CHECKSERT(bufstore_.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
   }
 
   INFO("Test 2","Releasing packet-chain one-by-one");
@@ -81,20 +82,18 @@ void Service::start()
   // Release one-by-one
   auto tail = packet;
   size_t i = 0;
-  while(tail && i < bufcount_ - 1 ) {
+  while(tail && i < BUFFER_CNT - 1) {
     tail = tail->detach_tail();
-    CHECKSERT(bufstore_.buffers_available() == i,
+    CHECKSERT(bufstore_.available() == i,
               "Bufcount is now %i == %i", i,
-              bufstore_.buffers_available());
+              bufstore_.available());
     i++;
   }
 
   INFO("Test 2","Releasing last packet");
   tail = 0;
   packet = 0;
-  CHECKSERT(bufstore_.buffers_available() == bufcount_ , "Bufcount is now %i", bufcount_);
-
+  CHECKSERT(bufstore_.available() == BUFFER_CNT, "Bufcount is now %i", BUFFER_CNT);
 
   INFO("Tests","SUCCESS");
-
 }

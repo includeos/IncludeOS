@@ -16,14 +16,45 @@
 // limitations under the License.
 
 #pragma once
-#include <delegate>
+#ifndef HW_APIC_HPP
+#define HW_APIC_HPP
+
+#include <cstdint>
+#include <functional>
 
 namespace hw {
   
   class APIC {
   public:
-    static void init();
+    typedef std::function<void()>  smp_task_func;
+    typedef std::function<void()>  smp_done_func;
     
+    static void add_task(smp_task_func, smp_done_func);
+    static void work_signal();
+    
+    typedef std::function<void()>   timer_func;
+    
+    static void init();
+    static void setup_subs();
+    
+    static void send_ipi(uint8_t cpu, uint8_t vector);
+    static void send_bsp_intr();
+    static void bcast_ipi(uint8_t vector);
+    
+    // enable and disable legacy IRQs
+    static void enable_irq(uint8_t irq);
+    static void disable_irq(uint8_t irq);
+    
+    static uint8_t get_isr();
+    static uint8_t get_irr();
+    static void eoi();
+    
+    static void reboot();
+    
+  private:
+    static void init_smp();
   };
   
 }
+
+#endif

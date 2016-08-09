@@ -12,6 +12,7 @@ STRIPPED=0
 echo "Building system $SERVICE..."
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
+export CPU="-cpu host,+kvm_pv_eoi "
 . ../etc/qemu_cmd.sh
 export SERIAL="" #"-monitor none -virtioconsole stdio"
 QEMU_OPTS+=" -drive file=./smalldisk,if=virtio,media=disk $SERIAL"
@@ -40,7 +41,7 @@ then
     make -j$JOBS stripped $SERVICE
     
     echo ">>> Stripping $SERVICE"
-    strip --strip-all debug/$SERVICE
+    strip --strip-all -R.comment debug/$SERVICE
     
     # Build the image 
     ../vmbuild/vmbuild bootloader debug/$SERVICE

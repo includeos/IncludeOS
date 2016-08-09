@@ -16,7 +16,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -fstack-protector-all -msse3
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
@@ -43,12 +43,12 @@ endif
 
 INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL/include $(LOCAL_INCLUDES)
 
-all: CAPABS  =  $(CAPABS_COMMON) -O2
-debug: CAPABS = $(CAPABS_COMMON) -O0
-stripped: CAPABS = $(CAPABS_COMMON) -Oz
+all:      CAPABS = $(CAPABS_COMMON) -O2
+debug:    CAPABS = $(CAPABS_COMMON) -O0
+stripped: CAPABS = $(CAPABS_COMMON) -Os
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
-LDOPTS = -nostdlib -melf_i386 -N --script=$(INSTALL)/linker.ld
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld
 
 # Objects
 ###################################################
@@ -57,13 +57,14 @@ CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ = $(INSTALL)/crt/crtend.o
 CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
+MULTIBOOT = $(INSTALL)/multiboot.o
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
 
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
-OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
+OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ) $(MULTIBOOT)
 OS_POST = $(CRTEND_OBJ) $(CRTN_OBJ)
 
 DEPS = $(OBJS:.o=.d)
@@ -75,9 +76,10 @@ DEPS = $(OBJS:.o=.d)
 .PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: service
+all: STRIPPED = --strip-unneeded
 
-stripped: LDOPTS  += -S #strip all
-stripped: CPPOPTS += -Oz
+stripped: LDOPTS  += -s
+stripped: STRIPPED = --strip-all -R.comment
 stripped: service
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
@@ -98,6 +100,10 @@ debug-all: CPPOPTS += $(DEBUG_OPTS)
 debug-all: OBJ_LIST += $(LIBG_OBJ)
 debug-all: CAPABS += -O0
 debug-all: service
+
+minimal: CPPOPTS += -ffunction-sections -fdata-sections
+minimal: LDOPTS += --gc-sections
+minimal: stripped
 
 # Disk image as a section
 ###################################################
@@ -127,8 +133,12 @@ ifneq ($(MEMDISK),)
 endif
 	@echo "\n>> Linking service with OS"
 	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+ifneq ($(STRIPPED),)
+	@echo "\n>> strip  $(STRIPPED) $(SERVICE)"
+	strip $(STRIPPED) $(SERVICE)
+endif
 	@echo "\n>> Building" $(SERVICE).img
-	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
+	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
 
 # Object files
 ###################################################
@@ -156,7 +166,6 @@ crt%.o: $(INSTALL)/crt/crt%.s
 ###################################################
 clean:
 	$(RM) $(OBJS) $(DEPS) $(SERVICE)
-	$(RM) $(SERVICE).img
-	$(RM) .service_name.o
+	$(RM) $(SERVICE).img $(MEMDISK)
 
 -include $(DEPS)

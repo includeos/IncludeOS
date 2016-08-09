@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef KERNEL_CPUID_HPP
 #define KERNEL_CPUID_HPP
 

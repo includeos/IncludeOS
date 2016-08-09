@@ -61,7 +61,7 @@ class color:
       return "\n" + color.C_HEAD + "============================ " + string + " ============================" +  color.C_ENDC
 
 
-if not os.environ.has_key("INCLUDEOS_HOME"):
+if "INCLUDEOS_HOME" not in os.environ:
     print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
     def_home = os.environ["HOME"] + "/IncludeOS_install"
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
@@ -129,13 +129,14 @@ def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
                           stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE)
+                          stderr = subprocess.PIPE,
+                          stdin = subprocess.PIPE)
 
   # After half a second it should be started, otherwise throw
   time.sleep(0.5)
   if (proc.poll()):
     data, err = proc.communicate()
-    raise Exception(color.C_FAIL+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
+    raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
 
   print color.INFO(nametag), "Started process PID ",proc.pid
   return proc
@@ -144,14 +145,14 @@ def start_process(popen_param_list):
 # Qemu Hypervisor interface
 class qemu(hypervisor):
 
-  def drive_arg(self, filename, drive_type="virtio", drive_format="raw"):
-    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type]
+  def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
+    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
-  def net_arg(self, if_type = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
-    type_names = {"virtio" : "virtio-net"}
+  def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
+    device_names = {"virtio" : "virtio-net"}
     qemu_ifup = INCLUDEOS_HOME+"/etc/qemu-ifup"
-    return ["-device", type_names[if_type]+",netdev="+if_name+",mac="+mac,
-            "-netdev", "tap,id="+if_name+",script="+qemu_ifup]
+    return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
+            "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
 
   def kvm_present(self):
     command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
@@ -169,21 +170,25 @@ class qemu(hypervisor):
     print color.INFO(self._nametag), "booting", self._config["image"]
 
     disk_args = self.drive_arg(self._config["image"], "ide")
-    if self._config.has_key("drives"):
+    if "drives" in self._config:
       for disk in self._config["drives"]:
-        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"])
+        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
     net_args = []
     i = 0
-    if self._config.has_key("net"):
+    if "net" in self._config:
       for net in self._config["net"]:
-        net_args += self.net_arg(net["type"], "net"+str(i), net["mac"])
+        net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), net["mac"])
         i+=1
 
-    command = ["sudo", "qemu-system-x86_64"]
+    mem_arg = []
+    if "mem" in self._config:
+      mem_arg = ["-m",str(self._config["mem"])]
+
+    command = ["qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
 
-    command += ["-nographic" ] + disk_args + net_args
+    command += ["-nographic" ] + disk_args + net_args + mem_arg
 
     print color.INFO(self._nametag), "command:"
     print color.DATA(command.__str__())
@@ -193,8 +198,8 @@ class qemu(hypervisor):
   def stop(self):
     if hasattr(self, "_proc") and self._proc.poll() == None :
       print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
-      # Kill with sudo
-      subprocess.check_call(["sudo","kill", "-SIGTERM", str(self._proc.pid)])
+      # Kill
+      subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
       # Wait for termination (avoids the need to reset the terminal)
       self._proc.wait()
     return self
@@ -208,6 +213,11 @@ class qemu(hypervisor):
       raise Exception("Process completed")
     return self._proc.stdout.readline()
 
+  def writeline(self, line):
+    if self._proc.poll():
+      raise Exception("Process completed")
+    return self._proc.stdin.write(line)
+
   def poll(self):
     return self._proc.poll()
 
@@ -218,21 +228,23 @@ class vm:
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
     self._config = config
-    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + "All tests passed"))
+    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + " All tests passed"))
     self._on_panic =  lambda : self.exit(exit_codes["VM_FAIL"], color.FAIL(nametag + self._hyper.readline()))
-    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag+"Test timed out"))
+    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag + " Test timed out"))
     self._on_output = {
       "PANIC" : self._on_panic,
       "SUCCESS" : self._on_success }
     assert(issubclass(hyper, hypervisor))
     self._hyper  = hyper(config)
     self._timer = None
+    self._on_exit = lambda : None
 
   def exit(self, status, msg):
     self.stop()
     print
     print msg
     self._exit_status = status
+    self._on_exit()
     sys.exit(status)
 
   def on_output(self, output, callback):
@@ -247,10 +259,29 @@ class vm:
   def on_timeout(self, callback):
     self._on_timeout = callback
 
+  def on_exit(self, callback):
+    self._on_exit = callback
+
   def readline(self):
     return self._hyper.readline()
 
+  def writeline(self, line):
+    return self._hyper.writeline(line)
+
+  def make(self, params = []):
+    print color.INFO(nametag), "Building test service with 'make' (params=" + str(params) + ")"
+    make = ["make"]
+    make.extend(params)
+    res = subprocess.check_output(make)
+    print color.SUBPROC(res)
+    return self
+
   def boot(self, timeout = None):
+
+    # Check for sudo access, needed for tap network devices and the KVM module
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
 
     # Start the timeout thread
     if (timeout):
@@ -305,6 +336,11 @@ class vm:
     raise Exception("Unexpected termination")
 
   def stop(self):
+    # Check for sudo access, needed for qemu commands
+    if os.getuid() is not 0:
+        print color.FAIL("Call the script with sudo access")
+        sys.exit(1)
+
     print color.INFO(nametag),"Stopping VM..."
     self._hyper.stop()
     if hasattr(self, "_timer") and self._timer:
@@ -317,7 +353,6 @@ class vm:
     self._hyper.wait()
     return self._exit_status
 
-
   def poll(self):
     return self._hyper.poll()
 
@@ -325,10 +360,6 @@ print color.HEADER("IncludeOS vmrunner initializing tests")
 print color.INFO(nametag), "Validating test service"
 validate_test.load_schema("../vm.schema.json")
 validate_test.has_required_stuff(".")
-
-print color.INFO(nametag), "Building test service with 'make'"
-res = subprocess.check_output(["make"])
-print color.SUBPROC(res)
 
 default_spec = {"image" : "test.img"}
 

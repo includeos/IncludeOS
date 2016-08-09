@@ -4,4 +4,4 @@ import sys
 sys.path.insert(0,"..")
 
 import vmrunner
-vmrunner.vms[0].boot(40)
+vmrunner.vms[0].make().boot(40)

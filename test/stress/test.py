@@ -43,10 +43,10 @@ def get_mem():
     received = sock_mem.recv(1000).rstrip()
 
   except Exception as e:
-    color.FAIL(name_tag+"Python socket failed while getting memsize: "+e)
+    print color.FAIL(name_tag), "Python socket failed while getting memsize: ", e
     return False
 
-  print color.INFO(name_tag),"Current VM memory usage reported as ",received
+  print color.INFO(name_tag),"Current VM memory usage reported as ", received
   return int(received)
 
 def get_mem_start():
@@ -111,7 +111,7 @@ def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ARP requests
 def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Arping requires sudo, and we expect the bridge 'include0' to be present
-  command = ["sudo", "arping", "-q","-w", str(100), "-i", "include0", "-c", str(burst_size * 10),  HOST]
+  command = ["sudo", "arping", "-q","-w", str(100), "-I", "include0", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
   res = subprocess.check_call(command);
@@ -252,4 +252,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.boot(timeout)
+vm.make().boot(timeout)

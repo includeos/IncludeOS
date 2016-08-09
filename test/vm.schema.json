@@ -21,10 +21,11 @@
           "file" : { "type" : "string" },
           "type" : { "enum" : ["ide", "virtio"] },
           "format" : { "enum" : ["raw", "qcow2", "vdi"] },
+          "media" : { "enum" : ["disk"] },
           "name" : { "type" : "string" }
         },
 
-        "required" : ["file", "format", "type"]
+        "required" : ["file", "type", "format", "media"]
       }
     },
 
@@ -35,11 +36,12 @@
       "items" : {
         "type" : "object",
         "properties" : {
-          "type" : { "enum" : ["virtio"] },
-          "name" : { "type" : "string" }
+          "device" : { "enum" : ["virtio"] },
+          "name" : { "type" : "string" },
+          "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
         },
 
-        "required" : ["type"]
+        "required" : ["device"]
       }
     },
 
