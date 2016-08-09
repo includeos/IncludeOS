@@ -223,6 +223,19 @@ func_offset Elf::resolve_symbol(void* addr)
   return get_parser().getsym((uintptr_t) addr);
 }
 
+uintptr_t Elf::resolve_addr(uintptr_t addr)
+{
+  auto* sym = get_parser().getaddr(addr);
+  if (sym) return sym->st_value;
+  return addr;
+}
+uintptr_t Elf::resolve_addr(void* addr)
+{
+  auto* sym = get_parser().getaddr((uintptr_t) addr);
+  if (sym) return sym->st_value;
+  return (uintptr_t) addr;
+}
+
 safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
 {
   return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);

@@ -46,13 +46,7 @@ static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
 static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_transfer;
 static void* event_loop_addr;
 
-struct func_sample
-{
-  func_sample(uint32_t c)
-    : count(c) {}
-  
-  uint32_t  count = 0;
-};
+typedef uint32_t func_sample;
 std::unordered_map<uintptr_t, func_sample> sampler_dict;
 static volatile int lockless_sampler = 0;
 
@@ -111,7 +105,7 @@ void gather_stack_sampling()
       auto it = sampler_dict.find(*addr);
       
       if (it != sampler_dict.end()) {
-        it->second.count++;
+        it->second++;
       }
       else {
         // add to dictionary
@@ -127,26 +121,33 @@ void gather_stack_sampling()
 
 void print_heap_info()
 {
-  static int32_t last = 0;
+  static intptr_t last = 0;
   // show information on heap status, to discover leaks etc.
-  extern char* heap_end;
-  extern char* heap_begin;
-  auto heap_size = (size_t) (heap_end - heap_begin);
+  extern uintptr_t heap_begin;
+  extern uintptr_t heap_end;
+  intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
   printf("[!] Heap information:\n");
-  printf("[!] begin  %p  size %#x (%u Kb)\n", heap_begin, heap_size, heap_size / 1024);
-  printf("[!] end    %p  diff %#x (%d Kb)\n", heap_end,   last, last / 1024);
+  printf("[!] begin  %#x  size %#x (%u Kb)\n", heap_begin, heap_size, heap_size / 1024);
+  printf("[!] end    %#x  diff %#x (%d Kb)\n", heap_end,   last, last / 1024);
   last = (int32_t) heap_size;
 }
 
 void print_stack_sampling()
 {
-  // sort by count
   using sample_pair = std::pair<uintptr_t, func_sample>;
-  std::vector<sample_pair> vec(sampler_dict.begin(), sampler_dict.end());
+  std::unordered_map<uintptr_t, func_sample> resolved;
+  
+  // convert addresses to function entry addresses
+  for (auto& sample : sampler_dict) {
+    resolved[Elf::resolve_addr(sample.first)] += sample.second;
+  }
+  
+  // sort by count
+  std::vector<sample_pair> vec(resolved.begin(), resolved.end());
   std::sort(vec.begin(), vec.end(), 
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
-    return sample1.second.count > sample2.second.count;
+    return sample1.second > sample2.second;
   });
   
   size_t results = 12;
@@ -159,7 +160,7 @@ void print_stack_sampling()
     auto func = Elf::resolve_symbol(p.first);
     // print some shits
     printf("[%#.6x + %#.3x] %u times: %s\n",
-        func.addr, func.offset, p.second.count, func.name.c_str());
+        func.addr, func.offset, p.second, func.name.c_str());
     
     if (results-- == 0) break;
   }
