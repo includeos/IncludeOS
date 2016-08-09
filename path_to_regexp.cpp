@@ -60,7 +60,7 @@ PathToRegexp::PathToRegexp(const std::string& path, std::vector<Token>& keys,
 
 	std::vector<Token> tokens = parse(path);
 
-	// printf
+	/* printf
 	for(size_t i = 0; i < tokens.size(); i++) {
 		Token t = tokens[i];
 		printf("Token nr. %u name: %s\n", i, (t.name).c_str());
@@ -72,7 +72,7 @@ PathToRegexp::PathToRegexp(const std::string& path, std::vector<Token>& keys,
 		printf("Token nr. %u asterisk: %s\n", i, ((t.asterisk) ? "true" : "false"));
 		printf("Token nr. %u pattern: %s\n", i, (t.pattern).c_str());
 		printf("Token nr. %u is_string: %s\n", i, ((t.is_string) ? "true" : "false"));
-	}
+	}*/
 
 	// Set private attribute regex_result:
 	regex_result = tokens_to_regexp(tokens, options);
@@ -148,7 +148,12 @@ PathToRegexp::PathToRegexp(const std::vector<std::string>& path, std::vector<Tok
 // Parse a string for the raw tokens
 const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 
-	printf("String to parse-method: %s\n", str.c_str());
+	// printf("String to parse-method: %s\n", str.c_str());
+
+  if(str.empty()) {
+    std::vector<Token> v;
+    return v;
+  }
 
 	std::vector<Token> tokens;
 	int key = 0;
@@ -161,7 +166,7 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 
 		res = *i;
 
- 		std::string res_0 = res[0];
+ 		/*std::string res_0 = res[0];
  		std::string res_1 = res[1];
  		std::string res_2 = res[2];
  		std::string res_3 = res[3];
@@ -171,7 +176,6 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
  		std::string res_7 = res[7];
  		std::string res_8 = res[8];
  		std::string res_9 = res[9];
- 		std::string res_10 = res[10];
 
  		printf("Res 0: %s\n", res_0.c_str());
 		printf("Res 1: %s\n", res_1.c_str());
@@ -182,8 +186,7 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 		printf("Res 6: %s\n", res_6.c_str());
 		printf("Res 7: %s\n", res_7.c_str());
 		printf("Res 8: %s\n", res_8.c_str());
-		printf("Res 9: %s\n", res_9.c_str());
-		printf("Res 10: %s\n", res_10.c_str());
+		printf("Res 9: %s\n", res_9.c_str());*/
 
 		std::string m = res[0];			// the parameter, f.ex. /:test
 		std::string escaped = res[2];
@@ -194,13 +197,13 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 
 		index = offset + m.size();
 
-		printf("Escaped: %s\n", escaped.c_str());
+		/*printf("Escaped: %s\n", escaped.c_str());
 		printf("OFFSET: %d\n", offset);
 		printf("INDEX: %d\n", index);
 		printf("PATH: %s\n", path.c_str());
 		printf("Res[0]/m inside loop (whole element/parameter): %s\n", m.c_str());
-    	printf("index (offset + m.size()): %d\n", index);
-    	printf("Res.index/offset: %d\n", offset);
+    printf("index (offset + m.size()): %d\n", index);
+    printf("Res.index/offset: %d\n", offset);*/
 
 		if(not escaped.empty()) {
 			path += escaped[1];		// if escaped == \a, escaped[1] == a (if str is "/\\a" f.ex.)
@@ -209,8 +212,8 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 
 		std::string next = ((size_t) index < str.size()) ? std::string{str.at(index)} : "";
 
-		printf("STR: %s\n", str.c_str());
-		printf("NEXT: %s\n", next.c_str());
+		/*printf("STR: %s\n", str.c_str());
+		printf("NEXT: %s\n", next.c_str());*/
 
 		std::string prefix = res[4];	// f.ex. /
 		std::string name = res[5];		// f.ex. test
@@ -278,7 +281,7 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
  */
 const std::string PathToRegexp::escape_group(const std::string& group) const {
 
-	printf("INSIDE ESCAPEGROUP. STR: %s\n", group.c_str());
+	// printf("INSIDE ESCAPEGROUP. STR: %s\n", group.c_str());
 
 	// JS: return group.replace(/([=!:$\/()])/g, '\\$1');
 	std::regex r{"/([=!:$\\/()])/g"};
@@ -297,7 +300,7 @@ const std::string PathToRegexp::escape_string(const std::string& str) const {
 	// TODO
 	// escapeGroup(...) is working, but this is not escaping strings? (/route -> \/route f.ex.)
 
-	printf("INSIDE ESCAPESTRING. STR: %s\n", str.c_str());
+	// printf("INSIDE ESCAPESTRING. STR: %s\n", str.c_str());
 
 	// JS: return str.replace(/([.+*?=^!:${}()[\]|\/\\])/g, '\\$1')
 	std::regex r{"/([.+*?=^!:${}()[\\]|\\/\\\\])/g"};
@@ -319,6 +322,9 @@ const std::regex PathToRegexp::tokens_to_regexp(const std::vector<Token>& tokens
 	// 	strict = false
 	// 	sensitive = false
 	// 	end = true
+
+  if(tokens.empty())
+    return std::regex{""};
 
 	bool strict = options.find("strict")->second;	// Case sensitive..
 	bool end = options.find("end")->second;
