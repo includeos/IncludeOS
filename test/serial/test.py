@@ -12,6 +12,7 @@ vm = vmrunner.vms[0]
 
 def test_serial_port():
   print "<test.py> Test triggered"
+  global vm
   vm.writeline("Here is a test\n")
 
 
