@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
 
   // Verify multiboot header
   auto& sh_multiboot = binary.section_header(".multiboot");
-  multiboot_header_t& multiboot = *reinterpret_cast<multiboot_header_t*>(binary.section_data(sh_multiboot).data());
+  multiboot_header& multiboot = *reinterpret_cast<multiboot_header*>(binary.section_data(sh_multiboot).data());
 
 
   cout << "Verifying multiboot header: \n";
