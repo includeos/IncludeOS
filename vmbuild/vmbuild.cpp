@@ -154,24 +154,6 @@ int main(int argc, char** argv) {
   // Validate ELF binary
   Elf_binary binary ({binary_imgloc, stat_binary.st_size});
 
-  /**
-  auto section_headers = binary.section_headers();
-
-  for (auto& sh : section_headers) {
-    cout << "Section header: " << binary.section_header_name(sh) << " size: " << sh.sh_size << "  \n";
-  }
-
-  // Getting a section header and contents by name
-  auto& comment = binary.section_header(".comment");
-
-  auto comment_data = binary.section_data(comment);
-
-  std::cout << ".comment content: \n'";
-  for (auto c : comment_data)
-    std::cout << c;
-  std::cout << "'\n";
-  **/
-
   // Verify multiboot header
   auto& sh_multiboot = binary.section_header(".multiboot");
   multiboot_header_t& multiboot = *reinterpret_cast<multiboot_header_t*>(binary.section_data(sh_multiboot).data());
