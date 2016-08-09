@@ -184,7 +184,7 @@ void Service::start()
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
           conn->close();
         });
-      conn->write(small.data(), small.size());
+      conn->write(small);
     });
 
   /*

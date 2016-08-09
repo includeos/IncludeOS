@@ -48,5 +48,34 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
   return *this;
 }
 
+inline void Connection::write(const void* buf, size_t n) {
+  write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), true);
+}
+
+inline void Connection::write(const void* buf, size_t n, WriteCallback callback) {
+  write(buf, n, callback, true);
+}
+
+inline void Connection::write(buffer_t buffer, size_t n) {
+  write({buffer, n, true}, WriteCallback::from<Connection,&Connection::default_on_write>(this));
+}
+
+inline void Connection::write(buffer_t buffer, size_t n, WriteCallback callback) {
+  write({buffer, n, true}, callback);
+}
+
+inline void Connection::write(const std::string& str) {
+  write(str.data(), str.size());
+}
+
+inline void Connection::write(const std::string& str, WriteCallback callback) {
+  write(str.data(), str.size(), callback);
+}
+
+inline void Connection::abort() {
+  state_->abort(*this);
+  signal_close();
+}
+
 }; // < namespace tcp
 }; // < namespace net

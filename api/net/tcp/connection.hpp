@@ -51,14 +51,6 @@ public:
   struct Disconnect;
 
 public:
-  /*
-    Callback when a receive buffer receives either push or is full
-    - Supplied on asynchronous read
-  */
-
-
-  using WriteCallback = WriteQueue::WriteCallback;
-
   using WriteRequest = WriteQueue::WriteRequest;
 
 
@@ -69,6 +61,7 @@ public:
   using ConnectCallback                     = delegate<void(Connection_ptr self)>;
   inline Connection& on_connect(ConnectCallback);
 
+  /** Supplied on read - called when a buffer is either full or */
   using ReadCallback = delegate<void(buffer_t, size_t)>;
   inline Connection& on_read(size_t recv_bufsz, ReadCallback);
 
@@ -124,6 +117,29 @@ public:
    */
   using CleanupCallback                   = delegate<void(Connection_ptr self)>;
   inline Connection& _on_cleanup(CleanupCallback);
+
+
+  /** Supplied together with write - called when a write request is done. void(size_t) */
+  using WriteCallback = delegate<void(size_t)>;
+
+  inline void write(const void* buf, size_t n);
+  inline void write(const void* buf, size_t n, WriteCallback callback);
+
+  inline void write(buffer_t buffer, size_t n);
+  inline void write(buffer_t buffer, size_t n, WriteCallback callback);
+
+  inline void write(const std::string& str);
+  inline void write(const std::string& str, WriteCallback callback);
+
+  /*
+    Close connection.
+  */
+  void close();
+
+  /*
+    Abort connection. (Same as Terminate)
+  */
+  inline void abort();
 
 
   /*
@@ -346,32 +362,12 @@ public:
     write(buffer, n, callback, PUSH);
   }
 
-  inline void write(const void* buf, size_t n, WriteCallback callback)
-  { write(buf, n, callback, true); }
-
-  // results in ambiguous call to member function
-  //inline void write(const void* buf, size_t n, bool PUSH)
-  //{ write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), PUSH); }
-
-  inline void write(const void* buf, size_t n)
-  { write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), true); }
-
   /*
     Works as write(const void*, size_t, WriteCallback, bool),
     but with the exception of avoiding copying the data to an internal buffer.
   */
   inline void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
   { write({buffer, n, PUSH}, callback); }
-
-  inline void write(buffer_t buffer, size_t n, WriteCallback callback)
-  { write({buffer, n, true}, callback); }
-
-  // results in ambiguous call to member function
-  //inline void write(buffer_t buffer, size_t n, bool PUSH)
-  //{ write({buffer, n, PUSH}, WriteCallback::from<Connection,&Connection::default_on_write>(this)); }
-
-  inline void write(buffer_t buffer, size_t n)
-  { write({buffer, n, true}, WriteCallback::from<Connection,&Connection::default_on_write>(this)); }
 
   /*
     Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
@@ -385,21 +381,6 @@ public:
     Open connection.
   */
   void open(bool active = false);
-
-  /*
-    Close connection.
-  */
-  void close();
-
-  /*
-    Abort connection. (Same as Terminate)
-  */
-  inline void abort() {
-    state_->abort(*this);
-    signal_close();
-  }
-
-
 
   void setup_default_callbacks();
 
