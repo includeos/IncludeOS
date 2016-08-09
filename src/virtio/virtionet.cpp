@@ -50,9 +50,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase()),
-    _link_out(drop), 
-    /** 1024 buffers to start with */
-    bufstore_(1024, sizeof(net::Packet) + bufsize())
+    _link_out(drop),
+    /** 2048 buffers to start with */
+    bufstore_(2048, sizeof(net::Packet) + bufsize())
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
@@ -210,16 +210,16 @@ void VirtioNet::msix_xmit_handler()
     // FIXME Unfortunately dequeue is not working here
     // I am guessing that Linux is eating the buffers?
     tx_q.dequeue();
-    
+
     // unlock and release the (assumed) locked buffer
     auto data = tx_ringq.front();
     tx_ringq.pop_front();
     bufstore_.unlock_and_release(data);
-    
+
     dequeued_tx = true;
   }
   tx_q.enable_interrupts();
-  
+
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
   if (dequeued_tx) {
@@ -324,12 +324,12 @@ void VirtioNet::service_queues(){
       // FIXME Unfortunately dequeue is not working here
       // I am guessing that Linux is eating the buffers
       tx_q.dequeue();
-      
+
       // unlock and release the (assumed) locked buffer
       auto data = tx_ringq.front();
       tx_ringq.pop_front();
       bufstore_.unlock_and_release( data );
-      
+
       dequeued_tx++;
     }
 
@@ -448,6 +448,7 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
 }
 
 #define NO_DEFERRED_KICK
+#include <timer>
 
 void VirtioNet::begin_deferred_kick(uint8_t mask)
 {
@@ -457,8 +458,8 @@ void VirtioNet::begin_deferred_kick(uint8_t mask)
 #else
   if (!deferred_kick) {
     using namespace std::chrono;
-    hw::PIT::instance().on_timeout_ms(1ms, 
-    [this] {
+    Timers::oneshot(microseconds(50),
+    [this] (Timers::id_t) {
       if (deferred_kick & 1)  rx_q.kick();
       if (deferred_kick & 2)  tx_q.kick();
       deferred_kick = 0;

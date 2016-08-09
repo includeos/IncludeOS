@@ -25,10 +25,12 @@
 #include <kernel/elf.hpp>
 #include <hw/acpi.hpp>
 #include <hw/apic.hpp>
+#include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
 #include <hw/serial.hpp>
-#include <kernel/pci_manager.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/pci_manager.hpp>
+#include <kernel/timer.hpp>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -164,13 +166,32 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(10 samples, %f sec. interval)",
-  (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+        (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
   cpu_mhz_ = hw::PIT::CPU_frequency();
-
   INFO2("+--> %f MHz", cpu_mhz_.count());
+
+  // cpu_mhz must be known before we can start timer system
+  /// initialize timers hooked up to APIC timer
+  Timers::init(
+    // timer start function
+    [] (Timers::duration_t when) {
+      // explicit conversion to microseconds
+      hw::APIC_Timer::oneshot(std::chrono::microseconds(when).count());
+    }, 
+    // timer stop function
+    hw::APIC_Timer::stop);
+
+  // initialize BSP APIC timer
+  hw::APIC_Timer::init(
+  [] {
+    // set final interrupt handler
+    hw::APIC_Timer::set_handler(Timers::timers_handler);
+    // signal ready
+    Timers::ready();
+  });
 
   // Initialize CMOS
   cmos::init();

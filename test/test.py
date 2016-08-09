@@ -5,6 +5,7 @@ import sys
 import os
 import argparse
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
 
 """

@@ -45,15 +45,16 @@ Serial::Serial(int port) :
 void Serial::on_data(on_data_handler del){
   enable_interrupt();
   on_data_=del;
+  INFO("Serial", "Subscribing to data on IRQ %i",irq_);
   IRQ_manager::cpu(0).subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
-  INFO("Serial", "Subscribing to IRQ %i \n",irq_);
+  IRQ_manager::cpu(0).enable_irq(irq_);
 }
 
 void Serial::on_readline(on_string_handler del, char delim){
   newline = delim;
   on_readline_ = del;
   on_data(on_data_handler::from<Serial,&Serial::readline_handler_>(this));
-  INFO("Serial::on_readline", "Subscribing to data %i \n",irq_);
+  debug("<Serial::on_readline> Subscribing to data %i \n", irq_);
 }
 
 

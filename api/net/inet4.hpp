@@ -28,7 +28,7 @@
 #include "ip4/udp.hpp"
 #include "ip4/icmpv4.hpp"
 #include "dns/client.hpp"
-#include "tcp.hpp"
+#include "tcp/tcp.hpp"
 #include <vector>
 
 namespace net {
@@ -39,6 +39,7 @@ namespace net {
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
+    using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
     Ethernet::addr link_addr() override
     { return eth_.mac(); }
@@ -104,10 +105,20 @@ namespace net {
       this->dns_server = server;
     }
 
+    /**
+     * @brief Try to negotiate DHCP
+     * @details Initialize DHClient if not present and tries to negotitate dhcp.
+     * Also takes an optional timeout parameter and optional timeout function.
+     *
+     * @param timeout number of seconds before request should timeout
+     * @param dhcp_timeout_func DHCP timeout handler
+     */
+    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
     // the timeout parameter indicates whether dhcp negotitation failed
-    void on_config(delegate<void(bool)> handler);
+    void on_config(dhcp_timeout_func handler);
 
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
@@ -175,7 +186,7 @@ namespace net {
 
 namespace net {
   template <int N = 0, typename Driver = VirtioNet>
-  inline auto new_ipv4_stack(const double timeout, delegate<void(bool)> handler)
+  inline auto new_ipv4_stack(const double timeout, typename Inet4<Driver>::dhcp_timeout_func handler)
   {
     auto& eth = hw::Dev::eth<N,Driver>();
     auto inet = std::make_unique<net::Inet4<Driver>>(eth, timeout);
