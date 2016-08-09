@@ -134,6 +134,7 @@ public:
         req.second(req.first.offset);
       q.pop_front();
     }
+    current = 0;
   }
 
 private:
