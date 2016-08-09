@@ -3,12 +3,11 @@
 #include <hw/pit.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
-#include <deque>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
 
-#define BUFFER_COUNT    6000
+#define BUFFER_COUNT    2048
 
 template <typename T, int N>
 struct fixedvector {
@@ -33,8 +32,11 @@ struct fixedvector {
     return &element[count];
   }
   
+  bool free_capacity() const noexcept {
+    return count < N;
+  }
+  
   void clone(T* src, uint32_t size) {
-    assert(size <= N);
     memcpy(element, src, size * sizeof(T));
     count = size;
   }
@@ -85,8 +87,9 @@ void profiler_stack_sampler()
   // ignore event loop
   if (ra == event_loop_addr) return;
   
-  // add to queue
-  sampler_queue->add((uintptr_t) ra);
+  // need free space to take more samples
+  if (sampler_queue->free_capacity())
+      sampler_queue->add((uintptr_t) ra);
   
   // return when its not our turn
   if (lockless_sampler) return;
