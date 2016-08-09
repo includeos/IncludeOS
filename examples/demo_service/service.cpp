@@ -94,7 +94,7 @@ void Service::start()
     printf("<Service> @onConnect - Connection successfully established.\n");
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
-    conn->read(1024,
+    conn->on_read(1024,
     [conn] (net::tcp::buffer_t buf, size_t n) {
       // create string from buffer
       std::string data { (char*)buf.get(), n };
