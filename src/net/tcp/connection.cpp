@@ -71,37 +71,17 @@ void Connection::setup_default_callbacks() {
   _on_cleanup_          = CleanupCallback::from<Connection, &Connection::default_on_cleanup>(this);
 }
 
-inline uint16_t Connection::MSDS() const {
+uint16_t Connection::MSDS() const {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
-inline uint16_t Connection::SMSS() const {
+uint16_t Connection::SMSS() const {
   return host_.MSS();
 }
 
 Socket Connection::local() const {
   return {host_.address(), local_port_};
 }
-
-inline bool Connection::has_doable_job() {
-  return writeq.remaining_requests() and usable_window() >= SMSS();
-}
-
-Connection::TCB::TCB() {
-  SND = { 0, 0, default_window_size, 0, 0, 0, default_mss };
-  ISS = (seq_t)4815162342;
-  RCV = { 0, default_window_size, 0, 0 };
-  IRS = 0;
-  ssthresh = default_window_size;
-  cwnd = 0;
-  recover = 0;
-};
-
-void Connection::TCB::init() {
-  ISS = TCP::generate_iss();
-  recover = ISS; // [RFC 6582]
-}
-
 
 void Connection::read(ReadBuffer buffer, ReadCallback callback) {
   try {
@@ -811,7 +791,7 @@ void Connection::rtx_timeout(uint32_t) {
 }
 
 seq_t Connection::generate_iss() {
-  return host_.generate_iss();
+  return TCP::generate_iss();
 }
 
 void Connection::set_state(State& state) {
@@ -947,38 +927,37 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
 }
 
 
-void Connection::default_on_connect(Connection_ptr) {
-
-}
+void Connection::default_on_connect(Connection_ptr) { }
 
 void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
   if(!conn->is_closing())
     conn->close();
 }
 
-void Connection::default_on_error(TCPException) {
-  //debug2("<TCP::Connection::@Error> TCPException: %s \n", error.what());
+void Connection::default_on_close() { }
+
+void Connection::default_on_error(TCPException error) {
+  (void)error
+  debug("<Connection::@Error> TCPException: %s \n", error.what());
 }
 
-void Connection::default_on_packet_received(Packet_ptr) {
+void Connection::default_on_packet_received(Packet_ptr) { }
 
+void Connection::default_on_packet_dropped(Packet_ptr p , std::string reason) {
+  (void)p, (void)reason;
+  debug2("<Connection::@PacketDropped> %s - %s", p->to_string().c_str(), reason.c_str());
 }
 
-void Connection::default_on_packet_dropped(Packet_ptr, std::string) {
-
+void Connection::default_on_rtx_timeout(size_t n, double rto) {
+  (void)n, (void)rto;
+  debug2("<Connection::@RtxTimeout> Attempt#: %u RTO: %f", n, rto);
 }
 
-void Connection::default_on_rtx_timeout(size_t, double) {
 
-}
 
-void Connection::default_on_close() {
+void Connection::default_on_cleanup(Connection_ptr) { }
 
-}
-
-void Connection::default_on_cleanup(Connection_ptr) {
-
-}
+void Connection::default_on_write(size_t) { }
 
 void Connection::setup_congestion_control() {
   reno_init();

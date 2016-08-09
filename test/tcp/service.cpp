@@ -267,7 +267,7 @@ void Service::start()
             OUTGOING_TEST({inet->router(), TEST5});
           });
 
-        Timers::oneshot(3s, [] (Timers::id_t) { FINISH_TEST(); });
+        Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });
       });
 
       // Test for active close.
