@@ -48,6 +48,7 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
 {
   setup_congestion_control();
   setup_default_callbacks();
+  debug("<Connection> %s created\n", to_string().c_str());
 }
 
 /*
@@ -113,6 +114,7 @@ void Connection::read(ReadBuffer buffer, ReadCallback callback) {
 }
 
 size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
+  //printf("<Connection::receive> len=%u\n", n);
   // should not be called without an read request
   assert(read_request.buffer.capacity());
   assert(n);
@@ -125,6 +127,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
       // buffer should be full
       assert(buf.full());
       // signal the user
+      debug2("<Connection::receive> Buffer full - signal user\n");
       read_request.callback(buf.buffer, buf.size());
       // renew the buffer, releasing the old one
       buf.renew();
@@ -138,6 +141,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   // end of data, signal the user
   if(PUSH) {
     buf.push = PUSH;
+    debug2("<Connection::receive> PUSH present - signal user\n");
     read_request.callback(buf.buffer, buf.size());
     // renew the buffer, releasing the old one
     buf.renew();
@@ -168,7 +172,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
 void Connection::offer(size_t& packets) {
   Expects(packets);
 
-  debug("<TCP::Connection::offer> %s got offered [%u] packets. Usable window is %u.\n",
+  debug("<Connection::offer> %s got offered [%u] packets. Usable window is %u.\n",
         to_string().c_str(), packets, usable_window());
 
   // write until we either cant send more (window closes or no more in queue),
@@ -187,13 +191,13 @@ void Connection::offer(size_t& packets) {
     // advance the write q
     writeq.advance(written);
 
-    debug2("<TCP::Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
+    debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
     transmit(packet);
   }
 
-  debug("<TCP::Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
+  debug("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
 }
 
@@ -265,10 +269,13 @@ void Connection::make_flight_ready(Packet_ptr packet) {
 }*/
 
 void Connection::writeq_push() {
-  while(writeq.remaining_requests()) {
+  while(writeq.remaining_requests() and not queued_) {
+    debug("<Connection::writeq_push> Processing writeq, rem=%u queued=%u\n",
+      writeq.remaining_requests(), queued_);
     auto& buf = writeq.nxt();
     auto written = host_.send(shared_from_this(), (char*)buf.pos(), buf.remaining);
-    writeq.advance(written);
+    if(written)
+      writeq.advance(written);
     if(buf.remaining)
       return;
   }
@@ -389,7 +396,7 @@ bool Connection::is_listening() const {
 Connection::~Connection() {
   // Do all necessary clean up.
   // Free up buffers etc.
-  debug("<Connection::~Connection> Remote: %u\n", remote_.port());
+  debug2("<Connection::~Connection> Deleted %s\n", to_string().c_str());
   rtx_clear();
 }
 
@@ -843,10 +850,12 @@ void Connection::signal_close() {
 }
 
 void Connection::clean_up() {
+  // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
+  // avoids connection being destructed before function is done
+  auto shared = shared_from_this();
   // clean up all other copies
   // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
-  _on_cleanup_(shared_from_this());
-  printf("<Connection::clean_up> _on_cleanup_ called\n");
+  _on_cleanup_(shared);
 
   on_connect_.reset();
   on_disconnect_.reset(),
@@ -856,9 +865,8 @@ void Connection::clean_up() {
   read_request.clean_up();
   _on_cleanup_.reset();
 
-  printf("<Connection::clean_up> Delegates reset\n");
   rtx_clear();
-  printf("<Connection::rtx_clear> Rtx timer cleared\n");
+  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
 std::string Connection::TCB::to_string() const {

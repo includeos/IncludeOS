@@ -100,7 +100,7 @@ public:
     auto& buf = q.at(current).first;
     buf.advance(bytes);
 
-    printf("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
+    debug("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
       bytes, buf.offset, buf.remaining, buf.acknowledged);
 
     if(!buf.remaining) {
