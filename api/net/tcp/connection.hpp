@@ -43,6 +43,10 @@ class Connection : public std::enable_shared_from_this<Connection> {
 public:
   /** Connection identifier */
   using Tuple = std::pair<port_t, Socket>;
+  /** Interface for TCP states */
+  class State;
+  /** Disconnect event */
+  struct Disconnect;
 
   /*
     Callback when a receive buffer receives either push or is full
@@ -73,56 +77,56 @@ public:
     }
   };
 
-  /// CALLBACKS ///
-  /*
-    On connection attempt - When a remote sends SYN to connection in LISTENING state.
-    First thing that will happen.
-  */
-  using AcceptCallback                      = delegate<bool(Connection_ptr)>;
 
   /*
     On connected - When both hosts exchanged sequence numbers (handshake is done).
     Now in ESTABLISHED state - it's allowed to write and read to/from the remote.
   */
-  using ConnectCallback                     = delegate<void(Connection_ptr)>;
+  using ConnectCallback                     = delegate<void(Connection_ptr self)>;
+  inline Connection& on_connect(ConnectCallback);
 
   /*
     On disconnect - When a remote told it wanna close the connection.
     Connection has received a FIN, currently last thing that will happen before a connection is remoed.
   */
-  struct Disconnect;
 
   // TODO: Remove reference to Connection, probably not needed..
-  using DisconnectCallback          = delegate<void(Connection_ptr, Disconnect)>;
+  using DisconnectCallback          = delegate<void(Connection_ptr self, Disconnect)>;
+  inline Connection& on_disconnect(DisconnectCallback);
 
   /*
     On error - When any of the users request fails.
   */
-  using ErrorCallback                         = delegate<void(Connection_ptr, TCPException)>;
+  using ErrorCallback                         = delegate<void(TCPException)>;
+  inline Connection& on_error(ErrorCallback);
 
   /*
     When a packet is received - Everytime a connection receives an incoming packet.
     Would probably be used for debugging.
     (Currently not in use)
   */
-  using PacketReceivedCallback      = delegate<void(std::shared_ptr<Connection>, Packet_ptr)>;
+  using PacketReceivedCallback      = delegate<void(Packet_ptr)>;
+  inline Connection& on_packet_received(PacketReceivedCallback);
 
   /*
     When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
     Can be used for debugging.
   */
   using PacketDroppedCallback               = delegate<void(Packet_ptr, std::string)>;
+  inline Connection& on_packet_dropped(PacketDroppedCallback);
 
   /**
    * Emitted on RTO - When the retransmission timer times out, before retransmitting.
    * Gives the current attempt and the current timeout in seconds.
    */
   using RtxTimeoutCallback                = delegate<void(size_t no_attempts, double rto)>;
+  inline Connection& on_rtx_timeout(RtxTimeoutCallback);
 
   /**
    * Emitted right before the connection gets cleaned up
    */
   using CloseCallback                     = delegate<void()>;
+  inline Connection& on_close(CloseCallback);
 
   /**
    * @brief Cleanup callback
@@ -131,65 +135,8 @@ public:
    *
    * @param  Connection to be cleaned up
    */
-  using CleanupCallback                   = delegate<void(Connection_ptr)>;
-
-  /*
-    Set callback for ACCEPT event.
-  */
-  inline Connection& on_accept(AcceptCallback callback) {
-    on_accept_ = callback;
-    return *this;
-  }
-
-  /*
-    Set callback for CONNECT event.
-  */
-  inline Connection& on_connect(ConnectCallback callback) {
-    on_connect_ = callback;
-    return *this;
-  }
-
-  /*
-    Set callback for DISCONNECT event.
-  */
-  inline Connection& on_disconnect(DisconnectCallback callback) {
-    on_disconnect_ = callback;
-    return *this;
-  }
-
-  /*
-    Set callback for ERROR event.
-  */
-  inline Connection& on_error(ErrorCallback callback) {
-    on_error_ = callback;
-    return *this;
-  }
-
-  /*
-    Set callback for every packet received.
-  */
-  inline Connection& on_packet_received(PacketReceivedCallback callback) {
-    on_packet_received_ = callback;
-    return *this;
-  }
-
-  /*
-    Set callback for when a packet is dropped.
-  */
-  inline Connection& on_packet_dropped(PacketDroppedCallback callback) {
-    on_packet_dropped_ = callback;
-    return *this;
-  }
-
-  inline Connection& on_rtx_timeout(RtxTimeoutCallback cb) {
-    on_rtx_timeout_ = cb;
-    return *this;
-  }
-
-  inline Connection& on_close(CloseCallback cb) {
-    on_close_ = cb;
-    return *this;
-  }
+  using CleanupCallback                   = delegate<void(Connection_ptr self)>;
+  inline Connection& _on_cleanup(CleanupCallback);
 
 
   /*
@@ -632,10 +579,6 @@ private:
 
   /// CALLBACK HANDLING ///
 
-  /* When a Connection is initiated. */
-  AcceptCallback on_accept_;
-  bool default_on_accept(Connection_ptr);
-
   /* When Connection is ESTABLISHED. */
   ConnectCallback on_connect_;
   void default_on_connect(Connection_ptr);
@@ -646,11 +589,11 @@ private:
 
   /* When error occcured. */
   ErrorCallback on_error_;
-  void default_on_error(Connection_ptr, TCPException);
+  void default_on_error(TCPException);
 
   /* When packet is received */
   PacketReceivedCallback on_packet_received_;
-  void default_on_packet_received(Connection_ptr, Packet_ptr);
+  void default_on_packet_received(Packet_ptr);
 
   /* When a packet is dropped. */
   PacketDroppedCallback on_packet_dropped_;
@@ -664,13 +607,6 @@ private:
 
   CleanupCallback _on_cleanup_;
   void default_on_cleanup(Connection_ptr);
-
-  Connection& _on_cleanup(CleanupCallback cb)
-  {
-    _on_cleanup_ = cb;
-    return *this;
-  }
-
 
   /// READING ///
 
@@ -760,9 +696,6 @@ private:
   /*
     Invoke/signal the diffrent TCP events.
   */
-  inline bool signal_accept()
-  { return on_accept_(shared_from_this()); }
-
   inline void signal_connect()
   { on_connect_(shared_from_this()); }
 
@@ -770,10 +703,10 @@ private:
   { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
   inline void signal_error(TCPException error)
-  { on_error_(shared_from_this(), error); }
+  { on_error_(std::forward<TCPException>(error)); }
 
   inline void signal_packet_received(Packet_ptr packet)
-  { on_packet_received_(shared_from_this(), packet); }
+  { on_packet_received_(packet); }
 
   inline void signal_packet_dropped(Packet_ptr packet, std::string reason)
   { on_packet_dropped_(packet, reason); }
@@ -1039,5 +972,7 @@ private:
 
 } // < namespace net
 } // < namespace tcp
+
+#include "connection.inc"
 
 #endif // < NET_TCP_CONNECTION_HPP

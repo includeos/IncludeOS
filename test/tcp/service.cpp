@@ -50,15 +50,15 @@ TEST_STR {"Kappa!"};
 size_t buffers_available{0};
 
 // Default MSL is 30s. Timeout 2*MSL.
-// To reduce test duration, lower MSL to 5s.
-milliseconds MSL_TEST = 5s;
+// To reduce test duration, lower MSL to 3s.
+milliseconds MSL_TEST = 3s;
 
 /*
   TEST: Release of resources/clean up.
 */
 void FINISH_TEST() {
   INFO("TEST", "Started 3 x MSL timeout.");
-  Timers::oneshot(3 * MSL_TEST, 
+  Timers::oneshot(3 * MSL_TEST,
   [] (Timers::id_t) {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(inet->tcp().active_connections() == 0,
@@ -89,7 +89,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
                   CHECK(n > 0, "Received a response");
                 });
             })
-          .on_error([](auto, tcp::TCPException err) {
+          .on_error([](tcp::TCPException err) {
               CHECK(false, "Error occured: %s", err.what());
             });
       }

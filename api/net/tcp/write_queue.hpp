@@ -52,7 +52,7 @@ public:
     and "step back".
   */
   void acknowledge(size_t bytes) {
-    debug2("<Connection::WriteQueue> Acknowledge %u bytes\n",bytes);
+    debug2("<WriteQueue> Acknowledge %u bytes\n",bytes);
     while(bytes and !q.empty())
     {
       auto& buf = q.front().first;
@@ -61,7 +61,7 @@ public:
       if(buf.done()) {
         q.pop_front();
         current--;
-        debug("<Connection::WriteQueue> Acknowledge done, current-- [%u]\n", current);
+        printf("<WriteQueue> Acknowledge done, current-- [%u]\n", current);
       }
     }
   }
@@ -107,7 +107,7 @@ public:
       // make sure to advance current before callback is made,
       // but after index (current) is received.
       q.at(current++).second(buf.offset);
-      debug("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
+      printf("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
         buf.offset, current);
     }
   }
@@ -117,7 +117,7 @@ public:
     If the queue was empty/finished, point current to the new request.
   */
   void push_back(const WriteRequest& wr) {
-    debug("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
+    printf("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
       wr.first.offset, wr.first.remaining, wr.first.acknowledged, current, size());
     q.push_back(wr);
   }

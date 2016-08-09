@@ -210,9 +210,10 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 }
 
 void TCP::process_writeq(size_t packets) {
-  debug2("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
+  debug("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
   while(packets and !writeq.empty()) {
+    debug("<TCP::process_writeq> Processing writeq size=%u, p=%u\n", writeq.size(), packets);
     auto conn = writeq.front();
     writeq.pop_back();
     conn->offer(packets);
@@ -232,7 +233,7 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   // if connection still can send (means there wasn't enough packets)
   // only requeue if not already queued
   if(conn->can_send() and !conn->is_queued()) {
-    debug2("<TCP::send> Conn queued.\n");
+    debug("<TCP::send> %s queued\n", conn->to_string().c_str());
     writeq.push_back(conn);
     conn->set_queued(true);
   }
