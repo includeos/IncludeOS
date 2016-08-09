@@ -41,19 +41,19 @@ public:
 
   Listener(TCP& host, port_t port);
 
-  inline Listener& on_accept(AcceptCallback cb)
+  Listener& on_accept(AcceptCallback cb)
   {
     on_accept_ = cb;
     return *this;
   }
 
-  inline Listener& on_connect(ConnectCallback cb)
+  Listener& on_connect(ConnectCallback cb)
   {
     on_connect_ = cb;
     return *this;
   }
 
-  inline bool syn_queue_full() const
+  bool syn_queue_full() const
   { return syn_queue_.size() >= max_syn_backlog; }
 
   /**
@@ -76,10 +76,9 @@ private:
   /** */
   ConnectCallback on_connect_;
 
-  bool default_on_accept(Socket)
-  { return true; }
+  bool default_on_accept(Socket);
 
-  void default_on_connect(Connection_ptr) {}
+  void default_on_connect(Connection_ptr);
 
   void segment_arrived(Packet_ptr);
 
