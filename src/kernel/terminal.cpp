@@ -31,7 +31,7 @@ Terminal::Terminal()
 Terminal::Terminal(Connection_ptr csock)
   : Terminal()
 {
-  csock->read(1024, [this](auto buffer, size_t n) {
+  csock->on_read(1024, [this](auto buffer, size_t n) {
     this->read((char*)buffer.get(), n);
   });
 

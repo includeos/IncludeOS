@@ -29,7 +29,7 @@ void Async::upload_file(
       debug("sock write: %u / %u\n", n, length);
       next(n == length);
 
-    }, true);
+    });
 
   }, callback, CHUNK_SIZE);
 }

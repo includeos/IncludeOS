@@ -116,7 +116,7 @@ void Service::start() {
   });
 */
   server_mem.on_connect([] (auto conn) {
-      conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
+      conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
@@ -139,7 +139,7 @@ void Service::start() {
   server.on_connect([] (auto conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
-        conn->read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
+        conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
             TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };
