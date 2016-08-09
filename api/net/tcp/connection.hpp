@@ -55,7 +55,7 @@ public:
     Callback when a receive buffer receives either push or is full
     - Supplied on asynchronous read
   */
-  using ReadCallback = delegate<void(buffer_t, size_t)>;
+
 
   using WriteCallback = WriteQueue::WriteCallback;
 
@@ -68,6 +68,9 @@ public:
   */
   using ConnectCallback                     = delegate<void(Connection_ptr self)>;
   inline Connection& on_connect(ConnectCallback);
+
+  using ReadCallback = delegate<void(buffer_t, size_t)>;
+  inline Connection& on_read(size_t recv_bufsz, ReadCallback);
 
   /*
     On disconnect - When a remote told it wanna close the connection.
@@ -332,29 +335,6 @@ public:
 
 
   /*
-    Read asynchronous from a remote.
-
-    Create n sized internal read buffer and callback for when data is received.
-    Callback will be called until overwritten with a new read() or connection closes.
-    Buffer is cleared for data after every reset.
-  */
-  inline void read(size_t n, ReadCallback callback) {
-    ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
-    read(buffer, callback);
-  }
-
-  /*
-    Assign the connections receive buffer and callback for when data is received.
-    Works as read(size_t, ReadCallback);
-  */
-  inline void read(buffer_t buffer, size_t n, ReadCallback callback) {
-    read({buffer, n}, callback);
-  }
-
-  void read(ReadBuffer buffer, ReadCallback callback);
-
-
-  /*
     Write asynchronous to a remote.
 
     Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
@@ -593,6 +573,28 @@ private:
   void default_on_cleanup(Connection_ptr);
 
   /// READING ///
+
+  /*
+    Read asynchronous from a remote.
+
+    Create n sized internal read buffer and callback for when data is received.
+    Callback will be called until overwritten with a new read() or connection closes.
+    Buffer is cleared for data after every reset.
+  */
+  inline void read(size_t n, ReadCallback callback) {
+    ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
+    read(buffer, callback);
+  }
+
+  /*
+    Assign the connections receive buffer and callback for when data is received.
+    Works as read(size_t, ReadCallback);
+  */
+  inline void read(buffer_t buffer, size_t n, ReadCallback callback) {
+    read({buffer, n}, callback);
+  }
+
+  void read(ReadBuffer buffer, ReadCallback callback);
 
   /*
     Assign the read request (read buffer)

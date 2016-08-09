@@ -8,6 +8,11 @@ inline Connection& Connection::on_connect(ConnectCallback cb) {
   return *this;
 }
 
+inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb) {
+  read(recv_bufsz, cb);
+  return *this;
+}
+
 inline Connection& Connection::on_disconnect(DisconnectCallback cb) {
   on_disconnect_ = cb;
   return *this;
