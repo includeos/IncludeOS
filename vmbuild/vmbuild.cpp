@@ -21,11 +21,15 @@
 #include <iostream>
 
 #include <assert.h>
+#include <elf_binary.hpp>
 #include <elf.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
+#include <boot/multiboot.h>
+#include <gsl.h>
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666
@@ -45,6 +49,7 @@ static const string usage {"Usage: vmbuild <service_binary> [<bootloader>][-test
 class Vmbuild_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
+
 
 int main(int argc, char** argv) {
 
@@ -131,6 +136,7 @@ int main(int argc, char** argv) {
        << disk_size << " bytes\n";
 
   vector<char> disk (disk_size);
+
   auto* disk_head = disk.data();
 
   ifstream file_boot {bootloader_path}; //< Load the boot loader into memory
@@ -145,54 +151,52 @@ int main(int argc, char** argv) {
   cout << "Read " << file_binary.read(binary_imgloc, stat_binary.st_size).gcount()
        << " bytes from service image\n";
 
-
   // Validate ELF binary
-  Elf32_Ehdr* elf_header {reinterpret_cast<Elf32_Ehdr*>(binary_imgloc)};
+  Elf_binary binary ({binary_imgloc, stat_binary.st_size});
 
-  cout << "Reading ELF headers...\n";
-  cout << "Signature: ";
+  /**
+  auto section_headers = binary.section_headers();
 
-  for(int i {0}; i < EI_NIDENT; ++i) {
-    cout << elf_header->e_ident[i];
+  for (auto& sh : section_headers) {
+    cout << "Section header: " << binary.section_header_name(sh) << " size: " << sh.sh_size << "  \n";
   }
 
-  cout << "\nType: " << ((elf_header->e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
-  cout << "Machine: ";
+  // Getting a section header and contents by name
+  auto& comment = binary.section_header(".comment");
 
-  if (elf_header->e_type != ET_EXEC)
-    throw Vmbuild_error("Not an executable ELF binary.");
+  auto comment_data = binary.section_data(comment);
 
-  switch (elf_header->e_machine) {
-  case (EM_386):
-    cout << "Intel 80386\n";
-    break;
-  case (EM_X86_64):
-    cout << "Intel x86_64\n";
-    break;
-  default:
-    cout << "UNKNOWN (" << elf_header->e_machine << ")\n";
-    break;
-  } //< switch (elf_header->e_machine)
+  std::cout << ".comment content: \n'";
+  for (auto c : comment_data)
+    std::cout << c;
+  std::cout << "'\n";
+  **/
 
-  cout << "Version: "                   << elf_header->e_version      << '\n';
-  cout << "Entry point: 0x"             << std::hex << elf_header->e_entry << '\n';
-  cout << "Number of program headers: " << std::dec << elf_header->e_phnum        << '\n';
-  cout << "Program header offset: "     << elf_header->e_phoff        << '\n';
-  cout << "Number of section headers: " << elf_header->e_shnum        << '\n';
-  cout << "Section header offset: "     << elf_header->e_shoff        << '\n';
-  cout << "Size of ELF-header: "        << elf_header->e_ehsize << " bytes\n";
+  // Verify multiboot header
+  auto& sh_multiboot = binary.section_header(".multiboot");
+  multiboot_header_t& multiboot = *reinterpret_cast<multiboot_header_t*>(binary.section_data(sh_multiboot).data());
 
-  cout << "\nFetching offset of section .text (the service starting point)\n";
 
-  Elf32_Phdr* prog_hdr {reinterpret_cast<Elf32_Phdr*>(binary_imgloc + elf_header->e_phoff)};
+  cout << "Verifying multiboot header: \n";
+  cout << "Magic value: 0x" << std::hex << multiboot.magic << "\n";
+  Expects(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
 
-  cout << "Starting at pheader 1, phys.addr: 0x" << hex << prog_hdr->p_paddr << '\n';
+  cout << "Flags: " << multiboot.flags << "\n";
+  cout << "Checksum: " << multiboot.checksum << "\n";
+  cout << "Checksum computed: " << multiboot.checksum + multiboot.flags + multiboot.magic << "\n";
 
-  decltype(elf_header->e_entry) binary_start {elf_header->e_entry};
+  // Verify multiboot header checksum
+  Expects(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
 
-  // Write OS/Service size to the bootloader
+  cout << "Header addr: " << multiboot.header_addr << "\n";
+  cout << "Load start: " << multiboot.load_addr << "\n";
+  cout << "Load end: " << multiboot.load_end_addr << "\n";
+  cout << "BSS end: " << multiboot.bss_end_addr << "\n";
+  cout << "Entry: " << multiboot.entry_addr << "\n";
+
+  // Write binary size and entry point to the bootloader
   *(reinterpret_cast<int*>(disk_head + bootvar_binary_size)) = binary_sectors;
-  *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary_start;
+  *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
 
   if (test) {
     cout << "\nTEST overwriting service with testdata\n";
