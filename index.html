@@ -1,6 +1,6 @@
 <!doctype html>
-<html itemscope itemtype ="http://schema.org/SoftwareApplication">
-  <head >
+<html lang="en" itemscope itemtype ="http://schema.org/SoftwareApplication">
+  <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title itemprop="name">IncludeOS</title>
@@ -17,48 +17,38 @@
       <header>
         <img alt="IncludeOS" src="doc/IncludeOS_logo.svg"></img>
         <p itemprop="description">A minimal, service oriented, includeable <span itemprop="applicationCategory">library operating system</span> for cloud services</p>
-	
+
         <p class="view"><a href="https://github.com/hioa-cs/IncludeOS">View the Project on GitHub <small>hioa-cs/IncludeOS</small></a></p>
 
         <ul>
           <li><a href="https://github.com/hioa-cs/IncludeOS/zipball/master">Download <strong>ZIP File</strong></a></li>
           <li><a href="https://github.com/hioa-cs/IncludeOS/tarball/master">Download <strong>TAR Ball</strong></a></li>
           <li><a href="https://github.com/hioa-cs/IncludeOS">View On <strong>GitHub</strong></a></li>
-        </ul> 
+        </ul>
       </header>
       <section>
-        <h3>
-	  <a id="run-your-c-code-directly-on-virtual-hardware" class="anchor" href="#run-your-c-code-directly-on-virtual-hardware" aria-hidden="true"><span class="octicon octicon-link"></span></a>Run your C++ code directly on virtual hardware</h3>
-	
-	<p>IncludeOS aims to be the thinnest, lightest possible layer, between your C++ code and virtual hardware. We provide a bootloader, standard libraries, lots (we hope) of modules, and the build- and deployment system. You provide the service.</p>
-	<p> IncludeOS is designed for <span itemprop="availableOnDevice">KVM</span>/<span itemprop="operatingSystem">Linux</span> but previous versions have also been tested successfully on <span itemprop="availableOnDevice">VirtualBox</span> (which again runs on <span itemprop="operatingSystem"> OS X</span> <span itemprop="operatingSystem">Windows</span> and Linux) and <span itemprop="availableOnDevice">Bochs</span></p>
-	<h3>
-	  <a id="its-a-prototype---be-patient" class="anchor" href="#its-a-prototype---be-patient" aria-hidden="true"><span class="octicon octicon-link"></span></a>It's a prototype - be patient!</h3>
-	
-	<p>IncludeOS is not production ready - but we're working hard to become so.</p>
-	
-	
-	<h3>
-	  <a id="a-research-project" class="anchor" href="#a-research-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>It's a research project</h3>
+		  <h3>What is IncludeOS?</h3>
 
-	<p>IncludeOS is the result of a research project at Oslo and Akershus University College of Applied Science (<a href="http://www.hioa.no/eng">hioa.no</a>)</p>
-	<p>A paper titled <i>IncludeOS: a resource efficient unikernel for cloud services</i>, which presents the first prototype,  will appear at <a href="http://2015.cloudcom.org/">IEEE CloudCom 2015</a></p>
-	
-	<h3>
-	  <a id="contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h3>
-	<p>IncludeOS was created by <a href="https://github.com/alfred-bratterud" class="user-mention">@alfred-bratterud</a>, with lots of contributions from <a href="https://github.com/fwsgonzo" class="user-mention">@fwsgonzo</a> and others at the <a href="http://www.hioa.no/eng/Forskning-og-utvikling/Hva-forsker-HiOA-paa/FoU-ved-Fakultet-for-teknologi-kunst-og-design/node_73129/Network-and-System-Administration-NETSYS">NETSYS group</a> at HiOA.	  
-	</p>
-	
-	
+	<p>IncludeOS is an includable, minimal unikernel operating system for C++ services running in the cloud. We provide a bootloader, standard libraries and the build- and deployment system. You just provide the service.</p>
 
-	
+	<p>Test in VirtualBox or QEMU, and deploy your service on OpenStack.</p>
 
-	<!-- <h3>
-	  <a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support or Contact</h3> 
-	
-	<p>Having trouble? Please not that this is a prototype! Feel free to post issues in the issue tracker, or contact us via mail, for general questions.</p> -->
+	<h3>Learn more</h3>
+
+	<p>Read about <a href="http://www.infoworld.com/article/3011086/cloud-computing/includeos-run-cloud-applications-with-less.html">IncludeOS in InfoWorld</a>, listen to a <a href="http://cppcast.com/2016/07/alfred-bratterud/">podcast about IncludeOS</a> or read <a href="https://github.com/hioa-cs/IncludeOS/blob/master/doc/papers/IncludeOS_IEEE_CloudCom2015_PREPRINT.pdf">IncludeOS: A Minimal, Resource Efficient Unikernel for Cloud Services</a>.</p>
+
+	<h3>Getting started</h3>
+
+	<p>Everyting is on GitHub: Just follow the simple <a href="https://github.com/hioa-cs/IncludeOS#getting-started">installation instructions</a>, and you will be <a href="https://github.com/hioa-cs/IncludeOS#writing-your-first-service">writing your first service</a> in no time. You can also read the <a href="https://github.com/hioa-cs/IncludeOS/wiki">documentation</a> and look at known <a href="https://github.com/hioa-cs/IncludeOS/issues">issues and feature requests</a>.</p>
+
+	<p>If you want a command line interface, there is support for IncludeOS unikernels in <a href="https://github.com/emc-advanced-dev/unik">UniK</a>, the Unikernel Compilation and Deployment Platform from EMC.</p>
+
+	<h3>Contributing</h3>
+
+	<p>IncludeOS is being <a href="https://github.com/hioa-cs/IncludeOS">developed on GitHub</a>. Create your own fork, send us a pull request, and <a href="https://gitter.im/hioa-cs/IncludeOS">chat with us on Gitter</a>.</p>
+
       </section>
-      
+
       <footer>
         <p>This project is maintained by <a href="https://github.com/hioa-cs">hioa-cs</a></p>
         <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
@@ -75,6 +65,6 @@
       pageTracker._trackPageview();
       } catch(err) {}
     </script>
-    
+
   </body>
 </html>
