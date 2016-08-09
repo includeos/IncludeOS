@@ -15,9 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Compile and run: g++ -Wall -Wextra -std=c++11 -I../include/lest -o cookie_jar_test.exe cookie_jar_test.cpp && ./cookie_jar_test.exe
-
-#include <map>
+// Compile and run: g++ -Wall -Wextra -std=c++14 -I../include/lest -o cookie_jar_test cookie_jar_test.cpp && ./cookie_jar_test
 
 #include "../lest/include/lest/lest.hpp"
 #include "../../cookie/cookie_jar.cpp"
@@ -35,8 +33,7 @@ const lest::test test_cookie_jar[] =
       /* TODO: Not working when declared the CookieJar here for some reason:
       CookieJar jar{};
       EXPECT(jar.empty());
-      EXPECT(jar.size() == 0u);
-      */
+      EXPECT(jar.size() == 0u);*/
 
       WHEN("Inserting a Cookie into a CookieJar")
       {
@@ -168,7 +165,7 @@ const lest::test test_cookie_jar[] =
     }
   },
 
-  SCENARIO("A CookieJar can return an iterator to its first element")
+  SCENARIO("A CookieJar can return an iterator to its first and last element")
   {
     GIVEN("A CookieJar")
     {
