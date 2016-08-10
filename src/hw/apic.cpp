@@ -30,7 +30,6 @@
 extern "C" {
   void apic_enable();
   int  get_cpu_id();
-  void reboot();
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
   void lapic_send_eoi();
@@ -302,11 +301,6 @@ namespace hw {
         func();
       }
     });
-  }
-
-  void APIC::reboot()
-  {
-    ::reboot();
   }
 }
 

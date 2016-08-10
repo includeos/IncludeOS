@@ -75,6 +75,9 @@ namespace hw {
       return get().overrides;
     }
     
+    static void reboot();
+    static void shutdown();
+    
   private:
     void discover();
     bool checksum(const char*, size_t) const;
