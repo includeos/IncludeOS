@@ -39,10 +39,10 @@ Router& Server::router() noexcept {
 void Server::listen(Port port) {
   printf("Listening to port %i \n", port);
 
-  inet_->tcp().bind(port).onConnect(OnConnect::from<Server, &Server::connect>(this));
+  inet_->tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
 }
 
-void Server::connect(net::TCP::Connection_ptr conn) {
+void Server::connect(net::tcp::Connection_ptr conn) {
   #ifdef VERBOSE_WEBSERVER
   printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
   #endif
