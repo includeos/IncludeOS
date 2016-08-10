@@ -24,9 +24,13 @@ Response::OnSent Response::on_sent_ = [](size_t){};
 Response::Response(Connection_ptr conn)
   : http::Response(), conn_(conn)
 {
-  add_header(http::header_fields::Response::Server, "IncludeOS/Acorn");
+  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+  add_header(http::header_fields::Response::Server, std::string{"IncludeOS/Acorn"});
+
   // screw keep alive
-  add_header(http::header_fields::Response::Connection, "keep-alive");
+
+  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+  add_header(http::header_fields::Response::Connection, std::string{"keep-alive"});
 }
 
 void Response::send(bool close) const {
@@ -92,7 +96,10 @@ void Response::send_file(const File& file) {
 
 void Response::send_json(const std::string& json) {
   add_body(json);
-  add_header(http::header_fields::Entity::Content_Type, "application/json");
+
+  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+  add_header(http::header_fields::Entity::Content_Type, std::string{"application/json"});
+
   send(!keep_alive);
 }
 
