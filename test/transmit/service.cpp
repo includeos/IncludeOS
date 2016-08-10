@@ -26,7 +26,7 @@ auto& timer = hw::PIT::instance();
 
 void Service::start()
 {
-  static auto inet = 
+  static auto inet =
     net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
                           { 255,255,255,0 },  // Netmask
                           { 10,0,0,1 });      // Gateway
@@ -54,9 +54,9 @@ void Service::start()
     // Send the first packet, and then wait for ARP
     conn.sendto(addr, port, first_reply.data(), first_reply.size());
 
-    timer.on_timeout_ms(200ms, 
+    timer.on_timeout_ms(200ms,
     [&conn, addr, port, PACKETS, PAYLOAD_LEN] {
-      
+
       INFO("Test 2", "Trying to transmit %u UDP packets of size %u at maximum throttle",
            PACKETS, PAYLOAD_LEN);
 
@@ -76,7 +76,7 @@ void Service::start()
     const int PACKETS = 600;
     INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", PACKETS);
     for (int i=0; i < PACKETS; i++){
-      auto pckt = inet->createPacket(inet->MTU());
+      auto pckt = inet->create_packet(inet->MTU());
       Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
       hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
       hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
@@ -88,6 +88,6 @@ void Service::start()
     INFO("Test 1", "Done. Send some UDP-data to %s:%i to continue test",
          inet->ip_addr().str().c_str(), port);
   });
-  
+
   INFO("TRANSMIT", "Ready");
 }
