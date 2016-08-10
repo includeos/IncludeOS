@@ -48,7 +48,7 @@ private:
   //-------------------------------
   using Port     = const unsigned;
   using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
-  using OnConnect = net::TCP::Connection::ConnectCallback;
+  using OnConnect = net::tcp::Connection::ConnectCallback;
   using Path = std::string;
   struct MappedCallback {
     Path path;
@@ -144,7 +144,7 @@ private:
   //-------------------------------
   void initialize();
 
-  void connect(net::TCP::Connection_ptr);
+  void connect(net::tcp::Connection_ptr);
 
   void process_route(Request_ptr, Response_ptr);
 
