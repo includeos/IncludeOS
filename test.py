@@ -13,30 +13,39 @@ class Bot:
       self.name = botname()
 
   def send(self, data):
-      self.sock.sendall(data + "\r\n")
+      try:
+          self.sock.sendall(data + "\r\n")
+      finally:
+          return
 
   def begin(self):
       # Connect the socket to the port on the server given by the caller
-      self.sock.connect(('10.0.0.42', 6667))
       try:
-          self.send("NICK bot" + self.name)
-          self.send("USER 1 2 3 :444")
+          self.sock.connect(('10.0.0.42', 6667))
+          try:
+              self.send("NICK bot" + self.name)
+              self.send("USER 1 2 3 :444")
 
-          self.send("JOIN #test")
+              self.send("JOIN #test")
 
-          amount_received = 0
-          amount_expected = 10
-          while amount_received < amount_expected:
-              self.send("PRIVMSG #test :spamerino cappuchino etc")
-              data = self.sock.recv(64)
-              amount_received += len(data)
-              'print >>sys.stderr, received "%s"' % data
+              amount_received = 0
+              amount_expected = 10
+              while amount_received < amount_expected:
+                  self.send("PRIVMSG #test :spamerino cappuchino etc")
+                  data = self.sock.recv(64)
+                  amount_received += len(data)
+                  'print >>sys.stderr, received "%s"' % data
 
+              self.send("QUIT :Lates")
+          finally:
+              self.sock.close()
       finally:
-          self.send("QUIT :Lates")
-          self.sock.close()
+          return
 
 
 while True:
   bot = Bot()
-  bot.begin()
+  try:
+      bot.begin()
+  finally:
+      ''

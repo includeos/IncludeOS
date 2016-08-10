@@ -59,9 +59,9 @@ void Service::start() {
     printf("Conns/sec %f  Local clients %d\n",  
         cps, ircd->get_counter(STAT_LOCAL_USERS));
     
-    print_stack_sampling();
+    //print_stack_sampling();
   });
-  begin_stack_sampling(200);
+  //begin_stack_sampling(200);
 
   printf("*** IRC SERVICE STARTED *** \n");
 }
