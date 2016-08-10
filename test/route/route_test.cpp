@@ -27,65 +27,6 @@ const lest::test test_path_to_regexp_parse[] =
 {
   // --------------- Testing PathToRegexp parse-method ------------------
 
-  /*SCENARIO("Parsing a string with one element")
-  {
-
-    printf("INSIDE SCENARIO\n");
-
-    GIVEN("An empty PathToRegexp object for testing parse-method")
-    {
-
-      printf("INSIDE GIVEN\n");
-
-      WHEN("String with one named parameter is sent to parse-method (/:test)")
-      {
-        printf("INSIDE WHEN\n");
-
-        // Empty object to use parse-method:
-        vector<Token> keys;
-        PathToRegexp p{"", keys};
-
-        printf("AFTER CREATED OBJECT\n");
-
-        //vector<Token> tokens = p.parse("/:test");
-
-        printf("AFTER PARSE\n");
-
-        THEN("Expect to get a vector with one Token")
-        {
-          EXPECT_NOT(tokens.empty());
-          EXPECT(tokens.size() == 1u);
-
-          Token t = tokens[0];
-
-          EXPECT(t.name == "test");
-          EXPECT(t.prefix == "/");
-          EXPECT(t.delimiter == "/");
-          EXPECT_NOT(t.optional);
-          EXPECT_NOT(t.repeat);
-          EXPECT_NOT(t.partial);
-          EXPECT_NOT(t.asterisk);
-          EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?" or "[^\\/]+?"
-          EXPECT_NOT(t.is_string);
-        }
-      }
-
-      WHEN("String with no parameters is sent to parse-method (/test)")
-      {
-        // Empty object to use parse-method:
-        vector<Token> keys;
-        PathToRegexp p{"", keys};
-
-        vector<Token> tokens = p.parse("/test");
-
-        THEN("Expect to get no Tokens")
-        {
-          EXPECT(tokens.empty());
-        }
-      }
-    }
-  }*/
-
   // Testing named parameter
 
   CASE("String with one named parameter (/:test)")
@@ -332,7 +273,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT(t2.name == "/users");
     EXPECT(t2.prefix == "");
     EXPECT(t2.delimiter == "");
-    EXPECT_NOT(t2.optional);  // TODO: Is true, should be false (is a string-token so default should be false. Is undefined (false) in JS)
+    EXPECT_NOT(t2.optional);
     EXPECT_NOT(t2.repeat);
     EXPECT_NOT(t2.partial);
     EXPECT_NOT(t2.asterisk);
@@ -827,7 +768,7 @@ const lest::test test_path_to_regexp_tokens[] =
 
   // const std::regex tokens_to_regexp(const std::vector<Token>& tokens, const std::map<std::string, bool>& options) const;
 
-  CASE("")
+  /*CASE("")
   {
 
   },
@@ -835,7 +776,7 @@ const lest::test test_path_to_regexp_tokens[] =
   CASE("")
   {
 
-  }
+  }*/
 };
 
 // --------------------- TESTING CREATION -------------------------
@@ -844,10 +785,8 @@ const lest::test test_path_to_regexp_creation[] =
 {
   // --------------- Testing PathToRegexp-creation ------------------
 
-  SCENARIO("Creating PathToRegexp-objects")
+  SCENARIO("Creating PathToRegexp-objects with no options")
   {
-    // Create with no options
-
     GIVEN("An empty vector of Tokens (keys) and no options")
     {
       vector<Token> keys;
@@ -856,8 +795,12 @@ const lest::test test_path_to_regexp_creation[] =
       {
         PathToRegexp p{"", keys};
 
+        // Testing keys:
+
         EXPECT(keys.empty());
         EXPECT(keys.size() == 0u);
+
+        // Testing regex:
 
         WHEN("Getting the regex")
         {
@@ -866,6 +809,7 @@ const lest::test test_path_to_regexp_creation[] =
           THEN("No paths should match")
           {
             EXPECT(std::regex_match("", r));
+
             EXPECT_NOT(std::regex_match("/route", r));
             EXPECT_NOT(std::regex_match("/route/:id", r));
 
@@ -879,8 +823,25 @@ const lest::test test_path_to_regexp_creation[] =
       {
         PathToRegexp p{"/:test", keys};
 
+        // Testing keys:
+
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 1u);
+
+        Token t = keys[0];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT_NOT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        // Testing regex:
 
         WHEN("Getting the regex")
         {
@@ -889,7 +850,9 @@ const lest::test test_path_to_regexp_creation[] =
           THEN("Only paths with one parameter should match. This can contain any character")
           {
             EXPECT_NOT(std::regex_match("/", r));
-            EXPECT_NOT(std::regex_match("/route/:id", r));
+            EXPECT_NOT(std::regex_match("/route/123", r));
+            EXPECT_NOT(std::regex_match("/route/something/somethingelse12", r));
+            EXPECT_NOT(std::regex_match("route", r));
 
             EXPECT(std::regex_match("/route", r));
             EXPECT(std::regex_match("/123", r));
@@ -900,54 +863,323 @@ const lest::test test_path_to_regexp_creation[] =
           }
         }
       }
-/*
+
       WHEN("Creating PathToRegexp-object with path '/:test/:date'")
       {
         PathToRegexp p{"/:test/:date", keys};
 
+        // Testing keys:
 
+        EXPECT_NOT(keys.empty());
+        EXPECT(keys.size() == 2u);
+
+        Token t = keys[0];
+        Token t2 = keys[1];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT_NOT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        EXPECT(t2.name == "date");
+        EXPECT(t2.prefix == "/");
+        EXPECT(t2.delimiter == "/");
+        EXPECT_NOT(t2.optional);
+        EXPECT_NOT(t2.repeat);
+        EXPECT_NOT(t2.partial);
+        EXPECT_NOT(t2.asterisk);
+        EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t2.is_string);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only paths with two parameters should match. This can contain any character")
+          {
+            EXPECT_NOT(std::regex_match("/", r));
+            EXPECT_NOT(std::regex_match("/route", r));
+            EXPECT_NOT(std::regex_match("/route/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("/route/123", r));
+            EXPECT(std::regex_match("/123/route", r));
+            EXPECT(std::regex_match("/route!)#/route321'", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/users/:test/:date'")
       {
         PathToRegexp p{"/users/:test/:date", keys};
 
+        // Testing keys:
 
+        EXPECT_NOT(keys.empty());
+        EXPECT(keys.size() == 2u);
+
+        Token t = keys[0];
+        Token t2 = keys[1];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT_NOT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        EXPECT(t2.name == "date");
+        EXPECT(t2.prefix == "/");
+        EXPECT(t2.delimiter == "/");
+        EXPECT_NOT(t2.optional);
+        EXPECT_NOT(t2.repeat);
+        EXPECT_NOT(t2.partial);
+        EXPECT_NOT(t2.asterisk);
+        EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t2.is_string);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only paths with three elements should match, starting with /users")
+          {
+            EXPECT_NOT(std::regex_match("/", r));
+            EXPECT_NOT(std::regex_match("/route", r));
+            EXPECT_NOT(std::regex_match("/users", r));
+            EXPECT_NOT(std::regex_match("/users/123", r));
+            EXPECT_NOT(std::regex_match("/users/something/123/else", r));
+            EXPECT_NOT(std::regex_match("/route/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("/users/123/something", r));
+            EXPECT(std::regex_match("/users/some12p-?/523", r));
+            EXPECT(std::regex_match("/users/route!)#/route321'", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/test'")
       {
         PathToRegexp p{"/test", keys};
 
+        // Testing keys:
 
+        EXPECT(keys.empty());
+        EXPECT(keys.size() == 0u);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only the path '/test' should match")
+          {
+            EXPECT_NOT(std::regex_match("/", r));
+            EXPECT_NOT(std::regex_match("/tes", r));
+            EXPECT_NOT(std::regex_match("/tests", r));
+            EXPECT_NOT(std::regex_match("/test/123", r));
+            EXPECT_NOT(std::regex_match("/test/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("/test", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/test/users'")
       {
         PathToRegexp p{"/test/users", keys};
 
+        // Testing keys:
 
+        EXPECT(keys.empty());
+        EXPECT(keys.size() == 0u);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only the path '/test/users' should match")
+          {
+            EXPECT_NOT(std::regex_match("/", r));
+            EXPECT_NOT(std::regex_match("/test", r));
+            EXPECT_NOT(std::regex_match("/test/user", r));
+            EXPECT_NOT(std::regex_match("/tes/users", r));
+            EXPECT_NOT(std::regex_match("/test/users/123", r));
+            EXPECT_NOT(std::regex_match("/test/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("/test/users", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/:test?'")
       {
         PathToRegexp p{"/:test?", keys};
 
+        // Testing keys:
 
+        EXPECT_NOT(keys.empty());
+        EXPECT(keys.size() == 1u);
+
+        Token t = keys[0];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only paths with one or no parameters should match")
+          {
+            EXPECT_NOT(std::regex_match("/users/123", r));
+            EXPECT_NOT(std::regex_match("/users/something/123/else", r));
+            EXPECT_NOT(std::regex_match("/route/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("", r));
+            EXPECT(std::regex_match("/", r));
+            EXPECT(std::regex_match("/route", r));
+            EXPECT(std::regex_match("/users4)", r));
+            EXPECT(std::regex_match("/123", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/:test?/:date?'")
       {
         PathToRegexp p{"/:test?/:date?", keys};
 
+        // Testing keys:
 
+        EXPECT_NOT(keys.empty());
+        EXPECT(keys.size() == 2u);
+
+        Token t = keys[0];
+        Token t2 = keys[1];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        EXPECT(t2.name == "date");
+        EXPECT(t2.prefix == "/");
+        EXPECT(t2.delimiter == "/");
+        EXPECT(t2.optional);
+        EXPECT_NOT(t2.repeat);
+        EXPECT_NOT(t2.partial);
+        EXPECT_NOT(t2.asterisk);
+        EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t2.is_string);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only paths with zero, one or two parameters should match")
+          {
+            EXPECT_NOT(std::regex_match("/matilda/123/2016-08-20", r));
+            EXPECT_NOT(std::regex_match("/users/matilda/2016-08-20/something", r));
+            EXPECT_NOT(std::regex_match("/route/something/somethingelse12", r));
+
+            EXPECT(std::regex_match("", r));
+            EXPECT(std::regex_match("/", r));
+            EXPECT(std::regex_match("/matilda", r));
+            EXPECT(std::regex_match("/2016-08-20", r));
+            EXPECT(std::regex_match("/2016-08-20/matilda", r));
+            EXPECT(std::regex_match("/matilda/2016-08-20", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/:test?/users/:date?'")
       {
         PathToRegexp p{"/:test?/users/:date?", keys};
 
+        // Testing keys:
 
+        EXPECT_NOT(keys.empty());
+        EXPECT(keys.size() == 2u);
+
+        Token t = keys[0];
+        Token t2 = keys[1];
+
+        // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
+        EXPECT(t.name == "test");
+        EXPECT(t.prefix == "/");
+        EXPECT(t.delimiter == "/");
+        EXPECT(t.optional);
+        EXPECT_NOT(t.repeat);
+        EXPECT_NOT(t.partial);
+        EXPECT_NOT(t.asterisk);
+        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t.is_string);
+
+        EXPECT(t2.name == "date");
+        EXPECT(t2.prefix == "/");
+        EXPECT(t2.delimiter == "/");
+        EXPECT(t2.optional);
+        EXPECT_NOT(t2.repeat);
+        EXPECT_NOT(t2.partial);
+        EXPECT_NOT(t2.asterisk);
+        EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t2.is_string);
+
+        // Testing regex:
+
+        WHEN("Getting the regex")
+        {
+          std::regex r = p.get_regex();
+
+          THEN("Only paths with zero parameters (but containing /users), one parameter (but containing /users), or two parameters (but containing /users) should match")
+          {
+            EXPECT_NOT(std::regex_match("/", r));
+            EXPECT_NOT(std::regex_match("/users/something/matilda123", r));
+            EXPECT_NOT(std::regex_match("/matilda/123/2016-08-20", r));
+            EXPECT_NOT(std::regex_match("/users/matilda/2016-08-20/something", r));
+            EXPECT_NOT(std::regex_match("/route/users/somethingelse12/123", r));
+            EXPECT_NOT(std::regex_match("/123/matilda/users", r));
+
+            EXPECT(std::regex_match("/users", r));
+            EXPECT(std::regex_match("/matilda/users", r));
+            EXPECT(std::regex_match("/matilda/users/2016-08-20", r));
+            EXPECT(std::regex_match("/users/2016-08-20", r));
+          }
+        }
       }
 
       WHEN("Creating PathToRegexp-object with path '/:test/:date?'")
@@ -1055,7 +1287,6 @@ const lest::test test_path_to_regexp_creation[] =
 
       }
 
-
       WHEN("Creating PathToRegexp-object with path '/:id(\\d+)/:date/*'")
       {
 
@@ -1064,8 +1295,12 @@ const lest::test test_path_to_regexp_creation[] =
       WHEN("Creating PathToRegexp-object with path '/:id([a-z]+)/:date/(.*)'")
       {
 
-      }*/
-    }/*,
+      }
+    }
+  },  // < SCENARIO 1 (no options)
+/*
+  SCENARIO("Creating PathToRegexp-objects with options")
+  {
 
     // Create with option strict
 
@@ -1365,8 +1600,9 @@ const lest::test test_path_to_regexp_creation[] =
       {
 
       }
-    }*/
-  } // < SCENARIO
+    }
+  } // < SCENARIO 2 (with options)
+*/
 
 /*
  Main:

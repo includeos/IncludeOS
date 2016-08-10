@@ -28,10 +28,6 @@ namespace middleware {
 class RouteParser : public server::Middleware {
 
 public:
-
-  /**
-   *
-   */
   virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
 
 private:
