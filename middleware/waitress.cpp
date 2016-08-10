@@ -1,9 +1,28 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef MIDDLEWARE_WAITRESS_HPP
 #define MIDDLEWARE_WAITRESS_HPP
 
 #include "middleware.hpp" // inherit middleware
 #include <fs/disk.hpp>
+#include <string>
 
+namespace middleware {
 
 /**
  * @brief Serves files (not food)
@@ -42,7 +61,8 @@ public:
         return (*next)();
       }
 
-      res->add_header(http::header_fields::Entity::Allow, "GET, HEAD"s);
+      // TODO: Want to be able to write "GET, HEAD" instead of std::string{"GET, HEAD"}:
+      res->add_header(http::header_fields::Entity::Allow, std::string{"GET, HEAD"});
       return res->send_code(http::Method_Not_Allowed);
     }
 
@@ -130,5 +150,6 @@ private:
 
 }; // < class Waitress
 
+} //< namespace middleware
 
 #endif

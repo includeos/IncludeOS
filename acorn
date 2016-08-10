@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
@@ -15,35 +16,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "request.hpp"
+#ifndef ACORN_WEB_APPLIANCE
+#define ACORN_WEB_APPLIANCE
 
-using namespace server;
+#include "app/user.hpp"
+#include "app/squirrel.hpp"
 
-Request::OnRecv Request::on_recv_ = [](size_t) {};
+#include "bucket/bucket.hpp"
 
-Request::Request(buffer_t buf, size_t n)
-  : Parent(std::string{(char*)buf.get(), n})
-{
+#include "middleware/parsley.hpp"
+#include "middleware/director.hpp"
+#include "middleware/waitress.cpp"
+#include "middleware/cookie_parser.hpp"
 
-}
+#include "stats/stats.hpp"
 
-void Request::complete() {
-  assert(is_complete());
-  on_recv_(total_length());
-}
+#include "server/server.hpp"
 
-size_t Request::content_length() const {
-  using namespace http::header_fields::Entity;
-  if(!has_header(Content_Length))
-    return 0;
-  try {
-    return std::stoull(header_value(Content_Length));
-  }
-  catch(...) {
-    return 0;
-  }
-}
-
-Request::~Request() {
-  //printf("<Request> Deleted\n");
-}
+#endif //< ACORN_WEB_APPLIANCE

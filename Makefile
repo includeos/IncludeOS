@@ -7,19 +7,19 @@ SERVICE = Acorn
 SERVICE_NAME = Acorn
 
 # Your service parts
-FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o
+FILES = service.cpp server/request.o server/response.o server/connection.o server/server.o cookie/cookie.o cookie/cookie_jar.o
 
 # Your disk image
 DISK=memdisk.fat
 
 # Modules
-CUSTOM_MODULES =-I./bucket -I./json
+CUSTOM_MODULES =-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats
 MOD_FILES =
 
 FILES += $(MOD_FILES)
 
 # Your own include-path
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat
