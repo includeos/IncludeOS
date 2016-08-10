@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,14 +31,14 @@ namespace net {
   void ICMPv4::bottom(Packet_ptr pckt) {
     if (pckt->size() < sizeof(full_header)) // Drop if not a full header
       return;
-  
+
     full_header* full_hdr = reinterpret_cast<full_header*>(pckt->buffer());
     icmp_header* hdr = &full_hdr->icmp_hdr;
 
 #ifdef DEBUG
     auto ip_address = full_hdr->ip_hdr.saddr.str().c_str();
 #endif
-  
+
     switch(hdr->type) {
     case (ICMP_ECHO):
       debug("<ICMP> PING from %s\n", ip_address);
@@ -51,9 +51,9 @@ namespace net {
   }
 
   void ICMPv4::ping_reply(full_header* full_hdr, uint16_t size) {
-    auto packet_ptr = inet_.createPacket(size);
+    auto packet_ptr = inet_.create_packet(size);
     auto buf = packet_ptr->buffer();
-  
+
     icmp_header* hdr = &reinterpret_cast<full_header*>(buf)->icmp_hdr;
     hdr->type = ICMP_ECHO_REPLY;
     hdr->code = 0;
@@ -62,7 +62,7 @@ namespace net {
 
     debug("<ICMP> Rest of header IN: 0x%lx OUT: 0x%lx\n",
           full_hdr->icmp_hdr.rest, hdr->rest);
-  
+
     debug("<ICMP> Transmitting answer\n");
 
     // Populate response IP header
@@ -72,16 +72,16 @@ namespace net {
     ip4_pckt->set_dst(full_hdr->ip_hdr.saddr);
     ip4_pckt->set_protocol(IP4::IP4_ICMP);
     ip4_pckt->set_ip_data_length(size);
-  
+
     // Copy payload from old to new packet
     uint8_t* payload = reinterpret_cast<uint8_t*>(hdr) + sizeof(icmp_header);
     uint8_t* source  = reinterpret_cast<uint8_t*>(&full_hdr->icmp_hdr) + sizeof(icmp_header);
     memcpy(payload, source, size - sizeof(full_header));
-  
+
     hdr->checksum = 0;
     hdr->checksum = net::checksum(reinterpret_cast<uint16_t*>(hdr),
                                   size - sizeof(full_header) + sizeof(icmp_header));
-  
+
     network_layer_out_(packet_ptr);
   }
 
