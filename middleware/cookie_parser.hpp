@@ -49,7 +49,7 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-inline void CookieParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
+inline void CookieParser::process(server::Request_ptr req, server::Response_ptr, server::Next next) {
   if(has_cookie(req)) {
     // Get the cookies that already exists (sent in the request):
     std::string cookies_string = read_cookies(req);

@@ -247,7 +247,7 @@ void Service::start() {
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         stats.set_active_clients(server_->active_clients())
-             .set_memory_usage(OS::memory_usage())
+             .set_memory_usage(OS::heap_usage())
              .serialize(writer);
         res->send_json(sb.GetString());
       });

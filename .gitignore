@@ -4,4 +4,5 @@ Acorn
 *.fat
 *.o
 *.d
+*.tar.gz
 mnt/

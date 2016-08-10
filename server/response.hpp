@@ -22,7 +22,7 @@
 #include "http/inc/mime_types.hpp"
 #include "cookie.hpp"
 #include <fs/filesystem.hpp>
-#include <net/tcp.hpp>
+#include <net/tcp/connection.hpp>
 #include <utility/async.hpp>
 
 #include <string>
@@ -53,7 +53,7 @@ using Response_ptr = std::shared_ptr<Response>;
 class Response : public http::Response {
 private:
   using Code = http::status_t;
-  using Connection_ptr = net::TCP::Connection_ptr;
+  using Connection_ptr = net::tcp::Connection_ptr;
   using OnSent = std::function<void(size_t)>;
 
 public:
