@@ -75,6 +75,17 @@ public:
     }
     return -1;
   }
+  index_t last_set() const
+  {
+    for (int i = _chunks-1; i >= 0; i--)
+    if (_data[i])
+    {
+      int b = 31 - __builtin_clz(_data[i]);
+      //printf("data: %#x b: %u\n", _data[i], i * CHUNK_SIZE + b);
+      return i * CHUNK_SIZE + b;
+    }
+    return -1;
+  }
   
   void zero_all()
   {

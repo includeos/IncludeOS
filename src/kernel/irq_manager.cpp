@@ -175,7 +175,7 @@ void IRQ_manager::notify() {
 
   // Get the IRQ's that are both pending and subscribed to
   irq_todo.set_from_and(irq_subs, irq_pend);
-  int intr = irq_todo.first_set();
+  int intr = irq_todo.last_set();
 
   while (intr != -1) {
 
@@ -188,7 +188,7 @@ void IRQ_manager::notify() {
     // rebuild on todo-list
     irq_todo.set_from_and(irq_subs, irq_pend);
     // find next interrupt
-    intr = irq_todo.first_set();
+    intr = irq_todo.last_set();
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");
