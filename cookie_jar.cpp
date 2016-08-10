@@ -28,16 +28,12 @@ bool CookieJar::empty() const noexcept {
 }
 
 bool CookieJar::insert(const Cookie& c) noexcept {
-  std::pair<std::map<std::string, std::string>::iterator, bool> ret =
-    cookies_.insert(std::pair<std::string, std::string>(c.get_name(), c.get_value()));
-
+  auto ret = cookies_.emplace(std::make_pair(c.get_name(), c.get_value()));
   return ret.second;
 }
 
 bool CookieJar::insert(const std::string& name, const std::string& value) {
-  std::pair<std::map<std::string, std::string>::iterator, bool> ret =
-    cookies_.insert(std::pair<std::string, std::string>(name, value));
-
+  auto ret = cookies_.emplace(std::make_pair(name, value));
   return ret.second;
 }
 
@@ -81,8 +77,6 @@ std::string CookieJar::find(const std::string& name) const noexcept {
 
   return "";
 }
-
-// std::string find(const std::string& value) const noexcept;
 
 std::map<std::string, std::string> CookieJar::get_cookies() const noexcept {
   return cookies_;

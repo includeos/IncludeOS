@@ -57,9 +57,9 @@ public:
 
   ~Cookie() = default;
 
-  const std::string& get_name() const noexcept;
+  inline const std::string& get_name() const noexcept { return name_; }
 
-  const std::string& get_value() const noexcept;
+  inline const std::string& get_value() const noexcept { return value_; }
 
   void set_value(const std::string& value);
 
@@ -69,11 +69,9 @@ public:
    *             is not required to retain the cookie until the specified date has passed. In fact,
    *             user agents often evict cookies due to memory pressure or privacy concerns.
    *
-   *             { function_description }
-   *
-   * @return     { description_of_the_return_value }
+   * @return     expires_
    */
-  const std::string& get_expires() const noexcept; // date and time
+  inline const std::string& get_expires() const noexcept { return expires_; }
 
   /**
    * @brief      Sets the expires_ attribute.
@@ -81,7 +79,6 @@ public:
    * @param[in]  expires The expiry date for the cookie (if set in the past
    *             the cookie will be deleted/cleared from the browser)
    */
-  //void set_expires(const ExpiryDate& expires);
   void set_expires(const std::string& expires);
 
   /**
@@ -98,11 +95,9 @@ public:
    *             the Max-Age nor the Expires attribute, the user agent will retain the cookie until
    *             "the current session is over" (as defined by the user agent).
    *
-   *             { function_description }
-   *
-   * @return     { description_of_the_return_value }
+   * @return     max_age_
    */
-  int get_max_age() const noexcept;
+  inline int get_max_age() const noexcept { return max_age_; }
 
   void set_max_age(int max_age) noexcept;
 
@@ -127,11 +122,9 @@ public:
    *             correspond to "public suffixes". For example, some user agents will reject Domain attributes
    *             of "com" or "co.uk".
    *
-   *             { function_description }
-   *
-   * @return     { description_of_the_return_value }
+   * @return     domain_
    */
-  const std::string& get_domain() const noexcept;
+  inline const std::string& get_domain() const noexcept { return domain_; }
 
   void set_domain(const std::string& domain);
 
@@ -147,11 +140,9 @@ public:
    *             Although seemingly useful for isolating cookies between different paths within a given
    *             host, the Path attribute cannot be relied upon for security.
    *
-   *             { function_description }
-   *
-   * @return     { description_of_the_return_value }
+   * @return     path_
    */
-  const std::string& get_path() const noexcept;
+  inline const std::string& get_path() const noexcept { return path_; }
 
   void set_path(const std::string& path);
 
@@ -168,11 +159,11 @@ public:
    *             attacker can overwrite Secure cookies from an insecure channel, disrupting their
    *             integrity.
    *
-   * @return     True if Secure, False otherwise.
+   * @return     true if Secure, false otherwise.
    */
-  bool is_secure() const noexcept;
+  inline bool is_secure() const noexcept { return secure_; }
 
-  void set_secure(bool secure) noexcept;
+  inline void set_secure(bool secure) noexcept { secure_ = secure; }
 
   /**
    * @brief      Determines if HttpOnly.
@@ -185,13 +176,13 @@ public:
    *             Note that the HttpOnly attribute is independent of the Secure attribute:
    *             a cookie can have both the HttpOnly and the Secure attribute.
    *
-   * @return     True if HttpOnly, False otherwise.
+   * @return     true if HttpOnly, false otherwise.
    */
-  bool is_http_only() const noexcept;
+  inline bool is_http_only() const noexcept { return http_only_; }
 
-  void set_http_only(bool http_only) noexcept;
+  inline void set_http_only(bool http_only) noexcept { http_only_ = http_only; }
 
-  operator std::string() const;
+  inline operator std::string() const { return to_string(); }
 
   std::string to_string() const;
 
@@ -199,7 +190,7 @@ private:
   std::string name_;
   std::string value_;
   std::string expires_;
-  int max_age_; // number of seconds
+  int max_age_;   // number of seconds
   std::string domain_;
   std::string path_;
   bool secure_;
@@ -221,11 +212,11 @@ private:
 
   bool valid_option_name(const std::string& option_name) const;
 
-  bool valid_expires_time(const std::string& e) const noexcept;
+  bool valid_expires_time(const std::string& expires) const noexcept;
 
 };  // < class Cookie
 
-// Because we want a set of Cookies in CookieJar we need to set rules
+// Because we want a map of Cookies in CookieJar we need to set rules
 // for comparing Cookies and deciding if two Cookies are the same or not:
 
 bool operator < (const Cookie& a, const Cookie& b) noexcept;
