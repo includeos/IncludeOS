@@ -20,7 +20,8 @@ then
     exit 1
 fi
 
-if [ `lsb_release -is` != "Ubuntu" ]
+RELEASE=`lsb_release -is`
+if [ $RELEASE != "Ubuntu" -a $RELEASE != "Fedora" ]
 then
     echo -e $FAIL_MSG
     exit 1
@@ -31,6 +32,12 @@ then
     echo ">>> Installing everything from source"
     . ./etc/install_all_source.sh
 else
-    echo ">>> Installing from bundle"
-    . ./etc/install_ubuntu.sh
+    if [ $RELEASE == "Ubuntu" ]
+    then
+        echo ">>> Installing from bundle"
+        . ./etc/install_ubuntu.sh
+    else
+        echo ">>> Installing from bundle"
+        . ./etc/install_fedora.sh
+    fi
 fi

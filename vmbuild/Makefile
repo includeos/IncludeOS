@@ -1,4 +1,4 @@
-CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++)
 CPPOPTS = -std=c++11 -c -Wall -Wextra -O3 -I.
 OBJS = vmbuild.o
 OUT = vmbuild
