@@ -120,8 +120,7 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 		// Push the current path onto the tokens
 		if(not path.empty()) {
 			Token stringToken;
-			stringToken.name = path;
-			stringToken.is_string = true;
+			stringToken.set_string_token(path);
 			tokens.push_back(stringToken);
 			path = "";
 		}
@@ -159,8 +158,7 @@ const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
 	// If the path exists, push it onto the end
 	if(not path.empty()) {
 		Token stringToken;
-		stringToken.name = path;
-		stringToken.is_string = true;
+		stringToken.set_string_token(path);
 		tokens.push_back(stringToken);
 	}
 
@@ -229,17 +227,17 @@ const std::regex PathToRegexp::tokens_to_regexp(const std::vector<Token>& tokens
 
 		if(token.is_string) {
 
-			printf("TOKEN IS STRING\n");
+			/*printf("TOKEN IS STRING\n");
 			printf("ROUTE BEFORE ESCAPESTRING: %s\n", route.c_str());
-			printf("TOKEN: %s\n", (token.name).c_str());
+			printf("TOKEN: %s\n", (token.name).c_str());*/
 
 			route += escape_string(token.name);
 
-			printf("ROUTE AFTER ESCAPESTRING: %s\n", route.c_str());
+			//printf("ROUTE AFTER ESCAPESTRING: %s\n", route.c_str());
 
 		} else {
 
-			printf("TOKEN IS NOT STRING\n");
+			//printf("TOKEN IS NOT STRING\n");
 
 			std::string prefix = escape_string(token.prefix);
 			std::string capture = "(?:" + token.pattern + ")";
@@ -247,36 +245,36 @@ const std::regex PathToRegexp::tokens_to_regexp(const std::vector<Token>& tokens
 			if(token.repeat) {
 				capture += "(?:" + prefix + capture + ")*";
 
-				printf("TOKEN REPEAT\n");
+				//printf("TOKEN REPEAT\n");
 			}
 
 			if(token.optional) {
 
-				printf("TOKEN OPTIONAL\n");
+				//printf("TOKEN OPTIONAL\n");
 
 				if(not token.partial) {
 					capture = "(?:" + prefix + "(" + capture + "))?";
 
-					printf("TOKEN PARTIAL\n");
+					//printf("TOKEN PARTIAL\n");
 				}
 				else {
 					capture = prefix + "(" + capture + ")?";
 
-					printf("TOKEN NOT PARTIAL\n");
+					//printf("TOKEN NOT PARTIAL\n");
 				}
 			} else {
 				capture = prefix + "(" + capture + ")";
 
-				printf("TOKEN NOT OPTIONAL\n");
+				//printf("TOKEN NOT OPTIONAL\n");
 			}
 
 			route += capture;
 		}
 
-		printf("END FOR-LOOP. ROUTE: %s\n", route.c_str());
+		//printf("END FOR-LOOP. ROUTE: %s\n", route.c_str());
 	}
 
-	printf("ROUTE-STRING AFTER FOR-LOOP: %s\n", route.c_str());
+	//printf("ROUTE-STRING AFTER FOR-LOOP: %s\n", route.c_str());
 
 	// In non-strict mode we allow a slash at the end of match. If the path to
 	// match already ends with a slash, we remove it for consistency. The slash
@@ -286,12 +284,12 @@ const std::regex PathToRegexp::tokens_to_regexp(const std::vector<Token>& tokens
 	// TODO: TEST: slice -> substr: (endswithslash)
 
 	if(not strict) {
-		printf("STRICT IS FALSE\n");
+		//printf("STRICT IS FALSE\n");
 		route = (endsWithSlash ? route.substr(0, (route.size() - 2)) : route) + "(?:\\/(?=$))?";
-		printf("ROUTE: %s\n", route.c_str());
+		//printf("ROUTE: %s\n", route.c_str());
 	}
 
-	printf("AFTER IF NOT STRICT: ROUTE: %s\n", route.c_str());
+	//printf("AFTER IF NOT STRICT: ROUTE: %s\n", route.c_str());
 
 /*if (!strict)
 	route = (endsWithSlash ? route.slice(0, -2) : route) + '(?:\\/(?=$))?'
@@ -303,29 +301,29 @@ const std::regex PathToRegexp::tokens_to_regexp(const std::vector<Token>& tokens
 	if(end) {
 		route += "$";
 
-		printf("END IS TRUE. ROUTE: %s\n", route.c_str());
+		//printf("END IS TRUE. ROUTE: %s\n", route.c_str());
 	} else {
 		// In non-ending mode, we need the capturing groups to match as much as
 		// possible by using a positive lookahead to the end or next path segment
 		route += (strict and endsWithSlash) ? "" : "(?=\\/|$)";
 
-		printf("END IS FALSE. ROUTE: %s\n", route.c_str());
+		//printf("END IS FALSE. ROUTE: %s\n", route.c_str());
 	}
 
 	std::string regex_string = "^" + route;
 
-	printf("REGEX_STRING: %s\n", regex_string.c_str());
+	//printf("REGEX_STRING: %s\n", regex_string.c_str());
 
 	// return std::regex{"^" + route, flags(options)};
 
 	auto it = options.find("sensitive");
 
 	if(it != options.end() and it->second) {
-		printf("SENSITIVE FOUND AND IS TRUE\n");
+		//printf("SENSITIVE FOUND AND IS TRUE\n");
 		return std::regex{"^" + route};
 	}
 
-	printf("SENSITIVE NOT FOUND OR IS FALSE: CASE INSENSITIVE\n");
+	//printf("SENSITIVE NOT FOUND OR IS FALSE: CASE INSENSITIVE\n");
 
 	return std::regex{"^" + route, std::regex_constants::icase};
 	// case insensitive if sensitive is false

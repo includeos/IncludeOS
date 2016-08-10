@@ -38,6 +38,18 @@ struct Token {
 	std::string pattern;
 	bool is_string;	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
 	               	// So if this is true, we can ignore all attributes except name
+
+  void set_string_token(const std::string& name_) {
+    name = name_;
+    prefix = "";
+    delimiter = "";
+    optional = false;
+    repeat = false;
+    partial = false;
+    asterisk = false;
+    pattern = "";
+    is_string = true;
+  }
 };	// < struct Token
 
 class PathToRegexp {
