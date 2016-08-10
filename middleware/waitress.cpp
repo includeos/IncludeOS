@@ -61,7 +61,8 @@ public:
         return (*next)();
       }
 
-      res->add_header(http::header_fields::Entity::Allow, "GET, HEAD");
+      // TODO: Want to be able to write "GET, HEAD" instead of std::string{"GET, HEAD"}:
+      res->add_header(http::header_fields::Entity::Allow, std::string{"GET, HEAD"});
       return res->send_code(http::Method_Not_Allowed);
     }
 
