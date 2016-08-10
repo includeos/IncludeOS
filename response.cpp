@@ -96,7 +96,7 @@ void Response::send_json(const std::string& json) {
   send(!keep_alive);
 }
 
-/* Cookie support start */
+/* Cookie-support start */
 
 void Response::cookie(const Cookie& c) {
   add_header(http::header_fields::Response::Set_Cookie, c.to_string());
@@ -179,7 +179,7 @@ void Response::clear_cookie(const std::string& name, const std::string& path, co
   cookie(c);
 }
 
-/* Cookie support end */
+/* Cookie-support end */
 
 void Response::error(Error&& err) {
   // NOTE: only cares about JSON (for now)
