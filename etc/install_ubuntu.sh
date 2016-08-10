@@ -30,7 +30,6 @@ EXTRA_DEPENDENCIES=${EXTRA_DEPENDENCIES-""} # If no extra dependencies are neede
 DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu $EXTRA_DEPENDENCIES"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
-exit
 sudo apt-get update
 sudo apt-get install -y $DEPENDENCIES
 
