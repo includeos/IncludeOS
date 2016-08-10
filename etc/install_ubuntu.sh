@@ -11,10 +11,23 @@
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 
-# Install dependencies
-. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+# Figure out release specific options
+UBUNTU_VERSION=`lsb_release -rs`
 
-DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu"
+if [ $(echo "$UBUNTU_VERSION < 16.04" | bc) -eq 1 ]
+then
+      clang_version=3.6
+      EXTRA_DEPENDENCIES="gcc-5 g++-5"
+      sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+fi
+
+# default_settings
+clang_version=${clang_version-3.8}
+EXTRA_DEPENDENCIES=${EXTRA_DEPENDENCIES-""} # If no extra dependencies are needed, it stays blank
+
+# Install dependencies
+
+DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu $EXTRA_DEPENDENCIES"
 echo ">>> Installing dependencies (requires sudo):"
 echo "    Packages: $DEPENDENCIES"
 sudo apt-get update
