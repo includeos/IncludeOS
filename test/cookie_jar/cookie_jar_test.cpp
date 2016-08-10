@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Compile and run: g++ -Wall -Wextra -std=c++14 -I../include/lest -o cookie_jar_test cookie_jar_test.cpp && ./cookie_jar_test
-
 #include "../lest/include/lest/lest.hpp"
 #include "../../cookie/cookie_jar.cpp"
 #include "../../cookie/cookie.cpp"

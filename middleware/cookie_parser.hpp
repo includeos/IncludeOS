@@ -27,20 +27,14 @@ using namespace cookie;
 namespace middleware {
 
 /**
- * @brief A way to parse cookies: Reading cookies that the browser is sending to the server
- * @details
+ * @brief A way to parse cookies that the browser is sending to the server
  */
 class CookieParser : public server::Middleware {
 
 public:
-
-  /**
-   *
-   */
   virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
 
 private:
-
   CookieJar req_cookies_;
 
   static const std::regex pattern;
@@ -51,7 +45,7 @@ private:
 
   void parse(const std::string& cookie_data);
 
-}; //< class CookieParser
+}; // < class CookieParser
 
 /**--v----------- Implementation Details -----------v--**/
 
@@ -108,6 +102,6 @@ void CookieParser::parse(const std::string& cookie_data) {
 
 /**--^----------- Implementation Details -----------^--**/
 
-} //< namespace middleware
+} // < namespace middleware
 
 #endif //< MIDDLEWARE_COOKIE_PARSER_HPP

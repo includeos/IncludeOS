@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Compile and run: g++ -Wall -Wextra -std=c++14 -I../include/lest -o cookie_test cookie_test.cpp && ./cookie_test
-
 #include "../lest/include/lest/lest.hpp"
 #include "../../cookie/cookie.cpp"
 
@@ -174,10 +172,8 @@ const lest::test test_cookie_creation[] =
       printf("Number of seconds string: %s\n", s.c_str());
       vector<string> v{"Expires", "Sun, 06 Nov 1994 08:49:37 GMT", "Path", "/anotherPath134",
           "secure", "true", "httponly", "true", "Domain", "example.com", "Max-Age", s};
-      Or just:
-      */
-
-      vector<string> v{"Expires", "Sun, 06 Nov 1994 08:49:37 GMT", "Path", "/anotherPath134",
+      Or just: */
+      vector<string> v{"Expires", "Sun, 06 Nov 2004 08:49:37 GMT", "Path", "/anotherPath134",
           "secure", "true", "httponly", "true", "Domain", "example.com", "Max-Age", "600"};
 
       WHEN("Creating cookie")
@@ -188,41 +184,17 @@ const lest::test test_cookie_creation[] =
         {
           EXPECT(c.get_name() == "name");
           EXPECT(c.get_value() == "value");
+          EXPECT(c.get_expires() == "Sun, 06 Nov 2004 08:49:37 GMT");
           EXPECT(c.get_path() == "/anotherPath134");
           EXPECT(c.get_domain() == "example.com");
           EXPECT(c.get_max_age() == 600);
           EXPECT(c.is_secure());
           EXPECT(c.is_http_only());
-
-      /* TODO
-          printf("EXPIRES BEFORE: %s\n", c.get_expires().c_str());
-
-          c.set_expires("Sun, 06 Nov 2000 08:49:37 GMT");
-          EXPECT(c.get_expires() == "Sun, 06 Nov 2000 08:49:37 GMT");
-
-          printf("EXPIRES NOW: %s\n", c.get_expires().c_str());
-
-          // FIX:
-      // UNTIL HERE
-
-          printf("ERROR EMPTY EXPIRES: %s\n", c.get_expires().c_str());
-
-          EXPECT(c.get_expires() == "Sun, 06 Nov 1994 08:49:37 GMT");*/
         }
 
         AND_THEN("Get a string containing existing values when calling the cookie's to_string method")
         {
-
-      /* TODO
-       * The Expires attribute should have been set, but error now. We really want the Expires attribute to have been set
-       * and that it therefore is in the to_string, like:
-       *
-       * EXPECT(c.to_string() == "name=value; Expires=Sun, 06 Nov 1994 08:49:37 GMT; Max-Age=600; Domain=example.com; Path=/anotherPath134; Secure; HttpOnly");
-       *
-      // UNTIL HERE
-      */
-
-          EXPECT(c.to_string() == "name=value; Max-Age=600; Domain=example.com; Path=/anotherPath134; Secure; HttpOnly");
+          EXPECT(c.to_string() == "name=value; Expires=Sun, 06 Nov 2004 08:49:37 GMT; Max-Age=600; Domain=example.com; Path=/anotherPath134; Secure; HttpOnly");
         }
       }
     }

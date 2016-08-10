@@ -20,11 +20,11 @@
 
 #include "http/inc/response.hpp"
 #include "http/inc/mime_types.hpp"
+#include "cookie.hpp"
 #include <fs/filesystem.hpp>
 #include <net/tcp.hpp>
 #include <utility/async.hpp>
 
-#include "cookie.hpp"
 #include <string>
 #include <vector>
 #include <time.h>
@@ -98,7 +98,7 @@ public:
 
   void send_json(const std::string&);
 
-  /* Cookie support start */
+  /* Cookie-support start */
 
   void cookie(const Cookie& c);
 
@@ -114,7 +114,7 @@ public:
 
   void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
 
-  /* Cookie support end */
+  /* Cookie-support end */
 
   /**
    * @brief Send an error response

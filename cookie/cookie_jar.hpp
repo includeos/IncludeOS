@@ -61,8 +61,6 @@ public:
 
   std::string find(const std::string& name) const noexcept;
 
-  // std::string find(const std::string& value) const noexcept;
-
   std::map<std::string, std::string> get_cookies() const noexcept;
 
   std::map<std::string, std::string>::const_iterator begin() const noexcept;
