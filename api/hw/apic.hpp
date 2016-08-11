@@ -49,8 +49,6 @@ namespace hw {
     static uint8_t get_irr();
     static void eoi();
     
-    static void reboot();
-    
   private:
     static void init_smp();
   };

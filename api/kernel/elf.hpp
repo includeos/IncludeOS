@@ -41,6 +41,9 @@ struct Elf
   static func_offset
     resolve_symbol(void* addr);
   
+  static uintptr_t resolve_addr(uintptr_t addr);
+  static uintptr_t resolve_addr(void* addr);
+  
   // get and resolve the current function
   static func_offset
     get_current_function();

@@ -150,8 +150,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   if (is_msix())
   {
     // for now use service queues, otherwise stress test fails
-    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
-    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::service_queues>(this));
+    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
+    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
     auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     // update BSP IDT
     IRQ_manager::cpu(0).subscribe(irq() + 0, recv_del);
@@ -339,8 +339,7 @@ void VirtioNet::service_queues(){
 
   // Let virtio know we have increased receive capacity
   if (dequeued_rx)
-    //rx_q.kick();
-    begin_deferred_kick(1);
+    rx_q.kick();
 
   debug2("<VirtioNet> Service loop about to kick RX if %i \n",
          dequeued_rx);
@@ -415,8 +414,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
 
   // Notify virtio about new packets
   if (likely(transmitted)) {
-    //tx_q.kick();
-    begin_deferred_kick(2);
+    begin_deferred_kick();
   }
 
   // Buffer the rest
@@ -447,24 +445,24 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
   tx_ringq.push_back((uint8_t*) pckt.get());
 }
 
-#define NO_DEFERRED_KICK
+//#define NO_DEFERRED_KICK
 #include <timer>
+#include <delegate>
 
-void VirtioNet::begin_deferred_kick(uint8_t mask)
+void VirtioNet::begin_deferred_kick()
 {
 #ifdef NO_DEFERRED_KICK
-  if (mask & 1)  rx_q.kick();
-  if (mask & 2)  tx_q.kick();
+  tx_q.kick();
 #else
   if (!deferred_kick) {
+    deferred_kick = true;
     using namespace std::chrono;
-    Timers::oneshot(microseconds(50),
-    [this] (Timers::id_t) {
-      if (deferred_kick & 1)  rx_q.kick();
-      if (deferred_kick & 2)  tx_q.kick();
-      deferred_kick = 0;
-    });
+    Timers::oneshot(seconds(0), delegate<void(uint32_t)>::from<VirtioNet, &VirtioNet::handle_deferred_kicks>(this));
   }
-  deferred_kick |= mask;
 #endif
+}
+void VirtioNet::handle_deferred_kicks(uint32_t)
+{
+  tx_q.kick();
+  deferred_kick = false;
 }
