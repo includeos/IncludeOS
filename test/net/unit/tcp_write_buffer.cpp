@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lest/include/lest/lest.hpp"
-#include "../../api/net/tcp/write_buffer.hpp"
+#include "../../lest/include/lest/lest.hpp"
+#include <net/tcp/write_buffer.hpp>
 
 using namespace net::tcp;
 
@@ -40,53 +40,47 @@ const lest::test test_tcp_write_buffer[] =
         bool advanced = wb.advance(300);
         EXPECT( advanced );
 
-        THEN("The buffer is advanced forward but the length is constant")
+        THEN("The buffer is advanced forward, and the length is constant")
         {
           EXPECT( wb.pos() != wb.begin() );
           EXPECT( wb.pos() != wb.end() );
 
           EXPECT( wb.length() == len );
-          EXPECT( not wb.done() );
 
-        }
-        WHEN("Advanced with additional 700 bytes")
-        {
-          advanced = wb.advance(700);
-          EXPECT( advanced );
+          EXPECT( wb.remaining == 700 );
 
-          THEN("The buffer is at the end, but still not fully done")
+          WHEN("Advanced with additional 700 bytes")
           {
-            EXPECT( wb.pos() == wb.end() );
-            EXPECT( wb.remaining == 0 );
+            advanced = wb.advance(700);
+            EXPECT( advanced );
 
-            EXPECT( not wb.done() );
-          }
-          WHEN("Acknowledged with 1000 bytes")
-          {
-            wb.acknowledge(1000);
-
-            THEN("The buffer is done")
+            THEN("The buffer is at the end, but still not fully done")
             {
-              EXPECTS( wb.done() );
-            }
-          }
-          WHEN("Acknowledged with 1200 bytes")
-          {
-            auto acked = wb.acknowledge(1200);
+              EXPECT( wb.pos() == wb.end() );
+              EXPECT( wb.remaining == 0 );
 
-            THEN("The buffer is done, but no more than 1000 bytes is acked")
-            {
-              EXPECT( wb.done() );
-              EXPECT( acked == len );
-              EXPECT( wb.acknowledged == wb.length() );
-            }
-          }
-        }
-      }
+              EXPECT( not wb.done() );
 
-    }
-  }; // < SCENARIO #1
-}
+              WHEN("Acknowledged with 1200 bytes")
+              {
+                auto acked = wb.acknowledge(1200);
+
+                THEN("The buffer is done, but no more than 1000 bytes is acked")
+                {
+                  EXPECT( wb.done() );
+                  EXPECT( acked == len );
+                  EXPECT( wb.acknowledged == wb.length() );
+                }
+              } // < Acknowledge 1200
+            } // < THEN
+          } // < Advance 700
+        } // < THEN
+      } // < Advance 300
+    } // < GIVEN
+  } // < SCENARIO #1
+};
+
+#ifndef HAVE_LEST_MAIN
 
 int main(int argc, char * argv[])
 {
@@ -94,3 +88,5 @@ int main(int argc, char * argv[])
 
   return res;
 }
+
+#endif
