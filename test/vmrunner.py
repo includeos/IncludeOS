@@ -124,7 +124,12 @@ class hypervisor(object):
   def poll(self):
     abstract()
 
-# Start a process we expect to not finish immediately (i.e. a VM)
+  # A descriptive name
+  def name(self):
+    abstract()
+
+
+# Start a process we expect to not finish immediately (e.g. a VM)
 def start_process(popen_param_list):
   # Start a subprocess
   proc = subprocess.Popen(popen_param_list,
@@ -144,6 +149,9 @@ def start_process(popen_param_list):
 
 # Qemu Hypervisor interface
 class qemu(hypervisor):
+
+  def name(self):
+    return "Qemu"
 
   def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
     return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
@@ -165,9 +173,16 @@ class qemu(hypervisor):
       print color.INFO("<qemu>"),"KVM OFF"
       return False
 
-  def boot(self):
+  def boot(self, multiboot, kernel_args):
     self._nametag = "<" + type(self).__name__ + ">"
     print color.INFO(self._nametag), "booting", self._config["image"]
+
+    # multiboot
+    if multiboot:
+      print color.INFO(self._nametag), "Booting with multiboot (-kernel args)"
+      kernel_args = ["-kernel", self._config["image"].split(".")[0], "-append", kernel_args]
+    else:
+      kernel_args = []
 
     disk_args = self.drive_arg(self._config["image"], "ide")
     if "drives" in self._config:
@@ -187,6 +202,8 @@ class qemu(hypervisor):
 
     command = ["qemu-system-x86_64"]
     if self.kvm_present(): command.append("--enable-kvm")
+
+    command += kernel_args
 
     command += ["-nographic" ] + disk_args + net_args + mem_arg
 
@@ -216,14 +233,13 @@ class qemu(hypervisor):
   def writeline(self, line):
     if self._proc.poll():
       raise Exception("Process completed")
-    return self._proc.stdin.write(line)
+    return self._proc.stdin.write(line + "\n")
 
   def poll(self):
     return self._proc.poll()
 
 # VM class
 class vm:
-
 
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
@@ -276,7 +292,7 @@ class vm:
     print color.SUBPROC(res)
     return self
 
-  def boot(self, timeout = None):
+  def boot(self, timeout = None, multiboot = True, kernel_args = "booted with vmrunner"):
 
     # Check for sudo access, needed for tap network devices and the KVM module
     if os.getuid() is not 0:
@@ -290,7 +306,7 @@ class vm:
 
     # Boot via hypervisor
     try:
-      self._hyper.boot()
+      self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
     except Exception as err:
       if (timeout): self._timer.cancel()
       raise err

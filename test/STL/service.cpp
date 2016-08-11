@@ -32,12 +32,6 @@
 #include <cassert>
 #include <lest.hpp>
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 using namespace std;
 
 const lest::test specification[] =

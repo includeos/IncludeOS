@@ -23,16 +23,6 @@
 
 #define MYINFO(X,...) INFO("Ethernet Test",X,##__VA_ARGS__)
 
-/**
- * @brief This is defined to quiet the compiler from complaining
- * about the missing symbol {clock_gettime}
- */
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 const lest::test ethernet_module_test[]
 {
   {
