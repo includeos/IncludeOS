@@ -164,7 +164,7 @@ namespace net {
       total = (total > udp.max_datagram_size()) ? udp.max_datagram_size() : total;
 
       // create some packet p (and convert it to PacketUDP)
-      auto p = udp.stack().createPacket(0);
+      auto p = udp.stack().create_packet(0);
       // fill buffer (at payload position)
       memcpy(p->buffer() + PacketUDP::HEADERS_SIZE,
              buf.get() + this->offset, total);
