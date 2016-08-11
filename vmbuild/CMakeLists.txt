@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 2.8.9)
 project (vmbuilder)
 
 # TODO: make sure that CXX is exported before this script is called
-set(SOURCES vmbuild.cpp)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -O3")
+set(SOURCES vmbuild.cpp elf_binary.cpp)
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O3")
 
-include_directories(.)
+# TODO: write scripts that automatically find include directories
+include_directories(. ./../api ./../mod/GSL/include)
 
 add_executable(vmbuild ${SOURCES})
 
-# TODO: move install towards cmake
-
+# TODO: use prefix to install into the right directory
 install(TARGETS vmbuild DESTINATION bin)
