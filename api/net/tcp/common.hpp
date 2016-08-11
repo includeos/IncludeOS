@@ -19,7 +19,7 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/ip4.hpp> // IP4::addr @TODO: include ip4 only for address?
+#include <net/ip4/addr.hpp>
 
 namespace net {
   namespace tcp {
@@ -32,7 +32,7 @@ namespace net {
     // the maximum amount of half-open connections per port (listener)
     static constexpr size_t max_syn_backlog = 64;
 
-    using Address = IP4::addr;
+    using Address = ip4::Addr;
 
     /** A port */
     using port_t = uint16_t;

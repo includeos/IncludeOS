@@ -20,6 +20,7 @@
 #define NET_TCP_HEADERS_HPP
 
 #include "common.hpp"
+#include <net/ip4/addr.hpp>
 
 namespace net {
 namespace tcp {
@@ -86,8 +87,8 @@ struct Header {
   TCP Pseudo header, for checksum calculation
 */
 struct Pseudo_header {
-  IP4::addr saddr;
-  IP4::addr daddr;
+  ip4::Addr saddr;
+  ip4::Addr daddr;
   uint8_t zero;
   uint8_t proto;
   uint16_t tcp_length;
