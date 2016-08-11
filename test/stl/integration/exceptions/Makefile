@@ -12,7 +12,7 @@ FILES = service.cpp
 # Your disk image
 DISK=
 
-LOCAL_INCLUDES=-I$(shell pwd)/../lest/include/lest
+LOCAL_INCLUDES=-I$(INCLUDEOS_SRC)/test/lest/include/lest
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

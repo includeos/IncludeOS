@@ -1,8 +1,10 @@
 #! /usr/bin/python
 import sys
 import subprocess
+import os
 
-sys.path.insert(0,"..")
+includeos_src = os.environ['INCLUDEOS_SRC']
+sys.path.insert(0,includeos_src + "/test")
 subprocess.call(['./image.sh'])
 
 def cleanup():

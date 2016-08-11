@@ -20,6 +20,7 @@
 #ifndef HW_APIC_TIMER_HPP
 #define HW_APIC_TIMER_HPP
 
+#include <chrono>
 #include <delegate>
 
 namespace hw {
@@ -30,12 +31,11 @@ namespace hw {
     
     static void init(const handler_t&);
     
-    static void oneshot(uint32_t microsec);
+    static void oneshot(std::chrono::microseconds);
     static void stop();
     static void set_handler(const handler_t&);
     
-    static bool     ready();
-    static uint32_t long_duration();
+    static bool ready();
   };
 
 }
