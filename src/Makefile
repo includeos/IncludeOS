@@ -66,8 +66,8 @@ LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
-OS_OBJECTS = kernel/kernel_start.o kernel/syscalls.o \
-		kernel/interrupts.o kernel/os.o kernel/cpuid.o \
+OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
+		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/memmap.o\
 		kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o kernel/profile.o \
@@ -138,7 +138,7 @@ minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
 minimal: stripped test
 
-includeos: bootloader libc++abi.a os.a
+includeos: bootloader multiboot libc++abi.a os.a
 
 # Test service
 ###################################################
@@ -173,6 +173,11 @@ test_tcp: debug/test_tcp.o $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Linking test TCP service"
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_tcp.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
+test_memory: CPPOPTS += -DSERVICE_NAME="\"Memory test Service\""
+test_memory: debug/test_memory.o $(CRTI_OBJ) $(CRTN_OBJ)
+	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_memory.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
+
+
 test: test_service
 
 # OS libraries
@@ -188,6 +193,7 @@ os.a: $(OS_OBJECTS) apic_boot.o
 install: $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
+	cp boot/multiboot.o $(INSTALL)
 	cp os.a $(INSTALL)
 	cp libc++abi.a $(INSTALL)/libcxx
 	cp crt/crti.o $(INSTALL)/crt
@@ -198,7 +204,7 @@ install: $(CRTI_OBJ) $(CRTN_OBJ)
 	mkdir -p $(INSTALL)/memdisk
 	cp memdisk/* $(INSTALL)/memdisk/
 	# Seed related
-	cp util/service_name.cpp $(INSTALL)
+	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
 	cp seed/Makelib $(INSTALL)/Makelib
 	# Eexternal dependencies related
@@ -232,6 +238,8 @@ apic_boot.o: hw/apic_boot.asm
 	nasm -f bin -o apic_boot.bin $<
 	$(OBJCOPY_INC) -I binary -O elf32-i386 -B i386 apic_boot.bin $@
 
+multiboot: boot/multiboot.o
+
 # Disk image as a section
 ###################################################
 memdisk: memdisk.asm
@@ -253,6 +261,6 @@ clean_tests:
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
 	$(RM) os.a libc++abi.a
-	$(RM) bootloader apic_boot apic_boot.o memdisk.o
+	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
 
 -include $(OS_DEPS)

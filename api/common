@@ -96,4 +96,8 @@ inline void expects_and_ensures_termination() { std::exit(EXIT_FAILURE); }
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
+#define LIKELY(x)       __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+
+
 #endif //< INCLUDEOS_COMMON_HEADER

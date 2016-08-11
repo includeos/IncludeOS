@@ -22,15 +22,6 @@
 
 #define MYINFO(X,...) INFO("Test exceptions",X,##__VA_ARGS__)
 
-// FIXME: Remove hack below :-(
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  // Lest depends on clock_gettime, but it's not implemented in
-  // IncludeOS yet. Add a stub to prevent linker error.
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 const lest::test tests[] = {
   {
     SCENARIO("exceptions can be thrown and caught") {

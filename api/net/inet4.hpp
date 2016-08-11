@@ -71,7 +71,7 @@ namespace net {
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
     */
-    virtual Packet_ptr createPacket(size_t size) override {
+    virtual Packet_ptr create_packet(size_t size) override {
       // get buffer (as packet + data)
       auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer

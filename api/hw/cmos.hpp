@@ -71,6 +71,15 @@ namespace cmos {
   static reg_t r_status_c = 0xc;
   static reg_t r_status_d = 0xd;
 
+  // Memory registers
+  static reg_t r_lowmem_lo = 0x15;
+  static reg_t r_lowmem_hi = 0x16;
+  static reg_t r_himem_lo = 0x17;
+  static reg_t r_himem_hi = 0x18;
+  static reg_t r_memsize_lo = 0x30;
+  static reg_t r_memsize_hi = 0x31;
+
+
 
   /** Get the contents of a CMOS register */
   inline uint8_t get(reg_t reg) {
@@ -95,6 +104,36 @@ namespace cmos {
     INFO("CMOS", "Setting 24 hour format UTC");
     set(r_status_b, b_24_hr_clock | b_binary_mode);
   }
+
+  union mem_t {
+    uint16_t total;
+    struct {
+      uint8_t lo;
+      uint8_t hi;
+    };
+  };
+
+  struct memory_t {
+    mem_t base;
+    mem_t extended;
+    mem_t actual_extended;
+  };
+
+  inline memory_t meminfo(){
+    memory_t mem {{0}, {0}, {0}};
+    mem.base.hi = get(r_lowmem_hi);
+    mem.base.lo = get(r_lowmem_lo);
+    mem.extended.hi = get(r_himem_hi);
+    mem.extended.lo = get(r_himem_lo);
+    mem.actual_extended.hi = get(r_memsize_hi);
+    mem.actual_extended.lo = get(r_memsize_lo);
+
+    Expects (mem.extended.total == mem.actual_extended.total);
+
+    return mem;
+}
+
+
 
 
   /**

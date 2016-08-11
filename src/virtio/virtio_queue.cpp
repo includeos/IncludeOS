@@ -176,7 +176,7 @@ Virtio::Token Virtio::Queue::dequeue() {
   _last_used_idx++;
   // return token:
   return {{(uint8_t*) _queue.desc[e.id].addr,
-           (gsl::span<char>::size_type) e.len }, Token::IN};
+        e.len }, Token::IN};
 }
 std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
 

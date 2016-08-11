@@ -57,13 +57,14 @@ CRTBEGIN_OBJ = $(INSTALL)/crt/crtbegin.o
 CRTEND_OBJ = $(INSTALL)/crt/crtend.o
 CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
+MULTIBOOT = $(INSTALL)/multiboot.o
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
 
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
-OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ)
+OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ) $(MULTIBOOT)
 OS_POST = $(CRTEND_OBJ) $(CRTN_OBJ)
 
 DEPS = $(OBJS:.o=.d)
@@ -137,7 +138,7 @@ ifneq ($(STRIPPED),)
 	strip $(STRIPPED) $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
-	$(INSTALL)/vmbuild $(INSTALL)/bootloader $(SERVICE)
+	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
 
 # Object files
 ###################################################

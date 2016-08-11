@@ -29,12 +29,6 @@
 #include <lest.hpp>
 #include <regex>
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 
 #define MYINFO(X,...) INFO("Test GSL",X,##__VA_ARGS__)
 
@@ -109,7 +103,7 @@ const lest::test test_basic_gsl[] = {
     SCENARIO("We can use span to replace pointer-and-size interfaces") {
 
       GIVEN ("A (member) function with a span parameter") {
-
+        MYINFO("Using span as a member function parameter:");
         class Mem {
         public:
           static unsigned int count(gsl::span<char> chars){
@@ -156,13 +150,13 @@ const lest::test test_basic_gsl[] = {
           }
 
           AND_THEN("Using a span we can't iterate too far") {
-
+            MYINFO("Trying to iterate too far in a span:");
             gsl::span<char> strspan{str2, 5};
             auto it = strspan.begin();
             for (; it!= strspan.end(); it++)
               printf("'%c' ", *it);
 
-            it++;
+            EXPECT_THROWS(it++);
             EXPECT_THROWS(printf("DANGER: '%c' \n", *it));
 
           }
@@ -170,7 +164,7 @@ const lest::test test_basic_gsl[] = {
       }
 
       GIVEN ("A (Bad) span-interface that doesn't do any bounds checking") {
-
+        MYINFO("No bounds-checking for bad use of span:");
         class Bad {
         public:
           static unsigned char eighth(gsl::span<char> chars){
@@ -201,7 +195,7 @@ const lest::test test_basic_gsl[] = {
 
     std::string my_string = "GET /asdf%C3%B8lkj/&%C3%A6%C3%B8asldkfpoij09j13osmdv HTTP/1.1\n";
     gsl::span<const char> my_span {my_string};
-
+    MYINFO("Using std::regex on a span");
     for (auto c : my_span)
       printf("%c",c);
     printf("\n");
@@ -225,6 +219,8 @@ void Service::start()
   MYINFO ("Starting LEST-tests");
   // Lest takes command line params as vector
   auto failed = lest::run(test_basic_gsl, {"-p"});
+
+  MYINFO("Failed tests: %i", failed);
 
   assert(not failed);
 
