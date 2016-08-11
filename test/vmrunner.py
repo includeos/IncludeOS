@@ -374,7 +374,7 @@ class vm:
 
 print color.HEADER("IncludeOS vmrunner initializing tests")
 print color.INFO(nametag), "Validating test service"
-validate_test.load_schema("../vm.schema.json")
+validate_test.load_schema(os.environ["INCLUDEOS_SRC"] + "/test/vm.schema.json")
 validate_test.has_required_stuff(".")
 
 default_spec = {"image" : "test.img"}
