@@ -15,14 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../lest/include/lest/lest.hpp"
+#include <common.cxx>
 #include <net/tcp/write_buffer.hpp>
 
 using namespace net::tcp;
 
-const lest::test test_tcp_write_buffer[] =
-{
-  SCENARIO("Creating a WriteBuffer and operate it")
+  CASE("Creating a WriteBuffer and operate it")
   {
     GIVEN("An WriteBuffer with a buffer_t of 1000 bytes")
     {
@@ -77,16 +75,5 @@ const lest::test test_tcp_write_buffer[] =
         } // < THEN
       } // < Advance 300
     } // < GIVEN
-  } // < SCENARIO #1
-};
+  } // < CASE #1
 
-#ifndef HAVE_LEST_MAIN
-
-int main(int argc, char * argv[])
-{
-  int res = lest::run(test_tcp_write_buffer, argc, argv);
-
-  return res;
-}
-
-#endif
