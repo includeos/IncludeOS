@@ -28,6 +28,9 @@
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 
+namespace net {
+  class TCP;
+}
 
 namespace net {
 namespace tcp {
@@ -38,7 +41,6 @@ namespace tcp {
   Transist between many states.
 */
 class Connection : public std::enable_shared_from_this<Connection> {
-
   friend class net::TCP;
   friend class Listener;
 
@@ -539,7 +541,7 @@ private:
     Buffer is cleared for data after every reset.
   */
   void read(size_t n, ReadCallback callback) {
-    ReadBuffer buffer = {buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n};
+    ReadBuffer buffer = {new_shared_buffer(n), n};
     read(buffer, callback);
   }
 
@@ -587,7 +589,7 @@ private:
     Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
   */
   void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
-    auto buffer = buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>());
+    auto buffer = new_shared_buffer(n);
     memcpy(buffer.get(), buf, n);
     write(buffer, n, callback, PUSH);
   }
