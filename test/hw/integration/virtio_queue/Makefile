@@ -9,7 +9,7 @@ SERVICE_NAME = Virtio Queue Test
 # Your service parts
 FILES = service.cpp
 
-LOCAL_INCLUDES=-I$(PWD)/../lest/include/lest -I$(PWD)/../../mod/GSL/include
+LOCAL_INCLUDES=-I$(INCLUDEOS_SRC)/test/lest/include/lest -I$(PWD)/mod/GSL/include
 
 # Your disk image
 DISK=

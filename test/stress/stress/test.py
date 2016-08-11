@@ -3,7 +3,10 @@ import sys
 import socket
 import time
 import subprocess
-sys.path.insert(0,"..")
+import os
+
+includeos_src = os.environ['INCLUDEOS_SRC']
+sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
 from vmrunner import color
