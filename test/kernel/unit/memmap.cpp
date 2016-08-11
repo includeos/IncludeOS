@@ -30,10 +30,6 @@ CASE ("Using the kernel memory map") {
           map.assign_range({0x1, 0xff, "Range 1", "The first range"});
           EXPECT(map.size() == 1);
 
-          AND_THEN("You can check the size again and it's fucked")
-            {
-              EXPECT(map.size() == 1);
-            }
         };
 
       auto improved_implementation = false;
