@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 2.8.9)
+
+project (includeos)
+
+set(INCLUDEOS_INSTALL_DIR /home/andy/IncludeOS_install/)
+set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
+
+include_directories(${INCLUDEOS_ROOT}/api/sys ${INCLUDEOS_INSTALL_DIR}/libcxx/include ${INCLUDEOS_INSTALL_DIR}/newlib/include ${INCLUDEOS_ROOT}/src/include ${INCLUDEOS_ROOT}/api ${INCLUDEOS_ROOT}/mod/GSL/include)
+
+set(CMAKE_CXX_FLAGS "-MMD -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=15583 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\\\"v0.8.1-709-gf8fccf4\\\"\"")
+
+# TODO: i wanted to use a glob, but then found out that not everything is included
+set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
+		kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp
+		kernel/irq_manager.cpp kernel/pci_manager.cpp
+		kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
+		kernel/vga.cpp kernel/debug_new.cpp kernel/profile.cpp
+		kernel/timer.cpp util/memstream.c util/async.cpp
+		crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp crt/mman.cpp
+		hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
+		hw/ps2.cpp hw/serial.cpp hw/cmos.cpp
+		hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
+		hw/apic_revenant.cpp hw/msi.cpp hw/pci_msi.cpp
+		virtio/virtio.cpp virtio/virtio_queue.cpp virtio/virtionet.cpp
+		net/ethernet.cpp net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
+		net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
+		net/tcp/rttm.cpp net/tcp/listener.cpp
+		net/ip4/icmpv4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
+		net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp
+		net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/udp6.cpp net/ip6/ndp.cpp
+		net/buffer_store.cpp
+		fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
+		fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
+		virtio/block.cpp hw/apic_boot.asm)
+
+# TODO: why was apic_boot special handled?
+
+add_library(os_a STATIC ${OS_OBJECTS})
