@@ -28,6 +28,9 @@
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 
+namespace net {
+  class TCP;
+}
 
 namespace net {
 namespace tcp {
@@ -38,7 +41,6 @@ namespace tcp {
   Transist between many states.
 */
 class Connection : public std::enable_shared_from_this<Connection> {
-
   friend class net::TCP;
   friend class Listener;
 
