@@ -35,7 +35,7 @@ set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
 
 # TODO: why was apic_boot special handled?
 
-add_library(os_a STATIC ${OS_OBJECTS})
+add_library(os STATIC ${OS_OBJECTS})
 
 # try to build CXXABI:
 # TODO: shouldn't we move that into a new CMakeLists.txt file?

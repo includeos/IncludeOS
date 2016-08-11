@@ -27,4 +27,13 @@ install(TARGETS multiboot DESTINATION bin)
 #enable_language(ASM_NASM)
 
 #include_directories(${INCLUDEOS_ROOT}/api/sys ${INCLUDEOS_INSTALL_DIR}/libcxx/include ${INCLUDEOS_INSTALL_DIR}/newlib/include ${INCLUDEOS_ROOT}/src/include ${INCLUDEOS_ROOT}/src/ ${INCLUDEOS_ROOT}/api ${INCLUDEOS_ROOT}/mod/GSL/include)
+
 #add_executable(bootloader bootloader.asm disk_read_lba.asm)
+
+add_custom_command(
+	OUTPUT bootloader
+	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o bootloader ${CMAKE_CURRENT_SOURCE_DIR}/bootloader.asm
+	DEPENDS bootloader.asm disk_read_lba.asm
+)
+
+add_custom_target(run ALL DEPENDS bootloader)
