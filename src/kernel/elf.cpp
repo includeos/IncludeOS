@@ -26,7 +26,9 @@
 
 static const char* null_stringz = "(null)";
 static const char* boot_stringz = "Bootloader area";
-static const uintptr_t ELF_START = 0x200000;
+extern uintptr_t _ELF_START_;
+static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
+
 #define frp(N, ra)                                 \
   (__builtin_frame_address(N) != nullptr) &&       \
     (ra = __builtin_return_address(N)) != nullptr
@@ -58,7 +60,7 @@ public:
     : strtab(nullptr)
   {
     auto& elf_hdr = elf_header();
-    
+
     // enumerate all section headers
     auto* shdr = (Elf32_Shdr*) (ELF_START + elf_hdr.e_shoff);
     for (Elf32_Half i = 0; i < elf_hdr.e_shnum; i++)
@@ -66,11 +68,11 @@ public:
       switch (shdr[i].sh_type)
       {
       case SHT_SYMTAB:
-        symtab[num_syms] = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset), 
+        symtab[num_syms] = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset),
                               shdr[i].sh_size / sizeof(Elf32_Sym) };
         num_syms++;
         //printf("found symtab at %#x\n", shdr[i].sh_offset);
-        //debug("found symbol table at %p with %u entries\n", 
+        //debug("found symbol table at %p with %u entries\n",
         //    this->symtab, this->st_entries);
         break;
       case SHT_STRTAB:
@@ -87,7 +89,7 @@ public:
       INFO("ELF", "symtab or strtab is empty, indicating image may be stripped\n");
     }
   }
-  
+
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
@@ -123,16 +125,16 @@ public:
     snprintf(buffer, length, "%#x", addr);
     return {buffer, addr, 0};
   }
-  
+
   Elf32_Addr getaddr(const std::string& name)
   {
     for (size_t t = 0; t < num_syms; t++)
     for (size_t i = 0; i < symtab[t].entries; i++) {
-      
+
       //printf("sym %s\n", sym_name(&symtab[t].base[i]));
       if (demangle( sym_name(&symtab[t].base[i]) ) == name)
           return symtab[t].base[i].st_value;
-      
+
     }
     return 0;
   }
@@ -140,14 +142,14 @@ public:
   {
     for (size_t t = 0; t < num_syms; t++)
     for (size_t i = 0; i < symtab[t].entries; i++) {
-      
+
       if (addr >= symtab[t].base[i].st_value
       && (addr <  symtab[t].base[i].st_value + symtab[t].base[i].st_size))
           return &symtab[t].base[i];
     }
     return nullptr;
   }
-  
+
   size_t end_of_file() const {
     auto& hdr = elf_header();
     return hdr.e_ehsize + (hdr.e_phnum * hdr.e_phentsize) + (hdr.e_shnum * hdr.e_shentsize);
@@ -159,7 +161,7 @@ public:
   auto get_strtab_size() const {
     return strtab_size;
   }
-  
+
 private:
   const char* sym_name(Elf32_Sym* sym) const {
     return &strtab[sym->st_name];
@@ -190,7 +192,7 @@ private:
     if (status) return name;
     return res;
   }
-  
+
   SymTab  symtab[4];
   size_t  num_syms;
   const char* strtab;
@@ -219,6 +221,19 @@ func_offset Elf::resolve_symbol(uintptr_t addr)
 func_offset Elf::resolve_symbol(void* addr)
 {
   return get_parser().getsym((uintptr_t) addr);
+}
+
+uintptr_t Elf::resolve_addr(uintptr_t addr)
+{
+  auto* sym = get_parser().getaddr(addr);
+  if (sym) return sym->st_value;
+  return addr;
+}
+uintptr_t Elf::resolve_addr(void* addr)
+{
+  auto* sym = get_parser().getaddr((uintptr_t) addr);
+  if (sym) return sym->st_value;
+  return (uintptr_t) addr;
 }
 
 safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
@@ -265,13 +280,13 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  char btrace_buffer[180];
-  char symbol_buffer[160];
-  
+  char symbol_buffer[161];
+  char btrace_buffer[181];
+
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol( \
-                ra, symbol_buffer, 256);  \
-    auto len = snprintf(btrace_buffer, 255,\
+                ra, symbol_buffer, 160);  \
+    auto len = snprintf(btrace_buffer, 180,\
              "[%d] %8x + 0x%.3x: %s\n", \
              N, symb.addr, symb.offset, symb.name);\
     write(1, btrace_buffer, len);
@@ -301,7 +316,7 @@ void print_backtrace()
 
 extern "C" {
   extern char _end;
-  
+
   uintptr_t __elf_header_end() {
     auto& hdr = elf_header();
     uintptr_t last = 0;
@@ -335,5 +350,5 @@ void Elf::print_info()
     uintptr_t end   = start     + shdr[i].sh_size;
     printf("sh from %#x to %#x\n", start, end);
   }
-  
+
 }

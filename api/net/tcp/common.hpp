@@ -19,7 +19,7 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/ip4.hpp> // IP4::addr @TODO: include ip4 only for address?
+#include <net/ip4/addr.hpp>
 
 namespace net {
   namespace tcp {
@@ -32,7 +32,7 @@ namespace net {
     // the maximum amount of half-open connections per port (listener)
     static constexpr size_t max_syn_backlog = 64;
 
-    using Address = IP4::addr;
+    using Address = ip4::Addr;
 
     /** A port */
     using port_t = uint16_t;
@@ -42,6 +42,15 @@ namespace net {
 
     /** A shared buffer pointer */
     using buffer_t = std::shared_ptr<uint8_t>;
+
+    /**
+     * @brief Creates a shared buffer with a given length
+     *
+     * @param length buffer length
+     * @return a newly created buffer_t
+     */
+    static buffer_t new_shared_buffer(uint64_t length)
+    { return buffer_t(new uint8_t[length], std::default_delete<uint8_t[]>()); }
 
     class Packet;
     using Packet_ptr = std::shared_ptr<Packet>;
