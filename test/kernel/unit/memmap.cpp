@@ -35,6 +35,10 @@ CASE ("Using the kernel memory map") {
               EXPECT(map.size() == 1);
             }
         };
+
+      auto improved_implementation = false;
+      EXPECT(improved_implementation);
+
     }
 }
 
