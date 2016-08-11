@@ -23,8 +23,8 @@
 /**
  * In-memory bitmap implementation
  * 
- * 
- **/
+ * Not assigning memory area causes undefined behavior
+**/
 
 class MemBitmap
 {
