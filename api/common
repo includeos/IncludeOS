@@ -35,7 +35,7 @@
 
 /* We're only doing 32-bit ix86 targets. */
 #if !defined(__i386__)
-#error "This project needs to be compiled with an ix86-elf compiler"
+#warning "This project is targeted at the i386 architecture"
 #endif
 
 /* Unused parameters */
