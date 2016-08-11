@@ -30,7 +30,7 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
-#define CALIBRATION_MS   125
+#define CALIBRATION_MS   250
 
 using namespace std::chrono;
 
@@ -88,10 +88,10 @@ namespace hw
     }
   }
   
-  void APIC_Timer::oneshot(uint32_t microsec)
+  void APIC_Timer::oneshot(std::chrono::microseconds micros)
   {
     // prevent overflow
-    uint64_t ticks = microsec * ticks_per_micro;
+    uint64_t ticks = micros.count() * ticks_per_micro;
     if (ticks & 0xFFFFFFFF00000000) ticks = 0xFFFFFFFF;
     
     // set initial counter

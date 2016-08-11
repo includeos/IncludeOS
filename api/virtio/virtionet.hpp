@@ -243,8 +243,9 @@ private:
   std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
   
-  void begin_deferred_kick(uint8_t);
-  uint8_t deferred_kick = 0;
+  void begin_deferred_kick();
+  void handle_deferred_kicks(uint32_t);
+  bool deferred_kick = false;
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 

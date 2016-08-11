@@ -21,6 +21,8 @@
 #include <debug>
 #include <info>
 
+extern "C" void reboot();
+
 namespace hw {
   
   struct RSDPDescriptor {
@@ -258,4 +260,27 @@ namespace hw {
     panic("ACPI RDST-search failed\n");
   }
   
+  void ACPI::reboot()
+  {
+    ::reboot();
+  }
+  
+  __attribute__((noreturn))
+  void ACPI::shutdown()
+  {
+    asm volatile("cli");
+    // http://forum.osdev.org/viewtopic.php?t=16990
+    hw::outw (0xB004, 0x2000);
+    
+    const char s[] = "Shutdown";
+    const char *p;
+    for (p = s; *p; p++)
+      // magic code for bochs and qemu
+      hw::outb (0x8900, *s);
+
+    // VMWare poweroff when "gui.exitOnCLIHLT" is true
+    printf("Failed shutdown\n");
+    asm volatile("cli; hlt" : : : "memory");
+    while (true);
+  }
 }

@@ -16,7 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
 #include <cassert>
 
 /**
@@ -41,17 +42,17 @@ public:
   }
   
   // returns the boolean value of the bit located at @n
-  bool operator[] (index_t n) const
+  bool operator[] (index_t n) const noexcept
   {
     return get(n);
   }
-  bool get(index_t b) const
+  bool get(index_t b) const noexcept
   {
     return _data[windex(b)] & bit(b);
   }
   
   // return the bit-index of the first clear bit
-  index_t first_free() const
+  index_t first_free() const noexcept
   {
     // each word
     for (int i = 0; i < _chunks; i++)
@@ -65,7 +66,7 @@ public:
     return -1;
   }
   
-  index_t first_set() const
+  index_t first_set() const noexcept
   {
     for (int i = 0; i < _chunks; i++)
     if (_data[i])
@@ -75,55 +76,74 @@ public:
     }
     return -1;
   }
-  
-  void zero_all()
+  index_t last_set() const noexcept
   {
-    memset(_data, 0, _chunks);
+    for (int i = _chunks-1; i >= 0; i--)
+    if (_data[i])
+    {
+      int b = 31 - __builtin_clz(_data[i]);
+      //printf("data: %#x b: %u\n", _data[i], i * CHUNK_SIZE + b);
+      return i * CHUNK_SIZE + b;
+    }
+    return -1;
   }
-  void set(index_t b)
+  
+  void zero_all() noexcept
+  {
+    memset(_data, 0, sizeof(word) * _chunks);
+  }
+  void set(index_t b) noexcept
   {
     _data[windex(b)] |= bit(b); 
   }
-  void reset(index_t b)
+  void reset(index_t b) noexcept
   {
     _data[windex(b)] &= ~bit(b);
   }
-  void flip(index_t b)
+  void flip(index_t b) noexcept
   {
     _data[windex(b)] ^= bit(b); 
   }
   
-  void atomic_set(index_t b)
+  void atomic_set(index_t b) noexcept
   {
     __sync_fetch_and_or(&_data[windex(b)], bit(b));
   }
-  void atomic_reset(index_t b)
+  void atomic_reset(index_t b) noexcept
   {
     __sync_fetch_and_and(&_data[windex(b)], ~bit(b));
   }
   
   void set_location(const void* location, index_t chunks)
   {
+    assert(location != nullptr && chunks != 0);
     this->_data = (word*) location;
     this->_chunks = chunks;
   }
+  
+  // returns data in bytes
   char* data() const noexcept
   {
     return (char*) _data;
   }
+  // returns size in bytes of data section
   index_t size() const noexcept
   {
-    return _chunks * CHUNK_SIZE;
+    return _chunks * sizeof(word);
   }
   
   // bit-and two bitmaps together
+  // safe version
   MemBitmap& operator&= (const MemBitmap& bmp)
   {
+    assert(bmp._chunks == _chunks);
     for (index_t i = 0; i < _chunks; i++)
       _data[i] &= bmp._data[i];
     return *this;
   }
-  void set_from_and(const MemBitmap& a, MemBitmap& b)
+  // unsafe version: must have data sections, and the number of chunks
+  // must match (as there is no check!)
+  void set_from_and(const MemBitmap& a, MemBitmap& b) noexcept
   {
     for (index_t i = 0; i < _chunks; i++)
         _data[i] = a._data[i] & b._data[i];
@@ -131,7 +151,7 @@ public:
   
   // might wanna look at individual chunks for
   // debugging purposes
-  word get_chunk(index_t chunk)
+  word get_chunk(index_t chunk) const
   {
     assert(chunk >= 0 && chunk < _chunks);
     return _data[chunk];
