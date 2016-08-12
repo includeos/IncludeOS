@@ -8,6 +8,3 @@
 [submodule "test/lest"]
 	path = test/lest
 	url = https://github.com/martinmoene/lest.git
-[submodule "mod/libunwind"]
-	path = mod/libunwind
-	url = git://git.sv.gnu.org/libunwind.git
