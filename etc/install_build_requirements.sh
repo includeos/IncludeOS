@@ -23,7 +23,7 @@ case $SYSTEM in
                     clang_version="3.8"
                 fi
 
-                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu $DEPENDENCIES"
+                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo apt-get update
@@ -31,7 +31,7 @@ case $SYSTEM in
                 exit 0;
                 ;;
             "Fedora")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu"
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES
