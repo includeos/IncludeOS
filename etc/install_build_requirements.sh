@@ -17,11 +17,13 @@ case $SYSTEM in
                 UBUNTU_VERSION=`lsb_release -rs`
 		if [ $(awk 'BEGIN{ print "'16.04'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
+                    DEPENDENCIES="gcc-5 g++-5"
+                    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
                 else
                     clang_version="3.8"
                 fi
 
-                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu"
+                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo apt-get update
