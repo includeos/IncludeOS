@@ -15,10 +15,10 @@ case $SYSTEM in
         case $RELEASE in
             "Ubuntu")
                 UBUNTU_VERSION=`lsb_release -rs`
-		if [ $(awk 'BEGIN{ print "'16.04'"<"'16.04'" }') -eq 1 ]; then
+		if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
                     DEPENDENCIES="gcc-5 g++-5"
-                    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+                    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
                 else
                     clang_version="3.8"
                 fi
