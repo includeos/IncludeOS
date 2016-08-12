@@ -39,13 +39,14 @@ fi
 ./etc/install_build_requirements.sh $SYSTEM $RELEASE
 
 # if the --all-source parameter was given, build it the hard way
-if [ "$1" == "--all-source" ]; then
+if [ "$1" = "--all-source" ]; then
     echo ">>> Installing everything from source"
+    exit 1
     . ./etc/install_all_source.sh
-elif [ "Darwin" == "$SYSTEM" ]; then
+elif [ "Darwin" = "$SYSTEM" ]; then
         # TODO: move build dependencies to the install build requirements step
         ./etc/install_osx.sh
-elif [ "Linux" == "$SYSTEM" ]; then
+elif [ "Linux" = "$SYSTEM" ]; then
 
     echo -e "\n\n>>> Calling install_from_bundle.sh script"
     ./etc/install_from_bundle.sh
