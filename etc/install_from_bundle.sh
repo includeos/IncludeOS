@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Install the IncludeOS libraries (i.e. IncludeOS_home) from binary bundle
 # ...as opposed to building them all from scratch, which takes a long time
