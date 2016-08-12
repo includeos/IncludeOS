@@ -20,60 +20,61 @@
 
 using namespace net::tcp;
 
-  CASE("Creating a WriteBuffer and operate it")
+CASE("Creating a WriteBuffer and operate it")
+{
+  GIVEN("An WriteBuffer with a buffer_t of 1000 bytes")
   {
-    GIVEN("An WriteBuffer with a buffer_t of 1000 bytes")
+    const uint32_t len = 1000;
+    WriteBuffer wb { new_shared_buffer(len), len, true };
+
+    EXPECT( wb.length() == len );
+    EXPECT( not wb.done() );
+
+    EXPECT( wb.pos() == wb.begin() );
+    EXPECT( wb.pos() != wb.end() );
+
+    WHEN("Advanced with 300 bytes")
     {
-      const uint32_t len = 1000;
-      WriteBuffer wb { new_shared_buffer(len), len, true };
+      bool advanced = wb.advance(300);
+      EXPECT( advanced );
 
-      EXPECT( wb.length() == len );
-      EXPECT( not wb.done() );
-
-      EXPECT( wb.pos() == wb.begin() );
-      EXPECT( wb.pos() != wb.end() );
-
-      WHEN("Advanced with 300 bytes")
+      THEN("The buffer is advanced forward, and the length is constant")
       {
-        bool advanced = wb.advance(300);
-        EXPECT( advanced );
+        EXPECT( wb.pos() > wb.begin() );
+        EXPECT( wb.pos() < wb.end() );
 
-        THEN("The buffer is advanced forward, and the length is constant")
+        EXPECT( wb.remaining == 700 );
+        EXPECT( wb.offset == 300 );
+
+        EXPECT( wb.length() == len );
+
+        WHEN("Advanced with additional 700 bytes")
         {
-          EXPECT( wb.pos() != wb.begin() );
-          EXPECT( wb.pos() != wb.end() );
+          advanced = wb.advance(700);
+          EXPECT( advanced );
 
-          EXPECT( wb.length() == len );
-
-          EXPECT( wb.remaining == 700 );
-
-          WHEN("Advanced with additional 700 bytes")
+          THEN("The buffer is at the end, but still not fully done")
           {
-            advanced = wb.advance(700);
-            EXPECT( advanced );
+            EXPECT( wb.pos() == wb.end() );
+            EXPECT( wb.remaining == 0 );
 
-            THEN("The buffer is at the end, but still not fully done")
+            EXPECT( not wb.done() );
+
+            WHEN("Acknowledged with 1200 bytes")
             {
-              EXPECT( wb.pos() == wb.end() );
-              EXPECT( wb.remaining == 0 );
+              auto acked = wb.acknowledge(1200);
 
-              EXPECT( not wb.done() );
-
-              WHEN("Acknowledged with 1200 bytes")
+              THEN("The buffer is done, but no more than 1000 bytes is acked")
               {
-                auto acked = wb.acknowledge(1200);
-
-                THEN("The buffer is done, but no more than 1000 bytes is acked")
-                {
-                  EXPECT( wb.done() );
-                  EXPECT( acked == len );
-                  EXPECT( wb.acknowledged == wb.length() );
-                }
-              } // < Acknowledge 1200
-            } // < THEN
-          } // < Advance 700
-        } // < THEN
-      } // < Advance 300
-    } // < GIVEN
-  } // < CASE #1
+                EXPECT( wb.done() );
+                EXPECT( acked == len );
+                EXPECT( wb.acknowledged == wb.length() );
+              }
+            } // < Acknowledge 1200
+          } // < THEN
+        } // < Advance 700
+      } // < THEN
+    } // < Advance 300
+  } // < GIVEN
+} // < CASE #1
 
