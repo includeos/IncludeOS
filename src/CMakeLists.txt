@@ -46,3 +46,14 @@ file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 add_library(libc++abi.a STATIC ${CXX_ABI})
 
 add_subdirectory(boot)
+
+# TODO: what is this testdisk?
+#
+# build memdisk
+#add_custom_command(
+	#OUTPUT memdisk
+	#COMMAND nasm -f elf -o memdisk ${CMAKE_CURRENT_SOURCE_DIR}/memdisk.asm
+	#DEPENDS memdisk.asm
+	#)
+#
+#add_custom_target(create_memdisk ALL DEPENDS memdisk)
