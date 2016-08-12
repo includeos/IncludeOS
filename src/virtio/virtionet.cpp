@@ -184,8 +184,8 @@ void VirtioNet::msix_recv_handler()
 {
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
-  // Do one RX-packet
-  while (rx_q.new_incoming()) {
+  // handle incoming packets as long as bufstore has available buffers
+  while (rx_q.new_incoming() && bufstore_.available() > 1) {
 
     auto res = rx_q.dequeue();
 
@@ -197,9 +197,9 @@ void VirtioNet::msix_recv_handler()
 
     dequeued_rx = true;
   }
+  rx_q.enable_interrupts();
   if (dequeued_rx)
     rx_q.kick();
-  rx_q.enable_interrupts();
 }
 void VirtioNet::msix_xmit_handler()
 {
@@ -457,7 +457,8 @@ void VirtioNet::begin_deferred_kick()
   if (!deferred_kick) {
     deferred_kick = true;
     using namespace std::chrono;
-    Timers::oneshot(seconds(0), delegate<void(uint32_t)>::from<VirtioNet, &VirtioNet::handle_deferred_kicks>(this));
+    Timers::oneshot(microseconds(0), 
+        delegate<void(uint32_t)>::from<VirtioNet, &VirtioNet::handle_deferred_kicks>(this));
   }
 #endif
 }
