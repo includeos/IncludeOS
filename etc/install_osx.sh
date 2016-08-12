@@ -32,6 +32,9 @@ echo -e "\n# Prequisites:\n
 
 echo -e "\n# Dependencies"
 
+## jq ##
+brew install jq
+
 ## LLVM ##
 echo -e "\nllvm38 (clang/clang++ 3.8) - required for compiling"
 DEPENDENCY_LLVM=false
