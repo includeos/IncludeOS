@@ -23,10 +23,6 @@ FILENAME=`echo "$JSON" | jq '.[0]["assets"][0]["name"]'`
 DOWNLOAD_URL=`echo "$JSON" | jq '.[0]["assets"][0]["browser_download_url"]'`
 echo -e "\n\n>>> File to download: $DOWNLOAD_URL"
 
-echo "filename: $DOWNLOAD_URL"
-exit 0
-
-
 # If the tarball exists, use that
 if [ -e $FILENAME ]
 then
