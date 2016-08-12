@@ -26,8 +26,7 @@ script_absolute_dir=$RESULT
 errors_present=0
 echo -e ">>> Will now attempt to make all examples. Outpt from make will only be present if an error occured"
 
-#for dir in `ls -d $INCLUDEOS_SRC/examples/*`
-for dir in `ls -d $script_absolute_dir/../../examples/*`
+for dir in `ls -d $script_absolute_dir/../../../examples/*`
 do
     cd $dir
     BASE=`basename $dir`
