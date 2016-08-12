@@ -10,6 +10,14 @@ include_directories(${INCLUDEOS_ROOT}/api/sys ${INCLUDEOS_INSTALL_DIR}/libcxx/in
 
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=15583 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\\\"v0.8.1-709-gf8fccf4\\\"\"")
 
+# TODO: use right variables
+option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
+if(debug)
+	list(append CAPABS "-O0")
+	list(append CCOPTS ${DEBUG_OPTS})
+	list(append CPPOPTS "-DGSL_THROW_ON_CONTRACT_VIOLATION")
+endif(debug)
+
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
 		kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp
