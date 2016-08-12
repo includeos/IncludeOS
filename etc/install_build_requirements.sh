@@ -15,13 +15,15 @@ case $SYSTEM in
         case $RELEASE in
             "Ubuntu")
                 UBUNTU_VERSION=`lsb_release -rs`
-                if [ $(echo "$UBUNTU_VERSION < 16.04" | bc) -eq 1 ]; then
+		if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
+                    DEPENDENCIES="gcc-5 g++-5"
+                    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
                 else
                     clang_version="3.8"
                 fi
 
-                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu"
+                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo apt-get update
