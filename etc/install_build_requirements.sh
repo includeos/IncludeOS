@@ -15,7 +15,7 @@ case $SYSTEM in
         case $RELEASE in
             "Ubuntu")
                 UBUNTU_VERSION=`lsb_release -rs`
-                if [ $(echo "$UBUNTU_VERSION < 16.04" | bc) -eq 1 ]; then
+		if [ $(awk 'BEGIN{ print "'16.04'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
                 else
                     clang_version="3.8"
