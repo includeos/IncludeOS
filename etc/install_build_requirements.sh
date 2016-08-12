@@ -2,6 +2,8 @@
 #
 # Install dependencies
 
+# TODO: add cmake as dependency
+
 SYSTEM=$1
 RELEASE=$2
 
