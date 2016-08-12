@@ -36,17 +36,17 @@ struct WriteBuffer {
   WriteBuffer(buffer_t buf, size_t length, bool PSH, size_t offs = 0)
     : buffer(buf), remaining(length-offs), offset(offs), acknowledged(0), push(PSH) {}
 
-  inline size_t length() const { return remaining + offset; }
+  size_t length() const { return remaining + offset; }
 
-  inline bool done() const { return acknowledged == length(); }
+  bool done() const { return acknowledged == length(); }
 
-  inline uint8_t* begin() const { return buffer.get(); }
+  uint8_t* begin() const { return buffer.get(); }
 
-  inline uint8_t* pos() const { return buffer.get() + offset; }
+  uint8_t* pos() const { return buffer.get() + offset; }
 
-  inline uint8_t* end() const { return buffer.get() + length(); }
+  uint8_t* end() const { return buffer.get() + length(); }
 
-  inline bool advance(size_t length) {
+  bool advance(size_t length) {
     assert(length <= remaining);
     offset += length;
     remaining -= length;
@@ -58,6 +58,12 @@ struct WriteBuffer {
     acknowledged += acked;
     return acked;
   }
+
+  operator buffer_t() const noexcept
+  { return buffer; }
+
+  bool operator==(const WriteBuffer& wb) const
+  { return buffer == wb.buffer && length() == wb.length(); }
 
 }; // < struct WriteBuffer
 
