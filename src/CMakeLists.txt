@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project (includeos)
 
-set(INCLUDEOS_INSTALL_DIR /home/andy/IncludeOS_install/)
+# TODO: should this not be moved into the library itself
+set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
 
 include_directories(${INCLUDEOS_ROOT}/api/sys ${INCLUDEOS_INSTALL_DIR}/libcxx/include ${INCLUDEOS_INSTALL_DIR}/newlib/include ${INCLUDEOS_ROOT}/src/include ${INCLUDEOS_ROOT}/api ${INCLUDEOS_ROOT}/mod/GSL/include)
