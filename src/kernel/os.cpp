@@ -31,6 +31,7 @@
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/timer.hpp>
+#include <kernel/rtc.hpp>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -190,8 +191,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     Timers::ready();
   });
 
-  // Initialize CMOS
-  cmos::init();
+  // Realtime/monotonic clock
+  RTC::init();
 
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());

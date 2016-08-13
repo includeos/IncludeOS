@@ -19,7 +19,7 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#include <hw/pit.hpp>
+#include <timer>
 #include "../packet.hpp"
 
 namespace net
@@ -40,7 +40,7 @@ namespace net
     DHClient(Stack& inet);
     
     // negotiate with local DHCP server
-    void negotiate(double timeout_secs);
+    void negotiate(uint32_t timeout_secs);
     
     // handler for result of DHCP negotation
     // timeout is true if the negotiation timed out
@@ -57,11 +57,11 @@ namespace net
     void acknowledge(const char* data, size_t len);
     
     Stack& stack;
-    uint32_t    xid;
-    IP4::addr   ipaddr, netmask, router, dns_server;
-    uint32_t    lease_time;
-    config_func config_handler;
-    hw::PIT::Timer_iterator timeout;
+    uint32_t     xid;
+    IP4::addr    ipaddr, netmask, router, dns_server;
+    uint32_t     lease_time;
+    config_func  config_handler;
+    Timers::id_t timeout;
     bool  console_spam;
   };
 }

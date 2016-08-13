@@ -92,6 +92,11 @@ public:
   {
     memset(_data, 0, sizeof(word) * _chunks);
   }
+  void set_all() noexcept
+  {
+    memset(_data, 0xFF, sizeof(word) * _chunks);
+  }
+  
   void set(index_t b) noexcept
   {
     _data[windex(b)] |= bit(b); 
