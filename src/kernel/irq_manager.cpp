@@ -193,7 +193,7 @@ void IRQ_manager::notify() {
     
     // rebuild todo-bits
     irq_todo.set_from_and(irq_subs, irq_pend);
-    // mask out interrupts we already visisted
+    // mask out interrupts we already visited
     irq_todo &= irq_mask;
     
     // find next interrupt

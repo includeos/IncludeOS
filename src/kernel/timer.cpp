@@ -165,7 +165,9 @@ void Timers::timers_handler()
         {
           // if the timer is recurring, we will simply reschedule it
           // NOTE: we are carefully using (when + period) to avoid drift
-          scheduled.insert(std::forward_as_tuple(when + timer.period, id));
+          scheduled.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(when + timer.period),
+                    std::forward_as_tuple(id));
         }
       } else {
         // timer was already dead
@@ -185,7 +187,9 @@ void Timers::timers_handler()
 }
 static void sched_timer(duration_t when, id_t id)
 {
-  scheduled.insert(std::forward_as_tuple(now() + when, id));
+  scheduled.emplace(std::piecewise_construct,
+            std::forward_as_tuple(now() + when),
+            std::forward_as_tuple(id));
   
   // dont start any hardware until after calibration
   if (!signal_ready) return;
