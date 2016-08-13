@@ -32,7 +32,7 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-inline void IRQ_manager::register_irq(uint8_t vector)
+void IRQ_manager::register_irq(uint8_t vector)
 {
   irq_pend.atomic_set(vector);
 }

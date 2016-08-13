@@ -244,8 +244,8 @@ private:
   std::deque<uint8_t*> tx_ringq;
   
   void begin_deferred_kick();
-  void handle_deferred_kicks(uint32_t);
   bool deferred_kick = false;
+  static void handle_deferred_devices();
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 
