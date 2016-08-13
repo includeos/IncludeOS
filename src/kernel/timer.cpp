@@ -77,7 +77,7 @@ static id_t create_timer(
 {
   id_t id;
   
-  if (free_timers.empty()) {
+  if (UNLIKELY(free_timers.empty())) {
     id = timers.size();
     
     // occupy new slot
@@ -189,10 +189,10 @@ static void sched_timer(duration_t when, id_t id)
             std::forward_as_tuple(id));
   
   // dont start any hardware until after calibration
-  if (!signal_ready) return;
+  if (UNLIKELY(!signal_ready)) return;
   
   // if the hardware timer is not running, try starting it
-  if (is_running == false) {
+  if (UNLIKELY(is_running == false)) {
     Timers::timers_handler();
   }
   // or, if the scheduled timer is the new front, restart timer
