@@ -48,6 +48,10 @@ public:
   static uint64_t cycles_since_boot() {
     return hw::CPU::rdtsc();
   }
+  /** micro seconds since boot */
+  static int64_t micros_since_boot() {
+    return cycles_since_boot() / cpu_mhz_.count();
+  }
 
   /** Uptime in seconds. */
   static double uptime() {

@@ -20,7 +20,6 @@
 #define HW_CPU_HPP
 
 #include <cstdint>
-#include <cstdio>
 
 namespace hw
 {

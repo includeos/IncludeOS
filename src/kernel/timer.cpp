@@ -50,7 +50,6 @@ static std::vector<Timer>  timers;
 static std::vector<id_t>   free_timers;
 static bool   signal_ready = false;
 static bool   is_running = false;
-static double current_time;
 static Timers::start_func_t arch_start_func;
 static Timers::stop_func_t  arch_stop_func;
 
@@ -59,8 +58,6 @@ static std::multimap<duration_t, id_t> scheduled;
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
-  // use uptime as position in timer system
-  current_time = OS::uptime();
   // architecture specific start and stop functions
   arch_start_func = start;
   arch_stop_func  = stop;
@@ -123,9 +120,9 @@ size_t Timers::active()
 
 /// time functions ///
 
-inline auto now()
+inline std::chrono::microseconds now() noexcept
 {
-  return microseconds((int64_t)(OS::uptime() * 1000000.0));
+  return microseconds(OS::micros_since_boot());
 }
 
 /// scheduling ///
