@@ -66,7 +66,7 @@ PathToRegexp::PathToRegexp(const std::string& path, std::vector<Token>& keys,
 
 // Used by the constructor
 // Parse a string for the raw tokens
-const std::vector<Token> PathToRegexp::parse(const std::string& str) const {
+const std::vector<Token> PathToRegexp::parse(const std::string& str) const noexcept {
   if(str.empty()) {
     std::vector<Token> v;
     return v;
