@@ -58,7 +58,7 @@ public:
 	PathToRegexp(const std::string& path, std::vector<Token>& keys,
 		const std::map<std::string, bool>& options = std::map<std::string, bool>());
 
-	const std::vector<Token> parse(const std::string& str) const;
+	const std::vector<Token> parse(const std::string& str) const noexcept;
 
 	const std::string escape_group(const std::string& group) const;
 
