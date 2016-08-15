@@ -112,14 +112,11 @@ void Client::read(const uint8_t* buf, size_t len)
 
 void Client::send_from(const std::string& from, uint16_t numeric, const std::string& text)
 {
-  std::string num;
-  num.reserve(128);
-  num = std::to_string(numeric);
-  num = std::string(3 - num.size(), '0') + num;
+  char data[128];
+  int len = snprintf(data, 127,
+    ":%s %03u %s\r\n", from.c_str(), numeric, text.c_str());
   
-  num = ":" + from + " " + num + " " + text + "\r\n";
-  //printf("-> %s", num.c_str());
-  conn->write(num.c_str(), num.size());
+  conn->write(data, len);
 }
 void Client::send_nonick(uint16_t numeric, const std::string& text)
 {
@@ -127,9 +124,11 @@ void Client::send_nonick(uint16_t numeric, const std::string& text)
 }
 void Client::send(std::string text)
 {
-  text = ":" + server.name() + " " + text + "\r\n";
-  //printf("-> %s", text.c_str());
-  conn->write(text.c_str(), text.size());
+  char data[128];
+  int len = snprintf(data, 127,
+    ":%s %s\r\n", server.name().c_str(), text.c_str());
+  
+  conn->write(data, len);
 }
 void Client::send_raw(std::string text)
 {

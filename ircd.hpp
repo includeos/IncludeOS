@@ -6,6 +6,8 @@
 #include "common.hpp"
 #include "client.hpp"
 #include "channel.hpp"
+#include "ciless.hpp"
+extern void print_backtrace();
 
 #define STAT_TOTAL_CONNS           0
 #define STAT_TOTAL_USERS           1
@@ -44,6 +46,11 @@ public:
     return clients.at(idx);
   }
   inline Channel& get_channel(size_t idx) {
+    if (idx >= channels.size()) {
+        printf("channel id: %u\n", idx);
+        print_backtrace();
+        throw "";
+    }
     return channels.at(idx);
   }
   void free_client(Client&);
@@ -145,8 +152,8 @@ private:
   motd_func_t motd_func;
   
   // hash table for nicknames, channels etc
-  std::map<std::string, size_t> h_users;
-  std::map<std::string, size_t> h_channels;
+  std::map<std::string, size_t, ci_less> h_users;
+  std::map<std::string, size_t, ci_less> h_channels;
   
   // statistics
   std::string created_string;

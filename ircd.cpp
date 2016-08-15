@@ -1,5 +1,6 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
+#include <algorithm>
 #include <ctime>
 #include <set>
 #include <debug>
@@ -107,7 +108,6 @@ void IrcServer::free_client(Client& client)
   // one less client in total on server
   dec_counter(STAT_TOTAL_USERS);
   dec_counter(STAT_LOCAL_USERS);
-  if (get_counter(STAT_LOCAL_USERS) < 0) panic("");
 }
 
 IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const
