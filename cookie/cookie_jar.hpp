@@ -18,12 +18,10 @@
 #ifndef COOKIE_JAR_HPP
 #define COOKIE_JAR_HPP
 
-#include <string>
 #include <map>
+#include <string>
 
 #include "cookie.hpp"
-// #include "attribute.hpp"
-// For testing instead:
 #include "../server/attribute.hpp"
 
 namespace cookie {
@@ -47,21 +45,19 @@ public:
 
   bool insert(const Cookie& c) noexcept;
 
-  bool insert(const std::string& name, const std::string& value);
+  bool insert(const std::string& name, const std::string& value = "");
 
   CookieJar& erase(const Cookie& c) noexcept;
 
   CookieJar& erase(const std::string& name) noexcept;
 
-  CookieJar& erase(const std::string& name, const std::string& value) noexcept;
-
   CookieJar& clear() noexcept;
 
   bool exists(const std::string& name) const noexcept;
 
-  std::string find(const std::string& name) const noexcept;
+  const std::string& cookie_value(const std::string& name) const noexcept;
 
-  std::map<std::string, std::string> get_cookies() const noexcept;
+  const std::map<std::string, std::string>& get_cookies() const noexcept;
 
   std::map<std::string, std::string>::const_iterator begin() const noexcept;
 
@@ -70,12 +66,9 @@ public:
 private:
   std::map<std::string, std::string> cookies_;
 
-  // CookieJar(const CookieJar&) = delete;
-
   CookieJar& operator = (const CookieJar&) = delete;
+}; //< class CookieJar
 
-};  // < class CookieJar
+}; //< namespace cookie
 
-};  // < namespace cookie
-
-#endif  // < COOKIE_JAR_HPP
+#endif //< COOKIE_JAR_HPP
