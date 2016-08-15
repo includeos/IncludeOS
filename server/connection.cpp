@@ -28,6 +28,8 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
   conn_->on_read(BUFSIZE, OnData::from<Connection, &Connection::on_data>(this));
   conn_->on_disconnect(OnDisconnect::from<Connection, &Connection::on_disconnect>(this));
   conn_->on_error(OnError::from<Connection, &Connection::on_error>(this));
+  conn_->on_rtx_timeout([](auto, auto) { printf("<TCP> RtxTimeout\n"); });
+  conn_->on_error([](auto err) { printf("<TCP> Error: %s\n", err.what()); });
   on_connection_();
   //conn_->onPacketDropped(OnPacketDropped::from<Connection, &Connection::on_packet_dropped>(this));
 }
@@ -107,5 +109,7 @@ void Connection::close() {
 }
 
 Connection::~Connection() {
-  //printf("<%s> Deleted\n", to_string().c_str());
+  #ifdef VERBOSE_WEBSERVER
+  printf("<%s> Deleted\n", to_string().c_str());
+  #endif
 }

@@ -61,8 +61,7 @@ void Response::send_file(const File& file) {
   add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
 
   /* Send header */
-  auto res = to_string();
-  conn_->write(res.data(), res.size());
+  conn_->write(to_string());
 
   /* Send file over connection */
   auto conn = conn_;
@@ -199,5 +198,7 @@ void Response::end() const {
 }
 
 Response::~Response() {
-  //printf("<Response> Deleted\n");
+  #ifdef VERBOSE_WEBSERVER
+  printf("<Response> Deleted (%s)\n", conn_->to_string().c_str());
+  #endif
 }
