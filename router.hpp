@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include "request.hpp"
 #include "response.hpp"
+#include "../route/path_to_regexp.hpp"  // TODO: Not relative path?
 
 namespace server {
 
@@ -41,10 +42,14 @@ namespace server {
 
       Route_expr expr;
       Callback callback;
+      std::vector<route::Token> keys;
 
-      Route(const char* ex, Callback c) : expr{ex}, callback{c}
-      {}
-
+      Route(const char* ex, Callback c) : callback{c}
+      {
+        using namespace route;
+        PathToRegexp p{ex, keys}; // also sets the keys attribute
+        expr = p.get_regex();
+      }
     };
 
     using Route_table = std::unordered_map< http::Method, std::vector<Route> >;
@@ -226,14 +231,11 @@ namespace server {
 
     Route_table route_table_;
 
-
   }; //< class Router
-
 
   class Router_error : public std::runtime_error {
     using runtime_error::runtime_error;
   };
-
 
   /**--v----------- Implementation Details -----------v--**/
 
@@ -245,7 +247,7 @@ namespace server {
 
   template <typename Routee>
   inline Router& Router::on_get(Routee&& route, Callback result) {
-    route_table_[http::GET].emplace_back(std::forward<Routee>(route),  result);
+    route_table_[http::GET].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
@@ -266,7 +268,6 @@ namespace server {
     route_table_[http::PUT].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
-
 
   template <typename Routee>
   inline Router& Router::on_delete(Routee&& route, Callback result) {
@@ -298,21 +299,56 @@ namespace server {
     return *this;
   }
 
-
   inline Router::Callback Router::match(http::Method method, const std::string& path) {
-
+    using namespace route;
     auto routes = route_table_[method];
+
     if (routes.empty())
       throw Router_error("No routes for method " + http::method::str(method));
 
-    for (auto& route : routes)
-      if (std::regex_match(path.begin(), path.end(), route.expr))
+    for (auto& route : routes) {
+
+      // TODO: Optimize??:
+
+      if (std::regex_match(path, route.expr)) {
+
+        // TODO: Want to get a hold of this (in RouteParser?) so can
+        // get the name of the keys
+
+        // THIS IS THE ONLY PLACE WE HAVE BOTH THE KEYS AND THE PATH!!
+        // BUT HOW TO RETURN IT SOMEWHERE/GET IT OUT?? (TO ROUTEPARSER F.EX.)
+
+        // Set the pairs in params:
+        Params params;
+        std::smatch res;
+        //std::vector<std::string> values;
+
+        for (std::sregex_iterator i = std::sregex_iterator{path.begin(), path.end(), route.expr};
+          i != std::sregex_iterator{}; ++i) {
+
+          res = *i;
+
+          // First parameter/value is in res[1], second in res[2], and so on
+          for (size_t j = 0; j < route.keys.size(); j++) {
+            std::string key = route.keys[j].name;
+            std::string value = res[(j + 1)];
+
+            params.insert(key, value);
+
+            printf("KEY: %s VALUE: %s\n", key.c_str(), value.c_str());
+          }
+        }
+
+        // HOW ACCESS PARAMS FROM OTHER PLACES (F.EX. RouteParser - can add Params to the request from here)??
+        // OR CAN WE GET A HOLD OF THE REQUEST INSIDE HERE?
+        // IN THAT CASE WE CAN ADD THE PARAMS-ATTRIBUTE TO THE REQUEST HERE, NOT IN RouteParser
+
         return route.callback;
+      }
+    }
 
     throw Router_error("No matching route for " + http::method::str(method) + " " + path);
   }
-
-
 
   /**--^----------- Implementation Details -----------^--**/
 
