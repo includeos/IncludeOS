@@ -359,7 +359,7 @@ void* _relocate_to_heap(char* temp_location)
 static relocate_header init_header;
 
 extern "C"
-void _init_elf_parser(void* temp_location)
+int _init_elf_parser(void* temp_location)
 {
   SymTab symtab { nullptr, 0 };
   StrTab strtab { nullptr, 0 };
@@ -388,10 +388,14 @@ void _init_elf_parser(void* temp_location)
   init_header.symtab = symtab;
   init_header.strtab = strtab;
   
+  // nothing to do if stripped
+  if (symtab.entries == 0 || strtab.size == 0) return 1;
+  
   // hide sections to prevent them getting overwritten
   // this is a temporary fix, until the sections get loaded from disk
   if (temp_location)
     _relocate_sections((char*) temp_location, symtab, strtab);
+  return 0;
 }
 
 extern "C"
@@ -403,7 +407,7 @@ void _apply_parser_data(char* location)
     parser.set(hdr.symtab.base, hdr.symtab.entries, hdr.strtab.base);
   }
   else {
-    // apply changes from default location
-    parser.set(init_header.symtab.base, init_header.symtab.entries, init_header.strtab.base);
+    // symbols and strings are stripped out
+    parser.set(nullptr, 0, nullptr);
   }
 }
