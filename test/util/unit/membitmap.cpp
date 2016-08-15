@@ -57,6 +57,18 @@ CASE( "Verify zeroing the chunk data" )
   EXPECT( bmp.first_set() == -1 );
   EXPECT( bmp.last_set() == -1 );
 }
+CASE( "Verify setting all bits in chunk data" )
+{
+  uint32_t data = 0x12345678;
+  MemBitmap bmp(&data, sizeof(data) / sizeof(MemBitmap::word));
+  
+  bmp.set_all();
+  EXPECT( bmp.first_set() == 0 );
+  EXPECT( bmp.last_set() == 31 );
+  for (int i = 0; i < 32; i++) {
+    EXPECT( bmp.get(i) == true );
+  }
+}
 CASE( "Verify flipping bits work" )
 {
   uint32_t data = 0;
