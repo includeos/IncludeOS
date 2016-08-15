@@ -233,6 +233,34 @@ void Service::start() {
         }
       });
 
+      // ADDED for PathToRegexp:
+      routes.on_get("/api/users/:id(\\d+)/:name/something/:something([a-z]+)",
+        [](server::Request_ptr req, auto res) {
+
+        /* Get id and more:
+        if(req->has_attribute<route::Params>()) {
+          auto params = req->get_attribute<route::Params>();
+
+          std::string id = params->get("id");
+
+          if(id.empty())
+            printf("id NOT FOUND\n");
+          else
+            printf("id FOUND: %s\n", id.c_str());
+
+          // Say that Params is a struct??? Then we can say params->id, params->test ...
+          // and req->get_attribute<Params>()->id and that returns an int (or does it have to be a string?)
+        }*/
+
+        printf("[@GET:/api/users/:id(\\d+)/:name/something/:something([a-z]+)] Responding with content inside UserBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        users->serialize(writer);
+        res->send_json(sb.GetString());
+      });
+      // UNTIL HERE
+
       routes.on_get("/api/users", [](auto, auto res) {
         printf("[@GET:/api/users] Responding with content inside UserBucket\n");
         using namespace rapidjson;
@@ -295,6 +323,9 @@ void Service::start() {
 
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
+
+      server::Middleware_ptr route_parser = std::make_shared<middleware::RouteParser>();
+      server_->use(route_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
         printf("@onTimeout [%s]\n%s\n",

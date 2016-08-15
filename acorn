@@ -28,6 +28,7 @@
 #include "middleware/director.hpp"
 #include "middleware/waitress.cpp"
 #include "middleware/cookie_parser.hpp"
+#include "middleware/route_parser.hpp"
 
 #include "stats/stats.hpp"
 

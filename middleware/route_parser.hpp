@@ -19,7 +19,7 @@
 #define MIDDLEWARE_ROUTE_PARSER_HPP
 
 #include "middleware.hpp"
-#include "path_to_regexp.hpp"
+#include "../route/path_to_regexp.hpp"
 
 using namespace route;
 
@@ -30,33 +30,30 @@ class RouteParser : public server::Middleware {
 public:
   virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
 
-private:
-
-  PathToRegexp path_to_regexp;
-  // or
-  std::vector<Token> keys;  // What the developer wants access to in service.cpp
-  // or
-
-
 };  // < class RouteParser
 
 /**--v----------- Implementation Details -----------v--**/
 
 inline void RouteParser::process(server::Request_ptr req, server::Response_ptr res, server::Next next) {
+  std::string path = req->uri().path();
 
-  // From CookieParser:
-  /*if(has_cookie(req)) {
-    // Get the cookies that already exists (sent in the request):
-    std::string cookies_string = read_cookies(req);
+  if(not path.empty()) {
 
-    // Parse the string to the CookieJar req_cookies_
-    parse(cookies_string);
+    printf("Path: %s\n", path.c_str());
 
-    auto jar_attr = std::make_shared<CookieJar>(req_cookies_);
-    req->set_attribute(jar_attr);
-  }*/
+    // Params is now set in router.hpp (match-method) - how to get access to them here??
+    // Or can we set the Params-attribute onto the request in the match-method?
 
+    Params params;
 
+    // ...
+
+    auto params_attr = std::make_shared<Params>(params);
+    req->set_attribute(params_attr);
+  }
+  else {
+    printf("Path is empty!\n");
+  }
 
   return (*next)();
 }
