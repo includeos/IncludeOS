@@ -108,7 +108,7 @@ all: CAPABS += -O2
 all: includeos
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
-stripped: CAPABS += -Os
+stripped: CAPABS += -Oz
 stripped: LDOPTS += -s
 stripped: includeos test
 

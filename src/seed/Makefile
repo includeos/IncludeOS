@@ -45,7 +45,7 @@ INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api
 
 all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
-stripped: CAPABS = $(CAPABS_COMMON) -Os
+stripped: CAPABS = $(CAPABS_COMMON) -Oz
 # by default, remove debugging
 STRIPPED=-S -X
 
@@ -80,7 +80,7 @@ DEPS = $(OBJS:.o=.d)
 all: service
 
 stripped: LDOPTS  += -s
-stripped: STRIPPED=--strip-all -R.comment
+stripped: STRIPPED=--strip-all
 stripped: service
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
