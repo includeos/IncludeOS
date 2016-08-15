@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CMOS_HPP
-#define CMOS_HPP
+#ifndef HW_CMOS_HPP
+#define HW_CMOS_HPP
 
 #include <hw/ioport.hpp>
 
