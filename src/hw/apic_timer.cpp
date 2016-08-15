@@ -38,6 +38,7 @@ namespace hw
 {
   static APIC_Timer::handler_t intr_handler;
   static uint32_t ticks_per_micro = 0;
+  static bool     intr_enabled    = false;
   
   void APIC_Timer::init(const handler_t& handler)
   {
@@ -67,9 +68,6 @@ namespace hw
       printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n", 
             CALIBRATION_MS, diff, ticks_per_micro);
       
-      // make sure timer is still disabled
-      lapic.regs->timer.reg |= INTR_MASK;
-      
       // signal ready to go
       intr_handler();
     });
@@ -92,16 +90,19 @@ namespace hw
   {
     // prevent overflow
     uint64_t ticks = micros.count() * ticks_per_micro;
-    if (ticks & 0xFFFFFFFF00000000) ticks = 0xFFFFFFFF;
+    if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
     
     // set initial counter
     lapic.regs->init_count.reg = ticks;
-    // enable interrupt vector
-    lapic.regs->timer.reg = (lapic.regs->timer.reg & ~INTR_MASK) | TIMER_ONESHOT;
-    
+    // re-enable interrupts if disabled
+    if (intr_enabled == false) {
+      intr_enabled = true;
+      lapic.regs->timer.reg &= ~INTR_MASK;
+    }
   }
   void APIC_Timer::stop()
   {
     lapic.regs->timer.reg |= INTR_MASK;
+    intr_enabled = false;
   }
 }
