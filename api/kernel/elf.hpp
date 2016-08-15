@@ -64,6 +64,5 @@ struct Elf
 
   // debugging purposes only
   static const char* get_strtab();
-  static size_t      get_strtab_size();
   static void        print_info();
 };
