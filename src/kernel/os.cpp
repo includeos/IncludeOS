@@ -187,7 +187,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   [] {
     // set final interrupt handler
     hw::APIC_Timer::set_handler(Timers::timers_handler);
+    // signal that kernel is done with everything
+    Service::ready();
     // signal ready
+    // NOTE: this executes the first timers, so we
+    // don't want to run this before calling Service ready
     Timers::ready();
   });
 
@@ -294,3 +298,22 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
     printf("\n");
   }
 }
+
+/// SERVICE RELATED ///
+
+// the name of the current service (built from another module)
+extern "C" {
+  __attribute__((weak))
+  const char* service_name__ = "(missing service name)";
+}
+
+std::string Service::name() {
+  return service_name__;
+}
+
+// functions that we can override if we want to
+__attribute__((weak))
+void Service::ready() {}
+
+__attribute__((weak))
+void Service::stop() {}

@@ -32,7 +32,7 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-inline void IRQ_manager::register_irq(uint8_t vector)
+void IRQ_manager::register_irq(uint8_t vector)
 {
   irq_pend.atomic_set(vector);
 }
@@ -193,7 +193,7 @@ void IRQ_manager::notify() {
     
     // rebuild todo-bits
     irq_todo.set_from_and(irq_subs, irq_pend);
-    // mask out interrupts we already visisted
+    // mask out interrupts we already visited
     irq_todo &= irq_mask;
     
     // find next interrupt

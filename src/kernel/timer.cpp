@@ -50,7 +50,6 @@ static std::vector<Timer>  timers;
 static std::vector<id_t>   free_timers;
 static bool   signal_ready = false;
 static bool   is_running = false;
-static double current_time;
 static Timers::start_func_t arch_start_func;
 static Timers::stop_func_t  arch_stop_func;
 
@@ -59,8 +58,6 @@ static std::multimap<duration_t, id_t> scheduled;
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
-  // use uptime as position in timer system
-  current_time = OS::uptime();
   // architecture specific start and stop functions
   arch_start_func = start;
   arch_stop_func  = stop;
@@ -80,7 +77,7 @@ static id_t create_timer(
 {
   id_t id;
   
-  if (free_timers.empty()) {
+  if (UNLIKELY(free_timers.empty())) {
     id = timers.size();
     
     // occupy new slot
@@ -123,9 +120,9 @@ size_t Timers::active()
 
 /// time functions ///
 
-inline auto now()
+inline std::chrono::microseconds now() noexcept
 {
-  return microseconds((int64_t)(OS::uptime() * 1000000.0));
+  return microseconds(OS::micros_since_boot());
 }
 
 /// scheduling ///
@@ -165,7 +162,9 @@ void Timers::timers_handler()
         {
           // if the timer is recurring, we will simply reschedule it
           // NOTE: we are carefully using (when + period) to avoid drift
-          scheduled.insert(std::forward_as_tuple(when + timer.period, id));
+          scheduled.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(when + timer.period),
+                    std::forward_as_tuple(id));
         }
       } else {
         // timer was already dead
@@ -185,13 +184,15 @@ void Timers::timers_handler()
 }
 static void sched_timer(duration_t when, id_t id)
 {
-  scheduled.insert(std::forward_as_tuple(now() + when, id));
+  scheduled.emplace(std::piecewise_construct,
+            std::forward_as_tuple(now() + when),
+            std::forward_as_tuple(id));
   
   // dont start any hardware until after calibration
-  if (!signal_ready) return;
+  if (UNLIKELY(!signal_ready)) return;
   
   // if the hardware timer is not running, try starting it
-  if (is_running == false) {
+  if (UNLIKELY(is_running == false)) {
     Timers::timers_handler();
   }
   // or, if the scheduled timer is the new front, restart timer
