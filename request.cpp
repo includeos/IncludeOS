@@ -45,5 +45,7 @@ size_t Request::content_length() const {
 }
 
 Request::~Request() {
-  //printf("<Request> Deleted\n");
+  #ifdef VERBOSE_WEBSERVER
+  printf("<Request> Deleted\n");
+  #endif
 }
