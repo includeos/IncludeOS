@@ -134,8 +134,14 @@ CASE("Creating a WriteQueue and operate it")
       const uint32_t len = 1000;
 
       std::vector<WriteQueue::WriteRequest> reqs;
+      std::vector<size_t> written = { 1, 1, 1, 1, 1 };
       for(int i = 0; i < N; i++) {
-        reqs.emplace_back(create_write_request(len));
+        reqs.emplace_back(
+          create_write_request(len,
+            [&written, i](size_t n) {
+              written[i] = n;
+            })
+        );
         wq.push_back(reqs[i]);
       }
 
@@ -147,6 +153,59 @@ CASE("Creating a WriteQueue and operate it")
 
         EXPECT( wq.nxt() == reqs[0].first );
         EXPECT( wq.una() == reqs[0].first );
+
+        WHEN("Advanced with 2500 bytes")
+        {
+          wq.advance(1000);
+          wq.advance(1000);
+          wq.advance(500);
+
+          THEN("The nxt() is the third element and una() is still the first element, current is 2")
+          {
+            EXPECT( wq.nxt() == reqs[2].first );
+            EXPECT( wq.una() == reqs[0].first );
+
+            EXPECT( wq.current() == 2 );
+
+            WHEN("Acknowledged with 2500 bytes")
+            {
+              wq.acknowledge(2500);
+
+              THEN("nxt() and una() is the third element, size has shrunk to 3, and current is 0")
+              {
+                EXPECT( wq.nxt() == reqs[2].first );
+                EXPECT( wq.nxt() == wq.una() );
+
+                EXPECT( wq.size() == 3 );
+                EXPECT( wq.current() == 0 );
+
+                EXPECT( wq.remaining_requests() );
+
+                WHEN("The queue is reset")
+                {
+                  wq.reset();
+
+                  THEN("The queue is empty and the callbacks has returned correct values [1000, 1000, 500, 0, 0]")
+                  {
+                    EXPECT( wq.empty() );
+                    EXPECT( wq.size() == 0 );
+                    EXPECT( not wq.remaining_requests() );
+                    EXPECT( wq.current() == 0 );
+
+                    EXPECT_THROWS_AS( wq.nxt(), std::out_of_range );
+                    EXPECT_THROWS_AS( wq.una(), std::out_of_range );
+
+                    EXPECT( written[0] == 1000 );
+                    EXPECT( written[1] == 1000 );
+                    EXPECT( written[2] == 500 );
+                    EXPECT( written[3] == 0 );
+                    EXPECT( written[4] == 0 );
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
