@@ -232,7 +232,7 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   }
   // if connection still can send (means there wasn't enough packets)
   // only requeue if not already queued
-  if(conn->can_send() and !conn->is_queued()) {
+  if(!packets and conn->can_send() and !conn->is_queued()) {
     debug("<TCP::send> %s queued\n", conn->to_string().c_str());
     writeq.push_back(conn);
     conn->set_queued(true);
