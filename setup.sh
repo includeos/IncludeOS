@@ -25,7 +25,7 @@ FAT_DISK=memdisk.fat
 if [ ! -f $FAT_DISK ];
 then
   echo -e ">>> Creating FAT disk $FAT_DISK"
-  dd if=/dev/zero of=$FAT_DISK bs=1M seek=50 count=0
+  dd if=/dev/zero of=$FAT_DISK bs=1M seek=5 count=0
   mkfs.fat $FAT_DISK
 fi
 
