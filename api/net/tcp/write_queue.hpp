@@ -75,6 +75,27 @@ public:
   auto current() const
   { return current_; }
 
+  auto bytes_total() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.length();
+    return n;
+  }
+
+  auto bytes_remaining() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.remaining;
+    return n;
+  }
+
+  auto bytes_unacknowledged() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.length() - it.first.acknowledged;
+    return n;
+  }
+
   /*
     If the queue has more data to send
   */
@@ -138,6 +159,7 @@ public:
       q.pop_front();
     }
     current_ = 0;
+    debug("<WriteQueue::reset> Reset\n");
   }
 
 private:
@@ -148,7 +170,7 @@ private:
 
 }; // < WriteQueue
 
-} // < namespace net
 } // < namespace tcp
+} // < namespace net
 
 #endif // < NET_TCP_WRITE_QUEUE_HPP
