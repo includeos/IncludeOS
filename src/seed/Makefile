@@ -45,7 +45,7 @@ INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api
 
 all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
-stripped: CAPABS = $(CAPABS_COMMON) -Oz
+stripped: CAPABS = $(CAPABS_COMMON) -Os
 # by default, remove debugging
 STRIPPED=-S
 
