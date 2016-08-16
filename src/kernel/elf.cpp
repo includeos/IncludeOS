@@ -361,19 +361,6 @@ void _relocate_sections(char* new_location, SymTab& symtab, StrTab& strtab)
   char* strloc = symloc + symtab.entries * sizeof(Elf32_Sym);
   memcpy(strloc, strtab.base, strtab.size);
   
-  // relocate string addresses for each symbol
-  for (size_t i = 0; i < symtab.entries; i++)
-  {
-    auto* sym = (Elf32_Sym*) symloc;
-    ptrdiff_t diff = strloc - strtab.base;
-    
-    // only relocate strings that are inside strtab
-    if (sym[i].st_name >= (uintptr_t) strtab.base)
-    {
-      sym[i].st_name += diff;
-    }
-  }
-  
   hdr.symtab.base = (Elf32_Sym*) symloc;
   hdr.strtab.base = strloc;
 }
