@@ -24,7 +24,6 @@ using namespace hw;
 // Storage for port numbers
 constexpr uint16_t Serial::ports_[];
 
-
 void Serial::init(){
   hw::outb(port_ + 1, 0x00);    // Disable all interrupts
   hw::outb(port_ + 3, 0x80);    // Enable DLAB (set baud rate divisor)
@@ -39,7 +38,11 @@ Serial::Serial(int port) :
   nr_{port},
   port_{ port < 5 ? ports_[port -1] : 0 }
 {
-  //init();
+  static bool initialized = false;
+  if (!initialized) {
+    initialized = true;
+    init();
+  }
 }
 
 void Serial::on_data(on_data_handler del){

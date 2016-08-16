@@ -53,11 +53,7 @@ const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
-
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
-
-  // Initialize serial port
-  com1.init();
 
   // Print a fancy header
   FILLINE('=');
