@@ -19,8 +19,8 @@
 #ifndef ACORN_WEB_APPLIANCE
 #define ACORN_WEB_APPLIANCE
 
-#include "models/user.hpp"
-#include "models/squirrel.hpp"
+#include "app/user.hpp"
+#include "app/squirrel.hpp"
 
 #include "bucket/bucket.hpp"
 
