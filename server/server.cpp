@@ -105,11 +105,11 @@ Next Server::create_next(std::shared_ptr<MiddlewareStack::iterator> it_ptr, Requ
   return next;
 }
 
-
 void Server::process_route(Request_ptr req, Response_ptr res) {
-  //printf("<Server> Processing route.\n");
   try {
-    router_.match(req->method(), req->uri().path())(req, res);
+    auto parsed_route = router_.match(req->method(), req->uri().path());
+    req->set_params(parsed_route.parsed_values);
+    parsed_route.job(req, res);
   }
   catch (Router_error err) {
     printf("<Server> Router_error: %s - Responding with 404.\n", err.what());

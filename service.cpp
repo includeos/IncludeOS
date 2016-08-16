@@ -233,24 +233,23 @@ void Service::start() {
         }
       });
 
-      // ADDED for PathToRegexp:
+    // TESTING PathToRegexp/route/router.hpp FROM HERE
+
       routes.on_get("/api/users/:id(\\d+)/:name/something/:something([a-z]+)",
         [](server::Request_ptr req, auto res) {
 
-        /* Get id and more:
-        if(req->has_attribute<route::Params>()) {
-          auto params = req->get_attribute<route::Params>();
+        // Get parameters:
+        // Alt.: std::string id = req->params().get("id");
+        auto& params = req->params();
+        std::string id = params.get("id");
+        std::string name = params.get("name");
+        std::string something = params.get("something");
 
-          std::string id = params->get("id");
+        // std::string doesntexist = params.get("doesntexist");  // throws ParamException
 
-          if(id.empty())
-            printf("id NOT FOUND\n");
-          else
-            printf("id FOUND: %s\n", id.c_str());
-
-          // Say that Params is a struct??? Then we can say params->id, params->test ...
-          // and req->get_attribute<Params>()->id and that returns an int (or does it have to be a string?)
-        }*/
+        printf("id: %s\n", id.c_str());
+        printf("name: %s\n", name.c_str());
+        printf("something: %s\n", something.c_str());
 
         printf("[@GET:/api/users/:id(\\d+)/:name/something/:something([a-z]+)] Responding with content inside UserBucket\n");
         using namespace rapidjson;
@@ -259,7 +258,8 @@ void Service::start() {
         users->serialize(writer);
         res->send_json(sb.GetString());
       });
-      // UNTIL HERE
+
+    // UNTIL HERE
 
       routes.on_get("/api/users", [](auto, auto res) {
         printf("[@GET:/api/users] Responding with content inside UserBucket\n");
@@ -323,9 +323,6 @@ void Service::start() {
 
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
-
-      server::Middleware_ptr route_parser = std::make_shared<middleware::RouteParser>();
-      server_->use(route_parser);
 
       hw::PIT::instance().on_repeated_timeout(1min, []{
         printf("@onTimeout [%s]\n%s\n",
