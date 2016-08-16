@@ -25,30 +25,7 @@
 #include <vector>
 #include <map>
 
-#include "attribute.hpp"
-
 namespace route {
-
-class Params : public server::Attribute {
-
-public:
-  bool insert(const std::string& name, const std::string& value) {
-    auto ret = parameters.emplace(std::make_pair(name, value));
-    return ret.second;
-  }
-
-  std::string get(const std::string& name) {
-    auto it = parameters.find(name);
-
-    if (it != parameters.end()) // if found
-      return it->second;
-
-    return "";
-  }
-
-private:
-  std::map<std::string, std::string> parameters;
-};  // < class Params
 
 struct Token {
 	std::string name;	// can be a string or an int (index)
