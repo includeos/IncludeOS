@@ -37,36 +37,30 @@ struct Squirrel : json::Serializable {
   /**
    *
    */
-  Squirrel(std::string name, size_t age, std::string occupation)
+  Squirrel(const std::string& name, const size_t age, const std::string& occupation)
     : key         {0}
     , name_       {name}
     , age_        {age}
     , occupation_ {occupation}
   {}
 
-  const std::string& get_name() const {
-    return name_;
-  }
+  const std::string& get_name() const noexcept
+  { return name_; }
 
-  void set_name(const std::string& name) {
-    name_ = name;
-  }
+  void set_name(const std::string& name)
+  { name_ = name; }
 
-  size_t get_age() const {
-    return age_;
-  }
+  size_t get_age() const noexcept
+  { return age_; }
 
-  void set_age(size_t age) {
-    age_ = age;
-  }
+  void set_age(const size_t age) noexcept
+  { age_ = age; }
 
-  const std::string& get_occupation() const {
-    return occupation_;
-  }
+  const std::string& get_occupation() const noexcept
+  { return occupation_; }
 
-  void set_occupation(const std::string& occupation) {
-    occupation_ = occupation;
-  }
+  void set_occupation(const std::string& occupation) 
+  { occupation_ = occupation; }
 
   /**
    *
@@ -86,12 +80,12 @@ struct Squirrel : json::Serializable {
   /**
    *
    */
-  bool is_equal(const Squirrel&) const;
+  bool is_equal(const Squirrel&) const noexcept;
 
   /**
    *
    */
-  static bool is_equal(const Squirrel&, const Squirrel&);
+  static bool is_equal(const Squirrel&, const Squirrel&) noexcept;
 
 private:
   std::string name_;
@@ -134,7 +128,7 @@ inline std::string Squirrel::json() const {
   return sb.GetString();
 }
 
-inline bool Squirrel::is_equal(const Squirrel& s) const {
+inline bool Squirrel::is_equal(const Squirrel& s) const noexcept {
   if(name_.size() not_eq s.name_.size()) {
     return false;
   }
@@ -144,7 +138,7 @@ inline bool Squirrel::is_equal(const Squirrel& s) const {
   });
 }
 
-inline bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) {
+inline bool Squirrel::is_equal(const Squirrel& s1, const Squirrel& s2) noexcept {
   return s1.is_equal(s2);
 }
 
