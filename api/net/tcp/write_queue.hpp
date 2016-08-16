@@ -138,6 +138,7 @@ public:
       q.pop_front();
     }
     current_ = 0;
+    debug("<WriteQueue::reset> Reset\n");
   }
 
 private:
@@ -148,7 +149,7 @@ private:
 
 }; // < WriteQueue
 
-} // < namespace net
 } // < namespace tcp
+} // < namespace net
 
 #endif // < NET_TCP_WRITE_QUEUE_HPP
