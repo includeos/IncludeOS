@@ -25,8 +25,10 @@
 extern void begin_stack_sampling(uint16_t gather_period_ms);
 extern void print_stack_sampling();
 
-// used to validate that the backtrace is not corrupt
 extern "C" {
+  // print memory usage changes over time
+  extern void print_heap_info();
+  // used to validate that the backtrace is not corrupt
   extern void __validate_backtrace(char const* where, unsigned id = 0);
 }
 

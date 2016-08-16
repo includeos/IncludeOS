@@ -46,15 +46,15 @@ struct Timer
  *     expanding the "fixed" vector)
 **/
 
-static std::vector<Timer>  timers;
-static std::vector<id_t>   free_timers;
-static bool   signal_ready = false;
-static bool   is_running = false;
+static bool signal_ready = false;
+static bool is_running   = false;
 static Timers::start_func_t arch_start_func;
 static Timers::stop_func_t  arch_stop_func;
-
+static std::vector<Timer>   timers;
+static std::vector<id_t>    free_timers;
 // timers sorted by timestamp
 static std::multimap<duration_t, id_t> scheduled;
+static int timer_stats = 0;
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
@@ -65,6 +65,7 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
 
 void Timers::ready()
 {
+  assert(signal_ready == false);
   signal_ready = true;
   // begin processing timers if any are queued
   if (is_running == false) {
@@ -129,7 +130,7 @@ inline std::chrono::microseconds now() noexcept
 
 void Timers::timers_handler()
 {
-  // lets assume the timer is not running anymore
+  // assume the hardware timer called this function
   is_running = false;
   
   while (!scheduled.empty())
@@ -176,11 +177,13 @@ void Timers::timers_handler()
       // not yet time, so schedule it for later
       is_running = true;
       arch_start_func(when - ts_now);
+      timer_stats ++;
       // exit early, because we have nothing more to do, and there is a deferred handler
       return;
     }
   }
-  //arch_stop_func();
+  // stop hardware timer, since no timers are enabled
+  arch_stop_func();
 }
 static void sched_timer(duration_t when, id_t id)
 {
@@ -194,9 +197,17 @@ static void sched_timer(duration_t when, id_t id)
   // if the hardware timer is not running, try starting it
   if (UNLIKELY(is_running == false)) {
     Timers::timers_handler();
+    return;
   }
-  // or, if the scheduled timer is the new front, restart timer
-  else if (scheduled.begin()->second == id) {
-    Timers::timers_handler();
-  }
+  // if the scheduled timer is the new front, restart timer
+  auto it = scheduled.begin();
+  if (it->second == id)
+      Timers::timers_handler();
+}
+
+int _get_timer_stats()
+{
+  int x = timer_stats;
+  timer_stats = 0;
+  return x;
 }
