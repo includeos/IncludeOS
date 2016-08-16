@@ -43,7 +43,7 @@ void print_stats(uint32_t)
   extern int _get_timer_stats();
   printf("Timers: %u\n", _get_timer_stats() / 2);
   
-  //print_stack_sampling();
+  print_stack_sampling();
   //print_heap_info();
 }
 
@@ -70,7 +70,7 @@ void Service::start()
   using namespace std::chrono;
   Timers::periodic(2s, 2s, print_stats);
   
-  //begin_stack_sampling(200);
+  begin_stack_sampling(200);
 }
 
 void Service::ready()
