@@ -18,8 +18,7 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
 #include <os>
 #include <boot/multiboot.h>
 #include <kernel/elf.hpp>
@@ -88,7 +87,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   }
 
   debug("\t[*] OS class started\n");
-  srand(time(NULL));
+  srand((uint32_t) cycles_since_boot());
 
   atexit(default_exit);
 
