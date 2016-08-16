@@ -252,9 +252,10 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
 string TCP::to_string() const {
   // Write all connections in a cute list.
   stringstream ss;
-  ss << "LISTENERS:\n";
+  ss << "LISTENERS:\n" << "Port\t" << "Queued\n";
   for(auto& listen_it : listeners_) {
-    ss << listen_it.second.to_string() << "\n";
+    auto& l = listen_it.second;
+    ss << l.port() << "\t" << l.syn_queue_size() << "\n";
   }
   ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
   for(auto& con_it : connections_) {
