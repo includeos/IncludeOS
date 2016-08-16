@@ -32,6 +32,9 @@ namespace acorn {
 struct Squirrel : json::Serializable {
   size_t key;
 
+  /**
+   *
+   */
   Squirrel() : key(0) {}
 
   /**
@@ -44,21 +47,39 @@ struct Squirrel : json::Serializable {
     , occupation_ {occupation}
   {}
 
+  /**
+   *
+   */
   const std::string& get_name() const noexcept
   { return name_; }
 
+  /**
+   *
+   */
   void set_name(const std::string& name)
   { name_ = name; }
 
+  /**
+   *
+   */
   size_t get_age() const noexcept
   { return age_; }
 
+  /**
+   *
+   */
   void set_age(const size_t age) noexcept
   { age_ = age; }
 
+  /**
+   *
+   */
   const std::string& get_occupation() const noexcept
   { return occupation_; }
 
+  /**
+   *
+   */
   void set_occupation(const std::string& occupation) 
   { occupation_ = occupation; }
 
