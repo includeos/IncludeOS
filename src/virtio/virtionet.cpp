@@ -36,7 +36,7 @@ static uint8_t deferred_intr;
 using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
-const char* VirtioNet::name(){ return "VirtioNet Driver"; }
+const char* VirtioNet::name() const { return "VirtioNet Driver"; }
 const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }
 
 void VirtioNet::get_config() {
@@ -175,7 +175,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     IRQ_manager::cpu(0).subscribe(deferred_intr, handle_deferred_devices);
   }
 #endif
-  
+
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");

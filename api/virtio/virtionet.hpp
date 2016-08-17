@@ -115,7 +115,7 @@ class VirtioNet : Virtio {
 public:
 
   /** Human readable name. */
-  const char* name();
+  const char* name() const;
 
   /** Mac address. */
   const net::Ethernet::addr& mac();
@@ -242,7 +242,7 @@ private:
   net::BufferStore bufstore_;
   std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
-  
+
   void begin_deferred_kick();
   bool deferred_kick = false;
   static void handle_deferred_devices();
