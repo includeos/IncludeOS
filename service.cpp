@@ -173,7 +173,7 @@ void Service::start() {
 
       routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
         using namespace json;
-        auto json = req->get_attribute<JsonDoc>();
+        auto json = req->get_attribute<Json_doc>();
         if(!json) {
           res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
         }
@@ -196,8 +196,8 @@ void Service::start() {
             // send the created entity as response
             res->send_json(s.json());
           }
-          catch(AssertException e) {
-            printf("[@POST:/api/squirrels] AssertException: %s\n", e.what());
+          catch(Assert_error e) {
+            printf("[@POST:/api/squirrels] Assert_error: %s\n", e.what());
             res->error({"Parsing Error", "Could not parse data."});
           }
           catch(bucket::ConstraintException e) {

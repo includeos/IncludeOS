@@ -45,14 +45,12 @@ private:
 /**--v----------- Implementation Details -----------v--**/
 
 inline void Parsley::process(server::Request_ptr req, server::Response_ptr, server::Next next) {
-  using namespace json;
-
   if(not has_json(req)) return (*next)();
 
   // Request doesn't have JSON attribute
-  if(not req->has_attribute<JsonDoc>()) {
+  if(not req->has_attribute<json::Json_doc>()) {
     // Create attribute
-    auto json = std::make_shared<JsonDoc>();
+    auto json = std::make_shared<json::Json_doc>();
 
     // Access the document and parse the body
     json->doc().Parse(req->get_body().c_str());
