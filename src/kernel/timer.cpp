@@ -136,16 +136,25 @@ void Timers::timers_handler()
   while (!scheduled.empty())
   {
     auto it = scheduled.begin();
-    auto when   = it->first;
-    auto ts_now = now();
-    id_t id = it->second;
+    auto when = it->first;
+    id_t id   = it->second;
     
-    if (ts_now >= when) {
-      // erase immediately
+    // remove dead timers
+    if (timers[id].deferred_destruct) {
+      // remove from schedule
       scheduled.erase(it);
+      // delete timer
+      timers[id].reset();
+      free_timers.push_back(id);
+    }
+    else
+    {
+      auto ts_now = now();
       
-      // only process timer if still alive
-      if (timers[id].is_alive()) {
+      if (ts_now >= when) {
+        // erase immediately
+        scheduled.erase(it);
+        
         // call the users callback function
         timers[id].callback(id);
         // if the timers struct was modified in callback, eg. due to
@@ -167,19 +176,16 @@ void Timers::timers_handler()
                     std::forward_as_tuple(when + timer.period),
                     std::forward_as_tuple(id));
         }
+        
       } else {
-        // timer was already dead
-        timers[id].reset();
-        free_timers.push_back(id);
+        // not yet time, so schedule it for later
+        is_running = true;
+        arch_start_func(when - ts_now);
+        timer_stats ++;
+        // exit early, because we have nothing more to do, 
+        // and there is a deferred handler
+        return;
       }
-      
-    } else {
-      // not yet time, so schedule it for later
-      is_running = true;
-      arch_start_func(when - ts_now);
-      timer_stats ++;
-      // exit early, because we have nothing more to do, and there is a deferred handler
-      return;
     }
   }
   // stop hardware timer, since no timers are enabled
