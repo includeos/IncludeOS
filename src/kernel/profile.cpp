@@ -46,12 +46,12 @@ struct fixedvector {
 };
 static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
 static fixedvector<uintptr_t, BUFFER_COUNT>* transfer_queue;
-static void* event_loop_addr;
 
 typedef uint32_t func_sample;
 std::unordered_map<uintptr_t, func_sample> sampler_dict;
 static func_sample sampler_total = 0;
 static int lockless_sampler = 0;
+extern char _irq_cb_return_location;
 
 extern "C" {
   void parasite_interrupt_handler();
@@ -66,9 +66,6 @@ void begin_stack_sampling(uint16_t gather_period_ms)
   sampler_queue = new blargh(sampler_queue);
   transfer_queue = new blargh(transfer_queue);
   sampler_total = 0;
-  
-  // we want to ignore event loop at FIXME the HLT location (0x198)
-  event_loop_addr = (void*) ((char*) &OS::event_loop + 0x198);
   
   // begin sampling
   IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
@@ -85,7 +82,7 @@ void profiler_stack_sampler()
   // maybe qemu, maybe some bullshit we don't care about
   if (ra == nullptr) return;
   // ignore event loop
-  if (ra == event_loop_addr) return;
+  if (ra == &_irq_cb_return_location) return;
   
   // need free space to take more samples
   if (sampler_queue->free_capacity())
