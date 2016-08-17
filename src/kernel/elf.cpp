@@ -77,6 +77,8 @@ public:
     if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
+    // validate symbol address
+    //assert(sym >= symtab.base && sym < symtab.base + symtab.entries);
     if (sym) {
       auto base   = sym->st_value;
       auto offset = addr - base;
@@ -130,6 +132,10 @@ public:
   size_t end_of_file() const {
     auto& hdr = elf_header();
     return hdr.e_ehsize + (hdr.e_phnum * hdr.e_phentsize) + (hdr.e_shnum * hdr.e_shentsize);
+  }
+
+  const SymTab& get_symtab() const {
+    return symtab;
   }
 
   const auto* get_strtab() const {
@@ -307,6 +313,35 @@ void Elf::print_info()
 
 }
 
+extern "C"
+void _print_elf_symbols()
+{
+  const auto& symtab = parser.get_symtab();
+  const char* strtab = parser.get_strtab();
+  
+  for (size_t i = 0; i < symtab.entries; i++)
+  {
+    printf("%8x: %s\n", symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
+  }
+  printf("*** %u entries\n", symtab.entries);
+}
+extern "C"
+void _validate_elf_symbols()
+{
+  const auto& symtab = parser.get_symtab();
+  const char* strtab = parser.get_strtab();
+  if (symtab.entries == 0 || strtab == nullptr) return;
+  
+  for (size_t i = 1; i < symtab.entries; i++)
+  {
+    if (symtab.base[i].st_value != 0) {
+      assert(symtab.base[i].st_value > 0x2000);
+      const char* string = &strtab[symtab.base[i].st_name];
+      assert(strlen(string));
+    }
+  }
+}
+
 struct relocate_header {
   SymTab symtab;
   StrTab strtab;
@@ -325,18 +360,6 @@ void _relocate_sections(char* new_location, SymTab& symtab, StrTab& strtab)
   // move strings
   char* strloc = symloc + symtab.entries * sizeof(Elf32_Sym);
   memcpy(strloc, strtab.base, strtab.size);
-  
-  // relocate string addresses for each symbol
-  for (size_t i = 0; i < symtab.entries; i++)
-  {
-    auto* sym = (Elf32_Sym*) symloc;
-    // only relocate strings that are inside strtab
-    if (sym[i].st_name >= (uintptr_t) strtab.base)
-    {
-      ptrdiff_t diff = strloc - strtab.base;
-      sym[i].st_name += diff;
-    }
-  }
   
   hdr.symtab.base = (Elf32_Sym*) symloc;
   hdr.strtab.base = strloc;

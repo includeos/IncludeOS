@@ -53,11 +53,7 @@ const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
 
-
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
-
-  // Initialize serial port
-  com1.init();
 
   // Print a fancy header
   FILLINE('=');
@@ -222,7 +218,11 @@ void OS::event_loop() {
 
   while (power_) {
     IRQ_manager::cpu(0).notify();
-    debug("<OS> Woke up @ t = %li\n", uptime());
+    // add a global symbol here so we can quickly discard
+    // event loop from stack sampling
+    asm volatile(
+    ".global _irq_cb_return_location;\n"
+    "_irq_cb_return_location:" );
   }
 
   //Cleanup
