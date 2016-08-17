@@ -6,21 +6,17 @@
 namespace net
 {
   template <typename T> inline
-  Inet4<T>::Inet4(
-    hw::Nic<T>& nic,
-    IP4::addr ip,
-    IP4::addr netmask,
-    IP4::addr gateway)
-    : ip4_addr_(ip), netmask_(netmask), router_(gateway),
+  Inet4<T>::Inet4(hw::Nic<T>& nic)
+    : ip4_addr_(IP4::INADDR_ANY),
+      netmask_(IP4::INADDR_ANY),
+      router_(IP4::INADDR_ANY),
+      dns_server(IP4::INADDR_ANY),
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
       bufstore_(nic.bufstore())
   {
-    INFO("Inet4","Bringing up the IP stack");
+    INFO("Inet4","Bringing up a IPv4 stack (%s)", nic.name());
     Ensures(sizeof(IP4::addr) == 4);
-
-    // default DNS server to gateway
-    set_dns_server(gateway);
 
     /** Upstream delegates */
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
@@ -55,7 +51,7 @@ namespace net
 
     /** Downstream delegates */
     auto phys_top(downstream
-                  ::from<hw::Nic<VirtioNet>,&hw::Nic<VirtioNet>::transmit>(nic));
+                  ::from<hw::Nic<T>,&hw::Nic<T>::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));
     auto arp_top(downstream
@@ -85,8 +81,21 @@ namespace net
   }
 
   template <typename T> inline
+  Inet4<T>::Inet4(
+    hw::Nic<T>& nic,
+    IP4::addr ip,
+    IP4::addr netmask,
+    IP4::addr gateway)
+    : Inet4(nic),
+      ip4_addr_(ip), netmask_(netmask), router_(gateway)
+  {
+    // default DNS server to gateway
+    set_dns_server(gateway);
+  }
+
+  template <typename T> inline
   Inet4<T>::Inet4(hw::Nic<T>& nic, double timeout)
-    : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY, IP4::INADDR_ANY)
+    : Inet4(nic)
   {
     INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
