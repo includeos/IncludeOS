@@ -225,8 +225,15 @@ void OS::event_loop() {
     "_irq_cb_return_location:" );
   }
 
-  //Cleanup
-  //Service::stop();
+  // Cleanup
+  Service::stop();
+  // ACPI shutdown sequence
+  hw::ACPI::shutdown();
+}
+
+void OS::shutdown()
+{
+  power_ = false;
 }
 
 size_t OS::rsprint(const char* str) {
