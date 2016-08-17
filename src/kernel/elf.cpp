@@ -109,12 +109,12 @@ public:
 
   Elf32_Addr getaddr(const std::string& name)
   {
-    for (size_t i = 0; i < symtab.entries; i++) {
-
-      //printf("sym %s\n", sym_name(&symtab[t].base[i]));
-      if (demangle( sym_name(&symtab.base[i]) ) == name)
-          return symtab.base[i].st_value;
-
+    for (size_t i = 0; i < symtab.entries; i++)
+    {
+      auto& sym = symtab.base[i];
+      //if (ELF32_ST_TYPE(sym.st_info) == STT_FUNC)
+      if (demangle( sym_name(&sym) ) == name)
+          return sym.st_value;
     }
     return 0;
   }
@@ -122,6 +122,7 @@ public:
   {
     for (size_t i = 0; i < symtab.entries; i++) {
 
+      if (ELF32_ST_TYPE(symtab.base[i].st_info) == STT_FUNC)
       if (addr >= symtab.base[i].st_value
       && (addr <  symtab.base[i].st_value + symtab.base[i].st_size))
           return &symtab.base[i];
