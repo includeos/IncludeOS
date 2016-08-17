@@ -24,11 +24,11 @@
 /**
  *
  */
-class AssertException : public std::logic_error {
-public:
-  AssertException(const char* w) : std::logic_error(w) {}
-};
-#define RAPIDJSON_ASSERT(x) if (!(x)) throw AssertException(RAPIDJSON_STRINGIFY(x))
+struct Assert_error : public std::logic_error {
+  using std::logic_error::logic_error;
+}; //< struct Assert_error
+
+#define RAPIDJSON_ASSERT(x) if (!(x)) throw Assert_error(RAPIDJSON_STRINGIFY(x))
 
 #include "attribute.hpp"
 #include "rapidjson/writer.h"
