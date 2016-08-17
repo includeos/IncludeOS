@@ -55,7 +55,7 @@ struct Serializable {
 /**
  *
  */
-class JsonDoc : public server::Attribute {
+class Json_doc : public server::Attribute {
 public:
   /**
    *
@@ -65,7 +65,7 @@ public:
 
 private:
   rapidjson::Document document_;
-}; //< class JsonDoc
+}; //< class Json_doc
 
 }; //< namespace json
 
