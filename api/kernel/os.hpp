@@ -59,6 +59,12 @@ public:
   }
 
   /**
+   * Shutdown operating system
+   * 
+   **/
+  static void shutdown();
+
+  /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
    *
    *  @param ptr: The string to write to serial port
@@ -82,7 +88,7 @@ public:
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /**
-   *  Halt until next inerrupt.
+   *  Halt until next interrupt.
    *
    *  @Warning If there is no regular timer interrupt (i.e. from PIT / APIC)
    *  we'll stay asleep.
