@@ -99,12 +99,9 @@ void test_timers()
                 "After 25 sec, 1s timer x 30 == %i times, 2s timer x 15 == %i times",
                 repeat1, repeat2);
 
-      // Make sure this timer iterator is valid
-      Timers::stop(timer1s);
-      // there are still 2 timers left, because the stopped timer above
-      // will be removed deferred (when it would ordinarily trigger)
-      // ALSO: the current timer does not count towards the total active
-      CHECKSERT(Timers::active() == 2, "There are still 2 timers left");
+      // there are no timers active right now, because the current
+      // timer does not count towards the total active
+      CHECKSERT(Timers::active() == 0, "There are no timers left");
 
       Timers::oneshot(1s, 
       [] (auto) {
