@@ -173,22 +173,23 @@ char*  get_crash_context_buffer()
 // No continuation from here
 void panic(const char* why) {
   printf("\n\t**** PANIC: ****\n %s\n", why);
-  extern char _end;
-  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
-         heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
-  print_backtrace();
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
     printf("\n\t**** CONTEXT: ****\n %*s\n\n", 
         len, get_crash_context_buffer());
   }
+  // heap and backtrace info
+  extern char _end;
+  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
+         heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
+  print_backtrace();
   // shutdown the machine
   hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
 }
 
-// No continuation from here
+// Shutdown the machine when one of the exit functions are called
 void default_exit() {
   hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
