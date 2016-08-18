@@ -29,13 +29,15 @@ static int repeat2 = 0;
 void test_timers()
 {
   INFO("Timers", "Testing one-shot timers");
+  // RTC is using a timer to calibrate itself over large periods of time
+  assert(Timers::active() == 1);
   
   // 30 sec. - Test End
   Timers::oneshot(30s, [] (auto) {
       printf("One-shots fired: %i \n", one_shots);
       CHECKSERT(one_shots == 5, "5 one-shot-timers fired");
       CHECKSERT(repeat1 == 25 and repeat2 == 10, "1s. timer fired 25 times, 2s. timer fired 10 times");
-      CHECKSERT(Timers::active() == 0, "This was the last active timer");
+      CHECKSERT(Timers::active() == 1, "This was the last active timer (except RTC)");
       INFO("Timers", "SUCCESS");
     });
 
@@ -101,10 +103,11 @@ void test_timers()
 
       // Make sure this timer iterator is valid
       Timers::stop(timer1s);
-      // there are still 2 timers left, because the stopped timer above
+      // there are still 3 timers left, because the stopped timer above
       // will be removed deferred (when it would ordinarily trigger)
       // ALSO: the current timer does not count towards the total active
-      CHECKSERT(Timers::active() == 2, "There are still 2 timers left");
+      // AND: RTC uses a timer to calibrate itself over time
+      CHECKSERT(Timers::active() == 3, "There are still 3 timers left");
 
       Timers::oneshot(1s, 
       [] (auto) {

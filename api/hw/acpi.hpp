@@ -85,12 +85,27 @@ namespace hw {
     
     void walk_sdts(const char* addr);
     void walk_madt(const char* addr);
+    void walk_facp(const char* addr);
     
     uintptr_t hpet_base;
     uintptr_t apic_base;
     ioapic_list   ioapics;
     lapic_list    lapics;
     override_list overrides;
+    
+    // shutdown related
+    void acpi_shutdown();
+    
+    uint32_t* SMI_CMD;
+    uint8_t   ACPI_ENABLE;
+    uint8_t   ACPI_DISABLE;
+    uint32_t* PM1a_CNT;
+    uint32_t* PM1b_CNT;
+    uint16_t SLP_TYPa;
+    uint16_t SLP_TYPb;
+    uint16_t SLP_EN;
+    uint16_t SCI_EN;
+    uint8_t  PM1_CNT_LEN;
   };
   
 }

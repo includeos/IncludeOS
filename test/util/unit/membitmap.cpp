@@ -16,6 +16,7 @@ CASE( "All bits set in 32-bits of chunk data" )
   
   EXPECT( bmp.first_set() ==  0 );
   EXPECT( bmp.last_set()  == 31 );
+  EXPECT( bmp.first_free() == -1);
 }
 CASE( "Set and verify each individual bit in 32-bits chunk" )
 {
