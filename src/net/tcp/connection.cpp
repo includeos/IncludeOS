@@ -19,7 +19,7 @@
 #define DEBUG2
 
 #include <os> // OS::cycles_since_boot
-#include <gsl_assert.h> // Ensures/Expects
+#include <gsl/gsl_assert> // Ensures/Expects
 #include <net/tcp/connection.hpp>
 #include <net/tcp/connection_states.hpp>
 #include <net/tcp/packet.hpp>
