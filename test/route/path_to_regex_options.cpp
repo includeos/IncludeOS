@@ -16,16 +16,16 @@
 // limitations under the License.
 
 #include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regexp.cpp"
+#include "../../route/path_to_regex.cpp"
 
 using namespace std;
 using namespace route;
 
-// ------------ TESTING PATHTOREGEXP CREATION WITH OPTIONS --------------
+// ------------ TESTING PATH_TO_REGEX WITH OPTIONS --------------
 
-const lest::test test_path_to_regexp_options[] =
+const lest::test test_path_to_regex_options[] =
 {
-  SCENARIO("Creating PathToRegexp-objects with options")
+  SCENARIO("Calling path_to_regex with options")
   {
     // Create with option strict
 
@@ -34,9 +34,14 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path '/:test'")
       {
+        std::regex r = PathToRegex::path_to_regex("/:test", keys, options);
 
+        THEN("")
+        {
+
+        }
       }
     }/*,
 
@@ -45,8 +50,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -58,8 +64,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", true} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -69,8 +76,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", false} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -82,8 +90,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"end", true} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -93,8 +102,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"end", false} };
 
-      WHEN("Creating PathToRegexp-object with path ''")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -106,8 +116,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -117,8 +128,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -128,8 +140,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -139,8 +152,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -152,8 +166,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -163,8 +178,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -174,8 +190,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -185,8 +202,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -198,8 +216,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", true}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -209,8 +228,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", false}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -220,8 +240,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", true}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -231,8 +252,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"sensitive", false}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -244,8 +266,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", true}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -255,8 +278,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", false}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -266,8 +290,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", true}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -277,8 +302,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", false}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -288,8 +314,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", true}, {"sensitive", false}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -299,8 +326,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", false}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -310,8 +338,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", true}, {"end", true} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     },
@@ -321,8 +350,9 @@ const lest::test test_path_to_regexp_options[] =
       vector<Token> keys;
       map<string, bool> options{ {"strict", false}, {"sensitive", true}, {"end", false} };
 
-      WHEN("")
+      WHEN("Calling path_to_regex with path ''")
       {
+        std::regex r = PathToRegex::path_to_regex("", keys, options);
 
       }
     }*/
@@ -331,11 +361,11 @@ const lest::test test_path_to_regexp_options[] =
 
 int main(int argc, char * argv[])
 {
-  printf("Running tests of PathToRegexp-creation with options...\n");
+  printf("Running tests of path_to_regex with options...\n");
 
-  int res = lest::run(test_path_to_regexp_options, argc, argv);
+  int res = lest::run(test_path_to_regex_options, argc, argv);
 
-  printf("PathToRegexp creation-tests (with options) completed.\n");
+  printf("Path_to_regex-tests (with options) completed.\n");
 
   return res;
 }

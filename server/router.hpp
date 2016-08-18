@@ -24,7 +24,7 @@
 
 #include "request.hpp"
 #include "response.hpp"
-#include "../route/path_to_regexp.hpp"  // TODO: Not relative path?
+#include "../route/path_to_regex.hpp"  // TODO: Not relative path?
 #include "params.hpp"
 
 namespace server {
@@ -47,10 +47,9 @@ namespace server {
       Callback callback;
       std::vector<route::Token> keys;
 
-      Route(const char* ex, Callback c) : callback{c}
-      {
-        route::PathToRegexp p{ex, keys}; // also sets the keys attribute
-        expr = p.get_regex();
+      Route(const char* ex, Callback c)
+        : callback{c} {
+        expr = route::PathToRegex::path_to_regex(ex, keys); // also sets the keys attribute
       }
     };
 

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regexp.cpp"
+#include "../../route/path_to_regex.cpp"
 
 using namespace std;
 using namespace route;
@@ -29,11 +29,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter (/:test)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test");
+    vector<Token> tokens = PathToRegex::parse("/:test");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -53,11 +49,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two named parameters (/:test/:date)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test/:date");
+    vector<Token> tokens = PathToRegex::parse("/:test/:date");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -88,11 +80,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with three elements, containing two named parameters (/users/:test/:date)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/users/:test/:date");
+    vector<Token> tokens = PathToRegex::parse("/users/:test/:date");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
@@ -136,11 +124,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with no parameters (/test)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/test");
+    vector<Token> tokens = PathToRegex::parse("/test");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -160,11 +144,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with no parameters (/test/users)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/test/users");
+    vector<Token> tokens = PathToRegex::parse("/test/users");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -186,11 +166,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one optional parameter (/:test?)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test?");
+    vector<Token> tokens = PathToRegex::parse("/:test?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -210,11 +186,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two optional parameters (/:test?/:date?)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test?/:date?");
+    vector<Token> tokens = PathToRegex::parse("/:test?/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -245,11 +217,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with three elements, containing two optional parameters (/:test?/users/:date?)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test?/users/:date?");
+    vector<Token> tokens = PathToRegex::parse("/:test?/users/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
@@ -291,11 +259,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two named parameters, where one is optional (/:test/:date?)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test/:date?");
+    vector<Token> tokens = PathToRegex::parse("/:test/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -328,11 +292,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter with asterisk (zero or more) (/:test*)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test*");
+    vector<Token> tokens = PathToRegex::parse("/:test*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -352,11 +312,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with asterisk (zero or more) (/:date/:test*)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:date/:test*");
+    vector<Token> tokens = PathToRegex::parse("/:date/:test*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -389,11 +345,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter with plus (one or more) (/:test+)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test+");
+    vector<Token> tokens = PathToRegex::parse("/:test+");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -413,11 +365,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) (/:id/:test+")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:id/:test+");
+    vector<Token> tokens = PathToRegex::parse("/:id/:test+");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -448,11 +396,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) that only takes lower case letters, and one is a named parameter that only takes integers (/:test([a-z])+/:id(\\d+))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test([a-z])+/:id(\\d+)");
+    vector<Token> tokens = PathToRegex::parse("/:test([a-z])+/:id(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -485,11 +429,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one custom match parameter - only integers (one or more) (/:test(\\d+))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test(\\d+)");
+    vector<Token> tokens = PathToRegex::parse("/:test(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -509,11 +449,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one custom match parameter - only a-z (one or more) (/:test([a-z]+))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test([a-z]+)");
+    vector<Token> tokens = PathToRegex::parse("/:test([a-z]+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -533,11 +469,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a custom match parameter - only integers (one or more) (/:test/:id(\\d+))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test/:id(\\d+)");
+    vector<Token> tokens = PathToRegex::parse("/:test/:id(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -570,11 +502,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter (/(.*)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/(.*)");
+    vector<Token> tokens = PathToRegex::parse("/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -594,11 +522,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter that only takes integers (one or more) (/(\\d+))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/(\\d+)");
+    vector<Token> tokens = PathToRegex::parse("/(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -618,11 +542,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is an unnamed parameter (/:test/(.*))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/:test/(.*)");
+    vector<Token> tokens = PathToRegex::parse("/:test/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -653,11 +573,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two elements, where one is an unnamed parameter (/users/(.*))")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/users/(.*)");
+    vector<Token> tokens = PathToRegex::parse("/users/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -690,11 +606,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter (/*)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/*");
+    vector<Token> tokens = PathToRegex::parse("/*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -714,11 +626,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is an asterisk (zero or more) (/test/:id/*)")
   {
-    // Empty object to use parse-method:
-    vector<Token> keys;
-    PathToRegexp p{"", keys};
-
-    vector<Token> tokens = p.parse("/test/:id/*");
+    vector<Token> tokens = PathToRegex::parse("/test/:id/*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
