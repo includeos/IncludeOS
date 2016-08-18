@@ -31,14 +31,20 @@ extern "C" {
 extern void print_backtrace();
 
 #ifndef SET_CRASH_CONTEXT
+
+#ifndef DISABLE_CRASH_CONTEXT
 // used to set a message that will be printed on crash the message is to 
 // be contextual helping to identify the reason for crashes
 // Example: copy HTTP requests into buffer during stress or malformed request 
 // testing if server crashes we can inspect the HTTP request to identify which 
 // one caused the crash
-#define SET_CRASH_CONTEXT(X,...)  snprintf( \
-      get_crash_context_buffer(), get_crash_context_length(), \
-      X, ##__VA_ARGS__);
+  #define SET_CRASH_CONTEXT(X,...)  snprintf( \
+          get_crash_context_buffer(), get_crash_context_length(), \
+          X, ##__VA_ARGS__);
+#else
+  #define SET_CRASH_CONTEXT(X,...)  /* */
+#endif
+
 #endif
 
 #endif //< KERNEL_SYSCALLS_HPP
