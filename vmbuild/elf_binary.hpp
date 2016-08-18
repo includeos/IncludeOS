@@ -19,7 +19,7 @@
 #define ELF_BINARY_HPP
 
 #include <elf.h>
-#include <gsl.h>
+#include <gsl/gsl>
 #include <stdexcept>
 
 class Elf_binary {

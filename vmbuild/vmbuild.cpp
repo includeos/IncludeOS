@@ -20,7 +20,6 @@
 #include <cstring>
 #include <iostream>
 
-#include <assert.h>
 #include <elf_binary.hpp>
 #include <elf.h>
 #include <errno.h>
@@ -29,7 +28,7 @@
 #include <sys/stat.h>
 
 #include <boot/multiboot.h>
-#include <gsl.h>
+#include <gsl/gsl>
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666
@@ -112,7 +111,7 @@ int main(int argc, char** argv) {
 
   const decltype(binary_sectors) img_size_sect  {1 + binary_sectors+1};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
-  assert((img_size_bytes & (SECT_SIZE-1)) == 0);
+  Expects((img_size_bytes & (SECT_SIZE-1)) == 0);
 
   cout << "Total disk size: \t"
        << img_size_bytes << " bytes, => "

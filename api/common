@@ -53,7 +53,7 @@
 #include "warn"
 #include "info"
 
-#include <gsl.h>
+#include <gsl/gsl>
 
 /* Define our own termination policy for contract   */
 /* violation to generate relevant information about */
