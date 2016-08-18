@@ -256,22 +256,22 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  char symbol_buffer[161];
-  char btrace_buffer[181];
-
+  char _symbol_buffer[512];
+  char _btrace_buffer[512];
+  
   if (Elf::get_strtab() == NULL) {
-    int len = snprintf(btrace_buffer, 180, 
+    int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer), 
               "symtab or strtab is empty, indicating image may be stripped\n");
-    write(1, btrace_buffer, len);
+    write(1, _btrace_buffer, len);
   }
 
   #define PRINT_TRACE(N, ra) \
-    auto symb = Elf::safe_resolve_symbol( \
-                ra, symbol_buffer, 160);  \
-    int len = snprintf(btrace_buffer, 180,\
+    auto symb = Elf::safe_resolve_symbol(                     \
+                ra, _symbol_buffer, sizeof(_symbol_buffer));  \
+    int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
              "[%d] %8x + 0x%.3x: %s\n", \
              N, symb.addr, symb.offset, symb.name);\
-    write(1, btrace_buffer, len);
+    write(1, _btrace_buffer, len);
 
   printf("\n");
   void* ra;
