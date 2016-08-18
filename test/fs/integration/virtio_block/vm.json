@@ -1,0 +1,7 @@
+{
+  "image" : "test_virtio_block.img",
+  "drives" : [{"file" : "image.img",
+               "type" : "virtio",
+               "format": "raw",
+               "media": "disk" }]
+}

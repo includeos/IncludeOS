@@ -18,19 +18,12 @@
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/apic.hpp>
 #include <hw/pci.hpp>
 #include <assert.h>
 
-void Virtio::set_irq(){
-
-  //Get device IRQ
-  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    _irq = value & 0xFF;
-  }
-
-}
-
+#define VIRTIO_MSI_CONFIG_VECTOR  20
+#define VIRTIO_MSI_QUEUE_VECTOR   22
 
 Virtio::Virtio(hw::PCI_Device& dev)
   : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
@@ -71,7 +64,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // Probe PCI resources and fetch I/O-base for device
   _pcidev.probe_resources();
-  _iobase=_pcidev.iobase();
+  _iobase = _pcidev.iobase();
 
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
@@ -100,14 +93,45 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Where the standard isn't clear, we'll do our best to separate work
   // between this class and subclasses.
 
-  //Fetch IRQ from PCI resource
-  set_irq();
+  // read caps
+  _pcidev.parse_capabilities();
 
-  CHECK(_irq, "Unit has IRQ %i", _irq);
-  INFO("Virtio","Enabling IRQ Handler");
-  enable_irq_handler();
+  // initialize MSI-X if available
+  if (_pcidev.msix_cap())
+  {
+    this->_msix_vectors = _pcidev.init_msix();
+    if (is_msix())
+    {
+      INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
 
+      // remember the base IRQ
+      this->_irq = IRQ_manager::cpu(0).get_next_msix_irq();
+      _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
 
+      // setup all the other vectors
+      for (int i = 1; i < get_msix_vectors(); i++)
+      {
+        auto irq = IRQ_manager::cpu(0).get_next_msix_irq();
+        _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
+      }
+    }
+    else
+      INFO2("[ ] No MSI-X vectors");
+  } else {
+    this->_msix_vectors = 0;
+    INFO2("[ ] No MSI-X vectors");
+  }
+
+  // use legacy if msix was not enabled
+  if (is_msix() == false)
+  {
+    // Fetch IRQ from PCI resource
+    set_irq();
+    CHECK(_irq, "Unit has legacy IRQ %u", _irq);
+
+    // create IO APIC entry for legacy interrupt
+    hw::APIC::enable_irq(_irq);
+  }
 
   INFO("Virtio", "Initialization complete");
 
@@ -117,23 +141,29 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8.
   // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
-
-  /* printf(queue_size > 0 and queue_size != PCI_WTF ?
-     "\t [x] Queue Size : 0x%lx \n" :
-     "\t [ ] No qeuue Size? : 0x%lx \n" ,queue_size); */
-
 }
 
 void Virtio::get_config(void* buf, int len){
-  unsigned char* ptr = (unsigned char*)buf;
-  uint32_t ioaddr = _iobase + VIRTIO_PCI_CONFIG;
-  int i;
-  for (i = 0; i < len; i++) *ptr++ = hw::inp(ioaddr + i);
+  // io addr is different when MSI-X is enabled
+  uint32_t ioaddr = _iobase;
+  ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
+  
+  uint8_t* ptr = (uint8_t*) buf;
+  for (int i = 0; i < len; i++)
+    ptr[i] = hw::inp(ioaddr + i);
 }
 
 
 void Virtio::reset(){
   hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
+}
+
+void Virtio::set_irq() {
+  // Get legacy IRQ from PCI
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
+  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+    this->_irq = value & 0xFF;
+  }
 }
 
 uint32_t Virtio::queue_size(uint16_t index){
@@ -145,6 +175,16 @@ uint32_t Virtio::queue_size(uint16_t index){
 bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+
+  if (_pcidev.is_msix())
+  {
+    // also update virtio MSI-X queue vector
+    hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);
+    // the programming could fail, and the reason is allocation failed on vmm
+    // in which case we probably don't wanna continue anyways
+    assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
+  }
+
   return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
 }
 
@@ -170,40 +210,18 @@ void Virtio::setup_complete(bool ok){
 }
 
 
-
 void Virtio::default_irq_handler(){
-  printf("PRIVATE virtio IRQ handler: Call %i \n",calls++);
+  printf("*** PRIVATE virtio IRQ handler\n");
   printf("Old Features : 0x%x \n",_features);
   printf("New Features : 0x%x \n",probe_features());
 
   unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
   printf("Virtio ISR: 0x%i \n",isr);
   printf("Virtio ISR: 0x%i \n",isr);
-
-  IRQ_manager::eoi(_irq);
-
 }
 
-
-
-void Virtio::enable_irq_handler(){
-  //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
-
-  //auto del=delegate::from_method<Virtio,&Virtio::default_irq_handler>(this);
+void Virtio::enable_irq_handler()
+{
   auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
-
-  IRQ_manager::subscribe(_irq,del);
-
-  IRQ_manager::enable_irq(_irq);
-
-
+  IRQ_manager::cpu(0).subscribe(_irq, del);
 }
-
-/** void Virtio::enable_irq_handler(IRQ_manager::irq_delegate d){
- //_irq=0; //Works only if IRQ2INTR(_irq), since 0 overlaps an exception.
- //IRQ_manager::set_handler(IRQ2INTR(_irq), irq_virtio_entry);
-
- IRQ_manager::subscribe(_irq,d);
-
- IRQ_manager::enable_irq(_irq);
- }*/

@@ -18,14 +18,16 @@
 #include <kernel/vga.hpp>
 #include <cstring>
 #include <x86intrin.h>
+#include <memstream>
 
-static uint16_t make_vgaentry(const char c, const uint8_t color) noexcept {
+static inline uint16_t
+make_vgaentry(const char c, const uint8_t color) noexcept {
   uint16_t c16     = c;
   uint16_t color16 = color;
   return c16 | color16 << 8;
 }
 const uint16_t ConsoleVGA::DEFAULT_ENTRY = 
-                          make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
+    make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
 
 ConsoleVGA::ConsoleVGA() noexcept:
 row{0}, column{0}
@@ -35,24 +37,26 @@ row{0}, column{0}
   clear();
 }
 
-void ConsoleVGA::setColor(const uint8_t color) noexcept {
-  this->color = color;
+uint16_t ConsoleVGA::get(uint8_t x, uint8_t y)
+{
+  const size_t index = y * VGA_WIDTH + x;
+  return this->buffer[index];
 }
 
-void ConsoleVGA::putEntryAt(const char c, const uint8_t color, const size_t x, const size_t y) noexcept {
-  put(make_vgaentry(c, color), x, y);
+void ConsoleVGA::put(const char c, uint8_t color, uint8_t x, uint8_t y) noexcept {
+  putent(make_vgaentry(c, color), x, y);
 }
 
-void ConsoleVGA::putEntryAt(const char c, const size_t x, const size_t y) noexcept {
-  put(make_vgaentry(c, this->color), x, y);
+void ConsoleVGA::put(const char c, uint8_t x, uint8_t y) noexcept {
+  putent(make_vgaentry(c, this->color), x, y);
 }
 
-void ConsoleVGA::setCursorAt(const size_t x, const size_t y) noexcept {
+void ConsoleVGA::set_cursor(uint8_t x, uint8_t y) noexcept {
   this->column = x;
   this->row = y; 
 }
 
-inline void ConsoleVGA::put(uint16_t entry, size_t x, size_t y) noexcept {
+inline void ConsoleVGA::putent(uint16_t entry, uint8_t x, uint8_t y) noexcept {
   const size_t index = y * VGA_WIDTH + x;
   this->buffer[index] = entry;
 }
@@ -96,8 +100,7 @@ void ConsoleVGA::clear() noexcept {
   this->row    = 0;
   this->column = 0;
   
-  for (size_t x {0}; x < (VGA_WIDTH * VGA_HEIGHT); ++x)
-    buffer[x] = DEFAULT_ENTRY;
+  streamset16(buffer, DEFAULT_ENTRY, VGA_WIDTH * VGA_HEIGHT * 2);
 }
 
 void ConsoleVGA::write(const char c) noexcept {
@@ -106,11 +109,12 @@ void ConsoleVGA::write(const char c) noexcept {
   if (c == NEWLINE) {
     newline();
   } else {
-    putEntryAt(c, this->color, this->column, this->row);
+    put(c, this->color, this->column, this->row);
     increment(1);
   }
 }
 
 void ConsoleVGA::write(const char* data, const size_t len) noexcept {
-  for (size_t i {0}; i < len; ++i) write(data[i]);
+  for (size_t i = 0; i < len; ++i)
+    write(data[i]);
 }

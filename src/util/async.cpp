@@ -22,14 +22,14 @@ void Async::upload_file(
           next_func    next)
   {
     // write chunk to TCP connection
-    conn->write(buffer.get(), length,
+    conn->write(buffer, length,
     [length, next] (size_t n) {
 
       // if all data written, go to next chunk
       debug("sock write: %u / %u\n", n, length);
       next(n == length);
 
-    }, true);
+    });
 
   }, callback, CHUNK_SIZE);
 }

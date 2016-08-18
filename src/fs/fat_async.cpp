@@ -68,6 +68,7 @@ namespace fs
     auto weak_next = std::weak_ptr<next_func_t>(next);
     *next =
     [this, path, weak_next, callback] (uint32_t cluster) {
+
       if (path->empty()) {
         // attempt to read directory
         uint32_t S = this->cl_to_sector(cluster);
@@ -194,42 +195,6 @@ namespace fs
       callback(no_error, data, n);
     });
   }
-
-  void FAT::readFile(const std::string& strpath, on_read_func callback)
-  {
-    auto path = std::make_shared<Path> (strpath);
-    if (unlikely(path->empty())) {
-      // there is no possible file to read where path is empty
-      callback({ error_t::E_NOENT, "Path is empty" }, nullptr, 0);
-      return;
-    }
-    debug("readFile: %s\n", path->back().c_str());
-
-    std::string filename = path->back();
-    path->pop_back();
-
-    traverse(path,
-    [this, filename, &callback] (error_t error, dirvec_t dirents) {
-
-      if (unlikely(error)) {
-        // no path, no file!
-        callback(error, buffer_t(), 0);
-        return;
-      }
-
-      // find the matching filename in directory
-      for (auto& ent : *dirents) {
-        if (unlikely(ent.name() == filename)) {
-          // read this file
-          read(ent, 0, ent.size(), callback);
-          return;
-        }
-      }
-
-      // file not found
-      callback({ error_t::E_NOENT, filename }, buffer_t(), 0);
-    });
-  } // readFile()
 
   void FAT::stat(const std::string& strpath, on_stat_func func)
   {

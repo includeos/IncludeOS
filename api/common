@@ -35,7 +35,7 @@
 
 /* We're only doing 32-bit ix86 targets. */
 #if !defined(__i386__)
-#error "This project needs to be compiled with an ix86-elf compiler"
+#warning "This project is targeted at the i386 architecture"
 #endif
 
 /* Unused parameters */
@@ -95,5 +95,9 @@ inline void expects_and_ensures_termination() { std::exit(EXIT_FAILURE); }
   } while(0)
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
+
+#define LIKELY(x)       __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+
 
 #endif //< INCLUDEOS_COMMON_HEADER

@@ -25,5 +25,6 @@ extern "C" {
   void panic(const char* why) __attribute__((noreturn));
   void default_exit() __attribute__((noreturn));
 }
+extern void print_backtrace();
 
 #endif //< KERNEL_SYSCALLS_HPP

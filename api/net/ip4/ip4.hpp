@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,10 @@
 #ifndef CLASS_IP4_HPP
 #define CLASS_IP4_HPP
 
-#include <string>
 #include <iostream>
 
+#include "addr.hpp"
+#include <common>
 #include <net/ethernet.hpp>
 #include <net/inet.hpp>
 
@@ -33,66 +34,15 @@ namespace net {
   /** IP4 layer */
   class IP4 {
   public:
+    using addr = ip4::Addr;
+
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Inet<LinkLayer, IP4>&) noexcept;
 
     /** Known transport layer protocols. */
     enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
 
-    /** IP4 address representation */
-    struct addr {
-      uint32_t whole;
-      
-      addr() : whole(0) {} // uninitialized
-      addr(uint32_t ipaddr)
-        : whole(ipaddr) {}
-      addr(uint8_t p1, uint8_t p2, uint8_t p3, uint8_t p4)
-        : whole(p1 | (p2 << 8) | (p3 << 16) | (p4 << 24)) {}
-      
-      inline addr& operator=(addr cpy) noexcept {
-        whole = cpy.whole;
-        return *this;
-      }
 
-      /** Standard comparison operators */
-      bool operator==(addr rhs)           const noexcept
-      { return whole == rhs.whole; }
-
-      bool operator==(const uint32_t rhs) const noexcept
-      { return  whole == rhs; }
-
-      bool operator<(const addr rhs)      const noexcept
-      { return whole < rhs.whole; }
-
-      bool operator<(const uint32_t rhs)  const noexcept
-      { return  whole < rhs; }
-
-      bool operator>(const addr rhs)      const noexcept
-      { return whole > rhs.whole; }
-
-      bool operator>(const uint32_t rhs)  const noexcept
-      { return  whole > rhs; }
-
-      bool operator!=(const addr rhs)     const noexcept
-      { return whole != rhs.whole; }
-
-      bool operator!=(const uint32_t rhs) const noexcept
-      { return  whole != rhs; }
-
-      addr operator & (addr rhs) const noexcept
-      { return addr(whole & rhs.whole); }
-      
-      /** x.x.x.x string representation */
-      std::string str() const {
-        char ip_addr[16];
-        sprintf(ip_addr, "%1i.%1i.%1i.%1i",
-                (whole >>  0) & 0xFF,
-                (whole >>  8) & 0xFF, 
-                (whole >> 16) & 0xFF, 
-                (whole >> 24) & 0xFF);
-        return ip_addr;
-      }
-    } __attribute__((packed)); //< IP4::addr
 
     static const addr INADDR_ANY;
     static const addr INADDR_BCAST;

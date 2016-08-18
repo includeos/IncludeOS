@@ -39,6 +39,7 @@
 #include "../net/ethernet.hpp"
 #include "../net/buffer_store.hpp"
 #include <delegate>
+#include <deque>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -124,8 +125,7 @@ public:
 
   constexpr uint16_t bufsize() const {
     return MTU() +
-      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer) +
-      sizeof(virtio_net_hdr); }
+      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
 
   /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
   inline void set_linklayer_out(net::upstream link_out){
@@ -161,8 +161,6 @@ public:
   inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
   { on_exit_to_physical_ = dlg; };
 
-private:
-
   struct virtio_net_hdr
   {
     uint8_t flags;
@@ -172,6 +170,8 @@ private:
     uint16_t csum_start;       // Position to start checksumming from
     uint16_t csum_offset;      // Offset after that to place checksum
   }__attribute__((packed));
+
+private:
 
   /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
@@ -228,26 +228,30 @@ private:
 
   /** Handle device IRQ.
       Will look for config changes and service RX/TX queues as necessary.*/
+  void msix_recv_handler();
+  void msix_xmit_handler();
+  void msix_conf_handler();
   void irq_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  int add_receive_buffer();
+  void add_receive_buffer();
 
   /** Upstream delegate for linklayer output */
   net::upstream _link_out;
 
-  /** 20-bit / 1MB of buffers to start with */
-  net::BufferStore bufstore_{ 0xfffffU / bufsize(),  bufsize(), sizeof(virtio_net_hdr) };
-  net::BufferStore::release_del release_buffer =
-    net::BufferStore::release_del::from
-    <net::BufferStore, &net::BufferStore::release_offset_buffer>(bufstore_);
+  net::BufferStore bufstore_;
+  std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::deque<uint8_t*> tx_ringq;
+  
+  void begin_deferred_kick();
+  void handle_deferred_kicks(uint32_t);
+  bool deferred_kick = false;
 
   net::transmit_avail_delg transmit_queue_available_event_ {};
 
   net::Packet_ptr transmit_queue_ {0};
 
   delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
-
 };
 
 #endif

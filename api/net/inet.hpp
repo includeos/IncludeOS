@@ -22,6 +22,7 @@
 
 namespace net {
 
+
   class TCP;
   class UDP;
   class DHClient;
@@ -47,9 +48,11 @@ namespace net {
 
     virtual constexpr uint16_t MTU() const = 0;
 
-    virtual Packet_ptr createPacket(size_t size) = 0;
+    virtual Packet_ptr create_packet(size_t size) = 0;
 
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
+
+    virtual void set_router(typename IPV::addr server) = 0;
 
     virtual void set_dns_server(typename IPV::addr server) = 0;
 

@@ -43,10 +43,9 @@ A longer list of features and limitations is on the [wiki feature list](https://
 ### Install libraries
 
 ```
-    $ sudo apt-get install git
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ ./install.sh
+    $ sudo ./install.sh
 ```
 
 **The script will:**
@@ -86,6 +85,7 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
     $ cd ~/my_service
     $ emacs service.cpp
     ... add your code
+    $ make
     $ ./run.sh my_service.img
 ```
 
@@ -93,7 +93,7 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 
 ## Contributing to IncludeOS
 
-IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS).
+IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](https://github.com/hioa-cs/IncludeOS/wiki/Contributing-to-IncludeOS).
 
 ## C++ Guidelines
 

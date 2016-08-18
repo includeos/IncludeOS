@@ -29,16 +29,16 @@
 namespace net {
 
   // uint16_t(0x0000), uint32_t(0x01000000)
-  const Ethernet::addr Ethernet::addr::MULTICAST_FRAME {{0,0,0x01,0,0,0}};
+  const Ethernet::addr Ethernet::addr::MULTICAST_FRAME {0,0,0x01,0,0,0};
 
   // uint16_t(0xFFFF), uint32_t(0xFFFFFFFF)
-  const Ethernet::addr Ethernet::addr::BROADCAST_FRAME {{0xff,0xff,0xff,0xff,0xff,0xff}};
+  const Ethernet::addr Ethernet::addr::BROADCAST_FRAME {0xff,0xff,0xff,0xff,0xff,0xff};
 
   // uint16_t(0x3333), uint32_t(0x01000000)
-  const Ethernet::addr Ethernet::addr::IPv6mcast_01 {{0x33,0x33,0x01,0,0,0}};
+  const Ethernet::addr Ethernet::addr::IPv6mcast_01 {0x33,0x33,0x01,0,0,0};
 
   // uint16_t(0x3333), uint32_t(0x02000000)
-  const Ethernet::addr Ethernet::addr::IPv6mcast_02 {{0x33,0x33,0x02,0,0,0}};
+  const Ethernet::addr Ethernet::addr::IPv6mcast_02 {0x33,0x33,0x02,0,0,0};
 
   static void ignore(Packet_ptr UNUSED(pckt)) noexcept {
     debug("<Ethernet handler> Ignoring data (no real handler)\n");

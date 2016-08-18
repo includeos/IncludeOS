@@ -1,0 +1,122 @@
+// -*-C++-*-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+#include <new>
+#include <kernel/elf.hpp>
+#include <unordered_map>
+#include <malloc.h>
+#include <cassert>
+
+#define VERBOSE_NEW_AND_DELETE
+
+struct debug_new_entry
+{
+  debug_new_entry() {}
+  debug_new_entry(size_t sz, std::string f, int L, func_offset fo)
+    : size(sz), file(f), line(L), func(fo) {}
+  
+  size_t      size;
+  std::string file;
+  int         line;
+  func_offset func;
+};
+extern std::unordered_map<uintptr_t, debug_new_entry> __dnew_entries;
+
+inline void* 
+operator new (std::size_t size, const char* file, int line, const func_offset& func) noexcept
+{
+  void* data = malloc(size);
+#ifdef VERBOSE_NEW_AND_DELETE
+  printf("new %u == %p at %s:%u in function %s +%#x\n",
+      size, data, file, line, func.name.c_str(), func.offset);
+#endif
+  auto addr = (uintptr_t) data;
+  assert(__dnew_entries.find(addr) == __dnew_entries.end());
+  __dnew_entries[addr] = debug_new_entry(size, file, line, func);
+  return data;
+}
+inline void* 
+operator new[] (std::size_t size, const char* file, int line, const func_offset& func) noexcept
+{
+  void* data = malloc(size);
+#ifdef VERBOSE_NEW_AND_DELETE
+  printf("new %u == %p at %s:%u in function %s +%#x\n",
+      size, data, file, line, func.name.c_str(), func.offset);
+#endif
+  auto addr = (uintptr_t) data;
+  assert(__dnew_entries.find(addr) == __dnew_entries.end());
+  __dnew_entries[addr] = debug_new_entry(size, file, line, func);
+  return data;
+}
+
+inline void
+_delone (void* p, const char* file, int line, const func_offset& func) throw()
+{
+#ifdef VERBOSE_NEW_AND_DELETE
+  printf("delete %p at %s:%u in function %s +%#x\n",
+      p, file, line, func.name.c_str(), func.offset);
+#endif
+  auto addr = (uintptr_t) p;
+  assert(__dnew_entries.find(addr) != __dnew_entries.end());
+  __dnew_entries.erase(addr);
+  free(p);
+}
+inline void
+_delarr (void* p, const char* file, int line, const func_offset& func) throw()
+{
+#ifdef VERBOSE_NEW_AND_DELETE
+  printf("delete %p at %s:%u in function %s +%#x\n",
+      p, file, line, func.name.c_str(), func.offset);
+#endif
+  auto addr = (uintptr_t) p;
+  assert(__dnew_entries.find(addr) != __dnew_entries.end());
+  __dnew_entries.erase(addr);
+  free(p);
+}
+
+#define NEW(type)        new    (__FILE__, __LINE__, Elf::get_current_function()) type;
+#define DELETE(ptr)      _delone(ptr, __FILE__, __LINE__, Elf::get_current_function());
+
+#define NEW_ARRAY(type, cnt) new    (__FILE__, __LINE__, Elf::get_current_function()) type[cnt];
+#define DELETE_ARRAY(ptr)    _delarr(ptr, __FILE__, __LINE__, Elf::get_current_function());
+
+extern void debug_new_print_entries();
+
+// as per the standard these are declared weak, so we can override these too
+// and provide some modicum of feedback that something internally used new
+// .. but we probably only want to use custom NEW and DELETE ourselves...
+/*
+void* operator new (std::size_t n) throw(std::bad_alloc)
+{
+  return NULL;
+}
+void operator delete (void* p) throw()
+{
+  (void) p;
+}
+void* operator new[] (std::size_t s) throw(std::bad_alloc)
+{
+  // TODO: implement
+  return NULL;
+}
+void operator delete[] (void* p) throw()
+{
+  // TODO: implement
+  (void) p;
+}*/

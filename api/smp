@@ -1,0 +1,25 @@
+#ifndef API_SMP_HEADER
+#define API_SMP_HEADER
+
+#include "hw/apic.hpp"
+
+class SMP {
+public:
+  using task_func = hw::APIC::smp_task_func;
+  using done_func = hw::APIC::smp_done_func;
+  
+  inline static void
+  add_task(task_func func, done_func done)
+  {
+    hw::APIC::add_task(func, done);
+  }
+  
+  inline static void
+  start()
+  {
+    hw::APIC::work_signal();
+  }
+  
+};
+
+#endif

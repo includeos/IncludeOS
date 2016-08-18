@@ -28,7 +28,7 @@
 #include "ip4/udp.hpp"
 #include "ip4/icmpv4.hpp"
 #include "dns/client.hpp"
-#include "tcp.hpp"
+#include "tcp/tcp.hpp"
 #include <vector>
 
 namespace net {
@@ -39,6 +39,7 @@ namespace net {
   template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
+    using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
     Ethernet::addr link_addr() override
     { return eth_.mac(); }
@@ -69,18 +70,15 @@ namespace net {
 
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
-        @note as of v0.6.3 this has no effect other than to force the size to be
-        set explicitly by the caller.
-        @todo make_shared will allocate with new. This is fast in IncludeOS,
-        (no context switch for sbrk) but consider overloading operator new.
     */
-    virtual Packet_ptr createPacket(size_t size) override {
-      // Create a release delegate, for returning buffers
-      auto release = BufferStore::release_del::from
-        <BufferStore, &BufferStore::release_offset_buffer>(nic_.bufstore());
-      // Create the packet, using  buffer and .
-      return std::make_shared<Packet>(bufstore_.get_offset_buffer(),
-                                      bufstore_.offset_bufsize(), size, release);
+    virtual Packet_ptr create_packet(size_t size) override {
+      // get buffer (as packet + data)
+      auto* ptr = (Packet*) bufstore_.get_buffer();
+      // place packet at front of buffer
+      new (ptr) Packet(nic_.bufsize(), size,
+          [this] (void* p) { bufstore_.release((uint8_t*) p); });
+      // regular shared_ptr that calls delete on Packet
+      return std::shared_ptr<Packet>(ptr);
     }
 
     // We have to ask the Nic for the MTU
@@ -97,15 +95,30 @@ namespace net {
       dns.resolve(this->dns_server, hostname, func);
     }
 
+    virtual void set_router(IP4::addr gateway) override
+    {
+      this->router_ = gateway;
+    }
+
     virtual void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
 
+    /**
+     * @brief Try to negotiate DHCP
+     * @details Initialize DHClient if not present and tries to negotitate dhcp.
+     * Also takes an optional timeout parameter and optional timeout function.
+     *
+     * @param timeout number of seconds before request should timeout
+     * @param dhcp_timeout_func DHCP timeout handler
+     */
+    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
     // the timeout parameter indicates whether dhcp negotitation failed
-    void on_config(delegate<void(bool)> handler);
+    void on_config(dhcp_timeout_func handler);
 
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
@@ -113,8 +126,8 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
 
-    /** Initialize with static IP / netmask */
-    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask);
+    /** Initialize with static IP / netmask / Gateway */
+    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
 
     /** Initialize with DHCP  */
     Inet4(hw::Nic<DRIVER>& nic, double timeout = 10.0);
@@ -170,5 +183,26 @@ namespace net {
 }
 
 #include "inet4.inc"
+
+namespace net {
+  template <int N = 0, typename Driver = VirtioNet>
+  inline auto new_ipv4_stack(const double timeout, typename Inet4<Driver>::dhcp_timeout_func handler)
+  {
+    auto& eth = hw::Dev::eth<N,Driver>();
+    auto inet = std::make_unique<net::Inet4<Driver>>(eth, timeout);
+    inet->on_config(handler);
+    return inet;
+  }
+
+  template <int N = 0, typename Driver = VirtioNet>
+  inline auto new_ipv4_stack(const IP4::addr addr, const IP4::addr nmask, const IP4::addr router,
+                             const IP4::addr dns = { 8,8,8,8 })
+  {
+    auto& eth = hw::Dev::eth<N,Driver>();
+    auto inet = std::make_unique<net::Inet4<Driver>>(eth, addr, nmask, router);
+    inet->set_dns_server(dns);
+    return inet;
+  }
+} //< namespace net
 
 #endif

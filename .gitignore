@@ -15,6 +15,7 @@
 *.pyc
 nbproject
 
+src/apic_boot.bin
 src/bootloader
 src/TAGS
 

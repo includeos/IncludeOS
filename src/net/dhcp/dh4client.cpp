@@ -154,11 +154,11 @@ namespace net
   {
     return (dhcp_option_t*) option;
   }
-  
+
   DHClient::DHClient(Stack& inet)
     : stack(inet), xid(0), console_spam(true)
   {
-    config_handler = 
+    config_handler =
     [this] (bool timeout) {
       if (console_spam)
       {
@@ -169,18 +169,18 @@ namespace net
       }
     };
   }
-  
+
   void DHClient::negotiate(double timeout_secs)
   {
     // set timeout handler
-    this->timeout = hw::PIT::instance().on_timeout(timeout_secs, 
+    this->timeout = hw::PIT::on_timeout_d(timeout_secs,
     [this] {
       // reset session ID
       this->xid = 0;
       // call on_config with timeout = true
       this->config_handler(true);
     });
-    
+
     // create a random session ID
     this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
     if (console_spam)
@@ -286,7 +286,7 @@ namespace net
       // verify that the type is indeed DHCPOFFER
       debug("Found DHCP message type %d  (DHCP Offer = %d)\n",
             opt->val[0], DHCPOFFER);
-      
+
       // ignore when not a DHCP Offer
       if (opt->val[0] != DHCPOFFER) return;
     }
@@ -297,7 +297,7 @@ namespace net
     this->ipaddr = dhcp->yiaddr;
     if (console_spam)
       MYINFO("IP ADDRESS: \t%s", this->ipaddr.str().c_str());
-    
+
     opt = get_option(dhcp->options, DHO_SUBNET_MASK);
     if (opt->code == DHO_SUBNET_MASK)
     {
@@ -305,7 +305,7 @@ namespace net
       if (console_spam)
         MYINFO("SUBNET MASK: \t%s", this->netmask.str().c_str());
     }
-    
+
     opt = get_option(dhcp->options, DHO_DHCP_LEASE_TIME);
     if (opt->code == DHO_DHCP_LEASE_TIME)
     {
@@ -313,7 +313,7 @@ namespace net
       if (console_spam)
         MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
-    
+
     // now validate the offer, checking for minimum information
     opt = get_option(dhcp->options, DHO_ROUTERS);
     if (opt->code == DHO_ROUTERS)
@@ -335,7 +335,7 @@ namespace net
       // silently ignore when both ROUTER and SERVER_ID is missing
       else return;
     }
-    
+
     opt = get_option(dhcp->options, DHO_DOMAIN_NAME_SERVERS);
     if (opt->code == DHO_DOMAIN_NAME_SERVERS)
     {
@@ -347,7 +347,7 @@ namespace net
     }
     if (console_spam)
       MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
-    
+
     // we can accept the offer now by requesting the IP!
     this->request(sock);
   }
@@ -431,7 +431,7 @@ namespace net
         this->acknowledge(data, len);
       }
     });
-    
+
     // send our DHCP Request
     sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
@@ -461,7 +461,7 @@ namespace net
 
     if (console_spam)
       MYINFO("Server acknowledged our request!");
-    
+
     // configure our network stack
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);

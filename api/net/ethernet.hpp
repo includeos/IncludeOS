@@ -65,6 +65,13 @@ namespace net {
         uint32_t major;
       } __attribute__((packed));
 
+      addr() noexcept : part{} {}
+
+      addr(const uint8_t a, const uint8_t b, const uint8_t c,
+           const uint8_t d, const uint8_t e, const uint8_t f) noexcept
+        : part{a,b,c,d,e,f}
+      {}
+
       addr& operator=(const addr cpy) noexcept {
         minor = cpy.minor;
         major = cpy.major;
@@ -74,7 +81,7 @@ namespace net {
       // hex string representation
       std::string str() const {
         char eth_addr[18];
-        snprintf(eth_addr, sizeof(eth_addr), "%1x:%1x:%1x:%1x:%1x:%1x",
+        snprintf(eth_addr, sizeof(eth_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
                 part[0], part[1], part[2],
                 part[3], part[4], part[5]);
         return eth_addr;

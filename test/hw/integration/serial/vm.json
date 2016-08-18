@@ -1,0 +1,4 @@
+{
+  "image" : "test_serial.img",
+  "cpu"   : "host"
+}

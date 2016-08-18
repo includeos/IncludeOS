@@ -55,7 +55,8 @@
 #define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
 #define VIRTIO_PCI_STATUS               18  // Device status register
 #define VIRTIO_PCI_ISR                  19  // Interrupt status register
-#define VIRTIO_PCI_CONFIG               20  // Configuration data block
+#define VIRTIO_PCI_CONFIG               20  // Configuration data offset
+#define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
 
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
@@ -266,6 +267,11 @@ public:
     uint16_t num_used() const noexcept
     { return _queue.avail->idx - _queue.used->idx; }
 
+    uint16_t num_inflight() const noexcept
+    {
+      return _desc_in_flight;
+    }
+    
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
     {
@@ -343,7 +349,16 @@ public:
   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
-
+  // returns true if MSI-X is enabled
+  bool is_msix() const noexcept
+  {
+    return _pcidev.is_msix();
+  }
+  uint8_t get_msix_vectors() const noexcept
+  {
+    return _msix_vectors;
+  }
+  
   /** Virtio device constructor.
 
       Should conform to Virtio std. §3.1.1, steps 1-6
@@ -352,25 +367,20 @@ public:
   Virtio(hw::PCI_Device& pci);
 
 private:
-  //PCI memer as reference (so no indirection overhead)
   hw::PCI_Device& _pcidev;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;
-
-  uint8_t _irq = 0;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
+  uint16_t _msix_vectors;
+  uint8_t  _irq = 0;
 
   // Indicate if virtio device ID is legacy or standard
   bool _LEGACY_ID = 0;
   bool _STD_ID = 0;
 
   void set_irq();
-
-  //TEST
-  int calls = 0;
-
   void default_irq_handler();
 };
 

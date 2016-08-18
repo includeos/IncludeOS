@@ -23,7 +23,10 @@
 #endif
 
 #include <string>
+#include <sstream>
 #include <common>
+#include <kernel/memmap.hpp>
+#include <hw/cpu.hpp>
 #include <hw/pit.hpp>
 
 namespace hw{ class Serial; }
@@ -38,18 +41,18 @@ public:
   using rsprint_func = delegate<void(const char*, size_t)>;
 
   /* Get the version of the os */
-  static inline std::string version()
+  static std::string version()
   { return std::string(OS_VERSION); }
 
   /** Clock cycles since boot. */
-  static inline uint64_t cycles_since_boot() {
-    uint64_t ret;
-    __asm__ volatile ("rdtsc":"=A"(ret));
-    return ret;
+  static uint64_t cycles_since_boot() {
+    return hw::CPU::rdtsc();
   }
 
   /** Uptime in seconds. */
-  static double uptime();
+  static double uptime() {
+    return cycles_since_boot() / Hz(cpu_mhz_).count();
+  }
 
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
@@ -72,7 +75,7 @@ public:
   static void default_rsprint(const char*, size_t);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
-  static void start();
+  static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /**
    *  Halt until next inerrupt.
@@ -101,9 +104,25 @@ public:
   }
 
   /** Currently used dynamic memory, in bytes */
-  static  uint32_t memory_usage();
+  static uintptr_t heap_usage();
+
+  /**
+   * A map of memory ranges. The key is the starting address in numeric form.
+   * @note : the idea is to avoid raw pointers whenever possible
+   */
+  static Memory_map& memory_map () noexcept {
+    static  Memory_map memmap_ {};
+    return memmap_;
+  };
+
+
 
 private:
+
+  /** Process multiboot info. Called by 'start' if multibooted **/
+  static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+
+
   static const int page_shift_ = 12;
 
   /** Indicate if the OS is running. */
@@ -118,12 +137,19 @@ private:
 
   static hw::Serial& com1;
 
+  static uint32_t low_memory_size;
+  static uint32_t high_memory_size;
+  static uint32_t max_heap_size;
+  static const uint32_t elf_binary_size;
+
   // Prohibit copy and move operations
   OS(OS&)  = delete;
   OS(OS&&) = delete;
 
   // Prohibit construction
   OS() = delete;
+  friend void begin_stack_sampling(uint16_t);
+
 }; //< OS
 
 #endif //< KERNEL_OS_HPP
