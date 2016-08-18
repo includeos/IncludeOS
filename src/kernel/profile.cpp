@@ -1,13 +1,15 @@
 #include <profile>
 
+#include <common>
 #include <hw/pit.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
 #include <unordered_map>
 #include <cassert>
+#include <cstdint>
 #include <algorithm>
 
-#define BUFFER_COUNT    2048
+#define BUFFER_COUNT    1024
 
 template <typename T, int N>
 struct fixedvector {
@@ -50,7 +52,8 @@ static fixedvector<uintptr_t, BUFFER_COUNT>* transfer_queue;
 typedef uint32_t func_sample;
 std::unordered_map<uintptr_t, func_sample> sampler_dict;
 static func_sample sampler_total = 0;
-static int lockless_sampler = 0;
+static int  lockless_sampler = 0;
+static bool sampler_discard; // discard results as long as true
 extern char _irq_cb_return_location;
 
 extern "C" {
@@ -59,7 +62,7 @@ extern "C" {
   void gather_stack_sampling();
 }
 
-void begin_stack_sampling(uint16_t gather_period_ms)
+void StackSampler::begin()
 {
   // make room for these only when requested
   #define blargh(T) std::remove_pointer<decltype(T)>::type;
@@ -70,17 +73,19 @@ void begin_stack_sampling(uint16_t gather_period_ms)
   // begin sampling
   IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
   
-  // gather every second
+  // gather samples repeatedly over small periods
   using namespace std::chrono;
-  hw::PIT::instance().on_repeated_timeout(milliseconds(gather_period_ms),
-  [] { gather_stack_sampling(); });
+  static const milliseconds GATHER_PERIOD_MS = 150ms;
+  
+  hw::PIT::instance().on_repeated_timeout(
+      GATHER_PERIOD_MS, gather_stack_sampling);
 }
 
 void profiler_stack_sampler()
 {
   void* ra = __builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
-  if (ra == nullptr) return;
+  if (UNLIKELY(ra == nullptr || sampler_discard)) return;
   // ignore event loop
   if (ra == &_irq_cb_return_location) return;
   
@@ -138,8 +143,12 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-void print_stack_sampling()
+void StackSampler::print()
 {
+  // store discard value and enable discarding
+  bool smask = sampler_discard;
+  sampler_discard = true;
+  
   using sample_pair = std::pair<uintptr_t, func_sample>;
   
   // sort by count
@@ -166,8 +175,15 @@ void print_stack_sampling()
     if (results-- == 0) break;
   }
   printf("*** ---------------------- ***\n");
+  
+  // restore
+  sampler_discard = smask;
 }
 
+void StackSampler::set_mask(bool mask)
+{
+  sampler_discard = mask;
+}
 
 void __panic_failure(char const* where, size_t id)
 {
@@ -185,7 +201,7 @@ void __validate_backtrace(char const* where, size_t id)
   if (func.name != "__validate_backtrace")
       __panic_failure(where, id);
   
-  func = Elf::resolve_symbol((void*) &print_stack_sampling);
-  if (func.name != "print_stack_sampling()")
+  func = Elf::resolve_symbol((void*) &StackSampler::print);
+  if (func.name != "StackSampler::print()")
       __panic_failure(where, id);
 }
