@@ -20,72 +20,60 @@
 
 #include "pci_device.hpp"
 
-#include "../net/ethernet.hpp"
 #include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
+#include "../net/ethernet.hpp"
 
 namespace hw {
 
   /**
    *  A public interface for Network cards
    *
-   *  @note: The requirements for a driver is implicitly given by how it's used below,
-   *         rather than explicitly by inheritance. This avoids vtables.
-   *
-   *  @note: Drivers are passed in as template paramter so that only the drivers
-   *         we actually need will be added to our project.
    */
-  template <typename DRIVER>
   class Nic {
   public:
-    using driver_t = DRIVER;
 
     /** Get a readable name. */
-    inline const char* name() const noexcept
-    { return driver_.name(); }
-
+    virtual const char* name() const = 0;
 
     /** The mac address. */
-    inline const net::Ethernet::addr& mac()
-    { return driver_.mac(); }
+    virtual const net::Ethernet::addr& mac() = 0;
 
-    inline void set_linklayer_out(net::upstream del)
-    { driver_.set_linklayer_out(del); }
-
-    inline net::upstream get_linklayer_out()
-    { return driver_.get_linklayer_out(); }
-
-    inline void transmit(net::Packet_ptr pckt)
-    { driver_.transmit(pckt); }
-
-    inline uint16_t MTU() const noexcept
-    { return driver_.MTU(); }
-
-    inline uint16_t bufsize() const noexcept
-    { return driver_.bufsize(); }
-
-    inline net::BufferStore& bufstore() noexcept
-    { return driver_.bufstore(); }
-
-    inline void on_transmit_queue_available(net::transmit_avail_delg del)
-    { driver_.on_transmit_queue_available(del); }
-
-    inline size_t transmit_queue_available()
-    { return driver_.transmit_queue_available(); }
-
-    inline size_t receive_queue_waiting(){
-      return driver_.receive_queue_waiting();
+    /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
+    void set_linklayer_out(net::upstream link_out) {
+      _link_out = link_out;
     };
 
-    inline size_t buffers_available()
-    { return bufstore().available(); }
+    net::upstream get_linklayer_out()
+    { return _link_out; }
 
-    inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-    { driver_.on_exit_to_physical(dlg); }
+    virtual void transmit(net::Packet_ptr pckt) = 0;
 
-  private:
-    driver_t driver_;
+    virtual net::downstream get_physical_in() = 0;
 
+    virtual uint16_t MTU() const noexcept = 0;
+
+    virtual uint16_t bufsize() const = 0;
+
+
+
+    void on_transmit_queue_available(net::transmit_avail_delg del)
+    { transmit_queue_available_event_ = del; }
+
+    virtual size_t transmit_queue_available() = 0;
+
+    virtual size_t receive_queue_waiting() = 0;
+
+    void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
+    { on_exit_to_physical_ = dlg; }
+
+    net::BufferStore& bufstore() noexcept
+    { return bufstore_; }
+
+    size_t buffers_available()
+    { return bufstore_.available(); }
+
+  protected:
     /**
      *  Constructor
      *
@@ -93,9 +81,20 @@ namespace hw {
      *
      *  @note: The Dev-class is a friend and will call this
      */
-    Nic(PCI_Device& d) : driver_{d} {}
+    Nic(PCI_Device& d, uint32_t bufstore_sz, uint16_t bufsz)
+      : device_{d}, bufstore_{bufstore_sz, bufsz}
+    {}
 
-    friend class Dev;
+    friend class Devices;
+
+    /** Upstream delegate for linklayer output */
+    net::upstream _link_out;
+    net::transmit_avail_delg transmit_queue_available_event_ {};
+    delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
+
+  private:
+    hw::PCI_Device& device_;
+    net::BufferStore bufstore_;
   };
 
   /** Future drivers may start out like so, */

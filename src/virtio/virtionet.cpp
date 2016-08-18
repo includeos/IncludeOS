@@ -43,19 +43,17 @@ void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
 
-static void drop(Packet_ptr UNUSED(pckt)){
+void VirtioNet::drop(Packet_ptr UNUSED(pckt)){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
 }
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
-  : Virtio(d),
+  : Virtio(d), Nic(d, 2048, sizeof(net::Packet) + bufsize()),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
-    ctrl_q(queue_size(2),2,iobase()),
-    _link_out(drop),
-    /** 2048 buffers to start with */
-    bufstore_(2048, sizeof(net::Packet) + bufsize())
+    ctrl_q(queue_size(2),2,iobase())
 {
+  _link_out = &VirtioNet::drop;
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
   assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
@@ -196,7 +194,7 @@ void VirtioNet::msix_recv_handler()
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
-  while (rx_q.new_incoming() && bufstore_.available() > 1) {
+  while (rx_q.new_incoming() && bufstore().available() > 1) {
 
     auto res = rx_q.dequeue();
 
@@ -225,7 +223,7 @@ void VirtioNet::msix_xmit_handler()
     // unlock and release the (assumed) locked buffer
     auto data = tx_ringq.front();
     tx_ringq.pop_front();
-    bufstore_.unlock_and_release(data);
+    bufstore().unlock_and_release(data);
 
     dequeued_tx = true;
   }
@@ -276,7 +274,7 @@ void VirtioNet::irq_handler() {
 
 void VirtioNet::add_receive_buffer(){
 
-  auto* pkt = bufstore_.get_buffer();
+  auto* pkt = bufstore().get_buffer();
   // get a pointer to a virtionet header
   auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
 
@@ -299,7 +297,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(bufsize(), size,
-      [this] (Packet* p) { bufstore_.release((uint8_t*) p); });
+      [this] (Packet* p) { bufstore().release((uint8_t*) p); });
 
   return std::shared_ptr<Packet> (ptr);
 }
@@ -339,7 +337,7 @@ void VirtioNet::service_queues(){
       // unlock and release the (assumed) locked buffer
       auto data = tx_ringq.front();
       tx_ringq.pop_front();
-      bufstore_.unlock_and_release( data );
+      bufstore().unlock_and_release( data );
 
       dequeued_tx++;
     }
@@ -450,7 +448,7 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
   tx_q.enqueue(tokens);
 
   // have to preserve the packet data to prevent overwriting it
-  bufstore_.lock(pckt->buffer());
+  bufstore().lock(pckt->buffer());
   // enq the packet we just transmitted into a transmit queue
   // because tx_q.dequeue is not returning the correct data
   tx_ringq.push_back((uint8_t*) pckt.get());
