@@ -5,8 +5,8 @@
 
 namespace net
 {
-  template <typename T> inline
-  Inet4<T>::Inet4(hw::Nic<T>& nic)
+  inline
+  Inet4::Inet4(hw::Nic& nic)
     : ip4_addr_(IP4::INADDR_ANY),
       netmask_(IP4::INADDR_ANY),
       router_(IP4::INADDR_ANY),
@@ -29,7 +29,7 @@ namespace net
     /** Upstream wiring  */
     // Packets available
     nic.on_transmit_queue_available(
-      transmit_avail_delg::from<Inet4<T>, &Inet4<T>::process_sendq>(*this));
+      transmit_avail_delg::from<Inet4, &Inet4::process_sendq>(*this));
 
     // Phys -> Eth (Later, this will be passed through router)
     nic.set_linklayer_out(eth_bottom);
@@ -50,8 +50,9 @@ namespace net
     ip4_.set_tcp_handler(tcp_bottom);
 
     /** Downstream delegates */
-    auto phys_top(downstream
-                  ::from<hw::Nic<T>,&hw::Nic<T>::transmit>(nic));
+    auto phys_top(nic.get_physical_in());
+    //auto phys_top(downstream
+    //              ::from<hw::Nic<T>,&hw::Nic<T>::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));
     auto arp_top(downstream
@@ -80,21 +81,23 @@ namespace net
     eth_.set_physical_out(phys_top);
   }
 
-  template <typename T> inline
-  Inet4<T>::Inet4(
-    hw::Nic<T>& nic,
+  inline
+  Inet4::Inet4(
+    hw::Nic& nic,
     IP4::addr ip,
     IP4::addr netmask,
     IP4::addr gateway)
-    : Inet4(nic),
-      ip4_addr_(ip), netmask_(netmask), router_(gateway)
+    : Inet4(nic)
   {
+    ip4_addr_ = ip;
+    netmask_ = netmask;
+    router_ = gateway;
     // default DNS server to gateway
     set_dns_server(gateway);
   }
 
-  template <typename T> inline
-  Inet4<T>::Inet4(hw::Nic<T>& nic, double timeout)
+  inline
+  Inet4::Inet4(hw::Nic& nic, double timeout)
     : Inet4(nic)
   {
     INFO("Inet4", "Trying DHCP...");
@@ -103,8 +106,8 @@ namespace net
     dhcp_->negotiate(timeout);
   }
 
-  template <typename T> inline
-  void Inet4<T>::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
+  inline
+  void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
     if(!dhcp_)
       dhcp_ = std::make_shared<DHClient>(*this);
     // @timeout for DHCP-server negotation
@@ -114,8 +117,8 @@ namespace net
       dhcp_->on_config(handler);
   }
 
-  template <typename T> inline
-  void Inet4<T>::on_config(dhcp_timeout_func handler) {
+  inline
+  void Inet4::on_config(dhcp_timeout_func handler) {
     // setup DHCP if not intialized
     if(!dhcp_)
       negotiate_dhcp();
@@ -123,8 +126,8 @@ namespace net
     dhcp_->on_config(handler);
   }
 
-  template <typename T> inline
-  void Inet4<T>::process_sendq(size_t packets) {
+  inline
+  void Inet4::process_sendq(size_t packets) {
 
     ////////////////////////////////////////////
     // divide up fairly

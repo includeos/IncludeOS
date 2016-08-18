@@ -19,7 +19,7 @@
 #define NET_INET4_HPP
 
 #include <kernel/syscalls.hpp> // panic()
-#include <hw/dev.hpp> // 107: auto& eth0 = Dev::eth(0);
+#include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
 #include <hw/nic.hpp>
 #include "inet.hpp"
 #include "ethernet.hpp"
@@ -36,7 +36,6 @@ namespace net {
   class DHClient;
 
   /** A complete IP4 network stack */
-  template <typename DRIVER = VirtioNet>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
@@ -153,19 +152,19 @@ namespace net {
     template <int N>
     static auto& stack()
     {
-      static Inet4<DRIVER> inet{hw::Dev::eth<N,DRIVER>()};
+      static Inet4 inet{hw::Devices::nic(N)};
       return inet;
     }
 
   private:
     /** Initialize with ANY_ADDR */
-    Inet4(hw::Nic<DRIVER>& nic);
+    Inet4(hw::Nic& nic);
 
     /** Initialize with static IP / netmask / Gateway */
-    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
+    Inet4(hw::Nic& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
 
     /** Initialize with DHCP  */
-    Inet4(hw::Nic<DRIVER>& nic, double timeout);
+    Inet4(hw::Nic& nic, double timeout);
 
     inline void process_sendq(size_t);
     // delegates registered to get signalled about free packets
@@ -177,7 +176,7 @@ namespace net {
     IP4::addr dns_server;
 
     // This is the actual stack
-    hw::Nic<DRIVER>& nic_;
+    hw::Nic& nic_;
     Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
