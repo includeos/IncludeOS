@@ -5,6 +5,8 @@
 #include <set>
 #include <debug>
 
+#include <kernel/syscalls.hpp>
+
 IrcServer::IrcServer(
     Network& inet_, 
     uint16_t port, 
@@ -34,6 +36,9 @@ IrcServer::IrcServer(
     if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
       set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
     
+    // in case splitter is bad
+    SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
+          csock->remote().to_string().c_str());
     debug("*** Received connection from %s\n",
           csock->remote().to_string().c_str());
 

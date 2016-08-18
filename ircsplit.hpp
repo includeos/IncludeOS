@@ -12,17 +12,19 @@ split(const std::string& text, std::string& source)
   // check for source
   if (text[0] == ':')
   {
-    x = text.find(" ", 1);
-    source = text.substr(x);
+    // if the input is ":" or too short
+    if (text.size() < 3) return retv;
+    x = text.find(' ', 1);
     // early return for source-only msg
     if (x == std::string::npos) return retv;
+    source = text.substr(x);
     p = x+1;
   }
   // parse remainder
   do
   {
-    x = text.find(" ", p+1);
-    size_t y = text.find(":", x+1); // find last param
+    x = text.find(' ', p+1);
+    size_t y = text.find(':', x+1); // find last param
 
     if (y == x+1)
     {

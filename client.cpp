@@ -39,8 +39,12 @@ void Client::disable()
   server.free_client(*this);
 }
 
+#include <kernel/syscalls.hpp>
 void Client::split_message(const std::string& msg)
 {
+  // in case splitter is bad
+  SET_CRASH_CONTEXT("Client::split_message():\n'%s'", msg.c_str());
+  
   std::string source;
   auto vec = split(msg, source);
   
@@ -68,6 +72,9 @@ void Client::split_message(const std::string& msg)
 
 void Client::read(const uint8_t* buf, size_t len)
 {
+  // in case parser is bad, set context string early
+  SET_CRASH_CONTEXT("Client::read():\n\t'%*s'", len, buf);
+  
   while (len > 0) {
     
     int search = -1;

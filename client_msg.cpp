@@ -2,10 +2,14 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 
+#include <kernel/syscalls.hpp>
 void Client::handle(
     const std::string&,
     const std::vector<std::string>& msg)
 {
+  // in case message handler is bad
+  SET_CRASH_CONTEXT("Client::handle():\n'%s'", msg[0].c_str());
+  
   const std::string& cmd = msg[0];
   
   if (cmd == TK_PING)

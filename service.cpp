@@ -41,13 +41,11 @@ void print_stats(uint32_t)
   printf("Conns/sec %f  Local clients %d  ",  
       cps, ircd->get_counter(STAT_LOCAL_USERS));
   extern int _get_timer_stats();
-  printf("Timers: %u\n", _get_timer_stats() / 2);
+  printf("Timers/sec: %u\n", _get_timer_stats() / 2);
   
   StackSampler::print();
   //print_heap_info();
 }
-
-#include <hw/acpi.hpp>
 
 void Service::start()
 {
@@ -61,7 +59,7 @@ void Service::start()
   static std::vector<std::string> motd;
   motd.push_back("Welcome to the");
   motd.push_back("IncludeOS IRC server");
-  motd.push_back("4Head");
+  motd.push_back("-§- 4Head -§-");
   
   ircd =
   new IrcServer(*inet, 6667, "irc.includeos.org", "IncludeNet",
