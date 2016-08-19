@@ -482,6 +482,6 @@ void VirtioNet::handle_deferred_devices()
 
 struct auto_register {
   auto_register() {
-    PCI_manager::register_driver<std::unique_ptr<hw::Nic>>(hw::PCI_Device::VENDOR_VIRTIO, 1337, &VirtioNet::new_instance);
+    PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
   }
 } hest;
