@@ -24,7 +24,7 @@
 
 #define NUM_BUSES 2
 
-PCI_manager::Device_Registry PCI_manager::devices_;
+PCI_manager::Device_registry PCI_manager::devices_;
 
 void PCI_manager::init() {
   INFO("PCI Manager", "Probing PCI bus");
@@ -37,9 +37,28 @@ void PCI_manager::init() {
 
   for (uint16_t pci_addr {0}; pci_addr < 255; ++pci_addr) {
     id = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
+
     if (id != PCI::WTF) {
       hw::PCI_Device dev {pci_addr, id};
+
+      // register device
       devices_[dev.classcode()].emplace_back(dev);
+
+      //
+
+      switch(dev.classcode())
+      {
+        case PCI::NIC:
+        {
+
+        }
+
+        default:
+        {
+
+        }
+      }
+
       hw::Devices::register_device(dev);
     }
   }
