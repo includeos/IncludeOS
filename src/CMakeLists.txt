@@ -1,17 +1,12 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-project (includeos)
-
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# TODO: should this not be moved into the library itself
-set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
-
-include_directories(${INCLUDEOS_ROOT}/api/sys ${INCLUDEOS_INSTALL_DIR}/libcxx/include ${INCLUDEOS_INSTALL_DIR}/newlib/include ${INCLUDEOS_ROOT}/src/include ${INCLUDEOS_ROOT}/api ${INCLUDEOS_ROOT}/mod/GSL/include)
-
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=15583 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\\\"v0.8.1-709-gf8fccf4\\\"\"")
+include_directories(${INCLUDEOS_ROOT}/api/sys)
+include_directories(${INCLUDEOS_INSTALL_DIR}/libcxx/include)
+include_directories(${INCLUDEOS_INSTALL_DIR}/newlib/include)
+include_directories(${INCLUDEOS_ROOT}/src/include)
+include_directories(${INCLUDEOS_ROOT}/api)
+include_directories(${INCLUDEOS_ROOT}/mod/GSL/include)
 
 # TODO: use right variables
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -22,8 +17,9 @@ if(debug)
 endif(debug)
 
 add_custom_command(
-	OUTPUT apic_boot.bin
+	OUTPUT apic_boot.o
 	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	COMMAND objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin
 	DEPENDS hw/apic_boot.asm
 )
 
@@ -49,7 +45,7 @@ set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
 		net/buffer_store.cpp
 		fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
 		fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-		virtio/block.cpp apic_boot.bin)
+		virtio/block.cpp apic_boot.o)
 
 # TODO: why was apic_boot special handled?
 
