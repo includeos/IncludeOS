@@ -114,6 +114,8 @@ class VirtioNet : Virtio, public hw::Nic {
 
 public:
 
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
+  { return std::make_unique<VirtioNet>(d); }
   /** Human readable name. */
   const char* name() const override;
 

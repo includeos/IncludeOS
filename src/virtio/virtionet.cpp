@@ -477,3 +477,11 @@ void VirtioNet::handle_deferred_devices()
   deferred_devices.clear();
 #endif
 }
+
+#include <kernel/pci_manager.hpp>
+
+struct auto_register {
+  auto_register() {
+    PCI_manager::register_driver<std::unique_ptr<hw::Nic>>(hw::PCI_Device::VENDOR_VIRTIO, 1337, &VirtioNet::new_instance);
+  }
+} hest;
