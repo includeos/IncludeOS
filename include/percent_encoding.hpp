@@ -39,7 +39,7 @@
 #ifndef PERCENT_ENCODING_HPP
 #define PERCENT_ENCODING_HPP
 
-#include <gsl.h>
+#include <gsl/gsl>
 
 namespace uri {
 

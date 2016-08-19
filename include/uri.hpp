@@ -18,7 +18,7 @@
 #ifndef URI_HPP
 #define URI_HPP
 
-#include <gsl.h>
+#include <gsl/gsl>
 #include <unordered_map>
 
 namespace uri {
