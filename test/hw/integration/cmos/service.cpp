@@ -24,7 +24,7 @@
 
 using namespace std::chrono;
 
-void Service::start()
+void Service::start(const std::string&)
 {
 
   INFO("Test CMOS","Testing C runtime \n");

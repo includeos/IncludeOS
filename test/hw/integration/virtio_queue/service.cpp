@@ -28,12 +28,6 @@
 #include <lest.hpp>
 #include <virtio/virtio.hpp>
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
-  (void*)clk_id;
-  (void*)tp;
-  return 0;
-};
-
 using namespace std;
 
 const lest::test virtio_tests[] = {
@@ -87,7 +81,7 @@ const lest::test virtio_tests[] = {
 
 #define MYINFO(X,...) INFO("Test STL",X,##__VA_ARGS__)
 
-void Service::start()
+void Service::start(const std::string&)
 {
 
   CHECK( lest::run(virtio_tests, {"-p"}) == 0, "All tests passed" );
