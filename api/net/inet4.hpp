@@ -80,9 +80,9 @@ namespace net {
       return std::shared_ptr<Packet>(ptr);
     }
 
-    // We have to ask the Nic for the MTU
+    /** MTU retreived from Nic on construction */
     virtual uint16_t MTU() const override
-    { return nic_.MTU(); }
+    { return MTU_; }
 
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
@@ -188,6 +188,8 @@ namespace net {
 
     std::shared_ptr<net::DHClient> dhcp_{};
     BufferStore& bufstore_;
+
+    const uint16_t MTU_;
   };
 }
 

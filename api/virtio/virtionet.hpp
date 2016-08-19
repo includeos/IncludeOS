@@ -123,11 +123,6 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
-  uint16_t bufsize() const override {
-    return MTU() +
-      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer);
-  }
-
   net::downstream get_physical_in() override {
     using downstream = net::downstream;
     return downstream::from<VirtioNet, &VirtioNet::transmit>(this);

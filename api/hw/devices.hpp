@@ -36,18 +36,22 @@ namespace hw {
   class HPET;
 
   /**
-   *  Access point for devices
-   *
-   *  Get a nic by calling `Dev::eth<0, Virtio_Net>(n)`, a disk by calling `Dev::disk<0, VirtioBlk>(n)` etc.
+   *  Access point for registered devices
    */
   class Devices {
   public:
 
+    /**
+     * @brief Retreive Nic on position N
+     *
+     * @note Throws if N is not registered
+     *
+     * @param N PCI Address
+     * @return Reference to the given Nic
+     */
     static Nic& nic(const int N);
 
     static Disk<VirtioBlk>& disk(const int N);
-
-    static void register_device(PCI_Device&);
 
     /** Get disk N using driver DRIVER */
     template <int N, typename DRIVER, typename... Args>
@@ -61,11 +65,13 @@ namespace hw {
     }
 
     /** Get console N using driver DRIVER */
+    /*
     template <int N, typename DRIVER>
     static DRIVER& console() {
       static DRIVER con_ {PCI_manager::device<PCI::COMMUNICATION>(N)};
       return con_;
     }
+    */
 
     /**
      *  Get serial port n
@@ -77,7 +83,22 @@ namespace hw {
     template <typename DRIVER>
     static PCI_Device& serial(int n);
 
-  }; //< class Dev
+  private:
+
+    /**
+     * @brief Register the given device
+     * @details Checks the vendor and type
+     * and registers the device as the correct type with the correct driver.
+     *
+     * @note Currently restricted to only be used by PCI_manager
+     *
+     * @param  A PCI Device
+     */
+    static void register_device(PCI_Device&);
+
+    friend class ::PCI_manager;
+
+  }; //< class Devices
 
 } //< namespace hw
 

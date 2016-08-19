@@ -13,7 +13,7 @@ namespace net
       dns_server(IP4::INADDR_ANY),
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-      bufstore_(nic.bufstore())
+      bufstore_(nic.bufstore()), MTU_(nic.MTU())
   {
     INFO("Inet4","Bringing up a IPv4 stack (%s)", nic.name());
     Ensures(sizeof(IP4::addr) == 4);
@@ -50,9 +50,10 @@ namespace net
     ip4_.set_tcp_handler(tcp_bottom);
 
     /** Downstream delegates */
+    // retreive drivers delegate virtually, instead of setting it to a virtual call
     auto phys_top(nic.get_physical_in());
     //auto phys_top(downstream
-    //              ::from<hw::Nic<T>,&hw::Nic<T>::transmit>(nic));
+    //              ::from<hw::Nic,&hw::Nic::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));
     auto arp_top(downstream

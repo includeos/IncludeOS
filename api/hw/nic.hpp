@@ -27,8 +27,9 @@
 namespace hw {
 
   /**
-   *  A public interface for Network cards
+   *  A public interface for Ethernet Network cards
    *
+   *  This interface assumes network card is of type Ethernet
    */
   class Nic {
   public:
@@ -36,27 +37,40 @@ namespace hw {
     /** Get a readable name. */
     virtual const char* name() const = 0;
 
-    /** The mac address. */
+    /**
+      The mac address.
+      @todo remove depedency for Ethernet (somewhere in the future)
+    */
     virtual const net::Ethernet::addr& mac() = 0;
 
+    virtual uint16_t MTU() const noexcept = 0;
+
+    net::BufferStore& bufstore() noexcept
+    { return bufstore_; }
+
+    size_t buffers_available()
+    { return bufstore_.available(); }
+
+    uint16_t bufsize() const
+    { return bufstore_.bufsize(); }
+
+    uint16_t eth_size() const
+    { return sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
+
+
     /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
-    void set_linklayer_out(net::upstream link_out) {
-      _link_out = link_out;
-    };
+    void set_linklayer_out(net::upstream link_out)
+    { _link_out = link_out; };
 
     net::upstream get_linklayer_out()
     { return _link_out; }
 
     virtual void transmit(net::Packet_ptr pckt) = 0;
 
+    /** Let the driver return a delegate to receive outgoing packets from layer above */
     virtual net::downstream get_physical_in() = 0;
 
-    virtual uint16_t MTU() const noexcept = 0;
-
-    virtual uint16_t bufsize() const = 0;
-
-
-
+    /** Subscribe to event for when there is more room in the tx queue */
     void on_transmit_queue_available(net::transmit_avail_delg del)
     { transmit_queue_available_event_ = del; }
 
@@ -67,22 +81,14 @@ namespace hw {
     void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
     { on_exit_to_physical_ = dlg; }
 
-    net::BufferStore& bufstore() noexcept
-    { return bufstore_; }
-
-    size_t buffers_available()
-    { return bufstore_.available(); }
-
   protected:
     /**
      *  Constructor
      *
-     *  Just a wrapper around the driver constructor.
-     *
-     *  @note: The Dev-class is a friend and will call this
+     *  Constructed by the actual Nic Driver
      */
     Nic(PCI_Device& d, uint32_t bufstore_sz, uint16_t bufsz)
-      : device_{d}, bufstore_{bufstore_sz, bufsz}
+      : device_{d}, bufstore_{ bufstore_sz, bufsz }
     {}
 
     friend class Devices;

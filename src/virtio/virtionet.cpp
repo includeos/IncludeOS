@@ -48,7 +48,7 @@ void VirtioNet::drop(Packet_ptr UNUSED(pckt)){
 }
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
-  : Virtio(d), Nic(d, 2048, sizeof(net::Packet) + bufsize()),
+  : Virtio(d), Nic(d, 2048, sizeof(net::Packet) + MTU() + eth_size()),
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase())
