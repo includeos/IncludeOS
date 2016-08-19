@@ -47,10 +47,17 @@ public:
    *        Your service should hook up event handlers to some of the events
    *        (like `Nic::on(HttpConnection, your_callback`))
    */
-  static void start();
-  
-  // ready is called when the kernel is done calibrating stuff and won't be 
-  // doing anything on its own anymore
+  static void start(const std::string&);
+
+  /**
+   * Returns the command-line provided to multiboot
+  **/
+  static const std::string& command_line();
+
+  /**
+   * Ready is called when the kernel is done calibrating stuff and won't be 
+   * doing anything on its own anymore
+  **/
   static void ready();
 
   /**

@@ -97,7 +97,7 @@ void test2() {
   });
 }
 
-void Service::start()
+void Service::start(const std::string&)
 {
   auto& device = hw::Dev::disk<1, VirtioBlk>();
   disk = std::make_shared<fs::Disk> (device);

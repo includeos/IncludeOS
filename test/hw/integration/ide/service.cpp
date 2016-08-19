@@ -21,7 +21,7 @@
 #include <fs/fat.hpp>
 #include <hw/ide.hpp>
 
-void Service::start()
+void Service::start(const std::string&)
 {
   printf("TESTING Disks\n\n");
 

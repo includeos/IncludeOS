@@ -130,7 +130,7 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
-void Service::start()
+void Service::start(const std::string&)
 {
   IP4::addr A1 (255, 255, 255, 255);
   IP4::addr B1 (  0, 255, 255, 255);

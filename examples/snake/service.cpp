@@ -45,7 +45,7 @@ void begin_snake()
   });
 }
 
-void Service::start()
+void Service::start(const std::string&)
 {
   // Redirect stdout to vga screen
   // ... even though we aren't really using it after the game starts

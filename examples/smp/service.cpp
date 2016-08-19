@@ -19,7 +19,7 @@
 #include <cassert>
 #include <smp>
 
-void Service::start()
+void Service::start(const std::string&)
 {
   static int completed = 0;
   static uint32_t job = 0;

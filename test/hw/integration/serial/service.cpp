@@ -21,7 +21,7 @@
 
 using namespace std::chrono;
 
-void Service::start()
+void Service::start(const std::string&)
 {
 
   auto& com1 = hw::Serial::port<1>();

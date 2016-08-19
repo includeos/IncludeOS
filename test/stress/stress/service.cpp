@@ -69,12 +69,11 @@ std::string html() {
 
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
 
-extern char _end;
-
 uint64_t TCP_BYTES_RECV = 0;
 uint64_t TCP_BYTES_SENT = 0;
 
-void Service::start() {
+void Service::start(const std::string&)
+{
   // Assign a driver (VirtioNet) to a network interface (eth0)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which  we want to avoid.

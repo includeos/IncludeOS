@@ -51,7 +51,7 @@ void handle_python_on_read(Connection_ptr client, const std::string& response) {
   client->write(response);
 }
 
-void Service::start()
+void Service::start(const std::string&)
 {
   // Stack with default network interface (eth0) driven by VirtioNet
   // Static IP configuration will get overwritten by DHCP, if found
