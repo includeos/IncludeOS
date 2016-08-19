@@ -146,8 +146,8 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   std::string route = "";
   Token lastToken = tokens[tokens.size() - 1];
   std::regex re{"(\\/$)"};
-  bool endsWithSlash = lastToken.is_string and std::regex_match(lastToken.name, re); // JS: /\/$/.test(lastToken);
-                                                 // if the last char in lastToken's name is a slash
+  bool endsWithSlash = lastToken.is_string and std::regex_match(lastToken.name, re);
+  // endsWithSlash if the last char in lastToken's name is a slash
 
   // Iterate over the tokens and create our regexp string
   for (size_t i = 0; i < tokens.size(); i++) {
@@ -192,13 +192,11 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   if (end) {
     route += "$";
   } else {
+    // In non-ending mode, we need the capturing groups to match as much as
+    // possible by using a positive lookahead to the end or next path segment
     if (not (strict and endsWithSlash))
       route += "(?=\\/|$)";
   }
-
-    // route += (strict and endsWithSlash) ? "" : "(?=\\/|$)";
-    // In non-ending mode, we need the capturing groups to match as much as
-    // possible by using a positive lookahead to the end or next path segment
 
   if (sensitive)
     return std::regex{"^" + route};
