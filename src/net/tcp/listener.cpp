@@ -17,7 +17,7 @@
 
 #include <sstream>
 
-#include <gsl_assert.h>
+#include <gsl/gsl_assert>
 #include <net/tcp/listener.hpp>
 #include <net/tcp/tcp.hpp>
 

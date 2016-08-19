@@ -19,6 +19,7 @@
 
 extern "C" void _start() __attribute__((visibility("hidden"))) __attribute__ ((noreturn));
 extern "C" void _init_c_runtime();
+extern "C" void _init_syscalls();
 
 // enables Streaming SIMD Extensions
 static void enableSSE(void)
@@ -38,6 +39,9 @@ extern "C" void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // enable SSE extensions bitmask in CR4 register
   enableSSE();
+
+  // Initialize system calls
+  _init_syscalls();
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
