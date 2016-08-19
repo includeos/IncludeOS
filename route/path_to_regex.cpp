@@ -37,7 +37,7 @@ std::regex PathToRegex::path_to_regex(const std::string& path, const std::map<st
 
 // Parse a string for the raw tokens
 std::vector<Token> PathToRegex::parse(const std::string& str) {
-  if(str.empty())
+  if (str.empty())
     return {};
 
   std::vector<Token> tokens;
@@ -46,7 +46,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
   std::string path = "";
   std::smatch res;
 
-  for(std::sregex_iterator i = std::sregex_iterator{str.begin(), str.end(), PATH_REGEXP};
+  for (std::sregex_iterator i = std::sregex_iterator{str.begin(), str.end(), PATH_REGEXP};
     i != std::sregex_iterator{}; ++i) {
 
     res = *i;
@@ -60,23 +60,12 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
 
     index = offset + m.size();
 
-    /*printf("Escaped: %s\n", escaped.c_str());
-    printf("OFFSET: %d\n", offset);
-    printf("INDEX: %d\n", index);
-    printf("PATH: %s\n", path.c_str());
-    printf("Res[0]/m inside loop (whole element/parameter): %s\n", m.c_str());
-    printf("index (offset + m.size()): %d\n", index);
-    printf("Res.index/offset: %d\n", offset);*/
-
-    if(not escaped.empty()) {
+    if (not escaped.empty()) {
       path += escaped[1];   // if escaped == \a, escaped[1] == a (if str is "/\\a" f.ex.)
       continue;
     }
 
     std::string next = ((size_t) index < str.size()) ? std::string{str.at(index)} : "";
-
-    /*printf("STR: %s\n", str.c_str());
-    printf("NEXT: %s\n", next.c_str());*/
 
     std::string prefix = res[4];  // f.ex. /
     std::string name = res[5];    // f.ex. test
@@ -86,7 +75,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
     std::string asterisk = res[9];  // * if path is /*
 
     // Push the current path onto the tokens
-    if(not path.empty()) {
+    if (not path.empty()) {
       Token stringToken;
       stringToken.set_string_token(path);
       tokens.push_back(stringToken);
@@ -99,9 +88,9 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
     std::string delimiter = (not prefix.empty()) ? prefix : "/";
     std::string pattern;
 
-    if(not capture.empty())
+    if (not capture.empty())
       pattern = capture;
-    else if(not group.empty())
+    else if (not group.empty())
       pattern = group;
     else
       pattern = (not asterisk.empty()) ? ".*" : ("[^" + delimiter + "]+?");
@@ -120,11 +109,11 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
   }
 
   // Match any characters still remaining
-  if((size_t) index < str.size())
+  if ((size_t) index < str.size())
     path += str.substr(index);
 
   // If the path exists, push it onto the end
-  if(not path.empty()) {
+  if (not path.empty()) {
     Token stringToken;
     stringToken.set_string_token(path);
     tokens.push_back(stringToken);
@@ -135,7 +124,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
 
 // Creates a regex based on the given tokens and options (optional)
 std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const std::map<std::string, bool>& options) {
-  if(tokens.empty())
+  if (tokens.empty())
     return std::regex{""};
 
   // Set default values for options:
@@ -143,30 +132,15 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   bool sensitive = false;
   bool end = true;
 
-  if(not options.empty()) {
+  if (not options.empty()) {
     auto it = options.find("strict");
     strict = (it not_eq options.end()) ? options.find("strict")->second : false;
-
-    if(strict)
-      printf("Strict is true\n");
-    else
-      printf("Strict is false\n");
 
     it = options.find("sensitive");
     sensitive = (it not_eq options.end()) ? options.find("sensitive")->second : false;
 
-    if(sensitive)
-      printf("Sensitive is true\n");
-    else
-      printf("Sensitive is false\n");
-
     it = options.find("end");
     end = (it not_eq options.end()) ? options.find("end")->second : true;
-
-    if(end)
-      printf("End is true\n");
-    else
-      printf("End is false\n");
   }
 
   std::string route = "";
@@ -176,21 +150,21 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
                                                  // if the last char in lastToken's name is a slash
 
   // Iterate over the tokens and create our regexp string
-  for(size_t i = 0; i < tokens.size(); i++) {
+  for (size_t i = 0; i < tokens.size(); i++) {
     Token token = tokens[i];
 
-    if(token.is_string) {
-      route += token.name; // escape_string(token.name);
+    if (token.is_string) {
+      route += token.name;
     } else {
-      std::string prefix = token.prefix; // escape_string(token.prefix);
+      std::string prefix = token.prefix;
       std::string capture = "(?:" + token.pattern + ")";
 
-      if(token.repeat)
+      if (token.repeat)
         capture += "(?:" + prefix + capture + ")*";
 
-      if(token.optional) {
+      if (token.optional) {
 
-        if(not token.partial)
+        if (not token.partial)
           capture = "(?:" + prefix + "(" + capture + "))?";
         else
           capture = prefix + "(" + capture + ")?";
@@ -208,30 +182,28 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   // is valid at the end of a path match, not in the middle. This is important
   // in non-ending mode, where "/test/" shouldn't match "/test//route".
 
-  // TODO: TEST: slice -> substr: (endswithslash)
+  if (not strict) {
+    if (endsWithSlash)
+      route = route.substr(0, (route.size() - 1));
 
-  if(not strict)
-    route = (endsWithSlash ? route.substr(0, (route.size() - 2)) : route) + "(?:\\/(?=$))?";
+    route += "(?:\\/(?=$))?";
+  }
 
-  if(end) {
+  if (end) {
     route += "$";
   } else {
+    if (not (strict and endsWithSlash))
+      route += "(?=\\/|$)";
+  }
+
+    // route += (strict and endsWithSlash) ? "" : "(?=\\/|$)";
     // In non-ending mode, we need the capturing groups to match as much as
     // possible by using a positive lookahead to the end or next path segment
-    route += (strict and endsWithSlash) ? "" : "(?=\\/|$)";
-  }
 
-  if(sensitive) {
-    printf("IS CASE SENSITIVE\n");
-    printf("REGEX: ^%s\n", route.c_str());
-
+  if (sensitive)
     return std::regex{"^" + route};
-  }
 
-  printf("IS NOT CASE SENSITIVE\n");
-  printf("REGEX: ^%s\n", route.c_str());
-
-  return std::regex{"^" + route, std::regex_constants::icase};  // TODO: std::regex_constants::icase does not work as expected
+  return std::regex{"^" + route, std::regex_constants::ECMAScript | std::regex_constants::icase};
 }
 
 void PathToRegex::tokens_to_keys(const std::vector<Token>& tokens, std::vector<Token>& keys) {
