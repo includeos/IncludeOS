@@ -125,8 +125,6 @@ public:
     return memmap_;
   };
 
-
-
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/

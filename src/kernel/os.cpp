@@ -52,6 +52,8 @@ const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
+// Multiboot command line for the service
+static std::string os_cmdline = "";
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
@@ -196,7 +198,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
-  Service::start();
+  Service::start(Service::command_line());
 
   event_loop();
 }
@@ -286,8 +288,10 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
         mem_high_start, mem_high_end, mem_high_kb);
   INFO2("");
 
-  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE)
-    INFO2("* Booted with parameters (unused for now): %s ", (char*) bootinfo->cmdline);
+  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
+    os_cmdline = (char*) bootinfo->cmdline;
+    INFO2("* Booted with parameters: %s", os_cmdline.c_str());
+  }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
     INFO2("* Multiboot provided memory map  (%i entries)",bootinfo->mmap_length / sizeof(multiboot_memory_map_t));
@@ -315,6 +319,11 @@ extern "C" {
 
 std::string Service::name() {
   return service_name__;
+}
+
+const std::string& Service::command_line()
+{
+  return os_cmdline;
 }
 
 // functions that we can override if we want to
