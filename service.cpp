@@ -47,8 +47,11 @@ void print_stats(uint32_t)
   //print_heap_info();
 }
 
-void Service::start()
+void Service::start(const std::string& args)
 {
+  if (!args.empty())
+    printf("Command line is \"%s\"\n", args.c_str());
+  
   static std::unique_ptr< net::Inet4<VirtioNet> > inet;
   inet = net::new_ipv4_stack(
       {  10, 0,  0, 42 },  // IP
