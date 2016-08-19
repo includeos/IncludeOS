@@ -28,7 +28,7 @@ check_os_support() {
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
-Currently only Ubuntu and OSX are actively supported for *building* IncludeOS. \n\
+Currently only Ubuntu, Fedora and OSX are actively supported for *building* IncludeOS. \n\
 On other Linux distros it shouldn't be that hard to get it to work - take a look at\n \
 ./etc/install_from_bundle.sh \n"
     exit 1
