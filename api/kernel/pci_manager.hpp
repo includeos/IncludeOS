@@ -43,16 +43,21 @@ public:
 
 
   template <typename Device_type>
-  using Device_factory = delegate<Device_type(hw::PCI_Device&)>;
+  using Factory_pointer = std::unique_ptr<Device_type>;
 
   template <typename Device_type>
-  static void register_driver(uint16_t vendor, uint16_t product, Device_factory<Device_type> driver_factory) {
-    drivers<Device_type>().emplace((uint32_t)(vendor << 16) | product, driver_factory);
+  using Driver_factory = delegate< Factory_pointer<Device_type>(hw::PCI_Device&) >;
+
+  template <typename Device_type>
+  static void register_driver(uint16_t vendor, uint16_t product,
+    Driver_factory<Device_type> driver_factory)
+  {
+    drivers<Device_type>().emplace((uint32_t)(vendor) << 16 | product, driver_factory);
     //INFO("PCI Manager", "Driver registered");
   }
 
   template <typename Device_type>
-  using Driver_registry = std::unordered_map<uint32_t, Device_factory<Device_type>>;
+  using Driver_registry = std::unordered_map<uint32_t, Driver_factory<Device_type> >;
 
   template <typename Device_type>
   static Driver_registry<Device_type>& drivers() {

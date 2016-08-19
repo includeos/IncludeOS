@@ -94,7 +94,7 @@ namespace hw {
      *
      * @param  A PCI Device
      */
-    static void register_device(PCI_Device&);
+    static void register_device(std::unique_ptr<Nic>);
 
     friend class ::PCI_manager;
 

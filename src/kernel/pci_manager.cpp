@@ -21,6 +21,7 @@
 
 #include <kernel/pci_manager.hpp>
 #include <hw/devices.hpp>
+#include <stdexcept>
 
 #define NUM_BUSES 2
 
@@ -41,16 +42,26 @@ void PCI_manager::init() {
     if (id != PCI::WTF) {
       hw::PCI_Device dev {pci_addr, id};
 
-      // register device
+      // store device
       devices_[dev.classcode()].emplace_back(dev);
 
       //
-
       switch(dev.classcode())
       {
         case PCI::NIC:
         {
+          try
+          {
+            printf("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
+              drivers<hw::Nic>().size(), dev.vendor_id(), dev.product_id(), (uint32_t)(dev.vendor_id()) << 16 | dev.product_id());
+            auto driver_factory = drivers<hw::Nic>().at((uint32_t)(dev.vendor_id()) << 16 | dev.product_id());
 
+            hw::Devices::register_device(driver_factory(dev));
+          }
+          catch(std::out_of_range)
+          {
+            INFO2("|  +--! Driver not found");
+          }
         }
 
         default:
@@ -58,8 +69,6 @@ void PCI_manager::init() {
 
         }
       }
-
-      hw::Devices::register_device(dev);
     }
   }
 
