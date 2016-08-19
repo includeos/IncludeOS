@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project (includeos)
 
+set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+enable_language(ASM_NASM)
+
 # TODO: should this not be moved into the library itself
 set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -17,6 +20,12 @@ if(debug)
 	list(append CCOPTS ${DEBUG_OPTS})
 	list(append CPPOPTS "-DGSL_THROW_ON_CONTRACT_VIOLATION")
 endif(debug)
+
+add_custom_command(
+	OUTPUT apic_boot.bin
+	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	DEPENDS hw/apic_boot.asm
+)
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
@@ -40,7 +49,7 @@ set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
 		net/buffer_store.cpp
 		fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
 		fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-		virtio/block.cpp hw/apic_boot.asm)
+		virtio/block.cpp apic_boot.bin)
 
 # TODO: why was apic_boot special handled?
 
