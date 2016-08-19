@@ -82,10 +82,10 @@ public:
   }
   
   // send message to all users visible to user, including user
-  void user_bcast(uindex_t user, const std::string&);
+  void user_bcast(uindex_t user, const char* buffer, size_t len);
   void user_bcast(uindex_t user, const std::string& from, uint16_t tk, const std::string&);
   // send message to all users visible to user, except user
-  void user_bcast_butone(uindex_t user, const std::string&);
+  void user_bcast_butone(uindex_t user, const char* buffer, size_t len);
   void user_bcast_butone(uindex_t user, const std::string& from, uint16_t tk, const std::string&);
   
   // create channel on server

@@ -9,6 +9,8 @@ void Client::handle(
 {
   // in case message handler is bad
   SET_CRASH_CONTEXT("Client::handle():\n'%s'", msg[0].c_str());
+  #define BUFFER_SIZE   1024
+  char buffer[BUFFER_SIZE];
   
   const std::string& cmd = msg[0];
   
@@ -27,8 +29,13 @@ void Client::handle(
   {
     if (msg.size() > 1)
     {
+      std::string nuh = nickuserhost();
       // change nickname
-      change_nick(msg[1]);
+      if (change_nick(msg[1])) {
+        int len = snprintf(buffer, sizeof(buffer),
+                  ":%s NICK %s\r\n", nuh.c_str(), nick().c_str());
+        server.user_bcast(get_id(), buffer, len);
+      }
     }
     else
     {

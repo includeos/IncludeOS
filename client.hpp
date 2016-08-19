@@ -63,6 +63,7 @@ public:
   void send(std::string text);
   // send the string as-is
   void send_raw(std::string text);
+  void send_raw(const char*, size_t);
   
   const std::string& user() const
   {

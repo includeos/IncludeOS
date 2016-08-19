@@ -143,6 +143,11 @@ void Client::send_raw(std::string text)
   //printf("-> %s", text.c_str());
   conn->write(text.c_str(), text.size());
 }
+void Client::send_raw(const char* text, size_t len)
+{
+  //printf("-> %s\n", text.c_str());
+  conn->write(text, len);
+}
 
 // validate name, returns false if invalid characters
 static bool validate_name(const std::string& new_name)
@@ -204,8 +209,10 @@ void Client::handle_quit(const std::string& reason)
 {
   if (is_reg()) {
     // inform others about disconnect
-    std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason;
-    server.user_bcast_butone(get_id(), text);
+    char buffer[256];
+    int len = snprintf(buffer, sizeof(buffer),
+              ":%s QUIT :%s\r\n", nickuserhost().c_str(), reason.c_str());
+    server.user_bcast_butone(get_id(), buffer, len);
     // remove client from various lists
     for (size_t idx : channels()) {
       server.get_channel(idx).remove(get_id());

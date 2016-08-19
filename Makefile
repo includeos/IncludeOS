@@ -22,3 +22,6 @@ endif
 
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
+
+# Disable crash context buffer
+#CPPOPTS += -DDISABLE_CRASH_CONTEXT

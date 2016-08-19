@@ -39,6 +39,7 @@ IrcServer::IrcServer(
     // in case splitter is bad
     SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
           csock->remote().to_string().c_str());
+    
     debug("*** Received connection from %s\n",
           csock->remote().to_string().c_str());
 
@@ -137,9 +138,13 @@ IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
 
 void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
 {
-  user_bcast(idx, ":" + from + " " + std::to_string(tk) + " " + msg);
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
+            ":%s %03u %s", from.c_str(), tk, msg.c_str());
+  
+  user_bcast(idx, buffer, len);
 }
-void IrcServer::user_bcast(uindex_t idx, const std::string& message)
+void IrcServer::user_bcast(uindex_t idx, const char* buffer, size_t len)
 {
   std::set<uindex_t> uset;
   // add user
@@ -153,14 +158,18 @@ void IrcServer::user_bcast(uindex_t idx, const std::string& message)
   }
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send_raw(message);
+      get_client(cl).send_raw(buffer, len);
 }
 
 void IrcServer::user_bcast_butone(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
 {
-  user_bcast_butone(idx, ":" + from + " " + std::to_string(tk) + " " + msg);
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
+            ":%s %03u %s", from.c_str(), tk, msg.c_str());
+  
+  user_bcast_butone(idx, buffer, len);
 }
-void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
+void IrcServer::user_bcast_butone(uindex_t idx, const char* buffer, size_t len)
 {
   std::set<uindex_t> uset;
   // for each channel user is in
@@ -174,5 +183,5 @@ void IrcServer::user_bcast_butone(uindex_t idx, const std::string& message)
   uset.erase(idx);
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send_raw(message);
+      get_client(cl).send_raw(buffer, len);
 }
