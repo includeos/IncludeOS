@@ -37,6 +37,9 @@ namespace hw {
     /** Get a readable name. */
     virtual const char* name() const = 0;
 
+    const char* type_name() const
+    { return "NIC"; }
+
     /**
       The mac address.
       @todo remove depedency for Ethernet (somewhere in the future)

@@ -480,8 +480,9 @@ void VirtioNet::handle_deferred_devices()
 
 #include <kernel/pci_manager.hpp>
 
+/** Global constructor - register VirtioNet's driver factory at the PCI_manager */
 struct auto_register {
   auto_register() {
     PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
   }
-} hest;
+} autoreg;

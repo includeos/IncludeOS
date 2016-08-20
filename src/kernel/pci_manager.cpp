@@ -27,6 +27,15 @@
 
 PCI_manager::Device_registry PCI_manager::devices_;
 
+/**
+ * This is just a work around to force the linker to include virtionet
+ * and call VirtioNet global constructor.
+ * Solution? Guess work has to be done with build/make
+ */
+void init_virtionet(hw::PCI_Device& d) {
+  VirtioNet v{d};
+}
+
 void PCI_manager::init() {
   INFO("PCI Manager", "Probing PCI bus");
 
@@ -52,15 +61,18 @@ void PCI_manager::init() {
         {
           try
           {
-            printf("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
-              drivers<hw::Nic>().size(), dev.vendor_id(), dev.product_id(), (uint32_t)(dev.vendor_id()) << 16 | dev.product_id());
-            auto driver_factory = drivers<hw::Nic>().at((uint32_t)(dev.vendor_id()) << 16 | dev.product_id());
+            debug("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
+              drivers<hw::Nic>().size(), dev.vendor_id(), dev.product_id(),
+              get_driver_id(dev));
+
+            auto driver_factory = drivers<hw::Nic>().at(get_driver_id(dev));
+            INFO2("|  +--+ Driver: Found");
 
             hw::Devices::register_device(driver_factory(dev));
           }
           catch(std::out_of_range)
           {
-            INFO2("|  +--! Driver not found");
+            INFO2("|  +--+ Driver: Not found");
           }
         }
 

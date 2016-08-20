@@ -40,33 +40,61 @@ public:
     return devices_[CLASS].size();
   }
 
-
-
+  /** Whats being stored and returned is a unique_ptr of the given device */
   template <typename Device_type>
-  using Factory_pointer = std::unique_ptr<Device_type>;
+  using Dev_ptr = std::unique_ptr<Device_type>;
 
+  /** The function (factory) thats create the Dev_ptr from PCI_Device, supplied by the driver */
   template <typename Device_type>
-  using Driver_factory = delegate< Factory_pointer<Device_type>(hw::PCI_Device&) >;
+  using Driver_factory = delegate< Dev_ptr<Device_type>(hw::PCI_Device&) >;
 
+  /**
+   * @brief Register a specific type of driver factory
+   * @details Register a specific type of driver factory
+   * (function that creates a pointer to the given Device, with its full driver implementation)
+   * Indexed as a combination of vendor + product
+   *
+   * @param vendor Driver vendor id
+   * @param product Driver product id
+   * @param driver_factory Function for creating a driver
+   * @tparam Device_type The specific type of Device the driver is for
+   */
   template <typename Device_type>
   static void register_driver(uint16_t vendor, uint16_t product,
     Driver_factory<Device_type> driver_factory)
   {
-    drivers<Device_type>().emplace((uint32_t)(vendor) << 16 | product, driver_factory);
+    drivers<Device_type>().emplace(get_driver_id(vendor, product), driver_factory);
+    // printf is not available when global constructor is called, workaround?
     //INFO("PCI Manager", "Driver registered");
   }
 
-  template <typename Device_type>
-  using Driver_registry = std::unordered_map<uint32_t, Driver_factory<Device_type> >;
+  /** Currently a combination of Model + Product (we don't care about the revision etc. atm.)*/
+  using driver_id_t = uint32_t;
 
+  /** Combine vendor and product id to represent a driver id */
+  static driver_id_t get_driver_id(uint16_t vendor, uint16_t product)
+  { return (uint32_t)(vendor) << 16 | product; }
+
+  static driver_id_t get_driver_id(hw::PCI_Device& dev)
+  { return get_driver_id(dev.vendor_id(), dev.product_id()); }
+
+private:
+  static Device_registry devices_;
+
+  /** A register for a specific type of drivers: map[driver_id, driver_factory]*/
+  template <typename Device_type>
+  using Driver_registry = std::unordered_map<driver_id_t, Driver_factory<Device_type> >;
+
+  /**
+   * @brief Retrieve drivers (factories) of a given type of device
+   *
+   * @return A collection of driver factories indexed by driver_id
+   */
   template <typename Device_type>
   static Driver_registry<Device_type>& drivers() {
     static Driver_registry<Device_type> drivers_;
     return drivers_;
   }
-
-private:
-  static Device_registry devices_;
 
   /**
    *  Keep track of certain devices

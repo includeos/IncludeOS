@@ -49,9 +49,11 @@ namespace hw {
      * @param N PCI Address
      * @return Reference to the given Nic
      */
-    static Nic& nic(const int N);
+    static Nic& nic(const int N)
+    { return get<Nic>(N); }
 
-    static Disk<VirtioBlk>& disk(const int N);
+    static Disk<VirtioBlk>& disk(const int N)
+    { return get<Disk<VirtioBlk>>(N); }
 
     /** Get disk N using driver DRIVER */
     template <int N, typename DRIVER, typename... Args>
@@ -86,19 +88,48 @@ namespace hw {
   private:
 
     /**
-     * @brief Register the given device
-     * @details Checks the vendor and type
-     * and registers the device as the correct type with the correct driver.
+     * @brief Retreive reference to a given
+     * @details [long description]
      *
-     * @note Currently restricted to only be used by PCI_manager
-     *
-     * @param  A PCI Device
+     * @param N [description]
+     * @return [description]
      */
-    static void register_device(std::unique_ptr<Nic>);
+    template <typename Device_type>
+    inline static Device_type& get(const int N)
+    { return *(devices<Device_type>().at(N)); }
 
+    template <typename Device_type>
+    using Device_registery = std::vector< std::unique_ptr<Device_type> >;
+
+    template <typename Device_type>
+    inline static Device_registery<Device_type>& devices() {
+      static Device_registery<Device_type> devices_;
+      return devices_;
+    }
+
+    /**
+     * @brief Register the given device
+     * @details
+     *
+     * @note Private and restriced to only be used by friend classes
+     *
+     * @param  A unique_ptr to a specific device
+     */
+    template <typename Device_type>
+    static void register_device(std::unique_ptr<Device_type> dev) {
+      devices<Device_type>().emplace_back(std::move(dev));
+      INFO("Devices", "Registered %s [%u]",
+        dev->type_name(), devices<Device_type>().size()-1);
+    }
+
+    /** Following classes are allowed to register a device */
     friend class ::PCI_manager;
 
   }; //< class Devices
+
+  class DeviceNotFound : public std::out_of_range {
+
+  };
 
 } //< namespace hw
 
