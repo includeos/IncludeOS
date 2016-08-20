@@ -19,12 +19,15 @@
 #define HW_DISK_HPP
 
 #include "pci_device.hpp"
-#include "disk_device.hpp"
+#include "drive.hpp"
 
 namespace hw {
 
+  /**
+   * R.I.P. ?
+   */
   template <typename DRIVER>
-  class Disk : public IDiskDevice {
+  class Disk : public Drive {
   public:
     /** optimal block size for this device */
     virtual block_t block_size() const noexcept override

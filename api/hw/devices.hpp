@@ -15,18 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HW_DEV_HPP
-#define HW_DEV_HPP
+#ifndef HW_DEVICES_HPP
+#define HW_DEVICES_HPP
 
 #include <common>
-#include <virtio/virtionet.hpp>
-#include <virtio/block.hpp>
 #include <virtio/console.hpp>
-#include <kernel/pci_manager.hpp>
 
 #include "nic.hpp"
 #include "pit.hpp"
-#include "disk.hpp"
+#include "drive.hpp"
+
+class PCI_manager; // for friending
 
 namespace hw {
 
@@ -54,19 +53,8 @@ namespace hw {
     static Nic& nic(const int N)
     { return get<Nic>(N); }
 
-    static Disk<VirtioBlk>& disk(const int N)
-    { return get<Disk<VirtioBlk>>(N); }
-
-    /** Get disk N using driver DRIVER */
-    template <int N, typename DRIVER, typename... Args>
-    static Disk<DRIVER>& disk(Args&&... args) {
-      static Disk<DRIVER>
-        disk_ {
-        PCI_manager::device<PCI::STORAGE>(N),
-          std::forward<Args>(args)...
-          };
-      return disk_;
-    }
+    static Drive& drive(const int N)
+    { return get<Drive>(N); }
 
     /** Get console N using driver DRIVER */
     /*
@@ -156,4 +144,4 @@ namespace hw {
 } //< namespace hw
 
 
-#endif //< HW_DEV_HPP
+#endif //< HW_DEVICES_HPP
