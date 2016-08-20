@@ -25,7 +25,6 @@
 
 using namespace net;
 using namespace std::chrono; // For timers and MSL
-std::unique_ptr<Inet4<VirtioNet>> inet;
 tcp::Connection_ptr client;
 
 /*
@@ -61,10 +60,10 @@ void FINISH_TEST() {
   Timers::oneshot(2 * MSL_TEST + 100ms,
   [] (Timers::id_t) {
       INFO("TEST", "Verify release of resources");
-      CHECKSERT(inet->tcp().active_connections() == 0,
+      CHECKSERT(Inet4::stack<0>().tcp().active_connections() == 0,
         "No (0) active connections");
-      INFO("Buffers available", "%u", inet->buffers_available());
-      CHECKSERT(inet->buffers_available() == buffers_available,
+      INFO("Buffers available", "%u", Inet4::stack<0>().buffers_available());
+      CHECKSERT(Inet4::stack<0>().buffers_available() == buffers_available,
         "No hogged buffer (%u available)", buffers_available);
       printf("# TEST SUCCESS #\n");
     });
@@ -77,12 +76,12 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   auto port = address.second;
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
-  inet->resolve(address.first,
+  Inet4::stack<0>().resolve(address.first,
     [port](auto ip_address) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0) {
-        inet->tcp().connect(ip_address, port)
+        Inet4::stack<0>().tcp().connect(ip_address, port)
           ->on_connect([](tcp::Connection_ptr conn) {
               CHECK(true, "Connected");
               conn->on_read(1024, [](tcp::buffer_t, size_t n) {
@@ -101,7 +100,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 */
 void OUTGOING_TEST(tcp::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
-  inet->tcp().connect(outgoing)
+  Inet4::stack<0>().tcp().connect(outgoing)
     ->on_connect([](auto conn) {
         conn->write(small.data(), small.size());
         conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n) {
@@ -154,16 +153,18 @@ void Service::start(const std::string&)
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 
-  inet = new_ipv4_stack(
+  auto& inet = Inet4::stack<0>(); // Inet4<VirtioNet>::stack<0>();
+  inet.network_config(
     {  10,  0,  0, 42 },  // IP
     {  255,255,255, 0 },  // Netmask
     {  10,  0,  0,  1 },  // Gateway
-    {   8,  8,  8,  8 } );// DNS
+    {   8,  8,  8,  8 }   // DNS
+  );
 
-  buffers_available = inet->buffers_available();
-  INFO("Buffers available", "%u", inet->buffers_available());
+  buffers_available = inet.buffers_available();
+  INFO("Buffers available", "%u", inet.buffers_available());
 
-  auto& tcp = inet->tcp();
+  auto& tcp = inet.tcp();
   // reduce test duration
   tcp.set_MSL(MSL_TEST);
 
@@ -246,7 +247,7 @@ void Service::start(const std::string&)
   tcp.bind(TEST4).on_connect([](auto conn) {
       INFO("TEST","Connection/TCP state");
       // There should be at least one connection.
-      CHECKSERT(inet->tcp().active_connections() > 0, "There is (>0) open connection(s)");
+      CHECKSERT(Inet4::stack<0>().tcp().active_connections() > 0, "There is (>0) open connection(s)");
       // Test if connected.
       CHECKSERT(conn->is_connected(), "Is connected");
       // Test if writable.
@@ -264,7 +265,7 @@ void Service::start(const std::string&)
         [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
 
-            OUTGOING_TEST({inet->router(), TEST5});
+            OUTGOING_TEST({Inet4::stack<0>().router(), TEST5});
           });
 
         Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });

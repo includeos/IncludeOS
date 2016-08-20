@@ -5,22 +5,18 @@
 
 namespace net
 {
-  template <typename T> inline
-  Inet4<T>::Inet4(
-    hw::Nic<T>& nic,
-    IP4::addr ip,
-    IP4::addr netmask,
-    IP4::addr gateway)
-    : ip4_addr_(ip), netmask_(netmask), router_(gateway),
+  inline
+  Inet4::Inet4(hw::Nic& nic)
+    : ip4_addr_(IP4::INADDR_ANY),
+      netmask_(IP4::INADDR_ANY),
+      router_(IP4::INADDR_ANY),
+      dns_server(IP4::INADDR_ANY),
       nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-      bufstore_(nic.bufstore())
+      bufstore_(nic.bufstore()), MTU_(nic.MTU())
   {
-    INFO("Inet4","Bringing up the IP stack");
+    INFO("Inet4","Bringing up a IPv4 stack");
     Ensures(sizeof(IP4::addr) == 4);
-
-    // default DNS server to gateway
-    set_dns_server(gateway);
 
     /** Upstream delegates */
     auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
@@ -33,7 +29,7 @@ namespace net
     /** Upstream wiring  */
     // Packets available
     nic.on_transmit_queue_available(
-      transmit_avail_delg::from<Inet4<T>, &Inet4<T>::process_sendq>(*this));
+      transmit_avail_delg::from<Inet4, &Inet4::process_sendq>(*this));
 
     // Phys -> Eth (Later, this will be passed through router)
     nic.set_linklayer_out(eth_bottom);
@@ -54,8 +50,10 @@ namespace net
     ip4_.set_tcp_handler(tcp_bottom);
 
     /** Downstream delegates */
-    auto phys_top(downstream
-                  ::from<hw::Nic<VirtioNet>,&hw::Nic<VirtioNet>::transmit>(nic));
+    // retreive drivers delegate virtually, instead of setting it to a virtual call
+    auto phys_top(nic.get_physical_in());
+    //auto phys_top(downstream
+    //              ::from<hw::Nic,&hw::Nic::transmit>(nic));
     auto eth_top(downstream
                  ::from<Ethernet,&Ethernet::transmit>(eth_));
     auto arp_top(downstream
@@ -84,9 +82,24 @@ namespace net
     eth_.set_physical_out(phys_top);
   }
 
-  template <typename T> inline
-  Inet4<T>::Inet4(hw::Nic<T>& nic, double timeout)
-    : Inet4(nic, IP4::INADDR_ANY, IP4::INADDR_ANY, IP4::INADDR_ANY)
+  inline
+  Inet4::Inet4(
+    hw::Nic& nic,
+    IP4::addr ip,
+    IP4::addr netmask,
+    IP4::addr gateway)
+    : Inet4(nic)
+  {
+    ip4_addr_ = ip;
+    netmask_ = netmask;
+    router_ = gateway;
+    // default DNS server to gateway
+    set_dns_server(gateway);
+  }
+
+  inline
+  Inet4::Inet4(hw::Nic& nic, double timeout)
+    : Inet4(nic)
   {
     INFO("Inet4", "Trying DHCP...");
     dhcp_ = std::make_shared<DHClient>(*this);
@@ -94,8 +107,8 @@ namespace net
     dhcp_->negotiate(timeout);
   }
 
-  template <typename T> inline
-  void Inet4<T>::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
+  inline
+  void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
     if(!dhcp_)
       dhcp_ = std::make_shared<DHClient>(*this);
     // @timeout for DHCP-server negotation
@@ -105,8 +118,8 @@ namespace net
       dhcp_->on_config(handler);
   }
 
-  template <typename T> inline
-  void Inet4<T>::on_config(dhcp_timeout_func handler) {
+  inline
+  void Inet4::on_config(dhcp_timeout_func handler) {
     // setup DHCP if not intialized
     if(!dhcp_)
       negotiate_dhcp();
@@ -114,8 +127,8 @@ namespace net
     dhcp_->on_config(handler);
   }
 
-  template <typename T> inline
-  void Inet4<T>::process_sendq(size_t packets) {
+  inline
+  void Inet4::process_sendq(size_t packets) {
 
     ////////////////////////////////////////////
     // divide up fairly

@@ -20,7 +20,7 @@
 #define FS_FAT_HPP
 
 #include "filesystem.hpp"
-#include <hw/disk_device.hpp>
+#include <hw/drive.hpp>
 #include <functional>
 #include <cstdint>
 #include <memory>
@@ -65,7 +65,7 @@ namespace fs
     /// ----------------------------------------------------- ///
 
     // constructor
-    FAT(hw::IDiskDevice& idev);
+    FAT(hw::Drive& dev);
     virtual ~FAT() = default;
 
   private:
@@ -188,7 +188,7 @@ namespace fs
     error_t int_ls(uint32_t sector, dirvector&);
 
     // device we can read and write sectors to
-    hw::IDiskDevice& device;
+    hw::Drive& device;
 
     /// private members ///
     // the location of this partition
