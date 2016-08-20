@@ -3,8 +3,8 @@
 #
 # TODO: use direct library references, remove add_custom_command
 
-set(SERVICE_NAME "\"\\\"IncludeOS Demo Service\\\"\"")
-set(SERVICE "IncludeOS_Demo_Service")
+set(SERVICE_NAME "\"\\\"IncludeOS TCP Demo\\\"\"")
+set(SERVICE "tcp_demo")
 
 add_custom_command(
 	OUTPUT ${SERVICE}.img

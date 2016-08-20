@@ -1,1 +1,6 @@
 add_subdirectory(demo_service)
+add_subdirectory(dualnic)
+add_subdirectory(smp)
+add_subdirectory(snake)
+#add_subdirectory(STREAM)
+add_subdirectory(tcp)

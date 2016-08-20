@@ -37,5 +37,8 @@ endif(debug)
 
 add_subdirectory(src)
 add_subdirectory(vmbuild)
-add_subdirectory(examples)
-#add_subdirectory(test/lest)
+
+option(examples "Build example unikernels in /examples" ON)
+if(examples)
+	add_subdirectory(examples)
+endif(examples)
