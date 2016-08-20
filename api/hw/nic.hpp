@@ -37,7 +37,8 @@ namespace hw {
     /** Get a readable name. */
     virtual const char* name() const = 0;
 
-    const char* type_name() const
+    /** A readable name of the type of device @todo: move to a abstract Device? */
+    static const char* device_type()
     { return "NIC"; }
 
     /**

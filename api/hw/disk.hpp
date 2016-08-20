@@ -36,6 +36,9 @@ namespace hw {
       return driver.name();
     }
 
+    static const char* device_type()
+    { return "Disk"; }
+
     virtual void
     read(block_t blk, on_read_func del) override {
       driver.read(blk, del);

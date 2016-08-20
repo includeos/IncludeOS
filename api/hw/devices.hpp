@@ -35,6 +35,8 @@ namespace hw {
   class APIC;
   class HPET;
 
+  class DeviceNotFound;
+
   /**
    *  Access point for registered devices
    */
@@ -88,15 +90,18 @@ namespace hw {
   private:
 
     /**
-     * @brief Retreive reference to a given
-     * @details [long description]
+     * @brief Retreive reference to the given Device on pos N
+     * @details Helper to retreive a Device of a given type
+     * on position N.
      *
-     * @param N [description]
-     * @return [description]
+     * Throws NotFoundException of the device isnt there.
+     *
+     * @param N position
+     * @tparam Device_type type of Device
+     * @return Reference to the Device on pos N
      */
     template <typename Device_type>
-    inline static Device_type& get(const int N)
-    { return *(devices<Device_type>().at(N)); }
+    inline static Device_type& get(const int N);
 
     template <typename Device_type>
     using Device_registery = std::vector< std::unique_ptr<Device_type> >;
@@ -119,7 +124,7 @@ namespace hw {
     static void register_device(std::unique_ptr<Device_type> dev) {
       devices<Device_type>().emplace_back(std::move(dev));
       INFO("Devices", "Registered %s [%u]",
-        dev->type_name(), devices<Device_type>().size()-1);
+        dev->device_type(), devices<Device_type>().size()-1);
     }
 
     /** Following classes are allowed to register a device */
@@ -128,8 +133,25 @@ namespace hw {
   }; //< class Devices
 
   class DeviceNotFound : public std::out_of_range {
-
+  public:
+    explicit DeviceNotFound(const std::string& type, const int n)
+      : std::out_of_range(
+          std::string{"Device of type "} + type +
+          std::string{" not found at position "}
+          + std::to_string(n))
+      {}
   };
+
+  template <typename Device_type>
+  inline Device_type& Devices::get(const int N) {
+    try {
+      return *(devices<Device_type>().at(N));
+    }
+    catch(std::out_of_range)
+    {
+      throw DeviceNotFound{Device_type::device_type(), N};
+    }
+  }
 
 } //< namespace hw
 
