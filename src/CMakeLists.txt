@@ -8,14 +8,6 @@ include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/include)
 
-# TODO: use right variables
-option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
-if(debug)
-	list(append CAPABS "-O0")
-	list(append CCOPTS ${DEBUG_OPTS})
-	list(append CPPOPTS "-DGSL_THROW_ON_CONTRACT_VIOLATION")
-endif(debug)
-
 add_custom_command(
 	OUTPUT apic_boot.o
 	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
