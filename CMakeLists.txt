@@ -37,4 +37,5 @@ endif(debug)
 
 add_subdirectory(src)
 add_subdirectory(vmbuild)
+add_subdirectory(examples)
 #add_subdirectory(test/lest)
