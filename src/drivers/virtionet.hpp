@@ -236,7 +236,4 @@ private:
   net::Packet_ptr transmit_queue_ {0};
 };
 
-__attribute__((constructor))
-void auto_register_virtionet_driver();
-
 #endif

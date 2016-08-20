@@ -287,8 +287,8 @@ VirtioBlk::request_t::request_t(uint64_t blk, bool part, on_read_func cb)
 #include <kernel/pci_manager.hpp>
 
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
-struct auto_register {
-  auto_register() {
-    PCI_manager::register_driver<hw::Drive>(hw::PCI_Device::VENDOR_VIRTIO, 0x2000, &VirtioBlk::new_instance);
-  }
-} virtioblk;
+__attribute__((constructor))
+static void auto_register_virtioblk_driver()
+{
+  PCI_manager::register_driver<hw::Drive>(hw::PCI_Device::VENDOR_VIRTIO, 0x2000, &VirtioBlk::new_instance);
+}
