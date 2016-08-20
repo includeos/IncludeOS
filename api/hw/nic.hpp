@@ -91,8 +91,8 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(PCI_Device& d, uint32_t bufstore_sz, uint16_t bufsz)
-      : device_{d}, bufstore_{ bufstore_sz, bufsz }
+    Nic(uint32_t bufstore_sz, uint16_t bufsz)
+      : bufstore_{ bufstore_sz, bufsz }
     {}
 
     friend class Devices;
@@ -103,7 +103,6 @@ namespace hw {
     delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
 
   private:
-    hw::PCI_Device& device_;
     net::BufferStore bufstore_;
   };
 
