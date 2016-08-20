@@ -10,8 +10,8 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/include)
 
 add_custom_command(
 	OUTPUT apic_boot.o
-	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
-	COMMAND objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin
+	COMMAND nasm -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	COMMAND objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
 	DEPENDS hw/apic_boot.asm
 )
 
