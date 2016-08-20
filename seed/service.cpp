@@ -15,12 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
+#include <service>
 #include <cstdio>
 
-void Service::start()
+void Service::start(const std::string&)
 {
-
   printf("Hello world - OS included!\n");
-
 }
