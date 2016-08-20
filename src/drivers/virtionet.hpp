@@ -34,10 +34,10 @@
 #define VIRTIO_VIRTIONET_HPP
 
 #include <common>
-#include "../hw/pci_device.hpp"
-#include "virtio.hpp"
-#include "../net/buffer_store.hpp"
-#include "../hw/nic.hpp"
+#include <hw/pci_device.hpp>
+#include <virtio/virtio.hpp>
+#include <net/buffer_store.hpp>
+#include <hw/nic.hpp>
 #include <delegate>
 #include <deque>
 
@@ -235,5 +235,8 @@ private:
 
   net::Packet_ptr transmit_queue_ {0};
 };
+
+__attribute__((constructor))
+void auto_register_virtionet_driver();
 
 #endif

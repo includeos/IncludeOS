@@ -77,7 +77,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		hw/ps2.o hw/serial.o hw/cmos.o \
 		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
 		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
-		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
+		virtio/virtio.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp/tcp.o net/tcp/connection.o net/tcp/connection_states.o \
 		net/tcp/rttm.o net/tcp/listener.o \
@@ -86,8 +86,10 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/buffer_store.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
-		virtio/block.o # virtio/console.o
+		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
+		# virtio/console.o
+
+DRIVERS = drivers/virtioblk.o drivers/virtionet.o
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -190,7 +192,11 @@ os.a: $(OS_OBJECTS) apic_boot.o
 	@echo "\n>> Building the OS library"
 	$(AR_INC) rcs $@ $(OS_OBJECTS) apic_boot.o
 
-install: $(CRTI_OBJ) $(CRTN_OBJ)
+drivers: $(DRIVERS)
+	mkdir -p $(INSTALL)/drivers
+	cp -r drivers/* $(INSTALL)/drivers
+
+install: drivers bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
 	cp boot/multiboot.o $(INSTALL)

@@ -22,7 +22,7 @@
 #include <common>
 #include <hw/drive.hpp>
 #include <hw/pci_device.hpp>
-#include "virtio.hpp"
+#include <virtio/virtio.hpp>
 #include <deque>
 
 /** Virtio-net device driver.  */
