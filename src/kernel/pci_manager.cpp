@@ -32,9 +32,12 @@ PCI_manager::Device_registry PCI_manager::devices_;
  * and call VirtioNet global constructor.
  * Solution? Guess work has to be done with build/make
  */
-void init_virtionet(hw::PCI_Device& d) {
-  VirtioNet v{d};
-}
+#include <virtio/virtionet.hpp>
+void init_virtionet(hw::PCI_Device& d)
+{ VirtioNet v{d}; }
+#include <virtio/block.hpp>
+void init_virtioblk(hw::PCI_Device& d)
+{ VirtioBlk b{d}; }
 
 void PCI_manager::init() {
   INFO("PCI Manager", "Probing PCI bus");
@@ -54,33 +57,25 @@ void PCI_manager::init() {
       // store device
       devices_[dev.classcode()].emplace_back(dev);
 
-      //
+      bool registered = false;
+      // translate classcode to device and register
       switch(dev.classcode())
       {
+        case PCI::STORAGE:
+          registered = register_device<hw::Drive>(dev);
+          break;
+
         case PCI::NIC:
-        {
-          try
-          {
-            debug("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
-              drivers<hw::Nic>().size(), dev.vendor_id(), dev.product_id(),
-              get_driver_id(dev));
-
-            auto driver_factory = drivers<hw::Nic>().at(get_driver_id(dev));
-            INFO2("|  +--+ Driver: Found");
-
-            hw::Devices::register_device(driver_factory(dev));
-          }
-          catch(std::out_of_range)
-          {
-            INFO2("|  +--+ Driver: Not found");
-          }
-        }
+          registered = register_device<hw::Nic>(dev);
+          break;
 
         default:
         {
 
         }
+
       }
+      debug("Device %s", registered ? "registed":"not registered");
     }
   }
 

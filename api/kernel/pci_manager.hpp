@@ -24,6 +24,7 @@
 #include <delegate>
 
 #include <hw/pci_device.hpp>
+#include <hw/devices.hpp>
 
 class PCI_manager {
 private:
@@ -96,6 +97,9 @@ private:
     return drivers_;
   }
 
+  template <typename Device_type>
+  inline static bool register_device(hw::PCI_Device& dev);
+
   /**
    *  Keep track of certain devices
    *
@@ -106,5 +110,26 @@ private:
 
   friend class OS;
 }; //< class PCI_manager
+
+template <typename Device_type>
+inline bool PCI_manager::register_device(hw::PCI_Device& dev) {
+  try
+  {
+    debug("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
+      drivers<Device_type>().size(), dev.vendor_id(), dev.product_id(),
+      get_driver_id(dev));
+
+    auto driver_factory = drivers<Device_type>().at(get_driver_id(dev));
+    INFO2("|  +--+ Driver: Found");
+
+    hw::Devices::register_device(driver_factory(dev));
+    return true;
+  }
+  catch(std::out_of_range)
+  {
+    INFO2("|  +--+ Driver: Not found");
+  }
+  return false;
+}
 
 #endif //< KERNEL_PCI_MANAGER_HPP
