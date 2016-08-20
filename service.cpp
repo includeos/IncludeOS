@@ -52,11 +52,12 @@ void Service::start(const std::string& args)
   if (!args.empty())
     printf("Command line is \"%s\"\n", args.c_str());
   
-  static std::unique_ptr< net::Inet4<VirtioNet> > inet;
-  inet = net::new_ipv4_stack(
+  auto& inet = net::Inet4::stack<0>();
+  inet.network_config(
       {  10, 0,  0, 42 },  // IP
       { 255,255,255, 0 },  // Netmask
-      {  10, 0,  0,  1 }); // Gateway
+      {  10, 0,  0,  1 },  // Gateway
+      {  10, 0,  0,  1 }); // DNS
   
   // IRC default port
   static std::vector<std::string> motd;
@@ -65,7 +66,7 @@ void Service::start(const std::string& args)
   motd.push_back("-§- 4Head -§-");
   
   ircd =
-  new IrcServer(*inet, 6667, "irc.includeos.org", "IncludeNet",
+  new IrcServer(inet, 6667, "irc.includeos.org", "IncludeNet",
   [] () -> const std::vector<std::string>& {
     return motd;
   });

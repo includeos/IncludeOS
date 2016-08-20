@@ -20,7 +20,7 @@ extern void print_backtrace();
 class IrcServer {
 public:
   using Connection = net::tcp::Connection_ptr;
-  using Network    = net::Inet4<VirtioNet>;
+  using Network    = net::Inet4;
   typedef std::function<const std::vector<std::string>&()> motd_func_t;
   typedef Channel::index_t chindex_t;
   typedef Client::index_t  uindex_t;
