@@ -90,6 +90,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		# virtio/console.o
 
 DRIVERS = drivers/virtioblk.o drivers/virtionet.o
+DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -140,7 +141,7 @@ minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
 minimal: stripped test
 
-includeos: bootloader multiboot libc++abi.a os.a
+includeos: bootloader multiboot libc++abi.a os.a drivers
 
 # Test service
 ###################################################
@@ -265,7 +266,7 @@ clean_tests:
 	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6 debug/test_tcp
 
 clean: clean_tests
-	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
+	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS)
 	$(RM) os.a libc++abi.a
 	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
 
