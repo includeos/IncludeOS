@@ -9,7 +9,7 @@ endif
 # shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
-STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
+STACK_PROTECTOR_VALUE=$(shell date +%s)
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
