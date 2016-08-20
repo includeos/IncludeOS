@@ -34,10 +34,10 @@
 #define VIRTIO_VIRTIONET_HPP
 
 #include <common>
-#include "../hw/pci_device.hpp"
-#include "virtio.hpp"
-#include "../net/buffer_store.hpp"
-#include "../hw/nic.hpp"
+#include <hw/pci_device.hpp>
+#include <virtio/virtio.hpp>
+#include <net/buffer_store.hpp>
+#include <hw/nic.hpp>
 #include <delegate>
 #include <deque>
 

@@ -40,7 +40,7 @@ auto create_packet(BufferStore& bufstore) {
   return std::shared_ptr<Packet>(ptr);
 }
 
-void Service::start()
+void Service::start(const std::string&)
 {
   INFO("Test net::Packet","Starting tests");
 

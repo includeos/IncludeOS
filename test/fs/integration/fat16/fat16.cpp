@@ -24,7 +24,7 @@
 // Includes std::string internal_banana
 #include "banana.ascii"
 
-void Service::start()
+void Service::start(const std::string&)
 {
   INFO("FAT16", "Running tests for FAT16");
   auto disk = fs::new_shared_memdisk();

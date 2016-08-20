@@ -25,7 +25,7 @@ static int one_shots = 0;
 static int repeat1 = 0;
 static int repeat2 = 0;
 
-void Service::start()
+void Service::start(const std::string&)
 {
   INFO("Timers", "Testing one-shot timers");
   

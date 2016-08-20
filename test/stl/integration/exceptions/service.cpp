@@ -62,7 +62,7 @@ const lest::test tests[] = {
   },
 };
 
-void Service::start()
+void Service::start(const std::string&)
 {
   MYINFO ("Running LEST-tests");
   auto failed = lest::run(tests, {"-p"});

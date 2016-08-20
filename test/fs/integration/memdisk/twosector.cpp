@@ -21,7 +21,7 @@
 
 #include <memdisk>
 
-void Service::start()
+void Service::start(const std::string&)
 {
   INFO("MemDisk", "Running tests for MemDisk");
   auto disk = fs::new_shared_memdisk();

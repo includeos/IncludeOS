@@ -19,7 +19,7 @@
 #define DEBUG // Allow debuging
 #define DEBUG2
 
-#include <virtio/virtionet.hpp>
+#include "virtionet.hpp"
 #include <net/packet.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
@@ -480,9 +480,9 @@ void VirtioNet::handle_deferred_devices()
 
 #include <kernel/pci_manager.hpp>
 
-/** Global constructor - register VirtioNet's driver factory at the PCI_manager */
-struct auto_register {
-  auto_register() {
-    PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
-  }
-} virtionet;
+/** Register VirtioNet's driver factory at the PCI_manager */
+__attribute__((constructor))
+static void auto_register_virtionet_driver()
+{
+  PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
+}

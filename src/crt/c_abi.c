@@ -41,7 +41,7 @@ __FILE* stderr;
 #ifndef _STACK_GUARD_VALUE_
 #define _STACK_GUARD_VALUE_ 0xe2dee396
 #endif
-uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
+const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 extern char _end; // location set by linker script
 

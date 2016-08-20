@@ -24,7 +24,7 @@ double mysecond()
   return OS::uptime();
 }
 
-void Service::start()
+void Service::start(const std::string&)
 {
   std::cout << "*** Service is up - with OS Included! ***" << std::endl;
   

@@ -62,9 +62,8 @@ void create_server(net::tcp::Listener& server)
   });
 }
 
-void Service::start() {
-  srand(OS::cycles_since_boot());
-
+void Service::start(const std::string&)
+{
   // Two IP-stack objects
 
   // Stack with network interface (eth0) driven by VirtioNet

@@ -61,6 +61,9 @@ CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
 MULTIBOOT = $(INSTALL)/multiboot.o
 
+DRIVER_OBJS_EXT = $(DRIVERS:=.o)
+DRIVER_OBJS = $(addprefix $(INSTALL)/drivers/, $(DRIVER_OBJS_EXT))
+
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
 
@@ -134,7 +137,7 @@ ifneq ($(MEMDISK),)
 	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 ifneq ($(STRIPPED),)
 	strip $(STRIPPED) $(SERVICE)
 endif

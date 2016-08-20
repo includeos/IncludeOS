@@ -27,18 +27,6 @@
 
 PCI_manager::Device_registry PCI_manager::devices_;
 
-/**
- * This is just a work around to force the linker to include virtionet
- * and call VirtioNet global constructor.
- * Solution? Guess work has to be done with build/make
- */
-#include <virtio/virtionet.hpp>
-void init_virtionet(hw::PCI_Device& d)
-{ VirtioNet v{d}; }
-#include <virtio/block.hpp>
-void init_virtioblk(hw::PCI_Device& d)
-{ VirtioBlk b{d}; }
-
 void PCI_manager::init() {
   INFO("PCI Manager", "Probing PCI bus");
 

@@ -173,7 +173,7 @@ namespace hw {
         this->hpet_base = sdt_ptr + sizeof(SDTHeader);
         break;
       case FACP_t:
-        printf("FACP found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("FACP found: P=%p L=%u\n", sdt, sdt->Length);
         walk_facp((char*) sdt);
         break;
       default:
@@ -288,7 +288,7 @@ namespace hw {
        SLP_EN = 1<<13;
        SCI_EN = 1;
 
-       printf("ACPI: Found shutdown information\n");
+       debug("ACPI: Found shutdown information\n");
        return;
        
     } else {
