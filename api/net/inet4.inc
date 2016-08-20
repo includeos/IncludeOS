@@ -15,7 +15,7 @@ namespace net
       icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
       bufstore_(nic.bufstore()), MTU_(nic.MTU())
   {
-    INFO("Inet4","Bringing up a IPv4 stack (%s)", nic.name());
+    INFO("Inet4","Bringing up a IPv4 stack");
     Ensures(sizeof(IP4::addr) == 4);
 
     /** Upstream delegates */
