@@ -16,6 +16,37 @@ INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
 INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
+# Q: why are you downloading a binary installation of includeos during the
+#    install.sh script? Would have thought that having a full git checkout
+#    should be enough to build the system..
+# A: We're not downloading a binary of IncludeOS - just all the libraries it needs
+#    to build os.a (the IncludeOS library), such as libc++ and libc. To build
+#    those you need to do the whole --from-source thing which takes one hour,
+#    and we don't want people to have to do that. The bundle that gets downloaded
+#    actually gets created during install from source - you can see it here: 
+#    https://github.com/hioa-cs/IncludeOS/blob/master/etc/create_binary_bundle.sh
+#
+# Q: hm, the normal libc++ and libc libraries (available through the package
+#    management system) are not enough? 
+# A: No, the normal libc++ is GNU (actually libstdc++) and we're on clang. Also it
+#    has to be 32-bit and the libc we have implements a much smaller set of system
+#    calls than you have on Linux. Another snag is that you need to compile libc++
+#    with the actual libc you're in fact using, so we need to first build custom
+#    libc (newlib), then build libc++ using the header files from that one. In
+#    addition we need to build the C and C++ ABI's, which include stack unwinding etc.
+#    Another snag is that building newlib ... we've tried and can't do it without GCC.
+#    The stack unwinder is also GCC specific (form libgcc) so we need GCC
+#    to build those - and in order to build for a custom target we also
+#    need to build GCC from source. Hence building from source implies building
+#    all of gcc from scratch, binutils, libc and libc++ ... and it takes an hour
+#    - or 15-20 mins. on a 48 core machine and $ make -j :-D
+#
+#    Real horrorshow, but in the end we worked hard to make the IncludeOS bundle
+#    be as lean as possible, only containing static libraries and header files
+#    for exactly what you need to build IncludeOS, nothing more, nothing less.
+#    Surely, it would be great to get this all nicer, but then again, they're
+#    just dependency libraries - very much like getting binaries using "apt-get install".
+
 # Find the latest release
 echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
 JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases`
