@@ -50,7 +50,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -Os
 STRIPPED=-S
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym=__stack_rand_ba=`date +%s`
 
 # Objects
 ###################################################
