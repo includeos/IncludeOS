@@ -144,6 +144,9 @@ endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
 
+servicefile:
+	@echo $(SERVICE).img
+
 # Object files
 ###################################################
 
