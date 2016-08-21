@@ -17,7 +17,6 @@
 
 #include <os>
 #include <iostream>
-extern int  main();
 
 double mysecond()
 {
@@ -29,6 +28,7 @@ void Service::start(const std::string&)
   std::cout << "*** Service is up - with OS Included! ***" << std::endl;
   
   // do the STREAM test here
+  extern int main();
   main();
   
   std::cout << "Service out!" << std::endl;
