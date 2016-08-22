@@ -88,7 +88,7 @@ public:
    * @param  Something to capture
    * @return The given ID to the captured something
    */
-  Key capture(T&);
+  inline Key capture(T&);
 
   /**
    * @brief Uses black magic to spawn a new something inside the bucket.
@@ -98,7 +98,7 @@ public:
    * @return The created something
    */
   template <typename... Args>
-  T& spawn(Args&&...);
+  inline T& spawn(Args&&...);
 
   /**
    * @brief Pick up the something with the given key inside the bucket.
@@ -108,7 +108,7 @@ public:
    * @param  The key to the something
    * @return (Hopefully) the something with the given key.
    */
-  T& pick_up(const Key);
+  inline T& pick_up(const Key);
 
   /**
    * @brief Abandon/release the something with the given key
@@ -117,24 +117,24 @@ public:
    * @param  The key to the something.
    * @return Wheter something was abandoned or not.
    */
-  bool abandon(const Key);
+  inline bool abandon(const Key);
 
   template <typename Value>
-  T& look_for(const Column&, const Value&);
+  inline T& look_for(const Column&, const Value&);
 
   /**
    * @brief Lineup everything inside the bucket.
    * @details Builds a vector with only the values from the underlying container.
    * @return A vector with all the content inside the bucket.
    */
-  std::vector<T> lineup() const;
+  inline std::vector<T> lineup() const;
 
   template <typename Value>
-  void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE);
+  inline void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE);
   //{ add_index(Type<Value>(), std::forward<Column>(col), res, con); };
 
   template <typename Writer>
-  void serialize(Writer& writer) const;
+  inline void serialize(Writer& writer) const;
 
 private:
   Key        idx_;
@@ -183,7 +183,7 @@ Bucket<T>::Bucket(size_t limit)
 }
 
 template <typename T>
-size_t Bucket<T>::capture(T& obj) {
+inline size_t Bucket<T>::capture(T& obj) {
   if(bucket_.size() >= LIMIT)
     throw CannotCreateObject{"The Bucket is full. Please come again!"};
 
@@ -200,7 +200,7 @@ size_t Bucket<T>::capture(T& obj) {
 
 template <typename T>
 template <typename... Args>
-T& Bucket<T>::spawn(Args&&... args) {
+inline T& Bucket<T>::spawn(Args&&... args) {
   T obj{args...};
   Key id = capture(obj);
   if(!id)
@@ -209,7 +209,7 @@ T& Bucket<T>::spawn(Args&&... args) {
 }
 
 template <typename T>
-T& Bucket<T>::pick_up(const Key key) {
+inline T& Bucket<T>::pick_up(const Key key) {
   auto it = bucket_.find(key);
   if(it not_eq bucket_.end()) {
     return it->second;
@@ -218,13 +218,13 @@ T& Bucket<T>::pick_up(const Key key) {
 }
 
 template <typename T>
-bool Bucket<T>::abandon(const Key key) {
+inline bool Bucket<T>::abandon(const Key key) {
   return bucket_.erase(key);
 }
 
 template <typename T>
 template <typename Value>
-T& Bucket<T>::look_for(const Column& col, const Value& val) {
+inline T& Bucket<T>::look_for(const Column& col, const Value& val) {
   auto& indexes = get_indexes<Value>();
   // check for column
   const auto indexes_it = indexes.find(col);
@@ -243,7 +243,7 @@ T& Bucket<T>::look_for(const Column& col, const Value& val) {
 }
 
 template <typename T>
-std::vector<T> Bucket<T>::lineup() const {
+inline std::vector<T> Bucket<T>::lineup() const {
   std::vector<T> line;
   line.reserve(bucket_.size());
   for(auto& content : bucket_) {
@@ -255,7 +255,7 @@ std::vector<T> Bucket<T>::lineup() const {
 
 template <typename T>
 template <typename Writer>
-void Bucket<T>::serialize(Writer& writer) const {
+inline void Bucket<T>::serialize(Writer& writer) const {
   writer.StartArray();
   for(auto& content : bucket_) {
     content.second.serialize(writer);
@@ -265,7 +265,7 @@ void Bucket<T>::serialize(Writer& writer) const {
 
 template <typename T>
 template <typename Value>
-void Bucket<T>::add_index(Column&& col, Resolver<Value> res, Constraint con) {
+inline void Bucket<T>::add_index(Column&& col, Resolver<Value> res, Constraint con) {
   IndexedColumn<Value> ic;
   ic.resolver = res;
   ic.constraint = con;
