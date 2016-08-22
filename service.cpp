@@ -122,67 +122,45 @@ void Service::start() {
 
       server::Router routes;
 
-  // TODO TESTING CookieJar and CookieParser FROM HERE:
-
-      routes.on_get("/api/english", [](server::Request_ptr req, auto res) {
-        if(req->has_attribute<CookieJar>()) {
+      /*----------[START TEST OF] CookieJar and CookieParser----------*/
+      auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
+        if (req->has_attribute<CookieJar>()) {
           auto req_cookies = req->get_attribute<CookieJar>();
 
-          // Print all the request-cookies
-          std::map<std::string, std::string> all_cookies = req_cookies->get_cookies();
-          for(const auto& c : all_cookies)
-            printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
+          { // Print all the request-cookies
+            const auto& all_cookies = req_cookies->get_cookies();
+            for (const auto& c : all_cookies) {
+              printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
+            }
+          }
+          
+          const auto& value = req_cookies->cookie_value("lang");
 
-          std::string value = req_cookies->find("lang");
-
-          if(value == "") {
-            printf("Cookie with name 'lang' not found! Creating it.\n");
-            res->cookie("lang", "en-US");
-          } else if(value not_eq "en-US") {
-            printf("Cookie with name 'lang' found, but with wrong value. Updating cookie.\n");
-            res->update_cookie("lang", "", "", "en-US");
-          } else {  // Cookie 'lang' exists and has wanted value ('en-US')
-            printf("Wanted cookie already exists (name 'lang' and value 'en-US')!\n");
+          if (value == "") {
+            printf("%s\n", "Cookie with name 'lang' not found! Creating it.");
+            res->cookie("lang", lang);
+          } else if (value not_eq lang) {
+            printf("%s\n", "Cookie with name 'lang' found, but with wrong value. Updating cookie.");
+            res->update_cookie("lang", "", "", lang);
+          } else {
+            printf("%s %s %s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str() ,"')!");
             res->send(true);
           }
 
         } else {
-          printf("Request has no cookies! Creating cookie.\n");
-          // Want to create lang-cookie then:
-          res->cookie("lang", "en-US");
+          printf("%s\n", "Request has no cookies! Creating cookie.");
+          res->cookie("lang", lang);
         }
+      };
+
+      routes.on_get("/api/english", [&lang_api_handler](server::Request_ptr req, auto res) {
+        lang_api_handler(req, res, "en-US");
       });
 
-      routes.on_get("/api/norwegian", [](server::Request_ptr req, auto res) {
-        if(req->has_attribute<CookieJar>()) {
-          auto req_cookies = req->get_attribute<CookieJar>();
-
-          // Print all the request-cookies
-          std::map<std::string, std::string> all_cookies = req_cookies->get_cookies();
-          for(const auto& c : all_cookies)
-            printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
-
-          std::string value = req_cookies->find("lang");
-
-          if(value == "") {
-            printf("Cookie with name 'lang' not found! Creating it.\n");
-            res->cookie("lang", "nb-NO");
-          } else if(value not_eq "nb-NO") {
-            printf("Cookie with name 'lang' found, but with wrong value. Updating cookie.\n");
-            res->update_cookie("lang", "", "", "nb-NO");
-          } else {  // Cookie 'lang' exists and has wanted value ('nb-NO')
-            printf("Wanted cookie already exists (name 'lang' and value 'nb-NO')!\n");
-            res->send(true);
-          }
-
-        } else {
-          printf("Request has no cookies! Creating cookie.\n");
-          // Want to create lang-cookie then:
-          res->cookie("lang", "nb-NO");
-        }
+      routes.on_get("/api/norwegian", [&lang_api_handler](server::Request_ptr req, auto res) {
+        lang_api_handler(req, res, "nb-NO");
       });
-
-  // UNTIL HERE
+      /*----------[END TEST OF] CookieJar and CookieParser----------*/
 
       routes.on_get("/api/squirrels", [](auto, auto res) {
         printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
@@ -195,7 +173,7 @@ void Service::start() {
 
       routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
         using namespace json;
-        auto json = req->get_attribute<JsonDoc>();
+        auto json = req->get_attribute<Json_doc>();
         if(!json) {
           res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
         }
@@ -218,8 +196,8 @@ void Service::start() {
             // send the created entity as response
             res->send_json(s.json());
           }
-          catch(AssertException e) {
-            printf("[@POST:/api/squirrels] AssertException: %s\n", e.what());
+          catch(Assert_error e) {
+            printf("[@POST:/api/squirrels] Assert_error: %s\n", e.what());
             res->error({"Parsing Error", "Could not parse data."});
           }
           catch(bucket::ConstraintException e) {
@@ -232,6 +210,34 @@ void Service::start() {
           }
         }
       });
+
+    // TESTING PathToRegexp/route/router.hpp FROM HERE
+
+      routes.on_get("/api/users/:id(\\d+)/:name/something/:something([a-z]+)",
+        [](server::Request_ptr req, auto res) {
+
+        // Get parameters:
+        // Alt.: std::string id = req->params().get("id");
+        auto& params = req->params();
+        std::string id = params.get("id");
+        std::string name = params.get("name");
+        std::string something = params.get("something");
+
+        // std::string doesntexist = params.get("doesntexist");  // throws ParamException
+
+        printf("id: %s\n", id.c_str());
+        printf("name: %s\n", name.c_str());
+        printf("something: %s\n", something.c_str());
+
+        printf("[@GET:/api/users/:id(\\d+)/:name/something/:something([a-z]+)] Responding with content inside UserBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        users->serialize(writer);
+        res->send_json(sb.GetString());
+      });
+
+    // UNTIL HERE
 
       routes.on_get("/api/users", [](auto, auto res) {
         printf("[@GET:/api/users] Responding with content inside UserBucket\n");
