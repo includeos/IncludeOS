@@ -46,10 +46,10 @@ private:
   //-------------------------------
   // Internal class type aliases
   //-------------------------------
-  using Port     = const unsigned;
-  using IP_Stack = std::shared_ptr<net::Inet4<VirtioNet>>;
+  using Port      = const unsigned;
+  using IP_stack  = net::Inet4;
   using OnConnect = net::tcp::Connection::ConnectCallback;
-  using Path = std::string;
+  using Path      = std::string;
   struct MappedCallback {
     Path path;
     Callback callback;
@@ -64,14 +64,15 @@ public:
   //-------------------------------
   explicit Server();
 
-  Server(IP_Stack);
+  Server(IP_stack&);
 
   //-------------------------------
   // Default destructor
   //-------------------------------
   ~Server() noexcept = default;
 
-  net::Inet4<VirtioNet>& ip_stack() const;
+  IP_stack& ip_stack() const
+  { return inet_; }
 
   //-------------------------------
   // Get the underlying router
@@ -120,7 +121,7 @@ private:
   //-------------------------------
   // Class data members
   //-------------------------------
-  IP_Stack inet_;
+  IP_stack& inet_;
   Router   router_;
   std::vector<Connection_ptr> connections_;
   std::vector<size_t> free_idx_;

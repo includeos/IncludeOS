@@ -111,7 +111,8 @@ public:
           printf("<Waitress> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
           http::Mime_Type mime = http::extension_to_type(get_extension(path));
           res->add_header(http::header_fields::Entity::Content_Type, mime);
-          return res->send_file({disk_, entry});
+          res->send_file({disk_, entry});
+          return;
         }
       });
     }

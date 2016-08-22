@@ -45,7 +45,7 @@ cmos::Time STARTED_AT;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
-void Service::start() {
+void Service::start(const std::string&) {
 
   // Test {URI} component
   uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
@@ -133,7 +133,7 @@ void Service::start() {
               printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
             }
           }
-          
+
           const auto& value = req_cookies->cookie_value("lang");
 
           if (value == "") {
@@ -270,8 +270,18 @@ void Service::start() {
           }
         });
       });
+
+      /** Setup server **/
+      // Bring up IPv4 stack on network interface 0
+      auto& stack = net::Inet4::stack<0>();
+      // config
+      stack.network_config({ 10,0,0,42 },     // IP
+                           { 255,255,255,0 }, // Netmask
+                           { 10,0,0,1 },      // Gateway
+                           { 8,8,8,8 });      // DNS
       // initialize server
-      server_ = std::make_unique<server::Server>();
+      server_ = std::make_unique<server::Server>(stack);
+      // set routes and start listening
       server_->set_routes(routes).listen(80);
 
       STARTED_AT = cmos::now();
@@ -305,6 +315,66 @@ void Service::start() {
       hw::PIT::instance().on_repeated_timeout(1min, []{
         printf("@onTimeout [%s]\n%s\n",
           cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
+      });
+
+      auto& tcp = server_->ip_stack().tcp();
+      tcp.bind(8080).on_connect(
+      [](auto conn)
+      {
+        conn->on_read(2048,
+        [conn](auto, size_t)
+        {
+          disk->fs().stat("/public/static/books/borkman.txt",
+          [conn](auto, const auto& entry)
+          {
+            http::Response res;
+            res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
+            // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+            res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
+            res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
+            res.add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
+            conn->write(res);
+
+            Async::upload_file(disk, entry, conn,
+            [](auto err, bool good)
+            {
+              if(err)
+                printf("Err\n");
+              else
+                printf(good ? "good" : "bad");
+              printf(" - heap: %u\n", OS::heap_usage() / 1024);
+            });
+          });
+        });
+      });
+
+      tcp.bind(8081).on_connect(
+      [](auto conn)
+      {
+        static uint32_t usage = OS::heap_usage();
+        conn->on_read(2048,
+        [conn](auto, size_t)
+        {
+          if(OS::heap_usage() > usage) {
+            printf("heap increase: %u => %u (current: %u MB) (increase: %u kb)\n",
+              usage, OS::heap_usage(), OS::heap_usage() / (1024*1024), (OS::heap_usage() - usage) / 1024);
+            usage = OS::heap_usage();
+          }
+
+          const static size_t N = 1024*1024*10;
+          http::Response res;
+          res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
+          // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+          res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
+          res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
+          res.add_header(http::header_fields::Entity::Content_Length, std::to_string(N));
+          conn->write(res);
+
+          auto buf = net::tcp::new_shared_buffer(N);
+          memset(buf.get(), '!', N);
+
+          conn->write(buf, N);
+        });
       });
 
     }); // < disk
