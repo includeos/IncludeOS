@@ -22,19 +22,18 @@
 #include <net/inet4>
 
 using namespace net;
-std::unique_ptr<Inet4<VirtioNet> > inet;
 
 void Service::start(const std::string&)
 {
-  inet = new_ipv4_stack(
-      {  10,  0,  0, 42 },   // IP
-      { 255, 255, 0,  0 },   // Netmask
-      {  10,  0,  0,  1 } ); // Gateway
-  printf("Service IP address is %s\n", inet->ip_addr().str().c_str());
+  auto& inet = Inet4::stack<0>();
+  inet.network_config({  10,  0,  0, 42 },   // IP
+                      { 255, 255, 0,  0 },   // Netmask
+                      {  10,  0,  0,  1 } ); // Gateway
+  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   // UDP
   const UDP::port_t port = 4242;
-  auto& sock = inet->udp().bind(port);
+  auto& sock = inet.udp().bind(port);
 
   sock.on_read(
   [&sock] (UDP::addr_t addr, UDP::port_t port,

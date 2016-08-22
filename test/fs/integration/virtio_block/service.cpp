@@ -28,7 +28,7 @@ void list_partitions(decltype(disk));
 void Service::start(const std::string&)
 {
   // instantiate memdisk with FAT filesystem
-  auto& device = hw::Devices::drive(1);
+  auto& device = hw::Devices::drive(0);
   disk = std::make_shared<fs::Disk> (device);
   // assert that we have a disk
   CHECKSERT(disk, "Disk created");

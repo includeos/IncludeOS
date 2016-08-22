@@ -12,6 +12,9 @@ FILES=service.cpp
 # Your disk image
 DISK=
 
+# Add virtioblk driver
+DRIVERS=virtioblk
+
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
 INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install

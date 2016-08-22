@@ -22,9 +22,6 @@
 #include <sstream>
 #include <timer>
 
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
-
 using namespace std::chrono;
 
 
@@ -74,40 +71,33 @@ uint64_t TCP_BYTES_SENT = 0;
 
 void Service::start(const std::string&)
 {
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  static auto& inet = net::Inet4::stack<0>();
 
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
+  inet.network_config( { 10,0,0,42 },      // IP
+                       { 255,255,255,0 },  // Netmask
+                       { 10,0,0,1 },       // Gateway
+                       { 8,8,8,8 } );      // DNS
 
   srand(OS::cycles_since_boot());
 
   // Set up a TCP server
-  auto& server = inet->tcp().bind(80);
-  inet->tcp().set_MSL(5s);
-  auto& server_mem = inet->tcp().bind(4243);
+  auto& server = inet.tcp().bind(80);
+  inet.tcp().set_MSL(5s);
+  auto& server_mem = inet.tcp().bind(4243);
 
   // Set up a UDP server
   net::UDP::port_t port = 4242;
-  auto& conn = inet->udp().bind(port);
+  auto& conn = inet.udp().bind(port);
 
   net::UDP::port_t port_mem = 4243;
-  auto& conn_mem = inet->udp().bind(port_mem);
+  auto& conn_mem = inet.udp().bind(port_mem);
 
 /*
   Timers::periodic(10s, 10s,
   [] (Timers::id_t) {
-    printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
+    printf("<Service> TCP STATUS:\n%s \n", inet.tcp().status().c_str());
 
     auto memuse =  OS::heap_usage();
     printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
