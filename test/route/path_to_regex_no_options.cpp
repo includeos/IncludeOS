@@ -677,13 +677,13 @@ const lest::test test_path_to_regex_no_options[] =
         }
       }
 
-      /* TODO
+      // TODO
       WHEN("Calling path_to_regex with path '/:test([a-z]+)'")
       {
         // Everything works as expected when is case sensitive
         // But when setting the icase constant (ignore case) it doesn't
 
-        // Basic example for testing icase:
+        /* Basic example for testing icase:
 
         std::regex test_regex("[a-z]+");
         EXPECT_NOT(std::regex_match("A", test_regex));
@@ -698,7 +698,7 @@ const lest::test test_path_to_regex_no_options[] =
         EXPECT(std::regex_match("a", test_regex_2));
         EXPECT(std::regex_match("b", test_regex_2));
 
-        // Basic example for testing icase end
+        // Basic example for testing icase end */
 
         // Not case sensitive (default) - does not work as expected:
         std::regex r = PathToRegex::path_to_regex("/:test([a-z]+)", keys);
@@ -741,7 +741,7 @@ const lest::test test_path_to_regex_no_options[] =
           EXPECT(std::regex_match("/users", r));
           EXPECT(std::regex_match("/somethingelseentirely", r));
         }
-      }*/
+      }
 
       WHEN("Calling path_to_regex with path '/:test/' (endsWithSlash)")
       {
@@ -846,7 +846,7 @@ const lest::test test_path_to_regex_no_options[] =
         }
       }
 
-      /* TODO:
+      // TODO
       WHEN("Calling path_to_regex with path '/users/([a-z]+)/(.?)'")
       {
         std::regex r = PathToRegex::path_to_regex("/users/([a-z]+)/(.?)", keys);
@@ -894,7 +894,7 @@ const lest::test test_path_to_regex_no_options[] =
           // While /B is not allowed
           // Default (is the case here) is that the regex is not case sensitive (sensitive is false)
           EXPECT(std::regex_match("/users/A/a", r));
-          //EXPECT(std::regex_match("/users/B/a", r));
+          EXPECT(std::regex_match("/users/B/a", r));
 
           EXPECT_NOT(std::regex_match("/m/abcd/2", r));
           EXPECT_NOT(std::regex_match("/users/molly/2016", r));
@@ -906,7 +906,7 @@ const lest::test test_path_to_regex_no_options[] =
           EXPECT(std::regex_match("/users/some/w", r));
           EXPECT(std::regex_match("/users/p/2", r));
         }
-      }*/
+      }
 
       WHEN("Calling path_to_regex with path '/*'")
       {
