@@ -160,6 +160,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Initialize PCI devices
   PCI_manager::init();
 
+  // Print registered devices
+  hw::Devices::print_devices();
+
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
