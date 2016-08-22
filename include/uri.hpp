@@ -18,7 +18,7 @@
 #ifndef URI_HPP
 #define URI_HPP
 
-#include <gsl.h>
+#include <gsl/gsl>
 #include <unordered_map>
 
 namespace uri {
@@ -156,6 +156,22 @@ namespace uri {
     const std::string& query(const std::string& key);
 
     /**
+     * @brief Check to see if an object of this type is valid
+     *
+     * @return true if valid, false otherwise
+     */
+    bool is_valid() const noexcept;
+
+    /**
+     * @brief Convert an object of this type to a boolean value
+     *
+     * @see is_valid
+     *
+     * @return true if valid, false otherwise
+     */
+    operator bool() const noexcept;
+
+    /**
      * @brief Get a string representation of this
      * class
      *
@@ -173,7 +189,7 @@ namespace uri {
     /*
      * A copy of the data representing a uri
      */
-    const std::string uri_str_;
+    std::string uri_str_;
 
     mutable uint16_t port_;
 
@@ -199,6 +215,27 @@ namespace uri {
     void load_queries();
 
   }; // class uri::URI
+
+  /**
+   * @brief Less-than operator to compare two {URI} objects
+   *
+   * @param lhs : {URI} object to compare
+   * @param rhs : {URI} object to compare
+   *
+   * @return true if lhs is less-than rhs, false otherwise
+   */
+  bool operator < (const URI& lhs, const URI& rhs) noexcept;
+
+  /**
+   * @brief Operator to compare two {URI} objects
+   * for equality
+   *
+   * @param lhs : {URI} object to compare
+   * @param rhs : {URI} object to compare
+   *
+   * @return true if equal, false otherwise
+   */
+  bool operator == (const URI& lhs, const URI& rhs) noexcept;
 
   /**
    * @brief Operator to stream the contents of a {URI}
