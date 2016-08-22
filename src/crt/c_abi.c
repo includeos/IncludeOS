@@ -53,11 +53,13 @@ void _init_c_runtime()
   extern int   _init_elf_parser(void*);
   extern void* _relocate_to_heap(char*);
   extern void  _apply_parser_data(void*);
-  void* TEMP_LOCATION = (void*) &_end + 0x800000;
+  // there is a 600k memory hole at the beginning of memory
+  // put symbols at 128k
+  void* TEMP_LOCATION = (void*) 0x20000;
   // move symbols to a temporary location that is abit further out than heap
   // do this as early as possible, even before zeroing BSS to prevent overwriting
   // all the data we need to keep for backtrace functionality
-  int stripped = _init_elf_parser(TEMP_LOCATION);
+  _init_elf_parser(TEMP_LOCATION);
   
   // Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
@@ -94,19 +96,12 @@ void _init_c_runtime()
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);  
 
+  // set parser location here (after initializing everything else)
+  _apply_parser_data(TEMP_LOCATION); 
+
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
-
-  if (!stripped) {
-    /// move elf symbols to heap, and apply settings to parser
-    // relocate symbols from temp location to safe heap location
-    void* heaploc = _relocate_to_heap(TEMP_LOCATION);
-    _apply_parser_data(heaploc);
-  }
-  else {
-   _apply_parser_data(NULL); 
-  }
 
   // sanity checks
   assert(heap_begin >= &_end);

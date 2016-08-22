@@ -54,6 +54,9 @@ public:
     : name_{name}, description_{descr}
   {
 
+    if (begin > end)
+      throw Memory_range_exception("Start is larger than end: " + 
+          std::to_string(begin) + " > " + std::to_string(end));
     if (end - begin > span_max())
       throw Memory_range_exception("Maximum range size is " + std::to_string(span_max()));
 
@@ -119,7 +122,6 @@ public:
 
 
 private:
-  static const int name_size = 30;
   Span range_;
   const char* name_;
   const std::string description_;
