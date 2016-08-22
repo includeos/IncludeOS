@@ -19,75 +19,75 @@
 
 namespace cookie {
 
+///////////////////////////////////////////////////////////////////////////////
 size_t CookieJar::size() const noexcept {
   return cookies_.size();
 }
 
+///////////////////////////////////////////////////////////////////////////////
 bool CookieJar::empty() const noexcept {
-  return size() == 0;
+  return cookies_.empty();
 }
 
+///////////////////////////////////////////////////////////////////////////////
 bool CookieJar::insert(const Cookie& c) noexcept {
-  auto ret = cookies_.emplace(std::make_pair(c.get_name(), c.get_value()));
-  return ret.second;
+  return cookies_.emplace(std::make_pair(c.get_name(), c.get_value())).second;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 bool CookieJar::insert(const std::string& name, const std::string& value) {
-  auto ret = cookies_.emplace(std::make_pair(name, value));
-  return ret.second;
+  return cookies_.emplace(std::make_pair(name, value)).second;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 CookieJar& CookieJar::erase(const Cookie& c) noexcept {
-  // Erasing by iterator:
-  /*auto it = cookies_.find(c.get_name());
-  cookies_.erase(it);*/
-
-  // Erasing by key:
   cookies_.erase(c.get_name());
-
   return *this;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 CookieJar& CookieJar::erase(const std::string& name) noexcept {
-  // Erasing by iterator:
-  /*auto it = cookies_.find(name);
-  cookies_.erase(it);*/
-
-  // Erasing by key:
   cookies_.erase(name);
-
   return *this;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 CookieJar& CookieJar::clear() noexcept {
   cookies_.erase(cookies_.begin(), cookies_.end());
   return *this;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 bool CookieJar::exists(const std::string& name) const noexcept {
-  auto it = cookies_.find(name);
-  return (it not_eq cookies_.end());
+  return cookies_.find(name) not_eq cookies_.end();
 }
 
-std::string CookieJar::find(const std::string& name) const noexcept {
+///////////////////////////////////////////////////////////////////////////////
+const std::string& CookieJar::cookie_value(const std::string& name) const noexcept {
+  static const std::string no_entry_value;
+
   auto it = cookies_.find(name);
 
-  if (it != cookies_.end()) // if found
+  if (it not_eq cookies_.end()) {
     return it->second;
+  }
 
-  return "";
+  return no_entry_value;
 }
 
-std::map<std::string, std::string> CookieJar::get_cookies() const noexcept {
+///////////////////////////////////////////////////////////////////////////////
+const std::map<std::string, std::string>& CookieJar::get_cookies() const noexcept {
   return cookies_;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 std::map<std::string, std::string>::const_iterator CookieJar::begin() const noexcept {
   return cookies_.cbegin();
 }
 
+///////////////////////////////////////////////////////////////////////////////
 std::map<std::string, std::string>::const_iterator CookieJar::end() const noexcept {
   return cookies_.cend();
 }
 
-};  // < namespace cookie
+}; //< namespace cookie
