@@ -15,35 +15,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cassert>
-#include <smp>
+#pragma once
+#ifndef UTIL_FIXEDVEC_HPP
+#define UTIL_FIXEDVEC_HPP
 
-void Service::start(const std::string&)
-{
-  static int completed = 0;
-  static uint32_t job = 0;
-  static const int TASKS = 8 * sizeof(job);
+/**
+ * High performance no-heap fixed vector
+ * 
+ **/
+
+#include <cstdint>
+#include <cstring>
+
+template <typename T, int N>
+struct fixedvector {
   
-  // schedule tasks
-  for (int i = 0; i < TASKS; i++)
-  SMP::add_task(
-  [i] {
-    // the job
-    __sync_fetch_and_or(&job, 1 << i);
-  }, 
-  [i] {
-    // job completion
-    completed++;
-    
-    if (completed == TASKS) {
-      printf("All jobs are done now, compl = %d\n", completed);
-      printf("bits = %#x\n", job);
-      assert(job = 0xffffffff && "All 32 bits must be set");
-    }
-  });
-  // start working on tasks
-  SMP::start();
+  void add(const T& e) noexcept {
+    element[count] = e;
+    count++;
+  }
   
-  printf("*** TEST SERVICE STARTED *** \n");
-}
+  void clear() noexcept {
+    count = 0;
+  }
+  uint32_t size() const noexcept {
+    return count;
+  }
+  
+  T* first() noexcept {
+    return &element[0];
+  }
+  T* end() noexcept {
+    return &element[count];
+  }
+  
+  bool free_capacity() const noexcept {
+    return count < N;
+  }
+  
+  void clone(T* src, uint32_t size) {
+    memcpy(element, src, size * sizeof(T));
+    count = size;
+  }
+  
+  uint32_t count = 0;
+  T element[N];
+};
+
+
+#endif

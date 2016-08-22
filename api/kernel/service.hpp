@@ -18,8 +18,6 @@
 #ifndef KERNEL_SERVICE_HPP
 #define KERNEL_SERVICE_HPP
 
-extern "C" const char* service_name__;
-
 #include <string>
 
 /**
@@ -34,8 +32,7 @@ public:
    *
    *  @return: The name of the service
    */
-  static const std::string name()
-  { return service_name__; }
+  static std::string name();
   
   /**
    *  The service entry point
@@ -50,7 +47,18 @@ public:
    *        Your service should hook up event handlers to some of the events
    *        (like `Nic::on(HttpConnection, your_callback`))
    */
-  static void start();
+  static void start(const std::string&);
+
+  /**
+   * Returns the command-line provided to multiboot
+  **/
+  static const std::string& command_line();
+
+  /**
+   * Ready is called when the kernel is done calibrating stuff and won't be 
+   * doing anything on its own anymore
+  **/
+  static void ready();
 
   /**
    *  Graceful shutdown

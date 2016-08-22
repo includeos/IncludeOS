@@ -20,13 +20,19 @@
 #ifndef API_PROFILE_HEADER
 #define API_PROFILE_HEADER
 
-#include <cstdint>
+struct StackSampler
+{
+  // sets up stack sampling configuration and internal timer
+  static void begin();
+  // 
+  static void print();
+  static void set_mask(bool);
+};
 
-extern void begin_stack_sampling(uint16_t gather_period_ms);
-extern void print_stack_sampling();
-
-// used to validate that the backtrace is not corrupt
 extern "C" {
+  // print memory usage changes over time
+  extern void print_heap_info();
+  // used to validate that the backtrace is not corrupt
   extern void __validate_backtrace(char const* where, unsigned id = 0);
 }
 

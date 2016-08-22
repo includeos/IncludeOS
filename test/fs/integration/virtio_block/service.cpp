@@ -25,7 +25,7 @@ void list_partitions(decltype(disk));
 
 #define MYINFO(X,...) INFO("VirtioBlk",X,##__VA_ARGS__)
 
-void Service::start()
+void Service::start(const std::string&)
 {
   // instantiate memdisk with FAT filesystem
   auto& device = hw::Dev::disk<1, VirtioBlk>();

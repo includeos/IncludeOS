@@ -41,11 +41,13 @@ ifndef LD_INC
 	LD_INC = ld
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL/include $(LOCAL_INCLUDES)
+INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL $(LOCAL_INCLUDES)
 
 all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Os
+# by default, remove debugging
+STRIPPED=-S
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld
@@ -76,10 +78,9 @@ DEPS = $(OBJS:.o=.d)
 .PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: service
-all: STRIPPED = --strip-unneeded
 
 stripped: LDOPTS  += -s
-stripped: STRIPPED = --strip-all -R.comment
+stripped: STRIPPED=--strip-all
 stripped: service
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
@@ -91,6 +92,7 @@ debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
 debug: CAPABS += -O0
+debug: STRIPPED=
 debug: service
 
 # Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
@@ -134,7 +136,6 @@ endif
 	@echo "\n>> Linking service with OS"
 	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 ifneq ($(STRIPPED),)
-	@echo "\n>> strip  $(STRIPPED) $(SERVICE)"
 	strip $(STRIPPED) $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img

@@ -18,7 +18,7 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <gsl.h> // Expects/Ensures
+#include <gsl/gsl> // Expects/Ensures
 #include <regex>
 #include <string>
 

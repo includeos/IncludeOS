@@ -52,9 +52,8 @@ __attribute__ ((constructor)) void foo(void)
 
 
 
-void Service::start()
+void Service::start(const std::string&)
 {
-
   INFO("Test CRT","Testing C runtime \n");
 
   CHECKSERT(_test_glob3 == 0xfa7ca7, "Global C constructors in service");
@@ -69,5 +68,4 @@ void Service::start()
 
 
   INFO("Test CRT", "SUCCESS");
-
 }

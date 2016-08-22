@@ -24,7 +24,7 @@ using namespace std;
 using namespace net;
 auto& timer = hw::PIT::instance();
 
-void Service::start()
+void Service::start(const std::string&)
 {
   static auto inet =
     net::new_ipv4_stack<>({ 10,0,0,42 },      // IP

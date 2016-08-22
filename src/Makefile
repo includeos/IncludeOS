@@ -9,7 +9,7 @@ endif
 # shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
-STACK_PROTECTOR_VALUE=$(shell awk 'BEGIN{print int(rand()*65536)}')
+STACK_PROTECTOR_VALUE=$(shell date +%s)
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=$(STACK_PROTECTOR_VALUE)
@@ -38,7 +38,7 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 ###################################################
 
 CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
-CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++)
 # Set defaults if not defined
 ifndef LD_INC
 	LD_INC = ld
@@ -54,7 +54,7 @@ endif
 CCOPTS  = -target i686-elf
 CPPOPTS = -target i686-elf
 
-INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../mod/GSL/include
+INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../mod/GSL
 CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
 CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
@@ -71,7 +71,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o kernel/profile.o \
-		kernel/timer.o util/memstream.o util/async.o \
+		kernel/timer.o kernel/rtc.o util/memstream.o util/async.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		hw/ps2.o hw/serial.o hw/cmos.o \

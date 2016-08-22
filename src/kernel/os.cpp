@@ -18,8 +18,7 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
 #include <os>
 #include <boot/multiboot.h>
 #include <kernel/elf.hpp>
@@ -31,6 +30,7 @@
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/timer.hpp>
+#include <kernel/rtc.hpp>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -52,12 +52,10 @@ const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();
-
+// Multiboot command line for the service
+static std::string os_cmdline = "";
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
-
-  // Initialize serial port
-  com1.init();
 
   // Print a fancy header
   FILLINE('=');
@@ -87,7 +85,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   }
 
   debug("\t[*] OS class started\n");
-  srand(time(NULL));
+  srand((uint32_t) cycles_since_boot());
 
   atexit(default_exit);
 
@@ -186,17 +184,21 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   [] {
     // set final interrupt handler
     hw::APIC_Timer::set_handler(Timers::timers_handler);
+    // signal that kernel is done with everything
+    Service::ready();
     // signal ready
+    // NOTE: this executes the first timers, so we
+    // don't want to run this before calling Service ready
     Timers::ready();
   });
 
-  // Initialize CMOS
-  cmos::init();
+  // Realtime/monotonic clock
+  RTC::init();
 
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
-  Service::start();
+  Service::start(Service::command_line());
 
   event_loop();
 }
@@ -218,11 +220,22 @@ void OS::event_loop() {
 
   while (power_) {
     IRQ_manager::cpu(0).notify();
-    debug("<OS> Woke up @ t = %li\n", uptime());
+    // add a global symbol here so we can quickly discard
+    // event loop from stack sampling
+    asm volatile(
+    ".global _irq_cb_return_location;\n"
+    "_irq_cb_return_location:" );
   }
 
-  //Cleanup
-  //Service::stop();
+  // Cleanup
+  Service::stop();
+  // ACPI shutdown sequence
+  hw::ACPI::shutdown();
+}
+
+void OS::shutdown()
+{
+  power_ = false;
 }
 
 size_t OS::rsprint(const char* str) {
@@ -275,8 +288,10 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
         mem_high_start, mem_high_end, mem_high_kb);
   INFO2("");
 
-  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE)
-    INFO2("* Booted with parameters (unused for now): %s ", (char*) bootinfo->cmdline);
+  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
+    os_cmdline = (char*) bootinfo->cmdline;
+    INFO2("* Booted with parameters: %s", os_cmdline.c_str());
+  }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
     INFO2("* Multiboot provided memory map  (%i entries)",bootinfo->mmap_length / sizeof(multiboot_memory_map_t));
@@ -293,3 +308,27 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
     printf("\n");
   }
 }
+
+/// SERVICE RELATED ///
+
+// the name of the current service (built from another module)
+extern "C" {
+  __attribute__((weak))
+  const char* service_name__ = "(missing service name)";
+}
+
+std::string Service::name() {
+  return service_name__;
+}
+
+const std::string& Service::command_line()
+{
+  return os_cmdline;
+}
+
+// functions that we can override if we want to
+__attribute__((weak))
+void Service::ready() {}
+
+__attribute__((weak))
+void Service::stop() {}

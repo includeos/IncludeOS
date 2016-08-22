@@ -26,7 +26,7 @@
 
 static const char* null_stringz = "(null)";
 static const char* boot_stringz = "Bootloader area";
-extern uintptr_t _ELF_START_;
+extern "C" char _ELF_START_;
 static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
 
 #define frp(N, ra)                                 \
@@ -52,42 +52,21 @@ struct SymTab {
   Elf32_Sym* base;
   uint32_t   entries;
 };
+struct StrTab {
+  char*    base;
+  uint32_t size;
+};
 
 class ElfTables
 {
 public:
-  ElfTables()
-    : strtab(nullptr)
+  ElfTables() {}
+  
+  void set(void* syms, uint32_t entries, char* string_table)
   {
-    auto& elf_hdr = elf_header();
-
-    // enumerate all section headers
-    auto* shdr = (Elf32_Shdr*) (ELF_START + elf_hdr.e_shoff);
-    for (Elf32_Half i = 0; i < elf_hdr.e_shnum; i++)
-    {
-      switch (shdr[i].sh_type)
-      {
-      case SHT_SYMTAB:
-        symtab[num_syms] = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset),
-                              shdr[i].sh_size / sizeof(Elf32_Sym) };
-        num_syms++;
-        //printf("found symtab at %#x\n", shdr[i].sh_offset);
-        //debug("found symbol table at %p with %u entries\n",
-        //    this->symtab, this->st_entries);
-        break;
-      case SHT_STRTAB:
-        this->strtab = (char*) (ELF_START + shdr[i].sh_offset);
-        this->strtab_size = shdr[i].sh_size;
-        break;
-      case SHT_DYNSYM:
-      default:
-        // don't care tbh
-        break;
-      }
-    }
-    if (num_syms == 0 || strtab == nullptr) {
-      INFO("ELF", "symtab or strtab is empty, indicating image may be stripped\n");
-    }
+    symtab.base    = (Elf32_Sym*) syms;
+    symtab.entries = entries;
+    strtab         = string_table;
   }
 
   func_offset getsym(Elf32_Addr addr)
@@ -98,6 +77,8 @@ public:
     if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
+    // validate symbol address
+    //assert(sym >= symtab.base && sym < symtab.base + symtab.entries);
     if (sym) {
       auto base   = sym->st_value;
       auto offset = addr - base;
@@ -128,24 +109,23 @@ public:
 
   Elf32_Addr getaddr(const std::string& name)
   {
-    for (size_t t = 0; t < num_syms; t++)
-    for (size_t i = 0; i < symtab[t].entries; i++) {
-
-      //printf("sym %s\n", sym_name(&symtab[t].base[i]));
-      if (demangle( sym_name(&symtab[t].base[i]) ) == name)
-          return symtab[t].base[i].st_value;
-
+    for (size_t i = 0; i < symtab.entries; i++)
+    {
+      auto& sym = symtab.base[i];
+      //if (ELF32_ST_TYPE(sym.st_info) == STT_FUNC)
+      if (demangle( sym_name(&sym) ) == name)
+          return sym.st_value;
     }
     return 0;
   }
   Elf32_Sym* getaddr(Elf32_Addr addr)
   {
-    for (size_t t = 0; t < num_syms; t++)
-    for (size_t i = 0; i < symtab[t].entries; i++) {
+    for (size_t i = 0; i < symtab.entries; i++) {
 
-      if (addr >= symtab[t].base[i].st_value
-      && (addr <  symtab[t].base[i].st_value + symtab[t].base[i].st_size))
-          return &symtab[t].base[i];
+      if (ELF32_ST_TYPE(symtab.base[i].st_info) == STT_FUNC)
+      if (addr >= symtab.base[i].st_value
+      && (addr <  symtab.base[i].st_value + symtab.base[i].st_size))
+          return &symtab.base[i];
     }
     return nullptr;
   }
@@ -155,11 +135,12 @@ public:
     return hdr.e_ehsize + (hdr.e_phnum * hdr.e_phentsize) + (hdr.e_shnum * hdr.e_shentsize);
   }
 
+  const SymTab& get_symtab() const {
+    return symtab;
+  }
+
   const auto* get_strtab() const {
     return strtab;
-  }
-  auto get_strtab_size() const {
-    return strtab_size;
   }
 
 private:
@@ -193,14 +174,12 @@ private:
     return res;
   }
 
-  SymTab  symtab[4];
-  size_t  num_syms;
+  SymTab      symtab;
   const char* strtab;
-  size_t      strtab_size;
 };
+static ElfTables parser;
 
 ElfTables& get_parser() {
-  static ElfTables parser;
   return parser;
 }
 
@@ -209,9 +188,6 @@ size_t Elf::end_of_file() {
 }
 const char* Elf::get_strtab() {
   return get_parser().get_strtab();
-}
-size_t Elf::get_strtab_size() {
-  return get_parser().get_strtab_size();
 }
 
 func_offset Elf::resolve_symbol(uintptr_t addr)
@@ -280,16 +256,22 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  char symbol_buffer[161];
-  char btrace_buffer[181];
+  char _symbol_buffer[512];
+  char _btrace_buffer[512];
+  
+  if (Elf::get_strtab() == NULL) {
+    int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer), 
+              "symtab or strtab is empty, indicating image may be stripped\n");
+    write(1, _btrace_buffer, len);
+  }
 
   #define PRINT_TRACE(N, ra) \
-    auto symb = Elf::safe_resolve_symbol( \
-                ra, symbol_buffer, 160);  \
-    auto len = snprintf(btrace_buffer, 180,\
+    auto symb = Elf::safe_resolve_symbol(                     \
+                ra, _symbol_buffer, sizeof(_symbol_buffer));  \
+    int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
              "[%d] %8x + 0x%.3x: %s\n", \
              N, symb.addr, symb.offset, symb.name);\
-    write(1, btrace_buffer, len);
+    write(1, _btrace_buffer, len);
 
   printf("\n");
   void* ra;
@@ -314,27 +296,6 @@ void print_backtrace()
   }}}}}}}}}
 }
 
-extern "C" {
-  extern char _end;
-
-  uintptr_t __elf_header_end() {
-    auto& hdr = elf_header();
-    uintptr_t last = 0;
-    // find last SH, calculate offset + size
-    auto* shdr = (Elf32_Shdr*) (ELF_START + hdr.e_shoff);
-    for (Elf32_Half i = 0; i < hdr.e_shnum; i++)
-    {
-      uintptr_t size = shdr[i].sh_offset + shdr[i].sh_size;
-      if (last < size) last = size;
-    }
-    // add base ELF address
-    last += ELF_START;
-    // compare to end
-    uintptr_t end = (uintptr_t) &_end;
-    return (end > last) ? end : last;
-  }
-}
-
 void Elf::print_info()
 {
   auto& hdr = elf_header();
@@ -351,4 +312,126 @@ void Elf::print_info()
     printf("sh from %#x to %#x\n", start, end);
   }
 
+}
+
+extern "C"
+void _print_elf_symbols()
+{
+  const auto& symtab = parser.get_symtab();
+  const char* strtab = parser.get_strtab();
+  
+  for (size_t i = 0; i < symtab.entries; i++)
+  {
+    printf("%8x: %s\n", symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
+  }
+  printf("*** %u entries\n", symtab.entries);
+}
+extern "C"
+void _validate_elf_symbols()
+{
+  const auto& symtab = parser.get_symtab();
+  const char* strtab = parser.get_strtab();
+  if (symtab.entries == 0 || strtab == nullptr) return;
+  
+  for (size_t i = 1; i < symtab.entries; i++)
+  {
+    if (symtab.base[i].st_value != 0) {
+      assert(symtab.base[i].st_value > 0x2000);
+      const char* string = &strtab[symtab.base[i].st_name];
+      assert(strlen(string));
+    }
+  }
+}
+
+struct relocate_header {
+  SymTab symtab;
+  StrTab strtab;
+};
+
+void _relocate_sections(char* new_location, SymTab& symtab, StrTab& strtab)
+{
+  auto& hdr = *(relocate_header*) new_location;
+  hdr.symtab = symtab;
+  hdr.strtab = strtab;
+  
+  // move symbols
+  char* symloc = new_location + sizeof(relocate_header);
+  memcpy(symloc, symtab.base, symtab.entries * sizeof(Elf32_Sym));
+  
+  // move strings
+  char* strloc = symloc + symtab.entries * sizeof(Elf32_Sym);
+  memcpy(strloc, strtab.base, strtab.size);
+  
+  hdr.symtab.base = (Elf32_Sym*) symloc;
+  hdr.strtab.base = strloc;
+}
+
+#include <malloc.h>
+
+extern "C"
+void* _relocate_to_heap(char* temp_location)
+{
+  auto& hdr = *(relocate_header*) temp_location;
+  
+  size_t total = sizeof(hdr) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
+  void* heap_location = malloc(total);
+  
+  _relocate_sections((char*) heap_location, hdr.symtab, hdr.strtab);
+  return heap_location;
+}
+
+static relocate_header init_header;
+
+extern "C"
+int _init_elf_parser(void* temp_location)
+{
+  SymTab symtab { nullptr, 0 };
+  StrTab strtab { nullptr, 0 };
+  auto& elf_hdr = elf_header();
+  
+  // enumerate all section headers
+  auto* shdr = (Elf32_Shdr*) (ELF_START + elf_hdr.e_shoff);
+  for (Elf32_Half i = 0; i < elf_hdr.e_shnum; i++)
+  {
+    switch (shdr[i].sh_type) {
+    case SHT_SYMTAB:
+      symtab = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset),
+                 shdr[i].sh_size / sizeof(Elf32_Sym) };
+      break;
+    case SHT_STRTAB:
+      strtab = { (char*) (ELF_START + shdr[i].sh_offset),
+                 shdr[i].sh_size };
+      break;
+    case SHT_DYNSYM:
+    default:
+      // don't care tbh
+      break;
+    }
+  }
+  
+  init_header.symtab = symtab;
+  init_header.strtab = strtab;
+  
+  // nothing to do if stripped
+  if (symtab.entries == 0 || strtab.size == 0) return 1;
+  
+  // hide sections to prevent them getting overwritten
+  // this is a temporary fix, until the sections get loaded from disk
+  if (temp_location)
+    _relocate_sections((char*) temp_location, symtab, strtab);
+  return 0;
+}
+
+extern "C"
+void _apply_parser_data(char* location)
+{
+  if (location) {
+    auto& hdr = *(relocate_header*) location;
+    // apply changes to the symbol parser from custom location
+    parser.set(hdr.symtab.base, hdr.symtab.entries, hdr.strtab.base);
+  }
+  else {
+    // symbols and strings are stripped out
+    parser.set(nullptr, 0, nullptr);
+  }
 }

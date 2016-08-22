@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdarg.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <utility/memstream.h>
@@ -41,23 +41,29 @@ __FILE* stderr;
 #ifndef _STACK_GUARD_VALUE_
 #define _STACK_GUARD_VALUE_ 0xe2dee396
 #endif
-uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
+const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
+extern char _end; // location set by linker script
 
 void _init_c_runtime()
 {
+  /// init backtrace functionality
+  extern int   _init_elf_parser(void*);
+  extern void* _relocate_to_heap(char*);
+  extern void  _apply_parser_data(void*);
+  void* TEMP_LOCATION = (void*) &_end + 0x800000;
+  // move symbols to a temporary location that is abit further out than heap
+  // do this as early as possible, even before zeroing BSS to prevent overwriting
+  // all the data we need to keep for backtrace functionality
+  int stripped = _init_elf_parser(TEMP_LOCATION);
+  
   // Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
   
   // Initialize the heap before exceptions
-  /// heap start is located at the end of the elf data, which
-  /// we can scan for by reading SH offsets
-  extern uintptr_t __elf_header_end(); // elf header size
-  uintptr_t end = __elf_header_end();
-  end += HEAP_ALIGNMENT - (end & (HEAP_ALIGNMENT-1));
-  heap_begin = (char*) end;
-  heap_end   = (char*) end;
+  heap_begin = &_end;
+  heap_end   = &_end;
   
   /// initialize newlib I/O
   newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);
@@ -73,10 +79,21 @@ void _init_c_runtime()
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);  
-  
+
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
+
+  if (!stripped) {
+    /// move elf symbols to heap, and apply settings to parser
+    // relocate symbols from temp location to safe heap location
+    void* heaploc = _relocate_to_heap(TEMP_LOCATION);
+    _apply_parser_data(heaploc);
+  }
+  else {
+   _apply_parser_data(NULL); 
+  }
+
 }
 
 // global/static objects should never be destructed here, so ignore this

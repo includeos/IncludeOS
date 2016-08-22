@@ -26,7 +26,7 @@ void Async::upload_file(
     [length, next] (size_t n) {
 
       // if all data written, go to next chunk
-      debug("sock write: %u / %u\n", n, length);
+      debug("<Async::upload_file> %u / %u\n", n, length);
       next(n == length);
 
     });

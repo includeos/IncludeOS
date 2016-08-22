@@ -6,8 +6,8 @@ ifndef INCLUDEOS_INSTALL
 	INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
 
-CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6)
-CPPOPTS = -std=c++14 -c -Wall -Wextra -O3  -I$(INCLUDEOS_INSTALL)/api -I$(INCLUDEOS_INSTALL)/mod/GSL/include -I.
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++)
+CPPOPTS = -std=c++14 -c -Wall -Wextra -O3  -I$(INCLUDEOS_INSTALL)/api -I$(INCLUDEOS_INSTALL)/mod/GSL -I.
 OBJS = vmbuild.o elf_binary.o
 OUT = vmbuild
 

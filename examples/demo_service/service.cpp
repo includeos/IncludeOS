@@ -65,7 +65,7 @@ std::string HTML_RESPONSE()
 
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
-void Service::start()
+void Service::start(const std::string&)
 {
   // Stack with default network interface (eth0) driven by VirtioNet
   // Static IP configuration will get overwritten by DHCP, if found

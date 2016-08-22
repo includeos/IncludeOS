@@ -32,7 +32,7 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-inline void IRQ_manager::register_irq(uint8_t vector)
+void IRQ_manager::register_irq(uint8_t vector)
 {
   irq_pend.atomic_set(vector);
 }
@@ -71,10 +71,13 @@ void IRQ_manager::init()
 void IRQ_manager::bsp_init()
 {
   const auto WORDS_PER_BMP = IRQ_LINES / 32;
-  auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
+  auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 4]();
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
+  irq_mask.set_location(bmp + 3 * WORDS_PER_BMP, WORDS_PER_BMP);
+  // set all bits in the mask
+  irq_mask.set_all();
 
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
@@ -185,10 +188,26 @@ void IRQ_manager::notify() {
     // sub and call handler
     irq_delegates_[intr]();
 
-    // rebuild on todo-list
+    // prevent this irq from immediately happening again
+    irq_mask.reset(intr);
+    
+    // rebuild todo-bits
     irq_todo.set_from_and(irq_subs, irq_pend);
+    // mask out interrupts we already visited
+    irq_todo &= irq_mask;
+    
     // find next interrupt
     intr = irq_todo.last_set();
+    
+    // if no interrupts were found, try again with no mask
+    if (intr == -1) {
+      // set all mask bits again
+      irq_mask.set_all();
+      // reset the todo bits
+      irq_todo.set_from_and(irq_subs, irq_pend);
+      // get new intr value
+      intr = irq_todo.last_set();
+    }
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");

@@ -44,7 +44,7 @@ public:
   using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
 
 public:
-  WriteQueue() : q(), current(0) {}
+  WriteQueue() : q(), current_(0) {}
 
   /*
     Acknowledge n bytes from the write queue.
@@ -60,8 +60,8 @@ public:
       bytes -= buf.acknowledge(bytes);
       if(buf.done()) {
         q.pop_front();
-        current--;
-        debug("<WriteQueue> Acknowledge done, current-- [%u]\n", current);
+        current_--;
+        debug("<WriteQueue> Acknowledge done, current-- [%u]\n", current_);
       }
     }
   }
@@ -71,6 +71,30 @@ public:
 
   size_t size() const
   { return q.size(); }
+
+  auto current() const
+  { return current_; }
+
+  auto bytes_total() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.length();
+    return n;
+  }
+
+  auto bytes_remaining() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.remaining;
+    return n;
+  }
+
+  auto bytes_unacknowledged() const {
+    uint32_t n = 0;
+    for(auto& it : q)
+      n += it.first.length() - it.first.acknowledged;
+    return n;
+  }
 
   /*
     If the queue has more data to send
@@ -83,13 +107,13 @@ public:
     Can be in the middle/back of the queue due to unacknowledged buffers in front.
   */
   const WriteBuffer& nxt()
-  { return q.at(current).first; }
+  { return q.at(current_).first; }
 
   /*
     The oldest unacknowledged buffer. (Always in front)
   */
   const WriteBuffer& una()
-  { return q.front().first; }
+  { return q.at(0).first; }
 
   /*
     Advances the queue forward.
@@ -97,7 +121,7 @@ public:
   */
   void advance(size_t bytes) {
 
-    auto& buf = q.at(current).first;
+    auto& buf = q.at(current_).first;
     buf.advance(bytes);
 
     debug2("<WriteQueue> Advance: bytes=%u off=%u rem=%u ack=%u\n",
@@ -106,9 +130,9 @@ public:
     if(!buf.remaining) {
       // make sure to advance current before callback is made,
       // but after index (current) is received.
-      q.at(current++).second(buf.offset);
+      q.at(current_++).second(buf.offset);
       debug("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
-        buf.offset, current);
+        buf.offset, current_);
     }
   }
 
@@ -118,7 +142,7 @@ public:
   */
   void push_back(const WriteRequest& wr) {
     debug("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
-      wr.first.offset, wr.first.remaining, wr.first.acknowledged, current, size());
+      wr.first.offset, wr.first.remaining, wr.first.acknowledged, current_, size());
     q.push_back(wr);
   }
 
@@ -134,18 +158,19 @@ public:
         req.second(req.first.offset);
       q.pop_front();
     }
-    current = 0;
+    current_ = 0;
+    debug("<WriteQueue::reset> Reset\n");
   }
 
 private:
   std::deque<WriteRequest> q;
   /* Current element (index) */
-  uint32_t current;
+  uint32_t current_;
 
 
 }; // < WriteQueue
 
-} // < namespace net
 } // < namespace tcp
+} // < namespace net
 
 #endif // < NET_TCP_WRITE_QUEUE_HPP

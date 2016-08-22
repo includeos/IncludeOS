@@ -27,9 +27,11 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+//#define NO_DEFERRED_KICK
+#ifndef NO_DEFERRED_KICK
+static std::vector<VirtioNet*> deferred_devices;
+static uint8_t deferred_intr;
+#endif
 
 using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
@@ -165,6 +167,15 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     IRQ_manager::cpu(0).subscribe(irq(),del);
   }
 
+#ifndef NO_DEFERRED_KICK
+  static bool init_deferred = false;
+  if (!init_deferred) {
+    init_deferred = true;
+    deferred_intr = IRQ_manager::cpu(0).get_next_msix_irq();
+    IRQ_manager::cpu(0).subscribe(deferred_intr, handle_deferred_devices);
+  }
+#endif
+  
   // Done
   INFO("VirtioNet", "Driver initialization complete");
   CHECK(_conf.status & 1, "Link up\n");
@@ -184,8 +195,8 @@ void VirtioNet::msix_recv_handler()
 {
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
-  // Do one RX-packet
-  while (rx_q.new_incoming()) {
+  // handle incoming packets as long as bufstore has available buffers
+  while (rx_q.new_incoming() && bufstore_.available() > 1) {
 
     auto res = rx_q.dequeue();
 
@@ -197,9 +208,9 @@ void VirtioNet::msix_recv_handler()
 
     dequeued_rx = true;
   }
+  rx_q.enable_interrupts();
   if (dequeued_rx)
     rx_q.kick();
-  rx_q.enable_interrupts();
 }
 void VirtioNet::msix_xmit_handler()
 {
@@ -413,12 +424,12 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   }
 
   // Notify virtio about new packets
-  if (likely(transmitted)) {
+  if (LIKELY(transmitted)) {
     begin_deferred_kick();
   }
 
   // Buffer the rest
-  if (unlikely(tail)) {
+  if (UNLIKELY(tail)) {
     debug("Buffering remaining packets..\n");
     add_to_tx_buffer(tail);
   }
@@ -445,10 +456,6 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
   tx_ringq.push_back((uint8_t*) pckt.get());
 }
 
-//#define NO_DEFERRED_KICK
-#include <timer>
-#include <delegate>
-
 void VirtioNet::begin_deferred_kick()
 {
 #ifdef NO_DEFERRED_KICK
@@ -456,13 +463,19 @@ void VirtioNet::begin_deferred_kick()
 #else
   if (!deferred_kick) {
     deferred_kick = true;
-    using namespace std::chrono;
-    Timers::oneshot(seconds(0), delegate<void(uint32_t)>::from<VirtioNet, &VirtioNet::handle_deferred_kicks>(this));
+    deferred_devices.push_back(this);
+    IRQ_manager::cpu(0).register_irq(deferred_intr);
   }
 #endif
 }
-void VirtioNet::handle_deferred_kicks(uint32_t)
+void VirtioNet::handle_deferred_devices()
 {
-  tx_q.kick();
-  deferred_kick = false;
+#ifndef NO_DEFERRED_KICK
+  for (auto* dev : deferred_devices) {
+    // kick transmitq
+    dev->deferred_kick = false;
+    dev->tx_q.kick();
+  }
+  deferred_devices.clear();
+#endif
 }

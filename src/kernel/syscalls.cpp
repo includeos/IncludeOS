@@ -22,9 +22,11 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 
-#include <os>
+#include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
-#include <hw/cmos.hpp>
+#include <kernel/rtc.hpp>
+
+#include <hw/acpi.hpp>
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
@@ -37,15 +39,14 @@ static const int syscall_fd {999};
 static bool debug_syscalls  {true};
 
 
-void _exit(int status) {
-  (void) status;
-  panic("Exit called");
+void _exit(int) {
+  default_exit();
 }
 
 int close(int) {
   panic("SYSCALL CLOSE NOT SUPPORTED");
   return -1;
-};
+}
 
 int execve(const char* UNUSED(name),
            char* const* UNUSED(argv),
@@ -53,23 +54,23 @@ int execve(const char* UNUSED(name),
 {
   panic("SYSCALL EXECVE NOT SUPPORTED");
   return -1;
-};
+}
 
 int fork() {
   panic("SYSCALL FORK NOT SUPPORTED");
   return -1;
-};
+}
 
 int fstat(int UNUSED(file), struct stat *st) {
   debug("SYSCALL FSTAT Dummy, returning OK 0");
   st->st_mode = S_IFCHR;
   return 0;
-};
+}
 
 int getpid() {
   debug("SYSCALL GETPID Dummy, returning 1");
   return 1;
-};
+}
 
 int isatty(int file) {
   if (file == 1 || file == 2 || file == 3) {
@@ -126,21 +127,20 @@ int stat(const char* UNUSED(file), struct stat *st) {
   debug("SYSCALL STAT Dummy");
   st->st_mode = S_IFCHR;
   return 0;
-};
+}
 
 clock_t times(struct tms* UNUSED(buf)) {
   panic("SYSCALL TIMES Dummy, returning -1");
   return -1;
-};
+}
 
 int wait(int* UNUSED(status)) {
   debug((char*)"SYSCALL WAIT Dummy, returning -1");
   return -1;
-};
+}
 
-int gettimeofday(struct timeval* p, void* UNUSED(z)) {
-  uint32_t seconds = cmos::now().to_epoch();
-  p->tv_sec = int(seconds);
+int gettimeofday(struct timeval* p, void*) {
+  p->tv_sec  = RTC::get();
   p->tv_usec = 0;
   return 0;
 }
@@ -157,19 +157,42 @@ int kill(pid_t pid, int sig) {
   return -1;
 }
 
+static const size_t CONTEXT_BUFFER_LENGTH = 0x1000;
+static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH] __attribute__((aligned(0x1000)));
+
+size_t get_crash_context_length()
+{
+  return CONTEXT_BUFFER_LENGTH;
+}
+char*  get_crash_context_buffer()
+{
+  return _crash_context_buffer;
+}
+
+
 // No continuation from here
 void panic(const char* why) {
   printf("\n\t**** PANIC: ****\n %s\n", why);
+  // the crash context buffer can help determine cause of crash
+  int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
+  if (len > 0) {
+    printf("\n\t**** CONTEXT: ****\n %*s\n\n", 
+        len, get_crash_context_buffer());
+  }
+  // heap and backtrace info
   extern char _end;
   printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
-  while(1) asm ("cli; hlt;");
+  // shutdown the machine
+  hw::ACPI::shutdown();
+  while (1) asm("cli; hlt");
 }
 
-// No continuation from here
+// Shutdown the machine when one of the exit functions are called
 void default_exit() {
-  panic("Exit was called");
+  hw::ACPI::shutdown();
+  while (1) asm("cli; hlt");
 }
 
 // To keep our sanity, we need a reason for the abort
@@ -180,10 +203,16 @@ void abort_ex(const char* why) {
 // Basic second-resolution implementation - using CMOS directly for now.
 int clock_gettime(clockid_t clk_id, struct timespec *tp){
   if (clk_id == CLOCK_REALTIME) {
-    tp->tv_sec = cmos::now().to_epoch();
+    tp->tv_sec = RTC::get();
     tp->tv_nsec = 0;
     return 0;
   }
-
   return -1;
-};
+}
+
+extern "C" void _init_syscalls();
+void _init_syscalls()
+{
+  // make sure that the buffers length is zero so it won't always show up in crashes
+  _crash_context_buffer[0] = 0;
+}

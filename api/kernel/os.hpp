@@ -48,11 +48,21 @@ public:
   static uint64_t cycles_since_boot() {
     return hw::CPU::rdtsc();
   }
+  /** micro seconds since boot */
+  static int64_t micros_since_boot() {
+    return cycles_since_boot() / cpu_mhz_.count();
+  }
 
   /** Uptime in seconds. */
   static double uptime() {
     return cycles_since_boot() / Hz(cpu_mhz_).count();
   }
+
+  /**
+   * Shutdown operating system
+   * 
+   **/
+  static void shutdown();
 
   /**
    *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
@@ -78,7 +88,7 @@ public:
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /**
-   *  Halt until next inerrupt.
+   *  Halt until next interrupt.
    *
    *  @Warning If there is no regular timer interrupt (i.e. from PIT / APIC)
    *  we'll stay asleep.
@@ -114,8 +124,6 @@ public:
     static  Memory_map memmap_ {};
     return memmap_;
   };
-
-
 
 private:
 

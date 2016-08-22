@@ -64,6 +64,12 @@ public:
    */
   Socket local() const;
 
+  port_t port() const
+  { return port_; }
+
+  auto syn_queue_size() const
+  { return syn_queue_.size(); }
+
 private:
   TCP& host_;
   const port_t port_;

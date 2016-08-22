@@ -24,7 +24,7 @@
 using namespace net;
 std::unique_ptr<Inet4<VirtioNet> > inet;
 
-void Service::start()
+void Service::start(const std::string&)
 {
   inet = new_ipv4_stack(
       {  10,  0,  0, 42 },   // IP

@@ -186,6 +186,22 @@ public:
   const Connection::State& prev_state() const
   { return *prev_state_; }
 
+  /**
+   * @brief Total number of bytes in send queue
+   *
+   * @return total bytes in send queue
+   */
+  uint32_t sendq_size() const
+  { return writeq.bytes_total(); }
+
+  /**
+   * @brief Total number of bytes not yet sent
+   *
+   * @return bytes not yet sent
+   */
+  uint32_t sendq_remaining() const
+  { return writeq.bytes_remaining(); }
+
   /*
     Calculates and return bytes transmitted.
     TODO: Not sure if this will suffice.

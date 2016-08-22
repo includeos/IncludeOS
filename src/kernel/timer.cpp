@@ -46,21 +46,18 @@ struct Timer
  *     expanding the "fixed" vector)
 **/
 
-static std::vector<Timer>  timers;
-static std::vector<id_t>   free_timers;
-static bool   signal_ready = false;
-static bool   is_running = false;
-static double current_time;
+static bool signal_ready = false;
+static bool is_running   = false;
 static Timers::start_func_t arch_start_func;
 static Timers::stop_func_t  arch_stop_func;
-
+static std::vector<Timer>   timers;
+static std::vector<id_t>    free_timers;
 // timers sorted by timestamp
 static std::multimap<duration_t, id_t> scheduled;
+static int timer_stats = 0;
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
-  // use uptime as position in timer system
-  current_time = OS::uptime();
   // architecture specific start and stop functions
   arch_start_func = start;
   arch_stop_func  = stop;
@@ -68,6 +65,7 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
 
 void Timers::ready()
 {
+  assert(signal_ready == false);
   signal_ready = true;
   // begin processing timers if any are queued
   if (is_running == false) {
@@ -80,7 +78,7 @@ static id_t create_timer(
 {
   id_t id;
   
-  if (free_timers.empty()) {
+  if (UNLIKELY(free_timers.empty())) {
     id = timers.size();
     
     // occupy new slot
@@ -123,31 +121,40 @@ size_t Timers::active()
 
 /// time functions ///
 
-inline auto now()
+inline std::chrono::microseconds now() noexcept
 {
-  return microseconds((int64_t)(OS::uptime() * 1000000.0));
+  return microseconds(OS::micros_since_boot());
 }
 
 /// scheduling ///
 
 void Timers::timers_handler()
 {
-  // lets assume the timer is not running anymore
+  // assume the hardware timer called this function
   is_running = false;
   
   while (!scheduled.empty())
   {
     auto it = scheduled.begin();
-    auto when   = it->first;
-    auto ts_now = now();
-    id_t id = it->second;
+    auto when = it->first;
+    id_t id   = it->second;
     
-    if (ts_now >= when) {
-      // erase immediately
+    // remove dead timers
+    if (timers[id].deferred_destruct) {
+      // remove from schedule
       scheduled.erase(it);
+      // delete timer
+      timers[id].reset();
+      free_timers.push_back(id);
+    }
+    else
+    {
+      auto ts_now = now();
       
-      // only process timer if still alive
-      if (timers[id].is_alive()) {
+      if (ts_now >= when) {
+        // erase immediately
+        scheduled.erase(it);
+        
         // call the users callback function
         timers[id].callback(id);
         // if the timers struct was modified in callback, eg. due to
@@ -165,37 +172,48 @@ void Timers::timers_handler()
         {
           // if the timer is recurring, we will simply reschedule it
           // NOTE: we are carefully using (when + period) to avoid drift
-          scheduled.insert(std::forward_as_tuple(when + timer.period, id));
+          scheduled.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(when + timer.period),
+                    std::forward_as_tuple(id));
         }
+        
       } else {
-        // timer was already dead
-        timers[id].reset();
-        free_timers.push_back(id);
+        // not yet time, so schedule it for later
+        is_running = true;
+        arch_start_func(when - ts_now);
+        timer_stats ++;
+        // exit early, because we have nothing more to do, 
+        // and there is a deferred handler
+        return;
       }
-      
-    } else {
-      // not yet time, so schedule it for later
-      is_running = true;
-      arch_start_func(when - ts_now);
-      // exit early, because we have nothing more to do, and there is a deferred handler
-      return;
     }
   }
-  //arch_stop_func();
+  // stop hardware timer, since no timers are enabled
+  arch_stop_func();
 }
 static void sched_timer(duration_t when, id_t id)
 {
-  scheduled.insert(std::forward_as_tuple(now() + when, id));
+  scheduled.emplace(std::piecewise_construct,
+            std::forward_as_tuple(now() + when),
+            std::forward_as_tuple(id));
   
   // dont start any hardware until after calibration
-  if (!signal_ready) return;
+  if (UNLIKELY(!signal_ready)) return;
   
   // if the hardware timer is not running, try starting it
-  if (is_running == false) {
+  if (UNLIKELY(is_running == false)) {
     Timers::timers_handler();
+    return;
   }
-  // or, if the scheduled timer is the new front, restart timer
-  else if (scheduled.begin()->second == id) {
-    Timers::timers_handler();
-  }
+  // if the scheduled timer is the new front, restart timer
+  auto it = scheduled.begin();
+  if (it->second == id)
+      Timers::timers_handler();
+}
+
+int _get_timer_stats()
+{
+  int x = timer_stats;
+  timer_stats = 0;
+  return x;
 }

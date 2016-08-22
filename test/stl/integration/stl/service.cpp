@@ -92,9 +92,8 @@ const lest::test specification[] =
 
 #define MYINFO(X,...) INFO("Test STL",X,##__VA_ARGS__)
 
-void Service::start()
+void Service::start(const std::string&)
 {
-
   // Wonder when these are used...?
   std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
   std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });

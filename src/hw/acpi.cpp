@@ -72,6 +72,22 @@ namespace hw {
     MADTRecord record[0];
   };
   
+  struct FACPHeader
+  {
+    SDTHeader sdt;
+    uint32_t  unneded1;
+    uint32_t* DSDT;
+    uint8_t unneded2[48 - 44];
+    uint32_t* SMI_CMD;
+    uint8_t ACPI_ENABLE;
+    uint8_t ACPI_DISABLE;
+    uint8_t unneded3[64 - 54];
+    uint32_t* PM1a_CNT_BLK;
+    uint32_t* PM1b_CNT_BLK;
+    uint8_t unneded4[89 - 72];
+    uint8_t PM1_CNT_LEN;
+  };
+  
   struct AddressStructure
   {
     uint8_t  address_space_id; // 0 - system memory, 1 - system I/O
@@ -139,6 +155,7 @@ namespace hw {
     // parse all tables
     constexpr uint32_t APIC_t = bake('A', 'P', 'I', 'C');
     constexpr uint32_t HPET_t = bake('H', 'P', 'E', 'T');
+    constexpr uint32_t FACP_t = bake('F', 'A', 'C', 'P');
     
     while (total) {
       // convert *addr to SDT-address
@@ -154,6 +171,10 @@ namespace hw {
       case HPET_t:
         debug("HPET found: P=%p L=%u\n", sdt, sdt->Length);
         this->hpet_base = sdt_ptr + sizeof(SDTHeader);
+        break;
+      case FACP_t:
+        debug("FACP found: P=%p L=%u\n", sdt, sdt->Length);
+        walk_facp((char*) sdt);
         break;
       default:
         debug("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
@@ -215,6 +236,68 @@ namespace hw {
     }
   }
   
+  void ACPI::walk_facp(const char* addr)
+  {
+    auto* facp = (FACPHeader*) addr;
+    // verify DSDT
+    constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
+    assert(*facp->DSDT == DSDT_t);
+    
+    /// big thanks to kaworu from OSdev.org forums for algo
+    /// http://forum.osdev.org/viewtopic.php?t=16990
+    char* S5Addr = (char*) facp->DSDT + 36; // skip header
+    int dsdtLength = ((SDTHeader*) facp->DSDT)->Length;
+    // some ting wong
+    dsdtLength *= 2;
+    while (dsdtLength-- > 0)
+    {
+      if (memcmp(S5Addr, "_S5_", 4) == 0)
+           break;
+      S5Addr++;
+    }
+    // check if \_S5 was found
+    if (dsdtLength <= 0) {
+      printf("WARNING: _S5 not present in ACPI\n");
+      return;
+    }
+    // check for valid AML structure
+    if ( ( *(S5Addr-1) == 0x08 || ( *(S5Addr-2) == 0x08 && *(S5Addr-1) == '\\') ) && *(S5Addr+4) == 0x12 )
+    {
+       S5Addr += 5;
+       S5Addr += ((*S5Addr &0xC0)>>6) + 2;   // calculate PkgLength size
+
+       if (*S5Addr == 0x0A)
+          S5Addr++;   // skip byteprefix
+       SLP_TYPa = *(S5Addr) << 10;
+       S5Addr++;
+
+       if (*S5Addr == 0x0A)
+          S5Addr++;   // skip byteprefix
+       SLP_TYPb = *(S5Addr)<<10;
+
+       SMI_CMD = facp->SMI_CMD;
+
+       ACPI_ENABLE = facp->ACPI_ENABLE;
+       ACPI_DISABLE = facp->ACPI_DISABLE;
+
+       PM1a_CNT = facp->PM1a_CNT_BLK;
+       PM1b_CNT = facp->PM1b_CNT_BLK;
+       
+       PM1_CNT_LEN = facp->PM1_CNT_LEN;
+
+       SLP_EN = 1<<13;
+       SCI_EN = 1;
+
+       debug("ACPI: Found shutdown information\n");
+       return;
+       
+    } else {
+       printf("WARNING: Failed to parse _S5 in ACPI\n");
+    }
+    // disable ACPI shutdown
+    SCI_EN = 0;
+  }
+  
   bool ACPI::checksum(const char* addr, size_t size) const {
     
     const char* end = addr + size;
@@ -265,10 +348,25 @@ namespace hw {
     ::reboot();
   }
   
+  void ACPI::acpi_shutdown() {
+    // check if shutdown enabled
+    if (SCI_EN == 1) {
+      // write shutdown commands
+      hw::outw((uint32_t) PM1a_CNT, SLP_TYPa | SLP_EN);
+      if (PM1b_CNT != 0)
+        hw::outw((uint32_t) PM1b_CNT, SLP_TYPb | SLP_EN);
+      printf("*** ACPI shutdown failed\n");
+    }
+  }
+  
   __attribute__((noreturn))
   void ACPI::shutdown()
   {
     asm volatile("cli");
+    
+    // ACPI shutdown
+    get().acpi_shutdown();
+    
     // http://forum.osdev.org/viewtopic.php?t=16990
     hw::outw (0xB004, 0x2000);
     
@@ -279,8 +377,9 @@ namespace hw {
       hw::outb (0x8900, *s);
 
     // VMWare poweroff when "gui.exitOnCLIHLT" is true
-    printf("Failed shutdown\n");
-    asm volatile("cli; hlt" : : : "memory");
-    while (true);
+    printf("Shutdown failed :(\n");
+    while (true) {
+      asm volatile("cli; hlt" : : : "memory");
+    }
   }
 }

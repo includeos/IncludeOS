@@ -19,8 +19,8 @@ INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 # Find the latest release
 echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
 JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases`
-FILENAME=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" name` 
-DOWNLOAD_URL=`$INCLUDEOS_SRC/etc/get_latest_binary_bundle_asset.py "$JSON" browser_download_url`
+FILENAME=`echo "$JSON" | jq -r '.[0]["assets"][0]["name"]'`
+DOWNLOAD_URL=`echo "$JSON" | jq -r '.[0]["assets"][0]["browser_download_url"]'`
 echo -e "\n\n>>> File to download: $DOWNLOAD_URL"
 
 # If the tarball exists, use that

@@ -214,7 +214,7 @@ const lest::test test_basic_gsl[] = {
   },
 };
 
-void Service::start()
+void Service::start(const std::string&)
 {
   MYINFO ("Starting LEST-tests");
   // Lest takes command line params as vector
@@ -225,6 +225,4 @@ void Service::start()
   assert(not failed);
 
   MYINFO("SUCCESS");
-
-
 }

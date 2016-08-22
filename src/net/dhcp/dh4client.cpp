@@ -170,11 +170,12 @@ namespace net
     };
   }
 
-  void DHClient::negotiate(double timeout_secs)
+  void DHClient::negotiate(uint32_t timeout_secs)
   {
     // set timeout handler
-    this->timeout = hw::PIT::on_timeout_d(timeout_secs,
-    [this] {
+    using namespace std::chrono;
+    this->timeout = Timers::oneshot(seconds(timeout_secs),
+    [this] (uint32_t) {
       // reset session ID
       this->xid = 0;
       // call on_config with timeout = true
@@ -466,7 +467,7 @@ namespace net
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);
     // stop timeout from happening
-    hw::PIT::stop(timeout);
+    Timers::stop(timeout);
     // run some post-DHCP event to release the hounds
     this->config_handler(false);
   }

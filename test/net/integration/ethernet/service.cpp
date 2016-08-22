@@ -19,7 +19,7 @@
 
 #include "ethernet_module_test.hpp"
 
-void Service::start()
+void Service::start(const std::string&)
 {
   const auto number_of_failed_tests = lest::run(ethernet_module_test, {"-p"});
 
