@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE=IPv4_module_test
+SERVICE=test_ipv4
 SERVICE_NAME=IPv4 Module Test
 
 # Your service parts

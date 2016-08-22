@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = stresstest
+SERVICE = test_stresstest
 SERVICE_NAME = IncludeOS stress test
 
 # Your service parts
