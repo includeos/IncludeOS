@@ -22,15 +22,15 @@
 
 using namespace server;
 
-Server::Server() {
+Server::Server()
+: inet_{net::Inet4::stack<0>()}
+{
   initialize();
 }
 
-Server::Server(IP_Stack stack) : inet_(stack) {}
-
-net::Inet4<VirtioNet>& Server::ip_stack() const {
-  return *inet_;
-}
+Server::Server(IP_stack& stack)
+: inet_(stack)
+{}
 
 Router& Server::router() noexcept {
   return router_;
@@ -39,7 +39,7 @@ Router& Server::router() noexcept {
 void Server::listen(Port port) {
   printf("Listening to port %i \n", port);
 
-  inet_->tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
+  inet_.tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
 }
 
 void Server::connect(net::tcp::Connection_ptr conn) {
@@ -60,14 +60,11 @@ void Server::connect(net::tcp::Connection_ptr conn) {
 }
 
 void Server::initialize() {
-  auto& eth0 = hw::Dev::eth<0,VirtioNet>();
   //-------------------------------
-  inet_ = std::make_shared<net::Inet4<VirtioNet>>(eth0);
-  //-------------------------------
-  inet_->network_config({ 10,0,0,42 },     // IP
-      { 255,255,255,0 }, // Netmask
-      { 10,0,0,1 },      // Gateway
-      { 8,8,8,8 });      // DNS
+  inet_.network_config({ 10,0,0,42 },     // IP
+                      { 255,255,255,0 }, // Netmask
+                      { 10,0,0,1 },      // Gateway
+                      { 8,8,8,8 });      // DNS
 }
 
 void Server::close(size_t idx) {

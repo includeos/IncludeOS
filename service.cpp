@@ -45,7 +45,7 @@ cmos::Time STARTED_AT;
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
-void Service::start() {
+void Service::start(const std::string&) {
 
   // Test {URI} component
   uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
@@ -133,7 +133,7 @@ void Service::start() {
               printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
             }
           }
-          
+
           const auto& value = req_cookies->cookie_value("lang");
 
           if (value == "") {
@@ -270,8 +270,18 @@ void Service::start() {
           }
         });
       });
+
+      /** Setup server **/
+      // Bring up IPv4 stack on network interface 0
+      auto& stack = net::Inet4::stack<0>();
+      // config
+      stack.network_config({ 10,0,0,42 },     // IP
+                           { 255,255,255,0 }, // Netmask
+                           { 10,0,0,1 },      // Gateway
+                           { 8,8,8,8 });      // DNS
       // initialize server
-      server_ = std::make_unique<server::Server>();
+      server_ = std::make_unique<server::Server>(stack);
+      // set routes and start listening
       server_->set_routes(routes).listen(80);
 
       STARTED_AT = cmos::now();
@@ -315,7 +325,7 @@ void Service::start() {
         [conn](auto, size_t)
         {
           disk->fs().stat("/public/static/books/borkman.txt",
-          [conn](auto err, const auto& entry)
+          [conn](auto, const auto& entry)
           {
             http::Response res;
             res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
@@ -337,8 +347,6 @@ void Service::start() {
           });
         });
       });
-      extern void print_backtrace();
-      print_backtrace();
 
       tcp.bind(8081).on_connect(
       [](auto conn)
@@ -365,10 +373,7 @@ void Service::start() {
           auto buf = net::tcp::new_shared_buffer(N);
           memset(buf.get(), '!', N);
 
-          conn->write(buf, N,
-          [](size_t n) {
-
-          });
+          conn->write(buf, N);
         });
       });
 
