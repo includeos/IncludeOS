@@ -16,15 +16,15 @@
 // limitations under the License.
 
 #include <os>
+#include <timer>
 #include <vga>
-#include <net/inet4>
 #include <hw/ps2.hpp>
 
 #include "snake.hpp"
 
 ConsoleVGA vga;
 
-void begin_snake()
+void begin_snake(uint32_t)
 {
   static Snake snake {vga};
 
@@ -55,25 +55,8 @@ void Service::start(const std::string&)
   });
 
   // We have to start snake later to avoid late text output
-  hw::PIT::on_timeout_d(0.25, [] { begin_snake(); });
-
-  // Stack with network interface (eth0) driven by VirtioNet
-  // DNS address defaults to 8.8.8.8
-  static auto inet = 
-      net::new_ipv4_stack<>(0.15, 
-  [](bool timeout) {
-    if (timeout) {
-      printf("%s\n", "DHCP negotiation timed out\n");
-    } else {
-      printf("%s\n", "DHCP negotiation completed successfully\n");
-    }
-  });
-
-  // Static IP configuration, until we (possibly) get DHCP
-  inet->network_config({ 10,0,0,42 },      // IP
-                       { 255,255,255,0 },  // Netmask
-                       { 10,0,0,1 },       // Gateway
-                       { 8,8,8,8 });       // DNS
+  using namespace std::chrono;
+  Timers::oneshot(250ms, begin_snake);
 
   printf("*** TEST SERVICE STARTED ***\n");
 }

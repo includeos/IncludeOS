@@ -34,10 +34,10 @@
 #define VIRTIO_VIRTIONET_HPP
 
 #include <common>
-#include "../hw/pci_device.hpp"
-#include "virtio.hpp"
-#include "../net/ethernet.hpp"
-#include "../net/buffer_store.hpp"
+#include <hw/pci_device.hpp>
+#include <virtio/virtio.hpp>
+#include <net/buffer_store.hpp>
+#include <hw/nic.hpp>
 #include <delegate>
 #include <deque>
 
@@ -110,56 +110,42 @@
 #define VIRTIO_NET_S_ANNOUNCE 2
 
 /** Virtio-net device driver.  */
-class VirtioNet : Virtio {
+class VirtioNet : Virtio, public hw::Nic {
 
 public:
 
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
+  { return std::make_unique<VirtioNet>(d); }
+
   /** Human readable name. */
-  const char* name();
+  const char* name() const override;
 
   /** Mac address. */
-  const net::Ethernet::addr& mac();
+  const net::Ethernet::addr& mac() override;
 
-  constexpr uint16_t MTU() const {
-    return 1500; }
+  uint16_t MTU() const noexcept override
+  { return 1500; }
 
-  constexpr uint16_t bufsize() const {
-    return MTU() +
-      sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
-
-  /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
-  inline void set_linklayer_out(net::upstream link_out){
-    _link_out = link_out;
-    //rx_q.set_data_handler(link_out);
-  };
-
-  inline net::upstream get_linklayer_out()
-  { return _link_out; }
-
-  inline net::BufferStore& bufstore() { return bufstore_; }
+  net::downstream get_physical_in() override {
+    using downstream = net::downstream;
+    return downstream::from<VirtioNet, &VirtioNet::transmit>(this);
+  }
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  void transmit(net::Packet_ptr pckt);
+  void transmit(net::Packet_ptr pckt) override;
 
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(hw::PCI_Device& pcidev);
 
-  inline void on_transmit_queue_available(net::transmit_avail_delg del)
-  { transmit_queue_available_event_ = del; };
-
   /** Space available in the transmit queue, in packets */
-  inline size_t transmit_queue_available(){
+  size_t transmit_queue_available() override {
     return tx_q.num_free() / 2;
   };
 
   /** Number of incoming packets waiting in the RX-queue */
-  inline size_t receive_queue_waiting(){
+  size_t receive_queue_waiting() override {
     return rx_q.new_incoming() / 2;
   };
-
-
-  inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-  { on_exit_to_physical_ = dlg; };
 
   struct virtio_net_hdr
   {
@@ -236,22 +222,18 @@ private:
   /** Allocate and queue buffer from bufstore_ in RX queue. */
   void add_receive_buffer();
 
-  /** Upstream delegate for linklayer output */
-  net::upstream _link_out;
+  void drop(net::Packet_ptr);
 
-  net::BufferStore bufstore_;
+
+
   std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
-  
+
   void begin_deferred_kick();
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::transmit_avail_delg transmit_queue_available_event_ {};
-
   net::Packet_ptr transmit_queue_ {0};
-
-  delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
 };
 
 #endif

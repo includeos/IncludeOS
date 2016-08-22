@@ -20,7 +20,7 @@
 
 #include <os>
 #include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
+#include <timer>
 
 using namespace std::chrono;
 
@@ -69,19 +69,21 @@ void Service::start(const std::string&)
 {
   // Stack with default network interface (eth0) driven by VirtioNet
   // Static IP configuration will get overwritten by DHCP, if found
-  static auto inet =
-    net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                          { 255,255,255,0 },  // Netmask
-                          { 10,0,0,1 });      // Gateway
-
-  // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
+  auto& inet = net::Inet4::stack<0>();
+  inet.network_config({ 10,0,0,42 },     // IP
+                      { 255,255,255,0 }, // Netmask
+                      { 10,0,0,1 },      // Gateway
+                      { 10,0,0,1 });     // DNS
 
   // Print some useful netstats every 30 secs
-  hw::PIT::instance().on_repeated_timeout(30s, [] {
-      printf("<Service> TCP STATUS:\n%s\n", inet->tcp().status().c_str());
+  Timers::periodic(5s, 30s, 
+  [&inet] (uint32_t) {
+    printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
+  // Set up a TCP server on port 80
+  auto& server = inet.tcp().bind(80);
+  
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_accept(
   [] (auto socket) -> bool {

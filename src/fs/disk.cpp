@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,14 +22,14 @@
 
 namespace fs {
 
-  Disk::Disk(hw::IDiskDevice& dev)
+  Disk::Disk(hw::Drive& dev)
     : device {dev} {}
-  
+
   void Disk::partitions(on_parts_func func) {
-  
+
     /** Read Master Boot Record (sector 0) */
     device.read(0,
-    [this, func] (hw::IDiskDevice::buffer_t data)
+    [this, func] (hw::Drive::buffer_t data)
     {
       std::vector<Partition> parts;
 
@@ -57,7 +57,7 @@ namespace fs {
   void Disk::mount(on_mount_func func)
   {
     device.read(0,
-    [this, func] (hw::IDiskDevice::buffer_t data)
+    [this, func] (hw::Drive::buffer_t data)
     {
       if (!data) {
         // TODO: error-case for unable to read MBR
@@ -68,9 +68,9 @@ namespace fs {
       // auto-detect FAT on MBR:
       auto* mbr = (MBR::mbr*) data.get();
       MBR::BPB* bpb = mbr->bpb();
-      
-      if (bpb->bytes_per_sector >= 512 
-       && bpb->fa_tables != 0 
+
+      if (bpb->bytes_per_sector >= 512
+       && bpb->fa_tables != 0
        && (bpb->signature != 0 // check MBR signature too
        || bpb->large_sectors != 0)) // but its not set for FAT32
       {
@@ -80,7 +80,7 @@ namespace fs {
         internal_mount(MBR, func);
         return;
       }
-      
+
       // go through partition list
       for (int i = 0; i < 4; i++)
       {
@@ -97,7 +97,7 @@ namespace fs {
           return;
         }
       }
-      
+
       // no partition was found (TODO: extended partitions)
       func({ error_t::E_MNT, "No FAT partition auto-detected"});
     });
@@ -108,9 +108,9 @@ namespace fs {
     filesys.reset(new FAT(device));
     internal_mount(part, func);
   }
-  
+
   void Disk::internal_mount(partition_t part, on_mount_func func) {
-  
+
     if (part == MBR)
     {
       // For the MBR case, all we need to do is mount on sector 0
@@ -123,21 +123,21 @@ namespace fs {
        *  of the partition to be mounted
        */
       device.read(0,
-      [this, part, func] (hw::IDiskDevice::buffer_t data)
+      [this, part, func] (hw::Drive::buffer_t data)
       {
         if (!data) {
           // TODO: error-case for unable to read MBR
           func({ error_t::E_IO, "Unable to read MBR" });
           return;
         }
-        
+
         auto* mbr = (MBR::mbr*) data.get();
         auto pint = (int) part - 1;
-        
+
         auto lba_base = mbr->part[pint].lba_begin;
         auto lba_size = mbr->part[pint].sectors;
         assert(lba_size && "No such partition (length was zero)");
-        
+
         // Call the filesystems mount function
         // with lba_begin as base address
         fs().mount(lba_base, lba_size, func);

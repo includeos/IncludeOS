@@ -12,6 +12,9 @@ FILES = service.cpp
 DISK=
 LOCAL_INCLUDES=
 
+# Add network driver
+DRIVERS=virtionet
+
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
 INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install

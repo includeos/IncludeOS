@@ -99,7 +99,7 @@ void test2() {
 
 void Service::start(const std::string&)
 {
-  auto& device = hw::Dev::disk<1, VirtioBlk>();
+  auto& device = hw::Devices::drive(0);
   disk = std::make_shared<fs::Disk> (device);
 
   INFO("FAT32", "Running tests for FAT32");

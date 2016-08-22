@@ -14,6 +14,9 @@ LOCAL_INCLUDES=-I$(INCLUDEOS_SRC)/test/lest/include/lest
 # Your disk image
 DISK=
 
+# Add network driver
+DRIVERS=virtionet
+
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
 INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install

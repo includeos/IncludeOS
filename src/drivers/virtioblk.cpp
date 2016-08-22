@@ -1,6 +1,6 @@
 #define DEBUG
 #define DEBUG2
-#include <virtio/block.hpp>
+#include "virtioblk.hpp"
 
 #include <kernel/irq_manager.hpp>
 #include <hw/pci.hpp>
@@ -283,3 +283,12 @@ VirtioBlk::request_t::request_t(uint64_t blk, bool part, on_read_func cb)
   resp.partial = part;
   resp.handler = cb;
 }
+
+#include <kernel/pci_manager.hpp>
+
+/** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
+struct Autoreg_virtioblk {
+  Autoreg_virtioblk() {
+    PCI_manager::register_driver<hw::Drive>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+  }
+} autoreg_virtioblk;

@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_DISK_DEVICE_HPP
-#define HW_DISK_DEVICE_HPP
+#ifndef HW_DRIVE_HPP
+#define HW_DRIVE_HPP
 
 #include <memory>
 #include <cstdint>
@@ -26,13 +26,16 @@
 namespace hw
 {
 
-  class IDiskDevice {
+  class Drive {
   public:
     using block_t = uint64_t; //< Disk device block size
     using buffer_t = std::shared_ptr<uint8_t>;
 
     // Delegate for result of reading a disk sector
     using on_read_func = delegate<void(buffer_t)>;
+
+    static const char* device_type()
+    { return "Drive"; }
 
     /** Human-readable name of this disk controller  */
     virtual const char* name() const noexcept = 0;
@@ -58,9 +61,9 @@ namespace hw
     virtual buffer_t read_sync(block_t blk, size_t count) = 0;
 
     /** Default destructor */
-    virtual ~IDiskDevice() noexcept = default;
-  }; //< class IDiskDevice
+    virtual ~Drive() noexcept = default;
+  }; //< class Drive
 
 } //< namespace hw
 
-#endif //< FS_DISK_DEVICE_HPP
+#endif //< HW_DRIVE_HPP

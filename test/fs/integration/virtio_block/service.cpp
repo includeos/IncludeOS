@@ -28,7 +28,7 @@ void list_partitions(decltype(disk));
 void Service::start(const std::string&)
 {
   // instantiate memdisk with FAT filesystem
-  auto& device = hw::Dev::disk<1, VirtioBlk>();
+  auto& device = hw::Devices::drive(0);
   disk = std::make_shared<fs::Disk> (device);
   // assert that we have a disk
   CHECKSERT(disk, "Disk created");
@@ -61,7 +61,7 @@ void Service::start(const std::string&)
 
         if (e.is_file()) {
           printf("*** Read %s\n", e.name().c_str());
-          disk->fs().read(e, 0, e.size(), 
+          disk->fs().read(e, 0, e.size(),
           [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
             if (err) {
               printf("Failed to read %s!\n", e.name().c_str());
@@ -74,11 +74,11 @@ void Service::start(const std::string&)
             // ---
             INFO("Virtioblk Test", "SUCCESS");
           });
-          
+
         } // is_file
-        
+
       } // ents
-      
+
     }); // ls
 
   }); // disk->auto_detect()

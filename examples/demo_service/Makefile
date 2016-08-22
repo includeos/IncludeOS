@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = IncludeOS_Demo_Service
+SERVICE = Demo_Service
 SERVICE_NAME = IncludeOS Demo Service
 
 # Your service parts
@@ -14,6 +14,9 @@ DISK=
 
 # Your own include-path
 LOCAL_INCLUDES=
+
+# Add networking driver
+DRIVERS=virtionet
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
