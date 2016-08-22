@@ -126,13 +126,13 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
 
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::INADDR_ANY) override
     {
       INFO("Inet4", "Reconfiguring network. New IP: %s", addr.str().c_str());
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
       this->router_    = router;
-      this->dns_server = dns;
+      this->dns_server = (dns == IP4::INADDR_ANY) ? router : dns;
     }
 
     // register a callback for receiving signal on free packet-buffers
