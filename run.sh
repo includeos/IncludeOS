@@ -21,7 +21,7 @@
 mkdir -p mnt
 
 # Mount disk if not mounted
-if [ ! mountpoint -q -- mnt/ ];
+if ! mountpoint -q -- mnt/;
 then
   echo ">>> Mounting memdisk.fat"
   sudo mount -o rw memdisk.fat mnt/
