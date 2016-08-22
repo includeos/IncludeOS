@@ -53,15 +53,15 @@ void handle_python_on_read(Connection_ptr client, const std::string& response) {
 
 void Service::start(const std::string&)
 {
-  // Stack with default network interface (eth0) driven by VirtioNet
   // Static IP configuration will get overwritten by DHCP, if found
-  static auto inet =
-    net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                          { 255,255,255,0 },  // Netmask
-                          { 10,0,0,1 });      // Gateway
+  static auto& inet = net::Inet4::stack<0>();
+  inet.network_config({ 10,0,0,42 },      // IP
+                      { 255,255,255,0 },  // Netmask
+                      { 10,0,0,1 },       // Gateway
+                      { 8,8,8,8 });       // DNS
 
   // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
+  auto& server = inet.tcp().bind(80);
   printf("Server listening: %s \n", server.local().to_string().c_str());
 
   // When someone connects to our server
@@ -69,7 +69,7 @@ void Service::start(const std::string&)
   [] (Connection_ptr client) {
     printf("Connected [Client]: %s\n", client->to_string().c_str());
     // Make an outgoing connection to our python server
-    auto outgoing = inet->tcp().connect(python_server);
+    auto outgoing = inet.tcp().connect(python_server);
     // When outgoing connection to python sever is established
     outgoing->on_connect(
     [client] (Connection_ptr python) {
