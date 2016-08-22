@@ -21,8 +21,11 @@
 #include <functional>
 #include <regex>
 #include <stdexcept>
+
 #include "request.hpp"
 #include "response.hpp"
+#include "../route/path_to_regex.hpp"  // TODO: Not relative path?
+#include "params.hpp"
 
 namespace server {
 
@@ -37,20 +40,34 @@ namespace server {
     //-------------------------------
     using Route_expr = std::regex;
     using Callback = std::function<void(Request_ptr, Response_ptr)>;
+
     struct Route {
 
       Route_expr expr;
       Callback callback;
+      std::vector<route::Token> keys;
 
-      Route(const char* ex, Callback c) : expr{ex}, callback{c}
-      {}
-
+      Route(const char* ex, Callback c)
+        : callback{c} {
+        expr = route::PathToRegex::path_to_regex(ex, keys); // also sets the keys attribute
+      }
     };
 
     using Route_table = std::unordered_map< http::Method, std::vector<Route> >;
     using Span = gsl::span<char>;
 
   public:
+
+    /**
+     * @brief      Returned in match-method.
+     *             Contains both the Callback and the route parameters so that both can be returned.
+     */
+    struct ParsedRoute {
+
+      Callback job;
+      Params parsed_values;
+    };
+
     //-------------------------------
     // Default constructor to set up
     // default routes
@@ -217,7 +234,7 @@ namespace server {
      * @param path : the route path
      * @note : not const becuase it uses index operator to a map
      **/
-    inline Callback match(http::Method, const std::string&);
+    inline ParsedRoute match(http::Method, const std::string&);
 
   private:
 
@@ -226,14 +243,11 @@ namespace server {
 
     Route_table route_table_;
 
-
   }; //< class Router
-
 
   class Router_error : public std::runtime_error {
     using runtime_error::runtime_error;
   };
-
 
   /**--v----------- Implementation Details -----------v--**/
 
@@ -245,7 +259,7 @@ namespace server {
 
   template <typename Routee>
   inline Router& Router::on_get(Routee&& route, Callback result) {
-    route_table_[http::GET].emplace_back(std::forward<Routee>(route),  result);
+    route_table_[http::GET].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
@@ -266,7 +280,6 @@ namespace server {
     route_table_[http::PUT].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
-
 
   template <typename Routee>
   inline Router& Router::on_delete(Routee&& route, Callback result) {
@@ -298,21 +311,35 @@ namespace server {
     return *this;
   }
 
-
-  inline Router::Callback Router::match(http::Method method, const std::string& path) {
-
+  inline Router::ParsedRoute Router::match(http::Method method, const std::string& path) {
     auto routes = route_table_[method];
+
     if (routes.empty())
       throw Router_error("No routes for method " + http::method::str(method));
 
-    for (auto& route : routes)
-      if (std::regex_match(path.begin(), path.end(), route.expr))
-        return route.callback;
+    for (auto& route : routes) {
+      if (std::regex_match(path, route.expr)) {
+        // Set the pairs in params:
+        Params params;
+        std::smatch res;
+
+        for (std::sregex_iterator i = std::sregex_iterator{path.begin(), path.end(), route.expr};
+          i != std::sregex_iterator{}; ++i) { res = *i; }
+
+        // First parameter/value is in res[1], second in res[2], and so on
+        for (size_t i = 0; i < route.keys.size(); i++)
+          params.insert(route.keys[i].name, res[i + 1]);
+
+        ParsedRoute parsed_route;
+        parsed_route.job = route.callback;
+        parsed_route.parsed_values = params;
+
+        return parsed_route;
+      }
+    }
 
     throw Router_error("No matching route for " + http::method::str(method) + " " + path);
   }
-
-
 
   /**--^----------- Implementation Details -----------^--**/
 
