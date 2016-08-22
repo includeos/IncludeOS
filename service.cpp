@@ -301,6 +301,71 @@ void Service::start() {
           cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
+      auto& tcp = server_->ip_stack().tcp();
+      tcp.bind(8080).on_connect(
+      [](auto conn)
+      {
+        conn->on_read(2048,
+        [conn](auto, size_t)
+        {
+          disk->fs().stat("/public/static/books/borkman.txt",
+          [conn](auto err, const auto& entry)
+          {
+            http::Response res;
+            res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
+            // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+            res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
+            res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
+            res.add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
+            conn->write(res);
+
+            Async::upload_file(disk, entry, conn,
+            [](auto err, bool good)
+            {
+              if(err)
+                printf("Err\n");
+              else
+                printf(good ? "good" : "bad");
+              printf(" - heap: %u\n", OS::heap_usage() / 1024);
+            });
+          });
+        });
+      });
+      extern void print_backtrace();
+      print_backtrace();
+
+      tcp.bind(8081).on_connect(
+      [](auto conn)
+      {
+        static uint32_t usage = OS::heap_usage();
+        conn->on_read(2048,
+        [conn](auto, size_t)
+        {
+          if(OS::heap_usage() > usage) {
+            printf("heap increase: %u => %u (current: %u MB) (increase: %u kb)\n",
+              usage, OS::heap_usage(), OS::heap_usage() / (1024*1024), (OS::heap_usage() - usage) / 1024);
+            usage = OS::heap_usage();
+          }
+
+          const static size_t N = 1024*1024*10;
+          http::Response res;
+          res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
+          // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
+          res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
+          res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
+          res.add_header(http::header_fields::Entity::Content_Length, std::to_string(N));
+          conn->write(res);
+
+          auto buf = net::tcp::new_shared_buffer(N);
+          memset(buf.get(), '!', N);
+
+          conn->write(buf, N,
+          [](size_t n) {
+
+          });
+        });
+      });
+
     }); // < disk
 }
 
