@@ -131,7 +131,6 @@ public:
 
   template <typename Value>
   inline void add_index(Column&& col, Resolver<Value> res, Constraint con = NONE);
-  //{ add_index(Type<Value>(), std::forward<Column>(col), res, con); };
 
   template <typename Writer>
   inline void serialize(Writer& writer) const;
@@ -141,17 +140,11 @@ private:
   Collection bucket_;
   const size_t LIMIT;
 
-  // Indexes
-  Indexes<std::string> string_indexes_;
-
-
-
   template <typename Value>
-  inline Indexes<Value>& get_indexes()
-  { return get_indexes(Type<Value>()); }
-
-  inline Indexes<std::string>& get_indexes(Type<std::string>)
-  { return string_indexes_; }
+  inline Indexes<Value>& get_indexes() const {
+    static Indexes<Value> indexes_;
+    return indexes_;
+  }
 
   // Constraints
 
@@ -275,7 +268,7 @@ inline void Bucket<T>::add_index(Column&& col, Resolver<Value> res, Constraint c
 template <typename T>
 inline bool Bucket<T>::constraints_fails(const T& obj) const {
   // check all string values
-  if(constraints_fails(string_indexes_, obj))
+  if(constraints_fails(get_indexes<std::string>(), obj))
     return true;
 
   return false;
@@ -323,7 +316,7 @@ inline bool Bucket<T>::is_null(const IndexedColumn<std::string>& col, const T& o
 
 template <typename T>
 inline void Bucket<T>::update_indexes(const T& obj) {
-  update_indexes(string_indexes_, obj);
+  update_indexes(get_indexes<std::string>(), obj);
 }
 
 template <typename T>

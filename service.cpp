@@ -75,7 +75,9 @@ void Service::start(const std::string&) {
       // setup "database" squirrels
 
       squirrels = std::make_shared<SquirrelBucket>();
-      squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
+      squirrels->add_index<std::string>("name",
+      [](const Squirrel& s)->const auto&
+      {
         return s.get_name();
       }, SquirrelBucket::UNIQUE);
 
@@ -90,7 +92,7 @@ void Service::start(const std::string&) {
       } catch(bucket::ConstraintUnique) {
         exception_thrown = true;
       }
-      //assert(exception_thrown);
+      assert(exception_thrown);
 
       // no-go if throw
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
