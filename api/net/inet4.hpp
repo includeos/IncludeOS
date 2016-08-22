@@ -166,7 +166,7 @@ namespace net {
     /** Initialize with DHCP  */
     Inet4(hw::Nic& nic, double timeout);
 
-    inline void process_sendq(size_t);
+    void process_sendq(size_t);
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;
 
@@ -192,30 +192,5 @@ namespace net {
     const uint16_t MTU_;
   };
 }
-
-#include "inet4.inc"
-
-/*
-namespace net {
-  template <int N = 0, typename Driver = VirtioNet>
-  inline auto new_ipv4_stack(const double timeout, typename Inet4<Driver>::dhcp_timeout_func handler)
-  {
-    auto& eth = hw::Dev::eth<N,Driver>();
-    auto inet = std::make_unique<net::Inet4<Driver>>(eth, timeout);
-    inet->on_config(handler);
-    return inet;
-  }
-
-  template <int N = 0, typename Driver = VirtioNet>
-  inline auto new_ipv4_stack(const IP4::addr addr, const IP4::addr nmask, const IP4::addr router,
-                             const IP4::addr dns = { 8,8,8,8 })
-  {
-    auto& eth = hw::Dev::eth<N,Driver>();
-    auto inet = std::make_unique<net::Inet4<Driver>>(eth, addr, nmask, router);
-    inet->set_dns_server(dns);
-    return inet;
-  }
-} //< namespace net
-*/
 
 #endif
