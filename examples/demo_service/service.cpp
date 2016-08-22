@@ -67,23 +67,34 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
 void Service::start(const std::string&)
 {
-  // Stack with default network interface (eth0) driven by VirtioNet
-  // Static IP configuration will get overwritten by DHCP, if found
-  auto& inet = net::Inet4::stack<0>();
-  inet.network_config({ 10,0,0,42 },     // IP
-                      { 255,255,255,0 }, // Netmask
-                      { 10,0,0,1 },      // Gateway
-                      { 10,0,0,1 });     // DNS
+  // Retreive the stack on nic 0
+  // Creates (without IP configuration) if not already exists
+  //auto& inet = net::Inet4::stack<0>();
+
+  // Create a stack on nic 0 with static IP configuration
+  auto& inet = net::Inet4::ifconfig<0>({ 10,0,0,42 },     // IP
+                                       { 255,255,255,0 }, // Netmask
+                                       { 10,0,0,1 },      // Gateway
+                                       { 10,0,0,1 });     // DNS
+
+  // Create a stack on nic 0 with default DHCP negotation
+  //auto& inet = net::Inet4::ifconfig<0>();
+
+  // Create a stack on nic 0 with custom DHCP negotation
+  //auto& inet = net::Inet4::ifconfig<0>(5.0,
+  //[](bool timeout) {
+  //  printf("<Serivce> DHCP timed out: %s\n", timeout?"true":"false");
+  //});
 
   // Print some useful netstats every 30 secs
-  Timers::periodic(5s, 30s, 
+  Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().bind(80);
-  
+
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_accept(
   [] (auto socket) -> bool {

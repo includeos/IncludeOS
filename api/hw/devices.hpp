@@ -34,7 +34,7 @@ namespace hw {
   class APIC;
   class HPET;
 
-  class DeviceNotFound;
+  class Device_not_found;
 
   /**
    *  Access point for registered devices
@@ -75,6 +75,9 @@ namespace hw {
     template <typename DRIVER>
     static PCI_Device& serial(int n);
 
+    /** List all devices (decorated, as seen in boot output) */
+    inline static void print_devices();
+
   private:
 
     /**
@@ -91,12 +94,14 @@ namespace hw {
     template <typename Device_type>
     inline static Device_type& get(const int N);
 
+    /** Registry of devices of a given type */
     template <typename Device_type>
-    using Device_registery = std::vector< std::unique_ptr<Device_type> >;
+    using Device_registry = std::vector< std::unique_ptr<Device_type> >;
 
+    /** Returns the device registry of a given type */
     template <typename Device_type>
-    inline static Device_registery<Device_type>& devices() {
-      static Device_registery<Device_type> devices_;
+    inline static Device_registry<Device_type>& devices() {
+      static Device_registry<Device_type> devices_;
       return devices_;
     }
 
@@ -111,24 +116,29 @@ namespace hw {
     template <typename Device_type>
     static void register_device(std::unique_ptr<Device_type> dev) {
       devices<Device_type>().emplace_back(std::move(dev));
-      INFO("Devices", "Registered %s [%u]",
+      debug("<Devices> Registered %s [%u]",
         dev->device_type(), devices<Device_type>().size()-1);
     }
+
+    /** Print a decorated indexed list with the devices of the given type. No output if empty */
+    template <typename Device_type>
+    inline static void print_devices(const Device_registry<Device_type>& devices);
 
     /** Following classes are allowed to register a device */
     friend class ::PCI_manager;
 
   }; //< class Devices
 
-  class DeviceNotFound : public std::out_of_range {
+  /** Exception thrown when a device is not found (registered) */
+  class Device_not_found : public std::out_of_range {
   public:
-    explicit DeviceNotFound(const std::string& type, const int n)
+    explicit Device_not_found(const std::string& type, const int n)
       : std::out_of_range(
           std::string{"Device of type "} + type +
-          std::string{" not found at position "}
+          std::string{" not found at position #"}
           + std::to_string(n))
       {}
-  };
+  }; //< class Device_not_found
 
   template <typename Device_type>
   inline Device_type& Devices::get(const int N) {
@@ -137,8 +147,32 @@ namespace hw {
     }
     catch(std::out_of_range)
     {
-      throw DeviceNotFound{Device_type::device_type(), N};
+      throw Device_not_found{Device_type::device_type(), N};
     }
+  }
+
+  template <typename Device_type>
+  inline void Devices::print_devices(const Device_registry<Device_type>& devices)
+  {
+    if(not devices.empty())
+    {
+      INFO2("|");
+      INFO2("+--+ %s", Device_type::device_type());
+
+      for(size_t i = 0; i < devices.size(); i++)
+        INFO2("|  + #%u: %s", i, devices[i]->name());
+    }
+  }
+
+  inline void Devices::print_devices()
+  {
+    INFO("Devices", "Listing registered devices");
+
+    print_devices(devices<hw::Drive>());
+    print_devices(devices<hw::Nic>());
+
+    INFO2("|");
+    INFO2("o");
   }
 
 } //< namespace hw

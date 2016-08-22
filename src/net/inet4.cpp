@@ -99,13 +99,13 @@ Inet4::Inet4(
 Inet4::Inet4(hw::Nic& nic, double timeout)
   : Inet4(nic)
 {
-  INFO("Inet4", "Trying DHCP...");
   dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
   dhcp_->negotiate(timeout);
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
+  INFO("Inet4", "Negotiating DHCP...");
   if(!dhcp_)
     dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
