@@ -45,6 +45,8 @@ const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 extern char _end; // location set by linker script
 
+#define RANDOMIZE_HEAP_BASE
+
 void _init_c_runtime()
 {
   /// init backtrace functionality
@@ -62,9 +64,21 @@ void _init_c_runtime()
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
   
   // Initialize the heap before exceptions
-  heap_begin = &_end;
-  heap_end   = &_end;
-  
+  heap_begin = &_end + 0xfff;
+  // page-align heap, because its not aligned
+  heap_begin = (char*) ((uintptr_t)heap_begin & 0xfffff000);
+#ifdef RANDOMIZE_HEAP_BASE
+  // randomize heap start location
+  uint64_t tsc;
+  asm volatile ("rdtsc" : "=A"(tsc));
+  // 512kb randomization in pages
+  heap_begin += (tsc & 0x7f) << 12;
+#endif
+  // heap end tracking, used with sbrk
+  heap_end   = heap_begin;
+  // validate that heap is page aligned
+  int validate_heap_alignment = ((uintptr_t)heap_begin & 0xfff) == 0;
+
   /// initialize newlib I/O
   newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);
   // set newlibs internal structure to ours
@@ -94,6 +108,10 @@ void _init_c_runtime()
    _apply_parser_data(NULL); 
   }
 
+  // sanity checks
+  assert(heap_begin >= &_end);
+  assert(heap_end >= heap_begin);
+  assert(validate_heap_alignment);
 }
 
 // global/static objects should never be destructed here, so ignore this
