@@ -26,86 +26,106 @@
 #include <algorithm>
 
 #define BUFFER_COUNT    1024
-static fixedvector<uintptr_t, BUFFER_COUNT>* sampler_queue;
-static fixedvector<uintptr_t, BUFFER_COUNT>* transfer_queue;
-
-typedef uint32_t func_sample;
-static std::unordered_map<uintptr_t, func_sample> sampler_dict;
-static func_sample sampler_total = 0;
-static int  lockless_sampler = 0;
-static bool sampler_discard; // discard results as long as true
-extern char _irq_cb_return_location;
 
 extern "C" {
   void parasite_interrupt_handler();
   void profiler_stack_sampler();
   void gather_stack_sampling();
 }
+extern char _irq_cb_return_location;
+
+typedef uint32_t func_sample;
+struct Sampler
+{
+  fixedvector<uintptr_t, BUFFER_COUNT>* samplerq;
+  fixedvector<uintptr_t, BUFFER_COUNT>* transferq;
+  std::unordered_map<uintptr_t, func_sample> dict;
+  func_sample total = 0;
+  int  lockless;
+  bool discard; // discard results as long as true
+  
+  Sampler() {
+    // make room for these only when requested
+    #define blargh(T) std::remove_pointer<decltype(T)>::type;
+    samplerq = new blargh(samplerq);
+    transferq = new blargh(transferq);
+    total    = 0;
+    lockless = 0;
+    discard  = false;
+  }
+  
+  void begin() {
+    // gather samples repeatedly over small periods
+    using namespace std::chrono;
+    static const milliseconds GATHER_PERIOD_MS = 150ms;
+    
+    hw::PIT::instance().on_repeated_timeout(
+        GATHER_PERIOD_MS, gather_stack_sampling);
+  }
+  void add(void* ra)
+  {
+    // need free space to take more samples
+    if (samplerq->free_capacity())
+        samplerq->add((uintptr_t) ra);
+    
+    // return when its not our turn
+    if (lockless) return;
+    
+    // transfer all the built up samplings
+    transferq->clone(samplerq->first(), samplerq->size());
+    samplerq->clear();
+    lockless = 1;
+  }
+};
+
+Sampler& get() {
+  static Sampler sampler;
+  return sampler;
+}
 
 void StackSampler::begin()
 {
-  // make room for these only when requested
-  #define blargh(T) std::remove_pointer<decltype(T)>::type;
-  sampler_queue = new blargh(sampler_queue);
-  transfer_queue = new blargh(transfer_queue);
-  sampler_total = 0;
-  
-  // begin sampling
+  // install interrupt handler
   IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
-  
-  // gather samples repeatedly over small periods
-  using namespace std::chrono;
-  static const milliseconds GATHER_PERIOD_MS = 150ms;
-  
-  hw::PIT::instance().on_repeated_timeout(
-      GATHER_PERIOD_MS, gather_stack_sampling);
+  // start taking samples using PIT interrupts
+  get().begin();
 }
 
 void profiler_stack_sampler()
 {
   void* ra = __builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
-  if (UNLIKELY(ra == nullptr || sampler_discard)) return;
+  if (UNLIKELY(ra == nullptr || get().discard)) return;
   // ignore event loop
   if (ra == &_irq_cb_return_location) return;
-  
-  // need free space to take more samples
-  if (sampler_queue->free_capacity())
-      sampler_queue->add((uintptr_t) ra);
-  
-  // return when its not our turn
-  if (lockless_sampler) return;
-  
-  // transfer all the built up samplings
-  transfer_queue->clone(sampler_queue->first(), sampler_queue->size());
-  sampler_queue->clear();
-  lockless_sampler = 1;
+  // add address to sampler queue
+  get().add(ra);
 }
 
 void gather_stack_sampling()
 {
   // gather results on our turn only
-  if (lockless_sampler == 1)
+  if (get().lockless == 1)
   {
-    for (auto* addr = transfer_queue->first(); addr < transfer_queue->end(); addr++)
+    for (auto* addr = get().transferq->first(); addr < get().transferq->end(); addr++)
     {
       // convert return address to function entry address
       uintptr_t resolved = Elf::resolve_addr(*addr);
       // insert into unordered map
-      auto it = sampler_dict.find(resolved);
-      if (it != sampler_dict.end()) {
+      auto it = get().dict.find(resolved);
+      if (it != get().dict.end()) {
         it->second++;
       }
       else {
         // add to dictionary
-        sampler_dict.emplace(
+        get().dict.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(resolved),
             std::forward_as_tuple(1));
       }
     }
-    sampler_total += transfer_queue->size();
-    lockless_sampler = 0;
+    get().total += get().transferq->size();
+    get().lockless = 0;
   }
 }
 
@@ -126,28 +146,28 @@ void print_heap_info()
 void StackSampler::print()
 {
   // store discard value and enable discarding
-  bool smask = sampler_discard;
-  sampler_discard = true;
+  bool smask = get().discard;
+  get().discard = true;
   
   using sample_pair = std::pair<uintptr_t, func_sample>;
   
   // sort by count
-  std::vector<sample_pair> vec(sampler_dict.begin(), sampler_dict.end());
+  std::vector<sample_pair> vec(get().dict.begin(), get().dict.end());
   std::sort(vec.begin(), vec.end(), 
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
     return sample1.second > sample2.second;
   });
   
   size_t results = 12;
-  results = (results > sampler_dict.size()) ? sampler_dict.size() : results;
+  results = (results > get().dict.size()) ? get().dict.size() : results;
   
-  printf("*** Listing %d results (%u samples) ***\n", results, sampler_total);
+  printf("*** Listing %d results (%u samples) ***\n", results, get().total);
   for (auto& sa : vec)
   {
     // resolve the addr
     auto func = Elf::resolve_symbol(sa.first);
     
-    float f =  (float) sa.second / sampler_total * 100;
+    float f =  (float) sa.second / get().total * 100;
     // print some shits
     printf("%5.2f%%  %*u: %s\n",
         f, 8, sa.second, func.name.c_str());
@@ -157,12 +177,12 @@ void StackSampler::print()
   printf("*** ---------------------- ***\n");
   
   // restore
-  sampler_discard = smask;
+  get().discard = smask;
 }
 
 void StackSampler::set_mask(bool mask)
 {
-  sampler_discard = mask;
+  get().discard = mask;
 }
 
 void __panic_failure(char const* where, size_t id)
