@@ -8,13 +8,13 @@ SERVICE_NAME=Acorn
 
 # Service parts
 FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
-      cookie/cookie.o cookie/cookie_jar.o
+      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o
 
 # Service disk image
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats
+CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route
 MOD_FILES=
 
 FILES+=$(MOD_FILES)

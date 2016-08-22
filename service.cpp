@@ -211,6 +211,34 @@ void Service::start() {
         }
       });
 
+    // TESTING PathToRegexp/route/router.hpp FROM HERE
+
+      routes.on_get("/api/users/:id(\\d+)/:name/something/:something([a-z]+)",
+        [](server::Request_ptr req, auto res) {
+
+        // Get parameters:
+        // Alt.: std::string id = req->params().get("id");
+        auto& params = req->params();
+        std::string id = params.get("id");
+        std::string name = params.get("name");
+        std::string something = params.get("something");
+
+        // std::string doesntexist = params.get("doesntexist");  // throws ParamException
+
+        printf("id: %s\n", id.c_str());
+        printf("name: %s\n", name.c_str());
+        printf("something: %s\n", something.c_str());
+
+        printf("[@GET:/api/users/:id(\\d+)/:name/something/:something([a-z]+)] Responding with content inside UserBucket\n");
+        using namespace rapidjson;
+        StringBuffer sb;
+        Writer<StringBuffer> writer(sb);
+        users->serialize(writer);
+        res->send_json(sb.GetString());
+      });
+
+    // UNTIL HERE
+
       routes.on_get("/api/users", [](auto, auto res) {
         printf("[@GET:/api/users] Responding with content inside UserBucket\n");
         using namespace rapidjson;

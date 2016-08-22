@@ -20,6 +20,8 @@
 
 #include "http/inc/request.hpp"
 #include "attribute.hpp"
+#include "params.hpp"
+
 #include <map>
 
 namespace server {
@@ -91,11 +93,14 @@ public:
   inline std::string route_string() const
   { return "@" + http::method::str(method()) + ":" + uri().path(); }
 
-
   static void on_recv(OnRecv cb)
   { on_recv_ = cb; }
 
   void complete();
+
+  void set_params(const Params& params) { params_ = params; }
+
+  const Params& params() const { return params_; }
 
   ~Request();
 
@@ -108,6 +113,7 @@ private:
    */
   std::map<AttrType, Attribute_ptr> attributes_;
 
+  Params params_;
 
   static OnRecv on_recv_;
 
