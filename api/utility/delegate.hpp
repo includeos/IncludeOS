@@ -3,15 +3,16 @@
   From http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
   Retreived: 18.09.2014
   Author: 'user1095108' (http://codereview.stackexchange.com/users/15768/user1095108)
-  
+
   Licence: Assumed to be public domain.
 
-  ...It's just awesome how people make great stuff and just post it  
+  ...It's just awesome how people make great stuff and just post it
 */
 
 #ifndef OSABI_DELEGATE_HPP
 #define OSABI_DELEGATE_HPP
 
+#include <common>
 #include <new>
 #include <memory>
 #include <utility>
@@ -31,9 +32,7 @@ class delegate<R (A...)>
   }
 
 public:
-  delegate() {
-    *this = [](A...)->R{ return R(); };
-  }
+  delegate() = default;
 
   delegate(delegate const&) = default;
 
@@ -262,7 +261,8 @@ public:
 
   R operator()(A... args) const
   {
-    //  assert(stub_ptr);
+    if (UNLIKELY(not stub_ptr_))
+      throw std::runtime_error("Uninitialized delegate called");
     return stub_ptr_(object_ptr_, ::std::forward<A>(args)...);
   }
 
