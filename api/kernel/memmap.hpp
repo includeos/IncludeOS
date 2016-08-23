@@ -26,11 +26,6 @@
 #include <delegate>
 #include <common>
 
-/** An actual range of memory. */
-using Span = gsl::span<uint8_t>;
-static constexpr auto span_max() {
-  return std::numeric_limits<std::ptrdiff_t>::max();
-}
 
 /** Exception for Fixed_memory_range */
 class Memory_range_exception : public std::runtime_error {
@@ -42,6 +37,12 @@ class Memory_range_exception : public std::runtime_error {
 class Fixed_memory_range {
 
 public:
+
+  /** An actual range of memory. */
+  using Span = gsl::span<uint8_t>;
+  static constexpr auto span_max() {
+    return std::numeric_limits<std::ptrdiff_t>::max();
+  }
 
   using size_type = ptrdiff_t;
   using In_use_delg = delegate<size_type()>;
@@ -57,12 +58,12 @@ public:
   {
 
     if (begin > end)
-      throw Memory_range_exception("Start is larger than end: " + 
+      throw Memory_range_exception("Start is larger than end: " +
           std::to_string(begin) + " > " + std::to_string(end));
     if (end - begin > span_max())
       throw Memory_range_exception("Maximum range size is " + std::to_string(span_max()));
 
-    range_ = Span((uint8_t*)begin, end - begin);
+    range_ = Span((uint8_t*)begin, end - begin + 1);
   }
 
   Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name, std::string descr)
@@ -101,7 +102,7 @@ public:
   }
 
   uintptr_t addr_end() const noexcept {
-    return reinterpret_cast<uintptr_t>(range_.data() + range_.size());
+    return reinterpret_cast<uintptr_t>(range_.data() + range_.size() - 1);
   }
 
   bool in_range(uintptr_t addr) const {
