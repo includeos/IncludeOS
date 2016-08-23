@@ -51,7 +51,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Downstream delegates */
   // retreive drivers delegate virtually, instead of setting it to a virtual call
-  auto phys_top(nic.get_physical_in());
+  auto phys_top(nic.get_physical_out());
   //auto phys_top(downstream
   //              ::from<hw::Nic,&hw::Nic::transmit>(nic));
   auto eth_top(downstream
@@ -79,6 +79,7 @@ Inet4::Inet4(hw::Nic& nic)
   arp_.set_linklayer_out(eth_top);
 
   // Eth -> Phys
+  assert(phys_top);
   eth_.set_physical_out(phys_top);
 }
 

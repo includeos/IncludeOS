@@ -26,6 +26,8 @@
 #include "headers.hpp"
 #include "socket.hpp"
 
+#include <sstream> // ostringstream
+
 inline unsigned round_up(unsigned n, unsigned div) {
   assert(n);
   return (n + div - 1) / div;
