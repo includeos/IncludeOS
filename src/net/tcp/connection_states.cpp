@@ -1152,7 +1152,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
       tcp.set_state(TimeWait::instance());
       if(tcp.rtx_timer.active)
         tcp.rtx_stop();
-      tcp.start_time_wait_timeout();
+      tcp.timewait_start();
     } else {
       tcp.set_state(Closing::instance());
     }
@@ -1199,7 +1199,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_ptr in) {
     tcp.set_state(Connection::TimeWait::instance());
     if(tcp.rtx_timer.active)
       tcp.rtx_stop();
-    tcp.start_time_wait_timeout();
+    tcp.timewait_start();
   }
   return OK;
 }
@@ -1271,7 +1271,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_ptr in) {
   if(in->ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(TimeWait::instance());
-    tcp.start_time_wait_timeout();
+    tcp.timewait_start();
   }
 
   // 7. proccess the segment text
@@ -1346,7 +1346,7 @@ State::Result Connection::TimeWait::handle(Connection& tcp, Packet_ptr in) {
   if(in->isset(FIN)) {
     process_fin(tcp, in);
     // Remain in state
-    tcp.start_time_wait_timeout();
+    tcp.timewait_restart();
     return OK;
   }
   return OK;

@@ -54,12 +54,12 @@ void _init_c_runtime()
   extern void* _relocate_to_heap(char*);
   extern void  _apply_parser_data(void*);
   // there is a 600k memory hole at the beginning of memory
-  // put symbols at 128k
-  void* TEMP_LOCATION = (void*) 0x20000;
+  // put symbols at 32k
+  void* TEMP_LOCATION = (void*) 0x8000;
   // move symbols to a temporary location that is abit further out than heap
   // do this as early as possible, even before zeroing BSS to prevent overwriting
   // all the data we need to keep for backtrace functionality
-  _init_elf_parser(TEMP_LOCATION);
+  int stripped = _init_elf_parser(TEMP_LOCATION);
   
   // Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
@@ -97,8 +97,14 @@ void _init_c_runtime()
   __register_frame(&__eh_frame_start);  
 
   // set parser location here (after initializing everything else)
-  _apply_parser_data(TEMP_LOCATION); 
+  _apply_parser_data(TEMP_LOCATION);
 
+  // relocate symbols to heap
+  if (!stripped) {
+    void* heaploc = _relocate_to_heap(TEMP_LOCATION);
+    _apply_parser_data(heaploc);
+  }
+  
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
