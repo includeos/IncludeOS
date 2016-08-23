@@ -499,6 +499,12 @@ private:
     bool active = false;
   } rtx_timer;
 
+  /** Time Wait timeout timer */
+  struct {
+    uint32_t id;
+    bool active = false;
+  } timewait_timer;
+
   /** Number of retransmission attempts on the packet first in RT-queue */
   size_t rtx_attempt_ = 0;
 
@@ -901,10 +907,17 @@ private:
   void rtx_timeout(uint32_t);
 
 
-  /*
-    Start the time wait timeout for 2*MSL
-  */
-  void start_time_wait_timeout();
+  /** Start the timewait timeout for 2*MSL */
+  void timewait_start();
+
+  /** Stop the timewait timer */
+  void timewait_stop();
+
+  /** Restart the timewait timer if active */
+  void timewait_restart();
+
+  /** When timewait timer times out */
+  void timewait_timeout(uint32_t);
 
   /*
     Tell the host (TCP) to delete this connection.
