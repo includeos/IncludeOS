@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test
+SERVICE = test_terminal
 SERVICE_NAME = The Terminal Test Service
 
 # Your service parts
