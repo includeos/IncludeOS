@@ -28,7 +28,6 @@ namespace ip4 {
 
 /** IP4 address representation */
 struct Addr {
-  uint32_t whole;
 
   Addr() : whole(0) {} // uninitialized
   Addr(const uint32_t ipv4_addr)
@@ -90,7 +89,7 @@ struct Addr {
   { return (*this < rhs.whole); }
 
   bool operator<(const uint32_t rhs)  const noexcept
-  { return  ntohs(whole) < ntohs(rhs); }
+  { return  ntohl(whole) < ntohl(rhs); }
 
   bool operator>(const Addr rhs)      const noexcept
   { return !(*this < rhs); }
@@ -110,7 +109,8 @@ struct Addr {
   /** x.x.x.x string representation */
   std::string str() const {
     char ipv4_addr[16];
-    sprintf(ipv4_addr, "%1i.%1i.%1i.%1i",
+    snprintf(ipv4_addr, sizeof(ipv4_addr),
+            "%1i.%1i.%1i.%1i",
             (whole >>  0) & 0xFF,
             (whole >>  8) & 0xFF,
             (whole >> 16) & 0xFF,
@@ -120,6 +120,8 @@ struct Addr {
 
   std::string to_string() const
   { return str(); }
+
+  uint32_t whole;
 
 } __attribute__((packed)); //< Addr
 
