@@ -114,7 +114,7 @@ all: includeos
 
 stripped: CAPABS += -Os
 stripped: LDOPTS += -s
-stripped: includeos test
+stripped: includeos
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
@@ -140,7 +140,7 @@ silent: includeos
 
 minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
-minimal: stripped test
+minimal: stripped
 
 includeos: bootloader multiboot libc++abi.a os.a drivers
 
