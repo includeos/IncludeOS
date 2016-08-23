@@ -29,10 +29,12 @@ CASE ("Using the fixed memory range class")
       // @note : In the kernel memory map these would be physical ranges
       char* seq = const_cast<char*>("Spans provide a safer way to access memory");
       Fixed_memory_range range(reinterpret_cast<uintptr_t>(seq + 16),
-                                 reinterpret_cast<uintptr_t>(seq + 21), "Demo range",
+                                 reinterpret_cast<uintptr_t>(seq + 20), "Demo range",
                                "A range inside a local pool");
 
-      EXPECT(range.size() == 21-16);
+      auto seq_start = seq + 16;
+      auto seq_end = seq + 20;
+      EXPECT(range.size() == seq_end - seq_start + 1);
       EXPECT(std::string(range.name()) == std::string("Demo range"));
 
       THEN("You can iterate safely over that range, and not out of bounds"){
@@ -52,8 +54,8 @@ CASE ("Using the fixed memory range class")
 
         EXPECT(not range.in_range(1));
         EXPECT(not range.in_range((uintptr_t)seq));
-        EXPECT(range.in_range((uintptr_t)seq + 16));
-        EXPECT(range.in_range((uintptr_t)seq + 21));
+        EXPECT(range.in_range((uintptr_t)seq_start));
+        EXPECT(range.in_range((uintptr_t)seq_end));
         EXPECT(not range.in_range((uintptr_t)seq + 22));
       }
 
@@ -68,15 +70,24 @@ CASE ("Using the fixed memory range class")
     }
 }
 
+CASE("Construct a range with illegal parameters")
+{
+  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1000, (uintptr_t)10, "Negative", "A range going backwards"}));
+  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1, (uintptr_t)Fixed_memory_range::span_max() + 100, "Too big", "A range > max of ptrdiff_t"}));
+}
+
 CASE ("Using the kernel memory map") {
 
   GIVEN ("An instance of the memory map with a named range")
     {
       Memory_map map{};
       EXPECT(map.size() == 0);
+      EXPECT(not map.in_range(0));
+      EXPECT(not map.in_range(0xff));
+      EXPECT(not map.in_range(0xffff));
       uintptr_t init_key = 0xff;
       uintptr_t init_end = 0xffff;
-      auto init_size = init_end - init_key;
+      auto init_size = init_end - init_key + 1;
       map.assign_range({init_key, init_end, "Initial", "The first range"});
       EXPECT(map.size() == 1);
       EXPECT(not map.empty());
@@ -108,7 +119,7 @@ CASE ("Using the kernel memory map") {
       AND_THEN("You can fetch that range using start address as key")
         {
           auto& range = map.at(init_key);
-          EXPECT(range.size() == init_end - init_key);
+          EXPECT(range.size() == init_end - init_key + 1);
 
         }
 
@@ -168,14 +179,28 @@ CASE ("Using the kernel memory map") {
                   EXPECT_THROWS(map.resize(key, last_range.size() + 1));
                   EXPECT_THROWS(map.resize(key, last_range.size() + 100));
                 }
-
             }
         }
 
       AND_THEN("You can't insert an overlapping range")
         {
           EXPECT_THROWS(map.assign_range({0x1, 0xfff, "Range 2", "Overlapping beginning of Range 1"}));
-          EXPECT_THROWS(map.assign_range({0xfff, 0xfffff, "Range 3", "Overlapping end of Range 1"}));
+          EXPECT_THROWS(map.assign_range({0xfff, 0xfffff, "Range 2", "Overlapping end of Range 1"}));
+
+          uintptr_t rng2_key = 0x30000;
+          uintptr_t rng2_end = 0xfffff;
+          EXPECT(map.assign_range({rng2_key, rng2_end, "Range 2", "OK range above initial"}).addr_start() == rng2_key);
+
+          // A range where end-address only is with the second range
+          EXPECT_THROWS(map.assign_range({0x20000, 0x40000, "Range 3", "Between Range 1 and Range 2"}));
+
+          // A range where start-address is in the first of the two ranges
+          EXPECT_THROWS(map.assign_range({0xfff0, 0x20000, "Range 3", "Between Range 1 and Range 2"}));
+
+          /** Pretty print
+          for (auto i : map)
+            std::cout << "Range: " << i.second.to_string() << "\n";
+          **/
         }
 
       AND_THEN("You can't insert an embedded  range")
@@ -190,11 +215,11 @@ CASE ("Using the kernel memory map") {
           const size_t size = 100;
           const size_t count = 20;
 
-          for (auto i = start; i < start + count * size; i += size + 1) {
-            Fixed_memory_range rng = {i , i + size,
-                                      "demo",
+          for (auto i = start; i < start + count * size; i += size) {
+            Fixed_memory_range rng = {i , i + size - 1,"demo",
                                       std::string("The ") + std::to_string(i) + std::string("'th range")};
             map.assign_range(std::move(rng));
+            //std::cout << "Demo range for iteration: " << rng.to_string() << "\n";
           }
 
           EXPECT(map.size() == count + 1);
@@ -215,6 +240,7 @@ CASE ("Using the kernel memory map") {
               // Verify that every address in all the ranges report a conflict
               for (uintptr_t i = 0x10000; i < 0x10000 + count * size; i += 1){
                 auto overlap = map.in_range(i);
+                //std::cout << "i: " << std::hex << i << " overlaps with "  << overlap << "\n";
                 EXPECT(overlap);
               }
 
