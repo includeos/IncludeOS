@@ -21,6 +21,7 @@
 #include <gsl/gsl> // Expects/Ensures
 #include <regex>
 #include <string>
+#include <net/util.hpp> // byte order
 
 namespace net {
 namespace ip4 {
@@ -80,28 +81,28 @@ struct Addr {
 
   /** Standard comparison operators */
   bool operator==(const Addr rhs)     const noexcept
-  { return whole == rhs.whole; }
+  { return (*this == rhs.whole); }
 
   bool operator==(const uint32_t rhs) const noexcept
-  { return  whole == rhs; }
+  { return whole == rhs; }
 
   bool operator<(const Addr rhs)      const noexcept
-  { return whole < rhs.whole; }
+  { return (*this < rhs.whole); }
 
   bool operator<(const uint32_t rhs)  const noexcept
-  { return  whole < rhs; }
+  { return  ntohs(whole) < ntohs(rhs); }
 
   bool operator>(const Addr rhs)      const noexcept
-  { return whole > rhs.whole; }
+  { return !(*this < rhs); }
 
   bool operator>(const uint32_t rhs)  const noexcept
-  { return  whole > rhs; }
+  { return !(*this < rhs); }
 
   bool operator!=(const Addr rhs)     const noexcept
-  { return whole != rhs.whole; }
+  { return !(*this == rhs); }
 
   bool operator!=(const uint32_t rhs) const noexcept
-  { return  whole != rhs; }
+  { return !(*this == rhs); }
 
   Addr operator & (const Addr rhs)    const noexcept
   { return Addr(whole & rhs.whole); }
