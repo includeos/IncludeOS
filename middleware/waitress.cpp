@@ -96,7 +96,9 @@ public:
       //printf("<Waitress> Extension found - assuming request for file.\n");
       disk_->fs().stat(path, [this, req, res, next, path](auto err, const auto& entry) {
         if(err) {
+          #ifdef VERBOSE_WEBSERVER
           printf("<Waitress> File not found. Replying with 404.\n");
+          #endif
           return res->send_code(http::Not_Found);
           /*
           if(!options_.fallthrough) {
@@ -108,7 +110,9 @@ public:
           }*/
         }
         else {
+          #ifdef VERBOSE_WEBSERVER
           printf("<Waitress> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
+          #endif
           http::Mime_Type mime = http::extension_to_type(get_extension(path));
           res->add_header(http::header_fields::Entity::Content_Type, mime);
           res->send_file({disk_, entry});

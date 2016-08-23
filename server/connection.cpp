@@ -18,6 +18,8 @@
 #include "connection.hpp"
 #include "server.hpp"
 
+#include <kernel/syscalls.hpp>
+
 using namespace server;
 
 Connection::OnConnection Connection::on_connection_ = []{};
@@ -35,6 +37,8 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
+  SET_CRASH_CONTEXT("Connection::on_data: data from %s\n\n%*s",
+    conn_->to_string().c_str(), n, buf.get());
   #ifdef VERBOSE_WEBSERVER
   printf("<%s> @on_data, size=%u\n", to_string().c_str(), n);
   #endif
