@@ -43,15 +43,17 @@ class Fixed_memory_range {
 
 public:
 
-  using In_use_delg = delegate<size_t()>;
+  using size_type = ptrdiff_t;
+  using In_use_delg = delegate<size_type()>;
 
   void set_in_use_delg(In_use_delg del) {
     in_use_ = del;
   };
 
   /** Constructors **/
-  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name, const std::string descr)
-    : name_{name}, description_{descr}
+  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name,
+                     const std::string descr, In_use_delg in_use)
+    : name_{name}, description_{descr}, in_use_{in_use}
   {
 
     if (begin > end)
@@ -62,6 +64,10 @@ public:
 
     range_ = Span((uint8_t*)begin, end - begin);
   }
+
+  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name, std::string descr)
+    : Fixed_memory_range(begin, end, name, descr, nullptr)
+  {}
 
   Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name)
     : Fixed_memory_range(begin, end, name, "N/A")
@@ -75,8 +81,17 @@ public:
     : Fixed_memory_range(std::move(range), name, "N/A")
   {}
 
+  Fixed_memory_range() = delete;
+
+  /** Copy / Move / Delete **/
+  Fixed_memory_range(const Fixed_memory_range& cpy) = default;
+  Fixed_memory_range(Fixed_memory_range&& other) = default;
+  Fixed_memory_range& operator=(const Fixed_memory_range&) = default;
+  Fixed_memory_range& operator=(Fixed_memory_range&&) = default;
+  ~Fixed_memory_range() = default;
+
   /** Const getters */
-  size_t size() const { return range_.size(); }
+  ptrdiff_t size() const { return range_.size(); }
   const Span cspan() const { return range_; }
   const char* name() const { return name_; }
   const std::string description() const { return description_; }
@@ -93,6 +108,17 @@ public:
     return addr >= addr_start() and addr <= addr_end();
   }
 
+  /**
+   * Calls the (possibly) user provided delegate showing the number of bytes
+   * actually in use by this range. E.g. heap has a fixed range, but dynamic use
+   **/
+  auto in_use() const {
+    if(in_use_)
+      return in_use_();
+    else
+      return size();
+  }
+
   bool overlaps(const Fixed_memory_range& other) const {
     // Other range overlaps with my range
     return in_range(other.addr_start()) or in_range(other.addr_end())
@@ -106,8 +132,14 @@ public:
     out << name_ << " " << std::hex << addr_start() << " - "
         << addr_end() << " (" << description_
         << ", " << std::dec
-        << range_.size() <<  " bytes) ";
+        << in_use() << " / " << range_.size() <<  " bytes used) ";
     return out.str();
+  }
+
+  ptrdiff_t resize(ptrdiff_t size){
+    Expects(size);
+    range_ = Span(range_.data(), size);
+    return size;
   }
 
   /** Mutable getters */
@@ -125,7 +157,7 @@ private:
   Span range_;
   const char* name_;
   const std::string description_;
-  In_use_delg in_use_ = [&]{ return range_.size(); };
+  In_use_delg in_use_;
 
 };
 
@@ -142,6 +174,27 @@ public:
    **/
   Fixed_memory_range& assign_range (Fixed_memory_range&& rng);
 
+  /**
+   * Assign a memory range of a certain size to a named purpose.
+   **/
+  Fixed_memory_range& assign_range (Fixed_memory_range::size_type size);
+
+  /**
+   * Check if an address is within a range in the map.
+   * @param addr : the address to chekc
+   * @return the key (e.g. start address) of the range or 0 if no match
+   **/
+  uintptr_t in_range(uintptr_t addr);
+
+  /**
+   * Resize a range if possible (e.g. if the range.in_use() was less than it's size)
+   * @param size : the new size
+   * @return the new size. Throws if a resize wasn't possible.
+   **/
+  ptrdiff_t resize(uintptr_t key, ptrdiff_t size);
+
+
+
   //
   // Act as a map in safe ways
   //
@@ -156,6 +209,11 @@ public:
 
   const Map::const_iterator begin() { return map_.cbegin(); };
   const Map::const_iterator end() { return map_.cend(); };
+  const Fixed_memory_range& at(uintptr_t i) {
+    if (UNLIKELY(i == 0))
+      throw Memory_range_exception("No range starts at address 0");
+    return map_.at(i);
+  };
   auto size() { return map_.size(); }
   auto empty() { return map_.empty(); }
 

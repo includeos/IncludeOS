@@ -41,6 +41,7 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+extern uintptr_t _MAX_MEM_MIB_;
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
@@ -71,17 +72,26 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
+  MYINFO("Max mem (from linker): %i MiB", reinterpret_cast<size_t>(&_MAX_MEM_MIB_));
+
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
   } else {
+
+    // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
     auto mem = cmos::meminfo();
     low_memory_size = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);
     high_memory_size = mem.extended.total * 1024;
-    if (mem.extended.total == 0xffff)
-      INFO2("* High memory: >= %i Kib", mem.extended.total);
-    else
-      INFO2("* High memory: %i Kib", mem.extended.total);
+
+    // Use memsize provided by Make / linker unless CMOS knows this is wrong
+    decltype(high_memory_size) hardcoded_mem = reinterpret_cast<size_t>(&_MAX_MEM_MIB_) << 20;
+    if (mem.extended.total == 0xffff or hardcoded_mem < mem.extended.total) {
+      high_memory_size = hardcoded_mem;
+      INFO2("* High memory (from linker): %i Kib", high_memory_size / 1024);
+    } else {
+      INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
+    }
   }
 
   debug("\t[*] OS class started\n");
