@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Test
+SERVICE = test_vga
 SERVICE_NAME = The VGA Test Service
 
 # Your service parts

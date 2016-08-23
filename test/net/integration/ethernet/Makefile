@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE=Ethernet_module_test
+SERVICE=test_ethernet
 SERVICE_NAME=Ethernet Module Test
 
 # Your service parts

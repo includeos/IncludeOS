@@ -11,6 +11,10 @@ ifneq ($(DISK),)
 MEMDISK=memdisk.o
 endif
 
+# Maximum memory in megabytes
+# Used if memory info is not otherwise available such as via multiboot
+MAX_MEM=128
+
 # Shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
@@ -50,7 +54,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -Os
 STRIPPED=-S
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym=__stack_rand_ba=`date +%s`
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s`
 
 # Objects
 ###################################################

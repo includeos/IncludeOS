@@ -18,33 +18,31 @@
 #include <common.cxx>
 #include <utility/delegate.hpp>
 
+const std::string f1(){ return "f1"; }
+const std::string f2(){ return "f2"; }
+
 CASE("A delegate can be compared with other delegates and itself")
 {
-  delegate<void(const std::string s)> d{};
-  delegate<void(const std::string s)> d2{};
-  delegate<void(const std::string s)> d3{};
+  delegate<const std::string()> d{f1};
+  delegate<const std::string()> d2{f2};
 
   EXPECT(d < d2);
-  EXPECT(d < d3);
-  EXPECT(d2 < d3);
 
   EXPECT(d == d);
   EXPECT(d != d2);
-  EXPECT(d != d3);
-  EXPECT(d2 != d3);
 
   EXPECT_NOT(d == d2);
-  EXPECT_NOT(d == d3);
   EXPECT_NOT(d == nullptr);
 }
 
 CASE("A delegate can be set to be the same as another delegate (= operator overload)")
 {
-  delegate<void(const std::string s)> d{};
-  delegate<void(const std::string s)> d2{};
+  delegate<const std::string()> d{};
+  delegate<const std::string()> d2{};
 
-  EXPECT(d != d2);
+  EXPECT(d == d2);
 
+  d = f1;
   d = d2;
 
   EXPECT(d == d2);
@@ -52,14 +50,15 @@ CASE("A delegate can be set to be the same as another delegate (= operator overl
 
 CASE("A delegate can swap values with another delegate (1)")
 {
-  delegate<void(const std::string s)> d{};
-  delegate<void(const std::string s)> d2{};
+  delegate<const std::string()> d{f1};
+  delegate<const std::string()> d2{f2};
+  delegate<const std::string()> d3{d};
 
-  EXPECT(d < d2);
+  EXPECT((d == d3 and d!= d2));
 
   d.swap(d2); // std::swap: the objects swap values (d becomes d2, d2 becomes d)
 
-  EXPECT(d2 < d);
+  EXPECT((d2 == d3 and d != d3));
 }
 
 CASE("A delegate can swap values with another delegate (2)")
@@ -111,23 +110,46 @@ CASE("A delegate returns correct value (3)")
 
 CASE("A delegate can be true or false (bool operator overload) and when it is reset it is false")
 {
-  GIVEN("A delegate")
+  GIVEN("A default initialized delegate")
   {
-    delegate<void(const char c)> d{};
+    delegate<void(const char* s)> d{};
 
-    THEN("The delegate is true")
+    THEN("The delegate is false")
     {
-      EXPECT(d);
+      EXPECT_NOT(d);
+      EXPECT(d == nullptr);
     }
+
+    THEN("The delegate can be assigned")
+      {
+        d = [](const char* s){ printf("String: %s", s); };
+        EXPECT(d);
+      }
 
     WHEN("A delegate is reset")
-    {
-      d.reset();
-
-      THEN("The delegate is false")
       {
-        EXPECT(not d);
+        d.reset();
+
+        THEN("The delegate is false")
+          {
+            EXPECT(not d);
+          }
       }
-    }
   }
+  GIVEN("An null-initialized delegate throws when called")
+    {
+      delegate<void()> dnull{nullptr};
+      EXPECT_NOT(dnull);
+
+      std::function<void()> nofunc{};
+      EXPECT_NOT(nofunc);
+
+      try {
+        nofunc();
+      }catch(...){
+        // Calling a zero-initialized std::function throws - so should delegates;
+        EXPECT_THROWS(dnull());
+      }
+
+    }
 }
