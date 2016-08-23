@@ -801,22 +801,36 @@ void Connection::set_state(State& state) {
         prev_state_->to_string().c_str(), state_->to_string().c_str());
 }
 
-
-void Connection::start_time_wait_timeout() {
-  debug2("<TCP::Connection::start_time_wait_timeout> Time Wait timer started. \n");
-  time_wait_started = OS::cycles_since_boot();
+void Connection::timewait_start() {
+  Expects(!timewait_timer.active);
   auto timeout = 2 * host().MSL(); // 60 seconds
-  // Passing "this"..?
-  Timers::oneshot(timeout,
-    [this, timeout] (Timers::id_t) {
-      debug("<Connection::start_time_wait_timeout> Exec\n");
-      // The timer hasnt been updated
-      if( OS::cycles_since_boot() >= (time_wait_started + timeout.count()) ) {
-        signal_close();
-      } else {
-        debug2("<TCP::Connection::start_time_wait_timeout> time_wait_started has been updated. \n");
-      }
-    });
+
+  using OnTimeout = Timers::handler_t;
+  timewait_timer.id =
+    Timers::oneshot(timeout, OnTimeout::from<Connection, &Connection::timewait_timeout>(this));
+
+  debug2("<Connection::timewait_start> TimeWait timer started.\n");
+}
+
+void Connection::timewait_stop() {
+  Expects(timewait_timer.active);
+  Timers::stop(timewait_timer.id);
+  timewait_timer.active = false;
+
+  debug2("<Connection::timewait_stop> TimeWait timer stopped.\n");
+}
+
+void Connection::timewait_restart() {
+  if(timewait_timer.active)
+    timewait_stop();
+  timewait_start();
+}
+
+void Connection::timewait_timeout(uint32_t) {
+  debug("<Connection> TimeWait timed out, closing.\n");
+  timewait_timer.active = false;
+
+  signal_close();
 }
 
 void Connection::signal_close() {
@@ -846,6 +860,10 @@ void Connection::clean_up() {
   _on_cleanup_.reset();
 
   rtx_clear();
+
+  if(timewait_timer.active)
+    timewait_stop();
+
   debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
