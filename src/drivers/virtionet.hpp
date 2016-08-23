@@ -126,7 +126,7 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
-  net::downstream get_physical_in() override {
+  net::downstream get_physical_out() override {
     using downstream = net::downstream;
     return downstream::from<VirtioNet, &VirtioNet::transmit>(this);
   }

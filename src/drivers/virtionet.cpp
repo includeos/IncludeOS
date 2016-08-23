@@ -414,7 +414,6 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    on_exit_to_physical_(tail);
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;

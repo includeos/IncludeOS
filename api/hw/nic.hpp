@@ -72,7 +72,7 @@ namespace hw {
     virtual void transmit(net::Packet_ptr pckt) = 0;
 
     /** Let the driver return a delegate to receive outgoing packets from layer above */
-    virtual net::downstream get_physical_in() = 0;
+    virtual net::downstream get_physical_out() = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */
     void on_transmit_queue_available(net::transmit_avail_delg del)
@@ -81,9 +81,6 @@ namespace hw {
     virtual size_t transmit_queue_available() = 0;
 
     virtual size_t receive_queue_waiting() = 0;
-
-    void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-    { on_exit_to_physical_ = dlg; }
 
   protected:
     /**
@@ -99,8 +96,8 @@ namespace hw {
 
     /** Upstream delegate for linklayer output */
     net::upstream _link_out;
-    net::transmit_avail_delg transmit_queue_available_event_ {};
-    delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
+    net::transmit_avail_delg transmit_queue_available_event_ =
+      [](auto) { assert(0 && "<NIC> Transmit queue available delegate is not set!"); };
 
   private:
     net::BufferStore bufstore_;
