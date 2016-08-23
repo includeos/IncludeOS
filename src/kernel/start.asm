@@ -20,13 +20,29 @@ section .text
 
 extern kernel_start
 extern _LOAD_START_
+extern __stack_rand_ba
 
 global _start
 
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
-        ;; Set up stack
+        ;; Stack base address
         mov esp, _LOAD_START_
+        ;; Primitive stack base address randomization
+        mov ecx, __stack_rand_ba
+        and ecx, 0xff
+        shl ecx, 10 ;; up to 256kb per 256 seconds
+        sub esp, ecx
+        push eax
+        push edx
+        rdtsc
+        and eax, 0xff
+        shl eax, 6 ;; 64 byte per tick, up to 16kb
+        sub esp, eax
+        pop edx
+        pop eax
+        ;; make esp page-aligned
+        and esp, 0xfffff000
 
         ;;  Place multiboot parameters on stack
         push ebx

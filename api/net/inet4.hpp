@@ -19,7 +19,7 @@
 #define NET_INET4_HPP
 
 #include <kernel/syscalls.hpp> // panic()
-#include <hw/dev.hpp> // 107: auto& eth0 = Dev::eth(0);
+#include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
 #include <hw/nic.hpp>
 #include "inet.hpp"
 #include "ethernet.hpp"
@@ -36,7 +36,6 @@ namespace net {
   class DHClient;
 
   /** A complete IP4 network stack */
-  template <typename DRIVER>
   class Inet4 : public Inet<Ethernet, IP4>{
   public:
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
@@ -81,9 +80,9 @@ namespace net {
       return std::shared_ptr<Packet>(ptr);
     }
 
-    // We have to ask the Nic for the MTU
+    /** MTU retreived from Nic on construction */
     virtual uint16_t MTU() const override
-    { return nic_.MTU(); }
+    { return MTU_; }
 
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
@@ -126,20 +125,18 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
 
-    /** Initialize with static IP / netmask / Gateway */
-    Inet4(hw::Nic<DRIVER>& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
-
-    /** Initialize with DHCP  */
-    Inet4(hw::Nic<DRIVER>& nic, double timeout = 10.0);
-
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::INADDR_ANY) override
     {
-      INFO("Inet4", "Reconfiguring network. New IP: %s", addr.str().c_str());
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
       this->router_    = router;
-      this->dns_server = dns;
+      this->dns_server = (dns == IP4::INADDR_ANY) ? router : dns;
+      INFO("Inet4", "Network configured");
+      INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
+      INFO2("Netmask: \t%s", netmask_.str().c_str());
+      INFO2("Gateway: \t%s", router_.str().c_str());
+      INFO2("DNS Server: \t%s", dns_server.str().c_str());
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -156,8 +153,45 @@ namespace net {
       return nic_.buffers_available();
     }
 
+    /** Return the stack on the given Nic */
+    template <int N>
+    static auto& stack()
+    {
+      static Inet4 inet{hw::Devices::nic(N)};
+      return inet;
+    }
+
+    /** Static IP config */
+    template <int N>
+    static auto& ifconfig(
+      IP4::addr addr,
+      IP4::addr nmask,
+      IP4::addr router,
+      IP4::addr dns = IP4::INADDR_ANY)
+    {
+      stack<N>().network_config(addr, nmask, router, dns);
+      return stack<N>();
+    }
+
+    /** DHCP config */
+    template <int N>
+    static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
+    {
+      stack<N>().negotiate_dhcp(timeout, on_timeout);
+      return stack<N>();
+    }
+
   private:
-    inline void process_sendq(size_t);
+    /** Initialize with ANY_ADDR */
+    Inet4(hw::Nic& nic);
+
+    /** Initialize with static IP / netmask / Gateway */
+    Inet4(hw::Nic& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
+
+    /** Initialize with DHCP  */
+    Inet4(hw::Nic& nic, double timeout);
+
+    void process_sendq(size_t);
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;
 
@@ -167,7 +201,7 @@ namespace net {
     IP4::addr dns_server;
 
     // This is the actual stack
-    hw::Nic<DRIVER>& nic_;
+    hw::Nic& nic_;
     Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
@@ -179,30 +213,9 @@ namespace net {
 
     std::shared_ptr<net::DHClient> dhcp_{};
     BufferStore& bufstore_;
+
+    const uint16_t MTU_;
   };
 }
-
-#include "inet4.inc"
-
-namespace net {
-  template <int N = 0, typename Driver = VirtioNet>
-  inline auto new_ipv4_stack(const double timeout, typename Inet4<Driver>::dhcp_timeout_func handler)
-  {
-    auto& eth = hw::Dev::eth<N,Driver>();
-    auto inet = std::make_unique<net::Inet4<Driver>>(eth, timeout);
-    inet->on_config(handler);
-    return inet;
-  }
-
-  template <int N = 0, typename Driver = VirtioNet>
-  inline auto new_ipv4_stack(const IP4::addr addr, const IP4::addr nmask, const IP4::addr router,
-                             const IP4::addr dns = { 8,8,8,8 })
-  {
-    auto& eth = hw::Dev::eth<N,Driver>();
-    auto inet = std::make_unique<net::Inet4<Driver>>(eth, addr, nmask, router);
-    inet->set_dns_server(dns);
-    return inet;
-  }
-} //< namespace net
 
 #endif

@@ -50,7 +50,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -Os
 STRIPPED=-S
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym=__stack_rand_ba=`date +%s`
 
 # Objects
 ###################################################
@@ -60,6 +60,9 @@ CRTEND_OBJ = $(INSTALL)/crt/crtend.o
 CRTI_OBJ = $(INSTALL)/crt/crti.o
 CRTN_OBJ = $(INSTALL)/crt/crtn.o
 MULTIBOOT = $(INSTALL)/multiboot.o
+
+DRIVER_OBJS_EXT = $(DRIVERS:=.o)
+DRIVER_OBJS = $(addprefix $(INSTALL)/drivers/, $(DRIVER_OBJS_EXT))
 
 # Full link list
 OBJS  = $(FILES:.cpp=.o) .service_name.o
@@ -134,12 +137,15 @@ ifneq ($(MEMDISK),)
 	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 ifneq ($(STRIPPED),)
 	strip $(STRIPPED) $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
+
+servicefile:
+	@echo $(SERVICE).img
 
 # Object files
 ###################################################

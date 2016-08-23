@@ -20,82 +20,90 @@
 
 #include "pci_device.hpp"
 
-#include "../net/ethernet.hpp"
 #include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
+#include "../net/ethernet.hpp"
 
 namespace hw {
 
   /**
-   *  A public interface for Network cards
+   *  A public interface for Ethernet Network cards
    *
-   *  @note: The requirements for a driver is implicitly given by how it's used below,
-   *         rather than explicitly by inheritance. This avoids vtables.
-   *
-   *  @note: Drivers are passed in as template paramter so that only the drivers
-   *         we actually need will be added to our project.
+   *  This interface assumes network card is of type Ethernet
    */
-  template <typename DRIVER>
   class Nic {
   public:
-    using driver_t = DRIVER;
 
     /** Get a readable name. */
-    inline const char* name() const noexcept
-    { return driver_.name(); }
+    virtual const char* name() const = 0;
+
+    /** A readable name of the type of device @todo: move to a abstract Device? */
+    static const char* device_type()
+    { return "NIC"; }
+
+    /**
+      The mac address.
+      @todo remove depedency for Ethernet (somewhere in the future)
+    */
+    virtual const net::Ethernet::addr& mac() = 0;
+
+    virtual uint16_t MTU() const noexcept = 0;
+
+    net::BufferStore& bufstore() noexcept
+    { return bufstore_; }
+
+    size_t buffers_available()
+    { return bufstore_.available(); }
+
+    uint16_t bufsize() const
+    { return bufstore_.bufsize(); }
+
+    uint16_t eth_size() const
+    { return sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
 
 
-    /** The mac address. */
-    inline const net::Ethernet::addr& mac()
-    { return driver_.mac(); }
+    /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */
+    void set_linklayer_out(net::upstream link_out)
+    { _link_out = link_out; };
 
-    inline void set_linklayer_out(net::upstream del)
-    { driver_.set_linklayer_out(del); }
+    net::upstream get_linklayer_out()
+    { return _link_out; }
 
-    inline net::upstream get_linklayer_out()
-    { return driver_.get_linklayer_out(); }
+    virtual void transmit(net::Packet_ptr pckt) = 0;
 
-    inline void transmit(net::Packet_ptr pckt)
-    { driver_.transmit(pckt); }
+    /** Let the driver return a delegate to receive outgoing packets from layer above */
+    virtual net::downstream get_physical_in() = 0;
 
-    inline uint16_t MTU() const noexcept
-    { return driver_.MTU(); }
+    /** Subscribe to event for when there is more room in the tx queue */
+    void on_transmit_queue_available(net::transmit_avail_delg del)
+    { transmit_queue_available_event_ = del; }
 
-    inline uint16_t bufsize() const noexcept
-    { return driver_.bufsize(); }
+    virtual size_t transmit_queue_available() = 0;
 
-    inline net::BufferStore& bufstore() noexcept
-    { return driver_.bufstore(); }
+    virtual size_t receive_queue_waiting() = 0;
 
-    inline void on_transmit_queue_available(net::transmit_avail_delg del)
-    { driver_.on_transmit_queue_available(del); }
+    void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
+    { on_exit_to_physical_ = dlg; }
 
-    inline size_t transmit_queue_available()
-    { return driver_.transmit_queue_available(); }
-
-    inline size_t receive_queue_waiting(){
-      return driver_.receive_queue_waiting();
-    };
-
-    inline size_t buffers_available()
-    { return bufstore().available(); }
-
-    inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-    { driver_.on_exit_to_physical(dlg); }
-
-  private:
-    driver_t driver_;
-
+  protected:
     /**
      *  Constructor
      *
-     *  Just a wrapper around the driver constructor.
-     *
-     *  @note: The Dev-class is a friend and will call this
+     *  Constructed by the actual Nic Driver
      */
-    Nic(PCI_Device& d) : driver_{d} {}
+    Nic(uint32_t bufstore_sz, uint16_t bufsz)
+      : bufstore_{ bufstore_sz, bufsz }
+    {}
 
-    friend class Dev;
+    friend class Devices;
+
+    /** Upstream delegate for linklayer output */
+    net::upstream _link_out;
+    net::transmit_avail_delg transmit_queue_available_event_ {};
+    delegate<void(net::Packet_ptr)> on_exit_to_physical_ {};
+
+  private:
+    net::BufferStore bufstore_;
   };
 
   /** Future drivers may start out like so, */

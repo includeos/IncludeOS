@@ -65,8 +65,8 @@ namespace hw
       uint32_t diff = lapic.regs->init_count.reg - lapic.regs->cur_count.reg;
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
       
-      printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n", 
-            CALIBRATION_MS, diff, ticks_per_micro);
+      //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n", 
+      //       CALIBRATION_MS, diff, ticks_per_micro);
       
       // signal ready to go
       intr_handler();

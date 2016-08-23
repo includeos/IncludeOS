@@ -20,15 +20,19 @@
 #define VIRTIO_BLOCK_HPP
 
 #include <common>
-#include <hw/disk_device.hpp>
+#include <hw/drive.hpp>
 #include <hw/pci_device.hpp>
-#include "virtio.hpp"
+#include <virtio/virtio.hpp>
 #include <deque>
 
 /** Virtio-net device driver.  */
-class VirtioBlk : public Virtio, public hw::IDiskDevice
+class VirtioBlk : public Virtio, public hw::Drive
 {
 public:
+
+  static std::unique_ptr<Drive> new_instance(hw::PCI_Device& d)
+  { return std::make_unique<VirtioBlk>(d); }
+
   static constexpr size_t SECTOR_SIZE = 512;
 
   /** Human readable name. */
@@ -40,7 +44,7 @@ public:
   virtual block_t block_size() const noexcept override {
     return SECTOR_SIZE; // some multiple of sector size
   }
-  
+
   // read @blk from disk, call func with buffer when done
   virtual void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
@@ -104,7 +108,7 @@ private:
     scsi_header_t hdr;
     blk_io_t      io;
     blk_resp_t    resp;
-    
+
     request_t(uint64_t blk, bool, on_read_func cb);
   };
 
@@ -126,25 +130,25 @@ private:
   void msix_req_handler();
   void msix_conf_handler();
   void irq_handler();
-  
+
   // need at least 3 tokens free to ship a request
   inline bool free_space() const noexcept
   { return req.num_free() >= 3; }
-  
+
   // need many free tokens free to efficiently ship requests
   inline bool lots_free_space() const noexcept
   { return req.num_free() >= 32; }
-  
+
   // add one request to queue and kick
   void shipit(request_t*);
-  
+
   void handle(request_t*);
-  
+
   Virtio::Queue req;
 
   // configuration as read from paravirtual PCI device
   virtio_blk_config_t config;
-  
+
   // queue waiting for space in vring
   std::deque<request_t*> jobs;
   size_t inflight;

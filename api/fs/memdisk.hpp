@@ -21,11 +21,11 @@
 
 #include <cstdint>
 
-#include <hw/disk_device.hpp>
+#include <hw/drive.hpp>
 
 namespace fs {
 
-  class MemDisk : public hw::IDiskDevice {
+  class MemDisk : public hw::Drive {
   public:
     static constexpr size_t SECTOR_SIZE = 512;
 

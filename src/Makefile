@@ -77,17 +77,20 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		hw/ps2.o hw/serial.o hw/cmos.o \
 		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
 		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
-		virtio/virtio.o virtio/virtio_queue.o virtio/virtionet.o \
+		virtio/virtio.o virtio/virtio_queue.o \
 		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp/tcp.o net/tcp/connection.o net/tcp/connection_states.o \
 		net/tcp/rttm.o net/tcp/listener.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
-		net/buffer_store.o \
+		net/buffer_store.o net/inet4.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
-		virtio/block.o # virtio/console.o
+		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
+		# virtio/console.o
+
+DRIVERS = drivers/virtioblk.o drivers/virtionet.o
+DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -138,7 +141,7 @@ minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
 minimal: stripped test
 
-includeos: bootloader multiboot libc++abi.a os.a
+includeos: bootloader multiboot libc++abi.a os.a drivers
 
 # Test service
 ###################################################
@@ -190,7 +193,11 @@ os.a: $(OS_OBJECTS) apic_boot.o
 	@echo "\n>> Building the OS library"
 	$(AR_INC) rcs $@ $(OS_OBJECTS) apic_boot.o
 
-install: $(CRTI_OBJ) $(CRTN_OBJ)
+drivers: $(DRIVERS)
+	mkdir -p $(INSTALL)/drivers
+	cp -r drivers/* $(INSTALL)/drivers
+
+install: drivers bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing..."
 	cp bootloader $(INSTALL)
 	cp boot/multiboot.o $(INSTALL)
@@ -259,7 +266,7 @@ clean_tests:
 	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6 debug/test_tcp
 
 clean: clean_tests
-	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS)
+	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS)
 	$(RM) os.a libc++abi.a
 	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
 
