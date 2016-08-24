@@ -70,6 +70,14 @@ public:
   auto syn_queue_size() const
   { return syn_queue_.size(); }
 
+  /** Delete copy and move constructors.*/
+  Listener(Listener&) = delete;
+  Listener(Listener&&) = delete;
+
+  /** Delete copy and move assignment operators.*/
+  Listener& operator=(Listener) = delete;
+  Listener operator=(Listener&&) = delete;
+
 private:
   TCP& host_;
   const port_t port_;
