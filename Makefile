@@ -13,7 +13,7 @@ FILES = service.cpp ircd.cpp client.cpp client_new.cpp client_msg.cpp client_cmd
 DISK=
 
 # Drivers to be used with service
-DRIVERS=virtioblk virtionet
+DRIVERS=virtionet
 
 # Your own include-path
 LOCAL_INCLUDES=
