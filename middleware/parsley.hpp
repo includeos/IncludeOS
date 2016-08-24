@@ -54,7 +54,9 @@ inline void Parsley::process(server::Request_ptr req, server::Response_ptr, serv
 
     // Access the document and parse the body
     json->doc().Parse(req->get_body().c_str());
+    #ifdef VERBOSE_WEBSERVER
     printf("<Parsley> Parsed JSON data.\n");
+    #endif
 
     // Add the json attribute to the request
     req->set_attribute(json);
