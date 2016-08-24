@@ -462,6 +462,12 @@ int _init_elf_parser(void* temp_location)
     //_relocate_sections((char*) temp_location, symtab, strtab);
   return 0;
 }
+extern "C"
+int _get_elf_section_size(void* location)
+{
+  auto& hdr = *(relocate_header*) location;
+  return sizeof(relocate_header) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
+}
 
 extern "C"
 void _apply_parser_data(char* location)
