@@ -58,9 +58,11 @@ void print_stats(uint32_t)
   extern int _get_timer_stats();
   printf("Timers/sec: %f\n", _get_timer_stats() / (float)PERIOD_SECS);
   
-  //StackSampler::print();
+  StackSampler::print();
   //print_heap_info();
 }
+
+extern "C" void _print_elf_symbols();
 
 void Service::start(const std::string& args)
 {
@@ -94,7 +96,7 @@ void Service::start(const std::string& args)
   using namespace std::chrono;
   Timers::periodic(seconds(PERIOD_SECS), seconds(PERIOD_SECS), print_stats);
   
-  //StackSampler::begin();
+  StackSampler::begin();
 }
 
 void Service::stop()

@@ -1,7 +1,6 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 #include <algorithm>
-#include <ctime>
 #include <set>
 #include <debug>
 
@@ -71,16 +70,6 @@ IrcServer::IrcServer(
   // set timestamp for when the server was started
   this->created_ts = create_timestamp();
   this->created_string = std::string(ctime(&created_ts));
-}
-
-long IrcServer::create_timestamp() const
-{
-  return time(nullptr);
-}
-
-long IrcServer::uptime() const
-{
-  return create_timestamp() - this->created_ts;
 }
 
 size_t IrcServer::new_client() {

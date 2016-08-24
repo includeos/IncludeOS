@@ -2,6 +2,7 @@
 #include <vector>
 #include <functional>
 #include <net/inet4>
+#include <rtc>
 
 #include "common.hpp"
 #include "client.hpp"
@@ -27,13 +28,13 @@ public:
   
   IrcServer(Network& inet, uint16_t port, const std::string& name, const std::string& netw, motd_func_t);
   
-  const std::string& name() const {
+  const std::string& name() const noexcept {
     return server_name;
   }
-  const std::string& network() const {
+  const std::string& network() const noexcept {
     return server_network;
   }
-  std::string version() const
+  std::string version() const noexcept
   {
     return IRC_SERVER_VERSION;
   }
@@ -46,11 +47,6 @@ public:
     return clients.at(idx);
   }
   inline Channel& get_channel(size_t idx) {
-    if (idx >= channels.size()) {
-        printf("channel id: %u\n", idx);
-        print_backtrace();
-        throw "";
-    }
     return channels.at(idx);
   }
   void free_client(Client&);
@@ -106,34 +102,37 @@ public:
   }
   
   // server configuration stuff
-  uint8_t nick_minlen() const {
+  uint8_t nick_minlen() const noexcept {
     return 1;
   }
-  uint8_t nick_maxlen() const {
+  uint8_t nick_maxlen() const noexcept {
     return 9;
   }
-  uint8_t chan_minlen() const {
+  uint8_t chan_minlen() const noexcept {
     return 1;
   }
-  uint8_t chan_maxlen() const {
+  uint8_t chan_maxlen() const noexcept {
     return 16;
   }
-  uint8_t chan_max() const {
+  uint8_t chan_max() const noexcept {
     return 8;
   }
-  uint8_t client_maxchans() const {
+  uint8_t client_maxchans() const noexcept {
     return 10;
   }
   
-  // return a now timestamp
-  long create_timestamp() const;
-  
+  // create a now() timestamp
+  long create_timestamp() const noexcept {
+    return RTC::get();
+  }
   // date server was created
-  const std::string& created() const {
+  const std::string& created() const noexcept {
     return created_string;
   }
   // uptime in seconds
-  long uptime() const;
+  long uptime() const noexcept {
+    return create_timestamp() - this->created_ts;
+  }
   
 private:
   size_t new_client();
