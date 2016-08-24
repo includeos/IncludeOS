@@ -24,7 +24,9 @@ extern profiler_stack_sampler
 parasite_interrupt_handler:
   cli
   pusha
+  push DWORD [esp + 32]
   call profiler_stack_sampler
+  pop eax
   call register_modern_interrupt
   call DWORD [current_eoi_mechanism]
   popa

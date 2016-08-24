@@ -29,7 +29,7 @@
 
 extern "C" {
   void parasite_interrupt_handler();
-  void profiler_stack_sampler();
+  void profiler_stack_sampler(void*);
   void gather_stack_sampling();
 }
 extern char _irq_cb_return_location;
@@ -91,9 +91,9 @@ void StackSampler::begin()
   get().begin();
 }
 
-void profiler_stack_sampler()
+void profiler_stack_sampler(void* esp)
 {
-  void* ra = __builtin_return_address(1);
+  void* ra = esp; //__builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (UNLIKELY(ra == nullptr || get().discard)) return;
   // ignore event loop
