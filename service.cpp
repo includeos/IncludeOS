@@ -21,6 +21,8 @@
 #include <acorn>
 #include <memdisk>
 
+#include <profile>
+
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
 
@@ -42,6 +44,21 @@ fs::Disk_ptr disk;
 
 Statistics stats;
 cmos::Time STARTED_AT;
+
+#include <time.h>
+
+// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+const std::string currentDateTime() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    return buf;
+}
 
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
@@ -75,7 +92,9 @@ void Service::start(const std::string&) {
       // setup "database" squirrels
 
       squirrels = std::make_shared<SquirrelBucket>();
-      squirrels->add_index<std::string>("name", [](const Squirrel& s)->const auto& {
+      squirrels->add_index<std::string>("name",
+      [](const Squirrel& s)->const auto&
+      {
         return s.get_name();
       }, SquirrelBucket::UNIQUE);
 
@@ -90,7 +109,7 @@ void Service::start(const std::string&) {
       } catch(bucket::ConstraintUnique) {
         exception_thrown = true;
       }
-      //assert(exception_thrown);
+      assert(exception_thrown);
 
       // no-go if throw
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
@@ -273,7 +292,10 @@ void Service::start(const std::string&) {
 
       /** Setup server **/
       // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::stack<0>();
+      auto& stack = net::Inet4::ifconfig<0>(5.0,
+      [](bool timeout) {
+        printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
+      });
       // config
       stack.network_config({ 10,0,0,42 },     // IP
                            { 255,255,255,0 }, // Netmask
@@ -312,12 +334,19 @@ void Service::start(const std::string&) {
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
 
-      hw::PIT::instance().on_repeated_timeout(1min, []{
+      Timers::periodic(30s, 1min, [](auto){
         printf("@onTimeout [%s]\n%s\n",
-          cmos::now().to_string().c_str(), server_->ip_stack().tcp().status().c_str());
+          currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
-      auto& tcp = server_->ip_stack().tcp();
+      StackSampler::begin();
+      Timers::periodic(1min, 1min, [](auto){
+        StackSampler::print();
+      });
+
+
+
+      auto& tcp = stack.tcp();
       tcp.bind(8080).on_connect(
       [](auto conn)
       {

@@ -57,8 +57,9 @@ public:
     std::string path = req->uri().path();
 
     auto fpath = resolve_file_path(path);
-
+    #ifdef VERBOSE_WEBSERVER
     printf("<Director> Path: %s\n", fpath.c_str());
+    #endif
 
     normalize_trailing_slashes(path);
     disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
