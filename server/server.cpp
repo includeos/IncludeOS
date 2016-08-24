@@ -37,12 +37,14 @@ Router& Server::router() noexcept {
 }
 
 void Server::listen(Port port) {
-  printf("Listening to port %i \n", port);
+  printf("<Server> Listening to port %i \n", port);
 
   inet_.tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
 }
 
 void Server::connect(net::tcp::Connection_ptr conn) {
+  SET_CRASH_CONTEXT("Server::connect: %s, free_idx=%u",
+    conn->to_string().c_str(), free_idx_.size());
   #ifdef VERBOSE_WEBSERVER
   printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
   #endif
