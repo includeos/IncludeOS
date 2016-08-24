@@ -72,7 +72,7 @@ struct Sampler
     if (lockless) return;
     
     // transfer all the built up samplings
-    transferq->clone(samplerq->first(), samplerq->size());
+    transferq->copy(samplerq->first(), samplerq->size());
     samplerq->clear();
     lockless = 1;
   }
