@@ -233,11 +233,6 @@ void OS::event_loop() {
 
   while (power_) {
     IRQ_manager::cpu(0).notify();
-    // add a global symbol here so we can quickly discard
-    // event loop from stack sampling
-    asm volatile(
-    ".global _irq_cb_return_location;\n"
-    "_irq_cb_return_location:" );
   }
 
   // Cleanup
