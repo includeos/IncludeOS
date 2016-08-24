@@ -365,6 +365,46 @@ void _relocate_sections(char* new_location, SymTab& symtab, StrTab& strtab)
   hdr.symtab.base = (Elf32_Sym*) symloc;
   hdr.strtab.base = strloc;
 }
+static void _relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& strtab)
+{
+  auto& hdr = *(relocate_header*) new_location;
+  hdr.symtab = symtab;
+  hdr.strtab = strtab;
+  
+  // first prune symbols
+  auto*  symloc = (Elf32_Sym*) (new_location + sizeof(relocate_header));
+  size_t symidx = 0;
+  for (size_t i = 0; i < symtab.entries; i++) 
+  {
+    auto& cursym = symtab.base[i];
+    if (ELF32_ST_TYPE(cursym.st_info) == STT_FUNC)
+    {
+      symloc[symidx++] = cursym;
+    }
+  }
+  // new total symbol entries
+  hdr.symtab.base    = symloc;
+  hdr.symtab.entries = symidx;
+  
+  // move strings (one by one)
+  char*  strloc = (char*) &symloc[hdr.symtab.entries];
+  size_t index  = 0;
+  for (size_t i = 0; i < hdr.symtab.entries; i++) 
+  {
+    auto& sym = hdr.symtab.base[i];
+    // get original location and length
+    const char* org = &strtab.base[sym.st_name];
+    size_t      len = strlen(org) + 1;
+    // set new symbol name location
+    sym.st_name = index; // = distance from start
+    // insert string into new location
+    memcpy(&strloc[index], org, len);
+    index += len;
+  }
+  // new entry base and total length
+  hdr.strtab.base = strloc;
+  hdr.strtab.size = index;
+}
 
 #include <malloc.h>
 
@@ -418,7 +458,8 @@ int _init_elf_parser(void* temp_location)
   // hide sections to prevent them getting overwritten
   // this is a temporary fix, until the sections get loaded from disk
   if (temp_location)
-    _relocate_sections((char*) temp_location, symtab, strtab);
+    _relocate_pruned_sections((char*) temp_location, symtab, strtab);
+    //_relocate_sections((char*) temp_location, symtab, strtab);
   return 0;
 }
 
