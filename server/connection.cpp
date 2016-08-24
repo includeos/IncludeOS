@@ -36,6 +36,7 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
+  //printf("Connection::on_data: %*s", n, buf.get());
   SET_CRASH_CONTEXT("Connection::on_data: data from %s\n\n%*s",
     conn_->to_string().c_str(), n, buf.get());
   #ifdef VERBOSE_WEBSERVER
@@ -53,9 +54,12 @@ void Connection::on_data(buffer_t buf, size_t n) {
           to_string().c_str(), request_->content_length(), request_->payload_length());
         return;
       }
-    } catch(...) {
-      printf("<%s> Error - exception thrown when creating Request???\n", to_string().c_str());
-      close();
+    }
+    catch(std::exception& e) {
+      printf("<%s> Error - exception thrown when creating Request: %s\n",
+        to_string().c_str(), e.what());
+      // close tcp connection
+      conn_->close();
       return;
     }
   }
