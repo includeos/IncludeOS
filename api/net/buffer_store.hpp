@@ -43,7 +43,7 @@ namespace net{
     ~BufferStore();
 
     buffer_t get_buffer();
-    void release(buffer_t);
+    void release(void*);
 
     /** Get size of a buffer **/
     inline size_t bufsize() const

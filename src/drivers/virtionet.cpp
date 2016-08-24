@@ -297,7 +297,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(bufsize(), size,
-      [this] (Packet* p) { bufstore().release((uint8_t*) p); });
+      delegate<void(void*)>::from<BufferStore, &BufferStore::release> (&bufstore()));
 
   return std::shared_ptr<Packet> (ptr);
 }
