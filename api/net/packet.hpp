@@ -23,12 +23,12 @@
 #include <cassert>
 
 namespace net {
-  void default_packet_deleter(Packet* p);
+  void default_packet_deleter(void* p);
 
   class Packet : public std::enable_shared_from_this<Packet>
   {
   public:
-    using deleter_t = delegate<void(Packet*)>;
+    using deleter_t = delegate<void(void*)>;
 
     /**
      *  Construct, using existing buffer.
@@ -164,8 +164,8 @@ namespace net {
     BufferStore::buffer_t buf_[0];
   }; //< class Packet
 
-  inline void default_packet_deleter(Packet* p) {
-    delete p;
+  inline void default_packet_deleter(void* p) {
+    delete (Packet*) p;
   }
 
 } //< namespace net
