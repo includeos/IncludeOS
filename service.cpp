@@ -99,7 +99,7 @@ void Service::start(const std::string&) {
       }, SquirrelBucket::UNIQUE);
 
       auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
-      squirrels->spawn("Alf"s, 5U, "Script kiddie"s);
+      squirrels->spawn("Alf"s, 6U, "Script kiddie"s);
 
       // A test to see if constraint is working (squirrel).
       bool exception_thrown = false;
