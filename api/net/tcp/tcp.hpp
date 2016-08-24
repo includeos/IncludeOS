@@ -146,8 +146,10 @@ namespace net {
   private:
 
     IPStack& inet_;
-    std::map<tcp::port_t, tcp::Listener> listeners_;
-    std::map<tcp::Connection::Tuple, tcp::Connection_ptr> connections_;
+    using Listeners = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
+    using Connections = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
+    Listeners listeners_;
+    Connections connections_;
 
     downstream _network_layer_out;
 
