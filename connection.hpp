@@ -33,15 +33,16 @@ using Connection_ptr = std::shared_ptr<Connection>;
 class Connection {
 private:
   const static size_t BUFSIZE = 1460;
-  using Connection_ptr = net::tcp::Connection_ptr;
-  using buffer_t = net::tcp::buffer_t;
-  using OnData = net::tcp::Connection::ReadCallback;
-  using Disconnect = net::tcp::Connection::Disconnect;
-  using OnDisconnect = net::tcp::Connection::DisconnectCallback;
-  using OnError = net::tcp::Connection::ErrorCallback;
-  using TCPException = net::tcp::TCPException;
-  using OnPacketDropped = net::tcp::Connection::PacketDroppedCallback;
-  using Packet_ptr = net::tcp::Packet_ptr;
+  using Connection_ptr    = net::tcp::Connection_ptr;
+  using buffer_t          = net::tcp::buffer_t;
+  using OnData            = net::tcp::Connection::ReadCallback;
+  using Disconnect        = net::tcp::Connection::Disconnect;
+  using OnDisconnect      = net::tcp::Connection::DisconnectCallback;
+  using OnClose           = net::tcp::Connection::CloseCallback;
+  using OnError           = net::tcp::Connection::ErrorCallback;
+  using TCPException      = net::tcp::TCPException;
+  using OnPacketDropped   = net::tcp::Connection::PacketDroppedCallback;
+  using Packet_ptr        = net::tcp::Packet_ptr;
 
   using OnConnection = std::function<void()>;
 
