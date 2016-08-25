@@ -72,7 +72,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o \
 		kernel/profile.o kernel/profile_intr.o \
-		kernel/timer.o kernel/rtc.o util/memstream.o util/async.o \
+		kernel/timer.o kernel/rtc.o util/memstream.o util/async.o util/statman.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		hw/ps2.o hw/serial.o hw/cmos.o \
