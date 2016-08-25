@@ -315,6 +315,7 @@ void Connection::close() {
     if(is_state(Closed::instance()))
       signal_close();
   } catch(TCPException err) {
+    Ensures(on_error_);
     signal_error(err);
   }
 }
@@ -809,7 +810,9 @@ void Connection::timewait_start() {
   timewait_timer.id =
     Timers::oneshot(timeout, OnTimeout::from<Connection, &Connection::timewait_timeout>(this));
 
-  debug2("<Connection::timewait_start> TimeWait timer started.\n");
+  timewait_timer.active = true;
+
+  debug2("<Connection::timewait_start> TimeWait timer [%u] started.\n", timewait_timer.id);
 }
 
 void Connection::timewait_stop() {
@@ -817,7 +820,7 @@ void Connection::timewait_stop() {
   Timers::stop(timewait_timer.id);
   timewait_timer.active = false;
 
-  debug2("<Connection::timewait_stop> TimeWait timer stopped.\n");
+  debug2("<Connection::timewait_stop> TimeWait timer [%u] stopped.\n", timewait_timer.id);
 }
 
 void Connection::timewait_restart() {
@@ -844,6 +847,11 @@ void Connection::signal_close() {
 }
 
 void Connection::clean_up() {
+  // clear timers if active
+  rtx_clear();
+  if(timewait_timer.active)
+    timewait_stop();
+
   // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
   // avoids connection being destructed before function is done
   auto shared = shared_from_this();
@@ -856,13 +864,10 @@ void Connection::clean_up() {
   on_error_.reset();
   on_packet_received_.reset();
   on_packet_dropped_.reset();
+  on_rtx_timeout_.reset();
+  on_close_.reset();
   read_request.clean_up();
   _on_cleanup_.reset();
-
-  rtx_clear();
-
-  if(timewait_timer.active)
-    timewait_stop();
 
   debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
