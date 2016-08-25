@@ -6,6 +6,8 @@
 #include <list>
 #include "modes.hpp"
 
+#define WARNED_BIT    1
+
 class IrcServer;
 
 class Client
@@ -38,9 +40,6 @@ public:
   index_t get_id() const {
     return self;
   }
-  const std::string& nick() const {
-    return nick_;
-  }
   
   bool is_operator() const {
     return this->umodes_ & usermodes.char_to_bit(UMODE_IRCOP);
@@ -53,18 +52,22 @@ public:
   }
   
   void read(const uint8_t* buffer, size_t len);
+  void send_from(const std::string& from, const std::string& text);
   void send_from(const std::string& from, uint16_t numeric, const std::string& text);
   void send_nonick(uint16_t numeric, const std::string& text);
-  void send(uint16_t numeric, std::string text)
-  {
-    send_nonick(numeric, nick() + " " + text);
-  }
+  void send(uint16_t numeric, std::string text);
   // send as server to client
   void send(std::string text);
   // send the string as-is
-  void send_raw(std::string text);
-  void send_raw(const char*, size_t);
+  void send_raw(const char* buff, size_t len)
+  {
+    //printf("-> %s\n", buff);
+    conn->write(buff, len);
+  }
   
+  const std::string& nick() const {
+    return nick_;
+  }
   const std::string& user() const
   {
     return user_;
@@ -78,11 +81,24 @@ public:
   
   std::string userhost() const
   {
-    return user_ + "@" + host_;
+    std::string temp;
+    temp.reserve(64);
+    temp += user_;
+    temp += "@";
+    temp += host_;
+    return temp;
   }
   std::string nickuserhost() const
   {
-    return nick_ + "!" + userhost();
+    std::string temp;
+    temp.reserve(64);
+    
+    temp += nick_;
+    temp += "!";
+    temp += user_;
+    temp += "@";
+    temp += host_;
+    return temp;
   }
   
   ChannelList& channels() {
@@ -103,6 +119,14 @@ public:
     this->host_ = new_vhost;
   }
   
+  void set_warned(bool warned) {
+    if (warned) bits |= WARNED_BIT;
+    else        bits &= ~WARNED_BIT;
+  }
+  bool is_warned() const {
+    return bits & WARNED_BIT;
+  }
+  
 private:
   void split_message(const std::string&);
   void handle_new(const std::string&, const std::vector<std::string>&);
@@ -113,7 +137,7 @@ private:
   void send_motd();
   void send_lusers();
   void send_modes();
-  void send_uptime();
+  void send_stats(const std::string&);
   void send_quit(const std::string& reason);
   bool change_nick(const std::string& new_nick);
   
@@ -121,6 +145,7 @@ private:
   void need_parms(const std::string& cmd);
   
   uint8_t     regis;
+  uint8_t     bits;
   uint16_t    umodes_;
   index_t     self;
   IrcServer&  server;

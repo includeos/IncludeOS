@@ -35,7 +35,7 @@ std::string now()
 IrcServer* ircd;
 
 
-#define PERIOD_SECS    32
+#define PERIOD_SECS    2
 
 void print_stats(uint32_t)
 {

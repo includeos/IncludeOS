@@ -1,9 +1,7 @@
 #include "ircd.hpp"
 
-static const int PING_TIMER = 5;
-static const int SHORT_PING_TIMER = 1;
 // do timeout checks for N clients at a time
-static const int MAX_CLIENTS = 1000;
+static const int MAX_CLIENTS = 100;
 
 void IrcServer::timeout_handler(uint32_t)
 {
@@ -15,11 +13,14 @@ void IrcServer::timeout_handler(uint32_t)
       (MAX_CLIENTS > clients.size()) ? clients.size() : MAX_CLIENTS;
   
   // 16-second slice
-  const long now = create_timestamp() >> 4;
+  const long now = create_timestamp();
+  this->cheapstamp = now;
+  
   // create ping request
   char pingreq[32];
-  int len = snprintf(pingreq, sizeof(pingreq), 
-            "PING :%ld\r\n", now);
+  int len = snprintf(pingreq, sizeof(pingreq), "PING :%ld\r\n", now);
+  // ping timeout QUIT message
+  const std::string reason = "Ping timeout: " + std::to_string(ping_timeout()) + " seconds";
   
   while (counter--)
   {
@@ -28,19 +29,21 @@ void IrcServer::timeout_handler(uint32_t)
     if (client.is_alive())
     {
       // registered clients get longer timeouts
-      const int ctimer = client.is_reg() ? PING_TIMER : SHORT_PING_TIMER;
+      const int ctimer = client.is_reg() ? ping_timeout() : short_ping_timeout();
       
-      const long ts = client.get_timeout_ts() >> 4;
+      const long ts = client.get_timeout_ts();
       // if the clients slice is in the ping area
-      if (now == ts + ctimer)
+      if (now >= ts + ctimer)
       {
-        // send ping request
-        client.send_raw(pingreq, len);
-      }
-      else if (now >= ts + 2*ctimer)
-      {
-        // kick client for being unresponsive
-        client.kill(false, "Ping timeout");
+        if (!client.is_warned()) {
+          // send ping request
+          client.send_raw(pingreq, len);
+          client.set_warned(true);
+        }
+        else {
+          // kick client for being unresponsive
+          client.kill(false, reason);
+        }
       }
     }
     

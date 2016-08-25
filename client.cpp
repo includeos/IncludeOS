@@ -11,6 +11,7 @@ void Client::reset_to(Connection conn)
   // this resets the client to a new connection
   // regis field is 1, which means there is a connection
   this->regis = 1;
+  this->bits  = 0;
   this->umodes_ = default_user_modes();
   this->conn = conn;
   this->to_stamp = server.create_timestamp();
@@ -63,8 +64,9 @@ void Client::split_message(const std::string& msg)
   
   // handle message
   assert(is_alive());
-  // reset timeout timestamp
-  to_stamp = server.create_timestamp();
+  // reset timeout feature
+  set_warned(false);
+  to_stamp = server.get_cheapstamp();
   
   if (this->is_reg() == false)
     handle_new(source, vec);
@@ -119,10 +121,18 @@ void Client::read(const uint8_t* buf, size_t len)
   }
 }
 
+void Client::send_from(const std::string& from, const std::string& text)
+{
+  char data[128];
+  int len = snprintf(data, sizeof(data),
+    ":%s %s\r\n", from.c_str(), text.c_str());
+  
+  conn->write(data, len);
+}
 void Client::send_from(const std::string& from, uint16_t numeric, const std::string& text)
 {
   char data[128];
-  int len = snprintf(data, 127,
+  int len = snprintf(data, sizeof(data),
     ":%s %03u %s\r\n", from.c_str(), numeric, text.c_str());
   
   conn->write(data, len);
@@ -134,21 +144,18 @@ void Client::send_nonick(uint16_t numeric, const std::string& text)
 void Client::send(std::string text)
 {
   char data[128];
-  int len = snprintf(data, 127,
+  int len = snprintf(data, sizeof(data),
     ":%s %s\r\n", server.name().c_str(), text.c_str());
   
   conn->write(data, len);
 }
-void Client::send_raw(std::string text)
+void Client::send(uint16_t numeric, std::string text)
 {
-  text += "\r\n";
-  //printf("-> %s", text.c_str());
-  conn->write(text.c_str(), text.size());
-}
-void Client::send_raw(const char* text, size_t len)
-{
-  //printf("-> %s\n", text.c_str());
-  conn->write(text, len);
+  char data[128];
+  int len = snprintf(data, sizeof(data),
+    ":%s %03u %s %s\r\n", server.name().c_str(), numeric, nick().c_str(), text.c_str());
+  
+  conn->write(data, len);
 }
 
 // validate name, returns false if invalid characters

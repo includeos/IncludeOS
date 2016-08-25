@@ -69,7 +69,7 @@ void Client::handle(
   {
     if (msg.size() > 1)
     {
-      send_uptime();
+      send_stats(msg[1]);
     }
     else
       need_parms(cmd);
@@ -227,7 +227,7 @@ void Client::handle(
         {
           // send private message to user
           auto& client = server.get_client(cl);
-          client.send_raw(":" + nickuserhost() + " " TK_PRIVMSG " " + client.nick() + " :" + msg[2]);
+          client.send_from(nickuserhost(), TK_PRIVMSG " " + client.nick() + " :" + msg[2]);
         }
         else
           send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");

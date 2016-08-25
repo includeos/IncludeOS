@@ -29,24 +29,44 @@ void Client::send_lusers()
 
 void Client::send_modes()
 {
-  send_raw(":" + nickuserhost() + " " + TK_MODE + " " + nick() + " +" + this->mode_string());
+  char data[128];
+  int len = snprintf(data, sizeof(data),
+    ":%s MODE %s +%s\r\n", nickuserhost().c_str(), nick().c_str(), mode_string().c_str());
+  
+  send_raw(data, len);
 }
 
-void Client::send_uptime()
+void Client::send_stats(const std::string& stat)
 {
-  static const int DAY = 3600 * 24;
-  
-  auto uptime = server.uptime();
-  int days = uptime / DAY;
-  uptime -= days * DAY;
-  int hours = uptime / 3600;
-  uptime -= hours * 3600;
-  int mins = uptime / 60;
-  int secs = uptime % 60;
-  
   char buffer[128];
-  int len = snprintf(buffer, sizeof(buffer),
-            ":%s %03u %s :Server has been up %d days %d hours, %d minutes and %d seconds\r\n",
-            server.name().c_str(), RPL_STATSUPTIME, nick().c_str(), days, hours, mins, secs);
+  int  len;
+  
+  if (stat == "u")
+  {
+    static const int DAY = 3600 * 24;
+    
+    auto uptime = server.uptime();
+    int days = uptime / DAY;
+    uptime -= days * DAY;
+    int hours = uptime / 3600;
+    uptime -= hours * 3600;
+    int mins = uptime / 60;
+    int secs = uptime % 60;
+    
+    len = snprintf(buffer, sizeof(buffer),
+          ":%s %03u %s :Server has been up %d days %d hours, %d minutes and %d seconds\r\n",
+          server.name().c_str(), RPL_STATSUPTIME, nick().c_str(), days, hours, mins, secs);
+  }
+  else if (stat == "m")
+  {
+    len = snprintf(buffer, sizeof(buffer),
+          ":%s %03u %s :Heap usage: %.3f mb\r\n",
+          server.name().c_str(), 244, nick().c_str(), OS::heap_usage() / 1024.f / 1024.f);
+  }
+  else {
+    len = snprintf(buffer, sizeof(buffer),
+          ":%s %03u %s :No such statistic\r\n",
+          server.name().c_str(), 249, nick().c_str());
+  }
   send_raw(buffer, len);
 }

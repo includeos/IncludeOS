@@ -24,7 +24,7 @@ IrcServer::IrcServer(
   
   // timeout for clients and servers
   using namespace std::chrono;
-  Timers::periodic(16s, 16s, 
+  Timers::periodic(10s, 5s, 
       delegate<void(uint32_t)>::from<IrcServer, &IrcServer::timeout_handler>(this));
   
   // server listener (although IRC servers usually have many ports open)
@@ -79,6 +79,7 @@ IrcServer::IrcServer(
   // set timestamp for when the server was started
   this->created_ts = create_timestamp();
   this->created_string = std::string(ctime(&created_ts));
+  this->cheapstamp = this->created_ts;
 }
 
 size_t IrcServer::new_client() {

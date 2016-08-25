@@ -123,9 +123,20 @@ public:
     return 10;
   }
   
+  uint16_t ping_timeout() const noexcept {
+    return 120;
+  }
+  uint16_t short_ping_timeout() const noexcept {
+    return 20;
+  }
+  
   // create a now() timestamp
   long create_timestamp() const noexcept {
     return RTC::get();
+  }
+  // imprecise timestamp
+  long get_cheapstamp() const noexcept {
+    return cheapstamp;
   }
   // date server was created
   const std::string& created() const noexcept {
@@ -158,6 +169,9 @@ private:
   // hash table for nicknames, channels etc
   std::map<std::string, size_t, ci_less> h_users;
   std::map<std::string, size_t, ci_less> h_channels;
+  
+  // performance stuff
+  long cheapstamp;
   
   // statistics
   std::string created_string;
