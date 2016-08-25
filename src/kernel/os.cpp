@@ -113,9 +113,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
+  // @note for security we don't want to expose this
+  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin - 1,
+        "Pre-heap", "Heap randomization area (not for use))"});
+
   // Give the rest of physical memory to heap
   uintptr_t heap_max = ((0x100000 + high_memory_size)  & 0xffff0000) - 1;
-  memmap.assign_range({(uintptr_t)&_end + 1, heap_max,
+  memmap.assign_range({heap_begin, heap_max,
         "Heap", "Dynamic memory" });
 
   // Create ranges for the remaining address space
@@ -123,17 +127,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t unavail_start = 0x100000 + high_memory_size;
-  size_t interval = std::min(span_max, addr_max - unavail_start);
+  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
 
   while (unavail_end < addr_max){
     INFO2("* Unavailable memory: 0x%x - 0x%x", unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
           "N/A", "Outside physical range!" });
-
     unavail_start = unavail_end + 1;
     interval = std::min(span_max, addr_max - unavail_start);
-
     // Increment might wrapped around
     if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
       INFO2("* Last chunk of memory: 0x%x - 0x%x", unavail_start, addr_max);
