@@ -26,7 +26,9 @@ CASE("A delegate can be compared with other delegates and itself")
   delegate<const std::string()> d{f1};
   delegate<const std::string()> d2{f2};
 
-  EXPECT(d < d2);
+  // Apparently it's hard to predict symbol layout even for global functions.
+  // All we care about here is that the delegates actually have a working operator<
+  EXPECT((d < d2 or d2 < d));
 
   EXPECT(d == d);
   EXPECT(d != d2);
