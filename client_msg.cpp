@@ -67,7 +67,12 @@ void Client::handle(
   }
   else if (cmd == TK_STATS)
   {
-    send(RPL_USERHOST, " = " + userhost());
+    if (msg.size() > 1)
+    {
+      send_uptime();
+    }
+    else
+      need_parms(cmd);
   }
   else if (cmd == TK_USERHOST)
   {
@@ -153,7 +158,12 @@ void Client::handle(
           else
             left = channel.part(*this, msg[2]);
           // stop tracking the channel ourselves
-          if (left) channels_.remove(ch);
+          if (left) {
+            channels_.remove(ch);
+            // if the channel became empty, remove it
+            if (channel.is_alive() == false)
+                server.free_channel(channel);
+          }
         }
         else
           send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");

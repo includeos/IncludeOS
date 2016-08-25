@@ -112,8 +112,6 @@ bool Channel::part(Client& client, const std::string& msg)
   chanops.erase(cid);
   voices.erase(cid);
   clients_.erase(clients_.begin() + found);
-  // validate the channel, since it could be empty
-  revalidate_channel();
   return true;
 }
 
@@ -174,15 +172,6 @@ void Channel::send_names(Client& client)
       client.send(RPL_NAMREPLY, " = " + name() + " :" + listed_name(clients_[i]));
   
   client.send(RPL_ENDOFNAMES, name() + " :End of NAMES list");
-}
-
-void Channel::revalidate_channel()
-{
-  if (alive() == false)
-  {
-    printf("channel died: %s\n", name().c_str());
-    server.erase_channel(name());
-  }
 }
 
 void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg)

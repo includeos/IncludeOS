@@ -26,18 +26,15 @@ void Client::reset_to(Connection conn)
 void Client::disable()
 {
   assert(is_alive());
-  // release current nickname (if any)
-  if (!nick().empty())
-    server.erase_nickname(nick());
-  // a few should not happens
-  nick_ = "BUG_BUG_BUG";
-  user_ = "BUG_BUG_BUG";
-  host_ = "BUG_BUG.BUG";
   conn = nullptr;
   // reset client status
   regis = 0;
   // free client on server
   server.free_client(*this);
+  // a few should not happens
+  nick_ = "BUG_BUG_BUG";
+  user_ = "BUG_BUG_BUG";
+  host_ = "BUG_BUG.BUG";
 }
 
 #include <kernel/syscalls.hpp>
@@ -237,7 +234,12 @@ void Client::handle_quit(const char* buff, int len)
     server.user_bcast_butone(get_id(), buff, len);
     // remove client from various lists
     for (size_t idx : channels()) {
-      server.get_channel(idx).remove(get_id());
+      Channel& ch = server.get_channel(idx);
+      ch.remove(get_id());
+      
+      // if the channel became empty, remove it
+      if (ch.is_alive() == false)
+          server.free_channel(ch);
     }
   }
 }

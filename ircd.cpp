@@ -109,6 +109,9 @@ void IrcServer::free_client(Client& client)
 {
   // give back the client id
   free_clients.push_back(client.get_id());
+  // give back nickname, if any
+  if (!client.nick().empty())
+      erase_nickname(client.nick());
   // one less client in total on server
   dec_counter(STAT_TOTAL_USERS);
   dec_counter(STAT_LOCAL_USERS);
@@ -131,7 +134,17 @@ IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
 {
   auto ch = new_channel();
   get_channel(ch).reset(name);
+  inc_counter(STAT_CHANNELS);
   return ch;
+}
+void IrcServer::free_channel(Channel& ch)
+{
+  // give back channel id
+  free_channels.push_back(ch.get_id());
+  // give back channel name
+  erase_channel(ch.name());
+  // less channels on server/network
+  dec_counter(STAT_CHANNELS);
 }
 
 void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)

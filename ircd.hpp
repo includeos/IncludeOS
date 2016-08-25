@@ -46,10 +46,12 @@ public:
   inline Client& get_client(size_t idx) {
     return clients.at(idx);
   }
+  void free_client(Client&);
+  
   inline Channel& get_channel(size_t idx) {
     return channels.at(idx);
   }
-  void free_client(Client&);
+  void free_channel(Channel&);
   
   uindex_t  user_by_name(const std::string&) const;
   chindex_t channel_by_name(const std::string&) const;

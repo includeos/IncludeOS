@@ -17,7 +17,7 @@ public:
   
   Channel(index_t self, IrcServer& sref);
   
-  bool alive() const {
+  bool is_alive() const {
     return !clients_.empty();
   }
   index_t get_id() const {
@@ -26,7 +26,7 @@ public:
   const std::string& name() const {
     return cname;
   }
-  size_t size() const {
+  size_t size() const noexcept {
     return clients_.size();
   }
   // reset to reuse in other fashion
@@ -88,7 +88,6 @@ public:
   
 private:
   std::string mode_string() const;
-  void revalidate_channel();
   
   index_t     self;
   uint16_t    cmodes;

@@ -113,6 +113,7 @@ private:
   void send_motd();
   void send_lusers();
   void send_modes();
+  void send_uptime();
   void send_quit(const std::string& reason);
   bool change_nick(const std::string& new_nick);
   
