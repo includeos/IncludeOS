@@ -53,7 +53,7 @@ def main():
         os.chdir(test)
 
         # Perform test.py
-        process = subprocess.Popen(['python', 'test.py'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(['sudo', '-E', 'python', 'test.py'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
 
         # Default colors
@@ -71,7 +71,7 @@ def main():
         # Print result of test
         print '{0:15} ==> {3} {1} {2}'.format(test, test_result, background_color_end, color)
 
-        os.chdir("..")
+        os.chdir("../../..")
 
     if not all_tests_pass:
         print "\n>>> Not all tests passed, exiting with code 1"
