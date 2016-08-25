@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <set>
 #include <debug>
+#include <timer>
 
 #include <kernel/syscalls.hpp>
 
@@ -20,6 +21,11 @@ IrcServer::IrcServer(
   
   // reserve space for clients etc.
   clients.reserve(1000);
+  
+  // timeout for clients and servers
+  using namespace std::chrono;
+  Timers::periodic(16s, 16s, 
+      delegate<void(uint32_t)>::from<IrcServer, &IrcServer::timeout_handler>(this));
   
   // server listener (although IRC servers usually have many ports open)
   auto& tcp = inet.tcp();
@@ -61,7 +67,10 @@ IrcServer::IrcServer(
       // for the case where the client has not voluntarily quit,
       auto& client = clients[clindex];
       // tell everyone that he just disconnected
-      client.handle_quit("Connection closed");
+      char buff[256];
+      int len = snprintf(buff, sizeof(buff),
+                ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
+      client.handle_quit(buff, len);
       // force-free resources
       client.disable();
     });

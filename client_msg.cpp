@@ -2,13 +2,21 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 
+inline void Client::not_ircop(const std::string& cmd)
+{
+  send(ERR_NOPRIVILEGES, cmd + " :Permission Denied- You're not an IRC operator");
+}
+inline void Client::need_parms(const std::string& cmd)
+{
+  send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+}
+
 #include <kernel/syscalls.hpp>
 void Client::handle(
     const std::string&,
     const std::vector<std::string>& msg)
 {
   // in case message handler is bad
-  SET_CRASH_CONTEXT("Client::handle():\n'%s'", msg[0].c_str());
   #define BUFFER_SIZE   1024
   char buffer[BUFFER_SIZE];
   
@@ -19,11 +27,15 @@ void Client::handle(
     if (msg.size() > 1)
       send("PONG :" + msg[1]);
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
+  }
+  else if (cmd == TK_PONG)
+  {
+    // do nothing
   }
   else if (cmd == TK_PASS)
   {
-    send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+    need_parms(cmd);
   }
   else if (cmd == TK_NICK)
   {
@@ -32,15 +44,14 @@ void Client::handle(
       std::string nuh = nickuserhost();
       // change nickname
       if (change_nick(msg[1])) {
+        // success, broadcast to all who can see client
         int len = snprintf(buffer, sizeof(buffer),
                   ":%s NICK %s\r\n", nuh.c_str(), nick().c_str());
         server.user_bcast(get_id(), buffer, len);
       }
     }
     else
-    {
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-    }
+      need_parms(cmd);
   }
   else if (cmd == TK_USER)
   {
@@ -53,6 +64,10 @@ void Client::handle(
   else if (cmd == TK_LUSERS)
   {
     send_lusers();
+  }
+  else if (cmd == TK_STATS)
+  {
+    send(RPL_USERHOST, " = " + userhost());
   }
   else if (cmd == TK_USERHOST)
   {
@@ -84,7 +99,7 @@ void Client::handle(
       }
     }
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
   }
   else if (cmd == TK_JOIN)
   {
@@ -119,7 +134,7 @@ void Client::handle(
       }
     }
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
   }
   else if (cmd == TK_PART)
   {
@@ -148,7 +163,7 @@ void Client::handle(
       }
     }
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
   }
   else if (cmd == TK_TOPIC)
   {
@@ -173,7 +188,7 @@ void Client::handle(
         send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
     }
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
   }
   else if (cmd == TK_PRIVMSG)
   {
@@ -204,20 +219,41 @@ void Client::handle(
           auto& client = server.get_client(cl);
           client.send_raw(":" + nickuserhost() + " " TK_PRIVMSG " " + client.nick() + " :" + msg[2]);
         }
-        else {
+        else
           send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
-        }
       }
     }
     else
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+      need_parms(cmd);
   }
   else if (cmd == TK_QUIT)
   {
-    std::string reason;
-    if (msg.size() > 1) reason = msg[1];
-    send_quit(reason);
+    std::string reason("Quit");
+    if (msg.size() > 1) reason = "Quit: " + msg[1];
+    kill(true, reason);
     return;
+  }
+  else if (cmd == TK_SVSHOST)
+  {
+    if (is_operator())
+    {
+      if (msg.size() > 2)
+      {
+        auto cl = server.user_by_name(msg[1]);
+        if (cl != NO_SUCH_CLIENT) {
+          auto& client = server.get_client(cl);
+          // TODO: validate host (must contain at least one .)
+          if (msg[2].size() > 2)
+              client.set_vhost(msg[2]);
+        }
+        else
+          send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+      }
+      else
+        need_parms(cmd);
+    }
+    else
+      not_ircop(cmd);
   }
   else
   {

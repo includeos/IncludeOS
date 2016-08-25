@@ -31,16 +31,3 @@ void Client::send_modes()
 {
   send_raw(":" + nickuserhost() + " " + TK_MODE + " " + nick() + " :+" + this->mode_string());
 }
-
-void Client::send_quit(const std::string& reason)
-{
-  // inform everyone what happened
-  handle_quit(reason);
-  
-  // close connection after write
-  std::string text = ":" + nickuserhost() + " " + TK_QUIT + " :" + reason + "\r\n";
-  conn->write(text.data(), text.size(),
-  [this] (size_t) {
-    conn->close();
-  });
-}

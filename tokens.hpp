@@ -110,11 +110,21 @@ inline bool is_error(size_t numeric) {
 #define TK_MOTD     "MOTD"
 #define TK_LUSERS   "LUSERS"
 #define TK_USERHOST "USERHOST"
+#define TK_STATS    "STATS"
 
 #define TK_PING     "PING"
+#define TK_PONG     "PONG"
 #define TK_MODE     "MODE"
 #define TK_JOIN     "JOIN"
 #define TK_PART     "PART"
 #define TK_TOPIC    "TOPIC"
 #define TK_PRIVMSG  "PRIVMSG"
 #define TK_QUIT     "QUIT"
+
+#define TK_CONNECT  "CONNECT"
+#define TK_SQUIT    "SQUIT"
+#define TK_WALLOPS  "WALLOPS"
+
+#define TK_SVSNICK  "SVSNICK"
+#define TK_SVSUSER  "SVSUSER"
+#define TK_SVSHOST  "SVSHOST"

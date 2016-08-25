@@ -135,6 +135,9 @@ public:
   }
   
 private:
+  size_t to_current = 0;
+  void   timeout_handler(uint32_t);
+  
   size_t new_client();
   size_t new_channel();
   

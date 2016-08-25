@@ -13,6 +13,7 @@ void Client::reset_to(Connection conn)
   this->regis = 1;
   this->umodes_ = default_user_modes();
   this->conn = conn;
+  this->to_stamp = server.create_timestamp();
   this->nick_.clear();
   this->user_.clear();
   this->host_.clear();
@@ -62,8 +63,12 @@ void Client::split_message(const std::string& msg)
   // transform command to uppercase
   extern void transform_to_upper(std::string& str);
   transform_to_upper(vec[0]);
+  
   // handle message
   assert(is_alive());
+  // reset timeout timestamp
+  to_stamp = server.create_timestamp();
+  
   if (this->is_reg() == false)
     handle_new(source, vec);
   else
@@ -205,14 +210,31 @@ std::string Client::mode_string() const
   return res;
 }
 
-void Client::handle_quit(const std::string& reason)
+void Client::kill(bool warn, const std::string& reason)
+{
+  char buff[256];
+  int len = snprintf(buff, sizeof(buff), 
+      ":%s QUIT :%s\r\n", nickuserhost().c_str(), reason.c_str());
+  
+  // inform everyone what happened
+  handle_quit(buff, len);
+  
+  if (warn) {
+    // close connection after write
+    conn->write(buff, len,
+    [this] (size_t) {
+        conn->close();
+    });
+  } else {
+    conn->close();
+  }
+}
+
+void Client::handle_quit(const char* buff, int len)
 {
   if (is_reg()) {
     // inform others about disconnect
-    char buffer[256];
-    int len = snprintf(buffer, sizeof(buffer),
-              ":%s QUIT :%s\r\n", nickuserhost().c_str(), reason.c_str());
-    server.user_bcast_butone(get_id(), buffer, len);
+    server.user_bcast_butone(get_id(), buff, len);
     // remove client from various lists
     for (size_t idx : channels()) {
       server.get_channel(idx).remove(get_id());

@@ -89,7 +89,19 @@ public:
     return channels_;
   }
   
-  void handle_quit(const std::string&);
+  // close connection with given reason
+  void kill(bool warn, const std::string&);
+  // tell everyone this client has quit
+  void handle_quit(const char*, int len);
+  
+  long get_timeout_ts() const {
+    return to_stamp;
+  }
+  
+  void set_vhost(const std::string& new_vhost)
+  {
+    this->host_ = new_vhost;
+  }
   
 private:
   void split_message(const std::string&);
@@ -104,11 +116,15 @@ private:
   void send_quit(const std::string& reason);
   bool change_nick(const std::string& new_nick);
   
+  void not_ircop(const std::string& cmd);
+  void need_parms(const std::string& cmd);
+  
   uint8_t     regis;
   uint16_t    umodes_;
   index_t     self;
   IrcServer&  server;
   Connection  conn;
+  long        to_stamp;
   
   std::string nick_;
   std::string user_;
