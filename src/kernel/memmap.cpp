@@ -23,16 +23,17 @@ uintptr_t Memory_map::in_range(uintptr_t addr){
 
 Fixed_memory_range& Memory_map::assign_range (Fixed_memory_range&& rng) {
 
-  INFO2("* Assgning range %s", rng.to_string().c_str());
+  debug("* Assgning range %s", rng.to_string().c_str());
 
   // Keys are address representations, not pointers
   auto key = reinterpret_cast<uintptr_t>(rng.cspan().data());
 
   if (UNLIKELY(map_.empty())) {
     auto new_entry  = map_.emplace(key, std::move(rng));
-    INFO2("* Range inserted (success: 0x%lx, %i)", new_entry.first->first, new_entry.second);
+    debug("* Range inserted (success: 0x%x, %i)", new_entry.first->first, new_entry.second);
     return new_entry.first->second;
   }
+
   // Make sure the range does not overlap with any existing ranges
   auto closest_match = map_.lower_bound(key);
 
@@ -43,22 +44,22 @@ Fixed_memory_range& Memory_map::assign_range (Fixed_memory_range&& rng) {
 
   if (UNLIKELY(rng.overlaps(closest_match->second)) )
     throw Memory_range_exception("Range '"+ std::string(rng.name())
-                                 + "' overlaps with "
+                                 + "' overlaps with the range above key "
                                  + closest_match->second.to_string());
 
   // We also need to check the preceeding entry, if any, or if the closest match was above us
-  if (closest_match != map_.begin() and closest_match->second.addr_start() > key) {
+  if (UNLIKELY(closest_match != map_.begin() and closest_match->second.addr_start() > key)) {
     closest_match--;
 
     if (UNLIKELY(rng.overlaps(closest_match->second))){
       throw Memory_range_exception("Range '"+ std::string(rng.name())
-                                   + "' overlaps with "
+                                   + "' overlaps with the range below key "
                                    + closest_match->second.to_string());
     }
   }
 
   auto new_entry = map_.emplace(key, std::move(rng));
-  INFO2("* Range inserted (success: %i)", new_entry.second);
+  debug("* Range inserted (success: %i)", new_entry.second);
 
   return new_entry.first->second;
 };
@@ -66,7 +67,7 @@ Fixed_memory_range& Memory_map::assign_range (Fixed_memory_range&& rng) {
 ptrdiff_t Memory_map::resize(uintptr_t key, ptrdiff_t size) {
 
   auto& range = map_.at(key);
-  INFO2("Resize range 0x%x using %lib to use %lib", key, range.in_use(), size);
+  debug("Resize range 0x%x using %lib to use %lib", key, range.in_use(), size);
 
   if (range.in_use() >= size)
     throw Memory_range_exception("Can't resize. Range " + std::string(range.name())
