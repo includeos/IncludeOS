@@ -49,16 +49,23 @@ TCP::TCP(IPStack& inet) :
 */
 Listener& TCP::bind(port_t port) {
   // Already a listening socket.
-  if(listeners_.find(port) != listeners_.end()) {
+  Listeners::const_iterator it = listeners_.find(port);
+  if(it != listeners_.cend()) {
     throw TCPException{"Port is already taken."};
   }
-  auto& listener = (listeners_.emplace(std::piecewise_construct,
+  auto& listener = listeners_.emplace(port,
+    std::make_unique<tcp::Listener>(*this, port)
+    ).first->second;
+  debug("<TCP::bind> Bound to port %i \n", port);
+  return *listener;
+
+  /*auto& listener = (listeners_.emplace(std::piecewise_construct,
     std::forward_as_tuple(port),
     std::forward_as_tuple(*this, port))
     ).first->second;
   debug("<TCP::bind> Bound to port %i \n", port);
 
-  return listener;
+  return listener;*/
 }
 
 /*
@@ -195,13 +202,13 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   }
 
   // No open connection found
-  auto listener_it = listeners_.find(packet->dst_port());
+  Listeners::iterator listener_it = listeners_.find(packet->dst_port());
   debug("<TCP::bottom> No connection found - looking for listener..\n");
   // Listener found => Create listening Connection
   if(listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
-    debug("<TCP::bottom> Listener found: %s\n", listener.to_string().c_str());
-    listener.segment_arrived(packet);
+    debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
+    listener->segment_arrived(packet);
     debug2("<TCP::bottom> Listener done with packet\n");
     return;
   }
@@ -255,7 +262,7 @@ string TCP::to_string() const {
   ss << "LISTENERS:\n" << "Port\t" << "Queued\n";
   for(auto& listen_it : listeners_) {
     auto& l = listen_it.second;
-    ss << l.port() << "\t" << l.syn_queue_size() << "\n";
+    ss << l->port() << "\t" << l->syn_queue_size() << "\n";
   }
   ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
   for(auto& con_it : connections_) {

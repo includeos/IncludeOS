@@ -175,7 +175,6 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
 }
 
 void IRQ_manager::notify() {
-
   // Get the IRQ's that are both pending and subscribed to
   irq_todo.set_from_and(irq_subs, irq_pend);
   int intr = irq_todo.last_set();
@@ -211,5 +210,11 @@ void IRQ_manager::notify() {
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");
-  asm volatile("hlt;");
+  asm volatile("hlt");
+
+  // add a global symbol here so we can quickly discard
+  // event loop from stack sampling
+  asm volatile(
+  ".global _irq_cb_return_location;\n"
+  "_irq_cb_return_location:" );
 }

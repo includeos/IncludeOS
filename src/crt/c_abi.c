@@ -101,8 +101,8 @@ void _init_c_runtime()
 
   // relocate symbols to heap
   if (!stripped) {
-    void* heaploc = _relocate_to_heap(TEMP_LOCATION);
-    _apply_parser_data(heaploc);
+    //void* heaploc = _relocate_to_heap(TEMP_LOCATION);
+    //_apply_parser_data(heaploc);
   }
   
   /// call global constructors emitted by compiler

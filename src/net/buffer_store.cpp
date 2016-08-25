@@ -56,10 +56,6 @@ namespace net {
 
     new (&locked) MemBitmap((char*) pool_ + DATA_SIZE, BMP_CHUNKS);
     locked.zero_all();
-
-    //printf("strtab: %p  end: %p\n", Elf::get_strtab(), Elf::get_strtab() + Elf::get_strtab_size());
-    //printf("vec: %p end: %p vec data: %p\n", &available_, ((char*) &available_) + sizeof(available_), available_.data());
-    //printf("bmp: %p end: %p\n", &locked, ((char*) &locked) + sizeof(MemBitmap));
   }
 
   BufferStore::~BufferStore() {
@@ -76,24 +72,25 @@ namespace net {
     return addr;
   }
 
-  void BufferStore::release(buffer_t addr)
+  void BufferStore::release(void* addr)
   {
-    debug("Release %p...", addr);
+    buffer_t buff = (buffer_t) addr;
+    debug("Release %p...", buff);
 
-    if (likely(is_from_pool(addr) and is_buffer(addr))) {
+    if (likely(is_from_pool(buff) and is_buffer(buff))) {
       // if the buffer is locked, don't release it
-      if (locked.get( buffer_id(addr) )) {
+      if (locked.get( buffer_id(buff) )) {
         debug(" .. but it was locked\n");
         return;
       }
       
-      available_.push_back(addr);
+      available_.push_back(buff);
       debug("released\n");
       return;
     }
     // buffer not owned by bufferstore, so just delete it?
     debug("deleted\n");
-    delete[] addr;
+    delete[] buff;
   }
   void BufferStore::unlock_and_release(buffer_t addr)
   {
