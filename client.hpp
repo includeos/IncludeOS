@@ -119,6 +119,9 @@ public:
     this->host_ = new_vhost;
   }
   
+  void set_to_stamp(long new_tos) {
+    to_stamp = new_tos;
+  }
   void set_warned(bool warned) {
     if (warned) bits |= WARNED_BIT;
     else        bits &= ~WARNED_BIT;

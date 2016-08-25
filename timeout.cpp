@@ -38,6 +38,7 @@ void IrcServer::timeout_handler(uint32_t)
         if (!client.is_warned()) {
           // send ping request
           client.send_raw(pingreq, len);
+          client.set_to_stamp(now);
           client.set_warned(true);
         }
         else {

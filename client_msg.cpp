@@ -214,7 +214,7 @@ void Client::handle(
           if (channel.find(get_id()) != NO_SUCH_CLIENT)
           {
             // broadcast message to channel
-            channel.bcast_butone(get_id(), ":" + nickuserhost() + " " TK_PRIVMSG " " + channel.name() + " :" + msg[2]);
+            channel.bcast_butone(get_id(), ":" + nickuserhost() + " " TK_PRIVMSG " " + channel.name() + " :" + msg[2] + "\r\n");
           }
         }
         else

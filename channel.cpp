@@ -77,7 +77,10 @@ bool Channel::join(Client& client, const std::string& key)
     return false;
   }
   // broadcast to channel that the user joined
-  bcast(":" + client.nickuserhost() + " JOIN " + name());
+  char buff[128];
+  int len = snprintf(buff, sizeof(buff), 
+            ":%s JOIN %s\r\n", client.nickuserhost().c_str(), name().c_str());
+  bcast(buff, len);
   // send current channel modes
   if (new_channel) {
     // set creation timestamp
@@ -107,7 +110,10 @@ bool Channel::part(Client& client, const std::string& msg)
     return false;
   }
   // broadcast that client left the channel
-  bcast(":" + client.nickuserhost() + " PART " + name() + " :" + msg);
+  char buff[128];
+  int len = snprintf(buff, sizeof(buff), 
+            ":%s PART %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), msg.c_str());
+  bcast(buff, len);
   // remove client from channels lists
   chanops.erase(cid);
   voices.erase(cid);
@@ -121,7 +127,10 @@ void Channel::set_topic(Client& client, const std::string& new_topic)
   this->ctopic_by = client.nickuserhost();
   this->ctopic_ts = server.create_timestamp();
   // broadcast change
-  bcast(":" + client.nickuserhost() + " " TK_TOPIC " " + name() + " :" + new_topic);
+  char buff[256];
+  int len = snprintf(buff, sizeof(buff), 
+            ":%s TOPIC %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), new_topic.c_str());
+  bcast(buff, len);
 }
 
 bool Channel::is_chanop(index_t cid) const
@@ -176,13 +185,17 @@ void Channel::send_names(Client& client)
 
 void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg)
 {
-  bcast(":" + from + " " + std::to_string(tk) + " " + msg);
+  char buff[256];
+  int len = snprintf(buff, sizeof(buff), 
+            ":%s %03u %s\r\n", from.c_str(), tk, msg.c_str());
+  
+  bcast(buff, len);
 }
-void Channel::bcast(const std::string& message)
+void Channel::bcast(const char* buff, size_t len)
 {
   // broadcast to all users in channel
   for (auto cl : clients())
-      server.get_client(cl).send_raw(message.c_str(), message.size());
+      server.get_client(cl).send_raw(buff, len);
 }
 void Channel::bcast_butone(index_t src, const std::string& message)
 {
