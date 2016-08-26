@@ -37,16 +37,16 @@ class Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-enum stat_type
-{
-  FLOAT,
-  UINT32,
-  UINT64
-};
-
 class Stat {
 
 public:
+  enum stat_type
+  {
+    FLOAT,
+    UINT32,
+    UINT64
+  };
+
   Stat(const stat_type type, const int index_into_span, const std::string& name);
 
   ~Stat() = default;
@@ -67,11 +67,11 @@ public:
 
   std::string name() const { return name_; }
 
-  float& get_float();
+  float* get_float();
 
-  uint32_t& get_uint32();
+  uint32_t* get_uint32();
 
-  uint64_t& get_uint64();
+  uint64_t* get_uint64();
 
 private:
   stat_type type_;
@@ -98,7 +98,7 @@ class Statman {
 
 public:
   static Statman& get() {
-    static Statman statman_{0x2000, 8192};
+    static Statman statman_{0x8000, 8192};
     return statman_;
   }
 
@@ -160,7 +160,7 @@ public:
 
   auto cend() const { return stats_.cend(); }
 
-  Stat& create(const stat_type type, const std::string& name);
+  Stat& create(const Stat::stat_type type, const std::string& name);
 
 private:
   Span stats_;

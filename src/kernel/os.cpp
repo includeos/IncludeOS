@@ -117,7 +117,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_end + 1, heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
 
-  memmap.assign_range({0x2000, 0x3fff, "Statman", "Statistics"});
+  memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
 
   // Give the rest of physical memory to heap
   uintptr_t heap_max = ((0x100000 + high_memory_size)  & 0xffff0000) - 1;
