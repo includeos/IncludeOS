@@ -345,7 +345,6 @@ void Service::start(const std::string&) {
       });
 
 
-
       auto& tcp = stack.tcp();
       tcp.bind(8080).on_connect(
       [](auto conn)

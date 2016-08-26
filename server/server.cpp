@@ -76,8 +76,38 @@ void Server::close(size_t idx) {
 
 void Server::process(Request_ptr req, Response_ptr res) {
   auto it_ptr = std::make_shared<MiddlewareStack::iterator>(middleware_.begin());
+  auto next = std::make_shared<next_t>();
+  auto weak_next = std::weak_ptr<next_t>(next);
+  // setup Next callback
+  *next = [this, it_ptr, weak_next, req, res]
+  {
+    // derefence the the pointer to the iterator
+    auto& it = *it_ptr;
+
+    // skip does who don't match
+    while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
+      it++;
+
+    // while there is more to do
+    if(it != middleware_.end()) {
+      // dereference the function
+      auto& func = it->callback;
+      // advance the iterator for the next next call
+      it++;
+      auto next = weak_next.lock();
+      // execute the function
+      func(req, res, next);
+    }
+    // no more middleware, proceed with route processing
+    else {
+      process_route(req, res);
+    }
+  };
   // get the party started..
-  (*create_next(it_ptr, req, res))();
+  (*next)();
+
+  // get the party started..
+  //(*create_next(it_ptr, req, res))();
 }
 
 Next Server::create_next(std::shared_ptr<MiddlewareStack::iterator> it_ptr, Request_ptr req, Response_ptr res) {
