@@ -56,6 +56,8 @@ hw::Serial& OS::com1 = hw::Serial::port<1>();
 // Multiboot command line for the service
 static std::string os_cmdline = "";
 
+OS::Statman_ptr OS::statman_ = std::make_unique<Statman>(0x6000, 4096);
+
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Print a fancy header
@@ -116,6 +118,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end + 1, heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
+
+  memmap.assign_range({0x6000, 0x7000, "Statman", "Statistics"});
 
   // Give the rest of physical memory to heap
   uintptr_t heap_max = ((0x100000 + high_memory_size)  & 0xffff0000) - 1;

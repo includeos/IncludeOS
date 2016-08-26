@@ -28,6 +28,7 @@
 #include <kernel/memmap.hpp>
 #include <hw/cpu.hpp>
 #include <hw/pit.hpp>
+#include <statman>
 
 namespace hw{ class Serial; }
 
@@ -38,6 +39,7 @@ namespace hw{ class Serial; }
  */
 class OS {
 public:
+  using Statman_ptr = std::unique_ptr<Statman>;
   using rsprint_func = delegate<void(const char*, size_t)>;
 
   /* Get the version of the os */
@@ -60,7 +62,7 @@ public:
 
   /**
    * Shutdown operating system
-   * 
+   *
    **/
   static void shutdown();
 
@@ -127,9 +129,10 @@ public:
 
 private:
 
+  static Statman_ptr statman_;
+
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
-
 
   static const int page_shift_ = 12;
 
