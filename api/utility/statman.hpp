@@ -87,9 +87,9 @@ private:
 
 class Statman {
   /*
-    NOTE:
+    @note
     This fails on g++ 5.4.0
-    Passes in clang 3.8.0
+    Passes on clang 3.8.0
 
     static_assert(std::is_pod<Stat>::value, "Stat is pod type");
   */
@@ -97,6 +97,11 @@ class Statman {
   using Span = gsl::span<Stat>;
 
 public:
+  static Statman& get() {
+    static Statman statman_{0x2000, 8192};
+    return statman_;
+  }
+
   using Size_type = ptrdiff_t;
 
   Statman(uintptr_t start, Size_type num_bytes);
@@ -122,6 +127,11 @@ public:
   Size_type num_bytes() const { return num_bytes_; }
 
   /**
+   * Returns the total number of bytes the Statman object takes up
+   */
+  Size_type total_num_bytes() const { return num_bytes() + sizeof(int) + sizeof(Size_type); }
+
+  /**
    * Returns the number of Stat-objects the span stats_ actually contains
    */
   int num_stats() const { return next_available_; }
@@ -142,9 +152,9 @@ public:
    */
   auto last_used() const;
 
-  auto begin() const { return stats_.begin(); }
+  auto begin() { return stats_.begin(); }
 
-  auto end() const { return stats_.end(); }
+  auto end() { return stats_.end(); }
 
   auto cbegin() const { return stats_.cbegin(); }
 

@@ -28,6 +28,7 @@
 #include <kernel/memmap.hpp>
 #include <hw/cpu.hpp>
 #include <hw/pit.hpp>
+#include <statman>
 
 namespace hw{ class Serial; }
 
@@ -60,7 +61,7 @@ public:
 
   /**
    * Shutdown operating system
-   * 
+   *
    **/
   static void shutdown();
 
@@ -129,7 +130,6 @@ private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
-
 
   static const int page_shift_ = 12;
 
