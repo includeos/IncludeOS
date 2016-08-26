@@ -98,7 +98,7 @@ class Statman {
 
 public:
   static Statman& get() {
-    static Statman statman_{0x2000, 8192};
+    static Statman statman_{0x8000, 8192};
     return statman_;
   }
 
