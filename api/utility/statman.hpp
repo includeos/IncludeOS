@@ -97,6 +97,11 @@ class Statman {
   using Span = gsl::span<Stat>;
 
 public:
+  static Statman& get() {
+    static Statman statman_{0x2000, 8192};
+    return statman_;
+  }
+
   using Size_type = ptrdiff_t;
 
   Statman(uintptr_t start, Size_type num_bytes);
