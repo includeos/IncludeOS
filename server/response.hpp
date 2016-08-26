@@ -84,12 +84,12 @@ public:
   /*
     Send only status code
   */
-  void send_code(const Code);
+  void send_code(const Code, bool close = true);
 
   /*
     Send the Response
   */
-  void send(bool close = false) const;
+  void send(bool close = false);
 
   /*
     Send a file
@@ -141,7 +141,7 @@ private:
 
   bool keep_alive = true;
 
-  void write_to_conn(bool close_on_written = false) const;
+  void write_to_conn(bool close_on_written = false);
 
 }; // server::Response
 

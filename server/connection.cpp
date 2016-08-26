@@ -56,7 +56,7 @@ void Connection::on_data(buffer_t buf, size_t n) {
       }
     }
     catch(std::exception& e) {
-      printf("<%s> Error - exception thrown when creating Request: %s\n",
+      printf("<%s> Error - %s\n",
         to_string().c_str(), e.what());
       // close tcp connection
       conn_->close();
