@@ -53,9 +53,9 @@ void _init_c_runtime()
   extern int   _init_elf_parser(void*);
   extern void* _relocate_to_heap(char*);
   extern void  _apply_parser_data(void*);
-  // there is a 600k memory hole at the beginning of memory
-  // put symbols at 32k
-  void* TEMP_LOCATION = (void*) 0x8000;
+  // there is a 640k memory hole at the beginning of memory
+  // put symbols at 40k
+  void* TEMP_LOCATION = (void*) 0xA000;
   // move symbols to a temporary location that is abit further out than heap
   // do this as early as possible, even before zeroing BSS to prevent overwriting
   // all the data we need to keep for backtrace functionality
@@ -189,13 +189,6 @@ int rmdir(const char *pathname)
   (void) pathname;
 	return 0;
 }
-
-/*
-int gettimeofday(struct timeval *__restrict tv,
-				 void *__restrict tz)
-{
-	return 0;
-}*/
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
