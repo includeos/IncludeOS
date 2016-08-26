@@ -147,9 +147,9 @@ public:
    */
   auto last_used() const;
 
-  auto begin() const { return stats_.begin(); }
+  auto begin() { return stats_.begin(); }
 
-  auto end() const { return stats_.end(); }
+  auto end() { return stats_.end(); }
 
   auto cbegin() const { return stats_.cbegin(); }
 
