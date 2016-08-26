@@ -23,6 +23,7 @@
 #include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
 #include "../net/ethernet.hpp"
+#include <statman>
 
 namespace hw {
 
@@ -82,6 +83,10 @@ namespace hw {
 
     virtual size_t receive_queue_waiting() = 0;
 
+    std::string ifname() const {
+      return "eth" + std::to_string(N);
+    }
+
   protected:
     /**
      *  Constructor
@@ -90,7 +95,13 @@ namespace hw {
      */
     Nic(uint32_t bufstore_sz, uint16_t bufsz)
       : bufstore_{ bufstore_sz, bufsz }
-    {}
+    {
+      static int id_counter = 0;
+      N = id_counter++;
+
+      packets_received = Statman::get().create(Stat::UINT64, ifname() + ".packets_rx").get_uint64();
+      packets_transmitted = Statman::get().create(Stat::UINT64, ifname() + ".packets_tx").get_uint64();
+    }
 
     friend class Devices;
 
@@ -99,8 +110,22 @@ namespace hw {
     net::transmit_avail_delg transmit_queue_available_event_ =
       [](auto) { assert(0 && "<NIC> Transmit queue available delegate is not set!"); };
 
+    uint64_t& packets_rx() {
+      return *packets_received;
+    }
+
+    uint64_t& packets_tx() {
+      return *packets_transmitted;
+    }
+
   private:
     net::BufferStore bufstore_;
+    int N;
+
+    /** Stats */
+    uint64_t* packets_received;
+    uint64_t* packets_transmitted;
+
   };
 
   /** Future drivers may start out like so, */

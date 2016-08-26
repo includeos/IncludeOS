@@ -205,6 +205,9 @@ void VirtioNet::msix_recv_handler()
     add_receive_buffer();
 
     dequeued_rx = true;
+
+    // Stat increase packets received
+    packets_rx()++;
   }
   rx_q.enable_interrupts();
   if (dequeued_rx)
@@ -394,7 +397,6 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 
   debug("Buffering, %i packets chained \n", chain_length);
 }
-
 #include <cstdlib>
 void VirtioNet::transmit(net::Packet_ptr pckt){
   /** @note We have to send a virtio header first, then the packet.
@@ -408,6 +410,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
       VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to
       support VirtualBox
   */
+
   int transmitted = 0;
   net::Packet_ptr tail {pckt};
 
@@ -417,6 +420,9 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
     enqueue(tail);
     tail = tail->detach_tail();
     transmitted++;
+    // Stat increase packets transmitted
+    packets_tx()++;
+
     if (!tail) break;
   }
 
@@ -430,7 +436,6 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
     debug("Buffering remaining packets..\n");
     add_to_tx_buffer(tail);
   }
-
 }
 
 void VirtioNet::enqueue(net::Packet_ptr pckt) {
