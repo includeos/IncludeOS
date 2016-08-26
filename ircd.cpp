@@ -63,8 +63,9 @@ IrcServer::IrcServer(
     [this, clindex] {
       // for the case where the client has not voluntarily quit,
       auto& client = clients[clindex];
+      if (UNLIKELY(!client.is_alive())) return;
       // tell everyone that he just disconnected
-      char buff[256];
+      char buff[128];
       int len = snprintf(buff, sizeof(buff),
                 ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
       client.handle_quit(buff, len);
