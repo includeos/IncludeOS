@@ -28,28 +28,32 @@ Response::Response(Connection_ptr conn)
   add_header(http::header_fields::Response::Server, std::string{"IncludeOS/Acorn"});
 
   // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-  add_header(http::header_fields::Response::Connection, std::string{"keep-alive"});
+  add_header(http::header_fields::Response::Connection, keep_alive ? std::string{"keep-alive"} : std::string{"close"});
 }
 
-void Response::send(bool close) const {
+void Response::send(bool close) {
+  if(close) {
+    set_header(http::header_fields::Response::Connection, std::string{"close"});
+  }
   write_to_conn(close);
   end();
 }
 
-void Response::write_to_conn(bool close_on_written) const {
+void Response::write_to_conn(bool close_on_written) {
   auto res = to_string();
   auto conn = conn_;
   conn_->write(res.data(), res.size(),
-    [conn, close_on_written](size_t n) {
-      on_sent_(n);
-      if(close_on_written)
-        conn->close();
-    });
+  [conn, close_on_written](size_t n)
+  {
+    on_sent_(n);
+    if(close_on_written)
+      conn->close();
+  });
 }
 
-void Response::send_code(const Code code) {
+void Response::send_code(const Code code, bool close) {
   set_status_code(code);
-  send(!keep_alive);
+  send(close);
 }
 
 void Response::send_file(const File& file) {
