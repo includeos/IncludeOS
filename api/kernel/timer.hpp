@@ -54,4 +54,11 @@ public:
   static void timers_handler();
 };
 
+
+
+inline Timers::id_t Timers::oneshot(duration_t when, const handler_t& handler)
+{
+  return periodic(when, std::chrono::milliseconds(0), handler);
+}
+
 #endif

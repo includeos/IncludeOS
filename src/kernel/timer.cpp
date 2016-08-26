@@ -73,14 +73,30 @@ void Timers::ready()
   }
 }
 
-static id_t create_timer(
-    duration_t when, duration_t period, const handler_t& handler)
+id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
 {
   id_t id;
   
   if (UNLIKELY(free_timers.empty())) {
-    id = timers.size();
     
+    auto it = scheduled.begin();
+    while (it != scheduled.end()) {
+      /// shortcut for when there are lots of dead timers
+      id_t id = it->second;
+      
+      if (timers[id].deferred_destruct) {
+        // remove from schedule
+        scheduled.erase(it);
+        // reset timer
+        timers[id].reset();
+        // reuse timer
+        sched_timer(when, id);
+        return id;
+      }
+      ++it;
+    }
+    
+    id = timers.size();
     // occupy new slot
     timers.emplace_back(period, handler);
   }
@@ -96,14 +112,6 @@ static id_t create_timer(
   // immediately schedule timer
   sched_timer(when, id);
   return id;
-}
-id_t Timers::oneshot(duration_t when, const handler_t& handler)
-{
-  return create_timer(when, milliseconds(0), handler);
-}
-id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
-{
-  return create_timer(when, period, handler);
 }
 
 void Timers::stop(id_t id)
@@ -133,7 +141,7 @@ void Timers::timers_handler()
   // assume the hardware timer called this function
   is_running = false;
   
-  while (!scheduled.empty())
+  while (LIKELY(!scheduled.empty()))
   {
     auto it = scheduled.begin();
     auto when = it->first;
@@ -216,4 +224,8 @@ int _get_timer_stats()
   int x = timer_stats;
   timer_stats = 0;
   return x;
+}
+size_t _get_timer_ubound()
+{
+  return timers.size();
 }
