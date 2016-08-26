@@ -19,9 +19,6 @@ IrcServer::IrcServer(
   extern void transform_init();
   transform_init();
   
-  // reserve space for clients etc.
-  clients.reserve(1000);
-  
   // timeout for clients and servers
   using namespace std::chrono;
   Timers::periodic(10s, 5s, 
