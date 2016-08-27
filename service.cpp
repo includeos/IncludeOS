@@ -25,10 +25,25 @@ std::string now()
   auto  tnow = time(0);
   auto* curtime = localtime(&tnow);
 
-  char buffer[48];
-  int len = strftime(buffer, sizeof(buffer), 
-            "%c", curtime);
-  return std::string(buffer, len);
+  char buff[48];
+  int len = strftime(buff, sizeof(buff), "%c", curtime);
+  return std::string(buff, len);
+}
+
+// print N results to stdout
+void ssampler_print(int N)
+{
+  auto samp = StackSampler::results(N);
+  
+  printf("*** Listing %d (N=%d) results (%u samples) ***\n", 
+         samp.size(), N, StackSampler::samples_total());
+  for (auto& sa : samp)
+  {
+    // print some shits
+    printf("%5.2f%%  %*u: %s\n",
+        sa.prc * 100, 8, sa.samp, sa.name.c_str());
+  }
+  printf("*** ---------------------- ***\n");
 }
 
 #include "ircd.hpp"
@@ -39,6 +54,8 @@ static IrcServer* ircd;
 
 void print_stats(uint32_t)
 {
+  StackSampler::set_mask(true);
+  
   static std::vector<int> M;
   static int last = 0;
   // only keep 5 measurements
@@ -53,18 +70,20 @@ void print_stats(uint32_t)
   for (int C : M) cps += C;
   cps /= M.size();
   
-  printf("[%s] Conns/sec %f  Heap %.3f kb  ",  
+  printf("[%s] Conns/sec %f  Heap %.1f kb  ",  
       now().c_str(), cps, OS::heap_usage() / 1024.f);
   extern int _get_timers_stats();
-  printf("Tims/sec: %f  ", _get_timers_stats() / (float)PERIOD_SECS);
+  printf("T/s: %.2f  ", _get_timers_stats() / (float)PERIOD_SECS);
   extern size_t _get_timers_ubound();
   extern size_t _get_timers_dead();
   printf("Tims: %u  Dead: %u\n", _get_timers_ubound(), _get_timers_dead());
   
   printf("Clis: %u  Club: %u\n", ircd->clis(), ircd->club());
   
-  //StackSampler::print();
+  ssampler_print(12);
   //print_heap_info();
+  
+  StackSampler::set_mask(false);
 }
 
 extern "C" void _print_elf_symbols();
@@ -100,8 +119,6 @@ void Service::start(const std::string& args)
   
   using namespace std::chrono;
   Timers::periodic(seconds(PERIOD_SECS), seconds(PERIOD_SECS), print_stats);
-  
-  //StackSampler::begin();
 }
 
 void Service::stop()
@@ -112,4 +129,5 @@ void Service::stop()
 void Service::ready()
 {
   printf("*** IRC SERVICE STARTED ***\n");
+  StackSampler::begin();
 }
