@@ -122,7 +122,7 @@ public:
   {
     for (size_t i = 0; i < symtab.entries; i++) {
 
-      if (ELF32_ST_TYPE(symtab.base[i].st_info) == STT_FUNC)
+      //if (ELF32_ST_TYPE(symtab.base[i].st_info) == STT_FUNC)
       if (addr >= symtab.base[i].st_value
       && (addr <  symtab.base[i].st_value + symtab.base[i].st_size))
           return &symtab.base[i];
@@ -146,10 +146,6 @@ public:
 private:
   const char* sym_name(Elf32_Sym* sym) const {
     return &strtab[sym->st_name];
-  }
-  bool is_func(Elf32_Sym* sym) const
-  {
-    return ELF32_ST_TYPE(sym->st_info) == STT_FUNC;
   }
   std::string demangle(const char* name) const
   {
