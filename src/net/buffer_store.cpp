@@ -26,10 +26,6 @@
 #include <kernel/syscalls.hpp>
 #define PAGE_SIZE     0x1000
 
-#include <kernel/elf.hpp>
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-
 namespace net {
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
@@ -63,7 +59,7 @@ namespace net {
   }
 
   BufferStore::buffer_t BufferStore::get_buffer() {
-    if (unlikely(available_.empty())) {
+    if (UNLIKELY(available_.empty())) {
       panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
     }
 
@@ -77,9 +73,10 @@ namespace net {
     buffer_t buff = (buffer_t) addr;
     debug("Release %p...", buff);
 
-    if (likely(is_from_pool(buff) and is_buffer(buff))) {
+    // expensive: is_buffer(buff)
+    if (LIKELY(is_from_pool(buff))) {
       // if the buffer is locked, don't release it
-      if (locked.get( buffer_id(buff) )) {
+      if (UNLIKELY(locked.get( buffer_id(buff) ))) {
         debug(" .. but it was locked\n");
         return;
       }
@@ -95,7 +92,8 @@ namespace net {
   void BufferStore::unlock_and_release(buffer_t addr)
   {
     debug("Unlock and release %p...", addr);
-    if (likely(is_from_pool(addr) and is_buffer(addr))) {
+    // expensive: is_buffer(buff)
+    if (LIKELY(is_from_pool(addr))) {
       locked.reset( buffer_id(addr) );
       available_.push_back(addr);
       debug("released\n");

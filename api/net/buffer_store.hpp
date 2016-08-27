@@ -46,21 +46,21 @@ namespace net{
     void release(void*);
 
     /** Get size of a buffer **/
-    inline size_t bufsize() const
+    inline size_t bufsize() const noexcept
     { return bufsize_; }
 
-    inline size_t poolsize() const
+    inline size_t poolsize() const noexcept
     { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    inline bool is_from_pool(buffer_t addr) const
+    inline bool is_from_pool(buffer_t addr) const noexcept
     { return addr >= pool_begin() and addr < pool_end(); }
 
     /** Check if an address is the start of a buffer */
-    inline bool is_buffer(buffer_t addr) const
+    inline bool is_buffer(buffer_t addr) const noexcept
     { return (addr - pool_) % bufsize_ == 0; }
 
-    inline size_t available() const
+    inline size_t available() const noexcept
     { return available_.size(); }
     
     void lock(void* addr) {
@@ -71,10 +71,10 @@ namespace net{
     void unlock_and_release(buffer_t addr);
 
   private:
-    buffer_t pool_begin() const {
+    buffer_t pool_begin() const noexcept {
       return pool_;
     }
-    buffer_t pool_end() const {
+    buffer_t pool_end() const noexcept {
       return pool_begin() + poolsize_;
     }
     size_t buffer_id(buffer_t addr) const {
