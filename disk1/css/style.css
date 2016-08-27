@@ -1,0 +1,9 @@
+
+div.attention {
+  background-color: #ffccff;
+  border: 1px solid #000;
+}
+
+.attention p {
+  font-family: "Comic Sans MS", cursive, sans-serif;
+}

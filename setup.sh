@@ -17,26 +17,26 @@
 
 #!/bin/bash
 
-# Make mnt/ if it doesn't exist
-mkdir -p mnt
+# Specify the name of disk image for serving content
+FAT_DISK=memdisk.fat
 
-# Mount disk if not mounted
-if ! mountpoint -q -- mnt/;
+# Check if the specified disk image exists
+# If it doesn't then try to create it
+if [ ! -f $FAT_DISK ];
 then
-  echo ">>> Mounting memdisk.fat"
-  sudo mount -o rw memdisk.fat mnt/
-  sync
+  echo -e ">>> Creating FAT disk $FAT_DISK"
+  dd if=/dev/zero of=$FAT_DISK bs=1M seek=5 count=0
+  mkfs.fat $FAT_DISK
 fi
 
-# Copy web content to mounted disk
+# Create a directory for mounting the disk image
+mkdir -p mnt
+
+# Try to mount the disk image
+echo -e ">>> Mounting $FAT_DISK in mnt/"
+sudo mount -o rw $FAT_DISK mnt/
+
+# Copy web content into the disk image
+echo -e ">>> Copy content from disk1/ to $FAT_DISK"
 sudo cp -r disk1/. mnt/
 sync
-
-# Remove stale object file
-rm -f memdisk.o
-
-# Build service
-make -j
-export CPU=""
-export HDB=" -drive file=./memdisk.fat,if=virtio,media=disk "
-${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/run.sh Acorn.img

@@ -1,4 +1,8 @@
 Acorn
 *.img
+*.dmg
+*.fat
 *.o
 *.d
+*.tar.gz
+mnt/
