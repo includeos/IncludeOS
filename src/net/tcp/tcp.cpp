@@ -167,8 +167,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
-  // Do checksum
-  if(checksum(packet)) {
+  // Validate checksum
+  if (UNLIKELY(checksum(packet) != 0)) {
     debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
     drop(packet);
     return;
@@ -180,17 +180,17 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   auto conn_it = connections_.find(tuple);
 
   // Connection found
-  if(conn_it != connections_.end()) {
+  if (conn_it != connections_.end()) {
     debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
     conn_it->second->segment_arrived(packet);
     return;
   }
 
-  // No open connection found
+  // No open connection found, find listener on port
   Listeners::iterator listener_it = listeners_.find(packet->dst_port());
   debug("<TCP::bottom> No connection found - looking for listener..\n");
   // Listener found => Create listening Connection
-  if(listener_it != listeners_.end()) {
+  if (LIKELY(listener_it != listeners_.end())) {
     auto& listener = listener_it->second;
     debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(packet);
