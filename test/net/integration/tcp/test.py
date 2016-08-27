@@ -40,6 +40,7 @@ def TCP_test():
 
     def listen(port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_address = (HOST, port)
         print >>sys.stderr, 'starting up on %s port %s' % server_address
         sock.bind(server_address)
