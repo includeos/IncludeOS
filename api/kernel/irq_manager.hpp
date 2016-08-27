@@ -131,7 +131,6 @@ private:
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
-  MemBitmap  irq_mask;
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};

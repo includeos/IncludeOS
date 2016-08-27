@@ -82,7 +82,6 @@ public:
     if (_data[i])
     {
       int b = 31 - __builtin_clz(_data[i]);
-      //printf("data: %#x b: %u\n", _data[i], i * CHUNK_SIZE + b);
       return i * CHUNK_SIZE + b;
     }
     return -1;
