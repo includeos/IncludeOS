@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <hw/serial.hpp>
+#include <kernel/irq_manager.hpp>
 
 #undef DEBUG
 

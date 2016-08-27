@@ -22,7 +22,6 @@
 
 #include <os>
 #include <hw/ioport.hpp>
-#include <kernel/irq_manager.hpp>
 #include <cstdio>
 
 namespace hw{
@@ -35,7 +34,7 @@ namespace hw{
     using on_data_handler = delegate<void(char c)>;
     using on_string_handler = delegate<void(const std::string s)>;
 
-    using irq_delg = IRQ_manager::irq_delegate;
+    using irq_delg = delegate<void()>;
     
     template <uint16_t PORT>
     static Serial& port(){
