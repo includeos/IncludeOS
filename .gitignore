@@ -5,4 +5,6 @@ Acorn
 *.o
 *.d
 *.tar.gz
+*~
+\#*
 mnt/
