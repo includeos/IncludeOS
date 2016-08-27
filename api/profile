@@ -20,12 +20,30 @@
 #ifndef API_PROFILE_HEADER
 #define API_PROFILE_HEADER
 
+#include <string>
+#include <vector>
+
+struct Sample {
+  float       prc;  // percentage of total
+  unsigned    samp; // samples
+  void*       addr; // function address
+  std::string name; // function name
+};
+
 struct StackSampler
 {
   // sets up stack sampling configuration and internal timer
+  // the stack sampling will happen in the background afterwards
   static void begin();
-  // 
-  static void print();
+  
+  // total number of (validated) samples taken
+  static int samples_total();
+  
+  // retrieve N top results/hotspots
+  static std::vector<Sample> results(int N);
+  
+  // enable or disable sample-taking
+  // eg. disable sampling during stack sample result printout
   static void set_mask(bool);
 };
 
