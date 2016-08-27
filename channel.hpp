@@ -84,7 +84,7 @@ public:
   // send message to all users in a channel
   void bcast(const char*, size_t);
   void bcast(const std::string& from, uint16_t tk, const std::string& msg);
-  void bcast_butone(index_t src, const std::string&);
+  void bcast_butone(index_t src, const char*, size_t);
   
 private:
   std::string mode_string() const;
