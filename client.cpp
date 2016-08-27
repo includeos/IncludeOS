@@ -26,7 +26,6 @@ void Client::reset_to(Connection conn)
 }
 void Client::disable()
 {
-  assert(is_alive());
   conn = nullptr;
   // reset client status
   regis = 0;

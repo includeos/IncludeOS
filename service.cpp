@@ -32,7 +32,7 @@ std::string now()
 }
 
 #include "ircd.hpp"
-IrcServer* ircd;
+static IrcServer* ircd;
 
 
 #define PERIOD_SECS    2
@@ -53,12 +53,17 @@ void print_stats(uint32_t)
   for (int C : M) cps += C;
   cps /= M.size();
   
-  printf("[%s] Conns/sec %f  Local clients %d  ",  
-      now().c_str(), cps, ircd->get_counter(STAT_LOCAL_USERS));
-  extern int _get_timer_stats();
-  printf("Timers/sec: %f\n", _get_timer_stats() / (float)PERIOD_SECS);
+  printf("[%s] Conns/sec %f  Heap %.3f kb  ",  
+      now().c_str(), cps, OS::heap_usage() / 1024.f);
+  extern int _get_timers_stats();
+  printf("Tims/sec: %f  ", _get_timers_stats() / (float)PERIOD_SECS);
+  extern size_t _get_timers_ubound();
+  extern size_t _get_timers_dead();
+  printf("Tims: %u  Dead: %u\n", _get_timers_ubound(), _get_timers_dead());
   
-  StackSampler::print();
+  printf("Clis: %u  Club: %u\n", ircd->clis(), ircd->club());
+  
+  //StackSampler::print();
   //print_heap_info();
 }
 
@@ -96,7 +101,7 @@ void Service::start(const std::string& args)
   using namespace std::chrono;
   Timers::periodic(seconds(PERIOD_SECS), seconds(PERIOD_SECS), print_stats);
   
-  StackSampler::begin();
+  //StackSampler::begin();
 }
 
 void Service::stop()

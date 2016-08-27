@@ -63,6 +63,7 @@ IrcServer::IrcServer(
     [this, clindex] {
       // for the case where the client has not voluntarily quit,
       auto& client = clients[clindex];
+      //assert(client.is_alive());
       if (UNLIKELY(!client.is_alive())) return;
       // tell everyone that he just disconnected
       char buff[128];

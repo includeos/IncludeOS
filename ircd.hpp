@@ -130,6 +130,13 @@ public:
     return 20;
   }
   
+  size_t clis() const noexcept {
+    return clients.size();
+  }
+  size_t club() const noexcept {
+    return clients.capacity();
+  }
+  
   // create a now() timestamp
   long create_timestamp() const noexcept {
     return RTC::get();
