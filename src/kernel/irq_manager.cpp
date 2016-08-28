@@ -52,10 +52,6 @@ extern "C" {
 
 void exception_handler()
 {
-  printf("ISR: 0x%x  IRR: 0x%x\n",
-    hw::APIC::get_isr(), hw::APIC::get_irr());
-
-  printf(">>>> !!! CPU EXCEPTION !!! <<<<\n");
   panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
 }
 
@@ -71,13 +67,10 @@ void IRQ_manager::init()
 void IRQ_manager::bsp_init()
 {
   const auto WORDS_PER_BMP = IRQ_LINES / 32;
-  auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 4]();
+  auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
-  irq_mask.set_location(bmp + 3 * WORDS_PER_BMP, WORDS_PER_BMP);
-  // set all bits in the mask
-  irq_mask.set_all();
 
   //Create an idt entry for the 'lidt' instruction
   idt_loc idt_reg;
@@ -174,39 +167,26 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
-void IRQ_manager::notify() {
-  // Get the IRQ's that are both pending and subscribed to
-  irq_todo.set_from_and(irq_subs, irq_pend);
-  int intr = irq_todo.last_set();
-
-  while (intr != -1) {
-
-    // reset pending before running handler
-    irq_pend.atomic_reset(intr);
-
-    // sub and call handler
-    irq_delegates_[intr]();
-
-    // prevent this irq from immediately happening again
-    irq_mask.reset(intr);
-    
-    // rebuild todo-bits
+void IRQ_manager::notify()
+{
+  while (true)
+  {
+    // Get the IRQ's that are both pending and subscribed to
     irq_todo.set_from_and(irq_subs, irq_pend);
-    // mask out interrupts we already visited
-    irq_todo &= irq_mask;
     
-    // find next interrupt
-    intr = irq_todo.last_set();
+    int intr = irq_todo.first_set();
+    if (intr == -1) break;
     
-    // if no interrupts were found, try again with no mask
-    if (intr == -1) {
-      // set all mask bits again
-      irq_mask.set_all();
-      // reset the todo bits
-      irq_todo.set_from_and(irq_subs, irq_pend);
-      // get new intr value
-      intr = irq_todo.last_set();
+    do {
+      // reset pending before running handler
+      irq_pend.atomic_reset(intr);
+      // sub and call handler
+      irq_delegates_[intr]();
+      
+      irq_todo.reset(intr);
+      intr = irq_todo.first_set();
     }
+    while (intr != -1);
   }
 
   debug2("<IRQ notify> Done. OS going to sleep.\n");

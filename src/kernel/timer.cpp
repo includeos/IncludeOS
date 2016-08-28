@@ -48,6 +48,7 @@ struct Timer
 
 static bool signal_ready = false;
 static bool is_running   = false;
+static uint32_t dead_timers = 0;
 static Timers::start_func_t arch_start_func;
 static Timers::stop_func_t  arch_stop_func;
 static std::vector<Timer>   timers;
@@ -73,14 +74,34 @@ void Timers::ready()
   }
 }
 
-static id_t create_timer(
-    duration_t when, duration_t period, const handler_t& handler)
+id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
 {
   id_t id;
   
   if (UNLIKELY(free_timers.empty())) {
-    id = timers.size();
     
+    if (LIKELY(dead_timers)) {
+      // look for dead timer
+      auto it = scheduled.begin();
+      while (it != scheduled.end()) {
+        // take over this timer, if dead
+        id_t id = it->second;
+        
+        if (timers[id].deferred_destruct) {
+          dead_timers--;
+          // remove from schedule
+          scheduled.erase(it);
+          // reset timer
+          timers[id].reset();
+          // reuse timer
+          new (&timers[id]) Timer(period, handler);
+          sched_timer(when, id);
+          return id;
+        }
+        ++it;
+      }
+    }
+    id = timers.size();
     // occupy new slot
     timers.emplace_back(period, handler);
   }
@@ -97,21 +118,16 @@ static id_t create_timer(
   sched_timer(when, id);
   return id;
 }
-id_t Timers::oneshot(duration_t when, const handler_t& handler)
-{
-  return create_timer(when, milliseconds(0), handler);
-}
-id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
-{
-  return create_timer(when, period, handler);
-}
 
 void Timers::stop(id_t id)
 {
-  // mark as dead already
-  timers[id].deferred_destruct = true;
-  // free resources immediately
-  timers[id].callback.reset();
+  if (LIKELY(timers[id].deferred_destruct == false)) {
+    // mark as dead already
+    timers[id].deferred_destruct = true;
+    // free resources immediately
+    timers[id].callback.reset();
+    dead_timers++;
+  }
 }
 
 size_t Timers::active()
@@ -133,7 +149,7 @@ void Timers::timers_handler()
   // assume the hardware timer called this function
   is_running = false;
   
-  while (!scheduled.empty())
+  while (LIKELY(!scheduled.empty()))
   {
     auto it = scheduled.begin();
     auto when = it->first;
@@ -141,6 +157,7 @@ void Timers::timers_handler()
     
     // remove dead timers
     if (timers[id].deferred_destruct) {
+      dead_timers--;
       // remove from schedule
       scheduled.erase(it);
       // delete timer
@@ -166,6 +183,7 @@ void Timers::timers_handler()
         if (timer.deferred_destruct || timer.is_oneshot())
         {
           timer.reset();
+          if (timer.deferred_destruct) dead_timers--;
           free_timers.push_back(id);
         }
         else if (timer.is_oneshot() == false)
@@ -211,9 +229,17 @@ static void sched_timer(duration_t when, id_t id)
       Timers::timers_handler();
 }
 
-int _get_timer_stats()
+int _get_timers_stats()
 {
   int x = timer_stats;
   timer_stats = 0;
   return x;
+}
+size_t _get_timers_ubound()
+{
+  return timers.size();
+}
+size_t _get_timers_dead()
+{
+  return dead_timers;
 }

@@ -124,14 +124,11 @@ bool TCP::port_in_use(const port_t port) const {
 }
 
 
-uint16_t TCP::checksum(tcp::Packet_ptr packet) {
-  // TCP header
-  Header* tcp_hdr = &(packet->tcp_header());
-  // Pseudo header
+uint16_t TCP::checksum(tcp::Packet_ptr packet)
+{
+  short tcp_length = packet->tcp_length();
+
   Pseudo_header pseudo_hdr;
-
-  int tcp_length = packet->tcp_length();
-
   pseudo_hdr.saddr.whole = packet->src().whole;
   pseudo_hdr.daddr.whole = packet->dst().whole;
   pseudo_hdr.zero = 0;
@@ -149,31 +146,19 @@ uint16_t TCP::checksum(tcp::Packet_ptr packet) {
   for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
     sum.whole += *it;
 
-  // Compute sum sum the actual header and data
+  // Compute sum of header and data
+  Header* tcp_hdr = &packet->tcp_header();
   for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
     sum.whole+= *it;
 
   // The odd-numbered case
-  if (tcp_length & 1) {
-    debug("<TCP::checksum> ODD number of bytes. 0-pading \n");
-    union {
-      uint16_t whole;
-      uint8_t part[2];
-    } last_chunk;
-    last_chunk.part[0] = ((uint8_t*)tcp_hdr)[tcp_length - 1];
-    last_chunk.part[1] = 0;
-    sum.whole += last_chunk.whole;
-  }
+  bool odd = (tcp_length & 1);
+  sum.whole += (odd) ? ((uint8_t*)tcp_hdr)[tcp_length - 1] << 16 : 0;
 
-  debug2("<TCP::checksum: sum: 0x%x, half+half: 0x%x, TCP checksum: 0x%x, TCP checksum big-endian: 0x%x \n",
-         sum.whole, sum.part[0] + sum.part[1], (uint16_t)~((uint16_t)(sum.part[0] + sum.part[1])), htons((uint16_t)~((uint16_t)(sum.part[0] + sum.part[1]))));
+  sum.whole = (uint32_t)sum.part[0] + sum.part[1];
+  sum.part[0] += sum.part[1];
 
-  Sum final_sum { (uint32_t)sum.part[0] + (uint32_t)sum.part[1] };
-
-  if (final_sum.part[1])
-    final_sum.part[0] += final_sum.part[1];
-
-  return ~final_sum.whole;
+  return ~sum.whole;
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
@@ -182,8 +167,8 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
-  // Do checksum
-  if(checksum(packet)) {
+  // Validate checksum
+  if (UNLIKELY(checksum(packet) != 0)) {
     debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
     drop(packet);
     return;
@@ -195,17 +180,17 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   auto conn_it = connections_.find(tuple);
 
   // Connection found
-  if(conn_it != connections_.end()) {
+  if (conn_it != connections_.end()) {
     debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
     conn_it->second->segment_arrived(packet);
     return;
   }
 
-  // No open connection found
+  // No open connection found, find listener on port
   Listeners::iterator listener_it = listeners_.find(packet->dst_port());
   debug("<TCP::bottom> No connection found - looking for listener..\n");
   // Listener found => Create listening Connection
-  if(listener_it != listeners_.end()) {
+  if (LIKELY(listener_it != listeners_.end())) {
     auto& listener = listener_it->second;
     debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(packet);

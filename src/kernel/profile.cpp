@@ -137,47 +137,41 @@ void print_heap_info()
   extern uintptr_t heap_end;
   intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
-  printf("[!] Heap information:\n");
-  printf("[!] begin  %#x  size %#x (%u Kb)\n", heap_begin, heap_size, heap_size / 1024);
-  printf("[!] end    %#x  diff %#x (%d Kb)\n", heap_end,   last, last / 1024);
+  printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
+  printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
   last = (int32_t) heap_size;
 }
 
-void StackSampler::print()
+int StackSampler::samples_total()
 {
-  // store discard value and enable discarding
-  bool smask = get().discard;
-  get().discard = true;
-  
+  return get().total;
+}
+
+std::vector<Sample> StackSampler::results(int N)
+{
   using sample_pair = std::pair<uintptr_t, func_sample>;
+  std::vector<sample_pair> vec(get().dict.begin(), get().dict.end());
   
   // sort by count
-  std::vector<sample_pair> vec(get().dict.begin(), get().dict.end());
   std::sort(vec.begin(), vec.end(), 
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
     return sample1.second > sample2.second;
   });
   
-  size_t results = 12;
-  results = (results > get().dict.size()) ? get().dict.size() : results;
+  std::vector<Sample> res;
   
-  printf("*** Listing %d results (%u samples) ***\n", results, get().total);
+  N = (N > (int)vec.size()) ? vec.size() : N;
+  if (N <= 0) return res;
+  
   for (auto& sa : vec)
   {
     // resolve the addr
     auto func = Elf::resolve_symbol(sa.first);
+    res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     
-    float f =  (float) sa.second / get().total * 100;
-    // print some shits
-    printf("%5.2f%%  %*u: %s\n",
-        f, 8, sa.second, func.name.c_str());
-    
-    if (results-- == 0) break;
+    if (--N == 0) break;
   }
-  printf("*** ---------------------- ***\n");
-  
-  // restore
-  get().discard = smask;
+  return res;
 }
 
 void StackSampler::set_mask(bool mask)
@@ -201,7 +195,7 @@ void __validate_backtrace(char const* where, size_t id)
   if (func.name != "__validate_backtrace")
       __panic_failure(where, id);
   
-  func = Elf::resolve_symbol((void*) &StackSampler::print);
-  if (func.name != "StackSampler::print()")
+  func = Elf::resolve_symbol((void*) &StackSampler::set_mask);
+  if (func.name != "StackSampler::set_mask(bool)")
       __panic_failure(where, id);
 }
