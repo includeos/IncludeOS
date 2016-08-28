@@ -36,16 +36,15 @@ void ssampler_print(int N)
   auto samp = StackSampler::results(N);
   int total = StackSampler::samples_total();
   
-  printf("*** Listing %d (N=%d) results (%u samples) ***\n", 
-         samp.size(), N, StackSampler::samples_total());
+  printf("Stack sampling - %d results (%u samples)\n", 
+         samp.size(), total);
   for (auto& sa : samp)
   {
     // percentage of total samples
     float perc = sa.samp / (float)total * 100.0f;
     printf("%5.2f%%  %*u: %s\n",
-        perc, 8, sa.samp, sa.name.c_str());
+           perc, 8, sa.samp, sa.name.c_str());
   }
-  printf("*** ---------------------- ***\n");
 }
 
 #include "ircd.hpp"
@@ -72,18 +71,26 @@ void print_stats(uint32_t)
   for (int C : M) cps += C;
   cps /= M.size();
   
-  printf("[%s] Conns/sec %f  Heap %.1f kb  ",  
+  printf("[%s] Conns/sec %f  Heap %.1f kb\n",  
       now().c_str(), cps, OS::heap_usage() / 1024.f);
+  // timers per second
   extern int _get_timers_stats();
   printf("T/s: %.2f  ", _get_timers_stats() / (float)PERIOD_SECS);
+  // timer stats
   extern size_t _get_timers_ubound();
   extern size_t _get_timers_dead();
-  printf("Tims: %u  Dead: %u\n", _get_timers_ubound(), _get_timers_dead());
-  
-  printf("Clis: %u  Club: %u\n", ircd->clis(), ircd->club());
-  
+  printf("Tims: %u  Dead: %u  ", _get_timers_ubound(), _get_timers_dead());
+  // client and channel stats
+  printf("Conns: %u  Clis: %u  Club: %u  Chans: %u\n", 
+         ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS), 
+         ircd->club(), ircd->get_counter(STAT_CHANNELS));
+  printf("*** ---------------------- ***\n");
+  // stack sampler results
   ssampler_print(12);
-  //print_heap_info();
+  printf("*** ---------------------- ***\n");
+  // heap statistics
+  print_heap_info();
+  printf("*** ---------------------- ***\n");
   
   StackSampler::set_mask(false);
 }
