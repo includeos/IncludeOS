@@ -24,7 +24,6 @@
 #include <vector>
 
 struct Sample {
-  float       prc;  // percentage of total
   unsigned    samp; // samples
   void*       addr; // function address
   std::string name; // function name

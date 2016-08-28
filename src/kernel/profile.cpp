@@ -168,9 +168,7 @@ std::vector<Sample> StackSampler::results(int N)
   {
     // resolve the addr
     auto func = Elf::resolve_symbol(sa.first);
-    float f =  (float) sa.second / get().total;
-    
-    res.push_back(Sample {f, sa.second, (void*) func.addr, func.name});
+    res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     
     if (N-- == 0) break;
   }
