@@ -3,6 +3,11 @@
 #include "tokens.hpp"
 #include "modes.hpp"
 
+inline void Client::need_parms(const std::string& cmd)
+{
+  send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
+}
+
 void Client::handle_new(
     const std::string&,
     const std::vector<std::string>& msg)
@@ -21,9 +26,7 @@ void Client::handle_new(
       //this->passw = msg[1];
     }
     else
-    {
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-    }
+      need_parms(cmd);
   }
   else if (cmd == TK_NICK)
   {
@@ -35,9 +38,7 @@ void Client::handle_new(
       }
     }
     else
-    {
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-    }
+      need_parms(cmd);
   }
   else if (cmd == TK_USER)
   {
@@ -47,9 +48,7 @@ void Client::handle_new(
       welcome(4);
     }
     else
-    {
-      send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
-    }
+      need_parms(cmd);
   }
   else
   {
@@ -62,9 +61,9 @@ void Client::auth_notice()
   send("NOTICE AUTH :*** Processing your connection");
   send("NOTICE AUTH :*** Looking up your hostname...");
   //hostname_lookup()
+  this->host_ = conn->remote().address().str();
   send("NOTICE AUTH :*** Checking Ident");
   //ident_check()
-  this->host_ = conn->remote().address().str();
 }
 void Client::welcome(uint8_t newreg)
 {

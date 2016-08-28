@@ -133,6 +133,7 @@ IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
 IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
 {
   auto ch = new_channel();
+  hash_channel(name, ch);
   get_channel(ch).reset(name);
   inc_counter(STAT_CHANNELS);
   return ch;

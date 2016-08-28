@@ -34,14 +34,16 @@ std::string now()
 void ssampler_print(int N)
 {
   auto samp = StackSampler::results(N);
+  int total = StackSampler::samples_total();
   
   printf("*** Listing %d (N=%d) results (%u samples) ***\n", 
          samp.size(), N, StackSampler::samples_total());
   for (auto& sa : samp)
   {
-    // print some shits
+    // percentage of total samples
+    float perc = sa.samp / (float)total * 100.0f;
     printf("%5.2f%%  %*u: %s\n",
-        sa.prc * 100, 8, sa.samp, sa.name.c_str());
+        perc, 8, sa.samp, sa.name.c_str());
   }
   printf("*** ---------------------- ***\n");
 }

@@ -69,8 +69,6 @@ bool Channel::join(Client& client, const std::string& key)
   }
   /// JOINED ///
   bool new_channel = clients_.empty();
-  // register new channels on server (for hash map)
-  if (new_channel) server.hash_channel(name(), get_id());
   // add user to channel
   if (!add(cid)) {
     // already in channel
@@ -100,7 +98,7 @@ bool Channel::join(Client& client, const std::string& key)
   return true;
 }
 
-bool Channel::part(Client& client, const std::string& msg)
+bool Channel::part(Client& client, const std::string& reason)
 {
   auto cid = client.get_id();
   index_t found = find(cid);
@@ -112,7 +110,7 @@ bool Channel::part(Client& client, const std::string& msg)
   // broadcast that client left the channel
   char buff[128];
   int len = snprintf(buff, sizeof(buff), 
-            ":%s PART %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), msg.c_str());
+            ":%s PART %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), reason.c_str());
   bcast(buff, len);
   // remove client from channels lists
   chanops.erase(cid);

@@ -40,6 +40,7 @@ class Bot:
   def __init__(self):
       # Create a TCP/IP socket
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
       self.name = botname()
 
   def send(self, data):
@@ -72,16 +73,11 @@ class Bot:
       finally:
           return
 
-@async
-def botsequence():
-  bot = Bot()
-  try:
-      bot.begin()
-  finally:
-      ''
 
 if __name__ == '__main__':
-    async.pool = Pool(processes=10)
-    while True:
-      for i in range(10):
-          botsequence();
+  while True:
+      bot = Bot()
+      try:
+          bot.begin()
+      finally:
+          ''
