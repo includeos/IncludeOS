@@ -137,9 +137,8 @@ void print_heap_info()
   extern uintptr_t heap_end;
   intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
-  printf("[!] Heap information:\n");
-  printf("[!] begin  %#x  size %#x (%u Kb)\n", heap_begin, heap_size, heap_size / 1024);
-  printf("[!] end    %#x  diff %#x (%d Kb)\n", heap_end,   last, last / 1024);
+  printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
+  printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
   last = (int32_t) heap_size;
 }
 
@@ -170,7 +169,7 @@ std::vector<Sample> StackSampler::results(int N)
     auto func = Elf::resolve_symbol(sa.first);
     res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     
-    if (N-- == 0) break;
+    if (--N == 0) break;
   }
   return res;
 }
