@@ -24,7 +24,7 @@
 #include <profile>
 
 #include <fs/disk.hpp>
-#include <hw/cmos.hpp>
+#include <rtc>
 #include <routes>
 
 using namespace std;
@@ -44,7 +44,7 @@ std::unique_ptr<server::Server> server_;
 fs::Disk_ptr disk;
 
 Statistics stats;
-cmos::Time STARTED_AT;
+RTC::timestamp_t STARTED_AT;
 
 #include <time.h>
 
@@ -310,7 +310,7 @@ void Service::start(const std::string&) {
       // set routes and start listening
       server_->set_routes(routes).listen(80);
 
-      STARTED_AT = cmos::now();
+      STARTED_AT = RTC::now();
 
       /*
       // add a middleware as lambda
@@ -343,11 +343,7 @@ void Service::start(const std::string&) {
           currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
-      StackSampler::begin();
-      Timers::periodic(1min, 1min, [](auto){
-        StackSampler::print();
-      });
-
+      //StackSampler::begin();
 
       auto& tcp = stack.tcp();
       tcp.bind(8080).on_connect(

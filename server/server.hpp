@@ -20,6 +20,7 @@
 
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
+#include <rtc>
 
 #include "middleware.hpp"
 #include "request.hpp"
@@ -128,6 +129,8 @@ private:
   MiddlewareStack middleware_;
   std::vector<Middleware_ptr> mw_storage_;
 
+  const RTC::timestamp_t IDLE_TIMEOUT = 5*60;
+
   //-----------------------------------
   // Deleted move and copy operations
   //-----------------------------------
@@ -150,6 +153,8 @@ private:
   void process_route(Request_ptr, Response_ptr);
 
   Next create_next(std::shared_ptr<MiddlewareStack::iterator>, Request_ptr, Response_ptr);
+
+  void timeout_clients(uint32_t);
 
 }; //< class Server
 
