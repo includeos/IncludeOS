@@ -33,6 +33,7 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
   conn_->on_error(OnError::from<Connection, &Connection::on_error>(this));
   //conn_->on_rtx_timeout([](auto, auto) { printf("<TCP> RtxTimeout\n"); });
   on_connection_();
+  idle_since_ = RTC::now();
 }
 
 void Connection::on_data(buffer_t buf, size_t n) {
@@ -46,6 +47,7 @@ void Connection::on_data(buffer_t buf, size_t n) {
   if(!request_) {
     try {
       request_ = std::make_shared<Request>(buf, n);
+      update_idle();
       // return early to read payload
       if((request_->method() == http::POST or request_->method() == http::PUT)
         and !request_->is_complete())
@@ -59,12 +61,13 @@ void Connection::on_data(buffer_t buf, size_t n) {
       printf("<%s> Error - %s\n",
         to_string().c_str(), e.what());
       // close tcp connection
-      conn_->close();
+      close_tcp();
       return;
     }
   }
   // else we assume it's payload
   else {
+    update_idle();
     request_->add_body(request_->get_body() + std::string((const char*)buf.get(), n));
     // if we haven't received all data promised
     printf("<%s> Received payload - Expected: %u - Recv: %u\n",
@@ -90,13 +93,13 @@ void Connection::on_data(buffer_t buf, size_t n) {
 }
 
 void Connection::on_disconnect(Connection_ptr, Disconnect reason) {
+  update_idle();
   (void)reason;
   #ifdef VERBOSE_WEBSERVER
   printf("<%s> Disconnect: %s\n",
     to_string().c_str(), reason.to_string().c_str());
   #endif
-  if(!conn_->is_closing())
-    conn_->close();
+  close_tcp();
 }
 
 void Connection::on_error(TCPException err) {
@@ -113,6 +116,10 @@ void Connection::close() {
   request_ = nullptr;
   response_ = nullptr;
   server_.close(idx_);
+}
+
+void Connection::timeout() {
+  conn_->is_closing() ? conn_->abort() : conn_->close();
 }
 
 Connection::~Connection() {
