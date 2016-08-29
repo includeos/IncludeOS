@@ -40,6 +40,7 @@
 #include <hw/nic.hpp>
 #include <delegate>
 #include <deque>
+#include <statman>
 
 /** Virtio Net Features. From Virtio Std. 5.1.3 */
 
@@ -158,6 +159,10 @@ public:
   }__attribute__((packed));
 
 private:
+
+  /** Stats */
+  uint64_t& packets_rx_;
+  uint64_t& packets_tx_;
 
   /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
