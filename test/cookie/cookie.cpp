@@ -247,6 +247,11 @@ const lest::test test_cookie_creation[] =
           EXPECT(c.is_http_only());
         }
       }
+
+      WHEN("Setting cookie attribute Max-Age to invalid value")
+      {
+        EXPECT_THROWS(c.set_max_age(-1));
+      }
     }
 
     GIVEN("A Cookie object containing name, value and two valid options")
@@ -341,6 +346,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", "-1"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", "ab"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", ";12"}}) );
+    EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", "9999999999"}}) );
   },
 
   // Option: Domain (string)
