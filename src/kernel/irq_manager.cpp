@@ -22,6 +22,7 @@
 #include <kernel/elf.hpp>
 #include <hw/apic.hpp>
 #include <cassert>
+#include <statman>
 
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
@@ -82,7 +83,7 @@ void IRQ_manager::bsp_init()
   for (size_t i = 0; i < 32; i++) {
     create_gate(&idt[i],exception_handler,default_sel,default_attr);
   }
-  
+
   // Set all interrupt-gates >= 32 to unused do-nothing handler
   for (size_t i = 32; i < INTR_LINES; i++) {
     create_gate(&idt[i],unused_interrupt_handler,default_sel,default_attr);
@@ -153,12 +154,16 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
     printf("IRQ out of bounds %u (max: %u)\n", irq, IRQ_LINES);
     panic("Vector number too high in subscribe()\n");
   }
-  
+
   // cheap way of changing from unused handler to event loop irq marker
   set_irq_handler(irq, modern_interrupt_handler);
 
   // Mark IRQ as subscribed to
   irq_subs.set(irq);
+
+  // Stats
+  Stat& subscribed = Statman::get().create(Stat::UINT64, "irq" + std::to_string(irq));
+  counters[irq] = &subscribed.get_uint64();
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
@@ -173,16 +178,18 @@ void IRQ_manager::notify()
   {
     // Get the IRQ's that are both pending and subscribed to
     irq_todo.set_from_and(irq_subs, irq_pend);
-    
+
     int intr = irq_todo.first_set();
     if (intr == -1) break;
-    
+
     do {
       // reset pending before running handler
       irq_pend.atomic_reset(intr);
       // sub and call handler
       irq_delegates_[intr]();
-      
+
+      (*counters[intr])++;
+
       irq_todo.reset(intr);
       intr = irq_todo.first_set();
     }
