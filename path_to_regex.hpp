@@ -47,12 +47,13 @@ struct Token {
 
 class PathToRegex {
 private:
+  //----------------------------------------
+  // Internal class type aliases
   using Keys    = std::vector<Token>;
   using Tokens  = std::vector<Token>;
   using Options = std::map<std::string, bool>;
-
+  //----------------------------------------
 public:
-
   /**
    *  Creates a path-regex from string input (path)
    *  Updates keys-vector (empty input parameter)
@@ -107,9 +108,8 @@ public:
 
 private:
 	static const std::regex PATH_REGEXP;
+}; //< class PathToRegex
 
-};  // < class PathToRegex
+}; //< namespace route
 
-};	// < namespace route
-
-#endif	// < PATH_TO_REGEX_HPP
+#endif //< PATH_TO_REGEX_HPP
