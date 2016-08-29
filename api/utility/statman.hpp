@@ -67,11 +67,11 @@ public:
 
   std::string name() const { return name_; }
 
-  float* get_float();
+  float& get_float();
 
-  uint32_t* get_uint32();
+  uint32_t& get_uint32();
 
-  uint64_t* get_uint64();
+  uint64_t& get_uint64();
 
 private:
   stat_type type_;
