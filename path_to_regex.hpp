@@ -20,10 +20,10 @@
 #ifndef PATH_TO_REGEX_HPP
 #define PATH_TO_REGEX_HPP
 
+#include <map>
 #include <regex>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace route {
 
