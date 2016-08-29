@@ -46,6 +46,10 @@ struct Token {
 }; //< struct Token
 
 class PathToRegex {
+private:
+  using Keys    = std::vector<Token>;
+  using Tokens  = std::vector<Token>;
+  using Options = std::map<std::string, bool>;
 
 public:
 
@@ -67,8 +71,7 @@ public:
    *      sensitive = false
    *      end = true
    */
-	static std::regex path_to_regex(const std::string& path, std::vector<Token>& keys,
-		const std::map<std::string, bool>& options = std::map<std::string, bool>());
+	static std::regex path_to_regex(const std::string& path, Keys& keys, const Options& options = Options{});
 
   /**
    *  Creates a path-regex from string input (path)
@@ -82,27 +85,25 @@ public:
    *      sensitive = false
    *      end = true
    */
-  static std::regex path_to_regex(const std::string& path,
-    const std::map<std::string, bool>& options = std::map<std::string, bool>());
+  static std::regex path_to_regex(const std::string& path, const Options& options = Options{});
 
   /**
    *  Creates vector of tokens based on the given string (this vector of tokens can be sent as
    *  input to tokens_to_regex-method and includes tokens that are strings, not only tokens
    *  that are parameters in str)
    */
-  static std::vector<Token> parse(const std::string& str);
+  static Tokens parse(const std::string& str);
 
   /**
    *  Creates a regex based on the tokens and options (optional) given
    */
-  static std::regex tokens_to_regex(const std::vector<Token>& tokens,
-    const std::map<std::string, bool>& options = std::map<std::string, bool>());
+  static std::regex tokens_to_regex(const Tokens& tokens, const Options& options = Options{});
 
   /**
    *  Goes through the tokens-vector and push all tokens that are not string-tokens
    *  onto keys-vector
    */
-  static void tokens_to_keys(const std::vector<Token>& tokens, std::vector<Token>& keys);
+  static void tokens_to_keys(const Tokens& tokens, Keys& keys);
 
 private:
 	static const std::regex PATH_REGEXP;
