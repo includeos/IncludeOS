@@ -103,6 +103,7 @@ public:
   }
 
   using Size_type = ptrdiff_t;
+  using Span_iterator = gsl::span<Stat>::iterator;
 
   Statman(uintptr_t start, Size_type num_bytes);
 
@@ -115,6 +116,8 @@ public:
   Statman& operator=(const Statman& other) = delete;
 
   Statman& operator=(Statman&& other) = delete;
+
+  Stat& operator[](int i) { return stats_[i]; }
 
   /**
    * Returns the number of elements the span stats_ can contain
@@ -150,7 +153,7 @@ public:
    * Returns an iterator to the last used (or filled in) element
    * in the span stats_
    */
-  auto last_used() const;
+  Span_iterator last_used();
 
   auto begin() { return stats_.begin(); }
 
