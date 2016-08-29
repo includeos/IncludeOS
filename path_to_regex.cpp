@@ -24,14 +24,14 @@ namespace route {
 const std::regex PathToRegex::PATH_REGEXP =
   std::regex{"((\\\\.)|(([\\/.])?(?:(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?|(\\*))))"};
 
-std::regex PathToRegex::path_to_regex(const std::string& path, std::vector<Token>& keys, const std::map<std::string, bool>& options) {
-  std::vector<Token> all_tokens = parse(path);
+std::regex PathToRegex::path_to_regex(const std::string& path, Keys& keys, const Options& options) {
+  Tokens all_tokens = parse(path);
   tokens_to_keys(all_tokens, keys); // fill keys with relevant tokens
   return tokens_to_regex(all_tokens, options);
 }
 
-std::regex PathToRegex::path_to_regex(const std::string& path, const std::map<std::string, bool>& options) {
-  std::vector<Token> all_tokens = parse(path);
+std::regex PathToRegex::path_to_regex(const std::string& path,  const Options& options) {
+  Tokens all_tokens = parse(path);
   return tokens_to_regex(all_tokens, options);
 }
 
@@ -40,7 +40,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
   if (str.empty())
     return {};
 
-  std::vector<Token> tokens;
+  Tokens tokens;
   int key = 0;
   int index = 0;
   std::string path = "";
@@ -123,7 +123,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
 }
 
 // Creates a regex based on the given tokens and options (optional)
-std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const std::map<std::string, bool>& options) {
+std::regex PathToRegex::tokens_to_regex(const Tokens& tokens, const Options& options) {
   if (tokens.empty())
     return std::regex{""};
 
@@ -204,7 +204,7 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   return std::regex{"^" + route, std::regex_constants::ECMAScript | std::regex_constants::icase};
 }
 
-void PathToRegex::tokens_to_keys(const std::vector<Token>& tokens, std::vector<Token>& keys) {
+void PathToRegex::tokens_to_keys(const Tokens& tokens, Keys& keys) {
   for (size_t i = 0; i < tokens.size(); i++) {
     Token t = tokens[i];
 
