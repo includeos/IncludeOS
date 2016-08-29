@@ -117,6 +117,10 @@ public:
   /** Currently used dynamic memory, in bytes */
   static uintptr_t heap_usage();
 
+  static uintptr_t heap_max() {
+    return heap_max_;
+  };
+
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
@@ -145,10 +149,10 @@ private:
 
   static hw::Serial& com1;
 
-  static uint32_t low_memory_size;
-  static uint32_t high_memory_size;
-  static uint32_t max_heap_size;
-  static const uint32_t elf_binary_size;
+  static uintptr_t low_memory_size_;
+  static uintptr_t high_memory_size_;
+  static uintptr_t heap_max_;
+  static const uintptr_t elf_binary_size_;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;

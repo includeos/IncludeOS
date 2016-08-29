@@ -45,10 +45,10 @@ extern uintptr_t _MAX_MEM_MIB_;
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
-uint32_t OS::low_memory_size {0};
-uint32_t OS::high_memory_size {0};
-uint32_t OS::max_heap_size {PAGE_SIZE * 1000};
-const uint32_t OS::elf_binary_size {(uint32_t)&_ELF_END_ - (uint32_t)&_ELF_START_};
+uintptr_t OS::low_memory_size_ {0};
+uintptr_t OS::high_memory_size_ {0};
+uintptr_t OS::heap_max_ {0x400000};
+const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
@@ -80,15 +80,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
     // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
     auto mem = cmos::meminfo();
-    low_memory_size = mem.base.total * 1024;
+    low_memory_size_ = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);
-    high_memory_size = mem.extended.total * 1024;
+    high_memory_size_ = mem.extended.total * 1024;
 
     // Use memsize provided by Make / linker unless CMOS knows this is wrong
-    decltype(high_memory_size) hardcoded_mem = reinterpret_cast<size_t>(&_MAX_MEM_MIB_) << 20;
+    decltype(high_memory_size_) hardcoded_mem = reinterpret_cast<size_t>(&_MAX_MEM_MIB_ - 0x100000) << 20;
     if (mem.extended.total == 0xffff or hardcoded_mem < mem.extended.total) {
-      high_memory_size = hardcoded_mem;
-      INFO2("* High memory (from linker): %i Kib", high_memory_size / 1024);
+      high_memory_size_ = hardcoded_mem;
+      INFO2("* High memory (from linker): %i Kib", high_memory_size_ / 1024);
     } else {
       INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
     }
@@ -120,15 +120,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
 
   // Give the rest of physical memory to heap
-  uintptr_t heap_max = ((0x100000 + high_memory_size)  & 0xffff0000) - 1;
-  memmap.assign_range({heap_begin, heap_max,
-        "Heap", "Dynamic memory" });
+  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
+  memmap.assign_range({heap_begin, heap_max_,
+        "Heap", "Dynamic memory", heap_usage });
 
   // Create ranges for the remaining address space
   // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t unavail_start = 0x100000 + high_memory_size;
+  uintptr_t unavail_start = 0x100000 + high_memory_size_;
   size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
 
@@ -290,8 +290,8 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
   uint32_t mem_high_end = mem_high_start + (bootinfo->mem_upper * 1024) - 1;
   uint32_t mem_high_kb = bootinfo->mem_upper;
 
-  OS::low_memory_size = mem_low_kb * 1024;
-  OS::high_memory_size = mem_high_kb * 1024;
+  OS::low_memory_size_ = mem_low_kb * 1024;
+  OS::high_memory_size_ = mem_high_kb * 1024;
 
   INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
   INFO2("\t 0x%08x - 0x%08x (%i Kib)",

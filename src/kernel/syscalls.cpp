@@ -117,6 +117,10 @@ int write(int file, const void* ptr, size_t len) {
 }
 
 void* sbrk(ptrdiff_t incr) {
+  if (UNLIKELY(heap_end + incr > OS::heap_max())) {
+    errno = ENOMEM;
+    return (void*)-1;
+  }
   auto prev_heap_end = heap_end;
   heap_end += incr;
   return (void*) prev_heap_end;
@@ -176,7 +180,7 @@ void panic(const char* why) {
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
-    printf("\n\t**** CONTEXT: ****\n %*s\n\n", 
+    printf("\n\t**** CONTEXT: ****\n %*s\n\n",
         len, get_crash_context_buffer());
   }
   // heap and backtrace info
