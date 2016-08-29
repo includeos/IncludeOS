@@ -28,29 +28,22 @@
 namespace route {
 
 struct Token {
-	std::string name;	// can be a string or an int (index)
-	std::string prefix;
-	std::string delimiter;
-	std::string pattern;
-  bool        optional;
-  bool        repeat;
-  bool        partial;
-  bool        asterisk;
-	bool        is_string;	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
+	std::string name      {};	// can be a string or an int (index)
+	std::string prefix    {};
+	std::string delimiter {};
+	std::string pattern   {};
+  bool        optional  {false};
+  bool        repeat    {false};
+  bool        partial   {false};
+  bool        asterisk  {false};
+	bool        is_string {false};	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
 	               	// So if this is true, we can ignore all attributes except name
 
   void set_string_token(const std::string& name_) {
     name = name_;
-    prefix = "";
-    delimiter = "";
-    optional = false;
-    repeat = false;
-    partial = false;
-    asterisk = false;
-    pattern = "";
     is_string = true;
   }
-};	// < struct Token
+}; //< struct Token
 
 class PathToRegex {
 
