@@ -134,12 +134,16 @@ Cookie::Cookie(const std::string& name, const std::string& value, const std::vec
     if(caseInsCompare(nm, C_EXPIRES)) {
       set_expires(val);
     } else if(caseInsCompare(nm, C_MAX_AGE)) {
-      int age = std::stoi(val); // Can throw exception (invalid_argument or out_of_range)
+      try {
+        int age = std::stoi(val);
 
-      if(age < 0)
-        throw CookieException{"Invalid max-age attribute (" + val + ") of cookie! Negative number of seconds not allowed."};
+        if(age < 0)
+          throw CookieException{"Invalid max-age attribute (" + val + ") of cookie! Negative number of seconds not allowed."};
 
-      set_max_age(age);
+        set_max_age(age);
+      } catch(std::exception& e){
+        throw CookieException{"Invalid max-age attribute (" + val + ") of cookie! Invalid integer value."};
+      }
     } else if(caseInsCompare(nm, C_DOMAIN)) {
       set_domain(val);
     } else if(caseInsCompare(nm, C_PATH)) {
@@ -169,7 +173,7 @@ void Cookie::set_expires(const std::string& expires) {
   expires_ = expires;
 }
 
-void Cookie::set_max_age(int max_age) noexcept {
+void Cookie::set_max_age(int max_age) {
   // expires_.clear();  // Note: Not every browser supports the Max-Age
                         // attribute, but if it does, the Expires attribute is ignored.
                         // Internet Explorer does not support the Max-Age attribute.
