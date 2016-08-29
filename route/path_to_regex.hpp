@@ -31,12 +31,12 @@ struct Token {
 	std::string name;	// can be a string or an int (index)
 	std::string prefix;
 	std::string delimiter;
-	bool optional;
-	bool repeat;
-	bool partial;
-	bool asterisk;
 	std::string pattern;
-	bool is_string;	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
+  bool        optional;
+  bool        repeat;
+  bool        partial;
+  bool        asterisk;
+	bool        is_string;	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
 	               	// So if this is true, we can ignore all attributes except name
 
   void set_string_token(const std::string& name_) {
