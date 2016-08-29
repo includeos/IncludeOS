@@ -22,10 +22,10 @@
 #include <regex>
 #include <stdexcept>
 
-#include "request.hpp"
-#include "response.hpp"
-#include "../route/path_to_regex.hpp"  // TODO: Not relative path?
-#include "params.hpp"
+#include <request.hpp>
+#include <response.hpp>
+#include <route/path_to_regex.hpp>
+#include <params.hpp>
 
 namespace server {
 

@@ -25,6 +25,7 @@
 
 #include <fs/disk.hpp>
 #include <hw/cmos.hpp>
+#include <routes>
 
 using namespace std;
 using namespace acorn;
@@ -276,6 +277,9 @@ void Service::start(const std::string&) {
              .serialize(writer);
         res->send_json(sb.GetString());
       });
+
+
+      routes.on_get("/dashboard/memmap", Memmap_route::on_get);
 
       routes.on_get(".*", [](auto, auto res){
         printf("[@GET:*] Fallback route - try to serve index.html\n");

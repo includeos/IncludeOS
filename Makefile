@@ -23,7 +23,7 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat

@@ -1,0 +1,4 @@
+#ifndef ROUTES_ROUTES
+#define ROUTES_ROUTES
+#include "memmap_route.hpp"
+#endif
