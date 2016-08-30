@@ -145,7 +145,7 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
 
   std::string route = "";
   Token lastToken = tokens[tokens.size() - 1];
-  std::regex re{"(\\/$)"};
+  std::regex re{"(.*\\/$)"};
   bool endsWithSlash = lastToken.is_string and std::regex_match(lastToken.name, re);
   // endsWithSlash if the last char in lastToken's name is a slash
 
