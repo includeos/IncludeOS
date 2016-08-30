@@ -37,7 +37,8 @@ namespace fs {
     image_start_ { &_DISK_START_ },
     image_end_   { &_DISK_END_ },
     
-    stat_read( Statman::get().create(Stat::UINT64, blkname() + ".reads") )
+    stat_read( Statman::get().create(
+               Stat::UINT64, blkname() + ".reads").get_uint64() )
   {
     
     

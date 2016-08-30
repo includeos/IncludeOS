@@ -40,12 +40,12 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   {
     auto& reqs = Statman::get().create(
       Stat::UINT32, blkname() + ".requests");
-    this->requests = reqs.get_uint32();
+    this->requests = &reqs.get_uint32();
     *this->requests = 0;
 
     auto& err = Statman::get().create(
       Stat::UINT32, blkname() + ".errors");
-    this->errors = err.get_uint32();
+    this->errors = &err.get_uint32();
     *this->errors = 0;
   }
   
