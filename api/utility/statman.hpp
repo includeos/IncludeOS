@@ -51,14 +51,6 @@ public:
 
   ~Stat() = default;
 
-  Stat(const Stat& other) = delete;
-
-  Stat(const Stat&& other) = delete;
-
-  Stat& operator=(const Stat& other) = default;
-
-  Stat& operator=(Stat&& other) = default;
-
   void operator++();
 
   stat_type type() const { return type_; }
@@ -83,6 +75,14 @@ private:
   };
   char name_[48];
 
+  Stat(const Stat& other) = delete;
+
+  Stat(const Stat&& other) = delete;
+
+  Stat& operator=(const Stat& other) = delete;
+
+  Stat& operator=(Stat&& other) = delete;
+
 };  // < class Stat
 
 class Statman {
@@ -103,18 +103,13 @@ public:
   }
 
   using Size_type = ptrdiff_t;
+  using Span_iterator = gsl::span<Stat>::iterator;
 
   Statman(uintptr_t start, Size_type num_bytes);
 
   ~Statman() = default;
 
-  Statman(const Statman& other) = delete;
-
-  Statman(const Statman&& other) = delete;
-
-  Statman& operator=(const Statman& other) = delete;
-
-  Statman& operator=(Statman&& other) = delete;
+  Stat& operator[](int i) { return stats_[i]; }
 
   /**
    * Returns the number of elements the span stats_ can contain
@@ -150,7 +145,7 @@ public:
    * Returns an iterator to the last used (or filled in) element
    * in the span stats_
    */
-  auto last_used() const;
+  Span_iterator last_used();
 
   auto begin() { return stats_.begin(); }
 
@@ -166,6 +161,14 @@ private:
   Span stats_;
   int next_available_ = 0;
   Size_type num_bytes_;
+
+  Statman(const Statman& other) = delete;
+
+  Statman(const Statman&& other) = delete;
+
+  Statman& operator=(const Statman& other) = delete;
+
+  Statman& operator=(Statman&& other) = delete;
 
 };  // < class Statman
 

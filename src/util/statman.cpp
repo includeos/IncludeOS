@@ -75,10 +75,10 @@ Statman::Statman(uintptr_t start, Size_type num_bytes)
   stats_ = Span(reinterpret_cast<Stat*>(start), num_stats_in_span);
 }
 
-auto Statman::last_used() const {
+Statman::Span_iterator Statman::last_used() {
   int i = 0;
 
-  for(auto it = stats_.begin(); it != stats_.end(); ++it) {
+  for(auto it = stats_.begin(); it not_eq stats_.end(); ++it) {
     if(i == next_available_)
       return it;
     i++;
@@ -93,6 +93,5 @@ Stat& Statman::create(const Stat::stat_type type, const std::string& name) {
   if(idx >= stats_.size())
     throw Stats_out_of_memory();
 
-  stats_[next_available_++] = Stat{type, idx, name};
-  return stats_[idx];
+  return (*new (&stats_[next_available_++]) Stat{type, idx, name});
 }

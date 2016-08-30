@@ -112,7 +112,7 @@ public:
 
   // start accepting interrupts
   static void enable_interrupts();
-  
+
   /**
    * Get the IRQ manager for a specific CPU core
    */
@@ -123,10 +123,13 @@ public:
 
   uint8_t get_next_msix_irq();
   void register_irq(uint8_t vector);
-  
+
 private:
+
+
   IDTDescr     idt[INTR_LINES];
   irq_delegate irq_delegates_[IRQ_LINES];
+  uint64_t*    counters[IRQ_LINES];
 
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;

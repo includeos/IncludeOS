@@ -257,3 +257,32 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
     free(buffer);
   }
 }
+
+CASE("A Stat is accessible through index operator")
+{
+  GIVEN( "A fixed range of memory and its start position" )
+  {
+    void* buffer = malloc(NUM_BYTES_GIVEN);
+    uintptr_t start = (uintptr_t) buffer;
+
+    WHEN("Creating Statman")
+    {
+      Statman statman_{start, NUM_BYTES_GIVEN};
+
+      AND_WHEN( "Statman is filled with a Stat" )
+      {
+        Stat& stat = statman_.create(Stat::UINT32, "one.stat");
+
+        THEN("The created Stat can be accessed via the index operator")
+        {
+          Stat& s = statman_[0];
+
+          EXPECT(s.get_uint32() == stat.get_uint32());
+          EXPECT(s.name() == stat.name());
+        }
+      }
+    }
+
+    free(buffer);
+  }
+}
