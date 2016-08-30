@@ -37,6 +37,8 @@ namespace hw
     static const char* device_type()
     { return "Drive"; }
 
+    virtual std::string blkname() const = 0;
+
     /** Human-readable name of this disk controller  */
     virtual const char* name() const noexcept = 0;
 
@@ -60,8 +62,11 @@ namespace hw
     virtual buffer_t read_sync(block_t blk) = 0;
     virtual buffer_t read_sync(block_t blk, size_t count) = 0;
 
-    /** Default destructor */
     virtual ~Drive() noexcept = default;
+    
+  protected:
+    Drive();
+    int blkid;
   }; //< class Drive
 
 } //< namespace hw

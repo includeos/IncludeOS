@@ -20,6 +20,7 @@
 
 #include <common>
 #include <fs/memdisk.hpp>
+#include <statman>
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -32,9 +33,15 @@ extern "C" {
 namespace fs {
 
   MemDisk::MemDisk() noexcept
-  : image_start_ { &_DISK_START_ },
-    image_end_   { &_DISK_END_ }
-  {}
+  : Drive(),
+    image_start_ { &_DISK_START_ },
+    image_end_   { &_DISK_END_ },
+    
+    stat_read( Statman::get().create(Stat::UINT64, blkname() + ".reads") )
+  {
+    
+    
+  }
 
   MemDisk::buffer_t MemDisk::read_sync(block_t blk) {
     auto sector_loc = image_start_ + blk * block_size();

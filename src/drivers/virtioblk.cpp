@@ -31,11 +31,24 @@
 // a deleter that does nothing
 void null_deleter(uint8_t*) {};
 
+#include <statman>
+
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), req(queue_size(0), 0, iobase())
+  : Virtio(d), hw::Drive(), req(queue_size(0), 0, iobase())
 {
   INFO("VirtioBlk", "Driver initializing");
+  {
+    auto& reqs = Statman::get().create(
+      Stat::UINT32, blkname() + ".requests");
+    this->requests = reqs.get_uint32();
+    *this->requests = 0;
 
+    auto& err = Statman::get().create(
+      Stat::UINT32, blkname() + ".errors");
+    this->errors = err.get_uint32();
+    *this->errors = 0;
+  }
+  
   uint32_t needed_features =
     FEAT(VIRTIO_BLK_F_BLK_SIZE);
   negotiate_features(needed_features);
@@ -56,7 +69,6 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
         "SCSI is enabled :(");
   CHECK(features() & FEAT(VIRTIO_BLK_F_FLUSH),
         "Flush enabled");
-
 
   CHECK ((features() & needed_features) == needed_features,
          "Negotiated needed features");
@@ -82,8 +94,8 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   if (is_msix())
   {
     auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
-    auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_req_handler>(this));
-    // update BSP IDT
+    auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::service_RX>(this));
+    // update IRQ subscriptions
     IRQ_manager::cpu(0).subscribe(irq() + 0, req_del);
     IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
   }
@@ -102,10 +114,6 @@ void VirtioBlk::get_config()
   Virtio::get_config(&config, sizeof(virtio_blk_config_t));
 }
 
-void VirtioBlk::msix_req_handler()
-{
-  service_RX();
-}
 void VirtioBlk::msix_conf_handler()
 {
   debug("\t <VirtioBlk> Configuration change:\n");
@@ -209,6 +217,7 @@ void VirtioBlk::shipit(request_t* vbr) {
   std::array<Token, 3> tokens {{ token1, token2, token3 }};
   req.enqueue(tokens);
   inflight++;
+  (*this->requests)++;
 }
 
 void VirtioBlk::read (block_t blk, on_read_func func) {
@@ -255,6 +264,7 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
         }
       }
       else {
+        (*this->errors)++;
         // if the partial result failed, cancel all
         *results = 0;
         // callback with no data
