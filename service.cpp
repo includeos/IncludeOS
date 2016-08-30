@@ -233,8 +233,9 @@ void Service::start(const std::string&) {
         res->send_json(sb.GetString());
       });
 
-
       routes.on_get("/dashboard/memmap", Memmap_route::on_get);
+
+      routes.on_get("/dashboard/stats", Stats_route::on_get);
 
       routes.on_get(".*", [](auto, auto res){
         printf("[@GET:*] Fallback route - try to serve index.html\n");
