@@ -123,6 +123,7 @@ namespace net {
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
+    uint32_t& packets_dropped_;
 
     Inet<LinkLayer,IP4>& stack_;
 
