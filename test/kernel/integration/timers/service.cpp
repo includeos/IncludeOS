@@ -18,6 +18,7 @@
 #include <os>
 #include <stdio.h>
 #include <cassert>
+#include <hw/pit.hpp>
 
 using namespace std::chrono;
 

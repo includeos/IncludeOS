@@ -17,8 +17,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef KERNEL_TIMER_HPP
-#define KERNEL_TIMER_HPP
+#ifndef KERNEL_TIMERS_HPP
+#define KERNEL_TIMERS_HPP
 
 #include <cstdint>
 #include <chrono>

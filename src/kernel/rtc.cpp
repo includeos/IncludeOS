@@ -1,6 +1,6 @@
 #include <kernel/rtc.hpp>
 
-#include <timer>
+#include <kernel/timers.hpp>
 #include <hw/cpu.hpp>
 #include <hw/cmos.hpp>
 #include <hertz>

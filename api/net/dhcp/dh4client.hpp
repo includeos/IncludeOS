@@ -19,7 +19,7 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#include <timer>
+#include <timers>
 #include "../packet.hpp"
 
 namespace net
