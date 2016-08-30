@@ -51,14 +51,6 @@ public:
 
   ~Stat() = default;
 
-  Stat(const Stat& other) = delete;
-
-  Stat(const Stat&& other) = delete;
-
-  Stat& operator=(const Stat& other) = delete;
-
-  Stat& operator=(Stat&& other) = delete;
-
   void operator++();
 
   stat_type type() const { return type_; }
@@ -82,6 +74,14 @@ private:
     uint64_t ui64;
   };
   char name_[48];
+
+  Stat(const Stat& other) = delete;
+
+  Stat(const Stat&& other) = delete;
+
+  Stat& operator=(const Stat& other) = delete;
+
+  Stat& operator=(Stat&& other) = delete;
 
 };  // < class Stat
 
@@ -108,14 +108,6 @@ public:
   Statman(uintptr_t start, Size_type num_bytes);
 
   ~Statman() = default;
-
-  Statman(const Statman& other) = delete;
-
-  Statman(const Statman&& other) = delete;
-
-  Statman& operator=(const Statman& other) = delete;
-
-  Statman& operator=(Statman&& other) = delete;
 
   Stat& operator[](int i) { return stats_[i]; }
 
@@ -169,6 +161,14 @@ private:
   Span stats_;
   int next_available_ = 0;
   Size_type num_bytes_;
+
+  Statman(const Statman& other) = delete;
+
+  Statman(const Statman&& other) = delete;
+
+  Statman& operator=(const Statman& other) = delete;
+
+  Statman& operator=(Statman&& other) = delete;
 
 };  // < class Statman
 
