@@ -949,6 +949,10 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
   }
 }
 
+void Connection::drop(Packet_ptr packet, std::string) {
+  host_.drop(packet);
+}
+
 
 void Connection::default_on_connect(Connection_ptr) { }
 

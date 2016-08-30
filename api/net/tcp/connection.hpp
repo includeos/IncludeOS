@@ -708,8 +708,7 @@ private:
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(Packet_ptr packet, std::string reason)
-  { signal_packet_dropped(packet, reason); }
+  void drop(Packet_ptr packet, std::string reason);
 
   void drop(Packet_ptr packet)
   { drop(packet, "None given."); }
