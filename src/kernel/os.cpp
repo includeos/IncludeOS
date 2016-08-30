@@ -48,7 +48,7 @@ bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
-uintptr_t OS::heap_max_ {0x400000};
+uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 std::vector<OS::Custom_init_struct> OS::custom_init_;
