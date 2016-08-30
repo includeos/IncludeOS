@@ -60,18 +60,22 @@ namespace net
     // stuff
     addr_t local_addr() const
     {
-      return udp.local_ip();
+      return udp_.local_ip();
     }
     port_t local_port() const
     {
       return l_port;
     }
 
+    UDP& udp(){
+      return udp_;
+    }
+
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
 
-    UDP& udp;
+    UDP& udp_;
     port_t l_port;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
