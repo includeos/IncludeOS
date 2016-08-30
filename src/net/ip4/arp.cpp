@@ -24,6 +24,7 @@
 #include <net/inet4.hpp>
 #include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
+#include <statman>
 
 namespace net {
 
