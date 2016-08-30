@@ -20,13 +20,18 @@
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
+#include <statman>
 
 using namespace std;
 using namespace net;
 using namespace net::tcp;
 
-
 TCP::TCP(IPStack& inet) :
+  bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
+  bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
+  packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
+  packets_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_tx").get_uint64()},
+  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()},
   inet_(inet),
   listeners_(),
   connections_(),
@@ -162,6 +167,10 @@ uint16_t TCP::checksum(tcp::Packet_ptr packet)
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
+  // Stat increment bytes received and packets received
+  bytes_rx_ += packet_ptr->size();
+  packets_rx_++;
+
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = std::static_pointer_cast<net::tcp::Packet>(packet_ptr);
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
@@ -261,7 +270,6 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-
 Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local_port, remote },
@@ -283,6 +291,9 @@ void TCP::close_connection(tcp::Connection_ptr conn) {
 }
 
 void TCP::drop(tcp::Packet_ptr) {
+  // Stat increment packets dropped
+  packets_dropped_++;
+
   debug("<TCP::drop> Packet dropped\n");
   //debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
 }
@@ -292,5 +303,10 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   packet->set_checksum(TCP::checksum(packet));
   //if(packet->has_data())
   //  printf("<TCP::transmit> S: %u\n", packet->seq());
+
+  // Stat increment bytes transmitted and packets transmitted
+  bytes_tx_ += packet->size();
+  packets_tx_++;
+
   _network_layer_out(packet);
 }

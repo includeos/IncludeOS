@@ -145,6 +145,13 @@ namespace net {
 
   private:
 
+    /** Stats */
+    uint64_t& bytes_rx_;
+    uint64_t& bytes_tx_;
+    uint64_t& packets_rx_;
+    uint64_t& packets_tx_;
+    uint32_t& packets_dropped_;
+
     IPStack& inet_;
     using Listeners = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
     using Connections = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
