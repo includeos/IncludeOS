@@ -16,9 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ___API_DELEGATE___
-#define ___API_DELEGATE___
+#pragma once
+#ifndef API_DELEGATE_HEADER
+#define API_DELEGATE_HEADER
 
-#include "utility/delegate.hpp"
+#include "util/delegate.hpp"
 
-#endif //< ___API_DELEGATE___
+#endif //< API_DELEGATE_HEADER

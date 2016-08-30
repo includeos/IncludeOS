@@ -22,7 +22,7 @@
 #include <stdexcept>
 #include <vector>
 #include <net/inet_common.hpp>
-#include <utility/membitmap.hpp>
+#include <util/membitmap.hpp>
 
 namespace net{
 

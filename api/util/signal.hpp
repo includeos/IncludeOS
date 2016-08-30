@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTILITY_SIGNAL_HPP
-#define UTILITY_SIGNAL_HPP
+#ifndef UTIL_SIGNAL_HPP
+#define UTIL_SIGNAL_HPP
 
 #include <vector>
 #include <functional>

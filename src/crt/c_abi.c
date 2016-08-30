@@ -18,7 +18,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <utility/memstream.h>
+#include <util/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
 #include <string.h>

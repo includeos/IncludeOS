@@ -9,8 +9,8 @@
   ...It's just awesome how people make great stuff and just post it
 */
 
-#ifndef OSABI_DELEGATE_HPP
-#define OSABI_DELEGATE_HPP
+#ifndef UTIL_DELEGATE_HPP
+#define UTIL_DELEGATE_HPP
 
 #include <common>
 #include <new>

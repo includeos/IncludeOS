@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <utility/delegate.hpp>
+#include <util/delegate.hpp>
 
 const std::string f1(){ return "f1"; }
 const std::string f2(){ return "f2"; }

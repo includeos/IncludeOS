@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTILITY_MEMSTREAM_H
-#define UTILITY_MEMSTREAM_H
+#ifndef UTIL_MEMSTREAM_H
+#define UTIL_MEMSTREAM_H
 
 #include <sys/types.h>
 #include <stdint.h>

@@ -19,6 +19,6 @@
 #ifndef ___API_SIGNAL___
 #define ___API_SIGNAL___
 
-#include "utility/signal.hpp"
+#include "util/signal.hpp"
 
 #endif //< ___API_SIGNAL___

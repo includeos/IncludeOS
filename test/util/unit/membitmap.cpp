@@ -1,5 +1,5 @@
 #include <common.cxx>
-#include <utility/membitmap.hpp>
+#include <util/membitmap.hpp>
 
 CASE( "Empty chunk data means no set bits" )
 {
