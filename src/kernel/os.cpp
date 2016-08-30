@@ -31,6 +31,7 @@
 #include <kernel/pci_manager.hpp>
 #include <kernel/timer.hpp>
 #include <kernel/rtc.hpp>
+#include <vector>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -49,6 +50,8 @@ uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::heap_max_ {0x400000};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
+
+std::vector<OS::Custom_init_struct> OS::custom_init_;
 
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
@@ -212,6 +215,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Realtime/monotonic clock
   RTC::init();
 
+  // Trying custom initialization functions
+  MYINFO("Calling custom initialization functions");
+  for (auto init : custom_init_) {
+    INFO2("* Calling %s", init.name_);
+    try{
+      init.func_();
+    } catch(std::exception& e){
+      MYINFO("Exception thrown when calling custom init: %s", e.what());
+    } catch(...){
+      MYINFO("Unknown exception when calling custom initialization function");
+    }
+  }
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
@@ -219,6 +234,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   event_loop();
 }
+
+void OS::register_custom_init(Custom_init delg, const char* name){
+  MYINFO("Registering custom init function %s", name);
+  custom_init_.emplace_back(delg, name);
+}
+
 
 uintptr_t OS::heap_usage() {
   // measures heap usage only?
