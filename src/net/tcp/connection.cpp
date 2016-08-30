@@ -64,7 +64,6 @@ void Connection::setup_default_callbacks() {
   on_connect_           = ConnectCallback::from<Connection, &Connection::default_on_connect>(this);
   on_disconnect_        = DisconnectCallback::from<Connection, &Connection::default_on_disconnect>(this);
   on_error_             = ErrorCallback::from<Connection, &Connection::default_on_error>(this);
-  on_packet_received_   = PacketReceivedCallback::from<Connection, &Connection::default_on_packet_received>(this);
   on_packet_dropped_    = PacketDroppedCallback::from<Connection, &Connection::default_on_packet_dropped>(this);
   on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
   on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
@@ -338,14 +337,14 @@ string Connection::to_string() const {
 
 void Connection::segment_arrived(Packet_ptr incoming) {
 
-  signal_packet_received(incoming);
-
   if(incoming->has_tcp_options()) {
     try {
       parse_options(incoming);
     }
     catch(TCPBadOptionException err) {
       debug("<TCP::Connection::receive> %s \n", err.what());
+      drop(incoming, err.what());
+      return;
     }
   }
 
@@ -862,7 +861,6 @@ void Connection::clean_up() {
   on_connect_.reset();
   on_disconnect_.reset(),
   on_error_.reset();
-  on_packet_received_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
@@ -967,8 +965,6 @@ void Connection::default_on_error(TCPException error) {
   (void)error
   debug("<Connection::@Error> TCPException: %s \n", error.what());
 }
-
-void Connection::default_on_packet_received(Packet_ptr) { }
 
 void Connection::default_on_packet_dropped(Packet_ptr p , std::string reason) {
   (void)p, (void)reason;

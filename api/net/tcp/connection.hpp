@@ -86,15 +86,6 @@ public:
   using ErrorCallback           = delegate<void(TCPException)>;
   inline Connection&            on_error(ErrorCallback);
 
-
-  /*
-    When a packet is received - Everytime a connection receives an incoming packet.
-    Would probably be used for debugging.
-    (Currently not in use)
-  */
-  using PacketReceivedCallback  = delegate<void(Packet_ptr)>;
-  inline Connection&            on_packet_received(PacketReceivedCallback);
-
   /*
     When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
     Can be used for debugging.
@@ -482,7 +473,6 @@ private:
   ConnectCallback         on_connect_;
   DisconnectCallback      on_disconnect_;
   ErrorCallback           on_error_;
-  PacketReceivedCallback  on_packet_received_;
   PacketDroppedCallback   on_packet_dropped_;
   RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
@@ -695,9 +685,6 @@ private:
 
   void signal_error(TCPException error)
   { on_error_(std::forward<TCPException>(error)); }
-
-  void signal_packet_received(Packet_ptr packet)
-  { on_packet_received_(packet); }
 
   void signal_packet_dropped(Packet_ptr packet, std::string reason)
   { on_packet_dropped_(packet, reason); }
