@@ -131,10 +131,6 @@ void Service::start(const std::string&)
         printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
         conn->close();
     })
-    .on_packet_received(
-    [] (auto packet) {
-        printf("@Packet: %s\n", packet->to_string().c_str());
-    })
     .on_error(
     [] (auto err) {
       printf("<Service> @onError - %s\n", err.what());
