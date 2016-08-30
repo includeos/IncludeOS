@@ -39,6 +39,7 @@ namespace net {
     virtual typename IPV::addr ip_addr() = 0;
     virtual typename IPV::addr netmask() = 0;
     virtual typename IPV::addr router()  = 0;
+    virtual std::string ifname() const = 0;
     virtual typename LINKLAYER::addr link_addr() = 0;
 
     virtual LINKLAYER& link()   = 0;

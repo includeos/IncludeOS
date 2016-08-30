@@ -33,10 +33,14 @@ namespace net {
 
   // Initialize
   Arp::Arp(net::Inet<Ethernet,IP4>& inet) noexcept:
-  inet_          {inet},
-    mac_           (inet.link_addr()),
-    linklayer_out_ {ignore}
-{}
+  requests_rx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.requests_rx").get_uint32()},
+  requests_tx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.requests_tx").get_uint32()},
+  replies_rx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.replies_rx").get_uint32()},
+  replies_tx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.replies_tx").get_uint32()},
+  inet_           {inet},
+  mac_            (inet.link_addr()),
+  linklayer_out_  {ignore}
+  {}
 
   void Arp::bottom(Packet_ptr pckt) {
     debug2("<ARP handler> got %i bytes of data\n", pckt->size());
@@ -49,6 +53,9 @@ namespace net {
     switch(hdr->opcode) {
 
     case H_request: {
+      // Stat increment requests received
+      requests_rx_++;
+
       debug2("\t ARP REQUEST: ");
       debug2("%s is looking for %s\n",
              hdr->sipaddr.str().c_str(),
@@ -64,6 +71,9 @@ namespace net {
     }
 
     case H_reply: {
+      // Stat increment replies received
+      replies_rx_++;
+
       debug2("\t ARP REPLY: %s belongs to %s\n",
              hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
 
@@ -120,6 +130,9 @@ namespace net {
 
   void Arp::arp_respond(header* hdr_in) {
     debug2("\t IP Match. Constructing ARP Reply\n");
+
+    // Stat increment replies sent
+    replies_tx_++;
 
     // Populate ARP-header
     auto res = std::static_pointer_cast<PacketArp>(inet_.create_packet(sizeof(header)));
@@ -211,6 +224,9 @@ namespace net {
     req->set_dest_mac(Ethernet::addr::BROADCAST_FRAME);
     req->set_dest_ip(pckt->next_hop());
     req->set_opcode(H_request);
+
+    // Stat increment requests sent
+    requests_tx_++;
 
     linklayer_out_(req);
   }

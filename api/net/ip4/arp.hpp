@@ -112,6 +112,13 @@ namespace net {
     void transmit(Packet_ptr);
 
   private:
+
+    /** Stats */
+    uint32_t& requests_rx_;
+    uint32_t& requests_tx_;
+    uint32_t& replies_rx_;
+    uint32_t& replies_tx_;
+
     Inet<Ethernet, IP4>& inet_;
 
     /** Needs to know which mac address to put in header->swhaddr */
