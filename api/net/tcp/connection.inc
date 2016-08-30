@@ -23,11 +23,6 @@ inline Connection& Connection::on_error(ErrorCallback callback) {
   return *this;
 }
 
-inline Connection& Connection::on_packet_received(PacketReceivedCallback callback) {
-  on_packet_received_ = callback;
-  return *this;
-}
-
 inline Connection& Connection::on_packet_dropped(PacketDroppedCallback callback) {
   on_packet_dropped_ = callback;
   return *this;
