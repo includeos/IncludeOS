@@ -53,6 +53,9 @@
 #include "warn"
 #include "info"
 
+#define LIKELY(x)       __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+
 #include <gsl/gsl>
 
 /* Define our own termination policy for contract   */
@@ -64,40 +67,31 @@
 #include <iostream> // Needed for std::err
 #define OS_STRINGIFY(x) #x
 
-/* Function used to set termination behaviour */
-inline void expects_and_ensures_termination() { std::exit(EXIT_FAILURE); }
-
 #undef Expects
 #undef Ensures
 
 #define Expects(cond)                                       \
   do {                                                      \
-    if (not (cond)) {                                       \
+    if (UNLIKELY(not (cond))) {                             \
       std::cerr << "OS: Precondition (" OS_STRINGIFY(cond)  \
                 << ") failed...\n"  << "\t...in function: " \
                 << __func__ << " @" << __FILE__ << ":"      \
                 << __LINE__ << '\n';                        \
-      std::set_terminate(expects_and_ensures_termination);  \
       std::terminate();                                     \
     }                                                       \
   } while(0)
 
 #define Ensures(cond)                                       \
   do {                                                      \
-    if (not (cond)) {                                       \
+    if (UNLIKELY(not (cond))) {                             \
       std::cerr << "OS: Postcondition (" OS_STRINGIFY(cond) \
                 << ") failed...\n"  << "\t...in function: " \
                 << __func__ << " @" << __FILE__ << ":"      \
                 << __LINE__ << '\n';                        \
-      std::set_terminate(expects_and_ensures_termination);  \
       std::terminate();                                     \
     }                                                       \
   } while(0)
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
-
-#define LIKELY(x)       __builtin_expect(!!(x), 1)
-#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
-
 
 #endif //< INCLUDEOS_COMMON_HEADER
