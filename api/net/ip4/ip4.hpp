@@ -119,6 +119,11 @@ namespace net {
     }
 
   private:
+
+    /** Stats */
+    uint64_t& packets_rx_;
+    uint64_t& packets_tx_;
+
     Inet<LinkLayer,IP4>& stack_;
 
     /** Downstream: Linklayer output delegate */

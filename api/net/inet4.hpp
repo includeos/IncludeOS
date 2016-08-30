@@ -40,6 +40,9 @@ namespace net {
   public:
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
+    virtual std::string ifname() const override
+    { return nic_.ifname(); }
+
     Ethernet::addr link_addr() override
     { return eth_.mac(); }
 
