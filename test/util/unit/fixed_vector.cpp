@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <utility/fixedvec.hpp>
+#include <util/fixedvec.hpp>
 
 /// notes:
 /// given that fixed vector is a template class, even with templated size

@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility/memstream.h>
-
+#include <util/memstream.h>
 #include <x86intrin.h>
 
 void* aligned_alloc(size_t n, size_t ALIGNMENT)

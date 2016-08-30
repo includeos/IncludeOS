@@ -20,7 +20,7 @@
 #include <hw/pit.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
-#include <utility/fixedvec.hpp>
+#include <util/fixedvec.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>

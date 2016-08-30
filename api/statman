@@ -19,6 +19,6 @@
 #ifndef ___API_STATMAN___
 #define ___API_STATMAN___
 
-#include "utility/statman.hpp"
+#include "util/statman.hpp"
 
 #endif //< ___API_STATMAN___

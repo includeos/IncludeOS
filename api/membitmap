@@ -19,6 +19,6 @@
 #ifndef ___API_MEMBITMAP___
 #define ___API_MEMBITMAP___
 
-#include "utility/membitmap.hpp"
+#include "util/membitmap.hpp"
 
 #endif //< ___API_MEMBITMAP___
