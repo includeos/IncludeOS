@@ -23,7 +23,7 @@
 class Memmap_route {
 
 public:
-  static void on_get(server::Request_ptr req, server::Response_ptr res) {
+  static void on_get(server::Request_ptr, server::Response_ptr res) {
 
     INFO("Memmap_route","Getting memmap \n");
     rapidjson::StringBuffer sb;
