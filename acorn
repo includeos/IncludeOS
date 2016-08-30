@@ -20,7 +20,8 @@
 #define ACORN_WEB_APPLIANCE
 
 #include "app/user.hpp"
-#include "app/squirrel.hpp"
+#include "app/models/squirrel.hpp"
+#include <routes/squirrel_router.hpp>
 
 #include "bucket/bucket.hpp"
 
