@@ -41,25 +41,25 @@ void Stat::operator++() {
   }
 }
 
-float* Stat::get_float() {
+float& Stat::get_float() {
   if(type_ not_eq FLOAT)
     throw Stats_exception{"Get stat: stat_type is not a float"};
 
-  return &f;
+  return f;
 }
 
-uint32_t* Stat::get_uint32() {
+uint32_t& Stat::get_uint32() {
   if(type_ not_eq UINT32)
     throw Stats_exception{"Get stat: stat_type is not an uint32_t"};
 
-  return &ui32;
+  return ui32;
 }
 
-uint64_t* Stat::get_uint64() {
+uint64_t& Stat::get_uint64() {
   if(type_ not_eq UINT64)
     throw Stats_exception{"Get stat: stat_type is not an uint64_t"};
 
-  return &ui64;
+  return ui64;
 }
 
 // Statman
@@ -75,10 +75,10 @@ Statman::Statman(uintptr_t start, Size_type num_bytes)
   stats_ = Span(reinterpret_cast<Stat*>(start), num_stats_in_span);
 }
 
-auto Statman::last_used() const {
+Statman::Span_iterator Statman::last_used() {
   int i = 0;
 
-  for(auto it = stats_.begin(); it != stats_.end(); ++it) {
+  for(auto it = stats_.begin(); it not_eq stats_.end(); ++it) {
     if(i == next_available_)
       return it;
     i++;
@@ -93,6 +93,5 @@ Stat& Statman::create(const Stat::stat_type type, const std::string& name) {
   if(idx >= stats_.size())
     throw Stats_out_of_memory();
 
-  stats_[next_available_++] = Stat{type, idx, name};
-  return stats_[idx];
+  return (*new (&stats_[next_available_++]) Stat{type, idx, name});
 }

@@ -49,8 +49,10 @@ void VirtioNet::drop(Packet_ptr UNUSED(pckt)){
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d), Nic(2048, sizeof(net::Packet) + MTU() + eth_size()),
+    packets_rx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_rx").get_uint64()},
+    packets_tx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
-    rx_q(queue_size(0),0,iobase()),  tx_q(queue_size(1),1,iobase()),
+    rx_q(queue_size(0),0,iobase()), tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase())
 {
   _link_out = &VirtioNet::drop;
@@ -207,7 +209,7 @@ void VirtioNet::msix_recv_handler()
     dequeued_rx = true;
 
     // Stat increase packets received
-    packets_rx()++;
+    packets_rx_++;
   }
   rx_q.enable_interrupts();
   if (dequeued_rx)
@@ -421,7 +423,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt){
     tail = tail->detach_tail();
     transmitted++;
     // Stat increase packets transmitted
-    packets_tx()++;
+    packets_tx_++;
 
     if (!tail) break;
   }

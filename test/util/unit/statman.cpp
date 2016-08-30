@@ -101,25 +101,25 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
         EXPECT_NOT(statman_.empty());
         EXPECT(statman_.num_stats() == 1);
         EXPECT_NOT(statman_.full());
-        EXPECT(*stat.get_uint32() == 0);
-        EXPECT_THROWS(*stat.get_uint64());
-        EXPECT_THROWS(*stat.get_float());
+        EXPECT(stat.get_uint32() == 0);
+        EXPECT_THROWS(stat.get_uint64());
+        EXPECT_THROWS(stat.get_float());
 
         AND_THEN( "The Stat can be incremented in two ways" )
         {
           ++stat;
-          (*stat.get_uint32())++;
+          stat.get_uint32()++;
 
-          EXPECT(*stat.get_uint32() == 2);
-          EXPECT_THROWS(*stat.get_uint64());
-          EXPECT_THROWS(*stat.get_float());
+          EXPECT(stat.get_uint32() == 2);
+          EXPECT_THROWS(stat.get_uint64());
+          EXPECT_THROWS(stat.get_float());
 
           AND_THEN( "Another two Stats can be created" )
           {
             Stat& stat2 = statman_.create(Stat::UINT64, "net.tcp.bytes_transmitted");
             Stat& stat3 = statman_.create(Stat::FLOAT, "net.tcp.average");
             ++stat3;
-            (*stat3.get_float())++;
+            stat3.get_float()++;
 
             EXPECT_NOT(statman_.empty());
             EXPECT(statman_.num_stats() == 3);
@@ -136,24 +136,24 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
                 if (i == 0)
                 {
                   EXPECT(s.name() == "net.tcp.dropped");
-                  EXPECT(*s.get_uint32() == 2);
-                  EXPECT_THROWS(*s.get_uint64());
-                  EXPECT_THROWS(*s.get_float());
+                  EXPECT(s.get_uint32() == 2);
+                  EXPECT_THROWS(s.get_uint64());
+                  EXPECT_THROWS(s.get_float());
                   EXPECT(s.index() == 0);
                 }
                 else if (i == 1)
                 {
                   EXPECT(s.name() == "net.tcp.bytes_transmitted");
-                  EXPECT(*s.get_uint64() == 0);
+                  EXPECT(s.get_uint64() == 0);
                   EXPECT_THROWS(s.get_float());
                   EXPECT(s.index() == 1);
                 }
                 else
                 {
                   EXPECT(s.name() == "net.tcp.average");
-                  EXPECT(*s.get_float() == 2.0f);
-                  EXPECT_THROWS(*s.get_uint32());
-                  EXPECT_THROWS(*s.get_uint64());
+                  EXPECT(s.get_float() == 2.0f);
+                  EXPECT_THROWS(s.get_uint32());
+                  EXPECT_THROWS(s.get_uint64());
                 }
 
                 i++;
@@ -200,8 +200,8 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
           if(i % 2 == 0)
           {
             Stat& stat = statman_.create(Stat::UINT32, "net.tcp." + std::to_string(i));
-            (*stat.get_uint32())++;
-            (*stat.get_uint32())++;
+            (stat.get_uint32())++;
+            (stat.get_uint32())++;
           }
           else
           {
@@ -231,16 +231,16 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
             if(j % 2 == 0)
             {
               EXPECT(stat.type() == Stat::UINT32);
-              EXPECT(*stat.get_uint32() == 2);
-              EXPECT_THROWS(*stat.get_uint64());
-              EXPECT_THROWS(*stat.get_float());
+              EXPECT(stat.get_uint32() == 2);
+              EXPECT_THROWS(stat.get_uint64());
+              EXPECT_THROWS(stat.get_float());
             }
             else
             {
               EXPECT(stat.type() == Stat::FLOAT);
-              EXPECT(*stat.get_float() == 1.0f);
-              EXPECT_THROWS(*stat.get_uint32());
-              EXPECT_THROWS(*stat.get_uint64());
+              EXPECT(stat.get_float() == 1.0f);
+              EXPECT_THROWS(stat.get_uint32());
+              EXPECT_THROWS(stat.get_uint64());
             }
 
             j++;
@@ -250,6 +250,35 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
           {
             EXPECT_THROWS_AS(statman_.create(Stat::UINT64, "not.room"), Stats_out_of_memory);
           }
+        }
+      }
+    }
+
+    free(buffer);
+  }
+}
+
+CASE("A Stat is accessible through index operator")
+{
+  GIVEN( "A fixed range of memory and its start position" )
+  {
+    void* buffer = malloc(NUM_BYTES_GIVEN);
+    uintptr_t start = (uintptr_t) buffer;
+
+    WHEN("Creating Statman")
+    {
+      Statman statman_{start, NUM_BYTES_GIVEN};
+
+      AND_WHEN( "Statman is filled with a Stat" )
+      {
+        Stat& stat = statman_.create(Stat::UINT32, "one.stat");
+
+        THEN("The created Stat can be accessed via the index operator")
+        {
+          Stat& s = statman_[0];
+
+          EXPECT(s.get_uint32() == stat.get_uint32());
+          EXPECT(s.name() == stat.name());
         }
       }
     }
