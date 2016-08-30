@@ -21,6 +21,7 @@
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
+#include <statman>
 
 namespace net {
 
@@ -28,7 +29,9 @@ namespace net {
   const IP4::addr IP4::INADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
-  stack_{inet}
+  packets_rx_ {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
+  packets_tx_ {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
+  stack_      {inet}
 {
   // Default gateway is addr 1 in the subnet.
   // const uint32_t DEFAULT_GATEWAY = htonl(1);
@@ -37,6 +40,11 @@ namespace net {
 
   void IP4::bottom(Packet_ptr pckt) {
     debug2("<IP4 handler> got the data.\n");
+
+    // Stat increment packets received
+    packets_rx_++;
+
+    printf("Packets received: %llu\n", packets_rx_);
 
     auto data = pckt->buffer();
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
@@ -94,6 +102,9 @@ namespace net {
           pckt->size(),
           ip4_pckt->ip_segment_size()
           );
+
+    // Stat increment packets transmitted
+    packets_tx_++;
 
     linklayer_out_(pckt);
   }
