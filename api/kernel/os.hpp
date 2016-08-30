@@ -40,6 +40,7 @@ namespace hw{ class Serial; }
 class OS {
 public:
   using rsprint_func = delegate<void(const char*, size_t)>;
+  using Custom_init = delegate<void()>;
 
   /* Get the version of the os */
   static std::string version()
@@ -117,6 +118,11 @@ public:
   /** Currently used dynamic memory, in bytes */
   static uintptr_t heap_usage();
 
+  /** The maximum last address of the dynamic memory area (heap) */
+  static uintptr_t heap_max() {
+    return heap_max_;
+  };
+
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
@@ -125,6 +131,16 @@ public:
     static  Memory_map memmap_ {};
     return memmap_;
   };
+
+  /**
+   * Register a custom initialization function. The provided delegate is
+   * guaranteed to be called after global constructors and device initialization
+   * and before Service::start, provided that this funciton was called by a
+   * global constructor.
+   * @param delg : A delegate to be called
+   * @param name : A human readable identifier
+   **/
+  static void register_custom_init(Custom_init delg, const char* name);
 
 private:
 
@@ -145,15 +161,29 @@ private:
 
   static hw::Serial& com1;
 
-  static uint32_t low_memory_size;
-  static uint32_t high_memory_size;
-  static uint32_t max_heap_size;
-  static const uint32_t elf_binary_size;
+
+  struct Custom_init_struct {
+    Custom_init_struct(Custom_init f, const char* n)
+      : func_{f}, name_{n}
+    {}
+
+    Custom_init func_;
+    const char* name_;
+  };
+
+  static std::vector<Custom_init_struct> custom_init_;
+
+  static uintptr_t low_memory_size_;
+  static uintptr_t high_memory_size_;
+  static uintptr_t heap_max_;
+  static const uintptr_t elf_binary_size_;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;
   OS(OS&&) = delete;
-
+  OS& operator=(OS&)  = delete;
+  OS& operator=(OS&&)  = delete;
+  ~OS() = delete;
   // Prohibit construction
   OS() = delete;
   friend void begin_stack_sampling(uint16_t);

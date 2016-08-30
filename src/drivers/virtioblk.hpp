@@ -35,13 +35,17 @@ public:
 
   static constexpr size_t SECTOR_SIZE = 512;
 
+  std::string blkname() const override {
+    return "vblk" + std::to_string(blkid);
+  }
+
   /** Human readable name. */
-  virtual const char* name() const noexcept override {
+  const char* name() const noexcept override {
     return "VirtioBlk";
   }
 
   // returns the optimal block size for this device
-  virtual block_t block_size() const noexcept override {
+  block_t block_size() const noexcept override {
     return SECTOR_SIZE; // some multiple of sector size
   }
 
@@ -127,10 +131,10 @@ private:
   /** Handle device IRQ.
 
       Will look for config. changes and service RX/TX queues as necessary.*/
-  void msix_req_handler();
-  void msix_conf_handler();
   void irq_handler();
 
+  void msix_conf_handler();
+  
   // need at least 3 tokens free to ship a request
   inline bool free_space() const noexcept
   { return req.num_free() >= 3; }
@@ -151,7 +155,11 @@ private:
 
   // queue waiting for space in vring
   std::deque<request_t*> jobs;
-  size_t inflight;
+  size_t    inflight;
+  
+  // stat counters
+  uint32_t* errors;
+  uint32_t* requests;
 };
 
 #endif

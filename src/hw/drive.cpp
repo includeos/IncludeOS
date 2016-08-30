@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,25 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef KERNEL_RTC_HPP
-#define KERNEL_RTC_HPP
+#include <hw/drive.hpp>
 
-#include <cstdint>
-
-class RTC
+namespace hw
 {
-public:
-  using timestamp_t = int64_t;
-
-  /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t get();
-
-  static timestamp_t now()
-  { return get(); }
-
-  /// start an auto-calibration process
-  static void init();
-};
-
-#endif
+  Drive::Drive()
+  {
+    static int counter = 0;
+    blkid = counter++;
+  }
+}

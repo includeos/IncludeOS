@@ -739,7 +739,7 @@ void Connection::rtx_timeout(uint32_t) {
   // experimental
   if(rto_limit_reached()) {
     debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
-    close();
+    abort();
     return;
   }
 

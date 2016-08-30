@@ -20,7 +20,6 @@
 #define FS_MEMDISK_HPP
 
 #include <cstdint>
-
 #include <hw/drive.hpp>
 
 namespace fs {
@@ -29,7 +28,9 @@ namespace fs {
   public:
     static constexpr size_t SECTOR_SIZE = 512;
 
-    explicit MemDisk() noexcept;
+    std::string blkname() const override {
+      return "memdisk" + std::to_string(blkid);
+    }
 
     virtual const char* name() const noexcept override
     { return "MemDisk"; }
@@ -40,22 +41,24 @@ namespace fs {
     virtual block_t block_size() const noexcept override
     { return SECTOR_SIZE; }
 
-    virtual void
-    read(block_t blk, on_read_func reader) override {
+    void read(block_t blk, on_read_func reader) override {
       reader( read_sync(blk) );
     }
 
-    virtual void
-    read(block_t blk, size_t cnt, on_read_func reader) override {
+    void read(block_t blk, size_t cnt, on_read_func reader) override {
       reader( read_sync(blk, cnt) );
     }
 
     virtual buffer_t read_sync(block_t blk) override;
     virtual buffer_t read_sync(block_t blk, size_t cnt) override;
 
+    explicit MemDisk() noexcept;
+
   private:
     const char* const image_start_;
     const char* const image_end_;
+    
+    uint64_t& stat_read;
   }; //< class MemDisk
 
 } //< namespace fs

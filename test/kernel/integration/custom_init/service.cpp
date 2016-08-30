@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,25 +15,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef KERNEL_RTC_HPP
-#define KERNEL_RTC_HPP
+#include <os>
+#include <lest.hpp>
 
-#include <cstdint>
+extern int f1_data;
+extern int f2_data;
+extern int f3_data;
+extern int my_init_functions;
 
-class RTC
+const lest::test specification[] =
+  {
+    {
+      CASE( "Make sure the custom initialization functions were called" )
+      {
+        EXPECT(f1_data == 0xf1);
+        EXPECT(f2_data == 0xf2);
+        EXPECT(f3_data == 0xf417);
+        EXPECT(my_init_functions == 3);
+      }
+    }
+  };
+
+
+void Service::start(const std::string&)
 {
-public:
-  using timestamp_t = int64_t;
+  INFO("Custom init test", "Testing the custom initialization");
 
-  /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t get();
+  auto failed = lest::run(specification, {"-p"});
+  Expects(not failed);
 
-  static timestamp_t now()
-  { return get(); }
+  INFO("Custom init test", "SUCCESS");
 
-  /// start an auto-calibration process
-  static void init();
-};
-
-#endif
+}
