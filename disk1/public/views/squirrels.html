@@ -28,6 +28,7 @@
           <th>Name</th>
           <th>Age</th>
           <th>Occupation</th>
+          <th>Captured</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +37,7 @@
           <td>{{ squirrel.name }}</td>
           <td>{{ squirrel.age }}</td>
           <td>{{ squirrel.occupation }}</td>
+          <td>{{ squirrel.created_at | date: 'yyyy-MM-dd HH:mm' }}</td>
         </tr>
       </tbody>
     </table>
