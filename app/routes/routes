@@ -1,4 +1,5 @@
 #ifndef ROUTES_ROUTES
 #define ROUTES_ROUTES
 #include "memmap_route.hpp"
+#include "squirrel_router.hpp"
 #endif

@@ -21,6 +21,7 @@
 
 #include <locale>
 #include <algorithm>
+#include <rtc>
 
 #include "json.hpp"
 
@@ -35,7 +36,8 @@ struct Squirrel : json::Serializable {
   /**
    *
    */
-  Squirrel() : key(0) {}
+  Squirrel() : key(0), created_at_{RTC::now()}
+  {}
 
   /**
    *
@@ -45,6 +47,7 @@ struct Squirrel : json::Serializable {
     , name_       {name}
     , age_        {age}
     , occupation_ {occupation}
+    , created_at_ {RTC::now()}
   {}
 
   /**
@@ -80,8 +83,14 @@ struct Squirrel : json::Serializable {
   /**
    *
    */
-  void set_occupation(const std::string& occupation) 
+  void set_occupation(const std::string& occupation)
   { occupation_ = occupation; }
+
+  /**
+   *
+   */
+  RTC::timestamp_t get_created_at() const noexcept
+  { return created_at_; }
 
   /**
    *
@@ -109,9 +118,10 @@ struct Squirrel : json::Serializable {
   static bool is_equal(const Squirrel&, const Squirrel&) noexcept;
 
 private:
-  std::string name_;
-  size_t      age_;
-  std::string occupation_;
+  std::string      name_;
+  size_t           age_;
+  std::string      occupation_;
+  RTC::timestamp_t created_at_;
 }; //< struct Squirrel
 
 /**--v----------- Implementation Details -----------v--**/
@@ -130,6 +140,14 @@ inline void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writ
 
   writer.Key("occupation");
   writer.String(occupation_);
+
+  writer.Key("created_at");
+  long hest = created_at_;
+  struct tm* tt =
+    gmtime (&hest);
+  char datebuf[32];
+  strftime(datebuf, sizeof datebuf, "%FT%TZ", tt);
+  writer.String(datebuf);
 
   writer.EndObject();
 }

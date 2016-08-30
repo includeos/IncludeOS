@@ -142,6 +142,10 @@ void Service::start(const std::string&) {
 
       server::Router routes;
 
+      /** Set up Squirrel routes */
+      routes.use("/api/squirrels", Squirrel_router{squirrels});
+
+
       /*----------[START TEST OF] CookieJar and CookieParser----------*/
       auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
         if (req->has_attribute<CookieJar>()) {
@@ -181,55 +185,6 @@ void Service::start(const std::string&) {
         lang_api_handler(req, res, "nb-NO");
       });
       /*----------[END TEST OF] CookieJar and CookieParser----------*/
-
-      routes.on_get("/api/squirrels", [](auto, auto res) {
-        printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
-        using namespace rapidjson;
-        StringBuffer sb;
-        Writer<StringBuffer> writer(sb);
-        squirrels->serialize(writer);
-        res->send_json(sb.GetString());
-      });
-
-      routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
-        using namespace json;
-        auto json = req->get_attribute<Json_doc>();
-        if(!json) {
-          res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
-        }
-        else {
-          auto& doc = json->doc();
-          try {
-            // create an empty model
-            acorn::Squirrel s;
-            // deserialize it
-            s.deserialize(doc);
-            // add to bucket
-            auto id = squirrels->capture(s);
-            assert(id == s.key);
-            printf("[@POST:/api/squirrels] Squirrel captured: %s\n", s.json().c_str());
-            // setup the response
-            // location to the newly created resource
-            res->add_header(http::header_fields::Response::Location, "/api/squirrels/"s); // return back end loc i guess?
-            // status code 201 Created
-            res->set_status_code(http::Created);
-            // send the created entity as response
-            res->send_json(s.json());
-          }
-          catch(Assert_error e) {
-            printf("[@POST:/api/squirrels] Assert_error: %s\n", e.what());
-            res->error({"Parsing Error", "Could not parse data."});
-          }
-          catch(bucket::ConstraintException e) {
-            printf("[@POST:/api/squirrels] ConstraintException: %s\n", e.what());
-            res->error({"Constraint Exception", e.what()});
-          }
-          catch(bucket::BucketException e) {
-            printf("[@POST:/api/squirrels] BucketException: %s\n", e.what());
-            res->error({"Bucket Exception", e.what()});
-          }
-        }
-      });
 
     // TESTING PathToRegexp/route/router.hpp FROM HERE
 
