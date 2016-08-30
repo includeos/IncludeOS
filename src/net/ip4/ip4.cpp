@@ -29,9 +29,10 @@ namespace net {
   const IP4::addr IP4::INADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
-  packets_rx_ {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
-  packets_tx_ {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
-  stack_      {inet}
+  packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
+  packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
+  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
+  stack_            {inet}
 {
   // Default gateway is addr 1 in the subnet.
   // const uint32_t DEFAULT_GATEWAY = htonl(1);
@@ -48,6 +49,12 @@ namespace net {
 
     auto data = pckt->buffer();
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
+
+    // Drop if my ip address doesn't match destination ip address
+    if(UNLIKELY(local_ip() != hdr->daddr)) {
+      packets_dropped_++;
+      return;
+    }
 
     debug2("\t Source IP: %s Dest.IP: %s\n",
            hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
