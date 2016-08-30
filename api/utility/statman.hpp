@@ -55,9 +55,9 @@ public:
 
   Stat(const Stat&& other) = delete;
 
-  Stat& operator=(const Stat& other) = default;
+  Stat& operator=(const Stat& other) = delete;
 
-  Stat& operator=(Stat&& other) = default;
+  Stat& operator=(Stat&& other) = delete;
 
   void operator++();
 
