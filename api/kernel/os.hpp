@@ -27,8 +27,8 @@
 #include <common>
 #include <kernel/memmap.hpp>
 #include <hw/cpu.hpp>
-#include <hw/pit.hpp>
-#include <statman>
+#include <hertz>
+#include <vector>
 
 namespace hw{ class Serial; }
 

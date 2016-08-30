@@ -29,7 +29,7 @@
 #include <hw/serial.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
-#include <kernel/timer.hpp>
+#include <kernel/timers.hpp>
 #include <kernel/rtc.hpp>
 #include <vector>
 

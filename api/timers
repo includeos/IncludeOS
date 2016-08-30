@@ -17,9 +17,9 @@
 // limitations under the License.
 
 #pragma once
-#ifndef API_TIMER_HEADER
-#define API_TIMER_HEADER
+#ifndef API_TIMERS_HEADER
+#define API_TIMERS_HEADER
 
-#include "kernel/timer.hpp"
+#include "kernel/timers.hpp"
 
 #endif
