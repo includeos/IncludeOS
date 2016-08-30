@@ -167,14 +167,16 @@ uint16_t TCP::checksum(tcp::Packet_ptr packet)
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
-  // Stat increment bytes received and packets received
-  bytes_rx_ += packet_ptr->size();
+  // Stat increment packets received
   packets_rx_++;
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = std::static_pointer_cast<net::tcp::Packet>(packet_ptr);
   debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
+
+  // Stat increment bytes received
+  bytes_rx_ += packet->tcp_data_length();
 
   // Validate checksum
   if (UNLIKELY(checksum(packet) != 0)) {
@@ -305,7 +307,7 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   //  printf("<TCP::transmit> S: %u\n", packet->seq());
 
   // Stat increment bytes transmitted and packets transmitted
-  bytes_tx_ += packet->size();
+  bytes_tx_ += packet->tcp_data_length();
   packets_tx_++;
 
   _network_layer_out(packet);
