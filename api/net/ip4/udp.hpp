@@ -114,6 +114,11 @@ namespace net {
     //! returns a new UDP socket bound to a random port
     UDPSocket& bind();
 
+    bool is_bound(port_t port);
+
+    /** Close a port **/
+    void close(port_t port);
+
     //! construct this UDP module with @inet
     UDP(Stack& inet);
 
@@ -131,6 +136,22 @@ namespace net {
     inline constexpr uint16_t max_datagram_size() noexcept {
       return stack().ip_obj().MDDS() - sizeof(udp_header);
     }
+
+    class Port_in_use_exception : public std::exception {
+    public:
+      Port_in_use_exception(UDP::port_t p)
+        : port_(p) {}
+      virtual const char* what() const noexcept {
+        return "UDP port allready in use";
+      }
+
+      UDP::port_t port(){
+        return port_;
+      }
+
+    private:
+      UDP::port_t port_;
+    };
 
   private:
 
