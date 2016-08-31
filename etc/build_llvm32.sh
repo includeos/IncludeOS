@@ -20,7 +20,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
 IncludeOS_sys=$INCLUDEOS_SRC/api/sys
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
-LLVM_TAG=RELEASE_380
+LLVM_TAG=RELEASE_381/final
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
@@ -29,7 +29,7 @@ fi
 
 if [ ! -z $download_llvm ]; then
     # Clone LLVM
-    svn co http://llvm.org/svn/llvm-project/llvm/tags/$LLVM_TAG/final $llvm_src
+    svn co http://llvm.org/svn/llvm-project/llvm/tags/$LLVM_TAG $llvm_src
     # git clone http://llvm.org/git/llvm
 
     # Clone CLANG - not necessary to build only libc++ and libc++abi
@@ -41,19 +41,19 @@ if [ ! -z $download_llvm ]; then
     cd $llvm_src/projects
 
     # Compiler-rt
-    svn co http://llvm.org/svn/llvm-project/compiler-rt/tags/$LLVM_TAG/final compiler-rt
+    svn co http://llvm.org/svn/llvm-project/compiler-rt/tags/$LLVM_TAG compiler-rt
     # git clone http://llvm.org/git/llvm compiler-rt
 
     # libc++abi
-    svn co http://llvm.org/svn/llvm-project/libcxxabi/tags/$LLVM_TAG/final libcxxabi
+    svn co http://llvm.org/svn/llvm-project/libcxxabi/tags/$LLVM_TAG libcxxabi
     # git clone http://llvm.org/git/libcxxabi
 
     # libc++
-    svn co http://llvm.org/svn/llvm-project/libcxx/tags/$LLVM_TAG/final libcxx
+    svn co http://llvm.org/svn/llvm-project/libcxx/tags/$LLVM_TAG libcxx
     # git clone http://llvm.org/git/libcxx
 
     # libunwind
-    svn co http://llvm.org/svn/llvm-project/libunwind/tags/$LLVM_TAG/final libunwind
+    svn co http://llvm.org/svn/llvm-project/libunwind/tags/$LLVM_TAG libunwind
     #git clone http://llvm.org/git/libunwind
 
     # Back to start

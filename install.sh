@@ -41,8 +41,7 @@ fi
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
     echo ">>> Installing everything from source"
-    exit 1
-    . ./etc/install_all_source.sh
+    ./etc/install_all_source.sh
 elif [ "Darwin" = "$SYSTEM" ]; then
         # TODO: move build dependencies to the install build requirements step
         ./etc/install_osx.sh

@@ -17,8 +17,6 @@
 
 #include <os>
 #include <net/inet4>
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
 
 using namespace std::chrono;
 #include <kernel/elf.hpp>
@@ -28,7 +26,8 @@ extern void print_heap_info();
 extern void print_backtrace();
 
 void print_tcp_status() {
-  printf("<Service> TCP STATUS: %u\n", inet->tcp().active_connections());
+  auto& inet = net::Inet4::stack<0>();
+  printf("<Service> TCP STATUS: %u\n", inet.tcp().active_connections());
   print_heap_info();
   print_backtrace();
 }
@@ -92,9 +91,9 @@ extern "C" {
 }
 
 #include <hw/cpu.hpp>
-#include <timer>
+#include <timers>
 
-void Service::start()
+void Service::start(const std::string&)
 {
   //printf("static array @ %p size is %u\n", bullshit, sizeof(bullshit));
   //memset(bullshit, 0, sizeof(bullshit));
@@ -124,21 +123,16 @@ void Service::start()
   });
   
   // boilerplate
-  inet = net::new_ipv4_stack(
-    { 10,0,0,42 },      // IP
-    { 255,255,255,0 },  // Netmask
-    { 10,0,0,1 } );     // Gateway
-  //hw::PIT::instance().on_repeated_timeout(1500ms, print_tcp_status);
-  //hw::PIT::instance().on_timeout_ms(1ms, print_tcp_status);
+  auto& inet = net::Inet4::stack<0>();
 
   // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
+  auto& server = inet.tcp().bind(80);
   server.on_connect(
   [] (auto conn) {
     conn->close();
   });
   
-  auto& echo_server = inet->udp().bind(66);
+  auto& echo_server = inet.udp().bind(66);
   echo_server.on_read(
   [&echo_server] (auto addr, auto port,
                   const char* data, size_t len)
