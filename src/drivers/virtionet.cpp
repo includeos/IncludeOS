@@ -156,23 +156,23 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
     auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
     // update BSP IDT
-    IRQ_manager::cpu(0).subscribe(irq() + 0, recv_del);
-    IRQ_manager::cpu(0).subscribe(irq() + 1, xmit_del);
-    IRQ_manager::cpu(0).subscribe(irq() + 2, conf_del);
+    IRQ_manager::get().subscribe(irq() + 0, recv_del);
+    IRQ_manager::get().subscribe(irq() + 1, xmit_del);
+    IRQ_manager::get().subscribe(irq() + 2, conf_del);
   }
   else
   {
     // legacy PCI interrupt
     auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
-    IRQ_manager::cpu(0).subscribe(irq(),del);
+    IRQ_manager::get().subscribe(irq(),del);
   }
 
 #ifndef NO_DEFERRED_KICK
   static bool init_deferred = false;
   if (!init_deferred) {
     init_deferred = true;
-    deferred_intr = IRQ_manager::cpu(0).get_next_msix_irq();
-    IRQ_manager::cpu(0).subscribe(deferred_intr, handle_deferred_devices);
+    deferred_intr = IRQ_manager::get().get_next_msix_irq();
+    IRQ_manager::get().subscribe(deferred_intr, handle_deferred_devices);
   }
 #endif
 
@@ -468,7 +468,7 @@ void VirtioNet::begin_deferred_kick()
   if (!deferred_kick) {
     deferred_kick = true;
     deferred_devices.push_back(this);
-    IRQ_manager::cpu(0).register_irq(deferred_intr);
+    IRQ_manager::get().register_irq(deferred_intr);
   }
 #endif
 }

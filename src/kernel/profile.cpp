@@ -44,7 +44,7 @@ struct Sampler
   uint64_t asleep = 0;
   int  lockless;
   bool discard; // discard results as long as true
-  
+
   Sampler() {
     // make room for these only when requested
     #define blargh(T) std::remove_pointer<decltype(T)>::type;
@@ -55,12 +55,12 @@ struct Sampler
     lockless = 0;
     discard  = false;
   }
-  
+
   void begin() {
     // gather samples repeatedly over small periods
     using namespace std::chrono;
     static const milliseconds GATHER_PERIOD_MS = 150ms;
-    
+
     hw::PIT::instance().on_repeated_timeout(
         GATHER_PERIOD_MS, gather_stack_sampling);
   }
@@ -69,10 +69,10 @@ struct Sampler
     // need free space to take more samples
     if (samplerq->free_capacity())
         samplerq->add((uintptr_t) ra);
-    
+
     // return when its not our turn
     if (lockless) return;
-    
+
     // transfer all the built up samplings
     transferq->copy(samplerq->first(), samplerq->size());
     samplerq->clear();
@@ -88,7 +88,7 @@ Sampler& get() {
 void StackSampler::begin()
 {
   // install interrupt handler
-  IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
+  IRQ_manager::get().set_irq_handler(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }
@@ -161,24 +161,24 @@ std::vector<Sample> StackSampler::results(int N)
 {
   using sample_pair = std::pair<uintptr_t, func_sample>;
   std::vector<sample_pair> vec(get().dict.begin(), get().dict.end());
-  
+
   // sort by count
-  std::sort(vec.begin(), vec.end(), 
+  std::sort(vec.begin(), vec.end(),
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
     return sample1.second > sample2.second;
   });
-  
+
   std::vector<Sample> res;
-  
+
   N = (N > (int)vec.size()) ? vec.size() : N;
   if (N <= 0) return res;
-  
+
   for (auto& sa : vec)
   {
     // resolve the addr
     auto func = Elf::resolve_symbol(sa.first);
     res.push_back(Sample {sa.second, (void*) func.addr, func.name});
-    
+
     if (--N == 0) break;
   }
   return res;
@@ -200,11 +200,11 @@ void __panic_failure(char const* where, size_t id)
 void __validate_backtrace(char const* where, size_t id)
 {
   func_offset func;
-  
+
   func = Elf::resolve_symbol((void*) &__validate_backtrace);
   if (func.name != "__validate_backtrace")
       __panic_failure(where, id);
-  
+
   func = Elf::resolve_symbol((void*) &StackSampler::set_mask);
   if (func.name != "StackSampler::set_mask(bool)")
       __panic_failure(where, id);
