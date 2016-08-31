@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# OPTIONS:
+#
+# Location of the IncludeOS repo (assumes current folder if not defined), e.g.:
+# $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
+export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+
 SYSTEM=`uname -s`
 RELEASE=`lsb_release -is`
 
