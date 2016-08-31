@@ -20,8 +20,9 @@ export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
 export clang_version=3.8
+export libcpp_version=3.8.1
 
-export gcc_version=6.1.0
+export gcc_version=6.2.0
 export binutils_version=2.26
 
 # Options to skip steps
@@ -35,7 +36,7 @@ export binutils_version=2.26
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
+#. $INCLUDEOS_SRC/etc/prepare_ubuntu_deps.sh
 
 # BUILDING IncludeOS
 DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
