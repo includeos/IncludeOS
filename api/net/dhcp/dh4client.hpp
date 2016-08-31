@@ -42,10 +42,10 @@ namespace net
     // negotiate with local DHCP server
     void negotiate(uint32_t timeout_secs);
 
-    // handler for result of DHCP negotation
+    // Signal indicating the result of DHCP negotation
     // timeout is true if the negotiation timed out
     void on_config(config_func handler)
-    {  config_handler = handler;  }
+    {  config_handlers_.push_back(handler);  }
 
     // disable or enable console spam
     void set_silent(bool sil)
@@ -60,9 +60,10 @@ namespace net
     uint32_t     xid;
     IP4::addr    ipaddr, netmask, router, dns_server;
     uint32_t     lease_time;
-    config_func  config_handler = [](bool){};
+    std::vector<config_func> config_handlers_;
     Timers::id_t timeout;
     bool  console_spam;
+    bool in_progress = false;
   };
 }
 

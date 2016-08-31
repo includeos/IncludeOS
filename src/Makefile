@@ -93,6 +93,9 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 DRIVERS = drivers/virtioblk.o drivers/virtionet.o
 DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
+PLATFORMS = platforms/unik.o
+PLATFORMS_DEPS = $(PLATFORMS:.o=.d)
+
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
 
@@ -142,7 +145,7 @@ minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
 minimal: stripped
 
-includeos: bootloader multiboot libc++abi.a os.a drivers
+includeos: bootloader multiboot libc++abi.a os.a drivers platforms
 
 # Test service
 ###################################################
@@ -195,27 +198,37 @@ os.a: $(OS_OBJECTS) apic_boot.o
 	$(AR_INC) rcs $@ $(OS_OBJECTS) apic_boot.o
 
 drivers: $(DRIVERS)
-	mkdir -p $(INSTALL)/drivers
-	cp -r drivers/* $(INSTALL)/drivers
 
-install: drivers bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Installing..."
+platforms: $(PLATFORMS)
+
+install: drivers platforms bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
+	@echo "\n>> Installing IncludeOS"
+# API
+	cp -r ../api $(INSTALL)/
+# Drivers
+	mkdir -p $(INSTALL)/drivers
+	cp -r drivers/*.o $(INSTALL)/drivers
+# Platforms
+	mkdir -p $(INSTALL)/platforms
+	cp -r platforms/*.o $(INSTALL)/platforms
+# Boot related
 	cp bootloader $(INSTALL)
 	cp boot/multiboot.o $(INSTALL)
+# Core libraries
 	cp os.a $(INSTALL)
 	cp libc++abi.a $(INSTALL)/libcxx
 	cp crt/crti.o $(INSTALL)/crt
 	cp crt/crtn.o $(INSTALL)/crt
-	cp -r ../api $(INSTALL)/
+# Linker script
 	cp linker.ld $(INSTALL)/
-	# Memdisk related
+# Memdisk related
 	mkdir -p $(INSTALL)/memdisk
 	cp memdisk/* $(INSTALL)/memdisk/
-	# Seed related
+# Seed related
 	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
 	cp seed/Makelib $(INSTALL)/Makelib
-	# Eexternal dependencies related
+# External dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod
 	@echo "\nDone!"
@@ -267,7 +280,7 @@ clean_tests:
 	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6 debug/test_tcp
 
 clean: clean_tests
-	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS)
+	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS) $(PLATFORMS) $(PLATFORMS_DEPS)
 	$(RM) os.a libc++abi.a
 	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
 

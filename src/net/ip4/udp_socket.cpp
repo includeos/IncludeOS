@@ -23,8 +23,8 @@
 
 namespace net
 {
-  UDPSocket::UDPSocket(UDP& udp_, port_t port)
-    : udp(udp_), l_port(port)
+  UDPSocket::UDPSocket(UDP& udp_instance, port_t port)
+    : udp_(udp_instance), l_port(port)
   {}
 
   void UDPSocket::packet_init(
@@ -58,12 +58,12 @@ namespace net
      sendto_handler cb)
   {
     if (unlikely(len == 0)) return;
-    udp.sendq.emplace_back(
-       (const uint8_t*) buffer, len, cb, this->udp,
+    udp_.sendq.emplace_back(
+       (const uint8_t*) buffer, len, cb, this->udp_,
        local_addr(), this->l_port, destIP, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
-    udp.flush();
+    udp_.flush();
   }
   void UDPSocket::bcast(
       addr_t srcIP,
@@ -73,12 +73,12 @@ namespace net
       sendto_handler cb)
   {
     if (unlikely(len == 0)) return;
-    udp.sendq.emplace_back(
-         (const uint8_t*) buffer, len, cb, this->udp,
+    udp_.sendq.emplace_back(
+         (const uint8_t*) buffer, len, cb, this->udp_,
          srcIP, this->l_port, IP4::INADDR_BCAST, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
-    udp.flush();
+    udp_.flush();
   }
 
 }
