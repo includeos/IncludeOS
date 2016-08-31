@@ -19,6 +19,7 @@
 #define HW_CMOS_HPP
 
 #include <hw/ioport.hpp>
+#include <statman>
 
 /** Functions / classes for x86 CMOS / RTC interaction */
 namespace cmos {
@@ -79,7 +80,8 @@ namespace cmos {
   static reg_t r_memsize_lo = 0x30;
   static reg_t r_memsize_hi = 0x31;
 
-
+  /** Stat */
+  static uint32_t& now_called {Statman::get().create(Stat::UINT32, "cmos.now").get_uint32()};
 
   /** Get the contents of a CMOS register */
   inline uint8_t get(reg_t reg) {
@@ -131,7 +133,7 @@ namespace cmos {
     Expects (mem.extended.total == mem.actual_extended.total);
 
     return mem;
-}
+  }
 
 
 
@@ -220,6 +222,8 @@ namespace cmos {
    * several VM-exits.
    **/
   inline Time now() {
+    now_called++;
+
     return Time().hw_update();
   };
 
