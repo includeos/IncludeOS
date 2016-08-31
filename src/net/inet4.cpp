@@ -11,7 +11,7 @@ Inet4::Inet4(hw::Nic& nic)
     netmask_(IP4::INADDR_ANY),
     router_(IP4::INADDR_ANY),
     dns_server(IP4::INADDR_ANY),
-    nic_(nic), eth_(nic.mac()), arp_(*this), ip4_(*this),
+    nic_(nic), eth_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
     bufstore_(nic.bufstore()), MTU_(nic.MTU())
 {
