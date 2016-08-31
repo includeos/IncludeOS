@@ -34,6 +34,10 @@
 #define SECT_SIZE_ERR  666
 #define DISK_SIZE_ERR  999
 
+bool verb = false;
+#define INFO_(FROM, TEXT, ...) if (verb) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
+#define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
+
 using namespace std;
 
 // Location of special variables inside the bootloader
@@ -64,10 +68,10 @@ int main(int argc, char** argv) {
   if (auto env_install = getenv("INCLUDEOS_INSTALL"))
     includeos_install = env_install;
 
-  cout << ">>> IncludeOS install location: " << includeos_install << "\n";
+  INFO(">>> IncludeOS install location: %s", includeos_install.c_str());
 
   const string bootloader_path = includeos_install + "/bootloader";
-  cout << ">>> Using bootloader " << bootloader_path;
+  INFO(">>> Using bootloader %s" , bootloader_path.c_str());
 
   if (argc > 2)
     const string bootloader_path {argv[2]};
@@ -75,11 +79,15 @@ int main(int argc, char** argv) {
   const string elf_binary_path  {argv[1]};
   const string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, string::npos) + ".img"};
 
-  cout << "\nCreating VM disk image '" << img_name << "'\n";
+  INFO("\nCreating VM disk image '%s'" , img_name.c_str());
 
-  if ((argc > 3) and (string{argv[3]} == "-test")) {
-    test = true;
-    cout << "\n*** TEST MODE ***\n";
+  if (argc > 3) {
+    if (string{argv[3]} == "-test") {
+      test = true;
+      verb = true;
+    } else if (string{argv[3]} == "-v"){
+      verb = true;
+    }
   }
 
   struct stat stat_boot;
@@ -87,35 +95,34 @@ int main(int argc, char** argv) {
 
   // Validate boot loader
   if (stat(bootloader_path.c_str(), &stat_boot) == -1) {
-    cout << "Could not open " << bootloader_path << " - exiting\n";
+    INFO("Could not open %s, exiting\n" , bootloader_path.c_str());
     return errno;
   }
 
   if (stat_boot.st_size != SECT_SIZE) {
-    cout << "Boot sector not exactly one sector in size ("
-         << stat_boot.st_size << " bytes, expected: " << SECT_SIZE << ")\n";
+    INFO("Boot sector not exactly one sector in size (%ld bytes, expected %i)",
+         stat_boot.st_size, SECT_SIZE);
     return SECT_SIZE_ERR;
   }
-  cout << "Size of bootloader:\t" << stat_boot.st_size << '\n';
+  INFO("Size of bootloader: %ld\t" , stat_boot.st_size);
 
   // Validate service binary location
   if (stat(elf_binary_path.c_str(), &stat_binary) == -1) {
-    cout << "Could not open " << elf_binary_path << " - exiting.\n";
+    INFO("Could not open '%s' - exiting" , elf_binary_path.c_str());
     return errno;
   }
 
   intmax_t binary_sectors = stat_binary.st_size / SECT_SIZE;
   if (stat_binary.st_size & (SECT_SIZE-1)) binary_sectors += 1;
 
-  cout << "Size of service: \t" << stat_binary.st_size << " bytes\n";
+  INFO("Size of service: \t%ld bytes" , stat_binary.st_size);
 
   const decltype(binary_sectors) img_size_sect  {1 + binary_sectors+1};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
   Expects((img_size_bytes & (SECT_SIZE-1)) == 0);
 
-  cout << "Total disk size: \t"
-       << img_size_bytes << " bytes, => "
-       << img_size_sect  << " sectors.\n";
+  INFO("Total disk size: \t%ld bytes, => %ld sectors",
+       img_size_bytes, img_size_sect);
 
   // Bochs requires old-school disk specifications.
   // sectors = cyls * heads * spt (sectors per track)
@@ -131,8 +138,8 @@ int main(int argc, char** argv) {
 
   const auto disk_size = img_size_bytes;
 
-  cout << "Creating disk of size: " << (disk_size / SECT_SIZE) << " sectors / "
-       << disk_size << " bytes\n";
+  INFO("Creating disk of size %ld sectors / %ld bytes" ,
+       (disk_size / SECT_SIZE), disk_size);
 
   vector<char> disk (disk_size);
 
@@ -140,15 +147,15 @@ int main(int argc, char** argv) {
 
   ifstream file_boot {bootloader_path}; //< Load the boot loader into memory
 
-  cout << "Read " << file_boot.read(disk_head, stat_boot.st_size).gcount()
-       << " bytes from boot image\n";
+  auto read_bytes = file_boot.read(disk_head, stat_boot.st_size).gcount();
+  INFO("Read %ld bytes from boot image", read_bytes);
 
   ifstream file_binary {elf_binary_path}; //< Load the service into memory
 
   auto* binary_imgloc = disk_head + SECT_SIZE; //< Location of service code within the image
 
-  cout << "Read " << file_binary.read(binary_imgloc, stat_binary.st_size).gcount()
-       << " bytes from service image\n";
+  read_bytes = file_binary.read(binary_imgloc, stat_binary.st_size).gcount();
+  INFO("Read %ld bytes from service image" , read_bytes);
 
   // Validate ELF binary
   Elf_binary binary ({binary_imgloc, stat_binary.st_size});
@@ -158,29 +165,29 @@ int main(int argc, char** argv) {
   multiboot_header& multiboot = *reinterpret_cast<multiboot_header*>(binary.section_data(sh_multiboot).data());
 
 
-  cout << "Verifying multiboot header: \n";
-  cout << "Magic value: 0x" << std::hex << multiboot.magic << "\n";
+  INFO("Verifying multiboot header:");
+  INFO("Magic value: 0x%x\n" , multiboot.magic);
   Expects(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
 
-  cout << "Flags: " << multiboot.flags << "\n";
-  cout << "Checksum: " << multiboot.checksum << "\n";
-  cout << "Checksum computed: " << multiboot.checksum + multiboot.flags + multiboot.magic << "\n";
+  INFO("Flags: 0x%x" , multiboot.flags);
+  INFO("Checksum: 0x%x" , multiboot.checksum);
+  INFO("Checksum computed: 0x%x", multiboot.checksum + multiboot.flags + multiboot.magic);
 
   // Verify multiboot header checksum
   Expects(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
 
-  cout << "Header addr: " << multiboot.header_addr << "\n";
-  cout << "Load start: " << multiboot.load_addr << "\n";
-  cout << "Load end: " << multiboot.load_end_addr << "\n";
-  cout << "BSS end: " << multiboot.bss_end_addr << "\n";
-  cout << "Entry: " << multiboot.entry_addr << "\n";
+  INFO("Header addr: 0x%x" , multiboot.header_addr);
+  INFO("Load start: 0x%x" , multiboot.load_addr);
+  INFO("Load end: 0x%x" , multiboot.load_end_addr);
+  INFO("BSS end: 0x%x" , multiboot.bss_end_addr);
+  INFO("Entry: 0x%x" , multiboot.entry_addr);
 
   // Write binary size and entry point to the bootloader
   *(reinterpret_cast<int*>(disk_head + bootvar_binary_size)) = binary_sectors;
   *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
 
   if (test) {
-    cout << "\nTEST overwriting service with testdata\n";
+    INFO("\nTEST overwriting service with testdata");
     for(int i {0}; i < (img_size_bytes - 512); ++i) {
       disk[(512 + i)] = (i % 256);
     }
@@ -190,9 +197,8 @@ int main(int argc, char** argv) {
   auto* image = fopen(img_name.c_str(), "w");
   auto  wrote = fwrite(disk_head, 1, disk_size, image);
 
-  cout << "Wrote "       << std::dec << wrote
-       << " bytes => "   << (wrote / SECT_SIZE)
-       << " sectors to " << img_name << '\n';
+  INFO("Wrote %ld bytes => %ld sectors to '%s'",
+       wrote, (wrote / SECT_SIZE), img_name.c_str());
 
   fclose(image);
 }
