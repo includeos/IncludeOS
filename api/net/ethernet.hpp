@@ -23,6 +23,10 @@
 
 #include <net/inet_common.hpp>
 
+namespace hw {
+  class Nic;
+}
+
 namespace net {
 
   /** Ethernet packet handling. */
@@ -105,7 +109,7 @@ namespace net {
     }  __attribute__((packed)); //< union addr
 
     /** Constructor */
-    explicit Ethernet(addr mac) noexcept;
+    explicit Ethernet(hw::Nic& nic) noexcept;
 
     struct header {
       addr dest;
@@ -143,15 +147,18 @@ namespace net {
     { physical_out_ = del; }
 
     /** @return Mac address of the underlying device */
-    const addr mac() const noexcept
-    { return mac_; }
+    const addr mac() const noexcept;
 
     /** Transmit data, with preallocated space for eth.header */
     void transmit(Packet_ptr);
 
   private:
-    /** MAC address */
-    addr mac_;
+    hw::Nic& nic_;
+
+    /** Stats */
+    uint64_t& packets_rx_;
+    uint64_t& packets_tx_;
+    uint32_t& packets_dropped_;
 
     /** Upstream OUTPUT connections */
     upstream ip4_handler_ = [](Packet_ptr){};

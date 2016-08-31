@@ -25,6 +25,8 @@
 #include <net/ethernet.hpp>
 #include <net/packet.hpp>
 #include <net/util.hpp>
+#include <statman>
+#include <hw/nic.hpp>
 
 namespace net {
 
@@ -44,12 +46,19 @@ namespace net {
     debug("<Ethernet handler> Ignoring data (no real handler)\n");
   }
 
-  Ethernet::Ethernet(addr mac) noexcept
-  : mac_(mac),
+  Ethernet::Ethernet(hw::Nic& nic) noexcept
+  : nic_{nic},
+    packets_rx_{Statman::get().create(Stat::UINT64, nic.ifname() + ".ethernet.packets_rx").get_uint64()},
+    packets_tx_{Statman::get().create(Stat::UINT64, nic.ifname() + ".ethernet.packets_tx").get_uint64()},
+    packets_dropped_{Statman::get().create(Stat::UINT32, nic.ifname() + ".ethernet.packets_dropped").get_uint32()},
     ip4_handler_{ignore},
     ip6_handler_{ignore},
     arp_handler_{ignore}
 {}
+
+  const Ethernet::addr Ethernet::mac() const noexcept {
+    return nic_.mac();
+  }
 
   void Ethernet::transmit(Packet_ptr pckt) {
     header* hdr = reinterpret_cast<header*>(pckt->buffer());
@@ -59,10 +68,13 @@ namespace net {
     Expects(hdr->type != 0);
 
     // Add source address
-    hdr->src = mac_;
+    hdr->src = nic_.mac();
 
     debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
-           pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
+           pckt->size(), nic_.mac().str().c_str(), hdr->dest.str().c_str(), hdr->type);
+
+    // Stat increment packets transmitted
+    packets_tx_++;
 
     physical_out_(pckt);
   }
@@ -78,6 +90,11 @@ namespace net {
     */
     debug2("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
            eth->src.str().c_str(), eth->dest.str().c_str(), eth->type);
+
+    // Stat increment packets received
+    packets_rx_++;
+
+    bool dropped = false;
 
     switch(eth->type) {
     case ETH_IP4:
@@ -96,14 +113,17 @@ namespace net {
       break;
 
     case ETH_WOL:
+      dropped = true;
       debug2("Wake-on-LAN packet\n");
       break;
 
     case ETH_VLAN:
+      dropped = true;
       debug("VLAN tagged frame (not yet supported)");
       break;
 
     default:
+      dropped = true;
       // This might be 802.3 LLC traffic
       if (net::ntohs(eth->type) > 1500) {
         debug("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type));
@@ -112,6 +132,9 @@ namespace net {
       }
       break;
     }
+
+    if(dropped)
+      packets_dropped_++;
   }
 
 } // namespace net
