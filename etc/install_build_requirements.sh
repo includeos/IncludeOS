@@ -9,7 +9,7 @@ RELEASE=$2
 
 case $SYSTEM in
     "Darwin")
-        return 0;
+        exit 0;
         ;;
     "Linux")
         case $RELEASE in
