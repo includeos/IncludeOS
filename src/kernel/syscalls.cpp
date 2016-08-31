@@ -28,6 +28,8 @@
 
 #include <hw/acpi.hpp>
 
+#include <statman>
+
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -35,9 +37,9 @@ extern "C" {
   uintptr_t heap_end;
 }
 
-static const int syscall_fd {999};
-static bool debug_syscalls  {true};
-
+static const int syscall_fd   {999};
+static bool debug_syscalls    {true};
+static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscall.sbrk").get_uint32()};
 
 void _exit(int) {
   default_exit();
@@ -117,6 +119,9 @@ int write(int file, const void* ptr, size_t len) {
 }
 
 void* sbrk(ptrdiff_t incr) {
+  // Stat increment syscall sbrk called
+  sbrk_called++;
+
   if (UNLIKELY(heap_end + incr > OS::heap_max())) {
     errno = ENOMEM;
     return (void*)-1;
