@@ -18,9 +18,10 @@
 #ifndef ROUTER_HPP
 #define ROUTER_HPP
 
-#include <functional>
+#include <delegate>
 #include <regex>
 #include <stdexcept>
+#include <sstream>
 
 #include <request.hpp>
 #include <response.hpp>
@@ -39,16 +40,16 @@ namespace server {
     // Internal class type aliases
     //-------------------------------
     using Route_expr = std::regex;
-    using Callback = std::function<void(Request_ptr, Response_ptr)>;
+    using Callback = delegate<void(Request_ptr, Response_ptr)>;
 
     struct Route {
-
+      std::string path;
       Route_expr expr;
       Callback callback;
       std::vector<route::Token> keys;
 
       Route(const char* ex, Callback c)
-        : callback{c} {
+        : path{ex}, callback{c} {
         expr = route::PathToRegex::path_to_regex(ex, keys); // also sets the keys attribute
       }
     };
@@ -216,6 +217,22 @@ namespace server {
     Router& on_patch(Routee&& route, Callback result);
 
     //-------------------------------
+    // General way to add a route mapping for route
+    // resolution upon request
+    //
+    // @param method - HTTP method
+    //
+    // @tparam (std::string) route - The route to map unto a
+    //                               resulting destination
+    //
+    // @param result - The route mapping
+    //
+    // @return - The object that invoked this method
+    //-------------------------------
+    template <typename Routee>
+    Router& on(http::Method method, Routee&& route, Callback result);
+
+    //-------------------------------
     // Install a new route table for
     // route resolutions
     //
@@ -235,6 +252,35 @@ namespace server {
      * @note : not const becuase it uses index operator to a map
      **/
     inline ParsedRoute match(http::Method, const std::string&);
+
+    /**
+     * @brief Make the router use another router on a given route
+     * @details Currently only copies the content from the outside
+     * Router and adds new Route in RouteTable by combining
+     * root route and the route to the other Route.
+     *
+     * Maybe Router should be able to keep a collection of other routers.
+     *
+     * @param Routee Root path
+     * @param Router another router with Routes
+     *
+     * @return this Router
+     */
+    template <typename Routee>
+    Router& use(Routee&&, const Router&);
+
+    /**
+     * @brief Copies Routes from another Router object
+     *
+     * @param  Router to be copied from
+     * @return this Router
+     */
+    Router& add(const Router&);
+
+    Router& operator<<(const Router& obj)
+    { return add(obj); }
+
+    std::string to_string() const;
 
   private:
 
@@ -305,6 +351,12 @@ namespace server {
     return *this;
   }
 
+  template <typename Routee>
+  inline Router& Router::on(http::Method method, Routee&& route, Callback result) {
+    route_table_[method].emplace_back(std::forward<Routee>(route), result);
+    return *this;
+  }
+
   template <typename Routee_Table>
   inline Router& Router::install_new_configuration(Routee_Table&& new_routes) {
     route_table_ = std::forward<Routee_Table>(new_routes).route_table_;
@@ -339,6 +391,45 @@ namespace server {
     }
 
     throw Router_error("No matching route for " + http::method::str(method) + " " + path);
+  }
+
+  template <typename Routee>
+  inline Router& Router::use(Routee&& root, const Router& router) {
+    // pair<Method, vector<Route>>
+    for(auto& method_routes : router.route_table_)
+    {
+      auto& method = method_routes.first;
+      auto& routes = method_routes.second;
+      // vector<Route>
+      for(auto& route : routes)
+      {
+        std::string path = root + route.path;
+        on(method, path.data(), route.callback);
+      }
+    }
+    return *this;
+  }
+
+  inline Router& Router::add(const Router& router) {
+    auto& routes = router.route_table_;
+    route_table_.insert(routes.begin(), routes.end());
+    return *this;
+  }
+
+  inline std::string Router::to_string() const {
+    std::ostringstream ss;
+
+    for(auto& method_routes : route_table_)
+    {
+      auto& method = method_routes.first;
+      auto& routes = method_routes.second;
+      for(auto& route : routes)
+      {
+        ss << method << "\t" << route.path << "\n";
+      }
+    }
+
+    return ss.str();
   }
 
   /**--^----------- Implementation Details -----------^--**/

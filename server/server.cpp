@@ -17,10 +17,12 @@
 
 #include "server.hpp"
 #include <utility>
+#include <timers>
 
 // #define DEBUG
 
 using namespace server;
+using namespace std::chrono;
 
 Server::Server()
 : inet_{net::Inet4::stack<0>()}
@@ -40,6 +42,8 @@ void Server::listen(Port port) {
   printf("<Server> Listening to port %i \n", port);
 
   inet_.tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
+  using OnTimeout = Timers::handler_t;
+  Timers::periodic(30s, 1min, OnTimeout::from<Server, &Server::timeout_clients>(this));
 }
 
 void Server::connect(net::tcp::Connection_ptr conn) {
@@ -155,4 +159,13 @@ void Server::use(const Path& path, Middleware_ptr mw_ptr) {
 
 void Server::use(const Path& path, Callback callback) {
   middleware_.emplace_back(path, callback);
+}
+
+void Server::timeout_clients(uint32_t) {
+
+  for(auto conn : connections_)
+  {
+    if(conn != nullptr and RTC::now() > (conn->idle_since() + IDLE_TIMEOUT))
+      conn->timeout();
+  }
 }

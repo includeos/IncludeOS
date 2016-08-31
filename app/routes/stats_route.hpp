@@ -15,46 +15,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROUTES_MEMMAP_ROUTE_HPP
-#define ROUTES_MEMMAP_ROUTE_HPP
+#ifndef ROUTES_STATS_ROUTE_HPP
+#define ROUTES_STATS_ROUTE_HPP
 #include <router.hpp>
-#include <os>
+#include <statman>
 
-class Memmap_route {
+class Stats_route {
 
 public:
   static void on_get(server::Request_ptr, server::Response_ptr res) {
 
-    INFO("Memmap_route","Getting memmap \n");
+    INFO("Stats_route","Getting stats \n");
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    Statman& statman = Statman::get();
 
     writer.StartArray();
-    for (auto i : OS::memory_map()) {
-      auto& entry = i.second;
+
+    for(auto it = statman.begin(); it != statman.last_used(); ++it) {
+      auto& stat = *it;
       writer.StartObject();
 
       writer.Key("name");
-      writer.String(entry.name());
+      writer.String(stat.name());
 
-      writer.Key("addr_start");
-      writer.Uint(entry.addr_start());
+      writer.Key("value");
+      std::string type = "";
 
-      writer.Key("addr_end");
-      writer.Uint(entry.addr_end());
+      switch(stat.type()) {
+        case Stat::UINT64:  writer.Uint(stat.get_uint64());
+                            type = "UINT64";
+                            break;
+        case Stat::UINT32:  writer.Uint(stat.get_uint32());
+                            type = "UINT32";
+                            break;
+        case Stat::FLOAT:   writer.Double(stat.get_float());
+                            type = "FLOAT";
+                            break;
+      }
 
-      writer.Key("in_use");
-      writer.Uint(entry.in_use());
+      writer.Key("type");
+      writer.String(type);
 
-      writer.Key("description");
-      writer.String(entry.description());
+      writer.Key("index");
+      writer.Int(stat.index());
 
       writer.EndObject();
     }
+
     writer.EndArray();
     res->send_json(sb.GetString());
   }
 
 };
 
-#endif
+#endif  // < ROUTES_STATS_ROUTE_HPP

@@ -24,8 +24,9 @@
 #include <profile>
 
 #include <fs/disk.hpp>
-#include <hw/cmos.hpp>
+#include <rtc>
 #include <routes>
+#include <dashboard.hpp>
 
 using namespace std;
 using namespace acorn;
@@ -37,6 +38,7 @@ std::shared_ptr<UserBucket>     users;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<server::Server> server_;
+std::unique_ptr<Dashboard> dashboard;
 
 ////// DISK //////
 // instantiate disk with filesystem
@@ -44,7 +46,7 @@ std::unique_ptr<server::Server> server_;
 fs::Disk_ptr disk;
 
 Statistics stats;
-cmos::Time STARTED_AT;
+RTC::timestamp_t STARTED_AT;
 
 #include <time.h>
 
@@ -64,10 +66,6 @@ const std::string currentDateTime() {
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start(const std::string&) {
-
-  // Test {URI} component
-  uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
-  printf("<URI> Test URI: %s \n", project_uri.path().c_str());
 
   disk = fs::new_shared_memdisk();
 
@@ -142,6 +140,10 @@ void Service::start(const std::string&) {
 
       server::Router routes;
 
+      /** Set up Squirrel routes */
+      routes.use("/api/squirrels", Squirrel_router{squirrels});
+
+
       /*----------[START TEST OF] CookieJar and CookieParser----------*/
       auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
         if (req->has_attribute<CookieJar>()) {
@@ -181,55 +183,6 @@ void Service::start(const std::string&) {
         lang_api_handler(req, res, "nb-NO");
       });
       /*----------[END TEST OF] CookieJar and CookieParser----------*/
-
-      routes.on_get("/api/squirrels", [](auto, auto res) {
-        printf("[@GET:/api/squirrels] Responding with content inside SquirrelBucket\n");
-        using namespace rapidjson;
-        StringBuffer sb;
-        Writer<StringBuffer> writer(sb);
-        squirrels->serialize(writer);
-        res->send_json(sb.GetString());
-      });
-
-      routes.on_post("/api/squirrels", [](server::Request_ptr req, auto res) {
-        using namespace json;
-        auto json = req->get_attribute<Json_doc>();
-        if(!json) {
-          res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
-        }
-        else {
-          auto& doc = json->doc();
-          try {
-            // create an empty model
-            acorn::Squirrel s;
-            // deserialize it
-            s.deserialize(doc);
-            // add to bucket
-            auto id = squirrels->capture(s);
-            assert(id == s.key);
-            printf("[@POST:/api/squirrels] Squirrel captured: %s\n", s.json().c_str());
-            // setup the response
-            // location to the newly created resource
-            res->add_header(http::header_fields::Response::Location, "/api/squirrels/"s); // return back end loc i guess?
-            // status code 201 Created
-            res->set_status_code(http::Created);
-            // send the created entity as response
-            res->send_json(s.json());
-          }
-          catch(Assert_error e) {
-            printf("[@POST:/api/squirrels] Assert_error: %s\n", e.what());
-            res->error({"Parsing Error", "Could not parse data."});
-          }
-          catch(bucket::ConstraintException e) {
-            printf("[@POST:/api/squirrels] ConstraintException: %s\n", e.what());
-            res->error({"Constraint Exception", e.what()});
-          }
-          catch(bucket::BucketException e) {
-            printf("[@POST:/api/squirrels] BucketException: %s\n", e.what());
-            res->error({"Bucket Exception", e.what()});
-          }
-        }
-      });
 
     // TESTING PathToRegexp/route/router.hpp FROM HERE
 
@@ -278,8 +231,8 @@ void Service::start(const std::string&) {
         res->send_json(sb.GetString());
       });
 
-
-      routes.on_get("/dashboard/memmap", Memmap_route::on_get);
+      dashboard = std::make_unique<Dashboard>();
+      routes.use("/api/dashboard", dashboard->router());
 
       routes.on_get(".*", [](auto, auto res){
         printf("[@GET:*] Fallback route - try to serve index.html\n");
@@ -310,7 +263,9 @@ void Service::start(const std::string&) {
       // set routes and start listening
       server_->set_routes(routes).listen(80);
 
-      STARTED_AT = cmos::now();
+      printf("<Server> Registered routes:\n%s",routes.to_string().c_str());
+
+      STARTED_AT = RTC::now();
 
       /*
       // add a middleware as lambda
@@ -343,71 +298,7 @@ void Service::start(const std::string&) {
           currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
-      StackSampler::begin();
-      Timers::periodic(1min, 1min, [](auto){
-        StackSampler::print();
-      });
-
-
-      auto& tcp = stack.tcp();
-      tcp.bind(8080).on_connect(
-      [](auto conn)
-      {
-        conn->on_read(2048,
-        [conn](auto, size_t)
-        {
-          disk->fs().stat("/public/static/books/borkman.txt",
-          [conn](auto, const auto& entry)
-          {
-            http::Response res;
-            res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
-            // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-            res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
-            res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
-            res.add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
-            conn->write(res);
-
-            Async::upload_file(disk, entry, conn,
-            [](auto err, bool good)
-            {
-              if(err)
-                printf("Err\n");
-              else
-                printf(good ? "good" : "bad");
-              printf(" - heap: %u\n", OS::heap_usage() / 1024);
-            });
-          });
-        });
-      });
-
-      tcp.bind(8081).on_connect(
-      [](auto conn)
-      {
-        static uint32_t usage = OS::heap_usage();
-        conn->on_read(2048,
-        [conn](auto, size_t)
-        {
-          if(OS::heap_usage() > usage) {
-            printf("heap increase: %u => %u (current: %u MB) (increase: %u kb)\n",
-              usage, OS::heap_usage(), OS::heap_usage() / (1024*1024), (OS::heap_usage() - usage) / 1024);
-            usage = OS::heap_usage();
-          }
-
-          const static size_t N = 1024*1024*10;
-          http::Response res;
-          res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
-          // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-          res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
-          res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
-          res.add_header(http::header_fields::Entity::Content_Length, std::to_string(N));
-          conn->write(res);
-
-          auto buf = net::tcp::new_shared_buffer(N);
-          memset(buf.get(), '!', N);
-
-          conn->write(buf, N);
-        });
-      });
+      //StackSampler::begin();
 
     }); // < disk
 }

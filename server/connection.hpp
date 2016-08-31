@@ -21,6 +21,7 @@
 #include <net/tcp/connection.hpp>
 #include "request.hpp"
 #include "response.hpp"
+#include <rtc>
 
 namespace server {
 
@@ -64,6 +65,17 @@ public:
   static void on_connection(OnConnection cb)
   { on_connection_ = cb; }
 
+  RTC::timestamp_t idle_since() const
+  { return idle_since_; }
+
+  void close_tcp()
+  {
+    if(conn_->is_closing() == false)
+      conn_->close();
+  }
+
+  void timeout();
+
   ~Connection();
 
 private:
@@ -72,6 +84,7 @@ private:
   Request_ptr request_;
   Response_ptr response_;
   size_t idx_;
+  RTC::timestamp_t idle_since_;
 
   static OnConnection on_connection_;
 
@@ -82,6 +95,9 @@ private:
   void on_error(TCPException);
 
   void on_packet_dropped(Packet_ptr, std::string);
+
+  void update_idle()
+  { idle_since_ = RTC::now(); }
 
 }; // < server::Connection
 
