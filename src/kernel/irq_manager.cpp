@@ -171,7 +171,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   irq_subs.set(irq);
 
   // Stats
-  Stat& subscribed = Statman::get().create(Stat::UINT64, "irq" + std::to_string(irq));
+  Stat& subscribed = Statman::get().create(Stat::UINT64, "irq." + std::to_string(irq));
   counters[irq] = &subscribed.get_uint64();
 
   // Add callback to subscriber list (for now overwriting any previous)
