@@ -104,10 +104,13 @@ void ConsoleVGA::clear() noexcept {
 }
 
 void ConsoleVGA::write(const char c) noexcept {
-  static const char NEWLINE {'\n'};
+  static const char CARRIAGE_RETURN = '\r';
+  static const char LINE_FEED = '\n';
   
-  if (c == NEWLINE) {
+  if (c == LINE_FEED) {
     newline();
+  } else if (c == CARRIAGE_RETURN) {
+    // skip
   } else {
     put(c, this->color, this->column, this->row);
     increment(1);
