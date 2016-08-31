@@ -50,8 +50,8 @@ void Serial::on_data(on_data_handler del){
   enable_interrupt();
   on_data_=del;
   INFO("Serial", "Subscribing to data on IRQ %i",irq_);
-  IRQ_manager::cpu(0).subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
-  IRQ_manager::cpu(0).enable_irq(irq_);
+  IRQ_manager::get().subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
+  IRQ_manager::get().enable_irq(irq_);
 }
 
 void Serial::on_readline(on_string_handler del, char delim){
