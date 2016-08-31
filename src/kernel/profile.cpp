@@ -40,7 +40,8 @@ struct Sampler
   fixedvector<uintptr_t, BUFFER_COUNT>* samplerq;
   fixedvector<uintptr_t, BUFFER_COUNT>* transferq;
   std::unordered_map<uintptr_t, func_sample> dict;
-  func_sample total = 0;
+  uint64_t total  = 0;
+  uint64_t asleep = 0;
   int  lockless;
   bool discard; // discard results as long as true
 
@@ -50,6 +51,7 @@ struct Sampler
     samplerq = new blargh(samplerq);
     transferq = new blargh(transferq);
     total    = 0;
+    asleep   = 0;
     lockless = 0;
     discard  = false;
   }
@@ -96,8 +98,11 @@ void profiler_stack_sampler(void* esp)
   void* ra = esp; //__builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (UNLIKELY(ra == nullptr || get().discard)) return;
-  // ignore event loop
-  if (ra == &_irq_cb_return_location) return;
+  // ignore event loop (and take sleep statistic)
+  if (ra == &_irq_cb_return_location) {
+    ++get().asleep;
+    return;
+  }
   // add address to sampler queue
   get().add(ra);
 }
@@ -124,6 +129,7 @@ void gather_stack_sampling()
             std::forward_as_tuple(1));
       }
     }
+    // increase total and switch back transferring of samples
     get().total += get().transferq->size();
     get().lockless = 0;
   }
@@ -142,9 +148,13 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-int StackSampler::samples_total()
+uint64_t StackSampler::samples_total()
 {
   return get().total;
+}
+uint64_t StackSampler::samples_asleep()
+{
+  return get().asleep;
 }
 
 std::vector<Sample> StackSampler::results(int N)
