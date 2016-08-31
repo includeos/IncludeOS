@@ -27,6 +27,15 @@
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
 
+IRQ_manager::IRQ_manager(uint8_t cpuid)
+  : cycles_hlt_{Statman::get()
+    .create(Stat::UINT64, std::string(std::string("cpu") + std::to_string(cpuid)
+                                      + ".cycles_hlt").c_str() ).get_uint64()},
+  cycles_active_{Statman::get()
+      .create(Stat::UINT64,std::string(std::string("cpu") + std::to_string(cpuid)
+                                       + ".cycles_active").c_str()).get_uint64()}
+{}
+
 uint8_t IRQ_manager::get_next_msix_irq()
 {
   static uint8_t next_msix_irq = MSIX_IRQ_BASE;
@@ -44,7 +53,7 @@ extern "C" {
   void register_modern_interrupt()
   {
     uint8_t vector = hw::APIC::get_isr();
-    IRQ_manager::cpu(0).register_irq(vector - IRQ_BASE);
+    IRQ_manager::get().register_irq(vector - IRQ_BASE);
   }
   void spurious_intr();
   void exception_handler() __attribute__((noreturn));
@@ -62,7 +71,7 @@ void IRQ_manager::enable_interrupts() {
 
 void IRQ_manager::init()
 {
-  cpu(0).bsp_init();
+  get().bsp_init();
 }
 
 void IRQ_manager::bsp_init()
@@ -190,6 +199,8 @@ void IRQ_manager::notify()
 
       (*counters[intr])++;
 
+      cycles_active_ = OS::cycles_since_boot();
+
       irq_todo.reset(intr);
       intr = irq_todo.first_set();
     }
@@ -204,4 +215,7 @@ void IRQ_manager::notify()
   asm volatile(
   ".global _irq_cb_return_location;\n"
   "_irq_cb_return_location:" );
+
+  // Count sleep cycles
+  cycles_hlt_ += OS::cycles_since_boot() - cycles_active;
 }

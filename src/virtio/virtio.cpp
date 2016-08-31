@@ -105,13 +105,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
       INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
 
       // remember the base IRQ
-      this->_irq = IRQ_manager::cpu(0).get_next_msix_irq();
+      this->_irq = IRQ_manager::get().get_next_msix_irq();
       _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
 
       // setup all the other vectors
       for (int i = 1; i < get_msix_vectors(); i++)
       {
-        auto irq = IRQ_manager::cpu(0).get_next_msix_irq();
+        auto irq = IRQ_manager::get().get_next_msix_irq();
         _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
       }
     }
@@ -147,7 +147,7 @@ void Virtio::get_config(void* buf, int len){
   // io addr is different when MSI-X is enabled
   uint32_t ioaddr = _iobase;
   ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
-  
+
   uint8_t* ptr = (uint8_t*) buf;
   for (int i = 0; i < len; i++)
     ptr[i] = hw::inp(ioaddr + i);
@@ -223,5 +223,5 @@ void Virtio::default_irq_handler(){
 void Virtio::enable_irq_handler()
 {
   auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
-  IRQ_manager::cpu(0).subscribe(_irq, del);
+  IRQ_manager::get().subscribe(_irq, del);
 }

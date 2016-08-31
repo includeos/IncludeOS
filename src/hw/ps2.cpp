@@ -207,10 +207,10 @@ namespace hw
     assert(KEYB_IRQ != MOUS_IRQ);
 
     // need to route IRQs from IO APIC to BSP LAPIC
-    IRQ_manager::cpu(0).enable_irq(KEYB_IRQ);
-    IRQ_manager::cpu(0).enable_irq(MOUS_IRQ);
+    IRQ_manager::get().enable_irq(KEYB_IRQ);
+    IRQ_manager::get().enable_irq(MOUS_IRQ);
 
-    IRQ_manager::cpu(0).subscribe(KEYB_IRQ,
+    IRQ_manager::get().subscribe(KEYB_IRQ,
     [KEYB_IRQ] {
       //IRQ_manager::eoi(KEYB_IRQ);
       uint8_t byte = read_fast();
@@ -220,7 +220,7 @@ namespace hw
       get().on_virtualkey(key);
     });
 
-    IRQ_manager::cpu(0).subscribe(MOUS_IRQ,
+    IRQ_manager::get().subscribe(MOUS_IRQ,
     [MOUS_IRQ] {
       //IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_fast());
