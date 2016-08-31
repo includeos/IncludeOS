@@ -217,5 +217,5 @@ void IRQ_manager::notify()
   "_irq_cb_return_location:" );
 
   // Count sleep cycles
-  cycles_hlt_ += OS::cycles_since_boot() - cycles_active;
+  cycles_hlt_ += OS::cycles_since_boot() - cycles_active_;
 }
