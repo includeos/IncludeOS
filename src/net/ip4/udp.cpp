@@ -65,12 +65,13 @@ namespace net {
           std::forward_as_tuple(port),
           std::forward_as_tuple(*this, port));
       it = res.first;
+    }else {
+      throw UDP::Port_in_use_exception(it->first);
     }
     return it->second;
   }
 
   UDPSocket& UDP::bind() {
-
     if (ports_.size() >= 0xfc00)
       panic("UPD Socket: All ports taken!");
 
@@ -81,6 +82,16 @@ namespace net {
 
     debug("UDP binding to %i port\n", current_port_);
     return bind(current_port_);
+  }
+
+  bool UDP::is_bound(UDP::port_t port){
+    return ports_.find(port) != ports_.end();
+  }
+
+  void UDP::close(UDP::port_t port){
+    if (is_bound(port))
+      ports_.erase(port);
+    return;
   }
 
   void UDP::transmit(UDP::Packet_ptr udp) {

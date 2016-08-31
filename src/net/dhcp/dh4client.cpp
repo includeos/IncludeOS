@@ -156,30 +156,38 @@ namespace net
   }
 
   DHClient::DHClient(Stack& inet)
-    : stack(inet), xid(0), console_spam(true)
+    : stack(inet), xid(0), console_spam(true), in_progress(false)
   {
-    config_handler =
-    [this] (bool timeout) {
-      if (console_spam)
-      {
-        if (timeout)
-          INFO("DHCPv4","Negotiation timed out");
-        else
-          INFO("DHCPv4","Config complete");
-      }
-    };
+    on_config([this] (bool timeout) {
+        if (console_spam)
+          {
+            if (timeout)
+              INFO("DHCPv4","Negotiation timed out");
+            else
+              INFO("DHCPv4","Config complete");
+          }
+      });
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
   {
+    // Allow multiple calls to negotiate without restarting the process
+    if (in_progress)
+      return;
+
+    in_progress = true;
+
     // set timeout handler
     using namespace std::chrono;
     this->timeout = Timers::oneshot(seconds(timeout_secs),
     [this] (uint32_t) {
       // reset session ID
       this->xid = 0;
+      this->in_progress = false;
+
       // call on_config with timeout = true
-      this->config_handler(true);
+      for(auto handler : this->config_handlers_)
+        handler(true);
     });
 
     // create a random session ID
@@ -468,7 +476,11 @@ namespace net
                          this->router, this->dns_server);
     // stop timeout from happening
     Timers::stop(timeout);
+
+    in_progress = false;
+
     // run some post-DHCP event to release the hounds
-    this->config_handler(false);
+    for (auto handler : config_handlers_)
+      handler(false);
   }
 }

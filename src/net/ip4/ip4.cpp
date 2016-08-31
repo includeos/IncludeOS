@@ -45,8 +45,6 @@ namespace net {
     // Stat increment packets received
     packets_rx_++;
 
-    printf("Packets received: %llu\n", packets_rx_);
-
     auto data = pckt->buffer();
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
 
