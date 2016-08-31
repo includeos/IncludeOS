@@ -39,12 +39,12 @@ namespace fs {
     
     stat_read( Statman::get().create(
                Stat::UINT64, blkname() + ".reads").get_uint64() )
-  {
-    
-    
-  }
+  {  }
 
-  MemDisk::buffer_t MemDisk::read_sync(block_t blk) {
+  MemDisk::buffer_t MemDisk::read_sync(block_t blk)
+  {
+    stat_read++;
+    
     auto sector_loc = image_start_ + blk * block_size();
     // Disallow reading memory past disk image
     if (unlikely(sector_loc >= image_end_))
@@ -56,7 +56,10 @@ namespace fs {
     return buffer_t{buffer, std::default_delete<uint8_t[]>()};
   }
   
-  MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt) {
+  MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
+  {
+    stat_read++;
+    
     auto start_loc = image_start_ + blk * block_size();
     auto end_loc = start_loc + cnt * block_size();
     
