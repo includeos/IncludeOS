@@ -2,6 +2,8 @@
 #include <elf_binary.hpp>
 #include <iostream>
 
+extern bool verb;
+
 const Elf32_Ehdr& Elf_binary::elf_header() const{
   Expects(data_.size() >=  (long) sizeof(Elf32_Ehdr));
   return *reinterpret_cast<Elf32_Ehdr*>(data_.data());
@@ -16,36 +18,40 @@ const Elf32_Phdr& Elf_binary::program_header() const{
 void Elf_binary::validate(){
   auto hdr = elf_header();
 
-  for(int i {0}; i < EI_NIDENT; ++i) {
-    std::cout << hdr.e_ident[i];
-  }
+  if (verb){
+    for(int i {0}; i < EI_NIDENT; ++i) {
+      std::cout << hdr.e_ident[i];
+    }
 
-  std::cout << "\nType: "
-       << ((hdr.e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
-  std::cout << "Machine: ";
+    std::cout << "\nType: "
+              << ((hdr.e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
+    std::cout << "Machine: ";
+  }
 
   if (hdr.e_type != ET_EXEC)
     throw Elf_exception("Not an executable ELF binary.");
 
-  switch (hdr.e_machine) {
-  case (EM_386):
-    std::cout << "Intel 80386\n";
-    break;
-  case (EM_X86_64):
-    std::cout << "Intel x86_64\n";
-    break;
-  default:
-    std::cout << "UNKNOWN (" << hdr.e_machine << ")\n";
-    break;
-  } //< switch (hdr.e_machine)
+  if (verb) {
+    switch (hdr.e_machine) {
+    case (EM_386):
+      std::cout << "Intel 80386\n";
+      break;
+    case (EM_X86_64):
+      std::cout << "Intel x86_64\n";
+      break;
+    default:
+      std::cout << "UNKNOWN (" << hdr.e_machine << ")\n";
+      break;
+    } //< switch (hdr.e_machine)
 
-  std::cout << "Version: "                   << hdr.e_version      << '\n';
-  std::cout << "Entry point: 0x"             << std::hex << hdr.e_entry << '\n';
-  std::cout << "Number of program headers: " << std::dec << hdr.e_phnum        << '\n';
-  std::cout << "Program header offset: "     << hdr.e_phoff        << '\n';
-  std::cout << "Number of section headers: " << hdr.e_shnum        << '\n';
-  std::cout << "Section header offset: "     << hdr.e_shoff        << '\n';
-  std::cout << "Size of ELF-header: "        << hdr.e_ehsize << " bytes\n";
+    std::cout << "Version: "                   << hdr.e_version      << '\n';
+    std::cout << "Entry point: 0x"             << std::hex << hdr.e_entry << '\n';
+    std::cout << "Number of program headers: " << std::dec << hdr.e_phnum        << '\n';
+    std::cout << "Program header offset: "     << hdr.e_phoff        << '\n';
+    std::cout << "Number of section headers: " << hdr.e_shnum        << '\n';
+    std::cout << "Section header offset: "     << hdr.e_shoff        << '\n';
+    std::cout << "Size of ELF-header: "        << hdr.e_ehsize << " bytes\n";
+  }
 }
 
 Elf32_Addr Elf_binary::entry() {
