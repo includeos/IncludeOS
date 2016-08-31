@@ -18,9 +18,10 @@
 #ifndef ROUTER_HPP
 #define ROUTER_HPP
 
-#include <functional>
+#include <delegate>
 #include <regex>
 #include <stdexcept>
+#include <sstream>
 
 #include <request.hpp>
 #include <response.hpp>
@@ -39,7 +40,7 @@ namespace server {
     // Internal class type aliases
     //-------------------------------
     using Route_expr = std::regex;
-    using Callback = std::function<void(Request_ptr, Response_ptr)>;
+    using Callback = delegate<void(Request_ptr, Response_ptr)>;
 
     struct Route {
       std::string path;
@@ -279,6 +280,8 @@ namespace server {
     Router& operator<<(const Router& obj)
     { return add(obj); }
 
+    std::string to_string() const;
+
   private:
 
     Router(const Router&) = delete;
@@ -411,6 +414,22 @@ namespace server {
     auto& routes = router.route_table_;
     route_table_.insert(routes.begin(), routes.end());
     return *this;
+  }
+
+  inline std::string Router::to_string() const {
+    std::ostringstream ss;
+
+    for(auto& method_routes : route_table_)
+    {
+      auto& method = method_routes.first;
+      auto& routes = method_routes.second;
+      for(auto& route : routes)
+      {
+        ss << method << "\t" << route.path << "\n";
+      }
+    }
+
+    return ss.str();
   }
 
   /**--^----------- Implementation Details -----------^--**/

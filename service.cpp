@@ -26,6 +26,7 @@
 #include <fs/disk.hpp>
 #include <rtc>
 #include <routes>
+#include <dashboard.hpp>
 
 using namespace std;
 using namespace acorn;
@@ -37,6 +38,7 @@ std::shared_ptr<UserBucket>     users;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<server::Server> server_;
+std::unique_ptr<Dashboard> dashboard;
 
 ////// DISK //////
 // instantiate disk with filesystem
@@ -64,10 +66,6 @@ const std::string currentDateTime() {
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start(const std::string&) {
-
-  // Test {URI} component
-  uri::URI project_uri {"https://github.com/hioa-cs/IncludeOS"};
-  printf("<URI> Test URI: %s \n", project_uri.path().c_str());
 
   disk = fs::new_shared_memdisk();
 
@@ -233,9 +231,8 @@ void Service::start(const std::string&) {
         res->send_json(sb.GetString());
       });
 
-      routes.on_get("/dashboard/memmap", Memmap_route::on_get);
-
-      routes.on_get("/dashboard/stats", Stats_route::on_get);
+      dashboard = std::make_unique<Dashboard>();
+      routes.use("/api/dashboard", dashboard->router());
 
       routes.on_get(".*", [](auto, auto res){
         printf("[@GET:*] Fallback route - try to serve index.html\n");
@@ -265,6 +262,8 @@ void Service::start(const std::string&) {
       server_ = std::make_unique<server::Server>(stack);
       // set routes and start listening
       server_->set_routes(routes).listen(80);
+
+      printf("<Server> Registered routes:\n%s",routes.to_string().c_str());
 
       STARTED_AT = RTC::now();
 
@@ -300,66 +299,6 @@ void Service::start(const std::string&) {
       });
 
       //StackSampler::begin();
-
-      auto& tcp = stack.tcp();
-      tcp.bind(8080).on_connect(
-      [](auto conn)
-      {
-        conn->on_read(2048,
-        [conn](auto, size_t)
-        {
-          disk->fs().stat("/public/static/books/borkman.txt",
-          [conn](auto, const auto& entry)
-          {
-            http::Response res;
-            res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
-            // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-            res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
-            res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
-            res.add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
-            conn->write(res);
-
-            Async::upload_file(disk, entry, conn,
-            [](auto err, bool good)
-            {
-              if(err)
-                printf("Err\n");
-              else
-                printf(good ? "good" : "bad");
-              printf(" - heap: %u\n", OS::heap_usage() / 1024);
-            });
-          });
-        });
-      });
-
-      tcp.bind(8081).on_connect(
-      [](auto conn)
-      {
-        static uint32_t usage = OS::heap_usage();
-        conn->on_read(2048,
-        [conn](auto, size_t)
-        {
-          if(OS::heap_usage() > usage) {
-            printf("heap increase: %u => %u (current: %u MB) (increase: %u kb)\n",
-              usage, OS::heap_usage(), OS::heap_usage() / (1024*1024), (OS::heap_usage() - usage) / 1024);
-            usage = OS::heap_usage();
-          }
-
-          const static size_t N = 1024*1024*10;
-          http::Response res;
-          res.add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
-          // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-          res.add_header(http::header_fields::Response::Connection, "keep-alive"s);
-          res.add_header(http::header_fields::Entity::Content_Type, "text/plain"s);
-          res.add_header(http::header_fields::Entity::Content_Length, std::to_string(N));
-          conn->write(res);
-
-          auto buf = net::tcp::new_shared_buffer(N);
-          memset(buf.get(), '!', N);
-
-          conn->write(buf, N);
-        });
-      });
 
     }); // < disk
 }
