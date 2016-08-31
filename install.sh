@@ -8,7 +8,7 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
 
 SYSTEM=`uname -s`
 
-RELEASE=$([ $SYSTEM = "Darwin" ] && echo "" || echo `lsb_release -is`)
+RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || echo `lsb_release -is`)
 
 check_os_support() {
     SYSTEM=$1
