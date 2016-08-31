@@ -48,7 +48,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     this->errors = &err.get_uint32();
     *this->errors = 0;
   }
-  
+
   uint32_t needed_features =
     FEAT(VIRTIO_BLK_F_BLK_SIZE);
   negotiate_features(needed_features);
@@ -96,13 +96,13 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
     auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::service_RX>(this));
     // update IRQ subscriptions
-    IRQ_manager::cpu(0).subscribe(irq() + 0, req_del);
-    IRQ_manager::cpu(0).subscribe(irq() + 1, conf_del);
+    IRQ_manager::get().subscribe(irq() + 0, req_del);
+    IRQ_manager::get().subscribe(irq() + 1, conf_del);
   }
   else
   {
     auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-    IRQ_manager::cpu(0).subscribe(irq(),del);
+    IRQ_manager::get().subscribe(irq(),del);
   }
 
   // Done

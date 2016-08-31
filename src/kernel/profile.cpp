@@ -40,25 +40,27 @@ struct Sampler
   fixedvector<uintptr_t, BUFFER_COUNT>* samplerq;
   fixedvector<uintptr_t, BUFFER_COUNT>* transferq;
   std::unordered_map<uintptr_t, func_sample> dict;
-  func_sample total = 0;
+  uint64_t total  = 0;
+  uint64_t asleep = 0;
   int  lockless;
   bool discard; // discard results as long as true
-  
+
   Sampler() {
     // make room for these only when requested
     #define blargh(T) std::remove_pointer<decltype(T)>::type;
     samplerq = new blargh(samplerq);
     transferq = new blargh(transferq);
     total    = 0;
+    asleep   = 0;
     lockless = 0;
     discard  = false;
   }
-  
+
   void begin() {
     // gather samples repeatedly over small periods
     using namespace std::chrono;
     static const milliseconds GATHER_PERIOD_MS = 150ms;
-    
+
     hw::PIT::instance().on_repeated_timeout(
         GATHER_PERIOD_MS, gather_stack_sampling);
   }
@@ -67,10 +69,10 @@ struct Sampler
     // need free space to take more samples
     if (samplerq->free_capacity())
         samplerq->add((uintptr_t) ra);
-    
+
     // return when its not our turn
     if (lockless) return;
-    
+
     // transfer all the built up samplings
     transferq->copy(samplerq->first(), samplerq->size());
     samplerq->clear();
@@ -86,7 +88,7 @@ Sampler& get() {
 void StackSampler::begin()
 {
   // install interrupt handler
-  IRQ_manager::cpu(0).set_irq_handler(0, parasite_interrupt_handler);
+  IRQ_manager::get().set_irq_handler(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }
@@ -96,8 +98,11 @@ void profiler_stack_sampler(void* esp)
   void* ra = esp; //__builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
   if (UNLIKELY(ra == nullptr || get().discard)) return;
-  // ignore event loop
-  if (ra == &_irq_cb_return_location) return;
+  // ignore event loop (and take sleep statistic)
+  if (ra == &_irq_cb_return_location) {
+    ++get().asleep;
+    return;
+  }
   // add address to sampler queue
   get().add(ra);
 }
@@ -124,6 +129,7 @@ void gather_stack_sampling()
             std::forward_as_tuple(1));
       }
     }
+    // increase total and switch back transferring of samples
     get().total += get().transferq->size();
     get().lockless = 0;
   }
@@ -142,33 +148,37 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-int StackSampler::samples_total()
+uint64_t StackSampler::samples_total()
 {
   return get().total;
+}
+uint64_t StackSampler::samples_asleep()
+{
+  return get().asleep;
 }
 
 std::vector<Sample> StackSampler::results(int N)
 {
   using sample_pair = std::pair<uintptr_t, func_sample>;
   std::vector<sample_pair> vec(get().dict.begin(), get().dict.end());
-  
+
   // sort by count
-  std::sort(vec.begin(), vec.end(), 
+  std::sort(vec.begin(), vec.end(),
   [] (const sample_pair& sample1, const sample_pair& sample2) -> int {
     return sample1.second > sample2.second;
   });
-  
+
   std::vector<Sample> res;
-  
+
   N = (N > (int)vec.size()) ? vec.size() : N;
   if (N <= 0) return res;
-  
+
   for (auto& sa : vec)
   {
     // resolve the addr
     auto func = Elf::resolve_symbol(sa.first);
     res.push_back(Sample {sa.second, (void*) func.addr, func.name});
-    
+
     if (--N == 0) break;
   }
   return res;
@@ -190,11 +200,11 @@ void __panic_failure(char const* where, size_t id)
 void __validate_backtrace(char const* where, size_t id)
 {
   func_offset func;
-  
+
   func = Elf::resolve_symbol((void*) &__validate_backtrace);
   if (func.name != "__validate_backtrace")
       __panic_failure(where, id);
-  
+
   func = Elf::resolve_symbol((void*) &StackSampler::set_mask);
   if (func.name != "StackSampler::set_mask(bool)")
       __panic_failure(where, id);

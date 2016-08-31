@@ -24,7 +24,7 @@
 
 ConsoleVGA vga;
 
-void begin_snake(uint32_t)
+void begin_snake()
 {
   static Snake snake {vga};
 
@@ -47,16 +47,6 @@ void begin_snake(uint32_t)
 
 void Service::start(const std::string&)
 {
-  // Redirect stdout to vga screen
-  // ... even though we aren't really using it after the game starts
-  OS::set_rsprint(
-  [] (const char* data, size_t len) {
-    vga.write(data, len);
-  });
-
-  // We have to start snake later to avoid late text output
-  using namespace std::chrono;
-  Timers::oneshot(250ms, begin_snake);
-
-  printf("*** TEST SERVICE STARTED ***\n");
+  // We have to start snake later to avoid some text output
+  begin_snake();
 }

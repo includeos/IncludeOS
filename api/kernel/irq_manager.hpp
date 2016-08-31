@@ -114,18 +114,33 @@ public:
   static void enable_interrupts();
 
   /**
-   * Get the IRQ manager for a specific CPU core
+   * Get the IRQ manager instance
    */
-  static inline IRQ_manager& cpu(uint8_t){
-    static IRQ_manager bsp;
+  static inline IRQ_manager& get(){
+    static IRQ_manager bsp{0};
     return bsp;
   }
 
   uint8_t get_next_msix_irq();
   void register_irq(uint8_t vector);
 
+  /** Get the total number of cycles spent in halt **/
+  uint64_t cycles_hlt(){
+    return cycles_hlt_;
+  }
+
+  /** Get the total number of cycles spent working **/
+  uint64_t cycles_active(){
+    return cycles_active_;
+  }
+
 private:
 
+  IRQ_manager(uint8_t cpu);
+  IRQ_manager(IRQ_manager&) = delete;
+  IRQ_manager(IRQ_manager&&) = delete;
+  IRQ_manager& operator=(IRQ_manager&&) = delete;
+  IRQ_manager& operator=(IRQ_manager&) = delete;
 
   IDTDescr     idt[INTR_LINES];
   irq_delegate irq_delegates_[IRQ_LINES];
@@ -134,6 +149,9 @@ private:
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
+
+  uint64_t& cycles_hlt_;
+  uint64_t& cycles_active_;
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};

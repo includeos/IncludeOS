@@ -86,7 +86,7 @@ namespace hw {
     // enable Local APIC
     void _lapic_enable();
     _lapic_enable();
-    
+
     // turn the Local APIC on
     INFO("APIC", "Enabling BSP LAPIC");
     CPU::write_msr(IA32_APIC_BASE_MSR,
@@ -104,7 +104,7 @@ namespace hw {
 
     // use KVMs paravirt EOI if supported
     //kvm_pv_eoi_init();
-    
+
     // subscribe to APIC-related interrupts
     setup_subs();
   }
@@ -228,7 +228,7 @@ namespace hw {
     debug("-> eoi @ %p for %u\n", &lapic.regs->eoi.reg, lapic.get_id());
     lapic.regs->eoi.reg = 0;
   }
-  
+
   void APIC::send_ipi(uint8_t id, uint8_t vector)
   {
     debug("send_ipi  id %u  vector %u\n", id, vector);
@@ -287,7 +287,7 @@ namespace hw {
   void APIC::setup_subs()
   {
     // IRQ handler for completed async jobs
-    IRQ_manager::cpu(0).subscribe(BSP_LAPIC_IPI_IRQ,
+    IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
     [] {
       // copy all the done functions out from queue to our local vector
       std::vector<smp_done_func> done;
@@ -330,7 +330,7 @@ int __test_and_clear_bit(long nr, volatile unsigned long* addr)
 
 static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
 void kvm_pv_eoi() {
-  
+
   //printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
   // fast EOI by KVM
   if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {

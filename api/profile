@@ -20,11 +20,12 @@
 #ifndef API_PROFILE_HEADER
 #define API_PROFILE_HEADER
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 struct Sample {
-  unsigned    samp; // samples
+  uint32_t    samp; // samples
   void*       addr; // function address
   std::string name; // function name
 };
@@ -35,8 +36,11 @@ struct StackSampler
   // the stack sampling will happen in the background afterwards
   static void begin();
   
-  // total number of (validated) samples taken
-  static int samples_total();
+  // total number of waking samples taken
+  static uint64_t samples_total();
+  
+  // total number of samples taken while asleep
+  static uint64_t samples_asleep();
   
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);

@@ -39,7 +39,7 @@ namespace hw
   static APIC_Timer::handler_t intr_handler;
   static uint32_t ticks_per_micro = 0;
   static bool     intr_enabled    = false;
-  
+
   void APIC_Timer::init(const handler_t& handler)
   {
     // decrement only every 16 ticks
@@ -47,51 +47,51 @@ namespace hw
     // start in one-shot mode and set the interrupt vector
     // but also disable interrupts
     lapic.regs->timer.reg = TIMER_ONESHOT | (LAPIC_IRQ_TIMER+32) | INTR_MASK;
-    
+
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
     lapic.regs->init_count.reg = 0xFFFFFFFF;
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
-    
+
     // ready handler
     intr_handler = handler;
-    
+
     /// use PIT to measure <time> in one-shot ///
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [] {
       // measure difference
       uint32_t diff = lapic.regs->init_count.reg - lapic.regs->cur_count.reg;
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
-      
-      //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n", 
+
+      //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
-      
+
       // signal ready to go
       intr_handler();
     });
   }
-  
+
   bool APIC_Timer::ready()
   {
     return ticks_per_micro != 0;
   }
-  
+
   void APIC_Timer::set_handler(const handler_t& handler)
   {
     intr_handler = handler;
     if (ready()) {
-      IRQ_manager::cpu(0).subscribe(LAPIC_IRQ_TIMER, handler);
+      IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, handler);
     }
   }
-  
+
   void APIC_Timer::oneshot(std::chrono::microseconds micros)
   {
     // prevent overflow
     uint64_t ticks = micros.count() * ticks_per_micro;
     if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
-    
+
     // set initial counter
     lapic.regs->init_count.reg = ticks;
     // re-enable interrupts if disabled
