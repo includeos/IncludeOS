@@ -56,12 +56,11 @@ static std::vector<Timer>   timers;
 static std::vector<id_t>    free_timers;
 // timers sorted by timestamp
 static std::multimap<duration_t, id_t> scheduled;
-static int timer_stats = 0;
 /** Stats */
 static uint64_t& oneshot_started_{Statman::get().create(Stat::UINT64, "timers.oneshot_started").get_uint64()};
 static uint64_t& oneshot_stopped_{Statman::get().create(Stat::UINT64, "timers.oneshot_stopped").get_uint64()};
-static uint64_t& periodic_started_{Statman::get().create(Stat::UINT64, "timers.periodic_started").get_uint64()};
-static uint64_t& periodic_stopped_{Statman::get().create(Stat::UINT64, "timers.periodic_stopped").get_uint64()};
+static uint32_t& periodic_started_{Statman::get().create(Stat::UINT32, "timers.periodic_started").get_uint32()};
+static uint32_t& periodic_stopped_{Statman::get().create(Stat::UINT32, "timers.periodic_stopped").get_uint32()};
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
@@ -224,7 +223,6 @@ void Timers::timers_handler()
         // not yet time, so schedule it for later
         is_running = true;
         arch_start_func(when - ts_now);
-        timer_stats ++;
         // exit early, because we have nothing more to do,
         // and there is a deferred handler
         return;
@@ -252,19 +250,4 @@ static void sched_timer(duration_t when, id_t id)
   auto it = scheduled.begin();
   if (it->second == id)
       Timers::timers_handler();
-}
-
-int _get_timers_stats()
-{
-  int x = timer_stats;
-  timer_stats = 0;
-  return x;
-}
-size_t _get_timers_ubound()
-{
-  return timers.size();
-}
-size_t _get_timers_dead()
-{
-  return dead_timers;
 }
