@@ -90,9 +90,6 @@ if [ ! -z $do_includeos ]; then
     pushd $INCLUDEOS_SRC/src
     make $num_jobs
 
-    echo -e "\n >>> Linking IncludeOS test-service"
-    make test
-
     echo -e "\n >>> Installing IncludeOS"
     make install
     popd
