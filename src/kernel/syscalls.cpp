@@ -39,7 +39,7 @@ extern "C" {
 
 static const int syscall_fd   {999};
 static bool debug_syscalls    {true};
-static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "crt.sbrk").get_uint32()};
+static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
 
 void _exit(int) {
   default_exit();
