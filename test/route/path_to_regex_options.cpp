@@ -31,12 +31,12 @@ const lest::test test_path_to_regex_options[] =
 
     GIVEN("An empty vector of Tokens (keys) and option strict set to true")
     {
-      vector<Token> keys;
-      map<string, bool> options{ {"strict", true} };
+      Tokens keys;
+      Options options{ {"strict", true} };
 
       WHEN("Calling path_to_regex with path '/:test'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test", keys, options);
+        std::regex r = Path_to_regex::path_to_regex("/:test", keys, options);
 
         THEN("")
         {
