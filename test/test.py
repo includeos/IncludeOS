@@ -14,11 +14,11 @@ Script used for running all the valid tests in the terminal.
 
 parser = argparse.ArgumentParser(description="Runs all the tests that are \
                                   ready in the test folder")
+parser.add_argument("-c", "--clean-all", dest="clean", action="store_true")
 parser.add_argument("-s", "--skip_test", nargs="*", dest="skip",
                     help="Tests to skip")
 
 args = parser.parse_args()
-
 
 def valid_tests():
     """ Returns a list of all the valid tests in the test folder
@@ -26,10 +26,12 @@ def valid_tests():
     returns: list"""
     valid_tests = subprocess.check_output(['./validate_all.sh', '-onlyNames'])
     valid_tests = valid_tests.splitlines()
+    print ">>> Skipping tests: ", args.skip
     if args.skip is not None:
         for test_to_skip in args.skip:
             if test_to_skip in valid_tests:
                 valid_tests.remove(test_to_skip)
+                print "Removed ",test_to_skip
     return valid_tests
 
 
@@ -42,18 +44,33 @@ def main():
     print ">>> These are found by the ./validate_all.sh script"
     print ">>> To skip certain tests use -s <tests to skip>\n\n"
 
-    print ">>> Will perform the following tests:"
-    for test in valid_tests():
-        print test,
-    print "\n"
+    print ">>> Will perform the following tests: "
+    valid = valid_tests()
+    print valid
+
+    print "\n>>> Starting processes: \n"
+    startdir = os.getcwd()
+    processes = []
 
     all_tests_pass = True   # Default set to True, changes to False if a test fails
-    for test in valid_tests():
+    for name in valid:
         # Change into directory
-        os.chdir(test)
-
+        os.chdir(startdir + "/" + name)
+        if args.clean:
+          print "* Cleaning", name
+          subprocess.call(["make","clean"])
+          print
         # Perform test.py
-        process = subprocess.Popen(['sudo', '-E', 'python', 'test.py'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print "* Starting ",name
+        processes.append((name, subprocess.Popen(['sudo', '-E', 'python', 'test.py'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)))
+
+    print "\n>>> Collecting results \n"
+    for p in processes:
+        process = p[1]
+        name = p[0]
+
+        print "* {0:45}".format(name)," ",
+        sys.stdout.flush()
         process.wait()
 
         # Default colors
@@ -69,9 +86,7 @@ def main():
             color = "\033[37;41m"       # White text (37) on Red background (41)
 
         # Print result of test
-        print '{0:15} ==> {3} {1} {2}'.format(test, test_result, background_color_end, color)
-
-        os.chdir("../../..")
+        print '[ {2} {0} {1} ]'.format(test_result, background_color_end, color)
 
     if not all_tests_pass:
         print "\n>>> Not all tests passed, exiting with code 1"
