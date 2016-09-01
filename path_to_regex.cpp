@@ -205,9 +205,9 @@ std::regex Path_to_regex::tokens_to_regex(const Tokens& tokens, const Options& o
 }
 
 void Path_to_regex::tokens_to_keys(const Tokens& tokens, Keys& keys) {
-  for (auto& token : tokens)
+  for (const auto& token : tokens)
     if (not token.is_string)
-      keys.push_back(t);
+      keys.push_back(token);
 }
 
 } //< namespace route
