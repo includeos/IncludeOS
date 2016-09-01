@@ -43,6 +43,9 @@ Socket Listener::local() const {
 }
 
 void Listener::segment_arrived(Packet_ptr packet) {
+  // Stat increment number of connection attempts
+  host_.connection_attempts_++;
+
   debug2("<Listener::segment_arrived> Received packet: %s\n",
     packet->to_string().c_str());
   // if it's an reply to any of our half-open connections

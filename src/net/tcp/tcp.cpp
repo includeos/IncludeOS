@@ -31,6 +31,9 @@ TCP::TCP(IPStack& inet) :
   bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
   packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
   packets_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_tx").get_uint64()},
+  incoming_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.incoming_connections").get_uint64()},
+  outgoing_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.outgoing_connections").get_uint64()},
+  connection_attempts_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.connection_attempts").get_uint64()},
   packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()},
   inet_(inet),
   listeners_(),
@@ -127,7 +130,6 @@ bool TCP::port_in_use(const port_t port) const {
   }
   return false;
 }
-
 
 uint16_t TCP::checksum(tcp::Packet_ptr packet)
 {
@@ -273,6 +275,9 @@ string TCP::to_string() const {
 }
 
 Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
+  // Stat increment number of outgoing connections
+  outgoing_connections_++;
+
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local_port, remote },
       std::make_shared<Connection>(*this, local_port, remote))
@@ -282,6 +287,9 @@ Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
 }
 
 void TCP::add_connection(tcp::Connection_ptr conn) {
+  // Stat increment number of incoming connections
+  incoming_connections_++;
+
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
   conn->_on_cleanup(CleanupCallback::from<TCP, &TCP::close_connection>(this));
   connections_.emplace(conn->tuple(), conn);

@@ -150,6 +150,9 @@ namespace net {
     uint64_t& bytes_tx_;
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
+    uint64_t& incoming_connections_;
+    uint64_t& outgoing_connections_;
+    uint64_t& connection_attempts_;
     uint32_t& packets_dropped_;
 
     IPStack& inet_;
