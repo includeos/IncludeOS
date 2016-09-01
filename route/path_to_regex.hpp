@@ -17,8 +17,8 @@
 
 // https://github.com/pillarjs/path-to-regexp/blob/master/index.js
 
-#ifndef PATH_TO_REGEX_HPP
-#define PATH_TO_REGEX_HPP
+#ifndef ROUTE_PATH_TO_REGEX_HPP
+#define ROUTE_PATH_TO_REGEX_HPP
 
 #include <map>
 #include <regex>
@@ -110,6 +110,6 @@ private:
 	static const std::regex PATH_REGEXP;
 }; //< class PathToRegex
 
-}; //< namespace route
+} //< namespace route
 
-#endif //< PATH_TO_REGEX_HPP
+#endif //< ROUTE_PATH_TO_REGEX_HPP
