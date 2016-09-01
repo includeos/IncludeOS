@@ -27,6 +27,10 @@
 
 namespace route {
 
+using Keys    = std::vector<Token>;
+using Tokens  = std::vector<Token>;
+using Options = std::map<std::string, bool>;
+
 struct Token {
 	std::string name      {};	// can be a string or an int (index)
 	std::string prefix    {};
@@ -46,13 +50,6 @@ struct Token {
 }; //< struct Token
 
 class Path_to_regex {
-private:
-  //----------------------------------------
-  // Internal class type aliases
-  using Keys    = std::vector<Token>;
-  using Tokens  = std::vector<Token>;
-  using Options = std::map<std::string, bool>;
-  //----------------------------------------
 public:
   /**
    *  Creates a path-regex from string input (path)
