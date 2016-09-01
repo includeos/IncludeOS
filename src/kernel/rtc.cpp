@@ -28,10 +28,10 @@ void RTC::init()
   });
 }
 
-RTC::timestamp_t RTC::get()
+RTC::timestamp_t RTC::now()
 {
   auto ticks = hw::CPU::rdtsc() - current_ticks;
   auto diff  = ticks / Hz(MHz(_CPUFreq_)).count();
-  
+
   return current_time + diff;
 }

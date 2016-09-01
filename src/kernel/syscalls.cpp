@@ -149,7 +149,7 @@ int wait(int* UNUSED(status)) {
 }
 
 int gettimeofday(struct timeval* p, void*) {
-  p->tv_sec  = RTC::get();
+  p->tv_sec  = RTC::now();
   p->tv_usec = 0;
   return 0;
 }
@@ -212,7 +212,7 @@ void abort_ex(const char* why) {
 // Basic second-resolution implementation - using CMOS directly for now.
 int clock_gettime(clockid_t clk_id, struct timespec *tp){
   if (clk_id == CLOCK_REALTIME) {
-    tp->tv_sec = RTC::get();
+    tp->tv_sec = RTC::now();
     tp->tv_nsec = 0;
     return 0;
   }
