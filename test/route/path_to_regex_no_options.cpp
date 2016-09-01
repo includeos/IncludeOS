@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regex.cpp"
+#include "../../route/path_to_regex.hpp"
 
 using namespace std;
 using namespace route;
