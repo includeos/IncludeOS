@@ -64,6 +64,9 @@ void Listener::segment_arrived(Packet_ptr packet) {
   // if it's a new attempt (SYN)
   else
   {
+    // Stat increment number of connection attempts
+    host_.connection_attempts_++;
+
     // if we don't like this client, do nothing
     if(! on_accept_(packet->source()) )
       return;
