@@ -253,6 +253,7 @@ class vm:
     assert(issubclass(hyper, hypervisor))
     self._hyper  = hyper(config)
     self._timer = None
+    self._on_exit_success = lambda : None
     self._on_exit = lambda : None
 
   def exit(self, status, msg):
@@ -260,6 +261,8 @@ class vm:
     print
     print msg
     self._exit_status = status
+    if status == 0:
+      self._on_exit_success()
     self._on_exit()
     sys.exit(status)
 
@@ -267,13 +270,16 @@ class vm:
     self._on_output[ output ] = callback
 
   def on_success(self, callback):
-    self._on_success = callback
+    self._on_output["SUCCESS"] = lambda : [callback(), self._on_success()]
 
   def on_panic(self, callback):
-    self._on_panic = callback
+    self._on_output["PANIC"] = lambda : [callback(), self._on_panic()]
 
   def on_timeout(self, callback):
     self._on_timeout = callback
+
+  def on_exit_success(self, callback):
+    self._on_exit_success = callback
 
   def on_exit(self, callback):
     self._on_exit = callback
@@ -345,7 +351,7 @@ class vm:
       print color.INFO(nametag),"Done running VM. Exit status: ", self._exit_status
       sys.exit(self._exit_status)
     else:
-      print color.SUCCESS(nametag + " All tests passed!")
+      print color.SUCCESS(nametag + " VM exited with 0 exit status.")
       print color.INFO(nametag), "Subprocess finished. Exiting with ", self._hyper.poll()
       sys.exit(self._hyper.poll())
 

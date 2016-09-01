@@ -35,7 +35,9 @@ const lest::test tests[] = {
 
           bool caught = false;
           try {
-            if (OS::uptime() > 0.1){ // TODO: Why uptime? Ask Alfred.
+            // We want to always throw, but avoid the compiler optimizing
+            // away the test. Also nice to have this test talk to the OS a little.
+            if (OS::uptime()){
               std::runtime_error myexception(error_msg);
               throw myexception;
             }
@@ -45,7 +47,7 @@ const lest::test tests[] = {
           EXPECT(caught);
         }
 
-        THEN("a custom exception should be caught") {
+        AND_THEN("a custom exception should also be caught") {
           std::string custom_msg = "Custom exceptions are useful";
           std::string caught_msg = "";
 
