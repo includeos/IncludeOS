@@ -298,8 +298,6 @@ void Service::start(const std::string&) {
           currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
       });
 
-      //StackSampler::begin();
-
     }); // < disk
 }
 

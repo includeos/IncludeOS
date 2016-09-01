@@ -29,7 +29,30 @@
   </div>
 
   <div class="col-md-6">
+  <h3>OS Status</h3>
+  </hr>
+    <dl class="dl-horizontal">
+      <dt>Version</dt>
+      <dd>{{ status.version }}</dd>
 
+      <dt>Service</dt>
+      <dd>{{ status.service }}</dd>
+
+      <dt>Uptime</dt>
+      <dd>{{ status.uptime | secondsToDateTime | date: 'HH:mm:ss' }}</dd>
+
+      <hr/>
+
+      <dt>CPU freq</dt>
+      <dd>{{ status.cpu_freq | number:0 }} MHz</dd>
+
+      <dt>Heap Usage</dt>
+      <dd>{{ status.heap_usage | bytes }}</dd>
+
+      <dt>Current Time</dt>
+      <dd>{{ status.current_time | date: 'yyyy-MM-dd HH:mm' }}</dd>
+
+    </dl>
   </div>
   </div>
 

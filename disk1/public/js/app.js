@@ -39,4 +39,8 @@ app.filter('bytes', function() {
 
       return  (val.match(/\.0*$/) ? val.substr(0, val.indexOf('.')) : val) +  ' ' + units[number];
   }
+}).filter('secondsToDateTime', function($filter) {
+    return function(seconds) {
+        return new Date(0, 0, 0).setSeconds(seconds);
+    };
 });
