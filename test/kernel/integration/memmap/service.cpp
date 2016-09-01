@@ -66,7 +66,7 @@ const lest::test specification[] =
             // actual memory map, only the heap_max it was initialized with.
             EXPECT_NOT(malloc(0x200000));
 
-            auto* buf = malloc(0x100000);
+            auto* buf = malloc(0xf0000);
             EXPECT(buf);
           }
         }

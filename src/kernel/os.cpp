@@ -122,6 +122,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "Pre-heap", "Heap randomization area (not for use))"});
 
   memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
+  memmap.assign_range({0xA000, 0x9fbff, "Symbols", "ELF symbol/string sections"});
 
   // Give the rest of physical memory to heap
   heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
@@ -139,14 +140,14 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   while (unavail_end < addr_max){
     INFO2("* Unavailable memory: 0x%x - 0x%x", unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
-          "N/A", "Outside physical range!" });
+          "N/A", "Reserved / outside physical range" });
     unavail_start = unavail_end + 1;
     interval = std::min(span_max, addr_max - unavail_start);
     // Increment might wrapped around
     if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
       INFO2("* Last chunk of memory: 0x%x - 0x%x", unavail_start, addr_max);
       memmap.assign_range({unavail_start, addr_max,
-            "N/A", "Outside physical range!" });
+            "N/A", "Reserved / outside physical range" });
       break;
     }
 
@@ -242,6 +243,14 @@ void OS::register_custom_init(Custom_init delg, const char* name){
   custom_init_.emplace_back(delg, name);
 }
 
+uintptr_t OS::heap_max() {
+  // Before the memory map is populated
+  if (UNLIKELY(memory_map().empty()))
+    return heap_max_;
+
+  // After memory map is populated
+  return memory_map().at(heap_begin).addr_end();
+}
 
 uintptr_t OS::heap_usage() {
   // measures heap usage only?

@@ -1,4 +1,8 @@
 #include <hw/cmos.hpp>
+#include <statman>
+
+/** Stat */
+static uint32_t& now_called {Statman::get().create(Stat::UINT32, "cmos.now").get_uint32()};
 
 cmos::Time cmos::Time::hw_update() {
   // We're supposed to check this before every read
@@ -41,3 +45,9 @@ int cmos::Time::day_of_year() {
 
   return res;
 }
+
+cmos::Time cmos::now() {
+  now_called++;
+
+  return Time().hw_update();
+};

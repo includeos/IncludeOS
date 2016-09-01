@@ -127,9 +127,7 @@ public:
   static uintptr_t heap_usage();
 
   /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() {
-    return heap_max_;
-  };
+  static uintptr_t heap_max();
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
