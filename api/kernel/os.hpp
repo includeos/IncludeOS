@@ -29,6 +29,7 @@
 #include <hw/cpu.hpp>
 #include <hertz>
 #include <vector>
+#include <kernel/rtc.hpp>
 
 namespace hw{ class Serial; }
 
@@ -55,10 +56,17 @@ public:
     return cycles_since_boot() / cpu_mhz_.count();
   }
 
-  /** Uptime in seconds. */
-  static double uptime() {
-    return cycles_since_boot() / Hz(cpu_mhz_).count();
+  /** Timestamp for when OS was booted */
+  static RTC::timestamp_t boot_timestamp()
+  { return booted_at_; }
+
+  /** Uptime in whole seconds. */
+  static RTC::timestamp_t uptime() {
+    return RTC::now() - booted_at_;
   }
+
+  static MHz cpu_freq()
+  { return cpu_mhz_; }
 
   /**
    * Shutdown operating system
@@ -158,6 +166,8 @@ private:
   static rsprint_func rsprint_handler_;
 
   static hw::Serial& com1;
+
+  static RTC::timestamp_t booted_at_;
 
 
   struct Custom_init_struct {

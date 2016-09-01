@@ -46,6 +46,7 @@ extern uintptr_t _MAX_MEM_MIB_;
 
 bool OS::power_   {true};
 MHz  OS::cpu_mhz_ {1000};
+RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
@@ -222,6 +223,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Realtime/monotonic clock
   RTC::init();
+  booted_at_ = RTC::now();
 
   // Trying custom initialization functions
   MYINFO("Calling custom initialization functions");

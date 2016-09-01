@@ -28,10 +28,7 @@ public:
   using timestamp_t = int64_t;
 
   /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t get();
-
-  static timestamp_t now()
-  { return get(); }
+  static timestamp_t now();
 
   /// start an auto-calibration process
   static void init();
