@@ -79,8 +79,6 @@ namespace cmos {
   static reg_t r_memsize_lo = 0x30;
   static reg_t r_memsize_hi = 0x31;
 
-
-
   /** Get the contents of a CMOS register */
   inline uint8_t get(reg_t reg) {
     hw::outb(select, reg | no_nmi);
@@ -131,7 +129,7 @@ namespace cmos {
     Expects (mem.extended.total == mem.actual_extended.total);
 
     return mem;
-}
+  }
 
 
 
@@ -219,9 +217,8 @@ namespace cmos {
    * @warning: Expensive. This is a very expensive operation causing
    * several VM-exits.
    **/
-  inline Time now() {
-    return Time().hw_update();
-  };
+
+   Time now();
 
 } // namespace cmos
 
