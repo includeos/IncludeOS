@@ -123,15 +123,22 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Symbols", "ELF symbol/string sections"});
 
-  // Give the rest of physical memory to heap
-  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
-  memmap.assign_range({heap_begin, heap_max_,
-        "Heap", "Dynamic memory", heap_usage });
-
-  // Create ranges for the remaining address space
+  // Create ranges for heap and the remaining address space
   // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
+
+  // Give the rest of physical memory to heap
+  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
+
+  // ...Unless it's more than the maximum for a range
+  // @note : this is a stupid way to limit the heap - we'll change it, but not until
+  // we have a good solution.
+  heap_max_ = std::min(span_max, heap_max_);
+
+  memmap.assign_range({heap_begin, heap_max_,
+        "Heap", "Dynamic memory", heap_usage });
+
   uintptr_t unavail_start = 0x100000 + high_memory_size_;
   size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
