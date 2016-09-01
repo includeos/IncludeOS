@@ -270,16 +270,19 @@ class vm:
     self._on_output[ output ] = callback
 
   def on_success(self, callback):
-    self._on_output["SUCCESS"] = callback
+    self._on_output["SUCCESS"] = lambda : [callback(), self._on_success()]
 
   def on_panic(self, callback):
-    self._on_output["PANIC"] = callback
+    self._on_output["PANIC"] = lambda : [callback(), self._on_panic()]
 
   def on_timeout(self, callback):
     self._on_timeout = callback
 
   def on_exit_success(self, callback):
     self._on_exit_success = callback
+
+  def on_exit(self, callback):
+    self._on_exit = callback
 
   def readline(self):
     return self._hyper.readline()
