@@ -10,9 +10,6 @@ export TARGET=i686-elf
 export PATH="$PREFIX/bin:$PATH"
 export build_dir=$HOME/cross-dev
 
-# Multitask-parameter to make
-export num_jobs=-j$((`lscpu -p | tail -1 | cut -d',' -f1` + 1 ))
-
 export newlib_version=2.4.0
 
 export INCLUDEOS_SRC=`pwd`
@@ -79,19 +76,21 @@ git submodule update
 popd
 
 if [ ! -z $do_includeos ]; then
-    # Build and install the vmbuilder
+    # Install OS before vmbuilder
+    echo -e "\n >>> Building IncludeOS"
+    pushd $INCLUDEOS_SRC/src
+    make clean
+    make -j
+
+    echo -e "\n >>> Installing IncludeOS"
+    make install
+    popd
+
+    # Build and install the vmbuilder (after OS)
     echo -e "\n >>> Installing vmbuilder"
     pushd $INCLUDEOS_SRC/vmbuild
     make
     cp vmbuild $INSTALL_DIR/
-    popd
-
-    echo -e "\n >>> Building IncludeOS"
-    pushd $INCLUDEOS_SRC/src
-    make $num_jobs
-
-    echo -e "\n >>> Installing IncludeOS"
-    make install
     popd
 
     # RUNNING IncludeOS
