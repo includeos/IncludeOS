@@ -31,8 +31,7 @@ std::regex Path_to_regex::path_to_regex(const std::string& path, Keys& keys, con
 }
 
 std::regex Path_to_regex::path_to_regex(const std::string& path,  const Options& options) {
-  Tokens all_tokens = parse(path);
-  return tokens_to_regex(all_tokens, options);
+  return tokens_to_regex(parse(path), options);
 }
 
 // Parse a string for the raw tokens
