@@ -37,7 +37,7 @@ const lest::test tests[] = {
           try {
             // We want to always throw, but avoid the compiler optimizing
             // away the test. Also nice to have this test talk to the OS a little.
-            if (OS::uptime()){
+            if (rand()){
               std::runtime_error myexception(error_msg);
               throw myexception;
             }
