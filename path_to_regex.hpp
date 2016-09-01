@@ -45,7 +45,7 @@ struct Token {
   }
 }; //< struct Token
 
-class PathToRegex {
+class Path_to_regex {
 private:
   //----------------------------------------
   // Internal class type aliases
@@ -108,7 +108,7 @@ public:
 
 private:
 	static const std::regex PATH_REGEXP;
-}; //< class PathToRegex
+}; //< class Path_to_regex
 
 } //< namespace route
 
