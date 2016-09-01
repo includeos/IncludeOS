@@ -47,7 +47,7 @@ const lest::test test_cookie_jar[] =
         {
           EXPECT_NOT(jar.empty());
           EXPECT(jar.size() == 1u);
-          EXPECT(jar.find("name") == "value");
+          EXPECT(jar.cookie_value("name") == "value");
           EXPECT(jar.exists("name"));
         }
 
@@ -60,7 +60,7 @@ const lest::test test_cookie_jar[] =
           {
             EXPECT(jar.empty());
             EXPECT(jar.size() == 0u);
-            EXPECT(jar.find("name") == "");
+            EXPECT(jar.cookie_value("name") == "");
             EXPECT_NOT(jar.exists("name"));
           }
         }
@@ -80,7 +80,7 @@ const lest::test test_cookie_jar[] =
         {
           EXPECT_NOT(jar.empty());
           EXPECT(jar.size() == 1u);
-          EXPECT(jar.find("another_name") == "another_value");
+          EXPECT(jar.cookie_value("another_name") == "another_value");
           EXPECT(jar.exists("another_name"));
         }
 
@@ -90,8 +90,8 @@ const lest::test test_cookie_jar[] =
         {
           EXPECT_NOT(jar.empty());
           EXPECT(jar.size() == 2u);
-          EXPECT(jar.find("another_name") == "another_value");
-          EXPECT(jar.find("a_cookie_name") == "a_cookie_value");
+          EXPECT(jar.cookie_value("another_name") == "another_value");
+          EXPECT(jar.cookie_value("a_cookie_name") == "a_cookie_value");
           EXPECT(jar.exists("another_name"));
           EXPECT(jar.exists("a_cookie_name"));
         }
@@ -102,9 +102,9 @@ const lest::test test_cookie_jar[] =
         {
           EXPECT_NOT(jar.empty());
           EXPECT(jar.size() == 3u);
-          EXPECT(jar.find("another_name") == "another_value");
-          EXPECT(jar.find("a_cookie_name") == "a_cookie_value");
-          EXPECT(jar.find("a_third_cookie_name") == "a_third_cookie_value");
+          EXPECT(jar.cookie_value("another_name") == "another_value");
+          EXPECT(jar.cookie_value("a_cookie_name") == "a_cookie_value");
+          EXPECT(jar.cookie_value("a_third_cookie_name") == "a_third_cookie_value");
           EXPECT(jar.exists("another_name"));
           EXPECT(jar.exists("a_cookie_name"));
           EXPECT(jar.exists("a_third_cookie_name"));
@@ -119,9 +119,9 @@ const lest::test test_cookie_jar[] =
           {
             EXPECT_NOT(jar.empty());
             EXPECT(jar.size() == 2u);
-            EXPECT(jar.find("another_name") == "another_value");
-            EXPECT(jar.find("a_third_cookie_name") == "a_third_cookie_value");
-            EXPECT_NOT(jar.find("a_cookie_name") == "a_cookie_value");
+            EXPECT(jar.cookie_value("another_name") == "another_value");
+            EXPECT(jar.cookie_value("a_third_cookie_name") == "a_third_cookie_value");
+            EXPECT_NOT(jar.cookie_value("a_cookie_name") == "a_cookie_value");
             EXPECT(jar.exists("another_name"));
             EXPECT(jar.exists("a_third_cookie_name"));
             EXPECT_NOT(jar.exists("a_cookie_name"));
@@ -138,7 +138,7 @@ const lest::test test_cookie_jar[] =
           {
             EXPECT(jar.empty());
             EXPECT(jar.size() == 0u);
-            EXPECT(jar.find("another_name") == "");
+            EXPECT(jar.cookie_value("another_name") == "");
             EXPECT_NOT(jar.exists("a_third_cookie_name"));
           }
         }
