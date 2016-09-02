@@ -67,24 +67,14 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 
 void Service::start(const std::string&)
 {
-  // Retreive the stack on nic 0
-  // Creates (without IP configuration) if not already exists
-  //auto& inet = net::Inet4::stack<0>();
-
-  // Create a stack on nic 0 with static IP configuration
-  auto& inet = net::Inet4::ifconfig<0>({ 10,0,0,42 },     // IP
-                                       { 255,255,255,0 }, // Netmask
-                                       { 10,0,0,1 },      // Gateway
-                                       { 10,0,0,1 });     // DNS
-
-  // Create a stack on nic 0 with default DHCP negotation
-  //auto& inet = net::Inet4::ifconfig<0>();
-
-  // Create a stack on nic 0 with custom DHCP negotation
-  //auto& inet = net::Inet4::ifconfig<0>(5.0,
-  //[](bool timeout) {
-  //  printf("<Serivce> DHCP timed out: %s\n", timeout?"true":"false");
-  //});
+  // DHCP on interface 0
+  auto& inet = net::Inet4::ifconfig<0>(10.0);
+  // static IP in case DHCP fails
+  net::Inet4::ifconfig<0>(
+    { 10,0,0,42 },     // IP
+    { 255,255,255,0 }, // Netmask
+    { 10,0,0,1 },      // Gateway
+    { 10,0,0,1 });     // DNS  
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
