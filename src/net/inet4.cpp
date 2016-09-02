@@ -83,28 +83,6 @@ Inet4::Inet4(hw::Nic& nic)
   eth_.set_physical_out(phys_top);
 }
 
-Inet4::Inet4(
-  hw::Nic& nic,
-  IP4::addr ip,
-  IP4::addr netmask,
-  IP4::addr gateway)
-  : Inet4(nic)
-{
-  ip4_addr_ = ip;
-  netmask_ = netmask;
-  router_ = gateway;
-  // default DNS server to gateway
-  set_dns_server(gateway);
-}
-
-Inet4::Inet4(hw::Nic& nic, double timeout)
-  : Inet4(nic)
-{
-  dhcp_ = std::make_shared<DHClient>(*this);
-  // @timeout for DHCP-server negotation
-  dhcp_->negotiate(timeout);
-}
-
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   INFO("Inet4", "Negotiating DHCP...");
   if(!dhcp_)
