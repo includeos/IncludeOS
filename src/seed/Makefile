@@ -128,12 +128,6 @@ memdisk:
 
 # Service
 ###################################################
-service.o: service.cpp
-	@echo "\n>> Compiling the service"
-	$(CPP) $(CPPOPTS) -o $@ $<
-
-.service_name.o: $(INSTALL)/service_name.cpp
-	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE_NAME)\"" -o $@ $<
 
 # Link the service with the os
 service: $(OBJS) $(LIBS)
@@ -152,6 +146,9 @@ endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
 
+.service_name.o: $(INSTALL)/service_name.cpp
+	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE_NAME)\"" -o $@ $<
+
 servicefile:
 	@echo $(SERVICE).img
 
@@ -160,21 +157,17 @@ servicefile:
 
 # Runtime
 crt%.o: $(INSTALL)/crt/crt%.s
-	@echo "\n>> Assembling C runtime:" $@
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
 # General C++-files to object files
 %.o: %.cpp
-	@echo "\n>> Compiling $<..."
-	$(CPP) $(CPPOPTS) -o $@ $<
+	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
 %.o: %.c
-	@echo "\n>> Compiling $<..."
-	$(CC) $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
+	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s
-	@echo "\n>> Assembling GNU 'as' files"
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
 
 # Cleanup
