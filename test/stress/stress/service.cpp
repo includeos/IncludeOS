@@ -20,7 +20,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
-#include <timer>
+#include <timers>
 
 using namespace std::chrono;
 
