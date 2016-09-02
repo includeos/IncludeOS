@@ -8,6 +8,7 @@ SERVICE_NAME = Network transmission tests
 
 # Your service parts
 FILES = service.cpp
+DRIVERS = virtionet
 
 # Your disk image
 DISK=
