@@ -188,12 +188,6 @@ namespace net {
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
-    /** Initialize with static IP / netmask / Gateway */
-    Inet4(hw::Nic& nic, IP4::addr ip, IP4::addr netmask, IP4::addr gateway);
-
-    /** Initialize with DHCP  */
-    Inet4(hw::Nic& nic, double timeout);
-
     void process_sendq(size_t);
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;

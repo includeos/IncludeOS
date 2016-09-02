@@ -64,6 +64,11 @@ namespace hw
     auto reg = get_entry(vec, ENT_VECTOR_CTL);
     mm_write(reg, mm_read(reg) & ~MSIX_ENTRY_CTL_MASK);
   }
+  void msix_t::zero_entry(size_t vec)
+  {
+    auto reg = get_entry(vec, ENT_MSG_DATA);
+    mm_write(reg, mm_read(reg) & ~0xff);
+  }
   
   void msix_t::reset_pba_bit(size_t vec)
   {
@@ -103,7 +108,11 @@ namespace hw
     assert(cap >= 0x40);
     // read message control bits
     uint16_t func = dev.read16(cap + 2);
-    assert(func < 0x1000 && "Invalid MSI-X func read");
+    
+    /// if MSIX was already enabled, avoid validating func
+    if ((func & MSIX_ENABLE) == 0)
+      assert(func < 0x1000 && "Invalid MSI-X func read");
+    
     // enable msix and mask all vectors
     func |= MSIX_ENABLE | MSIX_FUNC_MASK;
     dev.write16(cap + 2, func);
@@ -121,9 +130,11 @@ namespace hw
       assert(vectors() <= 16 && "Unreasonably many MSI-X vectors");
     }
     
-    // mask out all entries
-    for (size_t i = 0; i < this->vectors(); i++)
+    // reset all entries
+    for (size_t i = 0; i < this->vectors(); i++) {
       mask_entry(i);
+      zero_entry(i);
+    }
     
     // unmask vectors
     func &= ~MSIX_FUNC_MASK;

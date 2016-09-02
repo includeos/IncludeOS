@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <os>
-#include <timers>
 #include <vga>
 #include <hw/ps2.hpp>
 
