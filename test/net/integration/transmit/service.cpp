@@ -26,11 +26,11 @@ auto& timer = hw::PIT::instance();
 
 void Service::start(const std::string&)
 {
-  static auto inet =
-    net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                          { 255,255,255,0 },  // Netmask
-                          { 10,0,0,1 });      // Gateway
-  printf("IP address: %s \n", inet->ip_addr().str().c_str());
+  auto& inet = Inet4::stack<0>();
+  inet.network_config({  10,  0,  0, 45 },   // IP
+                      { 255, 255, 0,  0 },   // Netmask
+                      {  10,  0,  0,  1 } ); // Gateway
+  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   const UDP::port_t port = 4242;
   auto& conn = inet->udp().bind(port);
