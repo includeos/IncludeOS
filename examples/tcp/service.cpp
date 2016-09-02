@@ -15,21 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
-  An example to show incoming and outgoing TCP Connections.
-  In this example, IncludeOS is listening on port 80.
-
-  Data received on port 80 will be redirected to a
-  outgoing connection to a (in this case) python server (server.py)
-
-  Data received from the python server connection
-  will be redirected back to the client.
-
-  To try it out, use netcat to connect to this IncludeOS instance.
-*/
-
 #include <os>
 #include <net/inet4>
+
+/**
+ * An example to show incoming and outgoing TCP Connections.
+ * In this example, IncludeOS is listening on port 80.
+ * 
+ * Data received on port 80 will be redirected to a
+ * outgoing connection to a (in this case) python server (server.py)
+ * 
+ * Data received from the python server connection
+ * will be redirected back to the client.
+ * 
+ * To try it out, use netcat to connect to this IncludeOS instance.
+**/
 
 using Connection_ptr = net::tcp::Connection_ptr;
 using Disconnect = net::tcp::Connection::Disconnect;
@@ -54,7 +54,7 @@ void handle_python_on_read(Connection_ptr client, const std::string& response) {
 void Service::start(const std::string&)
 {
   // Static IP configuration will get overwritten by DHCP, if found
-  static auto& inet = net::Inet4::stack<0>();
+  auto& inet = net::Inet4::ifconfig<0>(10);
   inet.network_config({ 10,0,0,42 },      // IP
                       { 255,255,255,0 },  // Netmask
                       { 10,0,0,1 },       // Gateway
@@ -66,7 +66,7 @@ void Service::start(const std::string&)
 
   // When someone connects to our server
   server.on_connect(
-  [] (Connection_ptr client) {
+  [&inet] (Connection_ptr client) {
     printf("Connected [Client]: %s\n", client->to_string().c_str());
     // Make an outgoing connection to our python server
     auto outgoing = inet.tcp().connect(python_server);

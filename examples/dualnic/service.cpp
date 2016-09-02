@@ -20,7 +20,7 @@
 
 #include <os>
 #include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
+#include <timers>
 
 using namespace std::chrono;
 
@@ -70,7 +70,7 @@ void Service::start(const std::string&)
   // DNS address defaults to 8.8.8.8
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that works with and without DHCP
-  static auto& inet1 = net::Inet4::stack<0>();
+  auto& inet1 = net::Inet4::ifconfig<0>(10);
   inet1.network_config({ 10,0,0,42 },      // IP
                        { 255,255,255,0 },  // Netmask
                        { 10,0,0,1 },       // Gateway
@@ -79,7 +79,7 @@ void Service::start(const std::string&)
   // Assign a driver (VirtioNet) to network interface (eth1)
   // @note: We could determine the appropirate driver dynamically, but then we'd
   // have to include all the drivers into the image, which we want to avoid.
-  static auto& inet2 = net::Inet4::stack<1>();
+  auto& inet2 = net::Inet4::ifconfig<1>(10);
   inet2.network_config({ 20,0,0,42 },      // IP
                        { 255,255,255,0 },  // Netmask
                        { 20,0,0,1 },       // Gateway
@@ -93,7 +93,8 @@ void Service::start(const std::string&)
   create_server(server2);
 
   // Print some useful netstats every 30 secs
-  hw::PIT::instance().on_repeated_timeout(30s, [] {
+  Timers::periodic(10s, 30s,
+  [&inet1, &inet2] (uint32_t) {
     printf("<INET_1> TCP STATUS:\n%s\n", inet1.tcp().status().c_str());
     printf("<INET_2> TCP STATUS:\n%s\n", inet2.tcp().status().c_str());
   });
