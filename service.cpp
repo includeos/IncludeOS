@@ -51,7 +51,7 @@ void ssampler_print(int N)
 static IrcServer* ircd;
 
 
-#define PERIOD_SECS    2
+#define PERIOD_SECS    30
 
 void print_stats(uint32_t)
 {
@@ -116,8 +116,6 @@ void Service::start(const std::string& args)
   
   using namespace std::chrono;
   Timers::periodic(seconds(PERIOD_SECS), seconds(PERIOD_SECS), print_stats);
-  
-  printf("%lld\n", RTC::now());
 }
 
 void Service::stop()
