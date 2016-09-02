@@ -49,7 +49,7 @@ void begin_update(const char* blob, size_t size)
   printf("ELF ident: %*s\n", 4, hdr.e_ident);
   
   // the function we want to jump to:
-  const char* DESTINATION = "_start";
+  const char* DESTINATION = "kernel_start";
   
   // find symbols and strings
   SymTab symtab { nullptr, 0 };
