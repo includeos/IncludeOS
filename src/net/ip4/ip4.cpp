@@ -48,8 +48,9 @@ namespace net {
     auto data = pckt->buffer();
     ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
 
-    // Drop if my ip address doesn't match destination ip address
-    if(UNLIKELY(local_ip() != hdr->daddr)) {
+    // Drop if my ip address doesn't match destination ip address or broadcast
+    if(UNLIKELY(hdr->daddr != local_ip() and
+                hdr->daddr != INADDR_BCAST)) {
       packets_dropped_++;
       return;
     }

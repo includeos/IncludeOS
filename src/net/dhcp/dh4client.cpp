@@ -206,7 +206,7 @@ namespace net
     dhcp->hops  = 0;
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
-    dhcp->flags = htons(BOOTP_UNICAST);
+    dhcp->flags = htons(BOOTP_BROADCAST);
     dhcp->ciaddr = IP4::INADDR_ANY;
     dhcp->yiaddr = IP4::INADDR_ANY;
     dhcp->siaddr = IP4::INADDR_ANY;
@@ -374,7 +374,7 @@ namespace net
     resp->hops  = 0;
     resp->xid   = htonl(this->xid);
     resp->secs  = 0;
-    resp->flags = htons(BOOTP_UNICAST);
+    resp->flags = htons(BOOTP_BROADCAST);
 
     resp->ciaddr = IP4::INADDR_ANY;
     resp->yiaddr = IP4::INADDR_ANY;
