@@ -1,3 +1,4 @@
 *.o
+*.d
 *.img
 IRCd

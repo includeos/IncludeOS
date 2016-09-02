@@ -139,7 +139,7 @@ public:
   
   // create a now() timestamp
   long create_timestamp() const noexcept {
-    return RTC::get();
+    return RTC::now();
   }
   // imprecise timestamp
   long get_cheapstamp() const noexcept {

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <set>
 #include <debug>
-#include <timer>
+#include <timers>
 
 #include <kernel/syscalls.hpp>
 

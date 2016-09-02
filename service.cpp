@@ -17,7 +17,7 @@
 
 #include <os>
 #include <profile>
-#include <timer>
+#include <timers>
 
 #include <ctime>
 std::string now()
@@ -73,13 +73,6 @@ void print_stats(uint32_t)
   
   printf("[%s] Conns/sec %f  Heap %.1f kb\n",  
       now().c_str(), cps, OS::heap_usage() / 1024.f);
-  // timers per second
-  extern int _get_timers_stats();
-  printf("T/s: %.2f  ", _get_timers_stats() / (float)PERIOD_SECS);
-  // timer stats
-  extern size_t _get_timers_ubound();
-  extern size_t _get_timers_dead();
-  printf("Tims: %u  Dead: %u  ", _get_timers_ubound(), _get_timers_dead());
   // client and channel stats
   printf("Conns: %u  Clis: %u  Club: %u  Chans: %u\n", 
          ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS), 
@@ -102,17 +95,12 @@ void Service::start(const std::string& args)
   if (!args.empty())
     printf("Command line is \"%s\"\n", args.c_str());
   
-  auto& inet = net::Inet4::stack<0>();
-  inet.negotiate_dhcp(5.0,
-  [&inet] (bool timeout) {
-    if (timeout) {
-      inet.network_config(
-          {  10, 0,  0, 42 },  // IP
-          { 255,255,255, 0 },  // Netmask
-          {  10, 0,  0,  1 },  // Gateway
-          {  10, 0,  0,  1 }); // DNS
-    }
-  });
+  auto& inet = net::Inet4::ifconfig<0>(10);
+  inet.network_config(
+      {  10, 0,  0, 42 },  // IP
+      { 255,255,255, 0 },  // Netmask
+      {  10, 0,  0,  1 },  // Gateway
+      {  10, 0,  0,  1 }); // DNS
   
   // IRC default port
   static std::vector<std::string> motd;
@@ -128,6 +116,8 @@ void Service::start(const std::string& args)
   
   using namespace std::chrono;
   Timers::periodic(seconds(PERIOD_SECS), seconds(PERIOD_SECS), print_stats);
+  
+  printf("%lld\n", RTC::now());
 }
 
 void Service::stop()
