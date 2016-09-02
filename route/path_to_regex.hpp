@@ -17,45 +17,40 @@
 
 // https://github.com/pillarjs/path-to-regexp/blob/master/index.js
 
-#ifndef PATH_TO_REGEX_HPP
-#define PATH_TO_REGEX_HPP
+#ifndef ROUTE_PATH_TO_REGEX_HPP
+#define ROUTE_PATH_TO_REGEX_HPP
 
+#include <map>
 #include <regex>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace route {
 
 struct Token {
-	std::string name;	// can be a string or an int (index)
-	std::string prefix;
-	std::string delimiter;
-	bool optional;
-	bool repeat;
-	bool partial;
-	bool asterisk;
-	std::string pattern;
-	bool is_string;	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
+	std::string name      {};	// can be a string or an int (index)
+	std::string prefix    {};
+	std::string delimiter {};
+	std::string pattern   {};
+  bool        optional  {false};
+  bool        repeat    {false};
+  bool        partial   {false};
+  bool        asterisk  {false};
+	bool        is_string {false};	// If it is a string we only put/have a string in the name-attribute (path in parse-method)
 	               	// So if this is true, we can ignore all attributes except name
 
   void set_string_token(const std::string& name_) {
     name = name_;
-    prefix = "";
-    delimiter = "";
-    optional = false;
-    repeat = false;
-    partial = false;
-    asterisk = false;
-    pattern = "";
     is_string = true;
   }
-};	// < struct Token
+}; //< struct Token
 
-class PathToRegex {
+using Keys    = std::vector<Token>;
+using Tokens  = std::vector<Token>;
+using Options = std::map<std::string, bool>;
 
+class Path_to_regex {
 public:
-
   /**
    *  Creates a path-regex from string input (path)
    *  Updates keys-vector (empty input parameter)
@@ -74,8 +69,7 @@ public:
    *      sensitive = false
    *      end = true
    */
-	static std::regex path_to_regex(const std::string& path, std::vector<Token>& keys,
-		const std::map<std::string, bool>& options = std::map<std::string, bool>());
+	static std::regex path_to_regex(const std::string& path, Keys& keys, const Options& options = Options{});
 
   /**
    *  Creates a path-regex from string input (path)
@@ -89,33 +83,30 @@ public:
    *      sensitive = false
    *      end = true
    */
-  static std::regex path_to_regex(const std::string& path,
-    const std::map<std::string, bool>& options = std::map<std::string, bool>());
+  static std::regex path_to_regex(const std::string& path, const Options& options = Options{});
 
   /**
    *  Creates vector of tokens based on the given string (this vector of tokens can be sent as
    *  input to tokens_to_regex-method and includes tokens that are strings, not only tokens
    *  that are parameters in str)
    */
-  static std::vector<Token> parse(const std::string& str);
+  static Tokens parse(const std::string& str);
 
   /**
    *  Creates a regex based on the tokens and options (optional) given
    */
-  static std::regex tokens_to_regex(const std::vector<Token>& tokens,
-    const std::map<std::string, bool>& options = std::map<std::string, bool>());
+  static std::regex tokens_to_regex(const Tokens& tokens, const Options& options = Options{});
 
   /**
    *  Goes through the tokens-vector and push all tokens that are not string-tokens
    *  onto keys-vector
    */
-  static void tokens_to_keys(const std::vector<Token>& tokens, std::vector<Token>& keys);
+  static void tokens_to_keys(const Tokens& tokens, Keys& keys);
 
 private:
 	static const std::regex PATH_REGEXP;
+}; //< class Path_to_regex
 
-};  // < class PathToRegex
+} //< namespace route
 
-};	// < namespace route
-
-#endif	// < PATH_TO_REGEX_HPP
+#endif //< ROUTE_PATH_TO_REGEX_HPP

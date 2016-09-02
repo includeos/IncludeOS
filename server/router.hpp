@@ -50,7 +50,7 @@ namespace server {
 
       Route(const char* ex, Callback c)
         : path{ex}, callback{c} {
-        expr = route::PathToRegex::path_to_regex(ex, keys); // also sets the keys attribute
+        expr = route::Path_to_regex::path_to_regex(ex, keys); // also sets the keys attribute
       }
     };
 
