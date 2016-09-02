@@ -1,0 +1,4 @@
+LiveUpdate
+*.img
+*.o
+*.d
