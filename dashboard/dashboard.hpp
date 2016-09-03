@@ -16,18 +16,19 @@
 // limitations under the License.
 
 #pragma once
-#ifndef DASHBOARD_HPP
-#define DASHBOARD_HPP
+#ifndef DASHBOARD_DASHBOARD_HPP
+#define DASHBOARD_DASHBOARD_HPP
 
-#include <os>
-#include <delegate>
-#include <server.hpp>
+#include <router.hpp>
 #include <json.hpp>
+#include "component.hpp"
+#include "common.hpp"
+
+namespace dashboard {
 
 class Dashboard {
-  using Buffer = rapidjson::StringBuffer;
-  using Writer = rapidjson::Writer<Buffer>;
-  using RouteCallback = delegate<void(server::Request_ptr, server::Response_ptr)>;
+
+  using ComponentCollection = std::unordered_map<std::string, const Component*>;
 
 public:
   Dashboard();
@@ -35,32 +36,50 @@ public:
   const server::Router& router() const
   { return router_; }
 
+  void add(const Component&);
+
+  template <typename Comp, typename... Args>
+  inline void construct(Args&&...);
+
 private:
 
   server::Router router_;
-  Buffer buffer_;
+  WriteBuffer buffer_;
   Writer writer_;
-  const int stack_samples;
+
+  ComponentCollection components_;
 
   void setup_routes();
 
-  void serve_all(server::Request_ptr, server::Response_ptr);
-  void serve_memmap(server::Request_ptr, server::Response_ptr);
-  void serve_statman(server::Request_ptr, server::Response_ptr);
-  void serve_stack_sampler(server::Request_ptr, server::Response_ptr);
-
-  void serialize_memmap(Writer&) const;
-  void serialize_statman(Writer&) const;
-  void serialize_stack_sampler(Writer&) const;
-  void serialize_status(Writer&) const;
+  void serve(server::Request_ptr, server::Response_ptr);
+  void serialize(Writer&) const;
 
   void send_buffer(server::Response_ptr);
   void reset_writer();
 
 };
 
-class Status {
+inline void Dashboard::add(const Component& c) {
+  components_.emplace(c.key(), &c);
 
-};
+  // A really simple way to setup routes, only supports read (GET)
+  router_.on_get(std::string{"/"} + c.key(),
+  [this, &c] (server::Request_ptr, server::Response_ptr res)
+  {
+    c.serialize(writer_);
+    send_buffer(res);
+  });
+}
+
+template <typename Comp, typename... Args>
+inline void Dashboard::construct(Args&&... args) {
+  static_assert(std::is_base_of<Component, Comp>::value, "Template type is not a Component");
+
+  const Comp& c = *new Comp{std::forward<Args>(args)...};
+
+  add(c);
+}
+
+} // < namespace dashboard
 
 #endif
