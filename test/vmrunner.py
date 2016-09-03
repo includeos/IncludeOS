@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import thread
 import threading
 import time
 import re
@@ -86,6 +87,7 @@ def print_exception():
 def handler(signum, frame):
     print color.WARNING("Process interrupted")
     thread.interrupt_main()
+    thread.exit()
 
 signal.signal(signal.SIGINT, handler)
 
@@ -314,6 +316,7 @@ class vm:
     try:
       self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
     except Exception as err:
+      print color.WARNING("Exception raised while booting ")
       if (timeout): self._timer.cancel()
       raise err
 
