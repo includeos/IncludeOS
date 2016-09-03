@@ -158,7 +158,7 @@ namespace net {
 
     /** Return the stack on the given Nic */
     template <int N>
-    static auto& stack()
+    static auto&& stack()
     {
       static Inet4 inet{hw::Devices::nic(N)};
       return inet;
@@ -166,7 +166,7 @@ namespace net {
 
     /** Static IP config */
     template <int N>
-    static auto& ifconfig(
+    static auto&& ifconfig(
       IP4::addr addr,
       IP4::addr nmask,
       IP4::addr router,
