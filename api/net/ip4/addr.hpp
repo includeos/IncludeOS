@@ -21,7 +21,7 @@
 #include <regex>
 #include <string>
 #include <net/util.hpp> // byte order
-#include <iostream>
+
 namespace net {
 namespace ip4 {
 
