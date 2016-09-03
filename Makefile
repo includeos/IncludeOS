@@ -15,7 +15,7 @@ FILES=service.cpp server/request.o server/response.o server/connection.o server/
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route -I./dashboard
+CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route
 MOD_FILES=
 
 FILES+=$(MOD_FILES)
