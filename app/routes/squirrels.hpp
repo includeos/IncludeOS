@@ -15,24 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROUTES_SQUIRREL_ROUTER_HPP
-#define ROUTES_SQUIRREL_ROUTER_HPP
+#ifndef ROUTES_SQUIRRELS_HPP
+#define ROUTES_SQUIRRELS_HPP
 #include <router.hpp>
 #include <models/squirrel.hpp>
 #include <bucket.hpp>
 #include <json.hpp>
 
-
-
 namespace acorn {
+namespace routes {
 
-class Squirrel_router : public server::Router {
+class Squirrels : public server::Router {
 
   using SquirrelBucket = bucket::Bucket<Squirrel>;
 
 public:
 
-  Squirrel_router(std::shared_ptr<SquirrelBucket> squirrels)
+  Squirrels(std::shared_ptr<SquirrelBucket> squirrels)
   {
     // GET /
     on_get("/",
@@ -93,6 +92,7 @@ public:
   }
 };
 
-}
+} // < namespace routes
+} // < namespace acorn
 
 #endif
