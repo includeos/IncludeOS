@@ -18,13 +18,16 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <gsl/gsl> // Expects/Ensures
 #include <regex>
 #include <string>
 #include <net/util.hpp> // byte order
-
+#include <iostream>
 namespace net {
 namespace ip4 {
+
+  class Invalid_address : public std::runtime_error {
+    using runtime_error::runtime_error;
+  };
 
 /** IP4 address representation */
 struct Addr {
@@ -49,20 +52,20 @@ struct Addr {
   Addr(const std::string& ipv4_addr)
     : Addr{}
   {
-    Expects(ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15); //< [7, 15] minimum and maximum address length
-
+    if (not(ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15)) //< [7, 15] minimum and maximum address length
+      throw Invalid_address(ipv4_addr + " is not a valid IP");
     const static std::regex ipv4_address_pattern
     {
-      "^(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-      "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-      "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-      "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)$"
+      "^\\s*(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
+        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\s*$"
     };
 
     std::smatch ipv4_parts;
 
     if (not std::regex_match(ipv4_addr, ipv4_parts, ipv4_address_pattern)) {
-      return;
+      throw Invalid_address(ipv4_addr + " is not a valid IP");
     }
 
     const auto p1 = static_cast<uint8_t>(std::stoi(ipv4_parts[1]));
