@@ -48,7 +48,7 @@ namespace server {
       Callback callback;
       std::vector<route::Token> keys;
 
-      Route(const char* ex, Callback c)
+      Route(const std::string& ex, Callback c)
         : path{ex}, callback{c} {
         expr = route::Path_to_regex::path_to_regex(ex, keys); // also sets the keys attribute
       }
@@ -404,7 +404,7 @@ namespace server {
       for(auto& route : routes)
       {
         std::string path = root + route.path;
-        on(method, path.data(), route.callback);
+        on(method, path, route.callback);
       }
     }
     return *this;
