@@ -1,0 +1,6 @@
+[
+  {"name": "hw/integration/serial",
+    "reason": "Serial input from vmrunner to vm does not work yet"},
+  {"name": "net/integration/transmit",
+   "reason": "The test suffers from UDP packet loss which is expected. "}
+]
