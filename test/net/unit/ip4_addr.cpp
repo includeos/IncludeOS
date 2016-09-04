@@ -52,9 +52,7 @@ CASE("Create IP4 addresses from strings")
 
   EXPECT_THROWS(Addr{"LUL"});
   EXPECT_THROWS(Addr{"12310298310298301283"});
-
-  const Addr invalid{"256.256.256.256"};
-  EXPECT( invalid == 0 );
+  EXPECT_THROWS(const Addr invalid{"256.256.256.256"});
 }
 
 CASE("IP4 addresses can be compared to each other")
@@ -86,4 +84,3 @@ CASE("IP4 addresses can be compared to each other")
   EXPECT( result == expected_result );
 
 }
-
