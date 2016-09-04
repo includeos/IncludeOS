@@ -26,14 +26,15 @@ auto& timer = hw::PIT::instance();
 
 void Service::start(const std::string&)
 {
-  static auto inet =
-    net::new_ipv4_stack<>({ 10,0,0,42 },      // IP
-                          { 255,255,255,0 },  // Netmask
-                          { 10,0,0,1 });      // Gateway
-  printf("IP address: %s \n", inet->ip_addr().str().c_str());
+  static auto& inet = net::Inet4::ifconfig<0>({ 10,0,0,45 },     // IP
+				       { 255,255,255,0 }, // Netmask
+				       { 10,0,0,1 },      // Gateway
+				       { 10,0,0,1 });     // DNS
+
+  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   const UDP::port_t port = 4242;
-  auto& conn = inet->udp().bind(port);
+  auto& conn = inet.udp().bind(port);
   conn.on_read(
   [&conn] (auto addr, auto port, const char* data, int len) {
     auto received = std::string(data, len);
@@ -47,7 +48,7 @@ void Service::start(const std::string&)
          addr.str().c_str(), port, received.c_str());
 
     const size_t PACKETS = 600;
-    const size_t PAYLOAD_LEN = inet->ip_obj().MDDS() - sizeof(UDP::udp_header);
+    const size_t PAYLOAD_LEN = inet.ip_obj().MDDS() - sizeof(UDP::udp_header);
 
     std::string first_reply = to_string(PACKETS * PAYLOAD_LEN);
 
@@ -76,17 +77,17 @@ void Service::start(const std::string&)
     const int PACKETS = 600;
     INFO("Test 1", "Trying to transmit %i ethernet packets at maximum throttle", PACKETS);
     for (int i=0; i < PACKETS; i++){
-      auto pckt = inet->create_packet(inet->MTU());
+      auto pckt = inet.create_packet(inet.MTU());
       Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
       hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
       hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
       hdr->type = Ethernet::ETH_ARP;
-      inet->link().transmit(pckt);
+      inet.link().transmit(pckt);
     }
 
     CHECK(1,"Transmission didn't panic");
     INFO("Test 1", "Done. Send some UDP-data to %s:%i to continue test",
-         inet->ip_addr().str().c_str(), port);
+         inet.ip_addr().str().c_str(), port);
   });
 
   INFO("TRANSMIT", "Ready");

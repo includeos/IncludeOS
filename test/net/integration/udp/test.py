@@ -12,7 +12,7 @@ import socket
 
 def UDP_test():
   print "<Test.py> Performing UDP tests"
-  HOST, PORT = "10.0.0.42", 4242
+  HOST, PORT = "10.0.0.45", 4242
   sock = socket.socket
   # SOCK_DGRAM is the socket type to use for UDP sockets
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

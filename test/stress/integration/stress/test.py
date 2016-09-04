@@ -42,6 +42,7 @@ def get_mem():
 
   try:
     # We expect this socket to allready be opened
+    time.sleep(1)
     sock_mem.send("memsize\n")
     received = sock_mem.recv(1000).rstrip()
 
