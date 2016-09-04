@@ -20,8 +20,10 @@
 #include <os>
 #include <list>
 #include <net/inet4>
+#include <timers>
 
 using namespace net;
+using namespace std::chrono;
 
 void Service::start(const std::string&)
 {
@@ -35,19 +37,16 @@ void Service::start(const std::string&)
   const UDP::port_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
-  sock.on_read(
-  [&sock] (UDP::addr_t addr, UDP::port_t port,
-           const char* data, size_t len)
-  {
-    std::string strdata(data, len);
-    CHECK(1, "Getting UDP data from %s:  %d -> %s",
-          addr.str().c_str(), port, strdata.c_str());
-    // send the same thing right back!
-    sock.sendto(addr, port, data, len,
-    [] {
-      INFO("UDP test", "SUCCESS");
-    });
-  });
+  sock.on_read([&sock] (UDP::addr_t addr, UDP::port_t port,
+                        const char* data, size_t len) {
+                 std::string strdata(data, len);
+                 CHECK(1, "Getting UDP data from %s:  %d -> %s",
+                       addr.str().c_str(), port, strdata.c_str());
+                 // send the same thing right back!
+                 Timers::oneshot(100ms, [&sock, addr, port, data, len](Timers::id_t){
+                     sock.sendto(addr, port, data, len);
+                   });
+               });
 
   INFO("UDP test", "Listening on port %d\n", port);
 }

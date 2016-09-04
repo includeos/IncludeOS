@@ -9,6 +9,8 @@ sys.path.insert(0,includeos_src + "/test")
 import vmrunner
 import socket
 
+# Get an auto-created VM from the vmrunner
+vm = vmrunner.vms[0]
 
 def UDP_test():
   print "<Test.py> Performing UDP tests"
@@ -18,22 +20,21 @@ def UDP_test():
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   data = "Douche"
-  sock.sendto(data+"\n", (HOST, PORT))
+  sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
   print "<Test.py> Sent:     {}".format(data)
   print "<Test.py> Received: {}".format(received)
+  if received != data: return False
 
   data = "Bag"
-  sock.sendto(data+"\n", (HOST, PORT))
+  sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
   print "<Test.py> Sent:     {}".format(data)
   print "<Test.py> Received: {}".format(received)
-
-
-# Get an auto-created VM from the vmrunner
-vm = vmrunner.vms[0]
+  if received == data:
+    vmrunner.vms[0].exit(0, "SUCCESS")
 
 # Add custom event-handler
 vm.on_output("IncludeOS UDP test", UDP_test)
