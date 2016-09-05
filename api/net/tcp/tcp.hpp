@@ -143,6 +143,9 @@ namespace net {
     tcp::Address address()
     { return inet_.ip_addr(); }
 
+    IPStack& stack() const
+    { return inet_; }
+
   private:
 
     /** Stats */

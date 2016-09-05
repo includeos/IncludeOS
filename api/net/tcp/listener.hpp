@@ -35,6 +35,8 @@ public:
   using ConnectCallback      = Connection::ConnectCallback;
   using CleanupCallback      = Connection::CleanupCallback;
 
+  using SynQueue = std::deque<Connection_ptr>;
+
   friend class net::TCP;
 
 public:
@@ -70,6 +72,9 @@ public:
   auto syn_queue_size() const
   { return syn_queue_.size(); }
 
+  const SynQueue& syn_queue() const
+  { return syn_queue_; }
+
   /** Delete copy and move constructors.*/
   Listener(Listener&) = delete;
   Listener(Listener&&) = delete;
@@ -81,8 +86,7 @@ public:
 private:
   TCP& host_;
   const port_t port_;
-
-  std::deque<Connection_ptr> syn_queue_;
+  SynQueue syn_queue_;
 
   /** */
   AcceptCallback on_accept_;
