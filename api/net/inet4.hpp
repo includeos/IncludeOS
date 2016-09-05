@@ -157,7 +157,7 @@ namespace net {
     }
 
     /** Return the stack on the given Nic */
-    template <int N>
+    template <int N = 0>
     static auto&& stack()
     {
       static Inet4 inet{hw::Devices::nic(N)};
@@ -165,7 +165,7 @@ namespace net {
     }
 
     /** Static IP config */
-    template <int N>
+    template <int N = 0>
     static auto&& ifconfig(
       IP4::addr addr,
       IP4::addr nmask,
@@ -177,7 +177,7 @@ namespace net {
     }
 
     /** DHCP config */
-    template <int N>
+    template <int N = 0>
     static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
     {
       stack<N>().negotiate_dhcp(timeout, on_timeout);
