@@ -26,7 +26,7 @@
 #include <fs/disk.hpp>
 #include <rtc>
 #include <routes>
-#include <dashboard/dashboard>
+#include <dashboard>
 
 using namespace std;
 using namespace acorn;
