@@ -25,5 +25,6 @@
 #include "components/stacksampler.hpp"
 #include "components/statman.hpp"
 #include "components/status.hpp"
+#include "components/tcp.hpp"
 
 #endif //< __DASHBOARD__
