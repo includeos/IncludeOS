@@ -50,7 +50,7 @@ namespace net {
 
     // Drop if my ip address doesn't match destination ip address or broadcast
     if(UNLIKELY(hdr->daddr != local_ip() and
-                hdr->daddr != INADDR_BCAST)) {
+                (hdr->daddr | stack_.netmask()) != INADDR_BCAST)) {
       packets_dropped_++;
       return;
     }
