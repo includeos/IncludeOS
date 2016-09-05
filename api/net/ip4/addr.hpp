@@ -109,6 +109,13 @@ struct Addr {
   Addr operator & (const Addr rhs)    const noexcept
   { return Addr(whole & rhs.whole); }
 
+  Addr operator | (const Addr rhs)    const noexcept
+  { return Addr(whole | rhs.whole); }
+
+  Addr operator ~ () const noexcept
+  { return Addr(~whole); }
+
+
   /** x.x.x.x string representation */
   std::string str() const {
     char ipv4_addr[16];
