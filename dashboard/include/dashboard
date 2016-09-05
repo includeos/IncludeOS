@@ -16,10 +16,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROUTES_ROUTES
-#define ROUTES_ROUTES
+#ifndef __DASHBOARD__
+#define __DASHBOARD__
 
-#include "squirrels.hpp"
-#include "users.hpp"
+#include "dashboard.hpp"
 
-#endif
+#include "components/memmap.hpp"
+#include "components/stacksampler.hpp"
+#include "components/statman.hpp"
+#include "components/status.hpp"
+
+#endif //< __DASHBOARD__

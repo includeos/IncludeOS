@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
@@ -16,10 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROUTES_ROUTES
-#define ROUTES_ROUTES
+#pragma once
+#ifndef DASHBOARD_COMPONENT_HPP
+#define DASHBOARD_COMPONENT_HPP
 
-#include "squirrels.hpp"
-#include "users.hpp"
+#include "common.hpp"
+
+namespace dashboard {
+
+class Component {
+
+public:
+
+  virtual std::string key() const = 0;
+
+  virtual void serialize(dashboard::Writer&) const = 0;
+
+  virtual ~Component() {}
+
+};
+
+}
 
 #endif

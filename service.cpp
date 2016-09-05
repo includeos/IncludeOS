@@ -26,7 +26,7 @@
 #include <fs/disk.hpp>
 #include <rtc>
 #include <routes>
-#include <dashboard.hpp>
+#include <dashboard>
 
 using namespace std;
 using namespace acorn;
@@ -38,7 +38,7 @@ std::shared_ptr<UserBucket>     users;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<server::Server> server_;
-std::unique_ptr<Dashboard> dashboard;
+std::unique_ptr<dashboard::Dashboard> dashboard_;
 
 ////// DISK //////
 // instantiate disk with filesystem
@@ -74,6 +74,11 @@ void Service::start(const std::string&) {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
+      // only works with synchrone disks (memdisk)
+      recursive_fs_dump(*disk->fs().ls("/").entries);
+
+      /** STATS SETUP **/
+      // TODO: Make use of Statman
       server::Connection::on_connection([](){
         stats.bump_connection_count();
       });
@@ -88,19 +93,24 @@ void Service::start(const std::string&) {
           .bump_request_received();
       });
 
-      // setup "database" squirrels
 
+      /** BUCKET SETUP */
+
+      // create squirrel bucket
       squirrels = std::make_shared<SquirrelBucket>();
+      // set member name to be unique
       squirrels->add_index<std::string>("name",
       [](const Squirrel& s)->const auto&
       {
         return s.get_name();
       }, SquirrelBucket::UNIQUE);
 
+      // seed squirrels
       auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
       squirrels->spawn("Alf"s, 6U, "Script kiddie"s);
 
       // A test to see if constraint is working (squirrel).
+      // TODO: Unit test bucket and remove this
       bool exception_thrown = false;
       try {
         Squirrel dupe_name("Andreas", 0, "Tester");
@@ -110,39 +120,24 @@ void Service::start(const std::string&) {
       }
       assert(exception_thrown);
 
-      // no-go if throw
+      // A test to see if field search is working
       assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
-      // setup "database" users
-
+      // setup users bucket
       users = std::make_shared<UserBucket>();
-      /*users->add_index<size_t>("key", [](const User& u)->const auto& {
-        return u.key;
-      }, UserBucket::UNIQUE);*/
 
-      //auto first_user_key = users->spawn().key;
       users->spawn();
       users->spawn();
 
-      // A test to see if constraint is working (user).
-      bool e_thrown = false;
-      try {
-        User dupe_id;
-        dupe_id.key = 1;
-        users->capture(dupe_id);
-      } catch(bucket::ConstraintUnique) {
-        e_thrown = true;
-      }
-      //assert(e_thrown);
 
-      // no-go if throw
-      //assert(users->look_for("key", 1).key == first_user_key);
+      /** ROUTES SETUP **/
 
-      server::Router routes;
+      server::Router router;
 
-      /** Set up Squirrel routes */
-      routes.use("/api/squirrels", Squirrel_router{squirrels});
-
+      // setup Squirrel routes
+      router.use("/api/squirrels", routes::Squirrels{squirrels});
+      // setup User routes
+      router.use("/api/users", routes::Users{users});
 
       /*----------[START TEST OF] CookieJar and CookieParser----------*/
       auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
@@ -175,53 +170,18 @@ void Service::start(const std::string&) {
         }
       };
 
-      routes.on_get("/api/english", [&lang_api_handler](server::Request_ptr req, auto res) {
+      router.on_get("/api/english", [&lang_api_handler](server::Request_ptr req, auto res) {
         lang_api_handler(req, res, "en-US");
       });
 
-      routes.on_get("/api/norwegian", [&lang_api_handler](server::Request_ptr req, auto res) {
+      router.on_get("/api/norwegian", [&lang_api_handler](server::Request_ptr req, auto res) {
         lang_api_handler(req, res, "nb-NO");
       });
       /*----------[END TEST OF] CookieJar and CookieParser----------*/
 
-    // TESTING Path_to_regex/route/router.hpp FROM HERE
-
-      routes.on_get("/api/users/:id(\\d+)/:name/something/:something([a-z]+)",
-        [](server::Request_ptr req, auto res) {
-
-        // Get parameters:
-        // Alt.: std::string id = req->params().get("id");
-        auto& params = req->params();
-        std::string id = params.get("id");
-        std::string name = params.get("name");
-        std::string something = params.get("something");
-
-        // std::string doesntexist = params.get("doesntexist");  // throws ParamException
-
-        printf("id: %s\n", id.c_str());
-        printf("name: %s\n", name.c_str());
-        printf("something: %s\n", something.c_str());
-
-        printf("[@GET:/api/users/:id(\\d+)/:name/something/:something([a-z]+)] Responding with content inside UserBucket\n");
-        using namespace rapidjson;
-        StringBuffer sb;
-        Writer<StringBuffer> writer(sb);
-        users->serialize(writer);
-        res->send_json(sb.GetString());
-      });
-
-    // UNTIL HERE
-
-      routes.on_get("/api/users", [](auto, auto res) {
-        printf("[@GET:/api/users] Responding with content inside UserBucket\n");
-        using namespace rapidjson;
-        StringBuffer sb;
-        Writer<StringBuffer> writer(sb);
-        users->serialize(writer);
-        res->send_json(sb.GetString());
-      });
-
-      routes.on_get("/api/stats", [](auto, auto res) {
+      // Temporary route for polling http stats
+      // TODO: Refactor to use Statsman and maybe integrate with dashboard
+      router.on_get("/api/stats", [](auto, auto res) {
         using namespace rapidjson;
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
@@ -231,23 +191,42 @@ void Service::start(const std::string&) {
         res->send_json(sb.GetString());
       });
 
-      dashboard = std::make_unique<Dashboard>();
-      routes.use("/api/dashboard", dashboard->router());
 
-      routes.on_get(".*", [](auto, auto res){
+      /** DASHBOARD SETUP **/
+      dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
+      // Add singleton component
+      dashboard_->add(dashboard::Memmap::instance());
+      dashboard_->add(dashboard::StackSampler::instance());
+      dashboard_->add(dashboard::Status::instance());
+      // Construct component
+      dashboard_->construct<dashboard::Statman>(Statman::get());
+
+      // Add Dashboard routes to "/api/dashboard"
+      router.use("/api/dashboard", dashboard_->router());
+
+      // Fallback route - serve index.html if route is not found
+      router.on_get(".*", [](auto, auto res) {
+        #ifdef VERBOSE_WEBSERVER
         printf("[@GET:*] Fallback route - try to serve index.html\n");
+        #endif
         disk->fs().stat("/public/index.html", [res](auto err, const auto& entry) {
           if(err) {
             res->send_code(http::Not_Found);
           } else {
             // Serve index.html
+            #ifdef VERBOSE_WEBSERVER
             printf("[@GET:*] (Fallback) Responding with index.html. \n");
+            #endif
             res->send_file({disk, entry});
           }
         });
       });
 
-      /** Setup server **/
+      INFO("Router", "Registered routes:\n%s", router.to_string().c_str());
+
+
+      /** SERVER SETUP **/
+
       // Bring up IPv4 stack on network interface 0
       auto& stack = net::Inet4::ifconfig<0>(5.0,
       [](bool timeout) {
@@ -261,13 +240,12 @@ void Service::start(const std::string&) {
       // initialize server
       server_ = std::make_unique<server::Server>(stack);
       // set routes and start listening
-      server_->set_routes(routes).listen(80);
+      server_->set_routes(router).listen(80);
 
-      printf("<Server> Registered routes:\n%s",routes.to_string().c_str());
 
-      STARTED_AT = RTC::now();
+      /** MIDDLEWARE SETUP **/
 
-      /*
+      /* // example of how to inject a custom middleware closure
       // add a middleware as lambda
       acorn->use([](auto req, auto res, auto next){
         hw::PIT::on_timeout(0.050, [next]{
@@ -293,6 +271,7 @@ void Service::start(const std::string&) {
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
 
+      // Print TCP information every 1 min
       Timers::periodic(30s, 1min, [](auto){
         printf("@onTimeout [%s]\n%s\n",
           currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
