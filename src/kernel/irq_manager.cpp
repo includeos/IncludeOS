@@ -31,9 +31,9 @@ IRQ_manager::IRQ_manager(uint8_t cpuid)
   : cycles_hlt_{Statman::get()
     .create(Stat::UINT64, std::string(std::string("cpu") + std::to_string(cpuid)
                                       + ".cycles_hlt").c_str() ).get_uint64()},
-  cycles_active_{Statman::get()
+  cycles_total_{Statman::get()
       .create(Stat::UINT64,std::string(std::string("cpu") + std::to_string(cpuid)
-                                       + ".cycles_active").c_str()).get_uint64()}
+                                       + ".cycles_total").c_str()).get_uint64()}
 {}
 
 uint8_t IRQ_manager::get_next_msix_irq()
@@ -199,7 +199,7 @@ void IRQ_manager::notify()
 
       (*counters[intr])++;
 
-      cycles_active_ = OS::cycles_since_boot();
+      cycles_total_ = OS::cycles_since_boot();
 
       irq_todo.reset(intr);
       intr = irq_todo.first_set();
@@ -217,5 +217,5 @@ void IRQ_manager::notify()
   "_irq_cb_return_location:" );
 
   // Count sleep cycles
-  cycles_hlt_ += OS::cycles_since_boot() - cycles_active_;
+  cycles_hlt_ += OS::cycles_since_boot() - cycles_total_;
 }

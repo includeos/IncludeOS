@@ -177,6 +177,20 @@ public:
   const Connection::State& prev_state() const
   { return *prev_state_; }
 
+  uint64_t bytes_received() const
+  { return bytes_rx_; }
+
+  uint64_t bytes_transmitted() const
+  { return bytes_tx_; }
+
+  /**
+   * @brief Total number of bytes in read buffer
+   *
+   * @return bytes not yet read
+   */
+  size_t readq_size() const
+  { return read_request.buffer.size(); }
+
   /**
    * @brief Total number of bytes in send queue
    *
@@ -192,32 +206,6 @@ public:
    */
   uint32_t sendq_remaining() const
   { return writeq.bytes_remaining(); }
-
-  /*
-    Calculates and return bytes transmitted.
-    TODO: Not sure if this will suffice.
-  */
-  uint32_t bytes_transmitted() const
-  { return 0; }
-
-  /*
-    Calculates and return bytes received.
-    TODO: Not sure if this will suffice.
-  */
-  uint32_t bytes_received() const
-  { return 0; }
-
-  /*
-    Bytes queued for transmission.
-    TODO: Implement when retransmission is up and running.
-  */
-  //inline size_t send_queue_bytes() const {}
-
-  /*
-    Bytes currently in receive buffer.
-  */
-  size_t read_queue_bytes() const
-  { return read_request.buffer.size(); }
 
   /*
     Return the id (TUPLE) of the connection.
@@ -476,6 +464,10 @@ private:
   PacketDroppedCallback   on_packet_dropped_;
   RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
+
+  /** Recv/Sent */
+  uint64_t bytes_rx_;
+  uint64_t bytes_tx_;
 
   /** State if connection is in TCP write queue or not. */
   bool queued_;

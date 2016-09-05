@@ -43,6 +43,7 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   cb(),
   read_request(),
   writeq(),
+  bytes_rx_(0), bytes_tx_(0),
   queued_(false),
   time_wait_started(0)
 {
@@ -125,6 +126,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
     // renew the buffer, releasing the old one
     buf.renew();
   }
+
+  bytes_rx_ += received;
 
   return received;
 }
@@ -409,6 +412,8 @@ void Connection::transmit(Packet_ptr packet) {
   //  packet->seq() - cb.ISS, packet->ack() - cb.IRS);
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
+  bytes_tx_ += packet->tcp_data_length();
+
   host_.transmit(packet);
   if(packet->should_rtx() and !rtx_timer.active) {
     rtx_start();
@@ -673,6 +678,10 @@ void Connection::retransmit() {
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
   debug("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
+
+  // count retranmissions to bytes transmitted?
+  bytes_tx_ += packet->tcp_data_length();
+
   host_.transmit(packet);
   /*
     Every time a packet containing data is sent (including a

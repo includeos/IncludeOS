@@ -129,9 +129,9 @@ public:
     return cycles_hlt_;
   }
 
-  /** Get the total number of cycles spent working **/
-  uint64_t cycles_active(){
-    return cycles_active_;
+  /** Get the total number of cycles since boot **/
+  uint64_t cycles_total(){
+    return cycles_total_;
   }
 
 private:
@@ -151,7 +151,7 @@ private:
   MemBitmap  irq_todo;
 
   uint64_t& cycles_hlt_;
-  uint64_t& cycles_active_;
+  uint64_t& cycles_total_;
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};
