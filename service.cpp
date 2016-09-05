@@ -74,6 +74,18 @@ void Service::start(const std::string&) {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
+      /** IP STACK SETUP **/
+      // Bring up IPv4 stack on network interface 0
+      auto& stack = net::Inet4::ifconfig<0>(5.0,
+      [](bool timeout) {
+        printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
+      });
+      // config
+      stack.network_config({ 10,0,0,42 },     // IP
+                           { 255,255,255,0 }, // Netmask
+                           { 10,0,0,1 },      // Gateway
+                           { 8,8,8,8 });      // DNS
+
       // only works with synchrone disks (memdisk)
       recursive_fs_dump(*disk->fs().ls("/").entries);
 
@@ -200,6 +212,7 @@ void Service::start(const std::string&) {
       dashboard_->add(dashboard::Status::instance());
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
+      dashboard_->construct<dashboard::TCP>(stack.tcp());
 
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());
@@ -227,16 +240,6 @@ void Service::start(const std::string&) {
 
       /** SERVER SETUP **/
 
-      // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig<0>(5.0,
-      [](bool timeout) {
-        printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
-      });
-      // config
-      stack.network_config({ 10,0,0,42 },     // IP
-                           { 255,255,255,0 }, // Netmask
-                           { 10,0,0,1 },      // Gateway
-                           { 8,8,8,8 });      // DNS
       // initialize server
       server_ = std::make_unique<server::Server>(stack);
       // set routes and start listening
