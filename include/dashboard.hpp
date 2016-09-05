@@ -31,7 +31,7 @@ class Dashboard {
   using ComponentCollection = std::unordered_map<std::string, const Component*>;
 
 public:
-  Dashboard();
+  Dashboard(size_t buffer_capacity = 4096);
 
   const server::Router& router() const
   { return router_; }

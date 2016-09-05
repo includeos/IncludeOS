@@ -20,8 +20,8 @@
 using namespace dashboard;
 using namespace server;
 
-Dashboard::Dashboard()
-: router_(), buffer_(0, 8192), writer_(buffer_)
+Dashboard::Dashboard(size_t buffer_capacity)
+: router_(), buffer_(0, buffer_capacity), writer_(buffer_)
 {
   setup_routes();
 }
