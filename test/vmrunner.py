@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import thread
 import threading
 import time
 import re
@@ -9,57 +10,11 @@ import traceback
 import validate_test
 import signal
 
+from prettify import color
+
 INCLUDEOS_HOME = None
 
 nametag = "<VMRunner>"
-
-class color:
-    C_HEAD = '\033[95m'
-    C_OKBLUE = '\033[94m'
-    C_OKGREEN = '\033[92m'
-    C_WARNING = '\033[93m'
-    C_FAILED = '\033[91m'
-    C_ENDC = '\033[0m'
-    C_BOLD = '\033[1m'
-    C_GRAY = '\033[0;37m'
-    C_UNDERLINE = '\033[4m'
-
-    @staticmethod
-    def WARNING(string):
-      return color.C_WARNING + "[ WARNING ] " + string + color.C_ENDC
-
-    @staticmethod
-    def FAIL(string):
-      return "\n" + color.C_FAILED + "[ FAIL ] " + string + color.C_ENDC + "\n"
-
-    @staticmethod
-    def SUCCESS(string):
-      return "\n" + color.C_OKGREEN + "[ SUCCESS ] " + string + color.C_ENDC + "\n"
-
-    @staticmethod
-    def PASS(string):
-      return "\n" + color.C_OKGREEN + "[ PASS ] " + string + color.C_ENDC + "\n"
-
-    @staticmethod
-    def OK(string):
-      return color.C_OKGREEN + "[ OK ] " + string + color.C_ENDC
-
-    @staticmethod
-    def INFO(string):
-      return color.C_OKBLUE + "* " + string + ": " + color.C_ENDC
-
-    @staticmethod
-    def SUBPROC(string):
-      return color.C_GRAY + "! " + string + color.C_ENDC
-
-    @staticmethod
-    def DATA(string):
-      return color.C_GRAY + string + color.C_ENDC + "\n"
-
-    @staticmethod
-    def HEADER(string):
-      return "\n" + color.C_HEAD + "============================ " + string + " ============================" +  color.C_ENDC
-
 
 if "INCLUDEOS_HOME" not in os.environ:
     print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
@@ -86,6 +41,7 @@ def print_exception():
 def handler(signum, frame):
     print color.WARNING("Process interrupted")
     thread.interrupt_main()
+    thread.exit()
 
 signal.signal(signal.SIGINT, handler)
 
@@ -314,6 +270,7 @@ class vm:
     try:
       self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
     except Exception as err:
+      print color.WARNING("Exception raised while booting ")
       if (timeout): self._timer.cancel()
       raise err
 

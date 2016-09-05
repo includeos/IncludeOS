@@ -19,4 +19,4 @@ def failure():
 import vmrunner
 vmrunner.vms[0].on_success(success)
 vmrunner.vms[0].on_panic(failure)
-vmrunner.vms[0].make().boot()
+vmrunner.vms[0].make().boot(50)

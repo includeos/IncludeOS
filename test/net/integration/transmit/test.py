@@ -11,7 +11,7 @@ import socket
 
 def UDP_test():
   print "<Test.py> Performing transmit tests"
-  HOST, PORT = "10.0.0.42", 4242
+  HOST, PORT = "10.0.0.43", 4242
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   data = "Someone there?"

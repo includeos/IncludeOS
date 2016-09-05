@@ -24,4 +24,4 @@ call(["./fat32_disk.sh"], shell=True)
 vm.on_exit(cleanup)
 
 # Boot the VM
-vm.make().boot()
+vm.make().boot(30)

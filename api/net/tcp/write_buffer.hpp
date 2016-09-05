@@ -20,6 +20,7 @@
 #define NET_TCP_WRITE_BUFFER_HPP
 
 #include "common.hpp"
+#include <common>
 
 namespace net {
 namespace tcp {
@@ -47,7 +48,7 @@ struct WriteBuffer {
   uint8_t* end() const { return buffer.get() + length(); }
 
   bool advance(size_t length) {
-    assert(length <= remaining);
+    Expects(length <= remaining);
     offset += length;
     remaining -= length;
     return length > 0;
@@ -71,4 +72,3 @@ struct WriteBuffer {
 } // < namespace tcp
 
 #endif // < NET_TCP_WRITE_BUFFER_HPP
-

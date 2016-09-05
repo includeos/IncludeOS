@@ -29,7 +29,7 @@ sock_timeout = 20
 
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
-acceptable_increase = 0
+acceptable_increase = 2 * PAGE_SIZE
 
 # A persistent connection to the VM for getting memory info
 # TODO: This should be expanded to check more vital signs, such as time of day,
@@ -42,6 +42,7 @@ def get_mem():
 
   try:
     # We expect this socket to allready be opened
+    time.sleep(1)
     sock_mem.send("memsize\n")
     received = sock_mem.recv(1000).rstrip()
 

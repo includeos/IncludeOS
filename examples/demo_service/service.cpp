@@ -70,11 +70,11 @@ void Service::start(const std::string&)
   // DHCP on interface 0
   auto& inet = net::Inet4::ifconfig<0>(10.0);
   // static IP in case DHCP fails
-  net::Inet4::ifconfig<0>(
+  net::Inet4::ifconfig(
     { 10,0,0,42 },     // IP
     { 255,255,255,0 }, // Netmask
     { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS  
+    { 10,0,0,1 });     // DNS
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,

@@ -3,15 +3,17 @@
 #################################################
 
 # The name of your service
-SERVICE = test_transmit
-SERVICE_NAME = Network transmission tests
+SERVICE = test_dhcp
+SERVICE_NAME = IncludeOS DHCP test
 
 # Your service parts
 FILES = service.cpp
-DRIVERS = virtionet
 
 # Your disk image
 DISK=
+
+# Add network driver
+DRIVERS=virtionet
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

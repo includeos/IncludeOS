@@ -22,4 +22,4 @@ def test_serial_port():
 vm.on_output("trigger_test_serial_port", test_serial_port)
 
 # Boot the VM
-vm.make().boot()
+vm.make().boot(80)

@@ -31,9 +31,11 @@ void unik::Client::register_instance(net::Inet4& inet, const net::UDP::port_t po
 
   INFO("Unik client", "Initializing Unik registration service");
   INFO("Unik client","Listening for UDP hearbeat on %s:%i", inet.ip_addr().str().c_str(), port);
+  INFO("Unik client","IP is attached to interface %s ", inet.link_addr().str().c_str());
 
   // Set up an UDP port for receiving UniK heartbeat
   auto& sock = inet.udp().bind(port);
+  CHECK(net::Inet4::stack<0>().udp().is_bound(port), "Unik UDP port is bound as expected");
   sock.on_read([&sock, &inet] (auto addr, auto port, const char* data, size_t len) {
 
       static bool registered_with_unik = false;
@@ -56,7 +58,7 @@ void unik::Client::register_instance(net::Inet4& inet, const net::UDP::port_t po
       std::string prefix = strdata.substr(0,dotloc);
       std::string ip_str = strdata.substr(dotloc + 1);
 
-      INFO("Unik client","Prefix: %s , IP: %s \n", prefix.c_str(), ip_str.c_str());
+      INFO("Unik client","Prefix: %s , IP: '%s' \n", prefix.c_str(), ip_str.c_str());
 
       net::IP4::addr ip{ip_str};
       net::tcp::Socket unik_instance_listener { ip , 3000};
@@ -104,7 +106,7 @@ void unik::Client::register_instance(net::Inet4& inet, const net::UDP::port_t po
 
 void unik::Client::register_instance_dhcp() {
   // Bring up a network device using DHCP
-  static auto& inet = net::Inet4::stack<0>();
+  static auto&& inet = net::Inet4::stack<0>();
 
   net::Inet4::ifconfig<0>(10.0, [](bool timeout) {
       if(timeout) {

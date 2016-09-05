@@ -42,4 +42,4 @@ def cleanup():
 vm.on_exit(twosector)
 
 # Make default (nosector) and boot the VM
-vm.make().boot()
+vm.make().boot(60)

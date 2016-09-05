@@ -30,6 +30,7 @@ import glob
 vm_schema = None
 jsons = []
 valid_vms = []
+verbose = False
 
 validator = extend_with_default(Draft4Validator)
 
@@ -73,12 +74,24 @@ def has_required_stuff(path):
   for json in jsons:
     validate_vm_spec(json)
 
-if __name__ == "__main__":
-  path = sys.argv[1] if len(sys.argv) > 1 else "."
-  load_schema("vm.schema.json")
+def validate_path(path, verb = False):
+  global verbose
+  verbose = verb
+  current_dir = os.getcwd()
+  if not vm_schema:
+    load_schema("vm.schema.json")
   os.chdir(path)
   try:
     has_required_stuff(path)
-    print "<validate_test> \tPASS: ",os.getcwd()
+    if verbose:
+      print "<validate_test> \tPASS: ",os.getcwd()
+    return True
   except Exception as err:
-    print "<validate_test> \tFAIL: unmet requirements in " + path, ": " , err.message
+    if verbose:
+      print "<validate_test> \tFAIL: unmet requirements in " + path, ": " , err.message
+  finally:
+    os.chdir(current_dir)
+
+if __name__ == "__main__":
+  path = sys.argv[1] if len(sys.argv) > 1 else "."
+  validate_path(path)

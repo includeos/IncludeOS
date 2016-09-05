@@ -29,34 +29,29 @@ const lest::test ipv4_module_test[]
   {
     SCENARIO("IPv4 address construction")
     {
-      GIVEN("A std::string object representing a valid IPv4 address")
+      GIVEN("A valid IPv4 representation")
       {
-        const std::string ipv4_address {"10.0.0.42"};
+        const std::string ipv4_string {"192.168.0.1"};
+        net::IP4::addr ipv4_address {ipv4_string};
+        EXPECT(ipv4_address.str() == ipv4_string);
+      }
 
-        WHEN("Passed to the net::IPv4::addr constructor")
-        {
-          net::IP4::addr host_address {ipv4_address};
-
-          THEN("The net::IP4::addr object must reflect the given address")
-          {
-            EXPECT(host_address.str() == ipv4_address);
-          }
-        }
+      GIVEN("A valid IPv4 representation with extraneous whitespace")
+      {
+        const std::string ipv4_string {"\r 10.0.0.42 \n\r"};
+        net::IP4::addr ipv4_address {ipv4_string};
+        EXPECT(ipv4_address.str() == "10.0.0.42");
       }
 
       GIVEN("A std::string object representing an invalid IPv4 address")
       {
         const std::string ipv4_address {"256.652.300.4"};
-
-        WHEN("Passed to the net::IPv4::addr constructor")
-        {
-          net::IP4::addr host_address {ipv4_address};
-
-          THEN("The net::IP4::addr object must reflect the address 0.0.0.0")
-          {
-            EXPECT(host_address.str() == "0.0.0.0");
-          }
-        }
+        EXPECT_THROWS(net::IP4::addr host_address {ipv4_address});
+      }
+      GIVEN("A std::string object representing an invalid IPv4 address")
+      {
+        const std::string ipv4_address {"jklasdfølkj asdfløkj aløskdjf ølkajs dfølkj asdf"};
+        EXPECT_THROWS(net::IP4::addr host_address {ipv4_address});
       }
     }
   }
