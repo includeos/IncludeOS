@@ -25,7 +25,7 @@ using namespace net;
 
 void Service::start(const std::string&)
 {
-  net::Inet4::ifconfig<0>(5.0, [](bool timeout) {
+  net::Inet4::ifconfig<0>(10.0, [](bool timeout) {
       if (timeout)
         panic("DHCP timed out");
 
