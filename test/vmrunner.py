@@ -10,7 +10,7 @@ import traceback
 import validate_test
 import signal
 
-from color import color
+from prettify import color
 
 INCLUDEOS_HOME = None
 
