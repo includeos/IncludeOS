@@ -193,7 +193,7 @@ void Service::start(const std::string&) {
 
 
       /** DASHBOARD SETUP **/
-      dashboard_ = std::make_unique<dashboard::Dashboard>();
+      dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
       // Add singleton component
       dashboard_->add(dashboard::Memmap::instance());
       dashboard_->add(dashboard::StackSampler::instance());
