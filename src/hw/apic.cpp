@@ -48,6 +48,7 @@ namespace hw {
   static const uintptr_t IA32_APIC_BASE_MSR = 0x1B;
   static const uintptr_t IA32_APIC_BASE_MSR_ENABLE = 0x800;
   static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
+  static const uint8_t   SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
 
   // every CPU has a local APIC
   apic lapic;
@@ -123,7 +124,6 @@ namespace hw {
 
     // start receiving interrupts (0x100), set spurious vector
     // note: spurious IRQ must have 4 last bits set (0x?F)
-    const uint8_t SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
     lapic.enable_intr(SPURIOUS_INTR);
 
     // acknowledge any outstanding interrupts
@@ -213,14 +213,14 @@ namespace hw {
     for (uint8_t i = 0; i < 8; i++)
       if (lapic.regs->isr[i].reg)
         return 32 * i + __builtin_ffs(lapic.regs->isr[i].reg) - 1;
-    return 0;
+    return 255;
   }
   uint8_t APIC::get_irr()
   {
     for (uint8_t i = 0; i < 8; i++)
       if (lapic.regs->irr[i].reg)
         return 32 * i + __builtin_ffs(lapic.regs->irr[i].reg) - 1;
-    return 0;
+    return 255;
   }
 
   void APIC::eoi()
@@ -282,6 +282,16 @@ namespace hw {
   }
   void APIC::disable_irq(uint8_t irq)
   {
+    auto& overrides = ACPI::get_overrides();
+    for (auto& redir : overrides)
+    {
+      // NOTE: @bus_source is the IOAPIC number
+      if (redir.irq_source == irq)
+      {
+        IOAPIC::disable(redir.global_intr);
+        return;
+      }
+    }
     IOAPIC::disable(irq);
   }
   void APIC::setup_subs()
