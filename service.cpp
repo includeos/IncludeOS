@@ -213,6 +213,7 @@ void Service::start(const std::string&) {
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
+      dashboard_->construct<dashboard::CPUsage>(IRQ_manager::get(), 100ms, 2s);
 
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());
