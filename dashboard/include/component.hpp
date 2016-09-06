@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
@@ -16,23 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ACORN_WEB_APPLIANCE
-#define ACORN_WEB_APPLIANCE
+#pragma once
+#ifndef DASHBOARD_COMPONENT_HPP
+#define DASHBOARD_COMPONENT_HPP
 
-#include "app/models/user.hpp"
-#include "app/models/squirrel.hpp"
+#include "common.hpp"
 
-#include <routes/routes>
+namespace dashboard {
 
-#include "bucket/bucket.hpp"
+class Component {
 
-#include "middleware/parsley.hpp"
-#include "middleware/director.hpp"
-#include "middleware/waitress.hpp"
-#include "middleware/cookie_parser.hpp"
+public:
 
-#include "stats/stats.hpp"
+  virtual std::string key() const = 0;
 
-#include "server/server.hpp"
+  virtual void serialize(dashboard::Writer&) const = 0;
 
-#endif //< ACORN_WEB_APPLIANCE
+  virtual ~Component() {}
+
+};
+
+}
+
+#endif

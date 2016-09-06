@@ -1,0 +1,164 @@
+<div class="container-fluid">
+  <div class="page-header">
+    <h1 class="text-center">Dashboard</h1>
+  </div>
+
+  <div class="row">
+
+    <div class="col-md-6">
+    <div class="panel panel-success">
+      <div class="panel-heading">
+        <h3 class="panel-title">Memmap</h3>
+      </div>
+
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>In use</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="entry in memmap">
+            <td>{{ entry.name }}</td>
+            <td>0x{{ entry.addr_start.toString(16) }}</td>
+            <td>0x{{ entry.addr_end.toString(16) }}</td>
+            <td>{{ entry.in_use | bytes }} ({{ (entry.in_use / (entry.addr_end - entry.addr_start + 1))*100 | number:0 }} %)</td>
+            <td>{{ entry.description }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    </div>
+
+    <div class="col-md-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">OS Status</h3>
+      </div>
+
+      <div class="panel-body">
+        <dl class="dl-horizontal">
+          <dt>Version</dt>
+          <dd>{{ status.version }}</dd>
+
+          <dt>Service</dt>
+          <dd>{{ status.service }}</dd>
+
+          <dt>Uptime</dt>
+          <dd>{{ status.uptime | secondsToDateTime | date: 'HH:mm:ss' }}</dd>
+
+          <hr/>
+
+          <dt>CPU freq</dt>
+          <dd>{{ status.cpu_freq | number:0 }} MHz</dd>
+
+          <dt>Heap Usage</dt>
+          <dd>{{ status.heap_usage | bytes }}</dd>
+
+          <dt>Current Time</dt>
+          <dd>{{ status.current_time | date: 'yyyy-MM-dd HH:mm' }}</dd>
+
+        </dl>
+      </div>
+    </div>
+    </div>
+
+  </div>
+
+  <div class="row">
+
+    <div class="col-md-3">
+    <div class="panel panel-warning">
+      <div class="panel-heading">
+        <h3 class="panel-title">Statman</h3>
+      </div>
+
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="stat in statman">
+            <td>{{ stat.name }}</td>
+            <td>{{ stat.value }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+
+    <div class="col-md-9">
+
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">TCP <small>{{ tcp.address }} ({{ tcp.ifname }})</small></h3>
+          </div>
+
+          <table class="table table-condensed">
+            <thead>
+              <tr>
+                <th>Local</th>
+                <th>Remote</th>
+                <th>Recv</th>
+                <th>Sent</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="conn in tcp.connections">
+                <td>{{ conn.local }}</td>
+                <td>{{ conn.remote }}</td>
+                <td>{{ conn.bytes_rx | bytes }}</td>
+                <td>{{ conn.bytes_tx | bytes }}</td>
+                <td>{{ conn.state }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-danger">
+          <div class="panel-heading">
+            <h3 class="panel-title">Stack Sampler</h3>
+          </div>
+
+          <table class="table table-condensed programming">
+            <thead>
+              <tr>
+                <th>Percent</th>
+                <th>Total</th>
+                <th>Addr</th>
+                <th>Function</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="sample in stack_sampler">
+                <td>{{ sample.percent | number:2 }} %</td>
+                <td>{{ sample.total }}</td>
+                <td>0x{{ sample.address.toString(16) }}</td>
+                <td style="word-wrap:break-word;">{{ sample.name }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>

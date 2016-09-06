@@ -16,23 +16,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ACORN_WEB_APPLIANCE
-#define ACORN_WEB_APPLIANCE
+#ifndef __DASHBOARD__
+#define __DASHBOARD__
 
-#include "app/models/user.hpp"
-#include "app/models/squirrel.hpp"
+#include "dashboard.hpp"
 
-#include <routes/routes>
+#include "components/memmap.hpp"
+#include "components/stacksampler.hpp"
+#include "components/statman.hpp"
+#include "components/status.hpp"
+#include "components/tcp.hpp"
 
-#include "bucket/bucket.hpp"
-
-#include "middleware/parsley.hpp"
-#include "middleware/director.hpp"
-#include "middleware/waitress.hpp"
-#include "middleware/cookie_parser.hpp"
-
-#include "stats/stats.hpp"
-
-#include "server/server.hpp"
-
-#endif //< ACORN_WEB_APPLIANCE
+#endif //< __DASHBOARD__

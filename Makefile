@@ -8,13 +8,14 @@ SERVICE_NAME=Acorn
 
 # Service parts
 FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
-      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o middleware/waitress.o
+      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o middleware/waitress.o \
+      dashboard/src/dashboard.o
 
 # Service disk image
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route
+CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route -I./dashboard/include
 MOD_FILES=
 
 FILES+=$(MOD_FILES)
@@ -23,7 +24,7 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat

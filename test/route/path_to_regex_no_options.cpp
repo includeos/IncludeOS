@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regex.cpp"
+#include "../../route/path_to_regex.hpp"
 
 using namespace std;
 using namespace route;
@@ -29,11 +29,11 @@ const lest::test test_path_to_regex_no_options[] =
   {
     GIVEN("An empty vector of Tokens (keys) and no options")
     {
-      vector<Token> keys;
+      Tokens keys;
 
       WHEN("Calling path_to_regex with empty path")
       {
-        std::regex r = PathToRegex::path_to_regex("", keys);
+        std::regex r = Path_to_regex::path_to_regex("", keys);
 
         // Testing keys:
 
@@ -53,7 +53,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test", keys);
 
         // Testing keys:
 
@@ -90,26 +90,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:date'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test/:date", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test/:date", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");
@@ -137,26 +137,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/users/:test/:date'")
       {
-        std::regex r = PathToRegex::path_to_regex("/users/:test/:date", keys);
+        std::regex r = Path_to_regex::path_to_regex("/users/:test/:date", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");
@@ -187,7 +187,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/test'")
       {
-        std::regex r = PathToRegex::path_to_regex("/test", keys);
+        std::regex r = Path_to_regex::path_to_regex("/test", keys);
 
         // Testing keys:
 
@@ -210,7 +210,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/test/users'")
       {
-        std::regex r = PathToRegex::path_to_regex("/test/users", keys);
+        std::regex r = Path_to_regex::path_to_regex("/test/users", keys);
 
         // Testing keys:
 
@@ -234,7 +234,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test?", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test?", keys);
 
         // Testing keys:
 
@@ -272,26 +272,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?/:date?'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test?/:date?", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test?/:date?", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");
@@ -322,26 +322,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?/users/:date?'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test?/users/:date?", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test?/users/:date?", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");
@@ -373,26 +373,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:date?'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test/:date?", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test/:date?", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");
@@ -421,7 +421,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test*'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test*", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test*", keys);
 
         // Testing keys:
 
@@ -456,26 +456,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:date/:test*'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:date/:test*", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:date/:test*", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "date");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "date");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "test");
         EXPECT(t2.prefix == "/");
@@ -503,7 +503,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test+'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test+", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test+", keys);
 
         // Testing keys:
 
@@ -540,26 +540,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:id/:test+'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:id/:test+", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:id/:test+", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "id");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "id");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or "[^\/]+?"
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "test");
         EXPECT(t2.prefix == "/");
@@ -587,26 +587,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test([a-z])+/:id(\\d+)'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test([a-z])+/:id(\\d+)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test([a-z])+/:id(\\d+)", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[a-z]");
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[a-z]");
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "id");
         EXPECT(t2.prefix == "/");
@@ -642,7 +642,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test(\\d+)'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test(\\d+)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test(\\d+)", keys);
 
         // Testing keys:
 
@@ -701,7 +701,7 @@ const lest::test test_path_to_regex_no_options[] =
         // Basic example for testing icase end */
 
         // Not case sensitive (default) - does not work as expected:
-        std::regex r = PathToRegex::path_to_regex("/:test([a-z]+)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test([a-z]+)", keys);
 
         // Testing keys:
 
@@ -745,7 +745,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/' (endsWithSlash)")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test/", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test/", keys);
 
         THEN("The trailing slash will be ignored in non-strict mode (strict is false)")
         {
@@ -755,26 +755,26 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:id(\\d+)'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:test/:id(\\d+)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:test/:id(\\d+)", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "test");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[^/]+?");  // or [^\/]+?
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "test");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[^/]+?");  // or [^\/]+?
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "id");
         EXPECT(t2.prefix == "/");
@@ -810,7 +810,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/(.*)'")
       {
-        std::regex r = PathToRegex::path_to_regex("/(.*)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/(.*)", keys);
 
         // Testing keys:
 
@@ -849,26 +849,26 @@ const lest::test test_path_to_regex_no_options[] =
       // TODO
       WHEN("Calling path_to_regex with path '/users/([a-z]+)/(.?)'")
       {
-        std::regex r = PathToRegex::path_to_regex("/users/([a-z]+)/(.?)", keys);
+        std::regex r = Path_to_regex::path_to_regex("/users/([a-z]+)/(.?)", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 2u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "0");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "[a-z]+");
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "0");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "[a-z]+");
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "1");
         EXPECT(t2.prefix == "/");
@@ -910,7 +910,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/*'")
       {
-        std::regex r = PathToRegex::path_to_regex("/*", keys);
+        std::regex r = Path_to_regex::path_to_regex("/*", keys);
 
         // Testing keys:
 
@@ -948,27 +948,27 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:id(\\d+)/:date/*'")
       {
-        std::regex r = PathToRegex::path_to_regex("/:id(\\d+)/:date/*", keys);
+        std::regex r = Path_to_regex::path_to_regex("/:id(\\d+)/:date/*", keys);
 
         // Testing keys:
 
         EXPECT_NOT(keys.empty());
         EXPECT(keys.size() == 3u);
 
-        Token t = keys[0];
+        Token t1 = keys[0];
         Token t2 = keys[1];
         Token t3 = keys[2];
 
         // Tested when testing parse-method really, except keys don't contain Tokens where is_string is true
-        EXPECT(t.name == "id");
-        EXPECT(t.prefix == "/");
-        EXPECT(t.delimiter == "/");
-        EXPECT_NOT(t.optional);
-        EXPECT_NOT(t.repeat);
-        EXPECT_NOT(t.partial);
-        EXPECT_NOT(t.asterisk);
-        EXPECT(t.pattern == "\\d+");
-        EXPECT_NOT(t.is_string);
+        EXPECT(t1.name == "id");
+        EXPECT(t1.prefix == "/");
+        EXPECT(t1.delimiter == "/");
+        EXPECT_NOT(t1.optional);
+        EXPECT_NOT(t1.repeat);
+        EXPECT_NOT(t1.partial);
+        EXPECT_NOT(t1.asterisk);
+        EXPECT(t1.pattern == "\\d+");
+        EXPECT_NOT(t1.is_string);
 
         EXPECT(t2.name == "date");
         EXPECT(t2.prefix == "/");

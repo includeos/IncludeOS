@@ -99,7 +99,7 @@ public:
    */
   inline int get_max_age() const noexcept { return max_age_; }
 
-  void set_max_age(int max_age) noexcept;
+  void set_max_age(int max_age);
 
   /**
    * @brief      [RFC 6265] The Domain attribute specifies those hosts to which the cookie will be sent.

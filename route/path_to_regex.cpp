@@ -21,26 +21,25 @@
 
 namespace route {
 
-const std::regex PathToRegex::PATH_REGEXP =
+const std::regex Path_to_regex::PATH_REGEXP =
   std::regex{"((\\\\.)|(([\\/.])?(?:(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?|(\\*))))"};
 
-std::regex PathToRegex::path_to_regex(const std::string& path, std::vector<Token>& keys, const std::map<std::string, bool>& options) {
-  std::vector<Token> all_tokens = parse(path);
+std::regex Path_to_regex::path_to_regex(const std::string& path, Keys& keys, const Options& options) {
+  Tokens all_tokens = parse(path);
   tokens_to_keys(all_tokens, keys); // fill keys with relevant tokens
   return tokens_to_regex(all_tokens, options);
 }
 
-std::regex PathToRegex::path_to_regex(const std::string& path, const std::map<std::string, bool>& options) {
-  std::vector<Token> all_tokens = parse(path);
-  return tokens_to_regex(all_tokens, options);
+std::regex Path_to_regex::path_to_regex(const std::string& path,  const Options& options) {
+  return tokens_to_regex(parse(path), options);
 }
 
 // Parse a string for the raw tokens
-std::vector<Token> PathToRegex::parse(const std::string& str) {
+std::vector<Token> Path_to_regex::parse(const std::string& str) {
   if (str.empty())
     return {};
 
-  std::vector<Token> tokens;
+  Tokens tokens;
   int key = 0;
   int index = 0;
   std::string path = "";
@@ -123,7 +122,7 @@ std::vector<Token> PathToRegex::parse(const std::string& str) {
 }
 
 // Creates a regex based on the given tokens and options (optional)
-std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const std::map<std::string, bool>& options) {
+std::regex Path_to_regex::tokens_to_regex(const Tokens& tokens, const Options& options) {
   if (tokens.empty())
     return std::regex{""};
 
@@ -145,7 +144,7 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
 
   std::string route = "";
   Token lastToken = tokens[tokens.size() - 1];
-  std::regex re{"(\\/$)"};
+  std::regex re{"(.*\\/$)"};
   bool endsWithSlash = lastToken.is_string and std::regex_match(lastToken.name, re);
   // endsWithSlash if the last char in lastToken's name is a slash
 
@@ -204,13 +203,10 @@ std::regex PathToRegex::tokens_to_regex(const std::vector<Token>& tokens, const 
   return std::regex{"^" + route, std::regex_constants::ECMAScript | std::regex_constants::icase};
 }
 
-void PathToRegex::tokens_to_keys(const std::vector<Token>& tokens, std::vector<Token>& keys) {
-  for (size_t i = 0; i < tokens.size(); i++) {
-    Token t = tokens[i];
-
-    if (not t.is_string)
-      keys.push_back(t);
-  }
+void Path_to_regex::tokens_to_keys(const Tokens& tokens, Keys& keys) {
+  for (const auto& token : tokens)
+    if (not token.is_string)
+      keys.push_back(token);
 }
 
-};  // < namespace route
+} //< namespace route
