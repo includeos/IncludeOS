@@ -156,6 +156,9 @@ void IRQ_manager::enable_irq(uint8_t irq) {
   // program IOAPIC to redirect this irq to BSP LAPIC
   hw::APIC::enable_irq(irq);
 }
+void IRQ_manager::disable_irq(uint8_t irq) {
+  hw::APIC::disable_irq(irq);
+}
 
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   if (irq >= IRQ_LINES)

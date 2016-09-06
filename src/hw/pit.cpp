@@ -62,6 +62,7 @@ namespace hw {
   void PIT::disable_regular_interrupts()
   {
     oneshot(1);
+    IRQ_manager::get().disable_irq(0);
   }
 
   PIT::PIT() {}
@@ -105,8 +106,10 @@ namespace hw {
   PIT::Timer_iterator PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
     if (in_msecs < 1ms) panic("Can't wait less than 1 ms. ");
 
-    if (current_mode_ != RATE_GEN)
+    if (current_mode_ != RATE_GEN) {
       set_mode(RATE_GEN);
+      IRQ_manager::get().enable_irq(0);
+    }
 
     if (current_freq_divider_ != millisec_interval)
       set_freq_divider(millisec_interval);
@@ -267,7 +270,7 @@ namespace hw {
 
     if (timers_.empty()) {
       debug("No more timers. Entering one-shot mode\n");
-      oneshot(1);
+      disable_regular_interrupts();
     }
 
 

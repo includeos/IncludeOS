@@ -75,6 +75,7 @@ public:
    *  @param irq: the IRQ to enable
    */
   void enable_irq(uint8_t irq);
+  void disable_irq(uint8_t irq);
 
   /**
    *  Directly set an IRQ handler in IDT
