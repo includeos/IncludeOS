@@ -23,6 +23,7 @@
 
 #include <kernel/irq_manager.hpp>
 #include <timers>
+#include <delegate>
 
 namespace dashboard {
 
@@ -42,9 +43,9 @@ public:
     });
   }
 
-  /*~CPUsage() {
+  ~CPUsage() {
     Timers::stop(timer_id_);
-  }*/
+  }
 
   std::string key() const override
   { return "cpu_usage"; }
@@ -71,6 +72,7 @@ private:
   uint64_t new_halt_ = 0;
   uint64_t old_total_ = 0;
   uint64_t new_total_ = 0;
+
   ::IRQ_manager& manager_;
   Timers::duration_t interval_;
   Timers::id_t timer_id_;

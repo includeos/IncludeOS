@@ -27,6 +27,7 @@
 #include <rtc>
 #include <routes>
 #include <dashboard>
+#include <logger/logger.hpp>
 
 using namespace std;
 using namespace acorn;
@@ -39,6 +40,7 @@ std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<server::Server> server_;
 std::unique_ptr<dashboard::Dashboard> dashboard_;
+std::unique_ptr<Logger> logger_;
 
 ////// DISK //////
 // instantiate disk with filesystem
@@ -66,6 +68,19 @@ const std::string currentDateTime() {
 void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start(const std::string&) {
+
+  /** SETUP LOGGER */
+  char* buffer = (char*)malloc(1024*16);
+  static gsl::span<char> spanerino{buffer, 1024*16};
+  logger_ = std::make_unique<Logger>(spanerino);
+  logger_->flush();
+  logger_->log("LUL\n");
+
+  printf("Going dark in 3 ... 2 ... 1 .\n");
+  OS::set_rsprint([] (const char* data, size_t len) {
+    OS::default_rsprint(data, len);
+    logger_->log({data, len});
+  });
 
   disk = fs::new_shared_memdisk();
 
@@ -214,6 +229,7 @@ void Service::start(const std::string&) {
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
       dashboard_->construct<dashboard::CPUsage>(IRQ_manager::get(), 100ms, 2s);
+      dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(0));
 
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());
