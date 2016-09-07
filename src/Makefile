@@ -164,27 +164,6 @@ test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
 	touch smalldisk
 	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
 
-test_ipv6: CPPOPTS += -DSERVICE_NAME="\"IPv6 Test Service\""
-test_ipv6: debug/test_ipv6.o $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Linking test IPv6 service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_ipv6.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
-
-test_disk: CPPOPTS += -DSERVICE_NAME="\"Virtio-disk Test\""
-test_disk: debug/test_disk.o $(CRTI_OBJ) $(CRTN_OBJ) memdisk
-	@echo "\n>> Linking disk test"
-	touch smalldisk
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_disk.o $(LIBS_OBJ) $(CRTEND_OBJ) memdisk.o -o debug/$@
-
-test_tcp: CPPOPTS += -DSERVICE_NAME="\"TCP Test Service\""
-test_tcp: debug/test_tcp.o $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Linking test TCP service"
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_tcp.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
-
-test_memory: CPPOPTS += -DSERVICE_NAME="\"Memory test Service\""
-test_memory: debug/test_memory.o $(CRTI_OBJ) $(CRTN_OBJ)
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) debug/test_memory.o $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
-
-
 test: test_service
 
 # OS libraries
