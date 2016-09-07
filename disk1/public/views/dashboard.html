@@ -4,39 +4,7 @@
   </div>
 
   <div class="row">
-
-    <div class="col-md-6">
-    <div class="panel panel-success">
-      <div class="panel-heading">
-        <h3 class="panel-title">Memmap</h3>
-      </div>
-
-      <table class="table table-condensed">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>In use</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr ng-repeat="entry in memmap">
-            <td>{{ entry.name }}</td>
-            <td>0x{{ entry.addr_start.toString(16) }}</td>
-            <td>0x{{ entry.addr_end.toString(16) }}</td>
-            <td>{{ entry.in_use | bytes }} ({{ (entry.in_use / (entry.addr_end - entry.addr_start + 1))*100 | number:0 }} %)</td>
-            <td>{{ entry.description }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-
-    </div>
-
-    <div class="col-md-6">
+  <div class="col-md-12">
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">OS Status</h3>
@@ -68,12 +36,59 @@
       </div>
     </div>
     </div>
-
   </div>
 
   <div class="row">
 
-    <div class="col-md-3">
+    <div class="col-md-6">
+      <h3 class="text-center">Cpu usage</h3>
+      <div id="cpu_usage_chart"></div>
+    </div>
+
+    <div class="col-md-6">
+      <h3 class="text-center">Memory map</h3>
+      <div id="memory_map_chart"></div>
+    </div>
+
+  </div>
+
+  <!--<div class="row">
+
+    <div class="col-md-6">
+    <div class="panel panel-success">
+      <div class="panel-heading">
+        <h3 class="panel-title">Memmap</h3>
+      </div>
+
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>In use</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="entry in memmap">
+            <td>{{ entry.name }}</td>
+            <td>0x{{ entry.addr_start.toString(16) }}</td>
+            <td>0x{{ entry.addr_end.toString(16) }}</td>
+            <td>{{ entry.in_use | bytes }} ({{ (entry.in_use / (entry.addr_end - entry.addr_start + 1))*100 | number:0 }} %)</td>
+            <td>{{ entry.description }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>-
+
+    </div>-
+
+  </div>-->
+
+  <div class="row">
+
+    <div class="col-md-4">
     <div class="panel panel-warning">
       <div class="panel-heading">
         <h3 class="panel-title">Statman</h3>
@@ -96,7 +111,7 @@
     </div>
     </div>
 
-    <div class="col-md-9">
+    <div class="col-md-8">
 
       <div class="row">
         <div class="col-md-12">
@@ -172,6 +187,8 @@
         </div>
         </div>
       </div>
+
     </div>
+
   </div>
 </div>

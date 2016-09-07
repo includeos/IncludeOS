@@ -26,6 +26,7 @@
 #include "components/statman.hpp"
 #include "components/status.hpp"
 #include "components/tcp.hpp"
+#include "components/cpusage.hpp"
 #include "components/logger.hpp"
 
 #endif //< __DASHBOARD__
