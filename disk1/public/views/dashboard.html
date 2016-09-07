@@ -158,7 +158,20 @@
         </div>
       </div>
 
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Logger</h3>
+          </div>
+          <div class="panel-body">
+            <pre>
+            <span ng-repeat="entry in logger track by $index">{{entry}}</span>
+            </pre>
+          </div>
+        </div>
+        </div>
+      </div>
     </div>
-
   </div>
 </div>
