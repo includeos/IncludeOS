@@ -29,7 +29,7 @@ void Logger::log(const std::string& str) {
   if(UNLIKELY( str.empty() ))
     return;
 
-  if(UNLIKELY( str.size() + 1 >= log_.size() ))
+  if(UNLIKELY( str.size() + 1 >= (unsigned)log_.size() ))
   {
     // start at the beginning
     pos_ = {&log_, 0};
@@ -60,7 +60,7 @@ void Logger::log(const std::string& str) {
 std::vector<std::string> Logger::entries(size_t n) const {
   std::vector<std::string> results;
 
-  if(n) results.reserve(n);
+  results.reserve(n);
 
   auto head = pos_;
 

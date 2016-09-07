@@ -23,6 +23,7 @@
 #include <string>
 #include <iterator>
 #include <vector>
+#include <cstdlib>
 
 /**
  * @brief A utility which logs a limited amount of entries
