@@ -239,7 +239,8 @@ namespace fs
                 D->dir_cluster(root_cluster),
                 sector, // parent block
                 D->size(),
-                D->attrib);
+                D->attrib,
+                D->modified);
           }
         }
         else {
@@ -255,7 +256,8 @@ namespace fs
               D->dir_cluster(root_cluster),
               sector, // parent block
               D->size(),
-              D->attrib);
+              D->attrib,
+              D->modified);
         }
       } // entry is long name
 

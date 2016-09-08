@@ -24,6 +24,7 @@
 #include <functional>
 #include <cstdint>
 #include <memory>
+#include <map>
 
 namespace fs
 {
@@ -32,24 +33,26 @@ namespace fs
   struct FAT : public FileSystem
   {
     /// ----------------------------------------------------- ///
-    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
+    void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
 
     // path is a path in the mounted filesystem
-    virtual void  ls     (const std::string& path, on_ls_func) override;
-    virtual void  ls     (const Dirent& entry,     on_ls_func) override;
-    virtual List  ls(const std::string& path) override;
-    virtual List  ls(const Dirent&) override;
+    void  ls     (const std::string& path, on_ls_func) override;
+    void  ls     (const Dirent& entry,     on_ls_func) override;
+    List  ls(const std::string& path) override;
+    List  ls(const Dirent&) override;
 
     /** Read @n bytes from file pointed by @entry starting at position @pos */
-    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
-    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
+    void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) override;
+    Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
 
     // return information about a filesystem entity
-    virtual void   stat(const std::string&, on_stat_func) override;
-    virtual Dirent stat(const std::string& ent) override;
+    void   stat(const std::string&, on_stat_func) override;
+    Dirent stat(const std::string& ent) override;
+    // async cached stat
+    void   cstat(const std::string&, on_stat_func) override;
 
     // returns the name of the filesystem
-    virtual std::string name() const override
+    std::string name() const override
     {
       switch (this->fat_type)
         {
@@ -91,7 +94,7 @@ namespace fs
       uint8_t  attrib;
       uint8_t  pad1[8];
       uint16_t cluster_hi;
-      uint8_t  pad2[4];
+      uint32_t modified;
       uint16_t cluster_lo;
       uint32_t filesize;
 
@@ -210,6 +213,9 @@ namespace fs
     uint32_t root_cluster;  // index of root cluster
     uint32_t data_index;    // index of first data sector (relative to partition)
     uint32_t data_sectors;  // number of data sectors
+    
+    // simplistic cache for stat results
+    std::map<std::string, FileSystem::Dirent> stat_cache;
   };
 
 } // fs
