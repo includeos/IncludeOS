@@ -17,6 +17,9 @@
 
 #!/bin/bash
 
+# Init all submodules
+git submodule update --init --recursive
+
 # Specify the name of disk image for serving content
 FAT_DISK=memdisk.fat
 
