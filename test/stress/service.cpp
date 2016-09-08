@@ -71,6 +71,11 @@ uint64_t TCP_BYTES_SENT = 0;
 
 void Service::start(const std::string&)
 {
+
+  // Timer spam
+  for (int i = 0; i < 1000; i++)
+    Timers::oneshot(std::chrono::microseconds(i + 200), [](auto){});
+  
   static auto& inet = net::Inet4::stack<0>();
 
   // Static IP configuration, until we (possibly) get DHCP

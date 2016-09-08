@@ -40,7 +40,7 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 INC_LIBCXX=$(INSTALL)/libcxx/include
 
 CC  = $(shell command -v clang-3.8 || command -v clang-3.6) -target i686-elf
-CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6) -target i686-elf
+CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++) -target i686-elf
 ifndef LD_INC
 	LD_INC = ld
 endif
