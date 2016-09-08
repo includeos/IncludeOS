@@ -20,6 +20,7 @@
 
 #include <sstream>
 
+#include <os>
 #include <fs/disk.hpp>
 
 #include "middleware.hpp"
@@ -132,7 +133,7 @@ private:
     add_td(ss, "type", get_icon(entry));
     add_td(ss, "file", create_url(path, entry.name()));
     isFile ? add_td(ss, "size", entry.size()) : add_td(ss, "size", "-");
-    isFile ? add_td(ss, "modified", entry.timestamp) : add_td(ss, "modified", "-");
+    isFile ? add_td(ss, "modified", OS::boot_timestamp()) : add_td(ss, "modified", "-");
     ss << "</tr>";
   }
 

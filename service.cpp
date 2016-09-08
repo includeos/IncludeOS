@@ -239,7 +239,7 @@ void Service::start(const std::string&) {
         #ifdef VERBOSE_WEBSERVER
         printf("[@GET:*] Fallback route - try to serve index.html\n");
         #endif
-        disk->fs().stat("/public/index.html", [res](auto err, const auto& entry) {
+        disk->fs().cstat("/public/index.html", [res](auto err, const auto& entry) {
           if(err) {
             res->send_code(http::Not_Found);
           } else {
