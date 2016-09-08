@@ -18,10 +18,6 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
-#ifndef OS_VERSION
-#define OS_VERSION "v?.?.?"
-#endif
-
 #include <string>
 #include <sstream>
 #include <common>
@@ -45,7 +41,7 @@ public:
 
   /* Get the version of the os */
   static std::string version()
-  { return std::string(OS_VERSION); }
+  { return version_field; }
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
@@ -168,7 +164,7 @@ private:
   static hw::Serial& com1;
 
   static RTC::timestamp_t booted_at_;
-
+  static std::string version_field;
 
   struct Custom_init_struct {
     Custom_init_struct(Custom_init f, const char* n)

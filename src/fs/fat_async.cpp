@@ -240,6 +240,7 @@ namespace fs
     // cache lookup
     auto it = stat_cache.find(strpath);
     if (it != stat_cache.end()) {
+      debug("used cached stat for %s\n", strpath.c_str());
       func(no_error, it->second);
       return;
     }
