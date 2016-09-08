@@ -187,7 +187,7 @@ angular.module('acornWebApp')
     $scope.dashboard = new Dashboard();
     $scope.memmap = [];
     $scope.statman = [];
-    $scope.stack_sampler = [];
+    $scope.stack_sampler = {};
     $scope.status = {};
     $scope.tcp = {};
     $scope.logger = [];

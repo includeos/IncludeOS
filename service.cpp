@@ -106,18 +106,24 @@ void Service::start(const std::string&) {
 
       /** STATS SETUP **/
       // TODO: Make use of Statman
-      server::Connection::on_connection([](){
+      auto& total_conn = Statman::get().create(Stat::UINT64, "http.connection_total");
+      server::Connection::on_connection([&total_conn](){
         stats.bump_connection_count();
+        ++total_conn;
       });
 
-      server::Response::on_sent([](size_t n) {
+      auto& total_res = Statman::get().create(Stat::UINT64, "http.responses");
+      server::Response::on_sent([&total_res](size_t n) {
         stats.bump_data_sent(n)
              .bump_response_sent();
+        ++total_res;
       });
 
-      server::Request::on_recv([](size_t n) {
+      auto& total_req = Statman::get().create(Stat::UINT64, "http.requests");
+      server::Request::on_recv([&total_req](size_t n) {
         stats.bump_data_received(n)
           .bump_request_received();
+        ++total_req;
       });
 
 

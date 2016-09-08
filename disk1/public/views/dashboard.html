@@ -4,7 +4,7 @@
   </div>
 
   <div class="row">
-  <div class="col-md-12">
+  <div class="col-md-4">
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">OS Status</h3>
@@ -41,13 +41,21 @@
   <div class="row">
 
     <div class="col-md-6">
-      <h3 class="text-center">Cpu usage</h3>
-      <div id="cpu_usage_chart"></div>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">CPU usage</h3>
+        </div>
+        <div id="cpu_usage_chart"></div>
+      </div>
     </div>
 
     <div class="col-md-6">
-      <h3 class="text-center">Memory map</h3>
-      <div id="memory_map_chart"></div>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Memory map</h3>
+        </div>
+        <div id="memory_map_chart"></div>
+      </div>
     </div>
 
   </div>
@@ -55,12 +63,12 @@
   <div class="row">
 
     <div class="col-md-4">
-    <div class="panel panel-warning">
+    <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">Statman</h3>
       </div>
 
-      <table class="table table-condensed">
+      <table class="table table-condensed table-hover">
         <thead>
           <tr>
             <th>Name</th>
@@ -81,7 +89,7 @@
 
       <div class="row">
         <div class="col-md-12">
-        <div class="panel panel-primary">
+        <div class="panel panel-default">
           <div class="panel-heading">
             <h3 class="panel-title">TCP <small>{{ tcp.address }} ({{ tcp.ifname }})</small></h3>
           </div>
@@ -112,12 +120,22 @@
 
       <div class="row">
         <div class="col-md-12">
-        <div class="panel panel-danger">
+        <div class="panel panel-default">
           <div class="panel-heading">
             <h3 class="panel-title">Stack Sampler</h3>
           </div>
+          <div class="panel-body">
+            <dl>
+              <dt>Active:</dt>
+              <dd>{{ stack_sampler.active | number:2 }} %</dd>
 
-          <table class="table table-condensed programming">
+              <dt>Asleep:</dt>
+              <dd>{{ stack_sampler.asleep | number:2 }} %</dd>
+
+            </dl>
+          </div>
+
+          <table class="table table-condensed">
             <thead>
               <tr>
                 <th>Percent</th>
@@ -126,12 +144,14 @@
                 <th>Function</th>
               </tr>
             </thead>
-            <tbody>
-              <tr ng-repeat="sample in stack_sampler">
-                <td>{{ sample.percent | number:2 }} %</td>
+            <tbody class="programming">
+              <tr ng-repeat="sample in stack_sampler.samples">
+                <td>{{ sample.percent | number:2 }}</td>
                 <td>{{ sample.total }}</td>
                 <td>0x{{ sample.address.toString(16) }}</td>
-                <td style="word-wrap:break-word;">{{ sample.name }}</td>
+                <td style="word-wrap:break-word; background-color: rgba(255,0,0, {{ sample.percent / 100 }})">
+                  {{ sample.name }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -141,7 +161,7 @@
 
       <div class="row">
         <div class="col-md-12">
-        <div class="panel panel-info">
+        <div class="panel panel-default">
           <div class="panel-heading">
             <h3 class="panel-title">Logger</h3>
           </div>
