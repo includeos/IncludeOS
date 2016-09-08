@@ -28,5 +28,5 @@ function humanFileSize(bytes, si) {
 
       poll();
     }, dataType: "json"});
-  }, 200);
+  }, 1000);
 })();

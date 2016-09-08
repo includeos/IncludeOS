@@ -9,7 +9,7 @@ SERVICE_NAME=Acorn
 # Service parts
 FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
       cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o middleware/waitress.o \
-      dashboard/src/dashboard.o
+      dashboard/src/dashboard.o logger/logger.o
 
 # Service disk image
 DISK=memdisk.fat
