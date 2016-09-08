@@ -38,9 +38,22 @@ public:
   { return "stack_sampler"; }
 
   void serialize(Writer& writer) const override {
-    auto samples = ::StackSampler::results(sample_size_);
-    int total = ::StackSampler::samples_total();
 
+    writer.StartObject();
+
+    auto samples = ::StackSampler::results(sample_size_);
+    auto total = ::StackSampler::samples_total();
+    auto asleep = ::StackSampler::samples_asleep();
+
+    writer.Key("active");
+    double active = total / (double)(total+asleep) * 100.0;
+    writer.Double(active);
+
+    writer.Key("asleep");
+    double asleep_perc = asleep / (double)(total+asleep) * 100.0;
+    writer.Double(asleep_perc);
+
+    writer.Key("samples");
     writer.StartArray();
     for (auto& sa : samples)
     {
@@ -64,6 +77,8 @@ public:
       writer.EndObject();
     }
     writer.EndArray();
+
+    writer.EndObject();
   }
 
   void set_sample_size(int N)
