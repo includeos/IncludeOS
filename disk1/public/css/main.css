@@ -1,3 +1,16 @@
 .programming {
   font-family:Monospace;
 }
+
+.panel-default > .panel-heading {
+  /*background-color: #A061F2 !important;*/
+  background-image: linear-gradient(to bottom,#3A8BF1 0,#3A8BF1 100%);
+}
+
+.panel-default > .panel-heading > .panel-title {
+  color:#fff !important;
+}
+
+.panel-default {
+  border-color: #3A8BF1 !important;
+}
