@@ -35,12 +35,10 @@ public:
    :  manager_{manager},
       interval_{interval}
   {
-    timer_id_ = Timers::periodic(when, interval, [&] (Timers::id_t) {
-      old_halt_ = new_halt_;
-      old_total_ = new_total_;
-      new_halt_ = manager_.cycles_hlt();
-      new_total_ = manager_.cycles_total();
-    });
+    using OnTimeout = Timers::handler_t;
+
+    timer_id_ = Timers::periodic(when, interval,
+      OnTimeout::from<CPUsage, &CPUsage::update_values>(this));
   }
 
   ~CPUsage() {
@@ -76,6 +74,13 @@ private:
   ::IRQ_manager& manager_;
   Timers::duration_t interval_;
   Timers::id_t timer_id_;
+
+  void update_values(Timers::id_t) {
+      old_halt_ = new_halt_;
+      old_total_ = new_total_;
+      new_halt_ = manager_.cycles_hlt();
+      new_total_ = manager_.cycles_total();
+  }
 };
 
 } // < namespace dashboard
