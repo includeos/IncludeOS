@@ -140,57 +140,61 @@ angular.module('acornWebApp')
       }).error(function (data, status) {});
 
     // Update CPU usage chart at interval
-    $scope.update_cpu_chart = function() {
+    var update_cpu_chart = function(usage) {
+      // Showing interval in number of seconds
+      var interval = usage.interval / 1000000;
 
-      $http.get("/api/dashboard/cpu_usage").
-        success(function (usage) {
+      if(total_data.length > 20) {
+        // Remove second element in each array (first element is name)
+        total_data.splice(1, 1);
+        active_data.splice(1, 1);
+        time_data.splice(1, 1);
+      }
 
-          // Showing interval in number of seconds
-          var interval = usage.interval / 1000000;
+      var total = usage.total;
+      var halt = usage.halt;
+      var active = total - halt;
 
-          if(total_data.length > 20) {
-            // Remove second element in each array (first element is name)
-            total_data.splice(1, 1);
-            active_data.splice(1, 1);
-            time_data.splice(1, 1);
-          }
+      // Showing cycles in millions
+      total /= 1000000;
+      active /= 1000000;
 
-          var total = usage.total;
-          var halt = usage.halt;
-          var active = total - halt;
+      var d = new Date();
 
-          // Showing cycles in millions
-          total /= 1000000;
-          active /= 1000000;
+      total_data.push(total.toFixed(3));
+      active_data.push(active.toFixed(3));
+      time_data.push(d);
 
-          var d = new Date();
-
-          total_data.push(total.toFixed(3));
-          active_data.push(active.toFixed(3));
-          time_data.push(d);
-
-          cpu_usage_chart.axis.labels({x: 'CPU data updated at an interval of ' + interval + ((interval > 1) ? ' seconds' : ' second')});
-          cpu_usage_chart.load({
-            columns: [
-              time_data,
-              total_data,
-              active_data
-            ]
-          });
-        }).
-        error(function (data, status) {});
+      cpu_usage_chart.axis.labels({x: 'CPU data updated at an interval of ' + interval + ((interval > 1) ? ' seconds' : ' second')});
+      cpu_usage_chart.load({
+        columns: [
+          time_data,
+          total_data,
+          active_data
+        ]
+      });
     };
 
-    var cpu_update = $interval($scope.update_cpu_chart, 1500);
+    //var cpu_update = $interval($scope.update_cpu_chart, 1500);
 
     // Polling dashboard data
     $scope.dashboard = new Dashboard();
     $scope.memmap = [];
     $scope.statman = [];
     $scope.stack_sampler = {};
+    $scope.cpu_usage = {};
     $scope.status = {};
     $scope.tcp = {};
     $scope.logger = [];
+
+    // Update CPU chart everytime $scope.cpu_usage changes
+    $scope.$watch('cpu_usage', function() {
+      update_cpu_chart($scope.cpu_usage);
+    });
+
+    /*$scope.$watch('memmap', function() {
+      update_memmap_chart($scope.memmap);
+    });*/
 
     var polling;
 
@@ -199,18 +203,16 @@ angular.module('acornWebApp')
         //$scope.memmap = data.memmap;
         $scope.statman = data.statman;
         $scope.stack_sampler = data.stack_sampler;
+        $scope.cpu_usage = data.cpu_usage;
         $scope.status = data.status;
         $scope.tcp = data.tcp;
         $scope.logger = data.logger;
-        //$scope.logger = data.logger.reverse();
 
         polling = $timeout(poll, 1000);
       });
     })();
 
     $scope.$on('$destroy', function(){
-      //$timeout.cancel(polling_cpu);
-      $interval.cancel(cpu_update);
       $timeout.cancel(polling);
     })
   }]);
