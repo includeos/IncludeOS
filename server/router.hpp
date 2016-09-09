@@ -411,8 +411,14 @@ namespace server {
   }
 
   inline Router& Router::add(const Router& router) {
-    auto& routes = router.route_table_;
-    route_table_.insert(routes.begin(), routes.end());
+    for (const auto& e : router.route_table_) {
+      auto it = route_table_.find(e.first);
+      if (it not_eq route_table_.end()) {
+        it->second.insert(it->second.cend(), e.second.cbegin(), e.second.cend());
+        continue;
+      }
+      route_table_[e.first] = e.second;
+    }
     return *this;
   }
 
