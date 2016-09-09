@@ -61,8 +61,8 @@ namespace hw {
 
   void PIT::disable_regular_interrupts()
   {
-    oneshot(1);
-    IRQ_manager::get().disable_irq(0);
+    if (current_mode_ != ONE_SHOT)
+      oneshot(1);
   }
 
   PIT::PIT() {}
