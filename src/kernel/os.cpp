@@ -54,6 +54,11 @@ const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_S
 
 std::vector<OS::Custom_init_struct> OS::custom_init_;
 
+#ifndef OS_VERSION
+#define OS_VERSION "v?.?.?"
+#endif
+std::string OS::version_field = OS_VERSION;
+
 // Set default rsprint_handler
 OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
 hw::Serial& OS::com1 = hw::Serial::port<1>();

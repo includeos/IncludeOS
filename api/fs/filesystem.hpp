@@ -62,15 +62,16 @@ namespace fs {
     struct Dirent {
       /** Default constructor */
       explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
-                      const uint64_t blk   = 0U, const uint64_t pr    = 0U,
-                      const uint64_t sz    = 0U, const uint32_t attr  = 0U) :
-        ftype     {t},
-        fname     {n},
-        block     {blk},
-        parent    {pr},
-        size_     {sz},
-        attrib    {attr},
-        timestamp {0}
+                      const uint64_t blk   = 0, const uint64_t pr    = 0,
+                      const uint64_t sz    = 0, const uint32_t attr  = 0,
+                      const uint32_t modt = 0)
+      : ftype    {t},
+        fname    {n},
+        block    {blk},
+        parent   {pr},
+        size_    {sz},
+        attrib   {attr},
+        modif    {modt}
       {}
 
       Enttype type() const noexcept
@@ -108,6 +109,25 @@ namespace fs {
         } //< switch (type)
       }
 
+      // good luck
+      uint64_t modified() const
+      {
+        /*
+        uint32_t oldshit = modif;
+        uint32_t day   = (oldshit & 0x1f);
+        uint32_t month = (oldshit >> 5) & 0x0f;
+        uint32_t year  = (oldshit >> 9) & 0x7f;
+        oldshit >>= 16;
+        uint32_t secs = (oldshit & 0x1f) * 2;
+        uint32_t mins = (oldshit >> 5) & 0x3f;
+        uint32_t hrs  = (oldshit >> 11) & 0x1f;
+        // invalid timestamp?
+        if (hrs > 23 or mins > 59 or secs > 59)
+          return 0;
+        */
+        return modif;
+      }
+
       uint64_t size() const noexcept {
         return size_;
       }
@@ -118,7 +138,7 @@ namespace fs {
       uint64_t    parent; //< Parent's block#
       uint64_t    size_;
       uint32_t    attrib;
-      int64_t     timestamp;
+      uint32_t    modif;
     }; //< struct Dirent
 
     struct List {
@@ -167,6 +187,9 @@ namespace fs {
     /** Return information about a file or directory */
     virtual void   stat(const std::string& ent, on_stat_func) = 0;
     virtual Dirent stat(const std::string& ent) = 0;
+
+    /** Cached async stat */
+    virtual void   cstat(const std::string&, on_stat_func) = 0;
 
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;

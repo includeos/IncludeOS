@@ -198,6 +198,7 @@ namespace fs
 
   void FAT::stat(const std::string& strpath, on_stat_func func)
   {
+    // manual lookup
     auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty())) {
       // root doesn't have any stat anyways
@@ -223,7 +224,7 @@ namespace fs
       // find the matching filename in directory
       for (auto& e : *dirents) {
         if (unlikely(e.name() == filename)) {
-          // read this file
+          // return this dir entry
           func(no_error, e);
           return;
         }
@@ -231,6 +232,23 @@ namespace fs
 
       // not found
       func({ error_t::E_NOENT, filename }, Dirent(INVALID_ENTITY, filename));
+    });
+  }
+
+  void FAT::cstat(const std::string& strpath, on_stat_func func)
+  {
+    // cache lookup
+    auto it = stat_cache.find(strpath);
+    if (it != stat_cache.end()) {
+      debug("used cached stat for %s\n", strpath.c_str());
+      func(no_error, it->second);
+      return;
+    }
+    
+    stat(strpath,
+    [this, strpath, func] (error_t error, const FileSystem::Dirent& ent) {
+        stat_cache[strpath] = ent;
+        func(error, ent);
     });
   }
 }
