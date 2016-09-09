@@ -26,12 +26,12 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--clean-all", dest="clean", action="store_true",
                     help="Run make clean before building test")
 
-parser.add_argument("-s", "--skip", nargs="*", dest="skip",
+parser.add_argument("-s", "--skip", nargs="*", dest="skip", default=[],
                     help="Tests to skip. Valid names: 'unit' (all unit tests), \
                   'stress' (stresstest), 'integration' (all integration tests), examples \
                     or the name of a single integration test folder (leaf node name, e.g. 'udp') ")
 
-parser.add_argument("-t", "--tests", nargs="*", dest="tests",
+parser.add_argument("-t", "--tests", nargs="*", dest="tests", default=[],
                     help="Tests to do. Valid names: see '--skip' ")
 
 parser.add_argument("-f", "--fail-early", dest="fail", action="store_true",
@@ -45,11 +45,8 @@ def print_skipped(name, reason):
   print pretty.WARNING("* Skipping " + name)
   print "  Reason: {0:40}".format(reason)
 
-def valid_tests():
+def valid_tests(subfolder=None):
   """Returns a list of all the valid integration tests in */integration/*"""
-  if not args.skip:
-    args.skip = []
-
   if "integration" in args.skip:
     return []
 
@@ -219,10 +216,18 @@ def main():
 
 
   test_categories = ["integration", "examples", "unit", "stress"]
+  if "integration" not in args.tests:
+    test_folders = ["fs", "hw", "kernel", "net", "platform", "stl", "util"]
+  else:
+    test_folders = []
+  tests_combined = test_categories + test_folders
   if args.tests:
-    test_categories = [x for x in test_categories if x in args.tests or x == "integration"]
+    test_categories = [x for x in tests_combined if x in args.tests ]
   if args.skip:
-    test_categories = [x for x in test_categories if not x in args.skip]
+    test_categories = [x for x in tests_combined if not x in args.skip]
+
+  print test_categories
+  print valid_tests()
 
   integration = integration_tests() if "integration" in test_categories else 0
   stress = stress_test() if "stress" in test_categories else 0
