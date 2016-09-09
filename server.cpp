@@ -18,21 +18,47 @@
 #include "server.hpp"
 #include <utility>
 #include <timers>
+#include <statman>
 
 // #define DEBUG
 
 using namespace server;
 using namespace std::chrono;
 
-Server::Server()
-: inet_{net::Inet4::stack<0>()}
-{
-  initialize();
-}
-
 Server::Server(IP_stack& stack)
 : inet_(stack)
-{}
+{
+  setup_stats();
+}
+
+void Server::setup_stats() {
+  auto& statman = Statman::get();
+  auto& total_conn  = statman.create(Stat::UINT64, "http.connection_total");
+  auto& total_res   = statman.create(Stat::UINT64, "http.responses");
+  auto& bytes_sent  = statman.create(Stat::UINT64, "http.bytes_sent");
+  auto& total_req   = statman.create(Stat::UINT64, "http.requests");
+  auto& bytes_recv  = statman.create(Stat::UINT64, "http.bytes_recv");
+
+  server::Connection::on_connection(
+  [&total_conn] ()
+  {
+    ++total_conn;
+  });
+
+  server::Response::on_sent(
+  [&total_res, &bytes_sent] (size_t n)
+  {
+    ++total_res;
+    bytes_sent.get_uint64() += n;
+  });
+
+  server::Request::on_recv(
+  [&total_req, &bytes_recv] (size_t n)
+  {
+    ++total_req;
+    bytes_recv.get_uint64() += n;
+  });
+}
 
 Router& Server::router() noexcept {
   return router_;
