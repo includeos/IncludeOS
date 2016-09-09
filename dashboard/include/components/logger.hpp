@@ -29,7 +29,7 @@ class Logger : public Component {
 
 public:
 
-  Logger(::Logger& logger, size_t entries = 20)
+  Logger(::Logger& logger, size_t entries = 50)
    : logger_{logger}, entries_{entries}
   {}
 
@@ -38,13 +38,9 @@ public:
 
   void serialize(Writer& writer) const override {
     writer.StartArray();
-    auto entries = logger_.entries(entries_);
+    auto entries = (entries_) ? logger_.entries(entries_) : logger_.entries();
 
     auto it = entries.begin();
-    // Temporary hack to only send N latest
-    const size_t N = 50;
-    if(entries.size() > N)
-      it += entries.size() - N;
 
     while(it != entries.end())
       writer.String(*it++);
