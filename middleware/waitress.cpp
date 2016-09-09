@@ -50,7 +50,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
     if(path.back() != '/') path += '/';
     // lets try to see if we can serve an index
     path += options_.index[0]; // only check first one for now, else we have to use fs().ls
-    disk_->fs().stat(path,
+    disk_->fs().cstat(path,
     [this, req, res, next, path](auto err, const auto& entry)
     {
       //printf("<Waitress> err=%s path=%s entry=%s\n",
@@ -70,7 +70,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
   // we found an extension, this is a (probably) a file request
   else {
     //printf("<Waitress> Extension found - assuming request for file.\n");
-    disk_->fs().stat(path,
+    disk_->fs().cstat(path,
     [this, req, res, next, path](auto err, const auto& entry)
     {
       //printf("<Waitress> err=%s path=%s entry=%s\n",
