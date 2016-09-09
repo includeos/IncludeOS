@@ -52,18 +52,26 @@ public:
   void log(const std::string& str);
 
   /**
-   * @brief Retreive entries from the log
-   * @details
-   * Retrieves N (or less) amounts of entries from the log,
-   * starting with the oldest.
+   * @brief Retreive all entries from the log
+   * @details Iterates forward over the whole buffer, building strings on the way
    *
-   * If number of entries is not supplied (0), all entries will be returned
+   * Order old => new
+   *
+   * @return a vector with all the log entries
+   */
+  std::vector<std::string> entries() const;
+
+  /**
+   * @brief Retreive entries N from the log
+   * @details
+   * Retrieves N (or less) latest entries from the log,
+   * starting with the oldest.
    *
    *
    * @param n maximum number of entries
    * @return a vector with entries
    */
-  std::vector<std::string> entries(size_t n = 0) const;
+  std::vector<std::string> entries(size_t n) const;
 
   /**
    * @brief Clear the log
@@ -104,21 +112,23 @@ private:
     constexpr iterator& operator--() noexcept
     {
       static_assert(true, "Decrement not supported");
-      //Expects(span_ && index_ <= span_->length());
-      //index_ = (index_ > 0) ? index_-1 : span_->length()-1;
+      Expects(span_ && index_ < span_->length());
+      index_ = (index_ > 0) ? index_-1 : span_->length()-1;
       return *this;
     }
 
     constexpr iterator& operator+=(difference_type n) noexcept
     {
-      Expects(span_ && (index_ + n) >= 0);
+      Expects(span_);
       index_ = (index_ + n < span_->length()) ? index_ + n : std::abs((n - ((span_->length()) - index_)) % span_->length());
       return *this;
     }
 
     constexpr span_iterator& operator-=(difference_type n) noexcept
     {
+      // No use case for this (yet)
       static_assert(true, "Decrement not supported");
+      //index_ = (index - n >= 0) ? index_ - n : std::abs((n -))
       return *this += -n;
     }
   }; // < class Logger::iterator
