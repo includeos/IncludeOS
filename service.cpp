@@ -104,29 +104,6 @@ void Service::start(const std::string&) {
       // only works with synchrone disks (memdisk)
       recursive_fs_dump(*disk->fs().ls("/").entries);
 
-      /** STATS SETUP **/
-      // TODO: Make use of Statman
-      auto& total_conn = Statman::get().create(Stat::UINT64, "http.connection_total");
-      server::Connection::on_connection([&total_conn](){
-        stats.bump_connection_count();
-        ++total_conn;
-      });
-
-      auto& total_res = Statman::get().create(Stat::UINT64, "http.responses");
-      server::Response::on_sent([&total_res](size_t n) {
-        stats.bump_data_sent(n)
-             .bump_response_sent();
-        ++total_res;
-      });
-
-      auto& total_req = Statman::get().create(Stat::UINT64, "http.requests");
-      server::Request::on_recv([&total_req](size_t n) {
-        stats.bump_data_received(n)
-          .bump_request_received();
-        ++total_req;
-      });
-
-
       /** BUCKET SETUP */
 
       // create squirrel bucket
@@ -212,19 +189,6 @@ void Service::start(const std::string&) {
       });
       /*----------[END TEST OF] CookieJar and CookieParser----------*/
 
-      // Temporary route for polling http stats
-      // TODO: Refactor to use Statsman and maybe integrate with dashboard
-      router.on_get("/api/stats", [](auto, auto res) {
-        using namespace rapidjson;
-        StringBuffer sb;
-        Writer<StringBuffer> writer(sb);
-        stats.set_active_clients(server_->active_clients())
-             .set_memory_usage(OS::heap_usage())
-             .serialize(writer);
-        res->send_json(sb.GetString());
-      });
-
-
       /** DASHBOARD SETUP **/
       dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
       // Add singleton component
@@ -234,8 +198,8 @@ void Service::start(const std::string&) {
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(IRQ_manager::get(), 0ms, 1s);
-      dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(0));
+      dashboard_->construct<dashboard::CPUsage>(IRQ_manager::get(), 0ms, 500ms);
+      dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());

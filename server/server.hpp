@@ -59,11 +59,6 @@ private:
   using MiddlewareStack = std::vector<MappedCallback>;
   //-------------------------------
 public:
-  //-------------------------------
-  // Default constructor to set up
-  // the server
-  //-------------------------------
-  explicit Server();
 
   Server(IP_stack&);
 
@@ -155,6 +150,8 @@ private:
   Next create_next(std::shared_ptr<MiddlewareStack::iterator>, Request_ptr, Response_ptr);
 
   void timeout_clients(uint32_t);
+
+  void setup_stats();
 
 }; //< class Server
 

@@ -127,10 +127,10 @@ const lest::test test_logger[] =
           {
             entries = logger.entries(1);
 
-            THEN("Only the first (oldest) entry is returned")
+            THEN("Only the last (latest) entry is returned")
             {
               EXPECT( entries.size() == 1 );
-              EXPECT( entries[0] == entry1 );
+              EXPECT( entries[0] == entry3 );
             }
           }
         }

@@ -14,3 +14,7 @@
 .panel-default {
   border-color: #3A8BF1 !important;
 }
+
+[data-toggle="collapse"] {
+  cursor:pointer;
+}

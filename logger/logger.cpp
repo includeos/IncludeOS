@@ -57,10 +57,8 @@ void Logger::log(const std::string& str) {
   ++pos_;
 }
 
-std::vector<std::string> Logger::entries(size_t n) const {
+std::vector<std::string> Logger::entries() const {
   std::vector<std::string> results;
-
-  results.reserve(n);
 
   auto head = pos_;
 
@@ -68,29 +66,56 @@ std::vector<std::string> Logger::entries(size_t n) const {
     // adjust head
     while(*head == '\0') {
       ++head;
-      if(head == pos_) return results;
+      // return results if we went all the way around
+      if(head == pos_)
+        return results;
     }
 
-    std::ostringstream ss;
+    std::vector<char> vec;
 
     while(*head != '\0') {
-      ss << *head;
+      vec.emplace_back(*head);
       ++head;
     }
 
-    results.emplace_back(std::forward<std::string>(ss.str()));
+    results.emplace_back(vec.begin(), vec.end());
+
+  } while(true);
+
+  return results;
+}
+
+std::vector<std::string> Logger::entries(size_t n) const {
+  std::vector<std::string> results;
+
+  results.reserve(n);
+
+  auto head = pos_;
+
+  while(n != 0) {
+    // adjust head
+    while(*head == '\0') {
+      --head;
+      // return results if we went all the way around
+      if(head == pos_)
+        return results;
+    }
+    // temporary string
+    std::vector<char> vec;
+    do {
+      // build the string from back to front
+      vec.emplace_back(*head);
+      --head;
+    } while(*head != '\0');
+
+    // emplace the string in reverese
+    results.emplace_back(vec.rbegin(), vec.rend());
+    // decrement remaining entries
     n--;
+  }
 
-    /*// setup tail
-    auto tail = head;
-
-    while(*tail != '\0')
-      ++tail;
-
-    results.emplace_back(head, tail);
-    head = tail;*/
-
-  } while(n != 0);
+  // reverese all the results so it became oldest first
+  std::reverse(results.begin(), results.end());
 
   return results;
 }
