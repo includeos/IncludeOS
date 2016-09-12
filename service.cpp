@@ -149,45 +149,6 @@ void Service::start(const std::string&) {
       // setup User routes
       router.use("/api/users", routes::Users{users});
 
-      /*----------[START TEST OF] CookieJar and CookieParser----------*/
-      auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
-        if (req->has_attribute<CookieJar>()) {
-          auto req_cookies = req->get_attribute<CookieJar>();
-
-          { // Print all the request-cookies
-            const auto& all_cookies = req_cookies->get_cookies();
-            for (const auto& c : all_cookies) {
-              printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
-            }
-          }
-
-          const auto& value = req_cookies->cookie_value("lang");
-
-          if (value == "") {
-            printf("%s\n", "Cookie with name 'lang' not found! Creating it.");
-            res->cookie("lang", lang);
-          } else if (value not_eq lang) {
-            printf("%s\n", "Cookie with name 'lang' found, but with wrong value. Updating cookie.");
-            res->update_cookie("lang", "", "", lang);
-          } else {
-            printf("%s %s %s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str() ,"')!");
-            res->send(true);
-          }
-
-        } else {
-          printf("%s\n", "Request has no cookies! Creating cookie.");
-          res->cookie("lang", lang);
-        }
-      };
-
-      router.on_get("/api/english", [&lang_api_handler](server::Request_ptr req, auto res) {
-        lang_api_handler(req, res, "en-US");
-      });
-
-      router.on_get("/api/norwegian", [&lang_api_handler](server::Request_ptr req, auto res) {
-        lang_api_handler(req, res, "nb-NO");
-      });
-      /*----------[END TEST OF] CookieJar and CookieParser----------*/
 
       /** DASHBOARD SETUP **/
       dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
