@@ -50,8 +50,8 @@ INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api
 all:      CAPABS = $(CAPABS_COMMON) -O2 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 debug:    CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Os
-# by default, remove debugging
-STRIPPED=-S
+# by default, don't use strip because it has caused us some problems
+STRIPPED=
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s`
@@ -88,6 +88,7 @@ DEPS = $(OBJS:.o=.d)
 # - a "service", to be linked with OS-objects (OS included)
 .PHONY: all stripped debug debug-info debug-all memdisk service
 
+all: LDOPTS += --strip-debug
 all: service
 
 stripped: LDOPTS  += -s
