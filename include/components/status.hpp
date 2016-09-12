@@ -47,20 +47,24 @@ public:
     writer.Key("service");
     writer.String(Service::name());
 
-    writer.Key("uptime");
-    writer.Int64(OS::uptime());
-
     writer.Key("heap_usage");
     writer.Uint64(OS::heap_usage());
 
     writer.Key("cpu_freq");
     writer.Double(OS::cpu_freq().count());
 
-    writer.Key("current_time");
-    long hest = RTC::now();
+    writer.Key("boot_time");
+    long hest = OS::boot_timestamp();
     struct tm* tt =
       gmtime (&hest);
     char datebuf[32];
+    strftime(datebuf, sizeof datebuf, "%FT%TZ", tt);
+    writer.String(datebuf);
+
+    writer.Key("current_time");
+    hest = RTC::now();
+    tt =
+      gmtime (&hest);
     strftime(datebuf, sizeof datebuf, "%FT%TZ", tt);
     writer.String(datebuf);
 
