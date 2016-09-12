@@ -182,16 +182,6 @@ void Service::start(const std::string&) {
 
       /** MIDDLEWARE SETUP **/
 
-      /* // example of how to inject a custom middleware closure
-      // add a middleware as lambda
-      acorn->use([](auto req, auto res, auto next){
-        hw::PIT::on_timeout(0.050, [next]{
-          printf("<MW:lambda> EleGiggle (50ms delay)\n");
-          (*next)();
-        });
-      });
-      */
-
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
       //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
