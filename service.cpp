@@ -116,22 +116,8 @@ void Service::start(const std::string&) {
       }, SquirrelBucket::UNIQUE);
 
       // seed squirrels
-      auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
+      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
       squirrels->spawn("Alf"s, 6U, "Script kiddie"s);
-
-      // A test to see if constraint is working (squirrel).
-      // TODO: Unit test bucket and remove this
-      bool exception_thrown = false;
-      try {
-        Squirrel dupe_name("Andreas", 0, "Tester");
-        squirrels->capture(dupe_name);
-      } catch(bucket::ConstraintUnique) {
-        exception_thrown = true;
-      }
-      assert(exception_thrown);
-
-      // A test to see if field search is working
-      assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
       // setup users bucket
       users = std::make_shared<UserBucket>();
@@ -149,45 +135,6 @@ void Service::start(const std::string&) {
       // setup User routes
       router.use("/api/users", routes::Users{users});
 
-      /*----------[START TEST OF] CookieJar and CookieParser----------*/
-      auto lang_api_handler = [](server::Request_ptr req, auto res, const std::string& lang) {
-        if (req->has_attribute<CookieJar>()) {
-          auto req_cookies = req->get_attribute<CookieJar>();
-
-          { // Print all the request-cookies
-            const auto& all_cookies = req_cookies->get_cookies();
-            for (const auto& c : all_cookies) {
-              printf("Cookie: %s=%s\n", c.first.c_str(), c.second.c_str());
-            }
-          }
-
-          const auto& value = req_cookies->cookie_value("lang");
-
-          if (value == "") {
-            printf("%s\n", "Cookie with name 'lang' not found! Creating it.");
-            res->cookie("lang", lang);
-          } else if (value not_eq lang) {
-            printf("%s\n", "Cookie with name 'lang' found, but with wrong value. Updating cookie.");
-            res->update_cookie("lang", "", "", lang);
-          } else {
-            printf("%s %s %s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str() ,"')!");
-            res->send(true);
-          }
-
-        } else {
-          printf("%s\n", "Request has no cookies! Creating cookie.");
-          res->cookie("lang", lang);
-        }
-      };
-
-      router.on_get("/api/english", [&lang_api_handler](server::Request_ptr req, auto res) {
-        lang_api_handler(req, res, "en-US");
-      });
-
-      router.on_get("/api/norwegian", [&lang_api_handler](server::Request_ptr req, auto res) {
-        lang_api_handler(req, res, "nb-NO");
-      });
-      /*----------[END TEST OF] CookieJar and CookieParser----------*/
 
       /** DASHBOARD SETUP **/
       dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
@@ -234,16 +181,6 @@ void Service::start(const std::string&) {
 
 
       /** MIDDLEWARE SETUP **/
-
-      /* // example of how to inject a custom middleware closure
-      // add a middleware as lambda
-      acorn->use([](auto req, auto res, auto next){
-        hw::PIT::on_timeout(0.050, [next]{
-          printf("<MW:lambda> EleGiggle (50ms delay)\n");
-          (*next)();
-        });
-      });
-      */
 
       // custom middleware to serve static files
       auto opt = {"index.html", "index.htm"};
