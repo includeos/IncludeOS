@@ -57,7 +57,7 @@
                   <dd>{{ status.service }}</dd>
 
                   <dt>Uptime</dt>
-                  <dd>{{ status.uptime | secondsToDateTime | date: 'HH:mm:ss' }}</dd>
+                  <dd id="uptime">{{ uptime }}</dd>
 
                   <hr/>
 
@@ -66,6 +66,9 @@
 
                   <dt>Heap Usage</dt>
                   <dd>{{ status.heap_usage | bytes }}</dd>
+
+                  <dt>Booted</dt>
+                  <dd>{{ status.boot_time | date: 'yyyy-MM-dd HH:mm' }}</dd>
 
                   <dt>Current Time</dt>
                   <dd>{{ status.current_time | date: 'yyyy-MM-dd HH:mm' }}</dd>

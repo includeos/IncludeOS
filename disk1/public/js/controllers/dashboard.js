@@ -126,7 +126,14 @@ angular.module('acornWebApp')
       });
     })();
 
+    $scope.uptime = 0;
+
+    var uptime = $interval(function() {
+      $scope.uptime = countdown( new Date($scope.status.boot_time), null ).toString();
+    }, 1000);
+
     $scope.$on('$destroy', function(){
       $timeout.cancel(polling);
+      $interval.cancel(uptime);
     })
   }]);
