@@ -116,22 +116,8 @@ void Service::start(const std::string&) {
       }, SquirrelBucket::UNIQUE);
 
       // seed squirrels
-      auto first_key = squirrels->spawn("Andreas"s, 28U, "Code Monkey"s).key;
+      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
       squirrels->spawn("Alf"s, 6U, "Script kiddie"s);
-
-      // A test to see if constraint is working (squirrel).
-      // TODO: Unit test bucket and remove this
-      bool exception_thrown = false;
-      try {
-        Squirrel dupe_name("Andreas", 0, "Tester");
-        squirrels->capture(dupe_name);
-      } catch(bucket::ConstraintUnique) {
-        exception_thrown = true;
-      }
-      assert(exception_thrown);
-
-      // A test to see if field search is working
-      assert(squirrels->look_for("name", "Andreas"s).key == first_key);
 
       // setup users bucket
       users = std::make_shared<UserBucket>();
