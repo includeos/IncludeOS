@@ -37,7 +37,7 @@ public:
     on_get("/",
     [squirrels] (auto, auto res)
     {
-      printf("[Squirrels@GET:/] Responding with content inside SquirrelBucket\n");
+      //printf("[Squirrels@GET:/] Responding with content inside SquirrelBucket\n");
       using namespace rapidjson;
       StringBuffer sb;
       Writer<StringBuffer> writer(sb);

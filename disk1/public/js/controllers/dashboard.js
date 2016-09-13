@@ -109,23 +109,15 @@ angular.module('acornWebApp')
 
     $scope.statTree = [];
 
-    function createTree(statman) {
+    var createTree = function(statman) {
       // tree is an object (root) containing an array of nodes
-      tree = {};
+      var tree = { nodes: [] };
 
       for (var i = 0; i < statman.length; i++)
-        tree = fillTree(statman[i].name, statman[i].value);
+        fillTree(tree, statman[i].name, statman[i].value);
 
       $scope.statTree = tree.nodes;
     }
-
-    // Statman bootstrap tree view
-    $http.get("/api/dashboard/statman").
-      success(function (statman) {
-        $scope.statman = statman;
-        createTree(statman);
-      }).
-      error(function (data, status) {});
 
     var polling;
 
