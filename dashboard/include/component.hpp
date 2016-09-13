@@ -29,7 +29,7 @@ public:
 
   virtual std::string key() const = 0;
 
-  virtual void serialize(dashboard::Writer&) const = 0;
+  virtual void serialize(dashboard::Writer&) = 0;
 
   virtual ~Component() {}
 
