@@ -47,9 +47,6 @@ std::unique_ptr<Logger> logger_;
 //#include <filesystem>
 fs::Disk_ptr disk;
 
-Statistics stats;
-RTC::timestamp_t STARTED_AT;
-
 #include <time.h>
 
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
