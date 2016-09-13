@@ -85,14 +85,6 @@ angular.module('acornWebApp')
       }).
       error(function (data, status) {});
 
-    // Statman bootstrap tree view
-    $http.get("/api/dashboard/statman").
-      success(function (statman) {
-        $scope.tree = getTree(statman);
-        $('#tree').treeview({data: $scope.tree, showTags: true});
-      }).
-      error(function (data, status) {});
-
     var cpusage = new CPUsage('#cpu_usage_chart');
 
     // Polling dashboard data
@@ -110,6 +102,26 @@ angular.module('acornWebApp')
       cpusage.update($scope.cpu_usage);
     });
 
+    $scope.statTree = [];
+
+    function createTree(statman) {
+      // tree is an object (root) containing an array of nodes
+      tree = {};
+
+      for (var i = 0; i < statman.length; i++)
+        tree = fillTree(statman[i].name, statman[i].value);
+
+      $scope.statTree = tree.nodes;
+    }
+
+    // Statman bootstrap tree view
+    $http.get("/api/dashboard/statman").
+      success(function (statman) {
+        $scope.statman = statman;
+        createTree(statman);
+      }).
+      error(function (data, status) {});
+
     var polling;
 
     (function poll() {
@@ -121,6 +133,8 @@ angular.module('acornWebApp')
         $scope.status = data.status;
         $scope.tcp = data.tcp;
         $scope.logger = data.logger;
+
+        createTree($scope.statman);
 
         polling = $timeout(poll, 1000);
       });

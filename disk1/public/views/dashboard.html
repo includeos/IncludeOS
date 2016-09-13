@@ -102,7 +102,48 @@
                 </tbody>
               </table>-->
 
-              <div id="tree"></div>
+              <div id="tree" class="just-padding">
+
+                <div class="list-group list-group-root well">
+
+                  <div ng-repeat="parent in statTree">
+
+                    <div class="list-group-item">
+                      {{ parent.text }}
+                      <span class="badge">{{ parent.value }}</span>
+                    </div>
+
+                    <div class="list-group" id="{{'parent-' + parent.id}}">
+
+                      <div ng-repeat="child in parent.nodes">
+
+                        <div class="list-group-item gap-1">
+                          {{ child.text }}
+                          <span class="badge">{{ child.value }}</span>
+                        </div>
+
+                        <div class="list-group" id="{{'child-' + child.id }}">
+
+                          <div ng-repeat="grandchild in child.nodes">
+
+                            <div class="list-group-item gap-2">
+                              {{ grandchild.text }}
+                              <span class="badge">{{ grandchild.value }}</span>
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
 
             </div>
           </div>

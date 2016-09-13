@@ -1,12 +1,12 @@
-function fillTree(name, value) {
+function fillTree(name, val) {
   var parts = name.split('.');
 
   var current = null,
     existing = null,
     i = 0;
 
-  if (!tree.nodes||typeof tree.nodes == 'undefined')
-    tree = { text: parts[y], nodes: []/*, state: { expanded: false }*/ };
+  if (!tree.nodes || typeof tree.nodes == 'undefined')
+    tree = { text: parts[y], nodes: [] };
 
   current = tree.nodes;
 
@@ -24,24 +24,14 @@ function fillTree(name, value) {
       if (existing) {
         current = existing.nodes;
       } else {
-        current.push({ text: parts[y], nodes: []/*, state: { expanded: false }*/ });
+        current.push({ id: i, text: parts[y], nodes: [] });
         current = current[current.length - 1].nodes;
       }
     } else {
       // leaf node
-      current.push({ text: parts[y], tags: [value], path: name/*, state: { disabled: true }*/ });
+      current.push({ id: i, text: parts[y], value: val, path: name });
     }
   }
 
   return tree;
-}
-
-function getTree(statman) {
-  // tree is an object (root) containing an array of nodes
-  var tree = {};
-
-  for (var i = 0; i < statman.length; i++)
-    tree = fillTree(statman[i].name, statman[i].value);
-
-  return tree.nodes;
 }
