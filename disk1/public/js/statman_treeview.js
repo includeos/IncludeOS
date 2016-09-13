@@ -1,4 +1,4 @@
-function fillTree(name, val) {
+function fillTree(tree, name, val) {
   var parts = name.split('.');
 
   var current = null,
@@ -32,6 +32,4 @@ function fillTree(name, val) {
       current.push({ id: i, text: parts[y], value: val, path: name });
     }
   }
-
-  return tree;
 }
