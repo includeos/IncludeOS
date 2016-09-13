@@ -237,7 +237,7 @@ def main():
   stress = stress_test() if "stress" in test_categories else 0
   unit = unit_tests() if "unit" in test_categories else 0
   examples = examples_working() if "examples" in test_categories else 0
-  folders = integration_tests(subfolder=args.tests[0]) if args.tests[0] in test_categories else 0
+  folders = integration_tests(subfolder=test_categories[0]) if test_categories[0] in test_folders else 0
 
   status = max(integration, stress, unit, examples, folders)
 
