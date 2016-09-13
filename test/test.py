@@ -59,6 +59,9 @@ def valid_tests(subfolder=None):
 
   valid_tests = [ x for x in validate_all.valid_tests() if  not x in args.skip ]
 
+  if subfolder:
+    return [x for x in valid_tests if x.split('/')[0] == subfolder]
+
   if args.tests:
     return [x for x in valid_tests if x.split("/")[-1] in args.tests]
 
@@ -117,12 +120,15 @@ class Test:
 
 
 
-def integration_tests():
+def integration_tests(subfolder=None):
     """
     Loops over all valid tests as defined by ./validate_all.py. Runs them one by one and gives an update of the statuses at the end.
     """
     global test_count
-    valid = valid_tests()
+    if subfolder:
+      valid = valid_tests(subfolder)
+    else:
+      valid = valid_tests()
     if not valid:
       print pretty.WARNING("Integration tests skipped")
       return 0
@@ -222,19 +228,18 @@ def main():
     test_folders = []
   tests_combined = test_categories + test_folders
   if args.tests:
-    test_categories = [x for x in tests_combined if x in args.tests ]
+    test_categories = [x for x in tests_combined if x in args.tests or x == "integration"]
   if args.skip:
     test_categories = [x for x in tests_combined if not x in args.skip]
 
-  print test_categories
-  print valid_tests()
 
   integration = integration_tests() if "integration" in test_categories else 0
   stress = stress_test() if "stress" in test_categories else 0
   unit = unit_tests() if "unit" in test_categories else 0
   examples = examples_working() if "examples" in test_categories else 0
+  folders = integration_tests(subfolder=args.tests[0]) if args.tests[0] in test_categories else 0
 
-  status = max(integration, stress, unit, examples)
+  status = max(integration, stress, unit, examples, folders)
 
   if (not test_count):
     print "No tests selected"
