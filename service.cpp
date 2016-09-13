@@ -18,16 +18,12 @@
 #include <sstream>
 
 #include <os>
+#include <rtc>
 #include <acorn>
 #include <memdisk>
-
 #include <profile>
 
 #include <fs/disk.hpp>
-#include <rtc>
-#include <routes>
-#include <dashboard>
-#include <logger/logger.hpp>
 
 using namespace std;
 using namespace acorn;
@@ -98,8 +94,14 @@ void Service::start(const std::string&) {
                            { 10,0,0,1 },      // Gateway
                            { 8,8,8,8 });      // DNS
 
-      // only works with synchrone disks (memdisk)
+      // only works with synchronous disks (memdisk)
+      printf("%s\n",
+      "================================================================================\n"
+      "STATIC CONTENT LISTING\n"
+      "================================================================================\n");
       recursive_fs_dump(*disk->fs().ls("/").entries);
+      printf("%s",
+      "================================================================================\n");
 
       /** BUCKET SETUP */
 
@@ -113,8 +115,13 @@ void Service::start(const std::string&) {
       }, SquirrelBucket::UNIQUE);
 
       // seed squirrels
-      squirrels->spawn("Andreas"s, 28U, "Code Monkey"s);
-      squirrels->spawn("Alf"s, 6U, "Script kiddie"s);
+      squirrels->spawn("Alfred"s,  1000U, "Wizard"s);
+      squirrels->spawn("Alf"s,     6U,    "Script Kiddie"s);
+      squirrels->spawn("Andreas"s, 28U,   "Code Monkey"s);
+      squirrels->spawn("AnnikaH"s, 20U,   "Fairy"s);
+      squirrels->spawn("Ingve"s,   24U,   "Integration Master"s);
+      squirrels->spawn("Martin"s,  16U,   "Build Master"s);
+      squirrels->spawn("Rico"s,    28U,   "Mad Scientist"s);
 
       // setup users bucket
       users = std::make_shared<UserBucket>();
@@ -229,5 +236,4 @@ void recursive_fs_dump(vector<fs::Dirent> entries, int depth) {
   }
   printf(" %*s \n", indent, " ");
   //printf(" %*s \n", indent, "o");
-
 }
