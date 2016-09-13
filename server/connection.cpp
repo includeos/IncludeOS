@@ -31,6 +31,7 @@ Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
   conn_->on_disconnect(OnDisconnect::from<Connection, &Connection::on_disconnect>(this));
   conn_->on_close(OnClose::from<Connection, &Connection::close>(this));
   conn_->on_error(OnError::from<Connection, &Connection::on_error>(this));
+  conn_->on_packet_dropped(OnPacketDropped::from<Connection, &Connection::on_packet_dropped>(this));
   //conn_->on_rtx_timeout([](auto, auto) { printf("<TCP> RtxTimeout\n"); });
   on_connection_();
   idle_since_ = RTC::now();
@@ -58,7 +59,7 @@ void Connection::on_data(buffer_t buf, size_t n) {
       }
     }
     catch(std::exception& e) {
-      printf("<%s> Error - %s\n",
+      printf("<%s> HTTP Error - %s\n",
         to_string().c_str(), e.what());
       // close tcp connection
       close_tcp();

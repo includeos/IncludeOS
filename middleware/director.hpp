@@ -92,7 +92,7 @@ private:
     ss << "<div class=\"panel panel-default\">";
     build_table(ss, entries, path);
     ss << "</div>"; // panel
-    ss << "<hr/><h6 class=\"small\">Powered by <strong>IncludeOS</strong> ;-)</h6>";
+    ss << "<hr/><h6 class=\"small\">Powered by <strong>IncludeOS</strong></h6>";
     ss << "</div>"; // container
 
     ss << HTML_FOOTER;
@@ -118,7 +118,7 @@ private:
     ss << "<tr>"
       << "<th>Type</th>"
       << "<th>Name</th>"
-      << "<th>Size(B)</th>"
+      << "<th>Size</th>"
       << "<th>Modified</th>"
       << "</tr>";
   }
@@ -132,8 +132,8 @@ private:
     ss << "<tr>";
     add_td(ss, "type", get_icon(entry));
     add_td(ss, "file", create_url(path, entry.name()));
-    isFile ? add_td(ss, "size", entry.size()) : add_td(ss, "size", "-");
-    isFile ? add_td(ss, "modified", OS::boot_timestamp()) : add_td(ss, "modified", "-");
+    isFile ? add_td(ss, "size", human_readable_size(entry.size())) : add_td(ss, "size", "-");
+    isFile ? add_td(ss, "modified", "N/A") : add_td(ss, "modified", "-");
     ss << "</tr>";
   }
 
@@ -173,6 +173,17 @@ private:
   std::string resolve_file_path(std::string path) {
     path.replace(0,mountpath_.size(), root_);
     return path;
+  }
+
+  std::string human_readable_size(double sz) const {
+    const char* suffixes[] = {"B", "KB", "MB", "GB"};
+    int i = 0;
+    while(sz >= 1024 && ++i < 4)
+      sz = sz/1024;
+
+    char str[20];
+    snprintf(&str[0], 20, "%.2f %s", sz, suffixes[i]);
+    return str;
   }
 
 }; // < class Director

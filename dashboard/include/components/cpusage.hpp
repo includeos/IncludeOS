@@ -48,16 +48,22 @@ public:
   std::string key() const override
   { return "cpu_usage"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartObject();
 
     writer.Key("halt");
-    uint64_t halt = new_halt_ - old_halt_;
-    writer.Uint64(halt);
+
+    if(new_halt_ > old_halt_)
+      serialized_halt_ = new_halt_ - old_halt_;
+
+    writer.Uint64(serialized_halt_);
 
     writer.Key("total");
-    uint64_t total = new_total_ - old_total_;
-    writer.Uint64(total);
+
+    if(new_total_ > old_total_)
+      serialized_total_ = new_total_ - old_total_;
+
+    writer.Uint64(serialized_total_);
 
     writer.Key("interval");
     writer.Double(interval_.count());
@@ -71,15 +77,21 @@ private:
   uint64_t old_total_ = 0;
   uint64_t new_total_ = 0;
 
+  uint64_t serialized_halt_ = 0;
+  uint64_t serialized_total_ = 0;
+
   ::IRQ_manager& manager_;
   Timers::duration_t interval_;
   Timers::id_t timer_id_;
 
   void update_values(Timers::id_t) {
-      old_halt_ = new_halt_;
-      old_total_ = new_total_;
-      new_halt_ = manager_.cycles_hlt();
-      new_total_ = manager_.cycles_total();
+    uint64_t temp_halt = new_halt_;
+    uint64_t temp_total = new_total_;
+
+    new_halt_ = manager_.cycles_hlt();
+    new_total_ = manager_.cycles_total();
+    old_halt_ = temp_halt;
+    old_total_ = temp_total;
   }
 };
 

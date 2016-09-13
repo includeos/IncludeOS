@@ -38,7 +38,7 @@ public:
   std::string key() const override
   { return "status"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartObject();
 
     writer.Key("version");
