@@ -14,7 +14,8 @@ angular.module('acornWebApp')
       cpu_usage_chart = c3.generate({
         bindto: html_id,
         padding: {
-          right: 20
+          right: 40,
+          top: 40
         },
         data: {
           x: 'x',
