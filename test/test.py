@@ -228,7 +228,7 @@ def main():
     test_folders = []
   tests_combined = test_categories + test_folders
   if args.tests:
-    test_categories = [x for x in tests_combined if x in args.tests or x == "integration"]
+    test_categories = [x for x in tests_combined if x in args.tests ]
   if args.skip:
     test_categories = [x for x in tests_combined if not x in args.skip]
 
