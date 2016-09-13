@@ -36,7 +36,7 @@ public:
   std::string key() const override
   { return "tcp"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartObject();
 
     writer.Key("address");

@@ -36,7 +36,7 @@ public:
   std::string key() const override
   { return "statman"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartArray();
     for(auto it = statman_.begin(); it != statman_.last_used(); ++it) {
       auto& stat = *it;
