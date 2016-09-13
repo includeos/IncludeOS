@@ -92,7 +92,7 @@ private:
     ss << "<div class=\"panel panel-default\">";
     build_table(ss, entries, path);
     ss << "</div>"; // panel
-    ss << "<hr/><h6 class=\"small\">Powered by <strong>IncludeOS</strong> ;-)</h6>";
+    ss << "<hr/><h6 class=\"small\">Powered by <strong>IncludeOS</strong></h6>";
     ss << "</div>"; // container
 
     ss << HTML_FOOTER;
@@ -118,7 +118,7 @@ private:
     ss << "<tr>"
       << "<th>Type</th>"
       << "<th>Name</th>"
-      << "<th>Size(B)</th>"
+      << "<th>Size</th>"
       << "<th>Modified</th>"
       << "</tr>";
   }
