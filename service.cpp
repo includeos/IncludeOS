@@ -45,15 +45,15 @@ fs::Disk_ptr disk;
 
 #include <time.h>
 
-// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
-const std::string currentDateTime() {
+// Get current date/time, format is [YYYY-MM-DD.HH:mm:ss]
+const std::string timestamp() {
     time_t     now = time(0);
     struct tm  tstruct;
     char       buf[80];
     tstruct = *localtime(&now);
     // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
     // for more information about date/time format
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+    strftime(buf, sizeof(buf), "[%Y-%m-%d.%X] ", &tstruct);
 
     return buf;
 }
@@ -72,7 +72,9 @@ void Service::start(const std::string&) {
   printf("Going dark in 3 ... 2 ... 1 .\n");
   OS::set_rsprint([] (const char* data, size_t len) {
     OS::default_rsprint(data, len);
-    logger_->log({data, len});
+    // append timestamp
+    auto entry = timestamp() + std::string{data, len};
+    logger_->log(entry);
   });
 
   disk = fs::new_shared_memdisk();
@@ -201,12 +203,6 @@ void Service::start(const std::string&) {
 
       server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
       server_->use(cookie_parser);
-
-      // Print TCP information every 1 min
-      Timers::periodic(30s, 1min, [](auto){
-        printf("@onTimeout [%s]\n%s\n",
-          currentDateTime().c_str(), server_->ip_stack().tcp().status().c_str());
-      });
 
     }); // < disk
 }
