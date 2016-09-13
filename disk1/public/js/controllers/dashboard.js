@@ -5,7 +5,6 @@ angular.module('acornWebApp')
     ['$scope', 'Dashboard', '$timeout', '$http', '$interval', 'bytesFilter', 'CPUsage',
     function($scope, Dashboard, $timeout, $http, $interval, bytesFilter, CPUsage) {
 
-
     var color_palette = ['#A061F2', '#3A8BF1', '#3452CB', '#0D1230', '#EE4053', '#F87E0C', '#F8D20B', '#B5D63B'];
 
     // Memory map chart
@@ -13,7 +12,7 @@ angular.module('acornWebApp')
       success(function (memmap) {
         var memmap_columns = [];
         var groups = [];
-        var group_with_colors = {};
+        var groups_with_colors = {};
         var color_index = 0;
 
         angular.forEach(memmap, function(element, index) {
@@ -24,13 +23,13 @@ angular.module('acornWebApp')
           groups.push(element_name);
 
           if(index < color_palette.length) {
-            group_with_colors[element_name] = color_palette[index];
+            groups_with_colors[element_name] = color_palette[index];
           }
           else {
             if(color_index >= color_palette.length)
               color_index = 0;
 
-            group_with_colors[element_name] = color_palette[color_index++];
+            groups_with_colors[element_name] = color_palette[color_index++];
           }
         });
 
@@ -43,7 +42,7 @@ angular.module('acornWebApp')
           },
           data: {
             columns: memmap_columns,
-            colors: group_with_colors,
+            colors: groups_with_colors,
             type: 'bar',
             groups: [
               groups
@@ -83,8 +82,8 @@ angular.module('acornWebApp')
             }
           }
         });
-      }).error(function (data, status) {});
-
+      }).
+      error(function (data, status) {});
 
     var cpusage = new CPUsage('#cpu_usage_chart');
 
@@ -103,6 +102,26 @@ angular.module('acornWebApp')
       cpusage.update($scope.cpu_usage);
     });
 
+    $scope.statTree = [];
+
+    function createTree(statman) {
+      // tree is an object (root) containing an array of nodes
+      tree = {};
+
+      for (var i = 0; i < statman.length; i++)
+        tree = fillTree(statman[i].name, statman[i].value);
+
+      $scope.statTree = tree.nodes;
+    }
+
+    // Statman bootstrap tree view
+    $http.get("/api/dashboard/statman").
+      success(function (statman) {
+        $scope.statman = statman;
+        createTree(statman);
+      }).
+      error(function (data, status) {});
+
     var polling;
 
     (function poll() {
@@ -114,6 +133,8 @@ angular.module('acornWebApp')
         $scope.status = data.status;
         $scope.tcp = data.tcp;
         $scope.logger = data.logger;
+
+        createTree($scope.statman);
 
         polling = $timeout(poll, 1000);
       });

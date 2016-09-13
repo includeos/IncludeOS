@@ -37,7 +37,7 @@ public:
   std::string key() const override
   { return "stack_sampler"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
 
     writer.StartObject();
 

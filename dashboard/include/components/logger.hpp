@@ -36,7 +36,7 @@ public:
   std::string key() const override
   { return "logger"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartArray();
     auto entries = (entries_) ? logger_.entries(entries_) : logger_.entries();
 

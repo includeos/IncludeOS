@@ -37,7 +37,7 @@ public:
   std::string key() const override
   { return "memmap"; }
 
-  void serialize(Writer& writer) const override {
+  void serialize(Writer& writer) override {
     writer.StartArray();
     for (auto i : OS::memory_map())
     {
