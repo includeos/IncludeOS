@@ -79,7 +79,7 @@ private:
   using Indexes = std::unordered_map<Column, IndexedColumn<Value>>;
 
 public:
-  explicit Bucket(size_t limit = 1000);
+  explicit Bucket(size_t limit = 1024);
 
   /**
    * @brief Capture something inside the bucket.
