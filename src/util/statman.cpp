@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <iterator>
 #include <statman>
 
 // Stat
@@ -76,15 +77,10 @@ Statman::Statman(uintptr_t start, Size_type num_bytes)
 }
 
 Statman::Span_iterator Statman::last_used() {
-  int i = 0;
-
-  for(auto it = stats_.begin(); it not_eq stats_.end(); ++it) {
-    if(i == next_available_)
-      return it;
-    i++;
-  }
-
-  return stats_.end();
+  Expects(next_available_ <= stats_.size());
+  auto it = stats_.begin();
+  std::advance(it, next_available_);
+  return it;
 }
 
 Stat& Statman::create(const Stat::stat_type type, const std::string& name) {

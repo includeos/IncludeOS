@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <kernel/elf.hpp>
+#include <common>
 #include <cassert>
 #include <cstdio>
 #include <string>
@@ -72,14 +73,16 @@ public:
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {null_stringz, 0, addr};
+    if (UNLIKELY(addr < 0x7c00))
+        return {null_stringz, 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
+    if (UNLIKELY(addr < 0x7e00))
+        return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
     // validate symbol address
     //assert(sym >= symtab.base && sym < symtab.base + symtab.entries);
-    if (sym) {
+    if (LIKELY(sym)) {
       auto base   = sym->st_value;
       auto offset = addr - base;
       // return string name for symbol
