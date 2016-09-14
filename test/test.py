@@ -15,7 +15,8 @@ import validate_all
 
 startdir = os.getcwd()
 
-test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'stress', 'util']
+test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'util']
+test_types = ['integration', 'stress', 'unit', 'examples']
 
 """
 Script used for running all the valid tests in the terminal.
@@ -74,7 +75,7 @@ def valid_tests(subfolder=None):
 
 class Test:
   """ A class to start a test as a subprocess and pretty-print status """
-  def __init__(self, path, clean=False, command=['sudo', '-E', 'python', 'test.py'], name=None, category=None, test_type=None):
+  def __init__(self, path, clean=False, command=['sudo', '-E', 'python', 'test.py'], name=None):
 
     self.command_ = command
     self.proc_ = None
@@ -93,6 +94,9 @@ class Test:
     elif self.path_ == 'mod/gsl':
       self.category_ = 'mod'
       self.type_ = 'mod'
+    elif self.path_ == '.':
+      self.category_ = 'unit'
+      self.type_ = 'unit'
     else:
       self.category_ = self.path_.split('/')[-3]
       self.type_ = self.path_.split('/')[-2]
@@ -102,11 +106,8 @@ class Test:
     else:
       self.name_ = name
 
-    # Check if the tests is valid or not
-    valid_status = check_valid(self.path_)
-    self.skip_ = valid_status['skip']
-    self.skip_reason_ = valid_status['skip_reason']
-
+    # Check if the test is valid or not
+    self.check_valid()
 
     if clean:
       subprocess.check_output(["make","clean"])
@@ -156,44 +157,39 @@ class Test:
 
     return self.proc_.returncode
 
+  def check_valid(self):
+    """ Will check if a test is valid. The following points can declare a test valid:
+        1. Contains the files required
+        2. Not listed in the skipped_tests.json
+        3. Not listed in the args.skip cmd line argument
 
-
-def integration_tests(subfolder=None):
+    Arguments:
+        self: Class function
     """
-    Loops over all valid tests as defined by ./validate_all.py. Runs them one by one and gives an update of the statuses at the end.
-    """
-    global test_count
-    if subfolder:
-      valid = valid_tests(subfolder)
-    else:
-      valid = valid_tests()
-    if not valid:
-      print pretty.WARNING("Integration tests skipped")
-      return 0
+    # Test 1
+    if not validate_test.validate_path(self.path_, verb = False):
+        self.skip_ = True
+        self.skip_reason_ = 'Failed validate_test, missing files'
+        return
 
-    test_count += len(valid)
-    print pretty.HEADER("Starting " + str(len(valid)) + " integration test(s)")
-    processes = []
+    # Test 2
+    # Figure out if the test should be skipped
+    skip_json = json.loads(open("skipped_tests.json").read())
+    for skip in skip_json:
+        if self.path_ == skip['name']:
+            self.skip_ = True
+            self.skip_reason_ = 'Defined in skipped_tests.json'
+            return
 
-    print valid
-    sys.exit(0)
+    # Test 3
+    if self.path_ in args.skip or self.category_ in args.skip:
+            self.skip_ = True
+            self.skip_reason_ = 'Defined by cmd line argument'
+            return
 
-    fail_count = 0
-    for path in valid:
-        processes.append(Test(path, clean = args.clean).start())
-
-    # Collect test results
-    print pretty.HEADER("Collecting integration test results")
-
-    for p in processes:
-      fail_count += 1 if p.wait_status() else 0
-
-    # Exit early if any tests failed
-    if fail_count and args.fail:
-      print pretty.FAIL(str(fail_count) + "integration tests failed")
-      sys.exit(fail_count)
-
-    return fail_count
+    self.skip_ = False
+    self.skip_reason_ = None
+    return
 
 
 def unit_tests():
@@ -298,7 +294,7 @@ def main():
   sys.exit(status)
 
 
-def run_tests(tests):
+def integration_tests(tests):
     """ Function that runs the tests that are passed to it.
     Filters out any invalid tests before running
 
@@ -310,7 +306,7 @@ def run_tests(tests):
     """
 
     # Only run the valid tests
-    tests = [ x for x in tests if not x.skip_ ]
+    tests = [ x for x in tests if not x.skip_ and x.type_ == 'integration' ]
 
     # Print info before starting to run
     print pretty.HEADER("Starting " + str(len(tests)) + " integration test(s)")
@@ -319,6 +315,8 @@ def run_tests(tests):
 
     processes = []
     fail_count = 0
+    global test_count
+    test_count += len(tests)
 
     # Start running tests in parallell
     for test in tests:
@@ -336,36 +334,6 @@ def run_tests(tests):
         sys.exit(fail_count)
 
     return fail_count
-
-
-def check_valid(path):
-    """ Will check if a test is valid. The following points can declare a test valid:
-        1. Contains the files required
-        2. Not listed in the skipped_tests.json
-        3. Not listed in the args.skip cmd line argument
-
-    Arguments:
-        path: Path of test to be checked
-
-    Returns:
-        dict: Dictionary with skip status (bool) and skip reason (string)
-    """
-    # Test 1
-    if not validate_test.validate_path(path, verb = False):
-        return {'skip': True, 'skip_reason': 'Failed validate_test, missing files'}
-
-    # Test 2
-    # Figure out if the test should be skipped
-    skip_json = json.loads(open("skipped_tests.json").read())
-    for skip in skip_json:
-        if path == skip['name']:
-            return {'skip': True, 'skip_reason': 'Defined in skipped_tests.json'}
-
-    # Test 3
-    if path in args.skip:
-        return {'skip': True, 'skip_reason': 'Defined by cmd line argument'}
-
-    return {'skip': False, 'skip_reason': None}
 
 
 def find_leaf_nodes():
@@ -389,22 +357,57 @@ def find_leaf_nodes():
     return leaf_nodes
 
 
-def main2():
+def main():
     # Find leaf nodes
     leaves = find_leaf_nodes()
 
     # Populate test objects
     all_tests = [ Test(path) for path in leaves ]
 
-    net_tests = [ x for x in all_tests if x.category_ == 'net' ]
-    print_skipped(net_tests)
+    # Figure out which tests are to be run
+    test_categories_to_run = []
+    test_types_to_run = []
+    if args.tests:
+        for argument in args.tests:
+            if argument in test_categories and argument not in args.skip:
+                test_categories_to_run.append(argument)
+            elif argument in test_types and argument not in args.skip:
+                test_types_to_run.append(argument)
+            else:
+                print 'Test specified is not recognised, exiting'
+                sys.exit(1)
+    else:
+        test_types_to_run = test_types
 
-    run_tests(net_tests)
 
+    if test_categories_to_run:
+        # This means that a specific category has been requested
+        specific_tests = [ test for test in all_tests if test.category_ in test_categories_to_run ]
 
+        # Print which tests are skipped
+        print_skipped(specific_tests)
 
-    # Populate test objects
-    #valid_test_objects = [ Test(x) for x in leaves if  not x in args.skip ]
+        # Run the tests
+        integration = integration_tests(specific_tests)
+    else:
+        # Print which tests are skipped
+        print_skipped(all_tests)
+
+        # Run the tests
+        integration = integration_tests(all_tests) if "integration" in test_types_to_run else 0
+
+    stress = stress_test() if "stress" in test_types_to_run else 0
+    unit = unit_tests() if "unit" in test_types_to_run else 0
+    examples = examples_working() if "examples" in test_types_to_run else 0
+
+    status = max(integration, stress, unit, examples)
+    if (status == 0):
+        print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
+                            +  " tests passed, exiting with code 0")
+    else:
+        print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
+
+    sys.exit(status)
 
 
 if  __name__ == '__main__':
