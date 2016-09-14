@@ -70,23 +70,58 @@ def valid_tests(subfolder=None):
 
 class Test:
   """ A class to start a test as a subprocess and pretty-print status """
-  def __init__(self, path, clean = False, command = ['sudo', '-E', 'python', 'test.py'], name = None):
+  def __init__(self, path, clean=False, command=['sudo', '-E', 'python', 'test.py'], name=None, category=None, test_type=None):
 
     self.command_ = command
     self.proc_ = None
     self.path_ = path
     self.output_ = None
 
-    if (name == None):
+    # Extract category and type from the path variable
+    # Category is linked to the top level folder e.g. net, fs, hw
+    # Type is linked to the type of test e.g. integration, unit, stress
+    if not category:
+      self.category_ = self.path_.split('/')[-3]
+    if not test_type:
+      self.type_ = self.path_.split('/')[-2]
+
+    if not name:
       self.name_ = path
     else:
       self.name_ = name
+
+    # Figure out if the test should be skipped
+    skip_json = json.loads(open("skipped_tests.json").read())
+    for skip in skip_json:
+        if self.name_ == skip['name']:
+            self.skip_ = True
+            self.skip_reason_ = skip['reason']
+        else:
+            self.skip_ = False
+            self.skip_reason_ = None
+
 
     print pretty.INFO("Test"), "starting", self.name_
 
     if clean:
       subprocess.check_output(["make","clean"])
       print pretty.C_GRAY + "\t Cleaned, now start... ", pretty.C_ENDC
+
+
+  def __str__(self):
+      """ Print output about the test object """
+
+      return ('name_: {x[name_]} \n'
+              'path_: {x[path_]} \n'
+              'command_: {x[command_]} \n'
+              'proc_: {x[proc_]} \n'
+              'output_: {x[output_]} \n'
+              'category_: {x[category_]} \n'
+              'type_: {x[type_]} \n'
+              'skip: {x[skip_]} \n'
+              'skip_reason: {x[skip_reason_]} \n'
+              ).format(x=self.__dict__)
+
 
   def start(self):
     os.chdir(startdir + "/" + self.path_)
@@ -136,6 +171,9 @@ def integration_tests(subfolder=None):
     test_count += len(valid)
     print pretty.HEADER("Starting " + str(len(valid)) + " integration test(s)")
     processes = []
+
+    print valid
+    sys.exit(0)
 
     fail_count = 0
     for path in valid:
@@ -253,5 +291,17 @@ def main():
 
   sys.exit(status)
 
+
+def main2():
+    valid = valid_tests()
+    test_objects = [ Test(x) for x in valid ]
+    net_tests = [ x for x in test_objects if x.category_ == 'net' ]
+    for test in net_tests:
+        print test
+
+
+
+
+
 if  __name__ == '__main__':
-    main()
+    main2()
