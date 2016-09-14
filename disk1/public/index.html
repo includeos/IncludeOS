@@ -114,8 +114,8 @@
   and set up RESTful API routes that use this, f.ex. a GET-method like this:
 </p>
 <pre>
-  using UserBucket = bucket::Bucket<User>;
-  std::shared_ptr<UserBucket> users = std::make_shared<UserBucket>();
+  using UserBucket = bucket::Bucket&lt;User&gt;;
+  std::shared_ptr&lt;UserBucket&gt; users = std::make_shared&lt;UserBucket&gt;();
 
   // GET /api/users/:id
   router.on_get("/api/users/:id(\\d+)",
@@ -130,7 +130,7 @@
 
       // Use RapidJson to serialize the user to JSON
       rapidjson::StringBuffer sb;
-      rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+      rapidjson::Writer&lt;rapidjson::StringBuffer&gt; writer(sb);
 
       user.serialize(writer);
 
@@ -148,14 +148,14 @@
   use this, f.ex. a POST-method:
 </p>
 <pre>
-  using SquirrelBucket = bucket::Bucket<Squirrel>;
-  std::shared_ptr<SquirrelBucket> squirrels = std::make_shared<SquirrelBucket>();
+  using SquirrelBucket = bucket::Bucket&lt;Squirrel&gt;;
+  std::shared_ptr&lt;SquirrelBucket&gt; squirrels = std::make_shared&lt;SquirrelBucket&gt;();
 
   // POST /api/squirrels
   router.on_post("/api/squirrels",
   [squirrels] (Request_ptr req, auto res)
   {
-    auto json = req->get_attribute<Json_doc>();
+    auto json = req->get_attribute&lt;Json_doc&gt;();
     if(!json) {
       res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
     }
@@ -206,11 +206,11 @@
       {
         // List all books
         auto books = list_books();
-        // std::vector<Book> list_books();
+        // std::vector&lt;Book&gt; list_books();
       });
 
       // Version 2, using delegate
-      on_get("/", RouteCallback::from<BookController, &BookController::send_books>(this));
+      on_get("/", RouteCallback::from&lt;BookController, &BookController::send_books&gt;(this));
       // void send_books(Request_ptr, Response_ptr);
 
       // GET /:name
@@ -255,15 +255,15 @@
 <pre>
   // Custom middleware to serve static files on root route with disk root on /public
   auto opt = {"index.html", "index.htm"};
-  Middleware_ptr waitress = std::make_shared<middleware::Waitress>(disk, "/public", opt); // WIP
+  Middleware_ptr waitress = std::make_shared&lt;middleware::Waitress&gt;(disk, "/public", opt); // WIP
   server.use(waitress);
 
   // Custom middleware to serve a simple webpage for a directory
   // on route /static with disk root on /public/static
-  Middleware_ptr director = std::make_shared<middleware::Director>(disk, "/public/static");
+  Middleware_ptr director = std::make_shared&lt;middleware::Director&gt;(disk, "/public/static");
   server.use("/static", director);
 
-  Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
+  Middleware_ptr cookie_parser = std::make_shared&lt;middleware::CookieParser&gt;();
   server.use(cookie_parser);
 
   // Inject middleware as closure
@@ -301,18 +301,18 @@
   server.use([] (auto req, auto res, auto next)
   {
     if(req->body() == "password123")
-      req->set_attribute(std::make_shared<Secret>("Don't tell anyone"));
+      req->set_attribute(std::make_shared&lt;Secret&gt;("Don't tell anyone"));
 
     (*next)();
   });
 
   router.on_get("/secret", [] (auto req, auto res) {
-    if(!req->has_attribute<Secret>()) {
+    if(!req->has_attribute&lt;Secret&gt;()) {
       res->send_code(http::Unauthorized);
     }
     else {
       printf("Here's the secret: %s\n",
-        req->get_attribute<Secret>().secret().c_str());
+        req->get_attribute&lt;Secret&gt;().secret().c_str());
 
       req->send_file(secret_content);
     }
