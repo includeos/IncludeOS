@@ -43,9 +43,11 @@ args = parser.parse_args()
 
 test_count = 0
 
-def print_skipped(name, reason):
-  print pretty.WARNING("* Skipping " + name)
-  print "  Reason: {0:40}".format(reason)
+def print_skipped(tests):
+    for test in tests:
+        if test.skip_:
+            print pretty.WARNING("* Skipping " + test.name_)
+            print "  Reason: {0:40}".format(test.skip_reason_)
 
 def valid_tests(subfolder=None):
   """Returns a list of all the valid integration tests in */integration/*"""
@@ -82,9 +84,17 @@ class Test:
     # Extract category and type from the path variable
     # Category is linked to the top level folder e.g. net, fs, hw
     # Type is linked to the type of test e.g. integration, unit, stress
-    if not category:
+    if self.path_ == 'stress':
+      self.category_ = 'stress'
+      self.type_ = 'stress'
+    elif self.path_ == 'examples':
+      self.category_ = 'examples'
+      self.type_ = 'examples'
+    elif self.path_ == 'mod/gsl':
+      self.category_ = 'mod'
+      self.type_ = 'mod'
+    else:
       self.category_ = self.path_.split('/')[-3]
-    if not test_type:
       self.type_ = self.path_.split('/')[-2]
 
     if not name:
@@ -97,7 +107,6 @@ class Test:
     self.skip_ = valid_status['skip']
     self.skip_reason_ = valid_status['skip_reason']
 
-    print pretty.INFO("Test"), "starting", self.name_
 
     if clean:
       subprocess.check_output(["make","clean"])
@@ -289,16 +298,31 @@ def main():
   sys.exit(status)
 
 
-def integration_tests2():
+def run_tests(tests):
+    """ Function that runs the tests that are passed to it.
+    Filters out any invalid tests before running
 
-    valid = valid_tests()
+    Arguments:
+        tests: List containing test objects to be run
 
-    print pretty.HEADER("Starting " + str(len(valid)) + " integration test(s)")
+    Returns:
+        integer: Number of tests that failed
+    """
+
+    # Only run the valid tests
+    tests = [ x for x in tests if not x.skip_ ]
+
+    # Print info before starting to run
+    print pretty.HEADER("Starting " + str(len(tests)) + " integration test(s)")
+    for test in tests:
+        print pretty.INFO("Test"), "starting", test.name_
+
     processes = []
-
     fail_count = 0
-    for path in valid:
-        processes.append(Test(path, clean = args.clean).start())
+
+    # Start running tests in parallell
+    for test in tests:
+        processes.append(test.start())
 
 	# Collect test results
     print pretty.HEADER("Collecting integration test results")
@@ -355,7 +379,10 @@ def find_leaf_nodes():
     leaf_nodes = []
 
     for dirpath, dirnames, filenames in os.walk('.'):
-        if dirpath[2:].split('/')[0] in test_categories:
+        # Will now skip any path that is not defined as a test category
+        # or ends with unit or integration -> no tests in those folders were
+        # created
+        if dirpath[2:].split('/')[0] in test_categories and dirpath.split('/')[-1] not in ['unit', 'integration']:
             if not dirnames:
                 leaf_nodes.append(dirpath[2:])
 
@@ -366,9 +393,16 @@ def main2():
     # Find leaf nodes
     leaves = find_leaf_nodes()
 
-    # Valid tests
-    for path in leaves:
-        print path, ' ', check_valid(path)
+    # Populate test objects
+    all_tests = [ Test(path) for path in leaves ]
+
+    net_tests = [ x for x in all_tests if x.category_ == 'net' ]
+    print_skipped(net_tests)
+
+    run_tests(net_tests)
+
+
+
     # Populate test objects
     #valid_test_objects = [ Test(x) for x in leaves if  not x in args.skip ]
 
