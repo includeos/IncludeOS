@@ -86,6 +86,8 @@ private:
   size_t idx_;
   RTC::timestamp_t idle_since_;
 
+  static size_t PAYLOAD_LIMIT;
+
   static OnConnection on_connection_;
 
   void on_data(buffer_t, size_t);
