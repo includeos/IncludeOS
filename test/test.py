@@ -90,23 +90,16 @@ class Test:
     else:
       self.name_ = name
 
-    # Figure out if the test should be skipped
-    skip_json = json.loads(open("skipped_tests.json").read())
-    for skip in skip_json:
-        if self.name_ == skip['name']:
-            self.skip_ = True
-            self.skip_reason_ = skip['reason']
-        else:
-            self.skip_ = False
-            self.skip_reason_ = None
-
+    # Check if the tests is valid or not
+    valid_status = check_valid(self.path_)
+    self.skip_ = valid_status['skip']
+    self.skip_reason_ = valid_status['skip_reason']
 
     print pretty.INFO("Test"), "starting", self.name_
 
     if clean:
       subprocess.check_output(["make","clean"])
       print pretty.C_GRAY + "\t Cleaned, now start... ", pretty.C_ENDC
-
 
   def __str__(self):
       """ Print output about the test object """
@@ -121,7 +114,6 @@ class Test:
               'skip: {x[skip_]} \n'
               'skip_reason: {x[skip_reason_]} \n'
               ).format(x=self.__dict__)
-
 
   def start(self):
     os.chdir(startdir + "/" + self.path_)
@@ -210,6 +202,7 @@ def unit_tests():
 
   return max(build_status, unit_status)
 
+
 def stress_test():
   """Perform stresstest"""
   global test_count
@@ -230,6 +223,7 @@ def stress_test():
 
   return 1 if stress.wait_status() else 0
 
+
 def examples_working():
   global test_count
   if ("examples" in args.skip):
@@ -248,6 +242,7 @@ def examples_working():
     run = 0 #TODO: Make a 'test' folder for each example, containing test.py, vm.json etc.
     fail_count += 1 if build or run else 0
   return fail_count
+
 
 def main():
   global test_count
@@ -292,14 +287,77 @@ def main():
   sys.exit(status)
 
 
-def main2():
+def integration_tests2():
+
     valid = valid_tests()
-    test_objects = [ Test(x) for x in valid ]
-    net_tests = [ x for x in test_objects if x.category_ == 'net' ]
-    for test in net_tests:
-        print test
+
+    print pretty.HEADER("Starting " + str(len(valid)) + " integration test(s)")
+    processes = []
+
+    fail_count = 0
+    for path in valid:
+        processes.append(Test(path, clean = args.clean).start())
+
+	# Collect test results
+    print pretty.HEADER("Collecting integration test results")
+
+    for p in processes:
+        fail_count += 1 if p.wait_status() else 0
+
+    # Exit early if any tests failed
+    if fail_count and args.fail:
+        print pretty.FAIL(str(fail_count) + "integration tests failed")
+        sys.exit(fail_count)
+
+    return fail_count
 
 
+def check_valid(path):
+    """ Will check if a test is valid. The following points can declare a test valid:
+        1. Contains the files required
+        2. Not listed in the skipped_tests.json
+        3. Not listed in the args.skip cmd line argument
+
+    Arguments:
+        path: Path of test to be checked
+
+    Returns:
+        dict: Dictionary with skip status (bool) and skip reason (string)
+    """
+    # Test 1
+    if not validate_test.validate_path(path, verb = False):
+        return {'skip': True, 'skip_reason': 'Failed validate_test, missing files'}
+
+    # Test 2
+    # Figure out if the test should be skipped
+    skip_json = json.loads(open("skipped_tests.json").read())
+    for skip in skip_json:
+        if path == skip['name']:
+            return {'skip': True, 'skip_reason': 'Defined in skipped_tests.json'}
+
+    # Test 3
+    if path in args.skip:
+        return {'skip': True, 'skip_reason': 'Defined by cmd line argument'}
+
+    return {'skip': False, 'skip_reason': None}
+
+
+def find_leaf_nodes():
+    """ Used to find all leaf nodes in the test directory,
+    this is to help identify all possible test directories.
+
+    Returns:
+        List: list of string with path to all leaf nodes
+    """
+
+
+
+def main2():
+    # Populate test objects
+    valid_test_objects = [ Test(x) for x in validate_all.valid_tests() if  not x in args.skip ]
+
+    for x in valid_test_objects:
+        print x
 
 
 
