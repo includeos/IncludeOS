@@ -22,6 +22,7 @@
 
 using namespace server;
 
+size_t Connection::PAYLOAD_LIMIT = 1024*16;
 Connection::OnConnection Connection::on_connection_ = []{};
 
 Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
@@ -44,38 +45,69 @@ void Connection::on_data(buffer_t buf, size_t n) {
   #ifdef VERBOSE_WEBSERVER
   printf("<%s> @on_data, size=%u\n", to_string().c_str(), n);
   #endif
+  int client_error = 0;
   // if it's a new request
   if(!request_) {
-    try {
+    try
+    {
       request_ = std::make_shared<Request>(buf, n);
       update_idle();
-      // return early to read payload
-      if((request_->method() == http::POST or request_->method() == http::PUT)
-        and !request_->is_complete())
-      {
-        printf("<%s> POST/PUT: [ConLen (%u) > Payload (%u)] => Buffering\n",
-          to_string().c_str(), request_->content_length(), request_->payload_length());
-        return;
-      }
+
+      request_->validate();
+
+      if(request_->content_length() > PAYLOAD_LIMIT)
+        client_error = http::Payload_Too_Large;
     }
-    catch(std::exception& e) {
+    catch(const Request_error& e)
+    {
+      client_error = e.code();
+      printf("<%s> Request error - %s\n",
+        to_string().c_str(), e.what());
+    }
+    catch(const std::exception& e)
+    {
+      client_error = http::Bad_Request;
       printf("<%s> HTTP Error - %s\n",
         to_string().c_str(), e.what());
-      // close tcp connection
-      close_tcp();
-      return;
     }
   }
   // else we assume it's payload
-  else {
-    update_idle();
-    request_->add_body(request_->get_body() + std::string((const char*)buf.get(), n));
-    // if we haven't received all data promised
-    printf("<%s> Received payload - Expected: %u - Recv: %u\n",
-      to_string().c_str(), request_->content_length(), request_->payload_length());
-    if(!request_->is_complete())
-      return;
+  else
+  {
+    printf("<%s> Received payload: [%u / %u]\n",
+        to_string().c_str(), request_->payload_length()+n, request_->content_length());
+    // is valid payload length
+    if(request_->payload_length() + n <= PAYLOAD_LIMIT)
+    {
+      update_idle();
+      request_->add_body(request_->get_body() + std::string((const char*)buf.get(), n));
+    }
+    else
+    {
+      client_error = http::Payload_Too_Large;
+    }
   }
+
+  // if there was any error on the request
+  // note: this is probably a bit too aggressive - client should have another try on some cases
+  if(client_error)
+  {
+    response_ = std::make_shared<Response>(conn_);
+    response_->send_code(static_cast<http::status_t>(client_error), true);
+    close_tcp();
+    response_ = nullptr;
+    request_ = nullptr;
+    return;
+  }
+
+  // if there is more data to be received, buffer
+  if(request_->should_buffer()) {
+    printf("<%s> [ConLen (%u) > Payload (%u)] => Buffering\n",
+        to_string().c_str(), request_->content_length(), request_->payload_length());
+    return; // buffer
+  }
+
+  response_ = std::make_shared<Response>(conn_);
 
   request_->complete();
 
@@ -88,7 +120,6 @@ void Connection::on_data(buffer_t buf, size_t n) {
     );
   #endif
 
-  response_ = std::make_shared<Response>(conn_);
   server_.process(request_, response_);
   request_ = nullptr;
 }

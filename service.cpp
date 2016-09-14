@@ -157,18 +157,18 @@ void Service::start(const std::string&) {
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());
 
-      // Fallback route - serve index.html if route is not found
-      router.on_get(".*", [](auto, auto res) {
+      // Fallback route for angular application - serve index.html if route is not found
+      router.on_get("/app/.*", [](auto, auto res) {
         #ifdef VERBOSE_WEBSERVER
-        printf("[@GET:*] Fallback route - try to serve index.html\n");
+        printf("[@GET:/app/*] Fallback route - try to serve index.html\n");
         #endif
-        disk->fs().cstat("/public/index.html", [res](auto err, const auto& entry) {
+        disk->fs().cstat("/public/app/index.html", [res](auto err, const auto& entry) {
           if(err) {
             res->send_code(http::Not_Found);
           } else {
             // Serve index.html
             #ifdef VERBOSE_WEBSERVER
-            printf("[@GET:*] (Fallback) Responding with index.html. \n");
+            printf("[@GET:/app/*] (Fallback) Responding with index.html. \n");
             #endif
             res->send_file({disk, entry});
           }

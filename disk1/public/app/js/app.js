@@ -8,20 +8,20 @@ var app = angular.module('acornWebApp', [
 ])
 .config(function($routeProvider, $locationProvider) {
   $routeProvider
-    .when('/', {
-      templateUrl: "views/home.html",
+    .when('/app/', {
+      templateUrl: "app/views/home.html",
       controller: "HomeCtrl"
     })
-    .when('/squirrels', {
-      templateUrl: "views/squirrels.html",
+    .when('/app/squirrels', {
+      templateUrl: "app/views/squirrels.html",
       controller: "SquirrelCtrl"
     })
-    .when('/dashboard', {
-      templateUrl: "views/dashboard.html",
+    .when('/app/dashboard', {
+      templateUrl: "app/views/dashboard.html",
       controller: "DashboardCtrl"
     })
     .otherwise({
-      templateUrl: "views/404.html"
+      templateUrl: "app/views/404.html"
     });
 
   $locationProvider.html5Mode(true);

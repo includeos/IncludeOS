@@ -19,6 +19,7 @@
 #define SERVER_REQUEST_HPP
 
 #include "http/inc/request.hpp"
+#include "http/inc/status_codes.hpp"
 #include "attribute.hpp"
 #include "params.hpp"
 
@@ -28,6 +29,19 @@ namespace server {
 
 class Request;
 using Request_ptr = std::shared_ptr<Request>;
+
+class Request_error : public std::runtime_error {
+public:
+  Request_error(http::Code code, const char* err)
+    : std::runtime_error{err}, code_{code}
+  {}
+
+  http::Code code() const
+  { return code_; }
+
+private:
+  http::Code code_;
+};
 
 /**
  * @brief An extended HTTP Request.
@@ -97,6 +111,13 @@ public:
   { on_recv_ = cb; }
 
   void complete();
+
+  bool should_buffer() const {
+    return (method() == http::POST or method() == http::PUT)
+        and !is_complete();
+  }
+
+  void validate() const;
 
   void set_params(const Params& params) { params_ = params; }
 
