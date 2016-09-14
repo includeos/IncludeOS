@@ -31,6 +31,7 @@ fi
 # Copy web content to mounted disk
 sudo cp -r disk1/. mnt/
 sync
+sleep 1 # hopefully sync finished within this second
 
 # Remove stale object file
 rm -f memdisk.o
