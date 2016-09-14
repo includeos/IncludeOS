@@ -286,7 +286,7 @@ def find_leaf_nodes():
         # or ends with unit or integration -> no tests in those folders were
         # created
         if dirpath[2:].split('/')[0] in test_categories and dirpath.split('/')[-1] not in ['unit', 'integration']:
-            if not dirnames:
+            if len(dirpath[2:].split('/')) <= 3 and not dirnames:
                 leaf_nodes.append(dirpath[2:])
 
     return leaf_nodes
