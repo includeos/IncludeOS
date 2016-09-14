@@ -15,6 +15,8 @@ import validate_all
 
 startdir = os.getcwd()
 
+test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'stress', 'util']
+
 """
 Script used for running all the valid tests in the terminal.
 """
@@ -345,20 +347,30 @@ def check_valid(path):
 def find_leaf_nodes():
     """ Used to find all leaf nodes in the test directory,
     this is to help identify all possible test directories.
+    Only looks in folders that actually store tests
 
     Returns:
         List: list of string with path to all leaf nodes
     """
+    leaf_nodes = []
 
+    for dirpath, dirnames, filenames in os.walk('.'):
+        if dirpath[2:].split('/')[0] in test_categories:
+            if not dirnames:
+                leaf_nodes.append(dirpath[2:])
+
+    return leaf_nodes
 
 
 def main2():
+    # Find leaf nodes
+    leaves = find_leaf_nodes()
+
+    # Valid tests
+    for path in leaves:
+        print path, ' ', check_valid(path)
     # Populate test objects
-    valid_test_objects = [ Test(x) for x in validate_all.valid_tests() if  not x in args.skip ]
-
-    for x in valid_test_objects:
-        print x
-
+    #valid_test_objects = [ Test(x) for x in leaves if  not x in args.skip ]
 
 
 if  __name__ == '__main__':
