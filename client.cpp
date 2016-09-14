@@ -80,21 +80,18 @@ void Client::split_message(const std::string& msg)
 
 void Client::read(const uint8_t* buf, size_t len)
 {
-  // in case parser is bad, set context string early
-  SET_CRASH_CONTEXT("Client::read():\n\t'%*s'", len, buf);
-  
   while (len > 0) {
     
     int search = -1;
     
     // find line ending
-    for (size_t i = 0; i < len; i++)
+    for (int i = len-1; i >= 0; i--)
     if (buf[i] == 13 || buf[i] == 10) {
       search = i; break;
     }
     
     // not found:
-    if (search == -1)
+    if (UNLIKELY(search == -1))
     {
       // if clients are sending too much data to server, kill them
       if (UNLIKELY(readq.size() + len >= server.readq_max())) {
@@ -103,34 +100,36 @@ void Client::read(const uint8_t* buf, size_t len)
       }
       // append entire buffer
       readq.append((const char*) buf, len);
-      break;
+      return;
     }
-    else {
+    else if (UNLIKELY(search == 0)) {
+      buf++; len--;
+    } else {
       // found CR LF:
-      if (search != 0) {
-        // if clients are sending too much data to server, kill them
-        if (UNLIKELY(readq.size() + search >= server.readq_max())) {
-          kill(false, "Max readq exceeded");
-          return;
-        }
-        // append to clients buffer
-        readq.append((const char*) buf, search);
-        
-        // move forward in socket buffer
-        buf += search;
-        // decrease len
-        len -= search;
+      // if clients are sending too much data to server, kill them
+      if (UNLIKELY(readq.size() + search >= server.readq_max())) {
+        kill(false, "Max readq exceeded");
+        return;
       }
-      else {
-        buf++; len--;
-      }
-  
+      // append to clients buffer
+      readq.append((const char*) buf, search);
+      
+      // move forward in socket buffer
+      buf += search;
+      // decrease len
+      len -= search;
+      
       // parse message
       if (readq.size())
       {
-        // parse message
         split_message(readq);
         readq.clear();
+      }
+      
+      // try to avoid doing "searching" when the next 
+      // character is yet another line ending character
+      if (len > 0 && (buf[0] == 13 || buf[0] == 10)) {
+          buf++; len--;
       }
     }
   }
