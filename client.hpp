@@ -17,8 +17,7 @@ public:
   using ChannelList = std::list<uint16_t>;
   typedef uint16_t index_t;
   
-  Client(size_t s, IrcServer& sref)
-    : regis(0), self(s), server(sref) {}
+  Client(size_t s, IrcServer& sref);
   
   bool is_alive() const
   {
@@ -56,8 +55,6 @@ public:
   void send_from(const std::string& from, uint16_t numeric, const std::string& text);
   void send_nonick(uint16_t numeric, const std::string& text);
   void send(uint16_t numeric, std::string text);
-  // send as server to client
-  void send(std::string text);
   // send the string as-is
   void send_raw(const char* buff, size_t len)
   {
@@ -160,5 +157,5 @@ private:
   std::string host_;
   ChannelList channels_;
   
-  std::string buffer;
+  std::string readq;
 };

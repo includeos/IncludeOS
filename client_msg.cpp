@@ -24,8 +24,11 @@ void Client::handle(
   
   if (cmd == TK_PING)
   {
-    if (msg.size() > 1)
-      send("PONG :" + msg[1]);
+    if (msg.size() > 1) {
+      int len = snprintf(buffer, sizeof(buffer),
+          "PONG :%s\r\n", msg[1].c_str());
+      send_raw(buffer, len);
+    }
     else
       need_parms(cmd);
   }
@@ -41,7 +44,7 @@ void Client::handle(
   {
     if (msg.size() > 1)
     {
-      std::string nuh = nickuserhost();
+      const std::string nuh = nickuserhost();
       // change nickname
       if (change_nick(msg[1])) {
         // success, broadcast to all who can see client
@@ -115,15 +118,24 @@ void Client::handle(
         auto ch = server.channel_by_name(msg[1]);
         if (ch != NO_SUCH_CHANNEL)
         {
-          auto& channel = server.get_channel(ch);
-          bool joined = false;
-          
-          if (msg.size() < 3)
-            joined = channel.join(*this);
+          // there is also a maximum number of channels a user can join
+          if (channels().size() < server.client_maxchans() || is_operator())
+          {
+            auto& channel = server.get_channel(ch);
+            bool joined = false;
+            
+            if (msg.size() < 3)
+              joined = channel.join(*this);
+            else
+              joined = channel.join(*this, msg[2]);
+            // track channel if client joined
+            if (joined) channels_.push_back(ch);
+          }
           else
-            joined = channel.join(*this, msg[2]);
-          // track channel if client joined
-          if (joined) channels_.push_back(ch);
+          {
+            // joined too many channels
+            send(ERR_TOOMANYCHANNELS, msg[1] + " :You have joined too many channels");
+          }
         }
         else
         {

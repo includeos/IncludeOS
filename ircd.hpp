@@ -8,7 +8,6 @@
 #include "client.hpp"
 #include "channel.hpp"
 #include "ciless.hpp"
-extern void print_backtrace();
 
 #define STAT_TOTAL_CONNS           0
 #define STAT_TOTAL_USERS           1
@@ -104,29 +103,42 @@ public:
   }
   
   // server configuration stuff
-  uint8_t nick_minlen() const noexcept {
+  constexpr static 
+  uint8_t nick_minlen() noexcept {
     return 1;
   }
-  uint8_t nick_maxlen() const noexcept {
+  constexpr static 
+  uint8_t nick_maxlen() noexcept {
     return 9;
   }
-  uint8_t chan_minlen() const noexcept {
+  constexpr static 
+  uint8_t chan_minlen() noexcept {
     return 1;
   }
-  uint8_t chan_maxlen() const noexcept {
+  constexpr static 
+  uint8_t chan_maxlen() noexcept {
     return 16;
   }
-  uint8_t chan_max() const noexcept {
+  constexpr static 
+  uint8_t chan_max() noexcept {
     return 8;
   }
-  uint8_t client_maxchans() const noexcept {
+  constexpr static 
+  uint8_t client_maxchans() noexcept {
     return 10;
   }
   
-  uint16_t ping_timeout() const noexcept {
+  constexpr static 
+  uint16_t readq_max() noexcept {
+    return 512;
+  }
+  
+  constexpr static 
+  uint16_t ping_timeout() noexcept {
     return 120;
   }
-  uint16_t short_ping_timeout() const noexcept {
+  constexpr static 
+  uint16_t short_ping_timeout() noexcept {
     return 20;
   }
   

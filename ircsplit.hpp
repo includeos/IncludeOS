@@ -2,7 +2,7 @@
 #include <vector>
 
 std::vector<std::string>
-split(const std::string& text, std::string& source)
+ircsplit(const std::string& text, std::string& source)
 {
   std::vector<std::string> retv;
   size_t x = 0;
@@ -29,19 +29,19 @@ split(const std::string& text, std::string& source)
     if (y == x+1)
     {
       // single argument
-      retv.push_back(text.substr(p, x-p));
+      retv.emplace_back(&text[p], x-p);
       // ending text argument
-      retv.push_back(text.substr(y+1));
+      retv.emplace_back(&text[y+1], text.size() - (y+1));
       break;
     }
     else if (x != std::string::npos)
     {
       // single argument
-      retv.push_back(text.substr(p, x-p));
+      retv.emplace_back(&text[p], x-p);
     }
     else {
       // last argument
-      retv.push_back(text.substr(p));
+      retv.emplace_back(&text[p], text.size()-p);
     }
     p = x+1;
 

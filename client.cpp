@@ -3,8 +3,14 @@
 #include "ircsplit.hpp"
 #include "ircd.hpp"
 #include "tokens.hpp"
+#include <common>
 #include <cassert>
-//#define PRINT_CLIENT_MESSAGE
+
+Client::Client(size_t s, IrcServer& sref)
+  : regis(0), self(s), server(sref)
+{
+  readq.reserve(IrcServer::readq_max());
+}
 
 void Client::reset_to(Connection conn)
 {
@@ -19,7 +25,7 @@ void Client::reset_to(Connection conn)
   this->user_.clear();
   this->host_.clear();
   this->channels_.clear();
-  this->buffer.clear();
+  this->readq.clear();
   
   // send auth notices
   auth_notice();
@@ -41,11 +47,18 @@ void Client::disable()
 void Client::split_message(const std::string& msg)
 {
   // in case splitter is bad
-  SET_CRASH_CONTEXT("Client::split_message():\n'%s'", msg.c_str());
+  SET_CRASH_CONTEXT("Client::split_message():\n'%*s'", msg.size(), msg.c_str());
   
   std::string source;
-  auto vec = split(msg, source);
+  auto vec = ircsplit(msg, source);
   
+  // ignore empty messages
+  if (vec.empty()) return;
+  // transform command to uppercase
+  extern void transform_to_upper(std::string&);
+  transform_to_upper(vec[0]);
+  
+//#define PRINT_CLIENT_MESSAGE
 #ifdef PRINT_CLIENT_MESSAGE
   printf("[Client]: ");
   for (auto& str : vec)
@@ -55,15 +68,7 @@ void Client::split_message(const std::string& msg)
   printf("\n");
 #endif
   
-  // ignore empty messages
-  if (vec.empty()) return;
-  // transform command to uppercase
-  extern void transform_to_upper(std::string& str);
-  transform_to_upper(vec[0]);
-  
-  // handle message
-  assert(is_alive());
-  // reset timeout feature
+  // reset timeout now that we got data
   set_warned(false);
   to_stamp = server.get_cheapstamp();
   
@@ -91,16 +96,26 @@ void Client::read(const uint8_t* buf, size_t len)
     // not found:
     if (search == -1)
     {
+      // if clients are sending too much data to server, kill them
+      if (UNLIKELY(readq.size() + len >= server.readq_max())) {
+        kill(false, "Max readq exceeded");
+        return;
+      }
       // append entire buffer
-      buffer.append((char*) buf, len);
+      readq.append((const char*) buf, len);
       break;
     }
     else {
       // found CR LF:
       if (search != 0) {
+        // if clients are sending too much data to server, kill them
+        if (UNLIKELY(readq.size() + search >= server.readq_max())) {
+          kill(false, "Max readq exceeded");
+          return;
+        }
         // append to clients buffer
-        buffer.append((char*) buf, search);
-  
+        readq.append((const char*) buf, search);
+        
         // move forward in socket buffer
         buf += search;
         // decrease len
@@ -111,10 +126,11 @@ void Client::read(const uint8_t* buf, size_t len)
       }
   
       // parse message
-      if (buffer.size())
+      if (readq.size())
       {
-        split_message(buffer);
-        buffer.clear();
+        // parse message
+        split_message(readq);
+        readq.clear();
       }
     }
   }
@@ -139,14 +155,6 @@ void Client::send_from(const std::string& from, uint16_t numeric, const std::str
 void Client::send_nonick(uint16_t numeric, const std::string& text)
 {
   send_from(server.name(), numeric, text);
-}
-void Client::send(std::string text)
-{
-  char data[128];
-  int len = snprintf(data, sizeof(data),
-    ":%s %s\r\n", server.name().c_str(), text.c_str());
-  
-  conn->write(data, len);
 }
 void Client::send(uint16_t numeric, std::string text)
 {

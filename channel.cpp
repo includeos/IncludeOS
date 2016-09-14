@@ -84,7 +84,10 @@ bool Channel::join(Client& client, const std::string& key)
     // set creation timestamp
     create_ts = server.create_timestamp();
     // server creates new channel by setting modes
-    client.send("MODE " + name() + " +" + mode_string());
+    len = snprintf(buff, sizeof(buff),
+        ":%s MODE %s +%s\r\n", 
+        server.name().c_str(), name().c_str(), mode_string().c_str());
+    client.send_raw(buff, len);
     // client is operator when he creates it
     chanops.insert(cid);
   }
