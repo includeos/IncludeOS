@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "request.hpp"
+#include "http/inc/status_code_constants.hpp"
 
 using namespace server;
 
@@ -41,6 +42,27 @@ size_t Request::content_length() const {
   }
   catch(...) {
     return 0;
+  }
+}
+
+void Request::validate() const {
+  using namespace http;
+  switch(method())
+  {
+    case GET: {
+      if(content_length() > 0)
+        throw Request_error{http::Bad_Request,"Content_Length is not allowed in GET"};
+      return;
+    }
+    case PUT:
+    case POST: {
+      if(content_length() == 0)
+        throw Request_error{http::Length_Required,"Length required in POST/PUT"};
+      return;
+    }
+    default: {
+
+    }
   }
 }
 
