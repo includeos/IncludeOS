@@ -1,5 +1,9 @@
+body {
+  font-size: 16px;
+}
+
 .programming {
-  font-family:Monospace;
+  font-family: Monospace;
 }
 
 .panel-default > .panel-heading {
@@ -19,7 +23,20 @@
   cursor:pointer;
 }
 
+.vertical-max {
+  max-height: 350px;
+  overflow: auto;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* List view Statman tree view START */
+
+.gap-0 {
+  padding-left: 1em;
+}
 
 .gap-1 {
   padding-left: 3em;
@@ -27,6 +44,18 @@
 
 .gap-2 {
   padding-left: 6em;
+}
+
+.parent {
+  padding-right: 1em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+  font-weight: bold;
+  background-color: #d9d9d9;
+}
+
+.second-parent {
+  background-color: #eee;
 }
 
 .just-padding {
@@ -60,3 +89,35 @@
 }
 
 /* List view Statman tree view END */
+
+/* ------------------------ Index.html ------------------------ */
+
+#header {
+  padding-top: 1em;
+}
+
+#logo-header {
+  height: 50px;
+}
+
+#jumbo-acorn {
+  padding-bottom: 0.5em;
+}
+
+.static-link {
+  padding-top: 3em;
+  padding-bottom: 3em;
+  font-size: 1em;
+}
+
+.space-above {
+  padding-top: 1em;
+}
+
+#logo-footer {
+  height: 30px;
+}
+
+#footer {
+  padding-bottom: 1em;
+}

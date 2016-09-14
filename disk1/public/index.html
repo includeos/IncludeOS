@@ -34,16 +34,16 @@
 <body>
 <div class="container">
 <div id="header">
-  <img src="img/includeos_logo.svg" style="height:50px;" />
+  <img src="img/includeos_logo.svg" id="logo-header" />
   <hr/>
 </div>
 
 <div class="jumbotron">
-  <p class="lead">
-    IncludeOS web server aka "Acorn"
-  </p>
+  <h1>IncludeOS web server</h1>
+  <h2 id="jumbo-acorn">aka "Acorn"</h2>
+  <br>
   <p>
-    Some informative text here.
+    Written in C++ and running on the IncludeOS unikernel, "Acorn" is a highly efficient web server with direct access to the library operating system's facilities
   </p>
 </div>
 <hr/>
@@ -52,35 +52,314 @@
   Static web content
 </h2>
 <p>
-  Much wow. <a href="/static">Such content</a>
+  Maybe some text here...
 </p>
+<div class="row space-above">
+  <div class="col-xs-12 col-sm-4 col-md-4">
+    <a class="thumbnail btn btn-success static-link" href="/static/books/fables.txt">
+      <span class="glyphicon glyphicon-book"></span>
+      <br>
+      Aesop's Fables
+    </a>
+  </div>
+
+  <div class="col-xs-12 col-sm-4 col-md-4">
+    <a class="thumbnail btn btn-success static-link" href="/static/books/poetics.txt">
+      <span class="glyphicon glyphicon-book"></span>
+      <br>
+      The Poetics
+    </a>
+  </div>
+
+  <div class="col-xs-12 col-sm-4 col-md-4">
+    <a class="thumbnail btn btn-success static-link" href="/static/books/borkman.txt">
+      <span class="glyphicon glyphicon-book"></span>
+      <br>
+      John Gabriel Borkman
+    </a>
+  </div>
+</div>
 
 <h2 class="page-header">
-  (Node.s) express-like C++ framework
+  C++ framework inspired by Node.js and Express.js
 </h2>
+
 <p>
-  Very web. <a href="/static">Static</a>
+  Intro ... Web developers can recognize the syntax ... Can be used to create a single page application ... RESTful Web API ... Dashboard ...
+</p>
+
+<p class="space-above">
+  You can set up a route that serves index.html if no other routes match:
 </p>
 <pre>
-  Example code = many;
+  Router router;
+
+  router.on_get(".*", [] (auto, auto res)
+  {
+    // Stat disk for index.html
+    disk->fs().cstat("/public/index.html",
+    [res] (auto err, const auto&amp; entry) {
+      if(err) {
+        res->send_code(http::Not_Found);
+      } else {
+        // Serve index.html
+        res->send_file({disk, entry});
+      }
+    });
+  });
 </pre>
-<p>
- Such single page application, many <a href="/app/dashboard">dashboard</a>.
- Also much <a href="/app/squirrels">JSON RESTful</a>.
+
+<p class="space-above">
+  It is also possible to set up an in-memory database, f.ex. containing Users,
+  and set up RESTful API routes that use this, f.ex. a GET-method like this:
 </p>
+<pre>
+  using UserBucket = bucket::Bucket<User>;
+  std::shared_ptr<UserBucket> users = std::make_shared<UserBucket>();
+
+  // GET /api/users/:id
+  router.on_get("/api/users/:id(\\d+)",
+  [users] (auto req, auto res)
+  {
+    try {
+      // Try to retrieve param "id"
+      auto&amp; params = req->params();
+      std::string id = params.get("id");
+      // Look for the user inside the bucket
+      auto&amp; user = users->pick_up(std::stol(id));
+
+      // Use RapidJson to serialize the user to JSON
+      rapidjson::StringBuffer sb;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+      user.serialize(writer);
+
+      // Reply with the JSON string
+      res->send_json(sb.GetString());
+    }
+    catch (const std::exception&amp; e) {
+      res->send_code(http::Not_Found);
+    }
+  });
+</pre>
+
+<p class="space-above">
+  Or you can set up an in-memory database containing Squirrels, and set up RESTful API routes that
+  use this, f.ex. a POST-method:
+</p>
+<pre>
+  using SquirrelBucket = bucket::Bucket<Squirrel>;
+  std::shared_ptr<SquirrelBucket> squirrels = std::make_shared<SquirrelBucket>();
+
+  // POST /api/squirrels
+  router.on_post("/api/squirrels",
+  [squirrels] (Request_ptr req, auto res)
+  {
+    auto json = req->get_attribute<Json_doc>();
+    if(!json) {
+      res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
+    }
+    else {
+      auto&amp; doc = json->doc();
+
+      try {
+        // Create an empty model
+        Squirrel s;
+        // Deserialize it
+        s.deserialize(doc);
+        squirrels->capture(s);
+        // Set up the response
+        // Location to the newly created resource
+        res->add_header(http::header_fields::Response::Location, req->uri().path());
+        // Status code 201 Created
+        res->set_status_code(http::Created);
+        // Send the created entity as response
+        res->send_json(s.json());
+      }
+      catch (Assert_error e) {
+        res->error({"Parsing Error", "Could not parse data"});
+      }
+      catch (bucket::ConstraintException e) {
+        res->error({"Constraint Exception", e.what()});
+      }
+      catch (bucket::BucketException e) {
+        res->error({"Bucket Exception", e.what()});
+      }
+    }
+  });
+</pre>
+
+<p class="space-above">
+  You can also set up a controller for a group of routes, f.ex. this BookController:
+</p>
+<pre>
+  // Router for Books
+  class BookController : public server::Router {
+  public:
+
+    // Setup the router
+    BookController()
+    {
+      // Version 1, using closure
+      on_get("/",
+      [this] (auto req, auto res)
+      {
+        // List all books
+        auto books = list_books();
+        // std::vector<Book> list_books();
+      });
+
+      // Version 2, using delegate
+      on_get("/", RouteCallback::from<BookController, &BookController::send_books>(this));
+      // void send_books(Request_ptr, Response_ptr);
+
+      // GET /:name
+      on_get("/:name",
+      [] (auto req, auto res)
+      {
+        // Display book with the given "name"
+      });
+
+      // POST /create
+      on_post("/create",
+      [] (auto req, auto res)
+      {
+        // Register a book
+      });
+
+      // DELETE /:id
+      on_delete("/:id(\\d+)",
+      [] (auto req, auto res)
+      {
+        // Delete a book with the given "id"
+      });
+    }
+  };
+
+  BookController books;
+  // Put our BookController on our router, prepending /api/books
+  router.use("/api/books", books);
+  // Add the same router to one more route
+  router.use("/api/v2/books", books);
+  // GET /api/books/:name
+  // GET /api/v2/books/:name
+
+  auto&amp; stack = net::Inet4::ifconfig();
+  Server server{stack};
+  server->set_routes(router).listen(80);
+</pre>
+
+<p class="space-above">
+  Middleware can also be incorporated:
+</p>
+<pre>
+  // Custom middleware to serve static files on root route with disk root on /public
+  auto opt = {"index.html", "index.htm"};
+  Middleware_ptr waitress = std::make_shared<middleware::Waitress>(disk, "/public", opt); // WIP
+  server.use(waitress);
+
+  // Custom middleware to serve a simple webpage for a directory
+  // on route /static with disk root on /public/static
+  Middleware_ptr director = std::make_shared<middleware::Director>(disk, "/public/static");
+  server.use("/static", director);
+
+  Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
+  server.use(cookie_parser);
+
+  // Inject middleware as closure
+  server.use([] (auto req, auto res, auto next)
+  {
+    // If request is bad, end the request/response cycle early
+    if(req->body() == "bad body") {
+      printf("bad request\n");
+      res->send_code(http::Bad_Request);
+    }
+    else {
+      // Continue the middleware chain
+      (*next)();
+    }
+  });
+</pre>
+
+<p class="space-above">
+  And it is possible to extend a Request with arbitrary attributes:
+</p>
+<pre>
+  class Secret : public Attribute {
+  public:
+    Secret(const std::string&amp; secret)
+     : secret_{secret}
+    {}
+
+    const std::string&amp; secret() const
+    { return secret_; }
+
+  private:
+    const std::string secret_;
+  };
+
+  server.use([] (auto req, auto res, auto next)
+  {
+    if(req->body() == "password123")
+      req->set_attribute(std::make_shared<Secret>("Don't tell anyone"));
+
+    (*next)();
+  });
+
+  router.on_get("/secret", [] (auto req, auto res) {
+    if(!req->has_attribute<Secret>()) {
+      res->send_code(http::Unauthorized);
+    }
+    else {
+      printf("Here's the secret: %s\n",
+        req->get_attribute<Secret>().secret().c_str());
+
+      req->send_file(secret_content);
+    }
+  });
+</pre>
+
+<h3 class="space-above">Our demonstration pages</h3>
+<p class="space-above">
+  Check out our Dashboard and Squirrels! The dashboard shows key information about IncludeOS, while the squirrels demonstrate the use of a RESTful API. Here we use AngularJS, Bootstrap, JSON and more. Use Acorn to create your next Single Page Application.
+</p>
+<div class="row space-above">
+  <div class="col-xs-12 col-sm-6 col-md-6">
+    <a class="thumbnail btn btn-primary static-link" href="/app/dashboard">
+      <span class="glyphicon glyphicon-stats"></span>
+      <br>
+      IncludeOS Dashboard
+    </a>
+  </div>
+
+  <div class="col-xs-12 col-sm-6 col-md-6">
+    <a class="thumbnail btn btn-primary static-link" href="/app/squirrels">
+      <span class="glyphicon glyphicon-transfer"></span>
+      <br>
+      Acorn's Squirrels
+    </a>
+  </div>
+</div>
 
 <h2 class="page-header">
   Built with IncludeOS
 </h2>
 <p>
-  Wow so small <a href="//github.com/hioa-cs/IncludeOS">OS</a>.
+  Wow so small OS ...
 </p>
-
-
+<div class="row space-above">
+  <div class="col-xs-12 col-sm-12 col-md-12">
+    <a class="btn btn-danger btn-lg" href="//github.com/hioa-cs/IncludeOS">IncludeOS on GitHub</a>
+  </div>
+</div>
 
 <div id="footer">
   <hr/>
-  <p>blackAndWhite-logo powered by IncludeOS</p>
+  <p>
+    Powered by<br>
+    <img src="img/includeos_logo.svg" id="logo-footer" />
+  </p>
+  <!-- BlackAndWhite-logo instead -->
 </div>
 </div>
 

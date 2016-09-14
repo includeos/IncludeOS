@@ -5,7 +5,7 @@ angular.module('acornWebApp')
     ['$scope', 'Dashboard', '$timeout', '$http', '$interval', 'bytesFilter', 'CPUsage',
     function($scope, Dashboard, $timeout, $http, $interval, bytesFilter, CPUsage) {
 
-    var color_palette = ['#A061F2', '#3A8BF1', '#3452CB', '#0D1230', '#EE4053', '#F87E0C', '#F8D20B', '#B5D63B'];
+    var color_palette = ['#F8D20B', '#3A8BF1', '#0D1230', '#3452CB', '#B5D63B', '#A061F2', '#F87E0C', '#EE4053'];
 
     // Memory map chart
     $http.get("/api/dashboard/memmap").
@@ -14,6 +14,7 @@ angular.module('acornWebApp')
         var groups = [];
         var groups_with_colors = {};
         var color_index = 0;
+        var hidden_groups = [];
 
         angular.forEach(memmap, function(element, index) {
           var element_name = (index + 1) + ': ' + element.name;
@@ -31,6 +32,9 @@ angular.module('acornWebApp')
 
             groups_with_colors[element_name] = color_palette[color_index++];
           }
+
+          if(element.name == "N/A")
+            hidden_groups.push(element_name);
         });
 
         // Memory map chart
@@ -47,6 +51,7 @@ angular.module('acornWebApp')
             groups: [
               groups
             ],
+            hide: hidden_groups,
             order: null
           },
           axis: {
