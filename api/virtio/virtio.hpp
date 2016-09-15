@@ -247,7 +247,6 @@ public:
 
     /** Dequeue a received packet */
     Token dequeue();
-    std::vector<Token> dequeue_chain();
 
     void disable_interrupts();
     void enable_interrupts();

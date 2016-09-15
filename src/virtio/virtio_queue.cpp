@@ -158,13 +158,8 @@ void Virtio::Queue::release(uint32_t head)
 
 }
 
-Virtio::Token Virtio::Queue::dequeue() {
-
-  // Return NULL if there are no more completed buffers in the queue
-  if (_last_used_idx == _queue.used->idx){
-    debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-    return {{nullptr, 0}, Token::IN};
-  }
+Virtio::Token Virtio::Queue::dequeue()
+{
   debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
 
   // Get next completed buffer
@@ -175,38 +170,7 @@ Virtio::Token Virtio::Queue::dequeue() {
   release(e.id);
   _last_used_idx++;
   // return token:
-  return {{(uint8_t*) _queue.desc[e.id].addr,
-        e.len }, Token::IN};
-}
-std::vector<Virtio::Token> Virtio::Queue::dequeue_chain() {
-
-  std::vector<Virtio::Token> result;
-
-  // Return NULL if there are no more completed buffers in the queue
-  if (_last_used_idx == _queue.used->idx){
-    debug("<Q %i> Can't dequeue - no used buffers \n",_pci_index);
-    return result;
-  }
-  debug("<Q%i> Dequeueing  last_used index %i ",_pci_index, _last_used_idx);
-
-  // Get next completed buffer
-  auto* e = &_queue.used->ring[_last_used_idx % _size];
-
-  auto* unchain = &_queue.desc[e->id];
-  do
-  {
-    result.emplace_back(
-      Token::span{ (uint8_t*) unchain->addr, unchain->len }, Token::IN);
-    unchain = &_queue.desc[ unchain->next ];
-  }
-  while (unchain->flags & VIRTQ_DESC_F_NEXT);
-
-  // Release buffer
-  debug("<Q %i> Releasing token @%p, nr. %i Len: %i\n",_pci_index, e, e->id, e->len);
-  release(e->id);
-  _last_used_idx++;
-
-  return result;
+  return {{(uint8_t*) _queue.desc[e.id].addr, e.len }, Token::IN};
 }
 
 void Virtio::Queue::set_data_handler(data_handler_t del) {
