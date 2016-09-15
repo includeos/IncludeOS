@@ -16,13 +16,15 @@
 // limitations under the License.
 
 #include <os>
-#include <vga>
 #include <hw/ps2.hpp>
 
-#include "snake.hpp"
+// prevent default serial output
+void add_default_stdout_handlers() {}
 
+#include <vga>
 ConsoleVGA vga;
 
+#include "snake.hpp"
 void begin_snake()
 {
   static Snake snake {vga};
