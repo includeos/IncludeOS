@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
@@ -16,29 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ACORN_WEB_APPLIANCE
-#define ACORN_WEB_APPLIANCE
+#pragma once
+#ifndef ACORN_FS_HPP
+#define ACORN_FS_HPP
 
-#include "app/models/user.hpp"
-#include "app/models/squirrel.hpp"
+#include <memdisk>
+#include <fs/disk.hpp>
 
-#include "app/routes/routes"
+namespace acorn {
 
-#include "bucket/bucket.hpp"
+using Disk_ptr = fs::Disk_ptr;
 
-#include "dashboard/include/dashboard"
+void recursive_fs_dump(Disk_ptr disk, std::vector<fs::Dirent> entries, const int depth = 1);
 
-#include "fs/acorn_fs.hpp"
+void list_static_content(Disk_ptr disk);
 
-#include "logger/logger.hpp"
+} //< namespace acorn
 
-#include "middleware/parsley.hpp"
-#include "middleware/director.hpp"
-#include "middleware/waitress.hpp"
-#include "middleware/cookie_parser.hpp"
-
-#include "stats/stats.hpp"
-
-#include "server/server.hpp"
-
-#endif //< ACORN_WEB_APPLIANCE
+#endif //< ACORN_FS_HPP
