@@ -143,19 +143,6 @@ void gather_stack_sampling()
   }
 }
 
-void print_heap_info()
-{
-  static intptr_t last = 0;
-  // show information on heap status, to discover leaks etc.
-  extern uintptr_t heap_begin;
-  extern uintptr_t heap_end;
-  intptr_t heap_size = heap_end - heap_begin;
-  last = heap_size - last;
-  printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
-  printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
-  last = (int32_t) heap_size;
-}
-
 uint64_t StackSampler::samples_total()
 {
   return get().total;
@@ -195,25 +182,4 @@ std::vector<Sample> StackSampler::results(int N)
 void StackSampler::set_mask(bool mask)
 {
   get().discard = mask;
-}
-
-void __panic_failure(char const* where, size_t id)
-{
-  printf("\n[FAILURE] %s, id=%u\n", where, id);
-  print_heap_info();
-  while (true)
-    asm volatile("cli; hlt");
-}
-
-void __validate_backtrace(char const* where, size_t id)
-{
-  func_offset func;
-
-  func = Elf::resolve_symbol((void*) &__validate_backtrace);
-  if (func.name != "__validate_backtrace")
-      __panic_failure(where, id);
-
-  func = Elf::resolve_symbol((void*) &StackSampler::set_mask);
-  if (func.name != "StackSampler::set_mask(bool)")
-      __panic_failure(where, id);
 }
