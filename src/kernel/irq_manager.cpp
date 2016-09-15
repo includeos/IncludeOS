@@ -163,8 +163,8 @@ void IRQ_manager::disable_irq(uint8_t irq) {
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   if (irq >= IRQ_LINES)
   {
-    printf("IRQ out of bounds %u (max: %u)\n", irq, IRQ_LINES);
-    panic("Vector number too high in subscribe()\n");
+    std::string reason = "Vector number too high (" + std::to_string(irq) + ") in subscribe()\n";
+    panic(reason.c_str());
   }
 
   // cheap way of changing from unused handler to event loop irq marker
@@ -181,7 +181,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   irq_delegates_[irq] = del;
 
   (*current_eoi_mechanism)();
-  INFO("IRQ manager", "IRQ subscribed: %u", irq);
+  //INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
 void IRQ_manager::notify()
