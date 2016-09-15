@@ -18,6 +18,7 @@
 #ifndef KERNEL_VGA_HPP
 #define KERNEL_VGA_HPP
 
+#include <os>
 #include <stdint.h>
 
 class ConsoleVGA {
@@ -44,6 +45,10 @@ public:
   };
 
   explicit ConsoleVGA() noexcept;
+
+  OS::rsprint_func get_rsprint_handler() {
+    return OS::rsprint_func::from<ConsoleVGA, &ConsoleVGA::write> (this);
+  }
 
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
   { return fg | bg << 4; }
