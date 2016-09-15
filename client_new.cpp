@@ -58,11 +58,15 @@ void Client::handle_new(
 
 void Client::auth_notice()
 {
-  static const char auth_strings[] =
-      "NOTICE AUTH :*** Processing your connection\r\n"
-      "NOTICE AUTH :*** Looking up your hostname...\r\n"
+  static const char auth_proc[] =
+      "NOTICE AUTH :*** Processing your connection\r\n";
+  static const char auth_host[] =
+      "NOTICE AUTH :*** Looking up your hostname...\r\n";
+  static const char auth_idnt[] =
       "NOTICE AUTH :*** Checking Ident\r\n";
-  send_raw(auth_strings, sizeof auth_strings - 1);
+  send_raw(auth_proc, sizeof auth_proc - 1);
+  send_raw(auth_host, sizeof auth_host - 1);
+  send_raw(auth_idnt, sizeof auth_idnt - 1);
   //hostname_lookup()
   this->host_ = conn->remote().address().str();
   //ident_check()

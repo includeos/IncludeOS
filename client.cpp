@@ -53,7 +53,7 @@ void Client::split_message(const std::string& msg)
   auto vec = ircsplit(msg, source);
   
   // ignore empty messages
-  if (vec.empty()) return;
+  if (UNLIKELY(vec.empty())) return;
   // transform command to uppercase
   extern void transform_to_upper(std::string&);
   transform_to_upper(vec[0]);
