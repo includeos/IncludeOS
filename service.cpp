@@ -87,6 +87,19 @@ void ssampler_print(int N)
 }
 #endif
 
+void print_heap_info()
+{
+  static intptr_t last = 0;
+  // show information on heap status, to discover leaks etc.
+  extern uintptr_t heap_begin;
+  extern uintptr_t heap_end;
+  intptr_t heap_size = heap_end - heap_begin;
+  last = heap_size - last;
+  printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
+  printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
+  last = (int32_t) heap_size;
+}
+
 #define PERIOD_SECS    2
 
 void print_stats(uint32_t)
