@@ -23,8 +23,19 @@
 #include "ircd.hpp"
 static IrcServer* ircd;
 
+// prevent default serial out
+void add_default_stdout_handlers() {}
+#include <hw/serial.hpp>
+
 void Service::start(const std::string&)
 {
+  // add own serial out after service start
+  auto& com1 = hw::Serial::port<1>();
+  OS::add_standard_out(com1.get_rsprint_handler());
+  // show that we are starting :)
+  printf("*** IRC Service starting up...\n");
+  
+  // default configuration (with DHCP)
   auto& inet = net::Inet4::ifconfig<>(10);
   inet.network_config(
       {  10, 0,  0, 42 },  // IP
@@ -124,6 +135,7 @@ void Service::ready()
   printf("*** IRC SERVICE STARTED ***\n");
 #ifdef USE_STACK_SAMPLING
   StackSampler::begin();
+  StackSampler::set_mode(StackSampler::MODE_CALLER);
 #endif
 
   using namespace std::chrono;
