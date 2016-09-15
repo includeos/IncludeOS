@@ -70,8 +70,6 @@ class Virtio
 {
 
 public:
-  using data_handler_t = delegate<int(uint8_t* data,int len)>;
-
   /** A wrapper for buffers to be passed in to the Queue */
   class Token {
 
@@ -212,9 +210,6 @@ public:
 
     delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
 
-    /** Handler for data coming in on virtq.used. */
-    data_handler_t _data_handler;
-
     /** Initialize the queue buffer */
     void init_queue(int size, void* buf);
 
@@ -250,8 +245,6 @@ public:
 
     void disable_interrupts();
     void enable_interrupts();
-
-    void set_data_handler(data_handler_t dataHandler);
 
     /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);

@@ -23,8 +23,8 @@
 #include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
 #include <malloc.h>
-#include <string.h>
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 
 /**
@@ -57,21 +57,10 @@ void Virtio::Queue::init_queue(int size, void* buf){
 
 }
 
-
-/** A default handler doing nothing.
-
-    It's here because we might not want to look at the data, e.g. for
-    the VirtioNet TX-queue which will get used buffers in. */
-int empty_handler(uint8_t* UNUSED(data),int UNUSED(size)) {
-  debug("<Virtio::Queue> Empty handler. DROP! ");
-  return -1;
-};
-
 /** Constructor */
 Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   : _size(size),_size_bytes(virtq_size(size)),_iobase(iobase),
-    _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index),
-    _data_handler(delegate<int(uint8_t*,int)>(empty_handler))
+    _free_head(0), _num_added(0),_last_used_idx(0),_pci_index(q_index)
 {
   // Allocate page-aligned size and clear it
   void* buffer = memalign(PAGE_SIZE, _size_bytes);
@@ -173,20 +162,15 @@ Virtio::Token Virtio::Queue::dequeue()
   return {{(uint8_t*) _queue.desc[e.id].addr, e.len }, Token::IN};
 }
 
-void Virtio::Queue::set_data_handler(data_handler_t del) {
-  _data_handler = del;
-}
-
-void Virtio::Queue::disable_interrupts(){
+void Virtio::Queue::disable_interrupts() {
   _queue.avail->flags |= (1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
 }
-
-void Virtio::Queue::enable_interrupts(){
+void Virtio::Queue::enable_interrupts() {
   _queue.avail->flags &= ~(1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
 }
 
-void Virtio::Queue::kick(){
-
+void Virtio::Queue::kick()
+{
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4
