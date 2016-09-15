@@ -46,6 +46,12 @@ Serial::Serial(int port) :
   }
 }
 
+void Serial::rsprint_handler(const char* str, size_t len)
+{
+  for(size_t i = 0; i < len; ++i)
+      this->write(str[i]);
+}
+
 void Serial::on_data(on_data_handler del){
   enable_interrupt();
   on_data_=del;

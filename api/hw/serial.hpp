@@ -27,7 +27,6 @@
 namespace hw{
 
   class Serial {
-      
   public:
     
     /** On Data handler. Return value indicates if the buffer should be flushed **/
@@ -41,7 +40,11 @@ namespace hw{
       static Serial s{PORT};
       return s;
     }
-        
+    
+    OS::rsprint_func get_rsprint_handler() {
+      return OS::rsprint_func::from<Serial, &Serial::rsprint_handler> (this);
+    }
+    
     void on_data(on_data_handler del);
     void on_readline(on_string_handler del, char delim = '\r');
     
@@ -62,6 +65,7 @@ namespace hw{
     void init();    
     
   private:
+    void rsprint_handler(const char*, size_t);
     
     Serial(int port);
     static constexpr uint16_t ports_[] {0x3F8, 0x2F8, 0x3E8, 0x2E8 };    
