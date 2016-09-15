@@ -47,7 +47,7 @@ void Client::disable()
 void Client::split_message(const std::string& msg)
 {
   // in case splitter is bad
-  SET_CRASH_CONTEXT("Client::split_message():\n'%*s'", msg.size(), msg.c_str());
+  SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", msg.size(), msg.c_str());
   
   std::string source;
   auto vec = ircsplit(msg, source);
@@ -60,7 +60,7 @@ void Client::split_message(const std::string& msg)
   
 //#define PRINT_CLIENT_MESSAGE
 #ifdef PRINT_CLIENT_MESSAGE
-  printf("[Client]: ");
+  printf("[%u]: ", self);
   for (auto& str : vec)
   {
     printf("[%s]", str.c_str());
@@ -85,7 +85,7 @@ void Client::read(const uint8_t* buf, size_t len)
     int search = -1;
     
     // find line ending
-    for (int i = len-1; i >= 0; i--)
+    for (size_t i = 0; i < len; i++)
     if (buf[i] == 13 || buf[i] == 10) {
       search = i; break;
     }
@@ -105,6 +105,7 @@ void Client::read(const uint8_t* buf, size_t len)
     else if (UNLIKELY(search == 0)) {
       buf++; len--;
     } else {
+      
       // found CR LF:
       // if clients are sending too much data to server, kill them
       if (UNLIKELY(readq.size() + search >= server.readq_max())) {
@@ -126,9 +127,8 @@ void Client::read(const uint8_t* buf, size_t len)
         readq.clear();
       }
       
-      // try to avoid doing "searching" when the next 
-      // character is yet another line ending character
-      if (len > 0 && (buf[0] == 13 || buf[0] == 10)) {
+      // skip over continous line ending characters
+      if (len != 0 && (buf[0] == 13 || buf[0] == 10)) {
           buf++; len--;
       }
     }

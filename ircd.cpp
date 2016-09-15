@@ -12,7 +12,7 @@ IrcServer::IrcServer(
     uint16_t port, 
     const std::string& name, 
     const std::string& netw, 
-    motd_func_t mfunc)
+    const motd_func_t& mfunc)
     : inet(inet_), server_name(name), server_network(netw), motd_func(mfunc)
 {
   // initialize lookup tables

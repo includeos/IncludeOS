@@ -5,12 +5,24 @@
 
 void Client::send_motd()
 {
+  const char* prev = server.get_motd();
+  const char* next = strchr(prev, '\n');
+  
   send(RPL_MOTDSTART, ":- " + server.name() + " Message of the day - ");
-  const auto& motd = server.get_motd();
-  
-  for (const auto& line : motd)
-    send(RPL_MOTD, ":" + line);
-  
+  char buffer[1024];
+  while (next != nullptr)
+  {
+    int len = snprintf(buffer, sizeof(buffer),
+        ":%s 372 %s :%.*s\r\n",
+        server.name().c_str(), nick().c_str(), next - prev, prev);
+    send_raw(buffer, len);
+    prev = next + 1;
+    next = strchr(prev, '\n');
+  }
+  int len = snprintf(buffer, sizeof(buffer),
+      ":%s 372 %s :%s\r\n",
+      server.name().c_str(), nick().c_str(), prev);
+  send_raw(buffer, len);
   send(RPL_ENDOFMOTD, ":End of MOTD command");
 }
 

@@ -51,9 +51,21 @@ void Service::start(const std::string&)
   
   ircd =
   new IrcServer(inet, 6667, "irc.includeos.org", "IncludeNet",
-  [] () -> const std::vector<std::string>& {
-    return motd;
+  [] () -> const char* {
+    return R"M0TDT3XT(
+              .-') _                               _ .-') _     ('-.                       .-')    
+             ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).  
+  ,-.-') ,--./ ,--,'  .-----. ,--.     ,--. ,--.   \     .'_ (,------.       .-'),-----. (_)---\_) 
+  |  |OO)|   \ |  |\ '  .--./ |  |.-') |  | |  |   ,`'--..._) |  .---'      ( OO'  .-.  '/    _ |  
+  |  |  \|    \|  | )|  |('-. |  | OO )|  | | .-') |  |  \  ' |  |          /   |  | |  |\  :` `.  
+  |  |(_/|  .     |//_) |OO  )|  |`-' ||  |_|( OO )|  |   ' |(|  '--.       \_) |  |\|  | '..`''.) 
+ ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \ 
+(_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       / 
+  `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'  
+)M0TDT3XT";
   });
+  
+  printf("%s\n", ircd->get_motd());
 }
 
 
@@ -100,7 +112,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    2
+#define PERIOD_SECS    20
 
 void print_stats(uint32_t)
 {
