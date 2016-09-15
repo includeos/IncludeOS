@@ -44,6 +44,7 @@ struct Sampler
   uint64_t asleep = 0;
   int  lockless;
   bool discard; // discard results as long as true
+  StackSampler::mode_t mode = StackSampler::MODE_CURRENT;
 
   Sampler() {
     // make room for these only when requested
@@ -64,12 +65,15 @@ struct Sampler
     hw::PIT::instance().on_repeated_timeout(
         GATHER_PERIOD_MS, gather_stack_sampling);
   }
-  void add(void* ra)
+  void add(void* current, void* ra)
   {
     // need free space to take more samples
-    if (samplerq->free_capacity())
-        samplerq->add((uintptr_t) ra);
-
+    if (samplerq->free_capacity()) {
+      if (mode == StackSampler::MODE_CURRENT)
+          samplerq->add((uintptr_t) current);
+      else
+          samplerq->add((uintptr_t) ra);
+    }
     // return when its not our turn
     if (lockless) return;
 
@@ -92,19 +96,23 @@ void StackSampler::begin()
   // start taking samples using PIT interrupts
   get().begin();
 }
+void StackSampler::set_mode(mode_t md)
+{
+  get().mode = md;
+}
 
 void profiler_stack_sampler(void* esp)
 {
-  void* ra = esp; //__builtin_return_address(1);
+  void* current = esp; //__builtin_return_address(1);
   // maybe qemu, maybe some bullshit we don't care about
-  if (UNLIKELY(ra == nullptr || get().discard)) return;
+  if (UNLIKELY(current == nullptr || get().discard)) return;
   // ignore event loop (and take sleep statistic)
-  if (ra == &_irq_cb_return_location) {
+  if (current == &_irq_cb_return_location) {
     ++get().asleep;
     return;
   }
   // add address to sampler queue
-  get().add(ra);
+  get().add(current, __builtin_return_address(1));
 }
 
 void gather_stack_sampling()
