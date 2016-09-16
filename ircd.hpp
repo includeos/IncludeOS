@@ -21,7 +21,7 @@ class IrcServer {
 public:
   using Connection = net::tcp::Connection_ptr;
   using Network    = net::Inet4;
-  typedef std::function<const char* ()> motd_func_t;
+  typedef std::function<const std::string&()> motd_func_t;
   typedef Channel::index_t chindex_t;
   typedef Client::index_t  uindex_t;
   
@@ -42,7 +42,7 @@ public:
   {
     return IRC_SERVER_VERSION;
   }
-  const char* get_motd() const noexcept
+  const std::string& get_motd()
   {
     return motd_func();
   }

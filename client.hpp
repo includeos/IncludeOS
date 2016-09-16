@@ -56,9 +56,7 @@ public:
   void send_nonick(uint16_t numeric, const std::string& text);
   void send(uint16_t numeric, std::string text);
   // send the string as-is
-  void send_raw(const char* buff, size_t len)
-  {
-    //printf("-> %s\n", buff);
+  void send_raw(const char* buff, size_t len) {
     conn->write(buff, len);
   }
   

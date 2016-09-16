@@ -44,15 +44,10 @@ void Service::start(const std::string&)
       {  10, 0,  0,  1 }); // DNS
   
   // IRC default port
-  static std::vector<std::string> motd;
-  motd.push_back("Welcome to the");
-  motd.push_back("IncludeOS IRC server");
-  motd.push_back("-§- 4Head -§-");
-  
   ircd =
   new IrcServer(inet, 6667, "irc.includeos.org", "IncludeNet",
-  [] () -> const char* {
-    return R"M0TDT3XT(
+  [] () -> const std::string& {
+    static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')    
              ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).  
   ,-.-') ,--./ ,--,'  .-----. ,--.     ,--. ,--.   \     .'_ (,------.       .-'),-----. (_)---\_) 
@@ -63,9 +58,10 @@ void Service::start(const std::string&)
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       / 
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'  
 )M0TDT3XT";
+    return motd;
   });
   
-  printf("%s\n", ircd->get_motd());
+  printf("%s\n", ircd->get_motd().c_str());
 }
 
 
@@ -112,7 +108,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    20
+#define PERIOD_SECS    2
 
 void print_stats(uint32_t)
 {
