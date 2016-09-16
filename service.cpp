@@ -20,10 +20,7 @@
 #include <os>
 #include <rtc>
 #include <acorn>
-#include <memdisk>
 #include <profile>
-
-#include <fs/disk.hpp>
 
 using namespace std;
 using namespace acorn;
@@ -38,10 +35,7 @@ std::unique_ptr<server::Server> server_;
 std::unique_ptr<dashboard::Dashboard> dashboard_;
 std::unique_ptr<Logger> logger_;
 
-////// DISK //////
-// instantiate disk with filesystem
-//#include <filesystem>
-fs::Disk_ptr disk;
+Disk_ptr disk;
 
 #include <time.h>
 
@@ -57,8 +51,6 @@ const std::string timestamp() {
 
     return buf;
 }
-
-void recursive_fs_dump(vector<fs::Dirent> entries, int depth = 1);
 
 void Service::start(const std::string&) {
 
@@ -97,13 +89,7 @@ void Service::start(const std::string&) {
                            { 8,8,8,8 });      // DNS
 
       // only works with synchronous disks (memdisk)
-      printf("%s\n",
-      "================================================================================\n"
-      "STATIC CONTENT LISTING\n"
-      "================================================================================\n");
-      recursive_fs_dump(*disk->fs().ls("/").entries);
-      printf("%s",
-      "================================================================================\n");
+      list_static_content(disk);
 
       /** BUCKET SETUP */
 
@@ -205,31 +191,4 @@ void Service::start(const std::string&) {
       server_->use(cookie_parser);
 
     }); // < disk
-}
-
-void recursive_fs_dump(vector<fs::Dirent> entries, int depth) {
-  auto& filesys = disk->fs();
-  int indent = (depth * 3);
-  for (auto entry : entries) {
-
-    // Print directories
-    if (entry.is_dir()) {
-      // Normal dirs
-      if (entry.name() != "."  and entry.name() != "..") {
-        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
-        filesys.ls(entry, [depth](auto, auto entries) {
-          recursive_fs_dump(*entries, depth + 1);
-        });
-      } else {
-        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
-      }
-
-    }else {
-      // Print files / symlinks etc.
-      //printf(" %*s  \n", indent, "|");
-      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
-    }
-  }
-  printf(" %*s \n", indent, " ");
-  //printf(" %*s \n", indent, "o");
 }
