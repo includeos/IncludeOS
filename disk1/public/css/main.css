@@ -32,6 +32,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+section {
+  padding-bottom:50px;
+}
+
 /* List view Statman tree view START */
 
 .gap-0 {
