@@ -5,26 +5,37 @@
 
 void Client::send_motd()
 {
-  send(RPL_MOTDSTART, ":- " + server.name() + " Message of the day - ");
+  char     buffer[2048];
+  uint16_t total = 0;
+  // motd start
+  int len = sprintf(buffer, ":%s 375 %s :- %s Message of the day\r\n",
+      server.name().c_str(), nick().c_str(), server.name().c_str());
+  total += len;
+  // motd contents
   const std::string& motd = server.get_motd();
   size_t prev = 0;
   size_t next = motd.find("\n");
-  char buffer[256];
   
   while (next != motd.npos)
   {
-    int len = snprintf(buffer, sizeof(buffer),
+    len = snprintf(buffer + total, sizeof(buffer) - total,
         ":%s 372 %s :%.*s\r\n",
         server.name().c_str(), nick().c_str(), next-prev, &motd[prev]);
-    if (len > 0) send_raw(buffer, len);
+    total += len;
     prev = next + 1;
     next = motd.find("\n", prev);
   }
-  int len = snprintf(buffer, sizeof(buffer),
+  // last line of motd
+  len = snprintf(buffer + total, sizeof(buffer) - total,
       ":%s 372 %s :%s\r\n",
       server.name().c_str(), nick().c_str(), &motd[prev]);
-  if (len > 0) send_raw(buffer, len);
-  send(RPL_ENDOFMOTD, ":End of MOTD command");
+  total += len;
+  // end of motd
+  len = snprintf(buffer + total, sizeof(buffer) - total,
+      ":%s 376 %s :End of MOTD command\r\n",
+      server.name().c_str(), nick().c_str());
+  total += len;
+  send_raw(buffer, total);
 }
 
 void Client::send_lusers()
