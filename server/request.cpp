@@ -49,11 +49,6 @@ void Request::validate() const {
   using namespace http;
   switch(method())
   {
-    case GET: {
-      if(content_length() > 0)
-        throw Request_error{http::Bad_Request,"Content_Length is not allowed in GET"};
-      return;
-    }
     case PUT:
     case POST: {
       if(content_length() == 0)
@@ -61,7 +56,8 @@ void Request::validate() const {
       return;
     }
     default: {
-
+      if(content_length() > 0)
+        throw Request_error{http::Bad_Request,"Content_Length is not allowed in GET"};
     }
   }
 }
