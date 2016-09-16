@@ -6,9 +6,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,14 +23,10 @@ git submodule update --init --recursive
 # Specify the name of disk image for serving content
 FAT_DISK=memdisk.fat
 
-# Check if the specified disk image exists
-# If it doesn't then try to create it
-if [ ! -f $FAT_DISK ];
-then
-  echo -e ">>> Creating FAT disk $FAT_DISK"
-  dd if=/dev/zero of=$FAT_DISK bs=1M seek=3 count=0
-  mkfs.fat $FAT_DISK
-fi
+# Create a new fat disk, overwriting existing one
+echo -e ">>> Creating FAT disk $FAT_DISK"
+dd if=/dev/zero of=$FAT_DISK bs=1M seek=2 count=0
+mkfs.fat $FAT_DISK
 
 # Create a directory for mounting the disk image
 mkdir -p mnt
