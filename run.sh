@@ -24,14 +24,14 @@ mkdir -p mnt
 if ! mountpoint -q -- mnt/;
 then
   echo ">>> Mounting memdisk.fat"
-  sudo mount -o rw memdisk.fat mnt/
-  sync
+  sudo mount -o sync,rw memdisk.fat mnt/
 fi
 
 # Copy web content to mounted disk
 sudo cp -r disk1/. mnt/
-sync
-sleep 1 # hopefully sync finished within this second
+
+# Unmount disk
+sudo umount mnt/
 
 # Remove stale object file
 rm -f memdisk.o
