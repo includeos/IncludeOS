@@ -33,9 +33,9 @@ mkdir -p mnt
 
 # Try to mount the disk image
 echo -e ">>> Mounting $FAT_DISK in mnt/"
-sudo mount -o rw $FAT_DISK mnt/
+sudo mount -o sync,rw $FAT_DISK mnt/
 
 # Copy web content into the disk image
 echo -e ">>> Copy content from disk1/ to $FAT_DISK"
 sudo cp -r disk1/. mnt/
-sync
+sudo umount mnt/

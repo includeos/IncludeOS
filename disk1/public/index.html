@@ -39,42 +39,19 @@
 </div>
 
 <div class="jumbotron">
-  <h1>IncludeOS web server</h1>
-  <h2 id="jumbo-acorn">aka "Acorn"</h2>
+  <h1>IncludeOS web application</h1>
+  <h2 id="jumbo-acorn">Codename: Acorn</h2>
   <br>
   <p>
-    Written in C++ and running on the IncludeOS unikernel, "Acorn" is a highly efficient web server with direct access to the library operating system's facilities
+    Written in C++ and running on the IncludeOS unikernel, Acorn is a highly efficient web server with direct access to the library operating system's facilities
   </p>
 </div>
-<hr/>
 
 <section>
 <div class="row">
   <div class="col-md-12">
     <h2>
-      Static Web Content
-    </h2>
-  <hr/>
-  </div>
-</div>
-<div class="row">
-  <div class="col-md-12">
-    <p>
-      Serve static web content with the use of middlewares.
-    </p>
-    <a href="/static/" class="btn btn-primary">
-      <span class="glyphicon glyphicon-folder-open"></span>
-       Browse content
-    </a>
-  </div>
-</div>
-</section>
-
-<section>
-<div class="row">
-  <div class="col-md-12">
-    <h2>
-      C++ webserver framework
+      C++ web application framework
     </h2>
   <hr/>
   </div>
@@ -82,57 +59,105 @@
 <div class="row">
   <div class="col-md-6">
     <p class="lead">
-    C++ webserver framework inspired by Node.js and Express.js.
+      Set up a working web application with just a few lines of code.
     </p>
     <p>
-      Intro ... Web developers can recognize the syntax ... Can be used to create a single page application ... RESTful Web API ... Dashboard ...
+      C++ web application framework inspired by <a href="//nodejs.org/en/">Node.js</a> and <a href="//expressjs.com">Express.js</a>.
     </p>
 
-    <h3 class="space-above">Examples</h3>
-    <hr/>
-    <div class="list-group">
-      <a href="/app/dashboard" class="list-group-item">
-        <h4 class="list-group-item-heading">
-          <span class="glyphicon glyphicon-stats"></span>
-          IncludeOS Dashboard
-        </h4>
-        <p class="list-group-item-text">
-          The dashboard shows key information about IncludeOS.
-        </p>
-      </a>
 
-      <a href="/app/squirrels" class="list-group-item">
-        <h4 class="list-group-item-heading">
-          <span class="glyphicon glyphicon-transfer"></span>
-          Acorn's Squirrels
-        </h4>
-        <p class="list-group-item-text">
-          The squirrels demonstrate the use of a RESTful API.
-        </p>
-      </a>
-
-    </div>
   </div>
   <div class="col-md-6">
     <pre>
-      // needs syntax highlight and better example
-      Router router;
-
-      router.on_get(".*", [] (auto, auto res)
-      {
-        // Stat disk for index.html
-        disk->fs().cstat("/public/index.html",
-        [res] (auto err, const auto&amp; entry) {
-          if(err) {
-            res->send_code(http::Not_Found);
-          } else {
-            // Serve index.html
-            res->send_file({disk, entry});
-          }
-        });
-      });
+  // Serve index.html on GET /
+  router.on_get("/",
+  [disk] (auto, auto res)
+  {
+    disk->fs().cstat("/index.html",
+    [res] (auto err, const auto&amp; entry)
+    {
+      if(err)
+        res->send_code(http::Not_Found);
+      else
+        res->send_file({disk, entry});
+    });
+  });
     </pre>
+    <em>Easily serve a static front page with a few lines of code.</em>
   </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+  <h3>
+    Middlewares
+  </h3>
+  <hr/>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-12">
+    <p>
+      Make use of and create simple middlewares to power up the web server.
+    </p>
+    <pre>
+    #include &lt;waitress&gt;
+    #include &lt;director&gt;
+
+    // Serve files from "public/" directory on file requests
+    Middleware_ptr waitress = std::make_shared&lt;Waitress&gt;(disk, "/public");
+    server.use(waitress);
+
+    // Display simple directory view of directory "public/static"
+    Middleware_ptr director = std::make_shared&lt;Director&gt;(disk, "/public/static");
+    server.use("/static", director);
+    </pre>
+    <em>Serve and display files by utilizing middlewares.</em>
+  </div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+  <h3>Examples</h3>
+  <hr/>
+</div>
+</div>
+<div class="row">
+<div class="col-md-6">
+
+  <div class="list-group">
+    <a href="/app/dashboard" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-stats"></span>
+        IncludeOS Dashboard
+      </h4>
+      <p class="list-group-item-text">
+        The dashboard shows key information about IncludeOS
+      </p>
+    </a>
+
+    <a href="/app/squirrels" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-transfer"></span>
+        Acorn's Squirrels
+      </h4>
+      <p class="list-group-item-text">
+        The squirrels demonstrate the use of a RESTful API
+      </p>
+    </a>
+
+    <a href="/static/" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-folder-open"></span>
+         Static content
+      </h4>
+      <p class="list-group-item-text">
+        Browse and serve static content with the help of simple middlewares
+      </p>
+    </a>
+
+  </div>
+</div>
 </div>
 </section>
 
@@ -148,7 +173,7 @@
 <div class="row">
   <div class="col-md-12">
     <p>
-      Wow so small OS ...
+      IncludeOS is the leanest, purest form of unikernel. Written from scratch in C++, we leverage all the advantages of writing a single-service operating system; we use 100% asynchronicity and simplicity all the way from device drivers, through the whole network stack and up to and including our new framework for building Node.js-style REST APIs in blazingly fast, modern C++14.
     </p>
 
     <a class="btn btn-default" href="//github.com/hioa-cs/IncludeOS">
@@ -164,7 +189,6 @@
     Powered by<br>
     <img src="img/includeos_logo.svg" id="logo-footer" />
   </p>
-  <!-- BlackAndWhite-logo instead -->
 </div>
 </div>
 
