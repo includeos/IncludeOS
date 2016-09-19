@@ -61,7 +61,6 @@ void Service::start(const std::string&) {
   logger_->flush();
   logger_->log("LUL\n");
 
-  printf("Going dark in 3 ... 2 ... 1 .\n");
   OS::set_rsprint([] (const char* data, size_t len) {
     OS::default_rsprint(data, len);
     // append timestamp
