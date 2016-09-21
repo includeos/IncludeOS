@@ -1,6 +1,8 @@
 ![IncludeOS](./doc/IncludeOS_logo.png)
 ================================================
 
+**Welcome, CppCon visitors! Looking for [Acorn](https://github.com/includeos/acorn), the new C++ web application framework for IncludeOS? Acorn is free and open source, and is [available on GitHub](https://github.com/includeos/acorn).**
+
 IncludeOS is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
 The build system will:
