@@ -54,7 +54,7 @@ public:
   Request_ptr get_request() noexcept
   { return request_; }
 
-  Response_ptr get_response()
+  Response_ptr get_response() noexcept
   { return response_; }
 
 
