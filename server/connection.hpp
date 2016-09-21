@@ -19,9 +19,10 @@
 #define SERVER_CONNECTION_HPP
 
 #include <net/tcp/connection.hpp>
+#include <rtc>
+
 #include "request.hpp"
 #include "response.hpp"
-#include <rtc>
 
 namespace server {
 
