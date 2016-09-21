@@ -60,7 +60,7 @@ public:
 
   void close();
 
-  inline std::string to_string() const
+  std::string to_string() const
   { return "Connection:[" + conn_->remote().to_string() + "]"; }
 
   static void on_connection(OnConnection cb)
