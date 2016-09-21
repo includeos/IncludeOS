@@ -66,7 +66,7 @@ public:
   static void on_connection(OnConnection cb)
   { on_connection_ = cb; }
 
-  RTC::timestamp_t idle_since() const
+  RTC::timestamp_t idle_since() const noexcept
   { return idle_since_; }
 
   void close_tcp()
