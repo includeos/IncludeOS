@@ -43,7 +43,12 @@ struct Route {
   Route_expr  expr;
   End_point   end_point;
   route::Keys keys;
+  unsigned    hits;
 }; //< struct Route
+
+inline bool operator < (const Route& lhs, const Route& rhs) noexcept {
+  return lhs.hits < rhs.hits;
+}
 
 } //< namespace server
 
