@@ -258,6 +258,14 @@ namespace server {
     Router& add(const Router&);
 
     /**
+     * @brief Optimize route search for all routes by bringing
+     * the most hitted route to the front of the search queue
+     *
+     * @return The object that invoked this method
+     */
+    Router& optimize_route_search();
+
+    /**
      * @brief Optimize route search for the specified HTTP method
      * by bringing the most hitted route to the front of the
      * search queue
@@ -414,6 +422,18 @@ namespace server {
       }
       route_table_[e.first] = e.second;
     }
+    return *this;
+  }
+
+  inline Router& Router::optimize_route_search() {
+    auto it  = route_table_.begin();
+    auto end = route_table_.end();
+
+    while (it not_eq end) {
+      std::stable_sort(it->second.begin(), it->second.end());
+      ++it;
+    }
+
     return *this;
   }
 
