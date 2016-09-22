@@ -20,6 +20,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 
 #include "route.hpp"
 #include "params.hpp"
@@ -256,6 +257,18 @@ namespace server {
      */
     Router& add(const Router&);
 
+    /**
+     * @brief Optimize route search for the specified HTTP method
+     * by bringing the most hitted route to the front of the
+     * search queue
+     *
+     * @param method
+     * The HTTP method to optimize search for
+     *
+     * @return The object that invoked this method
+     */
+    Router& optimize_route_search(const http::Method method);
+
     Router& operator<<(const Router& obj)
     { return add(obj); }
 
@@ -400,6 +413,14 @@ namespace server {
         continue;
       }
       route_table_[e.first] = e.second;
+    }
+    return *this;
+  }
+
+  inline Router& Router::optimize_route_search(const http::Method method) {
+    auto it = route_table_.find(method);
+    if (it not_eq route_table_.end()) {
+      std::stable_sort(it->second.begin(), it->second.end());
     }
     return *this;
   }
