@@ -352,7 +352,7 @@ namespace server {
     for (auto& route : routes) {
       if (std::regex_match(path, route.expr)) {
         ++route.hits;
-        
+
         // Set the pairs in params:
         Params params;
         std::smatch res;
@@ -407,13 +407,11 @@ namespace server {
   inline std::string Router::to_string() const {
     std::ostringstream ss;
 
-    for(auto& method_routes : route_table_)
-    {
-      auto& method = method_routes.first;
-      auto& routes = method_routes.second;
-      for(auto& route : routes)
-      {
-        ss << method << "\t" << route.path << "\n";
+    for(const auto& method_routes : route_table_) {
+      auto&& method = method_routes.first;
+      auto&& routes = method_routes.second;
+      for(auto&& route : routes) {
+        ss << method << '\t' << route.path << '\n';
       }
     }
 
