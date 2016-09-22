@@ -47,7 +47,7 @@ struct Route {
 }; //< struct Route
 
 inline bool operator < (const Route& lhs, const Route& rhs) noexcept {
-  return lhs.hits < rhs.hits;
+  return rhs.hits < lhs.hits;
 }
 
 } //< namespace server
