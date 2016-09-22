@@ -349,8 +349,10 @@ namespace server {
       throw Router_error("No routes for method " + http::method::str(method));
     }
 
-    for (const auto& route : routes) {
+    for (auto& route : routes) {
       if (std::regex_match(path, route.expr)) {
+        ++route.hits;
+        
         // Set the pairs in params:
         Params params;
         std::smatch res;
