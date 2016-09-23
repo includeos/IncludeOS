@@ -34,7 +34,7 @@ void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, co
           recursive_fs_dump(disk, *entries, (depth + 1));
         });
       } else {
-        printf("%*c  %s\n", indent, '+', entry.name().c_str());
+        printf("%*c   %s\n", indent, '+', entry.name().c_str());
       }
     } else {
       printf("%*c-> %s\n", indent, '+', entry.name().c_str());
@@ -42,7 +42,6 @@ void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, co
     }
   }
 
-  printf("%*c\n", indent, ' ');
 }
 
 void list_static_content(Disk_ptr disk) {
@@ -51,10 +50,10 @@ void list_static_content(Disk_ptr disk) {
   "STATIC CONTENT LISTING\n"
   "================================================================================\n");
   recursive_fs_dump(disk, *disk->fs().ls("/").entries);
-  printf("%u %s, %u %s\n", dir_count, "directories", file_count, "files");
+  printf("\n%u %s, %u %s\n", dir_count, "directories", file_count, "files");
   printf("%s",
   "================================================================================\n");
-  dir_count  =  0U;
+  dir_count  = 0U;
   file_count = 0U;
 }
 
