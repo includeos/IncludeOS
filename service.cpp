@@ -118,8 +118,8 @@ void Service::start(const std::string&) {
 
 
       /** ROUTES SETUP **/
-
-      server::Router router;
+      using namespace server;
+      Router router;
 
       // setup Squirrel routes
       router.use("/api/squirrels", routes::Squirrels{squirrels});
@@ -166,27 +166,26 @@ void Service::start(const std::string&) {
       /** SERVER SETUP **/
 
       // initialize server
-      server_ = std::make_unique<server::Server>(stack);
+      server_ = std::make_unique<Server>(stack);
       // set routes and start listening
       server_->set_routes(router).listen(80);
 
 
       /** MIDDLEWARE SETUP **/
-
+      using namespace middleware;
       // custom middleware to serve static files
-      auto opt = {"index.html", "index.htm"};
-      //server::Middleware_ptr waitress = std::make_shared<Waitress>(disk, "", opt); // original
-      server::Middleware_ptr waitress = std::make_shared<middleware::Waitress>(disk, "/public", opt); // WIP
+      auto opt = {"index.html"};
+      Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt);
       server_->use(waitress);
 
       // custom middleware to serve a webpage for a directory
-      server::Middleware_ptr director = std::make_shared<middleware::Director>(disk, "/public/static");
+      Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
       server_->use("/static", director);
 
-      server::Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
+      Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
-      server::Middleware_ptr cookie_parser = std::make_shared<middleware::CookieParser>();
+      Middleware_ptr cookie_parser = std::make_shared<CookieParser>();
       server_->use(cookie_parser);
 
     }); // < disk
