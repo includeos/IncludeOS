@@ -18,22 +18,20 @@
 #include "response.hpp"
 
 using namespace server;
+using namespace std::string_literals;
 
 Response::OnSent Response::on_sent_ = [](size_t){};
 
 Response::Response(Connection_ptr conn)
   : http::Response(), conn_(conn)
 {
-  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-  add_header(http::header_fields::Response::Server, std::string{"IncludeOS/Acorn"});
-
-  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-  add_header(http::header_fields::Response::Connection, keep_alive ? std::string{"keep-alive"} : std::string{"close"});
+  add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
+  add_header(http::header_fields::Response::Connection, keep_alive ? "keep-alive"s : "close"s);
 }
 
 void Response::send(bool close) {
   if(close) {
-    set_header(http::header_fields::Response::Connection, std::string{"close"});
+    set_header(http::header_fields::Response::Connection, "close"s);
   }
   write_to_conn(close);
   end();
@@ -72,9 +70,6 @@ void Response::send_file(const File& file) {
     entry.name().c_str(), entry.size());
   #endif
 
-  //auto buffer = file.disk->fs().read(entry, 0, entry.size());
-  //printf("<Respone> Content:%.*s\n", buffer.size(), buffer.data());
-
   Async::upload_file(file.disk, file.entry, conn,
     [conn, entry](fs::error_t err, bool good)
   {
@@ -97,10 +92,7 @@ void Response::send_file(const File& file) {
 
 void Response::send_json(const std::string& json) {
   add_body(json);
-
-  // TODO: Want to be able to write "GET, HEAD" instead of std::string{"..."}:
-  add_header(http::header_fields::Entity::Content_Type, std::string{"application/json"});
-
+  add_header(http::header_fields::Entity::Content_Type, "application/json"s);
   send(!keep_alive);
 }
 
