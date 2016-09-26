@@ -37,8 +37,6 @@
 #include "middleware/waitress.hpp"
 #include "middleware/cookie_parser.hpp"
 
-#include "stats/stats.hpp"
-
 #include "server/server.hpp"
 
 #endif //< ACORN_WEB_APPLIANCE
