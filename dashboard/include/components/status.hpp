@@ -30,9 +30,14 @@ class Status : public Component {
 
 public:
 
-  static Status& instance() {
-    static Status s;
-    return s;
+  static std::shared_ptr<Status> instance() {
+    static std::weak_ptr<Status> instance_;
+    if(auto p = instance_.lock())
+      return p;
+
+    std::shared_ptr<Status> p{new Status};
+    instance_ = p;
+    return p;
   }
 
   std::string key() const override

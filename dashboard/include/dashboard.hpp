@@ -28,7 +28,8 @@ namespace dashboard {
 
 class Dashboard {
 
-  using ComponentCollection = std::unordered_map<std::string, Component*>;
+  using Component_ptr = std::shared_ptr<Component>;
+  using ComponentCollection = std::unordered_map<std::string, Component_ptr>;
 
 public:
   Dashboard(size_t buffer_capacity = 4096);
@@ -36,7 +37,7 @@ public:
   const server::Router& router() const
   { return router_; }
 
-  void add(Component&);
+  void add(Component_ptr);
 
   template <typename Comp, typename... Args>
   inline void construct(Args&&...);
@@ -59,14 +60,14 @@ private:
 
 };
 
-inline void Dashboard::add(Component& c) {
-  components_.emplace(c.key(), &c);
+inline void Dashboard::add(Component_ptr c) {
+  components_.emplace(c->key(), c);
 
   // A really simple way to setup routes, only supports read (GET)
-  router_.on_get(std::string{"/"} + c.key(),
-  [this, &c] (server::Request_ptr, server::Response_ptr res)
+  router_.on_get("/" + c->key(),
+  [this, c] (server::Request_ptr, server::Response_ptr res)
   {
-    c.serialize(writer_);
+    c->serialize(writer_);
     send_buffer(res);
   });
 }
@@ -75,9 +76,7 @@ template <typename Comp, typename... Args>
 inline void Dashboard::construct(Args&&... args) {
   static_assert(std::is_base_of<Component, Comp>::value, "Template type is not a Component");
 
-  Comp& c = *new Comp{std::forward<Args>(args)...};
-
-  add(c);
+  add(std::make_unique<Comp>(std::forward<Args>(args)...));
 }
 
 } // < namespace dashboard
