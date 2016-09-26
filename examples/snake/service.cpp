@@ -19,7 +19,7 @@
 #include <hw/ps2.hpp>
 
 // prevent default serial output
-void add_default_stdout_handlers() {}
+void default_stdout_handlers() {}
 
 #include <vga>
 ConsoleVGA vga;

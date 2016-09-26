@@ -34,7 +34,7 @@
  */
 class OS {
 public:
-  using rsprint_func = delegate<void(const char*, size_t)>;
+  using print_func  = delegate<void(const char*, size_t)>;
   using Custom_init = delegate<void()>;
 
   /* Get the version of the os */
@@ -87,19 +87,19 @@ public:
   /**
    *  Add handler for standard output.
    */
-  static void add_standard_out(rsprint_func func) {
-    rsprint_handlers.push_back(func);
+  static void add_stdout(print_func func) {
+    print_handlers.push_back(func);
   }
 
   /** Memory page helpers */
-  static inline constexpr uint32_t page_size() {
+  static constexpr uint32_t page_size() {
     return 4096;
   }
-  static inline constexpr uint32_t page_nr_from_addr(uint32_t x) {
-    return x >> page_shift_;
+  static constexpr uint32_t page_nr_from_addr(uint32_t x) {
+    return x >> PAGE_SHIFT;
   }
-  static inline constexpr uint32_t base_from_page_nr(uint32_t x) {
-    return x << page_shift_;
+  static constexpr uint32_t base_from_page_nr(uint32_t x) {
+    return x << PAGE_SHIFT;
   }
 
   /** Currently used dynamic memory, in bytes */
@@ -132,7 +132,7 @@ private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
 
-  static const int page_shift_ = 12;
+  static constexpr int PAGE_SHIFT = 12;
 
   /** Indicate if the OS is running. */
   static bool power_;
@@ -142,7 +142,7 @@ private:
 
   static MHz cpu_mhz_;
 
-  static std::vector<rsprint_func> rsprint_handlers;
+  static std::vector<print_func> print_handlers;
 
   static RTC::timestamp_t booted_at_;
   static std::string version_field;

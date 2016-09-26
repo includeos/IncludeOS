@@ -19,8 +19,8 @@
 #include <hw/serial.hpp>
 
 __attribute__ ((weak))
-void add_default_stdout_handlers()
+void default_stdout_handlers()
 {
   hw::Serial& com1 = hw::Serial::port<1>();
-  OS::add_standard_out(com1.get_rsprint_handler());
+  OS::add_stdout(com1.get_print_handler());
 }
