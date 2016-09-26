@@ -49,7 +49,6 @@ private:
   //-------------------------------
   using Port      = const unsigned;
   using IP_stack  = net::Inet4;
-  using OnConnect = net::tcp::Connection::ConnectCallback;
   using Path      = std::string;
   struct MappedCallback {
     Path path;
@@ -100,15 +99,15 @@ public:
 
   void process(Request_ptr, Response_ptr);
 
-  inline void use(Middleware_ptr mw)
-  { use("/", mw); }
-
   void use(const Path&, Middleware_ptr);
 
-  inline void use(Callback cb)
-  { use("/", cb); }
+  void use(Middleware_ptr mw)
+  { use("/", std::move(mw)); }
 
   void use(const Path&, Callback);
+
+  void use(Callback cb)
+  { use("/", std::move(cb)); }
 
   size_t active_clients() const
   { return connections_.size() - free_idx_.size(); }
@@ -138,16 +137,9 @@ private:
   Server& operator = (const Server&) = delete;
   Server& operator = (Server&&) = delete;
 
-  //-------------------------------
-  // Set up the network stack
-  //-------------------------------
-  void initialize();
-
   void connect(net::tcp::Connection_ptr);
 
   void process_route(Request_ptr, Response_ptr);
-
-  Next create_next(std::shared_ptr<MiddlewareStack::iterator>, Request_ptr, Response_ptr);
 
   void timeout_clients(uint32_t);
 
@@ -158,7 +150,7 @@ private:
 template <typename Route_Table>
 inline Server& Server::set_routes(Route_Table&& routes) {
   router_.install_new_configuration(std::forward<Route_Table>(routes));
-return *this;
+  return *this;
 }
 
 } // namespace server

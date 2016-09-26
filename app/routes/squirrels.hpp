@@ -74,15 +74,15 @@ public:
           // send the created entity as response
           res->send_json(s.json());
         }
-        catch(Assert_error e) {
+        catch(const Assert_error& e) {
           printf("[Squirrels@POST:/] Assert_error: %s\n", e.what());
           res->error({"Parsing Error", "Could not parse data."});
         }
-        catch(bucket::ConstraintException e) {
+        catch(const bucket::ConstraintException& e) {
           printf("[Squirrels@POST:/] ConstraintException: %s\n", e.what());
           res->error({"Constraint Exception", e.what()});
         }
-        catch(bucket::BucketException e) {
+        catch(const bucket::BucketException& e) {
           printf("[Squirrels@POST:/] BucketException: %s\n", e.what());
           res->error({"Bucket Exception", e.what()});
         }

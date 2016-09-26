@@ -27,8 +27,7 @@ Dashboard::Dashboard(size_t buffer_capacity)
 }
 
 void Dashboard::setup_routes() {
-  router_.on_get("/",
-    RouteCallback::from<Dashboard,&Dashboard::serve>(this));
+  router_.on_get("/", {this, &Dashboard::serve});
 }
 
 void Dashboard::serve(Request_ptr, Response_ptr res) {

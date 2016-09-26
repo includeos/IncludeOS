@@ -28,11 +28,11 @@ Connection::OnConnection Connection::on_connection_ = []{};
 Connection::Connection(Server& serv, Connection_ptr conn, size_t idx)
   : server_(serv), conn_(conn), idx_(idx)
 {
-  conn_->on_read(BUFSIZE, OnData::from<Connection, &Connection::on_data>(this));
-  conn_->on_disconnect(OnDisconnect::from<Connection, &Connection::on_disconnect>(this));
-  conn_->on_close(OnClose::from<Connection, &Connection::close>(this));
-  conn_->on_error(OnError::from<Connection, &Connection::on_error>(this));
-  conn_->on_packet_dropped(OnPacketDropped::from<Connection, &Connection::on_packet_dropped>(this));
+  conn_->on_read(BUFSIZE, {this, &Connection::on_data});
+  conn_->on_disconnect({this, &Connection::on_disconnect});
+  conn_->on_close({this, &Connection::close});
+  conn_->on_error({this, &Connection::on_error});
+  conn_->on_packet_dropped({this, &Connection::on_packet_dropped});
   //conn_->on_rtx_timeout([](auto, auto) { printf("<TCP> RtxTimeout\n"); });
   on_connection_();
   idle_since_ = RTC::now();
@@ -92,8 +92,8 @@ void Connection::on_data(buffer_t buf, size_t n) {
   // note: this is probably a bit too aggressive - client should have another try on some cases
   if(client_error)
   {
-    response_ = std::make_shared<Response>(conn_);
-    response_->send_code(static_cast<http::status_t>(client_error), true);
+    Response res{conn_};
+    res.send_code(static_cast<http::status_t>(client_error), true);
     close_tcp();
     response_ = nullptr;
     request_ = nullptr;

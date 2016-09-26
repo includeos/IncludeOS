@@ -31,7 +31,12 @@ using namespace cookie;
  */
 class CookieParser : public server::Middleware {
 public:
-  virtual void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
+
+  server::Callback handler() override {
+    return {this, &CookieParser::process};
+  }
+
+  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
 
 private:
   CookieJar req_cookies_;
@@ -88,7 +93,7 @@ void CookieParser::parse(const std::string& cookie_data) {
       req_cookies_.insert(cookie.substr(0, pos), cookie.substr(pos + 1));
     } else {
       req_cookies_.insert(cookie);
-    }    
+    }
   }
 
 }

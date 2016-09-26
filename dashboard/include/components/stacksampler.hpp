@@ -29,9 +29,14 @@ class StackSampler : public Component {
 
 public:
 
-  static StackSampler& instance() {
-    static StackSampler s;
-    return s;
+  static std::shared_ptr<StackSampler> instance() {
+    static std::weak_ptr<StackSampler> instance_;
+    if(auto p = instance_.lock())
+      return p;
+
+    std::shared_ptr<StackSampler> p{new StackSampler};
+    instance_ = p;
+    return p;
   }
 
   std::string key() const override
