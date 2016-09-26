@@ -19,9 +19,10 @@
 #define SERVER_CONNECTION_HPP
 
 #include <net/tcp/connection.hpp>
+#include <rtc>
+
 #include "request.hpp"
 #include "response.hpp"
-#include <rtc>
 
 namespace server {
 
@@ -34,38 +35,38 @@ using Connection_ptr = std::shared_ptr<Connection>;
 class Connection {
 private:
   const static size_t BUFSIZE = 1460;
-  using Connection_ptr    = net::tcp::Connection_ptr;
-  using buffer_t          = net::tcp::buffer_t;
-  using OnData            = net::tcp::Connection::ReadCallback;
-  using Disconnect        = net::tcp::Connection::Disconnect;
-  using OnDisconnect      = net::tcp::Connection::DisconnectCallback;
-  using OnClose           = net::tcp::Connection::CloseCallback;
-  using OnError           = net::tcp::Connection::ErrorCallback;
-  using TCPException      = net::tcp::TCPException;
-  using OnPacketDropped   = net::tcp::Connection::PacketDroppedCallback;
-  using Packet_ptr        = net::tcp::Packet_ptr;
+  using Connection_ptr  = net::tcp::Connection_ptr;
+  using buffer_t        = net::tcp::buffer_t;
+  using OnData          = net::tcp::Connection::ReadCallback;
+  using Disconnect      = net::tcp::Connection::Disconnect;
+  using OnDisconnect    = net::tcp::Connection::DisconnectCallback;
+  using OnClose         = net::tcp::Connection::CloseCallback;
+  using OnError         = net::tcp::Connection::ErrorCallback;
+  using TCPException    = net::tcp::TCPException;
+  using OnPacketDropped = net::tcp::Connection::PacketDroppedCallback;
+  using Packet_ptr      = net::tcp::Packet_ptr;
 
   using OnConnection = std::function<void()>;
 
 public:
   Connection(Server&, Connection_ptr, size_t idx);
 
-  Request_ptr get_request()
+  Request_ptr get_request() noexcept
   { return request_; }
 
-  Response_ptr get_response()
+  Response_ptr get_response() noexcept
   { return response_; }
 
 
   void close();
 
-  inline std::string to_string() const
+  std::string to_string() const
   { return "Connection:[" + conn_->remote().to_string() + "]"; }
 
   static void on_connection(OnConnection cb)
   { on_connection_ = cb; }
 
-  RTC::timestamp_t idle_since() const
+  RTC::timestamp_t idle_since() const noexcept
   { return idle_since_; }
 
   void close_tcp()

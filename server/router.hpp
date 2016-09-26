@@ -18,15 +18,12 @@
 #ifndef ROUTER_HPP
 #define ROUTER_HPP
 
-#include <delegate>
-#include <regex>
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
+#include <algorithm>
 
-#include <request.hpp>
-#include <response.hpp>
-#include <route/path_to_regex.hpp>
-#include <params.hpp>
+#include "route.hpp"
+#include "params.hpp"
 
 namespace server {
 
@@ -38,35 +35,18 @@ namespace server {
   private:
     //-------------------------------
     // Internal class type aliases
+    using Span        = gsl::span<char>;
+    using Route_table = std::unordered_map<http::Method, std::vector<Route>>;
     //-------------------------------
-    using Route_expr = std::regex;
-    using Callback = delegate<void(Request_ptr, Response_ptr)>;
-
-    struct Route {
-      std::string path;
-      Route_expr expr;
-      Callback callback;
-      std::vector<route::Token> keys;
-
-      Route(const std::string& ex, Callback c)
-        : path{ex}, callback{c} {
-        expr = route::Path_to_regex::path_to_regex(ex, keys); // also sets the keys attribute
-      }
-    };
-
-    using Route_table = std::unordered_map< http::Method, std::vector<Route> >;
-    using Span = gsl::span<char>;
-
   public:
 
     /**
      * @brief      Returned in match-method.
-     *             Contains both the Callback and the route parameters so that both can be returned.
+     *             Contains both the End_point and the route parameters so that both can be returned.
      */
     struct ParsedRoute {
-
-      Callback job;
-      Params parsed_values;
+      End_point job;
+      Params    parsed_values;
     };
 
     //-------------------------------
@@ -102,7 +82,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_options(Routee&& route, Callback result);
+    Router& on_options(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -116,7 +96,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_get(Routee&& route, Callback result);
+    Router& on_get(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -130,7 +110,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_head(Routee&& route, Callback result);
+    Router& on_head(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -144,7 +124,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_post(Routee&& route, Callback result);
+    Router& on_post(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -158,7 +138,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_put(Routee&& route, Callback result);
+    Router& on_put(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -172,7 +152,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_delete(Routee&& route, Callback result);
+    Router& on_delete(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -186,7 +166,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_trace(Routee&& route, Callback result);
+    Router& on_trace(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -200,7 +180,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_connect(Routee&& route, Callback result);
+    Router& on_connect(Routee&& route, End_point result);
 
     //-------------------------------
     // Add a route mapping for route
@@ -214,7 +194,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on_patch(Routee&& route, Callback result);
+    Router& on_patch(Routee&& route, End_point result);
 
     //-------------------------------
     // General way to add a route mapping for route
@@ -230,7 +210,7 @@ namespace server {
     // @return - The object that invoked this method
     //-------------------------------
     template <typename Routee>
-    Router& on(http::Method method, Routee&& route, Callback result);
+    Router& on(http::Method method, Routee&& route, End_point result);
 
     //-------------------------------
     // Install a new route table for
@@ -277,6 +257,26 @@ namespace server {
      */
     Router& add(const Router&);
 
+    /**
+     * @brief Optimize route search for all routes by bringing
+     * the most hitted route to the front of the search queue
+     *
+     * @return The object that invoked this method
+     */
+    Router& optimize_route_search();
+
+    /**
+     * @brief Optimize route search for the specified HTTP method
+     * by bringing the most hitted route to the front of the
+     * search queue
+     *
+     * @param method
+     * The HTTP method to optimize search for
+     *
+     * @return The object that invoked this method
+     */
+    Router& optimize_route_search(const http::Method method);
+
     Router& operator<<(const Router& obj)
     { return add(obj); }
 
@@ -298,61 +298,61 @@ namespace server {
   /**--v----------- Implementation Details -----------v--**/
 
   template <typename Routee>
-  inline Router& Router::on_options(Routee&& route, Callback result) {
-    route_table_[http::OPTIONS].emplace_back({std::forward<Routee>(route), result});
+  inline Router& Router::on_options(Routee&& route, End_point result) {
+    route_table_[http::OPTIONS].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_get(Routee&& route, Callback result) {
+  inline Router& Router::on_get(Routee&& route, End_point result) {
     route_table_[http::GET].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_head(Routee&& route, Callback result) {
+  inline Router& Router::on_head(Routee&& route, End_point result) {
     route_table_[http::HEAD].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_post(Routee&& route, Callback result) {
+  inline Router& Router::on_post(Routee&& route, End_point result) {
     route_table_[http::POST].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_put(Routee&& route, Callback result) {
+  inline Router& Router::on_put(Routee&& route, End_point result) {
     route_table_[http::PUT].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_delete(Routee&& route, Callback result) {
+  inline Router& Router::on_delete(Routee&& route, End_point result) {
     route_table_[http::DELETE].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_trace(Routee&& route, Callback result) {
+  inline Router& Router::on_trace(Routee&& route, End_point result) {
     route_table_[http::TRACE].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_connect(Routee&& route, Callback result) {
+  inline Router& Router::on_connect(Routee&& route, End_point result) {
     route_table_[http::CONNECT].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on_patch(Routee&& route, Callback result) {
+  inline Router& Router::on_patch(Routee&& route, End_point result) {
     route_table_[http::PATCH].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
 
   template <typename Routee>
-  inline Router& Router::on(http::Method method, Routee&& route, Callback result) {
+  inline Router& Router::on(http::Method method, Routee&& route, End_point result) {
     route_table_[method].emplace_back(std::forward<Routee>(route), result);
     return *this;
   }
@@ -366,11 +366,14 @@ namespace server {
   inline Router::ParsedRoute Router::match(http::Method method, const std::string& path) {
     auto routes = route_table_[method];
 
-    if (routes.empty())
+    if (routes.empty()) {
       throw Router_error("No routes for method " + http::method::str(method));
+    }
 
     for (auto& route : routes) {
       if (std::regex_match(path, route.expr)) {
+        ++route.hits;
+
         // Set the pairs in params:
         Params params;
         std::smatch res;
@@ -383,7 +386,7 @@ namespace server {
           params.insert(route.keys[i].name, res[i + 1]);
 
         ParsedRoute parsed_route;
-        parsed_route.job = route.callback;
+        parsed_route.job = route.end_point;
         parsed_route.parsed_values = params;
 
         return parsed_route;
@@ -404,7 +407,7 @@ namespace server {
       for(auto& route : routes)
       {
         std::string path = root + route.path;
-        on(method, path, route.callback);
+        on(method, path, route.end_point);
       }
     }
     return *this;
@@ -422,16 +425,34 @@ namespace server {
     return *this;
   }
 
+  inline Router& Router::optimize_route_search() {
+    auto it  = route_table_.begin();
+    auto end = route_table_.end();
+
+    while (it not_eq end) {
+      std::stable_sort(it->second.begin(), it->second.end());
+      ++it;
+    }
+
+    return *this;
+  }
+
+  inline Router& Router::optimize_route_search(const http::Method method) {
+    auto it = route_table_.find(method);
+    if (it not_eq route_table_.end()) {
+      std::stable_sort(it->second.begin(), it->second.end());
+    }
+    return *this;
+  }
+
   inline std::string Router::to_string() const {
     std::ostringstream ss;
 
-    for(auto& method_routes : route_table_)
-    {
-      auto& method = method_routes.first;
-      auto& routes = method_routes.second;
-      for(auto& route : routes)
-      {
-        ss << method << "\t" << route.path << "\n";
+    for(const auto& method_routes : route_table_) {
+      auto&& method = method_routes.first;
+      auto&& routes = method_routes.second;
+      for(auto&& route : routes) {
+        ss << method << '\t' << route.path << '\n';
       }
     }
 
