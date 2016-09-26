@@ -81,12 +81,12 @@ void Server::connect(net::tcp::Connection_ptr conn) {
   if(free_idx_.size() > 0) {
     auto idx = free_idx_.back();
     Ensures(connections_[idx] == nullptr);
-    connections_[idx] = std::make_shared<Connection>(*this, conn, idx);
+    connections_[idx] = std::make_unique<Connection>(*this, conn, idx);
     free_idx_.pop_back();
   }
   // if not, add a new shared ptr
   else {
-    connections_.emplace_back(std::make_shared<Connection>(*this, conn, connections_.size()));
+    connections_.emplace_back(std::make_unique<Connection>(*this, conn, connections_.size()));
   }
 }
 
@@ -134,7 +134,7 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
     req->set_params(parsed_route.parsed_values);
     parsed_route.job(req, res);
   }
-  catch (Router_error err) {
+  catch (const Router_error& err) {
     printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
     res->send_code(http::Not_Found, true);
   }
@@ -142,8 +142,8 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
 
 void Server::use(const Path& path, Middleware_ptr mw_ptr) {
   mw_storage_.push_back(mw_ptr);
-  mw_ptr->onMount(path);
-  use(path, mw_ptr->callback());
+  mw_ptr->on_mount(path);
+  use(path, mw_ptr->handler());
 }
 
 void Server::use(const Path& path, Callback callback) {
@@ -152,7 +152,7 @@ void Server::use(const Path& path, Callback callback) {
 
 void Server::timeout_clients(uint32_t) {
 
-  for(auto conn : connections_)
+  for(auto& conn : connections_)
   {
     if(conn != nullptr and RTC::now() > (conn->idle_since() + IDLE_TIMEOUT))
       conn->timeout();

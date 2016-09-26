@@ -48,11 +48,15 @@ public:
   Director(SharedDisk disk, std::string root)
     : disk_(disk), root_(root) {}
 
-  virtual void process(
+  server::Callback handler() override {
+    return {this, &Director::process};
+  }
+
+  void process(
     server::Request_ptr req,
     server::Response_ptr res,
     server::Next next
-    ) override
+    )
   {
     // get path
     std::string path = req->uri().path();
@@ -75,8 +79,8 @@ public:
     });
   }
 
-  virtual void onMount(const std::string& path) override {
-    Middleware::onMount(path);
+  void on_mount(const std::string& path) override {
+    Middleware::on_mount(path);
     printf("<Director> Mounted on [ %s ]\n", path.c_str());
   }
 

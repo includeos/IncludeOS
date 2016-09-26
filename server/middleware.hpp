@@ -34,13 +34,9 @@ using Callback = delegate<void(Request_ptr, Response_ptr, Next)>;
 class Middleware {
 public:
 
-  virtual void process(Request_ptr, Response_ptr, Next) = 0;
+  virtual Callback handler() = 0;
 
-  Callback callback() {
-    return Callback::from<Middleware, &Middleware::process>(this);
-  }
-
-  virtual void onMount(const std::string& path) {
+  virtual void on_mount(const std::string& path) {
     mountpath_ = path;
   }
 

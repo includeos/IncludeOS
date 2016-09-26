@@ -18,6 +18,7 @@
 #include "waitress.hpp"
 
 using namespace middleware;
+using namespace std::string_literals;
 
 Waitress::Waitress(SharedDisk disk, std::string root, Options opt)
   : disk_(disk), root_(root), options_(opt)
@@ -30,9 +31,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
     if(options_.fallthrough) {
       return (*next)();
     }
-
-    // TODO: Want to be able to write "GET, HEAD" instead of std::string{"GET, HEAD"}:
-    res->add_header(http::header_fields::Entity::Allow, std::string{"GET, HEAD"});
+    res->add_header(http::header_fields::Entity::Allow, "GET, HEAD"s);
     res->send_code(http::Method_Not_Allowed);
     return;
   }

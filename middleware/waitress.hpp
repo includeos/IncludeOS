@@ -48,7 +48,11 @@ public:
 
   Waitress(SharedDisk disk, std::string root, Options opt = {{"index.html"}, true});
 
-  void process(server::Request_ptr req, server::Response_ptr res, server::Next next) override;
+  server::Callback handler() override {
+    return {this, &Waitress::process};
+  }
+
+  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
 
 private:
   SharedDisk disk_;

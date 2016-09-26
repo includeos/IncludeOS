@@ -49,7 +49,6 @@ private:
   //-------------------------------
   using Port      = const unsigned;
   using IP_stack  = net::Inet4;
-  using OnConnect = net::tcp::Connection::ConnectCallback;
   using Path      = std::string;
   struct MappedCallback {
     Path path;
