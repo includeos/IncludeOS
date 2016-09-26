@@ -29,9 +29,14 @@ class Memmap : public Component {
 
 public:
 
-  static Memmap& instance() {
-    static Memmap m;
-    return m;
+  static std::shared_ptr<Memmap> instance() {
+    static std::weak_ptr<Memmap> instance_;
+    if(auto p = instance_.lock())
+      return p;
+
+    std::shared_ptr<Memmap> p{new Memmap};
+    instance_ = p;
+    return p;
   }
 
   std::string key() const override
