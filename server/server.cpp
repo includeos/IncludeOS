@@ -67,9 +67,8 @@ Router& Server::router() noexcept {
 void Server::listen(Port port) {
   printf("<Server> Listening to port %i \n", port);
 
-  inet_.tcp().bind(port).on_connect(OnConnect::from<Server, &Server::connect>(this));
-  using OnTimeout = Timers::handler_t;
-  Timers::periodic(30s, 1min, OnTimeout::from<Server, &Server::timeout_clients>(this));
+  inet_.tcp().bind(port).on_connect({this, &Server::connect});
+  Timers::periodic(30s, 1min, {this, &Server::timeout_clients});
 }
 
 void Server::connect(net::tcp::Connection_ptr conn) {
@@ -89,14 +88,6 @@ void Server::connect(net::tcp::Connection_ptr conn) {
   else {
     connections_.emplace_back(std::make_shared<Connection>(*this, conn, connections_.size()));
   }
-}
-
-void Server::initialize() {
-  //-------------------------------
-  inet_.network_config({ 10,0,0,42 },     // IP
-                      { 255,255,255,0 }, // Netmask
-                      { 10,0,0,1 },      // Gateway
-                      { 8,8,8,8 });      // DNS
 }
 
 void Server::close(size_t idx) {
@@ -124,7 +115,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
       auto& func = it->callback;
       // advance the iterator for the next next call
       it++;
-      auto next = weak_next.lock();
+      auto next = weak_next.lock(); // this should be safe since we're inside next
       // execute the function
       func(req, res, next);
     }
@@ -135,33 +126,6 @@ void Server::process(Request_ptr req, Response_ptr res) {
   };
   // get the party started..
   (*next)();
-
-  // get the party started..
-  //(*create_next(it_ptr, req, res))();
-}
-
-Next Server::create_next(std::shared_ptr<MiddlewareStack::iterator> it_ptr, Request_ptr req, Response_ptr res) {
-  auto next = std::make_shared<next_t>();
-  auto& it = *it_ptr;
-
-  while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
-    it++;
-
-  if(it != middleware_.end()) {
-    // dereference the function
-    auto& func = it->callback;
-    // advance the iterator for the next next call
-    it++;
-    *next = [it_ptr, req, res, this, &func] {
-      func(req, res, create_next(it_ptr, req, res));
-    };
-  }
-  else {
-    *next = [req, res, this] {
-      process_route(req, res);
-    };
-  }
-  return next;
 }
 
 void Server::process_route(Request_ptr req, Response_ptr res) {
@@ -172,8 +136,7 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
   }
   catch (Router_error err) {
     printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
-    res->set_status_code(http::Not_Found);
-    res->send(true); // active close
+    res->send_code(http::Not_Found, true);
   }
 }
 
