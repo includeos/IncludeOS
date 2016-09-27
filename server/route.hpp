@@ -36,13 +36,13 @@ struct Route {
     : path{ex}
     , end_point{e}
   {
-    expr = route::Path_to_regex::path_to_regex(path, keys);
+    expr = path2regex::path_to_regex(path, keys);
   }
 
   std::string path;
   Route_expr  expr;
   End_point   end_point;
-  route::Keys keys;
+  path2regex::Keys keys;
   size_t      hits {0U};
 }; //< struct Route
 
