@@ -185,7 +185,7 @@ void Service::start(const std::string&) {
       Middleware_ptr parsley = std::make_shared<Parsley>();
       server_->use(parsley);
 
-      Middleware_ptr cookie_parser = std::make_shared<CookieParser>();
+      Middleware_ptr cookie_parser = std::make_shared<cookie::CookieParser>();
       server_->use(cookie_parser);
 
     }); // < disk
