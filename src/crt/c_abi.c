@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,29 +43,27 @@ __FILE* stderr;
 #endif
 const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
-extern char _end; // location set by linker script
 
 #define RANDOMIZE_HEAP_BASE
 
 void _init_c_runtime()
 {
   /// init backtrace functionality
-  extern int   _init_elf_parser(void*);
-  extern void* _relocate_to_heap(char*);
-  extern void  _apply_parser_data(void*);
+  extern void _move_elf_symbols(void*, void*);
+  extern void _apply_parser_data(void*);
   // there is a 640k memory hole at the beginning of memory
   // put symbols at 40k
-  void* TEMP_LOCATION = (void*) 0xA000;
-  // move symbols to a temporary location that is abit further out than heap
-  // do this as early as possible, even before zeroing BSS to prevent overwriting
-  // all the data we need to keep for backtrace functionality
-  int stripped = _init_elf_parser(TEMP_LOCATION);
-  
+  void* SYM_LOCATION = (void*) 0xA000;
+  // move pruned symbols to unused memory
+  extern char _ELF_SYM_START_;
+  _move_elf_symbols(&_ELF_SYM_START_, SYM_LOCATION);
+
   // Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-  
+
   // Initialize the heap before exceptions
+  extern char _end;
   heap_begin = &_end + 0xfff;
   // page-align heap, because its not aligned
   heap_begin = (char*) ((uintptr_t)heap_begin & 0xfffff000);
@@ -74,7 +72,7 @@ void _init_c_runtime()
   uint64_t tsc;
   asm volatile ("rdtsc" : "=A"(tsc));
   // 512kb randomization in pages
-  heap_begin += (tsc & 0x7f) << 12;
+  //heap_begin += (tsc & 0x7f) << 12;
 #endif
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
@@ -89,22 +87,16 @@ void _init_c_runtime()
   stdin  = _REENT->_stdin;  // stdin  == 1
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
-  
+
   /// initialize exceptions before we can run constructors
   extern void* __eh_frame_start;
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
-  __register_frame(&__eh_frame_start);  
+  __register_frame(&__eh_frame_start);
 
   // set parser location here (after initializing everything else)
-  _apply_parser_data(TEMP_LOCATION);
+  _apply_parser_data(SYM_LOCATION);
 
-  // relocate symbols to heap
-  if (!stripped) {
-    //void* heaploc = _relocate_to_heap(TEMP_LOCATION);
-    //_apply_parser_data(heaploc);
-  }
-  
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
@@ -157,7 +149,7 @@ int access(const char *pathname, int mode)
 {
 	(void) pathname;
   (void) mode;
-  
+
   return 0;
 }
 char* getcwd(char *buf, size_t size)

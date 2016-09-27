@@ -44,6 +44,9 @@ CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v cla
 ifndef LD_INC
 	LD_INC = ld
 endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
+endif
 
 INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL $(LOCAL_INCLUDES)
 
@@ -51,7 +54,7 @@ all:      CAPABS = $(CAPABS_COMMON) -O2 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 debug:    CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Os
 # by default, don't use strip because it has caused us some problems
-STRIPPED=
+STRIPPED=--strip-debug
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s`
@@ -89,6 +92,7 @@ DEPS = $(OBJS:.o=.d)
 .PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: LDOPTS += --strip-debug
+all: STRIPPED=--strip-all
 all: service
 
 stripped: LDOPTS  += -s
@@ -133,6 +137,10 @@ ifneq ($(MEMDISK),)
 endif
 	@echo "\n>> Linking service with OS"
 	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	@echo "\n>> Adding symbol section"
+	$(INSTALL)/elf_syms $(SERVICE)
+	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
+# stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
 	strip $(STRIPPED) $(SERVICE)
 endif

@@ -22,8 +22,6 @@ src/compile_commands.json
 *.project
 *.workspace
 
-vmbuild/vmbuild
-
 *.img
 *.img.*
 
