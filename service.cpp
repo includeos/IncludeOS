@@ -175,8 +175,8 @@ void Service::start(const std::string&) {
       using namespace middleware;
       // custom middleware to serve static files
       auto opt = {"index.html"};
-      Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt);
-      server_->use(waitress);
+      Middleware_ptr butler = std::make_shared<butler::Butler>(disk, "/public", opt);
+      server_->use(butler);
 
       // custom middleware to serve a webpage for a directory
       Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");

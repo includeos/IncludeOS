@@ -15,16 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "waitress.hpp"
+#include "butler.hpp"
 
-using namespace middleware;
+using namespace butler;
 using namespace std::string_literals;
 
-Waitress::Waitress(SharedDisk disk, std::string root, Options opt)
+Butler::Butler(SharedDisk disk, std::string root, Options opt)
   : disk_(disk), root_(root), options_(opt)
 {}
 
-void Waitress::process(server::Request_ptr req, server::Response_ptr res, server::Next next)
+void Butler::process(server::Request_ptr req, server::Response_ptr res, server::Next next)
 {
   // if not a valid request
   if(req->method() != http::GET && req->method() != http::HEAD) {
@@ -52,7 +52,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
     disk_->fs().cstat(path,
     [this, req, res, next, path](auto err, const auto& entry)
     {
-      //printf("<Waitress> err=%s path=%s entry=%s\n",
+      //printf("<Butler> err=%s path=%s entry=%s\n",
       //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
       // no index was found on this path, go to next middleware
       if(err or !entry.is_file()) {
@@ -68,21 +68,21 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
   }
   // we found an extension, this is a (probably) a file request
   else {
-    //printf("<Waitress> Extension found - assuming request for file.\n");
+    //printf("<Butler> Extension found - assuming request for file.\n");
     disk_->fs().cstat(path,
     [this, req, res, next, path](auto err, const auto& entry)
     {
-      //printf("<Waitress> err=%s path=%s entry=%s\n",
+      //printf("<Butler> err=%s path=%s entry=%s\n",
       //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
       if(err or !entry.is_file()) {
         #ifdef VERBOSE_WEBSERVER
-        printf("<Waitress> File not found. Replying with 404.\n");
+        printf("<Butler> File not found. Replying with 404.\n");
         #endif
         res->send_code(http::Not_Found);
         return;
         /*
         if(!options_.fallthrough) {
-          printf("<Waitress> File not found. Replying with 404.\n");
+          printf("<Butler> File not found. Replying with 404.\n");
           return res->send_code(http::Not_Found);
         }
         else {
@@ -91,7 +91,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
       }
       else {
         #ifdef VERBOSE_WEBSERVER
-        printf("<Waitress> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
+        printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
         #endif
         http::Mime_Type mime = http::extension_to_type(get_extension(path));
         res->add_header(http::header_fields::Entity::Content_Type, mime);
@@ -102,7 +102,7 @@ void Waitress::process(server::Request_ptr req, server::Response_ptr res, server
   }
 }
 
-std::string Waitress::get_extension(const std::string& path) const {
+std::string Butler::get_extension(const std::string& path) const {
   std::string ext;
   auto idx = path.find_last_of(".");
   // Find extension
