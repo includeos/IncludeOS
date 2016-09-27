@@ -17,15 +17,15 @@
 
 // https://github.com/pillarjs/path-to-regexp/blob/master/index.js
 
-#ifndef ROUTE_PATH_TO_REGEX_HPP
-#define ROUTE_PATH_TO_REGEX_HPP
+#ifndef PATH_TO_REGEX_HPP
+#define PATH_TO_REGEX_HPP
 
 #include <map>
 #include <regex>
 #include <string>
 #include <vector>
 
-namespace route {
+namespace path_to_regex {
 
 struct Token {
 	std::string name      {};	// can be a string or an int (index)
@@ -49,8 +49,6 @@ using Keys    = std::vector<Token>;
 using Tokens  = std::vector<Token>;
 using Options = std::map<std::string, bool>;
 
-class Path_to_regex {
-public:
   /**
    *  Creates a path-regex from string input (path)
    *  Updates keys-vector (empty input parameter)
@@ -69,7 +67,7 @@ public:
    *      sensitive = false
    *      end = true
    */
-	static std::regex path_to_regex(const std::string& path, Keys& keys, const Options& options = Options{});
+	std::regex path_to_regex(const std::string& path, Keys& keys, const Options& options = Options{});
 
   /**
    *  Creates a path-regex from string input (path)
@@ -83,30 +81,26 @@ public:
    *      sensitive = false
    *      end = true
    */
-  static std::regex path_to_regex(const std::string& path, const Options& options = Options{});
+  std::regex path_to_regex(const std::string& path, const Options& options = Options{});
 
   /**
    *  Creates vector of tokens based on the given string (this vector of tokens can be sent as
    *  input to tokens_to_regex-method and includes tokens that are strings, not only tokens
    *  that are parameters in str)
    */
-  static Tokens parse(const std::string& str);
+  Tokens parse(const std::string& str);
 
   /**
    *  Creates a regex based on the tokens and options (optional) given
    */
-  static std::regex tokens_to_regex(const Tokens& tokens, const Options& options = Options{});
+  std::regex tokens_to_regex(const Tokens& tokens, const Options& options = Options{});
 
   /**
    *  Goes through the tokens-vector and push all tokens that are not string-tokens
    *  onto keys-vector
    */
-  static void tokens_to_keys(const Tokens& tokens, Keys& keys);
+  void tokens_to_keys(const Tokens& tokens, Keys& keys);
 
-private:
-	static const std::regex PATH_REGEXP;
-}; //< class Path_to_regex
+} //< namespace path_to_regex
 
-} //< namespace route
-
-#endif //< ROUTE_PATH_TO_REGEX_HPP
+#endif //< PATH_TO_REGEX_HPP
