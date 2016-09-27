@@ -15,21 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIDDLEWARE_WAITRESS_HPP
-#define MIDDLEWARE_WAITRESS_HPP
+#ifndef BUTLER_HPP
+#define BUTLER_HPP
 
 #include "middleware.hpp" // inherit middleware
 #include <fs/disk.hpp>
 #include <string>
 
-namespace middleware {
+namespace butler {
 
 /**
  * @brief Serves files (not food)
  * @details Serves files from a IncludeOS disk.
  *
  */
-class Waitress : public server::Middleware {
+class Butler : public server::Middleware {
 private:
   using SharedDisk  = std::shared_ptr<fs::Disk>;
   using Entry       = fs::FileSystem::Dirent;
@@ -46,10 +46,10 @@ public:
       : index(indices), fallthrough(fallth) {}
   };
 
-  Waitress(SharedDisk disk, std::string root, Options opt = {{"index.html"}, true});
+  Butler(SharedDisk disk, std::string root, Options opt = {{"index.html"}, true});
 
   server::Callback handler() override {
-    return {this, &Waitress::process};
+    return {this, &Butler::process};
   }
 
   void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
@@ -75,8 +75,8 @@ private:
   inline bool is_file_request(const std::string& path) const
   { return !get_extension(path).empty(); }
 
-}; // < class Waitress
+}; // < class Butler
 
-} //< namespace middleware
+} //< namespace butler
 
 #endif
