@@ -24,17 +24,17 @@
 static IrcServer* ircd;
 
 // prevent default serial out
-void add_default_stdout_handlers() {}
+void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
 void Service::start(const std::string&)
 {
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
-  OS::add_standard_out(com1.get_rsprint_handler());
+  OS::add_stdout(com1.get_print_handler());
   // show that we are starting :)
   printf("*** IRC Service starting up...\n");
-  
+
   // default configuration (with DHCP)
   auto& inet = net::Inet4::ifconfig<>(10);
   inet.network_config(
@@ -42,25 +42,25 @@ void Service::start(const std::string&)
       { 255,255,255, 0 },  // Netmask
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS
-  
+
   // IRC default port
   ircd =
   new IrcServer(inet, 6667, "irc.includeos.org", "IncludeNet",
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
-              .-') _                               _ .-') _     ('-.                       .-')    
-             ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).  
-  ,-.-') ,--./ ,--,'  .-----. ,--.     ,--. ,--.   \     .'_ (,------.       .-'),-----. (_)---\_) 
-  |  |OO)|   \ |  |\ '  .--./ |  |.-') |  | |  |   ,`'--..._) |  .---'      ( OO'  .-.  '/    _ |  
-  |  |  \|    \|  | )|  |('-. |  | OO )|  | | .-') |  |  \  ' |  |          /   |  | |  |\  :` `.  
-  |  |(_/|  .     |//_) |OO  )|  |`-' ||  |_|( OO )|  |   ' |(|  '--.       \_) |  |\|  | '..`''.) 
- ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \ 
-(_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       / 
-  `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'  
+              .-') _                               _ .-') _     ('-.                       .-')
+             ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).
+  ,-.-') ,--./ ,--,'  .-----. ,--.     ,--. ,--.   \     .'_ (,------.       .-'),-----. (_)---\_)
+  |  |OO)|   \ |  |\ '  .--./ |  |.-') |  | |  |   ,`'--..._) |  .---'      ( OO'  .-.  '/    _ |
+  |  |  \|    \|  | )|  |('-. |  | OO )|  | | .-') |  |  \  ' |  |          /   |  | |  |\  :` `.
+  |  |(_/|  .     |//_) |OO  )|  |`-' ||  |_|( OO )|  |   ' |(|  '--.       \_) |  |\|  | '..`''.)
+ ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \
+(_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
+  `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
 )M0TDT3XT";
     return motd;
   });
-  
+
   printf("%s\n", ircd->get_motd().c_str());
 }
 
@@ -82,8 +82,8 @@ void ssampler_print(int N)
 {
   auto samp = StackSampler::results(N);
   int total = StackSampler::samples_total();
-  
-  printf("Stack sampling - %d results (%u samples)\n", 
+
+  printf("Stack sampling - %d results (%u samples)\n",
          samp.size(), total);
   for (auto& sa : samp)
   {
@@ -120,21 +120,21 @@ void print_stats(uint32_t)
   static int last = 0;
   // only keep 5 measurements
   if (M.size() > 4) M.erase(M.begin());
-  
+
   int diff = ircd->get_counter(STAT_TOTAL_CONNS) - last;
   last = ircd->get_counter(STAT_TOTAL_CONNS);
   // @PERIOD_SECS between measurements
   M.push_back(diff / PERIOD_SECS);
-  
+
   double cps = 0.0;
   for (int C : M) cps += C;
   cps /= M.size();
-  
-  printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",  
+
+  printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
       now().c_str(), cps, OS::heap_usage() / 1024.f);
   // client and channel stats
-  printf("Conns: %u  Clis: %u  Club: %u  Chans: %u\n", 
-         ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS), 
+  printf("Conns: %u  Clis: %u  Club: %u  Chans: %u\n",
+         ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS),
          ircd->club(), ircd->get_counter(STAT_CHANNELS));
   printf("*** ---------------------- ***\n");
 #ifdef USE_STACK_SAMPLING
@@ -145,7 +145,7 @@ void print_stats(uint32_t)
   // heap statistics
   print_heap_info();
   printf("*** ---------------------- ***\n");
-  
+
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);
 #endif
