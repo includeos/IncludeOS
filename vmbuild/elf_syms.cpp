@@ -133,11 +133,15 @@ static void prune_elf_symbols()
   }
   //printf("symtab at %p (%u entries)\n", symtab.base, symtab.entries);
 
-  // nothing to do if stripped
+  // not stripped
   if (symtab.entries && strtab.size) {
     // allocate worst case, guaranteeing we have enough space
     pruned_location =
-        new char[sizeof(relocate_header) + symtab.entries * sizeof(Elf32_Sym) + strtab.size];
+        new char[sizeof(relocate_header32) + symtab.entries * sizeof(Elf32_Sym) + strtab.size];
     pruned_size = relocate_pruned_sections(pruned_location, symtab, strtab);
+    return;
   }
+  // stripped variant
+  pruned_location = new char[sizeof(relocate_header32)];
+  pruned_size = sizeof(relocate_header32);
 }
