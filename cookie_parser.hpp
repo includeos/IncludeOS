@@ -20,30 +20,30 @@
 
 #include "cookie.hpp"
 #include "cookie_jar.hpp"
-#include "middleware.hpp"
+#include <mana/middleware.hpp>
 
 namespace cookie {
 
 /**
  * @brief A way to parse cookies that the browser is sending to the server
  */
-class CookieParser : public server::Middleware {
+class CookieParser : public mana::Middleware {
 public:
 
-  server::Callback handler() override {
+  mana::Callback handler() override {
     return {this, &CookieParser::process};
   }
 
-  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
+  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
 
 private:
   CookieJar req_cookies_;
 
   static const std::regex cookie_pattern_;
 
-  bool has_cookie(server::Request_ptr req) const noexcept;
+  bool has_cookie(mana::Request_ptr req) const noexcept;
 
-  const std::string& read_cookies(server::Request_ptr req) const noexcept;
+  const std::string& read_cookies(mana::Request_ptr req) const noexcept;
 
   void parse(const std::string& cookie_data);
 
@@ -53,7 +53,7 @@ private:
 
 const std::regex CookieParser::cookie_pattern_ {"[^;]+"};
 
-inline void CookieParser::process(server::Request_ptr req, server::Response_ptr, server::Next next) {
+inline void CookieParser::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
   if(has_cookie(req)) {
     parse(read_cookies(req));
     auto jar_attr = std::make_shared<CookieJar>(req_cookies_);
@@ -63,11 +63,11 @@ inline void CookieParser::process(server::Request_ptr req, server::Response_ptr,
   return (*next)();
 }
 
-inline bool CookieParser::has_cookie(server::Request_ptr req) const noexcept {
+inline bool CookieParser::has_cookie(mana::Request_ptr req) const noexcept {
   return req->has_header(http::header_fields::Request::Cookie);
 }
 
-inline const std::string& CookieParser::read_cookies(server::Request_ptr req) const noexcept {
+inline const std::string& CookieParser::read_cookies(mana::Request_ptr req) const noexcept {
   return req->header_value(http::header_fields::Request::Cookie);
 }
 

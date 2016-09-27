@@ -22,11 +22,11 @@
 #include <string>
 
 #include "cookie.hpp"
-#include "../server/attribute.hpp"
+#include <mana/attribute.hpp>
 
 namespace cookie {
 
-class CookieJar : public server::Attribute {
+class CookieJar : public mana::Attribute {
 public:
 
   explicit CookieJar() = default;
