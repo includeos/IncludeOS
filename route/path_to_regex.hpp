@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace path_to_regex {
+namespace path2regex {
 
 struct Token {
 	std::string name      {};	// can be a string or an int (index)
@@ -101,6 +101,6 @@ using Options = std::map<std::string, bool>;
    */
   void tokens_to_keys(const Tokens& tokens, Keys& keys);
 
-} //< namespace path_to_regex
+} //< namespace path2regex
 
 #endif //< PATH_TO_REGEX_HPP

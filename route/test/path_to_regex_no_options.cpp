@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regex.hpp"
+#include <lest/lest.hpp>
+#include "../path_to_regex.hpp"
 
 using namespace std;
-using namespace route;
+using namespace path2regex;
 
 // ------------ TESTING PATH_TO_REGEX WITH NO OPTIONS --------------
 
@@ -33,7 +33,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with empty path")
       {
-        std::regex r = Path_to_regex::path_to_regex("", keys);
+        std::regex r = path_to_regex("", keys);
 
         // Testing keys:
 
@@ -53,7 +53,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test", keys);
+        std::regex r = path_to_regex("/:test", keys);
 
         // Testing keys:
 
@@ -90,7 +90,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:date'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test/:date", keys);
+        std::regex r = path_to_regex("/:test/:date", keys);
 
         // Testing keys:
 
@@ -137,7 +137,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/users/:test/:date'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/users/:test/:date", keys);
+        std::regex r = path_to_regex("/users/:test/:date", keys);
 
         // Testing keys:
 
@@ -187,7 +187,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/test'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/test", keys);
+        std::regex r = path_to_regex("/test", keys);
 
         // Testing keys:
 
@@ -210,7 +210,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/test/users'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/test/users", keys);
+        std::regex r = path_to_regex("/test/users", keys);
 
         // Testing keys:
 
@@ -234,7 +234,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test?", keys);
+        std::regex r = path_to_regex("/:test?", keys);
 
         // Testing keys:
 
@@ -272,7 +272,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?/:date?'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test?/:date?", keys);
+        std::regex r = path_to_regex("/:test?/:date?", keys);
 
         // Testing keys:
 
@@ -322,7 +322,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test?/users/:date?'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test?/users/:date?", keys);
+        std::regex r = path_to_regex("/:test?/users/:date?", keys);
 
         // Testing keys:
 
@@ -373,7 +373,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:date?'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test/:date?", keys);
+        std::regex r = path_to_regex("/:test/:date?", keys);
 
         // Testing keys:
 
@@ -421,7 +421,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test*'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test*", keys);
+        std::regex r = path_to_regex("/:test*", keys);
 
         // Testing keys:
 
@@ -456,7 +456,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:date/:test*'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:date/:test*", keys);
+        std::regex r = path_to_regex("/:date/:test*", keys);
 
         // Testing keys:
 
@@ -503,7 +503,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test+'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test+", keys);
+        std::regex r = path_to_regex("/:test+", keys);
 
         // Testing keys:
 
@@ -540,7 +540,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:id/:test+'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:id/:test+", keys);
+        std::regex r = path_to_regex("/:id/:test+", keys);
 
         // Testing keys:
 
@@ -587,7 +587,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test([a-z])+/:id(\\d+)'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test([a-z])+/:id(\\d+)", keys);
+        std::regex r = path_to_regex("/:test([a-z])+/:id(\\d+)", keys);
 
         // Testing keys:
 
@@ -642,7 +642,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test(\\d+)'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test(\\d+)", keys);
+        std::regex r = path_to_regex("/:test(\\d+)", keys);
 
         // Testing keys:
 
@@ -701,7 +701,7 @@ const lest::test test_path_to_regex_no_options[] =
         // Basic example for testing icase end */
 
         // Not case sensitive (default) - does not work as expected:
-        std::regex r = Path_to_regex::path_to_regex("/:test([a-z]+)", keys);
+        std::regex r = path_to_regex("/:test([a-z]+)", keys);
 
         // Testing keys:
 
@@ -745,7 +745,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/' (endsWithSlash)")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test/", keys);
+        std::regex r = path_to_regex("/:test/", keys);
 
         THEN("The trailing slash will be ignored in non-strict mode (strict is false)")
         {
@@ -755,7 +755,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:test/:id(\\d+)'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test/:id(\\d+)", keys);
+        std::regex r = path_to_regex("/:test/:id(\\d+)", keys);
 
         // Testing keys:
 
@@ -810,7 +810,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/(.*)'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/(.*)", keys);
+        std::regex r = path_to_regex("/(.*)", keys);
 
         // Testing keys:
 
@@ -849,7 +849,7 @@ const lest::test test_path_to_regex_no_options[] =
       // TODO
       WHEN("Calling path_to_regex with path '/users/([a-z]+)/(.?)'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/users/([a-z]+)/(.?)", keys);
+        std::regex r = path_to_regex("/users/([a-z]+)/(.?)", keys);
 
         // Testing keys:
 
@@ -910,7 +910,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/*'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/*", keys);
+        std::regex r = path_to_regex("/*", keys);
 
         // Testing keys:
 
@@ -948,7 +948,7 @@ const lest::test test_path_to_regex_no_options[] =
 
       WHEN("Calling path_to_regex with path '/:id(\\d+)/:date/*'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:id(\\d+)/:date/*", keys);
+        std::regex r = path_to_regex("/:id(\\d+)/:date/*", keys);
 
         // Testing keys:
 

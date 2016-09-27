@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regex.hpp"
+#include <lest/lest.hpp>
+#include "../path_to_regex.hpp"
 
 using namespace std;
-using namespace route;
+using namespace path2regex;
 
 // ---------------- TESTING PATHTOREGEXP PARSE ---------------------
 
@@ -29,7 +29,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter (/:test)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test");
+    Tokens tokens = parse("/:test");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -49,7 +49,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two named parameters (/:test/:date)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test/:date");
+    Tokens tokens = parse("/:test/:date");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -80,7 +80,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with three elements, containing two named parameters (/users/:test/:date)")
   {
-    Tokens tokens = Path_to_regex::parse("/users/:test/:date");
+    Tokens tokens = parse("/users/:test/:date");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
@@ -124,7 +124,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with no parameters (/test)")
   {
-    Tokens tokens = Path_to_regex::parse("/test");
+    Tokens tokens = parse("/test");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -144,7 +144,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with no parameters (/test/users)")
   {
-    Tokens tokens = Path_to_regex::parse("/test/users");
+    Tokens tokens = parse("/test/users");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -166,7 +166,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one optional parameter (/:test?)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test?");
+    Tokens tokens = parse("/:test?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -186,7 +186,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two optional parameters (/:test?/:date?)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test?/:date?");
+    Tokens tokens = parse("/:test?/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -217,7 +217,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with three elements, containing two optional parameters (/:test?/users/:date?)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test?/users/:date?");
+    Tokens tokens = parse("/:test?/users/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
@@ -259,7 +259,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two named parameters, where one is optional (/:test/:date?)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test/:date?");
+    Tokens tokens = parse("/:test/:date?");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -292,7 +292,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter with asterisk (zero or more) (/:test*)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test*");
+    Tokens tokens = parse("/:test*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -312,7 +312,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with asterisk (zero or more) (/:date/:test*)")
   {
-    Tokens tokens = Path_to_regex::parse("/:date/:test*");
+    Tokens tokens = parse("/:date/:test*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -345,7 +345,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one named parameter with plus (one or more) (/:test+)")
   {
-    Tokens tokens = Path_to_regex::parse("/:test+");
+    Tokens tokens = parse("/:test+");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -365,7 +365,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) (/:id/:test+")
   {
-    Tokens tokens = Path_to_regex::parse("/:id/:test+");
+    Tokens tokens = parse("/:id/:test+");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -396,7 +396,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) that only takes lower case letters, and one is a named parameter that only takes integers (/:test([a-z])+/:id(\\d+))")
   {
-    Tokens tokens = Path_to_regex::parse("/:test([a-z])+/:id(\\d+)");
+    Tokens tokens = parse("/:test([a-z])+/:id(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -429,7 +429,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one custom match parameter - only integers (one or more) (/:test(\\d+))")
   {
-    Tokens tokens = Path_to_regex::parse("/:test(\\d+)");
+    Tokens tokens = parse("/:test(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -449,7 +449,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one custom match parameter - only a-z (one or more) (/:test([a-z]+))")
   {
-    Tokens tokens = Path_to_regex::parse("/:test([a-z]+)");
+    Tokens tokens = parse("/:test([a-z]+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -469,7 +469,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is a custom match parameter - only integers (one or more) (/:test/:id(\\d+))")
   {
-    Tokens tokens = Path_to_regex::parse("/:test/:id(\\d+)");
+    Tokens tokens = parse("/:test/:id(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -502,7 +502,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter (/(.*)")
   {
-    Tokens tokens = Path_to_regex::parse("/(.*)");
+    Tokens tokens = parse("/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -522,7 +522,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter that only takes integers (one or more) (/(\\d+))")
   {
-    Tokens tokens = Path_to_regex::parse("/(\\d+)");
+    Tokens tokens = parse("/(\\d+)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -542,7 +542,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is an unnamed parameter (/:test/(.*))")
   {
-    Tokens tokens = Path_to_regex::parse("/:test/(.*)");
+    Tokens tokens = parse("/:test/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -573,7 +573,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two elements, where one is an unnamed parameter (/users/(.*))")
   {
-    Tokens tokens = Path_to_regex::parse("/users/(.*)");
+    Tokens tokens = parse("/users/(.*)");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 2u);
@@ -606,7 +606,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with one unnamed parameter (/*)")
   {
-    Tokens tokens = Path_to_regex::parse("/*");
+    Tokens tokens = parse("/*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 1u);
@@ -626,7 +626,7 @@ const lest::test test_path_to_regexp_parse[] =
 
   CASE("String with two parameters, where one is an asterisk (zero or more) (/test/:id/*)")
   {
-    Tokens tokens = Path_to_regex::parse("/test/:id/*");
+    Tokens tokens = parse("/test/:id/*");
 
     EXPECT_NOT(tokens.empty());
     EXPECT(tokens.size() == 3u);
