@@ -24,7 +24,7 @@ Butler::Butler(SharedDisk disk, std::string root, Options opt)
   : disk_(disk), root_(root), options_(opt)
 {}
 
-void Butler::process(server::Request_ptr req, server::Response_ptr res, server::Next next)
+void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next)
 {
   // if not a valid request
   if(req->method() != http::GET && req->method() != http::HEAD) {

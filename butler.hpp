@@ -18,7 +18,7 @@
 #ifndef BUTLER_HPP
 #define BUTLER_HPP
 
-#include "middleware.hpp" // inherit middleware
+#include <mana/middleware.hpp> // inherit middleware
 #include <fs/disk.hpp>
 #include <string>
 
@@ -29,7 +29,7 @@ namespace butler {
  * @details Serves files from a IncludeOS disk.
  *
  */
-class Butler : public server::Middleware {
+class Butler : public mana::Middleware {
 private:
   using SharedDisk  = std::shared_ptr<fs::Disk>;
   using Entry       = fs::FileSystem::Dirent;
@@ -48,11 +48,11 @@ public:
 
   Butler(SharedDisk disk, std::string root, Options opt = {{"index.html"}, true});
 
-  server::Callback handler() override {
+  mana::Callback handler() override {
     return {this, &Butler::process};
   }
 
-  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
+  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
 
 private:
   SharedDisk disk_;
