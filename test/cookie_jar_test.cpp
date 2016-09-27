@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../cookie/cookie_jar.hpp"
-#include "../lest/include/lest/lest.hpp"
+#include "../cookie_jar.hpp"
+#include <lest/lest.hpp>
 
 using namespace std;
 using namespace cookie;

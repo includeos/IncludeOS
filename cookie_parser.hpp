@@ -22,9 +22,7 @@
 #include "cookie_jar.hpp"
 #include "middleware.hpp"
 
-namespace middleware {
-
-using namespace cookie;
+namespace cookie {
 
 /**
  * @brief A way to parse cookies that the browser is sending to the server
