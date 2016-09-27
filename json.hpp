@@ -35,9 +35,9 @@ struct Assert_error : public std::logic_error {
 
 #define RAPIDJSON_ASSERT(x) if (!(x)) throw Assert_error(RAPIDJSON_STRINGIFY(x))
 
-#include "attribute.hpp"
-#include "rapidjson/writer.h"
-#include "rapidjson/document.h"
+#include <mana/attribute.hpp>
+#include <rapidjson/writer.h>
+#include <rapidjson/document.h>
 
 
 namespace json {
@@ -60,7 +60,7 @@ struct Serializable {
 /**
  *
  */
-class Json_doc : public server::Attribute {
+class Json_doc : public mana::Attribute {
 public:
   /**
    *
