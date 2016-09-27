@@ -15,12 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_RESPONSE_HPP
-#define SERVER_RESPONSE_HPP
+#ifndef MANA_RESPONSE_HPP
+#define MANA_RESPONSE_HPP
 
-#include "http/inc/response.hpp"
-#include "http/inc/mime_types.hpp"
-#include "cookie.hpp"
+#include "../../lib/http/inc/response.hpp"
+#include "../../lib/http/inc/mime_types.hpp"
 #include <fs/filesystem.hpp>
 #include <net/tcp/connection.hpp>
 #include <util/async.hpp>
@@ -29,8 +28,6 @@
 #include <vector>
 #include <time.h>
 #include <chrono>
-
-using namespace cookie;
 
 struct File {
 
@@ -45,7 +42,7 @@ struct File {
   fs::Disk_ptr disk;
 };
 
-namespace server {
+namespace mana {
 
 class Response;
 using Response_ptr = std::shared_ptr<Response>;
@@ -98,23 +95,26 @@ public:
 
   void send_json(const std::string&);
 
-  /* Cookie-support start */
+  /** Cookies */
 
-  void cookie(const Cookie& c);
+  void set_cookie(const std::string& cookie)
+  { add_header(http::header_fields::Response::Set_Cookie, cookie);}
+  
+  template <typename Cookie>
+  void set_cookie(const Cookie& c)
+  { set_cookie(c.to_string()); }
 
-  void cookie(const std::string& name, const std::string& value);
+  template <typename Cookie>
+  inline void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
 
-  void cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options);
-
-  void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  template <typename Cookie>
+  inline void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
     const std::string& new_value);
 
-  void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  template <typename Cookie>
+  inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
     const std::string& new_value, const std::vector<std::string>& new_options);
 
-  void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
-
-  /* Cookie-support end */
 
   /**
    * @brief Send an error response
@@ -143,9 +143,39 @@ private:
 
   void write_to_conn(bool close_on_written = false);
 
-}; // server::Response
+}; // < class Response
+
+template <typename Cookie>
+inline void Response::clear_cookie(const std::string& name, const std::string& path, const std::string& domain) {
+  Cookie c{name, ""};
+  c.set_path(path);
+  c.set_domain(domain);
+  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
+
+  set_cookie(c);
+}
+
+template <typename Cookie>
+inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  const std::string& new_value) {
+  // 1. Clear old cookie:
+  clear_cookie(name, old_path, old_domain);
+  // 2. Set new cookie:
+  Cookie new_cookie{name, new_value};
+  set_cookie(new_cookie);
+}
+
+template <typename Cookie>
+inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  const std::string& new_value, const std::vector<std::string>& new_options) {
+  // 1. Clear old cookie:
+  clear_cookie(name, old_path, old_domain);
+  // 2. Set new cookie:
+  Cookie new_cookie{name, new_value, new_options};
+  set_cookie(new_cookie);
+}
 
 
-} // < server
+} // < mana
 
 #endif

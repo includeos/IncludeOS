@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "response.hpp"
+#include "../include/mana/response.hpp"
 
-using namespace server;
+using namespace mana;
 using namespace std::string_literals;
 
 Response::OnSent Response::on_sent_ = [](size_t){};
@@ -95,91 +95,6 @@ void Response::send_json(const std::string& json) {
   add_header(http::header_fields::Entity::Content_Type, "application/json"s);
   send(!keep_alive);
 }
-
-/* Cookie-support start */
-
-void Response::cookie(const Cookie& c) {
-  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
-  send(keep_alive);
-}
-
-void Response::cookie(const std::string& name, const std::string& value) {
-
-  // Can throw CookieException
-
-  Cookie c{name, value};
-  cookie(c);
-}
-
-void Response::cookie(const std::string& name, const std::string& value, const std::vector<std::string>& options) {
-
-  // Can throw CookieException
-
-  Cookie c{name, value, options};
-  cookie(c);
-}
-
-void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
-  const std::string& new_value) {
-
-  // Can throw CookieException
-
-  // 1. Clear old cookie:
-
-  Cookie c{name, ""};
-  c.set_path(old_path);
-  c.set_domain(old_domain);
-  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
-
-  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
-
-  // 2. Set new cookie:
-
-  Cookie new_cookie{name, new_value};
-  add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
-
-  // 3. Send:
-
-  send(keep_alive);
-}
-
-void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
-  const std::string& new_value, const std::vector<std::string>& new_options) {
-
-  // Can throw CookieException
-
-  // 1. Clear old cookie:
-
-  Cookie c{name, ""};
-  c.set_path(old_path);
-  c.set_domain(old_domain);
-  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
-
-  add_header(http::header_fields::Response::Set_Cookie, c.to_string());
-
-  // 2. Set new cookie:
-
-  Cookie new_cookie{name, new_value, new_options};
-  add_header(http::header_fields::Response::Set_Cookie, new_cookie.to_string());
-
-  // 3. Send:
-
-  send(keep_alive);
-}
-
-void Response::clear_cookie(const std::string& name, const std::string& path, const std::string& domain) {
-
-  // Can throw CookieException
-
-  Cookie c{name, ""};
-  c.set_path(path);
-  c.set_domain(domain);
-  c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
-
-  cookie(c);
-}
-
-/* Cookie-support end */
 
 void Response::error(Error&& err) {
   // NOTE: only cares about JSON (for now)
