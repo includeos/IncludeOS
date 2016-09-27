@@ -15,40 +15,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIDDLEWARE_PARSLEY_HPP
-#define MIDDLEWARE_PARSLEY_HPP
+#ifndef JSON_PARSLEY_HPP
+#define JSON_PARSLEY_HPP
 
 #include "json.hpp"
-#include "middleware.hpp"
+#include <mana/middleware.hpp>
 
-namespace middleware {
+namespace json {
 
 /**
  * @brief A vegan way to parse JSON Content in a response
  * @details TBC..
  *
  */
-class Parsley : public server::Middleware {
+class Parsley : public mana::Middleware {
 public:
 
-  server::Callback handler() override {
+  mana::Callback handler() override {
     return {this, &Parsley::process};
   }
   /**
    *
    */
-  void process(server::Request_ptr req, server::Response_ptr, server::Next next);
+  void process(mana::Request_ptr req, mana::Response_ptr, mana::Next next);
 
 private:
   /**
    *
    */
-  bool has_json(const server::Request& req) const;
+  bool has_json(const mana::Request& req) const;
 }; //< class Parsley
 
 /**--v----------- Implementation Details -----------v--**/
 
-inline void Parsley::process(server::Request_ptr req, server::Response_ptr, server::Next next) {
+inline void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
 
   // Request doesn't have JSON attribute
   if(has_json(*req) and not req->has_attribute<json::Json_doc>())
@@ -75,7 +75,7 @@ inline void Parsley::process(server::Request_ptr req, server::Response_ptr, serv
   return (*next)();
 }
 
-inline bool Parsley::has_json(const server::Request& req) const {
+inline bool Parsley::has_json(const mana::Request& req) const {
   auto c_type = http::header_fields::Entity::Content_Type;
   if(not req.has_header(c_type)) return false;
   return (req.header_value(c_type).find("application/json") != std::string::npos);
@@ -83,6 +83,6 @@ inline bool Parsley::has_json(const server::Request& req) const {
 
 /**--^----------- Implementation Details -----------^--**/
 
-} //< namespace middleware
+} //< namespace json
 
-#endif //< MIDDLEWARE_PARSLEY_HPP
+#endif //< JSON_PARSLEY_HPP
