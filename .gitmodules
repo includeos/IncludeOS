@@ -1,0 +1,3 @@
+[submodule "lib/http"]
+	path = lib/http
+	url = https://github.com/hioa-cs/http.git
