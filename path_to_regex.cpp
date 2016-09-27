@@ -19,7 +19,7 @@
 
 #include "path_to_regex.hpp"
 
-namespace path_to_regex {
+namespace path2regex {
 
 const std::regex PATH_REGEXP =
   std::regex{"((\\\\.)|(([\\/.])?(?:(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?|(\\*))))"};

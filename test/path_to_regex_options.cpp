@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../lest/include/lest/lest.hpp"
-#include "../../route/path_to_regex.hpp"
+#include <lest/lest.hpp>
+#include "../path_to_regex.hpp"
 
 using namespace std;
-using namespace route;
+using namespace path2regex;
 
 // ------------ TESTING PATH_TO_REGEX WITH OPTIONS --------------
 
@@ -36,7 +36,7 @@ const lest::test test_path_to_regex_options[] =
 
       WHEN("Calling path_to_regex with path '/:test'")
       {
-        std::regex r = Path_to_regex::path_to_regex("/:test", keys, options);
+        std::regex r = path_to_regex("/:test", keys, options);
 
         THEN("")
         {
