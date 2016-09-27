@@ -15,14 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_MIDDLEWARE_HPP
-#define SERVER_MIDDLEWARE_HPP
+#ifndef MANA_MIDDLEWARE_HPP
+#define MANA_MIDDLEWARE_HPP
 
 #include "request.hpp"
 #include "response.hpp"
 
 
-namespace server {
+namespace mana {
 
 class Middleware;
 using Middleware_ptr = std::shared_ptr<Middleware>;
@@ -45,7 +45,7 @@ protected:
 
 };
 
-}; // << namespace server
+}; // << namespace mana
 
 
 #endif

@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connection.hpp"
-#include "server.hpp"
+#include "../include/mana/connection.hpp"
+#include "../include/mana/server.hpp"
 
 #include <kernel/syscalls.hpp>
 
-using namespace server;
+using namespace mana;
 
 size_t Connection::PAYLOAD_LIMIT = 1024*16;
 Connection::OnConnection Connection::on_connection_ = []{};

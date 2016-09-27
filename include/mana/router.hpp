@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROUTER_HPP
-#define ROUTER_HPP
+#ifndef MANA_ROUTER_HPP
+#define MANA_ROUTER_HPP
 
 #include <sstream>
 #include <stdexcept>
@@ -25,7 +25,7 @@
 #include "route.hpp"
 #include "params.hpp"
 
-namespace server {
+namespace mana {
 
   //-------------------------------
   // This class is used to provide
@@ -35,7 +35,7 @@ namespace server {
   private:
     //-------------------------------
     // Internal class type aliases
-    using Span        = gsl::span<char>;
+    //using Span        = gsl::span<char>;
     using Route_table = std::unordered_map<http::Method, std::vector<Route>>;
     //-------------------------------
   public:
@@ -461,7 +461,7 @@ namespace server {
 
   /**--^----------- Implementation Details -----------^--**/
 
-} //< namespace server
+} //< namespace mana
 
 
-#endif //< ROUTER_HPP
+#endif //< MANA_ROUTER_HPP

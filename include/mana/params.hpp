@@ -15,13 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_PARAMS_HPP
-#define SERVER_PARAMS_HPP
+#ifndef MANA_PARAMS_HPP
+#define MANA_PARAMS_HPP
 
 #include <map>
 #include <string>
 
-namespace server {
+namespace mana {
 
 class ParamException : public std::exception {
   std::string msg;
@@ -55,6 +55,6 @@ private:
   std::map<std::string, std::string> parameters;
 };  // < class Params
 
-};  // < namespace server
+};  // < namespace mana
 
-#endif  // < SERVER_PARAMS_HPP
+#endif  // < MANA_PARAMS_HPP

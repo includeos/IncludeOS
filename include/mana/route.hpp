@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_ROUTE_HPP
-#define SERVER_ROUTE_HPP
+#ifndef MANA_ROUTE_HPP
+#define MANA_ROUTE_HPP
 
 #include <regex>
 #include <string>
@@ -24,9 +24,9 @@
 
 #include "request.hpp"
 #include "response.hpp"
-#include "../route/path_to_regex.hpp"
+#include "../lib/path_to_regex/path_to_regex.hpp"
 
-namespace server {
+namespace mana {
 
 using End_point  = delegate<void(Request_ptr, Response_ptr)>;
 using Route_expr = std::regex;
@@ -36,13 +36,13 @@ struct Route {
     : path{ex}
     , end_point{e}
   {
-    expr = route::Path_to_regex::path_to_regex(path, keys);
+    expr = path2regex::path_to_regex(path, keys);
   }
 
   std::string path;
   Route_expr  expr;
   End_point   end_point;
-  route::Keys keys;
+  path2regex::Keys keys;
   size_t      hits {0U};
 }; //< struct Route
 
@@ -50,6 +50,6 @@ inline bool operator < (const Route& lhs, const Route& rhs) noexcept {
   return rhs.hits < lhs.hits;
 }
 
-} //< namespace server
+} //< namespace mana
 
-#endif //< SERVER_ROUTE_HPP
+#endif //< MANA_ROUTE_HPP

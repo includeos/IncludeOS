@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef MANA_SERVER_HPP
+#define MANA_SERVER_HPP
 
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
@@ -28,7 +28,7 @@
 #include "connection.hpp"
 #include "router.hpp"
 
-namespace server {
+namespace mana {
 
 inline bool path_starts_with(const std::string& path, const std::string& start) {
   if(path.size() < start.size())
@@ -153,6 +153,6 @@ inline Server& Server::set_routes(Route_Table&& routes) {
   return *this;
 }
 
-} // namespace server
+} // namespace mana
 
-#endif //< SERVER_HPP
+#endif //< MANA_SERVER_HPP

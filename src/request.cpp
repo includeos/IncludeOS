@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "request.hpp"
+#include "../include/mana/request.hpp"
 #include "http/inc/status_code_constants.hpp"
 
-using namespace server;
+using namespace mana;
 
 Request::OnRecv Request::on_recv_ = [](size_t) {};
 

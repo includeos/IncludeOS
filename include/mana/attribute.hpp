@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_ATTRIBUTE_HPP
-#define SERVER_ATTRIBUTE_HPP
+#ifndef MANA_ATTRIBUTE_HPP
+#define MANA_ATTRIBUTE_HPP
 
 #include <memory>
 
-namespace server {
+namespace mana {
 
 class Attribute;
 using Attribute_ptr = std::shared_ptr<Attribute>;
@@ -55,6 +55,6 @@ AttrType Attribute::type() {
 }
 
 
-}; // < namespace server
+}; // < namespace mana
 
 #endif

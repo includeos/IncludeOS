@@ -18,7 +18,7 @@
 #ifndef SERVER_BUFFER_HPP
 #define SERVER_BUFFER_HPP
 
-namespace server {
+namespace mana {
 
 /**
  *
@@ -54,6 +54,6 @@ private:
   const size_t size_;
 }; //< class BufferWrapper
 
-} //< namespace server
+} //< namespace mana
 
 #endif //< SERVER_BUFFER_HPP

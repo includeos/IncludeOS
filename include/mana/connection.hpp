@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_CONNECTION_HPP
-#define SERVER_CONNECTION_HPP
+#ifndef MANA_CONNECTION_HPP
+#define MANA_CONNECTION_HPP
 
 #include <net/tcp/connection.hpp>
 #include <rtc>
@@ -24,7 +24,7 @@
 #include "request.hpp"
 #include "response.hpp"
 
-namespace server {
+namespace mana {
 
 class Server;
 
@@ -97,8 +97,8 @@ private:
   void update_idle()
   { idle_since_ = RTC::now(); }
 
-}; // < server::Connection
+}; // < class Connection
 
-}; // < server
+}; // < mana
 
 #endif

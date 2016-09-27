@@ -15,14 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "server.hpp"
+#include "../include/mana/server.hpp"
 #include <utility>
 #include <timers>
 #include <statman>
 
 // #define DEBUG
 
-using namespace server;
+using namespace mana;
 using namespace std::chrono;
 
 Server::Server(IP_stack& stack)

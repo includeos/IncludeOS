@@ -15,17 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVER_REQUEST_HPP
-#define SERVER_REQUEST_HPP
+#ifndef MANA_REQUEST_HPP
+#define MANA_REQUEST_HPP
 
-#include "http/inc/request.hpp"
-#include "http/inc/status_codes.hpp"
+#include "../../lib/http/inc/request.hpp"
+#include "../../lib/http/inc/status_codes.hpp"
 #include "attribute.hpp"
 #include "params.hpp"
 
 #include <map>
 
-namespace server {
+namespace mana {
 
 class Request;
 using Request_ptr = std::shared_ptr<Request>;
@@ -138,7 +138,7 @@ private:
 
   static OnRecv on_recv_;
 
-}; // < server::Request
+}; // < class Request
 
 template<typename A>
 bool Request::has_attribute() const {
@@ -158,7 +158,7 @@ void Request::set_attribute(std::shared_ptr<A> attr) {
   attributes_.insert({Attribute::type<A>(), attr});
 }
 
-}; // < namespace server
+}; // < namespace mana
 
 
 
