@@ -281,7 +281,7 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::get().notify();
+    IRQ_manager::get().process_interrupts();
   }
 
   // Cleanup

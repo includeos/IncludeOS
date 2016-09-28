@@ -184,7 +184,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   //INFO("IRQ manager", "IRQ subscribed: %u", irq);
 }
 
-void IRQ_manager::notify()
+void IRQ_manager::process_interrupts()
 {
   while (true)
   {
@@ -210,7 +210,9 @@ void IRQ_manager::notify()
     while (intr != -1);
   }
 
-  debug2("<IRQ notify> Done. OS going to sleep.\n");
+  // unfortunately, this function does more than it says it does
+  // TOOD: move sleep stuff into event_loop
+  debug2("OS going to sleep.\n");
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard

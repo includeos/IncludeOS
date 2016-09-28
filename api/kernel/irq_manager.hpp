@@ -135,6 +135,9 @@ public:
     return cycles_total_;
   }
 
+  /** process all pending interrupts */
+  void process_interrupts();
+
 private:
 
   IRQ_manager(uint8_t cpu);
@@ -175,9 +178,6 @@ private:
   static void init();
 
   void bsp_init();
-
-  /** Notify all delegates waiting for interrupts */
-  void notify();
 
 }; //< IRQ_manager
 
