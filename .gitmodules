@@ -16,3 +16,6 @@
 [submodule "lib/json"]
   path = lib/json
   url = https://github.com/includeos/json.git
+[submodule "lib/dashboard"]
+	path = lib/dashboard
+	url = https://github.com/includeos/dashboard.git

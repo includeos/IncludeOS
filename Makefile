@@ -8,13 +8,13 @@ SERVICE_NAME=Acorn
 
 # Service parts
 FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/director/director.o \
-      dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
+      lib/dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I/route -I./dashboard/include
+CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I/route
 CUSTOM_MODULES+=-I./fs
 MOD_FILES=
 
@@ -41,7 +41,7 @@ endif
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
 
-LIBS += lib/mana/libmana.a
+LIBS += lib/mana/libmana.a lib/mana/lib/http/uri/liburi.a
 
 disk:
 	rm -f memdisk.fat
