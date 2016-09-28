@@ -7,7 +7,7 @@ SERVICE=Acorn
 SERVICE_NAME=Acorn
 
 # Service parts
-FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o route/path_to_regex.o butler/butler.o middleware/director/director.o \
+FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o middleware/director/director.o \
       dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image
@@ -24,7 +24,7 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./lib -I./lib/mana/include -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./lib -I./lib/mana/include -I./lib/mana/lib/http/uri/include -I./lib/mana/lib/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat
@@ -47,7 +47,7 @@ disk:
 	rm -f memdisk.fat
 	make
 
-clean: clean_uri
+clean: clean_mana
 
-clean_uri:
-	$(MAKE) -C server/http/uri clean
+clean_mana:
+	$(MAKE) -C lib/mana clean
