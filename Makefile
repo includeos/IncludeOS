@@ -8,7 +8,7 @@ SERVICE_NAME=Acorn
 
 # Service parts
 FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
-      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o butler/butler.o \
+      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o butler/butler.o middleware/director/director.o \
       dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image

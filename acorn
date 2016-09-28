@@ -33,7 +33,7 @@
 #include "logger/logger.hpp"
 
 #include "middleware/parsley.hpp"
-#include "middleware/director.hpp"
+#include "middleware/director/director.hpp"
 #include "butler/butler.hpp"
 #include "cookie/cookie_parser.hpp"
 

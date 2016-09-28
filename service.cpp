@@ -179,7 +179,7 @@ void Service::start(const std::string&) {
       server_->use(butler);
 
       // custom middleware to serve a webpage for a directory
-      Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
+      Middleware_ptr director = std::make_shared<director::Director>(disk, "/public/static");
       server_->use("/static", director);
 
       Middleware_ptr parsley = std::make_shared<Parsley>();
