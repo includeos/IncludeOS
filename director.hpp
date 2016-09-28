@@ -19,13 +19,11 @@
 #define MIDDLEWARE_DIRECTOR_HPP
 
 #include <sstream>
-
-#include <os>
 #include <fs/disk.hpp>
 
 #include "middleware.hpp"
 
-namespace middleware {
+namespace director {
 
 /**
  * @brief Responsible to set the scene of a directory.
@@ -52,32 +50,7 @@ public:
     return {this, &Director::process};
   }
 
-  void process(
-    server::Request_ptr req,
-    server::Response_ptr res,
-    server::Next next
-    )
-  {
-    // get path
-    std::string path = req->uri().path();
-
-    auto fpath = resolve_file_path(path);
-    #ifdef VERBOSE_WEBSERVER
-    printf("<Director> Path: %s\n", fpath.c_str());
-    #endif
-
-    normalize_trailing_slashes(path);
-    disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
-      // Path not found on filesystem, go next
-      if(err) {
-        return (*next)();
-      }
-      else {
-        res->add_body(create_html(entries, path));
-        res->send();
-      }
-    });
-  }
+  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
 
   void on_mount(const std::string& path) override {
     Middleware::on_mount(path);
@@ -88,77 +61,15 @@ private:
   SharedDisk disk_;
   std::string root_;
 
-  std::string create_html(Entries entries, const std::string& path) {
-    std::ostringstream ss;
-    ss << HTML_HEADER;
-    ss << "<div class=\"container\">";
-    ss << "<h1 class=\"page-header\">" << path << "</h1>";
-    ss << "<div class=\"panel panel-default\">";
-    build_table(ss, entries, path);
-    ss << "</div>"; // panel
-    ss << "<hr/><h6 class=\"small\">Powered by <strong>IncludeOS</strong></h6>";
-    ss << "</div>"; // container
+  std::string create_html(Entries entries, const std::string& path);
 
-    ss << HTML_FOOTER;
-    return ss.str();
-  }
+  void build_table(std::ostringstream& ss, Entries entries, const std::string& path);
 
-  void build_table(std::ostringstream& ss, Entries entries, const std::string& path) {
-    ss << "<table class=\"table table-hover\">";
-    ss << "<thead>";
-    add_table_header(ss);
-    ss << "</thead>";
+  void add_table_header(std::ostringstream& ss);
 
-    ss << "<tbody>";
-    for(auto e : *entries) {
-      add_tr(ss, path, e);
-    }
-    ss << "</tbody>";
+  void add_tr(std::ostringstream& ss, const std::string& path, const Entry& entry);
 
-    ss << "</table>";
-  }
-
-  void add_table_header(std::ostringstream& ss) {
-    ss << "<tr>"
-      << "<th>Type</th>"
-      << "<th>Name</th>"
-      << "<th>Size</th>"
-      << "<th>Modified</th>"
-      << "</tr>";
-  }
-
-  void add_tr(std::ostringstream& ss, const std::string& path, const Entry& entry) {
-    if(entry.name() == ".")
-      return;
-
-    bool isFile = entry.is_file();
-
-    ss << "<tr>";
-    add_td(ss, "type", get_icon(entry));
-    add_td(ss, "file", create_url(path, entry.name()));
-    isFile ? add_td(ss, "size", human_readable_size(entry.size())) : add_td(ss, "size", "-");
-    isFile ? add_td(ss, "modified", "N/A") : add_td(ss, "modified", "-");
-    ss << "</tr>";
-  }
-
-  std::string get_icon(const Entry& entry) {
-    std::ostringstream ss;
-    ss << "<i class=\"fa fa-";
-    if(entry.name() == "..") {
-      ss << "level-up";
-    }
-    else if(entry.is_file()) {
-      ss << "file";
-    }
-    else if(entry.is_dir()) {
-      ss << "folder";
-    }
-    else {
-      ss << "question";
-    }
-    ss << "\" aria-hidden=\"true\"></i>";
-    return ss.str();
-  }
+  std::string get_icon(const Entry& entry);
 
   std::string create_url(const std::string& path, const std::string& name) {
     return "<a href=\"" + path + name + "\">" + name + "</a>";
@@ -179,24 +90,10 @@ private:
     return path;
   }
 
-  std::string human_readable_size(double sz) const {
-    const char* suffixes[] = {"B", "KB", "MB", "GB"};
-    int i = 0;
-    while(sz >= 1024 && ++i < 4)
-      sz = sz/1024;
-
-    char str[20];
-    snprintf(&str[0], 20, "%.2f %s", sz, suffixes[i]);
-    return str;
-  }
+  std::string human_readable_size(double sz) const;
 
 }; // < class Director
 
-const std::string Director::BOOTSTRAP_CSS = "<link rel=\"stylesheet\" href=\"//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">";
-const std::string Director::FONTAWESOME = "<link href=\"//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css\" rel=\"stylesheet\">";
-const std::string Director::HTML_HEADER = "<html><head>" + BOOTSTRAP_CSS + FONTAWESOME + "</head><body>";
-const std::string Director::HTML_FOOTER = "</body></html>";
-
-} //< namespace middleware
+} //< namespace director
 
 #endif
