@@ -68,7 +68,7 @@ inline void Dashboard::add(Component_ptr c) {
   [this, c] (mana::Request_ptr, mana::Response_ptr res)
   {
     c->serialize(writer_);
-    send_buffer(res);
+    send_buffer(*res);
   });
 }
 
