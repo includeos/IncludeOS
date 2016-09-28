@@ -19,8 +19,8 @@
 #ifndef DASHBOARD_DASHBOARD_HPP
 #define DASHBOARD_DASHBOARD_HPP
 
-#include <router.hpp>
-#include <json.hpp>
+#include <mana/router.hpp>
+#include <json/json.hpp>
 #include "component.hpp"
 #include "common.hpp"
 
@@ -34,7 +34,7 @@ class Dashboard {
 public:
   Dashboard(size_t buffer_capacity = 4096);
 
-  const server::Router& router() const
+  const mana::Router& router() const
   { return router_; }
 
   void add(Component_ptr);
@@ -44,7 +44,7 @@ public:
 
 private:
 
-  server::Router router_;
+  mana::Router router_;
   WriteBuffer buffer_;
   Writer writer_;
 
@@ -52,10 +52,10 @@ private:
 
   void setup_routes();
 
-  void serve(server::Request_ptr, server::Response_ptr);
+  void serve(mana::Request_ptr, mana::Response_ptr);
   void serialize(Writer&);
 
-  void send_buffer(server::Response_ptr);
+  void send_buffer(mana::Response&);
   void reset_writer();
 
 };
@@ -65,7 +65,7 @@ inline void Dashboard::add(Component_ptr c) {
 
   // A really simple way to setup routes, only supports read (GET)
   router_.on_get("/" + c->key(),
-  [this, c] (server::Request_ptr, server::Response_ptr res)
+  [this, c] (mana::Request_ptr, mana::Response_ptr res)
   {
     c->serialize(writer_);
     send_buffer(res);

@@ -18,7 +18,7 @@
 #include "../include/dashboard.hpp"
 
 using namespace dashboard;
-using namespace server;
+using namespace mana;
 
 Dashboard::Dashboard(size_t buffer_capacity)
 : router_(), buffer_(0, buffer_capacity), writer_(buffer_)
@@ -44,11 +44,11 @@ void Dashboard::serve(Request_ptr, Response_ptr res) {
   }
 
   writer_.EndObject();
-  send_buffer(res);
+  send_buffer(*res);
 }
 
-void Dashboard::send_buffer(server::Response_ptr res) {
-  res->send_json(buffer_.GetString());
+void Dashboard::send_buffer(Response& res) {
+  res.send_json(buffer_.GetString());
   reset_writer();
 }
 
