@@ -7,8 +7,7 @@ SERVICE=Acorn
 SERVICE_NAME=Acorn
 
 # Service parts
-FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
-      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o butler/butler.o middleware/director/director.o \
+FILES=cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o butler/butler.o middleware/director/director.o \
       dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image
@@ -25,14 +24,14 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./lib -I./lib/mana/include -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat
-all: build_uri server/router.hpp server/server.hpp
+all: mana
 
-build_uri:
-	$(MAKE) -C server/http/uri
+mana:
+	$(MAKE) -C lib/mana
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
@@ -42,7 +41,7 @@ endif
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
 
-LIBS+=server/http/uri/liburi.a
+LIBS += lib/mana/libmana.a
 
 disk:
 	rm -f memdisk.fat

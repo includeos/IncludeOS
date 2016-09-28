@@ -1,9 +1,9 @@
-[submodule "http"]
-	path = server/http
-	url = https://github.com/hioa-cs/http.git
 [submodule "rapidjson"]
 	path = rapidjson
 	url = https://github.com/miloyip/rapidjson.git
 [submodule "lest"]
 	path = test/lest
 	url = https://github.com/martinmoene/lest.git
+[submodule "lib/mana"]
+	path = lib/mana
+	url = https://github.com/includeos/mana.git
