@@ -7,7 +7,7 @@ SERVICE=Acorn
 SERVICE_NAME=Acorn
 
 # Service parts
-FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o middleware/director/director.o \
+FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/director/director.o \
       dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image

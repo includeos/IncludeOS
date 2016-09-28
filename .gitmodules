@@ -13,3 +13,6 @@
 [submodule "lib/butler"]
 	path = lib/butler
 	url = https://github.com/includeos/butler.git
+[submodule "lib/director"]
+	path = lib/director
+	url = https://github.com/includeos/director.git
