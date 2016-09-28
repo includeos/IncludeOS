@@ -7,3 +7,6 @@
 [submodule "lib/mana"]
 	path = lib/mana
 	url = https://github.com/includeos/mana.git
+[submodule "lib/cookie"]
+	path = lib/cookie
+	url = https://github.com/includeos/cookie.git
