@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "butler.hpp"
+#include <mana/http> // http::Mime_Type
 
 using namespace butler;
 using namespace std::string_literals;
