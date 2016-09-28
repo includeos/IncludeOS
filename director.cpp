@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include "director.hpp"
-#include <sstream>
 
 using namespace director;
 
@@ -26,9 +25,9 @@ const std::string Director::HTML_HEADER = "<html><head>" + BOOTSTRAP_CSS + FONTA
 const std::string Director::HTML_FOOTER = "</body></html>";
 
 void Director::process(
-  server::Request_ptr req,
-  server::Response_ptr res,
-  server::Next next
+  mana::Request_ptr req,
+  mana::Response_ptr res,
+  mana::Next next
   )
 {
   // get path

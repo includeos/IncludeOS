@@ -15,13 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIDDLEWARE_DIRECTOR_HPP
-#define MIDDLEWARE_DIRECTOR_HPP
+#ifndef DIRECTOR_HPP
+#define DIRECTOR_HPP
 
 #include <sstream>
 #include <fs/disk.hpp>
 
-#include "middleware.hpp"
+#include <mana/middleware.hpp>
 
 namespace director {
 
@@ -30,7 +30,7 @@ namespace director {
  * @details Creates a simple html display of a directory entry on a IncludeOS disk.
  *
  */
-class Director : public server::Middleware {
+class Director : public mana::Middleware {
 private:
   using SharedDisk = fs::Disk_ptr;
   using Entry = fs::Dirent;
@@ -46,11 +46,11 @@ public:
   Director(SharedDisk disk, std::string root)
     : disk_(disk), root_(root) {}
 
-  server::Callback handler() override {
+  mana::Callback handler() override {
     return {this, &Director::process};
   }
 
-  void process(server::Request_ptr req, server::Response_ptr res, server::Next next);
+  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
 
   void on_mount(const std::string& path) override {
     Middleware::on_mount(path);
