@@ -55,7 +55,7 @@ popd
 echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
 pushd $INCLUDEOS_SRC/vmbuild
 make
-cp vmbuild $INCLUDEOS_INSTALL/
+make install
 popd
 
 # Copy scripts for running qemu, creating a memdisk
