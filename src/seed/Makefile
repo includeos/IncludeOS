@@ -142,7 +142,7 @@ endif
 	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
-	strip $(STRIPPED) $(SERVICE)
+	strip $(STRIPPED) --remove-section=.comment $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
