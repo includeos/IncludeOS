@@ -39,20 +39,20 @@ void Server::setup_stats() {
   auto& total_req   = statman.create(Stat::UINT64, "http.requests");
   auto& bytes_recv  = statman.create(Stat::UINT64, "http.bytes_recv");
 
-  server::Connection::on_connection(
+  Connection::on_connection(
   [&total_conn] ()
   {
     ++total_conn;
   });
 
-  server::Response::on_sent(
+  Response::on_sent(
   [&total_res, &bytes_sent] (size_t n)
   {
     ++total_res;
     bytes_sent.get_uint64() += n;
   });
 
-  server::Request::on_recv(
+  Request::on_recv(
   [&total_req, &bytes_recv] (size_t n)
   {
     ++total_req;

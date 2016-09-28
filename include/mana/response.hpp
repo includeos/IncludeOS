@@ -112,7 +112,7 @@ public:
     const std::string& new_value);
 
   template <typename Cookie>
-  inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
+  inline void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
     const std::string& new_value, const std::vector<std::string>& new_options);
 
 
@@ -159,7 +159,7 @@ template <typename Cookie>
 inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
   const std::string& new_value) {
   // 1. Clear old cookie:
-  clear_cookie(name, old_path, old_domain);
+  clear_cookie<Cookie>(name, old_path, old_domain);
   // 2. Set new cookie:
   Cookie new_cookie{name, new_value};
   set_cookie(new_cookie);
@@ -169,7 +169,7 @@ template <typename Cookie>
 inline void Response::update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
   const std::string& new_value, const std::vector<std::string>& new_options) {
   // 1. Clear old cookie:
-  clear_cookie(name, old_path, old_domain);
+  clear_cookie<Cookie>(name, old_path, old_domain);
   // 2. Set new cookie:
   Cookie new_cookie{name, new_value, new_options};
   set_cookie(new_cookie);

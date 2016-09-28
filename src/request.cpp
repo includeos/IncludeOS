@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "../include/mana/request.hpp"
-#include "http/inc/status_code_constants.hpp"
+#include "../lib/http/inc/status_code_constants.hpp"
 
 using namespace mana;
 
