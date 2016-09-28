@@ -23,7 +23,7 @@
 LIBRARY = libmana.a
 
 # Your library parts
-FILES = ${wildcard src/*.cpp}
+FILES = ${wildcard src/*.cpp} lib/path_to_regex/path_to_regex.o
 
 # Your own include-path
 LOCAL_INCLUDES=-I./lib/http/uri/include
