@@ -14,7 +14,7 @@ FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/direct
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route -I./dashboard/include
+CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I/route -I./dashboard/include
 CUSTOM_MODULES+=-I./fs
 MOD_FILES=
 

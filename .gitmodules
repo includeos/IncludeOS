@@ -1,18 +1,18 @@
-[submodule "rapidjson"]
-	path = rapidjson
-	url = https://github.com/miloyip/rapidjson.git
 [submodule "lest"]
-	path = test/lest
-	url = https://github.com/martinmoene/lest.git
+  path = test/lest
+  url = https://github.com/martinmoene/lest.git
 [submodule "lib/mana"]
-	path = lib/mana
-	url = https://github.com/includeos/mana.git
+  path = lib/mana
+  url = https://github.com/includeos/mana.git
 [submodule "lib/cookie"]
-	path = lib/cookie
-	url = https://github.com/includeos/cookie.git
+  path = lib/cookie
+  url = https://github.com/includeos/cookie.git
 [submodule "lib/butler"]
-	path = lib/butler
-	url = https://github.com/includeos/butler.git
+  path = lib/butler
+  url = https://github.com/includeos/butler.git
 [submodule "lib/director"]
-	path = lib/director
-	url = https://github.com/includeos/director.git
+  path = lib/director
+  url = https://github.com/includeos/director.git
+[submodule "lib/json"]
+  path = lib/json
+  url = https://github.com/includeos/json.git
