@@ -7,17 +7,17 @@ SERVICE=Acorn
 SERVICE_NAME=Acorn
 
 # Service parts
-FILES=service.cpp server/request.o server/response.o server/connection.o server/server.o\
-      cookie/cookie.o cookie/cookie_jar.o route/path_to_regex.o butler/butler.o middleware/director/director.o \
-      dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
+FILES=service.cpp logger/logger.o fs/acorn_fs.o
 
 # Service disk image
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./cookie -I./json -I./middleware -I./stats -I/route -I./dashboard/include
-CUSTOM_MODULES+=-I./fs
-MOD_FILES=
+CUSTOM_MODULES=-I./app -I./app/routes -I./lib -I./fs -I./test/lest/include
+LIB_INCLUDES = -I./lib/mana/include -I./lib/mana/lib/http/uri/include -I./lib/mana/lib/http/inc -I./lib/dashboard/include
+
+MOD_FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/director/director.o \
+      lib/dashboard/src/dashboard.o
 
 FILES+=$(MOD_FILES)
 
@@ -25,14 +25,14 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./server -I./server/http/uri/include -I./server/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=-I. $(CUSTOM_MODULES) $(LIB_INCLUDES) #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat
-all: build_uri server/router.hpp server/server.hpp
+all: mana
 
-build_uri:
-	$(MAKE) -C server/http/uri
+mana:
+	$(MAKE) -C lib/mana
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
@@ -42,13 +42,15 @@ endif
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
 
-LIBS+=server/http/uri/liburi.a
+HEST := lib/mana/libmana.a lib/mana/lib/http/uri/liburi.a $(LIBS)
+
+LIBS = $(HEST)
 
 disk:
 	rm -f memdisk.fat
 	make
 
-clean: clean_uri
+clean: clean_mana
 
-clean_uri:
-	$(MAKE) -C server/http/uri clean
+clean_mana:
+	$(MAKE) -C lib/mana clean

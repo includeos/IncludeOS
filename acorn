@@ -24,21 +24,20 @@
 
 #include "app/routes/routes"
 
-#include "bucket/bucket.hpp"
+#include <bucket/bucket.hpp>
 
-#include "dashboard/include/dashboard"
+#include <dashboard/dashboard>
 
 #include "fs/acorn_fs.hpp"
 
 #include "logger/logger.hpp"
 
-#include "middleware/parsley.hpp"
-#include "middleware/director/director.hpp"
-#include "butler/butler.hpp"
-#include "cookie/cookie_parser.hpp"
+// Middleware
+#include <json/parsley.hpp>
+#include <director/director.hpp>
+#include <butler/butler.hpp>
+#include <cookie/cookie_parser.hpp>
 
-#include "stats/stats.hpp"
-
-#include "server/server.hpp"
+#include <mana/server.hpp>
 
 #endif //< ACORN_WEB_APPLIANCE

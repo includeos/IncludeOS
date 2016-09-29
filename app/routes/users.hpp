@@ -17,15 +17,15 @@
 
 #ifndef ROUTES_USERS_HPP
 #define ROUTES_USERS_HPP
-#include <router.hpp>
+#include <mana/router.hpp>
 #include <models/user.hpp>
-#include <bucket.hpp>
-#include <json.hpp>
+#include <bucket/bucket.hpp>
+#include <json/json.hpp>
 
 namespace acorn {
 namespace routes {
 
-class Users : public server::Router {
+class Users : public mana::Router {
 
   using UserBucket = bucket::Bucket<User>;
 
@@ -47,7 +47,7 @@ public:
 
     // GET /:id(Digit)/:name/something/:something[Letters]
     on_get("/:id(\\d+)/:name/something/:something([a-z]+)",
-    [users] (server::Request_ptr req, auto res)
+    [users] (mana::Request_ptr req, auto res)
     {
       // Get parameters:
       // Alt.: std::string id = req->params().get("id");
