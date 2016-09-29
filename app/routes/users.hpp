@@ -19,7 +19,7 @@
 #define ROUTES_USERS_HPP
 #include <mana/router.hpp>
 #include <models/user.hpp>
-#include <bucket.hpp>
+#include <bucket/bucket.hpp>
 #include <json/json.hpp>
 
 namespace acorn {

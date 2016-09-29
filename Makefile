@@ -14,7 +14,7 @@ FILES=service.cpp lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I./fs
+CUSTOM_MODULES=-I./app -I./fs
 LIB_INCLUDES = -I./lib/mana/include -I./lib/mana/lib/http/uri/include -I./lib/mana/lib/http/inc -I./lib/dashboard/include
 MOD_FILES=
 

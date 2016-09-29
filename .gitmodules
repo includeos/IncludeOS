@@ -19,3 +19,6 @@
 [submodule "lib/dashboard"]
 	path = lib/dashboard
 	url = https://github.com/includeos/dashboard.git
+[submodule "lib/bucket"]
+	path = lib/bucket
+	url = https://github.com/includeos/bucket.git

@@ -19,7 +19,7 @@
 #define ROUTES_SQUIRRELS_HPP
 #include <mana/router.hpp>
 #include <models/squirrel.hpp>
-#include <bucket.hpp>
+#include <bucket/bucket.hpp>
 #include <json/json.hpp>
 
 namespace acorn {
