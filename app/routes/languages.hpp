@@ -17,28 +17,28 @@
 
 #ifndef ROUTES_LANGUAGES_HPP
 #define ROUTES_LANGUAGES_HPP
-#include <router.hpp>
+#include <mana/router.hpp>
 #include <cookie/cookie_jar.hpp>
 
 namespace acorn {
 namespace routes {
 
-class Languages : public server::Router {
+class Languages : public mana::Router {
 public:
 
   Languages()
   {
-    on_get("/english", [](server::Request_ptr req, auto res) {
+    on_get("/english", [](mana::Request_ptr req, auto res) {
       Languages::lang_handler(req, res, "en-US");
     });
 
-    on_get("/norwegian", [](server::Request_ptr req, auto res) {
+    on_get("/norwegian", [](mana::Request_ptr req, auto res) {
       Languages::lang_handler(req, res, "nb-NO");
     });
   }
 private:
 
-  static void lang_handler(server::Request_ptr req, server::Response_ptr res, const std::string& lang) {
+  static void lang_handler(mana::Request_ptr req, mana::Response_ptr res, const std::string& lang) {
     if (req->has_attribute<CookieJar>()) {
       auto req_cookies = req->get_attribute<CookieJar>();
 
