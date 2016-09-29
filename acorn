@@ -38,8 +38,6 @@
 #include <butler/butler.hpp>
 #include <cookie/cookie_parser.hpp>
 
-#include "stats/stats.hpp"
-
 #include <mana/server.hpp>
 
 #endif //< ACORN_WEB_APPLIANCE
