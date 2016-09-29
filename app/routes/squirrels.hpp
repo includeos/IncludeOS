@@ -17,15 +17,15 @@
 
 #ifndef ROUTES_SQUIRRELS_HPP
 #define ROUTES_SQUIRRELS_HPP
-#include <router.hpp>
+#include <mana/router.hpp>
 #include <models/squirrel.hpp>
 #include <bucket.hpp>
-#include <json.hpp>
+#include <json/json.hpp>
 
 namespace acorn {
 namespace routes {
 
-class Squirrels : public server::Router {
+class Squirrels : public mana::Router {
 
   using SquirrelBucket = bucket::Bucket<Squirrel>;
 
@@ -47,7 +47,7 @@ public:
 
     // POST /
     on_post("/",
-    [squirrels] (server::Request_ptr req, auto res)
+    [squirrels] (mana::Request_ptr req, auto res)
     {
       using namespace json;
       auto json = req->get_attribute<Json_doc>();

@@ -7,15 +7,15 @@ SERVICE=Acorn
 SERVICE_NAME=Acorn
 
 # Service parts
-FILES=lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/director/director.o \
+FILES=service.cpp lib/cookie/cookie.o lib/cookie/cookie_jar.o lib/butler/butler.o lib/director/director.o \
       lib/dashboard/src/dashboard.o logger/logger.o fs/acorn_fs.o
 
 # Service disk image
 DISK=memdisk.fat
 
 # Service modules
-CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I/route
-CUSTOM_MODULES+=-I./fs
+CUSTOM_MODULES=-I./app -I./bucket -I./middleware -I./fs
+LIB_INCLUDES = -I./lib/mana/include -I./lib/mana/lib/http/uri/include -I./lib/mana/lib/http/inc -I./lib/dashboard/include
 MOD_FILES=
 
 FILES+=$(MOD_FILES)
@@ -24,7 +24,7 @@ FILES+=$(MOD_FILES)
 DRIVERS=virtionet
 
 # Paths to interfaces
-LOCAL_INCLUDES=$(CUSTOM_MODULES) -I. -I./app/routes -I./lib -I./lib/mana/include -I./lib/mana/lib/http/uri/include -I./lib/mana/lib/http/inc -I./rapidjson/include #-DVERBOSE_WEBSERVER
+LOCAL_INCLUDES=$(CUSTOM_MODULES) $(LIB_INCLUDES) -I. -I./app/routes -I./lib #-DVERBOSE_WEBSERVER
 
 # Local target dependencies
 #.PHONY: memdisk.fat
@@ -41,7 +41,11 @@ endif
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
 
-LIBS += lib/mana/libmana.a lib/mana/lib/http/uri/liburi.a
+HEST := lib/mana/libmana.a lib/mana/lib/http/uri/liburi.a $(LIBS)
+
+LIBS = $(HEST)
+
+
 
 disk:
 	rm -f memdisk.fat
