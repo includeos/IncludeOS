@@ -140,7 +140,7 @@ ifneq ($(MEMDISK),)
 	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 ifneq ($(STRIPPED),)
 	strip $(STRIPPED) $(SERVICE)
 endif
