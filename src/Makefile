@@ -207,6 +207,7 @@ install: drivers platforms bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
 	cp seed/Makelib $(INSTALL)/Makelib
+	cp -r ../seed $(INSTALL)
 # External dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod
