@@ -33,10 +33,18 @@ ifndef INCLUDEOS_INSTALL
 INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
 endif
 
-all: uri
+all: build_uri
 
-uri:
+clean: clean_uri
+
+# URI
+build_uri:
 	$(MAKE) -C lib/http/uri
+
+clean_uri:	
+	$(MAKE) -C lib/http/uri clean
+
+#EXTRA_LIBS+=/lib/http/uri/liburi.a
 
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makelib
