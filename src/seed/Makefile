@@ -119,20 +119,12 @@ minimal: CPPOPTS += -ffunction-sections -fdata-sections
 minimal: LDOPTS += --gc-sections
 minimal: stripped
 
-# Disk image as a section
-###################################################
-memdisk:
-	@echo "\n>> Creating memdisk"
-	python $(INSTALL)/memdisk/memdisk.py --file $(INSTALL)/memdisk/memdisk.asm $(DISK)
-	@echo "\n>> Assembling memdisk"
-	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
-
 # Service
 ###################################################
 
 # Link the service with the os
-service: $(OBJS) $(LIBS)
-# build memdisk when IMAGES is set
+service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLATFORM_OBJS)
+# build memdisk only when MEMDISK is set
 ifneq ($(MEMDISK),)
 	@echo "\n>> Creating memdisk"
 	python $(INSTALL)/memdisk/memdisk.py --file $(INSTALL)/memdisk/memdisk.asm $(DISK)
@@ -174,7 +166,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 # Cleanup
 ###################################################
 clean:
-	$(RM) $(OBJS) $(DEPS) $(SERVICE)
-	$(RM) $(SERVICE).img $(MEMDISK)
+	$(RM) $(OBJS) $(DEPS)
+	$(RM) $(SERVICE) $(SERVICE).img $(MEMDISK)
 
 -include $(DEPS)
