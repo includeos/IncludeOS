@@ -1,6 +1,20 @@
 # acorn
 Acorn Web Server Appliance, built with [IncludeOS](https://github.com/hioa-cs/IncludeOS).
 
+**Demo:** [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io/) (sporadically unavailable)
+
+---
+Acorn is a simple web server using a collection of libraries and extensions:
+
+* [Mana](https://github.com/includeos/mana) - IncludeOS Web Framework
+* [Bucket](https://github.com/includeos/bucket) - Simplified in-memory database
+* [Butler](https://github.com/includeos/butler) - Middleware for serving static content
+* [Cookie](https://github.com/includeos/cookie) - Cookie support
+* [Dashboard](https://github.com/includeos/dashboard) - Back-end support for serving IncludeOS statistics
+* [Director](https://github.com/includeos/director) - Middleware for listing static content
+* [Json](https://github.com/includeos/json) - JSON support
+
+
 ## Requirements
 * [IncludeOS](https://github.com/hioa-cs/IncludeOS) installed (together with its dependencies)
 * git

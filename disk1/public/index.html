@@ -105,7 +105,7 @@
     #include &lt;director&gt;
 
     // Serve files from "public/" directory on file requests
-    Middleware_ptr waitress = std::make_shared&lt;Waitress&gt;(disk, "/public");
+    Middleware_ptr Butler = std::make_shared&lt;Butler&gt;(disk, "/public");
     server.use(waitress);
 
     // Display simple directory view of directory "public/static"

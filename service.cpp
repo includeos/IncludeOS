@@ -77,7 +77,7 @@ void Service::start(const std::string&) {
 
       /** IP STACK SETUP **/
       // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig<0>(5.0,
+      auto& stack = net::Inet4::ifconfig(5.0,
       [](bool timeout) {
         printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
       });
@@ -93,7 +93,7 @@ void Service::start(const std::string&) {
       /** BUCKET SETUP */
 
       // create squirrel bucket
-      squirrels = std::make_shared<SquirrelBucket>();
+      squirrels = std::make_shared<SquirrelBucket>(10);
       // set member name to be unique
       squirrels->add_index<std::string>("name",
       [](const Squirrel& s)->const auto&
