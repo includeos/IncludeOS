@@ -31,7 +31,7 @@ using SquirrelBucket = bucket::Bucket<Squirrel>;
 std::shared_ptr<UserBucket>     users;
 std::shared_ptr<SquirrelBucket> squirrels;
 
-std::unique_ptr<server::Server> server_;
+std::unique_ptr<mana::Server> server_;
 std::unique_ptr<dashboard::Dashboard> dashboard_;
 std::unique_ptr<Logger> logger_;
 
@@ -118,7 +118,7 @@ void Service::start(const std::string&) {
 
 
       /** ROUTES SETUP **/
-      using namespace server;
+      using namespace mana;
       Router router;
 
       // setup Squirrel routes
@@ -172,20 +172,19 @@ void Service::start(const std::string&) {
 
 
       /** MIDDLEWARE SETUP **/
-      using namespace middleware;
       // custom middleware to serve static files
       auto opt = {"index.html"};
-      Middleware_ptr waitress = std::make_shared<Waitress>(disk, "/public", opt);
-      server_->use(waitress);
+      Middleware_ptr butler = std::make_shared<butler::Butler>(disk, "/public", opt);
+      server_->use(butler);
 
       // custom middleware to serve a webpage for a directory
-      Middleware_ptr director = std::make_shared<Director>(disk, "/public/static");
+      Middleware_ptr director = std::make_shared<director::Director>(disk, "/public/static");
       server_->use("/static", director);
 
-      Middleware_ptr parsley = std::make_shared<Parsley>();
+      Middleware_ptr parsley = std::make_shared<json::Parsley>();
       server_->use(parsley);
 
-      Middleware_ptr cookie_parser = std::make_shared<CookieParser>();
+      Middleware_ptr cookie_parser = std::make_shared<cookie::CookieParser>();
       server_->use(cookie_parser);
 
     }); // < disk
