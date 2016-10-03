@@ -1,10 +1,16 @@
-### Snake game
+### 256 color VGA demo
 
-Using VGA text-mode in qemu (or possibly VirtualBox) we can play snake!
+An example of enabling and using 256-color pixel graphics to draw a mandelbrot set.
 
+To run with Qemu:
 ```
 make
 ./run.sh
 ```
 
-Use arrow keys to change the snakes direction. Press spacebar to restart the game.
+Run with VirtualBox:
+```
+make
+../../etc/vboxrun.sh 256_Color_VGA.img
+```
+
