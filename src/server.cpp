@@ -102,10 +102,10 @@ void Server::process(Request_ptr req, Response_ptr res) {
   // setup Next callback
   *next = [this, it_ptr, weak_next, req, res]
   {
-    // derefence the the pointer to the iterator
+    // derefence the pointer to the iterator
     auto& it = *it_ptr;
 
-    // skip does who don't match
+    // skip those who don't match
     while(it != middleware_.end() and !path_starts_with(req->uri().path(), it->path))
       it++;
 
@@ -113,7 +113,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
     if(it != middleware_.end()) {
       // dereference the function
       auto& func = it->callback;
-      // advance the iterator for the next next call
+      // advance the iterator for the next next-call
       it++;
       auto next = weak_next.lock(); // this should be safe since we're inside next
       // execute the function

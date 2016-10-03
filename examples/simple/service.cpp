@@ -35,7 +35,7 @@ void Service::start(const std::string&)
                        { 8,8,8,8 });      // DNS
 
   // Create a router
-	Router router;
+  Router router;
   // Setup a route on GET /
   router.on_get("/", [](auto, auto res) {
     res->add_body("<html><body><h1>Simple example</1></body></html>"s);

@@ -36,9 +36,10 @@ public:
 
   virtual Callback handler() = 0;
 
-  virtual void on_mount(const std::string& path) {
-    mountpath_ = path;
-  }
+  virtual void on_mount(const std::string& path)
+  { mountpath_ = path; }
+
+  virtual ~Middleware() {}
 
 protected:
   std::string mountpath_;

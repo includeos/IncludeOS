@@ -30,10 +30,9 @@ class Attribute {
 
 public:
   template <typename A>
-  static void register_attribute();
-
-  template <typename A>
   static AttrType type();
+
+  virtual ~Attribute() {}
 
 private:
   static AttrType next_attr_type() {
@@ -41,11 +40,6 @@ private:
     return ++counter;
   }
 };
-
-template <typename A>
-void Attribute::register_attribute() {
-  A::type(Attribute::next_attr_type());
-}
 
 template <typename A>
 AttrType Attribute::type() {
