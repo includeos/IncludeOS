@@ -101,12 +101,12 @@
       Make use of and create simple middlewares to power up the web application.
     </p>
     <pre>
-    #include &lt;waitress&gt;
+    #include &lt;butler&gt;
     #include &lt;director&gt;
 
     // Serve files from "public/" directory on file requests
-    Middleware_ptr Butler = std::make_shared&lt;Butler&gt;(disk, "/public");
-    server.use(waitress);
+    Middleware_ptr butler = std::make_shared&lt;Butler&gt;(disk, "/public");
+    server.use(butler);
 
     // Display simple directory view of directory "public/static"
     Middleware_ptr director = std::make_shared&lt;Director&gt;(disk, "/public/static");
