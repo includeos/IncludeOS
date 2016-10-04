@@ -20,6 +20,7 @@
 #define NET_TCP_READ_REQUEST_HPP
 
 #include "read_buffer.hpp"
+#include <delegate>
 
 namespace net {
 namespace tcp {

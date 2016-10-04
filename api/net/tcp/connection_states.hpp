@@ -53,9 +53,13 @@ public:
 
     => SynSent
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  Result handle(Connection&, Packet_ptr in) override;
 
-  inline virtual std::string to_string() const override {
+  bool is_closed() const override {
+    return true;
+  }
+
+  std::string to_string() const override {
     return "CLOSED";
   };
 private:

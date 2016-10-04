@@ -19,14 +19,13 @@
 #ifndef NET_TCP_CONNECTION_HPP
 #define NET_TCP_CONNECTION_HPP
 
-#include <hw/pit.hpp>
-
 #include "common.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "socket.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
+#include <delegate>
 
 namespace net {
   class TCP;
@@ -229,6 +228,9 @@ public:
   bool is_closing() const
   { return state_->is_closing(); }
 
+  bool is_closed() const
+  { return state_->is_closed(); };
+
   /*
     Helper function for state checks.
   */
@@ -306,6 +308,9 @@ public:
 
     virtual bool is_closing() const
     { return false; }
+
+    virtual bool is_closed() const
+    { return true; }
 
   protected:
     /*
