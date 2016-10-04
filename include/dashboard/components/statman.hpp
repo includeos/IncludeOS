@@ -46,19 +46,16 @@ public:
       writer.String(stat.name());
 
       writer.Key("value");
-      std::string type = "";
-
-      switch(stat.type()) {
-        case Stat::UINT64:  writer.Uint64(stat.get_uint64());
-                            type = "UINT64";
-                            break;
-        case Stat::UINT32:  writer.Uint(stat.get_uint32());
-                            type = "UINT32";
-                            break;
-        case Stat::FLOAT:   writer.Double(stat.get_float());
-                            type = "FLOAT";
-                            break;
-      }
+      const std::string type = [&](){
+        switch(stat.type()) {
+          case Stat::UINT64:  writer.Uint64(stat.get_uint64());
+                              return "UINT64";
+          case Stat::UINT32:  writer.Uint(stat.get_uint32());
+                              return "UINT32";
+          case Stat::FLOAT:   writer.Double(stat.get_float());
+                              return "FLOAT";
+        }
+      }();
 
       writer.Key("type");
       writer.String(type);
