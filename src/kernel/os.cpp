@@ -67,6 +67,7 @@ static std::string os_cmdline = "";
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
+extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
@@ -77,9 +78,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   CAPTION("#include<os> // Literally\n");
   FILLINE('=');
 
-  uintptr_t esp;
-  asm ("mov %%esp, %0"
-       : "=r"(esp));
+  auto esp = get_cpu_esp();
   MYINFO ("Stack: 0x%x", esp);
   Expects (esp < (uintptr_t)&_LOAD_START_ and esp >= 0x100000 and "Stack location OK");
 
