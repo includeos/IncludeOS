@@ -38,7 +38,7 @@ void Service::start(const std::string&)
   Router router;
   // Setup a route on GET /
   router.on_get("/", [](auto, auto res) {
-    res->add_body("<html><body><h1>Simple example</1></body></html>"s);
+    res->add_body("<html><body><h1>Simple example</h1></body></html>"s);
     res->send();
   });
 
