@@ -17,14 +17,15 @@ add_custom_command(
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
-		kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp
-		kernel/irq_manager.cpp kernel/pci_manager.cpp
+		kernel/interrupts.asm kernel/os.cpp kernel/os_stdout.cpp kernel/cpuid.cpp
+		kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
 		kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
-		kernel/vga.cpp kernel/debug_new.cpp kernel/profile.cpp
-		kernel/timer.cpp kernel/rtc.cpp util/memstream.c util/async.cpp
+		kernel/vga.cpp kernel/debug_new.cpp
+		kernel/profile.cpp kernel/profile_intr.asm
+		kernel/timers.cpp kernel/rtc.cpp util/memstream.c util/async.cpp util/statman.cpp
 		crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp crt/mman.cpp
 		hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
-		hw/ps2.cpp hw/serial.cpp hw/cmos.cpp
+		hw/ps2.cpp hw/serial.cpp hw/cmos.cpp hw/drive.cpp
 		hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
 		hw/apic_revenant.cpp hw/msi.cpp hw/pci_msi.cpp
 		virtio/virtio.cpp virtio/virtio_queue.cpp

@@ -1,5 +1,8 @@
 set(EXAMPLE_CLANG_OPTIONS -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -O2 -Wall -Wextra  -c -m32 -std=c++14 -I${INCLUDEOS_INSTALL_DIR}/libcxx/include -I${INCLUDEOS_INSTALL_DIR}/api/sys -I${INCLUDEOS_INSTALL_DIR}/newlib/include -I${INCLUDEOS_INSTALL_DIR}/api -I${INCLUDEOS_INSTALL_DIR}/mod/GSL/ -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE)
-set(EXAMPLE_LD_OPTIONS -nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_INSTALL_DIR}/linker.ld --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_INSTALL_DIR}/crt/crtbegin.o ${INCLUDEOS_INSTALL_DIR}/crt/crti.o ${INCLUDEOS_INSTALL_DIR}/multiboot.o)
+
+set(MAX_MEM 128)
+set(EXAMPLE_LD_OPTIONS -nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_INSTALL_DIR}/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_INSTALL_DIR}/crt/crtbegin.o ${INCLUDEOS_INSTALL_DIR}/crt/crti.o ${INCLUDEOS_INSTALL_DIR}/multiboot.o)
+
 set(EXAMPLE_LD_LIBS ${CMAKE_BINARY_DIR}/src/libos.a ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a ${CMAKE_BINARY_DIR}/src/liblibc++abi.a.a ${CMAKE_BINARY_DIR}/src/drivers/libdrivers.a ${CMAKE_BINARY_DIR}/src/libos.a ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
 add_subdirectory(demo_service)
