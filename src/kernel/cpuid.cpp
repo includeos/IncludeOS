@@ -87,7 +87,12 @@
 #define EDX_RDTSCP                  (1 << 27)   // RDTSCP and IA32_TSC_AUX
 #define EDX_64_BIT                  (1 << 29)   // 64-bit Architecture
 
-using cpuid_t = CPUID::cpuid_t;
+struct cpuid_t {
+  unsigned int EAX;
+  unsigned int EBX;
+  unsigned int ECX;
+  unsigned int EDX;
+}; //< cpuid_t
 
 // EBX/RBX needs to be preserved depending on the memory model and use of PIC
 static cpuid_t
@@ -119,7 +124,7 @@ bool CPUID::hasRDRAND() {
   if (!isAmdCpu() && !isIntelCpu()) {
     return false;
   }
-  
-  cpuid_t info = cpuid_info(0, 0);
+
+  cpuid_t info = cpuid_info(1, 0);
   return (info.ECX & ECX_RDRAND) != 0;
 }
