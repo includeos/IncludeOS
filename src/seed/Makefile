@@ -78,8 +78,7 @@ PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
 
 
 # Full link list
-OBJS  = $(ASM_FILES:.asm=.o)
-OBJS  += $(FILES:.cpp=.o) 
+OBJS  =  $(FILES:.cpp=.o)
 OBJS  += .service_name.o
 
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
@@ -144,6 +143,7 @@ endif
 	@echo "\n>> Adding symbol section"
 	$(INSTALL)/elf_syms $(SERVICE)
 	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
+	$(RM) _elf_symbols.bin
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
 	strip $(STRIPPED) --remove-section=.comment $(SERVICE)
@@ -168,16 +168,16 @@ crt%.o: $(INSTALL)/crt/crt%.s
 %.o: %.cpp
 	$(CPP) -MMD $(CPPOPTS) -o $@ $<
 
+# nasm-assembled object files
+%.o: %.asm
+	nasm -f elf -o $@ $<
+
 %.o: %.c
 	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
-
-# nasm-assembled object files
-.asm.o:
-	nasm -f elf -o $@ $<
 
 # Cleanup
 ###################################################
