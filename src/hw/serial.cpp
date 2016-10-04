@@ -46,6 +46,12 @@ Serial::Serial(int port) :
   }
 }
 
+void Serial::print_handler(const char* str, size_t len)
+{
+  for(size_t i = 0; i < len; ++i)
+      this->write(str[i]);
+}
+
 void Serial::on_data(on_data_handler del){
   enable_interrupt();
   on_data_=del;
@@ -57,16 +63,15 @@ void Serial::on_data(on_data_handler del){
 void Serial::on_readline(on_string_handler del, char delim){
   newline = delim;
   on_readline_ = del;
-  on_data(on_data_handler::from<Serial,&Serial::readline_handler_>(this));
+  on_data(on_data_handler::from(this, &Serial::readline_handler_));
   debug("<Serial::on_readline> Subscribing to data %i \n", irq_);
 }
 
 
-void Serial::enable_interrupt(){
+void Serial::enable_interrupt() {
   outb(port_ + 1, 0x01);
 }
-
-void Serial::disable_interrupt(){
+void Serial::disable_interrupt() {
   outb(port_ + 1, 0x00);
 }
 
@@ -99,7 +104,7 @@ void Serial::irq_handler_ () {
 void Serial::readline_handler_ (char c) {
 
   if (c != newline) {
-    buf += c;
+    buf.append(1, c);
     write(c);
     return;
   }

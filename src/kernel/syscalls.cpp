@@ -104,7 +104,7 @@ off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir)) {
 int open(const char* UNUSED(name), int UNUSED(flags), ...) {
   panic("SYSCALL OPEN unsupported");
   return -1;
-};
+}
 
 int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len)) {
   panic("SYSCALL READ unsupported");
@@ -115,7 +115,7 @@ int write(int file, const void* ptr, size_t len) {
   if (file == syscall_fd and not debug_syscalls) {
     return len;
   }
-  return OS::rsprint((const char*) ptr, len);
+  return OS::print((const char*) ptr, len);
 }
 
 void* sbrk(ptrdiff_t incr) {
