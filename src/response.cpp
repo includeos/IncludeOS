@@ -83,7 +83,8 @@ void Response::send_file(const File& file) {
       }
       else {
         printf("<Response> Error sending %s => %s [%s]\n",
-          entry.name().c_str(), conn->remote().to_string().c_str(), err.to_string().c_str());
+          entry.name().c_str(), conn->remote().to_string().c_str(), 
+          conn->is_closing() ? "Connection closing" : err.to_string().c_str());
       }
   });
 

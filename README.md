@@ -98,7 +98,7 @@ server.use([] (auto req, auto res) {
 
 There is already some ready-made middleware for Mana:
 
-* [Butler](https://github.com/includeos/butler) - Serve static files from a IncludeOS drive
+* [Butler](https://github.com/includeos/butler) - Serve static files from an IncludeOS drive
 * [CookieParser](https://github.com/includeos/cookie) - Parse Cookies
 * [Director](https://github.com/includeos/director) - Generate and serve a HTML view of disk content
 * [Parsley](https://github.com/includeos/json) - Parse JSON from Request body
