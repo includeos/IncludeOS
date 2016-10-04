@@ -310,7 +310,7 @@ public:
     { return false; }
 
     virtual bool is_closed() const
-    { return true; }
+    { return false; }
 
   protected:
     /*
