@@ -11,6 +11,8 @@ ifneq ($(DISK),)
 MEMDISK=memdisk.o
 endif
 
+.SUFFIXES: .asm
+
 # Maximum memory in megabytes
 # Used if memory info is not otherwise available such as via multiboot
 MAX_MEM=128
@@ -76,7 +78,9 @@ PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
 
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) .service_name.o
+OBJS  = $(ASM_FILES:.asm=.o)
+OBJS  += $(FILES:.cpp=.o) 
+OBJS  += .service_name.o
 
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
@@ -170,6 +174,10 @@ crt%.o: $(INSTALL)/crt/crt%.s
 # AS-assembled object files
 %.o: %.s
 	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+
+# nasm-assembled object files
+.asm.o:
+	nasm -f elf -o $@ $<
 
 # Cleanup
 ###################################################
