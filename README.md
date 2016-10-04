@@ -42,10 +42,12 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 ### Install libraries
 
+**NOTE:** The script will install packages and create a network bridge, and thus will ask for sudo access.
+
 ```
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ sudo ./install.sh
+    $ ./install.sh
 ```
 
 **The script will:**
@@ -56,8 +58,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
 * Create a network bridge called `include0`, for tap-networking.
 * Build the vmbuilder, which turns your service into a bootable image.
 * Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`.
-
-**NOTE:** The script will install packages, and thus will require sudo access.
 
 Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [OS X](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
 
