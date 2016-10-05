@@ -28,8 +28,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Upstream wiring  */
   // Packets available
-  nic.on_transmit_queue_available(
-    transmit_avail_delg{*this, &Inet4::process_sendq});
+  nic.on_transmit_queue_available({this, &Inet4::process_sendq});
 
   // Phys -> Eth (Later, this will be passed through router)
   nic.set_linklayer_out(eth_bottom);

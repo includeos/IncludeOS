@@ -128,8 +128,7 @@ public:
   { return 1500; }
 
   net::downstream get_physical_out() override {
-    using downstream = net::downstream;
-    return downstream{this, &VirtioNet::transmit};
+    return {this, &VirtioNet::transmit};
   }
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/

@@ -53,16 +53,16 @@ void Serial::print_handler(const char* str, size_t len) {
 
 void Serial::on_data(on_data_handler del) {
   enable_interrupt();
-  on_data_=del;
+  on_data_ = del;
   INFO("Serial", "Subscribing to data on IRQ %i",irq_);
-  IRQ_manager::get().subscribe(irq_, irq_delg{this, &Serial::irq_handler_});
+  IRQ_manager::get().subscribe(irq_, {this, &Serial::irq_handler_});
   IRQ_manager::get().enable_irq(irq_);
 }
 
 void Serial::on_readline(on_string_handler del, char delim) {
   newline = delim;
   on_readline_ = del;
-  on_data(on_data_handler{this, &Serial::readline_handler_});
+  on_data({this, &Serial::readline_handler_});
   debug("<Serial::on_readline> Subscribing to data %i \n", irq_);
 }
 
