@@ -27,6 +27,8 @@ static IrcServer* ircd;
 void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
+void custom_event_loop();
+
 void Service::start(const std::string&)
 {
   // add own serial out after service start
@@ -62,8 +64,23 @@ void Service::start(const std::string&)
   });
 
   printf("%s\n", ircd->get_motd().c_str());
+  custom_event_loop();
 }
 
+#include <kernel/context.hpp>
+#include <kernel/irq_manager.hpp>
+void custom_event_loop()
+{
+  // create our own 32kb working memory ... :)
+  Context::create(32768,
+  [] {
+    // and run same event loop as OS  xDface
+    while (OS::is_running()) {
+      OS::halt();
+      IRQ_manager::get().process_interrupts();
+    }
+  });
+}
 
 #include <ctime>
 std::string now()
