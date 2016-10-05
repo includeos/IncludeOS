@@ -362,6 +362,7 @@ void Connection::segment_arrived(Packet_ptr incoming) {
       prev_state_->to_string().c_str(), state_->to_string().c_str());
     writeq_reset();
     signal_close();
+    set_state(Closed::instance());
     break;
   };
   case State::CLOSE: {
