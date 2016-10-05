@@ -104,22 +104,21 @@ private:
 
     constexpr iterator& operator++() noexcept
     {
-      Expects(span_ && index_ >= 0);
+      //Expects(span_ && index_ >= 0);
       index_ = (index_ < span_->length()-1) ? index_+1 : 0;
       return *this;
     }
 
     constexpr iterator& operator--() noexcept
     {
-      static_assert(true, "Decrement not supported");
-      Expects(span_ && index_ < span_->length());
+      //Expects(span_ && index_ < span_->length());
       index_ = (index_ > 0) ? index_-1 : span_->length()-1;
       return *this;
     }
 
     constexpr iterator& operator+=(difference_type n) noexcept
     {
-      Expects(span_);
+      //Expects(span_);
       index_ = (index_ + n < span_->length()) ? index_ + n : std::abs((n - ((span_->length()) - index_)) % span_->length());
       return *this;
     }
@@ -127,8 +126,6 @@ private:
     constexpr span_iterator& operator-=(difference_type n) noexcept
     {
       // No use case for this (yet)
-      static_assert(true, "Decrement not supported");
-      //index_ = (index - n >= 0) ? index_ - n : std::abs((n -))
       return *this += -n;
     }
   }; // < class Logger::iterator
