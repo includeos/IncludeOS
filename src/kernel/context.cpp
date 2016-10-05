@@ -16,13 +16,33 @@
 // limitations under the License.
 
 #include <kernel/context.hpp>
+#include <cstdint>
 
-extern "C" void context_switch(Context::context_jump_func, uintptr_t stack);
+extern "C" void __context_switch(uintptr_t stack);
 
-void Context::create(context_jump_func func, size_t stack_size)
+static Context::context_func destination;
+extern "C"
+void __context_switch_delegate()
 {
+  assert(destination);
+  destination();
+}
+
+void Context::jump(void* location, context_func func)
+{
+  // store so we can call it later
+  destination = func;
+  // switch to stack from @location
+  __context_switch((uintptr_t) location);
+}
+
+void Context::create(unsigned stack_size, context_func func)
+{
+  // store so we can call it later
+  destination = func;
+  // create and switch to new stack
   char* stack_mem = new char[stack_size];
   uintptr_t start = (uintptr_t) (stack_mem+stack_size) & ~0xF;
-  context_switch(func, start);
+  __context_switch(start);
   delete[] stack_mem;
 }
