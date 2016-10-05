@@ -46,45 +46,44 @@ Serial::Serial(int port) :
   }
 }
 
-void Serial::print_handler(const char* str, size_t len)
-{
+void Serial::print_handler(const char* str, size_t len) {
   for(size_t i = 0; i < len; ++i)
       this->write(str[i]);
 }
 
-void Serial::on_data(on_data_handler del){
+void Serial::on_data(on_data_handler del) {
   enable_interrupt();
   on_data_=del;
   INFO("Serial", "Subscribing to data on IRQ %i",irq_);
-  IRQ_manager::get().subscribe(irq_, irq_delg::from<Serial,&Serial::irq_handler_>(this) );
+  IRQ_manager::get().subscribe(irq_, irq_delg{this, &Serial::irq_handler_});
   IRQ_manager::get().enable_irq(irq_);
 }
 
-void Serial::on_readline(on_string_handler del, char delim){
+void Serial::on_readline(on_string_handler del, char delim) {
   newline = delim;
   on_readline_ = del;
-  on_data(on_data_handler::from(this, &Serial::readline_handler_));
+  on_data(on_data_handler{this, &Serial::readline_handler_});
   debug("<Serial::on_readline> Subscribing to data %i \n", irq_);
 }
-
 
 void Serial::enable_interrupt() {
   outb(port_ + 1, 0x01);
 }
+
 void Serial::disable_interrupt() {
   outb(port_ + 1, 0x00);
 }
 
-char Serial::read(){
+char Serial::read() {
   return hw::inb(port_);
 }
 
-void Serial::write(char c){
+void Serial::write(char c) {
   while (is_transmit_empty() == 0);
   hw::outb(port_, c);
 }
 
-int Serial::received(){
+int Serial::received() {
   return hw::inb(port_ + 5) & 1;
 }
 
@@ -92,14 +91,12 @@ int Serial::is_transmit_empty() {
   return hw::inb(port_ + 5) & 0x20;
 }
 
-
 void Serial::irq_handler_ () {
 
   while (received())
     on_data_(read());
 
 }
-
 
 void Serial::readline_handler_ (char c) {
 

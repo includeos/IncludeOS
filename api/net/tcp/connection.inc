@@ -44,7 +44,7 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
 }
 
 inline void Connection::write(const void* buf, size_t n) {
-  write(buf, n, WriteCallback::from<Connection,&Connection::default_on_write>(this), true);
+  write(buf, n, WriteCallback{this, &Connection::default_on_write}, true);
 }
 
 inline void Connection::write(const void* buf, size_t n, WriteCallback callback) {
@@ -52,7 +52,7 @@ inline void Connection::write(const void* buf, size_t n, WriteCallback callback)
 }
 
 inline void Connection::write(buffer_t buffer, size_t n) {
-  write({buffer, n, true}, WriteCallback::from<Connection,&Connection::default_on_write>(this));
+  write({buffer, n, true}, WriteCallback{this, &Connection::default_on_write});
 }
 
 inline void Connection::write(buffer_t buffer, size_t n, WriteCallback callback) {

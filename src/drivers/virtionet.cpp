@@ -152,9 +152,10 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   if (is_msix())
   {
     // for now use service queues, otherwise stress test fails
-    auto recv_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_recv_handler>(this));
-    auto xmit_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_xmit_handler>(this));
-    auto conf_del(delegate<void()>::from<VirtioNet,&VirtioNet::msix_conf_handler>(this));
+    auto recv_del(delegate<void()>{this, &VirtioNet::msix_recv_handler});
+    auto xmit_del(delegate<void()>{this, &VirtioNet::msix_xmit_handler});
+    auto conf_del(delegate<void()>{this, &VirtioNet::msix_conf_handler});
+
     // update BSP IDT
     IRQ_manager::get().subscribe(irq() + 0, recv_del);
     IRQ_manager::get().subscribe(irq() + 1, xmit_del);
@@ -163,7 +164,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   else
   {
     // legacy PCI interrupt
-    auto del(delegate<void()>::from<VirtioNet,&VirtioNet::irq_handler>(this));
+    auto del(delegate<void()>{this, &VirtioNet::irq_handler});
     IRQ_manager::get().subscribe(irq(),del);
   }
 
@@ -302,7 +303,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
   new (ptr) Packet(bufsize(), size,
-      delegate<void(void*)>::from<BufferStore, &BufferStore::release> (&bufstore()));
+      delegate<void(void*)>{&bufstore(), &BufferStore::release});
 
   return std::shared_ptr<Packet> (ptr);
 }
@@ -367,7 +368,7 @@ void VirtioNet::service_queues(){
       auto buf = transmit_queue_;
       transmit_queue_ = 0;
       transmit(buf);
-    }else{
+    } else {
       debug("<VirtioNet> Transmit queue is empty \n");
     }
 
@@ -400,7 +401,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
   debug("Buffering, %i packets chained \n", chain_length);
 }
 #include <cstdlib>
-void VirtioNet::transmit(net::Packet_ptr pckt){
+void VirtioNet::transmit(net::Packet_ptr pckt) {
   /** @note We have to send a virtio header first, then the packet.
 
       From Virtio std. §5.1.6.6:

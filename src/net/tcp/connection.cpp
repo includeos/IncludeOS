@@ -62,13 +62,13 @@ Connection::Connection(TCP& host, port_t local_port)
 }
 
 void Connection::setup_default_callbacks() {
-  on_connect_           = ConnectCallback::from<Connection, &Connection::default_on_connect>(this);
-  on_disconnect_        = DisconnectCallback::from<Connection, &Connection::default_on_disconnect>(this);
-  on_error_             = ErrorCallback::from<Connection, &Connection::default_on_error>(this);
-  on_packet_dropped_    = PacketDroppedCallback::from<Connection, &Connection::default_on_packet_dropped>(this);
-  on_rtx_timeout_       = RtxTimeoutCallback::from<Connection, &Connection::default_on_rtx_timeout>(this);
-  on_close_             = CloseCallback::from<Connection, &Connection::default_on_close>(this);
-  _on_cleanup_          = CleanupCallback::from<Connection, &Connection::default_on_cleanup>(this);
+  on_connect_           = ConnectCallback{this, &Connection::default_on_connect};
+  on_disconnect_        = DisconnectCallback{this, &Connection::default_on_disconnect};
+  on_error_             = ErrorCallback{this, &Connection::default_on_error};
+  on_packet_dropped_    = PacketDroppedCallback{this, &Connection::default_on_packet_dropped};
+  on_rtx_timeout_       = RtxTimeoutCallback{this, &Connection::default_on_rtx_timeout};
+  on_close_             = CloseCallback{this, &Connection::default_on_close};
+  _on_cleanup_          = CleanupCallback{this, &Connection::default_on_cleanup};
 }
 
 uint16_t Connection::MSDS() const {
@@ -701,7 +701,7 @@ void Connection::rtx_start() {
 
   rtx_timer.id = Timers::oneshot(
     std::chrono::milliseconds((int) (rttm.RTO * 1000.0)),
-    OnTimeout::from<Connection, &Connection::rtx_timeout>(this));
+    OnTimeout{this, &Connection::rtx_timeout});
 
   rtx_timer.active = true;
 }
@@ -815,8 +815,7 @@ void Connection::timewait_start() {
   auto timeout = 2 * host().MSL(); // 60 seconds
 
   using OnTimeout = Timers::handler_t;
-  timewait_timer.id =
-    Timers::oneshot(timeout, OnTimeout::from<Connection, &Connection::timewait_timeout>(this));
+  timewait_timer.id = Timers::oneshot(timeout, OnTimeout{this, &Connection::timewait_timeout});
 
   timewait_timer.active = true;
 

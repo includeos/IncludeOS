@@ -97,10 +97,10 @@ namespace net {
       // @TODO: Add HÅREK-mapping here
       switch (nm) {
       case HH_MAP:
-        arp_resolver_ = Arp_resolver::from<Arp, &Arp::hh_map>(*this);
+        arp_resolver_ = Arp_resolver{*this, &Arp::hh_map};
         break;
       default:
-        arp_resolver_ = Arp_resolver::from<Arp, &Arp::arp_resolve>(*this);
+        arp_resolver_ = Arp_resolver{*this, &Arp::arp_resolve};
       }
     }
 
@@ -145,7 +145,7 @@ namespace net {
     void arp_resolve(Packet_ptr);
     void hh_map(Packet_ptr);
 
-    Arp_resolver arp_resolver_ = Arp_resolver::from<Arp, &Arp::arp_resolve>(*this);
+    Arp_resolver arp_resolver_ = Arp_resolver{*this, &Arp::arp_resolve};
 
     PacketQueue waiting_packets_;
 

@@ -19,17 +19,17 @@ Inet4::Inet4(hw::Nic& nic)
   Ensures(sizeof(IP4::addr) == 4);
 
   /** Upstream delegates */
-  auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(eth_));
-  auto arp_bottom(upstream::from<Arp,&Arp::bottom>(arp_));
-  auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(ip4_));
-  auto icmp4_bottom(upstream::from<ICMPv4,&ICMPv4::bottom>(icmp_));
-  auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(udp_));
-  auto tcp_bottom(upstream::from<TCP,&TCP::bottom>(tcp_));
+  auto eth_bottom(upstream{eth_, &Ethernet::bottom});
+  auto arp_bottom(upstream{arp_, &Arp::bottom});
+  auto ip4_bottom(upstream{ip4_, &IP4::bottom});
+  auto icmp4_bottom(upstream{icmp_, &ICMPv4::bottom});
+  auto udp4_bottom(upstream{udp_, &UDP::bottom});
+  auto tcp_bottom(upstream{tcp_, &TCP::bottom});
 
   /** Upstream wiring  */
   // Packets available
   nic.on_transmit_queue_available(
-    transmit_avail_delg::from<Inet4, &Inet4::process_sendq>(*this));
+    transmit_avail_delg{*this, &Inet4::process_sendq});
 
   // Phys -> Eth (Later, this will be passed through router)
   nic.set_linklayer_out(eth_bottom);
@@ -52,14 +52,10 @@ Inet4::Inet4(hw::Nic& nic)
   /** Downstream delegates */
   // retreive drivers delegate virtually, instead of setting it to a virtual call
   auto phys_top(nic.get_physical_out());
-  //auto phys_top(downstream
-  //              ::from<hw::Nic,&hw::Nic::transmit>(nic));
-  auto eth_top(downstream
-               ::from<Ethernet,&Ethernet::transmit>(eth_));
-  auto arp_top(downstream
-               ::from<Arp,&Arp::transmit>(arp_));
-  auto ip4_top(downstream
-               ::from<IP4,&IP4::transmit>(ip4_));
+  //auto phys_top(downstream{nic, &hw::Nic::transmit});
+  auto eth_top(downstream{eth_, &Ethernet::transmit});
+  auto arp_top(downstream{arp_, &Arp::transmit});
+  auto ip4_top(downstream{ip4_, &IP4::transmit});
 
   /** Downstream wiring. */
 

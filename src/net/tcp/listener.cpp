@@ -26,8 +26,8 @@ using namespace net::tcp;
 Listener::Listener(TCP& host, port_t port)
   : host_(host), port_(port), syn_queue_()
 {
-  on_accept_      = AcceptCallback::from<Listener, &Listener::default_on_accept>(this);
-  on_connect_     = ConnectCallback::from<Listener, &Listener::default_on_connect>(this);
+  on_accept_      = AcceptCallback{this, &Listener::default_on_accept};
+  on_connect_     = ConnectCallback{this, &Listener::default_on_connect};
 }
 
 bool Listener::default_on_accept(Socket) {
@@ -86,8 +86,8 @@ void Listener::segment_arrived(Packet_ptr packet) {
     auto& conn = *(syn_queue_.emplace(syn_queue_.begin(),
       std::make_shared<Connection>( host_, port_, packet->source() )));
     // Call Listener::connected when Connection is connected
-    conn->on_connect(ConnectCallback::from<Listener, &Listener::connected>(this));
-    conn->_on_cleanup(CleanupCallback::from<Listener, &Listener::remove>(this));
+    conn->on_connect(ConnectCallback{this, &Listener::connected});
+    conn->_on_cleanup(CleanupCallback{this, &Listener::remove});
     // Open connection
     conn->open(false);
     Ensures(conn->is_listening());

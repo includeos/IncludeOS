@@ -47,7 +47,7 @@ public:
   explicit ConsoleVGA() noexcept;
 
   OS::print_func get_print_handler() {
-    return OS::print_func::from(this, &ConsoleVGA::write);
+    return OS::print_func{this, &ConsoleVGA::write};
   }
 
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept

@@ -272,7 +272,7 @@ namespace hw {
   }
 
   void IDE::enable_irq_handler() {
-    auto del(delegate<void()>::from<IDE, &IDE::callback_wrapper>(this));
+    auto del(delegate<void()>{this, &IDE::callback_wrapper});
     IRQ_manager::get().subscribe(IDE_IRQN, del);
     //IRQ_manager::cpu(0).set_irq_handler(IDE_IRQN + 32, ide_irq_entry);
   }

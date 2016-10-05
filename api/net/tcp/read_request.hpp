@@ -32,7 +32,7 @@ struct ReadRequest {
 
   /*ReadRequest()
     : buffer(nullptr, 0),
-      callback(ReadCallback::from<ReadRequest, &ReadRequest::default_read_callback>(this))
+      callback(ReadCallback{this, &ReadRequest::default_read_callback})
   {}*/
 
   ReadRequest(ReadBuffer buf, ReadCallback cb)
@@ -42,7 +42,7 @@ struct ReadRequest {
 
   ReadRequest(size_t n = 0)
     : buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
-      callback(ReadCallback::from<ReadRequest, &ReadRequest::default_read_callback>(this))
+      callback(ReadCallback{this, &ReadRequest::default_read_callback})
   {}
 
   void clean_up() {

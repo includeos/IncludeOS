@@ -42,7 +42,7 @@ namespace hw{
     }
 
     OS::print_func get_print_handler() {
-      return OS::print_func::from(this, &Serial::print_handler);
+      return OS::print_func{this, &Serial::print_handler};
     }
 
     void on_data(on_data_handler del);
