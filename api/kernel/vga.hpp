@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 #ifndef KERNEL_VGA_HPP
 #define KERNEL_VGA_HPP
 
+#include <os>
 #include <stdint.h>
 
 class ConsoleVGA {
@@ -45,15 +46,19 @@ public:
 
   explicit ConsoleVGA() noexcept;
 
+  OS::print_func get_print_handler() {
+    return OS::print_func::from(this, &ConsoleVGA::write);
+  }
+
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
   { return fg | bg << 4; }
-  
+
   void write(const char* data, const size_t len) noexcept;
   void clear() noexcept;
-  
+
   static const size_t VGA_WIDTH  {80};
   static const size_t VGA_HEIGHT {25};
-  
+
   uint16_t get(uint8_t x, uint8_t y);
   void put(const char, uint8_t color, uint8_t x, uint8_t y) noexcept;
   void put(const char, uint8_t x, uint8_t y) noexcept;
@@ -61,13 +66,13 @@ public:
   void newline() noexcept;
   inline void set_color(vga_color c)
   { color = c; };
-  
+
 private:
   void increment(int) noexcept;
   void write(char) noexcept;
   static const uint16_t DEFAULT_ENTRY;
   void putent(uint16_t, uint8_t, uint8_t) noexcept;
-  
+
   size_t    row;
   size_t    column;
   uint8_t   color;

@@ -3,9 +3,6 @@
 *.o
 *.out
 *.log
-\#*
-\*.*
-\.\#*
 *.iso
 *.qcow2
 *.vdi
@@ -24,8 +21,6 @@ src/.codelite/
 src/compile_commands.json
 *.project
 *.workspace
-
-vmbuild/vmbuild
 
 *.img
 *.img.*

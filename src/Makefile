@@ -67,8 +67,8 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
-		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/memmap.o\
-		kernel/irq_manager.o kernel/pci_manager.o \
+		kernel/interrupts.o kernel/os.o kernel/os_stdout.o kernel/cpuid.o \
+		kernel/memmap.o kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o \
 		kernel/profile.o kernel/profile_intr.o \

@@ -7,8 +7,7 @@ SERVICE = 256_Color_VGA
 SERVICE_NAME = 256 Color VGA
 
 # Your service parts
-FILES = service.cpp
-ASM_FILES = int32.asm
+FILES = service.o int32.o
 
 # Your disk image
 DISK=

@@ -48,13 +48,14 @@ struct StackSampler
   // enable or disable sample-taking
   // eg. disable sampling during stack sample result printout
   static void set_mask(bool);
+  
+  enum mode_t {
+    MODE_CURRENT,
+    MODE_CALLER,
+  };
+  
+  // set sampling mode
+  static void set_mode(mode_t);
 };
-
-extern "C" {
-  // print memory usage changes over time
-  extern void print_heap_info();
-  // used to validate that the backtrace is not corrupt
-  extern void __validate_backtrace(char const* where, unsigned id = 0);
-}
 
 #endif
