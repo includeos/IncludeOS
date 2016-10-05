@@ -51,7 +51,7 @@ void _init_c_runtime()
   /// init backtrace functionality
   extern void _move_elf_symbols(void*, void*);
   extern void _apply_parser_data(void*);
-  // there is a 640k memory hole at the beginning of memory
+  // there is a 640k conventional memory hole at the beginning of memory
   // put symbols at 40k
   void* SYM_LOCATION = (void*) 0xA000;
   // move pruned symbols to unused memory
@@ -94,8 +94,12 @@ void _init_c_runtime()
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);
 
-  // set parser location here (after initializing everything else)
-  _apply_parser_data(SYM_LOCATION);
+  // move symbols (again) to heap
+  extern void* _relocate_to_heap(void*);
+  void* symheap = _relocate_to_heap(SYM_LOCATION);
+
+  // set ELF symbols location here (after initializing everything else)
+  _apply_parser_data(symheap);
 
   /// call global constructors emitted by compiler
   extern void _init();
