@@ -17,6 +17,7 @@
 
 #include <common.cxx>
 #include <util/logger.hpp>
+#include <util/logger.cpp>
 
 CASE("Creating a Logger")
 {
