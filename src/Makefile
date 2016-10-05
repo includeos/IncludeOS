@@ -40,9 +40,6 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
 CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++)
 # Set defaults if not defined
-ifndef LD_INC
-	LD_INC = ld
-endif
 ifndef AR_INC
 	AR_INC = ar
 endif
@@ -59,7 +56,6 @@ CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
 CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
 CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=linker.ld
 
 # Objects
 ###################################################
@@ -106,7 +102,7 @@ CRTN_OBJ = crt/crtn.o
 ###################################################
 OS_DEPS = $(OS_OBJECTS:.o=.d)
 
-.PHONY: memdisk all debug stripped minimal clean
+.PHONY: all stripped minimal debug silent clean
 
 # Complete OS build
 ###################################################
@@ -118,9 +114,11 @@ all: CAPABS += -O2
 all: includeos
 	@echo "\n>>> Built OS-library. Install to '"$(INSTALL)"' using 'make install'"
 
-stripped: CAPABS += -Os
-stripped: LDOPTS += -s
+stripped: CAPABS += -O2
 stripped: includeos
+
+minimal: CAPABS += -Os
+minimal: includeos
 
 # Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
 debug-info: CAPABS += -UNO_DEBUG
@@ -144,30 +142,7 @@ debug-all: includeos test
 silent: CPPOPTS += -DNO_INFO=1
 silent: includeos
 
-minimal: CPPOPTS += -ffunction-sections -fdata-sections
-minimal: LDOPTS += --gc-sections
-minimal: stripped
-
 includeos: bootloader multiboot libc++abi.a os.a drivers platforms
-
-# Test service
-###################################################
-LIBS_OBJ = os.a $(LIBCXX) os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
-
-
-CRTBEGIN_OBJ = $(CRTI_OBJ) $(INSTALL)/crt/crtbegin.o
-CRTEND_OBJ   = $(INSTALL)/crt/crtend.o $(CRTN_OBJ)
-
-TEST_OBJ = debug/test_service.o util/service_name.o
-
-test_service: CPPOPTS += -DSERVICE_NAME="\"Test Service\""
-test_service: $(TEST_OBJ) $(CRTI_OBJ) $(CRTN_OBJ)
-	@echo "\n>> Linking test service"
-	@echo "\n>> LDOPTS = $(LDOPTS)"
-	touch smalldisk
-	$(LD_INC) -v $(LDOPTS) $(CRTBEGIN_OBJ) $(TEST_OBJ) $(LIBS_OBJ) $(CRTEND_OBJ) -o debug/$@
-
-test: test_service
 
 # OS libraries
 ###################################################
@@ -252,10 +227,7 @@ etags:
 
 # Cleanup
 ###################################################
-clean_tests:
-	$(RM) debug/*.o debug/*.d debug/*.img debug/test_service debug/test_ipv6 debug/test_tcp
-
-clean: clean_tests
+clean:
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS) $(PLATFORMS) $(PLATFORMS_DEPS)
 	$(RM) os.a libc++abi.a
 	$(RM) bootloader apic_boot apic_boot.o boot/multiboot.o
