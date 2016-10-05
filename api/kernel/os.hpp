@@ -85,6 +85,13 @@ public:
   static void halt();
 
   /**
+   *  Returns true when the OS will still be running, and not shutting down.
+   */
+  static bool is_running() {
+    return power_;
+  }
+
+  /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func) {
