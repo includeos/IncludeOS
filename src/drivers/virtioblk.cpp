@@ -34,7 +34,7 @@ void null_deleter(uint8_t*) {};
 #include <statman>
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), hw::Drive(), req(queue_size(0), 0, iobase())
+  : Virtio(d), hw::Drive(), req(queue_size(0), 0, iobase()), inflight(0)
 {
   INFO("VirtioBlk", "Driver initializing");
   {
