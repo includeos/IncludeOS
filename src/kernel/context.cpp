@@ -43,6 +43,7 @@ void Context::create(unsigned stack_size, context_func func)
   assert(destination);
   // create and switch to new stack
   char* stack_mem = new char[stack_size];
+  assert(stack_mem);
   uintptr_t start = (uintptr_t) (stack_mem+stack_size) & ~0xF;
   __context_switch(start);
   delete[] stack_mem;
