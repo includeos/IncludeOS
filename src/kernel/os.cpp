@@ -71,6 +71,7 @@ extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
+  atexit(default_exit);
   default_stdout_handlers();
 
   // Print a fancy header
@@ -80,7 +81,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   auto esp = get_cpu_esp();
   MYINFO ("Stack: 0x%x", esp);
-  Expects (esp < (uintptr_t)&_LOAD_START_ and esp >= 0x100000 and "Stack location OK");
+  Expects (esp < 0xA0000 and esp > 0x0 and "Stack location OK");
 
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
@@ -107,9 +108,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     }
   }
 
-  // ?
-  atexit(default_exit);
-
   MYINFO("Assigning fixed memory ranges (Memory map)");
   auto& memmap = memory_map();
 
@@ -118,8 +116,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "EBDA", "Extended BIOS data area"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM", "Memory mapped video memory"});
-  memmap.assign_range({0x00100000, (uintptr_t)&_LOAD_START_ -1 ,
-        "Stack", "Kernel / service main stack"});
+  //memmap.assign_range({0x00100000, (uintptr_t)&_LOAD_START_ -1 ,
+  //      "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
