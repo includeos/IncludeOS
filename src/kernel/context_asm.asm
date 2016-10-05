@@ -18,30 +18,33 @@ USE32
 global __context_switch
 extern __context_switch_delegate
 
-__context_switch:
-    ; new stack location in ECX
-    mov ebx, [esp+4]
+section .text
 
-    ; save special purpose stuff
+__context_switch:
     push ebp
+    mov  ebp, esp
+    ; save special purpose stuff
     push esi
     push edi
 
+    ; new stack location in EBX
+    mov ebx, [ebp+8]
+
     ; save current ESP for later
-    mov eax, esp
+    mov  eax, esp
     ; change to new stack
-    mov esp, ebx
+    mov  esp, ebx
     ; store old ESP on new stack
     push eax
     ; call function that sees the delegate
     call __context_switch_delegate
     ; restore old stack
-    pop esp
+    pop  esp
 
     ; restore special stuff
-    pop edi
-    pop esi
-    pop ebp
+    pop  edi
+    pop  esi
 
     ; return to origin
+    pop  ebp
     ret

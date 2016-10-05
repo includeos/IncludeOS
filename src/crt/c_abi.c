@@ -69,10 +69,10 @@ void _init_c_runtime()
   heap_begin = (char*) ((uintptr_t)heap_begin & 0xfffff000);
 #ifdef RANDOMIZE_HEAP_BASE
   // randomize heap start location
-  uint64_t tsc;
+  int64_t tsc;
   asm volatile ("rdtsc" : "=A"(tsc));
   // 512kb randomization in pages
-  //heap_begin += (tsc & 0x7f) << 12;
+  heap_begin += (tsc & 0x7f) << 12;
 #endif
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;

@@ -24,7 +24,6 @@ static Context::context_func destination;
 extern "C"
 void __context_switch_delegate()
 {
-  assert(destination);
   destination();
 }
 
@@ -32,6 +31,7 @@ void Context::jump(void* location, context_func func)
 {
   // store so we can call it later
   destination = func;
+  assert(destination);
   // switch to stack from @location
   __context_switch((uintptr_t) location);
 }
@@ -40,6 +40,7 @@ void Context::create(unsigned stack_size, context_func func)
 {
   // store so we can call it later
   destination = func;
+  assert(destination);
   // create and switch to new stack
   char* stack_mem = new char[stack_size];
   uintptr_t start = (uintptr_t) (stack_mem+stack_size) & ~0xF;
