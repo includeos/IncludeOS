@@ -10,4 +10,4 @@
 	url = https://github.com/martinmoene/lest.git
 [submodule "mod/fiber"]
 	path = mod/fiber
-	url = git@github.com:boostorg/fiber.git
+	url = https://github.com/boostorg/fiber.git
