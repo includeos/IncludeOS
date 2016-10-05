@@ -116,8 +116,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "EBDA", "Extended BIOS data area"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM", "Memory mapped video memory"});
-  //memmap.assign_range({0x00100000, (uintptr_t)&_LOAD_START_ -1 ,
-  //      "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
@@ -126,7 +124,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "Pre-heap", "Heap randomization area (not for use))"});
 
   memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Symbols", "ELF symbol/string sections"});
+  memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
 
   // Create ranges for heap and the remaining address space
   // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
