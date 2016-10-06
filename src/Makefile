@@ -68,7 +68,8 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o kernel/context.o kernel/context_asm.o \
 		kernel/profile.o kernel/profile_intr.o \
-		kernel/timers.o kernel/rtc.o util/memstream.o util/async.o util/statman.o \
+		kernel/timers.o kernel/rtc.o \
+		util/memstream.o util/async.o util/statman.o util/logger.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		hw/ps2.o hw/serial.o hw/cmos.o hw/drive.o \
@@ -185,6 +186,7 @@ install: drivers platforms bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
 	cp seed/Makelib $(INSTALL)/Makelib
+	cp -r ../seed $(INSTALL)
 # External dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod
