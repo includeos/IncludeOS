@@ -35,3 +35,6 @@ EXTRA_LIBS+=$(ROOT)/lib/http/uri/liburi.a
 
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makeseed
+
+TMP := $(EXTRA_LIBS) $(LIBS)
+LIBS = $(TMP)
