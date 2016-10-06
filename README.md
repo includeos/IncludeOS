@@ -1,4 +1,4 @@
-<img src="./doc/logo.png" alt="IncludeOS Logo" style="width: 300px;">
+![IncludeOS Logo](./doc/logo.png)
 ================================================
 
 **Update**: Looking for [Acorn](https://github.com/includeos/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY)? Built using [Mana](https://github.com/includeos/mana), the new C++ Web Application Framework for IncludeOS. Both [Acorn](https://github.com/includeos/acorn/) and [Mana](https://github.com/includeos/mana) are free and open source, check them out right here on GitHub!
