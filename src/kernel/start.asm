@@ -24,7 +24,7 @@ section .text
 _start:
         ;; Stack base address to EMA boundary
         mov esp, 0xA0000
-        sub esp, 0x10
+        mov ebp, esp
 
         ;;  Place multiboot parameters on stack
         push ebx

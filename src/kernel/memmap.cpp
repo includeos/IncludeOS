@@ -22,7 +22,6 @@ uintptr_t Memory_map::in_range(uintptr_t addr){
 }
 
 Fixed_memory_range& Memory_map::assign_range (Fixed_memory_range&& rng) {
-
   debug("* Assgning range %s", rng.to_string().c_str());
 
   // Keys are address representations, not pointers

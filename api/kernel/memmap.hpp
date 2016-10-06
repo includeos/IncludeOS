@@ -18,11 +18,9 @@
 #ifndef KERNEL_MEMMAP_HPP
 #define KERNEL_MEMMAP_HPP
 
-// std
 #include <map>
+#include <cassert>
 #include <sstream>
-
-//IncludeOS
 #include <delegate>
 #include <common>
 
@@ -56,11 +54,8 @@ public:
                      const std::string descr, In_use_delg in_use)
     : name_{name}, description_{descr}, in_use_{in_use}
   {
-    if (begin > end)
-      throw Memory_range_exception("Start is larger than end: " +
-          std::to_string(begin) + " > " + std::to_string(end));
-    if (end - begin + 1 > span_max())
-      throw Memory_range_exception("Maximum range size is " + std::to_string(span_max()));
+    assert (begin < end && "Start is larger than end");
+    assert (end - begin + 1 <= span_max() && "Maximum range size exceeded");
     range_ = Span((uint8_t*)begin, end - begin + 1);
   }
 

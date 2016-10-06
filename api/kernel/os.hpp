@@ -59,7 +59,7 @@ public:
     return RTC::now() - booted_at_;
   }
 
-  static MHz cpu_freq()
+  static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
 
   /**
@@ -94,34 +94,35 @@ public:
   /**
    *  Add handler for standard output.
    */
-  static void add_stdout(print_func func) {
-    print_handlers.push_back(func);
-  }
+  static void add_stdout(print_func func);
 
   /** Memory page helpers */
-  static constexpr uint32_t page_size() {
+  static constexpr uint32_t page_size() noexcept {
     return 4096;
   }
-  static constexpr uint32_t page_nr_from_addr(uint32_t x) {
+  static constexpr uint32_t page_nr_from_addr(uint32_t x) noexcept {
     return x >> PAGE_SHIFT;
   }
-  static constexpr uint32_t base_from_page_nr(uint32_t x) {
+  static constexpr uint32_t base_from_page_nr(uint32_t x) noexcept {
     return x << PAGE_SHIFT;
   }
 
   /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage();
+  static uintptr_t heap_usage() noexcept;
 
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max();
 
+  /** time spent sleeping (halt) in cycles */
+  static int64_t get_cycles_halt() noexcept;
+
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
-   */
-  static Memory_map& memory_map () noexcept {
-    static  Memory_map memmap_ {};
-    return memmap_;
+  **/
+  static Memory_map& memory_map() {
+    static  Memory_map memmap {};
+    return memmap;
   }
 
   /**
@@ -131,7 +132,7 @@ public:
    * global constructor.
    * @param delg : A delegate to be called
    * @param name : A human readable identifier
-   **/
+  **/
   static void register_custom_init(Custom_init delg, const char* name);
 
 private:
@@ -148,8 +149,6 @@ private:
   static void event_loop();
 
   static MHz cpu_mhz_;
-
-  static std::vector<print_func> print_handlers;
 
   static RTC::timestamp_t booted_at_;
   static std::string version_field;
