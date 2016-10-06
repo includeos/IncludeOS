@@ -34,7 +34,7 @@
 #define SECT_SIZE_ERR  666
 #define DISK_SIZE_ERR  999
 
-bool verb = false;
+bool verb = true;
 #define INFO_(FROM, TEXT, ...) if (verb) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 #define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
 

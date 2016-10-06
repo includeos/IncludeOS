@@ -41,12 +41,11 @@ set(OS_OBJECTS  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 
-# try to build CXXABI:
-# TODO: shouldn't we move that into a new CMakeLists.txt file?
-
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 
 add_library(libc++abi.a STATIC ${CXX_ABI})
+
+add_library(libcrt OBJECT crt/crti.s crt/crtn.s)
 
 add_subdirectory(boot)
 add_subdirectory(drivers)
