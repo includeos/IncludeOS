@@ -15,10 +15,10 @@ case $SYSTEM in
         case $RELEASE in
             "Ubuntu")
                 UBUNTU_VERSION=`lsb_release -rs`
-		if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
+                if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
                     DEPENDENCIES="gcc-5 g++-5"
-                    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+                    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
                 else
                     clang_version="3.8"
                 fi
@@ -26,15 +26,15 @@ case $SYSTEM in
                 DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
-                sudo apt-get update
-                sudo apt-get install -y $DEPENDENCIES
+                sudo apt-get update || exit 1
+                sudo apt-get install -y $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
             "Fedora")
                 DEPENDENCIES="curl make clang nasm bridge-utils qemu jq"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
-                sudo dnf install $DEPENDENCIES
+                sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
         esac
