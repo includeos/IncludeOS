@@ -222,6 +222,6 @@ void Virtio::default_irq_handler(){
 
 void Virtio::enable_irq_handler()
 {
-  auto del(delegate<void()>::from<Virtio,&Virtio::default_irq_handler>(this));
+  auto del(delegate<void()>{this, &Virtio::default_irq_handler});
   IRQ_manager::get().subscribe(_irq, del);
 }

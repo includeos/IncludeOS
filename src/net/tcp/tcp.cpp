@@ -41,7 +41,7 @@ TCP::TCP(IPStack& inet) :
   writeq(),
   MAX_SEG_LIFETIME(30s)
 {
-  inet.on_transmit_queue_available(transmit_avail_delg::from<TCP,&TCP::process_writeq>(this));
+  inet.on_transmit_queue_available({this, &TCP::process_writeq});
 }
 
 /*
@@ -282,7 +282,7 @@ Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
       Connection::Tuple{ local_port, remote },
       std::make_shared<Connection>(*this, local_port, remote))
     ).first->second;
-  conn->_on_cleanup(CleanupCallback::from<TCP, &TCP::close_connection>(this));
+  conn->_on_cleanup({this, &TCP::close_connection});
   return conn;
 }
 
@@ -291,7 +291,7 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
   incoming_connections_++;
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
-  conn->_on_cleanup(CleanupCallback::from<TCP, &TCP::close_connection>(this));
+  conn->_on_cleanup({this, &TCP::close_connection});
   connections_.emplace(conn->tuple(), conn);
 }
 

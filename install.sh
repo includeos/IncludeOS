@@ -32,6 +32,13 @@ check_os_support() {
     return 1;
 }
 
+# check if sudo is available
+if ! command -v sudo > /dev/null 2>&1; then
+    echo -e ">>> Sorry <<< \n\
+The command sudo was not found. \n"
+    exit 1
+fi
+
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
@@ -43,22 +50,35 @@ fi
 
 # now install build requirements (compiler, etc). This was moved into
 # a function of its own as it can easen the setup.
-./etc/install_build_requirements.sh $SYSTEM $RELEASE
+if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
+    echo -e ">>> Sorry <<< \n\
+Could not install build requirements. \n"
+    exit 1
+fi
 
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
     echo ">>> Installing everything from source"
     ./etc/install_all_source.sh
-elif [ "Darwin" = "$SYSTEM" ]; then
-        # TODO: move build dependencies to the install build requirements step
-        ./etc/install_osx.sh
-elif [ "Linux" = "$SYSTEM" ]; then
 
+elif [ "Darwin" = "$SYSTEM" ]; then
+    # TODO: move build dependencies to the install build requirements step
+    ./etc/install_osx.sh
+
+elif [ "Linux" = "$SYSTEM" ]; then
     echo -e "\n\n>>> Calling install_from_bundle.sh script"
-    ./etc/install_from_bundle.sh
+    if ! ./etc/install_from_bundle.sh; then
+        echo -e ">>> Sorry <<< \n\
+Could not install from bundle. \n"
+        exit 1
+    fi
 
     echo -e "\n\n>>> Creating a virtual network, i.e. a bridge. (Requires sudo)"
-    sudo ./etc/create_bridge.sh
+    if ! ./etc/create_bridge.sh; then
+        echo -e ">>> Sorry <<< \n\
+Could not create or configure bridge. \n"
+        exit 1
+    fi
 
     echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 fi

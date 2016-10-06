@@ -24,7 +24,7 @@
 #include <hw/ioport.hpp>
 #include <cstdio>
 
-namespace hw{
+namespace hw {
 
   class Serial {
   public:
@@ -33,8 +33,6 @@ namespace hw{
     using on_data_handler = delegate<void(char c)>;
     using on_string_handler = delegate<void(const std::string& s)>;
 
-    using irq_delg = delegate<void()>;
-
     template <uint16_t PORT>
     static Serial& port(){
       static Serial s{PORT};
@@ -42,7 +40,7 @@ namespace hw{
     }
 
     OS::print_func get_print_handler() {
-      return OS::print_func::from(this, &Serial::print_handler);
+      return {this, &Serial::print_handler};
     }
 
     void on_data(on_data_handler del);

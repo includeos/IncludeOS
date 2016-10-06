@@ -2,6 +2,7 @@
 
 import sys
 import os
+import time
 import subprocess
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
@@ -23,6 +24,7 @@ def DHCP_test():
   ip_string = vm.readline()
   print "<Test.py> Assigned address: ", ip_string
   print "<Test.py> Trying to ping"
+  time.sleep(1)
   try:
     command = ["ping", ip_string.rstrip(), "-c", str(ping_count), "-i", "0.2"]
     print color.DATA(" ".join(command))

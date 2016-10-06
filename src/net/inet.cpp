@@ -30,7 +30,6 @@ namespace net
     // For now we're just using the one interface
     auto& eth0 = Dev::eth<0,VirtioNet>();
 
-
     /** Create arp- and ethernet objects for the interfaces.
 
         @warning: Careful not to copy these objects */
@@ -40,17 +39,16 @@ namespace net
     Arp&      _arp = *_arp_list[0];
     Ethernet& _eth = *_ethernet_list[0];
 
-
     /** Upstream delegates */
-    auto eth_bottom(upstream::from<Ethernet,&Ethernet::bottom>(_eth));
-    auto arp_bottom(upstream::from<Arp,&Arp::bottom>(_arp));
-    auto ip4_bottom(upstream::from<IP4,&IP4::bottom>(_ip4));
-    auto icmp4_bottom(upstream::from<ICMP,&ICMP::bottom>(_icmp));
-    auto udp4_bottom(upstream::from<UDP,&UDP::bottom>(_udp));
+    auto eth_bottom(upstream{_eth, &Ethernet::bottom});
+    auto arp_bottom(upstream{_arp, &Arp::bottom});
+    auto ip4_bottom(upstream{_ip4, &IP4::bottom});
+    auto icmp4_bottom(upstream{_icmp, &ICMP::bottom});
+    auto udp4_bottom(upstream{_udp, &UDP::bottom});
 
-    auto ip6_bottom  (upstream::from<IP6,   &IP6::bottom>   (_ip6));
-    auto icmp6_bottom(upstream::from<ICMPv6,&ICMPv6::bottom>(_icmp6));
-    auto udp6_bottom (upstream::from<UDPv6, &UDPv6::bottom> (_udp6));
+    auto ip6_bottom  (upstream{_ip6, &IP6::bottom});
+    auto icmp6_bottom(upstream{_icmp6, &ICMPv6::bottom});
+    auto udp6_bottom (upstream{_udp6, &UDPv6::bottom});
 
     /** Upstream wiring  */
 
@@ -70,7 +68,7 @@ namespace net
     // Ethernet -> IP6
     _eth.set_ip6_handler(ip6_bottom);
     // IP6 packet transmission
-    auto ip6_transmit(IP6::downstream6::from<IP6,&IP6::transmit>(_ip6));
+    auto ip6_transmit(IP6::downstream6{_ip6, &IP6::transmit});
     // IP6 -> ICMP6
     _ip6.set_handler(IP6::PROTO_ICMPv6, icmp6_bottom);
     // IP6 <- ICMP6
@@ -81,18 +79,14 @@ namespace net
     _udp6.set_ip6_out(ip6_transmit);
 
     // IP6 -> Ethernet
-    auto ip6_to_eth(downstream::from<Ethernet, &Ethernet::transmit>(_eth));
+    auto ip6_to_eth(downstream{_eth, &Ethernet::transmit});
     _ip6.set_linklayer_out(ip6_to_eth);
 
     /** Downstream delegates */
-    auto phys_top(downstream
-                  ::from<Nic<VirtioNet>,&Nic<VirtioNet>::transmit>(eth0));
-    auto eth_top(downstream
-                 ::from<Ethernet,&Ethernet::transmit>(_eth));
-    auto arp_top(downstream
-                 ::from<Arp,&Arp::transmit>(_arp));
-    auto ip4_top(downstream
-                 ::from<IP4,&IP4::transmit>(_ip4));
+    auto phys_top(downstream{eth0, &Nic<VirtioNet>::transmit});
+    auto eth_top(downstream{_eth, &Ethernet::transmit});
+    auto arp_top(downstream{_arp, &Arp::transmit});
+    auto ip4_top(downstream{_ip4, &IP4::transmit});
 
     /** Downstream wiring. */
 
