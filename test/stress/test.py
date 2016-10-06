@@ -30,7 +30,7 @@ sock_timeout = 20
 
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
-acceptable_increase = 2 * PAGE_SIZE
+acceptable_increase = 12 * PAGE_SIZE
 
 # A persistent connection to the VM for getting memory info
 # TODO: This should be expanded to check more vital signs, such as time of day,
