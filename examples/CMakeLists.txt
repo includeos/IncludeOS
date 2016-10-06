@@ -14,9 +14,10 @@ set(EXAMPLE_INCLUDES "-I${INCLUDEOS_INSTALL_DIR}/libcxx/include -I${INCLUDEOS_IN
 
 set(EXAMPLE_COMMON_LIBRARIES os ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a libc++abi.a drivers os ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
+add_subdirectory(256_color_vga)
 add_subdirectory(demo_service)
 add_subdirectory(dualnic)
 add_subdirectory(smp)
 add_subdirectory(snake)
-#add_subdirectory(STREAM)
+add_subdirectory(STREAM)
 add_subdirectory(tcp)
