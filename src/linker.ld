@@ -24,7 +24,7 @@ PHDRS {
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0x200000);
+  PROVIDE ( _ELF_START_ = . + 0x100000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   .multiboot (_ELF_START_ + SIZEOF_HEADERS): {

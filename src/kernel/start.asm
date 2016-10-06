@@ -16,39 +16,17 @@
 ;; limitations under the License.
 
 USE32
-section .text
-
 extern kernel_start
-extern _LOAD_START_
-extern __stack_rand_ba
-
 global _start
 
+section .text
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
-        ;; Stack base address
-        mov esp, _LOAD_START_
-        ;; Primitive stack base address randomization
-        mov ecx, __stack_rand_ba
-        and ecx, 0xff
-        shl ecx, 10 ;; up to 256kb per 256 seconds
-        sub esp, ecx
-        mov [boot_magic], eax
-        rdtsc
-        and eax, 0xff
-        shl eax, 6 ;; 64 byte per tick, up to 16kb
-
-        ;; NOTE: Stack changes here (pushes before this point won't pop right)
-        sub esp, eax
-
-        ;; make esp page-aligned
-        and esp, 0xfffff000
+        ;; Stack base address to EMA boundary
+        mov esp, 0xA0000
+        sub esp, 0x10
 
         ;;  Place multiboot parameters on stack
-        mov eax, [boot_magic]
         push ebx
         push eax
         call kernel_start
-
-boot_magic:
-        dw 0

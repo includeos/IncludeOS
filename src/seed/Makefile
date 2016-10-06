@@ -22,7 +22,7 @@ INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
@@ -52,9 +52,10 @@ endif
 
 INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL $(LOCAL_INCLUDES)
 
-all:      CAPABS = $(CAPABS_COMMON) -O2 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
+all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
-stripped: CAPABS = $(CAPABS_COMMON) -Os
+stripped: CAPABS = $(CAPABS_COMMON) -O2
+
 # by default, don't use strip because it has caused us some problems
 STRIPPED=--strip-debug
 
@@ -110,7 +111,7 @@ debug-info: service
 debug: CCOPTS  += $(DEBUG_OPTS)
 debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
-debug: CAPABS += -O0
+debug: CPPOPTS += -O0
 debug: STRIPPED=
 debug: service
 
@@ -119,12 +120,11 @@ debug-all: CAPABS += -UNO_DEBUG
 debug-all: CCOPTS  += $(DEBUG_OPTS)
 debug-all: CPPOPTS += $(DEBUG_OPTS)
 debug-all: OBJ_LIST += $(LIBG_OBJ)
-debug-all: CAPABS += -O0
+debug-all: CPPOPTS += -O0
 debug-all: service
 
-minimal: CPPOPTS += -ffunction-sections -fdata-sections
-minimal: LDOPTS += --gc-sections
 minimal: stripped
+minimal: CPPOPTS += -Os
 
 # Service
 ###################################################

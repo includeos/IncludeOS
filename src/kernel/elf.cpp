@@ -347,121 +347,6 @@ struct relocate_header {
   StrTab strtab;
 };
 
-void _relocate_sections(char* new_location, SymTab& symtab, StrTab& strtab)
-{
-  auto& hdr = *(relocate_header*) new_location;
-  hdr.symtab = symtab;
-  hdr.strtab = strtab;
-
-  // move symbols
-  char* symloc = new_location + sizeof(relocate_header);
-  memcpy(symloc, symtab.base, symtab.entries * sizeof(Elf32_Sym));
-
-  // move strings
-  char* strloc = symloc + symtab.entries * sizeof(Elf32_Sym);
-  memcpy(strloc, strtab.base, strtab.size);
-
-  hdr.symtab.base = (Elf32_Sym*) symloc;
-  hdr.strtab.base = strloc;
-}
-static void _relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& strtab)
-{
-  auto& hdr = *(relocate_header*) new_location;
-  hdr.symtab = symtab;
-  hdr.strtab = strtab;
-
-  // first prune symbols
-  auto*  symloc = (Elf32_Sym*) (new_location + sizeof(relocate_header));
-  size_t symidx = 0;
-  for (size_t i = 0; i < symtab.entries; i++)
-  {
-    auto& cursym = symtab.base[i];
-    if (ELF32_ST_TYPE(cursym.st_info) == STT_FUNC)
-    {
-      symloc[symidx++] = cursym;
-    }
-  }
-  // new total symbol entries
-  hdr.symtab.base    = symloc;
-  hdr.symtab.entries = symidx;
-
-  // move strings (one by one)
-  char*  strloc = (char*) &symloc[hdr.symtab.entries];
-  size_t index  = 0;
-  for (size_t i = 0; i < hdr.symtab.entries; i++)
-  {
-    auto& sym = hdr.symtab.base[i];
-    // get original location and length
-    const char* org = &strtab.base[sym.st_name];
-    size_t      len = strlen(org) + 1;
-    // set new symbol name location
-    sym.st_name = index; // = distance from start
-    // insert string into new location
-    memcpy(&strloc[index], org, len);
-    index += len;
-  }
-  // new entry base and total length
-  hdr.strtab.base = strloc;
-  hdr.strtab.size = index;
-}
-
-#include <malloc.h>
-
-extern "C"
-void* _relocate_to_heap(char* temp_location)
-{
-  auto& hdr = *(relocate_header*) temp_location;
-
-  size_t total = sizeof(hdr) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
-  void* heap_location = malloc(total);
-
-  _relocate_sections((char*) heap_location, hdr.symtab, hdr.strtab);
-  return heap_location;
-}
-
-static relocate_header init_header;
-
-extern "C"
-int _init_elf_parser(void* temp_location)
-{
-  SymTab symtab { nullptr, 0 };
-  StrTab strtab { nullptr, 0 };
-  auto& elf_hdr = elf_header();
-
-  // enumerate all section headers
-  auto* shdr = (Elf32_Shdr*) (ELF_START + elf_hdr.e_shoff);
-  for (Elf32_Half i = 0; i < elf_hdr.e_shnum; i++)
-  {
-    switch (shdr[i].sh_type) {
-    case SHT_SYMTAB:
-      symtab = { (Elf32_Sym*) (ELF_START + shdr[i].sh_offset),
-                 shdr[i].sh_size / sizeof(Elf32_Sym) };
-      break;
-    case SHT_STRTAB:
-      strtab = { (char*) (ELF_START + shdr[i].sh_offset),
-                 shdr[i].sh_size };
-      break;
-    case SHT_DYNSYM:
-    default:
-      // don't care tbh
-      break;
-    }
-  }
-
-  init_header.symtab = symtab;
-  init_header.strtab = strtab;
-
-  // nothing to do if stripped
-  if (symtab.entries == 0 || strtab.size == 0) return 1;
-
-  // hide sections to prevent them getting overwritten
-  // this is a temporary fix, until the sections get loaded from disk
-  if (temp_location)
-    _relocate_pruned_sections((char*) temp_location, symtab, strtab);
-    //_relocate_sections((char*) temp_location, symtab, strtab);
-  return 0;
-}
-
 extern "C"
 int _get_elf_section_size(const void* location)
 {
@@ -479,6 +364,17 @@ void _move_elf_symbols(void* old_location, void* new_location)
   const char* base = ((char*) newhdr) + sizeof(relocate_header);
   newhdr->symtab.base = (Elf32_Sym*) base;
   newhdr->strtab.base = &base[newhdr->symtab.entries * sizeof(Elf32_Sym)];
+}
+
+#include <malloc.h>
+extern "C"
+void* _relocate_to_heap(void* old_location)
+{
+  int total = _get_elf_section_size(old_location);
+  void* heap_location = malloc(total);
+
+  _move_elf_symbols(old_location, heap_location);
+  return heap_location;
 }
 
 extern "C"
