@@ -20,7 +20,7 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "Ubuntu")
+                "Ubuntu"|"LinuxMint")
                     return 0;
                     ;;
                 "Fedora")
