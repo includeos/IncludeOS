@@ -1,5 +1,7 @@
-![IncludeOS](./doc/IncludeOS_logo.png)
+<img src="./doc/logo.png" alt="IncludeOS Logo" style="width: 300px;">
 ================================================
+
+**Update**: Looking for [Acorn](https://github.com/includeos/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY)? Built using [Mana](https://github.com/includeos/mana), the new C++ Web Application Framework for IncludeOS. Both [Acorn](https://github.com/includeos/acorn/) and [Mana](https://github.com/includeos/mana) are free and open source, check them out right here on GitHub!
 
 IncludeOS is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
