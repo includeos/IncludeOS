@@ -91,6 +91,7 @@ if [ ! -z $do_includeos ]; then
     pushd $INCLUDEOS_SRC/vmbuild
     make
     cp vmbuild $INSTALL_DIR/
+    cp elf_syms $INSTALL_DIR/
     popd
 
     # RUNNING IncludeOS

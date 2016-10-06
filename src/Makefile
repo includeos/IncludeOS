@@ -67,8 +67,8 @@ CXXABI     = $(shell find ./crt/cxxabi -type f -name "*.cpp")
 CXXABI_OBJ = $(CXXABI:.cpp=.o)
 
 OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
-		kernel/interrupts.o kernel/os.o kernel/cpuid.o kernel/memmap.o\
-		kernel/irq_manager.o kernel/pci_manager.o \
+		kernel/interrupts.o kernel/os.o kernel/os_stdout.o kernel/cpuid.o \
+		kernel/memmap.o kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
 		kernel/vga.o kernel/debug_new.o \
 		kernel/profile.o kernel/profile_intr.o \
@@ -240,12 +240,6 @@ apic_boot.o: hw/apic_boot.asm
 
 multiboot: boot/multiboot.o
 
-# Disk image as a section
-###################################################
-memdisk: memdisk.asm
-	@echo "\n>> Assembling memdisk"
-	nasm -f elf -o memdisk.o $<
-
 # Etags
 ###################################################
 etags:
@@ -261,6 +255,6 @@ clean_tests:
 clean: clean_tests
 	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS) $(PLATFORMS) $(PLATFORMS_DEPS)
 	$(RM) os.a libc++abi.a
-	$(RM) bootloader apic_boot apic_boot.o memdisk.o boot/multiboot.o
+	$(RM) bootloader apic_boot apic_boot.o boot/multiboot.o
 
 -include $(OS_DEPS)

@@ -26,11 +26,11 @@
 #include <hw/apic.hpp>
 #include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
-#include <hw/serial.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/rtc.hpp>
+#include <statman>
 #include <vector>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
@@ -51,21 +51,26 @@ uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
-
+// stdout redirection
+std::vector<OS::print_func> OS::print_handlers;
+extern void default_stdout_handlers();
+// custom init
 std::vector<OS::Custom_init_struct> OS::custom_init_;
-
+// OS version
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
 #endif
 std::string OS::version_field = OS_VERSION;
 
-// Set default rsprint_handler
-OS::rsprint_func OS::rsprint_handler_ = &OS::default_rsprint;
-hw::Serial& OS::com1 = hw::Serial::port<1>();
 // Multiboot command line for the service
 static std::string os_cmdline = "";
+// sleep statistics
+static uint64_t* os_cycles_hlt   = nullptr;
+static uint64_t* os_cycles_total = nullptr;
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
+
+  default_stdout_handlers();
 
   // Print a fancy header
   FILLINE('=');
@@ -103,13 +108,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     }
   }
 
-  debug("\t[*] OS class started\n");
-  srand((uint32_t) cycles_since_boot());
-
+  // ?
   atexit(default_exit);
 
   MYINFO("Assigning fixed memory ranges (Memory map)");
-
   auto& memmap = memory_map();
 
   // @ Todo: The first ~600k of memory is free for use. What can we put there?
@@ -230,6 +232,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   RTC::init();
   booted_at_ = RTC::now();
 
+  // sleep statistics
+  os_cycles_hlt = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
+  os_cycles_total = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
+
   // Trying custom initialization functions
   MYINFO("Calling custom initialization functions");
   for (auto init : custom_init_) {
@@ -245,6 +253,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
+  // initialize random seed based on cycles since start
+  srand(cycles_since_boot() & 0xFFFFFFFF);
+  // begin service start
   Service::start(Service::command_line());
 
   event_loop();
@@ -269,8 +280,18 @@ uintptr_t OS::heap_usage() {
   return (uint32_t) (heap_end - heap_begin);
 }
 
+__attribute__((noinline))
 void OS::halt() {
-  __asm__ volatile("hlt;");
+  *os_cycles_total = cycles_since_boot();
+  asm volatile("hlt");
+
+  // add a global symbol here so we can quickly discard
+  // event loop from stack sampling
+  asm volatile(
+  ".global _irq_cb_return_location;\n"
+  "_irq_cb_return_location:" );
+  // Count sleep cycles
+  *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
 void OS::event_loop() {
@@ -280,7 +301,9 @@ void OS::event_loop() {
   FILLINE('~');
 
   while (power_) {
-    IRQ_manager::get().notify();
+    IRQ_manager::get().process_interrupts();
+    debug2("OS going to sleep.\n");
+    OS::halt();
   }
 
   // Cleanup
@@ -294,26 +317,11 @@ void OS::shutdown()
   power_ = false;
 }
 
-size_t OS::rsprint(const char* str) {
-  size_t len = 0;
-
-  // Measure length
-  while (str[len++]);
-
-  // Output callback
-  rsprint_handler_(str, len);
+size_t OS::print(const char* str, const size_t len) {
+  // Output callbacks
+  for (auto& func : print_handlers)
+      func(str, len);
   return len;
-}
-
-size_t OS::rsprint(const char* str, const size_t len) {
-  // Output callback
-  OS::rsprint_handler_(str, len);
-  return len;
-}
-
-void OS::default_rsprint(const char* str, size_t len) {
-  for(size_t i = 0; i < len; ++i)
-    com1.write(str[i]);
 }
 
 void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){

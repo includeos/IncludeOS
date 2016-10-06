@@ -30,8 +30,7 @@ namespace net {
     : stack_(inet)
   {
     network_layer_out_ = [] (net::Packet_ptr) {};
-    inet.on_transmit_queue_available(
-        transmit_avail_delg::from<UDP, &UDP::process_sendq>(this));
+    inet.on_transmit_queue_available({this, &UDP::process_sendq});
   }
 
   void UDP::bottom(net::Packet_ptr pckt)

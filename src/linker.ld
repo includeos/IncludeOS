@@ -19,7 +19,7 @@
 ENTRY(_start)
 
 PHDRS {
-    loadable PT_LOAD FLAGS(7) ;
+  loadable PT_LOAD FLAGS(7);
 }
 
 SECTIONS
@@ -123,6 +123,11 @@ SECTIONS
         *(.strtab.*)
   }:loadable
 
+  .elf_symbols : {
+    _ELF_SYM_START_ = .;
+    LONG (0);
+  }
+
   .bss :
   {
     _BSS_START_ = .;
@@ -133,9 +138,8 @@ SECTIONS
   }
   . = ALIGN(64 / 8);
   _end = .;
+
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);
   PROVIDE (_LOAD_END_ = .);
-
-
 }

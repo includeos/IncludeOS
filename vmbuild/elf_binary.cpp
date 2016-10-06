@@ -1,5 +1,6 @@
+#include "elf_binary.hpp"
+
 #include <cstdlib>
-#include <elf_binary.hpp>
 #include <iostream>
 
 extern bool verb;

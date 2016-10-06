@@ -22,9 +22,6 @@
 #include <fs/memdisk.hpp>
 #include <statman>
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-
 extern "C" {
   char _DISK_START_;
   char _DISK_END_;
@@ -47,7 +44,7 @@ namespace fs {
     
     auto sector_loc = image_start_ + blk * block_size();
     // Disallow reading memory past disk image
-    if (unlikely(sector_loc >= image_end_))
+    if (UNLIKELY(sector_loc >= image_end_))
       return buffer_t{};
 
     auto buffer = new uint8_t[block_size()];
@@ -64,7 +61,7 @@ namespace fs {
     auto end_loc = start_loc + cnt * block_size();
     
     // Disallow reading memory past disk image
-    if (unlikely(end_loc >= image_end_))
+    if (UNLIKELY(end_loc >= image_end_))
       return buffer_t{};
 
     auto buffer = new uint8_t[cnt * block_size()];

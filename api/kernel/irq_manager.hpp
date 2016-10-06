@@ -117,27 +117,19 @@ public:
   /**
    * Get the IRQ manager instance
    */
-  static inline IRQ_manager& get(){
-    static IRQ_manager bsp{0};
+  static inline IRQ_manager& get() {
+    static IRQ_manager bsp;
     return bsp;
   }
 
   uint8_t get_next_msix_irq();
   void register_irq(uint8_t vector);
 
-  /** Get the total number of cycles spent in halt **/
-  uint64_t cycles_hlt(){
-    return cycles_hlt_;
-  }
-
-  /** Get the total number of cycles since boot **/
-  uint64_t cycles_total(){
-    return cycles_total_;
-  }
+  /** process all pending interrupts */
+  void process_interrupts();
 
 private:
-
-  IRQ_manager(uint8_t cpu);
+  IRQ_manager() = default;
   IRQ_manager(IRQ_manager&) = delete;
   IRQ_manager(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&&) = delete;
@@ -150,9 +142,6 @@ private:
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
-
-  uint64_t& cycles_hlt_;
-  uint64_t& cycles_total_;
 
   static const char       default_attr {static_cast<char>(0x8e)};
   static const uint16_t   default_sel  {0x8};
@@ -175,9 +164,6 @@ private:
   static void init();
 
   void bsp_init();
-
-  /** Notify all delegates waiting for interrupts */
-  void notify();
 
 }; //< IRQ_manager
 

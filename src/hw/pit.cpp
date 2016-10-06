@@ -284,7 +284,7 @@ namespace hw {
     // must be done to program IOAPIC to redirect to BSP LAPIC
     IRQ_manager::get().enable_irq(0);
     // register irq handler
-    auto handler(IRQ_manager::irq_delegate::from<PIT,&PIT::irq_handler>(&instance()));
+    auto handler(IRQ_manager::irq_delegate{&instance(), &PIT::irq_handler});
     IRQ_manager::get().subscribe(0, handler);
   }
 
