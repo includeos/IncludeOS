@@ -93,16 +93,16 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   // Hook up IRQ handler (inherited from Virtio)
   if (is_msix())
   {
-    auto conf_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::msix_conf_handler>(this));
-    auto req_del(delegate<void()>::from<VirtioBlk, &VirtioBlk::service_RX>(this));
+    auto conf_del(delegate<void()>{this, &VirtioBlk::msix_conf_handler});
+    auto req_del(delegate<void()>{this, &VirtioBlk::service_RX});
     // update IRQ subscriptions
     IRQ_manager::get().subscribe(irq() + 0, req_del);
     IRQ_manager::get().subscribe(irq() + 1, conf_del);
   }
   else
   {
-    auto del(delegate<void()>::from<VirtioBlk, &VirtioBlk::irq_handler>(this));
-    IRQ_manager::get().subscribe(irq(),del);
+    auto del(delegate<void()>{this, &VirtioBlk::irq_handler});
+    IRQ_manager::get().subscribe(irq(), del);
   }
 
   // Done

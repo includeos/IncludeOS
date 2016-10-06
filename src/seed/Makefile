@@ -11,6 +11,8 @@ ifneq ($(DISK),)
 MEMDISK=memdisk.o
 endif
 
+.SUFFIXES: .asm
+
 # Maximum memory in megabytes
 # Used if memory info is not otherwise available such as via multiboot
 MAX_MEM=128
@@ -44,6 +46,9 @@ CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v cla
 ifndef LD_INC
 	LD_INC = ld
 endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
+endif
 
 INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL $(LOCAL_INCLUDES)
 
@@ -51,7 +56,7 @@ all:      CAPABS = $(CAPABS_COMMON) -O2 -DOS_TERMINATE_ON_CONTRACT_VIOLATION
 debug:    CAPABS = $(CAPABS_COMMON) -O0
 stripped: CAPABS = $(CAPABS_COMMON) -Os
 # by default, don't use strip because it has caused us some problems
-STRIPPED=
+STRIPPED=--strip-debug
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
 LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s`
@@ -73,7 +78,8 @@ PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
 
 
 # Full link list
-OBJS  = $(FILES:.cpp=.o) .service_name.o
+OBJS  =  $(FILES:.cpp=.o)
+OBJS  += .service_name.o
 
 LIBS =  $(INSTALL)/os.a $(LIBCXX) $(INSTALL)/os.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
 
@@ -89,6 +95,7 @@ DEPS = $(OBJS:.o=.d)
 .PHONY: all stripped debug debug-info debug-all memdisk service
 
 all: LDOPTS += --strip-debug
+all: STRIPPED=--strip-all
 all: service
 
 stripped: LDOPTS  += -s
@@ -133,8 +140,13 @@ ifneq ($(MEMDISK),)
 endif
 	@echo "\n>> Linking service with OS"
 	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	@echo "\n>> Adding symbol section"
+	$(INSTALL)/elf_syms $(SERVICE)
+	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
+	$(RM) _elf_symbols.bin
+# stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
-	strip $(STRIPPED) $(SERVICE)
+	strip $(STRIPPED) --remove-section=.comment $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
@@ -155,6 +167,10 @@ crt%.o: $(INSTALL)/crt/crt%.s
 # General C++-files to object files
 %.o: %.cpp
 	$(CPP) -MMD $(CPPOPTS) -o $@ $<
+
+# nasm-assembled object files
+%.o: %.asm
+	nasm -f elf -o $@ $<
 
 %.o: %.c
 	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<

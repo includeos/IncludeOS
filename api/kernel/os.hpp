@@ -27,8 +27,6 @@
 #include <vector>
 #include <kernel/rtc.hpp>
 
-namespace hw{ class Serial; }
-
 /**
  *  The entrypoint for OS services
  *
@@ -36,7 +34,7 @@ namespace hw{ class Serial; }
  */
 class OS {
 public:
-  using rsprint_func = delegate<void(const char*, size_t)>;
+  using print_func  = delegate<void(const char*, size_t)>;
   using Custom_init = delegate<void()>;
 
   /* Get the version of the os */
@@ -71,24 +69,9 @@ public:
   static void shutdown();
 
   /**
-   *  Write a cstring to serial port. @todo Should be moved to Dev::serial(n).
-   *
-   *  @param ptr: The string to write to serial port
+   *  Write data to standard out callbacks
    */
-  static size_t rsprint(const char* ptr);
-  static size_t rsprint(const char* ptr, const size_t len);
-
-  /**
-   *  Write a character to serial port.
-   *
-   *  @param c: The character to print to serial port
-   */
-  static void rswrite(const char c);
-
-  /**
-   *  Write to serial port with rswrite.
-   */
-  static void default_rsprint(const char*, size_t);
+  static size_t print(const char* ptr, const size_t len);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
@@ -102,21 +85,21 @@ public:
   static void halt();
 
   /**
-   *  Set handler for serial output.
+   *  Add handler for standard output.
    */
-  static void set_rsprint(rsprint_func func) {
-    rsprint_handler_ = func;
+  static void add_stdout(print_func func) {
+    print_handlers.push_back(func);
   }
 
   /** Memory page helpers */
-  static inline constexpr uint32_t page_size() {
+  static constexpr uint32_t page_size() {
     return 4096;
   }
-  static inline constexpr uint32_t page_nr_from_addr(uint32_t x){
-    return x >> page_shift_;
+  static constexpr uint32_t page_nr_from_addr(uint32_t x) {
+    return x >> PAGE_SHIFT;
   }
-  static inline constexpr uint32_t base_from_page_nr(uint32_t x){
-    return x << page_shift_;
+  static constexpr uint32_t base_from_page_nr(uint32_t x) {
+    return x << PAGE_SHIFT;
   }
 
   /** Currently used dynamic memory, in bytes */
@@ -132,7 +115,7 @@ public:
   static Memory_map& memory_map () noexcept {
     static  Memory_map memmap_ {};
     return memmap_;
-  };
+  }
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -149,7 +132,7 @@ private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
 
-  static const int page_shift_ = 12;
+  static constexpr int PAGE_SHIFT = 12;
 
   /** Indicate if the OS is running. */
   static bool power_;
@@ -159,9 +142,7 @@ private:
 
   static MHz cpu_mhz_;
 
-  static rsprint_func rsprint_handler_;
-
-  static hw::Serial& com1;
+  static std::vector<print_func> print_handlers;
 
   static RTC::timestamp_t booted_at_;
   static std::string version_field;
@@ -190,7 +171,6 @@ private:
   ~OS() = delete;
   // Prohibit construction
   OS() = delete;
-  friend void begin_stack_sampling(uint16_t);
 
 }; //< OS
 

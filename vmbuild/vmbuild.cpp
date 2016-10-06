@@ -20,8 +20,6 @@
 #include <cstring>
 #include <iostream>
 
-#include <elf_binary.hpp>
-#include <elf.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +27,8 @@
 
 #include <boot/multiboot.h>
 #include <gsl/gsl>
+#include "elf.h"
+#include "elf_binary.hpp"
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666

@@ -32,8 +32,7 @@ auto create_packet(BufferStore& bufstore) {
   // get buffer (as packet + data)
   auto* ptr = (Packet*) bufstore.get_buffer();
   // place packet at front of buffer
-  new (ptr) Packet(MTU, 0,
-      delegate<void(void*)>::from<BufferStore, &BufferStore::release> (&bufstore));
+  new (ptr) Packet(MTU, 0, {&bufstore, &BufferStore::release});
   // regular shared_ptr that calls delete on Packet
   return std::shared_ptr<Packet>(ptr);
 }
