@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "header.hpp"
+#include <hw/mac_addr.hpp>
 #include <net/inet_common.hpp>
 
 namespace hw {
@@ -32,7 +34,6 @@ namespace net {
   /** Ethernet packet handling. */
   class Ethernet {
   public:
-    static constexpr size_t ETHER_ADDR_LEN  = 6;
     static constexpr size_t MINIMUM_PAYLOAD = 46;
 
     /**
@@ -61,64 +62,13 @@ namespace net {
     };
 
     // MAC address
-    union addr {
-      uint8_t part[ETHER_ADDR_LEN];
-
-      struct {
-        uint16_t minor;
-        uint32_t major;
-      } __attribute__((packed));
-
-      addr() noexcept : part{} {}
-
-      addr(const uint8_t a, const uint8_t b, const uint8_t c,
-           const uint8_t d, const uint8_t e, const uint8_t f) noexcept
-        : part{a,b,c,d,e,f}
-      {}
-
-      addr& operator=(const addr cpy) noexcept {
-        minor = cpy.minor;
-        major = cpy.major;
-        return *this;
-      }
-
-      // hex string representation
-      std::string str() const {
-        char eth_addr[18];
-        snprintf(eth_addr, sizeof(eth_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
-                part[0], part[1], part[2],
-                part[3], part[4], part[5]);
-        return eth_addr;
-      }
-
-      /** Check for equality */
-      bool operator==(const addr mac) const noexcept
-      {
-        return strncmp(
-                       reinterpret_cast<const char*>(part),
-                       reinterpret_cast<const char*>(mac.part),
-                       ETHER_ADDR_LEN) == 0;
-      }
-
-      static const addr MULTICAST_FRAME;
-      static const addr BROADCAST_FRAME;
-
-      static const addr IPv6mcast_01;
-      static const addr IPv6mcast_02;
-
-    }  __attribute__((packed)); //< union addr
+    using addr = hw::MAC_addr;
 
     /** Constructor */
     explicit Ethernet(hw::Nic& nic) noexcept;
 
-    struct header {
-      addr dest;
-      addr src;
-      unsigned short type;
-
-    } __attribute__((packed)) ;
-
-    using trailer = uint32_t;
+    using header  = ethernet::Header;
+    using trailer = ethernet::trailer_t;
 
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     void bottom(Packet_ptr);
