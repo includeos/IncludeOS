@@ -98,12 +98,11 @@ private:
   };
   struct blk_io_t
   {
-    uint8_t       sector[512];
+    uint8_t      sector[512];
   };
   struct blk_resp_t
   {
     uint8_t      status;
-    bool         partial;
     on_read_func handler;
   };
 
@@ -113,7 +112,7 @@ private:
     blk_io_t      io;
     blk_resp_t    resp;
 
-    request_t(uint64_t blk, bool, on_read_func cb);
+    request_t(uint64_t blk, on_read_func cb);
   };
 
   /** Get virtio PCI config. @see Virtio::get_config.*/
@@ -134,7 +133,7 @@ private:
   void irq_handler();
 
   void msix_conf_handler();
-  
+
   // need at least 3 tokens free to ship a request
   inline bool free_space() const noexcept
   { return req.num_free() >= 3; }
@@ -156,7 +155,10 @@ private:
   // queue waiting for space in vring
   std::deque<request_t*> jobs;
   size_t    inflight;
-  
+
+  // stack of dequeued requests to be processed
+  std::vector<request_t*> received;
+
   // stat counters
   uint32_t* errors;
   uint32_t* requests;

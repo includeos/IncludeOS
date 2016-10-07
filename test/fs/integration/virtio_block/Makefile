@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = test_virtio_block
+SERVICE = virtioblk
 SERVICE_NAME = Virtio Block Test Service
 
 # Your service parts

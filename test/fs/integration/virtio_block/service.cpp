@@ -45,6 +45,7 @@ void Service::start(const std::string&)
       printf("Could not mount filesystem\n");
       panic("mount() failed");
     }
+    CHECKSERT (not err, "Was able to mount filesystem");
 
     // async ls
     disk->fs().ls("/",
@@ -82,9 +83,6 @@ void Service::start(const std::string&)
     }); // ls
 
   }); // disk->auto_detect()
-
-  printf("*** TEST SERVICE STARTED *** \n");
-
 }
 
 void list_partitions(decltype(disk) disk)
