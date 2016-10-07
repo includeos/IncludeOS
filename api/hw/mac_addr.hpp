@@ -39,7 +39,7 @@ union MAC_addr {
     : part{a,b,c,d,e,f}
   {}
 
-  MAC_addr& operator=(const addr cpy) noexcept {
+  MAC_addr& operator=(const MAC_addr cpy) noexcept {
     minor = cpy.minor;
     major = cpy.major;
     return *this;
