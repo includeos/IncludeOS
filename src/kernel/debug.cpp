@@ -26,12 +26,13 @@
 extern void print_backtrace();
 extern void* heap_begin;
 extern void* heap_end;
+static void safe_print_symbol(int N, void* addr);
 
 static char dbg_write_buffer[512];
 #include <unistd.h>
 #define DPRINTF(X,...)  { \
-        int len = snprintf(dbg_write_buffer, sizeof(dbg_write_buffer), \
-        X, ##__VA_ARGS__); write(1, dbg_write_buffer, len); }
+        int L = snprintf(dbg_write_buffer, sizeof(dbg_write_buffer), \
+        X, ##__VA_ARGS__); write(1, dbg_write_buffer, L); }
 
 
 struct allocation
@@ -47,13 +48,29 @@ struct allocation
 };
 
 static int enable_debugging = 1;
-static fixedvector<allocation, 16000>  allocs;
-static fixedvector<allocation*, 16000> free_allocs;
+static int enable_debugging_verbose = 0;
+static fixedvector<allocation, 4096>  allocs;
+static fixedvector<allocation*, 4096> free_allocs;
 
 extern "C"
 void _enable_heap_debugging(int enabled)
 {
   enable_debugging = enabled;
+}
+extern "C"
+void _enable_heap_debugging_verbose(int enabled)
+{
+  enable_debugging_verbose = enabled;
+}
+extern "C"
+int _get_heap_debugging_buffers_usage()
+{
+  return allocs.size();
+}
+extern "C"
+int _get_heap_debugging_buffers_total()
+{
+  return allocs.capacity();
 }
 
 static allocation* find_alloc(char* addr)
@@ -70,10 +87,15 @@ static allocation* find_alloc(char* addr)
 void* operator new (std::size_t len) throw(std::bad_alloc)
 {
   void* data = malloc(len);
+  if (enable_debugging_verbose) {
+    DPRINTF("malloc(%u bytes) == %p\n", len, data);
+    safe_print_symbol(1, __builtin_return_address(0));
+    safe_print_symbol(2, __builtin_return_address(1));
+  }
+
   if (!data) throw std::bad_alloc();
 
   if (enable_debugging) {
-    enable_debugging = false;
     if (!free_allocs.empty()) {
       auto* x = free_allocs.pop();
       new(x) allocation((char*) data, len,
@@ -84,7 +106,6 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
                       __builtin_return_address(0),
                       __builtin_return_address(1));
     }
-    enable_debugging = true;
   }
   return data;
 }
@@ -92,7 +113,6 @@ void* operator new[] (std::size_t n) throw(std::bad_alloc)
 {
   return ::operator new (n);
 }
-
 
 inline void deleted_ptr(void* ptr)
 {
@@ -107,6 +127,11 @@ inline void deleted_ptr(void* ptr)
       print_backtrace();
     }
     else if (x->addr == ptr) {
+      if (enable_debugging_verbose) {
+        DPRINTF("free(%p) == %u bytes\n", x->addr, x->len);
+        safe_print_symbol(1, __builtin_return_address(1));
+        safe_print_symbol(2, __builtin_return_address(2));
+      }
       // perfect match
       x->addr = nullptr;
       x->len  = 0;
@@ -129,7 +154,7 @@ void operator delete[] (void* ptr) throw()
   deleted_ptr(ptr);
 }
 
-void safe_print_symbol(int N, void* addr)
+static void safe_print_symbol(int N, void* addr)
 {
   char _symbol_buffer[512];
   char _btrace_buffer[512];
