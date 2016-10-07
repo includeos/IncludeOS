@@ -81,13 +81,6 @@ union MAC_addr {
                    PARTS_LEN) == 0;
   }
 
-  static const MAC_addr MULTICAST_FRAME;
-  static const MAC_addr BROADCAST_FRAME;
-
-  // TODO: extract these
-  static const MAC_addr IPv6mcast_01;
-  static const MAC_addr IPv6mcast_02;
-
 }  __attribute__((packed)); //< union addr
 }
 

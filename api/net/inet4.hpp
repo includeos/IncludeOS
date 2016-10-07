@@ -22,7 +22,7 @@
 #include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
 #include <hw/nic.hpp>
 #include "inet.hpp"
-#include "ethernet.hpp"
+#include "ethernet/ethernet.hpp"
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"

@@ -22,12 +22,9 @@
 #include <string>
 
 #include "header.hpp"
+#include <hw/nic.hpp>
 #include <hw/mac_addr.hpp>
 #include <net/inet_common.hpp>
-
-namespace hw {
-  class Nic;
-}
 
 namespace net {
 
@@ -64,6 +61,12 @@ namespace net {
     // MAC address
     using addr = hw::MAC_addr;
 
+    static const addr MULTICAST_FRAME;
+    static const addr BROADCAST_FRAME;
+
+    static const addr IPv6mcast_01;
+    static const addr IPv6mcast_02;
+
     /** Constructor */
     explicit Ethernet(hw::Nic& nic) noexcept;
 
@@ -97,7 +100,8 @@ namespace net {
     { physical_out_ = del; }
 
     /** @return Mac address of the underlying device */
-    const addr mac() const noexcept;
+    const auto& mac() const noexcept
+    { return nic_.mac(); }
 
     /** Transmit data, with preallocated space for eth.header */
     void transmit(Packet_ptr);
