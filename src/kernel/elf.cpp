@@ -158,7 +158,6 @@ private:
       auto* res = __cxa_demangle(name, nullptr, 0, &status);
       if (status == 0) {
         std::string result(res);
-        delete[] res;
         return result;
       }
     }
