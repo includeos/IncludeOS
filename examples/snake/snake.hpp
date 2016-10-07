@@ -282,15 +282,15 @@ void Snake::render()
 
 void Snake::gameover()
 {
-	vga.clear();
+	_vga.clear();
 
-	vga.set_cursor((GRID_X / 5) * 2, GRID_Y / 2 - 1);
+	_vga.set_cursor((GRID_X / 5) * 2, GRID_Y / 2 - 1);
 	const std::string finished = "GAME OVER ! ! !";
-	vga.write(finished.c_str(), finished.size());
+	_vga.write(finished.c_str(), finished.size());
 
-	vga.set_cursor((GRID_X / 5) * 2, (GRID_Y / 2));
+	_vga.set_cursor((GRID_X / 5) * 2, (GRID_Y / 2));
 	const std::string finalscore = "SCORE: " + std::to_string(_body.size());
-	vga.write(finalscore.c_str(), finalscore.size());
+	_vga.write(finalscore.c_str(), finalscore.size());
 }
 
 
