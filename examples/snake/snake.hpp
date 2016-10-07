@@ -47,8 +47,8 @@ public:
 	Point& operator= (const Point&) = default;
 	Point& operator= (Point&&) = default;
 
-	Point& operator+ (const Point);
-	Point& operator* (const Point);
+	Point operator+ (const Point);
+	Point operator* (const Point);
 
 	bool operator== (const Point) const;
 	bool operator!= (const Point) const;
@@ -317,7 +317,7 @@ Point::Point(const point_t point)
 	: _point(point)
 { }
 
-Point& Point::operator+ (const Point other)
+Point Point::operator+ (const Point other)
 {
 	if (this != std::addressof(other))
 	{
@@ -327,7 +327,7 @@ Point& Point::operator+ (const Point other)
 	return *this;
 }
 
-Point& Point::operator* (const Point other)
+Point Point::operator* (const Point other)
 {
 	if (this != std::addressof(other))
 	{
