@@ -52,7 +52,7 @@ uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 // stdout redirection
-std::vector<OS::print_func> OS::print_handlers;
+static std::vector<OS::print_func> os_print_handlers;
 extern void default_stdout_handlers();
 // custom init
 std::vector<OS::Custom_init_struct> OS::custom_init_;
@@ -67,9 +67,11 @@ static std::string os_cmdline = "";
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
+extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
+  atexit(default_exit);
   default_stdout_handlers();
 
   // Print a fancy header
@@ -77,11 +79,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   CAPTION("#include<os> // Literally\n");
   FILLINE('=');
 
-  uintptr_t esp;
-  asm ("mov %%esp, %0"
-       : "=r"(esp));
+  auto esp = get_cpu_esp();
   MYINFO ("Stack: 0x%x", esp);
-  Expects (esp < (uintptr_t)&_LOAD_START_ and esp >= 0x100000 and "Stack location OK");
+  Expects (esp < 0xA0000 and esp > 0x0 and "Stack location OK");
 
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
@@ -108,9 +108,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     }
   }
 
-  // ?
-  atexit(default_exit);
-
   MYINFO("Assigning fixed memory ranges (Memory map)");
   auto& memmap = memory_map();
 
@@ -119,8 +116,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "EBDA", "Extended BIOS data area"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM", "Memory mapped video memory"});
-  memmap.assign_range({0x00100000, (uintptr_t)&_LOAD_START_ -1 ,
-        "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
@@ -129,7 +124,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         "Pre-heap", "Heap randomization area (not for use))"});
 
   memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Symbols", "ELF symbol/string sections"});
+  memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
 
   // Create ranges for heap and the remaining address space
   // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
@@ -275,11 +270,13 @@ uintptr_t OS::heap_max() {
   return memory_map().at(heap_begin).addr_end();
 }
 
-uintptr_t OS::heap_usage() {
-  // measures heap usage only?
-  return (uint32_t) (heap_end - heap_begin);
+uintptr_t OS::heap_usage() noexcept {
+  return (uintptr_t) (heap_end - heap_begin);
 }
 
+int64_t OS::get_cycles_halt() noexcept {
+  return *os_cycles_hlt;
+}
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
@@ -317,9 +314,13 @@ void OS::shutdown()
   power_ = false;
 }
 
+void OS::add_stdout(OS::print_func func)
+{
+  os_print_handlers.push_back(func);
+}
 size_t OS::print(const char* str, const size_t len) {
   // Output callbacks
-  for (auto& func : print_handlers)
+  for (auto& func : os_print_handlers)
       func(str, len);
   return len;
 }

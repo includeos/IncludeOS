@@ -131,7 +131,7 @@ namespace fs
     this->lba_size = size;
 
     // read Partition block
-    device.read(this->lba_base,
+    device.read(base, 
     [this, on_mount] (buffer_t data) {
 
       auto* mbr = (MBR::mbr*) data.get();

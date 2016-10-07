@@ -4,7 +4,7 @@ fallocate -l 4000000000 image.img
 mkfs.fat image.img
 
 mkdir -p mountpoint
-sudo mount -o rw image.img mountpoint
+sudo mount -o rw,sync image.img mountpoint
 
 sudo cp service.cpp mountpoint/
 

@@ -15,22 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <iostream>
+#pragma once
+#ifndef KERNEL_CONTEXT_HPP
+#define KERNEL_CONTEXT_HPP
 
-double mysecond()
+#include <delegate>
+
+struct Context
 {
-  return OS::micros_since_boot() / 1000000.f;
-}
+  typedef delegate<void()> context_func;
 
-void Service::start(const std::string&)
-{
-  std::cout << "*** Service is up - with OS Included! ***" << std::endl;
+  // create and switch to a new stack with size @stack_size and call func
+  static void create(unsigned stack_size, context_func);
+  // switch to a pre-allocated location and call func
+  static void jump(void* location, context_func);
+};
 
-  // do the STREAM test here
-  extern int main();
-  main();
-
-  std::cout << "Service out!" << std::endl;
-  OS::shutdown();
-}
+#endif
