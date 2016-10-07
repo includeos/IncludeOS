@@ -178,12 +178,12 @@ namespace fs
     // initialize filesystem by providing base sector
     void init(const void* base_sector);
     // return a list of entries from directory entries at @sector
-    typedef std::function<void(error_t, dirvec_t)> on_internal_ls_func;
+    typedef delegate<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
     bool int_dirent(uint32_t sector, const void* data, dirvector&);
 
     // tree traversal
-    typedef std::function<void(error_t, dirvec_t)> cluster_func;
+    typedef delegate<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     // sync version
@@ -213,7 +213,7 @@ namespace fs
     uint32_t root_cluster;  // index of root cluster
     uint32_t data_index;    // index of first data sector (relative to partition)
     uint32_t data_sectors;  // number of data sectors
-    
+
     // simplistic cache for stat results
     std::map<std::string, FileSystem::Dirent> stat_cache;
   };

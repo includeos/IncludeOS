@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <functional>
+#include <delegate>
 
 #ifndef likely
 #define likely(x)       __builtin_expect(!!(x), 1)
@@ -43,10 +43,10 @@ namespace fs {
     using dirvec_t  = std::shared_ptr<dirvector>;
     using buffer_t  = std::shared_ptr<uint8_t>;
 
-    using on_mount_func = std::function<void(error_t)>;
-    using on_ls_func    = std::function<void(error_t, dirvec_t)>;
-    using on_read_func  = std::function<void(error_t, buffer_t, uint64_t)>;
-    using on_stat_func  = std::function<void(error_t, const Dirent&)>;
+    using on_mount_func = delegate<void(error_t)>;
+    using on_ls_func    = delegate<void(error_t, dirvec_t)>;
+    using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
+    using on_stat_func  = delegate<void(error_t, const Dirent&)>;
 
     enum Enttype {
       FILE,

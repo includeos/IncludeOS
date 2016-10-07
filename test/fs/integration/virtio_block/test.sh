@@ -1,6 +1,6 @@
 #!/bin/bash
-source ../test_base
-
 make
-export HDB="-drive file=./test.txt,if=virtio,media=disk"
-start test_virtio_block.img
+./image.sh
+export HDB="-drive file=./image.img,if=virtio,media=disk"
+source ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/run.sh `make servicefile`
+./cleanup.sh
