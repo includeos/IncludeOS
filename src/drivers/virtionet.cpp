@@ -37,7 +37,6 @@ using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 const char* VirtioNet::name() const { return "VirtioNet Driver"; }
-const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }
 
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
