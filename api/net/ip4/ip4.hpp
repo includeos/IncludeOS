@@ -21,8 +21,9 @@
 #include <iostream>
 
 #include "addr.hpp"
+#include "header.hpp"
 #include <common>
-#include <net/ethernet.hpp>
+#include <net/ethernet/ethernet.hpp>
 #include <net/inet.hpp>
 
 namespace net {
@@ -34,7 +35,8 @@ namespace net {
   /** IP4 layer */
   class IP4 {
   public:
-    using addr = ip4::Addr;
+    using addr      = ip4::Addr;
+    using ip_header = ip4::Header;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Inet<LinkLayer, IP4>&) noexcept;
@@ -42,24 +44,8 @@ namespace net {
     /** Known transport layer protocols. */
     enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
 
-
-
     static const addr INADDR_ANY;
     static const addr INADDR_BCAST;
-
-    /** IP4 header representation */
-    struct ip_header {
-      uint8_t  version_ihl;
-      uint8_t  tos;
-      uint16_t tot_len;
-      uint16_t id;
-      uint16_t frag_off_flags;
-      uint8_t  ttl;
-      uint8_t  protocol;
-      uint16_t check;
-      addr     saddr;
-      addr     daddr;
-    };
 
     /**
      *  The full header including IP
@@ -67,15 +53,15 @@ namespace net {
      *  @Note: This might be removed if we decide to isolate layers more
      */
     struct full_header {
-      uint8_t   link_hdr[sizeof(typename LinkLayer::header)];
-      ip_header ip_hdr;
+      uint8_t     link_hdr[sizeof(typename LinkLayer::header)];
+      ip4::Header ip_hdr;
     };
 
     /*
       Maximum Datagram Data Size
     */
     inline constexpr uint16_t MDDS() const
-    { return stack_.MTU() - sizeof(ip_header); }
+    { return stack_.MTU() - sizeof(ip4::Header); }
 
     /** Upstream: Input from link layer */
     void bottom(Packet_ptr);
@@ -107,7 +93,7 @@ namespace net {
     void transmit(Packet_ptr);
 
     /** Compute the IP4 header checksum */
-    uint16_t checksum(ip_header*);
+    uint16_t checksum(ip4::Header*);
 
     /**
      * \brief
