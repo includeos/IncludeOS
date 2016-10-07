@@ -21,9 +21,6 @@
 
 #include "snake.hpp"
 
-// prevent default serial output
-void default_stdout_handlers() {}
-
 ConsoleVGA vga;
 
 void begin_snake()
