@@ -19,6 +19,7 @@
 #define SNAKE_HPP
 
 #include <random>
+#include <kernel/timers.hpp>
 
 #define S_SIGN '@'
 #define S_COLOR ConsoleVGA::vga_color::COLOR_LIGHT_CYAN
@@ -60,7 +61,7 @@ private:
 	point_t _point;
 };
 
-class Part;
+struct Part;
 }
 
 class Snake
@@ -102,19 +103,12 @@ private:
 namespace snake_util
 {
 
-class Part
+struct Part
 {
-public:
 	using sign_t = char;
 	using color_t = int8_t;
 
 	explicit Part(sign_t, color_t, Point&&);
-
-	Part(const Part&) = default;
-	Part(Part&&) = default;
-
-	Part& operator= (const Part&) = default;
-	Part& operator= (Part&&) = default;
 
 	sign_t sign;
 	color_t color;
@@ -180,9 +174,9 @@ void Snake::game_loop()
 		return;
 	}
 
-	hw::PIT::on_timeout_d(
-		_head_dir.x() == 0 ? 0.14 : 0.08,
-		[this] { game_loop(); }
+	Timers::oneshot(
+		std::chrono::milliseconds(_head_dir.x() == 0 ? 120 : 70),
+		[this](auto) { game_loop(); }
 	);
 }
 
@@ -282,15 +276,15 @@ void Snake::render()
 
 void Snake::gameover()
 {
-	vga.clear();
+	_vga.clear();
 
-	vga.set_cursor((GRID_X / 5) * 2, GRID_Y / 2 - 1);
+	_vga.set_cursor((GRID_X / 5) * 2, GRID_Y / 2 - 1);
 	const std::string finished = "GAME OVER ! ! !";
-	vga.write(finished.c_str(), finished.size());
+	_vga.write(finished.c_str(), finished.size());
 
-	vga.set_cursor((GRID_X / 5) * 2, (GRID_Y / 2));
+	_vga.set_cursor((GRID_X / 5) * 2, (GRID_Y / 2));
 	const std::string finalscore = "SCORE: " + std::to_string(_body.size());
-	vga.write(finalscore.c_str(), finalscore.size());
+	_vga.write(finalscore.c_str(), finalscore.size());
 }
 
 
@@ -319,22 +313,14 @@ Point::Point(const point_t point)
 
 Point Point::operator+ (const Point other)
 {
-	if (this != std::addressof(other))
-	{
-		_point.first += other._point.first;
-		_point.second += other._point.second;
-	}
-	return *this;
+	return Point{{ _point.first + other._point.first,
+		_point.second + other._point.second }};
 }
 
 Point Point::operator* (const Point other)
 {
-	if (this != std::addressof(other))
-	{
-		_point.first *= other._point.first;
-		_point.second *= other._point.second;
-	}
-	return *this;
+	return Point{ { _point.first * other._point.first,
+		_point.second * other._point.second } };
 }
 
 bool Point::operator== (const Point other) const
