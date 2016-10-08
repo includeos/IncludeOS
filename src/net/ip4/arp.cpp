@@ -173,7 +173,7 @@ namespace net {
         return;
       }
       // mui importante
-      dest_mac = Ethernet::addr::BROADCAST_FRAME;
+      dest_mac = Ethernet::BROADCAST_FRAME;
 
     } else {
       if (sip != inet_.ip_addr()) {
@@ -222,7 +222,7 @@ namespace net {
     auto req = view_packet_as<PacketArp>(inet_.create_packet(sizeof(header)));
     req->init(mac_, inet_.ip_addr());
 
-    req->set_dest_mac(Ethernet::addr::BROADCAST_FRAME);
+    req->set_dest_mac(Ethernet::BROADCAST_FRAME);
     req->set_dest_ip(pckt->next_hop());
     req->set_opcode(H_request);
 

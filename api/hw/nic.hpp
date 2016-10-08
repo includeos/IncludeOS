@@ -22,7 +22,8 @@
 
 #include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
-#include "../net/ethernet.hpp"
+#include "mac_addr.hpp"
+#include <net/ethernet/header.hpp>
 
 namespace hw {
 
@@ -43,9 +44,8 @@ namespace hw {
 
     /**
       The mac address.
-      @todo remove depedency for Ethernet (somewhere in the future)
     */
-    virtual const net::Ethernet::addr& mac() = 0;
+    virtual const MAC_addr& mac() = 0;
 
     virtual uint16_t MTU() const noexcept = 0;
 
@@ -58,8 +58,11 @@ namespace hw {
     uint16_t bufsize() const
     { return bufstore_.bufsize(); }
 
+    /**
+     * @todo remove depedency for Ethernet (somewhere in the future)
+     */
     uint16_t eth_size() const
-    { return sizeof(net::Ethernet::header) + sizeof(net::Ethernet::trailer); }
+    { return sizeof(net::ethernet::Header) + sizeof(net::ethernet::trailer_t); }
 
 
     /** Delegate linklayer output. Hooks into IP-stack bottom, w.UPSTREAM data. */

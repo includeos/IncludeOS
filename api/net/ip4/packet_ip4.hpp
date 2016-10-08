@@ -22,6 +22,7 @@
 
 #include <net/util.hpp>
 #include <net/packet.hpp>
+#include "ip4.hpp"
 
 namespace net {
 
@@ -95,10 +96,10 @@ namespace net {
     { ip_header().tot_len = htons(size() - sizeof(LinkLayer::header)); }
 
   private:
-    const IP4::ip_header& ip_header() const noexcept
+    const ip4::Header& ip_header() const noexcept
     { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
 
-    IP4::ip_header& ip_header() noexcept
+    ip4::Header& ip_header() noexcept
     { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
 
     void set_ip4_checksum() noexcept {

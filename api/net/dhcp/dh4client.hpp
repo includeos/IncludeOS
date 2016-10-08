@@ -21,6 +21,7 @@
 
 #include <timers>
 #include "../packet.hpp"
+#include <net/ip4/ip4.hpp>
 
 namespace net
 {

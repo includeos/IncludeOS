@@ -122,7 +122,8 @@ public:
   const char* name() const override;
 
   /** Mac address. */
-  const net::Ethernet::addr& mac() override;
+  const hw::MAC_addr& mac() override
+  { return _conf.mac; }
 
   uint16_t MTU() const noexcept override
   { return 1500; }
@@ -192,7 +193,7 @@ private:
 
   // From Virtio 1.01, 5.1.4
   struct config{
-    net::Ethernet::addr mac;
+    hw::MAC_addr mac;
     uint16_t status;
 
     //Only valid if VIRTIO_NET_F_MQ

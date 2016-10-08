@@ -19,7 +19,7 @@
 #define NET_PACKET_HPP
 
 #include "buffer_store.hpp"
-#include "ip4/ip4.hpp"
+#include "ip4/addr.hpp"
 #include <cassert>
 
 namespace net {
@@ -39,8 +39,8 @@ namespace net {
      *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
      */
     Packet(
-        uint16_t cap, 
-        uint16_t len, 
+        uint16_t cap,
+        uint16_t len,
         deleter_t del = default_packet_deleter) noexcept
     : capacity_ (cap),
       size_     (len),
@@ -67,10 +67,10 @@ namespace net {
     }
 
     /** next-hop ipv4 address for IP routing */
-    void next_hop(IP4::addr ip) noexcept {
+    void next_hop(ip4::Addr ip) noexcept {
       next_hop4_ = ip;
     }
-    IP4::addr next_hop() const noexcept {
+    auto next_hop() const noexcept {
       return next_hop4_;
     }
 
@@ -158,7 +158,7 @@ namespace net {
 
     uint16_t              capacity_;
     uint16_t              size_;
-    IP4::addr             next_hop4_;
+    ip4::Addr             next_hop4_;
     deleter_t             deleter_;
     BufferStore::buffer_t payload_ {nullptr};
     BufferStore::buffer_t buf_[0];
