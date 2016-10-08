@@ -22,7 +22,7 @@
 /// given that fixed vector is a template class, even with templated size
 /// there are a number of restrictions that "could" be put on the template-
 /// variations, however there is none: Because it would add completely useless
-/// code to an intentionally small template class. The only valid fixed vector, 
+/// code to an intentionally small template class. The only valid fixed vector,
 /// is one where the type is trivial (POD) and N is a numerical value.
 
 struct POD
@@ -36,21 +36,21 @@ struct POD
 CASE("A new fixed vector of type int is empty")
 {
   fixedvector<POD, 10> fv;
-  
+
   EXPECT(fv.empty());
   EXPECT(fv.size() == 0);
 }
 CASE("A new fixed vector has a sane capacity")
 {
   fixedvector<POD, 10> fv;
-  
+
   EXPECT(fv.capacity() == 10);
   EXPECT(fv.free_capacity());
 }
 CASE("Adding elements normally")
 {
   fixedvector<POD, 10> fv;
-  
+
   POD pod(1, 2);
   fv.add(pod);
   EXPECT(fv.size() == 1);
@@ -61,28 +61,28 @@ CASE("Adding elements normally")
 CASE("Adding elements by emplacing")
 {
   fixedvector<POD, 10> fv;
-  
+
   fv.emplace(1, 2);
   EXPECT(fv.size() == 1);
   EXPECT(fv[0].a == 1);
   EXPECT(fv[0].b == 2);
-  
+
   fv.emplace(10, 20);
   EXPECT(fv.size() == 2);
   EXPECT(fv[1].a == 10);
   EXPECT(fv[1].b == 20);
-  
+
   EXPECT(fv.free_capacity());
 }
 CASE("Clearing a fixed vector")
 {
   fixedvector<POD, 10> fv;
-  
+
   for (int N = 0; N < 2; N++)
   {
     for (int i = 0; i < fv.capacity(); i++)
       fv.emplace(5, 6);
-    
+
     EXPECT(fv.free_capacity() == false);
     fv.clear();
     EXPECT(fv.empty());
@@ -93,7 +93,7 @@ CASE("Clearing a fixed vector")
 CASE("Adding elements increases size")
 {
   fixedvector<POD, 10> fv;
-  
+
   for (int N = 0; N < 2; N++)
   {
     for (int i = 0; i < fv.capacity(); i++) {
@@ -112,18 +112,18 @@ CASE("A cloned fixed vector matches bit for bit")
 {
   fixedvector<POD, 10> fv1;
   fixedvector<POD, 10> fv2;
-  
+
   EXPECT(fv1.capacity() == fv2.capacity());
-  
+
   for (int i = 0; i < fv1.capacity(); i++) {
     EXPECT(fv1.size() == i);
     fv1.emplace(5, 6);
     EXPECT(fv1.size() == i + 1);
   }
   EXPECT(fv1.free_capacity() == false);
-  
+
   // copy into fv2
-  fv2.copy(fv1.first(), fv1.size());
+  fv2.copy(fv1.begin(), fv1.size());
   // expect same size
   EXPECT(fv2.empty() == fv1.empty());
   EXPECT(fv2.size() == fv1.size());
@@ -132,5 +132,5 @@ CASE("A cloned fixed vector matches bit for bit")
     EXPECT(fv2[i].a == fv1[i].a);
     EXPECT(fv2[i].b == fv1[i].b);
   }
-  
+
 }

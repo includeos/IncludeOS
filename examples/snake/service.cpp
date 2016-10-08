@@ -16,33 +16,25 @@
 // limitations under the License.
 
 #include <os>
+#include <vga>
 #include <hw/ps2.hpp>
 
-// prevent default serial output
-void default_stdout_handlers() {}
+#include "snake.hpp"
 
-#include <vga>
 ConsoleVGA vga;
 
-#include "snake.hpp"
 void begin_snake()
 {
   static Snake snake {vga};
 
   hw::KBM::init();
   hw::KBM::set_virtualkey_handler(
-  [] (int key) {
-    if (key == hw::KBM::VK_RIGHT) {
-      snake.set_dir(Snake::RIGHT);
-    } else if (key == hw::KBM::VK_LEFT) {
-      snake.set_dir(Snake::LEFT);
-    } else if (key == hw::KBM::VK_UP) {
-      snake.set_dir(Snake::UP);
-    } else if (key == hw::KBM::VK_DOWN) {
-      snake.set_dir(Snake::DOWN);
-    } else if (key == hw::KBM::VK_SPACE and snake.is_gameover()) {
+  [] (int key)
+  {
+    snake.user_update(Snake::Direction(key));
+
+    if (key == hw::KBM::VK_SPACE && snake.finished())
       snake.reset();
-    }
   });
 }
 

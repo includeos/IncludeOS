@@ -19,7 +19,6 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
-#include <kernel/elf.hpp>
 #include <hw/apic.hpp>
 #include <cassert>
 #include <statman>

@@ -85,7 +85,7 @@ namespace net {
     network_layer_out_(packet_ptr);
   }
 
-  void icmp_default_out(Packet_ptr UNUSED(pckt)) {
+  void icmp_default_out(Packet_ptr) {
     debug("<ICMP IGNORE> No handler. DROP!\n");
   }
 

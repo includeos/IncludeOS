@@ -42,7 +42,7 @@ void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
 
-void VirtioNet::drop(Packet_ptr UNUSED(pckt)){
+void VirtioNet::drop(Packet_ptr){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
 }
 
