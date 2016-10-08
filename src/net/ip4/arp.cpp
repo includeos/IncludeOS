@@ -28,7 +28,7 @@
 
 namespace net {
 
-  static void ignore(Packet_ptr UNUSED(pckt)) {
+  static void ignore(Packet_ptr) {
     debug2("<ARP -> linklayer> Empty handler - DROP!\n");
   }
 

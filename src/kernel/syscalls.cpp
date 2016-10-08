@@ -50,9 +50,9 @@ int close(int) {
   return -1;
 }
 
-int execve(const char* UNUSED(name),
-           char* const* UNUSED(argv),
-           char* const* UNUSED(env))
+int execve(const char*,
+           char* const*,
+           char* const*)
 {
   panic("SYSCALL EXECVE NOT SUPPORTED");
   return -1;
@@ -63,7 +63,7 @@ int fork() {
   return -1;
 }
 
-int fstat(int UNUSED(file), struct stat *st) {
+int fstat(int, struct stat* st) {
   debug("SYSCALL FSTAT Dummy, returning OK 0");
   st->st_mode = S_IFCHR;
   return 0;
@@ -86,27 +86,27 @@ int isatty(int file) {
   return 0;
 }
 
-int link(const char* UNUSED(old), const char* UNUSED(_new)) {
+int link(const char*, const char*) {
   panic("SYSCALL LINK unsupported");
   return -1;
 }
 
-int unlink(const char* UNUSED(name)) {
+int unlink(const char*) {
   panic("SYSCALL UNLINK unsupported");
   return -1;
 }
 
-off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir)) {
+off_t lseek(int, off_t, int) {
   panic("SYSCALL LSEEK returning 0");
   return 0;
 }
 
-int open(const char* UNUSED(name), int UNUSED(flags), ...) {
+int open(const char*, int, ...) {
   panic("SYSCALL OPEN unsupported");
   return -1;
 }
 
-int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len)) {
+int read(int, void*, size_t) {
   panic("SYSCALL READ unsupported");
   return 0;
 }
@@ -132,18 +132,18 @@ void* sbrk(ptrdiff_t incr) {
 }
 
 
-int stat(const char* UNUSED(file), struct stat *st) {
+int stat(const char*, struct stat *st) {
   debug("SYSCALL STAT Dummy");
   st->st_mode = S_IFCHR;
   return 0;
 }
 
-clock_t times(struct tms* UNUSED(buf)) {
+clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
   return -1;
 }
 
-int wait(int* UNUSED(status)) {
+int wait(int*) {
   debug((char*)"SYSCALL WAIT Dummy, returning -1");
   return -1;
 }
@@ -210,7 +210,7 @@ void abort_ex(const char* why) {
 }
 
 // Basic second-resolution implementation - using CMOS directly for now.
-int clock_gettime(clockid_t clk_id, struct timespec *tp){
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (clk_id == CLOCK_REALTIME) {
     tp->tv_sec = RTC::now();
     tp->tv_nsec = 0;

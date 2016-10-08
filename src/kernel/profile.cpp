@@ -78,7 +78,7 @@ struct Sampler
     if (lockless) return;
 
     // transfer all the built up samplings
-    transferq->copy(samplerq->first(), samplerq->size());
+    transferq->copy(samplerq->begin(), samplerq->size());
     samplerq->clear();
     lockless = 1;
   }
@@ -120,7 +120,7 @@ void gather_stack_sampling()
   // gather results on our turn only
   if (get().lockless == 1)
   {
-    for (auto* addr = get().transferq->first(); addr < get().transferq->end(); addr++)
+    for (auto* addr = get().transferq->begin(); addr < get().transferq->end(); addr++)
     {
       // convert return address to function entry address
       uintptr_t resolved = Elf::resolve_addr(*addr);
