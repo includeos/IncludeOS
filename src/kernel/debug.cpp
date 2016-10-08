@@ -17,12 +17,15 @@
 
 //#define DEBUG // Enable debugging
 //#define DEBUG2
+
 #include <kernel/elf.hpp>
 #include <util/fixedvec.hpp>
 #include <cassert>
 #include <cstdlib>
+#include <cstdint>
 #include <map>
 #include <stdexcept>
+
 extern void print_backtrace();
 extern void* heap_begin;
 extern void* heap_end;
@@ -49,8 +52,13 @@ struct allocation
 
 static int enable_debugging = 1;
 static int enable_debugging_verbose = 0;
+static int enable_buffer_protection = 1;
 static fixedvector<allocation, 4096>  allocs;
 static fixedvector<allocation*, 4096> free_allocs;
+
+// There is a chance of a buffer overrun where this exact value
+// is written, but the chance of that happening is minimal
+static const uint32_t buffer_protection_checksum = 0x5f3759df;
 
 extern "C"
 void _enable_heap_debugging(int enabled)
@@ -86,7 +94,26 @@ static allocation* find_alloc(char* addr)
 
 void* operator new (std::size_t len) throw(std::bad_alloc)
 {
-  void* data = malloc(len);
+  void* data = nullptr;
+
+  if (enable_buffer_protection) {
+    // Allocate requested memory + enough to fit checksum at start and end
+    data = malloc(len + sizeof(buffer_protection_checksum) * 2);
+
+    // Write checksums
+    auto* temp = reinterpret_cast<char*>(data);
+    memcpy(temp,
+           &buffer_protection_checksum,
+           sizeof(buffer_protection_checksum));
+
+    memcpy(temp + sizeof(buffer_protection_checksum) + len,
+           &buffer_protection_checksum,
+           sizeof(buffer_protection_checksum));
+
+  } else {
+    data = malloc(len);
+  }
+
   if (enable_debugging_verbose) {
     DPRINTF("malloc(%u bytes) == %p\n", len, data);
     safe_print_symbol(1, __builtin_return_address(0));
@@ -107,7 +134,15 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
                       __builtin_return_address(1));
     }
   }
-  return data;
+
+  if (enable_buffer_protection) {
+    // We need to return a pointer to the allocated memory + 4
+    // e.g. after our first checksum
+    return reinterpret_cast<void*>(reinterpret_cast<char*>(data) +
+                                   sizeof(buffer_protection_checksum));
+  } else {
+    return data;
+  }
 }
 void* operator new[] (std::size_t n) throw(std::bad_alloc)
 {
@@ -116,6 +151,12 @@ void* operator new[] (std::size_t n) throw(std::bad_alloc)
 
 inline void deleted_ptr(void* ptr)
 {
+  if (enable_buffer_protection) {
+    // Calculate where the real allocation starts (at our first checksum)
+    ptr = reinterpret_cast<void*>(reinterpret_cast<char*>(ptr) -
+                                  sizeof(buffer_protection_checksum));
+  }
+
   if (enable_debugging) {
     auto* x = find_alloc((char*) ptr);
     if (x == nullptr) {
@@ -133,6 +174,32 @@ inline void deleted_ptr(void* ptr)
         safe_print_symbol(1, __builtin_return_address(1));
         safe_print_symbol(2, __builtin_return_address(2));
       }
+
+      // This is the only place where we can verify the buffer protection
+      // checksums, since we need to know the length of the allocation
+      if (enable_buffer_protection)
+      {
+        auto* temp = reinterpret_cast<char*>(ptr);
+        auto underflow = memcmp(temp,
+                                &buffer_protection_checksum,
+                                sizeof(buffer_protection_checksum));
+        auto overflow = memcmp(temp + sizeof(buffer_protection_checksum) + x->len,
+                               &buffer_protection_checksum,
+                               sizeof(buffer_protection_checksum));
+
+        if (underflow)
+        {
+          DPRINTF("[ERROR] Buffer underflow found on address: %p\n", ptr);
+          // TODO: print stacktrace
+        }
+
+        if (overflow)
+        {
+          DPRINTF("[ERROR] Buffer overflow found on address: %p\n", ptr);
+          // TODO: print stacktrace
+        }
+      }
+
       // perfect match
       x->addr = nullptr;
       x->len  = 0;
