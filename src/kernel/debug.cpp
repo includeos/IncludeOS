@@ -28,7 +28,7 @@ extern void* heap_begin;
 extern void* heap_end;
 static void safe_print_symbol(int N, void* addr);
 
-static char dbg_write_buffer[512];
+static char dbg_write_buffer[1024];
 #include <unistd.h>
 #define DPRINTF(X,...)  { \
         int L = snprintf(dbg_write_buffer, sizeof(dbg_write_buffer), \
@@ -125,6 +125,7 @@ inline void deleted_ptr(void* ptr)
           DPRINTF("[ERROR] Possible double free on address: %p\n", ptr);
       }
       print_backtrace();
+      return;
     }
     else if (x->addr == ptr) {
       if (enable_debugging_verbose) {
@@ -141,6 +142,7 @@ inline void deleted_ptr(void* ptr)
       DPRINTF("[ERROR] Free on misaligned address: %p inside %p:%u",
              ptr, x->addr, x->len);
       print_backtrace();
+      return;
     }
   }
   free(ptr);
@@ -156,8 +158,8 @@ void operator delete[] (void* ptr) throw()
 
 static void safe_print_symbol(int N, void* addr)
 {
-  char _symbol_buffer[512];
-  char _btrace_buffer[512];
+  char _symbol_buffer[1024];
+  char _btrace_buffer[1024];
   auto symb = Elf::safe_resolve_symbol(
               addr, _symbol_buffer, sizeof(_symbol_buffer));
   int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
