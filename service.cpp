@@ -18,7 +18,7 @@
 #include <os>
 #include <profile>
 #include <timers>
-#define USE_STACK_SAMPLING
+//#define USE_STACK_SAMPLING
 
 #include "ircd.hpp"
 static IrcServer* ircd;
@@ -27,7 +27,20 @@ static IrcServer* ircd;
 void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
-void custom_event_loop();
+extern "C" int  _get_heap_debugging_buffers_usage();
+extern "C" int  _get_heap_debugging_buffers_total();
+extern "C" void _enable_heap_debugging_verbose(int);
+
+#include <memory>
+__attribute__((noinline)) void heap_test()
+{
+  //_enable_heap_debugging_verbose(1);
+  printf("Heap usage: %d / %d\n",
+        _get_heap_debugging_buffers_usage(), _get_heap_debugging_buffers_total());
+
+  auto test = std::make_shared<int> ();
+  delete test.get();
+}
 
 void Service::start(const std::string&)
 {
@@ -64,22 +77,8 @@ void Service::start(const std::string&)
   });
 
   printf("%s\n", ircd->get_motd().c_str());
-  custom_event_loop();
-}
 
-#include <kernel/context.hpp>
-#include <kernel/irq_manager.hpp>
-void custom_event_loop()
-{
-  // create our own 32kb working memory ... :)
-  Context::create(32768,
-  [] {
-    // and run same event loop as OS  xDface
-    while (OS::is_running()) {
-      OS::halt();
-      IRQ_manager::get().process_interrupts();
-    }
-  });
+  heap_test();
 }
 
 #include <ctime>
@@ -166,6 +165,9 @@ void print_stats(uint32_t)
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);
 #endif
+
+  extern void print_heap_allocations();
+  //print_heap_allocations();
 }
 
 void Service::ready()
