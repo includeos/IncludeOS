@@ -57,6 +57,9 @@ struct RTTM {
 
   void stop(bool first = false);
 
+  auto rto_ms() const
+  { return std::chrono::milliseconds{static_cast<unsigned long>(RTO * 1000)}; }
+
   /*
     When the first RTT measurement R is made, the host MUST set
 
@@ -66,7 +69,7 @@ struct RTTM {
 
     where K = 4.
   */
-  inline void first_rtt_measurement(duration_t R) {
+  void first_rtt_measurement(duration_t R) {
     SRTT = R;
     RTTVAR = R/2;
     update_rto();
@@ -89,19 +92,18 @@ struct RTTM {
     After the computation, a host MUST update
     RTO <- SRTT + max (G, K*RTTVAR)
   */
-  inline void sub_rtt_measurement(duration_t R) {
+  void sub_rtt_measurement(duration_t R) {
     RTTVAR = (1 - beta) * RTTVAR + beta * std::abs(SRTT-R);
     SRTT = (1 - alpha) * SRTT + alpha * R;
     update_rto();
   }
 
-  inline void update_rto() {
+  void update_rto() {
     RTO = std::max(SRTT + std::max(CLOCK_G, K * RTTVAR), 1.0);
     debug2("<TCP::Connection::RTO> RTO updated: %ums\n",
       (uint32_t)(RTO * 1000));
   }
-
-}; // < struct RTTM
+} __attribute__((packed)); // < struct RTTM
 
 } // < namespace tcp
 } // < namespace net
