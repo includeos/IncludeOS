@@ -1,3 +1,0 @@
-[submodule "GSL"]
-	path = GSL
-	url = git@github.com:Microsoft/GSL.git

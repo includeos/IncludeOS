@@ -24,7 +24,7 @@
  *
  * @note Encoding reserved chars:
  * The RFC lets the application decide which reserved characters to
- * encode and  which can be used as data. This implementation
+ * encode and which can be used as data. This implementation
  * currently encodes all of them.
  *
  * @note Decoding errors:
@@ -36,18 +36,19 @@
  *
  **/
 
+#pragma once
 #ifndef PERCENT_ENCODING_HPP
 #define PERCENT_ENCODING_HPP
 
-#include <gsl/gsl>
+#include <experimental/string_view>
 
 namespace uri {
 
   /** URI-encode (percent-encode) a span of bytes */
-  std::string encode(gsl::span<const char> input);
+  std::string encode(const std::experimental::string_view input);
 
   /** URI-decode (percent-decode) a span of bytes */
-  std::string decode(gsl::span<const char> input);
+  std::string decode(const std::experimental::string_view input);
 
 
 #ifdef URL_THROW_ON_ERROR
@@ -65,8 +66,8 @@ namespace uri {
     using Decode_error::Decode_error;
   };
 
-#endif
+#endif //< URL_THROW_ON_ERROR
 
-} // namespace uri
+} //< namespace uri
 
-#endif
+#endif //< PERCENT_ENCODING_HPP

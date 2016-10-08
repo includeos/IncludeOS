@@ -19,68 +19,62 @@
 #include <regex>
 #include <ostream>
 
-using namespace uri;
+namespace uri {
 
 ///////////////////////////////////////////////////////////////////////////////
-URI::URI(const char* uri)
-  : URI{std::string{uri}}
-{}
-
-///////////////////////////////////////////////////////////////////////////////
-URI::URI(const std::string& uri)
-  : uri_str_{decode(uri)}
-  , port_{}
+URI::URI(const std::experimental::string_view uri)
+  : uri_str_{decode(std::move(uri.to_string()))}
 {
   parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::scheme() const noexcept {
+std::experimental::string_view URI::scheme() const noexcept {
   return scheme_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::userinfo() const noexcept {
+std::experimental::string_view URI::userinfo() const noexcept {
   return userinfo_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::host() const noexcept {
+std::experimental::string_view URI::host() const noexcept {
   return host_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::port_str() const noexcept {
+std::experimental::string_view URI::port_str() const noexcept {
   return port_str_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 uint16_t URI::port() const noexcept {
-  if ((not port_) && (not port_str_.empty())) {
-    port_ = static_cast<uint16_t>(std::stoi(port_str_));
+  if ((port_ == -1) && (not port_str_.empty())) {
+    port_ = static_cast<int32_t>(std::stoi(port_str_.to_string()));
   }
   return port_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::path() const noexcept {
+std::experimental::string_view URI::path() const noexcept {
   return path_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::query() const noexcept {
+std::experimental::string_view URI::query() const noexcept {
   return query_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::fragment() const noexcept {
+std::experimental::string_view URI::fragment() const noexcept {
   return fragment_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::query(const std::string& key) {
   static bool queries_not_loaded {true};
-  static std::string no_entry_value;
+  static const std::string no_entry_value;
 
   if (queries_not_loaded) {
     load_queries();
@@ -94,7 +88,7 @@ const std::string& URI::query(const std::string& key) {
 
 ///////////////////////////////////////////////////////////////////////////////
 bool URI::is_valid() const noexcept {
-  return not uri_str_.empty();
+  return not host_.empty() or not path_.empty();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -114,7 +108,9 @@ URI::operator std::string () const {
 
 ///////////////////////////////////////////////////////////////////////////////
 void URI::parse() {
-  static const std::regex uri_pattern_matcher
+  using sview = std::experimental::string_view;
+
+  static const std::regex uri_pattern
   {
     "^([a-zA-Z]+[\\w\\+\\-\\.]+)?(\\://)?" //< scheme
     "(([^:@]+)(\\:([^@]+))?@)?"            //< username && password
@@ -126,47 +122,50 @@ void URI::parse() {
 
   static std::smatch uri_parts;
 
-  if (std::regex_match(uri_str_, uri_parts, uri_pattern_matcher)) {
-    path_     = uri_parts[10].str();
+  if (std::regex_match(uri_str_, uri_parts, uri_pattern)) {
+    path_     = sview(uri_str_.data() + uri_parts.position(10), uri_parts.length(10));
 
-    scheme_   = uri_parts.length(1)  ? uri_parts[1].str()  : "";
-    userinfo_ = uri_parts.length(3)  ? uri_parts[3].str()  : "";
-    host_     = uri_parts.length(7)  ? uri_parts[7].str()  : "";
-    port_str_ = uri_parts.length(9)  ? uri_parts[9].str()  : "";
-    query_    = uri_parts.length(11) ? uri_parts[11].str() : "";
-    fragment_ = uri_parts.length(13) ? uri_parts[13].str() : "";
+    scheme_   = uri_parts.length(1)  ? sview(uri_str_.data() + uri_parts.position(1),  uri_parts.length(1))  : sview{};
+    userinfo_ = uri_parts.length(3)  ? sview(uri_str_.data() + uri_parts.position(3),  uri_parts.length(3))  : sview{};
+    host_     = uri_parts.length(7)  ? sview(uri_str_.data() + uri_parts.position(7),  uri_parts.length(7))  : sview{};
+    port_str_ = uri_parts.length(9)  ? sview(uri_str_.data() + uri_parts.position(9),  uri_parts.length(9))  : sview{};
+    query_    = uri_parts.length(11) ? sview(uri_str_.data() + uri_parts.position(11), uri_parts.length(11)) : sview{};
+    fragment_ = uri_parts.length(13) ? sview(uri_str_.data() + uri_parts.position(13), uri_parts.length(13)) : sview{};
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 void URI::load_queries() {
-  static const std::regex queries_tokenizer {"[^?=&]+"};
+  static const std::regex query_token_pattern {"[^?=&]+"};
 
-  auto position = std::sregex_iterator(query_.begin(), query_.end(), queries_tokenizer);
-  auto end      = std::sregex_iterator();
+  auto query = query_.to_string();
 
-  while (position not_eq end) {
-    auto key = (*position).str();
+  auto it  = std::sregex_iterator(query.cbegin(), query.cend(), query_token_pattern);
+  auto end = std::sregex_iterator();
 
-    if ((++position) not_eq end) {
-      queries_[key] = (*position++).str();
+  while (it not_eq end) {
+    auto key = it->str();
+    if (++it not_eq end) {
+      queries_[key] = it->str();
     } else {
       queries_[key];
     }
-  }
+  } 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool uri::operator < (const URI& lhs, const URI& rhs) noexcept {
+bool operator < (const URI& lhs, const URI& rhs) noexcept {
   return lhs.to_string() < rhs.to_string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool uri::operator == (const URI& lhs, const URI& rhs) noexcept {
+bool operator == (const URI& lhs, const URI& rhs) noexcept {
   return lhs.to_string() == rhs.to_string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::ostream& uri::operator<< (std::ostream& out, const URI& uri) {
-  return out << uri.to_string();
+std::ostream& operator<< (std::ostream& output_device, const URI& uri) {
+  return output_device << uri.to_string();
 }
+
+} //< namespace uri

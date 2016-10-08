@@ -19,30 +19,34 @@
 #include <string>
 #include <uri>
 
-inline std::string decode_error(std::string res) {
+///////////////////////////////////////////////////////////////////////////////
+static inline std::string decode_error(std::string res) {
 #ifdef URL_THROW_ON_ERROR
-  throw uri::Decode_error("Decoding incomplete: "+res);
+  throw uri::Decode_error{"Decoding incomplete: " + res};
 #endif
   return res;
 }
 
-inline std::string encode_error(std::string res) {
+///////////////////////////////////////////////////////////////////////////////
+static inline std::string encode_error(std::string res) {
 #ifdef URL_THROW_ON_ERROR
-  throw uri::Encode_error("Encoding incomplete: "+res);
+  throw uri::Encode_error{"Encoding incomplete: " + res};
 #endif
   return res;
 }
 
-inline uint8_t hex_error(char nibble){
+///////////////////////////////////////////////////////////////////////////////
+static inline uint8_t hex_error(const char nibble) {
 #ifdef URL_THROW_ON_ERROR
-  throw uri::Hex_error(std::string("Not a hex character: ") + nibble);
+  throw uri::Hex_error{std::move(std::string{"Not a hex character: "} + nibble)};
 #else
   (void) nibble;
 #endif
   return 0;
 }
 
-inline uint8_t from_hex(char digit){
+///////////////////////////////////////////////////////////////////////////////
+static inline uint8_t from_hex(const char digit) {
   if (digit >= '0' and digit <= '9')
       return digit - '0';
 
@@ -55,29 +59,34 @@ inline uint8_t from_hex(char digit){
   return hex_error(digit);
 }
 
-inline uint8_t from_hex(char nibble1, char nibble2) {
+///////////////////////////////////////////////////////////////////////////////
+static inline uint8_t from_hex(const char nibble1, const char nibble2) {
   return (from_hex(nibble1) << 4) + from_hex(nibble2);
 }
 
-inline bool is_reserved (char chr) {
+///////////////////////////////////////////////////////////////////////////////
+static inline bool is_reserved (const char chr) noexcept {
   static const std::array<char,18> reserved
   {{':' , '/' , '?' , '#' , '[' , ']' , '@',
         '!' , '$' , '&' , '\'' , '(' , ')' , '*' , '+' , ',' , ';' , '='}};
 
-  return std::find(reserved.begin(), reserved.end(), chr) < reserved.end();
+  return std::find(reserved.begin(), reserved.end(), chr) not_eq reserved.end();
 }
 
-inline bool is_unreserved (char chr) {
-  return isalnum(chr) or chr == '-' or chr == '.' or chr == '_' or chr == '~';
+///////////////////////////////////////////////////////////////////////////////
+static inline bool is_unreserved (const char chr) noexcept {
+  return std::isalnum(chr) or (chr == '-') or (chr == '.') or (chr == '_') or (chr == '~');
 }
 
-std::string uri::encode(gsl::span<const char> input){
+///////////////////////////////////////////////////////////////////////////////
+std::string uri::encode(const std::experimental::string_view input) {
   static const std::array<char,16> hex =
     {{ '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }};
 
   std::string res;
+  res.reserve(input.size());
 
-  for (unsigned char chr : input)
+  for (const auto chr : input)
     if (is_unreserved(chr)) {
       res += chr;
     } else {
@@ -89,24 +98,26 @@ std::string uri::encode(gsl::span<const char> input){
   return res;
 }
 
-std::string uri::decode(gsl::span<const char> input){
-  std::string res ="";
-  for (auto it = input.begin(); it != input.end(); it++) {
+///////////////////////////////////////////////////////////////////////////////
+std::string uri::decode(const std::experimental::string_view input) {
+  std::string res;
+  res.reserve(input.size());
+  for (auto it = input.cbegin(), e = input.cend(); it not_eq e; ++it) {
     if (*it == '%') {
 
-      if (++it >= input.end()) return decode_error(res);
-      uint8_t nibble1 = *(it);
+      if (++it >= e) return decode_error(std::move(res));
+      const uint8_t nibble1 = (*it);
 
-      if (++it >= input.end()) return decode_error(res);
-      uint8_t nibble2 = *(it);
+      if (++it >= e) return decode_error(std::move(res));
+      const uint8_t nibble2 = (*it);
 
-      res += (char)from_hex(nibble1,nibble2);
+      res += static_cast<char>(from_hex(nibble1, nibble2));
 
     } else {
       if (is_reserved(*it) or is_unreserved(*it))
         res += *it;
       else
-        return decode_error(res);
+        return decode_error(std::move(res));
     }
   }
   return res;

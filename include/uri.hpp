@@ -15,10 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef URI_HPP
 #define URI_HPP
 
-#include <gsl/gsl>
+#include <experimental/string_view>
 #include <unordered_map>
 
 namespace uri {
@@ -32,18 +33,18 @@ namespace uri {
     /*
      * Default constructor
      */
-    URI() = default;
+    explicit URI() = default;
 
     /*
      * Default copy and move constructors
      */
-    URI(URI&) = default;
+    URI(const URI&) = default;
     URI(URI&&) = default;
 
     /*
      * Default destructor
      */
-    ~URI() = default;
+    ~URI() noexcept = default;
 
     /*
      * Default assignment operators
@@ -51,24 +52,13 @@ namespace uri {
     URI& operator=(const URI&) = default;
     URI& operator=(URI&&) = default;
 
-    //
-    // We might do a span-based constructor later.
-    // URI(gsl::span<const char>);
-    //
-
     /**
-     * @brief Construct using a C-String
+     * @brief Construct using a view into an existing string
      *
-     * @param uri : A C-String representing a uri
+     * @param uri : A view into an existing string representing
+     * a uri
      */
-    URI(const char* uri);
-
-    /**
-     * @brief Construct using a {std::string}
-     *
-     * @param uri : A {std::string} representing a uri
-     */
-    URI(const std::string& uri);
+    explicit URI(const std::experimental::string_view uri);
 
     ///////////////////////////////////////////////
     //----------RFC-specified URI parts----------//
@@ -81,7 +71,7 @@ namespace uri {
      *
      * @return The scheme
      */
-    const std::string& scheme() const noexcept;
+    std::experimental::string_view scheme() const noexcept;
 
     /**
      * @brief Get userinfo.
@@ -90,7 +80,7 @@ namespace uri {
      *
      * @return The user's information
      */
-    const std::string& userinfo() const noexcept;
+    std::experimental::string_view userinfo() const noexcept;
 
     /**
      * @brief Get host.
@@ -99,14 +89,14 @@ namespace uri {
      *
      * @return The host's information
      */
-    const std::string& host() const noexcept;
+    std::experimental::string_view host() const noexcept;
 
     /**
      * @brief Get the raw port number in decimal character representation.
      *
-     * @return The raw port number as a string
+     * @return The raw port number as a {std::string}
      */
-    const std::string& port_str() const noexcept;
+    std::experimental::string_view port_str() const noexcept;
 
     /**
      * @brief Get numeric port number.
@@ -125,14 +115,14 @@ namespace uri {
      *
      * @return The path information
      */
-    const std::string& path() const noexcept;
+    std::experimental::string_view path() const noexcept;
 
     /**
      * @brief Get the complete unparsed query string.
      *
      * @return The complete unparsed query string
      */
-    const std::string& query() const noexcept;
+    std::experimental::string_view query() const noexcept;
 
     /**
      * @brief Get the fragment part.
@@ -141,7 +131,7 @@ namespace uri {
      *
      * @return the fragment part
      */
-    const std::string& fragment() const noexcept;
+    std::experimental::string_view fragment() const noexcept;
 
     /**
      * @brief Get the URI-decoded value of a query-string key.
@@ -191,20 +181,20 @@ namespace uri {
      */
     std::string uri_str_;
 
-    mutable uint16_t port_;
+    mutable int32_t port_ {-1};
 
-    std::string scheme_;
-    std::string userinfo_;
-    std::string host_;
-    std::string port_str_;
-    std::string path_;
-    std::string query_;
-    std::string fragment_;
+    std::experimental::string_view scheme_;
+    std::experimental::string_view userinfo_;
+    std::experimental::string_view host_;
+    std::experimental::string_view port_str_;
+    std::experimental::string_view path_;
+    std::experimental::string_view query_;
+    std::experimental::string_view fragment_;
 
-    std::unordered_map<std::string,std::string> queries_;
+    std::unordered_map<std::string, std::string> queries_;
 
     /**
-     * @brief Parse the given {std::string} representing a uri
+     * @brief Parse the given string view representing a uri
      * into its given parts according to RFC 3986
      */
     void parse();
@@ -214,7 +204,7 @@ namespace uri {
      */
     void load_queries();
 
-  }; // class uri::URI
+  }; //< class URI
 
   /**
    * @brief Less-than operator to compare two {URI} objects
@@ -248,6 +238,6 @@ namespace uri {
    */
   std::ostream& operator<< (std::ostream& output_device, const URI& uri);
 
-} // namespace uri
+} //< namespace uri
 
 #endif //< URI_HPP
