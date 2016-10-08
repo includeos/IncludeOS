@@ -26,6 +26,7 @@
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 #include <delegate>
+#include <util/timer.hpp>
 
 namespace net {
   class TCP;
@@ -477,20 +478,11 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
-  /** When time-wait timer was started. Used in start_time_wait_timeout */
-  uint64_t time_wait_started;
-
   /** Retransmission timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } rtx_timer;
+  Timer rtx_timer;
 
   /** Time Wait timeout timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } timewait_timer;
+  Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   size_t rtx_attempt_ = 0;
@@ -853,20 +845,20 @@ private:
   /*
     Start retransmission timer.
   */
-  void rtx_start();
+  void rtx_start()
+  { rtx_timer.start(rttm.rto_ms()); }
 
   /*
     Stop retransmission timer.
   */
-  void rtx_stop();
+  void rtx_stop()
+  { rtx_timer.stop(); }
 
   /*
     Restart retransmission timer.
   */
-  void rtx_reset() {
-    rtx_stop();
-    rtx_start();
-  }
+  void rtx_reset()
+  { rtx_timer.restart(rttm.rto_ms()); }
 
   /*
     Retransmission timeout limit reached

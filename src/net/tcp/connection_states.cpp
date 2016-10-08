@@ -902,7 +902,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
     tcb.IRS       = in->seq();
     tcb.SND.UNA   = in->ack();
 
-    if(tcp.rtx_timer.active)
+    if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
 
     // (our SYN has been ACKed)
@@ -1013,7 +1013,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
 
       // Taken from acknowledge (without congestion control)
       tcb.SND.UNA = in->ack();
-      if(tcp.rtx_timer.active)
+      if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
 
       tcp.signal_connect(); // NOTE: User callback
@@ -1150,7 +1150,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
     if(in->ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
-      if(tcp.rtx_timer.active)
+      if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
       tcp.timewait_start();
     } else {
@@ -1197,7 +1197,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_ptr in) {
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
-    if(tcp.rtx_timer.active)
+    if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
     tcp.timewait_start();
   }
