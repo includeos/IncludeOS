@@ -50,7 +50,6 @@
 
 /* debugging macros */
 #include "debug"
-#include "warn"
 #include "info"
 
 #define LIKELY(x)       __builtin_expect(!!(x), 1)
