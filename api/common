@@ -38,13 +38,6 @@
 #warning "This project is targeted at the i386 architecture"
 #endif
 
-/* Unused parameters */
-#ifdef __GNUC__
-#  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
-#else
-#  define UNUSED(x) UNUSED_ ## x
-#endif
-
 /* BOCHS Break point */
 #define BREAK __asm__ volatile("xchg %bx,%bx");
 

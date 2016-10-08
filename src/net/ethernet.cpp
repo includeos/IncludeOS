@@ -42,7 +42,7 @@ namespace net {
   // uint16_t(0x3333), uint32_t(0x02000000)
   const Ethernet::addr Ethernet::addr::IPv6mcast_02 {0x33,0x33,0x02,0,0,0};
 
-  static void ignore(Packet_ptr UNUSED(pckt)) noexcept {
+  static void ignore(Packet_ptr) noexcept {
     debug("<Ethernet handler> Ignoring data (no real handler)\n");
   }
 

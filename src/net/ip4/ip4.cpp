@@ -116,11 +116,11 @@ namespace net {
   }
 
   // Empty handler for delegates initialization
-  void ignore_ip4_up(Packet_ptr UNUSED(pckt)) {
+  void ignore_ip4_up(Packet_ptr) {
     debug("<IP4> Empty handler. Ignoring.\n");
   }
 
-  void ignore_ip4_down(Packet_ptr UNUSED(pckt)) {
+  void ignore_ip4_down(Packet_ptr) {
     debug("<IP4->Link layer> No handler - DROP!\n");
   }
 
