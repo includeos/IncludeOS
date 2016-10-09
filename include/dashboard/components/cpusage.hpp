@@ -33,13 +33,9 @@ public:
 
   CPUsage(::IRQ_manager& manager, Timers::duration_t when, Timers::duration_t interval)
    :  manager_{manager},
-      interval_{interval}
-  {
-    using OnTimeout = Timers::handler_t;
-
-    timer_id_ = Timers::periodic(when, interval,
-      OnTimeout::from<CPUsage, &CPUsage::update_values>(this));
-  }
+      interval_{interval},
+      timer_id_{Timers::periodic(when, interval, {this, &CPUsage::update_values})}
+  {}
 
   ~CPUsage() {
     Timers::stop(timer_id_);
