@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -184,7 +184,7 @@ namespace
 
 } //< namespace
 
-bool CPUID::isAmdCpu()
+bool CPUID::is_amd_cpu()
 {
   auto result = cpuid(0, 0);
   return
@@ -193,7 +193,7 @@ bool CPUID::isAmdCpu()
   && memcmp(reinterpret_cast<char*>(&result.ECX), "DMAc", 4) == 0;
 }
 
-bool CPUID::isIntelCpu()
+bool CPUID::is_intel_cpu()
 {
   auto result = cpuid(0, 0);
   return
@@ -202,7 +202,7 @@ bool CPUID::isIntelCpu()
   && memcmp(reinterpret_cast<char*>(&result.ECX), "ntel", 4) == 0;
 }
 
-bool CPUID::hasFeature(Feature f)
+bool CPUID::has_feature(Feature f)
 {
   const auto feature_info = get_feature_info(f);
   const auto cpuid_result = cpuid(feature_info.func, feature_info.subfunc);
@@ -214,4 +214,22 @@ bool CPUID::hasFeature(Feature f)
     case Register::ECX: return (cpuid_result.ECX & feature_info.bitmask) != 0;
     case Register::EDX: return (cpuid_result.EDX & feature_info.bitmask) != 0;
   }
+}
+
+#define KVM_CPUID_SIGNATURE       0x40000000
+
+unsigned CPUID::kvm_function()
+{
+  auto res = cpuid(KVM_CPUID_SIGNATURE, 0);
+  /// "KVMKVMKVM"
+  if (res.EBX == 0x4b4d564b && res.ECX == 0x564b4d56 && res.EDX == 0x4d)
+      return res.EAX;
+  return 0;
+}
+bool CPUID::kvm_feature(unsigned id)
+{
+  unsigned func = kvm_function();
+  if (func == 0) return false;
+  auto res = cpuid(func, 0);
+  return (res.EAX & (1 << id)) != 0;
 }
