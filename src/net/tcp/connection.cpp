@@ -737,7 +737,7 @@ void Connection::rtx_clear() {
        MUST be re-initialized to 3 seconds when data transmission
        begins (i.e., after the three-way handshake completes).
 */
-void Connection::rtx_timeout(uint32_t) {
+void Connection::rtx_timeout(Timers::id_t) {
   rtx_timer.active = false;
   debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u\n",
     to_string().c_str(), flight_size());
@@ -833,7 +833,7 @@ void Connection::timewait_restart() {
   timewait_start();
 }
 
-void Connection::timewait_timeout(uint32_t) {
+void Connection::timewait_timeout(Timers::id_t) {
   debug("<Connection> TimeWait timed out, closing.\n");
   timewait_timer.active = false;
 

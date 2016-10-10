@@ -887,7 +887,7 @@ private:
   /*
     When retransmission times out.
   */
-  void rtx_timeout(uint32_t);
+  void rtx_timeout(int);
 
 
   /** Start the timewait timeout for 2*MSL */
@@ -900,7 +900,7 @@ private:
   void timewait_restart();
 
   /** When timewait timer times out */
-  void timewait_timeout(uint32_t);
+  void timewait_timeout(int);
 
   /*
     Tell the host (TCP) to delete this connection.
