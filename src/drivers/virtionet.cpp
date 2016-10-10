@@ -223,12 +223,15 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming()) {
     // FIXME Unfortunately dequeue is not working here
     // I am guessing that Linux is eating the buffers?
+    //auto res = 
     tx_q.dequeue();
 
     // unlock and release the (assumed) locked buffer
     auto data = tx_ringq.front();
     tx_ringq.pop_front();
     bufstore().unlock_and_release(data);
+
+    //printf("res:  %p / %p\n", res.data(), data);
 
     dequeued_tx = true;
   }
@@ -301,7 +304,7 @@ std::shared_ptr<Packet>
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
-  new (ptr) Packet(bufsize(), size, {&bufstore(), &BufferStore::release});
+  new (ptr) Packet(bufsize(), size, &bufstore());
 
   return std::shared_ptr<Packet> (ptr);
 }

@@ -22,8 +22,9 @@
 #include "ip4/addr.hpp"
 #include <cassert>
 
-namespace net {
-  void default_packet_deleter(void* p);
+namespace net
+{
+  class BufferStore;
 
   class Packet : public std::enable_shared_from_this<Packet>
   {
@@ -41,25 +42,23 @@ namespace net {
     Packet(
         uint16_t cap,
         uint16_t len,
-        deleter_t del = default_packet_deleter) noexcept
+        BufferStore* bs) noexcept
     : capacity_ (cap),
       size_     (len),
-      deleter_  {del}
+      bufstore  (bs)
     {}
-    ~Packet() {
-      deleter_(this);
-    }
+    ~Packet(); // see: buffer_store.cpp
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
     { return (BufferStore::buffer_t) buf_; }
 
     /** Get the network packet length - i.e. the number of populated bytes  */
-    inline uint16_t size() const noexcept
+    uint16_t size() const noexcept
     { return size_; }
 
     /** Get the size of the buffer. This is >= len(), usually MTU-size */
-    inline uint16_t capacity() const noexcept
+    uint16_t capacity() const noexcept
     { return capacity_; }
 
     void set_size(uint16_t new_size) noexcept {
@@ -107,11 +106,11 @@ namespace net {
      *  For a UDPv6 packet, the payload location is the start of
      *  the UDPv6 header, and so on
      */
-    inline void set_payload(BufferStore::buffer_t location) noexcept
+    void set_payload(BufferStore::buffer_t location) noexcept
     { payload_ = location; }
 
     /** Get the payload of the packet */
-    inline BufferStore::buffer_t payload() const noexcept
+    BufferStore::buffer_t payload() const noexcept
     { return payload_; }
 
     /**
@@ -123,16 +122,10 @@ namespace net {
     static Packet_ptr packet(Packet_ptr pckt) noexcept
     { return *static_cast<Packet_ptr*>(&pckt); }
 
-    // custom deleter for Packet used by network stack
-    void set_deleter(deleter_t cb) {
-      this->deleter_ = cb;
-    }
-
     // override delete to do nothing
     static void operator delete (void*) {}
 
   private:
-    /** Let's chain packets */
     Packet_ptr chain_ {0};
     Packet_ptr last_ {0};
 
@@ -158,15 +151,11 @@ namespace net {
 
     uint16_t              capacity_;
     uint16_t              size_;
+    BufferStore*          bufstore;
     ip4::Addr             next_hop4_;
-    deleter_t             deleter_;
     BufferStore::buffer_t payload_ {nullptr};
     BufferStore::buffer_t buf_[0];
   }; //< class Packet
-
-  inline void default_packet_deleter(void* p) {
-    delete (Packet*) p;
-  }
 
 } //< namespace net
 
