@@ -880,7 +880,6 @@ private:
   */
   void rtx_timeout(Timer::id_t);
 
-
   /** Start the timewait timeout for 2*MSL */
   void timewait_start();
 
