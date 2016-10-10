@@ -44,7 +44,9 @@ public:
    * @param on_timeout function to be executed on timeout
    */
   Timer(handler_t on_timeout)
-    : on_timeout_{on_timeout}, running_{false} {}
+    : id_{Timers::UNUSED_ID},
+      on_timeout_{on_timeout}
+  {}
 
   /**
    * @brief Start the timer with a timeout duration
@@ -88,7 +90,7 @@ public:
    * @return Wether the timer is running or not
    */
   bool is_running() const
-  { return running_; }
+  { return id_ != Timers::UNUSED_ID; }
 
   /**
    * @brief Destroys the Timer
@@ -109,8 +111,6 @@ private:
   Timers::id_t id_;
   /** Function to execute on timeout */
   handler_t on_timeout_;
-  /** Wether the timer is running or not */
-  bool running_;
 
   /**
    * @brief Sets the timer to inactive before calling the user callback
@@ -127,16 +127,17 @@ private:
 } __attribute__((packed)); // < class Timer
 
 inline void Timer::start(duration_t when) {
-  if(!running_) {
+  if(!is_running())
+  {
     id_ = Timers::oneshot(when, {this, &Timer::_internal_timeout});
-    running_ = true;
   }
 }
 
 inline void Timer::stop() {
-  if(running_) {
+  if(is_running())
+  {
     Timers::stop(id_);
-    running_ = false;
+    id_ = Timers::UNUSED_ID;
   }
 }
 
@@ -146,7 +147,7 @@ inline void Timer::restart(duration_t when) {
 }
 
 inline void Timer::_internal_timeout(id_t id) {
-  running_ = false;
+  id_ = Timers::UNUSED_ID;
   on_timeout_(id);
 }
 
