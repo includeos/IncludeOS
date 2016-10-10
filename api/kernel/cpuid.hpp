@@ -21,7 +21,7 @@
 
 namespace CPUID
 {
-  enum class Feature
+  enum Feature
   {
     // ------------------------------------------------------------------------
     // Processor Info and Feature Bits
@@ -31,7 +31,7 @@ namespace CPUID
     DTES64,            // 64-Bit Debug Store Area
     MONITOR,           // MONITOR/MWAIT
     DS_CPL,            // CPL Qualified Debug Store
-    VMX,               // Virtual Machine Extensions
+    VMX,               // Virtual Machine Extensions (VT-x)
     SMX,               // Safer Mode Extensions
     EST,               // Enhanced SpeedStep Technology
     TM2,               // Thermal Monitor 2
@@ -94,6 +94,10 @@ namespace CPUID
     PDPE1GB,           // 1 GB Pages
     RDTSCP,            // RDTSCP and IA32_TSC_AUX
     LM,                // Long mode (64-bit Architecture)
+
+    SVM,               // Secture Virtual Machines (AMD-V)
+                       // aka. AMD-V (AMD's virtualization extension)
+    SSE4A,             // SSE4a
   };
 
   bool is_amd_cpu();

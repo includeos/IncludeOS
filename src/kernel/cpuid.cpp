@@ -57,7 +57,7 @@ namespace
       case Feature::MONITOR:      return FeatureInfo { 1, 0, ECX, 1u <<  3 }; // MONITOR/MWAIT
       case Feature::DS_CPL:       return FeatureInfo { 1, 0, ECX, 1u <<  4 }; // CPL Qualified Debug Store
       case Feature::VMX:          return FeatureInfo { 1, 0, ECX, 1u <<  5 }; // Virtual Machine Extensions
-      case Feature::SMX:          return FeatureInfo { 1, 0, ECX, 1u <<  6 }; // Safer Mode Extensions
+      case Feature::SMX:          return FeatureInfo { 1, 0, ECX, 1u <<  6 }; // Safer Mode Extensions (Intel TXT)
       case Feature::EST:          return FeatureInfo { 1, 0, ECX, 1u <<  7 }; // Enhanced SpeedStep Technology
       case Feature::TM2:          return FeatureInfo { 1, 0, ECX, 1u <<  8 }; // Thermal Monitor 2
       case Feature::SSSE3:        return FeatureInfo { 1, 0, ECX, 1u <<  9 }; // Supplemental Streaming SIMD Extensions 3
@@ -119,6 +119,9 @@ namespace
       case Feature::PDPE1GB:      return FeatureInfo { 0x80000001, 0, EDX, 1u << 26 }; // 1 GB Pages
       case Feature::RDTSCP:       return FeatureInfo { 0x80000001, 0, EDX, 1u << 27 }; // RDTSCP and IA32_TSC_AUX
       case Feature::LM:           return FeatureInfo { 0x80000001, 0, EDX, 1u << 29 }; // 64-bit Architecture
+
+      case Feature::SVM:          return FeatureInfo { 0x80000001, 0, ECX, 1u <<  2 }; // Secure Virtual Machine (AMD-V)
+      case Feature::SSE4A:        return FeatureInfo { 0x80000001, 0, ECX, 1u <<  6 }; // SSE4a
     }
   }
 
