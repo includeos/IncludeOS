@@ -31,18 +31,22 @@ struct ReadRequest {
   ReadBuffer buffer;
   ReadCallback callback;
 
-  /*ReadRequest()
-    : buffer(nullptr, 0),
-      callback({this, &ReadRequest::default_read_callback})
-  {}*/
+  ReadRequest()
+    : buffer{nullptr, 0},
+      callback{nullptr}
+  {}
+
+  ReadRequest(ReadBuffer buf)
+    : ReadRequest(buf, nullptr)
+  {}
 
   ReadRequest(ReadBuffer buf, ReadCallback cb)
     : buffer(buf),
       callback(cb)
   {}
 
-  ReadRequest(size_t n = 0)
-    : buffer(buffer_t(new uint8_t[n], std::default_delete<uint8_t[]>()), n),
+  ReadRequest(size_t n)
+    : buffer({new_shared_buffer(n), n}),
       callback({this, &ReadRequest::default_read_callback})
   {}
 
