@@ -25,8 +25,6 @@
 #include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
-#include <timers>
-
 
 using namespace net::tcp;
 using namespace std;
@@ -45,7 +43,8 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   writeq(),
   bytes_rx_(0), bytes_tx_(0),
   queued_(false),
-  time_wait_started(0)
+  rtx_timer({this, &Connection::rtx_timeout}),
+  timewait_timer({this, &Connection::timewait_timeout})
 {
   setup_congestion_control();
   setup_default_callbacks();
@@ -83,12 +82,12 @@ Socket Connection::local() const {
   return {host_.address(), local_port_};
 }
 
-void Connection::read(ReadBuffer buffer, ReadCallback callback) {
+void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {
   try {
-    state_->receive(*this, buffer);
+    state_->receive(*this, std::forward<ReadBuffer>(buffer));
     read_request.callback = callback;
   }
-  catch (TCPException err) {
+  catch (const TCPException&) {
     callback(buffer.buffer, buffer.size());
   }
 }
@@ -96,8 +95,8 @@ void Connection::read(ReadBuffer buffer, ReadCallback callback) {
 size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   //printf("<Connection::receive> len=%u\n", n);
   // should not be called without an read request
-  assert(read_request.buffer.capacity());
-  assert(n);
+  Ensures(read_request.buffer.capacity());
+  Ensures(n);
   auto& buf = read_request.buffer;
   size_t received{0};
   while(n) {
@@ -105,7 +104,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
     // nothing was read to buffer
     if(!buf.advance(read)) {
       // buffer should be full
-      assert(buf.full());
+      Expects(buf.full());
       // signal the user
       debug2("<Connection::receive> Buffer full - signal user\n");
       read_request.callback(buf.buffer, buf.size());
@@ -116,7 +115,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
     received += read;
   }
   // n shouldnt be negative
-  assert(n == 0);
+  Expects(n == 0);
 
   // end of data, signal the user
   if(PUSH) {
@@ -146,7 +145,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
       writeq.advance(written);
     }
   }
-  catch(TCPException err) {
+  catch(const TCPException&) {
     callback(0);
   }
 }
@@ -294,8 +293,7 @@ void Connection::limited_tx() {
 void Connection::writeq_reset() {
   debug2("<Connection::writeq_reset> Reseting.\n");
   writeq.reset();
-  if(rtx_timer.active)
-    rtx_stop();
+  rtx_timer.stop();
 }
 
 void Connection::open(bool active) {
@@ -304,7 +302,7 @@ void Connection::open(bool active) {
     state_->open(*this, active);
   }
   // No remote host, or state isnt valid for opening.
-  catch (TCPException e) {
+  catch (const TCPException& e) {
     debug("<TCP::Connection::open> Cannot open Connection. \n");
     signal_error(e);
   }
@@ -316,7 +314,7 @@ void Connection::close() {
     state_->close(*this);
     if(is_state(Closed::instance()))
       signal_close();
-  } catch(TCPException err) {
+  } catch(const TCPException& err) {
     Ensures(on_error_);
     signal_error(err);
   }
@@ -344,7 +342,7 @@ void Connection::segment_arrived(Packet_ptr incoming) {
     try {
       parse_options(incoming);
     }
-    catch(TCPBadOptionException err) {
+    catch(const TCPBadOptionException& err) {
       debug("<TCP::Connection::receive> %s \n", err.what());
       drop(incoming, err.what());
       return;
@@ -416,7 +414,7 @@ void Connection::transmit(Packet_ptr packet) {
   bytes_tx_ += packet->tcp_data_length();
 
   host_.transmit(packet);
-  if(packet->should_rtx() and !rtx_timer.active) {
+  if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
 }
@@ -475,7 +473,7 @@ bool Connection::handle_ack(Packet_ptr in) {
     cb.SND.UNA = in->ack();
 
     // ack everything in rtx queue
-    if(rtx_timer.active)
+    if(rtx_timer.is_running())
       rtx_ack(in->ack());
 
     // update cwnd when congestion avoidance?
@@ -690,29 +688,13 @@ void Connection::retransmit() {
     so that it will expire after RTO seconds (for the current value
     of RTO).
   */
-  if(packet->should_rtx() and !rtx_timer.active) {
+  if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
 }
 
-void Connection::rtx_start() {
-  Expects(!rtx_timer.active);
-
-  rtx_timer.id = Timers::oneshot(
-    std::chrono::milliseconds((int) (rttm.RTO * 1000.0)),
-    {this, &Connection::rtx_timeout});
-
-  rtx_timer.active = true;
-}
-
-void Connection::rtx_stop() {
-  Expects(rtx_timer.active);
-  Timers::stop(rtx_timer.id);
-  rtx_timer.active = false;
-}
-
 void Connection::rtx_clear() {
-  if(rtx_timer.active) {
+  if(rtx_timer.is_running()) {
     rtx_stop();
     debug2("<Connection::rtx_clear> Rtx cleared\n");
   }
@@ -737,8 +719,7 @@ void Connection::rtx_clear() {
        MUST be re-initialized to 3 seconds when data transmission
        begins (i.e., after the three-way handshake completes).
 */
-void Connection::rtx_timeout(uint32_t) {
-  rtx_timer.active = false;
+void Connection::rtx_timeout() {
   debug("<TCP::Connection::RTX@timeout> %s Timed out (%f). FS: %u\n",
     to_string().c_str(), flight_size());
 
@@ -762,7 +743,7 @@ void Connection::rtx_timeout(uint32_t) {
     rttm.RTO = 3.0;
   }
   // timer need to be restarted
-  if(!rtx_timer.active)
+  if(!rtx_timer.is_running())
     rtx_start();
 
   /*
@@ -810,33 +791,23 @@ void Connection::set_state(State& state) {
 }
 
 void Connection::timewait_start() {
-  Expects(!timewait_timer.active);
-  auto timeout = 2 * host().MSL(); // 60 seconds
-
-  timewait_timer.id = Timers::oneshot(timeout, {this, &Connection::timewait_timeout});
-  timewait_timer.active = true;
-
+  const auto timeout = 2 * host().MSL(); // 60 seconds
+  timewait_timer.start(timeout);
   debug2("<Connection::timewait_start> TimeWait timer [%u] started.\n", timewait_timer.id);
 }
 
 void Connection::timewait_stop() {
-  Expects(timewait_timer.active);
-  Timers::stop(timewait_timer.id);
-  timewait_timer.active = false;
-
+  timewait_timer.stop();
   debug2("<Connection::timewait_stop> TimeWait timer [%u] stopped.\n", timewait_timer.id);
 }
 
 void Connection::timewait_restart() {
-  if(timewait_timer.active)
-    timewait_stop();
-  timewait_start();
+  const auto timeout = 2 * host().MSL(); // 60 seconds
+  timewait_timer.restart(timeout);
 }
 
-void Connection::timewait_timeout(uint32_t) {
+void Connection::timewait_timeout() {
   debug("<Connection> TimeWait timed out, closing.\n");
-  timewait_timer.active = false;
-
   signal_close();
 }
 
@@ -853,7 +824,7 @@ void Connection::signal_close() {
 void Connection::clean_up() {
   // clear timers if active
   rtx_clear();
-  if(timewait_timer.active)
+  if(timewait_timer.is_running())
     timewait_stop();
 
   // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called

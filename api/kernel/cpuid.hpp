@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -96,9 +96,22 @@ namespace CPUID
     LM,                // Long mode (64-bit Architecture)
   };
 
-  bool isAmdCpu();
-  bool isIntelCpu();
-  bool hasFeature(Feature f);
+  bool is_amd_cpu();
+  bool is_intel_cpu();
+  bool has_feature(Feature f);
+
+  unsigned kvm_function();
+  bool kvm_feature(unsigned id);
 } //< CPUID
+
+#define KVM_FEATURE_CLOCKSOURCE   0
+#define KVM_FEATURE_NOP_IO_DELAY  1
+#define KVM_FEATURE_MMU_OP        2   /* deprecated */
+#define KVM_FEATURE_CLOCKSOURCE2  3
+#define KVM_FEATURE_ASYNC_PF      4
+#define KVM_FEATURE_STEAL_TIME    5
+#define KVM_FEATURE_PV_EOI        6
+#define KVM_FEATURE_PV_UNHALT     7
+#define KVM_FEATURE_CLOCKSOURCE_STABLE_BIT 24
 
 #endif //< KERNEL_CPUID_HPP

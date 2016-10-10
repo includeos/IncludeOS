@@ -79,7 +79,7 @@ struct ReadBuffer {
   void renew() {
     remaining = capacity();
     offset = 0;
-    buffer = buffer_t(new uint8_t[remaining], std::default_delete<uint8_t[]>());
+    buffer = new_shared_buffer(remaining);
     push = false;
   }
 }; // < ReadBuffer

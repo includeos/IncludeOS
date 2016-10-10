@@ -26,6 +26,7 @@
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 #include <delegate>
+#include <util/timer.hpp>
 
 namespace net {
   class TCP;
@@ -282,7 +283,7 @@ public:
     virtual size_t send(Connection&, WriteBuffer&);
 
     /** Read from a Connection [RECEIVE] */
-    virtual void receive(Connection&, ReadBuffer&);
+    virtual void receive(Connection&, ReadBuffer&&);
 
     /** Close a Connection [CLOSE] */
     virtual void close(Connection&);
@@ -477,20 +478,11 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
-  /** When time-wait timer was started. Used in start_time_wait_timeout */
-  uint64_t time_wait_started;
-
   /** Retransmission timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } rtx_timer;
+  Timer rtx_timer;
 
   /** Time Wait timeout timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } timewait_timer;
+  Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   size_t rtx_attempt_ = 0;
@@ -550,8 +542,7 @@ private:
     Buffer is cleared for data after every reset.
   */
   void read(size_t n, ReadCallback callback) {
-    ReadBuffer buffer = {new_shared_buffer(n), n};
-    read(buffer, callback);
+    read({new_shared_buffer(n), n}, callback);
   }
 
   /*
@@ -561,13 +552,13 @@ private:
   void read(buffer_t buffer, size_t n, ReadCallback callback)
   { read({buffer, n}, callback); }
 
-  void read(ReadBuffer buffer, ReadCallback callback);
+  void read(ReadBuffer&& buffer, ReadCallback callback);
 
   /*
     Assign the read request (read buffer)
   */
-  void receive(ReadBuffer& buffer)
-  { read_request.buffer = {buffer}; }
+  void receive(ReadBuffer&& buffer)
+  { read_request = {buffer}; }
 
   /*
     Receive data into the current read requests buffer.
@@ -853,20 +844,20 @@ private:
   /*
     Start retransmission timer.
   */
-  void rtx_start();
+  void rtx_start()
+  { rtx_timer.start(rttm.rto_ms()); }
 
   /*
     Stop retransmission timer.
   */
-  void rtx_stop();
+  void rtx_stop()
+  { rtx_timer.stop(); }
 
   /*
     Restart retransmission timer.
   */
-  void rtx_reset() {
-    rtx_stop();
-    rtx_start();
-  }
+  void rtx_reset()
+  { rtx_timer.restart(rttm.rto_ms()); }
 
   /*
     Retransmission timeout limit reached
@@ -887,8 +878,7 @@ private:
   /*
     When retransmission times out.
   */
-  void rtx_timeout(uint32_t);
-
+  void rtx_timeout();
 
   /** Start the timewait timeout for 2*MSL */
   void timewait_start();
@@ -900,7 +890,7 @@ private:
   void timewait_restart();
 
   /** When timewait timer times out */
-  void timewait_timeout(uint32_t);
+  void timewait_timeout();
 
   /*
     Tell the host (TCP) to delete this connection.
