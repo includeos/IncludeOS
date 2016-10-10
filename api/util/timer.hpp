@@ -36,7 +36,7 @@ public:
   /**
    * @brief Constructs a Timer without a handler
    */
-  Timer() : Timer(nullptr) {}
+  Timer() : Timer({this, &Timer::_do_nothing}) {}
 
   /**
    * @brief Constructs a Timer with a handler
@@ -122,10 +122,11 @@ private:
    */
   inline void _internal_timeout(id_t id);
 
+  void _do_nothing(id_t) {}
+
 } __attribute__((packed)); // < class Timer
 
 inline void Timer::start(duration_t when) {
-  Ensures(on_timeout_);
   if(!running_) {
     id_ = Timers::oneshot(when, {this, &Timer::_internal_timeout});
     running_ = true;
