@@ -22,6 +22,7 @@
 #include <hw/apic_revenant.hpp>
 #include <hw/cpu.hpp>
 #include <hw/pic.hpp>
+#include <kernel/cpuid.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
 #include <debug>
@@ -104,7 +105,8 @@ namespace hw {
     }
 
     // use KVMs paravirt EOI if supported
-    //kvm_pv_eoi_init();
+    if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
+        kvm_pv_eoi_init();
 
     // subscribe to APIC-related interrupts
     setup_subs();
@@ -210,14 +212,14 @@ namespace hw {
 
   uint8_t APIC::get_isr()
   {
-    for (uint8_t i = 0; i < 8; i++)
+    for (int i = 8; i >= 0; i--)
       if (lapic.regs->isr[i].reg)
         return 32 * i + __builtin_ffs(lapic.regs->isr[i].reg) - 1;
     return 255;
   }
   uint8_t APIC::get_irr()
   {
-    for (uint8_t i = 0; i < 8; i++)
+    for (int i = 8; i >= 0; i--)
       if (lapic.regs->irr[i].reg)
         return 32 * i + __builtin_ffs(lapic.regs->irr[i].reg) - 1;
     return 255;
@@ -318,7 +320,6 @@ namespace hw {
 // http://choon.net/forum/read.php?21,1123399
 // https://www.kernel.org/doc/Documentation/virtual/kvm/cpuid.txt
 
-#define KVM_FEATURE_PV_EOI     6
 #define KVM_MSR_ENABLED        1
 #define MSR_KVM_PV_EOI_EN      0x4b564d04
 #define KVM_PV_EOI_BIT         0
@@ -341,7 +342,7 @@ int __test_and_clear_bit(long nr, volatile unsigned long* addr)
 static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
 void kvm_pv_eoi() {
 
-  //printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
+  printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
   // fast EOI by KVM
   if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
       printf("avoided\n");
@@ -350,14 +351,18 @@ void kvm_pv_eoi() {
   // fallback to normal APIC EOI
   hw::lapic.regs->eoi.reg = 0;
   // check after
-  //printf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
+  printf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
 }
 void kvm_pv_eoi_init() {
-  kvm_apic_eoi = 0;
-  auto pv_eoi = (uintptr_t) &kvm_apic_eoi;
-  printf("MSR %#x  pv_eoi = %#x\n", MSR_KVM_PV_EOI_EN, pv_eoi);
-  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, pv_eoi | KVM_MSR_ENABLED, 0);
+  printf("* Enabling KVM paravirtual EOI\n");
   // set new EOI handler
   current_eoi_mechanism = kvm_pv_eoi;
-  kvm_apic_eoi = KVM_PV_EOI_ENABLED;
+  // setup PV EOI using local variable
+  kvm_apic_eoi = 0;
+  auto pv_eoi = (uintptr_t) &kvm_apic_eoi;
+  printf("  MSR %#x  pv_eoi = %#x\n", MSR_KVM_PV_EOI_EN, pv_eoi);
+  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, pv_eoi | KVM_MSR_ENABLED, 0);
+  // verify that the feature was enabled
+  auto res = hw::CPU::read_msr(MSR_KVM_PV_EOI_EN);
+  assert(res == (pv_eoi | KVM_MSR_ENABLED));
 }
