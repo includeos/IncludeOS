@@ -621,24 +621,24 @@ size_t Connection::CloseWait::send(Connection& tcp, WriteBuffer& buffer) {
 */
 /////////////////////////////////////////////////////////////////////
 
-void Connection::State::receive(Connection&, ReadBuffer&) {
+void Connection::State::receive(Connection&, ReadBuffer&&) {
   throw TCPException{"Connection closing."};
 }
 
-void Connection::Established::receive(Connection& tcp, ReadBuffer& buffer) {
-  tcp.receive(buffer);
+void Connection::Established::receive(Connection& tcp, ReadBuffer&& buffer) {
+  tcp.receive(std::forward<ReadBuffer>(buffer));
 }
 
-void Connection::FinWait1::receive(Connection& tcp, ReadBuffer& buffer) {
-  tcp.receive(buffer);
+void Connection::FinWait1::receive(Connection& tcp, ReadBuffer&& buffer) {
+  tcp.receive(std::forward<ReadBuffer>(buffer));
 }
 
-void Connection::FinWait2::receive(Connection& tcp, ReadBuffer& buffer) {
-  tcp.receive(buffer);
+void Connection::FinWait2::receive(Connection& tcp, ReadBuffer&& buffer) {
+  tcp.receive(std::forward<ReadBuffer>(buffer));
 }
 
-void Connection::CloseWait::receive(Connection& tcp, ReadBuffer& buffer) {
-  tcp.receive(buffer);
+void Connection::CloseWait::receive(Connection& tcp, ReadBuffer&& buffer) {
+  tcp.receive(std::forward<ReadBuffer>(buffer));
 }
 
 /////////////////////////////////////////////////////////////////////

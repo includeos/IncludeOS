@@ -82,12 +82,12 @@ Socket Connection::local() const {
   return {host_.address(), local_port_};
 }
 
-void Connection::read(ReadBuffer buffer, ReadCallback callback) {
+void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {
   try {
-    state_->receive(*this, buffer);
+    state_->receive(*this, std::forward<ReadBuffer>(buffer));
     read_request.callback = callback;
   }
-  catch (TCPException err) {
+  catch (const TCPException&) {
     callback(buffer.buffer, buffer.size());
   }
 }
@@ -95,8 +95,8 @@ void Connection::read(ReadBuffer buffer, ReadCallback callback) {
 size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   //printf("<Connection::receive> len=%u\n", n);
   // should not be called without an read request
-  assert(read_request.buffer.capacity());
-  assert(n);
+  Ensures(read_request.buffer.capacity());
+  Ensures(n);
   auto& buf = read_request.buffer;
   size_t received{0};
   while(n) {
@@ -104,7 +104,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
     // nothing was read to buffer
     if(!buf.advance(read)) {
       // buffer should be full
-      assert(buf.full());
+      Expects(buf.full());
       // signal the user
       debug2("<Connection::receive> Buffer full - signal user\n");
       read_request.callback(buf.buffer, buf.size());
@@ -115,7 +115,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
     received += read;
   }
   // n shouldnt be negative
-  assert(n == 0);
+  Expects(n == 0);
 
   // end of data, signal the user
   if(PUSH) {
@@ -145,7 +145,7 @@ void Connection::write(WriteBuffer buffer, WriteCallback callback) {
       writeq.advance(written);
     }
   }
-  catch(TCPException err) {
+  catch(const TCPException&) {
     callback(0);
   }
 }
@@ -302,7 +302,7 @@ void Connection::open(bool active) {
     state_->open(*this, active);
   }
   // No remote host, or state isnt valid for opening.
-  catch (TCPException e) {
+  catch (const TCPException& e) {
     debug("<TCP::Connection::open> Cannot open Connection. \n");
     signal_error(e);
   }
@@ -314,7 +314,7 @@ void Connection::close() {
     state_->close(*this);
     if(is_state(Closed::instance()))
       signal_close();
-  } catch(TCPException err) {
+  } catch(const TCPException& err) {
     Ensures(on_error_);
     signal_error(err);
   }
@@ -342,7 +342,7 @@ void Connection::segment_arrived(Packet_ptr incoming) {
     try {
       parse_options(incoming);
     }
-    catch(TCPBadOptionException err) {
+    catch(const TCPBadOptionException& err) {
       debug("<TCP::Connection::receive> %s \n", err.what());
       drop(incoming, err.what());
       return;

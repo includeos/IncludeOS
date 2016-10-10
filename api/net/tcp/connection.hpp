@@ -283,7 +283,7 @@ public:
     virtual size_t send(Connection&, WriteBuffer&);
 
     /** Read from a Connection [RECEIVE] */
-    virtual void receive(Connection&, ReadBuffer&);
+    virtual void receive(Connection&, ReadBuffer&&);
 
     /** Close a Connection [CLOSE] */
     virtual void close(Connection&);
@@ -542,8 +542,7 @@ private:
     Buffer is cleared for data after every reset.
   */
   void read(size_t n, ReadCallback callback) {
-    ReadBuffer buffer = {new_shared_buffer(n), n};
-    read(buffer, callback);
+    read({new_shared_buffer(n), n}, callback);
   }
 
   /*
@@ -553,13 +552,13 @@ private:
   void read(buffer_t buffer, size_t n, ReadCallback callback)
   { read({buffer, n}, callback); }
 
-  void read(ReadBuffer buffer, ReadCallback callback);
+  void read(ReadBuffer&& buffer, ReadCallback callback);
 
   /*
     Assign the read request (read buffer)
   */
-  void receive(ReadBuffer& buffer)
-  { read_request.buffer = {buffer}; }
+  void receive(ReadBuffer&& buffer)
+  { read_request = {buffer}; }
 
   /*
     Receive data into the current read requests buffer.
