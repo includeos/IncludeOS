@@ -31,7 +31,7 @@ class Timer {
 public:
   using id_t        = Timers::id_t;
   using duration_t  = Timers::duration_t;
-  using handler_t   = Timers::handler_t;
+  using handler_t   = delegate<void()>;
 
   /**
    * @brief Constructs a Timer without a handler
@@ -122,7 +122,7 @@ private:
    */
   inline void _internal_timeout(id_t id);
 
-  void _do_nothing(id_t) {}
+  void _do_nothing() {}
 
 } __attribute__((packed)); // < class Timer
 
@@ -146,9 +146,9 @@ inline void Timer::restart(duration_t when) {
   start(when);
 }
 
-inline void Timer::_internal_timeout(id_t id) {
+inline void Timer::_internal_timeout(id_t) {
   id_ = Timers::UNUSED_ID;
-  on_timeout_(id);
+  on_timeout_();
 }
 
 #endif
