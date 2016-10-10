@@ -74,6 +74,10 @@ namespace hw {
 
   void APIC::init()
   {
+    // use KVMs paravirt EOI if supported
+    //if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
+    //    kvm_pv_eoi_init();
+
     const uint64_t APIC_BASE_MSR = CPU::read_msr(IA32_APIC_BASE_MSR);
     /// find the LAPICs base address ///
     const uintptr_t APIC_BASE_ADDR = APIC_BASE_MSR & 0xFFFFF000;
@@ -103,10 +107,6 @@ namespace hw {
       INFO("APIC", "SMP Init");
       init_smp();
     }
-
-    // use KVMs paravirt EOI if supported
-    if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
-        kvm_pv_eoi_init();
 
     // subscribe to APIC-related interrupts
     setup_subs();
@@ -342,7 +342,7 @@ int __test_and_clear_bit(long nr, volatile unsigned long* addr)
 static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
 void kvm_pv_eoi() {
 
-  printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
+  //printf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
   // fast EOI by KVM
   if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
       printf("avoided\n");
@@ -351,16 +351,16 @@ void kvm_pv_eoi() {
   // fallback to normal APIC EOI
   hw::lapic.regs->eoi.reg = 0;
   // check after
-  printf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
+  //printf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
 }
 void kvm_pv_eoi_init() {
-  printf("* Enabling KVM paravirtual EOI\n");
+  //printf("* Enabling KVM paravirtual EOI\n");
   // set new EOI handler
   current_eoi_mechanism = kvm_pv_eoi;
   // setup PV EOI using local variable
   kvm_apic_eoi = 0;
   auto pv_eoi = (uintptr_t) &kvm_apic_eoi;
-  printf("  MSR %#x  pv_eoi = %#x\n", MSR_KVM_PV_EOI_EN, pv_eoi);
+  //printf("  MSR %#x  pv_eoi = %#x\n", MSR_KVM_PV_EOI_EN, pv_eoi);
   hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, pv_eoi | KVM_MSR_ENABLED, 0);
   // verify that the feature was enabled
   auto res = hw::CPU::read_msr(MSR_KVM_PV_EOI_EN);
