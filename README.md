@@ -48,6 +48,14 @@ A longer list of features and limitations is on the [wiki feature list](https://
     $ sudo ./install.sh
 ```
 
+Or if you are running Arch Linux (or one of its flavors):
+
+```
+    $ git clone https://github.com/hioa-cs/IncludeOS
+    $ cd IncludeOS
+    $ ./install.sh
+```
+
 **The script will:**
 
 * Install the required dependencies: `curl make clang-3.8 nasm bridge-utils qemu`.
