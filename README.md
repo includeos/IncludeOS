@@ -5,7 +5,7 @@ Turns a route path (string, string pattern or regular expression) into a regex a
 
 ## Usage
 Specifying a route in service.cpp:
-```
+```cpp
 Router router;
 
 // GET /users/5, /users/101 and so on
@@ -20,7 +20,7 @@ router.on_get("/users/:id(\\d+)", [](auto req, auto res) {
 server.set_routes(router);
 ```
 Some route path examples:
-```
+```cpp
 // GET /
 router.on_get("/", [](auto req, auto res) {
   res->send(true);
