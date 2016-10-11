@@ -23,19 +23,11 @@
 #include <cstdio>
 
 #include <net/buffer_store.hpp>
-#include <net/packet.hpp>
 #include <kernel/syscalls.hpp>
+#include <common>
 #define PAGE_SIZE     0x1000
 
 namespace net {
-
-  Packet::~Packet()
-  {
-    if (bufstore)
-        bufstore->release(this);
-    else
-        delete[] (uint8_t*) this;
-  }
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
     poolsize_  {num * bufsize},

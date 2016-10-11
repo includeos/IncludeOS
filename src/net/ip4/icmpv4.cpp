@@ -66,7 +66,7 @@ namespace net {
     debug("<ICMP> Transmitting answer\n");
 
     // Populate response IP header
-    auto ip4_pckt = std::static_pointer_cast<PacketIP4>(packet_ptr);
+    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(packet_ptr));
     ip4_pckt->init();
     ip4_pckt->set_src(full_hdr->ip_hdr.daddr);
     ip4_pckt->set_dst(full_hdr->ip_hdr.saddr);
@@ -82,7 +82,7 @@ namespace net {
     hdr->checksum = net::checksum(reinterpret_cast<uint16_t*>(hdr),
                                   size - sizeof(full_header) + sizeof(icmp_header));
 
-    network_layer_out_(packet_ptr);
+    network_layer_out_(std::move(ip4_pckt));
   }
 
   void icmp_default_out(Packet_ptr) {

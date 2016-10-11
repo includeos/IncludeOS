@@ -21,7 +21,6 @@
 
 #include <stdexcept>
 #include <vector>
-#include <net/inet_common.hpp>
 #include <util/membitmap.hpp>
 
 namespace net{
@@ -62,7 +61,7 @@ namespace net{
 
     inline size_t available() const noexcept
     { return available_.size(); }
-    
+
     void lock(void* addr) {
       auto* buffer = (buffer_t) addr;
       assert(is_from_pool(buffer));
@@ -80,7 +79,7 @@ namespace net{
     size_t buffer_id(buffer_t addr) const {
       return (addr - pool_) / bufsize_;
     }
-    
+
     size_t               poolsize_;
     const size_t         bufsize_;
     buffer_t             pool_;

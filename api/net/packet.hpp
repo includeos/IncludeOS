@@ -20,11 +20,13 @@
 
 #include "buffer_store.hpp"
 #include "ip4/addr.hpp"
+#include <delegate>
 #include <cassert>
 
 namespace net
 {
-  class BufferStore;
+  class Packet;
+  using Packet_ptr = std::unique_ptr<Packet>;
 
   class Packet : public std::enable_shared_from_this<Packet>
   {
@@ -47,7 +49,14 @@ namespace net
       size_     (len),
       bufstore  (bs)
     {}
-    ~Packet(); // see: buffer_store.cpp
+
+    ~Packet()
+    {
+      if (bufstore)
+          bufstore->release(this);
+      else
+          delete[] (uint8_t*) this;
+    } // see: buffer_store.cpp
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
@@ -76,27 +85,28 @@ namespace net
     /* Add a packet to this packet chain.  */
     void chain(Packet_ptr p) noexcept {
       if (!chain_) {
-        chain_ = p;
-        last_ = p;
+        chain_ = std::move(p);
+        last_ = chain_.get();
       } else {
-        last_->chain(p);
-        last_ = p->last_in_chain() ? p->last_in_chain() : p;
+        auto* ptr = p.get();
+        last_->chain(std::move(p));
+        last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
         assert(last_);
       }
     }
 
     /* Get the last packet in the chain */
-    Packet_ptr last_in_chain() noexcept
+    Packet* last_in_chain() noexcept
     { return last_; }
 
     /* Get the tail, i.e. chain minus the first element */
-    Packet_ptr tail() noexcept
-    { return chain_; }
+    Packet* tail() noexcept
+    { return chain_.get(); }
 
     /* Get the tail, and detach it from the head (for FIFO) */
-    Packet_ptr detach_tail() noexcept
+    auto detach_tail() noexcept
     {
-      auto tail = chain_;
+      auto tail = std::move(chain_);
       chain_ = 0;
       return tail;
     }
@@ -119,15 +129,15 @@ namespace net
      *  Unfortunately, we can't upcast with std::static_pointer_cast
      *  however, all classes derived from Packet should be good to use
      */
-    static Packet_ptr packet(Packet_ptr pckt) noexcept
-    { return *static_cast<Packet_ptr*>(&pckt); }
+    //static Packet_ptr packet(Packet_ptr pckt) noexcept
+    //{ return *static_cast<Packet_ptr*>(&pckt); }
 
     // override delete to do nothing
     static void operator delete (void*) {}
 
   private:
-    Packet_ptr chain_ {0};
-    Packet_ptr last_ {0};
+    Packet_ptr chain_ {nullptr};
+    Packet*    last_  {nullptr};
 
     /** Default constructor Deleted. See Packet(Packet&). */
     Packet() = delete;
