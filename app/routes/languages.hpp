@@ -19,6 +19,7 @@
 #define ROUTES_LANGUAGES_HPP
 #include <mana/router.hpp>
 #include <cookie/cookie_jar.hpp>
+//#include <cookie/cookie.hpp>
 
 namespace acorn {
 namespace routes {
@@ -39,6 +40,8 @@ public:
 private:
 
   static void lang_handler(mana::Request_ptr req, mana::Response_ptr res, const std::string& lang) {
+    using namespace cookie;
+
     if (req->has_attribute<CookieJar>()) {
       auto req_cookies = req->get_attribute<CookieJar>();
 
@@ -53,19 +56,20 @@ private:
 
       if (value == "") {
         printf("%s\n", "Cookie with name 'lang' not found! Creating it.");
-        res->cookie("lang", lang);
+        res->set_cookie<Cookie>(Cookie{"lang", lang});
       } else if (value not_eq lang) {
         printf("%s\n", "Cookie with name 'lang' found, but with wrong value. Updating cookie.");
-        res->update_cookie("lang", "", "", lang);
+        res->update_cookie<Cookie>("lang", "", "", lang);
       } else {
-        printf("%s %s %s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str() ,"')!");
-        res->send(true);
+        printf("%s%s%s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str(), "')!");
       }
 
     } else {
       printf("%s\n", "Request has no cookies! Creating cookie.");
-      res->cookie("lang", lang);
+      res->set_cookie<Cookie>(Cookie{"lang", lang});
     }
+
+    res->send(true);
   }
 };
 

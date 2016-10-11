@@ -125,6 +125,8 @@ void Service::start(const std::string&) {
       router.use("/api/squirrels", routes::Squirrels{squirrels});
       // setup User routes
       router.use("/api/users", routes::Users{users});
+      // setup Language routes
+      router.use("/api/languages", routes::Languages{});
 
 
       /** DASHBOARD SETUP **/
