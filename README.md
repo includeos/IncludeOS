@@ -9,7 +9,7 @@ Cookie support for [Mana](https://github.com/includeos/mana). Following [RFC 626
 
 ## Usage
 **Create** a cookie with a name and value on the [response](https://github.com/includeos/mana/blob/master/include/mana/response.hpp):
-```
+```cpp
 res->cookie(Cookie{"lang", "nb-NO"});
 
 // Or if you want to create a cookie with more options, f.ex. expires, path and domain:
@@ -18,7 +18,7 @@ res->cookie(Cookie{"lang", "nb-NO", {"Expires", "Sun, 11 Dec 2016 08:49:37 GMT",
 ```
 
 **Update** an existing cookie's value:
-```
+```cpp
 res->update_cookie<Cookie>("lang", "en-US");
 
 // Or if you have specified a path and/or domain when creating the cookie:
@@ -26,7 +26,7 @@ res->update_cookie<Cookie>("lang", "/path", "domain.com", "en-US");
 ```
 
 **Clear** a cookie:
-```
+```cpp
 res->clear_cookie<Cookie>("lang");
 
 // Or if you have specified a path and/or domain when creating the cookie:
@@ -35,7 +35,7 @@ res->clear_cookie<Cookie>("lang", "/path", "domain.com");
 
 The cookie library contains the middleware [CookieParser](https://github.com/includeos/cookie/blob/master/cookie_parser.hpp) that parses a request's cookie header and puts the cookies in a [CookieJar](https://github.com/includeos/cookie/blob/master/cookie_jar.hpp). The CookieJar is then added as an [attribute](https://github.com/includeos/mana/blob/master/include/mana/attribute.hpp) to the request, making the cookies available to the developer:
 
-```
+```cpp
 if (req->has_attribute<CookieJar>()) {
   // Get the CookieJar
   auto req_cookies = req->get_attribute<CookieJar>();
