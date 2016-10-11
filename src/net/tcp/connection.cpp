@@ -166,7 +166,7 @@ void Connection::offer(size_t& packets) {
     // get next request in writeq
     auto& buf = writeq.nxt();
     // fill the packet with data
-    auto written = fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+    auto written = fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
     cb.SND.NXT += packet->tcp_data_length();
 
     // advance the write q
@@ -175,7 +175,7 @@ void Connection::offer(size_t& packets) {
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
-    transmit(packet);
+    transmit(std::move(packet));
   }
 
   debug("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
@@ -199,7 +199,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     auto packet = create_outgoing_packet();
     packets_avail--;
 
-    auto written = fill_packet(packet, buffer+bytes_written, remaining, cb.SND.NXT);
+    auto written = fill_packet(*packet, buffer+bytes_written, remaining, cb.SND.NXT);
     cb.SND.NXT += packet->tcp_data_length();
 
     bytes_written += written;
@@ -208,7 +208,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     if(!remaining or usable_window() < SMSS() or !packets_avail)
       packet->set_flag(PSH);
 
-    transmit(packet);
+    transmit(std::move(packet));
     //packets.push_back(packet);
   }
   /*Ensures(!packets.empty());
@@ -262,12 +262,12 @@ void Connection::writeq_push() {
   }
 }
 
-size_t Connection::fill_packet(Packet_ptr packet, const char* buffer, size_t n, seq_t seq) {
-  Expects(!packet->has_tcp_data());
+size_t Connection::fill_packet(Packet& packet, const char* buffer, size_t n, seq_t seq) {
+  Expects(!packet.has_tcp_data());
 
-  auto written = packet->fill(buffer, std::min(n, (size_t)SMSS()));
+  auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
 
-  packet->set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
+  packet.set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
 
   Ensures(written <= n);
 
@@ -282,12 +282,12 @@ void Connection::limited_tx() {
 
   auto& buf = writeq.nxt();
 
-  auto written = fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+  auto written = fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
   cb.SND.NXT += packet->tcp_data_length();
 
   writeq.advance(written);
 
-  transmit(packet);
+  transmit(std::move(packet));
 }
 
 void Connection::writeq_reset() {
@@ -340,17 +340,17 @@ void Connection::segment_arrived(Packet_ptr incoming) {
 
   if(incoming->has_tcp_options()) {
     try {
-      parse_options(incoming);
+      parse_options(*incoming);
     }
     catch(const TCPBadOptionException& err) {
       debug("<TCP::Connection::receive> %s \n", err.what());
-      drop(incoming, err.what());
+      drop(*incoming, err.what());
       return;
     }
   }
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-  switch(state_->handle(*this, incoming)) {
+  switch(state_->handle(*this, std::move(incoming))) {
   case State::OK: {
     // Do nothing.
     break;
@@ -383,7 +383,7 @@ Connection::~Connection() {
 }
 
 Packet_ptr Connection::create_outgoing_packet() {
-  auto packet = std::static_pointer_cast<net::tcp::Packet>((host_.inet_).create_packet(0));
+  auto packet = static_unique_ptr_cast<net::tcp::Packet>((host_.inet_).create_packet(0));
   //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
 
   packet->init();
@@ -413,7 +413,7 @@ void Connection::transmit(Packet_ptr packet) {
 
   bytes_tx_ += packet->tcp_data_length();
 
-  host_.transmit(packet);
+  host_.transmit(std::move(packet));
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
@@ -431,7 +431,7 @@ void Connection::send_much() {
   writeq_push();
 }
 
-bool Connection::handle_ack(Packet_ptr in) {
+bool Connection::handle_ack(const Packet& in) {
   // dup ack
   /*
     1. Same ACK as latest received
@@ -439,9 +439,9 @@ bool Connection::handle_ack(Packet_ptr in) {
     3. packet is empty
     4. is not an wnd update
   */
-  if(in->ack() == cb.SND.UNA and flight_size()
-    and !in->has_tcp_data() and cb.SND.WND == in->win()
-    and !in->isset(SYN) and !in->isset(FIN))
+  if(in.ack() == cb.SND.UNA and flight_size()
+    and !in.has_tcp_data() and cb.SND.WND == in.win()
+    and !in.isset(SYN) and !in.isset(FIN))
   {
     dup_acks_++;
     on_dup_ack();
@@ -449,32 +449,32 @@ bool Connection::handle_ack(Packet_ptr in) {
   } // < dup ack
 
   // new ack
-  else if(in->ack() >= cb.SND.UNA) {
+  else if(in.ack() >= cb.SND.UNA) {
 
-    if( cb.SND.WL1 < in->seq() or ( cb.SND.WL1 == in->seq() and cb.SND.WL2 <= in->ack() ) )
+    if( cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ) )
     {
-      cb.SND.WND = in->win();
-      cb.SND.WL1 = in->seq();
-      cb.SND.WL2 = in->ack();
+      cb.SND.WND = in.win();
+      cb.SND.WL1 = in.seq();
+      cb.SND.WL2 = in.ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
 
     acks_rcvd_++;
 
     debug("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_,
-      in->ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
+      in.ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
     prev_highest_ack_ = cb.SND.UNA;
-    highest_ack_ = in->ack();
+    highest_ack_ = in.ack();
 
     // used for cwnd calculation (Reno)
-    size_t bytes_acked = in->ack() - cb.SND.UNA;
-    cb.SND.UNA = in->ack();
+    size_t bytes_acked = in.ack() - cb.SND.UNA;
+    cb.SND.UNA = in.ack();
 
     // ack everything in rtx queue
     if(rtx_timer.is_running())
-      rtx_ack(in->ack());
+      rtx_ack(in.ack());
 
     // update cwnd when congestion avoidance?
     bool cong_avoid_rtt = false;
@@ -512,7 +512,7 @@ bool Connection::handle_ack(Packet_ptr in) {
         send_much();
 
       // if data, let state continue process
-      if(in->has_tcp_data() or in->isset(FIN))
+      if(in.has_tcp_data() or in.isset(FIN))
         return true;
 
     } // < !fast recovery
@@ -521,7 +521,7 @@ bool Connection::handle_ack(Packet_ptr in) {
     else {
       //printf("<Connection::handle_ack> In Recovery\n");
       // partial ack
-      if(!reno_full_ack(in->ack())) {
+      if(!reno_full_ack(in.ack())) {
         debug("<Connection::handle_ack> Partial ACK\n");
         reno_deflate_cwnd(bytes_acked);
         //printf("<TCP::Connection::handle_ack> Recovery - Partial ACK\n");
@@ -542,7 +542,7 @@ bool Connection::handle_ack(Packet_ptr in) {
           debug("<Connection::handle_ack> Can't send during recovery - usable window is closed.\n");
         }
 
-        if(in->has_tcp_data() or in->isset(FIN))
+        if(in.has_tcp_data() or in.isset(FIN))
           return true;
       } // < partial ack
 
@@ -663,7 +663,7 @@ void Connection::retransmit() {
   // If not, check if there is data and retransmit
   else if(writeq.size()) {
     auto& buf = writeq.una();
-    fill_packet(packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
+    fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
   }
   // if no data
   else {
@@ -681,7 +681,6 @@ void Connection::retransmit() {
   // count retranmissions to bytes transmitted?
   bytes_tx_ += packet->tcp_data_length();
 
-  host_.transmit(packet);
   /*
     Every time a packet containing data is sent (including a
     retransmission), if the timer is not running, start it running
@@ -691,6 +690,8 @@ void Connection::retransmit() {
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
+
+  host_.transmit(std::move(packet));
 }
 
 void Connection::rtx_clear() {
@@ -864,14 +865,14 @@ std::string Connection::TCB::to_string() const {
   return os.str();
 }
 
-void Connection::parse_options(Packet_ptr packet) {
-  assert(packet->has_tcp_options());
+void Connection::parse_options(Packet& packet) {
+  assert(packet.has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
-        packet->offset(), packet->tcp_options_length());
+        packet.offset(), packet.tcp_options_length());
 
-  auto* opt = packet->tcp_options();
+  auto* opt = packet.tcp_options();
 
-  while((char*)opt < packet->tcp_data()) {
+  while((char*)opt < packet.tcp_data()) {
 
     auto* option = (Option*)opt;
 
@@ -891,7 +892,7 @@ void Connection::parse_options(Packet_ptr packet) {
       if(option->length != 4)
         throw TCPBadOptionException{Option::MSS, "length != 4"};
       // unlikely
-      if(!packet->isset(SYN))
+      if(!packet.isset(SYN))
         throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
 
       auto* opt_mss = (Option::opt_mss*)option;
@@ -908,14 +909,14 @@ void Connection::parse_options(Packet_ptr packet) {
   }
 }
 
-void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
+void Connection::add_option(Option::Kind kind, Packet& packet) {
 
   switch(kind) {
 
   case Option::MSS: {
-    packet->add_tcp_option<Option::opt_mss>(host_.MSS());
+    packet.add_tcp_option<Option::opt_mss>(host_.MSS());
     debug2("<TCP::Connection::add_option@Option::MSS> Packet: %s - MSS: %u\n",
-           packet->to_string().c_str(), ntohs(*(uint16_t*)(packet->tcp_options()+2)));
+           packet.to_string().c_str(), ntohs(*(uint16_t*)(packet.tcp_options()+2)));
     break;
   }
   default:
@@ -923,7 +924,7 @@ void Connection::add_option(Option::Kind kind, Packet_ptr packet) {
   }
 }
 
-void Connection::drop(Packet_ptr packet, std::string) {
+void Connection::drop(const Packet& packet, const std::string&) {
   host_.drop(packet);
 }
 
@@ -942,9 +943,9 @@ void Connection::default_on_error(TCPException error) {
   debug("<Connection::@Error> TCPException: %s \n", error.what());
 }
 
-void Connection::default_on_packet_dropped(Packet_ptr p , std::string reason) {
+void Connection::default_on_packet_dropped(const Packet& p , const std::string& reason) {
   (void)p, (void)reason;
-  debug2("<Connection::@PacketDropped> %s - %s", p->to_string().c_str(), reason.c_str());
+  debug2("<Connection::@PacketDropped> %s - %s", p.to_string().c_str(), reason.c_str());
 }
 
 void Connection::default_on_rtx_timeout(size_t n, double rto) {

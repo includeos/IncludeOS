@@ -215,7 +215,7 @@ private:
   void add_to_tx_buffer(net::Packet_ptr pckt);
 
   /** Add packet chain to virtio queue */
-  void enqueue(net::Packet_ptr pckt);
+  void enqueue(net::Packet* pckt);
 
   /** Handle device IRQ.
       Will look for config changes and service RX/TX queues as necessary.*/
@@ -231,14 +231,14 @@ private:
 
 
 
-  std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
 
   void begin_deferred_kick();
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue_ {0};
+  net::Packet_ptr transmit_queue_ {nullptr};
 };
 
 #endif

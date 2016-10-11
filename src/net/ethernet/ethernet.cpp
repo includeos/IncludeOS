@@ -73,7 +73,7 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    physical_out_(pckt);
+    physical_out_(std::move(pckt));
   }
 
   void Ethernet::bottom(Packet_ptr pckt) {
@@ -96,17 +96,17 @@ namespace net {
     switch(eth->type) {
     case ETH_IP4:
       debug2("IPv4 packet\n");
-      ip4_handler_(pckt);
+      ip4_handler_(std::move(pckt));
       break;
 
     case ETH_IP6:
       debug2("IPv6 packet\n");
-      ip6_handler_(pckt);
+      ip6_handler_(std::move(pckt));
       break;
 
     case ETH_ARP:
       debug2("ARP packet\n");
-      arp_handler_(pckt);
+      arp_handler_(std::move(pckt));
       break;
 
     case ETH_WOL:

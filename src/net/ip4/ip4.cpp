@@ -42,7 +42,7 @@ namespace net {
   void IP4::bottom(Packet_ptr pckt) {
     debug2("<IP4 handler> got the data.\n");
     // Cast to IP4 Packet
-    auto packet = std::static_pointer_cast<net::PacketIP4>(pckt);
+    auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
     // Stat increment packets received
     packets_rx_++;
@@ -62,14 +62,14 @@ namespace net {
     switch(hdr->protocol){
     case IP4_ICMP:
       debug2("\t Type: ICMP\n");
-      icmp_handler_(packet);
+      icmp_handler_(std::move(packet));
       break;
     case IP4_UDP:
       debug2("\t Type: UDP\n");
-      udp_handler_(packet);
+      udp_handler_(std::move(packet));
       break;
     case IP4_TCP:
-      tcp_handler_(packet);
+      tcp_handler_(std::move(packet));
       debug2("\t Type: TCP\n");
       break;
     default:
@@ -85,7 +85,7 @@ namespace net {
   void IP4::transmit(Packet_ptr pckt) {
     assert(pckt->size() > sizeof(IP4::full_header));
 
-    auto ip4_pckt = std::static_pointer_cast<PacketIP4>(pckt);
+    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     ip4_pckt->make_flight_ready();
 
     IP4::ip_header& hdr = ip4_pckt->ip_header();
@@ -94,7 +94,7 @@ namespace net {
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    pckt->next_hop(target == local ? hdr.daddr : stack_.router());
+    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.router());
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr.daddr.str().c_str(),
@@ -113,7 +113,7 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    linklayer_out_(pckt);
+    linklayer_out_(std::move(ip4_pckt));
   }
 
   // Empty handler for delegates initialization

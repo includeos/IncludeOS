@@ -131,13 +131,13 @@ bool TCP::port_in_use(const port_t port) const {
   return false;
 }
 
-uint16_t TCP::checksum(tcp::Packet_ptr packet)
+uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  short tcp_length = packet->tcp_length();
+  short tcp_length = packet.tcp_length();
 
   Pseudo_header pseudo_hdr;
-  pseudo_hdr.saddr.whole = packet->src().whole;
-  pseudo_hdr.daddr.whole = packet->dst().whole;
+  pseudo_hdr.saddr.whole = packet.src().whole;
+  pseudo_hdr.daddr.whole = packet.dst().whole;
   pseudo_hdr.zero = 0;
   pseudo_hdr.proto = IP4::IP4_TCP;
   pseudo_hdr.tcp_length = htons(tcp_length);
@@ -154,7 +154,7 @@ uint16_t TCP::checksum(tcp::Packet_ptr packet)
     sum.whole += *it;
 
   // Compute sum of header and data
-  Header* tcp_hdr = &packet->tcp_header();
+  Header* tcp_hdr = &packet.tcp_header();
   for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
     sum.whole+= *it;
 
@@ -173,17 +173,17 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   packets_rx_++;
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
-  auto packet = std::static_pointer_cast<net::tcp::Packet>(packet_ptr);
-  debug("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
+  auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+  debug2("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
   // Stat increment bytes received
   bytes_rx_ += packet->tcp_data_length();
 
   // Validate checksum
-  if (UNLIKELY(checksum(packet) != 0)) {
+  if (UNLIKELY(checksum(*packet) != 0)) {
     debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
-    drop(packet);
+    drop(*packet);
     return;
   }
 
@@ -195,7 +195,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   // Connection found
   if (conn_it != connections_.end()) {
     debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
-    conn_it->second->segment_arrived(packet);
+    conn_it->second->segment_arrived(std::move(packet));
     return;
   }
 
@@ -206,12 +206,12 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
   if (LIKELY(listener_it != listeners_.end())) {
     auto& listener = listener_it->second;
     debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
-    listener->segment_arrived(packet);
+    listener->segment_arrived(std::move(packet));
     debug2("<TCP::bottom> Listener done with packet\n");
     return;
   }
 
-  drop(packet);
+  drop(*packet);
 }
 
 void TCP::process_writeq(size_t packets) {
@@ -300,7 +300,7 @@ void TCP::close_connection(tcp::Connection_ptr conn) {
   connections_.erase(conn->tuple());
 }
 
-void TCP::drop(tcp::Packet_ptr) {
+void TCP::drop(const tcp::Packet&) {
   // Stat increment packets dropped
   packets_dropped_++;
 
@@ -310,13 +310,13 @@ void TCP::drop(tcp::Packet_ptr) {
 
 void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
-  packet->set_checksum(TCP::checksum(packet));
+  packet->set_checksum(TCP::checksum(*packet));
   //if(packet->has_data())
-  //  printf("<TCP::transmit> S: %u\n", packet->seq());
+  //printf("<TCP::transmit> S: %u\n", packet->seq());
 
   // Stat increment bytes transmitted and packets transmitted
   bytes_tx_ += packet->tcp_data_length();
   packets_tx_++;
 
-  _network_layer_out(packet);
+  _network_layer_out(std::move(packet));
 }

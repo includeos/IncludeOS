@@ -35,8 +35,7 @@ namespace net {
 
   void UDP::bottom(net::Packet_ptr pckt)
   {
-    std::shared_ptr<PacketUDP> udp =
-      std::static_pointer_cast<PacketUDP> (pckt);
+    auto udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
     debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
           udp->src_port(), udp->dst_port(), udp->length());
@@ -45,7 +44,7 @@ namespace net {
     if (it != ports_.end())
       {
         debug("<UDP> Someone's listening to this port. Forwarding...\n");
-        it->second.internal_read(udp);
+        it->second.internal_read(std::move(udp));
         return;
       }
 
@@ -102,8 +101,8 @@ namespace net {
     assert(udp->length() >= sizeof(udp_header));
     assert(udp->protocol() == IP4::IP4_UDP);
 
-    auto pckt = Packet::packet(udp);
-    network_layer_out_(pckt);
+    //auto pckt = Packet::packet(udp);
+    network_layer_out_(std::move(udp));
   }
 
   void UDP::flush()
@@ -180,7 +179,7 @@ namespace net {
              buf.get() + this->offset, total);
 
       // initialize packet with several infos
-      auto p2 = std::static_pointer_cast<PacketUDP>(p);
+      auto p2 = static_unique_ptr_cast<PacketUDP>(std::move(p));
 
       p2->init();
       p2->header().sport = htons(l_port);
@@ -191,9 +190,9 @@ namespace net {
 
       // Attach packet to chain
       if (!chain_head)
-        chain_head = p2;
+        chain_head = std::move(p2);
       else
-        chain_head->chain(p2);
+        chain_head->chain(std::move(p2));
 
       // next position in buffer
       this->offset += total;
@@ -201,7 +200,7 @@ namespace net {
     } while ( remaining() );
 
     // ship the packet
-    udp.transmit(chain_head);
+    udp.transmit(std::move(chain_head));
 
 
   }

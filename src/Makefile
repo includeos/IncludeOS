@@ -81,7 +81,6 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		net/tcp/rttm.o net/tcp/listener.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
-		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/buffer_store.o net/inet4.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o

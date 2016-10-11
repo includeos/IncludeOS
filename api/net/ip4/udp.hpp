@@ -23,6 +23,7 @@
 #include "../inet.hpp"
 #include "ip4.hpp"
 #include <cstring>
+#include <net/packet.hpp>
 
 namespace net {
 
@@ -35,7 +36,7 @@ namespace net {
     using addr_t = IP4::addr;
     using port_t = uint16_t;
 
-    using Packet_ptr = std::shared_ptr<PacketUDP>;
+    using Packet_ptr = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack  = Inet<LinkLayer, IP4>;
 
     typedef delegate<void()> sendto_handler;

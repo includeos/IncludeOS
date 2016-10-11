@@ -21,11 +21,9 @@
 
 #include <stdexcept>
 #include <vector>
-#include <net/inet_common.hpp>
-#include <util/membitmap.hpp>
 
-namespace net{
-
+namespace net
+{
   /**
    * Network buffer storage for uniformly sized buffers.
    *
@@ -75,7 +73,7 @@ namespace net{
     }
 
     size_t               poolsize_;
-    const size_t         bufsize_;
+    size_t         bufsize_;
     buffer_t             pool_;
     std::vector<buffer_t> available_;
 
