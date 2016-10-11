@@ -29,8 +29,6 @@ namespace net
   class Packet : public std::enable_shared_from_this<Packet>
   {
   public:
-    using deleter_t = delegate<void(void*)>;
-
     /**
      *  Construct, using existing buffer.
      *

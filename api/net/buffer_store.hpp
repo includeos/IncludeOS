@@ -62,13 +62,6 @@ namespace net{
 
     inline size_t available() const noexcept
     { return available_.size(); }
-    
-    void lock(void* addr) {
-      auto* buffer = (buffer_t) addr;
-      assert(is_from_pool(buffer));
-      locked.set( buffer_id(buffer) );
-    }
-    void unlock_and_release(buffer_t addr);
 
   private:
     buffer_t pool_begin() const noexcept {
@@ -80,12 +73,11 @@ namespace net{
     size_t buffer_id(buffer_t addr) const {
       return (addr - pool_) / bufsize_;
     }
-    
+
     size_t               poolsize_;
     const size_t         bufsize_;
     buffer_t             pool_;
     std::vector<buffer_t> available_;
-    MemBitmap  locked;
 
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;

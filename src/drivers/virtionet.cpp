@@ -223,15 +223,13 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming()) {
     // FIXME Unfortunately dequeue is not working here
     // I am guessing that Linux is eating the buffers?
-    //auto res = 
+    //auto res =
     tx_q.dequeue();
 
-    // unlock and release the (assumed) locked buffer
+    // release the data back to pool
     auto data = tx_ringq.front();
     tx_ringq.pop_front();
-    bufstore().unlock_and_release(data);
-
-    //printf("res:  %p / %p\n", res.data(), data);
+    bufstore().release(data);
 
     dequeued_tx = true;
   }
@@ -336,15 +334,15 @@ void VirtioNet::service_queues(){
     }
 
     // Do one TX-packet
-    while (tx_q.new_incoming()){
+    while (tx_q.new_incoming()) {
       // FIXME Unfortunately dequeue is not working here
       // I am guessing that Linux is eating the buffers
       tx_q.dequeue();
 
-      // unlock and release the (assumed) locked buffer
+      // release the buffer back into bufferstore
       auto data = tx_ringq.front();
       tx_ringq.pop_front();
-      bufstore().unlock_and_release( data );
+      bufstore().release(data);
 
       dequeued_tx++;
     }
@@ -455,11 +453,14 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(tokens);
 
-  // have to preserve the packet data to prevent overwriting it
-  bufstore().lock(pckt->buffer());
+  // have to release the packet data because virtio owns it now
+  // but to do that the packet has to be unique here
+  assert(pckt->unique());
+  auto* data = pckt.get();
+  pckt.swap(nullptr;)
   // enq the packet we just transmitted into a transmit queue
   // because tx_q.dequeue is not returning the correct data
-  tx_ringq.push_back((uint8_t*) pckt.get());
+  tx_ringq.push_back((uint8_t*) data);
 }
 
 void VirtioNet::begin_deferred_kick()
