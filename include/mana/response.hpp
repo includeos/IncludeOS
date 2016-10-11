@@ -97,15 +97,28 @@ public:
 
   /** Cookies */
 
-  void set_cookie(const std::string& cookie)
-  { add_header(http::header_fields::Response::Set_Cookie, cookie);}
+  void cookie(const std::string& cookie)
+  { add_header(http::header_fields::Response::Set_Cookie, cookie); }
   
   template <typename Cookie>
-  void set_cookie(const Cookie& c)
-  { set_cookie(c.to_string()); }
+  void cookie(const Cookie& c)
+  { cookie(c.to_string()); }
+
+  template <typename Cookie>
+  inline void clear_cookie(const std::string& name)
+  { clear_cookie<Cookie>(name, "", ""); }
 
   template <typename Cookie>
   inline void clear_cookie(const std::string& name, const std::string& path, const std::string& domain);
+
+  template <typename Cookie>
+  inline void update_cookie(const std::string& name, const std::string& new_value)
+  { update_cookie<Cookie>(name, "", "", new_value); }
+
+  template <typename Cookie>
+  inline void update_cookie(const std::string& name, const std::string& new_value,
+      const std::vector<std::string>& new_options)
+  { update_cookie<Cookie>(name, "", "", new_value, new_options); }
 
   template <typename Cookie>
   inline void update_cookie(const std::string& name, const std::string& old_path, const std::string& old_domain,
@@ -152,7 +165,7 @@ inline void Response::clear_cookie(const std::string& name, const std::string& p
   c.set_domain(domain);
   c.set_expires("Sun, 06 Nov 1994 08:49:37 GMT"); // in the past
 
-  set_cookie(c);
+  cookie(c);
 }
 
 template <typename Cookie>
@@ -162,7 +175,7 @@ inline void Response::update_cookie(const std::string& name, const std::string& 
   clear_cookie<Cookie>(name, old_path, old_domain);
   // 2. Set new cookie:
   Cookie new_cookie{name, new_value};
-  set_cookie(new_cookie);
+  cookie(new_cookie);
 }
 
 template <typename Cookie>
@@ -172,7 +185,7 @@ inline void Response::update_cookie(const std::string& name, const std::string& 
   clear_cookie<Cookie>(name, old_path, old_domain);
   // 2. Set new cookie:
   Cookie new_cookie{name, new_value, new_options};
-  set_cookie(new_cookie);
+  cookie(new_cookie);
 }
 
 
