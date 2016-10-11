@@ -19,7 +19,6 @@
 #define ROUTES_LANGUAGES_HPP
 #include <mana/router.hpp>
 #include <cookie/cookie_jar.hpp>
-//#include <cookie/cookie.hpp>
 
 namespace acorn {
 namespace routes {
@@ -37,6 +36,7 @@ public:
       Languages::lang_handler(req, res, "nb-NO");
     });
   }
+
 private:
 
   static void lang_handler(mana::Request_ptr req, mana::Response_ptr res, const std::string& lang) {
