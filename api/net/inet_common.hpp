@@ -50,11 +50,11 @@ namespace net {
   }
 
 
-  template<typename Derived, typename Base, typename Del>
-  auto static_unique_ptr_cast( std::unique_ptr<Base, Del>&& p )
+  template<typename Derived, typename Base>
+  auto static_unique_ptr_cast( std::unique_ptr<Base>&& p )
   {
       auto* d = static_cast<Derived *>(p.release());
-      return std::unique_ptr<Derived, Del>(d, std::move(p.get_deleter()));
+      return std::unique_ptr<Derived>(d);
   }
 
 } //< namespace net

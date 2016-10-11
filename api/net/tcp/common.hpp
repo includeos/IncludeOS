@@ -54,7 +54,7 @@ namespace net {
     { return buffer_t(new uint8_t[length], std::default_delete<uint8_t[]>()); }
 
     class Packet;
-    using Packet_ptr = std::unique_ptr<Packet, std::default_delete<net::Packet>>;
+    using Packet_ptr = std::unique_ptr<Packet>;
 
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
