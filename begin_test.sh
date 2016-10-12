@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for run in {1..2}
+for run in {1..32}
 do
-  ./test.py &
+  ./fill.py &
 done

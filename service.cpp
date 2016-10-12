@@ -18,7 +18,7 @@
 #include <os>
 #include <profile>
 #include <timers>
-//#define USE_STACK_SAMPLING
+#define USE_STACK_SAMPLING
 
 #include "ircd.hpp"
 static IrcServer* ircd;
@@ -31,17 +31,6 @@ extern "C" int  _get_heap_debugging_buffers_usage();
 extern "C" int  _get_heap_debugging_buffers_total();
 extern "C" void _enable_heap_debugging_verbose(int);
 
-#include <memory>
-__attribute__((noinline)) void heap_test()
-{
-  //_enable_heap_debugging_verbose(1);
-  printf("Heap usage: %d / %d\n",
-        _get_heap_debugging_buffers_usage(), _get_heap_debugging_buffers_total());
-
-  auto test = std::make_shared<int> ();
-  delete test.get();
-}
-
 void Service::start(const std::string&)
 {
   // add own serial out after service start
@@ -49,6 +38,7 @@ void Service::start(const std::string&)
   OS::add_stdout(com1.get_print_handler());
   // show that we are starting :)
   printf("*** IRC Service starting up...\n");
+  //_enable_heap_debugging_verbose(1);
 
   // default configuration (with DHCP)
   auto& inet = net::Inet4::ifconfig<>(10);
@@ -77,8 +67,6 @@ void Service::start(const std::string&)
   });
 
   printf("%s\n", ircd->get_motd().c_str());
-
-  heap_test();
 }
 
 #include <ctime>
@@ -126,7 +114,7 @@ void print_heap_info()
 
 #define PERIOD_SECS    2
 
-void print_stats(uint32_t)
+void print_stats(int)
 {
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(true);

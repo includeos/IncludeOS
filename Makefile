@@ -14,7 +14,7 @@ FILES = service.cpp ircd.cpp client.cpp client_new.cpp client_msg.cpp client_cmd
 DISK=
 
 # Drivers to be used with service
-DRIVERS=virtionet heap_debugging
+DRIVERS=virtionet
 
 # Your own include-path
 LOCAL_INCLUDES=
