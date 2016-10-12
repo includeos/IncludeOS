@@ -41,13 +41,13 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   cb(),
   read_request(),
   writeq(),
+  on_disconnect_({this, &Connection::default_on_disconnect}),
   bytes_rx_(0), bytes_tx_(0),
   queued_(false),
   rtx_timer({this, &Connection::rtx_timeout}),
   timewait_timer({this, &Connection::timewait_timeout})
 {
   setup_congestion_control();
-  setup_default_callbacks();
   debug("<Connection> %s created\n", to_string().c_str());
 }
 
@@ -816,7 +816,7 @@ void Connection::signal_close() {
   debug("<Connection::signal_close> It's time to delete this connection. \n");
 
   // call user callback
-  on_close_();
+  if(on_close_) on_close_();
 
   // clean up all copies, delegates and timers
   clean_up();
@@ -833,7 +833,7 @@ void Connection::clean_up() {
   auto shared = shared_from_this();
   // clean up all other copies
   // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
-  _on_cleanup_(shared);
+  if(_on_cleanup_) _on_cleanup_(shared);
 
   on_connect_.reset();
   on_disconnect_.reset(),
