@@ -485,10 +485,10 @@ private:
   Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
-  size_t rtx_attempt_ = 0;
+  int8_t rtx_attempt_ = 0;
 
   /** number of retransmitted SYN packets. */
-  size_t syn_rtx_ = 0;
+  int8_t syn_rtx_ = 0;
 
   /** Congestion control */
   // is fast recovery state
