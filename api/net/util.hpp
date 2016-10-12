@@ -18,7 +18,7 @@
 #ifndef NET_UTIL_HPP
 #define NET_UTIL_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace net {
 
@@ -28,29 +28,32 @@ namespace net {
    * e.g., getbits(x, 31, 8) -- highest byte
    *       getbits(x,  7, 8) -- lowest  byte
    */
-#define getbits(x, p, n) (((x) >> ((p) + 1 - (n))) & ~(~0 << (n)))
+  template<typename T>
+  constexpr inline auto getbits(T&& x, T&& p, T&& n) noexcept {
+    return (x >> ((p + 1) - n)) & ~(~0 << n);
+  }
 
-  inline uint16_t ntohs(uint16_t n) noexcept {
+  constexpr inline uint16_t ntohs(const uint16_t n) noexcept {
     return __builtin_bswap16(n);
   }
 
-  inline uint16_t htons(uint16_t n) noexcept {
+  constexpr inline uint16_t htons(const uint16_t n) noexcept {
     return __builtin_bswap16(n);
   }
 
-  inline uint32_t ntohl(uint32_t n) noexcept {
+  constexpr inline uint32_t ntohl(const uint32_t n) noexcept {
     return __builtin_bswap32(n);
   }
 
-  inline uint32_t htonl(uint32_t n) noexcept {
+  constexpr inline uint32_t htonl(const uint32_t n) noexcept {
     return __builtin_bswap32(n);
   }
 
-  inline uint64_t ntohll(uint64_t n) noexcept {
+  constexpr inline uint64_t ntohll(const uint64_t n) noexcept {
     return __builtin_bswap64(n);
   }
 
-  inline uint64_t htonll(uint64_t n) noexcept {
+  constexpr inline uint64_t htonll(const uint64_t n) noexcept {
     return __builtin_bswap64(n);
   }
   
