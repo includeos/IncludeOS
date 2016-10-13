@@ -28,7 +28,7 @@ namespace net
   class Packet;
   using Packet_ptr = std::unique_ptr<Packet>;
 
-  class Packet : public std::enable_shared_from_this<Packet>
+  class Packet
   {
   public:
     /**
@@ -54,7 +54,7 @@ namespace net
           bufstore->release(this);
       else
           delete[] (uint8_t*) this;
-    } // see: buffer_store.cpp
+    }
 
     /** Get the buffer */
     BufferStore::buffer_t buffer() const noexcept
