@@ -22,7 +22,7 @@
 
 #include <common>
 
-#include <net/ethernet.hpp>
+#include <net/ethernet/ethernet.hpp>
 #include <net/packet.hpp>
 #include <net/util.hpp>
 #include <statman>
@@ -31,18 +31,18 @@
 namespace net {
 
   // uint16_t(0x0000), uint32_t(0x01000000)
-  const Ethernet::addr Ethernet::addr::MULTICAST_FRAME {0,0,0x01,0,0,0};
+  const Ethernet::addr Ethernet::MULTICAST_FRAME {0,0,0x01,0,0,0};
 
   // uint16_t(0xFFFF), uint32_t(0xFFFFFFFF)
-  const Ethernet::addr Ethernet::addr::BROADCAST_FRAME {0xff,0xff,0xff,0xff,0xff,0xff};
+  const Ethernet::addr Ethernet::BROADCAST_FRAME {0xff,0xff,0xff,0xff,0xff,0xff};
 
   // uint16_t(0x3333), uint32_t(0x01000000)
-  const Ethernet::addr Ethernet::addr::IPv6mcast_01 {0x33,0x33,0x01,0,0,0};
+  const Ethernet::addr Ethernet::IPv6mcast_01 {0x33,0x33,0x01,0,0,0};
 
   // uint16_t(0x3333), uint32_t(0x02000000)
-  const Ethernet::addr Ethernet::addr::IPv6mcast_02 {0x33,0x33,0x02,0,0,0};
+  const Ethernet::addr Ethernet::IPv6mcast_02 {0x33,0x33,0x02,0,0,0};
 
-  static void ignore(Packet_ptr UNUSED(pckt)) noexcept {
+  static void ignore(Packet_ptr) noexcept {
     debug("<Ethernet handler> Ignoring data (no real handler)\n");
   }
 
@@ -56,27 +56,24 @@ namespace net {
     arp_handler_{ignore}
 {}
 
-  const Ethernet::addr Ethernet::mac() const noexcept {
-    return nic_.mac();
-  }
-
   void Ethernet::transmit(Packet_ptr pckt) {
-    header* hdr = reinterpret_cast<header*>(pckt->buffer());
+    auto* hdr = reinterpret_cast<header*>(pckt->buffer());
 
     // Verify ethernet header
     Expects(hdr->dest.major != 0 || hdr->dest.minor !=0);
     Expects(hdr->type != 0);
 
     // Add source address
-    hdr->src = nic_.mac();
+    // @note Virtual call for MAC addr on every transmit - expensive?
+    hdr->src = mac();
 
     debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
-           pckt->size(), nic_.mac().str().c_str(), hdr->dest.str().c_str(), hdr->type);
+           pckt->size(), mac().str().c_str(), hdr->dest.str().c_str(), hdr->type);
 
     // Stat increment packets transmitted
     packets_tx_++;
 
-    physical_out_(pckt);
+    physical_out_(std::move(pckt));
   }
 
   void Ethernet::bottom(Packet_ptr pckt) {
@@ -99,17 +96,17 @@ namespace net {
     switch(eth->type) {
     case ETH_IP4:
       debug2("IPv4 packet\n");
-      ip4_handler_(pckt);
+      ip4_handler_(std::move(pckt));
       break;
 
     case ETH_IP6:
       debug2("IPv6 packet\n");
-      ip6_handler_(pckt);
+      ip6_handler_(std::move(pckt));
       break;
 
     case ETH_ARP:
       debug2("ARP packet\n");
-      arp_handler_(pckt);
+      arp_handler_(std::move(pckt));
       break;
 
     case ETH_WOL:

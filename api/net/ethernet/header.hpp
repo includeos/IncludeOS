@@ -1,28 +1,39 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
 
-#ifndef ___API_WARN___
-#define ___API_WARN___
+#ifndef NET_ETHERNET_HEADER_HPP
+#define NET_ETHERNET_HEADER_HPP
 
-#ifdef WARN
-#define WARN(X,...)  printf("\nWARNING: " X, ##__VA_ARGS__);
-#else 
-#define WARN(X,...) 
+#include <hw/mac_addr.hpp>
+
+namespace net {
+namespace ethernet {
+
+using trailer_t = uint32_t;
+
+struct Header {
+  hw::MAC_addr dest;
+  hw::MAC_addr src;
+  unsigned short type;
+
+} __attribute__((packed)) ;
+
+}
+}
+
 #endif
-
-#endif //< ___API_WARN___

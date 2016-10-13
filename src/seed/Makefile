@@ -15,14 +15,16 @@ endif
 
 # Maximum memory in megabytes
 # Used if memory info is not otherwise available such as via multiboot
+ifeq ($(MAX_MEM),)
 MAX_MEM=128
+endif
 
 # Shorter name
 INSTALL = $(INCLUDEOS_INSTALL)
 
 # Compiler and linker options
 ###################################################
-CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION $(LOCAL_DEFS)
 WARNS  = -Wall -Wextra #-pedantic
 DEBUG_OPTS = -ggdb3 -v
 
@@ -50,7 +52,7 @@ ifndef OBJCOPY_INC
 	OBJCOPY_INC=objcopy
 endif
 
-INCLUDES = -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL $(LOCAL_INCLUDES)
+INCLUDES = $(LOCAL_INCLUDES) -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL
 
 all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
@@ -139,7 +141,7 @@ ifneq ($(MEMDISK),)
 	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 	@echo "\n>> Adding symbol section"
 	$(INSTALL)/elf_syms $(SERVICE)
 	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
@@ -173,7 +175,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 	nasm -f elf -o $@ $<
 
 %.o: %.c
-	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=c11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
+	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
 
 # AS-assembled object files
 %.o: %.s

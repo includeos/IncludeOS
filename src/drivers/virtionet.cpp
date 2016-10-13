@@ -37,13 +37,12 @@ using namespace net;
 constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
 
 const char* VirtioNet::name() const { return "VirtioNet Driver"; }
-const net::Ethernet::addr& VirtioNet::mac(){ return _conf.mac; }
 
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
 
-void VirtioNet::drop(Packet_ptr UNUSED(pckt)){
+void VirtioNet::drop(Packet_ptr){
   debug("<VirtioNet->link-layer> No delegate. DROP!\n");
 }
 
@@ -202,7 +201,7 @@ void VirtioNet::msix_recv_handler()
     auto res = rx_q.dequeue();
 
     auto pckt_ptr = recv_packet(res.data(), res.size());
-    _link_out(pckt_ptr);
+    _link_out(std::move(pckt_ptr));
 
     // Requeue a new buffer
     add_receive_buffer();
@@ -224,12 +223,13 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming()) {
     // FIXME Unfortunately dequeue is not working here
     // I am guessing that Linux is eating the buffers?
+    //auto res =
     tx_q.dequeue();
 
-    // unlock and release the (assumed) locked buffer
+    // release the data back to pool
     auto data = tx_ringq.front();
     tx_ringq.pop_front();
-    bufstore().unlock_and_release(data);
+    bufstore().release(data);
 
     dequeued_tx = true;
   }
@@ -242,9 +242,7 @@ void VirtioNet::msix_xmit_handler()
 
     // transmit as much as possible from the buffer
     if (transmit_queue_){
-      auto buf = transmit_queue_;
-      transmit_queue_ = 0;
-      transmit(buf);
+      transmit(std::move(transmit_queue_));
     }
 
     // If we now emptied the buffer, offer packets to stack
@@ -298,13 +296,13 @@ void VirtioNet::add_receive_buffer(){
   rx_q.enqueue(tokens);
 }
 
-std::shared_ptr<Packet>
+std::unique_ptr<Packet>
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
-  new (ptr) Packet(bufsize(), size, {&bufstore(), &BufferStore::release});
+  new (ptr) Packet(bufsize(), size, &bufstore());
 
-  return std::shared_ptr<Packet> (ptr);
+  return std::unique_ptr<Packet> (ptr);
 }
 
 void VirtioNet::service_queues(){
@@ -325,7 +323,7 @@ void VirtioNet::service_queues(){
     while (rx_q.new_incoming()) {
       auto res = rx_q.dequeue();
       auto pckt_ptr = recv_packet(res.data(), res.size());
-      _link_out(pckt_ptr);
+      _link_out(std::move(pckt_ptr));
 
       // Requeue a new buffer
       add_receive_buffer();
@@ -334,15 +332,15 @@ void VirtioNet::service_queues(){
     }
 
     // Do one TX-packet
-    while (tx_q.new_incoming()){
+    while (tx_q.new_incoming()) {
       // FIXME Unfortunately dequeue is not working here
       // I am guessing that Linux is eating the buffers
       tx_q.dequeue();
 
-      // unlock and release the (assumed) locked buffer
+      // release the buffer back into bufferstore
       auto data = tx_ringq.front();
       tx_ringq.pop_front();
-      bufstore().unlock_and_release( data );
+      bufstore().release(data);
 
       dequeued_tx++;
     }
@@ -364,9 +362,7 @@ void VirtioNet::service_queues(){
 
     // transmit as much as possible from the buffer
     if (transmit_queue_){
-      auto buf = transmit_queue_;
-      transmit_queue_ = 0;
-      transmit(buf);
+      transmit(std::move(transmit_queue_));
     } else {
       debug("<VirtioNet> Transmit queue is empty \n");
     }
@@ -384,13 +380,13 @@ void VirtioNet::service_queues(){
 
 void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
   if (transmit_queue_)
-    transmit_queue_->chain(pckt);
+    transmit_queue_->chain(std::move(pckt));
   else
-    transmit_queue_ = pckt;
+    transmit_queue_ = std::move(pckt);
 
 #ifdef DEBUG
   size_t chain_length = 1;
-  Packet_ptr next = transmit_queue_->tail();
+  auto* next = transmit_queue_->tail();
   while (next) {
     chain_length++;
     next = next->tail();
@@ -412,15 +408,18 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
       VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to
       support VirtualBox
   */
-
   int transmitted = 0;
-  net::Packet_ptr tail {pckt};
+  net::Packet_ptr tail = std::move(pckt);
 
   // Transmit all we can directly
   while (tx_q.num_free() and tail) {
     debug("%i tokens left in TX queue \n", tx_q.num_free());
-    enqueue(tail);
-    tail = tail->detach_tail();
+    // next in line
+    auto next = tail->detach_tail();
+    // write data to network
+    // explicitly release the data to prevent destructor being called
+    enqueue(tail.release());
+    tail = std::move(next);
     transmitted++;
     // Stat increase packets transmitted
     packets_tx_++;
@@ -436,11 +435,11 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   // Buffer the rest
   if (UNLIKELY(tail)) {
     debug("Buffering remaining packets..\n");
-    add_to_tx_buffer(tail);
+    add_to_tx_buffer(std::move(tail));
   }
 }
 
-void VirtioNet::enqueue(net::Packet_ptr pckt) {
+void VirtioNet::enqueue(net::Packet* pckt) {
 
   // This setup requires all tokens to be pre-chained like in SanOS
   Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
@@ -453,11 +452,9 @@ void VirtioNet::enqueue(net::Packet_ptr pckt) {
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(tokens);
 
-  // have to preserve the packet data to prevent overwriting it
-  bufstore().lock(pckt->buffer());
-  // enq the packet we just transmitted into a transmit queue
-  // because tx_q.dequeue is not returning the correct data
-  tx_ringq.push_back((uint8_t*) pckt.get());
+  // have to release the packet data because virtio owns it now
+  // but to do that the packet has to be unique here
+  tx_ringq.push_back((uint8_t*) pckt);
 }
 
 void VirtioNet::begin_deferred_kick()

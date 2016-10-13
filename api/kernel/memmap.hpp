@@ -18,11 +18,9 @@
 #ifndef KERNEL_MEMMAP_HPP
 #define KERNEL_MEMMAP_HPP
 
-// std
 #include <map>
+#include <cassert>
 #include <sstream>
-
-//IncludeOS
 #include <delegate>
 #include <common>
 

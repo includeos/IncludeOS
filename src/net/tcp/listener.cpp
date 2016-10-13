@@ -55,7 +55,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
       {
         debug("<Listener::segment_arrived> Found packet receiver: %s\n",
           conn->to_string().c_str());
-        conn->segment_arrived(packet);
+        conn->segment_arrived(std::move(packet));
         debug2("<Listener::segment_arrived> Connection done handling segment\n");
         return;
       }
@@ -93,7 +93,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
     Ensures(conn->is_listening());
     debug("<Listener::segment_arrived> Connection %s created\n",
       conn->to_string().c_str());
-    conn->segment_arrived(packet);
+    conn->segment_arrived(std::move(packet));
     debug2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }

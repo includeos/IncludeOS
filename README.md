@@ -1,5 +1,7 @@
-![IncludeOS](./doc/IncludeOS_logo.png)
+![IncludeOS Logo](./doc/logo.png)
 ================================================
+
+**Update**: Looking for [Acorn](https://github.com/includeos/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY)? Built using [Mana](https://github.com/includeos/mana), the new C++ Web Application Framework for IncludeOS. Both [Acorn](https://github.com/includeos/acorn/) and [Mana](https://github.com/includeos/mana) are free and open source, check them out right here on GitHub!
 
 IncludeOS is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
@@ -42,10 +44,12 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 ### Install libraries
 
+**NOTE:** The script will install packages and create a network bridge, and thus will ask for sudo access.
+
 ```
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ sudo ./install.sh
+    $ ./install.sh
 ```
 
 **The script will:**
@@ -56,8 +60,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
 * Create a network bridge called `include0`, for tap-networking.
 * Build the vmbuilder, which turns your service into a bootable image.
 * Copy `vmbuild` and `qemu-ifup` from the repo, over to `$INCLUDEOS_HOME`.
-
-**NOTE:** The script will install packages, and thus will require sudo access.
 
 Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [OS X](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
 

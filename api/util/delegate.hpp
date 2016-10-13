@@ -266,6 +266,10 @@ public:
     return stub_ptr_(object_ptr_, ::std::forward<A>(args)...);
   }
 
+  void* get_ptr() const noexcept {
+    return object_ptr_;
+  }
+
 private:
   friend struct ::std::hash<delegate>;
 

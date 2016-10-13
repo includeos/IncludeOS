@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,16 +20,17 @@
 
 double mysecond()
 {
-  return OS::uptime();
+  return OS::micros_since_boot() / 1000000.f;
 }
 
 void Service::start(const std::string&)
 {
   std::cout << "*** Service is up - with OS Included! ***" << std::endl;
-  
+
   // do the STREAM test here
   extern int main();
   main();
-  
+
   std::cout << "Service out!" << std::endl;
+  OS::shutdown();
 }

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,32 +14,30 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
 
-#include <os>
-#include <vga>
-#include <hw/ps2.hpp>
+#ifndef NET_IP4_HEADER_HPP
+#define NET_IP4_HEADER_HPP
 
-#include "snake.hpp"
+namespace net {
+namespace ip4 {
 
-ConsoleVGA vga;
+/** IP4 header representation */
+struct Header {
+  uint8_t  version_ihl;
+  uint8_t  tos;
+  uint16_t tot_len;
+  uint16_t id;
+  uint16_t frag_off_flags;
+  uint8_t  ttl;
+  uint8_t  protocol;
+  uint16_t check;
+  Addr     saddr;
+  Addr     daddr;
+};
 
-void begin_snake()
-{
-  static Snake snake {vga};
-
-  hw::KBM::init();
-  hw::KBM::set_virtualkey_handler(
-  [] (int key)
-  {
-    snake.user_update(Snake::Direction(key));
-
-    if (key == hw::KBM::VK_SPACE && snake.finished())
-      snake.reset();
-  });
+}
 }
 
-void Service::start(const std::string&)
-{
-  // We have to start snake later to avoid some text output
-  begin_snake();
-}
+#endif
+

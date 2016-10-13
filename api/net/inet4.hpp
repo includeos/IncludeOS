@@ -22,7 +22,7 @@
 #include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
 #include <hw/nic.hpp>
 #include "inet.hpp"
-#include "ethernet.hpp"
+#include "ethernet/ethernet.hpp"
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
@@ -77,10 +77,9 @@ namespace net {
       // get buffer (as packet + data)
       auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size,
-          delegate<void(void*)>::from<BufferStore, &BufferStore::release> (&bufstore_));
+      new (ptr) Packet(nic_.bufsize(), size, &bufstore_);
       // regular shared_ptr that calls delete on Packet
-      return std::shared_ptr<Packet>(ptr);
+      return Packet_ptr(ptr);
     }
 
     /** MTU retreived from Nic on construction */

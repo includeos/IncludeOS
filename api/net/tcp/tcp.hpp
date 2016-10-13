@@ -90,7 +90,7 @@ namespace net {
     /*
       Compute the TCP checksum
     */
-    static uint16_t checksum(const tcp::Packet_ptr);
+    static uint16_t checksum(const tcp::Packet&);
 
     const auto& listeners()
     { return listeners_; }
@@ -198,7 +198,7 @@ namespace net {
     /*
       Packet is dropped.
     */
-    void drop(tcp::Packet_ptr);
+    void drop(const tcp::Packet&);
 
     /*
       Add a Connection.

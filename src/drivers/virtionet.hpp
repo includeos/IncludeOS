@@ -122,7 +122,8 @@ public:
   const char* name() const override;
 
   /** Mac address. */
-  const net::Ethernet::addr& mac() override;
+  const hw::MAC_addr& mac() override
+  { return _conf.mac; }
 
   uint16_t MTU() const noexcept override
   { return 1500; }
@@ -192,7 +193,7 @@ private:
 
   // From Virtio 1.01, 5.1.4
   struct config{
-    net::Ethernet::addr mac;
+    hw::MAC_addr mac;
     uint16_t status;
 
     //Only valid if VIRTIO_NET_F_MQ
@@ -214,7 +215,7 @@ private:
   void add_to_tx_buffer(net::Packet_ptr pckt);
 
   /** Add packet chain to virtio queue */
-  void enqueue(net::Packet_ptr pckt);
+  void enqueue(net::Packet* pckt);
 
   /** Handle device IRQ.
       Will look for config changes and service RX/TX queues as necessary.*/
@@ -230,14 +231,14 @@ private:
 
 
 
-  std::shared_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
 
   void begin_deferred_kick();
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue_ {0};
+  net::Packet_ptr transmit_queue_ {nullptr};
 };
 
 #endif

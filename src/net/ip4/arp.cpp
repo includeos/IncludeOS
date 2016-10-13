@@ -28,7 +28,7 @@
 
 namespace net {
 
-  static void ignore(Packet_ptr UNUSED(pckt)) {
+  static void ignore(Packet_ptr) {
     debug2("<ARP -> linklayer> Empty handler - DROP!\n");
   }
 
@@ -75,14 +75,14 @@ namespace net {
       // Stat increment replies received
       replies_rx_++;
 
-      debug2("\t ARP REPLY: %s belongs to %s\n",
-             hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str());
+      debug2("\t ARP REPLY: %s belongs to %s (waiting: %u)\n",
+             hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str(), waiting_packets_.size());
 
       auto waiting = waiting_packets_.find(hdr->sipaddr);
 
       if (waiting != waiting_packets_.end()) {
         debug("Had a packet waiting for this IP. Sending\n");
-        transmit(waiting->second);
+        transmit(std::move(waiting->second));
         waiting_packets_.erase(waiting);
       }
       break;
@@ -136,7 +136,7 @@ namespace net {
     replies_tx_++;
 
     // Populate ARP-header
-    auto res = std::static_pointer_cast<PacketArp>(inet_.create_packet(sizeof(header)));
+    auto res = static_unique_ptr_cast<PacketArp>(inet_.create_packet(sizeof(header)));
     res->init(mac_, inet_.ip_addr());
 
     res->set_dest_mac(hdr_in->shwaddr);
@@ -146,7 +146,7 @@ namespace net {
     debug2("\t My IP: %s belongs to My Mac: %s\n",
            res->source_ip().str().c_str(), res->source_mac().str().c_str());
 
-    linklayer_out_(res);
+    linklayer_out_(std::move(res));
   }
 
   void Arp::transmit(Packet_ptr pckt) {
@@ -173,7 +173,7 @@ namespace net {
         return;
       }
       // mui importante
-      dest_mac = Ethernet::addr::BROADCAST_FRAME;
+      dest_mac = Ethernet::BROADCAST_FRAME;
 
     } else {
       if (sip != inet_.ip_addr()) {
@@ -184,7 +184,7 @@ namespace net {
 
       // If we don't have a cached IP, perform address resolution
       if (!is_valid_cached(dip)) {
-        arp_resolver_(pckt);
+        arp_resolver_(std::move(pckt));
         return;
       }
 
@@ -199,7 +199,7 @@ namespace net {
     ethhdr->type = Ethernet::ETH_IP4;
 
     debug2("<ARP -> physical> Sending packet to %s\n", mac_.str().c_str());
-    linklayer_out_(pckt);
+    linklayer_out_(std::move(pckt));
   }
 
   void Arp::await_resolution(Packet_ptr pckt, IP4::addr) {
@@ -207,29 +207,29 @@ namespace net {
 
     if (queue != waiting_packets_.end()) {
       debug("<ARP Resolve> Packets already queueing for this IP\n");
-      queue->second->chain(pckt);
+      queue->second->chain(std::move(pckt));
     } else {
       debug("<ARP Resolve> This is the first packet going to that IP\n");
-      waiting_packets_.emplace(std::make_pair(pckt->next_hop(), pckt));
+      waiting_packets_.emplace(std::make_pair(pckt->next_hop(), std::move(pckt)));
     }
   }
 
   void Arp::arp_resolve(Packet_ptr pckt) {
     debug("<ARP RESOLVE> %s\n", pckt->next_hop().str().c_str());
+    const auto next_hop = pckt->next_hop();
+    await_resolution(std::move(pckt), next_hop);
 
-    await_resolution(pckt, pckt->next_hop());
-
-    auto req = view_packet_as<PacketArp>(inet_.create_packet(sizeof(header)));
+    auto req = static_unique_ptr_cast<PacketArp>(inet_.create_packet(sizeof(header)));
     req->init(mac_, inet_.ip_addr());
 
-    req->set_dest_mac(Ethernet::addr::BROADCAST_FRAME);
+    req->set_dest_mac(Ethernet::BROADCAST_FRAME);
     req->set_dest_ip(pckt->next_hop());
     req->set_opcode(H_request);
 
     // Stat increment requests sent
     requests_tx_++;
 
-    linklayer_out_(req);
+    linklayer_out_(std::move(req));
   }
 
   void Arp::hh_map(Packet_ptr pckt) {

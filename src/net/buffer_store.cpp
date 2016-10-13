@@ -24,6 +24,7 @@
 
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
+#include <common>
 #define PAGE_SIZE     0x1000
 
 namespace net {
@@ -34,12 +35,9 @@ namespace net {
   {
     assert(num != 0);
     assert(bufsize != 0);
-
     const size_t DATA_SIZE  = poolsize_;
-    const size_t BMP_CHUNKS = num / 32 + 1; // poor mans' roundup
-    const size_t BMP_SIZE   = BMP_CHUNKS * sizeof(uint32_t);
 
-    this->pool_ = (buffer_t) memalign(PAGE_SIZE, DATA_SIZE + BMP_SIZE);
+    this->pool_ = (buffer_t) memalign(PAGE_SIZE, DATA_SIZE);
     assert(this->pool_);
 
     available_.reserve(num);
@@ -49,9 +47,6 @@ namespace net {
     assert(available() == num);
     // verify that the "first" buffer is the start of the pool
     assert(available_.back() == pool_);
-
-    new (&locked) MemBitmap((char*) pool_ + DATA_SIZE, BMP_CHUNKS);
-    locked.zero_all();
   }
 
   BufferStore::~BufferStore() {
@@ -75,12 +70,6 @@ namespace net {
 
     // expensive: is_buffer(buff)
     if (LIKELY(is_from_pool(buff))) {
-      // if the buffer is locked, don't release it
-      if (UNLIKELY(locked.get( buffer_id(buff) ))) {
-        debug(" .. but it was locked\n");
-        return;
-      }
-      
       available_.push_back(buff);
       debug("released\n");
       return;
@@ -88,20 +77,6 @@ namespace net {
     // buffer not owned by bufferstore, so just delete it?
     debug("deleted\n");
     delete[] buff;
-  }
-  void BufferStore::unlock_and_release(buffer_t addr)
-  {
-    debug("Unlock and release %p...", addr);
-    // expensive: is_buffer(buff)
-    if (LIKELY(is_from_pool(addr))) {
-      locked.reset( buffer_id(addr) );
-      available_.push_back(addr);
-      debug("released\n");
-      return;
-    }
-    // buffer not owned by bufferstore, so just delete it?
-    debug("deleted\n");
-    delete[] addr;
   }
 
 } //< namespace net

@@ -66,21 +66,21 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o kernel/os_stdout.o kernel/cpuid.o \
 		kernel/memmap.o kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
-		kernel/vga.o kernel/debug_new.o kernel/context.o kernel/context_asm.o \
+		kernel/vga.o kernel/context.o kernel/context_asm.o \
 		kernel/profile.o kernel/profile_intr.o \
-		kernel/timers.o kernel/rtc.o util/memstream.o util/async.o util/statman.o \
+		kernel/timers.o kernel/rtc.o \
+		util/memstream.o util/async.o util/statman.o util/logger.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		hw/ps2.o hw/serial.o hw/cmos.o hw/drive.o \
 		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
 		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
 		virtio/virtio.o virtio/virtio_queue.o \
-		net/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
+		net/ethernet/ethernet.o net/inet_common.o net/ip4/arp.o net/ip4/ip4.o \
 		net/tcp/tcp.o net/tcp/connection.o net/tcp/connection_states.o \
 		net/tcp/rttm.o net/tcp/listener.o \
 		net/ip4/icmpv4.o net/ip4/udp.o net/ip4/udp_socket.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
-		net/ip6/ip6.o net/ip6/icmp6.o net/ip6/udp6.o net/ip6/ndp.o \
 		net/buffer_store.o net/inet4.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
@@ -89,7 +89,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		# ../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/recursive_timed_mutex.o \
 		#../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/scheduler.o ../mod/fiber/src/timed_mutex.o
 
-DRIVERS = drivers/virtioblk.o drivers/virtionet.o
+DRIVERS = drivers/virtioblk.o drivers/virtionet.o drivers/heap_debugging.o
 DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
 PLATFORMS = platforms/unik.o
@@ -185,6 +185,7 @@ install: drivers platforms bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	cp seed/service_name.cpp $(INSTALL)
 	cp seed/Makefile $(INSTALL)/Makeseed
 	cp seed/Makelib $(INSTALL)/Makelib
+	cp -r ../seed $(INSTALL)
 # External dependencies related
 	mkdir -p $(INSTALL)/mod/
 	cp -r ../mod/GSL $(INSTALL)/mod

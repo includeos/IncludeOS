@@ -98,12 +98,12 @@ void _init_c_runtime()
   extern void* _relocate_to_heap(void*);
   void* symheap = _relocate_to_heap(SYM_LOCATION);
 
-  // set ELF symbols location here (after initializing everything else)
-  _apply_parser_data(symheap);
-
   /// call global constructors emitted by compiler
   extern void _init();
   _init();
+
+  // set ELF symbols location here (after initializing everything else)
+  _apply_parser_data(symheap);
 
   // sanity checks
   assert(heap_begin >= &_end);

@@ -15,245 +15,346 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
 #ifndef SNAKE_HPP
 #define SNAKE_HPP
+
+#include <random>
+#include <kernel/timers.hpp>
+
+#define S_SIGN '@'
+#define S_COLOR ConsoleVGA::vga_color::COLOR_LIGHT_CYAN
+#define S_SPAWN Point{{ 35, 12 }}
+
+#define GRID_X 80
+#define GRID_Y 25
+
+namespace snake_util
+{
+using grid_t = int8_t;
+
+class Point
+{
+public:
+	using val_t = grid_t;
+	using point_t = std::pair<val_t, val_t>;
+
+	explicit Point(const int);
+
+	explicit Point(const point_t);
+
+	Point(const Point&) = default;
+	Point(Point&&) = default;
+
+	Point& operator= (const Point&) = default;
+	Point& operator= (Point&&) = default;
+
+	Point operator+ (const Point);
+	Point operator* (const Point);
+
+	bool operator== (const Point) const;
+	bool operator!= (const Point) const;
+
+	val_t x() const { return _point.first; }
+	val_t y() const { return _point.second; }
+
+private:
+	point_t _point;
+};
+
+struct Part;
+}
 
 class Snake
 {
 public:
-  static const char WHITESPACE = ' ';
+	using Point = snake_util::Point;
+	using Direction = snake_util::Point;
 
-  enum {
-    UP,
-    DOWN,
-    RIGHT,
-    LEFT
-  };
+	explicit Snake(ConsoleVGA&);
 
-  Snake(ConsoleVGA& con)
-    : vga(con)
-  {
-    reset();
-  }
+	Snake(const Snake&) = delete;
+	Snake(Snake&&) = delete;
 
-  // 80x25 = 2000
-  // 11 bits = 2048
-  //  2 bits = direction
-  //  3 bits = type
-  struct Part {
-    uint16_t data;
+	Snake& operator= (const Snake&) = delete;
+	Snake& operator= (Snake&&) = delete;
 
-    Part(uint16_t x, uint16_t y, uint16_t dir, uint16_t typ)
-      : data(y * 80 + x)
-    {
-      set_dir(dir);
-      set_type(typ);
-    }
+	void user_update(const Direction);
 
-    void set_pos(uint16_t x, uint16_t y)
-    {
-      data &= ~0x7FF;
-      data |= y * 80 + x;
-    }
-    uint16_t get_x() const noexcept
-    {
-      return (data & 0x7FF) % 80;
-    }
-    uint16_t get_y() const noexcept
-    {
-      return (data & 0x7FF) / 80;
-    }
+	void reset();
 
-    void set_dir(uint16_t dir)
-    {
-      data &= 0xE7FF;
-      data |= (dir & 3) << 11;
-    }
-    uint16_t get_dir() const noexcept
-    {
-      return (data >> 11) & 3;
-    }
-
-    void set_type(uint16_t typ)
-    {
-      data &= 0x1FFF;
-      data |= typ << 13;
-    }
-    uint16_t get_type() const noexcept
-    {
-      return data >> 13;
-    }
-
-    char get_symbol() const noexcept
-    {
-      switch (get_type()) {
-      case 0:
-        return '@';
-      case 1:
-        return '*';
-      case 2:
-        return '.';
-      }
-      return '?';
-    }
-
-  };
-
-  void set_dir(uint16_t dir)
-  {
-    switch (dir) {
-    case UP:
-      if (diry == 1) return;
-      dirx = 0;
-      diry = -1;
-      return;
-    case DOWN:
-      if (diry == -1) return;
-      dirx = 0;
-      diry = 1;
-      return;
-    case RIGHT:
-      if (dirx == -1) return;
-      dirx = 1;
-      diry = 0;
-      return;
-    case LEFT:
-      if (dirx == 1) return;
-      dirx = -1;
-      diry = 0;
-      return;
-    }
-    dirx = 0;
-    diry = 0;
-  }
-  void integrate()
-  {
-    auto& head = parts[0];
-    int16_t newx = (head.get_x() + this->dirx) % 80;
-    if (newx < 0) newx = 79;
-    int16_t newy = (head.get_y() + this->diry) % 25;
-    if (newy < 0) newy = 24;
-
-    bool longer = false;
-    auto ent = vga.get(newx, newy);
-    if (is_food(ent & 0xff)) {
-      /// food ///
-      longer = true;
-      score++;
-    }
-    else if (!is_whitespace(ent & 0xff)) {
-      /// game over ///
-      game_over();
-      return;
-      /// game over ///
-    }
-
-    auto old_last = parts[parts.size()-1];
-
-    // move rest
-    for (size_t p = parts.size()-1; p > 0; p--)
-    {
-      parts[p].set_pos(parts[p-1].get_x(), parts[p-1].get_y());
-      draw_part(parts[p]);
-    }
-    // move head
-    head.set_pos(newx, newy);
-    draw_part(head);
-
-    // erase last part
-    if (!longer) {
-      vga.put(WHITESPACE, 0, old_last.get_x(), old_last.get_y());
-    }
-    else {
-      old_last.set_type(1);
-      draw_part(old_last);
-      parts.push_back(old_last);
-      // place more food
-      place_food(); place_food();
-      // and some dangerous stuff
-      place_mine(); place_mine();
-    }
-
-    hw::PIT::on_timeout_d(0.1,
-    [this] {
-      integrate();
-    });
-  }
-
-  void place_token(const char tk, const uint8_t color)
-  {
-    while (true) {
-      int x = rand() % 80;
-      int y = rand() % 25;
-      // ignore non-whitespaces
-      if (!is_whitespace(vga.get(x, y) & 0xff)) continue;
-      // place food
-      vga.put(tk, color, x, y);
-      break;
-    }
-  }
-  void place_food() {
-    place_token('#', 2);
-  }
-  bool is_food(const char c) const
-  {
-    return c == '#';
-  }
-  void place_mine() {
-    place_token('X', 4);
-  }
-
-  void draw_part(const Part& part)
-  {
-    vga.put(part.get_symbol(), 1, part.get_x(), part.get_y());
-  }
-
-  bool is_whitespace(const char c) const
-  {
-    return c == ' ';
-  }
-  void game_over() {
-    /// game over ///
-    vga.clear();
-    this->gameover = true;
-
-    vga.set_cursor(32, 12);
-    std::string gameover = "GAME OVER ! ! !";
-    vga.write(gameover.c_str(), gameover.size());
-
-    vga.set_cursor(32, 13);
-    std::string finalscore = "SCORE: " + std::to_string(score);
-    vga.write(finalscore.c_str(), finalscore.size());
-  }
-  bool is_gameover() const {
-    return this->gameover;
-  }
-
-  void reset() {
-    this->gameover = false;
-    this->score    = 1;
-    vga.clear();
-    // create snake head
-    parts.clear();
-    parts.emplace_back(rand() % 80, rand() % 25, 0, 0);
-    vga.put('@', 2, parts[0].get_x(), parts[0].get_y());
-    // place the first food
-    place_food();
-
-    hw::PIT::on_timeout_d(0.2,
-    [this] {
-      this->integrate();
-    });
-  }
+	bool finished() const { return !_active; }
 
 private:
-  ConsoleVGA& vga;
-  bool     gameover;
-  int8_t   dirx = 1;
-  int8_t   diry = 0;
-  uint16_t score;
-  std::vector<Part> parts;
+	std::vector<snake_util::Part> _body;
+	std::vector<snake_util::Part> _food;
+	std::vector<snake_util::Part> _obstacles;
+	Direction _head_dir;
+	ConsoleVGA& _vga;
+	bool _active;
+
+	void game_loop();
+	void update_positions();
+	void intersect();
+	void spawn_items();
+	void render();
+	void gameover();
 };
+
+namespace snake_util
+{
+
+struct Part
+{
+	using sign_t = char;
+	using color_t = int8_t;
+
+	explicit Part(sign_t, color_t, Point&&);
+
+	sign_t sign;
+	color_t color;
+	Point pos;
+};
+
+}
+
+
+// ----- IMPLEMENTATION -----
+
+
+// --- Snake ---
+
+Snake::Snake(ConsoleVGA& vga) :
+	_head_dir({ 1, 0 }), _vga(vga), _active(true)
+{
+	reset();
+};
+
+void Snake::user_update(const Direction dir)
+{
+	auto valid = [&head_dir = _head_dir](const auto dir) -> bool
+	{
+		return (dir != Point{ { 0, 0 } }
+		&& dir != Point{{ -1, -1 }} * head_dir);
+	};
+
+	if (valid(dir))
+		_head_dir = dir;
+}
+
+void Snake::reset()
+{
+	auto reset_range = [](auto& range) -> void
+	{
+		range.clear();
+		range.reserve(100);
+	};
+	reset_range(_body);
+	reset_range(_food);
+	reset_range(_obstacles);
+
+	// spawn head
+	_body.emplace_back(S_SIGN, S_COLOR, S_SPAWN);
+	_head_dir = Point{{ 1, 0 }};
+
+	spawn_items();
+
+	_active = true;
+	game_loop();
+}
+
+void Snake::game_loop()
+{
+	update_positions();
+	intersect();
+	render();
+
+	if (finished())
+	{
+		gameover();
+		return;
+	}
+
+	Timers::oneshot(
+		std::chrono::milliseconds(_head_dir.x() == 0 ? 120 : 70),
+		[this](auto) { game_loop(); }
+	);
+}
+
+void Snake::update_positions()
+{
+	auto head = _body.front();
+
+	std::rotate(
+		std::rbegin(_body),
+		std::next(std::rbegin(_body)),
+		std::rend(_body)
+	);
+
+	auto wrap_head_pos = [&point = head.pos]() -> void
+	{
+		auto wrap = [](auto ic, Point::val_t val) -> Point::val_t
+		{
+			switch (val)
+			{
+			case -1: return decltype(ic)::value - 1;
+			case decltype(ic)::value: return 0;
+			}
+			return val;
+		};
+
+		std::integral_constant<Point::val_t, GRID_X> x;
+		std::integral_constant<Point::val_t, GRID_Y> y;
+		point = Point{ { wrap(x, point.x()), wrap(y, point.y()) } };
+	};
+
+	head.pos = head.pos + _head_dir;
+	wrap_head_pos();
+	_body.front() = head;
+}
+
+void Snake::intersect()
+{
+	const auto head = _body.front();
+
+	auto comp = [=](const auto part)
+	{
+		return head.pos == part.pos;
+	};
+
+	auto intersect_range = [=](const auto first, const auto last) -> bool
+	{
+		return std::none_of(first, last, comp);
+	};
+
+	_active = intersect_range(std::next(std::cbegin(_body)), std::cend(_body))
+		&& intersect_range(std::cbegin(_obstacles), std::cend(_obstacles));
+
+	auto food_it = std::find_if(std::begin(_food), std::end(_food), comp);
+	if (food_it != _food.end())
+	{
+		_body.insert(std::next(std::cbegin(_body)), std::move(*food_it));
+		_food.erase(food_it);
+
+		spawn_items();
+	}
+}
+
+void Snake::spawn_items()
+{
+	using val_t = Point::val_t;
+	
+	static std::mt19937 generator(time(NULL)); // sadly this is ugly
+	static std::uniform_int_distribution<val_t> distribution_x(0, GRID_X - 1);
+	static std::uniform_int_distribution<val_t> distribution_y(0, GRID_Y - 1);
+
+	auto rand_point = []() -> Point
+	{
+		return Point{{ distribution_x(generator), distribution_y(generator) }};
+	};
+
+	_food.emplace_back('#', ConsoleVGA::vga_color::COLOR_LIGHT_GREEN, rand_point());
+
+	_obstacles.emplace_back('X', ConsoleVGA::vga_color::COLOR_RED, rand_point());
+	_obstacles.emplace_back('X', ConsoleVGA::vga_color::COLOR_RED, rand_point());
+}
+
+void Snake::render()
+{
+	_vga.clear();
+	auto render_range = [&vga = _vga](const auto& range) -> void
+	{
+		std::for_each(std::begin(range), std::end(range),
+			[&vga](const auto& part) -> void
+			{ vga.put(part.sign, part.color, part.pos.x(), part.pos.y()); }
+		);
+	};
+
+	render_range(_body);
+	render_range(_food);
+	render_range(_obstacles);
+}
+
+void Snake::gameover()
+{
+	_vga.clear();
+
+	_vga.set_cursor((GRID_X / 5) * 2, GRID_Y / 2 - 1);
+	const std::string finished = "GAME OVER ! ! !";
+	_vga.write(finished.c_str(), finished.size());
+
+	_vga.set_cursor((GRID_X / 5) * 2, (GRID_Y / 2));
+	const std::string finalscore = "SCORE: " + std::to_string(_body.size());
+	_vga.write(finalscore.c_str(), finalscore.size());
+}
+
+
+namespace snake_util
+{
+
+// --- Point ---
+
+Point::Point(const int key) :
+	_point([key]() -> point_t
+	{
+		switch (key)
+		{
+		case hw::KBM::VK_UP: return{ 0, -1 };
+		case hw::KBM::VK_DOWN: return{ 0, 1 };
+		case hw::KBM::VK_RIGHT: return{ 1, 0 };
+		case hw::KBM::VK_LEFT: return{ -1, 0 };
+		}
+		return { 0, 0 };
+	}())
+{ }
+
+Point::Point(const point_t point)
+	: _point(point)
+{ }
+
+Point Point::operator+ (const Point other)
+{
+	return Point{{ _point.first + other._point.first,
+		_point.second + other._point.second }};
+}
+
+Point Point::operator* (const Point other)
+{
+	return Point{ { _point.first * other._point.first,
+		_point.second * other._point.second } };
+}
+
+bool Point::operator== (const Point other) const
+{
+	return _point == other._point;
+}
+
+bool Point::operator!= (const Point other) const
+{
+	return _point != other._point;
+}
+
+
+
+// --- Part ---
+
+Part::Part(
+	sign_t s,
+	const color_t c,
+	Point&& p
+)
+	:
+	sign(s),
+	color(c),
+	pos(std::forward<Point>(p))
+{ }
+
+}
+
+#undef S_SIGN
+#undef S_COLOR
+#undef S_SPAWN
+
+#undef GRID_X
+#undef GRID_Y
 
 #endif

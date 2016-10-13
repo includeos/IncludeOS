@@ -56,6 +56,7 @@ namespace fs {
 
   void Disk::mount(on_mount_func func)
   {
+    printf("mount: reading blk 0\n");
     device.read(0,
     [this, func] (hw::Drive::buffer_t data)
     {

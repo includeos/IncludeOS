@@ -169,7 +169,7 @@ public:
 
   virtual size_t send(Connection&, WriteBuffer&) override;
 
-  virtual void receive(Connection&, ReadBuffer&) override;
+  virtual void receive(Connection&, ReadBuffer&&) override;
 
   virtual void close(Connection&) override;
 
@@ -207,7 +207,7 @@ public:
     return instance;
   }
 
-  virtual void receive(Connection&, ReadBuffer&) override;
+  virtual void receive(Connection&, ReadBuffer&&) override;
 
   virtual void close(Connection&) override;
 
@@ -246,7 +246,7 @@ public:
     return instance;
   }
 
-  virtual void receive(Connection&, ReadBuffer&) override;
+  virtual void receive(Connection&, ReadBuffer&&) override;
 
   virtual void close(Connection&) override;
 
@@ -284,7 +284,7 @@ public:
 
   virtual size_t send(Connection&, WriteBuffer&) override;
 
-  virtual void receive(Connection&, ReadBuffer&) override;
+  virtual void receive(Connection&, ReadBuffer&&) override;
 
   virtual void close(Connection&) override;
 

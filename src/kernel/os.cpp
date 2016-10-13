@@ -52,7 +52,7 @@ uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 // stdout redirection
-std::vector<OS::print_func> OS::print_handlers;
+static std::vector<OS::print_func> os_print_handlers;
 extern void default_stdout_handlers();
 // custom init
 std::vector<OS::Custom_init_struct> OS::custom_init_;
@@ -270,11 +270,13 @@ uintptr_t OS::heap_max() {
   return memory_map().at(heap_begin).addr_end();
 }
 
-uintptr_t OS::heap_usage() {
-  // measures heap usage only?
-  return (uint32_t) (heap_end - heap_begin);
+uintptr_t OS::heap_usage() noexcept {
+  return (uintptr_t) (heap_end - heap_begin);
 }
 
+int64_t OS::get_cycles_halt() noexcept {
+  return *os_cycles_hlt;
+}
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
@@ -312,9 +314,13 @@ void OS::shutdown()
   power_ = false;
 }
 
+void OS::add_stdout(OS::print_func func)
+{
+  os_print_handlers.push_back(func);
+}
 size_t OS::print(const char* str, const size_t len) {
   // Output callbacks
-  for (auto& func : print_handlers)
+  for (auto& func : os_print_handlers)
       func(str, len);
   return len;
 }

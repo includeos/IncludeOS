@@ -145,7 +145,7 @@ namespace net
 
     // @WARNING: Initializing packet as "full", i.e. size == capacity
     Packet* packet = (Packet*) data;
-    new (packet) Packet(sizeof(data), 0);
+    new (packet) Packet(sizeof(data), 0, nullptr);
 
     IP6::full_header& full = *(IP6::full_header*) packet->buffer();
     // people dont think that it be, but it do

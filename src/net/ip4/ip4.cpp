@@ -17,7 +17,7 @@
 
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
-#include <os>
+
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
@@ -41,12 +41,13 @@ namespace net {
 
   void IP4::bottom(Packet_ptr pckt) {
     debug2("<IP4 handler> got the data.\n");
+    // Cast to IP4 Packet
+    auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
     // Stat increment packets received
     packets_rx_++;
 
-    auto data = pckt->buffer();
-    ip_header* hdr = &reinterpret_cast<full_header*>(data)->ip_hdr;
+    ip_header* hdr = &packet->ip_header();
 
     // Drop if my ip address doesn't match destination ip address or broadcast
     if(UNLIKELY(hdr->daddr != local_ip() and
@@ -61,14 +62,14 @@ namespace net {
     switch(hdr->protocol){
     case IP4_ICMP:
       debug2("\t Type: ICMP\n");
-      icmp_handler_(pckt);
+      icmp_handler_(std::move(packet));
       break;
     case IP4_UDP:
       debug2("\t Type: UDP\n");
-      udp_handler_(pckt);
+      udp_handler_(std::move(packet));
       break;
     case IP4_TCP:
-      tcp_handler_(pckt);
+      tcp_handler_(std::move(packet));
       debug2("\t Type: TCP\n");
       break;
     default:
@@ -77,14 +78,14 @@ namespace net {
     }
   }
 
-  uint16_t IP4::checksum(ip_header* hdr) {
-    return net::checksum(reinterpret_cast<uint16_t*>(hdr), sizeof(ip_header));
+  uint16_t IP4::checksum(ip4::Header* hdr) {
+    return net::checksum(reinterpret_cast<uint16_t*>(hdr), sizeof(ip4::Header));
   }
 
   void IP4::transmit(Packet_ptr pckt) {
     assert(pckt->size() > sizeof(IP4::full_header));
 
-    auto ip4_pckt = std::static_pointer_cast<PacketIP4>(pckt);
+    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     ip4_pckt->make_flight_ready();
 
     IP4::ip_header& hdr = ip4_pckt->ip_header();
@@ -93,7 +94,7 @@ namespace net {
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    pckt->next_hop(target == local ? hdr.daddr : stack_.router());
+    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.router());
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr.daddr.str().c_str(),
@@ -112,15 +113,15 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    linklayer_out_(pckt);
+    linklayer_out_(std::move(ip4_pckt));
   }
 
   // Empty handler for delegates initialization
-  void ignore_ip4_up(Packet_ptr UNUSED(pckt)) {
+  void ignore_ip4_up(Packet_ptr) {
     debug("<IP4> Empty handler. Ignoring.\n");
   }
 
-  void ignore_ip4_down(Packet_ptr UNUSED(pckt)) {
+  void ignore_ip4_down(Packet_ptr) {
     debug("<IP4->Link layer> No handler - DROP!\n");
   }
 

@@ -11,6 +11,7 @@ FILES = service.cpp stream.cpp
 
 # Your disk image
 DISK=
+MAX_MEM=256
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL

@@ -26,6 +26,7 @@
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 #include <delegate>
+#include <util/timer.hpp>
 
 namespace net {
   class TCP;
@@ -89,7 +90,7 @@ public:
     When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
     Can be used for debugging.
   */
-  using PacketDroppedCallback   = delegate<void(Packet_ptr, std::string)>;
+  using PacketDroppedCallback   = delegate<void(const Packet&, const std::string&)>;
   inline Connection&            on_packet_dropped(PacketDroppedCallback);
 
   /**
@@ -282,7 +283,7 @@ public:
     virtual size_t send(Connection&, WriteBuffer&);
 
     /** Read from a Connection [RECEIVE] */
-    virtual void receive(Connection&, ReadBuffer&);
+    virtual void receive(Connection&, ReadBuffer&&);
 
     /** Close a Connection [CLOSE] */
     virtual void close(Connection&);
@@ -317,15 +318,15 @@ public:
       Helper functions
       TODO: Clean up names.
     */
-    virtual bool check_seq(Connection&, Packet_ptr);
+    virtual bool check_seq(Connection&, const Packet&);
 
-    virtual void unallowed_syn_reset_connection(Connection&, Packet_ptr);
+    virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
 
-    virtual bool check_ack(Connection&, Packet_ptr);
+    virtual bool check_ack(Connection&, const Packet&);
 
-    virtual void process_segment(Connection&, Packet_ptr);
+    virtual void process_segment(Connection&, Packet&);
 
-    virtual void process_fin(Connection&, Packet_ptr);
+    virtual void process_fin(Connection&, const Packet&);
 
     virtual void send_reset(Connection&);
 
@@ -477,20 +478,11 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
-  /** When time-wait timer was started. Used in start_time_wait_timeout */
-  uint64_t time_wait_started;
-
   /** Retransmission timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } rtx_timer;
+  Timer rtx_timer;
 
   /** Time Wait timeout timer */
-  struct {
-    uint32_t id;
-    bool active = false;
-  } timewait_timer;
+  Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   size_t rtx_attempt_ = 0;
@@ -532,8 +524,7 @@ private:
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
   void default_on_error(TCPException);
-  void default_on_packet_received(Packet_ptr);
-  void default_on_packet_dropped(Packet_ptr, std::string);
+  void default_on_packet_dropped(const Packet&, const std::string&);
   void default_on_rtx_timeout(size_t, double);
   void default_on_close();
   void default_on_cleanup(Connection_ptr);
@@ -550,8 +541,7 @@ private:
     Buffer is cleared for data after every reset.
   */
   void read(size_t n, ReadCallback callback) {
-    ReadBuffer buffer = {new_shared_buffer(n), n};
-    read(buffer, callback);
+    read({new_shared_buffer(n), n}, callback);
   }
 
   /*
@@ -561,13 +551,13 @@ private:
   void read(buffer_t buffer, size_t n, ReadCallback callback)
   { read({buffer, n}, callback); }
 
-  void read(ReadBuffer buffer, ReadCallback callback);
+  void read(ReadBuffer&& buffer, ReadCallback callback);
 
   /*
     Assign the read request (read buffer)
   */
-  void receive(ReadBuffer& buffer)
-  { read_request.buffer = {buffer}; }
+  void receive(ReadBuffer&& buffer)
+  { read_request = {buffer}; }
 
   /*
     Receive data into the current read requests buffer.
@@ -683,7 +673,7 @@ private:
   void signal_error(TCPException error)
   { on_error_(std::forward<TCPException>(error)); }
 
-  void signal_packet_dropped(Packet_ptr packet, std::string reason)
+  void signal_packet_dropped(const Packet& packet, const std::string& reason)
   { on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
@@ -692,9 +682,9 @@ private:
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(Packet_ptr packet, std::string reason);
+  void drop(const Packet& packet, const std::string& reason);
 
-  void drop(Packet_ptr packet)
+  void drop(const Packet& packet)
   { drop(packet, "None given."); }
 
 
@@ -748,7 +738,7 @@ private:
     Acknowledge a packet
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
-  bool handle_ack(Packet_ptr);
+  bool handle_ack(const Packet&);
 
   /*
     When a duplicate ACK is received.
@@ -773,7 +763,7 @@ private:
   /*
     Fill a packet with data and give it a SEQ number.
   */
-  size_t fill_packet(Packet_ptr, const char*, size_t, seq_t);
+  size_t fill_packet(Packet&, const char*, size_t, seq_t);
 
   /*
     Transmit the send buffer.
@@ -853,20 +843,20 @@ private:
   /*
     Start retransmission timer.
   */
-  void rtx_start();
+  void rtx_start()
+  { rtx_timer.start(rttm.rto_ms()); }
 
   /*
     Stop retransmission timer.
   */
-  void rtx_stop();
+  void rtx_stop()
+  { rtx_timer.stop(); }
 
   /*
     Restart retransmission timer.
   */
-  void rtx_reset() {
-    rtx_stop();
-    rtx_start();
-  }
+  void rtx_reset()
+  { rtx_timer.restart(rttm.rto_ms()); }
 
   /*
     Retransmission timeout limit reached
@@ -887,8 +877,7 @@ private:
   /*
     When retransmission times out.
   */
-  void rtx_timeout(uint32_t);
-
+  void rtx_timeout();
 
   /** Start the timewait timeout for 2*MSL */
   void timewait_start();
@@ -900,7 +889,7 @@ private:
   void timewait_restart();
 
   /** When timewait timer times out */
-  void timewait_timeout(uint32_t);
+  void timewait_timeout();
 
   /*
     Tell the host (TCP) to delete this connection.
@@ -920,12 +909,12 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(Packet_ptr);
+  void parse_options(Packet&);
 
   /*
     Add an option.
   */
-  void add_option(Option::Kind, Packet_ptr);
+  void add_option(Option::Kind, Packet&);
 
 
 }; // < class Connection
