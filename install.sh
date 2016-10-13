@@ -27,6 +27,9 @@ check_os_support() {
                     export INCLUDEOS_SRC=`pwd`
                     return 0;
                     ;;
+                "Arch")
+                    return 0;
+                    ;;
             esac
     esac
     return 1;
@@ -42,7 +45,7 @@ fi
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
-Currently only Ubuntu, Fedora and OSX are actively supported for *building* IncludeOS. \n\
+Currently only Ubuntu, Fedora, Arch, and OSX are actively supported for *building* IncludeOS. \n\
 On other Linux distros it shouldn't be that hard to get it to work - take a look at\n \
 ./etc/install_from_bundle.sh \n"
     exit 1
