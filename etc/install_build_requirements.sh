@@ -24,10 +24,16 @@ case $SYSTEM in
                 fi
 
                 DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq $DEPENDENCIES"
-                echo ">>> Installing dependencies (requires sudo):"
-                echo "    Packages: $DEPENDENCIES"
-                sudo apt-get update || exit 1
-                sudo apt-get install -y $DEPENDENCIES || exit 1
+
+                # Check if packages are installed
+                if dpkg-query -l $DEPENDENCIES > /dev/null 2>&1; then
+                  echo ">>> Required packages are already installed"
+                else
+                  echo ">>> Installing dependencies (requires sudo):"
+                  echo "    Packages: $DEPENDENCIES"
+                  sudo apt-get update || exit 1
+                  sudo apt-get install -y $DEPENDENCIES || exit 1
+                fi
                 exit 0;
                 ;;
             "Fedora")
