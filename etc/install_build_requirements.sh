@@ -37,6 +37,14 @@ case $SYSTEM in
                 sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
+            "Arch")
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq"
+                echo ">>> Installing dependencies (requires sudo):"
+                echo "    Packages: $DEPENDENCIES"
+                sudo pacman -Syyu
+                sudo pacman -S $DEPENDENCIES
+                exit 0;
+                ;;
         esac
 esac
 
