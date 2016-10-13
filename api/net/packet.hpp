@@ -48,7 +48,7 @@ namespace net
       bufstore  (bs)
     {}
 
-    ~Packet()
+    virtual ~Packet()
     {
       if (bufstore)
           bufstore->release(this);

@@ -485,10 +485,10 @@ private:
   Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
-  size_t rtx_attempt_ = 0;
+  int8_t rtx_attempt_ = 0;
 
   /** number of retransmitted SYN packets. */
-  size_t syn_rtx_ = 0;
+  int8_t syn_rtx_ = 0;
 
   /** Congestion control */
   // is fast recovery state
@@ -665,19 +665,19 @@ private:
     Invoke/signal the diffrent TCP events.
   */
   void signal_connect()
-  { on_connect_(shared_from_this()); }
+  { if(on_connect_) on_connect_(shared_from_this()); }
 
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
   void signal_error(TCPException error)
-  { on_error_(std::forward<TCPException>(error)); }
+  { if(on_error_) on_error_(std::forward<TCPException>(error)); }
 
   void signal_packet_dropped(const Packet& packet, const std::string& reason)
-  { on_packet_dropped_(packet, reason); }
+  { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
-  { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
+  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
 
   /*
     Drop a packet. Used for debug/callback.
