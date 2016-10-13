@@ -21,7 +21,7 @@
 
 namespace CPUID
 {
-  enum Feature
+  enum class Feature
   {
     // ------------------------------------------------------------------------
     // Processor Info and Feature Bits
