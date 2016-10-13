@@ -23,8 +23,7 @@
 
 namespace net
 {
-  class PacketUDP : public PacketIP4, // might work as upcast:
-                    public std::enable_shared_from_this<PacketUDP>
+  class PacketUDP : public PacketIP4
   {
   public:
 

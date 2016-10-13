@@ -77,10 +77,9 @@ namespace net {
       // get buffer (as packet + data)
       auto* ptr = (Packet*) bufstore_.get_buffer();
       // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size,
-          delegate<void(void*)>::from<BufferStore, &BufferStore::release> (&bufstore_));
+      new (ptr) Packet(nic_.bufsize(), size, &bufstore_);
       // regular shared_ptr that calls delete on Packet
-      return std::shared_ptr<Packet>(ptr);
+      return Packet_ptr(ptr);
     }
 
     /** MTU retreived from Nic on construction */

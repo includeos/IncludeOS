@@ -21,6 +21,7 @@
 #define NET_INET_COMMON_HPP
 
 #include <delegate>
+#include <net/packet.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -30,7 +31,7 @@ namespace net {
 
   using LinkLayer = Ethernet;
 
-  using Packet_ptr = std::shared_ptr<Packet>;
+  using Packet_ptr = std::unique_ptr<Packet>;
 
   // Downstream / upstream delegates
   using downstream = delegate<void(Packet_ptr)>;
@@ -46,6 +47,14 @@ namespace net {
   template <typename T, typename Packet>
   inline auto view_packet_as(Packet packet) noexcept {
     return std::static_pointer_cast<T>(packet);
+  }
+
+
+  template<typename Derived, typename Base>
+  auto static_unique_ptr_cast( std::unique_ptr<Base>&& p )
+  {
+      auto* d = static_cast<Derived *>(p.release());
+      return std::unique_ptr<Derived>(d);
   }
 
 } //< namespace net

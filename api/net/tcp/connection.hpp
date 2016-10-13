@@ -90,7 +90,7 @@ public:
     When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
     Can be used for debugging.
   */
-  using PacketDroppedCallback   = delegate<void(Packet_ptr, std::string)>;
+  using PacketDroppedCallback   = delegate<void(const Packet&, const std::string&)>;
   inline Connection&            on_packet_dropped(PacketDroppedCallback);
 
   /**
@@ -318,15 +318,15 @@ public:
       Helper functions
       TODO: Clean up names.
     */
-    virtual bool check_seq(Connection&, Packet_ptr);
+    virtual bool check_seq(Connection&, const Packet&);
 
-    virtual void unallowed_syn_reset_connection(Connection&, Packet_ptr);
+    virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
 
-    virtual bool check_ack(Connection&, Packet_ptr);
+    virtual bool check_ack(Connection&, const Packet&);
 
-    virtual void process_segment(Connection&, Packet_ptr);
+    virtual void process_segment(Connection&, Packet&);
 
-    virtual void process_fin(Connection&, Packet_ptr);
+    virtual void process_fin(Connection&, const Packet&);
 
     virtual void send_reset(Connection&);
 
@@ -485,10 +485,10 @@ private:
   Timer timewait_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
-  size_t rtx_attempt_ = 0;
+  int8_t rtx_attempt_ = 0;
 
   /** number of retransmitted SYN packets. */
-  size_t syn_rtx_ = 0;
+  int8_t syn_rtx_ = 0;
 
   /** Congestion control */
   // is fast recovery state
@@ -524,8 +524,7 @@ private:
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
   void default_on_error(TCPException);
-  void default_on_packet_received(Packet_ptr);
-  void default_on_packet_dropped(Packet_ptr, std::string);
+  void default_on_packet_dropped(const Packet&, const std::string&);
   void default_on_rtx_timeout(size_t, double);
   void default_on_close();
   void default_on_cleanup(Connection_ptr);
@@ -666,26 +665,26 @@ private:
     Invoke/signal the diffrent TCP events.
   */
   void signal_connect()
-  { on_connect_(shared_from_this()); }
+  { if(on_connect_) on_connect_(shared_from_this()); }
 
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(shared_from_this(), Disconnect{reason}); }
 
   void signal_error(TCPException error)
-  { on_error_(std::forward<TCPException>(error)); }
+  { if(on_error_) on_error_(std::forward<TCPException>(error)); }
 
-  void signal_packet_dropped(Packet_ptr packet, std::string reason)
-  { on_packet_dropped_(packet, reason); }
+  void signal_packet_dropped(const Packet& packet, const std::string& reason)
+  { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
-  { on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
+  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
 
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(Packet_ptr packet, std::string reason);
+  void drop(const Packet& packet, const std::string& reason);
 
-  void drop(Packet_ptr packet)
+  void drop(const Packet& packet)
   { drop(packet, "None given."); }
 
 
@@ -739,7 +738,7 @@ private:
     Acknowledge a packet
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
-  bool handle_ack(Packet_ptr);
+  bool handle_ack(const Packet&);
 
   /*
     When a duplicate ACK is received.
@@ -764,7 +763,7 @@ private:
   /*
     Fill a packet with data and give it a SEQ number.
   */
-  size_t fill_packet(Packet_ptr, const char*, size_t, seq_t);
+  size_t fill_packet(Packet&, const char*, size_t, seq_t);
 
   /*
     Transmit the send buffer.
@@ -910,12 +909,12 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(Packet_ptr);
+  void parse_options(Packet&);
 
   /*
     Add an option.
   */
-  void add_option(Option::Kind, Packet_ptr);
+  void add_option(Option::Kind, Packet&);
 
 
 }; // < class Connection

@@ -26,8 +26,7 @@
 
 namespace net {
 
-  class PacketIP4 : public Packet, // might work as upcast:
-                    public std::enable_shared_from_this<PacketIP4>
+  class PacketIP4 : public Packet
   {
   public:
     static constexpr size_t DEFAULT_TTL {64};
