@@ -84,7 +84,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		net/buffer_store.o net/inet4.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
-		posix/socket.o posix/sys/mman.o
+		posix/sys/socket.o posix/sys/mman.o
 		#../mod/fiber/src/barrier.o ../mod/fiber/src/context.o ../mod/fiber/src/condition_variable.o \
 		#../mod/fiber/src/fiber.o ../mod/fiber/src/future.o ../mod/fiber/src/properties.o ../mod/fiber/src/mutex.o \
 		# ../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/recursive_timed_mutex.o \
