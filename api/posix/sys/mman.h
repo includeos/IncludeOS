@@ -31,6 +31,27 @@ void *mmap(void* addr, size_t length,
             int fd,    off_t offset);
 int munmap(void* addr, size_t length);
 
+
+// Page can be executed.
+#define PROT_EXEC     0x1
+// Page cannot be accessed.
+#define PROT_NONE     0x2
+// Page can be read.
+#define PROT_READ     0x4
+// Page can be written.
+#define PROT_WRITE    0x8
+
+
+// Interpret addr exactly.
+#define MAP_FIXED     0x1
+// Changes are private.
+#define MAP_PRIVATE   0x2
+// Share changes.
+#define MAP_SHARED    0x4
+
+// Returned on failure to allocate pages
+#define MAP_FAILED    ((void*)-1)
+
 #ifdef __cplusplus
 }
 #endif
