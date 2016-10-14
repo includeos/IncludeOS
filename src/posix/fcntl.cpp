@@ -16,24 +16,22 @@
 // limitations under the License.
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <fd_map.hpp>
-#include <kernel/os.hpp>
+#include <fd.hpp>
 
-int open(const char*, int, ...)
+int  creat(const char *, mode_t)
 {
   return -1;
 }
-int close(int)
+int  fcntl(int, int, ...)
 {
   return -1;
 }
 
-int read(int, void*, size_t)
+int  posix_fadvise(int, off_t, off_t, int)
 {
-  return 0;
+  return -1;
 }
-int write(int file, const void* ptr, size_t len)
+int  posix_fallocate(int, off_t, off_t)
 {
-  return OS::print((const char*) ptr, len);
+  return -1;
 }
