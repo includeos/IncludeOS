@@ -30,7 +30,7 @@ class FD {
 public:
   using id_t = int;
 
-  explicit FD(int id)
+  explicit FD(const int id)
     : id_(id)
   {}
 
@@ -52,13 +52,15 @@ public:
   virtual int     shutdown(int, int) { return -1; }
   */
 
-  virtual bool is_socket() const { return false; }
+  id_t get_id() const noexcept { return id_; }
 
-  int get_id() const noexcept { return id_; }
+  bool operator==(const FD& fd) const noexcept { return id_ == fd.id_; }
+  bool operator!=(const FD& fd) const noexcept { return !(*this == fd); }
 
   virtual ~FD() {}
+
 private:
-  id_t id_;
+  const id_t id_;
 };
 
 #endif
