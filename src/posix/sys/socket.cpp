@@ -20,17 +20,6 @@
 #include <tcp_fd.hpp>
 #include <fd_map.hpp>
 
-bool verify_address(uint8_t dom, socklen_t len)
-{
-  if (dom == AF_INET  && len ==  4) return true;
-  if (dom == AF_INET6 && len == 16) return true;
-  return false;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-/// POSIX function calls
-///////////////////////////////////////////////////////////////////////////////
-
 int socket(int domain, int type, int protocol)
 {
   // disallow strange domains, like ALG
@@ -55,22 +44,31 @@ int connect(int socket, const struct sockaddr *address, socklen_t len)
 {
   try {
     auto& fd = FD_map::_get(socket);
-
-    /// check if its a TCP socket?
     return fd.connect(address, len);
-
   } catch (...) {
-    errno = EINVAL;
+    errno = EBADF;
     return -1;
   }
 }
 
-ssize_t send(int socket, const void *message, size_t length, int)
+ssize_t send(int socket, const void *message, size_t len, int fmt)
 {
-  return -1;
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.send(message, len, fmt);
+  } catch (...) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
-int     listen(int socket, int backlog)
+int listen(int socket, int backlog)
 {
-  return -1;
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.listen(backlog);
+  } catch (...) {
+    errno = EBADF;
+    return -1;
+  }
 }

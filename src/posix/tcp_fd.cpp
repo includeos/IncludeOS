@@ -58,6 +58,23 @@ int TCP_FD::connect(const struct sockaddr* saddr, socklen_t len)
   return -1;
 }
 
+ssize_t TCP_FD::send(const void* data, size_t len, int)
+{
+  if (!conn) return -1;
+  if (!conn->is_connected()) return -1;
+
+  bool written = false;
+  conn->write(data, len,
+  [&written] (bool) { written = true; });
+  // sometimes we can just write and forget
+  if (written) return len;
+  while (!written) {
+    OS::halt();
+    IRQ_manager::get().process_interrupts();
+  }
+  return len;
+}
+
 int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
 {
   return -1;

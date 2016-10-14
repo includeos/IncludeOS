@@ -40,17 +40,15 @@ public:
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
   virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
-  /*
-  virtual int     listen(int, int) { return -1; }
-  virtual ssize_t recv(int, void *, size_t, int) { return 0; }
-  virtual ssize_t recvfrom(int, void *restrict, size_t, int, struct sockaddr *restrict, socklen_t *restrict) { return 0; }
-  virtual ssize_t recvmsg(int, struct msghdr *, int) { return 0; }
-  virtual ssize_t send(int, const void *, size_t, int) { return 0; }
-  virtual ssize_t sendmsg(int, const struct msghdr *, int) { return 0; }
-  virtual ssize_t sendto(int, const void *, size_t, int, const struct sockaddr *, socklen_t) { return 0; }
-  virtual int     setsockopt(int, int, int, const void *, socklen_t) { return -1; }
-  virtual int     shutdown(int, int) { return -1; }
-  */
+  virtual int     listen(int) { return -1; }
+  virtual ssize_t recv(void *, size_t, int) { return 0; }
+  virtual ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) { return 0; }
+  virtual ssize_t recvmsg(struct msghdr *, int) { return 0; }
+  virtual ssize_t send(const void *, size_t, int) { return 0; }
+  virtual ssize_t sendmsg(const struct msghdr *, int) { return 0; }
+  virtual ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) { return 0; }
+  virtual int     setsockopt(int, int, const void *, socklen_t) { return -1; }
+  virtual int     shutdown(int) { return -1; }
 
   id_t get_id() const noexcept { return id_; }
 
