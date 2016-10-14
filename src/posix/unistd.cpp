@@ -45,13 +45,31 @@ int read(int, void*, size_t)
 }
 int write(int file, const void* ptr, size_t len)
 {
-  return OS::print((const char*) ptr, len);
+  if (file < 4) {
+    return OS::print((const char*) ptr, len);
+  }
+  try {
+    auto& fd = FD_map::_get(file);
+    return fd.write(ptr, len);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+
+// read value of a symbolic link (which we don't have)
+ssize_t readlink(const char* path, char*, size_t bufsiz)
+{
+  printf("readlink(%s, bufsize=%u)\n", path, bufsiz);
+  return 0;
 }
 
 int fsync(int fildes)
 {
   try {
-    auto& fd = FD_map::_get(fildes);
+    (void) fildes;
+    //auto& fd = FD_map::_get(fildes);
     // files should return 0, and others should not
     return 0;
   }
@@ -61,9 +79,9 @@ int fsync(int fildes)
   }
 }
 
-int fchown(int fd, uid_t owner, gid_t group)
+int fchown(int, uid_t, gid_t)
 {
-  return 0;
+  return -1;
 }
 
 #include <kernel/irq_manager.hpp>
