@@ -52,6 +52,8 @@ public:
   virtual int     shutdown(int, int) { return -1; }
   */
 
+  virtual bool is_socket() const { return false; }
+
   int get_id() const noexcept { return id_; }
 
   virtual ~FD() {}

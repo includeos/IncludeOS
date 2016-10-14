@@ -51,10 +51,18 @@ int socket(int domain, int type, int protocol)
   return sock;
 }
 
-int connect(int socket, const struct sockaddr *address, socklen_t address_len)
+int connect(int socket, const struct sockaddr *address, socklen_t len)
 {
-  errno = EINVAL;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(socket);
+
+    /// check if its a TCP socket?
+    return fd.connect(address, len);
+
+  } catch (...) {
+    errno = EINVAL;
+    return -1;
+  }
 }
 
 ssize_t send(int socket, const void *message, size_t length, int)
