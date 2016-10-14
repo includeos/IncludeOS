@@ -54,7 +54,6 @@ public:
 
   int get_id() const noexcept { return id_; }
 
-protected:
   virtual ~FD() {}
 private:
   id_t id_;
