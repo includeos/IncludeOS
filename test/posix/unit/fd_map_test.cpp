@@ -19,8 +19,6 @@
 #include <include/fd.hpp>
 #include <include/fd_map.hpp>
 
-FD_map::id_t FD_map::counter_ = 3;
-
 class Test_fd : public FD {
 public:
   Test_fd(const int id) : FD(id) {};
