@@ -47,3 +47,36 @@ int write(int file, const void* ptr, size_t len)
 {
   return OS::print((const char*) ptr, len);
 }
+
+int fsync(int fildes)
+{
+  try {
+    auto& fd = FD_map::_get(fildes);
+    // files should return 0, and others should not
+    return 0;
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+
+int fchown(int fd, uid_t owner, gid_t group)
+{
+  return 0;
+}
+
+#include <kernel/irq_manager.hpp>
+#include <kernel/rtc.hpp>
+unsigned int sleep(unsigned int seconds)
+{
+  int64_t now  = RTC::now();
+  int64_t done = now + seconds;
+  while (true) {
+    if (now >= done) break;
+    OS::halt();
+    IRQ_manager::get().process_interrupts();
+    now = RTC::now();
+  }
+  return 0;
+}
