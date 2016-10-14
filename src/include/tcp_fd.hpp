@@ -16,30 +16,26 @@
 // limitations under the License.
 
 #pragma once
-#ifndef INCLUDE_FD_HPP
-#define INCLUDE_FD_HPP
+#ifndef INCLUDE_TCP_FD_HPP
+#define INCLUDE_TCP_FD_HPP
 
-#include <sys/socket.h>
+#include "fd.hpp"
+#include <net/inet4>
 
-/**
- * @brief File descriptor
- * @details
- *
- */
-class FD {
+class TCP_FD : public FD {
 public:
   using id_t = int;
 
-  explicit FD(int id)
-    : id_(id)
+  explicit TCP_FD(int id)
+    : FD(id)
   {}
 
-  virtual int     read(void*, size_t) { return -1; }
-  virtual int     write(const void*, size_t) { return -1; }
+  int     read(void*, size_t) override;
+  int     write(const void*, size_t) override;
   /** SOCKET */
-  virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
-  virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
-  virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
+  int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
+  int     bind(const struct sockaddr *, socklen_t) override;
+  int     connect(const struct sockaddr *, socklen_t) override;
   /*
   virtual int     listen(int, int) { return -1; }
   virtual ssize_t recv(int, void *, size_t, int) { return 0; }
@@ -52,12 +48,10 @@ public:
   virtual int     shutdown(int, int) { return -1; }
   */
 
-  int get_id() const noexcept { return id_; }
-
 protected:
-  virtual ~FD() {}
+  virtual ~TCP_FD() {}
 private:
-  id_t id_;
+  net::tcp::Connection_ptr conn;
 };
 
 #endif
