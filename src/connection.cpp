@@ -139,7 +139,7 @@ void Connection::on_error(TCPException err) {
     to_string().c_str(), err.what());
 }
 
-void Connection::on_packet_dropped(Packet_ptr, std::string reason) {
+void Connection::on_packet_dropped(const Packet_ptr::element_type&, const std::string& reason) {
   printf("<%s> Packet dropped: %s\n",
     to_string().c_str(), reason.c_str());
 }

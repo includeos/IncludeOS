@@ -141,7 +141,7 @@ private:
 
   void process_route(Request_ptr, Response_ptr);
 
-  void timeout_clients(uint32_t);
+  void timeout_clients(int32_t);
 
   void setup_stats();
 
