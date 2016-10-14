@@ -150,7 +150,7 @@ void Server::use(const Path& path, Callback callback) {
   middleware_.emplace_back(path, callback);
 }
 
-void Server::timeout_clients(uint32_t) {
+void Server::timeout_clients(int32_t) {
 
   for(auto& conn : connections_)
   {

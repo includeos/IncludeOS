@@ -92,7 +92,7 @@ private:
 
   void on_error(TCPException);
 
-  void on_packet_dropped(Packet_ptr, std::string);
+  void on_packet_dropped(const Packet_ptr::element_type&, const std::string&);
 
   void update_idle()
   { idle_since_ = RTC::now(); }
