@@ -34,16 +34,39 @@ int TCP_FD::write(const void*, size_t)
   return -1;
 }
 
-int TCP_FD::connect(const struct sockaddr* saddr, socklen_t len)
+int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
-  if (len != sizeof(sockaddr_in)) return -1;
-  auto* inaddr = (sockaddr_in*) saddr;
+  if (this->conn) {
+    // if its straight-up connected, return that
+    if (this->conn->is_connected()) {
+      errno = EISCONN;
+      return -1;
+    }
+    // if the connection isn't closed, we can just assume its being used already
+    if (!this->conn->is_closed()) {
+      errno = EALREADY;
+      return -1;
+    }
+  }
+
+  if (address_len != sizeof(sockaddr_in)) {
+    errno = EAFNOSUPPORT; // checkme?
+    return -1;
+  }
+  auto* inaddr = (sockaddr_in*) address;
 
   auto addr = ip4::Addr(inaddr->sin_addr);
   auto port = inaddr->sin_port;
 
   printf("[*] connecting to %s:%u...\n", addr.to_string().c_str(), port);
   auto outgoing = net_stack().tcp().connect({addr, port});
+  // O_NONBLOCK is set for the file descriptor for the socket and the connection
+  // cannot be immediately established; the connection shall be established asynchronously.
+  if (this->non_blocking) {
+    errno = EINPROGRESS;
+    return -1;
+  }
+
   // wait for connection state to change
   while (not (outgoing->is_connected() || outgoing->is_closing() || outgoing->is_closed())) {
     OS::halt();
