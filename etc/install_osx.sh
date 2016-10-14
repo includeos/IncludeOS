@@ -65,10 +65,11 @@ echo -e "\nbinutils (ld, ar, objcopy) - required for building IncludeOS"
 DEPENDENCY_BINUTILS=false
 
 BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
-LINKER_PREFIX=i686-elf-
-BINUTILS_LD=$BINUTILS_DIR/bin/$LINKER_PREFIX"ld"
-BINUTILS_AR=$BINUTILS_DIR/bin/$LINKER_PREFIX"ar"
-BINUTILS_OBJCOPY=$BINUTILS_DIR/bin/$LINKER_PREFIX"objcopy"
+BINUTILS_PREFIX=i686-elf-
+BINUTILS_LD=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"ld"
+BINUTILS_AR=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"ar"
+BINUTILS_OBJCOPY=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"objcopy"
+BINUTILS_STRIP=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"strip"
 
 # Make directory inside IncludeOS_install to store ld, ar and objcopy
 INCLUDEOS_BIN=$INCLUDEOS_INSTALL/bin
@@ -78,7 +79,8 @@ mkdir -p $INCLUDEOS_BIN
 LD_INC=$INCLUDEOS_BIN/"ld"
 AR_INC=$INCLUDEOS_BIN/"ar"
 OBJCOPY_INC=$INCLUDEOS_BIN/"objcopy"
-[[ -e  $LD_INC && -e $AR_INC && -e $OBJCOPY_INC ]] && DEPENDENCY_BINUTILS=true
+STRIP_INC=$INCLUDEOS_BIN/"strip"
+[[ -e  $LD_INC && -e $AR_INC && -e $OBJCOPY_INC && -e $STRIP_INC ]] && DEPENDENCY_BINUTILS=true
 if ($DEPENDENCY_BINUTILS); then echo -e "> Found"; else echo -e "> Not Found"; fi
 
 function install_binutils {
@@ -88,7 +90,7 @@ function install_binutils {
     mkdir -p $INCLUDEOS_BUILD
 
     # Decide filename (release)
-    BINUTILS_RELEASE=binutils-2.25
+    BINUTILS_RELEASE=binutils-2.27
     filename_binutils=$BINUTILS_RELEASE".tar.gz"
 
     # Check if file is downloaded
@@ -130,6 +132,10 @@ function install_binutils {
     ## Copy OBJCOPY
     echo -e "\n> Copying objcopy ($BINUTILS_OBJCOPY) => $OBJCOPY_INC"
     cp $BINUTILS_OBJCOPY $OBJCOPY_INC
+
+    ## Copy STRIP
+    echo -e "\n> Copying strip ($BINUTILS_STRIP) => $STRIP_INC"
+    cp $BINUTILS_STRIP $STRIP_INC
 
     echo -e "\n>>> Done installing: binutils"
 }
@@ -183,6 +189,7 @@ fi
 export LD_INC=$LD_INC
 export AR_INC=$AR_INC
 export OBJCOPY_INC=$OBJCOPY_INC
+export STRIP_INC=$STRIP_INC
 
 ### INSTALL BINARY RELEASE ###
 echo -e "\n\n>>> Calling install_from_bundle.sh script"
@@ -190,10 +197,10 @@ $INCLUDEOS_SRC/etc/install_from_bundle.sh
 
 echo -e "\n### OS X installation done. ###"
 
-echo -e "\nTo build services and run tests, set LD_INC:"
-echo -e "export LD_INC=$LD_INC"
+echo -e "\nTo build services and run tests, set LD_INC and STRIP_INC:"
+echo -e "export LD_INC=$LD_INC && export STRIP_INC=$STRIP_INC"
 
-echo -e "\nTo rebuild IncludeOS, set AR_INC and OBJCOPY_INC (in addtion to LD_INC):"
+echo -e "\nTo rebuild IncludeOS, set AR_INC and OBJCOPY_INC (in addtion to the above):"
 echo -e "export AR_INC=$AR_INC && export OBJCOPY_INC=$OBJCOPY_INC"
 
 echo -e "\nTo run services, see: ./etc/vboxrun.sh. (VirtualBox needs to be installed)\n"
