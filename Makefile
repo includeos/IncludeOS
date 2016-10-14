@@ -26,7 +26,7 @@ LIBRARY = liburi.a
 FILES = ${wildcard src/*.cpp}
 
 # Your own include-path
-LOCAL_INCLUDES=-I./include -I./GSL/include
+LOCAL_INCLUDES=-I./include
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
@@ -35,7 +35,6 @@ endif
 
 # Include the installed seed makefile
 include $(INCLUDEOS_INSTALL)/Makelib
-
 
 lib: ${OBJECTS}
 	mkdir -p lib
@@ -49,4 +48,3 @@ install:
 	mkdir -p ${INCLUDEOS_INSTALL}/packages/lib/
 	cat include/*.hpp > ${INCLUDEOS_INSTALL}/packages/include/$(NAME)
 	cp -r lib/* ${INCLUDEOS_INSTALL}/packages/lib/
-	cp -r GSL/include/* ${INCLUDEOS_INSTALL}/packages/include/
