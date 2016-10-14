@@ -41,7 +41,8 @@ public:
 
   ~TCP_FD() {}
 private:
-  net::tcp::Connection_ptr conn;
+  net::tcp::Connection_ptr conn = nullptr;
+  bool non_blocking = false;
 };
 
 #endif
