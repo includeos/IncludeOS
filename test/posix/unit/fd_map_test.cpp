@@ -23,8 +23,17 @@ class Test_fd : public FD {
 public:
   Test_fd(const int id) : FD(id) {};
 
-  int read(int, void*, size_t) override
+  int read(void*, size_t) override
   { return 1; }
+};
+
+class Hest_fd : public FD {
+public:
+  Hest_fd(const int id, std::string sound)
+    : FD(id), sound_(std::move(sound))
+  {}
+private:
+  std::string sound_;
 };
 
 CASE("Adding a implemented FD descriptor in FD_map")
@@ -37,16 +46,18 @@ CASE("Adding a implemented FD descriptor in FD_map")
   EXPECT_NOT(test == test2);
 
   // Overriden function works
-  const auto res = test.read(0, nullptr, 0);
+  const auto res = test.read(nullptr, 0);
   EXPECT(res == 1);
 
   // Get works
-  const FD_map::id_t id = test;
+  const FD_map::id_t id = test.get_id();
   auto& get = FD_map::_get(id);
   EXPECT(get == test);
 
   // Close works
-  FD_map::_close(test);
+  FD_map::_close(id);
+
+  // Throws when not found works
   EXPECT_THROWS_AS(FD_map::_get(id), FD_not_found);
 }
 
