@@ -51,6 +51,9 @@ endif
 ifndef OBJCOPY_INC
 	OBJCOPY_INC=objcopy
 endif
+ifndef STRIP_INC
+	STRIP_INC = strip
+endif
 
 INCLUDES = $(LOCAL_INCLUDES) -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api/posix -I$(INSTALL)/api -I$(INSTALL)/mod/GSL
 
@@ -148,7 +151,7 @@ endif
 	$(RM) _elf_symbols.bin
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
-	strip $(STRIPPED) --remove-section=.comment $(SERVICE)
+	$(STRIP_INC) $(STRIPPED) --remove-section=.comment $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
