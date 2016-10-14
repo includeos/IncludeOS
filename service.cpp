@@ -61,12 +61,19 @@ void Service::start(const std::string&) {
   logger_->flush();
   logger_->log("LUL\n");
 
-  OS::set_rsprint([] (const char* data, size_t len) {
+  // TODO: Get this to work on IncludeOS master
+  /*OS::add_stdout([] (const char* data, size_t len) {
+    OS::print(data, len);
+    // append timestamp
+    auto entry = timestamp() + std::string{data, len};
+    logger_->log(entry);
+  });*/
+  /*OS::set_rsprint([] (const char* data, size_t len) {
     OS::default_rsprint(data, len);
     // append timestamp
     auto entry = timestamp() + std::string{data, len};
     logger_->log(entry);
-  });
+  });*/
 
   disk = fs::new_shared_memdisk();
 
@@ -138,7 +145,7 @@ void Service::start(const std::string&) {
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(IRQ_manager::get(), 0ms, 500ms);
+      dashboard_->construct<dashboard::CPUsage>(0ms, 500ms);
       dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
