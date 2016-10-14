@@ -48,10 +48,7 @@ public:
   virtual int     shutdown(int, int) { return -1; }
   */
 
-  bool is_socket() const override { return true; }
-
-protected:
-  virtual ~TCP_FD() {}
+  ~TCP_FD() {}
 private:
   net::tcp::Connection_ptr conn;
 };

@@ -175,7 +175,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 	nasm -f elf -o $@ $<
 
 %.o: %.c
-	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
+	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api/posix -o $@ $<
 
 # AS-assembled object files
 %.o: %.s

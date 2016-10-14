@@ -93,7 +93,7 @@ T& FD_map::open(Args&&... args)
   return *fd;
 }
 
-FD& FD_map::get(const id_t id) const
+inline FD& FD_map::get(const id_t id) const
 {
   auto it = map_.find(id);
   if(it != map_.end())

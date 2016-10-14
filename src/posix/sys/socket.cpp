@@ -70,5 +70,7 @@ ssize_t send(int socket, const void *message, size_t length, int)
   return -1;
 }
 
-
-int     listen(int socket, int backlog);
+int     listen(int socket, int backlog)
+{
+  return -1;
+}

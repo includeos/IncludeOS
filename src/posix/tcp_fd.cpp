@@ -25,6 +25,15 @@ static Inet4& net_stack() {
   return Inet4::stack<> ();
 }
 
+int TCP_FD::read(void*, size_t)
+{
+  return -1;
+}
+int TCP_FD::write(const void*, size_t)
+{
+  return -1;
+}
+
 int TCP_FD::connect(const struct sockaddr* saddr, socklen_t len)
 {
   if (len != sizeof(sockaddr_in)) return -1;
@@ -46,5 +55,14 @@ int TCP_FD::connect(const struct sockaddr* saddr, socklen_t len)
     return 0;
   }
   this->conn = nullptr;
+  return -1;
+}
+
+int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
+{
+  return -1;
+}
+int TCP_FD::bind(const struct sockaddr *, socklen_t)
+{
   return -1;
 }
