@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <tcp_fd.hpp>
+#include <fd_map.hpp>
 
 bool verify_address(uint8_t dom, socklen_t len)
 {
