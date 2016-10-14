@@ -16,9 +16,35 @@
 // limitations under the License.
 
 #include <tcp_fd.hpp>
+#include <kernel/irq_manager.hpp>
+#include <netinet/in.h>
+using namespace net;
 
-int TCP_FD::connect(const struct sockaddr *, socklen_t)
+// return the "currently selected" networking stack
+static Inet4& net_stack() {
+  return Inet4::stack<> ();
+}
+
+int TCP_FD::connect(const struct sockaddr* saddr, socklen_t len)
 {
-  
+  if (len != sizeof(sockaddr_in)) return -1;
+  auto* inaddr = (sockaddr_in*) saddr;
+
+  auto addr = ip4::Addr(inaddr->sin_addr);
+  auto port = inaddr->sin_port;
+
+  printf("[*] connecting to %s:%u...\n", addr.to_string().c_str(), port);
+  auto outgoing = net_stack().tcp().connect({addr, port});
+  // wait for connection state to change
+  while (not (outgoing->is_connected() || outgoing->is_closing() || outgoing->is_closed())) {
+    OS::halt();
+    IRQ_manager::get().process_interrupts();
+  }
+  // set connection whether good or bad
+  if (outgoing->is_connected()) {
+    this->conn = outgoing;
+    return 0;
+  }
+  this->conn = nullptr;
   return -1;
 }
