@@ -20,7 +20,7 @@
 #define POSIX_SYS_SOCKET_H
 
 #include <sys/types.h>
-#include <cstdint>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,12 +33,6 @@ struct sockaddr
 {
   sa_family_t  sa_family;  // Address family.
   char         sa_data[];  // Socket address (variable-length data).
-};
-struct sockaddr_in
-{
-  sa_family_t  sin_family;
-  uint32_t     sin_addr;
-  uint16_t     sin_port;
 };
 
 struct sockaddr_storage
