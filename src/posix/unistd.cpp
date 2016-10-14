@@ -24,8 +24,18 @@ int open(const char*, int, ...)
 {
   return -1;
 }
-int close(int)
+
+int close(int fildes)
 {
+  try {
+    auto& fd = FD_map::_get(fildes);
+    // if close success
+    if(fd.close() == 0)
+      return FD_map::_close(fildes);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+  }
   return -1;
 }
 

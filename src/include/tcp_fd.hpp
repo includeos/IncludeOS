@@ -32,6 +32,7 @@ public:
 
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
+  int     close() override;
   /** SOCKET */
   int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
   int     bind(const struct sockaddr *, socklen_t) override;

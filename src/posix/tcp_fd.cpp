@@ -33,6 +33,10 @@ int TCP_FD::write(const void*, size_t)
 {
   return -1;
 }
+int TCP_FD::close()
+{
+  return -1;
+}
 
 int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {

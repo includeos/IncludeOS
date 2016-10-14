@@ -36,6 +36,7 @@ public:
 
   virtual int     read(void*, size_t) { return -1; }
   virtual int     write(const void*, size_t) { return -1; }
+  virtual int     close() = 0;
   /** SOCKET */
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }

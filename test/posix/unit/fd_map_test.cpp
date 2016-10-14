@@ -25,6 +25,9 @@ public:
 
   int read(void*, size_t) override
   { return 1; }
+
+  int close() override
+  { return 0; }
 };
 
 class Hest_fd : public FD {
@@ -32,6 +35,9 @@ public:
   Hest_fd(const int id, std::string sound)
     : FD(id), sound_(std::move(sound))
   {}
+
+  int close() override
+  { return 0; }
 private:
   std::string sound_;
 };
