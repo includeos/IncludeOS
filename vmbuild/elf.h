@@ -1,7 +1,7 @@
 /* This is the original elf.h file from the GNU C Library; I only removed
    the inclusion of feature.h, which is not needed.
 
-   On OSX, simply copy the file to /usr/local/include/. 
+   On OSX, simply copy the file to /usr/local/include/.
 
    Mathias Lafeldt <mathias.lafeldt@gmail.com> */
 
@@ -27,6 +27,8 @@
 
 #ifndef _ELF_H
 #define	_ELF_H 1
+
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 
