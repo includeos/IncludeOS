@@ -76,7 +76,7 @@ Could not install from bundle. \n"
         exit 1
     fi
 
-    echo -e "\n\n>>> Creating a virtual network, i.e. a bridge. (Requires sudo)"
+    echo
     if ! ./etc/create_bridge.sh; then
         echo -e ">>> Sorry <<< \n\
 Could not create or configure bridge. \n"
