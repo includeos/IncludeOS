@@ -156,7 +156,7 @@ class Test:
     for skip in skip_json:
         if self.path_ == skip['name']:
             self.skip_ = True
-            self.skip_reason_ = 'Defined in skipped_tests.json'
+            self.skip_reason_ = skip['reason']
             return
 
     # Test 3
