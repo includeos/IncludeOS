@@ -17,6 +17,7 @@
 
 #include <kernel/context.hpp>
 #include <cstdint>
+#include <memory>
 
 extern "C" void __context_switch(uintptr_t stack);
 
@@ -25,12 +26,14 @@ extern "C"
 void __context_switch_delegate()
 {
   destination();
+  destination.reset();
 }
 
 void Context::jump(void* location, context_func func)
 {
   // store so we can call it later
   destination = func;
+
   // switch to stack from @location
   __context_switch((uintptr_t) location);
 }
@@ -39,11 +42,13 @@ void Context::create(unsigned stack_size, context_func func)
 {
   // store so we can call it later
   destination = func;
+
   // create and switch to new stack
-  char* stack_mem = new char[stack_size];
+  auto stack_mem = std::unique_ptr<char[]>(new char[stack_size]);
   assert(stack_mem);
+
   // aligned to 16 byte boundary
-  uintptr_t start = (uintptr_t) (stack_mem+stack_size) & ~0xF;
+  uintptr_t start = (uintptr_t) (stack_mem.get() + stack_size) & ~0xF;
   __context_switch(start);
-  delete[] stack_mem;
+
 }
