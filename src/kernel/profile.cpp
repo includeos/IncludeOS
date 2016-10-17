@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
+#include <sstream>
 
 #define BUFFER_COUNT    1024
 
@@ -182,4 +183,119 @@ std::vector<Sample> StackSampler::results(int N)
 void StackSampler::set_mask(bool mask)
 {
   get().discard = mask;
+}
+
+decltype(ScopedProfiler::entries) ScopedProfiler::entries = {};
+
+ScopedProfiler::ScopedProfiler()
+{
+  uint64_t tick;
+  asm volatile ("cpuid\n\t"
+                "rdtsc\n\t"
+                : "=A" (tick)
+                :: "%eax", "%ebx", "%ecx", "%edx");
+  tick_start = tick;
+}
+
+ScopedProfiler::~ScopedProfiler()
+{
+  uint64_t tick;
+  asm volatile ("cpuid\n\t"
+                "rdtsc\n\t"
+                : "=A" (tick)
+                :: "%eax", "%ebx", "%ecx", "%edx") ;
+
+  auto cycles = tick - tick_start;
+  auto function_address = __builtin_return_address(0);
+
+  // Find an entry that matches this function_address, or an unused entry
+  for (auto& entry : entries)
+  {
+    if (entry.function_address == function_address)
+    {
+      // Update the entry
+      entry.cycles_average = ((entry.cycles_average * entry.num_samples) + cycles) / (entry.num_samples + 1);
+      entry.num_samples += 1;
+
+      return;
+    }
+    else if (entry.function_address == 0)
+    {
+      // Use this unused entry
+      char symbol_buffer[1024];
+      const auto symbols = Elf::safe_resolve_symbol(function_address,
+                                                    symbol_buffer,
+                                                    sizeof(symbol_buffer));
+      entry.function_address = function_address;
+      entry.function_name = symbols.name;
+      entry.cycles_average = cycles;
+      entry.num_samples = 1;
+
+      return;
+    }
+  }
+
+  // We didn't find neither an entry for the function nor an unused entry
+  // Warn that the array is too small for the current number of ScopedProfilers
+  printf("[WARNING] There are too many ScopedProfilers in use\n");
+}
+
+std::string ScopedProfiler::get_statistics()
+{
+  // TODO: Make available in api/hw/cpu* ?
+  extern double _CPUFreq_;
+
+  std::ostringstream ss;
+
+  // Add header
+  ss << " Average Time (us) | Samples | Function Name \n";
+  ss << "--------------------------------------------------------------------------------\n";
+
+  // Calculate the number of used entries
+  auto num_entries = 0u;
+  for (auto i = 0u; i < entries.size(); i++)
+  {
+    if (entries[i].function_address == 0)
+    {
+      num_entries = i;
+      break;
+    }
+  }
+
+  if (num_entries > 0)
+  {
+    // Sort on cycles_average (higher value first)
+    // Make sure to keep unused entries last (only sort used entries)
+    std::sort(entries.begin(), entries.begin() + num_entries, [](const Entry& a, const Entry& b)
+    {
+      return a.cycles_average > b.cycles_average;
+    });
+
+    // Add each entry
+    ss.setf(std::ios_base::fixed);
+    for (auto i = 0u; i < num_entries; i++)
+    {
+      const auto& entry = entries[i];
+
+      auto time_in_us = entry.cycles_average / _CPUFreq_;
+
+      ss.width(18);
+      ss << time_in_us << " | ";
+
+      ss.width(7);
+      ss << entry.num_samples << " | ";
+
+      ss.width(0);
+      ss << entry.function_name << "\n";
+    }
+  }
+  else
+  {
+    ss << " <No entries> \n";
+  }
+
+  // Add footer
+  ss << "--------------------------------------------------------------------------------\n";
+
+  return ss.str();
 }
