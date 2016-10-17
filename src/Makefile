@@ -66,7 +66,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/interrupts.o kernel/os.o kernel/os_stdout.o kernel/cpuid.o \
 		kernel/memmap.o kernel/irq_manager.o kernel/pci_manager.o \
 		kernel/elf.o kernel/terminal.o kernel/terminal_disk.o \
-		kernel/vga.o kernel/context.o kernel/context_asm.o \
+		kernel/vga.o kernel/context.o kernel/context_asm.o kernel/block.o\
 		kernel/profile.o kernel/profile_intr.o \
 		kernel/timers.o kernel/rtc.o \
 		util/memstream.o util/async.o util/statman.o util/logger.o \

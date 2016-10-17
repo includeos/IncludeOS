@@ -92,8 +92,7 @@ unsigned int sleep(unsigned int seconds)
   int64_t done = now + seconds;
   while (true) {
     if (now >= done) break;
-    OS::halt();
-    IRQ_manager::get().process_interrupts();
+    OS::block();
     now = RTC::now();
   }
   return 0;

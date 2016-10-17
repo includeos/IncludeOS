@@ -73,8 +73,7 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 
   // wait for connection state to change
   while (not (outgoing->is_connected() || outgoing->is_closing() || outgoing->is_closed())) {
-    OS::halt();
-    IRQ_manager::get().process_interrupts();
+    OS::block();
   }
   // set connection whether good or bad
   if (outgoing->is_connected()) {
