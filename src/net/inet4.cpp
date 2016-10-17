@@ -7,10 +7,10 @@
 using namespace net;
 
 Inet4::Inet4(hw::Nic& nic)
-  : ip4_addr_(IP4::INADDR_ANY),
-    netmask_(IP4::INADDR_ANY),
-    router_(IP4::INADDR_ANY),
-    dns_server(IP4::INADDR_ANY),
+  : ip4_addr_(IP4::ADDR_ANY),
+    netmask_(IP4::ADDR_ANY),
+    router_(IP4::ADDR_ANY),
+    dns_server(IP4::ADDR_ANY),
     nic_(nic), eth_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
     bufstore_(nic.bufstore()), MTU_(nic.MTU())
