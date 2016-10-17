@@ -44,8 +44,8 @@ namespace net {
     /** Known transport layer protocols. */
     enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
 
-    static const addr INADDR_ANY;
-    static const addr INADDR_BCAST;
+    static const addr ADDR_ANY;
+    static const addr ADDR_BCAST;
 
     /**
      *  The full header including IP

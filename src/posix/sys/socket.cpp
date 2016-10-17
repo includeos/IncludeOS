@@ -17,8 +17,9 @@
 
 #include <sys/socket.h>
 #include <errno.h>
-#include <tcp_fd.hpp>
 #include <fd_map.hpp>
+#include <tcp_fd.hpp>
+#include <udp_fd.hpp>
 
 int socket(int domain, int type, int protocol)
 {
@@ -29,15 +30,17 @@ int socket(int domain, int type, int protocol)
   // we are purposefully ignoring the protocol argument
   if (protocol < 0) { errno = EPROTONOSUPPORT; return -1; }
 
-  int sock = -1;
-  // let's assume IPv4 for now
-  if (type == SOCK_STREAM) {
-    sock = FD_map::_open<TCP_FD>().get_id();
-  }
-  else {
-    /// implement UDP_FD
-  }
-  return sock;
+  return [](const int type)->int{
+    switch(type)
+    {
+      case SOCK_STREAM:
+        return FD_map::_open<TCP_FD>().get_id();
+      case SOCK_DGRAM:
+        return FD_map::_open<UDP_FD>().get_id();
+      default:
+        return -1;
+    }
+  }(type);
 }
 
 int connect(int socket, const struct sockaddr *address, socklen_t len)
@@ -45,7 +48,7 @@ int connect(int socket, const struct sockaddr *address, socklen_t len)
   try {
     auto& fd = FD_map::_get(socket);
     return fd.connect(address, len);
-  } catch (...) {
+  } catch (const FD_not_found&) {
     errno = EBADF;
     return -1;
   }
@@ -56,7 +59,17 @@ ssize_t send(int socket, const void *message, size_t len, int fmt)
   try {
     auto& fd = FD_map::_get(socket);
     return fd.send(message, len, fmt);
-  } catch (...) {
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+ssize_t recv(int socket, void *buffer, size_t length, int flags)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.recv(buffer, length, flags);
+  } catch (const FD_not_found&) {
     errno = EBADF;
     return -1;
   }
@@ -67,7 +80,18 @@ int listen(int socket, int backlog)
   try {
     auto& fd = FD_map::_get(socket);
     return fd.listen(backlog);
-  } catch (...) {
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+
+int bind(int socket, const struct sockaddr* address, socklen_t len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.bind(address, len);
+  } catch (const FD_not_found&) {
     errno = EBADF;
     return -1;
   }
