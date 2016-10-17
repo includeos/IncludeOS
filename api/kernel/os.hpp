@@ -114,7 +114,10 @@ public:
   static uintptr_t heap_max();
 
   /** time spent sleeping (halt) in cycles */
-  static int64_t get_cycles_halt() noexcept;
+  static uint64_t get_cycles_halt() noexcept;
+
+  /** total time spent in cycles */
+  static uint64_t get_cycles_total() noexcept;
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
