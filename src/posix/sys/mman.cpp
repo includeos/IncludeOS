@@ -6,8 +6,6 @@
 #include <cerrno>
 #include <map>
 
-#define  MAP_FAILED  ((void*) -1)
-
 struct mmap_entry_t
 {
   void*  addr;
@@ -19,7 +17,7 @@ struct mmap_entry_t
 };
 std::map<void*, mmap_entry_t> _mmap_entries;
 
-void* mmap(void* addr, size_t length, 
+void* mmap(void* addr, size_t length,
            int prot,  int flags,
            int fd,    off_t offset)
 {
@@ -29,7 +27,7 @@ void* mmap(void* addr, size_t length,
       errno = EINVAL;
       return MAP_FAILED;
     }
-  
+
   // associate some VA space with open file @fd
   // for now just allocate page-aligned on heap
   mmap_entry_t entry;
@@ -39,13 +37,13 @@ void* mmap(void* addr, size_t length,
   entry.flags  = flags;
   entry.fd     = fd;
   entry.offset = offset;
-  
+
   /// Note: we may have to read a file here to properly create the
   /// in-memory mapping. Unfortunately, this would mean both mean
   /// mmap must be asynch, and also mean we have to implement Poshitx.
   // create the mapping
   _mmap_entries[addr] = entry;
-  
+
   return entry.addr;
 }
 
@@ -56,7 +54,7 @@ int munmap(void* addr, size_t length)
     {
       // <insert comment explaining why im doing this, or not>
       assert(it->second.length == length);
-    
+
       // free and remove the entry
       free(it->second.addr);
       _mmap_entries.erase(it);

@@ -51,7 +51,7 @@ endif
 CCOPTS  = -target i686-elf
 CPPOPTS = -target i686-elf
 
-INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../mod/GSL -I../mod/fiber/include
+INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include
 CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
 CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
@@ -70,7 +70,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		kernel/profile.o kernel/profile_intr.o \
 		kernel/timers.o kernel/rtc.o \
 		util/memstream.o util/async.o util/statman.o util/logger.o \
-		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o crt/mman.o \
+		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
 		hw/ps2.o hw/serial.o hw/cmos.o hw/drive.o \
 		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
@@ -83,7 +83,9 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/buffer_store.o net/inet4.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o
+		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
+		posix/tcp_fd.o posix/unistd.o posix/fcntl.o \
+		posix/sys/socket.o posix/sys/mman.o
 		#../mod/fiber/src/barrier.o ../mod/fiber/src/context.o ../mod/fiber/src/condition_variable.o \
 		#../mod/fiber/src/fiber.o ../mod/fiber/src/future.o ../mod/fiber/src/properties.o ../mod/fiber/src/mutex.o \
 		# ../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/recursive_timed_mutex.o \
