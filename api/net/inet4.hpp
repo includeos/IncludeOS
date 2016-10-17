@@ -128,12 +128,12 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
 
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::INADDR_ANY) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::ADDR_ANY) override
     {
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
       this->router_    = router;
-      this->dns_server = (dns == IP4::INADDR_ANY) ? router : dns;
+      this->dns_server = (dns == IP4::ADDR_ANY) ? router : dns;
       INFO("Inet4", "Network configured");
       INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
       INFO2("Netmask: \t%s", netmask_.str().c_str());
@@ -169,7 +169,7 @@ namespace net {
       IP4::addr addr,
       IP4::addr nmask,
       IP4::addr router,
-      IP4::addr dns = IP4::INADDR_ANY)
+      IP4::addr dns = IP4::ADDR_ANY)
     {
       stack<N>().network_config(addr, nmask, router, dns);
       return stack<N>();

@@ -37,7 +37,7 @@ struct sockaddr_in
 {
   sa_family_t  sin_family;
   uint16_t     sin_port;
-  uint32_t     sin_addr;
+  in_addr      sin_addr;
 };
 
 
@@ -71,6 +71,7 @@ extern const struct in6_addr in6addr_loopback;
 #define INET_ADDRSTRLEN   16
 #define INET6_ADDRSTRLEN  46
 
+#include "../arpa/inet.h"
 
 #ifdef __cplusplus
 }

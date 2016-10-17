@@ -163,11 +163,11 @@ namespace net {
 
     Ethernet::addr dest_mac;
 
-    if (iphdr->daddr == IP4::INADDR_BCAST) {
+    if (iphdr->daddr == IP4::ADDR_BCAST) {
       // When broadcasting our source IP should be either
       // our own IP or 0.0.0.0
 
-      if (sip != inet_.ip_addr() && sip != IP4::INADDR_ANY) {
+      if (sip != inet_.ip_addr() && sip != IP4::ADDR_ANY) {
         debug2("<ARP> Dropping outbound broadcast packet due to "
                "invalid source IP %s\n",  sip.str().c_str());
         return;
