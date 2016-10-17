@@ -64,6 +64,16 @@ ssize_t send(int socket, const void *message, size_t len, int fmt)
     return -1;
   }
 }
+ssize_t recv(int socket, void *buffer, size_t length, int flags)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.recv(buffer, length, flags);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
 
 int listen(int socket, int backlog)
 {
