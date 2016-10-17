@@ -6,7 +6,7 @@ class color:
     C_FAILED = '\033[91m'
     C_ENDC = '\033[0m'
     C_BOLD = '\033[1m'
-    C_GRAY = '\033[0;37m'
+    C_GRAY = '\033[0;31m'
     C_UNDERLINE = '\033[4m'
     C_WHITE_ON_RED = '\033[37;41m'
     C_BLACK_ON_GREEN = '\033[42;30m'
@@ -34,7 +34,7 @@ class color:
     @staticmethod
     def PASS_INLINE():
       return '[ ' + color.C_BLACK_ON_GREEN + " PASS " + color.C_ENDC + ' ]'
-    
+
     @staticmethod
     def OK(string):
       return color.C_OKGREEN + "[ OK ] " + string + color.C_ENDC
