@@ -59,7 +59,7 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   }
   auto* inaddr = (sockaddr_in*) address;
 
-  auto addr = ip4::Addr(inaddr->sin_addr);
+  auto addr = ip4::Addr(inaddr->sin_addr.s_addr);
   auto port = inaddr->sin_port;
 
   printf("[*] connecting to %s:%u...\n", addr.to_string().c_str(), port);
