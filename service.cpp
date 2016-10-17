@@ -61,20 +61,12 @@ void Service::start(const std::string&) {
   logger_->flush();
   logger_->log("LUL\n");
 
-  // TODO: Get this to work on IncludeOS master
-  /*OS::add_stdout([] (const char* data, size_t len) {
-    OS::print(data, len);
+  OS::add_stdout([] (const char* data, size_t len) {
     // append timestamp
     auto entry = timestamp() + std::string{data, len};
     logger_->log(entry);
-  });*/
-  /*OS::set_rsprint([] (const char* data, size_t len) {
-    OS::default_rsprint(data, len);
-    // append timestamp
-    auto entry = timestamp() + std::string{data, len};
-    logger_->log(entry);
-  });*/
-
+  });
+  
   disk = fs::new_shared_memdisk();
 
   // mount the main partition in the Master Boot Record
