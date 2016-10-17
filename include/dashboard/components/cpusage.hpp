@@ -21,7 +21,6 @@
 
 #include "../component.hpp"
 
-#include <kernel/irq_manager.hpp>
 #include <timers>
 #include <delegate>
 
@@ -31,9 +30,8 @@ class CPUsage : public Component {
 
 public:
 
-  CPUsage(::IRQ_manager& manager, Timers::duration_t when, Timers::duration_t interval)
-   :  manager_{manager},
-      interval_{interval},
+  CPUsage(Timers::duration_t when, Timers::duration_t interval)
+   :  interval_{interval},
       timer_id_{Timers::periodic(when, interval, {this, &CPUsage::update_values})}
   {}
 
@@ -76,7 +74,6 @@ private:
   uint64_t serialized_halt_ = 0;
   uint64_t serialized_total_ = 0;
 
-  ::IRQ_manager& manager_;
   Timers::duration_t interval_;
   Timers::id_t timer_id_;
 
@@ -84,8 +81,8 @@ private:
     uint64_t temp_halt = new_halt_;
     uint64_t temp_total = new_total_;
 
-    new_halt_ = manager_.cycles_hlt();
-    new_total_ = manager_.cycles_total();
+    new_halt_ = OS::get_cycles_halt();
+    new_total_ = OS::get_cycles_total();
     old_halt_ = temp_halt;
     old_total_ = temp_total;
   }
