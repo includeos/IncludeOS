@@ -274,7 +274,7 @@ uintptr_t OS::heap_usage() noexcept {
   return (uintptr_t) (heap_end - heap_begin);
 }
 
-int64_t OS::get_cycles_halt() noexcept {
+uint64_t OS::get_cycles_halt() noexcept {
   return *os_cycles_hlt;
 }
 __attribute__((noinline))
@@ -289,6 +289,10 @@ void OS::halt() {
   "_irq_cb_return_location:" );
   // Count sleep cycles
   *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
+}
+
+uint64_t OS::get_cycles_total() noexcept {
+  return *os_cycles_total;
 }
 
 void OS::event_loop() {

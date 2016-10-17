@@ -18,7 +18,7 @@
 #ifndef ELF_BINARY_HPP
 #define ELF_BINARY_HPP
 
-#include <elf.h>
+#include "elf.h"
 #include <gsl/gsl>
 #include <stdexcept>
 

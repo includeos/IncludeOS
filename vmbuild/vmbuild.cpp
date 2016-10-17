@@ -100,11 +100,11 @@ int main(int argc, char** argv) {
   }
 
   if (stat_boot.st_size != SECT_SIZE) {
-    INFO("Boot sector not exactly one sector in size (%ld bytes, expected %i)",
+    INFO("Boot sector not exactly one sector in size (%lld bytes, expected %i)",
          stat_boot.st_size, SECT_SIZE);
     return SECT_SIZE_ERR;
   }
-  INFO("Size of bootloader: %ld\t" , stat_boot.st_size);
+  INFO("Size of bootloader: %lld\t" , stat_boot.st_size);
 
   // Validate service binary location
   if (stat(elf_binary_path.c_str(), &stat_binary) == -1) {
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
   intmax_t binary_sectors = stat_binary.st_size / SECT_SIZE;
   if (stat_binary.st_size & (SECT_SIZE-1)) binary_sectors += 1;
 
-  INFO("Size of service: \t%ld bytes" , stat_binary.st_size);
+  INFO("Size of service: \t%lld bytes" , stat_binary.st_size);
 
   const decltype(binary_sectors) img_size_sect  {1 + binary_sectors+1};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};

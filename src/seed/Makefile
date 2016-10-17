@@ -51,8 +51,11 @@ endif
 ifndef OBJCOPY_INC
 	OBJCOPY_INC=objcopy
 endif
+ifndef STRIP_INC
+	STRIP_INC = strip
+endif
 
-INCLUDES = $(LOCAL_INCLUDES) -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api -I$(INSTALL)/mod/GSL
+INCLUDES = $(LOCAL_INCLUDES) -I$(INC_LIBCXX) -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api/posix -I$(INSTALL)/api -I$(INSTALL)/mod/GSL
 
 all:      CAPABS = $(CAPABS_COMMON) -O2
 debug:    CAPABS = $(CAPABS_COMMON) -O0
@@ -148,7 +151,7 @@ endif
 	$(RM) _elf_symbols.bin
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
-	strip $(STRIPPED) --remove-section=.comment $(SERVICE)
+	$(STRIP_INC) $(STRIPPED) --remove-section=.comment $(SERVICE)
 endif
 	@echo "\n>> Building" $(SERVICE).img
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
@@ -175,7 +178,7 @@ crt%.o: $(INSTALL)/crt/crt%.s
 	nasm -f elf -o $@ $<
 
 %.o: %.c
-	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -o $@ $<
+	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/api/posix -o $@ $<
 
 # AS-assembled object files
 %.o: %.s

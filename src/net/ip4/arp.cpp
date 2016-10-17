@@ -223,7 +223,7 @@ namespace net {
     req->init(mac_, inet_.ip_addr());
 
     req->set_dest_mac(Ethernet::BROADCAST_FRAME);
-    req->set_dest_ip(pckt->next_hop());
+    req->set_dest_ip(next_hop);
     req->set_opcode(H_request);
 
     // Stat increment requests sent
