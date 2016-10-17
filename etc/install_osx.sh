@@ -26,7 +26,7 @@ echo -e "\n# Prequisites:\n
     - homebrew (OS X package manager - https://brew.sh)
     - \`/usr/local\` directory with write access
     - \`/usr/local/bin\` added to your PATH
-    - (Recommended) XCode CLT (Command Line Tools)"
+    - (Recommended) Xcode CLT (Command Line Tools)"
 
 ### DEPENDENCIES ###
 
@@ -61,15 +61,15 @@ function install_llvm {
 
 
 ## BINUTILS ##
-echo -e "\nbinutils (ld, ar, objcopy) - required for building IncludeOS"
+echo -e "\nbinutils (ld, ar, objcopy, strip) - required for building IncludeOS"
 DEPENDENCY_BINUTILS=false
 
 BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
-BINUTILS_PREFIX=i686-elf-
-BINUTILS_LD=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"ld"
-BINUTILS_AR=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"ar"
-BINUTILS_OBJCOPY=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"objcopy"
-BINUTILS_STRIP=$BINUTILS_DIR/bin/$BINUTILS_PREFIX"strip"
+BINUTILS_BIN=$BINUTILS_DIR/i686-elf/bin
+BINUTILS_LD=$BINUTILS_BIN/"ld"
+BINUTILS_AR=$BINUTILS_BIN/"ar"
+BINUTILS_OBJCOPY=$BINUTILS_BIN/"objcopy"
+BINUTILS_STRIP=$BINUTILS_BIN/"strip"
 
 # Make directory inside IncludeOS_install to store ld, ar and objcopy
 INCLUDEOS_BIN=$INCLUDEOS_INSTALL/bin
@@ -157,11 +157,9 @@ function install_nasm {
 }
 
 ## WARN ABOUT XCODE CLT ##
-if ! [[ $(xcode-select -p) ]]
-then
-    echo -e "\nWARNING: Command Line Tools don't seem to be installed, installation MAY not complete.
-    Install with: xcode-select --install"
-fi
+
+echo -e "\nNOTE: Cannot tell if Xcode Command Line Tools is installed - installation MAY fail if not installed."
+echo -e "> Install with: xcode-select --install"
 
 ### INSTALL ###
 echo
