@@ -36,7 +36,7 @@ struct in_addr
 struct sockaddr_in
 {
   sa_family_t  sin_family;
-  uint16_t     sin_port;
+  in_port_t    sin_port;
   in_addr      sin_addr;
 };
 
