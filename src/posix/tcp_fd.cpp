@@ -25,16 +25,29 @@ static Inet4& net_stack() {
   return Inet4::stack<> ();
 }
 
-int TCP_FD::read(void*, size_t)
+int TCP_FD::read(void* data, size_t len)
 {
-  return -1;
+  return recv(data, len, 0);
 }
-int TCP_FD::write(const void*, size_t)
+int TCP_FD::write(const void* data, size_t len)
 {
-  return -1;
+  return send(data, len, 0);
 }
+
 int TCP_FD::close()
 {
+  if (this->conn) {
+    this->conn->close();
+    // wait for connection to close completely
+    while (!conn->is_closed()) {
+      OS::halt();
+      IRQ_manager::get().process_interrupts();
+    }
+    // free connection
+    this->conn = nullptr;
+    return 0;
+  }
+  errno = EBADF;
   return -1;
 }
 
@@ -71,6 +84,21 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
     return -1;
   }
 
+  // readq buffering (4kb at a time)
+  outgoing->on_read(4096,
+  [this] (auto buffer, size_t len)
+  {
+    if (readq.free_space() < (int) len) {
+      // make room for data
+      int needed = len - readq.free_space();
+      int discarded = readq.discard(needed);
+      assert(discarded == needed);
+    }
+    // add data to ringbuffer
+    int written = readq.write(buffer.get(), len);
+    assert(written = len);
+  });
+
   // wait for connection state to change
   while (not (outgoing->is_connected() || outgoing->is_closing() || outgoing->is_closed())) {
     OS::halt();
@@ -85,10 +113,17 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   return -1;
 }
 
+
 ssize_t TCP_FD::send(const void* data, size_t len, int)
 {
-  if (!conn) return -1;
-  if (!conn->is_connected()) return -1;
+  if (!conn) {
+    errno = EBADF;
+    return -1;
+  }
+  if (!conn->is_connected()) {
+    //errno = ?
+    return -1;
+  }
 
   bool written = false;
   conn->write(data, len,
@@ -100,6 +135,25 @@ ssize_t TCP_FD::send(const void* data, size_t len, int)
     IRQ_manager::get().process_interrupts();
   }
   return len;
+}
+ssize_t TCP_FD::recv(void* dest, size_t len, int)
+{
+  if (!conn) {
+    errno = EBADF;
+    return -1;
+  }
+  // if the connection is closed or closing: read returns 0
+  if (conn->is_closed() || conn->is_closing()) return 0;
+  if (!conn->is_connected()) {
+    //errno = ?
+    return -1;
+  }
+  // read some bytes from readq
+  int bytes = readq.read((char*) dest, len);
+  if (bytes == 0) {
+    // block and wait for more
+  }
+  return bytes;
 }
 
 int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
