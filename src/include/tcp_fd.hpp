@@ -44,6 +44,9 @@ public:
 
   ~TCP_FD() {}
 private:
+  void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
+  void set_default_read();
+  
   net::tcp::Connection_ptr conn = nullptr;
   RingBuffer readq;
   bool non_blocking = false;
