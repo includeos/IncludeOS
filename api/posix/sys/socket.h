@@ -124,6 +124,8 @@ int     socket(int domain, int type, int protocol);
 int     socketpair(int domain, int type, int protocol,
                    int socket_vector[2]);
 
+#include "../netinet/in.h"
+
 #ifdef __cplusplus
 }
 #endif

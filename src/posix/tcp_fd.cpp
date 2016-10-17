@@ -17,7 +17,7 @@
 
 #include <tcp_fd.hpp>
 #include <kernel/irq_manager.hpp>
-#include <netinet/in.h>
+
 using namespace net;
 
 // return the "currently selected" networking stack
