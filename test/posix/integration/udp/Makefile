@@ -13,7 +13,7 @@ FILES = service.cpp
 DISK=
 
 # Additional drivers (virtionet, virtioblk etc)
-DRIVERS=
+DRIVERS=virtionet
 
 # Your own include-path
 LOCAL_INCLUDES=
