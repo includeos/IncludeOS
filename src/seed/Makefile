@@ -118,7 +118,7 @@ debug: CPPOPTS += $(DEBUG_OPTS)
 debug: OBJ_LIST += $(LIBG_OBJ)
 debug: CPPOPTS += -O0
 debug: STRIPPED=
-debug: service
+debug: link_service preserve_debug service
 
 # Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
 debug-all: CAPABS += -UNO_DEBUG
@@ -134,8 +134,10 @@ minimal: CPPOPTS += -Os
 # Service
 ###################################################
 
+
 # Link the service with the os
-service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLATFORM_OBJS)
+link_service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLATFORM_OBJS)
+
 # build memdisk only when MEMDISK is set
 ifneq ($(MEMDISK),)
 	@echo "\n>> Creating memdisk"
@@ -143,12 +145,21 @@ ifneq ($(MEMDISK),)
 	@echo "\n>> Assembling memdisk"
 	nasm -f elf $(INSTALL)/memdisk/memdisk.asm -o $(MEMDISK)
 endif
+
 	@echo "\n>> Linking service with OS"
 	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+
+# Save debugging symbols to separate file
+preserve_debug:
+	@echo "\n>> Saving debugging symbols"
+	$(OBJCOPY_INC) --only-keep-debug $(SERVICE) $(SERVICE).debug
+	$(OBJCOPY_INC) --add-gnu-debuglink=$(SERVICE).debug $(SERVICE)
+
+service: link_service
 	@echo "\n>> Adding symbol section"
 	$(INSTALL)/elf_syms $(SERVICE)
 	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
-	$(RM) _elf_symbols.bin
+#	$(RM) _elf_symbols.bin
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
 	$(STRIP_INC) $(STRIPPED) --remove-section=.comment $(SERVICE)
@@ -157,7 +168,7 @@ endif
 	$(INSTALL)/vmbuild $(SERVICE) $(INSTALL)/bootloader
 
 .service_name.o: $(INSTALL)/service_name.cpp
-	$(CPP) $(CPPOPTS) -DSERVICE_NAME="\"$(SERVICE_NAME)\"" -o $@ $<
+	$(CPP) $(CPPOPTS) -DSERVICE="\"$(SERVICE)\"" -DSERVICE_NAME="\"$(SERVICE_NAME)\"" -o $@ $<
 
 servicefile:
 	@echo $(SERVICE).img
@@ -188,6 +199,6 @@ crt%.o: $(INSTALL)/crt/crt%.s
 ###################################################
 clean:
 	$(RM) $(OBJS) $(DEPS)
-	$(RM) $(SERVICE) $(SERVICE).img $(MEMDISK)
+	$(RM) $(SERVICE) $(SERVICE).img $(SERVICE).debug $(MEMDISK)
 
 -include $(DEPS)
