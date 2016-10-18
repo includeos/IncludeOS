@@ -159,7 +159,8 @@ service: link_service
 	@echo "\n>> Adding symbol section"
 	$(INSTALL)/elf_syms $(SERVICE)
 	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
-#	$(RM) _elf_symbols.bin
+	$(RM) _elf_symbols.bin
+
 # stripping must be done after symbol section work
 ifneq ($(STRIPPED),)
 	$(STRIP_INC) $(STRIPPED) --remove-section=.comment $(SERVICE)

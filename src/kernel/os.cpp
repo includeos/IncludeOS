@@ -63,7 +63,7 @@ std::vector<OS::Custom_init_struct> OS::custom_init_;
 std::string OS::version_field = OS_VERSION;
 
 // Multiboot command line for the service
-static std::string os_cmdline = "";
+static std::string os_cmdline = Service::binary_name();
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
@@ -123,7 +123,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_end + 1, heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
 
-  memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
+  memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
 
   // Create ranges for heap and the remaining address space
@@ -250,8 +250,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   FILLINE('=');
   // initialize random seed based on cycles since start
   srand(cycles_since_boot() & 0xFFFFFFFF);
+
   // begin service start
-  Service::start(Service::command_line());
+  Service::start(os_cmdline);
 
   event_loop();
 }
@@ -358,12 +359,14 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
   INFO2("");
 
   if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
+    INFO2("* Booted with parameters @ %p: %s",(void*)bootinfo->cmdline, (char*)bootinfo->cmdline);
     os_cmdline = (char*) bootinfo->cmdline;
-    INFO2("* Booted with parameters: %s", os_cmdline.c_str());
+
   }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
-    INFO2("* Multiboot provided memory map  (%i entries)",bootinfo->mmap_length / sizeof(multiboot_memory_map_t));
+    INFO2("* Multiboot provided memory map  (%i entries @ %p)",
+          bootinfo->mmap_length / sizeof(multiboot_memory_map_t), (void*)bootinfo->mmap_addr);
     gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo->mmap_addr),
         (int)(bootinfo->mmap_length / sizeof(multiboot_memory_map_t))};
 
@@ -371,8 +374,6 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
       INFO2("\t 0x%08llx - 0x%08llx %s (%llu Kb.)",
             map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
-      /*if (map.addr + map.len > mem_high_end)
-        break;*/
     }
     printf("\n");
   }
@@ -380,24 +381,4 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 /// SERVICE RELATED ///
 
-// the name of the current service (built from another module)
-extern "C" {
-  __attribute__((weak))
-  const char* service_name__ = "(missing service name)";
-}
-
-std::string Service::name() {
-  return service_name__;
-}
-
-const std::string& Service::command_line()
-{
-  return os_cmdline;
-}
-
-// functions that we can override if we want to
-__attribute__((weak))
-void Service::ready() {}
-
-__attribute__((weak))
-void Service::stop() {}
+// Moved to kernel/service_stub.cpp

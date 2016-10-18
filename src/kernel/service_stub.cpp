@@ -15,7 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
+#include <os>
 
-extern "C" const char* service_name__ = SERVICE_NAME;
-extern "C" const char* service_binary_name__ = SERVICE;
+// the name of the current service (built from another module)
+extern "C" {
+  __attribute__((weak))
+  const char* service_name__ = "(missing service name)";
+}
+
+extern "C" {
+  __attribute__((weak))
+  const char* service_binary_name__ = "(missing binary name)";
+}
+
+
+std::string Service::binary_name() {
+  return service_binary_name__;
+}
+
+std::string Service::name() {
+  return service_name__;
+}
+
+
+// functions that we can override if we want to
+__attribute__((weak))
+void Service::ready() {}
+
+__attribute__((weak))
+void Service::stop() {}
