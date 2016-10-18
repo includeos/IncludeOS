@@ -16,37 +16,31 @@
 // limitations under the License.
 
 #pragma once
-#ifndef INCLUDE_TCP_FD_HPP
-#define INCLUDE_TCP_FD_HPP
+#ifndef INCLUDE_UDP_FD_HPP
+#define INCLUDE_UDP_FD_HPP
 
 #include "fd.hpp"
 #include <net/inet4>
-#include <util/ringbuffer.hpp>
 
-class TCP_FD : public FD {
+class UDP_FD : public FD {
 public:
   using id_t = int;
 
-  explicit TCP_FD(int id)
-    : FD(id), readq(16484)
+  explicit UDP_FD(const int id)
+    : FD(id)
   {}
 
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
   /** SOCKET */
-  int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
   int     bind(const struct sockaddr *, socklen_t) override;
-  int     connect(const struct sockaddr *, socklen_t) override;
+  ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) override;
+  ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
-  ssize_t send(const void *, size_t, int fl) override;
-  ssize_t recv(void*, size_t, int fl) override;
-
-  ~TCP_FD() {}
+  ~UDP_FD() {}
 private:
-  net::tcp::Connection_ptr conn = nullptr;
-  RingBuffer readq;
-  bool non_blocking = false;
+  net::UDPSocket* sock = nullptr;
 };
 
 #endif
