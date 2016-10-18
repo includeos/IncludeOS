@@ -41,7 +41,6 @@ void Service::start(const std::string& st) {
   // Populate argv
   int i = 0;
   for (auto word = words_begin; word != words_end; word++) {
-    std::cout << "Stub arg " << i << " " << std::smatch(*word).str() << "\n";
     args[i++] = s.data() + word->position();
 
   }
