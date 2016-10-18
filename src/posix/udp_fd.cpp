@@ -17,11 +17,10 @@
 
 #include <udp_fd.hpp>
 #include <kernel/irq_manager.hpp>
-using namespace net;
 
 // return the "currently selected" networking stack
-static Inet4& net_stack() {
-  return Inet4::stack<> ();
+static net::Inet4& net_stack() {
+  return net::Inet4::stack<> ();
 }
 
 int UDP_FD::read(void*, size_t)
@@ -38,28 +37,64 @@ int UDP_FD::close()
 }
 int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 {
-  if(len != sizeof(struct sockaddr_in)) {
-    errno = 0; // fix
+  // we can assume this has already been bound since there is a pointer
+  if(UNLIKELY(this->sock != nullptr)) {
+    errno = EINVAL;
     return -1;
   }
-
+  // The specified address is not a valid address for the address family of the specified socket.
+  if(UNLIKELY(len != sizeof(struct sockaddr_in))) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+  // Bind
   const auto port = ((sockaddr_in*)address)->sin_port;
   auto& udp = net_stack().udp();
   try {
-    this->sock = (port) ? &udp.bind(port) : &udp.bind();
+    this->sock = (port) ? &udp.bind(ntohs(port)) : &udp.bind();
     return 0;
-  } catch(...) {
-    errno = 0; // fix
+  } catch(const net::UDP::Port_in_use_exception&) {
+    errno = EADDRINUSE;
     return -1;
   }
 }
-ssize_t UDP_FD::sendto(const void *, size_t, int, const struct sockaddr *, socklen_t)
+ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
+  const struct sockaddr* dest_addr, socklen_t dest_len)
 {
+  // The specified address is not a valid address for the address family of the specified socket.
+  if(UNLIKELY(dest_len != sizeof(struct sockaddr_in))) {
+    errno = EINVAL;
+    return -1;
+  }
+  // Bind a socket if we dont already have one
+  if(this->sock == nullptr) {
+    this->sock = &net_stack().udp().bind();
+  }
+  const auto& dest = *((sockaddr_in*)dest_addr);
+  // If the socket protocol supports broadcast and the specified address is a broadcast address for the socket protocol,
+  // sendto() shall fail if the SO_BROADCAST option is not set for the socket.
+  if(!broadcast_ && dest.sin_addr.s_addr == ntohl(INADDR_BROADCAST)) {
 
-  return 0;
+    return -1;
+  }
+
+  // Sending
+  bool written = false;
+  this->sock->sendto(ntohl(dest.sin_addr.s_addr), ntohs(dest.sin_port), message, len,
+    [&written]() { written = true; });
+  while(!written) {
+    OS::halt();
+    IRQ_manager::get().process_interrupts();
+  }
+  return len;
 }
-ssize_t UDP_FD::recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__)
+ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
+  struct sockaddr *__restrict__ address, socklen_t *__restrict__ address_len)
 {
-
+  // A receive is attempted on a connection-mode socket that is not connected.
+  if(UNLIKELY(this->sock == nullptr)) {
+    errno = ENOTCONN; // ?
+    return -1;
+  }
   return 0;
 }

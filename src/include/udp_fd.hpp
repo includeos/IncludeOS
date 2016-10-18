@@ -27,7 +27,7 @@ public:
   using id_t = int;
 
   explicit UDP_FD(const int id)
-    : FD(id)
+    : FD(id), non_blocking_(false), broadcast_(false)
   {}
 
   int     read(void*, size_t) override;
@@ -41,6 +41,8 @@ public:
   ~UDP_FD() {}
 private:
   net::UDPSocket* sock = nullptr;
+  bool non_blocking_;
+  bool broadcast_;
 };
 
 #endif
