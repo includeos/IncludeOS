@@ -60,7 +60,12 @@ namespace hw {
     Serial& operator=(Serial&) = delete;
     Serial operator=(Serial&&) = delete;
 
-    void init();
+    void init() { init(port_); };
+
+    static void init(uint16_t port);
+
+    /** Direct write to serial port 1 (for early printing before e.g. global ctors) **/
+    static void print1(const char* cstr);
 
   private:
     void print_handler(const char*, size_t);

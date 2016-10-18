@@ -1,0 +1,15 @@
+
+#ifndef INCLUDE_KPRINT
+#define INCLUDE_KPRINT
+
+#include <hw/serial.hpp>
+#include <cstring>
+
+#define kprintf(cstr, ...)                      \
+  char buf[strlen(cstr) * 2];                   \
+  sprintf(buf, cstr, ##__VA_ARGS__);            \
+  hw::Serial::print1(buf);                      \
+
+#define kprint(cstr) hw::Serial::print1(cstr)
+
+#endif
