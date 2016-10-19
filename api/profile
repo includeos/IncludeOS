@@ -119,6 +119,16 @@ class ScopedProfiler
     uint64_t    cycles_average;
   };
 
+
+  // The guard to use, before calling rdtsc
+  static enum class Guard
+  {
+    NOT_SELECTED,
+    LFENCE,
+    MFENCE,
+    NOT_AVAILABLE,
+  } guard;
+
   // Use plain array for performance (cache locality)
   // Increase size if there is a need to profile more than 64 scopes
   static std::array<Entry, 64> entries;

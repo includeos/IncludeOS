@@ -20,6 +20,7 @@
 #include <hw/pit.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/cpuid.hpp>
 #include <util/fixedvec.hpp>
 #include <unordered_map>
 #include <cassert>
@@ -185,25 +186,73 @@ void StackSampler::set_mask(bool mask)
   get().discard = mask;
 }
 
+decltype(ScopedProfiler::guard)   ScopedProfiler::guard   = Guard::NOT_SELECTED;
 decltype(ScopedProfiler::entries) ScopedProfiler::entries = {};
 
 ScopedProfiler::ScopedProfiler()
 {
-  uint64_t tick;
-  asm volatile ("cpuid\n\t"
-                "rdtsc\n\t"
-                : "=A" (tick)
-                :: "%eax", "%ebx", "%ecx", "%edx");
-  tick_start = tick;
+  // Select which guard to use (this is only done once)
+  if (guard == Guard::NOT_SELECTED)
+  {
+    if (CPUID::is_intel_cpu() && CPUID::has_feature(CPUID::Feature::SSE2))
+    {
+      debug2("ScopedProfiler selected guard LFENCE\n");
+      guard = Guard::LFENCE;
+    }
+    else if (CPUID::is_amd_cpu() && CPUID::has_feature(CPUID::Feature::SSE2))
+    {
+      debug2("ScopedProfiler selected guard MFENCE\n");
+      guard = Guard::MFENCE;
+    }
+    else
+    {
+      printf("[WARNING] ScopedProfiler only works with an Intel or AMD CPU that supports SSE2!\n");
+      guard = Guard::NOT_AVAILABLE;
+    }
+  }
+
+  if (guard == Guard::NOT_AVAILABLE)
+  {
+    return;  // No guard available -> just bail out
+  }
+  else if (guard == Guard::LFENCE)
+  {
+    asm volatile ("lfence\n\t"
+                  "rdtsc\n\t"
+                  : "=A" (tick_start)
+                  :: "%eax", "%ebx", "%ecx", "%edx");
+  }
+  else if (guard == Guard::MFENCE)
+  {
+    asm volatile ("mfence\n\t"
+                  "rdtsc\n\t"
+                  : "=A" (tick_start)
+                  :: "%eax", "%ebx", "%ecx", "%edx");
+  }
 }
 
 ScopedProfiler::~ScopedProfiler()
 {
-  uint64_t tick;
-  asm volatile ("cpuid\n\t"
-                "rdtsc\n\t"
-                : "=A" (tick)
-                :: "%eax", "%ebx", "%ecx", "%edx") ;
+  uint64_t tick = 0;
+
+  if (guard == Guard::NOT_AVAILABLE)
+  {
+    return;  // No guard available -> just bail out
+  }
+  else if (guard == Guard::LFENCE)
+  {
+    asm volatile ("lfence\n\t"
+                  "rdtsc\n\t"
+                  : "=A" (tick)
+                  :: "%eax", "%ebx", "%ecx", "%edx");
+  }
+  else if (guard == Guard::MFENCE)
+  {
+    asm volatile ("mfence\n\t"
+                  "rdtsc\n\t"
+                  : "=A" (tick)
+                  :: "%eax", "%ebx", "%ecx", "%edx");
+  }
 
   auto cycles = tick - tick_start;
   auto function_address = __builtin_return_address(0);
