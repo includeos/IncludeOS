@@ -54,6 +54,11 @@ int TCP_FD::close()
 
 int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
+  if (is_listener()) {
+    // already listening on port
+    errno = EINVAL;
+    return -1;
+  }
   if (this->cd) {
     // if its straight-up connected, return that
     if (cd->conn->is_connected()) {
@@ -65,11 +70,6 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
       errno = EALREADY;
       return -1;
     }
-  }
-  if (this->ld) {
-    // already listening on port
-    errno = EINVAL;
-    return -1;
   }
 
   if (address_len != sizeof(sockaddr_in)) {
@@ -110,62 +110,21 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 }
 
 
-ssize_t TCP_FD::send(const void* data, size_t len, int)
+ssize_t TCP_FD::send(const void* data, size_t len, int fmt)
 {
   if (!cd) {
     errno = EINVAL;
     return -1;
   }
-  if (not cd->conn->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
-  }
-
-  bool written = false;
-  cd->conn->write(data, len,
-  [&written] (bool) { written = true; });
-  // sometimes we can just write and forget
-  if (written) return len;
-  while (!written) {
-    OS::block();
-  }
-  return len;
+  return cd->send(data, len, fmt);
 }
-ssize_t TCP_FD::recv(void* dest, size_t len, int)
+ssize_t TCP_FD::recv(void* dest, size_t len, int flags)
 {
   if (!cd) {
     errno = EINVAL;
     return -1;
   }
-  // if the connection is closed or closing: read returns 0
-  if (cd->conn->is_closed() || cd->conn->is_closing()) return 0;
-  if (not cd->conn->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
-  }
-  // read some bytes from readq
-  int bytes = cd->readq.read((char*) dest, len);
-  if (bytes) return bytes;
-  
-  bool done = false;
-  // block and wait for more
-  cd->conn->on_read(len,
-  [&done, &bytes, dest] (auto buffer, size_t len) {
-    // copy the data itself
-    if (len)
-        memcpy(dest, buffer.get(), len);
-    // we are done
-    done  = true;
-    bytes = len;
-  });
-
-  // BLOCK HERE
-  while (!done || !cd->conn->is_readable()) {
-    OS::block();
-  }
-  // restore
-  cd->set_default_read();
-  return bytes;
+  return cd->recv(dest, len, flags);
 }
 
 int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
@@ -196,6 +155,55 @@ void TCP_FD_Conn::set_default_read()
   // readq buffering (4kb at a time)
   conn->on_read(4096, {this, &TCP_FD_Conn::recv_to_ringbuffer});
 }
+ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
+{
+  if (not conn->is_connected()) {
+    errno = ENOTCONN;
+    return -1;
+  }
+
+  bool written = false;
+  conn->write(data, len,
+  [&written] (bool) { written = true; });
+  // sometimes we can just write and forget
+  if (written) return len;
+  while (!written) {
+    OS::block();
+  }
+  return len;
+}
+ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
+{
+  // if the connection is closed or closing: read returns 0
+  if (conn->is_closed() || conn->is_closing()) return 0;
+  if (not conn->is_connected()) {
+    errno = ENOTCONN;
+    return -1;
+  }
+  // read some bytes from readq
+  int bytes = readq.read((char*) dest, len);
+  if (bytes) return bytes;
+  
+  bool done = false;
+  // block and wait for more
+  conn->on_read(len,
+  [&done, &bytes, dest] (auto buffer, size_t len) {
+    // copy the data itself
+    if (len)
+        memcpy(dest, buffer.get(), len);
+    // we are done
+    done  = true;
+    bytes = len;
+  });
+
+  // BLOCK HERE
+  while (!done || !conn->is_readable()) {
+    OS::block();
+  }
+  // restore
+  this->set_default_read();
+  return bytes;
+}
 int TCP_FD_Conn::close()
 {
   conn->close();
@@ -225,6 +233,6 @@ int TCP_FD_Listen::listen(int backlog)
 
 int TCP_FD_Listen::close()
 {
-  //listener.close();
+  //net_stack().tcp().unbind(listener);
   return 0;
 }

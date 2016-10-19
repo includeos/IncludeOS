@@ -45,6 +45,13 @@ public:
   ssize_t send(const void *, size_t, int fl) override;
   ssize_t recv(void*, size_t, int fl) override;
 
+  bool is_listener() const noexcept {
+    return ld != nullptr;
+  }
+  bool is_connection() const noexcept {
+    return cd != nullptr;
+  }
+
   ~TCP_FD() {}
 private:
   TCP_FD_Conn* cd = nullptr;
@@ -61,7 +68,10 @@ struct TCP_FD_Conn
   
   void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
   void set_default_read();
-  int  close();
+  
+  ssize_t send(const void *, size_t, int fl);
+  ssize_t recv(void*, size_t, int fl);
+  int     close();
   
   net::tcp::Connection_ptr conn;
   RingBuffer readq;
