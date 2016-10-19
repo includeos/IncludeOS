@@ -23,12 +23,15 @@
 #include <net/inet4>
 #include <ringbuffer>
 
+struct TCP_FD_Conn;
+struct TCP_FD_Listen;
+
 class TCP_FD : public FD {
 public:
   using id_t = int;
 
   explicit TCP_FD(int id)
-    : FD(id), readq(16484)
+    : FD(id)
   {}
 
   int     read(void*, size_t) override;
@@ -44,12 +47,37 @@ public:
 
   ~TCP_FD() {}
 private:
+  TCP_FD_Conn* cd = nullptr;
+  TCP_FD_Listen*  ld = nullptr;
+  // sock opts
+  bool non_blocking = false;
+};
+
+struct TCP_FD_Conn
+{
+  TCP_FD_Conn(net::tcp::Connection_ptr c)
+    : conn(c), readq(16484)
+  {}
+  
   void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
   void set_default_read();
+  int  close();
   
-  net::tcp::Connection_ptr conn = nullptr;
+  net::tcp::Connection_ptr conn;
   RingBuffer readq;
-  bool non_blocking = false;
+};
+
+struct TCP_FD_Listen
+{
+  TCP_FD_Listen(net::tcp::Listener& l)
+    : listener(l)
+  {}
+  
+  int close();
+  int listen(int);
+  
+  net::tcp::Listener& listener;
+  std::deque<net::tcp::Connection_ptr> connq;
 };
 
 #endif
