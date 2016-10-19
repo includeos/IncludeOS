@@ -146,15 +146,10 @@ int TCP_FD::listen(int backlog)
 }
 int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
 {
-  if (!cd) {
+  //
+  if (cd) {
     errno = EINVAL;
     return -1;
-  }
-  // remove existing binds
-  if (ld) {
-    int ret = ld->close();
-    if (ret < 0) return ret;
-    delete ld;
   }
   // verify socket address
   if (addrlen != sizeof(sockaddr_in)) {
@@ -168,10 +163,24 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
     return -1;
   }
   // ignore IP address (FIXME?)
-  // use sin_port for bind
-  auto& L = net_stack().tcp().bind(sin->sin_port);
-  ld = new TCP_FD_Listen(L);
-  return 0;
+  /// verify that the IP is "local"
+  try {
+    // use sin_port for bind
+    auto& L = net_stack().tcp().bind(sin->sin_port);
+    // remove existing listener
+    if (ld) {
+      int ret = ld->close();
+      if (ret < 0) return ret;
+      delete ld;
+    }
+    // create new one
+    ld = new TCP_FD_Listen(L);
+    return 0;
+    
+  } catch (...) {
+    errno = EADDRINUSE;
+    return -1;
+  }
 }
 
 /// socket as connection
@@ -291,6 +300,6 @@ int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restr
 }
 int TCP_FD_Listen::close()
 {
-  //net_stack().tcp().unbind(listener);
+  net_stack().tcp().unbind(listener.local().port());
   return 0;
 }
