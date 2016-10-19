@@ -25,6 +25,7 @@
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <kernel/rtc.hpp>
+#include <kernel/rng.hpp>
 
 #include <hw/acpi.hpp>
 
@@ -38,6 +39,7 @@ extern "C" {
 }
 
 static const int syscall_fd   {999};
+static const int rng_fd       {998};
 static bool debug_syscalls    {true};
 static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
 
@@ -45,7 +47,11 @@ void _exit(int) {
   default_exit();
 }
 
-int close(int) {
+int close(int fd) {
+
+  if(fd == syscall_fd || fd == rng_fd) {
+    return 0;
+  }
   panic("SYSCALL CLOSE NOT SUPPORTED");
   return -1;
 }
@@ -101,17 +107,29 @@ off_t lseek(int, off_t, int) {
   return 0;
 }
 
-int open(const char*, int, ...) {
+int open(const char* s, int mode, ...) {
+
+  if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
+    return rng_fd;
+  }
   panic("SYSCALL OPEN unsupported");
   return -1;
 }
 
-int read(int, void*, size_t) {
+int read(int fd, void* buf, size_t len) {
+  if(fd == rng_fd) {
+    rng_extract(buf, len);
+    return len;
+  }
   panic("SYSCALL READ unsupported");
   return 0;
 }
 
 int write(int file, const void* ptr, size_t len) {
+  if (file == rng_fd) {
+    rng_absorb(ptr, len);
+    return len;
+  }
   if (file == syscall_fd and not debug_syscalls) {
     return len;
   }

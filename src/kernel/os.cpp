@@ -30,6 +30,9 @@
 #include <kernel/pci_manager.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/rtc.hpp>
+#include <kernel/rdrand.hpp>
+#include <kernel/rng.hpp>
+#include <kernel/cpuid.hpp>
 #include <statman>
 #include <vector>
 
@@ -248,8 +251,31 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
+
   // initialize random seed based on cycles since start
-  srand(cycles_since_boot() & 0xFFFFFFFF);
+  if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
+    uint32_t rdrand_output[32];
+
+    for (size_t i = 0; i != 32; ++i) {
+      while (!rdrand32(&rdrand_output[i])) {}
+    }
+
+    rng_absorb(rdrand_output, sizeof(rdrand_output));
+  }
+  else {
+    // this is horrible, better solution needed here
+   for (size_t i = 0; i != 32; ++i) {
+      uint64_t clock = cycles_since_boot();
+      // maybe additionally call something which will take
+      // variable time depending in some way on the processor
+      // state (clflush?) or a HAVEGE-like approach.
+      rng_absorb(&clock, sizeof(clock));
+    }
+  }
+
+  // Seed rand with 32 bits from RNG
+  srand(rng_extract_uint32());
+
   // begin service start
   Service::start(Service::command_line());
 
