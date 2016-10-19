@@ -23,6 +23,16 @@ static net::Inet4& net_stack() {
   return net::Inet4::stack<> ();
 }
 
+void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char* buffer, size_t len)
+{
+  // buffer somehow
+}
+void UDP_FD::set_default_recv()
+{
+  assert(this->sock != nullptr && "Default recv called on nullptr");
+  this->sock->on_read({this, &UDP_FD::recv_to_buffer});
+}
+
 int UDP_FD::read(void*, size_t)
 {
   return -1;
@@ -91,10 +101,36 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
 ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
   struct sockaddr *__restrict__ address, socklen_t *__restrict__ address_len)
 {
-  // A receive is attempted on a connection-mode socket that is not connected.
   if(UNLIKELY(this->sock == nullptr)) {
-    errno = ENOTCONN; // ?
+    errno = EINVAL; //
     return -1;
   }
-  return 0;
+
+  // Receiving
+  int bytes = 0;
+  bool done = false;
+  this->sock->on_read(
+    [&bytes, &done, buffer, len, address, address_len]
+    (net::UDPSocket::addr_t addr, net::UDPSocket::port_t port, const char* data, size_t data_len)
+    {
+      bytes = std::min(len, data_len);
+      memcpy(buffer, data, bytes);
+
+      // TODO: If the actual length of the address is greater than the length of the supplied sockaddr structure,
+      // the stored address shall be truncated.
+      if(address != nullptr) {
+        auto& sender = *((sockaddr_in*)address);
+        sender.sin_family       = AF_INET;
+        sender.sin_port         = htons(port);
+        sender.sin_addr.s_addr  = htonl(addr.whole);
+      }
+      done = true;
+    });
+
+  while(!done) {
+    OS::halt();
+    IRQ_manager::get().process_interrupts();
+  }
+
+  return bytes;
 }
