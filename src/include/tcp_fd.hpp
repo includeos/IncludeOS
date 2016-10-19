@@ -38,8 +38,9 @@ public:
   int     write(const void*, size_t) override;
   int     close() override;
   /** SOCKET */
-  int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
   int     bind(const struct sockaddr *, socklen_t) override;
+  int     listen(int) override;
+  int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
   int     connect(const struct sockaddr *, socklen_t) override;
 
   ssize_t send(const void *, size_t, int fl) override;

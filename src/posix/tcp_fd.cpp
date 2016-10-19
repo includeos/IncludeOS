@@ -136,9 +136,42 @@ int TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ a
   }
   return ld->accept(addr, addr_len);
 }
-int TCP_FD::bind(const struct sockaddr *, socklen_t)
+int TCP_FD::listen(int backlog)
 {
-  return -1;
+  if (!ld) {
+    errno = EINVAL;
+    return -1;
+  }
+  return ld->listen(backlog);
+}
+int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
+{
+  if (!cd) {
+    errno = EINVAL;
+    return -1;
+  }
+  // remove existing binds
+  if (ld) {
+    int ret = ld->close();
+    if (ret < 0) return ret;
+    delete ld;
+  }
+  // verify socket address
+  if (addrlen != sizeof(sockaddr_in)) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+  auto* sin = (sockaddr_in*) addr;
+  // verify its AF_INET
+  if (sin->sin_family != AF_INET) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+  // ignore IP address (FIXME?)
+  // use sin_port for bind
+  auto& L = net_stack().tcp().bind(sin->sin_port);
+  ld = new TCP_FD_Listen(L);
+  return 0;
 }
 
 /// socket as connection
