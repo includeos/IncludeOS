@@ -35,11 +35,17 @@ int main()
   myaddr.sin_family = AF_INET;
   myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   myaddr.sin_port = htons(0);
+
   int fd;
+  if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    perror("cannot create socket");
+    return 0;
+  }
   if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
     perror("bind failed");
     return 0;
   }
+  printf("SUCCESS");
 }
 
 void Service::start(const std::string&)

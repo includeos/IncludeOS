@@ -40,7 +40,7 @@ public:
 
   ~UDP_FD() {}
 private:
-  std::unique_ptr<net::UDPSocket> sock = nullptr;
+  net::UDPSocket* sock = nullptr;
 };
 
 #endif

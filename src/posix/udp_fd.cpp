@@ -36,9 +36,22 @@ int UDP_FD::close()
 {
   return -1;
 }
-int UDP_FD::bind(const struct sockaddr *, socklen_t)
+int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 {
-  return -1;
+  if(len != sizeof(struct sockaddr_in)) {
+    errno = 0; // fix
+    return -1;
+  }
+
+  const auto port = ((sockaddr_in*)address)->sin_port;
+  auto& udp = net_stack().udp();
+  try {
+    this->sock = (port) ? &udp.bind(port) : &udp.bind();
+    return 0;
+  } catch(...) {
+    errno = 0; // fix
+    return -1;
+  }
 }
 ssize_t UDP_FD::sendto(const void *, size_t, int, const struct sockaddr *, socklen_t)
 {

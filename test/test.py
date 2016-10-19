@@ -15,7 +15,7 @@ import validate_all
 
 startdir = os.getcwd()
 
-test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'util']
+test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'util', 'posix']
 test_types = ['integration', 'stress', 'unit', 'examples']
 
 """
@@ -156,7 +156,7 @@ class Test:
     for skip in skip_json:
         if self.path_ == skip['name']:
             self.skip_ = True
-            self.skip_reason_ = 'Defined in skipped_tests.json'
+            self.skip_reason_ = skip['reason']
             return
 
     # Test 3

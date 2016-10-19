@@ -13,7 +13,7 @@ INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 # (0 means no, anything else yes.)
 DEBUG=0
 
-[[ $2 = "debug" ]] && DEBUG=1 
+[[ $2 = "debug" ]] && DEBUG=1
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
 . $INCLUDEOS_HOME/etc/qemu_cmd.sh
@@ -22,23 +22,24 @@ DEBUG=0
 
 if [ $DEBUG -ne 0 ]
 then
+    QEMU="qemu-system-i386"
     echo "Building system..."
     make -B debug
     echo "Starting VM: '$1'"
     echo "Command: $QEMU $QEMU_OPTS"
-    echo "------------------------------------------------------------"    
+    echo "------------------------------------------------------------"
     echo "VM started in DEBUG mode. Connect with gdb/emacs:"
     echo " - M+x gdb, Enter, then start with command"
-    echo "   gdb -i=mi service -x service.gdb"
-    echo "------------------------------------------------------------"    
+    echo "   gdb -i=mi your-service-binary -x your/includeos/dir/etc/debug/service.gdb"
+    echo "------------------------------------------------------------"
 
     echo $QEMU -s -S $QEMU_OPTS $QEMU_EXTRA
     sudo $QEMU -s -S $QEMU_OPTS $QEMU_EXTRA
-else    
+else
 
-    echo "------------------------------------------------------------"    
+    echo "------------------------------------------------------------"
     echo "Starting VM: '$1'"
-    echo "------------------------------------------------------------"        
+    echo "------------------------------------------------------------"
     echo $QEMU $QEMU_OPTS $QEMU_EXTRA
     sudo $QEMU $QEMU_OPTS $QEMU_EXTRA
 fi
