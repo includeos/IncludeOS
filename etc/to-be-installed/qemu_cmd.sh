@@ -14,11 +14,11 @@ INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
 
 [ ! -v NET ] && export NET="-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"
-[ ! -v SMP ] && export SMP="-smp 4"
+[ ! -v SMP ] && export SMP="-smp 1"
 [ ! -v GRAPHICS ] && export GRAPHICS="-nographic"
 [ ! -v SERIAL ] && export SERIAL="-virtioconsole stdio"
 [ ! -v MEM ] && export MEM="-m 128"
-[ ! -v HDA ] && export HDA="-drive file=$IMAGE,format=raw,if=ide"
+[ ! -v HDA ] && export HDA="-kernel $IMAGE $CMDLINE"
 [ ! -v HDB ] && export HDB=""
 [ ! -v HDD ] && export HDD="$HDA $HDB"
 [ ! -v CPU ] && export CPU=""

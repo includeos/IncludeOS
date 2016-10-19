@@ -25,8 +25,6 @@ extern "C" int main(int , const char** );
 __attribute__((weak))
 void Service::start(const std::string& st) {
 
-  printf("Service arg: %s \n", st.c_str());
-
   // We'll mangle this copy
   std::string s{st};
 
