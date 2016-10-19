@@ -24,10 +24,11 @@
 using namespace net::tcp;
 
 Listener::Listener(TCP& host, port_t port)
-  : host_(host), port_(port), syn_queue_()
+  : host_(host), port_(port), syn_queue_(),
+    on_accept_({this, &Listener::default_on_accept}),
+    on_connect_({this, &Listener::default_on_connect}),
+    _on_close_({host_, &TCP::close_listener})
 {
-  on_accept_      = {this, &Listener::default_on_accept};
-  on_connect_     = {this, &Listener::default_on_connect};
 }
 
 bool Listener::default_on_accept(Socket) {
@@ -121,6 +122,14 @@ void Listener::connected(Connection_ptr conn) {
   Expects(conn->is_connected());
   host_.add_connection(conn);
   on_connect_(conn);
+}
+
+void Listener::close() {
+  // Maybe abort() is too harsh, but connections are fully established yet so why not
+  for(auto conn : syn_queue_)
+    conn->abort();
+
+  _on_close_(*this);
 }
 
 /**
