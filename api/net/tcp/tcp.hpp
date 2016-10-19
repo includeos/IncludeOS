@@ -58,7 +58,17 @@ namespace net {
     /*
       Bind a new listener to a given Port.
     */
-    tcp::Listener& bind(tcp::port_t port);
+    tcp::Listener& bind(const tcp::port_t port);
+
+    /**
+     * @brief Unbind (and close) a Listener
+     * @details Closes the Listener and removes it from the
+     * map of listeners
+     *
+     * @param port listening port
+     * @return wether the listener had a port
+     */
+    bool unbind(const tcp::port_t port);
 
     /*
       Active open a new connection to the given remote.
@@ -211,6 +221,9 @@ namespace net {
       Close and delete the connection.
     */
     void close_connection(tcp::Connection_ptr);
+
+    void close_listener(tcp::Listener&);
+
 
     /*
       Process the write queue with the given amount of free packets.
