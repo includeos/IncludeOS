@@ -25,6 +25,7 @@
 
 const uint16_t PORT = 42;
 const uint16_t OUT_PORT = 4242;
+const uint16_t BUFSIZE = 2048;
 
 int main()
 {
@@ -58,6 +59,20 @@ int main()
   CHECKSERT(res < 0 && errno == EADDRINUSE, "EADDRINUSE: Port already bound");
 
 
+  INFO("UDP Socket", "recvfrom()");
+
+  /* remote address */
+  struct sockaddr_in remaddr;
+  socklen_t rem_addrlen = sizeof(remaddr); // size of remaddr
+  unsigned char recvbuf[BUFSIZE]; // recv buffer
+
+  res = recvfrom(fd, recvbuf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &rem_addrlen);
+  CHECKSERT(res > 0, "Received data (%i bytes)", res);
+  recvbuf[res] = 0;
+  const char* rm_message = "POSIX is for hipsters";
+  CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Received the message \"%s\"", rm_message);
+
+
   INFO("UDP Socket", "sendto()");
 
   /* destination address */
@@ -73,7 +88,6 @@ int main()
   res = sendto(socket(AF_INET, SOCK_DGRAM, 0), my_message, strlen(my_message), 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
   CHECKSERT(res > 0, "Message was sent from NEW socket to %s:%u (verified by script)",
     inet.router().to_string().c_str(), OUT_PORT);
-
 
   printf("SUCCESS\n");
   return 0;

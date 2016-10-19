@@ -39,7 +39,8 @@ public:
   ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
-  ~UDP_FD() {}
+  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
+  void set_default_recv();
 
   bool is_connected() const
   { return connection_.first != 0; }
