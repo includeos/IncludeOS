@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <tcp_fd.hpp>
+#include <fd_map.hpp>
 #include <kernel/os.hpp>
 
 using namespace net;
@@ -127,9 +128,13 @@ ssize_t TCP_FD::recv(void* dest, size_t len, int flags)
   return cd->recv(dest, len, flags);
 }
 
-int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
+int TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
 {
-  return -1;
+  if (!ld) {
+    errno = EINVAL;
+    return -1;
+  }
+  return ld->accept(addr, addr_len);
 }
 int TCP_FD::bind(const struct sockaddr *, socklen_t)
 {
@@ -230,7 +235,27 @@ int TCP_FD_Listen::listen(int backlog)
   });
   return 0;
 }
-
+int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
+{
+  // block until connection appears
+  while (connq.empty()) {
+    OS::block();
+  }
+  // create TCP socket
+  auto& fd = FD_map::_open<TCP_FD>();
+  // assign existing connection to socket
+  auto sock = connq.front();
+  fd.cd = new TCP_FD_Conn(sock);
+  connq.pop_front();
+  // set address and length
+  auto* sin = (sockaddr_in*) addr;
+  sin->sin_family      = AF_INET;
+  sin->sin_port        = sock->remote().port();
+  sin->sin_addr.s_addr = sock->remote().address().whole;
+  *addr_len = sizeof(sockaddr_in);
+  // return socket
+  return fd.get_id();
+}
 int TCP_FD_Listen::close()
 {
   //net_stack().tcp().unbind(listener);

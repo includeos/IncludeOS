@@ -58,6 +58,8 @@ private:
   TCP_FD_Listen*  ld = nullptr;
   // sock opts
   bool non_blocking = false;
+  
+  friend struct TCP_FD_Listen;
 };
 
 struct TCP_FD_Conn
@@ -85,6 +87,7 @@ struct TCP_FD_Listen
   
   int close();
   int listen(int);
+  int accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
   
   net::tcp::Listener& listener;
   std::deque<net::tcp::Connection_ptr> connq;
