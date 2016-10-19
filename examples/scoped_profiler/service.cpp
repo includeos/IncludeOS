@@ -52,12 +52,6 @@ void Service::start(const std::string&)
   // Set up a TCP server on port 80
   auto& server = inet.tcp().bind(80);
 
-  server.on_accept([](auto socket)
-  {
-    (void)socket;  // Not used
-    return true;
-  });
-
   server.on_connect([](auto conn)
   {
     conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n)
