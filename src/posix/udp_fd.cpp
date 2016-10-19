@@ -115,6 +115,15 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
     {
       bytes = std::min(len, data_len);
       memcpy(buffer, data, bytes);
+
+      // TODO: If the actual length of the address is greater than the length of the supplied sockaddr structure,
+      // the stored address shall be truncated.
+      if(address != nullptr) {
+        auto& sender = *((sockaddr_in*)address);
+        sender.sin_family       = AF_INET;
+        sender.sin_port         = htons(port);
+        sender.sin_addr.s_addr  = htonl(addr.whole);
+      }
       done = true;
     });
 

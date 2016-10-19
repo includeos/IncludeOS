@@ -69,8 +69,12 @@ int main()
   res = recvfrom(fd, recvbuf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &rem_addrlen);
   CHECKSERT(res > 0, "Received data (%i bytes)", res);
   recvbuf[res] = 0;
+
   const char* rm_message = "POSIX is for hipsters";
   CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Received the message \"%s\"", rm_message);
+
+  CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.router().whole), "Received from address %s", inet.router().to_string().c_str());
+
 
 
   INFO("UDP Socket", "sendto()");
