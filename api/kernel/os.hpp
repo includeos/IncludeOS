@@ -138,6 +138,12 @@ public:
   **/
   static void register_custom_init(Custom_init delg, const char* name);
 
+  /**
+   * Block for a while, e.g. until the next round in the event loop
+   **/
+  static void block();
+
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
