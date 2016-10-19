@@ -27,7 +27,8 @@ public:
   using id_t = int;
 
   explicit UDP_FD(const int id)
-    : FD(id), non_blocking_(false), broadcast_(false)
+    : FD(id), non_blocking_(false), broadcast_(false),
+      connection_({0,0})
   {}
 
   int     read(void*, size_t) override;
@@ -39,10 +40,16 @@ public:
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
   ~UDP_FD() {}
+
+  bool is_connected() const
+  { return connection_.first != 0; }
+
 private:
   net::UDPSocket* sock = nullptr;
   bool non_blocking_;
   bool broadcast_;
+  // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
+  std::pair<in_addr_t, in_port_t> connection_;
 };
 
 #endif
