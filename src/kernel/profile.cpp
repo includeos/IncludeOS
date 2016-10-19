@@ -291,13 +291,10 @@ ScopedProfiler::~ScopedProfiler()
 
 std::string ScopedProfiler::get_statistics()
 {
-  // TODO: Make available in api/hw/cpu* ?
-  extern double _CPUFreq_;
-
   std::ostringstream ss;
 
   // Add header
-  ss << " Average Time (us) | Samples | Function Name \n";
+  ss << " CPU Cycles (average) | Samples | Function Name \n";
   ss << "--------------------------------------------------------------------------------\n";
 
   // Calculate the number of used entries
@@ -326,10 +323,8 @@ std::string ScopedProfiler::get_statistics()
     {
       const auto& entry = entries[i];
 
-      auto time_in_us = entry.cycles_average / _CPUFreq_;
-
-      ss.width(18);
-      ss << time_in_us << " | ";
+      ss.width(21);
+      ss << entry.cycles_average << " | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";
