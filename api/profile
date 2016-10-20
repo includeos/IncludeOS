@@ -7,9 +7,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@
 #define API_PROFILE_HEADER
 
 #include <cstdint>
+#include <array>
 #include <string>
 #include <vector>
 
@@ -35,27 +36,102 @@ struct StackSampler
   // sets up stack sampling configuration and internal timer
   // the stack sampling will happen in the background afterwards
   static void begin();
-  
+
   // total number of waking samples taken
   static uint64_t samples_total();
-  
+
   // total number of samples taken while asleep
   static uint64_t samples_asleep();
-  
+
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);
-  
+
   // enable or disable sample-taking
   // eg. disable sampling during stack sample result printout
   static void set_mask(bool);
-  
+
   enum mode_t {
     MODE_CURRENT,
     MODE_CALLER,
   };
-  
+
   // set sampling mode
   static void set_mode(mode_t);
+};
+
+/**
+ * @brief Scoped Profiler
+ *
+ * Measures the average execution time of a scope
+ *
+ * Example:
+ * Create a ScopedProfiler in the scope that should be measuered:
+ *
+ * void my_function()
+ * {
+ *   ScopedProfiler sp;
+ *
+ *   do_stuff();
+ *   do_more_stuff();
+ * }
+ *
+ * Call ScopedProfiler::get_statistics() to get a formatted std::string of
+ * statistics
+ *
+ */
+class ScopedProfiler
+{
+ public:
+  ScopedProfiler();
+  ~ScopedProfiler();
+
+  // No copying or moving
+  ScopedProfiler(const ScopedProfiler&) = delete;
+  ScopedProfiler& operator=(const ScopedProfiler&) = delete;
+  ScopedProfiler(ScopedProfiler&&) = delete;
+  ScopedProfiler& operator=(ScopedProfiler&&) = delete;
+
+  /**
+   * @brief Returns profiling statistics as a formatted std::string
+   *
+   * Formats the output like:
+   *
+   *  Average Time (us) | Samples | Function Name
+   *  --------------------------------------------------------------------------------
+   *         172.768148 |    1212 | Foo::my_function()
+   *          40.603411 |    1223 | Foo::my_other_function()
+   *          15.460829 |     602 | Bar::Bar()
+   *          15.189189 |     600 | Bar::~Bar()
+   *  --------------------------------------------------------------------------------
+   *
+   */
+  static std::string get_statistics();
+
+ private:
+  uint64_t tick_start;
+
+  struct Entry
+  {
+    void*       function_address;  // This identifies an Entry
+                                   // function_address == 0 => the Entry is unused
+    std::string function_name;
+    unsigned    num_samples;
+    uint64_t    cycles_average;
+  };
+
+
+  // The guard to use, before calling rdtsc
+  static enum class Guard
+  {
+    NOT_SELECTED,
+    LFENCE,
+    MFENCE,
+    NOT_AVAILABLE,
+  } guard;
+
+  // Use plain array for performance (cache locality)
+  // Increase size if there is a need to profile more than 64 scopes
+  static std::array<Entry, 64> entries;
 };
 
 #endif

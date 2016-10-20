@@ -64,6 +64,17 @@ ssize_t send(int socket, const void *message, size_t len, int fmt)
     return -1;
   }
 }
+ssize_t sendto(int socket, const void *message, size_t len, int flags,
+  const struct sockaddr *dest_addr, socklen_t dest_len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.sendto(message, len, flags, dest_addr, dest_len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
 ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
   try {
@@ -74,7 +85,17 @@ ssize_t recv(int socket, void *buffer, size_t length, int flags)
     return -1;
   }
 }
-
+ssize_t recvfrom(int socket, void *buffer, size_t length,
+  int flags, struct sockaddr *address, socklen_t *address_len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.recvfrom(buffer, length, flags, address, address_len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
 int listen(int socket, int backlog)
 {
   try {
