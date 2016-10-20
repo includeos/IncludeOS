@@ -46,18 +46,18 @@ public:
   ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
-  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
-  void set_default_recv();
-
-  bool is_connected() const
-  { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
-
 private:
   net::UDPSocket* sock = nullptr;
   bool non_blocking_;
   bool broadcast_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
   struct sockaddr_in peer_;
+
+  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
+  void set_default_recv();
+
+  bool is_connected() const
+  { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
 };
 
 #endif

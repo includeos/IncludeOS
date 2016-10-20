@@ -33,13 +33,13 @@ void UDP_FD::set_default_recv()
   this->sock->on_read({this, &UDP_FD::recv_to_buffer});
 }
 
-int UDP_FD::read(void*, size_t)
+int UDP_FD::read(void* buffer, size_t len)
 {
-  return -1;
+  return recv(buffer, len, 0);
 }
-int UDP_FD::write(const void*, size_t)
+int UDP_FD::write(const void* buffer, size_t len)
 {
-  return -1;
+  return send(buffer, len, 0);
 }
 int UDP_FD::close()
 {
