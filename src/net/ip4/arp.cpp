@@ -193,10 +193,20 @@ namespace net {
     }
 
     /** Attach next-hop mac and ethertype to ethernet header */
-    Ethernet::header* ethhdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
+    auto* ethhdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
     ethhdr->src  = mac_;
     ethhdr->dest = dest_mac;
     ethhdr->type = Ethernet::ETH_IP4;
+
+    /** Update chain as well */
+    auto* next = pckt->tail();
+    while(next) {
+      auto* headur = reinterpret_cast<Ethernet::header*>(next->buffer());
+      headur->src  = mac_;
+      headur->dest = dest_mac;
+      headur->type = Ethernet::ETH_IP4;
+      next = next->tail();
+    }
 
     debug2("<ARP -> physical> Sending packet to %s\n", mac_.str().c_str());
     linklayer_out_(std::move(pckt));
