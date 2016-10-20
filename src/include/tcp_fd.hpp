@@ -21,7 +21,7 @@
 
 #include "fd.hpp"
 #include <net/inet4>
-#include <util/ringbuffer.hpp>
+#include <ringbuffer>
 
 class TCP_FD : public FD {
 public:
@@ -44,6 +44,9 @@ public:
 
   ~TCP_FD() {}
 private:
+  void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
+  void set_default_read();
+  
   net::tcp::Connection_ptr conn = nullptr;
   RingBuffer readq;
   bool non_blocking = false;
