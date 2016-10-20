@@ -10,6 +10,8 @@ SYSTEM=`uname -s`
 
 RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || echo `lsb_release -is`)
 
+[ "$RELEASE" = "neon" ] && RELEASE="Ubuntu"
+
 check_os_support() {
     SYSTEM=$1
     RELEASE=$2
