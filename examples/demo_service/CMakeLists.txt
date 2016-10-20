@@ -3,13 +3,18 @@ set(SERVICE "IncludeOS_Demo_Service")
 
 set(SERVICE_SOURCES service.cpp ${INCLUDEOS_INSTALL_DIR}/service_name.cpp)
 
+# Add your drivers 
+set(DRIVERS virtionet )
+
+set(DRIVER_LINK --whole-archive ${DRIVERS} --no-whole-archive)
+
 add_executable(test_service ${SERVICE_SOURCES} $<TARGET_OBJECTS:multiboot>)
 
 set_target_properties(test_service PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE_NAME=${SERVICE_NAME}")
 
 set_target_properties(test_service PROPERTIES LINK_FLAGS "${EXAMPLE_LINK_FLAGS}")
 
-target_link_libraries(test_service ${EXAMPLE_COMMON_LIBRARIES})
+target_link_libraries(test_service  ${DRIVER_LINK} ${EXAMPLE_COMMON_LIBRARIES})
 
 add_custom_command(
 	OUTPUT ${SERVICE}.img

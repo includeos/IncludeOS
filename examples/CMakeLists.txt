@@ -12,7 +12,7 @@ set(EXAMPLE_LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUD
 
 set(EXAMPLE_INCLUDES "-I${INCLUDEOS_INSTALL_DIR}/libcxx/include -I${INCLUDEOS_INSTALL_DIR}/api/sys -I${INCLUDEOS_INSTALL_DIR}/newlib/include -I${INCLUDEOS_INSTALL_DIR}/api -I${INCLUDEOS_INSTALL_DIR}/mod/GSL/")
 
-set(EXAMPLE_COMMON_LIBRARIES os ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a libc++abi.a drivers os ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
+set(EXAMPLE_COMMON_LIBRARIES os ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a libc++abi.a os ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
 add_subdirectory(256_color_vga)
 add_subdirectory(demo_service)
