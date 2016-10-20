@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <net/inet4>
 
-const uint16_t PORT = 42;
+const uint16_t PORT = 1042;
 const uint16_t OUT_PORT = 4242;
 const uint16_t BUFSIZE = 2048;
 
@@ -50,13 +50,13 @@ int main()
   CHECKSERT(res == 0, "Socket was bound to port %u", PORT);
 
   res = bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr));
-  CHECKSERT(res < 0 && errno == EINVAL, "EINVAL: Fails when already bound");
+  CHECKSERT(res < 0 && errno == EINVAL, "Fails when already bound (EINVAL)");
 
   res = bind(socket(AF_INET, SOCK_DGRAM, 0), (struct sockaddr *)&myaddr, 1ul);
-  CHECKSERT(res < 0 && errno == EAFNOSUPPORT, "EAFNOSUPPORT: Fails when address is invalid");
+  CHECKSERT(res < 0 && errno == EAFNOSUPPORT, "Fails when address is invalid (EAFNOSUPPORT)");
 
   res = bind(socket(AF_INET, SOCK_DGRAM, 0), (struct sockaddr *)&myaddr, sizeof(myaddr));
-  CHECKSERT(res < 0 && errno == EADDRINUSE, "EADDRINUSE: Port already bound");
+  CHECKSERT(res < 0 && errno == EADDRINUSE, "Port already bound (EADDRINUSE)");
 
 
   INFO("UDP Socket", "recvfrom()");
@@ -93,11 +93,24 @@ int main()
   CHECKSERT(res > 0, "Message was sent from NEW socket to %s:%u (verified by script)",
     inet.router().to_string().c_str(), OUT_PORT);
 
-  printf("SUCCESS\n");
+
+  INFO("UDP Socket", "send() and connect()");
+  int fd_send_connect = socket(AF_INET, SOCK_DGRAM, 0);
+
+  res = send(fd_send_connect, my_message, strlen(my_message), 0);
+  CHECKSERT(res < 0 && errno == EDESTADDRREQ, "Fails when not connected (EDESTADDRREQ)");
+
+  res = connect(fd_send_connect, (struct sockaddr *)&destaddr, sizeof(destaddr));
+  CHECKSERT(res == 0, "Connect to remote address OK");
+
+  res = send(fd_send_connect, my_message, strlen(my_message), 0);
+  CHECKSERT(res > 0, "Send now works (verified by script)");
+
   return 0;
 }
 
 void Service::start(const std::string&)
 {
   main();
+  printf("SUCCESS\n");
 }
