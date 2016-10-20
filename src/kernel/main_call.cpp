@@ -17,6 +17,7 @@
 
 #include <service>
 #include <info>
+#define ARGS_MAX    64
 
 __attribute__((weak))
 extern "C" int main(int, const char*[]);
@@ -26,7 +27,7 @@ void Service::start(const std::string& cmd)
 {
   std::string st(cmd); // mangled copy
   int argc = 0;
-  const char* argv[64];
+  const char* argv[ARGS_MAX];
   
   // Populate argv
   char* begin = (char*) st.data();
@@ -37,6 +38,7 @@ void Service::start(const std::string& cmd)
     argv[argc++] = begin;
     *ptr = 0;      // zero terminate
     begin = ptr+1; // next arg
+    if (argc >= ARGS_MAX) break;
   }
 
   int exit_status = main(argc, argv);
