@@ -15,7 +15,7 @@ import validate_all
 
 startdir = os.getcwd()
 
-test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'stl', 'util']
+test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'posix' 'stl', 'util']
 test_types = ['integration', 'stress', 'unit', 'examples']
 
 """
