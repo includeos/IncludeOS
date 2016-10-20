@@ -3,4 +3,6 @@
     "reason": "Serial input from vmrunner to vm does not work yet"},
   {"name": "net/integration/transmit",
    "reason": "The test suffers from UDP packet loss which is expected. "}
+  {"name": "kernel/integration/block",
+   "reason": "The test requires time to be correct, but running tests in parallell seems to skew the clock. "}
 ]
