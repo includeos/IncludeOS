@@ -1,5 +1,60 @@
 #pragma once
-#include <net/inet4>
+#include <net/tcp/connection.hpp>
+#include <delegate>
+#include <map>
 
-extern void liveupdate_begin(net::tcp::Connection_ptr);
-extern void liveupdate_resume();
+struct Restore;
+struct Storage;
+struct buffer_len {
+  const char* buffer;
+  int length;
+};
+
+struct LiveUpdate
+{
+  typedef delegate<void(Restore)> resume_func;
+  typedef delegate<void(Storage)> storage_func;
+
+  // start a live update process
+  static void begin(buffer_len blob, storage_func);
+  
+  // register handler for a specific id
+  static void on_resume(uint16_t id, resume_func);
+  
+  // attempt to restore existing payloads
+  static void resume(resume_func);
+};
+
+struct storage_entry;
+struct storage_header;
+
+struct Storage
+{
+  typedef net::tcp::Connection_ptr Connection;
+  typedef uint16_t uid;
+  
+  void add_string(uid, const std::string&);
+  void add_buffer(uid, buffer_len);
+  void add_connection(uid, Connection);
+  
+  
+  Storage(storage_header* sh) : hdr(sh) {}
+  
+private:
+  storage_header* hdr;
+};
+
+struct Restore
+{
+  typedef net::tcp::Connection_ptr Connection;
+  
+  std::string  as_string() const;
+  buffer_len   as_buffer() const;
+  Connection   as_tcp_connection() const;
+  
+  uint16_t get_id() const noexcept;
+  
+  Restore(storage_entry* e) : ent(e) {}
+private:
+  storage_entry* ent;
+};

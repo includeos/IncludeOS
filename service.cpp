@@ -20,6 +20,11 @@
 #include <net/inet4>
 #include "update.hpp"
 
+void save_stuff(Storage storage)
+{
+  storage.add_string(1, "Some string :(");
+}
+
 void Service::start(const std::string&)
 {
   auto& inet = net::Inet4::ifconfig<0>(
@@ -32,8 +37,41 @@ void Service::start(const std::string&)
   server.on_connect(
   [] (auto conn)
   {
-    liveupdate_begin(conn);
+    static char* update_blob = new char[1024*1024*10];
+    static int   update_size = 0;
+
+    // reset update chunk
+    update_size = 0;
+    // retrieve binary
+    conn->on_read(9000,
+    [conn] (net::tcp::buffer_t buf, size_t n)
+    {
+      memcpy(update_blob + update_size, buf.get(), n);
+      update_size += (int) n;
+
+    }).on_close(
+    [] {
+      printf("* New update size: %u b\n", update_size);
+      LiveUpdate::begin({update_blob, update_size}, save_stuff);
+      /// We should never return :-) ///
+      assert(0 && "!! Update failed !!");
+    });
   });
 
-  liveupdate_resume();
+  /// attempt to resume (if there is anything to resume)
+  void the_string(Restore thing);
+  void on_missing(Restore);
+  
+  LiveUpdate::on_resume(1, the_string);
+  LiveUpdate::resume(on_missing);
+}
+
+void the_string(Restore thing)
+{
+  printf("The string [some_string] has value [%s]\n", thing.as_string().c_str());
+}
+
+void on_missing(Restore thing)
+{
+  printf("Missing resume function for %u\n", thing.get_id());
 }
