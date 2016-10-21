@@ -20,9 +20,10 @@ struct storage_entry
   uint16_t id   = 0;
   int      len  = 0;
   char     vla[0];
-
-  std::string get_string() const;
   
+  int size() const noexcept {
+    return sizeof(storage_entry) + len;
+  }
 };
 
 struct storage_header
@@ -30,6 +31,7 @@ struct storage_header
   storage_header(uint64_t);
   
   void add_string(uint16_t id, const std::string& data);
+  void add_buffer(uint16_t id, const char*, int);
   void add_end();
   
   storage_entry* begin();
@@ -52,7 +54,7 @@ storage_header::create_entry(Args&&... args)
   auto* entry = (storage_entry*) &vla[length];
   new (entry) storage_entry(args...);
   // next storage_entry will be this much further out:
-  this->length += entry->len;
+  this->length += entry->size();
   this->entries++;
 
   return *entry;

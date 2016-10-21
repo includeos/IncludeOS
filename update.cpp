@@ -92,3 +92,7 @@ void Storage::add_string(uint16_t id, const std::string& string)
 {
   hdr->add_string(id, string);
 }
+void Storage::add_buffer(uint16_t id, buffer_len blob)
+{
+  hdr->add_buffer(id, blob.buffer, blob.length);
+}

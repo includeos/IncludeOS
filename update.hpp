@@ -3,26 +3,9 @@
 #include <delegate>
 #include <map>
 
-struct Restore;
-struct Storage;
 struct buffer_len {
   const char* buffer;
   int length;
-};
-
-struct LiveUpdate
-{
-  typedef delegate<void(Restore)> resume_func;
-  typedef delegate<void(Storage)> storage_func;
-
-  // start a live update process
-  static void begin(buffer_len blob, storage_func);
-  
-  // register handler for a specific id
-  static void on_resume(uint16_t id, resume_func);
-  
-  // attempt to restore existing payloads
-  static void resume(resume_func);
 };
 
 struct storage_entry;
@@ -52,9 +35,27 @@ struct Restore
   buffer_len   as_buffer() const;
   Connection   as_tcp_connection() const;
   
+  int16_t  get_type() const noexcept;
   uint16_t get_id() const noexcept;
+  int      length() const noexcept;
   
   Restore(storage_entry* e) : ent(e) {}
 private:
   storage_entry* ent;
+};
+
+
+struct LiveUpdate
+{
+  typedef delegate<void(Restore)> resume_func;
+  typedef delegate<void(Storage)> storage_func;
+
+  // start a live update process
+  static void begin(buffer_len blob, storage_func);
+  
+  // register handler for a specific id
+  static void on_resume(uint16_t id, resume_func);
+  
+  // attempt to restore existing payloads
+  static void resume(resume_func);
 };

@@ -46,7 +46,15 @@ Restore::Connection Restore::as_tcp_connection() const
   return nullptr;
 }
 
+int16_t  Restore::get_type() const noexcept
+{
+  return ent->type;
+}
 uint16_t Restore::get_id() const noexcept
 {
   return ent->id;
+}
+int32_t  Restore::length() const noexcept
+{
+  return ent->len;
 }

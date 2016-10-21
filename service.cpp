@@ -22,7 +22,10 @@
 
 void save_stuff(Storage storage)
 {
+  char buffer[] = "Just some random buffer";
+  
   storage.add_string(1, "Some string :(");
+  storage.add_buffer(2, {buffer, sizeof(buffer)});
 }
 
 void Service::start(const std::string&)
@@ -60,15 +63,22 @@ void Service::start(const std::string&)
 
   /// attempt to resume (if there is anything to resume)
   void the_string(Restore thing);
+  void the_buffer(Restore thing);
   void on_missing(Restore);
   
   LiveUpdate::on_resume(1, the_string);
+  LiveUpdate::on_resume(2, the_buffer);
   LiveUpdate::resume(on_missing);
 }
 
 void the_string(Restore thing)
 {
   printf("The string [some_string] has value [%s]\n", thing.as_string().c_str());
+}
+void the_buffer(Restore thing)
+{
+  printf("The buffer is %d long\n", thing.length());
+  printf("As text: %.*s\n", thing.length(), thing.as_buffer().buffer);
 }
 
 void on_missing(Restore thing)
