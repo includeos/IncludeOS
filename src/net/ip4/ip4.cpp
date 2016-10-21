@@ -25,8 +25,8 @@
 
 namespace net {
 
-  const IP4::addr IP4::INADDR_ANY(0);
-  const IP4::addr IP4::INADDR_BCAST(0xff,0xff,0xff,0xff);
+  const IP4::addr IP4::ADDR_ANY(0);
+  const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
@@ -51,7 +51,7 @@ namespace net {
 
     // Drop if my ip address doesn't match destination ip address or broadcast
     if(UNLIKELY(hdr->daddr != local_ip() and
-                (hdr->daddr | stack_.netmask()) != INADDR_BCAST)) {
+                (hdr->daddr | stack_.netmask()) != ADDR_BCAST)) {
       packets_dropped_++;
       return;
     }

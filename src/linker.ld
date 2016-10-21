@@ -29,6 +29,7 @@ SECTIONS
 
   .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
       PROVIDE(_MULTIBOOT_START_ = .);
+      *multiboot.cpp.o(.rodata);
       *multiboot.o(.rodata);
    }
   PROVIDE ( _TEXT_START_ = . );

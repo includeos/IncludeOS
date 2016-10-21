@@ -16,6 +16,9 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
+#include <boot/multiboot.h>
+
+#define MULTIBOOT_CMDLINE_LOC 0x3000
 
 extern "C" void _start() __attribute__((visibility("hidden"))) __attribute__ ((noreturn));
 extern "C" void _init_c_runtime();
@@ -34,7 +37,6 @@ static void enableSSE(void)
   asm ("mov %eax, %cr4");
 }
 
-
 extern "C" void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // enable SSE extensions bitmask in CR4 register
@@ -42,6 +44,11 @@ extern "C" void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // Initialize system calls
   _init_syscalls();
+
+  // Save multiboot string before symbols overwrite area after binary
+  char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
+  strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
+  ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();

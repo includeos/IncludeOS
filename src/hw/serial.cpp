@@ -25,7 +25,7 @@ using namespace hw;
 // Storage for port numbers
 constexpr uint16_t Serial::ports_[];
 
-void Serial::init(){
+void Serial::init(uint16_t port_) {
   hw::outb(port_ + 1, 0x00);    // Disable all interrupts
   hw::outb(port_ + 3, 0x80);    // Enable DLAB (set baud rate divisor)
   hw::outb(port_ + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud

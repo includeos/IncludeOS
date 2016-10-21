@@ -207,10 +207,10 @@ namespace net
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_BROADCAST);
-    dhcp->ciaddr = IP4::INADDR_ANY;
-    dhcp->yiaddr = IP4::INADDR_ANY;
-    dhcp->siaddr = IP4::INADDR_ANY;
-    dhcp->giaddr = IP4::INADDR_ANY;
+    dhcp->ciaddr = IP4::ADDR_ANY;
+    dhcp->yiaddr = IP4::ADDR_ANY;
+    dhcp->siaddr = IP4::ADDR_ANY;
+    dhcp->giaddr = IP4::ADDR_ANY;
 
     Ethernet::addr link_addr = stack.link_addr();
 
@@ -251,7 +251,7 @@ namespace net
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
     [this, &socket] (IP4::addr, UDP::port_t port,
@@ -376,10 +376,10 @@ namespace net
     resp->secs  = 0;
     resp->flags = htons(BOOTP_BROADCAST);
 
-    resp->ciaddr = IP4::INADDR_ANY;
-    resp->yiaddr = IP4::INADDR_ANY;
-    resp->siaddr = IP4::INADDR_ANY;
-    resp->giaddr = IP4::INADDR_ANY;
+    resp->ciaddr = IP4::ADDR_ANY;
+    resp->yiaddr = IP4::ADDR_ANY;
+    resp->siaddr = IP4::ADDR_ANY;
+    resp->giaddr = IP4::ADDR_ANY;
 
     Ethernet::addr link_addr = stack.link_addr();
 
@@ -442,7 +442,7 @@ namespace net
     });
 
     // send our DHCP Request
-    sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    sock.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
 
   void DHClient::acknowledge(const char* data, size_t)

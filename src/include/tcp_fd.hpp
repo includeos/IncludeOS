@@ -21,13 +21,14 @@
 
 #include "fd.hpp"
 #include <net/inet4>
+#include <ringbuffer>
 
 class TCP_FD : public FD {
 public:
   using id_t = int;
 
   explicit TCP_FD(int id)
-    : FD(id)
+    : FD(id), readq(16484)
   {}
 
   int     read(void*, size_t) override;
@@ -38,11 +39,16 @@ public:
   int     bind(const struct sockaddr *, socklen_t) override;
   int     connect(const struct sockaddr *, socklen_t) override;
 
-  ssize_t send(const void *, size_t, int) override;
+  ssize_t send(const void *, size_t, int fl) override;
+  ssize_t recv(void*, size_t, int fl) override;
 
   ~TCP_FD() {}
 private:
+  void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
+  void set_default_read();
+  
   net::tcp::Connection_ptr conn = nullptr;
+  RingBuffer readq;
   bool non_blocking = false;
 };
 

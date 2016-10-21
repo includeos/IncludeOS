@@ -75,7 +75,7 @@ namespace net
     if (unlikely(len == 0)) return;
     udp_.sendq.emplace_back(
          (const uint8_t*) buffer, len, cb, this->udp_,
-         srcIP, this->l_port, IP4::INADDR_BCAST, port);
+         srcIP, this->l_port, IP4::ADDR_BCAST, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
