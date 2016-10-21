@@ -15,6 +15,8 @@ import validate_all
 
 startdir = os.getcwd()
 
+print os.environ.get('ghprbTargetBranch', 'ERROR: No pull request branch found')
+
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'posix', 'stl', 'util']
 test_types = ['integration', 'stress', 'unit', 'miscellaneous']
 
