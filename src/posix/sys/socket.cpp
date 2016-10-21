@@ -106,7 +106,16 @@ int listen(int socket, int backlog)
     return -1;
   }
 }
-
+int accept(int socket, struct sockaddr *address, socklen_t *len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.accept(address, len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
 int bind(int socket, const struct sockaddr* address, socklen_t len)
 {
   try {

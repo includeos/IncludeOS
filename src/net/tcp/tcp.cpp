@@ -55,7 +55,7 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(port_t port) {
+Listener& TCP::bind(const port_t port) {
   // Already a listening socket.
   Listeners::const_iterator it = listeners_.find(port);
   if(it != listeners_.cend()) {
@@ -74,6 +74,17 @@ Listener& TCP::bind(port_t port) {
   debug("<TCP::bind> Bound to port %i \n", port);
 
   return listener;*/
+}
+
+bool TCP::unbind(const port_t port) {
+  auto it = listeners_.find(port);
+  if(LIKELY(it != listeners_.end())) {
+    auto listener = std::move(it->second);
+    listener->close();
+    Ensures(listeners_.find(port) == listeners_.end());
+    return true;
+  }
+  return false;
 }
 
 /*
@@ -298,6 +309,10 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
 void TCP::close_connection(tcp::Connection_ptr conn) {
   debug("<TCP::close_connection> Closing connection: %s \n", conn->to_string().c_str());
   connections_.erase(conn->tuple());
+}
+
+void TCP::close_listener(Listener& listener) {
+  listeners_.erase(listener.port());
 }
 
 void TCP::drop(const tcp::Packet&) {

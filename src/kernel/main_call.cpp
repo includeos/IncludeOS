@@ -15,48 +15,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <regex>
-
-
-__attribute__((weak))
-extern "C" int main(int , const char** );
+#include <service>
+#include <info>
+#define ARGS_MAX    64
 
 __attribute__((weak))
-void Service::start(const std::string& st) {
+extern "C" int main(int, const char*[]);
 
-  printf("Service arg: %s \n", st.c_str());
-
-  // We'll mangle this copy
-  std::string s{st};
-
-  std::regex words_regex("[^\\s]+");
-  auto words_begin = std::sregex_iterator(s.begin(), s.end(), words_regex);
-  auto words_end = std::sregex_iterator();
-
-  // There is at least one arg (binary name)
-  int argc = std::max(std::distance(words_begin, words_end), 1);
-  const char* args[argc];
-
+__attribute__((weak))
+void Service::start(const std::string& cmd)
+{
+  std::string st(cmd); // mangled copy
+  int argc = 0;
+  const char* argv[ARGS_MAX];
+  
   // Populate argv
-  int i = 0;
-  for (auto word = words_begin; word != words_end; word++) {
-    args[i++] = s.data() + word->position();
-
+  char* begin = (char*) st.data();
+  char* end   = begin + st.size();
+  
+  for (char* ptr = begin; ptr < end; ptr++)
+  if (std::isspace(*ptr)) {
+    argv[argc++] = begin;
+    *ptr = 0;      // zero terminate
+    begin = ptr+1; // next arg
+    if (argc >= ARGS_MAX) break;
   }
 
-  // Zero-terminate all words
-  for (auto cit = s.begin(); cit != s.end(); cit++) {
-    auto next = cit + 1;
-
-    if (next == s.end())
-      break;
-
-    if (not std::isspace(*cit) and std::isspace(*next))
-      *next = 0;
-  }
-
-  int exit_status = main(argc, args);
-  INFO("main","returned with status %i", exit_status);
+  int exit_status = main(argc, argv);
+  INFO("main","returned with status %d", exit_status);
   //exit(exit_status);
 }
