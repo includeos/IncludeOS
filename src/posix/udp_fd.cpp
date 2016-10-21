@@ -23,7 +23,7 @@ static net::Inet4& net_stack() {
   return net::Inet4::stack<> ();
 }
 
-void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char* buffer, size_t len)
+void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t)
 {
   // buffer somehow
 }
