@@ -13,8 +13,15 @@ vm = vmrunner.vms[0]
 
 import socket
 
+S_HOST, S_PORT = '', 4242
+S_MESSAGE = "Only hipsters uses POSIX"
+server = socket.socket
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+server.bind((S_HOST, S_PORT))
+
 def UDP_send():
-  HOST, PORT = '10.0.0.45', 42
+  HOST, PORT = '10.0.0.45', 1042
   MESSAGE = "POSIX is for hipsters"
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -22,19 +29,13 @@ def UDP_send():
   sock.sendto(MESSAGE, (HOST, PORT))
 
 def UDP_recv():
-  HOST, PORT = '', 4242
-  MESSAGE = "Only hipsters uses POSIX"
-  sock = socket.socket
-  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-  sock.bind(('', PORT))
-
-  received = sock.recv(1024)
-  return received == MESSAGE
+  received = server.recv(1024)
+  return received == S_MESSAGE
 
 # Add custom event-handler
 vm.on_output("recvfrom()", UDP_send)
 vm.on_output("sendto()", UDP_recv)
+vm.on_output("send() and connect()", UDP_recv)
 
 # Boot the VM, taking a timeout as parameter
 vm.make().boot(10)

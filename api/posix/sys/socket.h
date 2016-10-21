@@ -94,6 +94,7 @@ struct linger
 #define AF_LOCAL  AF_UNIX
 #define AF_INET         1
 #define AF_INET6        2
+#define AF_UNSPEC       3
 
 
 int     accept(int socket, struct sockaddr *address,

@@ -196,9 +196,9 @@ $INCLUDEOS_SRC/etc/install_from_bundle.sh
 echo -e "\n### OS X installation done. ###"
 
 echo -e "\nTo build services and run tests, set LD_INC and STRIP_INC:"
-echo -e "export LD_INC=$LD_INC && export STRIP_INC=$STRIP_INC"
+echo -e "export LD_INC=$LD_INC && export STRIP_INC=$STRIP_INC && export OBJCOPY_INC=$OBJCOPY_INC"
 
 echo -e "\nTo rebuild IncludeOS, set AR_INC and OBJCOPY_INC (in addtion to the above):"
-echo -e "export AR_INC=$AR_INC && export OBJCOPY_INC=$OBJCOPY_INC"
+echo -e "export AR_INC=$AR_INC"
 
 echo -e "\nTo run services, see: ./etc/vboxrun.sh. (VirtualBox needs to be installed)\n"
