@@ -9,5 +9,13 @@ target_branch=dev
 files_changed=`git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD $target_branch)`
 
 # Loop over files and check for binary blobs
-for file in $files_changed; do
+for single_file in $files_changed; do
+	filetype=`file -i $single_file`
+    echo $filetype | grep -q charset=binary
+    if [ $? -eq 0 ]; then
+        echo Error: The file $single_file has been detected as a binary file
+        exit 1
+    fi
+done
 
+exit 0
