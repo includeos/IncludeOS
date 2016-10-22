@@ -66,17 +66,16 @@ struct ReadBuffer {
   }
 
   void clear() {
-    memset(begin(), 0, offset);
     remaining = capacity();
     offset = 0;
+    buffer = nullptr;
   }
 
   /*
     Renews the ReadBuffer by assigning a new buffer_t, releasing ownership
   */
   void renew() {
-    remaining = capacity();
-    offset = 0;
+    clear();
     buffer = new_shared_buffer(remaining);
   }
 }; // < ReadBuffer

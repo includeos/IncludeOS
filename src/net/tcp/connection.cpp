@@ -99,6 +99,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   auto& buf = read_request.buffer;
   size_t received{0};
   while(n) {
+    if (buf.empty()) buf.renew();
     auto read = receive(buf, data+received, n);
     // nothing was read to buffer
     if(!buf.advance(read)) {
@@ -108,7 +109,7 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
       debug2("<Connection::receive> Buffer full - signal user\n");
       read_request.callback(buf.buffer, buf.size());
       // renew the buffer, releasing the old one
-      buf.renew();
+      buf.clear();
     }
     n -= read;
     received += read;
@@ -120,8 +121,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   if(PUSH) {
     debug2("<Connection::receive> PUSH present - signal user\n");
     read_request.callback(buf.buffer, buf.size());
-    // renew the buffer, releasing the old one
-    buf.renew();
+    // free buffer
+    buf.clear();
   }
 
   return received;
