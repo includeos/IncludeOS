@@ -5,7 +5,7 @@
 storage_header::storage_header(uint64_t value)
   : magic(value)
 {
-  printf("%p --> %#llx\n", this, value);
+  //printf("%p --> %#llx\n", this, value);
 }
 
 void storage_header::add_string(uint16_t id, const std::string& data)

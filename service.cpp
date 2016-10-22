@@ -20,14 +20,6 @@
 #include <net/inet4>
 #include "update.hpp"
 
-void save_stuff(Storage storage)
-{
-  char buffer[] = "Just some random buffer";
-  
-  storage.add_string(1, "Some string :(");
-  storage.add_buffer(2, {buffer, sizeof(buffer)});
-}
-
 void Service::start(const std::string&)
 {
   auto& inet = net::Inet4::ifconfig<0>(
@@ -55,6 +47,7 @@ void Service::start(const std::string&)
     }).on_close(
     [] {
       printf("* New update size: %u b\n", update_size);
+      void save_stuff(Storage);
       LiveUpdate::begin({update_blob, update_size}, save_stuff);
       /// We should never return :-) ///
       assert(0 && "!! Update failed !!");
@@ -71,6 +64,16 @@ void Service::start(const std::string&)
   LiveUpdate::resume(on_missing);
 }
 
+void save_stuff(Storage storage)
+{
+  char buffer[] = "Just some random buffer";
+  /// without string: 0x103890
+  /// with string:    0x1038f0
+  storage.add_string(1, "Some string :(");
+  storage.add_string(1, "Some other string :(");
+  storage.add_buffer(2, {buffer, sizeof(buffer)});
+}
+
 void the_string(Restore thing)
 {
   printf("The string [some_string] has value [%s]\n", thing.as_string().c_str());
@@ -80,7 +83,6 @@ void the_buffer(Restore thing)
   printf("The buffer is %d long\n", thing.length());
   printf("As text: %.*s\n", thing.length(), thing.as_buffer().buffer);
 }
-
 void on_missing(Restore thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
