@@ -78,6 +78,9 @@ namespace hw {
     /** List all devices (decorated, as seen in boot output) */
     inline static void print_devices();
 
+
+    inline static void deactivate_all();
+
   private:
 
     /**
@@ -123,6 +126,9 @@ namespace hw {
     /** Print a decorated indexed list with the devices of the given type. No output if empty */
     template <typename Device_type>
     inline static void print_devices(const Device_registry<Device_type>& devices);
+
+    template <typename Device_type>
+    inline static void deactivate_type(Device_registry<Device_type>& devices);
 
     /** Following classes are allowed to register a device */
     friend class ::PCI_manager;
@@ -173,6 +179,19 @@ namespace hw {
 
     INFO2("|");
     INFO2("o");
+  }
+
+  // helpers to shutdown PCI devices
+  template <typename Device_type>
+  inline void Devices::deactivate_type(Device_registry<Device_type>& devices)
+  {
+    for (auto& dev : devices)
+        dev->deactivate();
+  }
+  inline void Devices::deactivate_all()
+  {
+    deactivate_type(devices<hw::Drive>());
+    deactivate_type(devices<hw::Nic>());
   }
 
 } //< namespace hw

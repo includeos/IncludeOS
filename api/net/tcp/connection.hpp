@@ -20,6 +20,7 @@
 #define NET_TCP_CONNECTION_HPP
 
 #include "common.hpp"
+#include "packet.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "socket.hpp"

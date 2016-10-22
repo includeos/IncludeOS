@@ -144,17 +144,6 @@ namespace hw {
 
     uint16_t read16(const uint8_t reg) noexcept;
     void write16(const uint8_t reg, const uint16_t value) noexcept;
-    
-    /** 
-     *  Probe for a device on the given address
-     *
-     *  @param pci_addr: the address to probe
-     *     
-     *  @deprecated We got a 20% performance degradation using this for probing
-     *
-     *  @see PCI_Device()
-     */
-    static PCI_Device* Create(uint16_t pci_addr);  
 
     // @brief Get a device by address. @see pci_addr().
     static PCI_Device* get(uint16_t pci_addr);
@@ -165,7 +154,7 @@ namespace hw {
   
     /** A descriptive name  */
     inline const char* name();
-  
+
     /**
      *  Get the PCI address of device.
      *
@@ -206,6 +195,8 @@ namespace hw {
     typedef uint32_t pcicap_t;
     void parse_capabilities();
     
+    void deactivate();
+    
     // MSI and MSI-X capabilities for this device
     // the cap offsets and can also be used as boolean to determine
     // device MSI/MSIX support
@@ -215,6 +206,8 @@ namespace hw {
     uint8_t init_msix();
     // setup one msix vector directed to @cpu on @irq
     void setup_msix_vector(uint8_t cpu, uint8_t irq);
+    // deactivate msix (mask off vectors)
+    void deactivate_msix();
     // true if msix is enabled
     bool is_msix() const noexcept
     {

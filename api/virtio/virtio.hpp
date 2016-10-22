@@ -342,12 +342,10 @@ public:
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
   // returns true if MSI-X is enabled
-  bool is_msix() const noexcept
-  {
+  bool is_msix() const noexcept {
     return _pcidev.is_msix();
   }
-  uint8_t get_msix_vectors() const noexcept
-  {
+  uint8_t get_msix_vectors() const noexcept {
     return _msix_vectors;
   }
   
@@ -358,6 +356,10 @@ public:
   */
   Virtio(hw::PCI_Device& pci);
 
+protected:
+  void deactivate_msix() {
+    _pcidev.deactivate_msix();
+  }
 private:
   hw::PCI_Device& _pcidev;
 
