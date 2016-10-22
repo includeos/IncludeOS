@@ -145,13 +145,6 @@ namespace hw {
     uint16_t read16(const uint8_t reg) noexcept;
     void write16(const uint8_t reg, const uint16_t value) noexcept;
 
-    // @brief Get a device by address. @see pci_addr().
-    static PCI_Device* get(uint16_t pci_addr);
-
-    // @brief Get a device by individual address parts.
-    // @todo  Will we ever need this?  
-    static PCI_Device* get(int busno, int devno, int funcno);
-  
     /** A descriptive name  */
     inline const char* name();
 
