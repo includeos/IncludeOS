@@ -33,10 +33,9 @@ struct ReadBuffer {
   buffer_t buffer;
   size_t remaining;
   size_t offset;
-  bool push;
 
   ReadBuffer(buffer_t buf, size_t length, size_t offs = 0)
-    : buffer(buf), remaining(length-offs), offset(offs), push(false) {}
+    : buffer(buf), remaining(length-offs), offset(offs) {}
 
   inline size_t capacity() const
   { return remaining + offset; }
@@ -70,7 +69,6 @@ struct ReadBuffer {
     memset(begin(), 0, offset);
     remaining = capacity();
     offset = 0;
-    push = false;
   }
 
   /*
@@ -80,7 +78,6 @@ struct ReadBuffer {
     remaining = capacity();
     offset = 0;
     buffer = new_shared_buffer(remaining);
-    push = false;
   }
 }; // < ReadBuffer
 

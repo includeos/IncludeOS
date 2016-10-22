@@ -42,10 +42,9 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   read_request(),
   writeq(),
   on_disconnect_({this, &Connection::default_on_disconnect}),
-  bytes_rx_(0), bytes_tx_(0),
-  queued_(false),
   rtx_timer({this, &Connection::rtx_timeout}),
-  timewait_timer({this, &Connection::timewait_timeout})
+  timewait_timer({this, &Connection::timewait_timeout}),
+  queued_(false)
 {
   setup_congestion_control();
   debug("<Connection> %s created\n", to_string().c_str());
@@ -119,14 +118,11 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
   // end of data, signal the user
   if(PUSH) {
-    buf.push = PUSH;
     debug2("<Connection::receive> PUSH present - signal user\n");
     read_request.callback(buf.buffer, buf.size());
     // renew the buffer, releasing the old one
     buf.renew();
   }
-
-  bytes_rx_ += received;
 
   return received;
 }
@@ -323,7 +319,6 @@ void Connection::close() {
 void Connection::receive_disconnect() {
   assert(!read_request.buffer.empty());
   auto& buf = read_request.buffer;
-  buf.push = true;
   read_request.callback(buf.buffer, buf.size());
 }
 
@@ -411,8 +406,6 @@ void Connection::transmit(Packet_ptr packet) {
   //  packet->seq() - cb.ISS, packet->ack() - cb.IRS);
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
 
-  bytes_tx_ += packet->tcp_data_length();
-
   host_.transmit(std::move(packet));
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
@@ -459,9 +452,7 @@ bool Connection::handle_ack(const Packet& in) {
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
 
-    acks_rcvd_++;
-
-    debug("<Connection::handle_ack> New ACK#%u: %u FS: %u %s\n", acks_rcvd_,
+    debug("<Connection::handle_ack> New ACK: %u FS: %u %s\n",
       in.ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
@@ -677,9 +668,6 @@ void Connection::retransmit() {
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
   debug("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
-
-  // count retranmissions to bytes transmitted?
-  bytes_tx_ += packet->tcp_data_length();
 
   /*
     Every time a packet containing data is sent (including a

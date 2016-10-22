@@ -178,12 +178,6 @@ public:
   const Connection::State& prev_state() const
   { return *prev_state_; }
 
-  uint64_t bytes_received() const
-  { return bytes_rx_; }
-
-  uint64_t bytes_transmitted() const
-  { return bytes_tx_; }
-
   /**
    * @brief Total number of bytes in read buffer
    *
@@ -472,13 +466,6 @@ private:
   RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
 
-  /** Recv/Sent */
-  uint64_t bytes_rx_;
-  uint64_t bytes_tx_;
-
-  /** State if connection is in TCP write queue or not. */
-  bool queued_;
-
   /** Retransmission timer */
   Timer rtx_timer;
 
@@ -491,6 +478,9 @@ private:
   /** number of retransmitted SYN packets. */
   int8_t syn_rtx_ = 0;
 
+  /** State if connection is in TCP write queue or not. */
+  bool queued_;
+
   /** Congestion control */
   // is fast recovery state
   bool fast_recovery = false;
@@ -499,12 +489,10 @@ private:
   /** limited transmit [RFC 3042] active */
   bool limited_tx_ = true;
   // Number of current duplicate ACKs. Is reset for every new ACK.
-  size_t dup_acks_ = 0;
+  uint8_t dup_acks_ = 0;
 
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
-  // number of non duplicate acks received
-  size_t acks_rcvd_ = 0;
 
 
   /// --- CALLBACKS --- ///
