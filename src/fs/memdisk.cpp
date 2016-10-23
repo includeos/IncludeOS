@@ -76,4 +76,8 @@ namespace fs {
     return (image_end_ - image_start_) / block_size();
   }
 
+  void MemDisk::deactivate() {
+    
+  }
+
 } //< namespace fs

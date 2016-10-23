@@ -52,8 +52,7 @@ namespace hw {
     // enable one (cpu, vector) entry for this device
     uint16_t setup_vector(uint8_t cpu, uint8_t vector);
     
-    uint16_t vectors() const noexcept
-    {
+    uint16_t vectors() const noexcept {
       return vector_cnt;
     }
     

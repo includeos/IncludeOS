@@ -288,6 +288,16 @@ VirtioBlk::request_t::request_t(uint64_t blk, on_read_func cb)
   resp.handler = cb;
 }
 
+void VirtioBlk::deactivate()
+{
+  /// disable interrupts on virtio queues
+  req.disable_interrupts();
+  
+  /// mask off MSI-X vectors
+  if (is_msix())
+      deactivate_msix();
+}
+
 #include <kernel/pci_manager.hpp>
 
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
