@@ -109,6 +109,15 @@ void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
   connection->on_connect(callback).open(true);
 }
 
+void TCP::insert_connection(Connection_ptr conn)
+{
+  connections_.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(conn->local_port(), conn->remote()),
+      std::forward_as_tuple(conn));
+}
+
+
 seq_t TCP::generate_iss() {
   // Do something to get a iss.
   return rand();

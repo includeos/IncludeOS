@@ -371,6 +371,11 @@ bool Connection::is_listening() const {
   return is_state(Listen::instance());
 }
 
+__attribute__((weak))
+void Connection::deserialize_from(void*) {}
+__attribute__((weak))
+void Connection::serialize_to(void*) {}
+
 Connection::~Connection() {
   // Do all necessary clean up.
   // Free up buffers etc.

@@ -427,6 +427,10 @@ public:
   void set_remote(Socket remote)
   { remote_ = remote; }
 
+  // ???
+  void deserialize_from(void*);
+  void serialize_to(void*);
+
   /*
     Destroy the Connection.
     Clean up.
@@ -643,7 +647,6 @@ private:
   */
   bool is_queued() const
   { return queued_; }
-
   /*
     Mark wether the Connection is in TCP write queue or not.
   */
