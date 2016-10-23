@@ -58,7 +58,7 @@ void Client::handle(
   }
   else if (cmd == TK_USER)
   {
-    send_nonick(ERR_NOSUCHCMD, cmd + " :Unknown command");
+    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
   }
   else if (cmd == TK_MOTD)
   {
@@ -212,6 +212,26 @@ void Client::handle(
     else
       need_parms(cmd);
   }
+  else if (cmd == TK_NAMES)
+  {
+    if (msg.size() > 1)
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        auto& channel = server.get_channel(ch);
+        if (channel.find(self) != NO_SUCH_CLIENT) {
+            channel.send_names(*this);
+        }
+        else
+            send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
+      }
+      else
+        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+    else
+      need_parms(cmd);
+  }
   else if (cmd == TK_PRIVMSG)
   {
     if (msg.size() > 2)
@@ -223,7 +243,7 @@ void Client::handle(
         {
           auto& channel = server.get_channel(ch);
           // check if user can broadcast to channel
-          if (channel.find(get_id()) != NO_SUCH_CLIENT)
+          if (channel.find(self) != NO_SUCH_CLIENT)
           {
             // broadcast message to channel
             int len = snprintf(buffer, sizeof(buffer),
@@ -231,6 +251,8 @@ void Client::handle(
                       nickuserhost().c_str(), channel.name().c_str(), msg[2].c_str());
             channel.bcast_butone(get_id(), buffer, len);
           }
+          else
+              send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
         }
         else
           send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
@@ -282,6 +304,6 @@ void Client::handle(
   }
   else
   {
-    send_nonick(ERR_NOSUCHCMD, cmd + " :Unknown command");
+    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
   }
 }

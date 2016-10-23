@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <list>
+#include "common.hpp"
 #include "modes.hpp"
 
 #define WARNED_BIT    1
@@ -14,10 +15,9 @@ class Client
 {
 public:
   using Connection = net::tcp::Connection_ptr;
-  using ChannelList = std::list<uint16_t>;
-  typedef uint16_t index_t;
+  using ChannelList = std::list<chindex_t>;
   
-  Client(size_t s, IrcServer& sref);
+  Client(clindex_t s, IrcServer& sref);
   
   bool is_alive() const
   {
@@ -36,7 +36,7 @@ public:
   // disable client completely
   void disable();
   
-  index_t get_id() const {
+  clindex_t get_id() const {
     return self;
   }
   
@@ -50,15 +50,12 @@ public:
     this->umodes_ &= ~mask;
   }
   
-  void read(const uint8_t* buffer, size_t len);
+  void read(uint8_t* buffer, size_t len);
   void send_from(const std::string& from, const std::string& text);
   void send_from(const std::string& from, uint16_t numeric, const std::string& text);
-  void send_nonick(uint16_t numeric, const std::string& text);
   void send(uint16_t numeric, std::string text);
   // send the string as-is
-  void send_raw(const char* buff, size_t len) {
-    conn->write(buff, len);
-  }
+  void send_raw(const char* buff, size_t len);
   
   const std::string& nick() const {
     return nick_;
@@ -145,7 +142,7 @@ private:
   uint8_t     regis;
   uint8_t     bits;
   uint16_t    umodes_;
-  index_t     self;
+  clindex_t   self;
   IrcServer&  server;
   Connection  conn;
   long        to_stamp;

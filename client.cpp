@@ -5,8 +5,9 @@
 #include "tokens.hpp"
 #include <common>
 #include <cassert>
+#include "yield_assist.hpp"
 
-Client::Client(size_t s, IrcServer& sref)
+Client::Client(clindex_t s, IrcServer& sref)
   : regis(0), self(s), server(sref)
 {
   readq.reserve(IrcServer::readq_max());
@@ -78,7 +79,7 @@ void Client::split_message(const std::string& msg)
     handle(source, vec);
 }
 
-void Client::read(const uint8_t* buf, size_t len)
+void Client::read(uint8_t* buf, size_t len)
 {
   while (len > 0) {
     
@@ -151,18 +152,21 @@ void Client::send_from(const std::string& from, uint16_t numeric, const std::str
   
   conn->write(data, len);
 }
-void Client::send_nonick(uint16_t numeric, const std::string& text)
-{
-  send_from(server.name(), numeric, text);
-}
 void Client::send(uint16_t numeric, std::string text)
 {
   char data[128];
   int len = snprintf(data, sizeof(data),
     ":%s %03u %s %s\r\n", server.name().c_str(), numeric, nick().c_str(), text.c_str());
   
-  conn->write(data, len);
+  send_raw(data, len);
 }
+void Client::send_raw(const char* buff, size_t len)
+{
+  //static YieldCounter counter(100);
+  conn->write(buff, len);
+  //++counter;
+}
+
 
 // validate name, returns false if invalid characters
 static bool validate_name(const std::string& new_name)
@@ -181,20 +185,32 @@ static bool validate_name(const std::string& new_name)
 bool Client::change_nick(const std::string& new_nick)
 {
   if (new_nick.size() < server.nick_minlen()) {
-    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too short");
+    if (nick_.empty())
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, new_nick + " " + new_nick + " :Nickname too long");
+    else
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Nickname too long");
     return false;
   }
   if (new_nick.size() > server.nick_maxlen()) {
-    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Nickname too long");
+    if (nick_.empty())
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, new_nick + " " + new_nick + " :Nickname too long");
+    else
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Nickname too long");
     return false;
   }
   if (!validate_name(new_nick)) {
-    send_nonick(ERR_ERRONEUSNICKNAME, new_nick + " :Erroneous nickname");
+    if (nick_.empty())
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, new_nick + " " + new_nick + " :Erroneous nickname");
+    else
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Erroneous nickname");
     return false;
   }
   auto idx = server.user_by_name(new_nick);
   if (idx != NO_SUCH_CLIENT) {
-    send_nonick(ERR_NICKNAMEINUSE, new_nick + " :Nickname is already in use");
+    if (nick_.empty())
+        send_from(server.name(), ERR_NICKNAMEINUSE, new_nick + " " + new_nick + " :Nickname is already in use");
+    else
+        send_from(server.name(), ERR_NICKNAMEINUSE, nick() + " " + new_nick + " :Nickname is already in use");
     return false;
   }
   // remove old nickname from hashtable

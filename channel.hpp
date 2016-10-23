@@ -14,9 +14,9 @@ class Channel
 public:
   typedef uint16_t index_t;
   using ClientList = std::deque<index_t>;
-  
+
   Channel(index_t self, IrcServer& sref);
-  
+
   bool is_alive() const {
     return !clients_.empty();
   }
@@ -31,17 +31,17 @@ public:
   }
   // reset to reuse in other fashion
   void reset(const std::string& new_name);
-  
+
   const ClientList& clients() {
     return clients_;
   }
-  
-  std::string listed_name(index_t cid) const;
-  
-  
+
+  char listed_symb(index_t cid) const;
+
+
   bool    add(index_t);
   index_t find(index_t);
-  
+
   // silently remove client from all channel lists
   bool remove(index_t cl)
   {
@@ -54,41 +54,41 @@ public:
     }
     return idx != NO_SUCH_CLIENT;
   }
-  
+
   // the entire JOIN sequence for a client
   bool join(Client&, const std::string& key = "");
   // and the PART command
   bool part(Client&, const std::string& msg = "");
   // set new channel topic (and timestamp it)
   void set_topic(Client&, const std::string&);
-  
+
   bool is_banned(index_t) const {
     return false;
   }
   bool is_excepted(index_t) const {
     return false;
   }
-  
+
   bool is_chanop(index_t cid) const;
   bool is_voiced(index_t cid) const;
-  
+
   void send_mode(Client&);
   void send_topic(Client&);
   void send_names(Client&);
-  
+
   static bool is_channel_identifier(char c) {
     static std::string LUT = "&#+!";
     return LUT.find_first_of(c) != std::string::npos;
   }
-  
+
   // send message to all users in a channel
   void bcast(const char*, size_t);
   void bcast(const std::string& from, uint16_t tk, const std::string& msg);
   void bcast_butone(index_t src, const char*, size_t);
-  
+
 private:
   std::string mode_string() const;
-  
+
   index_t     self;
   uint16_t    cmodes;
   long        create_ts;

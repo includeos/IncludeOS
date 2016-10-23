@@ -22,8 +22,6 @@ public:
   using Connection = net::tcp::Connection_ptr;
   using Network    = net::Inet4;
   typedef std::function<const std::string&()> motd_func_t;
-  typedef Channel::index_t chindex_t;
-  typedef Client::index_t  uindex_t;
   
   IrcServer(
       Network& inet, 
@@ -47,20 +45,20 @@ public:
     return motd_func();
   }
   
-  inline Client& get_client(size_t idx) {
+  inline Client& get_client(clindex_t idx) {
     return clients.at(idx);
   }
   void free_client(Client&);
   
-  inline Channel& get_channel(size_t idx) {
+  inline Channel& get_channel(chindex_t idx) {
     return channels.at(idx);
   }
   void free_channel(Channel&);
   
-  uindex_t  user_by_name(const std::string&) const;
+  clindex_t user_by_name(const std::string&) const;
   chindex_t channel_by_name(const std::string&) const;
   
-  void hash_nickname(const std::string& nick, size_t id)
+  void hash_nickname(const std::string& nick, clindex_t id)
   {
     h_users[nick] = id;
   }
@@ -69,7 +67,7 @@ public:
     h_users.erase(nick);
   }
   
-  void hash_channel(const std::string& name, size_t id)
+  void hash_channel(const std::string& name, chindex_t id)
   {
     h_channels[name] = id;
   }
@@ -84,11 +82,11 @@ public:
   }
   
   // send message to all users visible to user, including user
-  void user_bcast(uindex_t user, const char* buffer, size_t len);
-  void user_bcast(uindex_t user, const std::string& from, uint16_t tk, const std::string&);
+  void user_bcast(clindex_t user, const char* buffer, size_t len);
+  void user_bcast(clindex_t user, const std::string& from, uint16_t tk, const std::string&);
   // send message to all users visible to user, except user
-  void user_bcast_butone(uindex_t user, const char* buffer, size_t len);
-  void user_bcast_butone(uindex_t user, const std::string& from, uint16_t tk, const std::string&);
+  void user_bcast_butone(clindex_t user, const char* buffer, size_t len);
+  void user_bcast_butone(clindex_t user, const std::string& from, uint16_t tk, const std::string&);
   
   // create channel on server
   chindex_t create_channel(const std::string& name);
@@ -175,24 +173,24 @@ private:
   size_t to_current = 0;
   void   timeout_handler(uint32_t);
   
-  size_t new_client();
-  size_t new_channel();
+  clindex_t new_client();
+  chindex_t new_channel();
   
   Network&    inet;
   Connection  server;
   std::string server_name;
   std::string server_network;
   std::vector<Client> clients;
-  std::vector<size_t> free_clients;
+  std::vector<clindex_t> free_clients;
   std::vector<Channel> channels;
-  std::vector<size_t> free_channels;
+  std::vector<chindex_t> free_channels;
   
   // server callbacks
   motd_func_t motd_func;
   
   // hash table for nicknames, channels etc
-  std::map<std::string, size_t, ci_less> h_users;
-  std::map<std::string, size_t, ci_less> h_channels;
+  std::map<std::string, clindex_t, ci_less> h_users;
+  std::map<std::string, chindex_t, ci_less> h_channels;
   
   // performance stuff
   long cheapstamp;

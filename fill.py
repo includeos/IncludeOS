@@ -4,6 +4,7 @@ import sys
 import random
 from inspect import getmodule
 from multiprocessing import Pool
+import signal
 
 
 def async(decorated):
@@ -62,10 +63,10 @@ class Bot:
               amount_received = 0
               amount_expected = 10
               while amount_received < amount_expected:
-                  self.send("PRIVMSG #test :spamerino cappuchino etc")
                   data = self.sock.recv(64)
                   amount_received += len(data)
                   #print >>sys.stderr, received "%s"' % data
+              #self.send("PRIVMSG #test :spamerino cappuchino etc")
 
               #self.send("QUIT :Lates")
           finally:
@@ -84,4 +85,4 @@ if __name__ == '__main__':
           bot.begin()
       finally:
           botlist.append(bot)
-  wait = input("PRESS ENTER TO CONTINUE.")
+  signal.pause()

@@ -30,14 +30,24 @@ void default_stdout_handlers() {}
 extern "C" int  _get_heap_debugging_buffers_usage();
 extern "C" int  _get_heap_debugging_buffers_total();
 extern "C" void _enable_heap_debugging_verbose(int);
+extern "C" void _start();
 
-void Service::start(const std::string&)
+void Service::start(const std::string& args)
 {
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
+
+  std::string servername = "irc.includeos.org";
+  /// extract custom servername from args, if there is one
+  size_t idx = args.find(" ");
+  if (idx != args.npos) {
+    std::string param = std::string(args.begin() + idx + 1, args.end());
+    if (param.size()) servername = param;
+  }
+
   // show that we are starting :)
-  printf("*** IRC Service starting up...\n");
+  printf("*** %s starting up...\n", servername.c_str());
   //_enable_heap_debugging_verbose(1);
 
   // default configuration (with DHCP)
@@ -50,7 +60,7 @@ void Service::start(const std::string&)
 
   // IRC default port
   ircd =
-  new IrcServer(inet, 6667, "irc.includeos.org", "IncludeNet",
+  new IrcServer(inet, 6667, servername, "IncludeNet",
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
@@ -153,9 +163,6 @@ void print_stats(int)
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);
 #endif
-
-  extern void print_heap_allocations();
-  //print_heap_allocations();
 }
 
 void Service::ready()

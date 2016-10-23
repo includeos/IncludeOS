@@ -40,6 +40,16 @@ void Client::send_motd()
 
 void Client::send_lusers()
 {
+  /*
+  :wilhelm.freenode.net 251 gonzo__ :There are 149 users and 81096 invisible on 29 servers
+  :wilhelm.freenode.net 252 gonzo__ 34 :IRC Operators online
+  :wilhelm.freenode.net 253 gonzo__ 13 :unknown connection(s)
+  :wilhelm.freenode.net 254 gonzo__ 47699 :channels formed
+  :wilhelm.freenode.net 255 gonzo__ :I have 7508 clients and 1 servers
+  :wilhelm.freenode.net 265 gonzo__ 7508 8324 :Current local users 7508, max 8324
+  :wilhelm.freenode.net 266 gonzo__ 81245 90995 :Current global users 81245, max 90995
+  :wilhelm.freenode.net 250 gonzo__ :Highest connection count: 8325 (8324 clients) (404056 connections received)
+  */
   send(RPL_LUSERCLIENT, ":There are " + std::to_string(server.get_counter(STAT_TOTAL_USERS)) +
                         " users and 0 services on 1 servers");
   send(RPL_LUSEROP,       std::to_string(server.get_counter(STAT_OPERATORS)) + " :operator(s) online");

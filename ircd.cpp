@@ -46,17 +46,19 @@ IrcServer::IrcServer(
           csock->remote().to_string().c_str());
 
     /// create client ///
-    size_t clindex = new_client();
+    clindex_t clindex = new_client();
     auto& client = clients[clindex];
     // make sure crucial fields are reset properly
     client.reset_to(csock);
 
     // set up callbacks
-    csock->on_read(128,
-    [this, clindex] (net::tcp::buffer_t buffer, size_t bytes)
+    csock->on_read(128, 
+    [this, clindex] (auto buffer, size_t len)
     {
+      /// NOTE: the underlying array can move around, 
+      /// so we have to retrieve the address each time
       auto& client = clients[clindex];
-      client.read(buffer.get(), bytes);
+      client.read(buffer.get(), len);
     });
 
     csock->on_close(
@@ -81,30 +83,37 @@ IrcServer::IrcServer(
   this->cheapstamp = this->created_ts;
 }
 
-size_t IrcServer::new_client() {
+clindex_t IrcServer::new_client() {
   // use prev dead client
   if (!free_clients.empty()) {
-    size_t idx = free_clients.back();
+    clindex_t idx = free_clients.back();
     free_clients.pop_back();
     return idx;
   }
   // create new client
-  clients.emplace_back(clients.size(), *this);
-  return clients.size()-1;
+  chindex_t idx = clients.size();
+  clients.emplace_back(idx, *this);
+  return idx;
 }
-size_t IrcServer::new_channel() {
+chindex_t IrcServer::new_channel() {
   // use prev dead channel
   if (!free_channels.empty()) {
-    size_t idx = free_channels.back();
+    chindex_t idx = free_channels.back();
     free_channels.pop_back();
     return idx;
   }
   // create new channel
-  channels.emplace_back(channels.size(), *this);
-  return channels.size()-1;
+  chindex_t idx = channels.size();
+  channels.emplace_back(idx, *this);
+  return idx;
 }
 
-#include <kernel/syscalls.hpp>
+clindex_t IrcServer::user_by_name(const std::string& name) const
+{
+  auto it = h_users.find(name);
+  if (it != h_users.end()) return it->second;
+  return NO_SUCH_CHANNEL;
+}
 void IrcServer::free_client(Client& client)
 {
   // give back the client id
@@ -117,20 +126,13 @@ void IrcServer::free_client(Client& client)
   dec_counter(STAT_LOCAL_USERS);
 }
 
-IrcServer::uindex_t IrcServer::user_by_name(const std::string& name) const
-{
-  auto it = h_users.find(name);
-  if (it != h_users.end()) return it->second;
-  return NO_SUCH_CHANNEL;
-}
-IrcServer::chindex_t IrcServer::channel_by_name(const std::string& name) const
+chindex_t IrcServer::channel_by_name(const std::string& name) const
 {
   auto it = h_channels.find(name);
   if (it != h_channels.end()) return it->second;
   return NO_SUCH_CHANNEL;
 }
-
-IrcServer::chindex_t IrcServer::create_channel(const std::string& name)
+chindex_t IrcServer::create_channel(const std::string& name)
 {
   auto ch = new_channel();
   hash_channel(name, ch);
@@ -148,7 +150,7 @@ void IrcServer::free_channel(Channel& ch)
   dec_counter(STAT_CHANNELS);
 }
 
-void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
+void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
 {
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
@@ -156,9 +158,9 @@ void IrcServer::user_bcast(uindex_t idx, const std::string& from, uint16_t tk, c
   
   user_bcast(idx, buffer, len);
 }
-void IrcServer::user_bcast(uindex_t idx, const char* buffer, size_t len)
+void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
 {
-  std::set<uindex_t> uset;
+  std::set<clindex_t> uset;
   // add user
   uset.insert(idx);
   // for each channel user is in
@@ -173,7 +175,7 @@ void IrcServer::user_bcast(uindex_t idx, const char* buffer, size_t len)
       get_client(cl).send_raw(buffer, len);
 }
 
-void IrcServer::user_bcast_butone(uindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
+void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
 {
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
@@ -181,9 +183,9 @@ void IrcServer::user_bcast_butone(uindex_t idx, const std::string& from, uint16_
   
   user_bcast_butone(idx, buffer, len);
 }
-void IrcServer::user_bcast_butone(uindex_t idx, const char* buffer, size_t len)
+void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
 {
-  std::set<uindex_t> uset;
+  std::set<clindex_t> uset;
   // for each channel user is in
   for (auto ch : get_client(idx).channels())
   {

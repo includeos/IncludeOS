@@ -27,12 +27,12 @@ void Channel::reset(const std::string& new_name)
 
 bool Channel::add(index_t id)
 {
-  for (index_t i = 0; i < this->size(); i++) {
-    if (unlikely(clients_[i] == id))
-        return false;
+  if (std::find(clients_.cbegin(), clients_.cend(), id) == clients_.cend())
+  {
+    clients_.push_back(id);
+    return true;
   }
-  clients_.push_back(id);
-  return true;
+  return false;
 }
 Channel::index_t Channel::find(index_t id)
 {
@@ -76,7 +76,7 @@ bool Channel::join(Client& client, const std::string& key)
   }
   // broadcast to channel that the user joined
   char buff[128];
-  int len = snprintf(buff, sizeof(buff), 
+  int len = snprintf(buff, sizeof(buff),
             ":%s JOIN %s\r\n", client.nickuserhost().c_str(), name().c_str());
   bcast(buff, len);
   // send current channel modes
@@ -85,7 +85,7 @@ bool Channel::join(Client& client, const std::string& key)
     create_ts = server.create_timestamp();
     // server creates new channel by setting modes
     len = snprintf(buff, sizeof(buff),
-        ":%s MODE %s +%s\r\n", 
+        ":%s MODE %s +%s\r\n",
         server.name().c_str(), name().c_str(), mode_string().c_str());
     client.send_raw(buff, len);
     // client is operator when he creates it
@@ -112,7 +112,7 @@ bool Channel::part(Client& client, const std::string& reason)
   }
   // broadcast that client left the channel
   char buff[128];
-  int len = snprintf(buff, sizeof(buff), 
+  int len = snprintf(buff, sizeof(buff),
             ":%s PART %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), reason.c_str());
   bcast(buff, len);
   // remove client from channels lists
@@ -129,7 +129,7 @@ void Channel::set_topic(Client& client, const std::string& new_topic)
   this->ctopic_ts = server.create_timestamp();
   // broadcast change
   char buff[256];
-  int len = snprintf(buff, sizeof(buff), 
+  int len = snprintf(buff, sizeof(buff),
             ":%s TOPIC %s :%s\r\n", client.nickuserhost().c_str(), name().c_str(), new_topic.c_str());
   bcast(buff, len);
 }
@@ -143,13 +143,14 @@ bool Channel::is_voiced(index_t cid) const
   return voices.find(cid) != voices.end();
 }
 
-std::string Channel::listed_name(index_t cid) const
+char Channel::listed_symb(index_t cid) const
 {
   if (is_chanop(cid))
-    return "@" + server.get_client(cid).nick();
-  if (is_voiced(cid))
-    return "+" + server.get_client(cid).nick();
-  return server.get_client(cid).nick();
+    return '@';
+  else if (is_voiced(cid))
+    return '+';
+  else
+    return 0;
 }
 
 std::string Channel::mode_string() const
@@ -178,30 +179,62 @@ void Channel::send_topic(Client& client)
 void Channel::send_names(Client& client)
 {
   //:irc.colosolutions.net 353 gonzo_ = #testestsetestes :@gonzo_
-  for (index_t i = 0; i < this->size(); i++)
-      client.send(RPL_NAMREPLY, " = " + name() + " :" + listed_name(clients_[i]));
+  std::string list;
+  list.reserve(256);
+  int restart = 0;
   
-  client.send(RPL_ENDOFNAMES, name() + " :End of NAMES list");
+  for (auto idx : clients_)
+  {
+    if (restart == 0) {
+      restart = 25;
+      // flush if not empty
+      if (!list.empty()) {
+        list.append("\r\n");
+        client.send_raw(list.data(), list.size());
+        list.clear();
+      }
+      // restart list
+      list.append(":" + server.name());
+      list.append(" " + std::to_string(RPL_NAMREPLY) + " ");
+      list.append(client.nick() + " = " + this->name() + " :");
+    }
+    
+    char symb = listed_symb(idx);
+    if (symb) list.append(&symb, 1);
+    list.append(server.get_client(idx).nick());
+    list.append(" ");
+    restart--;
+  }
+  list.append("\r\n");
+  client.send_raw(list.data(), list.size());
+  
+  int len = snprintf((char*) list.data(), list.capacity(),
+        ":%s %03u %s :End of NAMES list\r\n", 
+        server.name().c_str(),  RPL_ENDOFNAMES,  name().c_str());
+  client.send_raw(list.data(), len);
 }
 
 void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg)
 {
   char buff[256];
-  int len = snprintf(buff, sizeof(buff), 
+  int len = snprintf(buff, sizeof(buff),
             ":%s %03u %s\r\n", from.c_str(), tk, msg.c_str());
-  
+
   bcast(buff, len);
 }
+
 void Channel::bcast(const char* buff, size_t len)
 {
   // broadcast to all users in channel
-  for (auto cl : clients())
+  for (auto cl : clients()) {
       server.get_client(cl).send_raw(buff, len);
+  }
 }
 void Channel::bcast_butone(index_t src, const char* buff, size_t len)
 {
   // broadcast to all users in channel except source
   for (auto cl : clients())
-    if (likely(cl != src))
+  if (likely(cl != src)) {
     server.get_client(cl).send_raw(buff, len);
+  }
 }
