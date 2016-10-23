@@ -32,6 +32,7 @@ struct storage_header
   
   void add_string(uint16_t id, const std::string& data);
   void add_buffer(uint16_t id, const char*, int);
+  storage_entry& add_struct(int16_t type, uint16_t id, int length);
   void add_end();
   
   storage_entry* begin();

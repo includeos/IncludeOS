@@ -19,6 +19,10 @@ void storage_header::add_buffer(uint16_t id, const char* buffer, int length)
   auto& entry = create_entry(TYPE_BUFFER, id, length);
   memcpy(entry.vla, buffer, length);
 }
+storage_entry& storage_header::add_struct(int16_t type, uint16_t id, int length)
+{
+  return create_entry(type, id, length);
+}
 void storage_header::add_end()
 {
   create_entry(TYPE_END);

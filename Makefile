@@ -7,7 +7,7 @@ SERVICE = LiveUpdate
 SERVICE_NAME = Live Update Test Service
 
 # Your service parts
-FILES = service.cpp storage.cpp update.cpp resume.cpp hotswap.o
+FILES = service.cpp storage.cpp update.cpp resume.cpp hotswap.o serialize_tcp.o
 
 # Your disk image
 DISK=

@@ -41,9 +41,10 @@ buffer_len  Restore::as_buffer() const
       return {ent->vla, ent->len};
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 }
-Restore::Connection Restore::as_tcp_connection() const
+#include "serialize_tcp.hpp"
+Restore::Connection Restore::as_tcp_connection(net::TCP& tcp) const
 {
-  return nullptr;
+  return deserialize_connection(ent->vla, tcp);
 }
 
 int16_t  Restore::get_type() const noexcept

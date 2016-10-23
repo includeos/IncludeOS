@@ -33,7 +33,7 @@ struct Restore
   
   std::string  as_string() const;
   buffer_len   as_buffer() const;
-  Connection   as_tcp_connection() const;
+  Connection   as_tcp_connection(net::TCP&) const;
   
   int16_t  get_type() const noexcept;
   uint16_t get_id() const noexcept;
@@ -52,6 +52,9 @@ struct LiveUpdate
 
   // start a live update process
   static void begin(buffer_len blob, storage_func);
+  
+  // returns true if there is stored data from before
+  static bool is_resumable();
   
   // register handler for a specific id
   static void on_resume(uint16_t id, resume_func);

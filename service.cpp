@@ -20,6 +20,28 @@
 #include <net/inet4>
 #include "update.hpp"
 
+net::tcp::Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
+
+std::vector<net::tcp::Connection_ptr> saveme;
+
+void setup_terminal(net::Inet4& inet)
+{
+  // mini terminal
+  printf("Setting up terminal, since we have not updated yet\n");
+  
+  auto& term = inet.tcp().bind(6667);
+  term.on_connect(
+  [] (auto conn) {
+    saveme.push_back(conn);
+    // retrieve binary
+    conn->on_read(1024,
+    [conn] (net::tcp::buffer_t buf, size_t n)
+    {
+      printf("Received message: %.*s\n", n, buf.get());
+    });
+  });
+}
+
 void Service::start(const std::string&)
 {
   auto& inet = net::Inet4::ifconfig<0>(
@@ -54,13 +76,18 @@ void Service::start(const std::string&)
     });
   });
 
+  if (!LiveUpdate::is_resumable())
+      setup_terminal(inet);
+
   /// attempt to resume (if there is anything to resume)
-  void the_string(Restore thing);
-  void the_buffer(Restore thing);
+  void the_string(Restore);
+  void the_buffer(Restore);
+  void restore_term(Restore);
   void on_missing(Restore);
-  
-  LiveUpdate::on_resume(1, the_string);
-  LiveUpdate::on_resume(2, the_buffer);
+
+  LiveUpdate::on_resume(1,   the_string);
+  LiveUpdate::on_resume(2,   the_buffer);
+  LiveUpdate::on_resume(666, restore_term);
   LiveUpdate::resume(on_missing);
 }
 
@@ -72,6 +99,9 @@ void save_stuff(Storage storage)
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
   storage.add_buffer(2, {buffer, sizeof(buffer)});
+  
+  for (auto conn : saveme)
+      storage.add_connection(666, conn);
 }
 
 void the_string(Restore thing)
@@ -86,4 +116,17 @@ void the_buffer(Restore thing)
 void on_missing(Restore thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
+}
+void restore_term(Restore thing)
+{
+  auto& stack = net::Inet4::stack<0> ();
+  auto conn = thing.as_tcp_connection(stack.tcp());
+  printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
+  
+  // restore callback
+  conn->on_read(1024,
+  [conn] (net::tcp::buffer_t buf, size_t n)
+  {
+    printf("Received RESTORED message: %.*s\n", n, buf.get());
+  });
 }

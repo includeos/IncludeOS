@@ -15,10 +15,14 @@ static const uint64_t  LIVEUPD_MAGIC  = 0xbaadb33fdeadc0de;
 
 static void* HOTSWAP_AREA = (void*) 0x8000;
 
+bool LiveUpdate::is_resumable()
+{
+  return *(uint64_t*) UPDATE_STORAGE == LIVEUPD_MAGIC;
+}
 void LiveUpdate::resume(resume_func func)
 {
   // check if an update has occurred
-  if (*(uint64_t*) UPDATE_STORAGE == LIVEUPD_MAGIC)
+  if (is_resumable())
   {
     printf("* Restoring data...\n");
     // restore connections etc.
@@ -109,4 +113,11 @@ void Storage::add_string(uint16_t id, const std::string& string)
 void Storage::add_buffer(uint16_t id, buffer_len blob)
 {
   hdr->add_buffer(id, blob.buffer, blob.length);
+}
+
+#include "serialize_tcp.hpp"
+void Storage::add_connection(uid id, Connection conn)
+{
+  auto& ent = hdr->add_struct(TYPE_TCP, id, sizeof(serialized_tcp));
+  conn->serialize_to(ent.vla);
 }
