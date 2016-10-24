@@ -74,7 +74,7 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   }
 
   if (address_len != sizeof(sockaddr_in)) {
-    errno = EAFNOSUPPORT; // checkme?
+    errno = EINVAL; // checkme?
     return -1;
   }
   auto* inaddr = (sockaddr_in*) address;
@@ -153,7 +153,7 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
   }
   // verify socket address
   if (addrlen != sizeof(sockaddr_in)) {
-    errno = EAFNOSUPPORT;
+    errno = EINVAL;
     return -1;
   }
   auto* sin = (sockaddr_in*) addr;
@@ -176,7 +176,7 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
     // create new one
     ld = new TCP_FD_Listen(L);
     return 0;
-    
+
   } catch (...) {
     errno = EADDRINUSE;
     return -1;
@@ -230,7 +230,7 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
   // read some bytes from readq
   int bytes = readq.read((char*) dest, len);
   if (bytes) return bytes;
-  
+
   bool done = false;
   // block and wait for more
   conn->on_read(len,
