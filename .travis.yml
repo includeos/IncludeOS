@@ -1,0 +1,35 @@
+sudo: required
+dist: trusty
+language: generic
+
+cache:
+  apt: true
+
+matrix:
+  include:
+    - env: CXX=g++-5 CC=gcc-5
+      addons:
+        apt:
+          packages:
+            - g++-5
+          sources: &sources
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise
+    - env: CXX=clang++-3.8 CC=clang-3.8
+      addons:
+        apt:
+          packages:
+            - clang-3.8
+          sources: *sources
+
+install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
+  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.8" CC="clang-3.8"; fi
+  - mkdir build
+
+before_script:
+  - cd build; cmake ../
+  
+script:
+  - make
+  - make test
