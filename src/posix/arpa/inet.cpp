@@ -39,11 +39,14 @@ in_addr_t inet_addr(const char* cp)
  * @note: shortcut, not sufficent.
  * see: http://pubs.opengroup.org/onlinepubs/9699919799/functions/inet_addr.html#
  */
-char* inet_ntoa(struct in_addr in)
+char* inet_ntoa(struct in_addr ina)
 {
-  const auto addr = ip4::Addr{in.s_addr};
-  auto str = addr.to_string();
-  return const_cast<char*>(str.c_str());
+  static char buffer[16];
+  unsigned char* byte = (unsigned char *)&ina;
+  
+  sprintf(buffer, "%hhu.%hhu.%hhu.%hhu",
+          byte[0], byte[1], byte[2], byte[3]);
+  return buffer;
 }
 
 /**

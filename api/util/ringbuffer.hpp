@@ -19,11 +19,12 @@
 #define UTIL_RINGBUFFER_HPP
 
 #include <cstring>
+#include <cassert>
 
 class RingBuffer {
 public:
   RingBuffer(int size)
-    : cap(size+1), start(0), end(0)
+    : cap(size), start(0), end(0)
   {
     assert(size > 1);
     this->buffer = new char[capacity()];
@@ -96,6 +97,10 @@ public:
         return end - start;
     else
         return (cap - start) + end;
+  }
+  
+  int used_space() const noexcept {
+    return size();
   }
   int free_space() const noexcept {
     return capacity() - size();
