@@ -53,7 +53,7 @@ int main()
   CHECKSERT(res < 0 && errno == EINVAL, "Fails when already bound (EINVAL)");
 
   res = bind(socket(AF_INET, SOCK_DGRAM, 0), (struct sockaddr *)&myaddr, 1ul);
-  CHECKSERT(res < 0 && errno == EAFNOSUPPORT, "Fails when address is invalid (EAFNOSUPPORT)");
+  CHECKSERT(res < 0 && errno == EINVAL, "Fails when address is invalid (EINVAL)");
 
   res = bind(socket(AF_INET, SOCK_DGRAM, 0), (struct sockaddr *)&myaddr, sizeof(myaddr));
   CHECKSERT(res < 0 && errno == EADDRINUSE, "Port already bound (EADDRINUSE)");
@@ -71,9 +71,10 @@ int main()
   recvbuf[res] = 0;
 
   const char* rm_message = "POSIX is for hipsters";
-  CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Received the message \"%s\"", rm_message);
+  CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Received the message \"%s\"", recvbuf);
 
-  CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.router().whole), "Received from address %s", inet.router().to_string().c_str());
+  CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.router().whole),
+    "Received from address %s", inet.router().to_string().c_str());
 
 
 
