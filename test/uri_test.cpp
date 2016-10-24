@@ -19,6 +19,11 @@ const lest::test specification[] = {
       EXPECT(uri.host() == "www.vg.no"s);
     },
 
+    CASE("Out-of-range ports are detected as invalid") {
+      uri::URI uri {"http://www.vg.no:65539"s};
+      EXPECT(uri.is_valid() == false);
+    },
+
     CASE("Invalid port does not crash the parser") {
       uri::URI uri {"http://www.vg.no:80999999999999999999999999999"s};
       int port {0};

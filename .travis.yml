@@ -28,8 +28,8 @@ install:
   - mkdir build
 
 before_script:
-  - cd build; cmake ../
-  
+  - cd build; cmake ..
+
 script:
   - make
   - make test
