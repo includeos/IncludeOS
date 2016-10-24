@@ -87,6 +87,11 @@ namespace net {
     { connect({address, port}, callback); }
 
     /*
+     * Insert existing connection
+     */
+    void insert_connection(tcp::Connection_ptr);
+
+    /*
       Receive packet from network layer (IP).
     */
     void bottom(net::Packet_ptr);
