@@ -147,9 +147,11 @@ void print_stats(int)
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
       now().c_str(), cps, OS::heap_usage() / 1024.f);
   // client and channel stats
-  printf("Conns: %u  Clis: %u  Club: %u  Chans: %u\n",
+  auto& inet = net::Inet4::stack<0>();
+  
+  printf("Conns: %u  Clis: %u  Alive: %u  Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS),
-         ircd->club(), ircd->get_counter(STAT_CHANNELS));
+         inet.tcp().active_connections(), ircd->get_counter(STAT_CHANNELS));
   printf("*** ---------------------- ***\n");
 #ifdef USE_STACK_SAMPLING
   // stack sampler results
@@ -158,6 +160,8 @@ void print_stats(int)
 #endif
   // heap statistics
   print_heap_info();
+  printf("*** ---------------------- ***\n");
+  printf("%s\n", ScopedProfiler::get_statistics().c_str());
   printf("*** ---------------------- ***\n");
 
 #ifdef USE_STACK_SAMPLING

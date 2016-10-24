@@ -4,7 +4,7 @@ import sys
 import random
 from inspect import getmodule
 from multiprocessing import Pool
-import signal
+import time
 
 
 def async(decorated):
@@ -85,4 +85,4 @@ if __name__ == '__main__':
           bot.begin()
       finally:
           botlist.append(bot)
-  signal.pause()
+  time.sleep()

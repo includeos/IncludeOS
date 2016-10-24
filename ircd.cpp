@@ -32,12 +32,7 @@ IrcServer::IrcServer(
   {
     // one more client in total
     inc_counter(STAT_TOTAL_CONNS);
-    inc_counter(STAT_TOTAL_USERS);
-    inc_counter(STAT_LOCAL_USERS);
-    // possibly set new max users connected
-    if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
-      set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
-    
+
     // in case splitter is bad
     SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
           csock->remote().to_string().c_str());
@@ -114,16 +109,26 @@ clindex_t IrcServer::user_by_name(const std::string& name) const
   if (it != h_users.end()) return it->second;
   return NO_SUCH_CHANNEL;
 }
+void IrcServer::new_registered_client(Client&)
+{
+  inc_counter(STAT_TOTAL_USERS);
+  inc_counter(STAT_LOCAL_USERS);
+  // possibly set new max users connected
+  if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
+    set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
+}
 void IrcServer::free_client(Client& client)
 {
+  // one less client in total on server
+  if (client.is_reg()) {
+    dec_counter(STAT_TOTAL_USERS);
+    dec_counter(STAT_LOCAL_USERS);
+  }
   // give back the client id
   free_clients.push_back(client.get_id());
   // give back nickname, if any
   if (!client.nick().empty())
       erase_nickname(client.nick());
-  // one less client in total on server
-  dec_counter(STAT_TOTAL_USERS);
-  dec_counter(STAT_LOCAL_USERS);
 }
 
 chindex_t IrcServer::channel_by_name(const std::string& name) const

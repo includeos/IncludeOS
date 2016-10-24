@@ -2,6 +2,7 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 #include "modes.hpp"
+#include <profile>
 
 inline void Client::need_parms(const std::string& cmd)
 {
@@ -12,6 +13,7 @@ void Client::handle_new(
     const std::string&,
     const std::vector<std::string>& msg)
 {
+  ScopedProfiler profile;
   const std::string& cmd = msg[0];
   
   if (cmd == TK_CAP)
@@ -78,6 +80,9 @@ void Client::welcome(uint8_t newreg)
   // not registered before, but registered now
   if (!regged && is_reg())
   {
+    // statistics
+    server.new_registered_client(*this);
+    // welcoming messages
     send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
     send(RPL_YOURHOST, ":Your host is " + server.name() + ", running v1.0");
     send(RPL_CREATED, ":This server was created " + server.created());

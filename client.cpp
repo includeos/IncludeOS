@@ -6,11 +6,12 @@
 #include <common>
 #include <cassert>
 #include "yield_assist.hpp"
+#include <profile>
 
 Client::Client(clindex_t s, IrcServer& sref)
   : regis(0), self(s), server(sref)
 {
-  readq.reserve(IrcServer::readq_max());
+  //readq.reserve(IrcServer::readq_max());
 }
 
 void Client::reset_to(Connection conn)
@@ -34,10 +35,10 @@ void Client::reset_to(Connection conn)
 void Client::disable()
 {
   conn = nullptr;
-  // reset client status
-  regis = 0;
   // free client on server
   server.free_client(*this);
+  // reset registration status
+  regis = 0;
   // a few should not happens
   nick_ = "BUG_BUG_BUG";
   user_ = "BUG_BUG_BUG";
@@ -47,6 +48,7 @@ void Client::disable()
 #include <kernel/syscalls.hpp>
 void Client::split_message(const std::string& msg)
 {
+  ScopedProfiler profile;
   // in case splitter is bad
   SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", msg.size(), msg.c_str());
   
@@ -81,6 +83,7 @@ void Client::split_message(const std::string& msg)
 
 void Client::read(uint8_t* buf, size_t len)
 {
+  ScopedProfiler profile;
   while (len > 0) {
     
     int search = -1;
@@ -142,7 +145,7 @@ void Client::send_from(const std::string& from, const std::string& text)
   int len = snprintf(data, sizeof(data),
     ":%s %s\r\n", from.c_str(), text.c_str());
   
-  conn->write(data, len);
+  send_raw(data, len);
 }
 void Client::send_from(const std::string& from, uint16_t numeric, const std::string& text)
 {
@@ -150,7 +153,7 @@ void Client::send_from(const std::string& from, uint16_t numeric, const std::str
   int len = snprintf(data, sizeof(data),
     ":%s %03u %s\r\n", from.c_str(), numeric, text.c_str());
   
-  conn->write(data, len);
+  send_raw(data, len);
 }
 void Client::send(uint16_t numeric, std::string text)
 {
@@ -162,9 +165,21 @@ void Client::send(uint16_t numeric, std::string text)
 }
 void Client::send_raw(const char* buff, size_t len)
 {
+  if (!conn->is_connected()) {
+    //printf("!! Skipped dead connection: %s\n", conn->state().to_string().c_str());
+    return;
+  }
   //static YieldCounter counter(100);
   conn->write(buff, len);
   //++counter;
+}
+void Client::send_buffer(net::tcp::buffer_t buff, size_t len)
+{
+  if (!conn->is_connected()) {
+    //printf("!! Skipped dead connection: %s\n", conn->state().to_string().c_str());
+    return;
+  }
+  conn->write(buff, len);
 }
 
 

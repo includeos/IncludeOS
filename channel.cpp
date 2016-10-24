@@ -225,16 +225,22 @@ void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg
 
 void Channel::bcast(const char* buff, size_t len)
 {
+  auto sbuf = net::tcp::new_shared_buffer(len);
+  memcpy(sbuf.get(), buff, len);
+  
   // broadcast to all users in channel
   for (auto cl : clients()) {
-      server.get_client(cl).send_raw(buff, len);
+      server.get_client(cl).send_buffer(sbuf, len);
   }
 }
 void Channel::bcast_butone(index_t src, const char* buff, size_t len)
 {
+  auto sbuf = net::tcp::new_shared_buffer(len);
+  memcpy(sbuf.get(), buff, len);
+  
   // broadcast to all users in channel except source
   for (auto cl : clients())
   if (likely(cl != src)) {
-    server.get_client(cl).send_raw(buff, len);
+      server.get_client(cl).send_buffer(sbuf, len);
   }
 }

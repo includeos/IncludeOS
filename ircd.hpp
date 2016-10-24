@@ -45,12 +45,13 @@ public:
     return motd_func();
   }
   
-  inline Client& get_client(clindex_t idx) {
+  Client& get_client(clindex_t idx) {
     return clients.at(idx);
   }
+  void new_registered_client(Client&);
   void free_client(Client&);
   
-  inline Channel& get_channel(chindex_t idx) {
+  Channel& get_channel(chindex_t idx) {
     return channels.at(idx);
   }
   void free_channel(Channel&);
