@@ -19,19 +19,19 @@
 #ifndef INCLUDE_TCP_FD_HPP
 #define INCLUDE_TCP_FD_HPP
 
-#include "fd.hpp"
+#include "sockfd.hpp"
 #include <net/inet4>
 #include <ringbuffer>
 
 struct TCP_FD_Conn;
 struct TCP_FD_Listen;
 
-class TCP_FD : public FD {
+class TCP_FD : public SockFD {
 public:
   using id_t = int;
 
   explicit TCP_FD(int id)
-    : FD(id)
+    : SockFD(id)
   {}
 
   int     read(void*, size_t) override;
