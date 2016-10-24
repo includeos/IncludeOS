@@ -89,6 +89,8 @@ namespace hw {
       return "eth" + std::to_string(N);
     }
 
+    virtual void deactivate() = 0;
+
   protected:
     /**
      *  Constructor

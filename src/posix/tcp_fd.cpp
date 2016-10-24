@@ -16,31 +16,14 @@
 // limitations under the License.
 
 #include <tcp_fd.hpp>
-#include <kernel/irq_manager.hpp>
+#include <fd_map.hpp>
+#include <kernel/os.hpp>
 
 using namespace net;
 
 // return the "currently selected" networking stack
 static Inet4& net_stack() {
   return Inet4::stack<> ();
-}
-
-void TCP_FD::recv_to_ringbuffer(net::tcp::buffer_t buffer, size_t len)
-{
-  if (readq.free_space() < (int) len) {
-    // make room for data
-    int needed = len - readq.free_space();
-    int discarded = readq.discard(needed);
-    assert(discarded == needed);
-  }
-  // add data to ringbuffer
-  int written = readq.write(buffer.get(), len);
-  assert(written = len);
-}
-void TCP_FD::set_default_read()
-{
-  // readq buffering (4kb at a time)
-  conn->on_read(4096, {this, &TCP_FD::recv_to_ringbuffer});
 }
 
 int TCP_FD::read(void* data, size_t len)
@@ -54,16 +37,17 @@ int TCP_FD::write(const void* data, size_t len)
 
 int TCP_FD::close()
 {
-  if (this->conn) {
-    this->conn->close();
-    // wait for connection to close completely
-    while (!conn->is_closed()) {
-      OS::halt();
-      IRQ_manager::get().process_interrupts();
-    }
-    // free connection
-    this->conn = nullptr;
-    return 0;
+  // connection
+  if (this->cd) {
+    int ret = cd->close();
+    delete cd; cd = nullptr;
+    return ret;
+  }
+  // listener
+  if (this->ld) {
+    int ret = ld->close();
+    delete ld; ld = nullptr;
+    return ret;
   }
   errno = EBADF;
   return -1;
@@ -71,14 +55,19 @@ int TCP_FD::close()
 
 int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
-  if (this->conn) {
+  if (is_listener()) {
+    // already listening on port
+    errno = EINVAL;
+    return -1;
+  }
+  if (this->cd) {
     // if its straight-up connected, return that
-    if (this->conn->is_connected()) {
+    if (cd->conn->is_connected()) {
       errno = EISCONN;
       return -1;
     }
     // if the connection isn't closed, we can just assume its being used already
-    if (!this->conn->is_closed()) {
+    if (!cd->conn->is_closed()) {
       errno = EALREADY;
       return -1;
     }
@@ -108,23 +97,115 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   }
   // set connection whether good or bad
   if (outgoing->is_connected()) {
-    this->conn = outgoing;
-    set_default_read();
+    // out with the old
+    delete this->cd;
+    // in with the new
+    this->cd = new TCP_FD_Conn(outgoing);
+    cd->set_default_read();
     return 0;
   }
-  this->conn = nullptr;
+  // failed to connect
+  // TODO: try to distinguish the reason for connection failure
+  errno = ECONNREFUSED;
   return -1;
 }
 
 
-ssize_t TCP_FD::send(const void* data, size_t len, int)
+ssize_t TCP_FD::send(const void* data, size_t len, int fmt)
 {
-  if (!conn) {
-    errno = EBADF;
+  if (!cd) {
+    errno = EINVAL;
     return -1;
   }
-  if (!conn->is_connected()) {
-    //errno = ?
+  return cd->send(data, len, fmt);
+}
+ssize_t TCP_FD::recv(void* dest, size_t len, int flags)
+{
+  if (!cd) {
+    errno = EINVAL;
+    return -1;
+  }
+  return cd->recv(dest, len, flags);
+}
+
+int TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
+{
+  if (!ld) {
+    errno = EINVAL;
+    return -1;
+  }
+  return ld->accept(addr, addr_len);
+}
+int TCP_FD::listen(int backlog)
+{
+  if (!ld) {
+    errno = EINVAL;
+    return -1;
+  }
+  return ld->listen(backlog);
+}
+int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
+{
+  //
+  if (cd) {
+    errno = EINVAL;
+    return -1;
+  }
+  // verify socket address
+  if (addrlen != sizeof(sockaddr_in)) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+  auto* sin = (sockaddr_in*) addr;
+  // verify its AF_INET
+  if (sin->sin_family != AF_INET) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+  // ignore IP address (FIXME?)
+  /// verify that the IP is "local"
+  try {
+    // use sin_port for bind
+    auto& L = net_stack().tcp().bind(sin->sin_port);
+    // remove existing listener
+    if (ld) {
+      int ret = ld->close();
+      if (ret < 0) return ret;
+      delete ld;
+    }
+    // create new one
+    ld = new TCP_FD_Listen(L);
+    return 0;
+    
+  } catch (...) {
+    errno = EADDRINUSE;
+    return -1;
+  }
+}
+
+/// socket as connection
+
+void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer, size_t len)
+{
+  if (readq.free_space() < (int) len) {
+    // make room for data
+    int needed = len - readq.free_space();
+    int discarded = readq.discard(needed);
+    assert(discarded == needed);
+  }
+  // add data to ringbuffer
+  int written = readq.write(buffer.get(), len);
+  assert(written = len);
+}
+void TCP_FD_Conn::set_default_read()
+{
+  // readq buffering (4kb at a time)
+  conn->on_read(4096, {this, &TCP_FD_Conn::recv_to_ringbuffer});
+}
+ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
+{
+  if (not conn->is_connected()) {
+    errno = ENOTCONN;
     return -1;
   }
 
@@ -134,21 +215,16 @@ ssize_t TCP_FD::send(const void* data, size_t len, int)
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {
-    OS::halt();
-    IRQ_manager::get().process_interrupts();
+    OS::block();
   }
   return len;
 }
-ssize_t TCP_FD::recv(void* dest, size_t len, int)
+ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
 {
-  if (!conn) {
-    errno = EBADF;
-    return -1;
-  }
   // if the connection is closed or closing: read returns 0
   if (conn->is_closed() || conn->is_closing()) return 0;
   if (not conn->is_connected()) {
-    //errno = ?
+    errno = ENOTCONN;
     return -1;
   }
   // read some bytes from readq
@@ -169,19 +245,61 @@ ssize_t TCP_FD::recv(void* dest, size_t len, int)
 
   // BLOCK HERE
   while (!done || !conn->is_readable()) {
-    OS::halt();
-    IRQ_manager::get().process_interrupts();
+    OS::block();
   }
   // restore
-  set_default_read();
+  this->set_default_read();
   return bytes;
 }
-
-int TCP_FD::accept(struct sockaddr *__restrict__, socklen_t *__restrict__)
+int TCP_FD_Conn::close()
 {
-  return -1;
+  conn->close();
+  // wait for connection to close completely
+  while (!conn->is_closed()) {
+    OS::block();
+  }
+  return 0;
 }
-int TCP_FD::bind(const struct sockaddr *, socklen_t)
+
+/// socket as listener
+
+int TCP_FD_Listen::listen(int backlog)
 {
-  return -1;
+  listener.on_connect(
+  [this, backlog] (net::tcp::Connection_ptr conn)
+  {
+    // remove oldest if full
+    if ((int) this->connq.size() >= backlog)
+        this->connq.pop_back();
+    // new connection
+    this->connq.push_front(conn);
+    /// if someone is blocking they should be leaving right about now
+  });
+  return 0;
+}
+int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
+{
+  // block until connection appears
+  while (connq.empty()) {
+    OS::block();
+  }
+  // create TCP socket
+  auto& fd = FD_map::_open<TCP_FD>();
+  // assign existing connection to socket
+  auto sock = connq.front();
+  fd.cd = new TCP_FD_Conn(sock);
+  connq.pop_front();
+  // set address and length
+  auto* sin = (sockaddr_in*) addr;
+  sin->sin_family      = AF_INET;
+  sin->sin_port        = sock->remote().port();
+  sin->sin_addr.s_addr = sock->remote().address().whole;
+  *addr_len = sizeof(sockaddr_in);
+  // return socket
+  return fd.get_id();
+}
+int TCP_FD_Listen::close()
+{
+  net_stack().tcp().unbind(listener.local().port());
+  return 0;
 }

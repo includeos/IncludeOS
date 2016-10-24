@@ -23,7 +23,7 @@ static net::Inet4& net_stack() {
   return net::Inet4::stack<> ();
 }
 
-void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char* buffer, size_t len)
+void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t)
 {
   // buffer somehow
 }
@@ -33,13 +33,13 @@ void UDP_FD::set_default_recv()
   this->sock->on_read({this, &UDP_FD::recv_to_buffer});
 }
 
-int UDP_FD::read(void*, size_t)
+int UDP_FD::read(void* buffer, size_t len)
 {
-  return -1;
+  return recv(buffer, len, 0);
 }
-int UDP_FD::write(const void*, size_t)
+int UDP_FD::write(const void* buffer, size_t len)
 {
-  return -1;
+  return send(buffer, len, 0);
 }
 int UDP_FD::close()
 {
@@ -68,6 +68,44 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
     return -1;
   }
 }
+int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
+{
+  // The specified address is not a valid address for the address family of the specified socket.
+  if(UNLIKELY(address_len != sizeof(struct sockaddr_in))) {
+    errno = EAFNOSUPPORT;
+    return -1;
+  }
+
+  // If the socket has not already been bound to a local address,
+  // connect() shall bind it to an address which is an unused local address.
+  if(this->sock == nullptr)
+    this->sock = &net_stack().udp().bind();
+
+  const auto& addr = *((sockaddr_in*)address);
+  if (addr.sin_family == AF_UNSPEC)
+  {
+    peer_.sin_addr.s_addr = 0;
+    peer_.sin_port        = 0;
+  }
+  else
+  {
+    peer_.sin_family = AF_INET;
+    peer_.sin_addr   = addr.sin_addr;
+    peer_.sin_port   = addr.sin_port;
+  }
+
+  return 0;
+}
+ssize_t UDP_FD::send(const void* message, size_t len, int flags)
+{
+  if(!is_connected()) {
+    errno = EDESTADDRREQ;
+    return -1;
+  }
+
+  return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
+}
+
 ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
   const struct sockaddr* dest_addr, socklen_t dest_len)
 {
@@ -97,6 +135,10 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
     IRQ_manager::get().process_interrupts();
   }
   return len;
+}
+ssize_t UDP_FD::recv(void* buffer, size_t len, int flags)
+{
+  return recvfrom(buffer, len, flags, nullptr, 0);
 }
 ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
   struct sockaddr *__restrict__ address, socklen_t *__restrict__ address_len)

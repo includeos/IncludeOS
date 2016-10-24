@@ -7,33 +7,66 @@ set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # get new stack protector value
+execute_process(COMMAND git describe --dirty
+	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
+	        OUTPUT_VARIABLE OS_VERSION)
+string(STRIP ${OS_VERSION} OS_VERSION)
+
+# get current project version from git
 execute_process(COMMAND awk "BEGIN{srand(); print int(rand()*65536)}"
                 OUTPUT_VARIABLE STACK_PROTECTOR_VALUE)
 string(STRIP ${STACK_PROTECTOR_VALUE} STACK_PROTECTOR_VALUE)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(COMMON_CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE}")
+set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${COMMON_CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
+set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
+
 set(WARNS  "-Wall -Wextra") #-pedantic
-set(DEBUG_OPTS "-ggdb3")
+
+# configure options
+option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
+option(debug-info "Build like \"all\" but with debugging output (i.e. the 'debug'-macro) enabled" OFF)
+option(debug-all "Build with debugging symbols + debugging ouput, i.e. \"debug\" + \"debug-info\"" OFF)
+option(minimal "Build for minimal size" OFF)
+option(stripped "reduce size" OFF)
+
+# set optimization level
+
+if(debug OR debug-info OR debug-all)
+	set(CAPABS "${CAPABS} -O0")
+endif(debug OR debug-info OR debug-all)
+
+if(minimal)
+	set(CAPABS "${CAPABS} -Os")
+endif(minimal)
+
+if(stripped)
+	set(CAPABS "${CAPABS} -O2")
+endif(stripped)
+
+if(debug OR debug-all)
+	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
+endif(debug OR debug-all)
+
+if(debug-info OR debug-all)
+	set(CAPABS "${CAPABS} -UNO_DEBUG")
+endif(debug-info OR debug-all)
+
+option(silent OFF)
+if(silent)
+	set(CAPABS "${CAPABS} -DNO-INFO=1")
+endif(silent)
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\\\"v0.8.1-709-gf8fccf4\\\"\"")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\\\"v0.8.1-709-gf8fccf4\\\"\"")
+set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
-# TODO: use right variables
-option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
-if(debug)
-	list(append CAPABS "-O0")
-	list(append CMAKE_CXX_FLAGS ${DEBUG_OPTS})
-	list(append CPPOPTS "-DGSL_THROW_ON_CONTRACT_VIOLATION")
-endif(debug)
 
 add_subdirectory(src)
 add_subdirectory(vmbuild)

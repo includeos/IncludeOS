@@ -481,6 +481,18 @@ void VirtioNet::handle_deferred_devices()
 #endif
 }
 
+void VirtioNet::deactivate()
+{
+  /// disable interrupts on virtio queues
+  rx_q.disable_interrupts();
+  tx_q.disable_interrupts();
+  ctrl_q.disable_interrupts();
+  
+  /// mask off MSI-X vectors
+  if (is_msix())
+      deactivate_msix();
+}
+
 #include <kernel/pci_manager.hpp>
 
 /** Register VirtioNet's driver factory at the PCI_manager */

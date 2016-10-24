@@ -65,8 +65,6 @@ public:
     Driver_factory<Device_type> driver_factory)
   {
     drivers<Device_type>().emplace(get_driver_id(vendor, product), driver_factory);
-    // printf is not available when global constructor is called, workaround?
-    //INFO("PCI Manager", "Driver registered");
   }
 
   /** Currently a combination of Model + Product (we don't care about the revision etc. atm.)*/

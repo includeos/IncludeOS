@@ -174,6 +174,9 @@ endif
 servicefile:
 	@echo $(SERVICE).img
 
+kernelfile:
+	@echo $(SERVICE)
+
 # Object files
 ###################################################
 

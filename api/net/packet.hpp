@@ -102,12 +102,8 @@ namespace net
     { return chain_.get(); }
 
     /* Get the tail, and detach it from the head (for FIFO) */
-    auto detach_tail() noexcept
-    {
-      auto tail = std::move(chain_);
-      chain_ = 0;
-      return tail;
-    }
+    Packet_ptr detach_tail() noexcept
+    { return std::move(chain_); }
 
 
     /**

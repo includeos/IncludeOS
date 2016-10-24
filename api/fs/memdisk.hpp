@@ -54,6 +54,8 @@ namespace fs {
 
     explicit MemDisk() noexcept;
 
+    void deactivate() override;
+
   private:
     const char* const image_start_;
     const char* const image_end_;

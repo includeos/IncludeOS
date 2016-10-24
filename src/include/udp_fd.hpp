@@ -27,30 +27,37 @@ public:
   using id_t = int;
 
   explicit UDP_FD(const int id)
-    : FD(id), non_blocking_(false), broadcast_(false),
-      connection_({0,0})
-  {}
+    : FD(id), non_blocking_(false), broadcast_(false)
+  {
+    memset((char *)&peer_, 0, sizeof(peer_));
+  }
 
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
+
   /** SOCKET */
   int     bind(const struct sockaddr *, socklen_t) override;
+  int     connect(const struct sockaddr *, socklen_t) override;
+
+  ssize_t send(const void *, size_t, int fl) override;
   ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) override;
+
+  ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
-
-  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
-  void set_default_recv();
-
-  bool is_connected() const
-  { return connection_.first != 0; }
 
 private:
   net::UDPSocket* sock = nullptr;
   bool non_blocking_;
   bool broadcast_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
-  std::pair<in_addr_t, in_port_t> connection_;
+  struct sockaddr_in peer_;
+
+  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
+  void set_default_recv();
+
+  bool is_connected() const
+  { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
 };
 
 #endif
