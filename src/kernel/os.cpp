@@ -199,7 +199,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(2));
+  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
   INFO2("+--> %f MHz", cpu_freq().count());
 
   // cpu_mhz must be known before we can start timer system
@@ -255,7 +255,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   Service::start(os_cmdline);
 
   // do CPU frequency measurements again with more samples
-  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
+  //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
 
   event_loop();
 }
