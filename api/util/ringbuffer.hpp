@@ -24,9 +24,9 @@
 class RingBuffer {
 public:
   RingBuffer(int size)
-    : cap(size), start(0), end(0)
+    : cap(size), start(0), end(0), used(0)
   {
-    assert(size > 1);
+    assert(size > 0);
     this->buffer = new char[capacity()];
   }
   ~RingBuffer()
@@ -37,9 +37,8 @@ public:
   int write(const void* buffer, int length) noexcept
   {
     const char* data = (const char*) buffer;
-    const int fspace = free_space();
-    if (length > fspace) {
-      length = fspace;
+    if (length > free_space()) {
+      length = free_space();
       if (length == 0) return 0;
     }
 
@@ -53,6 +52,7 @@ public:
     else {
       memcpy(at_end(), data, length);
     }
+    this->used += length;
     // make sure it wraps properly around
     this->end = (this->end + length) % capacity();
     return length;
@@ -60,9 +60,8 @@ public:
 
   int read(char* dest, int length) noexcept
   {
-    const int s = size();
-    if (length > s) {
-      length = s;
+    if (length > used_space()) {
+      length = used_space();
       if (length == 0) return 0;
     }
 
@@ -75,6 +74,7 @@ public:
     } else {
       memcpy(dest, at_start(), length);
     }
+    this->used -= length;
     // make sure it wraps properly around
     this->start = (this->start + length) % capacity();
     return length;
@@ -83,8 +83,9 @@ public:
   int discard(int length) noexcept
   {
     // do nothing if not enough used space to discard anyway
-    if (length > size()) return 0;
+    if (length > used_space()) return 0;
     // commit no-op write and return length
+    this->used -= length;
     this->start = (this->start + length) % capacity();
     return length;
   }
@@ -93,24 +94,21 @@ public:
     return this->cap;
   }
   int size() const noexcept {
-    if (end >= start)
-        return end - start;
-    else
-        return (cap - start) + end;
+    return used_space();
   }
   
   int used_space() const noexcept {
-    return size();
+    return this->used;
   }
   int free_space() const noexcept {
-    return capacity() - size();
+    return capacity() - used_space();
   }
 
   bool full() const noexcept {
-    return size() == capacity();
+    return used_space() == capacity();
   }
   bool empty() const noexcept {
-    return size() == 0;
+    return used_space() == 0;
   }
 
 private:
@@ -122,9 +120,10 @@ private:
   }
 
   char* buffer;
-  int   cap;
+  int  cap;
   int  start;
   int  end;
+  int  used;
 };
 
 #endif

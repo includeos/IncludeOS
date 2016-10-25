@@ -21,10 +21,10 @@
 
 CASE("A new ringbuffer is empty")
 {
-  RingBuffer rb(2);
-  EXPECT(rb.capacity() == 2);
+  RingBuffer rb(1);
+  EXPECT(rb.capacity() == 1);
   
-  EXPECT(rb.free_space() == 2);
+  EXPECT(rb.free_space() == 1);
   EXPECT(rb.used_space() == 0);
   
   EXPECT(rb.full()  == false);
@@ -51,4 +51,66 @@ CASE("Adding bytes to ringbuffer")
   
   EXPECT(rb.full()  == true);
   EXPECT(rb.empty() == false);
+  
+  EXPECT(rb.size() == rb.used_space());
+}
+CASE("Reading bytes to ringbuffer")
+{
+  RingBuffer rb(2);
+  int written;
+  
+  written = rb.write("1", 1);
+  EXPECT(written == 1);
+  written = rb.write("2", 1);
+  EXPECT(written == 1);
+  
+  char buffer[1];
+  int read;
+  
+  read = rb.read(buffer, sizeof(buffer));
+  EXPECT(read == 1);
+  EXPECT(buffer[0] == '1');
+  
+  EXPECT(rb.used_space() == 1);
+  EXPECT(rb.free_space() == 1);
+  
+  read = rb.read(buffer, sizeof(buffer));
+  EXPECT(read == 1);
+  EXPECT(buffer[0] == '2');
+  
+  EXPECT(rb.used_space() == 0);
+  EXPECT(rb.free_space() == 2);
+  
+  EXPECT(rb.full()  == false);
+  EXPECT(rb.empty() == true);
+  
+  EXPECT(rb.size() == rb.used_space());
+}
+CASE("We can discard data")
+{
+  RingBuffer rb(10);
+  int written;
+  
+  written = rb.write("12345", 5);
+  EXPECT(written == 5);
+  written = rb.write("67890", 5);
+  EXPECT(written == 5);
+  
+  // discard half the data
+  rb.discard(5);
+  
+  EXPECT(rb.used_space() == 5);
+  EXPECT(rb.free_space() == 5);
+  
+  EXPECT(rb.full()  == false);
+  EXPECT(rb.empty() == false);
+  
+  // discard the rest
+  rb.discard(5);
+  
+  EXPECT(rb.used_space() == 0);
+  EXPECT(rb.free_space() == rb.capacity());
+  
+  EXPECT(rb.full()  == false);
+  EXPECT(rb.empty() == true);
 }
