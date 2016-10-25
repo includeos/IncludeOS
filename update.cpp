@@ -114,6 +114,10 @@ void Storage::add_buffer(uint16_t id, buffer_len blob)
 {
   hdr->add_buffer(id, blob.buffer, blob.length);
 }
+void Storage::add_buffer(uint16_t id, void* buf, size_t len)
+{
+  hdr->add_buffer(id, (char*) buf, len);
+}
 
 #include "serialize_tcp.hpp"
 void Storage::add_connection(uid id, Connection conn)

@@ -20,9 +20,13 @@
 #include <net/inet4>
 #include "update.hpp"
 
-net::tcp::Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
+// prevent default serial out
+void default_stdout_handlers() {}
+#include <hw/serial.hpp>
 
-std::vector<net::tcp::Connection_ptr> saveme;
+typedef net::tcp::Connection_ptr Connection_ptr;
+Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
+std::vector<Connection_ptr> saveme;
 
 void setup_terminal(net::Inet4& inet)
 {
@@ -33,6 +37,8 @@ void setup_terminal(net::Inet4& inet)
   term.on_connect(
   [] (auto conn) {
     saveme.push_back(conn);
+    // write a string to change the state
+    conn->write("State change SeemsGood\n");
     // retrieve binary
     conn->on_read(1024,
     [conn] (net::tcp::buffer_t buf, size_t n)
@@ -44,6 +50,13 @@ void setup_terminal(net::Inet4& inet)
 
 void Service::start(const std::string&)
 {
+  // add own serial out after service start
+  auto& com1 = hw::Serial::port<1>();
+  OS::add_stdout(com1.get_print_handler());
+
+  printf("Starting LiveUpdate test service\n\n");
+  printf("CPU freq is %f MHz\n", OS::cpu_freq().count());
+
   auto& inet = net::Inet4::ifconfig<0>(
         { 10,0,0,42 },     // IP
         { 255,255,255,0 }, // Netmask
@@ -82,28 +95,36 @@ void Service::start(const std::string&)
   /// attempt to resume (if there is anything to resume)
   void the_string(Restore);
   void the_buffer(Restore);
+  void the_timing(Restore);
   void restore_term(Restore);
   void on_missing(Restore);
 
   LiveUpdate::on_resume(1,   the_string);
   LiveUpdate::on_resume(2,   the_buffer);
+  LiveUpdate::on_resume(100, the_timing);
   LiveUpdate::on_resume(666, restore_term);
   LiveUpdate::resume(on_missing);
 }
 
+#include <hw/cpu.hpp>
 void save_stuff(Storage storage)
 {
-  char buffer[] = "Just some random buffer";
-  /// without string: 0x103890
-  /// with string:    0x1038f0
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
+
+  char buffer[] = "Just some random buffer";
   storage.add_buffer(2, {buffer, sizeof(buffer)});
-  
+
+  auto ts = hw::CPU::rdtsc();
+  storage.add_buffer(100, &ts, sizeof(ts));
+  printf("ticks before: %lld\n", ts);
+
   for (auto conn : saveme)
       storage.add_connection(666, conn);
 }
 
+#include <hertz>
+#include <chrono>
 void the_string(Restore thing)
 {
   printf("The string [some_string] has value [%s]\n", thing.as_string().c_str());
@@ -117,16 +138,60 @@ void on_missing(Restore thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
 }
+
+struct restore_t
+{
+  Connection_ptr conn = nullptr;
+  char buffer[128];
+  int  len = 0;
+  
+  void set_conn(Connection_ptr conn)
+  {
+    this->conn = conn;
+    // also put this back in list of connections we store
+    saveme.push_back(conn);
+    
+    printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
+    // restore callback
+    conn->on_read(1024,
+    [] (net::tcp::buffer_t buf, size_t n)
+    {
+      printf("Received message: %.*s\n", n, buf.get());
+    });
+  }
+  
+  void try_send()
+  {
+    if (conn != nullptr && len != 0)
+    {
+      printf("Sending message: %.*s\n", len, buffer);
+      conn->write(buffer, len);
+    }
+  }
+};
+restore_t rest;
+
+void the_timing(Restore thing)
+{
+  auto ts1 = thing.as_type<int64_t> ();
+  auto ts2 = hw::CPU::rdtsc();
+
+  auto    diff = ts2-ts1;
+  double  div  = OS::cpu_freq().count() * 1000000.0;
+
+  using namespace std::chrono;
+  int64_t time = diff / div * 1000;
+
+  rest.len = snprintf(rest.buffer, sizeof(rest.buffer),
+             "Elapsed  diff=%lld  time: %lld ms\n", diff, time);
+
+  printf("%.*s", rest.len, rest.buffer);
+  rest.try_send();
+}
 void restore_term(Restore thing)
 {
   auto& stack = net::Inet4::stack<0> ();
-  auto conn = thing.as_tcp_connection(stack.tcp());
-  printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
-  
-  // restore callback
-  conn->on_read(1024,
-  [conn] (net::tcp::buffer_t buf, size_t n)
-  {
-    printf("Received RESTORED message: %.*s\n", n, buf.get());
-  });
+  rest.set_conn(thing.as_tcp_connection(stack.tcp()));
+  // try sending the boot timing
+  rest.try_send();
 }

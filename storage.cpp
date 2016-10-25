@@ -3,7 +3,7 @@
 #include <cassert>
 
 storage_header::storage_header(uint64_t value)
-  : magic(value)
+  : magic(value), entries(0), length(0)
 {
   //printf("%p --> %#llx\n", this, value);
 }

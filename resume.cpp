@@ -59,3 +59,7 @@ int32_t  Restore::length() const noexcept
 {
   return ent->len;
 }
+void*    Restore::data() const noexcept
+{
+  return ent->vla;
+}

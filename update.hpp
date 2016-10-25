@@ -18,6 +18,7 @@ struct Storage
   
   void add_string(uid, const std::string&);
   void add_buffer(uid, buffer_len);
+  void add_buffer(uid, void*, size_t);
   void add_connection(uid, Connection);
   
   
@@ -35,15 +36,23 @@ struct Restore
   buffer_len   as_buffer() const;
   Connection   as_tcp_connection(net::TCP&) const;
   
+  template <typename S>
+  inline S as_type() const;
+  
   int16_t  get_type() const noexcept;
   uint16_t get_id() const noexcept;
   int      length() const noexcept;
+  void*    data() const noexcept;
   
   Restore(storage_entry* e) : ent(e) {}
 private:
   storage_entry* ent;
 };
 
+template <typename S>
+inline S Restore::as_type() const {
+  return *(S*) data();
+}
 
 struct LiveUpdate
 {
