@@ -158,6 +158,10 @@ struct restore_t
     {
       printf("Received message: %.*s\n", n, buf.get());
     });
+    conn->on_close(
+    [conn] {
+      printf("Terminal %s closed\n", conn->to_string().c_str());
+    });
   }
   
   void try_send()

@@ -57,6 +57,7 @@ storage_header::create_entry(Args&&... args)
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;
-
+  // make sure storage is properly EOF'd
+  ((storage_entry*) &vla[length])->type = TYPE_END;
   return *entry;
 }
