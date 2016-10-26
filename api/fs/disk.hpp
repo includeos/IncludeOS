@@ -40,7 +40,7 @@
  * /// Construct custom filesystem ///
  *
  * // constructing on MBR means mount on sector 0
- * disk->mount<MyFileSystem>(filesystem_args..., Disk::MBR,
+ * disk->mount<MyFile_system>(filesystem_args..., Disk::MBR,
  * [disk] {
  *   printf("Disk mounted!\n");
  *   auto& fs = disk->fs();
@@ -142,14 +142,14 @@ namespace fs {
 
     // Returns a reference to a mounted filesystem
     // If no filesystem is mounted, the results are undefined
-    FileSystem& fs() noexcept
+    File_system& fs() noexcept
     { return *filesys; }
 
   private:
     void internal_mount(partition_t part, on_mount_func func);
 
     hw::Drive& device;
-    std::unique_ptr<FileSystem> filesys;
+    std::unique_ptr<File_system> filesys;
   }; //< class Disk
 
   using Disk_ptr = std::shared_ptr<Disk>;

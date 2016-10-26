@@ -29,7 +29,7 @@ namespace fs
 {
   class Path;
 
-  struct EXT4 : public FileSystem
+  struct EXT4 : public File_system
   {
     /**
        Blocks                      2^32           2^32    2^32     2^32
