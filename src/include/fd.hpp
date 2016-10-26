@@ -53,6 +53,8 @@ public:
 
   id_t get_id() const noexcept { return id_; }
 
+  virtual bool is_socket() { return false; }
+
   bool operator==(const FD& fd) const noexcept { return id_ == fd.id_; }
   bool operator!=(const FD& fd) const noexcept { return !(*this == fd); }
 

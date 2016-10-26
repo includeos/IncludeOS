@@ -136,12 +136,8 @@ namespace hw {
     static inline MHz current_frequency(){ return frequency() / current_freq_divider_; }
 
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
-        @Note This is an asynchronous function. Once finished the result can be
-        fetched by CPUFrequency() (below)  */
-    static void estimate_CPU_frequency();
-
-    /** Get the last estimated CPU frequency.  May trigger frequency sampling */
-    static MHz CPU_frequency();
+        @Note This is an asynchronous function.  */
+    static double estimate_CPU_frequency(int samples);
 
 
   private:
