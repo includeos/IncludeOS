@@ -19,7 +19,7 @@ vm = vmrunner.vms[0]
 
 ping_count = 3
 
-def DHCP_test():
+def DHCP_test(trigger_line):
   print "<Test.py> Got IP"
   ip_string = vm.readline()
   print "<Test.py> Assigned address: ", ip_string

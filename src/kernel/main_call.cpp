@@ -28,20 +28,31 @@ void Service::start(const std::string& cmd)
   std::string st(cmd); // mangled copy
   int argc = 0;
   const char* argv[ARGS_MAX];
-  
-  // Populate argv
-  char* begin = (char*) st.data();
-  char* end   = begin + st.size();
-  
-  for (char* ptr = begin; ptr < end; ptr++)
-  if (std::isspace(*ptr)) {
-    argv[argc++] = begin;
-    *ptr = 0;      // zero terminate
-    begin = ptr+1; // next arg
-    if (argc >= ARGS_MAX) break;
+
+  // Get pointers to null-terminated string
+  char* word = (char*) st.c_str();
+  char* end   = word + st.size() + 1;
+  bool new_word = false;
+
+  for (char* ptr = word; ptr < end; ptr++) {
+
+    // Replace all spaces with 0
+    if(std::isspace(*ptr)) {
+      *ptr = 0;
+      new_word = true;
+      continue;
+    }
+
+    // At the start of each word, or last byte, add previous pointer to array
+    if (new_word or ptr == end - 1) {
+      argv[argc++] = word;
+      word = ptr; // next arg
+      if (argc >= ARGS_MAX) break;
+      new_word = false;
+    }
   }
 
   int exit_status = main(argc, argv);
   INFO("main","returned with status %d", exit_status);
-  //exit(exit_status);
+
 }

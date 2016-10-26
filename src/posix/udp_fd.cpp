@@ -54,7 +54,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   }
   // The specified address is not a valid address for the address family of the specified socket.
   if(UNLIKELY(len != sizeof(struct sockaddr_in))) {
-    errno = EAFNOSUPPORT;
+    errno = EINVAL;
     return -1;
   }
   // Bind
@@ -72,7 +72,7 @@ int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
   // The specified address is not a valid address for the address family of the specified socket.
   if(UNLIKELY(address_len != sizeof(struct sockaddr_in))) {
-    errno = EAFNOSUPPORT;
+    errno = EINVAL;
     return -1;
   }
 

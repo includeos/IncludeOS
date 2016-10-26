@@ -20,15 +20,15 @@ server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 server.bind((S_HOST, S_PORT))
 
-def UDP_send():
+def UDP_send(trigger_line):
   HOST, PORT = '10.0.0.45', 1042
   MESSAGE = "POSIX is for hipsters"
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+    
   sock.sendto(MESSAGE, (HOST, PORT))
 
-def UDP_recv():
+def UDP_recv(trigger_line):
   received = server.recv(1024)
   return received == S_MESSAGE
 
@@ -39,3 +39,4 @@ vm.on_output("send() and connect()", UDP_recv)
 
 # Boot the VM, taking a timeout as parameter
 vm.make().boot(10)
+
