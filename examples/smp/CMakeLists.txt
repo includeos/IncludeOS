@@ -5,7 +5,7 @@ set(SERVICE_SOURCES service.cpp ${INCLUDEOS_INSTALL_DIR}/service_name.cpp)
 
 add_executable(smp_service ${SERVICE_SOURCES} $<TARGET_OBJECTS:multiboot>)
 
-set_target_properties(smp_service PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE_NAME=${SERVICE_NAME}")
+set_target_properties(smp_service PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE_NAME=${SERVICE_NAME} -DSERVICE=\\\"${SERVICE}\\\"")
 
 set_target_properties(smp_service PROPERTIES LINK_FLAGS "${EXAMPLE_LINK_FLAGS}")
 

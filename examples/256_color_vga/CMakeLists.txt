@@ -10,7 +10,7 @@ set(SERVICE_SOURCES service.cpp int32.asm ${INCLUDEOS_INSTALL_DIR}/service_name.
 
 add_executable(256_color_vga ${SERVICE_SOURCES} $<TARGET_OBJECTS:multiboot>)
 
-set_target_properties(256_color_vga PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE_NAME=${SERVICE_NAME}")
+set_target_properties(256_color_vga PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE_NAME=${SERVICE_NAME} -DSERVICE=\\\"${SERVICE}\\\"")
 
 set_target_properties(256_color_vga PROPERTIES LINK_FLAGS "${EXAMPLE_LINK_FLAGS}")
 
