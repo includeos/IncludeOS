@@ -21,14 +21,15 @@ set(OS_OBJECTS
   kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
   kernel/interrupts.asm kernel/os.cpp kernel/os_stdout.cpp kernel/cpuid.cpp 
   kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp 
+  kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp 
-  kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
+  kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm
   kernel/timers.cpp kernel/rtc.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
-  hw/ps2.cpp hw/serial.cpp hw/cmos.cpp hw/drive.cpp
+  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/drive.cpp
   hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
   hw/apic_revenant.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp
@@ -48,7 +49,7 @@ add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 
-add_library(libc++abi.a STATIC ${CXX_ABI})
+add_library(c++abi STATIC ${CXX_ABI})
 
 add_library(libcrt OBJECT crt/crti.s crt/crtn.s)
 
