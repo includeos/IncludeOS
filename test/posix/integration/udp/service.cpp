@@ -123,6 +123,12 @@ int main()
 
   CHECKSERT(i == 5, "Received 5 messages");
 
+  INFO("UDP Socket", "close()");
+
+  res = close(fd);
+  CHECKSERT(res == 0, "Close returns OK");
+  CHECKSERT(not inet.udp().is_bound(PORT), "Underlying OS socket is closed");
+
   return 0;
 }
 
