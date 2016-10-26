@@ -15,8 +15,6 @@ set(EXAMPLE_INCLUDES "-I${INCLUDEOS_INSTALL_DIR}/libcxx/include -I${INCLUDEOS_IN
 set(EXAMPLE_COMMON_LIBRARIES os ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a c++abi os ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
 function(add_example id example_name example_description example_sources)
-	message(STATUS "value is: " ${example_sources})
-
 	add_executable(${id} ${example_sources} $<TARGET_OBJECTS:multiboot>)
 
 	set_target_properties(${id} PROPERTIES COMPILE_FLAGS "${EXAMPLE_COMPILE_FLAGS} ${EXAMPLE_INCLUDES} -DSERVICE=\\\"${example_name}\\\" -DSERVICE_NAME=${example_description}")
@@ -41,6 +39,7 @@ endfunction(add_example id example_name example_description example_sources)
 add_subdirectory(256_color_vga)
 add_subdirectory(demo_service)
 add_subdirectory(dualnic)
+add_subdirectory(scoped_profiler)
 add_subdirectory(smp)
 add_subdirectory(snake)
 add_subdirectory(STREAM)
