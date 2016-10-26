@@ -182,6 +182,14 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
     return -1;
   }
 }
+int TCP_FD::shutdown(int mode)
+{
+  if (!cd) {
+    errno = EINVAL;
+    return -1;
+  }
+  return cd->shutdown(mode);
+}
 
 /// socket as connection
 
@@ -259,6 +267,27 @@ int TCP_FD_Conn::close()
     OS::block();
   }
   return 0;
+}
+int TCP_FD_Conn::shutdown(int mode)
+{
+  if (not conn->is_connected()) {
+    errno = ENOTCONN;
+    return -1;
+  }
+  switch (mode) {
+  case SHUT_RDRW:
+    conn->close();
+    return 0;
+  case SHUT_RD:
+    printf("Ignoring shutdown(SHUT_RD)\n");
+    return 0;
+  case SHUT_RW:
+    printf("Ignoring shutdown(SHUT_RW)\n");
+    return 0;
+  default:
+    errno = EINVAL;
+    return -1;
+  }
 }
 
 /// socket as listener

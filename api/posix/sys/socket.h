@@ -125,6 +125,20 @@ int     socket(int domain, int type, int protocol);
 int     socketpair(int domain, int type, int protocol,
                    int socket_vector[2]);
 
+enum
+{
+  SHUT_RD = 0,
+  SHUT_RW,
+  SHUT_RDRW
+};
+
+#define INVALID_SOCKET          ((SOCKET)(~0))
+#define SOCKET_ERROR            (-1)
+
+#define SD_RECEIVE SHUT_RD
+#define SD_SEND SHUT_WR
+#define SD_BOTH SHUT_RDWR
+
 #include "../netinet/in.h"
 
 #ifdef __cplusplus

@@ -45,6 +45,8 @@ public:
 
   ssize_t send(const void *, size_t, int fl) override;
   ssize_t recv(void*, size_t, int fl) override;
+  
+  int     shutdown(int) override;
 
   bool is_listener() const noexcept {
     return ld != nullptr;
@@ -75,6 +77,7 @@ struct TCP_FD_Conn
   ssize_t send(const void *, size_t, int fl);
   ssize_t recv(void*, size_t, int fl);
   int     close();
+  int     shutdown(int);
   
   net::tcp::Connection_ptr conn;
   RingBuffer readq;
@@ -89,6 +92,7 @@ struct TCP_FD_Listen
   int close();
   int listen(int);
   int accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
+  int shutdown(int);
   
   net::tcp::Listener& listener;
   std::deque<net::tcp::Connection_ptr> connq;
