@@ -3,7 +3,7 @@
 #################################################
 
 # The name of your service
-SERVICE = Demo_Service
+SERVICE = IncludeOS_Demo_Service
 SERVICE_NAME = IncludeOS Demo Service
 
 # Your service parts
