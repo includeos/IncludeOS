@@ -9,7 +9,7 @@ NETWORK=10.0.0.0
 DHCPRANGE=10.0.0.2,10.0.0.254
 
 # Check if bridge already is created
-if brctl show $BRIDGE 2>&1 | grep --silent "No such device"; then
+if sudo brctl show $BRIDGE 2>&1 | grep --silent "No such device"; then
   sudo brctl addbr $BRIDGE || exit 1
 fi
 
