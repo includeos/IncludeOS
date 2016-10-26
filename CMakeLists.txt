@@ -75,3 +75,6 @@ option(examples "Build example unikernels in /examples" ON)
 if(examples)
 	add_subdirectory(examples)
 endif(examples)
+
+enable_testing()
+add_subdirectory(test)
