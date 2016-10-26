@@ -38,6 +38,8 @@ public:
     (void)non_blocking_;
   }
 
+  ~UDP_FD();
+
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
@@ -52,18 +54,22 @@ public:
   ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
+  int     shutdown(int) override { return 0; }
+
   struct Message {
-    explicit Message(in_addr_t addr, in_port_t port,
-      char* buf, size_t len)
-      : data(buf, len)
+    explicit Message(const in_addr_t addr, const in_port_t port,
+      std::unique_ptr<char>&& buf, const size_t length)
+      : data(std::move(buf)), len(length)
     {
       src.sin_family      = AF_INET;
       src.sin_port        = port;
       src.sin_addr.s_addr = addr;
     }
-    struct sockaddr_in src;
-    gsl::span<char> data;
+    struct sockaddr_in    src;
+    std::unique_ptr<char> data;
+    size_t                len;
   };
+
 private:
   std::deque<Message> buffer_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
