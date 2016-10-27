@@ -1,3 +1,0 @@
-[submodule "test/lest"]
-	path = test/lest
-	url = https://github.com/martinmoene/lest.git
