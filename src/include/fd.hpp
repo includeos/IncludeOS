@@ -20,6 +20,7 @@
 #define INCLUDE_FD_HPP
 
 #include <sys/socket.h>
+#include <cstdarg>
 
 /**
  * @brief File descriptor
@@ -34,10 +35,13 @@ public:
     : id_(id)
   {}
 
+  /** FILES **/
   virtual int     read(void*, size_t) { return -1; }
   virtual int     write(const void*, size_t) { return -1; }
   virtual int     close() = 0;
-  /** SOCKET */
+  virtual int     fcntl(int, va_list);
+  
+  /** SOCKET **/
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
   virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
@@ -62,6 +66,7 @@ public:
 
 private:
   const id_t id_;
+  bool  non_blocking = false;
 };
 
 #endif
