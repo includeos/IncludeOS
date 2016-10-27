@@ -15,36 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fcntl.h>
-#include <fd_map.hpp>
-#include <cstdarg>
-#include <errno.h>
+#pragma once
+#ifndef POSIX_INET_H
+#define POSIX_INET_H
 
-int  creat(const char *, mode_t)
-{
-  return -1;
-}
-int fcntl(int fd, int cmd, ... /* arg */ )
-{
-  try {
-    auto& desc = FD_map::_get(fd);
-    va_list va;
-    va_start(va, cmd);
-    int ret = desc.fcntl(cmd, va);
-    va_end(va);
-    return ret;
-  }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
-  }
-}
+#define INADDR_ANY	     0x00000000
+#define INADDR_LOOPBACK	 0x7f000001
+#define INADDR_NONE	     0xffffffff
+#define INPORT_ANY	     0
 
-int  posix_fadvise(int, off_t, off_t, int)
-{
-  return -1;
-}
-int  posix_fallocate(int, off_t, off_t)
-{
-  return -1;
-}
+#endif
