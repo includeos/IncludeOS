@@ -41,6 +41,7 @@ public:
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
   virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
+  virtual int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     listen(int) { return -1; }
   virtual ssize_t recv(void *, size_t, int) { return 0; }
   virtual ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) { return 0; }

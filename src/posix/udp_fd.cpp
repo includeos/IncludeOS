@@ -150,7 +150,7 @@ ssize_t UDP_FD::send(const void* message, size_t len, int flags)
   return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
 }
 
-ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
+ssize_t UDP_FD::sendto(const void* message, size_t len, int,
   const struct sockaddr* dest_addr, socklen_t dest_len)
 {
   // The specified address is not a valid address for the address family of the specified socket.
@@ -244,4 +244,15 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
 
     return bytes;
   }
+}
+int UDP_FD::getsockopt(int level, int option_name,
+  void *option_value, socklen_t *option_len)
+{
+  return -1;
+}
+
+int UDP_FD::setsockopt(int level, int option_name,
+  const void *option_value, socklen_t option_len)
+{
+  return -1;
 }

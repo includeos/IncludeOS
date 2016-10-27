@@ -56,6 +56,9 @@ public:
 
   int     shutdown(int) override { return 0; }
 
+  int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__) override;
+  int     setsockopt(int, int, const void *, socklen_t) override;
+
   struct Message {
     explicit Message(const in_addr_t addr, const in_port_t port,
       std::unique_ptr<char>&& buf, const size_t length)
