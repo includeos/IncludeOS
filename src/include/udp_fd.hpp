@@ -19,18 +19,26 @@
 #ifndef INCLUDE_UDP_FD_HPP
 #define INCLUDE_UDP_FD_HPP
 
-#include "fd.hpp"
+#include "sockfd.hpp"
 #include <net/inet4>
+#include <gsl/span>
+#include <deque>
 
-class UDP_FD : public FD {
+class UDP_FD : public SockFD {
 public:
+  static const size_t BUF_LIMIT;
   using id_t = int;
 
   explicit UDP_FD(const int id)
-    : FD(id), non_blocking_(false), broadcast_(false)
+    : SockFD(id),
+      buffer_(), sock(nullptr),
+      non_blocking_(false), broadcast_(false)
   {
     memset((char *)&peer_, 0, sizeof(peer_));
+    (void)non_blocking_;
   }
+
+  ~UDP_FD();
 
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
@@ -46,18 +54,38 @@ public:
   ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
+  int     shutdown(int) override { return 0; }
+
+  struct Message {
+    explicit Message(const in_addr_t addr, const in_port_t port,
+      std::unique_ptr<char>&& buf, const size_t length)
+      : data(std::move(buf)), len(length)
+    {
+      src.sin_family      = AF_INET;
+      src.sin_port        = port;
+      src.sin_addr.s_addr = addr;
+    }
+    struct sockaddr_in    src;
+    std::unique_ptr<char> data;
+    size_t                len;
+  };
+
 private:
-  net::UDPSocket* sock = nullptr;
-  bool non_blocking_;
-  bool broadcast_;
+  std::deque<Message> buffer_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
-  struct sockaddr_in peer_;
+  struct sockaddr_in  peer_;
+  net::UDPSocket*     sock;
+  bool                non_blocking_;
+  bool                broadcast_;
 
   void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
   void set_default_recv();
+  int read_from_buffer(void*, size_t, int, struct sockaddr*, socklen_t*);
 
   bool is_connected() const
   { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
+
+
 };
 
 #endif

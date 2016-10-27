@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project (includeos)
 
+# test compiler
+
+if(CMAKE_COMPILER_IS_GNUCC)
+	# currently gcc is not supported due to problems cross-compiling a unikernel
+	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
+	message(FATAL_ERROR "usage of Gcc is not currently supported, please clean-up build directory and configure for clang thorugh CC and CXX environmental variables")
+endif(CMAKE_COMPILER_IS_GNUCC)
+
 # TODO: should this not be moved into the library itself
 set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
@@ -75,3 +83,6 @@ option(examples "Build example unikernels in /examples" ON)
 if(examples)
 	add_subdirectory(examples)
 endif(examples)
+
+enable_testing()
+add_subdirectory(test)
