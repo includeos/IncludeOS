@@ -7,7 +7,7 @@ project (includeos)
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "usage of Gcc is not currently supported, please clean-up build directory and configure for clang thorugh CC and CXX environmental variables")
+	message(FATAL_ERROR "usage of Gcc is not currently supported, please clean-up build directory and configure for clang through CC and CXX environmental variables")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # TODO: should this not be moved into the library itself
@@ -40,7 +40,7 @@ set(WARNS  "-Wall -Wextra") #-pedantic
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
 option(debug-info "Build like \"all\" but with debugging output (i.e. the 'debug'-macro) enabled" OFF)
-option(debug-all "Build with debugging symbols + debugging ouput, i.e. \"debug\" + \"debug-info\"" OFF)
+option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\" + \"debug-info\"" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
