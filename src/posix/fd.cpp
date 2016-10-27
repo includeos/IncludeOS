@@ -16,8 +16,19 @@
 // limitations under the License.
 
 #include <fd.hpp>
+#include <errno.h>
 
 int FD::fcntl(int cmd, va_list)
 {
   return 0;
+}
+int FD::getsockopt(int, int, void *__restrict__, socklen_t *__restrict__)
+{
+  errno = ENOTSOCK;
+  return -1;
+}
+int FD::setsockopt(int, int, const void *, socklen_t)
+{
+  errno = ENOTSOCK;
+  return -1;
 }

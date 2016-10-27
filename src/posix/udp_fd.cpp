@@ -255,32 +255,62 @@ int UDP_FD::getsockopt(int level, int option_name,
 
   switch(option_name)
   {
+    case SO_ACCEPTCONN:
+    {
+      errno = ENOPROTOOPT;
+      return -1;
+    }
     case SO_BROADCAST:
     {
       if(*option_len < (int)sizeof(int))
+      {
+        errno = EINVAL;
         return -1;
+      }
 
       *((int*)option_value) = broadcast_;
       *option_len = sizeof(broadcast_);
       return 0;
     }
-
+    case SO_KEEPALIVE:
+    {
+      errno = ENOPROTOOPT;
+      return -1;
+    }
     case SO_RCVBUF:
     {
       if(*option_len < (int)sizeof(int))
+      {
+        errno = EINVAL;
         return -1;
+      }
 
       *((int*)option_value) = rcvbuf_;
       *option_len = sizeof(rcvbuf_);
       return 0;
     }
-
+    // Address can always be reused in IncludeOS
     case SO_REUSEADDR:
     {
       if(*option_len < (int)sizeof(int))
+      {
+        errno = EINVAL;
         return -1;
+      }
 
       *((int*)option_value) = 1;
+      *option_len = sizeof(int);
+      return 0;
+    }
+    case SO_TYPE:
+    {
+      if(*option_len < (int)sizeof(int))
+      {
+        errno = EINVAL;
+        return -1;
+      }
+
+      *((int*)option_value) = SOCK_DGRAM;
       *option_len = sizeof(int);
       return 0;
     }
@@ -306,7 +336,11 @@ int UDP_FD::setsockopt(int level, int option_name,
       broadcast_ = *((int*)option_value);
       return 0;
     }
-
+    case SO_KEEPALIVE:
+    {
+      errno = ENOPROTOOPT;
+      return -1;
+    }
     case SO_RCVBUF:
     {
       if(option_len < (int)sizeof(int))
@@ -315,7 +349,7 @@ int UDP_FD::setsockopt(int level, int option_name,
       rcvbuf_ = *((int*)option_value);
       return 0;
     }
-
+    // Address can always be reused in IncludeOS
     case SO_REUSEADDR:
     {
       return 0;
