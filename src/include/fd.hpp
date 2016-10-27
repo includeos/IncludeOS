@@ -67,7 +67,13 @@ public:
 
 private:
   const id_t id_;
-  bool  non_blocking = false;
+  int dflags;
+  union {
+    struct {
+      int   non_blocking : 1;
+    };
+    int fflags;
+  };
 };
 
 #endif

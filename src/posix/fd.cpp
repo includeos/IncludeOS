@@ -16,8 +16,31 @@
 // limitations under the License.
 
 #include <fd.hpp>
+#include <fcntl.h>
+#include <cstdarg>
+#include <errno.h>
 
-int FD::fcntl(int cmd, va_list)
+int FD::fcntl(int cmd, va_list list)
 {
-  return 0;
+  switch (cmd) {
+  case F_GETFD:
+      // return descriptor flags
+      return dflags;
+  case F_SETFD:
+      // set desc flags from va_list
+      dflags = va_arg(list, int);
+      return 0;
+  case F_GETFL:
+      // return file access flags
+      return fflags;
+  case F_SETFL:
+      // set file access flags
+      fflags = va_arg(list, int);
+      return 0;
+  case F_DUPFD:
+  case F_DUPFD_CLOEXEC:
+  default:
+      errno = EINVAL;
+      return -1;
+  }
 }
