@@ -44,8 +44,8 @@ extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
-bool OS::power_   {true};
-MHz  OS::cpu_mhz_ {1000};
+bool  OS::power_   = true;
+MHz   OS::cpu_mhz_ {1000};
 RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
@@ -194,13 +194,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
-  INFO2("+--(10 samples, %f sec. interval)",
+  INFO2("+--(2 samples, %f sec. interval)",
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = hw::PIT::CPU_frequency();
-  INFO2("+--> %f MHz", cpu_mhz_.count());
+  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  INFO2("+--> %f MHz", cpu_freq().count());
 
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
@@ -253,6 +253,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // begin service start
   Service::start(os_cmdline);
+
+  // do CPU frequency measurements again with more samples
+  //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
 
   event_loop();
 }

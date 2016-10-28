@@ -96,6 +96,15 @@ struct linger
 #define AF_INET6        2
 #define AF_UNSPEC       3
 
+#define MSG_CTRUNC      0
+#define MSG_DONTROUTE   1
+#define MSG_EOR         2
+#define MSG_OOB         3
+#define MSG_NOSIGNAL    4
+#define MSG_PEEK        5
+#define MSG_TRUNC       6
+#define MSG_WAITALL     7
+
 
 int     accept(int socket, struct sockaddr *address,
                socklen_t *address_len);
