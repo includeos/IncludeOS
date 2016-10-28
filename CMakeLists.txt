@@ -97,11 +97,16 @@ set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc
 set(NEWLIB_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/newlib/include/)
 set(NEWLIB_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/newlib/)
 
+set(LIBGCC_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/libgcc/)
+
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libc.a)
 
 add_library(libm STATIC IMPORTED)
 set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
+
+add_library(libgcc STATIC IMPORTED)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
 
 add_subdirectory(src)
 add_subdirectory(vmbuild)

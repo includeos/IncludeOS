@@ -13,7 +13,7 @@ set(EXAMPLE_LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUD
 
 set(EXAMPLE_INCLUDES "-I${LIBCXX_INCLUDE_DIR} -I${INCLUDEOS_INSTALL_DIR}/api/sys -I${NEWLIB_INCLUDE_DIR} -I${INCLUDEOS_INSTALL_DIR}/api -I${INCLUDEOS_INSTALL_DIR}/mod/GSL/")
 
-set(EXAMPLE_COMMON_LIBRARIES os libcxx c++abi os libc libm ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
+set(EXAMPLE_COMMON_LIBRARIES os libcxx c++abi os libc libm libgcc ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
 function(add_example id example_name example_description example_sources)
 	add_executable(${id} ${example_sources} $<TARGET_OBJECTS:multiboot>)
