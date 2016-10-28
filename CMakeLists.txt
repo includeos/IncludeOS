@@ -108,6 +108,9 @@ set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a
 add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
 
+set(CRTEND ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/crt/crtend.o)
+set(CRTBEGIN ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/crt/crtbegin.o)
+
 add_subdirectory(src)
 add_subdirectory(vmbuild)
 
