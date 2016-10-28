@@ -75,6 +75,24 @@ endif(silent)
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
 set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
+#
+# TODO: improve (like dynamically download latest version)
+
+include(ExternalProject)
+ExternalProject_Add(PrecompiledLibraries
+		    PREFIX precompiled
+		    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.9.0/IncludeOS_install_v0-9-0.tar.gz
+		    URL_HASH SHA1=8f7dfa92d38814c0c4f3e83adacfbd741a617622
+		    CONFIGURE_COMMAND ""
+		    BUILD_COMMAND ""
+		    UPDATE_COMMAND ""
+		    INSTALL_COMMAND ""
+)
+
+set(LIBCXX_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/libcxx/include/)
+set(LIBCXX_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/libcxx/)
+add_library(libcxx STATIC IMPORTED)
+set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
 
 add_subdirectory(src)
 add_subdirectory(vmbuild)

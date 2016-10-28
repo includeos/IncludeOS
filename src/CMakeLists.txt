@@ -3,7 +3,7 @@ enable_language(ASM_NASM)
 
 include_directories(${INCLUDEOS_ROOT}/api/sys)
 include_directories(${INCLUDEOS_ROOT}/api/posix)
-include_directories(${INCLUDEOS_INSTALL_DIR}/libcxx/include)
+include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${INCLUDEOS_INSTALL_DIR}/newlib/include)
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
