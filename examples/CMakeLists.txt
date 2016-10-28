@@ -11,7 +11,7 @@ set(EXAMPLE_COMPILE_FLAGS "-target i686-elf -mstackrealign -msse3 -fstack-protec
 
 set(EXAMPLE_LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_ROOT}/src/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_INSTALL_DIR}/crt/crtbegin.o ${INCLUDEOS_INSTALL_DIR}/crt/crti.o")
 
-set(EXAMPLE_INCLUDES "-I${LIBCXX_INCLUDE_DIR} -I${INCLUDEOS_INSTALL_DIR}/api/sys -I${NEWLIB_INCLUDE_DIR} -I${INCLUDEOS_INSTALL_DIR}/api -I${INCLUDEOS_INSTALL_DIR}/mod/GSL/")
+set(EXAMPLE_INCLUDES "-I${LIBCXX_INCLUDE_DIR} -I${INCLUDEOS_ROOT}/api/sys -I${NEWLIB_INCLUDE_DIR} -I${INCLUDEOS_ROOT}/api -I${INCLUDEOS_ROOT}/mod/GSL/")
 
 set(EXAMPLE_COMMON_LIBRARIES os libcxx c++abi os libc libm libgcc ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
 
