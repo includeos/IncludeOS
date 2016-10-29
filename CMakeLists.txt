@@ -109,6 +109,12 @@ set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libg
 set(CRTEND ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/crt/crtend.o)
 set(CRTBEGIN ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/crt/crtbegin.o)
 
+install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION include/libcxx
+	FILES_MATCHING PATTERN "*.h")
+
+install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib
+	FILES_MATCHING PATTERN "*.h")
+
 add_subdirectory(src)
 add_subdirectory(vmbuild)
 
@@ -116,6 +122,9 @@ option(examples "Build example unikernels in /examples" ON)
 if(examples)
 	add_subdirectory(examples)
 endif(examples)
+
+install(DIRECTORY api/ DESTINATION include/api
+	FILES_MATCHING PATTERN "*.h")
 
 enable_testing()
 add_subdirectory(test)
