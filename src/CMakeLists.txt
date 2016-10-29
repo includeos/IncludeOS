@@ -69,3 +69,9 @@ add_subdirectory(boot)
 add_subdirectory(drivers)
 
 install(TARGETS c++abi os DESTINATION lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION share/includeos)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
+
+install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
+        FILES_MATCHING PATTERN "*.*")
+
