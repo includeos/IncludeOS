@@ -42,7 +42,7 @@ struct ucontext_t {
   mcontext_t uc_mcontext;
 
 public:
-    static const size_t MAX_STACK_SIZE = 4096 * 3; // Bytes
+    static constexpr size_t MAX_STACK_SIZE = 4096 * 3; // Bytes
 };
 
 #ifdef __cplusplus
@@ -52,11 +52,10 @@ extern "C" {
 int getcontext(ucontext_t *ucp);
 int setcontext(const ucontext_t *ucp);
 void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
+int swapcontext(ucontext_t *oucp, ucontext_t *ucp);
 
 #ifdef __cplusplus
 }
 #endif
-
-#define swapcontext(oucp, ucp) (getcontext(oucp) != -1 ? setcontext(ucp) : -1)
 
 #endif

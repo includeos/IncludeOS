@@ -32,8 +32,9 @@ static void prepare_context_stack(ucontext_t *ucp, ucontext_t *successor_context
   ucp->uc_mcontext.ret_esp = (size_t)stack_ptr;
 }
 
-extern "C" void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
-{
+extern "C" {
+
+void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
   if (ucp == nullptr || func == nullptr || argc < 0) {
     errno = EINVAL;
     return;
@@ -48,10 +49,30 @@ extern "C" void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
 
   ucp->uc_mcontext.ret_esp = (size_t) ucp->uc_stack.ss_sp;
   ucp->uc_mcontext.ebp = ucp->uc_mcontext.ret_esp;
-  ucp->uc_mcontext.eip = (size_t)func;
+  ucp->uc_mcontext.eip = (size_t) func;
 
   va_list args;
   va_start(args, argc);
 
   prepare_context_stack(ucp, ucp->uc_link, argc, args);
+}
+
+int swapcontext(ucontext_t *oucp, ucontext_t *ucp)
+{
+  if(oucp == nullptr || ucp == nullptr) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  static bool been_here = false;
+  getcontext(oucp);
+
+  if(!been_here) {
+    been_here = true;
+    return setcontext(ucp);
+  }
+
+  return 0;
+}
+
 }
