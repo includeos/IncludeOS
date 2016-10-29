@@ -26,6 +26,7 @@
 #include <hertz>
 #include <vector>
 #include <kernel/rtc.hpp>
+#include <posix/ucontext.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -40,6 +41,9 @@ public:
   /* Get the version of the os */
   static std::string version()
   { return version_field; }
+
+  static ucontext_t& get_default_successor_context()
+  { return default_successor_context_; }
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
@@ -177,6 +181,7 @@ private:
   static uintptr_t high_memory_size_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
+  static ucontext_t default_successor_context_;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;

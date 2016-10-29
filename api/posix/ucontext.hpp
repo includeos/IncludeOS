@@ -30,6 +30,7 @@ struct mcontext_t {
   size_t ecx;
   size_t eax;
 
+  uint8_t floating_point_env[28];
   size_t eip;
   size_t flags;
   size_t ret_esp;
@@ -51,10 +52,11 @@ extern "C" {
 int getcontext(ucontext_t *ucp);
 int setcontext(const ucontext_t *ucp);
 void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
-#define swapcontext(oucp, ucp) (getcontext(oucp) != -1 ? setcontext(ucp) : -1)
 
 #ifdef __cplusplus
 }
 #endif
+
+#define swapcontext(oucp, ucp) (getcontext(oucp) != -1 ? setcontext(ucp) : -1)
 
 #endif
