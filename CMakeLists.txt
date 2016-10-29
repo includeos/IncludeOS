@@ -15,6 +15,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/compiler_options.txt)
 
 # either download or cross-compile needed libraries
+option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 add_subdirectory(src)
