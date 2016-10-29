@@ -54,8 +54,8 @@ CPPOPTS = -target i686-elf
 INCLUDES  = -I../api/sys -I$(INSTALL)/libcxx/include -I$(INC_NEWLIB) -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include
 CINCLUDES = -I../api/sys -I$(INC_NEWLIB) -Iinclude -I../api
 
-CCOPTS  += $(CAPABS) $(WARNS) -g -c -m32 -march=i686 $(CINCLUDES)
-CPPOPTS += $(CAPABS) $(WARNS) -g -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
+CCOPTS  += $(CAPABS) $(WARNS) -c -m32 -march=i686 $(CINCLUDES)
+CPPOPTS += $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION="\"$(shell git describe --dirty)\""
 
 # Objects
 ###################################################
