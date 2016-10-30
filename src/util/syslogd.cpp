@@ -28,23 +28,56 @@ bool Syslog_facility::ident_is_set() {
   return false;
 }
 
-// --------------------------- Syslog_user ------------------------------
-
-void Syslog_user::syslog(int priority, const std::string& log_message) {
-	printf("%s", log_message.c_str());
+std::string Syslog_facility::priority_string() {
+	switch (priority_) {
+		case LOG_EMERG:
+			return "EMERG";
+		case LOG_ALERT:
+			return "ALERT";
+		case LOG_CRIT:
+			return "CRIT";
+		case LOG_ERR:
+			return "ERR";
+		case LOG_WARNING:
+			return "WARNING";
+		case LOG_NOTICE:
+			return "NOTICE";
+		case LOG_INFO:
+			return "INFO";
+		case LOG_DEBUG:
+			return "DEBUG";
+		default:
+			return "NONE";
+	}
 }
 
-std::string Syslog_user::name() { return "User"; }
+// --------------------------- Syslog_kern ------------------------------
 
-// --------------------------- Syslog_mail ------------------------------
-
-void Syslog_mail::syslog(int priority, const std::string& log_message) {
+void Syslog_kern::syslog(const std::string& log_message) {
 
 	// Just for testing:
 	printf("%s", log_message.c_str());
 }
 
-std::string Syslog_mail::name() { return "Mail"; }
+std::string Syslog_kern::name() { return "KERN"; }
+
+// --------------------------- Syslog_user ------------------------------
+
+void Syslog_user::syslog(const std::string& log_message) {
+	printf("%s", log_message.c_str());
+}
+
+std::string Syslog_user::name() { return "USER"; }
+
+// --------------------------- Syslog_mail ------------------------------
+
+void Syslog_mail::syslog(const std::string& log_message) {
+
+	// Just for testing:
+	printf("%s", log_message.c_str());
+}
+
+std::string Syslog_mail::name() { return "MAIL"; }
 
 // ----------------------------- Syslog ---------------------------------
 
@@ -71,9 +104,12 @@ void Syslog::syslog(int priority, const char* buf) {
   */
 
   if (not valid_priority(priority)) {
-    printf("Invalid priority - returning. What to do if this occurs?\n");
+  	// TODO (What to do if this occurs?)
+    printf("Invalid priority - returning\n");
     return;
   }
+
+ 	last_open->set_priority(priority);
 
   /* Building the message */
 
@@ -92,14 +128,17 @@ void Syslog::syslog(int priority, const char* buf) {
   else
   	message += Service::binary_name();
 
+  // PID not relevant, but if was: f.ex. [1]
+
   message += ": ";
 
-  // Check if f.ex. pid is set - add to msgbuf if set
-
-  // What about priority? Format here or in the subclass's syslog-method?
+  // Third: Facility-name and priority/severity with colors
+  message += pri_colors.at(last_open->priority()) +
+  	"<" + last_open->name() + "." + last_open->priority_string() + "> " +
+  	COLOR_END;
 
   // Last: Add the message (buf)
   message += std::string{buf} + "\n";
 
-  last_open->syslog(priority, message);
+  last_open->syslog(message);
 }

@@ -22,40 +22,70 @@
 #include <cstdio>
 #include <type_traits>
 #include <string>
+#include <map>
 
-/*
-  Need to know about priorities here too (include small header with only the priorities)
-  INTERNALLOG also needs to/should be a priority (?)
-*/
+/* TODO:
+Place priorities and options in its own header and include this
+here and in sys/syslog.h? We don't want to include sys/syslog.h here.
+INTERNALLOG also needs to/should be a priority (?) */
+#include <sys/syslog.h>
 
 const int BUFLEN = 2048;
 const int TIMELEN = 32;
 
+const std::map<int, std::string> pri_colors = {
+  { LOG_EMERG,   "\033[38;5;1m" },    // ? RED
+  { LOG_ALERT,   "\033[38;5;160m" },  // ? RED (lighter)
+  { LOG_CRIT,    "\033[38;5;196m" },  // ? RED (even lighter)
+  { LOG_ERR,     "\033[38;5;208m" },  // DARK YELLOW
+  { LOG_WARNING, "\033[93m" },        // YELLOW
+  { LOG_NOTICE,  "\033[92m" },        // GREEN
+  { LOG_INFO,    "\033[96m" },        // TURQUOISE
+  { LOG_DEBUG,   "\033[94m" }         // BLUE
+};
+const std::string COLOR_END = "\033[0m";
+
 struct Syslog_facility {
-  virtual void syslog(int priority, const std::string& log_message) = 0;
+  virtual void syslog(const std::string& log_message) = 0;
   virtual std::string name() = 0;
   
   Syslog_facility() {}
   Syslog_facility(const char* ident) : ident_{ident} {}
+  
   bool ident_is_set();
   const char* ident() { return ident_; }
+  
+  void set_priority(int priority) { priority_ = priority; }
+  int priority() { return priority_; }
+  std::string priority_string();
 
 private:
   const char* ident_ = nullptr;
+  int priority_;
+};
+
+struct Syslog_kern : public Syslog_facility {
+  void syslog(const std::string& log_message) override;
+  std::string name() override;
+
+  Syslog_kern() : Syslog_facility() {}
+  Syslog_kern(const char* ident) : Syslog_facility(ident) {}
 };
 
 struct Syslog_user : public Syslog_facility {
-  void syslog(int priority, const std::string& log_message) override;
+  void syslog(const std::string& log_message) override;
+  std::string name() override;
+
   Syslog_user() : Syslog_facility() {}
   Syslog_user(const char* ident) : Syslog_facility(ident) {}
-  std::string name() override;
 };
 
 struct Syslog_mail : public Syslog_facility {
-  void syslog(int priority, const std::string& log_message) override;
+  void syslog(const std::string& log_message) override;
+  std::string name() override;
+
   Syslog_mail() : Syslog_facility() {}
   Syslog_mail(const char* ident) : Syslog_facility(ident) {}
-  std::string name() override;
 };
 
 struct Syslog {
@@ -102,31 +132,9 @@ struct Syslog {
     openlog<Syslog_user>(nullptr, 0);
   }
 
-  // TODO
   static bool valid_priority(int priority) {
-    /*
-      // Check priority:
-      // Check for invalid bits
-      if (priority & ~(LOG_PRIMASK|LOG_FACMASK)) {
-
-        // INTERNALLOG IS A PRIORITY, NOT A FACILITY
-
-        syslog(INTERNALLOG, "syslog: unknown facility/priority %x", priority);
-        priority &= LOG_PRIMASK|LOG_FACMASK;
-      }
-
-      // Check priority against setlogmask values
-      // If priority doesn't "match" log_mask, then don't log -
-      // hasn't "valid" priority
-      if (!(LOG_MASK(LOG_PRI(priority)) & log_mask))
-        return;
-
-      //int saved_errno = errno;
-
-      // Set the default facility if none specified
-      if ((priority & LOG_FACMASK) == 0)
-        priority |= facility_;
-    */
+    if (priority < LOG_EMERG or priority > LOG_DEBUG)
+      return false;
 
     return true;
   }
