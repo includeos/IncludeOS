@@ -26,17 +26,18 @@
 
 class UDP_FD : public SockFD {
 public:
-  static const size_t BUF_LIMIT;
   using id_t = int;
 
   explicit UDP_FD(const int id)
     : SockFD(id),
       buffer_(), sock(nullptr),
-      non_blocking_(false), broadcast_(false)
+      non_blocking_(false), broadcast_(0), rcvbuf_(16*1024)
   {
     memset((char *)&peer_, 0, sizeof(peer_));
     (void)non_blocking_;
   }
+
+  ~UDP_FD();
 
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
@@ -52,25 +53,33 @@ public:
   ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) override;
 
+  int     shutdown(int) override { return 0; }
+
+  int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__) override;
+  int     setsockopt(int, int, const void *, socklen_t) override;
+
   struct Message {
-    explicit Message(in_addr_t addr, in_port_t port,
-      char* buf, size_t len)
-      : data(buf, len)
+    explicit Message(const in_addr_t addr, const in_port_t port,
+      std::unique_ptr<char>&& buf, const size_t length)
+      : data(std::move(buf)), len(length)
     {
       src.sin_family      = AF_INET;
       src.sin_port        = port;
       src.sin_addr.s_addr = addr;
     }
-    struct sockaddr_in src;
-    gsl::span<char> data;
+    struct sockaddr_in    src;
+    std::unique_ptr<char> data;
+    size_t                len;
   };
+
 private:
   std::deque<Message> buffer_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
   struct sockaddr_in  peer_;
   net::UDPSocket*     sock;
   bool                non_blocking_;
-  bool                broadcast_;
+  int                 broadcast_;
+  int                 rcvbuf_;
 
   void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
   void set_default_recv();
@@ -78,6 +87,8 @@ private:
 
   bool is_connected() const
   { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
+
+  size_t max_buffer_msgs() const;
 
 
 };

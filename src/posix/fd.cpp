@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,36 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <fd.hpp>
 #include <fcntl.h>
-#include <fd_map.hpp>
 #include <cstdarg>
 #include <errno.h>
 
-int  creat(const char *, mode_t)
+int FD::fcntl(int cmd, va_list list)
 {
-  return -1;
-}
-int fcntl(int fd, int cmd, ... /* arg */ )
-{
-  try {
-    auto& desc = FD_map::_get(fd);
-    va_list va;
-    va_start(va, cmd);
-    int ret = desc.fcntl(cmd, va);
-    va_end(va);
-    return ret;
+  switch (cmd) {
+  case F_GETFD:
+      // return descriptor flags
+      return dflags;
+  case F_SETFD:
+      // set desc flags from va_list
+      dflags = va_arg(list, int);
+      return 0;
+  case F_GETFL:
+      // return file access flags
+      return fflags;
+  case F_SETFL:
+      // set file access flags
+      fflags = va_arg(list, int);
+      return 0;
+  case F_DUPFD:
+  case F_DUPFD_CLOEXEC:
+  default:
+      errno = EINVAL;
+      return -1;
   }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
-  }
-}
-
-int  posix_fadvise(int, off_t, off_t, int)
-{
-  return -1;
-}
-int  posix_fallocate(int, off_t, off_t)
-{
-  return -1;
 }

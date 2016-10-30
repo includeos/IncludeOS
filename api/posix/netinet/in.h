@@ -58,15 +58,17 @@ extern const struct in6_addr in6addr_any;
 extern const struct in6_addr in6addr_loopback;
 
 /// fixme: use actual inet protocol values
-#define IPPROTO_IP       0
-#define IPPROTO_IPV6     1
-#define IPPROTO_ICMP     2
-#define IPPROTO_RAW      3
-#define IPPROTO_TCP      4
-#define IPPROTO_UDP      5
+#define IPPROTO_IP        0
+#define IPPROTO_ICMP      1
+#define IPPROTO_TCP       6
+#define IPPROTO_UDP      17
+#define IPPROTO_IPV6     41
+#define IPPROTO_RAW     255
 
 #define INADDR_ANY        0x0
-#define INADDR_BROADCAST  0xFFFFFFFF
+#define INADDR_BROADCAST  0xffffffff
+#define	INADDR_NONE		    0xffffffff
+#define INADDR_LOOPBACK   0x7f000001
 
 #define INET_ADDRSTRLEN   16
 #define INET6_ADDRSTRLEN  46

@@ -18,23 +18,26 @@
 #include <udp_fd.hpp>
 #include <kernel/irq_manager.hpp>
 
-const size_t UDP_FD::BUF_LIMIT = 10;
-
 // return the "currently selected" networking stack
 static net::Inet4& net_stack() {
   return net::Inet4::stack<> ();
+}
+
+size_t UDP_FD::max_buffer_msgs() const
+{
+  return (rcvbuf_ / net_stack().udp().max_datagram_size());
 }
 
 void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
   net::UDPSocket::port_t port, const char* buf, size_t len)
 {
   // only recv to buffer if not full
-  if(buffer_.size() < BUF_LIMIT) {
+  if(buffer_.size() < max_buffer_msgs()) {
     // copy data into to-be Message buffer
-    char* data = new char[len];
-    memcpy(data, buf, len);
+    auto data = std::unique_ptr<char>(new char[len]);
+    memcpy(data.get(), buf, len);
     // emplace the message in buffer
-    buffer_.emplace_back(htonl(addr.whole), htons(port), data, len);
+    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(data), len);
   }
 }
 
@@ -46,9 +49,9 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   auto& msg = buffer_.front();
   auto& data = msg.data;
 
-  int bytes = std::min(len, (uint32_t)data.length());
+  int bytes = std::min(len, msg.len);
 
-  memcpy(buffer, data.data(), bytes);
+  memcpy(buffer, data.get(), bytes);
 
   if(address != nullptr) {
     memcpy(address, &msg.src, std::min(*address_len, (int)sizeof(struct sockaddr_in)));
@@ -56,7 +59,7 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   }
 
   if(!(flags & MSG_PEEK))
-    buffer_.pop_back();
+    buffer_.pop_front();
 
   return bytes;
 }
@@ -65,7 +68,12 @@ void UDP_FD::set_default_recv()
   assert(this->sock != nullptr && "Default recv called on nullptr");
   this->sock->on_read({this, &UDP_FD::recv_to_buffer});
 }
-
+UDP_FD::~UDP_FD()
+{
+  // shutdown underlying socket, makes sure no callbacks are called on dead fd
+  if(this->sock)
+    sock->udp().close(sock->local_port());
+}
 int UDP_FD::read(void* buffer, size_t len)
 {
   return recv(buffer, len, 0);
@@ -85,7 +93,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
     errno = EINVAL;
     return -1;
   }
-  // The specified address is not a valid address for the address family of the specified socket.
+  // invalid address
   if(UNLIKELY(len != sizeof(struct sockaddr_in))) {
     errno = EINVAL;
     return -1;
@@ -93,11 +101,14 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   // Bind
   const auto port = ((sockaddr_in*)address)->sin_port;
   auto& udp = net_stack().udp();
-  try {
+  try
+  {
     this->sock = (port) ? &udp.bind(ntohs(port)) : &udp.bind();
     set_default_recv();
     return 0;
-  } catch(const net::UDP::Port_in_use_exception&) {
+  }
+  catch(const net::UDP::Port_in_use_exception&)
+  {
     errno = EADDRINUSE;
     return -1;
   }
@@ -142,7 +153,7 @@ ssize_t UDP_FD::send(const void* message, size_t len, int flags)
   return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
 }
 
-ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
+ssize_t UDP_FD::sendto(const void* message, size_t len, int,
   const struct sockaddr* dest_addr, socklen_t dest_len)
 {
   // The specified address is not a valid address for the address family of the specified socket.
@@ -156,10 +167,10 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
     set_default_recv();
   }
   const auto& dest = *((sockaddr_in*)dest_addr);
-  // If the socket protocol supports broadcast and the specified address is a broadcast address for the socket protocol,
+  // If the socket protocol supports broadcast and the specified address
+  // is a broadcast address for the socket protocol,
   // sendto() shall fail if the SO_BROADCAST option is not set for the socket.
-  if(!broadcast_ && dest.sin_addr.s_addr == ntohl(INADDR_BROADCAST)) {
-
+  if(!broadcast_ && dest.sin_addr.s_addr == INADDR_BROADCAST) { // Fix me
     return -1;
   }
 
@@ -167,10 +178,10 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int flags,
   bool written = false;
   this->sock->sendto(ntohl(dest.sin_addr.s_addr), ntohs(dest.sin_port), message, len,
     [&written]() { written = true; });
-  while(!written) {
-    OS::halt();
-    IRQ_manager::get().process_interrupts();
-  }
+
+  while(!written)
+    OS::block();
+
   return len;
 }
 ssize_t UDP_FD::recv(void* buffer, size_t len, int flags)
@@ -202,6 +213,12 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
     (net::UDPSocket::addr_t addr, net::UDPSocket::port_t port,
       const char* data, size_t data_len)
     {
+      // if this already been called once while blocking, buffer
+      if(done) {
+        recv_to_buffer(addr, port, data, data_len);
+        return;
+      }
+
       bytes = std::min(len, data_len);
       memcpy(buffer, data, bytes);
 
@@ -212,6 +229,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
         sender.sin_family       = AF_INET;
         sender.sin_port         = htons(port);
         sender.sin_addr.s_addr  = htonl(addr.whole);
+        *address_len            = sizeof(struct sockaddr_in);
       }
       done = true;
 
@@ -219,8 +237,6 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
       if(flags & MSG_PEEK)
         recv_to_buffer(addr, port, data, data_len);
     });
-
-
 
     // Block until (any) data is read
     while(!done)
@@ -230,4 +246,82 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
 
     return bytes;
   }
+}
+int UDP_FD::getsockopt(int level, int option_name,
+  void *option_value, socklen_t *option_len)
+{
+  if(level != SOL_SOCKET)
+    return -1;
+
+  switch(option_name)
+  {
+    case SO_BROADCAST:
+    {
+      if(*option_len < (int)sizeof(int))
+        return -1;
+
+      *((int*)option_value) = broadcast_;
+      *option_len = sizeof(broadcast_);
+      return 0;
+    }
+
+    case SO_RCVBUF:
+    {
+      if(*option_len < (int)sizeof(int))
+        return -1;
+
+      *((int*)option_value) = rcvbuf_;
+      *option_len = sizeof(rcvbuf_);
+      return 0;
+    }
+
+    case SO_REUSEADDR:
+    {
+      if(*option_len < (int)sizeof(int))
+        return -1;
+
+      *((int*)option_value) = 1;
+      *option_len = sizeof(int);
+      return 0;
+    }
+
+    default:
+      return -1;
+  } // < switch(option_name)
+}
+
+int UDP_FD::setsockopt(int level, int option_name,
+  const void *option_value, socklen_t option_len)
+{
+  if(level != SOL_SOCKET)
+    return -1;
+
+  switch(option_name)
+  {
+    case SO_BROADCAST:
+    {
+      if(option_len < (int)sizeof(int))
+        return -1;
+
+      broadcast_ = *((int*)option_value);
+      return 0;
+    }
+
+    case SO_RCVBUF:
+    {
+      if(option_len < (int)sizeof(int))
+        return -1;
+
+      rcvbuf_ = *((int*)option_value);
+      return 0;
+    }
+
+    case SO_REUSEADDR:
+    {
+      return 0;
+    }
+
+    default:
+      return -1;
+  } // < switch(option_name)
 }

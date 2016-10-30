@@ -66,17 +66,23 @@ int main()
   socklen_t rem_addrlen = sizeof(remaddr); // size of remaddr
   unsigned char recvbuf[BUFSIZE]; // recv buffer
 
-  res = recvfrom(fd, recvbuf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &rem_addrlen);
-  CHECKSERT(res > 0, "Received data (%i bytes)", res);
+  res = recvfrom(fd, recvbuf, BUFSIZE, MSG_PEEK, (struct sockaddr *)&remaddr, &rem_addrlen);
+  CHECKSERT(res > 0, "Received data w/ MSG_PEEK (%i bytes)", res);
   recvbuf[res] = 0;
 
   const char* rm_message = "POSIX is for hipsters";
-  CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Received the message \"%s\"", recvbuf);
+  CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Message is \"%s\"", recvbuf);
 
   CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.router().whole),
     "Received from address %s", inet.router().to_string().c_str());
 
+  memset(recvbuf, 0, BUFSIZE);
+  res = recvfrom(fd, recvbuf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &rem_addrlen);
+  recvbuf[res] = 0;
+  CHECKSERT(res == (int)strlen(rm_message) && strcmp((char*)&recvbuf, rm_message) == 0,
+    "Reading again returns the same message");
 
+  // We cant see if the buffer now is empty without blocking the test
 
   INFO("UDP Socket", "sendto()");
 
@@ -105,7 +111,23 @@ int main()
   CHECKSERT(res == 0, "Connect to remote address OK");
 
   res = send(fd_send_connect, my_message, strlen(my_message), 0);
-  CHECKSERT(res > 0, "Send now works (verified by script)");
+  CHECKSERT(res > 0, "Send works when connected (verified by script)");
+
+
+  INFO("UDP Socket", "reading from buffer with recv()");
+  int i = 0;
+  for(; i < 5; ++i) {
+    res = recv(fd, recvbuf, BUFSIZE, 0);
+    CHECKSERT(res > 0, "Received \"%.*s\"", res, recvbuf);
+  }
+
+  CHECKSERT(i == 5, "Received 5 messages");
+
+  INFO("UDP Socket", "close()");
+
+  res = close(fd);
+  CHECKSERT(res == 0, "Close returns OK");
+  CHECKSERT(not inet.udp().is_bound(PORT), "Underlying OS socket is closed");
 
   return 0;
 }
