@@ -26,7 +26,7 @@
 #include <hertz>
 #include <vector>
 #include <kernel/rtc.hpp>
-#include <posix/ucontext.hpp>
+#include <posix/ucontext.h>
 
 /**
  *  The entrypoint for OS services

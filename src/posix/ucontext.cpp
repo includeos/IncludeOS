@@ -1,5 +1,4 @@
 #include <kernel/os.hpp>
-#include <posix/ucontext.hpp>
 
 extern "C" void restore_context_stack();
 
@@ -64,15 +63,15 @@ int swapcontext(ucontext_t *oucp, ucontext_t *ucp)
     return -1;
   }
 
-  static bool been_here = false;
-  getcontext(oucp);
+  volatile bool swapped = false;
+  int result = getcontext(oucp);
 
-  if(!been_here) {
-    been_here = true;
+  if(result != -1 && !swapped){
+    swapped = true;
     return setcontext(ucp);
   }
 
-  return 0;
+  return result;
 }
 
 }

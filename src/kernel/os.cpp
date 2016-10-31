@@ -207,6 +207,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
+#if 0
   Timers::init(
     // timer start function
     hw::APIC_Timer::oneshot,
@@ -225,7 +226,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     // don't want to run this before calling Service ready
     Timers::ready();
   });
-
+#endif
   // Realtime/monotonic clock
   RTC::init();
   booted_at_ = RTC::now();
@@ -252,7 +253,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Creating a default successor return context");
   default_successor_context_.uc_link = NULL;
   // create a stack for the context
-  default_successor_context_.uc_stack.ss_sp = (new char[1024]) + 1024;
+  default_successor_context_.uc_stack.ss_sp = (new char[1024];
   default_successor_context_.uc_stack.ss_size = 1024;
   makecontext(&default_successor_context_, OS::event_loop, 0);
 
