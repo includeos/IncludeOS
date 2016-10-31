@@ -207,7 +207,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
-#if 0
   Timers::init(
     // timer start function
     hw::APIC_Timer::oneshot,
@@ -226,7 +225,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     // don't want to run this before calling Service ready
     Timers::ready();
   });
-#endif
+
   // Realtime/monotonic clock
   RTC::init();
   booted_at_ = RTC::now();
@@ -308,7 +307,6 @@ uint64_t OS::get_cycles_total() noexcept {
 }
 
 void OS::event_loop() {
-  printf("haha\n");
   FILLINE('=');
   printf(" IncludeOS %s\n", version().c_str());
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
