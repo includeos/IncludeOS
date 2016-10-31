@@ -48,7 +48,7 @@ void _init_c_runtime()
 {
   extern char _ELF_SYM_START_;
   extern char _end;
-  
+
   /// init backtrace functionality
   extern void _move_elf_symbols(void*, void*);
   extern void _apply_parser_data(void*);
@@ -161,18 +161,7 @@ int fcntl(int fd, int cmd, ...)
   (void) cmd;
 	return 0;
 }
-int fchmod(int fd, mode_t mode)
-{
-  (void) fd;
-  (void) mode;
-	return 0;
-}
-int mkdir(const char *pathname, mode_t mode)
-{
-  (void) pathname;
-  (void) mode;
-	return 0;
-}
+
 int rmdir(const char *pathname)
 {
   (void) pathname;
