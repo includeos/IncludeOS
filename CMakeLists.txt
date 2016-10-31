@@ -26,8 +26,12 @@ if(examples)
 	add_subdirectory(examples)
 endif(examples)
 
-install(DIRECTORY api/ DESTINATION include/api
-	FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY api/ DESTINATION include/api)
 
 enable_testing()
 add_subdirectory(test)
+
+configure_file(etc/Makefile.seed.in Makeseed)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makeseed DESTINATION share/includeos)
+
+install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
