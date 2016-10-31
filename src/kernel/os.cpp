@@ -252,7 +252,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Creating a default successor return context");
   default_successor_context_.uc_link = NULL;
   // create a stack for the context
-  default_successor_context_.uc_stack.ss_sp = (new char[1024];
+  default_successor_context_.uc_stack.ss_sp = (new char[1024] + 1024);
   default_successor_context_.uc_stack.ss_size = 1024;
   makecontext(&default_successor_context_, OS::event_loop, 0);
 
