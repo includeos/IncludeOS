@@ -32,3 +32,5 @@ src/compile_commands.json
 /.vagrant
 /examples/demo_service/IncludeOS_Demo_Service
 /seed/My_Service
+
+build
