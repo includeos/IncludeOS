@@ -31,6 +31,9 @@ for single_file in $files_changed; do
 	filetype=`file -i $INCLUDEOS_SRC/$single_file`
     echo $filetype | grep -q charset=binary
     if [ $? -eq 0 ]; then
+        if [[ $single_file == *.* ]]; then
+			continue
+		fi
 		let "binary_detected = $binary_detected + 1"
         echo Error: The file $INCLUDEOS_SRC/$single_file has been detected as a binary file
     fi
