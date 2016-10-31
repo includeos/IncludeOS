@@ -37,7 +37,7 @@ case $SYSTEM in
                 exit 0;
                 ;;
             "Fedora")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq"
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1

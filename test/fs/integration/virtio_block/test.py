@@ -11,10 +11,10 @@ subprocess.call(['./image.sh'])
 def cleanup():
   subprocess.call(['./cleanup.sh'])
 
-def success():
+def success(trigger_line):
   cleanup()
 
-def failure():
+def failure(trigger_line):
   cleanup()
 
 import vmrunner

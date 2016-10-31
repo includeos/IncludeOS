@@ -14,7 +14,7 @@ import vmrunner
 GUEST = '10.0.0.44' if (len(sys.argv) < 2) else sys.argv[1]
 HOST = '10.0.0.1' if (len(sys.argv) < 3) else sys.argv[2]
 
-def TCP_test():
+def TCP_test(trigger_line):
     def connect(port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (GUEST, port)

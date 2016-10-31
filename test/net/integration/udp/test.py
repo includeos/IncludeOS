@@ -14,7 +14,7 @@ import socket
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
-def UDP_test():
+def UDP_test(trigger_line):
   print "<Test.py> Performing UDP tests"
   HOST, PORT = "10.0.0.45", 4242
   sock = socket.socket
