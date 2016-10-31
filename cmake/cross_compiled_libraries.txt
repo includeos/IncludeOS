@@ -66,4 +66,4 @@ install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION share/includeos)
 
-install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a DESTINATION lib)
+install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a DESTINATION lib)
