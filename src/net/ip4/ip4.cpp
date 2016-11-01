@@ -28,7 +28,7 @@ namespace net {
   const IP4::addr IP4::ADDR_ANY(0);
   const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
-  IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
+  IP4::IP4(Stack& inet) noexcept:
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},

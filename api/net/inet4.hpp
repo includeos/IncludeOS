@@ -36,14 +36,14 @@ namespace net {
   class DHClient;
 
   /** A complete IP4 network stack */
-  class Inet4 : public Inet<Ethernet, IP4>{
+  class Inet4 : public Inet<IP4>{
   public:
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
     virtual std::string ifname() const override
     { return nic_.ifname(); }
 
-    Ethernet::addr link_addr() override
+    hw::MAC_addr link_addr() override
     { return eth_.mac(); }
 
     IP4::addr ip_addr() override
@@ -54,9 +54,6 @@ namespace net {
 
     IP4::addr router() override
     { return router_; }
-
-    Ethernet& link() override
-    { return eth_; }
 
     IP4& ip_obj() override
     { return ip4_; }

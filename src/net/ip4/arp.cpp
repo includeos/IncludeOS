@@ -33,7 +33,7 @@ namespace net {
   }
 
   // Initialize
-  Arp::Arp(net::Inet<Ethernet,IP4>& inet) noexcept:
+  Arp::Arp(Stack& inet) noexcept:
   requests_rx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.requests_rx").get_uint32()},
   requests_tx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.requests_tx").get_uint32()},
   replies_rx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".arp.replies_rx").get_uint32()},
