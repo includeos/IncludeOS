@@ -97,6 +97,8 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](https://github.com/hioa-cs/IncludeOS/wiki/Contributing-to-IncludeOS).
 
+**Important**: Send your pull requests to the `dev` branch. It is ok if your pull requests come from your master branch.
+
 ## C++ Guidelines
 
 We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When (not if) you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
