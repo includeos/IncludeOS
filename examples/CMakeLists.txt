@@ -5,14 +5,17 @@ SET(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/ld <OBJECTS> -o  <TARGET> <CMAKE_CXX_LIN
 
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
+set(SERVICE_STUB "${INCLUDEOS_ROOT}/src/seed/service_name.cpp")
 
 set(EXAMPLE_COMPILE_FLAGS "-target i686-elf -mstackrealign -msse3 -fstack-protector-strong -O2 -Wall -Wextra -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE")
 
-set(EXAMPLE_LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_INSTALL_DIR}/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_INSTALL_DIR}/crt/crtbegin.o ${INCLUDEOS_INSTALL_DIR}/crt/crti.o")
+set(EXAMPLE_LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_ROOT}/src/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${CRTBEGIN} ${CMAKE_BINARY_DIR}/src/crti.o")
 
-set(EXAMPLE_INCLUDES "-I${INCLUDEOS_INSTALL_DIR}/libcxx/include -I${INCLUDEOS_INSTALL_DIR}/api/sys -I${INCLUDEOS_INSTALL_DIR}/newlib/include -I${INCLUDEOS_INSTALL_DIR}/api -I${INCLUDEOS_INSTALL_DIR}/mod/GSL/")
+set(EXAMPLE_INCLUDES "-I${LIBCXX_INCLUDE_DIR} -I${INCLUDEOS_ROOT}/api/sys -I${NEWLIB_INCLUDE_DIR} -I${INCLUDEOS_ROOT}/api -I${INCLUDEOS_ROOT}/mod/GSL/")
 
-set(EXAMPLE_COMMON_LIBRARIES os ${INCLUDEOS_INSTALL_DIR}/libcxx/libc++.a c++abi os ${INCLUDEOS_INSTALL_DIR}/newlib/libc.a ${INCLUDEOS_INSTALL_DIR}/newlib/libm.a ${INCLUDEOS_INSTALL_DIR}/libgcc/libgcc.a ${INCLUDEOS_INSTALL_DIR}/crt/crtend.o ${INCLUDEOS_INSTALL_DIR}/crt/crtn.o)
+set(CRTN ${CMAKE_BINARY_DIR}/src/crtn.o)
+
+set(EXAMPLE_COMMON_LIBRARIES os libcxx c++abi os libc libm libgcc ${CRTEND} ${CRTN})
 
 function(add_example id example_name example_description example_sources)
 	add_executable(${id} ${example_sources} $<TARGET_OBJECTS:multiboot>)
@@ -22,6 +25,8 @@ function(add_example id example_name example_description example_sources)
 	set_target_properties(${id} PROPERTIES LINK_FLAGS "${EXAMPLE_LINK_FLAGS}")
 
 	target_link_libraries(${id} ${EXAMPLE_COMMON_LIBRARIES})
+	add_dependencies(${id} crti)
+	add_dependencies(${id} crtn)
 
 	add_custom_command(
 		OUTPUT ${example_name}.img

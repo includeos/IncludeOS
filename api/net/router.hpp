@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,36 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fcntl.h>
-#include <fd_map.hpp>
-#include <cstdarg>
-#include <errno.h>
+#ifndef NET_ROUTER_HPP
+#define NET_ROUTER_HPP
 
-int  creat(const char *, mode_t)
-{
-  return -1;
-}
-int fcntl(int fd, int cmd, ... /* arg */ )
-{
-  try {
-    auto& desc = FD_map::_get(fd);
-    va_list va;
-    va_start(va, cmd);
-    int ret = desc.fcntl(cmd, va);
-    va_end(va);
-    return ret;
-  }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
-  }
-}
+#include <map>
+#include <net/inet.hpp>
 
-int  posix_fadvise(int, off_t, off_t, int)
-{
-  return -1;
-}
-int  posix_fallocate(int, off_t, off_t)
-{
-  return -1;
-}
+namespace net {
+
+template<class IPV>
+class Router {
+public:
+  using Stack   = Inet<IPV>;
+  using Addr    = IPV::addr;
+  using Routes  = std::map<Addr, Stack>;
+
+private:
+  Routes routes_;
+
+};
+
+} //< namespace net
+
+#endif // NET_ROUTER_HPP
+

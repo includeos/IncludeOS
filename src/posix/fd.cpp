@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,36 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fcntl.h>
-#include <fd_map.hpp>
-#include <cstdarg>
+#include <fd.hpp>
 #include <errno.h>
 
-int  creat(const char *, mode_t)
+int FD::fcntl(int cmd, va_list)
 {
+  return 0;
+}
+int FD::getsockopt(int, int, void *__restrict__, socklen_t *__restrict__)
+{
+  errno = ENOTSOCK;
   return -1;
 }
-int fcntl(int fd, int cmd, ... /* arg */ )
+int FD::setsockopt(int, int, const void *, socklen_t)
 {
-  try {
-    auto& desc = FD_map::_get(fd);
-    va_list va;
-    va_start(va, cmd);
-    int ret = desc.fcntl(cmd, va);
-    va_end(va);
-    return ret;
-  }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
-  }
-}
-
-int  posix_fadvise(int, off_t, off_t, int)
-{
-  return -1;
-}
-int  posix_fallocate(int, off_t, off_t)
-{
+  errno = ENOTSOCK;
   return -1;
 }

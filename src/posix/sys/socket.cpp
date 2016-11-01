@@ -126,3 +126,25 @@ int bind(int socket, const struct sockaddr* address, socklen_t len)
     return -1;
   }
 }
+int getsockopt(int socket, int level, int option_name,
+  void *option_value, socklen_t *option_len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.getsockopt(level, option_name, option_value, option_len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+int setsockopt(int socket, int level, int option_name,
+  const void *option_value, socklen_t option_len)
+{
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.setsockopt(level, option_name, option_value, option_len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}

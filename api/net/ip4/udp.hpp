@@ -37,7 +37,7 @@ namespace net {
     using port_t = uint16_t;
 
     using Packet_ptr = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
-    using Stack  = Inet<LinkLayer, IP4>;
+    using Stack  = IP4::Stack;
 
     typedef delegate<void()> sendto_handler;
 

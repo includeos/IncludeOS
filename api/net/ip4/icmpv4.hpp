@@ -27,8 +27,9 @@ namespace net {
 
   class ICMPv4 {
   public:
+    using Stack = IP4::Stack;
     // Initialize
-    ICMPv4(Inet<LinkLayer, IP4>&);
+    ICMPv4(Stack&);
 
     // Known ICMP types
     enum icmp_types { ICMP_ECHO_REPLY, ICMP_ECHO = 8 };
@@ -56,7 +57,7 @@ namespace net {
     { network_layer_out_ = s;  };
 
   private:
-    Inet<LinkLayer, IP4>& inet_;
+    Stack& inet_;
     downstream            network_layer_out_ {icmp_default_out};
 
     void ping_reply(full_header* full_hdr, uint16_t size);

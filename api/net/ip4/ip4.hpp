@@ -35,11 +35,12 @@ namespace net {
   /** IP4 layer */
   class IP4 {
   public:
+    using Stack     = Inet<IP4>;
     using addr      = ip4::Addr;
     using ip_header = ip4::Header;
 
     /** Initialize. Sets a dummy linklayer out. */
-    explicit IP4(Inet<LinkLayer, IP4>&) noexcept;
+    explicit IP4(Stack&) noexcept;
 
     /** Known transport layer protocols. */
     enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
@@ -111,7 +112,7 @@ namespace net {
     uint64_t& packets_tx_;
     uint32_t& packets_dropped_;
 
-    Inet<LinkLayer,IP4>& stack_;
+    Stack& stack_;
 
     /** Downstream: Linklayer output delegate */
     downstream linklayer_out_ {ignore_ip4_down};
