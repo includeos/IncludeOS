@@ -52,8 +52,8 @@ namespace net {
     IP4::addr netmask() override
     { return netmask_; }
 
-    IP4::addr router() override
-    { return router_; }
+    IP4::addr gateway() override
+    { return gateway_; }
 
     IP4& ip_obj() override
     { return ip4_; }
@@ -66,6 +66,17 @@ namespace net {
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
+
+    /**
+     * Set the forwarding delegate used by this stack.
+     * If set it will get all incoming packets not intended for this stack.
+     */
+    void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
+
+    /**
+     * Get the forwarding delegate used by this stack.
+     */
+    Forward_delg forward_delg() override { return forward_packet_; }
 
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
@@ -93,9 +104,9 @@ namespace net {
       dns.resolve(this->dns_server, hostname, func);
     }
 
-    virtual void set_router(IP4::addr gateway) override
+    virtual void set_gateway(IP4::addr gateway) override
     {
-      this->router_ = gateway;
+      this->gateway_ = gateway;
     }
 
     virtual void set_dns_server(IP4::addr server) override
@@ -125,16 +136,16 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
 
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::ADDR_ANY) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr gateway, IP4::addr dns = IP4::ADDR_ANY) override
     {
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
-      this->router_    = router;
-      this->dns_server = (dns == IP4::ADDR_ANY) ? router : dns;
+      this->gateway_    = gateway;
+      this->dns_server = (dns == IP4::ADDR_ANY) ? gateway : dns;
       INFO("Inet4", "Network configured");
       INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
       INFO2("Netmask: \t%s", netmask_.str().c_str());
-      INFO2("Gateway: \t%s", router_.str().c_str());
+      INFO2("Gateway: \t%s", gateway_.str().c_str());
       INFO2("DNS Server: \t%s", dns_server.str().c_str());
     }
 
@@ -165,10 +176,10 @@ namespace net {
     static auto&& ifconfig(
       IP4::addr addr,
       IP4::addr nmask,
-      IP4::addr router,
+      IP4::addr gateway,
       IP4::addr dns = IP4::ADDR_ANY)
     {
-      stack<N>().network_config(addr, nmask, router, dns);
+      stack<N>().network_config(addr, nmask, gateway, dns);
       return stack<N>();
     }
 
@@ -190,7 +201,7 @@ namespace net {
 
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
-    IP4::addr router_;
+    IP4::addr gateway_;
     IP4::addr dns_server;
 
     // This is the actual stack
@@ -201,6 +212,7 @@ namespace net {
     ICMPv4 icmp_;
     UDP  udp_;
     TCP tcp_;
+    Forward_delg forward_packet_;
     // we need this to store the cache per-stack
     DNSClient dns;
 

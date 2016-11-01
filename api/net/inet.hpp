@@ -30,16 +30,17 @@ namespace net {
 
   /** An abstract IP-stack interface  */
   template <typename IPV >
-  class Inet {
-  public:
+  struct Inet {
     using Stack = Inet<IPV>;
+
+    using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
 
     virtual typename IPV::addr ip_addr() = 0;
     virtual typename IPV::addr netmask() = 0;
-    virtual typename IPV::addr router()  = 0;
+    virtual typename IPV::addr gateway()  = 0;
     virtual std::string        ifname() const = 0;
     virtual hw::MAC_addr       link_addr() = 0;
 
@@ -47,19 +48,22 @@ namespace net {
     virtual TCP&       tcp()    = 0;
     virtual UDP&       udp()    = 0;
 
+    virtual void set_forward_delg(Forward_delg) = 0;
+    virtual Forward_delg forward_delg() = 0;
+
     virtual constexpr uint16_t MTU() const = 0;
 
     virtual Packet_ptr create_packet(size_t size) = 0;
 
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
 
-    virtual void set_router(typename IPV::addr server) = 0;
+    virtual void set_gateway(typename IPV::addr server) = 0;
 
     virtual void set_dns_server(typename IPV::addr server) = 0;
 
     virtual void network_config(typename IPV::addr ip,
                                 typename IPV::addr nmask,
-                                typename IPV::addr router,
+                                typename IPV::addr gateway,
                                 typename IPV::addr dnssrv) = 0;
 
     /** Event triggered when there are available buffers in the transmit queue */
@@ -70,6 +74,7 @@ namespace net {
 
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
+
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

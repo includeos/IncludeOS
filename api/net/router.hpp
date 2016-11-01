@@ -23,19 +23,90 @@
 
 namespace net {
 
-template<class IPV>
-class Router {
-public:
-  using Stack   = Inet<IPV>;
-  using Addr    = IPV::addr;
-  using Routes  = std::map<Addr, Stack>;
+  template <class IPV>
+  struct Route {
 
-private:
-  Routes routes_;
+    using Stack = Inet<IPV>;
+    using Stack_ptr = std::shared_ptr<Stack>;
+    using Addr = typename IPV::addr;
+    using Netmask = typename IPV::addr;
 
-};
+    Addr dest_net()
+    { return dest_net_; }
+
+    Netmask netmask()
+    { return netmask_; }
+
+    Addr gateway()
+    { return gateway_; }
+
+    int cost()
+    { return cost_; }
+
+    Stack& stack;
+
+    Route(Addr dest_net, Netmask mask, Addr gateway, Stack_ptr iface, int cost)
+      : dest_net_{dest_net}, netmask_{mask}, gateway_{gateway}, iface_{iface}, cost_{cost}
+    {}
+
+  private:
+    Addr dest_net_;
+    Netmask netmask_;
+    Addr gateway_;
+    Stack_ptr iface_;
+    int cost_;
+  };
+
+
+  template<class IPV>
+  struct Router {
+
+    using Stack   = typename Route<IPV>::Stack;
+    using Stack_ptr = typename Route<IPV>::Stack_ptr;
+
+    using Forward_delg = typename Inet<IPV>::Forward_delg;
+    using Addr    = typename IPV::addr;
+    using Interfaces = std::vector<Stack_ptr>;
+    using Routing_table = std::vector<Route<IPV>>;
+
+    /**
+     * Forward an IP packet according to local policy / routing table.
+     **/
+    void forward(Stack& source, typename IPV::IP_packet_ptr);
+
+    /**
+     * Get forwarding delegate
+     * (And ensure forward signature Matches the signature of IP forwarding delegate.)
+     **/
+    Forward_delg forward_delg()
+    { return Forward_delg(*this, forward); }
+
+
+    /** Get the interface route for a certain IP **/
+    virtual Stack& get_route(typename IPV::addr dest) {
+
+      for (auto&& route : routing_table_) {
+        if ((dest & route.netmask()) == route.dest_net())
+          return route.stack();
+      }
+
+      return nullptr;
+
+    };
+
+    /** Construct a router over a set of interfaces **/
+    Router(Interfaces, Routing_table = {});
+
+    void set_routing_table(Routing_table&& tbl) {
+      routing_table_ = std::forward(tbl);
+    };
+
+  private:
+    Interfaces networks_;
+    Routing_table routing_table_;
+
+  };
 
 } //< namespace net
 
 #endif // NET_ROUTER_HPP
-
