@@ -44,7 +44,7 @@ namespace net {
     { return nic_.ifname(); }
 
     hw::MAC_addr link_addr() override
-    { return eth_.mac(); }
+    { return nic_.mac(); }
 
     IP4::addr ip_addr() override
     { return ip4_addr_; }
@@ -195,7 +195,6 @@ namespace net {
 
     // This is the actual stack
     hw::Nic& nic_;
-    Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
     ICMPv4 icmp_;
