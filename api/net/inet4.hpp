@@ -30,6 +30,7 @@
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include <vector>
+#include "super_stack.hpp"
 
 namespace net {
 
@@ -38,7 +39,6 @@ namespace net {
   /** A complete IP4 network stack */
   class Inet4 : public Inet<IP4>{
   public:
-    using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
     virtual std::string ifname() const override
     { return nic_.ifname(); }
@@ -122,7 +122,7 @@ namespace net {
      * @param timeout number of seconds before request should timeout
      * @param dhcp_timeout_func DHCP timeout handler
      */
-    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) override;
 
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
@@ -167,8 +167,8 @@ namespace net {
     template <int N = 0>
     static auto&& stack()
     {
-      static Inet4 inet{hw::Devices::nic(N)};
-      return inet;
+      //static Inet4 inet{hw::Devices::nic(N)};
+      return Super_stack::get<IP4>(N);
     }
 
     /** Static IP config */
@@ -191,7 +191,13 @@ namespace net {
       return stack<N>();
     }
 
+
+    /** A super stack */
+    friend class Super_stack;
+
+
   private:
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 

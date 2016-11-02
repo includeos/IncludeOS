@@ -28,7 +28,7 @@ namespace unik{
   public:
     using Registered_event = delegate<void()>;
 
-    static void register_instance(net::Inet4& inet, const net::UDP::port_t port = default_port);
+    static void register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port = default_port);
     static void register_instance_dhcp();
     static void on_registered(Registered_event e) {
       on_registered_ = e;

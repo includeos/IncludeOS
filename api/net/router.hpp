@@ -27,7 +27,7 @@ namespace net {
   struct Route {
 
     using Stack = Inet<IPV>;
-    using Stack_ptr = std::shared_ptr<Stack>;
+    using Stack_ptr = Stack*;
     using Addr = typename IPV::addr;
     using Netmask = typename IPV::addr;
 
@@ -43,7 +43,8 @@ namespace net {
     int cost()
     { return cost_; }
 
-    Stack& stack;
+    Stack_ptr interface()
+    { return iface_; };
 
     Route(Addr dest_net, Netmask mask, Addr gateway, Stack_ptr iface, int cost)
       : dest_net_{dest_net}, netmask_{mask}, gateway_{gateway}, iface_{iface}, cost_{cost}
@@ -63,7 +64,6 @@ namespace net {
 
     using Stack   = typename Route<IPV>::Stack;
     using Stack_ptr = typename Route<IPV>::Stack_ptr;
-
     using Forward_delg = typename Inet<IPV>::Forward_delg;
     using Addr    = typename IPV::addr;
     using Interfaces = std::vector<Stack_ptr>;
@@ -83,11 +83,11 @@ namespace net {
 
 
     /** Get the interface route for a certain IP **/
-    virtual Stack& get_route(typename IPV::addr dest) {
+    virtual Stack_ptr get_interface(typename IPV::addr dest) {
 
       for (auto&& route : routing_table_) {
         if ((dest & route.netmask()) == route.dest_net())
-          return route.stack();
+          return route.interface();
       }
 
       return nullptr;
@@ -95,7 +95,9 @@ namespace net {
     };
 
     /** Construct a router over a set of interfaces **/
-    Router(Interfaces, Routing_table = {});
+    Router(Interfaces&& ifaces, Routing_table&& tbl = {})
+      : networks_{std::move(ifaces)}, routing_table_{tbl}
+    {}
 
     void set_routing_table(Routing_table&& tbl) {
       routing_table_ = std::forward(tbl);

@@ -28,7 +28,11 @@ namespace net {
   class UDP;
   class DHClient;
 
-  /** An abstract IP-stack interface  */
+  /**
+   * An abstract IP-stack interface.
+   * Provides a common interface for IPv4 and (future) IPv6, simplified with
+   *  no constructors etc.
+   **/
   template <typename IPV >
   struct Inet {
     using Stack = Inet<IPV>;
@@ -64,7 +68,11 @@ namespace net {
     virtual void network_config(typename IPV::addr ip,
                                 typename IPV::addr nmask,
                                 typename IPV::addr gateway,
-                                typename IPV::addr dnssrv) = 0;
+                                typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
+
+
+    using dhcp_timeout_func = delegate<void(bool timed_out)>;
+    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
