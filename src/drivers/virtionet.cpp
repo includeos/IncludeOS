@@ -47,14 +47,14 @@ void VirtioNet::drop(Packet_ptr){
 }
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
-  : Virtio(d), Nic(2048, sizeof(net::Packet) + MTU() + eth_size()),
+  : Virtio(d),
+    Link_protocol(net::Ethernet{{this, &VirtioNet::transmit}, mac()}, 2048, sizeof(net::Packet) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
     rx_q(queue_size(0),0,iobase()), tx_q(queue_size(1),1,iobase()),
     ctrl_q(queue_size(2),2,iobase())
 {
-  _link_out = &VirtioNet::drop;
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
   assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
@@ -201,7 +201,7 @@ void VirtioNet::msix_recv_handler()
     auto res = rx_q.dequeue();
 
     auto pckt_ptr = recv_packet(res.data(), res.size());
-    _link_out(std::move(pckt_ptr));
+    Link_protocol::receive(std::move(pckt_ptr));
 
     // Requeue a new buffer
     add_receive_buffer();
@@ -323,7 +323,7 @@ void VirtioNet::service_queues(){
     while (rx_q.new_incoming()) {
       auto res = rx_q.dequeue();
       auto pckt_ptr = recv_packet(res.data(), res.size());
-      _link_out(std::move(pckt_ptr));
+      Link_protocol::receive(std::move(pckt_ptr));
 
       // Requeue a new buffer
       add_receive_buffer();
@@ -487,7 +487,7 @@ void VirtioNet::deactivate()
   rx_q.disable_interrupts();
   tx_q.disable_interrupts();
   ctrl_q.disable_interrupts();
-  
+
   /// mask off MSI-X vectors
   if (is_msix())
       deactivate_msix();

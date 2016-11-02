@@ -37,7 +37,8 @@
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <net/buffer_store.hpp>
-#include <hw/nic.hpp>
+#include <net/link_layer.hpp>
+#include <net/ethernet/ethernet.hpp>
 #include <delegate>
 #include <deque>
 #include <statman>
@@ -110,9 +111,10 @@
 #define VIRTIO_NET_S_LINK_UP  1
 #define VIRTIO_NET_S_ANNOUNCE 2
 
-/** Virtio-net device driver.  */
-class VirtioNet : Virtio, public hw::Nic {
+using Link_protocol = net::Link_layer<net::Ethernet>;
 
+/** Virtio-net device driver.  */
+class VirtioNet : Virtio, public Link_protocol {
 public:
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
@@ -128,12 +130,11 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
-  net::downstream get_physical_out() override {
-    return {this, &VirtioNet::transmit};
-  }
+  net::downstream create_physical_downstream()
+  { return {this, &VirtioNet::transmit}; }
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  void transmit(net::Packet_ptr pckt) override;
+  void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(hw::PCI_Device& pcidev);
