@@ -6,3 +6,5 @@
 # ...There are probably nicer solutions, so please PR if you know them.
 add_library(virtioblk STATIC virtioblk.cpp)
 add_library(virtionet STATIC virtionet.cpp)
+
+install(TARGETS virtionet virtioblk DESTINATION lib/includeos-drivers)

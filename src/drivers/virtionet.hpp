@@ -141,12 +141,14 @@ public:
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
     return tx_q.num_free() / 2;
-  };
+  }
 
   /** Number of incoming packets waiting in the RX-queue */
   size_t receive_queue_waiting() override {
     return rx_q.new_incoming() / 2;
-  };
+  }
+
+  void deactivate() override;
 
   struct virtio_net_hdr
   {

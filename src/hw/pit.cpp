@@ -24,10 +24,11 @@
 #include <kernel/irq_manager.hpp>
 
 // Used for cpu frequency sampling
-extern double _CPUFreq_;
 extern const uint16_t _cpu_sampling_freq_divider_;
 
 namespace hw {
+
+  constexpr MHz PIT::frequency_;
 
   // Bit 0-3: Mode 0 - "Interrupt on terminal count"
   // Bit 4-5: Both set, access mode "Lobyte / Hibyte"
@@ -54,7 +55,6 @@ namespace hw {
   using namespace std::chrono;
 
 
-
   PIT::Timer::Timer(Type t, timeout_handler handler, std::chrono::milliseconds ms, repeat_condition cond)
     : type_{t}, id_{++timers_count_}, handler_{handler}, interval_{ms}, cond_{cond} {};
 
@@ -68,7 +68,7 @@ namespace hw {
   PIT::PIT() {}
   PIT::~PIT() {}
 
-  void PIT::estimate_CPU_frequency(){
+  double PIT::estimate_CPU_frequency(int samples) {
 
     debug("<PIT EstimateCPUFreq> Saving state: curr_freq_div %i \n",current_freq_divider_);
     // Save PIT-state
@@ -85,7 +85,8 @@ namespace hw {
     set_freq_divider(_cpu_sampling_freq_divider_);
 
     // BLOCKING call to external measurment.
-    calculate_cpu_frequency();
+    extern double calculate_cpu_frequency(int);
+    double freq = calculate_cpu_frequency(samples);
 
     debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
 
@@ -93,13 +94,8 @@ namespace hw {
     set_freq_divider(temp_freq_divider_);
 
     IRQ_manager::get().set_irq_handler(0, prev_irq_handler);
-  }
-
-  MHz PIT::CPU_frequency(){
-    if (! _CPUFreq_)
-      estimate_CPU_frequency();
-
-    return MHz(_CPUFreq_);
+    
+    return freq;
   }
 
 
@@ -114,7 +110,7 @@ namespace hw {
     if (current_freq_divider_ != millisec_interval)
       set_freq_divider(millisec_interval);
 
-    auto cycles_pr_millisec = KHz(CPU_frequency());
+    auto cycles_pr_millisec = KHz(OS::cpu_freq());
     //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
     auto ticks = in_msecs / KHz(current_frequency()).count();

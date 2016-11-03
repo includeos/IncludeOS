@@ -52,4 +52,11 @@ namespace hw
     msix->setup_vector(cpu, irq);
   }
   
+  void PCI_Device::deactivate_msix()
+  {
+    for (int ent = 0; ent < msix->vectors(); ent++) {
+        msix->mask_entry(ent);
+        msix->zero_entry(ent);
+    }
+  }
 }

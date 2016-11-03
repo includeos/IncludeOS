@@ -48,7 +48,7 @@ public:
   }
   /** micro seconds since boot */
   static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_mhz_.count();
+    return cycles_since_boot() / cpu_freq().count();
   }
 
   /** Timestamp for when OS was booted */

@@ -17,8 +17,7 @@
 
 #include <arpa/inet.h>
 #include <net/ip4/addr.hpp>
-
-using namespace net;
+#include <common>
 
 /**
  * @note: shortcut, not sufficent.
@@ -27,37 +26,89 @@ using namespace net;
 in_addr_t inet_addr(const char* cp)
 {
   try {
-    const auto addr = ip4::Addr{cp};
+    const auto addr = net::ip4::Addr{cp};
     return addr.whole;
   }
-  catch(const ip4::Invalid_address&) {
+  catch(const net::ip4::Invalid_address&) {
     return (in_addr_t)(-1);
   }
 }
 
-/**
- * @note: shortcut, not sufficent.
- * see: http://pubs.opengroup.org/onlinepubs/9699919799/functions/inet_addr.html#
- */
-char* inet_ntoa(struct in_addr in)
+char* inet_ntoa(struct in_addr ina)
 {
-  const auto addr = ip4::Addr{in.s_addr};
-  auto str = addr.to_string();
-  return const_cast<char*>(str.c_str());
+  static char buffer[INET_ADDRSTRLEN];
+  unsigned char* byte = (unsigned char *)&ina;
+
+  sprintf(buffer, "%hhu.%hhu.%hhu.%hhu",
+          byte[0], byte[1], byte[2], byte[3]);
+  return buffer;
 }
 
 /**
- * @note: http://pubs.opengroup.org/onlinepubs/9699919799/functions/inet_ntop.html#
+ * @note: Missing IPv6 support
  */
-const char* inet_ntop(int, const void *__restrict__, char *__restrict__, socklen_t)
+const char* inet_ntop(int af, const void *__restrict__ src, char *__restrict__ dst, socklen_t size)
 {
-  assert(false && "Not implemented");
+  if(UNLIKELY(dst == nullptr))
+    return nullptr;
+
+  // IPv4
+  if(af == AF_INET)
+  {
+    if(LIKELY(size >= INET_ADDRSTRLEN))
+    {
+      unsigned char* byte = (unsigned char*)src;
+
+      sprintf(dst, "%hhu.%hhu.%hhu.%hhu",
+          byte[0], byte[1], byte[2], byte[3]);
+
+      return dst;
+    }
+    else
+    {
+      errno = ENOSPC;
+    }
+  }
+  else if(af == AF_INET6)
+  {
+    // add me ;(
+    errno = EAFNOSUPPORT;
+  }
+  else
+  {
+    errno = EAFNOSUPPORT;
+  }
+  return nullptr;
 }
 
 /**
- * @note: http://pubs.opengroup.org/onlinepubs/9699919799/functions/inet_ntop.html#
+ * @note: Missing IPv6 support
  */
-int inet_pton(int, const char *__restrict__, void *__restrict__)
+int inet_pton(int af, const char *__restrict__ src, void *__restrict__ dst)
 {
-  assert(false && "Not implemented");
+  // IPv4
+  if(af == AF_INET)
+  {
+    try
+    {
+      const auto addr = net::ip4::Addr{src};
+      memcpy(dst, &addr.whole, INET_ADDRSTRLEN);
+      return 1;
+    }
+    catch(const net::ip4::Invalid_address&)
+    {
+      return 0;
+    }
+  }
+  else if(af == AF_INET6)
+  {
+    // add me ;(
+    errno = EAFNOSUPPORT;
+  }
+  else
+  {
+    errno = EAFNOSUPPORT;
+  }
+  return -1;
+
 }

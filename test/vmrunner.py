@@ -200,8 +200,8 @@ class vm:
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
     self._config = config
-    self._on_success = lambda : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + " All tests passed"))
-    self._on_panic =  lambda : self.exit(exit_codes["VM_FAIL"], color.FAIL(nametag + self._hyper.readline()))
+    self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + " All tests passed"))
+    self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], color.FAIL(nametag + self._hyper.readline()))
     self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag + " Test timed out"))
     self._on_output = {
       "PANIC" : self._on_panic,
@@ -226,10 +226,10 @@ class vm:
     self._on_output[ output ] = callback
 
   def on_success(self, callback):
-    self._on_output["SUCCESS"] = lambda : [callback(), self._on_success()]
+    self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
 
   def on_panic(self, callback):
-    self._on_output["PANIC"] = lambda : [callback(), self._on_panic()]
+    self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
 
   def on_timeout(self, callback):
     self._on_timeout = callback
@@ -282,7 +282,7 @@ class vm:
       for pattern, func in self._on_output.iteritems():
         if re.search(pattern, line):
           try:
-            res = func()
+            res = func(line)
           except Exception as err:
             print color.WARNING("Exception raised in event callback: ")
             print_exception()
@@ -303,13 +303,13 @@ class vm:
     self.wait()
 
     if self._exit_status:
-      print color.WARNING(nametag + "Found non-zero exit status but process didn't end. ")
-      print color.FAIL(nametag + "Tests failed or program error")
-      print color.INFO(nametag),"Done running VM. Exit status: ", self._exit_status
+      print color.WARNING(nametag + " Found non-zero exit status but process didn't end. ")
+      print color.FAIL(nametag + " Tests failed or program error")
+      print color.INFO(nametag)," Done running VM. Exit status: ", self._exit_status
       sys.exit(self._exit_status)
     else:
       print color.SUCCESS(nametag + " VM exited with 0 exit status.")
-      print color.INFO(nametag), "Subprocess finished. Exiting with ", self._hyper.poll()
+      print color.INFO(nametag), " Subprocess finished. Exiting with ", self._hyper.poll()
       sys.exit(self._hyper.poll())
 
     raise Exception("Unexpected termination")
