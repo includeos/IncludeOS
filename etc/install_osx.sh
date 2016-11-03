@@ -35,6 +35,12 @@ echo -e "\n# Dependencies"
 ## jq ##
 brew install jq
 
+## qemu ##
+brew install qemu
+
+## tuntap ##
+brew install Caskroom/cask/tuntap
+
 ## LLVM ##
 echo -e "\nllvm38 (clang/clang++ 3.8) - required for compiling"
 DEPENDENCY_LLVM=false
