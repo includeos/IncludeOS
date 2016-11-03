@@ -23,20 +23,17 @@
 #include <type_traits>
 #include <string>
 #include <map>
+#include <regex>
 
-/* TODO:
-Place priorities and options in its own header and include this
-here and in sys/syslog.h? We don't want to include sys/syslog.h here.
-INTERNALLOG also needs to/should be a priority (?) */
-#include <sys/syslog.h>
+#include <sys/syslog_consts.h>
 
 const int BUFLEN = 2048;
 const int TIMELEN = 32;
 
 const std::map<int, std::string> pri_colors = {
-  { LOG_EMERG,   "\033[38;5;1m" },    // ? RED
-  { LOG_ALERT,   "\033[38;5;160m" },  // ? RED (lighter)
-  { LOG_CRIT,    "\033[38;5;196m" },  // ? RED (even lighter)
+  { LOG_EMERG,   "\033[38;5;1m" },    // RED
+  { LOG_ALERT,   "\033[38;5;160m" },  // RED (lighter)
+  { LOG_CRIT,    "\033[38;5;196m" },  // RED (even lighter)
   { LOG_ERR,     "\033[38;5;208m" },  // DARK YELLOW
   { LOG_WARNING, "\033[93m" },        // YELLOW
   { LOG_NOTICE,  "\033[92m" },        // GREEN
@@ -59,9 +56,13 @@ struct Syslog_facility {
   int priority() { return priority_; }
   std::string priority_string();
 
+  void set_logopt(int logopt) { logopt_ = logopt; }
+  int logopt() { return logopt_; }
+
 private:
   const char* ident_ = nullptr;
   int priority_;
+  int logopt_;
 };
 
 struct Syslog_kern : public Syslog_facility {
@@ -93,19 +94,25 @@ struct Syslog {
   // Parameter pack arguments
   template <typename... Args>
   static void syslog(int priority, const char* message, Args&&... args) {
-    printf("PARAMETER PACK SYSLOG\n");
+    // snprintf removes % if calling syslog with %m in addition to arguments
+    // Find %m here first and escape % if found
+    std::regex m_regex{"\\%m"};
+    std::string msg = std::regex_replace(message, m_regex, "%%m");
 
     char buf[BUFLEN];
-    snprintf(buf, BUFLEN, message, args...);
+    snprintf(buf, BUFLEN, msg.c_str(), args...);
     syslog(priority, buf);
   };
 
   // va_list arguments (POSIX)
   static void syslog(int priority, const char* message, va_list args) {
-    printf("VA_LIST SYSLOG\n");
+    // vsnprintf removes % if calling syslog with %m in addition to arguments
+    // Find %m here first and escape % if found
+    std::regex m_regex{"\\%m"};
+    std::string msg = std::regex_replace(message, m_regex, "%%m");
 
     char buf[BUFLEN];
-    vsnprintf(buf, BUFLEN, message, args);
+    vsnprintf(buf, BUFLEN, msg.c_str(), args);
     syslog(priority, buf);
   };
   
@@ -113,15 +120,37 @@ struct Syslog {
 
   template <typename Facility>
   static void openlog(const char* ident, int logopt) {
-
-    // TODO: logopt
-    // Do a lot of the same things as with ident (getter +) - depends what to do with this - 
-    // it affects the message output (if pid f.ex. is included in the message/log and more)
-    // IncludeOS: pid is only 0 or 1 or similar so not that interesting, but still - posix has these
-    // options
-
     static_assert(std::is_base_of<Syslog_facility, Facility>::value, "Facility is not base of Syslog_facility");
     last_open = std::make_unique<Facility>(ident);
+
+    if (valid_logopt(logopt))
+      last_open->set_logopt(logopt);
+
+    // TODO:
+
+    if (logopt & LOG_CONS and last_open->priority() == LOG_ERR) {
+      // Log to system console
+      
+    }
+    
+    if (logopt & LOG_NDELAY) {
+      // Connect to syslog daemon immediately
+
+
+    } else if (logopt & LOG_ODELAY) {
+      // Delay open until syslog() is called
+
+    }
+
+    if (logopt & LOG_NOWAIT) {
+      // Do not wait for child processes - deprecated?
+
+    }
+
+    if (logopt & LOG_PERROR) {
+      // Log to stderr
+
+    }
   }
 
   static void closelog() {
@@ -137,6 +166,14 @@ struct Syslog {
       return false;
 
     return true;
+  }
+
+  static bool valid_logopt(int logopt) {
+    if (logopt & LOG_PID or logopt & LOG_CONS or logopt & LOG_NDELAY or
+      logopt & LOG_ODELAY or logopt & LOG_NOWAIT or logopt & LOG_PERROR)
+      return true;
+
+    return false;
   }
 
 private:

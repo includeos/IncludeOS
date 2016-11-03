@@ -17,7 +17,11 @@
 
 #include <syslogd>
 #include <service>
+
 #include <ctime>
+
+#include <errno.h>
+#include <unistd.h>		// getpid
 
 // ------------------------- Syslog_facility -----------------------------
 
@@ -84,27 +88,16 @@ std::string Syslog_mail::name() { return "MAIL"; }
 std::unique_ptr<Syslog_facility> Syslog::last_open = std::make_unique<Syslog_user>();
 
 void Syslog::syslog(int priority, const char* buf) {
-	printf("SYSLOG WITH NO MORE ARGUMENTS\n");
 
-  /*
+	/*
   	All syslog-calls comes through here in the end, so
   	here we want to format the log-message with header and body
   */
 
-  /*
-  	%m:
-	  The message body is generated from the message (argument) and following arguments
-	  in the same manner as if these were arguments to printf(), except that the additional
-	  conversion specification %m shall be recognized; it shall convert no arguments,
-	  shall cause the output of the error message string associated with the value of
-	  errno on entry to syslog(), and may be mixed with argument specifications of the
-	  "%n$" form. If a complete conversion specification with the m conversion specifier
-	  character is not just %m, the behavior is undefined. A trailing <newline> may be
-	  added if needed.
-  */
+	// Keeps % if calling this with %m and no arguments
 
   if (not valid_priority(priority)) {
-  	// TODO (What to do if this occurs?)
+  	// TODO (What to do if this occurs? Default?)
     printf("Invalid priority - returning\n");
     return;
   }
@@ -128,17 +121,31 @@ void Syslog::syslog(int priority, const char* buf) {
   else
   	message += Service::binary_name();
 
-  // PID not relevant, but if was: f.ex. [1]
+  // Third: PID
+  if (last_open->logopt() & LOG_PID)
+  	message += "[" + std::to_string(getpid()) + "]";
 
   message += ": ";
 
-  // Third: Facility-name and priority/severity with colors
+  // Fourth: Facility-name and priority/severity with colors
   message += pri_colors.at(last_open->priority()) +
   	"<" + last_open->name() + "." + last_open->priority_string() + "> " +
   	COLOR_END;
 
-  // Last: Add the message (buf)
-  message += std::string{buf} + "\n";
+  /*
+  	%m:
+	  (The message body is generated from the message (argument) and following arguments
+	  in the same manner as if these were arguments to printf(), except that the additional
+	  conversion specification %m shall be recognized;)
+	  it shall convert no arguments, shall cause the output of the error message string
+	  associated with the value of errno on entry to syslog(), and may be mixed with argument
+	  specifications of the "%n$" form. If a complete conversion specification with the m conversion
+	  specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
+	  added if needed.
+  */
+  // Fifth: Handle %m (replace it with strerror(errno)) and add the message (buf)
+  std::regex m_regex{"\\%m"};
+  message += std::regex_replace(buf, m_regex, strerror(errno)) + "\n";
 
   last_open->syslog(message);
 }

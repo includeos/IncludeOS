@@ -72,6 +72,9 @@ void openlog(const char* ident, int logopt, int facility) {
 		facility_ = facility;
 
 	switch (facility_) {
+		case LOG_KERN:
+			Syslog::openlog<Syslog_kern>(ident_, logopt_);
+			break;
 		case LOG_MAIL:
 			Syslog::openlog<Syslog_mail>(ident_, logopt_);
 			break;
