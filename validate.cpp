@@ -26,6 +26,8 @@ struct relocate_header {
 static relocate_header init_header;
 bool _init_elf_parser();
 
+#include <algorithm>
+
 int main(int argc, const char** args)
 {
   assert(argc > 1);
@@ -49,15 +51,36 @@ int main(int argc, const char** args)
   printf("custom symtab at %p (%u entries)\n",
       init_header.symtab.base, init_header.symtab.entries);
 
+
+  typedef std::pair<Elf32_Sym*, size_t> symbol_size_t;
+  std::vector<symbol_size_t> vec;
+  int total = 0;
+  int func_total = 0;
+
   for (size_t i = 0; i < init_header.symtab.entries; i++) {
     auto& sym  = init_header.symtab.base[i];
     // only care about functions, and it should be pre-pruned
-    assert (ELF32_ST_TYPE(sym.st_info) == STT_FUNC);
-
-    const char* name = &init_header.strtab.base[sym.st_name];
-    //printf("sym [%#x] %s\n", sym.st_value, name);
+    //assert (ELF32_ST_TYPE(sym.st_info) == STT_FUNC);
+    vec.push_back({&sym, sym.st_size});
+    total += sym.st_size;
+    if (ELF32_ST_TYPE(sym.st_info) == STT_FUNC) func_total += sym.st_size;
   }
-  printf("validated!\n");
+  
+  std::sort(vec.begin(), vec.end(),
+  [] (const symbol_size_t& s1, const symbol_size_t& s2) -> int {
+    return s1.second > s2.second;
+  });
+  
+  
+  for (int i = 0; i < 32; i++)
+  {
+    auto& sym = *vec[i].first;
+    const char* name = &init_header.strtab.base[sym.st_name];
+    printf("sym [%#x] %s is %d bytes\n", sym.st_value, name, sym.st_size);
+  }
+  
+  printf("Validated! In total %d bytes (functions %d bytes)\n", total, func_total);
+  printf("Symtab entries: %u\n", init_header.symtab.entries);
   return 0;
 }
 
@@ -91,6 +114,10 @@ bool _init_elf_parser()
   }
 
   printf("full symtab at %p (%u entries)\n", symtab.base, symtab.entries);
+  // when not using custom pruned section:
+  init_header.symtab = symtab;
+  init_header.strtab = strtab;
+  return init_header.symtab.entries && init_header.strtab.size;
 
   for (size_t i = 0; i < symtab.entries; i++)
   {

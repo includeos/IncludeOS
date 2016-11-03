@@ -15,20 +15,18 @@ FILES = test.o
 DISK=
 
 # Drivers to be used with service
-#EXTRA_LIBS=--whole-archive -lvirtionet --no-whole-archive
+EXTRA_LIBS=--whole-archive -lvirtionet --no-whole-archive
 
 # Your own include-path
 LOCAL_INCLUDES=
 
 # IncludeOS location
 ifndef INCLUDEOS_INSTALL
-#INCLUDEOS_INSTALL=$(HOME)/includeos
-INCLUDEOS_INSTALL=$(HOME)/IncludeOS_install
+INCLUDEOS_INSTALL=$(HOME)/includeos
 endif
 
 # Include the installed seed makefile
-#include $(INCLUDEOS_INSTALL)/share/includeos/Makeseed
-include /home/gonzo/IncludeOS_install/Makeseed
+include $(INCLUDEOS_INSTALL)/share/includeos/Makeseed
 
 # Disable crash context buffer
 #CPPOPTS += -DDISABLE_CRASH_CONTEXT
