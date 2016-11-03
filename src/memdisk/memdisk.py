@@ -25,11 +25,11 @@ if args.disk:
     if _platform == "darwin":
       osx_dmg = args.disk + ".dmg"
       call(["hdiutil", "create", "-fs", "MS-DOS", "-o", args.disk, "-srcfolder", args.folder])
-      print "Renaming " + osx_dmg + " => " + image
+      print ("Renaming " + osx_dmg + " => " + image)
       call(["mv", osx_dmg, image])
 
     else:
-      print "Using folder: \t" + args.folder + "\nImage name: \t" + image
+      print ("Using folder: \t" + args.folder + "\nImage name: \t" + image)
       sectors = 16500 # Minimum for FAT16 (otherwise its formatted as FAT12)
       call(["dd", "if=/dev/zero", "of=" + args.disk, "count=" + str(sectors)])
       call(["mkfs.fat", image])

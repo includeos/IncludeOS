@@ -70,3 +70,4 @@ CASE("Adding a implemented FD descriptor in FD_map")
   EXPECT_THROWS_AS(FD_map::_get(bet), FD_not_found);
 }
 
+#include "../../../src/posix/fd.cpp"
