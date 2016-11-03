@@ -43,8 +43,8 @@ LIBCXX = $(INSTALL)/lib/libc++.a $(INSTALL)/lib/libc++abi.a
 INC_NEWLIB=$(INSTALL)/include/newlib
 INC_LIBCXX=$(INSTALL)/include/libcxx
 
-CC  = $(shell command -v clang-3.8 || command -v clang-3.6) -target i686-elf
-CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++) -target i686-elf
+CC  = ${CMAKE_C_COMPILER}
+CPP = ${CMAKE_CXX_COMPILER}
 ifndef LD_INC
 	LD_INC = ld
 endif
