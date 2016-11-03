@@ -50,6 +50,7 @@ add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 
 add_library(c++abi STATIC ${CXX_ABI})
+add_dependencies(c++abi libcxx)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
