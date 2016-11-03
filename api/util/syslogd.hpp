@@ -25,7 +25,7 @@
 #include <map>
 #include <regex>
 
-#include <sys/syslog_consts.h>
+#include <sys/syslog.h>
 
 const int BUFLEN = 2048;
 const int TIMELEN = 32;
