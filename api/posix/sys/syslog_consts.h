@@ -77,7 +77,7 @@ extern "C" {
 	Possible values of severity
 	Symbolic constants for use as the priority argument of syslog()
 */
-#define LOG_EMERG		0	/* A panic condition was reported to all processes */
+#define LOG_EMERG		0		/* A panic condition was reported to all processes */
 #define LOG_ALERT		1 	/* A condition that should be corrected immediately */
 #define LOG_CRIT		2 	/* A critical condition */
 #define LOG_ERR			3 	/* An error message */
