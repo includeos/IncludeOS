@@ -53,14 +53,14 @@ add_library(c++abi STATIC ${CXX_ABI})
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
-	COMMAND clang++ -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crtn.o
-	COMMAND clang++ -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)
@@ -75,3 +75,5 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
+install(FILES seed/service_name.cpp DESTINATION share/includeos)
+install(FILES linker.ld DESTINATION share/includeos)

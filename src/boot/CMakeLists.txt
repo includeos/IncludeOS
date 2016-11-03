@@ -13,3 +13,4 @@ add_custom_command(
 add_custom_target(run ALL DEPENDS bootloader)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bootloader DESTINATION share/includeos)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/multiboot.dir/multiboot.cpp.o DESTINATION share/includeos)
