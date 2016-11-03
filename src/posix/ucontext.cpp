@@ -1,6 +1,23 @@
 #include <kernel/os.hpp>
+#include <hw/acpi.hpp>
+
+// default successor context
+static ucontext_t default_successor_context;
 
 extern "C" void restore_context_stack();
+
+__attribute__((constructor))
+void initialize_default_successor_context()
+{
+  INFO("Kernel", "Creating a default successor return context");
+  default_successor_context.uc_link = nullptr;
+  // create a stack for the context
+  default_successor_context.uc_stack.ss_sp = (new char[1024] + 1024);
+  default_successor_context.uc_stack.ss_size = 1024;
+  makecontext(&default_successor_context,
+              [](){ Service::stop(); hw::ACPI::shutdown(); },
+              0);
+}
 
 static void prepare_context_stack(ucontext_t *ucp, ucontext_t *successor_context, int argc, va_list args)
 {
@@ -10,7 +27,7 @@ static void prepare_context_stack(ucontext_t *ucp, ucontext_t *successor_context
   stack_ptr -= 1;
 
   if(successor_context == nullptr) {
-    stack_ptr[0] = (size_t)&OS::get_default_successor_context();
+    stack_ptr[0] = (size_t)&default_successor_context;
   }
   else {
     stack_ptr[0] = (size_t)successor_context;

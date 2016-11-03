@@ -69,9 +69,6 @@ static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 extern "C" uintptr_t get_cpu_esp();
 
-// default successor context
-ucontext_t OS::default_successor_context_;
-
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   atexit(default_exit);
@@ -248,14 +245,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
       MYINFO("Unknown exception when calling custom initialization function");
     }
   }
-
-  MYINFO("Creating a default successor return context");
-  default_successor_context_.uc_link = NULL;
-  // create a stack for the context
-  default_successor_context_.uc_stack.ss_sp = (new char[1024] + 1024);
-  default_successor_context_.uc_stack.ss_size = 1024;
-  makecontext(&default_successor_context_, OS::event_loop, 0);
-
+  // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
   // initialize random seed based on cycles since start
