@@ -7,6 +7,6 @@ enable_language(ASM_NASM)
 # TODO: fix parameter pollution
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> -f elf32 -o <OBJECT> <SOURCE>")
 
-set(SERVICE_SOURCES int32.asm service.cpp ${INCLUDEOS_INSTALL_DIR}/service_name.cpp)
+set(SERVICE_SOURCES int32.asm service.cpp ${SERVICE_STUB})
 
 add_example(${SERVICE_ID} ${SERVICE} ${SERVICE_NAME} "${SERVICE_SOURCES}")
