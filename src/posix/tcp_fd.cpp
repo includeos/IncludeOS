@@ -193,6 +193,8 @@ int TCP_FD::shutdown(int mode)
   return cd->shutdown(mode);
 }
 
+/// socket default handler getters
+
 TCP_FD::on_read_func TCP_FD::get_default_read_func()
 {
   if (cd) {
@@ -205,6 +207,14 @@ TCP_FD::on_read_func TCP_FD::get_default_read_func()
     };
   }
   throw std::runtime_error("Invalid socket");
+}
+TCP_FD::on_write_func TCP_FD::get_default_write_func()
+{
+  return [] {};
+}
+TCP_FD::on_except_func TCP_FD::get_default_except_func()
+{
+  return [] {};
 }
 
 /// socket as connection
