@@ -108,8 +108,8 @@ namespace net {
     static constexpr uint16_t header_size() noexcept
     { return sizeof(ethernet::Header) + sizeof(ethernet::trailer_t); }
 
-    //static constexpr hw::Nic::Protocol proto() noexcept
-    //{ return hw::Nic::Protocol::ETH; }
+    static constexpr hw::Nic::Proto proto() noexcept
+    { return hw::Nic::Proto::ETH; }
 
     /** Transmit data, with preallocated space for eth.header */
     void transmit(Packet_ptr);

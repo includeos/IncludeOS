@@ -29,6 +29,9 @@ public:
   void set_arp_upstream(upstream handler) override
   { link_.set_arp_upstream(handler); }
 
+  hw::Nic::Proto proto() const override
+  { return Protocol::proto(); }
+
 protected:
   /** Called by the underlying physical driver inheriting the Link_layer */
   void receive(net::Packet_ptr pkt)

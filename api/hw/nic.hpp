@@ -33,9 +33,9 @@ namespace hw {
     using upstream    = delegate<void(net::Packet_ptr)>;
     using downstream  = upstream;
 
-    enum Proto {ETH, IEEE802111};
+    enum class Proto {ETH, IEEE802111};
 
-    virtual Proto proto() = 0;
+    virtual Proto proto() const = 0;
 
     /** Get a readable name. */
     virtual const char* name() const = 0;
