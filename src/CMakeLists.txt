@@ -19,10 +19,10 @@ add_custom_command(
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
   kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
-  kernel/interrupts.asm kernel/os.cpp kernel/os_stdout.cpp kernel/cpuid.cpp 
-  kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp 
+  kernel/interrupts.asm kernel/os.cpp kernel/os_stdout.cpp kernel/cpuid.cpp
+  kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
   kernel/service_stub.cpp kernel/main_call.cpp
-  kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp 
+  kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm
   kernel/timers.cpp kernel/rtc.cpp
@@ -39,6 +39,7 @@ set(OS_OBJECTS
   net/ip4/icmpv4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp
   net/buffer_store.cpp net/inet4.cpp
+  net/super_stack.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
