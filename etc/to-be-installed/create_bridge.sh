@@ -14,13 +14,20 @@ NETWORK=10.0.0.0
 DHCPRANGE=10.0.0.2,10.0.0.254
 
 # Check if bridge is created
-#if brctl show $BRIDGE 2>&1 | grep -q "No such device"; then
-if ifconfig $BRIDGE 2>&1 | grep -q "does not exist"; then
-  echo ">>> Creating network bridge (requires sudo):"
-  #sudo brctl addbr $BRIDGE || exit 1
-  sudo ifconfig $BRIDGE create || exit 1
+if uname -s | grep Darwin > /dev/null 2>&1; then  # Check if on Mac
+  if ifconfig $BRIDGE 2>&1 | grep -q "does not exist"; then
+    echo ">>> Creating network bridge (requires sudo):"
+    sudo ifconfig $BRIDGE create || exit 1
+  else
+    echo ">>> Network bridge already created"
+  fi
 else
-  echo ">>> Network bridge already created"
+  if brctl show $BRIDGE 2>&1 | grep -q "No such device"; then
+    echo ">>> Creating network bridge (requires sudo):"
+    sudo brctl addbr $BRIDGE || exit 1
+  else
+    echo ">>> Network bridge already created"
+  fi
 fi
 
 # Check if bridge is configured
@@ -41,7 +48,11 @@ else
   echo ">>> Configuring network bridge (requires sudo):"
 
   sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up || exit 1
-  sudo ifconfig $BRIDGE ether $HWADDR || exit 1
+  if uname -s | grep Darwin > /dev/null 2>&1; then
+	sudo ifconfig $BRIDGE ether $HWADDR || exit 1
+  else
+	sudo ifconfig $BRIDGE hw ether $HWADDR || exit 1
+  fi
 fi
 
 exit 0
