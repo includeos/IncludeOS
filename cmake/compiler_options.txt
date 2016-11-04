@@ -11,7 +11,7 @@ string(STRIP ${STACK_PROTECTOR_VALUE} STACK_PROTECTOR_VALUE)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} -O2")
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro
@@ -30,18 +30,17 @@ option(stripped "reduce size" OFF)
 
 # set optimization level
 
+set(OPTIMIZE "-O2")
+
 if(debug OR debug-info OR debug-all)
 	set(CAPABS "${CAPABS} -O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
-	set(CAPABS "${CAPABS} -Os")
+	set(OPTIMIZE "-Os")
 endif(minimal)
 
-if(stripped)
-	set(CAPABS "${CAPABS} -O2")
-endif(stripped)
-
+# Set debug options
 if(debug OR debug-all)
 	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
 endif(debug OR debug-all)
@@ -54,6 +53,10 @@ option(silent OFF)
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
+
+
+# Append optimization level
+set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")

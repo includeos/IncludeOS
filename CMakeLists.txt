@@ -47,18 +47,19 @@ option(stripped "reduce size" OFF)
 
 # set optimization level
 
+# set optimization level
+
+set(OPTIMIZE "-O2")
+
 if(debug OR debug-info OR debug-all)
 	set(CAPABS "${CAPABS} -O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
-	set(CAPABS "${CAPABS} -Os")
+	set(OPTIMIZE "-Os")
 endif(minimal)
 
-if(stripped)
-	set(CAPABS "${CAPABS} -O2")
-endif(stripped)
-
+# Set debug options
 if(debug OR debug-all)
 	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
 endif(debug OR debug-all)
@@ -71,6 +72,9 @@ option(silent OFF)
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
+
+# Append optimization level
+set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")

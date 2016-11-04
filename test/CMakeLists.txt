@@ -1,17 +1,16 @@
 cmake_minimum_required(VERSION 3.5)
 project(unittests)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32 -std=c++14 -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
-set(INCLUDEOS_HOME $ENV{HOME}/IncludeOS)
-set(SRC ${INCLUDEOS_HOME}/src)
-set(TEST ${INCLUDEOS_HOME}/test)
+set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(SRC ${INCLUDEOS_ROOT}/src)
+set(TEST ${INCLUDEOS_ROOT}/test)
 set(INCLUDEOS_INSTALL $ENV{HOME}/IncludeOS_Install)
 
 include_directories(
-  ${INCLUDEOS_HOME}/api
-  ${INCLUDEOS_HOME}/src/
-  ${INCLUDEOS_HOME}/src/include
-  ${INCLUDEOS_HOME}/mod/GSL
+  ${INCLUDEOS_ROOT}/api
+  ${INCLUDEOS_ROOT}/src/
+  ${INCLUDEOS_ROOT}/src/include
+  ${INCLUDEOS_ROOT}/mod/GSL
   ${TEST}/lest/include
   ${TEST}/lest_util
 )
