@@ -193,6 +193,20 @@ int TCP_FD::shutdown(int mode)
   return cd->shutdown(mode);
 }
 
+TCP_FD::on_read_func TCP_FD::get_default_read_func()
+{
+  if (cd) {
+    return {cd, &TCP_FD_Conn::recv_to_ringbuffer};
+  }
+  if (ld) {
+    return
+    [this] (net::tcp::buffer_t, size_t) {
+      // what to do here?
+    };
+  }
+  throw std::runtime_error("Invalid socket");
+}
+
 /// socket as connection
 
 void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer, size_t len)
