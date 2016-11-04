@@ -55,4 +55,13 @@ else
   fi
 fi
 
+# Check how many routes are available
+routes=`netstat -rnv | grep -c 10.0.0.0`
+if routes -gt 1; then
+  echo Potential ERROR: More than 1 route to the 10.0.0.0 network detected
+  echo Check the interfaces using ifconfig and turn off any potential
+  echo conflicts. The bridge interface in use is: $BRIDGE
+  echo to disable use the command: ifconfig "<iface>" down
+fi
+
 exit 0
