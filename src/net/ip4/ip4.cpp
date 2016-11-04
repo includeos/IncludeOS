@@ -52,7 +52,12 @@ namespace net {
     // Drop if my ip address doesn't match destination ip address or broadcast
     if(UNLIKELY(hdr->daddr != local_ip() and
                 (hdr->daddr | stack_.netmask()) != ADDR_BCAST)) {
-      packets_dropped_++;
+
+      if (forward_packet_)
+        forward_packet_(stack_, static_unique_ptr_cast<IP_packet>(std::move(pckt)));
+      else
+        packets_dropped_++;
+
       return;
     }
 
@@ -94,7 +99,7 @@ namespace net {
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.router());
+    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.gateway());
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr.daddr.str().c_str(),

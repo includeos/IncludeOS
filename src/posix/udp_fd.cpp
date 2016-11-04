@@ -19,7 +19,7 @@
 #include <kernel/irq_manager.hpp>
 
 // return the "currently selected" networking stack
-static net::Inet4& net_stack() {
+static net::Inet<net::IP4>& net_stack() {
   return net::Inet4::stack<> ();
 }
 

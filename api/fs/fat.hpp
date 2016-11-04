@@ -30,7 +30,7 @@ namespace fs
 {
   class Path;
 
-  struct FAT : public FileSystem
+  struct FAT : public File_system
   {
     /// ----------------------------------------------------- ///
     void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
@@ -215,7 +215,7 @@ namespace fs
     uint32_t data_sectors;  // number of data sectors
 
     // simplistic cache for stat results
-    std::map<std::string, FileSystem::Dirent> stat_cache;
+    std::map<std::string, File_system::Dirent> stat_cache;
   };
 
 } // fs

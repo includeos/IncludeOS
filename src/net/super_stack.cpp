@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +15,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORMS_UNIK_HPP
-#define PLATFORMS_UNIK_HPP
-
+#include <hw/devices.hpp>
 #include <net/inet4.hpp>
 
-namespace unik{
-
-  const net::UDP::port_t default_port = 9876;
-
-  class Client {
-  public:
-    using Registered_event = delegate<void()>;
-
-    static void register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port = default_port);
-    static void register_instance_dhcp();
-    static void on_registered(Registered_event e) {
-      on_registered_ = e;
-    };
-
-  private:
-    static Registered_event on_registered_;
-  };
-
+// Specialization for IP4
+template <>
+net::Inet<net::IP4>& net::Super_stack::get<net::IP4>(int N) {
+  return *(inet().ip4_stacks_[N]);
 }
 
-#endif
+
+net::Super_stack::Super_stack()
+{
+  INFO("Super stack", "Constructing");
+  for(auto& nic : hw::Devices::devices<hw::Nic>())
+  {
+    INFO("Super stack", "Creating stack for Nic %s", nic->ifname().c_str());
+    switch(nic->proto()) {
+
+    case(hw::Nic::Proto::ETH) :
+      ip4_stacks_.emplace_back(std::unique_ptr<net::Inet4>(new Inet4(*nic)));
+      // ip6_stacks come here I guess
+    default:
+      continue;
+
+    }
+  }
+}

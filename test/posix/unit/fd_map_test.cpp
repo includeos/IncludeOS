@@ -69,4 +69,3 @@ CASE("Adding a implemented FD descriptor in FD_map")
   const int bet = 322; // this is a throw
   EXPECT_THROWS_AS(FD_map::_get(bet), FD_not_found);
 }
-

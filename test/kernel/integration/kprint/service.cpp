@@ -15,25 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#include <os>
+#include "../../../../src/include/kprint"
 
-#include <hw/serial.hpp>
-#include <cstring>
-#include <cstdarg>
 
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
+void Service::start(const std::string&)
+{
+  INFO("service", "Testing kprint");
+
+  kprintf("Test 2 I can print hex: 0x%x \n", 100);
+
+  const char* format = "truncate %s \n";
+  const char* str = "bla bla bla bla bla bla bla this part should be truncated END";
+  kprintf("Test 3 Format string size: %i\n", strlen(format));
+
+  // Expect this to print a string 2x the size of format
+  kprintf(format, str);
+
+  // Use the simple char* kprint function to indicate success
+  // (newline should be added here since it's truncated in the previous test)
+  kprint("\nSUCCESS");
+
 }
-
-#define kprint(cstr) hw::Serial::print1(cstr)
-
-#endif

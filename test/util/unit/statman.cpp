@@ -19,7 +19,6 @@
 
 // IncludeOS
 #include <common.cxx>
-#include <util/statman.cpp>
 
 const Statman::Size_type NUM_BYTES_GIVEN = 1000;
 

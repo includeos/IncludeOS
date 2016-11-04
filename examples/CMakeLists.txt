@@ -25,8 +25,7 @@ function(add_example id example_name example_description example_sources)
 	set_target_properties(${id} PROPERTIES LINK_FLAGS "${EXAMPLE_LINK_FLAGS}")
 
 	target_link_libraries(${id} ${EXAMPLE_COMMON_LIBRARIES})
-	add_dependencies(${id} crti)
-	add_dependencies(${id} crtn)
+	add_dependencies(${id} crti crtn libcxx libc libm)
 
 	add_custom_command(
 		OUTPUT ${example_name}.img

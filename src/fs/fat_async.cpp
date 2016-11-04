@@ -244,9 +244,9 @@ namespace fs
       func(no_error, it->second);
       return;
     }
-    
+
     stat(strpath,
-    [this, strpath, func] (error_t error, const FileSystem::Dirent& ent) {
+    [this, strpath, func] (error_t error, const File_system::Dirent& ent) {
         stat_cache[strpath] = ent;
         func(error, ent);
     });

@@ -31,6 +31,7 @@ namespace net {
   // Default delegate assignments
   void ignore_ip4_up(Packet_ptr);
   void ignore_ip4_down(Packet_ptr);
+  class PacketIP4;
 
   /** IP4 layer */
   class IP4 {
@@ -38,6 +39,8 @@ namespace net {
     using Stack     = Inet<IP4>;
     using addr      = ip4::Addr;
     using ip_header = ip4::Header;
+    using IP_packet = PacketIP4;
+    using IP_packet_ptr = std::unique_ptr<IP_packet>;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
@@ -81,6 +84,9 @@ namespace net {
     void set_linklayer_out(downstream s)
     { linklayer_out_ = s; };
 
+    void set_packet_forwarding(Stack::Forward_delg fwd)
+    { forward_packet_ = fwd; }
+
     /**
      *  Downstream: Receive data from above and transmit
      *
@@ -121,6 +127,10 @@ namespace net {
     upstream icmp_handler_ {ignore_ip4_up};
     upstream udp_handler_  {ignore_ip4_up};
     upstream tcp_handler_  {ignore_ip4_up};
+
+    /** Packet forwarding  */
+    Stack::Forward_delg forward_packet_;
+
   }; //< class IP4
 } //< namespace net
 

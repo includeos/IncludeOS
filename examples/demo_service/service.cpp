@@ -68,7 +68,7 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
 void Service::start(const std::string&)
 {
   // DHCP on interface 0
-  auto& inet = net::Inet4::ifconfig<0>(10.0);
+  auto& inet = net::Inet4::ifconfig(10.0);
   // static IP in case DHCP fails
   net::Inet4::ifconfig(
     { 10,0,0,42 },     // IP

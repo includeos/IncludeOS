@@ -19,6 +19,7 @@
 #ifndef NET_SUPER_STACK_HPP
 #define NET_SUPER_STACK_HPP
 
+#include <net/ip4/ip4.hpp>
 #include "inet.hpp"
 #include <vector>
 
@@ -29,51 +30,26 @@ public:
   using IP4_stack = Inet<IP4>;
 
 public:
-  static Super_stack& Super_stack()
+  static Super_stack& inet()
   {
     static Super_stack stack_;
     return stack_;
   }
 
+  template <typename IPV>
+  static Inet<IPV>& get(int N);
+
   auto&& ip4_stacks()
   { return ip4_stacks_; }
-
-
 
 private:
   std::vector<std::unique_ptr<IP4_stack>> ip4_stacks_;
 
   Super_stack();
 
-
 };
 
 } // < namespace net
 
-
-#include <hw/devices.hpp>
-#include <net/inet4.hpp>
-Super_stack::Super_stack()
-{
-  INFO("Super stack", "Setting up stack");
-  for(auto& nic : hw::Devices::devices<hw::Nic>())
-  {
-    auto stack = [this](hw::Nic& nic)->std::unique_ptr<IP4_stack>>
-    {
-      switch(nic.proto())
-      {
-        case hw::Nic::Proto::ETH:
-          return std::make_unique<Inet4>(nic);
-
-        default:
-          return nullptr;
-
-      } // < switch(proto)
-    }(nic);
-
-    if(stack)
-      ip4_stacks_.emplace(std::move(stack));
-  }
-}
 
 #endif
