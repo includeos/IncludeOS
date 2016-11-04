@@ -71,7 +71,7 @@ namespace net {
     static const addr IPv6mcast_02;
 
     /** Constructor */
-    explicit Ethernet(downstream physical_downstream, addr mac) noexcept;
+    explicit Ethernet(downstream physical_downstream, const addr& mac) noexcept;
 
     using header  = ethernet::Header;
     using trailer = ethernet::trailer_t;
@@ -105,10 +105,6 @@ namespace net {
     downstream& physical_downstream()
     { return physical_downstream_; }
 
-    /** @return Mac address of the underlying device */
-    auto mac() const noexcept
-    { return mac_; }
-
     static constexpr uint16_t header_size() noexcept
     { return sizeof(ethernet::Header) + sizeof(ethernet::trailer_t); }
 
@@ -119,7 +115,7 @@ namespace net {
     void transmit(Packet_ptr);
 
   private:
-    const addr mac_;
+    const addr& mac_;
 
     /** Stats */
     uint64_t& packets_rx_;

@@ -43,8 +43,8 @@ namespace net {
     debug("<Ethernet upstream> Ignoring data (no real upstream)\n");
   }
 
-  Ethernet::Ethernet(downstream physical_downstream, addr mac) noexcept
-  : mac_{mac},
+  Ethernet::Ethernet(downstream physical_downstream, const addr& mac) noexcept
+  : mac_(mac),
     packets_rx_{Statman::get().create(Stat::UINT64, ".ethernet.packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, ".ethernet.packets_tx").get_uint64()},
     packets_dropped_{Statman::get().create(Stat::UINT32, ".ethernet.packets_dropped").get_uint32()},
@@ -52,7 +52,8 @@ namespace net {
     ip6_upstream_{ignore},
     arp_upstream_{ignore},
     physical_downstream_(physical_downstream)
-{}
+{
+}
 
   void Ethernet::transmit(net::Packet_ptr pckt)
   {
@@ -63,11 +64,10 @@ namespace net {
     Expects(hdr->type != 0);
 
     // Add source address
-    // @note Virtual call for MAC addr on every transmit - expensive?
-    hdr->src = mac();
+    hdr->src = mac_;
 
     debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
-           pckt->size(), mac().str().c_str(), hdr->dest.str().c_str(), hdr->type);
+           pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
 
     // Stat increment packets transmitted
     packets_tx_++;
@@ -122,7 +122,7 @@ namespace net {
       dropped = true;
       // This might be 802.3 LLC traffic
       if (net::ntohs(eth->type) > 1500) {
-        debug("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type));
+        debug2("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type));
       }else {
         debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type));
       }

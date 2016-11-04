@@ -48,7 +48,7 @@ void VirtioNet::drop(Packet_ptr){
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link_protocol(net::Ethernet{{this, &VirtioNet::transmit}, mac()}, 2048, sizeof(net::Packet) + MTU()),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 2048, sizeof(net::Packet) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, ifname() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
@@ -201,7 +201,7 @@ void VirtioNet::msix_recv_handler()
     auto res = rx_q.dequeue();
 
     auto pckt_ptr = recv_packet(res.data(), res.size());
-    Link_protocol::receive(std::move(pckt_ptr));
+    Link::receive(std::move(pckt_ptr));
 
     // Requeue a new buffer
     add_receive_buffer();
@@ -323,7 +323,7 @@ void VirtioNet::service_queues(){
     while (rx_q.new_incoming()) {
       auto res = rx_q.dequeue();
       auto pckt_ptr = recv_packet(res.data(), res.size());
-      Link_protocol::receive(std::move(pckt_ptr));
+      Link::receive(std::move(pckt_ptr));
 
       // Requeue a new buffer
       add_receive_buffer();

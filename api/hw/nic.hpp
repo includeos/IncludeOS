@@ -41,7 +41,7 @@ namespace hw {
     { return "NIC"; }
 
     /** The mac address. */
-    virtual const MAC_addr& mac() = 0;
+    virtual const MAC_addr& mac() const noexcept = 0;
 
     virtual uint16_t MTU() const noexcept = 0;
 
@@ -80,8 +80,8 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(uint32_t bufstore_sz, uint16_t bufsz)
-      : bufstore_{ bufstore_sz, bufsz }
+    Nic(uint32_t bufstore_packets, uint16_t bufsz)
+      : bufstore_{ bufstore_packets, bufsz }
     {
       static int id_counter = 0;
       N = id_counter++;

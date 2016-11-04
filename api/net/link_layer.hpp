@@ -8,9 +8,10 @@
 
 namespace net {
 
-template <class Protocol>
+template <class Proto>
 class Link_layer : public hw::Nic {
 public:
+  using Protocol    = Proto;
   using upstream    = hw::Nic::upstream;
   using downstream  = hw::Nic::downstream;
 public:
@@ -38,8 +39,8 @@ private:
 };
 
 template <class Protocol>
-Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_sz, uint16_t bufsz)
-  : hw::Nic(bufstore_sz + Protocol::header_size(), bufsz),
+Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_packets, uint16_t bufsz)
+  : hw::Nic(bufstore_packets, bufsz + Protocol::header_size()),
     link_{std::forward<Protocol>(protocol)}
 {
 }

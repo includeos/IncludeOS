@@ -111,11 +111,11 @@
 #define VIRTIO_NET_S_LINK_UP  1
 #define VIRTIO_NET_S_ANNOUNCE 2
 
-using Link_protocol = net::Link_layer<net::Ethernet>;
-
 /** Virtio-net device driver.  */
-class VirtioNet : Virtio, public Link_protocol {
+class VirtioNet : Virtio, public net::Link_layer<net::Ethernet> {
 public:
+  using Link          = net::Link_layer<net::Ethernet>;
+  using Link_protocol = Link::Protocol;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<VirtioNet>(d); }
@@ -124,7 +124,7 @@ public:
   const char* name() const override;
 
   /** Mac address. */
-  const hw::MAC_addr& mac() override
+  const hw::MAC_addr& mac() const noexcept override
   { return _conf.mac; }
 
   uint16_t MTU() const noexcept override
