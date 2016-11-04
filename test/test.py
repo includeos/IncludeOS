@@ -217,6 +217,7 @@ def misc_working():
 
   misc_dir = 'misc'
   dirs = os.walk(misc_dir).next()[1]
+  dirs.sort()
   print pretty.HEADER("Building " + str(len(dirs)) + " misc")
   test_count += len(dirs)
   fail_count = 0
