@@ -20,10 +20,11 @@
 #define HW_ACPI_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 namespace hw {
-  
+
   class ACPI {
   public:
     struct LAPIC {
@@ -49,22 +50,22 @@ namespace hw {
       uint32_t  global_intr;
       uint16_t  flags;
     } __attribute__((packed));
-    
+
     typedef std::vector<LAPIC> lapic_list;
     typedef std::vector<IOAPIC> ioapic_list;
     typedef std::vector<override_t> override_list;
-    
+
     static void init() {
       get().discover();
     }
-    
+
     static uint64_t time();
-    
+
     static ACPI& get() {
       static ACPI acpi;
       return acpi;
     }
-    
+
     static const lapic_list& get_cpus() {
       return get().lapics;
     }
@@ -74,28 +75,28 @@ namespace hw {
     static const override_list& get_overrides() {
       return get().overrides;
     }
-    
+
     static void reboot();
     static void shutdown();
-    
+
   private:
     void discover();
     bool checksum(const char*, size_t) const;
     void begin(const void* addr);
-    
+
     void walk_sdts(const char* addr);
     void walk_madt(const char* addr);
     void walk_facp(const char* addr);
-    
+
     uintptr_t hpet_base;
     uintptr_t apic_base;
     ioapic_list   ioapics;
     lapic_list    lapics;
     override_list overrides;
-    
+
     // shutdown related
     void acpi_shutdown();
-    
+
     uint32_t* SMI_CMD;
     uint8_t   ACPI_ENABLE;
     uint8_t   ACPI_DISABLE;
@@ -107,7 +108,7 @@ namespace hw {
     uint16_t SCI_EN;
     uint8_t  PM1_CNT_LEN;
   };
-  
+
 }
 
 #endif

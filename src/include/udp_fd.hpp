@@ -26,13 +26,12 @@
 
 class UDP_FD : public SockFD {
 public:
-  static const size_t BUF_LIMIT;
   using id_t = int;
 
   explicit UDP_FD(const int id)
     : SockFD(id),
       buffer_(), sock(nullptr),
-      non_blocking_(false), broadcast_(false)
+      non_blocking_(false), broadcast_(0), rcvbuf_(16*1024)
   {
     memset((char *)&peer_, 0, sizeof(peer_));
     (void)non_blocking_;
@@ -56,6 +55,9 @@ public:
 
   int     shutdown(int) override { return 0; }
 
+  int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__) override;
+  int     setsockopt(int, int, const void *, socklen_t) override;
+
   struct Message {
     explicit Message(const in_addr_t addr, const in_port_t port,
       std::unique_ptr<char>&& buf, const size_t length)
@@ -76,7 +78,8 @@ private:
   struct sockaddr_in  peer_;
   net::UDPSocket*     sock;
   bool                non_blocking_;
-  bool                broadcast_;
+  int                 broadcast_;
+  int                 rcvbuf_;
 
   void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
   void set_default_recv();
@@ -84,6 +87,8 @@ private:
 
   bool is_connected() const
   { return peer_.sin_port != 0 && peer_.sin_addr.s_addr != 0; }
+
+  size_t max_buffer_msgs() const;
 
 
 };

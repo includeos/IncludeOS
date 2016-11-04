@@ -20,6 +20,7 @@
 #define INCLUDE_FD_HPP
 
 #include <sys/socket.h>
+#include <cstdarg>
 
 /**
  * @brief File descriptor
@@ -34,13 +35,17 @@ public:
     : id_(id)
   {}
 
+  /** FILES **/
   virtual int     read(void*, size_t) { return -1; }
   virtual int     write(const void*, size_t) { return -1; }
   virtual int     close() = 0;
-  /** SOCKET */
+  virtual int     fcntl(int, va_list);
+
+  /** SOCKET **/
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
   virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
   virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
+  virtual int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__);
   virtual int     listen(int) { return -1; }
   virtual ssize_t recv(void *, size_t, int) { return 0; }
   virtual ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) { return 0; }
@@ -48,7 +53,7 @@ public:
   virtual ssize_t send(const void *, size_t, int) { return 0; }
   virtual ssize_t sendmsg(const struct msghdr *, int) { return 0; }
   virtual ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) { return 0; }
-  virtual int     setsockopt(int, int, const void *, socklen_t) { return -1; }
+  virtual int     setsockopt(int, int, const void *, socklen_t);
   virtual int     shutdown(int) { return -1; }
 
   id_t get_id() const noexcept { return id_; }
@@ -62,6 +67,7 @@ public:
 
 private:
   const id_t id_;
+  bool  non_blocking = false;
 };
 
 #endif

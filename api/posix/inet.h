@@ -15,25 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#pragma once
+#ifndef POSIX_INET_H
+#define POSIX_INET_H
 
-#include <hw/serial.hpp>
-#include <cstring>
-#include <cstdarg>
-
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
-}
-
-#define kprint(cstr) hw::Serial::print1(cstr)
+#define INADDR_ANY	     0x00000000
+#define INADDR_LOOPBACK	 0x7f000001
+#define INADDR_NONE	     0xffffffff
+#define INPORT_ANY	     0
 
 #endif

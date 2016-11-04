@@ -65,7 +65,7 @@ stripped: CAPABS = $(CAPABS_COMMON) -O2
 STRIPPED=--strip-debug
 
 CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
-LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/share/includeos/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s`
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/share/includeos/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s` -L$(INSTALL)/lib -L$(INSTALL)/lib/includeos-drivers
 
 # Objects
 ###################################################
@@ -76,12 +76,8 @@ CRTI_OBJ = $(INSTALL)/share/includeos/crti.o
 CRTN_OBJ = $(INSTALL)/share/includeos/crtn.o
 MULTIBOOT = $(INSTALL)/share/includeos/multiboot.cpp.o
 
-DRIVER_OBJS_EXT = $(DRIVERS:=.o)
-DRIVER_OBJS = $(addprefix $(INSTALL)/drivers/, $(DRIVER_OBJS_EXT))
-
 PLATFORM_OBJS_EXT = $(PLATFORM:=.o)
 PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
-
 
 # Full link list
 OBJS  =  $(FILES:.cpp=.o)
@@ -136,7 +132,7 @@ minimal: CPPOPTS += -Os
 
 
 # Link the service with the os
-link_service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLATFORM_OBJS)
+link_service: $(OBJS) $(LIBS) $(PLATFORM_OBJS)
 
 # build memdisk only when MEMDISK is set
 ifneq ($(MEMDISK),)
@@ -147,7 +143,7 @@ ifneq ($(MEMDISK),)
 endif
 
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 
 # Save debugging symbols to separate file
 preserve_debug:

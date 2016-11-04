@@ -27,7 +27,7 @@ unik::Client::Registered_event unik::Client::on_registered_{nullptr};
 /**
  * UniK instance listener hearbeat / http registration
  **/
-void unik::Client::register_instance(net::Inet4& inet, const net::UDP::port_t port) {
+void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port) {
 
   INFO("Unik client", "Initializing Unik registration service");
   INFO("Unik client","Listening for UDP hearbeat on %s:%i", inet.ip_addr().str().c_str(), port);

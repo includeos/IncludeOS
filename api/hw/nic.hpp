@@ -35,6 +35,10 @@ namespace hw {
   class Nic {
   public:
 
+    enum Proto {ETH, IEEE802111};
+
+    virtual Proto proto() = 0;
+
     /** Get a readable name. */
     virtual const char* name() const = 0;
 
