@@ -35,9 +35,6 @@ USE16
 %define _CR 0x0D
 %define _LF 0x0A
 
-; ELF offset of _start in text section
-%define _elf_start 0x34
-
 ;;; START
 ;;; We'll start at the beginning, but jump over some data
 _start:
