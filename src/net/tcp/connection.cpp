@@ -450,7 +450,7 @@ bool Connection::handle_ack(const Packet& in) {
   // new ack
   else if(in.ack() >= cb.SND.UNA) {
 
-    if( cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ) )
+    if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() )) and cb.SND.WND != in.win() )
     {
       cb.SND.WND = in.win();
       cb.SND.WL1 = in.seq();
@@ -458,8 +458,8 @@ bool Connection::handle_ack(const Packet& in) {
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
 
-    debug("<Connection::handle_ack> New ACK: %u FS: %u %s\n",
-      in.ack() - cb.ISS, flight_size(), fast_recovery ? "[RECOVERY]" : "");
+    debug2("<Connection::handle_ack> New ACK: %u FS: %u UW: %u, %s\n",
+      in.ack() - cb.ISS, flight_size(), usable_window(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
     prev_highest_ack_ = cb.SND.UNA;
@@ -505,8 +505,10 @@ bool Connection::handle_ack(const Packet& in) {
 
       // try to write
       //if(can_send() and acks_rcvd_ % 2 == 1)
-      if(can_send())
+      if(can_send()) {
+        debug2("<Connection::handle_ack> Can send UW: %u SMSS: %u\n", usable_window(), SMSS());
         send_much();
+      }
 
       // if data, let state continue process
       if(in.has_tcp_data() or in.isset(FIN))
@@ -660,7 +662,9 @@ void Connection::retransmit() {
   // If not, check if there is data and retransmit
   else if(writeq.size()) {
     auto& buf = writeq.una();
-    fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.UNA);
+    debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
+      writeq.size(), buf.length() - buf.acknowledged);
+    fill_packet(*packet, (char*)buf.begin() + buf.acknowledged, buf.length() - buf.acknowledged, cb.SND.UNA);
   }
   // if no data
   else {
@@ -673,7 +677,6 @@ void Connection::retransmit() {
   }
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
-  debug("<TCP::Connection::retransmit> RT %s\n", packet->to_string().c_str());
 
   /*
     Every time a packet containing data is sent (including a
