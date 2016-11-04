@@ -44,3 +44,13 @@ int FD::fcntl(int cmd, va_list list)
       return -1;
   }
 }
+int FD::getsockopt(int, int, void *__restrict__, socklen_t *__restrict__)
+{
+  errno = ENOTSOCK;
+  return -1;
+}
+int FD::setsockopt(int, int, const void *, socklen_t)
+{
+  errno = ENOTSOCK;
+  return -1;
+}

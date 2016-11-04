@@ -73,8 +73,8 @@ int main()
   const char* rm_message = "POSIX is for hipsters";
   CHECKSERT(strcmp((char*)&recvbuf, rm_message) == 0, "Message is \"%s\"", recvbuf);
 
-  CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.router().whole),
-    "Received from address %s", inet.router().to_string().c_str());
+  CHECKSERT(remaddr.sin_addr.s_addr == htonl(inet.gateway().whole),
+    "Received from address %s", inet.gateway().to_string().c_str());
 
   memset(recvbuf, 0, BUFSIZE);
   res = recvfrom(fd, recvbuf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &rem_addrlen);
@@ -91,14 +91,14 @@ int main()
 
   memset((char *)&destaddr, 0, sizeof(destaddr));
   destaddr.sin_family = AF_INET;
-  destaddr.sin_addr.s_addr = htonl(inet.router().whole);
+  destaddr.sin_addr.s_addr = htonl(inet.gateway().whole);
   destaddr.sin_port = htons(OUT_PORT);
 
   const char *my_message = "Only hipsters uses POSIX";
 
   res = sendto(socket(AF_INET, SOCK_DGRAM, 0), my_message, strlen(my_message), 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
   CHECKSERT(res > 0, "Message was sent from NEW socket to %s:%u (verified by script)",
-    inet.router().to_string().c_str(), OUT_PORT);
+    inet.gateway().to_string().c_str(), OUT_PORT);
 
 
   INFO("UDP Socket", "send() and connect()");

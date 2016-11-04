@@ -18,6 +18,7 @@ if (from_bundle)
 	set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}libcxx/include/)
 	set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
 	add_library(libcxx STATIC IMPORTED)
+	add_dependencies(libcxx PrecompiledLibraries)
 	set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
 
 	set(NEWLIB_INCLUDE_DIR ${PRECOMPILED_DIR}/newlib/include/)
@@ -27,12 +28,15 @@ if (from_bundle)
 
 	add_library(libc STATIC IMPORTED)
 	set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libc.a)
+	add_dependencies(libc PrecompiledLibraries)
 
 	add_library(libm STATIC IMPORTED)
 	set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
+	add_dependencies(libm PrecompiledLibraries)
 
 	add_library(libgcc STATIC IMPORTED)
 	set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
+	add_dependencies(libgcc PrecompiledLibraries)
 
 	set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
 	set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)

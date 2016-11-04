@@ -1,4 +1,5 @@
 #include <kernel/os.hpp>
+#include <posix/ucontext.h>
 #include <hw/acpi.hpp>
 
 // default successor context

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,25 +15,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#pragma once
+#ifndef NET_SUPER_STACK_HPP
+#define NET_SUPER_STACK_HPP
 
-#include <hw/serial.hpp>
-#include <cstring>
-#include <cstdarg>
+#include <net/ip4/ip4.hpp>
+#include "inet.hpp"
+#include <vector>
 
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
-}
+namespace net {
 
-#define kprint(cstr) hw::Serial::print1(cstr)
+class Super_stack {
+public:
+  using IP4_stack = Inet<IP4>;
+
+public:
+  static Super_stack& inet()
+  {
+    static Super_stack stack_;
+    return stack_;
+  }
+
+  template <typename IPV>
+  static Inet<IPV>& get(int N);
+
+  auto&& ip4_stacks()
+  { return ip4_stacks_; }
+
+private:
+  std::vector<std::unique_ptr<IP4_stack>> ip4_stacks_;
+
+  Super_stack();
+
+};
+
+} // < namespace net
+
 
 #endif

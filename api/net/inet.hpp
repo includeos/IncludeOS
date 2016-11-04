@@ -19,6 +19,7 @@
 #define NET_INET_HPP
 
 #include <net/inet_common.hpp>
+#include <hw/mac_addr.hpp>
 
 namespace net {
 
@@ -27,25 +28,32 @@ namespace net {
   class UDP;
   class DHClient;
 
-  /** An abstract IP-stack interface  */
-  template <typename LINKLAYER, typename IPV >
-  class Inet {
-  public:
-    using Stack = Inet<LINKLAYER, IPV>;
+  /**
+   * An abstract IP-stack interface.
+   * Provides a common interface for IPv4 and (future) IPv6, simplified with
+   *  no constructors etc.
+   **/
+  template <typename IPV >
+  struct Inet {
+    using Stack = Inet<IPV>;
+
+    using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
 
     virtual typename IPV::addr ip_addr() = 0;
     virtual typename IPV::addr netmask() = 0;
-    virtual typename IPV::addr router()  = 0;
-    virtual std::string ifname() const = 0;
-    virtual typename LINKLAYER::addr link_addr() = 0;
+    virtual typename IPV::addr gateway()  = 0;
+    virtual std::string        ifname() const = 0;
+    virtual hw::MAC_addr       link_addr() = 0;
 
-    virtual LINKLAYER& link()   = 0;
     virtual IPV&       ip_obj() = 0;
     virtual TCP&       tcp()    = 0;
     virtual UDP&       udp()    = 0;
+
+    virtual void set_forward_delg(Forward_delg) = 0;
+    virtual Forward_delg forward_delg() = 0;
 
     virtual constexpr uint16_t MTU() const = 0;
 
@@ -53,14 +61,18 @@ namespace net {
 
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
 
-    virtual void set_router(typename IPV::addr server) = 0;
+    virtual void set_gateway(typename IPV::addr server) = 0;
 
     virtual void set_dns_server(typename IPV::addr server) = 0;
 
     virtual void network_config(typename IPV::addr ip,
                                 typename IPV::addr nmask,
-                                typename IPV::addr router,
-                                typename IPV::addr dnssrv) = 0;
+                                typename IPV::addr gateway,
+                                typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
+
+
+    using dhcp_timeout_func = delegate<void(bool timed_out)>;
+    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
@@ -70,6 +82,7 @@ namespace net {
 
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
+
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

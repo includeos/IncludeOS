@@ -24,7 +24,7 @@
 
 namespace net {
 
-  ICMPv4::ICMPv4(Inet<LinkLayer,IP4>& inet) :
+  ICMPv4::ICMPv4(Stack& inet) :
     inet_{inet}
 {}
 
