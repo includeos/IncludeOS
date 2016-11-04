@@ -53,16 +53,37 @@ else(from_bundle)
 			    INSTALL_COMMAND make install
 	)
 
+	set(gcc_version "6.2.0")
+	ExternalProject_Add(gcc
+			    PREFIX gcc
+			    URL "ftp://ftp.nluug.nl/mirror/languages/gcc/releases/gcc-${gcc_version}/gcc-${gcc_version}.tar.gz"
+			    CONFIGURE_COMMAND <SOURCE_DIR>/configure --target=${TARGET} --prefix=${PREFIX} --disable-nls --enable-languages=c,c++ --without-headers
+			    BUILD_COMMAND make all-gcc all-target-libgcc -j ${num_jobs}
+			    UPDATE_COMMAND "<SOURCE_DIR>/contrib/download_prerequisites"
+			    INSTALL_COMMAND make install-gcc install-target-libgcc
+	)
+
+	set(newlib_version "2.4.0")
+	ExternalProject_Add(newlib
+			    PREFIX newlib
+			    URL "ftp://sourceware.org/pub/newlib/newlib-${newlib_version}.tar.gz"
+			    CONFIGURE_COMMAND <SOURCE_DIR>/configure --target=${TARGET} --prefix=${PREFIX} --enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
+			    BUILD_COMMAND make all -j ${num_jobs}
+			    PATCH_COMMAND "patch -p0 < ${INCLUDEOS_ROOT}/etc/newlib_clang.patch"
+			    INSTALL_COMMAND make install
+	)
+
+	# TODO: the build_llvm32 script looks a lot tougher than this.
+	
+
 	# add this for now, still working on performing all cross-compilation steps
-	message(FATAL_ERROR "not fully supported yet")
+	# message(FATAL_ERROR "not fully supported yet")
 endif(from_bundle)
 
 # installation instructions
-install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION include/libcxx
-	FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION include/libcxx)
 
-install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib
-	FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib)
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION share/includeos)
 
