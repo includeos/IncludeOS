@@ -44,6 +44,7 @@ set(OS_OBJECTS
   fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
   posix/sys/socket.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
+  posix/ucontext.cpp posix/ucontext_asm.asm
   )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
