@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BRIDGE=bridge0
+BRIDGE=bridge43
 NETMASK=255.255.0.0
 GATEWAY=10.0.0.1
 
