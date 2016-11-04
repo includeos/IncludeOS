@@ -37,7 +37,7 @@ namespace net {
 
   class TCP {
   public:
-    using IPStack         = Inet<LinkLayer,IP4>;
+    using IPStack         = IP4::Stack;
 
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;

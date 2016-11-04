@@ -16,7 +16,7 @@ import validate_all
 startdir = os.getcwd()
 
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'posix', 'stl', 'util']
-test_types = ['integration', 'stress', 'unit', 'miscellaneous']
+test_types = ['integration', 'stress', 'unit', 'misc']
 
 """
 Script used for running all the valid tests in the terminal.
@@ -31,7 +31,7 @@ parser.add_argument("-c", "--clean-all", dest="clean", action="store_true",
 
 parser.add_argument("-s", "--skip", nargs="*", dest="skip", default=[],
                     help="Tests to skip. Valid names: 'unit' (all unit tests), \
-                  'stress' (stresstest), 'integration' (all integration tests), miscellaneous \
+                  'stress' (stresstest), 'integration' (all integration tests), misc \
                     or the name of a single integration test folder (leaf node name, e.g. 'udp') ")
 
 parser.add_argument("-t", "--tests", nargs="*", dest="tests", default=[],
@@ -66,9 +66,9 @@ class Test:
     if self.path_ == 'stress':
       self.category_ = 'stress'
       self.type_ = 'stress'
-    elif self.path_[:13] == 'miscellaneous':
-      self.category_ = 'miscellaneous'
-      self.type_ = 'miscellaneous'
+    elif self.path_.split("/")[0] == 'misc':
+      self.category_ = 'misc'
+      self.type_ = 'misc'
     elif self.path_ == 'mod/gsl':
       self.category_ = 'mod'
       self.type_ = 'mod'
@@ -209,21 +209,22 @@ def stress_test():
   return 1 if stress.wait_status() else 0
 
 
-def miscellaneous_working():
+def misc_working():
   global test_count
-  if ("miscellaneous" in args.skip):
-    print pretty.WARNING("Miscellaneous test skipped")
+  if ("misc" in args.skip):
+    print pretty.WARNING("Misc test skipped")
     return 0
 
-  miscellaneous_dir = 'miscellaneous'
-  dirs = os.walk(miscellaneous_dir).next()[1]
-  print pretty.HEADER("Building " + str(len(dirs)) + " miscellaneous")
+  misc_dir = 'misc'
+  dirs = os.walk(misc_dir).next()[1]
+  dirs.sort()
+  print pretty.HEADER("Building " + str(len(dirs)) + " misc")
   test_count += len(dirs)
   fail_count = 0
   for directory in dirs:
-    miscellaneous = miscellaneous_dir + "/" + directory
-    print "Building miscellaneous ", miscellaneous
-    build = Test(miscellaneous, command = ['./test.sh'], name = directory).start().wait_status()
+    misc = misc_dir + "/" + directory
+    print "Building misc ", misc
+    build = Test(misc, command = ['./test.sh'], name = directory).start().wait_status()
     run = 0 #TODO: Make a 'test' folder for each miscellanous test, containing test.py, vm.json etc.
     fail_count += 1 if build or run else 0
   return fail_count
@@ -333,9 +334,9 @@ def main():
 
     stress = stress_test() if "stress" in test_types_to_run else 0
     unit = unit_tests() if "unit" in test_types_to_run else 0
-    miscellaneous = miscellaneous_working() if "miscellaneous" in test_types_to_run else 0
+    misc = misc_working() if "misc" in test_types_to_run else 0
 
-    status = max(integration, stress, unit, miscellaneous)
+    status = max(integration, stress, unit, misc)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")

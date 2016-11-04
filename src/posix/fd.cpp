@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,25 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#include <fd.hpp>
+#include <errno.h>
 
-#include <hw/serial.hpp>
-#include <cstring>
-#include <cstdarg>
-
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
+int FD::fcntl(int cmd, va_list)
+{
+  return 0;
 }
-
-#define kprint(cstr) hw::Serial::print1(cstr)
-
-#endif
+int FD::getsockopt(int, int, void *__restrict__, socklen_t *__restrict__)
+{
+  errno = ENOTSOCK;
+  return -1;
+}
+int FD::setsockopt(int, int, const void *, socklen_t)
+{
+  errno = ENOTSOCK;
+  return -1;
+}

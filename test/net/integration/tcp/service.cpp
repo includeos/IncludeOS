@@ -265,7 +265,7 @@ void Service::start(const std::string&)
         [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
 
-            OUTGOING_TEST({Inet4::stack<0>().router(), TEST5});
+            OUTGOING_TEST({Inet4::stack().gateway(), TEST5});
           });
 
         Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });
