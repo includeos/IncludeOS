@@ -8,10 +8,10 @@
 
 namespace net {
 
-template <class Proto>
+template <class T>
 class Link_layer : public hw::Nic {
 public:
-  using Protocol    = Proto;
+  using Protocol    = T;
   using upstream    = hw::Nic::upstream;
   using downstream  = hw::Nic::downstream;
 public:
