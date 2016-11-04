@@ -16,12 +16,13 @@
 // limitations under the License.
 
 #include <os>
+#include <ucontext.h>
 
 ucontext_t foo_context, bar_context, main_context;
 unsigned int bar_context_var = -1;
 unsigned int foo_context_var = -1;
 
-void bar(int argc) 
+void bar(int argc)
 {
   printf("Successfuly jumped into 'bar' context\n");
 
@@ -29,10 +30,10 @@ void bar(int argc)
 
   bar_context_var = 0xDEADBEEF;
 
-  printf("'bar' context returning successfuly\n"); 
+  printf("'bar' context returning successfuly\n");
 }
 
-void foo(int argc, int arg1, int arg2) 
+void foo(int argc, int arg1, int arg2)
 {
   printf("Successfuly jumped into 'foo' context\n");
 
