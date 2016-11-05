@@ -34,7 +34,7 @@
 #define SECT_SIZE_ERR  666
 #define DISK_SIZE_ERR  999
 
-bool verb = false;
+bool verb = true;
 #define INFO_(FROM, TEXT, ...) if (verb) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 #define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
 
@@ -53,6 +53,21 @@ class Vmbuild_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
+string get_bootloader_path(int argc, char** argv) {
+
+  if (argc == 2) {
+    // Determine IncludeOS install location from environment, or set to default
+    std::string includeos_install;
+    if (auto env_install = getenv("INCLUDEOS_INSTALL")) {
+      includeos_install = env_install;
+    } else {
+      includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
+    }
+    return includeos_install + "/bootloader";
+  } else {
+    return argv[2];
+  }
+}
 
 int main(int argc, char** argv) {
 
@@ -62,15 +77,8 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
-  std::string includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
+  const string bootloader_path = get_bootloader_path(argc, argv);
 
-  // Determine IncludeOS install location from environment, or set to default
-  if (auto env_install = getenv("INCLUDEOS_INSTALL"))
-    includeos_install = env_install;
-
-  INFO(">>> IncludeOS install location: %s", includeos_install.c_str());
-
-  const string bootloader_path = includeos_install + "/bootloader";
   INFO(">>> Using bootloader %s" , bootloader_path.c_str());
 
   if (argc > 2)

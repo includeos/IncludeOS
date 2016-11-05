@@ -52,14 +52,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
     $ ./install.sh
 ```
 
-Or if you are running Arch Linux (or one of its flavors):
-
-```
-    $ git clone https://github.com/hioa-cs/IncludeOS
-    $ cd IncludeOS
-    $ ./install.sh
-```
-
 **The script will:**
 
 * Install the required dependencies: `curl make clang-3.8 nasm bridge-utils qemu`.
@@ -104,6 +96,8 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 ## Contributing to IncludeOS
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](https://github.com/hioa-cs/IncludeOS/wiki/Contributing-to-IncludeOS).
+
+**Important**: Send your pull requests to the `dev` branch. It is ok if your pull requests come from your master branch.
 
 ## C++ Guidelines
 

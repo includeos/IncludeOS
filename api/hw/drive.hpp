@@ -62,6 +62,8 @@ namespace hw
     virtual buffer_t read_sync(block_t blk) = 0;
     virtual buffer_t read_sync(block_t blk, size_t count) = 0;
 
+    virtual void deactivate() = 0;
+
     virtual ~Drive() noexcept = default;
     
   protected:

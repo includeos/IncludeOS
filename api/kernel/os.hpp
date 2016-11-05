@@ -47,7 +47,7 @@ public:
   }
   /** micro seconds since boot */
   static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_mhz_.count();
+    return cycles_since_boot() / cpu_freq().count();
   }
 
   /** Timestamp for when OS was booted */
@@ -137,6 +137,12 @@ public:
    * @param name : A human readable identifier
   **/
   static void register_custom_init(Custom_init delg, const char* name);
+
+  /**
+   * Block for a while, e.g. until the next round in the event loop
+   **/
+  static void block();
+
 
 private:
 

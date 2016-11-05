@@ -30,8 +30,4 @@ namespace hw {
       @Note this will be automatically called by the oirq-handler  */
   extern "C" void cpu_sampling_irq_entry();
 
-  extern "C" void irq_32_entry();
-
-  extern "C" MHz calculate_cpu_frequency();
-
 } //< namespace hw

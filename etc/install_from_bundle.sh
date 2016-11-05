@@ -59,6 +59,8 @@ make install
 popd
 
 # Copy scripts for running qemu, creating a memdisk
-$INCLUDEOS_SRC/etc/copy_scripts.sh
+pushd $INCLUDEOS_SRC/etc
+./copy_scripts.sh
+popd
 
 echo -e "\n\n>>> Done! IncludeOS bundle downloaded and installed"

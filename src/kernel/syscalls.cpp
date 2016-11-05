@@ -37,17 +37,10 @@ extern "C" {
   uintptr_t heap_end;
 }
 
-static const int syscall_fd   {999};
-static bool debug_syscalls    {true};
 static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
 
 void _exit(int) {
   default_exit();
-}
-
-int close(int) {
-  panic("SYSCALL CLOSE NOT SUPPORTED");
-  return -1;
 }
 
 int execve(const char*,
@@ -99,23 +92,6 @@ int unlink(const char*) {
 off_t lseek(int, off_t, int) {
   panic("SYSCALL LSEEK returning 0");
   return 0;
-}
-
-int open(const char*, int, ...) {
-  panic("SYSCALL OPEN unsupported");
-  return -1;
-}
-
-int read(int, void*, size_t) {
-  panic("SYSCALL READ unsupported");
-  return 0;
-}
-
-int write(int file, const void* ptr, size_t len) {
-  if (file == syscall_fd and not debug_syscalls) {
-    return len;
-  }
-  return OS::print((const char*) ptr, len);
 }
 
 void* sbrk(ptrdiff_t incr) {

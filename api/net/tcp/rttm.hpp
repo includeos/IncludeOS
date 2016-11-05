@@ -103,7 +103,7 @@ struct RTTM {
     debug2("<TCP::Connection::RTO> RTO updated: %ums\n",
       (uint32_t)(RTO * 1000));
   }
-} __attribute__((packed)); // < struct RTTM
+}; // < struct RTTM
 
 } // < namespace tcp
 } // < namespace net

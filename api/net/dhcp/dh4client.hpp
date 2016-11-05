@@ -22,18 +22,16 @@
 #include <timers>
 #include "../packet.hpp"
 #include <net/ip4/ip4.hpp>
+#include <net/inet.hpp>
 
 namespace net
 {
   class UDPSocket;
 
-  template <typename LINK, typename IPV>
-  class Inet;
-
   class DHClient
   {
   public:
-    using Stack = Inet<LinkLayer, IP4>;
+    using Stack = IP4::Stack;
     using config_func = delegate<void(bool)>;
 
     DHClient() = delete;

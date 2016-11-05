@@ -44,8 +44,8 @@ extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
-bool OS::power_   {true};
-MHz  OS::cpu_mhz_ {1000};
+bool  OS::power_   = true;
+MHz   OS::cpu_mhz_ {1000};
 RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
@@ -63,7 +63,7 @@ std::vector<OS::Custom_init_struct> OS::custom_init_;
 std::string OS::version_field = OS_VERSION;
 
 // Multiboot command line for the service
-static std::string os_cmdline = "";
+static std::string os_cmdline = Service::binary_name();
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
@@ -123,7 +123,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_end + 1, heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
 
-  memmap.assign_range({0x8000, 0x9fff, "Statman", "Statistics"});
+  memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
 
   // Create ranges for heap and the remaining address space
@@ -194,13 +194,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
-  INFO2("+--(10 samples, %f sec. interval)",
+  INFO2("+--(2 samples, %f sec. interval)",
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  cpu_mhz_ = hw::PIT::CPU_frequency();
-  INFO2("+--> %f MHz", cpu_mhz_.count());
+  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  INFO2("+--> %f MHz", cpu_freq().count());
 
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
@@ -250,8 +250,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   FILLINE('=');
   // initialize random seed based on cycles since start
   srand(cycles_since_boot() & 0xFFFFFFFF);
+
   // begin service start
-  Service::start(Service::command_line());
+  Service::start(os_cmdline);
+
+  // do CPU frequency measurements again with more samples
+  //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
 
   event_loop();
 }
@@ -358,12 +362,14 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
   INFO2("");
 
   if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
+    INFO2("* Booted with parameters @ %p: %s",(void*)bootinfo->cmdline, (char*)bootinfo->cmdline);
     os_cmdline = (char*) bootinfo->cmdline;
-    INFO2("* Booted with parameters: %s", os_cmdline.c_str());
+
   }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
-    INFO2("* Multiboot provided memory map  (%i entries)",bootinfo->mmap_length / sizeof(multiboot_memory_map_t));
+    INFO2("* Multiboot provided memory map  (%i entries @ %p)",
+          bootinfo->mmap_length / sizeof(multiboot_memory_map_t), (void*)bootinfo->mmap_addr);
     gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo->mmap_addr),
         (int)(bootinfo->mmap_length / sizeof(multiboot_memory_map_t))};
 
@@ -371,8 +377,6 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
       INFO2("\t 0x%08llx - 0x%08llx %s (%llu Kb.)",
             map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
-      /*if (map.addr + map.len > mem_high_end)
-        break;*/
     }
     printf("\n");
   }
@@ -380,24 +384,4 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 /// SERVICE RELATED ///
 
-// the name of the current service (built from another module)
-extern "C" {
-  __attribute__((weak))
-  const char* service_name__ = "(missing service name)";
-}
-
-std::string Service::name() {
-  return service_name__;
-}
-
-const std::string& Service::command_line()
-{
-  return os_cmdline;
-}
-
-// functions that we can override if we want to
-__attribute__((weak))
-void Service::ready() {}
-
-__attribute__((weak))
-void Service::stop() {}
+// Moved to kernel/service_stub.cpp

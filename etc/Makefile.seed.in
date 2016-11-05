@@ -1,0 +1,204 @@
+#################################################
+#          IncludeOS SERVICE makefile           #
+#################################################
+
+# IncludeOS location
+ifndef INCLUDEOS_INSTALL
+	INCLUDEOS_INSTALL=${CMAKE_INSTALL_PREFIX}
+endif
+
+ifneq ($(DISK),)
+MEMDISK=memdisk.o
+endif
+
+.SUFFIXES: .asm
+
+# Maximum memory in megabytes
+# Used if memory info is not otherwise available such as via multiboot
+ifeq ($(MAX_MEM),)
+MAX_MEM=128
+endif
+
+# Shorter name
+INSTALL = $(INCLUDEOS_INSTALL)
+
+# Compiler and linker options
+###################################################
+CAPABS_COMMON = -mstackrealign -msse3 -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION $(LOCAL_DEFS)
+WARNS  = -Wall -Wextra #-pedantic
+DEBUG_OPTS = -ggdb3 -v
+
+OPTIONS = $(WARNS) $(CAPABS) $(EXTRA_FLAGS)
+
+# External Libraries
+###################################################
+LIBC_OBJ = $(INSTALL)/lib/libc.a
+LIBG_OBJ = $(INSTALL)/lib/libg.a
+LIBM_OBJ = $(INSTALL)/lib/libm.a
+
+LIBGCC = $(INSTALL)/lib/libgcc.a
+LIBCXX = $(INSTALL)/lib/libc++.a $(INSTALL)/lib/libc++abi.a
+
+
+INC_NEWLIB=$(INSTALL)/include/newlib
+INC_LIBCXX=$(INSTALL)/include/libcxx
+
+CC  = ${CMAKE_C_COMPILER}
+CPP = ${CMAKE_CXX_COMPILER}
+ifndef LD_INC
+	LD_INC = ld
+endif
+ifndef OBJCOPY_INC
+	OBJCOPY_INC=objcopy
+endif
+ifndef STRIP_INC
+	STRIP_INC = strip
+endif
+
+INCLUDES = $(LOCAL_INCLUDES) -I$(INC_LIBCXX) -I$(INSTALL)/include/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/include/api/posix -I$(INSTALL)/include/api -I$(INSTALL)/include/gsl
+
+all:      CAPABS = $(CAPABS_COMMON) -O2
+debug:    CAPABS = $(CAPABS_COMMON) -O0
+stripped: CAPABS = $(CAPABS_COMMON) -O2
+
+# by default, don't use strip because it has caused us some problems
+STRIPPED=--strip-debug
+
+CPPOPTS = $(CAPABS) $(WARNS) -c -m32 -std=c++14 $(INCLUDES) -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE
+LDOPTS = -nostdlib -melf_i386 -N --eh-frame-hdr --script=$(INSTALL)/share/includeos/linker.ld --defsym _MAX_MEM_MIB_=$(MAX_MEM) --defsym=__stack_rand_ba=`date +%s` -L$(INSTALL)/lib -L$(INSTALL)/lib/includeos-drivers
+
+# Objects
+###################################################
+
+CRTBEGIN_OBJ = $(INSTALL)/share/includeos/crtbegin.o
+CRTEND_OBJ = $(INSTALL)/share/includeos/crtend.o
+CRTI_OBJ = $(INSTALL)/share/includeos/crti.o
+CRTN_OBJ = $(INSTALL)/share/includeos/crtn.o
+MULTIBOOT = $(INSTALL)/share/includeos/multiboot.cpp.o
+
+PLATFORM_OBJS_EXT = $(PLATFORM:=.o)
+PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
+
+# Full link list
+OBJS  =  $(FILES:.cpp=.o)
+OBJS  += .service_name.o
+
+LIBS =  $(INSTALL)/lib/libos.a $(LIBCXX) $(INSTALL)/lib/libos.a $(LIBC_OBJ) $(LIBM_OBJ) $(LIBGCC)
+
+OS_PRE = $(CRTBEGIN_OBJ) $(CRTI_OBJ) $(MULTIBOOT)
+OS_POST = $(CRTEND_OBJ) $(CRTN_OBJ)
+
+DEPS = $(OBJS:.o=.d)
+
+# Complete build
+###################################################
+# A complete build includes:
+# - a "service", to be linked with OS-objects (OS included)
+.PHONY: all stripped debug debug-info debug-all memdisk service
+
+all: LDOPTS += --strip-debug
+all: STRIPPED=--strip-all
+all: service
+
+stripped: LDOPTS  += -s
+stripped: STRIPPED=--strip-all
+stripped: service
+
+# Build like "all" but with debugging output (i.e. the 'debug'-macro) enabled
+debug-info: CAPABS += -UNO_DEBUG
+debug-info: service
+
+# Build with debugging symbols (OBS: Dramatically increases binary size)
+debug: CCOPTS  += $(DEBUG_OPTS)
+debug: CPPOPTS += $(DEBUG_OPTS)
+debug: OBJ_LIST += $(LIBG_OBJ)
+debug: CPPOPTS += -O0
+debug: STRIPPED=
+debug: link_service preserve_debug service
+
+# Build with debugging symbols + debugging ouput, i.e. "debug" + "debug-info"
+debug-all: CAPABS += -UNO_DEBUG
+debug-all: CCOPTS  += $(DEBUG_OPTS)
+debug-all: CPPOPTS += $(DEBUG_OPTS)
+debug-all: OBJ_LIST += $(LIBG_OBJ)
+debug-all: CPPOPTS += -O0
+debug-all: service
+
+minimal: stripped
+minimal: CPPOPTS += -Os
+
+# Service
+###################################################
+
+
+# Link the service with the os
+link_service: $(OBJS) $(LIBS) $(PLATFORM_OBJS)
+
+# build memdisk only when MEMDISK is set
+ifneq ($(MEMDISK),)
+	@echo "\n>> Creating memdisk"
+	python $(INSTALL)/share/includeos/memdisk/memdisk.py --file $(INSTALL)/share/includeos/memdisk/memdisk.asm $(DISK)
+	@echo "\n>> Assembling memdisk"
+	nasm -f elf $(INSTALL)/share/includeos/memdisk/memdisk.asm -o $(MEMDISK)
+endif
+
+	@echo "\n>> Linking service with OS"
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+
+# Save debugging symbols to separate file
+preserve_debug:
+	@echo "\n>> Saving debugging symbols"
+	$(OBJCOPY_INC) --only-keep-debug $(SERVICE) $(SERVICE).debug
+	$(OBJCOPY_INC) --add-gnu-debuglink=$(SERVICE).debug $(SERVICE)
+
+service: link_service
+	@echo "\n>> Adding symbol section"
+	$(INSTALL)/bin/elf_syms $(SERVICE)
+	$(OBJCOPY_INC) --update-section .elf_symbols=_elf_symbols.bin $(SERVICE) $(SERVICE)
+	$(RM) _elf_symbols.bin
+
+# stripping must be done after symbol section work
+ifneq ($(STRIPPED),)
+	$(STRIP_INC) $(STRIPPED) --remove-section=.comment $(SERVICE)
+endif
+	@echo "\n>> Building" $(SERVICE).img
+	$(INSTALL)/bin/vmbuild $(SERVICE) $(INSTALL)/share/includeos/bootloader
+
+.service_name.o: $(INSTALL)/share/includeos/service_name.cpp
+	$(CPP) $(CPPOPTS) -DSERVICE="\"$(SERVICE)\"" -DSERVICE_NAME="\"$(SERVICE_NAME)\"" -o $@ $<
+
+servicefile:
+	@echo $(SERVICE).img
+
+kernelfile:
+	@echo $(SERVICE)
+
+# Object files
+###################################################
+
+# Runtime
+crt%.o: $(INSTALL)/crt/crt%.s
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+
+# General C++-files to object files
+%.o: %.cpp
+	$(CPP) -MMD $(CPPOPTS) -o $@ $<
+
+# nasm-assembled object files
+%.o: %.asm
+	nasm -f elf -o $@ $<
+
+%.o: %.c
+	$(CC) -MMD $(WARNS) $(CAPABS) $(EXTRA_FLAGS) -c -m32 -std=gnu11 -I$(INSTALL)/include/api/sys -I$(INC_NEWLIB) -I$(INSTALL)/include/api/posix -o $@ $<
+
+# AS-assembled object files
+%.o: %.s
+	$(CPP) $(CPPOPTS) -x assembler-with-cpp $<
+
+# Cleanup
+###################################################
+clean:
+	$(RM) $(OBJS) $(DEPS)
+	$(RM) $(SERVICE) $(SERVICE).img $(SERVICE).debug $(MEMDISK)
+
+-include $(DEPS)

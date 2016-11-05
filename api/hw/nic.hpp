@@ -35,6 +35,10 @@ namespace hw {
   class Nic {
   public:
 
+    enum Proto {ETH, IEEE802111};
+
+    virtual Proto proto() = 0;
+
     /** Get a readable name. */
     virtual const char* name() const = 0;
 
@@ -88,6 +92,8 @@ namespace hw {
     std::string ifname() const {
       return "eth" + std::to_string(N);
     }
+
+    virtual void deactivate() = 0;
 
   protected:
     /**

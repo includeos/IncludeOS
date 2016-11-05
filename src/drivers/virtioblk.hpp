@@ -50,21 +50,23 @@ public:
   }
 
   // read @blk from disk, call func with buffer when done
-  virtual void read(block_t blk, on_read_func func) override;
+  void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
-  virtual void read(block_t blk, size_t cnt, on_read_func cb) override;
+  void read(block_t blk, size_t cnt, on_read_func cb) override;
 
   // unsupported sync reads
-  virtual buffer_t read_sync(block_t) override {
+  buffer_t read_sync(block_t) override {
     return buffer_t();
   }
-  virtual buffer_t read_sync(block_t, size_t) override {
+  buffer_t read_sync(block_t, size_t) override {
     return buffer_t();
   }
 
-  virtual block_t size() const noexcept override {
+  block_t size() const noexcept override {
     return config.capacity;
   }
+
+  void deactivate() override;
 
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioBlk(hw::PCI_Device& pcidev);

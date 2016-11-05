@@ -1,0 +1,94 @@
+# ex: set syntax=cmake:
+
+# TODO: improve (like dynamically download latest version)
+if (from_bundle)
+	include(ExternalProject)
+	ExternalProject_Add(PrecompiledLibraries
+			    PREFIX precompiled
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.9.0/IncludeOS_install_v0-9-0.tar.gz
+			    URL_HASH SHA1=8f7dfa92d38814c0c4f3e83adacfbd741a617622
+			    CONFIGURE_COMMAND ""
+			    BUILD_COMMAND ""
+			    UPDATE_COMMAND ""
+			    INSTALL_COMMAND ""
+	)
+
+	set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/)
+
+	set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}libcxx/include/)
+	set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
+	add_library(libcxx STATIC IMPORTED)
+	add_dependencies(libcxx PrecompiledLibraries)
+	set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
+
+	set(NEWLIB_INCLUDE_DIR ${PRECOMPILED_DIR}/newlib/include/)
+	set(NEWLIB_LIB_DIR ${PRECOMPILED_DIR}/newlib/)
+
+	set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
+
+	add_library(libc STATIC IMPORTED)
+	set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libc.a)
+	add_dependencies(libc PrecompiledLibraries)
+
+	add_library(libm STATIC IMPORTED)
+	set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
+	add_dependencies(libm PrecompiledLibraries)
+
+	add_library(libgcc STATIC IMPORTED)
+	set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
+	add_dependencies(libgcc PrecompiledLibraries)
+
+	set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
+	set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
+else(from_bundle)
+	include(ExternalProject)
+
+	set(binutils_version "2.26")
+	set(TARGET "i686-elf")
+	set(PREFIX "${CMAKE_CURRENT_BINARY_DIR}/IncludeOS_TEMP_install")
+	set(num_jobs 4)
+	ExternalProject_Add(binutils
+			    PREFIX binutils
+			    URL "ftp://ftp.gnu.org/gnu/binutils/binutils-${binutils_version}.tar.gz"
+			    URL_HASH SHA1=bb933ec42eb2002d9270bd4c62a26c3706589ee9
+			    CONFIGURE_COMMAND <SOURCE_DIR>/configure --target=${TARGET} --prefix=${PREFIX} --disable-nls --disable-werror
+			    BUILD_COMMAND make -j ${num_jobs}
+			    UPDATE_COMMAND ""
+			    INSTALL_COMMAND make install
+	)
+
+	set(gcc_version "6.2.0")
+	ExternalProject_Add(gcc
+			    PREFIX gcc
+			    URL "ftp://ftp.nluug.nl/mirror/languages/gcc/releases/gcc-${gcc_version}/gcc-${gcc_version}.tar.gz"
+			    CONFIGURE_COMMAND <SOURCE_DIR>/configure --target=${TARGET} --prefix=${PREFIX} --disable-nls --enable-languages=c,c++ --without-headers
+			    BUILD_COMMAND make all-gcc all-target-libgcc -j ${num_jobs}
+			    UPDATE_COMMAND "<SOURCE_DIR>/contrib/download_prerequisites"
+			    INSTALL_COMMAND make install-gcc install-target-libgcc
+	)
+
+	set(newlib_version "2.4.0")
+	ExternalProject_Add(newlib
+			    PREFIX newlib
+			    URL "ftp://sourceware.org/pub/newlib/newlib-${newlib_version}.tar.gz"
+			    CONFIGURE_COMMAND <SOURCE_DIR>/configure --target=${TARGET} --prefix=${PREFIX} --enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
+			    BUILD_COMMAND make all -j ${num_jobs}
+			    PATCH_COMMAND "patch -p0 < ${INCLUDEOS_ROOT}/etc/newlib_clang.patch"
+			    INSTALL_COMMAND make install
+	)
+
+	# TODO: the build_llvm32 script looks a lot tougher than this.
+	
+
+	# add this for now, still working on performing all cross-compilation steps
+	# message(FATAL_ERROR "not fully supported yet")
+endif(from_bundle)
+
+# installation instructions
+install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION include/libcxx)
+
+install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib)
+
+install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION share/includeos)
+
+install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a DESTINATION lib)
