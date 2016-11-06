@@ -73,12 +73,10 @@ std::experimental::string_view URI::fragment() const noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 const std::string& URI::query(const std::string& key) {
-  static bool queries_not_loaded {true};
   static const std::string no_entry_value;
 
-  if (queries_not_loaded) {
+  if (not query_.empty() and queries_.empty()) {
     load_queries();
-    queries_not_loaded = false;
   }
 
   auto target = queries_.find(key);
