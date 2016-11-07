@@ -21,9 +21,10 @@
 
 #include <string>
 
+#include "frame.hpp"
 #include "header.hpp"
-#include <hw/nic.hpp>
-#include <hw/mac_addr.hpp>
+#include <hw/mac_addr.hpp> // ethernet address
+#include <hw/nic.hpp> // protocol
 #include <net/inet_common.hpp>
 
 namespace net {
@@ -58,6 +59,8 @@ namespace net {
       ETH_VLAN  = 0x81
     };
 
+    using Frame = ethernet::Frame;
+
     // MAC address
     using addr = hw::MAC_addr;
 
@@ -68,46 +71,51 @@ namespace net {
     static const addr IPv6mcast_02;
 
     /** Constructor */
-    explicit Ethernet(hw::Nic& nic) noexcept;
+    explicit Ethernet(downstream physical_downstream, const addr& mac) noexcept;
 
     using header  = ethernet::Header;
     using trailer = ethernet::trailer_t;
 
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
-    void bottom(Packet_ptr);
+    void receive(Packet_ptr);
 
-    /** Delegate upstream ARP handler. */
-    void set_arp_handler(upstream del)
-    { arp_handler_ = del; }
+    /** Delegate upstream IPv4 upstream. */
+    void set_ip4_upstream(upstream del)
+    { ip4_upstream_ = del; }
 
-    upstream get_arp_handler()
-    { return arp_handler_; }
+    /** Delegate upstream IPv4 upstream. */
+    upstream& ip4_upstream()
+    { return ip4_upstream_; }
 
-    /** Delegate upstream IPv4 handler. */
-    void set_ip4_handler(upstream del)
-    { ip4_handler_ = del; }
+    /** Delegate upstream IPv6 upstream. */
+    void set_ip6_upstream(upstream del)
+    { ip6_upstream_ = del; };
 
-    /** Delegate upstream IPv4 handler. */
-    upstream get_ip4_handler()
-    { return ip4_handler_; }
+    /** Delegate upstream ARP upstream. */
+    void set_arp_upstream(upstream del)
+    { arp_upstream_ = del; }
 
-    /** Delegate upstream IPv6 handler. */
-    void set_ip6_handler(upstream del)
-    { ip6_handler_ = del; };
+    upstream& arp_upstream()
+    { return arp_upstream_; }
 
     /** Delegate downstream */
-    void set_physical_out(downstream del)
-    { physical_out_ = del; }
+    void set_physical_downstream(downstream del)
+    { physical_downstream_ = del; }
 
-    /** @return Mac address of the underlying device */
-    const auto& mac() const noexcept
-    { return nic_.mac(); }
+    downstream& physical_downstream()
+    { return physical_downstream_; }
+
+    static constexpr uint16_t header_size() noexcept
+    { return sizeof(ethernet::Header) + sizeof(ethernet::trailer_t); }
+
+    static constexpr hw::Nic::Proto proto() noexcept
+    { return hw::Nic::Proto::ETH; }
 
     /** Transmit data, with preallocated space for eth.header */
     void transmit(Packet_ptr);
 
   private:
-    hw::Nic& nic_;
+    const addr& mac_;
 
     /** Stats */
     uint64_t& packets_rx_;
@@ -115,12 +123,12 @@ namespace net {
     uint32_t& packets_dropped_;
 
     /** Upstream OUTPUT connections */
-    upstream ip4_handler_ = [](Packet_ptr){};
-    upstream ip6_handler_ = [](Packet_ptr){};
-    upstream arp_handler_ = [](Packet_ptr){};
+    upstream ip4_upstream_ = [](net::Packet_ptr){};
+    upstream ip6_upstream_ = [](net::Packet_ptr){};
+    upstream arp_upstream_ = [](net::Packet_ptr){};
 
     /** Downstream OUTPUT connection */
-    downstream physical_out_ = [](Packet_ptr){};
+    downstream physical_downstream_ = [](Packet_ptr){};
 
     /*
 
