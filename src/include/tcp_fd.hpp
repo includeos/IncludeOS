@@ -20,7 +20,6 @@
 #define INCLUDE_TCP_FD_HPP
 
 #include "sockfd.hpp"
-#include <net/inet4>
 #include <ringbuffer>
 
 struct TCP_FD_Conn;
@@ -56,6 +55,10 @@ public:
     return cd != nullptr;
   }
 
+  on_read_func   get_default_read_func()   override;
+  on_write_func  get_default_write_func()  override;
+  on_except_func get_default_except_func() override;
+  
   ~TCP_FD() {}
 private:
   TCP_FD_Conn* cd = nullptr;
