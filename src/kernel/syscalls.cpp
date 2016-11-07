@@ -107,12 +107,13 @@ void* sbrk(ptrdiff_t incr) {
   return (void*) prev_heap_end;
 }
 
-
+/*
 int stat(const char*, struct stat *st) {
   debug("SYSCALL STAT Dummy");
   st->st_mode = S_IFCHR;
   return 0;
 }
+*/
 
 clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");

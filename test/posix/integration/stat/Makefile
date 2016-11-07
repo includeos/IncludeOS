@@ -10,7 +10,7 @@ SERVICE_NAME = POSIX stat Test Service
 FILES = service.cpp
 
 # Your disk image
-DISK=
+DISK=disk.img
 
 # Additional drivers (virtionet, virtioblk etc)
 DRIVERS=

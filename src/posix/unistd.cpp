@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
+#include <memdisk>
 
 int open(const char*, int, ...)
 {
@@ -95,4 +96,64 @@ unsigned int sleep(unsigned int seconds)
     now = RTC::now();
   }
   return 0;
+}
+
+static std::string cwd;
+
+fs::Disk_ptr& fs_disk() {
+  static fs::Disk_ptr disk = fs::new_shared_memdisk();
+  static bool mounted = false;
+  if (not mounted)
+  {
+    disk->mount([](fs::error_t err) {
+      if (err) {
+        printf("ERROR MOUNTING DISK\n");
+      exit(127);
+      }
+    });
+  }
+  mounted = true;
+  cwd = "/";
+  return disk;
+}
+
+int chdir(const char *path)
+{
+  if (not path or strlen(path) < 2)
+  {
+    errno = ENOENT;
+    return -1;
+  }
+  auto ent = fs_disk()->fs().stat(path);
+  if (ent.is_dir())
+  {
+    // path is a dir
+    cwd.assign(path);
+    return 0;
+  }
+  else
+  {
+    // path is not a dir
+    errno = ENOTDIR;
+    return -1;
+  }
+}
+
+char *getcwd(char *buf, size_t size)
+{
+  if (size == 0)
+  {
+    errno = EINVAL;
+    return nullptr;
+  }
+  if ((cwd.length() + 1) < size)
+  {
+    snprintf(buf, size, "%s", cwd.c_str());
+    return buf;
+  }
+  else
+  {
+    errno = ERANGE;
+    return nullptr;
+  }
 }

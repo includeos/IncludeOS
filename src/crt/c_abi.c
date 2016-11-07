@@ -149,12 +149,7 @@ int access(const char *pathname, int mode)
 
   return 0;
 }
-char* getcwd(char *buf, size_t size)
-{
-  (void) buf;
-  (void) size;
-	return 0;
-}
+
 int fcntl(int fd, int cmd, ...)
 {
   (void) fd;
