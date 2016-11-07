@@ -300,7 +300,7 @@ std::unique_ptr<Packet>
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
-  new (ptr) Packet(bufsize(), size, &bufstore());
+  new (ptr) Packet(bufsize(), size - sizeof(virtio_net_hdr), &bufstore());
 
   return std::unique_ptr<Packet> (ptr);
 }
