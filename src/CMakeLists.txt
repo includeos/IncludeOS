@@ -42,8 +42,8 @@ set(OS_OBJECTS
   net/super_stack.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-  posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
-  posix/sys/socket.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
+  posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
+  posix/sys/socket.cpp posix/sys/select.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   )
 
@@ -56,14 +56,14 @@ add_dependencies(c++abi libcxx)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)

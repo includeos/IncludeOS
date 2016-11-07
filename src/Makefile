@@ -86,10 +86,9 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
 		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
 		posix/fd.o posix/tcp_fd.o posix/udp_fd.o posix/unistd.o posix/fcntl.o \
-		posix/sys/socket.o posix/sys/mman.o posix/arpa/inet.o \
+		posix/sys/socket.o posix/sys/select.o posix/sys/mman.o posix/arpa/inet.o \
 		posix/ucontext.o posix/ucontext_asm.o \
-		posix/sys/syslog.o util/syslogd.o posix/sys/utsname.o
-
+		posix/sys/syslog.o util/syslogd.o posix/sys/utsname.o 
 		#../mod/fiber/src/barrier.o ../mod/fiber/src/context.o ../mod/fiber/src/condition_variable.o \
 		#../mod/fiber/src/fiber.o ../mod/fiber/src/future.o ../mod/fiber/src/properties.o ../mod/fiber/src/mutex.o \
 		# ../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/recursive_timed_mutex.o \
