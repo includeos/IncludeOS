@@ -125,6 +125,9 @@ public:
   const hw::MAC_addr& mac() override
   { return _conf.mac; }
 
+  Nic::Proto proto() override
+  { return Nic::ETH; }
+
   uint16_t MTU() const noexcept override
   { return 1500; }
 

@@ -35,7 +35,7 @@
 
 namespace fs {
 
-  class FileSystem {
+  class File_system {
   public:
     struct Dirent; //< Generic structure for directory entries
 
@@ -195,16 +195,16 @@ namespace fs {
     virtual std::string name() const = 0;
 
     /** Default destructor */
-    virtual ~FileSystem() noexcept = default;
-  }; //< class FileSystem
+    virtual ~File_system() noexcept = default;
+  }; //< class File_system
 
   // simplify initializing shared vector
-  inline FileSystem::dirvec_t new_shared_vector()
+  inline File_system::dirvec_t new_shared_vector()
   {
-    return std::make_shared<FileSystem::dirvector> ();
+    return std::make_shared<File_system::dirvector> ();
   }
 
-  using Dirent = FileSystem::Dirent;
+  using Dirent = File_system::Dirent;
 
 } //< namespace fs
 

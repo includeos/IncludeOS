@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,19 +27,19 @@ namespace net
   class DNSClient
   {
   public:
-    using Stack = Inet<LinkLayer, IP4>;
-    
+    using Stack = IP4::Stack;
+
     DNSClient(Stack& stk)
       : stack(stk)  {}
-    
+
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
     void resolve(IP4::addr dns_server,
-                 const std::string& hostname, 
+                 const std::string& hostname,
                  Stack::resolve_func<IP4> func);
-    
+
   private:
     Stack& stack;
     std::map<std::string, IP4::addr> cache;

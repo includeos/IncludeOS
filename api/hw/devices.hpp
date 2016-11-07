@@ -81,8 +81,6 @@ namespace hw {
 
     inline static void deactivate_all();
 
-  private:
-
     /**
      * @brief Retreive reference to the given Device on pos N
      * @details Helper to retreive a Device of a given type
@@ -107,6 +105,10 @@ namespace hw {
       static Device_registry<Device_type> devices_;
       return devices_;
     }
+
+
+  private:
+
 
     /**
      * @brief Register the given device
