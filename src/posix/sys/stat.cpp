@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <cstring>
+#include <fd_map.hpp>
 #include <memdisk>
 
 #ifndef DEFAULT_UMASK
@@ -16,33 +17,62 @@ int chmod(const char *path, mode_t mode) {
 
 int fchmod(int fildes, mode_t mode)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(fildes);
+    return fd.fchmod(mode);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
-int fchmodat(int fd, const char *path, mode_t mode, int flag)
+int fchmodat(int filedes, const char *path, mode_t mode, int flag)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.fchmodat(path, mode, flag);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
-int fstatat(int fd, const char *path, struct stat *buf, int flag)
+int fstatat(int filedes, const char *path, struct stat *buf, int flag)
 {
-  // todo: get real
-  errno = EIO;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.fstatat(path, buf, flag);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
-int futimens(int fd, const struct timespec times[2])
+int futimens(int filedes, const struct timespec times[2])
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.futimens(times);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
-int utimensat(int fd, const char *path, const struct timespec times[2], int flag)
+int utimensat(int filedes, const char *path, const struct timespec times[2], int flag)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.utimensat(path, times, flag);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
 int mkdir(const char *path, mode_t mode)
@@ -51,10 +81,16 @@ int mkdir(const char *path, mode_t mode)
   return -1;
 }
 
-int mkdirat(int fd, const char *path, mode_t mode)
+int mkdirat(int filedes, const char *path, mode_t mode)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.mkdirat(path, mode);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
 int mkfifo(const char *path, mode_t mode)
@@ -63,10 +99,16 @@ int mkfifo(const char *path, mode_t mode)
   return -1;
 }
 
-int mkfifoat(int fd, const char *path, mode_t mode)
+int mkfifoat(int filedes, const char *path, mode_t mode)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.mkfifoat(path, mode);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
 int mknod(const char *path, mode_t mode, dev_t dev)
@@ -75,10 +117,16 @@ int mknod(const char *path, mode_t mode, dev_t dev)
   return -1;
 }
 
-int mknodat(int fd, const char *path, mode_t mode, dev_t dev)
+int mknodat(int filedes, const char *path, mode_t mode, dev_t dev)
 {
-  errno = EROFS;
-  return -1;
+  try {
+    auto& fd = FD_map::_get(filedes);
+    return fd.mknodat(path, mode, dev);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
 int stat(const char *path, struct stat *buf)

@@ -98,7 +98,8 @@ unsigned int sleep(unsigned int seconds)
   return 0;
 }
 
-static std::string cwd;
+// todo: use fs::path as backing
+static std::string cwd {"/"};
 
 fs::Disk_ptr& fs_disk() {
   static fs::Disk_ptr disk = fs::new_shared_memdisk();
@@ -113,13 +114,13 @@ fs::Disk_ptr& fs_disk() {
     });
   }
   mounted = true;
-  cwd = "/";
   return disk;
 }
 
 int chdir(const char *path)
+// todo: handle relative path
 {
-  if (not path or strlen(path) < 2)
+  if (not path or strlen(path) < 1)
   {
     errno = ENOENT;
     return -1;
@@ -128,7 +129,15 @@ int chdir(const char *path)
   if (ent.is_dir())
   {
     // path is a dir
-    cwd.assign(path);
+    if (*path == '/')
+    {
+      cwd.assign(path);
+    }
+    else
+    {
+      cwd = "/"; cwd += path;
+    }
+    assert(cwd.front() == '/');
     return 0;
   }
   else
@@ -141,6 +150,7 @@ int chdir(const char *path)
 
 char *getcwd(char *buf, size_t size)
 {
+  assert(cwd.front() == '/');
   if (size == 0)
   {
     errno = EINVAL;

@@ -23,25 +23,77 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <ftw.h>
 
 void print_stat(struct stat buffer);
+int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
 
 int main()
 {
   int res;
+  char* nullbuf = nullptr;
+  char shortbuf[4];
   char buf[1024];
-  char* cwd = getcwd(buf, 1024);
-  printf("cwd: %s\n", cwd);
+  struct stat buffer;
 
-  res = chdir("/FILE0.TXT");
-  printf("chdir result: %d\n", res);
+  res = stat("/FOLDER1", &buffer);
+  printf("stat result: %d\n", res);
+  if (res == -1)
+  {
+    printf("stat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+
+  res = chdir("FILE2");
+  printf("chdir result (not a folder): %d\n", res);
   if (res == -1)
   {
     printf("chdir error: %s\n", strerror(errno));
   }
 
-  cwd = getcwd(buf, 1024);
-  printf("cwd: %s\n", cwd);
+  res = chdir("FOLDER1");
+  printf("chdir result (existing folder): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+
+  res = chdir("/FOLDER1");
+  printf("chdir result (existing folder, absolute): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+
+  char* nullcwd = getcwd(nullptr, 0);
+  printf("getcwd result (nullptr, size 0): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
+  if (nullcwd == nullptr)
+  {
+    printf("getcwd error: %s\n", strerror(errno));
+  }
+
+  nullcwd = getcwd(nullptr, 1024);
+  printf("getcwd result (nullptr): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
+  if (nullcwd == nullptr)
+  {
+    printf("getcwd error: %s\n", strerror(errno));
+  }
+
+  char* shortcwd = getcwd(shortbuf, 4);
+  printf("getcwd result (small buffer): %s\n", shortcwd == nullptr ? "NULL" : shortcwd);
+  if (shortcwd == nullptr)
+  {
+    printf("getcwd error: %s\n", strerror(errno));
+  }
+
+  char* cwd = getcwd(buf, 1024);
+  printf("getcwd result (adequate buffer): %s\n", cwd);
+  if (cwd == nullptr)
+  {
+    printf("getcwd error: %s\n", strerror(errno));
+  }
 
   res = chmod("/dev/null", S_IRUSR);
   printf("chmod result: %d\n", res);
@@ -65,7 +117,6 @@ int main()
     printf("fchmodat error: %s\n", strerror(errno));
   }
 
-  struct stat buffer;
   res = fstat(fd, &buffer);
   printf("fstat result: %d\n", res);
   if (res == -1)
@@ -130,6 +181,7 @@ int main()
   {
     printf("mkfifoat error: %s\n", strerror(errno));
   }
+
 /*
   res = mknod("/dev/null",  S_IWUSR, 0);
   printf("mknod result: %d\n", res);
@@ -137,24 +189,22 @@ int main()
     printf("mknod error: %s\n", strerror(errno));
   }
 */
+
   res = mknodat(AT_FDCWD, "test",  S_IWUSR, 0);
   printf("mknodat result: %d\n", res);
   if (res == -1) {
     printf("mknodat error: %s\n", strerror(errno));
   }
 
-  res = stat("/FOLDER1", &buffer);
-  printf("stat result: %d\n", res);
-  if (res == -1)
-  {
-    printf("stat error: %s\n", strerror(errno));
-  }
-  else {
-    print_stat(buffer);
-  }
-
   mode_t old_umask = umask(0);
   printf("Old umask: %d\n", old_umask);
+
+  res = nftw("/FOLDER3", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
 
   printf("All done!\n");
   exit(0);
@@ -175,4 +225,10 @@ void print_stat(struct stat buffer)
     printf("st_mtime: %ld\n", buffer.st_mtime);
     printf("st_blksize: %ld\n", buffer.st_blksize);
     printf("st_blocks: %ld\n", buffer.st_blocks);
+}
+
+int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
+{
+  printf("%ld\t%s (%d)\n", sb->st_size, fpath, flag);
+  return 0;
 }
