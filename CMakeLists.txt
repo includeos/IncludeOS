@@ -6,6 +6,7 @@ set(INCLUDEOS_ROOT $ENV{HOME}/includeos)
 set(SERVICE_NAME "IRC server")
 set(BINARY       "IRCd")
 set(MAX_MEM 128)
+string(RANDOM LENGTH 7 ALPHABET 0123456789 STACK_PROTECTOR_VALUE)
 set(SOURCES
     channel.cpp     client.cpp      client_new.cpp  modes.cpp    test.cpp     transform.cpp
     client_cmd.cpp  client_msg.cpp  ircd.cpp        service.cpp  timeout.cpp
@@ -29,7 +30,7 @@ set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=${BINARY}")
+set(CAPABS "${CAPABS} -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # configure options
@@ -63,29 +64,50 @@ include_directories(${INCLUDEOS_ROOT}/include/gsl)
 
 # linker stuff
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker output
-set(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/ld <OBJECTS> -o  <TARGET> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <LINK_LIBRARIES>")
+set(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/ld -o  <TARGET> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
 
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-set(CRTBEG ${INCLUDEOS_ROOT}/share/crtbegin.o ${INCLUDEOS_ROOT}/share/crti.o ${INCLUDEOS_ROOT}/share/multiboot.o)
-set(CRTEND ${INCLUDEOS_ROOT}/share/crtend.o ${INCLUDEOS_ROOT}/share/crtn.o)
-
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_ROOT}/share/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${CRTBEGIN})
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --strip-debug --script=${INCLUDEOS_ROOT}/share/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=__stack_rand_ba=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_ROOT}/share/includeos/crtbegin.o ${INCLUDEOS_ROOT}/share/includeos/crti.o ${INCLUDEOS_ROOT}/share/includeos/multiboot.cpp.o")
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
-set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
+add_library(libos STATIC IMPORTED)
+set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libos.a)
 
-set(LIBRARIES 
-    ${INCLUDEOS_ROOT}/lib/libos.a
-    ${INCLUDEOS_ROOT}/lib/libc++.a
-    ${INCLUDEOS_ROOT}/lib/libc++abi.a
-    ${INCLUDEOS_ROOT}/lib/libc.a
-    ${INCLUDEOS_ROOT}/lib/libm.a
-    ${INCLUDEOS_ROOT}/lib/libg.a
-    ${INCLUDEOS_ROOT}/lib/libgcc.a
-    ${CRTEND})
-target_link_libraries(service ${LIBRARIES})
+add_library(libcxx STATIC IMPORTED)
+add_library(cxxabi STATIC IMPORTED)
+set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc++.a)
+set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc++abi.a)
+
+add_library(libc STATIC IMPORTED)
+set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc.a)
+add_library(libm STATIC IMPORTED)
+set_target_properties(libm PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libm.a)
+add_library(libg STATIC IMPORTED)
+set_target_properties(libg PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libg PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libg.a)
+add_library(libgcc STATIC IMPORTED)
+set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libgcc.a)
+
+target_link_libraries(service
+    libos
+    libcxx
+    cxxabi
+    libos
+    libc
+    libm
+    libg
+    libgcc
+    ${INCLUDEOS_ROOT}/share/includeos/crtend.o
+    ${INCLUDEOS_ROOT}/share/includeos/crtn.o
+  )
 
 add_custom_command(
   OUTPUT  ${BINARY}.img
@@ -94,3 +116,4 @@ add_custom_command(
   COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
   DEPENDS ${BINARY}
 )
+add_custom_target(${BINARY} ALL DEPENDS ${BINARY}.img)

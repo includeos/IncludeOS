@@ -6,8 +6,7 @@
 
 struct mode_table_t
 {
-  mode_table_t(const std::string& lut)
-    : LUT(lut) {}
+  mode_table_t(const std::string& lut);
   
   bool is_mode(char c) {
     return LUT.find(c) != std::string::npos;
@@ -17,7 +16,10 @@ struct mode_table_t
     return (bit != std::string::npos) ? bit : -1;
   }
   char bit_to_char(uint16_t bit) {
-    assert(bit >= 0 && bit < LUT.size());
+    if (bit >= LUT.size()) {
+      printf("Invalid mode bit %u\n", bit);
+      assert(0);
+    }
     return LUT[bit];
   }
   
