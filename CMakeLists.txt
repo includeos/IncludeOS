@@ -40,6 +40,17 @@ option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
+# DRIVERS
+set(DRIVERS)
+
+file(GLOB DRIVER_LIST "${INCLUDEOS_ROOT}/lib/includeos-drivers/*.a")
+foreach(FILENAME ${DRIVER_LIST})
+  get_filename_component(OPTNAME ${FILENAME} NAME_WE)
+  option(${OPTNAME} "Add ${OPTNAME} driver" OFF)
+  if (${OPTNAME})
+      list(APPEND DRIVERS ${FILENAME})
+  endif()
+endforeach()
 
 set(OPTIMIZE "-O2")
 # these kinda work with llvm
@@ -96,6 +107,18 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libgcc.a)
 
+# add drivers before the other libraries
+foreach(DRIVER ${DRIVERS})
+  get_filename_component(DNAME ${DRIVER} NAME_WE)
+
+  add_library(${DNAME} STATIC IMPORTED)
+  set_target_properties(${DNAME} PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties(${DNAME} PROPERTIES IMPORTED_LOCATION ${DRIVER})
+
+  target_link_libraries(service --whole-archive ${DRIVER} --no-whole-archive)
+endforeach()
+
+# all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
     libcxx
