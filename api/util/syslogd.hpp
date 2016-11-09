@@ -123,7 +123,7 @@ struct Syslog {
     static_assert(std::is_base_of<Syslog_facility, Facility>::value, "Facility is not base of Syslog_facility");
     last_open = std::make_unique<Facility>(ident);
 
-    if (valid_logopt(logopt))
+    if (valid_logopt(logopt) or logopt == 0)  // Should be possible to clear the logopt
       last_open->set_logopt(logopt);
 
     // TODO:

@@ -54,9 +54,11 @@ int main()
 
   closelog();
 
-  openlog("Open after close prepended message", LOG_PID, LOG_USER);
+  openlog("Open after close prepended message", 0, LOG_USER);
 
   syslog(LOG_INFO, "Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
+
+  closelog();
 
   /* ------------------------- Testing IncludeOS syslog ------------------------- */
 
@@ -83,7 +85,7 @@ int main()
 
   Syslog::closelog();
 
-  Syslog::openlog<Syslog_user>("Open after close prepended message", LOG_PID);
+  Syslog::openlog<Syslog_user>("Open after close prepended message", 0);
 
   Syslog::syslog(LOG_INFO, "Info <Syslogd> after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
 

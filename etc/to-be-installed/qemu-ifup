@@ -10,7 +10,7 @@
 
 
 # The name of the bridge VM's are added to
-BRIDGE=include0
+BRIDGE=bridge43
 
 # ==============================================================================
 # Bringing up the bridge:
@@ -44,7 +44,11 @@ if [ -n "$1" ];then
     # NOTE:
     # According to some guides we need to wait before adding the new interface to the bridge
     # sleep 0.5s
-    brctl addif $BRIDGE $1
+    if uname -s | grep Darwin > /dev/null 2>&1; then
+    	ifconfig $BRIDGE addm $1
+    else
+    	brctl addif $BRIDGE $1
+    fi
     exit 0
 
 else
