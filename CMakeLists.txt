@@ -112,10 +112,10 @@ foreach(DRIVER ${DRIVERS})
   get_filename_component(DNAME ${DRIVER} NAME_WE)
 
   add_library(${DNAME} STATIC IMPORTED)
-  set_target_properties(${DNAME} PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties(${DNAME} PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(${DNAME} PROPERTIES IMPORTED_LOCATION ${DRIVER})
 
-  target_link_libraries(service --whole-archive ${DRIVER} --no-whole-archive)
+  target_link_libraries(service --whole-archive ${DNAME} --no-whole-archive)
 endforeach()
 
 # all the OS and C/C++ libraries + crt end
