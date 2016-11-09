@@ -36,8 +36,10 @@ int main()
   char buf[1024];
   struct stat buffer;
 
-  res = stat("/FOLDER1", &buffer);
-  printf("stat result: %d\n", res);
+  INFO("POSIX stat", "Running tests for POSIX stat");
+
+  res = stat("FOLDER1", &buffer);
+  printf("stat(\"FOLDER1\") result: %d\n", res);
   if (res == -1)
   {
     printf("stat error: %s\n", strerror(errno));
@@ -45,6 +47,56 @@ int main()
   else {
     print_stat(buffer);
   }
+  CHECKSERT(res == 0, "stat() of folder that exists is ok");
+
+  res = stat("FILE1", &buffer);
+  printf("stat(\"FILE1\") result: %d\n", res);
+  if (res == -1)
+  {
+    printf("stat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+  CHECKSERT(res == 0, "stat() of file that exists is ok");
+
+  res = stat("FOLDER666", &buffer);
+  printf("stat(\"FOLDER1\") result: %d\n", res);
+  if (res == -1)
+  {
+    printf("stat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+  CHECKSERT(res == -1, "stat() of folder that does not exist fails");
+
+  res = stat("FILE666", &buffer);
+  printf("stat(\"FILE666\") result: %d\n", res);
+  if (res == -1)
+  {
+    printf("stat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+  CHECKSERT(res == -1, "stat() of file that does not exist fails");
+
+  res = chdir(nullptr);
+  printf("chdir result (to nullptr): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+  CHECKSERT(res == -1, "chdir(nullptr) should fail");
+
+  res = chdir("");
+  printf("chdir result (to empty string): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+  CHECKSERT(res == -1, "chdir(\"\") should fail");
 
   res = chdir("FILE2");
   printf("chdir result (not a folder): %d\n", res);
@@ -52,6 +104,7 @@ int main()
   {
     printf("chdir error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "chdir() to a file should fail");
 
   res = chdir("FOLDER1");
   printf("chdir result (existing folder): %d\n", res);
@@ -59,6 +112,7 @@ int main()
   {
     printf("chdir error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == 0, "chdir to folder that exists is ok");
 
   res = chdir("/FOLDER1");
   printf("chdir result (existing folder, absolute): %d\n", res);
@@ -67,12 +121,21 @@ int main()
     printf("chdir error: %s\n", strerror(errno));
   }
 
-  char* nullcwd = getcwd(nullptr, 0);
+  res = chdir(".");
+  printf("chdir result (to \".\"): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+  CHECKSERT(res == 0, "chdir(\".\") is ok");
+
+  char* nullcwd = getcwd(nullbuf, 0);
   printf("getcwd result (nullptr, size 0): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
   if (nullcwd == nullptr)
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
+  CHECKSERT(nullcwd == nullptr, "getcwd() with 0-size buffer should fail");
 
   nullcwd = getcwd(nullptr, 1024);
   printf("getcwd result (nullptr): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
@@ -80,6 +143,7 @@ int main()
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
+  CHECKSERT(nullcwd == nullptr, "getcwd() with nullptr buffer should fail");
 
   char* shortcwd = getcwd(shortbuf, 4);
   printf("getcwd result (small buffer): %s\n", shortcwd == nullptr ? "NULL" : shortcwd);
@@ -87,6 +151,7 @@ int main()
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
+  CHECKSERT(shortcwd == nullptr, "getcwd() with too small buffer should fail");
 
   char* cwd = getcwd(buf, 1024);
   printf("getcwd result (adequate buffer): %s\n", cwd);
@@ -94,6 +159,7 @@ int main()
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
+  CHECKSERT(cwd, "getcwd() with adequate buffer is ok");
 
   res = chmod("/dev/null", S_IRUSR);
   printf("chmod result: %d\n", res);
@@ -101,14 +167,18 @@ int main()
   {
     printf("chmod error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "chmod() should fail on read-only memdisk");
 
   int fd = STDOUT_FILENO;
+  close(fd);
+
   res = fchmod(fd, S_IWUSR);
   printf("fchmod result: %d\n", res);
   if (res == -1)
   {
     printf("fchmod error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "fchmod() on non-open FD should fail");
 
   res = fchmodat(fd, "test", S_IRUSR, AT_SYMLINK_NOFOLLOW);
   printf("fchmodat result: %d\n", res);
@@ -116,6 +186,7 @@ int main()
   {
     printf("fchmodat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "fchmodat() on non-open FD should fail");
 
   res = fstat(fd, &buffer);
   printf("fstat result: %d\n", res);
@@ -130,6 +201,7 @@ int main()
   {
     printf("fstatat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "fstatat() on non-open FD should fail");
 
   res = futimens(fd, nullptr);
   printf("futimens result: %d\n", res);
@@ -137,6 +209,7 @@ int main()
   {
     printf("futimens error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "futimens() on non-open FD should fail");
 
   res = utimensat(fd, "test", nullptr, AT_SYMLINK_NOFOLLOW);
   printf("utimensat result: %d\n", res);
@@ -144,6 +217,7 @@ int main()
   {
     printf("utimensat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "utimensat() on non-open FD should fail");
 
 /*
   res = lstat("/", &buffer);
@@ -160,6 +234,7 @@ int main()
   {
     printf("mkdir error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "mkdir() on read-only memdisk should fail");
 
   res = mkdirat(fd, "root",  S_IWUSR);
   printf("mkdirat result: %d\n", res);
@@ -167,13 +242,15 @@ int main()
   {
     printf("mkdirat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "mkdirat() on non-open FD should fail");
 
-  res = mkfifo("/dev/null",  S_IWUSR);
+  res = mkfifo("/FILE_FIFO",  S_IWUSR);
   printf("mkfifo result: %d\n", res);
   if (res == -1)
   {
     printf("mkfifo error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "mkfifo() on read-only memdisk should fail");
 
   res = mkfifoat(AT_FDCWD, "test",  S_IWUSR);
   printf("mkfifoat result: %d\n", res);
@@ -181,6 +258,7 @@ int main()
   {
     printf("mkfifoat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "mkfifoat() on non-open FD should fail");
 
 /*
   res = mknod("/dev/null",  S_IWUSR, 0);
@@ -195,9 +273,25 @@ int main()
   if (res == -1) {
     printf("mknodat error: %s\n", strerror(errno));
   }
+  CHECKSERT(res == -1, "mknodat() on non-open FD should fail");
 
   mode_t old_umask = umask(0);
   printf("Old umask: %d\n", old_umask);
+
+
+  res = nftw("FILE666", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+
+  res = nftw("FILE1", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
 
   res = nftw("/FOLDER3", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
@@ -206,7 +300,7 @@ int main()
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("All done!\n");
+  INFO("POSIX STAT", "All done!");
   exit(0);
 }
 

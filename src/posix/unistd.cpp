@@ -119,16 +119,21 @@ fs::Disk_ptr& fs_disk() {
 
 int chdir(const char *path)
 // todo: handle relative path
+// todo: handle ..
 {
   if (not path or strlen(path) < 1)
   {
     errno = ENOENT;
     return -1;
   }
+  if (strcmp(path, ".") == 0)
+  {
+    return 0;
+  }
   auto ent = fs_disk()->fs().stat(path);
   if (ent.is_dir())
   {
-    // path is a dir
+    // path is absolute dir
     if (*path == '/')
     {
       cwd.assign(path);
