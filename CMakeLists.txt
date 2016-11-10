@@ -78,7 +78,7 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
@@ -97,8 +97,7 @@ install(DIRECTORY api/ DESTINATION include/api)
 enable_testing()
 add_subdirectory(test)
 
-configure_file(etc/Makefile.seed.in Makeseed)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makeseed DESTINATION share/includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION share/includeos)
 
 install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
 
