@@ -133,10 +133,16 @@ target_link_libraries(service
   )
 
 add_custom_command(
-  OUTPUT  ${BINARY}.img
+  TARGET  service POST_BUILD
   COMMAND ${INCLUDEOS_ROOT}/bin/elf_syms ${BINARY}
   COMMAND objcopy --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+  COMMAND strip --strip-all ${BINARY}
+  COMMAND rm _elf_symbols.bin
+)
+
+add_custom_command(
+  OUTPUT  ${BINARY}.img
   COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
   DEPENDS ${BINARY}
 )
-add_custom_target(${BINARY} ALL DEPENDS ${BINARY}.img)
+add_custom_target(${BINARY}.img ALL DEPENDS ${BINARY})

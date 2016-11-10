@@ -245,10 +245,8 @@ std::string Client::mode_string() const
   
   for (int i = 0; i < 8; i++)
   {
-    if (umodes_ & (1 << i)) {
-        printf("mode table lut: %s\n", usermodes.get().c_str());
+    if (umodes_ & (1 << i))
         res += usermodes.bit_to_char(i);
-    }
   }
   return res;
 }
