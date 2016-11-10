@@ -13,7 +13,7 @@ case $SYSTEM in
         ;;
     "Linux")
         case $RELEASE in
-            "Debian"|"Ubuntu")
+            "Debian"|"Ubuntu"|"LinuxMint")
                 VERSION=`lsb_release -rs`
                 if [ $(awk 'BEGIN{ print "'$VERSION'"<"'16.04'" }') -eq 1 ]; then
                     if [ $RELEASE == "Ubuntu" ] ; then
