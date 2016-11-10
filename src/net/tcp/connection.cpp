@@ -312,8 +312,8 @@ void Connection::close() {
     if(is_state(Closed::instance()))
       signal_close();
   } catch(const TCPException& err) {
-    Ensures(on_error_);
-    signal_error(err);
+    // might not be set
+    if (on_error_) signal_error(err);
   }
 }
 
