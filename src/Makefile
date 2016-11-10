@@ -84,7 +84,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		net/dns/dns.o net/dns/client.o net/dhcp/dh4client.o \
 		net/buffer_store.o net/inet4.o net/super_stack.o\
 		fs/disk.o fs/filesystem.o fs/mbr.o fs/path.o \
-		fs/ext4.o fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
+		fs/fat.o fs/fat_async.o fs/fat_sync.o fs/memdisk.o \
 		posix/fd.o posix/tcp_fd.o posix/udp_fd.o posix/unistd.o posix/fcntl.o \
 		posix/sys/socket.o posix/sys/select.o posix/sys/mman.o posix/arpa/inet.o \
 		posix/ucontext.o posix/ucontext_asm.o \

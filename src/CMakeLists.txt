@@ -41,7 +41,7 @@ set(OS_OBJECTS
   net/buffer_store.cpp net/inet4.cpp
   net/super_stack.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
-  fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
+  fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
