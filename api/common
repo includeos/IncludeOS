@@ -24,15 +24,6 @@
 #error "IncludeOS must be built with a C++ compiler"
 #endif
 
-/* We're not building for linux */
-#if defined(__linux__)
-#warning "You are compiling for Linux target"
-#endif
-
-#if defined(_WIN32)
-#warning "You are compiling for Win32 target"
-#endif
-
 /* We're only doing 32-bit ix86 targets. */
 #if !defined(__i386__)
 #warning "This project is targeted at the i386 architecture"
