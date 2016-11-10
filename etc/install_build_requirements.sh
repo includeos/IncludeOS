@@ -13,7 +13,7 @@ case $SYSTEM in
         ;;
     "Linux")
         case $RELEASE in
-            "Ubuntu")
+            "Ubuntu"|"LinuxMint")
                 UBUNTU_VERSION=`lsb_release -rs`
                 if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
                     clang_version="3.6"
