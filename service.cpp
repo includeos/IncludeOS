@@ -18,6 +18,7 @@
 #include <service>
 #include <cstdio>
 #include <net/inet4>
+#include <timers>
 #include "update.hpp"
 
 // prevent default serial out
@@ -28,7 +29,8 @@ typedef net::tcp::Connection_ptr Connection_ptr;
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
 std::vector<Connection_ptr> saveme;
 
-void setup_terminal(net::Inet4& inet)
+template <typename T>
+void setup_terminal(T& inet)
 {
   // mini terminal
   printf("Setting up terminal, since we have not updated yet\n");
@@ -104,6 +106,13 @@ void Service::start(const std::string&)
   LiveUpdate::on_resume(100, the_timing);
   LiveUpdate::on_resume(666, restore_term);
   LiveUpdate::resume(on_missing);
+  
+  /*
+  using namespace std::chrono;
+  Timers::periodic(seconds(0), seconds(1),
+  [] (auto) {
+    printf("Time is %lld\n", hw::CPU::rdtsc());
+  });*/
 }
 
 #include <hw/cpu.hpp>
@@ -117,7 +126,7 @@ void save_stuff(Storage storage)
 
   auto ts = hw::CPU::rdtsc();
   storage.add_buffer(100, &ts, sizeof(ts));
-  printf("ticks before: %lld\n", ts);
+  printf("! CPU ticks before: %lld\n", ts);
 
   for (auto conn : saveme)
       storage.add_connection(666, conn);
@@ -177,17 +186,14 @@ restore_t rest;
 
 void the_timing(Restore thing)
 {
-  auto ts1 = thing.as_type<int64_t> ();
-  auto ts2 = hw::CPU::rdtsc();
-
-  auto    diff = ts2-ts1;
-  double  div  = OS::cpu_freq().count() * 1000000.0;
+  auto diff = hw::CPU::rdtsc();
 
   using namespace std::chrono;
+  double  div  = OS::cpu_freq().count() * 1000000.0;
   int64_t time = diff / div * 1000;
 
   rest.len = snprintf(rest.buffer, sizeof(rest.buffer),
-             "Elapsed  diff=%lld  time: %lld ms\n", diff, time);
+             "! Boot time in ticks: %lld (%lld ms)\n", diff, time);
 
   printf("%.*s", rest.len, rest.buffer);
   rest.try_send();
