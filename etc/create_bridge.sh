@@ -38,7 +38,15 @@ if uname -s | grep Darwin > /dev/null 2>&1; then  # Check if on Mac
     echo ">>> Network bridge already created"
   fi
 else
-  if brctl show $BRIDGE 2>&1 | grep -q "No such device"; then
+  BRSHOW="brctl show"
+
+  # Check if BRSHOW is in user path
+  if ! command -v brctl > /dev/null 2>&1; then
+      BRSHOW="sudo $BRSHOW"
+  fi
+
+  # Check if bridge already is created
+  if $BRSHOW $BRIDGE 2>&1 | grep -q "No such device"; then
     echo ">>> Creating network bridge (requires sudo):"
     sudo brctl addbr $BRIDGE || exit 1
   else
