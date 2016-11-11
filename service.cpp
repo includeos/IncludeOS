@@ -186,7 +186,8 @@ restore_t rest;
 
 void the_timing(Restore thing)
 {
-  auto diff = hw::CPU::rdtsc();
+  auto t1   = thing.as_type<int64_t>();
+  auto diff = hw::CPU::rdtsc() - t1;
 
   using namespace std::chrono;
   double  div  = OS::cpu_freq().count() * 1000000.0;

@@ -8,7 +8,6 @@
 #include "storage.hpp"
 
 static const int SECT_SIZE   = 512;
-static const int SERV_OFFSET = 6; // seems like an unintended offset
 
 static const uintptr_t UPDATE_STORAGE = 0x6000000; // at 96mb
 static const uint64_t  LIVEUPD_MAGIC  = 0xbaadb33fdeadc0de;
@@ -56,26 +55,42 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   memcpy(update_area, blob.buffer, blob.length);
 
   // validate ELF header
-  const char* binary  = &update_area[SECT_SIZE];
-  const int   bin_len = blob.length - SECT_SIZE;
-  Elf32_Ehdr& hdr = *(Elf32_Ehdr*) binary;
+  char*   binary  = &update_area[0];
+  int     bin_len = blob.length;
+  Elf32_Ehdr* hdr = (Elf32_Ehdr*) binary;
 
-  if (hdr.e_ident[0] != 0x7F ||
-      hdr.e_ident[1] != 'E' ||
-      hdr.e_ident[2] != 'L' ||
-      hdr.e_ident[3] != 'F') return;
+  if (hdr->e_ident[0] != 0x7F ||
+      hdr->e_ident[1] != 'E' ||
+      hdr->e_ident[2] != 'L' ||
+      hdr->e_ident[3] != 'F')
+  {
+    /// try again with 1 sector offset (skip bootloader)
+    binary   = &update_area[SECT_SIZE];
+    bin_len  = blob.length - SECT_SIZE;
+    hdr      = (Elf32_Ehdr*) binary;
+    
+    if (hdr->e_ident[0] != 0x7F ||
+        hdr->e_ident[1] != 'E' ||
+        hdr->e_ident[2] != 'L' ||
+        hdr->e_ident[3] != 'F')
+    {
+      /// failed to find elf header at sector 0 and 1
+      /// simply return
+      return;
+    }
+  }
   printf("* Validated ELF header\n");
 
   // discover _start() entry point
-  const uintptr_t serv_offset = *(uintptr_t*) &update_area[SERV_OFFSET];
-  printf("* _start is located at %#x\n", serv_offset);
+  const uintptr_t start_offset = hdr->e_entry;
+  printf("* _start is located at %#x\n", start_offset);
 
   // save ourselves
   update_store_data(func);
 
   // try to guess base address for the new service based on entry point
   /// FIXME
-  char* phys_base = (char*) 0x100000; //(serv_offset & 0xffff0000);
+  char* phys_base = (char*) 0x100000; //(start_offset & 0xffff0000);
   printf("* Estimate physical base to be %p...\n", phys_base);
 
   /// prepare for the end
@@ -85,13 +100,13 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   hw::Devices::deactivate_all();
 
   // replace ourselves and reset by jumping to _start
-  printf("* Replacing self with %d bytes and jumping to %#x\n", bin_len, serv_offset);
+  printf("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
 
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
 
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, serv_offset);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset);
 }
 
 void update_store_data(LiveUpdate::storage_func func)
