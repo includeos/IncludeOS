@@ -25,7 +25,7 @@
 #include <map>
 #include <regex>
 
-#include <sys/syslog.h>
+#include <syslog.h>
 
 #include <net/inet4>
 

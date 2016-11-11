@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sys/syslog.h>
+#include <syslog.h>
 #include <syslogd>
 
 static const char* ident_ = nullptr;	/* what is prepended to each message
