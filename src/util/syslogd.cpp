@@ -195,23 +195,50 @@ void Syslog::syslog(int priority, const char* buf) {
 
  	last_open->set_priority(priority);
 
- 	/* Building the message based on RFC5424 */
+ 	/* Building the log message based on RFC5424 */
 
- 	// First: Priority and facility
- 	std::string message = "<" + std::to_string(last_open->calculate_pri()) + ">";
+ 	/* Header: PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID */
 
+ 	// First: Priority- and facility-value (PRIVAL) and Syslog-version
+ 	std::string message = "<" + std::to_string(last_open->calculate_pri()) + ">1 ";
 
+ 	// Second: Timestamp
+ 	char timebuf[TIMELEN];
+ 	time_t now;
+ 	time(&now);
+ 	strftime(timebuf, TIMELEN, "%FT%T.000Z", localtime(&now));
 
+ 	// Third: Hostname ( Preferably: 1. FQDN (RFC1034) 2. Static IP address 3. Hostname 4. Dynamic IP address 5. NILVALUE (-) )
+ 	message += std::string{timebuf} + " " + Inet4::stack().ip_addr().str() + " ";
 
- 	message += " " + std::string{buf};
+ 	// Fourth: App-name, PROCID and MSGID
+ 	message += Service::name() + " " + std::to_string(getpid()) + " UDPOUT ";
 
- 	// Last: Send the log string
+ 	/* Structured data: SD-element (SD-ID PARAM-NAME=PARAM-VALUE) */
+ 	message += "- ";	// NILVALUE
+
+ 	/* Message */
+ 	/*
+ 		%m:
+		(The message body is generated from the message (argument) and following arguments
+		in the same manner as if these were arguments to printf(), except that the additional
+		conversion specification %m shall be recognized;)
+		it shall convert no arguments, shall cause the output of the error message string
+		associated with the value of errno on entry to syslog(), and may be mixed with argument
+		specifications of the "%n$" form. If a complete conversion specification with the m conversion
+		specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
+		added if needed.
+	*/
+  /* Handle %m (replace it with strerror(errno)) and add the message (buf) */
+  std::regex m_regex{"\\%m"};
+  message += std::regex_replace(buf, m_regex, strerror(errno));
+
+ 	/* Last: Send the log string */
  	last_open->syslog(message);
  	// or last_open->send_udp_data(message);
  	// or if going away from sub-facilities and only have Syslog_facility class: facility->send_udp_data(message);
 
-  /* Building the message first implementation */
-
+  /* Building the message first implementation (with colors for facility- and severity-text) */
   /* First: Timestamp
   char timebuf[TIMELEN];
   time_t now;
@@ -253,7 +280,6 @@ void Syslog::syslog(int priority, const char* buf) {
 
   last_open->syslog(message);
   // or last_open->send_udp_data(message); if nothing is to be done in the sub-facility
-
   */
 }
 
