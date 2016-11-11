@@ -105,7 +105,6 @@ void Syslog_facility::send_udp_data(const std::string& data) {
   }
 
   open_socket();
-
   sock_->sendto( Inet4::stack().gateway(), UDP_PORT, data.c_str(), data.size() );
 
   /*auto& sock = Inet4::stack<>().udp().bind();
@@ -212,7 +211,7 @@ void Syslog::syslog(int priority, const char* buf) {
  	message += std::string{timebuf} + " " + Inet4::stack().ip_addr().str() + " ";
 
  	// Fourth: App-name, PROCID and MSGID
- 	message += Service::name() + " " + std::to_string(getpid()) + " UDPOUT ";
+ 	message += Service::binary_name() + " " + std::to_string(getpid()) + " UDPOUT ";
 
  	/* Structured data: SD-element (SD-ID PARAM-NAME=PARAM-VALUE) */
  	message += "- ";	// NILVALUE
