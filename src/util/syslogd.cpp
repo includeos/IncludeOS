@@ -163,7 +163,7 @@ std::unique_ptr<Syslog_facility> Syslog::last_open = std::make_unique<Syslog_use
 //UDPSocket* Syslog::sock_ = nullptr;
 
 // va_list arguments (POSIX)
-void Syslog::syslog(int priority, const char* message, va_list args) {
+void Syslog::syslog(const int priority, const char* message, va_list args) {
   // vsnprintf removes % if calling syslog with %m in addition to arguments
   // Find %m here first and escape % if found
   std::regex m_regex{"\\%m"};
@@ -174,7 +174,7 @@ void Syslog::syslog(int priority, const char* message, va_list args) {
   syslog(priority, buf);
 }
 
-void Syslog::syslog(int priority, const char* buf) {
+void Syslog::syslog(const int priority, const char* buf) {
 
 	/*
   	All syslog-calls comes through here in the end, so

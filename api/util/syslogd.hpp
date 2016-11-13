@@ -33,7 +33,7 @@ using namespace net;
 
 const int BUFLEN = 2048;
 const int TIMELEN = 32;
-const int SYSLOG_PORT = 514;
+// const int SYSLOG_PORT = 514;
 const int UDP_PORT = 6000;
 const int MUL_VAL = 8;
 
@@ -61,11 +61,11 @@ struct Syslog_facility {
   bool ident_is_set();
   const char* ident() { return ident_; }
   
-  void set_priority(int priority) { priority_ = priority; }
+  void set_priority(const int priority) { priority_ = priority; }
   int priority() { return priority_; }
   std::string priority_string();
 
-  void set_logopt(int logopt) { logopt_ = logopt; }
+  void set_logopt(const int logopt) { logopt_ = logopt; }
   int logopt() { return logopt_; }
 
   void open_socket();
@@ -110,7 +110,7 @@ struct Syslog {
 
   // Parameter pack arguments
   template <typename... Args>
-  static void syslog(int priority, const char* message, Args&&... args) {
+  static void syslog(const int priority, const char* message, Args&&... args) {
     // snprintf removes % if calling syslog with %m in addition to arguments
     // Find %m here first and escape % if found
     std::regex m_regex{"\\%m"};
@@ -122,12 +122,12 @@ struct Syslog {
   }
 
   // va_list arguments (POSIX)
-  static void syslog(int priority, const char* message, va_list args);
+  static void syslog(const int priority, const char* message, va_list args);
   
-  static void syslog(int priority, const char* buf);
+  static void syslog(const int priority, const char* buf);
 
   template <typename Facility>
-  static void openlog(const char* ident, int logopt) {
+  static void openlog(const char* ident, const int logopt) {
     static_assert(std::is_base_of<Syslog_facility, Facility>::value, "Facility is not base of Syslog_facility");
     last_open = std::make_unique<Facility>(ident);
 
@@ -167,19 +167,13 @@ struct Syslog {
 
   static void closelog();
 
-  static bool valid_priority(int priority) {
-    if (priority < LOG_EMERG or priority > LOG_DEBUG)
-      return false;
-
-    return true;
+  static bool valid_priority(const int priority) noexcept {
+    return not ((priority < LOG_EMERG) or (priority > LOG_DEBUG));
   }
 
-  static bool valid_logopt(int logopt) {
-    if (logopt & LOG_PID or logopt & LOG_CONS or logopt & LOG_NDELAY or
-      logopt & LOG_ODELAY or logopt & LOG_NOWAIT or logopt & LOG_PERROR)
-      return true;
-
-    return false;
+  static bool valid_logopt(const int logopt) noexcept {
+    return (logopt & LOG_PID or logopt & LOG_CONS or logopt & LOG_NDELAY or
+      logopt & LOG_ODELAY or logopt & LOG_NOWAIT or logopt & LOG_PERROR);
   }
 
 private:
