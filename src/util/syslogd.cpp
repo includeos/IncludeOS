@@ -217,6 +217,11 @@ void Syslog::syslog(const int priority, const char* buf) {
  	message += "- ";	// NILVALUE
 
  	/* Message */
+
+ 	// Set ident before message (buf) if is set (through openlog)
+ 	if (last_open->ident_is_set())
+ 		message += std::string{last_open->ident()} + " ";
+
  	/*
  		%m:
 		(The message body is generated from the message (argument) and following arguments
@@ -228,7 +233,7 @@ void Syslog::syslog(const int priority, const char* buf) {
 		specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
 		added if needed.
 	*/
-  /* Handle %m (replace it with strerror(errno)) and add the message (buf) */
+  // Handle %m (replace it with strerror(errno)) and add the message (buf)
   std::regex m_regex{"\\%m"};
   message += std::regex_replace(buf, m_regex, strerror(errno));
 
