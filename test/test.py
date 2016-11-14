@@ -303,21 +303,25 @@ def tests_to_run(all_tests, arguments):
         list: All Test objects that are to be run
     """
 
-    # First checks if any type has been defined
-    types_to_run = [ x for x in arguments.tests if x in test_types ]
-    tests_added = [ x for x in all_tests if x.type_ in types_to_run ]
+    # If no tests specified all are run
+    if not arguments.tests:
+        tests_added = all_tests
+    else:
+        # First checks if any type has been defined
+        types_to_run = [ x for x in arguments.tests if x in test_types ]
+        tests_added = [ x for x in all_tests if x.type_ in types_to_run ]
 
-    # Check if any categories have been defined
-    categories_to_run = [ x for x in arguments.tests if x in test_categories ]
+        # Check if any categories have been defined
+        categories_to_run = [ x for x in arguments.tests if x in test_categories ]
 
-    # Add tests based on category and finally individual tests
-    for test in all_tests:
-        if test in tests_added:   # Avoid duplicates
-            continue
-        elif test.category_ in categories_to_run:
-            tests_added.append(test)
-        elif test.name_ in arguments.tests:
-            tests_added.append(test)
+        # Add tests based on category and finally individual tests
+        for test in all_tests:
+            if test in tests_added:   # Avoid duplicates
+                continue
+            elif test.category_ in categories_to_run:
+                tests_added.append(test)
+            elif test.name_ in arguments.tests:
+                tests_added.append(test)
 
     # Remove tests defined by the skip argument
     # First check if any type has been defined
@@ -343,47 +347,19 @@ def main():
     # Populate test objects
     all_tests = [ Test(path) for path in leaves ]
 
-    tests_to_run(all_tests, args)
+    # get a list of all the tests that are to be run
+    specific_tests = tests_to_run(all_tests, args)
 
-
-    """
-    # Figure out which tests are to be run
-    test_categories_to_run = []
-    test_types_to_run = []
+    # Run the tests
+    print_skipped(specific_tests)
+    integration = integration_tests(specific_tests)
     if args.tests:
-        for argument in args.tests:
-            if argument in test_categories and argument not in args.skip:
-                test_categories_to_run.append(argument)
-
-        return fin_tests
-            elif argument in test_types and argument not in args.skip:
-                test_types_to_run.append(argument)
-            else:
-                print 'Test specified is not recognised, exiting'
-                sys.exit(1)
+        types_to_run = args.tests
     else:
-        test_types_to_run = test_types
-
-
-    if test_categories_to_run:
-        # This means that a specific category has been requested
-        specific_tests = [ test for test in all_tests if test.category_ in test_categories_to_run ]
-
-        # Print which tests are skipped
-        print_skipped(specific_tests)
-
-        # Run the tests
-        integration = integration_tests(specific_tests)
-    else:
-        # Print which tests are skipped
-        print_skipped(all_tests)
-
-        # Run the tests
-        integration = integration_tests(all_tests) if "integration" in test_types_to_run else 0
-
-    stress = stress_test() if "stress" in test_types_to_run else 0
-    unit = unit_tests() if "unit" in test_types_to_run else 0
-    misc = misc_working() if "misc" in test_types_to_run else 0
+        types_to_run = test_types
+    stress = stress_test() if "stress" in types_to_run else 0
+    unit = unit_tests() if "unit" in types_to_run else 0
+    misc = misc_working() if "misc" in types_to_run else 0
 
     status = max(integration, stress, unit, misc)
     if (status == 0):
@@ -393,7 +369,6 @@ def main():
         print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
 
     sys.exit(status)
-    """
 
 
 if  __name__ == '__main__':
