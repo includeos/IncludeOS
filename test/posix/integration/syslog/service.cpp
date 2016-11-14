@@ -77,17 +77,17 @@ int main()
   std::string two{"two"};
   size_t number = 33;
 
-  syslog(LOG_INFO, "No open has been called prior to this");
-  syslog(LOG_NOTICE, "Program created with two arguments: %s and %s", one.c_str(), two.c_str());
+  syslog(LOG_INFO, "(Info) No open has been called prior to this");
+  syslog(LOG_NOTICE, "(Notice) Program created with two arguments: %s and %s", one.c_str(), two.c_str());
   
-  openlog("Prepended message", LOG_CONS, LOG_MAIL);
+  openlog("Prepended message", LOG_CONS | LOG_NDELAY, LOG_MAIL);
 
-  syslog(LOG_ERR, "Log after prepended message with one argument: %d", 44);
-  syslog(LOG_WARNING, "Log number two after openlog set prepended message");
+  syslog(LOG_ERR, "(Err) Log after prepended message with one argument: %d", 44);
+  syslog(LOG_WARNING, "(Warning) Log number two after openlog set prepended message");
 
   closelog();
 
-  syslog(LOG_WARNING, "Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
+  syslog(LOG_WARNING, "(Warning) Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
 
   openlog("Second prepended message", LOG_PID | LOG_CONS, LOG_USER);
 
@@ -100,43 +100,52 @@ int main()
 
   closelog();
 
-  openlog("Open after close prepended message", LOG_CONS, LOG_USER);
+  openlog("Open after close prepended message", LOG_CONS, LOG_MAIL);
 
   syslog(LOG_INFO, "Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
 
   closelog();
 
   /* ------------------------- Testing IncludeOS syslog ------------------------- */
-/*
-  Syslog::syslog(LOG_INFO, "No <Syslogd> open has been called prior to this");
-  Syslog::syslog(LOG_NOTICE, "Program <Syslogd> created with two arguments: %s and %s", one.c_str(), two.c_str());
+
+  invalid_priority = -1;
+  Syslog::syslog(invalid_priority, "Invalid %d", invalid_priority);
+
+  invalid_priority = 10;
+  Syslog::syslog(invalid_priority, "Invalid %d", invalid_priority);
+
+  invalid_priority = 55;
+  Syslog::syslog(invalid_priority, "Invalid %d", invalid_priority);
+
+  Syslog::syslog(LOG_INFO, "(Info) No open has been called prior to this");
+  Syslog::syslog(LOG_NOTICE, "(Notice) Program created with two arguments: %s and %s", one.c_str(), two.c_str());
   
   Syslog::openlog<Syslog_mail>("Prepended message", LOG_CONS | LOG_NDELAY);
 
-  Syslog::syslog(LOG_ERR, "Log <Syslogd> after prepended message with one argument: %d", 44);
-  Syslog::syslog(LOG_WARNING, "Log <Syslogd> number two after openlog set prepended message");
+  Syslog::syslog(LOG_ERR, "(Err) Log after prepended message with one argument: %d", 44);
+  Syslog::syslog(LOG_WARNING, "(Warning) Log number two after openlog set prepended message");
 
   Syslog::closelog();
 
-  Syslog::syslog(LOG_WARNING, "Log <Syslogd> after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
+  Syslog::syslog(LOG_WARNING, "(Warning) Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
 
   Syslog::openlog<Syslog_user>("Second prepended message", LOG_PID | LOG_CONS);
 
-  Syslog::syslog(LOG_EMERG, "Emergency <Syslogd> log after openlog and new facility: user");
-  Syslog::syslog(LOG_ALERT, "Alert <Syslogd> log with the m argument: %m");
+  Syslog::syslog(LOG_EMERG, "Emergency log after openlog and new facility: user");
+  Syslog::syslog(LOG_ALERT, "Alert log with the m argument: %m");
 
   Syslog::closelog();
 
-  Syslog::syslog(LOG_CRIT, "Critical <Syslogd> after cleared prepended message (closelog has been called)");
+  Syslog::syslog(LOG_CRIT, "Critical after cleared prepended message (closelog has been called)");
 
   Syslog::closelog();
 
-  Syslog::openlog<Syslog_user>("Open after close prepended message", LOG_CONS);
+  Syslog::openlog<Syslog_mail>("Open after close prepended message", LOG_CONS);
 
-  Syslog::syslog(LOG_INFO, "Info <Syslogd> after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
-*/
+  Syslog::syslog(LOG_INFO, "Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
+
   /* Signal test finished: */
-  Syslog::syslog(LOG_DEBUG, "Something special to close with");
+  Syslog::syslog(LOG_DEBUG, "(Debug) Something special to close with");
   
   return 0;
 }
