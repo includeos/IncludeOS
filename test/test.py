@@ -292,6 +292,49 @@ def find_leaf_nodes():
 
     return leaf_nodes
 
+def tests_to_run(all_tests, arguments):
+    """ Will figure out which tests are to be run
+
+    Arguments:
+        all_tests (list of Test obj): all processed test objects
+        arguments (argument object): Contains arguments from argparse
+
+    returns:
+        list: All Test objects that are to be run
+    """
+
+    # First checks if any type has been defined
+    types_to_run = [ x for x in arguments.tests if x in test_types ]
+    tests_added = [ x for x in all_tests if x.type_ in types_to_run ]
+
+    # Check if any categories have been defined
+    categories_to_run = [ x for x in arguments.tests if x in test_categories ]
+
+    # Add tests based on category and finally individual tests
+    for test in all_tests:
+        if test in tests_added:   # Avoid duplicates
+            continue
+        elif test.category_ in categories_to_run:
+            tests_added.append(test)
+        elif test.name_ in arguments.tests:
+            tests_added.append(test)
+
+    # Remove tests defined by the skip argument
+    # First check if any type has been defined
+    types_to_skip = [ x for x in arguments.skip if x in test_types ]
+    fin_tests = [ x for x in tests_added if not x.type_ in types_to_skip ]
+
+    # Check if any categories or individual tests are to be skipped
+    categories_to_skip = [ x for x in arguments.skip if x in test_categories ]
+    fin_tests_copy = fin_tests[:]   # We will modify fin_tests in the loop
+    for test in fin_tests_copy:
+        if test.category_ in categories_to_skip:
+            fin_tests.remove(test)
+        elif test.name_ in arguments.skip:
+            fin_tests.remove(test)
+
+    return fin_tests
+
 
 def main():
     # Find leaf nodes
@@ -300,6 +343,10 @@ def main():
     # Populate test objects
     all_tests = [ Test(path) for path in leaves ]
 
+    tests_to_run(all_tests, args)
+
+
+    """
     # Figure out which tests are to be run
     test_categories_to_run = []
     test_types_to_run = []
@@ -307,6 +354,8 @@ def main():
         for argument in args.tests:
             if argument in test_categories and argument not in args.skip:
                 test_categories_to_run.append(argument)
+
+        return fin_tests
             elif argument in test_types and argument not in args.skip:
                 test_types_to_run.append(argument)
             else:
@@ -344,6 +393,7 @@ def main():
         print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
 
     sys.exit(status)
+    """
 
 
 if  __name__ == '__main__':
