@@ -91,6 +91,22 @@ class Test:
       subprocess.check_output(["make","clean"])
       print pretty.C_GRAY + "\t Cleaned, now start... ", pretty.C_ENDC
 
+    # Check if the test is time sensitive
+    json_file = os.path.join(self.path_, "vm.json")
+    json_file = os.path.abspath(json_file)
+    try:
+        with open(json_file) as f:
+            json_output = json.load(f)
+    except IOError:
+        json_output = []
+
+    if 'time_sensitive' in json_output:
+        self.time_sensitive_ = True
+    else:
+        self.time_sensitive_ = False
+
+
+
   def __str__(self):
       """ Print output about the test object """
 
@@ -103,6 +119,7 @@ class Test:
               'type_: {x[type_]} \n'
               'skip: {x[skip_]} \n'
               'skip_reason: {x[skip_reason_]} \n'
+              'time_sensitive: {x[time_sensitive_]} \n'
               ).format(x=self.__dict__)
 
   def start(self):
@@ -242,17 +259,24 @@ def integration_tests(tests):
     """
 
     # Only run the valid tests
-    tests = [ x for x in tests if not x.skip_ and x.type_ == 'integration' ]
+    #tests = [ x for x in tests if not x.skip_ and x.type_ == 'integration' ]
+
+    time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
+    tests = [ x for x in tests if x not in time_sensitive_tests ]
 
     # Print info before starting to run
     print pretty.HEADER("Starting " + str(len(tests)) + " integration test(s)")
     for test in tests:
         print pretty.INFO("Test"), "starting", test.name_
 
+    print pretty.HEADER("Then starting " + str(len(time_sensitive_tests)) + " time sensitive integration test(s)")
+    for test in time_sensitive_tests:
+        print pretty.INFO("Test"), "starting", test.name_
+
     processes = []
     fail_count = 0
     global test_count
-    test_count += len(tests)
+    test_count += len(tests) + len(time_sensitive_tests)
 
     # Start running tests in parallell
     for test in tests:
@@ -268,6 +292,14 @@ def integration_tests(tests):
     if fail_count and args.fail:
         print pretty.FAIL(str(fail_count) + "integration tests failed")
         sys.exit(fail_count)
+
+    # Start running the time sensitive tests
+    for test in time_sensitive_tests:
+        process = test.start()
+        fail_count += 1 if process.wait_status() else 0
+        if fail_count and args.fail:
+            print pretty.FAIL(str(fail_count) + "integration tests failed")
+            sys.exit(fail_count)
 
     return fail_count
 
@@ -291,6 +323,7 @@ def find_leaf_nodes():
                 leaf_nodes.append(dirpath[2:])
 
     return leaf_nodes
+
 
 def tests_to_run(all_tests, arguments):
     """ Will figure out which tests are to be run
