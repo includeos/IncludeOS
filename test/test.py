@@ -259,7 +259,7 @@ def integration_tests(tests):
     """
 
     # Only run the valid tests
-    #tests = [ x for x in tests if not x.skip_ and x.type_ == 'integration' ]
+    tests = [ x for x in tests if not x.skip_ ]
 
     time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
     tests = [ x for x in tests if x not in time_sensitive_tests ]
@@ -269,9 +269,10 @@ def integration_tests(tests):
     for test in tests:
         print pretty.INFO("Test"), "starting", test.name_
 
-    print pretty.HEADER("Then starting " + str(len(time_sensitive_tests)) + " time sensitive integration test(s)")
-    for test in time_sensitive_tests:
-        print pretty.INFO("Test"), "starting", test.name_
+    if time_sensitive_tests:
+        print pretty.HEADER("Then starting " + str(len(time_sensitive_tests)) + " time sensitive integration test(s)")
+        for test in time_sensitive_tests:
+            print pretty.INFO("Test"), "starting", test.name_
 
     processes = []
     fail_count = 0
@@ -338,7 +339,7 @@ def tests_to_run(all_tests, arguments):
 
     # If no tests specified all are run
     if not arguments.tests:
-        tests_added = all_tests
+        tests_added = [ x for x in all_tests if x.type_ in test_types ]
     else:
         # First checks if any type has been defined
         types_to_run = [ x for x in arguments.tests if x in test_types ]
