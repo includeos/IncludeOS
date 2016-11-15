@@ -13,12 +13,17 @@ case $SYSTEM in
         ;;
     "Linux")
         case $RELEASE in
-            "Ubuntu"|"LinuxMint")
-                UBUNTU_VERSION=`lsb_release -rs`
-                if [ $(awk 'BEGIN{ print "'$UBUNTU_VERSION'"<"'16.04'" }') -eq 1 ]; then
-                    clang_version="3.6"
-                    DEPENDENCIES="gcc-5 g++-5"
-                    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
+            "Debian"|"Ubuntu"|"LinuxMint")
+                VERSION=`lsb_release -rs`
+                if [ $(awk 'BEGIN{ print "'$VERSION'"<"'16.04'" }') -eq 1 ]; then
+                    if [ $RELEASE == "Ubuntu" ] ; then
+                        clang_version="3.6"
+                        DEPENDENCIES="gcc-5 g++-5"
+                        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
+                    else
+                        echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/includeOS-requirements.list
+                        clang_version="3.8"
+                    fi
                 else
                     clang_version="3.8"
                 fi
