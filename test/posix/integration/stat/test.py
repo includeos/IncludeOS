@@ -10,6 +10,7 @@ sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
 vm = vmrunner.vms[0]
+#vm.make()
 
 num_outputs = 0
 
@@ -19,15 +20,17 @@ def increment(line):
   print "num_outputs after increment: ", num_outputs
 
 def check_num_outputs(line):
-  assert(num_outputs == 12)
+  assert(num_outputs == 14)
   vmrunner.vms[0].exit(0, "SUCCESS")
 
+vm.on_output("stat\(\) with nullptr buffer fails with EFAULT", increment)
 vm.on_output("stat\(\) of folder that exists is ok", increment)
 vm.on_output("chdir\(nullptr\) should fail", increment)
 vm.on_output("chdir\(\"\"\) should fail", increment)
 vm.on_output("chdir\(\) to a file should fail", increment)
 vm.on_output("chdir to folder that exists is ok", increment)
 vm.on_output("chdir\(\".\"\) is ok", increment)
+vm.on_output("chdir to subfolder of cwd is ok", increment)
 vm.on_output("getcwd\(\) with 0-size buffer should fail", increment)
 vm.on_output("getcwd\(\) with nullptr buffer should fail", increment)
 vm.on_output("getcwd\(\) with too small buffer should fail", increment)

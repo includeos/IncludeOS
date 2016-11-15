@@ -1,3 +1,20 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <sys/stat.h>
 #include <errno.h>
 #include <cstring>
@@ -11,6 +28,8 @@
 extern fs::Disk_ptr& fs_disk();
 
 int chmod(const char *path, mode_t mode) {
+  (void) path;
+  (void) mode;
   errno = EROFS;
   return -1;
 }
@@ -41,6 +60,9 @@ int fchmodat(int filedes, const char *path, mode_t mode, int flag)
 
 int fstatat(int filedes, const char *path, struct stat *buf, int flag)
 {
+  /* todo: handle AT_FDCWD
+  if (filedes == AT_FDCWD) ...
+  */
   try {
     auto& fd = FD_map::_get(filedes);
     return fd.fstatat(path, buf, flag);
@@ -77,6 +99,8 @@ int utimensat(int filedes, const char *path, const struct timespec times[2], int
 
 int mkdir(const char *path, mode_t mode)
 {
+  (void) path;
+  (void) mode;
   errno = EROFS;
   return -1;
 }
@@ -95,6 +119,8 @@ int mkdirat(int filedes, const char *path, mode_t mode)
 
 int mkfifo(const char *path, mode_t mode)
 {
+  (void) path;
+  (void) mode;
   errno = EROFS;
   return -1;
 }
@@ -113,6 +139,9 @@ int mkfifoat(int filedes, const char *path, mode_t mode)
 
 int mknod(const char *path, mode_t mode, dev_t dev)
 {
+  (void) path;
+  (void) mode;
+  (void) dev;
   errno = EROFS;
   return -1;
 }
@@ -131,10 +160,15 @@ int mknodat(int filedes, const char *path, mode_t mode, dev_t dev)
 
 int stat(const char *path, struct stat *buf)
 {
+  if (buf == nullptr)
+  {
+    errno = EFAULT;
+    return -1;
+  }
+  memset(buf, 0, sizeof(struct stat));
   auto ent = fs_disk()->fs().stat(path);
   if (ent.is_valid())
   {
-    memset(buf, 0, sizeof(struct stat));
     if (ent.is_file()) buf->st_mode = S_IFREG;
     if (ent.is_dir()) buf->st_mode = S_IFDIR;
     buf->st_size = ent.size();
@@ -151,5 +185,6 @@ int stat(const char *path, struct stat *buf)
 
 mode_t umask(mode_t cmask)
 {
+  (void) cmask;
   return DEFAULT_UMASK;
 }

@@ -109,7 +109,6 @@ fs::Disk_ptr& fs_disk() {
     disk->mount([](fs::error_t err) {
       if (err) {
         printf("ERROR MOUNTING DISK\n");
-      exit(127);
       }
     });
   }
@@ -130,19 +129,23 @@ int chdir(const char *path)
   {
     return 0;
   }
-  auto ent = fs_disk()->fs().stat(path);
+  std::string desired_path;
+  if (*path != '/')
+  {
+    desired_path = cwd;
+    if (!(desired_path.back() == '/')) desired_path += "/";
+    desired_path += path;
+  }
+  else
+  {
+    desired_path.assign(path);
+  }
+  auto ent = fs_disk()->fs().stat(desired_path.c_str());
   if (ent.is_dir())
   {
-    // path is absolute dir
-    if (*path == '/')
-    {
-      cwd.assign(path);
-    }
-    else
-    {
-      cwd = "/"; cwd += path;
-    }
+    cwd = desired_path;
     assert(cwd.front() == '/');
+    assert(cwd.find("..") == std::string::npos);
     return 0;
   }
   else

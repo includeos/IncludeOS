@@ -27,6 +27,9 @@
 
 void print_stat(struct stat buffer);
 int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
+int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
+
+static size_t total_size = 0;
 
 int main()
 {
@@ -37,6 +40,26 @@ int main()
   struct stat buffer;
 
   INFO("POSIX stat", "Running tests for POSIX stat");
+
+  printf("nftw /\n");
+  res = nftw("/", display_info, 20, FTW_PHYS | FTW_DEPTH);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+  printf("Total size: %ld\n", total_size);
+
+  res = stat("FOLDER1", nullptr);
+  printf("stat("") with nullptr result: %d\n", res);
+  if (res == -1)
+  {
+    printf("stat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+  CHECKSERT(res == -1 && errno == EFAULT, "stat() with nullptr buffer fails with EFAULT");
 
   res = stat("FOLDER1", &buffer);
   printf("stat(\"FOLDER1\") result: %d\n", res);
@@ -129,13 +152,21 @@ int main()
   }
   CHECKSERT(res == 0, "chdir(\".\") is ok");
 
+  res = chdir("FOLDERA");
+  printf("chdir result (to subfolder of cwd): %d\n", res);
+  if (res == -1)
+  {
+    printf("chdir error: %s\n", strerror(errno));
+  }
+  CHECKSERT(res == 0, "chdir to subfolder of cwd is ok");
+
   char* nullcwd = getcwd(nullbuf, 0);
   printf("getcwd result (nullptr, size 0): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
   if (nullcwd == nullptr)
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
-  CHECKSERT(nullcwd == nullptr, "getcwd() with 0-size buffer should fail");
+  CHECKSERT(nullcwd == nullptr && errno == EINVAL, "getcwd() with 0-size buffer should fail with EINVAL");
 
   nullcwd = getcwd(nullptr, 1024);
   printf("getcwd result (nullptr): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
@@ -151,7 +182,7 @@ int main()
   {
     printf("getcwd error: %s\n", strerror(errno));
   }
-  CHECKSERT(shortcwd == nullptr, "getcwd() with too small buffer should fail");
+  CHECKSERT(shortcwd == nullptr && errno == ERANGE, "getcwd() with too small buffer should fail with ERANGE");
 
   char* cwd = getcwd(buf, 1024);
   printf("getcwd result (adequate buffer): %s\n", cwd);
@@ -279,7 +310,8 @@ int main()
   printf("Old umask: %d\n", old_umask);
 
 
-  res = nftw("FILE666", display_info, 20, FTW_PHYS);
+
+  res = nftw("MISSING_FILE", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
@@ -293,7 +325,32 @@ int main()
     printf("nftw error: %s\n", strerror(errno));
   }
 
+  printf("nftw /FOLDER1\n");
+  res = nftw("/FOLDER1", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+
+  printf("nftw /FOLDER2\n");
+  res = nftw("/FOLDER2", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+
+  printf("nftw /FOLDER3\n");
   res = nftw("/FOLDER3", display_info, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+
+  printf("nftw /\n");
+  res = nftw("/", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
@@ -324,5 +381,11 @@ void print_stat(struct stat buffer)
 int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
 {
   printf("%ld\t%s (%d)\n", sb->st_size, fpath, flag);
+  return 0;
+}
+
+int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
+{
+  total_size += sb->st_size;
   return 0;
 }
