@@ -50,7 +50,7 @@ void PCI_manager::init() {
       switch(dev.classcode())
       {
         case PCI::STORAGE:
-          registered = register_device<hw::Drive>(dev);
+          registered = register_device<hw::Block_device>(dev);
           break;
 
         case PCI::NIC:

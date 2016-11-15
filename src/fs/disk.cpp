@@ -22,14 +22,14 @@
 
 namespace fs {
 
-  Disk::Disk(hw::Drive& dev)
+  Disk::Disk(hw::Block_device& dev)
     : device {dev} {}
 
   void Disk::partitions(on_parts_func func) {
 
     /** Read Master Boot Record (sector 0) */
     device.read(0,
-    [this, func] (hw::Drive::buffer_t data)
+    [this, func] (hw::Block_device::buffer_t data)
     {
       std::vector<Partition> parts;
 
@@ -56,9 +56,9 @@ namespace fs {
 
   void Disk::mount(on_mount_func func)
   {
-    printf("mount: reading blk 0\n");
+    INFO("Disk","mount reading block 0");
     device.read(0,
-    [this, func] (hw::Drive::buffer_t data)
+    [this, func] (hw::Block_device::buffer_t data)
     {
       if (!data) {
         // TODO: error-case for unable to read MBR
@@ -124,7 +124,7 @@ namespace fs {
        *  of the partition to be mounted
        */
       device.read(0,
-      [this, part, func] (hw::Drive::buffer_t data)
+      [this, part, func] (hw::Block_device::buffer_t data)
       {
         if (!data) {
           // TODO: error-case for unable to read MBR

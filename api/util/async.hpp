@@ -31,7 +31,7 @@ public:
 
   typedef net::tcp::Connection_ptr Connection;
   typedef fs::Disk_ptr             Disk;
-  typedef fs::File_system::Dirent   Dirent;
+  typedef fs::Dirent   Dirent;
 
   typedef std::function<void(bool)> next_func;
   typedef std::function<void(fs::error_t, bool)> on_after_func;

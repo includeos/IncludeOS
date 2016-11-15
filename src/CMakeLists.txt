@@ -29,7 +29,7 @@ set(OS_OBJECTS
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
-  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/drive.cpp
+  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
   hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
   hw/apic_revenant.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp

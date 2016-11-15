@@ -20,27 +20,27 @@
 #define VIRTIO_BLOCK_HPP
 
 #include <common>
-#include <hw/drive.hpp>
+#include <hw/block_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <deque>
 
 /** Virtio-net device driver.  */
-class VirtioBlk : public Virtio, public hw::Drive
+class VirtioBlk : public Virtio, public hw::Block_device
 {
 public:
 
-  static std::unique_ptr<Drive> new_instance(hw::PCI_Device& d)
+  static std::unique_ptr<Block_device> new_instance(hw::PCI_Device& d)
   { return std::make_unique<VirtioBlk>(d); }
 
   static constexpr size_t SECTOR_SIZE = 512;
 
-  std::string blkname() const override {
+  std::string device_name() const override {
     return "vblk" + std::to_string(blkid);
   }
 
   /** Human readable name. */
-  const char* name() const noexcept override {
+  const char* driver_name() const noexcept override {
     return "VirtioBlk";
   }
 

@@ -89,7 +89,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
       for (auto& ent : *list.entries)
       {
         this->write("%s \t%llu \t%s \t%llu\r\n",
-          ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+           ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
       }
       this->write("Total %u\r\n", list.entries->size());
       return 0;
@@ -113,7 +113,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
         this->write("%s \t%s \t%s \t%s\r\n",
                     "Name", "Size", "Type", "Sector");
         this->write("%s \t%llu \t%s \t%llu\r\n",
-                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
         return 0;
       }
       else

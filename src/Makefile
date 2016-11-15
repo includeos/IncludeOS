@@ -73,7 +73,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		util/memstream.o util/async.o util/statman.o util/logger.o \
 		crt/c_abi.o crt/string.o crt/quick_exit.o crt/cxx_abi.o \
 		hw/ide.o hw/pit.o hw/pic.o hw/pci_device.o hw/cpu_freq_sampling.o \
-		hw/ps2.o hw/serial.o hw/serial1.o hw/cmos.o hw/drive.o \
+		hw/ps2.o hw/serial.o hw/serial1.o hw/cmos.o hw/block_device.o \
 		hw/acpi.o hw/apic.o hw/apic_timer.o hw/ioapic.o hw/apic_asm.o \
 		hw/apic_revenant.o hw/msi.o hw/pci_msi.o \
 		virtio/virtio.o virtio/virtio_queue.o \

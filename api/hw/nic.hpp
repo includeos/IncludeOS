@@ -38,7 +38,11 @@ namespace hw {
     virtual Proto proto() const = 0;
 
     /** Get a readable name. */
-    virtual const char* name() const = 0;
+    virtual const char* driver_name() const = 0;
+
+    std::string device_name() const {
+      return "eth" + std::to_string(N);
+    }
 
     /** A readable name of the type of device @todo: move to a abstract Device? */
     static const char* device_type()
@@ -71,10 +75,6 @@ namespace hw {
     virtual size_t transmit_queue_available() = 0;
 
     virtual size_t receive_queue_waiting() = 0;
-
-    std::string ifname() const {
-      return "eth" + std::to_string(N);
-    }
 
     virtual void deactivate() = 0;
 

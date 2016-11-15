@@ -33,7 +33,7 @@ namespace fs
     uint8_t* result = new uint8_t[n];
 
     // read @nsect sectors ahead
-    buffer_t data = device.read_sync(this->cl_to_sector(ent.block) + sector, nsect);
+    buffer_t data = device.read_sync(this->cl_to_sector(ent.block()) + sector, nsect);
     // where to start copying from the device result
     uint32_t internal_ofs = stapos % device.block_size();
     // when the offset is non-zero we aren't on a sector boundary
@@ -62,11 +62,11 @@ namespace fs
     return no_error;
   }
 
-  error_t FAT::traverse(Path path, dirvector& ents)
+  error_t FAT::traverse(Path path, dirvector& ents, const Dirent* const start)
   {
-    // start with root dir
-    uint32_t cluster = 0;
-    Dirent found(INVALID_ENTITY);
+    // start with given entry (defaults to root)
+    uint32_t cluster = start ? start->block() : 0;
+    Dirent found(this, INVALID_ENTITY);
 
     while (!path.empty()) {
 
@@ -103,7 +103,7 @@ namespace fs
         return { error_t::E_NOENT, name };
       }
       // set next cluster
-      cluster = found.block;
+      cluster = found.block();
     }
 
     uint32_t S = this->cl_to_sector(cluster);
@@ -111,31 +111,31 @@ namespace fs
     return int_ls(S, ents);
   }
 
-  FAT::List FAT::ls(const std::string& strpath)
+  List FAT::ls(const std::string& strpath)
   {
     auto ents = std::make_shared<dirvector> ();
     auto err = traverse(strpath, *ents);
     return { err, ents };
   }
-  FAT::List FAT::ls(const Dirent& ent)
+
+  List FAT::ls(const Dirent& ent)
   {
     auto ents = std::make_shared<dirvector> ();
     // verify ent is a directory
     if (!ent.is_valid() || !ent.is_dir())
       return { { error_t::E_NOTDIR, ent.name() }, ents };
     // convert cluster to sector
-    uint32_t S = this->cl_to_sector(ent.block);
+    uint32_t S = this->cl_to_sector(ent.block());
     // read result directory entries into ents
     auto err = int_ls(S, *ents);
     return { err, ents };
   }
 
-  FAT::Dirent FAT::stat(const std::string& strpath)
+  Dirent FAT::stat(Path path, const Dirent* const start)
   {
-    Path path(strpath);
     if (unlikely(path.empty())) {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      return Dirent(INVALID_ENTITY);
+      return Dirent(this, INVALID_ENTITY);
     }
 
     debug("stat_sync: %s\n", path.back().c_str());
@@ -146,9 +146,9 @@ namespace fs
     // result directory entries are put into @dirents
     dirvector dirents;
 
-    auto err = traverse(path, dirents);
+    auto err = traverse(path, dirents, start);
     if (unlikely(err))
-        return Dirent(INVALID_ENTITY); // for now
+      return Dirent(this, INVALID_ENTITY); // for now
 
     // find the matching filename in directory
     for (auto& e : dirents)
@@ -157,6 +157,6 @@ namespace fs
       return e;
     }
     // entry not found
-    return Dirent(INVALID_ENTITY);
+    return Dirent(this, INVALID_ENTITY);
   }
 }

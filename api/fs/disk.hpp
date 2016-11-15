@@ -51,8 +51,9 @@
 **/
 
 #include "common.hpp"
-#include "filesystem.hpp"
-#include <hw/drive.hpp>
+#include <fs/filesystem.hpp>
+#include <fs/dirent.hpp>
+#include <hw/block_device.hpp>
 
 #include <deque>
 #include <vector>
@@ -105,10 +106,10 @@ namespace fs {
     //************** disk functions **************//
 
     // construct a disk with a given disk-device
-    explicit Disk(hw::Drive&);
+    explicit Disk(hw::Block_device&);
 
     // returns the device the disk is using
-    hw::Drive& dev() noexcept
+    hw::Block_device& dev() noexcept
     { return device; }
 
     // Returns true if the disk has no sectors
@@ -148,7 +149,7 @@ namespace fs {
   private:
     void internal_mount(partition_t part, on_mount_func func);
 
-    hw::Drive& device;
+    hw::Block_device& device;
     std::unique_ptr<File_system> filesys;
   }; //< class Disk
 
