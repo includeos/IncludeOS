@@ -116,9 +116,7 @@ void Syslog_facility::send_udp_data(const std::string& data) {
 
 void Syslog_kern::syslog(const std::string& log_message) {
 
-	// Just for testing:
-	// printf("%s\n", log_message.c_str());
-
+	// Do this if UDP-option for syslog is turned on:
 	// Send message over UDP
 	send_udp_data(log_message);
 }
@@ -131,8 +129,17 @@ int Syslog_kern::calculate_pri() { return (LOG_KERN * MUL_VAL) + priority(); }
 
 void Syslog_user::syslog(const std::string& log_message) {
 
-	// printf("%s\n", log_message.c_str());
+	// printf with colored facility and severity/priority
+	std::string prepended_msg{pri_colors.at(priority()) +
+  	"<" + name() + "." + priority_string() + "> " +
+  	COLOR_END};
 
+	printf("%s %s\n", prepended_msg.c_str(), log_message.c_str());
+
+	// TODO: Do this if UDP-option for syslog is turned on:
+
+	// Add syslogs to ringbuffer
+	// When UDP accessable (and UDP is turned on for syslog):
 	// Send message over UDP
 	send_udp_data(log_message);
 }
@@ -145,9 +152,7 @@ int Syslog_user::calculate_pri() { return (LOG_USER * MUL_VAL) + priority(); }
 
 void Syslog_mail::syslog(const std::string& log_message) {
 
-	// Just for testing:
-	// printf("%s\n", log_message.c_str());
-
+	// Do this if UDP-option for syslog is turned on:
 	// Send message over UDP
 	send_udp_data(log_message);
 }
