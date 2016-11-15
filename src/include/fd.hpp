@@ -56,6 +56,16 @@ public:
   virtual int     setsockopt(int, int, const void *, socklen_t);
   virtual int     shutdown(int) { return -1; }
 
+  // file-related
+  virtual int   fchmod(mode_t mode) { return -1; }
+  virtual int   fchmodat(const char *path, mode_t mode, int flag) { return -1; }
+  virtual int   fstatat(const char *path, struct stat *buf, int flag) { return -1; }
+  virtual int   futimens(const struct timespec times[2]) { return -1; }
+  virtual int   utimensat(const char *path, const struct timespec times[2], int flag) { return -1; }
+  virtual int   mkdirat(const char *path, mode_t mode) { return -1; }
+  virtual int   mkfifoat(const char *path, mode_t mode) { return -1; }
+  virtual int   mknodat(const char *path, mode_t mode, dev_t dev) { return -1; }
+
   id_t get_id() const noexcept { return id_; }
 
   virtual bool is_file() { return false; }

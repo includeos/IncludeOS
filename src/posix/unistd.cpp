@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
+#include <memdisk>
 
 int open(const char*, int, ...)
 {
@@ -95,4 +96,82 @@ unsigned int sleep(unsigned int seconds)
     now = RTC::now();
   }
   return 0;
+}
+
+// todo: use fs::path as backing
+static std::string cwd {"/"};
+
+fs::Disk_ptr& fs_disk() {
+  static fs::Disk_ptr disk = fs::new_shared_memdisk();
+  static bool mounted = false;
+  if (not mounted)
+  {
+    disk->mount([](fs::error_t err) {
+      if (err) {
+        printf("ERROR MOUNTING DISK\n");
+      }
+    });
+  }
+  mounted = true;
+  return disk;
+}
+
+int chdir(const char *path)
+// todo: handle relative path
+// todo: handle ..
+{
+  if (not path or strlen(path) < 1)
+  {
+    errno = ENOENT;
+    return -1;
+  }
+  if (strcmp(path, ".") == 0)
+  {
+    return 0;
+  }
+  std::string desired_path;
+  if (*path != '/')
+  {
+    desired_path = cwd;
+    if (!(desired_path.back() == '/')) desired_path += "/";
+    desired_path += path;
+  }
+  else
+  {
+    desired_path.assign(path);
+  }
+  auto ent = fs_disk()->fs().stat(desired_path.c_str());
+  if (ent.is_dir())
+  {
+    cwd = desired_path;
+    assert(cwd.front() == '/');
+    assert(cwd.find("..") == std::string::npos);
+    return 0;
+  }
+  else
+  {
+    // path is not a dir
+    errno = ENOTDIR;
+    return -1;
+  }
+}
+
+char *getcwd(char *buf, size_t size)
+{
+  assert(cwd.front() == '/');
+  if (size == 0)
+  {
+    errno = EINVAL;
+    return nullptr;
+  }
+  if ((cwd.length() + 1) < size)
+  {
+    snprintf(buf, size, "%s", cwd.c_str());
+    return buf;
+  }
+  else
+  {
+    errno = ERANGE;
+    return nullptr;
+  }
 }
