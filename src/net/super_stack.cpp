@@ -30,7 +30,7 @@ net::Super_stack::Super_stack()
   INFO("Super stack", "Constructing");
   for(auto& nic : hw::Devices::devices<hw::Nic>())
   {
-    INFO("Super stack", "Creating stack for Nic %s", nic->ifname().c_str());
+    INFO("Super stack", "Creating stack for Nic %s", nic->device_name().c_str());
     switch(nic->proto()) {
 
     case(hw::Nic::Proto::ETH) :

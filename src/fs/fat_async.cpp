@@ -113,7 +113,7 @@ namespace fs
             debug("\t\t cluster: %llu\n", e.block);
             // only follow directories
             if (e.type() == DIR)
-              (*next)(e.block);
+              (*next)(e.block());
             else
               callback({ error_t::E_NOTDIR, e.name() }, dirents);
             return;
@@ -148,7 +148,7 @@ namespace fs
       return;
     }
     // convert cluster to sector
-    uint32_t S = this->cl_to_sector(ent.block);
+    uint32_t S = this->cl_to_sector(ent.block());
     // read result directory entries into ents
     int_ls(S, dirents,
     [on_ls] (error_t err, dirvec_t entries) {
@@ -174,7 +174,7 @@ namespace fs
     uint32_t internal_ofs = stapos % device.block_size();
 
     // cluster -> sector + position
-    device.read(this->cl_to_sector(ent.block) + sector, nsect,
+    device.read(this->cl_to_sector(ent.block()) + sector, nsect,
     [pos, n, callback, internal_ofs] (buffer_t data) {
 
       if (!data) {
@@ -196,14 +196,13 @@ namespace fs
     });
   }
 
-  void FAT::stat(const std::string& strpath, on_stat_func func)
+  void FAT::stat(Path_ptr path, on_stat_func func)
   {
     // manual lookup
-    auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty())) {
       // root doesn't have any stat anyways
       // Note: could use ATTR_VOLUME_ID in FAT
-      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(INVALID_ENTITY, strpath));
+      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(this, INVALID_ENTITY, path->to_string()));
       return;
     }
 
@@ -217,7 +216,7 @@ namespace fs
     {
       if (unlikely(error)) {
         // no path, no file!
-        func(error, Dirent(INVALID_ENTITY, filename));
+        func(error, Dirent(this, INVALID_ENTITY, filename));
         return;
       }
 
@@ -231,7 +230,7 @@ namespace fs
       }
 
       // not found
-      func({ error_t::E_NOENT, filename }, Dirent(INVALID_ENTITY, filename));
+      func({ error_t::E_NOENT, filename }, Dirent(this, INVALID_ENTITY, filename));
     });
   }
 
@@ -245,9 +244,9 @@ namespace fs
       return;
     }
 
-    stat(strpath,
-    [this, strpath, func] (error_t error, const File_system::Dirent& ent) {
-        stat_cache[strpath] = ent;
+    File_system::stat(strpath,
+    [this, strpath, func] (error_t error, const Dirent& ent) {
+           stat_cache.emplace(strpath, ent);
         func(error, ent);
     });
   }
