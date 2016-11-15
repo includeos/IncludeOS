@@ -40,7 +40,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
-  ${SRC}/hw/drive.cpp
+  ${SRC}/hw/block_device.cpp
   ${SRC}/hw/ioapic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
