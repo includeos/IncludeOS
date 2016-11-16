@@ -43,16 +43,16 @@ extern "C" {
 	Symbolic constants for use as the facility argument to openlog()
 	As specified in RFC5424
 */
-#define LOG_KERN		0	/* Kernel messages */
-#define LOG_USER		1 	/* User-level messages */
-#define LOG_MAIL		2 	/* Mail system */
+#define LOG_KERN			0		/* Kernel messages */
+#define LOG_USER			1 	/* User-level messages */
+#define LOG_MAIL			2 	/* Mail system */
 #define LOG_DAEMON		3 	/* System daemons */
-#define LOG_AUTH		4 	/* Security/authorization messages */
-#define LOG_INTERNAL	5	/* Messages generated internally by syslogd */
-#define LOG_LPR			6 	/* Line printer subsystem */
-#define LOG_NEWS		7 	/* Network news subsystem */
-#define LOG_UUCP		8 	/* UUCP subsystem */
-#define LOG_CRON		9 	/* Clock daemon */
+#define LOG_AUTH			4 	/* Security/authorization messages */
+#define LOG_INTERNAL	5		/* Messages generated internally by syslogd */
+#define LOG_LPR				6 	/* Line printer subsystem */
+#define LOG_NEWS			7 	/* Network news subsystem */
+#define LOG_UUCP			8 	/* UUCP subsystem */
+#define LOG_CRON			9 	/* Clock daemon */
 
 #define LOG_LOCAL0		16	/* Local use 0 */
 #define LOG_LOCAL1 		17	/* Local use 1 */
@@ -67,33 +67,30 @@ extern "C" {
 	Symbolic constants, where zero or more of which may be OR'ed together
 	to form the logopt option of openlog()
 */
-#define LOG_PID			0X01	/* Log the process ID with each message */
-#define LOG_CONS		0X02 	/* Log to the system console on error */
+#define LOG_PID				0X01	/* Log the process ID with each message */
+#define LOG_CONS			0X02 	/* Log to the system console on error */
 #define LOG_NDELAY		0X04 	/* Connect to syslog daemon immediately */
 #define LOG_ODELAY		0X08 	/* Delay open until syslog() is called
-														 Is the converse of LOG_NDELAY and does no longer do anything
-													*/
+														 	 Is the converse of LOG_NDELAY and does no longer do anything */
 #define LOG_NOWAIT		0X10	/* Do not wait for child processes
-														 Deprecated
-													*/
+														 	 Deprecated */
 #define LOG_PERROR		0X20	/* Is not specified by POSIX.1-2001 or POSIX.1-2008, but is
-														 available in most versions of UNIX
-														 Log to stderr
-													*/
+															 available in most versions of UNIX
+															 Log to stderr */
 
 /*
 	Possible values of severity
 	Symbolic constants for use as the priority argument of syslog()
 	As specified in RFC5424 and POSIX
 */
-#define LOG_EMERG		0		/* Emergency: System is unusable */
-#define LOG_ALERT		1 	/* Alert: Action must be taken immediately */
-#define LOG_CRIT		2 	/* Critical: Critical conditions */
-#define LOG_ERR			3 	/* Error: Error conditions */
+#define LOG_EMERG			0		/* Emergency: System is unusable */
+#define LOG_ALERT			1 	/* Alert: Action must be taken immediately */
+#define LOG_CRIT			2 	/* Critical: Critical conditions */
+#define LOG_ERR				3 	/* Error: Error conditions */
 #define LOG_WARNING		4 	/* Warning: Warning conditions */
 #define LOG_NOTICE		5 	/* Notice: Normal but significant condition */
-#define LOG_INFO		6 	/* Informational: Informational messages */
-#define LOG_DEBUG		7 	/* Debug: Debug-level messages */
+#define LOG_INFO			6 	/* Informational: Informational messages */
+#define LOG_DEBUG			7 	/* Debug: Debug-level messages */
 
 /*
 	Shall close any open file descriptors allocated by previous calls to
