@@ -38,13 +38,13 @@ namespace hw
     // Delegate for result of reading a disk sector
     using on_read_func = delegate<void(buffer_t)>;
 
-    static const char* device_type()
+    static handle<const char> device_type()
     { return "Block device"; }
 
     virtual std::string device_name() const = 0;
 
     /** Human-readable name of this disk controller  */
-    virtual const char* driver_name() const noexcept = 0;
+    virtual handle<const char> driver_name() const noexcept = 0;
 
     /** The size of the disk in whole sectors */
     virtual block_t size() const noexcept = 0;
