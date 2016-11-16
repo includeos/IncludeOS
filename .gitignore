@@ -16,6 +16,8 @@
 *.ropeproject
 nbproject
 
+!Dockerfile
+
 src/apic_boot.bin
 src/bootloader
 src/TAGS
