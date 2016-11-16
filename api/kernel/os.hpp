@@ -169,7 +169,7 @@ private:
     {}
 
     Custom_init func_;
-    const char* name_;
+    handle<const char> name_;
   };
 
   static std::vector<Custom_init_struct> custom_init_;
