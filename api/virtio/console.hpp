@@ -20,9 +20,10 @@
 #define VIRTIO_CONSOLE_HPP
 
 #include <common>
-#include "../hw/pci_device.hpp"
-#include "virtio.hpp"
 #include <delegate>
+
+#include "virtio.hpp"
+#include "../hw/pci_device.hpp"
 
 /**
  * http://docs.oasis-open.org/virtio/virtio/v1.0/csprd05/virtio-v1.0-csprd05.html#x1-2180003
