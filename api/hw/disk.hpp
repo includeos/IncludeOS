@@ -19,22 +19,22 @@
 #define HW_DISK_HPP
 
 #include "pci_device.hpp"
-#include "drive.hpp"
+#include "block_device.hpp"
 
 namespace hw {
 
   /**
-   * R.I.P. ?
-   */
+   * Template version of Block_device, one (template) instance per device driver
+   **/
   template <typename DRIVER>
-  class Disk : public Drive {
+  class Disk : public Block_device {
   public:
     /** optimal block size for this device */
     virtual block_t block_size() const noexcept override
     { return driver.block_size(); }
 
     /** Human readable name */
-    const char* name() const noexcept override
+    const char* driver_name() const noexcept override
     {
       return driver.name();
     }
@@ -42,23 +42,23 @@ namespace hw {
     static const char* device_type()
     { return "Disk"; }
 
-    virtual void
+    void
     read(block_t blk, on_read_func del) override {
       driver.read(blk, del);
     }
-    virtual void
+    void
     read(block_t blk, size_t count, on_read_func del) override {
       driver.read(blk, count, del);
     }
 
-    virtual buffer_t read_sync(block_t blk) override {
+    buffer_t read_sync(block_t blk) override {
       return driver.read_sync(blk);
     }
-    virtual buffer_t read_sync(block_t blk, size_t cnt) override {
+    buffer_t read_sync(block_t blk, size_t cnt) override {
       return driver.read_sync(blk, cnt);
     }
 
-    virtual block_t size() const noexcept override
+    block_t size() const noexcept override
     {
       return driver.size();
     }

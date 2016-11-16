@@ -25,7 +25,7 @@ inline std::string trim_right_copy(
 
 namespace fs
 {
-  FAT::FAT(hw::Drive& dev)
+  FAT::FAT(hw::Block_device& dev)
     : device(dev) {
     //
   }
@@ -131,7 +131,7 @@ namespace fs
     this->lba_size = size;
 
     // read Partition block
-    device.read(base, 
+    device.read(base,
     [this, on_mount] (buffer_t data) {
 
       auto* mbr = (MBR::mbr*) data.get();
@@ -151,13 +151,13 @@ namespace fs
       // determine which FAT version is mounted
       switch (this->fat_type) {
       case FAT::T_FAT12:
-        INFO("FS", "Mounting FAT12 filesystem");
+        INFO("FAT", "Mounting FAT12 filesystem");
         break;
       case FAT::T_FAT16:
-        INFO("FS", "Mounting FAT16 filesystem");
+        INFO("FAT", "Mounting FAT16 filesystem");
         break;
       case FAT::T_FAT32:
-        INFO("FS", "Mounting FAT32 filesystem");
+        INFO("FAT", "Mounting FAT32 filesystem");
         break;
       }
       INFO2("[ofs=%u  size=%u (%u bytes)]\n",
@@ -234,6 +234,7 @@ namespace fs
             dirname = trim_right_copy(dirname);
 
             dirents.emplace_back(
+                this,
                 D->type(),
                 dirname,
                 D->dir_cluster(root_cluster),
@@ -251,6 +252,7 @@ namespace fs
           dirname = trim_right_copy(dirname);
 
           dirents.emplace_back(
+              this,
               D->type(),
               dirname,
               D->dir_cluster(root_cluster),

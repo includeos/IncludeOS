@@ -41,7 +41,7 @@ namespace net {
   public:
 
     virtual std::string ifname() const override
-    { return nic_.ifname(); }
+    { return nic_.device_name(); }
 
     hw::MAC_addr link_addr() override
     { return nic_.mac(); }

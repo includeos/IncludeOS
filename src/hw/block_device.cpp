@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/drive.hpp>
+#include <hw/block_device.hpp>
 
 namespace hw
 {
-  Drive::Drive()
+  Block_device::Block_device()
   {
     static int counter = 0;
     blkid = counter++;

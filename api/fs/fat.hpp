@@ -19,8 +19,9 @@
 #ifndef FS_FAT_HPP
 #define FS_FAT_HPP
 
-#include "filesystem.hpp"
-#include <hw/drive.hpp>
+#include <fs/filesystem.hpp>
+#include <fs/dirent.hpp>
+#include <hw/block_device.hpp>
 #include <functional>
 #include <cstdint>
 #include <memory>
@@ -46,10 +47,10 @@ namespace fs
     Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
 
     // return information about a filesystem entity
-    void   stat(const std::string&, on_stat_func) override;
-    Dirent stat(const std::string& ent) override;
+    void   stat(Path_ptr, on_stat_func) override;
+    Dirent stat(Path ent, const Dirent* const start) override;
     // async cached stat
-    void   cstat(const std::string&, on_stat_func) override;
+    void cstat(const std::string&, on_stat_func) override;
 
     // returns the name of the filesystem
     std::string name() const override
@@ -68,7 +69,7 @@ namespace fs
     /// ----------------------------------------------------- ///
 
     // constructor
-    FAT(hw::Drive& dev);
+    FAT(hw::Block_device& dev);
     virtual ~FAT() = default;
 
   private:
@@ -187,11 +188,11 @@ namespace fs
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     // sync version
-    error_t traverse(Path path, dirvector&);
+    error_t traverse(Path path, dirvector&, const Dirent* const = nullptr);
     error_t int_ls(uint32_t sector, dirvector&);
 
     // device we can read and write sectors to
-    hw::Drive& device;
+    hw::Block_device& device;
 
     /// private members ///
     // the location of this partition
@@ -215,7 +216,7 @@ namespace fs
     uint32_t data_sectors;  // number of data sectors
 
     // simplistic cache for stat results
-    std::map<std::string, File_system::Dirent> stat_cache;
+    std::map<std::string, Dirent> stat_cache;
   };
 
 } // fs

@@ -121,7 +121,7 @@ public:
   { return std::make_unique<VirtioNet>(d); }
 
   /** Human readable name. */
-  const char* name() const override;
+  const char* driver_name() const override;
 
   /** Mac address. */
   const hw::MAC_addr& mac() const noexcept override

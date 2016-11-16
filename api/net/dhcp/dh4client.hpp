@@ -23,6 +23,7 @@
 #include "../packet.hpp"
 #include <net/ip4/ip4.hpp>
 #include <net/inet.hpp>
+#include "dhcp4.hpp"
 
 namespace net
 {
@@ -52,7 +53,7 @@ namespace net
 
   private:
     void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&);   // --> acknowledge
+    void request(UDPSocket&, const dhcp_option_t* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
     Stack& stack;

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,22 +20,32 @@
 #include <string>
 #include <cerrno>
 
+// Remove
+#include <iostream>
+
 namespace fs
 {
   static const char PATH_SEPARATOR = '/';
-        
+
   Path::Path()
     : Path("/")
   {
     // uses current directory
   }
+
   Path::Path(const std::string& path)
   {
     // parse full path
-    this->state = parse(path);
-                
+    this->state_ = parse_add(path);
+
   } // Path::Path(std::string)
-        
+
+  Path::Path(std::initializer_list<std::string> parts)
+  {
+    for (auto part : parts)
+      parse_add(part);
+  }
+
   std::string Path::to_string() const
   {
     // build path
@@ -49,19 +59,19 @@ namespace fs
     ss += PATH_SEPARATOR;
     return ss;
   }
-        
-  int Path::parse(const std::string& path)
+
+  int Path::parse_add(const std::string& path)
   {
     if (path.empty())
       {
         // do nothing?
         return 0;
       }
-                
+
     std::string buffer(path.size(), 0);
     char lastChar = 0;
     int  bufi = 0;
-                
+
     for (size_t i = 0; i < path.size(); i++)
       {
         if (path[i] == PATH_SEPARATOR)
@@ -95,29 +105,13 @@ namespace fs
       }
     return 0;
   }
-        
+
   void Path::name_added(const std::string& name)
   {
-    //std::cout << "Path: " << toString() << " --> " << name << std::endl;
-                
     if (name == ".")
-      {
-        // same directory
-      }
-    /*else if (name == "..")
-      {
-      // if the stack is empty we are at root
-      if (stk.empty())
-      {
-      // trying to go above root is an error (?)
       return;
-      }
-      stk.pop_back();
-      }*/
-    else
-      {
-        // otherwise treat as directory
-        stk.push_back(name);
-      }
+
+    stk.push_back(name);
+
   }
 }

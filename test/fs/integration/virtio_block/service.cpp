@@ -58,7 +58,7 @@ void Service::start(const std::string&)
       // go through directory entries
       for (auto& e : *ents) {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-               e.type_string().c_str(), e.name().c_str(), e.size(), e.block);
+               e.type_string().c_str(), e.name().c_str(), e.size(), e.block());
 
         if (e.is_file()) {
           printf("*** Read %s\n", e.name().c_str());

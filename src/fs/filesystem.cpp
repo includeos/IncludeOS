@@ -17,7 +17,7 @@
 
 #include <array>
 
-#include <fs/filesystem.hpp>
+#include <fs/dirent.hpp>
 
 namespace fs
 {
@@ -37,4 +37,27 @@ namespace fs
     return tok_str[token_];
   }
 
+  void File_system::read_file(const std::string& path, on_read_func on_read) {
+    stat(path, [this, on_read, path](error_t err, const Dirent& ent) {
+        if(unlikely(err))
+          return on_read(err, nullptr, 0);
+
+        if(unlikely(!ent.is_file()))
+          return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
+
+        read(ent, 0, ent.size(), on_read);
+      });
+  }
+
+  Buffer File_system::read_file(const std::string& path) {
+      auto ent = stat(path);
+
+      if(unlikely(!ent.is_valid()))
+        return {{error_t::E_NOENT, path + " not found"}, nullptr, 0};
+
+      if(unlikely(!ent.is_file()))
+        return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0};
+
+      return read(ent, 0, ent.size());
+  }
 }

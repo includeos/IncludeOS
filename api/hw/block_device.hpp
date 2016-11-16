@@ -26,7 +26,10 @@
 namespace hw
 {
 
-  class Drive {
+  /**
+   * Abstract interface for block devices of various driver types
+   **/
+  class Block_device {
   public:
     using block_t = uint64_t; //< Disk device block size
     using buffer_t = std::shared_ptr<uint8_t>;
@@ -35,12 +38,12 @@ namespace hw
     using on_read_func = delegate<void(buffer_t)>;
 
     static const char* device_type()
-    { return "Drive"; }
+    { return "Block device"; }
 
-    virtual std::string blkname() const = 0;
+    virtual std::string device_name() const = 0;
 
     /** Human-readable name of this disk controller  */
-    virtual const char* name() const noexcept = 0;
+    virtual const char* driver_name() const noexcept = 0;
 
     /** The size of the disk in whole sectors */
     virtual block_t size() const noexcept = 0;
@@ -64,10 +67,10 @@ namespace hw
 
     virtual void deactivate() = 0;
 
-    virtual ~Drive() noexcept = default;
-    
+    virtual ~Block_device() noexcept = default;
+
   protected:
-    Drive();
+    Block_device();
     int blkid;
   }; //< class Drive
 
