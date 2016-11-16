@@ -41,7 +41,7 @@ namespace net {
   using transmit_avail_delg = delegate<void(size_t)>;
 
   // Compute the internet checksum for the buffer / buffer part provided
-  uint16_t checksum(void* data, size_t len) noexcept;
+  uint16_t checksum(handle<void> data, size_t len) noexcept;
 
   // View a packet differently based on context
   template <typename T, typename Packet>
@@ -49,10 +49,8 @@ namespace net {
     return std::static_pointer_cast<T>(packet);
   }
 
-
   template<typename Derived, typename Base>
-  auto static_unique_ptr_cast( std::unique_ptr<Base>&& p )
-  {
+  auto static_unique_ptr_cast(std::unique_ptr<Base> p) {
       auto* d = static_cast<Derived *>(p.release());
       return std::unique_ptr<Derived>(d);
   }
