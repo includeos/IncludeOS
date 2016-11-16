@@ -41,7 +41,6 @@ namespace fs {
   /** Container types **/
   using dirvector = std::vector<Dirent>;
   using dirvec_t  = std::shared_ptr<dirvector>;
-  using buffer_t  = std::shared_ptr<uint8_t>;
 
   /** Pointer types **/
   using Path_ptr = std::shared_ptr<Path>;
