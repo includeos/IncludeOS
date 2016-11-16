@@ -19,8 +19,9 @@
 #ifndef HW_DRIVE_HPP
 #define HW_DRIVE_HPP
 
-#include <memory>
 #include <cstdint>
+#include <memory>
+
 #include <delegate>
 
 namespace hw
