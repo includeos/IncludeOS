@@ -18,13 +18,14 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
-#include <string>
 #include <sstream>
-#include <common>
-#include <kernel/memmap.hpp>
-#include <hw/cpu.hpp>
-#include <hertz>
+#include <string>
 #include <vector>
+
+#include <common>
+#include <hertz>
+#include <hw/cpu.hpp>
+#include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
 
 /**
