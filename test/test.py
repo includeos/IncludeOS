@@ -91,6 +91,22 @@ class Test:
       subprocess.check_output(["make","clean"])
       print pretty.C_GRAY + "\t Cleaned, now start... ", pretty.C_ENDC
 
+    # Check if the test is time sensitive
+    json_file = os.path.join(self.path_, "vm.json")
+    json_file = os.path.abspath(json_file)
+    try:
+        with open(json_file) as f:
+            json_output = json.load(f)
+    except IOError:
+        json_output = []
+
+    if 'time_sensitive' in json_output:
+        self.time_sensitive_ = True
+    else:
+        self.time_sensitive_ = False
+
+
+
   def __str__(self):
       """ Print output about the test object """
 
@@ -103,6 +119,7 @@ class Test:
               'type_: {x[type_]} \n'
               'skip: {x[skip_]} \n'
               'skip_reason: {x[skip_reason_]} \n'
+              'time_sensitive: {x[time_sensitive_]} \n'
               ).format(x=self.__dict__)
 
   def start(self):
@@ -242,17 +259,25 @@ def integration_tests(tests):
     """
 
     # Only run the valid tests
-    tests = [ x for x in tests if not x.skip_ and x.type_ == 'integration' ]
+    tests = [ x for x in tests if not x.skip_ ]
+
+    time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
+    tests = [ x for x in tests if x not in time_sensitive_tests ]
 
     # Print info before starting to run
     print pretty.HEADER("Starting " + str(len(tests)) + " integration test(s)")
     for test in tests:
         print pretty.INFO("Test"), "starting", test.name_
 
+    if time_sensitive_tests:
+        print pretty.HEADER("Then starting " + str(len(time_sensitive_tests)) + " time sensitive integration test(s)")
+        for test in time_sensitive_tests:
+            print pretty.INFO("Test"), "starting", test.name_
+
     processes = []
     fail_count = 0
     global test_count
-    test_count += len(tests)
+    test_count += len(tests) + len(time_sensitive_tests)
 
     # Start running tests in parallell
     for test in tests:
@@ -268,6 +293,14 @@ def integration_tests(tests):
     if fail_count and args.fail:
         print pretty.FAIL(str(fail_count) + "integration tests failed")
         sys.exit(fail_count)
+
+    # Start running the time sensitive tests
+    for test in time_sensitive_tests:
+        process = test.start()
+        fail_count += 1 if process.wait_status() else 0
+        if fail_count and args.fail:
+            print pretty.FAIL(str(fail_count) + "integration tests failed")
+            sys.exit(fail_count)
 
     return fail_count
 
@@ -293,6 +326,54 @@ def find_leaf_nodes():
     return leaf_nodes
 
 
+def tests_to_run(all_tests, arguments):
+    """ Will figure out which tests are to be run
+
+    Arguments:
+        all_tests (list of Test obj): all processed test objects
+        arguments (argument object): Contains arguments from argparse
+
+    returns:
+        list: All Test objects that are to be run
+    """
+
+    # If no tests specified all are run
+    if not arguments.tests:
+        tests_added = [ x for x in all_tests if x.type_ in test_types ]
+    else:
+        # First checks if any type has been defined
+        types_to_run = [ x for x in arguments.tests if x in test_types ]
+        tests_added = [ x for x in all_tests if x.type_ in types_to_run ]
+
+        # Check if any categories have been defined
+        categories_to_run = [ x for x in arguments.tests if x in test_categories ]
+
+        # Add tests based on category and finally individual tests
+        for test in all_tests:
+            if test in tests_added:   # Avoid duplicates
+                continue
+            elif test.category_ in categories_to_run:
+                tests_added.append(test)
+            elif test.name_ in arguments.tests:
+                tests_added.append(test)
+
+    # Remove tests defined by the skip argument
+    # First check if any type has been defined
+    types_to_skip = [ x for x in arguments.skip if x in test_types ]
+    fin_tests = [ x for x in tests_added if not x.type_ in types_to_skip ]
+
+    # Check if any categories or individual tests are to be skipped
+    categories_to_skip = [ x for x in arguments.skip if x in test_categories ]
+    fin_tests_copy = fin_tests[:]   # We will modify fin_tests in the loop
+    for test in fin_tests_copy:
+        if test.category_ in categories_to_skip:
+            fin_tests.remove(test)
+        elif test.name_ in arguments.skip:
+            fin_tests.remove(test)
+
+    return fin_tests
+
+
 def main():
     # Find leaf nodes
     leaves = find_leaf_nodes()
@@ -300,41 +381,19 @@ def main():
     # Populate test objects
     all_tests = [ Test(path) for path in leaves ]
 
-    # Figure out which tests are to be run
-    test_categories_to_run = []
-    test_types_to_run = []
+    # get a list of all the tests that are to be run
+    specific_tests = tests_to_run(all_tests, args)
+
+    # Run the tests
+    print_skipped(specific_tests)
+    integration = integration_tests(specific_tests)
     if args.tests:
-        for argument in args.tests:
-            if argument in test_categories and argument not in args.skip:
-                test_categories_to_run.append(argument)
-            elif argument in test_types and argument not in args.skip:
-                test_types_to_run.append(argument)
-            else:
-                print 'Test specified is not recognised, exiting'
-                sys.exit(1)
+        types_to_run = args.tests
     else:
-        test_types_to_run = test_types
-
-
-    if test_categories_to_run:
-        # This means that a specific category has been requested
-        specific_tests = [ test for test in all_tests if test.category_ in test_categories_to_run ]
-
-        # Print which tests are skipped
-        print_skipped(specific_tests)
-
-        # Run the tests
-        integration = integration_tests(specific_tests)
-    else:
-        # Print which tests are skipped
-        print_skipped(all_tests)
-
-        # Run the tests
-        integration = integration_tests(all_tests) if "integration" in test_types_to_run else 0
-
-    stress = stress_test() if "stress" in test_types_to_run else 0
-    unit = unit_tests() if "unit" in test_types_to_run else 0
-    misc = misc_working() if "misc" in test_types_to_run else 0
+        types_to_run = test_types
+    stress = stress_test() if "stress" in types_to_run else 0
+    unit = unit_tests() if "unit" in types_to_run else 0
+    misc = misc_working() if "misc" in types_to_run else 0
 
     status = max(integration, stress, unit, misc)
     if (status == 0):

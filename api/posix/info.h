@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,13 +16,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/drive.hpp>
+#pragma once
+#ifndef API_POSIX_INFO_H
+#define API_POSIX_INFO_H
 
-namespace hw
-{
-  Drive::Drive()
-  {
-    static int counter = 0;
-    blkid = counter++;
-  }
-}
+#define LINEWIDTH 80
+
+#ifndef NO_INFO
+#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
+#define INFO2(TEXT, ...) printf("%16s" TEXT "\n"," ", ##__VA_ARGS__)
+#define CAPTION(TEXT) printf("\n%*s%*s\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
+#define CHECK(TEST, TEXT, ...) printf("%16s[%s] " TEXT "\n","", TEST ? "x" : " ",  ##__VA_ARGS__)
+#define CHECKSERT(TEST, TEXT, ...) assert(TEST), CHECK(TEST, TEXT, ##__VA_ARGS__)
+
+#else
+#define INFO(X,...)
+#define INFO2(X,...)
+#define CAPTION(TEXT,...)
+#define FILLINE(CHAR)
+#define CHECK(X,...)
+#endif
+
+#endif //< ___API_INFO___

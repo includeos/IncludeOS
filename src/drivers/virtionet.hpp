@@ -37,7 +37,8 @@
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <net/buffer_store.hpp>
-#include <hw/nic.hpp>
+#include <net/link_layer.hpp>
+#include <net/ethernet/ethernet.hpp>
 #include <delegate>
 #include <deque>
 #include <statman>
@@ -111,32 +112,29 @@
 #define VIRTIO_NET_S_ANNOUNCE 2
 
 /** Virtio-net device driver.  */
-class VirtioNet : Virtio, public hw::Nic {
-
+class VirtioNet : Virtio, public net::Link_layer<net::Ethernet> {
 public:
+  using Link          = net::Link_layer<net::Ethernet>;
+  using Link_protocol = Link::Protocol;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<VirtioNet>(d); }
 
   /** Human readable name. */
-  const char* name() const override;
+  const char* driver_name() const override;
 
   /** Mac address. */
-  const hw::MAC_addr& mac() override
+  const hw::MAC_addr& mac() const noexcept override
   { return _conf.mac; }
-
-  Nic::Proto proto() override
-  { return Nic::ETH; }
 
   uint16_t MTU() const noexcept override
   { return 1500; }
 
-  net::downstream get_physical_out() override {
-    return {this, &VirtioNet::transmit};
-  }
+  net::downstream create_physical_downstream()
+  { return {this, &VirtioNet::transmit}; }
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
-  void transmit(net::Packet_ptr pckt) override;
+  void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioNet(hw::PCI_Device& pcidev);

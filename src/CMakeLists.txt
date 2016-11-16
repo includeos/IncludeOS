@@ -29,7 +29,7 @@ set(OS_OBJECTS
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
-  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/drive.cpp
+  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
   hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
   hw/apic_revenant.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp
@@ -41,9 +41,9 @@ set(OS_OBJECTS
   net/buffer_store.cpp net/inet4.cpp
   net/super_stack.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
-  fs/ext4.cpp fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-  posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
-  posix/sys/socket.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
+  fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
+  posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
+  posix/sys/socket.cpp posix/sys/select.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   )
 
@@ -56,14 +56,14 @@ add_dependencies(c++abi libcxx)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
 	OUTPUT ${INCLUDEOS_ROOT}/src/crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=1477679669 -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -Wall -Wextra  -c -m32 -std=c++14 -I../api/sys -Iinclude -I../api -I../api/posix -I../mod/GSL -I../mod/fiber/include -D_LIBCPP_HAS_NO_THREADS=1 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)

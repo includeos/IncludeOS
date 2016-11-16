@@ -75,9 +75,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   default_stdout_handlers();
 
   // Print a fancy header
-  FILLINE('=');
-  CAPTION("#include<os> // Literally\n");
-  FILLINE('=');
+  CAPTION("#include<os> // Literally");
 
   auto esp = get_cpu_esp();
   MYINFO ("Stack: 0x%x", esp);

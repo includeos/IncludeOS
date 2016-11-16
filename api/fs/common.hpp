@@ -21,8 +21,15 @@
 
 #include <memory>
 #include <string>
+#include <delegate>
+#include <vector>
+#include <fs/path.hpp>
 
 namespace fs {
+
+  // Generic structure for directory entries
+  struct Dirent;
+
 
   /**
    * @brief Type used as a building block to represent buffers
@@ -30,6 +37,27 @@ namespace fs {
    */
   using buffer_t = std::shared_ptr<uint8_t>;
 
+  /** Container types **/
+  using dirvector = std::vector<Dirent>;
+  using dirvec_t  = std::shared_ptr<dirvector>;
+  using buffer_t  = std::shared_ptr<uint8_t>;
+
+  /** Pointer types **/
+  using Path_ptr = std::shared_ptr<Path>;
+
+  /** Entity types for dirents **/
+  enum Enttype {
+    FILE,
+    DIR,
+    /** FAT puts disk labels in the root directory, hence: */
+    VOLUME_ID,
+    SYM_LINK,
+
+    INVALID_ENTITY
+  };
+
+
+  /** Error type **/
   struct error_t
   {
     enum token_t {
@@ -149,6 +177,24 @@ namespace fs {
 
   /** @var no_error: Always returns boolean false when used in expressions */
   extern error_t no_error;
+
+    /** Async function types **/
+  using on_mount_func = delegate<void(error_t)>;
+  using on_ls_func    = delegate<void(error_t, dirvec_t)>;
+  using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
+  using on_stat_func  = delegate<void(error_t, const Dirent&)>;
+
+
+  struct List {
+    error_t  error;
+    dirvec_t entries;
+    auto begin() { return entries->begin(); }
+    auto end() { return entries->end(); }
+    auto cbegin() { return entries->cbegin(); }
+    auto cend() { return entries->cend(); }
+
+  };
+
 
 } //< namespace fs
 

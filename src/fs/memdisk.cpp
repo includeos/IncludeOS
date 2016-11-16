@@ -30,18 +30,20 @@ extern "C" {
 namespace fs {
 
   MemDisk::MemDisk() noexcept
-  : Drive(),
+  : Block_device(),
     image_start_ { &_DISK_START_ },
     image_end_   { &_DISK_END_ },
-    
+
     stat_read( Statman::get().create(
-               Stat::UINT64, blkname() + ".reads").get_uint64() )
-  {  }
+               Stat::UINT64, device_name() + ".reads").get_uint64() )
+  {
+    INFO("Memdisk", "Initializing");
+  }
 
   MemDisk::buffer_t MemDisk::read_sync(block_t blk)
   {
     stat_read++;
-    
+
     auto sector_loc = image_start_ + blk * block_size();
     // Disallow reading memory past disk image
     if (UNLIKELY(sector_loc >= image_end_))
@@ -52,14 +54,14 @@ namespace fs {
 
     return buffer_t{buffer, std::default_delete<uint8_t[]>()};
   }
-  
+
   MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
   {
     stat_read++;
-    
+
     auto start_loc = image_start_ + blk * block_size();
     auto end_loc = start_loc + cnt * block_size();
-    
+
     // Disallow reading memory past disk image
     if (UNLIKELY(end_loc >= image_end_))
       return buffer_t{};
@@ -77,7 +79,7 @@ namespace fs {
   }
 
   void MemDisk::deactivate() {
-    
+
   }
 
 } //< namespace fs

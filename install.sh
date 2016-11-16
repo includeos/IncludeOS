@@ -22,7 +22,7 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "Ubuntu"|"LinuxMint")
+                "Debian"|"Ubuntu"|"LinuxMint")
                     return 0;
                     ;;
                 "Fedora")
@@ -47,8 +47,10 @@ fi
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
-Currently only Ubuntu, Fedora, Arch, and OSX are actively supported for *building* IncludeOS. \n\
-On other Linux distros it shouldn't be that hard to get it to work - take a look at\n \
+Currently only Debian testing/jessie backports, Ubuntu, Fedora, Arch,\n\
+and OSX are actively supported for *building* IncludeOS. \n\
+On other Linux distros it shouldn't be that hard to get it to work - take\n\
+a look at\n \
 ./etc/install_from_bundle.sh \n"
     exit 1
 fi

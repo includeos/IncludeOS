@@ -335,8 +335,7 @@ void TCP::drop(const tcp::Packet&) {
 void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
   packet->set_checksum(TCP::checksum(*packet));
-  //if(packet->has_data())
-  //printf("<TCP::transmit> S: %u\n", packet->seq());
+  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
   bytes_tx_ += packet->tcp_data_length();

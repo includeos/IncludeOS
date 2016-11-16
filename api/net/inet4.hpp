@@ -41,10 +41,10 @@ namespace net {
   public:
 
     virtual std::string ifname() const override
-    { return nic_.ifname(); }
+    { return nic_.device_name(); }
 
     hw::MAC_addr link_addr() override
-    { return eth_.mac(); }
+    { return nic_.mac(); }
 
     IP4::addr ip_addr() override
     { return ip4_addr_; }
@@ -212,7 +212,6 @@ namespace net {
 
     // This is the actual stack
     hw::Nic& nic_;
-    Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
     ICMPv4 icmp_;
