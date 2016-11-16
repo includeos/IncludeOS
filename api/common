@@ -1,4 +1,4 @@
-// -*-C++-*-
+// -*- C++ -*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -31,6 +31,11 @@
 
 /* BOCHS Break point */
 #define BREAK __asm__ volatile("xchg %bx,%bx");
+
+/* Alias used to represent the notion of an */
+/* observable pointer                       */
+template<typename T>
+using handle = T*;
 
 /* debugging macros */
 #include "debug"
