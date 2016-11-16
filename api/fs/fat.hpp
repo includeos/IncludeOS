@@ -19,13 +19,14 @@
 #ifndef FS_FAT_HPP
 #define FS_FAT_HPP
 
-#include <fs/filesystem.hpp>
-#include <fs/dirent.hpp>
-#include <hw/block_device.hpp>
-#include <functional>
 #include <cstdint>
-#include <memory>
+#include <functional>
 #include <map>
+#include <memory>
+
+#include <fs/dirent.hpp>
+#include <fs/filesystem.hpp>
+#include <hw/block_device.hpp>
 
 namespace fs
 {
