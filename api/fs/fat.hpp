@@ -49,7 +49,7 @@ namespace fs
 
     // return information about a filesystem entity
     void   stat(Path_ptr, on_stat_func) override;
-    Dirent stat(Path ent, const Dirent* const start) override;
+    Dirent stat(Path ent, const handle<const Dirent> start) override;
     // async cached stat
     void cstat(const std::string&, on_stat_func) override;
 
@@ -178,18 +178,18 @@ namespace fs
     }
 
     // initialize filesystem by providing base sector
-    void init(const void* base_sector);
+    void init(handle<const void> base_sector);
     // return a list of entries from directory entries at @sector
     typedef delegate<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
-    bool int_dirent(uint32_t sector, const void* data, dirvector&);
+    bool int_dirent(uint32_t sector, handle<const void> data, dirvector&);
 
     // tree traversal
     typedef delegate<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback);
     // sync version
-    error_t traverse(Path path, dirvector&, const Dirent* const = nullptr);
+    error_t traverse(Path path, dirvector&, const handle<const Dirent> = nullptr);
     error_t int_ls(uint32_t sector, dirvector&);
 
     // device we can read and write sectors to

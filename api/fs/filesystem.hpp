@@ -61,7 +61,7 @@ namespace fs {
     virtual void stat(Path_ptr, on_stat_func fn) = 0;
 
     /** Return information about a file or directory - sync */
-    virtual Dirent stat(Path, const Dirent* const = nullptr) = 0;
+    virtual Dirent stat(Path, const handle<const Dirent> = nullptr) = 0;
 
     /** Stat async - string variant **/
     inline void stat(const std::string& pathstr, on_stat_func fn);
