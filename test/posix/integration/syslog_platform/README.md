@@ -6,7 +6,7 @@ This tests the plugin behavior a.k.a. sending syslog data over UDP port 6514.
 
 The message format corresponds to the format specified in RFC5424.
 
-To achieve this behavoir you have to define PLATFORM=syslogd in your Makefile.
+To achieve this behavior you have to define PLATFORM=syslogd in your Makefile.
 
 The default behavior for IncludeOS's syslog implementation is however to send the data to printf, which is
 what you get if you don't specify PLATFORM=syslogd in your Makefile (see the syslog_default integration test).
