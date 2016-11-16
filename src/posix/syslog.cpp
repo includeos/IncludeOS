@@ -67,22 +67,7 @@ void openlog(const char* ident, int logopt, int facility) {
 
 	facility_ = facility;
 
-	switch (facility_) {
-		case LOG_USER:
-			Syslog::openlog<Syslog_user>(ident_, logopt_);
-			break;
-		case LOG_KERN:
-			Syslog::openlog<Syslog_kern>(ident_, logopt_);
-			break;
-		case LOG_MAIL:
-			Syslog::openlog<Syslog_mail>(ident_, logopt_);
-			break;
-		// More facilities
-		default:
-			// If facility_ doesn't match any of the above, go to default:
-			Syslog::openlog<Syslog_user>(ident_, logopt_);
-			break;
-	}
+	Syslog::openlog(ident_, logopt_, facility_);
 }
 
 /*
