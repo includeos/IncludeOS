@@ -21,8 +21,9 @@
 
 #include <memory>
 #include <string>
-#include <delegate>
 #include <vector>
+
+#include <delegate>
 #include <fs/path.hpp>
 
 namespace fs {
