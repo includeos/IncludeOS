@@ -22,6 +22,8 @@
 #include <cstdint>
 #include <string>
 
+#include <common>
+
 namespace fs {
 
   struct MBR {
@@ -65,7 +67,7 @@ namespace fs {
       partition part[PARTITIONS];
       uint16_t  magic;           // 0xAA55
 
-      inline BPB* bpb() noexcept
+      inline handle<BPB> bpb() noexcept
       { return reinterpret_cast<BPB*>(boot); }
     } __attribute__((packed));
 
