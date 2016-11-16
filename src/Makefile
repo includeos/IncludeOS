@@ -88,7 +88,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 		posix/fd.o posix/tcp_fd.o posix/udp_fd.o posix/unistd.o posix/fcntl.o \
 		posix/sys/socket.o posix/sys/select.o posix/sys/mman.o posix/arpa/inet.o \
 		posix/ucontext.o posix/ucontext_asm.o \
-		posix/syslog.o util/syslogd.o posix/sys/utsname.o
+		posix/syslog.o util/syslogd.o util/syslog_facility.o posix/sys/utsname.o
 		#../mod/fiber/src/barrier.o ../mod/fiber/src/context.o ../mod/fiber/src/condition_variable.o \
 		#../mod/fiber/src/fiber.o ../mod/fiber/src/future.o ../mod/fiber/src/properties.o ../mod/fiber/src/mutex.o \
 		# ../mod/fiber/src/recursive_mutex.o ../mod/fiber/src/recursive_timed_mutex.o \
@@ -97,7 +97,7 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 DRIVERS = drivers/virtioblk.o drivers/virtionet.o drivers/heap_debugging.o
 DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
-PLATFORMS = platforms/unik.o
+PLATFORMS = platforms/unik.o platforms/syslogd.o
 PLATFORMS_DEPS = $(PLATFORMS:.o=.d)
 
 CRTI_OBJ = crt/crti.o
