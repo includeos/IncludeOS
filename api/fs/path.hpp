@@ -43,8 +43,8 @@ namespace fs {
     size_t size() const noexcept
     { return stk.size(); }
 
-    const std::string& operator [] (const int i) const noexcept
-    { return stk[i]; }
+    const std::string& operator [] (const int i) const
+    { return stk.at(i); }
 
     int state() const noexcept
     { return state_; }
