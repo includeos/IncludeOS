@@ -288,6 +288,7 @@ namespace net
 
     // check if the BOOTP message is a DHCP OFFER
     const dhcp_option_t* opt;
+    const dhcp_option_t* server_id {nullptr};
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
 
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
@@ -323,6 +324,13 @@ namespace net
         MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
 
+    // Preserve DHCP server address
+    opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
+    if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
+      {
+        server_id = opt;
+      }
+
     // now validate the offer, checking for minimum information
     opt = get_option(dhcp->options, DHO_ROUTERS);
     if (opt->code == DHO_ROUTERS)
@@ -334,10 +342,9 @@ namespace net
     // assume that the server we received the request from is the gateway
     else
     {
-      opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
-      if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
+      if (server_id)
       {
-        memcpy(&this->router, opt->val, sizeof(IP4::addr));
+        memcpy(&this->router, server_id->val, sizeof(IP4::addr));
         if (console_spam)
           MYINFO("GATEWAY: \t%s", this->router.str().c_str());
       }
@@ -358,10 +365,10 @@ namespace net
       MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
 
     // we can accept the offer now by requesting the IP!
-    this->request(sock);
+    this->request(sock, server_id);
   }
 
-  void DHClient::request(UDPSocket& sock)
+  void DHClient::request(UDPSocket& sock, const dhcp_option_t* server_id)
   {
     // form a response
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -409,7 +416,13 @@ namespace net
     opt = conv_option(resp->options + 12);
     opt->code   = DHO_DHCP_SERVER_IDENTIFIER;
     opt->length = 4;
-    memcpy(&opt->val[0], &this->router, sizeof(IP4::addr));
+    if (server_id) {
+      memcpy(&opt->val[0], &server_id->val[0], sizeof(IP4::addr));
+      MYINFO("Server IP set to %s", ((IP4::addr*)&opt->val[0])->to_string().c_str());
+    } else {
+      memcpy(&opt->val[0], &this->router, sizeof(IP4::addr));
+      MYINFO("Server IP set to gateway (%s)", ((IP4::addr*)&opt->val[0])->to_string().c_str());
+    }
     // DHCP Requested Address
     opt = conv_option(resp->options + 18);
     opt->code   = DHO_DHCP_REQUESTED_ADDRESS;
