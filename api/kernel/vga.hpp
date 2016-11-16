@@ -18,8 +18,9 @@
 #ifndef KERNEL_VGA_HPP
 #define KERNEL_VGA_HPP
 
+#include <cstdint>
+
 #include <os>
-#include <stdint.h>
 
 class ConsoleVGA {
 private:
@@ -53,7 +54,7 @@ public:
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
   { return fg | bg << 4; }
 
-  void write(const char* data, const size_t len) noexcept;
+  void write(handle<const char> data, const size_t len) noexcept;
   void clear() noexcept;
 
   static const size_t VGA_WIDTH  {80};
@@ -73,10 +74,10 @@ private:
   static const uint16_t DEFAULT_ENTRY;
   void putent(uint16_t, uint8_t, uint8_t) noexcept;
 
-  size_t    row;
-  size_t    column;
-  uint8_t   color;
-  uint16_t* buffer;
+  size_t           row;
+  size_t           column;
+  uint8_t          color;
+  handle<uint16_t> buffer;
 }; //< ConsoleVGA
 
 #endif //< KERNEL_VGA_HPP
