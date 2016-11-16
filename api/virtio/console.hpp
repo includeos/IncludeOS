@@ -57,7 +57,7 @@ public:
     return config.cols;
   }
   
-  void write (const void* data, size_t len);
+  void write (handle<const void> data, size_t len);
   
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioCon(hw::PCI_Device& pcidev);
