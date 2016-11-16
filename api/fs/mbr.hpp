@@ -19,8 +19,8 @@
 #ifndef FS_MBR_HPP
 #define FS_MBR_HPP
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 namespace fs {
 
