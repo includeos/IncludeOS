@@ -100,6 +100,7 @@ unsigned int sleep(unsigned int seconds)
 
 // todo: use fs::path as backing
 static std::string cwd {"/"};
+const std::string& cwd_ref() { return cwd; }
 
 fs::Disk_ptr& fs_disk() {
   static fs::Disk_ptr disk = fs::new_shared_memdisk();

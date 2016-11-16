@@ -20,7 +20,7 @@ def increment(line):
   print "num_outputs after increment: ", num_outputs
 
 def check_num_outputs(line):
-  assert(num_outputs == 14)
+  assert(num_outputs == 17)
   vmrunner.vms[0].exit(0, "SUCCESS")
 
 vm.on_output("stat\(\) with nullptr buffer fails with EFAULT", increment)
@@ -37,6 +37,9 @@ vm.on_output("getcwd\(\) with too small buffer should fail", increment)
 vm.on_output("getcwd\(\) with adequate buffer is ok", increment)
 vm.on_output("chmod\(\) should fail on read-only memdisk", increment)
 vm.on_output("fchmod\(\) on non-open FD should fail", increment)
+vm.on_output("nftw\(\) visits a directory before the directory's files", increment)
+vm.on_output("nftw\(\) visits the directory's files before the directory when FTW_DEPTH is specified", increment)
+vm.on_output("fstatat\(\) of file that exists is ok", increment)
 
 vm.on_output("All done!", check_num_outputs)
 

@@ -20,6 +20,8 @@
 #include <cstring>
 #include <fd_map.hpp>
 #include <memdisk>
+#include <fcntl.h>
+#include <unistd.h>
 
 #ifndef DEFAULT_UMASK
 #define DEFAULT_UMASK 002
@@ -60,16 +62,25 @@ int fchmodat(int filedes, const char *path, mode_t mode, int flag)
 
 int fstatat(int filedes, const char *path, struct stat *buf, int flag)
 {
-  /* todo: handle AT_FDCWD
-  if (filedes == AT_FDCWD) ...
-  */
-  try {
-    auto& fd = FD_map::_get(filedes);
-    return fd.fstatat(path, buf, flag);
+  if (filedes == AT_FDCWD)
+  {
+    char cwd_buf[PATH_MAX];
+    char abs_path[PATH_MAX];
+    if (getcwd(cwd_buf, PATH_MAX)) {
+      snprintf(abs_path, PATH_MAX, "%s/%s", cwd_buf, path);
+    }
+    return stat(abs_path, buf);
   }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
+  else
+  {
+    try {
+      auto& fd = FD_map::_get(filedes);
+      return fd.fstatat(path, buf, flag);
+    }
+    catch(const FD_not_found&) {
+      errno = EBADF;
+      return -1;
+    }
   }
 }
 
@@ -171,6 +182,7 @@ int stat(const char *path, struct stat *buf)
   {
     if (ent.is_file()) buf->st_mode = S_IFREG;
     if (ent.is_dir()) buf->st_mode = S_IFDIR;
+    buf->st_ino = ent.block();
     buf->st_size = ent.size();
     buf->st_mtime = ent.modified();
     buf->st_blksize = fs::MemDisk::SECTOR_SIZE;

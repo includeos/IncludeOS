@@ -20,32 +20,47 @@
 #include <memdisk>
 
 extern fs::Disk_ptr& fs_disk();
+extern const std::string& cwd_ref();
 
 class Walker {
 public:
   explicit Walker(Nftw_func fn, int flags) : fn_ptr_ {fn}, flags_ {flags} {};
 
-  int walk(const std::string& path) noexcept {
+  int walk(const std::string& path, int level = 0) noexcept {
     struct stat buffer {};
     struct FTW ftw {};
+    ftw.level = level;
+    ftw.base = path.find_last_of('/') + 1;
 
-    auto ent = fs_disk()->fs().stat(path);
+    std::string abs_path;
+    if (path.front() != '/') {
+      printf("relative path: %s\n", path.c_str());
+      abs_path = cwd_ref() + "/" + path;
+    }
+    else
+    {
+      abs_path = path;
+    }
+    printf("path: %s\n", abs_path.c_str());
 
-    int res = stat(path.c_str(), &buffer);
+    auto ent = fs_disk()->fs().stat(abs_path);
+
+    int res = stat(abs_path.c_str(), &buffer);
     if (res != -1) {
       if (S_ISDIR(buffer.st_mode) == 0) {
         // path is a file
-        return fn_ptr_(path.c_str(), &buffer, FTW_F, &ftw);
+        return fn_ptr_(abs_path.c_str(), &buffer, FTW_F, &ftw);
       }
       else {
         // path is a directory
         int result;
         if (not (flags_ & FTW_DEPTH)) {
           // call fn on dir first
-          result = fn_ptr_(path.c_str(), &buffer, FTW_D, &ftw);
+          result = fn_ptr_(abs_path.c_str(), &buffer, FTW_D, &ftw);
         }
         // call fn on each entry
-        fs_disk()->fs().ls(ent, [path, &result, this](auto, auto entries) {
+        ++level;
+        fs_disk()->fs().ls(ent, [abs_path, &result, &level, this](auto, auto entries) {
           for (auto&& ent : *entries) {
             if (ent.name() == "." or ent.name() == "..")
             {
@@ -53,14 +68,14 @@ public:
             }
             else
             {
-              if ((result = walk(path + "/" + ent.name()) != 0)) {
+              if ((result = walk(abs_path + "/" + ent.name(), level) != 0)) {
                 break;
               }
             }
           }
         });
         if (flags_ & FTW_DEPTH) {
-          result = fn_ptr_(path.c_str(), &buffer, FTW_D, &ftw);
+          result = fn_ptr_(abs_path.c_str(), &buffer, FTW_D, &ftw);
         }
         return result;
       }
@@ -68,11 +83,12 @@ public:
   else {
     // could not stat path
     int result;
-    if (path == "/") {
+    if (abs_path == "/") {
+      ++level;
       auto ents = fs_disk()->fs().ls("/").entries;
       for (auto&& ent : *ents) {
         if (ent.is_valid()) {
-          if ((result = walk("/" + ent.name()) != 0)) {
+          if ((result = walk("/" + ent.name(), level) != 0)) {
             break;
           }
         }
@@ -80,17 +96,24 @@ public:
       return result;
     }
     else {
-      return fn_ptr_(path.c_str(), &buffer, FTW_NS, &ftw);
+      return fn_ptr_(abs_path.c_str(), &buffer, FTW_NS, &ftw);
     }
   }
 }
 private:
   Nftw_func* fn_ptr_;
   int flags_;
-  int level_ {0};
 };
 
 int nftw(const char* path, Nftw_func fn, int fd_limit, int flags) {
-  Walker walker {fn, flags};
-  return walker.walk(path);
+  (void) fd_limit;
+  if (path == nullptr || fn == nullptr)
+  {
+    return EFAULT;
+  }
+  else
+  {
+    Walker walker {fn, flags};
+    return walker.walk(path);
+  }
 }

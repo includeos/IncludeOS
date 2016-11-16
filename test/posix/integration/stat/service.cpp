@@ -24,12 +24,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <ftw.h>
+#include <vector>
 
 void print_stat(struct stat buffer);
 int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
 int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
+int add_items(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
+bool is_before(const std::vector<std::string>& c, const char* item1, const char* item2);
 
 static size_t total_size = 0;
+std::vector<std::string> items;
 
 int main()
 {
@@ -42,13 +46,28 @@ int main()
   INFO("POSIX stat", "Running tests for POSIX stat");
 
   printf("nftw /\n");
-  res = nftw("/", display_info, 20, FTW_PHYS | FTW_DEPTH);
+  res = nftw("/", add_items, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
-  printf("Total size: %ld\n", total_size);
+
+  auto directory_first = is_before(items, "/FOLDER1", "/FOLDER1/FOLDERA");
+  CHECKSERT(directory_first, "nftw() visits a directory before the directory's files");
+
+  items.clear();
+
+  printf("nftw /\n");
+  res = nftw("/", add_items, 20, FTW_PHYS | FTW_DEPTH);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+
+  auto files_first = is_before(items, "/FOLDER1/FOLDERA", "/FOLDER1");
+  CHECKSERT(files_first, "nftw() visits the directory's files before the directory when FTW_DEPTH is specified");
 
   res = stat("FOLDER1", nullptr);
   printf("stat("") with nullptr result: %d\n", res);
@@ -136,6 +155,17 @@ int main()
     printf("chdir error: %s\n", strerror(errno));
   }
   CHECKSERT(res == 0, "chdir to folder that exists is ok");
+
+  res = fstatat(AT_FDCWD, "FILE1", &buffer, 0);
+  printf("fstatat(\"FILE1\") result: %d\n", res);
+  if (res == -1)
+  {
+    printf("fstatat error: %s\n", strerror(errno));
+  }
+  else {
+    print_stat(buffer);
+  }
+  CHECKSERT(res == 0, "fstatat() of file that exists is ok");
 
   res = chdir("/FOLDER1");
   printf("chdir result (existing folder, absolute): %d\n", res);
@@ -357,6 +387,15 @@ int main()
     printf("nftw error: %s\n", strerror(errno));
   }
 
+  printf("nftw /\n");
+  res = nftw("/", add_filesize, 20, FTW_PHYS);
+  printf("nftw result: %d\n", res);
+  if (res == -1)
+  {
+    printf("nftw error: %s\n", strerror(errno));
+  }
+  printf("Total size: %ld\n", total_size);
+
   INFO("POSIX STAT", "All done!");
   exit(0);
 }
@@ -381,11 +420,38 @@ void print_stat(struct stat buffer)
 int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
 {
   printf("%ld\t%s (%d)\n", sb->st_size, fpath, flag);
+  printf("Base: %d\n", ftwbuf->base);
+  printf("Level: %d\n", ftwbuf->level);
   return 0;
 }
 
 int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
 {
+  (void) fpath;
+  (void) flag;
+  (void) ftwbuf;
   total_size += sb->st_size;
   return 0;
+}
+
+int add_items(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
+{
+  (void) ftwbuf;
+  (void) sb;
+  (void) flag;
+  items.push_back(fpath);
+  return 0;
+}
+
+bool is_before(const std::vector<std::string>& c, const char* item1, const char* item2)
+{
+  auto i1 = std::find(std::cbegin(c), std::cend(c), item1);
+  auto i2 = std::find(std::cbegin(c), std::cend(c), item2);
+  if (i1 == std::cend(c) || i2 == std::cend(c))
+  {
+    throw std::domain_error("Alas, you cannot find what isn't there");
+  }
+  int pos1 = std::distance(begin(c), i1);
+  int pos2 = std::distance(begin(c), i2);
+  return pos1 < pos2;
 }
