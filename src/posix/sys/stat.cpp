@@ -20,6 +20,7 @@
 #include <cstring>
 #include <fd_map.hpp>
 #include <memdisk>
+#include <net/tcp/packet.hpp>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -183,8 +184,12 @@ int stat(const char *path, struct stat *buf)
     if (ent.is_file()) buf->st_mode = S_IFREG;
     if (ent.is_dir()) buf->st_mode = S_IFDIR;
     buf->st_ino = ent.block();
+    buf->st_nlink = 1;
     buf->st_size = ent.size();
+    buf->st_atime = ent.modified();
+    buf->st_ctime = ent.modified();
     buf->st_mtime = ent.modified();
+    buf->st_blocks = buf->st_size > 0 ? round_up(buf->st_size, 512) : 0;
     buf->st_blksize = fs::MemDisk::SECTOR_SIZE;
     return 0;
   }

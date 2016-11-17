@@ -299,7 +299,7 @@ void print_stat(struct stat buffer)
   printf("st_ino: %hu\n", buffer.st_ino);
   printf("st_mode: %d\n", buffer.st_mode);
   printf("st_nlink: %d\n", buffer.st_nlink);
-  printf("st_uid %d\n", buffer.st_uid);
+  printf("st_uid: %d\n", buffer.st_uid);
   printf("st_gid: %d\n", buffer.st_gid);
   printf("st_rdev: %d\n", buffer.st_rdev);
   printf("st_size: %ld\n", buffer.st_size);
