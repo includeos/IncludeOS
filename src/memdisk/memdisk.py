@@ -1,7 +1,7 @@
 import sys
 import argparse
 from subprocess import call
-from sys import plugin as _plugin
+from sys import platform as _platform
 
 parser = argparse.ArgumentParser(description='Create memdisk')
 parser.add_argument('disk', metavar='DISK', default=None, nargs='?', help='a disk image')
