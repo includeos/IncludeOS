@@ -15,17 +15,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Syslog plugin (UDP)
+#ifndef PLUGINS_UNIK_HPP
+#define PLUGINS_UNIK_HPP
 
-#pragma once
-#ifndef PLATFORMS_SYSLOGD_HPP
-#define PLATFORMS_SYSLOGD_HPP
+#include <net/inet4.hpp>
 
-const int UDP_PORT = 6514;
+namespace unik{
 
-/*
-	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
-	is in this header's corresponding cpp-file
-*/
+  const net::UDP::port_t default_port = 9876;
+
+  class Client {
+  public:
+    using Registered_event = delegate<void()>;
+
+    static void register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port = default_port);
+    static void register_instance_dhcp();
+    static void on_registered(Registered_event e) {
+      on_registered_ = e;
+    };
+
+  private:
+    static Registered_event on_registered_;
+  };
+
+}
 
 #endif

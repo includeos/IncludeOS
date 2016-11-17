@@ -18,7 +18,7 @@
 // Syslog plugin (UDP)
 
 #include <os>
-#include <platforms/syslogd.hpp>
+#include <plugins/syslogd.hpp>
 #include <service>
 #include <net/inet4>
 #include <errno.h>		// errno
@@ -41,37 +41,19 @@ void Syslog_facility::syslog(const std::string& log_message) {
 }
 
 Syslog_facility::~Syslog_facility() {
-  printf("Destructor Syslog_facility\n");
-
-  if (sock_) {
+  if (sock_)
     sock_->udp().close(sock_->local_port());
-    
-    printf("Destructor socket\n");
-  }
 }
 
 void Syslog_facility::open_socket() {
-  if (sock_ == nullptr) {
+  if (sock_ == nullptr)
     sock_ = &net::Inet4::stack<>().udp().bind();
-    printf("Open socket: BINDING\n");
-  }
-  else {
-    printf("Open socket: NOT BINDING - sock_ is not nullptr\n");
-  }
 }
 
 void Syslog_facility::close_socket() {
 	if (sock_) {
     sock_->udp().close(sock_->local_port());
-
-    printf("Close socket: sock was not nullptr and is now closed\n");
-
     sock_ = nullptr;	// Necessary?
-
-	} else {
-
-		printf("Close socket: sock is already nullptr\n");
-
 	}
 }
 

@@ -97,8 +97,8 @@ OS_OBJECTS = kernel/start.o kernel/kernel_start.o kernel/syscalls.o \
 DRIVERS = drivers/virtioblk.o drivers/virtionet.o drivers/heap_debugging.o
 DRIVERS_DEPS = $(DRIVERS:.o=.d)
 
-PLATFORMS = platforms/unik.o platforms/syslogd.o
-PLATFORMS_DEPS = $(PLATFORMS:.o=.d)
+PLUGINS = plugins/unik.o plugins/syslogd.o
+PLUGINS_DEPS = $(PLUGINS:.o=.d)
 
 CRTI_OBJ = crt/crti.o
 CRTN_OBJ = crt/crtn.o
@@ -147,7 +147,7 @@ debug-all: includeos test
 silent: CPPOPTS += -DNO_INFO=1
 silent: includeos
 
-includeos: bootloader multiboot libc++abi.a os.a drivers platforms
+includeos: bootloader multiboot libc++abi.a os.a drivers plugins
 
 # OS libraries
 ###################################################
@@ -161,18 +161,18 @@ os.a: $(OS_OBJECTS) apic_boot.o
 
 drivers: $(DRIVERS)
 
-platforms: $(PLATFORMS)
+plugins: $(PLUGINS)
 
-install: drivers platforms bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
+install: drivers plugins bootloader multiboot $(CRTI_OBJ) $(CRTN_OBJ)
 	@echo "\n>> Installing IncludeOS"
 # API
 	cp -r ../api $(INSTALL)/
 # Drivers
 	mkdir -p $(INSTALL)/drivers
 	cp -r drivers/*.o $(INSTALL)/drivers
-# Platforms
-	mkdir -p $(INSTALL)/platforms
-	cp -r platforms/*.o $(INSTALL)/platforms
+# Plugins
+	mkdir -p $(INSTALL)/plugins
+	cp -r plugins/*.o $(INSTALL)/plugins
 # Boot related
 	cp bootloader $(INSTALL)
 	cp boot/multiboot.o $(INSTALL)
@@ -234,7 +234,7 @@ etags:
 # Cleanup
 ###################################################
 clean:
-	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS) $(PLATFORMS) $(PLATFORMS_DEPS)
+	$(RM) $(OS_OBJECTS) $(CXXABI_OBJ) $(OS_DEPS) $(DRIVERS) $(DRIVERS_DEPS) $(PLUGINS) $(PLUGINS_DEPS)
 	$(RM) os.a libc++abi.a
 	$(RM) bootloader apic_boot apic_boot.o boot/multiboot.o
 

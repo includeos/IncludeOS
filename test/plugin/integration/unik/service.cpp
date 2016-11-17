@@ -17,12 +17,12 @@
 
 #include <os>
 #include <lest.hpp>
-#include <platforms/unik.hpp>
+#include <plugins/unik.hpp>
 
 
 void Service::start(const std::string&)
 {
-  INFO("Unik init test", "Testing unik platform initialization");
+  INFO("Unik init test", "Testing unik plugin initialization");
 
   unik::Client::on_registered([]{
       INFO("Unik test", "Instance registered OK");

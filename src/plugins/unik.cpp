@@ -17,7 +17,7 @@
 
 
 #include <os>
-#include <platforms/unik.hpp>
+#include <plugins/unik.hpp>
 #include <net/inet4>
 #include <regex>
 #include <info>
@@ -119,6 +119,6 @@ void unik::Client::register_instance_dhcp() {
 }
 
 __attribute__((constructor))
-void register_platform_unik(){
+void register_plugin_unik(){
   OS::register_custom_init(unik::Client::register_instance_dhcp, "Unik register instance");
 }

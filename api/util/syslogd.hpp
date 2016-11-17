@@ -16,7 +16,7 @@
 // limitations under the License.
 
 // Weak default printf
-// Plugin/Platform UDP
+// Plugin UDP
 
 #pragma once
 #ifndef UTIL_SYSLOGD_HPP
