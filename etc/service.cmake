@@ -43,6 +43,9 @@ set(OPTIMIZE "-O2")
 if (minimal)
   set(OPTIMIZE "-Os")
 endif()
+if (debug)
+  set(CAPABS "${CAPABS} -g")
+endif()
 
 # these kinda work with llvm
 set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
@@ -115,6 +118,17 @@ foreach(DRIVER ${DRIVERS})
   set_target_properties(${DNAME} PROPERTIES IMPORTED_LOCATION ${DRIVER})
 
   target_link_libraries(service --whole-archive ${DNAME} --no-whole-archive)
+endforeach()
+
+# add all extra libs
+foreach(LIBR ${LIBRARIES})
+  get_filename_component(LNAME ${LIBR} NAME_WE)
+
+  add_library(${LNAME} STATIC IMPORTED)
+  set_target_properties(${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
+
+  target_link_libraries(service ${LNAME})
 endforeach()
 
 # all the OS and C/C++ libraries + crt end

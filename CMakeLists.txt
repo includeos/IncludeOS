@@ -98,6 +98,7 @@ enable_testing()
 add_subdirectory(test)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION share/includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION share/includeos)
 
 install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
 
