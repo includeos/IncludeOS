@@ -27,6 +27,7 @@
 #include <syslog.h> 								// POSIX symbolic constants
 #include <util/syslogd.hpp>					// Header with weak method declarations
 #include <util/syslog_facility.hpp>	// Header with weak method declarations
+#include <info>                     // INFO
 
 // ------------------------- Syslog_facility -----------------------------
 
@@ -162,4 +163,16 @@ void Syslog::closelog() {
   // facility = LOG_USER;
   openlog(nullptr, 0, LOG_USER);  
   fac_->close_socket();
+}
+
+__attribute__((constructor))
+void register_plugin_syslogd() {
+  INFO("Syslog", "Sending buffered data to syslog plugin");
+
+  /*
+    @todo
+    Get dmesg (kernel logs) and send to syslog
+    INFO needs to be rewritten to use kprint and kprint needs to be rewritten to buffer the data
+  */
+
 }
