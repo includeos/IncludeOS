@@ -25,8 +25,8 @@ def check_num_outputs(line):
 
 vm.on_output("Sysname: IncludeOS", increment)
 vm.on_output("Nodename: IncludeOS-node", increment)
-vm.on_output("Release: v0.9.3-384-gb67a5ce-dirty", increment)
-vm.on_output("Version: v0.9.3-384-gb67a5ce-dirty", increment)
+vm.on_output("Release: v", increment)
+vm.on_output("Version: v", increment)
 vm.on_output("Machine: x86_64", increment)
 vm.on_output("Something special to close with", check_num_outputs)
 
