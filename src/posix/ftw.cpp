@@ -34,14 +34,12 @@ public:
 
     std::string abs_path;
     if (path.front() != '/') {
-      printf("relative path: %s\n", path.c_str());
       abs_path = cwd_ref() + "/" + path;
     }
     else
     {
       abs_path = path;
     }
-    printf("path: %s\n", abs_path.c_str());
 
     auto ent = fs_disk()->fs().stat(abs_path);
 
@@ -111,9 +109,6 @@ int nftw(const char* path, Nftw_func fn, int fd_limit, int flags) {
   {
     return EFAULT;
   }
-  else
-  {
-    Walker walker {fn, flags};
-    return walker.walk(path);
-  }
+  Walker walker {fn, flags};
+  return walker.walk(path);
 }

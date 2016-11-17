@@ -7,7 +7,7 @@ SERVICE = test_posix_stat
 SERVICE_NAME = POSIX stat Test Service
 
 # Your service parts
-FILES = service.cpp
+FILES = service.cpp ftw_tests.cpp stat_tests.cpp
 
 # Your disk image
 DISK=disk.img
