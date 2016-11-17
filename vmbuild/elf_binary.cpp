@@ -76,7 +76,7 @@ const Elf_binary::Section_header& Elf_binary::section_header_names() const{
 
 
 const Elf_binary::Span Elf_binary::section_data(const Section_header& sh) const {
-  return {data_.data() + sh.sh_offset, sh.sh_size};
+  return {data_.data() + sh.sh_offset, static_cast<std::ptrdiff_t>(sh.sh_size)};
 };
 
 std::string Elf_binary::section_header_name(const Section_header& sh) const {
