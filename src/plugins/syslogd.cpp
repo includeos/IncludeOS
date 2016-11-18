@@ -54,7 +54,7 @@ void Syslog_facility::open_socket() {
 void Syslog_facility::close_socket() {
 	if (sock_) {
     sock_->udp().close(sock_->local_port());
-    sock_ = nullptr;	// Necessary?
+    sock_ = nullptr;
 	}
 }
 

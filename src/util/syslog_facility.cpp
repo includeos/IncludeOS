@@ -31,7 +31,7 @@ void Syslog_facility::syslog(const std::string& log_message) {
 }
 
 // Weak
-Syslog_facility::~Syslog_facility() { delete sock_; }
+Syslog_facility::~Syslog_facility() {}
 
 // Weak
 void Syslog_facility::open_socket() {}
