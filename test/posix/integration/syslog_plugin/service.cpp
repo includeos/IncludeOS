@@ -30,7 +30,7 @@ int main()
   /* --- Integration test for the plugin syslog behavior: Sending data over UDP --- */
 
   /* ------------------------- Testing POSIX syslog ------------------------- */
-  
+
   auto& inet = net::Inet4::stack<0>();
   inet.network_config({  10,  0,  0, 45 },   // IP
                       { 255, 255, 0,  0 },   // Netmask
@@ -54,7 +54,7 @@ int main()
 
   syslog(LOG_INFO, "(Info) No open has been called prior to this");
   syslog(LOG_NOTICE, "(Notice) Program created with two arguments: %s and %s", one.c_str(), two.c_str());
-  
+
   openlog("Prepended message", LOG_CONS | LOG_NDELAY, LOG_MAIL);
 
   syslog(LOG_ERR, "(Err) Log after prepended message with one argument: %d", 44);
@@ -94,7 +94,7 @@ int main()
 
   Syslog::syslog(LOG_INFO, "(Info) No open has been called prior to this");
   Syslog::syslog(LOG_NOTICE, "(Notice) Program created with two arguments: %s and %s", one.c_str(), two.c_str());
-  
+
   Syslog::openlog("Prepended message", LOG_CONS | LOG_NDELAY, LOG_MAIL);
 
   Syslog::syslog(LOG_ERR, "(Err) Log after prepended message with one argument: %d", 44);

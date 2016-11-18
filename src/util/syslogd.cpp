@@ -129,7 +129,7 @@ void Syslog::openlog(const char* ident, int logopt, int facility) {
   if (logopt & LOG_CONS and fac_->priority() == LOG_ERR) {
     // Log to system console
   }*/
-  
+
   /* Not relevant if logging to printf
   if (logopt & LOG_NDELAY) {
     // Connect to syslog daemon immediately

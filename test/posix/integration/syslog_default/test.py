@@ -55,7 +55,7 @@ vm.on_output("<19> " + ERR_C + "<MAIL.ERR> " + END_C, increment)
 vm.on_output(" test_syslog_default Prepended message: Log after prepended message with one argument: 44", increment)
 
 vm.on_output("<20> " + WARNING_C  + "<MAIL.WARNING> " + END_C, increment)
-vm.on_output(" test_syslog_default Prepended message: Log number two after openlog set prepended message", increment) 
+vm.on_output(" test_syslog_default Prepended message: Log number two after openlog set prepended message", increment)
 
 vm.on_output("<12> " + WARNING_C  + "<USER.WARNING> " + END_C, increment)
 vm.on_output(" test_syslog_default: Log after closelog with three arguments. " +
@@ -96,7 +96,7 @@ vm.on_output(" test_syslog_default: Syslogd Program created with two arguments: 
 vm.on_output(" test_syslog_default Prepended message: Syslogd Log after prepended message with one argument: 44", increment)
 
 # Count 1. vm.on_output("<20> " + WARNING_C  + "<MAIL.WARNING> " + END_C, increment)
-vm.on_output(" test_syslog_default Prepended message: Syslogd Log number two after openlog set prepended message", increment) 
+vm.on_output(" test_syslog_default Prepended message: Syslogd Log number two after openlog set prepended message", increment)
 
 # Count 1. vm.on_output("<12> " + WARNING_C  + "<USER.WARNING> " + END_C, increment)
 vm.on_output(" test_syslog_default: Syslogd Log after closelog with three arguments. " +

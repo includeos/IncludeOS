@@ -93,9 +93,9 @@ public:
   }
 
   int calculate_pri() { return (facility_ * MUL_VAL) + priority_; }
-  
+
   Syslog_facility() : facility_{LOG_USER} {}
-  
+
   Syslog_facility(const char* ident, int facility) : ident_{ident}, facility_{facility} {}
 
   __attribute__((weak))
@@ -106,11 +106,11 @@ public:
   void set_ident(const char* ident) { ident_ = ident; }
 
   const char* ident() { return ident_; }
-  
+
   void set_priority(int priority) { priority_ = priority; }
 
   int priority() { return priority_; }
-	
+
 	std::string priority_name() {
 		switch (priority_) {
 			case LOG_EMERG:
@@ -135,7 +135,7 @@ public:
 	}
 
   void set_logopt(int logopt) { logopt_ = logopt; }
-  
+
   int logopt() { return logopt_; }
 
   void set_facility(int facility) { facility_ = facility; }
@@ -156,7 +156,7 @@ private:
   int facility_;
   int priority_;
   int logopt_;
-  
+
   net::UDPSocket* sock_ = nullptr;
 };
 

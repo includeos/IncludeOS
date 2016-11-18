@@ -28,7 +28,7 @@ int main()
 	/* ----------- Integration test for the default syslog behavior: printf ----------- */
 
 	/* ------------------------- Testing POSIX syslog ------------------------- */
-  
+
   int invalid_priority = -1;
   syslog(invalid_priority, "Invalid %d", invalid_priority);
 
@@ -44,7 +44,7 @@ int main()
 
   syslog(LOG_INFO, "No open has been called prior to this");
   syslog(LOG_NOTICE, "Program created with two arguments: %s and %s", one.c_str(), two.c_str());
-  
+
   openlog("Prepended message", 0, LOG_MAIL);
 
   syslog(LOG_ERR, "Log after prepended message with one argument: %d", 44);
@@ -84,7 +84,7 @@ int main()
 
   Syslog::syslog(LOG_INFO, "Syslogd No open has been called prior to this");
   Syslog::syslog(LOG_NOTICE, "Syslogd Program created with two arguments: %s and %s", one.c_str(), two.c_str());
-  
+
   Syslog::openlog("Prepended message", 0, LOG_MAIL);
 
   Syslog::syslog(LOG_ERR, "Syslogd Log after prepended message with one argument: %d", 44);

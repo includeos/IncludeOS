@@ -142,7 +142,7 @@ void Syslog::openlog(const char* ident, int logopt, int facility) {
 
   if (valid_facility(facility))
     fac_->set_facility(facility);
-  
+
   if (logopt & LOG_NDELAY) {
     // Connect to syslog daemon immediately
     fac_->open_socket();
@@ -161,7 +161,7 @@ void Syslog::closelog() {
   // ident_ = nullptr;
   // logopt = 0;
   // facility = LOG_USER;
-  openlog(nullptr, 0, LOG_USER);  
+  openlog(nullptr, 0, LOG_USER);
   fac_->close_socket();
 }
 

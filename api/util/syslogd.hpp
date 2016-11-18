@@ -50,7 +50,7 @@ public:
 
   // va_list arguments (POSIX)
   static void syslog(int priority, const char* message, va_list args);
-  
+
   __attribute__((weak))
   static void syslog(int priority, const char* buf);
 
