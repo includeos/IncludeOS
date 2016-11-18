@@ -63,9 +63,14 @@ namespace fs {
 
   class Disk {
   public:
+
+    class Err_not_mounted : public std::runtime_error {
+      using runtime_error::runtime_error;
+    };
+
     struct Partition;
-    using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
-    using on_mount_func = std::function<void(error_t)>;
+    using on_parts_func = std::function<void(fs::error_t, std::vector<Partition>&)>;
+    using on_mount_func = std::function<void(fs::error_t)>;
     using lba_t = uint32_t;
 
     enum partition_t {
@@ -105,7 +110,7 @@ namespace fs {
 
     //************** disk functions **************//
 
-    // construct a disk with a given disk-device
+    // construct a disk with a given block-device
     explicit Disk(hw::Block_device&);
 
     // returns the device the disk is using
@@ -131,6 +136,10 @@ namespace fs {
       // construct custom filesystem
       filesys.reset(new T(args...));
       internal_mount(part, func);
+    }
+
+    std::string name() {
+      return device.device_name();
     }
 
     // Creates a vector of the partitions on disk (see: on_parts_func)

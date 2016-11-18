@@ -106,6 +106,9 @@ namespace fs {
     /** Read async **/
     inline void read(uint64_t pos, uint64_t n, on_read_func fn);
 
+    /** Read the whole file async **/
+    inline void read(on_read_func fn);
+
     /** Read sync **/
     inline Buffer read(uint64_t pos, uint64_t n);
 
@@ -118,9 +121,15 @@ namespace fs {
     /** List contents sync **/
     inline List ls();
 
-    /** Get a dirent by path, relative to here **/
+    /** Get a dirent by path, relative to here - async **/
     template <typename P = std::initializer_list<std::string> >
-    inline Dirent stat(P path);
+    inline void stat(P path, on_stat_func);
+
+    /** Get a dirent by path, relative to here - sync **/
+    template <typename P = std::initializer_list<std::string> >
+    inline Dirent stat_sync(P path);
+
+
 
   private:
     File_system* fs_;
@@ -144,6 +153,11 @@ namespace fs {
     fs_->read(*this, pos, n, fn);
   }
 
+  /** Read the whole file, async **/
+  void Dirent::read(on_read_func fn) {
+    read(0, size_, fn);
+  }
+
   /** Read sync **/
   Buffer Dirent::read(uint64_t pos, uint64_t n) {
     return fs_->read(*this, pos, n);
@@ -153,6 +167,7 @@ namespace fs {
   std::string Dirent::read() {
     return read(0, size_).to_string();
   }
+
 
   /** List contents async **/
   void Dirent::ls(on_ls_func fn) {
@@ -165,7 +180,12 @@ namespace fs {
   }
 
   template <typename P>
-  Dirent Dirent::stat(P path) {
+  void Dirent::stat(P path, on_stat_func fn) {
+    fs_->stat(Path{path}, fn, this);
+  };
+
+  template <typename P>
+  Dirent Dirent::stat_sync(P path) {
     return fs_->stat(Path{path}, this);
   };
 

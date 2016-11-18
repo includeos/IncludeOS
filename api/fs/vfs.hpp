@@ -19,6 +19,7 @@
 #define FS_VFS_HPP
 
 #include <memory>
+#include <fs/disk.hpp>
 #include <fs/filesystem.hpp>
 #include <fs/path.hpp>
 #include <hw/devices.hpp>
@@ -31,6 +32,24 @@ extern "C" char* __cxa_demangle(const char* mangled_name,
                             char*       output_buffer,
                             size_t*     length,
                             int*        status);
+
+inline std::string type_name(const std::type_info& type_, size_t max_chars = 0) {
+  int status;
+  std::string result;
+  auto* res =  __cxa_demangle(type_.name(), nullptr, 0, &status);
+  if (status == 0) {
+        result = std::string(res);
+        std::free(res);
+  } else {
+    result = type_.name();
+  }
+
+  if (max_chars and result.size() > max_chars)
+    return result.substr(0, max_chars - 3) + "...";
+
+  return result;
+}
+
 
 namespace fs {
 
@@ -81,23 +100,9 @@ namespace fs {
     const std::type_info& type() const
     { return type_; }
 
-    const std::string type_name(size_t max_chars = 0) const {
-      int status;
-      std::string result;
-      auto* res =  __cxa_demangle(type_.name(), nullptr, 0, &status);
-      if (status == 0) {
-        result = std::string(res);
-        std::free(res);
-      } else {
-        result = type_.name();
-      }
-
-      if (max_chars and max_chars < result.size())
-        result = result.substr(0, max_chars - 3) + "...";
-
-      return result;
+    std::string type_name(size_t max_chars = 0) const {
+      return ::type_name(type_, max_chars);
     }
-
 
     template <typename T>
     VFS_entry(T& obj, const std::string& name, const std::string& desc) // Can't have default desc due to clash with next ctor
@@ -279,16 +284,38 @@ namespace fs {
   }; // End VFS_entry
 
 
-  /** Gateway for VFS_entry trees **/
+  /** Entry point for global VFS_entry tree **/
   struct VFS {
 
-    template<bool create, typename T>
+    using Disk_key = std::string;
+    using Disk_map = std::map<Disk_key, fs::Disk_ptr>;
+    using Path_str = std::string;
+    using Dirent_mountpoint = std::pair<Disk_key, Path_str>;
+    using Dirent_map = std::map<Dirent_mountpoint, Dirent>;
+    using Disk_ptr_weak = std::weak_ptr<Disk>;
+    using insert_dirent_delg = delegate<void(error_t, Dirent&)>;
+    using on_mount_delg = delegate<void(fs::error_t)>;
+
+    template<bool create_path = true, typename T>
     static void mount(Path path, T& obj, std::string desc) {
-      auto&& root = mutable_root();
-      mutable_root().mount<create, T>(path, obj, desc);
+      INFO("VFS", "Mounting %s on %s", type_name(typeid(obj)).c_str(), path.to_string().c_str());;
+      mutable_root().mount<create_path, T>(path, obj, desc);
     }
 
-    template <typename T, typename P = const char*>
+    /** Mount a path local to a disk, on a VFS path - async **/
+    static inline void mount(Path local, std::string disk, Path remote, std::string desc, on_mount_delg callback) {
+
+      INFO("VFS", "Creating mountpoint for %s::%s on %s",
+           disk.c_str(), remote.to_string().c_str(), local.to_string().c_str());
+
+      VFS::insert_dirent(disk, remote, [local, callback, desc](error_t err, auto&& dirent_ref){
+          VFS::mount<true>(local, dirent_ref, desc);
+          callback(err);
+        });
+    }
+
+
+    template <typename T, typename P = Path>
     static T& get(P path) {
 
       Path p{path};
@@ -301,8 +328,8 @@ namespace fs {
     }
 
 
-    template<typename P = const char*>
-    static Dirent get(P path) {
+    template<typename P = Path>
+    static void stat(P path, on_stat_func fn) {
 
       Path p{path};
       auto item = VFS::mutable_root().walk(p, true);
@@ -312,45 +339,138 @@ namespace fs {
 
       auto&& obj = item->obj<Dirent>();
 
-      return obj.stat(p);
+      obj.stat(p, fn);
     }
+
+    template<typename P = Path>
+    static Dirent stat_sync(P path) {
+
+      Path p{path};
+      auto item = VFS::mutable_root().walk(p, true);
+
+      if (not item)
+        throw Err_not_found(std::string("Path ") + p.to_string() + " does not exist (stat sync)");
+
+      auto&& obj = item->obj<Dirent>();
+
+      return obj.stat_sync(p);
+    }
+
 
     static const VFS_entry& root() {
       return mutable_root();
     }
 
+    static fs::Disk_ptr& insert_disk(hw::Block_device& blk) {
+      Disk_ptr ptr = std::make_shared<Disk>(blk);
+      auto& res = (disk_map().emplace(blk.device_name(), ptr)).first->second;
+      return res;
+    }
+
+    static void insert_dirent(std::string diskname, Path path, insert_dirent_delg fn) {
+
+      // Get the disk, and file system from the disk
+      auto disk_it = disk_map().find(diskname);
+
+      if (disk_it == disk_map().end())
+        throw Err_not_found(std::string("Disk ") + diskname + " is not mounted");
+
+      auto disk = disk_it->second;
+
+      if (not disk->fs_mounted())
+        throw Disk::Err_not_mounted(std::string("Disk ") + diskname + " does not have a mounted file system");
+      auto& fs = disk_it->second->fs();
+
+      // Get the dirent from the file system at path
+      fs.stat(path, [fn, diskname, path](auto err, auto dir){
+
+          if (err)
+            throw Err_not_found(std::string("Dirent ") + diskname + "::" + path.to_string());
+
+          // Preserve the dirent
+          auto res_it = (dirent_map().emplace(Dirent_mountpoint{diskname, path.to_string()}, dir));
+
+          if (res_it.second) {
+            auto saved_dir = res_it.first->second;
+            fn(err, saved_dir);
+          } else {
+            fn(err, invalid_dirent());
+          }
+        });
+    }
 
   private:
+
+    static Dirent& invalid_dirent() {
+      static Dirent dir{nullptr};
+      return dir;
+    }
 
     static VFS_entry& mutable_root() {
       static VFS_entry root_{"/", "Root directory"};
       return root_;
     };
+
+    static Disk_map& disk_map() {
+      static Disk_map mounted_disks_;
+      return mounted_disks_;
+    }
+
+    static Dirent_map& dirent_map() {
+      static Dirent_map mounted_dirents_;
+      return mounted_dirents_;
+    }
+
   };
 
 
-  /** Global access point **/
-  template <bool create = true, typename T = void, typename P = const char*>
+  /** Template specializations **/
+  template<>
+  inline void VFS::mount(Path path, hw::Block_device& obj, std::string desc) {
+    INFO("VFS", "Creating Disk object for %s ", obj.device_name().c_str());
+    auto& disk_ptr = VFS::insert_disk(obj);
+    VFS::mount<true>(path, disk_ptr, desc);
+  }
+
+
+  /**
+   * Global access points
+   **/
+
+  /** fs::mount **/
+  template <bool create_path = true, typename T = void, typename P = Path>
   static inline auto mount(P path, T& obj, std::string desc = "N/A") {
-    VFS::mount<create, T>({path}, obj, desc);
+    Path p{path};
+    VFS::mount<create_path, T>(p, obj, desc);
   };
 
 
+  /** fs::root **/
   static inline auto&& root() {
     return VFS::root();
   };
 
-  template <typename T, typename P = const char*>
+  /** fs::get **/
+  template <typename T, typename P = Path>
   static inline T& get(P pathstr) {
     return VFS::get<T>(pathstr);
   }
 
-  template <typename P = const char*>
-  static inline Dirent stat(P path) {
+  /** fs::stat_sync **/
+  template <typename P = Path>
+  static inline Dirent stat_sync(P path) {
     Path p{path};
-    return VFS::get(p);
+    return VFS::stat_sync(p);
   }
 
+  /** fs::stat async **/
+  template <typename P = Path>
+  static inline void stat(P path, on_stat_func func) {
+    Path p{path};
+    VFS::stat(p, func);
+  }
+
+  /** fs::print_tree **/
   static void print_tree() {
     printf("\n");
     FILLINE('=');
@@ -360,7 +480,6 @@ namespace fs {
     FILLINE('_');
     printf("\n");
   }
-
 
 } // fs
 

@@ -47,7 +47,7 @@ namespace fs
     Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
 
     // return information about a filesystem entity
-    void   stat(Path_ptr, on_stat_func) override;
+    void   stat(Path_ptr, on_stat_func, const Dirent* const start) override;
     Dirent stat(Path ent, const Dirent* const start) override;
     // async cached stat
     void cstat(const std::string&, on_stat_func) override;
@@ -186,7 +186,7 @@ namespace fs
     // tree traversal
     typedef delegate<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
-    void traverse(std::shared_ptr<Path> path, cluster_func callback);
+    void traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const = nullptr);
     // sync version
     error_t traverse(Path path, dirvector&, const Dirent* const = nullptr);
     error_t int_ls(uint32_t sector, dirvector&);

@@ -180,7 +180,7 @@ void Service::start(const std::string&)
 
   int_i = 48;
   auto&& int_i2 = fs::get<int>("/proc/integers/i");
-  CHECKSERT(int_i == 48, "Non-const mounted objects can be modified.");
+  CHECKSERT(int_i2 == 48, "Non-const mounted objects can be modified.");
 
   auto&& tau = fs::get<const float>("/proc/floats/tau");
   CHECKSERT(tau == 6.28f, "Retreiving const-mounted object as const works");
@@ -219,7 +219,7 @@ void Service::start(const std::string&)
   try {
     auto&& string = fs::get<std::string>("/users/donald/master_plan.txt");
     FAIL("Retreiving a non mounted object should throw");
-    assert(tau);
+    assert(string.empty());
 
   } catch (const fs::Err_not_found& e){
     CHECKSERT(true, "Trying to retreive a non existing object throws");
@@ -241,11 +241,11 @@ void Service::start(const std::string&)
   const char* vfs_dir = "/suspicious_users/alfred/etc";
   auto etc = memdisk().stat(memdisk_dir);
 
-  INFO("VFS","Mountning memdisk dir '%s' on vfs '%s' \n",
+  INFO("VFS_test","Mountning memdisk dir '%s' on vfs '%s' \n",
          memdisk_dir, vfs_dir);
+
   // Mount a part of the memdisk filesystem into vfs.
   fs::mount(vfs_dir, etc , "Alfreds config");
-
 
   auto etc_ingve = memdisk().stat("/usres/ingve/etc");
   fs::mount("/trusted_users/ingve/etc", etc_ingve , "Ingves config");
@@ -257,10 +257,10 @@ void Service::start(const std::string&)
   auto etc_folder =  fs::get<fs::Dirent>("suspicious_users/alfred/etc");
 
   const char* forward_dir = "ip4/config.txt";
-  auto ip4_config = etc_folder.stat({"ip4", "config.txt"});
-  auto ip4_config2 = etc_folder.stat(forward_dir);
+  auto ip4_config = etc_folder.stat_sync({"ip4", "config.txt"});
+  auto ip4_config2 = etc_folder.stat_sync(forward_dir);
 
-  INFO("VFS","stat and read relative path '%s' from mounted dirent ",
+  INFO("VFS_test","stat and read relative path '%s' from mounted dirent ",
        forward_dir);
 
   CHECKSERT(ip4_config.read() == "10.0.0.42\n",
@@ -269,7 +269,7 @@ void Service::start(const std::string&)
   CHECKSERT(ip4_config.read() == ip4_config2.read(),
             "stat using const char* and initializer list both works");
 
-  INFO("VFS", "File content: %s", ip4_config.read().c_str());
+  INFO("VFS_test", "File content: %s", ip4_config.read().c_str());
 
   auto list = ip4_config.ls();
 
@@ -277,12 +277,12 @@ void Service::start(const std::string&)
     std::cout << entry.name() << "\n";
 
   const char* vfs_path = "/suspicious_users/alfred/etc/ip4/config.txt";
-  auto alfreds_config = fs::VFS::get(vfs_path);
+  auto alfreds_config = fs::VFS::stat_sync(vfs_path);
 
-  INFO("VFS", "Trying to stat vfs path '%s' directly", vfs_path);
-  auto alfreds_config2 = fs::stat(vfs_path);
+  INFO("VFS_test", "Trying to stat vfs path '%s' directly", vfs_path);
+  auto alfreds_config2 = fs::stat_sync(vfs_path);
 
-  INFO("VFS", "File content: %s", alfreds_config2.read().c_str());
+  INFO("VFS_test", "File content: %s", alfreds_config2.read().c_str());
 
   CHECKSERT(alfreds_config2.read() == "10.0.0.42\n",
             "File content verified");
@@ -292,11 +292,88 @@ void Service::start(const std::string&)
 
 
   /** Locate all disk drives **/
-  INFO("VFS", "Listing all disk drives: ");
+  INFO("VFS_test", "Mounting all disk drives: ");
 
-  for (auto& drv : hw::Devices::devices<hw::Block_device>())
-    printf("Drive name: %s \n", drv->device_name().c_str());
+  for (auto& drv : hw::Devices::devices<hw::Block_device>()) {
+    INFO("VFS_test", "Drive name: %s \n", drv->device_name().c_str());
+    fs::mount({"dev", drv->device_name()}, *drv, drv->driver_name());
+  }
 
-  INFO("VFS_test", "SUCCESS");
+  auto& disk0 = fs::get<fs::Disk_ptr>("/dev/vblk0");
+  auto& disk1 = fs::get<fs::Disk_ptr>("/dev/vblk1");
 
+  // TODO: LS over children in VFS_entries...
+
+  CHECKSERT(std::string(disk0->name()) == "vblk0", "First drive mounted successfully");
+  CHECKSERT(std::string(disk1->name()) == "vblk1", "Second drive mounted successfully");
+
+
+  // Mount a directory on a given disk, on a VFS path
+  try {
+    fs::VFS::mount({"/overlord/pictures/"}, disk0->name(), {"/pictures/"}, "Image of our lord commander", [](auto){
+        FAIL("Mounting a directory from an uninitialized disk should not call user callback");
+      });
+    FAIL("Mounting a directory from an uninitialized disk should throw");
+  } catch(const fs::Disk::Err_not_mounted& e){
+    CHECKSERT(true, "Mounting a directory on an uninitialized disk throws");
+  }
+
+  auto my_disk = disk1;
+
+  // "mounting" a disk (from Disk perspective) means initializing the file system
+  my_disk->mount([my_disk](auto err){
+
+      if (err) {
+        INFO("VFS_test", "Error mounting disk: %s \n", err.to_string().c_str());
+        return;
+      }
+
+      my_disk->fs().ls("/", [my_disk](auto err, auto dirvec){
+
+          if (err) {
+            INFO("VFS_test", "ls on disk %s failed", my_disk->name().c_str());
+            return;
+          }
+
+          INFO("VFS_test::mount", "ls on disk %s:", my_disk->name().c_str());
+          for (auto ent : *dirvec) {
+            std::cout << "\t|-" << ent.name() << "\n";
+          }
+
+        });
+
+      INFO("VFS_test", "Filesystem mounted on %s", my_disk->name().c_str());
+      fs::VFS::mount({"/overlord/pictures/"}, my_disk->name(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
+
+          if (err)
+            panic ("Error mounting dirent from disk on VFS path");
+
+          INFO("VFS_test", "Reading content of newly mounted folder");
+
+
+          // Actual user interface for VFS
+          fs::stat("/overlord/pictures/profile.txt", [](auto err, auto dir){
+
+              if (err)
+                panic("Error stating file \n");
+
+              INFO("VFS_test", "File found. Reading \n");
+
+              dir.read([](auto err, auto buf, auto size){
+
+                  if (err)
+                    panic("Errror reading file contents \n");
+
+                  std::string res((char*)buf.get(), size);
+
+                  std::cout << "Our overlords likeness: \n\n " << res;
+                  INFO("VFS_test", "SUCCESS");
+                });
+            });
+
+          /** PRINT **/
+          fs::print_tree();
+
+        });
+    });
 }
