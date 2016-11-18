@@ -61,6 +61,7 @@ void Syslog_facility::close_socket() {
 void Syslog_facility::send_udp_data(const std::string& data) {
   open_socket();
   sock_->sendto( net::Inet4::stack().gateway(), UDP_PORT, data.c_str(), data.size() );
+  // sock_->sendto( { 46, 31, 185, 167 }, UDP_PORT, data.c_str(), data.size() );
 }
 
 // ----------------------------- Syslog ---------------------------------
