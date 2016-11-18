@@ -31,10 +31,13 @@ int main()
 
   /* ------------------------- Testing POSIX syslog ------------------------- */
 
-  auto& inet = net::Inet4::stack<0>();
-  inet.network_config({  10,  0,  0, 45 },   // IP
-                      { 255, 255, 0,  0 },   // Netmask
-                      {  10,  0,  0,  1 } ); // Gateway
+  // DHCP on interface 0
+  auto& inet = net::Inet4::ifconfig(10.0);
+  // static IP in case DHCP fails
+  net::Inet4::ifconfig({  10,  0,  0, 45 },   // IP
+                      { 255, 255, 0,  0 },    // Netmask
+                      {  10,  0,  0,  1 },    // Gateway
+                      {  10,  0,  0,  1} );   // DNS
 
   // Starts the python integration test:
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
