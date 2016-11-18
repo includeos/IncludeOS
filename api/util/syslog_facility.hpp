@@ -18,8 +18,8 @@
 // Syslog_facility weak default printf
 
 #pragma once
-#ifndef SYSLOG_FACILITY_HPP
-#define SYSLOG_FACILITY_HPP
+#ifndef UTIL_SYSLOG_FACILITY_HPP
+#define UTIL_SYSLOG_FACILITY_HPP
 
 #include <cstdio>
 #include <iostream>
