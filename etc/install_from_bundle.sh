@@ -46,21 +46,12 @@ popd
 
 # Build IncludeOS
 echo -e "\n\n>>> Building IncludeOS"
-pushd $INCLUDEOS_SRC/src
-make -j2
+mkdir -p $INCLUDEOS_SRC/build
+pushd $INCLUDEOS_SRC/build
+cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX="$INCLUDEOS_INSTALL"
+make PrecompiledLibraries
+make -j
 make install
-popd
-
-# Compile vmbuilder
-echo -e "\n\n>>> Compiling the vmbuilder, which makes a bootable vm out of your service"
-pushd $INCLUDEOS_SRC/vmbuild
-make
-make install
-popd
-
-# Copy scripts for running qemu, creating a memdisk
-pushd $INCLUDEOS_SRC/etc
-./copy_scripts.sh
 popd
 
 echo -e "\n\n>>> Done! IncludeOS bundle downloaded and installed"
