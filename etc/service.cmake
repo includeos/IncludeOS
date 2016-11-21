@@ -169,4 +169,5 @@ add_custom_command(
 )
 
 # install binary directly to prefix (which should be service root)
-install(TARGETS service DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS service                                 DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY}.img DESTINATION ${CMAKE_INSTALL_PREFIX})

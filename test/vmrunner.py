@@ -269,12 +269,16 @@ class vm:
     os.chdir("build")
 
     # build with prefix = original path
-    cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=$INSTDIR"]
+    cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
     res = subprocess.check_output(cmake)
     print color.SUBPROC(res)
 
     # if everything went well, build with make and install
-    return self.make(["install"])
+    ret = self.make(["install"])
+    
+    # go back to service root
+    os.chdir("..")
+    return ret
 
   def boot(self, timeout = None, multiboot = True, kernel_args = "booted with vmrunner"):
 
