@@ -20,17 +20,28 @@
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
 #include <memdisk>
+#include <kernel/rng.hpp>
 
-int open(const char*, int, ...)
+static const int syscall_fd   {999};
+static const int rng_fd       {998};
+static bool debug_syscalls    {true};
+
+int open(const char* s, int, ...)
 {
+  if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
+    return rng_fd;
+  }
   return -1;
 }
 
-int close(int fildes)
+int close(int fd)
 {
+  if(fd == rng_fd) {
+    return 0;
+  }
   try
   {
-    return FD_map::_close(fildes);
+    return FD_map::_close(fd);
   }
   catch(const FD_not_found&)
   {
@@ -39,18 +50,26 @@ int close(int fildes)
   return -1;
 }
 
-int read(int, void*, size_t)
+int read(int fd, void* buf, size_t len)
 {
+  if(fd == rng_fd) {
+    rng_extract(buf, len);
+    return len;
+  }
   return 0;
 }
-int write(int file, const void* ptr, size_t len)
+int write(int fd, const void* ptr, size_t len)
 {
-  if (file < 4) {
+  if (fd < 4) {
     return OS::print((const char*) ptr, len);
   }
+  else if (fd == rng_fd) {
+    rng_absorb(ptr, len);
+    return len;
+  }
   try {
-    auto& fd = FD_map::_get(file);
-    return fd.write(ptr, len);
+    auto& fildes = FD_map::_get(fd);
+    return fildes.write(ptr, len);
   }
   catch(const FD_not_found&) {
     errno = EBADF;
