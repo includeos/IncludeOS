@@ -33,7 +33,7 @@ namespace fs {
       return "memdisk" + std::to_string(blkid);
     }
 
-    virtual handle<const char> driver_name() const noexcept override
+    virtual observer_ptr<const char> driver_name() const noexcept override
     { return "MemDisk"; }
 
     virtual block_t size() const noexcept override;
@@ -58,8 +58,8 @@ namespace fs {
     void deactivate() override;
 
   private:
-    const handle<const char> image_start_;
-    const handle<const char> image_end_;
+    const observer_ptr<const char> image_start_;
+    const observer_ptr<const char> image_end_;
 
     uint64_t& stat_read;
   }; //< class MemDisk

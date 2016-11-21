@@ -35,7 +35,7 @@
 /* Alias used to represent the notion of an */
 /* observable pointer                       */
 template<typename T>
-using handle = T*;
+using observer_ptr = T*;
 
 /* debugging macros */
 #include "debug"

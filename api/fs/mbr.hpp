@@ -67,7 +67,7 @@ namespace fs {
       partition part[PARTITIONS];
       uint16_t  magic;           // 0xAA55
 
-      inline handle<BPB> bpb() noexcept
+      inline observer_ptr<BPB> bpb() noexcept
       { return reinterpret_cast<BPB*>(boot); }
     } __attribute__((packed));
 

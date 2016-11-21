@@ -41,7 +41,7 @@ namespace net {
   using transmit_avail_delg = delegate<void(size_t)>;
 
   // Compute the internet checksum for the buffer / buffer part provided
-  uint16_t checksum(handle<void> data, size_t len) noexcept;
+  uint16_t checksum(observer_ptr<void> data, size_t len) noexcept;
 
   // View a packet differently based on context
   template <typename T, typename Packet>

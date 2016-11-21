@@ -54,7 +54,7 @@ public:
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
   { return fg | bg << 4; }
 
-  void write(handle<const char> data, const size_t len) noexcept;
+  void write(observer_ptr<const char> data, const size_t len) noexcept;
   void clear() noexcept;
 
   static const size_t VGA_WIDTH  {80};
@@ -77,7 +77,7 @@ private:
   size_t           row;
   size_t           column;
   uint8_t          color;
-  handle<uint16_t> buffer;
+  observer_ptr<uint16_t> buffer;
 }; //< ConsoleVGA
 
 #endif //< KERNEL_VGA_HPP
