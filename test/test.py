@@ -48,7 +48,10 @@ def print_skipped(tests):
     for test in tests:
         if test.skip_:
             print pretty.WARNING("* Skipping " + test.name_)
-            print "  Reason: {0:40}".format(test.skip_reason_)
+            if "validate_test" in test.skip_reason_:
+                validate_test.validate_path(test.path_, verb = True)
+            else:
+                print "  Reason: {0:40}".format(test.skip_reason_)
 
 
 class Test:
