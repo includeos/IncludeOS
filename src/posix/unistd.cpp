@@ -19,8 +19,8 @@
 #include <unistd.h>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
-#include <memdisk>
 #include <kernel/rng.hpp>
+#include <memdisk>
 
 static const int syscall_fd   {999};
 static const int rng_fd       {998};
