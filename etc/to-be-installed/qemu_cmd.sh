@@ -13,7 +13,7 @@ fi
 export macaddress="c0:01:0a:00:00:2a"
 INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
 
-export qemu_ifup="$INCLUDEOS_HOME/etc/qemu-ifup"
+export qemu_ifup="$INCLUDEOS_HOME/share/includeos/qemu-ifup"
 
 export NET=${NET-"-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"}
 export SMP=${SMP-"-smp 1"}

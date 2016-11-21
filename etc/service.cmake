@@ -164,6 +164,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT  ${BINARY}.img
   COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
-  DEPENDS ${BINARY}
+  DEPENDS service
 )
-add_custom_target(${BINARY}.img ALL DEPENDS ${BINARY})
+
+install(TARGETS service DESTINATION bin)
