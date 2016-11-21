@@ -167,4 +167,5 @@ add_custom_command(
   DEPENDS service
 )
 
-install(TARGETS service DESTINATION bin)
+# install binary directly to prefix (which should be service root)
+install(TARGETS service DESTINATION ${CMAKE_INSTALL_PREFIX})
