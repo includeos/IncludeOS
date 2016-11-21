@@ -17,7 +17,7 @@ INCLUDEOS_HOME = None
 nametag = "<VMRunner>"
 
 if "INCLUDEOS_HOME" not in os.environ:
-    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
+    print color.WARNING("WARNING:"), "Environment variable INCLUDEOS_HOME is not set. Trying default"
     def_home = os.environ["HOME"] + "/IncludeOS_install"
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
     INCLUDEOS_HOME= def_home
