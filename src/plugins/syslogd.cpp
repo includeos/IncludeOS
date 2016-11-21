@@ -15,35 +15,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Weak default printf
+// Syslog plugin (UDP)
 
-#include <syslogd>
+#include <os>
+#include <plugins/syslogd.hpp>
 #include <service>
+#include <net/inet4>
 #include <errno.h>		// errno
 #include <unistd.h>		// getpid
 
-#include <ctime>
+#include <syslog.h> 								// POSIX symbolic constants
+#include <util/syslogd.hpp>					// Header with weak method declarations
+#include <util/syslog_facility.hpp>	// Header with weak method declarations
+#include <info>                     // INFO
 
-std::unique_ptr<Syslog_facility> Syslog::fac_ = std::make_unique<Syslog_facility>();
+// ------------------------- Syslog_facility -----------------------------
 
-// va_list arguments (POSIX)
-void Syslog::syslog(const int priority, const char* message, va_list args) {
-  // vsnprintf removes % if calling syslog with %m in addition to arguments
-  // Find %m here first and escape % if found
-  std::regex m_regex{"\\%m"};
-  std::string msg = std::regex_replace(message, m_regex, "%%m");
+void Syslog_facility::syslog(const std::string& log_message) {
+	if (logopt_ & LOG_CONS /*and priority_ == LOG_ERR*/)
+		std::cout << log_message.c_str() << '\n';
 
-  char buf[BUFLEN];
-  vsnprintf(buf, BUFLEN, msg.c_str(), args);
-  syslog(priority, buf);
+  if (logopt_ & LOG_PERROR)
+    std::cerr << log_message.c_str() << '\n';
+
+  send_udp_data(log_message);
 }
 
-void Syslog::syslog(const int priority, const char* buf) {
+Syslog_facility::~Syslog_facility() {
+  if (sock_)
+    sock_->udp().close(sock_->local_port());
+}
 
-	/*
-		Custom syslog-message without some of the data specified in RFC5424
-		becase this implementation doesn't send data over UDP
-	*/
+void Syslog_facility::open_socket() {
+  if (sock_ == nullptr)
+    sock_ = &net::Inet4::stack<>().udp().bind();
+}
+
+void Syslog_facility::close_socket() {
+	if (sock_) {
+    sock_->udp().close(sock_->local_port());
+    sock_ = nullptr;
+	}
+}
+
+void Syslog_facility::send_udp_data(const std::string& data) {
+  open_socket();
+  sock_->sendto( net::Inet4::stack().gateway(), UDP_PORT, data.c_str(), data.size() );
+  // sock_->sendto( { 46, 31, 185, 167 }, UDP_PORT, data.c_str(), data.size() );
+}
+
+// ----------------------------- Syslog ---------------------------------
+
+void Syslog::syslog(const int priority, const char* buf) {
 
 	/*
   	All syslog-calls comes through here in the end, so
@@ -63,38 +86,33 @@ void Syslog::syslog(const int priority, const char* buf) {
 
  	fac_->set_priority(priority);
 
- 	/* Building the log message */
+ 	/* Building the log message based on RFC5424 */
 
- 	/* PRI FAC_NAME PRI_NAME TIMESTAMP APP-NAME IDENT PROCID */
+ 	/* Header: PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID */
 
- 	// First: Priority- and facility-value (PRIVAL)
- 	std::string message = "<" + std::to_string(fac_->calculate_pri()) + "> ";
+ 	// First: Priority- and facility-value (PRIVAL) and Syslog-version
+ 	std::string message = "<" + std::to_string(fac_->calculate_pri()) + ">1 ";
 
- 	// Second : Facility and priority/severity in plain text with colors
- 	message += pri_colors.at(fac_->priority()) + "<" + fac_->facility_name() + "." +
- 		fac_->priority_name() + "> " + COLOR_END;
-
- 	// Third: Timestamp
+ 	// Second: Timestamp
  	char timebuf[TIMELEN];
  	time_t now;
  	time(&now);
  	strftime(timebuf, TIMELEN, "%FT%T.000Z", localtime(&now));
- 	message += std::string{timebuf} + " ";
 
- 	// Fourth: App-name
- 	message += Service::binary_name();
+ 	// Third: Hostname ( Preferably: 1. FQDN (RFC1034) 2. Static IP address 3. Hostname 4. Dynamic IP address 5. NILVALUE (-) )
+ 	message += std::string{timebuf} + " " + net::Inet4::stack().ip_addr().str() + " ";
 
- 	// Fifth: Add ident if is set (through openlog)
- 	if (fac_->ident_is_set())
- 		message += " " + std::string{fac_->ident()};
+ 	// Fourth: App-name, PROCID (LOG_PID) and MSGID
+ 	message += Service::binary_name() + " " + std::to_string(getpid()) + " UDPOUT ";
 
- 	// Sixth: Add PID (PROCID) if LOG_PID is specified (through openlog)
- 	if (fac_->logopt() & LOG_PID)
- 		message += "[" + std::to_string(getpid()) + "]";
-
- 	message += ": ";
+ 	/* Structured data: SD-element (SD-ID PARAM-NAME=PARAM-VALUE) */
+ 	message += "- ";	// NILVALUE
 
  	/* Message */
+
+ 	// Add ident before message (buf) if is set (through openlog)
+ 	if (fac_->ident_is_set())
+ 		message += std::string{fac_->ident()} + " ";
 
  	/*
  		%m:
@@ -116,24 +134,21 @@ void Syslog::syslog(const int priority, const char* buf) {
 }
 
 void Syslog::openlog(const char* ident, int logopt, int facility) {
-  // fac_ = std::make_unique<Syslog_facility>(ident, facility);
-  fac_->set_ident(ident);
+	fac_->set_ident(ident);
 
   if (valid_logopt(logopt) or logopt == 0)  // Should be possible to clear the logopt
     fac_->set_logopt(logopt);
+  else
+  	fac_->set_logopt(0);	// Because of call to openlog from closelog
 
   if (valid_facility(facility))
     fac_->set_facility(facility);
 
-  /* Check for this in send_udp_data() in Syslog_facility instead
-  if (logopt & LOG_CONS and fac_->priority() == LOG_ERR) {
-    // Log to system console
-  }*/
-
-  /* Not relevant if logging to printf
   if (logopt & LOG_NDELAY) {
     // Connect to syslog daemon immediately
-  } else if (logopt & LOG_ODELAY) {
+    fac_->open_socket();
+  }
+  /*else if (logopt & LOG_ODELAY) {
     // Delay open until syslog() is called = do nothing (the converse of LOG_NDELAY)
   }*/
 
@@ -148,4 +163,17 @@ void Syslog::closelog() {
   // logopt = 0;
   // facility = LOG_USER;
   openlog(nullptr, 0, LOG_USER);
+  fac_->close_socket();
+}
+
+__attribute__((constructor))
+void register_plugin_syslogd() {
+  INFO("Syslog", "Sending buffered data to syslog plugin");
+
+  /*
+    @todo
+    Get dmesg (kernel logs) and send to syslog
+    INFO needs to be rewritten to use kprint and kprint needs to be rewritten to buffer the data
+  */
+
 }
