@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <service>
 #include <sys/utsname.h>
-#include <os>
 
-int uname(struct utsname *name) {
+int main()
+{
+  struct utsname struct_test;
+  uname(&struct_test);
+  printf("Sysname: %s\n", struct_test.sysname);
+  printf("Nodename: %s\n", struct_test.nodename);
+  printf("Release: %s\n", struct_test.release);
+  printf("Version: %s\n", struct_test.version);
+  printf("Machine: %s\n", struct_test.machine);
+  printf("Something special to close with\n");
+  return 0;
+}
 
-	strcpy(name->sysname, "IncludeOS");
-
-	/* sprintf(name->nodename, "Node %d\n", _Objects_Local_node); */
-	strcpy(name->nodename, "IncludeOS-node");
-	// same as hostname
-
-	strcpy(name->release, OS::version().c_str());
-
-	strcpy(name->version, OS::version().c_str());
-
-	/* sprintf(name->machine, "%s/%s", CPU_NAME, CPU_MODEL_NAME); */
-	// strcpy(name->machine, OS::machine().c_str());
-	strcpy(name->machine, "x86_64");
-
-	return 0;
+void Service::start(const std::string&)
+{
+  main();
 }

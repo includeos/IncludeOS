@@ -3,8 +3,8 @@
 #################################################
 
 # The name of your service
-SERVICE = test_posix_syslog
-SERVICE_NAME = POSIX Syslog Test Service
+SERVICE = test_posix_utsname
+SERVICE_NAME = POSIX Utsname Test Service
 
 # Your service parts
 FILES = service.cpp

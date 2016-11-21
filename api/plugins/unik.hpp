@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORMS_UNIK_HPP
-#define PLATFORMS_UNIK_HPP
+#ifndef PLUGINS_UNIK_HPP
+#define PLUGINS_UNIK_HPP
 
 #include <net/inet4.hpp>
 

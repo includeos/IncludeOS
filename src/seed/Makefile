@@ -79,8 +79,8 @@ MULTIBOOT = $(INSTALL)/multiboot.o
 DRIVER_OBJS_EXT = $(DRIVERS:=.o)
 DRIVER_OBJS = $(addprefix $(INSTALL)/drivers/, $(DRIVER_OBJS_EXT))
 
-PLATFORM_OBJS_EXT = $(PLATFORM:=.o)
-PLATFORM_OBJS = $(addprefix $(INSTALL)/platforms/, $(PLATFORM_OBJS_EXT))
+PLUGIN_OBJS_EXT = $(PLUGIN:=.o)
+PLUGIN_OBJS = $(addprefix $(INSTALL)/plugins/, $(PLUGIN_OBJS_EXT))
 
 
 # Full link list
@@ -136,7 +136,7 @@ minimal: CPPOPTS += -Os
 
 
 # Link the service with the os
-link_service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLATFORM_OBJS)
+link_service: $(OBJS) $(LIBS) $(DRIVER_OBJS) $(PLUGIN_OBJS)
 
 # build memdisk only when MEMDISK is set
 ifneq ($(MEMDISK),)
@@ -147,7 +147,7 @@ ifneq ($(MEMDISK),)
 endif
 
 	@echo "\n>> Linking service with OS"
-	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLATFORM_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
+	$(LD_INC) $(LDOPTS) $(OS_PRE) $(OBJS) $(DRIVER_OBJS) $(PLUGIN_OBJS) $(EXTRA_LIBS) $(LIBS) $(OS_POST) $(MEMDISK) -o $(SERVICE)
 
 # Save debugging symbols to separate file
 preserve_debug:

@@ -15,24 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sys/utsname.h>
-#include <os>
+// Syslog plugin (UDP)
 
-int uname(struct utsname *name) {
+#pragma once
+#ifndef PLUGINS_SYSLOGD_HPP
+#define PLUGINS_SYSLOGD_HPP
 
-	strcpy(name->sysname, "IncludeOS");
+const int UDP_PORT = 6514;
 
-	/* sprintf(name->nodename, "Node %d\n", _Objects_Local_node); */
-	strcpy(name->nodename, "IncludeOS-node");
-	// same as hostname
+/*
+	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
+	is in this header's corresponding cpp-file
+*/
 
-	strcpy(name->release, OS::version().c_str());
-
-	strcpy(name->version, OS::version().c_str());
-
-	/* sprintf(name->machine, "%s/%s", CPU_NAME, CPU_MODEL_NAME); */
-	// strcpy(name->machine, OS::machine().c_str());
-	strcpy(name->machine, "x86_64");
-
-	return 0;
-}
+#endif
