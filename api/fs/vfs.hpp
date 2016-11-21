@@ -287,7 +287,8 @@ namespace fs {
   /** Entry point for global VFS_entry tree **/
   struct VFS {
 
-    using Disk_key = std::string;
+    using Disk_id = hw::Block_device::Device_id;
+    using Disk_key = Disk_id;
     using Disk_map = std::map<Disk_key, fs::Disk_ptr>;
     using Path_str = std::string;
     using Dirent_mountpoint = std::pair<Disk_key, Path_str>;
@@ -303,10 +304,10 @@ namespace fs {
     }
 
     /** Mount a path local to a disk, on a VFS path - async **/
-    static inline void mount(Path local, std::string disk, Path remote, std::string desc, on_mount_delg callback) {
+    static inline void mount(Path local, Disk_id disk, Path remote, std::string desc, on_mount_delg callback) {
 
       INFO("VFS", "Creating mountpoint for %s::%s on %s",
-           disk.c_str(), remote.to_string().c_str(), local.to_string().c_str());
+           (std::string("blk") + std::to_string(disk)).c_str(), remote.to_string().c_str(), local.to_string().c_str());
 
       VFS::insert_dirent(disk, remote, [local, callback, desc](error_t err, auto&& dirent_ref){
           VFS::mount<true>(local, dirent_ref, desc);
@@ -314,9 +315,8 @@ namespace fs {
         });
     }
 
-
-    template <typename T, typename P = Path>
-    static T& get(P path) {
+    template <typename P = Path>
+    static VFS_entry& get_entry(P path){
 
       Path p{path};
       auto item = VFS::mutable_root().walk(p);
@@ -324,7 +324,12 @@ namespace fs {
       if (not item)
         throw Err_not_found(std::string("Path ") + p.to_string() + " does not exist");
 
-      return item->template obj<T>();
+      return *item;
+    }
+
+    template <typename T, typename P = Path>
+    static T& get(P path) {
+      return get_entry(path).template obj<T>();
     }
 
 
@@ -363,32 +368,32 @@ namespace fs {
 
     static fs::Disk_ptr& insert_disk(hw::Block_device& blk) {
       Disk_ptr ptr = std::make_shared<Disk>(blk);
-      auto& res = (disk_map().emplace(blk.device_name(), ptr)).first->second;
+      auto& res = (disk_map().emplace(blk.id(), ptr)).first->second;
       return res;
     }
 
-    static void insert_dirent(std::string diskname, Path path, insert_dirent_delg fn) {
+    static void insert_dirent(Disk_key disk_id, Path path, insert_dirent_delg fn) {
 
       // Get the disk, and file system from the disk
-      auto disk_it = disk_map().find(diskname);
+      auto disk_it = disk_map().find(disk_id);
 
       if (disk_it == disk_map().end())
-        throw Err_not_found(std::string("Disk ") + diskname + " is not mounted");
+        throw Err_not_found(std::string("Disk ") + std::to_string(disk_id) + " is not mounted");
 
       auto disk = disk_it->second;
 
-      if (not disk->fs_mounted())
-        throw Disk::Err_not_mounted(std::string("Disk ") + diskname + " does not have a mounted file system");
+      if (not disk->fs_ready())
+        throw Disk::Err_not_mounted(std::string("Disk ") + std::to_string(disk_id) + " does not have an initialized file system");
       auto& fs = disk_it->second->fs();
 
       // Get the dirent from the file system at path
-      fs.stat(path, [fn, diskname, path](auto err, auto dir){
+      fs.stat(path, [fn, disk_id, path](auto err, auto dir){
 
           if (err)
-            throw Err_not_found(std::string("Dirent ") + diskname + "::" + path.to_string());
+            throw Err_not_found(std::string("Dirent ") + std::to_string(disk_id) + "::" + path.to_string());
 
           // Preserve the dirent
-          auto res_it = (dirent_map().emplace(Dirent_mountpoint{diskname, path.to_string()}, dir));
+          auto res_it = (dirent_map().emplace(Dirent_mountpoint{disk_id, path.to_string()}, dir));
 
           if (res_it.second) {
             auto saved_dir = res_it.first->second;
@@ -443,7 +448,6 @@ namespace fs {
     Path p{path};
     VFS::mount<create_path, T>(p, obj, desc);
   };
-
 
   /** fs::root **/
   static inline auto&& root() {

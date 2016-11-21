@@ -37,10 +37,14 @@ namespace hw
     // Delegate for result of reading a disk sector
     using on_read_func = delegate<void(buffer_t)>;
 
+    using Device_id = int;
+
     static const char* device_type()
     { return "Block device"; }
 
     virtual std::string device_name() const = 0;
+
+    Device_id id() const { return id_; }
 
     /** Human-readable name of this disk controller  */
     virtual const char* driver_name() const noexcept = 0;
@@ -71,7 +75,9 @@ namespace hw
 
   protected:
     Block_device();
-    int blkid;
+
+  private:
+    int id_;
   }; //< class Drive
 
 } //< namespace hw

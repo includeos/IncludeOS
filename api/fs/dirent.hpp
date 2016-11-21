@@ -48,6 +48,8 @@ namespace fs {
     uint64_t block() const noexcept
     { return block_; }
 
+    inline Device_id device_id() const noexcept;
+
     uint64_t size() const noexcept
     { return size_; }
 
@@ -149,6 +151,10 @@ namespace fs {
 #include <fs/filesystem.hpp>
 
 namespace fs {
+
+  Device_id Dirent::device_id() const noexcept
+  { return fs_ ? fs_->device_id() : -1; }
+
   void Dirent::read(uint64_t pos, uint64_t n, on_read_func fn) {
     fs_->read(*this, pos, n, fn);
   }

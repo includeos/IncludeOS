@@ -34,9 +34,13 @@ namespace fs
   struct FAT : public File_system
   {
     /// ----------------------------------------------------- ///
-    void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
+    void init(uint64_t lba, uint64_t size, on_init_func on_init) override;
 
-    // path is a path in the mounted filesystem
+    fs::Device_id device_id() override {
+      return device.id();
+    }
+
+    // path is a path in the initialized filesystem
     void  ls     (const std::string& path, on_ls_func) override;
     void  ls     (const Dirent& entry,     on_ls_func) override;
     List  ls(const std::string& path) override;

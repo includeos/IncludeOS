@@ -36,10 +36,13 @@ namespace fs {
 
   struct File_system {
 
-    /** Mount this filesystem with LBA at @base_sector */
-    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
+    /** Initialize this filesystem with LBA at @base_sector */
+    virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
 
-    /** @param path: Path in the mounted filesystem */
+    /** Get unique (per device type) device id for underlying device.*/
+    virtual Device_id device_id() = 0;
+
+    /** @param path: Path in the initialized filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
     virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
     virtual List  ls(const std::string& path) = 0;

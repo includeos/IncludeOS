@@ -24,6 +24,7 @@
 #include <delegate>
 #include <vector>
 #include <fs/path.hpp>
+#include <hw/block_device.hpp>
 
 namespace fs {
 
@@ -44,6 +45,9 @@ namespace fs {
 
   /** Pointer types **/
   using Path_ptr = std::shared_ptr<Path>;
+
+  /** ID types **/
+  using Device_id = hw::Block_device::Device_id;
 
   /** Entity types for dirents **/
   enum Enttype {
@@ -179,7 +183,7 @@ namespace fs {
   extern error_t no_error;
 
     /** Async function types **/
-  using on_mount_func = delegate<void(error_t)>;
+  using on_init_func = delegate<void(error_t)>;
   using on_ls_func    = delegate<void(error_t, dirvec_t)>;
   using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
   using on_stat_func  = delegate<void(error_t, const Dirent&)>;

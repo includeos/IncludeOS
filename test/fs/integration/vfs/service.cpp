@@ -59,8 +59,8 @@ private:
 fs::File_system& memdisk() {
   static auto disk = fs::new_shared_memdisk();
 
-  if (not disk->fs_mounted())
-    disk->mount([](fs::error_t err) {
+  if (not disk->fs_ready())
+    disk->init_fs([](fs::error_t err) {
         if (err) panic("ERROR MOUNTING DISK\n");
       });
 
@@ -310,7 +310,7 @@ void Service::start(const std::string&)
 
   // Mount a directory on a given disk, on a VFS path
   try {
-    fs::VFS::mount({"/overlord/pictures/"}, disk0->name(), {"/pictures/"}, "Image of our lord commander", [](auto){
+    fs::VFS::mount({"/overlord/pictures/"}, disk0->device_id(), {"/pictures/"}, "Image of our lord commander", [](auto){
         FAIL("Mounting a directory from an uninitialized disk should not call user callback");
       });
     FAIL("Mounting a directory from an uninitialized disk should throw");
@@ -320,8 +320,8 @@ void Service::start(const std::string&)
 
   auto my_disk = disk1;
 
-  // "mounting" a disk (from Disk perspective) means initializing the file system
-  my_disk->mount([my_disk](auto err){
+  // initializing a file system
+  my_disk->init_fs([my_disk](auto err){
 
       if (err) {
         INFO("VFS_test", "Error mounting disk: %s \n", err.to_string().c_str());
@@ -335,7 +335,7 @@ void Service::start(const std::string&)
             return;
           }
 
-          INFO("VFS_test::mount", "ls on disk %s:", my_disk->name().c_str());
+          INFO("VFS_test", "ls on disk %s:", my_disk->name().c_str());
           for (auto ent : *dirvec) {
             std::cout << "\t|-" << ent.name() << "\n";
           }
@@ -343,7 +343,7 @@ void Service::start(const std::string&)
         });
 
       INFO("VFS_test", "Filesystem mounted on %s", my_disk->name().c_str());
-      fs::VFS::mount({"/overlord/pictures/"}, my_disk->name(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
+      fs::VFS::mount({"/overlord/pictures/"}, my_disk->device_id(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
 
           if (err)
             panic ("Error mounting dirent from disk on VFS path");
