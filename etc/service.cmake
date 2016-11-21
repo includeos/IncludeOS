@@ -161,8 +161,9 @@ add_custom_command(
   COMMAND rm _elf_symbols.bin
 )
 
+# create .img files too automatically
 add_custom_command(
-  OUTPUT  ${BINARY}.img
+  TARGET  service POST_BUILD
   COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
   DEPENDS service
 )

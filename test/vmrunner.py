@@ -247,12 +247,34 @@ class vm:
     return self._hyper.writeline(line)
 
   def make(self, params = []):
-    print color.INFO(nametag), "Building test service with 'make' (params=" + str(params) + ")"
+    print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
     make = ["make"]
     make.extend(params)
     res = subprocess.check_output(make)
     print color.SUBPROC(res)
     return self
+
+  def cmake(self):
+    print color.INFO(nametag), "Building with cmake"
+    # install dir:
+    INSTDIR = os.getcwd()
+
+    # create build directory
+    try:
+        os.makedirs("build")
+    except OSError as err:
+        if err.errno!=17:
+            raise
+    # go into build directory
+    os.chdir("build")
+
+    # build with prefix = original path
+    cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=$INSTDIR"]
+    res = subprocess.check_output(cmake)
+    print color.SUBPROC(res)
+
+    # if everything went well, build with make and install
+    return self.make(["install"])
 
   def boot(self, timeout = None, multiboot = True, kernel_args = "booted with vmrunner"):
 
