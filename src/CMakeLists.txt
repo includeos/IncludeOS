@@ -78,5 +78,5 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
-install(FILES seed/service_name.cpp DESTINATION share/includeos)
+install(FILES service_name.cpp DESTINATION share/includeos)
 install(FILES linker.ld DESTINATION share/includeos)

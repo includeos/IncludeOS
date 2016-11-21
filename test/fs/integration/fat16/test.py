@@ -25,4 +25,4 @@ call(["./fat16_disk.sh"], shell=True)
 vm.on_exit(cleanup)
 
 # Boot the VM
-vm.make().boot(30)
+vm.cmake().boot(30)
