@@ -51,7 +51,7 @@ void Service::start(const std::string&)
       Expects(sleeps < 10);
     });
 
-  Timers::oneshot(std::chrono::seconds(12), [](auto){
+  Timers::oneshot(std::chrono::seconds(15), [](auto){
       Expects(sleeps >= 10);
       INFO("Test","SUCCESS");
     });
