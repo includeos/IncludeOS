@@ -15,7 +15,7 @@ import validate_all
 
 startdir = os.getcwd()
 
-test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'platform', 'posix', 'stl', 'util']
+test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
 test_types = ['integration', 'stress', 'unit', 'misc']
 
 """
@@ -188,24 +188,6 @@ class Test:
     self.skip_ = False
     self.skip_reason_ = None
     return
-
-
-def unit_tests():
-  """Perform unit tests"""
-  global test_count
-  test_count += 1
-  if ("unit" in args.skip):
-    print pretty.WARNING("Unit tests skipped")
-    return 0
-  print pretty.HEADER("Building and running unit tests")
-  build_status = Test(".", name="Unit test build", command=["make"], clean = args.clean).start().wait_status()
-  unit_status = Test(".", name="Unit tests", command = ["./test.lest"]).start().wait_status()
-
-  if (build_status or unit_status) and args.fail:
-    print pretty.FAIL("Unit tests failed")
-    sys.exit(max(build_status, unit_status))
-
-  return max(build_status, unit_status)
 
 
 def stress_test():
@@ -395,10 +377,9 @@ def main():
     else:
         types_to_run = test_types
     stress = stress_test() if "stress" in types_to_run else 0
-    unit = unit_tests() if "unit" in types_to_run else 0
     misc = misc_working() if "misc" in types_to_run else 0
 
-    status = max(integration, stress, unit, misc)
+    status = max(integration, stress, misc)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")

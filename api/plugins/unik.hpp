@@ -15,24 +15,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sys/utsname.h>
-#include <os>
+#ifndef PLUGINS_UNIK_HPP
+#define PLUGINS_UNIK_HPP
 
-int uname(struct utsname *name) {
+#include <net/inet4.hpp>
 
-	strcpy(name->sysname, "IncludeOS");
+namespace unik{
 
-	/* sprintf(name->nodename, "Node %d\n", _Objects_Local_node); */
-	strcpy(name->nodename, "IncludeOS-node");
-	// same as hostname
+  const net::UDP::port_t default_port = 9876;
 
-	strcpy(name->release, OS::version().c_str());
+  class Client {
+  public:
+    using Registered_event = delegate<void()>;
 
-	strcpy(name->version, OS::version().c_str());
+    static void register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port = default_port);
+    static void register_instance_dhcp();
+    static void on_registered(Registered_event e) {
+      on_registered_ = e;
+    };
 
-	/* sprintf(name->machine, "%s/%s", CPU_NAME, CPU_MODEL_NAME); */
-	// strcpy(name->machine, OS::machine().c_str());
-	strcpy(name->machine, "x86_64");
+  private:
+    static Registered_event on_registered_;
+  };
 
-	return 0;
 }
+
+#endif

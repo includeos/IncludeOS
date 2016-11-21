@@ -47,6 +47,7 @@ popd
 # Build IncludeOS
 echo -e "\n\n>>> Building IncludeOS"
 pushd $INCLUDEOS_SRC/src
+make clean
 make -j2
 make install
 popd

@@ -15,24 +15,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sys/utsname.h>
-#include <os>
+// Syslog_facility weak default printf
 
-int uname(struct utsname *name) {
+#include <util/syslog_facility.hpp>
 
-	strcpy(name->sysname, "IncludeOS");
+// Weak
+void Syslog_facility::syslog(const std::string& log_message) {
+	if (logopt_ & LOG_CONS /*and priority_ == LOG_ERR*/)
+		std::cout << log_message.c_str() << '\n';
 
-	/* sprintf(name->nodename, "Node %d\n", _Objects_Local_node); */
-	strcpy(name->nodename, "IncludeOS-node");
-	// same as hostname
+  if (logopt_ & LOG_PERROR)
+    std::cerr << log_message.c_str() << '\n';
 
-	strcpy(name->release, OS::version().c_str());
-
-	strcpy(name->version, OS::version().c_str());
-
-	/* sprintf(name->machine, "%s/%s", CPU_NAME, CPU_MODEL_NAME); */
-	// strcpy(name->machine, OS::machine().c_str());
-	strcpy(name->machine, "x86_64");
-
-	return 0;
+	printf("%s\n", log_message.c_str());
 }
+
+// Weak
+Syslog_facility::~Syslog_facility() {}
+
+// Weak
+void Syslog_facility::open_socket() {}
+
+// Weak
+void Syslog_facility::close_socket() {}
+
+// Weak
+void Syslog_facility::send_udp_data(const std::string& data) {}
