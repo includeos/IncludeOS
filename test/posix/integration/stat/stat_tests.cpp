@@ -18,7 +18,7 @@ void stat_tests()
   char buf[1024];
   struct stat buffer;
 
-  res = stat("FOLDER1", nullptr);
+  res = stat("folder1", nullptr);
   printf("stat("") with nullptr result: %d\n", res);
   if (res == -1)
   {
@@ -29,8 +29,8 @@ void stat_tests()
   }
   CHECKSERT(res == -1 && errno == EFAULT, "stat() with nullptr buffer fails with EFAULT");
 
-  res = stat("FOLDER1", &buffer);
-  printf("stat(\"FOLDER1\") result: %d\n", res);
+  res = stat("folder1", &buffer);
+  printf("stat(\"folder1\") result: %d\n", res);
   if (res == -1)
   {
     printf("stat error: %s\n", strerror(errno));
@@ -40,8 +40,8 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "stat() of folder that exists is ok");
 
-  res = stat("FILE1", &buffer);
-  printf("stat(\"FILE1\") result: %d\n", res);
+  res = stat("file1", &buffer);
+  printf("stat(\"file1\") result: %d\n", res);
   if (res == -1)
   {
     printf("stat error: %s\n", strerror(errno));
@@ -51,8 +51,8 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "stat() of file that exists is ok");
 
-  res = stat("FOLDER666", &buffer);
-  printf("stat(\"FOLDER1\") result: %d\n", res);
+  res = stat("folder666", &buffer);
+  printf("stat(\"folder1\") result: %d\n", res);
   if (res == -1)
   {
     printf("stat error: %s\n", strerror(errno));
@@ -62,8 +62,8 @@ void stat_tests()
   }
   CHECKSERT(res == -1, "stat() of folder that does not exist fails");
 
-  res = stat("FILE666", &buffer);
-  printf("stat(\"FILE666\") result: %d\n", res);
+  res = stat("file666", &buffer);
+  printf("stat(\"file666\") result: %d\n", res);
   if (res == -1)
   {
     printf("stat error: %s\n", strerror(errno));
@@ -72,8 +72,6 @@ void stat_tests()
     print_stat(buffer);
   }
   CHECKSERT(res == -1, "stat() of file that does not exist fails");
-
-
 
   res = chdir(nullptr);
   printf("chdir result (to nullptr): %d\n", res);
@@ -91,7 +89,7 @@ void stat_tests()
   }
   CHECKSERT(res == -1, "chdir(\"\") should fail");
 
-  res = chdir("FILE2");
+  res = chdir("file2");
   printf("chdir result (not a folder): %d\n", res);
   if (res == -1)
   {
@@ -99,7 +97,7 @@ void stat_tests()
   }
   CHECKSERT(res == -1, "chdir() to a file should fail");
 
-  res = chdir("FOLDER1");
+  res = chdir("folder1");
   printf("chdir result (existing folder): %d\n", res);
   if (res == -1)
   {
@@ -107,10 +105,8 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "chdir to folder that exists is ok");
 
-
-
-  res = fstatat(AT_FDCWD, "FILE1", &buffer, 0);
-  printf("fstatat(\"FILE1\") result: %d\n", res);
+  res = fstatat(AT_FDCWD, "file1", &buffer, 0);
+  printf("fstatat(\"file1\") result: %d\n", res);
   if (res == -1)
   {
     printf("fstatat error: %s\n", strerror(errno));
@@ -120,7 +116,7 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "fstatat() of file that exists is ok");
 
-  res = chdir("/FOLDER1");
+  res = chdir("/folder1");
   printf("chdir result (existing folder, absolute): %d\n", res);
   if (res == -1)
   {
@@ -135,7 +131,7 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "chdir(\".\") is ok");
 
-  res = chdir("FOLDERA");
+  res = chdir("foldera");
   printf("chdir result (to subfolder of cwd): %d\n", res);
   if (res == -1)
   {

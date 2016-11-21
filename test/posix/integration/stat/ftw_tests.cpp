@@ -26,7 +26,7 @@ void ftw_tests()
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  auto directory_first = is_before(items, "/FOLDER1", "/FOLDER1/FOLDERA");
+  auto directory_first = is_before(items, "/folder1", "/folder1/foldera");
   CHECKSERT(directory_first, "nftw() visits a directory before the directory's files");
 
   items.clear();
@@ -39,7 +39,7 @@ void ftw_tests()
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  auto files_first = is_before(items, "/FOLDER1/FOLDERA", "/FOLDER1");
+  auto files_first = is_before(items, "/folder1/foldera", "/folder1");
   CHECKSERT(files_first, "nftw() visits the directory's files before the directory when FTW_DEPTH is specified");
 
   res = nftw("MISSING_FILE", display_info, 20, FTW_PHYS);
@@ -49,31 +49,31 @@ void ftw_tests()
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  res = nftw("FILE1", display_info, 20, FTW_PHYS);
+  res = nftw("file1", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /FOLDER1\n");
-  res = nftw("/FOLDER1", display_info, 20, FTW_PHYS);
+  printf("nftw /folder1\n");
+  res = nftw("/folder1", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /FOLDER2\n");
-  res = nftw("/FOLDER2", display_info, 20, FTW_PHYS);
+  printf("nftw /folder2\n");
+  res = nftw("/folder2", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /FOLDER3\n");
-  res = nftw("/FOLDER3", display_info, 20, FTW_PHYS);
+  printf("nftw /folder3\n");
+  res = nftw("/folder3", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
