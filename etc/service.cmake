@@ -1,5 +1,5 @@
 #
-# 
+#
 #
 
 # test compiler
@@ -33,7 +33,7 @@ option(stripped "reduce size" OFF)
 # DRIVERS
 set(DRIVERS)
 
-file(GLOB DRIVER_LIST "${INCLUDEOS_ROOT}/lib/includeos-drivers/*.a")
+file(GLOB DRIVER_LIST "${INCLUDEOS_ROOT}/includeos/drivers/*.a")
 foreach(FILENAME ${DRIVER_LIST})
   get_filename_component(OPTNAME ${FILENAME} NAME_WE)
   option(${OPTNAME} "Add ${OPTNAME} driver" OFF)
@@ -55,18 +55,18 @@ set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m3
 set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32")
 
 # executable
-set(SERVICE_STUB "${INCLUDEOS_ROOT}/share/includeos/service_name.cpp")
+set(SERVICE_STUB "${INCLUDEOS_ROOT}/includeos/src/service_name.cpp")
 
 add_executable(service ${SOURCES} ${SERVICE_STUB})
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories(${INCLUDEOS_ROOT}/include/libcxx)
-include_directories(${INCLUDEOS_ROOT}/include/api/sys)
-include_directories(${INCLUDEOS_ROOT}/include/newlib)
-include_directories(${INCLUDEOS_ROOT}/include/api/posix)
-include_directories(${INCLUDEOS_ROOT}/include/api)
+include_directories(${INCLUDEOS_ROOT}/includeos/include/libcxx)
+include_directories(${INCLUDEOS_ROOT}/includeos/include/api/sys)
+include_directories(${INCLUDEOS_ROOT}/includeos/include/newlib)
+include_directories(${INCLUDEOS_ROOT}/includeos/include/api/posix)
+include_directories(${INCLUDEOS_ROOT}/includeos/include/api)
 include_directories(${INCLUDEOS_ROOT}/include/gsl)
 
 
@@ -85,32 +85,32 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=${INCLUDEOS_ROOT}/share/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_ROOT}/share/includeos/crtbegin.o ${INCLUDEOS_ROOT}/share/includeos/crti.o ${INCLUDEOS_ROOT}/share/includeos/multiboot.cpp.o")
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=${INCLUDEOS_ROOT}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} ${INCLUDEOS_ROOT}/includeos/lib/crtbegin.o ${INCLUDEOS_ROOT}/includeos/lib/crti.o ${INCLUDEOS_ROOT}/includeos/boot/multiboot.cpp.o")
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libos.a)
+set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libos.a)
 
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc++.a)
+set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libc++.a)
 set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc++abi.a)
+set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libc++abi.a)
 
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libc.a)
+set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libc.a)
 add_library(libm STATIC IMPORTED)
 set_target_properties(libm PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libm.a)
+set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libm.a)
 add_library(libg STATIC IMPORTED)
 set_target_properties(libg PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libg PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libg.a)
+set_target_properties(libg PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libg.a)
 add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/lib/libgcc.a)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_ROOT}/includeos/lib/libgcc.a)
 
 # add drivers before the other libraries
 foreach(DRIVER ${DRIVERS})
@@ -144,8 +144,8 @@ target_link_libraries(service
     libm
     libg
     libgcc
-    ${INCLUDEOS_ROOT}/share/includeos/crtend.o
-    ${INCLUDEOS_ROOT}/share/includeos/crtn.o
+    ${INCLUDEOS_ROOT}/includeos/lib/crtend.o
+    ${INCLUDEOS_ROOT}/includeos/lib/crtn.o
   )
 
 set(STRIP_LV strip --strip-all ${BINARY})
@@ -155,7 +155,7 @@ endif()
 
 add_custom_command(
   TARGET  service POST_BUILD
-  COMMAND ${INCLUDEOS_ROOT}/bin/elf_syms ${BINARY}
+  COMMAND ${INCLUDEOS_ROOT}/includeos/bin/elf_syms ${BINARY}
   COMMAND objcopy --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
   COMMAND rm _elf_symbols.bin
@@ -164,7 +164,7 @@ add_custom_command(
 # create .img files too automatically
 add_custom_command(
   TARGET  service POST_BUILD
-  COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
+  COMMAND ${INCLUDEOS_ROOT}/includeos/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/includeos/boot/bootloader
   DEPENDS service
 )
 

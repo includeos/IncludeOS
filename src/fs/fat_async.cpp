@@ -58,7 +58,7 @@ namespace fs
     (*next)(sector);
   }
 
-  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback)
+  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const start)
   {
     // parse this path into a stack of memes
     typedef std::function<void(uint32_t)> next_func_t;
@@ -125,8 +125,8 @@ namespace fs
       });
 
     };
-    // start by reading root directory
-    (*next)(0);
+    // start by reading provided dirent or root
+    (*next)(start ? start->block() : 0);
   }
 
   void FAT::ls(const std::string& path, on_ls_func on_ls) {
@@ -196,7 +196,7 @@ namespace fs
     });
   }
 
-  void FAT::stat(Path_ptr path, on_stat_func func)
+  void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start)
   {
     // manual lookup
     if (unlikely(path->empty())) {
@@ -231,7 +231,7 @@ namespace fs
 
       // not found
       func({ error_t::E_NOENT, filename }, Dirent(this, INVALID_ENTITY, filename));
-    });
+    }, start);
   }
 
   void FAT::cstat(const std::string& strpath, on_stat_func func)

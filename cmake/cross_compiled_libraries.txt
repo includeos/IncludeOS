@@ -78,17 +78,17 @@ else(from_bundle)
 	)
 
 	# TODO: the build_llvm32 script looks a lot tougher than this.
-	
+
 
 	# add this for now, still working on performing all cross-compilation steps
 	# message(FATAL_ERROR "not fully supported yet")
 endif(from_bundle)
 
 # installation instructions
-install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION include/libcxx)
+install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/include/libcxx)
 
-install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION include/newlib)
+install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/include/newlib)
 
-install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION share/includeos)
+install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/lib)
 
-install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a DESTINATION lib)
+install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a DESTINATION includeos/lib)

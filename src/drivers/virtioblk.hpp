@@ -36,7 +36,7 @@ public:
   static constexpr size_t SECTOR_SIZE = 512;
 
   std::string device_name() const override {
-    return "vblk" + std::to_string(blkid);
+    return "vblk" + std::to_string(id());
   }
 
   /** Human readable name. */

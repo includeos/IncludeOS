@@ -1,7 +1,8 @@
 #! /bin/bash
-set -e
-sudo ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/share/includeos/create_bridge.sh
+set -
+INCLUDEOS_HOME=${INCLUDEOS_HOME-/usr/local}
+sudo $INCLUDEOS_HOME/includeos/scripts/create_bridge.sh
 
 FILE=$1
 shift
-source ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/share/includeos/run.sh $FILE ${*}
+source $INCLUDEOS_HOME/includeos/scripts/run.sh $FILE ${*}

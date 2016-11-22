@@ -30,8 +30,8 @@ public:
   static const size_t PAYLOAD_SIZE = 64000;
 
   typedef net::tcp::Connection_ptr Connection;
-  typedef fs::Disk_ptr             Disk;
-  typedef fs::Dirent   Dirent;
+  using Disk = fs::Disk_ptr;
+  typedef fs::Dirent Dirent;
 
   typedef std::function<void(bool)> next_func;
   typedef std::function<void(fs::error_t, bool)> on_after_func;

@@ -4,6 +4,10 @@ project (includeos)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
+set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
+set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
+set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
+
 # test compiler
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
@@ -92,17 +96,22 @@ if(examples)
 	add_subdirectory(examples)
 endif(examples)
 
-install(DIRECTORY api/ DESTINATION include/api)
+install(DIRECTORY api/ DESTINATION includeos/api)
 
 enable_testing()
 add_subdirectory(test)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION share/includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION share/includeos)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/create_bridge.sh DESTINATION share/includeos)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/to-be-installed/qemu_cmd.sh DESTINATION share/includeos)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/to-be-installed/qemu-ifup   DESTINATION share/includeos)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/to-be-installed/run.sh      DESTINATION share/includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
+
+# Install scripts
+install(PROGRAMS
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
+  DESTINATION includeos/scripts)
 
 install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
 
