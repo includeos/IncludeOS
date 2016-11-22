@@ -12,11 +12,9 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "usage of Gcc is not currently supported, please clean-up build directory and configure for clang through CC and CXX environmental variables")
+	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-# TODO: should this not be moved into the library itself
-set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # get new stack protector value
