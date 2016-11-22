@@ -25,7 +25,7 @@ set(OS_OBJECTS
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm
-  kernel/timers.cpp kernel/rtc.cpp
+  kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
@@ -71,12 +71,12 @@ add_custom_target(crtn DEPENDS crtn.o)
 add_subdirectory(boot)
 add_subdirectory(drivers)
 
-install(TARGETS c++abi os DESTINATION lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION share/includeos)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
+install(TARGETS c++abi os DESTINATION includeos/lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION includeos/lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION includeos/lib)
 
-install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
+install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
-install(FILES seed/service_name.cpp DESTINATION share/includeos)
-install(FILES linker.ld DESTINATION share/includeos)
+install(FILES service_name.cpp DESTINATION includeos/src)
+install(FILES linker.ld DESTINATION includeos)

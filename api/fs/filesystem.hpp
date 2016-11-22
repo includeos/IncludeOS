@@ -36,10 +36,13 @@ namespace fs {
 
   struct File_system {
 
-    /** Mount this filesystem with LBA at @base_sector */
-    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
+    /** Initialize this filesystem with LBA at @base_sector */
+    virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
 
-    /** @param path: Path in the mounted filesystem */
+    /** Get unique (per device type) device id for underlying device.*/
+    virtual Device_id device_id() = 0;
+
+    /** @param path: Path in the initialized filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
     virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
     virtual List  ls(const std::string& path) = 0;
@@ -58,16 +61,19 @@ namespace fs {
     virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) = 0;
 
     /** Return information about a file or directory - async */
-    virtual void stat(Path_ptr, on_stat_func fn) = 0;
+    virtual void stat(Path_ptr, on_stat_func fn, const Dirent* const = nullptr) = 0;
 
-    /** Return information about a file or directory - sync */
-    virtual Dirent stat(Path, const observer_ptr<const Dirent> = nullptr) = 0;
+    /** Stat async - for various types of path initializations **/
+    template <typename P = Path>
+    inline void stat(P pathstr, on_stat_func fn, const Dirent* const = nullptr);
 
-    /** Stat async - string variant **/
-    inline void stat(const std::string& pathstr, on_stat_func fn);
+    /** Return information about a file or directory relative to dirent - sync*/
+    virtual Dirent stat(Path, observer_ptr<const Dirent> = nullptr) = 0;
 
-    /** Stat sync - string variant **/
-    inline Dirent stat(const std::string& pathstr);
+    /** Return information about a file or directory relative to dirent - sync*/
+    template <typename P = Path>
+    inline Dirent stat(P, const Dirent* const = nullptr);
+
 
     /** Cached async stat */
     virtual void cstat(const std::string& pathstr, on_stat_func) = 0;
@@ -94,13 +100,15 @@ namespace fs {
 
 namespace fs {
 
-  void File_system::stat(const std::string& pathstr, on_stat_func fn) {
-    auto path = std::make_shared<Path> (pathstr);
-    stat(path, fn);
+  template <typename P>
+  void File_system::stat(P path, on_stat_func fn, const Dirent* const dir) {
+    auto path_ptr = std::make_shared<Path> (path);
+    stat(path_ptr, fn, dir);
   }
 
-  Dirent File_system::stat(const std::string& pathstr) {
-    return stat(Path{pathstr});
+  template <typename P>
+  Dirent File_system::stat(P pathstr, const Dirent* const dir) {
+    return stat(Path{pathstr}, dir);
   }
 
 

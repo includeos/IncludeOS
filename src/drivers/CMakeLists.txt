@@ -6,5 +6,6 @@
 # ...There are probably nicer solutions, so please PR if you know them.
 add_library(virtioblk STATIC virtioblk.cpp)
 add_library(virtionet STATIC virtionet.cpp)
+add_library(heap_debugging STATIC heap_debugging.cpp)
 
-install(TARGETS virtionet virtioblk DESTINATION lib/includeos-drivers)
+install(TARGETS virtionet virtioblk heap_debugging DESTINATION includeos/drivers)

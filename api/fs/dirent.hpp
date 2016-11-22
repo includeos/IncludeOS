@@ -48,6 +48,8 @@ namespace fs {
     uint64_t block() const noexcept
     { return block_; }
 
+    inline Device_id device_id() const noexcept;
+
     uint64_t size() const noexcept
     { return size_; }
 
@@ -106,6 +108,9 @@ namespace fs {
     /** Read async **/
     inline void read(uint64_t pos, uint64_t n, on_read_func fn);
 
+    /** Read the whole file async **/
+    inline void read(on_read_func fn);
+
     /** Read sync **/
     inline Buffer read(uint64_t pos, uint64_t n);
 
@@ -118,9 +123,15 @@ namespace fs {
     /** List contents sync **/
     inline List ls();
 
-    /** Get a dirent by path, relative to here **/
+    /** Get a dirent by path, relative to here - async **/
     template <typename P = std::initializer_list<std::string> >
-    inline Dirent stat(P path);
+    inline void stat(P path, on_stat_func);
+
+    /** Get a dirent by path, relative to here - sync **/
+    template <typename P = std::initializer_list<std::string> >
+    inline Dirent stat_sync(P path);
+
+
 
   private:
     observer_ptr<File_system> fs_;
@@ -140,8 +151,17 @@ namespace fs {
 #include <fs/filesystem.hpp>
 
 namespace fs {
+
+  Device_id Dirent::device_id() const noexcept
+  { return fs_ ? fs_->device_id() : -1; }
+
   void Dirent::read(uint64_t pos, uint64_t n, on_read_func fn) {
     fs_->read(*this, pos, n, fn);
+  }
+
+  /** Read the whole file, async **/
+  void Dirent::read(on_read_func fn) {
+    read(0, size_, fn);
   }
 
   /** Read sync **/
@@ -154,6 +174,7 @@ namespace fs {
     return read(0, size_).to_string();
   }
 
+
   /** List contents async **/
   void Dirent::ls(on_ls_func fn) {
     fs_->ls(*this, fn);
@@ -165,7 +186,12 @@ namespace fs {
   }
 
   template <typename P>
-  Dirent Dirent::stat(P path) {
+  void Dirent::stat(P path, on_stat_func fn) {
+    fs_->stat(Path{path}, fn, this);
+  };
+
+  template <typename P>
+  Dirent Dirent::stat_sync(P path) {
     return fs_->stat(Path{path}, this);
   };
 
