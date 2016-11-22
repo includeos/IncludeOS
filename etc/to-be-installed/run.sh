@@ -16,7 +16,7 @@ DEBUG=0
 [[ $2 = "debug" ]] && DEBUG=1
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
-. $INCLUDEOS_HOME/etc/qemu_cmd.sh
+. $INCLUDEOS_HOME/share/includeos/qemu_cmd.sh
 
 # Qemu with gdb debugging:
 

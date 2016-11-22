@@ -12,6 +12,9 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
+# stack protector canary helps detect overflows
+string(RANDOM LENGTH 7 ALPHABET 0123456789 STACK_PROTECTOR_VALUE)
+
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
@@ -42,6 +45,9 @@ endforeach()
 set(OPTIMIZE "-O2")
 if (minimal)
   set(OPTIMIZE "-Os")
+endif()
+if (debug)
+  set(CAPABS "${CAPABS} -g")
 endif()
 
 # these kinda work with llvm
@@ -117,6 +123,17 @@ foreach(DRIVER ${DRIVERS})
   target_link_libraries(service --whole-archive ${DNAME} --no-whole-archive)
 endforeach()
 
+# add all extra libs
+foreach(LIBR ${LIBRARIES})
+  get_filename_component(LNAME ${LIBR} NAME_WE)
+
+  add_library(${LNAME} STATIC IMPORTED)
+  set_target_properties(${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
+
+  target_link_libraries(service ${LNAME})
+endforeach()
+
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
@@ -144,9 +161,13 @@ add_custom_command(
   COMMAND rm _elf_symbols.bin
 )
 
+# create .img files too automatically
 add_custom_command(
-  OUTPUT  ${BINARY}.img
+  TARGET  service POST_BUILD
   COMMAND ${INCLUDEOS_ROOT}/bin/vmbuild ${BINARY} ${INCLUDEOS_ROOT}/share/includeos/bootloader
-  DEPENDS ${BINARY}
+  DEPENDS service
 )
-add_custom_target(${BINARY}.img ALL DEPENDS ${BINARY})
+
+# install binary directly to prefix (which should be service root)
+install(TARGETS service                                 DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY}.img DESTINATION ${CMAKE_INSTALL_PREFIX})

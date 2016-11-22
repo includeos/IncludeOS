@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e
-sudo ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/create_bridge.sh
-make -j
+sudo ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/share/includeos/create_bridge.sh
 
-export CMDLINE="-append \"${*}\""
-source ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/etc/run.sh `make kernelfile`
+FILE=$1
+shift
+source ${INCLUDEOS_HOME-$HOME/IncludeOS_install}/share/includeos/run.sh $FILE ${*}
