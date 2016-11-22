@@ -55,15 +55,15 @@ add_library(c++abi STATIC ${CXX_ABI})
 add_dependencies(c++abi libcxx)
 
 add_custom_command(
-	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
+	OUTPUT crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
-	OUTPUT ${INCLUDEOS_ROOT}/src/crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
+	OUTPUT crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)
@@ -73,8 +73,7 @@ add_subdirectory(drivers)
 add_subdirectory(plugins)
 
 install(TARGETS c++abi os DESTINATION includeos/lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION includeos/lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION includeos/lib)
+install(FILES crt/crti.o crt/crtn.o DESTINATION includeos/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
