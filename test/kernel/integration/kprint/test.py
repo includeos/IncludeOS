@@ -10,7 +10,6 @@ sys.path.insert(0,includeos_src + "/test")
 import vmrunner
 
 vm = vmrunner.vms[0];
-vm.make()
 
 def check_hex(line):
   my_hex = line.split(":")[1].strip()
@@ -36,4 +35,4 @@ vm.on_output("I can print hex", check_hex)
 vm.on_output("Format", set_format_string_size)
 vm.on_output("truncate", check_truncation)
 
-vm.boot(20)
+vm.cmake().boot(20)
