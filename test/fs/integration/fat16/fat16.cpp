@@ -36,11 +36,11 @@ void Service::start(const std::string&)
   // which means that the disk can't be empty
   CHECKSERT(!disk->empty(), "Disk not empty");
 
-  // auto-mount filesystem
-  disk->mount(
+  // auto-init filesystem
+  disk->init_fs(
   [disk] (fs::error_t err)
   {
-    CHECKSERT(!err, "Filesystem auto-mounted");
+    CHECKSERT(!err, "Filesystem auto-initialized");
 
     auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
@@ -55,11 +55,11 @@ void Service::start(const std::string&)
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
   });
-  // re-mount on MBR (sigh)
-  disk->mount(disk->MBR,
+  // re-init on MBR (sigh)
+  disk->init_fs(disk->MBR,
   [disk] (fs::error_t err)
   {
-    CHECKSERT(!err, "Filesystem mounted on VBR1");
+    CHECKSERT(!err, "Filesystem initialized on VBR1");
 
     // verify that we can read file
     auto& fs = disk->fs();

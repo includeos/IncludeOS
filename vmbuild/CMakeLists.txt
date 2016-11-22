@@ -17,4 +17,4 @@ add_executable(elf_syms ${ELF_SYMS_SOURCES})
 add_dependencies(elf_syms libcxx)
 
 # TODO: use prefix to install into the right directory
-install(TARGETS vmbuild elf_syms DESTINATION bin)
+install(TARGETS vmbuild elf_syms DESTINATION includeos/bin)

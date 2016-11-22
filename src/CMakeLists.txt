@@ -71,12 +71,12 @@ add_custom_target(crtn DEPENDS crtn.o)
 add_subdirectory(boot)
 add_subdirectory(drivers)
 
-install(TARGETS c++abi os DESTINATION lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION share/includeos)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
+install(TARGETS c++abi os DESTINATION includeos/lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION includeos/lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION includeos/lib)
 
-install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
+install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
-install(FILES seed/service_name.cpp DESTINATION share/includeos)
-install(FILES linker.ld DESTINATION share/includeos)
+install(FILES service_name.cpp DESTINATION includeos/src)
+install(FILES linker.ld DESTINATION includeos)

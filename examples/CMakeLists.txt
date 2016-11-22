@@ -5,7 +5,7 @@ SET(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/ld <OBJECTS> -o  <TARGET> <CMAKE_CXX_LIN
 
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
-set(SERVICE_STUB "${INCLUDEOS_ROOT}/src/seed/service_name.cpp")
+set(SERVICE_STUB "${INCLUDEOS_ROOT}/src/service_name.cpp")
 
 set(EXAMPLE_COMPILE_FLAGS "-target i686-elf -mstackrealign -msse3 -fstack-protector-strong -O2 ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -D_GNU_SOURCE")
 

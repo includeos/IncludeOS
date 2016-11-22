@@ -34,9 +34,13 @@ namespace fs
   struct FAT : public File_system
   {
     /// ----------------------------------------------------- ///
-    void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) override;
+    void init(uint64_t lba, uint64_t size, on_init_func on_init) override;
 
-    // path is a path in the mounted filesystem
+    fs::Device_id device_id() override {
+      return device.id();
+    }
+
+    // path is a path in the initialized filesystem
     void  ls     (const std::string& path, on_ls_func) override;
     void  ls     (const Dirent& entry,     on_ls_func) override;
     List  ls(const std::string& path) override;
@@ -47,7 +51,7 @@ namespace fs
     Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
 
     // return information about a filesystem entity
-    void   stat(Path_ptr, on_stat_func) override;
+    void   stat(Path_ptr, on_stat_func, const Dirent* const start) override;
     Dirent stat(Path ent, const Dirent* const start) override;
     // async cached stat
     void cstat(const std::string&, on_stat_func) override;
@@ -186,7 +190,7 @@ namespace fs
     // tree traversal
     typedef delegate<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
-    void traverse(std::shared_ptr<Path> path, cluster_func callback);
+    void traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const = nullptr);
     // sync version
     error_t traverse(Path path, dirvector&, const Dirent* const = nullptr);
     error_t int_ls(uint32_t sector, dirvector&);

@@ -7,7 +7,7 @@ fi
 
 export IMAGE=$1
 
-INCLUDEOS_HOME=${INCLUDEOS_HOME-$HOME/IncludeOS_install}
+INCLUDEOS_HOME=${INCLUDEOS_HOME-/usr/local}
 
 # Start as a GDB service, for debugging
 # (0 means no, anything else yes.)
@@ -16,7 +16,7 @@ DEBUG=0
 [[ $2 = "debug" ]] && DEBUG=1
 
 # Get the Qemu-command (in-source, so we can use it elsewhere)
-. $INCLUDEOS_HOME/etc/qemu_cmd.sh
+. $INCLUDEOS_HOME/includeos/scripts/qemu_cmd.sh
 
 # Qemu with gdb debugging:
 
