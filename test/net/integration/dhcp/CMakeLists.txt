@@ -1,19 +1,20 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-set(INCLUDEOS_ROOT $ENV{INCLUDEOS_ROOT})
 if (NOT DEFINED ENV{INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT /usr/local)
 endif()
 
-set(SERVICE_NAME "FAT16 test")
-set(BINARY       "test_fat16")
+MESSAGE(STATUS "CMake root: " ${INCLUDEOS_ROOT})
+
+set(SERVICE_NAME "IncludeOS DHCP test")
+set(BINARY       "test_dhcp")
 set(MAX_MEM 128)
 set(SOURCES
-    fat16.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+    service.cpp
+    )
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+# Enable virtionet driver
+option(libvirtionet "" ON)
 
 # include service build script
 include(${INCLUDEOS_ROOT}/includeos/service.cmake)

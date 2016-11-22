@@ -30,7 +30,7 @@ option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
-# DRIVERS
+# List of DRIVERS
 set(DRIVERS)
 
 file(GLOB DRIVER_LIST "${INCLUDEOS_ROOT}/includeos/drivers/*.a")
@@ -39,6 +39,18 @@ foreach(FILENAME ${DRIVER_LIST})
   option(${OPTNAME} "Add ${OPTNAME} driver" OFF)
   if (${OPTNAME})
       list(APPEND DRIVERS ${FILENAME})
+  endif()
+endforeach()
+
+# List of PLUGINS
+set(PLUGINS)
+
+file(GLOB PLUGIN_LIST "${INCLUDEOS_ROOT}/includeos/plugins/*.a")
+foreach(FILENAME ${PLUGIN_LIST})
+  get_filename_component(OPTNAME ${FILENAME} NAME_WE)
+  option(${OPTNAME} "Add ${OPTNAME} plugin" OFF)
+  if (${OPTNAME})
+      list(APPEND PLUGINS ${FILENAME})
   endif()
 endforeach()
 
@@ -63,10 +75,10 @@ set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 # includes
 include_directories(${LOCAL_INCLUDES})
 include_directories(${INCLUDEOS_ROOT}/includeos/include/libcxx)
-include_directories(${INCLUDEOS_ROOT}/includeos/include/api/sys)
+include_directories(${INCLUDEOS_ROOT}/includeos/api/sys)
 include_directories(${INCLUDEOS_ROOT}/includeos/include/newlib)
-include_directories(${INCLUDEOS_ROOT}/includeos/include/api/posix)
-include_directories(${INCLUDEOS_ROOT}/includeos/include/api)
+include_directories(${INCLUDEOS_ROOT}/includeos/api/posix)
+include_directories(${INCLUDEOS_ROOT}/includeos/api)
 include_directories(${INCLUDEOS_ROOT}/include/gsl)
 
 
@@ -123,15 +135,40 @@ foreach(DRIVER ${DRIVERS})
   target_link_libraries(service --whole-archive ${DNAME} --no-whole-archive)
 endforeach()
 
+# add plugins
+foreach(PLUGIN ${PLUGINS})
+  get_filename_component(PNAME ${PLUGIN} NAME_WE)
+
+  add_library(plugin_${PNAME} STATIC IMPORTED)
+  set_target_properties(plugin_${PNAME} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(plugin_${PNAME} PROPERTIES IMPORTED_LOCATION ${PLUGIN})
+
+  target_link_libraries(service --whole-archive plugin_${PNAME} --no-whole-archive)
+endforeach()
+
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
   get_filename_component(LNAME ${LIBR} NAME_WE)
 
-  add_library(${LNAME} STATIC IMPORTED)
-  set_target_properties(${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
+  add_library(libr_${LNAME} STATIC IMPORTED)
+  set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
 
-  target_link_libraries(service ${LNAME})
+  target_link_libraries(service libr_${LNAME})
+endforeach()
+
+# (optional) list of memdisks
+set(MDCOUNTER 0)
+foreach(DISK ${MEMDISK})
+  MATH(EXPR VAR "${MDCOUNTER}+1")
+  add_custom_command(
+    OUTPUT  memdisk.o
+    COMMAND python ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.py --file ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.asm ${DISK}
+    COMMAND nasm -f elf ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.asm -o memdisk.o
+  )
+  add_library(disk${MDCOUNTER} STATIC memdisk.o)
+  set_target_properties(disk${MDCOUNTER} PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(service disk${MDCOUNTER})
 endforeach()
 
 # all the OS and C/C++ libraries + crt end
