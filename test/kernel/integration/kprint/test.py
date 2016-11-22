@@ -35,4 +35,5 @@ vm.on_output("I can print hex", check_hex)
 vm.on_output("Format", set_format_string_size)
 vm.on_output("truncate", check_truncation)
 
-vm.cmake().boot(20)
+# Build, run and clean
+vm.cmake().boot().clean()
