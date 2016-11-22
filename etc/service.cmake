@@ -161,14 +161,16 @@ endforeach()
 set(MDCOUNTER 0)
 foreach(DISK ${MEMDISK})
   MATH(EXPR VAR "${MDCOUNTER}+1")
+  get_filename_component(DISK_RELPATH "${DISK}"
+                         REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.py --file ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.asm ${DISK}
+    COMMAND python ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.py --file ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f elf ${INCLUDEOS_ROOT}/includeos/memdisk/memdisk.asm -o memdisk.o
   )
   add_library(disk${MDCOUNTER} STATIC memdisk.o)
   set_target_properties(disk${MDCOUNTER} PROPERTIES LINKER_LANGUAGE CXX)
-  target_link_libraries(service disk${MDCOUNTER})
+  target_link_libraries(service --whole-archive disk${MDCOUNTER} --no-whole-archive)
 endforeach()
 
 # all the OS and C/C++ libraries + crt end
