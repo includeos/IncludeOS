@@ -11,13 +11,8 @@ subprocess.call(['./image.sh'])
 def cleanup():
   subprocess.call(['./cleanup.sh'])
 
-def success(trigger_line):
-  cleanup()
-
-def failure(trigger_line):
-  cleanup()
-
 import vmrunner
-vmrunner.vms[0].on_success(success)
-vmrunner.vms[0].on_panic(failure)
-vmrunner.vms[0].make().boot(50)
+vm = vmrunner.vms[0]
+
+vm.on_exit(cleanup)
+vm.cmake().boot(50).clean()
