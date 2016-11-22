@@ -70,6 +70,7 @@ add_custom_target(crtn DEPENDS crtn.o)
 
 add_subdirectory(boot)
 add_subdirectory(drivers)
+add_subdirectory(plugins)
 
 install(TARGETS c++abi os DESTINATION includeos/lib)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION includeos/lib)
