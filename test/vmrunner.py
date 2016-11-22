@@ -254,6 +254,10 @@ class vm:
     print color.SUBPROC(res)
     return self
 
+  def clean(self):
+    print color.INFO(nametag), "Cleaning cmake build folder"
+    subprocess.call(["rm","-rf","build"])
+
   def cmake(self):
     print color.INFO(nametag), "Building with cmake"
     # install dir:
@@ -274,11 +278,7 @@ class vm:
     print color.SUBPROC(res)
 
     # if everything went well, build with make and install
-    ret = self.make(["install"])
-    
-    # go back to service root
-    os.chdir("..")
-    return ret
+    return self.make()
 
   def boot(self, timeout = None, multiboot = True, kernel_args = "booted with vmrunner"):
 
