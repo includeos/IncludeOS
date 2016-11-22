@@ -14,7 +14,7 @@ call(["./make_disk.sh"], shell=True)
 
 import vmrunner
 vm = vmrunner.vms[0]
-vm.make()
+vm.cmake()
 
 num_outputs = 0
 

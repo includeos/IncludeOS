@@ -45,6 +45,7 @@ set(OS_OBJECTS
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
+  posix/sys/stat.cpp posix/ftw.cpp
   )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)

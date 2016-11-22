@@ -126,7 +126,7 @@ fs::Disk_ptr& fs_disk() {
   static bool mounted = false;
   if (not mounted)
   {
-    disk->mount([](fs::error_t err) {
+    disk->init_fs([](fs::error_t err) {
       if (err) {
         printf("ERROR MOUNTING DISK\n");
       }
