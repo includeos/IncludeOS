@@ -20,7 +20,7 @@
 #define __MM_MALLOC_H
 #include <immintrin.h>
 
-
+__attribute__((target("rdrnd")))
 bool rdrand16(uint16_t* result)
 {
   int res = 0;
@@ -31,6 +31,7 @@ bool rdrand16(uint16_t* result)
   return (res == 1);
 }
 
+__attribute__((target("rdrnd")))
 bool rdrand32(uint32_t* result)
 {
   int res = 0;
