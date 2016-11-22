@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 2.8.9)
 
 if (NOT DEFINED ENV{INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT $ENV{HOME}/IncludeOS_install)
+  set(INCLUDEOS_ROOT /usr/local)
 endif()
+
+MESSAGE(STATUS "CMake root: " ${INCLUDEOS_ROOT})
 
 set(SERVICE_NAME "IncludeOS seed")
 set(BINARY       "seed")
@@ -13,4 +15,4 @@ set(SOURCES
 #set(LOCAL_INCLUDES ".")
 
 # include service build script
-include(${INCLUDEOS_ROOT}/share/includeos/service.cmake)
+include(${INCLUDEOS_ROOT}/includeos/service.cmake)
