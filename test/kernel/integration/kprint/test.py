@@ -10,7 +10,7 @@ sys.path.insert(0,includeos_src + "/test")
 import vmrunner
 
 vm = vmrunner.vms[0];
-vm.make()
+vm.cmake()
 
 def check_hex(line):
   my_hex = line.split(":")[1].strip()
