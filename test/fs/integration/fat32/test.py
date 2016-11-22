@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import sys
 import os
 
@@ -25,4 +24,4 @@ call(["./fat32_disk.sh"], shell=True)
 vm.on_exit(cleanup)
 
 # Boot the VM
-vm.make().boot(30)
+vm.cmake().boot(30).clean()
