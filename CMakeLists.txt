@@ -96,8 +96,12 @@ endif(examples)
 
 install(DIRECTORY api/ DESTINATION includeos/api)
 
-enable_testing()
-add_subdirectory(test)
+option(tests "Build unit tests in /test" ON)
+if(tests)
+  enable_testing()
+  add_subdirectory(test)
+endif(tests)
+
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
