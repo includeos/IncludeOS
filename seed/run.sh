@@ -1,8 +1,8 @@
 #! /bin/bash
 set -
-INCLUDEOS_HOME=${INCLUDEOS_HOME-/usr/local}
-sudo $INCLUDEOS_HOME/includeos/scripts/create_bridge.sh
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+sudo $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
 
 FILE=$1
 shift
-source $INCLUDEOS_HOME/includeos/scripts/run.sh $FILE ${*}
+source $INCLUDEOS_PREFIX/includeos/scripts/run.sh $FILE ${*}
