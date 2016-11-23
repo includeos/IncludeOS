@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-if (NOT DEFINED ENV{INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT /usr/local)
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(INCLUDEOS_PREFIX /usr/local)
 else()
-  set(INCLUDEOS_ROOT $ENV{INCLUDEOS_ROOT})
+  set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(SERVICE_NAME "VirtioBlk test")
@@ -14,7 +14,8 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
-option(libvirtioblk "" ON)
+#option(libvirtioblk "" ON)
+set(DRIVERS virtioblk)
 
 # include service build script
-include(${INCLUDEOS_ROOT}/includeos/service.cmake)
+include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
