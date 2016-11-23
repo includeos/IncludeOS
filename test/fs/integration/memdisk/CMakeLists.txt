@@ -14,7 +14,7 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/sector0.disk)
+set(MEMDISK sector0.disk)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)

@@ -13,7 +13,7 @@ set(SOURCES
     fat16.cpp
   )
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+set(MEMDISK my.disk)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
