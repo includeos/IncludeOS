@@ -7,6 +7,13 @@
 # COMPILER / Build options
 #
 
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+
+# TODO: Verify that the OS libraries exist
+
 # Fail on GCC
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
