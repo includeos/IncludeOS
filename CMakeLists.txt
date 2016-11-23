@@ -105,6 +105,7 @@ endif(tests)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/mac-toolchain.cmake DESTINATION includeos)
 
 # Install scripts
 install(PROGRAMS
