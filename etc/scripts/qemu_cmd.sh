@@ -11,9 +11,9 @@ else
 fi
 
 export macaddress="c0:01:0a:00:00:2a"
-INCLUDEOS_HOME=${INCLUDEOS_HOME-/usr/local}
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 
-export qemu_ifup="$INCLUDEOS_HOME/includeos/scripts/qemu-ifup"
+export qemu_ifup="$INCLUDEOS_PREFIX/includeos/scripts/qemu-ifup"
 
 export NET=${NET-"-device virtio-net,netdev=net0,mac=$macaddress -netdev tap,id=net0,script=$qemu_ifup"}
 export SMP=${SMP-"-smp 1"}
