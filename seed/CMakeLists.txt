@@ -8,7 +8,7 @@ endif()
 # Human-readable name of your service
 set(SERVICE_NAME "IncludeOS seed")
 
-# Name of your service boinary
+# Name of your service binary
 set(BINARY       "seed")
 
 # Maximum memory can be hard-coded into the binary
