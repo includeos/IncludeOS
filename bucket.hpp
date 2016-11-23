@@ -83,7 +83,7 @@ public:
 
   /**
    * @brief Capture something inside the bucket.
-   * @details Add to the map and assign a unqiue key
+   * @details Add to the map and assign a unique key
    *
    * @param  Something to capture
    * @return The given ID to the captured something
@@ -112,10 +112,10 @@ public:
 
   /**
    * @brief Abandon/release the something with the given key
-   * @details Calls earse on the underlying container
+   * @details Calls erase on the underlying container
    *
    * @param  The key to the something.
-   * @return Wheter something was abandoned or not.
+   * @return Whether something was abandoned or not.
    */
   inline bool abandon(const Key);
 
