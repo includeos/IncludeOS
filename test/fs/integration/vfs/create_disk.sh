@@ -4,7 +4,8 @@
 MOUNTDIR=tmpdisk
 
 # Set local directory to first param if provided, default to memdisk
-LOCALDIR=$1
+CONTENT=$1
+LOCALDIR=$2
 LOCALDIR=${LOCALDIR:-memdisk}
 
 DISK=$LOCALDIR.disk
@@ -15,7 +16,7 @@ fallocate -l 1048576 $DISK # 256000 sectors
 mkfs.fat $DISK
 mkdir -p $MOUNTDIR
 sudo mount $DISK $MOUNTDIR
-sudo cp -r $LOCALDIR/* $MOUNTDIR
+sudo cp -r $CONTENT/* $MOUNTDIR
 sync # Mui Importante
 sudo umount $MOUNTDIR
 rmdir $MOUNTDIR
