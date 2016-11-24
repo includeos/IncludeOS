@@ -4,7 +4,6 @@ project(unittests)
 set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
-set(INCLUDEOS_INSTALL $ENV{HOME}/IncludeOS_Install)
 
 include_directories(
   ${INCLUDEOS_ROOT}/api
@@ -56,3 +55,5 @@ set(OS_SOURCES
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
+
+install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

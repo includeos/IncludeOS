@@ -124,7 +124,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
-install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
+install(DIRECTORY mod/GSL/gsl DESTINATION include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
