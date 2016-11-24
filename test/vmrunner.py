@@ -267,8 +267,8 @@ class vm:
     print color.INFO(nametag), "Cleaning cmake build folder"
     subprocess.call(["rm","-rf","build"])
 
-  def cmake(self):
-    print color.INFO(nametag), "Building with cmake"
+  def cmake(self, args = []):
+    print color.INFO(nametag), "Building with cmake (%s)" % args
     # install dir:
     INSTDIR = os.getcwd()
 
@@ -281,11 +281,12 @@ class vm:
 
     # go into build directory
     # NOTE: The test gets run from here
-
     os.chdir("build")
 
     # build with prefix = original path
     cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
+    cmake.extend(args)
+
     res = subprocess.check_output(cmake)
     print color.SUBPROC(res)
 
