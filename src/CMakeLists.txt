@@ -56,14 +56,14 @@ add_dependencies(c++abi libcxx)
 
 add_custom_command(
 	OUTPUT crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/crt/crti.s -o crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
 	OUTPUT crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/crt/crtn.s -o crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)
