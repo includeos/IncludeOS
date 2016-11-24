@@ -17,7 +17,7 @@
 
 //#define DEBUG // Debug supression
 
-#include <os>
+#include <service>
 #include <net/inet4>
 
 using namespace std;
@@ -26,10 +26,11 @@ auto& timer = hw::PIT::instance();
 
 void Service::start(const std::string&)
 {
-  static auto& inet = net::Inet4::ifconfig<0>({ 10,0,0,45 },     // IP
-				       { 255,255,255,0 }, // Netmask
-				       { 10,0,0,1 },      // Gateway
-				       { 10,0,0,1 });     // DNS
+  static auto& inet = net::Inet4::ifconfig<0>(
+         { 10,0,0,45 },     // IP
+         { 255,255,255,0 }, // Netmask
+         { 10,0,0,1 },      // Gateway
+         { 10,0,0,1 });     // DNS
 
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
@@ -79,10 +80,10 @@ void Service::start(const std::string&)
     for (int i=0; i < PACKETS; i++){
       auto pckt = inet.create_packet(inet.MTU());
       Ethernet::header* hdr = reinterpret_cast<Ethernet::header*>(pckt->buffer());
-      hdr->dest.major = Ethernet::addr::BROADCAST_FRAME.major;
-      hdr->dest.minor = Ethernet::addr::BROADCAST_FRAME.minor;
+      hdr->dest.major = Ethernet::BROADCAST_FRAME.major;
+      hdr->dest.minor = Ethernet::BROADCAST_FRAME.minor;
       hdr->type = Ethernet::ETH_ARP;
-      inet.link().transmit(pckt);
+      inet.nic().create_link_downstream()(std::move(pckt));
     }
 
     CHECK(1,"Transmission didn't panic");
