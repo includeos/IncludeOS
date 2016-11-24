@@ -18,9 +18,9 @@ INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
 INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
 
 
-echo -e "\n###################################"
-echo -e "IncludeOS installation for Mac OS X"
-echo -e "###################################"
+echo -e "\n#########################################"
+echo -e "IncludeOS dependency installation for Mac"
+echo -e "#########################################"
 
 echo -e "\n# Prequisites:\n
     - homebrew (OS X package manager - https://brew.sh)
@@ -65,85 +65,25 @@ function install_llvm {
     echo -e "\n>>> Done installing: llvm"
 }
 
-
 ## BINUTILS ##
-echo -e "\nbinutils (ld, ar, objcopy, strip) - required for building IncludeOS"
+echo -e "\nGNU binutils (ld, ar, objcopy, strip, ranlib) - xcompile tools required for building IncludeOS"
 DEPENDENCY_BINUTILS=false
 
-BINUTILS_DIR=$INCLUDEOS_BUILD/binutils
-BINUTILS_BIN=$BINUTILS_DIR/i686-elf/bin
-BINUTILS_LD=$BINUTILS_BIN/"ld"
-BINUTILS_AR=$BINUTILS_BIN/"ar"
-BINUTILS_OBJCOPY=$BINUTILS_BIN/"objcopy"
-BINUTILS_STRIP=$BINUTILS_BIN/"strip"
 
-# Make directory inside IncludeOS_install to store ld, ar and objcopy
-INCLUDEOS_BIN=$INCLUDEOS_INSTALL/bin
-mkdir -p $INCLUDEOS_BIN
+BINUTILS_BIN="/usr/local/bin/i686-elf-"
+LD_INC=$BINUTILS_BIN"ld"
+AR_INC=$BINUTILS_BIN"ar"
+OBJCOPY_INC=$BINUTILS_BIN"objcopy"
+STRIP_INC=$BINUTILS_BIN"strip"
+RANLIB_INC=$BINUTILS_BIN"ranlib"
 
-# For copying ld, ar and objcopy
-LD_INC=$INCLUDEOS_BIN/"ld"
-AR_INC=$INCLUDEOS_BIN/"ar"
-OBJCOPY_INC=$INCLUDEOS_BIN/"objcopy"
-STRIP_INC=$INCLUDEOS_BIN/"strip"
-[[ -e  $LD_INC && -e $AR_INC && -e $OBJCOPY_INC && -e $STRIP_INC ]] && DEPENDENCY_BINUTILS=true
+[[ -e  $LD_INC && -e $AR_INC && -e $OBJCOPY_INC && -e $STRIP_INC && -e $RANLIB_INC ]] && DEPENDENCY_BINUTILS=true
 if ($DEPENDENCY_BINUTILS); then echo -e "> Found"; else echo -e "> Not Found"; fi
 
+# Assume script is called from root, else it won't work..
+MYDIR="$(dirname "$(readlink -f "$0")")" # lol
 function install_binutils {
-    echo -e "\n>>> Installing: binutils"
-
-    # Create build directory if not exist
-    mkdir -p $INCLUDEOS_BUILD
-
-    # Decide filename (release)
-    BINUTILS_RELEASE=binutils-2.27
-    filename_binutils=$BINUTILS_RELEASE".tar.gz"
-
-    # Check if file is downloaded
-    if [ -e $INCLUDEOS_BUILD/$filename_binutils ]
-    then
-        echo -e "\n> $BINUTILS_RELEASE already downloaded."
-    else
-        # Download binutils
-        echo -e "\n> Downloading $BINUTILS_RELEASE."
-        curl https://ftp.gnu.org/gnu/binutils/$filename_binutils -o $INCLUDEOS_BUILD/$filename_binutils
-    fi
-
-    ## Unzip
-    echo -e "\n> Unzip $filename_binutils to $INCLUDEOS_BUILD"
-    gzip -c $INCLUDEOS_BUILD/$filename_binutils | tar xopf - -C $INCLUDEOS_BUILD
-
-    ## Configure
-    pushd $INCLUDEOS_BUILD/$BINUTILS_RELEASE
-
-    ## Install
-    echo -e "\n> Installing $BINUTILS_RELEASE to $BINUTILS_DIR"
-    ./configure --program-prefix=$LINKER_PREFIX --prefix=$BINUTILS_DIR --enable-multilib --enable-ld=yes --target=i686-elf --disable-werror --enable-silent-rules
-    make -j --silent
-    make install
-    popd
-
-    ## Clean up
-    echo -e "\n> Cleaning up..."
-    rm -rf $INCLUDEOS_BUILD/$BINUTILS_RELEASE
-
-    ## Copy LD
-    echo -e "\n> Copying linker ($BINUTILS_LD) => $LD_INC"
-    cp $BINUTILS_LD $LD_INC
-
-    ## Copy AR
-    echo -e "\n> Copying archiver ($BINUTILS_AR) => $AR_INC"
-    cp $BINUTILS_AR $AR_INC
-
-    ## Copy OBJCOPY
-    echo -e "\n> Copying objcopy ($BINUTILS_OBJCOPY) => $OBJCOPY_INC"
-    cp $BINUTILS_OBJCOPY $OBJCOPY_INC
-
-    ## Copy STRIP
-    echo -e "\n> Copying strip ($BINUTILS_STRIP) => $STRIP_INC"
-    cp $BINUTILS_STRIP $STRIP_INC
-
-    echo -e "\n>>> Done installing: binutils"
+  source $MYDIR/etc/install_binutils.sh
 }
 
 ## NASM ##
@@ -178,7 +118,7 @@ then
         install_llvm
     fi
 
-    if (! $DEPENDENCY_BINUTILS); then
+    if ( $DEPENDENCY_BINUTILS); then
         install_binutils
     fi
 
@@ -187,24 +127,10 @@ then
     echo -e "\n>>> Done installing dependencies."
 fi
 
-### Define linker and archiver
-
-# Binutils ld & ar
-export LD_INC=$LD_INC
-export AR_INC=$AR_INC
-export OBJCOPY_INC=$OBJCOPY_INC
-export STRIP_INC=$STRIP_INC
-
-### INSTALL BINARY RELEASE ###
-echo -e "\n\n>>> Calling install_from_bundle.sh script"
-$INCLUDEOS_SRC/etc/install_from_bundle.sh
-
-echo -e "\n### OS X installation done. ###"
-
-echo -e "\nTo build services and run tests, set LD_INC and STRIP_INC:"
-echo -e "export LD_INC=$LD_INC && export STRIP_INC=$STRIP_INC && export OBJCOPY_INC=$OBJCOPY_INC"
-
-echo -e "\nTo rebuild IncludeOS, set AR_INC and OBJCOPY_INC (in addtion to the above):"
-echo -e "export AR_INC=$AR_INC"
-
-echo -e "\nTo run services, see: ./etc/vboxrun.sh. (VirtualBox needs to be installed)\n"
+echo -e "\n#########################################"
+echo -e "Mac dependency installation done."
+echo -e "#########################################"
+echo -e "\nTo build IncludeOS and services with cmake, mac-toolchain.cmake needs to be used:"
+echo -e "\n$ cmake -DCMAKE_TOOLCHAIN_FILE=mac-toolchain.cmake"
+echo -e "\nmac-toolchain.cmake is located in <repo>/etc (when building OS),"
+echo -e "and when installed, <includeos_prefix>/includeos (default /usr/local)\n"

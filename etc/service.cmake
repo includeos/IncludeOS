@@ -152,7 +152,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/include/gsl)
 
 # linker stuff
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker output
-set(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/ld -o  <TARGET> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
+set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
 
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
@@ -222,7 +222,7 @@ target_link_libraries(service
     $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtn.o
   )
 
-set(STRIP_LV strip --strip-all ${BINARY})
+set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
   set(STRIP_LV /bin/true)
 endif()
@@ -230,7 +230,7 @@ endif()
 add_custom_command(
   TARGET  service POST_BUILD
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
-  COMMAND objcopy --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
   COMMAND rm _elf_symbols.bin
 )
