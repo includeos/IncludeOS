@@ -96,14 +96,14 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 add_subdirectory(src)
 add_subdirectory(vmbuild)
 
-option(examples "Build example unikernels in /examples" ON)
+option(examples "Build example unikernels in /examples" OFF)
 if(examples)
 	add_subdirectory(examples)
 endif(examples)
 
 install(DIRECTORY api/ DESTINATION includeos/api)
 
-option(tests "Build unit tests in /test" ON)
+option(tests "Build unit tests in /test" OFF)
 if(tests)
   enable_testing()
   add_subdirectory(test)
@@ -113,6 +113,7 @@ endif(tests)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/mac-toolchain.cmake DESTINATION includeos)
+install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install scripts
 install(PROGRAMS
