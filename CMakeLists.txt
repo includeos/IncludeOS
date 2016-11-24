@@ -1,15 +1,11 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# Use custom toolchain if set
-set(toolchain $ENV{INCLUDEOS_TOOLCHAIN_FILE})
-if(DEFINED toolchain)
-  MESSAGE(STATUS "Toolchain set to: " ${toolchain})
-  set(CMAKE_TOOLCHAIN_FILE ${toolchain})
-endif(DEFINED toolchain)
+set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+# Dedect toolchain file
+include(${INCLUDEOS_ROOT}/cmake/toolchain_detection.cmake)
 
 project (includeos)
-
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
@@ -113,6 +109,7 @@ endif(tests)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/mac-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/toolchain_detection.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install scripts
