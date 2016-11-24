@@ -1,16 +1,50 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# default IncludeOS location #FIXME#
-set(INCLUDEOS_ROOT $ENV{HOME}/includeos)
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
 
-set(SERVICE_NAME "IRC server")
+# Human-readable name of your service
+set(SERVICE_NAME "IRC service")
+
+# Name of your service binary
 set(BINARY       "IRCd")
+
+# Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
+
+
+# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-    channel.cpp     client.cpp      client_new.cpp  modes.cpp    test.cpp     transform.cpp
-    client_cmd.cpp  client_msg.cpp  ircd.cpp        service.cpp  timeout.cpp
+  channel.cpp     client.cpp      client_new.cpp  modes.cpp    test.cpp     transform.cpp
+  client_cmd.cpp  client_msg.cpp  ircd.cpp        service.cpp  timeout.cpp
   )
-set(LOCAL_INCLUDES ".")
+
+#
+# Service CMake options
+# (uncomment to enable)
+#
+
+# MISC:
+
+# To add your own include paths:
+# set(LOCAL_INCLUDES ".")
+
+# Adding memdisk (expects my.disk to exist in current dir):
+# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+
+# DRIVERS / PLUGINS:
+
+set(DRIVERS
+  virtionet   # Virtio networking
+  )
+
+set(PLUGINS
+  # syslogd    # Syslog over UDP
+  # ...others
+  )
+
 
 # include service build script
-include(${INCLUDEOS_ROOT}/share/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
