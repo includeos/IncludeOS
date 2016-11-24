@@ -14,7 +14,6 @@
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
-INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_PREFIX/IncludeOS_install}
 
 # Install submodules
 echo -e "\n\n>>> Installing submodules"
@@ -60,7 +59,7 @@ echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 echo -e "\n\n>>> Building IncludeOS"
 mkdir -p $INCLUDEOS_SRC/build
 pushd $INCLUDEOS_SRC/build
-cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX
+cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX -Dtests=$INCLUDEOS_ENABLE_TEST
 make PrecompiledLibraries
 make -j
 make install
