@@ -18,7 +18,7 @@
 #ifndef IPV4_MODULE_TEST_HPP
 #define IPV4_MODULE_TEST_HPP
 
-#include <lest.hpp>
+#include <lest/lest.hpp>
 #include <net/inet4>
 
 #define MYINFO(X,...) INFO("IPv4 Test",X,##__VA_ARGS__)
