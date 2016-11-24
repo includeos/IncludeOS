@@ -20,6 +20,7 @@
 
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
+#include <hw/nic.hpp>
 
 namespace net {
 
@@ -47,6 +48,7 @@ namespace net {
     virtual typename IPV::addr gateway()  = 0;
     virtual std::string        ifname() const = 0;
     virtual hw::MAC_addr       link_addr() = 0;
+    virtual hw::Nic&           nic() = 0;
 
     virtual IPV&       ip_obj() = 0;
     virtual TCP&       tcp()    = 0;
