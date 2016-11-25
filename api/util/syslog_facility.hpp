@@ -46,6 +46,11 @@ class Syslog_facility {
 
 public:
 
+  void settings(const net::UDP::addr_t dest_ip, const net::UDP::port_t dest_port) {
+    ip_ = dest_ip;
+    port_ = dest_port;
+  }
+
 	//__attribute__((weak))
   void syslog(const std::string& log_message);
 
@@ -157,6 +162,8 @@ private:
   int priority_;
   int logopt_;
 
+  net::UDP::addr_t ip_;
+  net::UDP::port_t port_;
   net::UDPSocket* sock_ = nullptr;
 };
 

@@ -42,6 +42,9 @@ int main()
   // Starts the python integration test:
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
+  // Setting IP and port for the syslog messages
+  Syslog::settings( {10, 0, 0, 1}, 6514 );
+
   int invalid_priority = -1;
   syslog(invalid_priority, "Invalid %d", invalid_priority);
 
