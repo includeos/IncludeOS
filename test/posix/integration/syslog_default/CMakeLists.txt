@@ -19,7 +19,5 @@ set(SOURCES
     service.cpp
     )
 
-option(libvirtionet "" ON)
-
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
