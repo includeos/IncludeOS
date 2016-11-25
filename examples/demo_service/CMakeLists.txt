@@ -1,7 +1,19 @@
-set(SERVICE_NAME "\"\\\"IncludeOS Demo Service\\\"\"")
-set(SERVICE "IncludeOS_Demo_Service")
-set(SERVICE_ID "demo_service")
+cmake_minimum_required(VERSION 2.8.9)
 
-set(SERVICE_SOURCES service.cpp ${SERVICE_STUB})
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(INCLUDEOS_PREFIX /usr/local)
+else()
+  set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+endif()
 
-add_example(${SERVICE_ID} ${SERVICE} ${SERVICE_NAME} "${SERVICE_SOURCES}")
+set(SERVICE_NAME "IncludeOS minimal example service")
+set(BINARY       "IncludeOS_example")
+set(MAX_MEM 128)
+set(SOURCES
+    service.cpp
+  )
+
+set(DRIVERS virtionet)
+
+# include service build script
+include(${INCLUDEOS_PREFIX}/includeos/service.cmake)

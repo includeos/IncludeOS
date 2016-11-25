@@ -81,7 +81,7 @@ Could not install from bundle. \n"
     fi
 
     echo
-    if ! ./etc/create_bridge.sh; then
+    if ! ./etc/scripts/create_bridge.sh; then
         echo -e ">>> Sorry <<< \n\
 Could not create or configure bridge. \n"
         exit 1

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <lest.hpp>
+#include <lest/lest.hpp>
 
 extern int f1_data;
 extern int f2_data;
