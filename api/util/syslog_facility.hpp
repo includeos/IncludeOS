@@ -51,6 +51,14 @@ public:
     port_ = dest_port;
   }
 
+  net::UDP::addr_t ip() {
+    return ip_;
+  }
+
+  net::UDP::port_t port() {
+    return port_;
+  }
+
 	//__attribute__((weak))
   void syslog(const std::string& log_message);
 
@@ -154,7 +162,7 @@ public:
   void close_socket();
 
   __attribute__((weak))
-  void send_udp_data(const std::string& data);
+  void send_udp_data(const std::string&);
 
 private:
   const char* ident_ = nullptr;
@@ -162,8 +170,8 @@ private:
   int priority_;
   int logopt_;
 
-  net::UDP::addr_t ip_;
-  net::UDP::port_t port_;
+  net::UDP::addr_t ip_{0};
+  net::UDP::port_t port_{0};
   net::UDPSocket* sock_ = nullptr;
 };
 

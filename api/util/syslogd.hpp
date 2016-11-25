@@ -40,6 +40,14 @@ public:
     fac_->settings(dest_ip, dest_port);
   }
 
+  static net::UDP::addr_t ip() {
+    return fac_->ip();
+  }
+
+  static net::UDP::port_t port() {
+    return fac_->port();
+  }
+
   // Parameter pack arguments
   template <typename... Args>
   static void syslog(int priority, const char* message, Args&&... args) {
