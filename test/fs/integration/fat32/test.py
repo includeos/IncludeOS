@@ -14,7 +14,6 @@ import vmrunner
 vm = vmrunner.vms[0]
 
 def cleanup():
-  vm.make(["clean"])
   call(["./fat32_disk.sh", "clean"])
 
 # Setup disk
