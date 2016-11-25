@@ -166,7 +166,7 @@ void Syslog::closelog() {
   fac_->close_socket();
 }
 
-__attribute__((constructor))
+
 void register_plugin_syslogd() {
   INFO("Syslog", "Sending buffered data to syslog plugin");
 
@@ -176,4 +176,10 @@ void register_plugin_syslogd() {
     INFO needs to be rewritten to use kprint and kprint needs to be rewritten to buffer the data
   */
 
+}
+
+
+__attribute__((constructor))
+void register_syslogd(){
+  OS::register_plugin(register_plugin_syslogd, "Syslog over UDP");
 }
