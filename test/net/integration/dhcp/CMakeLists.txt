@@ -4,15 +4,17 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
+MESSAGE(STATUS "IncludeOS prefix: " $ENV{INCLUDEOS_PREFIX})
 
-set(SERVICE_NAME "kprint test")
-set(BINARY       "test_kprint")
+set(SERVICE_NAME "IncludeOS DHCP test")
+set(BINARY       "test_dhcp")
 set(MAX_MEM 128)
 set(SOURCES
     service.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+    )
+
+# Enable virtionet driver
+set(DRIVERS virtionet)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

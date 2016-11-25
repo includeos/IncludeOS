@@ -6,14 +6,15 @@ else()
   set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
-set(SERVICE_NAME "FAT16 test")
-set(BINARY       "test_fat16")
+set(SERVICE_NAME "FAT32 test")
+set(BINARY       "test_fat32")
 set(MAX_MEM 128)
 set(SOURCES
-    fat16.cpp
+    fat32.cpp
   )
+#set(LOCAL_INCLUDES ".")
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+option(libvirtioblk "" ON)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)

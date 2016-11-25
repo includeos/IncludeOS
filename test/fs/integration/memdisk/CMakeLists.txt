@@ -6,14 +6,15 @@ else()
   set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
-set(SERVICE_NAME "FAT16 test")
-set(BINARY       "test_fat16")
-set(MAX_MEM 128)
+set(SERVICE_NAME "Memdisk test")
+set(BINARY       "test_memdisk")
+set(MAX_MEM 64)
 set(SOURCES
-    fat16.cpp
+    nosector.cpp
   )
+#set(LOCAL_INCLUDES ".")
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+set(MEMDISK ${CMAKE_SOURCE_DIR}/sector0.disk)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
