@@ -1,21 +1,34 @@
 # This is not an actual crosscompile toolchain
 # but it do make it possible to compile on Mac with
 #
-# "cmake -DCMAKE_TOOLCHAIN_FILE=mac-toolchain.cmake"
-#
 # It's based on the environment setup by /etc/install_osx.sh
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+
+set(CMAKE_OSX_ARCHITECTURES i686) # Does not help at all
+set(CMAKE_SYSTEM_NAME "Generic")
+set(CMAKE_SYSTEM_PROCESSOR "i686")
+
+# Bin directory
+set(INCLUDEOS_BIN $ENV{INCLUDEOS_PREFIX}/includeos/bin)
 
 # Compile target (triple)
-set(target i686-elf)
+set(TARGET i686-elf)
 
-# Set compiler to clang 3.8
-# This assumes versioned clang in /usr/local/bin
-# (llvm38 installed by brew)
-set(CMAKE_C_COMPILER /usr/local/bin/clang-3.8)
-set(CMAKE_CXX_COMPILER /usr/local/bin/clang++-3.8)
+# Set compiler to the one in includeos/bin (clang)
+set(CMAKE_C_COMPILER ${INCLUDEOS_BIN}/gcc)
+set(CMAKE_CXX_COMPILER ${INCLUDEOS_BIN}/g++)
 
-#set(CMAKE_C_COMPILER_TARGET ${target})
-#set(CMAKE_CXX_COMPILER_TARGET ${target})
+set(CMAKE_C_COMPILER_TARGET ${TARGET})
+set(CMAKE_CXX_COMPILER_TARGET ${TARGET})
+
+# Compiler test won't pass on Mac due to wrong target
+# being passed when linked
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_CXX_COMPILER_WORKS 1)
+
+set(CMAKE_FIND_ROOT_PATH ${INCLUDEOS_BIN})
 
 # This is a hack (I think?), but it lets CMake
 # find cross compile tools prefixed with the triple
@@ -23,4 +36,4 @@ set(CMAKE_CXX_COMPILER /usr/local/bin/clang++-3.8)
 # e.g. /usr/local/bin/i686-elf-<EXECUTABLE>
 #
 # This can be done with /etc/install_binutils.sh
-set(_CMAKE_TOOLCHAIN_PREFIX ${target}-)
+#set(_CMAKE_TOOLCHAIN_PREFIX ${target}-)

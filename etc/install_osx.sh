@@ -96,16 +96,16 @@ then
   mkdir -p $INCLUDEOS_BIN
 
   SRC_CC="/usr/local/bin/clang-3.8"
-  ln -sf $SRC_CC $INCLUDEOS_BIN/clang
-  echo -e ">> $SRC_CC > $INCLUDEOS_BIN/clang"
+  ln -sf $SRC_CC $INCLUDEOS_BIN/gcc
+  echo -e ">> $SRC_CC > $INCLUDEOS_BIN/gcc"
 
   SRC_CXX="/usr/local/bin/clang++-3.8"
-  ln -sf $SRC_CXX $INCLUDEOS_BIN/clang++
-  echo -e ">> $SRC_CXX > $INCLUDEOS_BIN/clang++"
+  ln -sf $SRC_CXX $INCLUDEOS_BIN/g++
+  echo -e ">> $SRC_CXX > $INCLUDEOS_BIN/g++"
 
-  SRC_BINUTILS="/usr/local/i686-elf/bin"
-  ln -sf $SRC_BINUTILS/* $INCLUDEOS_BIN/
-  echo -e ">> $SRC_BINUTILS/* > $INCLUDEOS_BIN/"
+  SRC_BINUTILS="/usr/local/bin"
+  ln -sf $SRC_BINUTILS/i686-elf-* $INCLUDEOS_BIN/
+  echo -e ">> $SRC_BINUTILS/i686-elf-* > $INCLUDEOS_BIN/"
 
   echo -e "\n>>> Done symlinking dependencies to $INCLUDEOS_BIN"
 fi
