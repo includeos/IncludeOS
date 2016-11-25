@@ -34,6 +34,6 @@ void Service::start(const std::string&)
 
   // Use the simple char* kprint function to indicate success
   // (newline should be added here since it's truncated in the previous test)
-  kprint("\nSUCCESS");
+  kprint("\nSUCCESS\n\n");
 
 }

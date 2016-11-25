@@ -29,7 +29,7 @@ int uname(struct utsname *name) {
 	strcpy(name->release, OS::version().c_str());
 
 	strcpy(name->version, OS::version().c_str());
-	
+
 	/* sprintf(name->machine, "%s/%s", CPU_NAME, CPU_MODEL_NAME); */
 	// strcpy(name->machine, OS::machine().c_str());
 	strcpy(name->machine, "x86_64");

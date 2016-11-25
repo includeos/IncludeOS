@@ -21,7 +21,7 @@
 
 using namespace fs;
 
-int target_directory(Disk_ptr disk, const Path& path)
+int target_directory(Terminal::Disk_ptr disk, const Path& path)
 {
   // avoid stat on root directory
   if (path.empty()) return 0;
@@ -39,7 +39,7 @@ int target_directory(Disk_ptr disk, const Path& path)
     return 0;
 }
 
-void Terminal::add_disk_commands(Disk_ptr disk)
+void Terminal::add_disk_commands(Terminal::Disk_ptr disk)
 {
   auto curdir = std::make_shared<std::string> ("/");
 

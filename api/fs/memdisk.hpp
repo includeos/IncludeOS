@@ -29,7 +29,7 @@ namespace fs {
     static constexpr size_t SECTOR_SIZE = 512;
 
     std::string device_name() const override {
-      return "memdisk" + std::to_string(blkid);
+      return "memdisk" + std::to_string(id());
     }
 
     virtual const char* driver_name() const noexcept override

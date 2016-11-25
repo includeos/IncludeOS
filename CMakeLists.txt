@@ -1,18 +1,27 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+# Use custom toolchain if set
+set(toolchain $ENV{INCLUDEOS_TOOLCHAIN_FILE})
+if(DEFINED toolchain)
+  MESSAGE(STATUS "Toolchain set to: " ${toolchain})
+  set(CMAKE_TOOLCHAIN_FILE ${toolchain})
+endif(DEFINED toolchain)
+
 project (includeos)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
+set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
+set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 
 # test compiler
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "usage of Gcc is not currently supported, please clean-up build directory and configure for clang through CC and CXX environmental variables")
+	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-# TODO: should this not be moved into the library itself
-set(INCLUDEOS_INSTALL_DIR $ENV{HOME}/IncludeOS_install/)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # get new stack protector value
@@ -87,17 +96,33 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 add_subdirectory(src)
 add_subdirectory(vmbuild)
 
-option(examples "Build example unikernels in /examples" ON)
+option(examples "Build example unikernels in /examples" OFF)
 if(examples)
 	add_subdirectory(examples)
 endif(examples)
 
-install(DIRECTORY api/ DESTINATION include/api)
+install(DIRECTORY api/ DESTINATION includeos/api)
 
-enable_testing()
-add_subdirectory(test)
+option(tests "Build unit tests in /test" OFF)
+if(tests)
+  enable_testing()
+  add_subdirectory(test)
+endif(tests)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION share/includeos)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/mac-toolchain.cmake DESTINATION includeos)
+install(DIRECTORY seed/ DESTINATION includeos/seed)
+
+# Install scripts
+install(PROGRAMS
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
+  DESTINATION includeos/scripts)
 
 install(DIRECTORY mod/GSL/gsl DESTINATION include/gsl)
 

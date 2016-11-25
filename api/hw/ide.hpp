@@ -21,7 +21,7 @@
 #include <delegate>
 #include <list>
 
-#include "disk.hpp"
+#include "block_device.hpp"
 #include "pci_device.hpp"
 
 namespace hw {

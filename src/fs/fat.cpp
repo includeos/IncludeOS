@@ -42,7 +42,7 @@ namespace fs
       fprintf(stderr,
           "Invalid sector size (%u) for FAT32 partition\n", sector_size);
       fprintf(stderr,
-          "Are you mounting the correct partition?\n");
+          "Are you initializing the correct partition?\n");
       panic("FAT32: Invalid sector size");
     }
 
@@ -125,14 +125,14 @@ namespace fs
     debug("System ID: %.8s\n", bpb->system_id);
   }
 
-  void FAT::mount(uint64_t base, uint64_t size, on_mount_func on_mount) {
+  void FAT::init(uint64_t base, uint64_t size, on_init_func on_init) {
 
     this->lba_base = base;
     this->lba_size = size;
 
     // read Partition block
     device.read(base,
-    [this, on_mount] (buffer_t data) {
+    [this, on_init] (buffer_t data) {
 
       auto* mbr = (MBR::mbr*) data.get();
       assert(mbr != nullptr);
@@ -141,30 +141,30 @@ namespace fs
       debug("OEM name: \t%s\n", mbr->oem_name);
       debug("MBR signature: \t0x%x\n", mbr->magic);
       if (unlikely(mbr->magic != 0xAA55)) {
-        on_mount({ error_t::E_MNT, "Missing or invalid MBR signature" });
+        on_init({ error_t::E_MNT, "Missing or invalid MBR signature" });
         return;
       }
 
       // initialize FAT16 or FAT32 filesystem
       init(mbr);
 
-      // determine which FAT version is mounted
+      // determine which FAT version is initialized
       switch (this->fat_type) {
       case FAT::T_FAT12:
-        INFO("FAT", "Mounting FAT12 filesystem");
+        INFO("FAT", "Initializing FAT12 filesystem");
         break;
       case FAT::T_FAT16:
-        INFO("FAT", "Mounting FAT16 filesystem");
+        INFO("FAT", "Initializing FAT16 filesystem");
         break;
       case FAT::T_FAT32:
-        INFO("FAT", "Mounting FAT32 filesystem");
+        INFO("FAT", "Initializing FAT32 filesystem");
         break;
       }
       INFO2("[ofs=%u  size=%u (%u bytes)]\n",
             this->lba_base, this->lba_size, this->lba_size * 512);
 
-      // on_mount callback
-      on_mount(no_error);
+      // on_init callback
+      on_init(no_error);
     });
   }
 

@@ -25,8 +25,8 @@ set(OS_OBJECTS
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm
-  kernel/timers.cpp kernel/rtc.cpp
-  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
+  kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
+  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
   hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
@@ -42,8 +42,8 @@ set(OS_OBJECTS
   net/super_stack.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-  posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp
-  posix/sys/socket.cpp posix/sys/select.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
+  posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
+  posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   )
 
@@ -55,28 +55,28 @@ add_library(c++abi STATIC ${CXX_ABI})
 add_dependencies(c++abi libcxx)
 
 add_custom_command(
-	OUTPUT ${INCLUDEOS_ROOT}/src/crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crti.s -o crti.o
+	OUTPUT crti.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crti.s -o crti.o
 	DEPENDS crt/crti.s
 )
 add_custom_target(crti DEPENDS crti.o)
 
 add_custom_command(
-	OUTPUT ${INCLUDEOS_ROOT}/src/crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${INCLUDEOS_ROOT}/src/crt/crtn.s -o crtn.o
+	OUTPUT crtn.o
+	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crtn.s -o crtn.o
 	DEPENDS crt/crtn.s
 )
 add_custom_target(crtn DEPENDS crtn.o)
 
 add_subdirectory(boot)
 add_subdirectory(drivers)
+add_subdirectory(plugins)
 
-install(TARGETS c++abi os DESTINATION lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crti.o DESTINATION share/includeos)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crtn.o DESTINATION share/includeos)
+install(TARGETS c++abi os DESTINATION includeos/lib)
+install(FILES crt/crti.o crt/crtn.o DESTINATION includeos/lib)
 
-install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION share/includeos/memdisk
+install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
-install(FILES seed/service_name.cpp DESTINATION share/includeos)
-install(FILES linker.ld DESTINATION share/includeos)
+install(FILES service_name.cpp DESTINATION includeos/src)
+install(FILES linker.ld DESTINATION includeos)

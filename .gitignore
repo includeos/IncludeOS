@@ -16,6 +16,8 @@
 *.ropeproject
 nbproject
 
+!Dockerfile
+
 src/apic_boot.bin
 src/bootloader
 src/TAGS
@@ -37,3 +39,7 @@ src/compile_commands.json
 /seed/My_Service
 
 build
+
+# cmake related
+CMakeFiles*
+cmake_install.cmake

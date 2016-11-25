@@ -15,137 +15,137 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Weak default printf
+
 #include <syslogd>
 #include <service>
+#include <errno.h>		// errno
+#include <unistd.h>		// getpid
 
 #include <ctime>
 
-#include <errno.h>
-#include <unistd.h>		// getpid
+std::unique_ptr<Syslog_facility> Syslog::fac_ = std::make_unique<Syslog_facility>();
 
-// ------------------------- Syslog_facility -----------------------------
+// va_list arguments (POSIX)
+void Syslog::syslog(const int priority, const char* message, va_list args) {
+  // vsnprintf removes % if calling syslog with %m in addition to arguments
+  // Find %m here first and escape % if found
+  std::regex m_regex{"\\%m"};
+  std::string msg = std::regex_replace(message, m_regex, "%%m");
 
-bool Syslog_facility::ident_is_set() {
-  if (ident_ not_eq nullptr)
-    return true;
-  
-  return false;
+  char buf[BUFLEN];
+  vsnprintf(buf, BUFLEN, msg.c_str(), args);
+  syslog(priority, buf);
 }
 
-std::string Syslog_facility::priority_string() {
-	switch (priority_) {
-		case LOG_EMERG:
-			return "EMERG";
-		case LOG_ALERT:
-			return "ALERT";
-		case LOG_CRIT:
-			return "CRIT";
-		case LOG_ERR:
-			return "ERR";
-		case LOG_WARNING:
-			return "WARNING";
-		case LOG_NOTICE:
-			return "NOTICE";
-		case LOG_INFO:
-			return "INFO";
-		case LOG_DEBUG:
-			return "DEBUG";
-		default:
-			return "NONE";
-	}
-}
+void Syslog::syslog(const int priority, const char* buf) {
 
-// --------------------------- Syslog_kern ------------------------------
-
-void Syslog_kern::syslog(const std::string& log_message) {
-
-	// Just for testing:
-	printf("%s", log_message.c_str());
-}
-
-std::string Syslog_kern::name() { return "KERN"; }
-
-// --------------------------- Syslog_user ------------------------------
-
-void Syslog_user::syslog(const std::string& log_message) {
-	printf("%s", log_message.c_str());
-}
-
-std::string Syslog_user::name() { return "USER"; }
-
-// --------------------------- Syslog_mail ------------------------------
-
-void Syslog_mail::syslog(const std::string& log_message) {
-
-	// Just for testing:
-	printf("%s", log_message.c_str());
-}
-
-std::string Syslog_mail::name() { return "MAIL"; }
-
-// ----------------------------- Syslog ---------------------------------
-
-std::unique_ptr<Syslog_facility> Syslog::last_open = std::make_unique<Syslog_user>();
-
-void Syslog::syslog(int priority, const char* buf) {
+	/*
+		Custom syslog-message without some of the data specified in RFC5424
+		becase this implementation doesn't send data over UDP
+	*/
 
 	/*
   	All syslog-calls comes through here in the end, so
   	here we want to format the log-message with header and body
   */
 
-	// Keeps % if calling this with %m and no arguments
+	// % is kept if calling this with %m and no arguments
 
+	/* If the priority is not valid, call syslog again with LOG_ERR as priority
+		 and an unknown priority-message
+		 Could also document by setting logopt to LOG_PID | LOG_CONS | LOG_PERROR, but
+		 then only for this specific message */
   if (not valid_priority(priority)) {
-  	// TODO (What to do if this occurs? Default?)
-    printf("Invalid priority - returning\n");
+  	syslog(LOG_ERR, "Syslog: Unknown priority %d. Message: %s", priority, buf);
     return;
   }
 
- 	last_open->set_priority(priority);
+ 	fac_->set_priority(priority);
 
-  /* Building the message */
+ 	/* Building the log message */
 
-  // First: Timestamp
-  // TODO: Correct time?
-  char timebuf[TIMELEN];
-  time_t now;
-  time(&now);
-  strftime(timebuf, TIMELEN, "%h %e %T ", localtime(&now));
+ 	/* PRI FAC_NAME PRI_NAME TIMESTAMP APP-NAME IDENT PROCID */
 
-  std::string message{timebuf};
+ 	// First: Priority- and facility-value (PRIVAL)
+ 	std::string message = "<" + std::to_string(fac_->calculate_pri()) + "> ";
 
-  // Second: Ident
-  if (last_open->ident_is_set())
-    message += last_open->ident();
-  else
-  	message += Service::binary_name();
+ 	// Second : Facility and priority/severity in plain text with colors
+ 	message += pri_colors.at(fac_->priority()) + "<" + fac_->facility_name() + "." +
+ 		fac_->priority_name() + "> " + COLOR_END;
 
-  // Third: PID
-  if (last_open->logopt() & LOG_PID)
-  	message += "[" + std::to_string(getpid()) + "]";
+ 	// Third: Timestamp
+ 	char timebuf[TIMELEN];
+ 	time_t now;
+ 	time(&now);
+ 	strftime(timebuf, TIMELEN, "%FT%T.000Z", localtime(&now));
+ 	message += std::string{timebuf} + " ";
 
-  message += ": ";
+ 	// Fourth: App-name
+ 	message += Service::binary_name();
 
-  // Fourth: Facility-name and priority/severity with colors
-  message += pri_colors.at(last_open->priority()) +
-  	"<" + last_open->name() + "." + last_open->priority_string() + "> " +
-  	COLOR_END;
+ 	// Fifth: Add ident if is set (through openlog)
+ 	if (fac_->ident_is_set())
+ 		message += " " + std::string{fac_->ident()};
 
-  /*
-  	%m:
-	  (The message body is generated from the message (argument) and following arguments
-	  in the same manner as if these were arguments to printf(), except that the additional
-	  conversion specification %m shall be recognized;)
-	  it shall convert no arguments, shall cause the output of the error message string
-	  associated with the value of errno on entry to syslog(), and may be mixed with argument
-	  specifications of the "%n$" form. If a complete conversion specification with the m conversion
-	  specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
-	  added if needed.
-  */
-  // Fifth: Handle %m (replace it with strerror(errno)) and add the message (buf)
+ 	// Sixth: Add PID (PROCID) if LOG_PID is specified (through openlog)
+ 	if (fac_->logopt() & LOG_PID)
+ 		message += "[" + std::to_string(getpid()) + "]";
+
+ 	message += ": ";
+
+ 	/* Message */
+
+ 	/*
+ 		%m:
+		(The message body is generated from the message (argument) and following arguments
+		in the same manner as if these were arguments to printf(), except that the additional
+		conversion specification %m shall be recognized;)
+		it shall convert no arguments, shall cause the output of the error message string
+		associated with the value of errno on entry to syslog(), and may be mixed with argument
+		specifications of the "%n$" form. If a complete conversion specification with the m conversion
+		specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
+		added if needed.
+	*/
+  // Handle %m (replace it with strerror(errno)) and add the message (buf)
   std::regex m_regex{"\\%m"};
-  message += std::regex_replace(buf, m_regex, strerror(errno)) + "\n";
+  message += std::regex_replace(buf, m_regex, strerror(errno));
 
-  last_open->syslog(message);
+ 	/* Last: Send the log string */
+ 	fac_->syslog(message);
+}
+
+void Syslog::openlog(const char* ident, int logopt, int facility) {
+  // fac_ = std::make_unique<Syslog_facility>(ident, facility);
+  fac_->set_ident(ident);
+
+  if (valid_logopt(logopt) or logopt == 0)  // Should be possible to clear the logopt
+    fac_->set_logopt(logopt);
+
+  if (valid_facility(facility))
+    fac_->set_facility(facility);
+
+  /* Check for this in send_udp_data() in Syslog_facility instead
+  if (logopt & LOG_CONS and fac_->priority() == LOG_ERR) {
+    // Log to system console
+  }*/
+
+  /* Not relevant if logging to printf
+  if (logopt & LOG_NDELAY) {
+    // Connect to syslog daemon immediately
+  } else if (logopt & LOG_ODELAY) {
+    // Delay open until syslog() is called = do nothing (the converse of LOG_NDELAY)
+  }*/
+
+  /*if (logopt & LOG_NOWAIT) {
+    // Do not wait for child processes - deprecated
+  }*/
+}
+
+void Syslog::closelog() {
+  // Back to default values:
+  // ident_ = nullptr;
+  // logopt = 0;
+  // facility = LOG_USER;
+  openlog(nullptr, 0, LOG_USER);
 }

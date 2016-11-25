@@ -17,8 +17,8 @@ INCLUDEOS_HOME = None
 nametag = "<VMRunner>"
 
 if "INCLUDEOS_HOME" not in os.environ:
-    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default"
-    def_home = os.environ["HOME"] + "/IncludeOS_install"
+    def_home = "/usr/local"
+    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default", def_home
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
     INCLUDEOS_HOME= def_home
 else:
@@ -114,7 +114,7 @@ class qemu(hypervisor):
 
   def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
     device_names = {"virtio" : "virtio-net"}
-    qemu_ifup = INCLUDEOS_HOME+"/etc/qemu-ifup"
+    qemu_ifup = INCLUDEOS_HOME+"/includeos/scripts/qemu-ifup"
     return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
             "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
 
@@ -215,10 +215,11 @@ class vm:
   def exit(self, status, msg):
     self.stop()
     print
-    print msg
     self._exit_status = status
     if status == 0:
-      self._on_exit_success()
+      print color.SUCCESS(msg)
+      return self._on_exit_success()
+    print color.FAIL(msg)
     self._on_exit()
     sys.exit(status)
 
@@ -247,14 +248,41 @@ class vm:
     return self._hyper.writeline(line)
 
   def make(self, params = []):
-    print color.INFO(nametag), "Building test service with 'make' (params=" + str(params) + ")"
+    print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
     make = ["make"]
     make.extend(params)
     res = subprocess.check_output(make)
     print color.SUBPROC(res)
     return self
 
-  def boot(self, timeout = None, multiboot = True, kernel_args = "booted with vmrunner"):
+  def clean(self):
+    print color.INFO(nametag), "Cleaning cmake build folder"
+    os.chdir("../")
+    subprocess.call(["rm","-rf","build"])
+
+  def cmake(self):
+    print color.INFO(nametag), "Building with cmake"
+    # install dir:
+    INSTDIR = os.getcwd()
+
+    # create build directory
+    try:
+        os.makedirs("build")
+    except OSError as err:
+        if err.errno!=17:
+            raise
+    # go into build directory
+    os.chdir("build")
+
+    # build with prefix = original path
+    cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
+    res = subprocess.check_output(cmake)
+    print color.SUBPROC(res)
+
+    # if everything went well, build with make and install
+    return self.make()
+
+  def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
 
     # Check for sudo access, needed for tap network devices and the KVM module
     if os.getuid() is not 0:
@@ -263,6 +291,7 @@ class vm:
 
     # Start the timeout thread
     if (timeout):
+      print color.INFO(nametag),"setting timeout to",timeout,"seconds"
       self._timer = threading.Timer(timeout, self._on_timeout)
       self._timer.start()
 
@@ -292,7 +321,7 @@ class vm:
           #NOTE: It can be 'None' without problem
           if res == False:
             self._exit_status = exit_codes["OUTSIDE_FAIL"]
-            self.exit(self._exit_status, color.FAIL(nametag + " VM-external test failed"))
+            self.exit(self._exit_status, " VM-external test failed")
 
     # Now we either have an exit status from timer thread, or an exit status
     # from the subprocess, or the VM was powered off by the external test.
@@ -304,15 +333,15 @@ class vm:
 
     if self._exit_status:
       print color.WARNING(nametag + " Found non-zero exit status but process didn't end. ")
-      print color.FAIL(nametag + " Tests failed or program error")
       print color.INFO(nametag)," Done running VM. Exit status: ", self._exit_status
       sys.exit(self._exit_status)
     else:
-      print color.SUCCESS(nametag + " VM exited with 0 exit status.")
-      print color.INFO(nametag), " Subprocess finished. Exiting with ", self._hyper.poll()
-      sys.exit(self._hyper.poll())
+      print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
+      return self
 
     raise Exception("Unexpected termination")
+
+
 
   def stop(self):
     # Check for sudo access, needed for qemu commands
