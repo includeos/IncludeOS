@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import sys
 import os
 
@@ -10,7 +9,6 @@ sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
 vm = vmrunner.vms[0]
-vm.cmake()
 
 import socket
 
@@ -104,4 +102,4 @@ def end():
 vm.on_output("Service IP address is 10.0.0.45", start)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(30)
+vm.cmake().boot(30).clean()

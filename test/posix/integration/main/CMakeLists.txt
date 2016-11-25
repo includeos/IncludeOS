@@ -18,4 +18,4 @@ else()
 endif()
 
 # include service build script
-include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

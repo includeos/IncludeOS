@@ -10,11 +10,11 @@ set(SERVICE_NAME "Memdisk test")
 set(BINARY       "test_memdisk")
 set(MAX_MEM 64)
 set(SOURCES
-    nosector.cpp
+    twosector.cpp
   )
 #set(LOCAL_INCLUDES ".")
 
-set(MEMDISK sector0.disk)
+set(MEMDISK sector2.disk)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
