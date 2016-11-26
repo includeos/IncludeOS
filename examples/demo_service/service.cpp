@@ -235,7 +235,7 @@ void Service::start(const std::string&)
 	setup_shutdown(server);
 
 	Timers::oneshot(std::chrono::milliseconds(10),
-		[&server](auto) -> void
+		[](auto) -> void
 		{
 			printf(
 				"\n----- TEST SERVICE STARTED -----\n\n"
