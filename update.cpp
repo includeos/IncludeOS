@@ -42,8 +42,9 @@ struct StrTab {
 };
 static void update_store_data(LiveUpdate::storage_func);
 
-extern "C" void hotswap(const char*, int, char*, uintptr_t);
-extern "C" char __hotswap_length;
+extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
+extern "C" char  __hotswap_length;
+extern "C" void* __os_store_soft_reset();
 
 #include <hw/devices.hpp>
 
@@ -88,6 +89,10 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   // save ourselves
   update_store_data(func);
 
+  // store soft-resetting stuff
+  void* sr_data = __os_store_soft_reset();
+  //void* sr_data = nullptr;
+
   // try to guess base address for the new service based on entry point
   /// FIXME
   char* phys_base = (char*) 0x100000; //(start_offset & 0xffff0000);
@@ -106,7 +111,7 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
 
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset, sr_data);
 }
 
 void update_store_data(LiveUpdate::storage_func func)

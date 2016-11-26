@@ -21,8 +21,29 @@
 #include <timers>
 #include "update.hpp"
 
+struct HW_timer
+{
+  HW_timer(const std::string& str) {
+    context = str;
+    printf("HW timer starting for %s\n", context.c_str());
+    time    = hw::CPU::rdtsc();
+  }
+  ~HW_timer() {
+    auto diff = hw::CPU::rdtsc() - time;
+
+    using namespace std::chrono;
+    double  div  = OS::cpu_freq().count() * 1000000.0;
+    int64_t time = diff / div * 1000;
+
+    printf("HW timer for %s: %lld (%lld ms)\n", context.c_str(), diff, time);
+  }
+private:
+  std::string context;
+  int64_t     time;
+};
+
 // prevent default serial out
-void default_stdout_handlers() {}
+//void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -52,6 +73,7 @@ void setup_terminal(T& inet)
 
 void Service::start(const std::string&)
 {
+  volatile HW_timer timer("Service::start()");
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
