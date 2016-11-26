@@ -24,7 +24,7 @@ set(OS_OBJECTS
   kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/profile.cpp kernel/profile_intr.asm
+  kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp

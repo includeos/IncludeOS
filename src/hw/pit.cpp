@@ -65,19 +65,16 @@ namespace hw {
       oneshot(1);
   }
 
-  PIT::PIT() {}
-  PIT::~PIT() {}
-
   double PIT::estimate_CPU_frequency(int samples) {
 
-    debug("<PIT EstimateCPUFreq> Saving state: curr_freq_div %i \n",current_freq_divider_);
+    debug("<CPU frequency> Saving state: curr_freq_div %i \n",current_freq_divider_);
     // Save PIT-state
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
 
     auto prev_irq_handler = IRQ_manager::get().get_irq_handler(0);
 
-    debug("<PIT EstimateCPUFreq> Sampling\n");
+    debug("<CPU frequency> Measuring...\n");
     IRQ_manager::get().set_irq_handler(0, cpu_sampling_irq_entry);
 
     // GO!
@@ -88,7 +85,7 @@ namespace hw {
     extern double calculate_cpu_frequency(int);
     double freq = calculate_cpu_frequency(samples);
 
-    debug("<PIT EstimateCPUFreq> Done. Result: %f \n", _CPUFreq_);
+    debug("<CPU frequency> Result: %f hz\n", freq);
 
     set_mode(temp_mode_);
     set_freq_divider(temp_freq_divider_);
