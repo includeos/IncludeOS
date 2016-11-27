@@ -159,7 +159,7 @@ void VirtioCon::service_RX()
 }
 
 void VirtioCon::write (
-                       const void* data,
+                       observer_ptr<const void> data,
                        size_t len)
 {
   char* heapdata = new char[len];

@@ -30,7 +30,7 @@ namespace fs
     //
   }
 
-  void FAT::init(const void* base_sector) {
+  void FAT::init(observer_ptr<const void> base_sector) {
 
     // assume its the master boot record for now
     auto* mbr = (MBR::mbr*) base_sector;
@@ -168,7 +168,7 @@ namespace fs
     });
   }
 
-  bool FAT::int_dirent(uint32_t  sector, const void* data, dirvector& dirents) {
+  bool FAT::int_dirent(uint32_t  sector, observer_ptr<const void> data, dirvector& dirents) {
 
     auto* root = (cl_dir*) data;
     bool  found_last = false;

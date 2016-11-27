@@ -68,7 +68,7 @@ namespace fs {
     inline void stat(P pathstr, on_stat_func fn, const Dirent* const = nullptr);
 
     /** Return information about a file or directory relative to dirent - sync*/
-    virtual Dirent stat(Path, const Dirent* const = nullptr) = 0;
+    virtual Dirent stat(Path, observer_ptr<const Dirent> = nullptr) = 0;
 
     /** Return information about a file or directory relative to dirent - sync*/
     template <typename P = Path>

@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include <net/inet4>
 
 namespace fs
@@ -61,7 +62,7 @@ public:
       CR   = 13
     };
 
-  using on_write_func = std::function<void(const char*, size_t)>;
+  using on_write_func = std::function<void(observer_ptr<const char>, size_t)>;
 
   Terminal(Connection_ptr);
   Terminal(hw::Serial& serial);
@@ -76,7 +77,7 @@ public:
   }
 
   template <typename... Args>
-  void write(const char* str, Args&&... args)
+  void write(observer_ptr<const char> str, Args&&... args)
   {
     char buffer[1024];
     int bytes = snprintf(buffer, 1024, str, args...);
@@ -94,7 +95,7 @@ private:
 
   void command(uint8_t cmd);
   void option(uint8_t option, uint8_t cmd);
-  void read(const char* buf, size_t len);
+  void read(observer_ptr<const char> buf, size_t len);
   void run(const std::string& cmd);
   void add_basic_commands();
   void intro();

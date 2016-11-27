@@ -18,13 +18,14 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
-#include <string>
 #include <sstream>
-#include <common>
-#include <kernel/memmap.hpp>
-#include <hw/cpu.hpp>
-#include <hertz>
+#include <string>
 #include <vector>
+
+#include <common>
+#include <hertz>
+#include <hw/cpu.hpp>
+#include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
 
 /**
@@ -34,7 +35,7 @@
  */
 class OS {
 public:
-  using print_func  = delegate<void(const char*, size_t)>;
+  using print_func  = delegate<void(observer_ptr<const char>, size_t)>;
   using Custom_init = delegate<void()>;
 
   /* Get the version of the os */
@@ -71,7 +72,7 @@ public:
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static size_t print(observer_ptr<const char> ptr, const size_t len);
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
@@ -136,7 +137,7 @@ public:
    * @param delg : A delegate to be called
    * @param name : A human readable identifier
   **/
-  static void register_custom_init(Custom_init delg, const char* name);
+  static void register_custom_init(Custom_init delg, observer_ptr<const char> name);
 
   /**
    * Block for a while, e.g. until the next round in the event loop
@@ -163,12 +164,12 @@ private:
   static std::string version_field;
 
   struct Custom_init_struct {
-    Custom_init_struct(Custom_init f, const char* n)
+    Custom_init_struct(Custom_init f, observer_ptr<const char> n)
       : func_{f}, name_{n}
     {}
 
     Custom_init func_;
-    const char* name_;
+    observer_ptr<const char> name_;
   };
 
   static std::vector<Custom_init_struct> custom_init_;

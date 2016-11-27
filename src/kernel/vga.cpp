@@ -117,7 +117,7 @@ void ConsoleVGA::write(const char c) noexcept {
   }
 }
 
-void ConsoleVGA::write(const char* data, const size_t len) noexcept {
+void ConsoleVGA::write(observer_ptr<const char> data, const size_t len) noexcept {
   for (size_t i = 0; i < len; ++i)
     write(data[i]);
 }

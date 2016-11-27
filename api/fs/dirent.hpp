@@ -29,7 +29,7 @@ namespace fs {
   struct Dirent {
 
     /** Constructor */
-    explicit Dirent(File_system* fs, const Enttype t = INVALID_ENTITY, const std::string& n = "",
+    explicit Dirent(observer_ptr<File_system> fs, const Enttype t = INVALID_ENTITY, const std::string& n = "",
                     const uint64_t blk   = 0, const uint64_t pr    = 0,
                     const uint64_t sz    = 0, const uint32_t attr  = 0,
                     const uint32_t modt = 0)
@@ -134,7 +134,7 @@ namespace fs {
 
 
   private:
-    File_system* fs_;
+    observer_ptr<File_system> fs_;
     Enttype     ftype;
     std::string fname_;
     uint64_t    block_;

@@ -19,8 +19,10 @@
 #ifndef FS_MBR_HPP
 #define FS_MBR_HPP
 
-#include <string>
 #include <cstdint>
+#include <string>
+
+#include <common>
 
 namespace fs {
 
@@ -65,7 +67,7 @@ namespace fs {
       partition part[PARTITIONS];
       uint16_t  magic;           // 0xAA55
 
-      inline BPB* bpb() noexcept
+      inline observer_ptr<BPB> bpb() noexcept
       { return reinterpret_cast<BPB*>(boot); }
     } __attribute__((packed));
 

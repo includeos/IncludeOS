@@ -19,13 +19,14 @@
 #ifndef FS_FAT_HPP
 #define FS_FAT_HPP
 
-#include <fs/filesystem.hpp>
-#include <fs/dirent.hpp>
-#include <hw/block_device.hpp>
-#include <functional>
 #include <cstdint>
-#include <memory>
+#include <functional>
 #include <map>
+#include <memory>
+
+#include <fs/dirent.hpp>
+#include <fs/filesystem.hpp>
+#include <hw/block_device.hpp>
 
 namespace fs
 {
@@ -51,8 +52,8 @@ namespace fs
     Buffer read(const Dirent&, uint64_t pos, uint64_t n) override;
 
     // return information about a filesystem entity
-    void   stat(Path_ptr, on_stat_func, const Dirent* const start) override;
-    Dirent stat(Path ent, const Dirent* const start) override;
+    void   stat(Path_ptr, on_stat_func, const observer_ptr<const Dirent> const start) override;
+    Dirent stat(Path ent, const observer_ptr<const Dirent> start) override;
     // async cached stat
     void cstat(const std::string&, on_stat_func) override;
 
@@ -181,18 +182,18 @@ namespace fs
     }
 
     // initialize filesystem by providing base sector
-    void init(const void* base_sector);
+    void init(observer_ptr<const void> base_sector);
     // return a list of entries from directory entries at @sector
     typedef delegate<void(error_t, dirvec_t)> on_internal_ls_func;
     void int_ls(uint32_t sector, dirvec_t, on_internal_ls_func);
-    bool int_dirent(uint32_t sector, const void* data, dirvector&);
+    bool int_dirent(uint32_t sector, observer_ptr<const void> data, dirvector&);
 
     // tree traversal
     typedef delegate<void(error_t, dirvec_t)> cluster_func;
     // async tree traversal
     void traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const = nullptr);
     // sync version
-    error_t traverse(Path path, dirvector&, const Dirent* const = nullptr);
+    error_t traverse(Path path, dirvector&, const observer_ptr<const Dirent> = nullptr);
     error_t int_ls(uint32_t sector, dirvector&);
 
     // device we can read and write sectors to

@@ -21,8 +21,9 @@
 
 #include <memory>
 #include <string>
-#include <delegate>
 #include <vector>
+
+#include <delegate>
 #include <fs/path.hpp>
 #include <hw/block_device.hpp>
 
@@ -41,7 +42,6 @@ namespace fs {
   /** Container types **/
   using dirvector = std::vector<Dirent>;
   using dirvec_t  = std::shared_ptr<dirvector>;
-  using buffer_t  = std::shared_ptr<uint8_t>;
 
   /** Pointer types **/
   using Path_ptr = std::shared_ptr<Path>;

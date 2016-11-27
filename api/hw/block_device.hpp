@@ -19,8 +19,9 @@
 #ifndef HW_DRIVE_HPP
 #define HW_DRIVE_HPP
 
-#include <memory>
 #include <cstdint>
+#include <memory>
+
 #include <delegate>
 
 namespace hw
@@ -39,7 +40,7 @@ namespace hw
 
     using Device_id = int;
 
-    static const char* device_type()
+    static observer_ptr<const char> device_type()
     { return "Block device"; }
 
     virtual std::string device_name() const = 0;
@@ -47,7 +48,7 @@ namespace hw
     Device_id id() const { return id_; }
 
     /** Human-readable name of this disk controller  */
-    virtual const char* driver_name() const noexcept = 0;
+    virtual observer_ptr<const char> driver_name() const noexcept = 0;
 
     /** The size of the disk in whole sectors */
     virtual block_t size() const noexcept = 0;
