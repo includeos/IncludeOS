@@ -32,12 +32,12 @@ int main()
   /* ------------------------- Testing POSIX syslog ------------------------- */
 
   // DHCP on interface 0
-  auto& inet = net::Inet4::ifconfig(10.0);
+  auto& inet = net::Inet4::stack();
   // static IP in case DHCP fails
-  net::Inet4::ifconfig({  10,  0,  0, 45 },   // IP
-                      { 255, 255, 0,  0 },    // Netmask
-                      {  10,  0,  0,  1 },    // Gateway
-                      {  10,  0,  0,  1} );   // DNS
+  inet.network_config({  10,  0,  0, 46 },   // IP
+                                   { 255, 255, 255,  0 },    // Netmask
+                                   {  10,  0,  0,  1 },    // Gateway
+                                   {  10,  0,  0,  1} );   // DNS
 
   // Setting IP and port for the syslog messages
   Syslog::settings( {10, 0, 0, 1}, 6514 );
