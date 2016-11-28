@@ -14,9 +14,7 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O3")
 include_directories(. ./../api ./../mod/GSL/)
 
 add_executable(vmbuild ${SOURCES})
-add_dependencies(vmbuild libcxx)
 add_executable(elf_syms ${ELF_SYMS_SOURCES})
-add_dependencies(elf_syms libcxx)
 
 # TODO: use prefix to install into the right directory
 install(TARGETS vmbuild elf_syms DESTINATION includeos/bin)
