@@ -6,10 +6,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 # Human-readable name of your service
-set(SERVICE_NAME "TCP Example Service")
+set(SERVICE_NAME "Syslog Plugin Example Service")
 
 # Name of your service binary
-set(BINARY       "tcp_example")
+set(BINARY       "syslog_plugin_example")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
@@ -17,7 +17,7 @@ set(MAX_MEM 128)
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
+  service.cpp syslog_example.c # ...add more here
   )
 
 #
@@ -42,7 +42,7 @@ set(DRIVERS
   )
 
 set(PLUGINS
-  # syslogd    # Syslog over UDP
+  syslogd    # Syslog over UDP
   # ...others
   )
 

@@ -19,7 +19,8 @@ set(SOURCES
     service.cpp
     )
 
-option(libvirtionet "" ON)
+set(PLUGINS syslogd)
+set(DRIVERS virtionet)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

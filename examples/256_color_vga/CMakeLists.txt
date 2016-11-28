@@ -1,12 +1,51 @@
-set(SERVICE_NAME "\"\\\"IncludeOS Demo Service\\\"\"")
-set(SERVICE "IncludeOS_256_color_vga")
-set(SERVICE_ID "256_color_vga")
+cmake_minimum_required(VERSION 2.8.9)
 
-enable_language(ASM_NASM)
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
 
-# TODO: fix parameter pollution
-set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> -f elf32 -o <OBJECT> <SOURCE>")
+# Human-readable name of your service
+set(SERVICE_NAME "256 Color VGA Example Service")
 
-set(SERVICE_SOURCES int32.asm service.cpp ${SERVICE_STUB})
+# Name of your service binary
+set(BINARY       "256_color_vga_example")
 
-add_example(${SERVICE_ID} ${SERVICE} ${SERVICE_NAME} "${SERVICE_SOURCES}")
+# Maximum memory can be hard-coded into the binary
+set(MAX_MEM 128)
+
+
+# Source files to be linked with OS library parts to form bootable image
+set(SOURCES
+  service.cpp int32.asm # ...add more here
+  )
+
+#
+# Service CMake options
+# (uncomment to enable)
+#
+
+# MISC:
+
+# To add your own include paths:
+# set(LOCAL_INCLUDES ".")
+
+# Adding memdisk (expects my.disk to exist in current dir):
+# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+
+# DRIVERS / PLUGINS:
+
+set(DRIVERS
+  # virtionet   # Virtio networking
+  # virtioblock # Virtio block device
+  # ... Others from IncludeOS/src/drivers
+  )
+
+set(PLUGINS
+  # syslogd    # Syslog over UDP
+  # ...others
+  )
+
+
+# include service build script
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

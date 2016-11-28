@@ -27,7 +27,7 @@ int main()
 
   openlog("Second prepended message", LOG_PID | LOG_CONS, LOG_USER);
 
-  syslog(LOG_EMERG, "Emergency log after openlog and new facility: user");
+  syslog(LOG_EMERG, "This is a test of an emergency log. You might need to stop the program manually.");
   syslog(LOG_ALERT, "Alert log with the m argument: %m");
 
   closelog();
