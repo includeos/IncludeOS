@@ -149,6 +149,9 @@ private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
 
+  /** Resume stuff from a soft reset **/
+  static void resume_softreset(uint32_t boot_addr);
+
   static constexpr int PAGE_SHIFT = 12;
 
   /** Indicate if the OS is running. */
