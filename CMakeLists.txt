@@ -89,7 +89,13 @@ option(from_bundle "Download and use pre-compiled libraries for cross-comilation
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 add_subdirectory(src)
-add_subdirectory(vmbuild)
+
+option(vmbuilder "Build and install vmbuilder and elf_syms" ON)
+if(vmbuilder)
+ExternalProject_Add(vmbuilder
+  SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild
+  )
+endif(vmbuilder)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
@@ -108,7 +114,6 @@ endif(tests)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/toolchain_detection.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install scripts
