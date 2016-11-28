@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 2.8.9)
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+  set(INCLUDEOS_PREFIX /usr/local)
+else()
+  set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
-# Detect toolchain file
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+# Use toolchain (if needed)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
 
 project(seed)
 
@@ -53,4 +55,4 @@ set(PLUGINS
 
 
 # include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
