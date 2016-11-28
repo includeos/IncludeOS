@@ -6,6 +6,11 @@ else()
   set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
+# Use toolchain (if needed)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (demo_service)
+
 set(SERVICE_NAME "IncludeOS minimal example service")
 set(BINARY       "IncludeOS_example")
 set(MAX_MEM 128)
