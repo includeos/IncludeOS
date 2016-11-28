@@ -6,7 +6,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 # Use toolchain (if needed)
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
 
 project (demo_service)
 
