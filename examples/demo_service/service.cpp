@@ -30,7 +30,7 @@ struct server_data
 {
 	std::unordered_set<net::tcp::Connection_ptr> open_connections;
 	int64_t page_requests = 0;
-	util::ring_buff<std::string, 10> client_agents;
+	util::ring_buffer<std::string, 10> client_agents;
 };
 
 class tcp_server
@@ -61,7 +61,7 @@ std::string html_response(
 	std::shared_ptr<server_data> server_state
 )
 {
-	auto clients = util::fold_ring_range(server_state->client_agents);
+	auto clients = util::merge_ring_range(server_state->client_agents);
 	clients.resize(clients.size() - 4); // remove last <hr>
 
 	const std::string html = generate_demo_page(
