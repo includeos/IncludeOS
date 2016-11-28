@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-if (NOT DEFINED ENV{INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT /usr/local)
-  MESSAGE(STATUS "Setting INCLUDEOS_ROOT to" ${INCLUDEOS_ROOT} )
-else()
-  MESSAGE(STATUS "Fetching INCLUDEOS_ROOT from ENV")
-  set(INCLUDEOS_ROOT $ENV{INCLUDEOS_ROOT})
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
 set(SERVICE_NAME "Stat test")
@@ -21,4 +17,4 @@ set(SOURCES
 set(MEMDISK ${CMAKE_SOURCE_DIR}/disk.img)
 
 # include service build script
-include(${INCLUDEOS_ROOT}/includeos/service.cmake)
+include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
