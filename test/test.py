@@ -170,7 +170,8 @@ class Test:
         # Figure out if the test should be skipped
         skip_json = json.loads(open("skipped_tests.json").read())
         for skip in skip_json:
-            if self.path_ == skip['name']:
+            if skip['name'] in self.path_:
+                print "skipping {}".format(self.name_)
                 self.skip_ = True
                 self.skip_reason_ = skip['reason']
                 return
@@ -351,11 +352,16 @@ def filter_tests(all_tests, arguments):
 
     # 2) Remove tests defined by the skip argument
     print pretty.INFO("Tests to skip"), ", ".join(skip_args)
-    fin_tests = [ x for x in tests_added
-                  if not x.type_ in skip_args
-                  and not x.category_ in skip_args
-                  and not x.name_ in skip_args ]
+    skipped_tests = [ x for x in tests_added
+                  if x.type_ in skip_args
+                  or x.category_ in skip_args
+                  or x.name_ in skip_args
+                  or x.skip_]
 
+    # Print all the skipped tests
+    print_skipped(skipped_tests)
+
+    fin_tests = [ x for x in tests_added if x not in skipped_tests ]
     print pretty.INFO("Accepted tests"), ", ".join([x.name_ for x in fin_tests])
 
     return fin_tests
@@ -372,7 +378,6 @@ def main():
     filtered_tests = filter_tests(all_tests, args)
 
     # Run the tests
-    print_skipped(filtered_tests)
     integration = integration_tests(filtered_tests)
     if args.tests:
         types_to_run = args.tests

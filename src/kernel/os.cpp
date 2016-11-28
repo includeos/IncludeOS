@@ -58,7 +58,7 @@ const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_S
 static std::vector<OS::print_func> os_print_handlers;
 extern void default_stdout_handlers();
 // custom init
-std::vector<OS::Custom_init_struct> OS::custom_init_;
+std::vector<OS::Plugin_struct> OS::plugins_;
 // OS version
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
@@ -235,15 +235,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
   // Trying custom initialization functions
-  MYINFO("Calling custom initialization functions");
-  for (auto init : custom_init_) {
-    INFO2("* Calling %s", init.name_);
+  MYINFO("Initializing plugins");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
     try{
-      init.func_();
+      plugin.func_();
     } catch(std::exception& e){
-      MYINFO("Exception thrown when calling custom init: %s", e.what());
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
     } catch(...){
-      MYINFO("Unknown exception when calling custom initialization function");
+      MYINFO("Unknown exception when initializing plugin");
     }
   }
   // Everything is ready
@@ -283,9 +283,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   event_loop();
 }
 
-void OS::register_custom_init(Custom_init delg, const char* name){
-  MYINFO("Registering custom init function %s", name);
-  custom_init_.emplace_back(delg, name);
+void OS::register_plugin(Plugin delg, const char* name){
+  MYINFO("Registering plugin %s", name);
+  plugins_.emplace_back(delg, name);
 }
 
 uintptr_t OS::heap_max() {

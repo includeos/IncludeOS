@@ -5,11 +5,11 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(SERVICE_NAME "Custom initialization test")
-set(BINARY       "test_custom_init")
+set(SERVICE_NAME "Plugin initialization test")
+set(BINARY       "test_plugin_init")
 set(MAX_MEM 128)
 set(SOURCES
-    service.cpp custom_init1.cpp custom_init2.cpp custom_init3.cpp
+    service.cpp plugin1.cpp plugin2.cpp plugin3.cpp
   )
 #set(LOCAL_INCLUDES ".")
 
