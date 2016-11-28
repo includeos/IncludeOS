@@ -5,6 +5,11 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+# Detect toolchain file
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project(seed)
+
 # Human-readable name of your service
 set(SERVICE_NAME "IncludeOS seed")
 
