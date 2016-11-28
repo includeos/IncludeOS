@@ -223,6 +223,8 @@ void setup_shutdown(tcp_server& server)
 			for (auto& conn_ptr : server_state->open_connections)
 				disconnect(conn_ptr, "Server shutdown");
 
+			printf("----- service shutdown complete -----\n\n");
+
 			OS::shutdown();
 		}
 	);
@@ -244,9 +246,4 @@ void Service::start(const std::string&)
 			);
 		}
 	);
-}
-
-void Service::stop()
-{
-	printf("----- service shutdown complete -----\n\n");
 }
