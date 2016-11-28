@@ -1,6 +1,4 @@
-add_library(multiboot OBJECT multiboot.cpp)
-
-set_target_properties(multiboot PROPERTIES LINK_FLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr --script=${INCLUDEOS_ROOT}/includeos/linker.ld")
+add_library(multiboot STATIC multiboot.cpp)
 
 add_custom_command(
 	OUTPUT bootloader
@@ -11,4 +9,4 @@ add_custom_command(
 add_custom_target(run ALL DEPENDS bootloader)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bootloader DESTINATION includeos/boot)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/multiboot.dir/multiboot.cpp.o DESTINATION includeos/boot)
+install(TARGETS multiboot DESTINATION includeos/lib)

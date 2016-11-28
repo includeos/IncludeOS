@@ -6,7 +6,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 # Detect toolchain file
-include($ENV{INCLUDEOS_PREFIX}/includeos/toolchain_detection.cmake)
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
 
 project(seed)
 

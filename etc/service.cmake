@@ -165,7 +165,7 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o  $ENV{INCLUDEOS_PREFIX}/includeos/boot/multiboot.cpp.o")
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -174,6 +174,12 @@ set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(crti PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrti.a)
 
 target_link_libraries(service --whole-archive crti --no-whole-archive)
+
+add_library(multiboot STATIC IMPORTED)
+set_target_properties(multiboot PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(multiboot PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libmultiboot.a)
+
+target_link_libraries(service --whole-archive multiboot --no-whole-archive)
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
