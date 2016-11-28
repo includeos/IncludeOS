@@ -1,11 +1,9 @@
 #! /usr/bin/python
-
 import sys
 import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-
+    os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
@@ -36,14 +34,15 @@ def exit2(line):
 
 def main_no_params():
     print "VM exited. Restarting."
+    vm.clean()
     vm.on_output("Hello main", lambda(line): True)
     vm.on_output("returned with status", exit2)
     vm.on_exit(lambda: 0)
-    vm.make(["FILES=main_no_params.cpp"]).boot()
+    vm.cmake(["-DNORMAL=OFF"]).boot().clean()
 
 # Default test (main with params) - check for exit value (printed by weak Service::start for now)
 vm.on_output("returned with status", exit1)
 
 # After the default test (main with params) do the second test
 vm.on_exit(main_no_params)
-vm.make().boot(40)
+vm.cmake().boot(30)
