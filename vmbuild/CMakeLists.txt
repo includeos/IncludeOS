@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+unset(CMAKE_TOOLCHAIN_FILE)
+
 project (vmbuilder)
 
 # TODO: make sure that CXX is exported before this script is called

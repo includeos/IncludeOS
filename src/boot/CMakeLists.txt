@@ -4,7 +4,7 @@ set_target_properties(multiboot PROPERTIES LINK_FLAGS "-nostdlib -melf_i386 -N -
 
 add_custom_command(
 	OUTPUT bootloader
-	COMMAND nasm -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o bootloader ${CMAKE_CURRENT_SOURCE_DIR}/bootloader.asm
+	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -I${CMAKE_CURRENT_SOURCE_DIR}/../ -o bootloader ${CMAKE_CURRENT_SOURCE_DIR}/bootloader.asm
 	DEPENDS bootloader.asm disk_read_lba.asm
 )
 

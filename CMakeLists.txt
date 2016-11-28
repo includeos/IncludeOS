@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-# Dedect toolchain file
-include(${INCLUDEOS_ROOT}/cmake/toolchain_detection.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
 
 project (includeos)
 
@@ -82,15 +81,15 @@ endif(silent)
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 add_subdirectory(src)
-add_subdirectory(vmbuild)
+#add_subdirectory(vmbuild)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
