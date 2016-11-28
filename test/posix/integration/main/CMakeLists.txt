@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(SERVICE_NAME "Blocking calls test")
-set(BINARY       "test_block")
+set(SERVICE_NAME "Service with no Service::start, only main")
+set(BINARY       "test_main")
 set(MAX_MEM 128)
-set(SOURCES
-    service.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+
+option(NORMAL "" ON)
+
+
+if (NORMAL)
+  set(SOURCES service.cpp)
+else()
+  set(SOURCES main_no_params.cpp)
+endif()
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

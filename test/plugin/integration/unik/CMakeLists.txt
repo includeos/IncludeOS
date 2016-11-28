@@ -6,15 +6,15 @@ else()
   set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
-set(SERVICE_NAME "Memdisk test")
-set(BINARY       "test_memdisk")
-set(MAX_MEM 64)
+set(SERVICE_NAME "UNIK plugin test")
+set(BINARY       "test_plugin_unik")
+set(MAX_MEM 128)
 set(SOURCES
-    twosector.cpp
+    service.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-set(MEMDISK sector2.disk)
+set(PLUGINS unik)
+set(DRIVERS virtionet)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)

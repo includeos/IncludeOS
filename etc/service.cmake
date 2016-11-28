@@ -147,7 +147,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
-include_directories($ENV{INCLUDEOS_PREFIX}/include/gsl)
+include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
 # linker stuff

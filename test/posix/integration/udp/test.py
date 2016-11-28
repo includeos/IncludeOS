@@ -51,5 +51,5 @@ vm.on_output("send() and connect()", UDP_recv)
 vm.on_output("reading from buffer", UDP_send_much)
 
 # Boot the VM, taking a timeout as parameter
-vm.make().boot(10)
+vm.cmake().boot(10).clean()
 

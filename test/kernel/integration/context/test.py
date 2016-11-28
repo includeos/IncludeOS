@@ -10,5 +10,4 @@ sys.path.insert(0,includeos_src + "/test")
 import vmrunner
 
 vm = vmrunner.vms[0];
-vm.make()
-vm.boot(20)
+vm.cmake().boot(20).clean()

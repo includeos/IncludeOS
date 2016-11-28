@@ -6,15 +6,14 @@ else()
   set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
 endif()
 
-set(SERVICE_NAME "Memdisk test")
-set(BINARY       "test_memdisk")
+set(SERVICE_NAME "IPv4 test")
+set(BINARY       "test_ipv4")
 set(MAX_MEM 64)
 set(SOURCES
-    twosector.cpp
+    service.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-set(MEMDISK sector2.disk)
+#set(DRIVERS virtionet)
 
 # include service build script
 include(${INCLUDEOS_PREFIX}/includeos/service.cmake)

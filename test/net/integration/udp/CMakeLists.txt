@@ -5,13 +5,11 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(SERVICE_NAME "Blocking calls test")
-set(BINARY       "test_block")
+set(SERVICE_NAME "UDP test service")
+set(BINARY       "test_udp")
 set(MAX_MEM 128)
-set(SOURCES
-    service.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+set(SOURCES service.cpp)
+set(DRIVERS virtionet)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

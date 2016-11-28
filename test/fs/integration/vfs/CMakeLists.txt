@@ -1,17 +1,19 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(SERVICE_NAME "Blocking calls test")
-set(BINARY       "test_block")
+set(SERVICE_NAME "VFS test")
+set(BINARY       "test_vfs")
 set(MAX_MEM 128)
 set(SOURCES
-    service.cpp
+  service.cpp
   )
-#set(LOCAL_INCLUDES ".")
+
+set(DRIVERS virtioblk)
+
+set(MEMDISK memdisk.disk)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

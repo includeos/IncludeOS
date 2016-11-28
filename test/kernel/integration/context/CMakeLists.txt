@@ -5,8 +5,8 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(SERVICE_NAME "Blocking calls test")
-set(BINARY       "test_block")
+set(SERVICE_NAME "Stack switching test")
+set(BINARY       "test_context")
 set(MAX_MEM 128)
 set(SOURCES
     service.cpp
