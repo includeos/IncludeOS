@@ -90,12 +90,16 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 add_subdirectory(src)
 
-option(vmbuilder "Build and install vmbuilder and elf_syms" ON)
-if(vmbuilder)
-ExternalProject_Add(vmbuilder
-  SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild
-  )
-endif(vmbuilder)
+option(vmbuild "Build and install vmbuild and elf_syms" ON)
+if(vmbuild)
+  # Install vmbuilder as an external project
+  ExternalProject_Add(vmbuild
+    PREFIX vmbuild # Build where
+    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where are project located
+    INSTALL_DIR ${BIN} # Where to install
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
+    )
+endif(vmbuild)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)

@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-unset(CMAKE_TOOLCHAIN_FILE)
-
 project (vmbuilder)
 
 # TODO: make sure that CXX is exported before this script is called
@@ -17,4 +15,4 @@ add_executable(vmbuild ${SOURCES})
 add_executable(elf_syms ${ELF_SYMS_SOURCES})
 
 # TODO: use prefix to install into the right directory
-install(TARGETS vmbuild elf_syms DESTINATION includeos/bin)
+install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX})
