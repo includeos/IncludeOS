@@ -14,12 +14,13 @@ call(["./make_disk.sh"], shell=True)
 
 import vmrunner
 vm = vmrunner.vms[0]
+
 vm.cmake()
 
 num_outputs = 0
 
 def cleanup():
-  vm.make(["clean"])
+  vm.clean()
 
 def increment(line):
   global num_outputs

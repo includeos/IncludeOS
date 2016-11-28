@@ -29,7 +29,7 @@ void stat_tests()
   }
   CHECKSERT(res == -1 && errno == EFAULT, "stat() with nullptr buffer fails with EFAULT");
 
-  res = stat("folder1", &buffer);
+  res = stat("/mnt/disk/folder1", &buffer);
   printf("stat(\"folder1\") result: %d\n", res);
   if (res == -1)
   {
@@ -40,7 +40,7 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "stat() of folder that exists is ok");
 
-  res = stat("file1", &buffer);
+  res = stat("/mnt/disk/file1", &buffer);
   printf("stat(\"file1\") result: %d\n", res);
   if (res == -1)
   {
@@ -97,14 +97,17 @@ void stat_tests()
   }
   CHECKSERT(res == -1, "chdir() to a file should fail");
 
-  res = chdir("folder1");
+  res = chdir("/mnt/disk/folder1");
   printf("chdir result (existing folder): %d\n", res);
   if (res == -1)
   {
     printf("chdir error: %s\n", strerror(errno));
   }
-  CHECKSERT(res == 0, "chdir to folder that exists is ok");
+  CHECKSERT(res == 0, "chdir (absolute) to folder that exists is ok");
 
+  printf("changing dir\n");
+  res = chdir("/mnt/disk/folder1");
+  printf("chdir res: %d\n", res);
   res = fstatat(AT_FDCWD, "file1", &buffer, 0);
   printf("fstatat(\"file1\") result: %d\n", res);
   if (res == -1)

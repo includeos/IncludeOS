@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <cstring>
 #include <fd_map.hpp>
+#include <fs/vfs.hpp>
 #include <memdisk>
 #include <net/tcp/packet.hpp>
 #include <fcntl.h>
@@ -178,23 +179,31 @@ int stat(const char *path, struct stat *buf)
     return -1;
   }
   memset(buf, 0, sizeof(struct stat));
-  auto ent = fs_disk()->fs().stat(path);
-  if (ent.is_valid())
-  {
-    if (ent.is_file()) buf->st_mode = S_IFREG;
-    if (ent.is_dir()) buf->st_mode = S_IFDIR;
-    buf->st_ino = ent.block();
-    buf->st_nlink = 1;
-    buf->st_size = ent.size();
-    buf->st_atime = ent.modified();
-    buf->st_ctime = ent.modified();
-    buf->st_mtime = ent.modified();
-    buf->st_blocks = buf->st_size > 0 ? round_up(buf->st_size, 512) : 0;
-    buf->st_blksize = fs::MemDisk::SECTOR_SIZE;
-    return 0;
+  try {
+    auto ent = fs::VFS::stat_sync(path);
+    if (ent.is_valid())
+    {
+      if (ent.is_file()) buf->st_mode = S_IFREG;
+      if (ent.is_dir()) buf->st_mode = S_IFDIR;
+      buf->st_dev = ent.device_id();
+      buf->st_ino = ent.block();
+      buf->st_nlink = 1;
+      buf->st_size = ent.size();
+      buf->st_atime = ent.modified();
+      buf->st_ctime = ent.modified();
+      buf->st_mtime = ent.modified();
+      buf->st_blocks = buf->st_size > 0 ? round_up(buf->st_size, 512) : 0;
+      buf->st_blksize = fs::MemDisk::SECTOR_SIZE;
+      return 0;
+    }
+    else {
+      errno = EIO;
+      return -1;
+    }
   }
-  else
+  catch (...)
   {
+    printf("stat %s NOT FOUND\n", path);
     errno = EIO;
     return -1;
   }

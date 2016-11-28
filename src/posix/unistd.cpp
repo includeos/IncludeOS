@@ -20,7 +20,7 @@
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
-#include <memdisk>
+#include <fs/vfs.hpp>
 
 static const int syscall_fd   {999};
 static const int rng_fd       {998};
@@ -121,21 +121,6 @@ unsigned int sleep(unsigned int seconds)
 static std::string cwd {"/"};
 const std::string& cwd_ref() { return cwd; }
 
-fs::Disk_ptr& fs_disk() {
-  static fs::Disk_ptr disk = fs::new_shared_memdisk();
-  static bool mounted = false;
-  if (not mounted)
-  {
-    disk->init_fs([](fs::error_t err) {
-      if (err) {
-        printf("ERROR MOUNTING DISK\n");
-      }
-    });
-  }
-  mounted = true;
-  return disk;
-}
-
 int chdir(const char *path)
 // todo: handle relative path
 // todo: handle ..
@@ -160,17 +145,23 @@ int chdir(const char *path)
   {
     desired_path.assign(path);
   }
-  auto ent = fs_disk()->fs().stat(desired_path.c_str());
-  if (ent.is_dir())
-  {
-    cwd = desired_path;
-    assert(cwd.front() == '/');
-    assert(cwd.find("..") == std::string::npos);
-    return 0;
+  try {
+    auto ent = fs::VFS::stat_sync(desired_path);
+    if (ent.is_dir())
+    {
+      cwd = desired_path;
+      assert(cwd.front() == '/');
+      assert(cwd.find("..") == std::string::npos);
+      return 0;
+    }
+    else
+    {
+      // path is not a dir
+      errno = ENOTDIR;
+      return -1;
+    }
   }
-  else
-  {
-    // path is not a dir
+  catch (const fs::Err_not_found& e) {
     errno = ENOTDIR;
     return -1;
   }

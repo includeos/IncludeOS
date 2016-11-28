@@ -17,9 +17,9 @@
 
 #include <string>
 #include <ftw.h>
+#include <fs/vfs.hpp>
 #include <memdisk>
 
-extern fs::Disk_ptr& fs_disk();
 extern const std::string& cwd_ref();
 
 class Walker {
@@ -41,8 +41,6 @@ public:
       abs_path = path;
     }
 
-    auto ent = fs_disk()->fs().stat(abs_path);
-
     int res = stat(abs_path.c_str(), &buffer);
     if (res != -1) {
       if (S_ISDIR(buffer.st_mode) == 0) {
@@ -58,7 +56,8 @@ public:
         }
         // call fn on each entry
         ++level;
-        fs_disk()->fs().ls(ent, [abs_path, &result, &level, this](auto, auto entries) {
+        auto ent = fs::VFS::stat_sync(abs_path);
+        ent.ls([abs_path, &result, &level, this](auto, auto entries) {
           for (auto&& ent : *entries) {
             if (ent.name() == "." or ent.name() == "..")
             {
@@ -77,27 +76,12 @@ public:
         }
         return result;
       }
-  }
-  else {
-    // could not stat path
-    int result;
-    if (abs_path == "/") {
-      ++level;
-      auto ents = fs_disk()->fs().ls("/").entries;
-      for (auto&& ent : *ents) {
-        if (ent.is_valid()) {
-          if ((result = walk("/" + ent.name(), level) != 0)) {
-            break;
-          }
-        }
-      }
-      return result;
     }
     else {
+      // could not stat path
       return fn_ptr_(abs_path.c_str(), &buffer, FTW_NS, &ftw);
     }
   }
-}
 private:
   Nftw_func* fn_ptr_;
   int flags_;

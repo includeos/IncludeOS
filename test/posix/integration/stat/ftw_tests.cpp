@@ -5,7 +5,6 @@
 #include <errno.h>
 #include <vector>
 
-
 int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
 int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
 int add_items(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf);
@@ -18,28 +17,29 @@ void ftw_tests()
 {
   int res;
 
-  printf("nftw /\n");
-  res = nftw("/", add_items, 20, FTW_PHYS);
+  printf("nftw /mnt/disk/folder1\n");
+  res = nftw("/mnt/disk/folder1", add_items, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  auto directory_first = is_before(items, "/folder1", "/folder1/foldera");
+  auto directory_first = is_before(items, "/mnt/disk/folder1", "/mnt/disk/folder1/foldera");
   CHECKSERT(directory_first, "nftw() visits a directory before the directory's files");
+
 
   items.clear();
 
-  printf("nftw /\n");
-  res = nftw("/", add_items, 20, FTW_PHYS | FTW_DEPTH);
+  printf("nftw /mnt/disk/folder1\n");
+  res = nftw("/mnt/disk/folder1", add_items, 20, FTW_PHYS | FTW_DEPTH);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  auto files_first = is_before(items, "/folder1/foldera", "/folder1");
+  auto files_first = is_before(items, "/mnt/disk/folder1/foldera", "/mnt/disk/folder1");
   CHECKSERT(files_first, "nftw() visits the directory's files before the directory when FTW_DEPTH is specified");
 
   res = nftw("MISSING_FILE", display_info, 20, FTW_PHYS);
@@ -49,47 +49,47 @@ void ftw_tests()
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  res = nftw("file1", display_info, 20, FTW_PHYS);
+  res = nftw("/mnt/disk/file1", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /folder1\n");
-  res = nftw("/folder1", display_info, 20, FTW_PHYS);
+  printf("nftw /mnt/disk/folder1\n");
+  res = nftw("/mnt/disk/folder1", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /folder2\n");
-  res = nftw("/folder2", display_info, 20, FTW_PHYS);
+  printf("nftw /mnt/disk/folder2\n");
+  res = nftw("/mnt/disk/folder2", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /folder3\n");
-  res = nftw("/folder3", display_info, 20, FTW_PHYS);
+  printf("nftw /mnt/disk/folder3\n");
+  res = nftw("/mnt/disk/folder3", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /\n");
-  res = nftw("/", display_info, 20, FTW_PHYS);
+  printf("nftw /mnt/disk\n");
+  res = nftw("/mnt/disk", display_info, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
     printf("nftw error: %s\n", strerror(errno));
   }
 
-  printf("nftw /\n");
-  res = nftw("/", add_filesize, 20, FTW_PHYS);
+  printf("nftw /mnt/disk/folder1\n");
+  res = nftw("/mnt/disk/folder1", add_filesize, 20, FTW_PHYS);
   printf("nftw result: %d\n", res);
   if (res == -1)
   {
@@ -119,6 +119,7 @@ int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW 
 
 int add_items(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
 {
+  printf("add_items: %s\n", fpath);
   (void) ftwbuf;
   (void) sb;
   (void) flag;
