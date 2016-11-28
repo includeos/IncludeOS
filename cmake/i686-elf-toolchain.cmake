@@ -1,3 +1,4 @@
+if(APPLE) # Only use toolchain for macaroni
 # This is not an actual crosscompile toolchain
 # but it do make it possible to compile on Mac with
 #
@@ -37,3 +38,4 @@ set(CMAKE_FIND_ROOT_PATH ${INCLUDEOS_BIN})
 #
 # This can be done with /etc/install_binutils.sh
 #set(_CMAKE_TOOLCHAIN_PREFIX ${target}-)
+endif()
