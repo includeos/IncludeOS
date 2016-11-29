@@ -10,14 +10,14 @@
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
-static const uintptr_t UPDATE_STORAGE = 0x6000000; // at 96mb
-static const uint64_t  LIVEUPD_MAGIC  = 0xbaadb33fdeadc0de;
+static const uintptr_t LIVEUPD_LOCATION = 0x6000000; // at 96mb
+static const uint64_t  LIVEUPD_MAGIC    = 0xbaadb33fdeadc0de;
 
 static void* HOTSWAP_AREA = (void*) 0x8000;
 
 bool LiveUpdate::is_resumable()
 {
-  return *(uint64_t*) UPDATE_STORAGE == LIVEUPD_MAGIC;
+  return *(uint64_t*) LIVEUPD_LOCATION == LIVEUPD_MAGIC;
 }
 void LiveUpdate::resume(resume_func func)
 {
@@ -27,21 +27,13 @@ void LiveUpdate::resume(resume_func func)
     printf("* Restoring data...\n");
     // restore connections etc.
     extern void resume_begin(storage_header&, LiveUpdate::resume_func);
-    resume_begin(*(storage_header*) UPDATE_STORAGE, func);
+    resume_begin(*(storage_header*) LIVEUPD_LOCATION, func);
   } else {
     printf("* Not restoring data, because no update has happened\n");
   }
 }
 
-struct SymTab {
-  Elf32_Sym* base;
-  uint32_t   entries;
-};
-struct StrTab {
-  char*    base;
-  uint32_t size;
-};
-static void update_store_data(LiveUpdate::storage_func);
+static void update_store_data(void* location, LiveUpdate::storage_func);
 
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
@@ -53,7 +45,8 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
 {
   // use area just below the update storage to
   // prevent it getting overwritten during the update
-  char* update_area = (char*) (UPDATE_STORAGE - blob.length);
+  char* storage_area = (char*) LIVEUPD_LOCATION;
+  char* update_area  = storage_area - blob.length;
   memcpy(update_area, blob.buffer, blob.length);
 
   // validate ELF header
@@ -104,7 +97,7 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   printf("* _start is located at %#x\n", start_offset);
 
   // save ourselves
-  update_store_data(func);
+  update_store_data(storage_area, func);
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
@@ -131,34 +124,34 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset, sr_data);
 }
 
-void update_store_data(LiveUpdate::storage_func func)
+void update_store_data(void* location, LiveUpdate::storage_func func)
 {
   // create storage header in the fixed location
-  auto* storage = (storage_header*) UPDATE_STORAGE;
-  new (storage) storage_header(LIVEUPD_MAGIC);
+  new (location) storage_header(LIVEUPD_MAGIC);
+  auto* storage = (storage_header*) location;
   
   /// callback for storing stuff
-  func({storage});
+  func({*storage});
 }
 
 /// struct Storage
 
 void Storage::add_string(uint16_t id, const std::string& string)
 {
-  hdr->add_string(id, string);
+  hdr.add_string(id, string);
 }
 void Storage::add_buffer(uint16_t id, buffer_len blob)
 {
-  hdr->add_buffer(id, blob.buffer, blob.length);
+  hdr.add_buffer(id, blob.buffer, blob.length);
 }
 void Storage::add_buffer(uint16_t id, void* buf, size_t len)
 {
-  hdr->add_buffer(id, (char*) buf, len);
+  hdr.add_buffer(id, (char*) buf, len);
 }
 
 #include "serialize_tcp.hpp"
 void Storage::add_connection(uid id, Connection conn)
 {
-  auto& ent = hdr->add_struct(TYPE_TCP, id, sizeof(serialized_tcp));
+  auto& ent = hdr.add_struct(TYPE_TCP, id, sizeof(serialized_tcp));
   conn->serialize_to(ent.vla);
 }

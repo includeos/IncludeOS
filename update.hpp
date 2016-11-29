@@ -22,10 +22,10 @@ struct Storage
   void add_connection(uid, Connection);
   
   
-  Storage(storage_header* sh) : hdr(sh) {}
+  Storage(storage_header& sh) : hdr(sh) {}
   
 private:
-  storage_header* hdr;
+  storage_header& hdr;
 };
 
 struct Restore
@@ -44,9 +44,9 @@ struct Restore
   int      length() const noexcept;
   void*    data() const noexcept;
   
-  Restore(storage_entry* e) : ent(e) {}
+  Restore(storage_entry& e) : ent(e) {}
 private:
-  storage_entry* ent;
+  storage_entry& ent;
 };
 
 template <typename S>
