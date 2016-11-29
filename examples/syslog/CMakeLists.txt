@@ -5,6 +5,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (syslog_plugin)
+
 # Human-readable name of your service
 set(SERVICE_NAME "Syslog Plugin Example Service")
 
