@@ -22,6 +22,7 @@
 #include <deque>
 #include <string>
 #include <stdexcept>
+#include <gsl/gsl>
 
 namespace fs {
 
@@ -92,11 +93,17 @@ namespace fs {
     std::string back() const
     { return stk.back(); }
 
-    Path& pop_front() noexcept
-    { stk.pop_front(); return *this; }
+    Path& pop_front()
+    {
+      Expects(not empty()); // pop_front() from empty container is undefined
+      stk.pop_front(); return *this;
+    }
 
-    Path& pop_back() noexcept
-    { stk.pop_back(); return *this; }
+    Path& pop_back()
+    {
+      Expects(not empty()); // pop_back() from empty container is undefined
+      stk.pop_back(); return *this;
+    }
 
     Path& up()
     { if (not stk.empty()) stk.pop_back(); return *this; }

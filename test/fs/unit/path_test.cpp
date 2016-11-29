@@ -1,4 +1,3 @@
-
 #include <fs/path.hpp>
 #include <common.cxx>
 
@@ -8,7 +7,7 @@ extern lest::tests & specification();
 
 CASE("Path can be constructed with specified path")
 {
-  fs::Path path {"/Users/Bjarne/Documents"};
+  fs::Path path {"/Users/Bjarne/Documents"s};
   EXPECT(path.empty() == false);
 }
 
@@ -95,6 +94,38 @@ CASE("Paths can be added")
 CASE("Paths can return their parent")
 {
   fs::Path path {"/etc/private/logs"s};
-  fs::Path parent {path.up()};
-  EXPECT(parent.size() == 2);
+  fs::Path path_parent {path.up()};
+  EXPECT(path_parent.size() == 2);
+  EXPECT(path_parent == "/etc/private"s);
+  fs::Path root {"/"s};
+  fs::Path root_parent {root.up()};
+  EXPECT(root_parent == "/");
+}
+
+CASE("pop_front returns path with first path component removed")
+{
+  fs::Path path {"/etc/private/logs"};
+  auto front {path.pop_front()};
+  EXPECT(front == "/private/logs"s);
+}
+
+CASE("pop_back returns path with last path component removed")
+{
+  fs::Path path {"/etc/private/logs"};
+  auto back {path.pop_back()};
+  EXPECT(back == "/etc/private");
+}
+
+CASE("pop_back expects that path is not empty")
+{
+  fs::Path path {"/etc/private/logs"};
+  EXPECT_NO_THROW(path.pop_back().pop_back().pop_back());
+  EXPECT_THROWS(path.pop_back());
+}
+
+CASE("pop_front expects that path is not empty")
+{
+  fs::Path path {"/usr/local/bin"};
+  EXPECT_NO_THROW(path.pop_front().pop_front().pop_front());
+  EXPECT_THROWS(path.pop_front());
 }
