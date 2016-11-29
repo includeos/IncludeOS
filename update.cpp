@@ -77,8 +77,24 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
     {
       /// failed to find elf header at sector 0 and 1
       /// simply return
+      printf("*** Failed to find any ELF header in blob\n");
       return;
     }
+  }
+  printf("* Found ELF header\n");
+  
+  int expected_total = 
+      //hdr->e_ehsize + 
+      //hdr->e_phnum * hdr->e_phentsize + 
+      hdr->e_shnum * hdr->e_shentsize +
+      hdr->e_shoff; /// this assumes section headers are at the end
+  
+  if (blob.length < expected_total)
+  {
+    printf("*** There was a mismatch between blob length and expected ELF file size:\n");
+    printf("EXPECTED: %u byte\n",  expected_total);
+    printf("ACTUAL:   %u bytes\n", blob.length);
+    return;
   }
   printf("* Validated ELF header\n");
 

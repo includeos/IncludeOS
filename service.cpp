@@ -43,7 +43,7 @@ private:
 };
 
 // prevent default serial out
-//void default_stdout_handlers() {}
+void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -91,23 +91,21 @@ void Service::start(const std::string&)
   server.on_connect(
   [] (auto conn)
   {
-    static char* update_blob = new char[1024*1024*10];
-    static int   update_size = 0;
+    char* update_blob = new char[1024*1024*10];
+    int*  update_size = new int(0);
 
-    // reset update chunk
-    update_size = 0;
     // retrieve binary
     conn->on_read(9000,
-    [conn] (net::tcp::buffer_t buf, size_t n)
+    [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
     {
-      memcpy(update_blob + update_size, buf.get(), n);
-      update_size += (int) n;
+      memcpy(update_blob + *update_size, buf.get(), n);
+      *update_size += (int) n;
 
     }).on_close(
-    [] {
-      printf("* New update size: %u b\n", update_size);
+    [update_blob, update_size] {
+      printf("* New update size: %u b\n", *update_size);
       void save_stuff(Storage);
-      LiveUpdate::begin({update_blob, update_size}, save_stuff);
+      LiveUpdate::begin({update_blob, *update_size}, save_stuff);
       /// We should never return :-) ///
       assert(0 && "!! Update failed !!");
     });
