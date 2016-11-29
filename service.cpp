@@ -170,6 +170,7 @@ void save_stuff(Storage storage)
       storage.add_string(665, msg);
   // open terminals
   for (auto conn : saveme)
+    if (conn->is_connected())
       storage.add_connection(666, conn);
 }
 

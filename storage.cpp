@@ -10,7 +10,7 @@ storage_header::storage_header(uint64_t value)
 
 void storage_header::add_string(uint16_t id, const std::string& data)
 {
-  auto& entry = create_entry(TYPE_STRING, id, data.size()+1);
+  auto& entry = create_entry(TYPE_STRING, id, data.size());
   /// create string
   sprintf(entry.vla, "%s", data.c_str());
 }
