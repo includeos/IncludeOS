@@ -8,6 +8,7 @@
 #include "storage.hpp"
 
 static const int SECT_SIZE   = 512;
+static const int ELF_MINIMUM = 164;
 
 static const uintptr_t UPDATE_STORAGE = 0x6000000; // at 96mb
 static const uint64_t  LIVEUPD_MAGIC  = 0xbaadb33fdeadc0de;
@@ -89,7 +90,7 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
       hdr->e_shnum * hdr->e_shentsize +
       hdr->e_shoff; /// this assumes section headers are at the end
   
-  if (blob.length < expected_total)
+  if (blob.length < expected_total || expected_total < ELF_MINIMUM)
   {
     printf("*** There was a mismatch between blob length and expected ELF file size:\n");
     printf("EXPECTED: %u byte\n",  expected_total);

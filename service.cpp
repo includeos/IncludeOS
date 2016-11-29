@@ -21,6 +21,8 @@
 #include <timers>
 #include "update.hpp"
 
+static const uint16_t TERM_PORT = 6667;
+
 struct HW_timer
 {
   HW_timer(const std::string& str) {
@@ -48,26 +50,39 @@ void default_stdout_handlers() {}
 
 typedef net::tcp::Connection_ptr Connection_ptr;
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
-std::vector<Connection_ptr> saveme;
+static std::vector<Connection_ptr> saveme;
+static std::vector<std::string>    savemsg;
+
+void setup_terminal_connection(Connection_ptr conn)
+{
+  saveme.push_back(conn);
+  // retrieve binary
+  conn->on_read(512,
+  [conn] (net::tcp::buffer_t buf, size_t n)
+  {
+    std::string str((const char*) buf.get(), n);
+    printf("Received message %u: %s", savemsg.size()+1, str.c_str());
+    // save for later as strings
+    savemsg.push_back(str);
+  });
+  conn->on_close(
+  [conn] {
+    printf("Terminal %s closed\n", conn->to_string().c_str());
+  });
+}
 
 template <typename T>
 void setup_terminal(T& inet)
 {
   // mini terminal
-  printf("Setting up terminal, since we have not updated yet\n");
+  printf("Setting up terminal on port %u\n", TERM_PORT);
   
-  auto& term = inet.tcp().bind(6667);
+  auto& term = inet.tcp().bind(TERM_PORT);
   term.on_connect(
   [] (auto conn) {
-    saveme.push_back(conn);
+    setup_terminal_connection(conn);
     // write a string to change the state
     conn->write("State change SeemsGood\n");
-    // retrieve binary
-    conn->on_read(1024,
-    [conn] (net::tcp::buffer_t buf, size_t n)
-    {
-      printf("Received message: %.*s\n", n, buf.get());
-    });
   });
 }
 
@@ -78,8 +93,9 @@ void Service::start(const std::string&)
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
 
-  printf("Starting LiveUpdate test service\n\n");
-  printf("CPU freq is %f MHz\n", OS::cpu_freq().count());
+  printf("\n");
+  printf("-= Starting LiveUpdate test service =-\n");
+  printf("* CPU freq is %f MHz\n", OS::cpu_freq().count());
 
   auto& inet = net::Inet4::ifconfig<0>(
         { 10,0,0,42 },     // IP
@@ -87,6 +103,26 @@ void Service::start(const std::string&)
         { 10,0,0,1 },      // Gateway
         { 10,0,0,1 });     // DNS
 
+  /// attempt to resume (if there is anything to resume)
+  void the_string(Restore);
+  void the_buffer(Restore);
+  void the_timing(Restore);
+  void restore_term(Restore);
+  void saved_message(Restore);
+  void on_missing(Restore);
+
+  LiveUpdate::on_resume(1,   the_string);
+  LiveUpdate::on_resume(2,   the_buffer);
+  LiveUpdate::on_resume(100, the_timing);
+  LiveUpdate::on_resume(665, saved_message);
+  LiveUpdate::on_resume(666, restore_term);
+  // begin restoring saved data
+  LiveUpdate::resume(on_missing);
+  
+  // listen for telnet clients
+  setup_terminal(inet);
+  
+  // listen for live updates
   auto& server = inet.tcp().bind(666);
   server.on_connect(
   [] (auto conn)
@@ -103,36 +139,17 @@ void Service::start(const std::string&)
 
     }).on_close(
     [update_blob, update_size] {
+      // we received a binary:
       printf("* New update size: %u b\n", *update_size);
+      // save stuff for later
       void save_stuff(Storage);
+      // run live update process
       LiveUpdate::begin({update_blob, *update_size}, save_stuff);
       /// We should never return :-) ///
       assert(0 && "!! Update failed !!");
     });
   });
 
-  if (!LiveUpdate::is_resumable())
-      setup_terminal(inet);
-
-  /// attempt to resume (if there is anything to resume)
-  void the_string(Restore);
-  void the_buffer(Restore);
-  void the_timing(Restore);
-  void restore_term(Restore);
-  void on_missing(Restore);
-
-  LiveUpdate::on_resume(1,   the_string);
-  LiveUpdate::on_resume(2,   the_buffer);
-  LiveUpdate::on_resume(100, the_timing);
-  LiveUpdate::on_resume(666, restore_term);
-  LiveUpdate::resume(on_missing);
-  
-  /*
-  using namespace std::chrono;
-  Timers::periodic(seconds(0), seconds(1),
-  [] (auto) {
-    printf("Time is %lld\n", hw::CPU::rdtsc());
-  });*/
 }
 
 #include <hw/cpu.hpp>
@@ -147,7 +164,11 @@ void save_stuff(Storage storage)
   auto ts = hw::CPU::rdtsc();
   storage.add_buffer(100, &ts, sizeof(ts));
   printf("! CPU ticks before: %lld\n", ts);
-
+  
+  // messages received from terminals
+  for (auto& msg : savemsg)
+      storage.add_string(665, msg);
+  // open terminals
   for (auto conn : saveme)
       storage.add_connection(666, conn);
 }
@@ -163,6 +184,15 @@ void the_buffer(Restore thing)
   printf("The buffer is %d long\n", thing.length());
   printf("As text: %.*s\n", thing.length(), thing.as_buffer().buffer);
 }
+void saved_message(Restore thing)
+{
+  static int n = 0;
+  auto str = thing.as_string();
+  
+  printf("[%d] %s", ++n, str.c_str());
+  // re-save it
+  savemsg.push_back(str);
+}
 void on_missing(Restore thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
@@ -177,20 +207,9 @@ struct restore_t
   void set_conn(Connection_ptr conn)
   {
     this->conn = conn;
-    // also put this back in list of connections we store
-    saveme.push_back(conn);
+    setup_terminal_connection(conn);
     
     printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
-    // restore callback
-    conn->on_read(1024,
-    [] (net::tcp::buffer_t buf, size_t n)
-    {
-      printf("Received message: %.*s\n", n, buf.get());
-    });
-    conn->on_close(
-    [conn] {
-      printf("Terminal %s closed\n", conn->to_string().c_str());
-    });
   }
   
   void try_send()
@@ -225,4 +244,8 @@ void restore_term(Restore thing)
   rest.set_conn(thing.as_tcp_connection(stack.tcp()));
   // try sending the boot timing
   rest.try_send();
+  // send all the messages so far
+  for (auto msg : savemsg) {
+    rest.conn->write(msg);
+  }
 }
