@@ -60,8 +60,7 @@ void Syslog_facility::close_socket() {
 
 void Syslog_facility::send_udp_data(const std::string& data) {
   open_socket();
-  sock_->sendto( net::Inet4::stack().gateway(), UDP_PORT, data.c_str(), data.size() );
-  // sock_->sendto( { 46, 31, 185, 167 }, UDP_PORT, data.c_str(), data.size() );
+  sock_->sendto( ip_, port_, data.c_str(), data.size() );
 }
 
 // ----------------------------- Syslog ---------------------------------
@@ -166,7 +165,7 @@ void Syslog::closelog() {
   fac_->close_socket();
 }
 
-__attribute__((constructor))
+
 void register_plugin_syslogd() {
   INFO("Syslog", "Sending buffered data to syslog plugin");
 
@@ -176,4 +175,10 @@ void register_plugin_syslogd() {
     INFO needs to be rewritten to use kprint and kprint needs to be rewritten to buffer the data
   */
 
+}
+
+
+__attribute__((constructor))
+void register_syslogd(){
+  OS::register_plugin(register_plugin_syslogd, "Syslog over UDP");
 }

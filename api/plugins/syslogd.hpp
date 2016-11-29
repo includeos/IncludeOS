@@ -21,8 +21,6 @@
 #ifndef PLUGINS_SYSLOGD_HPP
 #define PLUGINS_SYSLOGD_HPP
 
-const int UDP_PORT = 6514;
-
 /*
 	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
 	is in this header's corresponding cpp-file

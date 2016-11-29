@@ -1,13 +1,7 @@
 
-[submodule "mod/rapidjson"]
-	path = mod/rapidjson
-	url = https://github.com/fwsGonzo/rapidjson.git
 [submodule "mod/GSL"]
 	path = mod/GSL
 	url = https://github.com/Microsoft/GSL.git
 [submodule "test/lest"]
 	path = test/lest
 	url = https://github.com/martinmoene/lest.git
-[submodule "mod/fiber"]
-	path = mod/fiber
-	url = https://github.com/boostorg/fiber.git
