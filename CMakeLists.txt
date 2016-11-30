@@ -1,15 +1,10 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# Use custom toolchain if set
-set(toolchain $ENV{INCLUDEOS_TOOLCHAIN_FILE})
-if(DEFINED toolchain)
-  MESSAGE(STATUS "Toolchain set to: " ${toolchain})
-  set(CMAKE_TOOLCHAIN_FILE ${toolchain})
-endif(DEFINED toolchain)
+set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
 
 project (includeos)
-
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
@@ -86,15 +81,25 @@ endif(silent)
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 add_subdirectory(src)
-add_subdirectory(vmbuild)
+
+option(vmbuild "Build and install vmbuild and elf_syms" ON)
+if(vmbuild)
+  # Install vmbuilder as an external project
+  ExternalProject_Add(vmbuild
+    PREFIX vmbuild # Build where
+    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where are project located
+    INSTALL_DIR ${BIN} # Where to install
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
+    )
+endif(vmbuild)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
@@ -112,7 +117,7 @@ endif(tests)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/mac-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install scripts

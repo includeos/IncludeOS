@@ -5,6 +5,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_block)
+
 set(SERVICE_NAME "Blocking calls test")
 set(BINARY       "test_block")
 set(MAX_MEM 128)

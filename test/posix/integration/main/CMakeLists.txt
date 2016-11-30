@@ -4,6 +4,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_main)
+
 set(SERVICE_NAME "Service with no Service::start, only main")
 set(BINARY       "test_main")
 set(MAX_MEM 128)

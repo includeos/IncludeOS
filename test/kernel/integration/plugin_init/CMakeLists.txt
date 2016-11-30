@@ -5,6 +5,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_plugin_init)
+
 set(SERVICE_NAME "Plugin initialization test")
 set(BINARY       "test_plugin_init")
 set(MAX_MEM 128)

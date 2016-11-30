@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 from jsonschema import Draft4Validator, validators
 
 # Make the validator fill in defaults from the schema
