@@ -162,8 +162,8 @@ namespace hw {
     void irq_handler();
 
     // Private constructor / destructor. It's a singleton.
-    PIT();
-    ~PIT();
+    PIT() {}
+    ~PIT() {}
 
 
     // State-keeping

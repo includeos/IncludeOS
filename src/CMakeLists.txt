@@ -11,8 +11,8 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 
 add_custom_command(
 	OUTPUT apic_boot.o
-	COMMAND nasm -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
-	COMMAND objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
+	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
 	DEPENDS hw/apic_boot.asm
 )
 
@@ -24,7 +24,7 @@ set(OS_OBJECTS
   kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/profile.cpp kernel/profile_intr.asm
+  kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp

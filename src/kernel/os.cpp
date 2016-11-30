@@ -36,6 +36,8 @@
 #include <statman>
 #include <vector>
 
+#define SOFT_RESET_MAGIC   0xFEE1DEAD
+
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
@@ -48,7 +50,7 @@ extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
-MHz   OS::cpu_mhz_ {1000};
+MHz   OS::cpu_mhz_ {-1};
 RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
@@ -92,6 +94,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
   } else {
+
+    if (boot_magic == SOFT_RESET_MAGIC) {
+        if (boot_addr) OS::resume_softreset(boot_addr);
+    }
 
     // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
     auto mem = cmos::meminfo();
@@ -200,7 +206,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   INFO2("|");
 
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  if (OS::cpu_mhz_.count() < 0) {
+    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  }
   INFO2("+--> %f MHz", cpu_freq().count());
 
   // cpu_mhz must be known before we can start timer system
