@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-if (APPLE)
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
-endif()
 
 project (includeos)
 
