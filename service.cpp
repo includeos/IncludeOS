@@ -160,12 +160,17 @@ void save_stuff(Storage storage)
 #include <chrono>
 void the_string(Restore thing)
 {
-  printf("The string [some_string] has value [%s]\n", thing.as_string().c_str());
+  auto str = thing.as_string();
+  printf("The string [some_string] has value [%s]\n", str.c_str());
+  assert(str == "Some string :(" || str == "Some other string :(");
 }
 void the_buffer(Restore thing)
 {
-  printf("The buffer is %d long\n", thing.length());
+  printf("The buffer is %d bytes long\n", thing.length());
   printf("As text: %.*s\n", thing.length(), thing.as_buffer().buffer);
+  // there is an extra zero at the end of the buffer
+  auto str = std::string(thing.as_buffer().buffer, thing.as_buffer().length-1);
+  assert(str == "Just some random buffer");
 }
 void saved_message(Restore thing)
 {
