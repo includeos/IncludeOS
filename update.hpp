@@ -69,5 +69,6 @@ struct LiveUpdate
   static void on_resume(uint16_t id, resume_func);
   
   // attempt to restore existing payloads
-  static void resume(resume_func);
+  // returns false if there was nothing there
+  static bool resume(resume_func);
 };

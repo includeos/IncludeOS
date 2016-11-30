@@ -16,33 +16,12 @@
 // limitations under the License.
 
 #include <service>
-#include <cstdio>
 #include <net/inet4>
-#include <timers>
+#include <cstdio>
 #include "update.hpp"
+#include "hw_timer.hpp"
 
 static const uint16_t TERM_PORT = 6667;
-
-struct HW_timer
-{
-  HW_timer(const std::string& str) {
-    context = str;
-    printf("HW timer starting for %s\n", context.c_str());
-    time    = hw::CPU::rdtsc();
-  }
-  ~HW_timer() {
-    auto diff = hw::CPU::rdtsc() - time;
-
-    using namespace std::chrono;
-    double  div  = OS::cpu_freq().count() * 1000000.0;
-    int64_t time = diff / div * 1000;
-
-    printf("HW timer for %s: %lld (%lld ms)\n", context.c_str(), diff, time);
-  }
-private:
-  std::string context;
-  int64_t     time;
-};
 
 // prevent default serial out
 void default_stdout_handlers() {}
@@ -117,7 +96,10 @@ void Service::start(const std::string&)
   LiveUpdate::on_resume(665, saved_message);
   LiveUpdate::on_resume(666, restore_term);
   // begin restoring saved data
-  LiveUpdate::resume(on_missing);
+  if (LiveUpdate::resume(on_missing) == false) {
+    printf("* Not restoring data, because no update has happened\n");
+    // .. logic for when there is nothing to resume yet
+  }
   
   // listen for telnet clients
   setup_terminal(inet);
@@ -199,31 +181,6 @@ void on_missing(Restore thing)
   printf("Missing resume function for %u\n", thing.get_id());
 }
 
-struct restore_t
-{
-  Connection_ptr conn = nullptr;
-  char buffer[128];
-  int  len = 0;
-  
-  void set_conn(Connection_ptr conn)
-  {
-    this->conn = conn;
-    setup_terminal_connection(conn);
-    
-    printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
-  }
-  
-  void try_send()
-  {
-    if (conn != nullptr && len != 0)
-    {
-      printf("Sending message: %.*s\n", len, buffer);
-      conn->write(buffer, len);
-    }
-  }
-};
-restore_t rest;
-
 void the_timing(Restore thing)
 {
   auto t1   = thing.as_type<int64_t>();
@@ -233,20 +190,22 @@ void the_timing(Restore thing)
   double  div  = OS::cpu_freq().count() * 1000000.0;
   int64_t time = diff / div * 1000;
 
-  rest.len = snprintf(rest.buffer, sizeof(rest.buffer),
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
              "! Boot time in ticks: %lld (%lld ms)\n", diff, time);
 
-  printf("%.*s", rest.len, rest.buffer);
-  rest.try_send();
+  savemsg.emplace_back(buffer, len);
 }
 void restore_term(Restore thing)
 {
   auto& stack = net::Inet4::stack<0> ();
-  rest.set_conn(thing.as_tcp_connection(stack.tcp()));
-  // try sending the boot timing
-  rest.try_send();
+  // restore connection to terminal
+  auto conn = thing.as_tcp_connection(stack.tcp());
+  setup_terminal_connection(conn);
+  printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
+  
   // send all the messages so far
   for (auto msg : savemsg) {
-    rest.conn->write(msg);
+    conn->write(msg);
   }
 }

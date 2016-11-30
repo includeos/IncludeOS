@@ -19,18 +19,15 @@ bool LiveUpdate::is_resumable()
 {
   return *(uint64_t*) LIVEUPD_LOCATION == LIVEUPD_MAGIC;
 }
-void LiveUpdate::resume(resume_func func)
+bool LiveUpdate::resume(resume_func func)
 {
   // check if an update has occurred
-  if (is_resumable())
-  {
-    printf("* Restoring data...\n");
-    // restore connections etc.
-    extern void resume_begin(storage_header&, LiveUpdate::resume_func);
-    resume_begin(*(storage_header*) LIVEUPD_LOCATION, func);
-  } else {
-    printf("* Not restoring data, because no update has happened\n");
-  }
+  if (!is_resumable()) return false;
+  
+  printf("* Restoring data...\n");
+  // restore connections etc.
+  extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
+  return resume_begin(*(storage_header*) LIVEUPD_LOCATION, func);
 }
 
 static void update_store_data(void* location, LiveUpdate::storage_func);
