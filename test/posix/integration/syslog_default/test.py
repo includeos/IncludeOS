@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
@@ -10,7 +10,6 @@ sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
 vm = vmrunner.vms[0]
-vm.cmake()
 
 num_outputs = 0
 
@@ -120,4 +119,4 @@ vm.on_output("<191> " + DEBUG_C + "<LOCAL7.DEBUG> " + END_C, increment)
 vm.on_output(" test_syslog_default Exiting test: Something special to close with", check_num_outputs)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+vm.cmake().boot(20).clean()

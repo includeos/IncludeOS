@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
@@ -31,4 +31,4 @@ vm.on_output("Machine: x86_64", increment)
 vm.on_output("Something special to close with", check_num_outputs)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+vm.boot(20).clean()

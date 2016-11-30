@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-if (NOT DEFINED ENV{INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT /usr/local)
-else()
-  set(INCLUDEOS_ROOT $ENV{INCLUDEOS_ROOT})
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
+
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_block)
 
 set(SERVICE_NAME "Blocking calls test")
 set(BINARY       "test_block")
@@ -15,4 +18,4 @@ set(SOURCES
 #set(LOCAL_INCLUDES ".")
 
 # include service build script
-include(${INCLUDEOS_ROOT}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

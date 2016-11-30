@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import socket
 import sys
@@ -77,4 +77,4 @@ vm = vmrunner.vms[0]
 vm.on_output("IncludeOS TCP test", TCP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.make().boot(80)
+vm.cmake().boot(80).clean()

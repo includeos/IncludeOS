@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
@@ -8,4 +8,4 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src + "/test")
 
 import vmrunner
-vmrunner.vms[0].make().boot(30)
+vmrunner.vms[0].cmake().boot(30).clean()

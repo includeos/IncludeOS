@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import socket
 import time
@@ -257,4 +257,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.make().boot(timeout)
+vm.cmake().boot(timeout).clean()

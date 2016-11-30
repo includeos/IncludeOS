@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
@@ -39,7 +39,7 @@ def UDP_test(trigger_line):
     vmrunner.vms[0].exit(0, "SUCCESS")
 
 # Add custom event-handler
-vm.on_output("IncludeOS UDP test", UDP_test)
+vm.on_output("UDP test service", UDP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.make().boot(20)
+vm.cmake().boot(30).clean()

@@ -11,8 +11,8 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 
 add_custom_command(
 	OUTPUT apic_boot.o
-	COMMAND nasm -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
-	COMMAND objcopy -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
+	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
 	DEPENDS hw/apic_boot.asm
 )
 
@@ -24,7 +24,7 @@ set(OS_OBJECTS
   kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/profile.cpp kernel/profile_intr.asm
+  kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
@@ -48,32 +48,20 @@ set(OS_OBJECTS
   )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
+add_dependencies(os PrecompiledLibraries)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 
 add_library(c++abi STATIC ${CXX_ABI})
 add_dependencies(c++abi libcxx)
 
-add_custom_command(
-	OUTPUT crti.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crti.s -o crti.o
-	DEPENDS crt/crti.s
-)
-add_custom_target(crti DEPENDS crti.o)
-
-add_custom_command(
-	OUTPUT crtn.o
-	COMMAND ${CMAKE_CXX_COMPILER} -target i686-elf -mstackrealign -msse3 -Wall -Wextra -c -m32 -std=c++14 -x assembler-with-cpp ${CMAKE_CURRENT_SOURCE_DIR}/crt/crtn.s -o crtn.o
-	DEPENDS crt/crtn.s
-)
-add_custom_target(crtn DEPENDS crtn.o)
-
+add_subdirectory(crt)
 add_subdirectory(boot)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 
 install(TARGETS c++abi os DESTINATION includeos/lib)
-install(FILES crt/crti.o crt/crtn.o DESTINATION includeos/lib)
+
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")

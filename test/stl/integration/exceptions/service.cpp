@@ -18,7 +18,7 @@
 #include <os>
 #include <stdio.h>
 #include <cassert>
-#include <lest.hpp>
+#include <lest/lest.hpp>
 
 #define MYINFO(X,...) INFO("Test exceptions",X,##__VA_ARGS__)
 

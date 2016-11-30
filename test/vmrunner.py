@@ -16,13 +16,13 @@ INCLUDEOS_HOME = None
 
 nametag = "<VMRunner>"
 
-if "INCLUDEOS_HOME" not in os.environ:
+if "INCLUDEOS_PREFIX" not in os.environ:
     def_home = "/usr/local"
-    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_HOME is not set. Trying default", def_home
-    if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_HOME")
+    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_PREFIX is not set. Trying default", def_home
+    if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_PREFIX")
     INCLUDEOS_HOME= def_home
 else:
-    INCLUDEOS_HOME = os.environ['INCLUDEOS_HOME']
+    INCLUDEOS_HOME = os.environ['INCLUDEOS_PREFIX']
 
 # Exit codes used by this program
 exit_codes = {"SUCCESS" : 0,
@@ -200,9 +200,9 @@ class vm:
   def __init__(self, config, hyper = qemu):
     self._exit_status = 0
     self._config = config
-    self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], color.SUCCESS(nametag + " All tests passed"))
-    self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], color.FAIL(nametag + self._hyper.readline()))
-    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], color.FAIL(nametag + " Test timed out"))
+    self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
+    self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], nametag + self._hyper.readline())
+    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
     self._on_output = {
       "PANIC" : self._on_panic,
       "SUCCESS" : self._on_success }
@@ -211,16 +211,24 @@ class vm:
     self._timer = None
     self._on_exit_success = lambda : None
     self._on_exit = lambda : None
-
+    self._root = os.getcwd()
   def exit(self, status, msg):
     self.stop()
     print
     self._exit_status = status
-    if status == 0:
-      print color.SUCCESS(msg)
-      return self._on_exit_success()
-    print color.FAIL(msg)
+    print color.INFO(nametag),"Calling on_exit"
+
+    # Change back to test source
+    os.chdir(self._root)
     self._on_exit()
+    if status == 0:
+      # Print success message and return to caller
+      print color.SUCCESS(msg)
+      print color.INFO(nametag),"Calling on_exit_success"
+      return self._on_exit_success()
+
+    # Print fail message and exit with appropriate code
+    print color.FAIL(msg)
     sys.exit(status)
 
   def on_output(self, output, callback):
@@ -257,11 +265,10 @@ class vm:
 
   def clean(self):
     print color.INFO(nametag), "Cleaning cmake build folder"
-    os.chdir("../")
     subprocess.call(["rm","-rf","build"])
 
-  def cmake(self):
-    print color.INFO(nametag), "Building with cmake"
+  def cmake(self, args = []):
+    print color.INFO(nametag), "Building with cmake (%s)" % args
     # install dir:
     INSTDIR = os.getcwd()
 
@@ -271,11 +278,15 @@ class vm:
     except OSError as err:
         if err.errno!=17:
             raise
+
     # go into build directory
+    # NOTE: The test gets run from here
     os.chdir("build")
 
     # build with prefix = original path
     cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
+    cmake.extend(args)
+
     res = subprocess.check_output(cmake)
     print color.SUBPROC(res)
 
@@ -332,7 +343,6 @@ class vm:
     self.wait()
 
     if self._exit_status:
-      print color.WARNING(nametag + " Found non-zero exit status but process didn't end. ")
       print color.INFO(nametag)," Done running VM. Exit status: ", self._exit_status
       sys.exit(self._exit_status)
     else:

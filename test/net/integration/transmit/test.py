@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import os
 
@@ -10,9 +10,9 @@ import vmrunner
 import socket
 
 
-def UDP_test():
+def transmit_test(grgr):
   print "<Test.py> Performing transmit tests"
-  HOST, PORT = "10.0.0.43", 4242
+  HOST, PORT = "10.0.0.45", 4242
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   data = "Someone there?"
@@ -37,7 +37,7 @@ def UDP_test():
 vm = vmrunner.vms[0]
 
 # Add custom event-handler
-vm.on_output("Ready", UDP_test)
+vm.on_output("Ready", transmit_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.make().boot(20)
+vm.cmake().boot(20).clean()
