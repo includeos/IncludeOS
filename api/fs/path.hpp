@@ -88,10 +88,16 @@ namespace fs {
     { return stk.end(); }
 
     std::string front() const
-    { return stk.front(); }
+    {
+      Expects(not empty()); // front() on empty container is undefined behaviour
+      return stk.front();
+    }
 
     std::string back() const
-    { return stk.back(); }
+    {
+      Expects(not empty()); // back() on empty container is undefined behaviour
+      return stk.back();
+    }
 
     Path& pop_front()
     {

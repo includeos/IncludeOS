@@ -129,3 +129,19 @@ CASE("pop_front expects that path is not empty")
   EXPECT_NO_THROW(path.pop_front().pop_front().pop_front());
   EXPECT_THROWS(path.pop_front());
 }
+
+CASE("front expects that path is not empty")
+{
+  fs::Path path {"/dev"};
+  EXPECT_NO_THROW(auto front = path.front());
+  path.pop_front();
+  EXPECT_THROWS(auto front = path.front());
+}
+
+CASE("back expects that path is not empty")
+{
+  fs::Path path {"/Users"};
+  EXPECT_NO_THROW(auto back = path.back());
+  path.pop_back();
+  EXPECT_THROWS(auto back = path.back());
+}

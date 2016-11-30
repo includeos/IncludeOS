@@ -21,6 +21,7 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/vfs_test.cpp
   #${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp

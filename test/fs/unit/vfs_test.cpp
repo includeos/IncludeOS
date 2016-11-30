@@ -52,3 +52,23 @@ CASE("VFS entries can contain arbitrary objects")
   EXPECT(bjarne.isBjarne() == true);
   EXPECT_THROWS(e.obj<std::string>());
 }
+
+CASE("VFS can mount entries in a tree")
+{
+  // tree is initially empty
+  EXPECT(fs::VFS::root().child_count() == 0);
+
+  // mount a char
+  char a {'a'};
+  fs::mount("/mnt/chars/a", a, "the letter a");
+  EXPECT(fs::VFS::root().child_count() == 1);
+
+  // cannot mount if already occupied
+  char b {'b'};
+  EXPECT_THROWS(fs::mount("/mnt/chars/a", b, "the letter b"));
+  EXPECT_NO_THROW(fs::mount("/mnt/chars/b", b, "the letter c"));
+
+  // mount another
+  char c {'c'};
+  EXPECT_NO_THROW(fs::mount("/mnt/chars/c", c, "the letter c"));
+}
