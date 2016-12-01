@@ -94,8 +94,8 @@ namespace fs {
     // Observation pointer. No ownership, no delete, can be invalidated
     using Obs_ptr = VFS_entry*;
 
-    virtual std::string name() { return name_; }
-    virtual std::string desc() { return desc_; }
+    virtual std::string name() const { return name_; }
+    virtual std::string desc() const { return desc_; }
 
     const std::type_info& type() const
     { return type_; }
