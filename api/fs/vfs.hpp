@@ -167,14 +167,11 @@ namespace fs {
           node.print_tree(tabs + "   |");
         else
           node.print_tree(tabs + "   `");
-
       }
     }
 
-
     int child_count() const
     { return children_.size(); }
-
 
     /**
      * Walk a given path in the VFS tree.
@@ -186,10 +183,12 @@ namespace fs {
     template <bool create = false>
     Obs_ptr walk (Path& path, bool partial = false){
 
+      Expects(not path.empty());
+
       Obs_ptr current_node = this;
       Obs_ptr next_node = nullptr;
 
-      do {
+      while (not path.empty()) {
         auto token = path.front();
 
         next_node = current_node->get_child(token);
@@ -209,7 +208,7 @@ namespace fs {
         // Pop off token only when we know it can be passed
         path.pop_front();
         current_node = next_node;
-      } while (not path.empty());
+      }
 
 
       Ensures(next_node);
@@ -239,15 +238,24 @@ namespace fs {
     template <bool create, typename T>
     void mount(Path path, T& obj, std::string desc) {
 
+      Expects(not path.empty());
+
       auto token = path.back();
       path.pop_back();
 
-      auto* parent = walk<create>(path);
+      VFS_entry* parent = nullptr;
 
-      if (not parent) {
-        Expects(not create); // Parent node should have been created otherwise
-        throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
+      if (not path.empty()) {
+        parent = walk<create>(path);
+        if (not parent) {
+          Expects(not create); // Parent node should have been created otherwise
+          throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
+        }
+
+      } else {
+        parent = this;
       }
+
 
       // Throw if occupied
       if (parent->get_child(token))
