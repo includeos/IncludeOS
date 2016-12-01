@@ -15,19 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef SYS_STDDEF_H
 #define SYS_STDDEF_H
-
 //#if defined(__need_ptrdiff_t) || defined(__need_size_t) || defined(__need_wchar_t) || defined(__need_NULL) || defined(__need_wint_t)
 
 typedef __PTRDIFF_TYPE__ ptrdiff_t;
-typedef __SIZE_TYPE__ size_t;
+typedef __SIZE_TYPE__    size_t;
 
-//typedef __WCHAR_TYPE__ wchar_t; // someone else is doing this..
+#ifndef __cplusplus
+typedef __WCHAR_TYPE__ wchar_t;
+#endif
 typedef __WINT_TYPE__ wint_t;
 
-#define NULL  0
+#ifndef NULL
+#define NULL __null
+#endif
 
-#define offsetof(type, member)    ((size_t) &((type*)0)->member)
+#ifndef offsetof
+#define offsetof(t, d)    __builtin_offsetof(t, d)
+#endif
 
 #endif
