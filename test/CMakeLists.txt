@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.5)
-project(unittests)
+cmake_minimum_required(VERSION 2.8.9)
+
+project(unittests CXX)
 
 set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 set(SRC ${INCLUDEOS_ROOT}/src)
@@ -59,5 +60,10 @@ set(OS_SOURCES
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
+install(TARGETS unittests DESTINATION ${TEST})
+#add_custom_command(TARGET unittests POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unittests> ${TEST}
+#  COMMENT "> Copying binary 'unittests' to ${TEST}")
 
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
