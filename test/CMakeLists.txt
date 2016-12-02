@@ -60,9 +60,10 @@ set(OS_SOURCES
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
-add_custom_command(TARGET unittests POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unittests> ${TEST}
-  COMMENT "Copying unittests to " ${TEST})
+install(TARGETS unittests DESTINATION ${TEST})
+#add_custom_command(TARGET unittests POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unittests> ${TEST}
+#  COMMENT "> Copying binary 'unittests' to ${TEST}")
 
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
