@@ -1,7 +1,9 @@
+#include <algorithm>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <cassert>
+#include <vector>
 #include "elf.h"
 
 static Elf32_Ehdr* elf_header_location;
@@ -53,6 +55,8 @@ struct SymTab {
 struct StrTab {
   char*    base;
   uint32_t size;
+
+  StrTab(char* base, uint32_t size) : base(base), size(size) {}
 };
 struct relocate_header {
   SymTab symtab;
@@ -109,7 +113,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
 static void prune_elf_symbols()
 {
   SymTab symtab { nullptr, 0 };
-  StrTab strtab { nullptr, 0 };
+  std::vector<StrTab> strtabs;
   auto& elf_hdr = elf_header();
   //printf("ELF header has %u sections\n", elf_hdr.e_shnum);
 
@@ -123,8 +127,7 @@ static void prune_elf_symbols()
                         shdr[i].sh_size / (int) sizeof(Elf32_Sym) };
       break;
     case SHT_STRTAB:
-      strtab = StrTab { (char*) elf_offset(shdr[i].sh_offset),
-                        shdr[i].sh_size };
+      strtabs.emplace_back((char*) elf_offset(shdr[i].sh_offset), shdr[i].sh_size);
       break;
     case SHT_DYNSYM:
     default:
@@ -134,7 +137,10 @@ static void prune_elf_symbols()
   //printf("symtab at %p (%u entries)\n", symtab.base, symtab.entries);
 
   // not stripped
-  if (symtab.entries && strtab.size) {
+  if (symtab.entries && !strtabs.empty()) {
+    StrTab strtab = *std::max_element(std::begin(strtabs), std::end(strtabs),
+                    [](auto const& lhs, auto const& rhs) { return lhs.size < rhs.size; });
+
     // allocate worst case, guaranteeing we have enough space
     pruned_location =
         new char[sizeof(relocate_header32) + symtab.entries * sizeof(Elf32_Sym) + strtab.size];
