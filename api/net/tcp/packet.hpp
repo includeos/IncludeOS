@@ -29,7 +29,7 @@
 #include <sstream> // ostringstream
 
 inline unsigned round_up(unsigned n, unsigned div) {
-  assert(n);
+  Expects(div > 0);
   return (n + div - 1) / div;
 }
 
