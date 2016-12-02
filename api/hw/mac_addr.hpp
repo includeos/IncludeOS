@@ -19,6 +19,9 @@
 #ifndef HW_MAC_ADDR_HPP
 #define HW_MAC_ADDR_HPP
 
+#include <stddef.h>
+#include <stdint.h>
+
 namespace hw {
 // MAC address
 union MAC_addr {
