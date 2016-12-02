@@ -19,8 +19,11 @@
 #ifndef HW_MAC_ADDR_HPP
 #define HW_MAC_ADDR_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <stddef.h>   // size_t
+#include <stdint.h>   // uint
+#include <cstdio>     // snprintf
+#include <string>
+#include <cstring>    // strncmp
 
 namespace hw {
 // MAC address
