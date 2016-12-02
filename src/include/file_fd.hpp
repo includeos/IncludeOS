@@ -15,19 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
+#ifndef FILE_FD_HPP
+#define FILE_FD_HPP
 
-#include "ipv4_module_test.hpp"
+class File_FD : public FD {
+public:
+  explicit File_FD(const int id)
+      : FD(id)
+  {}
 
-void Service::start(const std::string&)
-{
-  const auto number_of_failed_tests = lest::run(ipv4_module_test, {"-p"});
+  bool is_file() override { return true; }
 
-  if (number_of_failed_tests) {
-    printf("%d %s failed\n", number_of_failed_tests, (number_of_failed_tests == 1 ? "test has" : "tests have"));
-    MYINFO("FAILURE");
-  } else {
-    printf("%s\n", "All tests passed");
-    MYINFO("SUCCESS");
-  }  
-}
+};
+
+#endif

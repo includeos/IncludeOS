@@ -16,19 +16,42 @@
 // limitations under the License.
 
 #include <service>
-#include <info>
+#include <memdisk>
+#include <os>
+#include <fs/vfs.hpp>
+#include <sys/stat.h>
 
-#include "ethernet_module_test.hpp"
+int ftw_tests();
+int stat_tests();
 
-void Service::start(const std::string&)
+fs::Disk_ptr& memdisk() {
+  static auto disk = fs::new_shared_memdisk();
+
+  if (not disk->fs_ready()) {
+    printf("%s\n", disk->name().c_str());
+    disk->init_fs([](fs::error_t err) {
+        if (err) {
+          printf("ERROR MOUNTING DISK\n");
+          exit(127);
+        }
+      });
+    }
+  return disk;
+}
+
+int main()
 {
-  const auto number_of_failed_tests = lest::run(ethernet_module_test, {"-p"});
+  INFO("POSIX stat", "Running tests for POSIX stat");
 
-  if (number_of_failed_tests) {
-    printf("%d %s failed\n", number_of_failed_tests, (number_of_failed_tests == 1 ? "test has" : "tests have"));
-    MYINFO("FAILURE");
-  } else {
-    printf("%s\n", "All tests passed");
-    MYINFO("SUCCESS");
-  }  
+  // mount a disk with contents for testing
+  auto root = memdisk()->fs().stat("/");
+  fs::mount("/mnt/disk", root, "test root");
+
+  fs::print_tree();
+
+  stat_tests();
+  ftw_tests();
+
+  INFO("POSIX STAT", "All done!");
+  exit(0);
 }

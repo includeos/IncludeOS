@@ -81,8 +81,8 @@ endif(silent)
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
@@ -95,7 +95,7 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
-    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where are project located
+    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
@@ -111,7 +111,12 @@ install(DIRECTORY api/ DESTINATION includeos/api)
 option(tests "Build unit tests in /test" OFF)
 if(tests)
   enable_testing()
-  add_subdirectory(test)
+  ExternalProject_Add(unittests
+    PREFIX unittests
+    SOURCE_DIR ${INCLUDEOS_ROOT}/test
+    CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+    )
+  #add_subdirectory(test)
 endif(tests)
 
 

@@ -6,16 +6,19 @@ endif()
 
 set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
 
-project (test_ipv4)
+project(test_posix_stat)
 
-set(SERVICE_NAME "IPv4 test")
-set(BINARY       "test_ipv4")
-set(MAX_MEM 64)
+set(SERVICE_NAME "Stat test")
+set(BINARY       "test_posix_stat")
+set(MAX_MEM 128)
 set(SOURCES
-    service.cpp
+    test_stat_ftw.cpp
+    ftw_tests.cpp
+    stat_tests.cpp
   )
+#set(LOCAL_INCLUDES ".")
 
-#set(DRIVERS virtionet)
+set(MEMDISK ${CMAKE_SOURCE_DIR}/disk.img)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
