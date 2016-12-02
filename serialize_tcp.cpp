@@ -61,7 +61,7 @@ Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
   return conn;
 }
 
-void Connection::serialize_to(void* addr)
+int Connection::serialize_to(void* addr)
 {
   auto* area = (serialized_tcp*) addr;
   
@@ -72,4 +72,6 @@ void Connection::serialize_to(void* addr)
   area->state_prev = area->to_state(this->prev_state_);
   area->rtx_att    = this->rtx_attempt_;
   area->syn_rtx    = this->syn_rtx_;
+  
+  return sizeof(serialized_tcp);
 }

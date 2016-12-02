@@ -149,6 +149,9 @@ void Storage::add_buffer(uint16_t id, void* buf, size_t len)
 #include "serialize_tcp.hpp"
 void Storage::add_connection(uid id, Connection conn)
 {
-  auto& ent = hdr.add_struct(TYPE_TCP, id, sizeof(serialized_tcp));
-  conn->serialize_to(ent.vla);
+  hdr.add_struct(TYPE_TCP, id,
+  [&conn] (char* location) -> int {
+    // return size of all the serialized data
+    return conn->serialize_to(location);
+  });
 }

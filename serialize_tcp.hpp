@@ -17,6 +17,10 @@ struct serialized_tcp
   int8_t rtx_att;
   int8_t syn_rtx;
   
+  /// write buffers
+  int8_t write_buffers;
+  
+  
   Connection::State* to_state(int8_t st);
   int8_t to_state(Connection::State* state);
 };

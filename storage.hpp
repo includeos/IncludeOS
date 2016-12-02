@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <delegate>
 
 enum storage_type
 {
@@ -28,11 +29,13 @@ struct storage_entry
 
 struct storage_header
 {
+  typedef delegate<int(char*)> construct_func;
   storage_header(uint64_t);
   
   void add_string(uint16_t id, const std::string& data);
   void add_buffer(uint16_t id, const char*, int);
   storage_entry& add_struct(int16_t type, uint16_t id, int length);
+  storage_entry& add_struct(int16_t type, uint16_t id, construct_func);
   void add_end();
   
   storage_entry* begin();
@@ -40,6 +43,9 @@ struct storage_header
   
   template <typename... Args>
   storage_entry& create_entry(Args&&... args);
+  
+  inline storage_entry&
+  var_entry(int16_t type, uint16_t id, construct_func func);
   
   uint64_t magic;
   uint32_t entries = 0;
@@ -54,6 +60,23 @@ storage_header::create_entry(Args&&... args)
   // create entry
   auto* entry = (storage_entry*) &vla[length];
   new (entry) storage_entry(args...);
+  // next storage_entry will be this much further out:
+  this->length += entry->size();
+  this->entries++;
+  // make sure storage is properly EOF'd
+  ((storage_entry*) &vla[length])->type = TYPE_END;
+  return *entry;
+}
+
+inline storage_entry&
+storage_header::var_entry(int16_t type, uint16_t id, construct_func func)
+{
+  // create entry
+  auto* entry = (storage_entry*) &vla[length];
+  new (entry) storage_entry(type, id, 0);
+  // determine and set size of entry
+  int size = func(entry->vla);
+  entry->len = size;
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;

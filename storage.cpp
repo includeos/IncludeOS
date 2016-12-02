@@ -23,6 +23,10 @@ storage_entry& storage_header::add_struct(int16_t type, uint16_t id, int length)
 {
   return create_entry(type, id, length);
 }
+storage_entry& storage_header::add_struct(int16_t type, uint16_t id, construct_func func)
+{
+  return var_entry(type, id, func);
+}
 void storage_header::add_end()
 {
   create_entry(TYPE_END);
