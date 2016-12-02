@@ -95,7 +95,7 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
-    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where are project located
+    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
@@ -111,7 +111,12 @@ install(DIRECTORY api/ DESTINATION includeos/api)
 option(tests "Build unit tests in /test" OFF)
 if(tests)
   enable_testing()
-  add_subdirectory(test)
+  ExternalProject_Add(unittests
+    PREFIX unittests
+    SOURCE_DIR ${INCLUDEOS_ROOT}/test
+    CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT}
+    )
+  #add_subdirectory(test)
 endif(tests)
 
 
