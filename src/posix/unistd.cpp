@@ -22,9 +22,7 @@
 #include <kernel/rng.hpp>
 #include <fs/vfs.hpp>
 
-static const int syscall_fd   {999};
-static const int rng_fd       {998};
-static bool debug_syscalls    {true};
+static const int rng_fd       {998}; // temp
 
 int open(const char* s, int, ...)
 {
