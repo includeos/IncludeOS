@@ -1,6 +1,7 @@
 #include <net/inet4>
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"
+#include <cstring>
 
 using namespace net::tcp;
 
@@ -37,19 +38,71 @@ int8_t serialized_tcp::to_state(Connection::State* state)
   assert(0);
 }
 
+struct write_buffer
+{
+  size_t   remaining;
+  size_t   offset;
+  size_t   acknowledged;
+  bool     push;
+  
+  size_t   length() const noexcept { return remaining + offset; }
+  
+  char     vla[0];
+};
+
+struct serialized_writeq
+{
+  uint32_t current;
+  size_t   buffers;
+  
+  char     vla[0];
+};
+
+
+void WriteQueue::deserialize_from(void* addr)
+{
+  auto* writeq = (serialized_writeq*) addr;
+  this->current_ = writeq->current;
+  
+  /// restore write buffers
+  int len = 0;
+  
+  while (writeq->buffers--) {
+    
+    auto* current = (write_buffer*) &writeq->vla[len];
+    // header
+    len += sizeof(write_buffer);
+    
+    buffer_t wq_buffer { new uint8_t[current->length()], std::default_delete<uint8_t[]> () };
+    // copy data
+    memcpy(wq_buffer.get(), &writeq->vla[len], current->length());
+    len += current->length();
+    
+    /// insert into write queue
+    this->q.emplace_back(
+        std::piecewise_construct,
+        std::forward_as_tuple(wq_buffer, current->length(), current->push, current->offset),
+        std::forward_as_tuple([] (int) {})); // no-op write callback
+    
+    this->q.back().first.acknowledged = current->acknowledged;
+    assert(this->q.back().first.length() == current->length());
+  }
+}
 void Connection::deserialize_from(void* addr)
 {
   auto* area = (serialized_tcp*) addr;
   
+  /// restore TCP stuff
   //this->local_port_ = area->local_port;
   //this->remote_     = area->remote;
-  this->cb          = area->tcb;
-  this->state_      = area->to_state(area->state_now);
-  this->prev_state_ = area->to_state(area->state_prev);
+  this->cb           = area->tcb;
+  this->state_       = area->to_state(area->state_now);
+  this->prev_state_  = area->to_state(area->state_prev);
   this->rtx_attempt_ = area->rtx_att;
-  this->syn_rtx_    = area->syn_rtx;
+  this->syn_rtx_     = area->syn_rtx;
+  /// restore writeq from VLA
+  this->writeq.deserialize_from(area->vla);
 }
-
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
 {
   auto* area = (serialized_tcp*) addr;
@@ -61,10 +114,38 @@ Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
   return conn;
 }
 
+int  WriteQueue::serialize_to(void* addr)
+{
+  auto* writeq = (serialized_writeq*) addr;
+  writeq->current = this->current_;
+  writeq->buffers = this->q.size();
+  
+  int len = 0;
+  for (auto& wq : this->q) {
+    
+    auto* current = (write_buffer*) &writeq->vla[len];
+    auto& buf = wq.first;
+    
+    // header
+    current->remaining = buf.remaining;
+    current->offset    = buf.offset;
+    current->acknowledged = buf.acknowledged;
+    current->push      = buf.push;
+    len += sizeof(write_buffer);
+    
+    // data
+    memcpy(&writeq->vla[len], buf.buffer.get(), current->length());
+    len += current->length();
+  }
+  
+  return sizeof(serialized_writeq) + len;
+}
+
 int Connection::serialize_to(void* addr)
 {
   auto* area = (serialized_tcp*) addr;
   
+  /// serialize TCP stuff
   area->local_port = this->local_port();
   area->remote     = this->remote();
   area->tcb        = this->cb;
@@ -73,5 +154,8 @@ int Connection::serialize_to(void* addr)
   area->rtx_att    = this->rtx_attempt_;
   area->syn_rtx    = this->syn_rtx_;
   
-  return sizeof(serialized_tcp);
+  /// serialize write queue
+  int writeq_len = this->writeq.serialize_to(area->vla);
+  
+  return sizeof(serialized_tcp) + writeq_len;
 }

@@ -20,7 +20,10 @@ struct serialized_tcp
   /// write buffers
   int8_t write_buffers;
   
+  /// vla for write buffers
+  char   vla[0];
   
+  /// helper functions
   Connection::State* to_state(int8_t st);
   int8_t to_state(Connection::State* state);
 };

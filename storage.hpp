@@ -47,6 +47,10 @@ struct storage_header
   inline storage_entry&
   var_entry(int16_t type, uint16_t id, construct_func func);
   
+  void append_eof() noexcept {
+    ((storage_entry*) &vla[length])->type = TYPE_END;
+  }
+  
   uint64_t magic;
   uint32_t entries = 0;
   uint32_t length  = 0;
@@ -64,7 +68,7 @@ storage_header::create_entry(Args&&... args)
   this->length += entry->size();
   this->entries++;
   // make sure storage is properly EOF'd
-  ((storage_entry*) &vla[length])->type = TYPE_END;
+  this->append_eof();
   return *entry;
 }
 
@@ -81,6 +85,6 @@ storage_header::var_entry(int16_t type, uint16_t id, construct_func func)
   this->length += entry->size();
   this->entries++;
   // make sure storage is properly EOF'd
-  ((storage_entry*) &vla[length])->type = TYPE_END;
+  this->append_eof();
   return *entry;
 }

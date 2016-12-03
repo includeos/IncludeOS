@@ -20,6 +20,7 @@
 #include <cstdio>
 #include "update.hpp"
 #include "hw_timer.hpp"
+#include "crc32.h"
 
 static const uint16_t TERM_PORT = 6667;
 
@@ -61,7 +62,23 @@ void setup_terminal(T& inet)
   [] (auto conn) {
     setup_terminal_connection(conn);
     // write a string to change the state
-    conn->write("State change SeemsGood\n");
+    char BUFFER_CHAR = 'A';
+    static CRC32_BEGIN(crc);
+    const int LEN = 4096;
+    auto* buf = new char[LEN];
+    
+    for (int i = 0; i < 1000; i++) {
+      memset(buf, BUFFER_CHAR, LEN);
+      conn->write(buf, LEN,
+      [conn, buf, LEN] (int) {
+        
+        crc = crc32(crc, buf, LEN);
+        printf("CRC32: %08x   %s\n", CRC32_VALUE(crc), conn->to_string().c_str());
+      });
+      
+      //BUFFER_CHAR++;
+      if (BUFFER_CHAR > 'Z') BUFFER_CHAR = 'A';
+    }
   });
 }
 
@@ -179,7 +196,7 @@ void saved_message(Restore thing)
   
   printf("[%d] %s", ++n, str.c_str());
   // re-save it
-  savemsg.push_back(str);
+  //savemsg.push_back(str);
 }
 void on_missing(Restore thing)
 {
@@ -210,7 +227,6 @@ void restore_term(Restore thing)
   printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
   
   // send all the messages so far
-  for (auto msg : savemsg) {
-    conn->write(msg);
-  }
+  //for (auto msg : savemsg)
+  //  conn->write(msg);
 }
