@@ -25,6 +25,12 @@
 
 namespace fs
 {
+  inline Disk new_memdisk()
+  {
+    static MemDisk device;
+    return Disk{ device };
+  }
+
   // new_shared_memdisk() very likely contains FAT
   inline Disk_ptr new_shared_memdisk()
   {
