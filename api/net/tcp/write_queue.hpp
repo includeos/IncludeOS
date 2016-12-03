@@ -162,6 +162,10 @@ public:
     debug("<WriteQueue::reset> Reset\n");
   }
 
+  // ???
+  void deserialize_from(void*);
+  int  serialize_to(void*);
+
 private:
   std::deque<WriteRequest> q;
   /* Current element (index) */
