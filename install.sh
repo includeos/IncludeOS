@@ -8,6 +8,12 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
 
 SYSTEM=`uname -s`
 
+if [ ! $SYSTEM = "Darwin" ] &&  ! command -v lsb_release > /dev/null 2>&1; then
+    echo -e ">>> Sorry <<< \n\
+The command lsb_release was not found. \n"
+    exit 1
+fi
+
 RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || echo `lsb_release -is`)
 
 [ "$RELEASE" = "neon" ] && RELEASE="Ubuntu"
