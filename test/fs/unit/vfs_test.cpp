@@ -88,4 +88,11 @@ CASE("VFS can mount entries in a tree")
   // mount another
   char c {'c'};
   EXPECT_NO_THROW(fs::mount("/mnt/chars/c", c, "the letter c"));
+
+  // mount direct descendants of root
+  char d {'d'};
+  char e {'e'};
+  EXPECT_NO_THROW(fs::mount("/d", d, "the letter d"));
+  EXPECT_NO_THROW(fs::mount("/e", e, "the letter e"));
+  EXPECT(fs::VFS::root().child_count() == 3);
 }
