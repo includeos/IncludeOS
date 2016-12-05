@@ -129,14 +129,14 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 }
 
 
-void Connection::write(WriteBuffer buffer, WriteCallback callback) {
+void Connection::write(WriteBuffer&& buffer, WriteCallback callback) {
   try {
     // try to write
     auto written = state_->send(*this, buffer);
     debug("<Connection::write> off=%u rem=%u  written=%u\n",
       buffer.offset, buffer.remaining, written);
     // put request in line
-    writeq.push_back({buffer, callback});
+    writeq.push_back({std::move(buffer), callback});
     // if data was written, advance
     if(written) {
       writeq.advance(written);
