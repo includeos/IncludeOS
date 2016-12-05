@@ -24,7 +24,6 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <iostream>
 
 // #include <gsl/gsl>
 // #include <sys/stat.h>
@@ -48,8 +47,8 @@ public:
   File_info(Tar_header& header)
     : header_{header} {}
 
-  File_info(Tar_header& header, const std::vector<Content_block*> content, int num_content_blocks)
-    : header_{header}, content_{content}, num_content_blocks_{num_content_blocks} {}
+  File_info(Tar_header& header, const std::vector<Content_block*> content/*, int num_content_blocks*/)
+    : header_{header}, content_{content}/*, num_content_blocks_{num_content_blocks}*/ {}
 
   const Tar_header& header() const { return header_; }
   void set_header(const Tar_header& header) { header_ = header; }
@@ -59,8 +58,8 @@ public:
     content_.push_back(content_block);
   }
 
-  void set_num_content_blocks(int num_content_blocks) { num_content_blocks_ = num_content_blocks; }
-  int num_content_blocks() const { return num_content_blocks_; }
+  /*void set_num_content_blocks(int num_content_blocks) { num_content_blocks_ = num_content_blocks; }
+  int num_content_blocks() const { return num_content_blocks_; }*/
 
   const std::string name() { return std::string{header_.name}; }
   const std::string mode() { return std::string{header_.mode}; }
@@ -86,10 +85,14 @@ public:
 
   bool typeflag_is_set() const { return header_.typeflag == ' '; }
 
+  bool is_empty() { return content_.size() == 0; }
+
+  int num_content_blocks() { return content_.size(); }
+
 private:
   Tar_header& header_;
   std::vector<Content_block*> content_;
-  int num_content_blocks_{0};
+  // int num_content_blocks_{0};
 };
 
 class Tar {
@@ -256,6 +259,7 @@ public:
 
 private:
   // If more than one tar file in the service: vector ?
+  // Have a Tar (or many) as a private attribute to Tar_reader at all?
   Tar tar_;
 
   Tar& read(const char* file, size_t size);

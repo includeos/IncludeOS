@@ -17,6 +17,8 @@
 
 #include <tar>
 
+#include <iostream> // strtol
+
 // -------------------- File_info --------------------
 
 long int File_info::size() {
@@ -120,7 +122,7 @@ Tar& Tar_reader::read(const char* file, size_t size) {
         num_content_blocks = (filesize / SECTOR_SIZE);
       printf("Num content blocks: %d\n", num_content_blocks);
 
-      f.set_num_content_blocks(num_content_blocks);
+      // f.set_num_content_blocks(num_content_blocks);
 
       for (int j = 0; j < num_content_blocks; j++) {
         i += SECTOR_SIZE; // Go to next block with content
