@@ -65,14 +65,14 @@ void setup_terminal(T& inet)
     char BUFFER_CHAR = 'A';
     static CRC32_BEGIN(crc);
     const int LEN = 4096;
-    auto* buf = new char[LEN];
+    auto buf = net::tcp::buffer_t(new uint8_t[LEN], std::default_delete<uint8_t[]>());
     
     for (int i = 0; i < 1000; i++) {
-      memset(buf, BUFFER_CHAR, LEN);
+      memset(buf.get(), BUFFER_CHAR, LEN);
       conn->write(buf, LEN,
       [conn, buf, LEN] (int) {
         
-        crc = crc32(crc, buf, LEN);
+        crc = crc32(crc, (char*) buf.get(), LEN);
         printf("CRC32: %08x   %s\n", CRC32_VALUE(crc), conn->to_string().c_str());
       });
       

@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
@@ -7,7 +8,7 @@
 #include <arpa/inet.h>
 #include "crc32.h"
 
-int main(int, char *[])
+int main(void)
 {
   CRC32_BEGIN(x);
   for (int i = 0; i < 1000; i++) {
@@ -17,7 +18,8 @@ int main(int, char *[])
     x = crc32(x, buf, len);
     delete[] buf;
   }
-  printf("CRC32 should be: %08x\n", CRC32_VALUE(x));
+  const uint32_t FINAL_CRC = CRC32_VALUE(x);
+  printf("CRC32 should be: %08x\n", FINAL_CRC);
     
     const uint16_t PORT = 6667;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,12 +34,11 @@ int main(int, char *[])
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         perror("ERROR connecting");
     
-    printf("Calculating CRC32...\n");
     uint32_t crc = 0xFFFFFFFF;
     while (true)
     {
-      char buffer[256];
-      int n = read(sockfd,buffer, 4096);
+      char buffer[4096];
+      int n = read(sockfd, buffer, sizeof(buffer));
       if (n < 0) perror("ERROR reading from socket");
       
       if (n == 0) break;
@@ -45,11 +46,16 @@ int main(int, char *[])
       // update CRC32 partially
       crc = crc32(crc, buffer, n);
       
-      printf("Partial CRC: %08x\n", ~crc);
+      if (~crc == FINAL_CRC)
+        break;
+      else
+        printf("Partial CRC: %08x\n", ~crc);
     }
     crc = ~crc;
     
-    printf("Final CRC: %08x\n", crc);
+    printf("Final CRC: %08x  vs  %08x\n", crc, FINAL_CRC);
     close(sockfd);
+    
+    assert(crc == FINAL_CRC);
     return 0;
 }
