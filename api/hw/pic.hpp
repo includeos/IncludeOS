@@ -48,6 +48,10 @@ namespace hw {
       INFO2("- Disabling IRQ %i, mask: 0x%x", irq, irq_mask_);
     }
 
+    inline static void disable() {
+      set_intr_mask(0xffff);
+    }
+
     /**
        @brief End of Interrupt. Master IRQ-lines (0-7) currently use Auto EOI,
        but the user should assume that IRQ-specific EOI's are necessary.
