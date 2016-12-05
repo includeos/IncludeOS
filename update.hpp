@@ -37,7 +37,7 @@ struct Restore
   Connection   as_tcp_connection(net::TCP&) const;
   
   template <typename S>
-  inline S as_type() const;
+  inline S& as_type() const;
   
   int16_t  get_type() const noexcept;
   uint16_t get_id() const noexcept;
@@ -50,14 +50,14 @@ private:
 };
 
 template <typename S>
-inline S Restore::as_type() const {
+inline S& Restore::as_type() const {
   return *(S*) data();
 }
 
 struct LiveUpdate
 {
   typedef delegate<void(Restore)> resume_func;
-  typedef delegate<void(Storage)> storage_func;
+  typedef delegate<void(Storage, buffer_len)> storage_func;
 
   // start a live update process
   static void begin(buffer_len blob, storage_func);

@@ -10,7 +10,7 @@
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
-static const uintptr_t LIVEUPD_LOCATION = 0x6000000; // at 96mb
+static const uintptr_t LIVEUPD_LOCATION = 234881024; // at 224mb
 static const uint64_t  LIVEUPD_MAGIC    = 0xbaadb33fdeadc0de;
 
 static void* HOTSWAP_AREA = (void*) 0x8000;
@@ -30,7 +30,7 @@ bool LiveUpdate::resume(resume_func func)
   return resume_begin(*(storage_header*) LIVEUPD_LOCATION, func);
 }
 
-static void update_store_data(void* location, LiveUpdate::storage_func);
+static void update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
 
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
@@ -94,7 +94,7 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   printf("* _start is located at %#x\n", start_offset);
 
   // save ourselves
-  update_store_data(storage_area, func);
+  update_store_data(storage_area, func, {update_area, blob.length});
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
@@ -121,14 +121,14 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset, sr_data);
 }
 
-void update_store_data(void* location, LiveUpdate::storage_func func)
+void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len blob)
 {
   // create storage header in the fixed location
   new (location) storage_header(LIVEUPD_MAGIC);
   auto* storage = (storage_header*) location;
   
   /// callback for storing stuff
-  func({*storage});
+  func({*storage}, blob);
 }
 
 /// struct Storage

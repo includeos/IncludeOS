@@ -73,7 +73,7 @@ void setup_terminal(T& inet)
       [conn, buf, LEN] (int) {
         
         crc = crc32(crc, (char*) buf.get(), LEN);
-        printf("CRC32: %08x   %s\n", CRC32_VALUE(crc), conn->to_string().c_str());
+        printf("[%p] CRC32: %08x   %s\n", buf.get(), CRC32_VALUE(crc), conn->to_string().c_str());
       });
       
       //BUFFER_CHAR++;
@@ -81,6 +81,9 @@ void setup_terminal(T& inet)
     }
   });
 }
+
+template <typename T>
+void setup_liveupdate_server(T& inet);
 
 void Service::start(const std::string&)
 {
@@ -105,6 +108,7 @@ void Service::start(const std::string&)
   void the_timing(Restore);
   void restore_term(Restore);
   void saved_message(Restore);
+  void on_update_area(Restore);
   void on_missing(Restore);
 
   LiveUpdate::on_resume(1,   the_string);
@@ -112,47 +116,21 @@ void Service::start(const std::string&)
   LiveUpdate::on_resume(100, the_timing);
   LiveUpdate::on_resume(665, saved_message);
   LiveUpdate::on_resume(666, restore_term);
+  LiveUpdate::on_resume(999, on_update_area);
   // begin restoring saved data
   if (LiveUpdate::resume(on_missing) == false) {
     printf("* Not restoring data, because no update has happened\n");
     // .. logic for when there is nothing to resume yet
+    setup_liveupdate_server(inet);
   }
   
   // listen for telnet clients
   setup_terminal(inet);
   
-  // listen for live updates
-  auto& server = inet.tcp().bind(666);
-  server.on_connect(
-  [] (auto conn)
-  {
-    char* update_blob = new char[1024*1024*10];
-    int*  update_size = new int(0);
-
-    // retrieve binary
-    conn->on_read(9000,
-    [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
-    {
-      memcpy(update_blob + *update_size, buf.get(), n);
-      *update_size += (int) n;
-
-    }).on_close(
-    [update_blob, update_size] {
-      // we received a binary:
-      printf("* New update size: %u b\n", *update_size);
-      // save stuff for later
-      void save_stuff(Storage);
-      // run live update process
-      LiveUpdate::begin({update_blob, *update_size}, save_stuff);
-      /// We should never return :-) ///
-      assert(0 && "!! Update failed !!");
-    });
-  });
-
 }
 
 #include <hw/cpu.hpp>
-void save_stuff(Storage storage)
+void save_stuff(Storage storage, buffer_len final_blob)
 {
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
@@ -163,6 +141,10 @@ void save_stuff(Storage storage)
   auto ts = hw::CPU::rdtsc();
   storage.add_buffer(100, &ts, sizeof(ts));
   printf("! CPU ticks before: %lld\n", ts);
+  
+  // where the update was stored last
+  printf("Storing location %p:%d\n", final_blob.buffer, final_blob.length);
+  storage.add_buffer(999, &final_blob, sizeof(buffer_len));
   
   // messages received from terminals
   for (auto& msg : savemsg)
@@ -229,4 +211,52 @@ void restore_term(Restore thing)
   // send all the messages so far
   //for (auto msg : savemsg)
   //  conn->write(msg);
+}
+
+#include <timers>
+void on_update_area(Restore thing)
+{
+  buffer_len updloc = thing.as_type<buffer_len> ();
+  printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
+  
+  // we are perpetually updating ourselves
+  using namespace std::chrono;
+  Timers::oneshot(milliseconds(50),
+  [updloc] (auto) {
+    LiveUpdate::begin(updloc, save_stuff);
+  });
+}
+
+
+template <typename T>
+void setup_liveupdate_server(T& inet)
+{
+  // listen for live updates
+  auto& server = inet.tcp().bind(666);
+  server.on_connect(
+  [] (auto conn)
+  {
+    static const int UPDATE_MAX = 1024*1024 * 3; // 3mb files supported
+    char* update_blob = new char[UPDATE_MAX];
+    int*  update_size = new int(0);
+
+    // retrieve binary
+    conn->on_read(9000,
+    [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
+    {
+      memcpy(update_blob + *update_size, buf.get(), n);
+      assert(*update_size + n <= UPDATE_MAX);
+      *update_size += (int) n;
+
+    }).on_close(
+    [update_blob, update_size] {
+      // we received a binary:
+      float frac = *update_size / (float) UPDATE_MAX * 100.f;
+      printf("* New update size: %u b  (%.2f%%)\n", *update_size, frac);
+      // run live update process
+      LiveUpdate::begin({update_blob, *update_size}, save_stuff);
+      /// We should never return :-) ///
+      assert(0 && "!! Update failed !!");
+    });
+  });
 }
