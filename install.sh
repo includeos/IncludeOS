@@ -50,6 +50,8 @@ The command sudo was not found. \n"
 fi
 
 # check if system is supported at all
+echo "Jenkins release: $RELEASE"
+cat /etc/os-release
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
 Currently only Debian testing/jessie backports, Ubuntu, Fedora, Arch,\n\
