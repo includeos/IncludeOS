@@ -429,7 +429,7 @@ public:
 
   // ???
   void deserialize_from(void*);
-  void serialize_to(void*);
+  int  serialize_to(void*);
 
   /*
     Destroy the Connection.
