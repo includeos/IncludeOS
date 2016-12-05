@@ -117,7 +117,9 @@ void TCP::insert_connection(Connection_ptr conn)
       std::forward_as_tuple(conn));
   // add to writeq if it has any jobs
   if (conn->has_doable_job()) {
-      writeq.push_back(conn);
+    writeq.push_back(conn);
+    // try to flush
+    this->kick();
   }
 }
 
