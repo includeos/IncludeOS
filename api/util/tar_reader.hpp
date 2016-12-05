@@ -19,116 +19,18 @@
 #ifndef TAR_READER_HPP
 #define TAR_READER_HPP
 
-#include "tar_header.hpp"
+#include <posix/tar.h>  // our posix header has the Tar_header struct, which the newlib tar.h does not
 
-// Temp:
-// Edit:
 #include <string>
-#include <memory>
-#include <cstdio>
-#include <iostream>
-#include <fstream>
 #include <vector>
-#include <cstring>  // memcpy
-#include <time.h>   // time_t
-#include <cstdlib>  // exit
-// #include <gsl/gsl>
-#include <sys/stat.h>
 #include <stdexcept>
+#include <iostream>
 
-#include <sstream>
+// #include <gsl/gsl>
+// #include <sys/stat.h>
 
-/*
-#include <sys/stat.h>
-#include <archive.h>
-#include <archive_entry.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-*/
-
-/*struct Header_old_tar {
-	char name[100];      // File name                    // Offset 0
-	char mode[8];        // File mode                    // Offset 100
-	char uid[8];         // Owner's numeric user ID      // Offset 108
-	char gid[8];         // Group's numeric user ID      // Offset 116
-	char size[12];       // File size in bytes           // Offset 124
-	char mtime[12];      // Last modification time in numeric Unix time format   // Offset 136
-	char checksum[8];    // Checksum for header record   // Offset 148
-	char linkflag[1];    // Link indicator (file type)   // Offset 156
-	char linkname[100];  // Name of linked file          // Offset 157
-	char pad[255];
-};*/
-// All unused bytes in the header record are filled with nulls.
-// More info about each field: https://github.com/libarchive/libarchive/blob/master/libarchive/tar.5
-
-// ustar (unix standard tar)
-// Extended the struct with new fields:
-// = 512 characters/bytes
-/*struct Header_posix_ustar {
-	char name[100];
-	char mode[8];
-	char uid[8];
-	char gid[8];
-	char size[12];
-	char mtime[12];
-	char checksum[8];
-	char typeflag[1];		// new
-	// char linkflag[1];	// removed
-	char linkname[100];
-	char magic[6];			// new
-	char version[2];		// new
-	char uname[32];			// new
-	char gname[32];			// new
-	char devmajor[8];		// new
-	char devminor[8];		// new
-	char prefix[155];		// new
-	char pad[12];			  // new
-	// char pad[255];		// removed
-};*/
-// Currently most tar implementations comply with the ustar format, occasionally extending it by
-// adding new fields to the blank area at the end of the header record.
-
-// GNU tar
-// ...
-
-// ---------------------------------- archive/tar (Go) ---------------------------------------------------
-
-// Used by Mender (Go programming language: import archive/tar):
-// Package tar implements access to tar archives. It aims to cover most of the variations, including
-// those produced by GNU and BSD tars.
-
-// Constants:
-/* The type flag field options
-const char TypeReg = '0';           // Regular file
-const char TypeRegA = '\x00';       // Regular file
-const char TypeLink = '1';		      // Hard link
-const char TypeSymlink = '2';	      // Symbolic link
-const char TypeChar = '3';		      // Character device node
-const char TypeBlock = '4';         // Block device node
-const char TypeDir = '5';           // Directory
-const char TypeFifo = '6';          // Fifo node
-const char TypeCont = '7';          // Reserved
-const char TypeXHeader = 'x';       // Extended header
-const char TypeXGlobalHeader = 'g'; // Global extended header
-const char TypeGNULongName = 'L';   // Next file has a long name
-const char TypeGNULongLink = 'K';   // Next file symlinks to a file with a long name
-const char TypeGNUSparse = 'S';     // Sparse file
-*/
-
-/*
-	Error variables:
-
-	ErrWriteTooLong - create error or exception with text "archive/tar: Write too long"
-	ErrFieldTooLong - create error or exception with text "archive/tar: Header field too long"
-	ErrWriteAfterClose - create error or exception with text "archive/tar: Write after close"
-
-	ErrHeader - create error or exception with text "archive/tar: Invalid tar header"
-*/
-
-/*
-  Every file starts with a 512 byte header
-*/
+extern char _binary_input_bin_start;
+extern uintptr_t _binary_input_bin_size;
 
 const int SECTOR_SIZE = 512;
 
@@ -136,8 +38,58 @@ class Tar_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-struct __attribute__((packed)) Content_block {
+struct Content_block {
   char block[SECTOR_SIZE];
+};
+
+class File_info {
+
+public:
+  File_info(Tar_header& header)
+    : header_{header} {}
+
+  File_info(Tar_header& header, const std::vector<Content_block*> content, int num_content_blocks)
+    : header_{header}, content_{content}, num_content_blocks_{num_content_blocks} {}
+
+  const Tar_header& header() const { return header_; }
+  void set_header(const Tar_header& header) { header_ = header; }
+
+  const std::vector<Content_block*>& content() const { return content_; }
+  void add_content_block(Content_block* content_block) {
+    content_.push_back(content_block);
+  }
+
+  void set_num_content_blocks(int num_content_blocks) { num_content_blocks_ = num_content_blocks; }
+  int num_content_blocks() const { return num_content_blocks_; }
+
+  const std::string name() { return std::string{header_.name}; }
+  const std::string mode() { return std::string{header_.mode}; }
+  const std::string uid() { return std::string{header_.uid}; }
+  const std::string gid() { return std::string{header_.gid}; }
+  long int size();
+  const std::string mod_time() { return std::string{header_.mod_time}; }
+  const std::string checksum() { return std::string{header_.checksum}; }
+  char typeflag() const { return header_.typeflag; }
+  const std::string linkname() { return std::string{header_.linkname}; }
+  const std::string magic() { return std::string{header_.magic}; }
+  const std::string version() { return std::string{header_.version}; }
+  const std::string uname() { return std::string{header_.uname}; }
+  const std::string gname() { return std::string{header_.gname}; }
+  const std::string devmajor() { return std::string{header_.devmajor}; }
+  const std::string devminor() { return std::string{header_.devminor}; }
+  const std::string prefix() { return std::string{header_.prefix}; }
+  const std::string pad() { return std::string{header_.pad}; }
+
+  bool is_ustar() const { return header_.magic == TMAGIC; }
+
+  bool is_dir() const { return header_.typeflag == DIRTYPE; }
+
+  bool typeflag_is_set() const { return header_.typeflag == ' '; }
+
+private:
+  Tar_header& header_;
+  std::vector<Content_block*> content_;
+  int num_content_blocks_{0};
 };
 
 class Tar {
@@ -145,84 +97,189 @@ class Tar {
   // using Span = gsl::span<Content_block>;
   // using Span_iterator = gsl::span<Content_block>::iterator;
 
+  //using Span = gsl::span<File_info>;
+  //using Span_iterator = gsl::span<File_info>::iterator;
+
 public:
-  // TODO Temp: content to span (gsl) later: (by value ok)
-  // Not necessarily Content_block* here
-  Tar(const std::vector<Tar_header*> headers, const std::vector<Content_block*> content)
-    : headers_{headers}, content_{content} {
 
-    // First header says size of first file and so on
+  Tar() = default;
 
-  }
+  int num_elements() const { return files_.size(); }
 
-  ~Tar() {
-    printf("Tar destructor\n");
-    /*for (auto header : headers_) {
-      delete header;
-    }*/
-  }
+  void add_file(const File_info& file) { files_.push_back(file); }
+  const File_info file(const std::string& path) const;
+  const std::vector<File_info>& files() const { return files_; }
+  std::vector<std::string> file_names() const;
 
-  std::vector<Content_block*> get_content(const std::string& path) {
-    for (auto header : headers_) {
-      if (std::string{header->name} == path) {
+  /*const std::vector<Content_block*> content(const std::string& path) {
+    for (auto file_info : files_) {
+      if (file_info.name() == path) {
         printf("Found path\n");
 
-        return std::vector<Content_block*>{content_.begin() + header->first_block_index, content_.begin() + (header->first_block_index + header->num_content_blocks)};
+        return std::vector<Content_block*>{content_.begin() + file_info.start_index(), content_.begin() + file_info.start_index() + file_info.num_content_blocks()};
       }
     }
 
     throw Tar_exception(std::string{"Path " + path + " doesn't exist"});
-  }
+  }*/
 
-  Tar_header* get_header(const std::string& path) {
-    for (auto header : headers_) {
-      if (std::string{header->name} == path) {
-        printf("Found header\n");
-
-        return header;
-      }
-    }
-
-    throw Tar_exception(std::string{"Path " + path + " doesn't exist"});
-  }
-
-  // add
+  /*void add_content_block(Content_block* content_block) {
+    content_.push_back(content_block);
+  }*/
 
 private:
-  std::vector<Tar_header*> headers_;    // Doesn't have to be in contiguous memory
+  std::vector<File_info> files_;
+  // std::vector<Content_block*> content_;
 
-  // TODO Temp: To span (gsl) later (not necessarily pointer here):
-  std::vector<Content_block*> content_;
+  /*
+  Span content_;
+  int next_available_{0};
+  */
 
 };  // class Tar
 
 class Tar_reader {
 
 public:
-  void read(const std::string& tar_filename) {
+
+  Tar& read_binary_tar() {
+    const char* bin_content  = &_binary_input_bin_start;
+    const int   bin_size     = (intptr_t) &_binary_input_bin_size;
+
+    return read(bin_content, bin_size);
+  }
+
+  /* Linux
+
+  void read(const std::string& filename) {
+    const std::string tar_suffix = ".tar";
+    const std::string tar_gz_suffix = ".tar.gz";
+    const std::string mender_suffix = ".mender";
+
+    if (filename == "")
+      throw Tar_exception("Invalid filename: Filename is empty");
+
+    // Maybe:
+    if (filename.substr(filename.size() - tar_suffix.size()) == tar_suffix) {
+      read_tar(filename);
+      return;
+    } else if (filename.substr(filename.size() - mender_suffix.size()) == mender_suffix) {
+      printf("Mender file\n");
+      read_mender(filename);
+      return;
+    } else if (filename.substr(filename.size() - tar_gz_suffix.size()) == tar_gz_suffix) {
+      read_tar_gz(filename);
+      return;
+    }
+
+    throw Tar_exception("Invalid filename suffix. Has to be .tar, .mender or .tar.gz");
+  }
+  */
+
+  /* IncludeOS
+
+  Tar& read(const char* file, size_t size) {
+
+    // For now:
+    read_tar(file, size);
+    return tar_;
+  */
+  /*
+    const std::string tar_suffix = ".tar";
+    const std::string tar_gz_suffix = ".tar.gz";
+    const std::string mender_suffix = ".mender";
+
+    if (filename == "")
+      throw Tar_exception("Invalid filename: Filename is empty");
+
+    // Maybe:
+    if (filename.substr(filename.size() - tar_suffix.size()) == tar_suffix) {
+      read_tar(filename);
+      return;
+    } else if (filename.substr(filename.size() - mender_suffix.size()) == mender_suffix) {
+      printf("Mender file\n");
+      read_mender(filename);
+      return;
+    } else if (filename.substr(filename.size() - tar_gz_suffix.size()) == tar_gz_suffix) {
+      read_tar_gz(filename);
+      return;
+    }
+
+    throw Tar_exception("Invalid filename suffix. Has to be .tar, .mender or .tar.gz");
+
+  }*/
+
+  /*Tar&*/
+  void decompress(const char* file, size_t size) {
+    // tar.gz
+
+
+
+    //return tar_;
+  }
+
+  /*Tar& read_tar_gz(const char* file, size_t size) {
+    printf("tar.gz\n");
+*/
+/*
+    struct stat stat_tar;
+
+    if (stat(filename.c_str(), &stat_tar) == -1)
+      throw Tar_exception(std::string{"Unable to open tar file " + filename});
+
+    printf("Filename: %s\n", filename.c_str());
+    printf("Size of tar file (stat): %ld\n", stat_tar.st_size);
+*/
+
+/*  Throws exception
+    if (stat_tar.st_size % SECTOR_SIZE not_eq 0)
+      throw Tar_exception("Invalid size of tar file. Rest: ");
+*/
+
+/*
+    // std::vector<char> buf(stat_tar.st_size);
+    // auto* buf_head = buf.data();
+    char buf[stat_tar.st_size];
+    auto* buf_head = buf;
+
+    std::ifstream tar_stream{filename}; // Load into memory
+    auto read_bytes = tar_stream.read(buf_head, stat_tar.st_size).gcount();
+
+    printf("-------------------------------------\n");
+    printf("Read %d bytes from tar file\n", read_bytes);
+    printf("So this tar.gz file consists of %d sectors\n", (read_bytes / SECTOR_SIZE));
+*/
+/*
+    return tar_;
+  }
+*/
+
+private:
+  // If more than one tar file in the service: vector ?
+  Tar tar_;
+
+  Tar& read(const char* file, size_t size);
+
+/* ---------------- READ_TAR(const std::string& filename)
+
+  void read_tar(const std::string& filename) {
+    printf("tar: const std::string&\n");
 
     // Get tar over network f.ex. - just load to memory/ram and expect
     // Buffer
     // vector of Headers
     // span (gsl) of blocks
     // Ok to use new if close/delete
-
-    if (tar_filename == "")
-      throw Tar_exception("Invalid filename: Filename is empty");
-
-    if (tar_filename.substr(tar_filename.size() - 4) not_eq ".tar")
-      throw Tar_exception("Invalid file suffix: This is not a .tar file");
-
-    // Add support for mender and tar.gz too
+    // Ang. dekomprimering: Memdisk? Blir linket rett inn i servicen (med assembly - bakes inn på et bestemt sted). Hvis ikke qemu har støtte for det?
 
     // Test if file exists
 
     struct stat stat_tar;
 
-    if (stat(tar_filename.c_str(), &stat_tar) == -1)
-      throw Tar_exception(std::string{"Unable to open tar file " + tar_filename});
+    if (stat(filename.c_str(), &stat_tar) == -1)
+      throw Tar_exception(std::string{"Unable to open tar file " + filename});
 
-    printf("Filename: %s\n", tar_filename.c_str());
+    printf("Filename: %s\n", filename.c_str());
     printf("Size of tar file (stat): %ld\n", stat_tar.st_size);
 
     if (stat_tar.st_size % SECTOR_SIZE not_eq 0)
@@ -233,56 +290,12 @@ public:
     char buf[stat_tar.st_size];
     auto* buf_head = buf;
 
-    std::ifstream tar_stream{tar_filename}; // Load into memory
+    std::ifstream tar_stream{filename}; // Load into memory
     auto read_bytes = tar_stream.read(buf_head, stat_tar.st_size).gcount();
 
     printf("-------------------------------------\n");
-    printf("Read %ld bytes from tar file\n", read_bytes);
-    printf("So this tar file consists of %ld sectors\n", (read_bytes / SECTOR_SIZE));
-
-/*
-    printf("Sector 13:\n");
-    for (int i = SECTOR_SIZE*12; i < SECTOR_SIZE*13; i++)
-      printf("%c", buf[i]);
-    printf("\n");
-*/
-
-    /*
-    std::string name{buf.begin(), buf.begin() + 100};
-    h.set_name(name);
-    printf("Name: %s\n", h.name().c_str());
-
-    int64_t mode;
-    memcpy(&mode, &buf[100], sizeof(int64_t));
-    h.set_mode(mode);
-    printf("Mode: %ld\n", h.mode());
-
-    int uid;
-    memcpy(&uid, &buf[108], 8);
-    h.set_uid(uid);
-    printf("UID: %d\n", h.uid());
-
-    int gid;
-    memcpy(&gid, &buf[116], 8);
-    h.set_gid(gid);
-    printf("GID: %d\n", gid);
-
-    int64_t s;
-    memcpy(&s, &buf[124], 12);
-    h.set_size(s);
-    printf("Size: %ld\n", h.size());
-
-    time_t rawtime;
-    struct tm* timeinfo;
-    char buffer[12];
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime (buffer, 12, "%c", ); //timeinfo);
-    std::string mod_time{buffer};
-
-    h.set_mod_time(mod_time);
-    printf("%s\n", h.mod_time().c_str());
-    */
+    printf("Read %d bytes from tar file\n", read_bytes);
+    printf("So this tar file consists of %d sectors\n", (read_bytes / SECTOR_SIZE));
 
     // TODO Temp: To span (gsl) later (contiguous memory)
     std::vector<Content_block*> blocks;
@@ -302,6 +315,8 @@ public:
         printf("Empty header name: Continue\n");
         continue;
       }
+
+      // if h->name is a .tar.gz-file do something else (as is the case with mender)
 
       //strcpy(h->name, std::string{buf.begin() + i + OFFSET_NAME, buf.begin() + i + OFFSET_NAME + LENGTH_NAME}.c_str());
 
@@ -328,8 +343,8 @@ public:
       if (h->typeflag not_eq DIRTYPE) {  // Is not a directory so has content
 
         // Next block is first content block and we need to subtract number of headers (are incl. in i)
-        h->first_block_index = (i / SECTOR_SIZE) - headers.size();
-        printf("First block index: %d\n", h->first_block_index);
+        //h->first_block_index = (i / SECTOR_SIZE) - headers.size();
+        //printf("First block index: %d\n", h->first_block_index);
 
         // Get the size of this file in the tarball
         char* pEnd;
@@ -344,65 +359,36 @@ public:
           num_content_blocks = (filesize / SECTOR_SIZE);
         printf("Num content blocks: %d\n", num_content_blocks);
 
-        h->num_content_blocks = num_content_blocks;
+        //h->num_content_blocks = num_content_blocks;
 
         for (int j = 0; j < num_content_blocks; j++) {
 
           i += SECTOR_SIZE; // Go to next block with content
 
-          Content_block* content_blk = (Content_block*) (buf + i);
-          /*Content_block content_blk;
-          snprintf(content_blk.block, SECTOR_SIZE, "%s", (buf + i));
-          printf("For-loop Content block: %s\n", content_blk.block);*/
-          printf("Content block:\n%s\n", content_blk->block);
+          // TODO (not + 8 but doesn't print out anything many places if just buf + i)
+          Content_block* content_blk = (Content_block*) (buf + i + 8);
+          //Content_block content_blk;
+          //snprintf(content_blk.block, SECTOR_SIZE, "%s", (buf + i));
+          //printf("For-loop Content block: %s\n", content_blk.block);
+          printf("\nContent block:\n%.512s\n", content_blk->block);
 
-          /* The data/content is there:
-          printf("And for-loop char by char:\n");
-          for (int k = i; k < (i+SECTOR_SIZE); k++) {
-            printf("%c", buf[k]);
-          }
-          printf("\n");*/
-
-          // NB: Doesn't stop at 512 - writes the rest as well (until the file's end)
+          // NB: Doesn't stop at 512 without %.512s - writes the rest as well (until the file's end)
 
           blocks.push_back(content_blk);  // TODO: GSL
-
-          printf("For loop content blocks. i = %ld\n", i);
         }
       }
 
-      printf("After for-loop with content: %ld content blocks\n", blocks.size());
+      printf("After for-loop with content: %u content blocks\n", blocks.size());
       headers.push_back(h);
     }
 
-    printf("Num headers: %ld\n", headers.size());
-    printf("Num content blocks: %ld\n", blocks.size());
+    printf("Num headers: %u\n", headers.size());
+    printf("Num content blocks: %u\n", blocks.size());
 
     tar_stream.close();
-
-    // Testing:
-
-    Tar tar{headers, blocks};
-
-    Tar_header* h = tar.get_header("level_1_folder_1/Makefile");
-    printf("Tar header for Makefile:\n");
-    printf("Name: %s\n", h->name);
-    printf("Mode: %s\n", h->mode);
-    printf("Typeflag: %c\n", h->typeflag);
-    printf("Size: %s\n", h->size);
-    printf("Prefix: %s\n", h->prefix);
-    printf("Pad: %s\n", h->pad);
-    printf("First block index: %d\n", h->first_block_index);
-    printf("Num content blocks: %d\n", h->num_content_blocks);
-
-    std::vector<Content_block*> result = tar.get_content("level_1_folder_1/Makefile");
-    printf("Content in Makefile:\n");
-
-    for (Content_block* res : result)
-      printf("Block: %s\n", res->block);
+*/
 
 /* Mender
-
     // START CONTENT of info-file:
     printf("Content: ");
     for (int i = 512; i < 1024; i++)
@@ -457,7 +443,7 @@ public:
     // Terminate
 
     // fclose(f);
-  }
+//}
 
 /* A Reader provides sequential access to the contents of a tar archive. A tar archive consists of
 // a sequence of files. The next method advances to the next file in the archive (including the first),
