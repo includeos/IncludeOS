@@ -8,15 +8,14 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
 
 SYSTEM=`uname -s`
 
-if [ ! $SYSTEM = "Darwin" ] &&  ! command -v lsb_release > /dev/null 2>&1; then
-    echo -e ">>> Sorry <<< \n\
-The command lsb_release was not found. \n"
-    exit 1
-fi
+read_linux_release() {
+    LINE=`grep "ID=" /etc/os-release`
+    echo "${LINE##*=}"
+}
 
-RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || echo `lsb_release -is`)
+RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || read_linux_release)
 
-[ "$RELEASE" = "neon" ] && RELEASE="Ubuntu"
+[ "$RELEASE" = "neon" ] && RELEASE="ubuntu"
 
 check_os_support() {
     SYSTEM=$1
@@ -28,14 +27,14 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "Debian"|"Ubuntu"|"LinuxMint")
+                "debian"|"ubuntu"|"linuxmint")
                     return 0;
                     ;;
-                "Fedora")
+                "fedora")
                     export INCLUDEOS_SRC=`pwd`
                     return 0;
                     ;;
-                "Arch")
+                "arch")
                     return 0;
                     ;;
             esac

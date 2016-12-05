@@ -13,10 +13,10 @@ case $SYSTEM in
         ;;
     "Linux")
         case $RELEASE in
-            "Debian"|"Ubuntu"|"LinuxMint")
+            "debian"|"ubuntu"|"linuxmint")
                 VERSION=`lsb_release -rs`
                 if [ $(awk 'BEGIN{ print "'$VERSION'"<"'16.04'" }') -eq 1 ]; then
-                    if [ $RELEASE == "Ubuntu" ] ; then
+                    if [ $RELEASE == "ubuntu" ] ; then
                         clang_version="3.6"
                         DEPENDENCIES="gcc-5 g++-5"
                         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
@@ -35,14 +35,14 @@ case $SYSTEM in
                 sudo apt-get install -y $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
-            "Fedora")
+            "fedora")
                 DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema cmake"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
-            "Arch")
+            "arch")
                 DEPENDENCIES="curl make clang nasm bridge-utils qemu jq cmake"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
