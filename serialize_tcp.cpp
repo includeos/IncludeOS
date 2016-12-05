@@ -66,8 +66,10 @@ void WriteQueue::deserialize_from(void* addr)
   
   /// restore write buffers
   int len = 0;
+  int bytes = 0;
+  int total = writeq->buffers;
   
-  while (writeq->buffers--) {
+  while (total--) {
     
     auto* current = (write_buffer*) &writeq->vla[len];
     // header
@@ -86,7 +88,11 @@ void WriteQueue::deserialize_from(void* addr)
     
     this->q.back().first.acknowledged = current->acknowledged;
     assert(this->q.back().first.length() == current->length());
+    bytes += current->length();
   }
+  
+  printf("*****\nRESTORED %d buffers (%d b)\n******\n",
+      writeq->buffers, bytes);
 }
 void Connection::deserialize_from(void* addr)
 {
@@ -98,8 +104,11 @@ void Connection::deserialize_from(void* addr)
   this->cb           = area->tcb;
   this->state_       = area->to_state(area->state_now);
   this->prev_state_  = area->to_state(area->state_prev);
+  this->rttm         = area->rttm;
   this->rtx_attempt_ = area->rtx_att;
   this->syn_rtx_     = area->syn_rtx;
+  this->dup_acks_    = area->dup_acks;
+  this->queued_      = area->queued;
   /// restore writeq from VLA
   this->writeq.deserialize_from(area->vla);
 }
@@ -151,8 +160,11 @@ int Connection::serialize_to(void* addr)
   area->tcb        = this->cb;
   area->state_now  = area->to_state(this->state_);
   area->state_prev = area->to_state(this->prev_state_);
+  area->rttm       = this->rttm;
   area->rtx_att    = this->rtx_attempt_;
   area->syn_rtx    = this->syn_rtx_;
+  area->dup_acks   = this->dup_acks_;
+  area->queued     = this->queued_;
   
   /// serialize write queue
   int writeq_len = this->writeq.serialize_to(area->vla);

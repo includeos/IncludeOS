@@ -10,15 +10,17 @@ struct serialized_tcp
   port_t local_port;
   Socket remote;
   Connection::TCB tcb;
+  net::tcp::RTTM  rttm;
   
-  int8_t state_now;
-  int8_t state_prev;
+  int8_t  state_now;
+  int8_t  state_prev;
   
-  int8_t rtx_att;
-  int8_t syn_rtx;
+  int8_t  rtx_att;
+  int8_t  syn_rtx;
   
-  /// write buffers
-  int8_t write_buffers;
+  uint8_t dup_acks;
+  
+  bool    queued;
   
   /// vla for write buffers
   char   vla[0];
