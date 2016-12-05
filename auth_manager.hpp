@@ -57,7 +57,7 @@ namespace mender {
     const auto reqdata = authd.serialized_bytes();
 
     // Generate signature from payload
-    const auto signature = keystore_.generate_signature(reqdata);
+    const auto signature = keystore_.sign(reqdata);
 
     return Request {
       .data       = reqdata,

@@ -9,7 +9,7 @@ namespace mender {
   /** Device identifier. e.g. JSON(MAC_addr) */
   using Dev_id      = std::string;
   /** Public key */
-  using Public_key  = std::string;
+  using Public_PEM  = std::string;
   /** Token */
   using Auth_token  = std::string;
 
@@ -20,7 +20,7 @@ namespace mender {
   struct Auth_request_data {
     Dev_id      id_data;
     Auth_token  tenant_token;
-    Public_key  pubkey;
+    Public_PEM  pubkey;
     int64_t     seq_no;
 
     inline byte_seq serialized_bytes() const;
