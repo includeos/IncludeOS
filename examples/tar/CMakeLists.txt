@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-project(service)
-
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
+
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project(tar_service)
 
 # Human-readable name of your service
 set(SERVICE_NAME "Tar Example Service")
@@ -19,8 +21,12 @@ set(MAX_MEM 300)
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp tarfile.o
+  service.cpp
   )
+
+#set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
+
+set(TARFILE tar_example_folder.tar)
 
 #
 # Service CMake options
@@ -45,7 +51,3 @@ set(DRIVERS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
-
-add_custom_command(
-  OUTPUT tarfile.o
-  COMMAND ${CMAKE_SOURCE_DIR}/create_binary_tar.sh ${CMAKE_SOURCE_DIR}/tar_example_folder.tar)
