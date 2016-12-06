@@ -94,7 +94,7 @@ void Service::start(const std::string&)
 
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
-  printf("* CPU freq is %f MHz\n", OS::cpu_freq().count());
+  //printf("* CPU freq is %f MHz\n", OS::cpu_freq().count());
 
   auto& inet = net::Inet4::ifconfig<0>(
         { 10,0,0,42 },     // IP

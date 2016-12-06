@@ -90,9 +90,6 @@ void WriteQueue::deserialize_from(void* addr)
     assert(this->q.back().first.length() == current->length());
     bytes += current->length();
   }
-  
-  printf("*****\nRESTORED %d buffers (%d b)\n******\n",
-      writeq->buffers, bytes);
 }
 void Connection::deserialize_from(void* addr)
 {
@@ -111,6 +108,8 @@ void Connection::deserialize_from(void* addr)
   this->queued_      = area->queued;
   /// restore writeq from VLA
   this->writeq.deserialize_from(area->vla);
+  /// we have to retransmit because of magic
+  this->retransmit();
 }
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
 {
