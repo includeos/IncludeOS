@@ -22,7 +22,7 @@
 
 namespace unik{
 
-  const net::UDP::port_t default_port = 9876;
+  const net::UDP::port_t default_port = 9967;
 
   class Client {
   public:
