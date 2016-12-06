@@ -19,6 +19,7 @@ namespace mender {
   using Public_key  = Botan::RSA_PublicKey; // RSA_PublicKey
   using Private_key = Botan::RSA_PrivateKey; // RSA_PrivateKey
   using Public_PEM  = std::string;
+  using Auth_token  = byte_seq;
 
   class Keystore {
   public:
@@ -64,7 +65,7 @@ namespace mender {
     //private_key_ = Botan::X509::load_key(data);
     //auto rng = std::unique_ptr<Botan::RandomNumberGenerator>(new Botan::RDRAND_RNG);
     private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
-    assert(private_key_->check_key(Botan::system_rng(), true));
+    //assert(private_key_->check_key(Botan::system_rng(), true));
   }
 
   void Keystore::load()

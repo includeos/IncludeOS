@@ -59,12 +59,28 @@ namespace mender {
   {
     auto auth = am_.make_auth_request();
 
+    printf("--Auth request--\nData:%.*s\nToken:%.*s\nSign:%s\n",
+      auth.data.size(), (char*)auth.data.data(), auth.token.size(), (char*)auth.token.data(), Botan::base64_encode(auth.signature).c_str());
+
     using namespace std::string_literals;
+
+    static auto&& stack = net::Inet4::ifconfig({ 10,0,0,42 },     // IP
+    { 255,255,255,0 }, // Netmask
+    { 10,0,0,1 },      // Gateway
+    { 10,0,0,1 });     // DNS);
+
+    stack.tcp().connect(stack.gateway(), 1337,
+    [auth](auto conn)
+    {
+      printf("Connected\n");
+      conn->write(Botan::base64_encode(auth.signature));
+    });
+
     auto req = std::make_unique<http::Request>();
     auto& data = auth.data;
-    req->add_body(std::string{(char*)data.data(), data.size()});
+    req->add_body(std::string{data.begin(), data.end()});
     req->add_header("Content-Type"s, "application/json"s);
-    req->add_header("Authorization"s, "Bearer " + auth.token);
+    req->add_header("Authorization"s, "Bearer " + std::string{auth.token.begin(), auth.token.end()});
     req->add_header("X-MEN-Signature"s, Botan::base64_encode(auth.signature));
 
     send(std::move(req), "/authentication/auth_requests");

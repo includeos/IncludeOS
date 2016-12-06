@@ -3,6 +3,7 @@
 #define MENDER_AUTH_HPP
 
 #include "common.hpp"
+#include "json.hpp"
 
 namespace mender {
 
@@ -11,7 +12,7 @@ namespace mender {
   /** Public key */
   using Public_PEM  = std::string;
   /** Token */
-  using Auth_token  = std::string;
+  using Auth_token  = byte_seq;
 
   using Writer      = std::string; // rapidjson::Writer
 
@@ -32,11 +33,14 @@ namespace mender {
 
   inline byte_seq Auth_request_data::serialized_bytes() const
   {
-    Writer wr;
-    serialize(wr);
-    //return wr.ToString();
-    //return wr;
-    return byte_seq();
+    nlohmann::json j;
+    j["id_data"]  = id_data;
+    j["pubkey"]   = pubkey;
+    j["seq_no"]   = seq_no;
+
+    auto str = j.dump();
+    printf("%s\n", str.c_str());
+    return {str.begin(), str.end()};
   }
 
   template <typename Writer>
