@@ -61,6 +61,7 @@ extern "C" {
 class IRQ_manager {
 public:
   typedef void (*intr_func) ();
+  typedef void (*exception_func) (uint32_t, uint32_t);
   using irq_delegate = delegate<void()>;
 
   static constexpr size_t  IRQ_LINES = 128;
@@ -90,6 +91,7 @@ public:
    *  }
    */
   void set_handler(uint8_t intr, intr_func func);
+  void set_exception_handler(uint8_t intr, exception_func func);
   void set_irq_handler(uint8_t irq, intr_func func);
 
   /** Get handler from inside the IDT. */

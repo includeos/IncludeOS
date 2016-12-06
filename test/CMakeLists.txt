@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project(unittests CXX)
 
-set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -DNO_INFO=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
@@ -66,4 +66,3 @@ install(TARGETS unittests DESTINATION ${TEST})
 #  COMMENT "> Copying binary 'unittests' to ${TEST}")
 
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-

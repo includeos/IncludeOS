@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,27 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/tcp/packet.hpp>
-#include <common.cxx>
+#include <os>
 
-using namespace std::string_literals;
-
-extern lest::tests & specification();
-
-CASE("round_up returns number of d-sized chunks required for n")
+void Service::start(const std::string&)
 {
-  unsigned res;
-  unsigned chunk_size {128};
-  res = round_up(127, chunk_size);
-  EXPECT(res == 1);
-  res = round_up(128, chunk_size);
-  EXPECT(res == 1);
-  res = round_up(129, chunk_size);
-  EXPECT(res == 2);
-}
+  INFO("service", "Testing GRUB. And you've obviously booted OK");
 
-CASE("round_up expects div to be greater than 0")
-{
-  unsigned chunk_size {0};
-  EXPECT_THROWS(round_up(128, chunk_size));
+  INFO("service", "SUCCESS");
+
+
 }
