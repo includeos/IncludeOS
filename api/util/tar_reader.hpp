@@ -25,7 +25,7 @@
 #include <vector>
 #include <stdexcept>
 
-#include <util/tinf.h>
+//#include <util/tinf.h>
 
 extern char _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
@@ -134,6 +134,7 @@ public:
   }
 
   Tar& decompress(const char* file, size_t size) {
+
 
 
     return tar_;
