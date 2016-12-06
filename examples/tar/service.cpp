@@ -66,7 +66,7 @@ void Service::start(const std::string&)
   for (auto name : found_elements)
     printf("%s\n", name.c_str());
 
-  // NB: No path match on folders if not trailing /
+  // NB: No path match on folders if no trailing /
 
   /*std::string mender_path1 = "info";
   std::string mender_path2 = "header.tar.gz";*/
