@@ -5,3 +5,6 @@
 [submodule "test/lest"]
 	path = test/lest
 	url = https://github.com/martinmoene/lest.git
+[submodule "mod/http-parser"]
+	path = mod/http-parser
+	url = https://github.com/nodejs/http-parser.git
