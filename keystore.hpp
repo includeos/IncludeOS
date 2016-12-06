@@ -11,6 +11,8 @@
 #include <botan/pkcs8.h>
 #include <botan/rng.h>
 #include <botan/system_rng.h>
+#include <botan/pubkey.h>
+#include <botan/hex.h>
 
 namespace mender {
 
@@ -131,14 +133,18 @@ namespace mender {
       return buf.String(), nil
     */
     auto pem = Botan::X509::PEM_encode(public_key());
-    printf("PEM: %s\n", pem.c_str());
+    printf("PEM:\n%s\n", pem.c_str());
     //auto pem = Botan::PEM_Code::encode(data, "PUBLIC KEY");
     return pem;
   }
 
   byte_seq Keystore::sign(const byte_seq& data)
   {
-    //private_key_.create_signature_op(rand, data, "SHA-256");
+
+    Botan::PK_Signer signer(*private_key_, "EMSA1(SHA-256)");
+    auto signature = signer.sign_message((uint8_t*)data.data(), data.size(), Botan::system_rng());
+    printf("Sign:\n%s\n", Botan::hex_encode(signature).c_str());
+    return signature;
     /*
       hash := crypto.SHA256
       h := hash.New()
@@ -147,7 +153,6 @@ namespace mender {
 
       return rsa.SignPKCS1v15(rand.Reader, k.private, hash, sum)
     */
-    return "";
   }
 
 } // < namespace mender

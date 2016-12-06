@@ -35,7 +35,8 @@ namespace mender {
     Writer wr;
     serialize(wr);
     //return wr.ToString();
-    return wr;
+    //return wr;
+    return byte_seq();
   }
 
   template <typename Writer>

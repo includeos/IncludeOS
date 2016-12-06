@@ -7,6 +7,7 @@
 #include <net/inet4>
 #include "../http_client/http/inc/request.hpp"
 #include <string>
+#include <botan/base64.h>
 
 namespace mender {
 
@@ -59,13 +60,14 @@ namespace mender {
     auto auth = am_.make_auth_request();
 
     using namespace std::string_literals;
-    /*auto req = std::make_unique<http::Request>();
-    req->add_body(auth.data);
+    auto req = std::make_unique<http::Request>();
+    auto& data = auth.data;
+    req->add_body(std::string{(char*)data.data(), data.size()});
     req->add_header("Content-Type"s, "application/json"s);
     req->add_header("Authorization"s, "Bearer " + auth.token);
-    req->add_header("X-MEN-Signature"s, base64(auth.signature));
+    req->add_header("X-MEN-Signature"s, Botan::base64_encode(auth.signature));
 
-    send(std::move(req), "/authentication/auth_requests");*/
+    send(std::move(req), "/authentication/auth_requests");
     //req.add_header("X-MEN-Signature", signature(auth));
   }
 
