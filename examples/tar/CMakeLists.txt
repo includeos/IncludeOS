@@ -47,5 +47,5 @@ set(DRIVERS
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
 add_custom_command(
-  TARGET service PRE_BUILD
+  OUTPUT tarfile.o
   COMMAND ${CMAKE_SOURCE_DIR}/create_binary_tar.sh ${CMAKE_SOURCE_DIR}/tar_example_folder.tar)
