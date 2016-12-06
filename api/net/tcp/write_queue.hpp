@@ -146,6 +146,9 @@ public:
     q.push_back(std::move(wr));
   }
 
+  void push_back(const WriteRequest& wr)
+  { q.push_back(wr); }
+
   /*
     Remove all write requests from queue and signal how much was written for each request.
   */
