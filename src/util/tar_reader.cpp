@@ -19,10 +19,10 @@
 
 #include <iostream> // strtol
 
-// -------------------- File_info --------------------
+// -------------------- Element --------------------
 
-long int File_info::size() {
-  // Size of file's content in bytes
+long int Element::size() {
+  // Size of element's size in bytes
   char* pEnd;
   long int filesize;
   filesize = strtol(header_.size, &pEnd, 8); // header_.size is octal
@@ -31,113 +31,69 @@ long int File_info::size() {
 
 // ----------------------- Tar -----------------------
 
-const File_info Tar::file(const std::string& path) const {
-  for (auto file_info : files_) {
-    if (file_info.name() == path) {
-      printf("Found file\n");
-
-      return file_info;
+const Element Tar::element(const std::string& path) const {
+  for (auto element : elements_) {
+    if (element.name() == path) {
+      return element;
     }
   }
 
-  throw Tar_exception(std::string{"Path " + path + " doesn't exist"});
+  throw Tar_exception(std::string{"Path " + path + " doesn't exist. Folder names should have a trailing /"});
 }
 
-std::vector<std::string> Tar::file_names() const {
-    std::vector<std::string> file_names;
+std::vector<std::string> Tar::element_names() const {
+    std::vector<std::string> element_names;
 
-    for (auto file_info : files_)
-      file_names.push_back(file_info.name());
+    for (auto element : elements_)
+      element_names.push_back(element.name());
 
-    return file_names;
+    return element_names;
   }
 
 // -------------------- Tar_reader --------------------
 
 Tar& Tar_reader::read(const char* file, size_t size) {
-  printf("tar: const char* and size_t\n");
-
   if (size == 0)
     throw Tar_exception("File is empty");
 
   if (size % SECTOR_SIZE not_eq 0)
     throw Tar_exception("Invalid size of tar file");
 
-  printf("-------------------------------------\n");
-  printf("Read %u bytes from tar file\n", size);
-  printf("So this tar file consists of %u sectors\n", size / SECTOR_SIZE);
-
-  // Go through the whole buffer/tar file block by block
+  // Go through the whole tar file block by block
   for ( size_t i = 0; i < size; i += SECTOR_SIZE) {
+    Tar_header* header = (Tar_header*) (file + i);
+    Element element{*header};
 
-    // One header or content at a time (one block)
-
-    printf("----------------- New header -------------------\n");
-
-    Tar_header* h = (Tar_header*) (file + i);
-    File_info f{*h};
-
-    if (strcmp(h->name, "") == 0) {
-      printf("Empty header name: Continue\n");
+    if (element.name().empty()) {
+      // Empty header name - continue
       continue;
     }
 
-    // if info.name() is a .tar.gz-file do something else (as is the case with mender):
-    // decompress(.., ..);
+    // if element.name() is a .tar.gz-file, do something else (as is the case with mender): decompress(.., ..);
 
-    printf("Name: %s\n", f.name().c_str());
-    printf("Mode: %s\n", f.mode().c_str());
-    printf("UID: %s\n", f.uid().c_str());
-    printf("GID: %s\n", f.gid().c_str());
-    printf("Filesize: %ld\n", f.size());
-    printf("Mod_time: %s\n", f.mod_time().c_str());
-    printf("Checksum: %s\n", f.checksum().c_str());
-    printf("Linkname: %s\n", f.linkname().c_str());
-    printf("Magic: %s\n", f.magic().c_str());
-    printf("Version: %s\n", f.version().c_str());
-    printf("Uname: %s\n", f.uname().c_str());
-    printf("Gname: %s\n", f.gname().c_str());
-    printf("Devmajor: %s\n", f.devmajor().c_str());
-    printf("Devminor: %s\n", f.devminor().c_str());
-    printf("Prefix: %s\n", f.prefix().c_str());
-    printf("Pad: %s\n", f.pad().c_str());
-    printf("Typeflag: %c\n", f.typeflag());
-
-    // Check if this is a directory or not (typeflag) (Directories have no content)
+    // Check if this is a directory or not (typeflag) (directories have no content)
 
     // If typeflag not set (as with mender files) -> is not a directory and has content
-    if (not f.typeflag_is_set() or not f.is_dir()) {  // Is not a directory so has content
-
-      // f.set_start_index( (i / SECTOR_SIZE) - tar_.num_elements() );
-      // Next block is first content block and we need to subtract number of headers (are incl. in i)
+    if (not element.typeflag_is_set() or not element.is_dir()) {
 
       // Get the size of this file in the tarball
-      long int filesize = f.size(); // Gives the size in bytes (converts from octal to decimal)
-      printf("Filesize decimal: %ld\n", filesize);
+      long int filesize = element.size(); // Gives the size in bytes (converts from octal to decimal)
 
       int num_content_blocks = 0;
       if (filesize % SECTOR_SIZE not_eq 0)
         num_content_blocks = (filesize / SECTOR_SIZE) + 1;
       else
         num_content_blocks = (filesize / SECTOR_SIZE);
-      printf("Num content blocks: %d\n", num_content_blocks);
-
-      // f.set_num_content_blocks(num_content_blocks);
 
       for (int j = 0; j < num_content_blocks; j++) {
         i += SECTOR_SIZE; // Go to next block with content
 
         Content_block* content_blk = (Content_block*) (file + i);
-
-        // printf("\nContent block:\n%.512s\n", content_blk->block);
-        // NB: Doesn't stop at 512 without %.512s - writes the rest as well (until the file's end)
-
-        //tar_.add_content_block(content_blk);
-        f.add_content_block(content_blk);
+        element.add_content_block(content_blk);
       }
     }
 
-    tar_.add_file(f);
+    tar_.add_element(element);
   }
 
   return tar_;

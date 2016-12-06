@@ -68,24 +68,24 @@ extern "C" {
 #define LENGTH_PREFIX 155
 #define LENGTH_PAD 12
 
-struct /*__attribute__((packed))*/ Tar_header {
+struct Tar_header {
   char name[LENGTH_NAME];             // Name of header file entry
   char mode[LENGTH_MODE];             // Permission and mode bits
   char uid[LENGTH_UID];               // User ID of owner
   char gid[LENGTH_GID];               // Group ID of owner
-  char size[LENGTH_SIZE];             // File size in bytes
-  char mod_time[LENGTH_MTIME];        // Last modification time in numeric Unix time format
-  char checksum[LENGTH_CHECKSUM];     // Checksum for header record
+  char size[LENGTH_SIZE];             // File size in bytes (octal base)
+  char mod_time[LENGTH_MTIME];        // Last modification time in numeric Unix time format (octal)
+  char checksum[LENGTH_CHECKSUM];     // Checksum for header record (6 digit octal number with leading zeroes)
   char typeflag;                      // Type of header entry
   char linkname[LENGTH_LINKNAME];     // Target name of link
-  char magic[LENGTH_MAGIC];           //
-  char version[LENGTH_VERSION];       //
+  char magic[LENGTH_MAGIC];           // Ustar indicator
+  char version[LENGTH_VERSION];       // Ustar version
   char uname[LENGTH_UNAME];           // User name of owner
   char gname[LENGTH_GNAME];           // Group name of owner
   char devmajor[LENGTH_DEVMAJOR];     // Major number of character or block device
   char devminor[LENGTH_DEVMINOR];     // Minor number of character or block device
-  char prefix[LENGTH_PREFIX];         //
-  char pad[LENGTH_PAD];               //
+  char prefix[LENGTH_PREFIX];         // Prefix for file name
+  char pad[LENGTH_PAD];
 };
 
 #ifdef __cplusplus
