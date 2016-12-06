@@ -133,7 +133,7 @@ namespace fs {
         throw Err_not_leaf(name_ + " does not hold an object ");
 
       if (UNLIKELY(typeid(T) != type_))
-        throw Err_bad_cast(name_ + " is not of type " + type_name());
+        throw Err_bad_cast(name_ + " is not of type " + ::type_name(typeid(T)));
 
       if (UNLIKELY(obj_is_const and not std::is_const<T>::value))
         throw Err_bad_cast(name_ + " must be retrieved as const " + type_name());
