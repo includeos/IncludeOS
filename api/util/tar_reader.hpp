@@ -25,6 +25,8 @@
 #include <vector>
 #include <stdexcept>
 
+#include <util/tinf.h>
+
 extern char _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
@@ -56,23 +58,23 @@ public:
     content_.push_back(content_block);
   }
 
-  const std::string name() { return std::string{header_.name}; }
-  const std::string mode() { return std::string{header_.mode}; }
-  const std::string uid() { return std::string{header_.uid}; }
-  const std::string gid() { return std::string{header_.gid}; }
+  std::string name() const { return std::string{header_.name}; }
+  std::string mode() const { return std::string{header_.mode}; }
+  std::string uid() const { return std::string{header_.uid}; }
+  std::string gid() const { return std::string{header_.gid}; }
   long int size();
-  const std::string mod_time() { return std::string{header_.mod_time, LENGTH_MTIME}; }
-  const std::string checksum() { return std::string{header_.checksum}; }
+  std::string mod_time() const { return std::string{header_.mod_time, LENGTH_MTIME}; }
+  std::string checksum() const { return std::string{header_.checksum}; }
   char typeflag() const { return header_.typeflag; }
-  const std::string linkname() { return std::string{header_.linkname}; }
-  const std::string magic() { return std::string{header_.magic}; }
-  const std::string version() { return std::string{header_.version, LENGTH_VERSION}; }
-  const std::string uname() { return std::string{header_.uname}; }
-  const std::string gname() { return std::string{header_.gname}; }
-  const std::string devmajor() { return std::string{header_.devmajor}; }
-  const std::string devminor() { return std::string{header_.devminor}; }
-  const std::string prefix() { return std::string{header_.prefix}; }
-  const std::string pad() { return std::string{header_.pad}; }
+  std::string linkname() { return std::string{header_.linkname}; }
+  std::string magic() const { return std::string{header_.magic}; }
+  std::string version() const { return std::string{header_.version, LENGTH_VERSION}; }
+  std::string uname() const { return std::string{header_.uname}; }
+  std::string gname() const { return std::string{header_.gname}; }
+  std::string devmajor() const { return std::string{header_.devmajor}; }
+  std::string devminor() const { return std::string{header_.devminor}; }
+  std::string prefix() const { return std::string{header_.prefix}; }
+  std::string pad() const { return std::string{header_.pad}; }
 
   bool is_ustar() const { return header_.magic == TMAGIC; }
 
@@ -80,9 +82,9 @@ public:
 
   bool typeflag_is_set() const { return header_.typeflag == ' '; }
 
-  bool is_empty() { return content_.size() == 0; }
+  bool is_empty() const { return content_.size() == 0; }
 
-  int num_content_blocks() { return content_.size(); }
+  int num_content_blocks() const { return content_.size(); }
 
 private:
   Tar_header& header_;
@@ -112,6 +114,8 @@ class Tar_reader {
 public:
 
   Tar& read_binary_tar() {
+    // tar and mender
+
     const char* bin_content  = &_binary_input_bin_start;
     const int   bin_size     = (intptr_t) &_binary_input_bin_size;
 
@@ -120,13 +124,19 @@ public:
 
   Tar& read(const char* file, size_t size);
 
-  /*Tar&*/
-  void decompress(const char* file, size_t size) {
+  Tar& decompress_binary_tar_gz() {
     // tar.gz
 
+    const char* bin_content  = &_binary_input_bin_start;
+    const int   bin_size     = (intptr_t) &_binary_input_bin_size;
+
+    return decompress(bin_content, bin_size);
+  }
+
+  Tar& decompress(const char* file, size_t size) {
 
 
-    //return tar_;
+    return tar_;
   }
 
 private:
