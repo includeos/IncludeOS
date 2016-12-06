@@ -8,6 +8,9 @@
 #include <botan/x509cert.h>
 #include <botan/rsa.h>
 #include <botan/data_src.h>
+#include <botan/pkcs8.h>
+#include <botan/rng.h>
+#include <botan/system_rng.h>
 
 namespace mender {
 
@@ -28,7 +31,7 @@ namespace mender {
 
     Public_PEM public_PEM();
 
-    const Botan::Public_Key& public_key()
+    const Public_key& public_key()
     { return *private_key_; }
 
     void load();
@@ -37,7 +40,7 @@ namespace mender {
 
   private:
     Store store_;
-    Botan::Public_Key* private_key_;
+    std::unique_ptr<Private_key> private_key_;
     std::string key_name_;
 
     Public_key* load_from_PEM(fs::Buffer&) const;
@@ -56,26 +59,43 @@ namespace mender {
     key_name_{"N/A"}
   {
     Botan::DataSource_Memory data{key};
-    private_key_ = Botan::X509::load_key(data);
+    //private_key_ = Botan::X509::load_key(data);
+    //auto rng = std::unique_ptr<Botan::RandomNumberGenerator>(new Botan::RDRAND_RNG);
+    private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
+    assert(private_key_->check_key(Botan::system_rng(), true));
   }
 
   void Keystore::load()
   {
     auto buffer = store_->fs().read_file("/"+key_name_);
     Botan::DataSource_Memory data{buffer.data(), buffer.size()};
-    private_key_ = Botan::X509::load_key(data);
+    //auto rng = std::unique_ptr<Botan::RandomNumberGenerator>(system_rng());
+    //private_key_ = Botan::PKCS8::load_key(data, Botan::system_rng());
   }
 
-  /*Public_key* Keystore::load_from_PEM(fs::Buffer& buffer) const
-  {
-    Botan::DataSource_Memory data{buffer.data(), buffer.size()};
-    //auto block = Botan::PEM_Code::decode({(char*)buffer.data(), buffer.size()}, "PRIVATE KEY");
+  //Private_key* Keystore::load_from_PEM(fs::Buffer& buffer) const
+  //{
+    /*
+        data, err := ioutil.ReadAll(in)
+    if err != nil {
+      return nil, err
+    }
 
-    //printf("%s\n", block.c_str());
-    auto* key = Botan::X509::load_key(data);
+    block, _ := pem.Decode(data)
+    if block == nil {
+      return nil, errors.New("failed to decode block")
+    }
 
-    return key;
-  }*/
+    log.Debugf("block type: %s", block.Type)
+
+    key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+    if err != nil {
+      return nil, err
+    }
+
+    return key, nil
+    */
+  //}
 
   void Keystore::generate()
   {
@@ -111,6 +131,7 @@ namespace mender {
       return buf.String(), nil
     */
     auto pem = Botan::X509::PEM_encode(public_key());
+    printf("PEM: %s\n", pem.c_str());
     //auto pem = Botan::PEM_Code::encode(data, "PUBLIC KEY");
     return pem;
   }
