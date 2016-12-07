@@ -16,7 +16,6 @@ set(SERVICE_NAME "Tar Test Service")
 set(BINARY       "test_tar")
 
 # Maximum memory can be hard-coded into the binary
-#set(MAX_MEM 128)
 set(MAX_MEM 128)
 
 # Source files to be linked with OS library parts to form bootable image
@@ -26,10 +25,7 @@ set(SOURCES
 
 set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
 
-#set(CREATE_TAR_GZ ${CMAKE_SOURCE_DIR}/tar_example)
 set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
-
-#set(TARFILE tar_example.tar.gz)
 set(TARFILE tar_example.tar)
 
 #
