@@ -10,23 +10,27 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cma
 project(tar_service)
 
 # Human-readable name of your service
-set(SERVICE_NAME "Tar Example Service")
+set(SERVICE_NAME "Tar Test Service")
 
 # Name of your service binary
-set(BINARY       "tar_example")
+set(BINARY       "test_tar")
 
 # Maximum memory can be hard-coded into the binary
 #set(MAX_MEM 128)
-set(MAX_MEM 300)
+set(MAX_MEM 128)
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
   )
 
-#set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
+set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
 
-set(TARFILE tar_example_folder.tar)
+#set(CREATE_TAR_GZ ${CMAKE_SOURCE_DIR}/tar_example)
+set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
+
+#set(TARFILE tar_example.tar.gz)
+set(TARFILE tar_example.tar)
 
 #
 # Service CMake options
@@ -51,3 +55,13 @@ set(DRIVERS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+# For now in service.cmake:
+#add_custom_command(
+  #OUTPUT tar_example.tar
+  ##OUTPUT tarfile.o
+  #COMMAND tar cf ${CMAKE_SOURCE_DIR}/tar_example.tar ${CMAKE_SOURCE_DIR}/tar_example
+  ##COMMAND cp ${TAR_RELPATH} input.bin
+  ##COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+  ##COMMAND rm input.bin
+#)

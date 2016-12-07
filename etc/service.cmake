@@ -225,12 +225,47 @@ if(TARFILE)
   get_filename_component(TAR_RELPATH "${TARFILE}"
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 
-  add_custom_command(
-    OUTPUT tarfile.o
-    COMMAND cp ${TAR_RELPATH} input.bin
-    COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
-    COMMAND rm input.bin
-  )
+  if(CREATE_TAR)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar cf ${CREATE_TAR}.tar ${CREATE_TAR}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  elseif(CREATE_TAR_GZ)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar czf ${CREATE_TAR_GZ}.tar.gz ${CREATE_TAR_GZ}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  else(true)
+    add_custom_command(
+      OUTPUT tarfile.o
+      #if(CREATE_TAR)
+      #  COMMAND tar cf ${CREATE_TAR}.tar ${CREATE_TAR}
+      #else(CREATE_TAR_GZ)
+      #  COMMAND tar czf ${CREATE_TAR_GZ}.tar.gz ${CREATE_TAR_GZ}
+      #endif(CREATE_TAR)
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  endif(CREATE_TAR)
+
+  #add_custom_command(
+  #  OUTPUT tarfile.o
+  #  if(CREATE_TAR)
+  #    COMMAND tar cf ${CREATE_TAR}.tar ${CREATE_TAR}
+    #else(CREATE_TAR_GZ)
+    #  COMMAND tar czf ${CREATE_TAR_GZ}.tar.gz ${CREATE_TAR_GZ}
+    #endif(CREATE_TAR)
+  #  COMMAND cp ${TAR_RELPATH} input.bin
+  #  COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+  #  COMMAND rm input.bin
+  #)
   add_library(tarfile STATIC tarfile.o)
   set_target_properties(tarfile PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(service --whole-archive tarfile --no-whole-archive)
