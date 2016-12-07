@@ -20,7 +20,7 @@
 #ifndef ___URI_API___
 #define ___URI_API___
 
-#include <percent_encoding.hpp>
-#include <uri.hpp>
+#include "util/percent_encoding.hpp"
+#include "util/uri.hpp"
 
 #endif //< ___URI_API___
