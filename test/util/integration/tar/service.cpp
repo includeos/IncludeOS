@@ -19,7 +19,7 @@
 #include <tar>
 
 void print_header(Element& element, const std::string& unique) {
-  printf("Name of %s: %s\n", unique.c_str(), element.name().c_str());
+  printf("%s - name of %s\n", element.name().c_str(), unique.c_str());
   printf("Mode of %s: %s\n", unique.c_str(), element.mode().c_str());
   printf("Uid of %s: %s\n", unique.c_str(), element.uid().c_str());
   printf("Gid of %s: %s\n", unique.c_str(), element.gid().c_str());
@@ -46,7 +46,9 @@ void print_content(Element& element, const std::string& unique) {
 
     std::vector<Content_block*> content = element.content();
     printf("First block of content: %.512s", content.at(0)->block);
-    printf("Last block of content: %.512s", content.at(content.size()-1)->block);
+
+    if (content.size() > 1)
+      printf("\nLast block of content: %.512s", content.at(content.size()-1)->block);
   }
 }
 
@@ -58,7 +60,7 @@ void Service::start(const std::string&)
   // Get the names of all the elements in the tarball
   std::vector<std::string> found_elements = read_tarfile.element_names();
   for (auto name : found_elements)
-    printf("Element name: %s \n", name.c_str());
+    printf("%s - element\n", name.c_str());
 
   // Get a specific file in the tarball
   std::string path1 = "home/annikaha/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md";
@@ -75,15 +77,8 @@ void Service::start(const std::string&)
 
   // Get all elements in the tarball
   std::vector<Element> elements = read_tarfile.elements();
-  for (auto e : elements) {
+  for (auto e : elements)
     printf("Name: %s Typeflag: %c\n", e.name().c_str(), e.typeflag());
-
-    std::vector<Content_block*> content = e.content();
-
-    if (not content.empty()) {
-      printf("First block of file content: %.512s\n", content.at(0)->block);
-    }
-  }
 
   printf("Something special to close with\n");
 }
