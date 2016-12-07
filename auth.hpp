@@ -39,7 +39,7 @@ namespace mender {
     j["seq_no"]   = seq_no;
 
     auto str = j.dump();
-    printf("%s\n", str.c_str());
+    //printf("%s\n", str.c_str());
     return {str.begin(), str.end()};
   }
 

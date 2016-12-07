@@ -59,8 +59,8 @@ namespace mender {
   {
     auto auth = am_.make_auth_request();
 
-    printf("--Auth request--\nData:%.*s\nToken:%.*s\nSign:%s\n",
-      auth.data.size(), (char*)auth.data.data(), auth.token.size(), (char*)auth.token.data(), Botan::base64_encode(auth.signature).c_str());
+    //printf("--Auth request--\nData:%.*s\nToken:%.*s\nSign:%s\n",
+    //  auth.data.size(), (char*)auth.data.data(), auth.token.size(), (char*)auth.token.data(), Botan::base64_encode(auth.signature).c_str());
 
     using namespace std::string_literals;
 
@@ -69,22 +69,33 @@ namespace mender {
     { 10,0,0,1 },      // Gateway
     { 10,0,0,1 });     // DNS);
 
-    stack.tcp().connect(stack.gateway(), 1337,
-    [auth](auto conn)
+    std::string data{auth.data.begin(), auth.data.end()};
+    auto req = "POST /api/devices/0.1/authentication/auth_requests HTTP/1.1\r\n"
+               "Content-Type: application/json\r\n"
+               "Authorization: Bearer" + std::string{auth.token.begin(), auth.token.end()} + "\r\n"
+               "Content-Length: " + std::to_string(data.size()) + "\r\n"
+               "X-MEN-Signature: " + Botan::base64_encode(auth.signature) + "\r\n\r\n"
+               + std::string{data.begin(), data.end()} + "\r\n\r\n"s;
+
+    stack.tcp().connect(stack.gateway(), 8080,
+    [req](auto conn)
     {
       printf("Connected\n");
-      conn->write(Botan::base64_encode(auth.signature));
+      conn->on_read(4096, [](auto buf, auto len) {
+        printf("Reply:\n%.*s\n", len, (char*)buf.get());
+      });
+
+      printf("POST Request:\n%s\n", req.c_str());
+      conn->write(req);
     });
 
-    auto req = std::make_unique<http::Request>();
-    auto& data = auth.data;
+    /*auto req = std::make_unique<http::Request>();
     req->add_body(std::string{data.begin(), data.end()});
     req->add_header("Content-Type"s, "application/json"s);
     req->add_header("Authorization"s, "Bearer " + std::string{auth.token.begin(), auth.token.end()});
-    req->add_header("X-MEN-Signature"s, Botan::base64_encode(auth.signature));
+    req->add_header("X-MEN-Signature"s, Botan::base64_encode(auth.signature));*/
 
-    send(std::move(req), "/authentication/auth_requests");
-    //req.add_header("X-MEN-Signature", signature(auth));
+    //send(std::move(req), "/authentication/auth_requests");
   }
 
   void Client::send(std::unique_ptr<http::Request> req, std::string endpoint)

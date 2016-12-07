@@ -144,7 +144,7 @@ namespace mender {
 
     Botan::PK_Signer signer(*private_key_, "EMSA1(SHA-256)");
     auto signature = signer.sign_message((uint8_t*)data.data(), data.size(), Botan::system_rng());
-    printf("Sign:\n%s\n", Botan::hex_encode(signature).c_str());
+    //printf("Sign:\n%s\n", Botan::hex_encode(signature).c_str());
     return signature;
     /*
       hash := crypto.SHA256
