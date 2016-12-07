@@ -228,7 +228,7 @@ if(TARFILE)
   if(CREATE_TAR)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar cf ${CREATE_TAR}.tar ${CREATE_TAR}
+      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
@@ -236,7 +236,7 @@ if(TARFILE)
   elseif(CREATE_TAR_GZ)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar czf ${CREATE_TAR_GZ}.tar.gz ${CREATE_TAR_GZ}
+      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
