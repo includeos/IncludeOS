@@ -65,15 +65,15 @@ void Service::start(const std::string&)
   // Get a specific file in the tarball
   std::string path1 = "home/annikaha/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md";
   Element element = read_tarfile.element(path1);
-  print_header(element, "README.md (file)");
-  print_content(element, "README.md (file)");
+  print_header(element, "README.md");
+  print_content(element, "README.md");
 
   // Get a specific folder in the tarball
   // NB: No path match on folders if no trailing /
   std::string path2 = "home/annikaha/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/";
   Element element2 = read_tarfile.element(path2);
-  print_header(element2, "l2 (folder)");
-  print_content(element2, "l2 (folder)");
+  print_header(element2, "l2");
+  print_content(element2, "l2");
 
   // Get all elements in the tarball
   std::vector<Element> elements = read_tarfile.elements();
