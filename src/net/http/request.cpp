@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <http_parser.h>
-#include <request.hpp>
+#include <http-parser/http_parser.h>
+#include <net/http/request.hpp>
 
 namespace http {
 
