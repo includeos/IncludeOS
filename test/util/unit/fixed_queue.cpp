@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common.cxx>
 #include <util/fixed_queue.hpp>
 
-#include <common.cxx>
 #include <string>
 
 template<typename T, size_t N> void test_basic(
