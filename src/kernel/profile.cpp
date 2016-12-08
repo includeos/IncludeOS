@@ -189,10 +189,10 @@ void StackSampler::set_mask(bool mask)
 decltype(ScopedProfiler::guard)   ScopedProfiler::guard   = Guard::NOT_SELECTED;
 decltype(ScopedProfiler::entries) ScopedProfiler::entries = {};
 
-ScopedProfiler::ScopedProfiler()
+void ScopedProfiler::record()
 {
   // Select which guard to use (this is only done once)
-  if (guard == Guard::NOT_SELECTED)
+  if (UNLIKELY(guard == Guard::NOT_SELECTED))
   {
     if (CPUID::is_intel_cpu() && CPUID::has_feature(CPUID::Feature::SSE2))
     {
@@ -211,7 +211,7 @@ ScopedProfiler::ScopedProfiler()
     }
   }
 
-  if (guard == Guard::NOT_AVAILABLE)
+  if (UNLIKELY(guard == Guard::NOT_AVAILABLE))
   {
     return;  // No guard available -> just bail out
   }
@@ -275,11 +275,11 @@ ScopedProfiler::~ScopedProfiler()
       const auto symbols = Elf::safe_resolve_symbol(function_address,
                                                     symbol_buffer,
                                                     sizeof(symbol_buffer));
+      entry.name = this->name;
       entry.function_address = function_address;
       entry.function_name = symbols.name;
       entry.cycles_average = cycles;
       entry.num_samples = 1;
-
       return;
     }
   }
@@ -330,7 +330,12 @@ std::string ScopedProfiler::get_statistics()
       ss << entry.num_samples << " | ";
 
       ss.width(0);
-      ss << entry.function_name << "\n";
+      ss << entry.function_name;
+      // optional name
+      if (entry.name)
+        ss << " (" << entry.name << ")";
+      
+      ss << "\n";
     }
   }
   else
