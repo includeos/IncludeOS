@@ -129,8 +129,6 @@ void Service::start(const std::string&)
   
   // listen for telnet clients
   setup_terminal(inet);
-  
-  
 }
 void Service::ready()
 {

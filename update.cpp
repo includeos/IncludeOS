@@ -109,7 +109,8 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   // 1. turn off interrupts
   asm volatile("cli");
   // 2. deactivate all PCI devices and mask all MSI-X vectors
-  hw::Devices::deactivate_all();
+  // NOTE: there are some nasty side effects from calling this
+  //hw::Devices::deactivate_all();
 
   // replace ourselves and reset by jumping to _start
   printf("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
