@@ -63,6 +63,10 @@ int close(int fd)
 
 int read(int fd, void* buf, size_t len)
 {
+  if (buf == nullptr) {
+    errno = EFAULT;
+    return -1;
+  }
   if(fd == rng_fd) {
     rng_extract(buf, len);
     return len;

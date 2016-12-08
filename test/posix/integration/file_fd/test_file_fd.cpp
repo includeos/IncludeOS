@@ -129,6 +129,14 @@ const lest::test specification[] =
       cmp = strcmp(buffer, "cont");
       EXPECT(cmp == 0);
       free(buffer);
+
+      // read with NULL pointer fails, return EFAULT
+      bytes = read(fd, nullptr, 404);
+      EXPECT(bytes == -1);
+      EXPECT(errno == EFAULT);
+
+      res = close(fd);
+      EXPECT(res == 0);
     }
   },
   {
