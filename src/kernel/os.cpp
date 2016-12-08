@@ -34,11 +34,14 @@
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
 #include <statman>
-#include <profile>
 #include <vector>
 
 #define SOFT_RESET_MAGIC   0xFEE1DEAD
 //#define ENABLE_PROFILERS
+
+#ifdef ENABLE_PROFILERS
+#include <profile>
+#endif
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -78,8 +81,9 @@ extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
-  ScopedProfiler sp1{}; // makes OS boot faster O_o
-
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp1{};
+#endif
   atexit(default_exit);
   default_stdout_handlers();
 
