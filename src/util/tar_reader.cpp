@@ -19,6 +19,8 @@
 
 #include <iostream> // strtol
 
+using namespace tar;
+
 // -------------------- Element --------------------
 
 long int Element::size() {
@@ -52,7 +54,7 @@ std::vector<std::string> Tar::element_names() const {
 
 // -------------------- Tar_reader --------------------
 
-Tar& Tar_reader::read(const char* file, size_t size) {
+Tar& Tar_reader::read_uncompressed(const char* file, size_t size) {
   if (size == 0)
     throw Tar_exception("File is empty");
 
@@ -60,7 +62,7 @@ Tar& Tar_reader::read(const char* file, size_t size) {
     throw Tar_exception("Invalid size of tar file");
 
   // Go through the whole tar file block by block
-  for ( size_t i = 0; i < size; i += SECTOR_SIZE) {
+  for (size_t i = 0; i < size; i += SECTOR_SIZE) {
     Tar_header* header = (Tar_header*) (file + i);
     Element element{*header};
 
@@ -69,13 +71,10 @@ Tar& Tar_reader::read(const char* file, size_t size) {
       continue;
     }
 
-    // if element.name() is a .tar.gz-file, do something else (as is the case with mender): decompress(.., ..);
-
     // Check if this is a directory or not (typeflag) (directories have no content)
 
-    // If typeflag not set (as with mender files) -> is not a directory and has content
+    // If typeflag not set (as with m files) -> is not a directory and has content
     if (not element.typeflag_is_set() or not element.is_dir()) {
-
       // Get the size of this file in the tarball
       long int filesize = element.size(); // Gives the size in bytes (converts from octal to decimal)
 

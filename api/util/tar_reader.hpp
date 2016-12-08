@@ -20,17 +20,19 @@
 #define TAR_READER_HPP
 
 #include <posix/tar.h>  // our posix header has the Tar_header struct, which the newlib tar.h does not
+#include <util/tinf.h>  // uzlib
 
 #include <string>
 #include <vector>
 #include <stdexcept>
 
-//#include <util/tinf.h>
-
 extern char _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
+namespace tar {
+
 const int SECTOR_SIZE = 512;
+const int DECOMPRESSION_SIZE = 256;
 
 class Tar_exception : public std::runtime_error {
   using runtime_error::runtime_error;
@@ -112,37 +114,81 @@ private:
 class Tar_reader {
 
 public:
+  /*
+  // Alt. instead of read_binary_tar() and read_binary_tar_gz()
+  Tar& read_binary() {
+    const char* bin_content   = &_binary_input_bin_start;
+    const int   bin_size      = (intptr_t) &_binary_input_bin_size;
+
+    // TODO: Check if file is compressed or not
+    if () {
+      decompress(bin_content, bin_size);
+    } else
+      read_uncompressed(bin_content, bin_size);
+  }
+  */
 
   Tar& read_binary_tar() {
-    // tar and mender
+    const char* bin_content   = &_binary_input_bin_start;
+    const int   bin_size      = (intptr_t) &_binary_input_bin_size;
 
-    const char* bin_content  = &_binary_input_bin_start;
-    const int   bin_size     = (intptr_t) &_binary_input_bin_size;
-
-    return read(bin_content, bin_size);
+    return read_uncompressed(bin_content, bin_size);
   }
 
-  Tar& read(const char* file, size_t size);
-
-  Tar& decompress_binary_tar_gz() {
-    // tar.gz
-
+  Tar& read_binary_tar_gz() {
     const char* bin_content  = &_binary_input_bin_start;
     const int   bin_size     = (intptr_t) &_binary_input_bin_size;
 
     return decompress(bin_content, bin_size);
   }
 
+  Tar& read_uncompressed(const char* file, size_t size);
+
   Tar& decompress(const char* file, size_t size) {
+    // uzlib_init();
 
+    // Get uncompressed length
+    unsigned int dlen = file[size - 1];
 
+    for (int i = 2; i <= 4; i++)
+      dlen = DECOMPRESSION_SIZE*dlen + file[size - i];
 
-    return tar_;
+    unsigned char dest[dlen];
+
+    TINF_DATA d;
+    d.source = reinterpret_cast<const unsigned char*>(file);
+
+    int res = uzlib_gzip_parse_header(&d);
+
+    if (res != TINF_OK)
+      throw Tar_exception(std::string{"Error parsing header: " + std::to_string(res)});
+
+    uzlib_uncompress_init(&d, NULL, 0);
+
+    d.dest = dest;
+
+    // decompress byte by byte or any other length
+    d.destSize = DECOMPRESSION_SIZE;
+
+    do {
+
+      res = uzlib_uncompress_chksum(&d);
+
+    } while (res == TINF_OK);
+
+    if (res not_eq TINF_DONE)
+      printf("Error during decompression: %d\n", res);
+
+    // printf("Decompressed %d bytes\n", d.dest - dest);
+
+    return read_uncompressed(reinterpret_cast<const char*>(dest), dlen);
   }
 
 private:
   Tar tar_;
 
 };  // < class Tar_reader
+
+};  // namespace tar
 
 #endif

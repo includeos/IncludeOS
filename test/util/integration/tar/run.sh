@@ -1,5 +1,5 @@
 #! /bin/bash
-set -
+set -e
 INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 sudo $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
 
@@ -8,4 +8,4 @@ if [ $# -eq 0 ]
 then
   export CMDLINE=""
 fi
-source ${INCLUDEOS_PREFIX-/usr/local}/includeos/scripts/run.sh tar_example
+source ${INCLUDEOS_PREFIX-/usr/local}/includeos/scripts/run.sh test_tar

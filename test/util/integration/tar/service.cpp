@@ -18,6 +18,8 @@
 #include <service>
 #include <tar>
 
+using namespace tar;
+
 void print_header(Element& element, const std::string& unique) {
   printf("%s - name of %s\n", element.name().c_str(), unique.c_str());
   printf("Mode of %s: %s\n", unique.c_str(), element.mode().c_str());
