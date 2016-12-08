@@ -55,4 +55,7 @@ extern "C" void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // Initialize OS including devices
   OS::start(magic, addr);
+  
+  // Starting event loop from here allows us to profile OS::start
+  OS::event_loop();
 }
