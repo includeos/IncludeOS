@@ -18,14 +18,26 @@
 #ifndef FILE_FD_HPP
 #define FILE_FD_HPP
 
+#include <fd.hpp>
+#include <os>
+#include <fs/dirent.hpp>
+
 class File_FD : public FD {
 public:
-  explicit File_FD(const int id)
-      : FD(id)
+  explicit File_FD(const int id, const fs::Dirent ent, uint64_t offset = 0)
+      : FD(id), ent_ {ent}, offset_ {offset}
   {}
+
+  int read(void*, size_t) override;
+  int write(const void*, size_t) override;
+  int close() override;
+  int lseek(off_t, int) override;
 
   bool is_file() override { return true; }
 
+private:
+  fs::Dirent ent_;
+  uint64_t offset_;
 };
 
 #endif
