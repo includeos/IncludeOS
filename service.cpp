@@ -17,6 +17,7 @@
 
 #include <service>
 #include <net/inet4>
+#include <profile>
 #include <cstdio>
 #include "update.hpp"
 #include "hw_timer.hpp"
@@ -91,6 +92,7 @@ void Service::start(const std::string&)
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
+  printf("-== BOOT TIME %.2f ms ==-\n", OS::micros_since_boot() / 1000.0);
 
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
@@ -101,6 +103,7 @@ void Service::start(const std::string&)
         { 255,255,255,0 }, // Netmask
         { 10,0,0,1 },      // Gateway
         { 10,0,0,1 });     // DNS
+
 
   /// attempt to resume (if there is anything to resume)
   void the_string(Restore);
@@ -127,6 +130,12 @@ void Service::start(const std::string&)
   // listen for telnet clients
   setup_terminal(inet);
   
+  
+}
+void Service::ready()
+{
+  // show profile stats for boot
+  printf("%s\n", ScopedProfiler::get_statistics().c_str());
 }
 
 #include <hw/cpu.hpp>
@@ -138,7 +147,7 @@ void save_stuff(Storage storage, buffer_len final_blob)
   char buffer[] = "Just some random buffer";
   storage.add_buffer(2, {buffer, sizeof(buffer)});
 
-  auto ts = hw::CPU::rdtsc();
+  int64_t ts = hw::CPU::rdtsc();
   storage.add_buffer(100, &ts, sizeof(ts));
   printf("! CPU ticks before: %lld\n", ts);
   
@@ -188,15 +197,16 @@ void on_missing(Restore thing)
 void the_timing(Restore thing)
 {
   auto t1   = thing.as_type<int64_t>();
-  auto diff = hw::CPU::rdtsc() - t1;
+  auto t2 = hw::CPU::rdtsc();
+  printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
 
   using namespace std::chrono;
-  double  div  = OS::cpu_freq().count() * 1000000.0;
-  int64_t time = diff / div * 1000;
+  double  div  = OS::cpu_freq().count() * 1000.0;
+  double  time = (t2-t1) / div;
 
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
-             "! Boot time in ticks: %lld (%lld ms)\n", diff, time);
+             "! Boot time in ticks: %lld (%.2f ms)\n", t2-t1, time);
 
   savemsg.emplace_back(buffer, len);
 }
