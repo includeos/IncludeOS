@@ -30,6 +30,8 @@
 
 #include <statman>
 
+#define SHUTDOWN_ON_PANIC 1
+
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -166,7 +168,9 @@ void panic(const char* why) {
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   // shutdown the machine
-  hw::ACPI::shutdown();
+
+  if (SHUTDOWN_ON_PANIC)
+    hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
 }
 

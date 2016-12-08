@@ -61,7 +61,7 @@ public:
       if(buf.done()) {
         q.pop_front();
         current_--;
-        debug("<WriteQueue> Acknowledge done, current-- [%u]\n", current_);
+        debug("<WriteQueue> Acknowledge done, current-- [%u] sz=%u\n", current_, q.size());
       }
     }
   }
@@ -131,8 +131,8 @@ public:
       // make sure to advance current before callback is made,
       // but after index (current) is received.
       q.at(current_++).second(buf.offset);
-      debug("<WriteQueue> Advance: Done (%u) current++ [%u]\n",
-        buf.offset, current_);
+      debug("<WriteQueue> Advance: Done (%u) current++ [%u] sz=%u\n",
+        buf.offset, current_, q.size());
     }
   }
 
@@ -140,11 +140,14 @@ public:
     Add a request to the back of the queue.
     If the queue was empty/finished, point current to the new request.
   */
-  void push_back(const WriteRequest& wr) {
+  void push_back(WriteRequest&& wr) {
     debug("<WriteQueue> Inserted WR: off=%u rem=%u ack=%u, current=%u, size=%u\n",
       wr.first.offset, wr.first.remaining, wr.first.acknowledged, current_, size());
-    q.push_back(wr);
+    q.push_back(std::move(wr));
   }
+
+  void push_back(const WriteRequest& wr)
+  { q.push_back(wr); }
 
   /*
     Remove all write requests from queue and signal how much was written for each request.
@@ -161,6 +164,10 @@ public:
     current_ = 0;
     debug("<WriteQueue::reset> Reset\n");
   }
+
+  // ???
+  void deserialize_from(void*);
+  int  serialize_to(void*);
 
 private:
   std::deque<WriteRequest> q;
