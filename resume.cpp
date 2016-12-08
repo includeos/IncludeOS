@@ -10,7 +10,7 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
   /// verify checksum
   
   /// restore each entry one by one, calling registered handlers
-  printf("* Resuming %d stored entries\n", storage.entries);
+  printf("* Resuming %d stored entries\n", storage.get_entries());
   
   for (auto* ptr = storage.begin(); ptr->type != TYPE_END; ptr = storage.next(ptr))
   {
@@ -24,7 +24,7 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
     }
   }
   /// zero out all the values for security reasons
-  memset(&storage, 0, sizeof(storage_header) + storage.length);
+  storage.zero();
   
   return true;
 }

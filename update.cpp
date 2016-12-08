@@ -10,24 +10,21 @@
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
-static const uintptr_t LIVEUPD_LOCATION = 234881024; // at 224mb
-static const uint64_t  LIVEUPD_MAGIC    = 0xbaadb33fdeadc0de;
-
 static void* HOTSWAP_AREA = (void*) 0x8000;
 
-bool LiveUpdate::is_resumable()
+bool LiveUpdate::is_resumable(void* location)
 {
-  return *(uint64_t*) LIVEUPD_LOCATION == LIVEUPD_MAGIC;
+  return ((storage_header*) location)->validate();
 }
-bool LiveUpdate::resume(resume_func func)
+bool LiveUpdate::resume(void* location, resume_func func)
 {
   // check if an update has occurred
-  if (!is_resumable()) return false;
+  if (!is_resumable(location)) return false;
   
   printf("* Restoring data...\n");
   // restore connections etc.
   extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
-  return resume_begin(*(storage_header*) LIVEUPD_LOCATION, func);
+  return resume_begin(*(storage_header*) location, func);
 }
 
 static void update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
@@ -38,11 +35,19 @@ extern "C" void* __os_store_soft_reset();
 
 #include <hw/devices.hpp>
 
-void LiveUpdate::begin(buffer_len blob, storage_func func)
+inline bool validate_elf_header(Elf32_Ehdr* hdr)
+{
+    return hdr->e_ident[0] == 0x7F &&
+           hdr->e_ident[1] == 'E'  &&
+           hdr->e_ident[2] == 'L'  &&
+           hdr->e_ident[3] == 'F';
+}
+
+void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 {
   // use area just below the update storage to
   // prevent it getting overwritten during the update
-  char* storage_area = (char*) LIVEUPD_LOCATION;
+  char* storage_area = (char*) location;
   char* update_area  = storage_area - blob.length;
   memcpy(update_area, blob.buffer, blob.length);
 
@@ -51,20 +56,14 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
   int     bin_len = blob.length;
   Elf32_Ehdr* hdr = (Elf32_Ehdr*) binary;
 
-  if (hdr->e_ident[0] != 0x7F ||
-      hdr->e_ident[1] != 'E' ||
-      hdr->e_ident[2] != 'L' ||
-      hdr->e_ident[3] != 'F')
+  if (!validate_elf_header(hdr))
   {
     /// try again with 1 sector offset (skip bootloader)
     binary   = &update_area[SECT_SIZE];
     bin_len  = blob.length - SECT_SIZE;
     hdr      = (Elf32_Ehdr*) binary;
     
-    if (hdr->e_ident[0] != 0x7F ||
-        hdr->e_ident[1] != 'E' ||
-        hdr->e_ident[2] != 'L' ||
-        hdr->e_ident[3] != 'F')
+    if (!validate_elf_header(hdr))
     {
       /// failed to find elf header at sector 0 and 1
       /// simply return
@@ -125,11 +124,17 @@ void LiveUpdate::begin(buffer_len blob, storage_func func)
 void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len blob)
 {
   // create storage header in the fixed location
-  new (location) storage_header(LIVEUPD_MAGIC);
+  new (location) storage_header();
   auto* storage = (storage_header*) location;
   
   /// callback for storing stuff
   func({*storage}, blob);
+  
+  /// finalize
+  storage->finalize();
+  
+  /// sanity check
+  assert(storage->validate());
 }
 
 /// struct Storage

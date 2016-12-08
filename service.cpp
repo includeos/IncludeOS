@@ -23,6 +23,7 @@
 #include "hw_timer.hpp"
 #include "crc32.h"
 
+static void* LIVEUPD_LOCATION   = (void*) 0xA00000; // at 224mb
 static const uint16_t TERM_PORT = 6667;
 
 // prevent default serial out
@@ -30,7 +31,6 @@ void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
 typedef net::tcp::Connection_ptr Connection_ptr;
-Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
 static std::vector<Connection_ptr> saveme;
 static std::vector<std::string>    savemsg;
 
@@ -92,11 +92,9 @@ void Service::start(const std::string&)
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
-  printf("-== BOOT TIME %.2f ms ==-\n", OS::micros_since_boot() / 1000.0);
 
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
-  //printf("* CPU freq is %f MHz\n", OS::cpu_freq().count());
 
   auto& inet = net::Inet4::ifconfig<0>(
         { 10,0,0,42 },     // IP
@@ -121,7 +119,7 @@ void Service::start(const std::string&)
   LiveUpdate::on_resume(666, restore_term);
   LiveUpdate::on_resume(999, on_update_area);
   // begin restoring saved data
-  if (LiveUpdate::resume(on_missing) == false) {
+  if (LiveUpdate::resume(LIVEUPD_LOCATION, on_missing) == false) {
     printf("* Not restoring data, because no update has happened\n");
     // .. logic for when there is nothing to resume yet
     setup_liveupdate_server(inet);
@@ -231,7 +229,7 @@ void on_update_area(Restore thing)
   using namespace std::chrono;
   Timers::oneshot(milliseconds(50),
   [updloc] (auto) {
-    LiveUpdate::begin(updloc, save_stuff);
+    LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
   });
 }
 
@@ -262,7 +260,7 @@ void setup_liveupdate_server(T& inet)
       float frac = *update_size / (float) UPDATE_MAX * 100.f;
       printf("* New update size: %u b  (%.2f%%)\n", *update_size, frac);
       // run live update process
-      LiveUpdate::begin({update_blob, *update_size}, save_stuff);
+      LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
       /// We should never return :-) ///
       assert(0 && "!! Update failed !!");
     });

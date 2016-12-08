@@ -1,9 +1,12 @@
 #include "storage.hpp"
 
 #include <cassert>
+#include "crc32.h"
 
-storage_header::storage_header(uint64_t value)
-  : magic(value), entries(0), length(0)
+const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
+
+storage_header::storage_header()
+  : magic(LIVEUPD_MAGIC), crc(0), entries(0), length(0)
 {
   //printf("%p --> %#llx\n", this, value);
 }
@@ -30,6 +33,45 @@ storage_entry& storage_header::add_struct(int16_t type, uint16_t id, construct_f
 void storage_header::add_end()
 {
   create_entry(TYPE_END);
+}
+
+void storage_header::finalize()
+{
+  assert(this->magic == LIVEUPD_MAGIC);
+  
+  this->crc = generate_checksum();
+  printf("storage_header CRC32  %08x\n", crc);
+}
+bool storage_header::validate()
+{
+  if (this->magic != LIVEUPD_MAGIC) return false;
+  if (this->crc   == 0) return false;
+  
+  uint32_t chsum = generate_checksum();
+  if (this->crc != chsum) return false;
+  
+  return true;
+}
+
+uint32_t storage_header::generate_checksum()
+{
+  uint32_t    crc_copy = this->crc;
+  this->crc = 0;
+  
+  const char* begin = (const char*) this;
+  size_t      len   = sizeof(storage_header) + this->length;
+  
+  uint32_t checksum = crc32(begin, len);
+  
+  this->crc = crc_copy;
+  return checksum;
+}
+
+void storage_header::zero()
+{
+  memset(this, 0, sizeof(storage_header) + this->length);
+  assert(this->magic == 0);
+  printf("storage zeroed out\n");
 }
 
 storage_entry* storage_header::begin()

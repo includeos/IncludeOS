@@ -60,15 +60,15 @@ struct LiveUpdate
   typedef delegate<void(Storage, buffer_len)> storage_func;
 
   // start a live update process
-  static void begin(buffer_len blob, storage_func);
+  static void begin(void* location, buffer_len blob, storage_func);
   
   // returns true if there is stored data from before
-  static bool is_resumable();
+  static bool is_resumable(void* location);
   
   // register handler for a specific id
   static void on_resume(uint16_t id, resume_func);
   
   // attempt to restore existing payloads
   // returns false if there was nothing there
-  static bool resume(resume_func);
+  static bool resume(void* location, resume_func);
 };

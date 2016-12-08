@@ -30,7 +30,13 @@ struct storage_entry
 struct storage_header
 {
   typedef delegate<int(char*)> construct_func;
-  storage_header(uint64_t);
+  static const uint64_t  LIVEUPD_MAGIC;
+  
+  uint32_t get_entries() const noexcept {
+    return this->entries;
+  }
+  
+  storage_header();
   
   void add_string(uint16_t id, const std::string& data);
   void add_buffer(uint16_t id, const char*, int);
@@ -50,8 +56,17 @@ struct storage_header
   void append_eof() noexcept {
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
+  void finalize();
+  bool validate();
+  
+  // zero out the entire header and its data, for extra security
+  void zero();
+  
+private:
+  uint32_t generate_checksum();
   
   uint64_t magic;
+  uint32_t crc;
   uint32_t entries = 0;
   uint32_t length  = 0;
   char     vla[0];

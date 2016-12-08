@@ -10,7 +10,7 @@ set(SERVICE_NAME "Live Update")
 set(BINARY       "LiveUpdate")
 set(MAX_MEM 128)
 set(SOURCES
-    service.cpp 
+    service.cpp
   )
 set(LOCAL_INCLUDES ".")
 
@@ -21,7 +21,7 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
 # LiveUpdate static library
 add_library(liveupdate STATIC
-    storage.cpp update.cpp resume.cpp hotswap.cpp serialize_tcp.cpp
+    storage.cpp update.cpp resume.cpp hotswap.cpp serialize_tcp.cpp crc32.cpp
   )
 target_link_libraries(service liveupdate)
 install(TARGETS liveupdate DESTINATION lib)
