@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SYS_CTYPE_H
-#define SYS_CTYPE_H
+#ifndef HTTP_COMMON_HPP
+#define HTTP_COMMON_HPP
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstdint>
+#include <experimental/string_view>
+#include <memory>
+#include <string>
+#include <uri>
+#include <utility>
+#include <vector>
 
-  static inline int isascii(int c){
-    return c >= 0 && c <= 0177;
-  }
+namespace http {
 
-  static inline int isalnum(int ch){
-    // http://en.cppreference.com/w/cpp/string/byte/isalnum
-    return (ch >= 48 && ch <= 57)
-      || (ch >= 65 && ch <= 90)
-      || (ch >= 97 && ch <= 122);
-  }
+using URI = uri::URI;
 
+using Header_set = std::vector<std::pair<std::experimental::string_view, std::experimental::string_view>>;
 
-#ifdef __cplusplus
-}
-#endif
+class Request;
+using Request_ptr = std::unique_ptr<Request>;
 
-#endif //SYS_CTYPE_H
+class Response;
+using Response_ptr = std::unique_ptr<Response>;
 
+} //< namespace http
 
-#include_next <ctype.h>
+#endif //< HTTP_COMMON_HPP

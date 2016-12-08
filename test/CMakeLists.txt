@@ -33,6 +33,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/ringbuffer.cpp
   #${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/membitmap.cpp
+  #${TEST}/util/unit/uri_test.cpp
 )
 
 set(OS_SOURCES
@@ -57,6 +58,8 @@ set(OS_SOURCES
   ${SRC}/posix/fd.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/statman.cpp
+  ${SRC}/util/uri.cpp
+  ${SRC}/util/percent_encoding.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
