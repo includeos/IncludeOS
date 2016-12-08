@@ -108,6 +108,7 @@ const lest::test specification[] =
       int res = stat("/mnt/disk/file1", &sb);
       EXPECT(res != -1);
       int size = sb.st_size;
+      EXPECT(size > 0);
 
       char* buffer = (char*) malloc(1024);
       memset(buffer, 0, 1024);
@@ -116,6 +117,16 @@ const lest::test specification[] =
 
       // verify that data from read are correct
       int cmp = strcmp(buffer, "content\n");
+      EXPECT(cmp == 0);
+
+      // test partial read, just first 4 bytes
+      memset(buffer, 0, 1024);
+      off_t offset = lseek(fd, 0, SEEK_SET);
+      bytes = read(fd, buffer, 4);
+      EXPECT(bytes == size - 4);
+      cmp = strcmp(buffer, "content\n");
+      EXPECT(cmp != 0);
+      cmp = strcmp(buffer, "cont");
       EXPECT(cmp == 0);
       free(buffer);
     }
