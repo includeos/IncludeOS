@@ -28,7 +28,6 @@ fs::Disk_ptr& memdisk() {
   static auto disk = fs::new_shared_memdisk();
 
   if (not disk->fs_ready()) {
-    printf("%s\n", disk->name().c_str());
     disk->init_fs([](fs::error_t err) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
@@ -114,6 +113,10 @@ const lest::test specification[] =
       memset(buffer, 0, 1024);
       int bytes = read(fd, buffer, 1024);
       EXPECT(bytes == size);
+
+      // verify that data from read are correct
+      int cmp = strcmp(buffer, "content\n");
+      EXPECT(cmp == 0);
       free(buffer);
     }
   },
@@ -131,6 +134,9 @@ const lest::test specification[] =
       int bytes = read(fd, buffer, 1024);
       EXPECT(bytes == -1);
       EXPECT(errno == EBADF);
+
+      res = close(fd);
+      EXPECT(res == -1);
     }
   }
 };

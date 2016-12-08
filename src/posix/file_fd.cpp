@@ -46,7 +46,7 @@ int File_FD::lseek(off_t offset, int whence) {
     calculated_offset = end + offset;
   }
   if (calculated_offset < 0) {
-    printf("offset would be negative, resetting to 0\n");
+    INFO("lseek", "offset would be negative, resetting to 0\n");
     calculated_offset = 0;
   }
   Ensures(calculated_offset >= 0);
