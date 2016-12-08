@@ -29,8 +29,12 @@ typedef __WCHAR_TYPE__ wchar_t;
 typedef __WINT_TYPE__ wint_t;
 
 #ifndef NULL
-#define NULL __null
+#ifdef __cplusplus
+  #define NULL __null
+#else
+  #define NULL ((void*) 0)
 #endif
+#endif // NULL
 
 #ifndef offsetof
 #define offsetof(t, d)    __builtin_offsetof(t, d)

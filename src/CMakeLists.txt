@@ -27,6 +27,7 @@ set(OS_OBJECTS
   kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp util/tar_reader.cpp
+  util/uri.cpp util/percent_encoding.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
   hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
@@ -40,6 +41,8 @@ set(OS_OBJECTS
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp
   net/buffer_store.cpp net/inet4.cpp
   net/super_stack.cpp
+  net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
+  net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
@@ -48,7 +51,14 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp
   )
 
-add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
+# Build modules into OS library
+# TODO: Maybe set up ExternalProject for this?
+include_directories(${INCLUDEOS_ROOT}/mod)
+set(MOD_OBJECTS
+  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  )
+
+add_library(os STATIC ${OS_OBJECTS} apic_boot.o ${MOD_OBJECTS})
 add_dependencies(os PrecompiledLibraries)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
