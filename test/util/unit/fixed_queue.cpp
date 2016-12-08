@@ -125,7 +125,7 @@ CASE("Test fixed_queue for pod types")
 		std::numeric_limits<float>::max()
 	);
 
-},
+}
 CASE("Test fixed_queue with range types")
 {
 	auto& le = lest_env;
