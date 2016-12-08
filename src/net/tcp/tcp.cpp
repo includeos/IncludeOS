@@ -115,10 +115,6 @@ void TCP::insert_connection(Connection_ptr conn)
       std::piecewise_construct,
       std::forward_as_tuple(conn->local_port(), conn->remote()),
       std::forward_as_tuple(conn));
-  // add to writeq if it has any jobs
-  if (conn->has_doable_job()) {
-      writeq.push_back(conn);
-  }
 }
 
 
