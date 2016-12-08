@@ -25,20 +25,16 @@ Header::Header() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Header::Header(const std::size_t limit) noexcept {
-  if (limit <= 0U) {
-    fields_.reserve(25U);
-  } else {
-    fields_.reserve(limit);
-  }
+Header::Header(const std::size_t limit) {
+  fields_.reserve(limit);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::add_field(const std::experimental::string_view field, const std::experimental::string_view value) {
+bool Header::add_field(const std::experimental::string_view field, std::string value) {
   if (field.empty()) return false;
   //-----------------------------------
   if (size() < fields_.capacity()) {
-    fields_.emplace_back(field, value);
+    fields_.emplace_back(field, std::move(value));
     return true;
   }
   //-----------------------------------
@@ -46,17 +42,17 @@ bool Header::add_field(const std::experimental::string_view field, const std::ex
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::set_field(const std::experimental::string_view field, const std::experimental::string_view value) {
+bool Header::set_field(const std::experimental::string_view field, std::string value) {
   if (field.empty() || value.empty()) return false;
   //-----------------------------------
   const auto target = find(field);
   //-----------------------------------
   if (target not_eq fields_.cend()) {
-    const_cast<std::experimental::string_view&>(target->second) = value;
+    const_cast<std::string&>(target->second) = std::move(value);
     return true;
   }
   //-----------------------------------
-  else return add_field(field, value);
+  else return add_field(field, std::move(value));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
