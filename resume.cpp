@@ -23,6 +23,9 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
       func(*ptr);
     }
   }
+  /// zero out all the values for security reasons
+  memset(&storage, 0, sizeof(storage_header) + storage.length);
+  
   return true;
 }
 
