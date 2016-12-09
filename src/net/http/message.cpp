@@ -38,10 +38,9 @@ const Header& Message::header() const noexcept {
 Message& Message::add_body(const Message_body& message_body) {
   if (message_body.empty()) return *this;
   //-----------------------------------
-  message_body_   = message_body;
-  content_length_ = std::to_string(message_body_.size());
+  message_body_ = message_body;
   //-----------------------------------
-  header().add_field(header::Content_Length, content_length_);
+  header().add_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
@@ -50,9 +49,8 @@ Message& Message::add_chunk(const std::string& chunk) {
   if (chunk.empty()) return *this;
   //-----------------------------------
   message_body_.append(chunk);
-  content_length_ = std::to_string(message_body_.size());
   //-----------------------------------
-  header().set_field(header::Content_Length, content_length_);
+  header().set_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
@@ -102,6 +100,14 @@ const std::experimental::string_view Message::private_field() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 void Message::set_private_field(const char* base, const size_t length) noexcept {
   field_ = {base, length};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Message& operator << (Message& message, const Header_set& headers) {
+  for (const auto& field : headers) {
+    message.header().add_field(field.first, field.second);
+  }
+  return message;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

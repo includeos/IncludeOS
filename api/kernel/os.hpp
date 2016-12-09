@@ -144,6 +144,9 @@ public:
   static void block();
 
 
+  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
+  static void event_loop();
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -156,9 +159,6 @@ private:
 
   /** Indicate if the OS is running. */
   static bool power_;
-
-  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
-  static void event_loop();
 
   static MHz cpu_mhz_;
 

@@ -37,6 +37,11 @@
 #include <vector>
 
 #define SOFT_RESET_MAGIC   0xFEE1DEAD
+//#define ENABLE_PROFILERS
+
+#ifdef ENABLE_PROFILERS
+#include <profile>
+#endif
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
@@ -76,6 +81,9 @@ extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp1{};
+#endif
   atexit(default_exit);
   default_stdout_handlers();
 
@@ -170,18 +178,26 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     unavail_end += interval;
   }
 
-
   MYINFO("Printing memory map");
 
   for (const auto &i : memory_map())
     INFO2("* %s",i.second.to_string().c_str());
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp2("OS::start IRQ manager init");
+#endif
   // Set up interrupt and exception handlers
   IRQ_manager::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp3("OS::start ACPI init");
+#endif
   // read ACPI tables
   hw::ACPI::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp4("OS::start APIC init");
+#endif
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
 
@@ -189,9 +205,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   INFO("BSP", "Enabling interrupts");
   IRQ_manager::enable_interrupts();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp5("OS::start PIT init");
+#endif
   // Initialize the Interval Timer
   hw::PIT::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp6("OS::start PCI manager init");
+#endif
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -205,12 +227,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp7("OS::start CPU frequency");
+#endif
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
   if (OS::cpu_mhz_.count() < 0) {
     OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
   }
   INFO2("+--> %f MHz", cpu_freq().count());
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp8("OS::start Timers init");
+#endif
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
   Timers::init(
@@ -232,6 +260,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     Timers::ready();
   });
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp9("OS::start RTC init");
+#endif
   // Realtime/monotonic clock
   RTC::init();
   booted_at_ = RTC::now();
@@ -242,6 +273,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   os_cycles_total = &Statman::get().create(
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp10("OS::start Plugins init");
+#endif
   // Trying custom initialization functions
   MYINFO("Initializing plugins");
   for (auto plugin : plugins_) {
@@ -258,6 +292,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp11("OS::start RNG init");
+#endif
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
     uint32_t rdrand_output[32];
@@ -287,8 +324,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // do CPU frequency measurements again with more samples
   //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
-
-  event_loop();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){

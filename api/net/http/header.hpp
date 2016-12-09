@@ -35,7 +35,7 @@ namespace http {
 ///
 /// By default it is limited to 25 fields
 /// but the amount can be specified by using the
-/// appropriate constructor and provided method.
+/// appropriate constructor
 ///
 class Header {
 private:
@@ -57,7 +57,7 @@ public:
   /// @param limit Capacity of how many fields can
   /// be added
   ///
-  explicit Header(const std::size_t limit) noexcept;
+  explicit Header(const std::size_t limit);
 
   ///
   /// Default destructor
@@ -93,7 +93,7 @@ public:
   /// @return true if the field was added, false
   /// otherwise
   ///
-  bool add_field(const std::experimental::string_view field, const std::experimental::string_view value);
+  bool add_field(const std::experimental::string_view field, std::string value);
 
   ///
   /// Change the value of the specified field
@@ -107,7 +107,7 @@ public:
   ///
   /// @return true if successful, false otherwise
   ///
-  bool set_field(const std::experimental::string_view field, const std::experimental::string_view value);
+  bool set_field(const std::experimental::string_view field, std::string value);
 
   ///
   /// Check to see if the specified field is a
