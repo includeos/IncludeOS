@@ -1,7 +1,16 @@
+/**
+ * 
+ * Live Update
+ * 
+ * Master Thesis by Alf-Andre Walla
+ * 
+**/
 #pragma once
+#ifndef LIVEUPDATE_UPDATE_HPP
+#define LIVEUPDATE_UPDATE_HPP
+
 #include <net/tcp/connection.hpp>
 #include <delegate>
-#include <map>
 
 struct buffer_len {
   const char* buffer;
@@ -13,13 +22,13 @@ struct storage_header;
 
 struct Storage
 {
-  typedef net::tcp::Connection_ptr Connection;
+  typedef net::tcp::Connection_ptr Connection_ptr;
   typedef uint16_t uid;
   
   void add_string(uid, const std::string&);
   void add_buffer(uid, buffer_len);
   void add_buffer(uid, void*, size_t);
-  void add_connection(uid, Connection);
+  void add_connection(uid, Connection_ptr);
   
   
   Storage(storage_header& sh) : hdr(sh) {}
@@ -30,11 +39,11 @@ private:
 
 struct Restore
 {
-  typedef net::tcp::Connection_ptr Connection;
+  typedef net::tcp::Connection_ptr Connection_ptr;
   
-  std::string  as_string() const;
-  buffer_len   as_buffer() const;
-  Connection   as_tcp_connection(net::TCP&) const;
+  std::string    as_string() const;
+  buffer_len     as_buffer() const;
+  Connection_ptr as_tcp_connection(net::TCP&) const;
   
   template <typename S>
   inline S& as_type() const;
@@ -72,3 +81,5 @@ struct LiveUpdate
   // returns false if there was nothing there
   static bool resume(void* location, resume_func);
 };
+
+#endif

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <unistd.h>
+#include <util/crc32.hpp>
 #include "elf.h"
 #include "storage.hpp"
 
@@ -47,8 +48,17 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 {
   // use area just below the update storage to
   // prevent it getting overwritten during the update
-  char* storage_area = (char*) location;
-  char* update_area  = storage_area - blob.length;
+  char* update_area  = (char*) location - blob.length;
+  char* storage_area = &update_area[blob.length];
+  
+  // validate not overwriting heap
+  extern char* heap_end;
+  if (heap_end >= update_area) {
+    printf("*** The heap is currently inside the update area\n");
+    return;
+  }
+  
+  // copy the binary blob to beginning of update area
   memcpy(update_area, blob.buffer, blob.length);
 
   // validate ELF header
@@ -153,7 +163,7 @@ void Storage::add_buffer(uint16_t id, void* buf, size_t len)
 }
 
 #include "serialize_tcp.hpp"
-void Storage::add_connection(uid id, Connection conn)
+void Storage::add_connection(uid id, Connection_ptr conn)
 {
   hdr.add_struct(TYPE_TCP, id,
   [&conn] (char* location) -> int {

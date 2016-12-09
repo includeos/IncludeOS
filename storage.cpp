@@ -1,7 +1,7 @@
 #include "storage.hpp"
 
+#include <util/crc32.hpp>
 #include <cassert>
-#include "crc32.h"
 
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
@@ -38,9 +38,7 @@ void storage_header::add_end()
 void storage_header::finalize()
 {
   assert(this->magic == LIVEUPD_MAGIC);
-  
   this->crc = generate_checksum();
-  printf("storage_header CRC32  %08x\n", crc);
 }
 bool storage_header::validate()
 {
@@ -49,7 +47,6 @@ bool storage_header::validate()
   
   uint32_t chsum = generate_checksum();
   if (this->crc != chsum) return false;
-  
   return true;
 }
 
@@ -60,7 +57,6 @@ uint32_t storage_header::generate_checksum()
   
   const char* begin = (const char*) this;
   size_t      len   = sizeof(storage_header) + this->length;
-  
   uint32_t checksum = crc32(begin, len);
   
   this->crc = crc_copy;
@@ -71,7 +67,6 @@ void storage_header::zero()
 {
   memset(this, 0, sizeof(storage_header) + this->length);
   assert(this->magic == 0);
-  printf("storage zeroed out\n");
 }
 
 storage_entry* storage_header::begin()

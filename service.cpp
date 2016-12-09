@@ -18,12 +18,12 @@
 #include <service>
 #include <net/inet4>
 #include <profile>
+#include <util/crc32.hpp>
 #include <cstdio>
 #include "update.hpp"
 #include "hw_timer.hpp"
-#include "crc32.h"
 
-static void* LIVEUPD_LOCATION   = (void*) 0xA00000; // at 224mb
+static void* LIVEUPD_LOCATION   = (void*) 0xC00000; // at 12mb
 static const uint16_t TERM_PORT = 6667;
 
 // prevent default serial out
@@ -229,6 +229,8 @@ void on_update_area(Restore thing)
   using namespace std::chrono;
   Timers::oneshot(milliseconds(50),
   [updloc] (auto) {
+    extern uintptr_t heap_end;
+    printf("* Re-running previous update at %p vs heap %08x\n", updloc.buffer, heap_end);
     LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
   });
 }
@@ -258,7 +260,7 @@ void setup_liveupdate_server(T& inet)
     [update_blob, update_size] {
       // we received a binary:
       float frac = *update_size / (float) UPDATE_MAX * 100.f;
-      printf("* New update size: %u b  (%.2f%%)\n", *update_size, frac);
+      printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
       // run live update process
       LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
       /// We should never return :-) ///

@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include "storage.hpp"
+#include <map>
 
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
@@ -49,7 +50,7 @@ buffer_len  Restore::as_buffer() const
   throw std::runtime_error("Incorrect type: " + std::to_string(ent.type));
 }
 #include "serialize_tcp.hpp"
-Restore::Connection Restore::as_tcp_connection(net::TCP& tcp) const
+Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
 {
   return deserialize_connection(ent.vla, tcp);
 }
