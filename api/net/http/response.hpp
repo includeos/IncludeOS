@@ -149,16 +149,13 @@ private:
   Version version_;
 }; //< class Response
 
-/**--v----------- Helper Functions -----------v--**/
-
-///
-/// Add a set of headers to a response message
-///
-Response& operator << (Response& res, const Header_set& headers);
-
-/**--^----------- Helper Functions -----------^--**/
-
 /**--v----------- Implementation Details -----------v--**/
+
+///////////////////////////////////////////////////////////////////////////////
+template<typename = void>
+inline Response_ptr make_response() {
+  return std::make_unique<Response>();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename = void>

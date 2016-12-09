@@ -18,10 +18,8 @@
 #ifndef HTTP_COMMON_HPP
 #define HTTP_COMMON_HPP
 
-#include <cstdint>
 #include <experimental/string_view>
 #include <memory>
-#include <string>
 #include <uri>
 #include <utility>
 #include <vector>

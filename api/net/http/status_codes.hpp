@@ -27,9 +27,9 @@ namespace http {
 
 using Code              = int;
 using Description       = const std::experimental::string_view;
-using Status_Code_Table = std::unordered_map<Code, Description>;
+using Status_code_table = std::unordered_map<Code, Description>;
 
-extern const Status_Code_Table status_codes;
+extern const Status_code_table status_codes;
 
 Description code_description(const Code code) noexcept;
 
