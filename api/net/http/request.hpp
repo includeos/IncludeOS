@@ -217,6 +217,12 @@ inline std::experimental::string_view Request::post_value(const std::experimenta
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename = void>
+inline Request_ptr make_request() {
+  return std::make_unique<Request>();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+template<typename = void>
 inline Request_ptr make_request(std::string request) {
   return std::make_unique<Request>(std::move(request));
 }

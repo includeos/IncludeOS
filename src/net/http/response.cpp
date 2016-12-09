@@ -124,12 +124,4 @@ static void execute_parser(Response* res, http_parser& parser, http_parser_setti
   http_parser_execute(&parser, &settings, data.data(), data.size());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-Response& operator << (Response& res, const Header_set& headers) {
-  for (const auto& field : headers) {
-    res.header().add_field(field.first, field.second);
-  }
-  return res;
-}
-
 } //< namespace http
