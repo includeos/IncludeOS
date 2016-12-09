@@ -22,7 +22,7 @@ namespace http {
 
 static void configure_settings(http_parser_settings&) noexcept;
 
-static void execute_parser(Response*, http_parser&, http_parser_settings&, const std::string&) noexcept;
+static size_t execute_parser(Response*, http_parser&, http_parser_settings&, const std::string&) noexcept;
 
 ///////////////////////////////////////////////////////////////////////////////
 Response::Response(const Version version, const Code code) noexcept
@@ -31,15 +31,25 @@ Response::Response(const Version version, const Code code) noexcept
 {}
 
 ///////////////////////////////////////////////////////////////////////////////
-Response::Response(std::string response, const std::size_t limit)
+Response::Response(std::string response, const std::size_t limit, const bool parse)
   : Message{limit}
   , response_{std::move(response)}
 {
+  if (parse) this->parse();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Response& Response::parse() {
   http_parser          parser;
   http_parser_settings settings;
 
   configure_settings(settings);
-  execute_parser(this, parser, settings, response_);
+
+  if (execute_parser(this, parser, settings, response_) not_eq response_.length()) {
+    throw Response_error{"Invalid response: " + response_};
+  }
+
+  return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -117,11 +127,17 @@ static void configure_settings(http_parser_settings& settings_) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static void execute_parser(Response* res, http_parser& parser, http_parser_settings& settings,
+static size_t execute_parser(Response* res, http_parser& parser, http_parser_settings& settings,
                            const std::string& data) noexcept {
   http_parser_init(&parser, HTTP_RESPONSE);
   parser.data = res;
-  http_parser_execute(&parser, &settings, data.data(), data.size());
+  return http_parser_execute(&parser, &settings, data.data(), data.size());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Response& Response::operator << (const std::string& chunk) {
+  response_.append(chunk);
+  return *this;
 }
 
 } //< namespace http
