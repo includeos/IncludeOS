@@ -17,15 +17,20 @@ struct softreset_t
 
 void OS::resume_softreset(intptr_t addr)
 {
-  kprint("[!] Soft resetting OS\n");
   auto* data = (softreset_t*) addr;
   
   /// validate soft-reset data
   const uint32_t csum_copy = data->checksum;
   data->checksum = 0;
-  assert(crc32(data, sizeof(softreset_t)) == csum_copy);
+  uint32_t crc = crc32(data, sizeof(softreset_t));
+  if (crc != csum_copy) {
+    kprintf("Failed to verify CRC of softreset data: %08x vs %08x\n",
+            crc, csum_copy);
+    assert(false);
+  }
   data->checksum = csum_copy;
   
+  kprint("[!] Soft resetting OS\n");
   /// restore known values
   OS::cpu_mhz_ = data->cpu_freq;
   hw::apic_timer_set_ticks(data->apic_ticks);
