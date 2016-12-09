@@ -186,7 +186,7 @@ namespace net {
     /*
       Settings
     */
-    tcp::port_t current_ephemeral_ = 1024;
+    tcp::port_t current_ephemeral_;
 
     std::chrono::milliseconds MAX_SEG_LIFETIME;
 
