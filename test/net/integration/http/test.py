@@ -30,6 +30,7 @@ def Client_test(trigger_line):
     while(DO_SERVE):
         httpd.handle_request()
         DO_SERVE = False
+    httpd.server_close()
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]

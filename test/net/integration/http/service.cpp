@@ -47,7 +47,9 @@ void Service::ready()
   client_->send(std::move(req), {inet.gateway(), 9000},
   [] (auto err, auto res)
   {
-    assert(!err);
+    CHECKSERT(!err, "No error");
+    CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
     printf("Response:\n%s\n", res->to_string().c_str());
+    printf("SUCCESS\n");
   });
 }
