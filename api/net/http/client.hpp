@@ -19,59 +19,27 @@
 #ifndef HTTP_CLIENT_HPP
 #define HTTP_CLIENT_HPP
 
+#include "common.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include <net/tcp/tcp.hpp>
+#include "connection.hpp"
+#include "error.hpp"
+#include <vector>
+#include <map>
 
 namespace http {
-
-  class Error {
-  public:
-    enum Code {
-      NONE,
-      RESOLVE_HOST,
-      NO_REPLY
-    };
-
-    Error(Code code = NONE)
-      : code_{code}
-    {}
-
-    operator bool() const
-    { return code_ != NONE; }
-
-    Error code() const
-    { return code_; }
-
-    std::string to_string() const
-    {
-      switch(code_)
-      {
-        case NONE:
-          return "No error";
-        case RESOLVE_HOST:
-          return "Unable to resolve host";
-        case NO_REPLY:
-          return "No reply";
-        default:
-          return "General error";
-      } // < switch code_
-    }
-
-  private:
-    Code code_;
-
-  };
 
   class Client {
   public:
     using URI               = uri::URI;
     using TCP               = net::TCP;
     using Host              = net::tcp::Socket;
-    using Request_ptr       = std::unique_ptr<Request>;
-    using Response_ptr      = std::unique_ptr<Response>;
     using ResponseCallback  = delegate<void(Error, Response_ptr)>;
-    const static size_t bufsiz = 4096;
+    const static size_t bufsiz = 2048;
+
+    using Connection_set     = std::vector<Connection>;
+    using Connection_mapset  = std::map<Host, Connection_set>;
 
   private:
     using Connection_ptr    = net::tcp::Connection_ptr;
@@ -87,12 +55,14 @@ namespace http {
 
     void post(URI url, Header_set hfields, std::string data, ResponseCallback cb);
 
+    void send_file(URI url, Header_set hfields, gsl::span<uint8_t> data, ResponseCallback cb);
+
     Request_ptr create_request() const;
 
   private:
     TCP& tcp_;
-    Connection_ptr conn_;
     bool keep_alive_ = false;
+    Connection_mapset conns_;
 
     void resolve(const URI&, ResolveCallback);
 
@@ -103,6 +73,10 @@ namespace http {
     }
 
     void populate_from_url(Request& req, const URI& url);
+
+    Connection& get_connection(const Host host);
+
+    void close(Connection&);
 
   }; // < class Client
 

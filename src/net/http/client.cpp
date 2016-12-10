@@ -20,34 +20,16 @@
 namespace http {
 
   Client::Client(TCP& tcp)
-    : tcp_(tcp), conn_(nullptr)
+    : tcp_(tcp)
   {
   }
 
   void Client::send(Request_ptr req, Host host, ResponseCallback cb)
   {
+    auto& conn = get_connection(host);
+
     printf("Sending Request:\n%s\n", req->to_string().c_str());
-    conn_ = tcp_.connect(host);
-
-    conn_->on_read(bufsiz,
-    [ conn = conn_, cb{std::move(cb)} ] (auto buf, auto len)
-    {
-      printf("Client@onRead:\n%.*s\n", len, (char*) buf.get());
-      if(len == 0) {
-        cb({Error::NO_REPLY}, nullptr);
-        return;
-      }
-      try {
-        auto res = make_response({(char*)buf.get(), len});
-        cb({Error::NONE}, std::move(res));
-      }
-      catch(...)
-      {
-        cb({Error::NO_REPLY}, nullptr);
-      }
-    });
-
-    conn_->write(req->to_string());
+    conn.send(std::move(req), std::move(cb));
   }
 
   void Client::get(URI url, Header_set hfields, ResponseCallback cb)
@@ -131,6 +113,34 @@ namespace http {
     set_connection_header(*req);
 
     return req;
+  }
+
+  Connection& Client::get_connection(const Host host)
+  {
+    // return/create a set for the given host
+    auto& cset = conns_[host];
+
+    // iterate all the connection and return the first free one
+    for(auto& conn : cset)
+    {
+      if(!conn.occupied())
+        return conn;
+    }
+
+    // no non-occupied connections, emplace a new one
+    cset.emplace_back(tcp_.connect(host), Connection::Close_handler{this, &Client::close});
+    return cset.back();
+  }
+
+  void Client::close(Connection& c)
+  {
+    auto& cset = conns_.at(c.peer());
+
+    cset.erase(std::remove_if(cset.begin(), cset.end(),
+    [port = c.local_port()] (const Connection& conn)->bool
+    {
+      return conn.local_port() == port;
+    }));
   }
 
 }
