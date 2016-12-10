@@ -22,18 +22,28 @@ namespace http {
 
 static void configure_settings(http_parser_settings&) noexcept;
 
-static void execute_parser(Request*, http_parser&, http_parser_settings&, const std::string&) noexcept;
+static size_t execute_parser(Request*, http_parser&, http_parser_settings&, const std::string&) noexcept;
 
 ///////////////////////////////////////////////////////////////////////////////
-Request::Request(std::string request, const std::size_t limit)
+Request::Request(std::string request, const std::size_t limit, const bool parse)
   : Message{limit}
   , request_{std::move(request)}
 {
+  if (parse) this->parse();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Request& Request::parse() {
   http_parser          parser;
   http_parser_settings settings;
 
   configure_settings(settings);
-  execute_parser(this, parser, settings, request_);
+
+  if (execute_parser(this, parser, settings, request_) not_eq request_.length()) {
+    throw Request_error{"Invalid request: " + request_};
+  }
+
+  return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,11 +147,17 @@ static void configure_settings(http_parser_settings& settings_) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static void execute_parser(Request* req, http_parser& parser, http_parser_settings& settings,
+static size_t execute_parser(Request* req, http_parser& parser, http_parser_settings& settings,
                            const std::string& data) noexcept {
   http_parser_init(&parser, HTTP_REQUEST);
   parser.data = req;
-  http_parser_execute(&parser, &settings, data.data(), data.size());
+  return http_parser_execute(&parser, &settings, data.data(), data.size());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Request& Request::operator << (const std::string& chunk) {
+  request_.append(chunk);
+  return *this;
 }
 
 } //< namespace http
