@@ -25,8 +25,8 @@ static void configure_settings(http_parser_settings&) noexcept;
 static size_t execute_parser(Response*, http_parser&, http_parser_settings&, const std::string&) noexcept;
 
 ///////////////////////////////////////////////////////////////////////////////
-Response::Response(const Version version, const Code code) noexcept
-  : code_{code}
+Response::Response(const Version version, const status_t status_code) noexcept
+  : code_{status_code}
   , version_{version}
 {}
 
@@ -53,13 +53,13 @@ Response& Response::parse() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Code Response::status_code() const noexcept {
+status_t Response::status_code() const noexcept {
   return code_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Response& Response::set_status_code(const Code code) noexcept {
-  code_ = code;
+Response& Response::set_status_code(const status_t status_code) noexcept {
+  code_ = status_code;
   return *this;
 }
 
