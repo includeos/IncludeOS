@@ -20,24 +20,30 @@
 
 namespace http {
 
+static http_parser_settings settings;
+
 static void configure_settings(http_parser_settings&) noexcept;
 
 static size_t execute_parser(Request*, http_parser&, http_parser_settings&, const std::string&) noexcept;
+
+///////////////////////////////////////////////////////////////////////////////
+Request::Request() { configure_settings(settings); }
 
 ///////////////////////////////////////////////////////////////////////////////
 Request::Request(std::string request, const std::size_t limit, const bool parse)
   : Message{limit}
   , request_{std::move(request)}
 {
+  configure_settings(settings);
+
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Request& Request::parse() {
-  http_parser          parser;
-  http_parser_settings settings;
+  http_parser parser;
 
-  configure_settings(settings);
+  soft_reset();
 
   if (execute_parser(this, parser, settings, request_) not_eq request_.length()) {
     throw Request_error{"Invalid request: " + request_};
@@ -81,10 +87,8 @@ Request& Request::set_version(const Version& version) noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 Request& Request::reset() noexcept {
-  Message::reset();
-  return set_method(GET)
-        .set_uri(URI{"/"})
-        .set_version(Version{1U, 1U});
+  request_.clear();
+  return soft_reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -158,6 +162,14 @@ static size_t execute_parser(Request* req, http_parser& parser, http_parser_sett
 Request& Request::operator << (const std::string& chunk) {
   request_.append(chunk);
   return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Request& Request::soft_reset() noexcept {
+  Message::reset();
+  return set_method(GET)
+        .set_uri(URI{"/"})
+        .set_version(Version{1U, 1U});
 }
 
 } //< namespace http

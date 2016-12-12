@@ -20,6 +20,8 @@
 
 namespace http {
 
+static http_parser_settings settings;
+
 static void configure_settings(http_parser_settings&) noexcept;
 
 static size_t execute_parser(Response*, http_parser&, http_parser_settings&, const std::string&) noexcept;
@@ -28,22 +30,25 @@ static size_t execute_parser(Response*, http_parser&, http_parser_settings&, con
 Response::Response(const Version version, const status_t status_code) noexcept
   : code_{status_code}
   , version_{version}
-{}
+{
+  configure_settings(settings);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 Response::Response(std::string response, const std::size_t limit, const bool parse)
   : Message{limit}
   , response_{std::move(response)}
 {
+  configure_settings(settings);
+
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Response& Response::parse() {
-  http_parser          parser;
-  http_parser_settings settings;
+  http_parser parser;
 
-  configure_settings(settings);
+  soft_reset();
 
   if (execute_parser(this, parser, settings, response_) not_eq response_.length()) {
     throw Response_error{"Invalid response: " + response_};
@@ -76,8 +81,8 @@ Response& Response::set_version(const Version version) noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 Response& Response::reset() noexcept {
-  Message::reset();
-  return set_status_code(OK);
+  response_.clear();
+  return soft_reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,6 +143,12 @@ static size_t execute_parser(Response* res, http_parser& parser, http_parser_set
 Response& Response::operator << (const std::string& chunk) {
   response_.append(chunk);
   return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Response& Response::soft_reset() noexcept {
+  Message::reset();
+  return set_status_code(OK);
 }
 
 } //< namespace http

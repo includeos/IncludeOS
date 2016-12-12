@@ -176,6 +176,14 @@ private:
   ///
   status_t code_;
   Version  version_;
+
+  ///
+  /// Reset the object for reparsing the accumulated response
+  /// information
+  ///
+  /// @return The object that invoked this method
+  ///
+  Response& soft_reset() noexcept;
 }; //< class Response
 
 /**--v----------- Implementation Details -----------v--**/
