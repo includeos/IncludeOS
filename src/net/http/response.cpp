@@ -108,13 +108,13 @@ static void configure_settings(http_parser_settings& settings_) noexcept {
 
   settings_.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
-    res->header().add_field(res->private_field(), {at, length});
+    res->header().set_field(res->private_field(), {at, length});
     return 0;
   };
 
   settings_.on_body = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
-    res->add_chunk({at, length});
+    res->add_body({at, length});
     return 0;
   };
 
