@@ -28,7 +28,8 @@ namespace http {
     enum Code {
       NONE,
       RESOLVE_HOST,
-      NO_REPLY
+      NO_REPLY,
+      INVALID
     };
 
     Error(Code code = NONE)

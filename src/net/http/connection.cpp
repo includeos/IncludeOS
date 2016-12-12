@@ -44,7 +44,6 @@ namespace http {
   void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize)
   {
     req_ = std::move(req);
-    res_ = std::make_unique<Response>();
     on_response_ = std::move(on_res);
 
     send_request(bufsize);
@@ -61,23 +60,55 @@ namespace http {
 
   void Connection::recv_response(buffer_t buf, size_t len)
   {
-    Expects(res_ != nullptr);
-    *res_ << std::string{(char*)buf.get(), len};
-    res_->parse();
+    //printf("Data:\n%.*s\n", len, buf.get());
+    const auto data = std::string{(char*)buf.get(), len};
+    // create response if not exist
+    if(res_ == nullptr)
+    {
+      res_ = make_response(data); // this also parses
+    }
+    // if there already is a response
+    else
+    {
+      // add chunks of data and reparse everything..
+      *res_ << data;
+      res_->parse();
+    }
 
     const auto& header = res_->header();
     // TODO: Temporary, not good enough
     // if(res_->is_complete())
-    if(!header.is_empty() && std::stoi(header.value(header::Content_Length).to_string()) == res_->body().size())
+    // Assume we want some headers
+    if(!header.is_empty())
+    {
+      if(header.has_field(header::Content_Length))
+      {
+        try
+        {
+          const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+
+          // risk buffering forever if no timeout
+          if(conlen == res_->body().size())
+            end_response();
+        }
+        catch(...)
+        { end_response({Error::INVALID}); }
+      }
+      else
+        end_response();
+    }
+    else if(req_->method() == HEAD)
+    {
       end_response();
+    }
   }
 
-  void Connection::end_response()
+  void Connection::end_response(Error err)
   {
     // move response to a copy in case of callback result in new request
     auto callback{std::move(on_response_)};
 
-    callback({Error::NONE}, std::move(res_));
+    callback(err, std::move(res_));
 
     // user callback may override this
     if(keep_alive_)

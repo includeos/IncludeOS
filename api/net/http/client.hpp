@@ -32,7 +32,6 @@ namespace http {
 
   class Client {
   public:
-    using URI               = uri::URI;
     using TCP               = net::TCP;
     using Host              = net::tcp::Socket;
     using ResponseCallback  = delegate<void(Error, Response_ptr)>;
@@ -52,6 +51,8 @@ namespace http {
     void send(Request_ptr, Host host, ResponseCallback);
 
     void get(URI url, Header_set hfields, ResponseCallback cb);
+    void get(std::string url, Header_set hfields, ResponseCallback cb)
+    { get(URI{url}, std::move(hfields), std::move(cb)); }
 
     void post(URI url, Header_set hfields, std::string data, ResponseCallback cb);
 

@@ -35,12 +35,12 @@ namespace http {
   void Client::get(URI url, Header_set hfields, ResponseCallback cb)
   {
     resolve(url,
-    [ this, url, cb{std::move(cb)}, hfields{std::move(hfields)} ] (auto ip)
+    [ this, url{std::move(url)}, cb{std::move(cb)}, hfields{std::move(hfields)} ] (auto ip)
     {
       // Host resolved
       if(ip != 0)
       {
-        const uint16_t port = (url.port() != 0) ? url.port() : 80;
+        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
         auto req = create_request();
 
@@ -89,7 +89,7 @@ namespace http {
   void Client::populate_from_url(Request& req, const URI& url)
   {
     // Set uri path
-    req.set_uri( URI{url.path()} );
+    req.set_uri( URI{url.path().to_string()} );
     // Set Host: url.host
     req.header().set_field(header::Host, url.host().to_string());
   }

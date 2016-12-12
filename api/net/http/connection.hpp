@@ -45,7 +45,7 @@ namespace http {
     explicit Connection(TCP&, Peer, Close_handler);
 
     bool occupied() const
-    { return res_ != nullptr; }
+    { return on_response_ != nullptr; }
 
     void send(Request_ptr, Response_handler, const size_t bufsize = 2048);
 
@@ -71,7 +71,7 @@ namespace http {
 
     void recv_response(buffer_t buf, size_t len);
 
-    void end_response();
+    void end_response(Error err = Error::NONE);
 
     void close()
     { on_close_(*this); }
