@@ -23,7 +23,7 @@ set(SOURCES
   service.cpp
   )
 
-set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
+#set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
 
 set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
 set(TARFILE tar_example.tar)
@@ -51,13 +51,3 @@ set(DRIVERS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
-
-# For now in service.cmake:
-#add_custom_command(
-  #OUTPUT tar_example.tar
-  ##OUTPUT tarfile.o
-  #COMMAND tar cf ${CMAKE_SOURCE_DIR}/tar_example.tar ${CMAKE_SOURCE_DIR}/tar_example
-  ##COMMAND cp ${TAR_RELPATH} input.bin
-  ##COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
-  ##COMMAND rm input.bin
-#)
