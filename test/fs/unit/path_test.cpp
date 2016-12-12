@@ -122,14 +122,14 @@ CASE("Paths can return their parent")
 CASE("pop_front returns path with first path component removed")
 {
   fs::Path path {"/etc/private/logs"};
-  auto front {path.pop_front()};
+  auto front = path.pop_front();
   EXPECT(front == "/private/logs"s);
 }
 
 CASE("pop_back returns path with last path component removed")
 {
   fs::Path path {"/etc/private/logs"};
-  auto back {path.pop_back()};
+  auto back = path.pop_back();
   EXPECT(back == "/etc/private");
 }
 
