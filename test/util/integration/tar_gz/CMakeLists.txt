@@ -10,10 +10,10 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cma
 project(tar_service)
 
 # Human-readable name of your service
-set(SERVICE_NAME "Tar Test Service")
+set(SERVICE_NAME "Tar.gz Test Service")
 
 # Name of your service binary
-set(BINARY       "test_tar")
+set(BINARY       "test_tar_gz")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
@@ -23,8 +23,10 @@ set(SOURCES
   service.cpp
   )
 
-set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
-set(TARFILE tar_example.tar)
+set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
+
+set(CREATE_TAR_GZ ${CMAKE_SOURCE_DIR}/tar_example)
+set(TARFILE tar_example.tar.gz)
 
 #
 # Service CMake options
