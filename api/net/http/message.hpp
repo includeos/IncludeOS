@@ -25,13 +25,16 @@
 
 namespace http {
 
+///
+/// This is the base class of an HTTP message which contain
+/// the headers and optional body
+///
 class Message {
 private:
   ///
   /// Internal class type aliases
   ///
   using Message_body   = std::string;
-  using Content_length = std::string;
 public:
   ///
   /// Default constructor
@@ -163,9 +166,17 @@ private:
   ///
   Header                         header_fields_;
   Message_body                   message_body_;
-  Content_length                 content_length_;
   std::experimental::string_view field_;
 }; //< class Message
+
+/**--v----------- Helper Functions -----------v--**/
+
+///
+/// Add a set of headers to a message
+///
+Message& operator << (Message& res, const Header_set& headers);
+
+/**--^----------- Helper Functions -----------^--**/
 
 } //< namespace http
 

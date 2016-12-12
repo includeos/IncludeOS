@@ -35,7 +35,7 @@ namespace http {
 ///
 /// By default it is limited to 25 fields
 /// but the amount can be specified by using the
-/// appropriate constructor and provided method.
+/// appropriate constructor
 ///
 class Header {
 private:

@@ -64,11 +64,11 @@ namespace http {
     }
 
     ///
-    /// Get a code mapping from an HTTP method string
+    /// Get a code mapping from an HTTP method string representation
     ///
     /// @param method The HTTP method code
     ///
-    /// @return The code mapped to the method string
+    /// @return The code mapped to the method string representation
     ///
     template<typename = void>
     Method code(const std::experimental::string_view method) noexcept {
@@ -90,11 +90,19 @@ namespace http {
       return (it not_eq code_map.cend()) ? it->second : INVALID;
     }
 
+    ///
+    /// Test is header field {Content-Length} is allowed based on the
+    /// HTTP method
+    ///
     template<typename = void>
     inline bool is_content_length_allowed(const Method method) noexcept {
       return (method == POST) or (method == PUT);
     }
 
+    ///
+    /// Test is header field {Content-Length} is required based on the
+    /// HTTP method
+    ///
     template<typename = void>
     inline bool is_content_length_required(const Method method) noexcept {
       return (method == POST) or (method == PUT);
