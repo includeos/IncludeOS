@@ -157,6 +157,46 @@ const lest::test specification[] =
       res = close(fd);
       EXPECT(res == -1);
     }
+  },
+  {
+    CASE("file descriptors are independent")
+    {
+      // open two file descriptors for the same file
+      int fd1 = open("/mnt/disk/file3", O_RDONLY);
+      int fd2 = open("/mnt/disk/file3", O_RDONLY);
+      EXPECT(fd1 != -1);
+      EXPECT(fd2 != -1);
+      // seek to different positions
+      off_t offset1 = lseek(fd1, 2, SEEK_SET);
+      off_t offset2 = lseek(fd2, 4, SEEK_SET);
+      EXPECT(offset1 != offset2);
+
+      char* buf1 = (char*) malloc(5);
+      memset(buf1, 0, 5);
+      char* buf2 = (char*) malloc(5);
+      memset(buf2, 0, 5);
+      // read 4 bytes from each file
+      int bytes1 = read(fd1, buf1, 4);
+      int bytes2 = read(fd2, buf2, 4);
+      // verify that data read was different
+      int cmp = strcmp(buf1, buf2);
+      EXPECT(cmp != 0);
+
+      // close one FD, lseek/read fails
+      int res = close(fd2);
+      EXPECT(res != -1);
+      offset2 = lseek(fd2, 0, SEEK_SET);
+      EXPECT(offset2 == -1);
+      bytes2 = read(fd2, buf2, 4);
+      EXPECT(bytes2 == -1);
+
+      // can still read from file using the other FD
+      bytes1 = read(fd1, buf1, 4);
+      EXPECT(bytes1 != -1);
+      EXPECT(bytes1 == 4);
+      res = close(fd1);
+      EXPECT(res != -1);
+    }
   }
 };
 
