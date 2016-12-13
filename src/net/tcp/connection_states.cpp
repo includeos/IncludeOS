@@ -922,10 +922,9 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
         packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
         tcp.transmit(std::move(packet));
       }
-      // State is now ESTABLISHED.
-      // Experimental, also makes unessecary process.
-      //in->clear_flag(SYN);
-      //tcp.state().handle(tcp, in);
+
+      if(tcp.has_doable_job())
+        tcp.writeq_push();
 
       // 7. process segment text
       if(in->has_tcp_data()) {

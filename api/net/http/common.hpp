@@ -23,18 +23,22 @@
 #include <uri>
 #include <utility>
 #include <vector>
+#include <delegate>
 
 namespace http {
 
 using URI = uri::URI;
 
-using Header_set = std::vector<std::pair<std::experimental::string_view, std::string>>;
+using Header_set = std::vector<std::pair<std::string, std::string>>;
 
 class Request;
 using Request_ptr = std::unique_ptr<Request>;
 
 class Response;
 using Response_ptr = std::unique_ptr<Response>;
+
+class Error;
+using Response_handler  = delegate<void(Error, Response_ptr)>;
 
 } //< namespace http
 

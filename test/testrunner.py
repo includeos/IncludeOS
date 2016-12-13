@@ -48,7 +48,10 @@ def print_skipped(tests):
     for test in tests:
         if test.skip_:
             print pretty.WARNING("* Skipping " + test.name_)
-            print "  Reason: {0:40}".format(test.skip_reason_)
+            if "validate_test" in test.skip_reason_:
+                validate_test.validate_path(test.path_, verb = True)
+            else:
+                print "  Reason: {0:40}".format(test.skip_reason_)
 
 
 class Test:
@@ -385,7 +388,6 @@ def main():
         types_to_run = test_types
     stress = stress_test() if "stress" in types_to_run else 0
     misc = misc_working() if "misc" in types_to_run else 0
-    unit = unit_test() if "unit" in types_to_run else 0
     status = max(integration, stress, misc)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
