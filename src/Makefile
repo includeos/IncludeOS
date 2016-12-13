@@ -37,7 +37,7 @@ INC_NEWLIB=$(INSTALL)/newlib/include
 # Compiler/Linker
 ###################################################
 
-CC  = $(shell command -v clang-3.8 || command -v clang-3.6)
+CC  = $(shell command -v clang-3.8 || command -v clang-3.6 || command -v clang)
 CPP = $(shell command -v clang++-3.8 || command -v clang++-3.6 || command -v clang++)
 # Set defaults if not defined
 ifndef AR_INC
