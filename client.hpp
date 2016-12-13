@@ -72,28 +72,24 @@ namespace mender {
 
     std::string data{auth.data.begin(), auth.data.end()};
 
-    auto req = httpclient_->create_request();
-    req->set_method(POST);
-    req->set_uri(URI{"/api/devices/0.1/authentication/auth_requests"});
-
-    auto& header = req->header();
-    header.add_field(header::Content_Type, "application/json");
-    header.add_field(header::Authorization, "Bearer " + std::string{auth.token.begin(), auth.token.end()} );
-    header.add_field("X-MEN-Signature", std::string{Botan::base64_encode(auth.signature)});
-    req->add_body(std::string{data.begin(), data.end()});
-
     printf("Signature:\n%s\n", Botan::base64_encode(auth.signature).c_str());
 
-    httpclient_->send(std::move(req), cached_,
-      [](auto err, http::Response_ptr res)
-      {
-        if(!res)
-          printf("No reply.\n");
-        else
-          printf("Reply:\n%s", res->to_string().c_str());
+    // Setup headers
+    const Header_set headers{
+      { header::Content_Type, "application/json" },
+      { header::Accept, "*/*" },
+      { "X-MEN-Signature", Botan::base64_encode(auth.signature) }
+    };
 
-      }
-    );
+    // Make post
+    httpclient_->post(cached_, "/api/devices/0.1/authentication/auth_requests", headers, {data.begin(), data.end()},
+    [](auto err, http::Response_ptr res)
+    {
+      if(!res)
+        printf("No reply.\n");
+      else
+        printf("Reply:\n%s", res->to_string().c_str());
+    });
   }
 
   void Client::send(std::unique_ptr<http::Request> req, std::string endpoint)

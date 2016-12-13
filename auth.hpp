@@ -34,9 +34,10 @@ namespace mender {
   inline byte_seq Auth_request_data::serialized_bytes() const
   {
     nlohmann::json j;
-    j["id_data"]  = id_data;
-    j["pubkey"]   = pubkey;
-    j["seq_no"]   = seq_no;
+    j["tenant_token"] = std::string{tenant_token.begin(), tenant_token.end()};
+    j["seq_no"]       = seq_no;
+    j["id_data"]      = id_data;
+    j["pubkey"]       = pubkey;
 
     auto str = j.dump();
     //printf("%s\n", str.c_str());

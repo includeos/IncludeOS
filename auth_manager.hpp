@@ -40,7 +40,8 @@ namespace mender {
   Auth_manager::Auth_manager(Keystore& ks, Dev_id id)
     : keystore_(ks), id_data_(std::move(id))
   {
-
+    std::string tkn{"dummy"};
+    tenant_token_ = Auth_token{tkn.begin(), tkn.end()};
   }
 
   Auth_request Auth_manager::make_auth_request() const
