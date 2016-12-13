@@ -7,7 +7,7 @@ import time
 import re
 import linecache
 import traceback
-import validate_test
+import validate_vm
 import signal
 
 from prettify import color
@@ -24,28 +24,27 @@ if "INCLUDEOS_PREFIX" not in os.environ:
 else:
     INCLUDEOS_HOME = os.environ['INCLUDEOS_PREFIX']
 
+package_path = os.path.dirname(os.path.realpath(__file__))
+
 # Exit codes used by this program
 exit_codes = {"SUCCESS" : 0,
               "PROGRAM_FAILURE" : 1,
               "TIMEOUT" : 66,
               "VM_FAIL" : 67,
               "OUTSIDE_FAIL" : 68,
-              "BUILD_FAIL" : 69 }
+              "BUILD_FAIL" : 69,
+              "ABORT" : 70 }
+
+def get_exit_code_name (exit_code):
+    for name, code in exit_codes.iteritems():
+        if code == exit_code: return name
+    return "UNKNOWN"
 
 # We want to catch the exceptions from callbacks, but still tell the test writer what went wrong
 def print_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     traceback.print_exception(exc_type, exc_value, exc_traceback,
                               limit=10, file=sys.stdout)
-
-# Catch
-def handler(signum, frame):
-    print color.WARNING("Process interrupted")
-    thread.interrupt_main()
-    thread.exit()
-
-signal.signal(signal.SIGINT, handler)
-
 
 
 def abstract():
@@ -107,301 +106,334 @@ def start_process(popen_param_list):
 # Qemu Hypervisor interface
 class qemu(hypervisor):
 
-  def name(self):
-    return "Qemu"
+    def __init__(self, config):
+        super(qemu, self).__init__(config)
+        self._proc = None
+        self._stopped = False
 
-  def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
-    return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
-  def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
-    device_names = {"virtio" : "virtio-net"}
-    qemu_ifup = INCLUDEOS_HOME+"/includeos/scripts/qemu-ifup"
-    return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
-            "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
+    def name(self):
+        return "Qemu"
 
-  def kvm_present(self):
-    command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
-    try:
-      subprocess.check_output(command, shell = True)
-      print color.INFO("<qemu>"),"KVM ON"
-      return True
+    def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
+        return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
-    except Exception as err:
-      print color.INFO("<qemu>"),"KVM OFF"
-      return False
+    def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
+        device_names = {"virtio" : "virtio-net"}
+        qemu_ifup = INCLUDEOS_HOME+"/includeos/scripts/qemu-ifup"
+        return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
+                "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
 
-  def boot(self, multiboot, kernel_args):
-    self._nametag = "<" + type(self).__name__ + ">"
-    print color.INFO(self._nametag), "booting", self._config["image"]
+    def kvm_present(self):
+        command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
+        try:
+            subprocess.check_output(command, shell = True)
+            print color.INFO("<qemu>"),"KVM ON"
+            return True
 
-    # multiboot
-    if multiboot:
-      print color.INFO(self._nametag), "Booting with multiboot (-kernel args)"
-      kernel_args = ["-kernel", self._config["image"].split(".")[0], "-append", kernel_args]
-    else:
-      kernel_args = []
+        except Exception as err:
+            print color.INFO("<qemu>"),"KVM OFF"
+            return False
 
-    disk_args = self.drive_arg(self._config["image"], "ide")
-    if "drives" in self._config:
-      for disk in self._config["drives"]:
-        disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
+    def boot(self, multiboot, kernel_args):
+        self._nametag = "<" + type(self).__name__ + ">"
+        self._stopped = False
+        print color.INFO(self._nametag), "booting", self._config["image"]
 
-    net_args = []
-    i = 0
-    if "net" in self._config:
-      for net in self._config["net"]:
-        net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), net["mac"])
-        i+=1
+        # multiboot
+        if multiboot:
+            print color.INFO(self._nametag), "Booting with multiboot (-kernel args)"
+            kernel_args = ["-kernel", self._config["image"].split(".")[0], "-append", kernel_args]
+        else:
+            kernel_args = []
 
-    mem_arg = []
-    if "mem" in self._config:
-      mem_arg = ["-m",str(self._config["mem"])]
+        disk_args = self.drive_arg(self._config["image"], "ide")
+        if "drives" in self._config:
+            for disk in self._config["drives"]:
+                disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
-    command = ["qemu-system-x86_64"]
-    if self.kvm_present(): command.append("--enable-kvm")
+        net_args = []
+        i = 0
+        if "net" in self._config:
+            for net in self._config["net"]:
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), net["mac"])
+                i+=1
 
-    command += kernel_args
+        mem_arg = []
+        if "mem" in self._config:
+            mem_arg = ["-m",str(self._config["mem"])]
 
-    command += ["-nographic" ] + disk_args + net_args + mem_arg
+        command = ["qemu-system-x86_64"]
+        if self.kvm_present(): command.append("--enable-kvm")
 
-    print color.INFO(self._nametag), "command:"
-    print color.DATA(command.__str__())
+        command += kernel_args
 
-    try:
-        self._proc = start_process(command)
-    except Exception as e:
-        print color.INFO(self._nametag),"Starting subprocess threw exception:",e
-        self.exit(exit_codes["OUTSIDE_FAIL"], "Could not start subprocess")
+        command += ["-nographic" ] + disk_args + net_args + mem_arg
 
-  def stop(self):
-    if hasattr(self, "_proc") and self._proc.poll() == None :
-      print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
-      # Kill
-      subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
-      # Wait for termination (avoids the need to reset the terminal)
-      self._proc.wait()
-    return self
+        print color.INFO(self._nametag), "command:"
+        print color.DATA(command.__str__())
 
-  def wait(self):
-    print color.INFO(nametag), "Waiting for process to terminate"
-    self._proc.wait()
+        try:
+            self._proc = start_process(command)
+        except Exception as e:
+            print color.INFO(self._nametag),"Starting subprocess threw exception:",e
+            self.exit(exit_codes["OUTSIDE_FAIL"], "Could not start subprocess")
 
-  def readline(self):
-    if self._proc.poll():
-      raise Exception("Process completed")
-    return self._proc.stdout.readline()
+    def stop(self):
+        if self._stopped:
+            self.wait()
+            return self
+        else:
+            self._stopped = True
 
-  def writeline(self, line):
-    if self._proc.poll():
-      raise Exception("Process completed")
-    return self._proc.stdin.write(line + "\n")
+        if self._proc and self._proc.poll() == None :
+            print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
+            # Kill
+            subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
+            # Wait for termination (avoids the need to reset the terminal)
+            self.wait()
+        return self
 
-  def poll(self):
-    return self._proc.poll()
+    def wait(self):
+        if (self._proc): self._proc.wait()
+        return self
+
+    def readline(self):
+        if self._proc.poll():
+            raise Exception("Process completed")
+        return self._proc.stdout.readline()
+
+    def writeline(self, line):
+        if self._proc.poll():
+            raise Exception("Process completed")
+        return self._proc.stdin.write(line + "\n")
+
+    def poll(self):
+        return self._proc.poll()
 
 # VM class
 class vm:
 
-  def __init__(self, config, hyper = qemu):
-    self._exit_status = 0
-    self._config = config
-    self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
-    self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], nametag + self._hyper.readline())
-    self._on_timeout = lambda : self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
-    self._on_output = {
-      "PANIC" : self._on_panic,
-      "SUCCESS" : self._on_success }
-    assert(issubclass(hyper, hypervisor))
-    self._hyper  = hyper(config)
-    self._timer = None
-    self._on_exit_success = lambda : None
-    self._on_exit = lambda : None
-    self._root = os.getcwd()
-  def exit(self, status, msg):
-    self._exit_status = status
-    self.stop()
-    print
-    print color.INFO(nametag),"Calling on_exit"
+    def __init__(self, config, hyper = qemu):
+        self._exit_status = 0
+        self._config = config
+        self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
+        self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], nametag + self._hyper.readline())
+        self._on_timeout = self.timeout
+        self._on_output = {
+            "PANIC" : self._on_panic,
+            "SUCCESS" : self._on_success }
+        assert(issubclass(hyper, hypervisor))
+        self._hyper  = hyper(config)
+        self._timer = None
+        self._on_exit_success = lambda : None
+        self._on_exit = lambda : None
+        self._root = os.getcwd()
 
-    # Change back to test source
-    os.chdir(self._root)
-    self._on_exit()
-    if status == 0:
-      # Print success message and return to caller
-      print color.SUCCESS(msg)
-      print color.INFO(nametag),"Calling on_exit_success"
-      return self._on_exit_success()
+    def exit(self, status, msg):
+        self._exit_status = status
+        self.stop()
+        print color.INFO(nametag),"Exited with status", self._exit_status, "(",get_exit_code_name(self._exit_status),")"
+        print color.INFO(nametag),"Calling on_exit"
+        # Change back to test source
+        os.chdir(self._root)
+        self._on_exit()
+        if status == 0:
+            # Print success message and return to caller
+            print color.SUCCESS(msg)
+            print color.INFO(nametag),"Calling on_exit_success"
+            return self._on_exit_success()
 
-    # Print fail message and exit with appropriate code
-    print color.FAIL(msg)
-    sys.exit(status)
+        # Print fail message and exit with appropriate code
+        print color.FAIL(msg)
+        sys.exit(status)
 
-  def on_output(self, output, callback):
-    self._on_output[ output ] = callback
+    # Default timeout event
+    def timeout(self):
+        print color.INFO("timeout"), "VM timed out"
 
-  def on_success(self, callback):
-    self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
+        # Note: we have to stop the VM since the main thread is blocking on vm.readline
+        #self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
+        self._exit_status = exit_codes["TIMEOUT"]
+        print color.INFO("timeout"), "stopping subprocess"
+        self._hyper.stop().wait()
+        print color.INFO("timeout"), "Timer thread finished"
 
-  def on_panic(self, callback):
-    self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
+    def on_output(self, output, callback):
+        self._on_output[ output ] = callback
 
-  def on_timeout(self, callback):
-    self._on_timeout = callback
+    def on_success(self, callback):
+        self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
 
-  def on_exit_success(self, callback):
-    self._on_exit_success = callback
+    def on_panic(self, callback):
+        self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
 
-  def on_exit(self, callback):
-    self._on_exit = callback
+    def on_timeout(self, callback):
+        self._on_timeout = callback
 
-  def readline(self):
-    return self._hyper.readline()
+    def on_exit_success(self, callback):
+        self._on_exit_success = callback
 
-  def writeline(self, line):
-    return self._hyper.writeline(line)
+    def on_exit(self, callback):
+        self._on_exit = callback
 
-  def make(self, params = []):
-    print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
-    make = ["make"]
-    make.extend(params)
-    res = subprocess.check_output(make)
-    print color.SUBPROC(res)
-    return self
+    def readline(self):
+        return self._hyper.readline()
 
-  def clean(self):
-    print color.INFO(nametag), "Cleaning cmake build folder"
-    subprocess.call(["rm","-rf","build"])
+    def writeline(self, line):
+        return self._hyper.writeline(line)
 
-  def cmake(self, args = []):
-    print color.INFO(nametag), "Building with cmake (%s)" % args
-    # install dir:
-    INSTDIR = os.getcwd()
-
-    # create build directory
-    try:
-        os.makedirs("build")
-    except OSError as err:
-        if err.errno!=17: # Errno 17: File exists
-            self.exit(exit_codes["BUILD_FAIL"], "could not create build directory")
-
-    # go into build directory
-    # NOTE: The test gets run from here
-    os.chdir("build")
-
-    # build with prefix = original path
-    cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
-    cmake.extend(args)
-
-    try:
-        res = subprocess.check_output(cmake)
+    def make(self, params = []):
+        print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
+        make = ["make"]
+        make.extend(params)
+        res = subprocess.check_output(make)
         print color.SUBPROC(res)
+        return self
 
-        # if everything went well, build with make and install
-        return self.make()
-    except Exception as e:
-        print "Excetption while building: ", e
-        self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
+    def clean(self):
+        print color.INFO(nametag), "Cleaning cmake build folder"
+        subprocess.call(["rm","-rf","build"])
 
-  def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
+    def cmake(self, args = []):
+        print color.INFO(nametag), "Building with cmake (%s)" % args
+        # install dir:
+        INSTDIR = os.getcwd()
 
-    # Check for sudo access, needed for tap network devices and the KVM module
-    if os.getuid() is not 0:
-        print color.FAIL("Call the script with sudo access")
-        sys.exit(1)
+        # create build directory
+        try:
+            os.makedirs("build")
+        except OSError as err:
+            if err.errno!=17: # Errno 17: File exists
+                self.exit(exit_codes["BUILD_FAIL"], "could not create build directory")
 
-    # Start the timeout thread
-    if (timeout):
-      print color.INFO(nametag),"setting timeout to",timeout,"seconds"
-      self._timer = threading.Timer(timeout, self._on_timeout)
-      self._timer.start()
+        # go into build directory
+        # NOTE: The test gets run from here
+        os.chdir("build")
 
-    # Boot via hypervisor
-    try:
-      self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
-    except Exception as err:
-      print color.WARNING("Exception raised while booting ")
-      if (timeout): self._timer.cancel()
-      self.exit(exit_codes["OUTSIDE_FAIL"], "could not boot vm")
+        # build with prefix = original path
+        cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
+        cmake.extend(args)
 
-    # Start analyzing output
-    while self._hyper.poll() == None and not self._exit_status:
-      line = self._hyper.readline()
-      if line:
-          print color.SUBPROC("<VM> "+line.rstrip())
-      else:
-          print color.INFO(nametag), "VM output reached EOF"
-          # Look for event-triggers
-      for pattern, func in self._on_output.iteritems():
-        if re.search(pattern, line):
-          try:
-            res = func(line)
-          except Exception as err:
-            print color.WARNING("Exception raised in event callback: ")
-            print_exception()
-            res = False
+        try:
+            res = subprocess.check_output(cmake)
+            print color.SUBPROC(res)
+
+            # if everything went well, build with make and install
+            return self.make()
+        except Exception as e:
+            print "Excetption while building: ", e
+            self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
+
+    def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
+
+        # Start the timeout thread
+        if (timeout):
+            print color.INFO(nametag),"setting timeout to",timeout,"seconds"
+            self._timer = threading.Timer(timeout, self._on_timeout)
+            self._timer.start()
+
+        # Boot via hypervisor
+        try:
+            self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
+        except Exception as err:
+            print color.WARNING("Exception raised while booting ")
+            if (timeout): self._timer.cancel()
+            self.exit(exit_codes["OUTSIDE_FAIL"], "could not boot vm")
+
+        # Start analyzing output
+        while self._hyper.poll() == None and not self._exit_status:
+
+            try:
+                line = self._hyper.readline()
+            except Exception as e:
+                print color.WARNING("Exception thrown while waiting for vm output")
+                break
+            if line:
+                print color.SUBPROC("<VM> "+line.rstrip())
+            else:
+                print color.INFO(nametag), "VM output reached EOF"
+                # Look for event-triggers
+            for pattern, func in self._on_output.iteritems():
+                if re.search(pattern, line):
+                    try:
+                        res = func(line)
+                    except Exception as err:
+                        print color.WARNING("Exception raised in event callback: ")
+                        print_exception()
+                        res = False
+                        self.stop()
+
+                    #NOTE: It can be 'None' without problem
+                    if res == False:
+                        self._exit_status = exit_codes["OUTSIDE_FAIL"]
+                        self.exit(self._exit_status, " VM-external test failed")
+
+        # Now we either have an exit status from timer thread, or an exit status
+        # from the subprocess, or the VM was powered off by the external test.
+        # If the process didn't exit we need to stop it.
+        if (self.poll() == None):
             self.stop()
 
-          #NOTE: It can be 'None' without problem
-          if res == False:
-            self._exit_status = exit_codes["OUTSIDE_FAIL"]
-            self.exit(self._exit_status, " VM-external test failed")
-
-    # Now we either have an exit status from timer thread, or an exit status
-    # from the subprocess, or the VM was powered off by the external test.
-    # If the process didn't exit we need to stop it.
-    if (self.poll() == None):
-      self.stop()
-
-    self.wait()
-
-    if self._exit_status:
-      print color.INFO(nametag)," Done running VM. Exit status: ", self._exit_status
-      sys.exit(self._exit_status)
-    else:
-      print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
-      return self
+        if self._exit_status:
+            self.exit(self._exit_status, get_exit_code_name(self._exit_status))
+        else:
+            print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
+            return self
 
 
-  def stop(self):
-    # Check for sudo access, needed for qemu commands
-    if os.getuid() is not 0:
-        print color.FAIL("Call the script with sudo access")
-        sys.exit(1)
+    def stop(self):
+        self._hyper.stop().wait()
+        if hasattr(self, "_timer") and self._timer:
+            self._timer.cancel()
+        return self
 
-    print color.INFO(nametag),"Stopping VM..."
-    self._hyper.stop().wait()
-    if hasattr(self, "_timer") and self._timer:
-      self._timer.cancel()
-    return self
+    def wait(self):
+        if hasattr(self, "_timer") and self._timer:
+            self._timer.join()
+        self._hyper.wait()
+        return self._exit_status
 
-  def wait(self):
-    if hasattr(self, "_timer") and self._timer:
-      self._timer.join()
-    self._hyper.wait()
-    return self._exit_status
+    def poll(self):
+        return self._hyper.poll()
 
-  def poll(self):
-    return self._hyper.poll()
+print color.HEADER("IncludeOS vmrunner loading VM configs")
 
-print color.HEADER("IncludeOS vmrunner initializing tests")
-print color.INFO(nametag), "Validating test service"
-validate_test.load_schema(os.environ.get("INCLUDEOS_SRC", os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0]) + "/test/vm.schema.json")
-validate_test.has_required_stuff(".")
+schema_path = package_path + "/vm.schema.json"
+print color.INFO(nametag), "Validating JSON according to schema ",schema_path
+validate_vm.load_schema(schema_path)
+validate_vm.has_required_stuff(".")
 
 default_spec = {"image" : "test.img"}
 
 # Provide a list of VM's with validated specs
 vms = []
 
-if validate_test.valid_vms:
-  print
-  print color.INFO(nametag), "Loaded VM specification(s) from JSON"
-  for spec in validate_test.valid_vms:
-    print color.INFO(nametag), "Found VM spec: "
-    print color.DATA(spec.__str__())
-    vms.append(vm(spec))
+if validate_vm.valid_vms:
+    print
+    print color.INFO(nametag), "Loaded VM specification(s) from JSON"
+    for spec in validate_vm.valid_vms:
+        print color.INFO(nametag), "Found VM spec: "
+        print color.DATA(spec.__str__())
+        vms.append(vm(spec))
 
 else:
-  print
-  print color.WARNING(nametag), "No VM specification JSON found, trying default: ", default_spec
-  vms.append(vm(default_spec))
+    print
+    print color.WARNING(nametag), "No VM specification JSON found, trying default: ", default_spec
+    vms.append(vm(default_spec))
+
+
+
+# Handler for SIGINT
+def handler(signum, frame):
+    print
+    print color.WARNING("Process interrupted - stopping vms")
+    for vm in vms:
+        try:
+            vm.exit(exit_codes["ABORT"], "Process terminated by user")
+        except Exception as e:
+            print color.WARNING("Forced shutdown caused exception: "), e
+            raise e
+
+
+signal.signal(signal.SIGINT, handler)
