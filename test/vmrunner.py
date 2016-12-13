@@ -183,7 +183,7 @@ class qemu(hypervisor):
     return self
 
   def wait(self):
-    print color.INFO(self._nametag), "Waiting for process to terminate"
+    print color.INFO(nametag), "Waiting for process to terminate"
     self._proc.wait()
 
   def readline(self):
