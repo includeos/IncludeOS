@@ -39,10 +39,10 @@ namespace
 
   constexpr auto get_feature_info(Feature f)
   {
-    using Register::EAX;
-    using Register::EBX;
-    using Register::ECX;
-    using Register::EDX;
+    constexpr auto EAX = Register::EAX;
+    constexpr auto EBX = Register::EBX;
+    constexpr auto ECX = Register::ECX;
+    constexpr auto EDX = Register::EDX;
 
     // Use switch-case so that the we get compiler warnings if
     // we forget to add information for features that we have declared
