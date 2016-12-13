@@ -17,6 +17,7 @@
 
 #include <net/http/connection.hpp>
 #include <gsl/gsl_assert>
+#include <debug>
 
 namespace http {
 
@@ -25,9 +26,10 @@ namespace http {
       req_{nullptr},
       res_{nullptr},
       on_close_{std::move(on_close)},
-      on_response_{},
+      on_response_{nullptr},
       keep_alive_{true}
   {
+    debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
     // setup close event
     tcpconn_->on_close({this, &Connection::close});
 
@@ -60,19 +62,38 @@ namespace http {
 
   void Connection::recv_response(buffer_t buf, size_t len)
   {
-    //printf("Data:\n%.*s\n", len, buf.get());
+    if(len == 0) {
+      end_response({Error::NO_REPLY});
+      return;
+    }
+
     const auto data = std::string{(char*)buf.get(), len};
+
     // create response if not exist
     if(res_ == nullptr)
     {
-      res_ = make_response(data); // this also parses
+      try {
+        res_ = make_response(data); // this also parses
+      }
+      catch(...)
+      {
+        end_response({Error::INVALID});
+        return;
+      }
     }
     // if there already is a response
     else
     {
       // add chunks of data and reparse everything..
       *res_ << data;
-      res_->parse();
+      try {
+        res_->parse();
+      }
+      catch(...)
+      {
+        end_response({Error::INVALID});
+        return;
+      }
     }
 
     const auto& header = res_->header();
@@ -86,10 +107,13 @@ namespace http {
         try
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
-
+          debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
+            req_->uri().to_string().c_str(), data.size(), conlen, res_->body().size());
           // risk buffering forever if no timeout
           if(conlen == res_->body().size())
+          {
             end_response();
+          }
         }
         catch(...)
         { end_response({Error::INVALID}); }
@@ -106,12 +130,13 @@ namespace http {
   void Connection::end_response(Error err)
   {
     // move response to a copy in case of callback result in new request
+    Ensures(on_response_);
     auto callback{std::move(on_response_)};
 
     callback(err, std::move(res_));
 
     // user callback may override this
-    if(keep_alive_)
+    if(!keep_alive_)
       tcpconn_->close();
   }
 
