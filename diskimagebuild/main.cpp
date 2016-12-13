@@ -37,7 +37,10 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
   }
 
+  // print filesystem contents recursively
   fsys.print();
+  // write to disk image file
+  fsys.write("disk.fat");
 
   return EXIT_SUCCESS;
 }

@@ -1,6 +1,5 @@
 #include "filetree.hpp"
 
-#include "../api/fs/mbr.hpp"
 #include <cstdio>
 #include <cassert>
 #include <libgen.h>
@@ -37,18 +36,19 @@ void FileSys::add(const char* path)
   {
     if (s.st_mode & S_IFDIR)
     {
-      dirs.emplace(path);
+      //dirs.emplace(path);
       return;
     }
     else {
-      files.emplace_back(path);
+      //files.emplace_back(path);
+      return;
     }
   }
   assert(0);
 }
 
 
-void Dir::print(int level)
+void Dir::print(int level) const
 {
   for (const Dir& d : subs)
   {
@@ -57,7 +57,7 @@ void Dir::print(int level)
           d.sectors_used(),
           d.name.c_str());
     
-    d.print();
+    d.print(level + 1);
   }
   for (const File& f : files)
   {
@@ -67,4 +67,20 @@ void Dir::print(int level)
           f.sectors_used(),
           f.name.c_str());
   }
+}
+void FileSys::print() const
+{
+  root.print(0);
+}
+
+uint32_t Dir::sectors_used() const
+{
+  uint32_t cnt = 0;
+  for (const auto& dir : subs)
+      cnt += dir.sectors_used();
+  
+  for (const auto& file : files)
+      cnt += file.sectors_used();
+  
+  return cnt;
 }
