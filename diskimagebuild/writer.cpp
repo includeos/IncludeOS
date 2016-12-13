@@ -9,52 +9,63 @@ static const int LONG_CHARS_PER_ENTRY = 13;
 
 long FileSys::to_cluster_hi(long pos) const
 {
-  return (2 + pos / SECT_SIZE) >> 16;
+  return (((pos - cluster_base) / SECT_SIZE) >> 16);
 }
 long FileSys::to_cluster_lo(long pos) const
 {
-  return (2 + pos / SECT_SIZE) & 0xFFFF;
+  return (((pos - cluster_base) / SECT_SIZE) & 0xFFFF);
 }
 
 void FileSys::write(const char* path)
 {
-  FILE* f = fopen(path, "w");
-  assert(f);
+  FILE* file = fopen(path, "w");
+  assert(file);
   
   char mbr_code[SECT_SIZE];
   auto* mbr = (fs::MBR::mbr*) mbr_code;
   
   // create "valid" MBR
-  strncpy(mbr->oem_name, "INCLUDOS", sizeof(mbr->oem_name));
+  strcpy(mbr->oem_name, "INCLUDOS");
   mbr->magic = 0xAA55;
   
   // create valid BPB for old FAT
   auto* BPB = mbr->bpb();
   BPB->bytes_per_sector = SECT_SIZE;
-  BPB->disk_number      = 0;
+  BPB->sectors_per_cluster = 1;
+  BPB->reserved_sectors = 1; // reduce cost
   BPB->fa_tables        = 2; // always 2 FATs
+  BPB->media_type       = 0xF8; // hard disk
   BPB->sectors_per_fat  = 1; // 1 sector per FAT to minify cost
-  BPB->reserved_sectors = 0; // reduce cost
   BPB->root_entries     = 0; // not using old ways
-  
   BPB->small_sectors    = 0;
-  // calculate this value from entries
-  BPB->large_sectors    = root.sectors_used();
+  BPB->disk_number      = 0;
+  BPB->signature        = 0x29;
+  strcpy(BPB->volume_label, "IncludeOS");
+  strcpy(BPB->system_id,    "FAT32");
   
-  // write MBR
-  int count = fwrite(mbr_code, SECT_SIZE, 1, f);
-  assert(count == 1);
+  for (int i = 0; i < 4*sizeof(fs::MBR::partition); i++)
+    ((char*) mbr->part)[i] = 0;
+  
+  this->cluster_base = 1 *  SECT_SIZE;
   
   // write root and other entries recursively
-  root.write(*this, f, SECT_SIZE);
+  root.write(*this, file, SECT_SIZE * 3);
   
-  fclose(f);
+  // update values
+  BPB->large_sectors = root.sectors_used();
+  
+  // write MBR
+  fseek(file, 0, SEEK_SET);
+  int count = fwrite(mbr_code, SECT_SIZE, 1, file);
+  assert(count == 1);
+  
+  fclose(file);
 }
 
 void fill(uint16_t* ucs, int len, const char* ptr)
 {
   for (int i = 0; i < len; i++)
-    ucs[i * 2] = ptr[i];
+    ucs[i * 2 + 0] = ptr[i] << 8;
 }
 
 std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
@@ -63,15 +74,12 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
   std::vector<cl_dir> longs;
   // calculate number of entries needed
   if (name.size() % LONG_CHARS_PER_ENTRY) {
-    printf("RESIZE %lu to", name.size());
     // resize to multiple of long entry
     int rem = LONG_CHARS_PER_ENTRY - (name.size() % LONG_CHARS_PER_ENTRY);
     name.resize(name.size() + rem);
-    // zero-fill the end
+    // fill rest with spaces
     for (int i = name.size() - rem; i < name.size(); i++)
-      name[i] = 0x0;
-    
-    printf(" %lu (resized %d)\n", name.size(), rem);
+      name[i] = 32;
   }
   // number of entries needed for this longname
   int entmax = name.size() / LONG_CHARS_PER_ENTRY;
@@ -82,12 +90,11 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
   for (int i = 0; i < entmax; i++)
   {
     cl_long ent;
-    ent.index    = entmax - i;
+    ent.index    = i;
     // mark last as LAST_LONG_ENTRY
     if (i == entmax-1)
-        ent.index |= LAST_LONG_ENTRY;
-    ent.attrib   = enttype;
-    ent.attrib  |= 0x0F;  // mark as long name
+      ent.index |= LAST_LONG_ENTRY;
+    ent.attrib   = enttype | 0x0F;  // mark as long name
     ent.checksum = 0;
     ent.zero     = 0;
     
@@ -97,10 +104,10 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     current += 6;
     fill(ent.third, 2, &name[current]);
     current += 2;
-    
-    longs.push_back(*(cl_dir*) &ent);
     // sanity check
     assert(current <= name.size());
+    
+    longs.insert(longs.begin(), *(cl_dir*) &ent);
   }
   //
   return longs;
@@ -109,7 +116,12 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
 cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
 {
   cl_dir ent;
-  strncpy((char*) ent.shortname, name.data(), SHORTNAME_LEN);
+  ent.shortname[0] = name[0];
+  int nlen = std::min(name.size(), SHORTNAME_LEN);
+  memcpy((char*) ent.shortname, name.data(), nlen);
+  // fill rest with spaces
+  for (int i = nlen; i < SHORTNAME_LEN; i++)
+    ent.shortname[i] = 32;
   ent.attrib = attr;
   ent.cluster_hi = 0; /// SET THIS
   ent.cluster_lo = 0; /// SET THIS
@@ -159,7 +171,8 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
   }
   
   // use dirents to measure size in sectors of this directory
-  int ssize = ents.size() / 16 + (ents.size() & 15) ? 1 : 0;
+  long ssize = ents.size() / 16 + (ents.size() & 15) ? 1 : 0;
+  
   // the next directory and files start at pos + SECT_SIZE * ssize etc
   long newpos = pos + ssize * SECT_SIZE;
   
@@ -185,6 +198,10 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
   /// write all the entries for this directory to file
   fseek(file, pos, SEEK_SET);
   int count = fwrite(ents.data(), sizeof(cl_dir), ents.size(), file);
+  assert(count == ents.size());
+  
+  this->cluster = 
+      fsys.to_cluster_lo(pos) | (fsys.to_cluster_hi(pos) << 16);
   
   return newpos;
 }
@@ -194,5 +211,5 @@ long File::write(FileSys&, FILE* file, long pos) const
   fseek(file, pos, SEEK_SET);
   int count = fwrite(data.get(), this->size, 1, file);
   assert(count == 1);
-  return pos + this->size;
+  return pos + this->sectors_used() * SECT_SIZE;
 }

@@ -10,8 +10,7 @@
 
 File::File(const char* path)
 {
-  const char* name = basename((char*) path);
-  this->name = std::string(name);
+  this->name = std::string(path);
   
   FILE* f = fopen(path, "rb");
   assert(f);
@@ -26,8 +25,7 @@ File::File(const char* path)
 }
 Dir::Dir(const char* path)
 {
-  const char* name = basename((char*) path);
-  this->name = std::string(name);
+  this->name = std::string(path);
   
   /// ... ///
 }
@@ -37,8 +35,8 @@ void Dir::print(int level) const
   for (const Dir& d : subs)
   {
     printf ("Dir%*s ", level * 2, "");
-    printf("[%u entries] %s\n",
-          d.sectors_used(),
+    printf("[%u / %lu entries] %s\n",
+          d.sectors_used(), d.cluster,
           d.name.c_str());
     
     d.print(level + 1);
@@ -55,7 +53,8 @@ void Dir::print(int level) const
 
 uint32_t Dir::sectors_used() const
 {
-  uint32_t cnt = 0;
+  uint32_t cnt = this->size_helper;
+  
   for (const auto& dir : subs)
       cnt += dir.sectors_used();
   
@@ -80,7 +79,7 @@ void FileSys::add_dir(Dir& dvec)
   strcat(cwd_buffer, "/");
   strcat(cwd_buffer, dvec.name.c_str());
   
-  printf("*** Entering %s...\n", cwd_buffer);
+  //printf("*** Entering %s...\n", cwd_buffer);
   chdir(cwd_buffer);
   
   auto* dir = opendir(cwd_buffer);
@@ -94,7 +93,6 @@ void FileSys::add_dir(Dir& dvec)
   {
     std::string name(ent->d_name);
     if (name == ".." || name == ".") continue;
-    printf("[%s]\n", ent->d_name);
     
     if (ent->d_type == DT_DIR) {
       auto& d = dvec.add_dir(ent->d_name);

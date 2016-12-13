@@ -15,12 +15,13 @@ int main(int argc, char** argv)
      return EXIT_FAILURE;
   }
 
+  // walk filesystem subtree
   fsys.gather(argv[1]);
 
-  // print filesystem contents recursively
-  fsys.print();
   // write to disk image file
   fsys.write("disk.fat");
+  // print filesystem contents recursively
+  fsys.print();
 
   return EXIT_SUCCESS;
 }

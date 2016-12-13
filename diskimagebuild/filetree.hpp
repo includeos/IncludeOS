@@ -71,6 +71,7 @@ struct Dir
   std::vector<File> files;
   size_t size_helper;
   size_t idx_helper;
+  size_t cluster;
 };
 
 
@@ -87,5 +88,6 @@ struct FileSys
   
 private:
   void add_dir(Dir& dvec);
-  Dir root {""};
+  Dir  root {""};
+  long cluster_base;
 };
