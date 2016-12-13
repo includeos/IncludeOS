@@ -20,19 +20,19 @@
 namespace http {
 
   Client::Client(TCP& tcp)
-    : tcp_(tcp)
+    : tcp_(tcp), conns_{}
   {
   }
 
-  void Client::send(Request_ptr req, Host host, ResponseCallback cb)
+  void Client::send(Request_ptr req, Host host, Response_handler cb)
   {
     auto& conn = get_connection(host);
 
-    printf("Sending Request:\n%s\n", req->to_string().c_str());
+    //printf("Sending Request:\n%s\n", req->to_string().c_str());
     conn.send(std::move(req), std::move(cb));
   }
 
-  void Client::get(URI url, Header_set hfields, ResponseCallback cb)
+  void Client::get(URI url, Header_set hfields, Response_handler cb)
   {
     resolve(url,
     [ this, url{std::move(url)}, cb{std::move(cb)}, hfields{std::move(hfields)} ] (auto ip)
@@ -57,7 +57,7 @@ namespace http {
     });
   }
 
-  void Client::post(URI url, Header_set hfields, std::string data, ResponseCallback cb)
+  void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb)
   {
     resolve(url,
     [ this, url, cb{std::move(cb)}, data{std::move(data)}, hfields{std::move(hfields)} ] (auto ip)
@@ -123,23 +123,24 @@ namespace http {
     // iterate all the connection and return the first free one
     for(auto& conn : cset)
     {
-      if(!conn.occupied())
-        return conn;
+      if(!conn->occupied())
+        return *conn;
     }
 
     // no non-occupied connections, emplace a new one
-    cset.emplace_back(tcp_.connect(host), Connection::Close_handler{this, &Client::close});
-    return cset.back();
+    cset.push_back(std::make_unique<Connection>(tcp_.connect(host), Connection::Close_handler{this, &Client::close}));
+    return *cset.back();
   }
 
   void Client::close(Connection& c)
   {
+    debug("Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
     auto& cset = conns_.at(c.peer());
 
     cset.erase(std::remove_if(cset.begin(), cset.end(),
-    [port = c.local_port()] (const Connection& conn)->bool
+    [port = c.local_port()] (const std::unique_ptr<Connection>& conn)->bool
     {
-      return conn.local_port() == port;
+      return conn->local_port() == port;
     }));
   }
 

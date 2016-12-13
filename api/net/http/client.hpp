@@ -34,36 +34,33 @@ namespace http {
   public:
     using TCP               = net::TCP;
     using Host              = net::tcp::Socket;
-    using ResponseCallback  = delegate<void(Error, Response_ptr)>;
-    const static size_t bufsiz = 2048;
 
-    using Connection_set     = std::vector<Connection>;
+    using Connection_set     = std::vector<std::unique_ptr<Connection>>;
     using Connection_mapset  = std::map<Host, Connection_set>;
 
-  private:
-    using Connection_ptr    = net::tcp::Connection_ptr;
-    using ResolveCallback   = delegate<void(net::ip4::Addr)>;
+    const static size_t bufsiz = 2048;
 
+  private:
+    using ResolveCallback    = delegate<void(net::ip4::Addr)>;
 
   public:
     explicit Client(TCP& tcp);
 
-    void send(Request_ptr, Host host, ResponseCallback);
+    void send(Request_ptr, Host host, Response_handler);
 
-    void get(URI url, Header_set hfields, ResponseCallback cb);
-    void get(std::string url, Header_set hfields, ResponseCallback cb)
+    void get(URI url, Header_set hfields, Response_handler cb);
+    void get(std::string url, Header_set hfields, Response_handler cb)
     { get(URI{url}, std::move(hfields), std::move(cb)); }
 
-    void post(URI url, Header_set hfields, std::string data, ResponseCallback cb);
-
-    void send_file(URI url, Header_set hfields, gsl::span<uint8_t> data, ResponseCallback cb);
+    void post(URI url, Header_set hfields, std::string data, Response_handler cb);
 
     Request_ptr create_request() const;
 
   private:
     TCP& tcp_;
-    bool keep_alive_ = false;
     Connection_mapset conns_;
+
+    bool keep_alive_ = false;
 
     void resolve(const URI&, ResolveCallback);
 
