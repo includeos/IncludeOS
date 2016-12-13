@@ -5,9 +5,9 @@
 
 #include "auth_manager.hpp"
 #include <net/inet4>
-#include "../http_client/http/inc/request.hpp"
 #include <string>
 #include <botan/base64.h>
+#include <net/http/client.hpp>
 
 namespace mender {
 
@@ -25,6 +25,7 @@ namespace mender {
     const std::string server_;
     Auth_manager am_;
     net::tcp::Socket cached_;
+    std::unique_ptr<http::Client> httpclient_;
 
     std::string build_url(const std::string& server) const;
 
@@ -39,7 +40,13 @@ namespace mender {
       am_{std::forward<Auth_manager>(man)},
       cached_{0, port}
   {
+    static auto&& stack = net::Inet4::ifconfig(
+      { 10,0,0,42 },     // IP
+      { 255,255,255,0 }, // Netmask
+      { 10,0,0,1 },      // Gateway
+      { 10,0,0,1 });     // DNS);
 
+    httpclient_ = std::make_unique<http::Client>(stack.tcp());
   }
 
   Client::Client(Auth_manager&& man, net::tcp::Socket socket)
@@ -47,55 +54,46 @@ namespace mender {
       am_{std::forward<Auth_manager>(man)},
       cached_(std::move(socket))
   {
+    static auto&& stack = net::Inet4::ifconfig(
+      { 10,0,0,42 },     // IP
+      { 255,255,255,0 }, // Netmask
+      { 10,0,0,1 },      // Gateway
+      { 10,0,0,1 });     // DNS);
 
-  }
-
-  byte_seq base64(byte_seq data)
-  {
-    return data;
+    httpclient_ = std::make_unique<http::Client>(stack.tcp());
   }
 
   void Client::make_auth_request(AuthCallback cb)
   {
     auto auth = am_.make_auth_request();
 
-    //printf("--Auth request--\nData:%.*s\nToken:%.*s\nSign:%s\n",
-    //  auth.data.size(), (char*)auth.data.data(), auth.token.size(), (char*)auth.token.data(), Botan::base64_encode(auth.signature).c_str());
-
     using namespace std::string_literals;
-
-    static auto&& stack = net::Inet4::ifconfig({ 10,0,0,42 },     // IP
-    { 255,255,255,0 }, // Netmask
-    { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS);
+    using namespace http;
 
     std::string data{auth.data.begin(), auth.data.end()};
-    auto req = "POST /api/devices/0.1/authentication/auth_requests HTTP/1.1\r\n"
-               "Content-Type: application/json\r\n"
-               "Authorization: Bearer" + std::string{auth.token.begin(), auth.token.end()} + "\r\n"
-               "Content-Length: " + std::to_string(data.size()) + "\r\n"
-               "X-MEN-Signature: " + Botan::base64_encode(auth.signature) + "\r\n\r\n"
-               + std::string{data.begin(), data.end()} + "\r\n\r\n"s;
 
-    stack.tcp().connect(stack.gateway(), 8080,
-    [req](auto conn)
-    {
-      printf("Connected\n");
-      conn->on_read(4096, [](auto buf, auto len) {
-        printf("Reply:\n%.*s\n", len, (char*)buf.get());
-      });
+    auto req = httpclient_->create_request();
+    req->set_method(POST);
+    req->set_uri(URI{"/api/devices/0.1/authentication/auth_requests"});
 
-      printf("POST Request:\n%s\n", req.c_str());
-      conn->write(req);
-    });
-
-    /*auto req = std::make_unique<http::Request>();
+    auto& header = req->header();
+    header.add_field(header::Content_Type, "application/json");
+    header.add_field(header::Authorization, "Bearer " + std::string{auth.token.begin(), auth.token.end()} );
+    header.add_field("X-MEN-Signature", std::string{Botan::base64_encode(auth.signature)});
     req->add_body(std::string{data.begin(), data.end()});
-    req->add_header("Content-Type"s, "application/json"s);
-    req->add_header("Authorization"s, "Bearer " + std::string{auth.token.begin(), auth.token.end()});
-    req->add_header("X-MEN-Signature"s, Botan::base64_encode(auth.signature));*/
 
-    //send(std::move(req), "/authentication/auth_requests");
+    printf("Signature:\n%s\n", Botan::base64_encode(auth.signature).c_str());
+
+    httpclient_->send(std::move(req), cached_,
+      [](auto err, http::Response_ptr res)
+      {
+        if(!res)
+          printf("No reply.\n");
+        else
+          printf("Reply:\n%s", res->to_string().c_str());
+
+      }
+    );
   }
 
   void Client::send(std::unique_ptr<http::Request> req, std::string endpoint)
