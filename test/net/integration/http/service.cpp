@@ -19,6 +19,7 @@
 #include <net/http/client.hpp>
 #include <net/inet4>
 #include <info>
+#include <timers>
 
 std::unique_ptr<http::Client> client_;
 
@@ -34,22 +35,47 @@ void Service::ready()
     {  10,  0,  0, 44 },  // IP
     {  255,255,255, 0 },  // Netmask
     {  10,  0,  0,  1 },  // Gateway
-    {   8,  8,  8,  8 }   // DNS
+    {  8,  8,  8,  8 }   // DNS
   );
 
   client_ = std::make_unique<http::Client>(inet.tcp());
 
-  INFO("Client", "Testing HTTP Client");
+  INFO("Client", "Testing against local server");
+
   auto req = client_->create_request();
 
   req->set_uri(uri::URI{"/testing"});
-
   client_->send(std::move(req), {inet.gateway(), 9000},
   [] (auto err, auto res)
   {
     CHECKSERT(!err, "No error");
     CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
     printf("Response:\n%s\n", res->to_string().c_str());
-    printf("SUCCESS\n");
+
+    using namespace std::chrono; // zzz...
+    Timers::oneshot(5s, [](auto) { printf("SUCCESS\n"); });
+  });
+
+
+  INFO("Client", "Testing against Acorn");
+
+  const std::string acorn_url{"http://acorn2.unofficial.includeos.io/"};
+
+  client_->get(acorn_url, {},
+  [] (auto err, auto res)
+  {
+    CHECK(!err, "Error: %s", err.to_string().c_str());
+    CHECK(res != nullptr, "Received response");
+    if(!err)
+      printf("Response:\n%s\n", res->to_string().c_str());
+  });
+
+  client_->get(acorn_url + "api/dashboard/status", {},
+  [] (auto err, auto res)
+  {
+    CHECK(!err, "Error: %s", err.to_string().c_str());
+    CHECK(res != nullptr, "Received response");
+    if(!err)
+      printf("Response:\n%s\n", res->to_string().c_str());
   });
 }

@@ -36,7 +36,7 @@ def Client_test(trigger_line):
 vm = vmrunner.vms[0]
 
 # Add custom event-handler
-vm.on_output("Testing HTTP Client", Client_test)
+vm.on_output("Testing against local server", Client_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()
