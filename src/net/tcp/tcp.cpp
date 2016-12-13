@@ -42,6 +42,8 @@ TCP::TCP(IPStack& inet) :
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  // TODO: RFC 6056
+  current_ephemeral_ = 1024 + rand() % (UINT_MAX-1024);
 }
 
 /*

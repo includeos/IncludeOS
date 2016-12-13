@@ -93,7 +93,7 @@ public:
   /// @return true if the field was added, false
   /// otherwise
   ///
-  bool add_field(const std::experimental::string_view field, std::string value);
+  bool add_field(const std::string field, std::string value);
 
   ///
   /// Change the value of the specified field
@@ -107,7 +107,7 @@ public:
   ///
   /// @return true if successful, false otherwise
   ///
-  bool set_field(const std::experimental::string_view field, std::string value);
+  bool set_field(const std::string field, std::string value);
 
   ///
   /// Check to see if the specified field is a
