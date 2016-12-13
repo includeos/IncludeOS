@@ -20,6 +20,47 @@
 #include <timers>
 #define USE_STACK_SAMPLING
 
+#include <memdisk>
+void recursive_fs_dump(fs::dirvec_t entries, int depth = 0)
+{
+  int indent = depth * 3;
+  for (auto entry : *entries)
+  {
+    // Print directories
+    if (entry.is_dir()) {
+      // Normal dirs
+      if (entry.name() != "."  and entry.name() != "..") {
+        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
+        auto list = entry.ls();
+        recursive_fs_dump(list.entries, depth + 1);
+      } else {
+        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
+      }
+    } else {
+      //printf(" %*s  \n", indent, "|");
+      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
+    }
+  }
+  printf(" %*s \n", indent, " ");
+  //printf(" %*s \n", indent, "o");
+}
+
+void test()
+{
+  printf("Creating MemDisk...\n");
+  auto disk = fs::new_shared_memdisk();
+  
+  disk->init_fs(
+  [disk] (auto err)
+  {
+    printf("MOUNTED\n");
+    
+    auto list = disk->fs().ls("/");
+    recursive_fs_dump(list.entries);
+    
+  });
+}
+
 #include "ircd.hpp"
 static IrcServer* ircd;
 
@@ -77,6 +118,7 @@ void Service::start(const std::string& args)
   });
 
   printf("%s\n", ircd->get_motd().c_str());
+  test();
 }
 
 #include <ctime>

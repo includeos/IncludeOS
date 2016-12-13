@@ -32,7 +32,7 @@ set(SOURCES
 # set(LOCAL_INCLUDES ".")
 
 # Adding memdisk (expects my.disk to exist in current dir):
-# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+set(MEMDISK /home/gonzo/github/IncludeOS/diskimagebuild/build/disk.fat)
 
 # DRIVERS / PLUGINS:
 
