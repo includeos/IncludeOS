@@ -429,7 +429,7 @@ public:
 
   // ???
   void deserialize_from(void*);
-  void serialize_to(void*);
+  int  serialize_to(void*);
 
   /*
     Destroy the Connection.
@@ -583,7 +583,7 @@ private:
   void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
     auto buffer = new_shared_buffer(n);
     memcpy(buffer.get(), buf, n);
-    write(buffer, n, callback, PUSH);
+    write(std::move(buffer), n, callback, PUSH);
   }
 
   /*
@@ -591,14 +591,14 @@ private:
     but with the exception of avoiding copying the data to an internal buffer.
   */
   void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
-  { write({buffer, n, PUSH}, callback); }
+  { write({std::move(buffer), n, PUSH}, callback); }
 
 
 
   /*
     Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
   */
-  void write(WriteBuffer request, WriteCallback callback);
+  void write(WriteBuffer&& request, WriteCallback callback);
 
   /*
     Active try to send a buffer by asking the TCP.

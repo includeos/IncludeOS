@@ -29,8 +29,8 @@ extern "C" {
   static inline int isalnum(int ch){
     // http://en.cppreference.com/w/cpp/string/byte/isalnum
     return (ch >= 48 && ch <= 57)
-      or (ch >= 65 && ch <= 90)
-      or (ch >= 97 && ch <= 122);
+      || (ch >= 65 && ch <= 90)
+      || (ch >= 97 && ch <= 122);
   }
 
 

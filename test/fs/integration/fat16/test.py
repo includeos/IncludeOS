@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
@@ -15,7 +15,6 @@ import vmrunner
 vm = vmrunner.vms[0]
 
 def cleanup():
-  vm.make(["clean"])
   call(["./fat16_disk.sh", "clean"])
 
 # Setup disk

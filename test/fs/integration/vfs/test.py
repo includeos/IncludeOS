@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import subprocess
 import os
@@ -13,13 +13,15 @@ disks = ["memdisk", "virtio1", "virtio2"]
 
 # Remove all data disk images
 def cleanup():
-  for disk in disks:
-    subprocess.check_call(["rm", "-f", disk + ".disk"])
+    for disk in disks:
+        diskname = disk + ".disk"
+        print "Removing disk file ", diskname
+        subprocess.check_call(["rm", "-f", diskname])
 
 # Create all data disk images from folder names
 for disk in disks:
-  subprocess.check_call(["./create_disk.sh", disk])
+  subprocess.check_call(["./create_disk.sh", disk, disk])
 
-vmrunner.vms[0].on_exit(cleanup)
+vmrunner.vms[0].on_exit_success(cleanup)
 
-vmrunner.vms[0].make().boot(50)
+vmrunner.vms[0].cmake().boot(20).clean()

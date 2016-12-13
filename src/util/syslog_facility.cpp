@@ -40,4 +40,4 @@ void Syslog_facility::open_socket() {}
 void Syslog_facility::close_socket() {}
 
 // Weak
-void Syslog_facility::send_udp_data(const std::string& data) {}
+void Syslog_facility::send_udp_data(const std::string&) {}

@@ -1,3 +1,4 @@
+
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -35,6 +36,18 @@ const int TIMELEN = 32;
 class Syslog {
 
 public:
+  static void settings(const net::UDP::addr_t dest_ip, const net::UDP::port_t dest_port) {
+    fac_->settings(dest_ip, dest_port);
+  }
+
+  static net::UDP::addr_t ip() {
+    return fac_->ip();
+  }
+
+  static net::UDP::port_t port() {
+    return fac_->port();
+  }
+
   // Parameter pack arguments
   template <typename... Args>
   static void syslog(int priority, const char* message, Args&&... args) {

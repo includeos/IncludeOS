@@ -48,6 +48,11 @@ namespace hw
     // but also disable interrupts
     lapic.regs->timer.reg = TIMER_ONESHOT | (LAPIC_IRQ_TIMER+32) | INTR_MASK;
 
+    if (ticks_per_micro != 0) {
+      hw::PIT::instance().on_timeout_ms(milliseconds(1), handler);
+      return;
+    }
+
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
     lapic.regs->init_count.reg = 0xFFFFFFFF;
@@ -55,11 +60,11 @@ namespace hw
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
 
+    /// use PIT to measure <time> in one-shot ///
+    
     // ready handler
     intr_handler = handler;
 
-    /// use PIT to measure <time> in one-shot ///
-    
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [] {
       // measure difference
@@ -105,5 +110,15 @@ namespace hw
   {
     lapic.regs->timer.reg |= INTR_MASK;
     intr_enabled = false;
+  }
+
+  // used by soft-reset
+  uint32_t apic_timer_get_ticks()
+  {
+    return ticks_per_micro;
+  }
+  void     apic_timer_set_ticks(uint32_t tpm)
+  {
+    ticks_per_micro = tpm;
   }
 }

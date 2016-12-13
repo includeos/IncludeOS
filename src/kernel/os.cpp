@@ -36,6 +36,13 @@
 #include <statman>
 #include <vector>
 
+#define SOFT_RESET_MAGIC   0xFEE1DEAD
+//#define ENABLE_PROFILERS
+
+#ifdef ENABLE_PROFILERS
+#include <profile>
+#endif
+
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
@@ -48,7 +55,7 @@ extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
-MHz   OS::cpu_mhz_ {1000};
+MHz   OS::cpu_mhz_ {-1};
 RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
@@ -58,7 +65,7 @@ const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_S
 static std::vector<OS::print_func> os_print_handlers;
 extern void default_stdout_handlers();
 // custom init
-std::vector<OS::Custom_init_struct> OS::custom_init_;
+std::vector<OS::Plugin_struct> OS::plugins_;
 // OS version
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
@@ -74,6 +81,9 @@ extern "C" uintptr_t get_cpu_esp();
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp1{};
+#endif
   atexit(default_exit);
   default_stdout_handlers();
 
@@ -92,6 +102,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
   } else {
+
+    if (boot_magic == SOFT_RESET_MAGIC) {
+        if (boot_addr) OS::resume_softreset(boot_addr);
+    }
 
     // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
     auto mem = cmos::meminfo();
@@ -164,18 +178,26 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     unavail_end += interval;
   }
 
-
   MYINFO("Printing memory map");
 
   for (const auto &i : memory_map())
     INFO2("* %s",i.second.to_string().c_str());
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp2("OS::start IRQ manager init");
+#endif
   // Set up interrupt and exception handlers
   IRQ_manager::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp3("OS::start ACPI init");
+#endif
   // read ACPI tables
   hw::ACPI::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp4("OS::start APIC init");
+#endif
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
 
@@ -183,9 +205,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   INFO("BSP", "Enabling interrupts");
   IRQ_manager::enable_interrupts();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp5("OS::start PIT init");
+#endif
   // Initialize the Interval Timer
   hw::PIT::init();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp6("OS::start PCI manager init");
+#endif
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -199,10 +227,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp7("OS::start CPU frequency");
+#endif
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  if (OS::cpu_mhz_.count() < 0) {
+    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  }
   INFO2("+--> %f MHz", cpu_freq().count());
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp8("OS::start Timers init");
+#endif
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
   Timers::init(
@@ -224,6 +260,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     Timers::ready();
   });
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp9("OS::start RTC init");
+#endif
   // Realtime/monotonic clock
   RTC::init();
   booted_at_ = RTC::now();
@@ -234,22 +273,28 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   os_cycles_total = &Statman::get().create(
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp10("OS::start Plugins init");
+#endif
   // Trying custom initialization functions
-  MYINFO("Calling custom initialization functions");
-  for (auto init : custom_init_) {
-    INFO2("* Calling %s", init.name_);
+  MYINFO("Initializing plugins");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
     try{
-      init.func_();
+      plugin.func_();
     } catch(std::exception& e){
-      MYINFO("Exception thrown when calling custom init: %s", e.what());
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
     } catch(...){
-      MYINFO("Unknown exception when calling custom initialization function");
+      MYINFO("Unknown exception when initializing plugin");
     }
   }
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
+#ifdef ENABLE_PROFILERS
+  ScopedProfiler sp11("OS::start RNG init");
+#endif
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
     uint32_t rdrand_output[32];
@@ -279,13 +324,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // do CPU frequency measurements again with more samples
   //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
-
-  event_loop();
 }
 
-void OS::register_custom_init(Custom_init delg, const char* name){
-  MYINFO("Registering custom init function %s", name);
-  custom_init_.emplace_back(delg, name);
+void OS::register_plugin(Plugin delg, const char* name){
+  MYINFO("Registering plugin %s", name);
+  plugins_.emplace_back(delg, name);
 }
 
 uintptr_t OS::heap_max() {

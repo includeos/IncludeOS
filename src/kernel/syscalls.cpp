@@ -30,6 +30,8 @@
 
 #include <statman>
 
+#define SHUTDOWN_ON_PANIC 1
+
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -107,12 +109,13 @@ void* sbrk(ptrdiff_t incr) {
   return (void*) prev_heap_end;
 }
 
-
+/*
 int stat(const char*, struct stat *st) {
   debug("SYSCALL STAT Dummy");
   st->st_mode = S_IFCHR;
   return 0;
 }
+*/
 
 clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
@@ -170,7 +173,9 @@ void panic(const char* why) {
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   // shutdown the machine
-  hw::ACPI::shutdown();
+
+  if (SHUTDOWN_ON_PANIC)
+    hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
 }
 

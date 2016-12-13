@@ -42,4 +42,5 @@ build
 
 # cmake related
 CMakeFiles*
+CMakeCache*
 cmake_install.cmake

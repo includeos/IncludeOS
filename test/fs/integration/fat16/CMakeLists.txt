@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 2.8.9)
 
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(INCLUDEOS_PREFIX /usr/local)
-else()
-  set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
+
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_fat16)
 
 set(SERVICE_NAME "FAT16 test")
 set(BINARY       "test_fat16")
@@ -13,7 +15,6 @@ set(SOURCES
     fat16.cpp
   )
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
+set(MEMDISK my.disk)
 
-# include service build script
-include(${INCLUDEOS_PREFIX}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

@@ -19,23 +19,41 @@ USE32
 extern kernel_start
 global _start
 
-%define BOOT_SEGMENT 0x07c0
+%define _data_segment 0x10
+%define _code_segment 0x08
 
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
-        ;; Stack base address to EMA boundary
-        mov esp, 0xA0000
-        mov ebp, esp
 
-        ;; With multiboot we get a possibly unusable GDT
-        ;; So load our own
-        lgdt [gdtr]
+  ;; With multiboot we get a possibly unusable GDT
+  ;; So load our own
+  lgdt [gdtr]
 
-        ;;  Place multiboot parameters on stack
-        push ebx
-        push eax
-        call kernel_start
+  ;; Reload all data segments to new GDT
+  mov ecx, _data_segment
+  mov ss, ecx
+  mov ds, ecx
+  mov es, ecx
+  mov fs, ecx
+  mov gs, ecx
+
+  ;; Set up stack.
+  mov esp, 0xA0000
+  mov ebp, esp
+
+  ;; Do a call with explicit code segment to reload CS descriptor from GDT
+  ;; NOTE: We can't call kernel directly since CS will be pushed to stack
+  call _code_segment:_refresh_cs
+
+  ;;  Place multiboot parameters on stack
+  push ebx
+  push eax
+  call kernel_start
+
+_refresh_cs:
+  ret
+
 
 ALIGN 32
 gdtr:
@@ -49,13 +67,13 @@ gdt32:
 	dw 0xffff		       ;Limit
   dw 0x0000		       ;Base 15:00
 	db 0x00			       ;Base 23:16
-	dw 0xcf9a		       ;Flags
+	dw 0xcf9a		       ;Flags / Limit / Type [F,L,F,Type]
 	db 0x00			       ;Base 32:24
 	;; Entry 0x10: Data segment
 	dw 0xffff		       ;Limit
 	dw 0x0000		       ;Base 15:00
 	db 0x00			       ;Base 23:16
-	dw 0xcf92		       ;Flags
+	dw 0xcf92		       ;Flags / Limit / Type [F,L,F,Type]
 	db 0x00			       ;Base 32:24
 gdt32_end:
 	db `32`

@@ -21,7 +21,7 @@
 // Specialization for IP4
 template <>
 net::Inet<net::IP4>& net::Super_stack::get<net::IP4>(int N) {
-  return *(inet().ip4_stacks_[N]);
+  return *(inet().ip4_stacks_.at(N));
 }
 
 

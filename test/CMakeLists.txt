@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
-project(unittests)
+cmake_minimum_required(VERSION 2.8.9)
 
-set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+project(unittests CXX)
+
+set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -DNO_INFO=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
-set(INCLUDEOS_INSTALL $ENV{HOME}/IncludeOS_Install)
 
 include_directories(
   ${INCLUDEOS_ROOT}/api
@@ -18,17 +18,23 @@ include_directories(
 set(TEST_SOURCES
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/fs/unit/path_test.cpp
+  ${TEST}/fs/unit/vfs_test.cpp
+  ${TEST}/hw/unit/mac_addr_test.cpp
   #${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/util/unit/delegate.cpp
+  ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   #${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/membitmap.cpp
+  ${TEST}/util/unit/uri_test.cpp
 )
 
 set(OS_SOURCES
@@ -53,6 +59,14 @@ set(OS_SOURCES
   ${SRC}/posix/fd.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/statman.cpp
+  ${SRC}/util/uri.cpp
+  ${SRC}/util/percent_encoding.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
+install(TARGETS unittests DESTINATION ${TEST})
+#add_custom_command(TARGET unittests POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unittests> ${TEST}
+#  COMMENT "> Copying binary 'unittests' to ${TEST}")
+
+install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

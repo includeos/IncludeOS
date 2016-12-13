@@ -94,8 +94,8 @@ namespace fs {
     // Observation pointer. No ownership, no delete, can be invalidated
     using Obs_ptr = VFS_entry*;
 
-    virtual std::string name() { return name_; }
-    virtual std::string desc() { return desc_; }
+    virtual std::string name() const { return name_; }
+    virtual std::string desc() const { return desc_; }
 
     const std::type_info& type() const
     { return type_; }
@@ -133,7 +133,7 @@ namespace fs {
         throw Err_not_leaf(name_ + " does not hold an object ");
 
       if (UNLIKELY(typeid(T) != type_))
-        throw Err_bad_cast(name_ + " is not of type " + type_name());
+        throw Err_bad_cast(name_ + " is not of type " + ::type_name(typeid(T)));
 
       if (UNLIKELY(obj_is_const and not std::is_const<T>::value))
         throw Err_bad_cast(name_ + " must be retrieved as const " + type_name());
@@ -167,14 +167,11 @@ namespace fs {
           node.print_tree(tabs + "   |");
         else
           node.print_tree(tabs + "   `");
-
       }
     }
 
-
     int child_count() const
     { return children_.size(); }
-
 
     /**
      * Walk a given path in the VFS tree.
@@ -186,10 +183,12 @@ namespace fs {
     template <bool create = false>
     Obs_ptr walk (Path& path, bool partial = false){
 
+      Expects(not path.empty());
+
       Obs_ptr current_node = this;
       Obs_ptr next_node = nullptr;
 
-      do {
+      while (not path.empty()) {
         auto token = path.front();
 
         next_node = current_node->get_child(token);
@@ -209,7 +208,7 @@ namespace fs {
         // Pop off token only when we know it can be passed
         path.pop_front();
         current_node = next_node;
-      } while (not path.empty());
+      }
 
 
       Ensures(next_node);
@@ -239,15 +238,24 @@ namespace fs {
     template <bool create, typename T>
     void mount(Path path, T& obj, std::string desc) {
 
+      Expects(not path.empty());
+
       auto token = path.back();
       path.pop_back();
 
-      auto* parent = walk<create>(path);
+      VFS_entry* parent = nullptr;
 
-      if (not parent) {
-        Expects(not create); // Parent node should have been created otherwise
-        throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
+      if (not path.empty()) {
+        parent = walk<create>(path);
+        if (not parent) {
+          Expects(not create); // Parent node should have been created otherwise
+          throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
+        }
+
+      } else {
+        parent = this;
       }
+
 
       // Throw if occupied
       if (parent->get_child(token))

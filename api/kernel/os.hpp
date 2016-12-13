@@ -35,7 +35,7 @@
 class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
-  using Custom_init = delegate<void()>;
+  using Plugin = delegate<void()>;
 
   /* Get the version of the os */
   static std::string version()
@@ -136,7 +136,7 @@ public:
    * @param delg : A delegate to be called
    * @param name : A human readable identifier
   **/
-  static void register_custom_init(Custom_init delg, const char* name);
+  static void register_plugin(Plugin delg, const char* name);
 
   /**
    * Block for a while, e.g. until the next round in the event loop
@@ -144,34 +144,37 @@ public:
   static void block();
 
 
+  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
+  static void event_loop();
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+
+  /** Resume stuff from a soft reset **/
+  static void resume_softreset(uint32_t boot_addr);
 
   static constexpr int PAGE_SHIFT = 12;
 
   /** Indicate if the OS is running. */
   static bool power_;
 
-  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
-  static void event_loop();
-
   static MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;
   static std::string version_field;
 
-  struct Custom_init_struct {
-    Custom_init_struct(Custom_init f, const char* n)
+  struct Plugin_struct {
+    Plugin_struct(Plugin f, const char* n)
       : func_{f}, name_{n}
     {}
 
-    Custom_init func_;
+    Plugin func_;
     const char* name_;
   };
 
-  static std::vector<Custom_init_struct> custom_init_;
+  static std::vector<Plugin_struct> plugins_;
 
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;

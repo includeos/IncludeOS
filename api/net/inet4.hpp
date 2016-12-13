@@ -46,6 +46,9 @@ namespace net {
     hw::MAC_addr link_addr() override
     { return nic_.mac(); }
 
+    hw::Nic& nic() override
+    { return nic_; }
+
     IP4::addr ip_addr() override
     { return ip4_addr_; }
 

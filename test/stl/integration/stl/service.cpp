@@ -30,7 +30,7 @@
 #include <functional>
 #include <cstring>
 #include <cassert>
-#include <lest.hpp>
+#include <lest/lest.hpp>
 
 using namespace std;
 

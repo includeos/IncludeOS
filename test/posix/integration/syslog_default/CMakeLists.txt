@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT /usr/local)
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
+
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+
+project (test_syslog_default)
 
 # Human-readable name of your service
 set(SERVICE_NAME "Syslog Default Test Service")
@@ -20,10 +23,5 @@ set(SOURCES
     service.cpp
     )
 
-option(libvirtionet "" ON)
-
-# To add your own include paths:
-#set(LOCAL_INCLUDES ".")
-
 # include service build script
-include(${INCLUDEOS_ROOT}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

@@ -40,6 +40,7 @@
 #define INFO(X,...)
 #define INFO2(X,...)
 #define CAPTION(TEXT,...)
+#define CENTER(TEXT,...)
 #define FILLINE(CHAR)
 #define CHECK(X,...)
 #endif

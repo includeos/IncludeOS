@@ -1,8 +1,10 @@
 #!/bin/sh
 
+echo ">>> Creating network bridge for IncludeOS "
+
 if [ $# -eq 0 ]
 then
-  echo ">>> Default settings "
+  echo ">>> Using default settings "
   BRIDGE=bridge43
   NETMASK=255.255.0.0
   GATEWAY=10.0.0.1

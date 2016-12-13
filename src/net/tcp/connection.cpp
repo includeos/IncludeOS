@@ -18,7 +18,6 @@
 #define DEBUG
 #define DEBUG2
 
-#include <os> // OS::cycles_since_boot
 #include <gsl/gsl_assert> // Ensures/Expects
 #include <net/tcp/connection.hpp>
 #include <net/tcp/connection_states.hpp>
@@ -129,14 +128,14 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 }
 
 
-void Connection::write(WriteBuffer buffer, WriteCallback callback) {
+void Connection::write(WriteBuffer&& buffer, WriteCallback callback) {
   try {
     // try to write
     auto written = state_->send(*this, buffer);
     debug("<Connection::write> off=%u rem=%u  written=%u\n",
       buffer.offset, buffer.remaining, written);
     // put request in line
-    writeq.push_back({buffer, callback});
+    writeq.push_back({std::move(buffer), callback});
     // if data was written, advance
     if(written) {
       writeq.advance(written);
@@ -347,23 +346,20 @@ void Connection::segment_arrived(Packet_ptr incoming) {
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
   switch(state_->handle(*this, std::move(incoming))) {
-  case State::OK: {
+  case State::OK:
     // Do nothing.
     break;
-  }
-  case State::CLOSED: {
+  case State::CLOSED:
     debug("<TCP::Connection::receive> (%s => %s) State handle finished with CLOSED. We're done, ask host() to delete the connection.\n",
       prev_state_->to_string().c_str(), state_->to_string().c_str());
     writeq_reset();
     signal_close();
     set_state(Closed::instance());
     break;
-  };
-  case State::CLOSE: {
+  case State::CLOSE:
     debug("<TCP::Connection::receive> State handle finished with CLOSE. onDisconnect has been called, close the connection. \n");
     state_->close(*this);
     break;
-  };
   }
 }
 
@@ -374,7 +370,7 @@ bool Connection::is_listening() const {
 __attribute__((weak))
 void Connection::deserialize_from(void*) {}
 __attribute__((weak))
-void Connection::serialize_to(void*) {}
+int  Connection::serialize_to(void*) {  return 0;  }
 
 Connection::~Connection() {
   // Do all necessary clean up.

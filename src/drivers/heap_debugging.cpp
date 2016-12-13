@@ -53,8 +53,8 @@ struct allocation
 static int enable_debugging = 1;
 static int enable_debugging_verbose = 0;
 static int enable_buffer_protection = 1;
-static fixedvector<allocation, 4096>  allocs;
-static fixedvector<allocation*, 4096> free_allocs;
+static fixedvector<allocation,  8192>  allocs;
+static fixedvector<allocation*, 8192> free_allocs;
 
 // There is a chance of a buffer overrun where this exact value
 // is written, but the chance of that happening is minimal
@@ -128,6 +128,8 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
       new(x) allocation((char*) data, len,
                         __builtin_return_address(0),
                         __builtin_return_address(1));
+    } else if (!allocs.free_capacity()) {
+      DPRINTF("[WARNING] Internal fixed vectors are FULL, expect bogus double free messages\n");
     } else {
       allocs.emplace((char*) data, len,
                       __builtin_return_address(0),

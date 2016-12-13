@@ -28,15 +28,22 @@ echo -e ">>> Will now attempt to make all examples. Outpt from make will only be
 
 for dir in `ls -d $script_absolute_dir/../../../examples/*`
 do
-    cd $dir
-    BASE=`basename $dir`
-    echo -e "\n\n>>> Now making $BASE"
-    { 
-        make > /tmp/build_test 2>&1
-    }|| { 
-    errors_present=$((errors_present+1))
-    cat /tmp/build_test 
-    } 
+  BREAK=""
+  cd $dir
+  BASE=`basename $dir`
+  echo -e "\n\n>>> Now making $BASE"
+  mkdir -p build
+  pushd build
+  rm -rf *
+  cmake .. > /tmp/build_test
+  make >> /tmp/build_test || BREAK=1
+
+  if [ "$BREAK" != "" ]
+  then
+     errors_present=$((errors_present+1))
+     cat /tmp/build_test
+  fi
+
 done
 
 
@@ -44,6 +51,3 @@ done
 rm -f /tmp/build_test
 
 exit $errors_present
-
-
-

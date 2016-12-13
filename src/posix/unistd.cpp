@@ -20,10 +20,9 @@
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
+#include <fs/vfs.hpp>
 
-static const int syscall_fd   {999};
-static const int rng_fd       {998};
-static bool debug_syscalls    {true};
+static const int rng_fd       {998}; // temp
 
 int open(const char* s, int, ...)
 {
@@ -114,4 +113,74 @@ unsigned int sleep(unsigned int seconds)
     now = RTC::now();
   }
   return 0;
+}
+
+// todo: use fs::path as backing
+static std::string cwd {"/"};
+const std::string& cwd_ref() { return cwd; }
+
+int chdir(const char *path)
+// todo: handle relative path
+// todo: handle ..
+{
+  if (not path or strlen(path) < 1)
+  {
+    errno = ENOENT;
+    return -1;
+  }
+  if (strcmp(path, ".") == 0)
+  {
+    return 0;
+  }
+  std::string desired_path;
+  if (*path != '/')
+  {
+    desired_path = cwd;
+    if (!(desired_path.back() == '/')) desired_path += "/";
+    desired_path += path;
+  }
+  else
+  {
+    desired_path.assign(path);
+  }
+  try {
+    auto ent = fs::VFS::stat_sync(desired_path);
+    if (ent.is_dir())
+    {
+      cwd = desired_path;
+      assert(cwd.front() == '/');
+      assert(cwd.find("..") == std::string::npos);
+      return 0;
+    }
+    else
+    {
+      // path is not a dir
+      errno = ENOTDIR;
+      return -1;
+    }
+  }
+  catch (const fs::Err_not_found& e) {
+    errno = ENOTDIR;
+    return -1;
+  }
+}
+
+char *getcwd(char *buf, size_t size)
+{
+  assert(cwd.front() == '/');
+  if (size == 0)
+  {
+    errno = EINVAL;
+    return nullptr;
+  }
+  if ((cwd.length() + 1) < size)
+  {
+    snprintf(buf, size, "%s", cwd.c_str());
+    return buf;
+  }
+  else
+  {
+    errno = ERANGE;
+    return nullptr;
+  }
 }

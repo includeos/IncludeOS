@@ -147,7 +147,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
-include_directories($ENV{INCLUDEOS_PREFIX}/include/gsl)
+include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
 # linker stuff
@@ -165,8 +165,21 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o $ENV{INCLUDEOS_PREFIX}/includeos/lib/crti.o $ENV{INCLUDEOS_PREFIX}/includeos/boot/multiboot.cpp.o")
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
+
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
+
+add_library(crti STATIC IMPORTED)
+set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(crti PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrti.a)
+
+target_link_libraries(service --whole-archive crti --no-whole-archive)
+
+add_library(multiboot STATIC IMPORTED)
+set_target_properties(multiboot PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(multiboot PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libmultiboot.a)
+
+target_link_libraries(service --whole-archive multiboot --no-whole-archive)
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
@@ -208,6 +221,11 @@ foreach(DISK ${MEMDISK})
   target_link_libraries(service --whole-archive disk${MDCOUNTER} --no-whole-archive)
 endforeach()
 
+
+add_library(crtn STATIC IMPORTED)
+set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrtn.a)
+
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
@@ -219,8 +237,10 @@ target_link_libraries(service
     libg
     libgcc
     $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtend.o
-    $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtn.o
-  )
+    --whole-archive crtn --no-whole-archive
+    )
+
+
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)

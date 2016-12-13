@@ -10,47 +10,58 @@
 # $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
 #
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
-# $ export INCLUDEOS_INSTALL_LOC=parent/folder/for/IncludeOS/libraries i.e.
+# $ export INCLUDEOS_PREFIX=parent/folder/for/IncludeOS/libraries i.e.
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
-INCLUDEOS_INSTALL_LOC=${INCLUDEOS_INSTALL_LOC-$HOME}
-INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$INCLUDEOS_INSTALL_LOC/IncludeOS_install}
-
-# Find the latest release
-echo -e "\n\n>>> Getting the ID of the latest release from GitHub"
-JSON=`curl https://api.github.com/repos/hioa-cs/IncludeOS/releases`
-FILENAME=`echo "$JSON" | jq -r '.[0]["assets"][0]["name"]'`
-DOWNLOAD_URL=`echo "$JSON" | jq -r '.[0]["assets"][0]["browser_download_url"]'`
-echo -e "\n\n>>> File to download: $DOWNLOAD_URL"
-
-# If the tarball exists, use that
-if [ -e $FILENAME ]
-then
-    echo -e "\n\n>>> IncludeOS tarball exists - extracting to $INCLUDEOS_INSTALL_LOC"
-else
-    # Download from GitHub API
-    echo -e "\n\n>>> Downloading latest IncludeOS release tarball from GitHub"
-    curl -H "Accept: application/octet-stream" -L -o $FILENAME $DOWNLOAD_URL
-fi
-
-# Extracting the downloaded tarball
-echo -e "\n\n>>> Fetched tarball - extracting to $INCLUDEOS_INSTALL_LOC/IncludeOS_install"
-gunzip $FILENAME -c | tar -C $INCLUDEOS_INSTALL_LOC -xf -   # Pipe gunzip to tar
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 
 # Install submodules
 echo -e "\n\n>>> Installing submodules"
-pushd $INCLUDEOS_SRC
+pushd $INCLUDEOS_SRC > /dev/null
 git submodule init
 git submodule update
-popd
+popd > /dev/null
+
+
+# Try to find suitable compiler
+cc_list="clang-3.8 clang-3.7 clang-3.6 clang"
+cxx_list="clang++-3.8 clang++-3.7 clang++-3.6 clang++"
+
+compiler=""
+guess_compiler() {
+    for compiler in $1
+    do
+	exists=`command -v $compiler`
+	if [ "$exists" != "" ]
+	then
+	    compiler=$exists
+	    break
+	fi
+    done
+}
+
+
+if [ -z "$CC" ]
+then
+  guess_compiler $cc_list
+  export CC=$compiler
+fi
+
+if [ -z "$CXX" ]
+then
+  guess_compiler $cxx_list
+  export CXX=$compiler
+fi
+
+echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 
 # Build IncludeOS
 echo -e "\n\n>>> Building IncludeOS"
 mkdir -p $INCLUDEOS_SRC/build
 pushd $INCLUDEOS_SRC/build
-cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX="$INCLUDEOS_INSTALL"
+cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX -Dtests=$INCLUDEOS_ENABLE_TEST
 make PrecompiledLibraries
-make -j
+make -j 2
 make install
 popd
 

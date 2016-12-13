@@ -82,7 +82,15 @@ struct StackSampler
 class ScopedProfiler
 {
  public:
-  ScopedProfiler();
+  inline ScopedProfiler(const char* nme = nullptr)
+    : name(nme)
+  {
+    record();
+    // memory clobbered make sure ScopedProfilers aren't moved around
+    asm volatile("" : : : "memory");
+  }
+  
+  void record();
   ~ScopedProfiler();
 
   // No copying or moving
@@ -109,11 +117,13 @@ class ScopedProfiler
 
  private:
   uint64_t tick_start;
+  const char*    name;
 
   struct Entry
   {
     void*       function_address;  // This identifies an Entry
                                    // function_address == 0 => the Entry is unused
+    const char* name;
     std::string function_name;
     unsigned    num_samples;
     uint64_t    cycles_average;
