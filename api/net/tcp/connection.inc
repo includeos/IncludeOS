@@ -9,7 +9,8 @@ inline Connection& Connection::on_connect(ConnectCallback cb) {
 }
 
 inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb) {
-  read(recv_bufsz, cb);
+  read_request = {{new_shared_buffer(recv_bufsz), recv_bufsz}, cb};
+  //read(recv_bufsz, cb);
   return *this;
 }
 

@@ -30,11 +30,11 @@ Header::Header(const std::size_t limit) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::add_field(const std::experimental::string_view field, std::string value) {
+bool Header::add_field(const std::string field, std::string value) {
   if (field.empty()) return false;
   //-----------------------------------
   if (size() < fields_.capacity()) {
-    fields_.emplace_back(field, std::move(value));
+    fields_.emplace_back(std::move(field), std::move(value));
     return true;
   }
   //-----------------------------------
@@ -42,7 +42,7 @@ bool Header::add_field(const std::experimental::string_view field, std::string v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::set_field(const std::experimental::string_view field, std::string value) {
+bool Header::set_field(const std::string field, std::string value) {
   if (field.empty() || value.empty()) return false;
   //-----------------------------------
   const auto target = find(field);
@@ -52,7 +52,7 @@ bool Header::set_field(const std::experimental::string_view field, std::string v
     return true;
   }
   //-----------------------------------
-  else return add_field(field, std::move(value));
+  else return add_field(std::move(field), std::move(value));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

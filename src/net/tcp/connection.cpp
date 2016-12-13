@@ -427,6 +427,7 @@ void Connection::send_much() {
 }
 
 bool Connection::handle_ack(const Packet& in) {
+  debug2("<Connection::handle_ack> IN: %s\n", in.to_string().c_str());
   // dup ack
   /*
     1. Same ACK as latest received
@@ -683,7 +684,7 @@ void Connection::retransmit() {
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
-
+  debug2("<Connection::retransmit> RTX: %s\n", packet->to_string().c_str());
   host_.transmit(std::move(packet));
 }
 
