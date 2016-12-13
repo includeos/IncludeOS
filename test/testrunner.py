@@ -385,7 +385,6 @@ def main():
         types_to_run = test_types
     stress = stress_test() if "stress" in types_to_run else 0
     misc = misc_working() if "misc" in types_to_run else 0
-    unit = unit_test() if "unit" in types_to_run else 0
     status = max(integration, stress, misc)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
