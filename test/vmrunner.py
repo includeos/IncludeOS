@@ -29,7 +29,8 @@ exit_codes = {"SUCCESS" : 0,
               "PROGRAM_FAILURE" : 1,
               "TIMEOUT" : 66,
               "VM_FAIL" : 67,
-              "OUTSIDE_FAIL" : 68 }
+              "OUTSIDE_FAIL" : 68,
+              "BUILD_FAIL" : 69 }
 
 # We want to catch the exceptions from callbacks, but still tell the test writer what went wrong
 def print_exception():
@@ -166,7 +167,11 @@ class qemu(hypervisor):
     print color.INFO(self._nametag), "command:"
     print color.DATA(command.__str__())
 
-    self._proc = start_process(command)
+    try:
+        self._proc = start_process(command)
+    except Exception as e:
+        print color.INFO(self._nametag),"Starting subprocess threw exception:",e
+        self.exit(exit_codes["OUTSIDE_FAIL"], "Could not start subprocess")
 
   def stop(self):
     if hasattr(self, "_proc") and self._proc.poll() == None :
@@ -213,9 +218,9 @@ class vm:
     self._on_exit = lambda : None
     self._root = os.getcwd()
   def exit(self, status, msg):
+    self._exit_status = status
     self.stop()
     print
-    self._exit_status = status
     print color.INFO(nametag),"Calling on_exit"
 
     # Change back to test source
@@ -276,8 +281,8 @@ class vm:
     try:
         os.makedirs("build")
     except OSError as err:
-        if err.errno!=17:
-            raise
+        if err.errno!=17: # Errno 17: File exists
+            self.exit(exit_codes["BUILD_FAIL"], "could not create build directory")
 
     # go into build directory
     # NOTE: The test gets run from here
@@ -287,11 +292,15 @@ class vm:
     cmake = ["cmake", "..", "-DCMAKE_INSTALL_PREFIX:PATH=" + INSTDIR]
     cmake.extend(args)
 
-    res = subprocess.check_output(cmake)
-    print color.SUBPROC(res)
+    try:
+        res = subprocess.check_output(cmake)
+        print color.SUBPROC(res)
 
-    # if everything went well, build with make and install
-    return self.make()
+        # if everything went well, build with make and install
+        return self.make()
+    except Exception as e:
+        print "Excetption while building: ", e
+        self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
 
   def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
 
@@ -312,13 +321,16 @@ class vm:
     except Exception as err:
       print color.WARNING("Exception raised while booting ")
       if (timeout): self._timer.cancel()
-      raise err
+      self.exit(exit_codes["OUTSIDE_FAIL"], "could not boot vm")
 
     # Start analyzing output
     while self._hyper.poll() == None and not self._exit_status:
       line = self._hyper.readline()
-      print color.SUBPROC("<VM> "+line.rstrip())
-      # Look for event-triggers
+      if line:
+          print color.SUBPROC("<VM> "+line.rstrip())
+      else:
+          print color.INFO(nametag), "VM output reached EOF"
+          # Look for event-triggers
       for pattern, func in self._on_output.iteritems():
         if re.search(pattern, line):
           try:
@@ -327,7 +339,7 @@ class vm:
             print color.WARNING("Exception raised in event callback: ")
             print_exception()
             res = False
-            self.stop().wait()
+            self.stop()
 
           #NOTE: It can be 'None' without problem
           if res == False:
@@ -349,9 +361,6 @@ class vm:
       print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
       return self
 
-    raise Exception("Unexpected termination")
-
-
 
   def stop(self):
     # Check for sudo access, needed for qemu commands
@@ -360,7 +369,7 @@ class vm:
         sys.exit(1)
 
     print color.INFO(nametag),"Stopping VM..."
-    self._hyper.stop()
+    self._hyper.stop().wait()
     if hasattr(self, "_timer") and self._timer:
       self._timer.cancel()
     return self

@@ -40,7 +40,7 @@ Message& Message::add_body(const Message_body& message_body) {
   //-----------------------------------
   message_body_ = message_body;
   //-----------------------------------
-  header().add_field(header::Content_Length, std::to_string(message_body_.size()));
+  //header().add_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
@@ -50,7 +50,7 @@ Message& Message::add_chunk(const std::string& chunk) {
   //-----------------------------------
   message_body_.append(chunk);
   //-----------------------------------
-  header().set_field(header::Content_Length, std::to_string(message_body_.size()));
+  //header().set_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
@@ -67,7 +67,7 @@ std::experimental::string_view Message::body() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 Message& Message::clear_body() noexcept {
   message_body_.clear();
-  header().erase(header::Content_Length);
+  //header().erase(header::Content_Length);
   return *this;
 }
 

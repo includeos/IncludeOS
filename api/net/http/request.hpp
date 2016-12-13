@@ -18,11 +18,22 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
 
+#include <stdexcept>
+
 #include "message.hpp"
 #include "methods.hpp"
 #include "version.hpp"
 
 namespace http {
+
+///
+/// This class is used to represent an error that occurred
+/// from within the operations of class Request
+///
+class Request_error : public std::runtime_error {
+public:
+  using runtime_error::runtime_error;
+}; //< class Request_error
 
 ///
 /// This class is used to represent
@@ -38,7 +49,7 @@ public:
   ///
   /// Constructor to construct a request
   /// message from the incoming character
-  /// stream of data which is a <std::string>
+  /// stream of data which is a {std::string}
   /// object
   ///
   /// @param request The character stream of data
@@ -46,7 +57,9 @@ public:
   /// @param limit Capacity of how many fields can
   /// be added
   ///
-  explicit Request(std::string request, const std::size_t limit = 25);
+  /// @param parse Whether to perform parsing on the the data specified in {request}
+  ///
+  explicit Request(std::string request, const std::size_t limit = 25, const bool parse = true);
 
   ///
   /// Default copy constructor
@@ -72,6 +85,13 @@ public:
   /// Default move assignment operator
   ///
   Request& operator = (Request&&) = default;
+
+  ///
+  /// Parse the information supplied to the Request object
+  ///
+  /// @return The object that invoked this method
+  ///
+  Request& parse();
 
   ///
   /// Get the method of the request message
@@ -171,11 +191,20 @@ public:
   /// into string form
   ///
   operator std::string () const;
+
+  ///
+  /// Stream a chunk of new data into the request for parsing
+  ///
+  /// @param chunk A new set of data to append to request for parsing
+  ///
+  /// @return The object that invoked this method
+  ///
+  Request& operator << (const std::string& chunk);
 private:
   ///
   /// Class data members
   ///
-  const std::string request_;
+  std::string request_;
 
   ///
   /// Request-line parts
