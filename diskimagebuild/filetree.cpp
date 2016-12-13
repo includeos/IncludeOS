@@ -1,9 +1,12 @@
 #include "filetree.hpp"
 
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <libgen.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 
 File::File(const char* path)
 {
@@ -29,25 +32,6 @@ Dir::Dir(const char* path)
   /// ... ///
 }
 
-void FileSys::add(const char* path)
-{
-  struct stat s;
-  if (stat(path, &s) == 0)
-  {
-    if (s.st_mode & S_IFDIR)
-    {
-      //dirs.emplace(path);
-      return;
-    }
-    else {
-      //files.emplace_back(path);
-      return;
-    }
-  }
-  assert(0);
-}
-
-
 void Dir::print(int level) const
 {
   for (const Dir& d : subs)
@@ -68,10 +52,6 @@ void Dir::print(int level) const
           f.name.c_str());
   }
 }
-void FileSys::print() const
-{
-  root.print(0);
-}
 
 uint32_t Dir::sectors_used() const
 {
@@ -83,4 +63,53 @@ uint32_t Dir::sectors_used() const
       cnt += file.sectors_used();
   
   return cnt;
+}
+
+void FileSys::print() const
+{
+  root.print(0);
+}
+void FileSys::add_dir(Dir& dvec)
+{
+  // push work dir
+  char pwd_buffer[256];
+  getcwd(pwd_buffer, sizeof(pwd_buffer));
+  // go into directory
+  char cwd_buffer[256];
+  getcwd(cwd_buffer, sizeof(cwd_buffer));
+  strcat(cwd_buffer, "/");
+  strcat(cwd_buffer, dvec.name.c_str());
+  
+  printf("*** Entering %s...\n", cwd_buffer);
+  chdir(cwd_buffer);
+  
+  auto* dir = opendir(cwd_buffer);
+  if (dir == nullptr)
+  {
+    printf("Could not open directory:\n-> %s\n", dvec.name.c_str());
+    return;
+  }
+  struct dirent* ent;
+  while ((ent = readdir(dir)) != nullptr)
+  {
+    std::string name(ent->d_name);
+    if (name == ".." || name == ".") continue;
+    printf("[%s]\n", ent->d_name);
+    
+    if (ent->d_type == DT_DIR) {
+      auto& d = dvec.add_dir(ent->d_name);
+      add_dir(d);
+    }
+    else {
+      dvec.add_file(ent->d_name);
+    }
+  }
+  // pop work dir
+  chdir(pwd_buffer);
+}
+
+void FileSys::gather(const char* path)
+{
+  root = Dir(path);
+  add_dir(root);
 }
