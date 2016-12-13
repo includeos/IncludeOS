@@ -29,7 +29,7 @@ namespace http {
 
 using URI = uri::URI;
 
-using Header_set = std::vector<std::pair<std::experimental::string_view, std::string>>;
+using Header_set = std::vector<std::pair<std::string, std::string>>;
 
 class Request;
 using Request_ptr = std::unique_ptr<Request>;

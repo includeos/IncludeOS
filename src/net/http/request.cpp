@@ -129,7 +129,7 @@ static void configure_settings(http_parser_settings& settings_) noexcept {
 
   settings_.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
-    req->header().add_field(req->private_field(), {at, length});
+    req->header().set_field(req->private_field().to_string(), {at, length});
     return 0;
   };
 
