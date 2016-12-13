@@ -163,7 +163,8 @@ class qemu(hypervisor):
         if "mem" in self._config:
             mem_arg = ["-m",str(self._config["mem"])]
 
-        command = ["qemu-system-x86_64"]
+        # TODO: sudo is only required for tap networking and kvm. Check for those.
+        command = ["sudo", "qemu-system-x86_64"]
         if self.kvm_present(): command.append("--enable-kvm")
 
         command += kernel_args
@@ -335,7 +336,7 @@ class vm:
 
         # Boot via hypervisor
         try:
-            self._hyper.boot(multiboot, kernel_args + "/" + self._hyper.name())
+            self._hyper.boot(multiboot, kernel_args)
         except Exception as err:
             print color.WARNING("Exception raised while booting ")
             if (timeout): self._timer.cancel()

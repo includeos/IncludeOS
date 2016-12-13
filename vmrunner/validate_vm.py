@@ -66,13 +66,9 @@ def has_required_stuff(path):
   global jsons
 
   # Certain files are mandatory
-  required_files = [ "Makefile", "test.py", "README.md", "*.cpp" ]
+  required_files = [ "CMakeLists.txt"]
   for file in required_files:
-    if not glob.glob(file):
-      # Try again with CMake version
-      required_files = [ "CMakeLists.txt", "test.py", "README.md", "*.cpp" ]
-      for file in required_files:
-        if not glob.glob(file):
+      if not glob.glob(file):
           raise Exception("missing " + file)
 
   # JSON-files must conform to VM-schema
