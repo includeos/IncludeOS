@@ -1,5 +1,6 @@
 //#define DEBUG
 #include <fs/fat.hpp>
+#include <fs/fat_internal.hpp>
 
 #include <fs/mbr.hpp>
 #include <cassert>
@@ -12,9 +13,6 @@
 #include <info>
 //#undef debug
 //#define debug(...) printf(__VA_ARGS__)
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
 
 inline std::string trim_right_copy(
    const std::string& s,
@@ -38,7 +36,7 @@ namespace fs
     MBR::BPB* bpb = mbr->bpb();
     this->sector_size = bpb->bytes_per_sector;
 
-    if (unlikely(this->sector_size < 512)) {
+    if (UNLIKELY(this->sector_size < 512)) {
       fprintf(stderr,
           "Invalid sector size (%u) for FAT32 partition\n", sector_size);
       fprintf(stderr,
@@ -140,7 +138,7 @@ namespace fs
       // verify image signature
       debug("OEM name: \t%s\n", mbr->oem_name);
       debug("MBR signature: \t0x%x\n", mbr->magic);
-      if (unlikely(mbr->magic != 0xAA55)) {
+      if (UNLIKELY(mbr->magic != 0xAA55)) {
         on_init({ error_t::E_MNT, "Missing or invalid MBR signature" });
         return;
       }
@@ -175,20 +173,20 @@ namespace fs
 
     for (int i = 0; i < 16; i++) {
 
-      if (unlikely(root[i].shortname[0] == 0x0)) {
+      if (UNLIKELY(root[i].shortname[0] == 0x0)) {
         //printf("end of dir\n");
         found_last = true;
         // end of directory
         break;
       }
-      else if (unlikely(root[i].shortname[0] == 0xE5)) {
+      else if (UNLIKELY(root[i].shortname[0] == 0xE5)) {
         // unused index
       }
       else {
         // traverse long names, then final cluster
         // to read all the relevant info
 
-        if (likely(root[i].is_longname())) {
+        if (LIKELY(root[i].is_longname())) {
           auto* L = (cl_long*) &root[i];
           // the last long index is part of a chain of entries
           if (L->is_last()) {
@@ -209,16 +207,16 @@ namespace fs
 
               for (int j = 0; j < 13; j++) {
                 // 0xFFFF indicates end of name
-                if (unlikely(longname[j] == 0xFFFF)) break;
+                if (UNLIKELY(longname[j] == 0xFFFF)) break;
                 // sometimes, invalid stuff are snuck into filenames
-                if (unlikely(longname[j] == 0x0)) break;
+                if (UNLIKELY(longname[j] == 0x0)) break;
 
                 final_name[final_count] = longname[j] & 0xFF;
                 final_count++;
               }
               L--;
 
-              if (unlikely(final_count > 240)) {
+              if (UNLIKELY(final_count > 240)) {
                 debug("Suspicious long name length, breaking...\n");
                 break;
               }

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common>
 #include <array>
 
 #include <fs/dirent.hpp>
@@ -39,10 +40,10 @@ namespace fs
 
   void File_system::read_file(const std::string& path, on_read_func on_read) {
     stat(path, [this, on_read, path](error_t err, const Dirent& ent) {
-        if(unlikely(err))
+        if(UNLIKELY(err))
           return on_read(err, nullptr, 0);
 
-        if(unlikely(!ent.is_file()))
+        if(UNLIKELY(!ent.is_file()))
           return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
 
         read(ent, 0, ent.size(), on_read);
@@ -52,10 +53,10 @@ namespace fs
   Buffer File_system::read_file(const std::string& path) {
       auto ent = stat(path);
 
-      if(unlikely(!ent.is_valid()))
+      if(UNLIKELY(!ent.is_valid()))
         return {{error_t::E_NOENT, path + " not found"}, nullptr, 0};
 
-      if(unlikely(!ent.is_file()))
+      if(UNLIKELY(!ent.is_file()))
         return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0};
 
       return read(ent, 0, ent.size());
