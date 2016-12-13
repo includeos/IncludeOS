@@ -34,6 +34,9 @@ verbose = False
 
 validator = extend_with_default(Draft4Validator)
 
+package_path = os.path.dirname(os.path.realpath(__file__))
+
+
 def load_schema(filename):
   global vm_schema
   vm_schema = json.loads(open(filename).read());
@@ -83,7 +86,7 @@ def validate_path(path, verb = False):
   verbose = verb
   current_dir = os.getcwd()
   if not vm_schema:
-    load_schema("vm.schema.json")
+    load_schema(package_path + "/vm.schema.json")
   os.chdir(path)
   try:
     has_required_stuff(path)
