@@ -10,7 +10,7 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-from vmrunner import color
+from vmrunner.prettify import color
 
 test_name="Stresstest"
 name_tag = "<" + test_name + ">"

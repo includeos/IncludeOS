@@ -7,7 +7,7 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-from prettify import color
+from vmrunner.prettify import color
 
 vm = vmrunner.vms[0]
 
