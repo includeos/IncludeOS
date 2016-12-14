@@ -15,9 +15,14 @@ FileSys fsys;
 void print_usage(char* const argv[])
 {
   fprintf(stderr,
-        "Usage:\t"
-        "%s -v --file output.file [source folder]\n"
-        "Note: The default source folder is the current directory\n"
+        "Creates a minimal read-only FAT file image from given source folder\n"
+        "Usage:\n"
+        "\t%s -v -o file [source folder]\n"
+        "Options:\n"
+        "\t-v\t\tVerbose output\n"
+        "\t-o <file>\tPlace the output into <file>\n"
+        "\n"
+        "Note: Source folder defaults to the current directory\n"
         , argv[0]);
 }
 
@@ -35,7 +40,7 @@ int main(int argc, char** argv)
   bool verbose = false;
   while (1)
   {
-    int opt = getopt(argc, argv, "vf:");
+    int opt = getopt(argc, argv, "vo:");
     if (opt == -1) break;
 
     switch (opt) {
@@ -43,7 +48,7 @@ int main(int argc, char** argv)
        verbose = true;
        break;
 
-    case 'f':
+    case 'o':
        output_file = std::string(optarg);
        break;
 
