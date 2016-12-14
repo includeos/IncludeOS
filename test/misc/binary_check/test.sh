@@ -29,8 +29,9 @@ binary_detected=0
 # Loop over files and check for binary blobs
 for single_file in $files_changed; do
 	filetype=`file -i $INCLUDEOS_SRC/$single_file`
-    echo $filetype | grep -q charset=binary
+    echo $filetype | grep -q charset=binary | grep -v directory
     if [ $? -eq 0 ]; then
+		# Skips file if it has an extension
         if [[ $single_file == *.* ]]; then
 			continue
 		fi

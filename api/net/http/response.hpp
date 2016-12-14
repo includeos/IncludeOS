@@ -18,11 +18,22 @@
 #ifndef HTTP_RESPONSE_HPP
 #define HTTP_RESPONSE_HPP
 
+#include <stdexcept>
+
 #include "message.hpp"
 #include "status_codes.hpp"
 #include "version.hpp"
 
 namespace http {
+
+///
+/// This class is used to represent an error that occurred
+/// from within the operations of class Response
+///
+class Response_error : public std::runtime_error {
+public:
+  using runtime_error::runtime_error;
+}; //< class Response_error
 
 ///
 /// This class is used to represent
@@ -51,7 +62,9 @@ public:
   /// @param limit Capacity of how many fields can
   /// be added
   ///
-  explicit Response(std::string response, const std::size_t limit = 25);
+  /// @param parse Whether to perform parsing on the the data specified in {response}
+  ///
+  explicit Response(std::string response, const std::size_t limit = 25, const bool parse = true);
 
   ///
   /// Default copy constructor
@@ -77,6 +90,13 @@ public:
   /// Default move assignment operator
   ///
   Response& operator = (Response&&) = default;
+
+  ///
+  /// Parse the information supplied to the Response object
+  ///
+  /// @return The object that invoked this method
+  ///
+  Response& parse();
 
   ///
   /// Get the status code of this
@@ -136,11 +156,20 @@ public:
   /// into string form
   ///
   operator std::string () const;
+
+  ///
+  /// Stream a chunk of new data into the response for parsing
+  ///
+  /// @param chunk A new set of data to append to response for parsing
+  ///
+  /// @return The object that invoked this method
+  ///
+  Response& operator << (const std::string& chunk);
 private:
   ///
   /// Class data members
   ///
-  const std::string response_;
+  std::string response_;
 
   ///
   /// Status-line parts

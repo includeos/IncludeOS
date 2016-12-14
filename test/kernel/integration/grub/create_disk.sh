@@ -93,11 +93,6 @@ set -e
 
 
 # Default behavior
-
-# FIXME: Install grub if needed
-# NOTE: Done to give Jenkins the Grub tools
-sudo apt install -y grub2
-
 create_disk
 mount_loopback
 

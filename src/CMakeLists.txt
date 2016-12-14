@@ -28,6 +28,7 @@ set(OS_OBJECTS
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/crc32.cpp util/async.cpp util/statman.cpp util/logger.cpp 
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
+  util/tar_reader.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
   hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
@@ -43,12 +44,14 @@ set(OS_OBJECTS
   net/super_stack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
+  net/http/client.cpp net/http/connection.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp
+  posix/file_fd.cpp
   )
 
 # Build modules into OS library
