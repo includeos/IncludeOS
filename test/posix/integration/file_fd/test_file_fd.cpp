@@ -212,5 +212,5 @@ int main()
   Expects(not failed);
 
   INFO("POSIX file_fd", "All done!");
-  exit(0);
+
 }

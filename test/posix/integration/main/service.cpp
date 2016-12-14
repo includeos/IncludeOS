@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   Expects(std::string(argv[0]) == "test_main");
   Expects(std::string(argv[1]) == "booted");
   Expects(std::string(argv[2]) == "with");
-  Expects(std::string(argv[3]) == "vmrunner/Qemu");
+  Expects(std::string(argv[3]) == "vmrunner");
 
   // We want to veirify this "exit status" on the back-end
   return 200;
