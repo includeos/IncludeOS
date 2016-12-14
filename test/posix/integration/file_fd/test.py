@@ -12,7 +12,7 @@ from subprocess import call
 # Setup disk
 call(["./make_disk.sh"], shell=True)
 
-import vmrunner
+from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
 vm.cmake()
