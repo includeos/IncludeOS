@@ -47,6 +47,38 @@ def print_exception():
                               limit=10, file=sys.stdout)
 
 
+# Check for prompt-free sudo access
+def have_sudo():
+    try:
+        subprocess.check_output(["sudo", "-n", "whoami"]) == 0
+    except Exception as e:
+        raise Exception("Sudo access required")
+
+    return True
+
+# Start a process we expect to not finish immediately (e.g. a VM)
+def start_process(cmdlist):
+
+    if cmdlist[0] == "sudo" and have_sudo():
+        print color.WARNING("Running with sudo")
+
+    # Start a subprocess
+    proc = subprocess.Popen(cmdlist,
+                            stdout = subprocess.PIPE,
+                            stderr = subprocess.PIPE,
+                            stdin = subprocess.PIPE)
+
+    # After half a second it should be started, otherwise throw
+    time.sleep(0.5)
+    if (proc.poll()):
+        data, err = proc.communicate()
+        raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
+
+    print color.INFO(nametag), "Started process PID ",proc.pid
+    return proc
+
+
+
 def abstract():
     raise Exception("Abstract class method called. Use a subclass")
 # Hypervisor base / super class
@@ -83,24 +115,6 @@ class hypervisor(object):
   # A descriptive name
   def name(self):
     abstract()
-
-
-# Start a process we expect to not finish immediately (e.g. a VM)
-def start_process(popen_param_list):
-  # Start a subprocess
-  proc = subprocess.Popen(popen_param_list,
-                          stdout = subprocess.PIPE,
-                          stderr = subprocess.PIPE,
-                          stdin = subprocess.PIPE)
-
-  # After half a second it should be started, otherwise throw
-  time.sleep(0.5)
-  if (proc.poll()):
-    data, err = proc.communicate()
-    raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
-
-  print color.INFO(nametag), "Started process PID ",proc.pid
-  return proc
 
 
 # Qemu Hypervisor interface
@@ -178,9 +192,11 @@ class qemu(hypervisor):
             self._proc = start_process(command)
         except Exception as e:
             print color.INFO(self._nametag),"Starting subprocess threw exception:",e
-            self.exit(exit_codes["OUTSIDE_FAIL"], "Could not start subprocess")
+            raise e
 
     def stop(self):
+
+        # Don't try to kill twice
         if self._stopped:
             self.wait()
             return self
@@ -190,8 +206,9 @@ class qemu(hypervisor):
         if self._proc and self._proc.poll() == None :
             print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
             # Kill
-            subprocess.check_call(["kill", "-SIGTERM", str(self._proc.pid)])
+            subprocess.check_call(["sudo", "kill", "-SIGKILL", str(self._proc.pid)])
             # Wait for termination (avoids the need to reset the terminal)
+            print color.INFO(self._nametag),"Kill signal sent"
             self.wait()
         return self
 
@@ -230,6 +247,23 @@ class vm:
         self._on_exit_success = lambda : None
         self._on_exit = lambda : None
         self._root = os.getcwd()
+
+    def stop(self):
+        self._hyper.stop().wait()
+        print color.INFO(nametag),"VM stopped"
+        if self._timer:
+            print color.INFO(nametag),"Cancelling timer"
+            self._timer.cancel()
+        return self
+
+    def wait(self):
+        if hasattr(self, "_timer") and self._timer:
+            self._timer.join()
+        self._hyper.wait()
+        return self._exit_status
+
+    def poll(self):
+        return self._hyper.poll()
 
     def exit(self, status, msg):
         self._exit_status = status
@@ -340,7 +374,7 @@ class vm:
         except Exception as err:
             print color.WARNING("Exception raised while booting ")
             if (timeout): self._timer.cancel()
-            self.exit(exit_codes["OUTSIDE_FAIL"], "could not boot vm")
+            self.exit(exit_codes["OUTSIDE_FAIL"], str(err))
 
         # Start analyzing output
         while self._hyper.poll() == None and not self._exit_status:
@@ -351,7 +385,7 @@ class vm:
                 print color.WARNING("Exception thrown while waiting for vm output")
                 break
             if line:
-                print color.SUBPROC("<VM> "+line.rstrip())
+                print color.VM(line.rstrip())
             else:
                 print color.INFO(nametag), "VM output reached EOF"
                 # Look for event-triggers
@@ -382,21 +416,6 @@ class vm:
             print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
             return self
 
-
-    def stop(self):
-        self._hyper.stop().wait()
-        if hasattr(self, "_timer") and self._timer:
-            self._timer.cancel()
-        return self
-
-    def wait(self):
-        if hasattr(self, "_timer") and self._timer:
-            self._timer.join()
-        self._hyper.wait()
-        return self._exit_status
-
-    def poll(self):
-        return self._hyper.poll()
 
 print color.HEADER("IncludeOS vmrunner loading VM configs")
 
