@@ -1,17 +1,48 @@
+
 class color:
-    C_HEAD = '\033[95m'
-    C_OKBLUE = '\033[94m'
-    C_GREEN = '\033[92m'
-    C_OKGREEN = C_GREEN
-    C_WARNING = '\033[93m'
-    C_FAILED = '\033[91m'
-    C_ENDC = '\033[0m'
-    C_BOLD = '\033[1m'
-    C_GRAY = '\033[0;37m'
-    C_RED = '\033[0;31m'
-    C_UNDERLINE = '\033[4m'
-    C_WHITE_ON_RED = '\033[37;41m'
-    C_BLACK_ON_GREEN = '\033[42;30m'
+
+    BLACK = "0"
+    RED = "1"
+    GREEN = "2"
+    YELLOW = "3"
+    BLUE = "4"
+    MAGENTA = "5"
+    CYAN = "6"
+    WHITE = "7"
+
+    NORMAL = "0"
+    BRIGHT = "1"
+    ITALIC = "3"
+    UNDERLINE = "4"
+    BLINK = "5"
+    REVERSE = "7"
+    NONE = "8"
+
+    FG_NORMAL = "3"
+    BG_NORMAL = "4"
+    FG_BRIGHT = "9"
+    BG_BRIGHT = "10"
+
+    ESC = "\033["
+    CLEAR = "0"
+
+    C_GRAY = ESC + FG_NORMAL + WHITE + "m"
+    C_DARK_GRAY = ESC + FG_BRIGHT + BLACK + "m"
+    C_OKBLUE = ESC + FG_BRIGHT + BLUE + "m"
+    C_ENDC = ESC + CLEAR + "m"
+    C_OKGREEN = ESC + FG_BRIGHT + GREEN + "m"
+    C_GREEN = ESC + FG_NORMAL + GREEN + "m"
+    C_WARNING = ESC + FG_BRIGHT + YELLOW + "m"
+    C_FAILED = ESC + FG_BRIGHT + RED + "m"
+
+    C_HEAD = ESC + FG_BRIGHT + MAGENTA + "m"
+    C_WHITE_ON_RED = ESC + FG_NORMAL + WHITE + ";" + BG_NORMAL + RED + "m"
+    C_BLACK_ON_GREEN = ESC + FG_NORMAL + BLACK + ";" + BG_NORMAL + GREEN + "m"
+
+
+    @staticmethod
+    def code(fg = WHITE, bg = BLACK, style = NORMAL, fg_intensity = FG_NORMAL, bg_intensity = BG_NORMAL):
+        return  color.ESC + style + ";" +  fg_intensity + fg + ";" + bg_intensity + bg + "m"
 
     @staticmethod
     def WARNING(string):
@@ -47,7 +78,7 @@ class color:
 
     @staticmethod
     def SUBPROC(string):
-        return color.C_GREEN + "> " + color.C_ENDC + string
+        return color.C_GREEN + "> " + color.C_DARK_GRAY + string + color.C_ENDC
 
     @staticmethod
     def VM(string):
@@ -60,3 +91,10 @@ class color:
     @staticmethod
     def HEADER(string):
         return str("\n"+color.C_HEAD + "{:=^80}" + color.C_ENDC).format(" " + string + " ")
+
+
+    @staticmethod
+    def color_test():
+        for fg in range(0,8):
+            for bg in range(0,8):
+                print color.code(fg = str(fg), bg = str(bg)), "Color " , str(fg), color.C_ENDC

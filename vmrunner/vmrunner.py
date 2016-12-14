@@ -9,6 +9,7 @@ import linecache
 import traceback
 import validate_vm
 import signal
+import psutil
 
 from prettify import color
 
@@ -47,37 +48,22 @@ def print_exception():
                               limit=10, file=sys.stdout)
 
 
+devnull = open(os.devnull, 'w')
+
 # Check for prompt-free sudo access
 def have_sudo():
     try:
-        subprocess.check_output(["sudo", "-n", "whoami"]) == 0
+        subprocess.check_output(["sudo", "-n", "whoami"], stderr = devnull) == 0
     except Exception as e:
         raise Exception("Sudo access required")
 
     return True
 
-# Start a process we expect to not finish immediately (e.g. a VM)
-def start_process(cmdlist):
-
-    if cmdlist[0] == "sudo" and have_sudo():
-        print color.WARNING("Running with sudo")
-
-    # Start a subprocess
-    proc = subprocess.Popen(cmdlist,
-                            stdout = subprocess.PIPE,
-                            stderr = subprocess.PIPE,
-                            stdin = subprocess.PIPE)
-
-    # After half a second it should be started, otherwise throw
-    time.sleep(0.5)
-    if (proc.poll()):
-        data, err = proc.communicate()
-        raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
-
-    print color.INFO(nametag), "Started process PID ",proc.pid
-    return proc
-
-
+# Run a command, pretty print output, throw on error
+def cmd(cmdlist):
+    res = subprocess.check_output(cmdlist)
+    for line in res.rstrip().split("\n"):
+        print color.SUBPROC(line)
 
 def abstract():
     raise Exception("Abstract class method called. Use a subclass")
@@ -124,7 +110,8 @@ class qemu(hypervisor):
         super(qemu, self).__init__(config)
         self._proc = None
         self._stopped = False
-
+        self._nametag = "<" + type(self).__name__ + ">"
+        self._sudo = False
 
     def name(self):
         return "Qemu"
@@ -149,8 +136,30 @@ class qemu(hypervisor):
             print color.INFO("<qemu>"),"KVM OFF"
             return False
 
+    # Start a process we expect to not finish immediately (e.g. a VM)
+    def start_process(self, cmdlist):
+
+        if cmdlist[0] == "sudo" and have_sudo():
+            print color.WARNING("Running with sudo")
+            self._sudo = True
+
+        # Start a subprocess
+        proc = subprocess.Popen(cmdlist,
+                                stdout = subprocess.PIPE,
+                                stderr = subprocess.PIPE,
+                                stdin = subprocess.PIPE)
+
+        # After half a second it should be started, otherwise throw
+        time.sleep(0.5)
+        if (proc.poll()):
+            data, err = proc.communicate()
+            raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
+
+        print color.INFO(self._nametag), "Started process PID ",proc.pid
+        return proc
+
+
     def boot(self, multiboot, kernel_args):
-        self._nametag = "<" + type(self).__name__ + ">"
         self._stopped = False
         print color.INFO(self._nametag), "booting", self._config["image"]
 
@@ -186,10 +195,10 @@ class qemu(hypervisor):
         command += ["-nographic" ] + disk_args + net_args + mem_arg
 
         print color.INFO(self._nametag), "command:"
-        print color.DATA(command.__str__())
+        print color.DATA(" ".join(command))
 
         try:
-            self._proc = start_process(command)
+            self._proc = self.start_process(command)
         except Exception as e:
             print color.INFO(self._nametag),"Starting subprocess threw exception:",e
             raise e
@@ -204,12 +213,24 @@ class qemu(hypervisor):
             self._stopped = True
 
         if self._proc and self._proc.poll() == None :
-            print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
-            # Kill
-            subprocess.check_call(["sudo", "kill", "-SIGKILL", str(self._proc.pid)])
-            # Wait for termination (avoids the need to reset the terminal)
-            print color.INFO(self._nametag),"Kill signal sent"
+
+            if not self._sudo:
+                self._proc.terminate()
+
+            else:
+                # Find and terminate all child processes, since parent is "sudo"
+                parent = psutil.Process(self._proc.pid)
+                children = parent.children()
+
+                print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
+                for child in children:
+                    print color.INFO(self._nametag)," + child process ", child.pid
+                    subprocess.check_output(["sudo", "kill", "-TERM", str(child.pid)])
+
+            # Wait for termination (avoids the need to reset the terminal etc.)
+            print color.INFO(self._nametag),"process signalled"
             self.wait()
+
         return self
 
     def wait(self):
@@ -322,8 +343,7 @@ class vm:
         print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
         make = ["make"]
         make.extend(params)
-        res = subprocess.check_output(make)
-        print color.SUBPROC(res)
+        cmd(make)
         return self
 
     def clean(self):
@@ -351,8 +371,7 @@ class vm:
         cmake.extend(args)
 
         try:
-            res = subprocess.check_output(cmake)
-            print color.SUBPROC(res)
+            cmd(cmake)
 
             # if everything went well, build with make and install
             return self.make()
@@ -361,6 +380,9 @@ class vm:
             self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
 
     def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
+
+        # This might be a reboot
+        self._exit_status = None
 
         # Start the timeout thread
         if (timeout):
