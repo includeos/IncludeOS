@@ -221,6 +221,39 @@ foreach(DISK ${MEMDISK})
   target_link_libraries(service --whole-archive disk${MDCOUNTER} --no-whole-archive)
 endforeach()
 
+if(TARFILE)
+  get_filename_component(TAR_RELPATH "${TARFILE}"
+                         REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+
+  if(CREATE_TAR)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  elseif(CREATE_TAR_GZ)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  else(true)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  endif(CREATE_TAR)
+
+  add_library(tarfile STATIC tarfile.o)
+  set_target_properties(tarfile PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(service --whole-archive tarfile --no-whole-archive)
+endif(TARFILE)
 
 add_library(crtn STATIC IMPORTED)
 set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
