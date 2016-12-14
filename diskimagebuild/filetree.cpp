@@ -5,7 +5,6 @@
 #include <cstring>
 #include <libgen.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <dirent.h>
 
 File::File(const char* path)
@@ -35,8 +34,8 @@ void Dir::print(int level) const
   for (const Dir& d : subs)
   {
     printf ("Dir%*s ", level * 2, "");
-    printf("[%u / %lu entries] %s\n",
-          d.sectors_used(), d.cluster,
+    printf("[%u entries] %s\n",
+          d.sectors_used(),
           d.name.c_str());
     
     d.print(level + 1);
@@ -85,7 +84,7 @@ void FileSys::add_dir(Dir& dvec)
   auto* dir = opendir(cwd_buffer);
   if (dir == nullptr)
   {
-    printf("Could not open directory:\n-> %s\n", dvec.name.c_str());
+    printf("Could not open directory:\n-> %s\n", cwd_buffer);
     return;
   }
   struct dirent* ent;

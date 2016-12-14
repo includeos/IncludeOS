@@ -9,16 +9,15 @@ static const int LONG_CHARS_PER_ENTRY = 13;
 
 long FileSys::to_cluster_hi(long pos) const
 {
-  return (((pos - cluster_base) / SECT_SIZE) >> 16);
+  return (((pos - SECT_SIZE) / SECT_SIZE) >> 16);
 }
 long FileSys::to_cluster_lo(long pos) const
 {
-  return (((pos - cluster_base) / SECT_SIZE) & 0xFFFF);
+  return (((pos - SECT_SIZE) / SECT_SIZE) & 0xFFFF);
 }
 
-void FileSys::write(const char* path)
+void FileSys::write(FILE* file)
 {
-  FILE* file = fopen(path, "w");
   assert(file);
   
   char mbr_code[SECT_SIZE];
@@ -46,11 +45,10 @@ void FileSys::write(const char* path)
   for (int i = 0; i < 4*sizeof(fs::MBR::partition); i++)
     ((char*) mbr->part)[i] = 0;
   
-  this->cluster_base = 1 *  SECT_SIZE;
-  
   // write root and other entries recursively
-  root.write(*this, file, SECT_SIZE * 3);
-  
+  long total_size = root.write(*this, file, SECT_SIZE * 3);
+  printf("Written %ld bytes\n", total_size);
+
   // update values
   BPB->large_sectors = root.sectors_used();
   
@@ -58,14 +56,12 @@ void FileSys::write(const char* path)
   fseek(file, 0, SEEK_SET);
   int count = fwrite(mbr_code, SECT_SIZE, 1, file);
   assert(count == 1);
-  
-  fclose(file);
 }
 
 void fill(uint16_t* ucs, int len, const char* ptr)
 {
   for (int i = 0; i < len; i++)
-    ucs[i * 2 + 0] = ptr[i] << 8;
+    ucs[i] = ptr[i];
 }
 
 std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
@@ -79,7 +75,7 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     name.resize(name.size() + rem);
     // fill rest with spaces
     for (int i = name.size() - rem; i < name.size(); i++)
-      name[i] = 32;
+      name[i] = 0x0;
   }
   // number of entries needed for this longname
   int entmax = name.size() / LONG_CHARS_PER_ENTRY;
@@ -87,13 +83,13 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
   // create entries filling as we go
   int current = 0;
   
-  for (int i = 0; i < entmax; i++)
+  for (int i = 1; i <= entmax; i++)
   {
     cl_long ent;
     ent.index    = i;
     // mark last as LAST_LONG_ENTRY
-    if (i == entmax-1)
-      ent.index |= LAST_LONG_ENTRY;
+    if (i == entmax)
+      ent.index = entmax | LAST_LONG_ENTRY;
     ent.attrib   = enttype | 0x0F;  // mark as long name
     ent.checksum = 0;
     ent.zero     = 0;
@@ -125,7 +121,7 @@ cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
   ent.attrib = attr;
   ent.cluster_hi = 0; /// SET THIS
   ent.cluster_lo = 0; /// SET THIS
-  ent.filesize   = 0;
+  ent.filesize   = size;
   return ent;
 }
 
@@ -199,9 +195,6 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
   fseek(file, pos, SEEK_SET);
   int count = fwrite(ents.data(), sizeof(cl_dir), ents.size(), file);
   assert(count == ents.size());
-  
-  this->cluster = 
-      fsys.to_cluster_lo(pos) | (fsys.to_cluster_hi(pos) << 16);
   
   return newpos;
 }

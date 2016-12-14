@@ -29,15 +29,14 @@ namespace fs
     uint32_t sector = stapos / this->sector_size;
     uint32_t nsect = roundup(endpos, sector_size) / sector_size - sector;
 
-    // the resulting buffer
-    uint8_t* result = new uint8_t[n];
-
     // read @nsect sectors ahead
     buffer_t data = device.read_sync(this->cl_to_sector(ent.block()) + sector, nsect);
     // where to start copying from the device result
     uint32_t internal_ofs = stapos % device.block_size();
     // when the offset is non-zero we aren't on a sector boundary
     if (internal_ofs != 0) {
+      // new buffer for offset result
+      uint8_t* result = new uint8_t[n];
       // so, we need to copy offset data to data buffer
       memcpy(result, data.get() + internal_ofs, n);
       data = buffer_t(result, std::default_delete<uint8_t[]>());

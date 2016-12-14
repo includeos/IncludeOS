@@ -2,6 +2,7 @@
 #define _XOPEN_SOURCE_EXTENDED 1
 
 #include <cstdio>
+#include <unistd.h>
 
 #include "filetree.hpp"
 FileSys fsys;
@@ -15,11 +16,15 @@ int main(int argc, char** argv)
      return EXIT_FAILURE;
   }
 
+  FILE* file = fopen("disk.fat", "wb");
+  chdir(argv[1]);
   // walk filesystem subtree
-  fsys.gather(argv[1]);
+  fsys.gather();
 
   // write to disk image file
-  fsys.write("disk.fat");
+  fsys.write(file);
+  fclose(file);
+  
   // print filesystem contents recursively
   fsys.print();
 

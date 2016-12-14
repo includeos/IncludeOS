@@ -2,6 +2,7 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <unistd.h>
 
 #define SECT_SIZE      512
 #define SHORTNAME_LEN  sizeof(cl_dir::shortname)
@@ -71,17 +72,16 @@ struct Dir
   std::vector<File> files;
   size_t size_helper;
   size_t idx_helper;
-  size_t cluster;
 };
 
 
 struct FileSys
 {
-  void gather(const char*);
+  void gather(const char* path = "");
   
   void print() const;
   
-  void write(const char* path);
+  void write(FILE*);
   
   long to_cluster_hi(long pos) const;
   long to_cluster_lo(long pos) const;
@@ -89,5 +89,4 @@ struct FileSys
 private:
   void add_dir(Dir& dvec);
   Dir  root {""};
-  long cluster_base;
 };
