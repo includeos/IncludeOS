@@ -53,5 +53,5 @@ int main()
   ftw_tests();
 
   INFO("POSIX STAT", "All done!");
-  exit(0);
+
 }
