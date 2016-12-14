@@ -20,37 +20,59 @@
 
 namespace http {
 
-static http_parser_settings settings;
+///
+/// Configure the settings for parsing a response
+///
+static http_parser_settings settings
+{
+  .on_header_field = [](http_parser* parser, const char* at, size_t length) {
+    auto res = reinterpret_cast<Response*>(parser->data);
+    res->set_private_field(at, length);
+    return 0;
+  },
 
-static void configure_settings(http_parser_settings&) noexcept;
+  .on_header_value = [](http_parser* parser, const char* at, size_t length) {
+    auto res = reinterpret_cast<Response*>(parser->data);
+    res->header().set_field(res->private_field().to_string(), {at, length});
+    return 0;
+  },
 
-static size_t execute_parser(Response*, http_parser&, http_parser_settings&, const std::string&) noexcept;
+  .on_body = [](http_parser* parser, const char* at, size_t length) {
+    auto res = reinterpret_cast<Response*>(parser->data);
+    res->add_chunk({at, length});
+    return 0;
+  },
+
+  .on_headers_complete = [](http_parser* parser) {
+    auto res = reinterpret_cast<Response*>(parser->data);
+    res->set_version(Version{parser->http_major, parser->http_minor});
+    res->set_status_code(static_cast<status_t>(parser->status_code));
+    return 0;
+  }
+};
+
+///
+/// Function to parse the response data
+///
+static size_t parse_response(Response*, const std::string&) noexcept;
 
 ///////////////////////////////////////////////////////////////////////////////
 Response::Response(const Version version, const status_t status_code) noexcept
   : code_{status_code}
   , version_{version}
-{
-  configure_settings(settings);
-}
+{}
 
 ///////////////////////////////////////////////////////////////////////////////
 Response::Response(std::string response, const std::size_t limit, const bool parse)
   : Message{limit}
   , response_{std::move(response)}
 {
-  configure_settings(settings);
-
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Response& Response::parse() {
-  http_parser parser;
-
-  soft_reset();
-
-  if (execute_parser(this, parser, settings, response_) not_eq response_.length()) {
+  if (parse_response(this, response_) not_eq response_.length()) {
     throw Response_error{"Invalid response: " + response_};
   }
 
@@ -102,38 +124,8 @@ Response::operator std::string () const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static void configure_settings(http_parser_settings& settings_) noexcept {
-  http_parser_settings_init(&settings_);
-
-  settings_.on_header_field = [](http_parser* parser, const char* at, size_t length) {
-    auto res = reinterpret_cast<Response*>(parser->data);
-    res->set_private_field(at, length);
-    return 0;
-  };
-
-  settings_.on_header_value = [](http_parser* parser, const char* at, size_t length) {
-    auto res = reinterpret_cast<Response*>(parser->data);
-    res->header().set_field(res->private_field().to_string(), {at, length});
-    return 0;
-  };
-
-  settings_.on_body = [](http_parser* parser, const char* at, size_t length) {
-    auto res = reinterpret_cast<Response*>(parser->data);
-    res->add_body({at, length});
-    return 0;
-  };
-
-  settings_.on_headers_complete = [](http_parser* parser) {
-    auto res = reinterpret_cast<Response*>(parser->data);
-    res->set_version(Version{parser->http_major, parser->http_minor});
-    res->set_status_code(static_cast<status_t>(parser->status_code));
-    return 0;
-  };
-}
-
-///////////////////////////////////////////////////////////////////////////////
-static size_t execute_parser(Response* res, http_parser& parser, http_parser_settings& settings,
-                           const std::string& data) noexcept {
+static size_t parse_response(Response* res, const std::string& data) noexcept {
+  http_parser parser;
   http_parser_init(&parser, HTTP_RESPONSE);
   parser.data = res;
   return http_parser_execute(&parser, &settings, data.data(), data.size());

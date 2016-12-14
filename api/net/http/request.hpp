@@ -44,7 +44,7 @@ public:
   ///
   /// Default constructor
   ///
-  explicit Request();
+  explicit Request() = default;
 
   ///
   /// Constructor to construct a request
