@@ -96,6 +96,16 @@ if(vmbuild)
     )
 endif(vmbuild)
 
+option(diskbuilder "Build and install memdisk helper tool" ON)
+if(diskbuilder)
+  ExternalProject_Add(diskbuilder
+    SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
+    BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
+    INSTALL_DIR ${BIN}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  )
+endif()
+
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
 	add_subdirectory(examples)

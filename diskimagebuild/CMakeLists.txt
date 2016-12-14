@@ -7,6 +7,6 @@ set(SOURCES main.cpp filetree.cpp writer.cpp)
 
 include_directories(../api)
 include_directories(../mod/GSL)
-add_executable(diskimagebuild ${SOURCES})
+add_executable(diskbuilder ${SOURCES})
 
-#install()
+install(TARGETS diskbuilder DESTINATION ${CMAKE_INSTALL_PREFIX})
