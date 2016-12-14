@@ -225,7 +225,7 @@ class qemu(hypervisor):
                 print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
                 for child in children:
                     print color.INFO(self._nametag)," + child process ", child.pid
-                    subprocess.check_output(["sudo", "kill", "-TERM", str(child.pid)])
+                    subprocess.check_output(["sudo", "kill", "-SIGTERM", str(child.pid)])
 
             # Wait for termination (avoids the need to reset the terminal etc.)
             print color.INFO(self._nametag),"process signalled"
@@ -424,7 +424,7 @@ class vm:
                     #NOTE: It can be 'None' without problem
                     if res == False:
                         self._exit_status = exit_codes["OUTSIDE_FAIL"]
-                        self.exit(self._exit_status, " VM-external test failed")
+                        self.exit(self._exit_status, " Event-triggered test failed")
 
         # Now we either have an exit status from timer thread, or an exit status
         # from the subprocess, or the VM was powered off by the external test.

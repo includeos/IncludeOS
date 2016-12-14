@@ -28,12 +28,12 @@ class color:
 
     C_GRAY = ESC + FG_NORMAL + WHITE + "m"
     C_DARK_GRAY = ESC + FG_BRIGHT + BLACK + "m"
-    C_OKBLUE = ESC + FG_BRIGHT + BLUE + "m"
+    C_OKBLUE = ESC + FG_NORMAL + BLUE + "m"
     C_ENDC = ESC + CLEAR + "m"
     C_OKGREEN = ESC + FG_BRIGHT + GREEN + "m"
     C_GREEN = ESC + FG_NORMAL + GREEN + "m"
-    C_WARNING = ESC + FG_BRIGHT + YELLOW + "m"
-    C_FAILED = ESC + FG_BRIGHT + RED + "m"
+    C_WARNING = ESC + FG_NORMAL + YELLOW + ";" + BRIGHT + "m"
+    C_FAILED = ESC + FG_NORMAL + RED + ";" + BRIGHT + "m"
 
     C_HEAD = ESC + FG_BRIGHT + MAGENTA + "m"
     C_WHITE_ON_RED = ESC + FG_NORMAL + WHITE + ";" + BG_NORMAL + RED + "m"
@@ -46,11 +46,11 @@ class color:
 
     @staticmethod
     def WARNING(string):
-        return color.C_WARNING + "[ WARNING ] " + string + color.C_ENDC
+        return color.C_WARNING + "[ WARNING ] " + string.rstrip() + color.C_ENDC + "\n"
 
     @staticmethod
     def FAIL(string):
-        return "\n" + color.C_FAILED + "[ FAIL ] " + string + color.C_ENDC + "\n"
+        return "\n" + color.C_FAILED + "[ FAIL ] " + string.rstrip() + color.C_ENDC + "\n"
 
     @staticmethod
     def FAIL_INLINE():
@@ -78,7 +78,7 @@ class color:
 
     @staticmethod
     def SUBPROC(string):
-        return color.C_GREEN + "> " + color.C_DARK_GRAY + string + color.C_ENDC
+        return color.C_GREEN + "> " + color.C_DARK_GRAY + string.rstrip() + color.C_ENDC
 
     @staticmethod
     def VM(string):
