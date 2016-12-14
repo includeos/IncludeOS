@@ -16,7 +16,7 @@ long FileSys::to_cluster_lo(long pos) const
   return (((pos - SECT_SIZE) / SECT_SIZE) & 0xFFFF);
 }
 
-void FileSys::write(FILE* file)
+long FileSys::write(FILE* file)
 {
   assert(file);
   
@@ -47,7 +47,6 @@ void FileSys::write(FILE* file)
   
   // write root and other entries recursively
   long total_size = root.write(*this, file, SECT_SIZE * 3);
-  printf("Written %ld bytes\n", total_size);
 
   // update values
   BPB->large_sectors = root.sectors_used();
@@ -56,6 +55,8 @@ void FileSys::write(FILE* file)
   fseek(file, 0, SEEK_SET);
   int count = fwrite(mbr_code, SECT_SIZE, 1, file);
   assert(count == 1);
+  
+  return total_size;
 }
 
 void fill(uint16_t* ucs, int len, const char* ptr)

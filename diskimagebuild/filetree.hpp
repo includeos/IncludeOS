@@ -81,7 +81,9 @@ struct FileSys
   
   void print() const;
   
-  void write(FILE*);
+  // writes the filesystem to a file, returning
+  // total bytes written
+  long write(FILE*);
   
   long to_cluster_hi(long pos) const;
   long to_cluster_lo(long pos) const;
