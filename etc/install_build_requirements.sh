@@ -47,7 +47,7 @@ case $SYSTEM in
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo pacman -Syyu
-                sudo pacman -S $DEPENDENCIES
+                sudo pacman -S --needed $DEPENDENCIES
                 exit 0;
                 ;;
         esac
