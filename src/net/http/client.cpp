@@ -28,7 +28,11 @@ namespace http {
   {
     auto& conn = get_connection(host);
 
-    //printf("Sending Request:\n%s\n", req->to_string().c_str());
+    auto&& header = req->header();
+    // Set Host if not already set
+    if(! header.has_field(header::Host))
+      header.set_field(header::Host, host.to_string());
+
     conn.send(std::move(req), std::move(cb));
   }
 
@@ -40,13 +44,15 @@ namespace http {
       // Host resolved
       if(ip != 0)
       {
-        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
-
+        // setup request with method and headers
         auto req = create_request();
+        *req << hfields;
 
+        // Set Host and URI path
         populate_from_url(*req, url);
 
-        *req << hfields;
+        // Default to port 80 if non given
+        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
         send(std::move(req), {ip, port}, std::move(cb));
       }
@@ -55,6 +61,18 @@ namespace http {
         cb({Error::RESOLVE_HOST}, nullptr);
       }
     });
+  }
+
+  void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb)
+  {
+    // setup request with method and headers
+    auto req = create_request();
+    *req << hfields;
+
+    //set uri
+    req->set_uri(URI{std::move(path)});
+
+    send(std::move(req), std::move(host), std::move(cb));
   }
 
   void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb)
@@ -65,17 +83,19 @@ namespace http {
       // Host resolved
       if(ip != 0)
       {
-        const uint16_t port = (url.port() != 0) ? url.port() : 80;
-
+        // setup request with method and headers
         auto req = create_request();
-
         req->set_method(POST);
-
-        populate_from_url(*req, url);
-
         *req << hfields;
 
-        req->add_body(std::move(data));
+        // Set Host & path from url
+        populate_from_url(*req, url);
+
+        // Add data and content length
+        add_data(*req, data);
+
+        // Default to port 80 if non given
+        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
         send(std::move(req), {ip, port}, std::move(cb));
       }
@@ -86,12 +106,44 @@ namespace http {
     });
   }
 
+  void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb)
+  {
+    // setup request with method and headers
+    auto req = create_request();
+    req->set_method(POST);
+    *req << hfields;
+
+    // set uri
+    req->set_uri(URI{std::move(path)});
+
+    // Add data and content length
+    add_data(*req, data);
+
+    send(std::move(req), std::move(host), std::move(cb));
+  }
+
+  void Client::add_data(Request& req, const std::string& data)
+  {
+    auto& header = req.header();
+    if(!header.has_field(header::Content_Type))
+      header.set_field(header::Content_Type, "text/plain"); // Maybe try to resolve
+
+    // Set Content-Length to be equal data length
+    req.header().set_field(header::Content_Length, std::to_string(data.size()));
+
+    // Add data
+    req.add_body(data);
+  }
+
   void Client::populate_from_url(Request& req, const URI& url)
   {
     // Set uri path
     req.set_uri( URI{url.path().to_string()} );
-    // Set Host: url.host
-    req.header().set_field(header::Host, url.host().to_string());
+    // Set Host: host(:port)
+    req.header().set_field(header::Host,
+      (url.port() != 0xFFFF) ?
+      url.host().to_string() + ":" + url.port_str().to_string()
+      : url.host().to_string()); // to_string madness
   }
 
   void Client::resolve(const URI& url, ResolveCallback cb)

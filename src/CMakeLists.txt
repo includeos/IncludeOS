@@ -26,7 +26,7 @@ set(OS_OBJECTS
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
-  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp
+  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/syslog_facility.cpp util/syslogd.cpp util/tar_reader.cpp
   util/uri.cpp util/percent_encoding.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
@@ -50,6 +50,7 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp
+  posix/file_fd.cpp
   )
 
 # Build modules into OS library

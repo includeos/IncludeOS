@@ -91,11 +91,6 @@ int unlink(const char*) {
   return -1;
 }
 
-off_t lseek(int, off_t, int) {
-  panic("SYSCALL LSEEK returning 0");
-  return 0;
-}
-
 void* sbrk(ptrdiff_t incr) {
   // Stat increment syscall sbrk called
   sbrk_called++;

@@ -21,6 +21,7 @@
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <fs/vfs.hpp>
+#include <file_fd.hpp>
 
 static const int rng_fd       {998}; // temp
 
@@ -29,7 +30,20 @@ int open(const char* s, int, ...)
   if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
     return rng_fd;
   }
-  return -1;
+  try {
+    auto ent = fs::VFS::stat_sync(s);
+    if (ent.is_valid())
+    {
+      auto& fd = FD_map::_open<File_FD>(ent);
+      return fd.get_id();
+    }
+    errno = ENOENT;
+    return -1;
+  }
+  catch (const fs::Err_not_found& e) {
+    errno = ENOENT;
+    return -1;
+  }
 }
 
 int close(int fd)
@@ -37,8 +51,7 @@ int close(int fd)
   if(fd == rng_fd) {
     return 0;
   }
-  try
-  {
+  try {
     return FD_map::_close(fd);
   }
   catch(const FD_not_found&)
@@ -50,9 +63,21 @@ int close(int fd)
 
 int read(int fd, void* buf, size_t len)
 {
+  if (buf == nullptr) {
+    errno = EFAULT;
+    return -1;
+  }
   if(fd == rng_fd) {
     rng_extract(buf, len);
     return len;
+  }
+  try {
+    auto& fildes = FD_map::_get(fd);
+    return fildes.read(buf, len);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
   }
   return 0;
 }
@@ -99,6 +124,17 @@ int fsync(int fildes)
 int fchown(int, uid_t, gid_t)
 {
   return -1;
+}
+
+off_t lseek(int fd, off_t offset, int whence) {
+  try {
+    auto& fildes = FD_map::_get(fd);
+    return fildes.lseek(offset, whence);
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
 }
 
 #include <kernel/irq_manager.hpp>

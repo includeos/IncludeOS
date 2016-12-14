@@ -1,6 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FILE_FD_HPP
-#define FILE_FD_HPP
+#ifndef ___API_TAR___
+#define ___API_TAR___
 
-#include <fd.hpp>
-#include <os>
-#include <fs/dirent.hpp>
+#include "util/tar_reader.hpp"
 
-class File_FD : public FD {
-public:
-  explicit File_FD(const int id, const fs::Dirent ent, uint64_t offset = 0)
-      : FD(id), ent_ {ent}, offset_ {offset}
-  {}
-
-  int read(void*, size_t) override;
-  int write(const void*, size_t) override;
-  int close() override;
-  int lseek(off_t, int) override;
-
-  bool is_file() override { return true; }
-
-private:
-  fs::Dirent ent_;
-  uint64_t offset_;
-};
-
-#endif
+#endif //< ___API_TAR___
