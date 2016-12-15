@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project(unittests CXX)
 
-set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -DNO_INFO=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Wall -Wextra -Wno-unused-function -DNO_INFO=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
@@ -28,6 +28,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
+  ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
@@ -57,6 +58,7 @@ set(OS_SOURCES
   ${SRC}/kernel/memmap.cpp
   ${SRC}/net/util.cpp
   ${SRC}/posix/fd.cpp
+  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/statman.cpp
   ${SRC}/util/uri.cpp

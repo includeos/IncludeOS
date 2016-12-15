@@ -21,7 +21,7 @@
 using namespace std::string_literals;
 
     CASE("Bogus URI is invalid") {
-      uri::URI uri {"???!?!"s};
+      uri::URI uri {"?!?!?!"s};
       EXPECT(uri.is_valid() == false);
     }
 

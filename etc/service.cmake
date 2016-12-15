@@ -25,9 +25,6 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# stack protector canary helps detect overflows
-string(RANDOM LENGTH 7 ALPHABET 0123456789 STACK_PROTECTOR_VALUE)
-
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
@@ -165,7 +162,7 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -221,6 +218,39 @@ foreach(DISK ${MEMDISK})
   target_link_libraries(service --whole-archive disk${MDCOUNTER} --no-whole-archive)
 endforeach()
 
+if(TARFILE)
+  get_filename_component(TAR_RELPATH "${TARFILE}"
+                         REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+
+  if(CREATE_TAR)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  elseif(CREATE_TAR_GZ)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  else(true)
+    add_custom_command(
+      OUTPUT tarfile.o
+      COMMAND cp ${TAR_RELPATH} input.bin
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND rm input.bin
+    )
+  endif(CREATE_TAR)
+
+  add_library(tarfile STATIC tarfile.o)
+  set_target_properties(tarfile PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(service --whole-archive tarfile --no-whole-archive)
+endif(TARFILE)
 
 add_library(crtn STATIC IMPORTED)
 set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)

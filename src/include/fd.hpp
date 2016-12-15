@@ -60,11 +60,12 @@ public:
   virtual int   fchmod(mode_t) { return -1; }
   virtual int   fchmodat(const char *, mode_t, int) { return -1; }
   virtual int   fstatat(const char *, struct stat *, int) { return -1; }
-  virtual int   futimens(const struct timespec times[2]) { return -1; }
-  virtual int   utimensat(const char *, const struct timespec times[2], int) { return -1; }
+  virtual int   futimens(const struct timespec[2]) { return -1; }
+  virtual int   utimensat(const char *, const struct timespec[2], int) { return -1; }
   virtual int   mkdirat(const char *, mode_t) { return -1; }
   virtual int   mkfifoat(const char *, mode_t) { return -1; }
   virtual int   mknodat(const char *, mode_t, dev_t) { return -1; }
+  virtual int   lseek(off_t, int) { return -1; }
 
   id_t get_id() const noexcept { return id_; }
 

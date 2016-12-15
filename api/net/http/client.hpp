@@ -49,10 +49,18 @@ namespace http {
     void send(Request_ptr, Host host, Response_handler);
 
     void get(URI url, Header_set hfields, Response_handler cb);
+
     void get(std::string url, Header_set hfields, Response_handler cb)
     { get(URI{url}, std::move(hfields), std::move(cb)); }
 
+    void get(Host host, std::string path, Header_set hfields, Response_handler cb);
+
     void post(URI url, Header_set hfields, std::string data, Response_handler cb);
+
+    void post(std::string url, Header_set hfields, std::string data, Response_handler cb)
+    { post(URI{url}, std::move(hfields), std::move(data), std::move(cb)); }
+
+    void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb);
 
     Request_ptr create_request() const;
 
@@ -70,7 +78,11 @@ namespace http {
       (keep_alive_) ? std::string{"keep-alive"} : std::string{"close"});
     }
 
+    /** Set uri and Host from URL */
     void populate_from_url(Request& req, const URI& url);
+
+    /** Add data and content length */
+    void add_data(Request&, const std::string& data);
 
     Connection& get_connection(const Host host);
 

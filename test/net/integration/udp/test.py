@@ -6,9 +6,9 @@ import os
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 print 'includeos_src: {0}'.format(includeos_src)
-sys.path.insert(0,includeos_src + "/test")
+sys.path.insert(0,includeos_src)
 
-import vmrunner
+from vmrunner import vmrunner
 import socket
 
 # Get an auto-created VM from the vmrunner

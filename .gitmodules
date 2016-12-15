@@ -8,3 +8,6 @@
 [submodule "mod/http-parser"]
 	path = mod/http-parser
 	url = https://github.com/nodejs/http-parser.git
+[submodule "mod/uzlib"]
+	path = mod/uzlib
+	url = https://github.com/AnnikaH/uzlib.git
