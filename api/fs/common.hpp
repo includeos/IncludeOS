@@ -148,6 +148,10 @@ namespace fs {
     operator bool () const noexcept
     { return is_valid(); }
 
+    /// retrieve error status
+    error_t error() const noexcept
+    { return err_; }
+
     /**
      * @brief Get the starting address of the underlying data buffer
      *
