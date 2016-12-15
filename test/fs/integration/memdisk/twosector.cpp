@@ -34,10 +34,16 @@ void Service::start(const std::string&)
   // read one block
   auto buf = disk->dev().read_sync(0);
   // verify nothing bad happened
-  CHECKSERT(!!(buf), "Buffer for sector 0 is valid");
+  CHECKSERT(!!buf, "Buffer for sector 0 is valid");
 
-  // convert to text
+  // convert to text (before reading sector 2)
   std::string text((const char*) buf.get(), disk->dev().block_size());
+
+  // read another block
+  buf = disk->dev().read_sync(1);
+  // verify nothing bad happened
+  CHECKSERT(!!buf, "Buffer for sector 1 is valid");
+
   // verify that the sector contents matches the test string
   // NOTE: the 3 first characters are non-text 0xBFBBEF
   std::string test1 = "\xEF\xBB\xBFThe Project Gutenberg EBook of Pride and Prejudice, by Jane Austen";

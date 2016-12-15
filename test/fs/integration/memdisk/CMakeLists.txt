@@ -16,6 +16,6 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
-set(MEMDISK sector2.disk)
-
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+add_memdisk(sector2.disk)
