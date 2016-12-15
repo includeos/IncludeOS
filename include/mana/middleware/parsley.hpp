@@ -46,43 +46,6 @@ private:
   bool has_json(const mana::Request& req) const;
 }; //< class Parsley
 
-/**--v----------- Implementation Details -----------v--**/
-
-inline void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
-
-  // Request doesn't have JSON attribute
-  if(has_json(*req) and not req->has_attribute<json::Json_doc>())
-  {
-    // Create attribute
-    auto json = std::make_shared<json::Json_doc>();
-
-    // Access the document and parse the body
-    try {
-      json->doc().Parse(req->get_body().c_str());
-      #ifdef VERBOSE_WEBSERVER
-      printf("<Parsley> Parsed JSON data.\n");
-      #endif
-
-      // Add the json attribute to the request
-      req->set_attribute(std::move(json));
-    }
-    catch(const Assert_error& e) {
-      printf("<Parsley> Parsing error.\n");
-    }
-
-  }
-
-  return (*next)();
-}
-
-inline bool Parsley::has_json(const mana::Request& req) const {
-  auto c_type = http::header_fields::Entity::Content_Type;
-  if(not req.has_header(c_type)) return false;
-  return (req.header_value(c_type).find("application/json") != std::string::npos);
-}
-
-/**--^----------- Implementation Details -----------^--**/
-
 } //< namespace json
 
 #endif //< JSON_PARSLEY_HPP
