@@ -6,6 +6,7 @@
 #include <cstring>
 
 static const int LONG_CHARS_PER_ENTRY = 13;
+static const int ENTS_PER_SECT = 16;
 
 long FileSys::to_cluster_hi(long pos) const
 {
@@ -46,7 +47,8 @@ long FileSys::write(FILE* file)
     ((char*) mbr->part)[i] = 0;
   
   // write root and other entries recursively
-  long total_size = root.write(*this, file, SECT_SIZE * 3);
+  long root_pos = SECT_SIZE * 3; // Note: roots parent is itself :)
+  long total_size = root.write(*this, file, root_pos, root_pos);
 
   // update values
   BPB->large_sectors = root.sectors_used();
@@ -67,7 +69,16 @@ void fill(uint16_t* ucs, int len, const char* ptr)
 
 std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
 {
-  assert(!name.empty());
+  assert(name.size() > SHORTNAME_LEN);
+
+  // create checksum of "shortname"
+  unsigned char csum = 0;
+  for (int i = 0; i < SHORTNAME_LEN; i++)
+  {
+    csum = (csum >> 1) + ((csum & 1) << 7); // rotate
+    csum += name[i];                        // next byte
+  }
+
   std::vector<cl_dir> longs;
   // calculate number of entries needed
   if (name.size() % LONG_CHARS_PER_ENTRY) {
@@ -92,7 +103,7 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     if (i == entmax)
       ent.index = entmax | LAST_LONG_ENTRY;
     ent.attrib   = enttype | 0x0F;  // mark as long name
-    ent.checksum = 0;
+    ent.checksum = csum;
     ent.zero     = 0;
     
     fill(ent.first, 5, &name[current]);
@@ -108,6 +119,24 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
   }
   //
   return longs;
+}
+
+void create_preamble(
+    FileSys& fsys, std::vector<cl_dir>& ents, long self, long parent)
+{
+  cl_dir ent;
+  ent.attrib = ATTR_DIRECTORY;
+  ent.filesize = 0;
+  // . current directory
+  memcpy((char*) ent.shortname, ".            ", SHORTNAME_LEN);
+  ent.cluster_hi = fsys.to_cluster_hi(self);
+  ent.cluster_lo = fsys.to_cluster_lo(self);
+  ents.push_back(ent);
+  // .. parent directory
+  memcpy((char*) ent.shortname, "..           ", SHORTNAME_LEN);
+  ent.cluster_hi = fsys.to_cluster_hi(parent);
+  ent.cluster_lo = fsys.to_cluster_lo(parent);
+  ents.push_back(ent);
 }
 
 cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
@@ -126,10 +155,35 @@ cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
   return ent;
 }
 
-long Dir::write(FileSys& fsys, FILE* file, long pos)
+void fill_unused(std::vector<cl_dir>& ents, int num)
+{
+  cl_dir ent;
+  ent.shortname[0] = 0xE5; // unused entry
+  ent.attrib     = 0;
+  ent.cluster_hi = 0;
+  ent.cluster_lo = 0;
+  ent.filesize   = 0;
+  while (num--) ents.push_back(ent);
+}
+void mod16_test(std::vector<cl_dir>& ents, int& mod16, int long_entries)
+{
+  // if longname is overshooting sector
+  if (mod16 + long_entries + 1 > ENTS_PER_SECT) {
+    // fill remainder of sector with unused entries
+    fill_unused(ents, ENTS_PER_SECT - mod16);
+    mod16 = 0;
+  }
+  mod16 += long_entries;
+}
+
+long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
 {
   // create vector of dirents
   std::vector<cl_dir> ents;
+  // create . and .. entries
+  create_preamble(fsys, ents, pos, parent);
+  // 
+  int mod16 = ents.size();
   
   for (auto& sub : subs)
   {
@@ -138,9 +192,15 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
     if (sub.name.size() > SHORTNAME_LEN) {
       // add longname entries
       auto longs = create_longname(sub.name, ATTR_DIRECTORY);
+      if (longs.size() > ENTS_PER_SECT) continue;
+      
+      // test and fill remainder of sector if overshooting
+      mod16_test(ents, mod16, longs.size());
+      // insert longnames to back of directory
       ents.insert(ents.end(), longs.begin(), longs.end());
       sub.size_helper += longs.size();
     }
+    mod16 += 1;
     // actual dirent *sigh*
     sub.idx_helper = ents.size();
     ents.push_back(create_entry(sub.name, ATTR_DIRECTORY, 0));
@@ -152,9 +212,13 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
     if (file.name.size() > SHORTNAME_LEN) {
       // add longname entries
       auto longs = create_longname(file.name, ATTR_READ_ONLY);
+      // test and fill remainder of sector if overshooting
+      mod16_test(ents, mod16, longs.size());
+      // insert longnames to back of directory
       ents.insert(ents.end(), longs.begin(), longs.end());
       file.size_helper += longs.size();
     }
+    mod16 += 1;
     // actual file entry
     file.idx_helper = ents.size();
     ents.push_back(create_entry(file.name, ATTR_READ_ONLY, file.size));
@@ -168,7 +232,7 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
   }
   
   // use dirents to measure size in sectors of this directory
-  long ssize = ents.size() / 16 + (ents.size() & 15) ? 1 : 0;
+  long ssize = (ents.size() / 16) + ((ents.size() & 15) ? 1 : 0);
   
   // the next directory and files start at pos + SECT_SIZE * ssize etc
   long newpos = pos + ssize * SECT_SIZE;
@@ -180,7 +244,7 @@ long Dir::write(FileSys& fsys, FILE* file, long pos)
     ent.cluster_hi = fsys.to_cluster_hi(newpos);
     ent.cluster_lo = fsys.to_cluster_lo(newpos);
     // get new position by writing directory
-    newpos = sub.write(fsys, file, newpos);
+    newpos = sub.write(fsys, file, newpos, pos);
   }
   // write files
   for (const auto& fil : files)

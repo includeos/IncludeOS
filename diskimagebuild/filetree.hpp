@@ -65,7 +65,7 @@ struct Dir
   uint32_t sectors_used() const;
   
   // recursively write dirent
-  long write(FileSys&, FILE*, long);
+  long write(FileSys&, FILE*, long, long);
   
   std::string       name;
   std::vector<Dir>  subs;
