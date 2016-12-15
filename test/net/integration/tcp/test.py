@@ -6,75 +6,109 @@ import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src + "/test")
+sys.path.insert(0,includeos_src)
 
-import vmrunner
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 # Usage: python test.py $GUEST_IP $HOST_IP
 GUEST = '10.0.0.44' if (len(sys.argv) < 2) else sys.argv[1]
 HOST = '10.0.0.1' if (len(sys.argv) < 3) else sys.argv[2]
 
-def TCP_test(trigger_line):
-    def connect(port):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_address = (GUEST, port)
-        print >>sys.stderr, 'connecting to %s port %s' % server_address
-        sock.connect(server_address)
 
-        try:
-            while True:
-                data = sock.recv(1024)
-                #print >>sys.stderr, '%s' % data
-                if data:
-                    sock.sendall(data);
-                else:
-                    break
-        finally:
-            print >>sys.stderr, 'closing socket'
-            sock.close()
-        return
+TEST1 = 8081
+TEST2 = 8082
+TEST3 = 8083
+TEST4 = 8084
+TEST5 = 8085
 
-    connect(8081)
-    connect(8082)
-    connect(8083)
-    connect(8084)
+INFO = color.INFO("<test.py>")
 
-    def listen(port):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_address = (HOST, port)
-        print >>sys.stderr, 'starting up on %s port %s' % server_address
-        sock.bind(server_address)
-        sock.listen(1)
-
+def connect(port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (GUEST, port)
+    print INFO, 'connecting to %s port %s' % server_address
+    sock.connect(server_address)
+    bytes_received = 0
+    try:
         while True:
-            connection, client_address = sock.accept()
-            try:
-                print >>sys.stderr, 'connection from', client_address
-                while True:
-                    data = connection.recv(1024)
-                    if data:
-                        print >>sys.stderr, 'received data, sending data back to the client'
-                        connection.sendall(data)
-                        print >>sys.stderr, 'close connection to client'
-                        connection.close()
-                    else:
-                        print >>sys.stderr, 'no more data from', client_address
-                        break
-
-            finally:
-                connection.close()
+            data = sock.recv(1024)
+            bytes_received += len(data)
+            #print >>sys.stderr, '%s' % data
+            if data:
+                sock.sendall(data);
+            else:
                 break
-            sock.close()
-        return
+    finally:
+        print INFO, 'closing socket. Received ', str(bytes_received),"bytes"
+        sock.close()
 
-    listen(8085)
+    return True
+
+def listen(port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_address = (HOST, port)
+    print INFO, 'starting up on %s port %s' % server_address
+    sock.bind(server_address)
+    sock.listen(1)
+
+    while True:
+        connection, client_address = sock.accept()
+        try:
+            print INFO, 'connection from', client_address
+            while True:
+                data = connection.recv(1024)
+                if data:
+                    print INFO,'received data, sending data back to the client'
+                    connection.sendall(data)
+                    print INFO,'close connection to client'
+                    connection.close()
+                else:
+                    print INFO,'no more data from', client_address
+                    break
+
+        finally:
+            connection.close()
+            break
+
+        sock.close()
+        return True
+
+
+def test1(trigger):
+    print INFO, trigger.rstrip(),  "triggered by VM"
+    return connect(TEST1)
+
+def test2(trigger):
+    print INFO, trigger.rstrip(),  "triggered by VM"
+    return connect(TEST2)
+
+def test3(trigger):
+    print INFO, trigger.rstrip(),  "triggered by VM"
+    return connect(TEST3)
+
+def test4(trigger):
+    print INFO, trigger.rstrip(),  "triggered by VM"
+    connect(TEST4)
+
+def test5(trigger):
+    print INFO, trigger.rstrip(),  "triggered by VM"
+    listen(TEST5)
+
+
+#listen(8085)
+
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
 # Add custom event-handler
-vm.on_output("IncludeOS TCP test", TCP_test)
+vm.on_output("TEST1", test1)
+vm.on_output("TEST2", test2)
+vm.on_output("TEST3", test3)
+vm.on_output("TEST4", test4)
+
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(80).clean()
+vm.cmake().boot(120).clean()

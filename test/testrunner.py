@@ -8,9 +8,10 @@ import json
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
+sys.path.insert(0, "..")
 
-from prettify import color as pretty
-import validate_test
+from vmrunner.prettify import color as pretty
+from vmrunner import validate_vm
 import validate_all
 
 startdir = os.getcwd()
@@ -48,8 +49,8 @@ def print_skipped(tests):
     for test in tests:
         if test.skip_:
             print pretty.WARNING("* Skipping " + test.name_)
-            if "validate_test" in test.skip_reason_:
-                validate_test.validate_path(test.path_, verb = True)
+            if "validate_vm" in test.skip_reason_:
+                validate_vm.validate_path(test.path_, verb = True)
             else:
                 print "  Reason: {0:40}".format(test.skip_reason_)
 
@@ -164,9 +165,9 @@ class Test:
         self: Class function
         """
         # Test 1
-        if not validate_test.validate_path(self.path_, verb = False):
+        if not validate_vm.validate_path(self.path_, verb = False):
             self.skip_ = True
-            self.skip_reason_ = 'Failed validate_test, missing files'
+            self.skip_reason_ = 'Failed validate_vm, missing files'
             return
 
         # Test 2
@@ -198,7 +199,7 @@ def stress_test():
         print pretty.WARNING("Stress test skipped")
         return 0
 
-    if (not validate_test.validate_path("stress")):
+    if (not validate_vm.validate_path("stress")):
         raise Exception("Stress test failed validation")
 
     print pretty.HEADER("Starting stress test")

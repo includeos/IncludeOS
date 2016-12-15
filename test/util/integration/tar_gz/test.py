@@ -8,7 +8,7 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 print 'includeos_src: {0}'.format(includeos_src)
 sys.path.insert(0,includeos_src + "/test")
 
-import vmrunner
+from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
 num_elements = 0

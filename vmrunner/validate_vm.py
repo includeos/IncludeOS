@@ -34,6 +34,9 @@ verbose = False
 
 validator = extend_with_default(Draft4Validator)
 
+package_path = os.path.dirname(os.path.realpath(__file__))
+
+
 def load_schema(filename):
   global vm_schema
   vm_schema = json.loads(open(filename).read());
@@ -63,13 +66,9 @@ def has_required_stuff(path):
   global jsons
 
   # Certain files are mandatory
-  required_files = [ "Makefile", "test.py", "README.md", "*.cpp" ]
+  required_files = [ "CMakeLists.txt"]
   for file in required_files:
-    if not glob.glob(file):
-      # Try again with CMake version
-      required_files = [ "CMakeLists.txt", "test.py", "README.md", "*.cpp" ]
-      for file in required_files:
-        if not glob.glob(file):
+      if not glob.glob(file):
           raise Exception("missing " + file)
 
   # JSON-files must conform to VM-schema
@@ -83,7 +82,7 @@ def validate_path(path, verb = False):
   verbose = verb
   current_dir = os.getcwd()
   if not vm_schema:
-    load_schema("vm.schema.json")
+    load_schema(package_path + "/vm.schema.json")
   os.chdir(path)
   try:
     has_required_stuff(path)
