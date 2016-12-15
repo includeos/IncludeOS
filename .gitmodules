@@ -1,6 +1,3 @@
-[submodule "lib/http"]
-	path = lib/http
-	url = https://github.com/hioa-cs/http.git
-[submodule "lib/path_to_regex"]
-	path = lib/path_to_regex
-	url = https://github.com/includeos/path_to_regex.git
+[submodule "mod/rapidjson"]
+	path = mod/rapidjson
+	url = https://github.com/miloyip/rapidjson.git
