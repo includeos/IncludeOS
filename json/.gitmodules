@@ -1,3 +1,0 @@
-[submodule "rapidjson"]
-	path = rapidjson
-	url = https://github.com/miloyip/rapidjson.git
