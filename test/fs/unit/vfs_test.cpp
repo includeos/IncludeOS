@@ -48,7 +48,7 @@ CASE("VFS entries can return type info as string")
 {
   fs::VFS_entry e("entry", "description");
   auto info = e.type_name();
-  EXPECT(info.length() > 0);
+  EXPECT(info.length() > 0u);
   auto pos = info.find("nullptr");
   EXPECT(pos != std::string::npos);
 }

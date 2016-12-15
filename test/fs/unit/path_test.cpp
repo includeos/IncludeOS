@@ -51,7 +51,7 @@ CASE("Paths can be checked for inequality")
 CASE("Path can return number of components")
 {
   fs::Path path {"/Users/Bjarne/Documents"};
-  EXPECT(path.size() == 3);
+  EXPECT(path.size() == 3u);
 }
 
 CASE("Path can return specific component")
@@ -97,7 +97,7 @@ CASE("Path components can be added")
   fs::Path path {"/Users/Bjarne/Documents"s};
   path += "Books"s;
   path += "C++"s;
-  EXPECT(path.size() == 5);
+  EXPECT(path.size() == 5u);
 }
 
 CASE("Paths can be added")
@@ -105,14 +105,14 @@ CASE("Paths can be added")
   fs::Path root {"/etc"};
   auto subdirectory_name = "private/logs"s;
   fs::Path path = root + subdirectory_name;
-  EXPECT(path.size() == 3);
+  EXPECT(path.size() == 3u);
 }
 
 CASE("Paths can return their parent")
 {
   fs::Path path {"/etc/private/logs"s};
   fs::Path path_parent {path.up()};
-  EXPECT(path_parent.size() == 2);
+  EXPECT(path_parent.size() == 2u);
   EXPECT(path_parent == "/etc/private"s);
   fs::Path root {"/"s};
   fs::Path root_parent {root.up()};
