@@ -31,7 +31,7 @@ namespace mender {
 
     static int64_t seq_no()
     {
-      static int64_t seq = 0;
+      static int64_t seq = 12;
       return ++seq;
     }
 

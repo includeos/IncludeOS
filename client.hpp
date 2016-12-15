@@ -4,7 +4,7 @@
 #define MENDER_CLIENT_HPP
 
 #include "auth_manager.hpp"
-#include <net/inet4>
+#include <net/tcp/tcp.hpp>
 #include <string>
 #include <botan/base64.h>
 #include <net/http/client.hpp>
@@ -17,8 +17,8 @@ namespace mender {
   public:
     using AuthCallback  = delegate<void(bool)>;
   public:
-    Client(Auth_manager&&, const std::string& server, const uint16_t port = 0);
-    Client(Auth_manager&&, net::tcp::Socket);
+    Client(Auth_manager&&, net::TCP&, const std::string& server, const uint16_t port = 0);
+    Client(Auth_manager&&, net::TCP&, net::tcp::Socket);
     void make_auth_request(AuthCallback);
 
   private:
@@ -31,36 +31,24 @@ namespace mender {
 
     std::string build_api_url(const std::string& server, const std::string& url) const;
 
-    void send(std::unique_ptr<http::Request> req, std::string endpoint);
-
   }; // < class Client
 
-  Client::Client(Auth_manager&& man, const std::string& server, const uint16_t port)
+  Client::Client(Auth_manager&& man, net::TCP& tcp, const std::string& server, const uint16_t port)
     : server_(server),
       am_{std::forward<Auth_manager>(man)},
-      cached_{0, port}
+      cached_{0, port},
+      httpclient_{std::make_unique<http::Client>(tcp)}
   {
-    static auto&& stack = net::Inet4::ifconfig(
-      { 10,0,0,42 },     // IP
-      { 255,255,255,0 }, // Netmask
-      { 10,0,0,1 },      // Gateway
-      { 10,0,0,1 });     // DNS);
 
-    httpclient_ = std::make_unique<http::Client>(stack.tcp());
   }
 
-  Client::Client(Auth_manager&& man, net::tcp::Socket socket)
+  Client::Client(Auth_manager&& man, net::TCP& tcp, net::tcp::Socket socket)
     : server_{socket.address().to_string()},
       am_{std::forward<Auth_manager>(man)},
-      cached_(std::move(socket))
+      cached_(std::move(socket)),
+      httpclient_{std::make_unique<http::Client>(tcp)}
   {
-    static auto&& stack = net::Inet4::ifconfig(
-      { 10,0,0,42 },     // IP
-      { 255,255,255,0 }, // Netmask
-      { 10,0,0,1 },      // Gateway
-      { 10,0,0,1 });     // DNS);
 
-    httpclient_ = std::make_unique<http::Client>(stack.tcp());
   }
 
   void Client::make_auth_request(AuthCallback cb)
@@ -77,46 +65,19 @@ namespace mender {
     // Setup headers
     const Header_set headers{
       { header::Content_Type, "application/json" },
-      { header::Accept, "*/*" },
+      { header::Accept, "application/json" },
       { "X-MEN-Signature", Botan::base64_encode(auth.signature) }
     };
 
     // Make post
     httpclient_->post(cached_, "/api/devices/0.1/authentication/auth_requests", headers, {data.begin(), data.end()},
-    [](auto err, http::Response_ptr res)
+    [](auto err, auto res)
     {
       if(!res)
         printf("No reply.\n");
       else
-        printf("Reply:\n%s", res->to_string().c_str());
+        printf("Reply:\n%s\n", res->to_string().c_str());
     });
-  }
-
-  void Client::send(std::unique_ptr<http::Request> req, std::string endpoint)
-  {
-    static auto&& stack = net::Inet4::stack();
-
-    if(cached_.address() == 0)
-    {
-      /*stack.resolve(server_,
-      [this, endpoint, req_{std::move(req)}] // move into capture is c++14
-      (auto addr)
-      {
-        //assert(addr != 0);
-        cached_ = {addr, cached_.port()};
-        if(addr != 0)
-          send(std::move(req_), endpoint);
-      });*/
-      return;
-    }
-
-    stack.tcp().connect(cached_,
-    [this, req{std::move(req)}] (auto conn)
-    {
-      conn->on_read(2048, [](auto, auto){});
-      conn->write(req->to_string());
-    });
-
   }
 
 }

@@ -24,10 +24,11 @@ namespace mender {
   class Keystore {
   public:
     static constexpr size_t KEY_LENGTH = 2048;
-    using Store = std::shared_ptr<fs::Disk>; // Memdisk to read from?
+    using Storage = std::shared_ptr<fs::Disk>; // Memdisk to read from?
 
   public:
-    Keystore(Store, std::string name);
+    Keystore(Storage store = nullptr);
+    Keystore(Storage, std::string name);
     Keystore(std::string key);
 
     byte_seq sign(const byte_seq& data);
@@ -42,7 +43,7 @@ namespace mender {
     void generate();
 
   private:
-    Store store_;
+    Storage store_;
     std::unique_ptr<Private_key> private_key_;
     std::string key_name_;
 
@@ -50,7 +51,13 @@ namespace mender {
 
   };
 
-  Keystore::Keystore(Store store, std::string kname)
+  Keystore::Keystore(Storage store)
+    : store_{nullptr}
+  {
+    generate();
+  }
+
+  Keystore::Keystore(Storage store, std::string kname)
     : store_(store),
       key_name_{std::move(kname)}
   {
@@ -102,37 +109,13 @@ namespace mender {
 
   void Keystore::generate()
   {
-    /*
-      key, err := rsa.GenerateKey(rand.Reader, RsaKeyLength)
-      if err != nil {
-        return err
-      }
-
-      k.private = key
-
-      return nil
-    */
+    printf("<Keystore> Generating private key ...\n");
+    private_key_ = std::make_unique<Private_key>(Botan::system_rng(), 1024);
+    printf("%s\n ... Done.\n", Botan::PKCS8::PEM_encode(*private_key_).c_str());
   }
 
   Public_PEM Keystore::public_PEM()
   {
-    /*
-      data, err := x509.MarshalPKIXPublicKey(k.Public())
-      if err != nil {
-        return "", errors.Wrapf(err, "failed to marshal public key")
-      }
-
-      buf := &bytes.Buffer{}
-      err = pem.Encode(buf, &pem.Block{
-        Type:  "PUBLIC KEY", // PKCS1
-        Bytes: data,
-      })
-      if err != nil {
-        return "", errors.Wrapf(err, "failed to encode public key to PEM")
-      }
-
-      return buf.String(), nil
-    */
     auto pem = Botan::X509::PEM_encode(public_key());
     printf("PEM:\n%s\n", pem.c_str());
     //auto pem = Botan::PEM_Code::encode(data, "PUBLIC KEY");
@@ -141,19 +124,11 @@ namespace mender {
 
   byte_seq Keystore::sign(const byte_seq& data)
   {
-
-    Botan::PK_Signer signer(*private_key_, "EMSA1(SHA-256)");
+    // https://botan.randombit.net/manual/pubkey.html#signatures
+    Botan::PK_Signer signer(*private_key_, "EMSA3(SHA-256)"); // EMSA3 for backward compability with PKCS1_15
     auto signature = signer.sign_message((uint8_t*)data.data(), data.size(), Botan::system_rng());
     //printf("Sign:\n%s\n", Botan::hex_encode(signature).c_str());
     return signature;
-    /*
-      hash := crypto.SHA256
-      h := hash.New()
-      h.Write(data)
-      sum := h.Sum(nil)
-
-      return rsa.SignPKCS1v15(rand.Reader, k.private, hash, sum)
-    */
   }
 
 } // < namespace mender
