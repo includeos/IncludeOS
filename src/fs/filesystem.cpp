@@ -61,4 +61,37 @@ namespace fs
 
       return read(ent, 0, ent.size());
   }
+  
+  static error_t print_subtree(dirvec_t entries, int depth)
+  {
+    int indent = depth * 3;
+    for (auto entry : *entries)
+    {
+      if (entry.is_dir()) {
+        // Directory
+        if (entry.name() != "."  and entry.name() != "..") {
+          printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
+          // list entries in directory
+          auto list = entry.ls();
+          if (list.error) return list.error;
+          // print subtree from that directory
+          auto err = print_subtree(list.entries, depth + 1);
+          if (err) return err;
+        } else {
+          printf(" %*s  %s\n", indent, "+", entry.name().c_str());
+        }
+      } else {
+        // File (.. or other things)
+        printf(" %*s-> %s\n", indent, "+", entry.name().c_str());
+      }
+    }
+    printf(" %*s \n", indent, " ");
+    return no_error;
+  }
+  error_t File_system::print_subtree(const std::string& path)
+  {
+    auto list = ls(path);
+    if (list.error) return list.error;
+    return fs::print_subtree(list.entries, 0);
+  }
 }

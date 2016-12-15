@@ -34,6 +34,9 @@ namespace fs {
     /** Get unique (per device type) device id for underlying device.*/
     virtual Device_id device_id() = 0;
 
+    /** Print subtree from given path */
+    error_t print_subtree(const std::string& path);
+
     /** @param path: Path in the initialized filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
     virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
