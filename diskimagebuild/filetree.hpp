@@ -1,8 +1,9 @@
 #pragma once
-#include <memory>
 #include <cstdint>
-#include <vector>
+#include <memory>
+#include <string>
 #include <unistd.h>
+#include <vector>
 
 #define SECT_SIZE      512
 #define SHORTNAME_LEN  sizeof(cl_dir::shortname)
@@ -29,14 +30,14 @@ struct FileSys;
 struct File
 {
   File(const char* path);
-  
+
   uint32_t sectors_used() const
   {
     return round_up<SECT_SIZE> (this->size) / SECT_SIZE;
   }
-  
+
   long write(FileSys&, FILE*, long) const;
-  
+
   std::string name;
   uint32_t    size;
   std::unique_ptr<char[]> data;
@@ -58,15 +59,15 @@ struct Dir
     files.emplace_back(path);
     return files.back();
   }
-  
+
   void print(int level) const;
-  
+
   // recursively count sectors used
   uint32_t sectors_used() const;
-  
+
   // recursively write dirent
   long write(FileSys&, FILE*, long, long);
-  
+
   std::string       name;
   std::vector<Dir>  subs;
   std::vector<File> files;
@@ -78,16 +79,16 @@ struct Dir
 struct FileSys
 {
   void gather(const char* path = "");
-  
+
   void print() const;
-  
+
   // writes the filesystem to a file, returning
   // total bytes written
   long write(FILE*);
-  
+
   long to_cluster_hi(long pos) const;
   long to_cluster_lo(long pos) const;
-  
+
 private:
   void add_dir(Dir& dvec);
   Dir  root {""};
