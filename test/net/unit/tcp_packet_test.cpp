@@ -27,11 +27,11 @@ CASE("round_up returns number of d-sized chunks required for n")
   unsigned res;
   unsigned chunk_size {128};
   res = round_up(127, chunk_size);
-  EXPECT(res == 1);
+  EXPECT(res == 1u);
   res = round_up(128, chunk_size);
-  EXPECT(res == 1);
+  EXPECT(res == 1u);
   res = round_up(129, chunk_size);
-  EXPECT(res == 2);
+  EXPECT(res == 2u);
 }
 
 CASE("round_up expects div to be greater than 0")
