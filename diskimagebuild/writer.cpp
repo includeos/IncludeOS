@@ -266,8 +266,13 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
 
 long File::write(FileSys&, FILE* file, long pos) const
 {
+  printf("writing file to %u with size %u\n", pos, this->size);
   fseek(file, pos, SEEK_SET);
   int count = fwrite(data.get(), this->size, 1, file);
   assert(count == 1);
+  // write zeroes to remainder
+  int rem = SECT_SIZE - (this->size & (SECT_SIZE-1));
+  fwrite("\0", 1, rem, file);
+  // return position after file
   return pos + this->sectors_used() * SECT_SIZE;
 }
