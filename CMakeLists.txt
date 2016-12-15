@@ -19,20 +19,18 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-# get new stack protector value
+# create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
 
-# get current project version from git
-execute_process(COMMAND awk "BEGIN{srand(); print int(rand()*65536)}"
-                OUTPUT_VARIABLE STACK_PROTECTOR_VALUE)
-string(STRIP ${STACK_PROTECTOR_VALUE} STACK_PROTECTOR_VALUE)
+# create random hex string as stack protector canary
+string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
 # * NO_DEBUG Disables  output from the debug macro
@@ -50,9 +48,6 @@ option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
 # set optimization level
-
-# set optimization level
-
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
@@ -100,6 +95,16 @@ if(vmbuild)
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
 endif(vmbuild)
+
+option(diskbuilder "Build and install memdisk helper tool" ON)
+if(diskbuilder)
+  ExternalProject_Add(diskbuilder
+    SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
+    BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
+    INSTALL_DIR ${BIN}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  )
+endif()
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)

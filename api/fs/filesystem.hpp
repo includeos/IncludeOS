@@ -19,16 +19,8 @@
 #define FS_FILESYSTEM_HPP
 
 #include "common.hpp"
-
 #include <string>
 #include <cstdint>
-
-#ifndef likely
-#define likely(x)       __builtin_expect(!!(x), 1)
-#endif
-#ifndef unlikely
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-#endif
 
 namespace fs {
 
@@ -41,6 +33,9 @@ namespace fs {
 
     /** Get unique (per device type) device id for underlying device.*/
     virtual Device_id device_id() = 0;
+
+    /** Print subtree from given path */
+    error_t print_subtree(const std::string& path);
 
     /** @param path: Path in the initialized filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
