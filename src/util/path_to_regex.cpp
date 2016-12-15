@@ -17,7 +17,7 @@
 
 // https://github.com/pillarjs/path-to-regexp/blob/master/index.js
 
-#include "path_to_regex.hpp"
+#include <util/path_to_regex.hpp>
 
 namespace path2regex {
 
@@ -209,4 +209,4 @@ void tokens_to_keys(const Tokens& tokens, Keys& keys) {
       keys.push_back(token);
 }
 
-} //< namespace route
+} //< namespace path2regex

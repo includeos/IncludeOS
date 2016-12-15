@@ -17,8 +17,8 @@
 
 // https://github.com/pillarjs/path-to-regexp/blob/master/index.js
 
-#ifndef PATH_TO_REGEX_HPP
-#define PATH_TO_REGEX_HPP
+#ifndef UTIL_PATH_TO_REGEX_HPP
+#define UTIL_PATH_TO_REGEX_HPP
 
 #include <map>
 #include <regex>
@@ -103,4 +103,4 @@ using Options = std::map<std::string, bool>;
 
 } //< namespace path2regex
 
-#endif //< PATH_TO_REGEX_HPP
+#endif //< UTIL_PATH_TO_REGEX_HPP

@@ -15,16 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <lest/lest.hpp>
-#include "../path_to_regex.hpp"
+#include <common.cxx>
+#include <util/path_to_regex.hpp>
 
 using namespace std;
 using namespace path2regex;
 
 // ---------------- TESTING PATHTOREGEXP PARSE ---------------------
 
-const lest::test test_path_to_regexp_parse[] =
-{
   // Testing named parameter
 
   CASE("String with one named parameter (/:test)")
@@ -45,7 +43,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two named parameters (/:test/:date)")
   {
@@ -76,7 +74,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   CASE("String with three elements, containing two named parameters (/users/:test/:date)")
   {
@@ -118,7 +116,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t3.asterisk);
     EXPECT(t3.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t3.is_string);
-  },
+  }
 
   // Testing no parameters
 
@@ -140,7 +138,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "");
     EXPECT(t.is_string);
-  },
+  }
 
   CASE("String with no parameters (/test/users)")
   {
@@ -160,7 +158,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "");
     EXPECT(t.is_string);
-  },
+  }
 
   // Testing optional parameters ( ? )
 
@@ -182,7 +180,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two optional parameters (/:test?/:date?)")
   {
@@ -213,7 +211,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   CASE("String with three elements, containing two optional parameters (/:test?/users/:date?)")
   {
@@ -255,7 +253,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t3.asterisk);
     EXPECT(t3.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t3.is_string);
-  },
+  }
 
   CASE("String with two named parameters, where one is optional (/:test/:date?)")
   {
@@ -286,7 +284,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   // Testing parameters with asterisk (zero or more)
 
@@ -308,7 +306,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is a named parameter with asterisk (zero or more) (/:date/:test*)")
   {
@@ -339,7 +337,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   // Testing parameters with plus (one or more)
 
@@ -361,7 +359,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "[^/]+?");  // or "[^\/]+?"
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) (/:id/:test+")
   {
@@ -392,7 +390,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "[^/]+?"); // or "[^\/]+?"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is a named parameter with plus (one or more) that only takes lower case letters, and one is a named parameter that only takes integers (/:test([a-z])+/:id(\\d+))")
   {
@@ -423,7 +421,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "\\d+");  // or "\d+"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   // Testing custom match parameters
 
@@ -445,7 +443,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "\\d+");  // or "\d+"
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with one custom match parameter - only a-z (one or more) (/:test([a-z]+))")
   {
@@ -465,7 +463,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "[a-z]+");
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is a custom match parameter - only integers (one or more) (/:test/:id(\\d+))")
   {
@@ -496,7 +494,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == "\\d+");  // or "\d+"
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   // Testing unnamed parameters
 
@@ -518,7 +516,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == ".*");
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with one unnamed parameter that only takes integers (one or more) (/(\\d+))")
   {
@@ -538,7 +536,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t.asterisk);
     EXPECT(t.pattern == "\\d+");  // or \d+
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is an unnamed parameter (/:test/(.*))")
   {
@@ -569,7 +567,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == ".*");
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   CASE("String with two elements, where one is an unnamed parameter (/users/(.*))")
   {
@@ -600,7 +598,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT_NOT(t2.asterisk);
     EXPECT(t2.pattern == ".*");
     EXPECT_NOT(t2.is_string);
-  },
+  }
 
   // Testing asterisk parameter
 
@@ -622,7 +620,7 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT(t.asterisk);
     EXPECT(t.pattern == ".*");
     EXPECT_NOT(t.is_string);
-  },
+  }
 
   CASE("String with two parameters, where one is an asterisk (zero or more) (/test/:id/*)")
   {
@@ -665,15 +663,3 @@ const lest::test test_path_to_regexp_parse[] =
     EXPECT(t3.pattern == ".*");
     EXPECT_NOT(t3.is_string);
   }
-};
-
-int main(int argc, char * argv[])
-{
-  printf("Running tests of PathToRegexp parse-method...\n");
-
-  int res = lest::run(test_path_to_regexp_parse, argc, argv);
-
-  printf("PathToRegexp parse-tests completed.\n");
-
-  return res;
-}

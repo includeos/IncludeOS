@@ -15,17 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <lest/lest.hpp>
-#include "../path_to_regex.hpp"
+#include <common.cxx>
+#include <util/path_to_regex.hpp>
 
 using namespace std;
 using namespace path2regex;
 
 // ------------ TESTING PATH_TO_REGEX WITH OPTIONS --------------
 
-const lest::test test_path_to_regex_options[] =
-{
-  SCENARIO("Calling path_to_regex with options")
+  CASE("Calling path_to_regex with options")
   {
     // Create with option strict
 
@@ -356,16 +354,5 @@ const lest::test test_path_to_regex_options[] =
 
       }
     }*/
-  } // < SCENARIO (with options)
-};
+  }; // < SCENARIO (with options)
 
-int main(int argc, char * argv[])
-{
-  printf("Running tests of path_to_regex with options...\n");
-
-  int res = lest::run(test_path_to_regex_options, argc, argv);
-
-  printf("Path_to_regex-tests (with options) completed.\n");
-
-  return res;
-}
