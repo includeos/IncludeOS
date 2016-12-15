@@ -107,6 +107,7 @@ namespace fs
 
     uint32_t S = this->cl_to_sector(cluster);
     // read result directory entries into ents
+    ents.clear(); // mui importante!
     return int_ls(S, ents);
   }
 
