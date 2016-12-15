@@ -122,6 +122,7 @@ const lest::test specification[] =
       // test partial read, just first 4 bytes
       memset(buffer, 0, 1024);
       off_t offset = lseek(fd, 0, SEEK_SET);
+      EXPECT(offset == 0);
       bytes = read(fd, buffer, 4);
       EXPECT(bytes == size - 4);
       cmp = strcmp(buffer, "content\n");
