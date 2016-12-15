@@ -15,6 +15,6 @@ set(SOURCES
     fat16.cpp
   )
 
-set(MEMDISK my.disk)
-
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+diskbuilder(disk disk.fat)
