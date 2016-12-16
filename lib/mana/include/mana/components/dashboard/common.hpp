@@ -20,7 +20,7 @@
 #define DASHBOARD_COMMON_HPP
 
 #include <delegate>
-#include <json/json.hpp> // rapidjson
+#include <mana/attributes/json.hpp> // rapidjson
 #include <mana/request.hpp>
 #include <mana/response.hpp>
 

@@ -18,8 +18,8 @@
 #ifndef MANA_REQUEST_HPP
 #define MANA_REQUEST_HPP
 
-#include "../../lib/http/inc/request.hpp"
-#include "../../lib/http/inc/status_codes.hpp"
+#include <net/http/request.hpp>
+#include <net/http/status_codes.hpp>
 #include "attribute.hpp"
 #include "params.hpp"
 
@@ -95,7 +95,7 @@ public:
   size_t content_length() const;
 
   inline size_t payload_length() const
-  { return get_body().size(); }
+  { return body().size(); }
 
   inline size_t total_length() const
   { return to_string().size(); }
@@ -105,7 +105,7 @@ public:
   { return payload_length() >= content_length(); }
 
   inline std::string route_string() const
-  { return "@" + http::method::str(method()) + ":" + uri().path(); }
+  { return "@" + http::method::str(method()).to_string() + ":" + uri().path().to_string(); }
 
   static void on_recv(OnRecv cb)
   { on_recv_ = cb; }

@@ -24,7 +24,7 @@
 
 #include "request.hpp"
 #include "response.hpp"
-#include "../../lib/path_to_regex/path_to_regex.hpp"
+#include <util/path_to_regex.hpp>
 
 namespace mana {
 

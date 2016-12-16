@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mana/response.hpp"
+#include <mana/response.hpp>
 
 using namespace mana;
 using namespace std::string_literals;
@@ -25,13 +25,13 @@ Response::OnSent Response::on_sent_ = [](size_t){};
 Response::Response(Connection_ptr conn)
   : http::Response(), conn_(conn)
 {
-  add_header(http::header_fields::Response::Server, "IncludeOS/Acorn"s);
-  add_header(http::header_fields::Response::Connection, keep_alive ? "keep-alive"s : "close"s);
+  header().set_field(http::header::Server, "IncludeOS/Acorn"s);
+  header().set_field(http::header::Connection, keep_alive ? "keep-alive"s : "close"s);
 }
 
 void Response::send(bool close) {
   if(close) {
-    set_header(http::header_fields::Response::Connection, "close"s);
+    header().set_field(http::header::Connection, "close"s);
   }
   write_to_conn(close);
   end();
@@ -58,7 +58,7 @@ void Response::send_file(const File& file) {
   auto& entry = file.entry;
 
   /* Content Length */
-  add_header(http::header_fields::Entity::Content_Length, std::to_string(entry.size()));
+  header().set_field(http::header::Content_Length, std::to_string(entry.size()));
 
   /* Send header */
   conn_->write(to_string());
@@ -83,7 +83,7 @@ void Response::send_file(const File& file) {
       }
       else {
         printf("<Response> Error sending %s => %s [%s]\n",
-          entry.name().c_str(), conn->remote().to_string().c_str(), 
+          entry.name().c_str(), conn->remote().to_string().c_str(),
           conn->is_closing() ? "Connection closing" : err.to_string().c_str());
       }
   });
@@ -93,7 +93,7 @@ void Response::send_file(const File& file) {
 
 void Response::send_json(const std::string& json) {
   add_body(json);
-  add_header(http::header_fields::Entity::Content_Type, "application/json"s);
+  header().set_field(http::header::Content_Type, "application/json"s);
   send(!keep_alive);
 }
 

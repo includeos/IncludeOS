@@ -32,8 +32,8 @@ namespace butler {
 class Butler : public mana::Middleware {
 private:
   using SharedDisk  = std::shared_ptr<fs::Disk>;
-  using Entry       = fs::FileSystem::Dirent;
-  using OnStat       = fs::FileSystem::on_stat_func;
+  using Entry       = fs::Dirent;
+  using OnStat       = fs::on_stat_func;
 
 public:
 

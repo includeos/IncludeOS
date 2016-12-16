@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "butler.hpp"
-#include <mana/http> // http::Mime_Type
+#include <mana/middleware/butler.hpp>
 
 using namespace butler;
 using namespace std::string_literals;
@@ -32,13 +31,13 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
     if(options_.fallthrough) {
       return (*next)();
     }
-    res->add_header(http::header_fields::Entity::Allow, "GET, HEAD"s);
+    res->header().set_field(http::header::Allow, "GET, HEAD"s);
     res->send_code(http::Method_Not_Allowed);
     return;
   }
 
   // get path
-  std::string path = req->uri().path();
+  std::string path = req->uri().path().to_string();
   // resolve extension
   auto ext = get_extension(path);
   // concatenate root with path, example: / => /public/
@@ -62,7 +61,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
       // we got an index, lets send it
       else {
         http::Mime_type mime = http::extension_to_type(get_extension(path));
-        res->add_header(http::header_fields::Entity::Content_Type, mime);
+        res->header().set_field(http::header::Content_Type, mime);
         return res->send_file({disk_, entry});
       }
     });
@@ -95,7 +94,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
         printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
         #endif
         http::Mime_type mime = http::extension_to_type(get_extension(path));
-        res->add_header(http::header_fields::Entity::Content_Type, mime);
+        res->header().set_field(http::header::Content_Type, mime);
         res->send_file({disk_, entry});
         return;
       }

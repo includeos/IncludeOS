@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mana/request.hpp"
-#include "../lib/http/inc/status_code_constants.hpp"
+#include <mana/request.hpp>
+#include <net/http/status_code_constants.hpp>
 
 using namespace mana;
 
@@ -34,11 +34,11 @@ void Request::complete() {
 }
 
 size_t Request::content_length() const {
-  using namespace http::header_fields::Entity;
-  if(!has_header(Content_Length))
+  using namespace http::header;
+  if(!header().has_field(Content_Length))
     return 0;
   try {
-    return std::stoull(header_value(Content_Length));
+    return std::stoull(header().value(Content_Length).to_string());
   }
   catch(...) {
     return 0;

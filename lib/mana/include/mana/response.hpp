@@ -18,8 +18,7 @@
 #ifndef MANA_RESPONSE_HPP
 #define MANA_RESPONSE_HPP
 
-#include "../../lib/http/inc/response.hpp"
-#include "../../lib/http/inc/mime_types.hpp"
+#include <net/http/response.hpp>
 #include <fs/filesystem.hpp>
 #include <net/tcp/connection.hpp>
 #include <util/async.hpp>
@@ -32,14 +31,13 @@
 struct File {
 
   File(fs::Disk_ptr dptr, const fs::Dirent& ent)
-    : disk(dptr)
+    : disk(dptr), entry(ent)
   {
-    assert(ent.is_file());
-    entry = ent;
+    assert(entry.is_file());
   }
 
-  fs::Dirent entry;
   fs::Disk_ptr disk;
+  fs::Dirent entry;
 };
 
 namespace mana {
@@ -98,8 +96,8 @@ public:
   /** Cookies */
 
   void cookie(const std::string& cookie)
-  { add_header(http::header_fields::Response::Set_Cookie, cookie); }
-  
+  { header().set_field(http::header::Set_Cookie, cookie); }
+
   template <typename Cookie>
   void cookie(const Cookie& c)
   { cookie(c.to_string()); }

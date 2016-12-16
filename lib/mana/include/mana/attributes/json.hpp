@@ -36,8 +36,8 @@ struct Assert_error : public std::logic_error {
 #define RAPIDJSON_ASSERT(x) if (!(x)) throw Assert_error(RAPIDJSON_STRINGIFY(x))
 
 #include <mana/attribute.hpp>
-#include "rapidjson/include/rapidjson/writer.h"
-#include "rapidjson/include/rapidjson/document.h"
+#include <rapidjson/writer.h>
+#include <rapidjson/document.h>
 
 
 namespace json {

@@ -124,6 +124,11 @@ if(tests)
   #add_subdirectory(test)
 endif(tests)
 
+option(libmana "Build mana web application framework library" OFF)
+if(libmana)
+  add_subdirectory(lib/mana)
+endif(libmana)
+
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)

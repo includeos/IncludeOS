@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/dashboard/dashboard.hpp"
+#include <mana/components/dashboard/dashboard.hpp>
 
 using namespace dashboard;
 using namespace mana;

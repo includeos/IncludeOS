@@ -20,7 +20,7 @@
 #define DASHBOARD_DASHBOARD_HPP
 
 #include <mana/router.hpp>
-#include <json/json.hpp>
+#include <mana/attributes/json.hpp>
 #include "component.hpp"
 #include "common.hpp"
 

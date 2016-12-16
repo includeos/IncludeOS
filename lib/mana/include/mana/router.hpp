@@ -367,7 +367,7 @@ namespace mana {
     auto routes = route_table_[method];
 
     if (routes.empty()) {
-      throw Router_error("No routes for method " + http::method::str(method));
+      throw Router_error("No routes for method " + http::method::str(method).to_string());
     }
 
     for (auto& route : routes) {
@@ -393,7 +393,7 @@ namespace mana {
       }
     }
 
-    throw Router_error("No matching route for " + http::method::str(method) + " " + path);
+    throw Router_error("No matching route for " + http::method::str(method).to_string() + " " + path);
   }
 
   template <typename Routee>

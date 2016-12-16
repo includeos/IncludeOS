@@ -80,7 +80,7 @@ void Connection::on_data(buffer_t buf, size_t n) {
     if(request_->payload_length() + n <= PAYLOAD_LIMIT)
     {
       update_idle();
-      request_->add_body(request_->get_body() + std::string((const char*)buf.get(), n));
+      request_->add_chunk(std::string{(const char*)buf.get(), n});
     }
     else
     {
