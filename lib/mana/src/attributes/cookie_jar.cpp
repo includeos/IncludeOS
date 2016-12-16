@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cookie_jar.hpp"
+#include <mana/attributes/cookie_jar.hpp>
 
 namespace cookie {
 
@@ -30,7 +30,7 @@ bool CookieJar::empty() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool CookieJar::insert(const Cookie& c) noexcept {
+bool CookieJar::insert(const http::Cookie& c) noexcept {
   return cookies_.emplace(std::make_pair(c.get_name(), c.get_value())).second;
 }
 
@@ -40,7 +40,7 @@ bool CookieJar::insert(const std::string& name, const std::string& value) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CookieJar& CookieJar::erase(const Cookie& c) noexcept {
+CookieJar& CookieJar::erase(const http::Cookie& c) noexcept {
   cookies_.erase(c.get_name());
   return *this;
 }

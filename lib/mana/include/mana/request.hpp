@@ -32,15 +32,15 @@ using Request_ptr = std::shared_ptr<Request>;
 
 class Request_error : public std::runtime_error {
 public:
-  Request_error(http::Code code, const char* err)
+  Request_error(http::status_t code, const char* err)
     : std::runtime_error{err}, code_{code}
   {}
 
-  http::Code code() const
+  http::status_t code() const
   { return code_; }
 
 private:
-  http::Code code_;
+  http::status_t code_;
 };
 
 /**

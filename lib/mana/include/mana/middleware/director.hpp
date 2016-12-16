@@ -34,7 +34,7 @@ class Director : public mana::Middleware {
 private:
   using SharedDisk = fs::Disk_ptr;
   using Entry = fs::Dirent;
-  using Entries = fs::FileSystem::dirvec_t;
+  using Entries = fs::dirvec_t;
 
 public:
 

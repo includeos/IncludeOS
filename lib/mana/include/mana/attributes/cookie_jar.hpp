@@ -21,7 +21,7 @@
 #include <map>
 #include <string>
 
-#include "cookie.hpp"
+#include <net/http/cookie.hpp>
 #include <mana/attribute.hpp>
 
 namespace cookie {
@@ -43,11 +43,11 @@ public:
 
   bool empty() const noexcept;
 
-  bool insert(const Cookie& c) noexcept;
+  bool insert(const http::Cookie& c) noexcept;
 
   bool insert(const std::string& name, const std::string& value = "");
 
-  CookieJar& erase(const Cookie& c) noexcept;
+  CookieJar& erase(const http::Cookie& c) noexcept;
 
   CookieJar& erase(const std::string& name) noexcept;
 

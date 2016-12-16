@@ -17,6 +17,9 @@
 
 
 #include <mana/middleware/parsley.hpp>
+#include <mana/attributes/json.hpp>
+
+namespace json {
 
 void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
 
@@ -28,7 +31,7 @@ void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next
 
     // Access the document and parse the body
     try {
-      json->doc().Parse(req->get_body().c_str());
+      json->doc().Parse(req->body().to_string().c_str());
       #ifdef VERBOSE_WEBSERVER
       printf("<Parsley> Parsed JSON data.\n");
       #endif
@@ -46,7 +49,9 @@ void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next
 }
 
 bool Parsley::has_json(const mana::Request& req) const {
-  auto c_type = http::header_fields::Entity::Content_Type;
-  if(not req.has_header(c_type)) return false;
-  return (req.header_value(c_type).find("application/json") != std::string::npos);
+  auto c_type = http::header::Content_Type;
+  if(not req.header().has_field(c_type)) return false;
+  return (req.header().value(c_type).find("application/json") != std::string::npos);
+}
+
 }

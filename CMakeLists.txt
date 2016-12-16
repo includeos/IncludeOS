@@ -135,13 +135,13 @@ if(tests)
   #add_subdirectory(test)
 endif(tests)
 
-option(libmana "Build and install mana web application framework library" OFF)
+option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   set(rapidjson ON) # Dependent on rapidjson
   add_subdirectory(lib/mana)
 endif(libmana)
 
-option(rapidjson "Download and install rapidjson submodule" OFF)
+option(rapidjson "Download and install rapidjson submodule" ON)
 if(rapidjson)
   init_submodule(mod/rapidjson)
   install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION include)
