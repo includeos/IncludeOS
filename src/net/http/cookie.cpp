@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cookie.hpp"
+#include <net/http/cookie.hpp>
 
-namespace cookie {
+namespace http {
 
 bool operator < (const Cookie& a, const Cookie& b) noexcept {
   return std::hash<std::string>{}(a.get_name() + a.get_value())
@@ -245,4 +245,4 @@ std::string Cookie::to_string() const {
   return cookie_string;
 }
 
-};  // < namespace cookie
+};  // < namespace http

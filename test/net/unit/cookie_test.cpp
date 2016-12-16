@@ -15,21 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../cookie.hpp"
-#include <lest/lest.hpp>
+#include <common.cxx>
+#include <net/http/cookie.hpp>
 
 using namespace std;
-using namespace cookie;
+using namespace http;
 
-const lest::test test_cookie_creation[] =
-{
   // --------------- Testing Cookie name ------------------
 
   CASE("CookieException thrown when creating Cookie with no name")
   {
     EXPECT_THROWS_AS( (Cookie{"", "value"}), CookieException );
     EXPECT_THROWS( (Cookie{"", "value"}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with name containing invalid character")
   {
@@ -54,7 +52,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"n{ame", "value"}) );
     EXPECT_THROWS( (Cookie{"name}", "value"}) );
     EXPECT_THROWS( (Cookie{":nam[]{e", "value"}) );
-  },
+  }
 
   CASE("No CookieException thrown when creating Cookie with valid name")
   {
@@ -74,14 +72,14 @@ const lest::test test_cookie_creation[] =
    * SP             = <US-ASCII SP, space (32)>
    * HT             = <US-ASCII HT, horizontal-tab (9)>
    */
-  },
+  }
 
   // --------------- Testing Cookie value ------------------
 
   CASE("No CookieException thrown when creating Cookie with no value")
   {
     EXPECT_NO_THROW( (Cookie{"name", ""}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with value containing invalid character")
   {
@@ -106,14 +104,14 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"name", "va{lue"}) );
     EXPECT_THROWS( (Cookie{"name", "value}"}) );
     EXPECT_THROWS( (Cookie{"name", "v:a[]l{ue"}) );
-  },
+  }
 
   CASE("No CookieException thrown when creating Cookie with valid value")
   {
     EXPECT_NO_THROW( (Cookie{"name", "value"}) );
     EXPECT_NO_THROW( (Cookie{"name", "1928sdfg'"}) );
     EXPECT_NO_THROW( (Cookie{"name", "&INAann'dp21"}) );
-  },
+  }
 
   // --------------- Testing Cookie options ------------------
 
@@ -124,20 +122,20 @@ const lest::test test_cookie_creation[] =
   CASE("CookieException thrown when creating Cookie with empty option name")
   {
     EXPECT_THROWS( (Cookie{"name", "value", {"", "Sun, 06 Nov 1994 08:49:37 GMT"}}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with invalid option name")
   {
     EXPECT_THROWS( (Cookie{"name", "value", {"something", "something"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"expires_", "Sun, 06 Nov 1994 08:49:37 GMT"}}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with odd number of vector-elements")
   {
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "Sun, 06 Nov 1994 08:49:37 GMT", "Path"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "Sun, 06 Nov 1994 08:49:37 GMT", "Path", "/something123", "Domain"}}) );
-  },
+  }
 
   CASE("No CookieException thrown when creating Cookie with multiple valid options")
   {
@@ -149,11 +147,11 @@ const lest::test test_cookie_creation[] =
       "domain", "example.com", "secure", "true", "httponly", "true"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Expires", "Sun, 06 Nov 1994 08:49:37 GMT", "Path", "/anotherPath134",
       "secure", "true", "domain", "example.com"}}) );
-  },
+  }
 
   // Scenario when creating cookie. Check the set values.
 
-  SCENARIO("Creating cookies with valid values and changing these values")
+  CASE("Creating cookies with valid values and changing these values")
   {
     GIVEN("An option vector with all possible options sent to Cookie constructor")
     {
@@ -277,7 +275,7 @@ const lest::test test_cookie_creation[] =
         }
       }
     }
-  },
+  }
 
   // Option: Expires (string GMT datetime)
 
@@ -312,7 +310,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_NO_THROW( (Cookie{"name", "value", {"expires", "Thu Feb 22 19:17:11 2013"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Expires", "fri Mar 1 13:00:06 2023"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"expiRes", "saT Apr 9 00:09:44 2016"}}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with invalid Expires option")
   {
@@ -329,7 +327,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "abc"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "saT, Apr 16 00:09:44 GMT"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "Sun Nov 6 08:49:37"}}) );
-  },
+  }
 
   // Option: Max-Age (int)
 
@@ -339,7 +337,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Max-AgE", "0"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"MAX-Age", "100000"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"max-age", "5011010"}}) );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with invalid Max-Age option")
   {
@@ -347,7 +345,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", "ab"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", ";12"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Max-Age", "9999999999"}}) );
-  },
+  }
 
   // Option: Domain (string)
 
@@ -358,7 +356,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_NO_THROW( (Cookie{"name", "value", {"DOMAIN", "service.example.com"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Domain", "whateverdomainyouwant123.thebrowserremovesitifnotyourdomain"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Domain", ""}}) );
-  },
+  }
 
   /* All characters are allowed in the domain option, but the browser will ignore it if the domain you enter isn't yours
   CASE("CookieException thrown when creating Cookie with invalid Domain option") {},
@@ -373,7 +371,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_NO_THROW( (Cookie{"name", "value", {"PATH", "/ex?mypath even with whitespaces"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Path", "/whatever/path/you/want/:&something"}}) );
     EXPECT_NO_THROW( (Cookie{"name", "value", {"Path", ""}}) );
-  },
+  }
 
   CASE("Path is set")
   {
@@ -388,7 +386,7 @@ const lest::test test_cookie_creation[] =
     EXPECT( c3.get_path() == "/ex?mypath even with whitespaces" );
     EXPECT( c4.get_path() == "/whatever/path/you/want/:&something" );
     EXPECT( c5.get_path() == "/" );
-  },
+  }
 
   CASE("CookieException thrown when creating Cookie with invalid Path option")
   {
@@ -397,7 +395,7 @@ const lest::test test_cookie_creation[] =
     EXPECT_THROWS( (Cookie{"name", "value", {"Path", "/12\rmyPath"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Path", "/12\nmyPath"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Path", "/12\tmyPath"}}) );
-  },
+  }
 
   // Option: Secure (bool)
 
@@ -414,7 +412,7 @@ const lest::test test_cookie_creation[] =
     EXPECT( c3.is_secure() );
     EXPECT_NOT( c4.is_secure() );
     EXPECT_NOT( c5.is_secure() );
-  },
+  }
 
   // Option: HttpOnly (bool)
 
@@ -432,15 +430,4 @@ const lest::test test_cookie_creation[] =
     EXPECT_NOT( c4.is_http_only() );
     EXPECT_NOT( c5.is_http_only() );
   }
-};
 
-int main(int argc, char * argv[])
-{
-  printf("Running tests of cookie-creation...\n");
-
-  int res = lest::run(test_cookie_creation, argc, argv);
-
-  printf("Tests completed.\n");
-
-  return res;
-}

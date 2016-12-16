@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef COOKIE_HPP
-#define COOKIE_HPP
+#ifndef HTTP_COOKIE_HPP
+#define HTTP_COOKIE_HPP
 
 #include <regex>
 #include <string>
@@ -29,7 +29,7 @@
 #include <functional>
 #include <exception>
 
-namespace cookie {
+namespace http {
 
 class CookieException : public std::exception {
   std::string msg;
@@ -225,6 +225,6 @@ bool operator == (const Cookie& a, const Cookie& b) noexcept;
 
 std::ostream& operator << (std::ostream& output_device, const Cookie& cookie);
 
-};  // < namespace cookie
+};  // < namespace http
 
-#endif
+#endif // < HTTP_COOKIE_HPP
