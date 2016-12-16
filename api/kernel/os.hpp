@@ -21,11 +21,13 @@
 #include <string>
 #include <sstream>
 #include <common>
-#include <kernel/memmap.hpp>
 #include <hw/cpu.hpp>
 #include <hertz>
 #include <vector>
+#include <delegate>
 #include <kernel/rtc.hpp>
+
+class Memory_map;
 
 /**
  *  The entrypoint for OS services
@@ -107,11 +109,33 @@ public:
     return x << PAGE_SHIFT;
   }
 
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  /** First address of the heap **/
+  static uintptr_t heap_begin() noexcept{
+    return heap_begin_;
+  };
+
+  /** Last used address of the heap **/
+  static uintptr_t heap_end() {
+    return heap_end_;
+  };
 
   /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max();
+  static uintptr_t heap_max() noexcept{
+    return heap_max_;
+  };
+
+  /** Currently used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept {
+    return (uintptr_t) (heap_end_ - heap_begin_);
+  };
+
+  /** Resize the heap if possible. Return (potentially) new size. **/
+  static uintptr_t resize_heap(size_t size);
+
+  /** The end of usable memory **/
+  static inline uintptr_t memory_end(){
+    return memory_end_;
+  }
 
   /** time spent sleeping (halt) in cycles */
   static uint64_t get_cycles_halt() noexcept;
@@ -123,10 +147,7 @@ public:
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
   **/
-  static Memory_map& memory_map() {
-    static  Memory_map memmap {};
-    return memmap;
-  }
+  static Memory_map& memory_map();
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -147,10 +168,14 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+
+  /** Boot with no multiboot params */
+  static void legacy_boot();
 
   /** Resume stuff from a soft reset **/
   static void resume_softreset(uint32_t boot_addr);
@@ -178,6 +203,9 @@ private:
 
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
+  static uintptr_t memory_end_;
+  static uintptr_t heap_begin_;
+  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
 
@@ -191,5 +219,13 @@ private:
   OS() = delete;
 
 }; //< OS
+
+#include <kernel/memmap.hpp>
+
+Memory_map& OS::memory_map()
+{
+  static  Memory_map memmap {};
+  return memmap;
+}
 
 #endif //< KERNEL_OS_HPP
