@@ -81,6 +81,7 @@ int read(int fd, void* buf, size_t len)
   }
   return 0;
 }
+
 int write(int fd, const void* ptr, size_t len)
 {
   if (fd < 4) {
@@ -134,6 +135,22 @@ off_t lseek(int fd, off_t offset, int whence) {
   catch(const FD_not_found&) {
     errno = EBADF;
     return -1;
+  }
+}
+
+int isatty(int fd) {
+  if (fd == 1 || fd == 2 || fd == 3) {
+    debug("SYSCALL ISATTY Dummy returning 1");
+    return 1;
+  }
+  try {
+    auto& fildes = FD_map::_get(fd);
+    errno = ENOTTY;
+    return 0;
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return 0;
   }
 }
 

@@ -18,7 +18,7 @@ set(SOURCES
 
 set_property(SOURCE test_file_fd.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unused-function ")
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/disk.img)
-
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+diskbuilder(disk disk.img)

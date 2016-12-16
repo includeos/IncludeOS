@@ -25,9 +25,6 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# stack protector canary helps detect overflows
-string(RANDOM LENGTH 7 ALPHABET 0123456789 STACK_PROTECTOR_VALUE)
-
 # stackrealign is needed to guarantee 16-byte stack alignment for SSE
 # the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
 set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
@@ -165,7 +162,7 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} --defsym=_STACK_GUARD_VALUE_=${STACK_PROTECTOR_VALUE} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -205,21 +202,33 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libgcc.a)
 
-# (optional) list of memdisks
-set(MDCOUNTER 0)
-foreach(DISK ${MEMDISK})
-  MATH(EXPR VAR "${MDCOUNTER}+1")
+# add memdisk
+function(add_memdisk DISK)
   get_filename_component(DISK_RELPATH "${DISK}"
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
     COMMAND python $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.py --file $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f elf $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm -o memdisk.o
+    DEPENDS ${DISK_RELPATH}
   )
-  add_library(disk${MDCOUNTER} STATIC memdisk.o)
-  set_target_properties(disk${MDCOUNTER} PROPERTIES LINKER_LANGUAGE CXX)
-  target_link_libraries(service --whole-archive disk${MDCOUNTER} --no-whole-archive)
-endforeach()
+  add_library(memdisk STATIC memdisk.o)
+  set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(service --whole-archive memdisk --no-whole-archive)
+endfunction()
+
+# automatically built memdisks
+function(diskbuilder FOLD DISK)
+  get_filename_component(REL_DISK "${DISK}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  add_custom_command(
+      OUTPUT  ${REL_DISK}
+      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o ${REL_DISK} ${REL_PATH}
+    )
+  add_custom_target(diskbuilder ALL DEPENDS ${REL_DISK})
+  add_dependencies(service diskbuilder)
+  add_memdisk(${REL_DISK})
+endfunction()
 
 if(TARFILE)
   get_filename_component(TAR_RELPATH "${TARFILE}"
@@ -280,17 +289,18 @@ if (debug)
   set(STRIP_LV /bin/true)
 endif()
 
-add_custom_command(
-  TARGET  service POST_BUILD
+add_custom_target(
+  pruned_elf_symbols ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
   COMMAND rm _elf_symbols.bin
+  DEPENDS service
 )
 
 # create .img files too automatically
-add_custom_command(
-  TARGET  service POST_BUILD
+add_custom_target(
+  prepend_bootloader ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
   DEPENDS service
 )

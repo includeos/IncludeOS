@@ -63,7 +63,7 @@ namespace fs {
     auto end_loc = start_loc + cnt * block_size();
 
     // Disallow reading memory past disk image
-    if (UNLIKELY(end_loc >= image_end_))
+    if (UNLIKELY(end_loc > image_end_))
       return buffer_t{};
 
     auto buffer = new uint8_t[cnt * block_size()];

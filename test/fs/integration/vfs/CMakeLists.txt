@@ -17,6 +17,6 @@ set(SOURCES
 
 set(DRIVERS virtioblk)
 
-set(MEMDISK memdisk.disk)
-
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+diskbuilder(memdisk yoda.disk)

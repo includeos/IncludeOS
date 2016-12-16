@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common>
 #include <array>
 
 #include <fs/dirent.hpp>
@@ -39,10 +40,10 @@ namespace fs
 
   void File_system::read_file(const std::string& path, on_read_func on_read) {
     stat(path, [this, on_read, path](error_t err, const Dirent& ent) {
-        if(unlikely(err))
+        if(UNLIKELY(err))
           return on_read(err, nullptr, 0);
 
-        if(unlikely(!ent.is_file()))
+        if(UNLIKELY(!ent.is_file()))
           return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
 
         read(ent, 0, ent.size(), on_read);
@@ -52,12 +53,45 @@ namespace fs
   Buffer File_system::read_file(const std::string& path) {
       auto ent = stat(path);
 
-      if(unlikely(!ent.is_valid()))
+      if(UNLIKELY(!ent.is_valid()))
         return {{error_t::E_NOENT, path + " not found"}, nullptr, 0};
 
-      if(unlikely(!ent.is_file()))
+      if(UNLIKELY(!ent.is_file()))
         return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0};
 
       return read(ent, 0, ent.size());
+  }
+  
+  static error_t print_subtree(dirvec_t entries, int depth)
+  {
+    int indent = depth * 3;
+    for (auto entry : *entries)
+    {
+      if (entry.is_dir()) {
+        // Directory
+        if (entry.name() != "."  and entry.name() != "..") {
+          printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
+          // list entries in directory
+          auto list = entry.ls();
+          if (list.error) return list.error;
+          // print subtree from that directory
+          auto err = print_subtree(list.entries, depth + 1);
+          if (err) return err;
+        } else {
+          printf(" %*s  %s\n", indent, "+", entry.name().c_str());
+        }
+      } else {
+        // File (.. or other things)
+        printf(" %*s-> %s\n", indent, "+", entry.name().c_str());
+      }
+    }
+    printf(" %*s \n", indent, " ");
+    return no_error;
+  }
+  error_t File_system::print_subtree(const std::string& path)
+  {
+    auto list = ls(path);
+    if (list.error) return list.error;
+    return fs::print_subtree(list.entries, 0);
   }
 }

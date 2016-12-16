@@ -31,7 +31,7 @@ void Service::start(const std::string&)
   assert(disk);
 
   // verify that the size is indeed N sectors
-  CHECKSERT(disk->dev().size() == 16500, "Disk size 16500 sectors");
+  CHECKSERT(disk->dev().size() == 6, "Disk size 6 sectors");
 
   // which means that the disk can't be empty
   CHECKSERT(!disk->empty(), "Disk not empty");
@@ -48,9 +48,9 @@ void Service::start(const std::string&)
     auto list = fs.ls("/");
     CHECKSERT(!list.error, "List root directory");
 
-    CHECKSERT(list.entries->size() == 1, "Exactly one ent in root dir");
+    CHECKSERT(list.entries->size() == 3, "Exactly 3 entries in root dir");
 
-    auto& e = list.entries->at(0);
+    auto& e = list.entries->at(2);
     CHECKSERT(e.is_file(), "Ent is a file");
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
@@ -73,6 +73,8 @@ void Service::start(const std::string&)
 
     // try reading banana-file
     auto buf = fs.read(ent, 0, ent.size());
+    CHECKSERT(!buf.error(), "No error reading file");
+    
     auto banana = buf.to_string();
 
     CHECKSERT(banana == internal_banana, "Correct banana #1");

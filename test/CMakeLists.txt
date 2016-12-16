@@ -28,6 +28,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
+  ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
@@ -35,6 +36,9 @@ set(TEST_SOURCES
   #${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/membitmap.cpp
   ${TEST}/util/unit/uri_test.cpp
+  ${TEST}/util/unit/path_to_regex_parse.cpp
+  ${TEST}/util/unit/path_to_regex_options.cpp
+  ${TEST}/util/unit/path_to_regex_no_options.cpp
 )
 
 set(OS_SOURCES
@@ -57,10 +61,12 @@ set(OS_SOURCES
   ${SRC}/kernel/memmap.cpp
   ${SRC}/net/util.cpp
   ${SRC}/posix/fd.cpp
+  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/statman.cpp
   ${SRC}/util/uri.cpp
   ${SRC}/util/percent_encoding.cpp
+  ${SRC}/util/path_to_regex.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )

@@ -15,26 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#pragma once
+#ifndef UTIL_CRC32_HPP
+#define UTIL_CRC32_HPP
 
-#include <hw/serial.hpp>
-#include <cstring>
-#include <cstdarg>
+#include <cstdint>
+#include <cstddef>
 
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
-  va_end(aptr);
+#define CRC32_BEGIN(x)   uint32_t x = 0xFFFFFFFF;
+#define CRC32_VALUE(x)   ~(x)
+
+uint32_t crc32(uint32_t partial, const char* buf, size_t len);
+
+inline uint32_t crc32(const void* buf, size_t len)
+{
+  return ~crc32(0xFFFFFFFF, (const char*) buf, len);
 }
-
-#define kprint(cstr) hw::Serial::print1(cstr)
 
 #endif
