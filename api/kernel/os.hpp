@@ -21,13 +21,11 @@
 #include <string>
 #include <sstream>
 #include <common>
+#include <kernel/memmap.hpp>
 #include <hw/cpu.hpp>
 #include <hertz>
 #include <vector>
-#include <delegate>
 #include <kernel/rtc.hpp>
-
-class Memory_map;
 
 /**
  *  The entrypoint for OS services
@@ -147,7 +145,10 @@ public:
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
   **/
-  static Memory_map& memory_map();
+  static Memory_map& memory_map() {
+    static  Memory_map memmap {};
+    return memmap;
+  }
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -219,13 +220,5 @@ private:
   OS() = delete;
 
 }; //< OS
-
-#include <kernel/memmap.hpp>
-
-Memory_map& OS::memory_map()
-{
-  static  Memory_map memmap {};
-  return memmap;
-}
 
 #endif //< KERNEL_OS_HPP
