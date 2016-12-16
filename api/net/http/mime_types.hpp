@@ -15,31 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HTTP_COMMON_HPP
-#define HTTP_COMMON_HPP
+#ifndef HTTP_MIME_TYPES_HPP
+#define HTTP_MIME_TYPES_HPP
 
-#include <delegate>
 #include <experimental/string_view>
-#include <memory>
-#include <uri>
-#include <utility>
-#include <vector>
 
 namespace http {
 
-using URI = uri::URI;
-
-using Header_set = std::vector<std::pair<std::string, std::string>>;
-
-class Request;
-using Request_ptr = std::unique_ptr<Request>;
-
-class Response;
-using Response_ptr = std::unique_ptr<Response>;
-
-class Error;
-using Response_handler = delegate<void(Error, Response_ptr)>;
+///
+/// Get the mime type for the specified extension
+///
+/// @param extension The specified extension to get associated mime type
+///
+/// @return The associated mime type for the specified extension
+///
+std::experimental::string_view ext_to_mime_type(const std::experimental::string_view extension) noexcept;
 
 } //< namespace http
 
-#endif //< HTTP_COMMON_HPP
+#endif //< HTTP_MIME_TYPES_HPP

@@ -30,7 +30,7 @@ Header::Header(const std::size_t limit) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::add_field(const std::string field, std::string value) {
+bool Header::add_field(std::string field, std::string value) {
   if (field.empty()) return false;
   //-----------------------------------
   if (size() < fields_.capacity()) {
@@ -42,7 +42,7 @@ bool Header::add_field(const std::string field, std::string value) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::set_field(const std::string field, std::string value) {
+bool Header::set_field(std::string field, std::string value) {
   if (field.empty() || value.empty()) return false;
   //-----------------------------------
   const auto target = find(field);

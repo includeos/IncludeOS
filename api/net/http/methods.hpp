@@ -66,7 +66,7 @@ namespace http {
     ///
     /// Get a code mapping from an HTTP method string representation
     ///
-    /// @param method The HTTP method code
+    /// @param method The HTTP method string representation
     ///
     /// @return The code mapped to the method string representation
     ///
@@ -91,7 +91,7 @@ namespace http {
     }
 
     ///
-    /// Test is header field {Content-Length} is allowed based on the
+    /// Test if header field {Content-Length} is allowed based on the
     /// HTTP method
     ///
     template<typename = void>
@@ -100,7 +100,7 @@ namespace http {
     }
 
     ///
-    /// Test is header field {Content-Length} is required based on the
+    /// Test if header field {Content-Length} is required based on the
     /// HTTP method
     ///
     template<typename = void>

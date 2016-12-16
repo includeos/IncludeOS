@@ -46,10 +46,10 @@ public:
   /// by providing information for the
   /// status line of the response message
   ///
-  /// @param code    The status code
-  /// @param version The version of the message
+  /// @param status_code The status code
+  /// @param version     The version of the message
   ///
-  explicit Response(const Version version = Version{1U, 1U}, const Code code = OK) noexcept;
+  explicit Response(const Version version = Version{1U, 1U}, const status_t status_code = OK) noexcept;
 
   ///
   /// Constructor to construct a response
@@ -105,18 +105,18 @@ public:
   /// @return The status code of this
   /// message
   ///
-  Code status_code() const noexcept;
+  status_t status_code() const noexcept;
 
   ///
   /// Change the status code of this
   /// message
   ///
-  /// @param code The new status code to set
+  /// @param status_code The new status code to set
   /// on this message
   ///
   /// @return The object that invoked this method
   ///
-  Response& set_status_code(const Code code) noexcept;
+  Response& set_status_code(const status_t status_code) noexcept;
 
   ///
   /// Get the version of the response message
@@ -174,8 +174,16 @@ private:
   ///
   /// Status-line parts
   ///
-  Code    code_;
-  Version version_;
+  status_t code_;
+  Version  version_;
+
+  ///
+  /// Reset the object for reparsing the accumulated response
+  /// information
+  ///
+  /// @return The object that invoked this method
+  ///
+  Response& soft_reset() noexcept;
 }; //< class Response
 
 /**--v----------- Implementation Details -----------v--**/
