@@ -51,7 +51,7 @@ const lest::test specification[] =
             EXPECT(heap.in_use() < heap.size());
 
             // Resize heap to have only 1 MB of free space
-            map.resize(heap_begin, heap.in_use() + 0x100000);
+            OS::resize_heap(heap.in_use() + 0x100000);
 
             EXPECT(heap.addr_end() < original_end);
 
@@ -62,8 +62,6 @@ const lest::test specification[] =
             for (auto i: map)
               std::cout << i.second.to_string() << "\n";
 
-            // TODO: This shouldn't work, but currently sbrk doesn't check the
-            // actual memory map, only the heap_max it was initialized with.
             EXPECT_NOT(malloc(0x200000));
 
             auto* buf = malloc(0xf0000);
