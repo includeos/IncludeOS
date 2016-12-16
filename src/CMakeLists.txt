@@ -26,7 +26,7 @@ set(OS_OBJECTS
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
-  util/memstream.c util/crc32.cpp util/async.cpp util/statman.cpp util/logger.cpp 
+  util/memstream.c util/crc32.cpp util/async.cpp util/statman.cpp util/logger.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar_reader.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
@@ -44,7 +44,7 @@ set(OS_OBJECTS
   net/super_stack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
-  net/http/client.cpp net/http/connection.cpp
+  net/http/mime_types.cpp net/http/client.cpp net/http/connection.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
