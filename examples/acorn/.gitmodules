@@ -1,0 +1,24 @@
+[submodule "lest"]
+  path = test/lest
+  url = https://github.com/martinmoene/lest.git
+[submodule "lib/mana"]
+  path = lib/mana
+  url = https://github.com/includeos/mana.git
+[submodule "lib/cookie"]
+  path = lib/cookie
+  url = https://github.com/includeos/cookie.git
+[submodule "lib/butler"]
+  path = lib/butler
+  url = https://github.com/includeos/butler.git
+[submodule "lib/director"]
+  path = lib/director
+  url = https://github.com/includeos/director.git
+[submodule "lib/json"]
+  path = lib/json
+  url = https://github.com/includeos/json.git
+[submodule "lib/dashboard"]
+	path = lib/dashboard
+	url = https://github.com/includeos/dashboard.git
+[submodule "lib/bucket"]
+	path = lib/bucket
+	url = https://github.com/includeos/bucket.git
