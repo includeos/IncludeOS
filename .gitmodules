@@ -11,3 +11,6 @@
 [submodule "mod/uzlib"]
 	path = mod/uzlib
 	url = https://github.com/AnnikaH/uzlib.git
+[submodule "mod/rapidjson"]
+	path = mod/rapidjson
+	url = https://github.com/miloyip/rapidjson.git
