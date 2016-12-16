@@ -3,8 +3,9 @@
 #define _GNU_SOURCE 1
 
 #include <cstdio>
-#include <unistd.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "filetree.hpp"
 FileSys fsys;
@@ -31,7 +32,7 @@ int main(int argc, char** argv)
   // put current directory in buffer used for default gathering folder
   char pwd_buffer[256];
   getcwd(pwd_buffer, sizeof(pwd_buffer));
-  
+
   /// input folder
   std::string input_folder(pwd_buffer);
   /// output file
@@ -89,6 +90,6 @@ int main(int argc, char** argv)
     printf("Written %ld bytes to %s\n", total, output_file.c_str());
   }
   fclose(file);
-  
+
   return EXIT_SUCCESS;
 }
