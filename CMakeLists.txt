@@ -47,6 +47,16 @@ option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
+function(init_submodule MOD)
+  message(STATUS "Init git submodule: " ${MOD})
+  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
+endfunction()
+
+# Init submodules
+init_submodule(mod/GSL)
+init_submodule(mod/http-parser)
+init_submodule(mod/uzlib)
+
 # set optimization level
 set(OPTIMIZE "-O2")
 
@@ -113,8 +123,9 @@ endif(examples)
 
 install(DIRECTORY api/ DESTINATION includeos/api)
 
-option(tests "Build unit tests in /test" OFF)
+option(tests "Build unit tests in /test and install lest test framework" OFF)
 if(tests)
+  init_submodule(test/lest)
   enable_testing()
   ExternalProject_Add(unittests
     PREFIX unittests
@@ -124,11 +135,17 @@ if(tests)
   #add_subdirectory(test)
 endif(tests)
 
-option(libmana "Build mana web application framework library" OFF)
+option(libmana "Build and install mana web application framework library" OFF)
 if(libmana)
+  set(rapidjson ON) # Dependent on rapidjson
   add_subdirectory(lib/mana)
 endif(libmana)
 
+option(rapidjson "Download and install rapidjson submodule" OFF)
+if(rapidjson)
+  init_submodule(mod/rapidjson)
+  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION include)
+endif(rapidjson)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)

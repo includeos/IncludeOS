@@ -15,14 +15,6 @@
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 
-# Install submodules
-echo -e "\n\n>>> Installing submodules"
-pushd $INCLUDEOS_SRC > /dev/null
-git submodule init
-git submodule update
-popd > /dev/null
-
-
 # Try to find suitable compiler
 cc_list="clang-3.8 clang-3.7 clang-3.6 clang"
 cxx_list="clang++-3.8 clang++-3.7 clang++-3.6 clang++"
