@@ -16,7 +16,7 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
-set(MEMDISK ${CMAKE_SOURCE_DIR}/disk.img)
-
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+diskbuilder(disk disk.img)
