@@ -26,6 +26,7 @@
   #define RAPIDJSON_THROWPARSEEXCEPTION 1
 #endif
 
+#include <stdexcept>
 /**
  *
  */

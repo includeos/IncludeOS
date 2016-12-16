@@ -18,7 +18,7 @@
 #ifndef JSON_PARSLEY_HPP
 #define JSON_PARSLEY_HPP
 
-#include "json.hpp"
+#include <mana/attributes/json.hpp>
 #include <mana/middleware.hpp>
 
 namespace json {
