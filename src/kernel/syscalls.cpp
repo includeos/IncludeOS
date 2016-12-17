@@ -69,18 +69,6 @@ int getpid() {
   return 1;
 }
 
-int isatty(int file) {
-  if (file == 1 || file == 2 || file == 3) {
-    debug("SYSCALL ISATTY Dummy returning 1");
-    return 1;
-  }
-
-  // Not stdxxx, error out
-  panic("SYSCALL ISATTY Unknown descriptor ");
-  errno = EBADF;
-  return 0;
-}
-
 int link(const char*, const char*) {
   panic("SYSCALL LINK unsupported");
   return -1;

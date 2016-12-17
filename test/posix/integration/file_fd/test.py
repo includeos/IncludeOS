@@ -9,9 +9,6 @@ print 'includeos_src: {0}'.format(includeos_src)
 sys.path.insert(0,includeos_src)
 from subprocess import call
 
-# Setup disk
-call(["./make_disk.sh"], shell=True)
-
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 

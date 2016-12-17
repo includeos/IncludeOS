@@ -24,6 +24,9 @@
 #include <cstring>
 #include <lest/lest.hpp>
 
+
+#include <fstream>
+
 fs::Disk_ptr& memdisk() {
   static auto disk = fs::new_shared_memdisk();
 
@@ -31,6 +34,7 @@ fs::Disk_ptr& memdisk() {
     disk->init_fs([](fs::error_t err) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
+          printf("%s\n", err.reason().c_str());
           exit(127);
         }
       });
@@ -122,6 +126,7 @@ const lest::test specification[] =
       // test partial read, just first 4 bytes
       memset(buffer, 0, 1024);
       off_t offset = lseek(fd, 0, SEEK_SET);
+      EXPECT(offset == 0);
       bytes = read(fd, buffer, 4);
       EXPECT(bytes == size - 4);
       cmp = strcmp(buffer, "content\n");
@@ -197,6 +202,81 @@ const lest::test specification[] =
       res = close(fd1);
       EXPECT(res != -1);
     }
+  },
+  {
+    CASE("fopen() opens a file") {
+      FILE* f = fopen("/mnt/disk/file1", "r");
+      EXPECT(f != nullptr);
+      int res = fclose(f);
+      EXPECT(res == 0);
+    }
+  },
+  {
+    CASE("fgetc() reads a character from an open file") {
+      FILE* f = fopen("/mnt/disk/file1", "r");
+      int c = fgetc(f);
+      EXPECT(c != EOF);
+      EXPECT(c == 'c'); // file contains the text "content\n"
+      int res = fclose(f);
+      EXPECT(res == 0);
+    }
+  },
+  {
+    CASE("fclose() closes an open file, preventing further reads") {
+      FILE* f = fopen("/mnt/disk/file1", "r");
+      int c = fgetc(f);
+      EXPECT(c != EOF);
+      int res = fclose(f);
+      EXPECT(res == 0);
+      // try to read another character
+      c = fgetc(f);
+      EXPECT(c == EOF);
+    }
+  },
+  {
+    CASE("fgets() reads a character stream from an open file") {
+      FILE* f = fopen("/mnt/disk/file3", "r");
+      EXPECT(f != nullptr);
+      char buf[256];
+      memset(buf, 0, 256);
+      char* ptr = fgets(buf, 256, f);
+      EXPECT(ptr != nullptr);
+      int cmp = strcmp(buf, "even more content\n");
+      EXPECT(cmp == 0);
+      int res = fclose(f);
+      EXPECT(res == 0);
+    }
+  },
+  {
+    CASE("fread() reads objects from an open file") {
+      FILE* f = fopen("/mnt/disk/file1", "r");
+      EXPECT(f != nullptr);
+      char buf[256];
+      memset(buf, 0, 256);
+      // read first 7 chars from f
+      size_t wanted_count {7};
+      size_t count = fread(buf, sizeof(char), wanted_count, f);
+      EXPECT(count == wanted_count);
+      printf("fread result: %d\n", count);
+      int cmp = strcmp(buf, "content");
+      EXPECT(cmp == 0);
+      int res = fclose(f);
+      EXPECT(res == 0);
+    }
+  },
+  {
+    CASE("ifstream::read() reads a block of data from open stream") {
+      std::ifstream is("/mnt/disk/file1");
+      EXPECT_NOT(is.fail());
+      char buf[256];
+      memset(buf, 0, 256);
+      is.read(buf, 256);
+      EXPECT_NOT(is.bad()); // No errors
+      EXPECT(is.eof()); // ... but we did get to the end of the file
+      int cmp = strcmp(buf, "content\n");
+      EXPECT(cmp == 0);
+      is.close();
+    }
   }
 };
 
@@ -211,6 +291,5 @@ int main()
   auto failed = lest::run(specification, {"-p"});
   Expects(not failed);
 
-  INFO("POSIX file_fd", "All done!");
-
+  INFO("POSIX file_fd", "SUCCESS");
 }

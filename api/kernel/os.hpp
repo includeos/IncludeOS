@@ -107,11 +107,33 @@ public:
     return x << PAGE_SHIFT;
   }
 
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  /** First address of the heap **/
+  static uintptr_t heap_begin() noexcept{
+    return heap_begin_;
+  };
+
+  /** Last used address of the heap **/
+  static uintptr_t heap_end() {
+    return heap_end_;
+  };
 
   /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max();
+  static uintptr_t heap_max() noexcept{
+    return heap_max_;
+  };
+
+  /** Currently used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept {
+    return (uintptr_t) (heap_end_ - heap_begin_);
+  };
+
+  /** Resize the heap if possible. Return (potentially) new size. **/
+  static uintptr_t resize_heap(size_t size);
+
+  /** The end of usable memory **/
+  static inline uintptr_t memory_end(){
+    return memory_end_;
+  }
 
   /** time spent sleeping (halt) in cycles */
   static uint64_t get_cycles_halt() noexcept;
@@ -147,10 +169,14 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+
+  /** Boot with no multiboot params */
+  static void legacy_boot();
 
   /** Resume stuff from a soft reset **/
   static void resume_softreset(intptr_t boot_addr);
@@ -178,6 +204,9 @@ private:
 
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
+  static uintptr_t memory_end_;
+  static uintptr_t heap_begin_;
+  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
 

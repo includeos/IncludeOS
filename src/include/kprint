@@ -32,6 +32,7 @@ inline void kprintf(const char* format, ...) {
   va_start(aptr, format);
   vsnprintf(buf, bufsize, format, aptr);
   hw::Serial::print1(buf);
+  va_end(aptr);
 }
 
 #define kprint(cstr) hw::Serial::print1(cstr)
