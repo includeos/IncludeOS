@@ -21,7 +21,7 @@
 
 #include "../component.hpp"
 
-#include <logger/logger.hpp>
+#include <util/logger.hpp>
 
 namespace dashboard {
 
