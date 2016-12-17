@@ -20,7 +20,7 @@
 #include <mana/router.hpp>
 #include <models/user.hpp>
 #include <bucket/bucket.hpp>
-#include <json/json.hpp>
+#include <mana/attributes/json.hpp>
 
 namespace acorn {
 namespace routes {

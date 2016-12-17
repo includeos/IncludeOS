@@ -18,7 +18,7 @@
 #ifndef ROUTES_LANGUAGES_HPP
 #define ROUTES_LANGUAGES_HPP
 #include <mana/router.hpp>
-#include <cookie/cookie_jar.hpp>
+#include <mana/attributes/cookie_jar.hpp>
 
 namespace acorn {
 namespace routes {
@@ -60,17 +60,17 @@ private:
 
       if (value == "") {
         printf("%s\n", "Cookie with name 'lang' not found! Creating it.");
-        res->cookie(Cookie{"lang", lang});
+        res->cookie(http::Cookie{"lang", lang});
       } else if (value not_eq lang) {
         printf("%s\n", "Cookie with name 'lang' found, but with wrong value. Updating cookie.");
-        res->update_cookie<Cookie>("lang", lang);
+        res->update_cookie<http::Cookie>("lang", lang);
       } else {
         printf("%s%s%s\n", "Wanted cookie already exists (name 'lang' and value '", lang.c_str(), "')!");
       }
 
     } else {
       printf("%s\n", "Request has no cookies! Creating cookie.");
-      res->cookie(Cookie{"lang", lang});
+      res->cookie(http::Cookie{"lang", lang});
     }
 
     res->send(true);
@@ -79,7 +79,7 @@ private:
   static void clear(mana::Request_ptr, mana::Response_ptr res) {
     using namespace cookie;
     printf("Clearing cookie!\n");
-    res->clear_cookie<Cookie>("lang");
+    res->clear_cookie<http::Cookie>("lang");
     res->send(true);
   }
 };

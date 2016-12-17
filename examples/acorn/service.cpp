@@ -66,11 +66,11 @@ void Service::start(const std::string&) {
     auto entry = timestamp() + std::string{data, len};
     logger_->log(entry);
   });
-  
+
   disk = fs::new_shared_memdisk();
 
   // mount the main partition in the Master Boot Record
-  disk->mount([](fs::error_t err) {
+  disk->init_fs([](fs::error_t err) {
 
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
@@ -167,7 +167,7 @@ void Service::start(const std::string&) {
       /** SERVER SETUP **/
 
       // initialize server
-      server_ = std::make_unique<Server>(stack);
+      server_ = std::make_unique<Server>(static_cast<net::Inet4&>(stack));
       // set routes and start listening
       server_->set_routes(router).listen(80);
 

@@ -20,7 +20,7 @@
 #include <mana/router.hpp>
 #include <models/squirrel.hpp>
 #include <bucket/bucket.hpp>
-#include <json/json.hpp>
+#include <mana/attributes/json.hpp>
 
 namespace acorn {
 namespace routes {
@@ -68,7 +68,7 @@ public:
           // setup the response
           // location to the newly created resource
           using namespace std;
-          res->add_header(http::header_fields::Response::Location, req->uri().path()); // return back end loc i guess?
+          res->header().set_field(http::header::Location, req->uri().path().to_string()); // return back end loc i guess?
           // status code 201 Created
           res->set_status_code(http::Created);
           // send the created entity as response

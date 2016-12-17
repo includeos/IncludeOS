@@ -19,24 +19,24 @@
 #ifndef ACORN_WEB_APPLIANCE
 #define ACORN_WEB_APPLIANCE
 
-#include "app/models/user.hpp"
-#include "app/models/squirrel.hpp"
+#include "models/user.hpp"
+#include "models/squirrel.hpp"
 
-#include "app/routes/routes"
+#include "routes/routes"
 
 #include <bucket/bucket.hpp>
 
-#include <dashboard/dashboard>
+#include <mana/components/dashboard/dashboard>
 
-#include "fs/acorn_fs.hpp"
+#include "../fs/acorn_fs.hpp"
 
-#include "logger/logger.hpp"
+#include <util/logger.hpp>
 
 // Middleware
-#include <json/parsley.hpp>
-#include <director/director.hpp>
-#include <butler/butler.hpp>
-#include <cookie/cookie_parser.hpp>
+#include <mana/middleware/parsley.hpp>
+#include <mana/middleware/director.hpp>
+#include <mana/middleware/butler.hpp>
+#include <mana/middleware/cookie_parser.hpp>
 
 #include <mana/server.hpp>
 

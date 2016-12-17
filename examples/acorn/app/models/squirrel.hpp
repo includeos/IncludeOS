@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <rtc>
 
-#include <json/json.hpp>
+#include <mana/attributes/json.hpp>
 
 namespace acorn {
 

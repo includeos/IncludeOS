@@ -31,7 +31,7 @@
 //#include <locale>
 //#include <algorithm>
 
-#include <json/json.hpp>
+#include <mana/attributes/json.hpp>
 
 namespace acorn {
 
