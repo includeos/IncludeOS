@@ -16,6 +16,8 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
+set_property(SOURCE test_file_fd.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unused-function ")
+
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
