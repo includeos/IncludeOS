@@ -212,6 +212,14 @@ private:
   Method  method_{GET};
   URI     uri_{"/"};
   Version version_{1U, 1U};
+
+  ///
+  /// Reset the object for reparsing the accumulated request
+  /// information
+  ///
+  /// @return The object that invoked this method
+  ///
+  Request& soft_reset() noexcept;
 }; //< class Request
 
 /**--v----------- Implementation Details -----------v--**/

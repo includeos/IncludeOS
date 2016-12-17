@@ -39,6 +39,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
   ${TEST}/util/unit/path_to_regex_no_options.cpp
+  ${TEST}/net/unit/cookie_test.cpp
 )
 
 set(OS_SOURCES
@@ -67,6 +68,7 @@ set(OS_SOURCES
   ${SRC}/util/uri.cpp
   ${SRC}/util/percent_encoding.cpp
   ${SRC}/util/path_to_regex.cpp
+  ${SRC}/net/http/cookie.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )

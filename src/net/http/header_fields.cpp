@@ -56,6 +56,7 @@ Field Location            {"Location"};
 Field Proxy_Authenticate  {"Proxy-Authenticate"};
 Field Retry_After         {"Retry-After"};
 Field Server              {"Server"};
+Field Set_Cookie          {"Set-Cookie"};
 Field Vary                {"Vary"};
 Field WWW_Authenticate    {"WWW-Authenticate"};
 //------------------------------------------------

@@ -21,13 +21,11 @@
 #include <experimental/string_view>
 #include <unordered_map>
 
+#include <net/http/status_code_constants.hpp>
+
 namespace http {
 
-using Code              = int;
-using Description       = std::experimental::string_view;
-using Status_code_table = std::unordered_map<Code, Description>;
-
-extern const Status_code_table status_codes {
+const std::unordered_map<int, std::experimental::string_view> status_code_table {
   //< 1xx: Informational - Request received, continuing process
   {100, "Continue"},
   {101, "Switching Protocols"},
@@ -95,11 +93,11 @@ extern const Status_code_table status_codes {
   {508, "Loop Detected"},
   {510, "Not Extended"},
   {511, "Network Authentication Required"}
-}; //< status_codes
+}; //< status_code_table
 
-Description code_description(const Code code) noexcept {
-  const auto iter = status_codes.find(code);
-  return (iter not_eq status_codes.cend()) ? iter->second : "Internal Server Error";
+std::experimental::string_view code_description(const status_t status_code) noexcept {
+  const auto iter = status_code_table.find(status_code);
+  return (iter not_eq status_code_table.cend()) ? iter->second : "Internal Server Error";
 }
 
 } //< namespace http
