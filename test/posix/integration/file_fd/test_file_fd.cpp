@@ -204,6 +204,22 @@ const lest::test specification[] =
     }
   },
   {
+    CASE("open() with nullptr path fails, errno is EFAULT")
+    {
+      int res = open(nullptr, O_RDONLY);
+      EXPECT(res == -1);
+      EXPECT(errno == EFAULT);
+    }
+  },
+  {
+    CASE("open() with empty string path fails, errno is ENOENT")
+    {
+      int res = open("", O_RDONLY);
+      EXPECT(res == -1);
+      EXPECT(errno == ENOENT);
+    }
+  },
+  {
     CASE("fopen() opens a file") {
       FILE* f = fopen("/mnt/disk/file1", "r");
       EXPECT(f != nullptr);
