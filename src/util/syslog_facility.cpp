@@ -37,7 +37,7 @@ Syslog_facility::~Syslog_facility() {}
 void Syslog_facility::open_socket() {}
 
 // Weak
-void Syslog_facility::close_socket() {}
+void Syslog_facility::close_socket() { sock_ = nullptr; }
 
 // Weak
 void Syslog_facility::send_udp_data(const std::string&) {}
