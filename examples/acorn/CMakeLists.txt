@@ -48,3 +48,6 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 # Build memdisk content
 diskbuilder(disk1 disk1.img)
 
+# Make sure bucket is downloaded before service is built
+add_dependencies(service bucket)
+
