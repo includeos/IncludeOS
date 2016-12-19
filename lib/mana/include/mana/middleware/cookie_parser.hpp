@@ -52,8 +52,6 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-const std::regex Cookie_parser::cookie_pattern_ {"[^;]+"};
-
 inline bool Cookie_parser::has_cookie(mana::Request_ptr req) const noexcept {
   return req->header().has_field(http::header::Cookie);
 }

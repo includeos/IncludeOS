@@ -20,6 +20,8 @@
 namespace mana {
 namespace middleware {
 
+const std::regex Cookie_parser::cookie_pattern_ {"[^;]+"};
+
 void Cookie_parser::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
   if(has_cookie(req)) {
     parse(read_cookies(req));
