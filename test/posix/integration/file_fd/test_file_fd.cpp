@@ -107,8 +107,13 @@ const lest::test specification[] =
     {
       int fd = open("/mnt/disk/file1", O_RDONLY);
       EXPECT(fd != -1);
+      // valid values for whence are SEEK_SET, SEEK_CUR and SEEK_END
       off_t offset = lseek(fd, 0, SEEK_SET);
-      EXPECT(offset == 0);
+      EXPECT(offset != -1);
+      offset = lseek(fd, 0, SEEK_CUR);
+      EXPECT(offset != -1);
+      offset = lseek(fd, 0, SEEK_END);
+      EXPECT(offset != -1);
       // 42 is not a valid value for whence
       offset = lseek(fd, 0, 42);
       EXPECT(offset == -1);
