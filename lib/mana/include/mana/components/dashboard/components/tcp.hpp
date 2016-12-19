@@ -23,6 +23,7 @@
 
 #include <net/tcp/tcp.hpp>
 
+namespace mana {
 namespace dashboard {
 
 class TCP : public Component {
@@ -115,6 +116,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 
