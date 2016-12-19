@@ -48,6 +48,9 @@ namespace fs {
     uint64_t block() const noexcept
     { return block_; }
 
+    uint64_t parent() const noexcept
+    { return parent_; }
+
     inline Device_id device_id() const noexcept;
 
     uint64_t size() const noexcept
