@@ -145,6 +145,7 @@ int isatty(int fd) {
   }
   try {
     auto& fildes = FD_map::_get(fd);
+    (void) fildes;
     errno = ENOTTY;
     return 0;
   }
