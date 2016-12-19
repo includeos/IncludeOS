@@ -49,8 +49,8 @@ public:
     on_post("/",
     [squirrels] (mana::Request_ptr req, auto res)
     {
-      using namespace json;
-      auto json = req->get_attribute<Json_doc>();
+      using namespace mana;
+      auto json = req->get_attribute<attribute::Json_doc>();
       if(!json) {
         res->error({http::Internal_Server_Error, "Server Error", "Server needs to be sprinkled with Parsley"});
       }

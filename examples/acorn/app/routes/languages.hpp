@@ -44,10 +44,10 @@ public:
 private:
 
   static void lang_handler(mana::Request_ptr req, mana::Response_ptr res, const std::string& lang) {
-    using namespace cookie;
+    using namespace mana;
 
-    if (req->has_attribute<CookieJar>()) {
-      auto req_cookies = req->get_attribute<CookieJar>();
+    if (req->has_attribute<attribute::Cookie_jar>()) {
+      auto req_cookies = req->get_attribute<attribute::Cookie_jar>();
 
       { // Print all the request-cookies
         const auto& all_cookies = req_cookies->get_cookies();
@@ -77,7 +77,6 @@ private:
   }
 
   static void clear(mana::Request_ptr, mana::Response_ptr res) {
-    using namespace cookie;
     printf("Clearing cookie!\n");
     res->clear_cookie<http::Cookie>("lang");
     res->send(true);
