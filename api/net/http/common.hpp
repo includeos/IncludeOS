@@ -18,12 +18,12 @@
 #ifndef HTTP_COMMON_HPP
 #define HTTP_COMMON_HPP
 
+#include <delegate>
 #include <experimental/string_view>
 #include <memory>
 #include <uri>
 #include <utility>
 #include <vector>
-#include <delegate>
 
 namespace http {
 
@@ -38,7 +38,7 @@ class Response;
 using Response_ptr = std::unique_ptr<Response>;
 
 class Error;
-using Response_handler  = delegate<void(Error, Response_ptr)>;
+using Response_handler = delegate<void(Error, Response_ptr)>;
 
 } //< namespace http
 

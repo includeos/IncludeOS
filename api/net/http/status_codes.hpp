@@ -19,19 +19,12 @@
 #define HTTP_STATUS_CODES_HPP
 
 #include <experimental/string_view>
-#include <unordered_map>
 
 #include "status_code_constants.hpp"
 
 namespace http {
 
-using Code              = int;
-using Description       = const std::experimental::string_view;
-using Status_code_table = std::unordered_map<Code, Description>;
-
-extern const Status_code_table status_codes;
-
-Description code_description(const Code code) noexcept;
+std::experimental::string_view code_description(const status_t status_code) noexcept;
 
 template<typename = void>
 inline bool is_informational(const status_t status_code) noexcept {

@@ -48,7 +48,7 @@ else
   fi
 
   # Check if bridge already is created
-  if $BRSHOW $BRIDGE 2>&1 | grep -q "No such device"; then
+  if $BRSHOW $BRIDGE 2>&1 | grep -qE "No such device|bridge $BRIDGE does not exist"; then
     echo ">>> Creating network bridge (requires sudo):"
     sudo brctl addbr $BRIDGE || exit 1
   else

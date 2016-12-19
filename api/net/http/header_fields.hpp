@@ -59,6 +59,7 @@ extern Field Location;
 extern Field Proxy_Authenticate;
 extern Field Retry_After;
 extern Field Server;
+extern Field Set_Cookie;
 extern Field Vary;
 extern Field WWW_Authenticate;
 //------------------------------------------------
