@@ -21,50 +21,50 @@ namespace mana {
 namespace attribute {
 
 ///////////////////////////////////////////////////////////////////////////////
-size_t CookieJar::size() const noexcept {
+size_t Cookie_jar::size() const noexcept {
   return cookies_.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool CookieJar::empty() const noexcept {
+bool Cookie_jar::empty() const noexcept {
   return cookies_.empty();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool CookieJar::insert(const http::Cookie& c) noexcept {
+bool Cookie_jar::insert(const http::Cookie& c) noexcept {
   return cookies_.emplace(std::make_pair(c.get_name(), c.get_value())).second;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool CookieJar::insert(const std::string& name, const std::string& value) {
+bool Cookie_jar::insert(const std::string& name, const std::string& value) {
   return cookies_.emplace(std::make_pair(name, value)).second;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CookieJar& CookieJar::erase(const http::Cookie& c) noexcept {
+Cookie_jar& Cookie_jar::erase(const http::Cookie& c) noexcept {
   cookies_.erase(c.get_name());
   return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CookieJar& CookieJar::erase(const std::string& name) noexcept {
+Cookie_jar& Cookie_jar::erase(const std::string& name) noexcept {
   cookies_.erase(name);
   return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CookieJar& CookieJar::clear() noexcept {
+Cookie_jar& Cookie_jar::clear() noexcept {
   cookies_.erase(cookies_.begin(), cookies_.end());
   return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool CookieJar::exists(const std::string& name) const noexcept {
+bool Cookie_jar::exists(const std::string& name) const noexcept {
   return cookies_.find(name) not_eq cookies_.end();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& CookieJar::cookie_value(const std::string& name) const noexcept {
+const std::string& Cookie_jar::cookie_value(const std::string& name) const noexcept {
   static const std::string no_entry_value;
 
   auto it = cookies_.find(name);
@@ -77,17 +77,17 @@ const std::string& CookieJar::cookie_value(const std::string& name) const noexce
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::map<std::string, std::string>& CookieJar::get_cookies() const noexcept {
+const std::map<std::string, std::string>& Cookie_jar::get_cookies() const noexcept {
   return cookies_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::map<std::string, std::string>::const_iterator CookieJar::begin() const noexcept {
+std::map<std::string, std::string>::const_iterator Cookie_jar::begin() const noexcept {
   return cookies_.cbegin();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::map<std::string, std::string>::const_iterator CookieJar::end() const noexcept {
+std::map<std::string, std::string>::const_iterator Cookie_jar::end() const noexcept {
   return cookies_.cend();
 }
 
