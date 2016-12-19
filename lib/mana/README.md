@@ -1,17 +1,7 @@
 # mana
 IncludeOS C++ Web Application Framework
 
-[Acorn](https://github.com/includeos/acorn) is a web server built with Mana which demonstrates a lot of its potential.
-
-## Requirements
-
-* [IncludeOS](https://github.com/hioa-cs/IncludeOS) installed
-* git
-
-Mana is using the following [libraries](lib/) (submodules):
-
-* [http](https://github.com/hioa-cs/http) - HTTP parsing
-* [path_to_regex](https://github.com/includeos/path_to_regex) - Named parameters for routes
+[Acorn](../../examples/acorn) is a web server built with Mana which demonstrates a lot of its potential.
 
 
 ## Usage
@@ -27,7 +17,7 @@ std::unique_ptr<Server> server;
 void Service::start(const std::string&)
 {
   Router router;
-  
+
   // GET /
   router.on_get("/", [](auto, auto res) {
     res->add_body("<html><body><h1>Simple example</h1></body></html>"s);
@@ -96,12 +86,7 @@ server.use([] (auto req, auto res) {
 });
 ```
 
-There is already some ready-made middleware for Mana:
-
-* [Butler](https://github.com/includeos/butler) - Serve static files from an IncludeOS drive
-* [CookieParser](https://github.com/includeos/cookie) - Parse Cookies
-* [Director](https://github.com/includeos/director) - Generate and serve a HTML view of disk content
-* [Parsley](https://github.com/includeos/json) - Parse JSON from Request body
+*Psst, there is already some [ready-made middleware](include/mana/middleware) for Mana!*
 
 
 ### Attributes
