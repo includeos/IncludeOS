@@ -93,13 +93,28 @@ const lest::test specification[] =
     }
   },
   {
-    CASE("lseek on non-open FD returns -1, errno set to EBADF")
+    CASE("lseek() on non-open FD returns -1, errno set to EBADF")
     {
       int fd = open("/mnt/disk/file666", O_RDONLY);
       EXPECT(fd == -1);
       off_t offset = lseek(fd, 0, SEEK_SET);
       EXPECT(offset == -1);
       EXPECT(errno == EBADF);
+    }
+  },
+  {
+    CASE("lseek() with invalid whence returns -1, errno set to EINVAL")
+    {
+      int fd = open("/mnt/disk/file1", O_RDONLY);
+      EXPECT(fd != -1);
+      off_t offset = lseek(fd, 0, SEEK_SET);
+      EXPECT(offset == 0);
+      // 42 is not a valid value for whence
+      offset = lseek(fd, 0, 42);
+      EXPECT(offset == -1);
+      EXPECT(errno == EINVAL);
+      int res = close(fd);
+      EXPECT(res != -1);
     }
   },
   {
