@@ -29,6 +29,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
+  ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
