@@ -15,21 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef BUTLER_HPP
-#define BUTLER_HPP
+#ifndef MANA_MIDDLEWARE_BUTLER_HPP
+#define MANA_MIDDLEWARE_BUTLER_HPP
 
 #include <mana/middleware.hpp> // inherit middleware
 #include <fs/disk.hpp>
 #include <string>
 
-namespace butler {
+namespace mana {
+namespace middleware {
 
 /**
  * @brief Serves files (not food)
  * @details Serves files from a IncludeOS disk.
  *
  */
-class Butler : public mana::Middleware {
+class Butler : public Middleware {
 private:
   using SharedDisk  = std::shared_ptr<fs::Disk>;
   using Entry       = fs::Dirent;
@@ -48,11 +49,11 @@ public:
 
   Butler(SharedDisk disk, std::string root, Options opt = {{"index.html"}, true});
 
-  mana::Callback handler() override {
+  Callback handler() override {
     return {this, &Butler::process};
   }
 
-  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
+  void process(Request_ptr req, Response_ptr res, Next next);
 
 private:
   SharedDisk disk_;
@@ -77,6 +78,6 @@ private:
 
 }; // < class Butler
 
-} //< namespace butler
+}} //< namespace mana::middleware
 
 #endif

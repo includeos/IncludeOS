@@ -18,8 +18,10 @@
 #include <mana/middleware/butler.hpp>
 #include <net/http/mime_types.hpp>
 
-using namespace butler;
 using namespace std::string_literals;
+
+namespace mana {
+namespace middleware {
 
 Butler::Butler(SharedDisk disk, std::string root, Options opt)
   : disk_(disk), root_(root), options_(opt)
@@ -112,3 +114,6 @@ std::string Butler::get_extension(const std::string& path) const {
   }
   return ext;
 }
+
+
+}} // < namespace mana::middleware

@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef COOKIE_JAR_HPP
-#define COOKIE_JAR_HPP
+#ifndef MANA_ATTRIBUTES_COOKIE_JAR_HPP
+#define MANA_ATTRIBUTES_COOKIE_JAR_HPP
 
 #include <map>
 #include <string>
@@ -24,7 +24,8 @@
 #include <net/http/cookie.hpp>
 #include <mana/attribute.hpp>
 
-namespace cookie {
+namespace mana {
+namespace attribute {
 
 class CookieJar : public mana::Attribute {
 public:
@@ -69,6 +70,6 @@ private:
   CookieJar& operator = (const CookieJar&) = delete;
 }; //< class CookieJar
 
-}; //< namespace cookie
+}} //< namespace mana::attribute
 
 #endif //< COOKIE_JAR_HPP

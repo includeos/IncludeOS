@@ -15,29 +15,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIDDLEWARE_COOKIE_PARSER_HPP
-#define MIDDLEWARE_COOKIE_PARSER_HPP
+#ifndef MANA_MIDDLEWARE_COOKIE_PARSER_HPP
+#define MANA_MIDDLEWARE_COOKIE_PARSER_HPP
 
 #include <net/http/cookie.hpp>
 #include <mana/attributes/cookie_jar.hpp>
 #include <mana/middleware.hpp>
 
-namespace cookie {
+namespace mana {
+namespace middleware {
 
 /**
  * @brief A way to parse cookies that the browser is sending to the server
  */
-class CookieParser : public mana::Middleware {
+class CookieParser : public Middleware {
 public:
 
-  mana::Callback handler() override {
+  Callback handler() override {
     return {this, &CookieParser::process};
   }
 
-  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
+  void process(Request_ptr req, Response_ptr res, Next next);
 
 private:
-  CookieJar req_cookies_;
+  attribute::CookieJar req_cookies_;
 
   static const std::regex cookie_pattern_;
 
@@ -98,6 +99,6 @@ void CookieParser::parse(const std::string& cookie_data) {
 
 /**--^----------- Implementation Details -----------^--**/
 
-} //< namespace middleware
+}} //< namespace mana::middleware
 
 #endif //< MIDDLEWARE_COOKIE_PARSER_HPP

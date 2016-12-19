@@ -17,7 +17,8 @@
 
 #include <mana/attributes/cookie_jar.hpp>
 
-namespace cookie {
+namespace mana {
+namespace attribute {
 
 ///////////////////////////////////////////////////////////////////////////////
 size_t CookieJar::size() const noexcept {
@@ -90,4 +91,4 @@ std::map<std::string, std::string>::const_iterator CookieJar::end() const noexce
   return cookies_.cend();
 }
 
-}; //< namespace cookie
+}} //< mana::attribute
