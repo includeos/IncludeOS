@@ -21,7 +21,7 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
-  #${TEST}/kernel/unit/memmap_test.cpp
+  ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
