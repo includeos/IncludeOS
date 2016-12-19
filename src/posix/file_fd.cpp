@@ -34,6 +34,10 @@ int File_FD::close() {
 }
 
 int File_FD::lseek(off_t offset, int whence) {
+  if ((whence != SEEK_SET) && (whence != SEEK_CUR) && (whence != SEEK_END)) {
+    errno = EINVAL;
+    return -1;
+  }
   off_t calculated_offset = offset_;
   if (whence == SEEK_SET) {
     calculated_offset = offset;
