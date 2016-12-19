@@ -32,9 +32,10 @@ set(TEST_SOURCES
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
+  ${TEST}/util/unit/logger_test.cpp
+  ${TEST}/util/unit/membitmap.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   #${TEST}/util/unit/statman.cpp
-  ${TEST}/util/unit/membitmap.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
