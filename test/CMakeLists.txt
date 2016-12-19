@@ -36,9 +36,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/fixed_vector.cpp
   ${TEST}/util/unit/logger_test.cpp
   ${TEST}/util/unit/membitmap.cpp
+  ${TEST}/util/unit/path_to_regex_no_options.cpp
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
-  ${TEST}/util/unit/path_to_regex_no_options.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/uri_test.cpp
@@ -62,15 +62,15 @@ set(OS_SOURCES
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
+  ${SRC}/net/http/cookie.cpp
   ${SRC}/net/util.cpp
   ${SRC}/posix/fd.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
+  ${SRC}/util/path_to_regex.cpp
+  ${SRC}/util/percent_encoding.cpp
   ${SRC}/util/statman.cpp
   ${SRC}/util/uri.cpp
-  ${SRC}/util/percent_encoding.cpp
-  ${SRC}/util/path_to_regex.cpp
-  ${SRC}/net/http/cookie.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
