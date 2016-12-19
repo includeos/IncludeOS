@@ -3,6 +3,7 @@ IncludeOS C++ Web Application Framework
 
 [Acorn](../../examples/acorn) is a web server built with Mana which demonstrates a lot of its potential.
 
+Some insight in the implementation of mana can be found in [this post](http://blog.includeos.org/2016/10/05/middleware-implementation-in-mana).
 
 ## Usage
 
