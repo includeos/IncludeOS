@@ -23,6 +23,7 @@
 
 #include <statman>
 
+namespace mana {
 namespace dashboard {
 
 class Statman : public Component {
@@ -75,6 +76,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 

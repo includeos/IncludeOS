@@ -19,15 +19,16 @@
 #include <mana/middleware/parsley.hpp>
 #include <mana/attributes/json.hpp>
 
-namespace json {
+namespace mana {
+namespace middleware {
 
 void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
 
   // Request doesn't have JSON attribute
-  if(has_json(*req) and not req->has_attribute<json::Json_doc>())
+  if(has_json(*req) and not req->has_attribute<attribute::Json_doc>())
   {
     // Create attribute
-    auto json = std::make_shared<json::Json_doc>();
+    auto json = std::make_shared<attribute::Json_doc>();
 
     // Access the document and parse the body
     try {
@@ -54,4 +55,4 @@ bool Parsley::has_json(const mana::Request& req) const {
   return (req.header().value(c_type).find("application/json") != std::string::npos);
 }
 
-}
+}} // < namespace mana::middleware

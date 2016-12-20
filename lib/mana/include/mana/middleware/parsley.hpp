@@ -15,23 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JSON_PARSLEY_HPP
-#define JSON_PARSLEY_HPP
+#ifndef MANA_MIDDLEWARE_PARSLEY_HPP
+#define MANA_MIDDLEWARE_PARSLEY_HPP
 
 #include <mana/attributes/json.hpp>
 #include <mana/middleware.hpp>
 
-namespace json {
+namespace mana {
+namespace middleware {
 
 /**
  * @brief A vegan way to parse JSON Content in a response
  * @details TBC..
  *
  */
-class Parsley : public mana::Middleware {
+class Parsley : public Middleware {
 public:
 
-  mana::Callback handler() override {
+  Callback handler() override {
     return {this, &Parsley::process};
   }
   /**
@@ -46,6 +47,6 @@ private:
   bool has_json(const mana::Request& req) const;
 }; //< class Parsley
 
-} //< namespace json
+}} //< namespace mana::middleware
 
 #endif //< JSON_PARSLEY_HPP

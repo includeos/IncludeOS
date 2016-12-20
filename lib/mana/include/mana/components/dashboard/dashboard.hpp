@@ -24,6 +24,7 @@
 #include "component.hpp"
 #include "common.hpp"
 
+namespace mana {
 namespace dashboard {
 
 class Dashboard {
@@ -80,5 +81,6 @@ inline void Dashboard::construct(Args&&... args) {
 }
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif

@@ -21,6 +21,7 @@
 
 #include "common.hpp"
 
+namespace mana {
 namespace dashboard {
 
 class Component {
@@ -35,6 +36,6 @@ public:
 
 };
 
-}
+}} //< namespace mana::dashboard
 
 #endif

@@ -20,14 +20,14 @@ long FileSys::to_cluster_lo(long pos) const
 long FileSys::write(FILE* file)
 {
   assert(file);
-  
+
   char mbr_code[SECT_SIZE];
   auto* mbr = (fs::MBR::mbr*) mbr_code;
-  
+
   // create "valid" MBR
   strcpy(mbr->oem_name, "INCLUDOS");
   mbr->magic = 0xAA55;
-  
+
   // create valid BPB for old FAT
   auto* BPB = mbr->bpb();
   BPB->bytes_per_sector = SECT_SIZE;
@@ -42,22 +42,22 @@ long FileSys::write(FILE* file)
   BPB->signature        = 0x29;
   strcpy(BPB->volume_label, "IncludeOS");
   strcpy(BPB->system_id,    "FAT32");
-  
+
   for (int i = 0; i < 4*sizeof(fs::MBR::partition); i++)
     ((char*) mbr->part)[i] = 0;
-  
+
   // write root and other entries recursively
   long root_pos = SECT_SIZE * 3; // Note: roots parent is itself :)
   long total_size = root.write(*this, file, root_pos, root_pos);
 
   // update values
   BPB->large_sectors = root.sectors_used();
-  
+
   // write MBR
   fseek(file, 0, SEEK_SET);
   int count = fwrite(mbr_code, SECT_SIZE, 1, file);
   assert(count == 1);
-  
+
   return total_size;
 }
 
@@ -91,10 +91,10 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
   }
   // number of entries needed for this longname
   int entmax = name.size() / LONG_CHARS_PER_ENTRY;
-  
+
   // create entries filling as we go
   int current = 0;
-  
+
   for (int i = 1; i <= entmax; i++)
   {
     cl_long ent;
@@ -105,7 +105,7 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     ent.attrib   = enttype | 0x0F;  // mark as long name
     ent.checksum = csum;
     ent.zero     = 0;
-    
+
     fill(ent.first, 5, &name[current]);
     current += 5;
     fill(ent.second, 6, &name[current]);
@@ -114,7 +114,7 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     current += 2;
     // sanity check
     assert(current <= name.size());
-    
+
     longs.insert(longs.begin(), *(cl_dir*) &ent);
   }
   //
@@ -182,9 +182,9 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
   std::vector<cl_dir> ents;
   // create . and .. entries
   create_preamble(fsys, ents, pos, parent);
-  // 
+  //
   int mod16 = ents.size();
-  
+
   for (auto& sub : subs)
   {
     sub.size_helper = 1;
@@ -193,7 +193,7 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
       // add longname entries
       auto longs = create_longname(sub.name, ATTR_DIRECTORY);
       if (longs.size() > ENTS_PER_SECT) continue;
-      
+
       // test and fill remainder of sector if overshooting
       mod16_test(ents, mod16, longs.size());
       // insert longnames to back of directory
@@ -230,13 +230,13 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
     last.attrib = 0;
     ents.push_back(last);
   }
-  
+
   // use dirents to measure size in sectors of this directory
   long ssize = (ents.size() / 16) + ((ents.size() & 15) ? 1 : 0);
-  
+
   // the next directory and files start at pos + SECT_SIZE * ssize etc
   long newpos = pos + ssize * SECT_SIZE;
-  
+
   // write directories
   for (auto& sub : subs)
   {
@@ -255,18 +255,18 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
     // write file to newpos
     newpos = fil.write(fsys, file, newpos);
   }
-  
+
   /// write all the entries for this directory to file
   fseek(file, pos, SEEK_SET);
   int count = fwrite(ents.data(), sizeof(cl_dir), ents.size(), file);
   assert(count == ents.size());
-  
+
   return newpos;
 }
 
 long File::write(FileSys&, FILE* file, long pos) const
 {
-  printf("writing file to %u with size %u\n", pos, this->size);
+  printf("writing file to %ld with size %u\n", pos, this->size);
   fseek(file, pos, SEEK_SET);
   int count = fwrite(data.get(), this->size, 1, file);
   assert(count == 1);

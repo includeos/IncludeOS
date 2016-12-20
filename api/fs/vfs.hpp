@@ -452,38 +452,38 @@ namespace fs {
 
   /** fs::mount **/
   template <bool create_path = true, typename T = void, typename P = Path>
-  static inline auto mount(P path, T& obj, std::string desc = "N/A") {
+  inline auto mount(P path, T& obj, std::string desc = "N/A") {
     Path p{path};
     VFS::mount<create_path, T>(p, obj, desc);
   };
 
   /** fs::root **/
-  static inline auto&& root() {
+  inline auto&& root() {
     return VFS::root();
   };
 
   /** fs::get **/
   template <typename T, typename P = Path>
-  static inline T& get(P pathstr) {
+  inline T& get(P pathstr) {
     return VFS::get<T>(pathstr);
   }
 
   /** fs::stat_sync **/
   template <typename P = Path>
-  static inline Dirent stat_sync(P path) {
+  inline Dirent stat_sync(P path) {
     Path p{path};
     return VFS::stat_sync(p);
   }
 
   /** fs::stat async **/
   template <typename P = Path>
-  static inline void stat(P path, on_stat_func func) {
+  inline void stat(P path, on_stat_func func) {
     Path p{path};
     VFS::stat(p, func);
   }
 
   /** fs::print_tree **/
-  static void print_tree() {
+  inline void print_tree() {
     printf("\n");
     FILLINE('=');
     CENTER("Mount points");
