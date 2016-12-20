@@ -53,7 +53,9 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hw/acpi.cpp
   ${SRC}/hw/block_device.cpp
+  #${SRC}/hw/cmos.cpp
   ${SRC}/hw/ioapic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
@@ -62,15 +64,36 @@ set(OS_SOURCES
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
+  ${SRC}/kernel/rdrand.cpp
+  ${SRC}/kernel/service_stub.cpp
+  ${SRC}/kernel/terminal_disk.cpp
+  ${SRC}/net/buffer_store.cpp
+  ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/cookie.cpp
+  ${SRC}/net/http/header.cpp
+  ${SRC}/net/http/header_fields.cpp
+  ${SRC}/net/http/message.cpp
+  ${SRC}/net/http/mime_types.cpp
+  ${SRC}/net/http/status_codes.cpp
+  ${SRC}/net/http/time.cpp
+  ${SRC}/net/http/version.cpp
+  ${SRC}/net/inet_common.cpp
+  ${SRC}/net/ip4/icmpv4.cpp
+  ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/net/util.cpp
+  ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
+  ${SRC}/posix/file_fd.cpp
+  ${SRC}/posix/sys/mman.cpp
+  ${SRC}/posix/sys/select.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
   ${SRC}/util/statman.cpp
+  ${SRC}/util/tar_reader.cpp
   ${SRC}/util/uri.cpp
+  ${SRC}/virtio/virtio_queue.cpp
 )
 
 add_executable(unittests ${OS_SOURCES} ${TEST_SOURCES} )
