@@ -2,7 +2,8 @@
 ================================================
 
 **Update**: Looking for [Acorn](examples/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY)? Built using [Mana](lib/mana/), the new C++ Web Application Framework for IncludeOS.
-A live demo of Acorn can be found at [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io) (sporadically unavailable)
+
+*A live demo of Acorn can be found at [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io) (sporadically unavailable)*
 
 IncludeOS is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
@@ -45,7 +46,7 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 ### Install libraries
 
-**NOTE:** The script will install packages and create a network bridge, and thus will ask for sudo access.
+**NOTE:** The script will install packages and create a network bridge.
 
 ```
     $ git clone https://github.com/hioa-cs/IncludeOS
@@ -56,12 +57,12 @@ A longer list of features and limitations is on the [wiki feature list](https://
 **The script will:**
 
 * Install the required dependencies: `curl make clang-3.8 nasm bridge-utils qemu`.
-* Build IncludeOS with CMake, which includes
+* Create a network bridge called `bridge43`, for tap-networking.
+* Build IncludeOS with CMake:
   * Download the latest binary release bundle from github together with the required git submodules.
   * Unzip the bundle to the current build directory.
-  * Build the different tools vmbuilder, which turns your service into a bootable image.
-  * Create a network bridge called `bridge43`, for tap-networking.
-  * Install everything over at `$INCLUDEOS_PREFIX/includeos` (defaults to `/usr/local`).
+  * Build several tools used with IncludeOS, including vmbuilder, which turns your service into a bootable image.
+  * Install everything in `$INCLUDEOS_PREFIX/includeos` (defaults to `/usr/local`).
 
 Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
 
