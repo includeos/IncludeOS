@@ -30,6 +30,14 @@ int open(const char* s, int, ...)
   if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
     return rng_fd;
   }
+  if (s == nullptr) {
+    errno = EFAULT;
+    return -1;
+  }
+  if (strcmp(s, "") == 0) {
+    errno = ENOENT;
+    return -1;
+  }
   try {
     auto ent = fs::VFS::stat_sync(s);
     if (ent.is_valid())
@@ -40,7 +48,7 @@ int open(const char* s, int, ...)
     errno = ENOENT;
     return -1;
   }
-  catch (const fs::Err_not_found& e) {
+  catch (...) {
     errno = ENOENT;
     return -1;
   }
