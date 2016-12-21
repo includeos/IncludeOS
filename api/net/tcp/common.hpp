@@ -50,7 +50,7 @@ namespace net {
      * @param length buffer length
      * @return a newly created buffer_t
      */
-    static buffer_t new_shared_buffer(uint64_t length)
+    inline buffer_t new_shared_buffer(uint64_t length)
     { return buffer_t(new uint8_t[length], std::default_delete<uint8_t[]>()); }
 
     class Packet;

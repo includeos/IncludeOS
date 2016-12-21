@@ -24,6 +24,7 @@
 #include <timers>
 #include <delegate>
 
+namespace mana {
 namespace dashboard {
 
 class CPUsage : public Component {
@@ -89,5 +90,6 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif

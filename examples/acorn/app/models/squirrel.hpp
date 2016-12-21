@@ -30,7 +30,7 @@ namespace acorn {
 /**
  *
  */
-struct Squirrel : json::Serializable {
+struct Squirrel : mana::Serializable {
   size_t key;
 
   /**

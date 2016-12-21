@@ -32,7 +32,7 @@ std::shared_ptr<UserBucket>     users;
 std::shared_ptr<SquirrelBucket> squirrels;
 
 std::unique_ptr<mana::Server> server_;
-std::unique_ptr<dashboard::Dashboard> dashboard_;
+std::unique_ptr<mana::dashboard::Dashboard> dashboard_;
 std::unique_ptr<Logger> logger_;
 
 Disk_ptr disk;
@@ -175,17 +175,17 @@ void Service::start(const std::string&) {
       /** MIDDLEWARE SETUP **/
       // custom middleware to serve static files
       auto opt = {"index.html"};
-      Middleware_ptr butler = std::make_shared<butler::Butler>(disk, "/public", opt);
+      Middleware_ptr butler = std::make_shared<middleware::Butler>(disk, "/public", opt);
       server_->use(butler);
 
       // custom middleware to serve a webpage for a directory
-      Middleware_ptr director = std::make_shared<director::Director>(disk, "/public/static");
+      Middleware_ptr director = std::make_shared<middleware::Director>(disk, "/public/static");
       server_->use("/static", director);
 
-      Middleware_ptr parsley = std::make_shared<json::Parsley>();
+      Middleware_ptr parsley = std::make_shared<middleware::Parsley>();
       server_->use(parsley);
 
-      Middleware_ptr cookie_parser = std::make_shared<cookie::CookieParser>();
+      Middleware_ptr cookie_parser = std::make_shared<middleware::Cookie_parser>();
       server_->use(cookie_parser);
 
     }); // < disk

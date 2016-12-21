@@ -15,22 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DIRECTOR_HPP
-#define DIRECTOR_HPP
+#ifndef MANA_MIDDLEWARE_DIRECTOR_HPP
+#define MANA_MIDDLEWARE_DIRECTOR_HPP
 
 #include <sstream>
 #include <fs/disk.hpp>
 
 #include <mana/middleware.hpp>
 
-namespace director {
+namespace mana {
+namespace middleware {
 
 /**
  * @brief Responsible to set the scene of a directory.
  * @details Creates a simple html display of a directory entry on a IncludeOS disk.
  *
  */
-class Director : public mana::Middleware {
+class Director : public Middleware {
 private:
   using SharedDisk = fs::Disk_ptr;
   using Entry = fs::Dirent;
@@ -46,7 +47,7 @@ public:
   Director(SharedDisk disk, std::string root)
     : disk_(disk), root_(root) {}
 
-  mana::Callback handler() override {
+  Callback handler() override {
     return {this, &Director::process};
   }
 
@@ -94,6 +95,6 @@ private:
 
 }; // < class Director
 
-} //< namespace director
+}} //< namespace mana::middleware
 
 #endif

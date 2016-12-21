@@ -28,6 +28,7 @@ set(MANA_MWARE
   src/middleware/butler.cpp
   src/middleware/director.cpp
   src/middleware/parsley.cpp
+  src/middleware/cookie_parser.cpp
   )
 
 set(MANA_ATTR

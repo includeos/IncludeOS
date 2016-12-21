@@ -112,8 +112,5 @@ fi
 
 echo -e "\n###########################################"
 echo -e " Mac dependency installation done."
-echo -e "###########################################"
-echo -e "\nTo build IncludeOS and services with cmake, mac-toolchain.cmake needs to be used:"
-echo -e "\n$ cmake -DCMAKE_TOOLCHAIN_FILE=mac-toolchain.cmake"
-echo -e "\nmac-toolchain.cmake is located in <repo>/etc (when building OS),"
-echo -e "and when installed, <includeos_prefix>/includeos (default /usr/local)\n"
+echo -e "###########################################\n"
+

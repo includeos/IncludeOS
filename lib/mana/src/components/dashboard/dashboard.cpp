@@ -17,8 +17,8 @@
 
 #include <mana/components/dashboard/dashboard.hpp>
 
-using namespace dashboard;
-using namespace mana;
+namespace mana {
+namespace dashboard {
 
 Dashboard::Dashboard(size_t buffer_capacity)
 : router_(), buffer_(0, buffer_capacity), writer_(buffer_)
@@ -56,3 +56,5 @@ void Dashboard::reset_writer() {
   buffer_.Clear();
   writer_.Reset(buffer_);
 }
+
+}} //< namespace mana::dashboard

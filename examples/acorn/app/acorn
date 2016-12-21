@@ -26,7 +26,7 @@
 
 #include <bucket/bucket.hpp>
 
-#include <mana/components/dashboard/dashboard>
+#include <mana/dashboard>
 
 #include "../fs/acorn_fs.hpp"
 

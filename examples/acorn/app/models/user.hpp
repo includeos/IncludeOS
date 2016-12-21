@@ -38,7 +38,7 @@ namespace acorn {
 /**
  *
  */
-struct User : json::Serializable {
+struct User : mana::Serializable {
   size_t key;
 
   /**

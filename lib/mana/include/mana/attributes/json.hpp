@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JSON_JSON_HPP
-#define JSON_JSON_HPP
+#ifndef MANA_ATTRIBUTES_JSON_HPP
+#define MANA_ATTRIBUTES_JSON_HPP
 
 #ifndef RAPIDJSON_HAS_STDSTRING
   #define RAPIDJSON_HAS_STDSTRING 1
@@ -30,49 +30,43 @@
 /**
  *
  */
-struct Assert_error : public std::logic_error {
-  using std::logic_error::logic_error;
-}; //< struct Assert_error
+namespace mana {
 
-#define RAPIDJSON_ASSERT(x) if (!(x)) throw Assert_error(RAPIDJSON_STRINGIFY(x))
+  struct Assert_error : public std::logic_error {
+    using std::logic_error::logic_error;
+  }; //< struct Assert_error
+
+} // < namespace mana
+
+#define RAPIDJSON_ASSERT(x) if (!(x)) throw mana::Assert_error(RAPIDJSON_STRINGIFY(x))
 
 #include <mana/attribute.hpp>
 #include <rapidjson/writer.h>
 #include <rapidjson/document.h>
 
 
-namespace json {
+namespace mana {
 
-/**
- *
- */
-struct Serializable {
-  /**
-   *
-   */
-  virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const = 0;
+  struct Serializable {
+    virtual void serialize(rapidjson::Writer<rapidjson::StringBuffer>& writer) const = 0;
 
-  /**
-   *
-   */
-  virtual bool deserialize(const rapidjson::Document& doc) = 0;
-}; //< struct Serializable
+    virtual bool deserialize(const rapidjson::Document& doc) = 0;
+  }; //< struct Serializable
 
-/**
- *
- */
-class Json_doc : public mana::Attribute {
-public:
-  /**
-   *
-   */
-  rapidjson::Document& doc()
-  { return document_; }
+  namespace attribute {
 
-private:
-  rapidjson::Document document_;
-}; //< class Json_doc
+    class Json_doc : public mana::Attribute {
+    public:
 
-}; //< namespace json
+      rapidjson::Document& doc()
+      { return document_; }
+
+    private:
+      rapidjson::Document document_;
+
+    }; //< class Json_doc
+
+  } //< namespace attribute
+} //< namespace mana
 
 #endif //< JSON_JSON_HPP

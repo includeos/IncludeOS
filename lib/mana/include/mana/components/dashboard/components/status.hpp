@@ -24,6 +24,7 @@
 #include <os>
 #include <rtc>
 
+namespace mana {
 namespace dashboard {
 
 class Status : public Component {
@@ -83,6 +84,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 

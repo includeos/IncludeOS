@@ -21,6 +21,8 @@
 #include <os>
 #include <net/inet4>
 #include <timers>
+#include <net/http/request.hpp>
+#include <net/http/response.hpp>
 
 using namespace std::chrono;
 
@@ -46,24 +48,39 @@ std::string HTML_RESPONSE()
          << "<footer><hr/>&copy; 2016, IncludeOS AS @ 60&deg; north</footer>"
          << "</body></html>";
 
-  const std::string html = stream.str();
-
-  const std::string header
-  {
-    "HTTP/1.1 200 OK\n"
-    "Date: Mon, 01 Jan 1970 00:00:01 GMT\n"
-    "Server: IncludeOS prototype 4.0\n"
-    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n"
-    "Content-Type: text/html; charset=UTF-8\n"
-    "Content-Length: "+std::to_string(html.size())+'\n'+
-    "Accept-Ranges: bytes\n"
-    "Connection: close\n\n"
-  };
-
-  return header + html;
+  return stream.str();
 }
 
-const std::string NOT_FOUND = "HTTP/1.1 404 Not Found\nConnection: close\n\n";
+http::Response handle_request(const http::Request& req)
+{
+  printf("<Service> Request:\n%s\n", req.to_string().c_str());
+
+  http::Response res;
+
+  auto& header = res.header();
+
+  header.set_field(http::header::Server, "IncludeOS/0.10");
+
+  // GET /
+  if(req.method() == http::GET && req.uri().to_string() == "/")
+  {
+    // add HTML response
+    res.add_body(HTML_RESPONSE());
+
+    // set Content type and length
+    header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
+    header.set_field(http::header::Content_Length, std::to_string(res.body().to_string().size()));
+  }
+  else
+  {
+    // Generate 404 response
+    res.set_status_code(http::Not_Found);
+  }
+
+  header.set_field(http::header::Connection, "close");
+
+  return res;
+}
 
 void Service::start(const std::string&)
 {
@@ -86,44 +103,35 @@ void Service::start(const std::string&)
   auto& server = inet.tcp().bind(80);
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.on_accept(
-  [] (auto socket) -> bool {
-    printf("<Service> @onAccept - Connection attempt from: %s\n",
-           socket.to_string().c_str());
-    return true; // allow all connections
-  })
-  .on_connect(
+  server.on_connect(
   [] (auto conn) {
-    printf("<Service> @onConnect - Connection successfully established.\n");
+    printf("<Service> @on_connect: Connection %s successfully established.\n",
+      conn->remote().to_string().c_str());
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (net::tcp::buffer_t buf, size_t n) {
-      // create string from buffer
-      std::string data { (char*)buf.get(), n };
-      printf("<Service> @read:\n%s\n", data.c_str());
-
-      if (data.find("GET / ") != std::string::npos)
+    [conn] (auto buf, size_t n)
+    {
+      printf("<Service> @on_read: %u bytes received.\n", n);
+      try
       {
-        // create response
-        std::string response = HTML_RESPONSE();
-        // write the data from the string with the strings size
-        conn->write(response.data(), response.size(), [](size_t n) {
-            printf("<Service> @write: %u bytes written\n", n);
-          });
+        // try to parse the request
+        http::Request req{(const char*)buf.get(), n};
+
+        // handle the request, getting a matching response
+        auto res = handle_request(req);
+
+        printf("<Service> Responding with %u %s.\n",
+          res.status_code(), http::code_description(res.status_code()).to_string().c_str());
+
+        conn->write(res, [](size_t written) {
+          printf("<Service> @on_write: %u bytes written.\n", written);
+        });
       }
-      else {
-        conn->write(NOT_FOUND.data(), NOT_FOUND.size());
+      catch(...)
+      {
+        printf("<Service> Unable to parse request.\n");
       }
-    });
-    conn->on_disconnect(
-    [] (auto conn, auto reason) {
-        printf("<Service> @onDisconnect - Reason: %s\n", reason.to_string().c_str());
-        conn->close();
-    })
-    .on_error(
-    [] (auto err) {
-      printf("<Service> @onError - %s\n", err.what());
     });
   });
 
