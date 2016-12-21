@@ -16,48 +16,20 @@
 // limitations under the License.
 
 #pragma once
-#ifndef DASHBOARD_COMPONENTS_LOGGER_HPP
-#define DASHBOARD_COMPONENTS_LOGGER_HPP
+#ifndef ACORN_FS_HPP
+#define ACORN_FS_HPP
 
-#include "../component.hpp"
+#include <memdisk>
+#include <fs/disk.hpp>
 
-#include <util/logger.hpp>
+namespace acorn {
 
-namespace dashboard {
+using Disk_ptr = fs::Disk_ptr;
 
-class Logger : public Component {
+void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, const int depth = 1);
 
-public:
+void list_static_content(Disk_ptr disk);
 
-  Logger(::Logger& logger, size_t entries = 50)
-   : logger_{logger}, entries_{entries}
-  {}
+} //< namespace acorn
 
-  std::string key() const override
-  { return "logger"; }
-
-  void serialize(Writer& writer) override {
-    writer.StartArray();
-    auto entries = (entries_) ? logger_.entries(entries_) : logger_.entries();
-
-    auto it = entries.begin();
-
-    while(it != entries.end())
-      writer.String(*it++);
-
-    writer.EndArray();
-  }
-
-private:
-  const ::Logger& logger_;
-  const size_t entries_;
-
-};
-
-} // < namespace dashboard
-
-#endif
-
-
-
-
+#endif //< ACORN_FS_HPP

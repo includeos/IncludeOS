@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
@@ -15,49 +16,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef DASHBOARD_COMPONENTS_LOGGER_HPP
-#define DASHBOARD_COMPONENTS_LOGGER_HPP
+#ifndef ACORN_WEB_APPLIANCE
+#define ACORN_WEB_APPLIANCE
 
-#include "../component.hpp"
+#include "models/user.hpp"
+#include "models/squirrel.hpp"
+
+#include "routes/routes"
+
+#include <bucket/bucket.hpp>
+
+#include <mana/components/dashboard/dashboard>
+
+#include "../fs/acorn_fs.hpp"
 
 #include <util/logger.hpp>
 
-namespace dashboard {
+// Middleware
+#include <mana/middleware/parsley.hpp>
+#include <mana/middleware/director.hpp>
+#include <mana/middleware/butler.hpp>
+#include <mana/middleware/cookie_parser.hpp>
 
-class Logger : public Component {
+#include <mana/server.hpp>
 
-public:
-
-  Logger(::Logger& logger, size_t entries = 50)
-   : logger_{logger}, entries_{entries}
-  {}
-
-  std::string key() const override
-  { return "logger"; }
-
-  void serialize(Writer& writer) override {
-    writer.StartArray();
-    auto entries = (entries_) ? logger_.entries(entries_) : logger_.entries();
-
-    auto it = entries.begin();
-
-    while(it != entries.end())
-      writer.String(*it++);
-
-    writer.EndArray();
-  }
-
-private:
-  const ::Logger& logger_;
-  const size_t entries_;
-
-};
-
-} // < namespace dashboard
-
-#endif
-
-
-
-
+#endif //< ACORN_WEB_APPLIANCE

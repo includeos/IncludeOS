@@ -1,0 +1,127 @@
+body {
+  font-size: 16px;
+}
+
+.programming {
+  font-family: Monospace;
+}
+
+.panel-default > .panel-heading {
+  /*background-color: #A061F2 !important;*/
+  background-image: linear-gradient(to bottom,#3A8BF1 0,#3A8BF1 100%);
+}
+
+.panel-default > .panel-heading > .panel-title {
+  color:#fff !important;
+}
+
+.panel-default {
+  border-color: #3A8BF1 !important;
+}
+
+[data-toggle="collapse"] {
+  cursor:pointer;
+}
+
+.vertical-max {
+  max-height: 350px;
+  overflow: auto;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+section {
+  padding-bottom:50px;
+}
+
+/* List view Statman tree view START */
+
+.gap-0 {
+  padding-left: 1em;
+}
+
+.gap-1 {
+  padding-left: 3em;
+}
+
+.gap-2 {
+  padding-left: 6em;
+}
+
+.parent {
+  padding-right: 1em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+  font-weight: bold;
+  background-color: #d9d9d9;
+}
+
+.second-parent {
+  background-color: #eee;
+}
+
+.just-padding {
+    padding: 15px;
+}
+
+.list-group.list-group-root {
+    padding: 0;
+    overflow: hidden;
+}
+
+.list-group.list-group-root .list-group {
+    margin-bottom: 0;
+}
+
+.list-group.list-group-root .list-group-item {
+    border-radius: 0;
+    border-width: 1px 0 0 0;
+}
+
+.list-group.list-group-root > .list-group-item:first-child {
+    border-top-width: 0;
+}
+
+.list-group.list-group-root > .list-group > .list-group-item {
+    padding-left: 30px;
+}
+
+.list-group.list-group-root > .list-group > .list-group > .list-group-item {
+    padding-left: 45px;
+}
+
+/* List view Statman tree view END */
+
+/* ------------------------ Index.html ------------------------ */
+
+#header {
+  padding-top: 1em;
+}
+
+#logo-header {
+  height: 50px;
+}
+
+#jumbo-acorn {
+  padding-bottom: 0.5em;
+}
+
+.static-link {
+  padding-top: 3em;
+  padding-bottom: 3em;
+  font-size: 1em;
+}
+
+.space-above {
+  padding-top: 1em;
+}
+
+#logo-footer {
+  height: 30px;
+}
+
+#footer {
+  padding-bottom: 1em;
+}

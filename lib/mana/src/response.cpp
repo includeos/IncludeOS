@@ -30,9 +30,15 @@ Response::Response(Connection_ptr conn)
 }
 
 void Response::send(bool close) {
-  if(close) {
+
+  if(close)
     header().set_field(http::header::Connection, "close"s);
-  }
+
+  // Set Content-Length if content
+  const auto conlen = body().size();
+  if(conlen > 0)
+    header().set_field(http::header::Content_Length, std::to_string(conlen));
+
   write_to_conn(close);
   end();
 }

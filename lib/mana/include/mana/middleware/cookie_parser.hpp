@@ -18,8 +18,8 @@
 #ifndef MIDDLEWARE_COOKIE_PARSER_HPP
 #define MIDDLEWARE_COOKIE_PARSER_HPP
 
-#include "cookie.hpp"
-#include "cookie_jar.hpp"
+#include <net/http/cookie.hpp>
+#include <mana/attributes/cookie_jar.hpp>
 #include <mana/middleware.hpp>
 
 namespace cookie {
@@ -43,7 +43,7 @@ private:
 
   bool has_cookie(mana::Request_ptr req) const noexcept;
 
-  const std::string& read_cookies(mana::Request_ptr req) const noexcept;
+  std::string read_cookies(mana::Request_ptr req) const noexcept;
 
   void parse(const std::string& cookie_data);
 
@@ -64,16 +64,16 @@ inline void CookieParser::process(mana::Request_ptr req, mana::Response_ptr, man
 }
 
 inline bool CookieParser::has_cookie(mana::Request_ptr req) const noexcept {
-  return req->has_header(http::header_fields::Request::Cookie);
+  return req->header().has_field(http::header::Cookie);
 }
 
-inline const std::string& CookieParser::read_cookies(mana::Request_ptr req) const noexcept {
-  return req->header_value(http::header_fields::Request::Cookie);
+inline std::string CookieParser::read_cookies(mana::Request_ptr req) const noexcept {
+  return req->header().value(http::header::Cookie).to_string();
 }
 
 void CookieParser::parse(const std::string& cookie_data) {
   if(cookie_data.empty()) {
-    throw CookieException{"Cannot parse empty cookie-string!"};
+    throw http::CookieException{"Cannot parse empty cookie-string!"};
   }
 
   req_cookies_.clear(); //< Clear {req_cookies_} for new entries
