@@ -36,7 +36,7 @@ extern "C" void* __os_store_soft_reset();
 
 #include <hw/devices.hpp>
 
-inline bool validate_elf_header(Elf32_Ehdr* hdr)
+inline bool validate_elf_header(const Elf32_Ehdr* hdr)
 {
     return hdr->e_ident[0] == 0x7F &&
            hdr->e_ident[1] == 'E'  &&
@@ -46,25 +46,27 @@ inline bool validate_elf_header(Elf32_Ehdr* hdr)
 
 void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 {
-  // use area just below the update storage to
-  // prevent it getting overwritten during the update
-  char* update_area  = (char*) location - blob.length;
-  char* storage_area = &update_area[blob.length];
+  // use area provided to us directly, which we will assume
+  // is far enough into heap to not get overwritten by hotswap.
+  // even then, it's still guaranteed to work: the copy mechanism
+  // is implemented in hotswap.cpp and copies forwards. the
+  // blobs are separated by at least one old kernel size and
+  // some early heap allocations, which is at least 1mb, while
+  // the copy mechanism just copies single bytes.
+  const char* update_area  = blob.buffer;
+  char* storage_area = (char*) location;
   
   // validate not overwriting heap
   extern char* heap_end;
-  if (heap_end >= update_area) {
-    printf("*** The heap is currently inside the update area\n");
+  if (heap_end >= storage_area) {
+    printf("*** The heap is currently inside the storage area\n");
     return;
   }
-  
-  // copy the binary blob to beginning of update area
-  memcpy(update_area, blob.buffer, blob.length);
 
   // validate ELF header
-  char*   binary  = &update_area[0];
-  int     bin_len = blob.length;
-  Elf32_Ehdr* hdr = (Elf32_Ehdr*) binary;
+  const char* binary  = &update_area[0];
+  int         bin_len = blob.length;
+  const auto* hdr = (const Elf32_Ehdr*) binary;
 
   if (!validate_elf_header(hdr))
   {
@@ -83,11 +85,10 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   }
   printf("* Found ELF header\n");
   
+  /// note: this assumes section headers are at the end
   int expected_total = 
-      //hdr->e_ehsize + 
-      //hdr->e_phnum * hdr->e_phentsize + 
       hdr->e_shnum * hdr->e_shentsize +
-      hdr->e_shoff; /// this assumes section headers are at the end
+      hdr->e_shoff;
   
   if (blob.length < expected_total || expected_total < ELF_MINIMUM)
   {
@@ -111,7 +112,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 
   // try to guess base address for the new service based on entry point
   /// FIXME
-  char* phys_base = (char*) 0x100000; //(start_offset & 0xffff0000);
+  char* phys_base = (char*) (start_offset & 0xffff0000);
   printf("* Estimate physical base to be %p...\n", phys_base);
 
   /// prepare for the end
