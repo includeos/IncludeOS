@@ -48,7 +48,7 @@ void VirtioNet::drop(Packet_ptr){
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, std::max(2048, queue_size(0) * 2), sizeof(net::Packet) + MTU()),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
