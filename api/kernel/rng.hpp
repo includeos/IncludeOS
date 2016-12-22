@@ -1,6 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +16,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/rdrand.hpp>
-#include <kernel/cpuid.hpp>
-#define __MM_MALLOC_H
-#include <immintrin.h>
+#pragma once
+#ifndef KERNEL_RNG_HPP
+#define KERNEL_RNG_HPP
 
-__attribute__((target("rdrnd")))
-bool rdrand16(uint16_t* result)
-{
-  int res = 0;
-  while (res == 0)
-    {
-      res = _rdrand16_step(result);
-    }
-  return (res == 1);
-}
+#include <cstdlib>
+#include <cstdint>
 
-__attribute__((target("rdrnd")))
-bool rdrand32(uint32_t* result)
-{
-  int res = 0;
-  while (res == 0)
-    {
-      res = _rdrand32_step(result);
-    }
-  return (res == 1);
-}
+// Incorporate seed data into the system RNG state
+extern void rng_absorb(const void* input, size_t bytes);
+
+// Extract output from the system RNG
+extern void rng_extract(void* output, size_t bytes);
+
+// Try to reseed the RNG state somehow
+extern void rng_reseed();
+
+// Extract 32 bit integer from system RNG
+inline uint32_t rng_extract_uint32()
+  {
+  uint32_t x;
+  rng_extract(&x, sizeof(x));
+  return x;
+  }
+
+
+#endif
