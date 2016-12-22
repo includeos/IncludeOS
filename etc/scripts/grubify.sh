@@ -1,6 +1,6 @@
 DISK=${DISK-grub_disk.img}
-KERNEL=${KERNEL-build/test_grub}
-MOUNTDIR=${MOUNTDIR-./mount}
+KERNEL=${1-build/test_grub}
+MOUNTDIR=${MOUNTDIR-/mnt}
 MOUNT_OPTS="sync,rw"
 BLOCKCCOUNT=10000
 
@@ -48,8 +48,8 @@ function mount_loopback {
 }
 
 function copy_kernel {
-  echo ">>> Copying kernel to $MOUNTDIR/boot"
-  sudo cp $KERNEL $MOUNTDIR/boot
+  echo ">>> Copying kernel '$KERNEL' to $MOUNTDIR/boot/includeos_service"
+  sudo cp $KERNEL $MOUNTDIR/boot/includeos_service
 }
 
 function build {
@@ -57,18 +57,18 @@ function build {
   pushd build
   make
   popd
-
 }
 
 
+
 # Unmount and Clean previous image
-if [[ "$1" =~ -c.* ]]
+if [[ "$2" =~ -c.* ]]
 then
 
   unmount
   clean
 
-  if [[ "$1" =~ -ce.* ]]
+  if [[ "$2" =~ -ce.* ]]
   then
     echo "Exit option set. Exiting."
     exit 0
@@ -76,12 +76,9 @@ then
 fi
 
 # Update image and exit
-if [[ "$1" == --update ]]
+if [[ "$2" == --update ]]
 then
   mount_loopback
-  pushd build
-  make
-  popd
   copy_kernel
   unmount
   exit
@@ -99,9 +96,28 @@ mount_loopback
 echo -e ">>> Creating boot dir"
 sudo mkdir -p $MOUNTDIR/boot
 
+GRUB_CFG='
+set default="0"
+set timeout=0
+serial --unit=0 --speed=9600
+terminal_input serial; terminal_output serial
+
+menuentry IncludeOS Grub test {
+  multiboot /boot/includeos_service
+  }
+'
+
+if [ ! -e grub.cfg ]
+then
+  echo -e ">>> Creating grub config file"
+  sudo echo "$GRUB_CFG" > grub.cfg
+fi
+
 echo -e ">>> Populating boot dir with grub config"
-sudo cp -r grub $MOUNTDIR/boot
-copy_kernel
+sudo mkdir -p $MOUNTDIR/boot/grub
+sudo mv grub.cfg $MOUNTDIR/boot/grub/grub.cfg
+
+  copy_kernel
 
 echo -e ">>> Running grub install"
 sudo grub-install --force --boot-directory $MOUNTDIR/boot/ $LOOP
