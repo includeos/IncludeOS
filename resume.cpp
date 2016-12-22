@@ -8,8 +8,6 @@ static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
 bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
 {
-  /// verify checksum
-  
   /// restore each entry one by one, calling registered handlers
   printf("* Resuming %d stored entries\n", storage.get_entries());
   

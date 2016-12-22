@@ -15,6 +15,15 @@ static void* HOTSWAP_AREA = (void*) 0x8000;
 
 bool LiveUpdate::is_resumable(void* location)
 {
+  /// memory sanity check
+  extern char* heap_end;
+  printf("heap: %p  storage: %p\n",
+		heap_end, location);
+  if (heap_end >= (char*) location) {
+    printf("LiveUpdate storage area overwritten by heap (margin: %d)\n",
+		heap_end - (char*) location);
+    return false;
+  }
   return ((storage_header*) location)->validate();
 }
 bool LiveUpdate::resume(void* location, resume_func func)
@@ -104,7 +113,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   printf("* _start is located at %#x\n", start_offset);
 
   // save ourselves
-  update_store_data(storage_area, func, {update_area, blob.length});
+  update_store_data(storage_area, func, blob);
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
@@ -158,9 +167,9 @@ void Storage::add_buffer(uint16_t id, buffer_len blob)
 {
   hdr.add_buffer(id, blob.buffer, blob.length);
 }
-void Storage::add_buffer(uint16_t id, void* buf, size_t len)
+void Storage::add_buffer(uint16_t id, const void* buf, size_t len)
 {
-  hdr.add_buffer(id, (char*) buf, len);
+  hdr.add_buffer(id, (const char*) buf, len);
 }
 
 #include "serialize_tcp.hpp"
@@ -171,4 +180,11 @@ void Storage::add_connection(uid id, Connection_ptr conn)
     // return size of all the serialized data
     return conn->serialize_to(location);
   });
+}
+
+buffer_len buffer_len::deep_copy() const
+{
+  char* newbuffer = new char[this->length];
+  memcpy(newbuffer, this->buffer, this->length);
+  return { newbuffer, this->length };
 }

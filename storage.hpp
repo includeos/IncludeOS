@@ -25,6 +25,8 @@ struct storage_entry
   int size() const noexcept {
     return sizeof(storage_entry) + len;
   }
+
+  uint32_t checksum() const;
 };
 
 struct storage_header

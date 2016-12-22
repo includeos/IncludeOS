@@ -149,7 +149,7 @@ void save_stuff(Storage storage, buffer_len final_blob)
   
   // where the update was stored last
   printf("Storing location %p:%d\n", final_blob.buffer, final_blob.length);
-  storage.add_buffer(999, &final_blob, sizeof(buffer_len));
+  storage.add_buffer(999, final_blob.buffer, final_blob.length);
   
   // messages received from terminals
   for (auto& msg : savemsg)
@@ -222,7 +222,7 @@ void restore_term(Restore thing)
 #include <timers>
 void on_update_area(Restore thing)
 {
-  buffer_len updloc = thing.as_type<buffer_len> ();
+  buffer_len updloc = thing.as_buffer().deep_copy();
   printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
   
   // we are perpetually updating ourselves
@@ -230,7 +230,7 @@ void on_update_area(Restore thing)
   Timers::oneshot(milliseconds(50),
   [updloc] (auto) {
     extern uintptr_t heap_end;
-    printf("* Re-running previous update at %p vs heap %08x\n", updloc.buffer, heap_end);
+    printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
     LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
   });
 }

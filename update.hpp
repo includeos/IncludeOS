@@ -15,6 +15,8 @@
 struct buffer_len {
   const char* buffer;
   int length;
+  
+  buffer_len deep_copy() const;
 };
 
 struct storage_entry;
@@ -27,7 +29,7 @@ struct Storage
   
   void add_string(uid, const std::string&);
   void add_buffer(uid, buffer_len);
-  void add_buffer(uid, void*, size_t);
+  void add_buffer(uid, const void*, size_t);
   void add_connection(uid, Connection_ptr);
   
   
