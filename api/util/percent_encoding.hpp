@@ -16,58 +16,63 @@
 // limitations under the License.
 
 
-/**
- * URL-encode / decode (Percent encoding)
- *
- * Implemented for IncludeOS from RFC 3986
- * https://tools.ietf.org/html/rfc3986#section-2.1
- *
- * @note Encoding reserved chars:
- * The RFC lets the application decide which reserved characters to
- * encode and which can be used as data. This implementation
- * currently encodes all of them.
- *
- * @note Decoding errors:
- * The RFC only defines what an URL-encoded string is, not what to do
- * if you try to decode a non-encoded (or erroneously encoded)
- * strings. Doing that is therefore considered undefined. By default
- * this implementation will partially decode as much as possible and
- * return that. To throw on error instead, define URL_THROW_ON_ERROR.
- *
- **/
+///
+/// URI encode/decode (percent encoding) module
+///
+/// Implemented for IncludeOS from RFC 3986
+/// https://tools.ietf.org/html/rfc3986#section-2.1
+///
+/// @note Encoding reserved chars:
+/// The RFC lets the application decide which reserved characters to
+/// encode and which can be used as data. This implementation
+/// currently encodes all of them.
+///
+/// @note Decoding errors:
+/// The RFC only defines what an URI-encoded string is, not what to do
+/// if you try to decode a non-encoded (or erroneously encoded)
+/// string. Doing that is therefore considered undefined. By default
+/// this implementation will partially decode as much as possible and
+/// return that. To throw on error instead, define URI_THROW_ON_ERROR.
+///
 
 #pragma once
 #ifndef PERCENT_ENCODING_HPP
 #define PERCENT_ENCODING_HPP
 
-#include <array>
 #include <experimental/string_view>
 
 namespace uri {
 
-  /** URI-encode (percent-encode) a span of bytes */
-  std::string encode(const std::experimental::string_view input);
+///
+/// Encode (percent-encode) a view of data representing a uri
+///
+std::string encode(const std::experimental::string_view input);
 
-  /** URI-decode (percent-decode) a span of bytes */
-  std::string decode(const std::experimental::string_view input);
+///
+/// Decode (percent-encode) a view of data representing a uri
+///
+std::string decode(const std::experimental::string_view input);
 
 
-#ifdef URL_THROW_ON_ERROR
+#ifdef URI_THROW_ON_ERROR
 #include <stdexcept>
 
-  class Decode_error : std::runtime_error {
-    using runtime_error::runtime_error;
-  };
+class Decode_error : public std::runtime_error {
+public:
+  using runtime_error::runtime_error;
+};
 
-  class Encode_error : std::runtime_error {
-    using runtime_error::runtime_error;
-  };
+class Encode_error : public std::runtime_error {
+public:
+  using runtime_error::runtime_error;
+};
 
-  class Hex_error : Decode_error {
-    using Decode_error::Decode_error;
-  };
+class Hex_error : public Decode_error {
+public:
+  using Decode_error::Decode_error;
+};
 
-#endif //< URL_THROW_ON_ERROR
+#endif //< URI_THROW_ON_ERROR
 
 } //< namespace uri
 

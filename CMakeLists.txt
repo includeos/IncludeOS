@@ -17,8 +17,6 @@ if(CMAKE_COMPILER_IS_GNUCC)
 	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
-
 # create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
@@ -33,12 +31,12 @@ string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
-# * NO_DEBUG Disables  output from the debug macro
+# * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS  "-Wall -Wextra") #-pedantic
+set(WARNS "-Wall -Wextra") #-pedantic
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -114,7 +112,7 @@ if(diskbuilder)
     INSTALL_DIR ${BIN}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
   )
-endif()
+endif(diskbuilder)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
@@ -163,7 +161,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
-install(DIRECTORY mod/GSL/gsl DESTINATION include)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
