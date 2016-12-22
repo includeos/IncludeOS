@@ -32,7 +32,7 @@ void Director::process(
   )
 {
   // get path
-  auto path = req->uri().to_string();
+  std::string path = req->uri();
 
   auto fpath = resolve_file_path(path);
   #ifdef VERBOSE_WEBSERVER

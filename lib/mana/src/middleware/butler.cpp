@@ -40,7 +40,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
   }
 
   // get path
-  std::string path = req->uri().to_string();
+  std::string path = req->uri();
   // resolve extension
   auto ext = get_extension(path);
   // concatenate root with path, example: / => /public/

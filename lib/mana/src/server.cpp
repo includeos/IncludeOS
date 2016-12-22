@@ -106,7 +106,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
     auto& it = *it_ptr;
 
     // skip those who don't match
-    while(it != middleware_.end() and !path_starts_with(req->uri().to_string(), it->path))
+    while(it != middleware_.end() and !path_starts_with(req->uri(), it->path))
       it++;
 
     // while there is more to do
@@ -130,7 +130,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
 
 void Server::process_route(Request_ptr req, Response_ptr res) {
   try {
-    auto parsed_route = router_.match(req->method(), req->uri().to_string());
+    auto parsed_route = router_.match(req->method(), req->uri());
     req->set_params(parsed_route.parsed_values);
     parsed_route.job(req, res);
   }
