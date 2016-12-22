@@ -16,32 +16,34 @@
 // limitations under the License.
 
 #include <algorithm>
-#include <string>
-#include <uri>
+#include <array>
 
-///////////////////////////////////////////////////////////////////////////////
-static inline std::string decode_error(std::string res) {
-#ifdef URL_THROW_ON_ERROR
-  throw uri::Decode_error{"Decoding incomplete: " + res};
-#endif
-  return res;
-}
+#include <util/percent_encoding.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 static inline std::string encode_error(std::string res) {
-#ifdef URL_THROW_ON_ERROR
-  throw uri::Encode_error{"Encoding incomplete: " + res};
+  auto error_message = "Encoding incomplete: " + res;
+#ifdef URI_THROW_ON_ERROR
+  throw uri::Encode_error{error_message};
 #endif
-  return res;
+  return error_message;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static inline std::string decode_error(std::string res) {
+  auto error_message = "Decoding incomplete: " + res;
+#ifdef URI_THROW_ON_ERROR
+  throw uri::Decode_error{error_message};
+#endif
+  return error_message;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 static inline uint8_t hex_error(const char nibble) {
-#ifdef URL_THROW_ON_ERROR
-  throw uri::Hex_error{std::move(std::string{"Not a hex character: "} + nibble)};
-#else
-  (void) nibble;
+#ifdef URI_THROW_ON_ERROR
+  throw uri::Hex_error{std::string{"Not a hex character: "} + nibble};
 #endif
+  (void) nibble;
   return 0;
 }
 
@@ -67,8 +69,10 @@ static inline uint8_t from_hex(const char nibble1, const char nibble2) {
 ///////////////////////////////////////////////////////////////////////////////
 static inline bool is_reserved (const char chr) noexcept {
   static const std::array<char,18> reserved
-  {{':' , '/' , '?' , '#' , '[' , ']' , '@',
-        '!' , '$' , '&' , '\'' , '(' , ')' , '*' , '+' , ',' , ';' , '='}};
+  {{
+    ':' , '/' , '?' , '#' , '[' , ']' , '@', '!' , '$' ,
+    '&' , '\'' , '(' , ')' , '*' , '+' , ',' , ';' , '='
+  }};
 
   return std::find(reserved.begin(), reserved.end(), chr) not_eq reserved.end();
 }
@@ -80,8 +84,8 @@ static inline bool is_unreserved (const char chr) noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string uri::encode(const std::experimental::string_view input) {
-  static const std::array<char,16> hex =
-    {{ '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }};
+  static const std::array<char,16> hex
+  {{ '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }};
 
   std::string res;
   res.reserve(input.size());
@@ -91,7 +95,7 @@ std::string uri::encode(const std::experimental::string_view input) {
       res += chr;
     } else {
       res += '%';
-      res += hex[ chr >> 4 ];
+      res += hex[ chr >> 4  ];
       res += hex[ chr & 0xf ];
     }
 
@@ -102,6 +106,7 @@ std::string uri::encode(const std::experimental::string_view input) {
 std::string uri::decode(const std::experimental::string_view input) {
   std::string res;
   res.reserve(input.size());
+
   for (auto it = input.cbegin(), e = input.cend(); it not_eq e; ++it) {
     if (*it == '%') {
 
@@ -120,5 +125,6 @@ std::string uri::decode(const std::experimental::string_view input) {
         return decode_error(std::move(res));
     }
   }
+
   return res;
 }
