@@ -65,6 +65,7 @@ set(OS_SOURCES
   ${SRC}/net/http/cookie.cpp
   ${SRC}/net/util.cpp
   ${SRC}/posix/fd.cpp
+  ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp

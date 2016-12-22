@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 #include <arpa/inet.h>
-#include <posix/arpa/inet.cpp>
+#include <cstring>
 
 const int TEST_ADDR = 0x0A00002A; // 10.0.0.42
 const char* TEST_ADDRSTR = "10.0.0.42";
