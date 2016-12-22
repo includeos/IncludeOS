@@ -48,7 +48,7 @@ void VirtioNet::drop(Packet_ptr){
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 2048, sizeof(net::Packet) + MTU()),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, std::max(2048, queue_size(0) * 2), sizeof(net::Packet) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
@@ -281,8 +281,6 @@ void VirtioNet::add_receive_buffer(){
   auto* pkt = bufstore().get_buffer();
   // get a pointer to a virtionet header
   auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
-
-  debug2("<VirtioNet> Added receive-bufer @ 0x%x \n", (uint32_t)buf);
 
   Token token1 {
     {vnet, sizeof(virtio_net_hdr)},
