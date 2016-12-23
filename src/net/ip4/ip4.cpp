@@ -40,7 +40,6 @@ namespace net {
 }
 
   void IP4::bottom(Packet_ptr pckt) {
-    debug2("<IP4 handler> got the data.\n");
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
@@ -49,20 +48,24 @@ namespace net {
 
     ip_header* hdr = &packet->ip_header();
 
-    // Drop if my ip address doesn't match destination ip address or broadcast
-    if(UNLIKELY(hdr->daddr != local_ip() and
-                (hdr->daddr | stack_.netmask()) != ADDR_BCAST)) {
+    debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
+           hdr->saddr.str().c_str(), hdr->daddr.str().c_str(), hdr->protocol);
 
-      if (forward_packet_)
+    // Drop if my ip address doesn't match destination ip address or broadcast
+    if(UNLIKELY(hdr->daddr != local_ip()
+                and (hdr->daddr | stack_.netmask()) != ADDR_BCAST
+                and local_ip() != ADDR_ANY)) {
+
+      if (forward_packet_) {
         forward_packet_(stack_, static_unique_ptr_cast<IP_packet>(std::move(pckt)));
-      else
+        debug("Packet forwarded \n");
+      } else {
+        debug("Packet dropped \n");
         packets_dropped_++;
+      }
 
       return;
     }
-
-    debug2("\t Source IP: %s Dest.IP: %s\n",
-           hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
 
     switch(hdr->protocol){
     case IP4_ICMP:
@@ -105,15 +108,15 @@ namespace net {
           hdr.daddr.str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
-          stack_.router().str().c_str(),
+          stack_.gateway().str().c_str(),
           target == local ? "DIRECT" : "GATEWAY");
 
-    debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
+    /*debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
           stack_.ip_addr().str().c_str(),
           pckt->next_hop().str().c_str(),
           pckt->size(),
           ip4_pckt->ip_segment_size()
-          );
+          );*/
 
     // Stat increment packets transmitted
     packets_tx_++;

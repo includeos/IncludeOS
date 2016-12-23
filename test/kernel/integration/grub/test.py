@@ -18,8 +18,11 @@ vm.cmake()
 # Cmake changes to build dir
 os.chdir("..")
 
+# Use grubify-script
+grubify = includeos_src + "/etc/scripts/grubify.sh"
+
 # Create the GRUB image
-subprocess.check_call(["bash","./create_disk.sh","-c"])
+subprocess.check_call(["bash",grubify,"build/test_grub", "-c"])
 
 # Boot the image
-vm.boot(multiboot = False).clean()
+vm.boot(multiboot = False)

@@ -4,19 +4,39 @@
 /** Stat */
 static uint32_t& now_called {Statman::get().create(Stat::UINT32, "cmos.now").get_uint32()};
 
+uint8_t cmos::reg_b_value = 0; //cmos::get(cmos::r_status_b);
+
 cmos::Time cmos::Time::hw_update() {
   // We're supposed to check this before every read
   while (update_in_progress());
-  f.second = get(r_sec);
-  f.minute = get(r_min);
-  f.hour = get(r_hrs);
-  f.day_of_week = get(r_dow);
-  f.day_of_month = get(r_day);
-  f.month = get(r_month);
-  f.year =  get(r_year);
-  f.century = get(r_cent);
+
+  if (cmos::mode_binary()) {
+    f.second = get(r_sec);
+    f.minute = get(r_min);
+    f.hour = get(r_hrs);
+    f.day_of_week = get(r_dow);
+    f.day_of_month = get(r_day);
+    f.month = get(r_month);
+    f.year =  get(r_year);
+    f.century = get(r_cent);
+  } else {
+    f.second = bcd_to_binary(get(r_sec));
+    f.minute = bcd_to_binary(get(r_min));
+    f.hour = bcd_to_binary(get(r_hrs));
+    f.day_of_week = bcd_to_binary(get(r_dow));
+    f.day_of_month = bcd_to_binary(get(r_day));
+    f.month = bcd_to_binary(get(r_month));
+    f.year =  bcd_to_binary(get(r_year));
+    f.century = get(r_cent);
+  }
+
+  // Convert to 24-hour clock if necessary
+  if (not mode_24_hour() and f.hour & 0x80) {
+    f.hour = ((f.hour & 0x7F) + 12) % 24;
+  }
 
   return *this;
+
 }
 
 

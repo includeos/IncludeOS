@@ -21,8 +21,9 @@
 #include <hw/ioport.hpp>
 
 /** Functions / classes for x86 CMOS / RTC interaction */
-namespace cmos {
+class cmos {
 
+public:
   using port_t = const uint8_t;
   using reg_t =  const uint8_t;
   using bit_t =  const uint8_t;
@@ -50,7 +51,6 @@ namespace cmos {
   static reg_t r_alarm_min = 0x3;
   static reg_t r_alarm_hrs = 0x5;
   static reg_t r_alarm_day = 0x5;
-
 
   // Status reg. A
   static reg_t r_status_a = 0xa;
@@ -80,27 +80,34 @@ namespace cmos {
   static reg_t r_memsize_hi = 0x31;
 
   /** Get the contents of a CMOS register */
-  inline uint8_t get(reg_t reg) {
+  static uint8_t get(reg_t reg) {
     hw::outb(select, reg | no_nmi);
     return hw::inb(data);
   }
 
   /** Set the contents of a CMOS register */
-  inline void set(reg_t reg, uint8_t bits) {
+  static void set(reg_t reg, uint8_t bits) {
     debug("CMOS setting bits 0x%x in reg. 0x%x \n", bits, reg);
     hw::outb(select, reg | no_nmi);
     hw::outb(data, bits);
   }
 
   /** Check if the CMOS time registers are being updated */
-  inline bool update_in_progress(){
+  static bool update_in_progress(){
     return get(r_status_a) & a_time_update_in_progress;
   }
 
   /** Initialize CMOS with 24 hour format UTC */
-  inline void init() {
-    INFO("CMOS", "Setting 24 hour format UTC");
-    set(r_status_b, b_24_hr_clock | b_binary_mode);
+  static void init() {
+    // Changing modes doesn't give expected results on e.g. GCE
+    //set(r_status_b, b_24_hr_clock | b_binary_mode);
+    reg_b_value = get(r_status_b);
+    INFO("CMOS", "RTC is %i hour format, %s mode",
+         mode_24_hour() ? 24 : 12, mode_binary() ? "binary" : "BCD");
+  }
+
+  static uint8_t bcd_to_binary(uint8_t value) {
+    return (value & 0x0F) + ((value / 16) * 10);
   }
 
   union mem_t {
@@ -117,7 +124,7 @@ namespace cmos {
     mem_t actual_extended;
   };
 
-  inline memory_t meminfo(){
+  static memory_t meminfo(){
     memory_t mem {{0}, {0}, {0}};
     mem.base.hi = get(r_lowmem_hi);
     mem.base.lo = get(r_lowmem_lo);
@@ -131,12 +138,17 @@ namespace cmos {
     return mem;
   }
 
+  /** CMOS RTC uses 24-hour time format **/
+  static bool mode_24_hour() { return reg_b_value & b_24_hr_clock; }
 
-
+  /** CMOS RTC uses binary representation - otherwise BCD **/
+  static bool mode_binary() { return reg_b_value & b_binary_mode; }
 
   /**
    * A representation of x86 RTC time.
    * With calculation of seconds since epoch and internet timestamp.
+   *
+   * @note : This class converts CMOS fields to 24-hour format / binary mode
    */
   class Time {
 
@@ -205,6 +217,10 @@ namespace cmos {
         ((tm_year - 1) / 100) * 86400 + ((tm_year + 299) / 400) * 86400;
     }
 
+    Fields fields(){
+      return f;
+    }
+
   private:
 
     Fields f;
@@ -218,8 +234,13 @@ namespace cmos {
    * several VM-exits.
    **/
 
-   Time now();
+  static Time now();
 
-} // namespace cmos
+private:
+  // The contents of register B (can't always be changed)
+  static uint8_t reg_b_value;
+
+
+}; // namespace cmos
 
 #endif
