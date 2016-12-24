@@ -17,7 +17,6 @@
 
 #include <common.cxx>
 #include <util/logger.hpp>
-#include <util/logger.cpp>
 
 CASE("Creating a Logger")
 {
@@ -63,7 +62,7 @@ CASE("Adding one entry")
       {
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 1 );
+        EXPECT( entries.size() == 1u );
         EXPECT( entries[0] == entry );
 
         WHEN("The logger is flushed")
@@ -115,7 +114,7 @@ CASE("Adding several entries")
       {
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 3 );
+        EXPECT( entries.size() == 3u );
 
         EXPECT( entries[0] == entry1 );
         EXPECT( entries[1] == entry2 );
@@ -127,7 +126,7 @@ CASE("Adding several entries")
 
           THEN("Only the last (latest) entry is returned")
           {
-            EXPECT( entries.size() == 1 );
+            EXPECT( entries.size() == 1u );
             EXPECT( entries[0] == entry3 );
           }
         }
@@ -159,7 +158,7 @@ CASE("Adding entries that wraps around")
       {
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 2 );
+        EXPECT( entries.size() == 2u );
         EXPECT( entries[0] == entry2 );
         EXPECT( entries[1] == entry3 );
       }
@@ -173,7 +172,7 @@ CASE("Adding entries that wraps around")
       {
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 1 );
+        EXPECT( entries.size() == 1u );
         EXPECT( entries[0] == entry3 );
       }
     }
@@ -189,7 +188,7 @@ CASE("Adding entries that wraps around")
 
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 1 );
+        EXPECT( entries.size() == 1u );
         EXPECT( entries[0] == substr );
       }
     }
@@ -201,7 +200,7 @@ CASE("Adding entries that wraps around")
       {
         auto entries = logger.entries();
 
-        EXPECT( entries.size() == 2 );
+        EXPECT( entries.size() == 2u );
       }
     }
   }
@@ -222,7 +221,7 @@ CASE("Adding a horde of log entries")
       const auto max_entries = logger.size() / sz;
       const unsigned rotations = 3;
 
-      for(int i; i < max_entries * rotations; ++i)
+      for(unsigned int i = 0; i < max_entries * rotations; ++i)
         logger.log(entry);
 
       THEN("There isnt more than maximum possible entries and they are all correct")

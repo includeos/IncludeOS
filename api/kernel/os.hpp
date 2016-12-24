@@ -35,7 +35,7 @@
 class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
-  using Custom_init = delegate<void()>;
+  using Plugin = delegate<void()>;
 
   /* Get the version of the os */
   static std::string version()
@@ -47,7 +47,7 @@ public:
   }
   /** micro seconds since boot */
   static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_mhz_.count();
+    return cycles_since_boot() / cpu_freq().count();
   }
 
   /** Timestamp for when OS was booted */
@@ -107,11 +107,33 @@ public:
     return x << PAGE_SHIFT;
   }
 
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  /** First address of the heap **/
+  static uintptr_t heap_begin() noexcept{
+    return heap_begin_;
+  };
+
+  /** Last used address of the heap **/
+  static uintptr_t heap_end() {
+    return heap_end_;
+  };
 
   /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max();
+  static uintptr_t heap_max() noexcept{
+    return heap_max_;
+  };
+
+  /** Currently used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept {
+    return (uintptr_t) (heap_end_ - heap_begin_);
+  };
+
+  /** Resize the heap if possible. Return (potentially) new size. **/
+  static uintptr_t resize_heap(size_t size);
+
+  /** The end of usable memory **/
+  static inline uintptr_t memory_end(){
+    return memory_end_;
+  }
 
   /** time spent sleeping (halt) in cycles */
   static uint64_t get_cycles_halt() noexcept;
@@ -136,39 +158,55 @@ public:
    * @param delg : A delegate to be called
    * @param name : A human readable identifier
   **/
-  static void register_custom_init(Custom_init delg, const char* name);
+  static void register_plugin(Plugin delg, const char* name);
+
+  /**
+   * Block for a while, e.g. until the next round in the event loop
+   **/
+  static void block();
+
+
+  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
+  static void event_loop();
+
 
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
 
+  /** Boot with no multiboot params */
+  static void legacy_boot();
+
+  /** Resume stuff from a soft reset **/
+  static void resume_softreset(intptr_t boot_addr);
+
   static constexpr int PAGE_SHIFT = 12;
 
   /** Indicate if the OS is running. */
   static bool power_;
-
-  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
-  static void event_loop();
 
   static MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;
   static std::string version_field;
 
-  struct Custom_init_struct {
-    Custom_init_struct(Custom_init f, const char* n)
+  struct Plugin_struct {
+    Plugin_struct(Plugin f, const char* n)
       : func_{f}, name_{n}
     {}
 
-    Custom_init func_;
+    Plugin func_;
     const char* name_;
   };
 
-  static std::vector<Custom_init_struct> custom_init_;
+  static std::vector<Plugin_struct> plugins_;
 
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
+  static uintptr_t memory_end_;
+  static uintptr_t heap_begin_;
+  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
 

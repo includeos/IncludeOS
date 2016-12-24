@@ -37,7 +37,7 @@ namespace net {
 
   class TCP {
   public:
-    using IPStack         = Inet<LinkLayer,IP4>;
+    using IPStack         = IP4::Stack;
 
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
@@ -58,7 +58,17 @@ namespace net {
     /*
       Bind a new listener to a given Port.
     */
-    tcp::Listener& bind(tcp::port_t port);
+    tcp::Listener& bind(const tcp::port_t port);
+
+    /**
+     * @brief Unbind (and close) a Listener
+     * @details Closes the Listener and removes it from the
+     * map of listeners
+     *
+     * @param port listening port
+     * @return wether the listener had a port
+     */
+    bool unbind(const tcp::port_t port);
 
     /*
       Active open a new connection to the given remote.
@@ -75,6 +85,11 @@ namespace net {
 
     void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
     { connect({address, port}, callback); }
+
+    /*
+     * Insert existing connection
+     */
+    void insert_connection(tcp::Connection_ptr);
 
     /*
       Receive packet from network layer (IP).
@@ -171,7 +186,7 @@ namespace net {
     /*
       Settings
     */
-    tcp::port_t current_ephemeral_ = 1024;
+    tcp::port_t current_ephemeral_;
 
     std::chrono::milliseconds MAX_SEG_LIFETIME;
 
@@ -211,6 +226,9 @@ namespace net {
       Close and delete the connection.
     */
     void close_connection(tcp::Connection_ptr);
+
+    void close_listener(tcp::Listener&);
+
 
     /*
       Process the write queue with the given amount of free packets.

@@ -1,1 +1,3 @@
-{"image" : "test_timers.img" }
+{"image" : "test_timers.img",
+ "time_sensitive" : "True"
+}

@@ -58,7 +58,7 @@ namespace fs
     (*next)(sector);
   }
 
-  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback)
+  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const start)
   {
     // parse this path into a stack of memes
     typedef std::function<void(uint32_t)> next_func_t;
@@ -113,7 +113,7 @@ namespace fs
             debug("\t\t cluster: %llu\n", e.block);
             // only follow directories
             if (e.type() == DIR)
-              (*next)(e.block);
+              (*next)(e.block());
             else
               callback({ error_t::E_NOTDIR, e.name() }, dirents);
             return;
@@ -125,8 +125,8 @@ namespace fs
       });
 
     };
-    // start by reading root directory
-    (*next)(0);
+    // start by reading provided dirent or root
+    (*next)(start ? start->block() : 0);
   }
 
   void FAT::ls(const std::string& path, on_ls_func on_ls) {
@@ -148,7 +148,7 @@ namespace fs
       return;
     }
     // convert cluster to sector
-    uint32_t S = this->cl_to_sector(ent.block);
+    uint32_t S = this->cl_to_sector(ent.block());
     // read result directory entries into ents
     int_ls(S, dirents,
     [on_ls] (error_t err, dirvec_t entries) {
@@ -174,7 +174,7 @@ namespace fs
     uint32_t internal_ofs = stapos % device.block_size();
 
     // cluster -> sector + position
-    device.read(this->cl_to_sector(ent.block) + sector, nsect,
+    device.read(this->cl_to_sector(ent.block()) + sector, nsect,
     [pos, n, callback, internal_ofs] (buffer_t data) {
 
       if (!data) {
@@ -196,14 +196,13 @@ namespace fs
     });
   }
 
-  void FAT::stat(const std::string& strpath, on_stat_func func)
+  void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start)
   {
     // manual lookup
-    auto path = std::make_shared<Path> (strpath);
     if (unlikely(path->empty())) {
       // root doesn't have any stat anyways
       // Note: could use ATTR_VOLUME_ID in FAT
-      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(INVALID_ENTITY, strpath));
+      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(this, INVALID_ENTITY, path->to_string()));
       return;
     }
 
@@ -217,7 +216,7 @@ namespace fs
     {
       if (unlikely(error)) {
         // no path, no file!
-        func(error, Dirent(INVALID_ENTITY, filename));
+        func(error, Dirent(this, INVALID_ENTITY, filename));
         return;
       }
 
@@ -231,8 +230,8 @@ namespace fs
       }
 
       // not found
-      func({ error_t::E_NOENT, filename }, Dirent(INVALID_ENTITY, filename));
-    });
+      func({ error_t::E_NOENT, filename }, Dirent(this, INVALID_ENTITY, filename));
+    }, start);
   }
 
   void FAT::cstat(const std::string& strpath, on_stat_func func)
@@ -244,10 +243,10 @@ namespace fs
       func(no_error, it->second);
       return;
     }
-    
-    stat(strpath,
-    [this, strpath, func] (error_t error, const FileSystem::Dirent& ent) {
-        stat_cache[strpath] = ent;
+
+    File_system::stat(strpath,
+    [this, strpath, func] (error_t error, const Dirent& ent) {
+           stat_cache.emplace(strpath, ent);
         func(error, ent);
     });
   }

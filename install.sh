@@ -8,9 +8,14 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
 
 SYSTEM=`uname -s`
 
-RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || echo `lsb_release -is`)
+read_linux_release() {
+    LINE=`grep "^ID=" /etc/os-release`
+    echo "${LINE##*=}"
+}
 
-[ "$RELEASE" = "neon" ] && RELEASE="Ubuntu"
+RELEASE=$([ $SYSTEM = "Darwin" ] && echo `sw_vers -productVersion` || read_linux_release)
+
+[ "$RELEASE" = "neon" ] && RELEASE="ubuntu"
 
 check_os_support() {
     SYSTEM=$1
@@ -22,14 +27,14 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "Ubuntu"|"LinuxMint")
+                "debian"|"ubuntu"|"linuxmint")
                     return 0;
                     ;;
-                "Fedora")
+                "fedora")
                     export INCLUDEOS_SRC=`pwd`
                     return 0;
                     ;;
-                "Arch")
+                "arch")
                     return 0;
                     ;;
             esac
@@ -47,8 +52,10 @@ fi
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
-Currently only Ubuntu, Fedora, Arch, and OSX are actively supported for *building* IncludeOS. \n\
-On other Linux distros it shouldn't be that hard to get it to work - take a look at\n \
+Currently only Debian testing/jessie backports, Ubuntu, Fedora, Arch,\n\
+and OSX are actively supported for *building* IncludeOS. \n\
+On other Linux distros it shouldn't be that hard to get it to work - take\n\
+a look at\n \
 ./etc/install_from_bundle.sh \n"
     exit 1
 fi
@@ -78,8 +85,8 @@ Could not install from bundle. \n"
         exit 1
     fi
 
-    echo -e "\n\n>>> Creating a virtual network, i.e. a bridge. (Requires sudo)"
-    if ! ./etc/create_bridge.sh; then
+    echo
+    if ! ./etc/scripts/create_bridge.sh; then
         echo -e ">>> Sorry <<< \n\
 Could not create or configure bridge. \n"
         exit 1

@@ -22,6 +22,7 @@
 #include <hw/apic.hpp>
 #include <cassert>
 #include <statman>
+#include <kprint>
 
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
@@ -50,10 +51,30 @@ extern "C" {
   extern void (*current_eoi_mechanism)();
 }
 
-void exception_handler()
-{
-  panic(">>>> !!! CPU EXCEPTION !!! <<<<\n");
+// Only certain exceptions have error codes
+template <int NR>
+typename std::enable_if<((NR >= 8 and NR <= 15) or NR == 17 or NR == 30)>::type
+print_error_code(uint32_t err){
+  kprintf("Error code: 0x%x \n", err);
 }
+
+
+// Default: no error code
+template <int NR>
+typename std::enable_if<((NR < 8 or NR > 15) and NR != 17 and NR != 30)>::type
+print_error_code(uint32_t){}
+
+
+template <int NR>
+void cpu_exception(uint32_t eip, uint32_t error)
+{
+  kprint("\n\n>>>> !!! CPU EXCEPTION !!! <<<<\n");
+  kprintf("CPU Exception no. %i while EIP @ 0x%x (value 0x%x). ", NR, eip, *(uint32_t*)eip);
+  print_error_code<NR>(error);
+  panic("CPU exception");
+}
+
+
 
 void IRQ_manager::enable_interrupts() {
   asm volatile("sti");
@@ -63,6 +84,7 @@ void IRQ_manager::init()
 {
   get().bsp_init();
 }
+
 
 void IRQ_manager::bsp_init()
 {
@@ -77,23 +99,37 @@ void IRQ_manager::bsp_init()
   idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
   idt_reg.base = (uint32_t)idt;
 
-  INFO("INTR", "Creating interrupt handlers");
+  INFO("INTR", "Creating exception handlers");
+  set_exception_handler(0, cpu_exception<0>);
+  set_exception_handler(1, cpu_exception<1>);
+  set_exception_handler(2, cpu_exception<2>);
+  set_exception_handler(3, cpu_exception<3>);
+  set_exception_handler(4, cpu_exception<4>);
+  set_exception_handler(5, cpu_exception<5>);
+  set_exception_handler(6, cpu_exception<6>);
+  set_exception_handler(7, cpu_exception<7>);
+  set_exception_handler(8, cpu_exception<8>);
+  set_exception_handler(9, cpu_exception<9>);
+  set_exception_handler(10, cpu_exception<10>);
+  set_exception_handler(11, cpu_exception<11>);
+  set_exception_handler(12, cpu_exception<12>);
+  set_exception_handler(13, cpu_exception<13>);
+  set_exception_handler(14, cpu_exception<14>);
+  set_exception_handler(15, cpu_exception<15>);
+  set_exception_handler(16, cpu_exception<16>);
+  set_exception_handler(17, cpu_exception<17>);
+  set_exception_handler(18, cpu_exception<18>);
+  set_exception_handler(19, cpu_exception<19>);
+  set_exception_handler(20, cpu_exception<20>);
+  set_exception_handler(30, cpu_exception<30>);
 
-  for (size_t i = 0; i < 32; i++) {
-    create_gate(&idt[i],exception_handler,default_sel,default_attr);
-  }
-
-  // Set all interrupt-gates >= 32 to unused do-nothing handler
-  for (size_t i = 32; i < INTR_LINES; i++) {
-    create_gate(&idt[i],unused_interrupt_handler,default_sel,default_attr);
-  }
-
-  // spurious interrupts (should not happen)
-  // currently set to be the last interrupt vector
-  create_gate(&idt[INTR_LINES-1], spurious_intr, default_sel, default_attr);
 
   INFO2("+ Default interrupt gates set for irq >= 32");
+  for (size_t i = 32; i < INTR_LINES - 1; i++){
+    set_handler(i, unused_interrupt_handler);
+  }
 
+  set_handler(INTR_LINES - 1, spurious_intr);
   // Load IDT
   asm volatile ("lidt %0": :"m"(idt_reg) );
 }
@@ -137,6 +173,11 @@ IRQ_manager::intr_func IRQ_manager::get_irq_handler(uint8_t irq)
 void IRQ_manager::set_handler(uint8_t vec, intr_func func) {
   create_gate(&idt[vec], func, default_sel, default_attr);
 }
+
+void IRQ_manager::set_exception_handler(uint8_t vec, exception_func func) {
+  create_gate(&idt[vec], (intr_func)func, default_sel, default_attr);
+}
+
 void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
 {
   set_handler(irq + IRQ_BASE, func);

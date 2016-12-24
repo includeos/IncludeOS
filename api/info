@@ -21,19 +21,26 @@
 
 #define LINEWIDTH 80
 
+// Informational prints
 #ifndef NO_INFO
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 #define INFO2(TEXT, ...) printf("%16s" TEXT "\n"," ", ##__VA_ARGS__)
-#define CAPTION(TEXT) printf("\n%*s%*s\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
+#define CENTER(TEXT) printf("%*s%*s\n",LINEWIDTH/2 + strlen(TEXT)/2,TEXT,LINEWIDTH/2-strlen(TEXT)/2,"")
 #include <string>
 #define FILLINE(CHAR) printf("%s\n",std::string(LINEWIDTH,CHAR).c_str())
+#define CAPTION(TEXT) FILLINE('='); printf("\n"); CENTER(TEXT); printf("\n"); FILLINE('=')
+
+// Checkboxes - for initialization output and testing
 #define CHECK(TEST, TEXT, ...) printf("%16s[%s] " TEXT "\n","", TEST ? "x" : " ",  ##__VA_ARGS__)
 #define CHECKSERT(TEST, TEXT, ...) assert(TEST), CHECK(TEST, TEXT, ##__VA_ARGS__)
+#define FAIL(TEXT, ...)  printf("FAIL: " TEXT "\n", ##__VA_ARGS__); panic("FAIL")
 
+// Undefine
 #else
 #define INFO(X,...)
 #define INFO2(X,...)
 #define CAPTION(TEXT,...)
+#define CENTER(TEXT,...)
 #define FILLINE(CHAR)
 #define CHECK(X,...)
 #endif

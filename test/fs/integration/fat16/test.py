@@ -1,28 +1,18 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import sys
 import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src + "/test")
+sys.path.insert(0,includeos_src)
 
 from subprocess import call
 
-import vmrunner
+from vmrunner import vmrunner
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
-def cleanup():
-  vm.make(["clean"])
-  call(["./fat16_disk.sh", "clean"])
-
-# Setup disk
-call(["./fat16_disk.sh"], shell=True)
-
-# Clean up on exit
-vm.on_exit(cleanup)
-
 # Boot the VM
-vm.make().boot(30)
+vm.cmake().boot(30).clean()

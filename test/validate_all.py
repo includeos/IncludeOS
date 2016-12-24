@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import sys
 sys.path.insert(0, ".")
+sys.path.insert(0, "..")
 
 import subprocess
 import os
-import validate_test
-
-from prettify import color
+from vmrunner import validate_vm
+from vmrunner.prettify import color
 
 def valid_tests(verb = False):
   tests = []

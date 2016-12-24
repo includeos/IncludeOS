@@ -42,6 +42,8 @@ TCP::TCP(IPStack& inet) :
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  // TODO: RFC 6056
+  current_ephemeral_ = 1024 + rand() % (UINT_MAX-1024);
 }
 
 /*
@@ -55,7 +57,7 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(port_t port) {
+Listener& TCP::bind(const port_t port) {
   // Already a listening socket.
   Listeners::const_iterator it = listeners_.find(port);
   if(it != listeners_.cend()) {
@@ -74,6 +76,17 @@ Listener& TCP::bind(port_t port) {
   debug("<TCP::bind> Bound to port %i \n", port);
 
   return listener;*/
+}
+
+bool TCP::unbind(const port_t port) {
+  auto it = listeners_.find(port);
+  if(LIKELY(it != listeners_.end())) {
+    auto listener = std::move(it->second);
+    listener->close();
+    Ensures(listeners_.find(port) == listeners_.end());
+    return true;
+  }
+  return false;
 }
 
 /*
@@ -97,6 +110,15 @@ void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
   auto connection = add_connection(port, remote);
   connection->on_connect(callback).open(true);
 }
+
+void TCP::insert_connection(Connection_ptr conn)
+{
+  connections_.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(conn->local_port(), conn->remote()),
+      std::forward_as_tuple(conn));
+}
+
 
 seq_t TCP::generate_iss() {
   // Do something to get a iss.
@@ -300,6 +322,10 @@ void TCP::close_connection(tcp::Connection_ptr conn) {
   connections_.erase(conn->tuple());
 }
 
+void TCP::close_listener(Listener& listener) {
+  listeners_.erase(listener.port());
+}
+
 void TCP::drop(const tcp::Packet&) {
   // Stat increment packets dropped
   packets_dropped_++;
@@ -311,8 +337,7 @@ void TCP::drop(const tcp::Packet&) {
 void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
   packet->set_checksum(TCP::checksum(*packet));
-  //if(packet->has_data())
-  //printf("<TCP::transmit> S: %u\n", packet->seq());
+  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
   bytes_tx_ += packet->tcp_data_length();

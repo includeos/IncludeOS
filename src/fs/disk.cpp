@@ -22,14 +22,14 @@
 
 namespace fs {
 
-  Disk::Disk(hw::Drive& dev)
+  Disk::Disk(hw::Block_device& dev)
     : device {dev} {}
 
   void Disk::partitions(on_parts_func func) {
 
     /** Read Master Boot Record (sector 0) */
     device.read(0,
-    [this, func] (hw::Drive::buffer_t data)
+    [this, func] (hw::Block_device::buffer_t data)
     {
       std::vector<Partition> parts;
 
@@ -54,11 +54,11 @@ namespace fs {
     });
   }
 
-  void Disk::mount(on_mount_func func)
+  void Disk::init_fs(on_init_func func)
   {
-    printf("mount: reading blk 0\n");
+    INFO("Disk","init_fs reading block 0");
     device.read(0,
-    [this, func] (hw::Drive::buffer_t data)
+    [this, func] (hw::Block_device::buffer_t data)
     {
       if (!data) {
         // TODO: error-case for unable to read MBR
@@ -77,8 +77,8 @@ namespace fs {
       {
         // detected FAT on MBR
         filesys.reset(new FAT(device));
-        // mount on MBR
-        internal_mount(MBR, func);
+        // initialize on MBR
+        internal_init(MBR, func);
         return;
       }
 
@@ -93,8 +93,8 @@ namespace fs {
           // To be replaced with lookup table for partition identifiers,
           // but we really only have FAT atm, so its just wasteful
           filesys.reset(new FAT(device));
-          // mount on VBRn
-          internal_mount((partition_t) (VBR1 + i), func);
+          // initialize on VBRn
+          internal_init((partition_t) (VBR1 + i), func);
           return;
         }
       }
@@ -104,27 +104,27 @@ namespace fs {
     });
   }
 
-  void Disk::mount(partition_t part, on_mount_func func)
+  void Disk::init_fs(partition_t part, on_init_func func)
   {
     filesys.reset(new FAT(device));
-    internal_mount(part, func);
+    internal_init(part, func);
   }
 
-  void Disk::internal_mount(partition_t part, on_mount_func func) {
+  void Disk::internal_init(partition_t part, on_init_func func) {
 
     if (part == MBR)
     {
-      // For the MBR case, all we need to do is mount on sector 0
-      fs().mount(0, device.size(), func);
+      // For the MBR case, all we need to do is initialize on sector 0
+      fs().init(0, device.size(), func);
     }
     else
     {
       /**
        *  Otherwise, we will have to read the LBA offset
-       *  of the partition to be mounted
+       *  of the partition to be initialized
        */
       device.read(0,
-      [this, part, func] (hw::Drive::buffer_t data)
+      [this, part, func] (hw::Block_device::buffer_t data)
       {
         if (!data) {
           // TODO: error-case for unable to read MBR
@@ -139,9 +139,9 @@ namespace fs {
         auto lba_size = mbr->part[pint].sectors;
         assert(lba_size && "No such partition (length was zero)");
 
-        // Call the filesystems mount function
+        // Call the filesystems init function
         // with lba_begin as base address
-        fs().mount(lba_base, lba_size, func);
+        fs().init(lba_base, lba_size, func);
       });
     }
   }

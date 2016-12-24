@@ -85,17 +85,13 @@ protected_mode:
   ; enable SSE
   call enable_sse
   
-  push  esp
   push  ebx
   call  [revenant_main]
   pop   ebx
-  add   esp, 4
   
-  ; halt loop after main
-.halt:
+  ; stop execution
   cli
   hlt
-  jmp .halt
 
 enable_sse:
   mov eax, cr0

@@ -1,23 +1,18 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import subprocess
 import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src + "/test")
+sys.path.insert(0,includeos_src)
 subprocess.call(['./image.sh'])
 
 def cleanup():
   subprocess.call(['./cleanup.sh'])
 
-def success():
-  cleanup()
+from vmrunner import vmrunner
+vm = vmrunner.vms[0]
 
-def failure():
-  cleanup()
-
-import vmrunner
-vmrunner.vms[0].on_success(success)
-vmrunner.vms[0].on_panic(failure)
-vmrunner.vms[0].make().boot(50)
+vm.on_exit(cleanup)
+vm.cmake().boot(50).clean()

@@ -27,7 +27,7 @@
 #include <deque>
 
 extern "C"
-void revenant_main(int, uintptr_t);
+void revenant_main(int);
 
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef volatile int spinlock_t __attribute__((aligned(128)));

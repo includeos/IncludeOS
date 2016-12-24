@@ -34,17 +34,17 @@ void null_deleter(uint8_t*) {};
 #include <statman>
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), hw::Drive(), req(queue_size(0), 0, iobase()), inflight(0)
+  : Virtio(d), hw::Block_device(), req(queue_size(0), 0, iobase()), inflight(0)
 {
-  INFO("VirtioBlk", "Driver initializing");
+  INFO("VirtioBlk", "Block_devicer initializing");
   {
     auto& reqs = Statman::get().create(
-      Stat::UINT32, blkname() + ".requests");
+      Stat::UINT32, device_name() + ".requests");
     this->requests = &reqs.get_uint32();
     *this->requests = 0;
 
     auto& err = Statman::get().create(
-      Stat::UINT32, blkname() + ".errors");
+      Stat::UINT32, device_name() + ".errors");
     this->errors = &err.get_uint32();
     *this->errors = 0;
   }
@@ -288,11 +288,21 @@ VirtioBlk::request_t::request_t(uint64_t blk, on_read_func cb)
   resp.handler = cb;
 }
 
+void VirtioBlk::deactivate()
+{
+  /// disable interrupts on virtio queues
+  req.disable_interrupts();
+
+  /// mask off MSI-X vectors
+  if (is_msix())
+      deactivate_msix();
+}
+
 #include <kernel/pci_manager.hpp>
 
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    PCI_manager::register_driver<hw::Drive>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+    PCI_manager::register_driver<hw::Block_device>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;

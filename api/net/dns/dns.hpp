@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,7 @@
  * +---------------------+
  * | Additional          | RRs holding additional information
  * +---------------------+
- * 
+ *
  * DNS header
  * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
  * |                     ID                        |
@@ -46,7 +46,7 @@
  * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
  * |                   ARCOUNT                     |
  * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- * 
+ *
  **/
 
 #include <net/ip4/ip4.hpp> // IP4::addr
@@ -79,7 +79,7 @@ namespace net
   {
   public:
     static const unsigned short DNS_SERVICE_PORT = 53;
-    
+
     struct header
     {
       unsigned short id;       // identification number
@@ -98,13 +98,13 @@ namespace net
       unsigned short auth_count; // number of authority entries
       unsigned short add_count;  // number of resource entries
     } __attribute__ ((packed));
-    
+
     struct question
     {
       unsigned short qtype;
       unsigned short qclass;
     };
-    
+
 #pragma pack(push, 1)
     struct rr_data // resource record data
     {
@@ -114,7 +114,7 @@ namespace net
       unsigned short data_len;
     };
 #pragma pack(pop)
-    
+
     enum resp_code
       {
         NO_ERROR     = 0,
@@ -124,11 +124,11 @@ namespace net
         NOT_IMPL     = 4, // unimplemented feature
         OP_REFUSED   = 5, // for political reasons
       };
-    
+
     typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
-    
+
     static int createResponse(header& hdr, lookup_func func);
-    
+
     static std::string question_string(unsigned short type)
     {
       switch (type)
@@ -145,14 +145,14 @@ namespace net
           return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
         }
     }
-    
+
     class Request
     {
     public:
       int  create(char* buffer, const std::string& hostname);
       bool parseResponse(const char* buffer);
       void print(char* buffer);
-      
+
       const std::string& getHostname() const
       {
         return this->hostname;
@@ -161,44 +161,44 @@ namespace net
       {
         if (answers.size())
           return answers[0].getIP4();
-        
-        return IP4::INADDR_ANY;
+
+        return IP4::ADDR_ANY;
       }
-      
+
     private:
       struct rr_t // resource record
       {
         rr_t(const char*& reader, const char* buffer);
-        
+
         std::string name;
         std::string rdata;
         rr_data resource;
-        
+
         IP4::addr getIP4() const;
         void      print();
-        
+
       private:
         // decompress names in 3www6google3com format
         std::string readName(const char* reader, const char* buffer, int& count);
       };
-      
+
       unsigned short generateID()
       {
         static unsigned short id = 0;
         return ++id;
       }
       void dnsNameFormat(char* dns);
-      
+
       unsigned short id;
       std::string    hostname;
-      
+
       std::vector<rr_t> answers;
       std::vector<rr_t> auth;
       std::vector<rr_t> addit;
     };
-    
+
   };
-  
+
 }
 
 #endif

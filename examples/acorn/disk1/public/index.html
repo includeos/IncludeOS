@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>
+<html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>
+<html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>
+<html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js"> <!--<![endif]-->
+<head>
+  <base href="/">
+
+  <!-- Meta-Information -->
+  <title>Acorn Web Appliance</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="description" content="Acorn Web Appliance">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Vendor: Bootstrap Stylesheets http://getbootstrap.com -->
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+  <!-- Font awesome -->
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+  <!-- Our Website CSS Styles -->
+  <link rel="stylesheet" href="css/main.css">
+
+</head>
+<body>
+<div class="container">
+<div id="header">
+  <img src="img/includeos_logo.svg" id="logo-header" />
+  <hr/>
+</div>
+
+<div class="jumbotron">
+  <h1>IncludeOS web application</h1>
+  <h2 id="jumbo-acorn">Codename: Acorn</h2>
+  <br>
+  <p>
+    Written in C++ and running on the IncludeOS unikernel, Acorn is a highly efficient web application with direct access to the library operating system's facilities
+  </p>
+</div>
+
+<section>
+<div class="row">
+  <div class="col-md-12">
+    <h2>
+      C++ web application framework
+    </h2>
+  <hr/>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-6">
+    <p class="lead">
+      Set up a working web application with just a few lines of code.
+    </p>
+    <p>
+      C++ web application framework inspired by <a href="//nodejs.org/en/">Node.js</a> and <a href="//expressjs.com">Express.js</a>.
+    </p>
+
+
+  </div>
+  <div class="col-md-6">
+    <pre>
+  // Serve index.html on GET /
+  router.on_get("/",
+  [disk] (auto, auto res)
+  {
+    disk->fs().cstat("/index.html",
+    [res] (auto err, const auto&amp; entry)
+    {
+      if(err)
+        res->send_code(http::Not_Found);
+      else
+        res->send_file({disk, entry});
+    });
+  });
+    </pre>
+    <em>Easily serve a static front page with a few lines of code.</em>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+  <h3>
+    Middlewares
+  </h3>
+  <hr/>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-12">
+    <p>
+      Make use of and create simple middlewares to power up the web application.
+    </p>
+    <pre>
+    #include &lt;butler&gt;
+    #include &lt;director&gt;
+
+    // Serve files from "public/" directory on file requests
+    Middleware_ptr butler = std::make_shared&lt;Butler&gt;(disk, "/public");
+    server.use(butler);
+
+    // Display simple directory view of directory "public/static"
+    Middleware_ptr director = std::make_shared&lt;Director&gt;(disk, "/public/static");
+    server.use("/static", director);
+    </pre>
+    <em>Serve and display files by utilizing middlewares.</em>
+  </div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+  <h3>Examples</h3>
+  <hr/>
+</div>
+</div>
+<div class="row">
+<div class="col-md-6">
+
+  <div class="list-group">
+    <a href="/app/dashboard" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-stats"></span>
+        IncludeOS Dashboard
+      </h4>
+      <p class="list-group-item-text">
+        The dashboard shows key information about IncludeOS
+      </p>
+    </a>
+
+    <a href="/app/squirrels" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-transfer"></span>
+        Acorn's Squirrels
+      </h4>
+      <p class="list-group-item-text">
+        The squirrels demonstrate the use of a RESTful API
+      </p>
+    </a>
+
+    <a href="/static/" class="list-group-item">
+      <h4 class="list-group-item-heading">
+        <span class="glyphicon glyphicon-folder-open"></span>
+         Static content
+      </h4>
+      <p class="list-group-item-text">
+        Browse and serve static content with the help of simple middlewares
+      </p>
+    </a>
+
+  </div>
+</div>
+</div>
+</section>
+
+<section>
+<div class="row">
+  <div class="col-md-12">
+    <h2>
+      Built with IncludeOS
+    </h2>
+    <hr/>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-12">
+    <p>
+      IncludeOS is the leanest, purest form of unikernel. Written from scratch in C++, we leverage all the advantages of writing a single-service operating system; we use 100% asynchronicity and simplicity all the way from device drivers, through the whole network stack and up to and including our new framework for building Node.js-style REST APIs in blazingly fast, modern C++14.
+    </p>
+
+    <a class="btn btn-default" href="//github.com/hioa-cs/IncludeOS">
+      IncludeOS on GitHub
+    </a>
+  </div>
+</div>
+</section>
+
+<div id="footer">
+  <hr/>
+  <p>
+    Powered by<br>
+    <img src="img/includeos_logo.svg" id="logo-footer" />
+  </p>
+</div>
+</div>
+
+
+<!-- Vendor: Javascripts -->
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+</body>
+</html>

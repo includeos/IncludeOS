@@ -30,6 +30,8 @@
 
 #include <statman>
 
+#define SHUTDOWN_ON_PANIC 1
+
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -37,17 +39,10 @@ extern "C" {
   uintptr_t heap_end;
 }
 
-static const int syscall_fd   {999};
-static bool debug_syscalls    {true};
 static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
 
 void _exit(int) {
   default_exit();
-}
-
-int close(int) {
-  panic("SYSCALL CLOSE NOT SUPPORTED");
-  return -1;
 }
 
 int execve(const char*,
@@ -74,18 +69,6 @@ int getpid() {
   return 1;
 }
 
-int isatty(int file) {
-  if (file == 1 || file == 2 || file == 3) {
-    debug("SYSCALL ISATTY Dummy returning 1");
-    return 1;
-  }
-
-  // Not stdxxx, error out
-  panic("SYSCALL ISATTY Unknown descriptor ");
-  errno = EBADF;
-  return 0;
-}
-
 int link(const char*, const char*) {
   panic("SYSCALL LINK unsupported");
   return -1;
@@ -94,28 +77,6 @@ int link(const char*, const char*) {
 int unlink(const char*) {
   panic("SYSCALL UNLINK unsupported");
   return -1;
-}
-
-off_t lseek(int, off_t, int) {
-  panic("SYSCALL LSEEK returning 0");
-  return 0;
-}
-
-int open(const char*, int, ...) {
-  panic("SYSCALL OPEN unsupported");
-  return -1;
-}
-
-int read(int, void*, size_t) {
-  panic("SYSCALL READ unsupported");
-  return 0;
-}
-
-int write(int file, const void* ptr, size_t len) {
-  if (file == syscall_fd and not debug_syscalls) {
-    return len;
-  }
-  return OS::print((const char*) ptr, len);
 }
 
 void* sbrk(ptrdiff_t incr) {
@@ -131,12 +92,13 @@ void* sbrk(ptrdiff_t incr) {
   return (void*) prev_heap_end;
 }
 
-
+/*
 int stat(const char*, struct stat *st) {
   debug("SYSCALL STAT Dummy");
   st->st_mode = S_IFCHR;
   return 0;
 }
+*/
 
 clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
@@ -194,7 +156,9 @@ void panic(const char* why) {
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
   // shutdown the machine
-  hw::ACPI::shutdown();
+
+  if (SHUTDOWN_ON_PANIC)
+    hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
 }
 

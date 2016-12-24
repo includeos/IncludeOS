@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define GSL_THROW_ON_CONTRACT_VIOLATION
 #define NO_INFO 1
 #include <common.cxx>
 #include <iostream>
@@ -251,7 +250,3 @@ CASE ("Using the kernel memory map") {
         }
     }
 }
-
-// We can't link against the 32-bit version of IncludeOS (os.a)
-// TODOD: This is a terrible hack - we need Linux-build of os.a
-#include <kernel/memmap.cpp>

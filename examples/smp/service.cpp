@@ -19,7 +19,7 @@
 #include <cassert>
 #include <smp>
 
-void Service::start(const std::string&)
+int main(int argc, const char** args)
 {
   static int completed = 0;
   static uint32_t job = 0;
@@ -45,5 +45,6 @@ void Service::start(const std::string&)
   // start working on tasks
   SMP::start();
   
-  printf("*** TEST SERVICE STARTED *** \n");
+  printf("*** %s started *** \n", args[0]);
+  return 0;
 }

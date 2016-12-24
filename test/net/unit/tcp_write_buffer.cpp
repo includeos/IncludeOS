@@ -43,8 +43,8 @@ CASE("Creating a WriteBuffer and operate it")
         EXPECT( wb.pos() > wb.begin() );
         EXPECT( wb.pos() < wb.end() );
 
-        EXPECT( wb.remaining == 700 );
-        EXPECT( wb.offset == 300 );
+        EXPECT( wb.remaining == 700u );
+        EXPECT( wb.offset == 300u );
 
         EXPECT( wb.length() == len );
 
@@ -56,7 +56,7 @@ CASE("Creating a WriteBuffer and operate it")
           THEN("The buffer is at the end, but still not fully done")
           {
             EXPECT( wb.pos() == wb.end() );
-            EXPECT( wb.remaining == 0 );
+            EXPECT( wb.remaining == 0u );
 
             EXPECT( not wb.done() );
 
@@ -77,4 +77,3 @@ CASE("Creating a WriteBuffer and operate it")
     } // < Advance 300
   } // < GIVEN
 } // < CASE #1
-

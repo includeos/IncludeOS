@@ -20,19 +20,19 @@
 #define FS_MEMDISK_HPP
 
 #include <cstdint>
-#include <hw/drive.hpp>
+#include <hw/block_device.hpp>
 
 namespace fs {
 
-  class MemDisk : public hw::Drive {
+  class MemDisk : public hw::Block_device {
   public:
     static constexpr size_t SECTOR_SIZE = 512;
 
-    std::string blkname() const override {
-      return "memdisk" + std::to_string(blkid);
+    std::string device_name() const override {
+      return "memdisk" + std::to_string(id());
     }
 
-    virtual const char* name() const noexcept override
+    virtual const char* driver_name() const noexcept override
     { return "MemDisk"; }
 
     virtual block_t size() const noexcept override;
@@ -54,10 +54,12 @@ namespace fs {
 
     explicit MemDisk() noexcept;
 
+    void deactivate() override;
+
   private:
     const char* const image_start_;
     const char* const image_end_;
-    
+
     uint64_t& stat_read;
   }; //< class MemDisk
 

@@ -22,18 +22,17 @@
 #include <timers>
 #include "../packet.hpp"
 #include <net/ip4/ip4.hpp>
+#include <net/inet.hpp>
+#include "dhcp4.hpp"
 
 namespace net
 {
   class UDPSocket;
 
-  template <typename LINK, typename IPV>
-  class Inet;
-
   class DHClient
   {
   public:
-    using Stack = Inet<LinkLayer, IP4>;
+    using Stack = IP4::Stack;
     using config_func = delegate<void(bool)>;
 
     DHClient() = delete;
@@ -54,7 +53,7 @@ namespace net
 
   private:
     void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&);   // --> acknowledge
+    void request(UDPSocket&, const dhcp_option_t* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
     Stack& stack;

@@ -1,3 +1,6 @@
+*
+!/**/
+!*.*
 *~
 *.a
 *.o
@@ -12,6 +15,8 @@
 *.pyc
 *.ropeproject
 nbproject
+
+!Dockerfile
 
 src/apic_boot.bin
 src/bootloader
@@ -32,3 +37,10 @@ src/compile_commands.json
 /.vagrant
 /examples/demo_service/IncludeOS_Demo_Service
 /seed/My_Service
+
+build
+
+# cmake related
+CMakeFiles*
+CMakeCache*
+cmake_install.cmake

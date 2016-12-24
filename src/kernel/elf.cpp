@@ -40,9 +40,9 @@ __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
 template <typename N>
 static std::string to_hex_string(N n)
 {
-  std::string buffer; buffer.reserve(64);
-  snprintf((char*) buffer.data(), buffer.capacity(), "%#x", n);
-  return buffer;
+  char buffer[16];
+  int len = snprintf(buffer, sizeof(buffer), "%#x", n);
+  return std::string(buffer, len);
 }
 
 static Elf32_Ehdr& elf_header() {
@@ -99,14 +99,14 @@ public:
     if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
-    if (sym) {
+    if (LIKELY(sym)) {
       auto base   = sym->st_value;
       auto offset = addr - base;
       // return string name for symbol
       return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
     }
     // function or space not found
-    snprintf(buffer, length, "%#x", addr);
+    snprintf(buffer, length, "0x%08x", addr);
     return {buffer, addr, 0};
   }
 

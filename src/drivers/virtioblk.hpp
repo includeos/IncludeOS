@@ -20,27 +20,27 @@
 #define VIRTIO_BLOCK_HPP
 
 #include <common>
-#include <hw/drive.hpp>
+#include <hw/block_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <deque>
 
 /** Virtio-net device driver.  */
-class VirtioBlk : public Virtio, public hw::Drive
+class VirtioBlk : public Virtio, public hw::Block_device
 {
 public:
 
-  static std::unique_ptr<Drive> new_instance(hw::PCI_Device& d)
+  static std::unique_ptr<Block_device> new_instance(hw::PCI_Device& d)
   { return std::make_unique<VirtioBlk>(d); }
 
   static constexpr size_t SECTOR_SIZE = 512;
 
-  std::string blkname() const override {
-    return "vblk" + std::to_string(blkid);
+  std::string device_name() const override {
+    return "vblk" + std::to_string(id());
   }
 
   /** Human readable name. */
-  const char* name() const noexcept override {
+  const char* driver_name() const noexcept override {
     return "VirtioBlk";
   }
 
@@ -50,21 +50,23 @@ public:
   }
 
   // read @blk from disk, call func with buffer when done
-  virtual void read(block_t blk, on_read_func func) override;
+  void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
-  virtual void read(block_t blk, size_t cnt, on_read_func cb) override;
+  void read(block_t blk, size_t cnt, on_read_func cb) override;
 
   // unsupported sync reads
-  virtual buffer_t read_sync(block_t) override {
+  buffer_t read_sync(block_t) override {
     return buffer_t();
   }
-  virtual buffer_t read_sync(block_t, size_t) override {
+  buffer_t read_sync(block_t, size_t) override {
     return buffer_t();
   }
 
-  virtual block_t size() const noexcept override {
+  block_t size() const noexcept override {
     return config.capacity;
   }
+
+  void deactivate() override;
 
   /** Constructor. @param pcidev an initialized PCI device. */
   VirtioBlk(hw::PCI_Device& pcidev);
