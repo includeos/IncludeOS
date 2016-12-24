@@ -1,11 +1,11 @@
 ![IncludeOS Logo](./doc/logo.png)
 ================================================
 
-**Update**: Looking for [Acorn](examples/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY)? Built using [Mana](lib/mana/), the new C++ Web Application Framework for IncludeOS.
+**Update**: Check out [Acorn](examples/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY). Built using [Mana](lib/mana/), the new C++ Web Application Framework for IncludeOS.
 
-*A live demo of Acorn can be found at [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io) (sporadically unavailable)*
+A *live demo* of Acorn can be found at [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io) (sporadically unavailable)
 
-IncludeOS is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
+**IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
 The build system will:
 * link your service with the necessary OS objects into a single binary
@@ -18,7 +18,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Join the chat at https://gitter.im/hioa-cs/IncludeOS](https://badges.gitter.im/hioa-cs/IncludeOS.svg)](https://gitter.im/hioa-cs/IncludeOS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-**Note:** *IncludeOS is under active development. Anything may change at any time. The public API should not be considered stable.*
+**Note:** *IncludeOS is under active development. The public API should not be considered stable.*
 
 ## Build status
 
@@ -30,7 +30,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 ### Key features
 
 * **Extreme memory footprint**: A minimal bootable image, including bootloader, operating system components and a complete C++ standard library is currently 707K when optimized for size.
-* **KVM and VirtualBox support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization), available on any modern x86 CPUs). In principle IncludeOS should run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), which power the [OpenStack IaaS cloud](https://www.openstack.org/), and [VirtualBox](https://www.virtualbox.org), which means that you can run your IncludeOS service on both Linux, Microsoft Windows and Mac OS X.
+* **KVM and VirtualBox support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization), available on any modern x86 CPUs). In principle IncludeOS should run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), which power the [OpenStack IaaS cloud](https://www.openstack.org/), and [VirtualBox](https://www.virtualbox.org), which means that you can run your IncludeOS service on both Linux, Microsoft Windows and macOS.
 * **C++11/14 support**
     * Full C++11/14 language support with [clang](http://clang.llvm.org) v3.8 and later.
     * Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/).
@@ -66,7 +66,7 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
 
-Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [OS X](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
+Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [macOS](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
 
 ### Testing the installation
 
@@ -83,7 +83,7 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
 ### Writing your first service
 
 1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
-2. Enter the name of your service in the first line of the [seed Makefile](./seed/Makefile). This will be the base for the name of the final disk image.
+2. Update the [CMakeLists.txt](./seed/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
 
 **Example:**
 
@@ -92,8 +92,10 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
     $ cd ~/my_service
     $ emacs service.cpp
     ... add your code
+    $ mkdir build && cd build
+    $ cmake ..
     $ make
-    $ ./run.sh my_service.img
+    $ ../run.sh my_service
 ```
 
 Take a look at the [examples](./examples) and the [tests](./test). These all started out as copies of the same seed.
@@ -102,11 +104,11 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](https://github.com/hioa-cs/IncludeOS/wiki/Contributing-to-IncludeOS).
 
-**Important**: Send your pull requests to the `dev` branch. It is ok if your pull requests come from your master branch.
+**Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
 ## C++ Guidelines
 
-We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When (not if) you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
+We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
 
 ## Read more on the wiki
 
