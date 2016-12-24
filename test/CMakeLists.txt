@@ -9,6 +9,7 @@ set(TEST ${INCLUDEOS_ROOT}/test)
 
 include_directories(
   ${INCLUDEOS_ROOT}/api
+  ${INCLUDEOS_ROOT}/api/posix
   ${INCLUDEOS_ROOT}/src/
   ${INCLUDEOS_ROOT}/src/include
   ${INCLUDEOS_ROOT}/mod/
