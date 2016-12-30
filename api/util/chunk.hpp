@@ -69,6 +69,12 @@ public:
    */
   Chunk(const byte_t* buf, const size_type len);
 
+  Chunk(const Chunk&)             = default;
+  Chunk(Chunk&&)                  = default;
+  Chunk& operator=(const Chunk&)  = default;
+  Chunk& operator=(Chunk&&)       = default;
+  ~Chunk()                        = default;
+
   // Getters
   byte_t* data() const
   { return buffer_.get(); }
@@ -131,15 +137,26 @@ public:
   bool operator!=(const Chunk& c) const
   { return !(*this == c); }
 
-  //
+  // Operations
   /**
    * @brief      Clears the data in the chunk (buffer)
    */
   void clear()
   { std::memset(buffer_.get(), 0, length()); }
 
-  //
+  /**
+   * @brief      Fills the chunk with data, starting from offset.
+   *
+   * @param[in]  buf     The buffer with data to be copied
+   * @param[in]  len     The length of the data
+   * @param[in]  offset  The offset where to start writing in the chunk
+   *
+   * @return     Number of bytes filled
+   */
+  inline size_type fill(const byte_t* buf, size_type len, size_type offset = 0);
 
+  // Helpers
+  //
   /**
    * @brief      Makes a shared buffer.
    *
@@ -185,16 +202,16 @@ public:
 
     iterator& operator++()
     {
-      Expects(chunk_ && index_ >= 0 && index_ < chunk_->length());
+      Expects(chunk_ && index_ >= 0 && index_ < static_cast<difference_type>(chunk_->length()));
       ++index_;
       return *this;
     }
 
     iterator operator++(int) noexcept
     {
-        auto ret = *this;
-        ++(*this);
-        return ret;
+      auto ret = *this;
+      ++(*this);
+      return ret;
     }
 
     bool operator==(const iterator& it) const noexcept
@@ -205,8 +222,8 @@ public:
 
     void swap(iterator& rhs) noexcept
     {
-        std::swap(index_, rhs.index_);
-        std::swap(chunk_, rhs.chunk_);
+      std::swap(index_, rhs.index_);
+      std::swap(chunk_, rhs.chunk_);
     }
 
   protected:
@@ -216,8 +233,8 @@ public:
   }; // < class iterator
 
 private:
-  buffer_t        buffer_;
-  const size_type length_;
+  buffer_t    buffer_;
+  size_type   length_;
 
 }; // < class Chunk
 
@@ -229,6 +246,7 @@ Chunk::Chunk()
 Chunk::Chunk(buffer_t buf, const size_type len)
  : buffer_(buf), length_(len)
 {
+  Expects(len <= static_cast<size_t>(PTRDIFF_MAX));
 }
 
 Chunk::Chunk(const size_type len)
@@ -245,7 +263,7 @@ Chunk::Chunk(const byte_t* buf, const size_type len)
 
 inline Chunk::byte_t& Chunk::at(index_type idx) const
 {
-  if(UNLIKELY(idx < 0 or idx >= size()))
+  if(UNLIKELY(idx < 0 or idx >= static_cast<index_type>(size())))
     throw std::out_of_range{"Index out of range"};
   return this->operator[](idx);
 }
@@ -275,5 +293,14 @@ inline Chunk::iterator Chunk::begin() const
 inline Chunk::iterator Chunk::end() const
 { return {this, size()}; }
 
+inline Chunk::size_type Chunk::fill(const byte_t* buf, size_type len, size_type offset)
+{
+  if(UNLIKELY(size() <= offset))
+    return 0;
+
+  const auto n = std::min((size() - offset), len);
+  std::memcpy(data() + offset, buf, n);
+  return n;
+}
 
 #endif // < UTIL_CHUNK_HPP
