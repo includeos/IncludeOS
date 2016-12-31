@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,21 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cassert>
-#include <os>
+#include <iostream>
+#include <service>
 
-///
-/// Mocked commandline arguments
-///
-const std::string& OS::cmdline_args() noexcept {
-  static const std::string args {"binary.bin command line arguments passed here"};
-  return args;
-}
+#include "authors.hpp"
 
-extern "C" {
+int main()
+{
+  Author_list list;
 
-  void panic(const char* why) {
-    assert(0 && "Panic: " && why);
-  }
+  list.add("Alfred", "alfred@includeos.com", "Norway")
+      .add("Alf", "alf@includeos.com", "Norway")
+      .add("Andreas", "andreas@includeos.com", "Norway")
+      .add("AnnikaH", "annikah@includeos.com", "Norway")
+      .add("Ingve", "ingve@includeos.com", "Norway")
+      .add("Martin", "martin@includeos.com", "Norway")
+      .add("Rico", "rico@includeos.com", "Trinidad");
 
+  std::cout << "Author Listing:\n\n"
+            << list;
 }

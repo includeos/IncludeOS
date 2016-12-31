@@ -60,12 +60,6 @@ CASE("Path can return specific component")
   EXPECT(path[2] == "Documents");
 }
 
-CASE("Path can return specific component")
-{
-  fs::Path path {"/Users/Bjarne/Documents"};
-  EXPECT(path[2] == "Documents");
-}
-
 CASE("Path does not segfault when requested component is out of range")
 {
   fs::Path path {"/Users/Bjarne/Documents"};
