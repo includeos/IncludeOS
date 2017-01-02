@@ -85,6 +85,9 @@ public:
   size_type length() const
   { return size(); }
 
+  buffer_t buffer() const
+  { return buffer_; }
+
   /**
    * @brief      Access the byte at the given index
    *
