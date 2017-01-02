@@ -104,16 +104,14 @@ void Service::start(const std::string&)
 
 
   /// attempt to resume (if there is anything to resume)
-  void the_string(Restore);
-  void the_buffer(Restore);
+  void strings_and_buffers(Restore);
   void the_timing(Restore);
   void restore_term(Restore);
   void saved_message(Restore);
   void on_update_area(Restore);
   void on_missing(Restore);
 
-  LiveUpdate::on_resume(1,   the_string);
-  LiveUpdate::on_resume(2,   the_buffer);
+  LiveUpdate::on_resume(1,   strings_and_buffers);
   LiveUpdate::on_resume(100, the_timing);
   LiveUpdate::on_resume(665, saved_message);
   LiveUpdate::on_resume(666, restore_term);
@@ -143,14 +141,15 @@ void save_stuff(Storage storage, buffer_len final_blob)
   storage.add_string(1, "Some other string :(");
 
   char buffer[] = "Just some random buffer";
-  storage.add_buffer(2, {buffer, sizeof(buffer)});
+  storage.add_buffer(1, {buffer, sizeof(buffer)});
 
-  // store vector of timestamps
-  storage.add_vector<double> (100, timestamps);
   // store current timestamp using same ID = 100
   int64_t ts = hw::CPU::rdtsc();
   storage.add<int64_t>(100, ts);
   printf("! CPU ticks before: %lld\n", ts);
+
+  // store vector of timestamps
+  storage.add_vector<double> (100, timestamps);
 
   // where the update was stored last
   printf("Storing location %p:%d\n", final_blob.buffer, final_blob.length);
@@ -165,20 +164,23 @@ void save_stuff(Storage storage, buffer_len final_blob)
       storage.add_connection(666, conn);
 }
 
-#include <hertz>
-#include <chrono>
-void the_string(Restore thing)
+void strings_and_buffers(Restore thing)
 {
   auto str = thing.as_string();
-  printf("The string [some_string] has value [%s]\n", str.c_str());
-  assert(str == "Some string :(" || str == "Some other string :(");
-}
-void the_buffer(Restore thing)
-{
-  printf("The buffer is %d bytes long\n", thing.length());
-  printf("As text: %.*s\n", thing.length(), thing.as_buffer().buffer);
+  printf("[string] has value [%s]\n", str.c_str());
+  assert(str == "Some string :(");
+  
+  thing.go_next();
+  str = thing.as_string();
+  printf("[string] has value [%s]\n", str.c_str());
+  assert(str == "Some other string :(");
+  
+  thing.go_next();
+  auto buffer = thing.as_buffer();
+  printf("[buffer] is %d bytes long\n", thing.length());
+  printf("As text: %.*s\n", thing.length(), buffer.buffer);
   // there is an extra zero at the end of the buffer
-  auto str = std::string(thing.as_buffer().buffer, thing.as_buffer().length-1);
+  str = std::string(buffer.buffer, buffer.length-1);
   assert(str == "Just some random buffer");
 }
 void saved_message(Restore thing)
@@ -197,15 +199,7 @@ void on_missing(Restore thing)
 
 void the_timing(Restore thing)
 {
-  // restore timestamp vector
-  timestamps = thing.as_vector<double> ();
-  
-  // verify that the next id is still same as current
-  assert(thing.next_id() == thing.get_id());
-  // next thing with pre-update timestamp
-  thing.go_next();
-  
-  auto t1   = thing.as_type<int64_t>();
+  auto t1 = thing.as_type<int64_t>();
   auto t2 = hw::CPU::rdtsc();
   printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
 
@@ -213,18 +207,27 @@ void the_timing(Restore thing)
   double  div  = OS::cpu_freq().count() * 1000.0;
   double  time = (t2-t1) / div;
 
-  timestamps.push_back(time);
-  double average = 0.0;
-  for (double d : timestamps) average += d; average /= timestamps.size();
-  
-  printf("Restored %u timestamps, average TS: %.2f ms\n",
-      timestamps.size(), average);
-
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
              "! Boot time in ticks: %lld (%.2f ms)\n", t2-t1, time);
 
   savemsg.emplace_back(buffer, len);
+  // verify that the next id is still same as current
+  assert(thing.next_id() == thing.get_id());
+  // next thing with pre-update timestamp
+  thing.go_next();
+
+  // restore timestamp vector
+  timestamps = thing.as_vector<double> ();
+  // add new update time
+  timestamps.push_back(time);
+  // calculate average boot time over many updates
+  double average = 0.0;
+  for (double d : timestamps) average += d; average /= timestamps.size();
+
+  printf("Restored %u timestamps, average TS: %.2f ms\n",
+      timestamps.size(), average);
+  
 }
 void restore_term(Restore thing)
 {
