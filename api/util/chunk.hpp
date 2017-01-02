@@ -41,7 +41,7 @@ public:
   /**
    * @brief      Constructs an empty chunk (no buffer and length 0)
    */
-  Chunk();
+  inline Chunk();
 
   /**
    * @brief      Constructs a chunk with a shared buffer and a length
@@ -49,14 +49,14 @@ public:
    * @param[in]  buf   The buffer
    * @param[in]  len   The length
    */
-  Chunk(buffer_t buf, const size_type len);
+  inline Chunk(buffer_t buf, const size_type len);
 
   /**
    * @brief      Constructs a chunk with an allocated buffer of the given length
    *
    * @param[in]  len   The length
    */
-  Chunk(const size_type len);
+  inline Chunk(const size_type len);
 
   /**
    * @brief      Constructs a chunk with data and length
@@ -67,7 +67,7 @@ public:
    * @param[in]  buf   The buffer (data) to be copied into the chunk
    * @param[in]  len   The length
    */
-  Chunk(const byte_t* buf, const size_type len);
+  inline Chunk(const byte_t* buf, const size_type len);
 
   Chunk(const Chunk&)             = default;
   Chunk(Chunk&&)                  = default;
@@ -238,24 +238,24 @@ private:
 
 }; // < class Chunk
 
-Chunk::Chunk()
+inline Chunk::Chunk()
  : Chunk(nullptr, 0)
 {
 }
 
-Chunk::Chunk(buffer_t buf, const size_type len)
+inline Chunk::Chunk(buffer_t buf, const size_type len)
  : buffer_(buf), length_(len)
 {
   Expects(len <= static_cast<size_t>(PTRDIFF_MAX));
 }
 
-Chunk::Chunk(const size_type len)
+inline Chunk::Chunk(const size_type len)
   : Chunk(make_shared_buffer(len), len)
 {
   clear();
 }
 
-Chunk::Chunk(const byte_t* buf, const size_type len)
+inline Chunk::Chunk(const byte_t* buf, const size_type len)
   : Chunk(make_shared_buffer(len), len)
 {
   std::memcpy(buffer_.get(), buf, len);
