@@ -8,8 +8,16 @@ enum storage_type
   TYPE_END = 0,
   TYPE_STRING,
   TYPE_BUFFER,
+  TYPE_VECTOR,
   TYPE_TCP,
   TYPE_UDP,
+};
+
+struct segmented_entry
+{
+  size_t     count;
+  size_t     esize;
+  char       vla[0];
 };
 
 struct storage_entry
@@ -17,16 +25,23 @@ struct storage_entry
   storage_entry(int16_t type, uint16_t id, int length);
   storage_entry(int16_t type);
   
-  int16_t  type = TYPE_END;
-  uint16_t id   = 0;
-  int      len  = 0;
-  char     vla[0];
+  int16_t   type = TYPE_END;
+  uint16_t  id   = 0;
+  int       len  = 0;
+  char      vla[0];
   
   int size() const noexcept {
     return sizeof(storage_entry) + len;
   }
-
-  uint32_t checksum() const;
+  segmented_entry& get_segs() noexcept {
+    return *(segmented_entry*) vla;
+  }
+  const char* data() const noexcept {
+    return vla;
+  }
+  
+  storage_entry* next() const noexcept;
+  uint32_t       checksum() const;
 };
 
 struct storage_header
@@ -44,6 +59,7 @@ struct storage_header
   void add_buffer(uint16_t id, const char*, int);
   storage_entry& add_struct(int16_t type, uint16_t id, int length);
   storage_entry& add_struct(int16_t type, uint16_t id, construct_func);
+  void add_vector(uint16_t, const void*, size_t cnt, size_t esize);
   void add_end();
   
   storage_entry* begin();

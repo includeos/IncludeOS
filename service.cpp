@@ -134,6 +134,8 @@ void Service::ready()
   printf("%s\n", ScopedProfiler::get_statistics().c_str());
 }
 
+static std::vector<double> timestamps;
+
 #include <hw/cpu.hpp>
 void save_stuff(Storage storage, buffer_len final_blob)
 {
@@ -143,17 +145,20 @@ void save_stuff(Storage storage, buffer_len final_blob)
   char buffer[] = "Just some random buffer";
   storage.add_buffer(2, {buffer, sizeof(buffer)});
 
+  // store vector of timestamps
+  storage.add_vector<double> (100, timestamps);
+  // store current timestamp using same ID = 100
   int64_t ts = hw::CPU::rdtsc();
-  storage.add_buffer(100, &ts, sizeof(ts));
+  storage.add<int64_t>(100, ts);
   printf("! CPU ticks before: %lld\n", ts);
-  
+
   // where the update was stored last
   printf("Storing location %p:%d\n", final_blob.buffer, final_blob.length);
   storage.add_buffer(999, final_blob.buffer, final_blob.length);
   
   // messages received from terminals
-  for (auto& msg : savemsg)
-      storage.add_string(665, msg);
+  storage.add_strings(665, savemsg);
+
   // open terminals
   for (auto conn : saveme)
     if (conn->is_connected())
@@ -192,6 +197,14 @@ void on_missing(Restore thing)
 
 void the_timing(Restore thing)
 {
+  // restore timestamp vector
+  timestamps = thing.as_vector<double> ();
+  
+  // verify that the next id is still same as current
+  assert(thing.next_id() == thing.get_id());
+  // next thing with pre-update timestamp
+  thing.go_next();
+  
   auto t1   = thing.as_type<int64_t>();
   auto t2 = hw::CPU::rdtsc();
   printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
@@ -199,6 +212,13 @@ void the_timing(Restore thing)
   using namespace std::chrono;
   double  div  = OS::cpu_freq().count() * 1000.0;
   double  time = (t2-t1) / div;
+
+  timestamps.push_back(time);
+  double average = 0.0;
+  for (double d : timestamps) average += d; average /= timestamps.size();
+  
+  printf("Restored %u timestamps, average TS: %.2f ms\n",
+      timestamps.size(), average);
 
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),

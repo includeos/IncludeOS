@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <string>
 #include <unistd.h>
-#include <util/crc32.hpp>
 #include "elf.h"
 #include "storage.hpp"
 
@@ -159,17 +158,26 @@ void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len
 
 /// struct Storage
 
-void Storage::add_string(uint16_t id, const std::string& string)
+void Storage::add_string(uid id, const std::string& str)
 {
-  hdr.add_string(id, string);
+  hdr.add_string(id, str);
 }
-void Storage::add_buffer(uint16_t id, buffer_len blob)
+void Storage::add_strings(uid id, const std::vector<std::string>& strings)
+{
+  for (const auto& str : strings)
+      hdr.add_string(id, str);
+}
+void Storage::add_buffer(uid id, buffer_len blob)
 {
   hdr.add_buffer(id, blob.buffer, blob.length);
 }
-void Storage::add_buffer(uint16_t id, const void* buf, size_t len)
+void Storage::add_buffer(uid id, const void* buf, size_t len)
 {
   hdr.add_buffer(id, (const char*) buf, len);
+}
+void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
+{
+  hdr.add_vector(id, buf, count, esize);
 }
 
 #include "serialize_tcp.hpp"
