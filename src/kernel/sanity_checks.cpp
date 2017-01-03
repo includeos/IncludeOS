@@ -17,8 +17,9 @@
 
 #include <cassert>
 #include <cstdint>
-#include <cstdio>
+#include <kprint>
 #include <util/crc32.hpp>
+#include <common>
 
 // NOTE: crc_to MUST NOT be initialized to zero
 static uint32_t crc_ro = CRC32_BEGIN();
@@ -26,6 +27,7 @@ extern char _TEXT_START_;
 extern char _TEXT_END_;
 extern char _RODATA_START_;
 extern char _RODATA_END_;
+const auto* PAGE = (volatile int*) 0x1000;
 
 static uint32_t generate_ro_crc() noexcept
 {
@@ -37,10 +39,22 @@ static uint32_t generate_ro_crc() noexcept
 extern "C"
 void __init_sanity_checks() noexcept
 {
+  // zero low memory
+  for (volatile int* lowmem = NULL; lowmem < PAGE; lowmem++)
+      *lowmem = 0;
+  // generate checksum for read-only portions of kernel
   crc_ro = generate_ro_crc();
 }
 
+extern "C"
 void kernel_sanity_checks()
 {
+  // verify checksum of read-only portions of kernel
   assert(crc_ro == generate_ro_crc());
+  // verify that first page is zeroes only
+  for (volatile int* lowmem = NULL; lowmem < PAGE; lowmem++)
+  if (UNLIKELY(*lowmem != 0)) {
+    printf("Memory at %p was not zeroed: %#x\n", lowmem, *lowmem);
+    assert(0 && "Low-memory zero test");
+  }
 }

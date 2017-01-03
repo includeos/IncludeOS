@@ -36,6 +36,7 @@
 #include <statman>
 #include <vector>
 
+extern "C" void kernel_sanity_checks();
 #define SOFT_RESET_MAGIC   0xFEE1DEAD
 //#define ENABLE_PROFILERS
 
@@ -143,7 +144,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({heap_begin_, heap_range_max_,
         "Heap", "Dynamic memory", heap_usage });
 
-
   MYINFO("Printing memory map");
 
   for (const auto &i : memmap)
@@ -185,6 +185,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Print registered devices
   hw::Devices::print_devices();
+
+  // sleep statistics
+  // NOTE: needs to be positioned before anything that calls OS::halt
+  os_cycles_hlt = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
+  os_cycles_total = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
@@ -233,12 +240,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   RTC::init();
   booted_at_ = RTC::now();
 
-  // sleep statistics
-  os_cycles_hlt = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
-  os_cycles_total = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
-
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp10("OS::start Plugins init");
 #endif
@@ -254,10 +255,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
       MYINFO("Unknown exception when initializing plugin");
     }
   }
-  // Everything is ready
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
-
+  
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp11("OS::start RNG init");
 #endif
@@ -285,14 +283,17 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
+  // Everything is ready
+  MYINFO("Starting %s", Service::name().c_str());
+  FILLINE('=');
+
+  // verify integrity of operating system (before Start)
+  kernel_sanity_checks();
+
   // begin service start
   Service::start(os_cmdline);
 
-  // do CPU frequency measurements again with more samples
-  //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
-
-  // verify integrity of operating system
-  extern void kernel_sanity_checks();
+  // verify integrity of operating system (after Start)
   kernel_sanity_checks();
 }
 
