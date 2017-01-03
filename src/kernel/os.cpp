@@ -290,6 +290,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // do CPU frequency measurements again with more samples
   //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
+
+  // verify integrity of operating system
+  extern void kernel_sanity_checks();
+  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){

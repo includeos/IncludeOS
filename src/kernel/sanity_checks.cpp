@@ -15,21 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef UTIL_CRC32_HPP
-#define UTIL_CRC32_HPP
-
+#include <cassert>
 #include <cstdint>
-#include <cstddef>
+#include <cstdio>
+#include <util/crc32.hpp>
 
-#define CRC32_BEGIN()   (0xFFFFFFFF)
-#define CRC32_VALUE(x)   ~(x)
+// NOTE: crc_to MUST NOT be initialized to zero
+static uint32_t crc_ro = CRC32_BEGIN();
+extern char _TEXT_START_;
+extern char _TEXT_END_;
+extern char _RODATA_START_;
+extern char _RODATA_END_;
 
-uint32_t crc32(uint32_t partial, const char* buf, size_t len);
-
-inline uint32_t crc32(const void* buf, size_t len)
+static uint32_t generate_ro_crc() noexcept
 {
-  return ~crc32(0xFFFFFFFF, (const char*) buf, len);
+  uint32_t crc = CRC32_BEGIN();
+  crc = crc32(crc, &_TEXT_START_, &_RODATA_END_ - &_TEXT_START_);
+  return CRC32_VALUE(crc);
 }
 
-#endif
+extern "C"
+void __init_sanity_checks() noexcept
+{
+  crc_ro = generate_ro_crc();
+}
+
+void kernel_sanity_checks()
+{
+  assert(crc_ro == generate_ro_crc());
+}
