@@ -246,3 +246,11 @@ char *getcwd(char *buf, size_t size)
     return nullptr;
   }
 }
+
+int ftruncate(int fd, off_t length)
+{
+  (void) fd;
+  (void) length;
+  // TODO: needs writable filesystem
+  return EBADF;
+}
