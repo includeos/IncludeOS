@@ -64,7 +64,7 @@ void setup_terminal(T& inet)
     setup_terminal_connection(conn);
     // write a string to change the state
     char BUFFER_CHAR = 'A';
-    static CRC32_BEGIN(crc);
+    static uint32_t crc = CRC32_BEGIN();
     const int LEN = 4096;
     auto buf = net::tcp::buffer_t(new uint8_t[LEN], std::default_delete<uint8_t[]>());
     

@@ -80,7 +80,7 @@ void storage_header::finalize()
   add_end();
   this->crc = generate_checksum();
 }
-bool storage_header::validate()
+bool storage_header::validate() noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
   if (this->crc   == 0) return false;
@@ -90,7 +90,7 @@ bool storage_header::validate()
   return true;
 }
 
-uint32_t storage_header::generate_checksum()
+uint32_t storage_header::generate_checksum() noexcept
 {
   uint32_t crc_copy = this->crc;
   this->crc         = 0;

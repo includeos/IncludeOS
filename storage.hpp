@@ -75,13 +75,13 @@ struct storage_header
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
   void finalize();
-  bool validate();
+  bool validate() noexcept;
   
   // zero out the entire header and its data, for extra security
   void zero();
   
 private:
-  uint32_t generate_checksum();
+  uint32_t generate_checksum() noexcept;
   
   uint64_t magic;
   uint32_t crc;
