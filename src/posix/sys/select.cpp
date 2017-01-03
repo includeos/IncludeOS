@@ -7,9 +7,9 @@ int  pselect(int, fd_set *__restrict__, fd_set *__restrict__, fd_set *__restrict
   errno = EINVAL;
   return -1;
 }
-int  select(int num, 
-            fd_set *__restrict__ reads, 
-            fd_set *__restrict__ writes, 
+int  select(int num,
+            fd_set *__restrict__ reads,
+            fd_set *__restrict__ writes,
             fd_set *__restrict__ excepts,
             struct timeval *__restrict__)
 {
@@ -17,7 +17,10 @@ int  select(int num,
   static bool event_read = false;
   static bool event_writ = false;
   static bool event_exce = false;
-  
+
+  (void) num; (void) reads; (void) writes; (void) excepts;
+  (void) event_read; (void) event_writ; (void) event_exce;
+  return -1;
   /*
   for (each fd in fd_read) {
     fd->monitor_read()

@@ -21,8 +21,9 @@
 
 #include "../component.hpp"
 
-#include <logger/logger.hpp>
+#include <util/logger.hpp>
 
+namespace mana {
 namespace dashboard {
 
 class Logger : public Component {
@@ -55,6 +56,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 

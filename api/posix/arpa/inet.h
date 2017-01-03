@@ -26,6 +26,25 @@ extern "C" {
 #include "../netinet/in.h"
 #include <stdint.h>
 
+#ifdef ntohs
+#undef ntohs
+#endif
+#ifdef htons
+#undef htons
+#endif
+#ifdef ntohl
+#undef ntohl
+#endif
+#ifdef htonl
+#undef htonl
+#endif
+#ifdef ntohll
+#undef ntohll
+#endif
+#ifdef htonll
+#undef htonll
+#endif
+
 inline uint16_t ntohs(const uint16_t n) {
   return __builtin_bswap16(n);
 }

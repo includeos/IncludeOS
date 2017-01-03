@@ -93,13 +93,33 @@ const lest::test specification[] =
     }
   },
   {
-    CASE("lseek on non-open FD returns -1, errno set to EBADF")
+    CASE("lseek() on non-open FD returns -1, errno set to EBADF")
     {
       int fd = open("/mnt/disk/file666", O_RDONLY);
       EXPECT(fd == -1);
       off_t offset = lseek(fd, 0, SEEK_SET);
       EXPECT(offset == -1);
       EXPECT(errno == EBADF);
+    }
+  },
+  {
+    CASE("lseek() with invalid whence returns -1, errno set to EINVAL")
+    {
+      int fd = open("/mnt/disk/file1", O_RDONLY);
+      EXPECT(fd != -1);
+      // valid values for whence are SEEK_SET, SEEK_CUR and SEEK_END
+      off_t offset = lseek(fd, 0, SEEK_SET);
+      EXPECT(offset != -1);
+      offset = lseek(fd, 0, SEEK_CUR);
+      EXPECT(offset != -1);
+      offset = lseek(fd, 0, SEEK_END);
+      EXPECT(offset != -1);
+      // 42 is not a valid value for whence
+      offset = lseek(fd, 0, 42);
+      EXPECT(offset == -1);
+      EXPECT(errno == EINVAL);
+      int res = close(fd);
+      EXPECT(res != -1);
     }
   },
   {
@@ -201,6 +221,22 @@ const lest::test specification[] =
       EXPECT(bytes1 == 4);
       res = close(fd1);
       EXPECT(res != -1);
+    }
+  },
+  {
+    CASE("open() with nullptr path fails, errno is EFAULT")
+    {
+      int res = open(nullptr, O_RDONLY);
+      EXPECT(res == -1);
+      EXPECT(errno == EFAULT);
+    }
+  },
+  {
+    CASE("open() with empty string path fails, errno is ENOENT")
+    {
+      int res = open("", O_RDONLY);
+      EXPECT(res == -1);
+      EXPECT(errno == ENOENT);
     }
   },
   {

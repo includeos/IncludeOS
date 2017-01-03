@@ -23,6 +23,7 @@
 
 #include <os>
 
+namespace mana {
 namespace dashboard {
 
 class Memmap : public Component {
@@ -75,6 +76,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 

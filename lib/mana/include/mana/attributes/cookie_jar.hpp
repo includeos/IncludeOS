@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef COOKIE_JAR_HPP
-#define COOKIE_JAR_HPP
+#ifndef MANA_ATTRIBUTES_COOKIE_JAR_HPP
+#define MANA_ATTRIBUTES_COOKIE_JAR_HPP
 
 #include <map>
 #include <string>
@@ -24,20 +24,21 @@
 #include <net/http/cookie.hpp>
 #include <mana/attribute.hpp>
 
-namespace cookie {
+namespace mana {
+namespace attribute {
 
-class CookieJar : public mana::Attribute {
+class Cookie_jar : public mana::Attribute {
 public:
 
-  explicit CookieJar() = default;
+  explicit Cookie_jar() = default;
 
-  CookieJar(const CookieJar&) = default;
+  Cookie_jar(const Cookie_jar&) = default;
 
-  CookieJar(CookieJar&&) = default;
+  Cookie_jar(Cookie_jar&&) = default;
 
-  CookieJar& operator = (CookieJar&&) = default;
+  Cookie_jar& operator = (Cookie_jar&&) = default;
 
-  ~CookieJar() = default;
+  ~Cookie_jar() = default;
 
   size_t size() const noexcept;
 
@@ -47,11 +48,11 @@ public:
 
   bool insert(const std::string& name, const std::string& value = "");
 
-  CookieJar& erase(const http::Cookie& c) noexcept;
+  Cookie_jar& erase(const http::Cookie& c) noexcept;
 
-  CookieJar& erase(const std::string& name) noexcept;
+  Cookie_jar& erase(const std::string& name) noexcept;
 
-  CookieJar& clear() noexcept;
+  Cookie_jar& clear() noexcept;
 
   bool exists(const std::string& name) const noexcept;
 
@@ -66,9 +67,9 @@ public:
 private:
   std::map<std::string, std::string> cookies_;
 
-  CookieJar& operator = (const CookieJar&) = delete;
+  Cookie_jar& operator = (const Cookie_jar&) = delete;
 }; //< class CookieJar
 
-}; //< namespace cookie
+}} //< namespace mana::attribute
 
 #endif //< COOKIE_JAR_HPP

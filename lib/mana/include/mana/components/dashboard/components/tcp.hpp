@@ -23,6 +23,7 @@
 
 #include <net/tcp/tcp.hpp>
 
+namespace mana {
 namespace dashboard {
 
 class TCP : public Component {
@@ -79,10 +80,12 @@ public:
     writer.String(conn.remote().to_string());
 
     writer.Key("bytes_rx");
-    writer.Uint64(conn.bytes_received());
+    //writer.Uint64(conn.bytes_received());
+    writer.Uint(0);
 
     writer.Key("bytes_tx");
-    writer.Uint64(conn.bytes_transmitted());
+    //writer.Uint64(conn.bytes_transmitted());
+    writer.Uint(0);
 
     writer.Key("state");
     writer.String(conn.state().to_string());
@@ -113,6 +116,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 

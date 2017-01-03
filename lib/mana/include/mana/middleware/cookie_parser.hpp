@@ -15,35 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIDDLEWARE_COOKIE_PARSER_HPP
-#define MIDDLEWARE_COOKIE_PARSER_HPP
+#ifndef MANA_MIDDLEWARE_COOKIE_PARSER_HPP
+#define MANA_MIDDLEWARE_COOKIE_PARSER_HPP
 
-#include "cookie.hpp"
-#include "cookie_jar.hpp"
+#include <net/http/cookie.hpp>
+#include <mana/attributes/cookie_jar.hpp>
 #include <mana/middleware.hpp>
 
-namespace cookie {
+namespace mana {
+namespace middleware {
 
 /**
  * @brief A way to parse cookies that the browser is sending to the server
  */
-class CookieParser : public mana::Middleware {
+class Cookie_parser : public Middleware {
 public:
 
-  mana::Callback handler() override {
-    return {this, &CookieParser::process};
+  Callback handler() override {
+    return {this, &Cookie_parser::process};
   }
 
-  void process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next);
+  void process(Request_ptr req, Response_ptr res, Next next);
 
 private:
-  CookieJar req_cookies_;
+  attribute::Cookie_jar req_cookies_;
 
   static const std::regex cookie_pattern_;
 
   bool has_cookie(mana::Request_ptr req) const noexcept;
 
-  const std::string& read_cookies(mana::Request_ptr req) const noexcept;
+  std::string read_cookies(mana::Request_ptr req) const noexcept;
 
   void parse(const std::string& cookie_data);
 
@@ -51,53 +52,16 @@ private:
 
 /**--v----------- Implementation Details -----------v--**/
 
-const std::regex CookieParser::cookie_pattern_ {"[^;]+"};
-
-inline void CookieParser::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next) {
-  if(has_cookie(req)) {
-    parse(read_cookies(req));
-    auto jar_attr = std::make_shared<CookieJar>(req_cookies_);
-    req->set_attribute(jar_attr);
-  }
-
-  return (*next)();
+inline bool Cookie_parser::has_cookie(mana::Request_ptr req) const noexcept {
+  return req->header().has_field(http::header::Cookie);
 }
 
-inline bool CookieParser::has_cookie(mana::Request_ptr req) const noexcept {
-  return req->has_header(http::header_fields::Request::Cookie);
-}
-
-inline const std::string& CookieParser::read_cookies(mana::Request_ptr req) const noexcept {
-  return req->header_value(http::header_fields::Request::Cookie);
-}
-
-void CookieParser::parse(const std::string& cookie_data) {
-  if(cookie_data.empty()) {
-    throw CookieException{"Cannot parse empty cookie-string!"};
-  }
-
-  req_cookies_.clear(); //< Clear {req_cookies_} for new entries
-
-  auto position = std::sregex_iterator(cookie_data.begin(), cookie_data.end(), cookie_pattern_);
-  auto end      = std::sregex_iterator();
-
-  while (position not_eq end) {
-    auto cookie = (*position++).str();
-
-    cookie.erase(std::remove(cookie.begin(), cookie.end(), ' '), cookie.end());
-
-    auto pos = cookie.find('=');
-    if (pos not_eq std::string::npos) {
-      req_cookies_.insert(cookie.substr(0, pos), cookie.substr(pos + 1));
-    } else {
-      req_cookies_.insert(cookie);
-    }
-  }
-
+inline std::string Cookie_parser::read_cookies(mana::Request_ptr req) const noexcept {
+  return req->header().value(http::header::Cookie).to_string();
 }
 
 /**--^----------- Implementation Details -----------^--**/
 
-} //< namespace middleware
+}} //< namespace mana::middleware
 
 #endif //< MIDDLEWARE_COOKIE_PARSER_HPP

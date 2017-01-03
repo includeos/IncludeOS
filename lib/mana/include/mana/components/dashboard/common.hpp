@@ -24,11 +24,13 @@
 #include <mana/request.hpp>
 #include <mana/response.hpp>
 
+namespace mana {
 namespace dashboard {
   using WriteBuffer = rapidjson::StringBuffer;
   using Writer = rapidjson::Writer<WriteBuffer>;
   using Serialize = delegate<void(Writer&)>;
   using RouteCallback = delegate<void(mana::Request_ptr, mana::Response_ptr)>;
+}
 }
 
 #endif

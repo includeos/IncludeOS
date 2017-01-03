@@ -23,6 +23,7 @@
 
 #include <profile>
 
+namespace mana {
 namespace dashboard {
 
 class StackSampler : public Component {
@@ -102,6 +103,7 @@ private:
 };
 
 } // < namespace dashboard
+} // < namespace mana
 
 #endif
 
