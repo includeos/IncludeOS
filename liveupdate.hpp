@@ -11,8 +11,8 @@
 
 #include <net/tcp/connection.hpp>
 #include <delegate>
+#include <string>
 #include <vector>
-
 struct storage_entry;
 struct storage_header;
 
@@ -30,36 +30,52 @@ struct buffer_len {
 
 
 /**
- * 
- * 
- * 
- * 
- * 
+ * The beginning and the end of the LiveUpdate process is the begin() and resume() functions.
+ * begin() is called with a provided fixed memory location for where to store all serialized data,
+ * and after an update is_resumable, with the same fixed memory location, will return true. 
+ * resume() can then be called with this same location, and it will call handlers for each @id it finds,
+ * unless no such handler is registered, in which case it just calls the default handler which is passed
+ * to the call to resume(). The call to resume returns true if everything went well.
 **/
 struct LiveUpdate
 {
-  typedef delegate<void(Restore)> resume_func;
   typedef delegate<void(Storage, buffer_len)> storage_func;
+  typedef delegate<void(Restore)> resume_func;
 
-  // start a live update process
+  // Start a live update process, storing all user-defined data
+  // at @location, which can then be resumed by the future service after update
   static void begin(void* location, buffer_len blob, storage_func);
   
-  // returns true if there is stored data from before
+  // Returns true if there is stored data from before at @location.
+  // It performs an extensive validation process to make sure the data is
+  // complete and consistent
   static bool is_resumable(void* location);
   
-  // register handler for a specific id
-  static void on_resume(uint16_t id, resume_func);
+  // Register a user-defined handler for what to do with @id from storage
+  static void on_resume(uint16_t id, resume_func custom_handler);
   
-  // attempt to restore existing payloads
-  // returns false if there was nothing there
-  static bool resume(void* location, resume_func);
+  // Attempt to restore existing stored entries from fixed location.
+  // Returns false if there was nothing there. or if the process failed
+  // to be sure that only failure can return false, use is_resumable first
+  static bool resume(void* location, resume_func default_handler);
+  
+  // NOTE:
+  // The call to resume can fail even if is_resumable validates everything correctly.
+  // this is because when the user restores all the saved data, it could grow into
+  // the storage area used by liveupdate, if enough data is stored, and corrupt it.
 };
 
 /**
+ * The Storage object is passed to the user from the handler given to the
+ * call to begin(), starting the liveupdate process. When the handler is
+ * called the system is ready to serialize data into the given @location.
+ * By using the various add_* functions, the user stores data with @uid
+ * as a marker to be able to recognize the object when restoring data.
+ * IDs don't have to have specific values, and the user is free to use any value.
  * 
- * 
- * 
- * 
+ * When using the add() function, the type cannot be verified on the other side,
+ * simply because type_info isn't guaranteed to work across updates. A new update
+ * could have been compiled with a different compiler.
  * 
 **/
 struct Storage
@@ -70,11 +86,11 @@ struct Storage
   template <typename T>
   inline void add(uid, const T& type);
 
-  void add_string(uid, const std::string&);
+  void add_string (uid, const std::string&);
   void add_strings(uid, const std::vector<std::string>&);
-  void add_buffer(uid, buffer_len);
-  void add_buffer(uid, const void*, size_t);
-  void add_vector(uid, const void*, size_t count, size_t element_size);
+  void add_buffer (uid, buffer_len);
+  void add_buffer (uid, const void*, size_t);
+  void add_vector (uid, const void*, size_t count, size_t element_size);
 
   template <typename T>
   inline void add_vector(uid, const std::vector<T>& vector);
@@ -88,10 +104,16 @@ private:
 };
 
 /**
+ * A Restore object is given to the user by restore handlers,
+ * during the resume() process. The user should know what type 
+ * each id is, and call the correct as_* function. The object
+ * will still be validated, and an error is thrown if there was
+ * a type mismatch in most cases.
  * 
- * 
- * 
- * 
+ * It's possible to restore many objects from the same handler by
+ * using go_next(). In that way, a user can restore complicated objects
+ * completely without leaving the handler. go_next() will throw if there
+ * is no next object to go to.
  * 
 **/
 struct Restore
@@ -109,13 +131,13 @@ struct Restore
   inline std::vector<T> as_vector() const;
 
   int16_t     get_type() const noexcept;
-  uint16_t    get_id() const noexcept;
-  int         length() const noexcept;
-  const void* data() const noexcept;
+  uint16_t    get_id()   const noexcept;
+  int         length()   const noexcept;
+  const void* data()     const noexcept;
   
-  bool     is_end()  const noexcept;
-  uint16_t next_id() const noexcept;
-  void     go_next();
+  bool        is_end()   const noexcept;
+  uint16_t    next_id()  const noexcept;
+  void        go_next();
   
   Restore(storage_entry*& ptr) : ent(ptr) {}
   Restore(const Restore&);
@@ -149,6 +171,6 @@ inline void Storage::add_vector(uid id, const std::vector<T>& vector)
   add_vector(id, vector.data(), vector.size(), sizeof(T));
 }
 
-}
+} // liu
 
 #endif
