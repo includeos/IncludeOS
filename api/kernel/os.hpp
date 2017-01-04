@@ -37,9 +37,20 @@ public:
   using print_func  = delegate<void(const char*, size_t)>;
   using Plugin = delegate<void()>;
 
-  /* Get the version of the os */
-  static std::string version()
+  /**
+   * Returns the version of the OS from when 
+   * the service was built.
+  **/
+  static const std::string& version() noexcept
   { return version_field; }
+
+  /** 
+   *  Returns the commandline arguments provided,
+   *  if any, to the VM passed on by multiboot or
+   *  other mechanisms. The first argument is always
+   *  the binary name.
+  **/
+  static const std::string& cmdline_args() noexcept;
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {

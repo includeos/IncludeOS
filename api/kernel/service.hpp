@@ -47,7 +47,8 @@ public:
    *        until an external interrupt fires (there are no regular timer
    *        interrupts unless you've enabled them).
    */
-  static void start(const std::string&);
+  static void start();
+  static void start(const std::string& cmdline_args);
 
 
   /**

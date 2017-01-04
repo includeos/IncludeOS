@@ -83,6 +83,11 @@ static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 extern "C" uintptr_t get_cpu_esp();
 
+const std::string& OS::cmdline_args() noexcept
+{
+  return os_cmdline;
+}
+
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
 #ifdef ENABLE_PROFILERS
@@ -288,7 +293,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   FILLINE('=');
 
   // begin service start
-  Service::start(os_cmdline);
+  Service::start();
 
   // verify integrity of operating system (after Start)
   kernel_sanity_checks();
@@ -469,7 +474,3 @@ void OS::legacy_boot() {
     unavail_end += interval;
   }
 }
-
-/// SERVICE RELATED ///
-
-// Moved to kernel/service_stub.cpp

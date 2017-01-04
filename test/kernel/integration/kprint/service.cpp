@@ -19,7 +19,7 @@
 #include "../../../../src/include/kprint"
 
 
-void Service::start(const std::string&)
+void Service::start()
 {
   INFO("service", "Testing kprint");
 
