@@ -54,6 +54,7 @@ namespace mender {
   Keystore::Keystore(Storage store)
     : store_{nullptr}
   {
+    printf("<Keystore> Constructing keystore with a shared disk\n");
     generate();
   }
 
@@ -61,6 +62,7 @@ namespace mender {
     : store_(store),
       key_name_{std::move(kname)}
   {
+    printf("<Keystore> Constructing keystore with a shared disk and keyname\n");
     load();
   }
 
@@ -68,44 +70,20 @@ namespace mender {
     : store_(nullptr),
     key_name_{"N/A"}
   {
+    printf("<Keystore> Constructing keystore with the private key itself\n");
     Botan::DataSource_Memory data{key};
-    //private_key_ = Botan::X509::load_key(data);
-    //auto rng = std::unique_ptr<Botan::RandomNumberGenerator>(new Botan::RDRAND_RNG);
     private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
     //assert(private_key_->check_key(Botan::system_rng(), true));
   }
 
   void Keystore::load()
   {
-    auto buffer = store_->fs().read_file("/"+key_name_);
+    printf("<Keystore> Loading private key...\n");
+    auto buffer = store_->fs().read_file(key_name_);
     Botan::DataSource_Memory data{buffer.data(), buffer.size()};
-    //auto rng = std::unique_ptr<Botan::RandomNumberGenerator>(system_rng());
-    //private_key_ = Botan::PKCS8::load_key(data, Botan::system_rng());
+    private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
+    printf("%s\n ... Done.\n", Botan::PKCS8::PEM_encode(*private_key_).c_str());
   }
-
-  //Private_key* Keystore::load_from_PEM(fs::Buffer& buffer) const
-  //{
-    /*
-        data, err := ioutil.ReadAll(in)
-    if err != nil {
-      return nil, err
-    }
-
-    block, _ := pem.Decode(data)
-    if block == nil {
-      return nil, errors.New("failed to decode block")
-    }
-
-    log.Debugf("block type: %s", block.Type)
-
-    key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-    if err != nil {
-      return nil, err
-    }
-
-    return key, nil
-    */
-  //}
 
   void Keystore::generate()
   {
@@ -117,7 +95,7 @@ namespace mender {
   Public_PEM Keystore::public_PEM()
   {
     auto pem = Botan::X509::PEM_encode(public_key());
-    printf("PEM:\n%s\n", pem.c_str());
+    //printf("PEM:\n%s\n", pem.c_str());
     //auto pem = Botan::PEM_Code::encode(data, "PUBLIC KEY");
     return pem;
   }

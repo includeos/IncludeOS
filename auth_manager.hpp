@@ -15,11 +15,15 @@ namespace mender {
 
   public:
 
-    Auth_manager(Keystore& ks, Dev_id id);
+    Auth_manager(Keystore& ks, Dev_id id, int64_t seq = 0);
 
-    Auth_request make_auth_request() const;
+    Auth_request make_auth_request();
 
-    Auth_token auth_token() const;
+    Auth_token auth_token() const
+    { return tenant_token_; }
+
+    void set_auth_token(byte_seq token)
+    { tenant_token_ = std::move(token); }
 
     Keystore& keystore()
     { return keystore_; }
@@ -28,23 +32,18 @@ namespace mender {
     Keystore&       keystore_;
     const Dev_id    id_data_;
     Auth_token      tenant_token_;
-
-    static int64_t seq_no()
-    {
-      static int64_t seq = 12;
-      return ++seq;
-    }
+    int64_t         seq_;
 
   };
 
-  Auth_manager::Auth_manager(Keystore& ks, Dev_id id)
-    : keystore_(ks), id_data_(std::move(id))
+  Auth_manager::Auth_manager(Keystore& ks, Dev_id id, int64_t seq)
+    : keystore_(ks), id_data_(std::move(id)), seq_(seq)
   {
-    std::string tkn{"dummy"};
+    std::string tkn{""};
     tenant_token_ = Auth_token{tkn.begin(), tkn.end()};
   }
 
-  Auth_request Auth_manager::make_auth_request() const
+  Auth_request Auth_manager::make_auth_request()
   {
     Request_data authd;
 
@@ -52,8 +51,9 @@ namespace mender {
     authd.id_data       = this->id_data_;
     authd.pubkey        = this->keystore_.public_PEM();
     authd.tenant_token  = this->tenant_token_;
-    authd.seq_no        = this->seq_no();
+    authd.seq_no        = this->seq_++;
 
+    printf("<Auth_manager> Next seqno=%lli\n", seq_);
     // Get serialized bytes
     const auto reqdata = authd.serialized_bytes();
 
