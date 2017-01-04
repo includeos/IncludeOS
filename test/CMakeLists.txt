@@ -29,6 +29,14 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/vfs_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
+  ${TEST}/kernel/unit/rdrand_test.cpp
+  ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/http_header_test.cpp
+  ${TEST}/net/unit/http_status_codes_test.cpp
+  ${TEST}/net/unit/http_mime_types_test.cpp
+  ${TEST}/net/unit/http_time_test.cpp
+  ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
@@ -45,7 +53,6 @@ set(TEST_SOURCES
   ${TEST}/util/unit/path_to_regex_no_options.cpp
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
-  ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/uri_test.cpp
@@ -60,7 +67,9 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hw/acpi.cpp
   ${SRC}/hw/block_device.cpp
+  #${SRC}/hw/cmos.cpp
   ${SRC}/hw/ioapic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
@@ -69,16 +78,35 @@ set(OS_SOURCES
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
+  ${SRC}/kernel/rdrand.cpp
+  ${SRC}/kernel/service_stub.cpp
+  ${SRC}/kernel/terminal_disk.cpp
+  ${SRC}/net/buffer_store.cpp
+  ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/cookie.cpp
+  ${SRC}/net/http/header.cpp
+  ${SRC}/net/http/header_fields.cpp
+  ${SRC}/net/http/message.cpp
+  ${SRC}/net/http/mime_types.cpp
+  ${SRC}/net/http/status_codes.cpp
+  ${SRC}/net/http/time.cpp
+  ${SRC}/net/http/version.cpp
+  ${SRC}/net/inet_common.cpp
+  ${SRC}/net/ip4/icmpv4.cpp
+  ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/net/util.cpp
+  ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
+  ${SRC}/posix/sys/select.cpp
   ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
   ${SRC}/util/statman.cpp
+  ${SRC}/util/tar_reader.cpp
   ${SRC}/util/uri.cpp
+  ${SRC}/virtio/virtio_queue.cpp
 )
 
 add_executable(unittests ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES})
