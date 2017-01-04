@@ -13,7 +13,7 @@ void Client::handle_new(
     const std::string&,
     const std::vector<std::string>& msg)
 {
-  ScopedProfiler profile;
+  volatile ScopedProfiler profile;
   const std::string& cmd = msg[0];
   
   if (cmd == TK_CAP)

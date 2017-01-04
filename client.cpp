@@ -48,7 +48,7 @@ void Client::disable()
 #include <kernel/syscalls.hpp>
 void Client::split_message(const std::string& msg)
 {
-  ScopedProfiler profile;
+  volatile ScopedProfiler profile;
   // in case splitter is bad
   SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", msg.size(), msg.c_str());
   
@@ -83,7 +83,7 @@ void Client::split_message(const std::string& msg)
 
 void Client::read(uint8_t* buf, size_t len)
 {
-  ScopedProfiler profile;
+  volatile ScopedProfiler profile;
   while (len > 0) {
     
     int search = -1;

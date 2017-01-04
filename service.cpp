@@ -20,64 +20,18 @@
 #include <timers>
 #define USE_STACK_SAMPLING
 
-#include <memdisk>
-void recursive_fs_dump(fs::dirvec_t entries, int depth = 0)
-{
-  int indent = depth * 3;
-  for (auto entry : *entries)
-  {
-    // Print directories
-    if (entry.is_dir()) {
-      // Normal dirs
-      if (entry.name() != "."  and entry.name() != "..") {
-        printf(" %*s-[ %s ]\n", indent, "+", entry.name().c_str());
-        auto list = entry.ls();
-        recursive_fs_dump(list.entries, depth + 1);
-      } else {
-        printf(" %*s  %s \n", indent, "+", entry.name().c_str());
-      }
-    } else {
-      //printf(" %*s  \n", indent, "|");
-      printf(" %*s-> %s \n", indent, "+", entry.name().c_str());
-    }
-  }
-  printf(" %*s \n", indent, " ");
-  //printf(" %*s \n", indent, "o");
-}
-
-void test()
-{
-  printf("Creating MemDisk...\n");
-  auto disk = fs::new_shared_memdisk();
-  
-  disk->init_fs(
-  [disk] (auto err)
-  {
-    printf("MOUNTED\n");
-    
-    auto list = disk->fs().ls("/");
-    recursive_fs_dump(list.entries);
-    
-  });
-}
-
 #include "ircd.hpp"
 static IrcServer* ircd;
 
 // prevent default serial out
-//void default_stdout_handlers() {}
+void default_stdout_handlers() {}
 #include <hw/serial.hpp>
-
-extern "C" int  _get_heap_debugging_buffers_usage();
-extern "C" int  _get_heap_debugging_buffers_total();
-extern "C" void _enable_heap_debugging_verbose(int);
-extern "C" void _start();
 
 void Service::start(const std::string& args)
 {
   // add own serial out after service start
-  //auto& com1 = hw::Serial::port<1>();
-  //OS::add_stdout(com1.get_print_handler());
+  auto& com1 = hw::Serial::port<1>();
+  OS::add_stdout(com1.get_print_handler());
 
   std::string servername = "irc.includeos.org";
   /// extract custom servername from args, if there is one
@@ -118,7 +72,6 @@ void Service::start(const std::string& args)
   });
 
   printf("%s\n", ircd->get_motd().c_str());
-  test();
 }
 
 #include <ctime>
@@ -187,7 +140,7 @@ void print_stats(int)
   cps /= M.size();
 
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
-      now().c_str(), cps, OS::heap_usage() / 1024.f);
+      now().c_str(), cps, OS::heap_usage() / 1024.0);
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
   
