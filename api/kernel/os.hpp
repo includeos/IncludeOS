@@ -119,14 +119,10 @@ public:
   }
 
   /** First address of the heap **/
-  static uintptr_t heap_begin() noexcept{
-    return heap_begin_;
-  };
+  static uintptr_t heap_begin() noexcept;
 
   /** Last used address of the heap **/
-  static uintptr_t heap_end() {
-    return heap_end_;
-  };
+  static uintptr_t heap_end() noexcept;
 
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max() noexcept{
@@ -135,7 +131,7 @@ public:
 
   /** Currently used dynamic memory, in bytes */
   static uintptr_t heap_usage() noexcept {
-    return (uintptr_t) (heap_end_ - heap_begin_);
+    return heap_end() - heap_begin();
   };
 
   /** Resize the heap if possible. Return (potentially) new size. **/
@@ -216,8 +212,6 @@ private:
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
-  static uintptr_t heap_begin_;
-  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
 

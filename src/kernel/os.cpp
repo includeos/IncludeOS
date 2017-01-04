@@ -61,8 +61,6 @@ RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
-uintptr_t OS::heap_begin_ {::heap_begin};
-uintptr_t OS::heap_end_ {::heap_end};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 // stdout redirection
@@ -134,9 +132,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
-  Expects(heap_begin_ and heap_max_);
+  Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin_ - 1,
+  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
 
   // Give the rest of physical memory to heap
@@ -146,7 +144,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
-  memmap.assign_range({heap_begin_, heap_range_max_,
+  memmap.assign_range({::heap_begin, heap_range_max_,
         "Heap", "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
@@ -302,6 +300,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
   plugins_.emplace_back(delg, name);
+}
+
+uintptr_t OS::heap_begin() noexcept
+{
+  return ::heap_begin;
+}
+uintptr_t OS::heap_end() noexcept
+{
+  return ::heap_end;
 }
 
 uintptr_t OS::resize_heap(size_t size){
