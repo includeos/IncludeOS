@@ -287,9 +287,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
-  // verify integrity of operating system (before Start)
-  kernel_sanity_checks();
-
   // begin service start
   Service::start(os_cmdline);
 

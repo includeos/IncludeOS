@@ -17,7 +17,7 @@
 
 #include <cassert>
 #include <cstdint>
-#include <kprint>
+#include <cstdio>
 #include <util/crc32.hpp>
 #include <common>
 
