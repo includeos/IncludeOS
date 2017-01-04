@@ -13,6 +13,14 @@
 #include <delegate>
 #include <vector>
 
+struct storage_entry;
+struct storage_header;
+
+namespace liu
+{
+struct Storage;
+struct Restore;
+
 struct buffer_len {
   const char* buffer;
   int length;
@@ -20,9 +28,40 @@ struct buffer_len {
   buffer_len deep_copy() const;
 };
 
-struct storage_entry;
-struct storage_header;
 
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+**/
+struct LiveUpdate
+{
+  typedef delegate<void(Restore)> resume_func;
+  typedef delegate<void(Storage, buffer_len)> storage_func;
+
+  // start a live update process
+  static void begin(void* location, buffer_len blob, storage_func);
+  
+  // returns true if there is stored data from before
+  static bool is_resumable(void* location);
+  
+  // register handler for a specific id
+  static void on_resume(uint16_t id, resume_func);
+  
+  // attempt to restore existing payloads
+  // returns false if there was nothing there
+  static bool resume(void* location, resume_func);
+};
+
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+**/
 struct Storage
 {
   typedef net::tcp::Connection_ptr Connection_ptr;
@@ -48,6 +87,13 @@ private:
   storage_header& hdr;
 };
 
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+**/
 struct Restore
 {
   typedef net::tcp::Connection_ptr Connection_ptr;
@@ -57,7 +103,7 @@ struct Restore
   Connection_ptr as_tcp_connection(net::TCP&) const;
   
   template <typename S>
-  inline S& as_type() const;
+  inline const S& as_type() const;
 
   template <typename T>
   inline std::vector<T> as_vector() const;
@@ -78,28 +124,11 @@ private:
   storage_entry*& ent;
 };
 
-struct LiveUpdate
-{
-  typedef delegate<void(Restore)> resume_func;
-  typedef delegate<void(Storage, buffer_len)> storage_func;
-
-  // start a live update process
-  static void begin(void* location, buffer_len blob, storage_func);
-  
-  // returns true if there is stored data from before
-  static bool is_resumable(void* location);
-  
-  // register handler for a specific id
-  static void on_resume(uint16_t id, resume_func);
-  
-  // attempt to restore existing payloads
-  // returns false if there was nothing there
-  static bool resume(void* location, resume_func);
-};
+/// various inline functions
 
 template <typename S>
-inline S& Restore::as_type() const {
-  return *(S*) data();
+inline const S& Restore::as_type() const {
+  return *reinterpret_cast<const S*> (data());
 }
 template <typename T>
 inline std::vector<T> Restore::as_vector() const
@@ -118,6 +147,8 @@ template <typename T>
 inline void Storage::add_vector(uid id, const std::vector<T>& vector)
 {
   add_vector(id, vector.data(), vector.size(), sizeof(T));
+}
+
 }
 
 #endif

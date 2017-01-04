@@ -1,9 +1,12 @@
-#include "update.hpp"
+#include "liveupdate.hpp"
 
 #include <cstdio>
 #include "storage.hpp"
+#include "serialize_tcp.hpp"
 #include <map>
 
+namespace liu
+{
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
 bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
@@ -47,7 +50,6 @@ buffer_len  Restore::as_buffer() const
       return {ent->data(), ent->len};
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 }
-#include "serialize_tcp.hpp"
 Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
 {
   return deserialize_connection(ent->vla, tcp);
@@ -102,3 +104,5 @@ uint16_t Restore::next_id() const noexcept
 // copy operator
 Restore::Restore(const Restore& other)
   : ent(other.ent)  {}
+
+}

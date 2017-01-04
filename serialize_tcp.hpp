@@ -1,5 +1,5 @@
-#include <net/tcp/connection.hpp>
 #pragma once
+#include <net/tcp/connection.hpp>
 
 struct serialized_tcp
 {
@@ -30,4 +30,4 @@ struct serialized_tcp
   int8_t to_state(Connection::State* state);
 };
 
-extern std::shared_ptr<net::tcp::Connection> deserialize_connection(void* addr, net::TCP& tcp);
+extern std::shared_ptr<::net::tcp::Connection> deserialize_connection(void* addr, net::TCP& tcp);

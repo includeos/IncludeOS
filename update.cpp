@@ -1,4 +1,4 @@
-#include "update.hpp"
+#include "liveupdate.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -11,11 +11,16 @@ static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
 static void* HOTSWAP_AREA = (void*) 0x8000;
+extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
+extern "C" char  __hotswap_length;
+extern "C" void* __os_store_soft_reset();
+extern char* heap_end;
+
+using namespace liu;
 
 bool LiveUpdate::is_resumable(void* location)
 {
   /// memory sanity check
-  extern char* heap_end;
   printf("heap: %p  storage: %p\n",
 		heap_end, location);
   if (heap_end >= (char*) location) {
@@ -37,10 +42,6 @@ bool LiveUpdate::resume(void* location, resume_func func)
 }
 
 static void update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
-
-extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
-extern "C" char  __hotswap_length;
-extern "C" void* __os_store_soft_reset();
 
 #include <hw/devices.hpp>
 
@@ -65,7 +66,6 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   char* storage_area = (char*) location;
   
   // validate not overwriting heap
-  extern char* heap_end;
   if (heap_end >= storage_area) {
     printf("*** The heap is currently inside the storage area\n");
     return;

@@ -20,7 +20,7 @@
 #include <profile>
 #include <util/crc32.hpp>
 #include <cstdio>
-#include "update.hpp"
+#include "liveupdate.hpp"
 #include "hw_timer.hpp"
 
 static void* LIVEUPD_LOCATION   = (void*) 0xC00000; // at 12mb
@@ -86,7 +86,7 @@ void setup_terminal(T& inet)
 template <typename T>
 void setup_liveupdate_server(T& inet);
 
-void Service::start(const std::string&)
+void Service::start()
 {
   volatile HW_timer timer("Service::start()");
   // add own serial out after service start
@@ -104,6 +104,7 @@ void Service::start(const std::string&)
 
 
   /// attempt to resume (if there is anything to resume)
+  using namespace liu;
   void strings_and_buffers(Restore);
   void the_timing(Restore);
   void restore_term(Restore);
@@ -135,7 +136,7 @@ void Service::ready()
 static std::vector<double> timestamps;
 
 #include <hw/cpu.hpp>
-void save_stuff(Storage storage, buffer_len final_blob)
+void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
 {
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
@@ -164,7 +165,7 @@ void save_stuff(Storage storage, buffer_len final_blob)
       storage.add_connection(666, conn);
 }
 
-void strings_and_buffers(Restore thing)
+void strings_and_buffers(liu::Restore thing)
 {
   auto str = thing.as_string();
   printf("[string] has value [%s]\n", str.c_str());
@@ -183,7 +184,7 @@ void strings_and_buffers(Restore thing)
   str = std::string(buffer.buffer, buffer.length-1);
   assert(str == "Just some random buffer");
 }
-void saved_message(Restore thing)
+void saved_message(liu::Restore thing)
 {
   static int n = 0;
   auto str = thing.as_string();
@@ -192,12 +193,12 @@ void saved_message(Restore thing)
   // re-save it
   //savemsg.push_back(str);
 }
-void on_missing(Restore thing)
+void on_missing(liu::Restore thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
 }
 
-void the_timing(Restore thing)
+void the_timing(liu::Restore thing)
 {
   auto t1 = thing.as_type<int64_t>();
   auto t2 = hw::CPU::rdtsc();
@@ -229,7 +230,7 @@ void the_timing(Restore thing)
       timestamps.size(), average);
   
 }
-void restore_term(Restore thing)
+void restore_term(liu::Restore thing)
 {
   auto& stack = net::Inet4::stack<0> ();
   // restore connection to terminal
@@ -243,9 +244,9 @@ void restore_term(Restore thing)
 }
 
 #include <timers>
-void on_update_area(Restore thing)
+void on_update_area(liu::Restore thing)
 {
-  buffer_len updloc = thing.as_buffer().deep_copy();
+  auto updloc = thing.as_buffer().deep_copy();
   printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
   
   // we are perpetually updating ourselves
@@ -254,7 +255,7 @@ void on_update_area(Restore thing)
   [updloc] (auto) {
     extern uintptr_t heap_end;
     printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
-    LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
+    liu::LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
   });
 }
 
@@ -285,7 +286,7 @@ void setup_liveupdate_server(T& inet)
       float frac = *update_size / (float) UPDATE_MAX * 100.f;
       printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
       // run live update process
-      LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
+      liu::LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
       /// We should never return :-) ///
       assert(0 && "!! Update failed !!");
     });
