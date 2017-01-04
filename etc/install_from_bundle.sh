@@ -53,7 +53,7 @@ mkdir -p $INCLUDEOS_SRC/build
 pushd $INCLUDEOS_SRC/build
 cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX -Dtests=$INCLUDEOS_ENABLE_TEST
 make PrecompiledLibraries
-make -j 2
+make -j 4
 make install
 popd
 
