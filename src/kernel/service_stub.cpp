@@ -21,9 +21,6 @@
 extern "C" {
   __attribute__((weak))
   const char* service_name__ = "(missing service name)";
-}
-
-extern "C" {
   __attribute__((weak))
   const char* service_binary_name__ = "(missing binary name)";
 }
@@ -39,6 +36,12 @@ std::string Service::name() {
 
 
 // functions that we can override if we want to
+__attribute__((weak))
+void Service::start()
+{
+  Service::start(OS::cmdline_args());
+}
+
 __attribute__((weak))
 void Service::ready() {}
 

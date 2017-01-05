@@ -40,6 +40,7 @@ SECTIONS
     *(.text.*)
     *(.gnu.linkonce.t*)
   }
+  PROVIDE ( _TEXT_END_ = . );
 
   .init ALIGN(0x10) : {
     _INIT_START_ = .;

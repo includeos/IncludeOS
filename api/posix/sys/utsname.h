@@ -23,24 +23,24 @@
 extern "C" {
 #endif
 
-#define LENGTH 256
-
 struct utsname {
-	/* Name of this implementation of the operating system */
-	char sysname[LENGTH];
+  static const int LENGTH = 256;
 
-	/* Name of this node within the communications network to
-	which this node is attached, if any */
-	char nodename[LENGTH];
+  /* Name of this implementation of the operating system */
+  char sysname[LENGTH];
 
-	/* Current release level of this implementation */
-	char release[LENGTH];
+  /* Name of this node within the communications network to
+  which this node is attached, if any */
+  char nodename[LENGTH];
 
-	/* Current version level of this release */
-	char version[LENGTH];
+  /* Current release level of this implementation */
+  char release[LENGTH];
 
-	/* Name of the hardware type on which the system is running */
-	char machine[LENGTH];
+  /* Current version level of this release */
+  char version[LENGTH];
+
+  /* Name of the hardware type on which the system is running */
+  char machine[LENGTH];
 };
 
 int uname(struct utsname *name);

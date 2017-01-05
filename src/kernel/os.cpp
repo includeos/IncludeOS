@@ -36,6 +36,7 @@
 #include <statman>
 #include <vector>
 
+extern "C" void kernel_sanity_checks();
 #define SOFT_RESET_MAGIC   0xFEE1DEAD
 //#define ENABLE_PROFILERS
 
@@ -60,8 +61,6 @@ RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_ {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
-uintptr_t OS::heap_begin_ {::heap_begin};
-uintptr_t OS::heap_end_ {::heap_end};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 // stdout redirection
@@ -81,6 +80,11 @@ static std::string os_cmdline = Service::binary_name();
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 extern "C" uintptr_t get_cpu_esp();
+
+const std::string& OS::cmdline_args() noexcept
+{
+  return os_cmdline;
+}
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
@@ -128,9 +132,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
-  Expects(heap_begin_ and heap_max_);
+  Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin_ - 1,
+  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area (not for use))"});
 
   // Give the rest of physical memory to heap
@@ -140,9 +144,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
-  memmap.assign_range({heap_begin_, heap_range_max_,
+  memmap.assign_range({::heap_begin, heap_range_max_,
         "Heap", "Dynamic memory", heap_usage });
-
 
   MYINFO("Printing memory map");
 
@@ -185,6 +188,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Print registered devices
   hw::Devices::print_devices();
+
+  // sleep statistics
+  // NOTE: needs to be positioned before anything that calls OS::halt
+  os_cycles_hlt = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
+  os_cycles_total = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
@@ -233,12 +243,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   RTC::init();
   booted_at_ = RTC::now();
 
-  // sleep statistics
-  os_cycles_hlt = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
-  os_cycles_total = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
-
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp10("OS::start Plugins init");
 #endif
@@ -254,10 +258,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
       MYINFO("Unknown exception when initializing plugin");
     }
   }
-  // Everything is ready
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
-
+  
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp11("OS::start RNG init");
 #endif
@@ -285,16 +286,29 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
-  // begin service start
-  Service::start(os_cmdline);
+  // Everything is ready
+  MYINFO("Starting %s", Service::name().c_str());
+  FILLINE('=');
 
-  // do CPU frequency measurements again with more samples
-  //OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(18));
+  // begin service start
+  Service::start();
+
+  // verify integrity of operating system (after Start)
+  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
   plugins_.emplace_back(delg, name);
+}
+
+uintptr_t OS::heap_begin() noexcept
+{
+  return ::heap_begin;
+}
+uintptr_t OS::heap_end() noexcept
+{
+  return ::heap_end;
 }
 
 uintptr_t OS::resize_heap(size_t size){
@@ -467,7 +481,3 @@ void OS::legacy_boot() {
     unavail_end += interval;
   }
 }
-
-/// SERVICE RELATED ///
-
-// Moved to kernel/service_stub.cpp

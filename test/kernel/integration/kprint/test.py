@@ -32,7 +32,7 @@ def check_truncation(line):
   assert(line.strip().split(" ")[-1] != "END")
 
 vm.on_output("I can print hex", check_hex)
-vm.on_output("Format", set_format_string_size)
+vm.on_output("String", set_format_string_size)
 vm.on_output("truncate", check_truncation)
 
 # Build, run and clean
