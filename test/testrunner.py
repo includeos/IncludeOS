@@ -57,7 +57,7 @@ def print_skipped(tests):
 
 class Test:
     """ A class to start a test as a subprocess and pretty-print status """
-    def __init__(self, path, clean=False, command=['sudo', '-E', 'python', 'test.py'], name=None):
+    def __init__(self, path, clean=False, command=['python', 'test.py'], name=None):
         self.command_ = command
         self.proc_ = None
         self.path_ = path
@@ -124,7 +124,7 @@ class Test:
     def start(self):
         os.chdir(startdir + "/" + self.path_)
         if self.clean:
-            subprocess.check_output(["sudo", "rm","-rf","build"])
+            subprocess.check_output(["rm","-rf","build"])
             print pretty.C_GRAY + "\t Cleaned", os.getcwd(),"now start... ", pretty.C_ENDC
 
         self.proc_ = subprocess.Popen(self.command_, shell=False,
