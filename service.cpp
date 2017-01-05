@@ -27,6 +27,10 @@ static IrcServer* ircd;
 void default_stdout_handlers() {}
 #include <hw/serial.hpp>
 
+extern "C"
+void _enable_heap_debugging_verbose(int enabled);
+extern void print_heap_allocations(delegate<bool(void*, size_t)>);
+
 void Service::start(const std::string& args)
 {
   // add own serial out after service start
@@ -117,7 +121,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    2
+#define PERIOD_SECS    4
 
 void print_stats(int)
 {
@@ -144,7 +148,7 @@ void print_stats(int)
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
   
-  printf("Conns: %u  Clis: %u  Alive: %u  Chans: %u\n",
+  printf("Conns: %u  Users: %u  Sockets: %u  Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS),
          inet.tcp().active_connections(), ircd->get_counter(STAT_CHANNELS));
   printf("*** ---------------------- ***\n");
@@ -156,8 +160,10 @@ void print_stats(int)
   // heap statistics
   print_heap_info();
   printf("*** ---------------------- ***\n");
-  printf("%s\n", ScopedProfiler::get_statistics().c_str());
+  //printf("%s\n", ScopedProfiler::get_statistics().c_str());
+  ircd->print_stuff();
   printf("*** ---------------------- ***\n");
+  printf("Inet  writeq: %u\n", inet.tcp().writeq_size());
 
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);

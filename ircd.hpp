@@ -170,6 +170,25 @@ public:
     return create_timestamp() - this->created_ts;
   }
   
+  void print_stuff() {
+    int i = 0;
+    int hmm = 0;
+    for (auto& cl : clients) {
+      
+      if (cl.getconn()->sendq_size() == 0) continue;
+      
+      printf("CL[%04d] sendq: %u b sendq rem: %u can send: %d queued: %d b\t",
+          i++,
+          cl.getconn()->sendq_size(),
+          cl.getconn()->sendq_remaining(),
+          cl.getconn()->can_send(),
+          cl.getconn()->is_queued());
+      printf(" %s\n", cl.getconn()->state().to_string().c_str());
+      if (cl.getconn()->sendq_size()) hmm++;
+    }
+    printf("HMM: %d  TOTAL: %u\n", hmm, clients.size());
+  }
+  
 private:
   size_t to_current = 0;
   void   timeout_handler(uint32_t);

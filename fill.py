@@ -85,4 +85,4 @@ if __name__ == '__main__':
           bot.begin()
       finally:
           botlist.append(bot)
-  time.sleep()
+  #time.sleep()

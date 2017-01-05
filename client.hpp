@@ -123,6 +123,8 @@ public:
     return bits & WARNED_BIT;
   }
   
+  Connection& getconn() { return conn; }
+  
 private:
   void split_message(const std::string&);
   void handle_new(const std::string&, const std::vector<std::string>&);

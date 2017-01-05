@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8.9)
+project(ircd)
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
@@ -38,6 +39,7 @@ set(SOURCES
 
 set(DRIVERS
   virtionet   # Virtio networking
+  #heap_debugging
   )
 
 set(PLUGINS
