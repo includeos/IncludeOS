@@ -76,13 +76,20 @@ class Bot:
       finally:
           return
 
+  def theend(self):
+      try:
+          self.sock.close()
+      finally:
+          'fff'
 
 if __name__ == '__main__':
   botlist = []
-  for i in range(1000):
+  for i in range(100):
       bot = Bot()
       try:
           bot.begin()
       finally:
           botlist.append(bot)
-  #time.sleep()
+  for cl in botlist:
+      cl.theend()
+  time.sleep(2)

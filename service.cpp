@@ -148,9 +148,12 @@ void print_stats(int)
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
   
-  printf("Conns: %u  Users: %u  Sockets: %u  Chans: %u\n",
-         ircd->get_counter(STAT_TOTAL_CONNS), ircd->get_counter(STAT_LOCAL_USERS),
-         inet.tcp().active_connections(), ircd->get_counter(STAT_CHANNELS));
+  printf("Conns: %u  Users: %u  Sockets: %u  Club: %u bytes Chans: %u\n",
+         ircd->get_counter(STAT_TOTAL_CONNS), 
+         ircd->get_counter(STAT_LOCAL_USERS),
+         inet.tcp().active_connections(), 
+         ircd->club() * sizeof(Client),
+         ircd->get_counter(STAT_CHANNELS));
   printf("*** ---------------------- ***\n");
 #ifdef USE_STACK_SAMPLING
   // stack sampler results
@@ -161,9 +164,17 @@ void print_stats(int)
   print_heap_info();
   printf("*** ---------------------- ***\n");
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
-  ircd->print_stuff();
+  //ircd->print_stuff();
+  print_heap_allocations(
+  [] (void* addr, size_t len) {
+    static void* highest = 0x0;
+    if (highest < addr) highest = addr;
+    
+    //return addr >= highest;
+    return true;
+  });
+  printf("%s\n", inet.tcp().to_string().c_str());
   printf("*** ---------------------- ***\n");
-  printf("Inet  writeq: %u\n", inet.tcp().writeq_size());
 
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);

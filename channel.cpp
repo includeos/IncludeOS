@@ -21,6 +21,7 @@ void Channel::reset(const std::string& new_name)
   ckey.clear();
   climit = 0;
   clients_.clear();
+  clients_.shrink_to_fit();
   chanops.clear();
   voices.clear();
 }

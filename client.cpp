@@ -24,10 +24,14 @@ void Client::reset_to(Connection conn)
   this->conn = conn;
   this->to_stamp = server.create_timestamp();
   this->nick_.clear();
+  this->nick_.shrink_to_fit();
   this->user_.clear();
+  this->user_.shrink_to_fit();
   this->host_.clear();
+  this->host_.shrink_to_fit();
   this->channels_.clear();
   this->readq.clear();
+  this->readq.shrink_to_fit();
   
   // send auth notices
   auth_notice();
@@ -201,9 +205,9 @@ bool Client::change_nick(const std::string& new_nick)
 {
   if (new_nick.size() < server.nick_minlen()) {
     if (nick_.empty())
-        send_from(server.name(), ERR_ERRONEUSNICKNAME, new_nick + " " + new_nick + " :Nickname too long");
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, new_nick + " " + new_nick + " :Nickname too short");
     else
-        send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Nickname too long");
+        send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Nickname too short");
     return false;
   }
   if (new_nick.size() > server.nick_maxlen()) {
