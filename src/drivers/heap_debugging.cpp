@@ -59,7 +59,7 @@ static fixedvector<allocation*, 65536> free_allocs;
 
 // There is a chance of a buffer overrun where this exact value
 // is written, but the chance of that happening is minimal
-static const uint32_t buffer_protection_checksum = 0x5f3759df;
+static const uint64_t buffer_protection_checksum = 0xdeadbeef1badcafe;
 
 extern "C"
 void _enable_heap_debugging(int enabled)
@@ -154,7 +154,7 @@ void* operator new[] (std::size_t n) throw(std::bad_alloc)
   return ::operator new (n);
 }
 
-inline void deleted_ptr(void* ptr)
+inline static void deleted_ptr(void* ptr)
 {
   if (enable_buffer_protection) {
     // Calculate where the real allocation starts (at our first checksum)
