@@ -243,7 +243,7 @@ void TCP::process_writeq(size_t packets) {
     debug("<TCP::process_writeq> Processing writeq size=%u, p=%u\n", writeq.size(), packets);
     auto conn = writeq.front();
     // remove from writeq
-    writeq.pop_back();
+    writeq.pop_front();
     conn->set_queued(false);
     // ...
     conn->offer(packets);
@@ -261,7 +261,7 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   }
 
   // requeue remaining if not already queued
-  if(conn->sendq_remaining()) {
+  if(written == 0 || conn->can_send()) {
     if (conn->is_queued() == false) {
       debug("<TCP::send> %s queued\n", conn->to_string().c_str());
       writeq.push_back(conn);
