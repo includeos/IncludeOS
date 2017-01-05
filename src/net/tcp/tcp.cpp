@@ -237,14 +237,16 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 }
 
 void TCP::process_writeq(size_t packets) {
-  debug("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
+  debug2("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
   while(packets and !writeq.empty()) {
     debug("<TCP::process_writeq> Processing writeq size=%u, p=%u\n", writeq.size(), packets);
     auto conn = writeq.front();
+    // remove from writeq
     writeq.pop_back();
-    conn->offer(packets);
     conn->set_queued(false);
+    // ...
+    conn->offer(packets);
   }
 }
 
@@ -257,14 +259,15 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   if(packets > 0) {
     written += conn->send(buffer, n, packets);
   }
-  // if connection still can send (means there wasn't enough packets)
-  // only requeue if not already queued
-  if(!packets and conn->can_send() and !conn->is_queued()) {
-    debug("<TCP::send> %s queued\n", conn->to_string().c_str());
-    writeq.push_back(conn);
-    conn->set_queued(true);
-  }
 
+  // requeue remaining if not already queued
+  if(conn->sendq_remaining()) {
+    if (conn->is_queued() == false) {
+      debug("<TCP::send> %s queued\n", conn->to_string().c_str());
+      writeq.push_back(conn);
+      conn->set_queued(true);
+    }
+  }
   return written;
 }
 

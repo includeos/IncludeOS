@@ -203,6 +203,11 @@ public:
   { return writeq.bytes_remaining(); }
 
   /*
+    Is the usable window large enough, and is there data to send.
+  */
+  bool can_send();
+
+  /*
     Return the id (TUPLE) of the connection.
   */
   Connection::Tuple tuple() const
@@ -226,6 +231,12 @@ public:
 
   bool is_closed() const
   { return state_->is_closed(); };
+
+  /*
+    Returns if the TCP has the Connection in write queue
+  */
+  bool is_queued() const
+  { return queued_; }
 
   /*
     Helper function for state checks.
@@ -643,11 +654,6 @@ private:
   void writeq_reset();
 
   /*
-    Returns if the TCP has the Connection in write queue
-  */
-  bool is_queued() const
-  { return queued_; }
-  /*
     Mark wether the Connection is in TCP write queue or not.
   */
   void set_queued(bool queued)
@@ -741,11 +747,6 @@ private:
     Is it possible to send ONE segment.
   */
   bool can_send_one();
-
-  /*
-    Is the usable window large enough, and is there data to send.
-  */
-  bool can_send();
 
   /*
     Send as much as possible from write queue.

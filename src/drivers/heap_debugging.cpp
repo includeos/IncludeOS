@@ -53,8 +53,8 @@ struct allocation
 static int enable_debugging = 1;
 static int enable_debugging_verbose = 0;
 static int enable_buffer_protection = 1;
-static fixedvector<allocation,  8192>  allocs;
-static fixedvector<allocation*, 8192> free_allocs;
+static fixedvector<allocation,  32768> allocs;
+static fixedvector<allocation*, 32768> free_allocs;
 
 // There is a chance of a buffer overrun where this exact value
 // is written, but the chance of that happening is minimal
@@ -227,8 +227,8 @@ void operator delete[] (void* ptr) throw()
 
 static void safe_print_symbol(int N, void* addr)
 {
-  char _symbol_buffer[1024];
-  char _btrace_buffer[1024];
+  char _symbol_buffer[2048];
+  char _btrace_buffer[2048];
   auto symb = Elf::safe_resolve_symbol(
               addr, _symbol_buffer, sizeof(_symbol_buffer));
   int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
@@ -237,11 +237,14 @@ static void safe_print_symbol(int N, void* addr)
   write(1, _btrace_buffer, len);
 }
 
-void print_heap_allocations()
+#include <delegate>
+typedef delegate<bool(void*, size_t)> heap_print_func;
+
+void print_heap_allocations(heap_print_func func)
 {
   DPRINTF("Listing %u allocations...\n", allocs.size());
   for (auto& x : allocs) {
-    if (x.addr) {
+    if (func(x.addr, x.len)) {
       // entry
       DPRINTF("[%p] %u bytes\n", x.addr, x.len);
       // backtrace
