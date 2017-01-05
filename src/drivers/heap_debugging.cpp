@@ -41,20 +41,21 @@ static char dbg_write_buffer[1024];
 struct allocation
 {
   allocation() : addr(0) {}
-  allocation(char* A, size_t S, void* L1, void* L2)
-    :  addr(A), len(S), level1(L1), level2(L2) {}
+  allocation(char* A, size_t S, void* L1, void* L2, void* L3)
+    :  addr(A), len(S), level1(L1), level2(L2), level3(L3) {}
 
   char*  addr;
   size_t len;
   void*  level1;
   void*  level2;
+  void*  level3;
 };
 
 static int enable_debugging = 1;
 static int enable_debugging_verbose = 0;
 static int enable_buffer_protection = 1;
-static fixedvector<allocation,  32768> allocs;
-static fixedvector<allocation*, 32768> free_allocs;
+static fixedvector<allocation,  65536> allocs;
+static fixedvector<allocation*, 65536> free_allocs;
 
 // There is a chance of a buffer overrun where this exact value
 // is written, but the chance of that happening is minimal
@@ -127,13 +128,15 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
       auto* x = free_allocs.pop();
       new(x) allocation((char*) data, len,
                         __builtin_return_address(0),
-                        __builtin_return_address(1));
+                        __builtin_return_address(1),
+                        __builtin_return_address(2));
     } else if (!allocs.free_capacity()) {
       DPRINTF("[WARNING] Internal fixed vectors are FULL, expect bogus double free messages\n");
     } else {
       allocs.emplace((char*) data, len,
                       __builtin_return_address(0),
-                      __builtin_return_address(1));
+                      __builtin_return_address(1),
+                      __builtin_return_address(2));
     }
   }
 
@@ -244,12 +247,13 @@ void print_heap_allocations(heap_print_func func)
 {
   DPRINTF("Listing %u allocations...\n", allocs.size());
   for (auto& x : allocs) {
-    if (func(x.addr, x.len)) {
+    if (x.addr != nullptr && func(x.addr, x.len)) {
       // entry
       DPRINTF("[%p] %u bytes\n", x.addr, x.len);
       // backtrace
       safe_print_symbol(1, x.level1);
       safe_print_symbol(2, x.level2);
+      safe_print_symbol(3, x.level3);
     }
   }
 }
