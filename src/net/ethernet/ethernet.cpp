@@ -18,12 +18,13 @@
 //#define DEBUG // Allow debugging
 //#define DEBUG2
 
-#include <common>
-
-#include <net/ethernet/ethernet.hpp>
-#include <net/packet.hpp>
 #include <net/util.hpp>
+#include <net/ethernet/ethernet.hpp>
 #include <statman>
+
+#ifdef ntohs
+#undef ntohs
+#endif
 
 namespace net {
 
@@ -65,7 +66,6 @@ namespace net {
 
     // Add source address
     hdr->src = mac_;
-
     debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
            pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
 
