@@ -17,6 +17,11 @@
 #define STAT_CHANNELS              5
 #define STAT_MAX_USERS             6
 
+namespace liu {
+  struct Storage;
+  struct Restore;
+}
+
 class IrcServer {
 public:
   using Connection = net::tcp::Connection_ptr;
@@ -179,29 +184,36 @@ public:
     int hmm = 0;
     for (auto& cl : clients) {
       
-      if (cl.getconn()->sendq_size() == 0) continue;
+      if (cl.get_conn()->sendq_size() == 0) continue;
       
       printf("CL[%04d] sendq: %u b sendq rem: %u can send: %d queued: %d b\t",
           i++,
-          cl.getconn()->sendq_size(),
-          cl.getconn()->sendq_remaining(),
-          cl.getconn()->can_send(),
-          cl.getconn()->is_queued());
-      printf(" %s\n", cl.getconn()->state().to_string().c_str());
-      if (cl.getconn()->sendq_size()) hmm++;
+          cl.get_conn()->sendq_size(),
+          cl.get_conn()->sendq_remaining(),
+          cl.get_conn()->can_send(),
+          cl.get_conn()->is_queued());
+      printf(" %s\n", cl.get_conn()->state().to_string().c_str());
+      if (cl.get_conn()->sendq_size()) hmm++;
     }
     printf("HMM: %d  TOTAL: %u\n", hmm, clients.size());
   }
+  
+  // network stack
+  Network& get_stack() noexcept { return inet; }
+  
+  // liveupdate serialization
+  void serialize(liu::Storage& storage);
+  void deserialize(liu::Restore& thing);
   
 private:
   size_t to_current = 0;
   void   timeout_handler(uint32_t);
   
   clindex_t new_client();
+  void set_delegates_for(Client&);
   chindex_t new_channel();
   
   Network&    inet;
-  Connection  server;
   std::string server_name;
   std::string server_network;
   std::vector<Client> clients;

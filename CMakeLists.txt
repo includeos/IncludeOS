@@ -19,7 +19,7 @@ set(MAX_MEM 128)
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   channel.cpp     client.cpp      client_new.cpp  modes.cpp    test.cpp     transform.cpp
-  client_cmd.cpp  client_msg.cpp  ircd.cpp        service.cpp  timeout.cpp
+  client_cmd.cpp  client_msg.cpp  ircd.cpp        restore.cpp  service.cpp  timeout.cpp
   )
 
 #
@@ -30,7 +30,7 @@ set(SOURCES
 # MISC:
 
 # To add your own include paths:
-# set(LOCAL_INCLUDES ".")
+set(LOCAL_INCLUDES "include")
 
 # Adding memdisk (expects my.disk to exist in current dir):
 #set(MEMDISK .)
@@ -47,6 +47,8 @@ set(PLUGINS
   # ...others
   )
 
+
+set(LIBRARIES ../../LiveUpdate/build/libliveupdate.a)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)

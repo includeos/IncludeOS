@@ -26,7 +26,7 @@ void Channel::reset(const std::string& new_name)
   voices.clear();
 }
 
-bool Channel::add(index_t id)
+bool Channel::add(clindex_t id)
 {
   if (std::find(clients_.cbegin(), clients_.cend(), id) == clients_.cend())
   {
@@ -35,7 +35,7 @@ bool Channel::add(index_t id)
   }
   return false;
 }
-Channel::index_t Channel::find(index_t id)
+Channel::index_t Channel::find(clindex_t id)
 {
   for (index_t i = 0; i < this->size(); i++) {
     if (unlikely(clients_[i] == id)) {
@@ -135,16 +135,16 @@ void Channel::set_topic(Client& client, const std::string& new_topic)
   bcast(buff, len);
 }
 
-bool Channel::is_chanop(index_t cid) const
+bool Channel::is_chanop(clindex_t cid) const
 {
   return chanops.find(cid) != chanops.end();
 }
-bool Channel::is_voiced(index_t cid) const
+bool Channel::is_voiced(clindex_t cid) const
 {
   return voices.find(cid) != voices.end();
 }
 
-char Channel::listed_symb(index_t cid) const
+char Channel::listed_symb(clindex_t cid) const
 {
   if (is_chanop(cid))
     return '@';
@@ -234,7 +234,7 @@ void Channel::bcast(const char* buff, size_t len)
       server.get_client(cl).send_buffer(sbuf, len);
   }
 }
-void Channel::bcast_butone(index_t src, const char* buff, size_t len)
+void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
 {
   auto sbuf = net::tcp::new_shared_buffer(len);
   memcpy(sbuf.get(), buff, len);

@@ -9,7 +9,11 @@
 
 #define WARNED_BIT    1
 
-class IrcServer;
+class  IrcServer;
+namespace liu {
+  struct Storage;
+  struct Restore;
+}
 
 class Client
 {
@@ -127,8 +131,10 @@ public:
     return nick_.size() + user_.size() + host_.size() + readq.size() + sizeof(conn) + sizeof(*conn);
   }
   
-  Connection& getconn() { return conn; }
-  
+  Connection& get_conn() { return conn; }
+  void serialize_to(liu::Storage&);
+  void deserialize(liu::Restore&);
+
 private:
   void split_message(const std::string&);
   void handle_new(const std::string&, const std::vector<std::string>&);
@@ -146,10 +152,10 @@ private:
   void not_ircop(const std::string& cmd);
   void need_parms(const std::string& cmd);
   
+  clindex_t   self;
   uint8_t     regis;
   uint8_t     bits;
   uint16_t    umodes_;
-  clindex_t   self;
   IrcServer&  server;
   Connection  conn;
   long        to_stamp;
