@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <sys/reent.h>
 #include <string.h>
+#include <kprint>
 
 #define HEAP_ALIGNMENT   16
 caddr_t heap_begin;
@@ -62,11 +63,12 @@ void _init_c_runtime()
   // Initialize the heap before exceptions
   heap_begin = &_end + 0xfff;
   // page-align heap, because its not aligned
-  heap_begin = (char*) ((uintptr_t)heap_begin & 0xfffff000);
+  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) 0xfff);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
   // validate that heap is page aligned
-  int validate_heap_alignment = ((uintptr_t)heap_begin & 0xfff) == 0;
+  int validate_heap_alignment =
+      ((uintptr_t)heap_begin & (uintptr_t) 0xfff) == 0;
 
   /// initialize newlib I/O
   _REENT_INIT_PTR(_REENT);
@@ -75,15 +77,15 @@ void _init_c_runtime()
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
 
-  /// initialize exceptions before we can run constructors
-  extern void* __eh_frame_start;
-  // Tell the stack unwinder where exception frames are located
-  extern void __register_frame(void*);
-  __register_frame(&__eh_frame_start);
-
   // move symbols (again) to heap, before calling global constructors
   extern void* _relocate_to_heap(void*);
   void* symheap = _relocate_to_heap(SYM_LOCATION);
+
+  /// initialize exceptions before we can run constructors
+  extern char __eh_frame_start[];
+  // Tell the stack unwinder where exception frames are located
+  extern void __register_frame(void*);
+  __register_frame(&__eh_frame_start);
 
   /// call global constructors emitted by compiler
   extern void _init();
