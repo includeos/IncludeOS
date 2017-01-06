@@ -536,21 +536,6 @@ public:
 	})
 	{}
 
-	// member data pointer
-	// object pointer as parameter
-	/*template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...))
-		noexcept : delegate(
-			[method_ptr](C object, MemArgs... args) -> R
-	{
-		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}*/
-
 	delegate(const delegate&) = default;
 	delegate(delegate&&) = default;
 
