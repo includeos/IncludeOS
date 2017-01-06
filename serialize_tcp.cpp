@@ -109,7 +109,7 @@ void Connection::deserialize_from(void* addr)
   /// restore writeq from VLA
   this->writeq.deserialize_from(area->vla);
   /// we have to retransmit because of magic
-  this->retransmit();
+  //this->retransmit();
 }
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
 {

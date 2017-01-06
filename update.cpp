@@ -21,8 +21,6 @@ using namespace liu;
 bool LiveUpdate::is_resumable(void* location)
 {
   /// memory sanity check
-  printf("heap: %p  storage: %p\n",
-		heap_end, location);
   if (heap_end >= (char*) location) {
     printf("LiveUpdate storage area overwritten by heap (margin: %d)\n",
 		heap_end - (char*) location);

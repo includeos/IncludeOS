@@ -14,8 +14,9 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
   /// restore each entry one by one, calling registered handlers
   printf("* Resuming %d stored entries\n", storage.get_entries());
   
-  for (auto* ptr = storage.begin(); ptr->type != TYPE_END; ptr = storage.next(ptr))
+  for (auto* ptr = storage.begin(); ptr->type != TYPE_END;)
   {
+    auto* oldptr = ptr;
     // use registered functions when we can, otherwise, use normal
     auto it = resume_funcs.find(ptr->id);
     if (it != resume_funcs.end())
@@ -26,6 +27,8 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
     }
     // if we are already at the end due calls to go_next, break early
     if (ptr->type == TYPE_END) break;
+    // call next manually only when no one called go_next
+    if (oldptr == ptr) ptr = storage.next(ptr);
   }
   /// zero out all the values for security reasons
   storage.zero();

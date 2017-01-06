@@ -8,7 +8,7 @@ endif()
 
 set(SERVICE_NAME "Live Update")
 set(BINARY       "LiveUpdate")
-set(MAX_MEM 17)
+set(MAX_MEM 20)
 set(SOURCES
     service.cpp
   )

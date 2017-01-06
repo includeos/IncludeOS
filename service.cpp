@@ -23,7 +23,7 @@
 #include "liveupdate.hpp"
 #include "hw_timer.hpp"
 
-static void* LIVEUPD_LOCATION   = (void*) 0xC00000; // at 12mb
+static void* LIVEUPD_LOCATION   = (void*) 0xE00000; // at 14mb
 static const uint16_t TERM_PORT = 6667;
 
 // prevent default serial out
@@ -251,7 +251,7 @@ void on_update_area(liu::Restore thing)
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(50),
+  Timers::oneshot(milliseconds(100),
   [updloc] (auto) {
     extern uintptr_t heap_end;
     printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
