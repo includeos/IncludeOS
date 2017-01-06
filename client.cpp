@@ -23,15 +23,7 @@ void Client::reset_to(Connection conn)
   this->umodes_ = default_user_modes();
   this->conn = conn;
   this->to_stamp = server.create_timestamp();
-  this->nick_.clear();
-  this->nick_.shrink_to_fit();
-  this->user_.clear();
-  this->user_.shrink_to_fit();
-  this->host_.clear();
-  this->host_.shrink_to_fit();
-  this->channels_.clear();
   this->readq.clear();
-  this->readq.shrink_to_fit();
   
   // send auth notices
   auth_notice();
@@ -43,10 +35,16 @@ void Client::disable()
   server.free_client(*this);
   // reset registration status
   regis = 0;
-  // a few should not happens
-  nick_ = "BUG_BUG_BUG";
-  user_ = "BUG_BUG_BUG";
-  host_ = "BUG_BUG.BUG";
+  // free memory properly
+  this->nick_.clear();
+  this->nick_.shrink_to_fit();
+  this->user_.clear();
+  this->user_.shrink_to_fit();
+  this->host_.clear();
+  this->host_.shrink_to_fit();
+  this->channels_.clear();
+  this->readq.clear();
+  this->readq.shrink_to_fit();
 }
 
 #include <kernel/syscalls.hpp>

@@ -30,6 +30,8 @@ void default_stdout_handlers() {}
 extern "C"
 void _enable_heap_debugging_verbose(int enabled);
 extern void print_heap_allocations(delegate<bool(void*, size_t)>);
+extern "C"
+void kernel_sanity_checks();
 
 void Service::start(const std::string& args)
 {
@@ -148,11 +150,11 @@ void print_stats(int)
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
   
-  printf("Conns: %u  Users: %u  Sockets: %u  Club: %u bytes Chans: %u\n",
+  printf("Syns: %u  Conns: %u  Users: %u  RAM: %u bytes Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS), 
-         ircd->get_counter(STAT_LOCAL_USERS),
          inet.tcp().active_connections(), 
-         ircd->club() * sizeof(Client),
+         ircd->get_counter(STAT_LOCAL_USERS),
+         ircd->club(),
          ircd->get_counter(STAT_CHANNELS));
   printf("*** ---------------------- ***\n");
 #ifdef USE_STACK_SAMPLING
@@ -165,6 +167,7 @@ void print_stats(int)
   printf("*** ---------------------- ***\n");
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
   //ircd->print_stuff();
+  /*
   print_heap_allocations(
   [] (void* addr, size_t len) {
     static void* highest = 0x0;
@@ -172,9 +175,10 @@ void print_stats(int)
     
     //return addr >= highest;
     return true;
-  });
-  printf("%s\n", inet.tcp().to_string().c_str());
+  });*/
+  //printf("%s\n", inet.tcp().to_string().c_str());
   printf("*** ---------------------- ***\n");
+  kernel_sanity_checks();
 
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);

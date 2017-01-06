@@ -1,7 +1,7 @@
 #include "ircd.hpp"
 
 // do timeout checks for N clients at a time
-static const int MAX_CLIENTS = 1000;
+static const int MAX_CLIENTS = 200;
 
 void IrcServer::timeout_handler(uint32_t)
 {

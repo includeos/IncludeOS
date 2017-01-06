@@ -35,7 +35,7 @@ def async(decorated):
     return send
 
 def botname():
-    return "bot" + str(int(random.random() * 1000))
+    return "bot" + str(int(random.random() * 90000))
 
 class Bot:
   def __init__(self):
@@ -55,26 +55,29 @@ class Bot:
       try:
           self.sock.connect(('10.0.0.42', 6667))
           try:
-              self.send("NICK bot" + self.name)
+              self.send("NICK " + self.name)
               self.send("USER 1 2 3 :444")
 
               self.send("JOIN #test")
 
-              amount_received = 0
-              amount_expected = 10
-              while amount_received < amount_expected:
-                  data = self.sock.recv(64)
-                  amount_received += len(data)
-                  #print >>sys.stderr, received "%s"' % data
-              #self.send("PRIVMSG #test :spamerino cappuchino etc")
-
-              #self.send("QUIT :Lates")
           finally:
               'fff'
-              #self.sock.close()
-              #
       finally:
           return
+
+  def retrieve(self):
+      try:
+          amount_received = 0
+          amount_expected = 10
+          while amount_received < amount_expected:
+              data = self.sock.recv(64)
+              amount_received += len(data)
+              #print >>sys.stderr, received "%s"' % data
+          #self.send("PRIVMSG #test :spamerino cappuchino etc")
+
+          #self.send("QUIT :Lates")
+      finally:
+          'fff'
 
   def theend(self):
       try:
@@ -84,12 +87,12 @@ class Bot:
 
 if __name__ == '__main__':
   botlist = []
-  for i in range(100):
+  for i in range(1000):
       bot = Bot()
       try:
           bot.begin()
       finally:
           botlist.append(bot)
   for cl in botlist:
-      cl.theend()
-  time.sleep(2)
+      cl.retrieve()
+  time.sleep(16)

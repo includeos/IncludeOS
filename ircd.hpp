@@ -150,7 +150,11 @@ public:
     return clients.size();
   }
   size_t club() const noexcept {
-    return clients.capacity();
+    size_t sum = clients.capacity() * sizeof(Client);
+    for (auto& cl : clients) {
+      sum += cl.club();
+    }
+    return sum;
   }
   
   // create a now() timestamp

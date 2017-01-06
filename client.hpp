@@ -123,6 +123,10 @@ public:
     return bits & WARNED_BIT;
   }
   
+  size_t club() const {
+    return nick_.size() + user_.size() + host_.size() + readq.size() + sizeof(conn) + sizeof(*conn);
+  }
+  
   Connection& getconn() { return conn; }
   
 private:
