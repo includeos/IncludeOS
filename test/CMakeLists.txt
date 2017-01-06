@@ -4,6 +4,11 @@ project(unittests C CXX)
 
 set(CMAKE_C_FLAGS "-m32 -std=c11 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Wall -Wextra -Wno-unused-function -DNO_INFO=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+
+if(NOT DEFINED ${INCLUDEOS_ROOT})
+  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
+endif()
+
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
@@ -18,13 +23,12 @@ include_directories(
   ${TEST}/lest_util
 )
 
-set(MOD_OBJECTS
-  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+set(LEST_UTIL
+  ${TEST}/lest_util/lestmain.cxx
+  ${TEST}/lest_util/os_mock.cpp
 )
 
 set(TEST_SOURCES
-  ${TEST}/lest_util/lestmain.cxx
-  ${TEST}/lest_util/os_mock.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
@@ -44,6 +48,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
+  ${TEST}/util/unit/chunk_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
@@ -109,10 +114,17 @@ set(OS_SOURCES
   ${SRC}/virtio/virtio_queue.cpp
 )
 
-add_executable(unittests ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES})
-install(TARGETS unittests DESTINATION ${TEST})
-#add_custom_command(TARGET unittests POST_BUILD
-#  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unittests> ${TEST}
-#  COMMENT "> Copying binary 'unittests' to ${TEST}")
+set(MOD_OBJECTS
+  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+)
 
+# Only build selected sources with SINGLE
+if(NOT SINGLE)
+  set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
+else()
+  set(SOURCES ${SINGLE} ${LEST_UTIL})
+endif()
+
+add_executable(unittests ${SOURCES})
+install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
