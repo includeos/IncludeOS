@@ -24,6 +24,8 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
     } else {
       func(ptr);
     }
+    // if we are already at the end due calls to go_next, break early
+    if (ptr->type == TYPE_END) break;
   }
   /// zero out all the values for security reasons
   storage.zero();

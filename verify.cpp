@@ -10,7 +10,7 @@
 
 int main(void)
 {
-  CRC32_BEGIN(x);
+  uint32_t x = CRC32_BEGIN();
   for (int i = 0; i < 1000; i++) {
     int len = 4096;
     auto* buf = new char[len];

@@ -150,6 +150,9 @@ private:
 
 template <typename S>
 inline const S& Restore::as_type() const {
+  if (sizeof(S) != length()) {
+    throw std::runtime_error("Mismatching length for id " + std::to_string(get_id()));
+  }
   return *reinterpret_cast<const S*> (data());
 }
 template <typename T>

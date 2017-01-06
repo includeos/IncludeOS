@@ -120,7 +120,8 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 
   // try to guess base address for the new service based on entry point
   /// FIXME
-  char* phys_base = (char*) (start_offset & 0xffff0000);
+  char* phys_base = (char*) 0x100000;
+  //char* phys_base = (char*) (start_offset & 0xffff0000);
   printf("* Estimate physical base to be %p...\n", phys_base);
 
   /// prepare for the end

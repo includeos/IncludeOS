@@ -131,7 +131,7 @@ storage_entry::storage_entry(int16_t t)
 
 storage_entry* storage_entry::next() const noexcept
 {
-  assert(len && "Storage entry must have non-zero length to have a next entry");
+  assert(type != TYPE_END && "Storage entry END cannot have next entry");
   return (storage_entry*) &vla[len];
 }
 
