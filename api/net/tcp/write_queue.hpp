@@ -39,7 +39,7 @@ public:
     Callback when a write is sent by the TCP
     - Supplied on asynchronous write
   */
-  using WriteCallback = delegate<void(size_t)>;
+  using WriteCallback = delegate<void(size_t), spec::dynamic>;
 
   using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
 

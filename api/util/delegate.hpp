@@ -1,377 +1,625 @@
-/*
-  "The fastest possible C++ Delegates" in C++11
-  From http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
-  Retreived: 18.09.2014
-  Author: 'user1095108' (http://codereview.stackexchange.com/users/15768/user1095108)
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-  Licence: Assumed to be public domain.
+#ifndef DELEGATE_HPP_INCLUDED
+#define DELEGATE_HPP_INCLUDED
 
-  ...It's just awesome how people make great stuff and just post it
-*/
-
-#ifndef UTIL_DELEGATE_HPP
-#define UTIL_DELEGATE_HPP
+#include <type_traits>
+#include <functional>
+#include <memory>
 
 #include <common>
-#include <new>
-#include <memory>
-#include <utility>
-#include <functional>
 
-template <typename T> class delegate;
+// ----- SYNOPSIS -----
 
-template<class R, class ...A>
-class delegate<R (A...)>
+namespace spec
 {
-  using stub_ptr_type = R (*)(void*, A&&...);
-
-  delegate(void* const o, stub_ptr_type const m) noexcept :
-  object_ptr_(o),
-    stub_ptr_(m)
-  {
-  }
-
-public:
-  delegate() = default;
-
-  delegate(delegate const&) = default;
-
-  delegate(delegate&&) = default;
-
-  delegate(::std::nullptr_t const) noexcept : delegate() { }
-
-  template <class C, typename =
-            typename ::std::enable_if< ::std::is_class<C>{}>::type>
-            explicit delegate(C const* const o) noexcept :
-            object_ptr_(const_cast<C*>(o))
-  {
-  }
-
-  template <class C, typename =
-            typename ::std::enable_if< ::std::is_class<C>{}>::type>
-            explicit delegate(C const& o) noexcept :
-            object_ptr_(const_cast<C*>(&o))
-  {
-  }
-
-  template <class C>
-  delegate(C* const object_ptr, R (C::* const method_ptr)(A...))
-  {
-    *this = from(object_ptr, method_ptr);
-  }
-
-  template <class C>
-  delegate(C* const object_ptr, R (C::* const method_ptr)(A...) const)
-  {
-    *this = from(object_ptr, method_ptr);
-  }
-
-  template <class C>
-  delegate(C& object, R (C::* const method_ptr)(A...))
-  {
-    *this = from(object, method_ptr);
-  }
-
-  template <class C>
-  delegate(C const& object, R (C::* const method_ptr)(A...) const)
-  {
-    *this = from(object, method_ptr);
-  }
-
-  template <
-    typename T,
-    typename = typename ::std::enable_if<
-      !::std::is_same<delegate, typename ::std::decay<T>::type>{}
-    >::type
-    >
-    delegate(T&& f) :
-    store_(operator new(sizeof(typename ::std::decay<T>::type)),
-           functor_deleter<typename ::std::decay<T>::type>),
-         store_size_(sizeof(typename ::std::decay<T>::type))
-  {
-    using functor_type = typename ::std::decay<T>::type;
-
-    new (store_.get()) functor_type(::std::forward<T>(f));
-
-    object_ptr_ = store_.get();
-
-    stub_ptr_ = functor_stub<functor_type>;
-
-    deleter_ = deleter_stub<functor_type>;
-  }
-
-  delegate& operator=(delegate const&) = default;
-
-  delegate& operator=(delegate&&) = default;
-
-  template <class C>
-  delegate& operator=(R (C::* const rhs)(A...))
-  {
-    return *this = from(static_cast<C*>(object_ptr_), rhs);
-  }
-
-  template <class C>
-  delegate& operator=(R (C::* const rhs)(A...) const)
-  {
-    return *this = from(static_cast<C const*>(object_ptr_), rhs);
-  }
-
-  template <
-    typename T,
-    typename = typename ::std::enable_if<
-      !::std::is_same<delegate, typename ::std::decay<T>::type>{}
-    >::type
-    >
-    delegate& operator=(T&& f)
-  {
-    using functor_type = typename ::std::decay<T>::type;
-
-    if ((sizeof(functor_type) > store_size_) || !store_.unique())
-      {
-        store_.reset(operator new(sizeof(functor_type)),
-                     functor_deleter<functor_type>);
-
-        store_size_ = sizeof(functor_type);
-      }
-    else
-      {
-        deleter_(store_.get());
-      }
-
-    new (store_.get()) functor_type(::std::forward<T>(f));
-
-    object_ptr_ = store_.get();
-
-    stub_ptr_ = functor_stub<functor_type>;
-
-    deleter_ = deleter_stub<functor_type>;
-
-    return *this;
-  }
-
-  template <R (* const function_ptr)(A...)>
-  static delegate from() noexcept
-  {
-    return { nullptr, function_stub<function_ptr> };
-  }
-
-  template <class C, R (C::* const method_ptr)(A...)>
-  static delegate from(C* const object_ptr) noexcept
-  {
-    return { object_ptr, method_stub<C, method_ptr> };
-  }
-
-  template <class C, R (C::* const method_ptr)(A...) const>
-  static delegate from(C const* const object_ptr) noexcept
-  {
-    return { const_cast<C*>(object_ptr), const_method_stub<C, method_ptr> };
-  }
-
-  template <class C, R (C::* const method_ptr)(A...)>
-  static delegate from(C& object) noexcept
-  {
-    return { &object, method_stub<C, method_ptr> };
-  }
-
-  template <class C, R (C::* const method_ptr)(A...) const>
-  static delegate from(C const& object) noexcept
-  {
-    return { const_cast<C*>(&object), const_method_stub<C, method_ptr> };
-  }
-
-  template <typename T>
-  static delegate from(T&& f)
-  {
-    return ::std::forward<T>(f);
-  }
-
-  static delegate from(R (* const function_ptr)(A...))
-  {
-    return function_ptr;
-  }
-
-  template <class C>
-  using member_pair =
-    ::std::pair<C* const, R (C::* const)(A...)>;
-
-  template <class C>
-  using const_member_pair =
-    ::std::pair<C const* const, R (C::* const)(A...) const>;
-
-  template <class C>
-  static delegate from(C* const object_ptr,
-                       R (C::* const method_ptr)(A...))
-  {
-    return member_pair<C>(object_ptr, method_ptr);
-  }
-
-  template <class C>
-  static delegate from(C const* const object_ptr,
-                       R (C::* const method_ptr)(A...) const)
-  {
-    return const_member_pair<C>(object_ptr, method_ptr);
-  }
-
-  template <class C>
-  static delegate from(C& object, R (C::* const method_ptr)(A...))
-  {
-    return member_pair<C>(&object, method_ptr);
-  }
-
-  template <class C>
-  static delegate from(C const& object,
-                       R (C::* const method_ptr)(A...) const)
-  {
-    return const_member_pair<C>(&object, method_ptr);
-  }
-
-  void reset() { stub_ptr_ = nullptr; store_.reset(); }
-
-  void reset_stub() noexcept { stub_ptr_ = nullptr; }
-
-  void swap(delegate& other) noexcept { ::std::swap(*this, other); }
-
-  bool operator==(delegate const& rhs) const noexcept
-  {
-    return (object_ptr_ == rhs.object_ptr_) && (stub_ptr_ == rhs.stub_ptr_);
-  }
-
-  bool operator!=(delegate const& rhs) const noexcept
-  {
-    return !operator==(rhs);
-  }
-
-  bool operator<(delegate const& rhs) const noexcept
-  {
-    return (object_ptr_ < rhs.object_ptr_) ||
-      ((object_ptr_ == rhs.object_ptr_) && (stub_ptr_ < rhs.stub_ptr_));
-  }
-
-  bool operator==(::std::nullptr_t const) const noexcept
-  {
-    return !stub_ptr_;
-  }
-
-  bool operator!=(::std::nullptr_t const) const noexcept
-  {
-    return stub_ptr_;
-  }
-
-  explicit operator bool() const noexcept { return stub_ptr_; }
-
-  R operator()(A... args) const
-  {
-    if (UNLIKELY(not stub_ptr_))
-      throw std::runtime_error("Uninitialized delegate called");
-    return stub_ptr_(object_ptr_, ::std::forward<A>(args)...);
-  }
-
-  void* get_ptr() const noexcept {
-    return object_ptr_;
-  }
-
-private:
-  friend struct ::std::hash<delegate>;
-
-  using deleter_type = void (*)(void*);
-
-  void* object_ptr_;
-  stub_ptr_type stub_ptr_{};
-
-  deleter_type deleter_;
-
-  ::std::shared_ptr<void> store_;
-  ::std::size_t store_size_;
-
-  template <class T>
-  static void functor_deleter(void* const p)
-  {
-    static_cast<T*>(p)->~T();
-
-    operator delete(p);
-  }
-
-  template <class T>
-  static void deleter_stub(void* const p)
-  {
-    static_cast<T*>(p)->~T();
-  }
-
-  template <R (*function_ptr)(A...)>
-  static R function_stub(void* const, A&&... args)
-  {
-    return function_ptr(::std::forward<A>(args)...);
-  }
-
-  template <class C, R (C::*method_ptr)(A...)>
-  static R method_stub(void* const object_ptr, A&&... args)
-  {
-    return (static_cast<C*>(object_ptr)->*method_ptr)(
-                                                      ::std::forward<A>(args)...);
-  }
-
-  template <class C, R (C::*method_ptr)(A...) const>
-  static R const_method_stub(void* const object_ptr, A&&... args)
-  {
-    return (static_cast<C const*>(object_ptr)->*method_ptr)(
-                                                            ::std::forward<A>(args)...);
-  }
-
-  template <typename>
-  struct is_member_pair : std::false_type { };
-
-  template <class C>
-  struct is_member_pair< ::std::pair<C* const,
-                                     R (C::* const)(A...)> > : std::true_type
-  {
-  };
-
-  template <typename>
-  struct is_const_member_pair : std::false_type { };
-
-  template <class C>
-  struct is_const_member_pair< ::std::pair<C const* const,
-                                           R (C::* const)(A...) const> > : std::true_type
-  {
-  };
-
-  template <typename T>
-  static typename ::std::enable_if<
-    !(is_member_pair<T>{} ||
-      is_const_member_pair<T>{}),
-    R
-    >::type
-  functor_stub(void* const object_ptr, A&&... args)
-  {
-    return (*static_cast<T*>(object_ptr))(::std::forward<A>(args)...);
-  }
-
-  template <typename T>
-  static typename ::std::enable_if<
-    is_member_pair<T>{} ||
-  is_const_member_pair<T>{},
-    R
-    >::type
-    functor_stub(void* const object_ptr, A&&... args)
-  {
-    return (static_cast<T*>(object_ptr)->first->*
-            static_cast<T*>(object_ptr)->second)(::std::forward<A>(args)...);
-  }
-};
-
-namespace std
-{
-  template <typename R, typename ...A>
-  struct hash<::delegate<R (A...)> >
-  {
-    size_t operator()(::delegate<R (A...)> const& d) const noexcept
-    {
-      auto const seed(hash<void*>()(d.object_ptr_));
-
-      return hash<typename ::delegate<R (A...)>::stub_ptr_type>()(
-                                                                  d.stub_ptr_) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-  };
+	template<size_t size, typename R, typename... Args> class pure;
+	template<size_t size, typename R, typename... Args> class inplace_triv;
+	template<size_t size, typename R, typename... Args> class inplace;
+	template<size_t size, typename R, typename... Args> class dynamic;
 }
 
-#endif // DELEGATE_HPP
+namespace detail
+{
+	constexpr size_t default_capacity = sizeof(size_t) * 4;
+	constexpr size_t default_alignment = sizeof(size_t);
+}
+
+
+template<
+	typename T,
+	template<size_t, typename, typename...> class Spec = spec::inplace,
+	size_t size = detail::default_capacity
+>
+class delegate; // unspecified
+
+template<
+	typename R, typename... Args,
+	template<size_t, typename, typename...> class Spec,
+	size_t size
+>
+class delegate<R(Args...), Spec, size>;
+
+
+// ----- IMPLEMENTATION -----
+
+namespace detail
+{
+template<typename R, typename... Args> static R empty_pure(Args...)
+{
+	throw std::bad_function_call();
+}
+
+template<
+	typename R,
+	typename S,
+	typename... Args
+> static R empty(S&, Args&&... args)
+{
+	return empty_pure<R, Args...>(std::forward<Args>(args)...);
+}
+
+template<
+	typename T,
+	typename R,
+	typename... Args
+> using closure_decay = std::conditional<
+	std::is_convertible<T, R(*)(Args...)>::value,
+	R(*)(Args...),
+	typename std::decay<T>::type
+>;
+
+template<typename T = void, typename...> struct pack_first
+{
+	using type = std::remove_cv_t<T>;
+};
+
+template<typename... Ts>
+using pack_first_t = typename pack_first<Ts...>::type;
+
+}
+
+namespace spec
+{
+
+// --- pure ---
+template<size_t size, typename R, typename... Args> class pure
+{
+public:
+	using invoke_ptr_t = R(*)(Args...);
+
+	explicit pure() noexcept :
+		invoke_ptr_{ detail::empty_pure<R, Args...> }
+	{}
+
+	template<typename T> explicit pure(T&& func_ptr) noexcept :
+		invoke_ptr_{ func_ptr }
+	{
+		static_assert(std::is_convertible<T, invoke_ptr_t>::value,
+			"object not convertible to pure function pointer!");
+	}
+
+	pure(const pure&) noexcept = default;
+	pure(pure&&) noexcept = default;
+
+	pure& operator= (const pure&) noexcept = default;
+	pure& operator= (pure&&) noexcept = default;
+
+	~pure() = default;
+
+	R operator() (Args&&... args) const
+	{
+		return invoke_ptr_(std::forward<Args>(args)...);
+	}
+
+	bool empty() const noexcept
+	{
+		return invoke_ptr_ == detail::empty_pure<R, Args...>;
+	}
+
+	template<typename T> T* target() const noexcept
+	{
+		return invoke_ptr_;
+	}
+
+private:
+	invoke_ptr_t invoke_ptr_;
+};
+
+// --- inplace_triv ---
+template<size_t size, typename R, typename... Args> class inplace_triv
+{
+public:
+	using storage_t = std::aligned_storage_t<size, detail::default_alignment>;
+	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
+
+	explicit inplace_triv() noexcept :
+		invoke_ptr_{ detail::empty<R, storage_t, Args...> }
+	{}
+
+	template<
+		typename T,
+		typename C = typename detail::closure_decay<T, R, Args...>::type
+	> explicit inplace_triv(T&& closure) :
+		invoke_ptr_{ static_cast<invoke_ptr_t>(
+			[](storage_t& storage, Args&&... args) -> R
+			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
+		)}
+	{
+		static_assert(sizeof(C) <= size,
+			"inplace_triv delegate closure too large!");
+
+		static_assert(std::alignment_of<C>::value <= detail::default_alignment,
+			"inplace_triv delegate closure alignment too large");
+
+		static_assert(std::is_trivially_copyable<C>::value,
+			"inplace_triv delegate closure not trivially copyable!");
+
+		static_assert(std::is_trivially_destructible<C>::value,
+			"inplace_triv delegate closure not trivially destructible!");
+
+		new(&storage_)C{ std::forward<T>(closure) };
+	}
+
+	inplace_triv(const inplace_triv&) noexcept = default;
+	inplace_triv(inplace_triv&&) noexcept = default;
+
+	inplace_triv& operator= (const inplace_triv&) noexcept = default;
+	inplace_triv& operator= (inplace_triv&&) noexcept = default;
+
+	~inplace_triv() = default;
+
+	R operator() (Args&&... args) const
+	{
+		return invoke_ptr_(storage_, std::forward<Args>(args)...);
+	}
+
+	bool empty() const noexcept
+	{
+		return invoke_ptr_ == detail::empty<R, storage_t, Args...>;
+	}
+
+	template<typename T> T* target() const noexcept
+	{
+		return reinterpret_cast<T*>(&storage_);
+	}
+
+private:
+	invoke_ptr_t invoke_ptr_;
+	mutable storage_t storage_;
+};
+
+// --- inplace ---
+template<size_t size, typename R, typename... Args> class inplace
+{
+public:
+	using storage_t = std::aligned_storage_t<size, detail::default_alignment>;
+
+	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
+	using copy_ptr_t = void(*)(storage_t&, storage_t&);
+	using destructor_ptr_t = void(*)(storage_t&);
+
+	explicit inplace() noexcept :
+		invoke_ptr_{ detail::empty<R, storage_t, Args...> },
+		copy_ptr_{ [](storage_t&, storage_t&) noexcept -> void {} },
+		destructor_ptr_{ [](storage_t&) noexcept -> void {} }
+	{}
+
+	template<
+		typename T,
+		typename C = typename detail::closure_decay<T, R, Args...>::type
+	> explicit inplace(T&& closure) noexcept :
+		invoke_ptr_{ static_cast<invoke_ptr_t>(
+			[](storage_t& storage, Args&&... args) -> R
+			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
+		) },
+		copy_ptr_{ copy_op<C, storage_t>() },
+		destructor_ptr_{ static_cast<destructor_ptr_t>(
+			[](storage_t& storage) noexcept -> void
+			{ reinterpret_cast<C&>(storage).~C(); }
+		) }
+	{
+		static_assert(sizeof(C) <= size,
+			"inplace delegate closure too large");
+
+		static_assert(std::alignment_of<C>::value <= detail::default_alignment,
+			"inplace delegate closure alignment too large");
+
+		new(&storage_)C{ std::forward<T>(closure) };
+	}
+
+	inplace(const inplace& other) :
+		invoke_ptr_{ other.invoke_ptr_ },
+		copy_ptr_{ other.copy_ptr_ },
+		destructor_ptr_{ other.destructor_ptr_ }
+	{
+		copy_ptr_(storage_, other.storage_);
+	}
+
+	inplace(inplace&& other) :
+		storage_ { std::move(other.storage_) },
+		invoke_ptr_{ other.invoke_ptr_ },
+		copy_ptr_{ other.copy_ptr_ },
+		destructor_ptr_{ other.destructor_ptr_ }
+	{
+		other.destructor_ptr_ = [](storage_t&) -> void {};
+	}
+
+	inplace& operator= (const inplace& other)
+	{
+		if (this != std::addressof(other))
+		{
+			invoke_ptr_ = other.invoke_ptr_;
+			copy_ptr_ = other.copy_ptr_;
+
+			destructor_ptr_(storage_);
+			copy_ptr_(storage_, other.storage_);
+			destructor_ptr_ = other.destructor_ptr_;
+		}
+		return *this;
+	}
+
+	inplace& operator= (inplace&& other)
+	{
+		if (this != std::addressof(other))
+		{
+			destructor_ptr_(storage_);
+			storage_ = std::move(other.storage_);
+
+			invoke_ptr_ = other.invoke_ptr_;
+			copy_ptr_ = other.copy_ptr_;
+			destructor_ptr_ = other.destructor_ptr_;
+
+			other.destructor_ptr_ = [](storage_t&) -> void {};
+		}
+		return *this;
+	}
+
+	~inplace()
+	{
+		destructor_ptr_(storage_);
+	}
+
+	R operator() (Args&&... args) const
+	{
+		return invoke_ptr_(storage_, std::forward<Args>(args)...);
+	}
+
+	bool empty() const noexcept
+	{
+		return invoke_ptr_ == detail::empty<R, storage_t, Args...>;
+	}
+
+	template<typename T> T* target() const noexcept
+	{
+		return reinterpret_cast<T*>(&storage_);
+	}
+
+private:
+	mutable storage_t storage_;
+
+	invoke_ptr_t invoke_ptr_;
+	copy_ptr_t copy_ptr_;
+	destructor_ptr_t destructor_ptr_;
+
+	template<
+		typename T,
+		typename S,
+		typename std::enable_if_t<
+		std::is_copy_constructible<T>::value, int
+		> = 0
+	> copy_ptr_t copy_op()
+	{
+		return [](S& dst, S& src) noexcept -> void
+		{
+			new(&dst)T{ reinterpret_cast<T&>(src) };
+		};
+	}
+
+	template<
+		typename T,
+		typename S,
+		typename std::enable_if_t<
+		!std::is_copy_constructible<T>::value, int
+		> = 0
+	> copy_ptr_t copy_op()
+	{
+		static_assert(std::is_copy_constructible<T>::value,
+			"constructing delegate with move only type is invalid!");
+	}
+};
+
+// --- dynamic ---
+template<size_t size, typename R, typename... Args> class dynamic
+{
+public:
+	using storage_t = std::function<R(Args&&...)>;
+
+	explicit dynamic() noexcept :
+		storage_{}
+	{}
+
+	template<typename T> explicit dynamic(T&& closure) :
+		storage_{ std::forward<T>(closure) }
+	{}
+
+	dynamic(const dynamic&) = default;
+	dynamic(dynamic&&) = default;
+
+	dynamic& operator= (const dynamic&) = default;
+	dynamic& operator= (dynamic&&) = default;
+
+	~dynamic() = default;
+
+	R operator() (Args&&... args) const
+	{
+		return storage_(std::forward<Args>(args)...);
+	}
+
+	bool empty() const noexcept
+	{
+		return !static_cast<bool>(storage_);
+	}
+
+	template<typename T> T* target() const noexcept
+	{
+		return storage_.template target<T>();
+	}
+private:
+	mutable storage_t storage_;
+};
+} // namespace spec
+
+template<
+	typename R, typename... Args,
+	template<size_t, typename, typename...> class Spec,
+	size_t size
+>
+class delegate<R(Args...), Spec, size>
+{
+public:
+	using result_type = R;
+
+	using storage_t = Spec<size, R, Args...>;
+
+	explicit delegate() noexcept :
+		storage_{}
+	{}
+
+	template<
+		typename T,
+		typename = std::enable_if_t<
+        !std::is_same<std::decay_t<T>, delegate>::value>
+	>
+	delegate(T&& val) :
+		storage_{ std::forward<T>(val) }
+	{}
+
+	// delegating constructors
+	delegate(std::nullptr_t) noexcept :
+		delegate()
+	{}
+
+	// construct with member function pointer
+
+	// object pointer capture
+	template<typename C>
+	delegate(C* const object_ptr, R(C::* const method_ptr)(Args...))
+		noexcept : delegate(
+			[object_ptr, method_ptr](Args&&... args) -> R
+	{
+		return (object_ptr->*method_ptr)(std::forward<Args>(args)...);
+	})
+	{}
+
+	template<typename C>
+	delegate(C* const object_ptr, R(C::* const method_ptr)(Args...) const)
+		noexcept : delegate(
+			[object_ptr, method_ptr](Args&&... args) -> R
+	{
+		return (object_ptr->*method_ptr)(std::forward<Args>(args)...);
+	})
+	{}
+
+	// object reference capture
+	template<typename C>
+	delegate(C& object_ref, R(C::* const method_ptr)(Args...))
+		noexcept : delegate(
+			[&object_ref, method_ptr](Args&&... args) -> R
+	{
+		return (object_ref.*method_ptr)(std::forward<Args>(args)...);
+	})
+	{}
+
+	template<typename C>
+	delegate(C& object_ref, R(C::* const method_ptr)(Args...) const)
+		noexcept : delegate(
+			[&object_ref, method_ptr](Args&&... args) -> R
+	{
+		return (object_ref.*method_ptr)(std::forward<Args>(args)...);
+	})
+	{}
+
+	// object pointer as parameter
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C*>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...))
+		noexcept : delegate(
+			[method_ptr](C* object_ptr, MemArgs... args) -> R
+	{
+		return (object_ptr->*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C*>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...) const)
+		noexcept : delegate(
+			[method_ptr](C* object_ptr, MemArgs... args) -> R
+	{
+		return (object_ptr->*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	// object reference as parameter
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C&>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...))
+		noexcept : delegate(
+			[method_ptr](C& object, MemArgs... args) -> R
+	{
+		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C&>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...) const)
+		noexcept : delegate(
+			[method_ptr](C& object, MemArgs... args) -> R
+	{
+		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	// object copy as parameter
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...))
+		noexcept : delegate(
+			[method_ptr](C object, MemArgs... args) -> R
+	{
+		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...) const)
+		noexcept : delegate(
+			[method_ptr](C object, MemArgs... args) -> R
+	{
+		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}
+
+	// member data pointer
+	// object pointer as parameter
+	/*template<
+		typename C,
+		typename... MemArgs,
+		typename std::enable_if_t<
+		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
+	> delegate(R(C::* const method_ptr)(MemArgs...))
+		noexcept : delegate(
+			[method_ptr](C object, MemArgs... args) -> R
+	{
+		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
+	})
+	{}*/
+
+	delegate(const delegate&) = default;
+	delegate(delegate&&) = default;
+
+	delegate& operator= (const delegate&) = default;
+	delegate& operator= (delegate&&) = default;
+
+	~delegate() = default;
+
+	R operator() (Args... args) const
+	{
+		return storage_(std::forward<Args>(args)...);
+	}
+
+	bool operator== (std::nullptr_t) const noexcept
+	{
+		return storage_.empty();
+	}
+
+	bool operator!= (std::nullptr_t) const noexcept
+	{
+		return !storage_.empty();
+	}
+
+	explicit operator bool() const noexcept
+	{
+		return !storage_.empty();
+	}
+
+	void swap(delegate& other)
+	{
+		storage_t tmp = storage_;
+		storage_ = other.storage_;
+		other.storage_ = tmp;
+	}
+
+	void reset()
+	{
+		storage_ = storage_t{};
+	}
+
+	template<typename T> T* target() const noexcept
+	{
+		return storage_.template target<T>();
+	}
+
+	template<
+		typename T,
+		typename D = std::shared_ptr<T>,
+		typename std::enable_if_t<size >= sizeof(D), int> = 0
+	> static delegate make_packed(T&& closure)
+	{
+		D ptr = std::make_shared<T>(std::forward<T>(closure));
+		return [ptr](Args&&... args) -> R
+		{
+			return (*ptr)(std::forward<Args>(args)...);
+		};
+	}
+
+	template<
+		typename T,
+		typename D = std::shared_ptr<T>,
+		typename std::enable_if_t<!(size >= sizeof(D)), int> = 0
+	> static delegate make_packed(T&&)
+	{
+		static_assert(size >= sizeof(D), "Cannot pack into delegate");
+	}
+
+private:
+	storage_t storage_;
+};
+
+#endif // DELEGATE_HPP_INCLUDED
