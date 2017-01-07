@@ -67,7 +67,7 @@ CASE("Add a set of values to a std::vector object") {
 CASE("Get the min element from a std::vector object") {
   std::vector<int> data {1,5,3};
   const auto min = (data | collections::min_element);
-  EXPECT(3 == min);
+  EXPECT(1 == min);
 }
 
 CASE("Get the max element from a std::vector object") {
