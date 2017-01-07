@@ -6,24 +6,28 @@
 #include "common.hpp"
 #include "modes.hpp"
 
-class IrcServer;
-class Client;
+class  IrcServer;
+class  Client;
+namespace liu {
+  struct Storage;
+  struct Restore;
+}
 
 class Channel
 {
 public:
   typedef uint16_t index_t;
-  using ClientList = std::deque<index_t>;
+  using ClientList = std::deque<clindex_t>;
 
   Channel(index_t self, IrcServer& sref);
 
-  bool is_alive() const {
+  bool is_alive() const noexcept {
     return !clients_.empty();
   }
-  index_t get_id() const {
+  index_t get_id() const noexcept {
     return self;
   }
-  const std::string& name() const {
+  const std::string& name() const noexcept {
     return cname;
   }
   size_t size() const noexcept {
@@ -36,14 +40,14 @@ public:
     return clients_;
   }
 
-  char listed_symb(index_t cid) const;
+  char listed_symb(clindex_t cid) const;
 
 
-  bool    add(index_t);
-  index_t find(index_t);
+  bool    add(clindex_t);
+  index_t find(clindex_t);
 
   // silently remove client from all channel lists
-  bool remove(index_t cl)
+  bool remove(clindex_t cl)
   {
     auto idx = find(cl);
     if (idx != NO_SUCH_CLIENT)
@@ -59,18 +63,22 @@ public:
   bool join(Client&, const std::string& key = "");
   // and the PART command
   bool part(Client&, const std::string& msg = "");
+  
+  bool has_topic() const noexcept {
+    return !ctopic.empty();
+  }
   // set new channel topic (and timestamp it)
   void set_topic(Client&, const std::string&);
 
-  bool is_banned(index_t) const {
+  bool is_banned(clindex_t) const noexcept {
     return false;
   }
-  bool is_excepted(index_t) const {
+  bool is_excepted(clindex_t) const noexcept {
     return false;
   }
 
-  bool is_chanop(index_t cid) const;
-  bool is_voiced(index_t cid) const;
+  bool is_chanop(clindex_t cid) const;
+  bool is_voiced(clindex_t cid) const;
 
   void send_mode(Client&);
   void send_topic(Client&);
@@ -84,7 +92,10 @@ public:
   // send message to all users in a channel
   void bcast(const char*, size_t);
   void bcast(const std::string& from, uint16_t tk, const std::string& msg);
-  void bcast_butone(index_t src, const char*, size_t);
+  void bcast_butone(clindex_t src, const char*, size_t);
+
+  void serialize_to(liu::Storage&);
+  void deserialize(liu::Restore&);
 
 private:
   std::string mode_string() const;
@@ -100,6 +111,6 @@ private:
   uint16_t    climit;
   IrcServer&  server;
   ClientList  clients_;
-  std::unordered_set<index_t> chanops;
-  std::unordered_set<index_t> voices;
+  std::unordered_set<clindex_t> chanops;
+  std::unordered_set<clindex_t> voices;
 };

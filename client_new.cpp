@@ -84,7 +84,7 @@ void Client::welcome(uint8_t newreg)
     server.new_registered_client(*this);
     // welcoming messages
     send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
-    send(RPL_YOURHOST, ":Your host is " + server.name() + ", running v1.0");
+    send(RPL_YOURHOST, ":Your host is " + server.name() + ", running " IRC_SERVER_VERSION);
     send(RPL_CREATED, ":This server was created " + server.created());
     send(RPL_MYINFO, server.name() + " " + server.version() + " " + usermodes.get());
     send(RPL_CAPABS, "CHANTYPES=&# EXCEPTS PREFIX=(ov)@+ CHANMODES=eIb,k,l,imnpstu :are supported by this server");

@@ -9,7 +9,7 @@
 #include <profile>
 
 Client::Client(clindex_t s, IrcServer& sref)
-  : regis(0), self(s), server(sref)
+  : self(s), regis(0), server(sref)
 {
   //readq.reserve(IrcServer::readq_max());
 }

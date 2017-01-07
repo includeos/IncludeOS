@@ -45,37 +45,43 @@ IrcServer::IrcServer(
     auto& client = clients[clindex];
     // make sure crucial fields are reset properly
     client.reset_to(csock);
-
-    // set up callbacks
-    csock->on_read(128, 
-    [this, clindex] (auto buffer, size_t len)
-    {
-      /// NOTE: the underlying array can move around, 
-      /// so we have to retrieve the address each time
-      auto& client = clients[clindex];
-      client.read(buffer.get(), len);
-    });
-
-    csock->on_close(
-    [this, clindex] {
-      // for the case where the client has not voluntarily quit,
-      auto& client = clients[clindex];
-      //assert(client.is_alive());
-      if (UNLIKELY(!client.is_alive())) return;
-      // tell everyone that he just disconnected
-      char buff[128];
-      int len = snprintf(buff, sizeof(buff),
-                ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
-      client.handle_quit(buff, len);
-      // force-free resources
-      client.disable();
-    });
+    // set event handlers
+    set_delegates_for(client);
   });
   
   // set timestamp for when the server was started
   this->created_ts = create_timestamp();
   this->created_string = std::string(ctime(&created_ts));
   this->cheapstamp = this->created_ts;
+}
+void IrcServer::set_delegates_for(Client& client)
+{
+  auto      csock   = client.get_conn();
+  chindex_t clindex = client.get_id();
+  // set up callbacks
+  csock->on_read(128, 
+  [this, clindex] (auto buffer, size_t len)
+  {
+    /// NOTE: the underlying array can move around, 
+    /// so we have to retrieve the address each time
+    auto& client = clients[clindex];
+    client.read(buffer.get(), len);
+  });
+
+  csock->on_close(
+  [this, clindex] {
+    // for the case where the client has not voluntarily quit,
+    auto& client = clients[clindex];
+    //assert(client.is_alive());
+    if (UNLIKELY(!client.is_alive())) return;
+    // tell everyone that he just disconnected
+    char buff[128];
+    int len = snprintf(buff, sizeof(buff),
+              ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
+    client.handle_quit(buff, len);
+    // force-free resources
+    client.disable();
+  });
 }
 
 clindex_t IrcServer::new_client() {

@@ -87,7 +87,7 @@ class Bot:
 
 if __name__ == '__main__':
   botlist = []
-  for i in range(1000):
+  for i in range(100):
       bot = Bot()
       try:
           bot.begin()

@@ -21,18 +21,19 @@
 #define USE_STACK_SAMPLING
 
 #include "ircd.hpp"
-static IrcServer* ircd;
-
-// prevent default serial out
-void default_stdout_handlers() {}
-#include <hw/serial.hpp>
+IrcServer* ircd = nullptr;
 
 extern "C"
 void _enable_heap_debugging_verbose(int enabled);
+extern "C"
+void _enable_heap_debugging_buffer_protection(int enabled);
+
 extern void print_heap_allocations(delegate<bool(void*, size_t)>);
+
 extern "C"
 void kernel_sanity_checks();
 
+#include <hw/serial.hpp>
 void Service::start(const std::string& args)
 {
   // add own serial out after service start
@@ -73,11 +74,19 @@ void Service::start(const std::string& args)
  ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
+
+Updated to fix mistakenly sending notopic on JOIN!
 )M0TDT3XT";
     return motd;
   });
 
   printf("%s\n", ircd->get_motd().c_str());
+  printf("This is server version " IRC_SERVER_VERSION "\n");
+
+  /// LiveUpdate on port 666 ///
+  extern void liveupdate_init(net::Inet<net::IP4>&, uint16_t);
+  liveupdate_init(inet, 666);
+  /// LiveUpdate ///
 }
 
 #include <ctime>
@@ -123,7 +132,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    4
+#define PERIOD_SECS    30
 
 void print_stats(int)
 {
@@ -131,10 +140,10 @@ void print_stats(int)
   StackSampler::set_mask(true);
 #endif
 
-  static std::vector<int> M;
+  static std::deque<int> M;
   static int last = 0;
   // only keep 5 measurements
-  if (M.size() > 4) M.erase(M.begin());
+  if (M.size() > 4) M.pop_front();
 
   int diff = ircd->get_counter(STAT_TOTAL_CONNS) - last;
   last = ircd->get_counter(STAT_TOTAL_CONNS);
@@ -168,16 +177,13 @@ void print_stats(int)
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
   //ircd->print_stuff();
   /*
+  _enable_heap_debugging_buffer_protection(0);
   print_heap_allocations(
-  [] (void* addr, size_t len) {
-    static void* highest = 0x0;
-    if (highest < addr) highest = addr;
-    
-    //return addr >= highest;
-    return true;
-  });*/
+  [] (void*, size_t len) -> bool {
+    return len >= 0x1000;
+  });
+  */
   //printf("%s\n", inet.tcp().to_string().c_str());
-  printf("*** ---------------------- ***\n");
   kernel_sanity_checks();
 
 #ifdef USE_STACK_SAMPLING
