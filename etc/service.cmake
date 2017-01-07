@@ -302,7 +302,7 @@ add_custom_target(
 add_custom_target(
   prepend_bootloader ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
-  DEPENDS service
+  DEPENDS pruned_elf_symbols
 )
 
 # install binary directly to prefix (which should be service root)
