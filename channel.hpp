@@ -21,13 +21,13 @@ public:
 
   Channel(index_t self, IrcServer& sref);
 
-  bool is_alive() const {
+  bool is_alive() const noexcept {
     return !clients_.empty();
   }
-  index_t get_id() const {
+  index_t get_id() const noexcept {
     return self;
   }
-  const std::string& name() const {
+  const std::string& name() const noexcept {
     return cname;
   }
   size_t size() const noexcept {
@@ -63,13 +63,17 @@ public:
   bool join(Client&, const std::string& key = "");
   // and the PART command
   bool part(Client&, const std::string& msg = "");
+  
+  bool has_topic() const noexcept {
+    return !ctopic.empty();
+  }
   // set new channel topic (and timestamp it)
   void set_topic(Client&, const std::string&);
 
-  bool is_banned(clindex_t) const {
+  bool is_banned(clindex_t) const noexcept {
     return false;
   }
-  bool is_excepted(clindex_t) const {
+  bool is_excepted(clindex_t) const noexcept {
     return false;
   }
 

@@ -18,14 +18,10 @@
 #include <os>
 #include <profile>
 #include <timers>
-//#define USE_STACK_SAMPLING
+#define USE_STACK_SAMPLING
 
 #include "ircd.hpp"
 IrcServer* ircd = nullptr;
-
-// prevent default serial out
-void default_stdout_handlers() {}
-#include <hw/serial.hpp>
 
 extern "C"
 void _enable_heap_debugging_verbose(int enabled);
@@ -37,6 +33,7 @@ extern void print_heap_allocations(delegate<bool(void*, size_t)>);
 extern "C"
 void kernel_sanity_checks();
 
+#include <hw/serial.hpp>
 void Service::start(const std::string& args)
 {
   // add own serial out after service start
@@ -77,6 +74,8 @@ void Service::start(const std::string& args)
  ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
+
+Updated to fix mistakenly sending notopic on JOIN!
 )M0TDT3XT";
     return motd;
   });
@@ -184,7 +183,6 @@ void print_stats(int)
   });
   */
   //printf("%s\n", inet.tcp().to_string().c_str());
-  printf("*** ---------------------- ***\n");
   kernel_sanity_checks();
 
 #ifdef USE_STACK_SAMPLING

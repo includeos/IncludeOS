@@ -94,8 +94,9 @@ bool Channel::join(Client& client, const std::string& key)
   }
   else {
     send_mode(client);
-    // send current topic (but only if the channel existed before)
-    send_topic(client);
+    // send channel topic (but only if the topic was set)
+    if (has_topic())
+        send_topic(client);
   }
   // send userlist to client
   send_names(client);

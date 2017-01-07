@@ -4,7 +4,7 @@
 #include "client.hpp"
 
 using namespace liu;
-static void* LIVEUPD_LOCATION = (void*) 0x8000000; // at 128mb
+static void* LIVEUPD_LOCATION = (void*) 0x5000000; // at 80mb
 
 extern IrcServer* ircd;
 
@@ -39,13 +39,17 @@ static void setup_liveupdate_server(net::Inet<net::IP4>& inet, uint16_t port)
 
     }).on_close(
     [update_blob, update_size] {
-      // we received a binary:
-      float frac = *update_size / (float) UPDATE_MAX * 100.f;
-      printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
-      // run live update process
-      LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_server_state);
+      
+      if (update_size) {
+        // we received a binary:
+        float frac = *update_size / (float) UPDATE_MAX * 100.f;
+        printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
+        // run live update process
+        LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_server_state);
+      }
+      delete[] update_blob;
       /// We should never return :-) ///
-      assert(0 && "!! Update failed !!");
+      //assert(0 && "!! Update failed !!");
     });
   });
   printf("*** Listening for LiveUpdate on port %u\n", port);

@@ -13,7 +13,7 @@ set(SERVICE_NAME "IRC service")
 set(BINARY       "IRCd")
 
 # Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
+set(MAX_MEM 100)
 
 
 # Source files to be linked with OS library parts to form bootable image
@@ -39,6 +39,7 @@ set(LOCAL_INCLUDES "include")
 
 set(DRIVERS
   virtionet   # Virtio networking
+  silent_start
   #heap_debugging
   )
 
