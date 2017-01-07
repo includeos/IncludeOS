@@ -157,14 +157,17 @@ void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len
 
 /// struct Storage
 
+void Storage::add_marker(uid id)
+{
+  hdr.add_marker(id);
+}
+void Storage::add_int(uid id, int value)
+{
+  hdr.add_int(id, value);
+}
 void Storage::add_string(uid id, const std::string& str)
 {
   hdr.add_string(id, str);
-}
-void Storage::add_strings(uid id, const std::vector<std::string>& strings)
-{
-  for (const auto& str : strings)
-      hdr.add_string(id, str);
 }
 void Storage::add_buffer(uid id, buffer_len blob)
 {
@@ -177,6 +180,10 @@ void Storage::add_buffer(uid id, const void* buf, size_t len)
 void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
 {
   hdr.add_vector(id, buf, count, esize);
+}
+void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
+{
+  hdr.add_string_vector(id, vec);
 }
 
 #include "serialize_tcp.hpp"

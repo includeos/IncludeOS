@@ -13,6 +13,14 @@ storage_header::storage_header()
   //printf("%p --> %#llx\n", this, value);
 }
 
+void storage_header::add_marker(uint16_t id)
+{
+  create_entry(TYPE_MARKER, id, 0);
+}
+void storage_header::add_int(uint16_t id, int value)
+{
+  create_entry(TYPE_INTEGER, id, value);
+}
 void storage_header::add_string(uint16_t id, const std::string& data)
 {
   auto& entry = create_entry(TYPE_STRING, id, data.size());
@@ -50,6 +58,28 @@ void storage_header::add_vector(uint16_t id, const void* buf, size_t cnt, size_t
   segs.esize = esize;
   memcpy(segs.vla, buf, segs.count * segs.esize);
   /// TODO: verify, but keep in mind segmented_entry is not part of (buf, cnt*esize)
+}
+void storage_header::add_string_vector(uint16_t id, const std::vector<std::string>& vec)
+{
+  auto& entry = var_entry(TYPE_STR_VECTOR, id,
+  [&vec] (char* dest) -> int
+  {
+    int total_len = sizeof(varseg_begin);
+    // header containing count
+    auto* head = (varseg_begin*) dest;
+    head->count = vec.size();
+    // each element with entry header
+    auto* el = (varseg_entry*) head->vla;
+    for (auto& str : vec)
+    {
+      el->len = str.size();
+      memcpy(el->vla, str.data(), el->len);
+      total_len += sizeof(varseg_entry) + el->len;
+      // next
+      el = (varseg_entry*) &el->vla[el->len];
+    }
+    return total_len;
+  });
 }
 void storage_header::add_end()
 {
@@ -119,12 +149,8 @@ storage_entry* storage_header::next(storage_entry* ptr)
   return ptr->next();
 }
 
-storage_entry::storage_entry(int16_t t, uint16_t ID, int l)
-  : type(t), id(ID), len(l)
-{
-  assert(type >= 0);
-  assert(len >= 0);
-}
+storage_entry::storage_entry(int16_t t, uint16_t ID, int v)
+  : type(t), id(ID), len(v) {}
 // used for last entry, for the most part
 storage_entry::storage_entry(int16_t t)
   : type(t), id(0), len(0)  {}
@@ -132,10 +158,10 @@ storage_entry::storage_entry(int16_t t)
 storage_entry* storage_entry::next() const noexcept
 {
   assert(type != TYPE_END && "Storage entry END cannot have next entry");
-  return (storage_entry*) &vla[len];
+  return (storage_entry*) &vla[length()];
 }
 
 uint32_t storage_entry::checksum() const
 {
-  return crc32(vla, len);
+  return crc32(vla, length());
 }

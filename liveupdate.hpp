@@ -86,18 +86,23 @@ struct Storage
   template <typename T>
   inline void add(uid, const T& type);
 
-  void add_string (uid, const std::string&);
-  void add_strings(uid, const std::vector<std::string>&);
-  void add_buffer (uid, buffer_len);
-  void add_buffer (uid, const void*, size_t);
-  void add_vector (uid, const void*, size_t count, size_t element_size);
-
+  // marker are used to mark where structures that might change over time
+  // ends, making it possible to partially reconstruct across updates
+  void add_marker(uid);
+  // storing as int saves some storage space compared to all the other types
+  void add_int   (uid, int value);
+  void add_string(uid, const std::string&);
+  void add_buffer(uid, buffer_len);
+  void add_buffer(uid, const void*, size_t length);
+  // store vectors of PODs or std::string
   template <typename T>
   inline void add_vector(uid, const std::vector<T>& vector);
-
+  // store a TCP connection
   void add_connection(uid, Connection_ptr);
   
   Storage(storage_header& sh) : hdr(sh) {}
+  void add_vector (uid, const void*, size_t count, size_t element_size);
+  void add_string_vector (uid, const std::vector<std::string>&);
   
 private:
   storage_header& hdr;
@@ -119,7 +124,9 @@ private:
 struct Restore
 {
   typedef net::tcp::Connection_ptr Connection_ptr;
-  
+
+  bool           is_marker() const noexcept;
+  int            as_int()    const;
   std::string    as_string() const;
   buffer_len     as_buffer() const;
   Connection_ptr as_tcp_connection(net::TCP&) const;
@@ -143,6 +150,7 @@ struct Restore
   Restore(const Restore&);
 private:
   const void* get_segment(size_t, size_t&) const;
+  std::vector<std::string> rebuild_string_vector() const;
   storage_entry*& ent;
 };
 
@@ -162,6 +170,11 @@ inline std::vector<T> Restore::as_vector() const
   auto*  first = (T*) get_segment(sizeof(T), count);
   return std::vector<T> (first, first + count);
 }
+template <>
+inline std::vector<std::string> Restore::as_vector() const
+{
+  return rebuild_string_vector();;
+}
 
 template <typename T>
 inline void Storage::add(uid id, const T& thing)
@@ -172,6 +185,11 @@ template <typename T>
 inline void Storage::add_vector(uid id, const std::vector<T>& vector)
 {
   add_vector(id, vector.data(), vector.size(), sizeof(T));
+}
+template <>
+inline void Storage::add_vector(uid id, const std::vector<std::string>& vector)
+{
+  add_string_vector(id, vector);
 }
 
 } // liu

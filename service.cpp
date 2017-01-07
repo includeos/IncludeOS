@@ -112,7 +112,7 @@ void Service::start()
   void on_update_area(Restore);
   void on_missing(Restore);
 
-  LiveUpdate::on_resume(1,   strings_and_buffers);
+  LiveUpdate::on_resume(0,   strings_and_buffers);
   LiveUpdate::on_resume(100, the_timing);
   LiveUpdate::on_resume(665, saved_message);
   LiveUpdate::on_resume(666, restore_term);
@@ -138,11 +138,19 @@ static std::vector<double> timestamps;
 #include <hw/cpu.hpp>
 void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
 {
+  storage.add_int(0, 1234);
+  storage.add_int(0, 5678);
+
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
 
   char buffer[] = "Just some random buffer";
   storage.add_buffer(1, {buffer, sizeof(buffer)});
+
+  std::vector<std::string> strvec;
+  strvec.push_back("|String 1|");
+  strvec.push_back("|String 2 is slightly longer|");
+  storage.add_vector<std::string> (1, strvec);
 
   // store current timestamp using same ID = 100
   int64_t ts = hw::CPU::rdtsc();
@@ -157,7 +165,7 @@ void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
   storage.add_buffer(999, final_blob.buffer, final_blob.length);
   
   // messages received from terminals
-  storage.add_strings(665, savemsg);
+  storage.add_vector<std::string> (665, savemsg);
 
   // open terminals
   for (auto conn : saveme)
@@ -167,31 +175,47 @@ void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
 
 void strings_and_buffers(liu::Restore thing)
 {
-  auto str = thing.as_string();
+  int v1 = thing.as_int();      thing.go_next();
+  printf("[int] has value [%d]\n", v1);
+  assert(v1 == 1234);
+
+  int v2 = thing.as_int();      thing.go_next();
+  printf("[int] has value [%d]\n", v2);
+  assert(v2 == 5678);
+
+  auto str = thing.as_string(); thing.go_next();
   printf("[string] has value [%s]\n", str.c_str());
   assert(str == "Some string :(");
-  
-  thing.go_next();
-  str = thing.as_string();
+
+  str = thing.as_string();      thing.go_next();
   printf("[string] has value [%s]\n", str.c_str());
   assert(str == "Some other string :(");
-  
-  thing.go_next();
-  auto buffer = thing.as_buffer();
+
+  auto buffer = thing.as_buffer(); thing.go_next();
   printf("[buffer] is %d bytes long\n", thing.length());
-  printf("As text: %.*s\n", thing.length(), buffer.buffer);
+  printf("As text: %.*s\n", buffer.length, buffer.buffer);
   // there is an extra zero at the end of the buffer
   str = std::string(buffer.buffer, buffer.length-1);
   assert(str == "Just some random buffer");
+
+  auto vec = thing.as_vector<std::string> (); thing.go_next();
+  printf("[strvec] Count: %u\n", vec.size());
+  for (auto& str : vec) {
+    printf("[strvec] len=%u str=%s\n", str.size(), str.c_str());
+  }
+  assert(vec[0] == "|String 1|");
+  assert(vec[1] == "|String 2 is slightly longer|");
 }
 void saved_message(liu::Restore thing)
 {
-  static int n = 0;
-  auto str = thing.as_string();
-  
-  printf("[%d] %s", ++n, str.c_str());
-  // re-save it
-  //savemsg.push_back(str);
+  auto vec = thing.as_vector<std::string> ();
+  for (auto& str : vec)
+  {
+    static int n = 0;
+    printf("[%d] %s", ++n, str.c_str());
+    // re-save it
+    //savemsg.push_back(str);
+  }
 }
 void on_missing(liu::Restore thing)
 {
@@ -219,7 +243,7 @@ void the_timing(liu::Restore thing)
   thing.go_next();
 
   // restore timestamp vector
-  timestamps = thing.as_vector<double> ();
+  timestamps = thing.as_vector<double> ();  thing.go_next();
   // add new update time
   timestamps.push_back(time);
   // calculate average boot time over many updates

@@ -43,6 +43,17 @@ void LiveUpdate::on_resume(uint16_t id, resume_func func)
 
 /// struct Restore
 
+bool        Restore::is_marker() const noexcept
+{
+  return ent->type == TYPE_MARKER;
+}
+int         Restore::as_int()    const
+{
+  // this type uses the length field directly as value to save space
+  if (ent->type == TYPE_INTEGER)
+      return ent->len;
+  throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+}
 std::string Restore::as_string() const
 {
   if (ent->type == TYPE_STRING)
@@ -87,6 +98,25 @@ const void* Restore::get_segment(size_t size, size_t& count) const
   
   count = segs.count;
   return (const void*) segs.vla;
+}
+std::vector<std::string> Restore::rebuild_string_vector() const
+{
+  if (ent->type != TYPE_STR_VECTOR)
+      throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+  std::vector<std::string> retv;
+  // reserve just enough room
+  auto* begin = (varseg_begin*) ent->vla;
+  retv.reserve(begin->count);
+
+  auto* el = (varseg_entry*) begin->vla;
+  for (size_t i = 0; i < begin->count; i++)
+  {
+    //printf("Restoring string len=%u: %.*s\n", el->len, el->len, el->vla);
+    retv.emplace_back(el->vla, el->len);
+    // next
+    el = (varseg_entry*) &el->vla[el->len];
+  }
+  return retv;
 }
 
 /// 
