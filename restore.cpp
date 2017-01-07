@@ -206,9 +206,9 @@ void Client::serialize_to(Storage& storage)
   /// start with index
   storage.add<clindex_t> (50, self);
   // R, B, U
-  storage.add<uint8_t>  (51, regis);
-  storage.add<uint8_t>  (52, bits);
-  storage.add<uint16_t> (53, umodes_);
+  storage.add_int       (51, regis);
+  storage.add_int       (52, bits);
+  storage.add_int       (53, umodes_);
   // Connection
   storage.add_connection(54, conn);
   // timeout ts
@@ -230,9 +230,9 @@ void Client::deserialize(Restore& thing)
   //printf("Deserializing client %u ...", get_id());
   /// NOTE: index already consumed
   // R, B, U
-  regis = thing.as_type<uint8_t> (); thing.go_next();
-  bits  = thing.as_type<uint8_t> (); thing.go_next();
-  umodes_ = thing.as_type<uint16_t> (); thing.go_next();
+  regis   = thing.as_int(); thing.go_next();
+  bits    = thing.as_int(); thing.go_next();
+  umodes_ = thing.as_int(); thing.go_next();
   // TCP connection
   conn = thing.as_tcp_connection(server.get_stack().tcp());
   thing.go_next();

@@ -81,6 +81,7 @@ Updated to fix mistakenly sending notopic on JOIN!
   });
 
   printf("%s\n", ircd->get_motd().c_str());
+  printf("This is server version " IRC_SERVER_VERSION "\n");
 
   /// LiveUpdate on port 666 ///
   extern void liveupdate_init(net::Inet<net::IP4>&, uint16_t);
