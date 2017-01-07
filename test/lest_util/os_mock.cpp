@@ -27,9 +27,7 @@ const std::string& OS::cmdline_args() noexcept {
 }
 
 extern "C" {
-
   void panic(const char* why) {
     assert(0 && "Panic: " && why);
   }
-
 }

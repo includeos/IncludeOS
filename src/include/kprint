@@ -1,3 +1,4 @@
+// -*-C-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -18,23 +19,37 @@
 #ifndef INCLUDE_KPRINT
 #define INCLUDE_KPRINT
 
-#include <hw/serial.hpp>
+#ifdef __cplusplus
 #include <cstring>
 #include <cstdarg>
+#include <cstdio>
+
+extern "C" {
+#else
+#include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+
+#endif
+
+extern void __serial_print1(const char* cstr);
 
 /**
  * The earliest possible print function (requires no heap, global ctors etc.)
  **/
 inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
-  char buf[bufsize];
+  char buf[256];
   va_list aptr;
   va_start(aptr, format);
-  vsnprintf(buf, bufsize, format, aptr);
-  hw::Serial::print1(buf);
+  vsnprintf(buf, sizeof(buf), format, aptr);
+  __serial_print1(buf);
   va_end(aptr);
 }
 
-#define kprint(cstr) hw::Serial::print1(cstr)
+#define kprint(cstr) __serial_print1(cstr)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

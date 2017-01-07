@@ -208,6 +208,11 @@ int stat(const char *path, struct stat *buf)
     return -1;
   }
 }
+int lstat(const char *path, struct stat *buf)
+{
+  // NOTE: should stat symlinks, instead of following them
+  return stat(path, buf);
+}
 
 mode_t umask(mode_t cmask)
 {

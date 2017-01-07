@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,21 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef UTIL_CRC32_HPP
-#define UTIL_CRC32_HPP
+#include <common.cxx>
+#include <net/http/time.hpp>
 
-#include <cstdint>
-#include <cstddef>
+using namespace std::string_literals;
 
-#define CRC32_BEGIN()   (0xFFFFFFFF)
-#define CRC32_VALUE(x)   ~(x)
-
-uint32_t crc32(uint32_t partial, const char* buf, size_t len);
-
-inline uint32_t crc32(const void* buf, size_t len)
+CASE("from_time_t() returns time as string")
 {
-  return ~crc32(0xFFFFFFFF, (const char*) buf, len);
+  time_t epoch {0};
+  std::string str {http::time::from_time_t(epoch)};
+  EXPECT(str != "");
+  EXPECT(str.find("1970") != std::string::npos);
 }
 
-#endif
+CASE("to_time_t() returns time_t from string")
+{
+  auto str = "Tue, 01 Jan 1980 00:00:00 GMT"s;
+  time_t time {http::time::to_time_t(str)};
+  EXPECT(time != std::time_t{});
+}
