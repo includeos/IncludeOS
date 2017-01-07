@@ -132,7 +132,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    16
+#define PERIOD_SECS    30
 
 void print_stats(int)
 {

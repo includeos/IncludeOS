@@ -1,10 +1,11 @@
 #include "client.hpp"
 #include "ircd.hpp"
 #include "tokens.hpp"
+#include <unordered_map>
 #define BUFFER_SIZE   1024
 
 typedef delegate<void(Client&, const std::vector<std::string>&)> command_func_t;
-static std::map<std::string, command_func_t> funcs;
+static std::unordered_map<std::string, command_func_t> funcs;
 
 inline void Client::not_ircop(const std::string& cmd)
 {
