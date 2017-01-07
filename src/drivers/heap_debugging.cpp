@@ -72,6 +72,11 @@ void _enable_heap_debugging_verbose(int enabled)
   enable_debugging_verbose = enabled;
 }
 extern "C"
+void _enable_heap_debugging_buffer_protection(int enabled)
+{
+  enable_buffer_protection = enabled;
+}
+extern "C"
 int _get_heap_debugging_buffers_usage()
 {
   return allocs.size();
