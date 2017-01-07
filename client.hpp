@@ -23,15 +23,15 @@ public:
   
   Client(clindex_t s, IrcServer& sref);
   
-  bool is_alive() const
+  bool is_alive() const noexcept
   {
     return regis != 0;
   }
-  bool is_reg() const
+  bool is_reg() const noexcept
   {
     return regis == 7;
   }
-  bool is_local() const
+  bool is_local() const noexcept
   {
     return conn != nullptr;
   }
@@ -39,11 +39,14 @@ public:
   void reset_to(Connection conn);
   // disable client completely
   void disable();
-  
-  clindex_t get_id() const {
+
+  clindex_t get_id() const noexcept {
     return self;
   }
-  
+  IrcServer& get_server() const noexcept {
+    return server;
+  }
+
   bool is_operator() const {
     return this->umodes_ & usermodes.char_to_bit(UMODE_IRCOP);
   }
@@ -53,7 +56,7 @@ public:
   void rem_umodes(uint16_t mask) {
     this->umodes_ &= ~mask;
   }
-  
+
   void read(uint8_t* buffer, size_t len);
   void send_from(const std::string& from, const std::string& text);
   void send_from(const std::string& from, uint16_t numeric, const std::string& text);
@@ -135,7 +138,6 @@ public:
   void serialize_to(liu::Storage&);
   void deserialize(liu::Restore&);
 
-private:
   void split_message(const std::string&);
   void handle_new(const std::string&, const std::vector<std::string>&);
   void handle(const std::string&, const std::vector<std::string>&);
@@ -152,6 +154,7 @@ private:
   void not_ircop(const std::string& cmd);
   void need_parms(const std::string& cmd);
   
+private:
   clindex_t   self;
   uint8_t     regis;
   uint8_t     bits;

@@ -1,6 +1,10 @@
 #include "client.hpp"
 #include "ircd.hpp"
 #include "tokens.hpp"
+#define BUFFER_SIZE   1024
+
+typedef delegate<void(Client&, const std::vector<std::string>&)> command_func_t;
+static std::map<std::string, command_func_t> funcs;
 
 inline void Client::not_ircop(const std::string& cmd)
 {
@@ -11,299 +15,430 @@ inline void Client::need_parms(const std::string& cmd)
   send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
 }
 
-#include <kernel/syscalls.hpp>
+static void handle_ping(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1) {
+    char buffer[BUFFER_SIZE];
+    int len = snprintf(buffer, sizeof(buffer),
+        "PONG :%s\r\n", msg[1].c_str());
+    client.send_raw(buffer, len);
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_pong(Client&, const std::vector<std::string>&)
+{
+  // do nothing
+}
+static void handle_pass(Client&, const std::vector<std::string>&)
+{
+  // do nothing
+}
+static void handle_nick(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    const std::string nuh = client.nickuserhost();
+    // attempt to change nickname
+    if (client.change_nick(msg[1]))
+    {
+      // success, broadcast to all who can see client
+      char buffer[BUFFER_SIZE];
+      int len = snprintf(buffer, sizeof(buffer),
+                ":%s NICK %s\r\n", nuh.c_str(), client.nick().c_str());
+      auto& server = client.get_server();
+      server.user_bcast(client.get_id(), buffer, len);
+    }
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_user(Client& client, const std::vector<std::string>& msg)
+{
+  client.send(ERR_NOSUCHCMD, msg[0] + " :Unknown command");
+}
+static void handle_motd(Client& client, const std::vector<std::string>&)
+{
+  client.send_motd();
+}
+static void handle_lusers(Client& client, const std::vector<std::string>&)
+{
+  client.send_lusers();
+}
+static void handle_stats(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    client.send_stats(msg[1]);
+  }
+  else
+    client.need_parms(msg[0]);
+}
+
+static void handle_userhost(Client& client, const std::vector<std::string>& msg)
+{
+  client.send(RPL_USERHOST, " = " + client.userhost());
+}
+static void handle_whois(Client& client, const std::vector<std::string>& msg)
+{
+  // implement me
+  client.need_parms(msg[0]);
+}
+static void handle_who(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    auto& server = client.get_server();
+    auto cl = server.user_by_name(msg[1]);
+    
+    if (cl != NO_SUCH_CLIENT)
+    {
+      auto& other = server.get_client(cl);
+      
+      char buffer[BUFFER_SIZE];
+      int len = snprintf(buffer, sizeof(buffer),
+                ":%s 352 %s * %s %s %s %s H :0 %s\r\n",
+                server.name().c_str(),
+                client.nick().c_str(),
+                other.user().c_str(),
+                other.host().c_str(),
+                server.name().c_str(), /// FIXME users server
+                other.nick().c_str(),
+                "Realname"); //other.realname()
+      client.send_raw(buffer, len);
+      len = snprintf(buffer, sizeof(buffer),
+                ":%s 315 %s %s :End of /WHO list\r\n",
+                server.name().c_str(),
+                client.nick().c_str(),
+                msg[1].c_str());
+      client.send_raw(buffer, len);
+    }
+    else
+      client.send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+  }
+  else
+    client.need_parms(msg[0]);
+}
+
+
+static void handle_mode(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    auto& server = client.get_server();
+    if (server.is_channel(msg[1]))
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        auto& channel = server.get_channel(ch);
+        channel.send_mode(client);
+      }
+      else
+      {
+        client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+      }
+    }
+    else {
+      // non-ircops can only usermode themselves
+      if (msg[1] == client.nick())
+        client.send(RPL_UMODEIS, "+i");
+      else
+        client.send(ERR_USERSDONTMATCH, ":Cannot change mode for other users");
+    }
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_join(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1 && msg[1].size() > 0)
+  {
+    auto& server = client.get_server();
+    if (server.is_channel(msg[1]))
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        // there is also a maximum number of channels a user can join
+        if (client.channels().size() < server.client_maxchans() || client.is_operator())
+        {
+          auto& channel = server.get_channel(ch);
+          bool joined = false;
+          
+          if (msg.size() < 3)
+            joined = channel.join(client);
+          else
+            joined = channel.join(client, msg[2]);
+          // track channel if client joined
+          if (joined) client.channels().push_back(ch);
+        }
+        else
+        {
+          // joined too many channels
+          client.send(ERR_TOOMANYCHANNELS, msg[1] + " :You have joined too many channels");
+        }
+      }
+      else
+      {
+        auto ch = server.create_channel(msg[1]);
+        auto key = (msg.size() < 3) ? "" : msg[2];
+        server.get_channel(ch).join(client, key);
+        // track channel
+        client.channels().push_back(ch);
+      }
+    }
+    else {
+      client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_part(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    auto& server = client.get_server();
+    if (server.is_channel(msg[1]))
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        auto& channel = server.get_channel(ch);
+        bool left = false;
+        
+        if (msg.size() < 3)
+          left = channel.part(client);
+        else
+          left = channel.part(client, msg[2]);
+        // stop tracking the channel ourselves
+        if (left) {
+          client.channels().remove(ch);
+          // if the channel became empty, remove it
+          if (channel.is_alive() == false)
+              server.free_channel(channel);
+        }
+      }
+      else
+        client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+    else {
+      client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_topic(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    auto& server = client.get_server();
+    auto ch = server.channel_by_name(msg[1]);
+    if (ch != NO_SUCH_CHANNEL)
+    {
+      auto& channel = server.get_channel(ch);
+      if (msg.size() > 2)
+      {
+        if (channel.is_chanop(client.get_id())) {
+          channel.set_topic(client, msg[2]);
+        } else {
+          client.send(ERR_CHANOPRIVSNEEDED, msg[1] + " :You're not channel operator");
+        }
+      }
+      else
+        channel.send_topic(client);
+    }
+    else
+      client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_names(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 1)
+  {
+    auto& server = client.get_server();
+    auto ch = server.channel_by_name(msg[1]);
+    if (ch != NO_SUCH_CHANNEL)
+    {
+      auto& channel = server.get_channel(ch);
+      if (channel.find(client.get_id()) != NO_SUCH_CLIENT) {
+          channel.send_names(client);
+      }
+      else
+          client.send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
+    }
+    else
+      client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_privmsg(Client& client, const std::vector<std::string>& msg)
+{
+  if (msg.size() > 2)
+  {
+    auto& server = client.get_server();
+    if (server.is_channel(msg[1]))
+    {
+      auto ch = server.channel_by_name(msg[1]);
+      if (ch != NO_SUCH_CHANNEL)
+      {
+        auto& channel = server.get_channel(ch);
+        // check if user can broadcast to channel
+        if (channel.find(client.get_id()) != NO_SUCH_CLIENT)
+        {
+          // broadcast message to channel
+          char buffer[BUFFER_SIZE];
+          int len = snprintf(buffer, sizeof(buffer),
+                    ":%s PRIVMSG %s :%s\r\n",
+                    client.nickuserhost().c_str(), channel.name().c_str(), msg[2].c_str());
+          channel.bcast_butone(client.get_id(), buffer, len);
+        }
+        else
+            client.send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
+      }
+      else
+        client.send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
+    }
+    else // assume client
+    {
+      auto cl = server.user_by_name(msg[1]);
+      if (cl != NO_SUCH_CLIENT)
+      {
+        // send private message to user
+        auto& other = server.get_client(cl);
+        other.send_from(client.nickuserhost(), TK_PRIVMSG " " + other.nick() + " :" + msg[2]);
+      }
+      else
+        client.send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+    }
+  }
+  else
+    client.need_parms(msg[0]);
+}
+static void handle_quit(Client& client, const std::vector<std::string>& msg)
+{
+  std::string reason("Quit");
+  if (msg.size() > 1) reason = "Quit: " + msg[1];
+  client.kill(true, reason);
+}
+
+/// services related ///
+static void handle_kill(Client& client, const std::vector<std::string>& msg)
+{
+  if (client.is_operator())
+  {
+    if (msg.size() > 1)
+    {
+      auto& server = client.get_server();
+      auto cl = server.user_by_name(msg[1]);
+      if (cl != NO_SUCH_CLIENT)
+      {
+        auto& other = server.get_client(cl);
+        
+        std::string reason = "Killed by " + client.nick();
+        if (msg.size() > 2) reason += ": " + msg[2];
+        other.kill(true, reason);
+      }
+      else
+        client.send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+      
+    }
+    else
+      client.need_parms(msg[0]);
+  }
+  else
+    client.not_ircop(msg[0]);
+}
+static void handle_svsnick(Client& client, const std::vector<std::string>& msg)
+{
+}
+static void handle_svshost(Client& client, const std::vector<std::string>& msg)
+{
+  if (client.is_operator())
+  {
+    if (msg.size() > 2)
+    {
+      auto& server = client.get_server();
+      auto cl = server.user_by_name(msg[1]);
+      if (cl != NO_SUCH_CLIENT) {
+        auto& client = server.get_client(cl);
+        // TODO: validate host (must contain at least one .)
+        if (msg[2].size() > 2)
+            client.set_vhost(msg[2]);
+      }
+      else
+        client.send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
+    }
+    else
+      client.need_parms(msg[0]);
+  }
+  else
+    client.not_ircop(msg[0]);
+}
+static void handle_svsjoin(Client& client, const std::vector<std::string>& msg)
+{
+}
+
+static void handle_version(Client& client, const std::vector<std::string>& msg)
+{
+  client.send(RPL_VERSION, "IncludeOS IRCd " IRC_SERVER_VERSION);
+}
+static void handle_admin(Client& client, const std::vector<std::string>& msg)
+{
+  client.send(RPL_ADMINME, ":Administrative info about " + client.get_server().name());
+  client.send(RPL_ADMINLOC1, ":");
+  client.send(RPL_ADMINLOC2, ":");
+  client.send(RPL_ADMINEMAIL, "contact@staff.irc");
+}
+
 void Client::handle(
     const std::string&,
     const std::vector<std::string>& msg)
 {
-  // in case message handler is bad
-  #define BUFFER_SIZE   1024
-  char buffer[BUFFER_SIZE];
+  auto it = funcs.find(msg[0]);
+  if (it != funcs.end()) {
+    it->second(*this, msg);
+  }
+  else {
+    this->send(ERR_NOSUCHCMD, msg[0] + " :Unknown command");
+  }
+}
+
+__attribute__((constructor))
+static void initialize_funcs()
+{
+  funcs["PING"] = handle_ping;
+  funcs["PONG"] = handle_pong;
+  funcs["PASS"] = handle_pass;
   
-  const std::string& cmd = msg[0];
+  funcs["NICK"] = handle_nick;
+  funcs["USER"] = handle_user;
+  funcs["MOTD"] = handle_motd;
+  funcs["LUSERS"] = handle_lusers;
+  funcs["STATS"]  = handle_stats;
+  funcs["MODE"] = handle_mode;
   
-  if (cmd == TK_PING)
-  {
-    if (msg.size() > 1) {
-      int len = snprintf(buffer, sizeof(buffer),
-          "PONG :%s\r\n", msg[1].c_str());
-      send_raw(buffer, len);
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_PONG)
-  {
-    // do nothing
-  }
-  else if (cmd == TK_PASS)
-  {
-    need_parms(cmd);
-  }
-  else if (cmd == TK_NICK)
-  {
-    if (msg.size() > 1)
-    {
-      const std::string nuh = nickuserhost();
-      // change nickname
-      if (change_nick(msg[1])) {
-        // success, broadcast to all who can see client
-        int len = snprintf(buffer, sizeof(buffer),
-                  ":%s NICK %s\r\n", nuh.c_str(), nick().c_str());
-        server.user_bcast(get_id(), buffer, len);
-      }
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_USER)
-  {
-    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
-  }
-  else if (cmd == TK_MOTD)
-  {
-    send_motd();
-  }
-  else if (cmd == TK_LUSERS)
-  {
-    send_lusers();
-  }
-  else if (cmd == TK_STATS)
-  {
-    if (msg.size() > 1)
-    {
-      send_stats(msg[1]);
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_USERHOST)
-  {
-    send(RPL_USERHOST, " = " + userhost());
-  }
-  else if (cmd == TK_MODE)
-  {
-    if (msg.size() > 1)
-    {
-      if (server.is_channel(msg[1]))
-      {
-        auto ch = server.channel_by_name(msg[1]);
-        if (ch != NO_SUCH_CHANNEL)
-        {
-          auto& channel = server.get_channel(ch);
-          channel.send_mode(*this);
-        }
-        else
-        {
-          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-        }
-      }
-      else {
-        // non-ircops can only usermode themselves
-        if (msg[1] == this->nick())
-          send(RPL_UMODEIS, "+i");
-        else
-          send(ERR_USERSDONTMATCH, ":Cannot change mode for other users");
-      }
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_JOIN)
-  {
-    if (msg.size() > 1 && msg[1].size() > 0)
-    {
-      if (server.is_channel(msg[1]))
-      {
-        auto ch = server.channel_by_name(msg[1]);
-        if (ch != NO_SUCH_CHANNEL)
-        {
-          // there is also a maximum number of channels a user can join
-          if (channels().size() < server.client_maxchans() || is_operator())
-          {
-            auto& channel = server.get_channel(ch);
-            bool joined = false;
-            
-            if (msg.size() < 3)
-              joined = channel.join(*this);
-            else
-              joined = channel.join(*this, msg[2]);
-            // track channel if client joined
-            if (joined) channels_.push_back(ch);
-          }
-          else
-          {
-            // joined too many channels
-            send(ERR_TOOMANYCHANNELS, msg[1] + " :You have joined too many channels");
-          }
-        }
-        else
-        {
-          auto ch = server.create_channel(msg[1]);
-          auto key = (msg.size() < 3) ? "" : msg[2];
-          server.get_channel(ch).join(*this, key);
-          // track channel
-          channels_.push_back(ch);
-        }
-      }
-      else {
-        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-      }
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_PART)
-  {
-    if (msg.size() > 1)
-    {
-      if (server.is_channel(msg[1]))
-      {
-        auto ch = server.channel_by_name(msg[1]);
-        if (ch != NO_SUCH_CHANNEL)
-        {
-          auto& channel = server.get_channel(ch);
-          bool left = false;
-          
-          if (msg.size() < 3)
-            left = channel.part(*this);
-          else
-            left = channel.part(*this, msg[2]);
-          // stop tracking the channel ourselves
-          if (left) {
-            channels_.remove(ch);
-            // if the channel became empty, remove it
-            if (channel.is_alive() == false)
-                server.free_channel(channel);
-          }
-        }
-        else
-          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-      }
-      else {
-        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-      }
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_TOPIC)
-  {
-    if (msg.size() > 1)
-    {
-      auto ch = server.channel_by_name(msg[1]);
-      if (ch != NO_SUCH_CHANNEL)
-      {
-        auto& channel = server.get_channel(ch);
-        if (msg.size() > 2)
-        {
-          if (channel.is_chanop(get_id())) {
-            channel.set_topic(*this, msg[2]);
-          } else {
-            send(ERR_CHANOPRIVSNEEDED, msg[1] + " :You're not channel operator");
-          }
-        }
-        else
-          channel.send_topic(*this);
-      }
-      else
-        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_NAMES)
-  {
-    if (msg.size() > 1)
-    {
-      auto ch = server.channel_by_name(msg[1]);
-      if (ch != NO_SUCH_CHANNEL)
-      {
-        auto& channel = server.get_channel(ch);
-        if (channel.find(self) != NO_SUCH_CLIENT) {
-            channel.send_names(*this);
-        }
-        else
-            send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
-      }
-      else
-        send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_PRIVMSG)
-  {
-    if (msg.size() > 2)
-    {
-      if (server.is_channel(msg[1]))
-      {
-        auto ch = server.channel_by_name(msg[1]);
-        if (ch != NO_SUCH_CHANNEL)
-        {
-          auto& channel = server.get_channel(ch);
-          // check if user can broadcast to channel
-          if (channel.find(self) != NO_SUCH_CLIENT)
-          {
-            // broadcast message to channel
-            int len = snprintf(buffer, sizeof(buffer),
-                      ":%s PRIVMSG %s :%s\r\n",
-                      nickuserhost().c_str(), channel.name().c_str(), msg[2].c_str());
-            channel.bcast_butone(get_id(), buffer, len);
-          }
-          else
-              send(ERR_NOTONCHANNEL, msg[1] + " :You're not on that channel");
-        }
-        else
-          send(ERR_NOSUCHCHANNEL, msg[1] + " :No such channel");
-      }
-      else // assume client
-      {
-        auto cl = server.user_by_name(msg[1]);
-        if (cl != NO_SUCH_CLIENT)
-        {
-          // send private message to user
-          auto& client = server.get_client(cl);
-          client.send_from(nickuserhost(), TK_PRIVMSG " " + client.nick() + " :" + msg[2]);
-        }
-        else
-          send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
-      }
-    }
-    else
-      need_parms(cmd);
-  }
-  else if (cmd == TK_QUIT)
-  {
-    std::string reason("Quit");
-    if (msg.size() > 1) reason = "Quit: " + msg[1];
-    kill(true, reason);
-    return;
-  }
-  else if (cmd == TK_SVSHOST)
-  {
-    if (is_operator())
-    {
-      if (msg.size() > 2)
-      {
-        auto cl = server.user_by_name(msg[1]);
-        if (cl != NO_SUCH_CLIENT) {
-          auto& client = server.get_client(cl);
-          // TODO: validate host (must contain at least one .)
-          if (msg[2].size() > 2)
-              client.set_vhost(msg[2]);
-        }
-        else
-          send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
-      }
-      else
-        need_parms(cmd);
-    }
-    else
-      not_ircop(cmd);
-  }
-  else
-  {
-    send(ERR_NOSUCHCMD, cmd + " :Unknown command");
-  }
+  funcs["USERHOST"] = handle_userhost;
+  funcs["WHOIS"]    = handle_whois;
+  funcs["WHO"]      = handle_who;
+  
+  funcs["JOIN"]  = handle_join;
+  funcs["PART"]  = handle_part;
+  funcs["TOPIC"] = handle_topic;
+  funcs["NAMES"] = handle_names;
+  funcs["PRIVMSG"] = handle_privmsg;
+  funcs["QUIT"]  = handle_quit;
+  
+  funcs["KILL"]  = handle_kill;
+  funcs["SVSNICK"]  = handle_svsnick;
+  funcs["SVSHOST"]  = handle_svshost;
+  funcs["SVSJOIN"]  = handle_svsjoin;
+  
+  funcs["VERSION"]  = handle_version;
+  funcs["ADMIN"]    = handle_admin;
 }
