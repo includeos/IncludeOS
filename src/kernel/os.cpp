@@ -292,9 +292,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // begin service start
   Service::start();
-
-  // verify integrity of operating system (after Start)
-  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
