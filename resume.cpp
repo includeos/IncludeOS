@@ -136,6 +136,11 @@ uint16_t Restore::next_id() const noexcept
   return ent->next()->id;
 }
 
+void Restore::cancel()
+{
+  while (is_end() == false) go_next();
+}
+
 // copy operator
 Restore::Restore(const Restore& other)
   : ent(other.ent)  {}
