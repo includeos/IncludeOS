@@ -25,9 +25,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# stackrealign is needed to guarantee 16-byte stack alignment for SSE
-# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
+set(CAPABS "-msse3 -fstack-protector-strong")
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
