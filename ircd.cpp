@@ -9,11 +9,13 @@
 
 IrcServer::IrcServer(
     Network& inet_, 
-    uint16_t port, 
+    const uint16_t cl_port,
+    const uint16_t sv_port,
+    const uint16_t Id,
     const std::string& name, 
     const std::string& netw, 
     const motd_func_t& mfunc)
-    : inet(inet_), server_name(name), server_network(netw), motd_func(mfunc)
+    : inet(inet_), server_name(name), network_name(netw), motd_func(mfunc), id(Id)
 {
   // initialize lookup tables
   extern void transform_init();
@@ -24,17 +26,16 @@ IrcServer::IrcServer(
   Timers::periodic(10s, 5s, 
       delegate<void(uint32_t)>::from<IrcServer, &IrcServer::timeout_handler>(this));
   
-  // server listener (although IRC servers usually have many ports open)
   auto& tcp = inet.tcp();
-  auto& server_port = tcp.bind(port);
-  server_port.on_connect(
+  // client listener (although IRC servers usually have many ports open)
+  tcp.bind(cl_port).on_connect(
   [this] (auto csock)
   {
-    // one more client in total
+    // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
 
     // in case splitter is bad
-    SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
+    SET_CRASH_CONTEXT("client_port.on_connect(): %s", 
           csock->remote().to_string().c_str());
     
     debug("*** Received connection from %s\n",
@@ -45,43 +46,32 @@ IrcServer::IrcServer(
     auto& client = clients[clindex];
     // make sure crucial fields are reset properly
     client.reset_to(csock);
-    // set event handlers
-    set_delegates_for(client);
   });
+  printf("*** Accepting clients on port %u\n", cl_port);
+
+  // server listener
+  tcp.bind(sv_port).on_connect(
+  [this] (auto ssock)
+  {
+    // one more connection in total
+    inc_counter(STAT_TOTAL_CONNS);
+
+    // in case splitter is bad
+    SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
+          ssock->remote().to_string().c_str());
+
+    printf("*** Received server connection from %s\n",
+          ssock->remote().to_string().c_str());
+
+    /// create server ///
+    // TODO
+  });
+  printf("*** Accepting servers on port %u\n", sv_port);
   
   // set timestamp for when the server was started
   this->created_ts = create_timestamp();
   this->created_string = std::string(ctime(&created_ts));
   this->cheapstamp = this->created_ts;
-}
-void IrcServer::set_delegates_for(Client& client)
-{
-  auto      csock   = client.get_conn();
-  chindex_t clindex = client.get_id();
-  // set up callbacks
-  csock->on_read(128, 
-  [this, clindex] (auto buffer, size_t len)
-  {
-    /// NOTE: the underlying array can move around, 
-    /// so we have to retrieve the address each time
-    auto& client = clients[clindex];
-    client.read(buffer.get(), len);
-  });
-
-  csock->on_close(
-  [this, clindex] {
-    // for the case where the client has not voluntarily quit,
-    auto& client = clients[clindex];
-    //assert(client.is_alive());
-    if (UNLIKELY(!client.is_alive())) return;
-    // tell everyone that he just disconnected
-    char buff[128];
-    int len = snprintf(buff, sizeof(buff),
-              ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
-    client.handle_quit(buff, len);
-    // force-free resources
-    client.disable();
-  });
 }
 
 clindex_t IrcServer::new_client() {
@@ -113,7 +103,7 @@ clindex_t IrcServer::user_by_name(const std::string& name) const
 {
   auto it = h_users.find(name);
   if (it != h_users.end()) return it->second;
-  return NO_SUCH_CHANNEL;
+  return NO_SUCH_CLIENT;
 }
 void IrcServer::new_registered_client(Client&)
 {

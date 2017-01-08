@@ -20,6 +20,8 @@
 #include <timers>
 #define USE_STACK_SAMPLING
 
+static const uint16_t    serverID   = 0;
+static const std::string servername = "irc.includeos.org";
 #include "ircd.hpp"
 IrcServer* ircd = nullptr;
 
@@ -34,19 +36,11 @@ extern "C"
 void kernel_sanity_checks();
 
 #include <hw/serial.hpp>
-void Service::start(const std::string& args)
+void Service::start()
 {
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
-
-  std::string servername = "irc.includeos.org";
-  /// extract custom servername from args, if there is one
-  size_t idx = args.find(" ");
-  if (idx != args.npos) {
-    std::string param = std::string(args.begin() + idx + 1, args.end());
-    if (param.size()) servername = param;
-  }
 
   // show that we are starting :)
   printf("*** %s starting up...\n", servername.c_str());
@@ -60,9 +54,9 @@ void Service::start(const std::string& args)
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS
 
-  // IRC default port
   ircd =
-  new IrcServer(inet, 6667, servername, "IncludeNet",
+  new IrcServer(inet, 6667, 7000, 
+                serverID, servername, "IncludeNet",
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
@@ -75,7 +69,7 @@ void Service::start(const std::string& args)
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
 
-Updated to fix mistakenly sending notopic on JOIN!
+Updated to use hashmap for functions and removed mstackrealign!
 )M0TDT3XT";
     return motd;
   });

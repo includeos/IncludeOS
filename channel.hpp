@@ -44,19 +44,19 @@ public:
 
 
   bool    add(clindex_t);
-  index_t find(clindex_t);
+  size_t  find(clindex_t);
 
   // silently remove client from all channel lists
   bool remove(clindex_t cl)
   {
     auto idx = find(cl);
-    if (idx != NO_SUCH_CLIENT)
+    if (idx != NO_SUCH_CHANNEL_INDEX)
     {
       clients_.erase(clients_.begin() + idx);
       voices.erase(cl);
       chanops.erase(cl);
     }
-    return idx != NO_SUCH_CLIENT;
+    return idx != NO_SUCH_CHANNEL_INDEX;
   }
 
   // the entire JOIN sequence for a client

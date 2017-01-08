@@ -174,8 +174,8 @@ void IrcServer::deserialize(Restore& thing)
       // deserialize rest of client
       thing.go_next();
       clients.back().deserialize(thing);
-      // set event handlers for client
-      set_delegates_for(clients.back());
+      // assign event handlers for client
+      clients.back().assign_socket_dg();
       // go to next client id
       current_client++;
       break;

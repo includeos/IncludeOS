@@ -7,6 +7,7 @@
 #include <cassert>
 #include "yield_assist.hpp"
 #include <profile>
+#include <algorithm>
 
 Client::Client(clindex_t s, IrcServer& sref)
   : self(s), regis(0), server(sref)
@@ -24,10 +25,40 @@ void Client::reset_to(Connection conn)
   this->conn = conn;
   this->to_stamp = server.create_timestamp();
   this->readq.clear();
+  // assign correct delegates
+  this->assign_socket_dg();
   
   // send auth notices
   auth_notice();
 }
+void Client::assign_socket_dg()
+{
+  // set up callbacks
+  conn->on_read(128, 
+  [srv = &server, idx = self] (auto buffer, size_t len)
+  {
+    /// NOTE: the underlying array can move around, 
+    /// so we have to retrieve the address each time
+    auto& client = srv->get_client(idx);
+    client.read(buffer.get(), len);
+  });
+
+  conn->on_close(
+  [srv = &server, idx = self] {
+    // for the case where the client has not voluntarily quit,
+    auto& client = srv->get_client(idx);
+    //assert(client.is_alive());
+    if (UNLIKELY(!client.is_alive())) return;
+    // tell everyone that he just disconnected
+    char buff[128];
+    int len = snprintf(buff, sizeof(buff),
+              ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
+    client.handle_quit(buff, len);
+    // force-free resources
+    client.disable();
+  });
+}
+
 void Client::disable()
 {
   conn = nullptr;
@@ -251,6 +282,11 @@ std::string Client::mode_string() const
         res += usermodes.bit_to_char(i);
   }
   return res;
+}
+
+bool Client::on_channel(chindex_t idx) const noexcept
+{
+  return std::find(channels_.begin(), channels_.end(), idx) != channels_.end();
 }
 
 void Client::kill(bool warn, const std::string& reason)

@@ -8,6 +8,7 @@
 #include "client.hpp"
 #include "channel.hpp"
 #include "ciless.hpp"
+#include "server.hpp"
 
 #define STAT_TOTAL_CONNS           0
 #define STAT_TOTAL_USERS           1
@@ -30,7 +31,9 @@ public:
   
   IrcServer(
       Network& inet, 
-      uint16_t port, 
+      uint16_t client_port, 
+      uint16_t server_port, 
+      uint16_t id,
       const std::string& name, 
       const std::string& network, 
       const motd_func_t&);
@@ -39,7 +42,7 @@ public:
     return server_name;
   }
   const std::string& network() const noexcept {
-    return server_network;
+    return network_name;
   }
   std::string version() const noexcept
   {
@@ -210,23 +213,27 @@ private:
   void   timeout_handler(uint32_t);
   
   clindex_t new_client();
-  void set_delegates_for(Client&);
   chindex_t new_channel();
   
   Network&    inet;
   std::string server_name;
-  std::string server_network;
+  std::string network_name;
   std::vector<Client> clients;
   std::vector<clindex_t> free_clients;
   std::vector<Channel> channels;
   std::vector<chindex_t> free_channels;
-  
+
+  std::vector<Server> servers;
+
   // server callbacks
   motd_func_t motd_func;
   
   // hash table for nicknames, channels etc
   std::map<std::string, clindex_t, ci_less> h_users;
   std::map<std::string, chindex_t, ci_less> h_channels;
+  
+  // network
+  uint16_t id;
   
   // performance stuff
   long cheapstamp;

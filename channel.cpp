@@ -3,9 +3,7 @@
 #include "ircd.hpp"
 #include "client.hpp"
 #include "tokens.hpp"
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+#include <common>
 
 Channel::Channel(index_t idx, IrcServer& sref)
   : self(idx), server(sref)
@@ -35,14 +33,14 @@ bool Channel::add(clindex_t id)
   }
   return false;
 }
-Channel::index_t Channel::find(clindex_t id)
+size_t Channel::find(clindex_t id)
 {
-  for (index_t i = 0; i < this->size(); i++) {
-    if (unlikely(clients_[i] == id)) {
+  for (size_t i = 0; i < this->size(); i++) {
+    if (UNLIKELY(clients_[i] == id)) {
       return i;
     }
   }
-  return NO_SUCH_CLIENT;
+  return NO_SUCH_CHANNEL_INDEX;
 }
 
 bool Channel::join(Client& client, const std::string& key)
@@ -106,8 +104,8 @@ bool Channel::join(Client& client, const std::string& key)
 bool Channel::part(Client& client, const std::string& reason)
 {
   auto cid = client.get_id();
-  index_t found = find(cid);
-  if (found == NO_SUCH_CLIENT)
+  auto found = this->find(cid);
+  if (found == NO_SUCH_CHANNEL_INDEX)
   {
     client.send(ERR_NOTONCHANNEL, name() + " :You're not on that channel");
     return false;
@@ -221,7 +219,6 @@ void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg
   char buff[256];
   int len = snprintf(buff, sizeof(buff),
             ":%s %03u %s\r\n", from.c_str(), tk, msg.c_str());
-
   bcast(buff, len);
 }
 
@@ -242,7 +239,7 @@ void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
   
   // broadcast to all users in channel except source
   for (auto cl : clients())
-  if (likely(cl != src)) {
+  if (LIKELY(cl != src)) {
       server.get_client(cl).send_buffer(sbuf, len);
   }
 }

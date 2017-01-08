@@ -1,6 +1,6 @@
 #pragma once
 
-#include <net/inet4>
+#include <net/tcp/connection.hpp>
 #include <cstdint>
 #include <string>
 #include <list>
@@ -104,13 +104,14 @@ public:
   ChannelList& channels() {
     return channels_;
   }
+  bool on_channel(chindex_t) const noexcept;
   
   // close connection with given reason
   void kill(bool warn, const std::string&);
   // tell everyone this client has quit
   void handle_quit(const char*, int len);
   
-  long get_timeout_ts() const {
+  long get_timeout_ts() const noexcept {
     return to_stamp;
   }
   
@@ -119,29 +120,28 @@ public:
     this->host_ = new_vhost;
   }
   
-  void set_to_stamp(long new_tos) {
+  void set_to_stamp(long new_tos) noexcept {
     to_stamp = new_tos;
   }
-  void set_warned(bool warned) {
+  void set_warned(bool warned) noexcept {
     if (warned) bits |= WARNED_BIT;
     else        bits &= ~WARNED_BIT;
   }
-  bool is_warned() const {
+  bool is_warned() const noexcept {
     return bits & WARNED_BIT;
   }
   
-  size_t club() const {
+  size_t club() const noexcept {
     return nick_.size() + user_.size() + host_.size() + readq.size() + sizeof(conn) + sizeof(*conn);
   }
   
-  Connection& get_conn() { return conn; }
+  Connection& get_conn() noexcept {
+    return conn;
+  }
+  void assign_socket_dg();
   void serialize_to(liu::Storage&);
   void deserialize(liu::Restore&);
 
-  void split_message(const std::string&);
-  void handle_new(const std::string&, const std::vector<std::string>&);
-  void handle(const std::string&, const std::vector<std::string>&);
-  
   void welcome(uint8_t);
   void auth_notice();
   void send_motd();
@@ -155,6 +155,10 @@ public:
   void need_parms(const std::string& cmd);
   
 private:
+  void split_message(const std::string&);
+  void handle_new(const std::string&, const std::vector<std::string>&);
+  void handle(const std::string&, const std::vector<std::string>&);
+  
   clindex_t   self;
   uint8_t     regis;
   uint8_t     bits;
