@@ -39,8 +39,6 @@ extern "C" {
   uintptr_t heap_end;
 }
 
-static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
-
 void _exit(int) {
   default_exit();
 }
@@ -80,9 +78,8 @@ int unlink(const char*) {
 }
 
 void* sbrk(ptrdiff_t incr) {
-  // Stat increment syscall sbrk called
-  sbrk_called++;
-
+  /// NOTE:
+  /// sbrk gets called really early on, before everything else
   if (UNLIKELY(heap_end + incr > OS::heap_max())) {
     errno = ENOMEM;
     return (void*)-1;

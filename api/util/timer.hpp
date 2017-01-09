@@ -36,7 +36,7 @@ public:
   /**
    * @brief Constructs a Timer without a handler
    */
-  Timer() : Timer({this, &Timer::_do_nothing}) {}
+  Timer() : Timer(nullptr) {}
 
   /**
    * @brief Constructs a Timer with a handler
@@ -56,8 +56,9 @@ public:
    * Requires on_timeout to be set.
    *
    * @param  duration until timing out
+   * @param  on_timeout (optional) on timeout handler
    */
-  inline void start(duration_t);
+  inline void start(duration_t, handler_t on_timeout = nullptr);
 
   /**
    * @brief Stops the timer
@@ -72,8 +73,9 @@ public:
    * and then starts the timer with a new refreshed duration.
    *
    * @param  duration until timing out
+   * @param  on_timeout (optional) on timeout handler
    */
-  inline void restart(duration_t);
+  inline void restart(duration_t, handler_t on_timeout = nullptr);
 
   /**
    * @brief Sets the on timeout handler
@@ -122,13 +124,14 @@ private:
    */
   inline void _internal_timeout(id_t id);
 
-  void _do_nothing() {}
-
 } __attribute__((packed)); // < class Timer
 
-inline void Timer::start(duration_t when) {
+inline void Timer::start(duration_t when, handler_t on_timeout) {
   if(!is_running())
   {
+    if(on_timeout)
+      set_on_timeout(on_timeout);
+
     id_ = Timers::oneshot(when, {this, &Timer::_internal_timeout});
   }
 }
@@ -141,14 +144,15 @@ inline void Timer::stop() {
   }
 }
 
-inline void Timer::restart(duration_t when) {
+inline void Timer::restart(duration_t when, handler_t on_timeout) {
   stop();
-  start(when);
+  start(when, on_timeout);
 }
 
 inline void Timer::_internal_timeout(id_t) {
   id_ = Timers::UNUSED_ID;
-  on_timeout_();
+  if(on_timeout_)
+    on_timeout_();
 }
 
 #endif

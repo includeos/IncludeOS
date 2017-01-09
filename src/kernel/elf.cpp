@@ -354,12 +354,23 @@ int _get_elf_section_size(const void* location)
   return sizeof(relocate_header) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
 }
 
+#include <kprint>
 extern "C"
 void _move_elf_symbols(void* old_location, void* new_location)
 {
   int size = _get_elf_section_size(old_location);
+  // validate locations
+  if ((char*) new_location >= (char*) old_location &&
+      (char*) new_location + size < (char*) old_location)
+  {
+    kprintf("ELF symbol sections are inside each other!\n");
+    kprintf("Moving %d from %p -> %p (%p)\n", 
+        size, old_location, new_location, (char*) new_location + size);
+    assert(0);
+  }
+  // copy over
   memcpy(new_location, old_location, size);
-  // update symbol info table
+  // update header
   auto* newhdr = (relocate_header*) new_location;
   const char* base = ((char*) newhdr) + sizeof(relocate_header);
   newhdr->symtab.base = (Elf32_Sym*) base;
@@ -372,7 +383,6 @@ void* _relocate_to_heap(void* old_location)
 {
   int total = _get_elf_section_size(old_location);
   void* heap_location = malloc(total);
-
   _move_elf_symbols(old_location, heap_location);
   return heap_location;
 }
