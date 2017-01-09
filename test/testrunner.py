@@ -5,6 +5,8 @@ import sys
 import os
 import argparse
 import json
+import time
+import multiprocessing  # To figure out number of cpus
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -261,20 +263,35 @@ def integration_tests(tests):
     global test_count
     test_count += len(tests) + len(time_sensitive_tests)
 
-    # Start running tests in parallell
-    for test in tests:
-        processes.append(test.start())
+    # Find number of cpu cores
+    num_cpus = multiprocessing.cpu_count()
 
 	# Collect test results
-    print pretty.HEADER("Collecting integration test results")
+    print pretty.HEADER("Collecting integration test results, on {0} cpu(s)".format(num_cpus))
 
-    for p in processes:
-        fail_count += 1 if p.wait_status() else 0
+    # Run a maximum number of parallell tests equal to cpus available
+    while tests or processes:   # While there are tests or processes left
+        try:
+            processes.append(tests.pop(0).start())  # Remove test from list after start
+        except IndexError:
+            pass   # All tests done
 
-    # Exit early if any tests failed
-    if fail_count and args.fail:
-        print pretty.FAIL(str(fail_count) + "integration tests failed")
-        sys.exit(fail_count)
+        while (len(processes) == num_cpus) or not tests:
+            # While there are a maximum of num_cpus to process
+            # Or there are no more tests left to start we wait for them
+            for p in list(processes):   # Iterate over copy of list
+                if p.proc_.poll() is not None:
+                    fail_count += 1 if p.wait_status() else 0
+                    processes.remove(p)
+
+            time.sleep(1)
+            if not processes and not tests:
+                break
+
+        # Exit early if any tests failed
+        if fail_count and args.fail:
+            print pretty.FAIL(str(fail_count) + "integration tests failed")
+            sys.exit(fail_count)
 
     # Start running the time sensitive tests
     for test in time_sensitive_tests:
