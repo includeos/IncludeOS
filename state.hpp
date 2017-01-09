@@ -7,6 +7,7 @@
 #include <util/timer.hpp>
 #include <net/http/response.hpp>
 #include <net/http/error.hpp>
+#include <rtc> // timestamp_t
 
 namespace mender {
   class Client;
@@ -19,6 +20,7 @@ namespace mender {
       // timer stuff
       Timer timer;
       int delay = 0;
+      RTC::timestamp_t last_inventory_update = 0;
 
       void clear()
       {
@@ -84,6 +86,24 @@ namespace mender {
 
       Result handle(Client&, Context&) override;
       std::string to_string() const override { return "Authorized"; }
+    };
+
+    class Update_check : public State {
+    public:
+      static State& instance()
+      { static Update_check state_; return state_; }
+
+      Result handle(Client&, Context&) override;
+      std::string to_string() const override { return "Update_check"; }
+    };
+
+    class Update_fetch : public State {
+    public:
+      static State& instance()
+      { static Update_fetch state_; return state_; }
+
+      Result handle(Client&, Context&) override;
+      std::string to_string() const override { return "Update_fetch"; }
     };
   }
 

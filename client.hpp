@@ -9,10 +9,11 @@
 #include <net/http/client.hpp>
 #include <timers>
 #include "state.hpp"
+#include "device.hpp"
 
 namespace mender {
 
-  static const std::string api_prefx = "/api/devices/0.1/";
+  static const std::string api_prefix = "/api/devices/0.1/";
 
 	class Client {
   public:
@@ -25,18 +26,22 @@ namespace mender {
 
     void check_for_update();
 
-    void on_auth(AuthCallback cb)
-    { on_auth_ = cb; }
+    void fetch_update(http::Response_ptr = nullptr);
+
+    void update_inventory_attributes();
 
     bool is_authed() const
     { return !am_.auth_token().empty(); }
 
-    void authenticate(Timers::duration_t interval, AuthCallback cb = nullptr);
+    Device& device()
+    { return device_; }
 
   private:
     // auth related
     Auth_manager am_;
-    AuthCallback on_auth_;
+
+    // device
+    Device device_;
 
     // http related
     const std::string server_;
@@ -65,6 +70,8 @@ namespace mender {
 
     void update_handler(http::Error err, http::Response_ptr res);
 
+    http::URI parse_update_uri(http::Response& res);
+
     void run_state()
     {
       switch(state_->handle(*this, context_))
@@ -83,22 +90,6 @@ namespace mender {
           return;
       }
     }
-    /*void state_handler()
-    {
-      if(!context_.delay)
-        run_state_loop();
-      else {
-
-      }
-    }
-
-    void run_state_loop()
-    {
-      while(run_state());
-    }
-
-    bool run_state()
-    { return state_->handle(*this, context_); }*/
 
     void run_state_delayed()
     { context_.timer.start(std::chrono::seconds(context_.delay), {this, &Client::run_state}); }
