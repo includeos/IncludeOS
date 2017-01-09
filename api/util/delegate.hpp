@@ -129,12 +129,13 @@ public:
 
 	bool empty() const noexcept
 	{
-		return invoke_ptr_ == detail::empty_pure<R, Args...>;
+		return invoke_ptr_ == static_cast<invoke_ptr_t>(
+			detail::empty_pure<R, Args...>);
 	}
 
 	template<typename T> T* target() const noexcept
 	{
-		return invoke_ptr_;
+		return static_cast<T*>(invoke_ptr_);
 	}
 
 private:
@@ -191,7 +192,8 @@ public:
 
 	bool empty() const noexcept
 	{
-		return invoke_ptr_ == detail::empty<R, storage_t, Args...>;
+		return invoke_ptr_ == static_cast<invoke_ptr_t>(
+			detail::empty<R, storage_t, Args...>);
 	}
 
 	template<typename T> T* target() const noexcept
@@ -302,7 +304,8 @@ public:
 
 	bool empty() const noexcept
 	{
-		return invoke_ptr_ == detail::empty<R, storage_t, Args...>;
+		return invoke_ptr_ == static_cast<invoke_ptr_t>(
+			detail::empty<R, storage_t, Args...>);
 	}
 
 	template<typename T> T* target() const noexcept
