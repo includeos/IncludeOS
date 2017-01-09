@@ -67,6 +67,9 @@ namespace hw {
     /** Direct write to serial port 1 (for early printing before e.g. global ctors) **/
     static void print1(const char* cstr);
 
+    /** Send the EOT ASCII character. Effectively signal EOF to the receiving terminal. **/
+    static void EOT();
+
   private:
     void print_handler(const char*, size_t);
 

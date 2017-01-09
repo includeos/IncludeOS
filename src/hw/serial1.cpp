@@ -1,5 +1,9 @@
 #include <hw/serial.hpp>
 
+void hw::Serial::EOT() {
+  hw::outb(ports_[0], 4);
+}
+
 void hw::Serial::print1(const char* cstr) {
   char* p = (char*)cstr;
   auto port_ = ports_[0];

@@ -27,8 +27,14 @@
 #include <kernel/rtc.hpp>
 
 #include <hw/acpi.hpp>
+#include <hw/serial.hpp>
 
 #include <statman>
+#include <kprint>
+#include <info>
+
+// We can't use the usual "info", as printf isn't available after call to exit
+#define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
 #define SHUTDOWN_ON_PANIC 1
 
@@ -41,7 +47,10 @@ extern "C" {
 
 static uint32_t& sbrk_called  {Statman::get().create(Stat::UINT32, "syscalls.sbrk").get_uint32()};
 
-void _exit(int) {
+void _exit(int status) {
+  kprintf("%s",std::string(LINEWIDTH, '=').c_str());
+  kprint("\n");
+  SYSINFO("service exited with status %i", status);
   default_exit();
 }
 
@@ -155,8 +164,11 @@ void panic(const char* why) {
   printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
-  // shutdown the machine
 
+  // Signal End-Of-Transmission
+  hw::Serial::EOT();
+
+  // shutdown the machine
   if (SHUTDOWN_ON_PANIC)
     hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
@@ -165,7 +177,7 @@ void panic(const char* why) {
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
   hw::ACPI::shutdown();
-  while (1) asm("cli; hlt");
+  __builtin_unreachable();
 }
 
 // To keep our sanity, we need a reason for the abort
