@@ -25,9 +25,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# stackrealign is needed to guarantee 16-byte stack alignment for SSE
-# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
+set(CAPABS "-msse3 -fstack-protector-strong")
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -125,10 +123,18 @@ file(GLOB PLUGIN_LIST "${PLUGIN_LOC}/*.a")
 plugin_config_option(driver DRIVER_LIST)
 plugin_config_option(plugin PLUGIN_LIST)
 
+# Simple way to build subdirectories before service
+foreach(DEP ${DEPENDENCIES})
+  get_filename_component(DIR_PATH "${DEP}" DIRECTORY BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(DEP_NAME "${DEP}" NAME BASE_DIR "${CMAKE_SOURCE_DIR}")
+  #get_filename_component(BIN_PATH "${DEP}" REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  add_subdirectory(${DIR_PATH})
+  add_dependencies(service ${DEP_NAME})
+endforeach()
+
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
   get_filename_component(LNAME ${LIBR} NAME_WE)
-
   add_library(libr_${LNAME} STATIC IMPORTED)
   set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
@@ -302,7 +308,7 @@ add_custom_target(
 add_custom_target(
   prepend_bootloader ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
-  DEPENDS service
+  DEPENDS pruned_elf_symbols
 )
 
 # install binary directly to prefix (which should be service root)
