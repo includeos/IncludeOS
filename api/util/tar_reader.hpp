@@ -32,8 +32,8 @@ extern uintptr_t _binary_input_bin_size;
 
 namespace tar {
 
-const int SECTOR_SIZE = 512;
-const int DECOMPRESSION_SIZE = 256;
+static const int SECTOR_SIZE = 512;
+static const int DECOMPRESSION_SIZE = 256;
 
 static bool has_uzlib_init = false;
 
