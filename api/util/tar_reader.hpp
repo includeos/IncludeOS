@@ -27,6 +27,8 @@
 #include <vector>
 #include <stdexcept>
 
+#include <memory>
+
 extern char _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
