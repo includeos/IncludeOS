@@ -26,7 +26,7 @@
  * The earliest possible print function (requires no heap, global ctors etc.)
  **/
 inline void kprintf(const char* format, ...) {
-  int bufsize = strlen(format) * 2;
+  int bufsize = std::max(strlen(format) * 2, 81u);
   char buf[bufsize];
   va_list aptr;
   va_start(aptr, format);
