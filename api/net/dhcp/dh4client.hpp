@@ -44,11 +44,10 @@ namespace net
 
     // Signal indicating the result of DHCP negotation
     // timeout is true if the negotiation timed out
-    void on_config(config_func handler)
-    {  config_handlers_.push_back(handler);  }
+    void on_config(config_func handler);
 
     // disable or enable console spam
-    void set_silent(bool sil)
+    void set_silent(bool sil) noexcept
     { this->console_spam = !sil; }
 
   private:
@@ -62,8 +61,8 @@ namespace net
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
     Timers::id_t timeout;
-    bool  console_spam;
-    bool in_progress = false;
+    bool         console_spam;
+    bool         in_progress;
   };
 }
 
