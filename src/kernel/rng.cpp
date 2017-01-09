@@ -19,6 +19,7 @@
 #include <kernel/rdrand.hpp>
 #include <kernel/cpuid.hpp>
 #include <algorithm>
+#include <cstring>
 
 static uint64_t rng_state[25];
 

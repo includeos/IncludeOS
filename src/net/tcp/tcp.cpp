@@ -18,6 +18,7 @@
 #define DEBUG
 #define DEBUG2
 
+#include <climits>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
 #include <statman>

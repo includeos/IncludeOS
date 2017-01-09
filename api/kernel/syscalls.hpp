@@ -19,6 +19,7 @@
 #define KERNEL_SYSCALLS_HPP
 
 #include <sys/unistd.h>
+#include <sys/types.h>
 
 extern "C" {
   int  kill(pid_t pid, int sig);
