@@ -162,7 +162,7 @@ namespace
     cpuid_t result;
     asm volatile ("cpuid"
       : "=a"(result.EAX), "=b"(result.EBX), "=c"(result.ECX), "=d"(result.EDX)
-      : "a"(func), "c"(subfunc) : "%eax", "%ebx", "%ecx", "%edx");
+      : "a"(func), "c"(subfunc));
 
     // Try to find an empty spot in the cache
     for (auto& cached : cache)

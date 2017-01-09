@@ -239,7 +239,7 @@ namespace fs
                 sector, // parent block
                 D->size(),
                 D->attrib,
-                D->modified);
+                D->get_modified());
           }
         }
         else {
@@ -257,7 +257,7 @@ namespace fs
               sector, // parent block
               D->size(),
               D->attrib,
-              D->modified);
+              D->get_modified());
         }
       } // entry is long name
 

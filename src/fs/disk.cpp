@@ -46,8 +46,8 @@ namespace fs {
         parts.emplace_back(
           mbr->part[i].flags,     //< flags
           mbr->part[i].type,      //< id
-          mbr->part[i].lba_begin, //< LBA
-          mbr->part[i].sectors);
+          mbr->part[i].get_LBA(), //< LBA
+          mbr->part[i].get_sectors());
       }
 
       func(no_error, parts);
