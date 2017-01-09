@@ -64,6 +64,12 @@ CASE("Add a set of values to a std::vector object") {
   EXPECT(test_vector == data);
 }
 
+CASE("Create a std::vector object (as_vector)") {
+  const std::vector<double> test_vector {12.5,4.2,5};
+  const auto data = collections::as_vector(12.5,4.2,5);
+  EXPECT(test_vector == data);
+}
+
 CASE("Get the min element from a std::vector object") {
   std::vector<int> data {1,5,3};
   const auto min = (data | collections::min_element);

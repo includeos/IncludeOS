@@ -127,8 +127,7 @@ inline namespace operation_tags {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    has_random_iterator<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    has_random_iterator<std::decay_t<T>>::value>>
 bool operator|(T&& data_set, const struct is_heap_tag&) {
   return std::is_heap(std::begin(data_set), std::end(data_set));
 }
@@ -143,8 +142,7 @@ bool operator|(T&& data_set, const struct is_heap_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 bool operator|(T&& data_set, const struct is_sorted_tag&) {
   return std::is_sorted(std::begin(data_set), std::end(data_set));
 }
@@ -159,8 +157,7 @@ bool operator|(T&& data_set, const struct is_sorted_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    has_random_iterator<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    has_random_iterator<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct make_heap_tag&) {
   auto result = std::forward<T>(data_set);
   std::make_heap(std::begin(result), std::end(result));
@@ -180,8 +177,7 @@ auto operator|(T&& data_set, const struct make_heap_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct max_element_tag&) {
   using sequence = std::remove_reference_t<T>;
   const auto it  = std::max_element(std::begin(data_set), std::end(data_set));
@@ -201,8 +197,7 @@ auto operator|(T&& data_set, const struct max_element_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct min_element_tag&) {
   using sequence = std::remove_reference_t<T>;
   const auto it  = std::min_element(std::begin(data_set), std::end(data_set));
@@ -219,8 +214,7 @@ auto operator|(T&& data_set, const struct min_element_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct next_permutation_tag&) {
   auto result = std::forward<T>(data_set);
   std::next_permutation(std::begin(result), std::end(result));
@@ -237,8 +231,7 @@ auto operator|(T&& data_set, const struct next_permutation_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct prev_permutation_tag&) {
   auto result = std::forward<T>(data_set);
   std::prev_permutation(std::begin(result), std::end(result));
@@ -255,8 +248,7 @@ auto operator|(T&& data_set, const struct prev_permutation_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    has_random_iterator<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    has_random_iterator<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct sort_tag&) {
   auto result = std::forward<T>(data_set);
   std::sort(std::begin(result), std::end(result));
@@ -275,8 +267,7 @@ auto operator|(T&& data_set, const struct sort_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    has_random_iterator<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    has_random_iterator<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct stable_sort_tag&) {
   auto result = std::forward<T>(data_set);
   std::stable_sort(std::begin(result), std::end(result));
@@ -293,8 +284,7 @@ auto operator|(T&& data_set, const struct stable_sort_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    has_random_iterator<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    has_random_iterator<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct unique_tag&) {
   auto result  = (std::forward<T>(data_set) | stable_sort);
   const auto _ = std::unique(std::begin(result), std::end(result));
@@ -315,8 +305,7 @@ auto operator|(T&& data_set, const struct unique_tag&) {
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 auto operator|(T&& data_set, const struct sum_tag&) {
   using sequence = std::remove_reference_t<T>;
   return std::accumulate(std::begin(data_set), std::end(data_set), typename sequence::value_type{});
@@ -445,6 +434,26 @@ auto& add_all(std::vector<T,A>& data_set, V&& value, Args&&... args) {
 }
 
 ///
+/// Get a std::vector with the specified arguments
+///
+/// @param obj
+///   An object to add to the std::vector
+///
+/// @param args
+///   A pack of arguments to add to the std::vector
+///
+/// @return A std::vector object populated with the specified
+/// arguments
+///
+template<typename T, typename... Args>
+auto as_vector(T&& obj, Args&&... args) {
+  std::vector<T> result;
+  result.reserve(sizeof...(args) + 1);
+  add_all(result, std::forward<T>(obj), std::forward<Args>(args)...);
+  return result;
+}
+
+///
 /// Map the specified sequence of elements [a] to a sequence
 /// of elements [b]
 ///
@@ -459,7 +468,7 @@ auto& add_all(std::vector<T,A>& data_set, V&& value, Args&&... args) {
 ///
 template<typename T, typename F>
 auto map(const T& data_set, F map_function) {
-  std::vector<typename std::result_of<F(typename T::value_type)>::type> result;
+  std::vector<std::result_of_t<F(typename T::value_type)>> result;
   result.reserve(std::distance(std::begin(data_set), std::end(data_set)));
   for (const auto& element : data_set) {
     result.push_back(map_function(element));
@@ -480,9 +489,9 @@ auto map(const T& data_set, F map_function) {
 /// @return A new sequence of purified elements
 ///
 template<typename T, typename F,
-         typename = typename std::enable_if<
-                    std::is_same<typename std::result_of<F(typename T::value_type)>::type,
-                    bool>::value>::type
+         typename = std::enable_if_t<
+                    std::is_same<
+                    std::result_of_t<F(typename T::value_type)>,bool>::value>
         >
 auto filter(const T& data_set, F filter_function) {
   std::vector<typename T::value_type> result;
@@ -550,8 +559,7 @@ void print_sequence(std::ostream& output_device, T& data_set,
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    is_sequence<std::decay_t<T>>::value>>
 std::string sequence_to_string(const T& data_set, const char start_symbol = '[',
                                const char end_symbol = ']', const char delimiter = ',')
 {
@@ -616,8 +624,7 @@ void print_map(std::ostream& output_device, const std::map<K,V,C,A>& data_set,
 ///
 template<typename T,
          typename = std::enable_if_t<
-                    collections::is_sequence<
-                    std::remove_cv_t<std::remove_reference_t<T>>>::value>>
+                    collections::is_sequence<std::decay_t<T>>::value>>
 std::ostream& operator<<(std::ostream& output_device, const T& data_set) {
   collections::print_sequence(output_device, data_set);
   return output_device;

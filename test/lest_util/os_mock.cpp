@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,18 @@
 
 #include <cassert>
 #include <os>
+
+#ifdef __MACH__
+#include <stdlib.h>
+#include <stddef.h>
+#include <gsl/gsl_assert>
+void* memalign(size_t alignment, size_t size) {
+  void* ptr {nullptr};
+  int res = posix_memalign(&ptr, alignment, size);
+  Ensures(res == 0);
+  return ptr;
+}
+#endif //< __MACH__
 
 ///
 /// Mocked commandline arguments
