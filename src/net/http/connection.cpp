@@ -84,16 +84,8 @@ namespace http {
     // if there already is a response
     else
     {
-      // add chunks of data and reparse everything..
-      *res_ << data;
-      try {
-        res_->parse();
-      }
-      catch(...)
-      {
-        end_response({Error::INVALID});
-        return;
-      }
+      // add chunks of data
+      res_->add_chunk(data);
     }
 
     const auto& header = res_->header();
@@ -108,7 +100,7 @@ namespace http {
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().c_str(), data.size(), conlen, res_->body().size());
+            req_->uri().to_string().to_string().c_str(), data.size(), conlen, res_->body().size());
           // risk buffering forever if no timeout
           if(conlen == res_->body().size())
           {
