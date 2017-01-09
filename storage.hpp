@@ -71,6 +71,12 @@ struct storage_header
   typedef delegate<int(char*)> construct_func;
   static const uint64_t  LIVEUPD_MAGIC;
   
+  size_t get_length() const noexcept {
+    return this->length;
+  }
+  size_t total_bytes() const noexcept {
+    return sizeof(storage_header) + get_length();
+  }
   uint32_t get_entries() const noexcept {
     return this->entries;
   }

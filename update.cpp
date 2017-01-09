@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 #include "elf.h"
@@ -39,7 +40,7 @@ bool LiveUpdate::resume(void* location, resume_func func)
   return resume_begin(*(storage_header*) location, func);
 }
 
-static void update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
+static size_t update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
 
 #include <hw/devices.hpp>
 
@@ -65,8 +66,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   
   // validate not overwriting heap
   if (heap_end >= storage_area) {
-    printf("*** The heap is currently inside the storage area\n");
-    return;
+    throw std::runtime_error("*** The heap is currently inside the storage area\n");
   }
 
   // validate ELF header
@@ -85,8 +85,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
     {
       /// failed to find elf header at sector 0 and 1
       /// simply return
-      printf("*** Failed to find any ELF header in blob\n");
-      return;
+      throw std::runtime_error("*** Failed to find any ELF header in blob\n");
     }
   }
   printf("* Found ELF header\n");
@@ -101,7 +100,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
     printf("*** There was a mismatch between blob length and expected ELF file size:\n");
     printf("EXPECTED: %u byte\n",  expected_total);
     printf("ACTUAL:   %u bytes\n", blob.length);
-    return;
+    throw std::runtime_error("ELF file was incomplete");
   }
   printf("* Validated ELF header\n");
 
@@ -110,7 +109,8 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   printf("* _start is located at %#x\n", start_offset);
 
   // save ourselves
-  update_store_data(storage_area, func, blob);
+  size_t storage_len = update_store_data(storage_area, func, blob);
+  printf("* Stored %u bytes of user data\n", storage_len);
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
@@ -138,8 +138,12 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   /// the end
   ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset, sr_data);
 }
+size_t LiveUpdate::store(void* location, storage_func func)
+{
+  return update_store_data(location, func, {nullptr, 0});
+}
 
-void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len blob)
+size_t update_store_data(void* location, LiveUpdate::storage_func func, buffer_len blob)
 {
   // create storage header in the fixed location
   new (location) storage_header();
@@ -152,7 +156,11 @@ void update_store_data(void* location, LiveUpdate::storage_func func, buffer_len
   storage->finalize();
   
   /// sanity check
-  assert(storage->validate());
+  if (storage->validate() == false)
+      throw std::runtime_error("Failed sanity check on user storage data");
+
+  /// return length of the whole thing
+  return storage->total_bytes();
 }
 
 /// struct Storage

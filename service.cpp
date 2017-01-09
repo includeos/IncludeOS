@@ -292,7 +292,7 @@ void setup_liveupdate_server(T& inet)
   server.on_connect(
   [] (auto conn)
   {
-    static const int UPDATE_MAX = 1024*1024 * 3; // 3mb files supported
+    static const int UPDATE_MAX = 1024*1024 * 2; // 2mb files supported
     char* update_blob = new char[UPDATE_MAX];
     int*  update_size = new int(0);
 
@@ -309,10 +309,15 @@ void setup_liveupdate_server(T& inet)
       // we received a binary:
       float frac = *update_size / (float) UPDATE_MAX * 100.f;
       printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
-      // run live update process
-      liu::LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
-      /// We should never return :-) ///
-      assert(0 && "!! Update failed !!");
+      try
+      {
+        // run live update process
+        liu::LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
+      }
+      catch (std::runtime_error err)
+      {
+        printf("Live update failed:\n%s\n", err.what());
+      }
     });
   });
 }

@@ -61,7 +61,7 @@ void storage_header::add_vector(uint16_t id, const void* buf, size_t cnt, size_t
 }
 void storage_header::add_string_vector(uint16_t id, const std::vector<std::string>& vec)
 {
-  auto& entry = var_entry(TYPE_STR_VECTOR, id,
+  var_entry(TYPE_STR_VECTOR, id,
   [&vec] (char* dest) -> int
   {
     int total_len = sizeof(varseg_begin);
@@ -94,19 +94,21 @@ void storage_header::add_end()
 			storage_end, 
 			OS::heap_max()+1, 
 			storage_end - (OS::heap_max()+1));
-    assert(0 && "LiveUpdate storage end outside memory");
+    throw std::runtime_error("LiveUpdate storage end outside memory");
   }
   // verify memory is writable at the current end
   static const int END_CANARY = 0xbeefc4f3;
   *((volatile int*) &ent.len) = END_CANARY;
-  assert(ent.len == END_CANARY);
+  if (ent.len != END_CANARY)
+      throw std::runtime_error("Failed to write canary to end of storage");
   // restore length to zero
   ent.len = 0;
 }
 
 void storage_header::finalize()
 {
-  assert(this->magic == LIVEUPD_MAGIC);
+  if (this->magic != LIVEUPD_MAGIC)
+      throw std::runtime_error("Magic field invalidated during store process");
   add_end();
   this->crc = generate_checksum();
 }
