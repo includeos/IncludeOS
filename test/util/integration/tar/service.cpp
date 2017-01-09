@@ -46,11 +46,8 @@ void print_content(Element& element, const std::string& unique) {
   } else {
     printf("%s is not a folder and has content:\n", unique.c_str());
 
-    std::vector<Content_block*> content = element.content();
-    printf("First block of content: %.512s", content.at(0)->block);
-
-    if (content.size() > 1)
-      printf("\nLast block of content: %.512s", content.at(content.size()-1)->block);
+    const char* content = element.content();
+    printf("First block of content: %.512s", content);
   }
 }
 
