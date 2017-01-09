@@ -61,8 +61,6 @@ public:
   const char* content() const { return content_start_; }
   void set_content_start(const char* content_start) { content_start_ = content_start; }
 
-  const char* last_block() { return content_start_ + (SECTOR_SIZE * num_content_blocks()); }
-
   std::string name() const { return std::string{header_.name}; }
   std::string mode() const { return std::string{header_.mode}; }
   std::string uid() const { return std::string{header_.uid}; }
