@@ -3,6 +3,9 @@
 #include <hw/apic_timer.hpp>
 #include <util/crc32.hpp>
 
+#define SOFT_RESET_MAGIC    0xFEE1DEAD
+#define SOFT_RESET_LOCATION 0x7000
+
 namespace hw {
   uint32_t apic_timer_get_ticks();
   void     apic_timer_set_ticks(uint32_t);
@@ -15,6 +18,11 @@ struct softreset_t
   uint32_t apic_ticks;
 };
 
+bool OS::is_softreset_magic(uintptr_t value)
+{
+  return value == SOFT_RESET_MAGIC;
+}
+
 void OS::resume_softreset(intptr_t addr)
 {
   auto* data = (softreset_t*) addr;
@@ -24,9 +32,9 @@ void OS::resume_softreset(intptr_t addr)
   data->checksum = 0;
   uint32_t crc = crc32(data, sizeof(softreset_t));
   if (crc != csum_copy) {
-    kprintf("Failed to verify CRC of softreset data: %08x vs %08x\n",
+    kprintf("[!] Failed to verify CRC of softreset data: %08x vs %08x\n",
             crc, csum_copy);
-    assert(false);
+    return;
   }
   data->checksum = csum_copy;
   
@@ -40,7 +48,7 @@ extern "C"
 void* __os_store_soft_reset()
 {
   // store softreset data in low memory
-  auto* data = (softreset_t*) 0x7000;
+  auto* data = (softreset_t*) SOFT_RESET_LOCATION;
   data->checksum    = 0;
   data->cpu_freq    = OS::cpu_freq();
   data->apic_ticks  = hw::apic_timer_get_ticks();

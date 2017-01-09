@@ -37,7 +37,6 @@
 #include <vector>
 
 extern "C" void kernel_sanity_checks();
-#define SOFT_RESET_MAGIC   0xFEE1DEAD
 //#define ENABLE_PROFILERS
 
 #ifdef ENABLE_PROFILERS
@@ -112,8 +111,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     OS::multiboot(boot_magic, boot_addr);
   } else {
 
-    if (boot_magic == SOFT_RESET_MAGIC)
-      if (boot_addr) OS::resume_softreset(boot_addr);
+    if (is_softreset_magic(boot_magic) && boot_addr != 0)
+        OS::resume_softreset(boot_addr);
 
     OS::legacy_boot();
   }
@@ -292,9 +291,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // begin service start
   Service::start();
-
-  // verify integrity of operating system (after Start)
-  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
@@ -357,10 +353,15 @@ void OS::event_loop() {
 
   // Cleanup
   Service::stop();
-  // ACPI shutdown sequence
+  /// TODO: move me to arch-specific module
   hw::ACPI::shutdown();
 }
 
+void OS::reboot()
+{
+  /// TODO: move me to arch-specific module
+  hw::ACPI::reboot();
+}
 void OS::shutdown()
 {
   power_ = false;
