@@ -74,18 +74,16 @@ public:
   { return cpu_mhz_; }
 
   /**
+   * Reboot operating system
+   *
+   **/
+  static void reboot();
+
+  /**
    * Shutdown operating system
    *
    **/
   static void shutdown();
-
-  /**
-   *  Write data to standard out callbacks
-   */
-  static size_t print(const char* ptr, const size_t len);
-
-  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
-  static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /**
    *  Halt until next interrupt.
@@ -101,6 +99,11 @@ public:
   static bool is_running() {
     return power_;
   }
+
+  /**
+   *  Write data to standard out callbacks
+   */
+  static size_t print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
@@ -176,6 +179,8 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
+  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
+  static void start(uint32_t boot_magic, uint32_t boot_addr);
 
 private:
 
@@ -186,6 +191,7 @@ private:
   static void legacy_boot();
 
   /** Resume stuff from a soft reset **/
+  static bool is_softreset_magic(uint32_t value);
   static void resume_softreset(intptr_t boot_addr);
 
   static constexpr int PAGE_SHIFT = 12;

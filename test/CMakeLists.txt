@@ -72,7 +72,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
-  ${SRC}/hw/acpi.cpp
+  #${SRC}/hw/acpi.cpp
   ${SRC}/hw/block_device.cpp
   #${SRC}/hw/cmos.cpp
   ${SRC}/hw/ioapic.cpp

@@ -19,7 +19,12 @@
 //#undef  NO_DEBUG
 #include <debug>
 #include <cassert>
+#if !defined(__MACH__)
 #include <malloc.h>
+#else
+extern void *memalign(size_t, size_t);
+#endif
+
 #include <cstdio>
 
 #include <net/buffer_store.hpp>
