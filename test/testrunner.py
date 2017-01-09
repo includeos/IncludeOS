@@ -7,6 +7,7 @@ import argparse
 import json
 import time
 import multiprocessing  # To figure out number of cpus
+import junit_xml as jx
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -45,6 +46,9 @@ parser.add_argument("-t", "--tests", nargs="*", dest="tests", default=[],
 
 parser.add_argument("-f", "--fail-early", dest="fail", action="store_true",
                     help="Exit on first failed test")
+
+parser.add_argument("-j", "--junit-xml", dest="junit", action="store_true",
+                    help="Produce junit xml results")
 
 args = parser.parse_args()
 
@@ -361,7 +365,7 @@ def filter_tests(all_tests, arguments):
         arguments (argument object): Contains arguments from argparse
 
     returns:
-        list: All Test objects that are to be run
+        tuple: (All Test objects that are to be run, skipped_tests)
     """
     print pretty.HEADER("Filtering tests")
 
@@ -396,7 +400,41 @@ def filter_tests(all_tests, arguments):
     fin_tests = [ x for x in tests_added if x not in skipped_tests ]
     print pretty.INFO("Accepted tests"), ", ".join([x.name_ for x in fin_tests])
 
-    return fin_tests
+    return (fin_tests, skipped_tests)
+
+def create_junit_output(tests):
+    """ Creates an output file for generating a junit test report
+
+    args:
+        tests: All tests completed + skipped
+
+    returns:
+        boolean: False if file generation failed - NOT YET
+    """
+
+    # Populate junit objects for all performed tests
+    junit_tests = []
+
+    # Integration tests
+    for test in tests:
+        junit_object = jx.TestCase(test.name_, classname="IncludeOS.{}".format(test.category_))
+
+        # If test is skipped add skipped info
+        if test.skip_:
+            junit_object.add_skipped_info(output = test.skip_reason_)
+        elif test.proc_.returncode is not 0:
+            junit_object.add_failure_info(output = test.output_[0])
+        else:
+            junit_object.stdout = test.output_[0]
+            junit_object.stderr = test.output_[1]
+
+        # Add to list of all test objects
+        junit_tests.append(junit_object)
+
+    # Stress and misc tests
+    ts = jx.TestSuite("IncludeOS tests", junit_tests)
+    with open('output.xml', 'w') as f:
+            jx.TestSuite.to_file(f, [ts], prettyprint=False)
 
 
 def main():
@@ -413,7 +451,7 @@ def main():
         sys.exit(0)
 
     # get a list of all the tests that are to be run
-    filtered_tests = filter_tests(all_tests, args)
+    filtered_tests, skipped_tests = filter_tests(all_tests, args)
 
     # Run the tests
     integration = integration_tests(filtered_tests)
@@ -429,6 +467,10 @@ def main():
                             +  " tests passed, exiting with code 0")
     else:
         print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
+
+    # Create Junit output
+    if args.junit:
+        create_junit_output(filtered_tests + skipped_tests)
 
     sys.exit(status)
 
