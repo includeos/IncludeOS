@@ -24,6 +24,18 @@ namespace http {
   {
   }
 
+  Request_ptr Client::create_request(Method method) const
+  {
+    auto req = std::make_unique<Request>();
+    req->set_method(method);
+
+    auto& header = req->header();
+    header.set_field(header::User_Agent, "IncludeOS/0.9");
+    set_connection_header(*req);
+
+    return req;
+  }
+
   void Client::send(Request_ptr req, Host host, Response_handler cb)
   {
     auto& conn = get_connection(host);
@@ -36,16 +48,16 @@ namespace http {
     conn.send(std::move(req), std::move(cb));
   }
 
-  void Client::get(URI url, Header_set hfields, Response_handler cb)
+  void Client::request(Method method, URI url, Header_set hfields, Response_handler cb)
   {
     resolve(url,
-    [ this, url{std::move(url)}, cb{std::move(cb)}, hfields{std::move(hfields)} ] (auto ip)
+    [ this, method, url{std::move(url)}, hfields{std::move(hfields)}, cb{std::move(cb)} ] (auto ip)
     {
       // Host resolved
       if(ip != 0)
       {
         // setup request with method and headers
-        auto req = create_request();
+        auto req = create_request(method);
         *req << hfields;
 
         // Set Host and URI path
@@ -63,10 +75,10 @@ namespace http {
     });
   }
 
-  void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb)
+  void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb)
   {
     // setup request with method and headers
-    auto req = create_request();
+    auto req = create_request(method);
     *req << hfields;
 
     //set uri
@@ -75,17 +87,16 @@ namespace http {
     send(std::move(req), std::move(host), std::move(cb));
   }
 
-  void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb)
+  void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb)
   {
     resolve(url,
-    [ this, url, cb{std::move(cb)}, data{std::move(data)}, hfields{std::move(hfields)} ] (auto ip)
+    [ this, method, url, hfields{std::move(hfields)}, data{std::move(data)}, cb{std::move(cb)} ] (auto ip)
     {
       // Host resolved
       if(ip != 0)
       {
         // setup request with method and headers
-        auto req = create_request();
-        req->set_method(POST);
+        auto req = create_request(method);
         *req << hfields;
 
         // Set Host & path from url
@@ -106,11 +117,10 @@ namespace http {
     });
   }
 
-  void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb)
+  void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb)
   {
     // setup request with method and headers
-    auto req = create_request();
-    req->set_method(POST);
+    auto req = create_request(method);
     *req << hfields;
 
     // set uri
@@ -126,7 +136,7 @@ namespace http {
   {
     auto& header = req.header();
     if(!header.has_field(header::Content_Type))
-      header.set_field(header::Content_Type, "text/plain"); // Maybe try to resolve
+      header.set_field(header::Content_Type, "text/plain");
 
     // Set Content-Length to be equal data length
     req.header().set_field(header::Content_Length, std::to_string(data.size()));
@@ -150,21 +160,10 @@ namespace http {
   {
     static auto&& stack = tcp_.stack();
     stack.resolve(url.host().to_string(),
-      [cb](auto ip)
+      [ cb{std::move(cb)} ](auto ip)
     {
       cb(ip);
     });
-  }
-
-  Request_ptr Client::create_request() const
-  {
-    auto req = std::make_unique<Request>();
-
-    auto& header = req->header();
-    header.set_field(header::User_Agent, "IncludeOS/0.9");
-    set_connection_header(*req);
-
-    return req;
   }
 
   Connection& Client::get_connection(const Host host)
