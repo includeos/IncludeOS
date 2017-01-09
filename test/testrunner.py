@@ -32,6 +32,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--clean-all", dest="clean", action="store_true",
                     help="Run make clean before building test")
 
+parser.add_argument("-C", "--clean-only", dest="clean_only", action="store_true",
+                    help="Will clean all the test folders and not run tests")
+
 parser.add_argument("-s", "--skip", nargs="*", dest="skip", default=[],
                     help="Tests to skip. Valid names: 'unit' (all unit tests), \
                   'stress' (stresstest), 'integration' (all integration tests), misc \
@@ -126,14 +129,23 @@ class Test:
     def start(self):
         os.chdir(startdir + "/" + self.path_)
         if self.clean:
-            subprocess.check_output(["rm","-rf","build"])
-            print pretty.C_GRAY + "\t Cleaned", os.getcwd(),"now start... ", pretty.C_ENDC
+            self.clean_test()
 
         self.proc_ = subprocess.Popen(self.command_, shell=False,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
         os.chdir(startdir)
         return self
+
+    def clean_test(self):
+        """ Clean the test directory of all build files"""
+
+        os.chdir(startdir + "/" + self.path_)
+
+        subprocess.check_output(["rm","-rf","build"])
+        print pretty.C_GRAY + "\t Cleaned", os.getcwd(), pretty.C_ENDC
+        return
+
 
     def print_start(self):
         print "* {0:66} ".format(self.name_),
@@ -177,7 +189,6 @@ class Test:
         skip_json = json.loads(open("skipped_tests.json").read())
         for skip in skip_json:
             if skip['name'] in self.path_:
-                print "skipping {}".format(self.name_)
                 self.skip_ = True
                 self.skip_reason_ = skip['reason']
                 return
@@ -394,6 +405,12 @@ def main():
 
     # Populate test objects
     all_tests = [ Test(path, args.clean) for path in leaves ]
+
+    # Check if clean-only is issued
+    if args.clean_only:
+        for test in all_tests:
+            test.clean_test()
+        sys.exit(0)
 
     # get a list of all the tests that are to be run
     filtered_tests = filter_tests(all_tests, args)
