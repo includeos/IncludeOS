@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import subprocess
 
 INCLUDEOS_PREFIX = None
 default_prefix = "/usr/local"
@@ -29,14 +30,14 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
-
-parser.add_argument('vmargs',  nargs='*', help="Arguments to pass on to the VM start / main")
-
+parser.add_argument("-g", "--grub", dest="grub", action="store_true",
+                    help="Create image with GRUB that will boot service")
+parser.add_argument('image', action="store", type=str,
+                    help="Filename of the service image")
+parser.add_argument('vmargs', nargs='?', help="Arguments to pass on to the VM start / main")
 args = parser.parse_args()
 
-
 nametag = "<boot>"
-
 print color.INFO(nametag), "Args to pass to VM: ", args.vmargs
 
 if len(vmrunner.vms) < 1:
@@ -51,4 +52,9 @@ if (args.clean):
     print color.INFO(nametag), "Cleaning build"
     vm.clean()
 
-vm.cmake().boot(timeout = None, kernel_args=" ".join(args.vmargs))
+vm.cmake()
+
+if (args.grub):
+    subprocess.call([INCLUDEOS_PREFIX + "/includeos/grubify.sh", ""], shell=True)
+else:
+    vm.boot(timeout = None, kernel_args=" ".join(args.vmargs))
