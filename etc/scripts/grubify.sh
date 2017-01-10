@@ -12,7 +12,7 @@ function unmount {
   # Instead we use umount -d to have mount detach the loopback device
 
   echo -e ">>> Unmounting and detaching $LOOP"
-  sudo umount -vd $MOUNTDIR
+  sudo umount -vd $MOUNTDIR || :
 
 }
 
