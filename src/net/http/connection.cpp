@@ -84,15 +84,17 @@ namespace http {
     // if there already is a response
     else
     {
-      // add chunks of data and reparse everything..
-      *res_ << data;
-      try {
+      // this is the case when Status line is received, but not yet headers.
+      if(res_->header().is_empty() && req_->method() != HEAD)
+      {
+        *res_ << data;
         res_->parse();
       }
-      catch(...)
+      // here we assume all headers has already been received (could not be true?)
+      else
       {
-        end_response({Error::INVALID});
-        return;
+        // add chunks of body data
+        res_->add_chunk(data);
       }
     }
 
@@ -108,7 +110,7 @@ namespace http {
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().c_str(), data.size(), conlen, res_->body().size());
+            req_->uri().to_string().to_string().c_str(), data.size(), conlen, res_->body().size());
           // risk buffering forever if no timeout
           if(conlen == res_->body().size())
           {
