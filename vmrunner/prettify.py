@@ -39,6 +39,7 @@ class color:
     C_WHITE_ON_RED = ESC + FG_NORMAL + WHITE + ";" + BG_NORMAL + RED + "m"
     C_BLACK_ON_GREEN = ESC + FG_NORMAL + BLACK + ";" + BG_NORMAL + GREEN + "m"
 
+    VM_PREPEND = C_GREEN + "<vm> " + C_ENDC
 
     @staticmethod
     def code(fg = WHITE, bg = BLACK, style = NORMAL, fg_intensity = FG_NORMAL, bg_intensity = BG_NORMAL):
@@ -86,7 +87,7 @@ class color:
 
     @staticmethod
     def VM(string):
-        return color.C_GREEN + "<vm> " + color.C_ENDC + string
+        return color.VM_PREPEND + string
 
     @staticmethod
     def DATA(string):
