@@ -3,12 +3,20 @@
 import os
 import sys
 import argparse
+import subprocess
 
-# Location of vmrunner
-sys.path.append(os.environ['INCLUDEOS_PREFIX']+"/includeos")
+INCLUDEOS_PREFIX = None
+default_prefix = "/usr/local"
 
-from vmrunner import vmrunner
-from vmrunner.prettify import color
+# Locate IncludeOS installation
+if "INCLUDEOS_PREFIX" not in os.environ:
+    INCLUDEOS_PREFIX = default_prefix
+else:
+    INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
+
+if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
+    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
+    sys.exit(0)
 
 # Argparse
 parser = argparse.ArgumentParser(
@@ -17,14 +25,34 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
 
-parser.add_argument('vmargs',  nargs='*', help="Arguments to pass on to the VM start / main")
+parser.add_argument('binary', action="store", type=str,
+                    help="Filename of the IncludeOS service binary")
 
+parser.add_argument("-g", "--grub", dest="grub", action="store_true",
+                    help="Create image with GRUB bootloader that will boot provided binary")
+
+
+parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 args = parser.parse_args()
 
+# Location of vmrunner
+sys.path.append(INCLUDEOS_PREFIX + "/includeos")
 
+# Note: importing vmrunner will make it start looking for VM's
+from vmrunner import vmrunner
+from vmrunner.prettify import color
+
+# Override VM output prepension
+color.VM_PREPEND = ""
+
+# Pretty printing from this command
 nametag = "<boot>"
+INFO = color.INFO(nametag)
 
-print color.INFO(nametag), "Args to pass to VM: ", args.vmargs
+# We can boot either a binary without bootloader, or an image with bootloader allready attached
+has_bootloader = False
+
+print INFO , "Args to pass to VM: ", args.vmargs
 
 if len(vmrunner.vms) < 1:
     print color.FAIL("No vm description files found - nothing to boot")
@@ -33,9 +61,34 @@ if len(vmrunner.vms) < 1:
 print color.INFO(nametag), len(vmrunner.vms), "VM initialized. Commencing build- and boot..."
 
 vm = vmrunner.vms[0]
+image_name = args.binary
+
+# For multible JSON configs, find the one matching the provided image name
+for vm_ in vmrunner.vms:
+    if vm_._config.has_key("image") and vm_._config["image"].startswith(image_name):
+        vm = vm_
 
 if (args.clean):
-    print color.INFO(nametag), "Cleaning build"
+    print INFO, "Cleaning build"
     vm.clean()
 
-vm.cmake().boot(timeout = None, kernel_args=" ".join(args.vmargs))
+vm.cmake()
+
+
+if (args.grub):
+    print INFO, "Creating GRUB image from ", args.binary
+    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + args.binary, shell=True)
+    image_name = args.binary + ".grub.img"
+    has_bootloader = True
+
+# If the binary name has an extension (e.g. a '.'), assume it has a bootloader attached
+# NOTE: the idea is to support e.g. .vdi and virtualbox etc. in the future
+elif "." in args.binary:
+    has_bootloader = True
+
+if (not has_bootloader):
+    print INFO, "Booting ", image_name, "as kernel binary without bootloader"
+    vm.boot(timeout = None, kernel_args=" ".join(args.vmargs), image_name = image_name)
+else:
+    print INFO, "Booting ", image_name, "as bootable image with bootloader"
+    vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)
