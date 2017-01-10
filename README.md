@@ -59,7 +59,7 @@ To do this we can edit ~/.bashrc (in the home folder), adding these lines at the
     export PATH=$PATH:$INCLUDEOS_PREFIX/bin
 ```
 
-This will also crucially make the boot program visible globally, so that you can simply run "boot <myservice>" inside any service folder.
+This will also crucially make the boot program visible globally, so that you can simply run ```boot <myservice>``` inside any service folder.
 
 ### Install libraries
 
