@@ -7,8 +7,10 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(BOTAN_VERSION 2)
+
 # Custom includes
-include_directories("/usr/local/include/botan-1.11")
+include_directories($ENV{INCLUDEOS_PREFIX}/include/botan-${BOTAN_VERSION})
 
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
@@ -28,12 +30,12 @@ add_library(mender_cli STATIC ${MENDER_CLI_OBJ})
 
 set(LIBRARIES ${LIBRARIES}
   "${CMAKE_CURRENT_BINARY_DIR}/libmender_cli.a"
-  "/usr/local/lib/libbotan-1.11.a"
+  $ENV{INCLUDEOS_PREFIX}/lib/libbotan-${BOTAN_VERSION}.a
   PARENT_SCOPE
   )
 
 set(LOCAL_INCLUDES ${LOCAL_INCLUDES}
-  "/usr/local/include/botan-1.11"
+  $ENV{INCLUDEOS_PREFIX}/include/botan-${BOTAN_VERSION}
   PARENT_SCOPE
   )
 
