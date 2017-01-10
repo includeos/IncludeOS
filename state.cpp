@@ -17,40 +17,59 @@ State::Result Init::handle(Client& cli, Context& ctx)
 {
   cli.make_auth_request();
   set_state<Auth_wait>(cli);
-  printf("<Init> Made auth request => Auth_wait\n");
   return AWAIT_EVENT;
 }
 
 State::Result Auth_wait::handle(Client& cli, Context& ctx)
 {
-  if(cli.is_authed()) {
-    printf("<Auth_wait> Auth success => Authorized\n");
-    set_state<Authorized>(cli);
-    ctx.delay = 0;
-    ctx.response = nullptr;
-    return GO_NEXT;
+  if(ctx.response == nullptr) {
+
   }
+  else
+  {
+    auto& res = *ctx.response;
+    const auto body{res.body().to_string()};
+    switch(res.status_code())
+    {
+      case 200:
+        printf("<Auth_wait> %s\n", body.c_str());
+        printf("<Auth_wait> Successfully authorized!\n");
+        // set token
+        cli.set_auth_token({body.begin(), body.end()});
+        // remove delay
+        ctx.delay = 0;
+        set_state<Authorized>(cli);
+        return GO_NEXT;
 
-  // increase up to 60 seconds
-  if(ctx.delay < 60)
-    ctx.delay++;
+      case 400:
+      case 401: // Unauthorized
+        printf("<Auth_wait> Auth failed:\n%s\n", body.c_str());
 
-  printf("<Auth_wait> Auth failed, delay increased: %d => Init\n", ctx.delay);
-  set_state(cli, Init::instance());
+        // increase up to 60 seconds
+        if(ctx.delay < 60)
+          ctx.delay++;
 
-  return DELAYED_NEXT;
+        printf("<Auth_wait> Delay increased: %d\n", ctx.delay);
+        set_state<Init>(cli);
+        return DELAYED_NEXT;
+
+      default:
+        printf("<Auth_wait> Not handeled (%u)\n", ctx.response->status_code());
+    }
+  }
+  return AWAIT_EVENT;
 }
 
 State::Result Authorized::handle(Client& cli, Context& ctx)
 {
-  if(ctx.last_inventory_update == 0)
+  if(ctx.last_inventory_update == 0) // todo: come up with some kind of limit
   {
-    printf("<Authorized> Inventory not updated => Authorized\n");
+    printf("<Authorized> Inventory not updated\n");
     cli.update_inventory_attributes();
   }
   else
   {
-    printf("<Authorized> Checking for update => Update_check\n");
+    printf("<Authorized> Inventory already updated\n");
     cli.check_for_update();
     set_state<Update_check>(cli);
   }
@@ -67,22 +86,24 @@ State::Result Update_check::handle(Client& cli, Context& ctx)
     printf("<Update_check> Received response\n");
     switch(ctx.response->status_code())
     {
-      case 200: // there is an update! verify
+      case 200: // there is an update! "verify"
         cli.fetch_update(std::move(ctx.response));
         set_state<Update_fetch>(cli);
-        printf("<Update_check> Fetch update => Update_fetch\n");
         return AWAIT_EVENT;
 
       case 204: // no update found
-        set_state<Authorized>(cli);
         ctx.delay = 10; // Ask again every 10th second
-        printf("<Update_check> No update, delay asking again => Authorized\n");
+        printf("<Update_check> No update, delay asking again.\n");
+        set_state<Authorized>(cli);
         return DELAYED_NEXT;
 
       case 401: // Unauthorized, go directly to Init
+        printf("<Update_check> Unauthorized, try authorize\n");
         set_state<Init>(cli);
-        printf("<Update_check> Unauthorized, try authorize => Init\n");
         return GO_NEXT;
+
+      default:
+        printf("<Update_check> Not handeled (%u)\n", ctx.response->status_code());
     }
   }
   return AWAIT_EVENT;
@@ -98,8 +119,9 @@ State::Result Update_fetch::handle(Client& cli, Context& ctx)
   {
     switch(ctx.response->status_code())
     {
-      case 200: // there is an update! verify
+      case 200: // Update fetched! prepare for install
         printf("<Update_fetch> Update downloaded (%u bytes)\n", ctx.response->body().size());
+        cli.install_update(std::move(ctx.response));
         return AWAIT_EVENT;
 
       default:

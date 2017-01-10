@@ -52,9 +52,11 @@ namespace mender {
       void set_state(Client& cli)
       {
         static_assert(std::is_base_of<State, NewState>::value, "NewState is not a State");
-        auto& s = NewState::instance();
-        cli.set_state(s);
-        printf("<State> New state: %s\n", s.to_string().c_str());
+        auto old_s{cli.state_->to_string()};
+        cli.set_state(NewState::instance());
+        printf("<State> %s => %s\n",
+          old_s.c_str(),
+          cli.state_->to_string().c_str());
       }
 
     }; // < class State

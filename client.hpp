@@ -13,7 +13,7 @@
 
 namespace mender {
 
-  static const std::string api_prefix = "/api/devices/0.1/";
+  static const std::string API_PREFIX = "/api/devices/0.1";
 
 	class Client {
   public:
@@ -29,6 +29,11 @@ namespace mender {
     void fetch_update(http::Response_ptr = nullptr);
 
     void update_inventory_attributes();
+
+    void install_update(http::Response_ptr = nullptr);
+
+    void set_auth_token(Auth_token token)
+    { am_.set_auth_token(token); }
 
     bool is_authed() const
     { return !am_.auth_token().empty(); }
@@ -58,38 +63,19 @@ namespace mender {
 
     std::string build_api_url(const std::string& server, const std::string& url) const;
 
-    http::Header_set create_headers(const byte_seq& signature) const;
+    http::Header_set create_auth_headers(const byte_seq& signature) const;
 
     void response_handler(http::Error err, http::Response_ptr res);
 
-    void auth_handler(http::Error err, http::Response_ptr res);
-
     bool is_valid_response(const http::Response& res) const;
 
-    void auth_success(const http::Response& res);
+    bool is_json(const http::Response& res) const;
 
-    void update_handler(http::Error err, http::Response_ptr res);
+    bool is_artifact(const http::Response& res) const;
 
     http::URI parse_update_uri(http::Response& res);
 
-    void run_state()
-    {
-      switch(state_->handle(*this, context_))
-      {
-        using namespace state;
-        case State::Result::GO_NEXT:
-          run_state();
-          return;
-
-        case State::Result::DELAYED_NEXT:
-          run_state_delayed();
-          return;
-
-        case State::Result::AWAIT_EVENT:
-          // setup timeout
-          return;
-      }
-    }
+    void run_state();
 
     void run_state_delayed()
     { context_.timer.start(std::chrono::seconds(context_.delay), {this, &Client::run_state}); }
