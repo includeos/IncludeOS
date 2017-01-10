@@ -87,8 +87,6 @@ elif "." in args.binary:
     has_bootloader = True
 
 if (not has_bootloader):
-    print INFO, "Booting ", image_name, "as kernel binary without bootloader"
     vm.boot(timeout = None, kernel_args=" ".join(args.vmargs), image_name = image_name)
 else:
-    print INFO, "Booting ", image_name, "as bootable image with bootloader"
     vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)

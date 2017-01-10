@@ -114,8 +114,12 @@ class qemu(hypervisor):
         super(qemu, self).__init__(config)
         self._proc = None
         self._stopped = False
-        self._nametag = "<" + type(self).__name__ + ">"
         self._sudo = False
+
+        # Pretty printing
+        self._nametag = "<" + type(self).__name__ + ">"
+        self.INFO = color.INFO(self._nametag)
+
 
     def name(self):
         return "Qemu"
@@ -133,11 +137,11 @@ class qemu(hypervisor):
         command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
         try:
             subprocess.check_output(command, shell = True)
-            print color.INFO("<qemu>"),"KVM ON"
+            print self.INFO, "KVM ON"
             return True
 
         except Exception as err:
-            print color.INFO("<qemu>"),"KVM OFF"
+            print self.INFO, "KVM OFF"
             return False
 
     # Start a process and preserve in- and output pipes
@@ -155,7 +159,7 @@ class qemu(hypervisor):
                                       stdout = subprocess.PIPE,
                                       stderr = subprocess.PIPE,
                                       stdin = subprocess.PIPE)
-        print color.INFO(self._nametag), "Started process PID ",self._proc.pid
+        print self.INFO, "Started process PID ",self._proc.pid
 
         return self._proc
 
@@ -165,23 +169,29 @@ class qemu(hypervisor):
             data, err = self._proc.communicate()
             return err
 
-    def boot(self, multiboot, kernel_args, image_name = None):
+    def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
-
-        # multiboot - e.g. boot with '-kernel' and no bootloader
-        if multiboot:
-            print color.INFO(self._nametag), "Booting with multiboot (-kernel args)"
-            kernel_args = ["-kernel", self._config["image"].split(".")[0], "-append", kernel_args]
-        else:
-            kernel_args = []
 
         # Use provided image name if set, otherwise try to find it in json-config
         if not image_name:
             image_name = self._config["image"]
 
-        print color.INFO(self._nametag), "booting", image_name
+        # multiboot - e.g. boot with '-kernel' and no bootloader
+        if multiboot:
 
-        disk_args = self.drive_arg(image_name, "ide")
+            # TODO: Remove .img-extension from vm.json in tests to avoid this hack
+            if (image_name.endswith(".img")):
+                image_name = image_name.split(".")[0]
+
+            kernel_args = ["-kernel", image_name, "-append", kernel_args]
+            disk_args = []
+            print self.INFO, "Booting", image_name, "directly without bootloader (multiboot / -kernel args)"
+        else:
+            kernel_args = []
+            disk_args = self.drive_arg(image_name, "ide")
+            print self.INFO, "Booting", image_name, "with a bootable disk image"
+
+
         if "drives" in self._config:
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
@@ -205,13 +215,13 @@ class qemu(hypervisor):
 
         command += ["-nographic" ] + disk_args + net_args + mem_arg
 
-        print color.INFO(self._nametag), "command:"
+        print self.INFO, "command:"
         print color.DATA(" ".join(command))
 
         try:
             self.start_process(command)
         except Exception as e:
-            print color.INFO(self._nametag),"Starting subprocess threw exception:", e
+            print self.INFO,"Starting subprocess threw exception:", e
             raise e
 
     def stop(self):
@@ -228,17 +238,17 @@ class qemu(hypervisor):
         if self._proc and self._proc.poll() == None :
 
             if not self._sudo:
-                print color.INFO(self._nametag),"Stopping child process (no sudo required)"
+                print self.INFO,"Stopping child process (no sudo required)"
                 self._proc.terminate()
             else:
                 # Find and terminate all child processes, since parent is "sudo"
                 parent = psutil.Process(self._proc.pid)
                 children = parent.children()
 
-                print color.INFO(self._nametag), "Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
+                print self.INFO, "Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
 
                 for child in children:
-                    print color.INFO(self._nametag)," + child process ", child.pid
+                    print self.INFO," + child process ", child.pid
 
                     # The process might have gotten an exit status by now so check again to avoid negative exit
                     if (not self._proc.poll()):
@@ -509,7 +519,7 @@ print color.INFO(nametag), "Validating JSON according to schema ",schema_path
 validate_vm.load_schema(schema_path)
 validate_vm.has_required_stuff(".")
 
-default_spec = {"image" : "test.img"}
+default_spec = {"image" : "service.img"}
 
 # Provide a list of VM's with validated specs
 vms = []
@@ -522,7 +532,7 @@ if validate_vm.valid_vms:
         vms.append(vm(spec))
 
 else:
-    print color.WARNING(nametag), "No VM specification JSON found, trying default: ", default_spec
+    print color.WARNING(nametag), "No VM specification JSON found, trying default config"
     vms.append(vm(default_spec))
 
 
