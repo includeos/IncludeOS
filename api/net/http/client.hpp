@@ -46,23 +46,89 @@ namespace http {
   public:
     explicit Client(TCP& tcp);
 
-    void send(Request_ptr, Host host, Response_handler);
+    /**
+     * @brief      Creates a request with some predfined attributes
+     *
+     * @param[in]  method  The HTTP method
+     *
+     * @return     A Request_ptr
+     */
+    Request_ptr create_request(Method method = GET) const;
 
-    void get(URI url, Header_set hfields, Response_handler cb);
+    /**
+     * @brief      Send a request to a specific host with a response handler
+     *
+     * @param[in]  req   The request
+     * @param[in]  host  The host
+     * @param[in]  cb    Callback to be invoked when a response is received (or error)
+     */
+    void send(Request_ptr req, Host host, Response_handler cb);
 
-    void get(std::string url, Header_set hfields, Response_handler cb)
-    { get(URI{url}, std::move(hfields), std::move(cb)); }
+    /**
+     * @brief      Create a request on the given URL
+     *
+     * @param[in]  method   The HTTP method
+     * @param[in]  url      The url
+     * @param[in]  hfields  A set of headers
+     * @param[in]  cb       Response handler
+     */
+    void request(Method method, URI url, Header_set hfields, Response_handler cb);
 
-    void get(Host host, std::string path, Header_set hfields, Response_handler cb);
+    /**
+     * @brief      Same as above
+     */
+    void request(Method method, std::string url, Header_set hfields, Response_handler cb)
+    { request(method, URI{url}, std::move(hfields), std::move(cb)); }
 
-    void post(URI url, Header_set hfields, std::string data, Response_handler cb);
+    /**
+     * @brief      Create a request to the given host on the given path
+     *
+     * @param[in]  method   The HTTP method
+     * @param[in]  host     The host
+     * @param[in]  path     The path
+     * @param[in]  hfields  A set of headers
+     * @param[in]  cb       Response handler
+     */
+    void request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb);
 
-    void post(std::string url, Header_set hfields, std::string data, Response_handler cb)
-    { post(URI{url}, std::move(hfields), std::move(data), std::move(cb)); }
+    /**
+     * @brief      Create a request on the given URL with payload
+     *
+     * @param[in]  method   The HTTP method
+     * @param[in]  url      The url
+     * @param[in]  hfields  A set of headers
+     * @param[in]  data     The data (payload)
+     * @param[in]  cb       Response handler
+     */
+    void request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb);
 
-    void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb);
+    /**
+     * @brief      Same as above
+     */
+    void request(Method method, std::string url, Header_set hfields, std::string data, Response_handler cb)
+    { request(method, URI{url}, std::move(hfields), std::move(data), std::move(cb)); }
 
-    Request_ptr create_request() const;
+    /**
+     * @brief      Create a request to the given host on the given path with payload
+     *
+     * @param[in]  method   The HTTP method
+     * @param[in]  host     The host
+     * @param[in]  path     The path
+     * @param[in]  hfields  A set of headers
+     * @param[in]  data     The data (payload)
+     * @param[in]  cb       Response handler
+     */
+    void request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb);
+
+    /* GET */
+    inline void get(URI url, Header_set hfields, Response_handler cb);
+    inline void get(std::string url, Header_set hfields, Response_handler cb);
+    inline void get(Host host, std::string path, Header_set hfields, Response_handler cb);
+
+    /* POST */
+    inline void post(URI url, Header_set hfields, std::string data, Response_handler cb);
+    inline void post(std::string url, Header_set hfields, std::string data, Response_handler cb);
+    inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb);
 
   private:
     TCP& tcp_;
@@ -89,6 +155,28 @@ namespace http {
     void close(Connection&);
 
   }; // < class Client
+
+
+  /* Inline implementation */
+  inline void Client::get(URI url, Header_set hfields, Response_handler cb)
+  { request(GET, url, hfields, cb); }
+
+  inline void Client::get(std::string url, Header_set hfields, Response_handler cb)
+  { get(URI{url}, std::move(hfields), std::move(cb)); }
+
+  inline void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb)
+  { request(GET, host, path, hfields, cb); }
+
+  /* POST */
+  inline void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb)
+  { request(POST, url, hfields, data, cb); }
+
+  inline void Client::post(std::string url, Header_set hfields, std::string data, Response_handler cb)
+  { post(URI{url}, std::move(hfields), std::move(data), std::move(cb)); }
+
+  inline void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb)
+  { request(POST, host, path, hfields, data, cb); }
+
 
 } // < namespace http
 
