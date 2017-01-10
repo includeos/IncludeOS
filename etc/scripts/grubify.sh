@@ -1,9 +1,10 @@
+#! /bin/bash
 DISK=${DISK-grub_disk.img}
 KERNEL=${1-build/test_grub}
 MOUNTDIR=${MOUNTDIR-/mnt}
 MOUNT_OPTS="sync,rw"
 BLOCKCCOUNT=10000
-
+set -e
 
 function unmount {
 

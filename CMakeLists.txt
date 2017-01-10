@@ -156,6 +156,7 @@ install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
 install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh

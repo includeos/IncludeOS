@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import subprocess
 
 INCLUDEOS_PREFIX = None
 default_prefix = "/usr/local"
@@ -23,22 +24,28 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
-
-parser.add_argument('vmargs',  nargs='*', help="Arguments to pass on to the VM start / main")
-
+parser.add_argument("-g", "--grub", dest="grub", action="store_true",
+                    help="Create image with GRUB that will boot service")
+parser.add_argument('image', action="store", type=str,
+                    help="Filename of the service image")
+parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 args = parser.parse_args()
 
 # Location of vmrunner
 sys.path.append(INCLUDEOS_PREFIX + "/includeos")
 
+# Note: importing vmrunner will make it start looking for VM's
 from vmrunner import vmrunner
 from vmrunner.prettify import color
 
+# Override VM output prepension
 color.VM_PREPEND = ""
 
+# Pretty printing from this command
 nametag = "<boot>"
+INFO = color.INFO(nametag)
 
-print color.INFO(nametag), "Args to pass to VM: ", args.vmargs
+print INFO , "Args to pass to VM: ", args.vmargs
 
 if len(vmrunner.vms) < 1:
     print color.FAIL("No vm description files found - nothing to boot")
@@ -49,7 +56,13 @@ print color.INFO(nametag), len(vmrunner.vms), "VM initialized. Commencing build-
 vm = vmrunner.vms[0]
 
 if (args.clean):
-    print color.INFO(nametag), "Cleaning build"
+    print INFO, "Cleaning build"
     vm.clean()
 
-vm.cmake().boot(timeout = None, kernel_args=" ".join(args.vmargs))
+vm.cmake()
+
+if (args.grub):
+    print INFO, "Creating GRUB image from ", args.image
+    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + args.image, shell=True)
+else:
+    vm.boot(timeout = None, kernel_args=" ".join(args.vmargs))
