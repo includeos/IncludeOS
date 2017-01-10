@@ -27,19 +27,23 @@ else:
 
 package_path = os.path.dirname(os.path.realpath(__file__))
 
+# The end-of-transmission character
+EOT = chr(4)
+
 # Exit codes used by this program
 exit_codes = {"SUCCESS" : 0,
               "PROGRAM_FAILURE" : 1,
               "TIMEOUT" : 66,
-              "VM_FAIL" : 67,
-              "OUTSIDE_FAIL" : 68,
+              "VM_PANIC" : 67,
+              "CALLBACK_FAILED" : 68,
               "BUILD_FAIL" : 69,
-              "ABORT" : 70 }
+              "ABORT" : 70,
+              "VM_EOT" : 71 }
 
 def get_exit_code_name (exit_code):
     for name, code in exit_codes.iteritems():
         if code == exit_code: return name
-    return "UNKNOWN"
+    return "UNKNOWN ERROR"
 
 # We want to catch the exceptions from callbacks, but still tell the test writer what went wrong
 def print_exception():
@@ -200,10 +204,12 @@ class qemu(hypervisor):
         try:
             self._proc = self.start_process(command)
         except Exception as e:
-            print color.INFO(self._nametag),"Starting subprocess threw exception:",e
+            print color.INFO(self._nametag),"Starting subprocess threw exception:", e
             raise e
 
     def stop(self):
+
+        signal = "-SIGTERM"
 
         # Don't try to kill twice
         if self._stopped:
@@ -215,20 +221,23 @@ class qemu(hypervisor):
         if self._proc and self._proc.poll() == None :
 
             if not self._sudo:
+                print color.INFO(self._nametag),"Stopping child process (no sudo required)"
                 self._proc.terminate()
-
             else:
                 # Find and terminate all child processes, since parent is "sudo"
                 parent = psutil.Process(self._proc.pid)
                 children = parent.children()
 
-                print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid
+                print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
+
                 for child in children:
                     print color.INFO(self._nametag)," + child process ", child.pid
-                    subprocess.check_output(["sudo", "kill", "-SIGTERM", str(child.pid)])
+
+                    # The process might have gotten an exit status by now so check again to avoid negative exit
+                    if (not self._proc.poll()):
+                        subprocess.call(["sudo", "kill", signal, str(child.pid)])
 
             # Wait for termination (avoids the need to reset the terminal etc.)
-            print color.INFO(self._nametag),"process signalled"
             self.wait()
 
         return self
@@ -237,10 +246,23 @@ class qemu(hypervisor):
         if (self._proc): self._proc.wait()
         return self
 
+    def read_until_EOT(self):
+        chars = ""
+
+        while (not self._proc.poll()):
+            char = self._proc.stdout.read(1)
+            if char == chr(4):
+                return chars
+            chars += char
+
+        return chars
+
+
     def readline(self):
         if self._proc.poll():
             raise Exception("Process completed")
         return self._proc.stdout.readline()
+
 
     def writeline(self, line):
         if self._proc.poll():
@@ -255,15 +277,17 @@ class vm:
 
     def __init__(self, config, hyper = qemu):
         self._exit_status = 0
+        self._exit_msg = ""
         self._config = config
         self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
-        self._on_panic =  lambda(line) : self.exit(exit_codes["VM_FAIL"], nametag + self._hyper.readline())
+        self._on_panic =  self.panic
         self._on_timeout = self.timeout
         self._on_output = {
             "PANIC" : self._on_panic,
             "SUCCESS" : self._on_success }
         assert(issubclass(hyper, hypervisor))
         self._hyper  = hyper(config)
+        self._timeout_after = None
         self._timer = None
         self._on_exit_success = lambda : None
         self._on_exit = lambda : None
@@ -271,9 +295,7 @@ class vm:
 
     def stop(self):
         self._hyper.stop().wait()
-        print color.INFO(nametag),"VM stopped"
         if self._timer:
-            print color.INFO(nametag),"Cancelling timer"
             self._timer.cancel()
         return self
 
@@ -289,7 +311,7 @@ class vm:
     def exit(self, status, msg):
         self._exit_status = status
         self.stop()
-        print color.INFO(nametag),"Exited with status", self._exit_status, "(",get_exit_code_name(self._exit_status),")"
+        print color.INFO(nametag),"Exit called with status", self._exit_status, "(",get_exit_code_name(self._exit_status),")"
         print color.INFO(nametag),"Calling on_exit"
         # Change back to test source
         os.chdir(self._root)
@@ -301,20 +323,32 @@ class vm:
             return self._on_exit_success()
 
         # Print fail message and exit with appropriate code
-        print color.FAIL(msg)
+        print color.EXIT_ERROR(get_exit_code_name(status), msg)
         sys.exit(status)
 
     # Default timeout event
     def timeout(self):
-        print color.INFO("timeout"), "VM timed out"
+        print color.INFO("<timeout>"), "VM timed out"
 
         # Note: we have to stop the VM since the main thread is blocking on vm.readline
         #self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
         self._exit_status = exit_codes["TIMEOUT"]
-        print color.INFO("timeout"), "stopping subprocess"
+        self._exit_msg = "vmrunner timed out after " + str(self._timeout_after) + " seconds"
         self._hyper.stop().wait()
-        print color.INFO("timeout"), "Timer thread finished"
 
+    # Default panic event
+    def panic(self, panic_line):
+        panic_reason = self._hyper.readline()
+        print color.INFO(nametag), "VM signalled PANIC. Reading until EOT (", hex(ord(EOT)), ")"
+        print color.VM(panic_reason),
+        remaining_output = self._hyper.read_until_EOT()
+        for line in remaining_output.split("\n"):
+            print color.VM(line)
+
+        self.exit(exit_codes["VM_PANIC"], panic_reason)
+
+
+    # Events - subscribable
     def on_output(self, output, callback):
         self._on_output[ output ] = callback
 
@@ -333,12 +367,15 @@ class vm:
     def on_exit(self, callback):
         self._on_exit = callback
 
+    # Read a line from the VM's standard out
     def readline(self):
         return self._hyper.readline()
 
+    # Write a line to VM stdout
     def writeline(self, line):
         return self._hyper.writeline(line)
 
+    # Make using GNU Make
     def make(self, params = []):
         print color.INFO(nametag), "Building with 'make' (params=" + str(params) + ")"
         make = ["make"]
@@ -346,10 +383,7 @@ class vm:
         cmd(make)
         return self
 
-    def clean(self):
-        print color.INFO(nametag), "Cleaning cmake build folder"
-        subprocess.call(["rm","-rf","build"])
-
+    # Call cmake
     def cmake(self, args = []):
         print color.INFO(nametag), "Building with cmake (%s)" % args
         # install dir:
@@ -379,10 +413,17 @@ class vm:
             print "Excetption while building: ", e
             self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
 
+    # Clean cmake build folder
+    def clean(self):
+        print color.INFO(nametag), "Cleaning cmake build folder"
+        subprocess.call(["rm","-rf","build"])
+
+    # Boot the VM and start reading output. This is the main event loop.
     def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
 
         # This might be a reboot
         self._exit_status = None
+        self._timeout_after = timeout
 
         # Start the timeout thread
         if (timeout):
@@ -396,7 +437,7 @@ class vm:
         except Exception as err:
             print color.WARNING("Exception raised while booting ")
             if (timeout): self._timer.cancel()
-            self.exit(exit_codes["OUTSIDE_FAIL"], str(err))
+            self.exit(exit_codes["CALLBACK_FAILED"], str(err))
 
         # Start analyzing output
         while self._hyper.poll() == None and not self._exit_status:
@@ -406,11 +447,23 @@ class vm:
             except Exception as e:
                 print color.WARNING("Exception thrown while waiting for vm output")
                 break
+
             if line:
-                print color.VM(line.rstrip())
+                # Special case for end-of-transmission
+                if line == EOT:
+                    if not self._exit_status: self._exit_status = exit_codes["VM_EOT"]
+                    break
+                if line.startswith("     [ Kernel ] service exited with status"):
+                    self._exit_status = int(line.split(" ")[-1].rstrip())
+                    self._exit_msg = "Service exited"
+                    break
+                else:
+                    print color.VM(line.rstrip())
+
             else:
-                print color.INFO(nametag), "VM output reached EOF"
-                # Look for event-triggers
+                pass
+                # TODO: Add event-trigger for EOF?
+
             for pattern, func in self._on_output.iteritems():
                 if re.search(pattern, line):
                     try:
@@ -421,9 +474,9 @@ class vm:
                         res = False
                         self.stop()
 
-                    #NOTE: It can be 'None' without problem
+                    # NOTE: It can be 'None' without problem
                     if res == False:
-                        self._exit_status = exit_codes["OUTSIDE_FAIL"]
+                        self._exit_status = exit_codes["CALLBACK_FAILED"]
                         self.exit(self._exit_status, " Event-triggered test failed")
 
         # Now we either have an exit status from timer thread, or an exit status
@@ -433,9 +486,9 @@ class vm:
             self.stop()
 
         if self._exit_status:
-            self.exit(self._exit_status, get_exit_code_name(self._exit_status))
+            self.exit(self._exit_status, self._exit_msg)
         else:
-            print color.INFO(nametag), " Subprocess finished, exit status", self._hyper.poll()
+            print color.INFO(nametag), "VM process exited with status", self._hyper.poll()
             return self
 
 
@@ -452,7 +505,6 @@ default_spec = {"image" : "test.img"}
 vms = []
 
 if validate_vm.valid_vms:
-    print
     print color.INFO(nametag), "Loaded VM specification(s) from JSON"
     for spec in validate_vm.valid_vms:
         print color.INFO(nametag), "Found VM spec: "
@@ -460,7 +512,6 @@ if validate_vm.valid_vms:
         vms.append(vm(spec))
 
 else:
-    print
     print color.WARNING(nametag), "No VM specification JSON found, trying default: ", default_spec
     vms.append(vm(default_spec))
 

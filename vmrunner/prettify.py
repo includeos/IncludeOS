@@ -53,6 +53,10 @@ class color:
         return "\n" + color.C_FAILED + "[ FAIL ] " + string.rstrip() + color.C_ENDC + "\n"
 
     @staticmethod
+    def EXIT_ERROR(tag, string):
+        return "\n" + color.C_FAILED + "[ " + tag + " ] " + string.rstrip() + color.C_ENDC + "\n"
+
+    @staticmethod
     def FAIL_INLINE():
         return '[ ' + color.C_WHITE_ON_RED + " FAIL " + color.C_ENDC + ' ]'
 

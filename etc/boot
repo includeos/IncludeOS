@@ -8,6 +8,7 @@ import argparse
 sys.path.append(os.environ['INCLUDEOS_PREFIX']+"/includeos")
 
 from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 # Argparse
 parser = argparse.ArgumentParser(
@@ -21,15 +22,20 @@ parser.add_argument('vmargs',  nargs='*', help="Arguments to pass on to the VM s
 args = parser.parse_args()
 
 
-print "Args to pass to VM: ",args.vmargs
+nametag = "<boot>"
 
-print "Found ",len(vmrunner.vms),"VM desription files"
+print color.INFO(nametag), "Args to pass to VM: ", args.vmargs
 
+if len(vmrunner.vms) < 1:
+    print color.FAIL("No vm description files found - nothing to boot")
+    exit(-1)
+
+print color.INFO(nametag), len(vmrunner.vms), "VM initialized. Commencing build- and boot..."
 
 vm = vmrunner.vms[0]
 
 if (args.clean):
-    print ">>> Cleaning old build"
+    print color.INFO(nametag), "Cleaning build"
     vm.clean()
 
-vm.cmake().boot(kernel_args=" ".join(args.vmargs))
+vm.cmake().boot(timeout = None, kernel_args=" ".join(args.vmargs))
