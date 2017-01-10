@@ -84,8 +84,18 @@ namespace http {
     // if there already is a response
     else
     {
-      // add chunks of data
-      res_->add_chunk(data);
+      // this is the case when Status line is received, but not yet headers.
+      if(res_->header().is_empty() && req_->method() != HEAD)
+      {
+        *res_ << data;
+        res_->parse();
+      }
+      // here we assume all headers has already been received (could not be true?)
+      else
+      {
+        // add chunks of body data
+        res_->add_chunk(data);
+      }
     }
 
     const auto& header = res_->header();
