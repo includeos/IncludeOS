@@ -17,7 +17,7 @@
 
 #include <tar>
 
-#include <iostream> // strtol
+#include <cstdlib>  // strtol
 
 using namespace tar;
 
@@ -64,9 +64,6 @@ unsigned int Tar_reader::decompressed_length(const char* data, size_t size) cons
 }
 
 Tar& Tar_reader::read_uncompressed(const char* data, size_t size) {
-  if (size == 0)
-    throw Tar_exception("File is empty");
-
   if (size % SECTOR_SIZE not_eq 0)
     throw Tar_exception("Invalid size of tar file");
 
