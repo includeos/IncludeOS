@@ -223,17 +223,16 @@ function(add_memdisk DISK)
   target_link_libraries(service --whole-archive memdisk --no-whole-archive)
 endfunction()
 
-# automatically built memdisks
-function(diskbuilder FOLD DISK)
-  get_filename_component(REL_DISK "${DISK}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+# automatically build memdisk from folder
+function(diskbuilder FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
-      OUTPUT  ${REL_DISK}
-      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o ${REL_DISK} ${REL_PATH}
+      OUTPUT  memdisk.fat
+      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o memdisk.fat ${REL_PATH}
     )
-  add_custom_target(diskbuilder ALL DEPENDS ${REL_DISK})
+  add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
-  add_memdisk(${REL_DISK})
+  add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
 
 if(TARFILE)
