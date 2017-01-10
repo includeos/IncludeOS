@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
 
   INFO("Size of service: \t%ld bytes" , stat_binary.st_size);
 
-  const decltype(binary_sectors) img_size_sect  {1 + binary_sectors+1};
+  const decltype(binary_sectors) img_size_sect  {1 + binary_sectors};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
   Expects((img_size_bytes & (SECT_SIZE-1)) == 0);
 
@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
   INFO("Entry: 0x%x" , multiboot.entry_addr);
 
   // Write binary size and entry point to the bootloader
-  *(reinterpret_cast<int*>(disk_head + bootvar_binary_size)) = binary_sectors;
+  *(reinterpret_cast<int*>(disk_head + bootvar_binary_size))     = binary_sectors;
   *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
 
   if (test) {

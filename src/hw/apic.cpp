@@ -25,6 +25,7 @@
 #include <kernel/cpuid.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
+#include <stdlib.h>
 #include <debug>
 #include <info>
 

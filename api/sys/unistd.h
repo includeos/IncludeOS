@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,20 +16,20 @@
 // limitations under the License.
 
 #pragma once
-#ifndef UTIL_CRC32_HPP
-#define UTIL_CRC32_HPP
+#ifndef POSIX_UNISTD_H
+#define POSIX_UNISTD_H
 
-#include <cstdint>
-#include <cstddef>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define CRC32_BEGIN()   (0xFFFFFFFF)
-#define CRC32_VALUE(x)   ~(x)
+#include <sys/stat.h>
+#include_next <unistd.h>
 
-uint32_t crc32(uint32_t partial, const char* buf, size_t len);
+int ftruncate(int fd, off_t length);
+int lstat(const char *path, struct stat *buf);
 
-inline uint32_t crc32(const void* buf, size_t len)
-{
-  return ~crc32(0xFFFFFFFF, (const char*) buf, len);
+#ifdef __cplusplus
 }
-
+#endif
 #endif

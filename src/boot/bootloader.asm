@@ -204,8 +204,8 @@ mode32:
 	sub edx, LOAD_SIZE
 
 	;; If all sectors loaded, move on, else get .more
-	cmp edx, 0
-	jge .more  ;; jump when gequal
+	test edx, edx
+	jnz .more  ;; jump when not zero
 
 	;; Bochs breakpoint
 	;;xchg bx,bx

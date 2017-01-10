@@ -15,35 +15,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-
-// the name of the current service (built from another module)
-extern "C" {
-  __attribute__((weak))
-  const char* service_name__ = "(missing service name)";
-  __attribute__((weak))
-  const char* service_binary_name__ = "(missing binary name)";
-}
-
-
-std::string Service::binary_name() {
-  return service_binary_name__;
-}
-
-std::string Service::name() {
-  return service_name__;
-}
-
-
-// functions that we can override if we want to
-__attribute__((weak))
-void Service::start()
-{
-  Service::start(OS::cmdline_args());
-}
-
-__attribute__((weak))
-void Service::ready() {}
-
-__attribute__((weak))
-void Service::stop() {}
+// prevent default serial out
+void default_stdout_handlers() {}
