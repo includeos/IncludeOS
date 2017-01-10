@@ -140,28 +140,30 @@ class qemu(hypervisor):
             print color.INFO("<qemu>"),"KVM OFF"
             return False
 
-    # Start a process we expect to not finish immediately (e.g. a VM)
+    # Start a process and preserve in- and output pipes
+    # Note: if the command failed, we can't know until we have exit status,
+    # but we can't wait since we expect no exit. Checking for program start error
+    # is therefore deferred to the callee
     def start_process(self, cmdlist):
 
-        if cmdlist[0] == "sudo" and have_sudo():
+        if cmdlist[0] == "sudo": # and have_sudo():
             print color.WARNING("Running with sudo")
             self._sudo = True
 
         # Start a subprocess
-        proc = subprocess.Popen(cmdlist,
-                                stdout = subprocess.PIPE,
-                                stderr = subprocess.PIPE,
-                                stdin = subprocess.PIPE)
+        self._proc = subprocess.Popen(cmdlist,
+                                      stdout = subprocess.PIPE,
+                                      stderr = subprocess.PIPE,
+                                      stdin = subprocess.PIPE)
+        print color.INFO(self._nametag), "Started process PID ",self._proc.pid
 
-        # After half a second it should be started, otherwise throw
-        time.sleep(0.5)
-        if (proc.poll()):
-            data, err = proc.communicate()
-            raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
+        return self._proc
 
-        print color.INFO(self._nametag), "Started process PID ",proc.pid
-        return proc
 
+    def get_error_messages(self):
+        if self._proc.poll():
+            data, err = self._proc.communicate()
+            return err
 
     def boot(self, multiboot, kernel_args):
         self._stopped = False
@@ -202,7 +204,7 @@ class qemu(hypervisor):
         print color.DATA(" ".join(command))
 
         try:
-            self._proc = self.start_process(command)
+            self.start_process(command)
         except Exception as e:
             print color.INFO(self._nametag),"Starting subprocess threw exception:", e
             raise e
@@ -228,7 +230,7 @@ class qemu(hypervisor):
                 parent = psutil.Process(self._proc.pid)
                 children = parent.children()
 
-                print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
+                print color.INFO(self._nametag), "Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
 
                 for child in children:
                     print color.INFO(self._nametag)," + child process ", child.pid
@@ -479,17 +481,20 @@ class vm:
                         self._exit_status = exit_codes["CALLBACK_FAILED"]
                         self.exit(self._exit_status, " Event-triggered test failed")
 
-        # Now we either have an exit status from timer thread, or an exit status
-        # from the subprocess, or the VM was powered off by the external test.
-        # If the process didn't exit we need to stop it.
+        # If the VM process didn't exit by now we need to stop it.
         if (self.poll() == None):
             self.stop()
 
+        # We might have an exit status, e.g. set by a callback noticing something wrong with VM output
         if self._exit_status:
             self.exit(self._exit_status, self._exit_msg)
-        else:
-            print color.INFO(nametag), "VM process exited with status", self._hyper.poll()
-            return self
+
+        # Process might have ended prematurely
+        elif self.poll():
+            self.exit(self._hyper.poll(), self._hyper.get_error_messages())
+
+        # If everything went well we can return
+        return self
 
 
 print color.HEADER("IncludeOS vmrunner loading VM configs")
