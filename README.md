@@ -66,8 +66,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
 
-Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [macOS](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
-
 ### Testing the installation
 
 A successful setup enables you to build and run a virtual machine. Running:
