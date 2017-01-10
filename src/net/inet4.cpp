@@ -70,20 +70,19 @@ Inet4::Inet4(hw::Nic& nic)
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   INFO("Inet4", "Negotiating DHCP...");
-  if(!dhcp_)
-    dhcp_ = std::make_shared<DHClient>(*this);
+  if (!dhcp_)
+      dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
   dhcp_->negotiate(timeout);
   // add timeout_handler if supplied
-  if(handler)
-    dhcp_->on_config(handler);
+  if (handler)
+      dhcp_->on_config(handler);
 }
 
-void Inet4::on_config(dhcp_timeout_func handler) {
-  // setup DHCP if not intialized
+void Inet4::on_config(dhcp_timeout_func handler)
+{
   if(!dhcp_)
-    negotiate_dhcp();
-
+      throw std::runtime_error("DHCP is not yet initialized");
   dhcp_->on_config(handler);
 }
 

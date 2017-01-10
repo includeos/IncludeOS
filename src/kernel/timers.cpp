@@ -79,7 +79,7 @@ void Timers::ready()
   }
 }
 
-id_t Timers::periodic(duration_t when, duration_t period, const handler_t& handler)
+id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
 {
   id_t id;
 

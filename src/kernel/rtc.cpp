@@ -15,7 +15,6 @@ using namespace std::chrono;
 
 void RTC::init()
 {
-
   // Initialize CMOS
   cmos::init();
 
@@ -23,10 +22,10 @@ void RTC::init()
   current_time  = cmos::now().to_epoch();
   current_ticks = hw::CPU::rdtsc();
 
-  MYINFO("Enabling regular clock sync with CMOS ");
+  MYINFO("Enabling regular clock sync with CMOS");
   // every minute recalibrate
   Timers::periodic(seconds(60), seconds(60),
-  [] (uint32_t) {
+  [] (Timers::id_t) {
     current_time  = cmos::now().to_epoch();
     current_ticks = hw::CPU::rdtsc();
   });
