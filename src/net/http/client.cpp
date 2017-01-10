@@ -149,10 +149,12 @@ namespace http {
   {
     // Set uri path
     req.set_uri( URI{url.path().to_string()} );
+
     // Set Host: host(:port)
+    const auto port = url.port();
     req.header().set_field(header::Host,
-      (url.port() != 0xFFFF) ?
-      url.host().to_string() + ":" + url.port_str().to_string()
+      (port != 0xFFFF or port != 80) ?
+      url.host().to_string() + ":" + std::to_string(port)
       : url.host().to_string()); // to_string madness
   }
 
