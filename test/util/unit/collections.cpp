@@ -64,9 +64,9 @@ CASE("Add a set of values to a std::vector object") {
   EXPECT(test_vector == data);
 }
 
-CASE("Create a std::vector object (as_vector)") {
+CASE("Create a std::vector object (make_vector)") {
   const std::vector<double> test_vector {12.5,4.2,5};
-  const auto data = collections::as_vector(12.5,4.2,5);
+  const auto data = collections::make_vector(12.5,4.2,5);
   EXPECT(test_vector == data);
 }
 

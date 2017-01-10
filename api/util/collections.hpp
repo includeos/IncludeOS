@@ -20,6 +20,7 @@
 #define UTIL_COLLECTIONS_HPP
 
 #include <algorithm>
+#include <array>
 #include <deque>
 #include <iosfwd>
 #include <list>
@@ -40,28 +41,52 @@ inline namespace traits {
   struct is_sequence
   : public std::false_type {};
 
-  template<typename T>
-  struct is_sequence<std::deque<T>>
+  template<typename T, size_t N>
+  struct is_sequence<std::array<T,N>>
   : public std::true_type {};
 
-  template<typename T>
-  struct is_sequence<std::list<T>>
+  template<typename T, typename A>
+  struct is_sequence<std::deque<T, A>>
   : public std::true_type {};
 
-  template<typename T>
-  struct is_sequence<std::vector<T>>
+  template<typename T, typename A>
+  struct is_sequence<std::list<T, A>>
+  : public std::true_type {};
+
+  template<typename T, typename A>
+  struct is_sequence<std::vector<T, A>>
   : public std::true_type {};
 
   template<typename>
   struct has_random_iterator
   : public std::false_type {};
 
-  template<typename T>
-  struct has_random_iterator<std::deque<T>>
+  template<typename T, size_t N>
+  struct has_random_iterator<std::array<T,N>>
   : public std::true_type {};
 
-  template<typename T>
-  struct has_random_iterator<std::vector<T>>
+  template<typename T, typename A>
+  struct has_random_iterator<std::deque<T, A>>
+  : public std::true_type {};
+
+  template<typename T, typename A>
+  struct has_random_iterator<std::vector<T, A>>
+  : public std::true_type {};
+
+  template<typename>
+  struct is_printable_sequence
+  : public std::false_type {};
+
+  template<typename T, typename A>
+  struct is_printable_sequence<std::deque<T, A>>
+  : public std::true_type {};
+
+  template<typename T, typename A>
+  struct is_printable_sequence<std::list<T, A>>
+  : public std::true_type {};
+
+  template<typename T, typename A>
+  struct is_printable_sequence<std::vector<T, A>>
   : public std::true_type {};
 
 } //< namespace traits
@@ -110,6 +135,10 @@ inline namespace operation_tags {
   constexpr struct sum_tag {
     constexpr sum_tag() noexcept {};
   } sum;
+
+  constexpr struct to_string_tag {
+    constexpr to_string_tag() noexcept {};
+  } to_string;
 
   constexpr struct unique_tag {
     constexpr unique_tag() noexcept {};
@@ -446,8 +475,8 @@ auto& add_all(std::vector<T,A>& data_set, V&& value, Args&&... args) {
 /// arguments
 ///
 template<typename T, typename... Args>
-auto as_vector(T&& obj, Args&&... args) {
-  std::vector<T> result;
+auto make_vector(T&& obj, Args&&... args) {
+  std::vector<std::decay_t<T>> result;
   result.reserve(sizeof...(args) + 1);
   add_all(result, std::forward<T>(obj), std::forward<Args>(args)...);
   return result;
@@ -525,8 +554,10 @@ auto filter(const T& data_set, F filter_function) {
 /// @param delimiter
 ///   The symbol to delimit the contents of the specified sequence
 ///
-template<typename T>
-void print_sequence(std::ostream& output_device, T& data_set,
+template<typename T,
+         typename = std::enable_if_t<
+                    is_printable_sequence<std::decay_t<T>>::value>>
+void print_sequence(std::ostream& output_device, T&& data_set,
                     const bool new_line = false, const char start_symbol = '[',
                     const char end_symbol = ']', const char delimiter = ',')
 {
@@ -560,12 +591,28 @@ void print_sequence(std::ostream& output_device, T& data_set,
 template<typename T,
          typename = std::enable_if_t<
                     is_sequence<std::decay_t<T>>::value>>
-std::string sequence_to_string(const T& data_set, const char start_symbol = '[',
+auto sequence_to_string(T&& data_set, const char start_symbol = '[',
                                const char end_symbol = ']', const char delimiter = ',')
 {
   std::ostringstream sequence_string;
-  print_sequence(sequence_string, data_set, false, start_symbol, end_symbol, delimiter);
+  print_sequence(sequence_string, std::forward<T>(data_set), false, start_symbol, end_symbol, delimiter);
   return sequence_string.str();
+}
+
+///
+/// Operator to transform the specified sequence into std::string
+/// form
+///
+/// @param data_set
+///   The sequence to transform into a std::string
+///
+/// @return A std::string representation of the specified sequence
+///
+template<typename T,
+         typename = std::enable_if_t<
+                    is_printable_sequence<std::decay_t<T>>::value>>
+auto operator|(T&& data_set, const struct to_string_tag&) {
+  return sequence_to_string(std::forward<T>(data_set));
 }
 
 ///
@@ -625,8 +672,8 @@ void print_map(std::ostream& output_device, const std::map<K,V,C,A>& data_set,
 template<typename T,
          typename = std::enable_if_t<
                     collections::is_sequence<std::decay_t<T>>::value>>
-std::ostream& operator<<(std::ostream& output_device, const T& data_set) {
-  collections::print_sequence(output_device, data_set);
+std::ostream& operator<<(std::ostream& output_device, T&& data_set) {
+  collections::print_sequence(output_device, std::forward<T>(data_set));
   return output_device;
 }
 

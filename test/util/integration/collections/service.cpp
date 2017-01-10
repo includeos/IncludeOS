@@ -16,12 +16,21 @@
 // limitations under the License.
 
 #include <iostream>
-#include <service>
+#include <os>
 
 #include "authors.hpp"
+#include "warehouse.hpp"
 
 int main()
 {
+  //-----------------------------------------------------------------
+  // Author List Example
+  //
+  // Demonstrate printing an author list in alphabetical order
+  //
+  // Behind the scene, a mapping takes place to determine the width
+  // of the fields for proper formatting (authors.hpp)
+  //-----------------------------------------------------------------
   Author_list list;
 
   list.add("Alfred", "alfred@includeos.com", "Norway")
@@ -33,5 +42,16 @@ int main()
       .add("Rico", "rico@includeos.com", "Trinidad");
 
   std::cout << "Author Listing:\n\n"
-            << list;
+            << list << '\n';
+
+  //-----------------------------------------------------------------
+  // Warehouse Example
+  //
+  // Behind the scene, a filter-map-reduce takes place to achieve the
+  // result (warehouse.hpp)
+  //-----------------------------------------------------------------
+  std::cout << "JSON Document [weight of all the red widgets from warehouse in Norway]:\n"
+            << ("{\"WW\": " + std::to_string(get_weight(Warehouse::NORWAY,
+                                             [](const auto& w){return w.colour() == Colour::RED;})) + "}")
+            << '\n';
 }

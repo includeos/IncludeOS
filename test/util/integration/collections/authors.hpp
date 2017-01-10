@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,7 +98,8 @@ private:
 }; //< class Author
 
 ///
-/// This class represent a list of authors within a repository
+/// This class represent a list of authors of some artifact
+/// within a repository
 ///
 class Author_list {
 public:
