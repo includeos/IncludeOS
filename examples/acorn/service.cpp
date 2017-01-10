@@ -76,15 +76,21 @@ void Service::start(const std::string&) {
 
       /** IP STACK SETUP **/
       // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig(5.0,
-      [](bool timeout) {
-        printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
-      });
-      // config
-      stack.network_config({ 10,0,0,42 },     // IP
-                           { 255,255,255,0 }, // Netmask
-                           { 10,0,0,1 },      // Gateway
-                           { 8,8,8,8 });      // DNS
+      auto& stack = net::Inet4::ifconfig(5.0, [](bool timeout) {
+          printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
+
+          if (timeout) {
+
+            /**
+             * Default Manual config. Can only be done after timeout to work
+             * with DHCP offers going to unicast IP (e.g. in GCE)
+             **/
+            net::Inet4::stack().network_config({ 10,0,0,42 },     // IP
+                                               { 255,255,255,0 }, // Netmask
+                                               { 10,0,0,1 },      // Gateway
+                                               { 8,8,8,8 });      // DNS
+          }
+        });
 
       // only works with synchronous disks (memdisk)
       list_static_content(disk);
