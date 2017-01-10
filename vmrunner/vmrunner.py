@@ -35,7 +35,7 @@ exit_codes = {"SUCCESS" : 0,
               "PROGRAM_FAILURE" : 1,
               "TIMEOUT" : 66,
               "VM_PANIC" : 67,
-              "OUTSIDE_FAIL" : 68,
+              "CALLBACK_FAILED" : 68,
               "BUILD_FAIL" : 69,
               "ABORT" : 70,
               "VM_EOT" : 71 }
@@ -437,7 +437,7 @@ class vm:
         except Exception as err:
             print color.WARNING("Exception raised while booting ")
             if (timeout): self._timer.cancel()
-            self.exit(exit_codes["OUTSIDE_FAIL"], str(err))
+            self.exit(exit_codes["CALLBACK_FAILED"], str(err))
 
         # Start analyzing output
         while self._hyper.poll() == None and not self._exit_status:
@@ -476,7 +476,7 @@ class vm:
 
                     # NOTE: It can be 'None' without problem
                     if res == False:
-                        self._exit_status = exit_codes["OUTSIDE_FAIL"]
+                        self._exit_status = exit_codes["CALLBACK_FAILED"]
                         self.exit(self._exit_status, " Event-triggered test failed")
 
         # Now we either have an exit status from timer thread, or an exit status
