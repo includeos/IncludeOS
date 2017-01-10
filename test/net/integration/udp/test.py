@@ -46,4 +46,4 @@ def UDP_test(trigger_line):
 vm.on_output("UDP test service", UDP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(5).clean()
+vm.cmake().boot(30).clean()
