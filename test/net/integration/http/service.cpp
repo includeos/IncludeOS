@@ -45,7 +45,7 @@ void Service::ready()
   auto req = client_->create_request();
 
   req->set_uri(uri::URI{"/testing"});
-  client_->send(std::move(req), {inet.gateway(), 9000},
+  client_->send(std::move(req), {inet.gateway(), 9011},
   [] (auto err, auto res)
   {
     CHECKSERT(!err, "No error");
