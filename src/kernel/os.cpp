@@ -90,7 +90,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp1{};
 #endif
-  atexit(default_exit);
+
   default_stdout_handlers();
 
   // Print a fancy header

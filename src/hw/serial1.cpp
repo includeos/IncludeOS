@@ -1,5 +1,9 @@
 #include <hw/serial.hpp>
 
+void hw::Serial::EOT() {
+  hw::outb(ports_[0], 4);
+}
+
 extern "C"
 void __serial_print1(const char* cstr) {
   hw::Serial::print1(cstr);

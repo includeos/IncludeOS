@@ -75,7 +75,10 @@ def has_required_stuff(path):
   jsons = glob.glob("*.json")
   jsons.sort()
   for json in jsons:
-    validate_vm_spec(json)
+      try:
+          validate_vm_spec(json)
+      except Exception as e:
+          pass
 
 def validate_path(path, verb = False):
   global verbose
