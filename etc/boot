@@ -24,10 +24,14 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
+
+parser.add_argument('binary', action="store", type=str,
+                    help="Filename of the IncludeOS service binary")
+
 parser.add_argument("-g", "--grub", dest="grub", action="store_true",
-                    help="Create image with GRUB that will boot service")
-parser.add_argument('image', action="store", type=str,
-                    help="Filename of the service image")
+                    help="Create image with GRUB bootloader that will boot provided binary")
+
+
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 args = parser.parse_args()
 
@@ -45,6 +49,9 @@ color.VM_PREPEND = ""
 nametag = "<boot>"
 INFO = color.INFO(nametag)
 
+# We can boot either a binary without bootloader, or an image with bootloader allready attached
+has_bootloader = False
+
 print INFO , "Args to pass to VM: ", args.vmargs
 
 if len(vmrunner.vms) < 1:
@@ -54,6 +61,12 @@ if len(vmrunner.vms) < 1:
 print color.INFO(nametag), len(vmrunner.vms), "VM initialized. Commencing build- and boot..."
 
 vm = vmrunner.vms[0]
+image_name = args.binary
+
+# For multible JSON configs, find the one matching the provided image name
+for vm_ in vmrunner.vms:
+    if vm_._config.has_key("image") and vm_._config["image"].startswith(image_name):
+        vm = vm_
 
 if (args.clean):
     print INFO, "Cleaning build"
@@ -61,8 +74,21 @@ if (args.clean):
 
 vm.cmake()
 
+
 if (args.grub):
-    print INFO, "Creating GRUB image from ", args.image
-    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + args.image, shell=True)
+    print INFO, "Creating GRUB image from ", args.binary
+    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + args.binary, shell=True)
+    image_name = args.binary + ".grub.img"
+    has_bootloader = True
+
+# If the binary name has an extension (e.g. a '.'), assume it has a bootloader attached
+# NOTE: the idea is to support e.g. .vdi and virtualbox etc. in the future
+elif "." in args.binary:
+    has_bootloader = True
+
+if (not has_bootloader):
+    print INFO, "Booting ", image_name, "as kernel binary without bootloader"
+    vm.boot(timeout = None, kernel_args=" ".join(args.vmargs), image_name = image_name)
 else:
-    vm.boot(timeout = None, kernel_args=" ".join(args.vmargs))
+    print INFO, "Booting ", image_name, "as bootable image with bootloader"
+    vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)
