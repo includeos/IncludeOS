@@ -30,6 +30,8 @@ add_library(mender_cli STATIC ${MENDER_CLI_OBJ})
 
 set(LIBRARIES ${LIBRARIES}
   "${CMAKE_CURRENT_BINARY_DIR}/libmender_cli.a"
+  "${CMAKE_SOURCE_DIR}/libtinf.a"
+  "${CMAKE_SOURCE_DIR}/libliveupdate.a"
   $ENV{INCLUDEOS_PREFIX}/lib/libbotan-${BOTAN_VERSION}.a
   PARENT_SCOPE
   )

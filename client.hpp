@@ -10,6 +10,7 @@
 #include <timers>
 #include "state.hpp"
 #include "device.hpp"
+#include "liveupdate.hpp"
 
 namespace mender {
 
@@ -29,6 +30,8 @@ namespace mender {
     void fetch_update(http::Response_ptr = nullptr);
 
     void update_inventory_attributes();
+
+    void live_update(liu::Storage, liu::buffer_len);
 
     void install_update(http::Response_ptr = nullptr);
 
