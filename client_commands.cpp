@@ -90,11 +90,11 @@ static void handle_who(Client& client, const std::vector<std::string>& msg)
   if (msg.size() > 1)
   {
     auto& server = client.get_server();
-    auto cl = server.user_by_name(msg[1]);
+    auto cl = server.clients.find(msg[1]);
     
     if (cl != NO_SUCH_CLIENT)
     {
-      auto& other = server.get_client(cl);
+      auto& other = server.clients.get(cl);
       
       char buffer[BUFFER_SIZE];
       int len = snprintf(buffer, sizeof(buffer),
@@ -129,10 +129,10 @@ static void handle_mode(Client& client, const std::vector<std::string>& msg)
     auto& server = client.get_server();
     if (server.is_channel(msg[1]))
     {
-      auto ch = server.channel_by_name(msg[1]);
+      auto ch = server.channels.find(msg[1]);
       if (ch != NO_SUCH_CHANNEL)
       {
-        auto& channel = server.get_channel(ch);
+        auto& channel = server.channels.get(ch);
         channel.send_mode(client);
       }
       else
@@ -158,13 +158,13 @@ static void handle_join(Client& client, const std::vector<std::string>& msg)
     auto& server = client.get_server();
     if (server.is_channel(msg[1]))
     {
-      auto ch = server.channel_by_name(msg[1]);
+      auto ch = server.channels.find(msg[1]);
       if (ch != NO_SUCH_CHANNEL)
       {
         // there is also a maximum number of channels a user can join
         if (client.channels().size() < server.client_maxchans() || client.is_operator())
         {
-          auto& channel = server.get_channel(ch);
+          auto& channel = server.channels.get(ch);
           bool joined = false;
           
           if (msg.size() < 3)
@@ -184,7 +184,7 @@ static void handle_join(Client& client, const std::vector<std::string>& msg)
       {
         auto ch = server.create_channel(msg[1]);
         auto key = (msg.size() < 3) ? "" : msg[2];
-        server.get_channel(ch).join(client, key);
+        server.channels.get(ch).join(client, key);
         // track channel
         client.channels().push_back(ch);
       }
@@ -203,10 +203,10 @@ static void handle_part(Client& client, const std::vector<std::string>& msg)
     auto& server = client.get_server();
     if (server.is_channel(msg[1]))
     {
-      auto ch = server.channel_by_name(msg[1]);
+      auto ch = server.channels.find(msg[1]);
       if (ch != NO_SUCH_CHANNEL)
       {
-        auto& channel = server.get_channel(ch);
+        auto& channel = server.channels.get(ch);
         bool left = false;
         
         if (msg.size() < 3)
@@ -236,10 +236,10 @@ static void handle_topic(Client& client, const std::vector<std::string>& msg)
   if (msg.size() > 1)
   {
     auto& server = client.get_server();
-    auto ch = server.channel_by_name(msg[1]);
+    auto ch = server.channels.find(msg[1]);
     if (ch != NO_SUCH_CHANNEL)
     {
-      auto& channel = server.get_channel(ch);
+      auto& channel = server.channels.get(ch);
       if (msg.size() > 2)
       {
         if (channel.is_chanop(client.get_id())) {
@@ -262,10 +262,10 @@ static void handle_names(Client& client, const std::vector<std::string>& msg)
   if (msg.size() > 1)
   {
     auto& server = client.get_server();
-    auto ch = server.channel_by_name(msg[1]);
+    auto ch = server.channels.find(msg[1]);
     if (ch != NO_SUCH_CHANNEL)
     {
-      auto& channel = server.get_channel(ch);
+      auto& channel = server.channels.get(ch);
       if (channel.find(client.get_id()) != NO_SUCH_CLIENT) {
           channel.send_names(client);
       }
@@ -285,10 +285,10 @@ static void handle_privmsg(Client& client, const std::vector<std::string>& msg)
     auto& server = client.get_server();
     if (server.is_channel(msg[1]))
     {
-      auto ch = server.channel_by_name(msg[1]);
+      auto ch = server.channels.find(msg[1]);
       if (ch != NO_SUCH_CHANNEL)
       {
-        auto& channel = server.get_channel(ch);
+        auto& channel = server.channels.get(ch);
         // check if user can broadcast to channel
         if (channel.find(client.get_id()) != NO_SUCH_CLIENT)
         {
@@ -307,11 +307,11 @@ static void handle_privmsg(Client& client, const std::vector<std::string>& msg)
     }
     else // assume client
     {
-      auto cl = server.user_by_name(msg[1]);
+      auto cl = server.clients.find(msg[1]);
       if (cl != NO_SUCH_CLIENT)
       {
         // send private message to user
-        auto& other = server.get_client(cl);
+        auto& other = server.clients.get(cl);
         other.send_from(client.nickuserhost(), TK_PRIVMSG " " + other.nick() + " :" + msg[2]);
       }
       else
@@ -336,10 +336,10 @@ static void handle_kill(Client& client, const std::vector<std::string>& msg)
     if (msg.size() > 1)
     {
       auto& server = client.get_server();
-      auto cl = server.user_by_name(msg[1]);
+      auto cl = server.clients.find(msg[1]);
       if (cl != NO_SUCH_CLIENT)
       {
-        auto& other = server.get_client(cl);
+        auto& other = server.clients.get(cl);
         
         std::string reason = "Killed by " + client.nick();
         if (msg.size() > 2) reason += ": " + msg[2];
@@ -365,9 +365,9 @@ static void handle_svshost(Client& client, const std::vector<std::string>& msg)
     if (msg.size() > 2)
     {
       auto& server = client.get_server();
-      auto cl = server.user_by_name(msg[1]);
+      auto cl = server.clients.find(msg[1]);
       if (cl != NO_SUCH_CLIENT) {
-        auto& client = server.get_client(cl);
+        auto& client = server.clients.get(cl);
         // TODO: validate host (must contain at least one .)
         if (msg[2].size() > 2)
             client.set_vhost(msg[2]);
@@ -397,9 +397,7 @@ static void handle_admin(Client& client, const std::vector<std::string>& msg)
   client.send(RPL_ADMINEMAIL, "contact@staff.irc");
 }
 
-void Client::handle(
-    const std::string&,
-    const std::vector<std::string>& msg)
+void Client::handle_cmd(const std::vector<std::string>& msg)
 {
   auto it = funcs.find(msg[0]);
   if (it != funcs.end()) {

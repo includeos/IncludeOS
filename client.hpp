@@ -65,15 +65,13 @@ public:
   void send_raw(const char* buff, size_t len);
   void send_buffer(net::tcp::buffer_t buff, size_t len);
   
-  const std::string& nick() const {
+  const std::string& nick() const noexcept {
     return nick_;
   }
-  const std::string& user() const
-  {
+  const std::string& user() const noexcept {
     return user_;
   }
-  const std::string& host() const
-  {
+  const std::string& host() const noexcept {
     return host_;
   }
   
@@ -154,10 +152,13 @@ public:
   void not_ircop(const std::string& cmd);
   void need_parms(const std::string& cmd);
   
+  const std::string& name_hash() const noexcept {
+    return nick_;
+  }
 private:
   void split_message(const std::string&);
-  void handle_new(const std::string&, const std::vector<std::string>&);
-  void handle(const std::string&, const std::vector<std::string>&);
+  void handle_new(const std::vector<std::string>&);
+  void handle_cmd(const std::vector<std::string>&);
   
   clindex_t   self;
   uint8_t     regis;

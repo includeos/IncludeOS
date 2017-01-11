@@ -201,7 +201,7 @@ void Channel::send_names(Client& client)
     
     char symb = listed_symb(idx);
     if (symb) list.append(&symb, 1);
-    list.append(server.get_client(idx).nick());
+    list.append(server.clients.get(idx).nick());
     list.append(" ");
     restart--;
   }
@@ -229,7 +229,7 @@ void Channel::bcast(const char* buff, size_t len)
   
   // broadcast to all users in channel
   for (auto cl : clients()) {
-      server.get_client(cl).send_buffer(sbuf, len);
+      server.clients.get(cl).send_buffer(sbuf, len);
   }
 }
 void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
@@ -240,6 +240,6 @@ void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
   // broadcast to all users in channel except source
   for (auto cl : clients())
   if (LIKELY(cl != src)) {
-      server.get_client(cl).send_buffer(sbuf, len);
+      server.clients.get(cl).send_buffer(sbuf, len);
   }
 }

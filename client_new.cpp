@@ -9,9 +9,7 @@ inline void Client::need_parms(const std::string& cmd)
   send(ERR_NEEDMOREPARAMS, cmd + " :Not enough parameters");
 }
 
-void Client::handle_new(
-    const std::string&,
-    const std::vector<std::string>& msg)
+void Client::handle_new(const std::vector<std::string>& msg)
 {
   volatile ScopedProfiler profile;
   const std::string& cmd = msg[0];
@@ -81,7 +79,7 @@ void Client::welcome(uint8_t newreg)
   if (!regged && is_reg())
   {
     // statistics
-    server.new_registered_client(*this);
+    server.new_registered_client();
     // welcoming messages
     send(RPL_WELCOME, ":Welcome to the Internet Relay Network, " + nickuserhost());
     send(RPL_YOURHOST, ":Your host is " + server.name() + ", running " IRC_SERVER_VERSION);

@@ -97,6 +97,9 @@ public:
   void serialize_to(liu::Storage&);
   void deserialize(liu::Restore&);
 
+  const std::string& name_hash() const noexcept {
+    return cname;
+  }
 private:
   std::string mode_string() const;
 

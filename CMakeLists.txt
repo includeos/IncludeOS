@@ -19,8 +19,8 @@ set(MAX_MEM 100)
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   channel.cpp     client.cpp      client_new.cpp   modes.cpp    test.cpp     transform.cpp
-  client_commands.cpp             client_send.cpp  ircd.cpp     restore.cpp  service.cpp
-  server.cpp      timeout.cpp
+  client_commands.cpp             client_send.cpp  ircd.cpp     ircsplit.cpp restore.cpp
+  service.cpp     server.cpp      server_commands.cpp           timeout.cpp
   )
 
 #

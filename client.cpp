@@ -39,14 +39,14 @@ void Client::assign_socket_dg()
   {
     /// NOTE: the underlying array can move around, 
     /// so we have to retrieve the address each time
-    auto& client = srv->get_client(idx);
+    auto& client = srv->clients.get(idx);
     client.read(buffer.get(), len);
   });
 
   conn->on_close(
   [srv = &server, idx = self] {
     // for the case where the client has not voluntarily quit,
-    auto& client = srv->get_client(idx);
+    auto& client = srv->clients.get(idx);
     //assert(client.is_alive());
     if (UNLIKELY(!client.is_alive())) return;
     // tell everyone that he just disconnected
@@ -84,16 +84,15 @@ void Client::split_message(const std::string& msg)
   volatile ScopedProfiler profile;
   // in case splitter is bad
   SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", msg.size(), msg.c_str());
-  
-  std::string source;
-  auto vec = ircsplit(msg, source);
-  
+
+  auto vec = ircsplit(msg);
+
   // ignore empty messages
   if (UNLIKELY(vec.empty())) return;
   // transform command to uppercase
   extern void transform_to_upper(std::string&);
   transform_to_upper(vec[0]);
-  
+
 //#define PRINT_CLIENT_MESSAGE
 #ifdef PRINT_CLIENT_MESSAGE
   printf("[%u]: ", self);
@@ -103,15 +102,15 @@ void Client::split_message(const std::string& msg)
   }
   printf("\n");
 #endif
-  
+
   // reset timeout now that we got data
   set_warned(false);
   to_stamp = server.get_cheapstamp();
-  
-  if (this->is_reg() == false)
-    handle_new(source, vec);
+
+  if (this->is_reg())
+      handle_cmd(vec);
   else
-    handle(source, vec);
+      handle_new(vec);
 }
 
 void Client::read(uint8_t* buf, size_t len)
@@ -253,7 +252,7 @@ bool Client::change_nick(const std::string& new_nick)
         send_from(server.name(), ERR_ERRONEUSNICKNAME, nick() + " " + new_nick + " :Erroneous nickname");
     return false;
   }
-  auto idx = server.user_by_name(new_nick);
+  auto idx = server.clients.find(new_nick);
   if (idx != NO_SUCH_CLIENT) {
     if (nick_.empty())
         send_from(server.name(), ERR_NICKNAMEINUSE, new_nick + " " + new_nick + " :Nickname is already in use");
@@ -263,9 +262,9 @@ bool Client::change_nick(const std::string& new_nick)
   }
   // remove old nickname from hashtable
   if (!nick().empty())
-      server.erase_nickname(nick());
+      server.clients.erase_hash(nick());
   // store new nickname
-  server.hash_nickname(new_nick, get_id());
+  server.clients.hash(new_nick, get_id());
   // nickname is valid and free, take it
   this->nick_ = new_nick;
   return true;
@@ -316,7 +315,7 @@ void Client::handle_quit(const char* buff, int len)
     server.user_bcast_butone(get_id(), buff, len);
     // remove client from various lists
     for (size_t idx : channels()) {
-      Channel& ch = server.get_channel(idx);
+      Channel& ch = server.channels.get(idx);
       ch.remove(get_id());
       
       // if the channel became empty, remove it

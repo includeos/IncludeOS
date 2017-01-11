@@ -24,7 +24,7 @@ void IrcServer::timeout_handler(uint32_t)
   
   while (counter--)
   {
-    Client& client = clients[to_current];
+    Client& client = clients.get(to_current);
     
     if (client.is_alive())
     {

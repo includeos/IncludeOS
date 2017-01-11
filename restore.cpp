@@ -71,15 +71,15 @@ void IrcServer::serialize(Storage& storage)
   std::vector<chindex_t> chivec;
 
   // h_users
-  storage.add<size_t> (1, h_users.size());
-  for (auto& hu : h_users) {
+  storage.add<size_t> (1, clients.hash_map().size());
+  for (auto& hu : clients.hash_map()) {
     storage.add_string     (2, hu.first);
     storage.add<clindex_t> (2, hu.second);
   }
 
   // h_channels
-  storage.add<size_t> (1, h_channels.size());
-  for (auto& hu : h_channels) {
+  storage.add<size_t> (1, channels.hash_map().size());
+  for (auto& hu : channels.hash_map()) {
     storage.add_string     (3, hu.first);
     storage.add<chindex_t> (3, hu.second);
   }
@@ -122,7 +122,7 @@ void IrcServer::deserialize(Restore& thing)
       for (size_t i = 0; i < count; i++) {
         auto fir = thing.as_string();           thing.go_next();
         auto sec = thing.as_type<clindex_t> (); thing.go_next();
-        h_users.emplace(fir, sec);
+        clients.hash(fir, sec);
       }
 
       count = thing.as_type<size_t> (); thing.go_next();
@@ -130,7 +130,7 @@ void IrcServer::deserialize(Restore& thing)
       for (size_t i = 0; i < count; i++) {
         auto fir = thing.as_string();           thing.go_next();
         auto sec = thing.as_type<chindex_t> (); thing.go_next();
-        h_channels.emplace(fir, sec);
+        channels.emplace_hash(fir, sec);
       }
 
       created_string = thing.as_string();       thing.go_next();
@@ -145,39 +145,37 @@ void IrcServer::deserialize(Restore& thing)
     }
   case 20: /// channels
       // create free channel indices
-      while (current_chan < thing.as_type<chindex_t> ())
+      while (channels.size() < thing.as_type<chindex_t> ())
       {
-        channels.emplace_back(current_chan, *this);
-        // set it as free id
-        free_channels.push_back(current_chan);
+        channels.create_empty(*this);
+      }
+      thing.go_next();
+      {
+        // create empty channel
+        auto& ch = channels.create_empty(*this);
+        // deserialize rest of channel
+        ch.deserialize(thing);
+        // go to next channel id
         current_chan++;
       }
-      // create empty channel
-      channels.emplace_back(current_chan, *this);
-      // deserialize rest of channel
-      thing.go_next();
-      channels.back().deserialize(thing);
-      // go to next channel id
-      current_chan++;
       break;
   case 50: /// clients
       // create free client indices
-      while (current_client < thing.as_type<clindex_t> ())
+      while (clients.size() < thing.as_type<clindex_t> ())
       {
-        clients.emplace_back(current_client, *this);
-        // set it as free id
-        free_clients.push_back(current_client);
+        clients.create_empty(*this);
+      }
+      thing.go_next();
+      {
+        // create empty client
+        auto& cl = clients.create_empty(*this);
+        // deserialize rest of client
+        cl.deserialize(thing);
+        // assign event handlers for client
+        cl.assign_socket_dg();
+        // go to next client id
         current_client++;
       }
-      // create empty client
-      clients.emplace_back(current_client, *this);
-      // deserialize rest of client
-      thing.go_next();
-      clients.back().deserialize(thing);
-      // assign event handlers for client
-      clients.back().assign_socket_dg();
-      // go to next client id
-      current_client++;
       break;
   default:
       printf("Unknown restore ID: %u\n", thing.get_id());

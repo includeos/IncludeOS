@@ -42,8 +42,7 @@ IrcServer::IrcServer(
           csock->remote().to_string().c_str());
 
     /// create client ///
-    clindex_t clindex = new_client();
-    auto& client = clients[clindex];
+    auto& client = clients.create(*this);
     // make sure crucial fields are reset properly
     client.reset_to(csock);
   });
@@ -74,44 +73,13 @@ IrcServer::IrcServer(
   this->cheapstamp = this->created_ts;
 }
 
-clindex_t IrcServer::new_client() {
-  // use prev dead client
-  if (!free_clients.empty()) {
-    clindex_t idx = free_clients.back();
-    free_clients.pop_back();
-    return idx;
-  }
-  // create new client
-  chindex_t idx = clients.size();
-  clients.emplace_back(idx, *this);
-  return idx;
-}
-chindex_t IrcServer::new_channel() {
-  // use prev dead channel
-  if (!free_channels.empty()) {
-    chindex_t idx = free_channels.back();
-    free_channels.pop_back();
-    return idx;
-  }
-  // create new channel
-  chindex_t idx = channels.size();
-  channels.emplace_back(idx, *this);
-  return idx;
-}
-
-clindex_t IrcServer::user_by_name(const std::string& name) const
-{
-  auto it = h_users.find(name);
-  if (it != h_users.end()) return it->second;
-  return NO_SUCH_CLIENT;
-}
-void IrcServer::new_registered_client(Client&)
+void IrcServer::new_registered_client()
 {
   inc_counter(STAT_TOTAL_USERS);
   inc_counter(STAT_LOCAL_USERS);
   // possibly set new max users connected
   if (get_counter(STAT_MAX_USERS) < get_counter(STAT_TOTAL_USERS))
-    set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
+      set_counter(STAT_MAX_USERS, get_counter(STAT_LOCAL_USERS));
 }
 void IrcServer::free_client(Client& client)
 {
@@ -120,33 +88,21 @@ void IrcServer::free_client(Client& client)
     dec_counter(STAT_TOTAL_USERS);
     dec_counter(STAT_LOCAL_USERS);
   }
-  // give back the client id
-  free_clients.push_back(client.get_id());
-  // give back nickname, if any
-  if (!client.nick().empty())
-      erase_nickname(client.nick());
+  // free from perf array
+  clients.free(client);
 }
 
-chindex_t IrcServer::channel_by_name(const std::string& name) const
-{
-  auto it = h_channels.find(name);
-  if (it != h_channels.end()) return it->second;
-  return NO_SUCH_CHANNEL;
-}
 chindex_t IrcServer::create_channel(const std::string& name)
 {
-  auto ch = new_channel();
-  hash_channel(name, ch);
-  get_channel(ch).reset(name);
+  auto& channel = channels.create(*this, name);
+  channel.reset(name);
   inc_counter(STAT_CHANNELS);
-  return ch;
+  return channel.get_id();
 }
 void IrcServer::free_channel(Channel& ch)
 {
-  // give back channel id
-  free_channels.push_back(ch.get_id());
-  // give back channel name
-  erase_channel(ch.name());
+  // give back channel
+  channels.free(ch);
   // less channels on server/network
   dec_counter(STAT_CHANNELS);
 }
@@ -169,15 +125,15 @@ void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
   // add user
   uset.insert(idx);
   // for each channel user is in
-  for (auto ch : get_client(idx).channels())
+  for (auto ch : clients.get(idx).channels())
   {
     // insert all users from channel into set
-    for (auto cl : get_channel(ch).clients())
+    for (auto cl : channels.get(ch).clients())
         uset.insert(cl);
   }
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send_buffer(netbuff, len);
+      clients.get(cl).send_buffer(netbuff, len);
 }
 
 void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
@@ -196,15 +152,24 @@ void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
   
   std::set<clindex_t> uset;
   // for each channel user is in
-  for (auto ch : get_client(idx).channels())
+  for (auto ch : clients.get(idx).channels())
   {
     // insert all users from channel into set
-    for (auto cl : get_channel(ch).clients())
+    for (auto cl : channels.get(ch).clients())
         uset.insert(cl);
   }
   // make sure user is not included
   uset.erase(idx);
   // broadcast message
   for (auto cl : uset)
-      get_client(cl).send_buffer(netbuff, len);
+      clients.get(cl).send_buffer(netbuff, len);
+}
+
+bool IrcServer::accept_remote_server(const std::string& name, const std::string& pass) const noexcept
+{
+  for (auto& srv : remote_server_list)
+  {
+    if (srv.sname == name && srv.spass == pass) return true;
+  }
+  return false;
 }
