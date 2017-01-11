@@ -193,10 +193,11 @@ namespace mender {
     context_.last_inventory_update = RTC::now();
   }
 
-  void Client::live_update(liu::Storage, liu::buffer_len) {
+  void Client::save_server_state(liu::Storage storage, liu::buffer_len len)
+  {
+    // save seq here, whever
 
-    printf("Inside Live Update function\n");
-
+    printf("<Live Update> Saving server state\n");
   }
 
   void Client::install_update(http::Response_ptr res)
@@ -214,8 +215,6 @@ namespace mender {
     tar::Tar_reader reader;
     tar::Tar& read_data = reader.read_uncompressed(data.data(), data.size());
 
-    auto* test_location = new uint8_t[64];
-
     for (auto element : read_data.elements()) {
       tar::Tar_reader tgzr;
 
@@ -229,7 +228,7 @@ namespace mender {
             printf("Found img file\n");
 
             // Sending the IncludeOS image to LiveUpdate
-            liu::LiveUpdate::begin(test_location, {e.content(), e.size()}, {this, &Client::live_update});
+            liu::LiveUpdate::begin(LIVEUPD_LOCATION, {e.content(), e.size()}, save_server_state);
           }
         }
       }

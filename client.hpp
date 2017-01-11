@@ -16,6 +16,8 @@ namespace mender {
 
   static const std::string API_PREFIX = "/api/devices/0.1";
 
+  static void* LIVEUPD_LOCATION = (void*) 0x5000000; // at 80mb
+
 	class Client {
   public:
     using AuthCallback  = delegate<void(bool)>;
@@ -31,7 +33,7 @@ namespace mender {
 
     void update_inventory_attributes();
 
-    void live_update(liu::Storage, liu::buffer_len);
+    static void save_server_state(liu::Storage storage, liu::buffer_len len);
 
     void install_update(http::Response_ptr = nullptr);
 
