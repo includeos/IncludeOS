@@ -114,8 +114,12 @@ class qemu(hypervisor):
         super(qemu, self).__init__(config)
         self._proc = None
         self._stopped = False
-        self._nametag = "<" + type(self).__name__ + ">"
         self._sudo = False
+
+        # Pretty printing
+        self._nametag = "<" + type(self).__name__ + ">"
+        self.INFO = color.INFO(self._nametag)
+
 
     def name(self):
         return "Qemu"
@@ -133,48 +137,61 @@ class qemu(hypervisor):
         command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
         try:
             subprocess.check_output(command, shell = True)
-            print color.INFO("<qemu>"),"KVM ON"
+            print self.INFO, "KVM ON"
             return True
 
         except Exception as err:
-            print color.INFO("<qemu>"),"KVM OFF"
+            print self.INFO, "KVM OFF"
             return False
 
-    # Start a process we expect to not finish immediately (e.g. a VM)
+    # Start a process and preserve in- and output pipes
+    # Note: if the command failed, we can't know until we have exit status,
+    # but we can't wait since we expect no exit. Checking for program start error
+    # is therefore deferred to the callee
     def start_process(self, cmdlist):
 
-        if cmdlist[0] == "sudo" and have_sudo():
+        if cmdlist[0] == "sudo": # and have_sudo():
             print color.WARNING("Running with sudo")
             self._sudo = True
 
         # Start a subprocess
-        proc = subprocess.Popen(cmdlist,
-                                stdout = subprocess.PIPE,
-                                stderr = subprocess.PIPE,
-                                stdin = subprocess.PIPE)
+        self._proc = subprocess.Popen(cmdlist,
+                                      stdout = subprocess.PIPE,
+                                      stderr = subprocess.PIPE,
+                                      stdin = subprocess.PIPE)
+        print self.INFO, "Started process PID ",self._proc.pid
 
-        # After half a second it should be started, otherwise throw
-        time.sleep(0.5)
-        if (proc.poll()):
-            data, err = proc.communicate()
-            raise Exception(color.C_FAILED+"Process exited. ERROR: " + err.__str__() + " " + data + color.C_ENDC);
-
-        print color.INFO(self._nametag), "Started process PID ",proc.pid
-        return proc
+        return self._proc
 
 
-    def boot(self, multiboot, kernel_args):
+    def get_error_messages(self):
+        if self._proc.poll():
+            data, err = self._proc.communicate()
+            return err
+
+    def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
-        print color.INFO(self._nametag), "booting", self._config["image"]
 
-        # multiboot
+        # Use provided image name if set, otherwise try to find it in json-config
+        if not image_name:
+            image_name = self._config["image"]
+
+        # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
-            print color.INFO(self._nametag), "Booting with multiboot (-kernel args)"
-            kernel_args = ["-kernel", self._config["image"].split(".")[0], "-append", kernel_args]
+
+            # TODO: Remove .img-extension from vm.json in tests to avoid this hack
+            if (image_name.endswith(".img")):
+                image_name = image_name.split(".")[0]
+
+            kernel_args = ["-kernel", image_name, "-append", kernel_args]
+            disk_args = []
+            print self.INFO, "Booting", image_name, "directly without bootloader (multiboot / -kernel args)"
         else:
             kernel_args = []
+            disk_args = self.drive_arg(image_name, "ide")
+            print self.INFO, "Booting", image_name, "with a bootable disk image"
 
-        disk_args = self.drive_arg(self._config["image"], "ide")
+
         if "drives" in self._config:
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
@@ -198,13 +215,13 @@ class qemu(hypervisor):
 
         command += ["-nographic" ] + disk_args + net_args + mem_arg
 
-        print color.INFO(self._nametag), "command:"
+        print self.INFO, "command:"
         print color.DATA(" ".join(command))
 
         try:
-            self._proc = self.start_process(command)
+            self.start_process(command)
         except Exception as e:
-            print color.INFO(self._nametag),"Starting subprocess threw exception:", e
+            print self.INFO,"Starting subprocess threw exception:", e
             raise e
 
     def stop(self):
@@ -221,17 +238,17 @@ class qemu(hypervisor):
         if self._proc and self._proc.poll() == None :
 
             if not self._sudo:
-                print color.INFO(self._nametag),"Stopping child process (no sudo required)"
+                print self.INFO,"Stopping child process (no sudo required)"
                 self._proc.terminate()
             else:
                 # Find and terminate all child processes, since parent is "sudo"
                 parent = psutil.Process(self._proc.pid)
                 children = parent.children()
 
-                print color.INFO(self._nametag),"Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
+                print self.INFO, "Stopping", self._config["image"], "PID",self._proc.pid, "with", signal
 
                 for child in children:
-                    print color.INFO(self._nametag)," + child process ", child.pid
+                    print self.INFO," + child process ", child.pid
 
                     # The process might have gotten an exit status by now so check again to avoid negative exit
                     if (not self._proc.poll()):
@@ -419,7 +436,7 @@ class vm:
         subprocess.call(["rm","-rf","build"])
 
     # Boot the VM and start reading output. This is the main event loop.
-    def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner"):
+    def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
 
         # This might be a reboot
         self._exit_status = None
@@ -433,7 +450,7 @@ class vm:
 
         # Boot via hypervisor
         try:
-            self._hyper.boot(multiboot, kernel_args)
+            self._hyper.boot(multiboot, kernel_args, image_name)
         except Exception as err:
             print color.WARNING("Exception raised while booting ")
             if (timeout): self._timer.cancel()
@@ -479,17 +496,20 @@ class vm:
                         self._exit_status = exit_codes["CALLBACK_FAILED"]
                         self.exit(self._exit_status, " Event-triggered test failed")
 
-        # Now we either have an exit status from timer thread, or an exit status
-        # from the subprocess, or the VM was powered off by the external test.
-        # If the process didn't exit we need to stop it.
+        # If the VM process didn't exit by now we need to stop it.
         if (self.poll() == None):
             self.stop()
 
+        # We might have an exit status, e.g. set by a callback noticing something wrong with VM output
         if self._exit_status:
             self.exit(self._exit_status, self._exit_msg)
-        else:
-            print color.INFO(nametag), "VM process exited with status", self._hyper.poll()
-            return self
+
+        # Process might have ended prematurely
+        elif self.poll():
+            self.exit(self._hyper.poll(), self._hyper.get_error_messages())
+
+        # If everything went well we can return
+        return self
 
 
 print color.HEADER("IncludeOS vmrunner loading VM configs")
@@ -499,7 +519,7 @@ print color.INFO(nametag), "Validating JSON according to schema ",schema_path
 validate_vm.load_schema(schema_path)
 validate_vm.has_required_stuff(".")
 
-default_spec = {"image" : "test.img"}
+default_spec = {"image" : "service.img"}
 
 # Provide a list of VM's with validated specs
 vms = []
@@ -512,7 +532,7 @@ if validate_vm.valid_vms:
         vms.append(vm(spec))
 
 else:
-    print color.WARNING(nametag), "No VM specification JSON found, trying default: ", default_spec
+    print color.WARNING(nametag), "No VM specification JSON found, trying default config"
     vms.append(vm(default_spec))
 
 
