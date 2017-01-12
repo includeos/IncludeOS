@@ -28,6 +28,12 @@ namespace mender {
     Keystore& keystore()
     { return *keystore_; }
 
+    auto seqno() const
+    { return seq_; }
+
+    void set_seqno(uint64_t s)
+    { seq_ = s; }
+
   private:
     std::unique_ptr<Keystore>   keystore_;
     const Dev_id                id_data_;

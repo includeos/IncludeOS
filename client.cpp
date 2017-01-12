@@ -29,6 +29,19 @@ namespace mender {
     printf("<Client> Client created\n");
   }
 
+  void Client::boot()
+  {
+    if(liu::LiveUpdate::is_resumable(device_.update_loc()))
+    {
+      printf("<Client> Found resumable state, try restoring...\n");
+      auto success = liu::LiveUpdate::resume(device_.update_loc(), {this, &Client::load_state});
+      if(!success)
+        printf("<Client> Failed.\n");
+    }
+
+    run_state();
+  }
+
   void Client::run_state()
   {
     switch(state_->handle(*this, context_))
@@ -201,16 +214,9 @@ namespace mender {
     context_.last_inventory_update = RTC::now();
   }
 
-  void Client::save_server_state(liu::Storage storage, liu::buffer_len len)
-  {
-    // save seq here, whever
-
-    printf("<Live Update> Saving server state\n");
-  }
-
   void Client::install_update(http::Response_ptr res)
   {
-    printf("<Client> Installing update\n");
+    printf("<Client> Installing update ...\n");
 
     if(res == nullptr)
       res = std::move(context_.response);
@@ -228,6 +234,35 @@ namespace mender {
     //artifact.verify();
     auto& e = artifact.get_update(0);  // returns element with index
 
-    liu::LiveUpdate::begin((void*) 0x5000000, {(const char*) e.content(), e.size()}, nullptr);
+    device_.inventory("artifact_name") = "updated";
+
+    httpclient_.release();
+
+    liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), e.size()}, {this, &Client::store_state});
   }
+
+  void Client::store_state(liu::Storage store, liu::buffer_len len)
+  {
+    decltype(store)::uid id = 0;
+
+    // SEQNO
+    store.add_int(id++, am_.seqno());
+
+    // ARTIFACT_NAME
+    store.add_string(id++, device_.inventory("artifact_name"));
+
+    printf("<Client> State stored.\n");
+  }
+
+  void Client::load_state(liu::Restore store)
+  {
+    // SEQNO
+    am_.set_seqno(store.as_int()); store.go_next();
+
+    // ARTIFACT_NAME
+    device_.inventory("artifact_name") = store.as_string(); store.go_next();
+
+    printf("<Client> State restored.\n");
+  }
+
 };

@@ -31,8 +31,6 @@ namespace mender {
 
     void update_inventory_attributes();
 
-    static void save_server_state(liu::Storage storage, liu::buffer_len len);
-
     void install_update(http::Response_ptr = nullptr);
 
     void set_auth_token(Auth_token token)
@@ -44,8 +42,7 @@ namespace mender {
     Device& device()
     { return device_; }
 
-    void boot()
-    { run_state(); }
+    void boot();
 
     void resume(state::State& s)
     {
@@ -86,6 +83,10 @@ namespace mender {
 
     http::URI parse_update_uri(http::Response& res);
 
+    void store_state(liu::Storage, liu::buffer_len);
+
+    void load_state(liu::Restore);
+
     void run_state();
 
     void run_state_delayed()
@@ -95,7 +96,7 @@ namespace mender {
     {
       auto old{state_->to_string()};
       state_ = &s;
-      printf("<Client> State transistion: %s => %s\n",
+      printf("<Client> State transition: %s => %s\n",
           old.c_str(),
           state_->to_string().c_str());
     }
