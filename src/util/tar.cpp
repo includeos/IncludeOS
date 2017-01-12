@@ -23,7 +23,7 @@ using namespace tar;
 
 // -------------------- Element --------------------
 
-long int Element::size() {
+long int Element::size() const {
   // Size of element's size in bytes
   char* pEnd;
   long int filesize;

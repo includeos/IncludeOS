@@ -67,7 +67,7 @@ public:
   std::string mode() const { return std::string{header_.mode}; }
   std::string uid() const { return std::string{header_.uid}; }
   std::string gid() const { return std::string{header_.gid}; }
-  long int size();
+  long int size() const;
   std::string mod_time() const { return std::string{header_.mod_time, LENGTH_MTIME}; }
   std::string checksum() const { return std::string{header_.checksum}; }
   char typeflag() const { return header_.typeflag; }
@@ -192,7 +192,7 @@ public:
   }
 
   /* When have a tar.gz file inside a tar file f.ex. */
-  Tar decompress(Element& element) {
+  Tar decompress(const Element& element) {
     return decompress(element.content(), element.size(), decompressed_length(element.content(), element.size()));
   }
 
