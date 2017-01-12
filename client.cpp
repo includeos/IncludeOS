@@ -220,11 +220,11 @@ namespace mender {
 
     // Process data:
 
-    tar::Tar_reader reader;
+    tar::Reader reader;
     tar::Tar& read_data = reader.read_uncompressed(data.data(), data.size());
 
     for (auto element : read_data.elements()) {
-      tar::Tar_reader tgzr;
+      tar::Reader tgzr;
 
       // If this element/file is a .tar.gz file: decompress it and store content in a new Tar object
       if (element.name().size() > 7 and element.name().substr(element.name().size() - 7) == ".tar.gz") {
@@ -233,7 +233,7 @@ namespace mender {
         // Loop through the elements of the tar.gz file and find the .img file and pass on
         for (auto e : read_compressed.elements()) {
           if (e.name().size() > 4 and e.name().substr(e.name().size() - 4) == ".img") {
-            printf("Found img file\n");
+            printf("<Client> Found img file\n");
 
             // Sending the IncludeOS image to LiveUpdate
             liu::LiveUpdate::begin(LIVEUPD_LOCATION, {e.content(), e.size()}, save_server_state);
