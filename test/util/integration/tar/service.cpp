@@ -58,7 +58,7 @@ void Service::start(const std::string&)
 
   // Get the names of all the elements in the tarball
   std::vector<std::string> found_elements = read_tarfile.element_names();
-  for (auto& name : found_elements)
+  for (auto name : found_elements)
     printf("%s - element\n", name.c_str());
 
   // Get a specific file in the tarball
