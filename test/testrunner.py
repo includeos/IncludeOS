@@ -438,7 +438,7 @@ def create_junit_output(tests):
 
         # If test is skipped add skipped info
         if test.skip_:
-            junit_object.add_skipped_info(output = test.skip_reason_)
+            junit_object.add_skipped_info(message = test.skip_reason_, output = test.skip_reason_)
         elif test.proc_.returncode is not 0:
             junit_object.add_failure_info(output = test.output_[0])
         else:
