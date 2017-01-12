@@ -25,12 +25,17 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
 
-parser.add_argument('binary', action="store", type=str,
-                    help="Filename of the IncludeOS service binary")
+parser.add_argument("-b", "--build", dest="build", action="store_true", default=False,
+                    help="Only build the service, don't start it in a VM")
+
+parser.add_argument("--create-bridge", dest="bridge", action="store_true",
+                    help="Create bridge43, used in local testing when TAP devices are supported")
 
 parser.add_argument("-g", "--grub", dest="grub", action="store_true",
                     help="Create image with GRUB bootloader that will boot provided binary")
 
+parser.add_argument('binary', action="store", type=str,
+                    help="Filename of the IncludeOS service binary")
 
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 args = parser.parse_args()
@@ -81,10 +86,16 @@ if (args.grub):
     image_name = args.binary + ".grub.img"
     has_bootloader = True
 
+if (args.bridge):
+    print INFO, "Creating bridge"
+    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
+
 # If the binary name has an extension (e.g. a '.'), assume it has a bootloader attached
 # NOTE: the idea is to support e.g. .vdi and virtualbox etc. in the future
 elif "." in args.binary:
     has_bootloader = True
+# Skip starting a VM if we are only building
+if (args.build): exit(0);
 
 if (not has_bootloader):
     vm.boot(timeout = None, kernel_args=" ".join(args.vmargs), image_name = image_name)
