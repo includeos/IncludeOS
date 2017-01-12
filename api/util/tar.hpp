@@ -85,7 +85,7 @@ public:
   bool is_dir() const { return header_.typeflag == DIRTYPE; }
   bool typeflag_is_set() const { return header_.typeflag not_eq ' '; }
   bool is_empty() { return size() == 0; }
-  bool is_tar_gz() { return name().size() > 7 and name().substr(name().size() - 7) == "tar.gz"; }
+  bool is_tar_gz();
 
   int num_content_blocks() {
     int num_blocks = 0;

@@ -31,6 +31,11 @@ long int Element::size() {
   return filesize;
 }
 
+bool Element::is_tar_gz() {
+  const std::string n = name();
+  return n.size() > 7 and n.substr(n.size() - 7) == ".tar.gz";
+}
+
 // ----------------------- Tar -----------------------
 
 const Element Tar::element(const std::string& path) const {
