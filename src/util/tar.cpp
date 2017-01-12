@@ -52,9 +52,9 @@ std::vector<std::string> Tar::element_names() const {
   return element_names;
 }
 
-// -------------------- Tar_reader --------------------
+// -------------------- Reader --------------------
 
-unsigned int Tar_reader::decompressed_length(const char* data, size_t size) const {
+unsigned int Reader::decompressed_length(const char* data, size_t size) const {
   unsigned int dlen = data[size - 1];
 
   for (int i = 2; i <= 4; i++)
@@ -63,7 +63,7 @@ unsigned int Tar_reader::decompressed_length(const char* data, size_t size) cons
   return dlen;
 }
 
-Tar& Tar_reader::read_uncompressed(const char* data, size_t size) {
+Tar& Reader::read_uncompressed(const char* data, size_t size) {
   if (size % SECTOR_SIZE not_eq 0)
     throw Tar_exception("Invalid size of tar file");
 

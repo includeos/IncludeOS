@@ -53,7 +53,7 @@ void print_content(Element& element, const std::string& unique) {
 
 void Service::start(const std::string&)
 {
-  Tar_reader tr;
+  Reader tr;
   Tar& read_tarfile = tr.read_binary_tar(); // In CMakeLists.txt: set(TARFILE tar_example.tar)
 
   // Get the names of all the elements in the tarball

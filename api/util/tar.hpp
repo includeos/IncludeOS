@@ -22,11 +22,11 @@
 #include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
 #include <util/tinf.h>        // From uzlib (mod)
 #include <util/crc32.hpp>
+#include <info>
 
 #include <string>
 #include <vector>
 #include <stdexcept>
-
 #include <memory>
 
 extern char _binary_input_bin_start;
@@ -85,6 +85,7 @@ public:
   bool is_dir() const { return header_.typeflag == DIRTYPE; }
   bool typeflag_is_set() const { return header_.typeflag not_eq ' '; }
   bool is_empty() { return size() == 0; }
+  bool is_tar_gz() { return name().size() > 7 and name().substr(name().size() - 7) == "tar.gz"; }
 
   int num_content_blocks() {
     int num_blocks = 0;
@@ -123,9 +124,9 @@ private:
 
 };  // class Tar
 
-// ------------------------------ Tar_reader ------------------------------
+// ------------------------------ Reader ------------------------------
 
-class Tar_reader {
+class Reader {
 
 public:
   uint32_t checksum(Element& element) const { return crc32(element.content(), element.size()); }
@@ -176,7 +177,7 @@ public:
     // decompress byte by byte or any other length
     d.destSize = DECOMPRESSION_SIZE;
 
-    printf("Decompression started - waiting...\n");
+    INFO("tar::Reader", "Decompression started - waiting...");
 
     do {
       res = uzlib_uncompress_chksum(&d);
@@ -185,7 +186,7 @@ public:
     if (res not_eq TINF_DONE)
       throw Tar_exception(std::string{"Error during decompression. Res: " + std::to_string(res)});
 
-    printf("Decompressed %d bytes\n", d.dest - dest.get());
+    INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
 
     return read_uncompressed(reinterpret_cast<const char*>(dest.get()), dlen);
   }
@@ -200,7 +201,7 @@ public:
 private:
   Tar tar_;
 
-};  // < class Tar_reader
+};  // < class Reader
 
 };  // namespace tar
 
