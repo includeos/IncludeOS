@@ -37,7 +37,7 @@ namespace mender {
 
   void Keystore::load()
   {
-    printf("<Keystore> Loading private key from \"%s\"...\n", key_name_);
+    printf("<Keystore> Loading private key from \"%s\"...\n", key_name_.c_str());
     auto buffer = store_->fs().read_file(key_name_);
     if(buffer)
     {

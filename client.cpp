@@ -1,9 +1,9 @@
 
 #include "client.hpp"
 #include "state.hpp"
+#include "artifact.hpp"
 #include <botan/base64.h>
 #include <rtc> // RTC::now()
-#include <tar>
 
 namespace mender {
 
@@ -219,27 +219,10 @@ namespace mender {
     auto data = res->body().to_string();
 
     // Process data:
+    Artifact artifact{{data.begin(), data.end()}};
 
-    tar::Reader reader;
-    tar::Tar& read_data = reader.read_uncompressed(data.data(), data.size());
-
-    for (auto element : read_data.elements()) {
-      tar::Reader tgzr;
-
-      // If this element/file is a .tar.gz file: decompress it and store content in a new Tar object
-      if (element.name().size() > 7 and element.name().substr(element.name().size() - 7) == ".tar.gz") {
-        tar::Tar& read_compressed = tgzr.decompress(element);
-
-        // Loop through the elements of the tar.gz file and find the .img file and pass on
-        for (auto e : read_compressed.elements()) {
-          if (e.name().size() > 4 and e.name().substr(e.name().size() - 4) == ".img") {
-            printf("<Client> Found img file\n");
-
-            // Sending the IncludeOS image to LiveUpdate
-            liu::LiveUpdate::begin(LIVEUPD_LOCATION, {e.content(), e.size()}, save_server_state);
-          }
-        }
-      }
-    }
+    // do stuff with artifact
+    // checksum/verify
+    // artifact.update() <- this is what liveupdate wants
   }
 };

@@ -16,8 +16,6 @@ namespace mender {
 
   static const std::string API_PREFIX = "/api/devices/0.1";
 
-  static void* LIVEUPD_LOCATION = (void*) 0x5000000; // at 80mb
-
 	class Client {
   public:
     using AuthCallback  = delegate<void(bool)>;

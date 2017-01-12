@@ -10,12 +10,14 @@ namespace mender {
 
   class Device {
   public:
-    Device(std::string artifact_name)
-      : inventory_(std::move(artifact_name), "incldueos")
+    Device(void* update_loc, std::string artifact_name)
+      : update_loc_(update_loc),
+        inventory_(std::move(artifact_name), "includeos")
     {}
 
-    Device(Inventory::Data_set inv)
-      : inventory_(std::move(inv))
+    Device(void* update_loc, Inventory::Data_set inv)
+      : update_loc_(update_loc),
+        inventory_(std::move(inv))
     {}
 
     void install_update();
@@ -25,6 +27,7 @@ namespace mender {
     { return inventory_; }
 
   private:
+    void* update_loc_ = nullptr;
     Inventory inventory_;
   }; // < class Device
 
