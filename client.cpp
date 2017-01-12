@@ -224,5 +224,10 @@ namespace mender {
     // do stuff with artifact
     // checksum/verify
     // artifact.update() <- this is what liveupdate wants
+
+    //artifact.verify();
+    auto& e = artifact.get_update(0);  // returns element with index
+
+    liu::LiveUpdate::begin((void*) 0x5000000, {(const char*) e.content(), e.size()}, nullptr);
   }
 };
