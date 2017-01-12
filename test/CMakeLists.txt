@@ -109,7 +109,7 @@ set(OS_SOURCES
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
   ${SRC}/util/statman.cpp
-  ${SRC}/util/tar_reader.cpp
+  ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
   ${SRC}/virtio/virtio_queue.cpp
 )
