@@ -46,18 +46,15 @@ void print_content(Element& element, const std::string& unique) {
   } else {
     printf("%s is not a folder and has content:\n", unique.c_str());
 
-    std::vector<Content_block*> content = element.content();
-    printf("First block of content: %.512s", content.at(0)->block);
-
-    if (content.size() > 1)
-      printf("\nLast block of content: %.512s", content.at(content.size()-1)->block);
+    const uint8_t* content = element.content();
+    printf("First block of content: %.512s", content);
   }
 }
 
 void Service::start(const std::string&)
 {
-  Tar_reader tr;
-  Tar& read_tarfile = tr.read_binary_tar(); // In CMakeLists.txt: set(TARFILE tar_example.tar)
+  Reader tr;
+  Tar read_tarfile = tr.read_binary_tar(); // In CMakeLists.txt: set(TARFILE tar_example.tar)
 
   // Get the names of all the elements in the tarball
   std::vector<std::string> found_elements = read_tarfile.element_names();
@@ -79,7 +76,7 @@ void Service::start(const std::string&)
 
   // Get all elements in the tarball
   std::vector<Element> elements = read_tarfile.elements();
-  for (auto e : elements)
+  for (auto& e : elements)
     printf("Name: %s Typeflag: %c\n", e.name().c_str(), e.typeflag());
 
   printf("Something special to close with\n");

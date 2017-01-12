@@ -19,28 +19,33 @@
 #ifndef TAR_READER_HPP
 #define TAR_READER_HPP
 
-#include <posix/tar.h>  // our posix header has the Tar_header struct, which the newlib tar.h does not
-#include <util/tinf.h>  // uzlib
+#include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
+#include <util/tinf.h>        // From uzlib (mod)
+#include <util/crc32.hpp>
+#include <info>
 
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <memory>
 
-extern char _binary_input_bin_start;
+extern uint8_t _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
 namespace tar {
 
-const int SECTOR_SIZE = 512;
-const int DECOMPRESSION_SIZE = 256;
+static const int SECTOR_SIZE = 512;
+static const int DECOMPRESSION_SIZE = 256;
+
+static bool has_uzlib_init = false;
+
+// --------------------------- Tar_exception ---------------------------
 
 class Tar_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-struct Content_block {
-  char block[SECTOR_SIZE];
-};
+// ------------------------------ Element ------------------------------
 
 // Element/file/folder in tarball
 class Element {
@@ -49,22 +54,20 @@ public:
   Element(Tar_header& header)
     : header_{header} {}
 
-  Element(Tar_header& header, const std::vector<Content_block*>& content)
-    : header_{header}, content_{content} {}
+  Element(Tar_header& header, const uint8_t* content_start)
+    : header_{header}, content_start_{content_start} {}
 
   const Tar_header& header() const { return header_; }
   void set_header(const Tar_header& header) { header_ = header; }
 
-  const std::vector<Content_block*>& content() const { return content_; }
-  void add_content_block(Content_block* content_block) {
-    content_.push_back(content_block);
-  }
+  const uint8_t* content() const { return content_start_; }
+  void set_content_start(const uint8_t* content_start) { content_start_ = content_start; }
 
   std::string name() const { return std::string{header_.name}; }
   std::string mode() const { return std::string{header_.mode}; }
   std::string uid() const { return std::string{header_.uid}; }
   std::string gid() const { return std::string{header_.gid}; }
-  long int size();
+  long int size() const;
   std::string mod_time() const { return std::string{header_.mod_time, LENGTH_MTIME}; }
   std::string checksum() const { return std::string{header_.checksum}; }
   char typeflag() const { return header_.typeflag; }
@@ -79,28 +82,38 @@ public:
   std::string pad() const { return std::string{header_.pad}; }
 
   bool is_ustar() const { return header_.magic == TMAGIC; }
-
   bool is_dir() const { return header_.typeflag == DIRTYPE; }
+  bool typeflag_is_set() const { return header_.typeflag not_eq ' '; }
+  bool is_empty() { return size() == 0; }
+  bool is_tar_gz() const;
 
-  bool typeflag_is_set() const { return header_.typeflag == ' '; }
+  int num_content_blocks() {
+    int num_blocks = 0;
 
-  bool is_empty() const { return content_.size() == 0; }
+    if (not typeflag_is_set() or not is_dir()) {
+      long int sz = size();
 
-  int num_content_blocks() const { return content_.size(); }
+      if (sz % SECTOR_SIZE not_eq 0)
+        num_blocks = (sz / SECTOR_SIZE) + 1;
+      else
+        num_blocks = (sz / SECTOR_SIZE);
+    }
+
+    return num_blocks;
+  }
 
 private:
   Tar_header& header_;
-  std::vector<Content_block*> content_;
+  const uint8_t* content_start_ = nullptr;
 };
+
+// --------------------------------- Tar ---------------------------------
 
 class Tar {
 
 public:
-
   Tar() = default;
-
   int num_elements() const { return elements_.size(); }
-
   void add_element(const Element& element) { elements_.push_back(element); }
   const Element element(const std::string& path) const;
   const std::vector<Element>& elements() const { return elements_; }
@@ -111,52 +124,44 @@ private:
 
 };  // class Tar
 
-class Tar_reader {
+// ------------------------------ Reader ------------------------------
+
+class Reader {
 
 public:
-  /*
-  // Alt. instead of read_binary_tar() and read_binary_tar_gz()
-  Tar& read_binary() {
-    const char* bin_content   = &_binary_input_bin_start;
-    const int   bin_size      = (intptr_t) &_binary_input_bin_size;
+  uint32_t checksum(Element& element) const { return crc32(element.content(), element.size()); }
 
-    // TODO: Check if file is compressed or not
-    if () {
-      decompress(bin_content, bin_size);
-    } else
-      read_uncompressed(bin_content, bin_size);
-  }
-  */
+  unsigned int decompressed_length(const uint8_t* data, size_t size) const;
 
-  Tar& read_binary_tar() {
-    const char* bin_content   = &_binary_input_bin_start;
+  Tar read_binary_tar() {
+    const uint8_t* bin_content   = &_binary_input_bin_start;
     const int   bin_size      = (intptr_t) &_binary_input_bin_size;
 
     return read_uncompressed(bin_content, bin_size);
   }
 
-  Tar& read_binary_tar_gz() {
-    const char* bin_content  = &_binary_input_bin_start;
+  Tar read_binary_tar_gz() {
+    const uint8_t* bin_content  = &_binary_input_bin_start;
     const int   bin_size     = (intptr_t) &_binary_input_bin_size;
 
     return decompress(bin_content, bin_size);
   }
 
-  Tar& read_uncompressed(const char* file, size_t size);
+  /**
+    dlen is only given if the data is from an Element - see decompress(Element&)
+  */
+  Tar decompress(const uint8_t* data, size_t size, unsigned int dlen = 0) {
+    if (!has_uzlib_init) {
+      uzlib_init();
+      has_uzlib_init = true;
+    }
 
-  Tar& decompress(const char* file, size_t size) {
-    // uzlib_init();
-
-    // Get uncompressed length
-    unsigned int dlen = file[size - 1];
-
-    for (int i = 2; i <= 4; i++)
-      dlen = DECOMPRESSION_SIZE*dlen + file[size - i];
-
-    unsigned char dest[dlen];
+    // If not decompressing an Element:
+    if (dlen == 0)
+      dlen = decompressed_length(data, size);
 
     TINF_DATA d;
-    d.source = reinterpret_cast<const unsigned char*>(file);
+    d.source = data;
 
     int res = uzlib_gzip_parse_header(&d);
 
@@ -165,29 +170,35 @@ public:
 
     uzlib_uncompress_init(&d, NULL, 0);
 
-    d.dest = dest;
+    auto dest = std::make_unique<unsigned char[]>(dlen);
+
+    d.dest = dest.get();
 
     // decompress byte by byte or any other length
     d.destSize = DECOMPRESSION_SIZE;
 
+    //INFO("tar::Reader", "Decompression started - waiting...");
+
     do {
-
       res = uzlib_uncompress_chksum(&d);
-
     } while (res == TINF_OK);
 
     if (res not_eq TINF_DONE)
-      printf("Error during decompression: %d\n", res);
+      throw Tar_exception(std::string{"Error during decompression. Res: " + std::to_string(res)});
 
-    // printf("Decompressed %d bytes\n", d.dest - dest);
+    //INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
 
-    return read_uncompressed(reinterpret_cast<const char*>(dest), dlen);
+    return read_uncompressed(dest.get(), dlen);
   }
 
-private:
-  Tar tar_;
+  /* When have a tar.gz file inside a tar file f.ex. */
+  Tar decompress(const Element& element) {
+    return decompress(element.content(), element.size(), decompressed_length(element.content(), element.size()));
+  }
 
-};  // < class Tar_reader
+  Tar read_uncompressed(const uint8_t* data, size_t size);
+
+};  // < class Reader
 
 };  // namespace tar
 

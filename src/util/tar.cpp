@@ -17,13 +17,13 @@
 
 #include <tar>
 
-#include <iostream> // strtol
+#include <cstdlib>  // strtol
 
 using namespace tar;
 
 // -------------------- Element --------------------
 
-long int Element::size() {
+long int Element::size() const {
   // Size of element's size in bytes
   char* pEnd;
   long int filesize;
@@ -31,10 +31,15 @@ long int Element::size() {
   return filesize;
 }
 
+bool Element::is_tar_gz() const {
+  const std::string n = name();
+  return n.size() > 7 and n.substr(n.size() - 7) == ".tar.gz";
+}
+
 // ----------------------- Tar -----------------------
 
 const Element Tar::element(const std::string& path) const {
-  for (auto element : elements_) {
+  for (auto& element : elements_) {
     if (element.name() == path) {
       return element;
     }
@@ -44,26 +49,34 @@ const Element Tar::element(const std::string& path) const {
 }
 
 std::vector<std::string> Tar::element_names() const {
-    std::vector<std::string> element_names;
+  std::vector<std::string> element_names;
 
-    for (auto element : elements_)
-      element_names.push_back(element.name());
+  for (auto& element : elements_)
+    element_names.push_back(element.name());
 
-    return element_names;
-  }
+  return element_names;
+}
 
-// -------------------- Tar_reader --------------------
+// -------------------- Reader --------------------
 
-Tar& Tar_reader::read_uncompressed(const char* file, size_t size) {
-  if (size == 0)
-    throw Tar_exception("File is empty");
+unsigned int Reader::decompressed_length(const uint8_t* data, size_t size) const {
+  unsigned int dlen = data[size - 1];
 
+  for (int i = 2; i <= 4; i++)
+    dlen = DECOMPRESSION_SIZE*dlen + data[size - i];
+
+  return dlen;
+}
+
+Tar Reader::read_uncompressed(const uint8_t* data, size_t size) {
   if (size % SECTOR_SIZE not_eq 0)
     throw Tar_exception("Invalid size of tar file");
 
+  Tar tar;
+
   // Go through the whole tar file block by block
   for (size_t i = 0; i < size; i += SECTOR_SIZE) {
-    Tar_header* header = (Tar_header*) (file + i);
+    Tar_header* header = (Tar_header*) ((const char*) data + i);
     Element element{*header};
 
     if (element.name().empty()) {
@@ -72,28 +85,15 @@ Tar& Tar_reader::read_uncompressed(const char* file, size_t size) {
     }
 
     // Check if this is a directory or not (typeflag) (directories have no content)
-
-    // If typeflag not set (as with m files) -> is not a directory and has content
+    // If typeflag not set -> is not a directory and has content
     if (not element.typeflag_is_set() or not element.is_dir()) {
-      // Get the size of this file in the tarball
-      long int filesize = element.size(); // Gives the size in bytes (converts from octal to decimal)
-
-      int num_content_blocks = 0;
-      if (filesize % SECTOR_SIZE not_eq 0)
-        num_content_blocks = (filesize / SECTOR_SIZE) + 1;
-      else
-        num_content_blocks = (filesize / SECTOR_SIZE);
-
-      for (int j = 0; j < num_content_blocks; j++) {
-        i += SECTOR_SIZE; // Go to next block with content
-
-        Content_block* content_blk = (Content_block*) (file + i);
-        element.add_content_block(content_blk);
-      }
+      i += SECTOR_SIZE; // move past header
+      element.set_content_start(data + i);
+      i += (SECTOR_SIZE * (element.num_content_blocks() - 1));  // move to the end of the element
     }
 
-    tar_.add_element(element);
+    tar.add_element(element);
   }
 
-  return tar_;
+  return tar;
 }
