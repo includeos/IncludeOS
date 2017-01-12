@@ -75,12 +75,13 @@ class Test:
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
         # Type is linked to the type of test e.g. integration, unit, stress
-        if self.path_ == 'stress':
+        if self.path_.split("/")[1] == 'stress':
             self.category_ = 'stress'
             self.type_ = 'stress'
-        elif self.path_.split("/")[0] == 'misc':
+        elif self.path_.split("/")[1] == 'misc':
             self.category_ = 'misc'
             self.type_ = 'misc'
+            self.command_ = ['./test.sh']
         elif self.path_ == 'mod/gsl':
             self.category_ = 'mod'
             self.type_ = 'mod'
@@ -182,6 +183,12 @@ class Test:
         Arguments:
         self: Class function
         """
+        # If test is misc test, it does not need validation
+        if self.type_ == "misc":
+            self.skip_ = False
+            self.skip_reason_ = None
+            return
+
         # Test 1
         if not validate_vm.validate_path(self.path_, verb = False):
             self.skip_ = True
@@ -208,10 +215,13 @@ class Test:
         return
 
 
-def stress_test():
+def stress_test(stress_tests):
     """Perform stresstest"""
     global test_count
-    test_count += 1
+    test_count += len(stress_tests)
+    if len(stress_tests) == 0:
+        return 0
+
     if ("stress" in args.skip):
         print pretty.WARNING("Stress test skipped")
         return 0
@@ -220,33 +230,30 @@ def stress_test():
         raise Exception("Stress test failed validation")
 
     print pretty.HEADER("Starting stress test")
-    stress = Test("stress", clean = args.clean).start()
+    for test in stress_tests:
+        test.start()
 
-    if (stress and args.fail):
-        print pretty.FAIL("Stress test failed")
-        sys.exit(stress)
-
-    return 1 if stress.wait_status() else 0
+    for test in stress_tests:
+        return 1 if test.wait_status() else 0
 
 
-def misc_working():
+def misc_working(misc_tests):
     global test_count
+    test_count += len(misc_tests)
+    if len(misc_tests) == 0:
+        return 0
+
     if ("misc" in args.skip):
         print pretty.WARNING("Misc test skipped")
         return 0
 
-    misc_dir = 'misc'
-    dirs = os.walk(misc_dir).next()[1]
-    dirs.sort()
-    print pretty.HEADER("Building " + str(len(dirs)) + " misc")
-    test_count += len(dirs)
+    print pretty.HEADER("Building " + str(len(misc_tests)) + " misc")
     fail_count = 0
-    for directory in dirs:
-        misc = misc_dir + "/" + directory
-        print "Building misc ", misc
-        build = Test(misc, command = ['./test.sh'], name = directory).start().wait_status()
-        run = 0 #TODO: Make a 'test' folder for each miscellanous test, containing test.py, vm.json etc.
-        fail_count += 1 if build or run else 0
+
+    for test in misc_tests:
+        build = test.start().wait_status()
+        fail_count += 1 if build else 0
+
     return fail_count
 
 
@@ -260,6 +267,7 @@ def integration_tests(tests):
     Returns:
         integer: Number of tests that failed
     """
+    tests = [x for x in tests if x.type_ == "integration"]  # Only integration
     time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
     tests = [ x for x in tests if x not in time_sensitive_tests ]
 
@@ -333,7 +341,16 @@ def find_test_folders():
         path = [root, directory]
 
         # Only look in folders listed as a test category
-        if directory not in test_categories:
+        if directory in test_types:
+            if directory == 'misc':
+                # For each subfolder in misc, register test
+                for subdir in os.listdir("/".join(path)):
+                    path.append(subdir)
+                    leaf_nodes.append("/".join(path))
+                    path.pop()
+            elif directory == 'stress':
+                leaf_nodes.append("./stress")
+        elif directory not in test_categories:
             continue
 
         # Only look into subfolders named "integration"
@@ -454,14 +471,12 @@ def main():
     filtered_tests, skipped_tests = filter_tests(all_tests, args)
 
     # Run the tests
-    integration = integration_tests(filtered_tests)
-    if args.tests:
-        types_to_run = args.tests
-    else:
-        types_to_run = test_types
-    stress = stress_test() if "stress" in types_to_run else 0
-    misc = misc_working() if "misc" in types_to_run else 0
-    status = max(integration, stress, misc)
+    integration_result = integration_tests(filtered_tests)
+    stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
+    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"])
+
+    # Print status from test run
+    status = max(integration_result, stress_result, misc_result)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")
