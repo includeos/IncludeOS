@@ -29,7 +29,7 @@
 #include <stdexcept>
 #include <memory>
 
-extern char _binary_input_bin_start;
+extern uint8_t _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
 namespace tar {
@@ -54,14 +54,14 @@ public:
   Element(Tar_header& header)
     : header_{header} {}
 
-  Element(Tar_header& header, const char* content_start)
+  Element(Tar_header& header, const uint8_t* content_start)
     : header_{header}, content_start_{content_start} {}
 
   const Tar_header& header() const { return header_; }
   void set_header(const Tar_header& header) { header_ = header; }
 
-  const char* content() const { return content_start_; }
-  void set_content_start(const char* content_start) { content_start_ = content_start; }
+  const uint8_t* content() const { return content_start_; }
+  void set_content_start(const uint8_t* content_start) { content_start_ = content_start; }
 
   std::string name() const { return std::string{header_.name}; }
   std::string mode() const { return std::string{header_.mode}; }
@@ -104,7 +104,7 @@ public:
 
 private:
   Tar_header& header_;
-  const char* content_start_ = nullptr;
+  const uint8_t* content_start_ = nullptr;
 };
 
 // --------------------------------- Tar ---------------------------------
@@ -131,17 +131,17 @@ class Reader {
 public:
   uint32_t checksum(Element& element) const { return crc32(element.content(), element.size()); }
 
-  unsigned int decompressed_length(const char* data, size_t size) const;
+  unsigned int decompressed_length(const uint8_t* data, size_t size) const;
 
-  Tar& read_binary_tar() {
-    const char* bin_content   = &_binary_input_bin_start;
+  Tar read_binary_tar() {
+    const uint8_t* bin_content   = &_binary_input_bin_start;
     const int   bin_size      = (intptr_t) &_binary_input_bin_size;
 
     return read_uncompressed(bin_content, bin_size);
   }
 
-  Tar& read_binary_tar_gz() {
-    const char* bin_content  = &_binary_input_bin_start;
+  Tar read_binary_tar_gz() {
+    const uint8_t* bin_content  = &_binary_input_bin_start;
     const int   bin_size     = (intptr_t) &_binary_input_bin_size;
 
     return decompress(bin_content, bin_size);
@@ -150,7 +150,7 @@ public:
   /**
     dlen is only given if the data is from an Element - see decompress(Element&)
   */
-  Tar& decompress(const char* data, size_t size, unsigned int dlen = 0) {
+  Tar decompress(const uint8_t* data, size_t size, unsigned int dlen = 0) {
     if (!has_uzlib_init) {
       uzlib_init();
       has_uzlib_init = true;
@@ -161,7 +161,7 @@ public:
       dlen = decompressed_length(data, size);
 
     TINF_DATA d;
-    d.source = reinterpret_cast<const unsigned char*>(data);
+    d.source = data;
 
     int res = uzlib_gzip_parse_header(&d);
 
@@ -188,18 +188,15 @@ public:
 
     INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
 
-    return read_uncompressed(reinterpret_cast<const char*>(dest.get()), dlen);
+    return read_uncompressed(dest.get(), dlen);
   }
 
   /* When have a tar.gz file inside a tar file f.ex. */
-  Tar& decompress(Element& element) {
+  Tar decompress(Element& element) {
     return decompress(element.content(), element.size(), decompressed_length(element.content(), element.size()));
   }
 
-  Tar& read_uncompressed(const char* data, size_t size);
-
-private:
-  Tar tar_;
+  Tar read_uncompressed(const uint8_t* data, size_t size);
 
 };  // < class Reader
 

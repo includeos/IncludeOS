@@ -39,7 +39,7 @@ bool Element::is_tar_gz() {
 // ----------------------- Tar -----------------------
 
 const Element Tar::element(const std::string& path) const {
-  for (auto element : elements_) {
+  for (auto& element : elements_) {
     if (element.name() == path) {
       return element;
     }
@@ -51,7 +51,7 @@ const Element Tar::element(const std::string& path) const {
 std::vector<std::string> Tar::element_names() const {
   std::vector<std::string> element_names;
 
-  for (auto element : elements_)
+  for (auto& element : elements_)
     element_names.push_back(element.name());
 
   return element_names;
@@ -59,7 +59,7 @@ std::vector<std::string> Tar::element_names() const {
 
 // -------------------- Reader --------------------
 
-unsigned int Reader::decompressed_length(const char* data, size_t size) const {
+unsigned int Reader::decompressed_length(const uint8_t* data, size_t size) const {
   unsigned int dlen = data[size - 1];
 
   for (int i = 2; i <= 4; i++)
@@ -68,13 +68,15 @@ unsigned int Reader::decompressed_length(const char* data, size_t size) const {
   return dlen;
 }
 
-Tar& Reader::read_uncompressed(const char* data, size_t size) {
+Tar Reader::read_uncompressed(const uint8_t* data, size_t size) {
   if (size % SECTOR_SIZE not_eq 0)
     throw Tar_exception("Invalid size of tar file");
 
+  Tar tar;
+
   // Go through the whole tar file block by block
   for (size_t i = 0; i < size; i += SECTOR_SIZE) {
-    Tar_header* header = (Tar_header*) (data + i);
+    Tar_header* header = (Tar_header*) ((const char*) data + i);
     Element element{*header};
 
     if (element.name().empty()) {
@@ -90,8 +92,8 @@ Tar& Reader::read_uncompressed(const char* data, size_t size) {
       i += (SECTOR_SIZE * (element.num_content_blocks() - 1));  // move to the end of the element
     }
 
-    tar_.add_element(element);
+    tar.add_element(element);
   }
 
-  return tar_;
+  return tar;
 }
