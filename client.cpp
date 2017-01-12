@@ -234,14 +234,14 @@ namespace mender {
     //artifact.verify();
     auto& e = artifact.get_update(0);  // returns element with index
 
-    device_.inventory("artifact_name") = "updated";
+    device_.inventory("artifact_name") = artifact.name();
 
     httpclient_.release();
 
     liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), e.size()}, {this, &Client::store_state});
   }
 
-  void Client::store_state(liu::Storage store, liu::buffer_len len)
+  void Client::store_state(liu::Storage store, liu::buffer_len)
   {
     decltype(store)::uid id = 0;
 
