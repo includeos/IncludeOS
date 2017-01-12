@@ -267,7 +267,9 @@ def integration_tests(tests):
     Returns:
         integer: Number of tests that failed
     """
-    tests = [x for x in tests if x.type_ == "integration"]  # Only integration
+    if len(tests) == 0:
+        return 0
+
     time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
     tests = [ x for x in tests if x not in time_sensitive_tests ]
 
@@ -471,7 +473,7 @@ def main():
     filtered_tests, skipped_tests = filter_tests(all_tests, args)
 
     # Run the tests
-    integration_result = integration_tests(filtered_tests)
+    integration_result = integration_tests([x for x in filtered_tests if x.type_ == "integration"])
     stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
     misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"])
 
