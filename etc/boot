@@ -25,6 +25,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
 
+parser.add_argument("-b", "--build", dest="build", action="store_true", default=False,
+                    help="Only build the service, don't start it in a VM")
+
 parser.add_argument("--create-bridge", dest="bridge", action="store_true",
                     help="Create bridge43, used in local testing when TAP devices are supported")
 
@@ -91,6 +94,8 @@ if (args.bridge):
 # NOTE: the idea is to support e.g. .vdi and virtualbox etc. in the future
 elif "." in args.binary:
     has_bootloader = True
+# Skip starting a VM if we are only building
+if (args.build): exit(0);
 
 if (not has_bootloader):
     vm.boot(timeout = None, kernel_args=" ".join(args.vmargs), image_name = image_name)
