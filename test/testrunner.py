@@ -436,7 +436,7 @@ def create_junit_output(tests):
 
     # Integration tests
     for test in tests:
-        junit_object = jx.TestCase(test.name_, classname="IncludeOS.{}".format(test.category_))
+        junit_object = jx.TestCase(test.name_, classname="IncludeOS.{}.{}".format(test.type_, test.category_))
 
         # If test is skipped add skipped info
         if test.skip_:
