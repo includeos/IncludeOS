@@ -22,8 +22,8 @@ namespace mender {
   public:
     using AuthCallback  = delegate<void(bool)>;
   public:
-    Client(Auth_manager&&, net::TCP&, const std::string& server, const uint16_t port = 0);
-    Client(Auth_manager&&, net::TCP&, net::tcp::Socket);
+    Client(Auth_manager&&, Device&&, net::TCP&, const std::string& server, const uint16_t port = 0);
+    Client(Auth_manager&&, Device&&, net::TCP&, net::tcp::Socket);
 
     void make_auth_request();
 
@@ -46,6 +46,15 @@ namespace mender {
     Device& device()
     { return device_; }
 
+    void boot()
+    { run_state(); }
+
+    void resume(state::State& s)
+    {
+      set_state(s);
+      run_state();
+    }
+
   private:
     // auth related
     Auth_manager am_;
@@ -62,7 +71,6 @@ namespace mender {
     friend class state::State;
     state::State* state_;
     state::Context context_;
-
 
     std::string build_url(const std::string& server) const;
 
@@ -86,7 +94,13 @@ namespace mender {
     { context_.timer.start(std::chrono::seconds(context_.delay), {this, &Client::run_state}); }
 
     void set_state(state::State& s)
-    { state_ = &s; }
+    {
+      auto old{state_->to_string()};
+      state_ = &s;
+      printf("<Client> State transistion: %s => %s\n",
+          old.c_str(),
+          state_->to_string().c_str());
+    }
 
   }; // < class Client
 

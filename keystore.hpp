@@ -3,7 +3,6 @@
 #define MENDER_KEYSTORE_HPP
 
 #include "common.hpp"
-#include <fs/disk.hpp>
 #include <botan/rsa.h> // RSA_PublicKey, RSA_PrivateKey
 
 namespace mender {
@@ -16,11 +15,10 @@ namespace mender {
   class Keystore {
   public:
     static constexpr size_t KEY_LENGTH = 2048;
-    using Storage = std::shared_ptr<fs::Disk>; // Memdisk to read from?
 
   public:
     Keystore(Storage store = nullptr);
-    Keystore(Storage, std::string name);
+    Keystore(Storage store, std::string name);
     Keystore(std::string key);
 
     byte_seq sign(const byte_seq& data);
@@ -31,6 +29,8 @@ namespace mender {
     { return *private_key_; }
 
     void load();
+
+    void save();
 
     void generate();
 

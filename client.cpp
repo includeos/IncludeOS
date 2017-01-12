@@ -7,28 +7,26 @@
 
 namespace mender {
 
-  Client::Client(Auth_manager&& man, net::TCP& tcp, const std::string& server, const uint16_t port)
+  Client::Client(Auth_manager&& man, Device&& dev, net::TCP& tcp, const std::string& server, const uint16_t port)
     : am_{std::forward<Auth_manager>(man)},
-      device_{},
+      device_{std::forward<Device>(dev)},
       server_(server),
       cached_{0, port},
       httpclient_{std::make_unique<http::Client>(tcp)},
       state_(&state::Init::instance())
   {
     printf("<Client> Client created\n");
-    run_state();
   }
 
-  Client::Client(Auth_manager&& man, net::TCP& tcp, net::tcp::Socket socket)
+  Client::Client(Auth_manager&& man, Device&& dev, net::TCP& tcp, net::tcp::Socket socket)
     : am_{std::forward<Auth_manager>(man)},
-      device_{},
+      device_{std::forward<Device>(dev)},
       server_{socket.address().to_string()},
       cached_(std::move(socket)),
       httpclient_{std::make_unique<http::Client>(tcp)},
       state_(&state::Init::instance())
   {
     printf("<Client> Client created\n");
-    run_state();
   }
 
   void Client::run_state()
@@ -133,8 +131,18 @@ namespace mender {
       { header::Authorization, "Bearer " + std::string{token.begin(), token.end()}}
     };
 
+    std::string path{API_PREFIX + "/deployments/device/deployments/next"};
+
+    auto artifact_name = device_.inventory().value("artifact_name");
+    if(! artifact_name.empty())
+      path.append("?artifact_name=").append(std::move(artifact_name)).append("&");
+
+    auto device_type = device_.inventory().value("device_type");
+    if(! device_type.empty())
+      path.append("?device_type=").append(std::move(device_type));
+
     httpclient_->get(cached_,
-      API_PREFIX + "/deployments/device/deployments/next",
+      std::move(path),
       headers, {this, &Client::response_handler});
   }
 

@@ -15,7 +15,7 @@ namespace mender {
 
   public:
 
-    Auth_manager(Keystore& ks, Dev_id id, int64_t seq = 0);
+    Auth_manager(std::unique_ptr<Keystore> ks, Dev_id id, uint64_t seq = 0);
 
     Auth_request make_auth_request();
 
@@ -26,13 +26,13 @@ namespace mender {
     { tenant_token_ = std::move(token); }
 
     Keystore& keystore()
-    { return keystore_; }
+    { return *keystore_; }
 
   private:
-    Keystore&       keystore_;
-    const Dev_id    id_data_;
-    Auth_token      tenant_token_;
-    int64_t         seq_;
+    std::unique_ptr<Keystore>   keystore_;
+    const Dev_id                id_data_;
+    uint64_t                    seq_;
+    Auth_token                  tenant_token_;
 
   };
 

@@ -10,6 +10,14 @@ namespace mender {
 
   class Device {
   public:
+    Device(std::string artifact_name)
+      : inventory_(std::move(artifact_name), "incldueos")
+    {}
+
+    Device(Inventory::Data_set inv)
+      : inventory_(std::move(inv))
+    {}
+
     void install_update();
     void reboot();
 
