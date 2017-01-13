@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define NO_INFO 1
 #include <common.cxx>
 #include <iostream>
 #include <kernel/memmap.hpp>

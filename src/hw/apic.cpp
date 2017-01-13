@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <debug>
 #include <info>
+#if defined(__MACH__)
+extern void *aligned_alloc(size_t, size_t);
+#endif
 
 extern "C" {
   void apic_enable();

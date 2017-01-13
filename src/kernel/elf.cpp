@@ -19,6 +19,7 @@
 #include <common>
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <unistd.h>
 #include <info>
@@ -364,7 +365,7 @@ void _move_elf_symbols(void* old_location, void* new_location)
       (char*) new_location + size < (char*) old_location)
   {
     kprintf("ELF symbol sections are inside each other!\n");
-    kprintf("Moving %d from %p -> %p (%p)\n", 
+    kprintf("Moving %d from %p -> %p (%p)\n",
         size, old_location, new_location, (char*) new_location + size);
     assert(0);
   }
@@ -376,8 +377,9 @@ void _move_elf_symbols(void* old_location, void* new_location)
   newhdr->symtab.base = (Elf32_Sym*) base;
   newhdr->strtab.base = &base[newhdr->symtab.entries * sizeof(Elf32_Sym)];
 }
-
+#if !defined(__MACH__)
 #include <malloc.h>
+#endif
 extern "C"
 void* _relocate_to_heap(void* old_location)
 {

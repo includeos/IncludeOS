@@ -21,7 +21,7 @@
 #include <debug>
 #include <info>
 
-extern "C" void reboot();
+extern "C" void reboot_os();
 
 namespace hw {
   
@@ -345,7 +345,7 @@ namespace hw {
   
   void ACPI::reboot()
   {
-    ::reboot();
+    ::reboot_os();
   }
   
   void ACPI::acpi_shutdown() {

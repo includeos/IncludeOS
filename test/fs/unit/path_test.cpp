@@ -28,6 +28,14 @@ CASE("Path can be constructed with specified path")
   EXPECT(path.empty() == false);
 }
 
+CASE("Path can be assigned to with string")
+{
+  const std::string str {"/usr/local/bin"};
+  fs::Path path = str;
+  EXPECT(path.empty() == false);
+  EXPECT(path.size() == 3u);
+}
+
 CASE("Path can be constructed with initializer list")
 {
   fs::Path path {"/", "Users", "Bjarne", "Documents"};

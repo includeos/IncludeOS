@@ -288,4 +288,14 @@ namespace hw {
 
 } //< namespace hw
 
+namespace std {
+template<>
+struct hash<PCI::classcode_t> {
+public:
+  std::size_t operator()(PCI::classcode_t const& key) const noexcept {
+    return key;
+  }
+};
+}
+
 #endif //< HW_PCI_DEVICE_HPP
