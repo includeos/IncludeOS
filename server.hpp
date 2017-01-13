@@ -19,33 +19,44 @@ public:
   void connect(Connection conn, std::string name, std::string pass);
   
   bool is_alive() const noexcept {
-    return regis != 0;
+    return regis & 1;
   }
   bool is_regged() const noexcept {
-    return regis == 7;
+    return (regis & 7) == 7;
   }
   sindex_t get_id() const noexcept {
     return this->self;
   }
   // fast b64 assuming max 26 servers
-  char     token() const noexcept {
+  char    token() const noexcept {
     return 'A' + token_;
   }
   uint8_t server_id() const noexcept {
     return token_;
   }
+  char    nl_token() const noexcept {
+    return 'A' + near_link_;
+  }
   uint8_t near_link() const noexcept {
     return near_link_;
   }
   bool is_local() const noexcept {
-    // alt: near_link == server.server_id()
-    return conn != nullptr;
+    return hops_ == 0;
+  }
+  uint8_t hop_count() const noexcept {
+    return hops_;
+  }
+  long boot_ts() const noexcept {
+    return boot_time_;
+  }
+  long link_ts() const noexcept {
+    return link_time_;
   }
 
   const std::string& name() const noexcept {
     return sname;
   }
-  const std::string& description() const noexcept {
+  const std::string& get_desc() const noexcept {
     return sdesc;
   }
   const std::string& get_pass() const noexcept {
@@ -74,8 +85,11 @@ private:
 
   sindex_t self;
   uint8_t  regis;
-  uint8_t  token_; // this servers ID
-  uint8_t  near_link_;  // server ID towards us
+  uint8_t  token_; // this servers numeric
+  uint8_t  near_link_;  // server numeric facing us
+  uint8_t  hops_;
+  long     boot_time_;
+  long     link_time_;
 
   IrcServer&  server;
   Connection  conn;

@@ -102,6 +102,7 @@ public:
   bool accept_remote_server(const std::string& name, const std::string& pass) const noexcept;
   void call_remote_servers();
   void kill_remote_clients_on(sindex_t, const std::string&);
+  void begin_netburst(Server&);
 
   /// broadcassts
   // message local operators

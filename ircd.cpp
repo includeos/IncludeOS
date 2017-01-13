@@ -182,8 +182,10 @@ void IrcServer::call_remote_servers()
     auto id = servers.find(remote.sname);
     if (id == NO_SUCH_SERVER) {
       // try to connect to it
-      printf("*** Attempting server connection to %s:%u\n",
-            remote.address.to_string().c_str(), remote.port);
+      printf("*** Attempting server connection to %s [%s:%u]\n",
+            remote.sname.c_str(),
+            remote.address.to_string().c_str(),
+            remote.port);
       auto conn = inet.tcp().connect({remote.address, remote.port});
       auto& srv = servers.create(*this, remote.sname);
       srv.connect(conn, remote.sname, remote.spass);
@@ -224,4 +226,64 @@ void IrcServer::sbcast_butone(sindex_t origin, const std::string& msg)
       srv.send(msg);
     }
   }
+}
+
+void IrcServer::begin_netburst(Server& target)
+{
+  broadcast(
+  this->netburst = true;
+  /// send my servers
+  for (size_t id = 0; id < servers.size(); id++)
+  {
+    auto& srv = servers.get(id);
+    if (srv.is_regged()) {
+      /// [server] SERVER [name] [hops] [boot_ts] [link_ts] [proto] [token] 0 :[desc]
+      target.send(std::string(1, srv.nl_token()) + " S " + srv.name() + 
+            " " + std::to_string(srv.hop_count()) + 
+            " " + std::to_string(srv.boot_ts()) + // protocol:
+            " " + std::to_string(srv.link_ts()) + " J10 " +
+            " " + std::string(1, srv.token()) + 
+            " :" + srv.get_desc() + "\r\n");
+    }
+  }
+  /// clients
+  for (size_t id = 0; id < channels.size(); id++)
+  {
+    auto& cl = clients.get(id);
+    if (cl.is_reg()) {
+      /// [tk] NICK [nick] [hops] [ts] [user] [host] [+modes] [ip] [numeric] :[rname]
+      auto& srv = servers.get(cl.get_server_id());
+      target.send(std::string(1, 
+            srv.token()) + " N " + cl.nick() + 
+            " " + std::to_string(srv.hop_count()) + 
+            " " + std::to_string(0u) +
+            " " + cl.user() + 
+            " " + cl.host() +
+            " " + cl.mode_string() + 
+            " " + cl.ip_addr() +
+            " " + cl.token() +
+            " :" + cl.realname() + "\r\n");
+    }
+  }
+  /// channel bursts
+  for (size_t id = 0; id < channels.size(); id++)
+  {
+    auto& chan = channels.get(id);
+    if (chan.is_alive()) {
+      /// with topic:
+      if (chan.has_topic()) {
+        /// [tk] BURST [name] [ts] [+modes] [user] ... :[bans]
+        target.send(std::string(1, 
+          token()) + " B " + chan.name() + 
+          " " + std::to_string(chan.created()) + 
+          " " + chan.mode_string() + "\r\n");
+      }
+      else {
+        /// CHANNEL [name] [+modes] [ts]
+        target.send("C " + chan.name() + " " + chan.mode_string() + "\r\n");
+      }
+    }
+  }
+  /// end of burst
+  target.send("EB\r\n");
 }

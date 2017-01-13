@@ -87,6 +87,9 @@ public:
   const std::string& host() const noexcept {
     return host_;
   }
+  const std::string& ip_addr() const noexcept {
+    return ip_;
+  }
   const std::string& realname() const noexcept {
     return rname_;
   }
@@ -189,6 +192,7 @@ private:
   std::string nick_;
   std::string user_;
   std::string host_;
+  std::string ip_;
   std::string rname_;
   ChannelList channels_;
   

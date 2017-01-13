@@ -19,10 +19,10 @@ inline void Client::need_parms(const std::string& cmd)
 static void handle_ping(Client& client, const std::vector<std::string>& msg)
 {
   if (msg.size() > 1) {
-    char buffer[BUFFER_SIZE];
+    char buffer[64];
     int len = snprintf(buffer, sizeof(buffer),
         "PONG :%s\r\n", msg[1].c_str());
-    client.send_raw(buffer, len);
+    if (len > 0) client.send_raw(buffer, len);
   }
   else
     client.need_parms(msg[0]);

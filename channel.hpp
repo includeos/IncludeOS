@@ -20,6 +20,8 @@ public:
   using ClientList = std::deque<clindex_t>;
 
   Channel(index_t self, IrcServer& sref);
+  // reset to reuse in other fashion
+  void reset(const std::string& new_name);
 
   bool is_alive() const noexcept {
     return !clients_.empty();
@@ -33,8 +35,9 @@ public:
   size_t size() const noexcept {
     return clients_.size();
   }
-  // reset to reuse in other fashion
-  void reset(const std::string& new_name);
+  long created() const noexcept {
+    return create_ts;
+  }
 
   const ClientList& clients() {
     return clients_;
@@ -67,6 +70,16 @@ public:
   bool has_topic() const noexcept {
     return !ctopic.empty();
   }
+  const std::string& get_topic() const noexcept {
+    return ctopic;
+  }
+  long get_topic_ts() const noexcept {
+    return ctopic_ts;
+  }
+  const std::string& get_topic_by() const noexcept {
+    return ctopic_by;
+  }
+  
   // set new channel topic (and timestamp it)
   void set_topic(Client&, const std::string&);
 
@@ -80,6 +93,7 @@ public:
   bool is_chanop(clindex_t cid) const;
   bool is_voiced(clindex_t cid) const;
 
+  std::string mode_string() const;
   void send_mode(Client&);
   void send_topic(Client&);
   void send_names(Client&);
@@ -101,8 +115,6 @@ public:
     return cname;
   }
 private:
-  std::string mode_string() const;
-
   index_t     self;
   uint16_t    cmodes;
   long        create_ts;

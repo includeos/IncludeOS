@@ -18,10 +18,11 @@
 #include <os>
 #include <profile>
 #include <timers>
+#include "liveupdate"
 #define USE_STACK_SAMPLING
 
-static const uint16_t    serverID   = 0;
-static const std::string servername = "irc.includeos.org";
+static uint16_t    server_id  = 0;
+static std::string servername = "irc.includeos.org";
 #include "ircd.hpp"
 IrcServer* ircd = nullptr;
 
@@ -42,6 +43,9 @@ void Service::start()
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
 
+  //  server_id  = 2;
+  //  servername = "irc.other.org";
+
   // show that we are starting :)
   printf("*** %s starting up...\n", servername.c_str());
   //_enable_heap_debugging_verbose(1);
@@ -56,7 +60,7 @@ void Service::start()
 
   ircd =
   new IrcServer(inet, 6667, 7000, 
-                serverID, servername, "IncludeNet",
+                server_id, servername, "IncludeNet",
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
@@ -75,9 +79,9 @@ Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
   });
 
   ircd->add_remote_server(
-    {"irc.other.net", "password123", {46,31,184,184}, 7000});
-  // connect to all known remote servers
-  ircd->call_remote_servers();
+      {"irc.other.net", "password123", {46,31,184,184}, 7000});
+  ircd->add_remote_server(
+      {"irc.includeos.org", "password123", {195,159,159,10}, 7000});
 
   printf("%s\n", ircd->get_motd().c_str());
   printf("This is server version " IRC_SERVER_VERSION "\n");
@@ -192,7 +196,10 @@ void print_stats(int)
 
 void Service::ready()
 {
+  // .. and done
   printf("*** IRC SERVICE STARTED ***\n");
+  // connect to all known remote servers
+  ircd->call_remote_servers();
 #ifdef USE_STACK_SAMPLING
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_CALLER);
