@@ -28,7 +28,6 @@ set(SOURCES
 # To add your own include paths:
 set(LOCAL_INCLUDES
   "app/"
-  $ENV{INCLUDEOS_PREFIX}/includeos/include # Temp
   ${BUCKET_DIR}
   )
 

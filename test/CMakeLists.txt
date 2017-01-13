@@ -19,6 +19,7 @@ include_directories(
   ${INCLUDEOS_ROOT}/src/include
   ${INCLUDEOS_ROOT}/mod/
   ${INCLUDEOS_ROOT}/mod/GSL
+  ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${TEST}/lest/include
   ${TEST}/lest_util
 )

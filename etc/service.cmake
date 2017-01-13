@@ -150,6 +150,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
@@ -187,6 +188,10 @@ target_link_libraries(service --whole-archive multiboot --no-whole-archive)
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
+
+add_library(libosdeps STATIC IMPORTED)
+set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libosdeps.a)
 
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
@@ -276,6 +281,7 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
+    libosdeps
     libcxx
     cxxabi
     libos
