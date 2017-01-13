@@ -23,7 +23,7 @@ State::Result Init::handle(Client& cli, Context&)
 State::Result Auth_wait::handle(Client& cli, Context& ctx)
 {
   if(ctx.response == nullptr) {
-
+    set_state(cli, Error_state::instance(*this));
   }
   else
   {
@@ -79,7 +79,7 @@ State::Result Authorized::handle(Client& cli, Context& ctx)
 State::Result Update_check::handle(Client& cli, Context& ctx)
 {
   if(ctx.response == nullptr) {
-
+    set_state(cli, Error_state::instance(*this));
   }
   else
   {
@@ -113,7 +113,7 @@ State::Result Update_fetch::handle(Client& cli, Context& ctx)
 {
 
   if(ctx.response == nullptr) {
-
+    set_state(cli, Error_state::instance(*this));
   }
   else
   {
@@ -128,6 +128,12 @@ State::Result Update_fetch::handle(Client& cli, Context& ctx)
         printf("<Update_fetch> Not handeled (%u)\n", ctx.response->status_code());
     }
   }
+  return AWAIT_EVENT;
+}
+
+State::Result Error_state::handle(Client&, Context&)
+{
+  printf("<Error_state> Previous state %s resulted in error.\n", prev_->to_string().c_str());
   return AWAIT_EVENT;
 }
 

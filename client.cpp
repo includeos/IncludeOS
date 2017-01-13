@@ -13,7 +13,8 @@ namespace mender {
       server_(server),
       cached_{0, port},
       httpclient_{std::make_unique<http::Client>(tcp)},
-      state_(&state::Init::instance())
+      state_(&state::Init::instance()),
+      context_({this, &Client::run_state})
   {
     printf("<Client> Client created\n");
   }
@@ -24,7 +25,8 @@ namespace mender {
       server_{socket.address().to_string()},
       cached_(std::move(socket)),
       httpclient_{std::make_unique<http::Client>(tcp)},
-      state_(&state::Init::instance())
+      state_(&state::Init::instance()),
+      context_({this, &Client::run_state})
   {
     printf("<Client> Client created\n");
   }
@@ -94,7 +96,7 @@ namespace mender {
   {
     if(err) {
       printf("<Client> Error: %s\n", err.to_string().c_str());
-      return;
+      set_state(state::Error_state::instance(*state_));
     }
     if(!res)
     {

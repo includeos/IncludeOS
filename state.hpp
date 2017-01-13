@@ -21,7 +21,11 @@ namespace mender {
       Timer timer;
       int delay = 0;
       RTC::timestamp_t last_inventory_update = 0;
-
+      Context() = default;
+      Context(Timer::handler_t&& timeout)
+        : response(nullptr), timer(timeout),
+          delay(0), last_inventory_update(0)
+      {}
       void clear()
       {
         response = nullptr;
@@ -43,6 +47,8 @@ namespace mender {
 
       virtual Result handle(Client&, Context&) = 0;
       virtual std::string to_string() const = 0;
+
+      virtual ~State() {}
     protected:
       explicit State() = default;
 
@@ -102,6 +108,22 @@ namespace mender {
 
       Result handle(Client&, Context&) override;
       std::string to_string() const override { return "Update_fetch"; }
+    };
+
+    class Error_state : public State {
+    public:
+      static State& instance(State& state)
+      { static Error_state state_; state_.prev_ = &state; return state_; }
+
+      Result handle(Client&, Context&) override;
+      std::string to_string() const override { return "Error_state"; }
+
+    protected:
+      Error_state() : prev_(nullptr) {}
+
+    private:
+      // previous state
+      State* prev_;
     };
   }
 

@@ -90,7 +90,7 @@ namespace mender {
     void run_state();
 
     void run_state_delayed()
-    { context_.timer.start(std::chrono::seconds(context_.delay), {this, &Client::run_state}); }
+    { context_.timer.restart(std::chrono::seconds(context_.delay)); }
 
     void set_state(state::State& s)
     {
