@@ -1,4 +1,5 @@
 add_library(multiboot STATIC multiboot.cpp)
+add_dependencies(multiboot PrecompiledLibraries)
 
 add_custom_command(
 	OUTPUT bootloader
