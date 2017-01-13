@@ -29,7 +29,9 @@ namespace http {
       NONE,
       RESOLVE_HOST,
       NO_REPLY,
-      INVALID
+      INVALID,
+      TIMEOUT,
+      CLOSING
     };
 
     Error(Code code = NONE)
@@ -42,6 +44,9 @@ namespace http {
     Error code() const
     { return code_; }
 
+    bool timeout() const
+    { return code_ == TIMEOUT; }
+
     std::string to_string() const
     {
       switch(code_)
@@ -52,6 +57,10 @@ namespace http {
           return "Unable to resolve host";
         case NO_REPLY:
           return "No reply";
+        case TIMEOUT:
+          return "Request timed out";
+        case CLOSING:
+          return "Connection closing";
         default:
           return "General error";
       } // < switch code_

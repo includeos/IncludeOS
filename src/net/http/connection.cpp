@@ -27,6 +27,7 @@ namespace http {
       res_{nullptr},
       on_close_{std::move(on_close)},
       on_response_{nullptr},
+      timer_({this, &Connection::timeout_request}),
       keep_alive_{true}
   {
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
@@ -43,10 +44,13 @@ namespace http {
   {
   }
 
-  void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize)
+  void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
     req_ = std::move(req);
     on_response_ = std::move(on_res);
+
+    if(timeout > timeout_duration::zero())
+      timer_.restart(timeout);
 
     send_request(bufsize);
   }
@@ -133,13 +137,34 @@ namespace http {
   {
     // move response to a copy in case of callback result in new request
     Ensures(on_response_);
-    auto callback{std::move(on_response_)};
+    auto callback = std::move(on_response_);
+    on_response_.reset();
+
+    // stop timeout timer
+    timer_.stop();
 
     callback(err, std::move(res_));
+
+    // avoid trying to parse any more responses
+    tcpconn_->on_read(0, nullptr);
 
     // user callback may override this
     if(!keep_alive_)
       tcpconn_->close();
+  }
+
+  void Connection::close()
+  {
+    // if the user already
+    if(on_response_ != nullptr)
+    {
+      auto callback = std::move(on_response_);
+      on_response_.reset();
+      timer_.stop();
+      callback(Error::CLOSING, nullptr);
+    }
+
+    on_close_(*this);
   }
 
 }

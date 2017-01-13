@@ -19,6 +19,8 @@
 
 namespace http {
 
+  const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
+
   Client::Client(TCP& tcp)
     : tcp_(tcp), conns_{}
   {
@@ -36,8 +38,9 @@ namespace http {
     return req;
   }
 
-  void Client::send(Request_ptr req, Host host, Response_handler cb)
+  void Client::send(Request_ptr req, Host host, Response_handler cb, Options options)
   {
+    using namespace std;
     auto& conn = get_connection(host);
 
     auto&& header = req->header();
@@ -45,13 +48,14 @@ namespace http {
     if(! header.has_field(header::Host))
       header.set_field(header::Host, host.to_string());
 
-    conn.send(std::move(req), std::move(cb));
+    conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
 
-  void Client::request(Method method, URI url, Header_set hfields, Response_handler cb)
+  void Client::request(Method method, URI url, Header_set hfields, Response_handler cb, Options options)
   {
+    using namespace std;
     resolve(url,
-    [ this, method, url{std::move(url)}, hfields{std::move(hfields)}, cb{std::move(cb)} ] (auto ip)
+    [ this, method, url{move(url)}, hfields{move(hfields)}, cb{move(cb)}, opt{move(options)}] (auto ip)
     {
       // Host resolved
       if(ip != 0)
@@ -66,7 +70,7 @@ namespace http {
         // Default to port 80 if non given
         const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-        send(std::move(req), {ip, port}, std::move(cb));
+        send(move(req), {ip, port}, move(cb), move(opt));
       }
       else
       {
@@ -75,22 +79,24 @@ namespace http {
     });
   }
 
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb)
+  void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
   {
+    using namespace std;
     // setup request with method and headers
     auto req = create_request(method);
     *req << hfields;
 
     //set uri
-    req->set_uri(URI{std::move(path)});
+    req->set_uri(URI{move(path)});
 
-    send(std::move(req), std::move(host), std::move(cb));
+    send(move(req), move(host), move(cb), move(options));
   }
 
-  void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb)
+  void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   {
+    using namespace std;
     resolve(url,
-    [ this, method, url, hfields{std::move(hfields)}, data{std::move(data)}, cb{std::move(cb)} ] (auto ip)
+    [ this, method, url, hfields{move(hfields)}, data{move(data)}, cb{move(cb)}, opt{move(options)} ] (auto ip)
     {
       // Host resolved
       if(ip != 0)
@@ -108,7 +114,7 @@ namespace http {
         // Default to port 80 if non given
         const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-        send(std::move(req), {ip, port}, std::move(cb));
+        send(move(req), {ip, port}, move(cb), move(opt));
       }
       else
       {
@@ -117,19 +123,20 @@ namespace http {
     });
   }
 
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb)
+  void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
   {
+    using namespace std;
     // setup request with method and headers
     auto req = create_request(method);
     *req << hfields;
 
     // set uri
-    req->set_uri(URI{std::move(path)});
+    req->set_uri(URI{move(path)});
 
     // Add data and content length
     add_data(*req, data);
 
-    send(std::move(req), std::move(host), std::move(cb));
+    send(move(req), move(host), move(cb), move(options));
   }
 
   void Client::add_data(Request& req, const std::string& data)
