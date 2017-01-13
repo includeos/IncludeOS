@@ -63,23 +63,23 @@ public:
   const uint8_t* content() const { return content_start_; }
   void set_content_start(const uint8_t* content_start) { content_start_ = content_start; }
 
-  std::string name() const noexcept { return std::string{header_.name}; }
-  std::string mode() const noexcept { return std::string{header_.mode}; }
-  std::string uid() const noexcept { return std::string{header_.uid}; }
-  std::string gid() const noexcept { return std::string{header_.gid}; }
+  std::string name() const { return std::string{header_.name}; }
+  std::string mode() const { return std::string{header_.mode}; }
+  std::string uid() const { return std::string{header_.uid}; }
+  std::string gid() const { return std::string{header_.gid}; }
   long int size() const noexcept;
-  std::string mod_time() const noexcept { return std::string{header_.mod_time, LENGTH_MTIME}; }
-  std::string checksum() const noexcept { return std::string{header_.checksum}; }
+  std::string mod_time() const { return std::string{header_.mod_time, LENGTH_MTIME}; }
+  std::string checksum() const { return std::string{header_.checksum}; }
   char typeflag() const noexcept { return header_.typeflag; }
-  std::string linkname() const noexcept { return std::string{header_.linkname}; }
-  std::string magic() const noexcept { return std::string{header_.magic}; }
-  std::string version() const noexcept { return std::string{header_.version, LENGTH_VERSION}; }
-  std::string uname() const noexcept { return std::string{header_.uname}; }
-  std::string gname() const noexcept { return std::string{header_.gname}; }
-  std::string devmajor() const noexcept { return std::string{header_.devmajor}; }
-  std::string devminor() const noexcept { return std::string{header_.devminor}; }
-  std::string prefix() const noexcept{ return std::string{header_.prefix}; }
-  std::string pad() const noexcept { return std::string{header_.pad}; }
+  std::string linkname() const { return std::string{header_.linkname}; }
+  std::string magic() const { return std::string{header_.magic}; }
+  std::string version() const { return std::string{header_.version, LENGTH_VERSION}; }
+  std::string uname() const { return std::string{header_.uname}; }
+  std::string gname() const { return std::string{header_.gname}; }
+  std::string devmajor() const { return std::string{header_.devmajor}; }
+  std::string devminor() const { return std::string{header_.devminor}; }
+  std::string prefix() const { return std::string{header_.prefix}; }
+  std::string pad() const { return std::string{header_.pad}; }
 
   bool is_ustar() const noexcept { return header_.magic == TMAGIC; }
   bool is_dir() const noexcept { return header_.typeflag == DIRTYPE; }
@@ -114,7 +114,7 @@ public:
   void add_element(const Element& element) { elements_.push_back(element); }
   const Element& element(const std::string& path) const;
   const std::vector<Element>& elements() const noexcept { return elements_; }
-  std::vector<std::string> element_names() const noexcept;
+  std::vector<std::string> element_names() const;
 
 private:
   std::vector<Element> elements_;

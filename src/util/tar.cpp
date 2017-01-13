@@ -48,7 +48,7 @@ const Element& Tar::element(const std::string& path) const {
   throw Tar_exception(std::string{"Path " + path + " doesn't exist. Folder names should have a trailing /"});
 }
 
-std::vector<std::string> Tar::element_names() const noexcept {
+std::vector<std::string> Tar::element_names() const {
   std::vector<std::string> element_names;
 
   for (auto& element : elements_)
