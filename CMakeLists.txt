@@ -142,6 +142,7 @@ endif(libmana)
 option(rapidjson "Download and install rapidjson submodule" ON)
 if(rapidjson)
   init_submodule(mod/rapidjson)
+  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 endif(rapidjson)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)

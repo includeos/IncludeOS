@@ -8,13 +8,6 @@ include_directories(${NEWLIB_INCLUDE_DIR})
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
 
-# rapidjson
-# not sure if it can be located here due to build order
-if(rapidjson)
-  install(DIRECTORY rapidjson/include/rapidjson DESTINATION includeos/include)
-endif(rapidjson)
-
-
 # uzlib
 FILE(GLOB UZLIB_SOURCES uzlib/src/*.c)
 install(FILES uzlib/src/tinf.h DESTINATION includeos/include)
