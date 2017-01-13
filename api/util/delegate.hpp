@@ -43,7 +43,7 @@ namespace detail
 
 template<
 	typename T,
-	template<size_t, typename, typename...> class Spec = spec::inplace,
+	template<size_t, typename, typename...> class Spec = spec::dynamic,
 	size_t size = detail::default_capacity
 >
 class delegate; // unspecified
