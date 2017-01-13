@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef TAR_READER_HPP
-#define TAR_READER_HPP
+#ifndef TAR_HPP
+#define TAR_HPP
 
 #include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
 #include <util/tinf.h>        // From uzlib (mod)
