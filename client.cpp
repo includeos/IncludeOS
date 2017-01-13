@@ -92,7 +92,10 @@ namespace mender {
 
   void Client::response_handler(http::Error err, http::Response_ptr res)
   {
-    if(err) printf("<Client> Error: %s\n", err.to_string().c_str());
+    if(err) {
+      printf("<Client> Error: %s\n", err.to_string().c_str());
+      return;
+    }
     if(!res)
     {
       printf("<Client> No reply.\n");
