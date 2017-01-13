@@ -43,7 +43,7 @@ namespace detail
 
 template<
 	typename T,
-	template<size_t, typename, typename...> class Spec = spec::dynamic,
+	template<size_t, typename, typename...> class Spec = spec::inplace,
 	size_t size = detail::default_capacity
 >
 class delegate; // unspecified
@@ -151,7 +151,9 @@ public:
 
 	explicit inplace_triv() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> }
-	{}
+	{
+		new(&storage_)std::nullptr_t{ nullptr };
+	}
 
 	template<
 		typename T,
@@ -192,8 +194,7 @@ public:
 
 	bool empty() const noexcept
 	{
-		return invoke_ptr_ == static_cast<invoke_ptr_t>(
-			detail::empty_inplace<R, storage_t, Args...>);
+		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
 	}
 
 	template<typename T> T* target() const noexcept
@@ -218,9 +219,11 @@ public:
 
 	explicit inplace() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> },
-		copy_ptr_{ [](storage_t&, storage_t&) noexcept -> void {} },
+		copy_ptr_{ copy_op<std::nullptr_t, storage_t>() },
 		destructor_ptr_{ [](storage_t&) noexcept -> void {} }
-	{}
+	{
+		new(&storage_)std::nullptr_t{ nullptr };
+	}
 
 	template<
 		typename T,
@@ -304,8 +307,7 @@ public:
 
 	bool empty() const noexcept
 	{
-		return invoke_ptr_ == static_cast<invoke_ptr_t>(
-			detail::empty_inplace<R, storage_t, Args...>);
+		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
 	}
 
 	template<typename T> T* target() const noexcept
