@@ -57,47 +57,44 @@ public:
   Element(Tar_header& header, const uint8_t* content_start)
     : header_{header}, content_start_{content_start} {}
 
-  const Tar_header& header() const { return header_; }
+  const Tar_header& header() const noexcept { return header_; }
   void set_header(const Tar_header& header) { header_ = header; }
 
   const uint8_t* content() const { return content_start_; }
   void set_content_start(const uint8_t* content_start) { content_start_ = content_start; }
 
-  std::string name() const { return std::string{header_.name}; }
-  std::string mode() const { return std::string{header_.mode}; }
-  std::string uid() const { return std::string{header_.uid}; }
-  std::string gid() const { return std::string{header_.gid}; }
-  long int size() const;
-  std::string mod_time() const { return std::string{header_.mod_time, LENGTH_MTIME}; }
-  std::string checksum() const { return std::string{header_.checksum}; }
-  char typeflag() const { return header_.typeflag; }
-  std::string linkname() { return std::string{header_.linkname}; }
-  std::string magic() const { return std::string{header_.magic}; }
-  std::string version() const { return std::string{header_.version, LENGTH_VERSION}; }
-  std::string uname() const { return std::string{header_.uname}; }
-  std::string gname() const { return std::string{header_.gname}; }
-  std::string devmajor() const { return std::string{header_.devmajor}; }
-  std::string devminor() const { return std::string{header_.devminor}; }
-  std::string prefix() const { return std::string{header_.prefix}; }
-  std::string pad() const { return std::string{header_.pad}; }
+  std::string name() const noexcept { return std::string{header_.name}; }
+  std::string mode() const noexcept { return std::string{header_.mode}; }
+  std::string uid() const noexcept { return std::string{header_.uid}; }
+  std::string gid() const noexcept { return std::string{header_.gid}; }
+  long int size() const noexcept;
+  std::string mod_time() const noexcept { return std::string{header_.mod_time, LENGTH_MTIME}; }
+  std::string checksum() const noexcept { return std::string{header_.checksum}; }
+  char typeflag() const noexcept { return header_.typeflag; }
+  std::string linkname() const noexcept { return std::string{header_.linkname}; }
+  std::string magic() const noexcept { return std::string{header_.magic}; }
+  std::string version() const noexcept { return std::string{header_.version, LENGTH_VERSION}; }
+  std::string uname() const noexcept { return std::string{header_.uname}; }
+  std::string gname() const noexcept { return std::string{header_.gname}; }
+  std::string devmajor() const noexcept { return std::string{header_.devmajor}; }
+  std::string devminor() const noexcept { return std::string{header_.devminor}; }
+  std::string prefix() const noexcept{ return std::string{header_.prefix}; }
+  std::string pad() const noexcept { return std::string{header_.pad}; }
 
-  bool is_ustar() const { return header_.magic == TMAGIC; }
-  bool is_dir() const { return header_.typeflag == DIRTYPE; }
-  bool typeflag_is_set() const { return header_.typeflag not_eq ' '; }
-  bool is_empty() { return size() == 0; }
-  bool is_tar_gz() const;
+  bool is_ustar() const noexcept { return header_.magic == TMAGIC; }
+  bool is_dir() const noexcept { return header_.typeflag == DIRTYPE; }
+  bool typeflag_is_set() const noexcept { return header_.typeflag not_eq ' '; }
+  bool is_empty() const noexcept { return size() == 0; }
+  bool is_tar_gz() const noexcept;
 
-  int num_content_blocks() {
+  int num_content_blocks() const noexcept {
     int num_blocks = 0;
+    const long int sz = size();
 
-    if (not typeflag_is_set() or not is_dir()) {
-      long int sz = size();
-
-      if (sz % SECTOR_SIZE not_eq 0)
-        num_blocks = (sz / SECTOR_SIZE) + 1;
-      else
-        num_blocks = (sz / SECTOR_SIZE);
-    }
+    if (sz % SECTOR_SIZE not_eq 0)
+      num_blocks = (sz / SECTOR_SIZE) + 1;
+    else
+      num_blocks = (sz / SECTOR_SIZE);
 
     return num_blocks;
   }
@@ -113,11 +110,11 @@ class Tar {
 
 public:
   Tar() = default;
-  int num_elements() const { return elements_.size(); }
+  int num_elements() const noexcept { return elements_.size(); }
   void add_element(const Element& element) { elements_.push_back(element); }
-  const Element element(const std::string& path) const;
-  const std::vector<Element>& elements() const { return elements_; }
-  std::vector<std::string> element_names() const;
+  const Element& element(const std::string& path) const;
+  const std::vector<Element>& elements() const noexcept { return elements_; }
+  std::vector<std::string> element_names() const noexcept;
 
 private:
   std::vector<Element> elements_;
@@ -177,7 +174,7 @@ public:
     // decompress byte by byte or any other length
     d.destSize = DECOMPRESSION_SIZE;
 
-    //INFO("tar::Reader", "Decompression started - waiting...");
+    // INFO("tar::Reader", "Decompression started - waiting...");
 
     do {
       res = uzlib_uncompress_chksum(&d);
@@ -186,7 +183,7 @@ public:
     if (res not_eq TINF_DONE)
       throw Tar_exception(std::string{"Error during decompression. Res: " + std::to_string(res)});
 
-    //INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
+    // INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
 
     return read_uncompressed(dest.get(), dlen);
   }

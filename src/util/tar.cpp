@@ -23,7 +23,7 @@ using namespace tar;
 
 // -------------------- Element --------------------
 
-long int Element::size() const {
+long int Element::size() const noexcept {
   // Size of element's size in bytes
   char* pEnd;
   long int filesize;
@@ -31,14 +31,14 @@ long int Element::size() const {
   return filesize;
 }
 
-bool Element::is_tar_gz() const {
+bool Element::is_tar_gz() const noexcept {
   const std::string n = name();
   return n.size() > 7 and n.substr(n.size() - 7) == ".tar.gz";
 }
 
 // ----------------------- Tar -----------------------
 
-const Element Tar::element(const std::string& path) const {
+const Element& Tar::element(const std::string& path) const {
   for (auto& element : elements_) {
     if (element.name() == path) {
       return element;
@@ -48,7 +48,7 @@ const Element Tar::element(const std::string& path) const {
   throw Tar_exception(std::string{"Path " + path + " doesn't exist. Folder names should have a trailing /"});
 }
 
-std::vector<std::string> Tar::element_names() const {
+std::vector<std::string> Tar::element_names() const noexcept {
   std::vector<std::string> element_names;
 
   for (auto& element : elements_)
