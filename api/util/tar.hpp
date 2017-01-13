@@ -20,7 +20,7 @@
 #define TAR_READER_HPP
 
 #include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
-#include <util/tinf.h>        // From uzlib (mod)
+#include <tinf.h>             // From uzlib (mod)
 #include <util/crc32.hpp>
 #include <info>
 

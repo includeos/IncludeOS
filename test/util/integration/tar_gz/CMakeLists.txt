@@ -23,8 +23,6 @@ set(SOURCES
   service.cpp
   )
 
-set(LIBRARIES ${CMAKE_SOURCE_DIR}/libtinf.a)
-
 set(CREATE_TAR_GZ ${CMAKE_SOURCE_DIR}/tar_example)
 set(TARFILE tar_example.tar.gz)
 

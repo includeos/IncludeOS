@@ -9,18 +9,13 @@ include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
 include_directories(${INCLUDEOS_ROOT}/mod/)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
+include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 
 add_custom_command(
 	OUTPUT apic_boot.o
 	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
 	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
 	DEPENDS hw/apic_boot.asm
-)
-
-# Build modules into OS library
-# TODO: Maybe set up ExternalProject for this?
-set(MOD_OBJECTS
-  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
 )
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
@@ -62,7 +57,7 @@ set(OS_OBJECTS
   posix/file_fd.cpp
 )
 
-add_library(os STATIC ${OS_OBJECTS} apic_boot.o ${MOD_OBJECTS})
+add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
