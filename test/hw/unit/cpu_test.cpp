@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,12 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <net/http/methods.hpp>
 
-CASE("is_content_length_required() returns whether content length is required")
+#include <hw/cpu.hpp>
+
+CASE("rdtsc()")
 {
-  const http::Method get(http::GET);
-  const http::Method post(http::POST);
-  EXPECT(http::method::is_content_length_required(get) == false);
-  EXPECT(http::method::is_content_length_required(post) == true);
+  uint64_t r1 = hw::CPU::rdtsc();
+  uint64_t r2 = hw::CPU::rdtsc();
+  EXPECT(r1 != r2);
 }

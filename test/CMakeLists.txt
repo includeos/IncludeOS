@@ -33,6 +33,7 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
+  ${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/kprint_test.cpp

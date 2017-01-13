@@ -29,18 +29,12 @@ CASE("memdisk properties")
   EXPECT(disk->dev().device_type() == "Block device");
   EXPECT(disk->dev().driver_name() == "MemDisk");
   bool enumerated_partitions {false};
-  auto part_fn = [&enumerated_partitions](fs::error_t err, std::vector<fs::Disk::Partition>&) {
-    if (!err)
+  auto part_fn = [&enumerated_partitions, lest_env](fs::error_t err, std::vector<fs::Disk::Partition>& partitions) {
+    if (!err) {
       enumerated_partitions = true;
+      EXPECT(partitions.size() == 4u); // 4 is default number
+    }
   };
   disk->partitions(part_fn);
   EXPECT(enumerated_partitions == true);
-}
-
-#include <hw/cpu.hpp>
-CASE("...")
-{
-  uint64_t r1 = hw::CPU::rdtsc();
-  uint64_t r2 = hw::CPU::rdtsc();
-  EXPECT(r1 != r2);
 }
