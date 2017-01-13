@@ -69,7 +69,7 @@ template<
 	typename R,
 	typename S,
 	typename... Args
-> static R empty(S&, Args&&... args)
+> static R empty_inplace(S&, Args&&... args)
 {
 	return empty_pure<R, Args...>(std::forward<Args>(args)...);
 }
@@ -150,7 +150,7 @@ public:
 	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
 
 	explicit inplace_triv() noexcept :
-		invoke_ptr_{ detail::empty<R, storage_t, Args...> }
+		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> }
 	{}
 
 	template<
@@ -193,7 +193,7 @@ public:
 	bool empty() const noexcept
 	{
 		return invoke_ptr_ == static_cast<invoke_ptr_t>(
-			detail::empty<R, storage_t, Args...>);
+			detail::empty_inplace<R, storage_t, Args...>);
 	}
 
 	template<typename T> T* target() const noexcept
@@ -217,7 +217,7 @@ public:
 	using destructor_ptr_t = void(*)(storage_t&);
 
 	explicit inplace() noexcept :
-		invoke_ptr_{ detail::empty<R, storage_t, Args...> },
+		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> },
 		copy_ptr_{ [](storage_t&, storage_t&) noexcept -> void {} },
 		destructor_ptr_{ [](storage_t&) noexcept -> void {} }
 	{}
@@ -305,7 +305,7 @@ public:
 	bool empty() const noexcept
 	{
 		return invoke_ptr_ == static_cast<invoke_ptr_t>(
-			detail::empty<R, storage_t, Args...>);
+			detail::empty_inplace<R, storage_t, Args...>);
 	}
 
 	template<typename T> T* target() const noexcept
