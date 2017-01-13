@@ -69,10 +69,15 @@ void Service::start()
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
 
-Updated to use hashmap for functions and removed mstackrealign!
+Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
 )M0TDT3XT";
     return motd;
   });
+
+  ircd->add_remote_server(
+    {"irc.other.net", "password123", {46,31,184,184}, 7000});
+  // connect to all known remote servers
+  ircd->call_remote_servers();
 
   printf("%s\n", ircd->get_motd().c_str());
   printf("This is server version " IRC_SERVER_VERSION "\n");
@@ -126,7 +131,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
-#define PERIOD_SECS    2
+#define PERIOD_SECS    30
 
 void print_stats(int)
 {

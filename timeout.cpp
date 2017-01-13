@@ -5,6 +5,9 @@ static const int MAX_CLIENTS = 200;
 
 void IrcServer::timeout_handler(uint32_t)
 {
+  /// occasionally auto-connect to missing servers
+  call_remote_servers();
+  
   // nothing to do with no clients
   if (UNLIKELY(clients.empty())) return;
   

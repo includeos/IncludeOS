@@ -23,9 +23,11 @@ namespace liu {
   struct Storage;
   struct Restore;
 }
-struct AcceptServer {
-  std::string sname;
-  std::string spass;
+struct RemoteServer {
+  std::string    sname;
+  std::string    spass;
+  net::IP4::addr address;
+  uint16_t       port;
 };
 
 class IrcServer {
@@ -65,10 +67,12 @@ public:
   long uptime() const noexcept {
     return create_timestamp() - this->created_ts;
   }
-  // add valid auth for remote server
-  void add_remote_server(AcceptServer as)
-  {
-    remote_server_list.push_back(as);
+  // server id / token
+  uint8_t server_id() const noexcept {
+    return this->id;
+  }
+  char token() const noexcept {
+    return 'A' + this->id;
   }
   
   /// clients
@@ -91,16 +95,28 @@ public:
 
   /// remote servers
   perf_array<Server, int> servers;
+  void add_remote_server(RemoteServer as)
+  {
+    remote_server_list.push_back(as);
+  }
   bool accept_remote_server(const std::string& name, const std::string& pass) const noexcept;
+  void call_remote_servers();
+  void kill_remote_clients_on(sindex_t, const std::string&);
 
   /// broadcassts
-  void broadcast(net::tcp::buffer_t);
+  // message local operators
+  void wallops(const std::string&);
+  // propagate message globally
+  void broadcast(net::tcp::buffer_t, size_t);
   // send message to all users visible to user, including user
   void user_bcast(clindex_t user, const char* buffer, size_t len);
   void user_bcast(clindex_t user, const std::string& from, uint16_t tk, const std::string&);
   // send message to all users visible to user, except user
   void user_bcast_butone(clindex_t user, const char* buffer, size_t len);
   void user_bcast_butone(clindex_t user, const std::string& from, uint16_t tk, const std::string&);
+
+  void sbcast(const std::string&);
+  void sbcast_butone(sindex_t, const std::string&);
 
   // stats / counters
   void inc_counter(uint8_t counter) {
@@ -115,7 +131,7 @@ public:
   void set_counter(uint8_t c, int val) {
     statcounters[c] = val;
   }
-  
+
   // server configuration stuff
   constexpr static 
   uint8_t nick_minlen() noexcept {
@@ -140,11 +156,6 @@ public:
   constexpr static 
   uint8_t client_maxchans() noexcept {
     return 10;
-  }
-  
-  constexpr static 
-  uint16_t readq_max() noexcept {
-    return 512;
   }
   
   constexpr static 
@@ -215,7 +226,7 @@ private:
   
   // network
   uint16_t id;
-  std::vector<AcceptServer> remote_server_list;
+  std::vector<RemoteServer> remote_server_list;
   
   // performance stuff
   long cheapstamp;

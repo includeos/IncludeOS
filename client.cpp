@@ -10,26 +10,58 @@
 #include <algorithm>
 
 Client::Client(clindex_t s, IrcServer& sref)
-  : self(s), regis(0), server(sref)
+  : self(s), remote_id(NO_SUCH_CLIENT), regis(0), server(sref), conn(nullptr) {}
+
+std::string Client::token() const
 {
-  //readq.reserve(IrcServer::readq_max());
+  static const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+  
+  std::string tk; tk.resize(4);
+  if (is_local())
+      tk[0] = server.token();
+  else
+      tk[0] = server.servers.get(server_id).token();
+
+  clindex_t idx = get_token_id();
+  for (int i = 0; i < 18; i += 6) {
+    tk[i+1] = base64_chars[(idx >> i) & 63];
+  }
+  return tk;
 }
 
 void Client::reset_to(Connection conn)
 {
   // this resets the client to a new connection
   // regis field is 1, which means there is a connection
-  this->regis = 1;
-  this->bits  = 0;
-  this->umodes_ = default_user_modes();
-  this->conn = conn;
-  this->to_stamp = server.create_timestamp();
+  this->regis     = 1;
+  this->server_id = server.server_id();
+  this->umodes_   = default_user_modes();
+  this->remote_id = NO_SUCH_CLIENT;
+  this->conn      = conn;
+  this->to_stamp  = server.create_timestamp();
   this->readq.clear();
   // assign correct delegates
   this->assign_socket_dg();
   
   // send auth notices
   auth_notice();
+}
+void Client::reset_to(clindex_t uid, sindex_t sid, clindex_t rid, 
+      const std::string& nick, const std::string& user, const std::string& host, const std::string& rname)
+{
+  this->self    = uid;
+  this->remote_id = rid;
+  this->regis   = 7; // ?
+  this->server_id = sid;
+  this->umodes_ = 0;
+  this->conn    = nullptr;
+  this->nick_   = nick;
+  this->user_   = user;
+  this->host_   = host;
+  this->rname_  = rname;
 }
 void Client::assign_socket_dg()
 {
@@ -53,7 +85,7 @@ void Client::assign_socket_dg()
     char buff[128];
     int len = snprintf(buff, sizeof(buff),
               ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
-    client.handle_quit(buff, len);
+    client.propagate_quit(buff, len);
     // force-free resources
     client.disable();
   });
@@ -75,7 +107,6 @@ void Client::disable()
   this->host_.shrink_to_fit();
   this->channels_.clear();
   this->readq.clear();
-  this->readq.shrink_to_fit();
 }
 
 #include <kernel/syscalls.hpp>
@@ -116,58 +147,9 @@ void Client::split_message(const std::string& msg)
 void Client::read(uint8_t* buf, size_t len)
 {
   volatile ScopedProfiler profile;
-  while (len > 0) {
-    
-    int search = -1;
-    
-    // find line ending
-    for (size_t i = 0; i < len; i++)
-    if (buf[i] == 13 || buf[i] == 10) {
-      search = i; break;
-    }
-    
-    // not found:
-    if (UNLIKELY(search == -1))
-    {
-      // if clients are sending too much data to server, kill them
-      if (UNLIKELY(readq.size() + len >= server.readq_max())) {
-        kill(false, "Max readq exceeded");
-        return;
-      }
-      // append entire buffer
-      readq.append((const char*) buf, len);
-      return;
-    }
-    else if (UNLIKELY(search == 0)) {
-      buf++; len--;
-    } else {
-      
-      // found CR LF:
-      // if clients are sending too much data to server, kill them
-      if (UNLIKELY(readq.size() + search >= server.readq_max())) {
-        kill(false, "Max readq exceeded");
-        return;
-      }
-      // append to clients buffer
-      readq.append((const char*) buf, search);
-      
-      // move forward in socket buffer
-      buf += search;
-      // decrease len
-      len -= search;
-      
-      // parse message
-      if (readq.size())
-      {
-        split_message(readq);
-        readq.clear();
-      }
-      
-      // skip over continous line ending characters
-      if (len != 0 && (buf[0] == 13 || buf[0] == 10)) {
-          buf++; len--;
-      }
-    }
+  if (readq.read(buf, len, {this, &Client::split_message}) == false)
+  {
+    kill(false, "Max readq exceeded");
   }
 }
 
@@ -295,8 +277,13 @@ void Client::kill(bool warn, const std::string& reason)
       ":%s QUIT :%s\r\n", nickuserhost().c_str(), reason.c_str());
   
   // inform everyone what happened
-  handle_quit(buff, len);
-  
+  if (is_reg())
+      propagate_quit(buff, len);
+  // ignore socketry for remote clients
+  if (is_local() == false) return;
+  // inform neighbors about local client quitting
+  server.sbcast(token() + " Q :" + reason);
+
   if (warn) {
     // close connection after write
     conn->write(buff, len,
@@ -308,19 +295,18 @@ void Client::kill(bool warn, const std::string& reason)
   }
 }
 
-void Client::handle_quit(const char* buff, int len)
+void Client::propagate_quit(const char* buff, int len)
 {
-  if (is_reg()) {
-    // inform others about disconnect
-    server.user_bcast_butone(get_id(), buff, len);
-    // remove client from various lists
-    for (size_t idx : channels()) {
-      Channel& ch = server.channels.get(idx);
-      ch.remove(get_id());
-      
-      // if the channel became empty, remove it
-      if (ch.is_alive() == false)
-          server.free_channel(ch);
-    }
+  // inform others about disconnect
+  server.user_bcast_butone(get_id(), buff, len);
+  // remove client from various lists
+  for (size_t idx : channels())
+  {
+    Channel& ch = server.channels.get(idx);
+    ch.remove(get_id());
+    
+    // if the channel became empty, remove it
+    if (ch.is_alive() == false)
+        server.free_channel(ch);
   }
 }

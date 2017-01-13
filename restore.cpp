@@ -205,7 +205,7 @@ void Client::serialize_to(Storage& storage)
   storage.add<clindex_t> (50, self);
   // R, B, U
   storage.add_int       (51, regis);
-  storage.add_int       (52, bits);
+  storage.add_int       (52, server_id);
   storage.add_int       (53, umodes_);
   // Connection
   storage.add_connection(54, conn);
@@ -220,7 +220,7 @@ void Client::serialize_to(Storage& storage)
   for (auto& ch : channels_) chans.push_back(ch);
   storage.add_vector<chindex_t> (59, chans);
   // readq
-  storage.add_string(60, readq);
+  storage.add_string(60, readq.get());
   
 }
 void Client::deserialize(Restore& thing)
@@ -228,9 +228,9 @@ void Client::deserialize(Restore& thing)
   //printf("Deserializing client %u ...", get_id());
   /// NOTE: index already consumed
   // R, B, U
-  regis   = thing.as_int(); thing.go_next();
-  bits    = thing.as_int(); thing.go_next();
-  umodes_ = thing.as_int(); thing.go_next();
+  regis     = thing.as_int(); thing.go_next();
+  server_id = thing.as_int(); thing.go_next();
+  umodes_   = thing.as_int(); thing.go_next();
   // TCP connection
   conn = thing.as_tcp_connection(server.get_stack().tcp());
   thing.go_next();
@@ -245,7 +245,7 @@ void Client::deserialize(Restore& thing)
   for (auto& ch : chans) channels_.push_back(ch);
   thing.go_next();
   // readq
-  readq = thing.as_string(); thing.go_next();
+  readq.set(thing.as_string()); thing.go_next();
 }
 
 void Channel::serialize_to(Storage& storage)

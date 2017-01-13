@@ -63,7 +63,8 @@ IrcServer::IrcServer(
           ssock->remote().to_string().c_str());
 
     /// create server ///
-    // TODO
+    auto& srv = servers.create(*this);
+    srv.connect(ssock);
   });
   printf("*** Accepting servers on port %u\n", sv_port);
   
@@ -172,4 +173,55 @@ bool IrcServer::accept_remote_server(const std::string& name, const std::string&
     if (srv.sname == name && srv.spass == pass) return true;
   }
   return false;
+}
+void IrcServer::call_remote_servers()
+{
+  for (auto& remote : remote_server_list)
+  {
+    // check if we have a server by that name
+    auto id = servers.find(remote.sname);
+    if (id == NO_SUCH_SERVER) {
+      // try to connect to it
+      printf("*** Attempting server connection to %s:%u\n",
+            remote.address.to_string().c_str(), remote.port);
+      auto conn = inet.tcp().connect({remote.address, remote.port});
+      auto& srv = servers.create(*this, remote.sname);
+      srv.connect(conn, remote.sname, remote.spass);
+    }
+  }
+}
+void IrcServer::kill_remote_clients_on(sindex_t srv, const std::string& reason)
+{
+  for (clindex_t id = 0; id < clients.size(); id++)
+  {
+    auto& cl = clients.get(id);
+    if (cl.is_alive() && cl.get_server_id() == srv)
+    {
+      cl.kill(false, reason);
+    }
+  }
+}
+
+void IrcServer::sbcast(const std::string& msg)
+{
+  for (size_t id = 0; id < servers.size(); id++)
+  {
+    // send message to all local servers
+    auto& srv = servers.get(id);
+    if (srv.is_regged() && srv.is_local()) {
+      srv.send(msg);
+    }
+  }
+}
+void IrcServer::sbcast_butone(sindex_t origin, const std::string& msg)
+{
+  for (size_t id = 0; id < servers.size(); id++)
+  {
+    if (id == origin) continue;
+    // send message to all local servers
+    auto& srv = servers.get(id);
+    if (srv.is_regged() && srv.is_local()) {
+      srv.send(msg);
+    }
+  }
 }

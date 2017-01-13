@@ -6,8 +6,9 @@
 #include <list>
 #include "common.hpp"
 #include "modes.hpp"
+#include "readq.hpp"
 
-#define WARNED_BIT    1
+#define WARNED_BIT    128
 
 class  IrcServer;
 namespace liu {
@@ -25,18 +26,23 @@ public:
   
   bool is_alive() const noexcept
   {
-    return regis != 0;
+    return (regis & 7) != 0;
   }
   bool is_reg() const noexcept
   {
-    return regis == 7;
+    return (regis & 7) == 7;
   }
   bool is_local() const noexcept
   {
-    return conn != nullptr;
+    return remote_id == NO_SUCH_CLIENT;
+  }
+  uint8_t get_server_id() const noexcept {
+    return server_id;
   }
   // reset to a new connection
   void reset_to(Connection conn);
+  void reset_to(clindex_t uid, sindex_t sid, clindex_t rid, 
+      const std::string& n, const std::string& u, const std::string& h, const std::string& rn);
   // disable client completely
   void disable();
 
@@ -46,6 +52,13 @@ public:
   IrcServer& get_server() const noexcept {
     return server;
   }
+  clindex_t get_token_id() const noexcept {
+    if (is_local())
+        return this->self;
+    else
+        return this->remote_id;
+  }
+  std::string token() const;
 
   bool is_operator() const {
     return this->umodes_ & usermodes.char_to_bit(UMODE_IRCOP);
@@ -73,6 +86,9 @@ public:
   }
   const std::string& host() const noexcept {
     return host_;
+  }
+  const std::string& realname() const noexcept {
+    return rname_;
   }
   
   std::string mode_string() const;
@@ -107,7 +123,7 @@ public:
   // close connection with given reason
   void kill(bool warn, const std::string&);
   // tell everyone this client has quit
-  void handle_quit(const char*, int len);
+  void propagate_quit(const char*, int len);
   
   long get_timeout_ts() const noexcept {
     return to_stamp;
@@ -122,11 +138,11 @@ public:
     to_stamp = new_tos;
   }
   void set_warned(bool warned) noexcept {
-    if (warned) bits |= WARNED_BIT;
-    else        bits &= ~WARNED_BIT;
+    if (warned) regis |= WARNED_BIT;
+    else        regis &= ~WARNED_BIT;
   }
   bool is_warned() const noexcept {
-    return bits & WARNED_BIT;
+    return regis & WARNED_BIT;
   }
   
   size_t club() const noexcept {
@@ -161,9 +177,11 @@ private:
   void handle_cmd(const std::vector<std::string>&);
   
   clindex_t   self;
+  clindex_t   remote_id;
   uint8_t     regis;
-  uint8_t     bits;
+  uint8_t     server_id;
   uint16_t    umodes_;
+  
   IrcServer&  server;
   Connection  conn;
   long        to_stamp;
@@ -171,7 +189,8 @@ private:
   std::string nick_;
   std::string user_;
   std::string host_;
+  std::string rname_;
   ChannelList channels_;
   
-  std::string readq;
+  ReadQ readq;
 };
