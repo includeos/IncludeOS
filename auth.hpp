@@ -47,7 +47,8 @@ namespace mender {
   template <typename Writer>
   void Auth_request_data::serialize(Writer& wr) const
   {
-
+    (void)wr;
+    // this one is when using rapidjson
   }
 
   /** An authorization request */

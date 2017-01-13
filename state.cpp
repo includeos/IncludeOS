@@ -13,7 +13,7 @@ void State::set_state(Client& cli, State& s)
   printf("New state: %s\n", s.to_string().c_str());
 }
 
-State::Result Init::handle(Client& cli, Context& ctx)
+State::Result Init::handle(Client& cli, Context&)
 {
   cli.make_auth_request();
   set_state<Auth_wait>(cli);

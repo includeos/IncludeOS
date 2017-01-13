@@ -11,14 +11,14 @@
 namespace mender {
 
   Keystore::Keystore(Storage store)
-    : store_{nullptr}
+    : store_{std::move(store)}
   {
     printf("<Keystore> Constructing keystore with a shared disk\n");
     generate();
   }
 
   Keystore::Keystore(Storage store, std::string kname)
-    : store_(store),
+    : store_{std::move(store)},
       key_name_{std::move(kname)}
   {
     printf("<Keystore> Constructing keystore with a shared disk and keyname\n");

@@ -176,8 +176,8 @@ namespace mender {
       { header::Authorization, "Bearer " + std::string{token.begin(), token.end()}}
     };
 
-    httpclient_->request(GET, {cached_.address(), uri.port()},
-      uri.path().to_string() + "?" + uri.query().to_string(), // note: Add query support in http(?)
+    httpclient_->get({cached_.address(), uri.port()},
+      uri.path().to_string() + "?" + uri.query().to_string(),
       headers, {this, &Client::response_handler});
   }
 

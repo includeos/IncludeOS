@@ -17,6 +17,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 set(MENDER_CLI_OBJ
@@ -30,7 +31,6 @@ add_library(mender_cli STATIC ${MENDER_CLI_OBJ})
 
 set(LIBRARIES ${LIBRARIES}
   "${CMAKE_CURRENT_BINARY_DIR}/libmender_cli.a"
-  "${CMAKE_SOURCE_DIR}/libtinf.a"
   "${CMAKE_SOURCE_DIR}/libliveupdate.a"
   $ENV{INCLUDEOS_PREFIX}/lib/libbotan-${BOTAN_VERSION}.a
   PARENT_SCOPE
