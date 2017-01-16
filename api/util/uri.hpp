@@ -194,6 +194,13 @@ class URI {
   ///
   std::experimental::string_view to_string() const noexcept;
 
+  /**
+   * @brief      Get the actual string the URI is built on
+   *
+   * @return     The string source of this class
+   */
+  const std::string& str() const noexcept;
+
   ///
   /// Operator to transform this class into string form
   ///

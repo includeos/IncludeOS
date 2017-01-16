@@ -124,6 +124,10 @@ std::experimental::string_view URI::to_string() const noexcept {
   return uri_str_;
 }
 
+const std::string& URI::str() const noexcept {
+  return uri_str_;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 URI::operator std::string () const {
   return uri_str_;

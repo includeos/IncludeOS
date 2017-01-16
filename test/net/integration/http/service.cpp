@@ -70,6 +70,7 @@ void Service::ready()
       printf("Response:\n%s\n", res->to_string().c_str());
   });
 
+  using namespace std::chrono;
   client_->get(acorn_url + "api/dashboard/status", {},
   [] (auto err, auto res)
   {
@@ -77,5 +78,5 @@ void Service::ready()
     CHECK(res != nullptr, "Received response");
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
-  });
+  }, { 3s });
 }
