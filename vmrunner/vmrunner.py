@@ -205,15 +205,19 @@ class qemu(hypervisor):
 
         mem_arg = []
         if "mem" in self._config:
-            mem_arg = ["-m",str(self._config["mem"])]
+            mem_arg = ["-m", str(self._config["mem"])]
 
+        vga_arg = ["-nographic" ]
+        if "vga" in self._config:
+            vga_arg = ["-vga", str(self._config["vga"])]
+        
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
         if self.kvm_present(): command.append("--enable-kvm")
 
         command += kernel_args
 
-        command += ["-nographic" ] + disk_args + net_args + mem_arg
+        command += disk_args + net_args + mem_arg + vga_arg
 
         print self.INFO, "command:"
         print color.DATA(" ".join(command))
