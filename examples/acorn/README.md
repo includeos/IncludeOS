@@ -3,6 +3,16 @@ Acorn Web Server Appliance running on IncludeOS.
 
 **Live Demo:** [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io/) (sporadically unavailable)
 
+Build and run:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+../run.sh acorn
+```
+
 ## Features
 
 * Serve static content from a disk with just a few lines of code.
@@ -15,4 +25,3 @@ Acorn is a simple web server using a collection of libraries and extensions:
 * [Bucket](https://github.com/includeos/bucket) - Simplified in-memory database
 
 Content to be served can be found (and edited) in the directory [disk1](disk1/).
-

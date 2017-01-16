@@ -20,7 +20,7 @@
 
 using namespace tar;
 
-void print_header(Element& element, const std::string& unique) {
+void print_header(const Element& element, const std::string& unique) {
   printf("%s - name of %s\n", element.name().c_str(), unique.c_str());
   printf("Mode of %s: %s\n", unique.c_str(), element.mode().c_str());
   printf("Uid of %s: %s\n", unique.c_str(), element.uid().c_str());
@@ -40,14 +40,12 @@ void print_header(Element& element, const std::string& unique) {
   printf("Pad of %s: %s\n", unique.c_str(), element.pad().c_str());
 }
 
-void print_content(Element& element, const std::string& unique) {
+void print_content(const Element& element, const std::string& unique) {
   if (element.is_dir()) {
     printf("%s is a folder\n", unique.c_str());
   } else {
     printf("%s is not a folder and has content:\n", unique.c_str());
-
-    const uint8_t* content = element.content();
-    printf("First block of content: %.512s", content);
+    printf("First block of content: %.512s", element.content());
   }
 }
 
@@ -57,25 +55,25 @@ void Service::start(const std::string&)
   Tar read_tarfile = tr.read_binary_tar_gz(); // In CMakeLists.txt: set(TARFILE tar_example.tar.gz)
 
   // Get the names of all the elements in the tarball
-  std::vector<std::string> found_elements = read_tarfile.element_names();
+  auto found_elements = read_tarfile.element_names();
   for (auto name : found_elements)
     printf("%s - element\n", name.c_str());
 
   // Get a specific file in the tarball
-  std::string path1 = "home/annikaha/IncludeOS/test/util/integration/tar_gz/tar_example/l1_f1/l2/README.md";
-  Element element = read_tarfile.element(path1);
+  const std::string path1 = "home/annikaha/IncludeOS/test/util/integration/tar_gz/tar_example/l1_f1/l2/README.md";
+  auto& element = read_tarfile.element(path1);
   print_header(element, "README.md");
   print_content(element, "README.md");
 
   // Get a specific folder in the tarball
   // NB: No path match on folders if no trailing /
-  std::string path2 = "home/annikaha/IncludeOS/test/util/integration/tar_gz/tar_example/l1_f1/l2/";
-  Element element2 = read_tarfile.element(path2);
+  const std::string path2 = "home/annikaha/IncludeOS/test/util/integration/tar_gz/tar_example/l1_f1/l2/";
+  auto& element2 = read_tarfile.element(path2);
   print_header(element2, "l2");
   print_content(element2, "l2");
 
   // Get all elements in the tarball
-  std::vector<Element> elements = read_tarfile.elements();
+  auto& elements = read_tarfile.elements();
   for (auto& e : elements)
     printf("Name: %s Typeflag: %c\n", e.name().c_str(), e.typeflag());
 
