@@ -43,8 +43,6 @@ args = parser.parse_args()
 # Location of vmrunner
 sys.path.append(INCLUDEOS_PREFIX + "/includeos")
 
-# Note: importing vmrunner will make it start looking for VM's
-from vmrunner import vmrunner
 from vmrunner.prettify import color
 
 # Override VM output prepension
@@ -58,7 +56,18 @@ INFO = color.INFO(nametag)
 has_bootloader = False
 
 print INFO , "Args to pass to VM: ", args.vmargs
+# path w/name of VM image to run
+image_name = args.binary
 
+# if the binary argument is a directory, go there immediately and
+# then initialize stuff ...
+if (os.path.isdir(args.binary)):
+    image_name = os.path.abspath(args.binary)
+    print "Changing directory to: " + image_name
+    os.chdir(os.path.abspath(args.binary))
+
+# Note: importing vmrunner will make it start looking for VM's
+from vmrunner import vmrunner
 if len(vmrunner.vms) < 1:
     print color.FAIL("No vm description files found - nothing to boot")
     exit(-1)
@@ -66,7 +75,6 @@ if len(vmrunner.vms) < 1:
 print color.INFO(nametag), len(vmrunner.vms), "VM initialized. Commencing build- and boot..."
 
 vm = vmrunner.vms[0]
-image_name = args.binary
 
 # For multible JSON configs, find the one matching the provided image name
 for vm_ in vmrunner.vms:
@@ -77,23 +85,26 @@ if (args.clean):
     print INFO, "Cleaning build"
     vm.clean()
 
-vm.cmake()
-
-
-if (args.grub):
-    print INFO, "Creating GRUB image from ", args.binary
-    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + args.binary, shell=True)
-    image_name = args.binary + ".grub.img"
-    has_bootloader = True
-
 if (args.bridge):
     print INFO, "Creating bridge"
     subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
 
+# If the binary name is a folder, such as ".", build the service
+if (os.path.isdir(image_name)):
+    vm.cmake()
+    # also, set image name to 
+    image_name = open("binary.txt", 'r').read()
 # If the binary name has an extension (e.g. a '.'), assume it has a bootloader attached
 # NOTE: the idea is to support e.g. .vdi and virtualbox etc. in the future
-elif "." in args.binary:
+elif ("." in args.binary):
     has_bootloader = True
+
+if (args.grub):
+  print INFO, "Creating GRUB image from ", args.binary
+  subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + image_name, shell=True)
+  image_name = image_name + ".grub.img"
+  has_bootloader = True
+
 # Skip starting a VM if we are only building
 if (args.build): exit(0);
 
