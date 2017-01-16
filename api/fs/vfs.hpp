@@ -302,7 +302,7 @@ namespace fs {
     using Dirent_mountpoint = std::pair<Disk_key, Path_str>;
     using Dirent_map = std::map<Dirent_mountpoint, Dirent>;
     using Disk_ptr_weak = std::weak_ptr<Disk>;
-    using insert_dirent_delg = delegate<void(error_t, Dirent&)>;
+    using insert_dirent_delg = delegate<void(error_t, Dirent&), spec::dynamic>;
     using on_mount_delg = delegate<void(fs::error_t)>;
 
     template<bool create_path = true, typename T>

@@ -103,7 +103,7 @@ public:
 
 
   /** Supplied together with write - called when a write request is done. void(size_t) */
-  using WriteCallback           = delegate<void(size_t)>;
+  using WriteCallback           = delegate<void(size_t), spec::dynamic>;
 
   inline void write(const void* buf, size_t n);
   inline void write(const void* buf, size_t n, WriteCallback callback);

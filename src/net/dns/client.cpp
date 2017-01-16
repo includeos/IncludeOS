@@ -37,15 +37,15 @@ namespace net
 
     // wait for response
     // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
-    sock.on_read(
+    sock.on_read(net::UDPSocket::recvfrom_handler::make_packed(
     [this, hostname, request, func]
     (IP4::addr, UDP::port_t, const char* data, size_t) mutable
     {
       // original request ID = this->id;
       request.parseResponse(data);
-      
+
       // fire onResolve event
       func(request.getFirstIP4());
-    });
+    }));
   }
 }

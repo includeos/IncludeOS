@@ -41,7 +41,7 @@ namespace http {
     const static size_t bufsiz = 2048;
 
   private:
-    using ResolveCallback    = delegate<void(net::ip4::Addr)>;
+    using ResolveCallback    = delegate<void(net::ip4::Addr), spec::dynamic>;
 
   public:
     explicit Client(TCP& tcp);
