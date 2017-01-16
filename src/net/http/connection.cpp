@@ -161,7 +161,7 @@ namespace http {
       auto callback = std::move(on_response_);
       on_response_.reset();
       timer_.stop();
-      callback(Error::CLOSING, nullptr);
+      callback(Error::CLOSING, std::move(res_));
     }
 
     on_close_(*this);

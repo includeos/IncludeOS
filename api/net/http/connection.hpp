@@ -46,8 +46,11 @@ namespace http {
     template <typename TCP>
     explicit Connection(TCP&, Peer, Close_handler);
 
+    bool available() const
+    { return on_response_ == nullptr && keep_alive_; }
+
     bool occupied() const
-    { return on_response_ != nullptr; }
+    { return !available(); }
 
     void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
 
