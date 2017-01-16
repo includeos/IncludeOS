@@ -33,6 +33,13 @@
 #include <kprint>
 #include <info>
 
+
+#if defined (UNITTESTS) && !defined(__MACH__)
+#define THROW throw()
+#else
+#define THROW
+#endif
+
 // We can't use the usual "info", as printf isn't available after call to exit
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
@@ -123,7 +130,7 @@ int gettimeofday(struct timeval* p, void*) {
   return 0;
 }
 
-int kill(pid_t pid, int sig) {
+int kill(pid_t pid, int sig) THROW {
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
 
   if (sig == 6ul) {

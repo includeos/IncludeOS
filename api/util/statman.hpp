@@ -97,10 +97,7 @@ class Statman {
   using Span = gsl::span<Stat>;
 
 public:
-  static Statman& get() {
-    static Statman statman_{0x8000, 8192};
-    return statman_;
-  }
+  static Statman& get();
 
   using Size_type = ptrdiff_t;
   using Span_iterator = gsl::span<Stat>::iterator;

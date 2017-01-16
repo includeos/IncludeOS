@@ -257,7 +257,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
       MYINFO("Unknown exception when initializing plugin");
     }
   }
-  
+
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp11("OS::start RNG init");
 #endif
