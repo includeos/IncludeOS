@@ -26,10 +26,6 @@
 static void* LIVEUPD_LOCATION   = (void*) 0xE00000; // at 14mb
 static const uint16_t TERM_PORT = 6667;
 
-// prevent default serial out
-void default_stdout_handlers() {}
-#include <hw/serial.hpp>
-
 typedef net::tcp::Connection_ptr Connection_ptr;
 static std::vector<Connection_ptr> saveme;
 static std::vector<std::string>    savemsg;
@@ -86,13 +82,19 @@ void setup_terminal(T& inet)
 template <typename T>
 void setup_liveupdate_server(T& inet);
 
-void Service::start()
-{
-  volatile HW_timer timer("Service::start()");
+#include <hw/serial.hpp>
+#include <vga>
+ConsoleVGA vga;
+void default_stdout_handlers() {
+  OS::add_stdout(vga.get_print_handler());
   // add own serial out after service start
   auto& com1 = hw::Serial::port<1>();
   OS::add_stdout(com1.get_print_handler());
+}
 
+void Service::start()
+{
+  volatile HW_timer timer("Service::start()");
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
 
