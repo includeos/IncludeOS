@@ -40,9 +40,7 @@
 
 namespace hw {
 
-  constexpr int NUM_CLASSCODES {19};
-
-  static const char* classcodes[NUM_CLASSCODES] {
+  static const char* classcodes[] {
     "Too-Old-To-Tell",                                   // 0
     "Mass Storage Controller",                           // 1
     "Network Controller",                                // 2
@@ -63,33 +61,20 @@ namespace hw {
     "Data Acquisition and Signal Processing Controller", // 17
     NULL
   };
+  constexpr int NUM_CLASSCODES {sizeof(classcodes) / sizeof(const char*)};
 
-  constexpr int SS_BR {3};
-
-  static const char* bridge_subclasses[SS_BR] {
+  static const char* bridge_subclasses[] {
     "Host",
     "ISA",
     "Other"
   };
+  constexpr int SS_BR {sizeof(bridge_subclasses) / sizeof(const char*)};
 
-  constexpr int SS_NIC {2};
-
-  static const char* nic_subclasses[SS_NIC] {
+  static const char* nic_subclasses[] {
     "Ethernet",
     "Other"
   };
-
-  struct _pci_vendor {
-    uint16_t    id;
-    const char* name;
-  } _pci_vendorlist[] {
-    {0x8086,"Intel Corp."},
-    {0x1013,"Cirrus Logic"},
-    {0x10EC,"Realtek Semi.Corp."},
-    {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
-    {0x1022,"AMD"},
-    {0x0000,NULL}
-  };
+  constexpr int SS_NIC {sizeof(nic_subclasses) / sizeof(const char*)};
 
   static unsigned long pci_size(const unsigned long base, const unsigned long mask) noexcept {
     // Find the significant bits
@@ -189,6 +174,7 @@ namespace hw {
         INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
       } 
     } //< switch (devtype_.classcode)
+    
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
