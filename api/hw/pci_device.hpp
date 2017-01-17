@@ -91,14 +91,19 @@ namespace PCI {
     SIGPRO,
     OTHER=255
   }; //< enum classcode_t
-  
+
   struct Resource {
-    uint32_t start_;
-    uint32_t len_;
-    Resource* next {nullptr};
-    Resource(const uint32_t start, const uint32_t len) : start_{start}, len_{len} {};
+    int       type;
+    uint32_t  start;
+    uint32_t  len;
+    Resource* next;
+    Resource(int t, const uint32_t Start, const uint32_t Len)
+        : type(t), start{Start}, len{Len}, next(nullptr) {}
   };
-  
+
+  static const uint8_t   RES_IO  = 0;
+  static const uint8_t   RES_MEM = 1;
+
 } //< namespace PCI
 
 namespace hw {
@@ -207,15 +212,29 @@ struct msix_t;
     {
       return this->msix != nullptr;
     }
-    // getter spam for msix
-    uintptr_t get_membar(uint8_t)
+    
+    // getters for resources
+    uintptr_t get_membar(uint8_t id) const noexcept
     {
       // FIXME: use idx to get correct membar
-      auto* res = res_mem_;
-      
-      // due to separation of resources, its hard to tell
-      // what idx is what BIR, so lets just return the first membar
-      return res->start_;
+      auto* res = resources;
+      while (res && id >= 0) {
+        if (id == 0 && res->type == PCI::RES_MEM)
+            return res->start;
+        if (res->type == PCI::RES_MEM) id--;
+        res = res->next;
+      }
+      assert(0 && "No such mem BAR");
+    }
+    uintptr_t get_bar(uint8_t id) const noexcept
+    {
+      // FIXME: use idx to get correct membar
+      auto* res = resources;
+      while (res && id--)
+          res = res->next;
+      if (res && res->type == PCI::RES_MEM)
+          return res->start;
+      assert(0 && "No such BAR");
     }
     
   private:
@@ -263,20 +282,18 @@ struct msix_t;
     typedef PCI::Resource Resource;
     
     //! @brief Resource lists. Members added by add_resource();
-    Resource* res_mem_ {nullptr};
-    Resource* res_io_  {nullptr};
+    Resource* resources {nullptr};
     
     /**
-     *  Add a resource to a resource queue.
-     *
-     *  (This seems pretty dirty; private class, reference to pointer etc.) */
-    void add_resource(Resource* res, Resource*& Q) noexcept {
-      if (Q) {
-        auto* q = Q;
+     *  Add a resource to resources.
+    **/
+    void add_resource(Resource* res) noexcept {
+      if (resources) {
+        auto* q = resources;
         while (q->next) q = q->next;
         q->next = res;
       } else {
-        Q = res;
+        resources = res;
       }
     }
     
