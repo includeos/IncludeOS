@@ -47,25 +47,25 @@
 
 
     "mem" : {
-
       "description" : "Amount of memory in megabytes",
       "type" : "number",
       "default" : 128
     },
 
     "cpu" : {
-
       "description" : "The virtual CPU",
-      "enum" : ["host", "pentium"]
+      "enum" : ["host", "pentium", "qemu64", "kvm64"]
     },
 
-
     "smp" : {
-
       "description" : "Number of virtual CPU's",
       "type" : "number"
-    }
-  },
+    },
 
-  "required" : ["image"]
+    "vga" : {
+      "description" : "Enable VGA screen",
+      "enum" : ["std", "cirrus", "vmware", "qxl", "xenfb", "tcx", "cg3", "virtio", "none"]
+    }
+  }
+
 }

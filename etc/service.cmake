@@ -292,8 +292,8 @@ target_link_libraries(service
     $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtend.o
     --whole-archive crtn --no-whole-archive
     )
-
-
+# write binary location to known file
+file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
