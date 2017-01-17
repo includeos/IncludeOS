@@ -1,6 +1,6 @@
 #include <hw/pci_device.hpp>
 #include <hw/pci.hpp>
-#include <debug>
+#include <hw/msi.hpp>
 
 #define PCI_CMD_REG			0x04
 

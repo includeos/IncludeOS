@@ -21,9 +21,8 @@
 // Specialization for IP4
 template <>
 net::Inet<net::IP4>& net::Super_stack::get<net::IP4>(int N) {
-  return *(inet().ip4_stacks_.at(N));
+  return *inet().ip4_stacks_.at(N);
 }
-
 
 net::Super_stack::Super_stack()
 {
@@ -34,7 +33,7 @@ net::Super_stack::Super_stack()
     switch(nic->proto()) {
 
     case(hw::Nic::Proto::ETH) :
-      ip4_stacks_.emplace_back(std::unique_ptr<net::Inet4>(new Inet4(*nic)));
+      ip4_stacks_.emplace_back(new Inet4(*nic));
       // ip6_stacks come here I guess
     default:
       continue;

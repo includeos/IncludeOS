@@ -127,10 +127,11 @@ class qemu(hypervisor):
     def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
         return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
 
-    def net_arg(self, backend = "tap", device = "virtio", if_name = "net0", mac="c0:01:0a:00:00:2a"):
-        device_names = {"virtio" : "virtio-net"}
+    def net_arg(self, backend, device, if_name = "net0", mac="c0:01:0a:00:00:2a"):
         qemu_ifup = INCLUDEOS_HOME+"/includeos/scripts/qemu-ifup"
-        return ["-device", device_names[device]+",netdev="+if_name+",mac="+mac,
+        # FIXME: this needs to get removed
+        names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
+        return ["-device", names[device]+",netdev="+if_name+",mac="+mac,
                 "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
 
     def kvm_present(self):
