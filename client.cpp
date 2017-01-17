@@ -30,7 +30,9 @@ namespace mender {
       cached_{0, port},
       httpclient_{std::make_unique<http::Client>(tcp)},
       state_(&state::Init::instance()),
-      context_({this, &Client::run_state})
+      context_({this, &Client::run_state}),
+      on_state_store_(nullptr),
+      on_state_resume_(nullptr)
   {
     printf("<Client> Client created\n");
   }
@@ -42,7 +44,9 @@ namespace mender {
       cached_(std::move(socket)),
       httpclient_{std::make_unique<http::Client>(tcp)},
       state_(&state::Init::instance()),
-      context_({this, &Client::run_state})
+      context_({this, &Client::run_state}),
+      on_state_store_(nullptr),
+      on_state_resume_(nullptr)
   {
     printf("<Client> Client created\n");
   }
@@ -272,6 +276,9 @@ namespace mender {
     // ARTIFACT_NAME
     store.add_string(id++, device_.inventory("artifact_name"));
 
+    if(on_state_store_ != nullptr)
+      on_state_store_(store);
+
     printf("<Client> State stored.\n");
   }
 
@@ -282,6 +289,9 @@ namespace mender {
 
     // ARTIFACT_NAME
     device_.inventory("artifact_name") = store.as_string(); store.go_next();
+
+    if(on_state_resume_ != nullptr)
+      on_state_resume_(store);
 
     printf("<Client> State restored.\n");
   }

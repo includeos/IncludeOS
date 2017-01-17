@@ -35,7 +35,9 @@ namespace mender {
 
 	class Client {
   public:
-    using AuthCallback  = delegate<void(bool)>;
+    using On_store  = delegate<void(liu::Storage&)>;
+    using On_resume = delegate<void(liu::Restore&)>;
+
   public:
     Client(Auth_manager&&, Device&&, net::TCP&, const std::string& server, const uint16_t port = 0);
     Client(Auth_manager&&, Device&&, net::TCP&, net::tcp::Socket);
@@ -59,13 +61,39 @@ namespace mender {
     Device& device()
     { return device_; }
 
+    /**
+     * @brief      Start the client
+     */
     void boot();
 
+    /**
+     * @brief      Resume the client starting in the given State
+     *
+     * @param      s     State to start in
+     */
     void resume(state::State& s)
     {
       set_state(s);
       run_state();
     }
+
+    /**
+     * @brief      Custom state store
+     *
+     * @warning    Don't use id's below 10 to not overwrite Client state.
+     *
+     * @param[in]  func  On store function
+     */
+    void on_store(On_store func)
+    { on_state_store_ = func; }
+
+    /**
+     * @brief      Custom state resume
+     *
+     * @param[in]  func  On resume function
+     */
+    void on_resume(On_resume func)
+    { on_state_resume_ = func; }
 
   private:
     // auth related
@@ -83,6 +111,10 @@ namespace mender {
     friend class state::State;
     state::State* state_;
     state::Context context_;
+
+    // custom user store/restore
+    On_store  on_state_store_;
+    On_resume on_state_resume_;
 
     std::string build_url(const std::string& server) const;
 
