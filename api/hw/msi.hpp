@@ -75,12 +75,7 @@ namespace hw {
     // get physical address of BAR
     uintptr_t get_bar_paddr(size_t offset);
   };
-  
-  class MSI
-  {
-    
-  };
-  
+
 }
 
 #endif

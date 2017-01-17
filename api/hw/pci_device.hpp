@@ -20,7 +20,6 @@
 
 #include <cstdint>
 #include <common>
-#include "msi.hpp"
 
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
@@ -103,6 +102,7 @@ namespace PCI {
 } //< namespace PCI
 
 namespace hw {
+struct msix_t;
   /**
    *  @brief Communication class for all PCI devices
    *  
@@ -120,7 +120,8 @@ namespace hw {
       VENDOR_INTEL   = 0x8086,
       VENDOR_CIRRUS  = 0x1013,
       VENDOR_VIRTIO  = 0x1AF4,
-      VENDOR_REALTEK = 0x10EC
+      VENDOR_REALTEK = 0x10EC,
+      VENDOR_VMWARE  = 0x15AD,
     };
 
     /**

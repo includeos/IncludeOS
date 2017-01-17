@@ -21,6 +21,7 @@
 #include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/msi.hpp>
 
 /* PCI Register Config Space */
 #define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
