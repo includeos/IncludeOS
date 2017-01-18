@@ -158,7 +158,7 @@ namespace http {
 
     bool keep_alive_ = false;
 
-    void resolve(const URI&, ResolveCallback);
+    void resolve(const std::string& host, ResolveCallback);
 
     void set_connection_header(Request& req) const
     {
