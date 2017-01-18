@@ -18,12 +18,11 @@
 #include <hw/serial.hpp>
 #include <kernel/irq_manager.hpp>
 
-#undef DEBUG
-
 using namespace hw;
 
 // Storage for port numbers
-constexpr uint16_t Serial::ports_[];
+constexpr uint16_t Serial::PORTS[];
+constexpr uint8_t  Serial::IRQS[];
 
 void Serial::init(uint16_t port_) {
   hw::outb(port_ + 1, 0x00);    // Disable all interrupts
@@ -36,8 +35,8 @@ void Serial::init(uint16_t port_) {
 }
 
 Serial::Serial(int port) :
-  nr_{port},
-  port_{ port < 5 ? ports_[port -1] : 0 }
+  port_(port < 5 ? PORTS[port-1] : 0),
+  irq_(IRQS[port-1])
 {
   static bool initialized = false;
   if (!initialized) {
@@ -114,4 +113,8 @@ void Serial::readline_handler_ (char c) {
   // Call the event handler
   on_readline_(buf);
   buf.clear();
+}
+
+void Serial::EOT() {
+  outb(PORTS[0], 0x4);
 }

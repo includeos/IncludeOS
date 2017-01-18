@@ -28,6 +28,8 @@ namespace hw {
 
   class Serial {
   public:
+    static constexpr uint16_t PORTS[] {0x3F8, 0x2F8, 0x3E8, 0x2E8 };
+    static constexpr uint8_t  IRQS[]  {4, 3, 15, 15 };
 
     /** On Data handler. Return value indicates if the buffer should be flushed **/
     using on_data_handler = delegate<void(char c)>;
@@ -74,15 +76,11 @@ namespace hw {
     void print_handler(const char*, size_t);
 
     Serial(int port);
-    static constexpr uint16_t ports_[] {0x3F8, 0x2F8, 0x3E8, 0x2E8 };
-    static constexpr uint8_t irqs_[] {4, 3, 15, 15 };
-
     //static const char default_newline = '\r';
     char newline = '\r'; //default_newline;
 
-    int nr_{0};
-    int port_{0};
-    uint8_t irq_{4};
+    int port_   {PORTS[0]};
+    uint8_t irq_{IRQS[0]};
     std::string buf{};
 
     on_data_handler on_data_       = [](char c){ debug("Default on_data: %c \n", c); (void)c; };

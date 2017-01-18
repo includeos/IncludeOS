@@ -79,11 +79,6 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-#include <hw/serial.hpp>
-void hw::Serial::EOT() {
-  return;
-}
-
 extern "C" {
 
   char _binary_apic_boot_bin_end;

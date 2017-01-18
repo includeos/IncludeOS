@@ -157,7 +157,7 @@ char*  get_crash_context_buffer()
 
 // No continuation from here
 void panic(const char* why) {
-  printf("\n\t**** PANIC: ****\n %s\n", why);
+  fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
@@ -166,16 +166,16 @@ void panic(const char* why) {
   }
   // heap and backtrace info
   extern char _end;
-  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
+  fprintf(stderr, "\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
          heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
   print_backtrace();
 
   // Signal End-Of-Transmission
-  hw::Serial::EOT();
+  fprintf(stderr, "\x04"); fflush(stderr);
 
   // shutdown the machine
   if (SHUTDOWN_ON_PANIC)
-    hw::ACPI::shutdown();
+      hw::ACPI::shutdown();
   while (1) asm("cli; hlt");
 }
 

@@ -109,6 +109,10 @@ public:
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
+  /**
+   *  Add "default" serial port output
+  **/
+  static void add_stdout_default_serial();
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {

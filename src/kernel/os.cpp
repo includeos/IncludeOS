@@ -33,6 +33,7 @@
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
+#include <kprint>
 #include <statman>
 #include <vector>
 
@@ -321,6 +322,10 @@ uintptr_t OS::resize_heap(size_t size){
 uint64_t OS::get_cycles_halt() noexcept {
   return *os_cycles_hlt;
 }
+uint64_t OS::get_cycles_total() noexcept {
+  return *os_cycles_total;
+}
+
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
@@ -331,12 +336,9 @@ void OS::halt() {
   asm volatile(
   ".global _irq_cb_return_location;\n"
   "_irq_cb_return_location:" );
+
   // Count sleep cycles
   *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
-}
-
-uint64_t OS::get_cycles_total() noexcept {
-  return *os_cycles_total;
 }
 
 void OS::event_loop() {
@@ -371,8 +373,20 @@ void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.push_back(func);
 }
-size_t OS::print(const char* str, const size_t len) {
-  // Output callbacks
+void OS::add_stdout_default_serial()
+{
+  add_stdout(
+  [] (const char* str, const size_t len) {
+    kprintf("%.*s", len, str);
+  });
+}
+__attribute__ ((weak))
+void default_stdout_handlers()
+{
+  OS::add_stdout_default_serial();
+}
+size_t OS::print(const char* str, const size_t len)
+{
   for (auto& func : os_print_handlers)
       func(str, len);
   return len;
