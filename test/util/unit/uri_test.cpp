@@ -18,9 +18,8 @@
 #include <common.cxx>
 #include <uri>
 
-CASE("Bogus URI is invalid") {
-  uri::URI uri {"?!?!?!"};
-  EXPECT(uri.is_valid() == false);
+CASE("URI constructor throws on invalid uris") {
+  EXPECT_THROWS(uri::URI uri {"?!?!?!"});
 }
 
 CASE("scheme() returns the URI's scheme") {
@@ -53,14 +52,8 @@ CASE("port() returns the URI's port (no path)") {
   EXPECT(uri.port() == 80);
 }
 
-CASE("port() detected out-of-range ports are bound to scheme's default port number") {
-  uri::URI uri {"https://www.vg.no:65539"};
-  EXPECT(uri.port() == 443U);
-}
-
-CASE("port() invalid port does not crash the parser") {
-  uri::URI uri {"http://www.vg.no:80999999999999999999999999999"};
-  EXPECT_NO_THROW(uri.port() == 80U);
+CASE("out-of-range ports throws exception") {
+  EXPECT_THROWS(uri::URI uri {"https://www.vg.no:65539"});
 }
 
 CASE("path() returns the URI's path") {
