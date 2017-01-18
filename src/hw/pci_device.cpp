@@ -21,6 +21,7 @@
 #include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/msi.hpp>
 
 /* PCI Register Config Space */
 #define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
@@ -39,9 +40,7 @@
 
 namespace hw {
 
-  constexpr int NUM_CLASSCODES {19};
-
-  static const char* classcodes[NUM_CLASSCODES] {
+  static const char* classcodes[] {
     "Too-Old-To-Tell",                                   // 0
     "Mass Storage Controller",                           // 1
     "Network Controller",                                // 2
@@ -62,33 +61,20 @@ namespace hw {
     "Data Acquisition and Signal Processing Controller", // 17
     NULL
   };
+  constexpr int NUM_CLASSCODES {sizeof(classcodes) / sizeof(const char*)};
 
-  constexpr int SS_BR {3};
-
-  static const char* bridge_subclasses[SS_BR] {
+  static const char* bridge_subclasses[] {
     "Host",
     "ISA",
     "Other"
   };
+  constexpr int SS_BR {sizeof(bridge_subclasses) / sizeof(const char*)};
 
-  constexpr int SS_NIC {2};
-
-  static const char* nic_subclasses[SS_NIC] {
+  static const char* nic_subclasses[] {
     "Ethernet",
     "Other"
   };
-
-  struct _pci_vendor {
-    uint16_t    id;
-    const char* name;
-  } _pci_vendorlist[] {
-    {0x8086,"Intel Corp."},
-    {0x1013,"Cirrus Logic"},
-    {0x10EC,"Realtek Semi.Corp."},
-    {0x1AF4,"Virtio (Rusty Russell)"}, // Virtio creator
-    {0x1022,"AMD"},
-    {0x0000,NULL}
-  };
+  constexpr int SS_NIC {sizeof(nic_subclasses) / sizeof(const char*)};
 
   static unsigned long pci_size(const unsigned long base, const unsigned long mask) noexcept {
     // Find the significant bits
@@ -101,8 +87,13 @@ namespace hw {
   }
 
   uint32_t PCI_Device::iobase() const noexcept {
-    assert(res_io_ != nullptr);
-    return res_io_->start_;
+    
+    auto* res = resources;
+    while (res) {
+      if (res->type == PCI::RES_IO) return res->start;
+      res = res->next;
+    }
+    assert(0 && "No I/O resource present on device");
   };
 
   void PCI_Device::probe_resources() noexcept {
@@ -135,8 +126,7 @@ namespace hw {
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
       
         // Add it to resource list
-        add_resource(new Resource(unmasked_val, pci__size), res_io_);
-        assert(res_io_ != nullptr);        
+        add_resource(new Resource(PCI::RES_IO, unmasked_val, pci__size));
       
       } else { //Resource type Mem
 
@@ -144,9 +134,9 @@ namespace hw {
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
 
         //Add it to resource list
-        add_resource(new Resource(unmasked_val, pci__size), res_mem_);
-        assert(res_mem_ != nullptr);
+        add_resource(new Resource(PCI::RES_MEM, unmasked_val, pci__size));
       }
+      assert(resources != nullptr);        
 
       INFO2("");
       INFO2("[ Resource @ BAR %i ]", bar);
@@ -162,6 +152,9 @@ namespace hw {
   {
     //We have device, so probe for details
     devtype_.reg = read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
+
+    // zero out capabilities
+    memset(caps, 0, sizeof(caps));
 
     //printf("\t[*] New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
     //device_id.vendor,device_id.product,classcode);
@@ -188,6 +181,7 @@ namespace hw {
         INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
       } 
     } //< switch (devtype_.classcode)
+    
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
