@@ -50,14 +50,14 @@ class URI {
   explicit URI() = default;
 
   ///
-  /// Default copy constructor
+  /// Copy constructor
   ///
-  URI(const URI&) = default;
+  URI(const URI&);
 
   ///
-  /// Default move constructor
+  /// Move constructor
   ///
-  URI(URI&&) = default;
+  URI(URI&&);
 
   ///
   /// Default destructor
@@ -65,14 +65,14 @@ class URI {
   ~URI() = default;
 
   ///
-  /// Default assignment operator
+  /// Default copy assignment operator
   ///
-  URI& operator=(const URI&) = default;
+  URI& operator=(const URI&);
 
   ///
   /// Default move assignment operator
   ///
-  URI& operator=(URI&&) = default;
+  URI& operator=(URI&&);
 
   ///
   /// Construct using a view of a string representing a uri
