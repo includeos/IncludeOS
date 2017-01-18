@@ -28,15 +28,12 @@ namespace http {
       on_close_{std::move(on_close)},
       on_response_{nullptr},
       timer_({this, &Connection::timeout_request}),
+      timeout_dur_{timeout_duration::zero()},
       keep_alive_{true}
   {
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
     // setup close event
     tcpconn_->on_close({this, &Connection::close});
-
-    //tcpconn_->on_connect([](auto self) {
-    //  printf("<http::Connection> Connected: %s\n", self->to_string().c_str());
-    //});
   }
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr, Close_handler on_close)
@@ -46,11 +43,14 @@ namespace http {
 
   void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
+    Expects(available());
+
     req_ = std::move(req);
     on_response_ = std::move(on_res);
+    timeout_dur_ = timeout;
 
-    if(timeout > timeout_duration::zero())
-      timer_.restart(timeout);
+    if(timeout_dur_ > timeout_duration::zero())
+      timer_.restart(timeout_dur_);
 
     send_request(bufsize);
   }
@@ -72,6 +72,10 @@ namespace http {
     }
 
     const auto data = std::string{(char*)buf.get(), len};
+
+    // restart timer since we got data
+    if(timer_.is_running())
+      timer_.restart(timeout_dur_);
 
     // create response if not exist
     if(res_ == nullptr)

@@ -71,6 +71,7 @@ namespace http {
     Response_handler  on_response_;
     Timer             timer_;
 
+    timeout_duration  timeout_dur_;
     bool keep_alive_;
 
     void send_request(const size_t bufsize);
