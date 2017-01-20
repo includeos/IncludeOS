@@ -57,11 +57,22 @@ namespace mender {
 
   std::string Inventory::json_str() const
   {
-    using namespace nlohmann;
-    json list = json::array();
-    for(auto& entry : data_)
-      list.push_back({{"name", entry.first}, {"value", entry.second}});
-    return list.dump();
+    using namespace rapidjson;
+    StringBuffer buffer;
+    rapidjson::Writer<StringBuffer> writer{buffer};
+    writer.StartArray();
+
+    for (auto& entry : data_) {
+      writer.StartObject();
+      writer.Key("name");
+      writer.String(entry.first);
+      writer.Key("value");
+      writer.String(entry.second);
+      writer.EndObject();
+    }
+
+    writer.EndArray();
+    return buffer.GetString();
   }
 
   std::string Inventory::value(const std::string& key) const

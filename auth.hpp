@@ -21,7 +21,7 @@
 #define MENDER_AUTH_HPP
 
 #include "common.hpp"
-#include "json.hpp"
+#include <mana/attributes/json.hpp> // rapidjson
 
 namespace mender {
 
@@ -51,14 +51,22 @@ namespace mender {
 
   inline byte_seq Auth_request_data::serialized_bytes() const
   {
-    nlohmann::json j;
-    j["tenant_token"] = std::string{tenant_token.begin(), tenant_token.end()};
-    j["seq_no"]       = seq_no;
-    j["id_data"]      = id_data;
-    j["pubkey"]       = pubkey;
+    using namespace rapidjson;
+    StringBuffer buffer;
+    rapidjson::Writer<StringBuffer> writer{buffer};
 
-    auto str = j.dump();
-    //printf("%s\n", str.c_str());
+    writer.StartObject();
+    writer.Key("tenant_token");
+    writer.String(std::string{tenant_token.begin(), tenant_token.end()});
+    writer.Key("seq_no");
+    writer.Int64(seq_no);
+    writer.Key("id_data");
+    writer.String(id_data);
+    writer.Key("pubkey");
+    writer.String(pubkey);
+    writer.EndObject();
+
+    const std::string str = buffer.GetString();
     return {str.begin(), str.end()};
   }
 

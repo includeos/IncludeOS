@@ -208,12 +208,10 @@ namespace mender {
 
   http::URI Client::parse_update_uri(http::Response& res)
   {
-    using namespace nlohmann;
-    auto body = json::parse(res.body().to_string());
-
-    std::string uri = body["artifact"]["source"]["uri"];
-
-    return http::URI{uri};
+    using namespace rapidjson;
+    Document d;
+    d.Parse(res.body().to_string().c_str());
+    return http::URI{d["artifact"]["source"]["uri"].GetString()};
   }
 
   void Client::update_inventory_attributes()

@@ -21,7 +21,7 @@
 #define MENDER_ARTIFACT_HPP
 
 #include "common.hpp"
-#include "json.hpp"
+#include <mana/attributes/json.hpp> // rapidjson
 #include <tar>
 #include <cassert>
 
@@ -104,16 +104,18 @@ namespace mender {
     const tar::Element& get_update(int index = 0) const { return updates_.at(index).elements().at(0); }
 
     void parse_version(const uint8_t* version) {
-      using namespace nlohmann;
-      auto ver = json::parse((char*)version);
-      format_ = ver["format"];
-      version_ = ver["version"];
+      using namespace rapidjson;
+      Document d;
+      d.Parse((const char*)version);
+      format_ = d["format"].GetString();
+      version_ = d["version"].GetInt();
     }
 
     void parse_header_info(const uint8_t* header_info) {
-      using namespace nlohmann;
-      auto info = json::parse((char*)header_info);
-      name_ = info["artifact_name"];
+      using namespace rapidjson;
+      Document d;
+      d.Parse((const char*)header_info);
+      name_ = d["artifact_name"].GetString();
     }
 
   private:
