@@ -162,10 +162,14 @@ namespace net
       {
         auto it = answers.begin();
 
-        while(it != answers.end() and !it->is_answer_type(DNS_TYPE_A))
+        while(it != answers.end())
+        {
+          if(it->is_type(DNS_TYPE_A))
+            return it->getIP4();
           ++it;
+        }
 
-        return (it != answers.end()) ? it->getIP4() : IP4::ADDR_ANY;
+        return IP4::ADDR_ANY;
       }
 
     private:
@@ -180,7 +184,7 @@ namespace net
         IP4::addr getIP4() const;
         void      print()  const;
 
-        bool is_answer_type(int type) const
+        bool is_type(int type) const
         { return ntohs(resource.type) == type; }
 
       private:
