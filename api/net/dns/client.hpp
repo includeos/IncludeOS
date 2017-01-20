@@ -56,9 +56,7 @@ namespace net
     }
 
   private:
-    struct Request;
     UDPSocket& socket_;
-    std::unordered_map<DNS::Request::id_t, Request> requests_;
     std::map<std::string, IP4::addr> cache;
     std::map<IP4::addr, std::string> rev_cache;
 
@@ -85,6 +83,8 @@ namespace net
       { timer.start(timeout); }
 
     }; // < struct Request
+
+    std::unordered_map<DNS::Request::id_t, Request> requests_;
   };
 }
 
