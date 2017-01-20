@@ -151,18 +151,21 @@ namespace net
     public:
       int  create(char* buffer, const std::string& hostname);
       bool parseResponse(const char* buffer);
-      void print(char* buffer);
+      void print(const char* buffer) const;
 
       const std::string& getHostname() const
       {
         return this->hostname;
       }
+
       IP4::addr getFirstIP4() const
       {
-        if (answers.size())
-          return answers[0].getIP4();
+        auto it = answers.begin();
 
-        return IP4::ADDR_ANY;
+        while(it != answers.end() and !it->is_answer_type(DNS_TYPE_A))
+          ++it;
+
+        return (it != answers.end()) ? it->getIP4() : IP4::ADDR_ANY;
       }
 
     private:
@@ -175,7 +178,10 @@ namespace net
         rr_data resource;
 
         IP4::addr getIP4() const;
-        void      print();
+        void      print()  const;
+
+        bool is_answer_type(int type) const
+        { return ntohs(resource.type) == type; }
 
       private:
         // decompress names in 3www6google3com format
