@@ -57,13 +57,13 @@ namespace mender {
 
     writer.StartObject();
     writer.Key("tenant_token");
-    writer.String(std::string{tenant_token.begin(), tenant_token.end()}.c_str());
+    writer.String(std::string{tenant_token.begin(), tenant_token.end()});
     writer.Key("seq_no");
     writer.Int64(seq_no);
     writer.Key("id_data");
-    writer.String(id_data.c_str());
+    writer.String(id_data);
     writer.Key("pubkey");
-    writer.String(pubkey.c_str());
+    writer.String(pubkey);
     writer.EndObject();
 
     const std::string str = buffer.GetString();

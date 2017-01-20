@@ -20,6 +20,10 @@
 #ifndef MENDER_COMMON_HPP
 #define MENDER_COMMON_HPP
 
+#ifndef RAPIDJSON_HAS_STDSTRING
+  #define RAPIDJSON_HAS_STDSTRING 1
+#endif
+
 #include <fs/disk.hpp>
 #include <botan/secmem.h>
 

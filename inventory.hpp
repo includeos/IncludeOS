@@ -65,9 +65,9 @@ namespace mender {
     for (auto& entry : data_) {
       writer.StartObject();
       writer.Key("name");
-      writer.String(entry.first.c_str());
+      writer.String(entry.first);
       writer.Key("value");
-      writer.String(entry.second.c_str());
+      writer.String(entry.second);
       writer.EndObject();
     }
 
