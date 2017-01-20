@@ -149,6 +149,7 @@ namespace net
     class Request
     {
     public:
+      using id_t = unsigned short;
       int  create(char* buffer, const std::string& hostname);
       bool parseResponse(const char* buffer);
       void print(const char* buffer) const;
@@ -171,6 +172,9 @@ namespace net
 
         return IP4::ADDR_ANY;
       }
+
+      id_t get_id() const
+      { return id; }
 
     private:
       struct rr_t // resource record
