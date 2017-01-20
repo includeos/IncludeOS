@@ -18,7 +18,7 @@
 #ifndef MANA_SERVER_HPP
 #define MANA_SERVER_HPP
 
-#include <net/inet4>
+#include <net/inet>
 #include <net/dhcp/dh4client.hpp>
 #include <rtc>
 
@@ -48,7 +48,7 @@ private:
   // Internal class type aliases
   //-------------------------------
   using Port      = const unsigned;
-  using IP_stack  = net::Inet4;
+  using IP_stack  = net::Inet<net::IP4>;
   using Path      = std::string;
   struct MappedCallback {
     Path path;
