@@ -72,6 +72,9 @@ public:
 
   void timeout();
 
+  Connection_ptr tcp_conn() const noexcept
+  { return conn_; }
+
   ~Connection();
 
 private:

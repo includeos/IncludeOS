@@ -112,6 +112,11 @@ public:
   size_t active_clients() const
   { return connections_.size() - free_idx_.size(); }
 
+  std::vector<net::tcp::Connection_ptr> active_tcp_connections() const;
+
+  void reconnect(net::tcp::Connection_ptr conn)
+  { if (conn != nullptr) connect(conn); }
+
 private:
   //-------------------------------
   // Class data members
