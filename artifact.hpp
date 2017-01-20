@@ -21,7 +21,7 @@
 #define MENDER_ARTIFACT_HPP
 
 #include "common.hpp"
-#include <mana/attributes/json.hpp> // rapidjson
+#include <rapidjson/document.h>
 #include <tar>
 #include <cassert>
 
