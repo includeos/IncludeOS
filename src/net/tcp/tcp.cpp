@@ -18,7 +18,6 @@
 #define DEBUG
 #define DEBUG2
 
-#include <climits>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
 #include <statman>
@@ -40,11 +39,12 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
+  current_ephemeral_{new_ephemeral_port()}, // TODO: RFC 6056
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
   // TODO: RFC 6056
-  current_ephemeral_ = 1024 + rand() % (UINT_MAX-1024);
+
 }
 
 /*
@@ -131,7 +131,7 @@ seq_t TCP::generate_iss() {
 */
 port_t TCP::next_free_port() {
 
-  current_ephemeral_ = (current_ephemeral_ == 0) ? current_ephemeral_ + 1025 : current_ephemeral_ + 1;
+  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END) ? port_ranges::DYNAMIC_START : current_ephemeral_ + 1;
 
   // Avoid giving a port that is bound to a service.
   while(listeners_.find(current_ephemeral_) != listeners_.end())
