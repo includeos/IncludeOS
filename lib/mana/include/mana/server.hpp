@@ -48,7 +48,7 @@ private:
   // Internal class type aliases
   //-------------------------------
   using Port      = const unsigned;
-  using IP_stack  = net::Inet4;
+  using IP_stack  = net::Inet<net::IP4>;
   using Path      = std::string;
   struct MappedCallback {
     Path path;
