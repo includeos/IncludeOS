@@ -18,7 +18,7 @@
 #ifndef MANA_SERVER_HPP
 #define MANA_SERVER_HPP
 
-#include <net/inet4>
+#include <net/inet>
 #include <net/dhcp/dh4client.hpp>
 #include <rtc>
 
