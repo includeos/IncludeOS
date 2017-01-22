@@ -58,7 +58,7 @@ extern uintptr_t _MAX_MEM_MIB_;
 bool  OS::power_   = true;
 MHz   OS::cpu_mhz_ {-1};
 RTC::timestamp_t OS::booted_at_ {0};
-uintptr_t OS::low_memory_size_ {0};
+uintptr_t OS::low_memory_size_  {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
@@ -367,6 +367,11 @@ void OS::reboot()
 void OS::shutdown()
 {
   power_ = false;
+}
+void OS::on_panic(on_panic_func func)
+{
+  extern on_panic_func panic_handler;
+  panic_handler = func;
 }
 
 void OS::add_stdout(OS::print_func func)
