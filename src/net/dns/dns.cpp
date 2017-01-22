@@ -204,7 +204,7 @@ namespace net
     return true;
   }
 
-  void DNS::Request::print(char* buffer)
+  void DNS::Request::print(const char* buffer) const
   {
     header* dns = (header*) buffer;
 
@@ -287,7 +287,8 @@ namespace net
       return IP4::ADDR_ANY;
     }
   }
-  void DNS::Request::rr_t::print()
+
+  void DNS::Request::rr_t::print() const
   {
     printf("Name: %s ", name.c_str());
     switch (ntohs(resource.type))

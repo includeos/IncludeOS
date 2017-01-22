@@ -40,6 +40,7 @@ namespace http {
 
   void Client::send(Request_ptr req, Host host, Response_handler cb, Options options)
   {
+    Expects(cb != nullptr);
     using namespace std;
     auto& conn = get_connection(host);
 
@@ -55,11 +56,12 @@ namespace http {
 
   void Client::request(Method method, URI url, Header_set hfields, Response_handler cb, Options options)
   {
+    Expects(cb != nullptr);
     using namespace std;
-    const auto host = url.host().to_string();
-    resolve(host,
-    [ this, method, url{std::move(url)}, hfields{move(hfields)}, cb{move(cb)}, opt{move(options)}] (auto ip)
+    tcp_.stack().resolve(url.host().to_string(),
+    [ this, method, url{move(url)}, hfields{move(hfields)}, cb{move(cb)}, opt{move(options)}] (auto ip)
     {
+      Expects(cb != nullptr);
       // Host resolved
       if(ip != 0)
       {
@@ -98,8 +100,7 @@ namespace http {
   void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   {
     using namespace std;
-    const auto host = url.host().to_string();
-    resolve(host,
+    tcp_.stack().resolve(url.host().to_string(),
     [ this, method, url{move(url)}, hfields{move(hfields)}, data{move(data)}, cb{move(cb)}, opt{move(options)} ] (auto ip)
     {
       // Host resolved

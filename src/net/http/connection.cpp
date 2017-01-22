@@ -44,9 +44,10 @@ namespace http {
   void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
     Expects(available());
-
     req_ = std::move(req);
+    Expects(on_res != nullptr);
     on_response_ = std::move(on_res);
+    Expects(on_response_ != nullptr);
     timeout_dur_ = timeout;
 
     if(timeout_dur_ > timeout_duration::zero())
