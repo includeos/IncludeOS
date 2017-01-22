@@ -161,13 +161,10 @@ namespace net
 
       IP4::addr getFirstIP4() const
       {
-        auto it = answers.begin();
-
-        while(it != answers.end())
+        for(auto&& ans : answers)
         {
-          if(it->is_type(DNS_TYPE_A))
-            return it->getIP4();
-          ++it;
+          if(ans.is_type(DNS_TYPE_A))
+            return ans.getIP4();
         }
 
         return IP4::ADDR_ANY;

@@ -25,8 +25,8 @@ namespace net
   {
     // create DNS request
     DNS::Request request;
-    auto*  data = new char[256];
-    size_t len  = request.create(data, hostname);
+    std::array<char, 256> buf{};
+    size_t len  = request.create(buf.data(), hostname);
 
     // store the request for later match
     requests_.emplace(std::piecewise_construct,
@@ -34,8 +34,7 @@ namespace net
       std::forward_as_tuple(std::move(request), std::move(func)));
 
     // send request to DNS server
-    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, data, len);
-    delete[] data;
+    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len);
   }
 
   void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)
