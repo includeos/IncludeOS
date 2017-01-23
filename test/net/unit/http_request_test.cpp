@@ -71,10 +71,11 @@ CASE("version can be set for the request")
   EXPECT(r.version().to_string() == "HTTP/1.1");
 }
 
-CASE("[.expectedfailure] query_value() returns value for specified query if present")
+CASE("query_value() returns value for specified query if present")
 {
   http::Request r("GET /?q=includeos&t=hs&ia=software HTTP/1.1\r\nHost: duckduckgo.com\r\n\r\n");
   EXPECT(r.query_value("q") == "includeos");
+  EXPECT(r.query_value("name") == "");
 }
 
 CASE("post_value() returns value from field in post request")
@@ -108,4 +109,18 @@ CASE("to_string() returns string representation of request")
   r.set_uri(uri::URI("/data/json/includeos_stats"));
   r.set_version(http::Version(1, 0));
   EXPECT(r.to_string() == "HEAD /data/json/includeos_stats HTTP/1.0\r\n");
+}
+
+CASE("Requests can be streamed")
+{
+  http::Request r("GET / HTTP/1.1");
+  std::stringstream ss;
+  ss << r;
+  EXPECT(ss.str().size() > 10u);
+}
+
+CASE("make_request makes requests")
+{
+  auto req_ptr = http::make_request("GET / HTTP/1.1");
+  EXPECT(req_ptr->version().to_string() == "HTTP/1.1");
 }
