@@ -53,7 +53,7 @@ private:
   using Parent = http::Request;
   using buffer_t = std::shared_ptr<uint8_t>;
 
-  using OnRecv = std::function<void(size_t)>;
+  using OnRecv = delegate<void(size_t)>;
 
 public:
   // inherit constructors

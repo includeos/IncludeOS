@@ -101,10 +101,6 @@ public:
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-
-  /** Supplied together with write - called when a write request is done. void(size_t) */
-  using WriteCallback           = delegate<void(size_t), spec::dynamic>;
-
   inline void write(const void* buf, size_t n);
   inline void write(const void* buf, size_t n, WriteCallback callback);
 

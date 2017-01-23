@@ -24,7 +24,7 @@ using namespace net::tcp;
 
 WriteQueue::WriteRequest create_write_request(
   size_t size,
-  WriteQueue::WriteCallback cb = [](size_t n) {})
+  WriteCallback cb = [](size_t n) {})
 {
   WriteBuffer wb { new_shared_buffer(size), size, true };
   return { wb, cb };

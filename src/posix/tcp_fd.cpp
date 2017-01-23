@@ -244,8 +244,12 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   bool written = false;
-  conn->write(data, len,
-  [&written] (bool) { written = true; });
+  conn->write(
+    data,
+    len,
+    [&written] (bool) { written = true; }
+  );
+  
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {

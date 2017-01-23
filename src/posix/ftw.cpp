@@ -57,20 +57,20 @@ public:
         // call fn on each entry
         ++level;
         auto ent = fs::VFS::stat_sync(abs_path);
-        ent.ls([abs_path, &result, &level, this](auto, auto entries) {
-          for (auto&& ent : *entries) {
-            if (ent.name() == "." or ent.name() == "..")
+        ent.ls(fs::on_ls_func::make_packed(
+          [abs_path, &result, &level, this](auto, auto entries)
+          {
+            for (auto&& ent : *entries)
             {
-              //printf("Skipping %s\n", ent.name().c_str());
-            }
-            else
-            {
-              if ((result = walk(abs_path + "/" + ent.name(), level) != 0)) {
-                break;
+              if (ent.name() == "." or ent.name() == "..")
+              {
+                //printf("Skipping %s\n", ent.name().c_str());
               }
+              else if ((result = walk(abs_path + "/" + ent.name(), level) != 0))
+                break;
             }
-          }
-        });
+          })
+        );
         if (flags_ & FTW_DEPTH) {
           result = fn_ptr_(abs_path.c_str(), &buffer, FTW_D, &ftw);
         }

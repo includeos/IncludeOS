@@ -240,32 +240,35 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
   for (size_t i = 0; i < cnt; i++)
   {
     // create a special request where we collect all the data
-    auto* vbr = new request_t(blk + i,
-    [this, i, func, results, bigbuf] (buffer_t buffer) {
-      // if the job was already completed, return early
-      if (*results == 0) {
-        printf("Job cancelled? results == 0,  blk=%u\n", i);
-        return;
-      }
-      // validate partial result
-      if (buffer) {
-        *results -= 1;
-        // copy partial block
-        memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
-        // check if we have all blocks
+    auto* vbr = new request_t(
+      blk + i,
+      on_read_func::make_packed(
+      [this, i, func, results, bigbuf] (buffer_t buffer) {
+        // if the job was already completed, return early
         if (*results == 0) {
-          // finally, call user-provided callback
-          func(bigbuf);
+          printf("Job cancelled? results == 0,  blk=%u\n", i);
+          return;
         }
-      }
-      else {
-        (*this->errors)++;
-        // if the partial result failed, cancel all
-        *results = 0;
-        // callback with no data
-        func(buffer_t());
-      }
-    });
+        // validate partial result
+        if (buffer) {
+          *results -= 1;
+          // copy partial block
+          memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
+          // check if we have all blocks
+          if (*results == 0) {
+            // finally, call user-provided callback
+            func(bigbuf);
+          }
+        }
+        else {
+          (*this->errors)++;
+          // if the partial result failed, cancel all
+          *results = 0;
+          // callback with no data
+          func(buffer_t());
+        }
+      })
+    );
     //printf("virtioblk: Enqueue blk %llu\n", blk + i);
     //
     if (free_space()) {

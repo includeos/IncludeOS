@@ -41,7 +41,7 @@ private:
   using TCPException    = net::tcp::TCPException;
   using Packet_ptr      = net::tcp::Packet_ptr;
 
-  using OnConnection = std::function<void()>;
+  using OnConnection = delegate<void()>;
 
 public:
   Connection(Server&, Connection_ptr, size_t idx);

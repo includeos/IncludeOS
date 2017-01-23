@@ -63,7 +63,7 @@ namespace http {
     };
 
   private:
-    using ResolveCallback    = delegate<void(net::ip4::Addr), spec::dynamic>;
+    using ResolveCallback    = delegate<void(net::ip4::Addr)>;
 
   public:
     explicit Client(TCP& tcp);
