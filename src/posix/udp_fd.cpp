@@ -54,7 +54,7 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   memcpy(buffer, data.get(), bytes);
 
   if(address != nullptr) {
-    memcpy(address, &msg.src, std::min(*address_len, (int)sizeof(struct sockaddr_in)));
+    memcpy(address, &msg.src, std::min(*address_len, sizeof(struct sockaddr_in)));
     *address_len = sizeof(struct sockaddr_in);
   }
 

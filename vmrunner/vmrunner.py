@@ -192,6 +192,8 @@ class qemu(hypervisor):
             disk_args = self.drive_arg(image_name, "ide")
             print self.INFO, "Booting", image_name, "with a bootable disk image"
 
+        if "bios" in self._config:
+            kernel_args.extend(["-bios", self._config["bios"]])
 
         if "drives" in self._config:
             for disk in self._config["drives"]:

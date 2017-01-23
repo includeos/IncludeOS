@@ -38,6 +38,7 @@ int socket(int domain, int type, int protocol)
       case SOCK_DGRAM:
         return FD_map::_open<UDP_FD>().get_id();
       default:
+        errno = EINVAL;
         return -1;
     }
   }(type);

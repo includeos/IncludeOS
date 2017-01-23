@@ -54,6 +54,9 @@ public:
   bool is_connection() const noexcept {
     return cd != nullptr;
   }
+  inline net::tcp::Connection_ptr get_connection() noexcept;
+  inline net::tcp::Listener& get_listener() noexcept;
+  inline bool has_connq();
 
   on_read_func   get_default_read_func()   override;
   on_write_func  get_default_write_func()  override;
@@ -61,10 +64,8 @@ public:
   
   ~TCP_FD() {}
 private:
-  TCP_FD_Conn* cd = nullptr;
-  TCP_FD_Listen*  ld = nullptr;
-  // sock opts
-  bool non_blocking = false;
+  TCP_FD_Conn*   cd = nullptr;
+  TCP_FD_Listen* ld = nullptr;
   
   friend struct TCP_FD_Listen;
 };
@@ -101,5 +102,16 @@ struct TCP_FD_Listen
   net::tcp::Listener& listener;
   std::deque<net::tcp::Connection_ptr> connq;
 };
+
+inline net::tcp::Connection_ptr TCP_FD::get_connection() noexcept {
+  return cd->conn;
+}
+inline net::tcp::Listener& TCP_FD::get_listener() noexcept {
+  return ld->listener;
+}
+inline bool TCP_FD::has_connq()
+{
+  return !ld->connq.empty();
+}
 
 #endif

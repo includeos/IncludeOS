@@ -5,10 +5,13 @@
   "properties" : {
 
     "image" : {
-
       "description" : "A bootable virtual machine image",
       "type" : "string",
       "default" : "service.img"
+    },
+    "bios" : {
+      "description" : "64k BIOS image",
+      "type" : "string"
     },
 
     "drives" : {

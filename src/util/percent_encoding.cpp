@@ -21,15 +21,6 @@
 #include <util/percent_encoding.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
-static inline std::string encode_error(std::string res) {
-  auto error_message = "Encoding incomplete: " + res;
-#ifdef URI_THROW_ON_ERROR
-  throw uri::Encode_error{error_message};
-#endif
-  return error_message;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 static inline std::string decode_error(std::string res) {
   auto error_message = "Decoding incomplete: " + res;
 #ifdef URI_THROW_ON_ERROR

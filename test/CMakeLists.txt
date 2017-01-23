@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.9)
-
 project(unittests C CXX)
 
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -std=c11 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
@@ -107,7 +107,6 @@ set(OS_SOURCES
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
-  ${SRC}/kernel/os_stdout.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp

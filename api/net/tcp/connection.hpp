@@ -438,6 +438,9 @@ public:
   void deserialize_from(void*);
   int  serialize_to(void*);
 
+  /** Unset all callbacks TODO: rename me **/
+  void setup_default_callbacks();
+
   /*
     Destroy the Connection.
     Clean up.
@@ -518,8 +521,6 @@ private:
   using CleanupCallback   = delegate<void(Connection_ptr self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
-
-  void setup_default_callbacks();
 
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
