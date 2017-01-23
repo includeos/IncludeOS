@@ -254,3 +254,110 @@ int ftruncate(int fd, off_t length)
   // TODO: needs writable filesystem
   return EBADF;
 }
+
+#include <limits.h>
+#include <sys/resource.h>
+long sysconf(int name) {
+  // for indeterminate limits, return -1, *don't* set errno
+  switch (name) {
+    case _SC_AIO_LISTIO_MAX:
+    case _SC_AIO_MAX:
+    case _SC_AIO_PRIO_DELTA_MAX:
+      return -1;
+    case _SC_ARG_MAX:
+      return ARG_MAX;
+    case _SC_ATEXIT_MAX:
+      return INT_MAX;
+    case _SC_CHILD_MAX:
+      return 0;
+    case _SC_CLK_TCK:
+      return 100;
+    case _SC_DELAYTIMER_MAX:
+      return -1;
+    case _SC_HOST_NAME_MAX:
+      return 255;
+    case _SC_LOGIN_NAME_MAX:
+      return 255;
+    case _SC_NGROUPS_MAX:
+      return 16;
+    case _SC_MQ_OPEN_MAX:
+    case _SC_MQ_PRIO_MAX:
+      return -1;
+    case _SC_OPEN_MAX:
+      return -1;
+    case _SC_PAGE_SIZE: // is also _SC_PAGESIZE
+      return OS::page_size();
+    case _SC_RTSIG_MAX:
+    case _SC_SEM_NSEMS_MAX:
+      return -1;
+    case _SC_SEM_VALUE_MAX:
+      return INT_MAX;
+    case _SC_SIGQUEUE_MAX:
+      return -1;
+    case _SC_STREAM_MAX:  // See APUE 2.5.1
+      return FOPEN_MAX;
+    case _SC_TIMER_MAX:
+      return -1;
+    case _SC_TTY_NAME_MAX:
+    case _SC_TZNAME_MAX:
+      return 255;
+    case _SC_ADVISORY_INFO:
+    case _SC_BARRIERS:
+    case _SC_ASYNCHRONOUS_IO:
+    case _SC_CLOCK_SELECTION:
+    case _SC_CPUTIME:
+      return -1;
+    case _SC_MEMLOCK:
+    case _SC_MEMLOCK_RANGE:
+    case _SC_MESSAGE_PASSING:
+      return -1;
+    case _SC_MONOTONIC_CLOCK:
+      return 200809L;
+    case _SC_PRIORITIZED_IO:
+    case _SC_PRIORITY_SCHEDULING:
+    case _SC_RAW_SOCKETS:
+      return -1;
+    case _SC_REALTIME_SIGNALS:
+      return -1;
+    case _SC_SAVED_IDS:
+      return 1;
+    case _SC_SEMAPHORES:
+    case _SC_SHARED_MEMORY_OBJECTS:
+      return -1;
+    case _SC_SPAWN:
+      return 0;
+    case _SC_SPIN_LOCKS:
+    case _SC_SPORADIC_SERVER:
+    case _SC_SYNCHRONIZED_IO:
+    case _SC_THREAD_CPUTIME:
+    case _SC_THREAD_PRIO_INHERIT:
+    case _SC_THREAD_PRIO_PROTECT:
+    case _SC_THREAD_PRIORITY_SCHEDULING:
+    case _SC_THREAD_SPORADIC_SERVER:
+    case _SC_TIMEOUTS:
+    case _SC_TIMERS:
+    case _SC_TRACE:
+    case _SC_TRACE_EVENT_FILTER:
+    case _SC_TRACE_INHERIT:
+    case _SC_TRACE_LOG:
+    case _SC_TYPED_MEMORY_OBJECTS:
+    case _SC_2_FORT_DEV:
+    case _SC_2_PBS:
+    case _SC_2_PBS_ACCOUNTING:
+    case _SC_2_PBS_CHECKPOINT:
+    case _SC_2_PBS_LOCATE:
+    case _SC_2_PBS_MESSAGE:
+    case _SC_2_PBS_TRACK:
+    case _SC_XOPEN_REALTIME:
+    case _SC_XOPEN_REALTIME_THREADS:
+    case _SC_XOPEN_STREAMS:
+      return -1;
+    case _SC_XOPEN_UNIX:
+      return 1;
+    case _SC_XOPEN_VERSION:
+      return 600;
+    default:
+      errno = EINVAL;
+      return -1;
+  }
+}

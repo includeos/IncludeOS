@@ -150,10 +150,19 @@ void Server::use(const Path& path, Callback callback) {
   middleware_.emplace_back(path, callback);
 }
 
-void Server::timeout_clients(int32_t) {
+std::vector<net::tcp::Connection_ptr> Server::active_tcp_connections() const {
+  std::vector<net::tcp::Connection_ptr> conns;
 
-  for(auto& conn : connections_)
-  {
+  for (auto& conn : connections_) {
+    if (conn != nullptr)
+      conns.push_back(conn->tcp_conn());
+  }
+
+  return conns;
+}
+
+void Server::timeout_clients(int32_t) {
+  for(auto& conn : connections_) {
     if(conn != nullptr and RTC::now() > (conn->idle_since() + IDLE_TIMEOUT))
       conn->timeout();
   }

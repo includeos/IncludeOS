@@ -26,8 +26,13 @@ CASE("uri::encode() encodes a string")
   EXPECT(strcasecmp(encoded.c_str(), expected) == 0);
 }
 
-CASE("uri::decode decodes an URI-encoded string")
+CASE("uri::decode() decodes an URI-encoded string")
 {
   std::string decoded {uri::decode("The%20C%2B%2B%20Programming%20Language%20%284th%20Edition%29")};
   EXPECT(decoded == "The C++ Programming Language (4th Edition)");
+}
+
+CASE("uri::decode() throws on invalid input when URI_THROW_ON_ERROR is defined")
+{
+  EXPECT_THROWS_AS(std::string s = uri::decode("%2x%zz"), std::runtime_error);
 }

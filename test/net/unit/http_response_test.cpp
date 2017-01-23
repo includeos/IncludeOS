@@ -69,3 +69,12 @@ CASE("to_string returns string representation of request")
   r.set_status_code(http::Not_Found);
   EXPECT(r.to_string() == "HTTP/1.0 404 Not Found\r\n");
 }
+
+CASE("responses can be streamed")
+{
+  http::Response r;
+  r.set_status_code(http::Not_Found);
+  std::stringstream ss;
+  ss << r;
+  EXPECT(ss.str().size() > 20);
+}

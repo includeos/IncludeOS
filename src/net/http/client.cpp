@@ -40,6 +40,7 @@ namespace http {
 
   void Client::send(Request_ptr req, Host host, Response_handler cb, Options options)
   {
+    Expects(cb != nullptr);
     using namespace std;
     auto& conn = get_connection(host);
 
@@ -48,15 +49,19 @@ namespace http {
     if(! header.has_field(header::Host))
       header.set_field(header::Host, host.to_string());
 
+    debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
+
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
 
   void Client::request(Method method, URI url, Header_set hfields, Response_handler cb, Options options)
   {
+    Expects(cb != nullptr);
     using namespace std;
-    resolve(url,
+    tcp_.stack().resolve(url.host().to_string(),
     [ this, method, url{move(url)}, hfields{move(hfields)}, cb{move(cb)}, opt{move(options)}] (auto ip)
     {
+      Expects(cb != nullptr);
       // Host resolved
       if(ip != 0)
       {
@@ -86,8 +91,8 @@ namespace http {
     auto req = create_request(method);
     *req << hfields;
 
-    //set uri
-    req->set_uri(URI{move(path)});
+    //set uri (default "/")
+    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
 
     send(move(req), move(host), move(cb), move(options));
   }
@@ -95,8 +100,8 @@ namespace http {
   void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   {
     using namespace std;
-    resolve(url,
-    [ this, method, url, hfields{move(hfields)}, data{move(data)}, cb{move(cb)}, opt{move(options)} ] (auto ip)
+    tcp_.stack().resolve(url.host().to_string(),
+    [ this, method, url{move(url)}, hfields{move(hfields)}, data{move(data)}, cb{move(cb)}, opt{move(options)} ] (auto ip)
     {
       // Host resolved
       if(ip != 0)
@@ -130,8 +135,8 @@ namespace http {
     auto req = create_request(method);
     *req << hfields;
 
-    // set uri
-    req->set_uri(URI{move(path)});
+    // set uri (default "/")
+    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
 
     // Add data and content length
     add_data(*req, data);
@@ -154,21 +159,21 @@ namespace http {
 
   void Client::populate_from_url(Request& req, const URI& url)
   {
-    // Set uri path
-    req.set_uri( URI{url.path().to_string()} );
+    // Set uri path (default "/")
+    req.set_uri((!url.path().empty()) ? URI{url.path()} : URI{"/"});
 
     // Set Host: host(:port)
     const auto port = url.port();
     req.header().set_field(header::Host,
-      (port != 0xFFFF or port != 80) ?
+      (port != 0xFFFF and port != 80) ?
       url.host().to_string() + ":" + std::to_string(port)
       : url.host().to_string()); // to_string madness
   }
 
-  void Client::resolve(const URI& url, ResolveCallback cb)
+  void Client::resolve(const std::string& host, ResolveCallback cb)
   {
     static auto&& stack = tcp_.stack();
-    stack.resolve(url.host().to_string(),
+    stack.resolve(host,
       [ cb{std::move(cb)} ](auto ip)
     {
       cb(ip);
@@ -194,7 +199,7 @@ namespace http {
 
   void Client::close(Connection& c)
   {
-    debug("Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
+    debug("<http::Client> Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
     auto& cset = conns_.at(c.peer());
 
     cset.erase(std::remove_if(cset.begin(), cset.end(),

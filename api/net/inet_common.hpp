@@ -57,6 +57,20 @@ namespace net {
       return std::unique_ptr<Derived>(d);
   }
 
+  /* RFC 6335 - IANA */
+  namespace port_ranges
+  {
+    static constexpr uint16_t SYSTEM_START  {0};
+    static constexpr uint16_t SYSTEM_END    {1023};
+    static constexpr uint16_t USER_START    {1024};
+    static constexpr uint16_t USER_END      {49151};
+    static constexpr uint16_t DYNAMIC_START {49152};
+    static constexpr uint16_t DYNAMIC_END   {65534}; // 65535 never assigned
+  }
+
+  inline uint16_t new_ephemeral_port() noexcept
+  { return port_ranges::DYNAMIC_START + rand() % (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
+
 } //< namespace net
 
 #endif //< NET_INET_COMMON_HPP
