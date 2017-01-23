@@ -52,7 +52,9 @@ namespace net
     void bcast(addr_t srcIP, port_t port,
                const void* buffer, size_t length,
                sendto_handler cb = [] {});
-    void close();
+
+    void close()
+    { udp_.close(l_port); }
 
     void join(multicast_group_addr);
     void leave(multicast_group_addr);

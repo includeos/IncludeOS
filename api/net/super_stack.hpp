@@ -22,8 +22,15 @@
 #include <net/ip4/ip4.hpp>
 #include "inet.hpp"
 #include <vector>
+#include <stdexcept>
 
 namespace net {
+
+class Stack_not_found : public std::runtime_error
+{
+  using base = std::runtime_error;
+  using base::base;
+};
 
 class Super_stack {
 public:
