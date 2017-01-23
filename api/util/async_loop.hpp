@@ -11,9 +11,9 @@ async_loop(
 {
   // store next function on heap
   auto next = std::make_shared<next_func_t> ();
-  
+
   // loop:
-  *next = 
+  *next =
     [next] (bool done)
     {
       // check we are done, and if so,

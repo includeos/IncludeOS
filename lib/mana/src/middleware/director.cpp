@@ -40,16 +40,20 @@ void Director::process(
   #endif
 
   normalize_trailing_slashes(path);
-  disk_->fs().ls(fpath, [this, req, res, next, path](auto err, auto entries) {
-    // Path not found on filesystem, go next
-    if(err) {
-      return (*next)();
-    }
-    else {
-      res->add_body(create_html(entries, path));
-      res->send();
-    }
-  });
+  disk_->fs().ls(
+    fpath,
+    fs::on_ls_func::make_packed(
+    [this, req, res, next, path](auto err, auto entries) {
+      // Path not found on filesystem, go next
+      if(err) {
+        return (*next)();
+      }
+      else {
+        res->add_body(create_html(entries, path));
+        res->send();
+      }
+    })
+  );
 }
 
 std::string Director::create_html(Entries entries, const std::string& path) {

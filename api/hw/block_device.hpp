@@ -35,7 +35,8 @@ namespace hw
     using buffer_t = std::shared_ptr<uint8_t>;
 
     // Delegate for result of reading a disk sector
-    using on_read_func = delegate<void(buffer_t), spec::dynamic>;
+    //using on_read_func = delegate<void(buffer_t)>;
+    using on_read_func = delegate<void(buffer_t)>;
 
     using Device_id = int;
 
