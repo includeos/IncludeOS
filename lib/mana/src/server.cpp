@@ -100,7 +100,8 @@ void Server::process(Request_ptr req, Response_ptr res) {
   auto next = std::make_shared<next_t>();
   auto weak_next = std::weak_ptr<next_t>(next);
   // setup Next callback
-  *next = [this, it_ptr, weak_next, req, res]
+  *next = next_t::make_packed(
+  [this, it_ptr, weak_next, req, res]
   {
     // derefence the pointer to the iterator
     auto& it = *it_ptr;
@@ -123,7 +124,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
     else {
       process_route(req, res);
     }
-  };
+  });
   // get the party started..
   (*next)();
 }

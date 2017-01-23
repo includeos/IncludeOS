@@ -28,80 +28,86 @@ namespace fs {
   void Disk::partitions(on_parts_func func) {
 
     /** Read Master Boot Record (sector 0) */
-    device.read(0,
-    [this, func] (hw::Block_device::buffer_t data)
-    {
-      std::vector<Partition> parts;
+    device.read(
+      0,
+      hw::Block_device::on_read_func::make_packed(
+      [this, func] (hw::Block_device::buffer_t data)
+      {
+        std::vector<Partition> parts;
 
-      if (!data) {
-        func({ error_t::E_IO, "Unable to read MBR"}, parts);
-        return;
-      }
+        if (!data) {
+          func({ error_t::E_IO, "Unable to read MBR"}, parts);
+          return;
+        }
 
-      // First sector is the Master Boot Record
-      auto* mbr =(MBR::mbr*) data.get();
+        // First sector is the Master Boot Record
+        auto* mbr =(MBR::mbr*) data.get();
 
-      for (int i {0}; i < 4; ++i) {
-        // all the partitions are offsets to potential Volume Boot Records
-        parts.emplace_back(
-          mbr->part[i].flags,     //< flags
-          mbr->part[i].type,      //< id
-          mbr->part[i].get_LBA(), //< LBA
-          mbr->part[i].get_sectors());
-      }
+        for (int i {0}; i < 4; ++i) {
+          // all the partitions are offsets to potential Volume Boot Records
+          parts.emplace_back(
+            mbr->part[i].flags,     //< flags
+            mbr->part[i].type,      //< id
+            mbr->part[i].get_LBA(), //< LBA
+            mbr->part[i].get_sectors());
+        }
 
-      func(no_error, parts);
-    });
+        func(no_error, parts);
+      })
+    );
   }
 
   void Disk::init_fs(on_init_func func)
   {
     INFO("Disk","init_fs reading block 0");
-    device.read(0,
-    [this, func] (hw::Block_device::buffer_t data)
-    {
-      if (!data) {
-        // TODO: error-case for unable to read MBR
-        func({ error_t::E_IO, "Unable to read MBR"});
-        return;
-      }
-
-      // auto-detect FAT on MBR:
-      auto* mbr = (MBR::mbr*) data.get();
-      MBR::BPB* bpb = mbr->bpb();
-
-      if (bpb->bytes_per_sector >= 512
-       && bpb->fa_tables != 0
-       && (bpb->signature != 0 // check MBR signature too
-       || bpb->large_sectors != 0)) // but its not set for FAT32
+    device.read(
+      0,
+      hw::Block_device::on_read_func::make_packed(
+      [this, func] (hw::Block_device::buffer_t data)
       {
-        // detected FAT on MBR
-        filesys.reset(new FAT(device));
-        // initialize on MBR
-        internal_init(MBR, func);
-        return;
-      }
-
-      // go through partition list
-      for (int i = 0; i < 4; i++)
-      {
-        if (mbr->part[i].type != 0       // 0 is unused partition
-         && mbr->part[i].lba_begin != 0  // 0 is MBR anyways
-         && mbr->part[i].sectors != 0)   // 0 means no size, so...
-        {
-          // FIXME: for now we can only assume FAT, anyways
-          // To be replaced with lookup table for partition identifiers,
-          // but we really only have FAT atm, so its just wasteful
-          filesys.reset(new FAT(device));
-          // initialize on VBRn
-          internal_init((partition_t) (VBR1 + i), func);
+        if (!data) {
+          // TODO: error-case for unable to read MBR
+          func({ error_t::E_IO, "Unable to read MBR"});
           return;
         }
-      }
 
-      // no partition was found (TODO: extended partitions)
-      func({ error_t::E_MNT, "No FAT partition auto-detected"});
-    });
+        // auto-detect FAT on MBR:
+        auto* mbr = (MBR::mbr*) data.get();
+        MBR::BPB* bpb = mbr->bpb();
+
+        if (bpb->bytes_per_sector >= 512
+         && bpb->fa_tables != 0
+         && (bpb->signature != 0 // check MBR signature too
+         || bpb->large_sectors != 0)) // but its not set for FAT32
+        {
+          // detected FAT on MBR
+          filesys.reset(new FAT(device));
+          // initialize on MBR
+          internal_init(MBR, func);
+          return;
+        }
+
+        // go through partition list
+        for (int i = 0; i < 4; i++)
+        {
+          if (mbr->part[i].type != 0       // 0 is unused partition
+           && mbr->part[i].lba_begin != 0  // 0 is MBR anyways
+           && mbr->part[i].sectors != 0)   // 0 means no size, so...
+          {
+            // FIXME: for now we can only assume FAT, anyways
+            // To be replaced with lookup table for partition identifiers,
+            // but we really only have FAT atm, so its just wasteful
+            filesys.reset(new FAT(device));
+            // initialize on VBRn
+            internal_init((partition_t) (VBR1 + i), func);
+            return;
+          }
+        }
+
+        // no partition was found (TODO: extended partitions)
+        func({ error_t::E_MNT, "No FAT partition auto-detected"});
+      })
+    );
   }
 
   void Disk::init_fs(partition_t part, on_init_func func)
@@ -123,26 +129,29 @@ namespace fs {
        *  Otherwise, we will have to read the LBA offset
        *  of the partition to be initialized
        */
-      device.read(0,
-      [this, part, func] (hw::Block_device::buffer_t data)
-      {
-        if (!data) {
-          // TODO: error-case for unable to read MBR
-          func({ error_t::E_IO, "Unable to read MBR" });
-          return;
-        }
+      device.read(
+        0,
+        hw::Block_device::on_read_func::make_packed(
+        [this, part, func] (hw::Block_device::buffer_t data)
+        {
+          if (!data) {
+            // TODO: error-case for unable to read MBR
+            func({ error_t::E_IO, "Unable to read MBR" });
+            return;
+          }
 
-        auto* mbr = (MBR::mbr*) data.get();
-        auto pint = (int) part - 1;
+          auto* mbr = (MBR::mbr*) data.get();
+          auto pint = (int) part - 1;
 
-        auto lba_base = mbr->part[pint].lba_begin;
-        auto lba_size = mbr->part[pint].sectors;
-        assert(lba_size && "No such partition (length was zero)");
+          auto lba_base = mbr->part[pint].lba_begin;
+          auto lba_size = mbr->part[pint].sectors;
+          assert(lba_size && "No such partition (length was zero)");
 
-        // Call the filesystems init function
-        // with lba_begin as base address
-        fs().init(lba_base, lba_size, func);
-      });
+          // Call the filesystems init function
+          // with lba_begin as base address
+          fs().init(lba_base, lba_size, func);
+        })
+      );
     }
   }
 

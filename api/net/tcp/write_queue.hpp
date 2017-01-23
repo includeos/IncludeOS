@@ -28,6 +28,8 @@
 namespace net {
 namespace tcp {
 
+using WriteCallback = delegate<void(size_t)>;
+
 /*
   Write Queue containig WriteRequests from user.
   Stores requests until they are fully acknowledged;
@@ -39,7 +41,6 @@ public:
     Callback when a write is sent by the TCP
     - Supplied on asynchronous write
   */
-  using WriteCallback = delegate<void(size_t), spec::dynamic>;
 
   using WriteRequest = std::pair<WriteBuffer, WriteCallback>;
 

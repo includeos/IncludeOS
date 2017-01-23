@@ -348,46 +348,6 @@ private:
 			"constructing delegate with move only type is invalid!");
 	}
 };
-
-// --- dynamic ---
-template<size_t size, typename R, typename... Args> class dynamic
-{
-public:
-	using storage_t = std::function<R(Args&&...)>;
-
-	explicit dynamic() noexcept :
-		storage_{}
-	{}
-
-	template<typename T> explicit dynamic(T&& closure) :
-		storage_{ std::forward<T>(closure) }
-	{}
-
-	dynamic(const dynamic&) = default;
-	dynamic(dynamic&&) = default;
-
-	dynamic& operator= (const dynamic&) = default;
-	dynamic& operator= (dynamic&&) = default;
-
-	~dynamic() = default;
-
-	R operator() (Args&&... args) const
-	{
-		return storage_(std::forward<Args>(args)...);
-	}
-
-	bool empty() const noexcept
-	{
-		return !static_cast<bool>(storage_);
-	}
-
-	template<typename T> T* target() const noexcept
-	{
-		return storage_.template target<T>();
-	}
-private:
-	mutable storage_t storage_;
-};
 } // namespace spec
 
 template<

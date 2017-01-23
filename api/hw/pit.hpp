@@ -35,7 +35,7 @@ namespace hw {
   public:
 
     using timeout_handler = delegate<void()>;
-    using repeat_condition = std::function<bool()>;
+    using repeat_condition = delegate<bool()>;
 
     /** A timer is a handler and an expiration time (interval).
         @todo The timer also keeps a pre-computed rdtsc-value, which is currently unused.*/
@@ -142,7 +142,7 @@ namespace hw {
 
   private:
     // Default repeat-condition
-    static std::function<bool()> forever;
+    static delegate<bool()> forever;
 
     enum Mode { ONE_SHOT = 0,
                 HW_ONESHOT = 1 << 1,

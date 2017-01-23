@@ -52,56 +52,62 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
     if(path.back() != '/') path += '/';
     // lets try to see if we can serve an index
     path += options_.index[0]; // only check first one for now, else we have to use fs().ls
-    disk_->fs().cstat(path,
-    [this, req, res, next, path](auto err, const auto& entry)
-    {
-      //printf("<Butler> err=%s path=%s entry=%s\n",
-      //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
-      // no index was found on this path, go to next middleware
-      if(err or !entry.is_file()) {
-        return (*next)();
-      }
-      // we got an index, lets send it
-      else {
-        auto mime = http::ext_to_mime_type(get_extension(path));
-        res->header().set_field(http::header::Content_Type, mime.to_string());
-        return res->send_file({disk_, entry});
-      }
-    });
+    disk_->fs().cstat(
+      path,
+      fs::on_stat_func::make_packed(
+      [this, req, res, next, path](auto err, const auto& entry)
+      {
+        //printf("<Butler> err=%s path=%s entry=%s\n",
+        //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
+        // no index was found on this path, go to next middleware
+        if(err or !entry.is_file()) {
+          return (*next)();
+        }
+        // we got an index, lets send it
+        else {
+          auto mime = http::ext_to_mime_type(get_extension(path));
+          res->header().set_field(http::header::Content_Type, mime.to_string());
+          return res->send_file({disk_, entry});
+        }
+      })
+    );
   }
   // we found an extension, this is a (probably) a file request
   else {
     //printf("<Butler> Extension found - assuming request for file.\n");
-    disk_->fs().cstat(path,
-    [this, req, res, next, path](auto err, const auto& entry)
-    {
-      //printf("<Butler> err=%s path=%s entry=%s\n",
-      //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
-      if(err or !entry.is_file()) {
-        #ifdef VERBOSE_WEBSERVER
-        printf("<Butler> File not found. Replying with 404.\n");
-        #endif
-        res->send_code(http::Not_Found);
-        return;
-        /*
-        if(!options_.fallthrough) {
+    disk_->fs().cstat(
+      path,
+      fs::on_stat_func::make_packed(
+      [this, req, res, next, path](auto err, const auto& entry)
+      {
+        //printf("<Butler> err=%s path=%s entry=%s\n",
+        //  err.to_string().c_str(), path.c_str(), entry.name().c_str());
+        if(err or !entry.is_file()) {
+          #ifdef VERBOSE_WEBSERVER
           printf("<Butler> File not found. Replying with 404.\n");
-          return res->send_code(http::Not_Found);
+          #endif
+          res->send_code(http::Not_Found);
+          return;
+          /*
+          if(!options_.fallthrough) {
+            printf("<Butler> File not found. Replying with 404.\n");
+            return res->send_code(http::Not_Found);
+          }
+          else {
+            return (*next)();
+          }*/
         }
         else {
-          return (*next)();
-        }*/
-      }
-      else {
-        #ifdef VERBOSE_WEBSERVER
-        printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
-        #endif
-        auto mime = http::ext_to_mime_type(get_extension(path));
-        res->header().set_field(http::header::Content_Type, mime.to_string());
-        res->send_file({disk_, entry});
-        return;
-      }
-    });
+          #ifdef VERBOSE_WEBSERVER
+          printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
+          #endif
+          auto mime = http::ext_to_mime_type(get_extension(path));
+          res->header().set_field(http::header::Content_Type, mime.to_string());
+          res->send_file({disk_, entry});
+          return;
+        }
+      })
+    );
   }
 }
 

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,13 +19,13 @@
 #define UTIL_SIGNAL_HPP
 
 #include <vector>
-#include <functional>
+#include <delegate>
 
 template <typename F>
 class signal {
 public:
   //! \brief Callable type of the signal handlers
-  using handler = std::function<F>;
+  using handler = delegate<F>;
 
   //! \brief Default constructor
   explicit signal() = default;
@@ -43,14 +43,14 @@ public:
   void connect(handler&& fn) {
     funcs.emplace_back(std::forward<handler>(fn));
   }
-        
+
   //! \brief Emit this signal by executing all connected callable objects
   template<typename... Args>
   void emit(Args&&... args) {
     for(auto& fn : funcs)
       fn(std::forward<Args>(args)...);
   }
-        
+
 private:
   // Set of callable objects registered to be called on demand
   std::vector<handler> funcs;
