@@ -309,9 +309,10 @@ long sysconf(int name) {
       return -1;
     case _SC_MEMLOCK:
     case _SC_MEMLOCK_RANGE:
-      return -1;
     case _SC_MESSAGE_PASSING:
+      return -1;
     case _SC_MONOTONIC_CLOCK:
+      return 200809L;
     case _SC_PRIORITIZED_IO:
     case _SC_PRIORITY_SCHEDULING:
     case _SC_RAW_SOCKETS:
