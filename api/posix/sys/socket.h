@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-typedef int32_t socklen_t;
+typedef uint32_t socklen_t;
 typedef uint8_t sa_family_t;
 
 struct sockaddr
