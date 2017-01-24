@@ -52,7 +52,6 @@
 #include <net/ip4/ip4.hpp> // IP4::addr
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace net
 {
@@ -125,7 +124,7 @@ namespace net
         OP_REFUSED   = 5, // for political reasons
       };
 
-    typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
+    typedef delegate<std::vector<IP4::addr>* (const std::string&)> lookup_func;
 
     static int createResponse(header& hdr, lookup_func func);
 

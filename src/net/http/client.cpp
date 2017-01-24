@@ -58,30 +58,40 @@ namespace http {
   {
     Expects(cb != nullptr);
     using namespace std;
-    tcp_.stack().resolve(url.host().to_string(),
-    [ this, method, url{move(url)}, hfields{move(hfields)}, cb{move(cb)}, opt{move(options)}] (auto ip)
-    {
-      Expects(cb != nullptr);
-      // Host resolved
-      if(ip != 0)
+    tcp_.stack().resolve(
+      url.host().to_string(),
+      ResolveCallback::make_packed(
+      [
+        this,
+        method,
+        url{move(url)},
+        hfields{move(hfields)},
+        cb{move(cb)},
+        opt{move(options)}
+      ] (auto ip)
       {
-        // setup request with method and headers
-        auto req = create_request(method);
-        *req << hfields;
+        Expects(cb != nullptr);
+        // Host resolved
+        if(ip != 0)
+        {
+          // setup request with method and headers
+          auto req = create_request(method);
+          *req << hfields;
 
-        // Set Host and URI path
-        populate_from_url(*req, url);
+          // Set Host and URI path
+          populate_from_url(*req, url);
 
-        // Default to port 80 if non given
-        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+          // Default to port 80 if non given
+          const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-        send(move(req), {ip, port}, move(cb), move(opt));
-      }
-      else
-      {
-        cb({Error::RESOLVE_HOST}, nullptr);
-      }
-    });
+          send(move(req), {ip, port}, move(cb), move(opt));
+        }
+        else
+        {
+          cb({Error::RESOLVE_HOST}, nullptr);
+        }
+      })
+    );
   }
 
   void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
@@ -100,32 +110,43 @@ namespace http {
   void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   {
     using namespace std;
-    tcp_.stack().resolve(url.host().to_string(),
-    [ this, method, url{move(url)}, hfields{move(hfields)}, data{move(data)}, cb{move(cb)}, opt{move(options)} ] (auto ip)
-    {
-      // Host resolved
-      if(ip != 0)
+    tcp_.stack().resolve(
+      url.host().to_string(),
+      ResolveCallback::make_packed(
+      [
+        this,
+        method,
+        url{move(url)},
+        hfields{move(hfields)},
+        data{move(data)},
+        cb{move(cb)},
+        opt{move(options)}
+      ] (auto ip)
       {
-        // setup request with method and headers
-        auto req = create_request(method);
-        *req << hfields;
+        // Host resolved
+        if(ip != 0)
+        {
+          // setup request with method and headers
+          auto req = create_request(method);
+          *req << hfields;
 
-        // Set Host & path from url
-        populate_from_url(*req, url);
+          // Set Host & path from url
+          populate_from_url(*req, url);
 
-        // Add data and content length
-        add_data(*req, data);
+          // Add data and content length
+          add_data(*req, data);
 
-        // Default to port 80 if non given
-        const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+          // Default to port 80 if non given
+          const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-        send(move(req), {ip, port}, move(cb), move(opt));
-      }
-      else
-      {
-        cb({Error::RESOLVE_HOST}, nullptr);
-      }
-    });
+          send(move(req), {ip, port}, move(cb), move(opt));
+        }
+        else
+        {
+          cb({Error::RESOLVE_HOST}, nullptr);
+        }
+      })
+    );
   }
 
   void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
@@ -173,11 +194,7 @@ namespace http {
   void Client::resolve(const std::string& host, ResolveCallback cb)
   {
     static auto&& stack = tcp_.stack();
-    stack.resolve(host,
-      [ cb{std::move(cb)} ](auto ip)
-    {
-      cb(ip);
-    });
+    stack.resolve(host, cb);
   }
 
   Connection& Client::get_connection(const Host host)

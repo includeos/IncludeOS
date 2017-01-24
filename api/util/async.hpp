@@ -22,7 +22,6 @@
 #include <net/inet4.hpp>
 #include <net/tcp/connection.hpp>
 #include <fs/disk.hpp>
-#include <functional>
 
 class Async
 {
@@ -33,9 +32,9 @@ public:
   using Disk = fs::Disk_ptr;
   typedef fs::Dirent Dirent;
 
-  typedef std::function<void(bool)> next_func;
-  typedef std::function<void(fs::error_t, bool)> on_after_func;
-  typedef std::function<void(fs::buffer_t, size_t, next_func)> on_write_func;
+  typedef delegate<void(bool)> next_func;
+  typedef delegate<void(fs::error_t, bool)> on_after_func;
+  typedef delegate<void(fs::buffer_t, size_t, next_func)> on_write_func;
 
   static void upload_file(
       Disk,

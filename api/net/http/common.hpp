@@ -38,7 +38,7 @@ class Response;
 using Response_ptr = std::unique_ptr<Response>;
 
 class Error;
-using Response_handler = delegate<void(Error, Response_ptr), spec::dynamic>;
+using Response_handler = delegate<void(Error, Response_ptr)>;
 
 } //< namespace http
 

@@ -28,6 +28,9 @@ parser.add_argument("-c", "--clean", dest="clean", action="store_true",
 parser.add_argument("-b", "--build", dest="build", action="store_true", default=False,
                     help="Only build the service, don't start it in a VM")
 
+parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False,
+                    help="Verbose output when building")
+
 parser.add_argument("--create-bridge", dest="bridge", action="store_true",
                     help="Create bridge43, used in local testing when TAP devices are supported")
 
@@ -65,6 +68,10 @@ if (os.path.isdir(args.binary)):
     image_name = os.path.abspath(args.binary)
     print "Changing directory to: " + image_name
     os.chdir(os.path.abspath(args.binary))
+
+# in verbose mode we will just set VERBOSE=1 for this environment
+if (args.verbose):
+    os.environ['VERBOSE'] = "1"
 
 # Note: importing vmrunner will make it start looking for VM's
 from vmrunner import vmrunner

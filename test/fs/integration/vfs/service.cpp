@@ -123,12 +123,12 @@ void Service::start(const std::string&)
 
   // Store and retreive a lambda as a VFS entry
   bool lambda_called = false;
-  std::function<void()> func1 = [&lambda_called]{
+  delegate<void()> func1 = [&lambda_called]{
     lambda_called = true;
   };
 
   fs::VFS_entry func_entry{func1, "Function 1", "Sets a bool to true"};
-  func_entry.obj<std::function<void()>>()();
+  func_entry.obj<delegate<void()>>()();
 
   CHECKSERT(lambda_called, "The lambda entry was called");
 

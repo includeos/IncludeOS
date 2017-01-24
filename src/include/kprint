@@ -37,7 +37,9 @@ extern void __serial_print1(const char* cstr);
 /**
  * The earliest possible print function (requires no heap, global ctors etc.)
  **/
-inline void kprintf(const char* format, ...) {
+__attribute__ ((format (printf, 1, 2)))
+inline void kprintf(const char* format, ...)
+{
   char buf[256];
   va_list aptr;
   va_start(aptr, format);

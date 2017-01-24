@@ -49,7 +49,7 @@ class Response : public http::Response {
 private:
   using Code = http::status_t;
   using Connection_ptr = net::tcp::Connection_ptr;
-  using OnSent = std::function<void(size_t)>;
+  using OnSent = delegate<void(size_t)>;
 
 public:
 

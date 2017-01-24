@@ -52,7 +52,6 @@ extern "C" {
   uintptr_t heap_end;
 }
 
-
 void _exit(int status) {
   kprintf("%s",std::string(LINEWIDTH, '=').c_str());
   kprint("\n");
@@ -154,10 +153,26 @@ char*  get_crash_context_buffer()
   return _crash_context_buffer;
 }
 
+static void default_panic_handler()
+{
+  // shutdown the machine
+  if (SHUTDOWN_ON_PANIC)
+      hw::ACPI::shutdown();
+}
+OS::on_panic_func panic_handler = default_panic_handler;
 
-// No continuation from here
+/**
+ * panic:
+ * Display reason for kernel panic
+ * Display last crash context value, if it exists
+ * Display no-heap backtrace of stack
+ * Print EOT character to stderr, to signal outside that PANIC occured
+ * Call on_panic handler function, which determines what to do when
+ *    the kernel panics
+ * If the handler returns, go to (permanent) sleep
+**/
 void panic(const char* why) {
-  printf("\n\t**** PANIC: ****\n %s\n", why);
+  fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
@@ -165,18 +180,26 @@ void panic(const char* why) {
         len, get_crash_context_buffer());
   }
   // heap and backtrace info
-  extern char _end;
-  printf("\tHeap end: %#x (heap %u Kb, max %u Kb)\n",
-         heap_end, (uintptr_t) (heap_end - heap_begin) / 1024, (uintptr_t) heap_end / 1024);
+  uintptr_t heap_total = OS::heap_max() - heap_begin;
+  double total = (heap_end - heap_begin) / (double) heap_total;
+  
+  fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
+         heap_end, OS::heap_max(), OS::heap_max() - heap_end);
+  fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
+         (uintptr_t) (heap_end - heap_begin) / 1024, 
+         heap_total / 1024,
+         total * 100.0);
   print_backtrace();
 
   // Signal End-Of-Transmission
-  hw::Serial::EOT();
-
-  // shutdown the machine
-  if (SHUTDOWN_ON_PANIC)
-    hw::ACPI::shutdown();
+  fprintf(stderr, "\x04"); fflush(stderr);
+  
+  // call on_panic handler
+  panic_handler();
+  
+  // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
+  __builtin_unreachable();
 }
 
 // Shutdown the machine when one of the exit functions are called
@@ -188,6 +211,7 @@ void default_exit() {
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
   panic(why);
+  __builtin_unreachable();
 }
 
 // Basic second-resolution implementation - using CMOS directly for now.

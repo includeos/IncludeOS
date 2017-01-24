@@ -101,6 +101,17 @@ public:
   }
 
   /**
+   * Sometimes the OS just has a bad day and crashes
+   * The on_panic handler will be called directly after a panic,
+   * or any condition which will deliberately cause the OS to become
+   * unresponsive. After the handler is called, the OS goes to sleep.
+   * This handler can thus be used to, for example, automatically 
+   * have the OS restart on any crash.
+  **/
+  typedef void (*on_panic_func) ();
+  static void on_panic(on_panic_func);
+
+  /**
    *  Write data to standard out callbacks
    */
   static size_t print(const char* ptr, const size_t len);
@@ -109,6 +120,10 @@ public:
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
+  /**
+   *  Add "default" serial port output
+  **/
+  static void add_stdout_default_serial();
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {

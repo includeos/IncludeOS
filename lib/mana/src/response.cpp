@@ -76,23 +76,28 @@ void Response::send_file(const File& file) {
     entry.name().c_str(), entry.size());
   #endif
 
-  Async::upload_file(file.disk, file.entry, conn,
+  Async::upload_file(
+    file.disk,
+    file.entry,
+    conn,
+    Async::on_after_func::make_packed(
     [conn, entry](fs::error_t err, bool good)
-  {
-      if(good) {
-        #ifdef VERBOSE_WEBSERVER
-        printf("<Response> Success sending %s => %s\n",
-          entry.name().c_str(), conn->remote().to_string().c_str());
-        #endif
+    {
+        if(good) {
+          #ifdef VERBOSE_WEBSERVER
+          printf("<Response> Success sending %s => %s\n",
+            entry.name().c_str(), conn->remote().to_string().c_str());
+          #endif
 
-        on_sent_(entry.size());
-      }
-      else {
-        printf("<Response> Error sending %s => %s [%s]\n",
-          entry.name().c_str(), conn->remote().to_string().c_str(),
-          conn->is_closing() ? "Connection closing" : err.to_string().c_str());
-      }
-  });
+          on_sent_(entry.size());
+        }
+        else {
+          printf("<Response> Error sending %s => %s [%s]\n",
+            entry.name().c_str(), conn->remote().to_string().c_str(),
+            conn->is_closing() ? "Connection closing" : err.to_string().c_str());
+        }
+    })
+  );
 
   end();
 }

@@ -129,41 +129,44 @@ namespace fs
     this->lba_size = size;
 
     // read Partition block
-    device.read(base,
-    [this, on_init] (buffer_t data) {
+    device.read(
+      base,
+      hw::Block_device::on_read_func::make_packed(
+      [this, on_init] (buffer_t data)
+      {
+        auto* mbr = (MBR::mbr*) data.get();
+        assert(mbr != nullptr);
 
-      auto* mbr = (MBR::mbr*) data.get();
-      assert(mbr != nullptr);
+        // verify image signature
+        debug("OEM name: \t%s\n", mbr->oem_name);
+        debug("MBR signature: \t0x%x\n", mbr->magic);
+        if (UNLIKELY(mbr->magic != 0xAA55)) {
+          on_init({ error_t::E_MNT, "Missing or invalid MBR signature" });
+          return;
+        }
 
-      // verify image signature
-      debug("OEM name: \t%s\n", mbr->oem_name);
-      debug("MBR signature: \t0x%x\n", mbr->magic);
-      if (UNLIKELY(mbr->magic != 0xAA55)) {
-        on_init({ error_t::E_MNT, "Missing or invalid MBR signature" });
-        return;
-      }
+        // initialize FAT16 or FAT32 filesystem
+        init(mbr);
 
-      // initialize FAT16 or FAT32 filesystem
-      init(mbr);
+        // determine which FAT version is initialized
+        switch (this->fat_type) {
+        case FAT::T_FAT12:
+          INFO("FAT", "Initializing FAT12 filesystem");
+          break;
+        case FAT::T_FAT16:
+          INFO("FAT", "Initializing FAT16 filesystem");
+          break;
+        case FAT::T_FAT32:
+          INFO("FAT", "Initializing FAT32 filesystem");
+          break;
+        }
+        INFO2("[ofs=%u  size=%u (%u bytes)]\n",
+              this->lba_base, this->lba_size, this->lba_size * 512);
 
-      // determine which FAT version is initialized
-      switch (this->fat_type) {
-      case FAT::T_FAT12:
-        INFO("FAT", "Initializing FAT12 filesystem");
-        break;
-      case FAT::T_FAT16:
-        INFO("FAT", "Initializing FAT16 filesystem");
-        break;
-      case FAT::T_FAT32:
-        INFO("FAT", "Initializing FAT32 filesystem");
-        break;
-      }
-      INFO2("[ofs=%u  size=%u (%u bytes)]\n",
-            this->lba_base, this->lba_size, this->lba_size * 512);
-
-      // on_init callback
-      on_init(no_error);
-    });
+        // on_init callback
+        on_init(no_error);
+      })
+    );
   }
 
   bool FAT::int_dirent(uint32_t  sector, const void* data, dirvector& dirents) {

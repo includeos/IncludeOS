@@ -101,10 +101,6 @@ public:
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-
-  /** Supplied together with write - called when a write request is done. void(size_t) */
-  using WriteCallback           = delegate<void(size_t), spec::dynamic>;
-
   inline void write(const void* buf, size_t n);
   inline void write(const void* buf, size_t n, WriteCallback callback);
 
@@ -442,6 +438,9 @@ public:
   void deserialize_from(void*);
   int  serialize_to(void*);
 
+  /** Unset all callbacks TODO: rename me **/
+  void setup_default_callbacks();
+
   /*
     Destroy the Connection.
     Clean up.
@@ -522,8 +521,6 @@ private:
   using CleanupCallback   = delegate<void(Connection_ptr self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
-
-  void setup_default_callbacks();
 
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
