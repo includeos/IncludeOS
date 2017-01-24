@@ -100,7 +100,8 @@ void Server::process(Request_ptr req, Response_ptr res) {
   auto next = std::make_shared<next_t>();
   auto weak_next = std::weak_ptr<next_t>(next);
   // setup Next callback
-  *next = [this, it_ptr, weak_next, req, res]
+  *next = next_t::make_packed(
+  [this, it_ptr, weak_next, req, res]
   {
     // derefence the pointer to the iterator
     auto& it = *it_ptr;
@@ -123,7 +124,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
     else {
       process_route(req, res);
     }
-  };
+  });
   // get the party started..
   (*next)();
 }
@@ -150,10 +151,19 @@ void Server::use(const Path& path, Callback callback) {
   middleware_.emplace_back(path, callback);
 }
 
-void Server::timeout_clients(int32_t) {
+std::vector<net::tcp::Connection_ptr> Server::active_tcp_connections() const {
+  std::vector<net::tcp::Connection_ptr> conns;
 
-  for(auto& conn : connections_)
-  {
+  for (auto& conn : connections_) {
+    if (conn != nullptr)
+      conns.push_back(conn->tcp_conn());
+  }
+
+  return conns;
+}
+
+void Server::timeout_clients(int32_t) {
+  for(auto& conn : connections_) {
     if(conn != nullptr and RTC::now() > (conn->idle_since() + IDLE_TIMEOUT))
       conn->timeout();
   }

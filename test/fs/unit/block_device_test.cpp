@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <hw/serial.hpp>
+#include <common.cxx>
+#include <hw/block_device.hpp>
 
-__attribute__ ((weak))
-void default_stdout_handlers()
+CASE("device_type() returns device type in string form")
 {
-  hw::Serial& com1 = hw::Serial::port<1>();
-  OS::add_stdout(com1.get_print_handler());
+  EXPECT(hw::Block_device::device_type() == "Block device");
 }

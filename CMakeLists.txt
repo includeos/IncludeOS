@@ -26,9 +26,7 @@ string(STRIP ${OS_VERSION} OS_VERSION)
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-# stackrealign is needed to guarantee 16-byte stack alignment for SSE
-# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "-msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -91,6 +89,8 @@ set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -c -m32 -DOS_V
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
+add_subdirectory(mod)
+
 add_subdirectory(src)
 
 option(vmbuild "Build and install vmbuild and elf_syms" ON)
@@ -142,20 +142,23 @@ endif(libmana)
 option(rapidjson "Download and install rapidjson submodule" ON)
 if(rapidjson)
   init_submodule(mod/rapidjson)
-  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION include)
+  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 endif(rapidjson)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(DIRECTORY vmrunner DESTINATION includeos/)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION includeos/bin)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
+
+# Install boot util
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh

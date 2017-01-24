@@ -34,6 +34,15 @@ namespace fs {
       uint8_t  CHS_END[3];
       uint32_t lba_begin;
       uint32_t sectors;
+      
+      
+      uint32_t get_LBA() const noexcept {
+        return lba_begin;
+      }
+      uint32_t get_sectors() const noexcept {
+        return sectors;
+      }
+      
     } __attribute__((packed));
   
     /** Legacy BIOS Parameter Block */

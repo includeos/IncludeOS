@@ -5,6 +5,8 @@ import sys
 import os
 import argparse
 import json
+import time
+import multiprocessing  # To figure out number of cpus
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -29,6 +31,9 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-c", "--clean-all", dest="clean", action="store_true",
                     help="Run make clean before building test")
+
+parser.add_argument("-C", "--clean-only", dest="clean_only", action="store_true",
+                    help="Will clean all the test folders and not run tests")
 
 parser.add_argument("-s", "--skip", nargs="*", dest="skip", default=[],
                     help="Tests to skip. Valid names: 'unit' (all unit tests), \
@@ -57,7 +62,7 @@ def print_skipped(tests):
 
 class Test:
     """ A class to start a test as a subprocess and pretty-print status """
-    def __init__(self, path, clean=False, command=['sudo', '-E', 'python', 'test.py'], name=None):
+    def __init__(self, path, clean=False, command=['python', 'test.py'], name=None):
         self.command_ = command
         self.proc_ = None
         self.path_ = path
@@ -124,14 +129,23 @@ class Test:
     def start(self):
         os.chdir(startdir + "/" + self.path_)
         if self.clean:
-            subprocess.check_output(["sudo", "rm","-rf","build"])
-            print pretty.C_GRAY + "\t Cleaned", os.getcwd(),"now start... ", pretty.C_ENDC
+            self.clean_test()
 
         self.proc_ = subprocess.Popen(self.command_, shell=False,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
         os.chdir(startdir)
         return self
+
+    def clean_test(self):
+        """ Clean the test directory of all build files"""
+
+        os.chdir(startdir + "/" + self.path_)
+
+        subprocess.check_output(["rm","-rf","build"])
+        print pretty.C_GRAY + "\t Cleaned", os.getcwd(), pretty.C_ENDC
+        return
+
 
     def print_start(self):
         print "* {0:66} ".format(self.name_),
@@ -175,7 +189,6 @@ class Test:
         skip_json = json.loads(open("skipped_tests.json").read())
         for skip in skip_json:
             if skip['name'] in self.path_:
-                print "skipping {}".format(self.name_)
                 self.skip_ = True
                 self.skip_reason_ = skip['reason']
                 return
@@ -261,20 +274,35 @@ def integration_tests(tests):
     global test_count
     test_count += len(tests) + len(time_sensitive_tests)
 
-    # Start running tests in parallell
-    for test in tests:
-        processes.append(test.start())
+    # Find number of cpu cores
+    num_cpus = multiprocessing.cpu_count()
 
 	# Collect test results
-    print pretty.HEADER("Collecting integration test results")
+    print pretty.HEADER("Collecting integration test results, on {0} cpu(s)".format(num_cpus))
 
-    for p in processes:
-        fail_count += 1 if p.wait_status() else 0
+    # Run a maximum number of parallell tests equal to cpus available
+    while tests or processes:   # While there are tests or processes left
+        try:
+            processes.append(tests.pop(0).start())  # Remove test from list after start
+        except IndexError:
+            pass   # All tests done
 
-    # Exit early if any tests failed
-    if fail_count and args.fail:
-        print pretty.FAIL(str(fail_count) + "integration tests failed")
-        sys.exit(fail_count)
+        while (len(processes) == num_cpus) or not tests:
+            # While there are a maximum of num_cpus to process
+            # Or there are no more tests left to start we wait for them
+            for p in list(processes):   # Iterate over copy of list
+                if p.proc_.poll() is not None:
+                    fail_count += 1 if p.wait_status() else 0
+                    processes.remove(p)
+
+            time.sleep(1)
+            if not processes and not tests:
+                break
+
+        # Exit early if any tests failed
+        if fail_count and args.fail:
+            print pretty.FAIL(str(fail_count) + "integration tests failed")
+            sys.exit(fail_count)
 
     # Start running the time sensitive tests
     for test in time_sensitive_tests:
@@ -377,6 +405,12 @@ def main():
 
     # Populate test objects
     all_tests = [ Test(path, args.clean) for path in leaves ]
+
+    # Check if clean-only is issued
+    if args.clean_only:
+        for test in all_tests:
+            test.clean_test()
+        sys.exit(0)
 
     # get a list of all the tests that are to be run
     filtered_tests = filter_tests(all_tests, args)

@@ -25,9 +25,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-# stackrealign is needed to guarantee 16-byte stack alignment for SSE
-# the compiler seems to be really dumb in this regard, creating a misaligned stack left and right
-set(CAPABS "-mstackrealign -msse3 -fstack-protector-strong")
+set(CAPABS "-msse3 -fstack-protector-strong")
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -125,10 +123,18 @@ file(GLOB PLUGIN_LIST "${PLUGIN_LOC}/*.a")
 plugin_config_option(driver DRIVER_LIST)
 plugin_config_option(plugin PLUGIN_LIST)
 
+# Simple way to build subdirectories before service
+foreach(DEP ${DEPENDENCIES})
+  get_filename_component(DIR_PATH "${DEP}" DIRECTORY BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(DEP_NAME "${DEP}" NAME BASE_DIR "${CMAKE_SOURCE_DIR}")
+  #get_filename_component(BIN_PATH "${DEP}" REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  add_subdirectory(${DIR_PATH})
+  add_dependencies(service ${DEP_NAME})
+endforeach()
+
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
   get_filename_component(LNAME ${LIBR} NAME_WE)
-
   add_library(libr_${LNAME} STATIC IMPORTED)
   set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
@@ -144,6 +150,7 @@ include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
@@ -182,6 +189,10 @@ add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
 
+add_library(libosdeps STATIC IMPORTED)
+set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libosdeps.a)
+
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
@@ -217,17 +228,16 @@ function(add_memdisk DISK)
   target_link_libraries(service --whole-archive memdisk --no-whole-archive)
 endfunction()
 
-# automatically built memdisks
-function(diskbuilder FOLD DISK)
-  get_filename_component(REL_DISK "${DISK}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+# automatically build memdisk from folder
+function(diskbuilder FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
-      OUTPUT  ${REL_DISK}
-      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o ${REL_DISK} ${REL_PATH}
+      OUTPUT  memdisk.fat
+      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o memdisk.fat ${REL_PATH}
     )
-  add_custom_target(diskbuilder ALL DEPENDS ${REL_DISK})
+  add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
-  add_memdisk(${REL_DISK})
+  add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
 
 if(TARFILE)
@@ -271,6 +281,7 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
+    libosdeps
     libcxx
     cxxabi
     libos
@@ -281,8 +292,8 @@ target_link_libraries(service
     $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtend.o
     --whole-archive crtn --no-whole-archive
     )
-
-
+# write binary location to known file
+file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
@@ -302,7 +313,7 @@ add_custom_target(
 add_custom_target(
   prepend_bootloader ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
-  DEPENDS service
+  DEPENDS pruned_elf_symbols
 )
 
 # install binary directly to prefix (which should be service root)

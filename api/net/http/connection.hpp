@@ -27,15 +27,17 @@
 #include <map>
 #include <vector>
 #include <delegate>
+#include <util/timer.hpp>
 
 namespace http {
 
   class Connection {
   public:
-    using TCP_conn_ptr  = net::tcp::Connection_ptr;
-    using Peer          = net::tcp::Socket;
-    using buffer_t      = net::tcp::buffer_t;
-    using Close_handler = delegate<void(Connection&)>;
+    using TCP_conn_ptr      = net::tcp::Connection_ptr;
+    using Peer              = net::tcp::Socket;
+    using buffer_t          = net::tcp::buffer_t;
+    using Close_handler     = delegate<void(Connection&)>;
+    using timeout_duration  = std::chrono::milliseconds;
 
   public:
 
@@ -44,10 +46,13 @@ namespace http {
     template <typename TCP>
     explicit Connection(TCP&, Peer, Close_handler);
 
-    bool occupied() const
-    { return on_response_ != nullptr; }
+    bool available() const
+    { return on_response_ == nullptr && keep_alive_; }
 
-    void send(Request_ptr, Response_handler, const size_t bufsize = 2048);
+    bool occupied() const
+    { return !available(); }
+
+    void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
 
     net::tcp::port_t local_port() const
     { return (tcpconn_) ? tcpconn_->local_port() : 0; }
@@ -64,7 +69,9 @@ namespace http {
     Response_ptr      res_;
     Close_handler     on_close_;
     Response_handler  on_response_;
+    Timer             timer_;
 
+    timeout_duration  timeout_dur_;
     bool keep_alive_;
 
     void send_request(const size_t bufsize);
@@ -73,8 +80,10 @@ namespace http {
 
     void end_response(Error err = Error::NONE);
 
-    void close()
-    { on_close_(*this); }
+    void timeout_request()
+    { end_response(Error::TIMEOUT); }
+
+    void close();
 
   }; // < class Connection
 

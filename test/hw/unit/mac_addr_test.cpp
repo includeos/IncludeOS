@@ -31,6 +31,14 @@ CASE("MAC addresses can be compared")
   EXPECT(host_mac_address == host_mac_address_hex);
 }
 
+CASE("MAC addresses can be assigned")
+{
+  hw::MAC_addr addr;
+  const hw::MAC_addr host_mac_address {0,240,34,255,45,11};
+  addr = host_mac_address;
+  EXPECT(host_mac_address == addr);
+}
+
 CASE("MAC address string representation prints leading zeros")
 {
   const hw::MAC_addr host_mac_address {0,240,34,255,45,11};

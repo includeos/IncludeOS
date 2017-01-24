@@ -45,7 +45,7 @@ void Service::ready()
   auto req = client_->create_request();
 
   req->set_uri(uri::URI{"/testing"});
-  client_->send(std::move(req), {inet.gateway(), 9000},
+  client_->send(std::move(req), {inet.gateway(), 9011},
   [] (auto err, auto res)
   {
     CHECKSERT(!err, "No error");
@@ -70,6 +70,7 @@ void Service::ready()
       printf("Response:\n%s\n", res->to_string().c_str());
   });
 
+  using namespace std::chrono;
   client_->get(acorn_url + "api/dashboard/status", {},
   [] (auto err, auto res)
   {
@@ -77,5 +78,5 @@ void Service::ready()
     CHECK(res != nullptr, "Received response");
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
-  });
+  }, { 3s });
 }

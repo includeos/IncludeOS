@@ -9,6 +9,7 @@ include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
 include_directories(${INCLUDEOS_ROOT}/mod/)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
+include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 
 add_custom_command(
 	OUTPUT apic_boot.o
@@ -17,16 +18,10 @@ add_custom_command(
 	DEPENDS hw/apic_boot.asm
 )
 
-# Build modules into OS library
-# TODO: Maybe set up ExternalProject for this?
-set(MOD_OBJECTS
-  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
-)
-
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/start.asm kernel/kernel_start.cpp kernel/syscalls.cpp
-  kernel/interrupts.asm kernel/os.cpp kernel/os_stdout.cpp kernel/cpuid.cpp
+  kernel/start.asm kernel/kernel_start.cpp kernel/sanity_checks.cpp
+  kernel/syscalls.cpp kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp
   kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
   kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
@@ -34,8 +29,9 @@ set(OS_OBJECTS
   kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/crc32.cpp util/async.cpp util/statman.cpp util/logger.cpp
+  util/os_statman.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar_reader.cpp util/path_to_regex.cpp
+  util/tar.cpp util/path_to_regex.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
   hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
@@ -61,7 +57,7 @@ set(OS_OBJECTS
   posix/file_fd.cpp
 )
 
-add_library(os STATIC ${OS_OBJECTS} apic_boot.o ${MOD_OBJECTS})
+add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)

@@ -39,11 +39,12 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
+  current_ephemeral_{new_ephemeral_port()}, // TODO: RFC 6056
   MAX_SEG_LIFETIME(30s)
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
   // TODO: RFC 6056
-  current_ephemeral_ = 1024 + rand() % (UINT_MAX-1024);
+
 }
 
 /*
@@ -130,7 +131,7 @@ seq_t TCP::generate_iss() {
 */
 port_t TCP::next_free_port() {
 
-  current_ephemeral_ = (current_ephemeral_ == 0) ? current_ephemeral_ + 1025 : current_ephemeral_ + 1;
+  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END) ? port_ranges::DYNAMIC_START : current_ephemeral_ + 1;
 
   // Avoid giving a port that is bound to a service.
   while(listeners_.find(current_ephemeral_) != listeners_.end())
@@ -237,14 +238,16 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 }
 
 void TCP::process_writeq(size_t packets) {
-  debug("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
+  debug2("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
   while(packets and !writeq.empty()) {
     debug("<TCP::process_writeq> Processing writeq size=%u, p=%u\n", writeq.size(), packets);
     auto conn = writeq.front();
-    writeq.pop_back();
-    conn->offer(packets);
+    // remove from writeq
+    writeq.pop_front();
     conn->set_queued(false);
+    // ...
+    conn->offer(packets);
   }
 }
 
@@ -257,14 +260,15 @@ size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
   if(packets > 0) {
     written += conn->send(buffer, n, packets);
   }
-  // if connection still can send (means there wasn't enough packets)
-  // only requeue if not already queued
-  if(!packets and conn->can_send() and !conn->is_queued()) {
-    debug("<TCP::send> %s queued\n", conn->to_string().c_str());
-    writeq.push_back(conn);
-    conn->set_queued(true);
-  }
 
+  // requeue remaining if not already queued
+  if(written == 0 || conn->can_send()) {
+    if (conn->is_queued() == false) {
+      debug("<TCP::send> %s queued\n", conn->to_string().c_str());
+      writeq.push_back(conn);
+      conn->set_queued(true);
+    }
+  }
   return written;
 }
 

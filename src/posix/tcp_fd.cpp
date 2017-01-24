@@ -86,7 +86,7 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   auto outgoing = net_stack().tcp().connect({addr, port});
   // O_NONBLOCK is set for the file descriptor for the socket and the connection
   // cannot be immediately established; the connection shall be established asynchronously.
-  if (this->non_blocking) {
+  if (this->is_blocking() == false) {
     errno = EINPROGRESS;
     return -1;
   }
@@ -166,7 +166,7 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
   // its network order ... so swap that shit:
   uint16_t port = ::htons(sin->sin_port);
   // ignore IP address (FIXME?)
-  /// verify that the IP is "local"
+  /// TODO: verify that the IP is "local"
   try {
     auto& L = net_stack().tcp().bind(port);
     // remove existing listener
@@ -244,8 +244,12 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   bool written = false;
-  conn->write(data, len,
-  [&written] (bool) { written = true; });
+  conn->write(
+    data,
+    len,
+    [&written] (bool) { written = true; }
+  );
+  
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {

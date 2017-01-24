@@ -44,6 +44,23 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 ## Getting started
 
+### Set custom location and compiler
+
+By default the project is installed to /usr/local/includeos.
+
+However, it is recommended to choose a custom location as well as select the compiler we want clang to find.
+
+To do this we can edit ~/.bashrc (in the home folder), adding these lines at the end of the file:
+
+```
+    export CC=/usr/bin/clang-3.8
+    export CXX=/usr/bin/clang++-3.8
+    export INCLUDEOS_PREFIX=<HOME FOLDER>/includeos
+    export PATH=$PATH:$INCLUDEOS_PREFIX/bin
+```
+
+This will also crucially make the boot program visible globally, so that you can simply run ```boot <myservice>``` inside any service folder.
+
 ### Install libraries
 
 **NOTE:** The script will install packages and create a network bridge.
@@ -65,8 +82,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
   * Install everything in `$INCLUDEOS_PREFIX/includeos` (defaults to `/usr/local`).
 
 Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
-
-Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [macOS](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
 
 ### Testing the installation
 
@@ -95,7 +110,7 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
     $ mkdir build && cd build
     $ cmake ..
     $ make
-    $ ../run.sh my_service
+    $ boot my_service
 ```
 
 Take a look at the [examples](./examples) and the [tests](./test). These all started out as copies of the same seed.

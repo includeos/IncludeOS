@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 echo ">>> Creating network bridge for IncludeOS "
 

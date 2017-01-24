@@ -188,8 +188,6 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
   debug("<Connection::send> Trying to send %u bytes. Starting with uw=%u packets=%u\n",
     remaining, usable_window(), packets_avail);
 
-  std::vector<Packet_ptr> packets;
-
   while(remaining and usable_window() >= SMSS() and packets_avail)
   {
     auto packet = create_outgoing_packet();
@@ -205,22 +203,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
       packet->set_flag(PSH);
 
     transmit(std::move(packet));
-    //packets.push_back(packet);
   }
-  /*Ensures(!packets.empty());
-  // get first packet
-  auto i = packets.begin();
-  auto head = i++;
-  // chain packets
-  while(i != packets.end()) {
-    (*head)->chain(*i);
-    head = i++;
-  }
-  // set push
-  (*head)->set_flag(PSH);
-
-  // transmit first packet
-  transmit(packets.front());*/
 
   debug("<Connection::send> Sent %u bytes. Finished with uw=%u packets=%u\n",
     bytes_written, usable_window(), packets_avail);
@@ -403,15 +386,13 @@ void Connection::transmit(Packet_ptr packet) {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
     rttm.start();
   }
-  //if(packet->seq() + packet->tcp_data_length() != cb.SND.NXT)
-  //printf("<TCP::Connection::transmit> rseq=%u rack=%u\n",
-  //  packet->seq() - cb.ISS, packet->ack() - cb.IRS);
-  debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
-
-  host_.transmit(std::move(packet));
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
+
+  debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
+
+  host_.transmit(std::move(packet));
 }
 
 bool Connection::can_send_one() {
@@ -467,8 +448,8 @@ bool Connection::handle_ack(const Packet& in) {
     cb.SND.UNA = in.ack();
 
     // ack everything in rtx queue
-    if(rtx_timer.is_running())
-      rtx_ack(in.ack());
+    //if(rtx_timer.is_running())
+    rtx_ack(in.ack());
 
     // update cwnd when congestion avoidance?
     bool cong_avoid_rtt = false;

@@ -101,10 +101,6 @@ public:
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-
-  /** Supplied together with write - called when a write request is done. void(size_t) */
-  using WriteCallback           = delegate<void(size_t)>;
-
   inline void write(const void* buf, size_t n);
   inline void write(const void* buf, size_t n, WriteCallback callback);
 
@@ -203,6 +199,11 @@ public:
   { return writeq.bytes_remaining(); }
 
   /*
+    Is the usable window large enough, and is there data to send.
+  */
+  bool can_send();
+
+  /*
     Return the id (TUPLE) of the connection.
   */
   Connection::Tuple tuple() const
@@ -226,6 +227,12 @@ public:
 
   bool is_closed() const
   { return state_->is_closed(); };
+
+  /*
+    Returns if the TCP has the Connection in write queue
+  */
+  bool is_queued() const
+  { return queued_; }
 
   /*
     Helper function for state checks.
@@ -431,6 +438,9 @@ public:
   void deserialize_from(void*);
   int  serialize_to(void*);
 
+  /** Unset all callbacks TODO: rename me **/
+  void setup_default_callbacks();
+
   /*
     Destroy the Connection.
     Clean up.
@@ -511,8 +521,6 @@ private:
   using CleanupCallback   = delegate<void(Connection_ptr self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
-
-  void setup_default_callbacks();
 
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
@@ -643,11 +651,6 @@ private:
   void writeq_reset();
 
   /*
-    Returns if the TCP has the Connection in write queue
-  */
-  bool is_queued() const
-  { return queued_; }
-  /*
     Mark wether the Connection is in TCP write queue or not.
   */
   void set_queued(bool queued)
@@ -741,11 +744,6 @@ private:
     Is it possible to send ONE segment.
   */
   bool can_send_one();
-
-  /*
-    Is the usable window large enough, and is there data to send.
-  */
-  bool can_send();
 
   /*
     Send as much as possible from write queue.

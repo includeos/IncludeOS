@@ -54,7 +54,7 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   memcpy(buffer, data.get(), bytes);
 
   if(address != nullptr) {
-    memcpy(address, &msg.src, std::min(*address_len, (int)sizeof(struct sockaddr_in)));
+    memcpy(address, &msg.src, std::min(*address_len, sizeof(struct sockaddr_in)));
     *address_len = sizeof(struct sockaddr_in);
   }
 
@@ -207,7 +207,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
     int bytes = 0;
     bool done = false;
 
-    this->sock->on_read(
+    this->sock->on_read(net::UDPSocket::recvfrom_handler::make_packed(
     [&bytes, &done, this,
       buffer, len, flags, address, address_len]
     (net::UDPSocket::addr_t addr, net::UDPSocket::port_t port,
@@ -236,7 +236,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
       // Store in buffer if PEEK
       if(flags & MSG_PEEK)
         recv_to_buffer(addr, port, data, data_len);
-    });
+    }));
 
     // Block until (any) data is read
     while(!done)

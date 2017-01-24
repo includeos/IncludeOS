@@ -27,15 +27,13 @@ namespace http {
       res_{nullptr},
       on_close_{std::move(on_close)},
       on_response_{nullptr},
+      timer_({this, &Connection::timeout_request}),
+      timeout_dur_{timeout_duration::zero()},
       keep_alive_{true}
   {
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
     // setup close event
     tcpconn_->on_close({this, &Connection::close});
-
-    //tcpconn_->on_connect([](auto self) {
-    //  printf("<http::Connection> Connected: %s\n", self->to_string().c_str());
-    //});
   }
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr, Close_handler on_close)
@@ -43,10 +41,17 @@ namespace http {
   {
   }
 
-  void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize)
+  void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
+    Expects(available());
     req_ = std::move(req);
+    Expects(on_res != nullptr);
     on_response_ = std::move(on_res);
+    Expects(on_response_ != nullptr);
+    timeout_dur_ = timeout;
+
+    if(timeout_dur_ > timeout_duration::zero())
+      timer_.restart(timeout_dur_);
 
     send_request(bufsize);
   }
@@ -69,6 +74,10 @@ namespace http {
 
     const auto data = std::string{(char*)buf.get(), len};
 
+    // restart timer since we got data
+    if(timer_.is_running())
+      timer_.restart(timeout_dur_);
+
     // create response if not exist
     if(res_ == nullptr)
     {
@@ -84,15 +93,17 @@ namespace http {
     // if there already is a response
     else
     {
-      // add chunks of data and reparse everything..
-      *res_ << data;
-      try {
+      // this is the case when Status line is received, but not yet headers.
+      if(res_->header().is_empty() && req_->method() != HEAD)
+      {
+        *res_ << data;
         res_->parse();
       }
-      catch(...)
+      // here we assume all headers has already been received (could not be true?)
+      else
       {
-        end_response({Error::INVALID});
-        return;
+        // add chunks of body data
+        res_->add_chunk(data);
       }
     }
 
@@ -108,7 +119,7 @@ namespace http {
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().c_str(), data.size(), conlen, res_->body().size());
+            req_->uri().to_string().to_string().c_str(), data.size(), conlen, res_->body().size());
           // risk buffering forever if no timeout
           if(conlen == res_->body().size())
           {
@@ -131,13 +142,34 @@ namespace http {
   {
     // move response to a copy in case of callback result in new request
     Ensures(on_response_);
-    auto callback{std::move(on_response_)};
+    auto callback = std::move(on_response_);
+    on_response_.reset();
+
+    // stop timeout timer
+    timer_.stop();
 
     callback(err, std::move(res_));
+
+    // avoid trying to parse any more responses
+    tcpconn_->on_read(0, nullptr);
 
     // user callback may override this
     if(!keep_alive_)
       tcpconn_->close();
+  }
+
+  void Connection::close()
+  {
+    // if the user already
+    if(on_response_ != nullptr)
+    {
+      auto callback = std::move(on_response_);
+      on_response_.reset();
+      timer_.stop();
+      callback(Error::CLOSING, std::move(res_));
+    }
+
+    on_close_(*this);
   }
 
 }

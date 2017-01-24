@@ -24,35 +24,38 @@ namespace fs
      on_internal_ls_func callback)
   {
     // list contents of meme sector by sector
-    typedef std::function<void(uint32_t)> next_func_t;
+    typedef delegate<void(uint32_t)> next_func_t;
 
     auto next = std::make_shared<next_func_t> ();
     auto weak_next = std::weak_ptr<next_func_t>(next);
-    *next =
+    *next = next_func_t::make_packed(
     [this, sector, callback, dirents, weak_next] (uint32_t sector)
     {
       debug("int_ls: sec=%u\n", sector);
       auto next = weak_next.lock();
-      device.read(sector,
-      [this, sector, callback, dirents, next] (buffer_t data) {
+      device.read(
+        sector,
+        hw::Block_device::on_read_func::make_packed(
+        [this, sector, callback, dirents, next] (buffer_t data)
+        {
+          if (!data) {
+            // could not read sector
+            callback({ error_t::E_IO, "Unable to read directory" }, dirents);
+            return;
+          }
 
-        if (!data) {
-          // could not read sector
-          callback({ error_t::E_IO, "Unable to read directory" }, dirents);
-          return;
-        }
+          // parse entries in sector
+          bool done = int_dirent(sector, data.get(), *dirents);
+          if (done)
+            // execute callback
+            callback(no_error, dirents);
+          else
+            // go to next sector
+            (*next)(sector+1);
 
-        // parse entries in sector
-        bool done = int_dirent(sector, data.get(), *dirents);
-        if (done)
-          // execute callback
-          callback(no_error, dirents);
-        else
-          // go to next sector
-          (*next)(sector+1);
-
-      }); // read root dir
-    };
+        })
+      ); // read root dir
+    });
 
     // start reading sectors asynchronously
     (*next)(sector);
@@ -61,13 +64,14 @@ namespace fs
   void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const start)
   {
     // parse this path into a stack of memes
-    typedef std::function<void(uint32_t)> next_func_t;
+    typedef delegate<void(uint32_t)> next_func_t;
 
     // asynch stack traversal
     auto next = std::make_shared<next_func_t> ();
     auto weak_next = std::weak_ptr<next_func_t>(next);
-    *next =
-    [this, path, weak_next, callback] (uint32_t cluster) {
+    *next = next_func_t::make_packed(
+    [this, path, weak_next, callback] (uint32_t cluster)
+    {
 
       if (path->empty()) {
         // attempt to read directory
@@ -77,9 +81,11 @@ namespace fs
         auto dirents = std::make_shared<std::vector<Dirent>> ();
 
         int_ls(S, dirents,
-        [callback] (error_t error, dirvec_t ents) {
-          callback(error, ents);
-        });
+        on_internal_ls_func::make_packed(
+          [callback] (error_t error, dirvec_t ents)
+          { callback(error, ents);}
+        ));
+
         return;
       }
 
@@ -95,36 +101,43 @@ namespace fs
 
       auto next = weak_next.lock();
       // list directory contents
-      int_ls(S, dirents,
-      [name, dirents, next, callback] (error_t err, dirvec_t ents) {
-
-        if (unlikely(err)) {
-          debug("Could not find: %s\n", name.c_str());
-          callback(err, dirents);
-          return;
-        }
-
-        // look for name in directory
-        for (auto& e : *ents) {
-          if (unlikely(e.name() == name)) {
-            // go to this directory, unless its the last name
-            debug("Found match for %s", name.c_str());
-            // enter the matching directory
-            debug("\t\t cluster: %llu\n", e.block);
-            // only follow directories
-            if (e.type() == DIR)
-              (*next)(e.block());
-            else
-              callback({ error_t::E_NOTDIR, e.name() }, dirents);
+      int_ls(
+        S,
+        dirents,
+        on_internal_ls_func::make_packed(
+        [name, dirents, next, callback] (error_t err, dirvec_t ents)
+        {
+          if (unlikely(err))
+          {
+            debug("Could not find: %s\n", name.c_str());
+            callback(err, dirents);
             return;
           }
-        } // for (ents)
 
-        debug("NO MATCH for %s\n", name.c_str());
-        callback({ error_t::E_NOENT, name }, dirents);
-      });
+          // look for name in directory
+          for (auto& e : *ents)
+          {
+            if (unlikely(e.name() == name))
+            {
+              // go to this directory, unless its the last name
+              debug("Found match for %s", name.c_str());
+              // enter the matching directory
+              debug("\t\t cluster: %llu\n", e.block);
+              // only follow directories
+              if (e.type() == DIR)
+                (*next)(e.block());
+              else
+                callback({ error_t::E_NOTDIR, e.name() }, dirents);
+              return;
+            }
+          } // for (ents)
 
-    };
+          debug("NO MATCH for %s\n", name.c_str());
+          callback({ error_t::E_NOENT, name }, dirents);
+        })
+      );
+
+    });
     // start by reading provided dirent or root
     (*next)(start ? start->block() : 0);
   }
@@ -134,10 +147,7 @@ namespace fs
     // parse this path into a stack of names
     auto pstk = std::make_shared<Path> (path);
 
-    traverse(pstk,
-    [on_ls] (error_t error, dirvec_t dirents) {
-      on_ls(error, dirents);
-    });
+    traverse(pstk, on_ls);
   }
   void FAT::ls(const Dirent& ent, on_ls_func on_ls)
   {
@@ -150,10 +160,7 @@ namespace fs
     // convert cluster to sector
     uint32_t S = this->cl_to_sector(ent.block());
     // read result directory entries into ents
-    int_ls(S, dirents,
-    [on_ls] (error_t err, dirvec_t entries) {
-      on_ls( err, entries );
-    });
+    int_ls(S, dirents, on_ls);
   }
 
   void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
@@ -174,26 +181,30 @@ namespace fs
     uint32_t internal_ofs = stapos % device.block_size();
 
     // cluster -> sector + position
-    device.read(this->cl_to_sector(ent.block()) + sector, nsect,
-    [pos, n, callback, internal_ofs] (buffer_t data) {
+    device.read(
+      this->cl_to_sector(ent.block()) + sector,
+      nsect,
+      hw::Block_device::on_read_func::make_packed(
+      [pos, n, callback, internal_ofs] (buffer_t data)
+      {
+        if (!data) {
+          // general I/O error occurred
+          debug("Failed to read sector %u for read()", sector);
+          callback({ error_t::E_IO, "Unable to read file" }, buffer_t(), 0);
+          return;
+        }
 
-      if (!data) {
-        // general I/O error occurred
-        debug("Failed to read sector %u for read()", sector);
-        callback({ error_t::E_IO, "Unable to read file" }, buffer_t(), 0);
-        return;
-      }
+        // when the offset is non-zero we aren't on a sector boundary
+        if (internal_ofs != 0) {
+          // so, we need to copy offset data to data buffer
+          auto* result = new uint8_t[n];
+          memcpy(result, data.get() + internal_ofs, n);
+          data = buffer_t(result, std::default_delete<uint8_t[]>());
+        }
 
-      // when the offset is non-zero we aren't on a sector boundary
-      if (internal_ofs != 0) {
-        // so, we need to copy offset data to data buffer
-        auto* result = new uint8_t[n];
-        memcpy(result, data.get() + internal_ofs, n);
-        data = buffer_t(result, std::default_delete<uint8_t[]>());
-      }
-
-      callback(no_error, data, n);
-    });
+        callback(no_error, data, n);
+      })
+    );
   }
 
   void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start)
@@ -211,27 +222,31 @@ namespace fs
     std::string filename = path->back();
     path->pop_back();
 
-    traverse(path,
-    [this, filename, func] (error_t error, dirvec_t dirents)
-    {
-      if (unlikely(error)) {
-        // no path, no file!
-        func(error, Dirent(this, INVALID_ENTITY, filename));
-        return;
-      }
-
-      // find the matching filename in directory
-      for (auto& e : *dirents) {
-        if (unlikely(e.name() == filename)) {
-          // return this dir entry
-          func(no_error, e);
+    traverse(
+      path,
+      cluster_func::make_packed(
+      [this, filename, func] (error_t error, dirvec_t dirents)
+      {
+        if (unlikely(error)) {
+          // no path, no file!
+          func(error, Dirent(this, INVALID_ENTITY, filename));
           return;
         }
-      }
 
-      // not found
-      func({ error_t::E_NOENT, filename }, Dirent(this, INVALID_ENTITY, filename));
-    }, start);
+        // find the matching filename in directory
+        for (auto& e : *dirents) {
+          if (unlikely(e.name() == filename)) {
+            // return this dir entry
+            func(no_error, e);
+            return;
+          }
+        }
+
+        // not found
+        func({ error_t::E_NOENT, filename }, Dirent(this, INVALID_ENTITY, filename));
+      }),
+      start
+    );
   }
 
   void FAT::cstat(const std::string& strpath, on_stat_func func)
@@ -244,10 +259,14 @@ namespace fs
       return;
     }
 
-    File_system::stat(strpath,
-    [this, strpath, func] (error_t error, const Dirent& ent) {
-           stat_cache.emplace(strpath, ent);
+    File_system::stat(
+      strpath,
+      fs::on_stat_func::make_packed(
+      [this, strpath, func] (error_t error, const Dirent& ent)
+      {
+        stat_cache.emplace(strpath, ent);
         func(error, ent);
-    });
+      })
+    );
   }
 }

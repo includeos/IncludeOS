@@ -1,10 +1,11 @@
 #include <hw/serial.hpp>
 
-void hw::Serial::print1(const char* cstr) {
-  char* p = (char*)cstr;
-  auto port_ = ports_[0];
-  while (*p) {
-    while (not (hw::inb(port_ + 5) & 0x20));
-    hw::outb(port_, *p++);
+extern "C"
+void __serial_print1(const char* cstr)
+{
+  const uint16_t port = 0x3F8; // Serial 1
+  while (*cstr) {
+    while (not (hw::inb(port + 5) & 0x20));
+    hw::outb(port, *cstr++);
   }
 }

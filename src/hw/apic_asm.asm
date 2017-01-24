@@ -21,7 +21,7 @@ global lapic_send_eoi
 global get_cpu_id
 global get_cpu_eip
 global get_cpu_esp
-global reboot
+global reboot_os
 
 global lapic_irq_entry
 
@@ -61,7 +61,7 @@ lapic_send_eoi:
     pop eax
     ret
 
-reboot:
+reboot_os:
     ; load bogus IDT
     lidt [reset_idtr]
     ; 1-byte breakpoint instruction

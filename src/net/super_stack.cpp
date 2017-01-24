@@ -21,24 +21,35 @@
 // Specialization for IP4
 template <>
 net::Inet<net::IP4>& net::Super_stack::get<net::IP4>(int N) {
-  return *(inet().ip4_stacks_.at(N));
+  try
+  {
+    return *inet().ip4_stacks_.at(N);
+  }
+  catch(std::out_of_range&)
+  {
+    throw Stack_not_found{"No IP4 stack found for [" + std::to_string(N) + "] (missing driver?)"};
+  }
 }
-
 
 net::Super_stack::Super_stack()
 {
-  INFO("Super stack", "Constructing");
+  INFO("Super stack", "Constructing stacks");
+
+  if(hw::Devices::devices<hw::Nic>().empty())
+    INFO2("No registered Nic devices found (nothing to construct)");
+
   for(auto& nic : hw::Devices::devices<hw::Nic>())
   {
     INFO("Super stack", "Creating stack for Nic %s", nic->device_name().c_str());
     switch(nic->proto()) {
 
     case(hw::Nic::Proto::ETH) :
-      ip4_stacks_.emplace_back(std::unique_ptr<net::Inet4>(new Inet4(*nic)));
+      ip4_stacks_.emplace_back(new Inet4(*nic));
       // ip6_stacks come here I guess
     default:
       continue;
 
     }
   }
+
 }

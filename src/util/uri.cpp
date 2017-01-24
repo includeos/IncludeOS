@@ -51,11 +51,97 @@ inline static uint16_t bind_port(const std::experimental::string_view scheme,
   return (it not_eq port_table.cend()) ? it->second : 0xFFFFU;
 }
 
+// copy helper
+inline static std::experimental::string_view updated_copy(
+  const std::string& to_copy,
+  const std::experimental::string_view& view,
+  const std::string& from_copy)
+{
+  const auto offs = view.data() - from_copy.data();
+  return {to_copy.data() + offs, view.size()};
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const std::experimental::string_view uri, const bool parse)
   : uri_str_{decode(uri)}
 {
   if (parse) this->parse();
+}
+
+URI::URI(const URI& u)
+  : uri_str_{u.uri_str_},
+    port_{u.port_},
+    scheme_{updated_copy(uri_str_, u.scheme_, u.uri_str_)},
+    userinfo_{updated_copy(uri_str_, u.userinfo_, u.uri_str_)},
+    host_{updated_copy(uri_str_, u.host_, u.uri_str_)},
+    port_str_{updated_copy(uri_str_, u.port_str_, u.uri_str_)},
+    path_{updated_copy(uri_str_, u.path_, u.uri_str_)},
+    query_{updated_copy(uri_str_, u.query_, u.uri_str_)},
+    fragment_{updated_copy(uri_str_, u.fragment_, u.uri_str_)},
+    query_map_{}
+{
+  for(const auto& ent : u.query_map_)
+  {
+    query_map_.emplace(
+      updated_copy(uri_str_, ent.first, u.uri_str_),
+      updated_copy(uri_str_, ent.second, u.uri_str_)
+    );
+  }
+}
+
+URI::URI(URI&& u)
+  : uri_str_(std::move(u.uri_str_)),
+    port_(u.port_),
+    scheme_(u.scheme_),
+    userinfo_(u.userinfo_),
+    host_(u.host_),
+    port_str_(u.port_str_),
+    path_(u.path_),
+    query_(u.query_),
+    fragment_(u.fragment_),
+    query_map_(std::move(u.query_map_))
+{
+}
+
+URI& URI::operator=(const URI& u)
+{
+  uri_str_  = u.uri_str_;
+  port_     = u.port_;
+  scheme_   = updated_copy(uri_str_, u.scheme_, u.uri_str_);
+  userinfo_ = updated_copy(uri_str_, u.userinfo_, u.uri_str_);
+  host_     = updated_copy(uri_str_, u.host_, u.uri_str_);
+  port_str_ = updated_copy(uri_str_, u.port_str_, u.uri_str_);
+  path_     = updated_copy(uri_str_, u.path_, u.uri_str_);
+  query_    = updated_copy(uri_str_, u.query_, u.uri_str_);
+  fragment_ = updated_copy(uri_str_, u.fragment_, u.uri_str_);
+
+  query_map_.clear();
+
+  for(const auto& ent : u.query_map_)
+  {
+    query_map_.emplace(
+      updated_copy(uri_str_, ent.first, u.uri_str_),
+      updated_copy(uri_str_, ent.second, u.uri_str_)
+    );
+  }
+
+  return *this;
+}
+
+URI& URI::operator=(URI&& u)
+{
+  uri_str_  = std::move(u.uri_str_);
+  port_     = u.port_;
+  scheme_   = u.scheme_;
+  userinfo_ = u.userinfo_;
+  host_     = u.host_;
+  port_str_ = u.port_str_;
+  path_     = u.path_;
+  query_    = u.query_;
+  fragment_ = u.fragment_;
+  query_map_ = std::move(u.query_map_);
+  return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,6 +207,10 @@ URI::operator bool() const noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 std::experimental::string_view URI::to_string() const noexcept {
+  return uri_str_;
+}
+
+const std::string& URI::str() const noexcept {
   return uri_str_;
 }
 

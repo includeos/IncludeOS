@@ -158,36 +158,41 @@ namespace net
   DHClient::DHClient(Stack& inet)
     : stack(inet), xid(0), console_spam(true), in_progress(false)
   {
-    on_config([this] (bool timeout) {
-        if (console_spam)
-          {
-            if (timeout)
-              INFO("DHCPv4","Negotiation timed out");
-            else
-              INFO("DHCPv4","Config complete");
-          }
-      });
+    this->on_config(
+    [this] (bool timeout)
+    {
+      if (console_spam) {
+        if (timeout)
+          INFO("DHCPv4", "Negotiation timed out");
+        else
+          INFO("DHCPv4", "Config complete");
+      }
+    });
+  }
+
+  void DHClient::on_config(config_func handler)
+  {
+    assert(handler);
+    config_handlers_.push_back(handler);
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
   {
     // Allow multiple calls to negotiate without restarting the process
-    if (in_progress)
-      return;
-
+    if (in_progress) return;
     in_progress = true;
 
     // set timeout handler
     using namespace std::chrono;
     this->timeout = Timers::oneshot(seconds(timeout_secs),
-    [this] (uint32_t) {
+    [this] (int) {
       // reset session ID
       this->xid = 0;
       this->in_progress = false;
 
       // call on_config with timeout = true
       for(auto handler : this->config_handlers_)
-        handler(true);
+          handler(true);
     });
 
     // create a random session ID

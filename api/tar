@@ -19,6 +19,6 @@
 #ifndef ___API_TAR___
 #define ___API_TAR___
 
-#include "util/tar_reader.hpp"
+#include "util/tar.hpp"
 
 #endif //< ___API_TAR___

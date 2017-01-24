@@ -25,8 +25,12 @@
 #include <kernel/cpuid.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdio>
+#include <stdlib.h>
 #include <debug>
 #include <info>
+#if defined(__MACH__)
+extern void *aligned_alloc(size_t, size_t);
+#endif
 
 extern "C" {
   void apic_enable();
