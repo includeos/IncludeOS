@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .text_copy_a, .text_copy_b {
+          fill: none;
+          stroke: #EFEAC5;
+          stroke-width: 0.3vw;
+        }
+        .text_copy_a {
+            stroke-dasharray: 12vw 24vw;
+            animation: anim_a 4s ease-in-out 1s 1;
+        }
+        .text_copy_b {
+            stroke-dasharray: 10vw 10vw;
+            animation: anim_b 14s ease-in-out -5s infinite;
+        }
+        .copys_a {
+            animation: anim_op_a 1s 1;
+        }
+        .text_copy_a:nth-child(1) {
+          stroke: #BF2D42;
+          stroke-dashoffset: 12vw;
+        }
+        .text_copy_a:nth-child(2) {
+          stroke: #3DD4F2;
+          stroke-dashoffset: 24vw;
+        }
+        .text_copy_a:nth-child(3) {
+          stroke: #EFEAC5;
+          stroke-dashoffset: 36vw;
+        }
+        .text_copy_b:nth-child(1) {
+          stroke: #BF2D42;
+          stroke-dashoffset: 0vw;
+        }
+        .text_copy_b:nth-child(2) {
+          stroke: #EFEAC5;
+          stroke-dashoffset: 10vw;
+        }
+        @keyframes anim_op_a {
+          from { opacity: 0; }
+          to { opacity: 0; }
+        }
+        @keyframes anim_a {
+          0% {
+            stroke-dashoffset: 10vw;
+            stroke-dasharray: 0vw 20vw;
+          }
+        }
+        @keyframes anim_b {
+          50% {
+            stroke-dashoffset: 12vw;
+            stroke-dasharray: 5vw 12vw;
+          }
+        }
+        html, body {
+            height:99%;
+        }
+        body {
+          background: radial-gradient(#153646 30%, #082330);
+          overflow-x: hidden;
+        }
+        footer {
+            display : table-row;
+            vertical-align : bottom;
+            height : 1em;
+        }
+        hr{
+            height: 1px;
+            color: #EFEAC5;
+            background-color: #EFEAC5;
+            border: none;
+        }
+        #container {
+            height:100%;
+            width: 100%;
+            border-collapse:collapse;
+            display : table;
+        }
+        .title {
+            font: 16vw/1 Arial, Helvetica, sans-serif;
+        }
+        .main {
+            padding-top: 7vh;
+            text-align: left;
+            font: 1.4em Arial, Helvetica, sans-serif;
+            color: #EFEAC5;
+        }
+        .visitor_info {
+            text-align: center;
+        }
+        .info_text {
+            font-size: 0.95em;
+            color: #91E7F8;
+            width: 90%;
+        }
+        .server_info {
+            width: 100%;
+            font-size: 1.2em;
+            padding-top: 2vh;
+            text-align: center;
+        }
+        span {
+          display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<div id="container">
+<div class="title">
+    <svg width="100" height="20" style="width: 100%; height: 20%;">
+        <symbol id="text_a">
+            <text x="8%" y="90%" class="text_line_a">Include</text>
+        </symbol>
+        <symbol id="text_b">
+            <text x="65%" y="90%" class="text_line_b">OS</text>
+        </symbol>
+
+        <g class="copys_a">
+            <use xlink:href="#text_a" class="text_copy_a"></use>
+            <use xlink:href="#text_a" class="text_copy_a"></use>
+            <use xlink:href="#text_a" class="text_copy_a"></use>
+        </g>
+        <g class="copys_b">
+            <use xlink:href="#text_b" class="text_copy_b"></use>
+            <use xlink:href="#text_b" class="text_copy_b"></use>
+        </g>
+    </svg>
+</div>
