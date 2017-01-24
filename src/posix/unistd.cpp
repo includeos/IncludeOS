@@ -361,3 +361,46 @@ long sysconf(int name) {
       return -1;
   }
 }
+
+uid_t getuid() {
+  return 0;
+}
+
+gid_t getgid() {
+  return 0;
+}
+
+long fpathconf(int fd, int name) {
+  try {
+    auto& fildes = FD_map::_get(fd);
+    switch (name) {
+    case _PC_FILESIZEBITS:
+      return 64;
+    case _PC_LINK_MAX:
+      return -1;
+    case _PC_NAME_MAX:
+      return 255;
+    case _PC_PATH_MAX:
+      return 1024;
+    case _PC_SYMLINK_MAX:
+      return -1;
+    case _PC_CHOWN_RESTRICTED:
+      return -1;
+    case _PC_NO_TRUNC:
+      return -1;
+    case _PC_VDISABLE:
+      return -1;
+    case _PC_ASYNC_IO:
+      return 0;
+    case _PC_SYNC_IO:
+      return 0;
+    default:
+      errno = EINVAL;
+      return -1;
+    }
+  }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}

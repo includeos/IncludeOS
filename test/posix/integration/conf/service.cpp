@@ -22,8 +22,26 @@
 #include <string.h>
 #include <errno.h>
 #include <info>
+#include <memdisk>
+#include <fs/vfs.hpp>
 
 extern "C" void test_sysconf();
+extern "C" void test_pathconf();
+
+fs::Disk_ptr& memdisk() {
+  static auto disk = fs::new_shared_memdisk();
+
+  if (not disk->fs_ready()) {
+    disk->init_fs([](fs::error_t err) {
+        if (err) {
+          printf("ERROR MOUNTING DISK\n");
+          printf("%s\n", err.reason().c_str());
+          exit(127);
+        }
+      });
+    }
+  return disk;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -37,6 +55,11 @@ int main(int argc, char *argv[]) {
   printf("%s %s\n", name.sysname, name.version);
 
   test_sysconf();
+
+  // mount a disk with contents for testing
+  auto root = memdisk()->fs().stat("/");
+  fs::mount("/etc", root, "test fs");
+  test_pathconf();
 
   // test environment variables
   char* value = getenv("HOME");
