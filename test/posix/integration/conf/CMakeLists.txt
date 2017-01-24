@@ -23,6 +23,7 @@ set(MAX_MEM 128)
 set(SOURCES
   service.cpp
   test_sysconf.c
+  test_pathconf.c
   )
 
 # DRIVERS / PLUGINS:
@@ -35,3 +36,5 @@ set(DRIVERS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+
+diskbuilder(disk disk.img)
