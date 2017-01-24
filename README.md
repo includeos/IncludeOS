@@ -111,8 +111,6 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
     $ cmake ..
     $ make
     $ boot my_service
-    or
-    $ ../run.sh my_service
 ```
 
 Take a look at the [examples](./examples) and the [tests](./test). These all started out as copies of the same seed.
